@@ -1,6 +1,6 @@
-*** Punch BOOT
 ![PB Logo](doc/pb_logo.png)
-Responsibilities:
+
+#Responsibilities:
 - Initialize PMIC
 - Configure clocks and set CPU highest clockrate
 - Read config partition
