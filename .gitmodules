@@ -7,3 +7,6 @@
 [submodule "src/3pp/musl"]
 	path = src/3pp/musl
 	url = git://git.musl-libc.org/musl
+[submodule "src/3pp/uclibc-ng"]
+	path = src/3pp/uclibc-ng
+	url = git://uclibc-ng.org/git/uclibc-ng
