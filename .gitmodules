@@ -4,3 +4,6 @@
 [submodule "src/3pp/libtommath"]
 	path = src/3pp/libtommath
 	url = https://github.com/libtom/libtommath.git
+[submodule "src/3pp/musl"]
+	path = src/3pp/musl
+	url = git://git.musl-libc.org/musl
