@@ -1,0 +1,3 @@
+[submodule "src/3pp/libtomcrypt"]
+	path = src/3pp/libtomcrypt
+	url = https://github.com/libtom/libtomcrypt.git
