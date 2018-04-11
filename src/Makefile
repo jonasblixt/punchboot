@@ -9,9 +9,15 @@ LD=$(CROSS_COMPILE)ld
 AR=$(CROSS_COMPILE)ar
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
-CFLAGS  = -g -Os -nostartfiles -march=armv7ve -mtune=cortex-a7 
+
+GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+
+
+CFLAGS  = -g -Wall -Os -nostartfiles -march=armv7ve -mtune=cortex-a7 
 CFLAGS += -DTEXT_START=0x81000000
 CFLAGS += -I. -I 3pp/libtomcrypt/src/headers 
+CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
+
 
 LDFLAGS  = -Wl,-T$(PACKAGE).lds $(CFLAGS) -Wl,--build-id=none
 LDFLAGS += -L3pp/libtomcrypt/ 
@@ -19,7 +25,7 @@ LDFLAGS += -L3pp/libtomcrypt/
 LIBS =  -ltomcrypt 
 
 SRCS:= start.S
-CSRCS:= pb.c mini-printf.c
+CSRCS:= pb.c
 OBJS:=$(SRCS:.S=.o)
 COBJS:=$(CSRCS:.c=.o)
 
@@ -34,6 +40,7 @@ libtomcrypt:
 $(PACKAGE).bin: $(PACKAGE)
 	$(OBJCOPY) -O binary -R .comment $< $@
 	@mkimage -n imximage.cfg -T imximage -a 0x81000000 -e 0x81000000 -d $(PACKAGE).bin $(PACKAGE).imx
+	@echo $(GIT_VERSION)
 
 $(PACKAGE): libtomcrypt $(OBJS) $(COBJS)
 	$(CC) $(LDFLAGS) $(OBJS)  $(COBJS) $(LIBS) -o $@
@@ -49,7 +56,6 @@ clean:
 	@-rm -rf *.o $(PACKAGE) $(PACKAGE).bin *.map out
 	$(MAKE) -C 3pp/libtomcrypt clean
 	$(MAKE) -C 3pp/libtommath clean
-	$(MAKE) -C 3pp/musl clean
 
 prog:
 	@imx_usb ./pb.imx

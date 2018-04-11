@@ -2,8 +2,6 @@
 #include "pb.h"
 #include "pb_types.h"
 #include "pb_io.h"
-#include "mini-printf.h"
-
 #include <tomcrypt.h>
 
 
@@ -22,26 +20,37 @@ static void uart_putc(unsigned char c) {
 
 }
 
-void uart_puts(unsigned char *s)
+int _write(int file, char *ptr, int len)
 {
-    unsigned char *s_ptr = s;
-    
+    int sz = len;
     do {
-        uart_putc(*s_ptr);
-    } while (*s_ptr++);
-
+        uart_putc(*ptr++);
+        if (*ptr == 0)
+            break;
+    } while(--sz);
+    return len;
 }
 
 void punch_boot_init(void) {
-    unsigned char buf[256];
+    unsigned char dummy[32];
+    char pelle[20] = "Arne";
+    unsigned char hash[32];
+    hash_state md;
+    
+    printf("\n\rPB: " VERSION "\n\r");
 
-    //register_hash(&sha256_desc);
+    sha256_init(&md);
+    sha256_process(&md, (const unsigned char*) pelle, strlen(pelle));
+    sha256_done(&md, hash);
 
-    mini_snprintf(buf,sizeof(buf), "\n\rHello World from Punch Boot\n\r");
-    uart_puts(buf);   
 
-    sprintf(buf,"Kalle Anka\n\r");
-    uart_puts(buf);
+    printf ("SHA256: \n\r");
+
+    for (int i = 0; i < 32; i++)
+        printf ("%.2x",hash[i]);
+    printf("\n\r");
+    
+
 
     while(1)
         asm("nop");

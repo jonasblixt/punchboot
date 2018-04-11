@@ -104,11 +104,14 @@ SECTIONS
  	.usr_stack :
         {
                 PROVIDE(_usr_stack_start = .);
-                . = . + 4096 ;
+                . = . + 1024*32 ;
                 . = ALIGN(4);
                 PROVIDE(_usr_stack_end = .);
         }
 
 	PROVIDE(_code_end = .);
+
+    . = ALIGN(1024*100);
+    PROVIDE(end = .);
 
 }

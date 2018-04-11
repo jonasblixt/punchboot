@@ -165,7 +165,7 @@ _reset:
   ldr r5,=#0x020A0004
   str r4,[r5]
 
-  ldr r4,=#0x4000
+  ldr r4,=#0x0000
   ldr r5,=#0x020A0000
   str r4,[r5]
 
@@ -251,13 +251,13 @@ uart_reset_wait:
 
   @ ---- END OF UART CONFIG ---------------------------------------------------
 
-  ldr r4,=#0x4000
-  ldr r5,=#0x020A0000
-  str r4,[r5]
+  @ldr r4,=#0x4000
+  @ldr r5,=#0x020A0000
+  @str r4,[r5]
 
-  ldr r4,='A'
-  ldr r5,=UART_PHYS+UTXD
-  str r4,[r5]
+  @ldr r4,='A'
+  @ldr r5,=UART_PHYS+UTXD
+  @str r4,[r5]
 
   ldr sp, =_svc_stack_end
   bl punch_boot_init
@@ -268,15 +268,31 @@ uart_reset_wait:
     b .
 
 
-_undefined_instruction: b .
-_software_interrupt: b .
-_prefetch_abort: b .
-_data_abort: b .
-_not_used: b .
-_irq: b .
-_fiq: b .
+_undefined_instruction: 
+  ldr r4,='1'
+_software_interrupt: 
+  ldr r4,='2'
+_prefetch_abort:
+  ldr r4,='3'
+_data_abort: 
+  ldr r4,='4'
+_not_used: 
+  ldr r4,='5'
+_irq: 
+  ldr r4,='6'
+_fiq: 
+  ldr r4,='7'
 
 
+  ldr r5,=UART_PHYS+UTXD
+  str r4,[r5]
+
+
+  ldr r4,=#0x4000
+  ldr r5,=#0x020A0000
+  str r4,[r5]
+
+b .
 
 
 
