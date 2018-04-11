@@ -1,8 +1,10 @@
+#include <stdio.h>
 #include "pb.h"
 #include "pb_types.h"
 #include "pb_io.h"
 #include "mini-printf.h"
 
+#include <tomcrypt.h>
 
 
 static void uart_putc(unsigned char c) {
@@ -33,8 +35,13 @@ void uart_puts(unsigned char *s)
 void punch_boot_init(void) {
     unsigned char buf[256];
 
+    //register_hash(&sha256_desc);
+
     mini_snprintf(buf,sizeof(buf), "\n\rHello World from Punch Boot\n\r");
     uart_puts(buf);   
+
+    sprintf(buf,"Kalle Anka\n\r");
+    uart_puts(buf);
 
     while(1)
         asm("nop");

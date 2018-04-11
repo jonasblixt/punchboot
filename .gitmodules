@@ -10,3 +10,6 @@
 [submodule "src/3pp/uclibc-ng"]
 	path = src/3pp/uclibc-ng
 	url = git://uclibc-ng.org/git/uclibc-ng
+[submodule "src/3pp/newlib-cygwin"]
+	path = src/3pp/newlib-cygwin
+	url = git://sourceware.org/git/newlib-cygwin.git
