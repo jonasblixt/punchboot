@@ -13,3 +13,6 @@
 [submodule "src/3pp/newlib-cygwin"]
 	path = src/3pp/newlib-cygwin
 	url = git://sourceware.org/git/newlib-cygwin.git
+[submodule "src/3pp/tinyprintf"]
+	path = src/3pp/tinyprintf
+	url = https://github.com/cjlano/tinyprintf.git
