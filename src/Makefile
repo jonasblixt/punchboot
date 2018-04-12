@@ -13,7 +13,7 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
 
 
-CFLAGS  = -g -Wall -Os -nostartfiles -march=armv7ve -mtune=cortex-a7 
+CFLAGS  = -Wall -O2 -nostartfiles -march=armv7ve -mtune=cortex-a7 
 CFLAGS += -DTEXT_START=0x81000000
 CFLAGS += -I. -I 3pp/libtomcrypt/src/headers 
 CFLAGS += -DVERSION=\"$(GIT_VERSION)\"
@@ -54,6 +54,7 @@ $(PACKAGE): libtomcrypt $(OBJS) $(COBJS)
 
 clean:
 	@-rm -rf *.o $(PACKAGE) $(PACKAGE).bin *.map out
+reallyclean:
 	$(MAKE) -C 3pp/libtomcrypt clean
 	$(MAKE) -C 3pp/libtommath clean
 
