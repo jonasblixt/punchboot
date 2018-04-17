@@ -14,6 +14,12 @@ static inline void pb_writel(u32 data, void * addr)
 }
 
 
+static inline void pb_write(u16 data, void * addr)
+{
+	*(( u16 *)addr) = data;
+}
+
+
 #define REG(base, reg) ( (void *) base+reg)
 
 #endif

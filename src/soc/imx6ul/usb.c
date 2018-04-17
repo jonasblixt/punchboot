@@ -4,7 +4,7 @@
 #include <types.h>
 #include <usb.h>
 #include <tinyprintf.h>
-
+#include <recovery.h>
 
 static struct ehci_device _ehci_dev;
 
@@ -21,7 +21,15 @@ void soc_usb_init(u32 base_addr){
 
     tfp_printf ("USB Init...\n\r");
 
+    /* Enable USB PLL */
+    reg = pb_readl(REG(0x020C8000,0x10));
+    reg |= (1<<6);
+    pb_writel(reg, REG(0x020C8000, 0x10));
 
+    /* Power up USB */
+    pb_writel ((1 << 31) | (1 << 30), REG(0x020C9038,0));
+    pb_writel(0xFFFFFFFF, REG(0x020C9008,0));
+ 
     reg = pb_readl(REG(_ehci_dev.base,USB_CMD));
     reg |= (1<<1);
     pb_writel(reg, REG(_ehci_dev.base,USB_CMD));
@@ -276,8 +284,39 @@ const u8  hid_pb_report[] = {
 };
 
 
+static void hid_process_report(struct usbdSetupPacket *pkt)
+{
+    struct ehci_dQH * qh_out = &_ehci_dev.dqh[0];
+    struct ehci_dTH  __attribute__((aligned(4096)))dtd_out;
+    u8 __attribute__((aligned(4096))) bfr_out[4096];
+    
 
-static void ep0_setup_event(u32 irq_flags)
+    dtd_out.next_dtd = 0xDEAD0001;
+    dtd_out.dtd_token = (pkt->wLength << 16) |  0x80  | (1 << 15);
+    dtd_out.bfr_page0 = (u32) bfr_out;
+
+    qh_out->next_dtd = (u32) &dtd_out;  
+
+    pb_writel((1<<0), REG(_base_addr, USB_ENDPTPRIME));
+    
+    while (pb_readl(REG(_ehci_dev.base, USB_ENDPTPRIME)) & (1 << 0) )
+        asm("nop");
+
+
+    while (! (pb_readl(REG(_ehci_dev.base, USB_USBSTS)) & 1) )
+        asm("nop"); // Wait for irq
+
+    pb_writel(1 << 16, REG(_ehci_dev.base, USB_ENDPTCOMPLETE));
+
+    while (qh_out->dtd_token & 0x80)
+        asm("nop");
+
+
+    recovery_cmd_event(bfr_out, pkt->wLength);
+
+}
+
+static void usb_process_ep0(void)
 {
     u16 request;
     struct usbdSetupPacket *setup = &_ehci_dev.setup;
@@ -367,29 +406,36 @@ static void ep0_setup_event(u32 irq_flags)
             _ehci_dev.enumerated  = 1;
             
         break;
+        case SET_HID_REPORT:
+            hid_process_report(setup);
+            send_zlp(0);
+        break;
        default:
             tfp_printf ("Unhandled request %4.4x\n\r",request);
+            tfp_printf ("bRequestType = 0x%2.2x\n\r", setup->bRequestType);
+            tfp_printf ("bRequest = 0x%2.2x\n\r", setup->bRequest);
+            tfp_printf ("wValue = 0x%4.4x\n\r", setup->wValue);
+            tfp_printf ("wIndex = 0x%4.4x\n\r",setup->wIndex);
+            tfp_printf ("wLength = 0x%4.4x\n\r",setup->wLength);
+
+
     }
     
     //tfp_printf ("<\n\r");
 }
 
 void soc_usb_task(void) {
-    volatile u32 sts = pb_readl(REG(_base_addr, USB_USBSTS));
-
-    pb_writel(0xFFFFFFFF, REG(_base_addr, USB_USBSTS));
-
-
-    u32 eps = pb_readl(REG(_base_addr, USB_ENDPTSETUPSTAT));
-    if  (eps & 1) {
-        ep0_setup_event(sts);
-    }
-   
+    if  (pb_readl(REG(_base_addr, USB_ENDPTSETUPSTAT)) & 1)
+        usb_process_ep0();
 
     if (_ehci_dev.enumerated && !_ehci_dev.ready) {
         _ehci_dev.ready = 1;
         tfp_printf ("USB enumeration done\n\r");
-        pb_writel((1<<23)|(1<<7), REG(_ehci_dev.base, USB_ENDPTCTRL1));
+    
+    }
+
+    if (_ehci_dev.ready) {
+    
     
     }
 }

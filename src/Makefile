@@ -21,13 +21,13 @@ endif
 CFLAGS   = -Wall -O2 -nostdlib -nostartfiles  
 CFLAGS  += -I. -I include/ -I 3pp/libtomcrypt/src/headers
 CFLAGS  += -I 3pp/tinyprintf -DTINYPRINTF_OVERRIDE_LIBC=0
-CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
+CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" -DDEBUG
 
 LIBS     =  -ltomcrypt 
 
 LD_FLAGS =
 ASM_SRCS = 
-C_SRCS   = main.c recovery.c
+C_SRCS   = main.c recovery.c crc.c
 C_SRCS  += 3pp/tinyprintf/tinyprintf.c
 
 include board/$(BOARD)/makefile.mk

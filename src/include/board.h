@@ -4,5 +4,6 @@
 void board_critical_init(void);
 void board_uart_init(void);
 void board_usb_init(void);
+void board_emmc_init(void);
 
 #endif

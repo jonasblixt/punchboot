@@ -6,6 +6,7 @@ SECTIONS
 {
 
 	. = PB_ENTRY;
+    PROVIDE (_code_start = .);
 	.text :
  	{
 		*(.text)
@@ -29,7 +30,7 @@ SECTIONS
         . = ALIGN(8);
         _edata = .;
     }
-
+    PROVIDE (_code_end = .);
     PROVIDE (_zero_region_start = .);
     .bss :
     {

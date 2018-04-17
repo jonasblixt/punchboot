@@ -51,6 +51,7 @@ struct ehci_dQH {
 #define SET_CONFIGURATION			0x0009
 #define SET_IDLE					0x210A
 #define GET_HID_CLASS_DESCRIPTOR	0x8106
+#define SET_HID_REPORT              0x2109
 #define SET_FEATURE					0x0003
 #define SET_ADDRESS                 0x0005
 
