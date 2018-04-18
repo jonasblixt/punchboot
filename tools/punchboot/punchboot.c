@@ -39,6 +39,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 #include <libusb-1.0/libusb.h>
 
 #include "recovery.h"
@@ -84,7 +86,7 @@ static int pb_send_command(libusb_device_handle *h, uint8_t cmd, uint8_t *bfr,
                                     uint32_t sz) {
     unsigned char tmp[4096];
     int err;
-    struct pb_usb_command_hdr *hdr = tmp;
+    struct pb_usb_command_hdr *hdr = (struct pb_usb_command_hdr *) tmp;
     unsigned char * payload_ptr = tmp + sizeof(struct pb_usb_command_hdr);
     
     
@@ -111,10 +113,19 @@ static int pb_send_command(libusb_device_handle *h, uint8_t cmd, uint8_t *bfr,
     return err;
 }
 
-static int pb_program_bootloader(libusb_device_handle *h, const char *f_name) {
-    unsigned char tmp[4096];
+static int pb_program_part (libusb_device_handle *h, uint8_t part_no, 
+                                                const char *f_name) {
+
+
+    unsigned char tmp[1024*1024*4];
     int err;
-    struct pb_usb_command_hdr *hdr = tmp;
+    struct pb_usb_command_hdr *hdr = (struct pb_usb_command_hdr *) tmp;
+
+    struct pb_write_part_hdr write_cmd;
+
+    write_cmd.part_no = part_no;
+    write_cmd.lba_offset = 0;
+    write_cmd.no_of_blocks = 0;
 
     FILE *fp = fopen(f_name, "rb");
     
@@ -122,7 +133,83 @@ static int pb_program_bootloader(libusb_device_handle *h, const char *f_name) {
                                     sizeof(struct pb_chunk_hdr);
     unsigned char * payload_ptr = tmp + sizeof(struct pb_usb_command_hdr);
     
-    struct pb_chunk_hdr * chunk_hdr = payload_ptr;
+    struct pb_chunk_hdr * chunk_hdr = (struct pb_chunk_hdr *) payload_ptr;
+    unsigned int chunk_count = 0;
+    unsigned int total_size = 0;
+
+
+    while (1) {
+        int read_sz = fread(chunk_ptr , 1, 2048, fp);
+        
+
+
+        if (read_sz <= 0)
+            break;
+
+        chunk_hdr->chunk_no = chunk_count;
+        chunk_hdr->chunk_sz = read_sz;
+        chunk_count++;
+
+        hdr->cmd = PB_CMD_TRANSFER_DATA;
+        hdr->payload_crc = crc32(0, payload_ptr, read_sz + sizeof(struct pb_chunk_hdr));
+        hdr->payload_sz = read_sz + sizeof(struct pb_chunk_hdr);
+        hdr->header_crc = crc32(0, tmp, sizeof(struct pb_usb_command_hdr) - 4);
+
+
+        total_size = read_sz + sizeof(struct pb_chunk_hdr) +
+                            sizeof(struct pb_usb_command_hdr);
+
+        err = libusb_control_transfer(h,
+                    CTRL_OUT,
+                    HID_SET_REPORT,
+                    (HID_REPORT_TYPE_OUTPUT << 8) | 1,
+                    0,
+                    tmp, total_size, 1000);
+
+        if (!err) {
+            printf ("transfer err = %i\n",err);
+            break;
+        }
+
+        if (chunk_count >= 2048) {
+            
+            write_cmd.no_of_blocks = chunk_count*4;
+            pb_send_command (h, PB_CMD_WRITE_PART, (unsigned char*) &write_cmd, 
+                                    sizeof(struct pb_write_part_hdr));
+        
+            write_cmd.lba_offset += chunk_count*4;
+            chunk_count = 0;
+
+            
+        }
+
+    }
+
+    if (chunk_count) {
+        write_cmd.no_of_blocks = chunk_count*4;
+        pb_send_command (h, PB_CMD_WRITE_PART, (unsigned char*) &write_cmd, 
+                                sizeof(struct pb_write_part_hdr));
+    }
+
+
+    fclose(fp);
+
+
+    return err;
+}
+
+static int pb_program_bootloader(libusb_device_handle *h, const char *f_name) {
+    unsigned char tmp[4096];
+    int err;
+    struct pb_usb_command_hdr *hdr = (struct pb_usb_command_hdr *) tmp;
+
+    FILE *fp = fopen(f_name, "rb");
+    
+    unsigned char * chunk_ptr = tmp + sizeof(struct pb_usb_command_hdr) +
+                                    sizeof(struct pb_chunk_hdr);
+    unsigned char * payload_ptr = tmp + sizeof(struct pb_usb_command_hdr);
+    
+    struct pb_chunk_hdr * chunk_hdr = (struct pb_chunk_hdr *) payload_ptr;
     unsigned int chunk_count = 0;
     unsigned int total_size = 0;
 
@@ -160,6 +247,8 @@ static int pb_program_bootloader(libusb_device_handle *h, const char *f_name) {
         }
     }
 
+    fclose(fp);
+
     hdr->cmd = PB_CMD_FLASH_BOOT;
     hdr->payload_crc = 0;
     hdr->payload_sz = 0;
@@ -188,6 +277,8 @@ static int pb_program_bootloader(libusb_device_handle *h, const char *f_name) {
 
 int main(int argc, char **argv)
 {
+    extern char *optarg;
+    extern int optind, opterr, optopt;
     libusb_device_handle *h;
     char c;
 	libusb_device **devs;
@@ -198,10 +289,14 @@ int main(int argc, char **argv)
 
 
     if (argc <= 1) {
-        printf ("--- Punch BOOT ---\n");
-        printf (" punchboot -b <file name>    - Install bootloader\n");
-        printf (" punchboot -r                - Reset device\n");
-
+        printf (" --- Punch BOOT ---\n\n");
+        printf (" Bootloader:\n");
+        printf ("  punchboot -b -f <file name> - Install bootloader\n");
+        printf ("  punchboot -r                - Reset device\n");
+        printf ("\n");
+        printf (" Partition Management:\n");
+        printf ("  punchboot -l                - List partitions\n");
+        printf ("  punchboot -w <n> -f <fn>    - Write 'fn' to partition 'b'\n");
         exit(0);
     }
 
@@ -240,22 +335,45 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    int part_no = -1;
+    bool flag_part_write = false;
+    bool flag_bl_write = false;
+    bool flag_reset = false;
+    char *fn = NULL;
 
-    while ((c = getopt (argc, argv, "rb:")) != -1) {
+    while ((c = getopt (argc, argv, "rbw:f:")) != -1) {
         switch (c) {
             case 'b':
-                pb_program_bootloader(h, optarg);
+                flag_bl_write = true;       
             break;
             case 'r':
-                printf ("Resetting...\n");
-                pb_send_command(h, PB_CMD_RESET, NULL, 0);
+                flag_reset = true;
             break;
-
+            case 'w':
+                part_no = atoi(optarg);
+                flag_part_write = true;
+            break;
+            case 'f':
+                fn = optarg;
+            break;
             default:
                 abort ();
         }
     }
+    
+    if (flag_bl_write && fn) {
+        pb_program_bootloader(h, fn);
+        if (flag_reset)
+            pb_send_command(h, PB_CMD_RESET, NULL, 0);
 
+    } else if (flag_part_write && fn) {
+        printf ("Writing %s to part %i\n",fn, part_no);
+        pb_program_part(h, part_no, fn);  
+    
+        if (flag_reset)
+            pb_send_command(h, PB_CMD_RESET, NULL, 0);
+    }
+    
 
     libusb_exit(NULL);
 	return 0;

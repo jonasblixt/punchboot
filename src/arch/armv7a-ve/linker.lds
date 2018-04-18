@@ -31,6 +31,17 @@ SECTIONS
         _edata = .;
     }
     PROVIDE (_code_end = .);
+
+ 
+    .bigbuffer (NOLOAD): 
+    {
+        PROVIDE(_big_buffer_start = .);
+        *(.bigbuffer .bigbuffer*)
+        . = ALIGN(8);
+        PROVIDE(_big_buffer_end = .);
+    }
+
+
     PROVIDE (_zero_region_start = .);
     .bss :
     {
@@ -49,7 +60,7 @@ SECTIONS
 		_heap_end = .;
 	}
     PROVIDE (_zero_region_end = .);
-
+   
  	.stack :
     {
         PROVIDE(_stack_start = .);

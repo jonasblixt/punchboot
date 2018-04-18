@@ -15,7 +15,7 @@
 #include <tinyprintf.h>
 #include <tomcrypt.h>
 #include <recovery.h>
-
+#include <gpt.h>
 
 #define DEBUG
 
@@ -34,7 +34,7 @@ void pb_main(void) {
 
 
     board_emmc_init();
-
+    gpt_init();
 
  /*   tfp_printf("memcpy works:\n\r");
     memcpy(hash, pelle,4);

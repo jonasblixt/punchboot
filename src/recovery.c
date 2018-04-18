@@ -11,7 +11,7 @@
 
 static u8 usb_buf[4096];
 static u8 cmd_to_process;
-static u8 chunk_buffer[BL_MAX_SIZE];
+static u8 __attribute__((section (".bigbuffer"))) chunk_buffer[BL_MAX_SIZE];
 
 void recovery_cmd_event(u8 *bfr, u16 sz) {
 
@@ -29,16 +29,30 @@ static void pb_flash_bootloader(u8 *bfr, u32 sz) {
     
 
 
-    tfp_printf ("Switching to BOOT0\n\r");
-    usdhc_emmc_switch_part(0);
-    tfp_printf ("Writing %i blocks...\n\r", blocks_to_write);
-    usdhc_emmc_write_blocks(2, bfr,blocks_to_write);
-    tfp_printf ("Write complete...\n\r");
+    tfp_printf ("Flashing BOOT0\n\r");
     usdhc_emmc_switch_part(1);
-    usdhc_emmc_write_blocks(2, bfr,blocks_to_write);
+    tfp_printf ("Switching to BOOT0\n\r");
+    usdhc_emmc_xfer_blocks(2, bfr,blocks_to_write, 1);
+
+    tfp_printf ("Flashing BOOT1\n\r");
+    usdhc_emmc_switch_part(2);
+    tfp_printf ("Switching to BOOT1\n\r");
+    usdhc_emmc_xfer_blocks(2, bfr,blocks_to_write, 1);
 
     usdhc_emmc_switch_part(0);
 
+}
+
+static void pb_flash_part(u8 part_no, u32 lba_offset, u32 no_of_blocks, u8 *bfr) {
+    
+   
+
+
+    tfp_printf ("Writing %i blocks to part %i with offset %i...\n\r",no_of_blocks,
+                                            part_no, lba_offset);
+
+
+    usdhc_emmc_xfer_blocks(4096 + lba_offset, bfr, no_of_blocks, 1);
 }
 
 void recovery(void) {
@@ -53,6 +67,11 @@ void recovery(void) {
     u8 * usb_chunk_buf = usb_buf + sizeof(struct pb_usb_command_hdr) +
                             sizeof(struct pb_chunk_hdr);
 
+
+
+    struct pb_write_part_hdr * part_wr_hdr = 
+            (struct pb_write_part_hdr *) payload;
+
     tfp_printf ("\n\r*** RECOVERY MODE ***\n\r");
     
     cmd_to_process = 0;
@@ -62,6 +81,7 @@ void recovery(void) {
 
     u32 loop_count = 0;
     volatile u8 led_blink = 0;
+
 
     while(1) {
         loop_count++;
@@ -83,10 +103,10 @@ void recovery(void) {
 
                 switch (hdr->cmd) {
                     case PB_CMD_TRANSFER_DATA:
-                            tfp_printf ("Got chunk: %i, sz=%ib\n\r",
+                            /*tfp_printf ("Got chunk: %i, sz=%ib\n\r",
                                         chunk->chunk_no,
                                         chunk->chunk_sz);
-                            
+                            */
                             if (chunk->chunk_no == 0) {
                                 chunk_buf_count = 0;
                             }
@@ -110,6 +130,12 @@ void recovery(void) {
                     case PB_CMD_FLASH_BOOT:
                         tfp_printf ("Installing bootloader  %ib...\n\r",chunk_buf_count);
                         pb_flash_bootloader(chunk_buffer, chunk_buf_count);
+                    break;
+                    case PB_CMD_WRITE_PART:
+                        pb_flash_part(part_wr_hdr->part_no,
+                                        part_wr_hdr->lba_offset,
+                                        part_wr_hdr->no_of_blocks,
+                                        chunk_buffer);
                     break;
                     case PB_CMD_RESET:
                         plat_reset();

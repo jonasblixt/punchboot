@@ -1,6 +1,8 @@
 #ifndef __EMMC_H__
 #define __EMMC_H__
 
+#include <types.h>
+
 #define GENMASK(h, l) \
 	(((~0UL) << (l)) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
 
@@ -441,7 +443,7 @@ struct mmc_ext_csd {
 
 
 
-void usdhc_emmc_write_blocks(u32 start_lba, u8 *bfr, u32 nblocks);
+void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr, u32 nblocks, u8 wr);
 void usdhc_emmc_switch_part(u8 part_no);
 void soc_emmc_init(void);
 

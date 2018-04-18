@@ -27,7 +27,7 @@ LIBS     =  -ltomcrypt
 
 LD_FLAGS =
 ASM_SRCS = 
-C_SRCS   = main.c recovery.c crc.c
+C_SRCS   = main.c recovery.c crc.c gpt.c
 C_SRCS  += 3pp/tinyprintf/tinyprintf.c
 
 include board/$(BOARD)/makefile.mk
@@ -66,7 +66,7 @@ $(TARGET).bin: $(TARGET)
 	@$(OBJCOPY) -O binary -R .comment $< $@
 
 	@echo "VERSION = $(GIT_VERSION)"
-	@$(SIZE) -B $<
+	@$(SIZE) -A $<
 
 $(TARGET): libtomcrypt $(OBJS)
 	@echo LINK $@

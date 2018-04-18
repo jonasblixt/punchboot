@@ -288,12 +288,17 @@ static void hid_process_report(struct usbdSetupPacket *pkt)
 {
     struct ehci_dQH * qh_out = &_ehci_dev.dqh[0];
     struct ehci_dTH  __attribute__((aligned(4096)))dtd_out;
-    u8 __attribute__((aligned(4096))) bfr_out[4096];
+    u8 __attribute__((aligned(4096))) bfr_out[4096*5];
     
 
     dtd_out.next_dtd = 0xDEAD0001;
     dtd_out.dtd_token = (pkt->wLength << 16) |  0x80  | (1 << 15);
     dtd_out.bfr_page0 = (u32) bfr_out;
+    dtd_out.bfr_page1 = (u32) bfr_out+4096;
+    dtd_out.bfr_page2 = (u32) bfr_out+4096*2;
+    dtd_out.bfr_page3 = (u32) bfr_out+4096*3;
+    dtd_out.bfr_page4 = (u32) bfr_out+4096*4;
+
 
     qh_out->next_dtd = (u32) &dtd_out;  
 

@@ -102,21 +102,35 @@ static void usdhc_emmc_read_extcsd(void) {
 
 void usdhc_emmc_switch_part(u8 part_no) {
 
+    u8 part_config = _raw_extcsd[EXT_CSD_PART_CONFIG];
+
+    u8 value = part_config & ~0x07;
+    value |= part_no;
+    
+    if (part_no == 0) 
+        value = 0x10;
+
+
     /* Switch to HS timing */
     usdhc_emmc_send_cmd(MMC_CMD_SWITCH, 
                 (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
                 (EXT_CSD_PART_CONFIG) << 16 |
-                (part_no) << 8,
+                (value << 8) ,
                 0x1B); // R1b
  
+   usdhc_emmc_check_status();
 
+   tfp_printf ("Switched to part: %i (%2.2X)\n\r", part_no, value);
 }
 
-void usdhc_emmc_write_blocks(u32 start_lba, u8 *bfr, u32 nblocks) {
+
+void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr, u32 nblocks, u8 wr) {
     struct usdhc_adma2_desc tbl[256];
     struct usdhc_adma2_desc *tbl_ptr = tbl;
     u16 transfer_sz = 0;
     u32 remaining_sz = nblocks*512;
+    u32 flags = 0;
+    u32 cmd = 0;
     u8 *buf_ptr = bfr;
 
     do {
@@ -143,21 +157,23 @@ void usdhc_emmc_write_blocks(u32 start_lba, u8 *bfr, u32 nblocks) {
 
 	pb_writel(0x00000200 | (nblocks << 16), REG(_iobase, USDHC_BLK_ATT));
 	
-    if (nblocks > 1) {
-        pb_writel((1<<31)| (1<<3)|  (1<<5) | (1<<2) | (1<<1) |1, 
-                REG(_iobase, USDHC_MIX_CTRL));
-        
-        usdhc_emmc_send_cmd(MMC_CMD_WRITE_MULTIPLE_BLOCK, 
-                        start_lba, 
-                        MMC_RSP_R1 | 0x20);
+    flags = (1<<31)| (1<<3) | 1;
 
-    } else {
-        pb_writel((1<<31)| (1<<3)| 1, REG(_iobase, USDHC_MIX_CTRL));
-
-        usdhc_emmc_send_cmd(MMC_CMD_WRITE_SINGLE_BLOCK, 
-                        start_lba, 
-                        MMC_RSP_R1 | 0x20);
+    cmd = MMC_CMD_WRITE_SINGLE_BLOCK;
+    if (!wr) {
+        flags |= (1 << 4);
+        cmd = MMC_CMD_READ_SINGLE_BLOCK;
     }
+
+    if (nblocks > 1) {
+        flags |= (1<<5) | (1<<2) | (1<<1);
+        cmd = MMC_CMD_WRITE_MULTIPLE_BLOCK;
+        if (!wr)
+            cmd = MMC_CMD_READ_MULTIPLE_BLOCK;
+    }
+    pb_writel(flags, REG(_iobase, USDHC_MIX_CTRL));
+        
+    usdhc_emmc_send_cmd(cmd, start_lba, MMC_RSP_R1 | 0x20);
  
     usdhc_emmc_wait_for_de();
 
@@ -264,5 +280,7 @@ void soc_emmc_init(void) {
 			_raw_extcsd[EXT_CSD_SEC_CNT + 3] << 24;
 
     tfp_printf ("EMMC: %u sectors, %u bytes\n\r",sectors,sectors*512);
+
+    tfp_printf ("EMMC: Partconfig: %2.2X\n\r", _raw_extcsd[EXT_CSD_PART_CONFIG]);
 
 }

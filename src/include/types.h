@@ -11,6 +11,8 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned int size_t;
 typedef unsigned int bool;
+typedef unsigned long long u64;
+
 typedef u32 __iomem;
 
 
