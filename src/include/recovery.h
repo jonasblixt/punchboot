@@ -28,6 +28,6 @@ struct pb_write_part_hdr {
 
 void recovery(void);
 void recovery_cmd_event(u8 *bfr, u16 sz);
-
+void pb_flash_bootloadeR(u8 *bfr, u32 blocks_to_write);
 
 #endif

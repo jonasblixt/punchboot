@@ -16,9 +16,13 @@
 #define USB_ENDPTSETUPSTAT 0x1ac
 #define USB_DEVICEADDR 0x154
 #define USB_ENDPTCTRL1 0x1c4
+#define USB_ENDPTCTRL2 0x1c8
+
 #define USB_ENDPTSTAT 0x1b8
 #define USBPHY_BASE 0x020C9000
 #define USB_ENDPTNAKEN 0x17C
+
+
 struct ehci_dTH {
     u32 next_dtd;
     u32 dtd_token;
@@ -54,9 +58,12 @@ struct ehci_dQH {
 #define SET_ADDRESS                 0x0005
 #define GET_STATUS                  0x8000
 
-#define PB_PREP_BUFFER              0x2121
-#define PB_PROG_BOOTLOADER          0x2122
-#define PB_GET_VERSION              0x2123
+#define PB_PREP_BUFFER              0xA121
+#define PB_PROG_BOOTLOADER          0xA122
+#define PB_GET_VERSION              0xA123
+#define PB_DO_RESET                 0xA124
+#define PB_PROG_PART                0x2125
+
 
 struct usbdSetupPacket {
     u8 bRequestType;	//! Characteristics of request 
@@ -123,8 +130,8 @@ struct usb_descriptors {
     const struct usb_interface_descriptor interface;
     const struct usb_endpoint_descriptor endpoint_bulk_out;
     const struct usb_endpoint_descriptor endpoint_bulk_in;
-
-
+    const struct usb_endpoint_descriptor endpoint_intr_out;
+    const struct usb_endpoint_descriptor endpoint_intr_in;
 } __attribute__ ((packed));
 
 

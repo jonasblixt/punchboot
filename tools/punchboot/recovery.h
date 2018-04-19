@@ -3,17 +3,17 @@
 
 #include <sys/types.h>
 
-#define PB_CMD_TRANSFER_DATA 0xAA
-#define PB_CMD_FLASH_BOOT 0xB0
-#define PB_CMD_RESET      0xB1
-#define PB_CMD_WRITE_PART 0xB2
 
+#define PB_USB_REQUEST_TYPE 0x20
+#define PB_PREP_BUFFER 0x21
+#define PB_PROG_BOOTLOADER 0x22
+#define PB_GET_VERSION 0x23
+#define PB_DO_RESET   0x024
+#define PB_PROG_PART 0x0025
 
-struct pb_usb_command_hdr {
+struct pb_cmd {
     uint32_t cmd;
-    uint32_t payload_sz;
-    uint32_t payload_crc;
-    uint32_t header_crc;
+    uint32_t data[60];
 } __attribute__ ((packed));
 
 

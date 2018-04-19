@@ -22,13 +22,10 @@ void recovery_cmd_event(u8 *bfr, u16 sz) {
 //    cmd_to_process = 1;
 }
 
-static void pb_flash_bootloader(u8 *bfr, u32 sz) {
-    u32 blocks_to_write = sz / 512;
-
-    if (sz % 512)
-        blocks_to_write++;
+void pb_flash_bootloader(u8 *bfr, u32 blocks_to_write) {
     
-
+    
+    tfp_printf ("Blocks: %i\n\r",blocks_to_write);
 
     tfp_printf ("Flashing BOOT0\n\r");
     usdhc_emmc_switch_part(1);
