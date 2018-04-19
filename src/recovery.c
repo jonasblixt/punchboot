@@ -11,14 +11,15 @@
 
 static u8 usb_buf[4096];
 static u8 cmd_to_process;
+
 static u8 __attribute__((section (".bigbuffer"))) chunk_buffer[BL_MAX_SIZE];
 
 void recovery_cmd_event(u8 *bfr, u16 sz) {
 
-    for (int i = 0; i < sz; i++)
-        usb_buf[i] = bfr[i];
+//    for (int i = 0; i < sz; i++)
+//        usb_buf[i] = bfr[i];
 
-    cmd_to_process = 1;
+//    cmd_to_process = 1;
 }
 
 static void pb_flash_bootloader(u8 *bfr, u32 sz) {

@@ -6,14 +6,20 @@
 #include <tinyprintf.h>
 #include <recovery.h>
 
+#define BULK_BUFFER_SIZE 1024*1024*8
+#define BULK_NO_OF_DTDS BULK_BUFFER_SIZE/(1024*16)
 static struct ehci_device _ehci_dev;
-
+static u8 __attribute__ ((aligned(4096))) __attribute__((section (".bigbuffer"))) bulk_buffer[BULK_BUFFER_SIZE];
+static  struct ehci_dTH  __attribute__((aligned(4096))) bulk_dtds[512];
+ 
 static volatile u32 _base_addr;
+static u32 version = 0x51AABBCC;
 
 void soc_usb_init(u32 base_addr){
     u32 reg;
     struct ehci_dQH * qh_out = &_ehci_dev.dqh[0];
     struct ehci_dQH * qh_in = &_ehci_dev.dqh[1];
+    struct ehci_dQH * qh_bulk_out = &_ehci_dev.dqh[2];
  
     _base_addr = base_addr;
 
@@ -52,6 +58,14 @@ void soc_usb_init(u32 base_addr){
     _ehci_dev.enumerated = 0;
     _ehci_dev.ready = 0;
 
+
+    for (int i = 0; i < 32; i++) {
+        _ehci_dev.dqh[i].caps = 0;
+        _ehci_dev.dqh[i].next_dtd = 0xDEAD0001;
+        _ehci_dev.dqh[i].dtd_token = 0;
+        _ehci_dev.dqh[i].current_dtd = 0;
+    }
+
     qh_in->caps = (1 << 29) | (0x40 << 16);
     qh_in->next_dtd = 0xDEAD0001;
     qh_in->current_dtd = 0;
@@ -63,14 +77,21 @@ void soc_usb_init(u32 base_addr){
     qh_out->current_dtd = 0;
     qh_out->next_dtd = 0xDEAD0001;
 
+
+
+    qh_bulk_out->caps = (1 << 29) | (1 << 15) | /*(1 << 30) |*/(0x0200 << 16) ;
+    qh_bulk_out->dtd_token = 0;
+    qh_bulk_out->current_dtd = 0;
+    qh_bulk_out->next_dtd = 0xDEAD001;
+
     /* Program QH top */
     pb_writel((u32) _ehci_dev.dqh, REG(_base_addr, USB_ENDPTLISTADDR)); 
 
 
-    
+  
     /* Enable USB */
-    pb_writel(0x500A, REG(_base_addr, USB_USBMODE));
-    pb_writel(0x01, REG(_ehci_dev.base, USB_CMD));
+    pb_writel(0x0A | (1 << 4), REG(_base_addr, USB_USBMODE));
+    pb_writel( (0x40 << 16) |0x01, REG(_ehci_dev.base, USB_CMD));
 
 
     pb_writel(0xFFFFFFFF, REG(_base_addr, USB_USBSTS));
@@ -91,7 +112,7 @@ void soc_usb_init(u32 base_addr){
     /* Wait for port to come out of reset */
     while (pb_readl(REG(_ehci_dev.base, USB_PORTSC1)) & (1<<8))
         asm("nop");
-
+ 
     tfp_printf ("USB Init completed\n\r");
 }
 
@@ -122,51 +143,6 @@ static void send_zlp(u8 ep) {
 }
 
 
-static void send_ctrl_packet(u8 ep, u8* bfr, size_t sz) {
-    struct ehci_dQH * qh_out = &_ehci_dev.dqh[ep*2];
-    struct ehci_dQH * qh_in = &_ehci_dev.dqh[ep*2+1];
-    struct ehci_dTH  __attribute__((aligned(4096)))dtd_out, dtd_in;
-    size_t sz_to_tx = sz & 0xFFF;
-    u8 __attribute__((aligned(4096))) bfr_in[4096];
-    u8 __attribute__((aligned(4096))) bfr_out[4096];
-    
-    // memcpy (bfr_in, bfr, sz_to_tx);
-    
-    for (int i = 0; i < sz_to_tx; i++)
-        bfr_in[i] = bfr[i];
-
-
-
-    dtd_in.next_dtd = 0xDEAD0001;
-    dtd_in.dtd_token = (sz_to_tx << 16) | 0x80 | (1 << 15);
-    dtd_in.bfr_page0 = (u32) bfr_in;
-
-    qh_in->next_dtd = (u32) &dtd_in;
-    qh_in->current_dtd = 0;
-
-    pb_writel((1<<16) , REG(_base_addr, USB_ENDPTPRIME));
-
-    dtd_out.next_dtd = 0xDEAD0001;
-    dtd_out.dtd_token = (0x40 << 16) |  0x80 ;
-    dtd_out.bfr_page0 = (u32) bfr_out;
-
-    qh_out->next_dtd = (u32) &dtd_out;  
-    qh_in->current_dtd = 0;
-    pb_writel((1<<0), REG(_base_addr, USB_ENDPTPRIME));
-    
-    while (pb_readl(REG(_ehci_dev.base, USB_ENDPTPRIME)) & (1 << 0) )
-        asm("nop");
-
-
-    while (! (pb_readl(REG(_ehci_dev.base, USB_USBSTS)) & 1) )
-        asm("nop"); // Wait for irq
-
-    pb_writel(1 << 16, REG(_ehci_dev.base, USB_ENDPTCOMPLETE));
-
-    while (qh_in->dtd_token & 0x80)
-        asm("nop");
-}
-
 u8 qf_Descriptor[] = {
 	0x0A,	//USB_DEV_QUALIFIER_DESC_LEN,
 	0x06,   //USB_DEV_QUALIFIER_DESC_TYPE,
@@ -180,7 +156,7 @@ u8 qf_Descriptor[] = {
 	0		//USB_DEV_DESC_RESERVED
 };
 
-const struct usb_descriptors descriptors = {
+const struct usb_descriptors __attribute__ ((align(32))) descriptors = {
     .device = {
         .bLength = 0x12, // length of this descriptor
         .bDescriptorType = 0x01, // Device descriptor
@@ -200,108 +176,77 @@ const struct usb_descriptors descriptors = {
     .config = {
         .bLength = 0x09, //
         .bDescriptorType = 0x02, // Configuration descriptor
-        .wTotalLength = 0x22, // Total length of data, includes interface, HID and endpoint
+        .wTotalLength = 0x20, // Total length of data, includes interface, HID and endpoint
         .bNumInterfaces = 0x01, // Number of interfaces
         .bConfigurationValue = 0x01, // Number to select for this configuration
         .iConfiguration = 0x00, // No string descriptor
-        .bmAttributes = 0xC0, // Self powered, No remote wakeup
-        .MaxPower = 10 // 20 mA Vbus power
+        .bmAttributes = 0x80, // Self powered, No remote wakeup
+        .MaxPower = 0xfa 
     },
     .interface = {
         .bLength = 0x09,
         .bDescriptorType = 0x04, // Interface descriptor
         .bInterfaceNumber = 0x00, // This interface = #0
         .bAlternateSetting = 0x00, // Alternate setting
-        .bNumEndpoints = 0x01, // Number of endpoints for this interface
-        .bInterfaceClass = 0x03, // HID class interface
-        .bInterfaceSubClass = 0x00, // Boot interface Subclass
-        .bInterfaceProtocol = 0x00, // Mouse protocol
+        .bNumEndpoints = 0x02, // Number of endpoints for this interface
+        .bInterfaceClass = 0xFF, // HID class interface
+        .bInterfaceSubClass = 0xFF, // Boot interface Subclass
+        .bInterfaceProtocol = 0xFF, // Mouse protocol
         .iInterface = 0, // No string descriptor
     },
-    .endpoint1_in = {
+    .endpoint_bulk_out = {
         .bLength = 0x07,
         .bDescriptorType = 0x05, // Endpoint descriptor
-        .bEndpointAddress = 0x81, // Endpoint 1 IN
-        .bmAttributes = 0x3, // interrupt endpoint
-        .wMaxPacketSize = 0x0200, // max 6 bytes (for high_speed)
-        .bInterval = 0x0A, // 10 ms interval
+        .bEndpointAddress = 0x01, 
+        .bmAttributes = 0x2, 
+        .wMaxPacketSize = 0x0200, 
+        .bInterval = 0x00, // 10 ms interval
     },
- 
-    .hid = {
-        .bLength = 0x09, //
-        .bDescriptorType = 0x21, // HID descriptor
-        .bcdHID = 0x0101, // HID Class spec 1.01
-        .bCountryCode = 0x00, //
-        .bNumDescriptors = 0x01, // 1 HID class descriptor to follow (report)
-        .bReportDescriptorType = 0x22, // Report descriptor follows
-        .wDescriptorLength[0] = 76, // Length of report descriptor byte 1
-        .wDescriptorLength[1] = 0x00 // Length of report descriptor byte 2
+    .endpoint_bulk_in = {
+        .bLength = 0x07,
+        .bDescriptorType = 0x05, // Endpoint descriptor
+        .bEndpointAddress = 0x82, 
+        .bmAttributes = 0x2, 
+        .wMaxPacketSize = 0x0200, 
+        .bInterval = 0x0, // 10 ms interval
     }
 };
 
-/* This is synchronized with what the SoC implementation reports */
-const u8  hid_pb_report[] = {
-        0x06, 0x00, 0xff, /* Usage Page */
-		0x09, 0x01, /* Usage (Pointer?) */
-		0xa1, 0x01, /* Collection */
-
-		0x85, 0x01, /* Report ID */
-		0x19, 0x01, /* Usage Minimum */
-		0x29, 0x01, /* Usage Maximum */
-		0x15, 0x00, /* Local Minimum */
-		0x26, 0xFF, 0x00, /* Local Maximum? */
-		0x75, 0x08, /* Report Size */
-		0x95, 0x10, /* Report Count */
-		0x91, 0x02, /* Output Data */
-
-		0x85, 0x02, /* Report ID */
-		0x19, 0x01, /* Usage Minimum */
-		0x29, 0x01, /* Usage Maximum */
-		0x15, 0x00, /* Local Minimum */
-		0x26, 0xFF, 0x00, /* Local Maximum? */
-		0x75, 0x80, /* Report Size 128 */
-		0x95, 0x40, /* Report Count */
-		0x91, 0x02, /* Output Data */
-
-		0x85, 0x03, /* Report ID */
-		0x19, 0x01, /* Usage Minimum */
-		0x29, 0x01, /* Usage Maximum */
-		0x15, 0x00, /* Local Minimum */
-		0x26, 0xFF, 0x00, /* Local Maximum? */
-		0x75, 0x08, /* Report Size 8 */
-		0x95, 0x04, /* Report Count */
-		0x81, 0x02, /* Input Data */
-
-		0x85, 0x04, /* Report ID */
-		0x19, 0x01, /* Usage Minimum */
-		0x29, 0x01, /* Usage Maximum */
-		0x15, 0x00, /* Local Minimum */
-		0x26, 0xFF, 0x00, /* Local Maximum? */
-		0x75, 0x08, /* Report Size 8 */
-		0x95, 0x40, /* Report Count */
-		0x81, 0x02, /* Input Data */
-		0xc0
-};
-
-
-static void hid_process_report(struct usbdSetupPacket *pkt)
+static void send_ep0_msg(u8 *bfr, u8 sz)
 {
     struct ehci_dQH * qh_out = &_ehci_dev.dqh[0];
+ 
+    struct ehci_dQH * qh_in = &_ehci_dev.dqh[1];
+    struct ehci_dTH  __attribute__((aligned(4096)))dtd_in;
     struct ehci_dTH  __attribute__((aligned(4096)))dtd_out;
-    u8 __attribute__((aligned(4096))) bfr_out[4096*5];
+ 
+    u8 __attribute__((aligned(4096))) bfr_in[4096];
+    u8 __attribute__((aligned(4096))) bfr_out[4096];
+ 
+    // memcpy (bfr_in, bfr, sz_to_tx);
     
+    for (int i = 0; i < sz; i++)
+        bfr_in[i] = bfr[i];
+
+
+    dtd_in.next_dtd = 0xDEAD0001;
+    dtd_in.dtd_token = (sz << 16) |  0x80  | (1 << 15);
+    dtd_in.bfr_page0 = (u32) bfr_in;
 
     dtd_out.next_dtd = 0xDEAD0001;
-    dtd_out.dtd_token = (pkt->wLength << 16) |  0x80  | (1 << 15);
+    dtd_out.dtd_token = (0x40 << 16) | 0x80;
     dtd_out.bfr_page0 = (u32) bfr_out;
-    dtd_out.bfr_page1 = (u32) bfr_out+4096;
-    dtd_out.bfr_page2 = (u32) bfr_out+4096*2;
-    dtd_out.bfr_page3 = (u32) bfr_out+4096*3;
-    dtd_out.bfr_page4 = (u32) bfr_out+4096*4;
 
+    qh_in->next_dtd = (u32) &dtd_in;
+    qh_in->current_dtd = 0;
+    qh_in->dtd_token = 0;
 
-    qh_out->next_dtd = (u32) &dtd_out;  
+    qh_out->next_dtd = (u32) &dtd_out;
+    qh_out->current_dtd = 0;
+    qh_out->dtd_token = 0;
 
+    
+    pb_writel((1<<16), REG(_base_addr, USB_ENDPTPRIME));
     pb_writel((1<<0), REG(_base_addr, USB_ENDPTPRIME));
     
     while (pb_readl(REG(_ehci_dev.base, USB_ENDPTPRIME)) & (1 << 0) )
@@ -312,20 +257,91 @@ static void hid_process_report(struct usbdSetupPacket *pkt)
         asm("nop"); // Wait for irq
 
     pb_writel(1 << 16, REG(_ehci_dev.base, USB_ENDPTCOMPLETE));
+    pb_writel(1 << 0, REG(_ehci_dev.base, USB_ENDPTCOMPLETE));
 
-    while (qh_out->dtd_token & 0x80)
+
+
+
+    while (qh_in->dtd_token & 0x80)
         asm("nop");
 
+}
 
-    recovery_cmd_event(bfr_out, pkt->wLength);
 
+
+static int prep_bulk_buffer(uint16_t no_of_blocks)
+{
+    struct ehci_dTH * dtd = bulk_dtds;
+    struct ehci_dQH * qh_out = &_ehci_dev.dqh[2];
+    struct ehci_dQH * qh_in = &_ehci_dev.dqh[3];
+ 
+    u8 *bulk_bfr_ptr = bulk_buffer;
+    u16 blocks_remaining = no_of_blocks;
+    u16 blocks_to_tx = 0;
+    u16 dtd_counter = 0;
+ 
+    qh_out->current_dtd = 0;
+    qh_out->next_dtd = 0xDEAD0001;
+    qh_out->dtd_token = 0;
+
+    qh_in->current_dtd = dtd;
+    qh_in->next_dtd = 0xDEAD0001;
+    qh_in->dtd_token = 0;
+
+    //while (blocks_remaining) {
+    //blocks_to_tx = blocks_remaining > 32?32:blocks_remaining;
+    dtd->next_dtd = 0xDEAD0001;
+    dtd->dtd_token = (512 << 16) |  0x80 | ( 1 << 15);
+    dtd->bfr_page0 = (u32) bulk_bfr_ptr;
+
+/*
+        blocks_remaining -= blocks_to_tx;
+
+        if (!blocks_remaining)  {
+            dtd->dtd_token |= (1 << 15);
+            dtd->next_dtd = 0xDEAD0001;
+            tfp_printf ("LB: %i\n\r",dtd_counter);
+        }
+        dtd++;
+        dtd_counter ++;
+
+        if (dtd_counter > BULK_NO_OF_DTDS) 
+            return 0;
+    }
+  */  
+    //tfp_printf ("Priming... %i\n\r",dtd_counter);
+    qh_out->next_dtd = (u32) bulk_dtds;  
+    
+
+   pb_writel((2 << 0), REG(_base_addr, USB_ENDPTPRIME));
+    //pb_writel((2 << 16), REG(_base_addr, USB_ENDPTPRIME));
+    
+    while (pb_readl(REG(_ehci_dev.base, USB_ENDPTPRIME)) & (2 << 0))
+        asm("nop");
+
+    
+
+
+   // while (qh_out->dtd_token & 0x80)
+    //    asm("nop");
+
+    tfp_printf ("dQH.current_dtd = %x\n\r",(u32) qh_out->current_dtd);
+    tfp_printf ("first dTH %x\n\r",(u32) bulk_dtds);
+/*
+    tfp_printf ("EP1_OUT primed, %i blocks, %i dtd's\n\r",no_of_blocks, dtd_counter);
+    tfp_printf ("%x\n\r",bulk_dtds[0].dtd_token);
+    tfp_printf ("ENDPTSTAT = %x\n\r",pb_readl(REG(_ehci_dev.base, USB_ENDPTSTAT)));
+    tfp_printf ("USBSTAT = %x\n\r",pb_readl(REG(_ehci_dev.base, USB_USBSTS)));
+    tfp_printf ("dQH.dtd_token = %x\n\r",qh_out->dtd_token);
+    tfp_printf ("dtd[0].token = %x\n\r",bulk_dtds[0].dtd_token);
+*/    return 1;
 }
 
 static void usb_process_ep0(void)
 {
     u16 request;
     struct usbdSetupPacket *setup = &_ehci_dev.setup;
-
+    
     u32 cmd_reg = pb_readl(REG(_ehci_dev.base,USB_CMD));
  
     
@@ -345,19 +361,20 @@ static void usb_process_ep0(void)
 
     while (pb_readl(REG(_ehci_dev.base, USB_ENDPTSETUPSTAT)) & 1)
         asm("nop");
-
- /*   tfp_printf("bRequestType = 0x%2.2x\n\r", setup->bRequestType);
+/*
+    tfp_printf("bRequestType = 0x%2.2x\n\r", setup->bRequestType);
     tfp_printf ("bRequest = 0x%2.2x\n\r", setup->bRequest);
     tfp_printf ("wValue = 0x%4.4x\n\r", setup->wValue);
     tfp_printf ("wIndex = 0x%4.4x\n\r",setup->wIndex);
     tfp_printf ("wLength = 0x%4.4x\n\r",setup->wLength);
 */
-    //tfp_printf ("%4.4X %4.4X %ib\n\r", request, setup->wValue, setup->wLength);
+    tfp_printf ("%4.4X %4.4X %ib\n\r", request, setup->wValue, setup->wLength);
     u16 sz = 0;
+    u16 device_status = 0;
     switch (request) {
         case GET_DESCRIPTOR:
             if(setup->wValue == 0x0600) {
-                send_ctrl_packet(0, qf_Descriptor, sizeof(qf_Descriptor));
+                send_ep0_msg(qf_Descriptor, sizeof(qf_Descriptor));
             } else if (setup->wValue == 0x0100) {
                 
                 sz = sizeof(struct usb_device_descriptor);
@@ -365,7 +382,7 @@ static void usb_process_ep0(void)
                 if (setup->wLength < sz)
                     sz = setup->wLength;
 
-                send_ctrl_packet(0, (u8 *) &descriptors.device, sz);
+                send_ep0_msg( (u8 *) &descriptors.device, sz);
 
             } else if (setup->wValue == 0x0200) {
                 u16 desc_tot_sz = descriptors.config.wTotalLength;
@@ -375,10 +392,10 @@ static void usb_process_ep0(void)
                 if (setup->wLength < sz)
                     sz = setup->wLength;
 
-                send_ctrl_packet(0, (u8 *) &descriptors.config, sz);
+                send_ep0_msg( (u8 *) &descriptors.config, sz);
             } else if (setup->wValue == 0x0300) { 
                 const u8 _usb_strings[] = "\x04\x03\x04\x09";
-                send_ctrl_packet(0, (u8 *) _usb_strings, 4);
+                send_ep0_msg( (u8 *) _usb_strings, 4);
             } else if(setup->wValue == 0x0301) {
                 
                 const u8 _usb_string_id[] = 
@@ -387,8 +404,18 @@ static void usb_process_ep0(void)
                 sz = setup->wLength > sizeof(_usb_string_id)?
                             sizeof(_usb_string_id): setup->wLength;
                 
-                send_ctrl_packet(0, (u8 *) _usb_string_id, sz);
+                send_ep0_msg( (u8 *) _usb_string_id, sz);
      
+            } else if (setup->wValue == 0x0A00) {
+                 u16 desc_tot_sz = descriptors.interface.bLength;
+
+                sz = desc_tot_sz;
+
+                if (setup->wLength < sz)
+                    sz = setup->wLength;
+
+                send_ep0_msg( (u8 *) &descriptors.interface, sz);
+                
             } else {
                 tfp_printf ("Unhandeled descriptor 0x%4.4X\n\r", setup->wValue);
             }
@@ -397,25 +424,34 @@ static void usb_process_ep0(void)
             pb_writel( (setup->wValue << 25) | ( 1 << 24 ),
                     REG(_ehci_dev.base, USB_DEVICEADDR));
             send_zlp(0);
+            tfp_printf ("Set address: %i\n\r",setup->wValue);
         break;
         case SET_CONFIGURATION:
+            tfp_printf ("Set configuration\n\r");
             send_zlp(0);
+    /* Configure EP 1 */
+
+    pb_writel ((1 << 7) | (2 << 2) , REG(_ehci_dev.base, USB_ENDPTCTRL1));
+   // pb_writel (2, REG(_ehci_dev.base, USB_ENDPTNAKEN));
+ 
+            prep_bulk_buffer(100);
         break;
         case SET_IDLE:
             send_zlp(0);
         break;
-        case GET_HID_CLASS_DESCRIPTOR:
-            sz = setup->wLength > sizeof(hid_pb_report)?
-                        sizeof(hid_pb_report): setup->wLength;
-            send_ctrl_packet(0, (u8 *) hid_pb_report, sz);
-            _ehci_dev.enumerated  = 1;
-            
-        break;
-        case SET_HID_REPORT:
-            hid_process_report(setup);
+        case GET_STATUS:
+            send_ep0_msg((u8 *) &device_status, 2);
             send_zlp(0);
         break;
-       default:
+        case PB_PREP_BUFFER:
+            //tfp_printf ("PREP BUFFER\n\r");
+            //if (prep_bulk_buffer(setup->wValue))
+            send_ep0_msg(NULL, 0);
+        case 0xa123:
+            send_ep0_msg((u8 *) &version, 4);
+        break;
+       break;
+      default:
             tfp_printf ("Unhandled request %4.4x\n\r",request);
             tfp_printf ("bRequestType = 0x%2.2x\n\r", setup->bRequestType);
             tfp_printf ("bRequest = 0x%2.2x\n\r", setup->bRequest);
@@ -430,8 +466,31 @@ static void usb_process_ep0(void)
 }
 
 void soc_usb_task(void) {
-    if  (pb_readl(REG(_base_addr, USB_ENDPTSETUPSTAT)) & 1)
+    u32 sts = pb_readl(REG(_ehci_dev.base, USB_USBSTS));
+    
+    pb_writel(0xFFFFFFFF, REG(_ehci_dev.base, USB_USBSTS));
+
+    if  (pb_readl(REG(_base_addr, USB_ENDPTSETUPSTAT)) & 1) {
         usb_process_ep0();
+    }
+    if  (pb_readl(REG(_base_addr, USB_ENDPTSETUPSTAT)) & 2)
+        tfp_printf("EP1: Got setup packet\n\r");
+
+
+    
+    if  (pb_readl(REG(_base_addr, USB_ENDPTCOMPLETE)) & 2) {
+        tfp_printf ("EP1 ACT\n\r");
+
+        pb_writel(2, REG(_base_addr, USB_ENDPTCOMPLETE));
+    }
+
+
+    if (sts & 2) {
+        pb_writel (2, REG(_ehci_dev.base, USB_USBSTS));
+        tfp_printf ("USB Error IRQ\n\r");
+    }
+
+
 
     if (_ehci_dev.enumerated && !_ehci_dev.ready) {
         _ehci_dev.ready = 1;

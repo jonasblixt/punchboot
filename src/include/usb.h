@@ -16,9 +16,9 @@
 #define USB_ENDPTSETUPSTAT 0x1ac
 #define USB_DEVICEADDR 0x154
 #define USB_ENDPTCTRL1 0x1c4
-
+#define USB_ENDPTSTAT 0x1b8
 #define USBPHY_BASE 0x020C9000
-
+#define USB_ENDPTNAKEN 0x17C
 struct ehci_dTH {
     u32 next_dtd;
     u32 dtd_token;
@@ -42,7 +42,7 @@ struct ehci_dQH {
     u32 __reserved;
     u32 setup[2];
     u32 padding[4];
-} ;
+} __attribute__((aligned(32)));
 
 
 
@@ -50,10 +50,13 @@ struct ehci_dQH {
 #define GET_DESCRIPTOR				0x8006
 #define SET_CONFIGURATION			0x0009
 #define SET_IDLE					0x210A
-#define GET_HID_CLASS_DESCRIPTOR	0x8106
-#define SET_HID_REPORT              0x2109
 #define SET_FEATURE					0x0003
 #define SET_ADDRESS                 0x0005
+#define GET_STATUS                  0x8000
+
+#define PB_PREP_BUFFER              0x2121
+#define PB_PROG_BOOTLOADER          0x2122
+#define PB_GET_VERSION              0x2123
 
 struct usbdSetupPacket {
     u8 bRequestType;	//! Characteristics of request 
@@ -113,24 +116,15 @@ struct usb_endpoint_descriptor {
     u8 bInterval;          //! Interval for polling endpoint for data transfers
 }  __attribute__ ((packed));
 
-struct usb_hid_descriptor {
-    u8 bLength;			//! Size of this descriptor in bytes 
-    u8 bDescriptorType;            //! Descriptor Type
-    u16 bcdHID;                    //! Release number
-    u8 bCountryCode;               //! Country code
-    u8 bNumDescriptors;            //! Number of descriptors
-    u8 bReportDescriptorType;      //! The type of report descriptor
-    u8 wDescriptorLength[2];   // !!!! Not aligned on 16-bit boundary  !!!
-}  __attribute__ ((packed));
-
-
 
 struct usb_descriptors {
     const struct usb_device_descriptor device;
     const struct usb_configuration_descriptor config;
     const struct usb_interface_descriptor interface;
-    const struct usb_hid_descriptor hid;
-    const struct usb_endpoint_descriptor endpoint1_in;
+    const struct usb_endpoint_descriptor endpoint_bulk_out;
+    const struct usb_endpoint_descriptor endpoint_bulk_in;
+
+
 } __attribute__ ((packed));
 
 

@@ -46,6 +46,9 @@
 #include "recovery.h"
 #include "crc.h"
 
+
+static libusb_context *ctx = NULL;
+
 static libusb_device * find_device(libusb_device **devs)
 {
 	libusb_device *dev;
@@ -58,7 +61,7 @@ static libusb_device * find_device(libusb_device **devs)
 			return NULL;
 		}
 
-        if ( (desc.idVendor == 0xFFFF) && (desc.idProduct == 0x0001)) {
+        if ( (desc.idVendor == 0xffff) && (desc.idProduct == 0x0001)) {
             return dev;
         }
 		
@@ -82,36 +85,49 @@ static libusb_device * find_device(libusb_device **devs)
 #define CTRL_OUT		LIBUSB_ENDPOINT_OUT|LIBUSB_REQUEST_TYPE_CLASS|LIBUSB_RECIPIENT_INTERFACE
 
 
-static int pb_send_command(libusb_device_handle *h, uint8_t cmd, uint8_t *bfr,
-                                    uint32_t sz) {
-    unsigned char tmp[4096];
-    int err;
-    struct pb_usb_command_hdr *hdr = (struct pb_usb_command_hdr *) tmp;
-    unsigned char * payload_ptr = tmp + sizeof(struct pb_usb_command_hdr);
-    
-    
-    memcpy (payload_ptr, bfr, sz);
-    
-    hdr->cmd = cmd;
-    hdr->payload_crc = crc32(0, payload_ptr, sz);
-    hdr->payload_sz = sz;
-    hdr->header_crc = crc32(0, tmp, sizeof(struct pb_usb_command_hdr) - 4);
 
-    uint32_t total_size = sz + sizeof(struct pb_usb_command_hdr);
+#define PB_USB_REQUEST_TYPE 0x20
+#define PB_PREP_BUFFER 0x21
+#define PB_PROG_BOOTLOADER 0x22
+#define PB_GET_VERSION 0x23
+
+
+static int pb_send_command(libusb_device_handle *h, uint8_t cmd, uint16_t param0, uint8_t *bfr,
+                                    uint32_t sz) {
+    int err = 0;
 
     err = libusb_control_transfer(h,
                 CTRL_OUT,
-                HID_SET_REPORT,
-                (HID_REPORT_TYPE_OUTPUT << 8) | 1,
+                cmd,
+                param0,
                 0,
-                tmp, total_size, 1000);
+                bfr, sz, 1000);
 
-    if (!err) {
-        printf ("transfer err = %i\n",err);
+    if (err < 0) {
+        printf ("USB: cmd=0x%2.2x, transfer err = %i\n",cmd, err);
     }
 
     return err;
 }
+
+static int pb_read(libusb_device_handle *h,uint8_t *bfr,
+                                    uint32_t sz) {
+    int err = 0;
+
+    err = libusb_control_transfer(h,
+                CTRL_IN,
+                0x23,
+                0,
+                0,
+                bfr, sz, 1000);
+
+    if (err < 0) {
+        printf ("USB: read error \n");
+    }
+
+    return err;
+}
+
 
 static int pb_program_part (libusb_device_handle *h, uint8_t part_no, 
                                                 const char *f_name) {
@@ -174,7 +190,7 @@ static int pb_program_part (libusb_device_handle *h, uint8_t part_no,
         if (chunk_count >= 2048) {
             
             write_cmd.no_of_blocks = chunk_count*4;
-            pb_send_command (h, PB_CMD_WRITE_PART, (unsigned char*) &write_cmd, 
+            pb_send_command (h, PB_CMD_WRITE_PART, 0, (unsigned char*) &write_cmd, 
                                     sizeof(struct pb_write_part_hdr));
         
             write_cmd.lba_offset += chunk_count*4;
@@ -187,7 +203,7 @@ static int pb_program_part (libusb_device_handle *h, uint8_t part_no,
 
     if (chunk_count) {
         write_cmd.no_of_blocks = chunk_count*4;
-        pb_send_command (h, PB_CMD_WRITE_PART, (unsigned char*) &write_cmd, 
+        pb_send_command (h, PB_CMD_WRITE_PART, 0, (unsigned char*) &write_cmd, 
                                 sizeof(struct pb_write_part_hdr));
     }
 
@@ -198,78 +214,42 @@ static int pb_program_part (libusb_device_handle *h, uint8_t part_no,
     return err;
 }
 
-static int pb_program_bootloader(libusb_device_handle *h, const char *f_name) {
-    unsigned char tmp[4096];
+static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
+    int read_sz = 0;
+    int sent_sz = 0;
     int err;
-    struct pb_usb_command_hdr *hdr = (struct pb_usb_command_hdr *) tmp;
+    FILE *fp = fopen (f_name,"rb");
+    unsigned char bfr[1024*1024*4];
+    struct stat finfo;
 
-    FILE *fp = fopen(f_name, "rb");
-    
-    unsigned char * chunk_ptr = tmp + sizeof(struct pb_usb_command_hdr) +
-                                    sizeof(struct pb_chunk_hdr);
-    unsigned char * payload_ptr = tmp + sizeof(struct pb_usb_command_hdr);
-    
-    struct pb_chunk_hdr * chunk_hdr = (struct pb_chunk_hdr *) payload_ptr;
-    unsigned int chunk_count = 0;
-    unsigned int total_size = 0;
+    stat(f_name, &finfo);
 
-    while (1) {
-        int read_sz = fread(chunk_ptr , 1, 1024, fp);
-        
+    printf ("no_of_blocks = %i\n", (uint32_t) finfo.st_blocks);
+    //pb_send_command(h, PB_PREP_BUFFER,(uint32_t) finfo.st_blocks,  NULL,0);
+    while ((read_sz = fread(bfr, 1, 512, fp)) >0) {
 
-
-        if (read_sz <= 0)
-            break;
-
-        chunk_hdr->chunk_no = chunk_count;
-        chunk_hdr->chunk_sz = read_sz;
-        chunk_count++;
-
-        hdr->cmd = PB_CMD_TRANSFER_DATA;
-        hdr->payload_crc = crc32(0, payload_ptr, read_sz + sizeof(struct pb_chunk_hdr));
-        hdr->payload_sz = read_sz + sizeof(struct pb_chunk_hdr);
-        hdr->header_crc = crc32(0, tmp, sizeof(struct pb_usb_command_hdr) - 4);
-
-
-        total_size = read_sz + sizeof(struct pb_chunk_hdr) +
-                            sizeof(struct pb_usb_command_hdr);
-
-        err = libusb_control_transfer(h,
-                    CTRL_OUT,
-                    HID_SET_REPORT,
-                    (HID_REPORT_TYPE_OUTPUT << 8) | 1,
-                    0,
-                    tmp, total_size, 1000);
-
-        if (!err) {
-            printf ("transfer err = %i\n",err);
-            break;
+        printf ("read_sz = %ib\n",read_sz);
+        err = libusb_bulk_transfer(h,
+                    1,
+                    bfr,
+                    read_sz,
+                    &sent_sz,
+                    1000);
+        printf ("TX: %ib\n",sent_sz);
+ 
+        if (err != 0) {
+            printf ("USB: Bulk xfer error, err=%i\n",err);
+            return -1;
         }
-    }
 
+   }
+    
     fclose(fp);
 
-    hdr->cmd = PB_CMD_FLASH_BOOT;
-    hdr->payload_crc = 0;
-    hdr->payload_sz = 0;
-    hdr->header_crc = crc32(0, tmp, sizeof(struct pb_usb_command_hdr) - 4);
-
-
-
-    err = libusb_control_transfer(h,
-                CTRL_OUT,
-                HID_SET_REPORT,
-                (HID_REPORT_TYPE_OUTPUT << 8) | 1,
-                0,
-                tmp, sizeof(struct pb_usb_command_hdr), 1000);
-
-    if (!err) 
-        printf ("transfer err = %i\n",err);
-
-    return err;
+    //pb_send_command(h, PB_PROG_BOOTLOADER, 0, NULL, 0);
+    return 0;
 }
-
-/*
+    /*
  * 
  *
  *
@@ -300,9 +280,11 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-	r = libusb_init(NULL);
+	r = libusb_init(&ctx);
 	if (r < 0)
 		return r;
+
+libusb_set_debug(ctx, 10);
 
 	cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0)
@@ -318,7 +300,7 @@ int main(int argc, char **argv)
     }
 
 
-    h = libusb_open_device_with_vid_pid(NULL, 0xffff, 0x0001);
+    h = libusb_open_device_with_vid_pid(ctx, 0xffff, 0x0001);
 
     if (libusb_kernel_driver_active(h, 0))
 		 libusb_detach_kernel_driver(h, 0);
@@ -334,6 +316,14 @@ int main(int argc, char **argv)
         printf ("Could not open device\n");
         return -1;
     }
+
+
+   uint32_t pb_version = 0;
+
+    //pb_send_command(h, PB_GET_VERSION, 0, NULL, 0);
+    pb_read(h, &pb_version, 4);
+
+    printf ("PB: Version = %x\n",pb_version);
 
     int part_no = -1;
     bool flag_part_write = false;
@@ -364,14 +354,14 @@ int main(int argc, char **argv)
     if (flag_bl_write && fn) {
         pb_program_bootloader(h, fn);
         if (flag_reset)
-            pb_send_command(h, PB_CMD_RESET, NULL, 0);
+            pb_send_command(h, PB_CMD_RESET, 0, NULL, 0);
 
     } else if (flag_part_write && fn) {
         printf ("Writing %s to part %i\n",fn, part_no);
         pb_program_part(h, part_no, fn);  
     
         if (flag_reset)
-            pb_send_command(h, PB_CMD_RESET, NULL, 0);
+            pb_send_command(h, PB_CMD_RESET, 0,  NULL, 0);
     }
     
 
