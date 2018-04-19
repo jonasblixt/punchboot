@@ -6,21 +6,7 @@
 #include <crc.h>
 #include <emmc.h>
 #include <plat.h>
-
-#define BL_MAX_SIZE 1024*1024*4
-
-static u8 usb_buf[4096];
-static u8 cmd_to_process;
-
-static u8 __attribute__((section (".bigbuffer"))) chunk_buffer[BL_MAX_SIZE];
-
-void recovery_cmd_event(u8 *bfr, u16 sz) {
-
-//    for (int i = 0; i < sz; i++)
-//        usb_buf[i] = bfr[i];
-
-//    cmd_to_process = 1;
-}
+#include <gpt.h>
 
 void pb_flash_bootloader(u8 *bfr, u32 blocks_to_write) {
     
@@ -42,44 +28,76 @@ void pb_flash_bootloader(u8 *bfr, u32 blocks_to_write) {
 }
 
 static void pb_flash_part(u8 part_no, u32 lba_offset, u32 no_of_blocks, u8 *bfr) {
-    
-   
+    u32 part_lba_offset = 0;
 
+    part_lba_offset = gpt_get_part_offset(part_no);
 
-    tfp_printf ("Writing %i blocks to part %i with offset %i...\n\r",no_of_blocks,
-                                            part_no, lba_offset);
+    if (!part_lba_offset) {
+        tfp_printf ("Unknown partiotion\n\r");
+    }
 
-
-    usdhc_emmc_xfer_blocks(4096 + lba_offset, bfr, no_of_blocks, 1);
+    usdhc_emmc_xfer_blocks(part_lba_offset + lba_offset, bfr, no_of_blocks, 1);
 }
 
+void recovery_cmd_event(struct pb_usb_cmd *cmd, u8 *bulk_buffer) {
+    u32 *no_of_blks = NULL;
+    struct pb_usb_cmd resp;
+    struct pb_cmd_write_part *wr_part = (struct pb_cmd_write_part*) cmd;
+
+    switch (cmd->cmd) {
+        case PB_CMD_PREP_BULK_BUFFER:
+            no_of_blks = (u32 *) cmd->data;
+            tfp_printf("Preparting buffer %i\n\r",*no_of_blks);
+            plat_usb_prep_bulk_buffer(*no_of_blks);
+        break;
+        case PB_CMD_FLASH_BOOTLOADER:
+            no_of_blks = (u32 *)cmd->data;
+
+            pb_flash_bootloader(bulk_buffer, *no_of_blks);
+        break;
+        case PB_CMD_GET_VERSION:
+            tfp_printf ("Get version\n\r");
+            resp.cmd = PB_CMD_GET_VERSION;
+            tfp_sprintf((s8*) resp.data, "PB %s",VERSION);
+            plat_usb_send((u8*) &resp, 0x40);
+        break;
+        case PB_CMD_RESET:
+            tfp_printf ("Reset...\n\r");
+            plat_reset();
+            while(1);
+        break;
+        case PB_CMD_GET_GPT_TBL:
+            plat_usb_send((u8*) gpt_get_tbl(), sizeof(struct gpt_primary_tbl));
+        break;
+        case PB_CMD_WRITE_PART:
+            tfp_printf ("Writing %i blks to part %i with offset %8.8X\n\r",
+                        wr_part->no_of_blocks, wr_part->part_no,
+                        wr_part->lba_offset);
+            pb_flash_part(wr_part->part_no, wr_part->lba_offset, 
+                    wr_part->no_of_blocks, bulk_buffer);
+        break;
+        default:
+            tfp_printf ("Got unknown command: %x\n\r",cmd->cmd);
+    }
+}
+
+
+/**
+ * -  First measurement ---
+ * POR -> entry_armv7a.S ~28ms (First measurement)
+ * Writing 250 MByte via USB -> 20MByte /s
+ *
+ */
+
+
 void recovery(void) {
-    u32 chunk_buf_count = 0;
-    
-
-    struct pb_usb_command_hdr *hdr = usb_buf;
-    u8 * payload = usb_buf + sizeof(struct pb_usb_command_hdr);
-    
-    struct pb_chunk_hdr *chunk = (struct pb_chunk_hdr *) payload;
-    
-    u8 * usb_chunk_buf = usb_buf + sizeof(struct pb_usb_command_hdr) +
-                            sizeof(struct pb_chunk_hdr);
-
-
-
-    struct pb_write_part_hdr * part_wr_hdr = 
-            (struct pb_write_part_hdr *) payload;
-
     tfp_printf ("\n\r*** RECOVERY MODE ***\n\r");
-    
-    cmd_to_process = 0;
 
+    pb_writel(0, REG(0x020A0000,0));
     board_usb_init();
-
 
     u32 loop_count = 0;
     volatile u8 led_blink = 0;
-
 
     while(1) {
         loop_count++;
@@ -90,63 +108,7 @@ void recovery(void) {
         }
 
         soc_usb_task();
-
-        if (cmd_to_process) {
-            cmd_to_process = 0;
-
-
-            if (crc32(0, usb_buf, sizeof(struct pb_usb_command_hdr)-4) == 
-                                                    hdr->header_crc) {
-
-
-                switch (hdr->cmd) {
-                    case PB_CMD_TRANSFER_DATA:
-                            /*tfp_printf ("Got chunk: %i, sz=%ib\n\r",
-                                        chunk->chunk_no,
-                                        chunk->chunk_sz);
-                            */
-                            if (chunk->chunk_no == 0) {
-                                chunk_buf_count = 0;
-                            }
-                            
-                            if (chunk_buf_count + chunk->chunk_sz > 
-                                    sizeof(chunk_buffer)) {
-                                tfp_printf ("Chunk buffer overflow!\n\r");
-                                break;
-                            }
-
-                            for (int i = 0; i < chunk->chunk_sz; i++) {
-                                chunk_buffer[chunk_buf_count+i] = 
-                                        usb_chunk_buf[i];
-
-                            }
-                            
-                            chunk_buf_count += chunk->chunk_sz;
-
-
-                        break;
-                    case PB_CMD_FLASH_BOOT:
-                        tfp_printf ("Installing bootloader  %ib...\n\r",chunk_buf_count);
-                        pb_flash_bootloader(chunk_buffer, chunk_buf_count);
-                    break;
-                    case PB_CMD_WRITE_PART:
-                        pb_flash_part(part_wr_hdr->part_no,
-                                        part_wr_hdr->lba_offset,
-                                        part_wr_hdr->no_of_blocks,
-                                        chunk_buffer);
-                    break;
-                    case PB_CMD_RESET:
-                        plat_reset();
-                    break;
-                    default:
-
-                        tfp_printf ("Got unknown CMD: %2.2X, sz = %ub\n\r",hdr->cmd, hdr->payload_sz);
-
-                };
-            }
-
-        }
-    }
+   }
 
 
 

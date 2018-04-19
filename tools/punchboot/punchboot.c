@@ -42,12 +42,16 @@
 #include <string.h>
 #include <stdbool.h>
 #include <libusb-1.0/libusb.h>
+#include <uuid/uuid.h>
 
 #include "recovery.h"
 #include "crc.h"
-
+#include "pb_types.h"
+#include "gpt.h"
+#include "utils.h"
 
 static libusb_context *ctx = NULL;
+
 
 static libusb_device * find_device(libusb_device **devs)
 {
@@ -75,18 +79,14 @@ static libusb_device * find_device(libusb_device **devs)
 #define CTRL_OUT		LIBUSB_ENDPOINT_OUT|LIBUSB_REQUEST_TYPE_CLASS|LIBUSB_RECIPIENT_INTERFACE
 
 
-
-
-static int pb_send_command(libusb_device_handle *h, struct pb_cmd *cmd) {
+static int pb_write(libusb_device_handle *h, struct pb_cmd *cmd) {
     int err = 0;
     int tx_sz = 0;
 
     err = libusb_interrupt_transfer(h,
                 0x02,
-                (uint8_t *) cmd, 0x40 /*sizeof(struct pb_cmd)*/ , &tx_sz, 0);
-
-    printf ("send_command tx_sz=%i\n\r",tx_sz);
-
+                (uint8_t *) cmd, sizeof(struct pb_cmd) , &tx_sz, 0);
+    
     if (err < 0) {
         printf ("USB: cmd=0x%2.2x, transfer err = %i\n",cmd->cmd, err);
     }
@@ -94,67 +94,122 @@ static int pb_send_command(libusb_device_handle *h, struct pb_cmd *cmd) {
     return err;
 }
 
-
-
-static int pb_write(libusb_device_handle *h,u_int8_t cmd, uint16_t param0, uint8_t *bfr,
-                                    uint32_t sz) {
+static int pb_read(libusb_device_handle *h, u8 *bfr, u32 sz) {
     int err = 0;
+    int rx_sz = 0;
 
-    err = libusb_control_transfer(h,
-                CTRL_OUT,
-                cmd,
-                param0,
-                0,
-                bfr, sz, 2000);
-
+    err = libusb_interrupt_transfer(h,
+                LIBUSB_ENDPOINT_IN|3,
+                bfr, sz , &rx_sz, 10000);
+    
     if (err < 0) {
-        printf ("USB: read error \n");
+        printf ("pb_read: %i %i\n", err,rx_sz);
     }
 
     return err;
 }
 
 
-static int pb_read(libusb_device_handle *h,u_int8_t cmd, uint16_t param0, uint8_t *bfr,
-                                    uint32_t sz) {
-    int err = 0;
-
-    err = libusb_control_transfer(h,
-                CTRL_IN,
-                cmd,
-                param0,
-                0,
-                bfr, sz, 2000);
-
-    if (err < 0) {
-        printf ("USB: read error \n");
-    }
-
-    return err;
+static int pb_reset(libusb_device_handle *h) {
+    struct pb_cmd c;
+    c.cmd = PB_CMD_DO_RESET;
+    printf ("Sending RESET\n");
+    return pb_write(h, &c);
 }
 
-static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
+static int pb_print_version(libusb_device_handle *h) {
+    struct pb_cmd c;
+    struct pb_cmd response;
+    int err;
+
+    c.cmd = PB_CMD_GET_VERSION;
+    err = pb_write(h, &c);
+
+    if (err) {
+        return err;
+    }
+
+    pb_read(h, (u8*) &response, sizeof(struct pb_cmd));
+
+    printf ("PB Version: %s\n",response.data);
+
+    return 0;
+
+}
+
+static int pb_print_gpt_table(libusb_device_handle *h) {
+    struct pb_cmd c;
+    struct gpt_primary_tbl gpt;
+    struct gpt_part_hdr *part;
+    char str_type_uuid[37];
+    int err;
+    u8 tmp_string[64];
+
+    c.cmd = PB_CMD_GET_GPT_TBL;
+    err = pb_write(h, &c);
+
+    if (err) {
+        printf ("pb_print_gpt_table: %i\n",err);
+        return err;
+    }
+
+    err = pb_read(h, (u8*) &gpt, sizeof(struct gpt_primary_tbl));
+
+    if (err) {
+        printf ("pb_print_gpt_table: %i\n",err);
+        return err;
+    }
+    printf ("GPT Table:\n");
+    for (int i = 0; i < gpt.hdr.no_of_parts; i++) {
+        part = &gpt.part[i];
+
+        if (!part->first_lba)
+            break;
+        
+        uuid_unparse_lower(part->type_uuid, str_type_uuid);
+        utils_gpt_part_name(part, tmp_string, 36);
+        printf (" %i - [%16s] lba 0x%8.8X - 0x%8.8X, TYPE: %s\n", i,
+                tmp_string,
+                part->first_lba, part->last_lba,
+                str_type_uuid);
+                                
+    }
+
+    return 0;
+}
+
+
+
+static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_name) {
     int read_sz = 0;
     int sent_sz = 0;
     int err;
-    uint16_t sts;
-    FILE *fp = fopen (f_name,"rb");
-    unsigned char bfr[1024*1024*1];
-    struct stat finfo;
-    uint8_t z_padding[511];
+    FILE *fp = NULL; 
+    unsigned char *bfr = NULL;
+    struct pb_cmd_prep_buffer bfr_cmd;
+    struct pb_cmd_write_part wr_cmd;
 
-    stat(f_name, &finfo);
-    uint16_t no_of_blocks = finfo.st_size / 512;
-    if (finfo.st_size % 512)
-        no_of_blocks++;
+    fp = fopen (f_name,"rb");
 
-    printf ("no_of_blocks = %i\n", no_of_blocks);
-    pb_read(h, PB_PREP_BUFFER, no_of_blocks, (uint8_t *) &sts ,2);
+    if (fp == NULL) {
+        printf ("Could not open file: %s\n",f_name);
+        return -1;
+    }
 
-    printf ("sts = %i\n",sts);
-    while ((read_sz = fread(bfr, 1, sizeof(bfr), fp)) >0) {
+    bfr =  malloc(1024*1024*8);
+    
+    bfr_cmd.cmd = PB_CMD_PREP_BULK_BUFFER;
+    wr_cmd.cmd = PB_CMD_WRITE_PART;
+    wr_cmd.lba_offset = 0;
+    wr_cmd.part_no = part_no;
+    printf ("Writing");
+    fflush(stdout);
+    while ((read_sz = fread(bfr, 1, 1024*1024*8, fp)) >0) {
+       bfr_cmd.no_of_blocks = read_sz / 512;
+        if (read_sz % 512)
+            bfr_cmd.no_of_blocks++;
 
-        //printf ("read_sz = %ib\n",read_sz);
+        pb_write(h, (u8*)&bfr_cmd);
 
         err = libusb_bulk_transfer(h,
                     1,
@@ -162,42 +217,95 @@ static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
                     read_sz,
                     &sent_sz,
                     1000);
-        //printf ("TX: %ib\n",sent_sz);
+ 
+        if (err != 0) {
+            printf ("USB: Bulk xfer error, err=%i\n",err);
+            goto err_xfer;
+        }
+
+        wr_cmd.no_of_blocks = bfr_cmd.no_of_blocks;
+        //printf ("wr: %i kBytes read_sz = %i, send_sz = %i\n",bfr_cmd.no_of_blocks*512/1024, read_sz, sent_sz);
+        printf (".");
+        fflush(stdout);
+        pb_write(h, (u8 *) &wr_cmd);
+        wr_cmd.lba_offset += bfr_cmd.no_of_blocks;
+ 
+
+    }
+    printf ("Done\n");
+err_xfer:
+    free(bfr);
+    fclose(fp);
+    return err;
+}
+
+
+
+
+static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
+    int read_sz = 0;
+    int sent_sz = 0;
+    int err;
+    FILE *fp = NULL; 
+    unsigned char bfr[1024*1024*1];
+    struct stat finfo;
+    struct pb_cmd cmd;
+
+
+    fp = fopen (f_name,"rb");
+
+    if (fp == NULL) {
+        printf ("Could not open file: %s\n",f_name);
+        return -1;
+    }
+
+    stat(f_name, &finfo);
+    cmd.cmd = PB_CMD_PREP_BULK_BUFFER;
+    
+    uint32_t *no_of_blocks = (uint32_t*) cmd.data;
+
+    *no_of_blocks = finfo.st_size / 512;
+
+    if (finfo.st_size % 512)
+       *no_of_blocks = finfo.st_size/512+1;
+
+    printf ("Installing bootloader, sz = %d blocks\n", *no_of_blocks);
+    
+    pb_write(h, &cmd);
+
+    while ((read_sz = fread(bfr, 1, sizeof(bfr), fp)) >0) {
+        err = libusb_bulk_transfer(h,
+                    1,
+                    bfr,
+                    read_sz,
+                    &sent_sz,
+                    1000);
  
         if (err != 0) {
             printf ("USB: Bulk xfer error, err=%i\n",err);
             return -1;
         }
-
-   }
-    
-    int remainder = read_sz %512;
-    //printf ("Remainder: %i\n", remainder);
-    
-    if (remainder) {
-       printf ("Padding %i bytes...\n", remainder);
-       err = libusb_bulk_transfer(h,
-                    1,
-                    z_padding,
-                    remainder,
-                    &sent_sz,
-                    1000);
     }
+    
     fclose(fp);
 
-    pb_read(h, PB_PROG_BOOTLOADER, no_of_blocks, (uint8_t *) &sts, 2);
-
-    //pb_send_command(h, PB_PROG_BOOTLOADER, 0, NULL, 0);
-    return 0;
+    cmd.cmd = PB_CMD_FLASH_BOOTLOADER;
+    return pb_write(h, &cmd);
 }
-    /*
- * 
- *
- *
- * */
 
-int main(int argc, char **argv)
-{
+void print_help(void) {
+    printf (" --- Punch BOOT ---\n\n");
+    printf (" Bootloader:\n");
+    printf ("  punchboot -b -f <file name> - Install bootloader\n");
+    printf ("  punchboot -r                - Reset device\n");
+    printf ("  punchboot -s                - BOOT System\n");
+    printf ("\n");
+    printf (" Partition Management:\n");
+    printf ("  punchboot -l                - List partitions\n");
+    printf ("  punchboot -w <n> -f <fn>    - Write 'fn' to partition 'n'\n");
+}
+
+int main(int argc, char **argv) {
     extern char *optarg;
     extern int optind, opterr, optopt;
     libusb_device_handle *h;
@@ -210,14 +318,7 @@ int main(int argc, char **argv)
 
 
     if (argc <= 1) {
-        printf (" --- Punch BOOT ---\n\n");
-        printf (" Bootloader:\n");
-        printf ("  punchboot -b -f <file name> - Install bootloader\n");
-        printf ("  punchboot -r                - Reset device\n");
-        printf ("\n");
-        printf (" Partition Management:\n");
-        printf ("  punchboot -l                - List partitions\n");
-        printf ("  punchboot -w <n> -f <fn>    - Write 'fn' to partition 'b'\n");
+        print_help();
         exit(0);
     }
 
@@ -225,7 +326,52 @@ int main(int argc, char **argv)
 	if (r < 0)
 		return r;
 
-    //libusb_set_debug(ctx, 10);
+
+    int part_no = -1;
+    bool flag_part_write = false;
+    bool flag_bl_write = false;
+    bool flag_reset = false;
+    bool flag_read_pb_version = false;
+    bool flag_list_part = false;
+    bool flag_help = false;
+
+    char *fn = NULL;
+
+    while ((c = getopt (argc, argv, "hplrbw:f:")) != -1) {
+        switch (c) {
+            case 'b':
+                flag_bl_write = true;       
+            break;
+            case 'r':
+                flag_reset = true;
+            break;
+            case 'l':
+                flag_list_part = true;
+            break;
+            case 'w':
+                part_no = atoi(optarg);
+                flag_part_write = true;
+            break;
+            case 'f':
+                fn = optarg;
+            break;
+            case 'p':
+                flag_read_pb_version = true;
+            break;
+            case 'h':
+                flag_help = true;
+            break;
+            default:
+                abort ();
+        }
+    }
+    
+    if (flag_help) {
+        print_help();
+        exit(0);
+    }
+
+     //libusb_set_debug(ctx, 10);
 
 	cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0)
@@ -258,62 +404,24 @@ int main(int argc, char **argv)
         return -1;
     }
 
-
-    uint32_t pb_version = 0;
-    uint16_t status = 0;
-    struct pb_cmd a;
-    a.cmd = 0x00;
-
-    pb_read(h,PB_GET_VERSION,0, &pb_version, 4);
-    printf ("PB: Version = %x\n",pb_version);
-
-
-    if (argc == 2)
-    while (1) {
-        printf ("Sending cmd...\n");
-        a.cmd++;
-        pb_send_command(h, &a);
-        printf ("Done...\n");
+   
+    if (flag_read_pb_version) {
+        pb_print_version(h);
     }
-    int part_no = -1;
-    bool flag_part_write = false;
-    bool flag_bl_write = false;
-    bool flag_reset = false;
-    char *fn = NULL;
 
-    while ((c = getopt (argc, argv, "rbw:f:")) != -1) {
-        switch (c) {
-            case 'b':
-                flag_bl_write = true;       
-            break;
-            case 'r':
-                flag_reset = true;
-            break;
-            case 'w':
-                part_no = atoi(optarg);
-                flag_part_write = true;
-            break;
-            case 'f':
-                fn = optarg;
-            break;
-            default:
-                abort ();
-        }
+    if (flag_list_part) {
+        pb_print_gpt_table(h);
     }
-    
+
     if (flag_bl_write && fn) {
         pb_program_bootloader(h, fn);
-        if (flag_reset) {
-            pb_read(h, PB_DO_RESET, 0, &status, 2);
-        }
+        if (flag_reset) 
+            pb_reset(h);
     } else if (flag_part_write && fn) {
         printf ("Writing %s to part %i\n",fn, part_no);
-        //pb_program_part(h, part_no, fn);  
-        
-        status = 0;
-        pb_write(h, PB_PROG_PART, 0, &status, 2);
-        if (flag_reset)
-            pb_read(h, PB_DO_RESET, 0,  &status, 2);
+        pb_flash_part(h, part_no, fn);
+    } else if (flag_reset) {
+        pb_reset(h);
     }
     
 

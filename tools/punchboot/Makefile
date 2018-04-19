@@ -16,12 +16,12 @@ CFLAGS  += -I. -I include/ -I 3pp/libtomcrypt/src/headers
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += `$(PKG_CONFIG) --cflags libusb-1.0`
 
-LIBS     = `$(PKG_CONFIG) --libs libusb-1.0`
+LIBS     = `$(PKG_CONFIG) --libs libusb-1.0` -luuid
 
 LDFLAGS =  
 
 ASM_SRCS = 
-C_SRCS   = $(TARGET).c crc.c
+C_SRCS   = $(TARGET).c crc.c utils.c
 
 OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 

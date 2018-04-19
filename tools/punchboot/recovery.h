@@ -1,32 +1,38 @@
 #ifndef __RECOVERY_H__
 #define __RECOVERY_H__
 
-#include <sys/types.h>
+#include "pb_types.h"
 
+#define PB_CMD_DO_RESET         0x00000001
+#define PB_CMD_FLASH_BOOTLOADER 0x00000002
+#define PB_CMD_PREP_BULK_BUFFER 0x00000003
+#define PB_CMD_GET_VERSION      0x00000004
+#define PB_CMD_GET_GPT_TBL      0x00000005
+#define PB_CMD_WRITE_PART       0x00000006
 
-#define PB_USB_REQUEST_TYPE 0x20
-#define PB_PREP_BUFFER 0x21
-#define PB_PROG_BOOTLOADER 0x22
-#define PB_GET_VERSION 0x23
-#define PB_DO_RESET   0x024
-#define PB_PROG_PART 0x0025
 
 struct pb_cmd {
-    uint32_t cmd;
-    uint32_t data[60];
+    u32 cmd;
+    u8 data[60];
 } __attribute__ ((packed));
 
 
-struct pb_chunk_hdr {
-    uint16_t chunk_no;
-    uint16_t chunk_sz;
+
+struct pb_cmd_prep_buffer {
+    u32 cmd;
+    u32 no_of_blocks;
+    u8 _reserved[56];
 } __attribute__ ((packed));
 
-struct pb_write_part_hdr {
-    uint32_t part_no;
-    uint32_t lba_offset;
-    uint32_t no_of_blocks;
+
+struct pb_cmd_write_part {
+    u32 cmd;
+    u32 no_of_blocks;
+    u32 lba_offset;
+    u32 part_no;
+    u8 _reserved[48];
 } __attribute__ ((packed));
+
 
 
 

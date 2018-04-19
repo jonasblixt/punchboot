@@ -17,6 +17,8 @@
 #define USB_DEVICEADDR 0x154
 #define USB_ENDPTCTRL1 0x1c4
 #define USB_ENDPTCTRL2 0x1c8
+#define USB_ENDPTCTRL3 0x1cc
+
 
 #define USB_ENDPTSTAT 0x1b8
 #define USBPHY_BASE 0x020C9000
@@ -57,13 +59,6 @@ struct ehci_dQH {
 #define SET_FEATURE					0x0003
 #define SET_ADDRESS                 0x0005
 #define GET_STATUS                  0x8000
-
-#define PB_PREP_BUFFER              0xA121
-#define PB_PROG_BOOTLOADER          0xA122
-#define PB_GET_VERSION              0xA123
-#define PB_DO_RESET                 0xA124
-#define PB_PROG_PART                0x2125
-
 
 struct usbdSetupPacket {
     u8 bRequestType;	//! Characteristics of request 
@@ -129,7 +124,6 @@ struct usb_descriptors {
     const struct usb_configuration_descriptor config;
     const struct usb_interface_descriptor interface;
     const struct usb_endpoint_descriptor endpoint_bulk_out;
-    const struct usb_endpoint_descriptor endpoint_bulk_in;
     const struct usb_endpoint_descriptor endpoint_intr_out;
     const struct usb_endpoint_descriptor endpoint_intr_in;
 } __attribute__ ((packed));
@@ -139,12 +133,15 @@ struct ehci_device {
     __iomem base;
     u8 enumerated ;
     u8 ready;
-    struct ehci_dQH __attribute__((aligned(4096))) dqh[32]  ;
+    struct ehci_dQH __attribute__((aligned(4096))) dqh[16];
     struct usbdSetupPacket setup;
 };
 
 
 void soc_usb_init(u32 base_addr);
 void soc_usb_task(void);
+
+int plat_usb_send(u8 *bfr, u32 sz);
+int plat_usb_prep_bulk_buffer(u16 no_of_blocks);
 
 #endif

@@ -23,7 +23,7 @@ _reset:
   ldr r5,=#0x020A0004
   str r4,[r5]
 
-  ldr r4,=#0x0000
+  ldr r4,=#0x4000
   ldr r5,=#0x020A0000
   str r4,[r5]
 
