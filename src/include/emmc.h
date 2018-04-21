@@ -443,8 +443,9 @@ struct mmc_ext_csd {
 
 
 
-void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr, u32 nblocks, u8 wr);
+void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr, u32 nblocks, u8 wr, u8 async);
 void usdhc_emmc_switch_part(u8 part_no);
 void soc_emmc_init(void);
+
 
 #endif

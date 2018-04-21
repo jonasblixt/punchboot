@@ -9,6 +9,8 @@
 #define PB_CMD_GET_VERSION      0x00000004
 #define PB_CMD_GET_GPT_TBL      0x00000005
 #define PB_CMD_WRITE_PART       0x00000006
+#define PB_CMD_BOOT_PART        0x00000007
+
 
 
 struct pb_usb_cmd {
@@ -20,7 +22,8 @@ struct pb_usb_cmd {
 struct pb_cmd_prep_buffer {
      u32 cmd;
      u32 no_of_blocks;
-     u8 _reserved[56];
+     u32 buffer_id;
+     u8 _reserved[52];
 } __attribute__ ((packed));
 
 
@@ -29,13 +32,14 @@ struct pb_cmd_write_part {
     u32 no_of_blocks;
     u32 lba_offset;
     u32 part_no;
-    u8 _reserved[48];
+    u32 buffer_id;
+    u8 _reserved[44];
 } __attribute__ ((packed));
 
 
 
 void recovery(void);
-void recovery_cmd_event(struct pb_usb_cmd *cmd, u8 *bulk_buffer);
+void recovery_cmd_event(struct pb_usb_cmd *cmd, u8 *bulk_buffer, u8 *bulk_buffer2);
 void pb_flash_bootloadeR(u8 *bfr, u32 blocks_to_write);
 
 #endif

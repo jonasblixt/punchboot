@@ -37,9 +37,9 @@ int gpt_init(void) {
     u8 tmp_string[64];
 
     usdhc_emmc_xfer_blocks(1,(u8*) &_gpt1, 
-                    sizeof(struct gpt_primary_tbl) / 512, 0);
+                    sizeof(struct gpt_primary_tbl) / 512, 0, 0);
 
-    tfp_printf("GPT: Init...\n\r");
+/*    tfp_printf("GPT: Init...\n\r");
 
     for (int i = 0; i < _gpt1.hdr.no_of_parts; i++) {
 
@@ -56,6 +56,6 @@ int gpt_init(void) {
 
         
     }
-
+*/
     return 0;
 }

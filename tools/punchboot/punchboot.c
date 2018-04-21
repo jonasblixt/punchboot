@@ -117,6 +117,14 @@ static int pb_reset(libusb_device_handle *h) {
     return pb_write(h, &c);
 }
 
+static int pb_boot_part(libusb_device_handle *h, u8 part_no) {
+    struct pb_cmd c;
+    c.cmd = PB_CMD_BOOT_PART;
+    printf ("Booting\n");
+    return pb_write(h, &c);
+}
+
+
 static int pb_print_version(libusb_device_handle *h) {
     struct pb_cmd c;
     struct pb_cmd response;
@@ -166,7 +174,7 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
         if (!part->first_lba)
             break;
         
-        uuid_unparse_lower(part->type_uuid, str_type_uuid);
+        uuid_unparse_upper(part->type_uuid, str_type_uuid);
         utils_gpt_part_name(part, tmp_string, 36);
         printf (" %i - [%16s] lba 0x%8.8X - 0x%8.8X, TYPE: %s\n", i,
                 tmp_string,
@@ -183,6 +191,7 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
 static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_name) {
     int read_sz = 0;
     int sent_sz = 0;
+    int buffer_id = 0;
     int err;
     FILE *fp = NULL; 
     unsigned char *bfr = NULL;
@@ -208,7 +217,8 @@ static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_nam
        bfr_cmd.no_of_blocks = read_sz / 512;
         if (read_sz % 512)
             bfr_cmd.no_of_blocks++;
-
+        
+        bfr_cmd.buffer_id = buffer_id;
         pb_write(h, (u8*)&bfr_cmd);
 
         err = libusb_bulk_transfer(h,
@@ -224,6 +234,8 @@ static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_nam
         }
 
         wr_cmd.no_of_blocks = bfr_cmd.no_of_blocks;
+        wr_cmd.buffer_id = buffer_id;
+        buffer_id = !buffer_id;
         //printf ("wr: %i kBytes read_sz = %i, send_sz = %i\n",bfr_cmd.no_of_blocks*512/1024, read_sz, sent_sz);
         printf (".");
         fflush(stdout);
@@ -334,10 +346,10 @@ int main(int argc, char **argv) {
     bool flag_read_pb_version = false;
     bool flag_list_part = false;
     bool flag_help = false;
-
+    bool flag_boot_part = false;
     char *fn = NULL;
 
-    while ((c = getopt (argc, argv, "hplrbw:f:")) != -1) {
+    while ((c = getopt (argc, argv, "hpslrbw:f:")) != -1) {
         switch (c) {
             case 'b':
                 flag_bl_write = true;       
@@ -358,6 +370,9 @@ int main(int argc, char **argv) {
             case 'p':
                 flag_read_pb_version = true;
             break;
+            case 's':
+                flag_boot_part = true;
+            break;
             case 'h':
                 flag_help = true;
             break;
@@ -365,13 +380,13 @@ int main(int argc, char **argv) {
                 abort ();
         }
     }
-    
     if (flag_help) {
         print_help();
         exit(0);
     }
 
-     //libusb_set_debug(ctx, 10);
+     
+    //libusb_set_debug(ctx, 10);
 
 	cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0)
@@ -404,7 +419,11 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-   
+     if (flag_boot_part) {
+        pb_boot_part(h,1);
+    }
+
+  
     if (flag_read_pb_version) {
         pb_print_version(h);
     }

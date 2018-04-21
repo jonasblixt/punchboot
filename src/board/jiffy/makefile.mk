@@ -1,5 +1,5 @@
 PB_BOARD_NAME = Jiffy
-PB_SOC_NAME   = imx6ul
+PB_PLAT_NAME   = imx6ul
 PB_ENTRY     = 0x80001000
 
 

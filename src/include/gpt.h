@@ -23,6 +23,7 @@ struct gpt_header {
     u32 no_of_parts;
     u32 part_entry_sz;
     u32 part_array_crc;
+    u8 __reserved2[420];
 
 } __attribute__ ((packed));
 
@@ -38,7 +39,13 @@ struct gpt_part_hdr {
 } __attribute__ ((packed));
 
 
+struct gpt_primary_tbl {
+    struct gpt_header hdr;
+    struct gpt_part_hdr part[128];
+} __attribute__ ((packed));
 
-void gpt_init(void);
+int gpt_init(void);
+u32 gpt_get_part_offset(u8 part_no);
+struct gpt_primary_tbl* gpt_get_tbl(void);
 
 #endif

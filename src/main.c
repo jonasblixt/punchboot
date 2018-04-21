@@ -16,54 +16,36 @@
 #include <tomcrypt.h>
 #include <recovery.h>
 #include <gpt.h>
-
-#define DEBUG
+#include <plat.h>
+#include <emmc.h>
 
 void pb_main(void) {
-    const char pelle[] = "Arne";
-    unsigned char hash[32];
-    hash_state md;
-
     board_critical_init();
-
-#ifdef DEBUG
     board_uart_init();
     init_printf(NULL,soc_uart_putc);
-    tfp_printf("\n\rPB: " VERSION "\n\r");
-#endif
-
-
     board_emmc_init();
     gpt_init();
 
- /*   tfp_printf("memcpy works:\n\r");
-    memcpy(hash, pelle,4);
-    memset(hash, 'A', 32);
-    for (int i = 0; i < 32; i++) {
-        tfp_printf("%i %c\n\r",i, hash[i]);
-    }
-*/
+    int t1 = plat_get_ms_tick();
+    usdhc_emmc_xfer_blocks(0x1000, (u8 *) 0x87800000,
+                            2048, 0, 0);
+    int t2 = plat_get_ms_tick();
 
-    /*
-    sha256_init(&md);
-    sha256_process(&md, (const unsigned char*) pelle, 4);
-    sha256_done(&md, hash);
+   
+    /* 
+     * POR: 28 ms (Without HAB)
+     * Init: 7ms
+     * Read: 13ms
+     * tomcrypt_sha256_400kByte: 431ms
+     * tomcrypt_verify_rsa4096: 567ms
+     *
+     * caam_sha256_400kByte: ??? ms
+     * caam_verify_rsa4096: ??? ms
+     *
+     * */
 
-
-    tfp_printf ("SHA256: ");
-
-    for (int i = 0; i < 32; i++)
-        tfp_printf ("%.2x",hash[i]);
-    tfp_printf("\n\r");
-    */
-
-#ifndef DEBUG
-    board_uart_init();
-    init_printf(NULL,soc_uart_putc);
-    tfp_printf("\n\rPB: " VERSION "\n\r");
-#endif
-
-
+    tfp_printf("\n\rPB: " VERSION ", init took  %i ms\n\r", t1);
+    tfp_printf ("Reading 1 Mbyte took %i ms (%i MB/s)\n\r",t2-t1, 1024/(t2-t1));
     recovery();
 
 

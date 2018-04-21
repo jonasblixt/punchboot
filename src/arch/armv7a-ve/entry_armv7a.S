@@ -61,7 +61,7 @@ _zeroing_done:
 
     ldr sp, =_stack_end
 
-
+    bl init_vpu
     bl pb_main
     b .
 
@@ -77,8 +77,9 @@ __sctlr_mmu_set:
 	.word (SCTLR_I_MASK)
 hang:
     b .
+init_vpu:
+    MRC   p15, 0x0, r0, c1, c0, 2 	// Read CP15 CPACR
+    ORR   r0, r0, #(0x0f << 20)		// Full access rights
+    MCR   p15, 0x0, r0, c1, c0, 2 	// Write CP15 CPACR
+    BX  lr
 
-
-.global __aeabi_uldivmod
-__aeabi_uldivmod:
-    b .

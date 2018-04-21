@@ -18,8 +18,8 @@
 #define USB_ENDPTCTRL1 0x1c4
 #define USB_ENDPTCTRL2 0x1c8
 #define USB_ENDPTCTRL3 0x1cc
-
-
+#define USB_BURSTSIZE 0x160
+#define USB_SBUSCFG 0x90
 #define USB_ENDPTSTAT 0x1b8
 #define USBPHY_BASE 0x020C9000
 #define USB_ENDPTNAKEN 0x17C
@@ -142,6 +142,6 @@ void soc_usb_init(u32 base_addr);
 void soc_usb_task(void);
 
 int plat_usb_send(u8 *bfr, u32 sz);
-int plat_usb_prep_bulk_buffer(u16 no_of_blocks);
+int plat_usb_prep_bulk_buffer(u16 no_of_blocks, u8 n);
 
 #endif
