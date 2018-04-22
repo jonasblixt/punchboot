@@ -9,6 +9,7 @@
 #include <tinyprintf.h>
 #include <recovery.h>
 #include <config.h>
+#include <gpt.h>
 #include <boot.h>
 #include <board_config.h>
 

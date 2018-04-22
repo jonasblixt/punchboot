@@ -32,7 +32,7 @@ u32  plat_usb_prep_bulk_buffer(u16 no_of_blocks, u8 buffer_id);
 void plat_usb_task(void);
 
 /* UART Interface */
-void plat_uart_putc(u8 *ptr, u8 c);
+void plat_uart_putc(void *ptr, char c);
 
 
 #endif

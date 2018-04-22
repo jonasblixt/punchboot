@@ -38,29 +38,8 @@ static void recovery_flash_part(u8 part_no, u32 lba_offset, u32 no_of_blocks, u8
 }
 
 
-void* memcpy(void *dest, const void *src, size_t sz) {
-    u8 *p1 = (u8*) dest;
-    u8 *p2 = (u8*) src;
-    
-    for (u32 i = 0; i < sz; i++)
-        *p1++ = *p2++;
-
-    return dest;
-}
-
-int memcmp(const void *s1, const void *s2, size_t n) {
-    u8 *p1 = (u8*) s1;
-    u8 *p2 = (u8*) s2;
-    
-    for (u32 i = 0; i < n; i++)
-        if (*p1++ != *p2++)
-            return -1;
-    return 0;
-}
-
-
 /* TODO: This needs a total make-over */
-void recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
+static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
     u32 *no_of_blks = NULL;
     u32 *cmd = (u32 *) cmd_buf;
     u32 *cmd_data = (u32 *) cmd_buf + 1;
@@ -114,6 +93,8 @@ void recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
         default:
             tfp_printf ("Got unknown command: %x\n\r",*cmd);
     }
+
+    return PB_OK;
 }
 
 
@@ -128,7 +109,7 @@ void recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
 void recovery(void) {
     tfp_printf ("\n\r*** RECOVERY MODE ***\n\r");
 
-    pb_writel(0, REG(0x020A0000,0));
+    pb_writel(0, 0x020A0000);
     board_usb_init();
     plat_usb_cmd_callback(&recovery_cmd_event);
 
@@ -140,7 +121,7 @@ void recovery(void) {
 
         if (loop_count % 50000 == 0) {
             led_blink = !led_blink;
-            pb_writel(led_blink?0x4000:0, REG(0x020A0000,0));
+            pb_writel(led_blink?0x4000:0, 0x020A0000);
 
         }
         

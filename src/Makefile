@@ -29,7 +29,7 @@ LIBS     = key_dev.o key_prod.o key_field1.o key_field2.o -lgcc # TODO: Fix this
 
 LD_FLAGS =
 ASM_SRCS = 
-C_SRCS   = main.c recovery.c crc.c gpt.c keys.c boot.c config.c
+C_SRCS   = main.c recovery.c crc.c gpt.c keys.c boot.c config.c pb_string.c
 C_SRCS  += 3pp/tinyprintf/tinyprintf.c
 
 include board/$(BOARD)/makefile.mk
@@ -54,24 +54,26 @@ TOMCRYPT_CFLAGS += -DUSE_LTM -DLTM_DESC -I../libtommath/ -L../libtommath/
 
 all: $(TARGET).bin
 
+todo:
+	@grep -lR "TODO:" *
 prep_keys:
-	$(OBJCOPY) -I binary -O elf32-littlearm -B arm ../pki/dev_rsa_public.der key_dev.o
-	$(OBJCOPY) -I binary -O elf32-littlearm -B arm ../pki/prod_rsa_public.der key_prod.o
-	$(OBJCOPY) -I binary -O elf32-littlearm -B arm ../pki/field1_rsa_public.der key_field1.o
-	$(OBJCOPY) -I binary -O elf32-littlearm -B arm ../pki/field2_rsa_public.der key_field2.o
+	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm ../pki/dev_rsa_public.der key_dev.o
+	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm ../pki/prod_rsa_public.der key_prod.o
+	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm ../pki/field1_rsa_public.der key_field1.o
+	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm ../pki/field2_rsa_public.der key_field2.o
 
 libtomcrypt:
 	@$(MAKE) -C 3pp/libtommath CC=$(CC) AR=$(AR)
 	@$(MAKE) -C 3pp/libtomcrypt/ CC=$(CC) AR=$(AR) \
 		CFLAGS="$(TOMCRYPT_CFLAGS)" EXTRALIBS="-ltommath"
 
-$(TARGET).bin: $(TARGET)
-	@echo OBJCOPY $< $@
-	@$(OBJCOPY) -O binary -R .comment $< $@
-
+showsize:
 	@echo "VERSION = $(GIT_VERSION)"
 	@$(SIZE) -A $<
 
+$(TARGET).bin: $(TARGET)
+	@echo OBJCOPY $< $@
+	@$(OBJCOPY) -O binary -R .comment $< $@
 $(TARGET): prep_keys $(OBJS)
 	@echo LINK $@
 	@$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $@

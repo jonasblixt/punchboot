@@ -1,7 +1,7 @@
 #ifndef __PB_TYPES_H__
 #define __PB_TYPES_H__
 
-#define NULL (u32 *) 0
+#define NULL (void *) 0
 #define true 1
 #define false 0
 

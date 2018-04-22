@@ -1,21 +1,26 @@
 #include <boot.h>
 #include <plat.h>
+#include <gpt.h>
 #include <keys.h>
 #include <config.h>
 #include <pb_string.h>
 #include <pb_image.h>
+#include <tinyprintf.h>
 
 static bootfunc* _tee_boot_entry = NULL;
 static bootfunc* _boot_entry = NULL;
  
 void boot_inc_fail_count(u8 sys_no) {
+    /* TODO: Implement me */
 }
 
 u32 boot_fail_count(u8 sys_no) {
+    /* TODO: Implement me */
     return 0;
 }
 
 u32 boot_boot_count(u8 sys_no) {
+    /* TODO: Implement me */
     return 0;
 }
 
@@ -26,12 +31,11 @@ u32 boot_load(u8 sys_no) {
     unsigned int sign_sz = 0;
     unsigned char hash_copy[32];
     unsigned char hash[32];
-    int t1, t2;
-
 
     _boot_entry = NULL;
+    _tee_boot_entry = NULL;
 
-    /* Implement logic to resolve System A UUID -> part_no*/
+    /* TODO: Implement logic to resolve System A UUID -> part_no*/
 
     part_lba_offset = gpt_get_part_offset(1);
 
@@ -45,7 +49,7 @@ u32 boot_load(u8 sys_no) {
 
     if (pbi.hdr.header_magic != PB_IMAGE_HEADER_MAGIC) {
         tfp_printf ("Incorrect header magic\n\r");
-        return;
+        return PB_ERR;
     }
     
     /* TODO: Fix TEE load logic */
@@ -62,48 +66,38 @@ u32 boot_load(u8 sys_no) {
     pbi.hdr.sign_length = 0;
 
     memcpy (hash_copy, pbi.hdr.sha256,32);
-    
     memset (pbi.hdr.sign, 0, 1024);
     memset (pbi.hdr.sha256, 0, 1024);
 
     plat_sha256_init();
-    t1 = plat_get_ms_tick();
-    plat_sha256_update((const unsigned char*) &pbi.hdr, 
+
+    plat_sha256_update((u8 *) &pbi.hdr, 
                     sizeof(struct pb_image_hdr));
-    plat_sha256_update((const unsigned char*) &pbi.comp[0], 
+    plat_sha256_update((u8 *) &pbi.comp[0], 
                     16*sizeof(struct pb_component_hdr));
  
-    plat_sha256_update((const unsigned char*) pbi.comp[0].load_addr_low, 
+    plat_sha256_update((u8 *) pbi.comp[0].load_addr_low, 
                     pbi.comp[0].component_size);
     plat_sha256_finalize(hash);
 
-    t2 = plat_get_ms_tick();
-
     u8 flag_chk_ok = 1;
 
-    for (int i = 0; i < 32; i++) {
-        if (hash[i] != hash_copy[i])
-            flag_chk_ok = 0;
-    }
-    
+    if (memcmp(hash, hash_copy, 32) != 0)
+        flag_chk_ok = 0;
+
     if (!flag_chk_ok) {
         tfp_printf ("Error: SHA Incorrect\n\r");
         return PB_ERR;
     }
 
-    int err;
-
+    /* TODO: This needs some more thinkning, reflect HAB state? */
     u8 *pkey_ptr = pb_key_get(PB_KEY_DEV);
-
-
     u8 __a4k output_data[512];
 
-    t1 = plat_get_ms_tick();
     plat_rsa_enc(sign_copy, sign_sz,
                     output_data,
                     &pkey_ptr[0x21], 512,      // PK Modulus
                     &pkey_ptr[0x21+512+2], 3); // PK exponent
-    t2 = plat_get_ms_tick();
 
     /* TODO: ASN.1 support functions */
     u8 flag_sig_ok = 1;

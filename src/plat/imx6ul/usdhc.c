@@ -6,12 +6,14 @@
 #include <io.h>
 #include <plat/imx6ul/imx_regs.h>
 
+#undef USDHC_DEBUG
+
 static u32 _iobase = 0x02190000;
 static u32 _raw_cid[4];
 static u32 _raw_csd[4];
 static u8  _raw_extcsd[512];
 static struct usdhc_adma2_desc tbl[256];
- 
+static u32 _sectors = 0;
 
 static void usdhc_emmc_wait_for_cc(void)
 {
@@ -19,14 +21,14 @@ static void usdhc_emmc_wait_for_cc(void)
     /* Clear all pending interrupts */
 
     while (1) {
-        irq_status = pb_readl(REG(_iobase, USDHC_INT_STATUS));
+        irq_status = pb_readl(_iobase+ USDHC_INT_STATUS);
 
         if (irq_status & USDHC_INT_RESPONSE)
             break;
 
     }
 
-    pb_writel(USDHC_INT_RESPONSE, REG(_iobase, USDHC_INT_STATUS));
+    pb_writel(USDHC_INT_RESPONSE, _iobase+USDHC_INT_STATUS);
 }
 
 static void usdhc_emmc_wait_for_de(void)
@@ -35,13 +37,13 @@ static void usdhc_emmc_wait_for_de(void)
     /* Clear all pending interrupts */
 
     while (1) {
-        irq_status = pb_readl(REG(_iobase, USDHC_INT_STATUS));
+        irq_status = pb_readl(_iobase+ USDHC_INT_STATUS);
 
         if (irq_status & USDHC_INT_DATA_END)
             break;
     }
 
-    pb_writel(USDHC_INT_DATA_END, REG(_iobase, USDHC_INT_STATUS));
+    pb_writel(USDHC_INT_DATA_END, _iobase+ USDHC_INT_STATUS);
 }
 
 static void usdhc_emmc_send_cmd(u8 cmd, u32 arg, 
@@ -50,16 +52,16 @@ static void usdhc_emmc_send_cmd(u8 cmd, u32 arg,
     volatile u32 pres_state = 0x00;
 
     while (1) {
-        pres_state = pb_readl(REG(_iobase,USDHC_PRES_STATE));
+        pres_state = pb_readl(_iobase+ USDHC_PRES_STATE);
 
         if ((pres_state & 0x03) == 0x00) {
             break;
         }
     }
     
-    pb_writel(arg, REG(_iobase, USDHC_CMD_ARG));
-    pb_writel(USDHC_MAKE_CMD(cmd, resp_type), REG(_iobase,
-                                USDHC_CMD_XFR_TYP));
+    pb_writel(arg, _iobase+ USDHC_CMD_ARG);
+    pb_writel(USDHC_MAKE_CMD(cmd, resp_type), _iobase+
+                                USDHC_CMD_XFR_TYP);
 
     usdhc_emmc_wait_for_cc();
 }
@@ -69,7 +71,7 @@ static int usdhc_emmc_check_status(void) {
 
     usdhc_emmc_send_cmd (MMC_CMD_SEND_STATUS, 10<<16,0x1A);
 
-    u32 result = pb_readl(REG(_iobase,USDHC_CMD_RSP0));
+    u32 result = pb_readl(_iobase+USDHC_CMD_RSP0);
 
     if ((result & MMC_STATUS_RDY_FOR_DATA) &&
         (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG) {
@@ -89,12 +91,12 @@ static void usdhc_emmc_read_extcsd(void) {
     tbl->len = 512;
     tbl->addr = (u32) _raw_extcsd;
  
-    pb_writel((u32) tbl, REG(_iobase, USDHC_ADMA_SYS_ADDR));
+    pb_writel((u32) tbl, _iobase+ USDHC_ADMA_SYS_ADDR);
 
 	/* Set ADMA 2 transfer */
-	pb_writel(0x08800224, REG(_iobase, USDHC_PROT_CTRL));
+	pb_writel(0x08800224, _iobase+ USDHC_PROT_CTRL);
 
-	pb_writel(0x00010200, REG(_iobase, USDHC_BLK_ATT));
+	pb_writel(0x00010200, _iobase+ USDHC_BLK_ATT);
 	usdhc_emmc_send_cmd(MMC_CMD_SEND_EXT_CSD, 0, 0x3A);
 	
     usdhc_emmc_wait_for_de();
@@ -150,12 +152,12 @@ void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr,
     } while (remaining_sz);
 
 
-    pb_writel((u32) tbl, REG(_iobase, USDHC_ADMA_SYS_ADDR));
+    pb_writel((u32) tbl, _iobase+ USDHC_ADMA_SYS_ADDR);
     
 	/* Set ADMA 2 transfer */
-	pb_writel(0x08800224, REG(_iobase, USDHC_PROT_CTRL));
+	pb_writel(0x08800224, _iobase+ USDHC_PROT_CTRL);
 
-	pb_writel(0x00000200 | (nblocks << 16), REG(_iobase, USDHC_BLK_ATT));
+	pb_writel(0x00000200 | (nblocks << 16), _iobase+ USDHC_BLK_ATT);
 	
     flags = (1<<31)| (1<<3) | 1;
 
@@ -171,7 +173,7 @@ void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr,
         if (!wr)
             cmd = MMC_CMD_READ_MULTIPLE_BLOCK;
     }
-    pb_writel(flags, REG(_iobase, USDHC_MIX_CTRL));
+    pb_writel(flags, _iobase + USDHC_MIX_CTRL);
         
     usdhc_emmc_send_cmd(cmd, start_lba, MMC_RSP_R1 | 0x20);
  
@@ -182,25 +184,26 @@ void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr,
 
 void usdhc_emmc_init(void) {
 
-    //tfp_printf ("EMMC: Init...\n\r");   
+#ifdef USDHC_DEBUG
+    tfp_printf ("EMMC: Init...\n\r");   
+#endif
 
-
-    pb_writel(1, REG(0x0219002c,0));
+    pb_writel(1, 0x0219002c);
     /* Reset usdhc controller */
-    pb_writel((1<<24), REG(_iobase, 0x2c));
+    pb_writel((1<<24), _iobase+ 0x2c);
 
-    while (pb_readl(REG(_iobase, 0x2c)) & (1<<24))
+    while (pb_readl(_iobase+0x2c) & (1<<24))
         asm("nop");
-    pb_writel(0x10801080, REG(_iobase, USDHC_WTMK_LVL));
+    pb_writel(0x10801080, _iobase+USDHC_WTMK_LVL);
 
 
     /* Set clock to 400 kHz */
     /* MMC Clock = base clock (196MHz) / (prescaler * divisor )*/
-    pb_writel(0x10E1, REG(_iobase,  USDHC_SYS_CTRL));
+    pb_writel(0x10E1, _iobase+USDHC_SYS_CTRL);
 
     
     while (1) {
-        u32 pres_state = pb_readl(REG(_iobase,  USDHC_PRES_STATE));
+        u32 pres_state = pb_readl(_iobase+ USDHC_PRES_STATE);
         if (pres_state & (1 << 3))
             break;
     }
@@ -208,14 +211,14 @@ void usdhc_emmc_init(void) {
     //tfp_printf ("EMMC: Clocks started\n\r");
 
     /* Configure IRQ's */
-    pb_writel(0xFFFFFFFF, REG(_iobase, USDHC_INT_STATUS_EN));
+    pb_writel(0xFFFFFFFF, _iobase+USDHC_INT_STATUS_EN);
     usdhc_emmc_send_cmd(MMC_CMD_GO_IDLE_STATE, 0,0);
 
     u32 r3;
     while (1) {
         usdhc_emmc_send_cmd(MMC_CMD_SEND_OP_COND, 0x00ff8080, 2);
 
-        r3 = pb_readl(REG(_iobase, USDHC_CMD_RSP0));
+        r3 = pb_readl(_iobase+USDHC_CMD_RSP0);
 
         if (r3 & 0x80000000) // Wait for eMMC to power up 
             break;
@@ -225,19 +228,19 @@ void usdhc_emmc_init(void) {
 
     usdhc_emmc_send_cmd(MMC_CMD_ALL_SEND_CID, 0, 0x09);
     
-    _raw_cid[0] = pb_readl(REG(_iobase, USDHC_CMD_RSP0));
-    _raw_cid[1] = pb_readl(REG(_iobase, USDHC_CMD_RSP1));
-    _raw_cid[2] = pb_readl(REG(_iobase, USDHC_CMD_RSP2));
-    _raw_cid[3] = pb_readl(REG(_iobase, USDHC_CMD_RSP3));
+    _raw_cid[0] = pb_readl(_iobase+ USDHC_CMD_RSP0);
+    _raw_cid[1] = pb_readl(_iobase+ USDHC_CMD_RSP1);
+    _raw_cid[2] = pb_readl(_iobase+ USDHC_CMD_RSP2);
+    _raw_cid[3] = pb_readl(_iobase+ USDHC_CMD_RSP3);
 
     usdhc_emmc_send_cmd(MMC_CMD_SET_RELATIVE_ADDR, 10<<16, 0x1A);  // R6
     
     usdhc_emmc_send_cmd(MMC_CMD_SEND_CSD, 10<<16, 0x09); // R2
 
-    _raw_csd[3] = pb_readl(REG(_iobase, USDHC_CMD_RSP0));
-    _raw_csd[2] = pb_readl(REG(_iobase, USDHC_CMD_RSP1));
-    _raw_csd[1] = pb_readl(REG(_iobase, USDHC_CMD_RSP2));
-    _raw_csd[0] = pb_readl(REG(_iobase, USDHC_CMD_RSP3));
+    _raw_csd[3] = pb_readl(_iobase+ USDHC_CMD_RSP0);
+    _raw_csd[2] = pb_readl(_iobase+ USDHC_CMD_RSP1);
+    _raw_csd[1] = pb_readl(_iobase+ USDHC_CMD_RSP2);
+    _raw_csd[0] = pb_readl(_iobase+ USDHC_CMD_RSP3);
 
 
     /* Select Card */
@@ -262,11 +265,11 @@ void usdhc_emmc_init(void) {
 
     /* Switch to 52 MHz DDR */
     /* MMC Clock = base clock (196MHz) / (prescaler * divisor )*/
-    pb_writel((1<<31)| (1<<3)| (1<<4)|1, REG(_iobase, USDHC_MIX_CTRL));
-    pb_writel(0x0101 | (0x0E << 16), REG(_iobase, USDHC_SYS_CTRL));
+    pb_writel((1<<31)| (1<<3)| (1<<4)|1, _iobase+USDHC_MIX_CTRL);
+    pb_writel(0x0101 | (0x0E << 16),_iobase+USDHC_SYS_CTRL);
 
     while (1) {
-        u32 pres_state = pb_readl(REG(_iobase, USDHC_PRES_STATE));
+        u32 pres_state = pb_readl(_iobase+USDHC_PRES_STATE);
         if (pres_state & (1 << 3))
             break;
     }
@@ -274,16 +277,16 @@ void usdhc_emmc_init(void) {
 	//tfp_printf("EMMC: Configured USDHC for new timing\n\r");
     usdhc_emmc_read_extcsd();
 
-	u32 sectors =
+	_sectors =
 			_raw_extcsd[EXT_CSD_SEC_CNT + 0] << 0 |
 			_raw_extcsd[EXT_CSD_SEC_CNT + 1] << 8 |
 			_raw_extcsd[EXT_CSD_SEC_CNT + 2] << 16 |
 			_raw_extcsd[EXT_CSD_SEC_CNT + 3] << 24;
 
-    //tfp_printf ("EMMC: %u sectors, %u bytes\n\r",sectors,sectors*512);
-
-    //tfp_printf ("EMMC: Partconfig: %2.2X\n\r", _raw_extcsd[EXT_CSD_PART_CONFIG]);
-
+#ifdef USDHC_DEBUG
+    tfp_printf ("EMMC: %u sectors, %u bytes\n\r",sectors,sectors*512);
+    tfp_printf ("EMMC: Partconfig: %2.2X\n\r", _raw_extcsd[EXT_CSD_PART_CONFIG]);
+#endif
 }
 
 /* Platform interface */

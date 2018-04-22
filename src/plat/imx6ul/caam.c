@@ -1,6 +1,7 @@
 #include <plat.h>
 #include <io.h>
 #include <tinyprintf.h>
+#include <pb_string.h>
 #include "caam.h"
 
 /* Commands  */
@@ -37,7 +38,7 @@ static int caam_shedule_job_sync(struct fsl_caam *d, u32 *job) {
     while (pb_readl(d->base + CAAM_ORSFR0) != 1)
         asm("nop");
 
-    if (d->output_ring[0] != job) {
+    if (d->output_ring[0] != (u32) job) {
         tfp_printf ("Job failed\n\r");
         return PB_ERR;
     }
@@ -54,7 +55,7 @@ u32 plat_sha256_update(u8 *data, u32 sz) {
 
     struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
 
-    e->addr_lo = data;
+    e->addr_lo = (u32) data;
     e->len_flag = sz;
 
     ctx.sg_count++;
@@ -99,18 +100,8 @@ u32 plat_rsa_enc(u8 *input,  u32 input_sz,
 
 
     u32 __a4k desc[10];
-    struct rsa_enc_pdb pdb;
-    struct caam_sg_entry sg;
 
-/*
-    pdb.header = (key_exp_sz << 13) |key_mod_sz;
-    pdb.f_ref = (u32) input;
-    pdb.g_ref = (u32) output;
-    pdb.n_ref = (u32) pk_mod;
-    pdb.e_ref = (u32) pk_exp;
-    pdb.f_len = input_sz;
-*/
-    
+   
     desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
     desc[1] = (key_exp_sz << 12)|key_mod_sz;
     desc[2] = (u32) input;
@@ -126,11 +117,11 @@ u32 plat_rsa_enc(u8 *input,  u32 input_sz,
         tfp_printf ("caam_rsa_enc error \n\r");
         return PB_ERR;
     }
-/*
+#ifdef CAAM_DEBUG
     tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x8810));
     tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x8814));
     tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x1044));
-*/
+#endif
 
     /* TODO: Implement logging info,error, debug*/
 

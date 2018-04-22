@@ -44,7 +44,7 @@ struct gpt_primary_tbl {
     struct gpt_part_hdr part[128];
 } __attribute__ ((packed));
 
-int gpt_init(void);
+u32 gpt_init(void);
 u32 gpt_get_part_offset(u8 part_no);
 struct gpt_primary_tbl* gpt_get_tbl(void);
 

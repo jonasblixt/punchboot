@@ -1,6 +1,6 @@
 #include <board.h>
 #include <plat.h>
-
+#include <tinyprintf.h>
 #include <io.h>
 
 #include <plat/imx6ul/imx_regs.h>
@@ -19,6 +19,9 @@ __inline u32 plat_get_ms_tick(void) {
 }
 
 /*
+ * TODO: Make sure that all of these clocks are running at
+ *       maximum rates
+ *
  * --- Root clocks and their maximum rates ---
  *
  * ARM_CLK_ROOT                        528 MHz
@@ -39,26 +42,31 @@ u32 board_init(void)
     platform_timer.base = GP_TIMER1_BASE;
     gp_timer_init(&platform_timer);
 
+    /* TODO: This soc should be able to run at 696 MHz, but it is unstable
+     *    Maybe the PM is not properly setup
+     * */
+
+
     /*** Configure ARM Clock ***/
-    reg = pb_readl(REG(0x020C400C,0));
+    reg = pb_readl(0x020C400C);
     /* Select step clock, so we can change arm PLL */
-    pb_writel(reg | (1<<2), REG(0x020C400C,0));
+    pb_writel(reg | (1<<2), 0x020C400C);
 
 
     /* Power down */
-    pb_writel((1<<12) , REG(0x020C8000,0));
+    pb_writel((1<<12) , 0x020C8000);
 
     /* Configure divider and enable */
     /* f_CPU = 24 MHz * 88 / 4 = 528 MHz */
-    pb_writel((1<<13) | 88, REG(0x020C8000,0));
+    pb_writel((1<<13) | 88, 0x020C8000);
 
 
     /* Wait for PLL to lock */
-    while (!(pb_readl(REG(0x020C8000,0)) & (1<<31)))
+    while (!(pb_readl(0x020C8000) & (1<<31)))
         asm("nop");
 
     /* Select re-connect ARM PLL */
-    pb_writel(reg & ~(1<<2), REG(0x020C400C, 0));
+    pb_writel(reg & ~(1<<2), 0x020C400C);
     
     /*** End of ARM Clock config ***/
 
@@ -66,24 +74,24 @@ u32 board_init(void)
 
 
     /* Ungate all clocks */
-    pb_writel(0xFFFFFFFF, REG(0x020C4000,0x68)); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, REG(0x020C4000,0x6C)); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, REG(0x020C4000,0x70)); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, REG(0x020C4000,0x74)); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, REG(0x020C4000,0x78)); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, REG(0x020C4000,0x7C)); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, REG(0x020C4000,0x80)); /* Ungate usdhc clk*/
+    pb_writel(0xFFFFFFFF, 0x020C4000+0x68); /* Ungate usdhc clk*/
+    pb_writel(0xFFFFFFFF, 0x020C4000+0x6C); /* Ungate usdhc clk*/
+    pb_writel(0xFFFFFFFF, 0x020C4000+0x70); /* Ungate usdhc clk*/
+    pb_writel(0xFFFFFFFF, 0x020C4000+0x74); /* Ungate usdhc clk*/
+    pb_writel(0xFFFFFFFF, 0x020C4000+0x78); /* Ungate usdhc clk*/
+    pb_writel(0xFFFFFFFF, 0x020C4000+0x7C); /* Ungate usdhc clk*/
+    pb_writel(0xFFFFFFFF, 0x020C4000+0x80); /* Ungate usdhc clk*/
 
 
     /* Configure UART */
-    pb_writel(0, REG(0x020E0094,0));
-    pb_writel(0, REG(0x020E0098,0));
-    pb_writel(UART_PAD_CTRL, REG(0x020E0320,0));
-    pb_writel(UART_PAD_CTRL, REG(0x020E0324,0));
+    pb_writel(0, 0x020E0094);
+    pb_writel(0, 0x020E0098);
+    pb_writel(UART_PAD_CTRL, 0x020E0320);
+    pb_writel(UART_PAD_CTRL, 0x020E0324);
 
     imx_uart_init(UART_PHYS);
 
-    init_printf(NULL,plat_uart_putc);
+    init_printf(NULL, &plat_uart_putc);
  
     /* Configure CAAM */
     caam.base = 0x02140000;
@@ -101,18 +109,18 @@ u32 board_init(void)
     pb_writel(0x2000 | (1 << 14) | (1 << 12), 0x020E0414);
 
     /* Configure pinmux for usdhc1 */
-    pb_writel(0, REG(0x020E0000, 0x1C0)); /* CLK MUX */
-    pb_writel(0, REG(0x020E0000, 0x1BC)); /* CMD MUX */
-    pb_writel(0, REG(0x020E0000, 0x1C4)); /* DATA0 MUX */
-    pb_writel(0, REG(0x020E0000, 0x1C8)); /* DATA1 MUX */
-    pb_writel(0, REG(0x020E0000, 0x1CC)); /* DATA2 MUX */
-    pb_writel(0, REG(0x020E0000, 0x1D0)); /* DATA3 MUX */
+    pb_writel(0, 0x020E0000+0x1C0); /* CLK MUX */
+    pb_writel(0, 0x020E0000+0x1BC); /* CMD MUX */
+    pb_writel(0, 0x020E0000+0x1C4); /* DATA0 MUX */
+    pb_writel(0, 0x020E0000+0x1C8); /* DATA1 MUX */
+    pb_writel(0, 0x020E0000+0x1CC); /* DATA2 MUX */
+    pb_writel(0, 0x020E0000+0x1D0); /* DATA3 MUX */
  
-    pb_writel(1, REG(0x020E0000, 0x1A8)); /* DATA4 MUX */
-    pb_writel(1, REG(0x020E0000, 0x1AC)); /* DATA5 MUX */
-    pb_writel(1, REG(0x020E0000, 0x1B0)); /* DATA6 MUX */
-    pb_writel(1, REG(0x020E0000, 0x1B4)); /* DATA7 MUX */
-    pb_writel(1, REG(0x020E0000, 0x1A4)); /* RESET MUX */
+    pb_writel(1, 0x020E0000+0x1A8); /* DATA4 MUX */
+    pb_writel(1, 0x020E0000+0x1AC); /* DATA5 MUX */
+    pb_writel(1, 0x020E0000+0x1B0); /* DATA6 MUX */
+    pb_writel(1, 0x020E0000+0x1B4); /* DATA7 MUX */
+    pb_writel(1, 0x020E0000+0x1A4); /* RESET MUX */
 
     usdhc_emmc_init();
 
@@ -124,6 +132,6 @@ u8 board_force_recovery(void) {
 }
 
 u32 board_usb_init(void) {
-    ehci_usb_init(USBC_PHYS);
+    return ehci_usb_init(USBC_PHYS);
 }
 

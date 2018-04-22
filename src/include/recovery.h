@@ -36,8 +36,6 @@ struct pb_cmd_write_part {
     u8 _reserved[44];
 } __attribute__ ((packed));
 
-
-
 void recovery(void);
 
 #endif
