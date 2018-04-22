@@ -25,7 +25,7 @@ CFLAGS   = -Wall -O2 -nostdlib -nostartfiles
 CFLAGS  += -I. -I include/ -I 3pp/libtomcrypt/src/headers
 CFLAGS  += -I 3pp/tinyprintf -DTINYPRINTF_OVERRIDE_LIBC=0 -DUSE_LTM -DLTM_DESC
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" -DDEBUG
-LIBS     =  -ltomcrypt  -ltommath -lgcc
+LIBS     =  -lgcc
 
 LD_FLAGS =
 ASM_SRCS = 
@@ -74,7 +74,7 @@ $(TARGET).bin: $(TARGET)
 	@echo "VERSION = $(GIT_VERSION)"
 	@$(SIZE) -A $<
 
-$(TARGET): libtomcrypt prep_keys $(OBJS)
+$(TARGET): prep_keys $(OBJS)
 	@echo LINK $@
 	@$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 

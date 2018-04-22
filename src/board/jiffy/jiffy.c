@@ -8,8 +8,13 @@
 #include <emmc.h>
 
 #include <plat/imx6ul/gpt.h>
+#include <plat/imx6ul/caam.h>
 
 static struct gp_timer platform_timer;
+static struct fsl_caam caam;
+
+    u8 __a4k test_data[] = "ARNE1";
+    u8 __a4k hash[32]; 
 
 
 __inline u32 plat_get_ms_tick(void) {
@@ -73,10 +78,7 @@ void board_critical_init(void)
     pb_writel(0xFFFFFFFF, REG(0x020C4000,0x80)); /* Ungate usdhc clk*/
 
 
-}
-
-void board_uart_init(void)
-{
+    /* Configure UART */
     pb_writel(0, REG(0x020E0094,0));
     pb_writel(0, REG(0x020E0098,0));
     pb_writel(UART_PAD_CTRL, REG(0x020E0320,0));
@@ -84,6 +86,20 @@ void board_uart_init(void)
 
     soc_uart_init(UART_PHYS);
 
+    init_printf(NULL,soc_uart_putc);
+ 
+    /* Configure CAAM */
+    //caam.base = 0x02140000;
+    //if (caam_init(&caam) != PB_OK) {
+    //    tfp_printf ("CAAM: Init failed\n\r");
+    //    plat_reset();
+    //}
+
+}
+
+
+void board_uart_init(void)
+{
 }
 
 void board_usb_init(void) {
