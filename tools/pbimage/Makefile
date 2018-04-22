@@ -1,0 +1,42 @@
+# Makefile for Punch BOOT
+
+TARGET  = pbimage
+
+
+CC=$(CROSS_COMPILE)gcc
+LD=$(CROSS_COMPILE)ld
+AR=$(CROSS_COMPILE)ar
+SIZE=$(CROSS_COMPILE)size
+OBJCOPY=$(CROSS_COMPILE)objcopy
+
+GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
+PKG_CONFIG ?= pkg-config
+CFLAGS   = -Wall -O2 
+CFLAGS  += -I. -DUSE_LTM -DLTM_DESC 
+CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
+
+LIBS    =   -luuid -ltomcrypt -ltommath
+LDFLAGS =
+
+ASM_SRCS = 
+C_SRCS   = $(TARGET).c
+
+OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
+
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	@echo LINK $@ $(LDFLAGS)
+	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+
+%.o: %.S
+	@echo CC $<
+	@$(CC) -c $(CFLAGS) $< -o $@
+%.o: %.c
+	@echo CC $<
+	@$(CC) -c $(CFLAGS) $< -o $@
+
+clean: 
+	@-rm -rf *.o $(TARGET)  *.map out
+

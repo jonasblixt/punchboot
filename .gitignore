@@ -1,3 +1,7 @@
 *.o
 *.bin
 *.imx
+src/pb
+tools/punchboot/punchboot
+*.pbi
+tools/pbimage/pbimage
