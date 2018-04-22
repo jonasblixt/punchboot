@@ -1,22 +1,19 @@
 #include <board.h>
 #include <plat.h>
 
-#include <regs.h>
 #include <io.h>
-#include <uart.h>
-#include <usb.h>
-#include <emmc.h>
 
+#include <plat/imx6ul/imx_regs.h>
+#include <plat/imx6ul/imx_uart.h>
+#include <plat/imx6ul/ehci.h>
+#include <plat/imx6ul/usdhc.h>
 #include <plat/imx6ul/gpt.h>
 #include <plat/imx6ul/caam.h>
 
 static struct gp_timer platform_timer;
 static struct fsl_caam caam;
 
-    u8 __a4k test_data[] = "ARNE1";
-    u8 __a4k hash[32]; 
-
-
+/* TODO: MOVE TO Platform */
 __inline u32 plat_get_ms_tick(void) {
     return gp_timer_get_tick(&platform_timer);
 }
@@ -35,7 +32,7 @@ __inline u32 plat_get_ms_tick(void) {
  *
  */
 
-void board_critical_init(void)
+u32 board_init(void)
 {
     u32 reg;
 
@@ -84,31 +81,24 @@ void board_critical_init(void)
     pb_writel(UART_PAD_CTRL, REG(0x020E0320,0));
     pb_writel(UART_PAD_CTRL, REG(0x020E0324,0));
 
-    soc_uart_init(UART_PHYS);
+    imx_uart_init(UART_PHYS);
 
-    init_printf(NULL,soc_uart_putc);
+    init_printf(NULL,plat_uart_putc);
  
     /* Configure CAAM */
-    //caam.base = 0x02140000;
-    //if (caam_init(&caam) != PB_OK) {
-    //    tfp_printf ("CAAM: Init failed\n\r");
-    //    plat_reset();
-    //}
-
-}
+    caam.base = 0x02140000;
+    if (caam_init(&caam) != PB_OK) {
+        tfp_printf ("CAAM: Init failed\n\r");
+        return PB_ERR;
+    }
 
 
-void board_uart_init(void)
-{
-}
-
-void board_usb_init(void) {
-    
-    soc_usb_init(USBC_PHYS);
-
-}
-
-void board_emmc_init(void) {
+   /* Configure NAND_DATA2 as GPIO4 4 Input with PU, 
+    *
+    * This is used to force recovery mode
+    * */
+    pb_writel(5, 0x020E0188); 
+    pb_writel(0x2000 | (1 << 14) | (1 << 12), 0x020E0414);
 
     /* Configure pinmux for usdhc1 */
     pb_writel(0, REG(0x020E0000, 0x1C0)); /* CLK MUX */
@@ -124,7 +114,16 @@ void board_emmc_init(void) {
     pb_writel(1, REG(0x020E0000, 0x1B4)); /* DATA7 MUX */
     pb_writel(1, REG(0x020E0000, 0x1A4)); /* RESET MUX */
 
+    usdhc_emmc_init();
 
-
-    soc_emmc_init();
+    return PB_OK;
 }
+
+u8 board_force_recovery(void) {
+    return ( (pb_readl(0x020A8008) & (1 << 4)) == 0);
+}
+
+u32 board_usb_init(void) {
+    ehci_usb_init(USBC_PHYS);
+}
+

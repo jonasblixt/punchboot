@@ -2,6 +2,8 @@
 #define __PB_TYPES_H__
 
 #define NULL (u32 *) 0
+#define true 1
+#define false 0
 
 #define PB_OK   0
 #define PB_ERR  1

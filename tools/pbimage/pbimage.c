@@ -18,7 +18,7 @@ int main (int argc, char **argv) {
     struct pb_image_hdr hdr;
     struct pb_component_hdr comp[16];
     struct stat f_info;
-    FILE *fp_key = fopen("../../pki/test_rsa_private.der","rb");
+    FILE *fp_key = fopen("../../pki/dev_rsa_private.der","rb");
     unsigned char key_buf[4096];
     rsa_key key;
     int prng_idx;

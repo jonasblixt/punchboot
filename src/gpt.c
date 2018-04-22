@@ -1,8 +1,7 @@
-#include <board.h>
-#include <emmc.h>
 #include <gpt.h>
-#include <tinyprintf.h>
+#include <plat.h>
 #include <crc.h>
+#include <tinyprintf.h>
 
 static struct gpt_primary_tbl __attribute__((section (".bigbuffer"))) _gpt1;
 
@@ -36,8 +35,8 @@ u32 gpt_get_part_offset(u8 part_no) {
 int gpt_init(void) {
     u8 tmp_string[64];
 
-    usdhc_emmc_xfer_blocks(1,(u8*) &_gpt1, 
-                    sizeof(struct gpt_primary_tbl) / 512, 0, 0);
+    plat_emmc_read_block(1,(u8*) &_gpt1, 
+                    sizeof(struct gpt_primary_tbl) / 512);
 
 /*    tfp_printf("GPT: Init...\n\r");
 

@@ -1,4 +1,4 @@
-#include "regs.h"
+#include "armv7a.h"
 
 .section .irqvectors
 _irqvectors:
@@ -14,20 +14,7 @@ _irqvectors:
 .section .text
 .global _reset
 _reset:
-
-  ldr r4,=5
-  ldr r5,=#0x020E00FC
-  str r4,[r5]
-
-  ldr r4,=#0x4000
-  ldr r5,=#0x020A0004
-  str r4,[r5]
-
-  ldr r4,=#0x4000
-  ldr r5,=#0x020A0000
-  str r4,[r5]
-
-
+    /* TODO: Enable WDT ! */
     /* Install IRQ Vector's */
     ldr     r0, __irq_vectors_start
     mov     r1, #0x0000
@@ -61,7 +48,6 @@ _zeroing_done:
 
     ldr sp, =_stack_end
 
-    bl init_vpu
     bl pb_main
     b .
 
@@ -77,9 +63,4 @@ __sctlr_mmu_set:
 	.word (SCTLR_I_MASK)
 hang:
     b .
-init_vpu:
-    MRC   p15, 0x0, r0, c1, c0, 2 	// Read CP15 CPACR
-    ORR   r0, r0, #(0x0f << 20)		// Full access rights
-    MCR   p15, 0x0, r0, c1, c0, 2 	// Write CP15 CPACR
-    BX  lr
 

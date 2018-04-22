@@ -1,9 +1,10 @@
-
-#include <types.h>
-#include <emmc.h>
-#include <io.h>
-#include <regs.h>
+#include <plat.h>
+#include <pb_types.h>
 #include <tinyprintf.h>
+
+#include <plat/imx6ul/usdhc.h>
+#include <io.h>
+#include <plat/imx6ul/imx_regs.h>
 
 static u32 _iobase = 0x02190000;
 static u32 _raw_cid[4];
@@ -179,7 +180,7 @@ void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr,
 
 }
 
-void soc_emmc_init(void) {
+void usdhc_emmc_init(void) {
 
     //tfp_printf ("EMMC: Init...\n\r");   
 
@@ -283,4 +284,23 @@ void soc_emmc_init(void) {
 
     //tfp_printf ("EMMC: Partconfig: %2.2X\n\r", _raw_extcsd[EXT_CSD_PART_CONFIG]);
 
+}
+
+/* Platform interface */
+
+/* TODO: Fix return values*/
+u32 plat_emmc_write_block(u32 lba_offset, u8 *bfr, u32 no_of_blocks) {
+    usdhc_emmc_xfer_blocks(lba_offset, bfr, no_of_blocks, 1, 0);
+    return PB_OK;
+}
+
+u32 plat_emmc_read_block(u32 lba_offset, u8 *bfr, u32 no_of_blocks) {
+    usdhc_emmc_xfer_blocks(lba_offset, bfr, no_of_blocks, 0, 0);
+    return PB_OK;
+}
+
+u32 plat_emmc_switch_part(u8 part_no) {
+    usdhc_emmc_switch_part(part_no);
+
+    return PB_OK;
 }

@@ -2,8 +2,11 @@ PB_BOARD_NAME = Jiffy
 PB_PLAT_NAME   = imx6ul
 PB_ENTRY     = 0x80001000
 
+CFLAGS += -I board/jiffy
 
 C_SRCS += board/jiffy/jiffy.c
+
+
 
 MKIMAGE         = mkimage
 IMX_USB         = imx_usb

@@ -1,7 +1,7 @@
 #ifndef __RECOVERY_H__
 #define __RECOVERY_H__
 
-#include <types.h>
+#include "pb_types.h"
 
 #define PB_CMD_RESET            0x00000001
 #define PB_CMD_FLASH_BOOTLOADER 0x00000002
@@ -39,7 +39,5 @@ struct pb_cmd_write_part {
 
 
 void recovery(void);
-void recovery_cmd_event(struct pb_usb_cmd *cmd, u8 *bulk_buffer, u8 *bulk_buffer2);
-void pb_flash_bootloadeR(u8 *bfr, u32 blocks_to_write);
 
 #endif

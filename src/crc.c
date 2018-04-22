@@ -151,7 +151,7 @@ static const u32 crc32Table[256] = {
 	0xBE2DA0A5L, 0x4C4623A6L, 0x5F16D052L, 0xAD7D5351L
 };
 
-u32 crc32(u32 crc, const void *buf, size_t size)
+u32 crc32(u32 crc, const u8 *buf, u32 size)
 {
 	const u8 *p = buf;
 

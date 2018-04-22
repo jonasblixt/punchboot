@@ -1,7 +1,7 @@
 #ifndef __GPT_H__
 #define __GPT_H__
 
-#include <types.h>
+#include "pb_types.h"
 
 struct gpt_header {
     u8 signature[8];

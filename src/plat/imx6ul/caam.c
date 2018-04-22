@@ -26,8 +26,8 @@
 
 
 
-
-
+static struct caam_hash_ctx ctx;
+static struct fsl_caam *d;
 
 static int caam_shedule_job_sync(struct fsl_caam *d, u32 *job) {
 
@@ -45,31 +45,29 @@ static int caam_shedule_job_sync(struct fsl_caam *d, u32 *job) {
     return PB_OK;
 }
 
-void caam_sha256_init(struct caam_hash_ctx *ctx) {
-    memset(ctx, 0, sizeof(struct caam_hash_ctx));
-
+u32 plat_sha256_init(void) {
+    memset(&ctx, 0, sizeof(struct caam_hash_ctx));
+    return PB_OK;
 }
 
-int caam_sha256_update(struct caam_hash_ctx *ctx, u8 *data, u32 sz) {
+u32 plat_sha256_update(u8 *data, u32 sz) {
 
-    struct caam_sg_entry *e = &ctx->sg_tbl[ctx->sg_count];
+    struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
 
     e->addr_lo = data;
     e->len_flag = sz;
 
-    ctx->sg_count++;
-    ctx->total_bytes += sz;
-    if (ctx->sg_count > 32) 
+    ctx.sg_count++;
+    ctx.total_bytes += sz;
+    if (ctx.sg_count > 32) 
         return PB_ERR;
     
     return PB_OK;
 }
 
-int caam_sha256_finalize(struct fsl_caam *d,
-                        struct caam_hash_ctx *ctx,
-                        u8 *out) {
+u32 plat_sha256_finalize(u8 *out) {
     u32 __a4k desc[9];
-    struct caam_sg_entry *e_last = &ctx->sg_tbl[ctx->sg_count-1];
+    struct caam_sg_entry *e_last = &ctx.sg_tbl[ctx.sg_count-1];
 
     e_last->len_flag |= SG_ENTRY_FINAL_BIT;  
    
@@ -78,8 +76,8 @@ int caam_sha256_finalize(struct fsl_caam *d,
         CAAM_ALG_AAI(0) | CAAM_ALG_STATE_INIT_FIN;
 
     desc[2] = CAAM_CMD_FIFOL | ( 2 << 25) | (1 << 22) | (0x14 << 16) |(1 << 24);
-    desc[3] = (u32) ctx->sg_tbl;
-    desc[4] = ctx->total_bytes;
+    desc[3] = (u32) ctx.sg_tbl;
+    desc[4] = ctx.total_bytes;
 
     desc[5] = CAAM_CMD_STORE | (2 << 25) | (0x20 << 16) | 32;
     desc[6] = (u32) out;
@@ -88,13 +86,13 @@ int caam_sha256_finalize(struct fsl_caam *d,
 
     if (caam_shedule_job_sync(d, desc) != PB_OK) {
         tfp_printf ("sha256 error\n\r");
+        return PB_ERR;
     }
 
-   
+   return PB_OK;
 }
 
-int caam_rsa_enc(struct fsl_caam *d,
-                    u8 *input,  u32 input_sz,
+u32 plat_rsa_enc(u8 *input,  u32 input_sz,
                     u8 *output,
                     u8 *pk_mod, u32 key_mod_sz,
                     u8 *pk_exp, u32 key_exp_sz) {
@@ -134,6 +132,8 @@ int caam_rsa_enc(struct fsl_caam *d,
     tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x1044));
 */
 
+    /* TODO: Implement logging info,error, debug*/
+
 
     return PB_OK;
 
@@ -164,7 +164,9 @@ void caam_sha256_sum(struct fsl_caam *d, u8* data, u32 sz, u8 *out) {
 }
 
 
-int caam_init(struct fsl_caam *d) {
+int caam_init(struct fsl_caam *caam_dev) {
+
+    d = caam_dev;
 
     if (d->base == 0)
         return PB_ERR;

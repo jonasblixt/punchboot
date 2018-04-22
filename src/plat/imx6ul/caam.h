@@ -434,20 +434,5 @@ int caam_init(struct fsl_caam *d);
 
 void caam_sha256_sum(struct fsl_caam *d, u8 *data, u32 sz, u8* out);
 
-void caam_sha256_init(struct caam_hash_ctx *ctx);
-int caam_sha256_update(struct caam_hash_ctx *ctx, u8 *data, u32 sz);
-int caam_sha256_finalize(struct fsl_caam *d,
-                        struct caam_hash_ctx *ctx,
-                        u8 *out);
-
-
-int caam_rsa_enc(struct fsl_caam *d,
-                    u8 *input,  u32 input_sz,
-                    u8 *output,
-                    u8 *pk_mod, u32 key_mod_sz,
-                    u8 *pk_exp, u32 key_exp_sz);
-
-
-
  
 #endif /* __CAAM_INTERNAL_H__ */

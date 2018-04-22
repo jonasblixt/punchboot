@@ -1,7 +1,7 @@
 #ifndef __PB_IO_H_
 #define __PB_IO_H_
 
-#include <types.h>
+#include <pb_types.h>
 
 static inline u32 pb_readl(void * addr)
 {
