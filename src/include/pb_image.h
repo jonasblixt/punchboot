@@ -1,7 +1,7 @@
 #ifndef __PB_IMAGE_H__
 #define __PB_IMAGE_H__
 
-#include "types.h"
+#include "pb_types.h"
 
 #define PB_IMAGE_HEADER_MAGIC 0xd32daeba
 
