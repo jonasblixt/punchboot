@@ -25,7 +25,7 @@ CFLAGS   = -Wall -O2 -nostdlib -nostartfiles
 CFLAGS  += -I. -I include/
 CFLAGS  += -I 3pp/tinyprintf -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
-LIBS     = key_dev.o key_prod.o key_field1.o key_field2.o -lgcc # TODO: Fix this dependancy
+LIBS     = key_dev.o key_prod.o key_field1.o key_field2.o
 
 LD_FLAGS =
 ASM_SRCS = 
