@@ -46,6 +46,8 @@ struct gpt_primary_tbl {
 
 u32 gpt_init(void);
 u32 gpt_get_part_offset(u8 part_no);
+s8  gpt_get_part_by_uuid(const u8 *uuid);
+
 struct gpt_primary_tbl* gpt_get_tbl(void);
 
 #endif

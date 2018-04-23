@@ -2,10 +2,11 @@
 #include <plat.h>
 #include <crc.h>
 #include <tinyprintf.h>
-
+#include <pb_string.h>
 
 #undef DEBUG_GPT
 
+static u8 _flag_gpt_ok = false;
 static struct gpt_primary_tbl __attribute__((section (".bigbuffer"))) _gpt1;
 
 #ifdef DEBUG_GPT
@@ -38,10 +39,26 @@ u32 gpt_get_part_offset(u8 part_no) {
     return _gpt1.part[part_no & 0x1f].first_lba;
 }
 
+s8  gpt_get_part_by_uuid(const u8 *uuid) {
+    if (!_flag_gpt_ok)
+        return -1;
+
+    for (int i = 0; i < _gpt1.hdr.no_of_parts; i++) {
+        if (_gpt1.part[i].first_lba == 0)
+            return -1;
+
+        if (memcmp(_gpt1.part[i].type_uuid, uuid, 16) == 0)
+            return i;
+    }
+    return -1;
+}
+
+
 u32 gpt_init(void) {
     plat_emmc_read_block(1,(u8*) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
+    /* TODO: Validate CRC */
 #ifdef DEBUG_GPT
     u8 tmp_string[64];
 
@@ -59,10 +76,10 @@ u32 gpt_init(void) {
                         tmp_string,
                         _gpt1.part[i].first_lba,
                         _gpt1.part[i].last_lba);
-
+    
         
     }
 #endif
-
+    _flag_gpt_ok = true;
     return PB_OK;
 }

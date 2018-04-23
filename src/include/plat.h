@@ -9,6 +9,11 @@
 
 typedef u32 t_plat_usb_cb(u8*, u8*, u8*);
 
+extern const u8 part_type_system_a[];
+extern const u8 part_type_system_b[];
+extern const u8 part_type_config[];
+
+/* Platform API Calls */
 void plat_reset(void);
 u32  plat_get_ms_tick(void);
 

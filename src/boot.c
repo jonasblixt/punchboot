@@ -7,7 +7,7 @@
 #include <pb_string.h>
 #include <pb_image.h>
 #include <tinyprintf.h>
-
+#include <config.h>
 
 #undef BOOT_DEBUG
 
@@ -23,9 +23,17 @@ u32 boot_fail_count(u8 sys_no) {
     return 0;
 }
 
-u32 boot_boot_count(u8 sys_no) {
-    /* TODO: Implement me */
-    return 0;
+u32 boot_boot_count(void) {
+    u32 cnt = 0;
+    config_get_u32(PB_CONFIG_BOOT_COUNT, &cnt);
+    return cnt;
+}
+
+u32 boot_inc_boot_count(void) {
+    u32 cnt = boot_boot_count() + 1;
+    config_set_u32(PB_CONFIG_BOOT_COUNT, cnt);
+    config_commit();
+    return PB_OK;
 }
 
 u32 boot_load(u8 sys_no) {

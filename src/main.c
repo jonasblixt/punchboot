@@ -13,9 +13,11 @@
 #include <boot.h>
 #include <board_config.h>
 
-static void print_bootmsg(s32 param1, s32 param2) {
-    tfp_printf("\n\rPB: " VERSION ", %i ms, %i - %i\n\r", plat_get_ms_tick(), 
-                    param1, param2);
+#undef MAIN_DEBUG
+
+static void print_bootmsg(u32 param1, s32 param2, char bp) {
+    tfp_printf("\n\rPB: " VERSION ", %i ms, %u - %i %c\n\r", plat_get_ms_tick(), 
+                    param1, param2, bp);
 }
 
 void pb_main(void) {
@@ -55,46 +57,48 @@ void pb_main(void) {
      *
      * */
 
+    boot_inc_boot_count();
+
+    u32 boot_part = 0;
+    u32 boot_count = 0;
+    char boot_part_c = '?';
+
+    config_get_u32(PB_CONFIG_BOOT, &boot_part);
+    config_get_u32(PB_CONFIG_BOOT_COUNT, &boot_count);
+
+
     if (board_force_recovery() || flag_corrupt_config) {
-        print_bootmsg(-1,0);
+        print_bootmsg(boot_count, 0, '?');
         if (flag_corrupt_config)
             tfp_printf ("Config/GPT is missing or corrupt: ");
         tfp_printf ("Forcing recovery mode\n\r");
         recovery();
     }
 
-    if (config_get_byte(PB_CONFIG_BOOT) == PB_BOOT_A) {
+    if (boot_part == PB_BOOT_A)
+        boot_part_c = 'A';
+    if (boot_part == PB_BOOT_B)
+        boot_part_c = 'B';
 
-        if (boot_load(PB_BOOT_A) == PB_OK) {
-            print_bootmsg(boot_boot_count(PB_BOOT_A), 
-                            boot_fail_count(PB_BOOT_A));
+
+
+    if ( (boot_part == PB_BOOT_A) || (boot_part == PB_BOOT_B)) {
+        if (boot_load(boot_part) == PB_OK) {
+            print_bootmsg(boot_count, 
+                            boot_fail_count(boot_part), boot_part_c);
             boot();
-        } else if (boot_fail_count(PB_BOOT_A) > PB_MAX_FAIL_BOOT_COUNT){
-            tfp_printf("System A has failed too many times, Entering recovery mode\n\r");
+        } else if (boot_fail_count(boot_part) > PB_MAX_FAIL_BOOT_COUNT){
+            print_bootmsg(boot_count, 
+                            boot_fail_count(boot_part), boot_part_c);
+ 
+            tfp_printf("System %c has failed too many times, Entering recovery mode\n\r",boot_part_c);
             recovery();
         } else {
-            boot_inc_fail_count(PB_BOOT_A);
+            boot_inc_fail_count(boot_part);
             plat_reset();
         }
-
-    } else if (config_get_byte(PB_CONFIG_BOOT) == PB_BOOT_B) {
-
-        if (boot_load(PB_BOOT_B) == PB_OK) {
-            print_bootmsg(boot_boot_count(PB_BOOT_B), 
-                            boot_fail_count(PB_BOOT_B));
-            boot();
-        } else if (boot_fail_count(PB_BOOT_B) > PB_MAX_FAIL_BOOT_COUNT){
-            print_bootmsg(boot_boot_count(PB_BOOT_B), 
-                            boot_fail_count(PB_BOOT_B));
-            tfp_printf("System A has failed too many times, Entering recovery mode\n\r");
-            recovery();
-        } else {
-            boot_inc_fail_count(PB_BOOT_B);
-            plat_reset();
-        }
-
     } else {
-        print_bootmsg(-1,-1);
+        print_bootmsg(boot_count,-1, '?');
         tfp_printf ("Could not figure out which system to boot\n\r");
         recovery();
     }
