@@ -15,12 +15,6 @@ _irqvectors:
 .global _reset
 _reset:
     /* TODO: Enable WDT ! */
-    /* Install IRQ Vector's */
-    ldr     r0, __irq_vectors_start
-    mov     r1, #0x0000
-    ldmia   r0!,{r2, r3, r4, r5, r6, r7, r8, r9}
-    stmia   r1!,{r2, r3, r4, r5, r6, r7, r8, r9}
-
     /* Disable interrupts */
 	cpsid	if
 

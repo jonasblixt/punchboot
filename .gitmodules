@@ -4,15 +4,6 @@
 [submodule "src/3pp/libtommath"]
 	path = src/3pp/libtommath
 	url = https://github.com/libtom/libtommath.git
-[submodule "src/3pp/musl"]
-	path = src/3pp/musl
-	url = git://git.musl-libc.org/musl
-[submodule "src/3pp/uclibc-ng"]
-	path = src/3pp/uclibc-ng
-	url = git://uclibc-ng.org/git/uclibc-ng
-[submodule "src/3pp/newlib-cygwin"]
-	path = src/3pp/newlib-cygwin
-	url = git://sourceware.org/git/newlib-cygwin.git
 [submodule "src/3pp/tinyprintf"]
 	path = src/3pp/tinyprintf
-	url = https://github.com/cjlano/tinyprintf.git
+	url = https://github.com/jonpe960/tinyprintf.git

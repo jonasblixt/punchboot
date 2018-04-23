@@ -124,6 +124,15 @@ u32 board_init(void)
 
     usdhc_emmc_init();
 
+
+	u32 csu = 0x21c0000;
+    /* Allow full access in all execution modes
+     * TODO: This Obiously needs to be properly setup!
+     * */
+	for (int i = 0; i < 40; i ++) {
+		*((u32 *)csu + i) = 0xffffffff;
+	}
+
     return PB_OK;
 }
 

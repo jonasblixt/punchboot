@@ -9,7 +9,7 @@
 
 
 int main (int argc, char **argv) {
-    FILE *fp;
+    FILE *fp,*fp_tee;
     hash_state md;
     int read_sz;
     unsigned char buf[1024*1024];
@@ -18,6 +18,8 @@ int main (int argc, char **argv) {
     struct pb_image_hdr hdr;
     struct pb_component_hdr comp[16];
     struct stat f_info;
+    struct stat f_tee_info;
+
     FILE *fp_key = fopen("../../pki/dev_rsa_private.der","rb");
     unsigned char key_buf[4096];
     rsa_key key;
@@ -34,7 +36,7 @@ int main (int argc, char **argv) {
     }
 
     stat (argv[1], &f_info);
-
+    stat ("tee-pager.bin", &f_tee_info);
     /* register prng/hash */
     if (register_prng(&sprng_desc) == -1) {
         printf("Error registering sprng");
@@ -46,6 +48,7 @@ int main (int argc, char **argv) {
 	const struct ltc_hash_descriptor hash_desc = sha256_desc;
 	const int hash_idx = register_hash(&hash_desc);
 
+    fp_tee = fopen ("tee-pager.bin","rb");
 
     fp = fopen (argv[1], "rb");
     sha256_init(&md);
@@ -57,19 +60,33 @@ int main (int argc, char **argv) {
 
     hdr.header_magic = PB_IMAGE_HEADER_MAGIC;
     hdr.header_version = 1;
-    hdr.no_of_components = 1;
+    hdr.no_of_components = 2;
 
     sha256_process(&md, (unsigned char *)&hdr, sizeof(struct pb_image_hdr));
  
     comp[0].comp_header_version = 1;
     comp[0].component_type = PB_IMAGE_COMPTYPE_VMM;
-    comp[0].load_addr_low = 0x87800000;
+    comp[0].load_addr_low = 0xBF000000;
     comp[0].component_size = f_info.st_size;
     comp[0].component_offset = sizeof(struct pb_image_hdr) + 16*sizeof(struct pb_component_hdr);
-    
+
+
     int padding_sz = (-comp[0].component_offset % 512);
 
     comp[0].component_offset += padding_sz;
+
+    
+    comp[1].comp_header_version = 1;
+    comp[1].component_type = PB_IMAGE_COMPTYPE_TEE;
+    comp[1].load_addr_low = 0xbfc00000;
+    comp[1].component_size = f_tee_info.st_size;
+    comp[1].component_offset = comp[0].component_offset + comp[0].component_size;
+
+
+    int padding_sz2 = (-comp[1].component_offset % 512);
+
+    comp[1].component_offset += padding_sz2;
+
 
     sha256_process(&md, (unsigned char *) comp, 16*sizeof(struct pb_component_hdr));
     printf ("component_offset %x\n",comp[0].component_offset);
@@ -78,6 +95,15 @@ int main (int argc, char **argv) {
         bytes += read_sz;
         printf (" - %i\n",read_sz);
     }
+
+    while ( (read_sz = fread(buf, 1, 1024*1024,fp_tee )) >0) {
+        sha256_process(&md, buf, read_sz);
+        bytes += read_sz;
+        printf (" - %i\n",read_sz);
+    }
+
+
+
     sha256_done(&md, hash);
     printf ("Read %i bytes\n",bytes);
     memcpy(hdr.sha256, hash,32);
@@ -117,16 +143,24 @@ int main (int argc, char **argv) {
 
 
     rewind(fp);
+    rewind(fp_tee);
     FILE *fp_out = fopen("out.pbi","wb");
     fwrite (&hdr, sizeof(struct pb_image_hdr), 1, fp_out);
     fwrite (comp, 16* sizeof(struct pb_component_hdr), 1, fp_out);
 
     bzero(buf,sizeof(buf));
     fwrite(buf, padding_sz, 1, fp_out);
- 
+
     while ( (read_sz = fread(buf, 1, 1024, fp)) > 0) {
         fwrite(buf, read_sz, 1, fp_out);
     }
+    
+    fwrite(buf, padding_sz2, 1, fp_out);
+ 
+    while ( (read_sz = fread(buf, 1, 1024, fp_tee)) > 0) {
+        fwrite(buf, read_sz, 1, fp_out);
+    }
+
 
     fclose(fp_out);
     printf ("Done\n\r");

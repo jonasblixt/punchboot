@@ -47,20 +47,20 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
     struct pb_usb_cmd resp;
     struct pb_cmd_write_part *wr_part = (struct pb_cmd_write_part*) cmd_buf;
     struct pb_cmd_prep_buffer *prep_bfr = (struct pb_cmd_prep_buffer*) cmd_buf;
-    
+    tfp_printf ("CMD: 0x%8.8X\n\r", *cmd);
     switch (*cmd) {
         case PB_CMD_PREP_BULK_BUFFER:
-            tfp_printf("Preparting buffer %i [%i]\n\r",prep_bfr->buffer_id,
+            tfp_printf("Recovery: Preparing buffer %i [%i]\n\r",prep_bfr->buffer_id,
                                                 prep_bfr->no_of_blocks);
             plat_usb_prep_bulk_buffer(prep_bfr->no_of_blocks, prep_bfr->buffer_id);
         break;
         case PB_CMD_FLASH_BOOTLOADER:
             no_of_blks = (u32 *)cmd_data;
-            tfp_printf ("Flash BL %i\n\r",*no_of_blks);
+            tfp_printf ("Recovery: Flash BL %i\n\r",*no_of_blks);
             recovery_flash_bootloader(bulk_buffer, *no_of_blks);
         break;
         case PB_CMD_GET_VERSION:
-            //tfp_printf ("Get version\n\r");
+            tfp_printf ("Recovery: Get version\n\r");
             resp.cmd = PB_CMD_GET_VERSION;
             tfp_sprintf((s8*) resp.data, "PB %s",VERSION);
             plat_usb_send((u8*) &resp, 0x40);
@@ -74,9 +74,10 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
             plat_usb_send((u8*) gpt_get_tbl(), sizeof(struct gpt_primary_tbl));
         break;
         case PB_CMD_WRITE_PART:
-            //tfp_printf ("Writing %i blks to part %i with offset %8.8X using bfr %i\n\r",
-            //            wr_part->no_of_blocks, wr_part->part_no,
-            //            wr_part->lba_offset, wr_part->buffer_id);
+            
+            tfp_printf ("Writing %i blks to part %i with offset %8.8X using bfr %i\n\r",
+                        wr_part->no_of_blocks, wr_part->part_no,
+                        wr_part->lba_offset, wr_part->buffer_id);
             if (wr_part->buffer_id) {
                 recovery_flash_part(wr_part->part_no, wr_part->lba_offset, 
                         wr_part->no_of_blocks, bulk_buffer2);
