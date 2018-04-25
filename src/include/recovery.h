@@ -1,3 +1,13 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
 #ifndef __RECOVERY_H__
 #define __RECOVERY_H__
 
@@ -10,7 +20,8 @@
 #define PB_CMD_GET_GPT_TBL      0x00000005
 #define PB_CMD_WRITE_PART       0x00000006
 #define PB_CMD_BOOT_PART        0x00000007
-
+#define PB_CMD_GET_CONFIG_TBL   0x00000008
+#define PB_CMD_GET_CONFIG_VAL   0x00000009
 
 
 struct pb_usb_cmd {

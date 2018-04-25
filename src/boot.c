@@ -1,3 +1,14 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
+
 #include <boot.h>
 #include <plat.h>
 #include <io.h>
@@ -9,7 +20,7 @@
 #include <tinyprintf.h>
 #include <config.h>
 
-#undef BOOT_DEBUG
+#define BOOT_DEBUG
 
 static bootfunc *_tee_boot_entry = NULL;
 static bootfunc *_boot_entry = NULL;
@@ -96,14 +107,17 @@ u32 boot_load(u8 sys_no) {
 
     memcpy (hash_copy, pbi.hdr.sha256,32);
     memset (pbi.hdr.sign, 0, 1024);
-    memset (pbi.hdr.sha256, 0, 1024);
+    memset (pbi.hdr.sha256, 0, 32);
 
     plat_sha256_init();
 
     plat_sha256_update((u8 *) &pbi.hdr, 
                     sizeof(struct pb_image_hdr));
-    plat_sha256_update((u8 *) &pbi.comp[0], 
-                    16*sizeof(struct pb_component_hdr));
+
+    for (int i = 0; i < pbi.hdr.no_of_components; i++) {
+        plat_sha256_update((u8 *) &pbi.comp[i], 
+                    sizeof(struct pb_component_hdr));
+    }
 
     for (int i = 0; i < pbi.hdr.no_of_components; i++) {
        plat_sha256_update((u8 *) pbi.comp[i].load_addr_low, 

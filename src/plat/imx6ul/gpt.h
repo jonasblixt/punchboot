@@ -1,3 +1,13 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
 #ifndef __PLAT_IMX6UL_GPT__
 #define __PLAT_IMX6UL_GPT__
 

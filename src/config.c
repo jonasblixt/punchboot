@@ -1,3 +1,13 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
 #include <config.h>
 #include <plat.h>
 #include <gpt.h>
@@ -68,6 +78,14 @@ u32 config_init(void) {
 
 u8 config_ok(void) {
     return _flag_config_ok;
+}
+
+u8* config_get_tbl(void) {
+    return (u8 *) _pb_config;
+}
+
+u32 config_get_tbl_sz(void) {
+    return sizeof(_pb_config);
 }
 
 u32 config_get_u32(u8 index, u32 *value) {

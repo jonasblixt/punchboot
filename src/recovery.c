@@ -1,3 +1,14 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
+
 #include <recovery.h>
 #include <pb_image.h>
 #include <plat.h>
@@ -43,6 +54,7 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
     u32 *no_of_blks = NULL;
     u32 *cmd = (u32 *) cmd_buf;
     u32 *cmd_data = (u32 *) cmd_buf + 1;
+    u32 config_val;
 
     struct pb_usb_cmd resp;
     struct pb_cmd_write_part *wr_part = (struct pb_cmd_write_part*) cmd_buf;
@@ -66,12 +78,19 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
             plat_usb_send((u8*) &resp, 0x40);
         break;
         case PB_CMD_RESET:
-            //tfp_printf ("Reset...\n\r");
             plat_reset();
             while(1);
         break;
         case PB_CMD_GET_GPT_TBL:
             plat_usb_send((u8*) gpt_get_tbl(), sizeof(struct gpt_primary_tbl));
+        break;
+        case PB_CMD_GET_CONFIG_TBL:
+            tfp_printf ("Read config %i\n\r",config_get_tbl_sz());
+            plat_usb_send( config_get_tbl(), config_get_tbl_sz() );
+        break;
+        case PB_CMD_GET_CONFIG_VAL:
+            config_get_u32(cmd_data[0], &config_val);
+            plat_usb_send((u8 *) &config_val, 4);
         break;
         case PB_CMD_WRITE_PART:
             
@@ -88,8 +107,11 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
         break;
         case PB_CMD_BOOT_PART:
             tfp_printf ("\n\rBOOT 1\n\r");
-            if (boot_load(1) == PB_OK)
+            if (boot_load(PB_BOOT_A) == PB_OK) {
                 boot();
+            } else {
+                tfp_printf ("boot_load failed\n\r");
+            }
         break;
         default:
             tfp_printf ("Got unknown command: %x\n\r",*cmd);

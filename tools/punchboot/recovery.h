@@ -10,6 +10,21 @@
 #define PB_CMD_GET_GPT_TBL      0x00000005
 #define PB_CMD_WRITE_PART       0x00000006
 #define PB_CMD_BOOT_PART        0x00000007
+#define PB_CMD_GET_CONFIG_TBL   0x00000008
+#define PB_CMD_GET_CONFIG_VAL   0x00000009
+
+
+
+
+struct pb_config_item {
+     s8 index;
+     char description[16];
+ #define PB_CONFIG_ITEM_RW 1
+ #define PB_CONFIG_ITEM_RO 2
+ #define PB_CONFIG_ITEM_OTP 3
+     u8 access;
+     u32 default_value;
+} __attribute__ ((packed));
 
 struct pb_cmd {
     u32 cmd;

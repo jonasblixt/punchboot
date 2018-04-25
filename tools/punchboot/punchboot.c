@@ -186,7 +186,49 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
     return 0;
 }
 
+static unsigned int pb_get_config_value(libusb_device_handle *h, int index) {
+    struct pb_cmd c;
+    int err;
+    int value;
 
+    c.cmd = PB_CMD_GET_CONFIG_VAL;
+    c.data[0] = (u8) index;
+
+    err = pb_write(h, &c);
+    pb_read(h, &value, 4);
+
+
+    return value;
+}
+
+static int pb_get_config_tbl (libusb_device_handle *h) {
+    struct pb_cmd c;
+    struct pb_config_item item [127];
+    int err;
+    const char *access_text[] = {"  ","RW","RO","OTP"};
+
+    c.cmd = PB_CMD_GET_CONFIG_TBL;
+    err = pb_write(h,&c);
+
+    if (err) {
+        printf ("%s: Could not read config table\n",__func__);
+        return err;
+    }
+
+    err = pb_read(h, (u8 *) item, sizeof(item));
+    int n = 0;
+    printf (    " Index   Description        Access  Default     Value\n");
+    printf (    " -----   -----------        ------  -------     -----\n\n");
+    do {
+        printf (" %-3u     %-16s   %-3s     0x%8.8X  0x%8.8X\n",item[n].index,
+                                     item[n].description,
+                                     access_text[item[n].access],
+                                     item[n].default_value,
+                                     pb_get_config_value(h,n));
+        n++;
+    } while (item[n].index != -1);
+    return 0;
+}
 
 static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_name) {
     int read_sz = 0;
@@ -308,14 +350,20 @@ static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
 void print_help(void) {
     printf (" --- Punch BOOT ---\n\n");
     printf (" Bootloader:\n");
-    printf ("  punchboot -b -f <file name> - Install bootloader\n");
-    printf ("  punchboot -r                - Reset device\n");
-    printf ("  punchboot -s                - BOOT System\n");
+    printf ("  punchboot boot -w -f <file name> - Install bootloader\n");
+    printf ("  punchboot boot -r                - Reset device\n");
+    printf ("  punchboot boot -s                - BOOT System\n");
+    printf ("  punchboot boot -l                - Display version\n");
     printf ("\n");
     printf (" Partition Management:\n");
-    printf ("  punchboot -l                - List partitions\n");
-    printf ("  punchboot -w <n> -f <fn>    - Write 'fn' to partition 'n'\n");
+    printf ("  punchboot part -l                - List partitions\n");
+    printf ("  punchboot part -w -n <n> -f <fn> - Write 'fn' to partition 'n'\n");
+    printf (" Configuration:\n");
+    printf ("  punchboot config -l              - Display configuration\n");
 }
+
+
+
 
 int main(int argc, char **argv) {
     extern char *optarg;
@@ -339,39 +387,37 @@ int main(int argc, char **argv) {
 		return r;
 
 
-    int part_no = -1;
-    bool flag_part_write = false;
-    bool flag_bl_write = false;
+    int cmd_index = -1;
+    bool flag_write = false;
+    bool flag_list = false;
     bool flag_reset = false;
-    bool flag_read_pb_version = false;
-    bool flag_list_part = false;
     bool flag_help = false;
-    bool flag_boot_part = false;
-    char *fn = NULL;
+    bool flag_boot = false;
+    bool flag_index = false;
 
-    while ((c = getopt (argc, argv, "hpslrbw:f:")) != -1) {
+    char *fn = NULL;
+    char *cmd = argv[1];
+
+    while ((c = getopt (argc-1, &argv[1], "hwrsln:f:")) != -1) {
         switch (c) {
-            case 'b':
-                flag_bl_write = true;       
+            case 'w':
+                flag_write = true;
             break;
             case 'r':
                 flag_reset = true;
             break;
             case 'l':
-                flag_list_part = true;
-            break;
-            case 'w':
-                part_no = atoi(optarg);
-                flag_part_write = true;
+                flag_list = true;
             break;
             case 'f':
                 fn = optarg;
             break;
-            case 'p':
-                flag_read_pb_version = true;
+            case 'n':
+                flag_index = true;
+                cmd_index = atoi(optarg);
             break;
             case 's':
-                flag_boot_part = true;
+                flag_boot = true;
             break;
             case 'h':
                 flag_help = true;
@@ -419,30 +465,44 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-     if (flag_boot_part) {
-        pb_boot_part(h,1);
-    }
+    if (strcmp(cmd, "boot") == 0) {
+         if (flag_boot) {
+            pb_boot_part(h,1);
+        }
+      
+        if (flag_list) {
+            pb_print_version(h);
+        }
 
-  
-    if (flag_read_pb_version) {
-        pb_print_version(h);
-    }
-
-    if (flag_list_part) {
-        pb_print_gpt_table(h);
-    }
-
-    if (flag_bl_write && fn) {
-        pb_program_bootloader(h, fn);
+        if (flag_write) {
+            pb_program_bootloader(h, fn);
+           
+        }
+    
         if (flag_reset) 
             pb_reset(h);
-    } else if (flag_part_write && fn) {
-        printf ("Writing %s to part %i\n",fn, part_no);
-        pb_flash_part(h, part_no, fn);
-    } else if (flag_reset) {
-        pb_reset(h);
     }
-    
+
+    if (strcmp(cmd, "part") == 0) {
+        if (flag_list) 
+            pb_print_gpt_table(h);
+        else if (flag_write && flag_index && fn) {
+            printf ("Writing %s to part %i\n",fn, cmd_index);
+            pb_flash_part(h, cmd_index, fn);
+        } else {
+            printf ("Nope, that did not work\n");
+        }
+
+        if (flag_reset) 
+            pb_reset(h);
+ 
+    }
+
+    if (strcmp(cmd, "config") == 0) {
+        if (flag_list) {
+            pb_get_config_tbl(h);
+        }
+    }
 
     libusb_exit(NULL);
 	return 0;
