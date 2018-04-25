@@ -1,7 +1,18 @@
+
+# Punch BOOT Image creation tool
+#
+# Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+# 
+# SPDX-License-Identifier: BSD-3-Clause
+# 
+# 
+
+
 # Makefile for Punch BOOT
 
 TARGET  = pbimage
 
+PREFIX ?= /usr/bin
 
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld
@@ -29,6 +40,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	@echo LINK $@ $(LDFLAGS)
 	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+	@strip $@
 
 %.o: %.S
 	@echo CC $<
@@ -36,6 +48,9 @@ $(TARGET): $(OBJS)
 %.o: %.c
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
+
+install: all
+	@install -m 755 $(TARGET) $(PREFIX)
 
 clean: 
 	@-rm -rf *.o $(TARGET)  *.map out

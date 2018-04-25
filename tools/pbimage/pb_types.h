@@ -1,3 +1,13 @@
+/**
+ * Punch BOOT Image creation tool
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
 #ifndef __PB_TYPES_H__
 #define __PB_TYPES_H__
 

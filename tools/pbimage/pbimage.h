@@ -1,10 +1,22 @@
+/**
+ * Punch BOOT Image creation tool
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
+
 #ifndef __PB_IMAGE_H__
 #define __PB_IMAGE_H__
 
 #include "pb_types.h"
 
 #define PB_IMAGE_HEADER_MAGIC 0xd32daeba
-
+#define PB_IMAGE_MAX_COMP 16
+#define PB_COMP_HDR_VERSION 1
 /* Image header */
 
 struct pb_image_hdr {
