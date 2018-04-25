@@ -1,7 +1,17 @@
+#
+#  Punch BOOT bootloader cli
+#
+# Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#
+
+
 # Makefile for Punch BOOT
 
 TARGET  = punchboot
-
+PREFIX ?= /usr
 
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld
@@ -48,7 +58,8 @@ $(TARGET): $(OBJS)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
-
+install:
+	@install -m 755 $(TARGET) $(PREFIX)/bin
 
 clean: 
 	@-rm -rf *.o $(TARGET)  *.map out

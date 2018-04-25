@@ -1,34 +1,9 @@
 /**
+ * Punch BOOT bootloader cli
  *
- * Partition types:
- *   - Configuration (conf)
- *   - System A (sysa)
- *   - System B (sysb)
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
  *
- * Commands:
- * 
- *   - Display system info
- *
- * Partition management:
- *   - Reset FS
- *   - Create part type=<UUID> nblks=<BLKS>
- *   - Delete part guid=<UUID>
- *   - List
- * 
- * Boot loader:
- *   - Reset bootloader
- *   - Boot A/B
- *   - Install bootloader
- *
- * Flash:
- *   - flash image=<IMAGE> part=<UUID>
- *   - verify part=<UUID>
- *
- * Device management:
- *   - List fuse names
- *   - Burn fuse=<NAME> value=<VAL>
- *    
- *
+ * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
@@ -195,7 +170,12 @@ static unsigned int pb_get_config_value(libusb_device_handle *h, int index) {
     c.data[0] = (u8) index;
 
     err = pb_write(h, &c);
-    pb_read(h, &value, 4);
+
+    if (err) {
+        return err;
+    }
+
+    pb_read(h, (u8 *) &value, 4);
 
 
     return value;
@@ -261,7 +241,7 @@ static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_nam
             bfr_cmd.no_of_blocks++;
         
         bfr_cmd.buffer_id = buffer_id;
-        pb_write(h, (u8*)&bfr_cmd);
+        pb_write(h, (struct pb_cmd *)&bfr_cmd);
 
         err = libusb_bulk_transfer(h,
                     1,
@@ -281,7 +261,7 @@ static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_nam
         //printf ("wr: %i kBytes read_sz = %i, send_sz = %i\n",bfr_cmd.no_of_blocks*512/1024, read_sz, sent_sz);
         printf (".");
         fflush(stdout);
-        pb_write(h, (u8 *) &wr_cmd);
+        pb_write(h, (struct pb_cmd *) &wr_cmd);
         wr_cmd.lba_offset += bfr_cmd.no_of_blocks;
  
 

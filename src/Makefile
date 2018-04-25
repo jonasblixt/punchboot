@@ -31,6 +31,7 @@ LD_FLAGS =
 ASM_SRCS = 
 C_SRCS   = main.c recovery.c crc.c gpt.c keys.c boot.c config.c pb_string.c
 C_SRCS  += 3pp/tinyprintf/tinyprintf.c
+FINAL_IMAGE = 
 
 include board/$(BOARD)/makefile.mk
 
@@ -85,7 +86,8 @@ $(TARGET): prep_keys $(OBJS)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
-
+install: board_final
+	@punchboot boot -w -r -f $(FINAL_IMAGE)
 .PHONY: board_clean arch_clean plat_clean
 
 clean: board_clean arch_clean plat_clean
