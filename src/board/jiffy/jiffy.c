@@ -19,10 +19,12 @@
 #include <plat/imx6ul/usdhc.h>
 #include <plat/imx6ul/gpt.h>
 #include <plat/imx6ul/caam.h>
+#include <plat/imx6ul/ocotp.h>
+
 
 static struct gp_timer platform_timer;
 static struct fsl_caam caam;
-
+static struct ocotp_dev ocotp;
 
 
 const u8 part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
@@ -155,15 +157,53 @@ u32 board_init(void)
 	for (int i = 0; i < 40; i ++) {
 		*((u32 *)csu + i) = 0xffffffff;
 	}
+    
+    ocotp.base = 0x021BC000;
+    ocotp_init(&ocotp);
+
+    u32 fuse_test = 0;
+    fuse_test = pb_readl(0x021BC450);
+    tfp_printf ("F: 0x%8.8X\n\r",fuse_test);
+  
+    fuse_test = pb_readl(0x021BC460);
+    tfp_printf ("F: 0x%8.8X\n\r",fuse_test);
+
+    fuse_test = pb_readl(0x021BCCC0);
+    tfp_printf ("F: 0x%8.8X\n\r",fuse_test);
+
+
 
     return PB_OK;
 }
 
 u8 board_force_recovery(void) {
-    return ( (pb_readl(0x020A8008) & (1 << 4)) == 0);
+    u8 force_recovery = false;
+    u32 boot_fuse = 0x0;
+
+
+    if ( (pb_readl(0x020A8008) & (1 << 4)) == 0)
+        force_recovery = true;
+
+    boot_fuse = pb_readl(0x021BC450);
+ 
+    if (boot_fuse != 0x0000C060) {
+        force_recovery = true;
+        tfp_printf ("OTP not set, forcing recovery mode\n\r");
+    }
+
+    return force_recovery;
 }
 
 u32 board_usb_init(void) {
     return ehci_usb_init(USBC_PHYS);
 }
+
+u32 board_get_uuid(u8 *uuid) {
+
+}
+
+u32 board_get_boardinfo(struct board_info *info) {
+
+}
+
 

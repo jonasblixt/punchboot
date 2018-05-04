@@ -229,6 +229,11 @@ static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_nam
 
     bfr =  malloc(1024*1024*8);
     
+    if (bfr == NULL) {
+        printf ("Could not allocate memory\n");
+        return -1;
+    }
+
     bfr_cmd.cmd = PB_CMD_PREP_BULK_BUFFER;
     wr_cmd.cmd = PB_CMD_WRITE_PART;
     wr_cmd.lba_offset = 0;

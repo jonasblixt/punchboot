@@ -55,6 +55,7 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
     u32 *cmd = (u32 *) cmd_buf;
     u32 *cmd_data = (u32 *) cmd_buf + 1;
     u32 config_val;
+    u8 device_uuid[16];
 
     struct pb_usb_cmd resp;
     struct pb_cmd_write_part *wr_part = (struct pb_cmd_write_part*) cmd_buf;
@@ -112,6 +113,14 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
             } else {
                 tfp_printf ("boot_load failed\n\r");
             }
+            tfp_printf ("Boot returned\n\r");
+        break;
+        case PB_CMD_READ_UUID:
+            board_get_uuid(device_uuid);
+            plat_usb_send(device_uuid, 16);
+        break;
+        case PB_CMD_WRITE_UUID:
+            board_write_uuid((u8 *) cmd_data, BOARD_OTP_WRITE_KEY);
         break;
         default:
             tfp_printf ("Got unknown command: %x\n\r",*cmd);
@@ -132,7 +141,7 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
 void recovery(void) {
     tfp_printf ("\n\r*** RECOVERY MODE ***\n\r");
 
-    pb_writel(0, 0x020A0000);
+    //pb_writel(0, 0x020A0000);
     board_usb_init();
     plat_usb_cmd_callback(&recovery_cmd_event);
 
@@ -144,7 +153,7 @@ void recovery(void) {
 
         if (loop_count % 50000 == 0) {
             led_blink = !led_blink;
-            pb_writel(led_blink?0x4000:0, 0x020A0000);
+            //pb_writel(led_blink?0x4000:0, 0x020A0000);
 
         }
         

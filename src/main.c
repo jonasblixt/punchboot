@@ -70,7 +70,6 @@ void pb_main(void) {
     config_get_u32(PB_CONFIG_BOOT, &boot_part);
     config_get_u32(PB_CONFIG_BOOT_COUNT, &boot_count);
 
-
     if (board_force_recovery() || flag_corrupt_config) {
         print_bootmsg(boot_count, 0, '?');
         if (flag_corrupt_config)

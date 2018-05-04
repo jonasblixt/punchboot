@@ -27,6 +27,18 @@ _reset:
     /* TODO: Enable WDT ! */
     /* Disable interrupts */
 	cpsid	if
+  ldr r4,=5
+  ldr r5,=#0x020E00FC
+  str r4,[r5]
+
+  ldr r4,=#0x4000
+  ldr r5,=#0x020A0004
+  str r4,[r5]
+
+  ldr r4,=#0x4000
+  ldr r5,=#0x020A0000
+  str r4,[r5]
+
 
     /* Clear BSS and HEAP */
 	ldr	r1, __zero_region_start

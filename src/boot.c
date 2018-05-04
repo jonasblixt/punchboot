@@ -20,7 +20,7 @@
 #include <tinyprintf.h>
 #include <config.h>
 
-#define BOOT_DEBUG
+#undef BOOT_DEBUG
 
 static bootfunc *_tee_boot_entry = NULL;
 static bootfunc *_boot_entry = NULL;
@@ -169,6 +169,8 @@ u32 boot_load(u8 sys_no) {
 }
 
 void boot(void) {
+    volatile u32 val;
+ 
     if (_tee_boot_entry != NULL) {
 #ifdef BOOT_DEBUG
         tfp_printf ("Jumping to TEE 0x%8.8X \n\r", (u32) _tee_boot_entry);
@@ -179,6 +181,23 @@ void boot(void) {
                         : 
                         : "r" (_tee_boot_entry), "r" (_boot_entry));
 
+
+/*
+        asm volatile("mrs %0, cpsr" : "=r" (val) :: "cc");
+        tfp_printf(" CPSR = 0x%8.8X\n\r", val);
+        tfp_printf(" vmm entry = 0x%8.8X\n\r",(u32) _boot_entry);
+
+        _tee_boot_entry();
+        tfp_printf("Back from TEE\n\r");
+        asm("nop");
+        asm("nop");
+        asm volatile("mrs %0, cpsr" : "=r" (val) :: "cc");
+        tfp_printf(" CPSR = 0x%8.8X\n\r", val);
+        tfp_printf(" vmm entry = 0x%8.8X\n\r",(u32) _boot_entry);
+ */
+        /* TODO: Make sure TEE set HYP mode */
+   //     _boot_entry();
+   
     } else if (_boot_entry != NULL) {
         _boot_entry();
     }

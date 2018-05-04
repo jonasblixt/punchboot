@@ -16,6 +16,7 @@ C_SRCS  += plat/imx6ul/usdhc.c
 C_SRCS  += plat/imx6ul/reset.c
 C_SRCS  += plat/imx6ul/gpt.c
 C_SRCS  += plat/imx6ul/caam.c
+C_SRCS  += plat/imx6ul/ocotp.c
 
 plat_clean:
 	@-rm -rf plat/imx6ul/*.o
