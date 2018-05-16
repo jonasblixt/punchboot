@@ -30,6 +30,10 @@ u32 board_get_boardinfo(struct board_info *info);
 
 u32 board_write_uuid(u8 *uuid, u32 key);
 u32 board_write_boardinfo(struct board_info *info, u32 key);
-u32 board_get_default_part();
+u32 board_write_standard_fuses(u32 key);
+u32 board_write_mac_addr(u8 *mac_addr, u32 len, u32 index, u32 key);
+u32 board_enable_secure_boot(u32 key);
+
+u32 board_write_gpt_tbl();
 
 #endif

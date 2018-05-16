@@ -25,7 +25,8 @@
 
 #define PB_CMD_WRITE_UUID       0x00000100
 #define PB_CMD_READ_UUID        0x00000101
-
+#define PB_CMD_WRITE_DFLT_GPT   0x00000102
+#define PB_CMD_WRITE_DFLT_FUSE  0x00000103
 
 
 struct pb_usb_cmd {

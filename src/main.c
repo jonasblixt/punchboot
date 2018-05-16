@@ -20,24 +20,63 @@
 #undef MAIN_DEBUG
 
 static void print_bootmsg(u32 param1, s32 param2, char bp) {
-    tfp_printf("\n\rPB: " VERSION ", %i ms, %u - %i %c\n\r", plat_get_ms_tick(), 
+    tfp_printf("\n\rPB: " VERSION ", %i ms, %u - %i %c\n\r", plat_get_ms_tick(), \
                     param1, param2, bp);
+
+}
+
+static void print_board_uuid(void) {
+    u8 board_uuid[16];
+
+    board_get_uuid(board_uuid);
+
+    tfp_printf ("Board UUID: ");
+    for (int i = 0; i < 16; i++) {
+        tfp_printf ("%2.2X", board_uuid[i]);
+        if ((i == 3) || (i == 6) || (i == 8)) 
+            tfp_printf ("-");
+    }
+    tfp_printf("\n\r");
+
+
 }
 
 void pb_main(void) {
-    u8 flag_corrupt_config = false;
 
-    if (board_init() == PB_ERR)
+    bool flag_corrupt_config = false;
+    bool flag_corrupt_gpt = false;
+    bool flag_force_recovery = false;
+
+
+    if (board_init() == PB_ERR) {
+        tfp_printf ("Board init failed...\n\r");
         plat_reset();
+    }
 
     if (gpt_init() == PB_ERR) {
-        flag_corrupt_config = true;
+        flag_corrupt_gpt = true;
+        flag_force_recovery = true;
     }
 
     if (config_init() == PB_ERR) {
         flag_corrupt_config = true;
+        flag_force_recovery = true;
     }
   
+    if (board_force_recovery() || flag_force_recovery) {
+        print_bootmsg(0, 0, '?');
+        print_board_uuid();
+        if (flag_corrupt_gpt)
+            tfp_printf ("GPT is missing or corrupt: ");
+        else if (flag_corrupt_config)
+            tfp_printf ("Config is missing or corrupt: ");
+        tfp_printf ("Forcing recovery mode\n\r");
+        recovery();
+        tfp_printf ("recovery() returned...\n\r");
+        plat_reset();
+    }
+
+
    /* 
      * POR: 28 ms (Without HAB)
      * Init: 7ms
@@ -70,20 +109,10 @@ void pb_main(void) {
     config_get_u32(PB_CONFIG_BOOT, &boot_part);
     config_get_u32(PB_CONFIG_BOOT_COUNT, &boot_count);
 
-    if (board_force_recovery() || flag_corrupt_config) {
-        print_bootmsg(boot_count, 0, '?');
-        if (flag_corrupt_config)
-            tfp_printf ("Config/GPT is missing or corrupt: ");
-        tfp_printf ("Forcing recovery mode\n\r");
-        recovery();
-    }
-
     if (boot_part == PB_BOOT_A)
         boot_part_c = 'A';
     if (boot_part == PB_BOOT_B)
         boot_part_c = 'B';
-
-
 
     if ( (boot_part == PB_BOOT_A) || (boot_part == PB_BOOT_B)) {
         if (boot_load(boot_part) == PB_OK) {

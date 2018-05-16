@@ -31,6 +31,7 @@ u32  plat_get_ms_tick(void);
 u32  plat_emmc_write_block(u32 lba_offset, u8 *bfr, u32 no_of_blocks);
 u32  plat_emmc_read_block(u32 lba_offset, u8 *bfr, u32 no_of_blocks);
 u32  plat_emmc_switch_part(u8 part_no);
+u64  plat_emmc_get_lastlba(void);
 
 /* Crypto Interface */
 u32  plat_sha256_init(void);

@@ -25,11 +25,14 @@
 static bootfunc *_tee_boot_entry = NULL;
 static bootfunc *_boot_entry = NULL;
  
-void boot_inc_fail_count(u8 sys_no) {
+void boot_inc_fail_count(u32 sys_no) {
     /* TODO: Implement me */
+#ifdef BOOT_DEBUG
+    tfp_printf("Incrementing boot fail count for system %x\n\r",sys_no);
+#endif
 }
 
-u32 boot_fail_count(u8 sys_no) {
+u32 boot_fail_count(u32 sys_no) {
     /* TODO: Implement me */
     return 0;
 }
@@ -47,7 +50,7 @@ u32 boot_inc_boot_count(void) {
     return PB_OK;
 }
 
-u32 boot_load(u8 sys_no) {
+u32 boot_load(u32 sys_no) {
     u32 part_lba_offset = 0;
     struct __a4k __no_bss pb_pbi pbi;
     unsigned char sign_copy[1024];
@@ -77,7 +80,7 @@ u32 boot_load(u8 sys_no) {
     
 #ifdef BOOT_DEBUG
     tfp_printf ("Component manifest:\n\r");
-    for (int i = 0; i < pbi.hdr.no_of_components; i++) {
+    for (unsigned int i = 0; i < pbi.hdr.no_of_components; i++) {
         tfp_printf (" o %i - LA: 0x%8.8X OFF:0x%8.8X \n\r",i, pbi.comp[i].load_addr_low,
                             pbi.comp[i].component_offset);
     }
@@ -89,7 +92,7 @@ u32 boot_load(u8 sys_no) {
      *    to places we're not allowed to use!
      * */
 
-    for (int i = 0; i < pbi.hdr.no_of_components; i++) {
+    for (unsigned int i = 0; i < pbi.hdr.no_of_components; i++) {
 #ifdef BOOT_DEBUG
         tfp_printf("Loading component %i, %i bytes\n\r",i, pbi.comp[i].component_size);
 #endif
@@ -114,12 +117,12 @@ u32 boot_load(u8 sys_no) {
     plat_sha256_update((u8 *) &pbi.hdr, 
                     sizeof(struct pb_image_hdr));
 
-    for (int i = 0; i < pbi.hdr.no_of_components; i++) {
+    for (unsigned int i = 0; i < pbi.hdr.no_of_components; i++) {
         plat_sha256_update((u8 *) &pbi.comp[i], 
                     sizeof(struct pb_component_hdr));
     }
 
-    for (int i = 0; i < pbi.hdr.no_of_components; i++) {
+    for (unsigned int i = 0; i < pbi.hdr.no_of_components; i++) {
        plat_sha256_update((u8 *) pbi.comp[i].load_addr_low, 
                         pbi.comp[i].component_size);
     }
@@ -169,7 +172,6 @@ u32 boot_load(u8 sys_no) {
 }
 
 void boot(void) {
-    volatile u32 val;
  
     if (_tee_boot_entry != NULL) {
 #ifdef BOOT_DEBUG

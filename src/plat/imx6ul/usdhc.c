@@ -317,3 +317,7 @@ u32 plat_emmc_switch_part(u8 part_no) {
 
     return PB_OK;
 }
+
+u64 plat_emmc_get_lastlba(void) {
+    return _sectors;  
+}

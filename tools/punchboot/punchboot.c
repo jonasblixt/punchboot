@@ -84,6 +84,32 @@ static int pb_read(libusb_device_handle *h, u8 *bfr, u32 sz) {
     return err;
 }
 
+static int pb_install_default_gpt(libusb_device_handle *h) {
+    struct pb_cmd c;
+    c.cmd = PB_CMD_WRITE_DFLT_GPT;
+    printf ("Installing default GPT table\n");
+    return pb_write(h, &c);
+}
+
+static int pb_write_default_fuse(libusb_device_handle *h) {
+    struct pb_cmd c;
+    c.cmd = PB_CMD_WRITE_DFLT_FUSE;
+    return pb_write(h, &c);
+}
+
+
+static int pb_write_uuid(libusb_device_handle *h) {
+    struct pb_cmd c;
+    c.cmd = PB_CMD_WRITE_UUID;
+    uuid_t uuid;
+
+    uuid_generate_random(uuid);
+    memcpy(c.data, uuid, 16);
+
+    return pb_write(h, &c);
+}
+
+
 
 static int pb_reset(libusb_device_handle *h) {
     struct pb_cmd c;
@@ -333,9 +359,9 @@ static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
 }
 
 void print_help(void) {
-    printf (" --- Punch BOOT ---\n\n");
+    printf (" --- Punch BOOT " VERSION " ---\n\n");
     printf (" Bootloader:\n");
-    printf ("  punchboot boot -w -f <file name> - Install bootloader\n");
+    printf ("  punchboot boot -w -f <fn>        - Install bootloader\n");
     printf ("  punchboot boot -r                - Reset device\n");
     printf ("  punchboot boot -s                - BOOT System\n");
     printf ("  punchboot boot -l                - Display version\n");
@@ -343,8 +369,16 @@ void print_help(void) {
     printf (" Partition Management:\n");
     printf ("  punchboot part -l                - List partitions\n");
     printf ("  punchboot part -w -n <n> -f <fn> - Write 'fn' to partition 'n'\n");
+    printf ("  punchboot part -i                - Install default GPT table\n");
+    printf ("\n");
     printf (" Configuration:\n");
     printf ("  punchboot config -l              - Display configuration\n");
+    printf ("\n");
+    printf (" Fuse Management (WARNING: these operations are OTP and can't be reverted):\n");
+    printf ("  punchboot fuse -w -n <n>         - Install fuse set <n>\n");
+    printf ("                        1          - Boot fuses\n\r");
+    printf ("                        2          - Device Identity\n\r");
+    printf ("\n");
 }
 
 
@@ -379,11 +413,12 @@ int main(int argc, char **argv) {
     bool flag_help = false;
     bool flag_boot = false;
     bool flag_index = false;
+    bool flag_install = false;
 
     char *fn = NULL;
     char *cmd = argv[1];
 
-    while ((c = getopt (argc-1, &argv[1], "hwrsln:f:")) != -1) {
+    while ((c = getopt (argc-1, &argv[1], "hiwrsln:f:")) != -1) {
         switch (c) {
             case 'w':
                 flag_write = true;
@@ -393,6 +428,9 @@ int main(int argc, char **argv) {
             break;
             case 'l':
                 flag_list = true;
+            break;
+            case 'i':
+                flag_install = true;
             break;
             case 'f':
                 fn = optarg;
@@ -474,6 +512,8 @@ int main(int argc, char **argv) {
         else if (flag_write && flag_index && fn) {
             printf ("Writing %s to part %i\n",fn, cmd_index);
             pb_flash_part(h, cmd_index, fn);
+        } else if (flag_install) {
+            pb_install_default_gpt(h);
         } else {
             printf ("Nope, that did not work\n");
         }
@@ -486,6 +526,22 @@ int main(int argc, char **argv) {
     if (strcmp(cmd, "config") == 0) {
         if (flag_list) {
             pb_get_config_tbl(h);
+        }
+    }
+
+    if (strcmp(cmd, "fuse") == 0) {
+
+        if (flag_write && cmd_index > 0) {
+            switch (cmd_index) {
+                case 1:
+                    printf ("Installing boot fuses...\n");
+                    pb_write_default_fuse(h);
+                break;
+                case 2:
+                    printf ("Installing unique ID\n");
+                    pb_write_uuid(h);
+                break;
+            }
         }
     }
 

@@ -49,6 +49,7 @@ static void recovery_flash_part(u8 part_no, u32 lba_offset, u32 no_of_blocks, u8
 }
 
 
+
 /* TODO: This needs a total make-over */
 static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
     u32 *no_of_blks = NULL;
@@ -75,7 +76,7 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
         case PB_CMD_GET_VERSION:
             tfp_printf ("Recovery: Get version\n\r");
             resp.cmd = PB_CMD_GET_VERSION;
-            tfp_sprintf((s8*) resp.data, "PB %s",VERSION);
+            tfp_sprintf((char *) resp.data, "PB %s",VERSION);
             plat_usb_send((u8*) &resp, 0x40);
         break;
         case PB_CMD_RESET:
@@ -122,6 +123,14 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
         case PB_CMD_WRITE_UUID:
             board_write_uuid((u8 *) cmd_data, BOARD_OTP_WRITE_KEY);
         break;
+        case PB_CMD_WRITE_DFLT_GPT:
+            tfp_printf ("Installing default GPT table\n\r");
+            board_write_gpt_tbl();
+        break;
+        case PB_CMD_WRITE_DFLT_FUSE:
+            tfp_printf ("Writing default boot fuses\n\r");
+            board_write_standard_fuses(BOARD_OTP_WRITE_KEY);
+        break;
         default:
             tfp_printf ("Got unknown command: %x\n\r",*cmd);
     }
@@ -131,6 +140,8 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
 
 
 /**
+ *
+ * TODO: Clean up
  * -  First measurement ---
  * POR -> entry_armv7a.S ~28ms (First measurement)
  * Writing 250 MByte via USB -> 20MByte /s
@@ -141,26 +152,12 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
 void recovery(void) {
     tfp_printf ("\n\r*** RECOVERY MODE ***\n\r");
 
-    //pb_writel(0, 0x020A0000);
     board_usb_init();
     plat_usb_cmd_callback(&recovery_cmd_event);
 
-    u32 loop_count = 0;
-    volatile u8 led_blink = 0;
-
     while(1) {
-        loop_count++;
-
-        if (loop_count % 50000 == 0) {
-            led_blink = !led_blink;
-            //pb_writel(led_blink?0x4000:0, 0x020A0000);
-
-        }
-        
-
         plat_usb_task();
-   }
-
-
+ 
+    }
 
 }

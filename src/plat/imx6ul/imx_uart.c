@@ -29,12 +29,13 @@ void imx_uart_putc(char c) {
 }
 
 void plat_uart_putc(void *ptr, char c) {
+    (void) (ptr); /* Supress warning of unused parameter */
     imx_uart_putc(c);
 }
 
 void imx_uart_init(__iomem uart_base) {
     volatile u32 reg;
-    _uart_base = UART_PHYS;
+    _uart_base = uart_base;
 
     
     pb_writel(0, _uart_base+UCR1);

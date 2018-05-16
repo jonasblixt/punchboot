@@ -12,6 +12,7 @@
 #include <plat.h>
 #include <tinyprintf.h>
 #include <io.h>
+#include <gpt.h>
 
 #include <plat/imx6ul/imx_regs.h>
 #include <plat/imx6ul/imx_uart.h>
@@ -26,13 +27,8 @@
  *  TODO:
  *
  *  - Install fuses
- *    - eMMC boot
- *    - Device UUID
  *    - Device Info structure
  *    - Ethernet MAC
- *
- *  - Install GPT partition table
- *   
  *
  *
  */
@@ -125,9 +121,9 @@ u32 board_init(void)
 
     /* Configure UART */
     pb_writel(0, 0x020E0094);
-    pb_writel(0, 0x020E0098);
+    //pb_writel(0, 0x020E0098);
     pb_writel(UART_PAD_CTRL, 0x020E0320);
-    pb_writel(UART_PAD_CTRL, 0x020E0324);
+    //pb_writel(UART_PAD_CTRL, 0x020E0324);
 
     imx_uart_init(UART_PHYS);
 
@@ -141,12 +137,12 @@ u32 board_init(void)
     }
 
 
-   /* Configure NAND_DATA2 as GPIO4 4 Input with PU, 
+   /* Configure UART1_RX_DATA as GPIO1 21 Input with PU, 
     *
     * This is used to force recovery mode
     * */
-    pb_writel(5, 0x020E0188); 
-    pb_writel(0x2000 | (1 << 14) | (1 << 12), 0x020E0414);
+    pb_writel(5, 0x020E0098); 
+    pb_writel(0x2000 | (2 << 14) | (1 << 12), 0x020E0324);
 
     /* Configure pinmux for usdhc1 */
     pb_writel(0, 0x020E0000+0x1C0); /* CLK MUX */
@@ -181,17 +177,19 @@ u32 board_init(void)
 u8 board_force_recovery(void) {
     u8 force_recovery = false;
     u32 boot_fuse = 0x0;
-
-
-    if ( (pb_readl(0x020A8008) & (1 << 4)) == 0)
+    
+    if ( (pb_readl(0x0209C008) & (1 << 21)) == 0)
         force_recovery = true;
 
+   
     boot_fuse = pb_readl(0x021BC450);
- 
+
     if (boot_fuse != 0x0000C060) {
         force_recovery = true;
         tfp_printf ("OTP not set, forcing recovery mode\n\r");
     }
+
+
 
     return force_recovery;
 }
@@ -203,12 +201,11 @@ u32 board_usb_init(void) {
 
 u32 board_get_uuid(u8 *uuid) {
     u32 *uuid_ptr = (u32 *) uuid;
-    uuid_ptr[0] = pb_readl(0x021BCCC0);
-    uuid_ptr[1] = pb_readl(0x021BCCD0);
-    uuid_ptr[2] = pb_readl(0x021BCCE0);
-    uuid_ptr[3] = pb_readl(0x021BCCF0);
 
-    /* TODO: Check for valid UUID */
+    ocotp_read(15, 4, &uuid_ptr[0]);
+    ocotp_read(15, 5, &uuid_ptr[1]);
+    ocotp_read(15, 6, &uuid_ptr[2]);
+    ocotp_read(15, 7, &uuid_ptr[3]);
 
     return PB_OK;
 }
@@ -219,11 +216,23 @@ u32 board_get_boardinfo(struct board_info *info) {
 
 u32 board_write_uuid(u8 *uuid, u32 key) {
     u32 *uuid_ptr = (u32 *) uuid;
+    u8 tmp_uuid[16];
 
     if (key != BOARD_OTP_WRITE_KEY)
         return PB_ERR;
 
+    board_get_uuid(tmp_uuid);
 
+    for (int i = 0; i < 16; i++) {
+        if (tmp_uuid[i] != 0) {
+            tfp_printf ("Board: Can't write UUID, fuses already programmed\n\r");
+            return PB_ERR;
+        }
+    }
+    ocotp_write(15, 4, uuid_ptr[0]);
+    ocotp_write(15, 5, uuid_ptr[1]);
+    ocotp_write(15, 6, uuid_ptr[2]);
+    ocotp_write(15, 7, uuid_ptr[3]);
 
     return PB_OK;
 }
@@ -232,8 +241,30 @@ u32 board_write_boardinfo(struct board_info *info, u32 key) {
     return PB_OK;
 }
 
-u32 board_get_default_part() {
+u32 board_write_gpt_tbl() {
+    gpt_init_tbl(1, plat_emmc_get_lastlba());
+    gpt_add_part(0, 1, part_type_config, "Config");
+    gpt_add_part(1, 512000, part_type_system_a, "System A");
+    gpt_add_part(2, 512000, part_type_system_b, "System B");
+    return gpt_write_tbl();
+}
+
+u32 board_write_standard_fuses(u32 key) {
+    if (key != BOARD_OTP_WRITE_KEY) {
+        return PB_ERR;
+    }
+
+    /* Enable EMMC0 BOOT */
+    ocotp_write(0, 5, 0x0000c060);
+    ocotp_write(0, 6, 0x00000010);
     return PB_OK;
 }
 
+u32 board_write_mac_addr(u8 *mac_addr, u32 len, u32 index, u32 key) {
+    return PB_OK;
+}
+
+u32 board_enable_secure_boot(u32 key) {
+    return PB_OK;
+}
 

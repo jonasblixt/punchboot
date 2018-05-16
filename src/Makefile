@@ -21,7 +21,7 @@ endif
 
 RSA_KEYS = dev prod field1 field2
 
-CFLAGS   = -Wall -O2 -nostdlib -nostartfiles  
+CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2 -nostdlib -nostartfiles  
 CFLAGS  += -I. -I include/
 CFLAGS  += -I 3pp/tinyprintf -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
@@ -30,7 +30,7 @@ LIBS     = key_dev.o key_prod.o key_field1.o key_field2.o
 LD_FLAGS =
 ASM_SRCS = 
 C_SRCS   = main.c recovery.c crc.c gpt.c keys.c boot.c config.c pb_string.c
-C_SRCS  += 3pp/tinyprintf/tinyprintf.c
+C_SRCS  += tinyprintf.c
 FINAL_IMAGE = 
 
 include board/$(BOARD)/makefile.mk
@@ -85,6 +85,8 @@ $(TARGET): prep_keys $(OBJS)
 %.o: %.c
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
+lint:
+	@splint -incondefs -I . -I include/ -I board/$(BOARD)/ -I plat/$(PB_PLAT_NAME)/ -I arch/$(PB_ARCH_NAME)/ $(C_SRCS)
 
 install: board_final
 	@punchboot boot -w -r -f $(FINAL_IMAGE)

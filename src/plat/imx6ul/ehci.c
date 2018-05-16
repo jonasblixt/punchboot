@@ -7,6 +7,7 @@
  *
  */
 
+/* TODO: Move generic usb code to usb.c */
 
 #include <plat.h>
 #include <io.h>
@@ -357,7 +358,7 @@ u32 plat_usb_send(u8 *bfr, u32 sz) {
          bytes_remaining = CMD_BUFFER_SIZE;
        
 
-    for (int i = 0; i < bytes_remaining; i++) // TODO: Replace when memcpy works...
+    for (unsigned int i = 0; i < bytes_remaining; i++) // TODO: Replace when memcpy works...
         cmd_in_bfr[i] = bfr[i];
 
     while (bytes_remaining) {

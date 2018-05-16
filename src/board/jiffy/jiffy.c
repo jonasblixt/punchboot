@@ -12,6 +12,7 @@
 #include <plat.h>
 #include <tinyprintf.h>
 #include <io.h>
+#include <gpt.h>
 
 #include <plat/imx6ul/imx_regs.h>
 #include <plat/imx6ul/imx_uart.h>
@@ -160,7 +161,7 @@ u32 board_init(void)
     
     ocotp.base = 0x021BC000;
     ocotp_init(&ocotp);
-
+/*
     u32 fuse_test = 0;
     fuse_test = pb_readl(0x021BC450);
     tfp_printf ("F: 0x%8.8X\n\r",fuse_test);
@@ -170,7 +171,7 @@ u32 board_init(void)
 
     fuse_test = pb_readl(0x021BCCC0);
     tfp_printf ("F: 0x%8.8X\n\r",fuse_test);
-
+*/
 
 
     return PB_OK;
@@ -184,7 +185,7 @@ u8 board_force_recovery(void) {
     if ( (pb_readl(0x020A8008) & (1 << 4)) == 0)
         force_recovery = true;
 
-    boot_fuse = pb_readl(0x021BC450);
+    ocotp_read(0, 5, &boot_fuse);
  
     if (boot_fuse != 0x0000C060) {
         force_recovery = true;
@@ -204,6 +205,30 @@ u32 board_get_uuid(u8 *uuid) {
 
 u32 board_get_boardinfo(struct board_info *info) {
 
+}
+
+
+u32 board_write_uuid(u8 *uuid, u32 key) {
+  //  u32 *uuid_ptr = (u32 *) uuid;
+
+    if (key != BOARD_OTP_WRITE_KEY)
+        return PB_ERR;
+
+
+
+    return PB_OK;
+}
+
+u32 board_write_boardinfo(struct board_info *info, u32 key) {
+    return PB_OK;
+}
+
+u32 board_write_gpt_tbl() {
+    gpt_init_tbl(1, plat_emmc_get_lastlba());
+    gpt_add_part(0, 1, part_type_config, "Config");
+    gpt_add_part(1, 512000, part_type_system_a, "System A");
+    gpt_add_part(2, 512000, part_type_system_b, "System B");
+    return gpt_write_tbl();
 }
 
 
