@@ -7,3 +7,6 @@
 [submodule "src/3pp/tinyprintf"]
 	path = src/3pp/tinyprintf
 	url = https://github.com/jonpe960/tinyprintf.git
+[submodule "src/3pp/ufsm"]
+	path = src/3pp/ufsm
+	url = https://www.github.com/jonpe960/ufsm
