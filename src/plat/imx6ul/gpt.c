@@ -34,7 +34,7 @@ void gp_timer_init(struct gp_timer *d) {
     pb_writel(d->cr, d->base+GP_TIMER_CR);
 }
 
-u32 gp_timer_get_tick(struct gp_timer *d) {
+uint32_t gp_timer_get_tick(struct gp_timer *d) {
     return (pb_readl(d->base+GP_TIMER_CNT) / 100);
 }
 

@@ -11,7 +11,7 @@
 #ifndef __EHCI_H__
 #define __EHCI_H__
 
-#include <pb_types.h>
+#include <pb.h>
 
 #define USB_DCIVERSION 0x120
 #define USB_USBSTS 0x144
@@ -36,28 +36,28 @@
 
 
 struct ehci_dTH {
-    u32 next_dtd;
-    u32 dtd_token;
-    u32 bfr_page0;
-    u32 bfr_page1;
-    u32 bfr_page2;
-    u32 bfr_page3;
-    u32 bfr_page4;
+    uint32_t next_dtd;
+    uint32_t dtd_token;
+    uint32_t bfr_page0;
+    uint32_t bfr_page1;
+    uint32_t bfr_page2;
+    uint32_t bfr_page3;
+    uint32_t bfr_page4;
 } __attribute__((aligned(32)));
 
 struct ehci_dQH {
-    u32 caps;
-    u32 current_dtd;
-    u32 next_dtd;
-    u32 dtd_token;
-    u32 bfr_page0;
-    u32 bfr_page1;
-    u32 bfr_page2;
-    u32 bfr_page3;
-    u32 bfr_page4;
-    u32 __reserved;
-    u32 setup[2];
-    u32 padding[4];
+    uint32_t caps;
+    uint32_t current_dtd;
+    uint32_t next_dtd;
+    uint32_t dtd_token;
+    uint32_t bfr_page0;
+    uint32_t bfr_page1;
+    uint32_t bfr_page2;
+    uint32_t bfr_page3;
+    uint32_t bfr_page4;
+    uint32_t __reserved;
+    uint32_t setup[2];
+    uint32_t padding[4];
 } __attribute__((aligned(32)));
 
 
@@ -71,61 +71,61 @@ struct ehci_dQH {
 #define GET_STATUS                  0x8000
 
 struct usbdSetupPacket {
-    u8 bRequestType;	   // Characteristics of request 
-    u8 bRequest;           // Specific request
-    u16 wValue;            // Word-sized field that varies according to request
-    u16 wIndex;            // Index
-    u16 wLength;           // Number of bytes to transfer
+    uint8_t bRequestType;	   // Characteristics of request 
+    uint8_t bRequest;           // Specific request
+    uint16_t wValue;            // Word-sized field that varies according to request
+    uint16_t wIndex;            // Index
+    uint16_t wLength;           // Number of bytes to transfer
 }  __attribute__ ((packed));
 
 struct usb_device_descriptor {
-    u8 bLength;		       // Size of this descriptor in bytes
-    u8 bDescriptorType;	   // DEVICE Descriptor Type
-    u16 bcdUSB;		       // USB Specification Release Number
-    u8 bDeviceClass;	   // Class code
-    u8 bDeviceSubClass;	   // Subclass code
-    u8 bDeviceProtocol;	   // Protocol code
-    u8 bMaxPacketSize;	   // Maximum packet size for endpoint zero
-    u16 idVendor;          // Vendor ID
-    u16 idProduct;         // Product ID
-    u16 bcdDevice;         // Device release number
-    u8 iManufacturer;      // Index of string descriptor describing manufacturer
-    u8 iProduct;           // Index of string descriptor describing product
-    u8 iSerialNumber; 	   // Index of string descriptor describing the device's serial number
-    u8 bNumConfigurations; // Number of possible configurations
+    uint8_t bLength;		       // Size of this descriptor in bytes
+    uint8_t bDescriptorType;	   // DEVICE Descriptor Type
+    uint16_t bcdUSB;		       // USB Specification Release Number
+    uint8_t bDeviceClass;	   // Class code
+    uint8_t bDeviceSubClass;	   // Subclass code
+    uint8_t bDeviceProtocol;	   // Protocol code
+    uint8_t bMaxPacketSize;	   // Maximum packet size for endpoint zero
+    uint16_t idVendor;          // Vendor ID
+    uint16_t idProduct;         // Product ID
+    uint16_t bcdDevice;         // Device release number
+    uint8_t iManufacturer;      // Index of string descriptor describing manufacturer
+    uint8_t iProduct;           // Index of string descriptor describing product
+    uint8_t iSerialNumber; 	   // Index of string descriptor describing the device's serial number
+    uint8_t bNumConfigurations; // Number of possible configurations
 }  __attribute__ ((packed));
 
 struct usb_configuration_descriptor {
-    u8 bLength;			    // Size of descriptor	
-    u8 bDescriptorType;		// CONFIGURATION Descriptor Type
-    u16 wTotalLength;       // Total length of data returned for this configuration
-    u8 bNumInterfaces;      // Number of interfaces supported by this configuration
-    u8 bConfigurationValue; // Value to use as an argument to the to select this configuration
-    u8 iConfiguration;      // Index of string descriptor describing this configuration
-    u8 bmAttributes;		// Configuration characteristics
-    u8 MaxPower;			// Maximum power consumption of the USB device
+    uint8_t bLength;			    // Size of descriptor	
+    uint8_t bDescriptorType;		// CONFIGURATION Descriptor Type
+    uint16_t wTotalLength;       // Total length of data returned for this configuration
+    uint8_t bNumInterfaces;      // Number of interfaces supported by this configuration
+    uint8_t bConfigurationValue; // Value to use as an argument to the to select this configuration
+    uint8_t iConfiguration;      // Index of string descriptor describing this configuration
+    uint8_t bmAttributes;		// Configuration characteristics
+    uint8_t MaxPower;			// Maximum power consumption of the USB device
 }  __attribute__ ((packed));
 
 struct usb_interface_descriptor {
-    u8 bLength;		       // Size of this descriptor in bytes 
-    u8 bDescriptorType;    // INTERFACE Descriptor Type
-    u8 bInterfaceNumber;   // Number of this interface
-    u8 bAlternateSetting;  // Value used to select this alternate setting
-    u8 bNumEndpoints;      // Number of endpoints used by this interface
-    u8 bInterfaceClass;    // Class code
-    u8 bInterfaceSubClass; // Subclass code
-    u8 bInterfaceProtocol; // Protocol code
-    u8 iInterface;		   // Index of string descriptor describing this interface
+    uint8_t bLength;		       // Size of this descriptor in bytes 
+    uint8_t bDescriptorType;    // INTERFACE Descriptor Type
+    uint8_t bInterfaceNumber;   // Number of this interface
+    uint8_t bAlternateSetting;  // Value used to select this alternate setting
+    uint8_t bNumEndpoints;      // Number of endpoints used by this interface
+    uint8_t bInterfaceClass;    // Class code
+    uint8_t bInterfaceSubClass; // Subclass code
+    uint8_t bInterfaceProtocol; // Protocol code
+    uint8_t iInterface;		   // Index of string descriptor describing this interface
 }  __attribute__ ((packed));
 
 
 struct usb_endpoint_descriptor {
-    u8 bLength;		       // Size of this descriptor in bytes 
-    u8 bDescriptorType;    // ENDPOINT Descriptor Type
-    u8 bEndpointAddress;   // The address of the endpoint on the USB device described by this descriptor
-    u8 bmAttributes;       // The endpoint'ss attributes
-    u16 wMaxPacketSize;    //  Maximum packet size
-    u8 bInterval;          // Interval for polling endpoint for data transfers
+    uint8_t bLength;		       // Size of this descriptor in bytes 
+    uint8_t bDescriptorType;    // ENDPOINT Descriptor Type
+    uint8_t bEndpointAddress;   // The address of the endpoint on the USB device described by this descriptor
+    uint8_t bmAttributes;       // The endpoint'ss attributes
+    uint16_t wMaxPacketSize;    //  Maximum packet size
+    uint8_t bInterval;          // Interval for polling endpoint for data transfers
 }  __attribute__ ((packed));
 
 
@@ -141,13 +141,13 @@ struct usb_descriptors {
 
 struct ehci_device {
     __iomem base;
-    u8 enumerated ;
-    u8 ready;
+    uint8_t enumerated ;
+    uint8_t ready;
     struct ehci_dQH __attribute__((aligned(4096))) dqh[16];
     struct usbdSetupPacket setup;
 };
 
 
-u32 ehci_usb_init(__iomem base);
+uint32_t ehci_usb_init(__iomem base);
 
 #endif

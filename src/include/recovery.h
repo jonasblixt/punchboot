@@ -11,7 +11,7 @@
 #ifndef __RECOVERY_H__
 #define __RECOVERY_H__
 
-#include "pb_types.h"
+#include <pb.h>
 
 #define PB_CMD_RESET            0x00000001
 #define PB_CMD_FLASH_BOOTLOADER 0x00000002
@@ -30,26 +30,26 @@
 
 
 struct pb_usb_cmd {
-    u32 cmd;
-    u8 data[60];
+    uint32_t cmd;
+    uint8_t data[60];
 } __attribute__ ((packed));
 
 
 struct pb_cmd_prep_buffer {
-     u32 cmd;
-     u32 no_of_blocks;
-     u32 buffer_id;
-     u8 _reserved[52];
+     uint32_t cmd;
+     uint32_t no_of_blocks;
+     uint32_t buffer_id;
+     uint8_t _reserved[52];
 } __attribute__ ((packed));
 
 
 struct pb_cmd_write_part {
-    u32 cmd;
-    u32 no_of_blocks;
-    u32 lba_offset;
-    u32 part_no;
-    u32 buffer_id;
-    u8 _reserved[44];
+    uint32_t cmd;
+    uint32_t no_of_blocks;
+    uint32_t lba_offset;
+    uint32_t part_no;
+    uint32_t buffer_id;
+    uint8_t _reserved[44];
 } __attribute__ ((packed));
 
 void recovery(void);

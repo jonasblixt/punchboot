@@ -8,9 +8,9 @@
 static struct ocotp_dev *_dev;
 
 #ifdef OCOTP_DEBUG
-static void ocotp_dump_fuse(u32 bank, u32 row) {
-    u32 val;
-    u32 ret;
+static void ocotp_dump_fuse(uint32_t bank, uint32_t row) {
+    uint32_t val;
+    uint32_t ret;
 
     ret = ocotp_read(bank, row, &val);
     tfp_printf ("fuse %i %i: %i, 0x%8.8X\n\r", bank, row, ret, val);
@@ -57,8 +57,8 @@ void ocotp_init(struct ocotp_dev *dev) {
 
 }
 
-u32 ocotp_write(u32 bank, u32 row, u32 value) {
-     u32 tmp = 0;
+uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
+     uint32_t tmp = 0;
 
     /* Wait for busy flag */
     while (pb_readl(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
@@ -107,8 +107,8 @@ u32 ocotp_write(u32 bank, u32 row, u32 value) {
     return PB_OK;
 }
 
-u32 ocotp_read (u32 bank, u32 row, u32 * value) {
-    u32 tmp = 0;
+uint32_t ocotp_read (uint32_t bank, uint32_t row, uint32_t * value) {
+    uint32_t tmp = 0;
 
     /* Wait for busy flag */
     while (pb_readl(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)

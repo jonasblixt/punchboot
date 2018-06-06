@@ -1,4 +1,4 @@
-#include <pb_types.h>
+#include <pb.h>
 
 struct ocotp_dev {
     __iomem base;
@@ -18,7 +18,7 @@ struct ocotp_dev {
 #define OCOTP_CTRL_WR_KEY    0x3E77
 
 void ocotp_init(struct ocotp_dev *dev);
-u32 ocotp_read (u32 bank, u32 row, u32 * value);
-u32 ocotp_write(u32 bank, u32 row, u32 value);
+uint32_t ocotp_read (uint32_t bank, uint32_t row, uint32_t * value);
+uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
     
    

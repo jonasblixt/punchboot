@@ -11,40 +11,40 @@
 #ifndef __PLAT_H__
 #define __PLAT_H__
 
-#include "pb_types.h"
+#include <pb.h>
 
 #define PLAT_EMMC_PART_BOOT0 1
 #define PLAT_EMMC_PART_BOOT1 2
 #define PLAT_EMMC_PART_USER  0
 
-typedef u32 t_plat_usb_cb(u8*, u8*, u8*);
+typedef uint32_t t_plat_usb_cb(uint8_t*, uint8_t*, uint8_t*);
 
-extern const u8 part_type_system_a[];
-extern const u8 part_type_system_b[];
-extern const u8 part_type_config[];
+extern const uint8_t part_type_system_a[];
+extern const uint8_t part_type_system_b[];
+extern const uint8_t part_type_config[];
 
 /* Platform API Calls */
 void plat_reset(void);
-u32  plat_get_ms_tick(void);
+uint32_t  plat_get_ms_tick(void);
 
 /* EMMC Interface */
-u32  plat_emmc_write_block(u32 lba_offset, u8 *bfr, u32 no_of_blocks);
-u32  plat_emmc_read_block(u32 lba_offset, u8 *bfr, u32 no_of_blocks);
-u32  plat_emmc_switch_part(u8 part_no);
-u64  plat_emmc_get_lastlba(void);
+uint32_t  plat_emmc_write_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks);
+uint32_t  plat_emmc_read_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks);
+uint32_t  plat_emmc_switch_part(uint8_t part_no);
+uint64_t  plat_emmc_get_lastlba(void);
 
 /* Crypto Interface */
-u32  plat_sha256_init(void);
-u32  plat_sha256_update(u8 *bfr, u32 sz);
-u32  plat_sha256_finalize(u8 *out);
-u32  plat_rsa_enc(u8 *sig, u32 sig_sz, u8 *out, 
-                    u8 *pk_modulus, u32 pk_modulus_sz,
-                    u8 *pk_exponent, u32 pk_exponent_sz);
+uint32_t  plat_sha256_init(void);
+uint32_t  plat_sha256_update(uint8_t *bfr, uint32_t sz);
+uint32_t  plat_sha256_finalize(uint8_t *out);
+uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
+                    uint8_t *pk_modulus, uint32_t pk_modulus_sz,
+                    uint8_t *pk_exponent, uint32_t pk_exponent_sz);
 
 /* USB Interface */
-u32  plat_usb_cmd_callback(t_plat_usb_cb *cb);
-u32  plat_usb_send(u8 *bfr, u32 sz);
-u32  plat_usb_prep_bulk_buffer(u16 no_of_blocks, u8 buffer_id);
+uint32_t  plat_usb_cmd_callback(t_plat_usb_cb *cb);
+uint32_t  plat_usb_send(uint8_t *bfr, uint32_t sz);
+uint32_t  plat_usb_prep_bulk_buffer(uint16_t no_of_blocks, uint8_t buffer_id);
 void plat_usb_task(void);
 
 /* UART Interface */

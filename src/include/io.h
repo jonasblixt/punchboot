@@ -11,22 +11,22 @@
 #ifndef __PB_IO_H_
 #define __PB_IO_H_
 
-#include <pb_types.h>
+#include <pb.h>
 
-static inline u32 pb_readl(__iomem addr)
+static inline uint32_t pb_readl(__iomem addr)
 {
-	return *(( u32 *)addr);
+	return *(( uint32_t *)addr);
 }
 
-static inline void pb_writel(u32 data, __iomem addr)
+static inline void pb_writel(uint32_t data, __iomem addr)
 {
-	*(( u32 *)addr) = data;
+	*(( uint32_t *)addr) = data;
 }
 
 
-static inline void pb_write(u16 data, __iomem addr)
+static inline void pb_write(uint16_t data, __iomem addr)
 {
-	*(( u16 *)addr) = data;
+	*(( uint16_t *)addr) = data;
 }
 
 #endif

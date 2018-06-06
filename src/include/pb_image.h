@@ -11,20 +11,20 @@
 #ifndef __PB_IMAGE_H__
 #define __PB_IMAGE_H__
 
-#include "pb_types.h"
+#include <pb.h>
 
 #define PB_IMAGE_HEADER_MAGIC 0xd32daeba
 
 /* Image header */
 
 struct pb_image_hdr {
-    u32 header_magic;
-    u32 header_version;
-    u32 no_of_components;
-    u32 _reserved[16];
-    u8 sha256[32];
-    u8 sign[1024];
-    u32 sign_length;
+    uint32_t header_magic;
+    uint32_t header_version;
+    uint32_t no_of_components;
+    uint32_t _reserved[16];
+    uint8_t sha256[32];
+    uint8_t sign[1024];
+    uint32_t sign_length;
 } __attribute__ ((packed));
 
 
@@ -37,13 +37,13 @@ struct pb_image_hdr {
 
 /* Component header */
 struct pb_component_hdr {
-    u32 comp_header_version;
-    u32 component_type;
-    u32 load_addr_low;
-    u32 load_addr_high;
-    u32 component_size;
-    u32 component_offset;
-    u32 _reserved[16];
+    uint32_t comp_header_version;
+    uint32_t component_type;
+    uint32_t load_addr_low;
+    uint32_t load_addr_high;
+    uint32_t component_size;
+    uint32_t component_offset;
+    uint32_t _reserved[16];
 } __attribute__ ((packed));
 
 
@@ -51,7 +51,7 @@ struct pb_component_hdr {
 struct pb_pbi {
     struct pb_image_hdr hdr;
     struct pb_component_hdr comp[16];
-    u8 padding[511];
+    uint8_t padding[511];
 };
 
 #endif

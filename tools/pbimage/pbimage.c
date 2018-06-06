@@ -112,7 +112,7 @@ static int pbimage_gen_output(const char *fn_sign_key,
     unsigned long sig_l = 1024;
     int prng_index = register_prng(&sprng_desc);
     err = rsa_sign_hash_ex(hdr.sha256, 32, hdr.sign, &sig_l, 
-                LTC_LTC_PKCS_1_V1_5,NULL,prng_index,hash_idx,saltlen,&key);
+                LTC_PKCS_1_V1_5,NULL,prng_index,hash_idx,saltlen,&key);
     
     hdr.sign_length = (u32) sig_l;
     if (err != CRYPT_OK) {

@@ -11,29 +11,30 @@
 #ifndef __BOARD_H_
 #define __BOARD_H_
 
-#include "pb_types.h"
+#include <pb.h>
 
 struct board_info {
-    u16 type;
-    u8 rev;
-    u8 var;
+    uint16_t type;
+    uint8_t rev;
+    uint8_t var;
 };
 
 #define BOARD_OTP_WRITE_KEY 0xaabbccdd
 
-u32 board_init(void);
-u8 board_force_recovery(void);
-u32 board_usb_init(void);
+uint32_t board_init(void);
+uint8_t board_force_recovery(void);
+uint32_t board_usb_init(void);
 
-u32 board_get_uuid(u8 *uuid);
-u32 board_get_boardinfo(struct board_info *info);
+uint32_t board_get_uuid(uint8_t *uuid);
+uint32_t board_get_boardinfo(struct board_info *info);
 
-u32 board_write_uuid(u8 *uuid, u32 key);
-u32 board_write_boardinfo(struct board_info *info, u32 key);
-u32 board_write_standard_fuses(u32 key);
-u32 board_write_mac_addr(u8 *mac_addr, u32 len, u32 index, u32 key);
-u32 board_enable_secure_boot(u32 key);
+uint32_t board_write_uuid(uint8_t *uuid, uint32_t key);
+uint32_t board_write_boardinfo(struct board_info *info, uint32_t key);
+uint32_t board_write_standard_fuses(uint32_t key);
+uint32_t board_write_mac_addr(uint8_t *mac_addr, uint32_t len, uint32_t index, 
+                                                        uint32_t key);
+uint32_t board_enable_secure_boot(uint32_t key);
 
-u32 board_write_gpt_tbl();
+uint32_t board_write_gpt_tbl();
 
 #endif

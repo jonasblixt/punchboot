@@ -20,7 +20,7 @@
 #include <boot.h>
 #include <config.h>
 
-static void recovery_flash_bootloader(u8 *bfr, u32 blocks_to_write) {
+static void recovery_flash_bootloader(uint8_t *bfr, uint32_t blocks_to_write) {
     if (plat_emmc_switch_part(PLAT_EMMC_PART_BOOT0) != PB_OK) {
         tfp_printf ("Error: Could not switch partition\n\r");
     }
@@ -34,8 +34,8 @@ static void recovery_flash_bootloader(u8 *bfr, u32 blocks_to_write) {
  
 }
 
-static void recovery_flash_part(u8 part_no, u32 lba_offset, u32 no_of_blocks, u8 *bfr) {
-    u32 part_lba_offset = 0;
+static void recovery_flash_part(uint8_t part_no, uint32_t lba_offset, uint32_t no_of_blocks, uint8_t *bfr) {
+    uint32_t part_lba_offset = 0;
 
     // Check for data complete
 
@@ -51,52 +51,52 @@ static void recovery_flash_part(u8 part_no, u32 lba_offset, u32 no_of_blocks, u8
 
 
 /* TODO: This needs a total make-over */
-static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
-    u32 *no_of_blks = NULL;
-    u32 *cmd = (u32 *) cmd_buf;
-    u32 *cmd_data = (u32 *) cmd_buf + 1;
-    u32 config_val;
-    u8 device_uuid[16];
+static uint32_t recovery_cmd_event(uint8_t *cmd_buf, uint8_t *bulk_buffer, uint8_t* bulk_buffer2) {
+    uint32_t *no_of_blks = NULL;
+    uint32_t *cmd = (uint32_t *) cmd_buf;
+    uint32_t *cmd_data = (uint32_t *) cmd_buf + 1;
+    uint32_t config_val;
+    uint8_t device_uuid[16];
 
     struct pb_usb_cmd resp;
     struct pb_cmd_write_part *wr_part = (struct pb_cmd_write_part*) cmd_buf;
     struct pb_cmd_prep_buffer *prep_bfr = (struct pb_cmd_prep_buffer*) cmd_buf;
-    tfp_printf ("CMD: 0x%8.8X\n\r", *cmd);
+    tfp_printf ("CMD: 0x%8.8lX\n\r", *cmd);
     switch (*cmd) {
         case PB_CMD_PREP_BULK_BUFFER:
-            tfp_printf("Recovery: Preparing buffer %i [%i]\n\r",prep_bfr->buffer_id,
+            tfp_printf("Recovery: Preparing buffer %li [%li]\n\r",prep_bfr->buffer_id,
                                                 prep_bfr->no_of_blocks);
             plat_usb_prep_bulk_buffer(prep_bfr->no_of_blocks, prep_bfr->buffer_id);
         break;
         case PB_CMD_FLASH_BOOTLOADER:
-            no_of_blks = (u32 *)cmd_data;
-            tfp_printf ("Recovery: Flash BL %i\n\r",*no_of_blks);
+            no_of_blks = (uint32_t *)cmd_data;
+            tfp_printf ("Recovery: Flash BL %li\n\r",*no_of_blks);
             recovery_flash_bootloader(bulk_buffer, *no_of_blks);
         break;
         case PB_CMD_GET_VERSION:
             tfp_printf ("Recovery: Get version\n\r");
             resp.cmd = PB_CMD_GET_VERSION;
             tfp_sprintf((char *) resp.data, "PB %s",VERSION);
-            plat_usb_send((u8*) &resp, 0x40);
+            plat_usb_send((uint8_t*) &resp, 0x40);
         break;
         case PB_CMD_RESET:
             plat_reset();
             while(1);
         break;
         case PB_CMD_GET_GPT_TBL:
-            plat_usb_send((u8*) gpt_get_tbl(), sizeof(struct gpt_primary_tbl));
+            plat_usb_send((uint8_t*) gpt_get_tbl(), sizeof(struct gpt_primary_tbl));
         break;
         case PB_CMD_GET_CONFIG_TBL:
-            tfp_printf ("Read config %i\n\r",config_get_tbl_sz());
+            tfp_printf ("Read config %li\n\r",config_get_tbl_sz());
             plat_usb_send( config_get_tbl(), config_get_tbl_sz() );
         break;
         case PB_CMD_GET_CONFIG_VAL:
-            config_get_u32(cmd_data[0], &config_val);
-            plat_usb_send((u8 *) &config_val, 4);
+            config_get_uint32_t(cmd_data[0], &config_val);
+            plat_usb_send((uint8_t *) &config_val, 4);
         break;
         case PB_CMD_WRITE_PART:
             
-            tfp_printf ("Writing %i blks to part %i with offset %8.8X using bfr %i\n\r",
+            tfp_printf ("Writing %li blks to part %li with offset %8.8lX using bfr %li\n\r",
                         wr_part->no_of_blocks, wr_part->part_no,
                         wr_part->lba_offset, wr_part->buffer_id);
             if (wr_part->buffer_id) {
@@ -121,7 +121,7 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
             plat_usb_send(device_uuid, 16);
         break;
         case PB_CMD_WRITE_UUID:
-            board_write_uuid((u8 *) cmd_data, BOARD_OTP_WRITE_KEY);
+            board_write_uuid((uint8_t *) cmd_data, BOARD_OTP_WRITE_KEY);
         break;
         case PB_CMD_WRITE_DFLT_GPT:
             tfp_printf ("Installing default GPT table\n\r");
@@ -132,7 +132,7 @@ static u32 recovery_cmd_event(u8 *cmd_buf, u8 *bulk_buffer, u8* bulk_buffer2) {
             board_write_standard_fuses(BOARD_OTP_WRITE_KEY);
         break;
         default:
-            tfp_printf ("Got unknown command: %x\n\r",*cmd);
+            tfp_printf ("Got unknown command: %lx\n\r",*cmd);
     }
 
     return PB_OK;

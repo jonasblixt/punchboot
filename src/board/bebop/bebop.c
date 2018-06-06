@@ -38,19 +38,19 @@ static struct fsl_caam caam;
 static struct ocotp_dev ocotp;
 
 
-const u8 part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
+const uint8_t part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
                                 0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8};
 
-const u8 part_type_system_a[] = {0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 0x44, 
+const uint8_t part_type_system_a[] = {0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 0x44, 
                             0x82, 0x93, 0xD8, 0xAF, 0x0B, 0xB4, 0x38, 0xD1};
 
-const u8 part_type_system_b[] = { 0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 
+const uint8_t part_type_system_b[] = { 0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 
                         0x42, 0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04,};
 
 
 
 /* TODO: MOVE TO Platform */
-__inline u32 plat_get_ms_tick(void) {
+__inline uint32_t plat_get_ms_tick(void) {
     return gp_timer_get_tick(&platform_timer);
 }
 
@@ -71,9 +71,9 @@ __inline u32 plat_get_ms_tick(void) {
  *
  */
 
-u32 board_init(void)
+uint32_t board_init(void)
 {
-    u32 reg;
+    uint32_t reg;
 
     platform_timer.base = GP_TIMER1_BASE;
     gp_timer_init(&platform_timer);
@@ -161,12 +161,12 @@ u32 board_init(void)
     usdhc_emmc_init();
 
 
-	u32 csu = 0x21c0000;
+	uint32_t csu = 0x21c0000;
     /* Allow full access in all execution modes
      * TODO: This Obiously needs to be properly setup!
      * */
 	for (int i = 0; i < 40; i ++) {
-		*((u32 *)csu + i) = 0xffffffff;
+		*((uint32_t *)csu + i) = 0xffffffff;
 	}
     
     ocotp.base = 0x021BC000;
@@ -174,9 +174,9 @@ u32 board_init(void)
     return PB_OK;
 }
 
-u8 board_force_recovery(void) {
-    u8 force_recovery = false;
-    u32 boot_fuse = 0x0;
+uint8_t board_force_recovery(void) {
+    uint8_t force_recovery = false;
+    uint32_t boot_fuse = 0x0;
     
     if ( (pb_readl(0x0209C008) & (1 << 21)) == 0)
         force_recovery = true;
@@ -195,12 +195,12 @@ u8 board_force_recovery(void) {
 }
 
 
-u32 board_usb_init(void) {
+uint32_t board_usb_init(void) {
     return ehci_usb_init(USBC_PHYS);
 }
 
-u32 board_get_uuid(u8 *uuid) {
-    u32 *uuid_ptr = (u32 *) uuid;
+uint32_t board_get_uuid(uint8_t *uuid) {
+    uint32_t *uuid_ptr = (uint32_t *) uuid;
 
     ocotp_read(15, 4, &uuid_ptr[0]);
     ocotp_read(15, 5, &uuid_ptr[1]);
@@ -210,13 +210,13 @@ u32 board_get_uuid(u8 *uuid) {
     return PB_OK;
 }
 
-u32 board_get_boardinfo(struct board_info *info) {
+uint32_t board_get_boardinfo(struct board_info *info) {
     return PB_OK;
 }
 
-u32 board_write_uuid(u8 *uuid, u32 key) {
-    u32 *uuid_ptr = (u32 *) uuid;
-    u8 tmp_uuid[16];
+uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) {
+    uint32_t *uuid_ptr = (uint32_t *) uuid;
+    uint8_t tmp_uuid[16];
 
     if (key != BOARD_OTP_WRITE_KEY)
         return PB_ERR;
@@ -237,11 +237,11 @@ u32 board_write_uuid(u8 *uuid, u32 key) {
     return PB_OK;
 }
 
-u32 board_write_boardinfo(struct board_info *info, u32 key) {
+uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
     return PB_OK;
 }
 
-u32 board_write_gpt_tbl() {
+uint32_t board_write_gpt_tbl() {
     gpt_init_tbl(1, plat_emmc_get_lastlba());
     gpt_add_part(0, 1, part_type_config, "Config");
     gpt_add_part(1, 512000, part_type_system_a, "System A");
@@ -249,7 +249,7 @@ u32 board_write_gpt_tbl() {
     return gpt_write_tbl();
 }
 
-u32 board_write_standard_fuses(u32 key) {
+uint32_t board_write_standard_fuses(uint32_t key) {
     if (key != BOARD_OTP_WRITE_KEY) {
         return PB_ERR;
     }
@@ -260,11 +260,11 @@ u32 board_write_standard_fuses(u32 key) {
     return PB_OK;
 }
 
-u32 board_write_mac_addr(u8 *mac_addr, u32 len, u32 index, u32 key) {
+uint32_t board_write_mac_addr(uint8_t *mac_addr, uint32_t len, uint32_t index, uint32_t key) {
     return PB_OK;
 }
 
-u32 board_enable_secure_boot(u32 key) {
+uint32_t board_enable_secure_boot(uint32_t key) {
     return PB_OK;
 }
 

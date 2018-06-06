@@ -88,7 +88,7 @@
 /*                                                               */
 /*****************************************************************/
 
-static const u32 crc32Table[256] = {
+static const uint32_t crc32Table[256] = {
   0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
   0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
   0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
@@ -143,9 +143,9 @@ static const u32 crc32Table[256] = {
   0x2d02ef8dL
 };
 
-u32 crc32(u32 crc, const u8 *buf, u32 size)
+uint32_t crc32(uint32_t crc, const uint8_t *buf, uint32_t size)
 {
-	const u8 *p = buf;
+	const uint8_t *p = buf;
 
 
 	while (size--)

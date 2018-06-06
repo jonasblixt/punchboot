@@ -25,33 +25,33 @@
 static bootfunc *_tee_boot_entry = NULL;
 static bootfunc *_boot_entry = NULL;
  
-void boot_inc_fail_count(u32 sys_no) {
+void boot_inc_fail_count(uint32_t sys_no) {
     /* TODO: Implement me */
 #ifdef BOOT_DEBUG
-    tfp_printf("Incrementing boot fail count for system %x\n\r",sys_no);
+    tfp_printf("Incrementing boot fail count for system %lx\n\r",sys_no);
 #endif
 }
 
-u32 boot_fail_count(u32 sys_no) {
+uint32_t boot_fail_count(uint32_t sys_no) {
     /* TODO: Implement me */
     return 0;
 }
 
-u32 boot_boot_count(void) {
-    u32 cnt = 0;
-    config_get_u32(PB_CONFIG_BOOT_COUNT, &cnt);
+uint32_t boot_boot_count(void) {
+    uint32_t cnt = 0;
+    config_get_uint32_t(PB_CONFIG_BOOT_COUNT, &cnt);
     return cnt;
 }
 
-u32 boot_inc_boot_count(void) {
-    u32 cnt = boot_boot_count() + 1;
-    config_set_u32(PB_CONFIG_BOOT_COUNT, cnt);
+uint32_t boot_inc_boot_count(void) {
+    uint32_t cnt = boot_boot_count() + 1;
+    config_set_uint32_t(PB_CONFIG_BOOT_COUNT, cnt);
     config_commit();
     return PB_OK;
 }
 
-u32 boot_load(u32 sys_no) {
-    u32 part_lba_offset = 0;
+uint32_t boot_load(uint32_t sys_no) {
+    uint32_t part_lba_offset = 0;
     struct __a4k __no_bss pb_pbi pbi;
     unsigned char sign_copy[1024];
     unsigned int sign_sz = 0;
@@ -66,10 +66,11 @@ u32 boot_load(u32 sys_no) {
     part_lba_offset = gpt_get_part_offset(1);
 
     if (!part_lba_offset) {
-        tfp_printf ("Unknown partiotion\n\r");
+        tfp_printf ("Unknown partition\n\r");
+        return PB_ERR;
     }
 
-    plat_emmc_read_block(part_lba_offset, (u8 *) &pbi,
+    plat_emmc_read_block(part_lba_offset, (uint8_t *) &pbi,
                             sizeof(struct pb_pbi)/512);
 
 
@@ -97,7 +98,7 @@ u32 boot_load(u32 sys_no) {
         tfp_printf("Loading component %i, %i bytes\n\r",i, pbi.comp[i].component_size);
 #endif
         plat_emmc_read_block(part_lba_offset + pbi.comp[i].component_offset/512
-                    , (u8*) pbi.comp[i].load_addr_low, 
+                    , (uint8_t*) pbi.comp[i].load_addr_low, 
                     pbi.comp[i].component_size/512+1);
     }
 
@@ -114,23 +115,23 @@ u32 boot_load(u32 sys_no) {
 
     plat_sha256_init();
 
-    plat_sha256_update((u8 *) &pbi.hdr, 
+    plat_sha256_update((uint8_t *) &pbi.hdr, 
                     sizeof(struct pb_image_hdr));
 
     for (unsigned int i = 0; i < pbi.hdr.no_of_components; i++) {
-        plat_sha256_update((u8 *) &pbi.comp[i], 
+        plat_sha256_update((uint8_t *) &pbi.comp[i], 
                     sizeof(struct pb_component_hdr));
     }
 
     for (unsigned int i = 0; i < pbi.hdr.no_of_components; i++) {
-       plat_sha256_update((u8 *) pbi.comp[i].load_addr_low, 
+       plat_sha256_update((uint8_t *) pbi.comp[i].load_addr_low, 
                         pbi.comp[i].component_size);
     }
 
 
     plat_sha256_finalize(hash);
 
-    u8 flag_chk_ok = 1;
+    uint8_t flag_chk_ok = 1;
 
     if (memcmp(hash, hash_copy, 32) != 0)
         flag_chk_ok = 0;
@@ -141,8 +142,8 @@ u32 boot_load(u32 sys_no) {
     }
 
     /* TODO: This needs some more thinkning, reflect HAB state? */
-    u8 *pkey_ptr = pb_key_get(PB_KEY_DEV);
-    u8 __a4k output_data[512];
+    uint8_t *pkey_ptr = pb_key_get(PB_KEY_DEV);
+    uint8_t __a4k output_data[512];
 
     plat_rsa_enc(sign_copy, sign_sz,
                     output_data,
@@ -150,7 +151,7 @@ u32 boot_load(u32 sys_no) {
                     &pkey_ptr[0x21+512+2], 3); // PK exponent
 
     /* TODO: ASN.1 support functions */
-    u8 flag_sig_ok = 1;
+    uint8_t flag_sig_ok = 1;
     int n = 0;
     for (int i = 512-32; i < 512; i++) {
         if (output_data[i] != hash[n]) {
@@ -175,7 +176,7 @@ void boot(void) {
  
     if (_tee_boot_entry != NULL) {
 #ifdef BOOT_DEBUG
-        tfp_printf ("Jumping to TEE 0x%8.8X \n\r", (u32) _tee_boot_entry);
+        tfp_printf ("Jumping to TEE 0x%8.8X \n\r", (uint32_t) _tee_boot_entry);
 #endif
 
         asm volatile("mov lr,%1" "\n\r" // When TEE does b LR, the VMM will start
@@ -187,7 +188,7 @@ void boot(void) {
 /*
         asm volatile("mrs %0, cpsr" : "=r" (val) :: "cc");
         tfp_printf(" CPSR = 0x%8.8X\n\r", val);
-        tfp_printf(" vmm entry = 0x%8.8X\n\r",(u32) _boot_entry);
+        tfp_printf(" vmm entry = 0x%8.8X\n\r",(uint32_t) _boot_entry);
 
         _tee_boot_entry();
         tfp_printf("Back from TEE\n\r");
@@ -195,7 +196,7 @@ void boot(void) {
         asm("nop");
         asm volatile("mrs %0, cpsr" : "=r" (val) :: "cc");
         tfp_printf(" CPSR = 0x%8.8X\n\r", val);
-        tfp_printf(" vmm entry = 0x%8.8X\n\r",(u32) _boot_entry);
+        tfp_printf(" vmm entry = 0x%8.8X\n\r",(uint32_t) _boot_entry);
  */
         /* TODO: Make sure TEE set HYP mode */
    //     _boot_entry();

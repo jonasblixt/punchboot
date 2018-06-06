@@ -1,9 +1,9 @@
 #ifndef __VMSA_H__
 #define __VMSA_H__
 
-#include <pb_types.h>
+#include <pb.h>
 
-u32 vmsa_init(void);
+uint32_t vmsa_init(void);
 
 
 #endif

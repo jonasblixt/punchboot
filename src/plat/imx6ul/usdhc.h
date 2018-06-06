@@ -11,7 +11,7 @@
 #ifndef __USDHC_EMMC_H__
 #define __USDHC_EMMC_H__
 
-#include <pb_types.h>
+#include <pb.h>
 
 #define GENMASK(h, l) \
 	(((~0UL) << (l)) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
@@ -320,9 +320,9 @@
 
 
 struct usdhc_adma2_desc {
-	u16	cmd;
-	u16	len;
-	u32	addr;
+	uint16_t	cmd;
+	uint16_t	len;
+	uint32_t	addr;
 }  __attribute__ ((packed));
 
 #define ADMA2_TRAN_VALID	0x21
@@ -367,22 +367,22 @@ struct mmc_csd {
 };
 
 struct mmc_ext_csd {
-	u8			rev;
-	u8			erase_group_def;
-	u8			sec_feature_support;
-	u8			rel_sectors;
-	u8			rel_param;
-	u8			part_config;
-	u8			cache_ctrl;
-	u8			rst_n_function;
-	u8			max_packed_writes;
-	u8			max_packed_reads;
-	u8			packed_event_en;
+	uint8_t			rev;
+	uint8_t			erase_group_def;
+	uint8_t			sec_feature_support;
+	uint8_t			rel_sectors;
+	uint8_t			rel_param;
+	uint8_t			part_config;
+	uint8_t			cache_ctrl;
+	uint8_t			rst_n_function;
+	uint8_t			max_packed_writes;
+	uint8_t			max_packed_reads;
+	uint8_t			packed_event_en;
 	unsigned int		part_time;		/* Units: ms */
 	unsigned int		sa_timeout;		/* Units: 100ns */
 	unsigned int		generic_cmd6_time;	/* Units: 10ms */
 	unsigned int            power_off_longtime;     /* Units: ms */
-	u8			power_off_notification;	/* state */
+	uint8_t			power_off_notification;	/* state */
 	unsigned int		hs_max_dtr;
 	unsigned int		hs200_max_dtr;
 #define MMC_HIGH_26_MAX_DTR	26000000
@@ -414,38 +414,38 @@ struct mmc_ext_csd {
 	bool			cmdq_support;	/* Command Queue supported */
 	unsigned int		cmdq_depth;	/* Command Queue depth */
 #define MMC_FIRMWARE_LEN 8
-	u8			fwrev[MMC_FIRMWARE_LEN];  /* FW version */
-	u8			raw_exception_status;	/* 54 */
-	u8			raw_partition_support;	/* 160 */
-	u8			raw_rpmb_size_mult;	/* 168 */
-	u8			raw_erased_mem_count;	/* 181 */
-	u8			strobe_support;		/* 184 */
-	u8			raw_ext_csd_structure;	/* 194 */
-	u8			raw_card_type;		/* 196 */
-	u8			raw_driver_strength;	/* 197 */
-	u8			out_of_int_time;	/* 198 */
-	u8			raw_pwr_cl_52_195;	/* 200 */
-	u8			raw_pwr_cl_26_195;	/* 201 */
-	u8			raw_pwr_cl_52_360;	/* 202 */
-	u8			raw_pwr_cl_26_360;	/* 203 */
-	u8			raw_s_a_timeout;	/* 217 */
-	u8			raw_hc_erase_gap_size;	/* 221 */
-	u8			raw_erase_timeout_mult;	/* 223 */
-	u8			raw_hc_erase_grp_size;	/* 224 */
-	u8			raw_sec_trim_mult;	/* 229 */
-	u8			raw_sec_erase_mult;	/* 230 */
-	u8			raw_sec_feature_support;/* 231 */
-	u8			raw_trim_mult;		/* 232 */
-	u8			raw_pwr_cl_200_195;	/* 236 */
-	u8			raw_pwr_cl_200_360;	/* 237 */
-	u8			raw_pwr_cl_ddr_52_195;	/* 238 */
-	u8			raw_pwr_cl_ddr_52_360;	/* 239 */
-	u8			raw_pwr_cl_ddr_200_360;	/* 253 */
-	u8			raw_bkops_status;	/* 246 */
-	u8			raw_sectors[4];		/* 212 - 4 bytes */
-	u8			pre_eol_info;		/* 267 */
-	u8			device_life_time_est_typ_a;	/* 268 */
-	u8			device_life_time_est_typ_b;	/* 269 */
+	uint8_t			fwrev[MMC_FIRMWARE_LEN];  /* FW version */
+	uint8_t			raw_exception_status;	/* 54 */
+	uint8_t			raw_partition_support;	/* 160 */
+	uint8_t			raw_rpmb_size_mult;	/* 168 */
+	uint8_t			raw_erased_mem_count;	/* 181 */
+	uint8_t			strobe_support;		/* 184 */
+	uint8_t			raw_ext_csd_structure;	/* 194 */
+	uint8_t			raw_card_type;		/* 196 */
+	uint8_t			raw_driver_strength;	/* 197 */
+	uint8_t			out_of_int_time;	/* 198 */
+	uint8_t			raw_pwr_cl_52_195;	/* 200 */
+	uint8_t			raw_pwr_cl_26_195;	/* 201 */
+	uint8_t			raw_pwr_cl_52_360;	/* 202 */
+	uint8_t			raw_pwr_cl_26_360;	/* 203 */
+	uint8_t			raw_s_a_timeout;	/* 217 */
+	uint8_t			raw_hc_erase_gap_size;	/* 221 */
+	uint8_t			raw_erase_timeout_mult;	/* 223 */
+	uint8_t			raw_hc_erase_grp_size;	/* 224 */
+	uint8_t			raw_sec_trim_mult;	/* 229 */
+	uint8_t			raw_sec_erase_mult;	/* 230 */
+	uint8_t			raw_sec_feature_support;/* 231 */
+	uint8_t			raw_trim_mult;		/* 232 */
+	uint8_t			raw_pwr_cl_200_195;	/* 236 */
+	uint8_t			raw_pwr_cl_200_360;	/* 237 */
+	uint8_t			raw_pwr_cl_ddr_52_195;	/* 238 */
+	uint8_t			raw_pwr_cl_ddr_52_360;	/* 239 */
+	uint8_t			raw_pwr_cl_ddr_200_360;	/* 253 */
+	uint8_t			raw_bkops_status;	/* 246 */
+	uint8_t			raw_sectors[4];		/* 212 - 4 bytes */
+	uint8_t			pre_eol_info;		/* 267 */
+	uint8_t			device_life_time_est_typ_a;	/* 268 */
+	uint8_t			device_life_time_est_typ_b;	/* 269 */
 
 	unsigned int            feature_support;
 #define MMC_DISCARD_FEATURE	BIT(0)                  /* CMD38 feature */
@@ -453,8 +453,8 @@ struct mmc_ext_csd {
 
 
 
-void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr, u32 nblocks, u8 wr, u8 async);
-void usdhc_emmc_switch_part(u8 part_no);
+void usdhc_emmc_xfer_blocks(uint32_t start_lba, uint8_t *bfr, uint32_t nblocks, uint8_t wr, uint8_t async);
+void usdhc_emmc_switch_part(uint8_t part_no);
 void usdhc_emmc_init(void);
 
 

@@ -25,12 +25,12 @@
 
 static struct ehci_device _ehci_dev;
 
-static u8 __no_bss __a4k bulk_buffer[BULK_BUFFER_SIZE];
-static u8 __no_bss __a4k bulk_buffer2[BULK_BUFFER_SIZE];
+static uint8_t __no_bss __a4k bulk_buffer[BULK_BUFFER_SIZE];
+static uint8_t __no_bss __a4k bulk_buffer2[BULK_BUFFER_SIZE];
 
 
-static u8 __no_bss __a4k cmd_out_bfr[CMD_BUFFER_SIZE];
-static u8 __no_bss __a4k cmd_in_bfr[CMD_BUFFER_SIZE];
+static uint8_t __no_bss __a4k cmd_out_bfr[CMD_BUFFER_SIZE];
+static uint8_t __no_bss __a4k cmd_in_bfr[CMD_BUFFER_SIZE];
 
 static struct ehci_dTH __no_bss __a4k cmd_out_dtd[INTR_NO_OF_DTDS];
 static struct ehci_dTH __no_bss __a4k cmd_in_dtd[INTR_NO_OF_DTDS];
@@ -38,8 +38,8 @@ static struct ehci_dTH __no_bss __a4k bulk_dtds[BULK_NO_OF_DTDS];
 static struct ehci_dTH *dtd_transfer_tail = bulk_dtds;
 static t_plat_usb_cb *cmd_cb;
 
-u32 ehci_usb_init(__iomem base_addr) {
-    u32 reg;
+uint32_t ehci_usb_init(__iomem base_addr) {
+    uint32_t reg;
     struct ehci_dQH * qh_out = &_ehci_dev.dqh[0];
     struct ehci_dQH * qh_in = &_ehci_dev.dqh[1];
     struct ehci_dQH * qh_bulk_out = &_ehci_dev.dqh[2];
@@ -70,11 +70,11 @@ u32 ehci_usb_init(__iomem base_addr) {
     
 #ifdef USB_DEBUG
     tfp_printf("USB: Reset complete\n\r");
-    u32 usb_id = pb_readl(_ehci_dev.base);
+    uint32_t usb_id = pb_readl(_ehci_dev.base);
 
     tfp_printf("USB: ID=0x%8.8X\n\r",usb_id);
 
-    u32 usb_dci_version = pb_readl(_ehci_dev.base+USB_DCIVERSION);
+    uint32_t usb_dci_version = pb_readl(_ehci_dev.base+USB_DCIVERSION);
 
     tfp_printf("USB: Controller version: v%i.%i\n\r",(usb_dci_version >> 4)&0x0f,
                                         (usb_dci_version & 0x0f));
@@ -103,7 +103,7 @@ u32 ehci_usb_init(__iomem base_addr) {
     qh_intr_in->caps  = (1 << 29) | (1 << 15) | (0x0200 << 16) ;
  
     /* Program QH top */
-    pb_writel((u32) _ehci_dev.dqh, _ehci_dev.base+ USB_ENDPTLISTADDR); 
+    pb_writel((uint32_t) _ehci_dev.dqh, _ehci_dev.base+ USB_ENDPTLISTADDR); 
   
     /* Enable USB */
     pb_writel(0x0A | (1 << 4), _ehci_dev.base+ USB_USBMODE);
@@ -138,7 +138,7 @@ u32 ehci_usb_init(__iomem base_addr) {
     return PB_OK;
 }
 
-u8 qf_Descriptor[] = {
+uint8_t qf_Descriptor[] = {
 	0x0A,	//USB_DEV_QUALIFIER_DESC_LEN,
 	0x06,   //USB_DEV_QUALIFIER_DESC_TYPE,
 	0x00,   //USB_DEV_DESC_SPEC_LB,
@@ -215,7 +215,7 @@ const struct usb_descriptors descriptors = {
     }
 };
 
-static void send_ep0_msg(u8 *bfr, u8 sz)
+static void send_ep0_msg(uint8_t *bfr, uint8_t sz)
 {
     struct ehci_dQH * qh_out = &_ehci_dev.dqh[0];
  
@@ -223,8 +223,8 @@ static void send_ep0_msg(u8 *bfr, u8 sz)
     struct ehci_dTH  __attribute__((aligned(4096)))dtd_in;
     struct ehci_dTH  __attribute__((aligned(4096)))dtd_out;
  
-    u8 __attribute__((aligned(4096))) bfr_in[4096];
-    u8 __attribute__((aligned(4096))) bfr_out[4096];
+    uint8_t __attribute__((aligned(4096))) bfr_in[4096];
+    uint8_t __attribute__((aligned(4096))) bfr_out[4096];
  
     //memcpy (bfr_in, bfr, sz);
     for (int i = 0; i < sz; i++)
@@ -233,17 +233,17 @@ static void send_ep0_msg(u8 *bfr, u8 sz)
 
     dtd_in.next_dtd = 0xDEAD0001;
     dtd_in.dtd_token = (sz << 16) |  0x80  | (1 << 15);
-    dtd_in.bfr_page0 = (u32) bfr_in;
+    dtd_in.bfr_page0 = (uint32_t) bfr_in;
 
     dtd_out.next_dtd = 0xDEAD0001;
     dtd_out.dtd_token = (0x40 << 16) | 0x80;
-    dtd_out.bfr_page0 = (u32) bfr_out;
+    dtd_out.bfr_page0 = (uint32_t) bfr_out;
 
-    qh_in->next_dtd = (u32) &dtd_in;
+    qh_in->next_dtd = (uint32_t) &dtd_in;
     qh_in->current_dtd = 0;
     qh_in->dtd_token = 0;
 
-    qh_out->next_dtd = (u32) &dtd_out;
+    qh_out->next_dtd = (uint32_t) &dtd_out;
     qh_out->current_dtd = 0;
     qh_out->dtd_token = 0;
 
@@ -274,14 +274,14 @@ static void prep_next_cmd(void)
 
     dtd->next_dtd = 0xDEAD0001;
     dtd->dtd_token = (0x0040 << 16) | 0x80 | (1 << 15);
-    dtd->bfr_page0 = (u32) cmd_out_bfr;
+    dtd->bfr_page0 = (uint32_t) cmd_out_bfr;
     dtd->bfr_page1 = 0;
     dtd->bfr_page2 = 0;
     dtd->bfr_page3 = 0;
     dtd->bfr_page4 = 0;
 
 
-    qh_out->next_dtd = (u32) dtd;
+    qh_out->next_dtd = (uint32_t) dtd;
     
     pb_writel((1<<2), _ehci_dev.base+USB_ENDPTPRIME);
     
@@ -291,17 +291,17 @@ static void prep_next_cmd(void)
 
 
 
-u32 plat_usb_prep_bulk_buffer(u16 no_of_blocks, u8 n)
+uint32_t plat_usb_prep_bulk_buffer(uint16_t no_of_blocks, uint8_t n)
 {
     struct ehci_dTH * dtd = bulk_dtds;
     struct ehci_dQH * qh_out = &_ehci_dev.dqh[2];
     struct ehci_dTH * dtd_tmp;
 
 
-    u8 *bulk_bfr_ptr = ((n == 0)?bulk_buffer:bulk_buffer2);
-    u16 blocks_remaining = no_of_blocks;
-    u16 blocks_to_tx = 0;
-    u16 dtd_counter = 0;
+    uint8_t *bulk_bfr_ptr = ((n == 0)?bulk_buffer:bulk_buffer2);
+    uint16_t blocks_remaining = no_of_blocks;
+    uint16_t blocks_to_tx = 0;
+    uint16_t dtd_counter = 0;
  
     qh_out->current_dtd = 0;
     qh_out->next_dtd = 0xDEAD0001;
@@ -310,13 +310,13 @@ u32 plat_usb_prep_bulk_buffer(u16 no_of_blocks, u8 n)
     while (blocks_remaining) {
         blocks_to_tx = blocks_remaining > 32?32:blocks_remaining;
         dtd->dtd_token = (blocks_to_tx*512 << 16) |  0x80;
-        dtd->bfr_page0 = (u32) bulk_bfr_ptr;
+        dtd->bfr_page0 = (uint32_t) bulk_bfr_ptr;
         bulk_bfr_ptr += 4096;
-        dtd->bfr_page1 = (u32) bulk_bfr_ptr;
+        dtd->bfr_page1 = (uint32_t) bulk_bfr_ptr;
         bulk_bfr_ptr += 4096;
-        dtd->bfr_page2 = (u32) bulk_bfr_ptr;
+        dtd->bfr_page2 = (uint32_t) bulk_bfr_ptr;
         bulk_bfr_ptr += 4096;
-        dtd->bfr_page3 = (u32) bulk_bfr_ptr;
+        dtd->bfr_page3 = (uint32_t) bulk_bfr_ptr;
         bulk_bfr_ptr += 4096;
         dtd->bfr_page4 = 0;
 
@@ -330,14 +330,14 @@ u32 plat_usb_prep_bulk_buffer(u16 no_of_blocks, u8 n)
         }
         dtd_tmp = dtd;
         dtd++;
-        dtd_tmp->next_dtd = (u32) dtd;
+        dtd_tmp->next_dtd = (uint32_t) dtd;
         dtd_counter ++;
 
         if (dtd_counter > BULK_NO_OF_DTDS) 
             return 0;
     }
     
-    qh_out->next_dtd = (u32) bulk_dtds;  
+    qh_out->next_dtd = (uint32_t) bulk_dtds;  
     pb_writel((1 << 1), _ehci_dev.base+USB_ENDPTPRIME);
     
     while (pb_readl(_ehci_dev.base+USB_ENDPTPRIME) & (1 << 1))
@@ -346,14 +346,14 @@ u32 plat_usb_prep_bulk_buffer(u16 no_of_blocks, u8 n)
     return 0;
 }
 
-u32 plat_usb_send(u8 *bfr, u32 sz) {
+uint32_t plat_usb_send(uint8_t *bfr, uint32_t sz) {
     struct ehci_dQH * qh_in = &_ehci_dev.dqh[7]; // EP3 IN
-    u16 bytes_to_tx = 0;
+    uint16_t bytes_to_tx = 0;
     struct ehci_dTH *dtd_tmp = NULL;
     struct ehci_dTH *dtd = cmd_in_dtd;
-    u32 bytes_remaining = sz;
-    u8 *p = cmd_in_bfr;
-    u8 dtd_count = 0;
+    uint32_t bytes_remaining = sz;
+    uint8_t *p = cmd_in_bfr;
+    uint8_t dtd_count = 0;
      if (sz > CMD_BUFFER_SIZE)
          bytes_remaining = CMD_BUFFER_SIZE;
        
@@ -366,13 +366,13 @@ u32 plat_usb_send(u8 *bfr, u32 sz) {
         bytes_to_tx = bytes_remaining>0x4000?0x4000:bytes_remaining; 
 
         dtd->dtd_token = (bytes_to_tx << 16) | 0x80;
-        dtd->bfr_page0 = (u32) p;
+        dtd->bfr_page0 = (uint32_t) p;
         p += 4096;
-        dtd->bfr_page1 = (u32) p;
+        dtd->bfr_page1 = (uint32_t) p;
         p += 4096;
-        dtd->bfr_page2 = (u32) p;
+        dtd->bfr_page2 = (uint32_t) p;
         p += 4096;
-        dtd->bfr_page3 = (u32) p;
+        dtd->bfr_page3 = (uint32_t) p;
         p += 4096;
         dtd->bfr_page4 = 0;
 
@@ -381,7 +381,7 @@ u32 plat_usb_send(u8 *bfr, u32 sz) {
         dtd_count++;
 
         dtd++;
-        dtd_tmp->next_dtd = (u32) dtd;
+        dtd_tmp->next_dtd = (uint32_t) dtd;
  
         if (!bytes_remaining) {
             dtd_tmp->dtd_token |= (1<<15);
@@ -391,7 +391,7 @@ u32 plat_usb_send(u8 *bfr, u32 sz) {
 
    }
 
-    qh_in->next_dtd = (u32) &cmd_in_dtd;
+    qh_in->next_dtd = (uint32_t) &cmd_in_dtd;
     
     pb_writel((1<<19), _ehci_dev.base+USB_ENDPTPRIME);
     
@@ -404,11 +404,11 @@ u32 plat_usb_send(u8 *bfr, u32 sz) {
 
 static void usb_process_ep0(void)
 {
-    u16 request;
+    uint16_t request;
     struct usbdSetupPacket *setup = &_ehci_dev.setup;
  
 
-    u32 cmd_reg = pb_readl(_ehci_dev.base+USB_CMD);
+    uint32_t cmd_reg = pb_readl(_ehci_dev.base+USB_CMD);
  
     
     do {
@@ -430,8 +430,8 @@ static void usb_process_ep0(void)
 #ifdef USB_DEBUG
     tfp_printf ("USB: EP0 %4.4X %4.4X %ib\n\r", request, setup->wValue, setup->wLength);
 #endif
-    u16 sz = 0;
-    u16 device_status = 0;
+    uint16_t sz = 0;
+    uint16_t device_status = 0;
     switch (request) {
         case GET_DESCRIPTOR:
             if(setup->wValue == 0x0600) {
@@ -443,39 +443,39 @@ static void usb_process_ep0(void)
                 if (setup->wLength < sz)
                     sz = setup->wLength;
 
-                send_ep0_msg( (u8 *) &descriptors.device, sz);
+                send_ep0_msg( (uint8_t *) &descriptors.device, sz);
 
             } else if (setup->wValue == 0x0200) {
-                u16 desc_tot_sz = descriptors.config.wTotalLength;
+                uint16_t desc_tot_sz = descriptors.config.wTotalLength;
 
                 sz = desc_tot_sz;
 
                 if (setup->wLength < sz)
                     sz = setup->wLength;
 
-                send_ep0_msg( (u8 *) &descriptors.config, sz);
+                send_ep0_msg( (uint8_t *) &descriptors.config, sz);
             } else if (setup->wValue == 0x0300) { 
-                const u8 _usb_strings[] = "\x04\x03\x04\x09";
-                send_ep0_msg( (u8 *) _usb_strings, 4);
+                const uint8_t _usb_strings[] = "\x04\x03\x04\x09";
+                send_ep0_msg( (uint8_t *) _usb_strings, 4);
             } else if(setup->wValue == 0x0301) {
                 
-                const u8 _usb_string_id[] = 
+                const uint8_t _usb_string_id[] = 
                     {0x16,3,'P',0,'u',0,'n',0,'c',0,'h',0,' ',0,'B',0,'O',0,'O',0,'T',0};
 
                 sz = setup->wLength > sizeof(_usb_string_id)?
                             sizeof(_usb_string_id): setup->wLength;
                 
-                send_ep0_msg( (u8 *) _usb_string_id, sz);
+                send_ep0_msg( (uint8_t *) _usb_string_id, sz);
      
             } else if (setup->wValue == 0x0A00) {
-                 u16 desc_tot_sz = descriptors.interface.bLength;
+                 uint16_t desc_tot_sz = descriptors.interface.bLength;
 
                 sz = desc_tot_sz;
 
                 if (setup->wLength < sz)
                     sz = setup->wLength;
 
-                send_ep0_msg( (u8 *) &descriptors.interface, sz);
+                send_ep0_msg( (uint8_t *) &descriptors.interface, sz);
                 
             } else {
                 tfp_printf ("USB: Unhandeled descriptor 0x%4.4X\n\r", setup->wValue);
@@ -506,7 +506,7 @@ static void usb_process_ep0(void)
             send_ep0_msg(NULL,0);
         break;
         case GET_STATUS:
-            send_ep0_msg((u8 *) &device_status, 2);
+            send_ep0_msg((uint8_t *) &device_status, 2);
             send_ep0_msg(NULL,0);
         break;
        default:
@@ -519,14 +519,14 @@ static void usb_process_ep0(void)
     }
 }
 
-u32 plat_usb_cmd_callback(t_plat_usb_cb *cb) {
+uint32_t plat_usb_cmd_callback(t_plat_usb_cb *cb) {
     cmd_cb = cb;
     return PB_OK;
 }
 
 void plat_usb_task(void) {
-    u32 sts = pb_readl(_ehci_dev.base+USB_USBSTS);
-    u32 epc = pb_readl(_ehci_dev.base+USB_ENDPTCOMPLETE);
+    uint32_t sts = pb_readl(_ehci_dev.base+USB_USBSTS);
+    uint32_t epc = pb_readl(_ehci_dev.base+USB_ENDPTCOMPLETE);
 
     pb_writel(0xFFFFFFFF, _ehci_dev.base+USB_USBSTS);
 

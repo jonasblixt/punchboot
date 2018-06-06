@@ -40,15 +40,15 @@
 static struct caam_hash_ctx ctx;
 static struct fsl_caam *d;
 
-static int caam_shedule_job_sync(struct fsl_caam *d, u32 *job) {
+static int caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job) {
 
-    d->input_ring[0] = (u32) job;
+    d->input_ring[0] = (uint32_t) job;
     pb_writel(1, d->base + CAAM_IRJAR0);
 
     while (pb_readl(d->base + CAAM_ORSFR0) != 1)
         asm("nop");
 
-    if (d->output_ring[0] != (u32) job) {
+    if (d->output_ring[0] != (uint32_t) job) {
         tfp_printf ("Job failed\n\r");
         return PB_ERR;
     }
@@ -56,16 +56,16 @@ static int caam_shedule_job_sync(struct fsl_caam *d, u32 *job) {
     return PB_OK;
 }
 
-u32 plat_sha256_init(void) {
+uint32_t plat_sha256_init(void) {
     memset(&ctx, 0, sizeof(struct caam_hash_ctx));
     return PB_OK;
 }
 
-u32 plat_sha256_update(u8 *data, u32 sz) {
+uint32_t plat_sha256_update(uint8_t *data, uint32_t sz) {
 
     struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
 
-    e->addr_lo = (u32) data;
+    e->addr_lo = (uint32_t) data;
     e->len_flag = sz;
 
     ctx.sg_count++;
@@ -76,8 +76,8 @@ u32 plat_sha256_update(u8 *data, u32 sz) {
     return PB_OK;
 }
 
-u32 plat_sha256_finalize(u8 *out) {
-    u32 __a4k desc[9];
+uint32_t plat_sha256_finalize(uint8_t *out) {
+    uint32_t __a4k desc[9];
     struct caam_sg_entry *e_last = &ctx.sg_tbl[ctx.sg_count-1];
 
     e_last->len_flag |= SG_ENTRY_FINAL_BIT;  
@@ -87,11 +87,11 @@ u32 plat_sha256_finalize(u8 *out) {
         CAAM_ALG_AAI(0) | CAAM_ALG_STATE_INIT_FIN;
 
     desc[2] = CAAM_CMD_FIFOL | ( 2 << 25) | (1 << 22) | (0x14 << 16) |(1 << 24);
-    desc[3] = (u32) ctx.sg_tbl;
+    desc[3] = (uint32_t) ctx.sg_tbl;
     desc[4] = ctx.total_bytes;
 
     desc[5] = CAAM_CMD_STORE | (2 << 25) | (0x20 << 16) | 32;
-    desc[6] = (u32) out;
+    desc[6] = (uint32_t) out;
 
 
 
@@ -103,21 +103,21 @@ u32 plat_sha256_finalize(u8 *out) {
    return PB_OK;
 }
 
-u32 plat_rsa_enc(u8 *input,  u32 input_sz,
-                    u8 *output,
-                    u8 *pk_mod, u32 key_mod_sz,
-                    u8 *pk_exp, u32 key_exp_sz) {
+uint32_t plat_rsa_enc(uint8_t *input,  uint32_t input_sz,
+                    uint8_t *output,
+                    uint8_t *pk_mod, uint32_t key_mod_sz,
+                    uint8_t *pk_exp, uint32_t key_exp_sz) {
 
 
-    u32 __a4k desc[10];
+    uint32_t __a4k desc[10];
 
    
     desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
     desc[1] = (key_exp_sz << 12)|key_mod_sz;
-    desc[2] = (u32) input;
-    desc[3] = (u32) output;
-    desc[4] = (u32) pk_mod;
-    desc[5] = (u32) pk_exp;
+    desc[2] = (uint32_t) input;
+    desc[3] = (uint32_t) output;
+    desc[4] = (uint32_t) pk_mod;
+    desc[5] = (uint32_t) pk_exp;
     desc[6] = input_sz;
     desc[7] = CAAM_CMD_OP | (0x18 << 16)|(0<<12) ;
 
@@ -142,19 +142,19 @@ u32 plat_rsa_enc(u8 *input,  u32 input_sz,
 
 
 
-void caam_sha256_sum(struct fsl_caam *d, u8* data, u32 sz, u8 *out) {
-    u32 __a4k desc[9];
+void caam_sha256_sum(struct fsl_caam *d, uint8_t* data, uint32_t sz, uint8_t *out) {
+    uint32_t __a4k desc[9];
 
     desc[0] = CAAM_CMD_HEADER | 7;
     desc[1] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_SHA256 |
         CAAM_ALG_AAI(0) | CAAM_ALG_STATE_INIT_FIN;
 
     desc[2] = CAAM_CMD_FIFOL | ( 2 << 25) | (1 << 22) | (0x14 << 16);
-    desc[3] = (u32) data;
+    desc[3] = (uint32_t) data;
     desc[4] = sz;
 
     desc[5] = CAAM_CMD_STORE | (2 << 25) | (0x20 << 16) | 32;
-    desc[6] = (u32) out;
+    desc[6] = (uint32_t) out;
 
 
 
@@ -176,8 +176,8 @@ int caam_init(struct fsl_caam *caam_dev) {
     d->output_ring[0] = 0;
 
     /* Initialize job rings */
-    pb_writel( (u32) d->input_ring,  d->base + CAAM_IRBAR0);
-    pb_writel( (u32) d->output_ring, d->base + CAAM_ORBAR0);
+    pb_writel( (uint32_t) d->input_ring,  d->base + CAAM_IRBAR0);
+    pb_writel( (uint32_t) d->output_ring, d->base + CAAM_ORBAR0);
 
     pb_writel( JOB_RING_ENTRIES, d->base + CAAM_IRSR0);
     pb_writel( JOB_RING_ENTRIES, d->base + CAAM_ORSR0);

@@ -9,7 +9,7 @@
 
 
 #include <plat.h>
-#include <pb_types.h>
+#include <pb.h>
 #include <tinyprintf.h>
 
 #include <plat/imx6ul/usdhc.h>
@@ -18,16 +18,16 @@
 
 #undef USDHC_DEBUG
 
-static u32 _iobase = 0x02190000;
-static u32 _raw_cid[4];
-static u32 _raw_csd[4];
-static u8  _raw_extcsd[512];
+static uint32_t _iobase = 0x02190000;
+static uint32_t _raw_cid[4];
+static uint32_t _raw_csd[4];
+static uint8_t  _raw_extcsd[512];
 static struct usdhc_adma2_desc tbl[256];
-static u32 _sectors = 0;
+static uint32_t _sectors = 0;
 
 static void usdhc_emmc_wait_for_cc(void)
 {
-    volatile u32 irq_status;
+    volatile uint32_t irq_status;
     /* Clear all pending interrupts */
 
     while (1) {
@@ -43,7 +43,7 @@ static void usdhc_emmc_wait_for_cc(void)
 
 static void usdhc_emmc_wait_for_de(void)
 {
-    volatile u32 irq_status;
+    volatile uint32_t irq_status;
     /* Clear all pending interrupts */
 
     while (1) {
@@ -56,10 +56,10 @@ static void usdhc_emmc_wait_for_de(void)
     pb_writel(USDHC_INT_DATA_END, _iobase+ USDHC_INT_STATUS);
 }
 
-static void usdhc_emmc_send_cmd(u8 cmd, u32 arg, 
-                                u8 resp_type) {
+static void usdhc_emmc_send_cmd(uint8_t cmd, uint32_t arg, 
+                                uint8_t resp_type) {
 
-    volatile u32 pres_state = 0x00;
+    volatile uint32_t pres_state = 0x00;
 
     while (1) {
         pres_state = pb_readl(_iobase+ USDHC_PRES_STATE);
@@ -81,13 +81,13 @@ static int usdhc_emmc_check_status(void) {
 
     usdhc_emmc_send_cmd (MMC_CMD_SEND_STATUS, 10<<16,0x1A);
 
-    u32 result = pb_readl(_iobase+USDHC_CMD_RSP0);
+    uint32_t result = pb_readl(_iobase+USDHC_CMD_RSP0);
 
     if ((result & MMC_STATUS_RDY_FOR_DATA) &&
         (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG) {
         return 0;
     } else if (result & MMC_STATUS_MASK) {
-        tfp_printf("Status Error: 0x%8.8X\n",result);
+        tfp_printf("Status Error: 0x%8.8lX\n",result);
         return -1;
     }
 
@@ -99,9 +99,9 @@ static void usdhc_emmc_read_extcsd(void) {
 
     tbl->cmd = ADMA2_TRAN_VALID | ADMA2_END;
     tbl->len = 512;
-    tbl->addr = (u32) _raw_extcsd;
+    tbl->addr = (uint32_t) _raw_extcsd;
  
-    pb_writel((u32) tbl, _iobase+ USDHC_ADMA_SYS_ADDR);
+    pb_writel((uint32_t) tbl, _iobase+ USDHC_ADMA_SYS_ADDR);
 
 	/* Set ADMA 2 transfer */
 	pb_writel(0x08800224, _iobase+ USDHC_PROT_CTRL);
@@ -113,11 +113,11 @@ static void usdhc_emmc_read_extcsd(void) {
 }
 
 
-void usdhc_emmc_switch_part(u8 part_no) {
+void usdhc_emmc_switch_part(uint8_t part_no) {
 
-    u8 part_config = _raw_extcsd[EXT_CSD_PART_CONFIG];
+    uint8_t part_config = _raw_extcsd[EXT_CSD_PART_CONFIG];
 
-    u8 value = part_config & ~0x07;
+    uint8_t value = part_config & ~0x07;
     value |= part_no;
     
     if (part_no == 0) 
@@ -136,14 +136,14 @@ void usdhc_emmc_switch_part(u8 part_no) {
    //tfp_printf ("Switched to part: %i (%2.2X)\n\r", part_no, value);
 }
 
-void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr, 
-                            u32 nblocks, u8 wr, u8 async) {
+void usdhc_emmc_xfer_blocks(uint32_t start_lba, uint8_t *bfr, 
+                            uint32_t nblocks, uint8_t wr, uint8_t async) {
     struct usdhc_adma2_desc *tbl_ptr = tbl;
-    u16 transfer_sz = 0;
-    u32 remaining_sz = nblocks*512;
-    u32 flags = 0;
-    u32 cmd = 0;
-    u8 *buf_ptr = bfr;
+    uint16_t transfer_sz = 0;
+    uint32_t remaining_sz = nblocks*512;
+    uint32_t flags = 0;
+    uint32_t cmd = 0;
+    uint8_t *buf_ptr = bfr;
 
     do {
         transfer_sz = remaining_sz > 0xFE00?0xFE00:remaining_sz;
@@ -151,7 +151,7 @@ void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr,
 
         tbl_ptr->len = transfer_sz;
         tbl_ptr->cmd = ADMA2_TRAN_VALID;
-        tbl_ptr->addr = (u32) buf_ptr;
+        tbl_ptr->addr = (uint32_t) buf_ptr;
 
         if (!remaining_sz) 
             tbl_ptr->cmd |= ADMA2_END;
@@ -162,7 +162,7 @@ void usdhc_emmc_xfer_blocks(u32 start_lba, u8 *bfr,
     } while (remaining_sz);
 
 
-    pb_writel((u32) tbl, _iobase+ USDHC_ADMA_SYS_ADDR);
+    pb_writel((uint32_t) tbl, _iobase+ USDHC_ADMA_SYS_ADDR);
     
 	/* Set ADMA 2 transfer */
 	pb_writel(0x08800224, _iobase+ USDHC_PROT_CTRL);
@@ -213,7 +213,7 @@ void usdhc_emmc_init(void) {
 
     
     while (1) {
-        u32 pres_state = pb_readl(_iobase+ USDHC_PRES_STATE);
+        uint32_t pres_state = pb_readl(_iobase+ USDHC_PRES_STATE);
         if (pres_state & (1 << 3))
             break;
     }
@@ -224,7 +224,7 @@ void usdhc_emmc_init(void) {
     pb_writel(0xFFFFFFFF, _iobase+USDHC_INT_STATUS_EN);
     usdhc_emmc_send_cmd(MMC_CMD_GO_IDLE_STATE, 0,0);
 
-    u32 r3;
+    uint32_t r3;
     while (1) {
         usdhc_emmc_send_cmd(MMC_CMD_SEND_OP_COND, 0x00ff8080, 2);
 
@@ -279,7 +279,7 @@ void usdhc_emmc_init(void) {
     pb_writel(0x0101 | (0x0E << 16),_iobase+USDHC_SYS_CTRL);
 
     while (1) {
-        u32 pres_state = pb_readl(_iobase+USDHC_PRES_STATE);
+        uint32_t pres_state = pb_readl(_iobase+USDHC_PRES_STATE);
         if (pres_state & (1 << 3))
             break;
     }
@@ -302,22 +302,22 @@ void usdhc_emmc_init(void) {
 /* Platform interface */
 
 /* TODO: Fix return values*/
-u32 plat_emmc_write_block(u32 lba_offset, u8 *bfr, u32 no_of_blocks) {
+uint32_t plat_emmc_write_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks) {
     usdhc_emmc_xfer_blocks(lba_offset, bfr, no_of_blocks, 1, 0);
     return PB_OK;
 }
 
-u32 plat_emmc_read_block(u32 lba_offset, u8 *bfr, u32 no_of_blocks) {
+uint32_t plat_emmc_read_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks) {
     usdhc_emmc_xfer_blocks(lba_offset, bfr, no_of_blocks, 0, 0);
     return PB_OK;
 }
 
-u32 plat_emmc_switch_part(u8 part_no) {
+uint32_t plat_emmc_switch_part(uint8_t part_no) {
     usdhc_emmc_switch_part(part_no);
 
     return PB_OK;
 }
 
-u64 plat_emmc_get_lastlba(void) {
+uint64_t plat_emmc_get_lastlba(void) {
     return _sectors;  
 }

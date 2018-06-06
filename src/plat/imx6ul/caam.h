@@ -12,7 +12,7 @@
 #ifndef __CAAM_H__
 #define	__CAAM_H__
 
-#include <pb_types.h>
+#include <pb.h>
 
 #define JOB_RING_ENTRIES 1
 
@@ -54,14 +54,14 @@
 #define CAAM_SMPO            0x1fbc
 
 struct caam_sg_entry {
-	u32 addr_hi;	/* Memory Address of start of buffer - hi */
-	u32 addr_lo;	/* Memory Address - lo */
+	uint32_t addr_hi;	/* Memory Address of start of buffer - hi */
+	uint32_t addr_lo;	/* Memory Address - lo */
 
-	u32 len_flag;	/* Length of the data in the frame */
+	uint32_t len_flag;	/* Length of the data in the frame */
 #define SG_ENTRY_LENGTH_MASK	0x3FFFFFFF
 #define SG_ENTRY_EXTENSION_BIT	0x80000000
 #define SG_ENTRY_FINAL_BIT	0x40000000
-	u32 bpid_offset;
+	uint32_t bpid_offset;
 #define SG_ENTRY_BPID_MASK	0x00FF0000
 #define SG_ENTRY_BPID_SHIFT	16
 #define SG_ENTRY_OFFSET_MASK	0x00001FFF
@@ -70,29 +70,29 @@ struct caam_sg_entry {
 
 
 struct rsa_enc_pdb {
-    u32 header; // 24..13 = e_len, 12..0 = n_len
-    u32 f_ref; // Input pointer
-    u32 g_ref; // Output pointer
-    u32 n_ref; // PK Modulus pointer
-    u32 e_ref; // PK exponent pointer
-    u32 f_len; // Input length
+    uint32_t header; // 24..13 = e_len, 12..0 = n_len
+    uint32_t f_ref; // Input pointer
+    uint32_t g_ref; // Output pointer
+    uint32_t n_ref; // PK Modulus pointer
+    uint32_t e_ref; // PK exponent pointer
+    uint32_t f_len; // Input length
 } __attribute__ ((packed));
 
 struct caam_hash_ctx {
     struct caam_sg_entry sg_tbl[32];
-    u16 sg_count;
-    u32 total_bytes;
+    uint16_t sg_count;
+    uint32_t total_bytes;
 };
 
 struct fsl_caam {
     __iomem base;
-   u32 __a4k input_ring[JOB_RING_ENTRIES];
-   u32 __a4k output_ring[JOB_RING_ENTRIES*2];
+   uint32_t __a4k input_ring[JOB_RING_ENTRIES];
+   uint32_t __a4k output_ring[JOB_RING_ENTRIES*2];
 };
 
 int caam_init(struct fsl_caam *d);
 
-void caam_sha256_sum(struct fsl_caam *d, u8 *data, u32 sz, u8* out);
+void caam_sha256_sum(struct fsl_caam *d, uint8_t *data, uint32_t sz, uint8_t* out);
 
  
 #endif /* __CAAM_H__ */

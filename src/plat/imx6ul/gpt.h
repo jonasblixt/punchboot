@@ -11,7 +11,7 @@
 #ifndef __PLAT_IMX6UL_GPT__
 #define __PLAT_IMX6UL_GPT__
 
-#include <pb_types.h>
+#include <pb.h>
 
 #define GP_TIMER1_BASE 0x02098000
 
@@ -22,12 +22,12 @@
 
 struct gp_timer {
     __iomem base;
-    u32 pr;
-    u32 cr;
+    uint32_t pr;
+    uint32_t cr;
 };
 
 void gp_timer_init(struct gp_timer *d);
 
-u32 gp_timer_get_tick(struct gp_timer *d);
+uint32_t gp_timer_get_tick(struct gp_timer *d);
 
 #endif

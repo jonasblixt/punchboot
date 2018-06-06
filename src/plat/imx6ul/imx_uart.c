@@ -13,10 +13,10 @@
 #include "imx_uart.h"
 #include "imx_regs.h"
 
-volatile u32 _uart_base;
+volatile uint32_t _uart_base;
 
 void imx_uart_putc(char c) {
-    volatile u32 usr2;
+    volatile uint32_t usr2;
     
     for (;;) {
         usr2 = pb_readl(_uart_base+USR2);
@@ -34,7 +34,7 @@ void plat_uart_putc(void *ptr, char c) {
 }
 
 void imx_uart_init(__iomem uart_base) {
-    volatile u32 reg;
+    volatile uint32_t reg;
     _uart_base = uart_base;
 
     

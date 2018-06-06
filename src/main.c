@@ -19,14 +19,14 @@
 
 #undef MAIN_DEBUG
 
-static void print_bootmsg(u32 param1, s32 param2, char bp) {
-    tfp_printf("\n\rPB: " VERSION ", %i ms, %u - %i %c\n\r", plat_get_ms_tick(), \
+static void print_bootmsg(uint32_t param1, int32_t param2, char bp) {
+    tfp_printf("\n\rPB: " VERSION ", %lu ms, %lu - %li %c\n\r", plat_get_ms_tick(), \
                     param1, param2, bp);
 
 }
 
 static void print_board_uuid(void) {
-    u8 board_uuid[16];
+    uint8_t board_uuid[16];
 
     board_get_uuid(board_uuid);
 
@@ -102,12 +102,12 @@ void pb_main(void) {
 
     boot_inc_boot_count();
 
-    u32 boot_part = 0;
-    u32 boot_count = 0;
+    uint32_t boot_part = 0;
+    uint32_t boot_count = 0;
     char boot_part_c = '?';
 
-    config_get_u32(PB_CONFIG_BOOT, &boot_part);
-    config_get_u32(PB_CONFIG_BOOT_COUNT, &boot_count);
+    config_get_uint32_t(PB_CONFIG_BOOT, &boot_part);
+    config_get_uint32_t(PB_CONFIG_BOOT_COUNT, &boot_count);
 
     if (boot_part == PB_BOOT_A)
         boot_part_c = 'A';
