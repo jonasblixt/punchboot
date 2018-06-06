@@ -38,11 +38,12 @@ Supported architectures:
 Supported platforms:
 
 | Platform     | Supported            |
-| ------------ | -------------------- |
+| ------------ | -------------------- |
 | NXP imx6ul   | Yes                  |
 | NXP imx8m    | Planned              |
 | Allwinner H3 | Planned              |
 | Allwinner H5 | Planned              |
+
 
 Supportd boards:
 
