@@ -1,6 +1,9 @@
 *.o
 *.bin
 *.imx
+*.dero
+*.xmio
+cscope*
 src/pb
 tools/punchboot/punchboot
 *.pbi

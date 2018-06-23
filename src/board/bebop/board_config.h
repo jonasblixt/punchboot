@@ -14,6 +14,8 @@
 
 
 
+#define EHCI_PHY_BASE 0x02184000
+
 #define PB_MAX_FAIL_BOOT_COUNT 16
 
 

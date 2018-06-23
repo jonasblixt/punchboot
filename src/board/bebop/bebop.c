@@ -13,6 +13,7 @@
 #include <tinyprintf.h>
 #include <io.h>
 #include <gpt.h>
+#include <usb.h>
 
 #include <plat/imx6ul/imx_regs.h>
 #include <plat/imx6ul/imx_uart.h>
@@ -22,6 +23,7 @@
 #include <plat/imx6ul/caam.h>
 #include <plat/imx6ul/ocotp.h>
 
+#include "board_config.h"
 
 /**
  *  TODO:
@@ -38,16 +40,43 @@ static struct fsl_caam caam;
 static struct ocotp_dev ocotp;
 
 
-const uint8_t part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
-                                0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8};
+const uint8_t part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 
+        0x45, 0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8};
 
-const uint8_t part_type_system_a[] = {0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 0x44, 
-                            0x82, 0x93, 0xD8, 0xAF, 0x0B, 0xB4, 0x38, 0xD1};
+const uint8_t part_type_system_a[] = {0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 
+        0x44, 0x82, 0x93, 0xD8, 0xAF, 0x0B, 0xB4, 0x38, 0xD1};
 
 const uint8_t part_type_system_b[] = { 0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 
-                        0x42, 0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04,};
+        0x42, 0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04,};
 
+static struct ehci_device ehcidev = 
+{
+    .base = EHCI_PHY_BASE,
+};
 
+static struct usb_device usbdev =
+{
+    .platform_data = &ehcidev,
+};
+
+uint32_t board_usb_init(struct usb_device **dev)
+{
+    uint32_t reg;
+    /* Enable USB PLL */
+    /* TODO: Add reg defs */
+    reg = pb_readl(0x020C8000+0x10);
+    reg |= (1<<6);
+    pb_writel(reg, 0x020C8000+0x10);
+
+    /* Power up USB */
+    /* TODO: Add reg defs */
+    pb_writel ((1 << 31) | (1 << 30), 0x020C9038);
+    pb_writel(0xFFFFFFFF, 0x020C9008);
+ 
+
+    *dev = &usbdev;
+    return PB_OK;
+}
 
 /* TODO: MOVE TO Platform */
 __inline uint32_t plat_get_ms_tick(void) {
@@ -195,10 +224,6 @@ uint8_t board_force_recovery(void) {
 }
 
 
-uint32_t board_usb_init(void) {
-    return ehci_usb_init(USBC_PHYS);
-}
-
 uint32_t board_get_uuid(uint8_t *uuid) {
     uint32_t *uuid_ptr = (uint32_t *) uuid;
 
@@ -211,6 +236,7 @@ uint32_t board_get_uuid(uint8_t *uuid) {
 }
 
 uint32_t board_get_boardinfo(struct board_info *info) {
+    UNUSED(info);
     return PB_OK;
 }
 
@@ -238,6 +264,8 @@ uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) {
 }
 
 uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
+    UNUSED(info);
+    UNUSED(key);
     return PB_OK;
 }
 
@@ -261,10 +289,16 @@ uint32_t board_write_standard_fuses(uint32_t key) {
 }
 
 uint32_t board_write_mac_addr(uint8_t *mac_addr, uint32_t len, uint32_t index, uint32_t key) {
+    UNUSED(mac_addr);
+    UNUSED(len);
+    UNUSED(index);
+    UNUSED(key);
+
     return PB_OK;
 }
 
 uint32_t board_enable_secure_boot(uint32_t key) {
+    UNUSED(key);
     return PB_OK;
 }
 

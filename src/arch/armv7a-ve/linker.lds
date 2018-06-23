@@ -65,7 +65,7 @@ SECTIONS
 	{
 	    _heap_start = .;
 		*(.heap)
-        . = . + 1024*128;
+        . = . + 1024*1024;
 		. = ALIGN(8);
 		_heap_end = .;
 	}
@@ -74,7 +74,7 @@ SECTIONS
  	.stack :
     {
         PROVIDE(_stack_start = .);
-        . = . + 1024*128 ;
+        . = . + 1024*1024 ;
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
     }

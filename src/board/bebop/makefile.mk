@@ -14,6 +14,7 @@ BEBOP_IMAGE_CFG = board/bebop/imximage.cfg
 FINAL_IMAGE     = $(TARGET).imx
 
 board_final: $(TARGET).bin
+	@echo FINAL $(TARGET).imx
 	@$(MKIMAGE) -n $(BEBOP_IMAGE_CFG) -T imximage -e $(PB_ENTRY) \
 			-d $(TARGET).bin $(TARGET).imx > /dev/null
 

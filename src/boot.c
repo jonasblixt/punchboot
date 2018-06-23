@@ -8,7 +8,7 @@
  */
 
 
-
+#include <pb.h>
 #include <boot.h>
 #include <plat.h>
 #include <io.h>
@@ -27,6 +27,8 @@ static bootfunc *_boot_entry = NULL;
  
 void boot_inc_fail_count(uint32_t sys_no) {
     /* TODO: Implement me */
+    UNUSED(sys_no);
+
 #ifdef BOOT_DEBUG
     tfp_printf("Incrementing boot fail count for system %lx\n\r",sys_no);
 #endif
@@ -34,6 +36,7 @@ void boot_inc_fail_count(uint32_t sys_no) {
 
 uint32_t boot_fail_count(uint32_t sys_no) {
     /* TODO: Implement me */
+    UNUSED(sys_no);
     return 0;
 }
 
@@ -57,6 +60,8 @@ uint32_t boot_load(uint32_t sys_no) {
     unsigned int sign_sz = 0;
     unsigned char hash_copy[32];
     unsigned char hash[32];
+
+    UNUSED(sys_no);
 
     _boot_entry = NULL;
     _tee_boot_entry = NULL;

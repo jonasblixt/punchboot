@@ -17,14 +17,177 @@
 #include <boot.h>
 #include <board_config.h>
 
+#include "pb_fsm.h"
+
 #undef MAIN_DEBUG
 
+static bool flag_run_recovery_task = false;
+
+void pb_execute_tee_jump(void)
+{
+}
+
+void pb_execute_vmm_jump(void)
+{
+}
+
+void pb_execute_generic_jump(void)
+{
+}
+
+void pb_set_svc_mode(void)
+{
+}
+
+bool pb_has_vmm(void)
+{
+    return true;
+}
+
+void pb_set_hyp_mode(void)
+{
+}
+
+bool pb_has_tee(void)
+{
+    return true;
+}
+
+void pb_inc_error_cnt(void)
+{
+}
+
+void stop_recovery(void)
+{
+    flag_run_recovery_task = false;
+}
+
+void start_recovery(void)
+{
+    usb_init();
+    recovery_initialize();
+    flag_run_recovery_task = true;
+}
+
+void pb_reset(void)
+{
+    plat_reset();
+}
+
+void pb_stop_counter(void)
+{
+}
+
+void pb_start_counter(void)
+{
+}
+
+void pb_init_fs(void)
+{
+    struct ufsm_machine *m = get_MainMachine();
+    struct ufsm_queue *q = ufsm_get_queue(m);
+
+    if (gpt_init() != PB_OK)
+        ufsm_queue_put(q, EV_ERROR);
+    else
+        ufsm_queue_put(q, EV_OK);
+ 
+}
+
+void pb_init_config(void)
+{
+    struct ufsm_machine *m = get_MainMachine();
+    struct ufsm_queue *q = ufsm_get_queue(m);
+
+    if (config_init() != PB_OK)
+        ufsm_queue_put(q, EV_ERROR);
+    else
+        ufsm_queue_put(q, EV_OK);
+ 
+}
+
+void pb_dflt_cfg(void)
+{
+}
+
+void pb_dflt_gpt(void)
+{
+}
+
+bool pb_max_boot_cnt(void)
+{
+    return false;
+}
+
+bool pb_force_recovery(void)
+{
+    //return board_force_recovery();
+    return true;
+}
+
+
+
+static void debug_transition (struct ufsm_transition *t)
+{
+ 
+    LOG_INFO2 ("    | Transition | %s {%s} --> %s {%s}\n\r", t->source->name,
+                                            ufsm_state_kinds[t->source->kind],
+                                            t->dest->name,
+                                            ufsm_state_kinds[t->dest->kind]);
+}
+
+static void debug_enter_region(struct ufsm_region *r)
+{
+    LOG_INFO2 ("    | R enter    | %s, H=%i\n\r", r->name, r->has_history);
+}
+
+static void debug_leave_region(struct ufsm_region *r)
+{
+    LOG_INFO2 ("    | R exit     | %s, H=%i\n\r", r->name, r->has_history);
+}
+
+static void debug_event(uint32_t ev)
+{
+    LOG_INFO2 (" %-3li|            |\n\r",ev);
+}
+
+static void debug_action(struct ufsm_action *a)
+{
+    LOG_INFO2 ("    | Action     | %s()\n\r",a->name);
+}
+
+static void debug_guard(struct ufsm_guard *g, bool result) 
+{
+    LOG_INFO2 ("    | Guard      | %s() = %i\n\r", g->name, result);
+}
+
+static void debug_enter_state(struct ufsm_state *s)
+{
+    LOG_INFO2 ("    | S enter    | %s {%s}\n\r", 
+                                        s->name,ufsm_state_kinds[s->kind]);
+}
+
+static void debug_exit_state(struct ufsm_state *s)
+{
+    LOG_INFO2 ("    | S exit     | %s {%s}\n\r", 
+                                        s->name,ufsm_state_kinds[s->kind]);
+}
+
+
+static void debug_reset(struct ufsm_machine *m)
+{
+    LOG_INFO2 (" -- | RESET      | %s\n\r", m->name);
+}
+
+/*
 static void print_bootmsg(uint32_t param1, int32_t param2, char bp) {
     tfp_printf("\n\rPB: " VERSION ", %lu ms, %lu - %li %c\n\r", plat_get_ms_tick(), \
                     param1, param2, bp);
 
 }
+*/
 
+/*
 static void print_board_uuid(void) {
     uint8_t board_uuid[16];
 
@@ -39,101 +202,40 @@ static void print_board_uuid(void) {
     tfp_printf("\n\r");
 
 
-}
+}*/
 
-void pb_main(void) {
+void pb_main(void) 
+{
 
-    bool flag_corrupt_config = false;
-    bool flag_corrupt_gpt = false;
-    bool flag_force_recovery = false;
-
-
-    if (board_init() == PB_ERR) {
-        tfp_printf ("Board init failed...\n\r");
+    if (board_init() == PB_ERR) 
+    {
+        LOG_ERR ("Board init failed...");
         plat_reset();
     }
 
-    if (gpt_init() == PB_ERR) {
-        flag_corrupt_gpt = true;
-        flag_force_recovery = true;
+    LOG_INFO ("PB: " VERSION " starting...");
+    struct ufsm_machine *m = get_MainMachine();
+
+    m->debug_transition = &debug_transition;
+    m->debug_enter_region = &debug_enter_region;
+    m->debug_leave_region = &debug_leave_region;
+    m->debug_event = &debug_event;
+    m->debug_action = &debug_action;
+    m->debug_guard = &debug_guard;
+    m->debug_enter_state = &debug_enter_state;
+    m->debug_exit_state = &debug_exit_state;
+    m->debug_reset = &debug_reset;
+
+    ufsm_init_machine(m);
+
+    struct ufsm_queue *q = ufsm_get_queue(m);
+    uint32_t ev;
+
+    while (true)
+    {
+        if (ufsm_queue_get(q, &ev) == UFSM_OK)
+            ufsm_process(m, ev);
+        if (flag_run_recovery_task)
+            usb_task();
     }
-
-    if (config_init() == PB_ERR) {
-        flag_corrupt_config = true;
-        flag_force_recovery = true;
-    }
-  
-    if (board_force_recovery() || flag_force_recovery) {
-        print_bootmsg(0, 0, '?');
-        print_board_uuid();
-        if (flag_corrupt_gpt)
-            tfp_printf ("GPT is missing or corrupt: ");
-        else if (flag_corrupt_config)
-            tfp_printf ("Config is missing or corrupt: ");
-        tfp_printf ("Forcing recovery mode\n\r");
-        recovery();
-        tfp_printf ("recovery() returned...\n\r");
-        plat_reset();
-    }
-
-
-   /* 
-     * POR: 28 ms (Without HAB)
-     * Init: 7ms
-     * Read: 13ms
-     * tomcrypt_sha256_400kByte: 431ms
-     * tomcrypt_verify_rsa4096: 567ms
-     *
-     * caam_sha256_400kByte: 4 ms !!  (130 MByte/s)
-     * caam_verify_rsa4096: 5 ms
-     *
-     *
-     *
-     *  Total boot time from reset de-assertion (Voltage stable), without HAB
-     *    POR  28 ms
-     *    Init 7ms
-     *    Read 13ms
-     *    SHA  4ms
-     *    RSA  5ms
-     *  ------------------
-     *    + 57 ms
-     *
-     * */
-
-    boot_inc_boot_count();
-
-    uint32_t boot_part = 0;
-    uint32_t boot_count = 0;
-    char boot_part_c = '?';
-
-    config_get_uint32_t(PB_CONFIG_BOOT, &boot_part);
-    config_get_uint32_t(PB_CONFIG_BOOT_COUNT, &boot_count);
-
-    if (boot_part == PB_BOOT_A)
-        boot_part_c = 'A';
-    if (boot_part == PB_BOOT_B)
-        boot_part_c = 'B';
-
-    if ( (boot_part == PB_BOOT_A) || (boot_part == PB_BOOT_B)) {
-        if (boot_load(boot_part) == PB_OK) {
-            print_bootmsg(boot_count, 
-                            boot_fail_count(boot_part), boot_part_c);
-            boot();
-        } else if (boot_fail_count(boot_part) > PB_MAX_FAIL_BOOT_COUNT){
-            print_bootmsg(boot_count, 
-                            boot_fail_count(boot_part), boot_part_c);
- 
-            tfp_printf("System %c has failed too many times, Entering recovery mode\n\r",boot_part_c);
-            recovery();
-        } else {
-            boot_inc_fail_count(boot_part);
-            plat_reset();
-        }
-    } else {
-        print_bootmsg(boot_count,-1, '?');
-        tfp_printf ("Could not figure out which system to boot\n\r");
-        recovery();
-    }
-
-    plat_reset(); /* Should not reach this */
 }

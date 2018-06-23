@@ -32,6 +32,7 @@ LDFLAGS =
 
 ASM_SRCS = 
 C_SRCS   = $(TARGET).c crc.c utils.c
+C_SRCS  += recovery_protocol.c
 
 OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 
@@ -49,13 +50,13 @@ libtomcrypt:
 
 $(TARGET): $(OBJS)
 	@echo LINK $@ $(LDFLAGS)
-	@$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+	@$(CC) $(LDFLAGS) $(CFLAGS) $(OBJS) $(LIBS) -o $@
 
 %.o: %.S
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 %.o: %.c
-	@echo CC $<
+	@echo CC $< $(CFLAGS)
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install:

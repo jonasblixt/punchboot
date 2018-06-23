@@ -11,6 +11,37 @@ software component of the boot chain, for example an OS kernel, hypervisor
 As the name implies, punchboot is fast, really fast. Infact, boot speed
 is one of the primary design goals.
 
+## Metrics
+
+
+Measurements taken on IMX6UL, running at 528 MHz loading a 400kByte binary.
+
+Using hardware accelerators for SHA and RSA signatures:
+
+| Parameter         | Value    | Unit |
+| ----------------- |:--------:| ---- |
+| Power On Reset    | 28       | ms   |
+| Bootloader init   | 7        | ms   |
+| Blockdev read     | 13       | ms   |
+| SHA256 Hash       | 4        | ms   |
+| RSA 4096 Signaure | 5        | ms   |
+|                   |          |      |
+| Total             | 57       | ms   |
+
+
+Using libtomcrypt for SHA and RSA:
+
+| Parameter         | Value    | Unit |
+| ----------------- |:--------:| ---- |
+| Power On Reset    | 28       | ms   |
+| Bootloader init   | 7        | ms   |
+| Blockdev read     | 13       | ms   |
+| SHA256 Hash       | 431      | ms   |
+| RSA 4096 Signaure | 567      | ms   |
+|                   |          |      |
+| Total             | 1046     | ms   |
+
+
 ## Design
 
 Punchboot is written in C and some assembler. Currently armv7a-ve is the only

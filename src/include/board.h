@@ -12,6 +12,7 @@
 #define __BOARD_H_
 
 #include <pb.h>
+#include <usb.h>
 
 struct board_info {
     uint16_t type;
@@ -23,7 +24,6 @@ struct board_info {
 
 uint32_t board_init(void);
 uint8_t board_force_recovery(void);
-uint32_t board_usb_init(void);
 
 uint32_t board_get_uuid(uint8_t *uuid);
 uint32_t board_get_boardinfo(struct board_info *info);
@@ -36,5 +36,6 @@ uint32_t board_write_mac_addr(uint8_t *mac_addr, uint32_t len, uint32_t index,
 uint32_t board_enable_secure_boot(uint32_t key);
 
 uint32_t board_write_gpt_tbl();
+uint32_t board_usb_init(struct usb_device **dev);
 
 #endif

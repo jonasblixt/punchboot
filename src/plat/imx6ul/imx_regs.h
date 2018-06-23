@@ -83,8 +83,5 @@
 #define  USR1_TRDY       (1<<13) /* TX Buffer ready */
 #define  USR2_TXFE (1<<14)
 
-/* USB Stuff */
-#define USBC_PHYS 0x02184000
-
 
 #endif
