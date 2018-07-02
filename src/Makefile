@@ -4,7 +4,6 @@ TARGET  = pb
 
 CROSS_COMPILE ?= arm-eabi-
 
-
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld
 AR=$(CROSS_COMPILE)ar
@@ -15,20 +14,28 @@ UFSMIMPORT ?= ufsmimport
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
 ifndef BOARD
-$(error BOARD is not set)
+	$(error BOARD is not set)
 endif
 
-CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2 -nostdlib -nostartfiles  
+ifndef LOGLEVEL
+	LOGLEVEL = 0
+endif
+
+CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2 
+CFLAGS  += -nostdlib -nostartfiles  
 CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/
 CFLAGS  += -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -I 3pp/ufsm/src
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
+
 LIBS     = 
 
 LD_FLAGS =
+
 ASM_SRCS = 
+
 C_SRCS   = main.c 
 C_SRCS  += recovery.c
 C_SRCS  += crc.c
@@ -127,3 +134,15 @@ reallyclean: clean
 	$(MAKE) -C 3pp/ufsm/src clean
 
 .DEFAULT_GOAL := all
+
+# Dependencies
+
+boot.o:     include/pb.h
+config.o:   include/config.h include/pb.h
+crc.o:      include/pb.h include/crc.h
+gpt.o:		include/pb.h include/gpt.h
+keys.o:		include/pb.h include/keys.h
+main.o:		include/pb.h
+usb.o:		include/pb.h include/usb.h
+recovery.o: include/recovery.h include/pb.h
+

@@ -16,8 +16,6 @@
 
 #include "ehci.h"
 
-#define EHCI_DEBUG
-
 static struct ehci_transfer_head __no_bss __a4k dtds[EHCI_NO_OF_EPS*2][512];
 static struct ehci_queue_head    __no_bss __a4k dqhs[EHCI_NO_OF_EPS*2];
 static struct ehci_transfer_head *current_xfers[EHCI_NO_OF_EPS*2];

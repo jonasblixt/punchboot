@@ -147,6 +147,7 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
     struct gpt_primary_tbl gpt;
     struct gpt_part_hdr *part;
     char str_type_uuid[37];
+    uint32_t tbl_sz = 0;
     int err;
     u8 tmp_string[64];
 
@@ -157,7 +158,14 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
         return err;
     }
 
-    err = pb_read(h, (u8*) &gpt, sizeof(struct gpt_primary_tbl));
+    err = pb_read(h, (u8*) &tbl_sz, 4);
+    
+    if (err)
+    {
+        return err;
+    }
+
+    err = pb_read(h, (u8*) &gpt, tbl_sz);
 
     if (err) {
         printf ("pb_print_gpt_table: %i\n",err);

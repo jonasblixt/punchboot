@@ -16,8 +16,6 @@
 #include <io.h>
 #include <plat/imx6ul/imx_regs.h>
 
-#undef USDHC_DEBUG
-
 static uint32_t _iobase = 0x02190000;
 static uint32_t _raw_cid[4];
 static uint32_t _raw_csd[4];
@@ -87,7 +85,7 @@ static int usdhc_emmc_check_status(void) {
         (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG) {
         return 0;
     } else if (result & MMC_STATUS_MASK) {
-        tfp_printf("Status Error: 0x%8.8lX\n",result);
+        LOG_ERR("Status Error: 0x%8.8lX",result);
         return -1;
     }
 
@@ -194,9 +192,7 @@ void usdhc_emmc_xfer_blocks(uint32_t start_lba, uint8_t *bfr,
 
 void usdhc_emmc_init(void) {
 
-#ifdef USDHC_DEBUG
-    tfp_printf ("EMMC: Init...\n\r");   
-#endif
+    LOG_INFO ("Init...");
 
     pb_writel(1, 0x0219002c);
     /* Reset usdhc controller */
@@ -293,10 +289,8 @@ void usdhc_emmc_init(void) {
 			_raw_extcsd[EXT_CSD_SEC_CNT + 2] << 16 |
 			_raw_extcsd[EXT_CSD_SEC_CNT + 3] << 24;
 
-#ifdef USDHC_DEBUG
-    tfp_printf ("EMMC: %u sectors, %u bytes\n\r",sectors,sectors*512);
-    tfp_printf ("EMMC: Partconfig: %2.2X\n\r", _raw_extcsd[EXT_CSD_PART_CONFIG]);
-#endif
+    LOG_INFO ("%lu sectors, %lu bytes",_sectors,_sectors*512);
+    LOG_INFO ("Partconfig: %2.2X", _raw_extcsd[EXT_CSD_PART_CONFIG]);
 }
 
 /* Platform interface */

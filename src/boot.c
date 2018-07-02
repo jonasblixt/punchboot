@@ -20,7 +20,6 @@
 #include <tinyprintf.h>
 #include <config.h>
 
-#undef BOOT_DEBUG
 
 static bootfunc *_tee_boot_entry = NULL;
 static bootfunc *_boot_entry = NULL;
@@ -29,9 +28,7 @@ void boot_inc_fail_count(uint32_t sys_no) {
     /* TODO: Implement me */
     UNUSED(sys_no);
 
-#ifdef BOOT_DEBUG
-    tfp_printf("Incrementing boot fail count for system %lx\n\r",sys_no);
-#endif
+    LOG_INFO("Incrementing boot fail count for system %lx",sys_no);
 }
 
 uint32_t boot_fail_count(uint32_t sys_no) {
@@ -71,7 +68,7 @@ uint32_t boot_load(uint32_t sys_no) {
     part_lba_offset = gpt_get_part_offset(1);
 
     if (!part_lba_offset) {
-        tfp_printf ("Unknown partition\n\r");
+        LOG_ERR ("Unknown partition\n\r");
         return PB_ERR;
     }
 
@@ -80,28 +77,24 @@ uint32_t boot_load(uint32_t sys_no) {
 
 
     if (pbi.hdr.header_magic != PB_IMAGE_HEADER_MAGIC) {
-        tfp_printf ("Incorrect header magic\n\r");
+        LOG_ERR ("Incorrect header magic\n\r");
         return PB_ERR;
     }
     
-#ifdef BOOT_DEBUG
-    tfp_printf ("Component manifest:\n\r");
-    for (unsigned int i = 0; i < pbi.hdr.no_of_components; i++) {
-        tfp_printf (" o %i - LA: 0x%8.8X OFF:0x%8.8X \n\r",i, pbi.comp[i].load_addr_low,
+    LOG_INFO ("Component manifest:");
+    for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++) {
+        LOG_INFO (" o %lu - LA: 0x%8.8lX OFF:0x%8.8lX",i, pbi.comp[i].load_addr_low,
                             pbi.comp[i].component_offset);
     }
 
 
-#endif
     /* TODO: Fix TEE load logic */
     /* TODO: Implement checks to make sure that we don't load stuff
      *    to places we're not allowed to use!
      * */
 
-    for (unsigned int i = 0; i < pbi.hdr.no_of_components; i++) {
-#ifdef BOOT_DEBUG
-        tfp_printf("Loading component %i, %i bytes\n\r",i, pbi.comp[i].component_size);
-#endif
+    for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++) {
+        LOG_INFO("Loading component %lu, %lu bytes",i, pbi.comp[i].component_size);
         plat_emmc_read_block(part_lba_offset + pbi.comp[i].component_offset/512
                     , (uint8_t*) pbi.comp[i].load_addr_low, 
                     pbi.comp[i].component_size/512+1);
@@ -142,7 +135,7 @@ uint32_t boot_load(uint32_t sys_no) {
         flag_chk_ok = 0;
 
     if (!flag_chk_ok) {
-        tfp_printf ("Error: SHA Incorrect\n\r");
+        LOG_ERR ("Error: SHA Incorrect");
         return PB_ERR;
     }
 
@@ -158,7 +151,7 @@ uint32_t boot_load(uint32_t sys_no) {
     /* TODO: ASN.1 support functions */
     uint8_t flag_sig_ok = 1;
     int n = 0;
-    for (int i = 512-32; i < 512; i++) {
+    for (uint32_t i = 512-32; i < 512; i++) {
         if (output_data[i] != hash[n]) {
             flag_sig_ok = 0;
             break;
@@ -180,9 +173,7 @@ uint32_t boot_load(uint32_t sys_no) {
 void boot(void) {
  
     if (_tee_boot_entry != NULL) {
-#ifdef BOOT_DEBUG
-        tfp_printf ("Jumping to TEE 0x%8.8X \n\r", (uint32_t) _tee_boot_entry);
-#endif
+        LOG_INFO ("Jumping to TEE 0x%8.8lX", (uint32_t) _tee_boot_entry);
 
         asm volatile("mov lr,%1" "\n\r" // When TEE does b LR, the VMM will start
                      "mov pc,%0" "\n\r" // Jump to TEE

@@ -14,16 +14,15 @@
 #include <tinyprintf.h>
 #include <pb_string.h>
 
-#undef DEBUG_GPT
-
 static uint8_t _flag_gpt_ok = false;
 static struct gpt_primary_tbl __attribute__((section (".bigbuffer"))) _gpt1;
 
-#ifdef DEBUG_GPT
-static void gpt_part_name(struct gpt_part_hdr *part, uint8_t *out, uint8_t len) {
+static void gpt_part_name(struct gpt_part_hdr *part, uint8_t *out, uint8_t len) 
+{
     uint8_t null_count = 0;
 
-    for (int i = 0; i < len*2; i++) {
+    for (int i = 0; i < len*2; i++) 
+    {
         if (part->name[i]) {
             *out++ = part->name[i]; 
             null_count = 0;
@@ -37,19 +36,19 @@ static void gpt_part_name(struct gpt_part_hdr *part, uint8_t *out, uint8_t len) 
             break;
     }
 }
-#endif
 
-
-
-struct gpt_primary_tbl * gpt_get_tbl(void) {
+struct gpt_primary_tbl * gpt_get_tbl(void) 
+{
     return &_gpt1;
 }
 
-uint32_t gpt_get_part_offset(uint8_t part_no) {
+uint32_t gpt_get_part_offset(uint8_t part_no) 
+{
     return _gpt1.part[part_no & 0x1f].first_lba;
 }
 
-int8_t  gpt_get_part_by_uuid(const uint8_t *uuid) {
+int8_t  gpt_get_part_by_uuid(const uint8_t *uuid) 
+{
     if (!_flag_gpt_ok)
         return -1;
 
@@ -79,7 +78,8 @@ static uint32_t gpt_prng(void)
 }
 
 /* TODO: Maybe rename struct gpt_primary_tbl to gpt_tbl */
-uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba) {
+uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba) 
+{
     struct gpt_header *hdr = &_gpt1.hdr;
     
     prng_state = plat_get_ms_tick();
@@ -98,15 +98,15 @@ uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba) {
     hdr->entries_start_lba = _gpt1.hdr.first_lba + 1;
     hdr->part_entry_sz = sizeof(struct gpt_part_hdr);
 
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 16; i++) 
         hdr->disk_uuid[i] = gpt_prng();
-    }
     
     return PB_OK;
 }
 
-uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks, const uint8_t *type_uuid, 
-                                                    const char *part_name) {
+uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks, 
+                      const uint8_t *type_uuid, const char *part_name) 
+{
 
     struct gpt_part_hdr *part = &_gpt1.part[part_idx];
     struct gpt_part_hdr *prev_part = NULL;
@@ -124,7 +124,8 @@ uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks, const uint8_t *ty
         return PB_ERR;
 
     unsigned char *part_name_ptr = part->name;
-    for (unsigned int i = 0; i < strlen(part_name); i++) {
+    for (unsigned int i = 0; i < strlen(part_name); i++) 
+    {
         *part_name_ptr++ = part_name[i];
         *part_name_ptr++ = 0;
     }
@@ -137,7 +138,8 @@ uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks, const uint8_t *ty
     return PB_OK;
 }
 
-uint32_t gpt_write_tbl(void) {
+uint32_t gpt_write_tbl(void) 
+{
     uint32_t crc_tmp = 0;
     uint32_t err = 0;
     uint32_t part_tbl_blocks = 0;
@@ -157,8 +159,9 @@ uint32_t gpt_write_tbl(void) {
     err = plat_emmc_write_block(_gpt1.hdr.current_lba,(uint8_t*) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
-    if (err != PB_OK) {
-        tfp_printf ("gpt_write_tbl: Error writing primary GPT table\n\r");
+    if (err != PB_OK) 
+    {
+        LOG_ERR ("Error writing primary GPT table");
         return PB_ERR;
     }
 
@@ -166,8 +169,9 @@ uint32_t gpt_write_tbl(void) {
 
     err = plat_emmc_write_block(_gpt1.hdr.backup_lba, (uint8_t *) &_gpt1.hdr, 1);
 
-    if (err != PB_OK) {
-        tfp_printf ("gpt_write_tbl: Error writing backup GPT table\n\r");
+    if (err != PB_OK) 
+    {
+        LOG_ERR ("Error writing backup GPT table");
         return PB_ERR;
     }
 
@@ -176,8 +180,9 @@ uint32_t gpt_write_tbl(void) {
     err = plat_emmc_write_block(_gpt1.hdr.backup_lba-part_tbl_blocks, 
                         (uint8_t *) &_gpt1.part, part_tbl_blocks);
 
-    if (err != PB_OK) {
-        tfp_printf ("gpt_write_tbl: Error writing backup GPT part table\n\r");
+    if (err != PB_OK) 
+    {
+        LOG_ERR ("Error writing backup GPT part table");
         return PB_ERR;
     }
 
@@ -185,23 +190,24 @@ uint32_t gpt_write_tbl(void) {
 }
 
 
-uint32_t gpt_init(void) {
+uint32_t gpt_init(void) 
+{
     plat_emmc_read_block(1,(uint8_t*) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
-#ifdef DEBUG_GPT
     uint8_t tmp_string[64];
 
-    tfp_printf("GPT: Init...\n\r");
+    LOG_INFO("Init...");
 
-    for (unsigned int i = 0; i < _gpt1.hdr.no_of_parts; i++) {
+    for (uint32_t i = 0; i < _gpt1.hdr.no_of_parts; i++) 
+    {
 
         if (_gpt1.part[i].first_lba == 0)
             break;
 
         gpt_part_name(&_gpt1.part[i], tmp_string, sizeof(tmp_string));
 
-        tfp_printf (" %i - [%16s] lba 0x%8.8X%8.8X - 0x%8.8X%8.8X\n\r",
+        LOG_INFO2 (" %lu - [%16s] lba 0x%8.8lX%8.8lX - 0x%8.8lX%8.8lX\n\r",
                         i,
                         tmp_string,
                         (uint32_t) (_gpt1.part[i].first_lba >> 32) & 0xFFFFFFFF,
@@ -211,11 +217,11 @@ uint32_t gpt_init(void) {
     
         
     }
-#endif
 
     /* TODO: Implement logic to recover faulty primare GPT table */
-    if (_gpt1.hdr.signature != __gpt_header_signature) {
-        tfp_printf ("GPT: Invalid header signature\n\r");
+    if (_gpt1.hdr.signature != __gpt_header_signature) 
+    {
+        LOG_ERR ("Invalid header signature");
         _flag_gpt_ok = false;
         return PB_ERR;
     }
@@ -223,8 +229,10 @@ uint32_t gpt_init(void) {
     uint32_t crc_tmp = _gpt1.hdr.hdr_crc;
     _gpt1.hdr.hdr_crc = 0;
 
-    if (crc32(0, (uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header) - GPT_HEADER_RSZ) != crc_tmp) {
-        tfp_printf ("GPT: Header CRC Error\n\r");
+    if (crc32(0, (uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header) - 
+                                                GPT_HEADER_RSZ) != crc_tmp) 
+    {
+        LOG_ERR ("Header CRC Error");
         _flag_gpt_ok = false;
         return PB_ERR;
     }
@@ -232,14 +240,15 @@ uint32_t gpt_init(void) {
     crc_tmp = _gpt1.hdr.part_array_crc;
 
     if (crc32(0, (uint8_t *) &_gpt1.part, sizeof(struct gpt_part_hdr) *
-                        _gpt1.hdr.no_of_parts) != crc_tmp) {
-        tfp_printf ("GPT: Partition array CRC error\n\r");
+                        _gpt1.hdr.no_of_parts) != crc_tmp) 
+    {
+        LOG_ERR ("Partition array CRC error");
         _flag_gpt_ok = false;
         return PB_ERR;
     }
-#ifdef DEBUG_GPT
-    tfp_printf ("GPT crc = 0x%8.8X\n\r", crc_tmp);
-#endif
+
+    LOG_INFO ("GPT crc = 0x%8.8lX", crc_tmp);
+
     _flag_gpt_ok = true;
     return PB_OK;
 

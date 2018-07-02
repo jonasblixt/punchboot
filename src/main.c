@@ -7,7 +7,6 @@
  *
  */
 
-
 #include <board.h>
 #include <plat.h>
 #include <tinyprintf.h>
@@ -16,10 +15,9 @@
 #include <gpt.h>
 #include <boot.h>
 #include <board_config.h>
+#include <io.h>
 
 #include "pb_fsm.h"
-
-#undef MAIN_DEBUG
 
 static bool flag_run_recovery_task = false;
 
@@ -204,16 +202,17 @@ static void print_board_uuid(void) {
 
 }*/
 
+
 void pb_main(void) 
 {
-
     if (board_init() == PB_ERR) 
     {
         LOG_ERR ("Board init failed...");
         plat_reset();
     }
-
+ 
     LOG_INFO ("PB: " VERSION " starting...");
+
     struct ufsm_machine *m = get_MainMachine();
 
     m->debug_transition = &debug_transition;

@@ -15,18 +15,18 @@
 
 static inline uint32_t pb_readl(__iomem addr)
 {
-	return *(( uint32_t *)addr);
+	return *((volatile uint32_t *)addr);
 }
 
 static inline void pb_writel(uint32_t data, __iomem addr)
 {
-	*(( uint32_t *)addr) = data;
+	*((volatile uint32_t *)addr) = data;
 }
 
 
 static inline void pb_write(uint16_t data, __iomem addr)
 {
-	*(( uint16_t *)addr) = data;
+	*((volatile uint16_t *)addr) = data;
 }
 
 #endif
