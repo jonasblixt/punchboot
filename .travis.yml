@@ -25,7 +25,7 @@ addons:
     branch_pattern: "coverity_test"
 
 script:
-    - make BOARD=test LOGLEVEL=10 test
+    - make
 
 jobs:
     include:
