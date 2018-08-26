@@ -25,7 +25,7 @@ addons:
     branch_pattern: "coverity_test"
 
 script:
-    - CROSS_COMPILE=arm-eabi-none- make
+    - CROSS_COMPILE=arm-none-eabi- make
 
 jobs:
     include:
