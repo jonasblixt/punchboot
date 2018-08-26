@@ -4,7 +4,7 @@ PB_ENTRY     = 0x80001000
 
 CFLAGS += -I board/bebop
 
-C_SRCS += board/bebop/bebop.c
+BOARD_C_SRCS += board/bebop/bebop.c
 
 
 

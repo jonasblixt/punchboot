@@ -1,7 +1,7 @@
 #ifndef __RECOVERY_PROTOCOL_H__
 #define __RECOVERY_PROTOCOL_H__
 
-#include <stdint.h>
+#include <pb.h>
 
 #define PB_RECOVERY_PROTOCOL_VERSION 1
 

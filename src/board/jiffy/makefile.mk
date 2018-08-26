@@ -4,7 +4,7 @@ PB_ENTRY     = 0x80001000
 
 CFLAGS += -I board/jiffy
 
-C_SRCS += board/jiffy/jiffy.c
+BOARD_C_SRCS += board/jiffy/jiffy.c
 
 
 

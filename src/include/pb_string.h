@@ -12,7 +12,6 @@
 #define __STRING_H__
 
 #include <pb.h>
-#include <stddef.h>
 
 void * memcpy (void *dest, const void *src, size_t n);
 

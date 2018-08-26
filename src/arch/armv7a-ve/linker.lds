@@ -16,6 +16,7 @@ SECTIONS
 {
 
 	. = PB_ENTRY;
+
     PROVIDE (_code_start = .);
 	.text :
  	{
@@ -24,6 +25,7 @@ SECTIONS
         _etext = .;
     }
 
+	. = ALIGN(8);
 
     PROVIDE (_irq_vectors_start = .);
     .irqvectors :
@@ -32,6 +34,23 @@ SECTIONS
         . = ALIGN(8);
     }
 
+    .init_array : 
+    {
+        PROVIDE(__init_array_start = .);
+		KEEP(*(SORT(.init_array.*)))
+		KEEP(*(.init_array))
+        PROVIDE(__init_array_end = .);
+    }
+ 
+	. = ALIGN(8);
+
+    .fini_array : 
+    {
+        PROVIDE(__fini_array_start = .);
+		KEEP(*(SORT(.fini_array.*)))
+		KEEP(*(.fini_array))
+        PROVIDE(__fini_array_end = .);
+    }
 
     .data :
     {
@@ -78,6 +97,6 @@ SECTIONS
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
     }
-
+                            
     PROVIDE(end = .);
 }

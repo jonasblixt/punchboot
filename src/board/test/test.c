@@ -16,6 +16,7 @@
 #include <usb.h>
 
 #include <plat/test/uart.h>
+#include <plat/test/pl061.h>
 
 #include "board_config.h"
 
@@ -44,6 +45,7 @@ uint32_t board_init(void)
     test_uart_init();
     init_printf(NULL, &plat_uart_putc);
  
+    pl061_init(0x09030000);
     return PB_OK;
 }
 
@@ -74,11 +76,7 @@ uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
 }
 
 uint32_t board_write_gpt_tbl() {
-    gpt_init_tbl(1, plat_emmc_get_lastlba());
-    gpt_add_part(0, 1, part_type_config, "Config");
-    gpt_add_part(1, 512000, part_type_system_a, "System A");
-    gpt_add_part(2, 512000, part_type_system_b, "System B");
-    return gpt_write_tbl();
+    return PB_ERR;
 }
 
 uint32_t board_write_standard_fuses(uint32_t key) {

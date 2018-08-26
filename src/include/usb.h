@@ -2,7 +2,6 @@
 #define __USB_H__
 
 #include <pb.h>
-#include <stdint.h>
 
 /* Defines for commands in setup packets */
 #define USB_GET_DESCRIPTOR				0x8006

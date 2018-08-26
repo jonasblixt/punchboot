@@ -101,9 +101,8 @@ regs Kusti, 23.10.2004
 #ifndef __TFP_PRINTF__
 #define __TFP_PRINTF__
 
-#include <pb.h>
-#include <stdarg.h>
 #include <stddef.h>
+#include <stdarg.h>
 
 /* Global configuration */
 

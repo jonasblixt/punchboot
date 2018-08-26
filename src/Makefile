@@ -14,29 +14,38 @@ UFSMIMPORT ?= ufsmimport
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
 ifndef BOARD
-	$(error BOARD is not set)
+$(error BOARD is not set)
 endif
 
 ifndef LOGLEVEL
 	LOGLEVEL = 0
 endif
 
-CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2 
-CFLAGS  += -nostdlib -nostartfiles  
+SYS_ROOT_PATH = $(shell ${CC} -print-sysroot)
+
+CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2 #-O0 -g
+CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/
 CFLAGS  += -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -I 3pp/ufsm/src
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
+CFLAGS  += -isystem $(SYS_ROOT_PATH)/usr/lib/include
+CFLAGS  += --specs=nosys.specs -fno-common -fno-builtin
+CFLAGS  += -ffreestanding -fno-exceptions
 
 LIBS     = 
 
-LD_FLAGS =
+LDFLAGS =
 
 ASM_SRCS = 
+ARCH_ASM_SRCS =
+ARCH_C_SRCS =
+PLAT_ASM_SRCS =
+PLAT_C_SRCS =
 
-C_SRCS   = main.c 
+C_SRCS   = main.c
 C_SRCS  += recovery.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c 
@@ -65,15 +74,24 @@ include board/$(BOARD)/makefile.mk
 include plat/$(PB_PLAT_NAME)/makefile.mk
 include arch/$(PB_ARCH_NAME)/makefile.mk
 
-LDFLAGS += -Wl,--defsym=PB_ENTRY=$(PB_ENTRY)
-LDFLAGS += -Wl,-Tarch/$(PB_ARCH_NAME)/linker.lds $(CFLAGS) -Wl,--build-id=none 
+LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY) 
+LDFLAGS += -Tarch/$(PB_ARCH_NAME)/linker.lds --build-id=none 
 
-OBJS      = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o) 
+ARCH_OBJS     = $(ARCH_ASM_SRCS:.S=.o) $(ARCH_C_SRCS:.c=.o) 
+PLAT_OBJS     = $(PLAT_ASM_SRCS:.S=.o) $(PLAT_C_SRCS:.c=.o) 
+BOARD_OBJS    = $(BOARD_ASM_SRCS:.S=.o) $(BOARD_C_SRCS:.c=.o) 
+
+OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)  
+OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o) 
 OBJS     += $(UFSM_SRCS:.xmi=.xmio)
 OBJS	 += $(RSA_KEYS_SRCS:.der=.dero)
 
 TOMCRYPT_CFLAGS  = -DARGTYPE=3 -DLTC_NO_TEST -DLTC_NO_FILE $(CFLAGS)
 TOMCRYPT_CFLAGS += -DUSE_LTM -DLTM_DESC -I../libtommath/ -L../libtommath/
+
+ifeq ($(BOARD),test)
+	include tests/makefile.mk
+endif
 
 all: $(TARGET).bin board_final
 	$(info Summary:)
@@ -99,8 +117,8 @@ $(TARGET).bin: $(TARGET)
 	@$(OBJCOPY) -O binary -R .comment $< $@
 
 $(TARGET): $(OBJS)
-	@echo LINK $@
-	@$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+	@echo LD $@
+	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 
 %.xmio: %.xmi
 	@echo UFSMIMPORT $<
@@ -112,7 +130,7 @@ $(TARGET): $(OBJS)
 	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm $< $@
 
 %.o: %.S
-	@echo CC $<
+	@echo AS $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 %.o: %.c
@@ -126,7 +144,14 @@ install: board_final
 
 clean: board_clean arch_clean plat_clean
 	@-rm -rf *.o $(TARGET) $(TARGET).bin *.map out
+	@-rm -rf tests/*.o
 	@-rm -f $(OBJS)
+	@-rm -f *.gcda *.gcno
+	@-rm -f tests/*.gcda tests/*.gcno
+	@find -name "*.gcno" -exec rm -f {} \;
+	@find -name "*.gcda" -exec rm -f {} \;
+
+
 
 reallyclean: clean
 	$(MAKE) -C 3pp/libtomcrypt clean

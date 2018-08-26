@@ -12,11 +12,15 @@ PB_ARCH_NAME = armv7a-ve
 
 CFLAGS += -mtune=cortex-a15
 
-C_SRCS  += plat/test/uart.c
-C_SRCS  += plat/test/usb_test.c
-C_SRCS  += plat/test/emmc_test.c
-C_SRCS  += plat/test/crypto.c
-C_SRCS  += plat/test/reset.c
+PLAT_C_SRCS  += plat/test/uart.c
+PLAT_C_SRCS  += plat/test/usb_test.c
+PLAT_C_SRCS  += plat/test/emmc_test.c
+PLAT_C_SRCS  += plat/test/crypto.c
+PLAT_C_SRCS  += plat/test/reset.c
+PLAT_C_SRCS  += plat/test/pl061.c
+PLAT_C_SRCS  += plat/test/semihosting.c
+
+PLAT_ASM_SRCS += plat/test/semihosting_call.S
 
 plat_clean:
-	@-rm -rf plat/test/*.o
+	@-rm -rf plat/test/*.o plat/test/*.gcda plat/test/*.gcno
