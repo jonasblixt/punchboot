@@ -23,7 +23,7 @@ endif
 
 SYS_ROOT_PATH = $(shell ${CC} -print-sysroot)
 
-CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2 #-O0 -g
+CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/
@@ -75,7 +75,7 @@ include plat/$(PB_PLAT_NAME)/makefile.mk
 include arch/$(PB_ARCH_NAME)/makefile.mk
 
 LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY) 
-LDFLAGS += -Tarch/$(PB_ARCH_NAME)/linker.lds --build-id=none 
+LDFLAGS += -Tlink.lds -Tarch/$(PB_ARCH_NAME)/link.lds --build-id=none 
 
 ARCH_OBJS     = $(ARCH_ASM_SRCS:.S=.o) $(ARCH_C_SRCS:.c=.o) 
 PLAT_OBJS     = $(PLAT_ASM_SRCS:.S=.o) $(PLAT_C_SRCS:.c=.o) 
@@ -156,7 +156,7 @@ clean: board_clean arch_clean plat_clean
 reallyclean: clean
 	$(MAKE) -C 3pp/libtomcrypt clean
 	$(MAKE) -C 3pp/libtommath clean
-	$(MAKE) -C 3pp/ufsm/src clean
+	$(MAKE) -C 3pp/ufsm/ clean
 
 .DEFAULT_GOAL := all
 

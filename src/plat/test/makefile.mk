@@ -8,7 +8,7 @@
 #
 
 
-PB_ARCH_NAME = armv7a-ve
+PB_ARCH_NAME = armv7a
 
 CFLAGS += -mtune=cortex-a15
 

@@ -8,7 +8,7 @@
 #
 
 
-PB_ARCH_NAME = armv7a-ve
+PB_ARCH_NAME = armv7a
 
 PLAT_C_SRCS  += plat/imx6ul/imx_uart.c
 PLAT_C_SRCS  += plat/imx6ul/ehci.c
