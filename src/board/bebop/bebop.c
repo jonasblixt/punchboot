@@ -79,7 +79,7 @@ uint32_t board_usb_init(struct usb_device **dev)
 }
 
 /* TODO: MOVE TO Platform */
-__inline uint32_t plat_get_ms_tick(void) {
+__inline uint32_t plat_get_us_tick(void) {
     return gp_timer_get_tick(&platform_timer);
 }
 

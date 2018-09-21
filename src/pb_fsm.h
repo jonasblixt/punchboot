@@ -1,4 +1,4 @@
-#ifndef UFSM_GEN_pb_fsm_H
+#ifndef UFSM_GEN_pb_fsm_H__
 #define UFSM_GEN_pb_fsm_H__
 #include <ufsm.h>
 #ifndef NULL

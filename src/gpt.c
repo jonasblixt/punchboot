@@ -82,7 +82,7 @@ uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba)
 {
     struct gpt_header *hdr = &_gpt1.hdr;
     
-    prng_state = plat_get_ms_tick();
+    prng_state = plat_get_us_tick();
 
     memset((uint8_t *) &_gpt1, 0, sizeof(struct gpt_primary_tbl));
 

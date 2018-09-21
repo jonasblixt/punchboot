@@ -25,17 +25,28 @@ void gp_timer_init(struct gp_timer *d) {
     while (pb_readl(d->base+GP_TIMER_CR) & (1<<15))
         asm("nop");
     
-    pb_writel(660, d->base+GP_TIMER_PR);
+    pb_writel(65, d->base+GP_TIMER_PR);
     pb_write( (1 << 6) | (1 << 9), d->base+GP_TIMER_CR);
  
    
     /* Enable timer */
     d->cr = 1 | (2 << 6) | (1 << 9);
+
+    /**
+     * (2 << 6) Selects IPG_CLK_HIGHFREQ as source
+     *
+     * IPG_CLK_HIGHFREQ must be set to 66 MHz
+     *
+     * Timer freq = IPG_CLK_HIGHFREQ / (Prescaler + 1) =
+     *  = 66e6 / (65+1) = 1 MHz
+     *
+     */
+
     pb_writel(d->cr, d->base+GP_TIMER_CR);
 }
 
 uint32_t gp_timer_get_tick(struct gp_timer *d) {
-    return (pb_readl(d->base+GP_TIMER_CNT) / 100);
+    return (pb_readl(d->base+GP_TIMER_CNT));
 }
 
 
