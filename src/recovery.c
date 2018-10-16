@@ -16,9 +16,8 @@
 #include <board.h>
 #include <tinyprintf.h>
 #include <gpt.h>
-#include <boot.h>
 #include <config.h>
-#include <pb_string.h>
+#include <string.h>
 #include <recovery_protocol.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64

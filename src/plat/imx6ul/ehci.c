@@ -10,7 +10,7 @@
 #include <pb.h>
 #include <plat.h>
 #include <io.h>
-#include <pb_string.h>
+#include <string.h>
 #include <tinyprintf.h>
 #include <board_config.h>
 

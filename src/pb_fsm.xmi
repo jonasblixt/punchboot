@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xmi:XMI xmi:version="2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.0" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1">
 	<xmi:Documentation exporter="StarUML" exporterVersion="2.0"/>
-	<uml:Model xmi:id="AAAAAAFkE/QDSRZtWZI=" xmi:type="uml:Model" name="RootModel">
+	<uml:Model xmi:id="AAAAAAFmZ60MCs0KRdY=" xmi:type="uml:Model" name="RootModel">
 		<packagedElement xmi:id="AAAAAAFF+qBWK6M3Z8Y=" name="Model" visibility="public" xmi:type="uml:Model">
 			<packagedElement xmi:id="AAAAAAFj5okHYoVEsTU=" name="MainMachine" visibility="public" isReentrant="true" xmi:type="uml:StateMachine">
 				<region xmi:id="AAAAAAFj5okHYoVFHuM=" visibility="public" xmi:type="uml:Region">
@@ -16,6 +16,9 @@
 							<subvertex xmi:id="AAAAAAFj6hVP5zgYxPY=" name="Load" visibility="public" xmi:type="uml:State" submachine="AAAAAAFj6i/hSjqLqGs=">
 								<connection xmi:id="AAAAAAFj6kxlZDudlq8=" name="loaderror" visibility="public" xmi:type="uml:ConnectionPointReference">
 									<exit xmi:idref="AAAAAAFj6kuGLTtuzGM="/>
+								</connection>
+								<connection xmi:id="AAAAAAFmZAZNLi0vgLo=" name="nobootsource" visibility="public" xmi:type="uml:ConnectionPointReference">
+									<exit xmi:idref="AAAAAAFmZAekUy1iBfI="/>
 								</connection>
 							</subvertex>
 							<subvertex xmi:id="AAAAAAFj6hkrtjjFcoY=" visibility="public" xmi:type="uml:Pseudostate" kind="choice"/>
@@ -39,29 +42,29 @@
 					<subvertex xmi:id="AAAAAAFj6o0taz6KsOM=" visibility="public" xmi:type="uml:Pseudostate" kind="terminate"/>
 					<transition xmi:id="AAAAAAFj5qjB3YboDrE=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj5qfvFYZsDb0=" target="AAAAAAFj5qh8+IbAbTI=" kind="external">
 						<ownedMember xmi:id="AAAAAAFj6h3D5DkecxE=" name="EV_OK" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
-						<trigger xmi:id="AAAAAAFkE/QDTBZutLc=" xmi:type="uml:Trigger" name="EV_OK" event="AAAAAAFj6h3D5DkecxE="/>
+						<trigger xmi:id="AAAAAAFmZ60MC80LDBg=" xmi:type="uml:Trigger" name="EV_OK" event="AAAAAAFj6h3D5DkecxE="/>
 						<trigger xmi:id="AAAAAAFj6h3D5DkecxE=" name="EV_OK" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6hHWyTf9N/I=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj5pJg9oW+LiI=" target="AAAAAAFj5plt44YEu30=" kind="external">
 						<ownedMember xmi:id="AAAAAAFj6hHnYDgPGGk=" name="EV_FORCE_RECOVERY" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
-						<trigger xmi:id="AAAAAAFkE/QDTBZvU1A=" xmi:type="uml:Trigger" name="EV_FORCE_RECOVERY" event="AAAAAAFj6hHnYDgPGGk="/>
+						<trigger xmi:id="AAAAAAFmZ60MC80MJfY=" xmi:type="uml:Trigger" name="EV_FORCE_RECOVERY" event="AAAAAAFj6hHnYDgPGGk="/>
 						<trigger xmi:id="AAAAAAFj6hHnYDgPGGk=" name="EV_FORCE_RECOVERY" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6hiQUjimUxM=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj5pJg9oW+LiI=" target="AAAAAAFj5plt44YEu30=" kind="external"/>
 					<transition xmi:id="AAAAAAFj6hlJ/TjYZ84=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj5qh8+IbAbTI=" target="AAAAAAFj6hkrtjjFcoY=" kind="external">
 						<ownedMember xmi:id="AAAAAAFj6h2uTTkaUa0=" name="EV_OK" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
-						<trigger xmi:id="AAAAAAFkE/QDTBZw87M=" xmi:type="uml:Trigger" name="EV_OK" event="AAAAAAFj6h2uTTkaUa0="/>
+						<trigger xmi:id="AAAAAAFmZ60MC80NbxQ=" xmi:type="uml:Trigger" name="EV_OK" event="AAAAAAFj6h2uTTkaUa0="/>
 						<trigger xmi:id="AAAAAAFj6h2uTTkaUa0=" name="EV_OK" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6hmzajjpxZw=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6hkrtjjFcoY=" target="AAAAAAFj6hVP5zgYxPY=" kind="external"/>
 					<transition xmi:id="AAAAAAFj6hn2TDj/4P8=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6hkrtjjFcoY=" target="AAAAAAFj6hnnWzj6QfE=" kind="external">
-						<guard xmi:id="AAAAAAFkE/QDTBZxEw0=" xmi:type="uml:Constraint" specification="pb_force_recovery"/>
+						<guard xmi:id="AAAAAAFmZ60MC80ORfw=" xmi:type="uml:Constraint" specification="pb_force_recovery"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6iGlLjmoMB4=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6kxlZDudlq8=" target="AAAAAAFj6iIY2TnGkJo=" kind="external">
 						<effect xmi:id="AAAAAAFj6nDPGjwqj4w=" name="pb_inc_error_cnt" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6iKHJjnxRpo=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6iIY2TnGkJo=" target="AAAAAAFj6iJtqTnry+o=" kind="external">
-						<guard xmi:id="AAAAAAFkE/QDTBZyFuA=" xmi:type="uml:Constraint" specification="pb_max_boot_cnt"/>
+						<guard xmi:id="AAAAAAFmZ60MC80P6lE=" xmi:type="uml:Constraint" specification="pb_max_boot_cnt"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6iMnmTocY0g=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6nG+7TxeqFk=" target="AAAAAAFj6o0taz6KsOM=" kind="external">
 						<effect xmi:id="AAAAAAFj6iNXazozpAs=" name="pb_reset" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
@@ -71,34 +74,67 @@
 					<transition xmi:id="AAAAAAFj6nIe/DyV1SI=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6iIY2TnGkJo=" target="AAAAAAFj6nG+7TxeqFk=" kind="external"/>
 					<transition xmi:id="AAAAAAFj6oMD0j2GXdw=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj5qfvFYZsDb0=" target="AAAAAAFj6oLowD2APQ8=" kind="external">
 						<ownedMember xmi:id="AAAAAAFj6oMjyj2Y3aU=" name="EV_ERROR" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
-						<trigger xmi:id="AAAAAAFkE/QDTBZz0DA=" xmi:type="uml:Trigger" name="EV_ERROR" event="AAAAAAFj6oMjyj2Y3aU="/>
+						<trigger xmi:id="AAAAAAFmZ60MC80QLYo=" xmi:type="uml:Trigger" name="EV_ERROR" event="AAAAAAFj6oMjyj2Y3aU="/>
 						<trigger xmi:id="AAAAAAFj6oMjyj2Y3aU=" name="EV_ERROR" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
 						<effect xmi:id="AAAAAAFj6oMjyz2Z8pA=" name="pb_dflt_gpt" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
 						<effect xmi:id="AAAAAAFj6oRh3z2+A6s=" name="pb_dflt_cfg" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6oOCQD2mbaM=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj5qh8+IbAbTI=" target="AAAAAAFj6oNYGz2fYxI=" kind="external">
 						<ownedMember xmi:id="AAAAAAFj6oOmmD24+9U=" name="EV_ERROR" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
-						<trigger xmi:id="AAAAAAFkE/QDTBZ0OJA=" xmi:type="uml:Trigger" name="EV_ERROR" event="AAAAAAFj6oOmmD24+9U="/>
+						<trigger xmi:id="AAAAAAFmZ60MC80Rg1o=" xmi:type="uml:Trigger" name="EV_ERROR" event="AAAAAAFj6oOmmD24+9U="/>
 						<trigger xmi:id="AAAAAAFj6oOmmD24+9U=" name="EV_ERROR" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
 						<effect xmi:id="AAAAAAFj6oOmmD25mjI=" name="pb_dflt_cfg" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6ok3Wz3jkvg=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj5plt44YEu30=" target="AAAAAAFj6o0taz6KsOM=" kind="external">
 						<ownedMember xmi:id="AAAAAAFkE/NKZhZfxj4=" name="EV_RESET" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
-						<trigger xmi:id="AAAAAAFkE/QDTBZ1mJw=" xmi:type="uml:Trigger" name="EV_RESET" event="AAAAAAFkE/NKZhZfxj4="/>
+						<trigger xmi:id="AAAAAAFmZ60MC80SNcQ=" xmi:type="uml:Trigger" name="EV_RESET" event="AAAAAAFkE/NKZhZfxj4="/>
 						<trigger xmi:id="AAAAAAFkE/NKZhZfxj4=" name="EV_RESET" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
 						<effect xmi:id="AAAAAAFj6olCaz316+Q=" name="pb_reset" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6oupMT5jxLA=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6oucwj5SCww=" target="AAAAAAFj5qfvFYZsDb0=" kind="external"/>
-					<transition xmi:id="AAAAAAFj9fJwG0evZ/I=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6hVP5zgYxPY=" target="AAAAAAFj9fJHSUenwak=" kind="external">
-						<ownedMember xmi:id="AAAAAAFj9fJ8dEfB7Og=" name="EV_ERROR" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
-						<trigger xmi:id="AAAAAAFkE/QDTBZ2JuE=" xmi:type="uml:Trigger" name="EV_ERROR" event="AAAAAAFj9fJ8dEfB7Og="/>
-						<trigger xmi:id="AAAAAAFj9fJ8dEfB7Og=" name="EV_ERROR" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
-					</transition>
+					<transition xmi:id="AAAAAAFmZAcZOS1QTT8=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmZAZNLi0vgLo=" target="AAAAAAFj9fJHSUenwak=" kind="external"/>
 				</region>
 			</packagedElement>
 			<packagedElement xmi:id="AAAAAAFj6i/hSjqLqGs=" name="LoadMachine" visibility="public" isReentrant="true" xmi:type="uml:StateMachine">
 				<region xmi:id="AAAAAAFj6i/hSjqMous=" visibility="public" xmi:type="uml:Region">
-					<subvertex xmi:id="AAAAAAFj6kuGLTtuzGM=" name="Load Error" visibility="public" xmi:type="uml:Pseudostate" kind="exitPoint"/>
+					<subvertex xmi:id="AAAAAAFmY4x1zyo69qo=" visibility="public" xmi:type="uml:Pseudostate" kind="initial"/>
+					<subvertex xmi:id="AAAAAAFmY5w4YCtIXM8=" name="LOAD" visibility="public" xmi:type="uml:State">
+						<region xmi:id="AAAAAAFmY5w4YCtJIwQ=" visibility="public" xmi:type="uml:Region">
+							<subvertex xmi:id="AAAAAAFmY4zO4CpjidM=" visibility="public" xmi:type="uml:Pseudostate" kind="choice"/>
+							<subvertex xmi:id="AAAAAAFmY42ciyqyZDU=" name="LoadSystemB" visibility="public" xmi:type="uml:State">
+								<entry xmi:id="AAAAAAFmY6fbGiw5WMg=" name="load_sys_b" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
+							</subvertex>
+							<subvertex xmi:id="AAAAAAFmY41NfCqK7EY=" name="LoadSystemA" visibility="public" xmi:type="uml:State">
+								<entry xmi:id="AAAAAAFmY6fCRCwyvts=" name="load_sys_a" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
+							</subvertex>
+							<subvertex xmi:id="AAAAAAFmY7pI8ixDnoo=" name="ValidateImage" visibility="public" xmi:type="uml:State">
+								<entry xmi:id="AAAAAAFmY7rPrSxsq7c=" name="validate_image" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
+							</subvertex>
+						</region>
+					</subvertex>
+					<subvertex xmi:id="AAAAAAFmZAekUy1iBfI=" visibility="public" xmi:type="uml:Pseudostate" kind="exitPoint"/>
+					<subvertex xmi:id="AAAAAAFj6kuGLTtuzGM=" name="Load%20Error" visibility="public" xmi:type="uml:Pseudostate" kind="exitPoint"/>
+					<subvertex xmi:id="AAAAAAFmY71XEy0VtN4=" visibility="public" xmi:type="uml:FinalState"/>
+					<transition xmi:id="AAAAAAFmY40MzCp5YF8=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmY4x1zyo69qo=" target="AAAAAAFmY4zO4CpjidM=" kind="external"/>
+					<transition xmi:id="AAAAAAFmY43hzSrY1N0=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmY4zO4CpjidM=" target="AAAAAAFmY41NfCqK7EY=" kind="external">
+						<guard xmi:id="AAAAAAFmZ60MC80TH7w=" xmi:type="uml:Constraint" specification="boot_from_sys_a"/>
+					</transition>
+					<transition xmi:id="AAAAAAFmY45LdCruCpg=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmY4zO4CpjidM=" target="AAAAAAFmY42ciyqyZDU=" kind="external">
+						<guard xmi:id="AAAAAAFmZ60MC80UpeM=" xmi:type="uml:Constraint" specification="boot_from_sys_b"/>
+					</transition>
+					<transition xmi:id="AAAAAAFmY7rxWSxz3Yg=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmY41NfCqK7EY=" target="AAAAAAFmY7pI8ixDnoo=" kind="external"/>
+					<transition xmi:id="AAAAAAFmY7sdoSyGYxc=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmY42ciyqyZDU=" target="AAAAAAFmY7pI8ixDnoo=" kind="external"/>
+					<transition xmi:id="AAAAAAFmY713Py0bbXo=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmY7pI8ixDnoo=" target="AAAAAAFmY71XEy0VtN4=" kind="external">
+						<ownedMember xmi:id="AAAAAAFmZyVK/y58cXs=" name="EV_VERIFIED" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
+						<trigger xmi:id="AAAAAAFmZ60MDM0VjNI=" xmi:type="uml:Trigger" name="EV_VERIFIED" event="AAAAAAFmZyVK/y58cXs="/>
+						<trigger xmi:id="AAAAAAFmZyVK/y58cXs=" name="EV_VERIFIED" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
+					</transition>
+					<transition xmi:id="AAAAAAFmZAfeXS2Ae14=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmY4zO4CpjidM=" target="AAAAAAFmZAekUy1iBfI=" kind="external"/>
+					<transition xmi:id="AAAAAAFmZySn4S5jrno=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmY5w4YCtIXM8=" target="AAAAAAFj6kuGLTtuzGM=" kind="external">
+						<ownedMember xmi:id="AAAAAAFmZ6wyEszbiR0=" name="EV_ERROR" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
+						<trigger xmi:id="AAAAAAFmZ60MDM0WuC8=" xmi:type="uml:Trigger" name="EV_ERROR" event="AAAAAAFmZ6wyEszbiR0="/>
+						<trigger xmi:id="AAAAAAFmZ6wyEszbiR0=" name="EV_ERROR" visibility="public" xmi:type="uml:AnyReceiveEvent"/>
+					</transition>
 				</region>
 			</packagedElement>
 			<packagedElement xmi:id="AAAAAAFj6pX8vz6/zRs=" name="StartMachine" visibility="public" isReentrant="true" xmi:type="uml:StateMachine">
@@ -118,15 +154,19 @@
 						<entry xmi:id="AAAAAAFj6qTHh0CtHsk=" name="pb_execute_generic_jump" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
 					</subvertex>
 					<subvertex xmi:id="AAAAAAFj6qSiM0CXH+Y=" visibility="public" xmi:type="uml:FinalState"/>
+					<subvertex xmi:id="AAAAAAFmZBbcDy2vGgo=" name="ATF" visibility="public" xmi:type="uml:State">
+						<entry xmi:id="AAAAAAFmZBg8gy3y8yg=" name="pb_execute_atf_jump" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
+					</subvertex>
+					<subvertex xmi:id="AAAAAAFmZCYYNi4F7Ys=" visibility="public" xmi:type="uml:FinalState"/>
 					<transition xmi:id="AAAAAAFj6pgkWj8Vrcc=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6pgYAT8ESRE=" target="AAAAAAFj6pdOjz7vZ1E=" kind="external"/>
 					<transition xmi:id="AAAAAAFj6pgy2z8mR/c=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6pdOjz7vZ1E=" target="AAAAAAFj6pb3VT7JuEo=" kind="external">
-						<guard xmi:id="AAAAAAFkE/QDTRZ3TM4=" xmi:type="uml:Constraint" specification="pb_has_tee"/>
+						<guard xmi:id="AAAAAAFmZ60MDM0XsSA=" xmi:type="uml:Constraint" specification="pb_has_tee"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6ppJBT9Ktec=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6pb3VT7JuEo=" target="AAAAAAFj6po5dj85CJg=" kind="external"/>
 					<transition xmi:id="AAAAAAFj6ppauj9b4rI=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6pdOjz7vZ1E=" target="AAAAAAFj6po5dj85CJg=" kind="external"/>
 					<transition xmi:id="AAAAAAFj6prTUT+FmMM=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6po5dj85CJg=" target="AAAAAAFj6pqmPT9wkJA=" kind="external"/>
 					<transition xmi:id="AAAAAAFj6qBLYj/Jzk0=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6pqmPT9wkJA=" target="AAAAAAFj6qA07T+j7WQ=" kind="external">
-						<guard xmi:id="AAAAAAFkE/QDTRZ4RuU=" xmi:type="uml:Constraint" specification="pb_has_vmm"/>
+						<guard xmi:id="AAAAAAFmZ60MDM0Yx5Y=" xmi:type="uml:Constraint" specification="pb_has_vmm"/>
 						<effect xmi:id="AAAAAAFj6qLb3UBUnBE=" name="pb_set_hyp_mode" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6qGySkA/L2A=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6qA07T+j7WQ=" target="AAAAAAFj6qGkDUA6yWQ=" kind="external"/>
@@ -134,6 +174,10 @@
 						<effect xmi:id="AAAAAAFj6qSJLkCU6is=" name="pb_set_svc_mode" visibility="public" isReentrant="true" xmi:type="uml:OpaqueBehavior"/>
 					</transition>
 					<transition xmi:id="AAAAAAFj6qSvNUCcTtw=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6qQuUUBYmYg=" target="AAAAAAFj6qSiM0CXH+Y=" kind="external"/>
+					<transition xmi:id="AAAAAAFmZBcTvi3YRpQ=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFj6pdOjz7vZ1E=" target="AAAAAAFmZBbcDy2vGgo=" kind="external">
+						<guard xmi:id="AAAAAAFmZ60MDM0Zt/4=" xmi:type="uml:Constraint" specification="pb_boot_atf"/>
+					</transition>
+					<transition xmi:id="AAAAAAFmZCYYqS4KAlg=" visibility="public" xmi:type="uml:Transition" source="AAAAAAFmZBbcDy2vGgo=" target="AAAAAAFmZCYYNi4F7Ys=" kind="external"/>
 				</region>
 			</packagedElement>
 		</packagedElement>

@@ -68,3 +68,23 @@ __sctlr_mmu_set:
 hang:
     b .
 
+.section .text
+.global _ns_reentry
+_ns_reentry:
+
+    /* Re-enable cache */
+    /*  Enable I-Cache */
+	mrc	p15, 0, r0, c1, c0, 0
+	ldr	r1, __sctlr_mmu_clear
+	ldr	r2, __sctlr_mmu_set
+	and	r0, r0, r1
+	orr	r0, r0, r2
+	mcr	p15, 0, r0, c1, c0, 0
+    
+    /* Reset stack */
+    ldr sp, =_stack_end
+
+    bl pb_nsec_main
+    b .
+
+

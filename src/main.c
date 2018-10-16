@@ -13,47 +13,13 @@
 #include <recovery.h>
 #include <config.h>
 #include <gpt.h>
-#include <boot.h>
 #include <board_config.h>
 #include <io.h>
 
 #include "pb_fsm.h"
 
+
 static bool flag_run_recovery_task = false;
-
-void pb_execute_tee_jump(void)
-{
-}
-
-void pb_execute_vmm_jump(void)
-{
-}
-
-void pb_execute_generic_jump(void)
-{
-}
-
-void pb_set_svc_mode(void)
-{
-}
-
-bool pb_has_vmm(void)
-{
-    return true;
-}
-
-void pb_set_hyp_mode(void)
-{
-}
-
-bool pb_has_tee(void)
-{
-    return true;
-}
-
-void pb_inc_error_cnt(void)
-{
-}
 
 void stop_recovery(void)
 {
@@ -66,63 +32,6 @@ void start_recovery(void)
     recovery_initialize();
     flag_run_recovery_task = true;
 }
-
-void pb_reset(void)
-{
-    plat_reset();
-}
-
-void pb_stop_counter(void)
-{
-}
-
-void pb_start_counter(void)
-{
-}
-
-void pb_init_fs(void)
-{
-    struct ufsm_machine *m = get_MainMachine();
-    struct ufsm_queue *q = ufsm_get_queue(m);
-
-    if (gpt_init() != PB_OK)
-        ufsm_queue_put(q, EV_ERROR);
-    else
-        ufsm_queue_put(q, EV_OK);
- 
-}
-
-void pb_init_config(void)
-{
-    struct ufsm_machine *m = get_MainMachine();
-    struct ufsm_queue *q = ufsm_get_queue(m);
-
-    if (config_init() != PB_OK)
-        ufsm_queue_put(q, EV_ERROR);
-    else
-        ufsm_queue_put(q, EV_OK);
- 
-}
-
-void pb_dflt_cfg(void)
-{
-}
-
-void pb_dflt_gpt(void)
-{
-}
-
-bool pb_max_boot_cnt(void)
-{
-    return false;
-}
-
-bool pb_force_recovery(void)
-{
-    //return board_force_recovery();
-    return true;
-}
-
 
 
 static void debug_transition (struct ufsm_transition *t)
@@ -202,6 +111,32 @@ static void print_board_uuid(void) {
 
 }*/
 
+void pb_nsec_main(void) 
+{
+    struct ufsm_machine *m = get_MainMachine();
+
+    m->debug_transition = &debug_transition;
+    m->debug_enter_region = &debug_enter_region;
+    m->debug_leave_region = &debug_leave_region;
+    m->debug_event = &debug_event;
+    m->debug_action = &debug_action;
+    m->debug_guard = &debug_guard;
+    m->debug_enter_state = &debug_enter_state;
+    m->debug_exit_state = &debug_exit_state;
+    m->debug_reset = &debug_reset;
+
+    struct ufsm_queue *q = ufsm_get_queue(m);
+
+    ufsm_queue_put(q, 0);
+
+    uint32_t ev;
+
+    while (true)
+    {
+        if (ufsm_queue_get(q, &ev) == UFSM_OK)
+            ufsm_process(m, ev);
+    }
+}
 
 void pb_main(void) 
 {

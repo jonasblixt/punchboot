@@ -12,7 +12,7 @@
 #include <plat.h>
 #include <board.h>
 #include <tinyprintf.h>
-#include <pb_string.h>
+#include <string.h>
 
 #define USB_DEBUG
 static struct usb_device *usb_dev;

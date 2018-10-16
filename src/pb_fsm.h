@@ -17,10 +17,17 @@ void pb_init_fs(void);
 void pb_start_counter(void);
 void pb_stop_counter(void);
 void pb_inc_error_cnt(void);
+bool boot_from_sys_a(void);
+bool boot_from_sys_b(void);
+void validate_image(void);
+void load_sys_a(void);
+void load_sys_b(void);
 bool pb_has_tee(void);
 void pb_set_hyp_mode(void);
 bool pb_has_vmm(void);
 void pb_set_svc_mode(void);
+bool pb_boot_atf(void);
+void pb_execute_atf_jump(void);
 void pb_execute_generic_jump(void);
 void pb_execute_vmm_jump(void);
 void pb_execute_tee_jump(void);
@@ -29,6 +36,7 @@ enum {
   EV_RESET,
   EV_OK,
   EV_ERROR,
+  EV_VERIFIED,
 };
 struct ufsm_machine * get_MainMachine(void);
 struct ufsm_machine * get_LoadMachine(void);

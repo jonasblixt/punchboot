@@ -12,7 +12,7 @@
 #include <plat.h>
 #include <crc.h>
 #include <tinyprintf.h>
-#include <pb_string.h>
+#include <string.h>
 
 static uint8_t _flag_gpt_ok = false;
 static struct gpt_primary_tbl __attribute__((section (".bigbuffer"))) _gpt1;
@@ -47,19 +47,22 @@ uint32_t gpt_get_part_offset(uint8_t part_no)
     return _gpt1.part[part_no & 0x1f].first_lba;
 }
 
-int8_t  gpt_get_part_by_uuid(const uint8_t *uuid) 
+uint32_t gpt_get_part_by_uuid(const uint8_t *uuid, uint32_t *lba_offset) 
 {
     if (!_flag_gpt_ok)
-        return -1;
+        return PB_ERR;
 
     for (unsigned int i = 0; i < _gpt1.hdr.no_of_parts; i++) {
         if (_gpt1.part[i].first_lba == 0)
-            return -1;
+            return PB_ERR;
 
         if (memcmp(_gpt1.part[i].type_uuid, uuid, 16) == 0)
-            return i;
+        {
+            *lba_offset = _gpt1.part[i].first_lba;
+            return PB_OK;
+        }
     }
-    return -1;
+    return PB_ERR;
 }
 
 static const uint64_t __gpt_header_signature = 0x5452415020494645ULL;

@@ -62,6 +62,7 @@ static struct usb_device usbdev =
 uint32_t board_usb_init(struct usb_device **dev)
 {
     uint32_t reg;
+ 
     /* Enable USB PLL */
     /* TODO: Add reg defs */
     reg = pb_readl(0x020C8000+0x10);
@@ -139,6 +140,7 @@ uint32_t board_init(void)
 
 
     /* Ungate all clocks */
+    /* TODO: Only ungate necessary clocks and move to platform init */
     pb_writel(0xFFFFFFFF, 0x020C4000+0x68); /* Ungate usdhc clk*/
     pb_writel(0xFFFFFFFF, 0x020C4000+0x6C); /* Ungate usdhc clk*/
     pb_writel(0xFFFFFFFF, 0x020C4000+0x70); /* Ungate usdhc clk*/

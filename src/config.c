@@ -33,19 +33,17 @@ static struct pb_config_data _config_data;
 uint32_t config_init(void) 
 {
     uint32_t n = 0;
-    int8_t part_id = gpt_get_part_by_uuid(part_type_config);
+    uint32_t err = PB_OK;
 
-    if (part_id >= 0)
-        LOG_INFO ("Loading from part %u, %lu bytes", part_id,
-                                    _config_tot_size);
-    if (part_id < 0) 
+    
+    err = gpt_get_part_by_uuid(part_type_config, &_config_lba_offset);
+
+    if (err != PB_OK) 
     {
         LOG_INFO ("Could not find config partition");
         _flag_config_ok = false;
         return PB_ERR;
     }
-
-    _config_lba_offset = gpt_get_part_offset(part_id);
 
     plat_emmc_read_block(_config_lba_offset, (uint8_t *) &_config_data, 1);
 

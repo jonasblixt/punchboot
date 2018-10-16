@@ -11,7 +11,7 @@
 #include <plat.h>
 #include <io.h>
 #include <tinyprintf.h>
-#include <pb_string.h>
+#include <string.h>
 #include "caam.h"
 
 /* Commands  */

@@ -51,7 +51,7 @@ struct gpt_primary_tbl {
 
 uint32_t gpt_init(void);
 uint32_t gpt_get_part_offset(uint8_t part_no);
-int8_t gpt_get_part_by_uuid(const uint8_t *uuid);
+uint32_t gpt_get_part_by_uuid(const uint8_t *uuid, uint32_t* lba_offset);
 
 struct gpt_primary_tbl* gpt_get_tbl(void);
 uint32_t gpt_write_tbl(void);
