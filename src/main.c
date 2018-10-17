@@ -15,76 +15,7 @@
 #include <gpt.h>
 #include <board_config.h>
 #include <io.h>
-
-#include "pb_fsm.h"
-
-
-static bool flag_run_recovery_task = false;
-
-void stop_recovery(void)
-{
-    flag_run_recovery_task = false;
-}
-
-void start_recovery(void)
-{
-    usb_init();
-    recovery_initialize();
-    flag_run_recovery_task = true;
-}
-
-
-static void debug_transition (struct ufsm_transition *t)
-{
- 
-    LOG_INFO2 ("    | Transition | %s {%s} --> %s {%s}\n\r", t->source->name,
-                                            ufsm_state_kinds[t->source->kind],
-                                            t->dest->name,
-                                            ufsm_state_kinds[t->dest->kind]);
-}
-
-static void debug_enter_region(struct ufsm_region *r)
-{
-    LOG_INFO2 ("    | R enter    | %s, H=%i\n\r", r->name, r->has_history);
-}
-
-static void debug_leave_region(struct ufsm_region *r)
-{
-    LOG_INFO2 ("    | R exit     | %s, H=%i\n\r", r->name, r->has_history);
-}
-
-static void debug_event(uint32_t ev)
-{
-    LOG_INFO2 (" %-3li|            |\n\r",ev);
-}
-
-static void debug_action(struct ufsm_action *a)
-{
-    LOG_INFO2 ("    | Action     | %s()\n\r",a->name);
-}
-
-static void debug_guard(struct ufsm_guard *g, bool result) 
-{
-    LOG_INFO2 ("    | Guard      | %s() = %i\n\r", g->name, result);
-}
-
-static void debug_enter_state(struct ufsm_state *s)
-{
-    LOG_INFO2 ("    | S enter    | %s {%s}\n\r", 
-                                        s->name,ufsm_state_kinds[s->kind]);
-}
-
-static void debug_exit_state(struct ufsm_state *s)
-{
-    LOG_INFO2 ("    | S exit     | %s {%s}\n\r", 
-                                        s->name,ufsm_state_kinds[s->kind]);
-}
-
-
-static void debug_reset(struct ufsm_machine *m)
-{
-    LOG_INFO2 (" -- | RESET      | %s\n\r", m->name);
-}
+#include <pb_image.h>
 
 /*
 static void print_bootmsg(uint32_t param1, int32_t param2, char bp) {
@@ -113,33 +44,16 @@ static void print_board_uuid(void) {
 
 void pb_nsec_main(void) 
 {
-    struct ufsm_machine *m = get_MainMachine();
-
-    m->debug_transition = &debug_transition;
-    m->debug_enter_region = &debug_enter_region;
-    m->debug_leave_region = &debug_leave_region;
-    m->debug_event = &debug_event;
-    m->debug_action = &debug_action;
-    m->debug_guard = &debug_guard;
-    m->debug_enter_state = &debug_enter_state;
-    m->debug_exit_state = &debug_exit_state;
-    m->debug_reset = &debug_reset;
-
-    struct ufsm_queue *q = ufsm_get_queue(m);
-
-    ufsm_queue_put(q, 0);
-
-    uint32_t ev;
-
-    while (true)
-    {
-        if (ufsm_queue_get(q, &ev) == UFSM_OK)
-            ufsm_process(m, ev);
-    }
 }
 
 void pb_main(void) 
 {
+    uint32_t err = 0;
+    uint32_t boot_count = 0;
+    uint32_t boot_part = 0;
+    uint32_t boot_lba_offset = 0;
+    bool flag_run_recovery = false;
+
     if (board_init() == PB_ERR) 
     {
         LOG_ERR ("Board init failed...");
@@ -148,28 +62,84 @@ void pb_main(void)
  
     LOG_INFO ("PB: " VERSION " starting...");
 
-    struct ufsm_machine *m = get_MainMachine();
+    if (gpt_init() != PB_OK)
+        flag_run_recovery = true;
+    
+    if (config_init() != PB_OK)
+        flag_run_recovery = true;
 
-    m->debug_transition = &debug_transition;
-    m->debug_enter_region = &debug_enter_region;
-    m->debug_leave_region = &debug_leave_region;
-    m->debug_event = &debug_event;
-    m->debug_action = &debug_action;
-    m->debug_guard = &debug_guard;
-    m->debug_enter_state = &debug_enter_state;
-    m->debug_exit_state = &debug_exit_state;
-    m->debug_reset = &debug_reset;
+    if (board_force_recovery())
+        flag_run_recovery = true;
 
-    ufsm_init_machine(m);
+    err = config_get_uint32_t(PB_CONFIG_BOOT, &boot_part);
 
-    struct ufsm_queue *q = ufsm_get_queue(m);
-    uint32_t ev;
+    if (err != PB_OK)
+        flag_run_recovery = true;
 
-    while (true)
+    if (flag_run_recovery)
+        goto run_recovery;
+
+    switch (boot_part)
     {
-        if (ufsm_queue_get(q, &ev) == UFSM_OK)
-            ufsm_process(m, ev);
-        if (flag_run_recovery_task)
-            usb_task();
+        case 0xAA:
+            LOG_INFO ("Loading from system A");
+            err = gpt_get_part_by_uuid(part_type_system_a, &boot_lba_offset);
+            if (err != PB_OK)
+                flag_run_recovery = true;
+        break;
+        case 0xBB:
+            LOG_INFO ("Loading from system B");
+            err = gpt_get_part_by_uuid(part_type_system_b, &boot_lba_offset);
+            if (err != PB_OK)
+                flag_run_recovery = true;
+        break;
+        default:
+            LOG_ERR("Invalid boot partition %lx", boot_part);
+            flag_run_recovery = true;
     }
+
+    err = pb_image_load_from_fs(boot_lba_offset);
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Unable to load image, starting recovery");
+        flag_run_recovery = true;
+    }
+
+    err = pb_verify_image(pb_get_image(), 0);
+
+    if (err == PB_OK)
+    {
+        LOG_INFO("Image verified, booting...");
+
+        config_get_uint32_t(PB_CONFIG_BOOT_COUNT, &boot_count);
+        boot_count = boot_count + 1;
+        config_set_uint32_t(PB_CONFIG_BOOT_COUNT, boot_count);
+        config_commit();
+
+        struct pb_component_hdr *tee = 
+                pb_image_get_component(pb_get_image(), PB_IMAGE_COMPTYPE_TEE);
+
+        struct pb_component_hdr *vmm = 
+                pb_image_get_component(pb_get_image(), PB_IMAGE_COMPTYPE_VMM);
+
+        LOG_INFO(" VMM %lX, TEE %lX", vmm->load_addr_low, tee->load_addr_low);
+        asm volatile("mov lr, %0" "\n\r"
+                     "mov pc, %1" "\n\r"
+                        :
+                        : "r" (vmm->load_addr_low), "r" (tee->load_addr_low));
+    }
+
+run_recovery:
+
+    if (flag_run_recovery)
+    {
+        usb_init();
+        recovery_initialize();
+
+        while (flag_run_recovery)
+            usb_task();
+    } 
+    
+    plat_reset();
 }

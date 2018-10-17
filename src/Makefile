@@ -10,7 +10,7 @@ AR=$(CROSS_COMPILE)ar
 SIZE=$(CROSS_COMPILE)size
 STRIP=$(CROSS_COMPILE)strip
 OBJCOPY=$(CROSS_COMPILE)objcopy
-UFSMIMPORT ?= ufsmimport
+
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
 ifndef BOARD
@@ -29,7 +29,6 @@ CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/
 CFLAGS  += -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
-CFLAGS  += -I 3pp/ufsm/src
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
 CFLAGS  += -isystem $(SYS_ROOT_PATH)/usr/lib/include
 CFLAGS  += --specs=nosys.specs -fno-common -fno-builtin
@@ -56,20 +55,11 @@ C_SRCS  += recovery_protocol.c
 C_SRCS  += usb.c
 C_SRCS  += tinyprintf.c
 C_SRCS  += pb_image.c
-C_SRCS  += main_fsm_impl.c
-C_SRCS  += boot_fsm_impl.c
-C_SRCS  += start_fsm_impl.c
-C_SRCS  += 3pp/ufsm/src/ufsm.c
-C_SRCS  += 3pp/ufsm/src/ufsm_stack.c
-C_SRCS  += 3pp/ufsm/src/ufsm_queue.c
-
 
 RSA_KEYS_SRCS ?= ../pki/dev_rsa_public.der    \
 				 ../pki/prod_rsa_public.der   \
 				 ../pki/field1_rsa_public.der \
 			     ../pki/field2_rsa_public.der
-
-UFSM_SRCS = pb_fsm.xmi
 
 FINAL_IMAGE = 
 
@@ -86,7 +76,6 @@ BOARD_OBJS    = $(BOARD_ASM_SRCS:.S=.o) $(BOARD_C_SRCS:.c=.o)
 
 OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)  
 OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o) 
-OBJS     += $(UFSM_SRCS:.xmi=.xmio)
 OBJS	 += $(RSA_KEYS_SRCS:.der=.dero)
 
 TOMCRYPT_CFLAGS  = -DARGTYPE=3 -DLTC_NO_TEST -DLTC_NO_FILE $(CFLAGS)
@@ -123,11 +112,6 @@ $(TARGET): $(OBJS)
 	@echo LD $@
 	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 
-%.xmio: %.xmi
-	@echo UFSMIMPORT $<
-	@$(UFSMIMPORT) $< $(patsubst %.xmi, %, $(<))
-	@$(CC) $(CFLAGS) -c $(patsubst %.xmi, %.c, $(<)) -o $(patsubst %.xmi, %.xmio, $(<))
-
 %.dero: %.der
 	@echo KEY $<
 	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm $< $@
@@ -159,7 +143,6 @@ clean: board_clean arch_clean plat_clean
 reallyclean: clean
 	$(MAKE) -C 3pp/libtomcrypt clean
 	$(MAKE) -C 3pp/libtommath clean
-	$(MAKE) -C 3pp/ufsm/ clean
 
 .DEFAULT_GOAL := all
 

@@ -57,5 +57,8 @@ struct pb_pbi {
 bool pb_verify_image(struct pb_pbi *pbi, uint32_t key_index);
 uint32_t pb_image_load_from_fs(uint32_t part_lba_offset);
 struct pb_pbi * pb_get_image(void);
+struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 
+                                            uint32_t comp_type);
+
 
 #endif

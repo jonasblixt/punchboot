@@ -123,3 +123,17 @@ bool pb_verify_image(struct pb_pbi* pbi, uint32_t key_index)
     else
         return PB_ERR;
 }
+
+
+struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 
+                                            uint32_t comp_type)
+{
+    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++)
+    {
+        if (pbi->comp[i].component_type == comp_type)
+            return &pbi->comp[i];
+    }
+
+    return NULL;
+}
+
