@@ -11,7 +11,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#include <pb.h>
+#include <stdint.h>
 
 #define PB_CONFIG_BOOT       0
 #define PB_CONFIG_BOOT_COUNT 1

@@ -13,6 +13,7 @@
 #include <tinyprintf.h>
 #include <io.h>
 #include <gpt.h>
+#include <image.h>
 
 #include <plat/imx6ul/imx_regs.h>
 #include <plat/imx6ul/imx_uart.h>

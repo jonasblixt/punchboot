@@ -26,7 +26,7 @@ SYS_ROOT_PATH = $(shell ${CC} -print-sysroot)
 CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -Wimplicit-fallthrough=0
-CFLAGS  += -I. -I include/
+CFLAGS  += -I. -I include/pb
 CFLAGS  += -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
@@ -51,7 +51,6 @@ C_SRCS  += gpt.c
 C_SRCS  += keys.c 
 C_SRCS  += config.c
 C_SRCS  += lib/string.c
-C_SRCS  += recovery_protocol.c
 C_SRCS  += usb.c
 C_SRCS  += tinyprintf.c
 C_SRCS  += image.c
@@ -147,13 +146,14 @@ reallyclean: clean
 .DEFAULT_GOAL := all
 
 # Dependencies
+# TODO: Review Dependencies
 
-boot.o:     include/pb.h
-config.o:   include/config.h include/pb.h
-crc.o:      include/pb.h include/crc.h
-gpt.o:		include/pb.h include/gpt.h
-keys.o:		include/pb.h include/keys.h
-main.o:		include/pb.h
-usb.o:		include/pb.h include/usb.h
-recovery.o: include/recovery.h include/pb.h
+boot.o:     include/pb/pb.h
+config.o:   include/pb/config.h include/pb/pb.h
+crc.o:      include/pb/pb.h include/pb/crc.h
+gpt.o:		include/pb/pb.h include/pb/gpt.h
+keys.o:		include/pb/pb.h include/pb/keys.h
+main.o:		include/pb/pb.h
+usb.o:		include/pb/pb.h include/pb/usb.h
+recovery.o: include/pb/recovery.h include/pb/pb.h
 

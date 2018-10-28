@@ -18,13 +18,30 @@
 #include <gpt.h>
 #include <config.h>
 #include <string.h>
-#include <recovery_protocol.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
 #define RECOVERY_BULK_BUFFER_SZ 1024*1024*8
 
 static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
 static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
+
+const char *recovery_cmd_name[] =
+{
+    "PB_CMD_RESET",
+    "PB_CMD_FLASH_BOOTLOADER",
+    "PB_CMD_PREP_BULK_BUFFER",
+    "PB_CMD_GET_VERSION",
+    "PB_CMD_GET_GPT_TBL",
+    "PB_CMD_WRITE_PART",
+    "PB_CMD_BOOT_PART",
+    "PB_CMD_GET_CONFIG_TBL",
+    "PB_CMD_GET_CONFIG_VAL",
+    "PB_CMD_SET_CONFIG_VAL",
+    "PB_CMD_WRITE_UUID",
+    "PB_CMD_READ_UUID",
+    "PB_CMD_WRITE_DFLT_GPT",
+    "PB_CMD_WRITE_DFLT_FUSE",
+};
 
 static uint32_t recovery_flash_bootloader(uint8_t *bfr, 
                                           uint32_t blocks_to_write) 
@@ -192,7 +209,6 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
         case PB_CMD_SET_CONFIG_VAL:
         {
             uint32_t data[2];
-            uint32_t sz;
 
             recovery_read_data(dev, (uint8_t *) data, 8);
             

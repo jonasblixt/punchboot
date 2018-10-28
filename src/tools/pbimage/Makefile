@@ -22,11 +22,11 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 PKG_CONFIG ?= pkg-config
-CFLAGS   = -Wall -O2 
+CFLAGS   = -Wall -O2 -I ../../include/
 CFLAGS  += -I. -DUSE_LTM -DLTM_DESC 
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 
-LIBS    =   -luuid -ltomcrypt -ltommath
+LIBS    =   -luuid -ltomcrypt -ltommath -lc
 LDFLAGS =
 
 ASM_SRCS = 
@@ -39,12 +39,9 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	@echo LINK $@ $(LDFLAGS)
-	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 	@strip $@
 
-%.o: %.S
-	@echo CC $<
-	@$(CC) -c $(CFLAGS) $< -o $@
 %.o: %.c
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@

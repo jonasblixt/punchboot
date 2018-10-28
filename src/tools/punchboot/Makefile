@@ -21,8 +21,8 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 PKG_CONFIG ?= pkg-config
-CFLAGS   = -Wall -O2 
-CFLAGS  += -I. -I include/ -I 3pp/libtomcrypt/src/headers -I ../../src -I ../../src/include
+CFLAGS   = -Wall -O2 -I ../../include/
+CFLAGS  += -I. -I include/ -I 3pp/libtomcrypt/src/headers -I ../../src 
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += `$(PKG_CONFIG) --cflags libusb-1.0`
 
@@ -32,7 +32,6 @@ LDFLAGS =
 
 ASM_SRCS = 
 C_SRCS   = $(TARGET).c crc.c utils.c
-C_SRCS  += recovery_protocol.c
 
 OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 
@@ -56,7 +55,7 @@ $(TARGET): $(OBJS)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 %.o: %.c
-	@echo CC $< $(CFLAGS)
+	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install:

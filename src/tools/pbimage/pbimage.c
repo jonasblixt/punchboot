@@ -15,8 +15,10 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "pbimage.h"
+#include <pb/image.h>
 
 static struct pb_image_hdr hdr;
 static struct pb_component_hdr comp[PB_IMAGE_MAX_COMP];
@@ -114,7 +116,7 @@ static int pbimage_gen_output(const char *fn_sign_key,
     err = rsa_sign_hash_ex(hdr.sha256, 32, hdr.sign, &sig_l, 
                 LTC_PKCS_1_V1_5,NULL,prng_index,hash_idx,saltlen,&key);
     
-    hdr.sign_length = (u32) sig_l;
+    hdr.sign_length = (uint32_t) sig_l;
     if (err != CRYPT_OK) {
         printf (" o Signing failed!\n");
         return err;

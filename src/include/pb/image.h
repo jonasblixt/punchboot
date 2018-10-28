@@ -11,9 +11,12 @@
 #ifndef __IMAGE_H__
 #define __IMAGE_H__
 
-#include <pb.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #define PB_IMAGE_HEADER_MAGIC 0xd32daeba
+#define PB_IMAGE_MAX_COMP 16
+#define PB_COMP_HDR_VERSION 1
 
 /* Image header */
 
@@ -45,8 +48,6 @@ struct pb_component_hdr {
     uint32_t component_offset;
     uint32_t _reserved[16];
 } __attribute__ ((packed));
-
-
 
 struct pb_pbi {
     struct pb_image_hdr hdr;

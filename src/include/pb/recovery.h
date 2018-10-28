@@ -1,5 +1,15 @@
-#ifndef __RECOVERY_PROTOCOL_H__
-#define __RECOVERY_PROTOCOL_H__
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
+#ifndef __RECOVERY_H__
+#define __RECOVERY_H__
 
 #include <stdint.h>
 
@@ -43,5 +53,7 @@ struct pb_cmd_write_part
     uint32_t part_no;
     uint32_t buffer_id;
 } __attribute__ ((packed));
+
+void recovery_initialize(void);
 
 #endif

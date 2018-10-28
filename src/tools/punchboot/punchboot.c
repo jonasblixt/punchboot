@@ -20,11 +20,11 @@
 #include <uuid/uuid.h>
 #include <string.h>
 
-#include <recovery_protocol.h>
-#include <config.h>
+#include <pb/recovery.h>
+#include <pb/config.h>
+#include <pb/gpt.h>
+
 #include "crc.h"
-#include "pb_types.h"
-#include "gpt.h"
 #include "utils.h"
 
 static libusb_context *ctx = NULL;
@@ -86,7 +86,7 @@ static int pb_write(libusb_device_handle *h, uint32_t cmd, uint8_t *bfr,
     return err;
 }
 
-static int pb_read(libusb_device_handle *h, u8 *bfr, u32 sz) {
+static int pb_read(libusb_device_handle *h, uint8_t *bfr, uint32_t sz) {
     int err = 0;
     int rx_sz = 0;
 
@@ -121,7 +121,7 @@ static int pb_reset(libusb_device_handle *h) {
     return pb_write(h, PB_CMD_RESET, NULL, 0);
 }
 
-static int pb_boot_part(libusb_device_handle *h, u8 part_no) {
+static int pb_boot_part(libusb_device_handle *h, uint8_t part_no) {
     printf ("Booting\n");
     return pb_write(h, PB_CMD_BOOT_PART, NULL, 0);
 }
@@ -137,8 +137,8 @@ static int pb_print_version(libusb_device_handle *h) {
         return err;
     }
 
-    pb_read(h, (u8*) &sz, 4);
-    pb_read(h, (u8*) &version_string, sz);
+    pb_read(h, (uint8_t*) &sz, 4);
+    pb_read(h, (uint8_t*) &version_string, sz);
 
     printf ("PB Version: %s\n",version_string);
     return 0;
@@ -150,7 +150,7 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
     char str_type_uuid[37];
     uint32_t tbl_sz = 0;
     int err;
-    u8 tmp_string[64];
+    uint8_t tmp_string[64];
 
     err = pb_write(h, PB_CMD_GET_GPT_TBL, NULL, 0);
 
@@ -159,14 +159,14 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
         return err;
     }
 
-    err = pb_read(h, (u8*) &tbl_sz, 4);
+    err = pb_read(h, (uint8_t*) &tbl_sz, 4);
     
     if (err)
     {
         return err;
     }
 
-    err = pb_read(h, (u8*) &gpt, tbl_sz);
+    err = pb_read(h, (uint8_t*) &gpt, tbl_sz);
 
     if (err) {
         printf ("pb_print_gpt_table: %i\n",err);
@@ -181,7 +181,7 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
         
         uuid_unparse_upper(part->type_uuid, str_type_uuid);
         utils_gpt_part_name(part, tmp_string, 36);
-        printf (" %i - [%16s] lba 0x%8.8X - 0x%8.8X, TYPE: %s\n", i,
+        printf (" %i - [%16s] lba 0x%8.8lX - 0x%8.8lX, TYPE: %s\n", i,
                 tmp_string,
                 part->first_lba, part->last_lba,
                 str_type_uuid);
@@ -197,15 +197,15 @@ static unsigned int pb_get_config_value(libusb_device_handle *h, uint32_t index)
     int value;
     uint32_t sz;
 
-    err = pb_write(h, PB_CMD_GET_CONFIG_VAL, &index, 4);
+    err = pb_write(h, PB_CMD_GET_CONFIG_VAL, (uint8_t *) &index, 4);
 
     if (err) {
         printf ("Error sending cmd\n");
         return err;
     }
 
-    pb_read(h, (u8 *) &sz, 4);
-    pb_read(h, (u8 *) &value, sz);
+    pb_read(h, (uint8_t *) &sz, 4);
+    pb_read(h, (uint8_t *) &value, sz);
 
     return value;
 }
@@ -214,15 +214,13 @@ static unsigned int pb_set_config_value(libusb_device_handle *h,
                             uint32_t index, uint32_t val) 
 {
     int err;
-    int value;
-    uint32_t sz;
 
     uint32_t data[2];
     data[0] = index;
     data[1] = val;
 
     printf ("Setting %i to %x\n", index, val);
-    err = pb_write(h, PB_CMD_SET_CONFIG_VAL, data, 8);
+    err = pb_write(h, PB_CMD_SET_CONFIG_VAL, (uint8_t *) data, 8);
 
     if (err) {
         printf ("Error sending cmd\n");
@@ -246,9 +244,9 @@ static int pb_get_config_tbl (libusb_device_handle *h) {
         return err;
     }
 
-    err = pb_read(h, (u8 *) &tbl_sz, 4);
+    err = pb_read(h, (uint8_t *) &tbl_sz, 4);
 
-    err = pb_read(h, (u8 *) &item, tbl_sz);
+    err = pb_read(h, (uint8_t *) &item, tbl_sz);
 
     int n = 0;
     printf (    " Index   Description        Access   Default      Value\n");
@@ -265,7 +263,7 @@ static int pb_get_config_tbl (libusb_device_handle *h) {
     return 0;
 }
 
-static int pb_flash_part (libusb_device_handle *h, u8 part_no, const char *f_name) {
+static int pb_flash_part (libusb_device_handle *h, uint8_t part_no, const char *f_name) {
     int read_sz = 0;
     int sent_sz = 0;
     int buffer_id = 0;
@@ -397,21 +395,21 @@ static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
 
 
 static int pb_execute_image (libusb_device_handle *h, const char *f_name) {
-    int read_sz = 0;
+/*    int read_sz = 0;
     int sent_sz = 0;
     int buffer_id = 0;
     int err;
     FILE *fp = NULL; 
     unsigned char *bfr = NULL;
-
+*/
 /*
  *  1. Send PBI header PB_RAM_LOAD_HDR
- *  2. Send component 0 PB_RAM_SEND_COMP
+ *  2. Send component 0 PB_RAM_LOAD_COMP
  *      ... component n-1
- *  3. Send PB_RAM_RUN_IMAGE
+ *  3. Send PB_RAM_EXECUTE_IMAGE
  * */
 
-
+/*
     struct pb_cmd_prep_buffer bfr_cmd;
     struct pb_cmd_write_part wr_cmd;
 
@@ -428,7 +426,8 @@ static int pb_execute_image (libusb_device_handle *h, const char *f_name) {
         printf ("Could not allocate memory\n");
         return -1;
     }
-
+*/
+/*
     wr_cmd.lba_offset = 0;
     wr_cmd.part_no = part_no;
     printf ("Writing");
@@ -474,7 +473,8 @@ err_xfer:
     free(bfr);
     fclose(fp);
     return err;
-
+*/
+    return 0;
 }
 
 
@@ -662,7 +662,7 @@ int main(int argc, char **argv) {
         if (flag_list) {
             pb_get_config_tbl(h);
         }
-        if (flag_write)
+        if (flag_write && flag_value)
         {
             pb_set_config_value(h, cmd_index, cmd_value);
         }

@@ -11,7 +11,7 @@
 #ifndef __GPT_H__
 #define __GPT_H__
 
-#include <pb.h>
+#include <stdint.h>
 
 #define GPT_HEADER_RSZ 420
 
@@ -48,6 +48,7 @@ struct gpt_primary_tbl {
     struct gpt_header hdr;
     struct gpt_part_hdr part[128];
 } __attribute__ ((packed));
+
 
 uint32_t gpt_init(void);
 uint32_t gpt_get_part_offset(uint8_t part_no);
