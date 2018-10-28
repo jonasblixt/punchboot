@@ -15,6 +15,7 @@
 
 #define PB_CONFIG_BOOT       0
 #define PB_CONFIG_BOOT_COUNT 1
+#define PB_CONFIG_FORCE_RECOVERY 2
 
 struct pb_config_item {
     const int8_t index;

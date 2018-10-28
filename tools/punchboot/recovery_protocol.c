@@ -11,6 +11,7 @@ const char *recovery_cmd_name[] =
     "PB_CMD_BOOT_PART",
     "PB_CMD_GET_CONFIG_TBL",
     "PB_CMD_GET_CONFIG_VAL",
+    "PB_CMD_SET_CONFIG_VAL",
     "PB_CMD_WRITE_UUID",
     "PB_CMD_READ_UUID",
     "PB_CMD_WRITE_DFLT_GPT",

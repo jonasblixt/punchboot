@@ -24,9 +24,30 @@ _irqvectors:
 .section .text
 .global _reset
 _reset:
+
+
+  ldr r4,=5
+  ldr r5,=#0x020E00FC
+  str r4,[r5]
+
+  ldr r4,=#0x4000
+  ldr r5,=#0x020A0004
+  str r4,[r5]
+
+  ldr r4,=#0x4000
+  ldr r5,=#0x020A0000
+  str r4,[r5]
     /* TODO: Enable WDT ! */
     /* Disable interrupts */
 	cpsid	if
+
+    /*  Enable I-Cache */
+	mrc	p15, 0, r0, c1, c0, 0
+	ldr	r1, __sctlr_mmu_clear
+	ldr	r2, __sctlr_mmu_set
+	and	r0, r0, r1
+	orr	r0, r0, r2
+	mcr	p15, 0, r0, c1, c0, 0
 
     /* Clear BSS and HEAP */
 	ldr	r1, __zero_region_start
@@ -41,14 +62,6 @@ _zeroing_loop:
 	stmia	r1!, {r7 - r10}
 	b	_zeroing_loop
 _zeroing_done:
-
-    /*  Enable I-Cache */
-	mrc	p15, 0, r0, c1, c0, 0
-	ldr	r1, __sctlr_mmu_clear
-	ldr	r2, __sctlr_mmu_set
-	and	r0, r0, r1
-	orr	r0, r0, r2
-	mcr	p15, 0, r0, c1, c0, 0
 
     ldr sp, =_stack_end
 
@@ -66,25 +79,6 @@ __sctlr_mmu_clear:
 __sctlr_mmu_set:
 	.word (SCTLR_I_MASK)
 hang:
-    b .
-
-.section .text
-.global _ns_reentry
-_ns_reentry:
-
-    /* Re-enable cache */
-    /*  Enable I-Cache */
-	mrc	p15, 0, r0, c1, c0, 0
-	ldr	r1, __sctlr_mmu_clear
-	ldr	r2, __sctlr_mmu_set
-	and	r0, r0, r1
-	orr	r0, r0, r2
-	mcr	p15, 0, r0, c1, c0, 0
-    
-    /* Reset stack */
-    ldr sp, =_stack_end
-
-    bl pb_nsec_main
     b .
 
 

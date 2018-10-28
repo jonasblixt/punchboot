@@ -8,7 +8,7 @@
  */
 
 #include <recovery.h>
-#include <pb_image.h>
+#include <image.h>
 #include <plat.h>
 #include <usb.h>
 #include <keys.h>
@@ -170,7 +170,8 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
         case PB_CMD_RESET:
         {
             plat_reset();
-            while(1);
+            while(1)
+                asm("wfi");
         }
         break;
         case PB_CMD_GET_GPT_TBL:
@@ -188,14 +189,26 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
                                               config_get_tbl_sz());
         }
         break;
+        case PB_CMD_SET_CONFIG_VAL:
+        {
+            uint32_t data[2];
+            uint32_t sz;
+
+            recovery_read_data(dev, (uint8_t *) data, 8);
+            
+            LOG_INFO("Set key %lu to %lu", data[0], data[1]);
+            config_set_uint32_t(data[0], data[1]);
+            config_commit();
+        }
+        break;
         case PB_CMD_GET_CONFIG_VAL:
         {
-            uint32_t config_param;
+            uint32_t config_param = 0;
             uint32_t config_val;
 
+            LOG_INFO("Reading key index, sz=%lu",cmd->size);
             recovery_read_data(dev, (uint8_t *) &config_param, 4);
             config_get_uint32_t(config_param, &config_val);
-
             err = recovery_send_response(dev, (uint8_t *) &config_val, 4);
         }
         break;

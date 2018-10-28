@@ -54,7 +54,7 @@ C_SRCS  += lib/string.c
 C_SRCS  += recovery_protocol.c
 C_SRCS  += usb.c
 C_SRCS  += tinyprintf.c
-C_SRCS  += pb_image.c
+C_SRCS  += image.c
 
 RSA_KEYS_SRCS ?= ../pki/dev_rsa_public.der    \
 				 ../pki/prod_rsa_public.der   \

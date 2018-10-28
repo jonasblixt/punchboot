@@ -21,6 +21,7 @@ static const struct pb_config_item _pb_config[] =
     /* Index                , Description     , Access              , Default */
     {  PB_CONFIG_BOOT       , "Boot Partition", PB_CONFIG_ITEM_RO   , 0xAA},
     {  PB_CONFIG_BOOT_COUNT , "Boot Count"    , PB_CONFIG_ITEM_RO   , 0},
+    {  PB_CONFIG_FORCE_RECOVERY, "Force Recovery", PB_CONFIG_ITEM_RW, 0},
     {  -1                   , ""              , 0                   , 0 },
 };
 

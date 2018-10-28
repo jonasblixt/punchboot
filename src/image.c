@@ -1,5 +1,5 @@
 #include <pb.h>
-#include <pb_image.h>
+#include <image.h>
 #include <string.h>
 #include <tinyprintf.h>
 #include <plat.h>
@@ -7,21 +7,23 @@
 #include <gpt.h>
 #include <keys.h>
 
-static struct __a4k __no_bss pb_pbi pbi;
+static struct __a4k __no_bss pb_pbi _pbi;
 
-uint32_t pb_image_load_from_fs(uint32_t part_lba_offset)
+uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 {
+
+    *pbi = NULL;
 
     if (!part_lba_offset) {
         LOG_ERR ("Unknown partition\n\r");
         return PB_ERR;
     }
 
-    plat_emmc_read_block(part_lba_offset, (uint8_t *) &pbi,
+    plat_emmc_read_block(part_lba_offset, (uint8_t *) &_pbi,
                             sizeof(struct pb_pbi)/512);
 
 
-    if (pbi.hdr.header_magic != PB_IMAGE_HEADER_MAGIC) {
+    if (_pbi.hdr.header_magic != PB_IMAGE_HEADER_MAGIC) {
         LOG_ERR ("Incorrect header magic\n\r");
         return PB_ERR;
     }
@@ -29,24 +31,24 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset)
     /* TODO: Make sure bootloader code can't be overwritten */
 
     LOG_INFO ("Component manifest:");
-    for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++) {
-        LOG_INFO (" o %lu - LA: 0x%8.8lX OFF:0x%8.8lX",i, pbi.comp[i].load_addr_low,
-                            pbi.comp[i].component_offset);
+    for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
+        LOG_INFO (" o %lu - LA: 0x%8.8lX OFF:0x%8.8lX",i, 
+                            _pbi.comp[i].load_addr_low,
+                            _pbi.comp[i].component_offset);
     }
 
-    for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++) {
-        LOG_INFO("Loading component %lu, %lu bytes",i, pbi.comp[i].component_size);
-        plat_emmc_read_block(part_lba_offset + pbi.comp[i].component_offset/512
-                    , (uint8_t*) pbi.comp[i].load_addr_low, 
-                    pbi.comp[i].component_size/512+1);
+    for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
+        LOG_INFO("Loading component %lu, %lu bytes",i, 
+                                _pbi.comp[i].component_size);
+
+        plat_emmc_read_block(part_lba_offset + 
+                    _pbi.comp[i].component_offset/512
+                    , (uint8_t*) _pbi.comp[i].load_addr_low, 
+                    _pbi.comp[i].component_size/512+1);
     }
 
+    *pbi = &_pbi;
     return PB_OK;
-}
-
-struct pb_pbi * pb_get_image(void)
-{
-    return &pbi;
 }
 
 bool pb_verify_image(struct pb_pbi* pbi, uint32_t key_index)
@@ -82,7 +84,6 @@ bool pb_verify_image(struct pb_pbi* pbi, uint32_t key_index)
                         pbi->comp[i].component_size);
     }
 
-
     plat_sha256_finalize(hash);
 
     uint8_t flag_chk_ok = 1;
@@ -97,7 +98,7 @@ bool pb_verify_image(struct pb_pbi* pbi, uint32_t key_index)
 
     LOG_INFO("SHA OK");
     /* TODO: This needs some more thinkning, reflect HAB state? */
-    uint8_t *pkey_ptr = pb_key_get(PB_KEY_DEV);
+    uint8_t *pkey_ptr = pb_key_get(key_index);
     uint8_t __a4k output_data[512];
 
     plat_rsa_enc(sign_copy, sign_sz,

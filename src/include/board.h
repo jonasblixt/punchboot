@@ -13,6 +13,7 @@
 
 #include <pb.h>
 #include <usb.h>
+#include <image.h>
 
 struct board_info {
     uint16_t type;
@@ -37,5 +38,5 @@ uint32_t board_enable_secure_boot(uint32_t key);
 
 uint32_t board_write_gpt_tbl();
 uint32_t board_usb_init(struct usb_device **dev);
-
+void board_boot(struct pb_pbi *pbi);
 #endif

@@ -226,13 +226,20 @@ uint8_t board_force_recovery(void) {
     return force_recovery;
 }
 
-
 uint32_t board_get_uuid(uint8_t *uuid) {
+    uint32_t *uuid_ptr = (uint32_t *) uuid;
 
+    ocotp_read(15, 4, &uuid_ptr[0]);
+    ocotp_read(15, 5, &uuid_ptr[1]);
+    ocotp_read(15, 6, &uuid_ptr[2]);
+    ocotp_read(15, 7, &uuid_ptr[3]);
+
+    return PB_OK;
 }
 
 uint32_t board_get_boardinfo(struct board_info *info) {
-
+    UNUSED(info);
+    return PB_OK;
 }
 
 
@@ -271,6 +278,9 @@ uint32_t board_write_standard_fuses(uint32_t key) {
 }
 
 uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
+    UNUSED(info);
+    UNUSED(key);
+ 
     return PB_OK;
 }
 
@@ -282,4 +292,19 @@ uint32_t board_write_gpt_tbl() {
     return gpt_write_tbl();
 }
 
+void board_boot(struct pb_pbi *pbi)
+{
 
+    struct pb_component_hdr *tee = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_TEE);
+
+    struct pb_component_hdr *vmm = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_VMM);
+
+    LOG_INFO(" VMM %lX, TEE %lX", vmm->load_addr_low, tee->load_addr_low);
+    
+    asm volatile("mov lr, %0" "\n\r"
+                 "mov pc, %1" "\n\r"
+                    :
+                    : "r" (vmm->load_addr_low), "r" (tee->load_addr_low));
+}

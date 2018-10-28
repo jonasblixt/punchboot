@@ -18,9 +18,10 @@
 #include <stdbool.h>
 #include <libusb-1.0/libusb.h>
 #include <uuid/uuid.h>
+#include <string.h>
 
-#include "recovery_protocol.h"
-
+#include <recovery_protocol.h>
+#include <config.h>
 #include "crc.h"
 #include "pb_types.h"
 #include "gpt.h"
@@ -190,39 +191,68 @@ static int pb_print_gpt_table(libusb_device_handle *h) {
     return 0;
 }
 
-static unsigned int pb_get_config_value(libusb_device_handle *h, uint8_t index) 
+static unsigned int pb_get_config_value(libusb_device_handle *h, uint32_t index) 
 {
     int err;
     int value;
+    uint32_t sz;
 
-    err = pb_write(h, PB_CMD_GET_CONFIG_VAL, &index, 1);
+    err = pb_write(h, PB_CMD_GET_CONFIG_VAL, &index, 4);
 
     if (err) {
+        printf ("Error sending cmd\n");
         return err;
     }
 
-    pb_read(h, (u8 *) &value, 4);
+    pb_read(h, (u8 *) &sz, 4);
+    pb_read(h, (u8 *) &value, sz);
 
     return value;
 }
 
-static int pb_get_config_tbl (libusb_device_handle *h) {
- /*   struct pb_config_item item [127];
+static unsigned int pb_set_config_value(libusb_device_handle *h, 
+                            uint32_t index, uint32_t val) 
+{
     int err;
+    int value;
+    uint32_t sz;
+
+    uint32_t data[2];
+    data[0] = index;
+    data[1] = val;
+
+    printf ("Setting %i to %x\n", index, val);
+    err = pb_write(h, PB_CMD_SET_CONFIG_VAL, data, 8);
+
+    if (err) {
+        printf ("Error sending cmd\n");
+        return err;
+    }
+
+
+    return 0;
+}
+
+static int pb_get_config_tbl (libusb_device_handle *h) {
+    struct pb_config_item item [127];
+    int err;
+    uint32_t tbl_sz = 0;
     const char *access_text[] = {"  ","RW","RO","OTP"};
 
-    c.cmd = PB_CMD_GET_CONFIG_TBL;
-    err = pb_write(h,&c);
+    err = pb_write(h, PB_CMD_GET_CONFIG_TBL, NULL, 0);
 
     if (err) {
         printf ("%s: Could not read config table\n",__func__);
         return err;
     }
 
-    err = pb_read(h, (u8 *) item, sizeof(item));
+    err = pb_read(h, (u8 *) &tbl_sz, 4);
+
+    err = pb_read(h, (u8 *) &item, tbl_sz);
+
     int n = 0;
-    printf (    " Index   Description        Access  Default     Value\n");
-    printf (    " -----   -----------        ------  -------     -----\n\n");
+    printf (    " Index   Description        Access   Default      Value\n");
+    printf (    " -----   -----------        ------  ----------  ----------\n\n");
     do {
         printf (" %-3u     %-16s   %-3s     0x%8.8X  0x%8.8X\n",item[n].index,
                                      item[n].description,
@@ -231,7 +261,7 @@ static int pb_get_config_tbl (libusb_device_handle *h) {
                                      pb_get_config_value(h,n));
         n++;
     } while (item[n].index != -1);
-*/
+
     return 0;
 }
 
@@ -363,26 +393,113 @@ static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
     return pb_write(h, PB_CMD_FLASH_BOOTLOADER, (uint8_t *) &no_of_blocks, 4);
 }
 
+
+
+
+static int pb_execute_image (libusb_device_handle *h, const char *f_name) {
+    int read_sz = 0;
+    int sent_sz = 0;
+    int buffer_id = 0;
+    int err;
+    FILE *fp = NULL; 
+    unsigned char *bfr = NULL;
+
+/*
+ *  1. Send PBI header PB_RAM_LOAD_HDR
+ *  2. Send component 0 PB_RAM_SEND_COMP
+ *      ... component n-1
+ *  3. Send PB_RAM_RUN_IMAGE
+ * */
+
+
+    struct pb_cmd_prep_buffer bfr_cmd;
+    struct pb_cmd_write_part wr_cmd;
+
+    fp = fopen (f_name,"rb");
+
+    if (fp == NULL) {
+        printf ("Could not open file: %s\n",f_name);
+        return -1;
+    }
+
+    bfr =  malloc(1024*64);
+    
+    if (bfr == NULL) {
+        printf ("Could not allocate memory\n");
+        return -1;
+    }
+
+    wr_cmd.lba_offset = 0;
+    wr_cmd.part_no = part_no;
+    printf ("Writing");
+    fflush(stdout);
+    while ((read_sz = fread(bfr, 1, 1024*64, fp)) >0) {
+       bfr_cmd.no_of_blocks = read_sz / 512;
+        if (read_sz % 512)
+            bfr_cmd.no_of_blocks++;
+        
+        bfr_cmd.buffer_id = buffer_id;
+        //pb_write(h, (struct pb_cmd *)&bfr_cmd);
+        pb_write(h, PB_CMD_PREP_BULK_BUFFER, 
+                (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
+
+        err = libusb_bulk_transfer(h,
+                    1,
+                    bfr,
+                    read_sz,
+                    &sent_sz,
+                    1000);
+ 
+        if (err != 0) {
+            printf ("USB: Bulk xfer error, err=%i\n",err);
+            goto err_xfer;
+        }
+
+        wr_cmd.no_of_blocks = bfr_cmd.no_of_blocks;
+        wr_cmd.buffer_id = buffer_id;
+        buffer_id = !buffer_id;
+        //printf ("wr: %i kBytes read_sz = %i, send_sz = %i\n",bfr_cmd.no_of_blocks*512/1024, read_sz, sent_sz);
+        printf (".");
+        fflush(stdout);
+        //pb_write(h, (struct pb_cmd *) &wr_cmd);
+        pb_write(h, PB_CMD_WRITE_PART, (uint8_t *) &wr_cmd,
+                    sizeof(struct pb_cmd_write_part));
+
+        wr_cmd.lba_offset += bfr_cmd.no_of_blocks;
+ 
+
+    }
+    printf ("Done\n");
+err_xfer:
+    free(bfr);
+    fclose(fp);
+    return err;
+
+}
+
+
 void print_help(void) {
     printf (" --- Punch BOOT " VERSION " ---\n\n");
     printf (" Bootloader:\n");
-    printf ("  punchboot boot -w -f <fn>        - Install bootloader\n");
-    printf ("  punchboot boot -r                - Reset device\n");
-    printf ("  punchboot boot -s                - BOOT System\n");
-    printf ("  punchboot boot -l                - Display version\n");
+    printf ("  punchboot boot -w -f <fn>           - Install bootloader\n");
+    printf ("  punchboot boot -r                   - Reset device\n");
+    printf ("  punchboot boot -s                   - BOOT System\n");
+    printf ("  punchboot boot -l                   - Display version\n");
+    printf ("  punchboot boot -x -f <fn>           - Load image to RAM and execute it\n");
     printf ("\n");
     printf (" Partition Management:\n");
-    printf ("  punchboot part -l                - List partitions\n");
-    printf ("  punchboot part -w -n <n> -f <fn> - Write 'fn' to partition 'n'\n");
-    printf ("  punchboot part -i                - Install default GPT table\n");
+    printf ("  punchboot part -l                   - List partitions\n");
+    printf ("  punchboot part -w -n <n> -f <fn>    - Write 'fn' to partition 'n'\n");
+    printf ("  punchboot part -i                   - Install default GPT table\n");
     printf ("\n");
     printf (" Configuration:\n");
-    printf ("  punchboot config -l              - Display configuration\n");
+    printf ("  punchboot config -l                 - Display configuration\n");
+    printf ("  punchboot config -w -n <n> -v <val> - Write <val> to key <n>\n");
     printf ("\n");
     printf (" Fuse Management (WARNING: these operations are OTP and can't be reverted):\n");
-    printf ("  punchboot fuse -w -n <n>         - Install fuse set <n>\n");
-    printf ("                        1          - Boot fuses\n\r");
-    printf ("                        2          - Device Identity\n\r");
+    printf ("  punchboot fuse -w -n <n>            - Install fuse set <n>\n");
+    printf ("                        1             - Boot fuses\n\r");
+    printf ("                        2             - Device Identity\n\r");
     printf ("\n");
 }
 
@@ -419,14 +536,20 @@ int main(int argc, char **argv) {
     bool flag_boot = false;
     bool flag_index = false;
     bool flag_install = false;
+    bool flag_value = false;
+    bool flag_execute = false;
 
     char *fn = NULL;
     char *cmd = argv[1];
+    uint32_t cmd_value = 0;
 
-    while ((c = getopt (argc-1, &argv[1], "hiwrsln:f:")) != -1) {
+    while ((c = getopt (argc-1, &argv[1], "hiwrxsln:f:v:")) != -1) {
         switch (c) {
             case 'w':
                 flag_write = true;
+            break;
+            case 'x':
+                flag_execute = true;
             break;
             case 'r':
                 flag_reset = true;
@@ -444,6 +567,9 @@ int main(int argc, char **argv) {
                 flag_index = true;
                 cmd_index = atoi(optarg);
             break;
+            case 'v':
+                flag_value = true;
+                cmd_value = atoi(optarg);
             case 's':
                 flag_boot = true;
             break;
@@ -506,7 +632,11 @@ int main(int argc, char **argv) {
             pb_program_bootloader(h, fn);
            
         }
-    
+        if (flag_execute)
+        {
+            pb_execute_image(h, fn);
+        }
+
         if (flag_reset) 
             pb_reset(h);
     }
@@ -531,6 +661,10 @@ int main(int argc, char **argv) {
     if (strcmp(cmd, "config") == 0) {
         if (flag_list) {
             pb_get_config_tbl(h);
+        }
+        if (flag_write)
+        {
+            pb_set_config_value(h, cmd_index, cmd_value);
         }
     }
 
