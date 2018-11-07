@@ -55,10 +55,10 @@ struct pb_pbi {
     uint8_t padding[511];
 };
 
-bool pb_verify_image(struct pb_pbi *pbi, uint32_t key_index);
+bool pb_image_verify(struct pb_pbi *pbi, uint32_t key_index);
 uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi);
 struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 
                                             uint32_t comp_type);
-
+struct pb_pbi * pb_image(void);
 
 #endif

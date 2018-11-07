@@ -51,16 +51,19 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
     return PB_OK;
 }
 
-bool pb_verify_image(struct pb_pbi* pbi, uint32_t key_index)
+bool pb_image_verify(struct pb_pbi* pbi, uint32_t key_index)
 {
-    unsigned char sign_copy[1024];
+    unsigned char __a4k sign_copy[1024];
     unsigned int sign_sz = 0;
     unsigned char hash_copy[32];
     unsigned char hash[32];
+    uint32_t err = PB_OK;
 
     if (pbi->hdr.sign_length > sizeof(sign_copy))
             pbi->hdr.sign_length = sizeof(sign_copy);
     
+    LOG_INFO("Signature length = %lu", pbi->hdr.sign_length);
+
     memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
     sign_sz = pbi->hdr.sign_length;
     pbi->hdr.sign_length = 0;
@@ -99,12 +102,20 @@ bool pb_verify_image(struct pb_pbi* pbi, uint32_t key_index)
     LOG_INFO("SHA OK");
     /* TODO: This needs some more thinkning, reflect HAB state? */
     uint8_t *pkey_ptr = pb_key_get(key_index);
-    uint8_t __a4k output_data[512];
 
-    plat_rsa_enc(sign_copy, sign_sz,
+    uint8_t __a4k output_data[512];
+    memset(output_data, 0, 512);
+
+    err = plat_rsa_enc(sign_copy, sign_sz,
                     output_data,
                     &pkey_ptr[0x21], 512,      // PK Modulus
                     &pkey_ptr[0x21+512+2], 3); // PK exponent
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("plat_rsa_enc failed");
+        return err;
+    }
 
     /* TODO: ASN.1 support functions */
     uint8_t flag_sig_ok = 1;
@@ -112,7 +123,6 @@ bool pb_verify_image(struct pb_pbi* pbi, uint32_t key_index)
     for (uint32_t i = 512-32; i < 512; i++) {
         if (output_data[i] != hash[n]) {
             flag_sig_ok = 0;
-            break;
         }
         n++;
     }
@@ -125,10 +135,17 @@ bool pb_verify_image(struct pb_pbi* pbi, uint32_t key_index)
         return PB_ERR;
 }
 
+struct pb_pbi * pb_image(void)
+{
+    return &_pbi;
+}
 
 struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 
                                             uint32_t comp_type)
 {
+    if (pbi == NULL)
+        return NULL;
+
     for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++)
     {
         if (pbi->comp[i].component_type == comp_type)

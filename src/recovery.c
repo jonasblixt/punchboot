@@ -41,6 +41,7 @@ const char *recovery_cmd_name[] =
     "PB_CMD_READ_UUID",
     "PB_CMD_WRITE_DFLT_GPT",
     "PB_CMD_WRITE_DFLT_FUSE",
+    "PB_CMD_BOOT_RAM",
 };
 
 static uint32_t recovery_flash_bootloader(uint8_t *bfr, 
@@ -254,6 +255,58 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
             //    tfp_printf ("boot_load failed\n\r");
             //}
             //tfp_printf ("Boot returned\n\r");
+        }
+        break;
+        case PB_CMD_BOOT_RAM:
+        {   
+            struct pb_pbi *pbi = pb_image();
+
+            recovery_read_data(dev, (uint8_t *) pbi, sizeof(struct pb_pbi));
+
+            if (pbi->hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
+            {
+                LOG_ERR ("Incorrect header magic\n\r");
+                return PB_ERR;
+            }
+            
+            /* TODO: Make sure bootloader code can't be overwritten */
+
+            LOG_INFO ("Component manifest:");
+
+            for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
+            {
+                LOG_INFO (" o %lu - LA: 0x%8.8lX OFF:0x%8.8lX",i, 
+                                    pbi->comp[i].load_addr_low,
+                                    pbi->comp[i].component_offset);
+            }
+
+            for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
+            {
+                LOG_INFO("Loading component %lu, %lu bytes",i, 
+                                        pbi->comp[i].component_size);
+
+                err = plat_usb_transfer(dev, USB_EP1_OUT,
+                                        (uint8_t *) pbi->comp[i].load_addr_low,
+                                        pbi->comp[i].component_size );
+
+                plat_usb_wait_for_ep_completion(USB_EP1_OUT);
+
+                if (err != PB_OK)
+                {
+                    LOG_ERR ("Xfer error");
+                    break;
+                }
+            }
+            /* TODO: Implement key management strategy */
+
+            if (pb_image_verify(pbi, PB_KEY_DEV) == PB_OK)
+            {
+                LOG_INFO("Booting image...");
+                board_boot(pbi);
+            } else {
+                LOG_ERR("Image verification failed");
+            }
+
         }
         break;
         case PB_CMD_READ_UUID:

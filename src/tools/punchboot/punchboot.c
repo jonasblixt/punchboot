@@ -23,6 +23,7 @@
 #include <pb/recovery.h>
 #include <pb/config.h>
 #include <pb/gpt.h>
+#include <pb/image.h>
 
 #include "crc.h"
 #include "utils.h"
@@ -288,8 +289,6 @@ static int pb_flash_part (libusb_device_handle *h, uint8_t part_no, const char *
         return -1;
     }
 
-    //bfr_cmd.cmd = PB_CMD_PREP_BULK_BUFFER;
-    //wr_cmd.cmd = PB_CMD_WRITE_PART;
     wr_cmd.lba_offset = 0;
     wr_cmd.part_no = part_no;
     printf ("Writing");
@@ -300,7 +299,6 @@ static int pb_flash_part (libusb_device_handle *h, uint8_t part_no, const char *
             bfr_cmd.no_of_blocks++;
         
         bfr_cmd.buffer_id = buffer_id;
-        //pb_write(h, (struct pb_cmd *)&bfr_cmd);
         pb_write(h, PB_CMD_PREP_BULK_BUFFER, 
                 (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
 
@@ -395,23 +393,14 @@ static int pb_program_bootloader (libusb_device_handle *h, const char *f_name) {
 
 
 static int pb_execute_image (libusb_device_handle *h, const char *f_name) {
-/*    int read_sz = 0;
+    int read_sz = 0;
     int sent_sz = 0;
-    int buffer_id = 0;
-    int err;
+    int err = 0;
     FILE *fp = NULL; 
     unsigned char *bfr = NULL;
-*/
-/*
- *  1. Send PBI header PB_RAM_LOAD_HDR
- *  2. Send component 0 PB_RAM_LOAD_COMP
- *      ... component n-1
- *  3. Send PB_RAM_EXECUTE_IMAGE
- * */
-
-/*
-    struct pb_cmd_prep_buffer bfr_cmd;
-    struct pb_cmd_write_part wr_cmd;
+    uint32_t data_remaining;
+    uint32_t bytes_to_send;
+    struct pb_pbi pbi;
 
     fp = fopen (f_name,"rb");
 
@@ -426,59 +415,67 @@ static int pb_execute_image (libusb_device_handle *h, const char *f_name) {
         printf ("Could not allocate memory\n");
         return -1;
     }
-*/
-/*
-    wr_cmd.lba_offset = 0;
-    wr_cmd.part_no = part_no;
-    printf ("Writing");
-    fflush(stdout);
-    while ((read_sz = fread(bfr, 1, 1024*64, fp)) >0) {
-       bfr_cmd.no_of_blocks = read_sz / 512;
-        if (read_sz % 512)
-            bfr_cmd.no_of_blocks++;
-        
-        bfr_cmd.buffer_id = buffer_id;
-        //pb_write(h, (struct pb_cmd *)&bfr_cmd);
-        pb_write(h, PB_CMD_PREP_BULK_BUFFER, 
-                (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
 
-        err = libusb_bulk_transfer(h,
-                    1,
-                    bfr,
-                    read_sz,
-                    &sent_sz,
-                    1000);
- 
-        if (err != 0) {
-            printf ("USB: Bulk xfer error, err=%i\n",err);
-            goto err_xfer;
-        }
+    read_sz = fread(&pbi, 1, sizeof(struct pb_pbi), fp);
 
-        wr_cmd.no_of_blocks = bfr_cmd.no_of_blocks;
-        wr_cmd.buffer_id = buffer_id;
-        buffer_id = !buffer_id;
-        //printf ("wr: %i kBytes read_sz = %i, send_sz = %i\n",bfr_cmd.no_of_blocks*512/1024, read_sz, sent_sz);
-        printf (".");
-        fflush(stdout);
-        //pb_write(h, (struct pb_cmd *) &wr_cmd);
-        pb_write(h, PB_CMD_WRITE_PART, (uint8_t *) &wr_cmd,
-                    sizeof(struct pb_cmd_write_part));
-
-        wr_cmd.lba_offset += bfr_cmd.no_of_blocks;
- 
-
+    pb_write(h, PB_CMD_BOOT_RAM, (uint8_t *) &pbi, sizeof(struct pb_pbi));
+    
+    printf ("Punchboot Image:\n");
+    for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++) {
+        printf (" o %u - LA: 0x%8.8X OFF:0x%8.8X\n",i, 
+                            pbi.comp[i].load_addr_low,
+                            pbi.comp[i].component_offset);
     }
+
+    for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++) {
+        printf ("Loading component %u, %u bytes...\n",i, 
+                                pbi.comp[i].component_size);
+
+        fseek (fp, pbi.comp[i].component_offset, SEEK_SET);
+        data_remaining = pbi.comp[i].component_size;
+
+        while ((read_sz = fread(bfr, 1, 1024*64, fp)) >0) {
+
+            if (read_sz > data_remaining)
+                bytes_to_send = data_remaining;
+            else
+                bytes_to_send = read_sz;
+
+            err = libusb_bulk_transfer(h,
+                        1,
+                        bfr,
+                        bytes_to_send,
+                        &sent_sz,
+                        1000);
+     
+            data_remaining = data_remaining - bytes_to_send;
+
+            if (!data_remaining)
+                break;
+
+            if (err != 0) {
+                printf ("USB: Bulk xfer error, err=%i\n",err);
+                goto err_xfer;
+            }
+        }
+    }
+
     printf ("Done\n");
 err_xfer:
     free(bfr);
     fclose(fp);
     return err;
-*/
-    return 0;
 }
 
+static void pb_display_device_info(libusb_device_handle *h)
+{
+    printf ("Device info:\n");
+    printf (" Hardware: %s, Revision: %s\n");
+    printf (" UUID: %s\n");
+    printf (" Security State:\n");
+}
 
-void print_help(void) {
+static void print_help(void) {
     printf (" --- Punch BOOT " VERSION " ---\n\n");
     printf (" Bootloader:\n");
     printf ("  punchboot boot -w -f <fn>           - Install bootloader\n");
@@ -486,6 +483,9 @@ void print_help(void) {
     printf ("  punchboot boot -s                   - BOOT System\n");
     printf ("  punchboot boot -l                   - Display version\n");
     printf ("  punchboot boot -x -f <fn>           - Load image to RAM and execute it\n");
+    printf ("\n");
+    printf (" Device:\n");
+    printf ("  punchboot dev -l                    - Display device information\n");
     printf ("\n");
     printf (" Partition Management:\n");
     printf ("  punchboot part -l                   - List partitions\n");
@@ -617,6 +617,12 @@ int main(int argc, char **argv) {
     if (h == NULL) {
         printf ("Could not open device\n");
         return -1;
+    }
+
+    if (strcmp(cmd, "dev") == 0) {
+         if (flag_list) {
+            pb_display_device_info(h);
+        }
     }
 
     if (strcmp(cmd, "boot") == 0) {

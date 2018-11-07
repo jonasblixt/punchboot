@@ -124,7 +124,7 @@ static int pbimage_gen_output(const char *fn_sign_key,
 
     printf (" o Sign %i\n",hdr.sign_length);
 
-    /* Create, final, output image */
+   /* Create, final, output image */
 
     fp_out = fopen(fn_output,"wb");
 

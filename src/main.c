@@ -30,6 +30,8 @@ void pb_main(void)
 
     bool flag_run_recovery = false;
 
+    plat_wdog_init();
+
     if (board_init() == PB_ERR) 
     {
         LOG_ERR ("Board init failed...");
@@ -100,7 +102,7 @@ void pb_main(void)
         flag_run_recovery = true;
     }
 
-    err = pb_verify_image(pbi, PB_KEY_DEV);
+    err = pb_image_verify(pbi, PB_KEY_DEV);
     
     ts3 = plat_get_us_tick();
 
@@ -116,7 +118,7 @@ void pb_main(void)
         ts4 = plat_get_us_tick();
         pb_writel(0, 0x020A0000);
         asm("isb");
-        /*
+        
         tfp_printf ("Total: %lu us\n\r",ts4-ts_init);
         tfp_printf ("gpt: %lu us\n\r", ts0-ts_init);
         tfp_printf ("cfg: %lu us\n\r", ts1-ts0);
@@ -125,7 +127,7 @@ void pb_main(void)
         tfp_printf ("vrfy: %lu us\n\r", ts3-ts2);
         tfp_printf ("bc: %lu us\n\r", ts4-ts3);
         tfp_printf ("ts_init: %lu us\n\r",ts_init);
-        */
+        
         board_boot(pbi);
     }
 
@@ -137,7 +139,10 @@ run_recovery:
         recovery_initialize();
 
         while (flag_run_recovery)
+        {
             usb_task();
+            plat_wdog_kick();
+        }
     } 
     
     plat_reset();

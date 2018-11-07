@@ -30,6 +30,7 @@ enum {
     PB_CMD_READ_UUID,
     PB_CMD_WRITE_DFLT_GPT,
     PB_CMD_WRITE_DFLT_FUSE,
+    PB_CMD_BOOT_RAM,
 };
 
 extern const char *recovery_cmd_name[];
