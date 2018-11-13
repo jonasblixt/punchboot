@@ -10,17 +10,6 @@
 
 #include "armv7a.h"
 
-.section .irqvectors
-_irqvectors:
-    ldr pc, = _reset
-    ldr pc, = hang
-    ldr pc, = hang
-    ldr pc, = hang
-    ldr pc, = hang
-    ldr pc, = hang
-    ldr pc, = hang
-    ldr pc, = hang
-
 .section .text
 .global _reset
 _reset:
@@ -72,8 +61,6 @@ __zero_region_start:
     .word _zero_region_start
 __zero_region_end:
     .word _zero_region_end
-__irq_vectors_start:
-    .word _irq_vectors_start
 __sctlr_mmu_clear:
 	.word ~(SCTLR_A_MASK)
 __sctlr_mmu_set:

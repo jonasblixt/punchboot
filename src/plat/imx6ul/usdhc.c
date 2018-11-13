@@ -19,8 +19,8 @@
 static uint32_t _iobase = 0x02190000;
 static uint32_t _raw_cid[4];
 static uint32_t _raw_csd[4];
-static uint8_t  _raw_extcsd[512];
-static struct usdhc_adma2_desc tbl[256];
+static uint8_t __no_bss _raw_extcsd[512];
+static struct __no_bss usdhc_adma2_desc tbl[256];
 static uint32_t _sectors = 0;
 
 static void usdhc_emmc_wait_for_cc(void)

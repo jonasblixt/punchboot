@@ -67,7 +67,9 @@ include plat/$(PB_PLAT_NAME)/makefile.mk
 include arch/$(PB_ARCH_NAME)/makefile.mk
 
 LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY) 
-LDFLAGS += -Tlink.lds -Tarch/$(PB_ARCH_NAME)/link.lds --build-id=none 
+LDFLAGS += -Tarch/$(PB_ARCH_NAME)/link.lds
+LDFLAGS += -Tplat/$(PB_PLAT_NAME)/link.lds
+LDFLAGS += -Tlink.lds  --build-id=none 
 
 ARCH_OBJS     = $(ARCH_ASM_SRCS:.S=.o) $(ARCH_C_SRCS:.c=.o) 
 PLAT_OBJS     = $(PLAT_ASM_SRCS:.S=.o) $(PLAT_C_SRCS:.c=.o) 
