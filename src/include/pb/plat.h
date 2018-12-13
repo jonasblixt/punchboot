@@ -13,6 +13,7 @@
 
 #include <pb.h>
 #include <usb.h>
+#include <keys.h>
 
 #define PLAT_EMMC_PART_BOOT0 1
 #define PLAT_EMMC_PART_BOOT1 2
@@ -46,9 +47,7 @@ uint32_t  plat_sha256_update(uint8_t *bfr, uint32_t sz);
 uint32_t  plat_sha256_finalize(uint8_t *out);
 
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
-                    uint8_t *pk_modulus, uint32_t pk_modulus_sz,
-                    uint8_t *pk_exponent, uint32_t pk_exponent_sz);
-
+                        struct asn1_key *k);
 /* USB Interface API */
 uint32_t  plat_usb_init(struct usb_device *dev);
 void      plat_usb_task(struct usb_device *dev);

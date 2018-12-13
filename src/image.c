@@ -101,15 +101,20 @@ bool pb_image_verify(struct pb_pbi* pbi, uint32_t key_index)
 
     LOG_INFO("SHA OK");
     /* TODO: This needs some more thinkning, reflect HAB state? */
-    uint8_t *pkey_ptr = pb_key_get(key_index);
 
     uint8_t __a4k output_data[512];
     memset(output_data, 0, 512);
 
+    struct asn1_key *k = pb_key_get(key_index);
+
+    if (k == NULL)
+    {
+        LOG_ERR("Invalid key");
+        return PB_ERR;
+    }
+
     err = plat_rsa_enc(sign_copy, sign_sz,
-                    output_data,
-                    &pkey_ptr[0x21], 512,      // PK Modulus
-                    &pkey_ptr[0x21+512+2], 3); // PK exponent
+                    output_data, k);
 
     if (err != PB_OK)
     {

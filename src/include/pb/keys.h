@@ -36,6 +36,13 @@ extern uint8_t* _binary____pki_field2_rsa_public_der_end;
 extern uint8_t* _binary____pki_field2_rsa_public_der_size;
 
 
-uint8_t * pb_key_get(uint8_t key_index);
+struct asn1_key {
+    uint8_t rz1[0x21];
+    uint8_t mod[512];
+    uint8_t rz2[2];
+    uint8_t exp[3];
+} __attribute__ ((packed));
+
+struct asn1_key * pb_key_get(uint8_t key_index);
 
 #endif

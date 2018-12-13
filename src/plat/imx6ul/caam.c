@@ -104,20 +104,17 @@ uint32_t plat_sha256_finalize(uint8_t *out) {
 }
 
 uint32_t plat_rsa_enc(uint8_t *input,  uint32_t input_sz,
-                    uint8_t *output,
-                    uint8_t *pk_mod, uint32_t key_mod_sz,
-                    uint8_t *pk_exp, uint32_t key_exp_sz) {
-
+                    uint8_t *output, struct asn1_key *k)
+{
 
     uint32_t __a4k desc[10];
-
    
     desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
-    desc[1] = (key_exp_sz << 12)|key_mod_sz;
+    desc[1] = (3 << 12)|512;
     desc[2] = (uint32_t) input;
     desc[3] = (uint32_t) output;
-    desc[4] = (uint32_t) pk_mod;
-    desc[5] = (uint32_t) pk_exp;
+    desc[4] = (uint32_t) k->mod;
+    desc[5] = (uint32_t) k->exp;
     desc[6] = input_sz;
     desc[7] = CAAM_CMD_OP | (0x18 << 16)|(0<<12) ;
 
