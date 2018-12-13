@@ -28,6 +28,7 @@ void      plat_reset(void);
 uint32_t  plat_get_us_tick(void);
 void      plat_wdog_init(void);
 void      plat_wdog_kick(void);
+uint32_t  plat_early_init(void);
 
 /* EMMC Interface */
 uint32_t  plat_emmc_write_block(uint32_t lba_offset, 

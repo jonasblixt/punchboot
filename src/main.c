@@ -32,7 +32,10 @@ void pb_main(void)
 
     plat_wdog_init();
 
-    if (board_init() == PB_ERR) 
+    if (plat_early_init() != PB_OK)
+        plat_reset();
+
+    if (board_init() != PB_OK) 
     {
         LOG_ERR ("Board init failed...");
         plat_reset();
