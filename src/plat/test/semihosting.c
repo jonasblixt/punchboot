@@ -5,7 +5,7 @@
  */
 
 #include <plat/test/semihosting.h>
-#include <pb_string.h>
+#include <string.h>
 
 #ifndef SEMIHOSTING_SUPPORTED
 #define SEMIHOSTING_SUPPORTED  1

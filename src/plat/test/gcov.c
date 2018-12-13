@@ -1,7 +1,7 @@
 #include <board.h>
 #include <plat.h>
 #include <tinyprintf.h>
-#include <tests/gcov.h>
+#include <plat/test/gcov.h>
 #include <plat/test/semihosting.h>
 
 static struct gcov_info *head;

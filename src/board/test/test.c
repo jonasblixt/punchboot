@@ -97,3 +97,6 @@ uint32_t board_enable_secure_boot(uint32_t key) {
     return PB_OK;
 }
 
+void board_boot(struct pb_pbi *pbi)
+{
+}
