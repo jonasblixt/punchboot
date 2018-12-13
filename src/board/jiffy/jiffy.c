@@ -25,9 +25,6 @@
 
 #include "board_config.h"
 
-static struct fsl_caam caam;
-static struct ocotp_dev ocotp;
-
 
 const uint8_t part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
                                 0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8};
@@ -101,13 +98,6 @@ uint32_t board_init(void)
 
     init_printf(NULL, &plat_uart_putc);
  
-    /* Configure CAAM */
-    caam.base = 0x02140000;
-    if (caam_init(&caam) != PB_OK) {
-        tfp_printf ("CAAM: Init failed\n\r");
-        return PB_ERR;
-    }
-
 
    /* Configure NAND_DATA2 as GPIO4 4 Input with PU, 
     *
@@ -133,16 +123,6 @@ uint32_t board_init(void)
     usdhc_emmc_init();
 
 
-	uint32_t csu = 0x21c0000;
-    /* Allow full access in all execution modes
-     * TODO: This Obiously needs to be properly setup!
-     * */
-	for (int i = 0; i < 40; i ++) {
-		*((uint32_t *)csu + i) = 0xffffffff;
-	}
-    
-    ocotp.base = 0x021BC000;
-    ocotp_init(&ocotp);
 /*
     uint32_t fuse_test = 0;
     fuse_test = pb_readl(0x021BC450);
