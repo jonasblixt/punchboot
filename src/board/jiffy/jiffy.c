@@ -25,7 +25,6 @@
 
 #include "board_config.h"
 
-static struct gp_timer platform_timer;
 static struct fsl_caam caam;
 static struct ocotp_dev ocotp;
 
@@ -69,11 +68,6 @@ uint32_t board_usb_init(struct usb_device **dev)
     return PB_OK;
 }
 
-/* TODO: MOVE TO Platform */
-__inline uint32_t plat_get_us_tick(void) {
-    return gp_timer_get_tick(&platform_timer);
-}
-
 
 
 /*
@@ -97,8 +91,6 @@ uint32_t board_init(void)
 {
     uint32_t reg;
 
-    platform_timer.base = GP_TIMER1_BASE;
-    gp_timer_init(&platform_timer);
 
     /* TODO: This soc should be able to run at 696 MHz, but it is unstable
      *    Maybe the PM is not properly setup
