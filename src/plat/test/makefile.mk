@@ -22,7 +22,7 @@ PLAT_C_SRCS  += plat/test/semihosting.c
 PLAT_C_SRCS  += plat/test/wdog.c
 PLAT_C_SRCS  += plat/test/plat.c
 PLAT_C_SRCS  += plat/test/gcov.c
-
+PLAT_C_SRCS  += plat/test/virtio.c
 PLAT_ASM_SRCS += plat/test/semihosting_call.S
 
 CFLAGS += -fprofile-arcs -ftest-coverage

@@ -17,6 +17,8 @@
 
 #include <plat/test/uart.h>
 #include <plat/test/pl061.h>
+#include <plat/test/virtio.h>
+
 
 #include "board_config.h"
 
@@ -40,12 +42,44 @@ __inline uint32_t plat_get_ms_tick(void) {
 }
 
 
+struct virtio_device virtio_serial;
+
 uint32_t board_init(void)
 {
     test_uart_init();
     init_printf(NULL, &plat_uart_putc);
  
     pl061_init(0x09030000);
+
+/*
+    uint32_t p = 0xA000000;
+    uint32_t reg;
+    for (uint32_t i = 0; i < 32; i++) {
+
+        reg = pb_readl(p+0x08);
+    
+        if (reg != 0)
+            LOG_INFO("Virtio-mmio %i @ %8.8lX = %8.8lX",i,
+                                                    p,
+                                                    reg); 
+
+        p = p + 0x200;
+    }
+*/
+
+    virtio_serial.base = 0x0A003E00;
+    virtio_mmio_init(&virtio_serial);
+
+/*
+ *
+ * vd.
+ *
+ * virtio_mmio_init(&vd);
+ *
+ *
+ *
+ * */
+
     return PB_OK;
 }
 
