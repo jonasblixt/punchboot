@@ -53,8 +53,6 @@ struct virtq_desc {
 struct virtq_avail {
         uint16_t flags;
         uint16_t idx;
-        uint16_t ring[];
-        /* Only if VIRTIO_F_EVENT_IDX: uint16_t used_event; */
 };
 
 /* uint32_t is used here for ids for padding reasons. */
@@ -68,33 +66,5 @@ struct virtq_used_elem {
 struct virtq_used {
         uint16_t flags;
         uint16_t idx;
-        struct virtq_used_elem ring[];
-        /* Only if VIRTIO_F_EVENT_IDX: uint16_t avail_event; */
 };
-
-struct virtq {
-        unsigned int num;
-
-        struct virtq_desc *desc;
-        struct virtq_avail *avail;
-        struct virtq_used *used;
-};
-
-static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
-{
-         return (uint16_t)(new_idx - event_idx - 1) < (uint16_t)(new_idx - old_idx);
-}
-
-/* Get location of event indices (only with VIRTIO_F_EVENT_IDX) */
-static inline uint16_t *virtq_used_event(struct virtq *vq)
-{
-        /* For backwards compat, used event index is at *end* of avail ring. */
-        return &vq->avail->ring[vq->num];
-}
-
-static inline uint16_t *virtq_avail_event(struct virtq *vq)
-{
-        /* For backwards compat, avail event index is at *end* of used ring. */
-        return (uint16_t *)&vq->used->ring[vq->num];
-}
 #endif /* VIRTQUEUE_H */
