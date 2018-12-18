@@ -165,9 +165,9 @@ uint32_t virtio_mmio_init(struct virtio_device *d)
 
 
     struct virtio_console_control ctrlm;
-    ctrlm.id = 0;
-    ctrlm.event = 0;
-    ctrlm.value = (1 << 6);
+    ctrlm.id = 1;
+    ctrlm.event = 6;
+    ctrlm.value = 1;
 
     memcpy(ctrl_tx_buf, &ctrlm, sizeof(struct virtio_console_control));
     console_ctrl_tx.desc[0].len = sizeof(struct virtio_console_control);
@@ -190,13 +190,16 @@ uint32_t virtio_mmio_init(struct virtio_device *d)
 
     uint32_t n = 0;
 while (1) {
-    uint32_t isr = pb_readl(d->base + VIRTIO_MMIO_INTERRUPT_STATUS);
+    volatile uint32_t isr = pb_readl(d->base + VIRTIO_MMIO_INTERRUPT_STATUS);
+
+    //console_ctrl_tx.avail.idx += 1;
+    //pb_writel(3, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
     if (isr) {
-        LOG_INFO("ISR %lu",isr);
+ //       LOG_INFO("ISR %lu",isr);
         pb_write(isr, d->base + VIRTIO_MMIO_INTERRUPT_ACK);
 
-
+/*
     LOG_INFO("tx used.idx = %i",console_tx.used.idx);
     LOG_INFO("rx used.idx = %i",console_rx.used.idx);
     LOG_INFO("tx avail.idx = %i",console_tx.avail.idx);
@@ -206,6 +209,7 @@ while (1) {
     LOG_INFO("ctrl rx used.idx = %i",console_ctrl_rx.used.idx);
     LOG_INFO("ctrl tx avail.idx = %i",console_ctrl_tx.avail.idx);
     LOG_INFO("ctrl rx avail.idx = %i",console_ctrl_rx.avail.idx);
+*/
     }
 
     for (uint32_t i = 0; i < 5; i++)
@@ -220,24 +224,9 @@ while (1) {
     console_tx.avail.idx += 1;
 
     pb_writel(5, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
-}
-while (0) {
-    uint32_t isr = pb_readl(d->base + VIRTIO_MMIO_INTERRUPT_STATUS);
 
-    LOG_INFO("isr: 0x%8.8X",isr);
-    LOG_INFO("tx used.idx = %i",console_tx.used.idx);
-    LOG_INFO("rx used.idx = %i",console_rx.used.idx);
-    LOG_INFO("tx avail.idx = %i",console_tx.avail.idx);
-    LOG_INFO("rx avail.idx = %i",console_rx.avail.idx);
-
-    LOG_INFO("ctrl tx used.idx = %i",console_ctrl_tx.used.idx);
-    LOG_INFO("ctrl rx used.idx = %i",console_ctrl_rx.used.idx);
-    LOG_INFO("ctrl tx avail.idx = %i",console_ctrl_tx.avail.idx);
-    LOG_INFO("ctrl rx avail.idx = %i",console_ctrl_rx.avail.idx);
-    for (uint32_t i = 0; i < 0xffffff; i++)
-        asm("nop");
-
-
+    console_rx.avail.idx += 1;
+    pb_writel(4, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 }
     return PB_OK;
 }
