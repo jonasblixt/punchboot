@@ -14,7 +14,7 @@
 volatile uint32_t _uart_base;
 
 void plat_uart_putc(void *ptr, char c) {
-    pb_write(c, 0x09000000); /* Transmit char */
+    pb_write32(c, 0x09000000); /* Transmit char */
 }
 
 void test_uart_init(void) {
