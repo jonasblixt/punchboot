@@ -32,14 +32,21 @@ const uint8_t part_type_system_a[] = {0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B,
 const uint8_t part_type_system_b[] = { 0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 
         0x42, 0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04,};
 
+
+static struct usb_device usbdev =
+{
+    .platform_data = NULL,
+};
+
 uint32_t board_usb_init(struct usb_device **dev)
 {
-    UNUSED(dev);
-   return PB_OK;
+	*dev = &usbdev;
+	return PB_OK;
 }
 
-/* TODO: MOVE TO Platform */
-__inline uint32_t plat_get_ms_tick(void) {
+
+__inline uint32_t plat_get_ms_tick(void) 
+{
     return 1;
 }
 
@@ -93,7 +100,6 @@ uint32_t  plat_emmc_read_block( uint32_t lba_offset,
                                 uint8_t *bfr, 
                                 uint32_t no_of_blocks)
 {
-//	LOG_INFO("lba_offset = %lu, n = %lu",lba_offset, no_of_blocks);
     return virtio_block_read(&virtio_block, lba_offset, bfr, no_of_blocks);
 }
 
@@ -108,35 +114,41 @@ uint64_t  plat_emmc_get_lastlba(void)
     return 32768;
 }
 
-uint8_t board_force_recovery(void) {
+uint8_t board_force_recovery(void) 
+{
     return true;
 }
 
 
-uint32_t board_get_uuid(uint8_t *uuid) {
+uint32_t board_get_uuid(uint8_t *uuid) 
+{
     UNUSED(uuid);
     return PB_OK;
 }
 
-uint32_t board_get_boardinfo(struct board_info *info) {
+uint32_t board_get_boardinfo(struct board_info *info) 
+{
     UNUSED(info);
     return PB_OK;
 }
 
-uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) {
+uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) 
+{
     UNUSED(uuid);
     UNUSED(key);
 
     return PB_OK;
 }
 
-uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
+uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) 
+{
     UNUSED(info);
     UNUSED(key);
     return PB_OK;
 }
 
-uint32_t board_write_gpt_tbl() {
+uint32_t board_write_gpt_tbl() 
+{
     gpt_init_tbl(1, plat_emmc_get_lastlba());
     gpt_add_part(0, 1, part_type_config, "Config");
     gpt_add_part(1, 1024, part_type_system_a, "System A");
@@ -144,12 +156,17 @@ uint32_t board_write_gpt_tbl() {
     return gpt_write_tbl();
 }
 
-uint32_t board_write_standard_fuses(uint32_t key) {
+uint32_t board_write_standard_fuses(uint32_t key) 
+{
     UNUSED(key);
    return PB_OK;
 }
 
-uint32_t board_write_mac_addr(uint8_t *mac_addr, uint32_t len, uint32_t index, uint32_t key) {
+uint32_t board_write_mac_addr(uint8_t *mac_addr, 
+							  uint32_t len, 
+							  uint32_t index, 
+							  uint32_t key) 
+{
     UNUSED(mac_addr);
     UNUSED(len);
     UNUSED(index);
@@ -158,7 +175,8 @@ uint32_t board_write_mac_addr(uint8_t *mac_addr, uint32_t len, uint32_t index, u
     return PB_OK;
 }
 
-uint32_t board_enable_secure_boot(uint32_t key) {
+uint32_t board_enable_secure_boot(uint32_t key) 
+{
     UNUSED(key);
     return PB_OK;
 }

@@ -10,7 +10,8 @@ env:
 before_install:
   - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
   - pip install --user cpp-coveralls
-  - sudo apt install libcunit1-dev gcc-arm-none-eabi qemu-system-arm
+  - sudo apt install libcunit1-dev qemu-system-arm curl
+  - curl -sL https://releases.linaro.org/components/toolchain/binaries/latest-7/arm-eabi/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi.tar.xz | tar xJv -C /tmp
 
 addons:
   apt:
@@ -25,7 +26,7 @@ addons:
     branch_pattern: "coverity_test"
 
 script:
-    - CROSS_COMPILE=arm-none-eabi- make
+    - cd src && make BOARD=test CROSS_COMPILE=/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi- LOGLEVEL=10
 
 jobs:
     include:
