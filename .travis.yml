@@ -23,7 +23,7 @@ addons:
     notification_email: jonpe960@gmail.com
     build_command_prepend: ""
     build_command:   "make"
-    branch_pattern: "coverity_test"
+    branch_pattern: "coverity"
 
 script:
     - cd src && make BOARD=test CROSS_COMPILE=/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi- LOGLEVEL=10
