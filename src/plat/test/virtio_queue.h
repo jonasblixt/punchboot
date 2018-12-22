@@ -52,7 +52,8 @@ struct virtq_desc {
 
 struct virtq_avail {
         uint16_t flags;
-        uint16_t idx;
+        volatile uint16_t idx;
+        uint16_t ring[];
 } __attribute__ ((packed));
 
 /* uint32_t is used here for ids for padding reasons. */
@@ -65,6 +66,53 @@ struct virtq_used_elem {
 
 struct virtq_used {
         uint16_t flags;
-        uint16_t idx;
+        volatile uint16_t idx;
+        struct virtq_used_elem ring[];
 } __attribute__ ((packed));
+
+struct virtq {
+    unsigned int num;
+    uint32_t queue_index;
+    struct virtq_desc *desc;
+    struct virtq_avail *avail;
+    struct virtq_used *used;
+};
+
+#define VIRTIO_QUEUE_SZ(n) (16*n + 4 + 2*n + 4 + 8*n)
+#define VIRTIO_QUEUE_SZ2(n) (16*n + 4 + 2*n)
+#define VIRTIO_QUEUE_USED_OFFSET(n,a) (((VIRTIO_QUEUE_SZ2(n) \
+        +a-1) & ~(a-1)))
+#define VIRTIO_QUEUE_AVAIL_OFFSET(n) (16*n)
+
+#define VIRTIO_QUEUE_SZ_WITH_PADDING(n) VIRTIO_QUEUE_SZ2(n) + (4+8*n)
+
+static inline void virtio_init_queue(uint8_t *buf, uint32_t n, struct virtq *q)
+{
+    q->num = n;
+    q->desc = (struct virtq_desc *) buf;
+    q->avail = (struct virtq_avail *) (buf +
+                    VIRTIO_QUEUE_AVAIL_OFFSET(n));
+    q->used = (struct virtq_used *) (buf + 
+                    VIRTIO_QUEUE_USED_OFFSET(n, 4096));
+}
+
+static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
+{
+    return (uint16_t)(new_idx - event_idx - 1) < (uint16_t)(new_idx - old_idx);
+}
+
+/* Get location of event indices (only with VIRTIO_F_EVENT_IDX) */
+static inline uint16_t *virtq_used_event(struct virtq *vq)
+{
+    /* For backwards compat, used event index is at *end* of avail ring. */
+    return &vq->avail->ring[vq->num];
+}
+
+static inline uint16_t *virtq_avail_event(struct virtq *vq)
+{
+    /* For backwards compat, avail event index is at *end* of used ring. */
+    return (uint16_t *)&vq->used->ring[vq->num];
+}
+
+
 #endif /* VIRTQUEUE_H */

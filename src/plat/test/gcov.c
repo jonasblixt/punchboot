@@ -84,6 +84,8 @@ uint32_t gcov_final(void)
 
 		semihosting_file_close(fd);
 	}
+
+    return 0; /* TODO: What should the return value be*/
 }
 
 

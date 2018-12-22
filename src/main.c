@@ -40,7 +40,7 @@ void pb_main(void)
         LOG_ERR ("Board init failed...");
         plat_reset();
     }
-    //pb_writel(0x4000, 0x020A0000);
+
     ts_init = plat_get_us_tick();
 
     LOG_INFO ("PB: " VERSION " starting...");
@@ -119,7 +119,6 @@ void pb_main(void)
         config_commit();
 
         ts4 = plat_get_us_tick();
-        pb_writel(0, 0x020A0000);
         asm("isb");
         
         tfp_printf ("Total: %lu us\n\r",ts4-ts_init);
@@ -138,7 +137,12 @@ run_recovery:
 
     if (flag_run_recovery)
     {
-        usb_init();
+        err = usb_init();
+		if (err != PB_OK)
+		{
+			LOG_ERR("Could not initialize USB");
+			plat_reset();
+		}
         recovery_initialize();
 
         while (flag_run_recovery)

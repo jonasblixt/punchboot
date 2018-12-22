@@ -14,7 +14,6 @@ CFLAGS += -mtune=cortex-a15
 
 PLAT_C_SRCS  += plat/test/uart.c
 PLAT_C_SRCS  += plat/test/usb_test.c
-PLAT_C_SRCS  += plat/test/emmc_test.c
 PLAT_C_SRCS  += plat/test/crypto.c
 PLAT_C_SRCS  += plat/test/reset.c
 PLAT_C_SRCS  += plat/test/pl061.c
@@ -23,6 +22,9 @@ PLAT_C_SRCS  += plat/test/wdog.c
 PLAT_C_SRCS  += plat/test/plat.c
 PLAT_C_SRCS  += plat/test/gcov.c
 PLAT_C_SRCS  += plat/test/virtio.c
+PLAT_C_SRCS  += plat/test/virtio_serial.c
+PLAT_C_SRCS  += plat/test/virtio_block.c
+
 PLAT_ASM_SRCS += plat/test/semihosting_call.S
 
 CFLAGS += -fprofile-arcs -ftest-coverage

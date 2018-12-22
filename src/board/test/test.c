@@ -18,7 +18,8 @@
 #include <plat/test/uart.h>
 #include <plat/test/pl061.h>
 #include <plat/test/virtio.h>
-
+#include <plat/test/virtio_serial.h>
+#include <plat/test/virtio_block.h>
 
 #include "board_config.h"
 
@@ -33,6 +34,7 @@ const uint8_t part_type_system_b[] = { 0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0,
 
 uint32_t board_usb_init(struct usb_device **dev)
 {
+    UNUSED(dev);
    return PB_OK;
 }
 
@@ -42,7 +44,8 @@ __inline uint32_t plat_get_ms_tick(void) {
 }
 
 
-struct virtio_device virtio_serial;
+struct virtio_serial_device virtio_serial;
+struct virtio_block_device virtio_block;
 
 uint32_t board_init(void)
 {
@@ -51,36 +54,58 @@ uint32_t board_init(void)
  
     pl061_init(0x09030000);
 
-/*
-    uint32_t p = 0xA000000;
-    uint32_t reg;
-    for (uint32_t i = 0; i < 32; i++) {
+    virtio_serial.dev.device_id = 3;
+    virtio_serial.dev.vendor_id = 0x554D4551;
+    virtio_serial.dev.base = 0x0A003E00;
 
-        reg = pb_readl(p+0x08);
-    
-        if (reg != 0)
-            LOG_INFO("Virtio-mmio %i @ %8.8lX = %8.8lX",i,
-                                                    p,
-                                                    reg); 
-
-        p = p + 0x200;
+    if (virtio_serial_init(&virtio_serial) != PB_OK)
+    {
+        LOG_ERR("Could not initialize virtio serial port");
+        while(1);
     }
-*/
 
-    virtio_serial.base = 0x0A003E00;
-    virtio_mmio_init(&virtio_serial);
+    virtio_block.dev.device_id = 2;
+    virtio_block.dev.vendor_id = 0x554D4551;
+    virtio_block.dev.base = 0x0A003C00;
 
-/*
- *
- * vd.
- *
- * virtio_mmio_init(&vd);
- *
- *
- *
- * */
+    if (virtio_block_init(&virtio_block) != PB_OK)
+    {
+        LOG_ERR("Could not initialize virtio block device");
+        while(1);
+    }
 
+	//board_write_gpt_tbl();
+	//while(1);
     return PB_OK;
+}
+
+
+uint32_t  plat_emmc_write_block(uint32_t lba_offset, 
+                                uint8_t *bfr, 
+                                uint32_t no_of_blocks)
+{
+	return virtio_block_write(&virtio_block, lba_offset, bfr, no_of_blocks);
+
+}
+
+
+uint32_t  plat_emmc_read_block( uint32_t lba_offset, 
+                                uint8_t *bfr, 
+                                uint32_t no_of_blocks)
+{
+//	LOG_INFO("lba_offset = %lu, n = %lu",lba_offset, no_of_blocks);
+    return virtio_block_read(&virtio_block, lba_offset, bfr, no_of_blocks);
+}
+
+uint32_t  plat_emmc_switch_part(uint8_t part_no)
+{
+    UNUSED(part_no);
+    return PB_ERR;
+}
+
+uint64_t  plat_emmc_get_lastlba(void)
+{
+    return 32768;
 }
 
 uint8_t board_force_recovery(void) {
@@ -89,8 +114,7 @@ uint8_t board_force_recovery(void) {
 
 
 uint32_t board_get_uuid(uint8_t *uuid) {
-    uint32_t *uuid_ptr = (uint32_t *) uuid;
-
+    UNUSED(uuid);
     return PB_OK;
 }
 
@@ -100,6 +124,9 @@ uint32_t board_get_boardinfo(struct board_info *info) {
 }
 
 uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) {
+    UNUSED(uuid);
+    UNUSED(key);
+
     return PB_OK;
 }
 
@@ -110,10 +137,15 @@ uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
 }
 
 uint32_t board_write_gpt_tbl() {
-    return PB_ERR;
+    gpt_init_tbl(1, plat_emmc_get_lastlba());
+    gpt_add_part(0, 1, part_type_config, "Config");
+    gpt_add_part(1, 1024, part_type_system_a, "System A");
+    gpt_add_part(2, 1024, part_type_system_b, "System B");
+    return gpt_write_tbl();
 }
 
 uint32_t board_write_standard_fuses(uint32_t key) {
+    UNUSED(key);
    return PB_OK;
 }
 
@@ -133,4 +165,7 @@ uint32_t board_enable_secure_boot(uint32_t key) {
 
 void board_boot(struct pb_pbi *pbi)
 {
+    UNUSED(pbi);
+	LOG_INFO("Booting");
+	while (1);
 }

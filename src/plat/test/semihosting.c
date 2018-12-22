@@ -85,9 +85,9 @@ long semihosting_file_read(long file_handle, size_t *length, uintptr_t buffer)
 	result = semihosting_call(SEMIHOSTING_SYS_READ,
 				  (void *) &read_block);
 
-	if (result == *length) {
+	if (result == (long) *length) {
 		return -1;
-	} else if (result < *length) {
+	} else if (result < (long) *length) {
 		*length -= result;
 		return 0;
 	} else
@@ -157,7 +157,7 @@ long semihosting_system(char *command_line)
 long semihosting_get_flen(const char *file_name)
 {
 	long file_handle;
-	size_t length;
+	long length;
 
 
 	file_handle = semihosting_file_open(file_name, FOPEN_MODE_RB);
@@ -196,10 +196,12 @@ long semihosting_download_file(const char *file_name,
 		return ret;
 
 	/* Find the actual length of the file */
-	length = semihosting_file_length(file_handle);
-	if (length == -1)
+
+	long status = semihosting_file_length(file_handle);
+	if (status == -1)
 		goto semihosting_fail;
 
+    length = (size_t) status;
 	/* Signal error if we do not have enough space for the file */
 	if (length > buf_size)
 		goto semihosting_fail;

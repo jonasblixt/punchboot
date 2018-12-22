@@ -12,6 +12,8 @@ void pl061_init(__iomem base)
     _base = base;
 
     id = pb_readl(_base + 0xFE0);
+
+    UNUSED(id);
 }
 
 void pl061_configure_direction(uint8_t pin, uint8_t dir)

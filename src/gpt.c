@@ -225,6 +225,10 @@ uint32_t gpt_init(void)
     if (_gpt1.hdr.signature != __gpt_header_signature) 
     {
         LOG_ERR ("Invalid header signature");
+        tfp_printf("  Sig:");
+        for (uint32_t n = 0; n < 8; n++)
+            tfp_printf("%2.2X", (uint8_t) (_gpt1.hdr.signature >> (n*8)) & 0xFF);
+        tfp_printf ("\n\r");
         _flag_gpt_ok = false;
         return PB_ERR;
     }

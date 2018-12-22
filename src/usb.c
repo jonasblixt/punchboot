@@ -215,6 +215,8 @@ uint32_t usb_on_command(struct usb_device *dev, struct usb_pb_command *cmd)
 uint32_t usb_init(void)
 {
     uint32_t err = PB_OK;
+    
+    LOG_INFO("Init");
 
     err = board_usb_init(&usb_dev);
 
