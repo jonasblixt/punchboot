@@ -6,7 +6,7 @@ env:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
    - secure: "Fe8UzmvOO2YIAt5YEa2IKaPnD5lzbuIVZfiAneDQPOxP9FxyL6HxmVtblRFkddaTRxFqPnC0DNnFa20+D/VwxoljjL9USXbaXvuonwRWQ8ujCFm2aymmrxpbHLmD+n3n5OlvMG2zM/xWbn+3G53UHJ5DO8NS3GZEICzWiPHWQkfrHvCKrH46Z0WaqiSwP9+VEgIK+QTBOARzKXhmwswf5CUhBy9u64UoXZGXebtDlR24q1GjBoh0hz4nYhTpq9PlgfLDCK18uA7xsVQ2J/223NE0u91J2ucf1Yb+oMs/MQBr58UuvxUBNMETXwwUXfInrpWCYA3mgFECK24Xc+mNXDJ4LBSPe9Vkjezv8+qoO6nhrrK9z9UchPmydMbLbDvJUDZFoI0mSfgkpEJfPN5zX5LGMypSEF+y2EbT27AwJa2BYMKHa3aYax6Ds7x5fgSZp5T0+gSxT3KPvCSBriMOisqdQDTshwbNUiN9vndkHh0cfCBZ3CcDyXEGMFVIWnq0n7mvtitMMgQA6DGhqnhDoDZXelLh39lwSwgdTpxje7ZEN6cAOyzoVwdIwkHJizfjrWyf7hfufi2rclmkU/oCG+d2QNdLHq9VMVVhUqFQvBPJAY94NKzemdjCLfb9j1KddU5vYZ5HclZrxyZaQGKPLSFR1Nnz9FzGZLr14uc1Rq4="
-
+   - CROSS_COMPILE="/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi-"
 before_install:
   - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
   - pip install --user cpp-coveralls
@@ -22,11 +22,11 @@ addons:
       description: "Build submitted via Travis CI"
     notification_email: jonpe960@gmail.com
     build_command_prepend: ""
-    build_command:   "CROSS_COMPILE=/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi- make"
+    build_command:   " make"
     branch_pattern: "coverity"
 
 script:
-    - cd src && make BOARD=test CROSS_COMPILE=/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi- LOGLEVEL=10
+    - cd src && make BOARD=test LOGLEVEL=10
     - dd if=/dev/zero of=/tmp/disk bs=1M count=32
     - qemu-system-arm -machine virt -cpu cortex-a15 -m 1024 -nographic -semihosting -device virtio-serial-device  -chardev socket,path=/tmp/foo,server,nowait,id=foo -device virtserialport,chardev=foo -device virtio-blk-device,drive=disk -drive id=disk,file=/tmp/disk,if=none,format=raw  -kernel pb
 jobs:
