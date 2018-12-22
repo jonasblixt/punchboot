@@ -6,7 +6,7 @@
 uint32_t  plat_usb_init(struct usb_device *dev)
 {
     UNUSED(dev);
-    return PB_OK;
+    return PB_ERR;
 }
 
 void      plat_usb_task(struct usb_device *dev)

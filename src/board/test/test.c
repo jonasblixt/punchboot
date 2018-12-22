@@ -20,6 +20,7 @@
 #include <plat/test/virtio.h>
 #include <plat/test/virtio_serial.h>
 #include <plat/test/virtio_block.h>
+#include <plat/test/gcov.h>
 
 #include "board_config.h"
 
@@ -60,6 +61,8 @@ uint32_t board_init(void)
     init_printf(NULL, &plat_uart_putc);
  
     pl061_init(0x09030000);
+
+	gcov_init();	
 
     virtio_serial.dev.device_id = 3;
     virtio_serial.dev.vendor_id = 0x554D4551;

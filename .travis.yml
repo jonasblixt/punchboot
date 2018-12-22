@@ -11,7 +11,7 @@ before_install:
   - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
   - pip install --user cpp-coveralls
   - sudo apt install libcunit1-dev qemu-system-arm curl
-  - curl -sL https://releases.linaro.org/components/toolchain/binaries/latest-7/arm-eabi/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi.tar.xz | tar xJv -C /tmp
+  - curl -sL https://releases.linaro.org/components/toolchain/binaries/latest-7/arm-eabi/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi.tar.xz | tar xJ -C /tmp
 
 addons:
   apt:
@@ -27,7 +27,8 @@ addons:
 
 script:
     - cd src && make BOARD=test CROSS_COMPILE=/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi- LOGLEVEL=10
-
+    - dd if=/dev/zero of=/tmp/disk bs=1M count=32
+    - qemu-system-arm -machine virt -cpu cortex-a15 -m 1024 -nographic -semihosting -device virtio-serial-device  -chardev socket,path=/tmp/foo,server,nowait,id=foo -device virtserialport,chardev=foo -device virtio-blk-device,drive=disk -drive id=disk,file=/tmp/disk,if=none,format=raw  -kernel src/pb
 jobs:
     include:
         -   stage: Code Coverage
