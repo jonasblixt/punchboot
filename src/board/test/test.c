@@ -14,6 +14,7 @@
 #include <io.h>
 #include <gpt.h>
 #include <usb.h>
+#include <tomcrypt.h>
 
 #include <plat/test/uart.h>
 #include <plat/test/pl061.h>
@@ -55,8 +56,62 @@ __inline uint32_t plat_get_ms_tick(void)
 struct virtio_serial_device virtio_serial;
 struct virtio_block_device virtio_block;
 
+uint8_t heap[8192];
+uint32_t heap_ptr = 0;
+
+void *malloc(size_t size)
+{
+	if ((heap_ptr+size) > 8192)
+	{
+		LOG_ERR("Out of memory");
+		return NULL;
+	}
+	void * ptr = (void *) heap[heap_ptr];
+	heap_ptr += size;
+
+	return ptr;
+}
+
+void free(void *ptr)
+{
+}
+
+void *calloc(size_t nmemb, size_t size)
+{
+	return malloc (nmemb*size);
+}
+
+void *realloc(void *ptr, size_t size)
+{
+	return malloc(size);
+}
+
+int rand(void)
+{
+	return 0;
+}
+
+
+const char *__locale_ctype_ptr(void)
+{
+}
+
+uint64_t __aeabi_uldivmod(uint64_t a, uint64_t b)
+{
+}
+
+void qsort(void *base, size_t nmemb, size_t size,
+			int(*compar)(const void*, const void*))
+{
+}
+
+clock_t clock(void)
+{
+}
+
 uint32_t board_init(void)
 {
+
     test_uart_init();
     init_printf(NULL, &plat_uart_putc);
  
@@ -84,8 +139,9 @@ uint32_t board_init(void)
         while(1);
     }
 
-	//board_write_gpt_tbl();
-	//while(1);
+ /*   uint32_t err = rsa_verify_hash_ex (hash, 0, hash, 32, 
+                    LTC_PKCS_1_V1_5 , 0, 0, NULL, NULL);
+*/
     return PB_OK;
 }
 

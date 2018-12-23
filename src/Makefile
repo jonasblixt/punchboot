@@ -79,14 +79,11 @@ OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)
 OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o) 
 OBJS	 += $(RSA_KEYS_SRCS:.der=.dero)
 
-TOMCRYPT_CFLAGS  = -DARGTYPE=3 -DLTC_NO_TEST -DLTC_NO_FILE $(CFLAGS)
-TOMCRYPT_CFLAGS += -DUSE_LTM -DLTM_DESC -I../libtommath/ -L../libtommath/
-
 ifeq ($(BOARD),test)
 	include tests/makefile.mk
 endif
 
-all: $(TARGET).bin board_final
+all: plat_dep $(TARGET).bin board_final
 	$(info Summary:)
 	$(info )
 	$(info BOARD:     [${PB_BOARD_NAME}])
@@ -99,11 +96,6 @@ all: $(TARGET).bin board_final
 
 todo:
 	@grep -lR "TODO:" *
-
-libtomcrypt:
-	@$(MAKE) -C 3pp/libtommath CC=$(CC) AR=$(AR)
-	@$(MAKE) -C 3pp/libtomcrypt/ CC=$(CC) AR=$(AR) \
-		CFLAGS="$(TOMCRYPT_CFLAGS)" EXTRALIBS="-ltommath"
 
 $(TARGET).bin: $(TARGET)
 	@echo OBJCOPY $< $@
@@ -128,7 +120,7 @@ $(TARGET): $(OBJS)
 install: board_final
 	@punchboot boot -w -r -f $(FINAL_IMAGE)
 
-.PHONY: board_clean arch_clean plat_clean
+.PHONY: board_clean arch_clean plat_clean plat_dep
 
 clean: board_clean arch_clean plat_clean
 	@-rm -rf *.o $(TARGET) $(TARGET).bin *.map out
