@@ -3,6 +3,9 @@
 *.imx
 *.dero
 *.xmio
+*.gcda
+*.gcno
+*.gcov
 cscope*
 src/pb
 tools/punchboot/punchboot

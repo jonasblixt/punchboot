@@ -167,9 +167,10 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_FLASH_BOOTLOADER:
         {
-            uint32_t no_of_blks;
-            LOG_INFO ("Flash BL %li",no_of_blks);
+            uint32_t no_of_blks = 0;
             recovery_read_data(dev, (uint8_t *) &no_of_blks, 4);
+
+            LOG_INFO ("Flash BL %li",no_of_blks);
             recovery_flash_bootloader(recovery_bulk_buffer[0], no_of_blks);
         }
         break;
