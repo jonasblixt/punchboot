@@ -92,7 +92,7 @@ all: plat_dep $(TARGET).bin board_final
 	$(info LOGLEVEL:  [${LOGLEVEL}])
 	@echo "VERSION = $(GIT_VERSION)"
 	$(info )
-	@$(SIZE) -A $(TARGET)
+	@$(SIZE) -x -A $(TARGET)
 
 todo:
 	@grep -lR "TODO:" *
