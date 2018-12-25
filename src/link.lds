@@ -48,7 +48,7 @@ SECTIONS
  	.stack :
     {
         PROVIDE(_stack_start = .);
-        . = . + 4*1024 ;
+        . = . + 32*1024 ;
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
     } > dram
