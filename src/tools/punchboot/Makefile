@@ -31,7 +31,7 @@ LIBS     = `$(PKG_CONFIG) --libs libusb-1.0` -luuid
 LDFLAGS =  
 
 ASM_SRCS = 
-C_SRCS   = $(TARGET).c crc.c utils.c
+C_SRCS   = $(TARGET).c crc.c utils.c usb_transport.c recovery_protocol.c
 
 OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 
