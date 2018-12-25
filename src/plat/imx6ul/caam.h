@@ -92,7 +92,4 @@ struct fsl_caam {
 
 int caam_init(struct fsl_caam *d);
 
-void caam_sha256_sum(struct fsl_caam *d, uint8_t *data, uint32_t sz, uint8_t* out);
-
- 
 #endif /* __CAAM_H__ */

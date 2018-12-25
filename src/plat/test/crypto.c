@@ -31,11 +31,18 @@ uint32_t  plat_sha256_finalize(uint8_t *out)
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
           struct asn1_key *k)
 {
-    UNUSED(sig);
-    UNUSED(sig_sz);
-    UNUSED(out);
-    UNUSED(k);
-    return PB_ERR;
+    unsigned char *tmpbuf = NULL;
+    unsigned long x;
+    rsa_key key;
+    key.e = (void *) k->exp;
+    key.N = (void *) k->mod;
+    key.type = PK_PUBLIC;
+
+    if (ltc_mp.rsa_me(sig, sig_sz, tmpbuf, &x, PK_PUBLIC, &key) != CRYPT_OK)
+        return PB_ERR;
+
+    memcpy(out, tmpbuf, 512);
+    return PB_OK;
 }
 
 

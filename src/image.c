@@ -63,7 +63,6 @@ bool pb_image_verify(struct pb_pbi* pbi, uint32_t key_index)
             pbi->hdr.sign_length = sizeof(sign_copy);
     
     LOG_INFO("Signature length = %lu", pbi->hdr.sign_length);
-
     memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
     sign_sz = pbi->hdr.sign_length;
     pbi->hdr.sign_length = 0;

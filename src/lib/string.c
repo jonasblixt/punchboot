@@ -9,6 +9,7 @@
 
 
 #include <string.h>
+#include <stdint.h>
 
 void* memcpy(void *dest, const void *src, size_t sz) {
     uint8_t *p1 = (uint8_t*) dest;

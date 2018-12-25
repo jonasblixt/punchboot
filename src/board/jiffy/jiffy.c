@@ -87,7 +87,6 @@ uint32_t board_usb_init(struct usb_device **dev)
 uint32_t board_init(void)
 {
 
-
     /* Configure UART */
     pb_writel(0, 0x020E0094);
     pb_writel(0, 0x020E0098);
@@ -121,20 +120,6 @@ uint32_t board_init(void)
     pb_writel(1, 0x020E0000+0x1A4); /* RESET MUX */
 
     usdhc_emmc_init();
-
-
-/*
-    uint32_t fuse_test = 0;
-    fuse_test = pb_readl(0x021BC450);
-    tfp_printf ("F: 0x%8.8X\n\r",fuse_test);
-  
-    fuse_test = pb_readl(0x021BC460);
-    tfp_printf ("F: 0x%8.8X\n\r",fuse_test);
-
-    fuse_test = pb_readl(0x021BCCC0);
-    tfp_printf ("F: 0x%8.8X\n\r",fuse_test);
-*/
-
 
     return PB_OK;
 }

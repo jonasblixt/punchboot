@@ -1,12 +1,13 @@
 #include <board.h>
 #include <io.h>
+#include <tinyprintf.h>
 #include <plat/imx6ul/gpt.h>
 #include <plat/imx6ul/caam.h>
 #include <plat/imx6ul/ocotp.h>
 
-static struct fsl_caam caam;
 static struct ocotp_dev ocotp;
 static struct gp_timer platform_timer;
+static struct fsl_caam caam;
 
 uint32_t plat_get_us_tick(void) 
 {
@@ -60,10 +61,6 @@ uint32_t plat_early_init(void)
     pb_writel(0xFFFFFFFF, 0x020C4000+0x7C); /* Ungate usdhc clk*/
     pb_writel(0xFFFFFFFF, 0x020C4000+0x80); /* Ungate usdhc clk*/
 
-    /* Configure CAAM */
-    caam.base = 0x02140000;
-    if (caam_init(&caam) != PB_OK)
-        return PB_ERR;
 
     uint32_t csu = 0x21c0000;
     /* Allow everything */
@@ -73,6 +70,12 @@ uint32_t plat_early_init(void)
     
     ocotp.base = 0x021BC000;
     ocotp_init(&ocotp);
+
+    /* Configure CAAM */
+    caam.base = 0x02140000;
+
+    if (caam_init(&caam) != PB_OK)
+        return PB_ERR;
 
     return PB_OK;
 }
