@@ -58,7 +58,8 @@ int pb_print_version(void)
     pb_read((uint8_t*) &sz, 4);
     pb_read((uint8_t*) &version_string, sz);
 
-    printf ("Version: %s\n",version_string);
+    version_string[sz] = 0;
+    printf ("Version: '%s', l=%u\n",version_string,sz);
     return 0;
 }
 
@@ -87,7 +88,8 @@ int pb_print_gpt_table(void)
         return err;
 
     printf ("GPT Table:\n");
-    for (int i = 0; i < gpt.hdr.no_of_parts; i++) {
+    for (int i = 0; i < gpt.hdr.no_of_parts; i++) 
+    {
         part = &gpt.part[i];
 
         if (!part->first_lba)
