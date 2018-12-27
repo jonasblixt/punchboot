@@ -52,6 +52,7 @@ __inline uint32_t plat_get_ms_tick(void)
     return 1;
 }
 
+/* simplistic malloc functions needed by libtomcrypt */
 
 struct virtio_block_device virtio_block;
 
@@ -83,7 +84,10 @@ void *calloc(size_t nmemb, size_t size)
 
 void *realloc(void *ptr, size_t size)
 {
-	return malloc(size);
+    void *new_ptr = malloc(size);
+    memcpy(new_ptr,ptr,size);
+
+	return new_ptr;
 }
 
 int rand(void)

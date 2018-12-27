@@ -67,11 +67,6 @@ uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out,
         return PB_ERR;
     }
 
-    for (uint32_t n = 0; n < 1024; n++)
-        tfp_printf("%2.2X",tmpbuf[n]);
-    tfp_printf("\n\rerr = %lu\n\r",err);
-
-    LOG_INFO("%lu %lu",x,sig_sz);
     memcpy(out, tmpbuf, 512);
     return err;
 }
