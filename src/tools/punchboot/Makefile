@@ -40,6 +40,15 @@ ifndef TRANSPORT
 		TRANSPORT = usb
 endif
 
+ifeq ($(TRANSPORT), socket)
+	TRANSPORT = socket
+	CFLAGS += -fprofile-arcs -ftest-coverage
+else ifeq ($(TRANSPORT), usb)
+	TRANSPORT = usb
+else
+$(error Invalid transport selected)
+endif
+
 C_SRCS  += $(TRANSPORT)_transport.c
 
 OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)

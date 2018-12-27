@@ -24,6 +24,41 @@
 #include "transport.h"
 #include "recovery_protocol.h"
 
+static int print_gpt_table(void)
+{
+    struct gpt_primary_tbl gpt;
+    int err;
+    char str_type_uuid[37];
+    uint8_t tmp_string[64];
+    struct gpt_part_hdr *part;
+
+    err = pb_get_gpt_table(&gpt);
+
+    if (err != 0)
+        return err;
+
+    if (gpt.hdr.no_of_parts == 0)
+        return -1;
+
+    printf ("GPT Table:\n");
+    for (int i = 0; i < gpt.hdr.no_of_parts; i++) 
+    {
+        part = &gpt.part[i];
+
+        if (!part->first_lba)
+            break;
+        
+        uuid_unparse_upper(part->type_uuid, str_type_uuid);
+        utils_gpt_part_name(part, tmp_string, 36);
+        printf (" %i - [%16s] lba 0x%8.8lX - 0x%8.8lX, TYPE: %s\n", i,
+                tmp_string,
+                part->first_lba, part->last_lba,
+                str_type_uuid);
+                                
+    }
+
+    return 0;
+}
 
 static void pb_display_device_info(void)
 {
@@ -68,6 +103,7 @@ int main(int argc, char **argv) {
     extern char *optarg;
     extern int optind, opterr, optopt;
     char c;
+    int err;
 
     if (argc <= 1) {
         print_help();
@@ -89,7 +125,8 @@ int main(int argc, char **argv) {
     char *cmd = argv[1];
     uint32_t cmd_value = 0;
 
-    transport_init();
+    if (transport_init() != 0)
+        exit(-1);
 
     while ((c = getopt (argc-1, &argv[1], "hiwrxsln:f:v:")) != -1) {
         switch (c) {
@@ -164,8 +201,12 @@ int main(int argc, char **argv) {
     }
 
     if (strcmp(cmd, "part") == 0) {
-        if (flag_list) 
-            pb_print_gpt_table();
+        if (flag_list) {
+            err = print_gpt_table();
+            if (err != 0)
+                exit(err);
+        }
+
         else if (flag_write && flag_index && fn) {
             printf ("Writing %s to part %i\n",fn, cmd_index);
             pb_flash_part(cmd_index, fn);

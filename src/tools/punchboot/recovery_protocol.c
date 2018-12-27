@@ -63,14 +63,10 @@ int pb_print_version(void)
     return 0;
 }
 
-int pb_print_gpt_table(void) 
+int pb_get_gpt_table(struct gpt_primary_tbl *tbl) 
 {
-    struct gpt_primary_tbl gpt;
-    struct gpt_part_hdr *part;
-    char str_type_uuid[37];
     uint32_t tbl_sz = 0;
     int err;
-    uint8_t tmp_string[64];
 
     err = pb_write(PB_CMD_GET_GPT_TBL, NULL, 0);
 
@@ -82,27 +78,10 @@ int pb_print_gpt_table(void)
     if (err)
         return err;
 
-    err = pb_read((uint8_t*) &gpt, tbl_sz);
+    err = pb_read((uint8_t*) tbl, tbl_sz);
 
     if (err)
         return err;
-
-    printf ("GPT Table:\n");
-    for (int i = 0; i < gpt.hdr.no_of_parts; i++) 
-    {
-        part = &gpt.part[i];
-
-        if (!part->first_lba)
-            break;
-        
-        uuid_unparse_upper(part->type_uuid, str_type_uuid);
-        utils_gpt_part_name(part, tmp_string, 36);
-        printf (" %i - [%16s] lba 0x%8.8lX - 0x%8.8lX, TYPE: %s\n", i,
-                tmp_string,
-                part->first_lba, part->last_lba,
-                str_type_uuid);
-                                
-    }
 
     return 0;
 }

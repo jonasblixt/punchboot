@@ -131,7 +131,8 @@ clean: board_clean arch_clean plat_clean
 	@find -name "*.gcno" -exec rm -f {} \;
 	@find -name "*.gcda" -exec rm -f {} \;
 
-
+qemu:
+	@$(QEMU) $(QEMU_FLAGS) -kernel $(TARGET)
 
 reallyclean: clean
 	$(MAKE) -C 3pp/libtomcrypt clean

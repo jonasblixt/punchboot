@@ -1,5 +1,9 @@
 TESTS  = test_boot
 
+INTEGRATION_TESTS  = test_reset
+INTEGRATION_TESTS += test_part
+
+
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"
 QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m 1024 
@@ -24,6 +28,10 @@ test: $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS) $(TEST_OBJS)
 		$(LD) $(LDFLAGS) $(OBJS) $(TEST_OBJS) \
 			 $(LIBS) $(TEST).o -o $(TEST) && \
 		echo "TEST $(TEST)" && \
-		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST))
-	@echo "*** ALL $(words ${TESTS}) TESTS PASSED ***"
+		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST);)
+
+	@$(foreach TEST,$(INTEGRATION_TESTS), \
+		QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS)" TEST_NAME="$(TEST)" tests/$(TEST).sh;)
+
+	@echo "*** ALL $(words ${TESTS} ${INTEGRATION_TESTS}) TESTS PASSED ***"
 
