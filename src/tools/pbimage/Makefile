@@ -24,15 +24,11 @@ GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 PKG_CONFIG ?= pkg-config
 CFLAGS   = -Wall -O2 -I ../../include/ 
 CFLAGS  += `$(PKG_CONFIG) --cflags libtomcrypt`
-CFLAGS  += `$(PKG_CONFIG) --cflags libtommath`
 CFLAGS  += `$(PKG_CONFIG) --cflags uuid`
 CFLAGS  += -I. -DUSE_LTM -DLTM_DESC 
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 
-LIBS    =   -lc
-LIBS   +=  `$(PKG_CONFIG) --libs libtommath`
-LIBS   +=  `$(PKG_CONFIG) --libs libtomcrypt`
-LIBS   +=  `$(PKG_CONFIG) --libs uuid`
+LIBS    =   -lc -ltommath -luuid -ltomcrypt
 LDFLAGS =
 
 ASM_SRCS = 
