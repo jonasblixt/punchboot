@@ -18,10 +18,8 @@ void __assert_func(const char *fn,
 
 void pb_main(void) 
 {
-
+    plat_early_init();
     board_init();
-	gcov_init();
     test_main();
-	gcov_final();
     semihosting_sys_exit(0);
 }

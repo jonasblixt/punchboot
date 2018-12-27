@@ -35,10 +35,6 @@
  *
  */
 
-static struct gp_timer platform_timer;
-static struct fsl_caam caam;
-static struct ocotp_dev ocotp;
-
 
 const uint8_t part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 
         0x45, 0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8};
@@ -79,11 +75,6 @@ uint32_t board_usb_init(struct usb_device **dev)
     return PB_OK;
 }
 
-/* TODO: MOVE TO Platform */
-__inline uint32_t plat_get_us_tick(void) {
-    return gp_timer_get_tick(&platform_timer);
-}
-
 /*
  * TODO: Make sure that all of these clocks are running at
  *       maximum rates
@@ -105,50 +96,6 @@ uint32_t board_init(void)
 {
     uint32_t reg;
 
-    platform_timer.base = GP_TIMER1_BASE;
-    gp_timer_init(&platform_timer);
-
-    /* TODO: This soc should be able to run at 696 MHz, but it is unstable
-     *    Maybe the PM is not properly setup
-     * */
-
-
-    /*** Configure ARM Clock ***/
-    reg = pb_readl(0x020C400C);
-    /* Select step clock, so we can change arm PLL */
-    pb_writel(reg | (1<<2), 0x020C400C);
-
-
-    /* Power down */
-    pb_writel((1<<12) , 0x020C8000);
-
-    /* Configure divider and enable */
-    /* f_CPU = 24 MHz * 88 / 4 = 528 MHz */
-    pb_writel((1<<13) | 88, 0x020C8000);
-
-
-    /* Wait for PLL to lock */
-    while (!(pb_readl(0x020C8000) & (1<<31)))
-        asm("nop");
-
-    /* Select re-connect ARM PLL */
-    pb_writel(reg & ~(1<<2), 0x020C400C);
-    
-    /*** End of ARM Clock config ***/
-
-
-
-
-    /* Ungate all clocks */
-    /* TODO: Only ungate necessary clocks and move to platform init */
-    pb_writel(0xFFFFFFFF, 0x020C4000+0x68); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, 0x020C4000+0x6C); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, 0x020C4000+0x70); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, 0x020C4000+0x74); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, 0x020C4000+0x78); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, 0x020C4000+0x7C); /* Ungate usdhc clk*/
-    pb_writel(0xFFFFFFFF, 0x020C4000+0x80); /* Ungate usdhc clk*/
-
 
     /* Configure UART */
     pb_writel(0, 0x020E0094);
@@ -159,13 +106,6 @@ uint32_t board_init(void)
     imx_uart_init(UART_PHYS);
 
     init_printf(NULL, &plat_uart_putc);
- 
-    /* Configure CAAM */
-    caam.base = 0x02140000;
-    if (caam_init(&caam) != PB_OK) {
-        tfp_printf ("CAAM: Init failed\n\r");
-        return PB_ERR;
-    }
 
 
    /* Configure UART1_RX_DATA as GPIO1 21 Input with PU, 
@@ -192,16 +132,6 @@ uint32_t board_init(void)
     usdhc_emmc_init();
 
 
-	uint32_t csu = 0x21c0000;
-    /* Allow full access in all execution modes
-     * TODO: This Obiously needs to be properly setup!
-     * */
-	for (int i = 0; i < 40; i ++) {
-		*((uint32_t *)csu + i) = 0xffffffff;
-	}
-    
-    ocotp.base = 0x021BC000;
-    ocotp_init(&ocotp);
     return PB_OK;
 }
 
@@ -272,7 +202,7 @@ uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
 }
 
 uint32_t board_write_gpt_tbl() {
-    gpt_init_tbl(1, plat_emmc_get_lastlba());
+    gpt_init_tbl(1, plat_get_lastlba());
     gpt_add_part(0, 1, part_type_config, "Config");
     gpt_add_part(1, 512000, part_type_system_a, "System A");
     gpt_add_part(2, 512000, part_type_system_b, "System B");
@@ -304,3 +234,19 @@ uint32_t board_enable_secure_boot(uint32_t key) {
     return PB_OK;
 }
 
+void board_boot(struct pb_pbi *pbi)
+{
+
+    struct pb_component_hdr *tee = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_TEE);
+
+    struct pb_component_hdr *vmm = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_VMM);
+
+    LOG_INFO(" VMM %lX, TEE %lX", vmm->load_addr_low, tee->load_addr_low);
+    
+    asm volatile("mov lr, %0" "\n\r"
+                 "mov pc, %1" "\n\r"
+                    :
+                    : "r" (vmm->load_addr_low), "r" (tee->load_addr_low));
+}

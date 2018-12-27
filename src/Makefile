@@ -44,7 +44,7 @@ ARCH_C_SRCS =
 PLAT_ASM_SRCS =
 PLAT_C_SRCS =
 
-C_SRCS   = main.c
+#C_SRCS   = main.c
 C_SRCS  += recovery.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c 
@@ -101,9 +101,9 @@ $(TARGET).bin: $(TARGET)
 	@echo OBJCOPY $< $@
 	@$(OBJCOPY) -O binary -R .comment $< $@
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) main.o
 	@echo LD $@
-	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+	@$(LD) $(LDFLAGS) $(OBJS) main.o $(LIBS) -o $@
 
 %.dero: %.der
 	@echo KEY $<
