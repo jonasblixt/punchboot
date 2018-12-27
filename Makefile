@@ -4,6 +4,7 @@ all:
 	@make -C src/ BOARD=bebop
 	@make -C src/ BOARD=bebop clean
 	@make -C src/ BOARD=test LOGLEVEL=10
+	@make -C src/tools/pbimage CROSS_COMPILE=""
 	@make -C src/tools/punchboot CROSS_COMPILE="" TRANSPORT=socket
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32
 	@make -C src/ BOARD=test LOGLEVEL=10 test
