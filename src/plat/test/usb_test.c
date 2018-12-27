@@ -6,6 +6,7 @@
 #include <plat/test/socket_proto.h>
 
 struct virtio_serial_device d;
+static uint32_t usb_addr = 0;
 
 uint32_t  plat_usb_init(struct usb_device *dev)
 {
@@ -33,13 +34,13 @@ void      plat_usb_task(struct usb_device *dev)
     virtio_serial_read(&d, (uint8_t *) &hdr, sizeof(struct pb_socket_header));
     virtio_serial_write(&d, &status, 1);
     //LOG_INFO("Got hdr, ep=%lu, sz=%lu",hdr.ep,hdr.sz);
-    if (hdr.ep == 2)
+    if (hdr.ep == 4)
     {
         virtio_serial_read(&d, (uint8_t *) &cmd, 
                             sizeof(struct usb_pb_command));
 
         virtio_serial_write(&d, &status, 1);
-        //LOG_INFO("cmd: %lu",cmd.command);
+
         dev->on_command(dev, &cmd);
     } else {
         LOG_ERR("Unexpected transfer: ep=%lu, sz=%lu", hdr.ep, hdr.sz);
@@ -53,15 +54,9 @@ uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep,
     UNUSED(dev);
 
     if (ep & 1)
-        LOG_INFO("IN Guest->Host, %2.2X, %u",ep,sz);
-    else
-        LOG_INFO("OUT Host->Guest, %2.2X, %u",ep,sz);
-
-    if (ep & 1)
     {
         virtio_serial_write(&d, bfr, sz);
     } else { 
-
         virtio_serial_read(&d, bfr, sz);    
         virtio_serial_write(&d, &status, 1);
     }
@@ -72,7 +67,7 @@ uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep,
 void      plat_usb_set_address(struct usb_device *dev, uint32_t addr)
 {
     UNUSED(dev);
-    UNUSED(addr);
+    usb_addr = addr;
 }
 
 void      plat_usb_set_configuration(struct usb_device *dev)

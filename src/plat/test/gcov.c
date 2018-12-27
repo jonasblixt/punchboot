@@ -23,7 +23,7 @@ void __gcov_init (struct gcov_info *p)
 	//tfp_printf("GCOV_COUNTERS = %u\n\r",GCOV_COUNTERS);
 	long fd = semihosting_file_open(p->filename, 11);
 	
-	long f_length = semihosting_file_length(fd);
+	//long f_length = semihosting_file_length(fd);
 	//tfp_printf ("  %li %libytes\n\r",fd, f_length);
 
 	semihosting_file_close(fd);

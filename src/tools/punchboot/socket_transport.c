@@ -43,7 +43,7 @@ int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
     cmd_hdr.cmd = cmd;
     cmd_hdr.size = sz;
 
-	hdr.ep = 2;
+	hdr.ep = 4;
 	hdr.sz = sz + sizeof(struct pb_cmd_header);
 
 	tx_bytes = write(fd, &hdr, sizeof(struct pb_socket_header));
@@ -79,11 +79,25 @@ int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
 int pb_read(uint8_t *bfr, int sz)
 {
 	size_t rx_bytes;
+    uint32_t remaining = sz;
+    uint32_t read_count = 0;
+    uint32_t chunk;
+    uint32_t count = 0;
 
-	rx_bytes = read(fd, bfr, sz);
+    while (remaining)
+    {
+        if (remaining > 4096)
+            chunk = 4096;
+        else
+            chunk = remaining;
+	    rx_bytes = read(fd, &bfr[read_count], chunk);
+        count++;
+        remaining -= rx_bytes;
+        read_count += rx_bytes;
+    }
 
-    //printf ("Read %lu bytes (of %i)\n",rx_bytes,sz);
-	if (rx_bytes != sz)
+    //printf ("Read %lu bytes (of %i), count = %u\n",read_count,sz,count);
+	if (read_count != sz)
 		return -1;
 
 	return 0;
@@ -92,16 +106,34 @@ int pb_read(uint8_t *bfr, int sz)
 int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
 {
     uint8_t status = 0;
+    uint32_t tx_bytes = 0;
+	struct pb_socket_header hdr;
+    uint32_t remaining = sz;
+    uint32_t chunk = 0;
+    uint32_t pos = 0;
+    hdr.ep = 2;
+    hdr.sz = sz;
+   
 
     if (bfr && sz) 
     {
-        *sz_tx = write(fd, bfr, sz);
+        while (remaining)
+        {
+            if (remaining > 4096)
+                chunk = 4096;
+            else
+                chunk = remaining;
 
-        if (*sz_tx != sz) {
-            printf ("Error sending data\n");
-            return -1;
+            
+            *sz_tx = write(fd, &bfr[pos], chunk);
+
+            if (*sz_tx != chunk) {
+                printf ("Error sending data\n");
+                return -1;
+            }
+            remaining -= chunk;
+            pos += chunk;
         }
-
         read(fd, &status, 1);
     }
 	return 0;
@@ -109,4 +141,5 @@ int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
 
 void transport_exit(void)
 {
+    close(fd);
 }

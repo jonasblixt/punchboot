@@ -218,8 +218,8 @@ int pb_flash_part (uint8_t part_no, const char *f_name)
         pb_write(PB_CMD_PREP_BULK_BUFFER, 
                 (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
 
-        err = pb_write_bulk(bfr, read_sz, &sent_sz);
- 
+        printf("read_sz = %u (%u)\n",read_sz, bfr_cmd.no_of_blocks*512);
+        err = pb_write_bulk(bfr, bfr_cmd.no_of_blocks*512, &sent_sz);
         if (err != 0) {
             printf ("Bulk xfer error, err=%i\n",err);
             goto err_xfer;

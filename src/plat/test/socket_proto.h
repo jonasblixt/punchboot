@@ -7,6 +7,6 @@ struct pb_socket_header
 {
     uint32_t ep;
     uint32_t sz;
-};
+} __attribute__ ((packed));
 
 #endif

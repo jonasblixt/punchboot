@@ -75,6 +75,7 @@ void *malloc(size_t size)
 
 void free(void *ptr)
 {
+    UNUSED(ptr);
 }
 
 void *calloc(size_t nmemb, size_t size)
@@ -105,12 +106,18 @@ void qsort(void *base, size_t nmemb, size_t size,
 			int(*compar)(const void*, const void*))
 {
 
+    UNUSED(base);
+    UNUSED(nmemb);
+    UNUSED(size);
+    UNUSED(compar);
+
     LOG_ERR("qsort called");
     while(1);
 }
 
 clock_t clock(void)
 {
+    return 0;
 }
 
 uint32_t board_init(void)

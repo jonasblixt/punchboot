@@ -56,19 +56,19 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 	struct virtq *q = &d->q;
     uint16_t idx = q->avail->idx;
 
-    q->desc[idx].addr = (uint64_t) &r;
+    q->desc[idx].addr = (uint32_t) &r;
     q->desc[idx].len = sizeof(struct virtio_blk_req);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
     q->desc[idx].next = (idx + 1) % q->num;
     idx = (idx + 1) % q->num;
 
-	q->desc[idx].addr = (uint64_t) (buf);
+	q->desc[idx].addr = (uint32_t) (buf);
 	q->desc[idx].len = 512*no_of_blocks;
 	q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
 	q->desc[idx].next = (idx + 1) % q->num;
 	idx = (idx + 1) % q->num;
 
-    q->desc[idx].addr = (uint64_t) &status;
+    q->desc[idx].addr = (uint32_t) &status;
     q->desc[idx].len = 1;
     q->desc[idx].flags = VIRTQ_DESC_F_WRITE;
     q->desc[idx].next = 0;

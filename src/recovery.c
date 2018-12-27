@@ -163,6 +163,7 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
 
             err = plat_usb_transfer(dev, USB_EP1_OUT, bfr,
                                                 cmd_prep.no_of_blocks*512);
+
         }
         break;
         case PB_CMD_FLASH_BOOTLOADER:
