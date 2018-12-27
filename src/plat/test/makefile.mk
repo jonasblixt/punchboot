@@ -48,6 +48,8 @@ PLAT_C_SRCS += 3pp/libtomcrypt/src/misc/crypt/crypt_prng_is_valid.c
 PLAT_C_SRCS += 3pp/libtomcrypt/src/misc/crypt/crypt_ltc_mp_descriptor.c
 PLAT_C_SRCS += 3pp/libtomcrypt/src/pk/rsa/rsa_make_key.c
 PLAT_C_SRCS += 3pp/libtomcrypt/src/pk/rsa/rsa_free.c
+
+PLAT_C_SRCS += 3pp/libtomcrypt/src/pk/rsa/rsa_set.c
 PLAT_C_SRCS += 3pp/libtomcrypt/src/pk/rsa/rsa_exptmod.c
 PLAT_C_SRCS += 3pp/libtomcrypt/src/pk/ecc/ltc_ecc_mul2add.c
 PLAT_C_SRCS += 3pp/libtomcrypt/src/pk/ecc/ltc_ecc_points.c

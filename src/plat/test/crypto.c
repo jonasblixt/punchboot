@@ -1,5 +1,6 @@
 #include <pb.h>
 #include <plat.h>
+#include <tinyprintf.h>
 #include <tomcrypt.h>
 
 static hash_state md;
@@ -28,21 +29,51 @@ uint32_t  plat_sha256_finalize(uint8_t *out)
     return PB_OK;
 }
 
+
+unsigned char tmpbuf[1024];
+
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
           struct asn1_key *k)
 {
-    unsigned char *tmpbuf = NULL;
-    unsigned long x;
+    uint32_t x;
+    uint32_t err = PB_OK;
+
+    int e = 0;
     rsa_key key;
-    key.e = (void *) k->exp;
-    key.N = (void *) k->mod;
-    key.type = PK_PUBLIC;
 
-    if (ltc_mp.rsa_me(sig, sig_sz, tmpbuf, &x, PK_PUBLIC, &key) != CRYPT_OK)
+    e = rsa_set_key((const unsigned char *) k->mod, 512,
+                    (const unsigned char *) k->exp, 3,
+                    NULL, 0,
+                    &key);
+
+    if (e != CRYPT_OK)
+    {
+        LOG_ERR("rsa_set_key failed (%u)",e);
         return PB_ERR;
+    }
 
+    x = 1024;
+    e = ltc_mp.rsa_me(sig, sig_sz, tmpbuf, &x, PK_PUBLIC, &key);
+    
+    if (e != CRYPT_OK)
+    {
+        LOG_ERR("RSA operation failed (%u)", e);
+        return PB_ERR;
+    }
+    
+    if (sig_sz != x)
+    {
+        LOG_ERR("sig_sz != x, x = %lu, sig_sz = %lu",x,sig_sz);
+        return PB_ERR;
+    }
+
+    for (uint32_t n = 0; n < 1024; n++)
+        tfp_printf("%2.2X",tmpbuf[n]);
+    tfp_printf("\n\rerr = %lu\n\r",err);
+
+    LOG_INFO("%lu %lu",x,sig_sz);
     memcpy(out, tmpbuf, 512);
-    return PB_OK;
+    return err;
 }
 
 

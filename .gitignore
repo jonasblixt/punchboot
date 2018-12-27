@@ -8,7 +8,7 @@
 *.gcov
 cscope*
 src/pb
-tools/punchboot/punchboot
+src/tools/punchboot/punchboot
 *.pbi
-tools/pbimage/pbimage
+src/tools/pbimage/pbimage
 src/3pp/tinyprintf/*.o

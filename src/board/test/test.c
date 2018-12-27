@@ -53,20 +53,20 @@ __inline uint32_t plat_get_ms_tick(void)
 }
 
 
-struct virtio_serial_device virtio_serial;
 struct virtio_block_device virtio_block;
 
-uint8_t heap[8192];
+#define HEAP_SZ 1024*1024
+uint8_t heap[HEAP_SZ];
 uint32_t heap_ptr = 0;
 
 void *malloc(size_t size)
 {
-	if ((heap_ptr+size) > 8192)
+	if ((heap_ptr+size) > HEAP_SZ)
 	{
 		LOG_ERR("Out of memory");
 		return NULL;
 	}
-	void * ptr = (void *) heap[heap_ptr];
+	void * ptr = (void *) &heap[heap_ptr];
 	heap_ptr += size;
 
 	return ptr;
@@ -94,15 +94,15 @@ int rand(void)
 
 const char *__locale_ctype_ptr(void)
 {
-}
-
-uint64_t __aeabi_uldivmod(uint64_t a, uint64_t b)
-{
+    return NULL;
 }
 
 void qsort(void *base, size_t nmemb, size_t size,
 			int(*compar)(const void*, const void*))
 {
+
+    LOG_ERR("qsort called");
+    while(1);
 }
 
 clock_t clock(void)
@@ -119,15 +119,6 @@ uint32_t board_init(void)
 
 	gcov_init();	
 
-    virtio_serial.dev.device_id = 3;
-    virtio_serial.dev.vendor_id = 0x554D4551;
-    virtio_serial.dev.base = 0x0A003E00;
-
-    if (virtio_serial_init(&virtio_serial) != PB_OK)
-    {
-        LOG_ERR("Could not initialize virtio serial port");
-        while(1);
-    }
 
     virtio_block.dev.device_id = 2;
     virtio_block.dev.vendor_id = 0x554D4551;
@@ -139,9 +130,6 @@ uint32_t board_init(void)
         while(1);
     }
 
- /*   uint32_t err = rsa_verify_hash_ex (hash, 0, hash, 32, 
-                    LTC_PKCS_1_V1_5 , 0, 0, NULL, NULL);
-*/
     return PB_OK;
 }
 
