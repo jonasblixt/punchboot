@@ -31,16 +31,16 @@ void      plat_wdog_kick(void);
 uint32_t  plat_early_init(void);
 
 /* EMMC Interface */
-uint32_t  plat_emmc_write_block(uint32_t lba_offset, 
+uint32_t  plat_write_block(uint32_t lba_offset, 
                                 uint8_t *bfr, 
                                 uint32_t no_of_blocks);
 
-uint32_t  plat_emmc_read_block( uint32_t lba_offset, 
+uint32_t  plat_read_block( uint32_t lba_offset, 
                                 uint8_t *bfr, 
                                 uint32_t no_of_blocks);
 
-uint32_t  plat_emmc_switch_part(uint8_t part_no);
-uint64_t  plat_emmc_get_lastlba(void);
+uint32_t  plat_switch_part(uint8_t part_no);
+uint64_t  plat_get_lastlba(void);
 
 /* Crypto Interface */
 uint32_t  plat_sha256_init(void);

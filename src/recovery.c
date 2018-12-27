@@ -47,19 +47,19 @@ const char *recovery_cmd_name[] =
 static uint32_t recovery_flash_bootloader(uint8_t *bfr, 
                                           uint32_t blocks_to_write) 
 {
-    if (plat_emmc_switch_part(PLAT_EMMC_PART_BOOT0) != PB_OK) 
+    if (plat_switch_part(PLAT_EMMC_PART_BOOT0) != PB_OK) 
     {
         LOG_ERR ("Could not switch partition");
         return PB_ERR;
     }
 
-    plat_emmc_switch_part(PLAT_EMMC_PART_BOOT0);
-    plat_emmc_write_block(2, bfr, blocks_to_write);
+    plat_switch_part(PLAT_EMMC_PART_BOOT0);
+    plat_write_block(2, bfr, blocks_to_write);
 
-    plat_emmc_switch_part(PLAT_EMMC_PART_BOOT1);
-    plat_emmc_write_block(2, bfr, blocks_to_write);
+    plat_switch_part(PLAT_EMMC_PART_BOOT1);
+    plat_write_block(2, bfr, blocks_to_write);
 
-    plat_emmc_switch_part(PLAT_EMMC_PART_USER);
+    plat_switch_part(PLAT_EMMC_PART_USER);
  
     return PB_OK;
 }
@@ -81,7 +81,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
     
-    plat_emmc_write_block(part_lba_offset + lba_offset, bfr, no_of_blocks);
+    plat_write_block(part_lba_offset + lba_offset, bfr, no_of_blocks);
 
     return PB_OK;
 }

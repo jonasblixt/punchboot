@@ -145,7 +145,7 @@ uint32_t board_init(void)
 }
 
 
-uint32_t  plat_emmc_write_block(uint32_t lba_offset, 
+uint32_t  plat_write_block(uint32_t lba_offset, 
                                 uint8_t *bfr, 
                                 uint32_t no_of_blocks)
 {
@@ -154,20 +154,20 @@ uint32_t  plat_emmc_write_block(uint32_t lba_offset,
 }
 
 
-uint32_t  plat_emmc_read_block( uint32_t lba_offset, 
+uint32_t  plat_read_block( uint32_t lba_offset, 
                                 uint8_t *bfr, 
                                 uint32_t no_of_blocks)
 {
     return virtio_block_read(&virtio_block, lba_offset, bfr, no_of_blocks);
 }
 
-uint32_t  plat_emmc_switch_part(uint8_t part_no)
+uint32_t  plat_switch_part(uint8_t part_no)
 {
     UNUSED(part_no);
     return PB_ERR;
 }
 
-uint64_t  plat_emmc_get_lastlba(void)
+uint64_t  plat_get_lastlba(void)
 {
     return 32768;
 }
@@ -207,7 +207,7 @@ uint32_t board_write_boardinfo(struct board_info *info, uint32_t key)
 
 uint32_t board_write_gpt_tbl() 
 {
-    gpt_init_tbl(1, plat_emmc_get_lastlba());
+    gpt_init_tbl(1, plat_get_lastlba());
     gpt_add_part(0, 1, part_type_config, "Config");
     gpt_add_part(1, 1024, part_type_system_a, "System A");
     gpt_add_part(2, 1024, part_type_system_b, "System B");

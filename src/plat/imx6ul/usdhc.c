@@ -296,22 +296,22 @@ void usdhc_emmc_init(void) {
 /* Platform interface */
 
 /* TODO: Fix return values*/
-uint32_t plat_emmc_write_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks) {
+uint32_t plat_write_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks) {
     usdhc_emmc_xfer_blocks(lba_offset, bfr, no_of_blocks, 1, 0);
     return PB_OK;
 }
 
-uint32_t plat_emmc_read_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks) {
+uint32_t plat_read_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks) {
     usdhc_emmc_xfer_blocks(lba_offset, bfr, no_of_blocks, 0, 0);
     return PB_OK;
 }
 
-uint32_t plat_emmc_switch_part(uint8_t part_no) {
+uint32_t plat_switch_part(uint8_t part_no) {
     usdhc_emmc_switch_part(part_no);
 
     return PB_OK;
 }
 
-uint64_t plat_emmc_get_lastlba(void) {
+uint64_t plat_get_lastlba(void) {
     return _sectors;  
 }

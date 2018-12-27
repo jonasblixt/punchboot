@@ -46,7 +46,7 @@ uint32_t config_init(void)
         return PB_ERR;
     }
 
-    plat_emmc_read_block(_config_lba_offset, (uint8_t *) &_config_data, 1);
+    plat_read_block(_config_lba_offset, (uint8_t *) &_config_data, 1);
 
 
     if ((crc32 (0, (uint8_t *)_config_data.data, _config_tot_size) 
@@ -105,7 +105,7 @@ uint32_t config_commit(void)
     _config_data.crc = 
                 crc32(0, (uint8_t *) _config_data.data, _config_tot_size);
 
-    plat_emmc_write_block(_config_lba_offset, (uint8_t *) &_config_data, 1);
+    plat_write_block(_config_lba_offset, (uint8_t *) &_config_data, 1);
 
     LOG_INFO ("LBA offset = 0x%8.8lX", _config_lba_offset);
     LOG_INFO ("Wrote %lu bytes, CRC: 0x%8.8lX", _config_tot_size,

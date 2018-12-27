@@ -19,7 +19,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
         return PB_ERR;
     }
 
-    plat_emmc_read_block(part_lba_offset, (uint8_t *) &_pbi,
+    plat_read_block(part_lba_offset, (uint8_t *) &_pbi,
                             sizeof(struct pb_pbi)/512);
 
 
@@ -41,7 +41,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
         LOG_INFO("Loading component %lu, %lu bytes",i, 
                                 _pbi.comp[i].component_size);
 
-        plat_emmc_read_block(part_lba_offset + 
+        plat_read_block(part_lba_offset + 
                     _pbi.comp[i].component_offset/512
                     , (uint8_t*) _pbi.comp[i].load_addr_low, 
                     _pbi.comp[i].component_size/512+1);

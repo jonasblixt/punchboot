@@ -201,7 +201,7 @@ uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
 }
 
 uint32_t board_write_gpt_tbl() {
-    gpt_init_tbl(1, plat_emmc_get_lastlba());
+    gpt_init_tbl(1, plat_get_lastlba());
     gpt_add_part(0, 1, part_type_config, "Config");
     gpt_add_part(1, 512000, part_type_system_a, "System A");
     gpt_add_part(2, 512000, part_type_system_b, "System B");

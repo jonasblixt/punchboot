@@ -159,7 +159,7 @@ uint32_t gpt_write_tbl(void)
 
     /* TODO: Maybe do the GPT table writes the same way for clarity */
     /* Write primary GPT Table */
-    err = plat_emmc_write_block(_gpt1.hdr.current_lba,(uint8_t*) &_gpt1, 
+    err = plat_write_block(_gpt1.hdr.current_lba,(uint8_t*) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
     if (err != PB_OK) 
@@ -170,7 +170,7 @@ uint32_t gpt_write_tbl(void)
 
     /* Write backup GPT table */
 
-    err = plat_emmc_write_block(_gpt1.hdr.backup_lba, (uint8_t *) &_gpt1.hdr, 1);
+    err = plat_write_block(_gpt1.hdr.backup_lba, (uint8_t *) &_gpt1.hdr, 1);
 
     if (err != PB_OK) 
     {
@@ -180,7 +180,7 @@ uint32_t gpt_write_tbl(void)
 
     part_tbl_blocks = (_gpt1.hdr.no_of_parts * _gpt1.hdr.part_entry_sz) / 512;
 
-    err = plat_emmc_write_block(_gpt1.hdr.backup_lba-part_tbl_blocks, 
+    err = plat_write_block(_gpt1.hdr.backup_lba-part_tbl_blocks, 
                         (uint8_t *) &_gpt1.part, part_tbl_blocks);
 
     if (err != PB_OK) 
@@ -195,7 +195,7 @@ uint32_t gpt_write_tbl(void)
 
 uint32_t gpt_init(void) 
 {
-    plat_emmc_read_block(1,(uint8_t*) &_gpt1, 
+    plat_read_block(1,(uint8_t*) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
     uint8_t tmp_string[64];
