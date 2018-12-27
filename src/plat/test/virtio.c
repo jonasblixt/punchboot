@@ -152,6 +152,11 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
     q->avail->ring[idx] = idx;
     q->avail->idx++;
 
+    q->desc[idx].addr = 0;
+    q->desc[idx].len = 0;
+    q->desc[idx].flags = 0;
+    q->desc[idx].next = 0;
+
     pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
     //LOG_INFO("r %lu %lX %lX",q->queue_index, q->avail->idx, q->used->idx);
