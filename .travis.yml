@@ -9,7 +9,7 @@ env:
    - CROSS_COMPILE="/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi-"
 before_install:
   - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
-  - sudo apt install libcunit1-dev qemu-system-arm curl git
+  - sudo apt install libcunit1-dev qemu-system-arm curl git u-boot-tools
   - curl -sL https://releases.linaro.org/components/toolchain/binaries/latest-7/arm-eabi/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi.tar.xz | tar xJ -C /tmp
 
 addons:
