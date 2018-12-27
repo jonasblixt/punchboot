@@ -29,7 +29,7 @@ static const uint32_t _config_tot_size =
                     (sizeof(_pb_config) / sizeof(struct pb_config_item) -1)*4;
 
 
-static struct pb_config_data _config_data;
+__a4k static struct pb_config_data _config_data;
 
 uint32_t config_init(void) 
 {

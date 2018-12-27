@@ -15,7 +15,7 @@
 #include <string.h>
 
 static uint8_t _flag_gpt_ok = false;
-static struct gpt_primary_tbl __attribute__((section (".bigbuffer"))) _gpt1;
+__a4k static struct gpt_primary_tbl __attribute__((section (".bigbuffer"))) _gpt1;
 
 static void gpt_part_name(struct gpt_part_hdr *part, uint8_t *out, uint8_t len) 
 {
