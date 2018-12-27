@@ -22,11 +22,17 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 PKG_CONFIG ?= pkg-config
-CFLAGS   = -Wall -O2 -I ../../include/
+CFLAGS   = -Wall -O2 -I ../../include/ 
+CFLAGS  += `$(PKG_CONFIG) --cflags libtomcrypt`
+CFLAGS  += `$(PKG_CONFIG) --cflags libtommath`
+CFLAGS  += `$(PKG_CONFIG) --cflags uuid`
 CFLAGS  += -I. -DUSE_LTM -DLTM_DESC 
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 
-LIBS    =   -luuid -ltomcrypt -ltommath -lc
+LIBS    =   -lc
+LIBS   +=  `$(PKG_CONFIG) --libs libtommath`
+LIBS   +=  `$(PKG_CONFIG) --libs libtomcrypt`
+LIBS   +=  `$(PKG_CONFIG) --libs uuid`
 LDFLAGS =
 
 ASM_SRCS = 
