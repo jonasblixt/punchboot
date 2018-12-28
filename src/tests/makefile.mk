@@ -25,6 +25,7 @@ BOARD = test
 test: $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS) $(TEST_OBJS) 
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32
 	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket
+	@make -C tools/pbimage CROSS_COMPILE=""
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
 		$(LD) $(LDFLAGS) $(OBJS) $(TEST_OBJS) \
