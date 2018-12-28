@@ -2,7 +2,7 @@ TESTS  = test_boot
 
 INTEGRATION_TESTS  = test_reset
 INTEGRATION_TESTS += test_part
-
+INTEGRATION_TESTS += test_config
 
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"
@@ -23,6 +23,8 @@ LDFLAGS +=
 BOARD = test
 
 test: $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS) $(TEST_OBJS) 
+	@dd if=/dev/zero of=/tmp/disk bs=1M count=32
+	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
 		$(LD) $(LDFLAGS) $(OBJS) $(TEST_OBJS) \
