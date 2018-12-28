@@ -171,7 +171,6 @@ static void pbimage_print_help(void) {
 }
 
 int main (int argc, char **argv) {
-    extern const ltc_math_descriptor ltm_desc;
     int opt;
 
     /* register prng/hash */
@@ -179,8 +178,6 @@ int main (int argc, char **argv) {
         printf("Error registering sprng");
         return EXIT_FAILURE;
     }
-
-    ltc_mp = ltm_desc;
 
     int no_of_components = 0;
     int component_type = -1;
