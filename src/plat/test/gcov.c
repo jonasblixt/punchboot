@@ -8,11 +8,11 @@ static struct gcov_info *head;
 
 #define GCOV_TAG_FUNCTION_LENGTH    3
 
-#define GCOV_DATA_MAGIC     ((unsigned int) 0x67636461)
-#define GCOV_TAG_FUNCTION   ((unsigned int) 0x01000000)
-#define GCOV_TAG_COUNTER_BASE   ((unsigned int) 0x01a10000)
+#define GCOV_DATA_MAGIC     ((uint32_t) 0x67636461)
+#define GCOV_TAG_FUNCTION   ((uint32_t) 0x01000000)
+#define GCOV_TAG_COUNTER_BASE   ((uint32_t) 0x01a10000)
 #define GCOV_TAG_FOR_COUNTER(count)                 \
-        (GCOV_TAG_COUNTER_BASE + ((unsigned int) (count) << 17))
+        (GCOV_TAG_COUNTER_BASE + ((uint32_t) (count) << 17))
 
 
 static void gcov_write_u32(long fd, uint32_t val)
@@ -62,9 +62,9 @@ static int counter_active(struct gcov_info *info, unsigned int type)
 
 
 static void gcov_update_counter(struct gcov_info *info,
+                                uint32_t num,
                                 uint32_t f_ident,
                                 uint32_t ctr_tag,
-                                uint32_t ctr_idx,
                                 uint64_t val)
 
 {
@@ -81,16 +81,13 @@ static void gcov_update_counter(struct gcov_info *info,
 
         if (fi_ptr->ident != f_ident)
             continue;
-
+        //LOG_INFO ("ident: %8.8lX", f_ident);
         for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++) {
-            if (!counter_active(info, ct_idx))
-                continue;
 
-            if (GCOV_TAG_FOR_COUNTER(ct_idx) ==
-                    GCOV_TAG_FOR_COUNTER(ctr_idx))
+            if (GCOV_TAG_FOR_COUNTER(ct_idx) == ctr_tag)
             {
-                //LOG_INFO("Updating %s, %lu", info->filename, ctr_idx);
-                ci_ptr->values[ctr_idx] += val;
+                //LOG_INFO("Updating %lu %llu", num, val);
+                ci_ptr->values[num] += val;
             }
 
 
@@ -114,6 +111,7 @@ static void gcov_load_data(struct gcov_info *info)
     if (fd < 0)
         return;
 
+    LOG_INFO ("fn: %s",info->filename);
 
     if (gcov_read_u32(fd) != GCOV_DATA_MAGIC)
     {
@@ -154,19 +152,19 @@ static void gcov_load_data(struct gcov_info *info)
 				continue;
 
             uint32_t ctr_tag = gcov_read_u32(fd);
-            uint32_t n = gcov_read_u32(fd);
+            uint32_t num = gcov_read_u32(fd) / 2;
 
-            for (cv_idx = 0; cv_idx < n; cv_idx++) 
+            for (uint32_t n = 0; n < num; n++) 
             {
                 uint64_t val = gcov_read_u64(fd);
-                gcov_update_counter(info, f_ident, ctr_tag, cv_idx, val);
+                gcov_update_counter(info, n, f_ident, ctr_tag, val);
             }
 
         }
     }
 
 
-    LOG_INFO(" OK");
+    //LOG_INFO(" OK");
 gcov_init_err:
 
     semihosting_file_close(fd);
@@ -178,7 +176,6 @@ void __gcov_init (struct gcov_info *p)
 	p->next = head;
 	head = p;
  
-    gcov_load_data(p);
 
 }
 void __gcov_merge_add (gcov_type *counters, unsigned n_counters) 
@@ -225,8 +222,9 @@ uint32_t gcov_final(void)
 	for (;info; info = info->next) 
 	{
 
+        gcov_load_data(info);
 		long fd = semihosting_file_open(info->filename, 6);
-
+        //LOG_INFO("fn: %s",info->filename);
         gcov_write_u32(fd, GCOV_DATA_MAGIC);
         gcov_write_u32(fd, info->version);
         gcov_write_u32(fd, info->stamp);
@@ -249,9 +247,17 @@ uint32_t gcov_final(void)
 	
                 gcov_write_u32(fd, GCOV_TAG_FOR_COUNTER(ct_idx));
                 gcov_write_u32(fd, ci_ptr->num * 2);
-
+                //LOG_INFO("  fi_ptr->ident: %8.8lX, tag: %8.8X, ci_ptr->num = %u, ct_idx = %u",
+                //            fi_ptr->ident,
+                //            GCOV_TAG_FOR_COUNTER(ct_idx),
+                //            ci_ptr->num,
+                //            ct_idx);
 				for (cv_idx = 0; cv_idx < ci_ptr->num; cv_idx++) 
+                {
                     gcov_write_u64(fd, ci_ptr->values[cv_idx]);
+                    //LOG_INFO("  ctr %u, val = %llu",cv_idx, 
+                    //                    ci_ptr->values[cv_idx]);
+                }
 
 				ci_ptr++;
 			}
