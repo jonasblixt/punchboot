@@ -204,12 +204,11 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
     return PB_OK;
 }
 
-uint32_t usb_on_command(struct usb_device *dev, struct usb_pb_command *cmd)
+void usb_on_command(struct usb_device *dev, struct usb_pb_command *cmd)
 {
     UNUSED(dev);
 
     LOG_ERR ("Unhandeled command 0x%8.8lX",cmd->command);
-    return PB_OK;
 }
 
 uint32_t usb_init(void)

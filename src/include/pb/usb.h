@@ -107,7 +107,7 @@ struct usb_device;
 
 typedef uint32_t (*usb_on_setup_pkt_t) (struct usb_device *dev, 
                                         struct usb_setup_packet *pkt);
-typedef uint32_t (*usb_on_command_t)   (struct usb_device *dev,
+typedef void     (*usb_on_command_t)   (struct usb_device *dev,
                                         struct usb_pb_command *cmd);
 typedef void     (*usb_on_error_t)     (struct usb_device *dev,
                                         uint32_t error_code);
