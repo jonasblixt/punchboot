@@ -34,13 +34,23 @@ int transport_init(void)
 	return 0;
 }
 
+uint32_t pb_read_result_code(void)
+{
+    uint32_t result_code = PB_ERR;
+
+    if (pb_read((uint8_t *) &result_code, sizeof(uint32_t)) != PB_OK)
+        result_code = PB_ERR;
+
+    return result_code;
+}
+
 int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
 {
 	size_t tx_bytes;
 	struct pb_socket_header hdr;
     struct pb_cmd_header cmd_hdr;
     uint8_t status;
-    uint32_t result_code = PB_ERR;
+    uint32_t result_code = PB_OK;
 
     cmd_hdr.cmd = cmd;
     cmd_hdr.size = sz;
@@ -75,8 +85,6 @@ int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
 
         read(fd, &status, 1);
     }
-
-    read(fd, &result_code, sizeof(uint32_t));
 
 	return result_code;
 }

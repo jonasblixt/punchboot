@@ -17,6 +17,8 @@
 #include "transport.h"
 #include "utils.h"
 
+
+
 uint32_t pb_install_default_gpt(void) 
 {
     if (pb_write(PB_CMD_WRITE_DFLT_GPT, NULL, 0) != PB_OK)
@@ -130,7 +132,6 @@ uint32_t pb_get_version(char **out)
     out[sz] = 0;
 
     err = pb_read_result_code();
-
     if (err)
         free(*out);
     return err;

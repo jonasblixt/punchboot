@@ -84,6 +84,18 @@ void transport_exit(void)
     libusb_exit(NULL);
 }
 
+
+uint32_t pb_read_result_code(void)
+{
+    uint32_t result_code = PB_ERR;
+
+    if (pb_read((uint8_t *) &result_code, sizeof(uint32_t)) != PB_OK)
+        result_code = PB_ERR;
+
+    return result_code;
+}
+
+
 int pb_write(uint32_t cmd, uint8_t *bfr, int sz) 
 {
     struct pb_cmd_header hdr;
@@ -114,16 +126,6 @@ int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
     }
 
     return err;
-}
-
-uint32_t pb_read_result_code(void)
-{
-    uint32_t result_code = PB_ERR;
-
-    if (pb_read((uint8_t *) &result_code, sizeof(uint32_t)) != PB_OK)
-        result_code = PB_ERR;
-
-    return result_code;
 }
 
 int pb_read(uint8_t *bfr, int sz) 
