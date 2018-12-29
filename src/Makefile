@@ -44,7 +44,7 @@ ARCH_C_SRCS =
 PLAT_ASM_SRCS =
 PLAT_C_SRCS =
 
-#C_SRCS   = main.c
+C_SRCS   = boot.c
 C_SRCS  += recovery.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c 
