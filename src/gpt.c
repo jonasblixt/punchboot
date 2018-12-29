@@ -200,7 +200,7 @@ uint32_t gpt_write_tbl(void)
 
     LOG_INFO("Writing backup GPT tbl to LBA %llu", _gpt2.hdr.entries_start_lba);
     err = plat_write_block(_gpt2.hdr.entries_start_lba, (uint8_t *) &_gpt2,
-            sizeof(struct gpt_backup_tbl));
+            sizeof(struct gpt_backup_tbl) / 512);
 
     if (err != PB_OK) 
     {
