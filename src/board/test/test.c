@@ -169,7 +169,7 @@ uint32_t  plat_switch_part(uint8_t part_no)
 
 uint64_t  plat_get_lastlba(void)
 {
-    return 32768;
+    return 65536-1;
 }
 
 uint8_t board_force_recovery(void) 
