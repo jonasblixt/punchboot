@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <pb/pb.h>
 #include <pb/recovery.h>
 #include <plat/test/socket_proto.h>
 #include "transport.h"
@@ -39,6 +40,7 @@ int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
 	struct pb_socket_header hdr;
     struct pb_cmd_header cmd_hdr;
     uint8_t status;
+    uint32_t result_code = PB_ERR;
 
     cmd_hdr.cmd = cmd;
     cmd_hdr.size = sz;
@@ -73,7 +75,10 @@ int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
 
         read(fd, &status, 1);
     }
-	return 0;
+
+    read(fd, &result_code, sizeof(uint32_t));
+
+	return result_code;
 }
 
 int pb_read(uint8_t *bfr, int sz)
