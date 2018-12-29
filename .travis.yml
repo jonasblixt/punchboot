@@ -16,7 +16,7 @@ before_install:
   - make -C libtommath -f makefile.shared
   - sudo make -C libtommath -f makefile.shared PREFIX=/usr install
   - git clone --branch v1.18.2 https://github.com/libtom/libtomcrypt.git
-  - make -C libtomcrypt -f makefile.shared
+  - make -C libtomcrypt -f makefile.shared CFLAGS="-DUSE_LTM -DLTM_DESC" EXTRALIBS="-ltommath"
   - sudo make -C libtomcrypt -f makefile.shared PREFIX=/usr install
 
 addons:
