@@ -15,20 +15,172 @@ static struct gcov_info *head;
         (GCOV_TAG_COUNTER_BASE + ((unsigned int) (count) << 17))
 
 
-void __gcov_init (struct gcov_info *p)
+static void gcov_write_u32(long fd, uint32_t val)
 {
-	p->next = head;
-	head = p;
-	//tfp_printf("gcov_init: fn = %s\n", p->filename);
-	//tfp_printf("GCOV_COUNTERS = %u\n\r",GCOV_COUNTERS);
-	long fd = semihosting_file_open(p->filename, 11);
-	
-	//long f_length = semihosting_file_length(fd);
-	//tfp_printf ("  %li %libytes\n\r",fd, f_length);
+    size_t bytes_to_write = sizeof(uint32_t);
 
-	semihosting_file_close(fd);
+    semihosting_file_write(fd, &bytes_to_write, 
+                            (const uintptr_t) &val);	
 }
 
+static void gcov_write_u64(long fd, uint64_t val)
+{
+    size_t bytes_to_write = sizeof(uint64_t);
+
+    semihosting_file_write(fd, &bytes_to_write, 
+                            (const uintptr_t) &val);	
+}
+
+
+static uint32_t gcov_read_u32(long fd)
+{
+    size_t bytes_to_write = sizeof(uint32_t);
+    uint32_t val;
+
+    semihosting_file_read(fd, &bytes_to_write, 
+                            (const uintptr_t) &val);	
+
+    return val;
+}
+
+static uint64_t gcov_read_u64(long fd)
+{
+    size_t bytes_to_write = sizeof(uint64_t);
+    uint64_t val;
+
+    semihosting_file_read(fd, &bytes_to_write, 
+                            (const uintptr_t) &val);	
+
+    return val;
+}
+
+
+static int counter_active(struct gcov_info *info, unsigned int type)
+{
+	return info->merge[type] ? 1 : 0;
+}
+
+
+static void gcov_update_counter(struct gcov_info *info,
+                                uint32_t f_ident,
+                                uint32_t ctr_tag,
+                                uint32_t ctr_idx,
+                                uint64_t val)
+
+{
+	struct gcov_fn_info *fi_ptr;
+	struct gcov_ctr_info *ci_ptr;
+	unsigned int fi_idx;
+	unsigned int ct_idx;
+	unsigned int cv_idx;
+
+    for (fi_idx = 0; fi_idx < info->n_functions; fi_idx++) 
+    {
+        fi_ptr = info->functions[fi_idx];
+        ci_ptr = fi_ptr->ctrs;
+
+        if (fi_ptr->ident != f_ident)
+            continue;
+
+        for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++) {
+            if (!counter_active(info, ct_idx))
+                continue;
+
+            if (GCOV_TAG_FOR_COUNTER(ct_idx) ==
+                    GCOV_TAG_FOR_COUNTER(ctr_idx))
+            {
+                //LOG_INFO("Updating %s, %lu", info->filename, ctr_idx);
+                ci_ptr->values[ctr_idx] += val;
+            }
+
+
+            ci_ptr++;
+        }
+    }
+
+}
+
+static void gcov_load_data(struct gcov_info *info)
+{
+	struct gcov_fn_info *fi_ptr;
+	struct gcov_ctr_info *ci_ptr;
+	unsigned int fi_idx;
+	unsigned int ct_idx;
+	unsigned int cv_idx;
+    uint32_t dummy;
+
+    long fd = semihosting_file_open(info->filename, 0);
+
+    if (fd < 0)
+        return;
+
+
+    if (gcov_read_u32(fd) != GCOV_DATA_MAGIC)
+    {
+        LOG_ERR("Invalid magic");
+        goto gcov_init_err;
+    } 
+
+    if (gcov_read_u32(fd) != info->version)
+    {
+        LOG_ERR("Incorrect version");
+        goto gcov_init_err;
+    }
+
+    dummy = gcov_read_u32(fd);
+
+    while(true)
+    {
+        if (gcov_read_u32(fd) != GCOV_TAG_FUNCTION)
+        {
+            goto gcov_init_err;
+        }
+
+        if (gcov_read_u32(fd) != GCOV_TAG_FUNCTION_LENGTH)
+        {
+            LOG_ERR("Invalid function length tag");
+            goto gcov_init_err;
+        }
+
+        uint32_t f_ident = gcov_read_u32(fd);
+        dummy = gcov_read_u32(fd);
+        dummy = gcov_read_u32(fd);
+
+        UNUSED(dummy);
+
+        for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++) 
+        {
+			if (!counter_active(info, ct_idx))
+				continue;
+
+            uint32_t ctr_tag = gcov_read_u32(fd);
+            uint32_t n = gcov_read_u32(fd);
+
+            for (cv_idx = 0; cv_idx < n; cv_idx++) 
+            {
+                uint64_t val = gcov_read_u64(fd);
+                gcov_update_counter(info, f_ident, ctr_tag, cv_idx, val);
+            }
+
+        }
+    }
+
+
+    LOG_INFO(" OK");
+gcov_init_err:
+
+    semihosting_file_close(fd);
+}
+
+void __gcov_init (struct gcov_info *p)
+{
+
+	p->next = head;
+	head = p;
+ 
+    gcov_load_data(p);
+
+}
 void __gcov_merge_add (gcov_type *counters, unsigned n_counters) 
 {
 	UNUSED(counters);
@@ -59,15 +211,9 @@ void gcov_init(void)
   
 }
 
-static int counter_active(struct gcov_info *info, unsigned int type)
-{
-	return info->merge[type] ? 1 : 0;
-}
 
 uint32_t gcov_final(void)
 {
-	size_t bytes_to_write = 0;
-	uint32_t a = GCOV_DATA_MAGIC;
 	struct gcov_fn_info *fi_ptr;
 	struct gcov_ctr_info *ci_ptr;
 	unsigned int fi_idx;
@@ -78,79 +224,34 @@ uint32_t gcov_final(void)
 
 	for (;info; info = info->next) 
 	{
+
 		long fd = semihosting_file_open(info->filename, 6);
-	
-		//tfp_printf ("fn: %s, %u\n\r",info->filename,info->n_functions);
-	
-		
-		bytes_to_write = sizeof(uint32_t);
-		a = GCOV_DATA_MAGIC;
-		semihosting_file_write(fd, &bytes_to_write, 
-								(const uintptr_t) &a);	
 
-		bytes_to_write = sizeof(uint32_t);
-		semihosting_file_write(fd, &bytes_to_write, 
-								(const uintptr_t) &info->version);	
-
-		bytes_to_write = sizeof(uint32_t);
-		semihosting_file_write(fd, &bytes_to_write, 
-								(const uintptr_t) &info->stamp);	
+        gcov_write_u32(fd, GCOV_DATA_MAGIC);
+        gcov_write_u32(fd, info->version);
+        gcov_write_u32(fd, info->stamp);
 
 		for (fi_idx = 0; fi_idx < info->n_functions; fi_idx++) 
 		{
 			fi_ptr = info->functions[fi_idx];
 
-			//LOG_INFO("fi_ptr->key->filename %s",fi_ptr->key->filename);
-			a = GCOV_TAG_FUNCTION;
-			bytes_to_write = 4;
-			semihosting_file_write(fd, &bytes_to_write, 
-									(const uintptr_t) &a);	
+            gcov_write_u32(fd, GCOV_TAG_FUNCTION);
+            gcov_write_u32(fd, GCOV_TAG_FUNCTION_LENGTH);
+            gcov_write_u32(fd, fi_ptr->ident);
+            gcov_write_u32(fd, fi_ptr->lineno_checksum);
+            gcov_write_u32(fd, fi_ptr->cfg_checksum);
 
-			a = GCOV_TAG_FUNCTION_LENGTH;
-			bytes_to_write = 4;
-			semihosting_file_write(fd, &bytes_to_write, 
-									(const uintptr_t) &a);	
-
-			bytes_to_write = 4;
-			semihosting_file_write(fd, &bytes_to_write, 
-									(const uintptr_t) &fi_ptr->ident);	
-
-			bytes_to_write = 4;
-			semihosting_file_write(fd, &bytes_to_write, 
-									(const uintptr_t) &fi_ptr->lineno_checksum);
-
-
-
-			bytes_to_write = 4;
-			semihosting_file_write(fd, &bytes_to_write, 
-									(const uintptr_t) &fi_ptr->cfg_checksum);
-
-			//LOG_INFO("fi_idx = %u, lineno_checksum = %8.8X",fi_idx,fi_ptr->lineno_checksum);
 			ci_ptr = fi_ptr->ctrs;
 
 			for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++) {
 				if (!counter_active(info, ct_idx))
 					continue;
-				
-				//LOG_INFO("%u",ct_idx);
-				bytes_to_write = 4;
-				a = GCOV_TAG_FOR_COUNTER(ct_idx);
-				semihosting_file_write(fd, &bytes_to_write, 
-										(const uintptr_t) &a);	
+	
+                gcov_write_u32(fd, GCOV_TAG_FOR_COUNTER(ct_idx));
+                gcov_write_u32(fd, ci_ptr->num * 2);
 
-				bytes_to_write = 4;
-				a = ci_ptr->num*2;
-				semihosting_file_write(fd, &bytes_to_write, 
-										(const uintptr_t) &a);	
-
-				//LOG_INFO(" %u ci_ptr->num = %u",ct_idx, ci_ptr->num);
-				for (cv_idx = 0; cv_idx < ci_ptr->num; cv_idx++) {
-					uint64_t val = ci_ptr->values[cv_idx];
-					//LOG_INFO("cv_idx = %u",cv_idx);
-					bytes_to_write = 8;
-					semihosting_file_write(fd, &bytes_to_write, 
-											(const uintptr_t) &val);	
-				}
+				for (cv_idx = 0; cv_idx < ci_ptr->num; cv_idx++) 
+                    gcov_write_u64(fd, ci_ptr->values[cv_idx]);
 
 				ci_ptr++;
 			}
