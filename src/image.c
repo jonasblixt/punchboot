@@ -15,7 +15,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
     *pbi = NULL;
 
     if (!part_lba_offset) {
-        LOG_ERR ("Unknown partition\n\r");
+        LOG_ERR ("Unknown partition");
         return PB_ERR;
     }
 
@@ -24,7 +24,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 
 
     if (_pbi.hdr.header_magic != PB_IMAGE_HEADER_MAGIC) {
-        LOG_ERR ("Incorrect header magic\n\r");
+        LOG_ERR ("Incorrect header magic");
         return PB_ERR;
     }
     

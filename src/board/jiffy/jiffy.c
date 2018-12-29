@@ -25,7 +25,7 @@
 
 #include "board_config.h"
 
-
+// 0x365D2AEE
 const uint8_t part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
                                 0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8};
 
@@ -35,6 +35,12 @@ const uint8_t part_type_system_a[] = {0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 
 const uint8_t part_type_system_b[] = { 0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 
                         0x42, 0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04,};
 
+
+const uint8_t part_type_root_a[] = { 0x1C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 
+                        0x42, 0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04,};
+
+const uint8_t part_type_root_b[] = { 0x2C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 
+                        0x42, 0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04,};
 
 static struct ehci_device ehcidev = 
 {
@@ -170,7 +176,7 @@ uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) {
 
     for (int i = 0; i < 16; i++) {
         if (tmp_uuid[i] != 0) {
-            tfp_printf ("Board: Can't write UUID, fuses already programmed\n\r");
+            LOG_ERR ("Can't write UUID, fuses already programmed\n\r");
             return PB_ERR;
         }
     }
@@ -203,24 +209,36 @@ uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
 uint32_t board_write_gpt_tbl() {
     gpt_init_tbl(1, plat_get_lastlba());
     gpt_add_part(0, 1, part_type_config, "Config");
-    gpt_add_part(1, 512000, part_type_system_a, "System A");
-    gpt_add_part(2, 512000, part_type_system_b, "System B");
+    gpt_add_part(1, 32768, part_type_system_a, "System A");
+    gpt_add_part(2, 32768, part_type_system_b, "System B");
+
+    gpt_add_part(3, 512000, part_type_root_a, "Root A");
+    gpt_add_part(4, 512000, part_type_root_b, "Root B");
     return gpt_write_tbl();
 }
 
 void board_boot(struct pb_pbi *pbi)
 {
 
-    struct pb_component_hdr *tee = 
-            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_TEE);
+    struct pb_component_hdr *dtb = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
 
-    struct pb_component_hdr *vmm = 
-            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_VMM);
+    struct pb_component_hdr *linux = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
 
-    LOG_INFO(" VMM %lX, TEE %lX", vmm->load_addr_low, tee->load_addr_low);
+    LOG_INFO(" LINUX %lX, DTB %lX", linux->load_addr_low, dtb->load_addr_low);
     
-    asm volatile("mov lr, %0" "\n\r"
-                 "mov pc, %1" "\n\r"
+    volatile uint32_t dtb_addr = dtb->load_addr_low;
+    volatile uint32_t linux_addr = linux->load_addr_low;
+
+
+    asm volatile(   "mov r0, #0" "\n\r"
+                    "mov r1, #0xFFFFFFFF" "\n\r"
+                    "mov r2, %0" "\n\r"
                     :
-                    : "r" (vmm->load_addr_low), "r" (tee->load_addr_low));
+                    : "r" (dtb_addr));
+
+    asm volatile(  "mov pc, %0" "\n\r"
+                    :
+                    : "r" (linux_addr));
 }

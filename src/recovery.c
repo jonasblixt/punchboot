@@ -18,6 +18,7 @@
 #include <gpt.h>
 #include <config.h>
 #include <string.h>
+#include <boot.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
 #define RECOVERY_BULK_BUFFER_SZ 1024*1024*8
@@ -81,9 +82,8 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
     
-    plat_write_block(part_lba_offset + lba_offset, bfr, no_of_blocks);
-
-    return PB_OK;
+    return plat_write_block(part_lba_offset + lba_offset, 
+                                bfr, no_of_blocks);
 }
 
 static uint32_t recovery_send_response(struct usb_device *dev, 
@@ -132,7 +132,15 @@ static uint32_t recovery_read_data(struct usb_device *dev,
     return err;
 }
 
-static uint32_t recovery_parse_command(struct usb_device *dev, 
+static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
+{
+    /* Send result code */
+    memcpy(recovery_cmd_buffer, (uint8_t *) &value, sizeof(uint32_t));
+    plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sizeof(uint32_t));
+    plat_usb_wait_for_ep_completion(USB_EP3_IN);
+}
+
+static void recovery_parse_command(struct usb_device *dev, 
                                        struct usb_pb_command *cmd)
 {
     uint32_t err = PB_OK;
@@ -154,10 +162,15 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
                             cmd_prep.buffer_id, cmd_prep.no_of_blocks);
             
             if ( (cmd_prep.no_of_blocks*512) >= RECOVERY_BULK_BUFFER_SZ)
-                return PB_ERR;
-
+            {
+                err = PB_ERR;
+                break;
+            }
             if (cmd_prep.buffer_id > 1)
-                return PB_ERR;
+            {
+                err = PB_ERR;
+                break;
+            }
 
             uint8_t *bfr = recovery_bulk_buffer[cmd_prep.buffer_id];
 
@@ -189,6 +202,8 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_RESET:
         {
+            err = PB_OK;
+            recovery_send_result_code(dev, err);
             plat_reset();
             while(1)
                 asm("wfi");
@@ -216,8 +231,10 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
             recovery_read_data(dev, (uint8_t *) data, 8);
             
             LOG_INFO("Set key %lu to %lu", data[0], data[1]);
-            config_set_uint32_t(data[0], data[1]);
-            config_commit();
+            err = config_set_uint32_t(data[0], data[1]);
+            if (err != PB_OK)
+                break;
+            err = config_commit();
         }
         break;
         case PB_CMD_GET_CONFIG_VAL:
@@ -227,8 +244,13 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
 
             LOG_INFO("Reading key index, sz=%lu",cmd->size);
             recovery_read_data(dev, (uint8_t *) &config_param, 4);
-            config_get_uint32_t(config_param, &config_val);
-            err = recovery_send_response(dev, (uint8_t *) &config_val, 4);
+
+            err = config_get_uint32_t(config_param, &config_val);
+
+            if (err != PB_OK)
+                config_val = 0;
+
+            recovery_send_response(dev, (uint8_t *) &config_val, 4);
         }
         break;
         case PB_CMD_WRITE_PART:
@@ -242,7 +264,7 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
                         wr_part.no_of_blocks, wr_part.part_no,
                         wr_part.lba_offset, wr_part.buffer_id);
 
-            recovery_flash_part(wr_part.part_no, 
+            err = recovery_flash_part(wr_part.part_no, 
                                 wr_part.lba_offset, 
                                 wr_part.no_of_blocks, 
                                 recovery_bulk_buffer[wr_part.buffer_id]);
@@ -250,14 +272,24 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_BOOT_PART:
         {
-            //tfp_printf ("\n\rBOOT 1\n\r");
-            //if (boot_load(PB_BOOT_A) == PB_OK) {
-            //    boot();
-            //} else {
-            //    tfp_printf ("boot_load failed\n\r");
-            //}
-            //tfp_printf ("Boot returned\n\r");
+            uint8_t boot_part = 0;
+            struct pb_pbi *pbi = NULL;
+
+            err = recovery_read_data(dev, &boot_part, sizeof(uint8_t));
+
+            if (err != PB_OK)
+                break;
+        
+            err = pb_boot_load_part((uint8_t) boot_part, &pbi);
+            
+            if (err != PB_OK)
+                break;
+
+            recovery_send_result_code(dev, err);
+            pb_boot_image(pbi);
+
         }
+
         break;
         case PB_CMD_BOOT_RAM:
         {   
@@ -268,9 +300,14 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
             if (pbi->hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
             {
                 LOG_ERR ("Incorrect header magic\n\r");
-                return PB_ERR;
+                err = PB_ERR;
             }
             
+            recovery_send_result_code(dev, err);
+
+            if (err != PB_OK)
+                break;
+
             /* TODO: Make sure bootloader code can't be overwritten */
 
             LOG_INFO ("Component manifest:");
@@ -299,14 +336,19 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
                     break;
                 }
             }
+            
+            if (err != PB_OK)
+                break;
             /* TODO: Implement key management strategy */
 
             if (pb_image_verify(pbi, PB_KEY_DEV) == PB_OK)
             {
                 LOG_INFO("Booting image...");
+                recovery_send_result_code(dev, err);
                 board_boot(pbi);
             } else {
                 LOG_ERR("Image verification failed");
+                err = PB_ERR;
             }
 
         }
@@ -314,7 +356,7 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
         case PB_CMD_READ_UUID:
         {
             uint8_t board_uuid[16];
-            board_get_uuid(board_uuid);
+            err = board_get_uuid(board_uuid);
             recovery_send_response(dev, board_uuid, 16);
         }
         break;
@@ -322,26 +364,28 @@ static uint32_t recovery_parse_command(struct usb_device *dev,
         {
             uint8_t board_uuid[16];
             recovery_read_data(dev, board_uuid, 16);
-            board_write_uuid(board_uuid, BOARD_OTP_WRITE_KEY);
+            err = board_write_uuid(board_uuid, BOARD_OTP_WRITE_KEY);
         }
         break;
         case PB_CMD_WRITE_DFLT_GPT:
         {
             LOG_INFO ("Installing default GPT table\n\r");
-            board_write_gpt_tbl();
+            err = board_write_gpt_tbl();
         }
         break;
         case PB_CMD_WRITE_DFLT_FUSE:
         {
             LOG_INFO ("Writing default boot fuses\n\r");
-            board_write_standard_fuses(BOARD_OTP_WRITE_KEY);
+            err = board_write_standard_fuses(BOARD_OTP_WRITE_KEY);
         }
         break;
         default:
             LOG_ERR ("Got unknown command: %lx",cmd->command);
     }
+    
 
-    return err;
+    recovery_send_result_code(dev, err);
+
 }
 
 void recovery_initialize(void)

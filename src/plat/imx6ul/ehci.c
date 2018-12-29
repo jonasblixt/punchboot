@@ -272,6 +272,7 @@ void plat_usb_task(struct usb_device *dev)
     if  (epc & EHCI_EP2_OUT) 
     {
         dev->on_command(dev, &dev->cmd);
+        /* Queue up next command to be received */
         ehci_transfer(ehci, USB_EP2_OUT, (uint8_t *) &dev->cmd, 
                                         sizeof(struct usb_pb_command));
     }
