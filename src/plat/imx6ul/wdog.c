@@ -6,7 +6,9 @@
 void plat_wdog_init(void)
 {
     pb_write32(0, 0x020D8000);
-    pb_write16((3 << 8) | (1 << 2) | (1 << 3) | (1 << 4), 0x020BC000);
+
+    /* Timeout value = 9 * 0.5 + 0.5 = 5 s */
+    pb_write16((9 << 8) | (1 << 2) | (1 << 3) | (1 << 4), 0x020BC000);
 
     plat_wdog_kick();
 }

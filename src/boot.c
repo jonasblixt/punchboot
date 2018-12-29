@@ -17,7 +17,8 @@ uint32_t pb_boot_image(struct pb_pbi *pbi)
     boot_count = boot_count + 1;
     config_set_uint32_t(PB_CONFIG_BOOT_COUNT, boot_count);
     config_commit();
-    
+ 
+    plat_wdog_kick();
     board_boot(pbi);
 
     return PB_OK;
