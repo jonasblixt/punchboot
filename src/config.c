@@ -28,6 +28,9 @@ static const struct pb_config_item _pb_config[] =
 static const uint32_t _config_tot_size = 
                     (sizeof(_pb_config) / sizeof(struct pb_config_item) -1)*4;
 
+static const uint32_t _config_no_of_items = 
+                    (sizeof(_pb_config) / sizeof(struct pb_config_item))-1;
+
 
 __a4k static struct pb_config_data _config_data;
 
@@ -87,14 +90,26 @@ uint32_t config_get_tbl_sz(void)
 
 uint32_t config_get_uint32_t(uint8_t index, uint32_t *value) 
 {
-    /* TODO: Out of range check */
-    *(value) = _config_data.data[index & 0x7f];
+    if ( (index > 127) || (index >= _config_no_of_items))
+    {
+        LOG_ERR ("Out of range index (%u)",index);
+        return PB_ERR;
+    }
+
+    *(value) = _config_data.data[index];
+
     return PB_OK;
 }
 
 uint32_t config_set_uint32_t(uint8_t index, uint32_t value) 
 {
-    _config_data.data[index & 0x7f] = value;
+    
+    if ( (index > 127) || (index >= _config_no_of_items))
+    {
+        LOG_ERR ("Out of range index (%u)",index);
+        return PB_ERR;
+    }
+    _config_data.data[index] = value;
     return PB_OK;
 }
 
