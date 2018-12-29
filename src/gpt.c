@@ -15,7 +15,8 @@
 #include <string.h>
 
 static uint8_t _flag_gpt_ok = false;
-__a4k static struct gpt_primary_tbl __attribute__((section (".bigbuffer"))) _gpt1;
+__a4k __no_bss static struct gpt_primary_tbl _gpt1;
+__a4k __no_bss static struct gpt_backup_tbl _gpt2;
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 {
@@ -85,7 +86,6 @@ static uint32_t gpt_prng(void)
 	return x;
 }
 
-/* TODO: Maybe rename struct gpt_primary_tbl to gpt_tbl */
 uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba) 
 {
     struct gpt_header *hdr = &_gpt1.hdr;
@@ -95,7 +95,7 @@ uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba)
     memset((uint8_t *) &_gpt1, 0, sizeof(struct gpt_primary_tbl));
 
     hdr->signature = __gpt_header_signature;
-    hdr->rev = 0x00001000;
+    hdr->rev = 0x00010000;
     hdr->hdr_sz = sizeof(struct gpt_header) - GPT_HEADER_RSZ;
     hdr->current_lba = first_lba;
     hdr->no_of_parts = 128;
@@ -111,7 +111,16 @@ uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba)
 
     for (int i = 0; i < 16; i++) 
         hdr->disk_uuid[i] = gpt_prng();
+ 
+    /* Configure backup GPT table */
+    memcpy(&_gpt2.hdr, hdr, sizeof(struct gpt_header));
     
+    hdr = &_gpt2.hdr;
+    hdr->backup_lba = _gpt1.hdr.current_lba;
+    hdr->current_lba = last_lba;
+    hdr->entries_start_lba = last_lba - 
+                (hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512;
+
     return PB_OK;
 }
 
@@ -147,6 +156,7 @@ uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks,
         part->uuid[i] = gpt_prng();
     
     memcpy(part->type_uuid, type_uuid, 16);
+    memcpy(&_gpt2.part[part_idx], part, sizeof(struct gpt_part_hdr));
 
     return PB_OK;
 }
@@ -155,7 +165,6 @@ uint32_t gpt_write_tbl(void)
 {
     uint32_t crc_tmp = 0;
     uint32_t err = 0;
-    uint32_t part_tbl_blocks = 0;
 
     /* Calculate CRC32 for header and part table */
     _gpt1.hdr.hdr_crc = 0;
@@ -166,8 +175,9 @@ uint32_t gpt_write_tbl(void)
                             - GPT_HEADER_RSZ);
     _gpt1.hdr.hdr_crc = crc_tmp;
 
-    /* TODO: Maybe do the GPT table writes the same way for clarity */
     /* Write primary GPT Table */
+
+    LOG_INFO("Writing primary GPT tbl to LBA %llu", _gpt1.hdr.current_lba);
     err = plat_write_block(_gpt1.hdr.current_lba,(uint8_t*) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
@@ -177,24 +187,24 @@ uint32_t gpt_write_tbl(void)
         return PB_ERR;
     }
 
+
+    _gpt2.hdr.hdr_crc = 0;
+    _gpt2.hdr.part_array_crc = efi_crc32((uint8_t *) _gpt2.part, 
+                sizeof(struct gpt_part_hdr) * _gpt2.hdr.no_of_parts);
+
+    crc_tmp  = efi_crc32((uint8_t*) &_gpt2.hdr, sizeof(struct gpt_header)
+                            - GPT_HEADER_RSZ);
+    _gpt2.hdr.hdr_crc = crc_tmp;
+
     /* Write backup GPT table */
 
-    err = plat_write_block(_gpt1.hdr.backup_lba, (uint8_t *) &_gpt1.hdr, 1);
+    LOG_INFO("Writing backup GPT tbl to LBA %llu", _gpt2.hdr.entries_start_lba);
+    err = plat_write_block(_gpt2.hdr.entries_start_lba, (uint8_t *) &_gpt2,
+            sizeof(struct gpt_backup_tbl));
 
     if (err != PB_OK) 
     {
         LOG_ERR ("Error writing backup GPT table");
-        return PB_ERR;
-    }
-
-    part_tbl_blocks = (_gpt1.hdr.no_of_parts * _gpt1.hdr.part_entry_sz) / 512;
-
-    err = plat_write_block(_gpt1.hdr.backup_lba-part_tbl_blocks, 
-                        (uint8_t *) _gpt1.part, part_tbl_blocks);
-
-    if (err != PB_OK) 
-    {
-        LOG_ERR ("Error writing backup GPT part table");
         return PB_ERR;
     }
 
@@ -230,6 +240,7 @@ uint32_t gpt_init(void)
         
     }
 
+    LOG_INFO("last LBA: %llu", plat_get_lastlba());
     /* TODO: Implement logic to recover faulty primare GPT table */
     if (_gpt1.hdr.signature != __gpt_header_signature) 
     {
