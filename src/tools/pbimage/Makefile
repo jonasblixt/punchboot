@@ -34,6 +34,9 @@ C_SRCS   = $(TARGET).c
 
 OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 
+ifdef TEST
+	CFLAGS += -fprofile-arcs -ftest-coverage
+endif
 
 all: $(TARGET)
 

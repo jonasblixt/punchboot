@@ -111,7 +111,7 @@ static void gcov_load_data(struct gcov_info *info)
     if (fd < 0)
         return;
 
-    LOG_INFO ("fn: %s",info->filename);
+    //LOG_INFO ("fn: %s",info->filename);
 
     if (gcov_read_u32(fd) != GCOV_DATA_MAGIC)
     {

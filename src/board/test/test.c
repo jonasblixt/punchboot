@@ -243,5 +243,6 @@ void board_boot(struct pb_pbi *pbi)
 {
     UNUSED(pbi);
 	LOG_INFO("Booting");
-	while (1);
+
+    plat_reset();
 }

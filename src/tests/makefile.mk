@@ -5,6 +5,10 @@ INTEGRATION_TESTS += test_part
 INTEGRATION_TESTS += test_config
 INTEGRATION_TESTS += test_corrupt_gpt
 INTEGRATION_TESTS += test_corrupt_gpt2
+INTEGRATION_TESTS += test_part_flash
+INTEGRATION_TESTS += test_boot_pbi
+INTEGRATION_TESTS += test_boot_pbi2
+INTEGRATION_TESTS += test_boot_pbi3
 
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"
