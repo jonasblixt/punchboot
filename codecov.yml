@@ -1,0 +1,5 @@
+ignore:
+    - src/3pp
+    - src/tests
+    - src/plat
+    - src/board/test

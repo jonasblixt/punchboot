@@ -17,6 +17,11 @@
 static uint8_t _flag_gpt_ok = false;
 __a4k static struct gpt_primary_tbl __attribute__((section (".bigbuffer"))) _gpt1;
 
+static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
+{
+	return (crc32(~0L, buf, sz) ^ ~0L);
+}
+
 static void gpt_part_name(struct gpt_part_hdr *part, uint8_t *out, uint8_t len) 
 {
     uint8_t null_count = 0;
@@ -98,8 +103,11 @@ uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba)
     hdr->first_lba = hdr->current_lba + 1 
             + (hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512;
     hdr->backup_lba = last_lba;
-    hdr->entries_start_lba = _gpt1.hdr.first_lba + 1;
+    hdr->last_lba = last_lba - 1 - 
+                (hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512;
+    hdr->entries_start_lba = _gpt1.hdr.current_lba + 1;
     hdr->part_entry_sz = sizeof(struct gpt_part_hdr);
+    
 
     for (int i = 0; i < 16; i++) 
         hdr->disk_uuid[i] = gpt_prng();
@@ -114,6 +122,8 @@ uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks,
     struct gpt_part_hdr *part = &_gpt1.part[part_idx];
     struct gpt_part_hdr *prev_part = NULL;
     
+    memset(part, 0, sizeof(struct gpt_part_hdr));
+
     if (part_idx == 0) {
         part->first_lba = _gpt1.hdr.first_lba;
     } else {
@@ -149,11 +159,10 @@ uint32_t gpt_write_tbl(void)
 
     /* Calculate CRC32 for header and part table */
     _gpt1.hdr.hdr_crc = 0;
-    _gpt1.hdr.part_array_crc = crc32(0, (uint8_t *) &_gpt1.part, 
+    _gpt1.hdr.part_array_crc = efi_crc32((uint8_t *) _gpt1.part, 
                 sizeof(struct gpt_part_hdr) * _gpt1.hdr.no_of_parts);
 
-
-    crc_tmp  = crc32(0, (uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header)
+    crc_tmp  = efi_crc32((uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header)
                             - GPT_HEADER_RSZ);
     _gpt1.hdr.hdr_crc = crc_tmp;
 
@@ -181,7 +190,7 @@ uint32_t gpt_write_tbl(void)
     part_tbl_blocks = (_gpt1.hdr.no_of_parts * _gpt1.hdr.part_entry_sz) / 512;
 
     err = plat_write_block(_gpt1.hdr.backup_lba-part_tbl_blocks, 
-                        (uint8_t *) &_gpt1.part, part_tbl_blocks);
+                        (uint8_t *) _gpt1.part, part_tbl_blocks);
 
     if (err != PB_OK) 
     {
@@ -200,7 +209,7 @@ uint32_t gpt_init(void)
 
     uint8_t tmp_string[64];
 
-    LOG_INFO("Init...");
+    LOG_INFO("Init... ");
 
     for (uint32_t i = 0; i < _gpt1.hdr.no_of_parts; i++) 
     {
@@ -236,7 +245,7 @@ uint32_t gpt_init(void)
     uint32_t crc_tmp = _gpt1.hdr.hdr_crc;
     _gpt1.hdr.hdr_crc = 0;
 
-    if (crc32(0, (uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header) - 
+    if (efi_crc32((uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header) - 
                                                 GPT_HEADER_RSZ) != crc_tmp) 
     {
         LOG_ERR ("Header CRC Error");
@@ -246,16 +255,16 @@ uint32_t gpt_init(void)
 
     crc_tmp = _gpt1.hdr.part_array_crc;
 
-    if (crc32(0, (uint8_t *) &_gpt1.part, sizeof(struct gpt_part_hdr) *
+    if (efi_crc32((uint8_t *) _gpt1.part, sizeof(struct gpt_part_hdr) *
                         _gpt1.hdr.no_of_parts) != crc_tmp) 
     {
         LOG_ERR ("Partition array CRC error");
         _flag_gpt_ok = false;
         return PB_ERR;
     }
-
     LOG_INFO ("GPT crc = 0x%8.8lX", crc_tmp);
-
+    LOG_INFO ("  array size = %lu", sizeof(struct gpt_part_hdr) *
+                        _gpt1.hdr.no_of_parts);
     _flag_gpt_ok = true;
     return PB_OK;
 
