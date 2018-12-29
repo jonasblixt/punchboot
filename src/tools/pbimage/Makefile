@@ -26,7 +26,7 @@ CFLAGS   = -Wall -O2 -I ../../include/
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -std=c99
 
-LIBS    =   -lc -luuid -ltomcrypt
+LIBS    =   -lc -luuid -ltomcrypt -ltommath
 LDFLAGS =
 
 ASM_SRCS = 

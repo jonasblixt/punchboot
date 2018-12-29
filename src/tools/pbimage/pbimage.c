@@ -172,7 +172,7 @@ static void pbimage_print_help(void) {
 
 int main (int argc, char **argv) {
     int opt;
-
+    extern const ltc_math_descriptor ltm_desc;
     /* register prng/hash */
     if (register_prng(&sprng_desc) == -1) {
         printf("Error registering sprng");
@@ -190,6 +190,7 @@ int main (int argc, char **argv) {
     char *sign_key_fn = NULL;
 
     struct stat finfo;
+    ltc_mp = ltm_desc;
 
     bzero(&hdr, sizeof(struct pb_image_hdr));
     bzero(&comp, PB_IMAGE_MAX_COMP * sizeof(struct pb_component_hdr));
@@ -214,9 +215,9 @@ int main (int argc, char **argv) {
                     component_type = PB_IMAGE_COMPTYPE_TEE;
                 else if (strcmp(optarg, "DT") == 0)
                     component_type = PB_IMAGE_COMPTYPE_DT;
-                else if (strcmp(optarg, "LINUX"))
+                else if (strcmp(optarg, "LINUX") == 0)
                     component_type = PB_IMAGE_COMPTYPE_LINUX;
-                else if (strcmp(optarg, "RAMDISK"))
+                else if (strcmp(optarg, "RAMDISK") == 0)
                     component_type = PB_IMAGE_COMPTYPE_RAMDISK;
                 else {
                     printf ("Component type '%s' not recognized\n",optarg);
