@@ -212,71 +212,127 @@ uint32_t gpt_write_tbl(void)
 }
 
 
-uint32_t gpt_init(void) 
+static uint32_t gpt_has_valid_header(struct gpt_header *hdr)
 {
-    plat_read_block(1,(uint8_t*) &_gpt1, 
-                    sizeof(struct gpt_primary_tbl) / 512);
 
+    if (hdr->signature != __gpt_header_signature) 
+    {
+        LOG_ERR ("Invalid header signature");
+        return PB_ERR;
+    }
+
+    uint32_t crc_tmp = hdr->hdr_crc;
+    hdr->hdr_crc = 0;
+
+    if (efi_crc32((uint8_t*) hdr, sizeof(struct gpt_header) - 
+                                   GPT_HEADER_RSZ) != crc_tmp) 
+    {
+        LOG_ERR ("Header CRC Error");
+        return PB_ERR;
+    }
+
+    return PB_OK;
+}
+
+static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr, 
+                                    struct gpt_part_hdr *part)
+{
+    uint32_t crc_tmp = 0;
     uint8_t tmp_string[64];
 
-    LOG_INFO("Init... ");
-
-    for (uint32_t i = 0; i < _gpt1.hdr.no_of_parts; i++) 
+    for (uint32_t i = 0; i < hdr->no_of_parts; i++) 
     {
 
-        if (_gpt1.part[i].first_lba == 0)
+        if (part[i].first_lba == 0)
             break;
 
-        gpt_part_name(&_gpt1.part[i], tmp_string, sizeof(tmp_string));
+        gpt_part_name(&part[i], tmp_string, sizeof(tmp_string));
 
         LOG_INFO2 (" %lu - [%16s] lba 0x%8.8lX%8.8lX - 0x%8.8lX%8.8lX\n\r",
                         i,
                         tmp_string,
-                        (uint32_t) (_gpt1.part[i].first_lba >> 32) & 0xFFFFFFFF,
-                        (uint32_t) _gpt1.part[i].first_lba & 0xFFFFFFFF,
-                        (uint32_t) (_gpt1.part[i].last_lba >> 32) & 0xFFFFFFFF,
-                        (uint32_t) _gpt1.part[i].last_lba & 0xFFFFFFFF);
+                        (uint32_t) (part[i].first_lba >> 32) & 0xFFFFFFFF,
+                        (uint32_t) part[i].first_lba & 0xFFFFFFFF,
+                        (uint32_t) (part[i].last_lba >> 32) & 0xFFFFFFFF,
+                        (uint32_t) part[i].last_lba & 0xFFFFFFFF);
     
         
     }
 
-    LOG_INFO("last LBA: %llu", plat_get_lastlba());
-    /* TODO: Implement logic to recover faulty primare GPT table */
-    if (_gpt1.hdr.signature != __gpt_header_signature) 
-    {
-        LOG_ERR ("Invalid header signature");
-        tfp_printf("  Sig:");
-        for (uint32_t n = 0; n < 8; n++)
-            tfp_printf("%2.2X", (uint8_t) (_gpt1.hdr.signature >> (n*8)) & 0xFF);
-        tfp_printf ("\n\r");
-        _flag_gpt_ok = false;
-        return PB_ERR;
-    }
+    crc_tmp = hdr->part_array_crc;
 
-    uint32_t crc_tmp = _gpt1.hdr.hdr_crc;
-    _gpt1.hdr.hdr_crc = 0;
-
-    if (efi_crc32((uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header) - 
-                                                GPT_HEADER_RSZ) != crc_tmp) 
-    {
-        LOG_ERR ("Header CRC Error");
-        _flag_gpt_ok = false;
-        return PB_ERR;
-    }
-
-    crc_tmp = _gpt1.hdr.part_array_crc;
-
-    if (efi_crc32((uint8_t *) _gpt1.part, sizeof(struct gpt_part_hdr) *
-                        _gpt1.hdr.no_of_parts) != crc_tmp) 
+    if (efi_crc32((uint8_t *) part, sizeof(struct gpt_part_hdr) *
+                        hdr->no_of_parts) != crc_tmp) 
     {
         LOG_ERR ("Partition array CRC error");
         _flag_gpt_ok = false;
         return PB_ERR;
     }
-    LOG_INFO ("GPT crc = 0x%8.8lX", crc_tmp);
-    LOG_INFO ("  array size = %lu", sizeof(struct gpt_part_hdr) *
-                        _gpt1.hdr.no_of_parts);
-    _flag_gpt_ok = true;
-    return PB_OK;
 
+    return PB_OK;
+}
+
+static uint32_t gpt_is_valid(struct gpt_header *hdr, struct gpt_part_hdr *part)
+{
+
+    LOG_INFO("Init... ");
+
+
+    if (gpt_has_valid_header(hdr) != PB_OK)
+        return PB_ERR;
+
+    if (gpt_has_valid_part_array(hdr, part) != PB_OK)
+        return PB_ERR;
+
+    return PB_OK;
+}
+
+uint32_t gpt_init(void) 
+{
+    _flag_gpt_ok = false;
+
+    plat_read_block(1,(uint8_t*) &_gpt1, 
+                    sizeof(struct gpt_primary_tbl) / 512);
+
+    if (gpt_is_valid(&_gpt1.hdr, _gpt1.part) != PB_OK)
+    {
+        LOG_ERR("Primary GPT table is corrupt or missing, trying to recover backup");
+        plat_read_block(plat_get_lastlba(), (uint8_t *) &_gpt2.hdr, 
+                                sizeof(struct gpt_header) / 512);
+
+        if (gpt_has_valid_header(&_gpt2.hdr) != PB_OK)
+        {
+            LOG_ERR("Invalid backup GPT header, unable to recover");
+            return PB_ERR;
+        }
+        
+        plat_read_block(_gpt2.hdr.entries_start_lba, (uint8_t *) _gpt2.part,
+                    (_gpt2.hdr.no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
+
+        if (gpt_has_valid_part_array(&_gpt2.hdr, _gpt2.part) != PB_OK)
+        {
+            LOG_ERR("Invalid backup GPT part array, unable to recover");
+            return PB_ERR;
+        }
+
+        LOG_ERR ("Recovering from backup GPT tables");
+
+        memcpy(&_gpt1.hdr, &_gpt2.hdr, sizeof(struct gpt_header));
+        memcpy(_gpt1.part, _gpt2.part, sizeof(struct gpt_part_hdr)
+                    * _gpt2.hdr.no_of_parts);
+        
+        _gpt1.hdr.backup_lba = plat_get_lastlba();
+        _gpt1.hdr.current_lba = 1;
+        _gpt1.hdr.entries_start_lba = _gpt1.hdr.current_lba + 1;
+
+        if (gpt_write_tbl() != PB_OK)
+        {
+            LOG_ERR("Could not update primary GPT table, unable to recover");
+            return PB_ERR;
+        }
+    }
+
+    _flag_gpt_ok = true;
+
+    return PB_OK;
 }
