@@ -313,5 +313,5 @@ uint32_t plat_switch_part(uint8_t part_no) {
 }
 
 uint64_t plat_get_lastlba(void) {
-    return _sectors;  
+    return _sectors-1;  
 }
