@@ -13,6 +13,7 @@ then
 fi
 
 $PB boot -x -f /tmp/img.pbi
+result_code=$?
 
 if [ $result_code -ne 0 ];
 then

@@ -13,6 +13,7 @@ then
 fi
 
 $PB part -w -n 1 -f /tmp/img.pbi
+result_code=$?
 
 if [ $result_code -ne 0 ];
 then
@@ -20,6 +21,7 @@ then
 fi
 
 $PB boot -s -a
+result_code=$?
 
 if [ $result_code -ne 0 ];
 then

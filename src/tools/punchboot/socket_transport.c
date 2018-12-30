@@ -147,8 +147,8 @@ int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
             remaining -= chunk;
             pos += chunk;
         }
-        read(fd, &status, 1);
     }
+
 	return 0;
 }
 

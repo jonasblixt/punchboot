@@ -72,13 +72,23 @@ static uint32_t recovery_flash_part(uint8_t part_no,
 {
     uint32_t part_lba_offset = 0;
 
-    // Check for data complete
-
-    part_lba_offset = gpt_get_part_offset(part_no);
+    part_lba_offset = gpt_get_part_first_lba(part_no);
 
     if (!part_lba_offset) 
     {
         LOG_ERR ("Unknown partition");
+        return PB_ERR;
+    }
+
+    if (part_lba_offset < lba_offset)
+    {
+        LOG_ERR ("Trying to write outside of partition");
+        return PB_ERR;
+    }
+
+    if ( (lba_offset + no_of_blocks) > gpt_get_part_last_lba(part_no))
+    {
+        LOG_ERR ("Trying to write outside of partition");
         return PB_ERR;
     }
     
@@ -336,7 +346,9 @@ static void recovery_parse_command(struct usb_device *dev,
                     break;
                 }
             }
-            
+    
+            LOG_INFO("Loading done");
+
             if (err != PB_OK)
                 break;
             /* TODO: Implement key management strategy */

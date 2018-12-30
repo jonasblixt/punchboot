@@ -402,6 +402,7 @@ uint32_t pb_execute_image (const char *f_name)
 
             err = pb_write_bulk(bfr, bytes_to_send, &sent_sz);
     
+
             data_remaining = data_remaining - bytes_to_send;
 
             if (!data_remaining)
@@ -418,6 +419,7 @@ uint32_t pb_execute_image (const char *f_name)
 
     if (err != PB_OK)
         return err;
+
 err_xfer:
 
 

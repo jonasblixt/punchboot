@@ -48,9 +48,14 @@ struct gpt_primary_tbl * gpt_get_tbl(void)
     return &_gpt1;
 }
 
-uint32_t gpt_get_part_offset(uint8_t part_no) 
+uint32_t gpt_get_part_first_lba(uint8_t part_no) 
 {
     return _gpt1.part[part_no & 0x1f].first_lba;
+}
+
+uint64_t gpt_get_part_last_lba(uint8_t part_no)
+{
+    return _gpt1.part[part_no & 0x1f].last_lba;
 }
 
 uint32_t gpt_get_part_by_uuid(const uint8_t *uuid, uint32_t *lba_offset) 
