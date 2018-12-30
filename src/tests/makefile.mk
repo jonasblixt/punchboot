@@ -10,15 +10,22 @@ INTEGRATION_TESTS += test_boot_pbi
 INTEGRATION_TESTS += test_boot_pbi2
 INTEGRATION_TESTS += test_boot_pbi3
 INTEGRATION_TESTS += test_boot_pbi4
+INTEGRATION_TESTS += test_flash_bl
 
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"
 QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m 1024 
 QEMU_FLAGS += -nographic -semihosting
-QEMU_FLAGS += -device virtio-serial-device  -chardev socket,path=/tmp/pb_sock,server,nowait,id=foo 
+# Virtio serial port
+QEMU_FLAGS += -device virtio-serial-device  
+QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,id=foo 
 QEMU_FLAGS += -device virtserialport,chardev=foo  
+# Virtio Main disk
 QEMU_FLAGS += -device virtio-blk-device,drive=disk 
 QEMU_FLAGS += -drive id=disk,file=/tmp/disk,if=none,format=raw
+# Virtio Aux disk, for bootloader and fuses
+QEMU_FLAGS += -device virtio-blk-device,drive=disk_aux
+QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,if=none,format=raw
 
 TEST_C_SRCS += tests/common.c
 
@@ -31,8 +38,9 @@ BOARD = test
 
 test: $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS) $(TEST_OBJS) 
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32
-	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket
-	@make -C tools/pbimage CROSS_COMPILE=""
+	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16
+	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
+	@make -C tools/pbimage CROSS_COMPILE="" CODE_COV=1
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
 		$(LD) $(LDFLAGS) $(OBJS) $(TEST_OBJS) \

@@ -42,11 +42,14 @@ endif
 
 ifeq ($(TRANSPORT), socket)
 	TRANSPORT = socket
-	CFLAGS += -fprofile-arcs -ftest-coverage
 else ifeq ($(TRANSPORT), usb)
 	TRANSPORT = usb
 else
 $(error Invalid transport selected)
+endif
+
+ifdef CODE_COV
+	CFLAGS += -fprofile-arcs -ftest-coverage
 endif
 
 C_SRCS  += $(TRANSPORT)_transport.c

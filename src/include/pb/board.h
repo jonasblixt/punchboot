@@ -19,7 +19,7 @@ struct board_info {
     uint16_t type;
     uint8_t rev;
     uint8_t var;
-};
+} __attribute__ ((packed)) ;
 
 #define BOARD_OTP_WRITE_KEY 0xaabbccdd
 
