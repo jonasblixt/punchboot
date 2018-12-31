@@ -1,6 +1,7 @@
 TESTS  = test_boot
 
 INTEGRATION_TESTS  = test_reset
+INTEGRATION_TESTS += test_fuse_uuid
 INTEGRATION_TESTS += test_part
 INTEGRATION_TESTS += test_config
 INTEGRATION_TESTS += test_corrupt_gpt

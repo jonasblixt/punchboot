@@ -313,8 +313,11 @@ uint32_t board_enable_secure_boot(uint32_t key)
 
 void board_boot(struct pb_pbi *pbi)
 {
-    UNUSED(pbi);
-	LOG_INFO("Booting");
+
+    struct pb_component_hdr *linux = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
+
+	LOG_INFO("Booting linux image at addr %8.8X",linux->load_addr_low);
 
     plat_reset();
 }
