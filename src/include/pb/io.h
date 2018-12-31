@@ -13,17 +13,6 @@
 
 #include <pb.h>
 
-static inline uint32_t pb_readl(__iomem addr)
-{
-	return *((volatile uint32_t *)addr);
-}
-
-static inline void pb_writel(uint32_t data, __iomem addr)
-{
-	*((volatile uint32_t *)addr) = data;
-}
-
-
 static inline void pb_write32(uint32_t data, __iomem addr)
 {
 	*((volatile uint32_t *)addr) = data;

@@ -61,14 +61,14 @@ uint32_t board_usb_init(struct usb_device **dev)
  
     /* Enable USB PLL */
     /* TODO: Add reg defs */
-    reg = pb_readl(0x020C8000+0x10);
+    reg = pb_read32(0x020C8000+0x10);
     reg |= (1<<6);
-    pb_writel(reg, 0x020C8000+0x10);
+    pb_write32(reg, 0x020C8000+0x10);
 
     /* Power up USB */
     /* TODO: Add reg defs */
-    pb_writel ((1 << 31) | (1 << 30), 0x020C9038);
-    pb_writel(0xFFFFFFFF, 0x020C9008);
+    pb_write32 ((1 << 31) | (1 << 30), 0x020C9038);
+    pb_write32(0xFFFFFFFF, 0x020C9008);
  
 
     *dev = &usbdev;
@@ -98,10 +98,10 @@ uint32_t board_init(void)
 
 
     /* Configure UART */
-    pb_writel(0, 0x020E0094);
-    //pb_writel(0, 0x020E0098);
-    pb_writel(UART_PAD_CTRL, 0x020E0320);
-    //pb_writel(UART_PAD_CTRL, 0x020E0324);
+    pb_write32(0, 0x020E0094);
+    //pb_write32(0, 0x020E0098);
+    pb_write32(UART_PAD_CTRL, 0x020E0320);
+    //pb_write32(UART_PAD_CTRL, 0x020E0324);
 
     imx_uart_init(UART_PHYS);
 
@@ -112,22 +112,22 @@ uint32_t board_init(void)
     *
     * This is used to force recovery mode
     * */
-    pb_writel(5, 0x020E0098); 
-    pb_writel(0x2000 | (2 << 14) | (1 << 12), 0x020E0324);
+    pb_write32(5, 0x020E0098); 
+    pb_write32(0x2000 | (2 << 14) | (1 << 12), 0x020E0324);
 
     /* Configure pinmux for usdhc1 */
-    pb_writel(0, 0x020E0000+0x1C0); /* CLK MUX */
-    pb_writel(0, 0x020E0000+0x1BC); /* CMD MUX */
-    pb_writel(0, 0x020E0000+0x1C4); /* DATA0 MUX */
-    pb_writel(0, 0x020E0000+0x1C8); /* DATA1 MUX */
-    pb_writel(0, 0x020E0000+0x1CC); /* DATA2 MUX */
-    pb_writel(0, 0x020E0000+0x1D0); /* DATA3 MUX */
+    pb_write32(0, 0x020E0000+0x1C0); /* CLK MUX */
+    pb_write32(0, 0x020E0000+0x1BC); /* CMD MUX */
+    pb_write32(0, 0x020E0000+0x1C4); /* DATA0 MUX */
+    pb_write32(0, 0x020E0000+0x1C8); /* DATA1 MUX */
+    pb_write32(0, 0x020E0000+0x1CC); /* DATA2 MUX */
+    pb_write32(0, 0x020E0000+0x1D0); /* DATA3 MUX */
  
-    pb_writel(1, 0x020E0000+0x1A8); /* DATA4 MUX */
-    pb_writel(1, 0x020E0000+0x1AC); /* DATA5 MUX */
-    pb_writel(1, 0x020E0000+0x1B0); /* DATA6 MUX */
-    pb_writel(1, 0x020E0000+0x1B4); /* DATA7 MUX */
-    pb_writel(1, 0x020E0000+0x1A4); /* RESET MUX */
+    pb_write32(1, 0x020E0000+0x1A8); /* DATA4 MUX */
+    pb_write32(1, 0x020E0000+0x1AC); /* DATA5 MUX */
+    pb_write32(1, 0x020E0000+0x1B0); /* DATA6 MUX */
+    pb_write32(1, 0x020E0000+0x1B4); /* DATA7 MUX */
+    pb_write32(1, 0x020E0000+0x1A4); /* RESET MUX */
 
     usdhc_emmc_init();
 
@@ -139,11 +139,11 @@ uint8_t board_force_recovery(void) {
     uint8_t force_recovery = false;
     uint32_t boot_fuse = 0x0;
     
-    if ( (pb_readl(0x0209C008) & (1 << 21)) == 0)
+    if ( (pb_read32(0x0209C008) & (1 << 21)) == 0)
         force_recovery = true;
 
    
-    boot_fuse = pb_readl(0x021BC450);
+    boot_fuse = pb_read32(0x021BC450);
 
     if (boot_fuse != 0x0000C060) {
         force_recovery = true;
