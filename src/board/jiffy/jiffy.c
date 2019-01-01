@@ -22,10 +22,9 @@
 #include <plat/imx6ul/gpt.h>
 #include <plat/imx6ul/caam.h>
 #include <plat/imx6ul/ocotp.h>
-
+#include <plat/imx6ul/hab.h>
 #include "board_config.h"
 
-// 0x365D2AEE
 const uint8_t part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
                                 0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8};
 
@@ -127,10 +126,22 @@ uint32_t board_init(void)
 
     usdhc_emmc_init();
 
+    if (hab_secureboot_active())
+        LOG_INFO("Secure boot active");
+    else
+        LOG_INFO("Secure boot disabled");
+
+    if (hab_has_no_errors() == PB_OK)
+        LOG_INFO("No HAB errors found");
+    else
+        LOG_ERR("HAB is reporting errors");
+
+
     return PB_OK;
 }
 
-uint8_t board_force_recovery(void) {
+uint8_t board_force_recovery(void) 
+{
     uint8_t force_recovery = false;
     uint32_t boot_fuse = 0x0;
 
@@ -140,7 +151,8 @@ uint8_t board_force_recovery(void) {
 
     ocotp_read(0, 5, &boot_fuse);
  
-    if (boot_fuse != 0x0000C060) {
+    if (boot_fuse != 0x0000C060) 
+    {
         force_recovery = true;
         tfp_printf ("OTP not set, forcing recovery mode\n\r");
     }
@@ -148,7 +160,8 @@ uint8_t board_force_recovery(void) {
     return force_recovery;
 }
 
-uint32_t board_get_uuid(uint8_t *uuid) {
+uint32_t board_get_uuid(uint8_t *uuid) 
+{
     uint32_t *uuid_ptr = (uint32_t *) uuid;
 
     ocotp_read(15, 4, &uuid_ptr[0]);
@@ -159,13 +172,15 @@ uint32_t board_get_uuid(uint8_t *uuid) {
     return PB_OK;
 }
 
-uint32_t board_get_boardinfo(struct board_info *info) {
+uint32_t board_get_boardinfo(struct board_info *info) 
+{
     UNUSED(info);
     return PB_OK;
 }
 
 
-uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) {
+uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) 
+{
     uint32_t *uuid_ptr = (uint32_t *) uuid;
     uint8_t tmp_uuid[16];
 
@@ -174,8 +189,10 @@ uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) {
 
     board_get_uuid(tmp_uuid);
 
-    for (int i = 0; i < 16; i++) {
-        if (tmp_uuid[i] != 0) {
+    for (int i = 0; i < 16; i++) 
+    {
+        if (tmp_uuid[i] != 0) 
+        {
             LOG_ERR ("Can't write UUID, fuses already programmed\n\r");
             return PB_ERR;
         }
@@ -188,10 +205,10 @@ uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) {
     return PB_OK;
 }
 
-uint32_t board_write_standard_fuses(uint32_t key) {
-    if (key != BOARD_OTP_WRITE_KEY) {
+uint32_t board_write_standard_fuses(uint32_t key) 
+{
+    if (key != BOARD_OTP_WRITE_KEY) 
         return PB_ERR;
-    }
 
     /* Enable EMMC0 BOOT */
     ocotp_write(0, 5, 0x0000c060);
@@ -199,14 +216,16 @@ uint32_t board_write_standard_fuses(uint32_t key) {
     return PB_OK;
 }
 
-uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) {
+uint32_t board_write_boardinfo(struct board_info *info, uint32_t key) 
+{
     UNUSED(info);
     UNUSED(key);
  
     return PB_OK;
 }
 
-uint32_t board_write_gpt_tbl() {
+uint32_t board_write_gpt_tbl() 
+{
     gpt_init_tbl(1, plat_get_lastlba());
     gpt_add_part(0, 1, part_type_config, "Config");
     gpt_add_part(1, 32768, part_type_system_a, "System A");

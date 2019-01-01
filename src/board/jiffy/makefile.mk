@@ -15,7 +15,7 @@ FINAL_IMAGE     = $(TARGET).imx
 
 board_final: $(TARGET).bin
 	@$(MKIMAGE) -n $(JIFFY_IMAGE_CFG) -T imximage -e $(PB_ENTRY) \
-			-d $(TARGET).bin $(TARGET).imx > /dev/null
+			-d $(TARGET).bin $(TARGET).imx 
 
 board_clean:
 	@-rm -rf board/jiffy/*.o 
