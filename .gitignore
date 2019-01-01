@@ -12,3 +12,5 @@ src/tools/punchboot/punchboot
 *.pbi
 src/tools/pbimage/pbimage
 src/3pp/tinyprintf/*.o
+src/pb.csf
+src/qemu.log

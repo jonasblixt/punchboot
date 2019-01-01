@@ -8,11 +8,11 @@ Signature Format = CMS
 Engine = CAAM
 
 [Install SRK]
-File = "/work/cst-2.3.3/crts/SRK_1_2_3_4_table.bin"
+File = "__SRK_TBL__"
 Source index = 0
 
 [Install CSFK]
-File = "/work/cst-2.3.3/crts/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
+File = "__CSFK_PEM__"
 
 [Authenticate CSF]
 
@@ -21,8 +21,8 @@ File = "/work/cst-2.3.3/crts/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
 Verification index = 0
 # Key to install
 Target index = 2
-File = "/work/cst-2.3.3/crts/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
+File = "__IMG_PEM__"
 
 [Authenticate Data]
 Verification index = 2
-Blocks = 0x80000400 0x000 0x00005c00 "pb.imx"
+__BLOCKS__
