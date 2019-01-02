@@ -8,6 +8,33 @@
 #include <keys.h>
 #include <board.h>
 #include <plat.h>
+#include <board_config.h>
+
+void pb_boot_linux_with_dt(struct pb_pbi *pbi)
+{
+
+    struct pb_component_hdr *dtb = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
+
+    struct pb_component_hdr *linux = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
+
+    LOG_INFO(" LINUX %lX, DTB %lX", linux->load_addr_low, dtb->load_addr_low);
+    
+    volatile uint32_t dtb_addr = dtb->load_addr_low;
+    volatile uint32_t linux_addr = linux->load_addr_low;
+
+
+    asm volatile(   "mov r0, #0" "\n\r"
+                    "mov r1, #0xFFFFFFFF" "\n\r"
+                    "mov r2, %0" "\n\r"
+                    :
+                    : "r" (dtb_addr));
+
+    asm volatile(  "mov pc, %0" "\n\r"
+                    :
+                    : "r" (linux_addr));
+}
 
 uint32_t pb_boot_image(struct pb_pbi *pbi)
 {
@@ -19,7 +46,8 @@ uint32_t pb_boot_image(struct pb_pbi *pbi)
     config_commit();
  
     plat_wdog_kick();
-    board_boot(pbi);
+
+    PB_BOOT_FUNC(pbi);
 
     return PB_OK;
 }
@@ -66,3 +94,5 @@ uint32_t pb_boot_load_part(uint8_t boot_part, struct pb_pbi **pbi)
    
     return err;
 }
+
+

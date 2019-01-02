@@ -18,5 +18,11 @@
 
 #define PB_MAX_FAIL_BOOT_COUNT 16
 
+#define BOARD_UUID_FUSE0 15, 4
+#define BOARD_UUID_FUSE1 15, 5
+#define BOARD_UUID_FUSE2 15, 6
+#define BOARD_UUID_FUSE3 15, 7
+
+#define PB_BOOT_FUNC(x) pb_boot_linux_with_dt(x)
 
 #endif

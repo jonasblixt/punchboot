@@ -31,13 +31,6 @@ void pb_main(void)
     if (plat_early_init() != PB_OK)
         plat_reset();
 
-    if (board_init() != PB_OK) 
-    {
-        LOG_ERR ("Board init failed...");
-        plat_reset();
-    }
-
-
     LOG_INFO ("PB: " VERSION " starting...");
 
     if (gpt_init() != PB_OK)

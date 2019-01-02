@@ -95,8 +95,9 @@ uint32_t plat_sha256_finalize(uint8_t *out) {
 
 
 
-    if (caam_shedule_job_sync(d, desc) != PB_OK) {
-        tfp_printf ("sha256 error\n\r");
+    if (caam_shedule_job_sync(d, desc) != PB_OK) 
+    {
+        LOG_ERR ("sha256 error");
         return PB_ERR;
     }
 
@@ -121,7 +122,7 @@ uint32_t plat_rsa_enc(uint8_t *input,  uint32_t input_sz,
 
  
     if (caam_shedule_job_sync(d, desc) != PB_OK) {
-        tfp_printf ("caam_rsa_enc error \n\r");
+        LOG_ERR ("caam_rsa_enc error");
         return PB_ERR;
     }
 #ifdef CAAM_DEBUG
@@ -129,8 +130,6 @@ uint32_t plat_rsa_enc(uint8_t *input,  uint32_t input_sz,
     tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x8814));
     tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x1044));
 #endif
-
-    /* TODO: Implement logging info,error, debug*/
 
 
     return PB_OK;

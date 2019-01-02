@@ -8,6 +8,7 @@
 #include <keys.h>
 
 static struct __a4k __no_bss pb_pbi _pbi;
+extern char end;
 
 uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 {
@@ -27,8 +28,6 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
         LOG_ERR ("Incorrect header magic");
         return PB_ERR;
     }
-    
-    /* TODO: Make sure bootloader code can't be overwritten */
 
     LOG_INFO ("Component manifest:");
     for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
@@ -40,6 +39,12 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
     for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
         LOG_INFO("Loading component %lu, %lu bytes",i, 
                                 _pbi.comp[i].component_size);
+
+        if (_pbi.comp[i].load_addr_low < ((unsigned int) &end))
+        {
+            LOG_ERR("image overlapping with bootloader memory");
+            return PB_ERR;
+        }
 
         plat_read_block(part_lba_offset + 
                     _pbi.comp[i].component_offset/512
@@ -121,7 +126,7 @@ bool pb_image_verify(struct pb_pbi* pbi, uint32_t key_index)
         return err;
     }
 
-    /* TODO: ASN.1 support functions */
+    /* Output is ASN.1 coded, this extracts the decoded checksum */
     uint8_t flag_sig_ok = 1;
     int n = 0;
     for (uint32_t i = 512-32; i < 512; i++) {

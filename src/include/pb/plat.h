@@ -61,5 +61,9 @@ void      plat_usb_wait_for_ep_completion(uint32_t ep);
 /* UART Interface */
 void      plat_uart_putc(void *ptr, char c);
 
+/* Fuse related calls */
+
+uint32_t plat_write_uuid(uint8_t *uuid, uint32_t key);
+uint32_t plat_get_uuid(uint8_t *uuid);
 
 #endif

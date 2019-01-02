@@ -109,6 +109,33 @@ int rand(void)
 }
 
 
+
+uint32_t plat_get_uuid(uint8_t *uuid) 
+{
+    virtio_block_read(&virtio_block2,0,  (uint8_t *)&_fuses, 1);
+
+    memcpy(uuid,_fuses.uuid,16);
+    return PB_OK;
+}
+
+uint32_t plat_write_uuid(uint8_t *uuid, uint32_t key) 
+{
+    UNUSED(key);
+
+    virtio_block_read(&virtio_block2,0,  (uint8_t *)&_fuses, 1);
+
+    for (uint32_t n = 0; n < 16; n++)
+    {
+        if (_fuses.uuid[n] != 0)
+            return PB_ERR;
+    }
+
+    memcpy(_fuses.uuid,uuid,16);
+    virtio_block_write(&virtio_block2, 0, (uint8_t *) &_fuses, 1);
+    return PB_OK;
+}
+
+
 const char *__locale_ctype_ptr(void)
 {
     return NULL;
@@ -195,7 +222,7 @@ uint32_t  plat_switch_part(uint8_t part_no)
             /* First 10 blocks are reserved for emulated fuses */
             blk_off = 10;
             blk_sz = 2048;
-            LOG_INFO("Switching to aux disk with offset: %u blks", blk_off);
+            LOG_INFO("Switching to aux disk with offset: %lu blks", blk_off);
         }
         break;
         case PLAT_EMMC_PART_BOOT1:
@@ -203,7 +230,7 @@ uint32_t  plat_switch_part(uint8_t part_no)
             blk = &virtio_block2;
             blk_off = 10 + 8192;
             blk_sz = 2048;
-            LOG_INFO("Switching to aux disk with offset: %u blks", blk_off);
+            LOG_INFO("Switching to aux disk with offset: %lu blks", blk_off);
         }
         break;
         case PLAT_EMMC_PART_USER:
@@ -211,7 +238,7 @@ uint32_t  plat_switch_part(uint8_t part_no)
             blk = &virtio_block;
             blk_off = 0;
             blk_sz = 65535;
-            LOG_INFO("Switching to main disk with offset: %u blks", blk_off);
+            LOG_INFO("Switching to main disk with offset: %lu blks", blk_off);
         }
         break;
         default:
@@ -236,36 +263,12 @@ uint8_t board_force_recovery(void)
 }
 
 
-uint32_t board_get_uuid(uint8_t *uuid) 
-{
-    virtio_block_read(&virtio_block2,0,  (uint8_t *)&_fuses, 1);
-
-    memcpy(uuid,_fuses.uuid,16);
-    return PB_OK;
-}
 
 uint32_t board_get_boardinfo(struct board_info *info) 
 {
     virtio_block_read(&virtio_block2,0,  (uint8_t *)&_fuses, 1);
     memcpy(info, &_fuses.binfo, sizeof(struct board_info));
 
-    return PB_OK;
-}
-
-uint32_t board_write_uuid(uint8_t *uuid, uint32_t key) 
-{
-    UNUSED(key);
-
-    virtio_block_read(&virtio_block2,0,  (uint8_t *)&_fuses, 1);
-
-    for (uint32_t n = 0; n < 16; n++)
-    {
-        if (_fuses.uuid[n] != 0)
-            return PB_ERR;
-    }
-
-    memcpy(_fuses.uuid,uuid,16);
-    virtio_block_write(&virtio_block2, 0, (uint8_t *) &_fuses, 1);
     return PB_OK;
 }
 
@@ -279,11 +282,9 @@ uint32_t board_write_boardinfo(struct board_info *info, uint32_t key)
 
 uint32_t board_write_gpt_tbl() 
 {
-    gpt_init_tbl(1, plat_get_lastlba());
-    gpt_add_part(0, 1, part_type_config, "Config");
     gpt_add_part(1, 1024, part_type_system_a, "System A");
     gpt_add_part(2, 1024, part_type_system_b, "System B");
-    return gpt_write_tbl();
+    return PB_OK;
 }
 
 uint32_t board_write_standard_fuses(uint32_t key) 
@@ -292,32 +293,14 @@ uint32_t board_write_standard_fuses(uint32_t key)
    return PB_OK;
 }
 
-uint32_t board_write_mac_addr(uint8_t *mac_addr, 
-							  uint32_t len, 
-							  uint32_t index, 
-							  uint32_t key) 
-{
-    UNUSED(mac_addr);
-    UNUSED(len);
-    UNUSED(index);
-    UNUSED(key);
 
-    return PB_OK;
-}
-
-uint32_t board_enable_secure_boot(uint32_t key) 
-{
-    UNUSED(key);
-    return PB_OK;
-}
-
-void board_boot(struct pb_pbi *pbi)
+void test_board_boot(struct pb_pbi *pbi)
 {
 
     struct pb_component_hdr *linux = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
 
-	LOG_INFO("Booting linux image at addr %8.8X",linux->load_addr_low);
+	LOG_INFO("Booting linux image at addr %8.8lX",linux->load_addr_low);
 
     plat_reset();
 }

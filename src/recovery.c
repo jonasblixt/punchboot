@@ -19,6 +19,7 @@
 #include <config.h>
 #include <string.h>
 #include <boot.h>
+#include <board_config.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
 #define RECOVERY_BULK_BUFFER_SZ 1024*1024*8
@@ -107,6 +108,9 @@ static uint32_t recovery_send_response(struct usb_device *dev,
 
     plat_usb_wait_for_ep_completion(USB_EP3_IN);
 
+    if (sz > RECOVERY_CMD_BUFFER_SZ)
+        return PB_ERR;
+
     memcpy(recovery_cmd_buffer, bfr, sz);
  
     err = plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sz);
@@ -148,6 +152,7 @@ static void recovery_parse_command(struct usb_device *dev,
                                        struct usb_pb_command *cmd)
 {
     uint32_t err = PB_OK;
+    extern char end;
 
     LOG_INFO ("0x%8.8lX %s, sz=%lub", cmd->command, 
                                       recovery_cmd_name[cmd->command],
@@ -303,7 +308,7 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (pbi->hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
             {
-                LOG_ERR ("Incorrect header magic\n\r");
+                LOG_ERR ("Incorrect header magic");
                 err = PB_ERR;
             }
             
@@ -311,8 +316,6 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (err != PB_OK)
                 break;
-
-            /* TODO: Make sure bootloader code can't be overwritten */
 
             LOG_INFO ("Component manifest:");
 
@@ -327,6 +330,14 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 LOG_INFO("Loading component %lu, %lu bytes",i, 
                                         pbi->comp[i].component_size);
+
+
+                if (pbi->comp[i].load_addr_low < ((unsigned int) &end))
+                {
+                    LOG_ERR("image overlapping with bootloader memory");
+                    err = PB_ERR;
+                    break;
+                }
 
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
                                         (uint8_t *) pbi->comp[i].load_addr_low,
@@ -345,13 +356,14 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (err != PB_OK)
                 break;
+
             /* TODO: Implement key management strategy */
 
             if (pb_image_verify(pbi, PB_KEY_DEV) == PB_OK)
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
-                board_boot(pbi);
+                PB_BOOT_FUNC(pbi);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
@@ -362,7 +374,7 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_READ_UUID:
         {
             uint8_t board_uuid[16];
-            err = board_get_uuid(board_uuid);
+            err = plat_get_uuid(board_uuid);
             recovery_send_response(dev, board_uuid, 16);
         }
         break;
@@ -370,18 +382,34 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             uint8_t board_uuid[16];
             recovery_read_data(dev, board_uuid, 16);
-            err = board_write_uuid(board_uuid, BOARD_OTP_WRITE_KEY);
+            err = plat_write_uuid(board_uuid, BOARD_OTP_WRITE_KEY);
         }
         break;
         case PB_CMD_WRITE_DFLT_GPT:
         {
-            LOG_INFO ("Installing default GPT table\n\r");
+            LOG_INFO ("Installing default GPT table");
+
+            err = gpt_init_tbl(1, plat_get_lastlba());
+
+            if (err != PB_OK)
+                break;
+
+            err = gpt_add_part(0, 1, part_type_config, "Config");
+
+            if (err != PB_OK)
+                break;
+
             err = board_write_gpt_tbl();
+
+            if (err != PB_OK)
+                break;
+
+            err = gpt_write_tbl();
         }
         break;
         case PB_CMD_WRITE_DFLT_FUSE:
         {
-            LOG_INFO ("Writing default boot fuses\n\r");
+            LOG_INFO ("Writing default boot fuses");
             err = board_write_standard_fuses(BOARD_OTP_WRITE_KEY);
         }
         break;

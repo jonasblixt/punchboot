@@ -83,7 +83,7 @@ ifeq ($(BOARD),test)
 	include tests/makefile.mk
 endif
 
-all: plat_dep $(TARGET).bin board_final plat_final
+all: plat_early $(TARGET).bin board_final plat_final
 	$(info Summary:)
 	$(info )
 	$(info BOARD:     [${PB_BOARD_NAME}])
@@ -120,7 +120,7 @@ $(TARGET): $(OBJS) main.o
 install: board_final
 	@punchboot boot -w -r -f $(FINAL_IMAGE)
 
-.PHONY: board_clean arch_clean plat_clean plat_dep plat_final
+.PHONY: board_clean arch_clean plat_clean plat_early plat_final
 
 clean: board_clean arch_clean plat_clean
 	@-rm -rf *.o $(TARGET) $(TARGET).bin *.map out

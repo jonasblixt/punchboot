@@ -295,7 +295,6 @@ void usdhc_emmc_init(void) {
 
 /* Platform interface */
 
-/* TODO: Fix return values*/
 uint32_t plat_write_block(uint32_t lba_offset, uint8_t *bfr, uint32_t no_of_blocks) {
     usdhc_emmc_xfer_blocks(lba_offset, bfr, no_of_blocks, 1, 0);
     return PB_OK;

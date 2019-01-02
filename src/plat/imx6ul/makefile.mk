@@ -15,6 +15,7 @@ CST_TOOL ?= /work/cst_2.3.3
 SRK_TBL  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin)
 CSFK_PEM ?= $(shell realpath ../pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem)
 IMG_PEM  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem)
+SRK_FUSE_BIN ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin)
 
 PB_CSF_TEMPLATE = plat/imx6ul/pb.csf.template
 SED = $(shell which sed)
@@ -30,9 +31,15 @@ PLAT_C_SRCS  += plat/imx6ul/ocotp.c
 PLAT_C_SRCS	 += plat/imx6ul/wdog.c
 PLAT_C_SRCS  += plat/imx6ul/hab.c
 
+
+$(eval PB_SRKS=$(shell hexdump -e '/4 "0x"' -e '/4 "%X"",\n"' < $(SRK_FUSE_BIN)))
+$(shell rm -f plat/imx6ul/hab_srks.*)
+$(shell echo "#include <stdint.h>\nconst uint32_t hab_srks[8] ={$(PB_SRKS)};" > plat/imx6ul/hab_srks.c)
+PLAT_C_SRCS  += plat/imx6ul/hab_srks.c
+
 plat_clean:
 	@-rm -rf plat/imx6ul/*.o
-
+	@-rm -rf plat/imx6ul/hab_srks.*
 
 plat_final:
 	$(eval PB_FILESIZE=$(shell stat -c%s "pb.imx"))

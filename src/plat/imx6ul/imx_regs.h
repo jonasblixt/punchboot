@@ -63,7 +63,7 @@
 #define UBRC  0xac /* Baud Rate Count Register */
 #define UTS   0xb4 /* UART Test Register (mx31) */
 
-#define UART_PHYS  (ATZ2_BASE_ADDR + 0xE8000)
+#define UART2_BASE  (ATZ2_BASE_ADDR + 0xE8000)
 
 #define  UCR2_ESCI	 (1<<15) /* Escape seq interrupt enable */
 #define  UCR2_IRTS	 (1<<14) /* Ignore RTS pin */

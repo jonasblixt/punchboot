@@ -128,7 +128,7 @@ PLAT_C_SRCS += 3pp/libtomcrypt/src/misc/mem_neq.c
 PLAT_C_SRCS += 3pp/libtomcrypt/src/pk/pkcs1/pkcs_1_pss_encode.c
 
 
-plat_dep:
+plat_early:
 	@make -C 3pp/libtommath CC=$(CC) AR=$(AR)
 
 plat_clean:
