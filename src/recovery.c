@@ -311,8 +311,6 @@ static void recovery_parse_command(struct usb_device *dev,
                 LOG_ERR ("Incorrect header magic");
                 err = PB_ERR;
             }
-            
-            recovery_send_result_code(dev, err);
 
             if (err != PB_OK)
                 break;
@@ -324,13 +322,6 @@ static void recovery_parse_command(struct usb_device *dev,
                 LOG_INFO (" o %lu - LA: 0x%8.8lX OFF:0x%8.8lX",i, 
                                     pbi->comp[i].load_addr_low,
                                     pbi->comp[i].component_offset);
-            }
-
-            for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
-            {
-                LOG_INFO("Loading component %lu, %lu bytes",i, 
-                                        pbi->comp[i].component_size);
-
 
                 if (pbi->comp[i].load_addr_low < ((unsigned int) &end))
                 {
@@ -338,6 +329,20 @@ static void recovery_parse_command(struct usb_device *dev,
                     err = PB_ERR;
                     break;
                 }
+            }
+
+
+            if (err != PB_OK)
+                break;
+
+            recovery_send_result_code(dev, err);
+
+            for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
+            {
+                LOG_INFO("Loading component %lu, %lu bytes",i, 
+                                        pbi->comp[i].component_size);
+
+
 
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
                                         (uint8_t *) pbi->comp[i].load_addr_low,

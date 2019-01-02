@@ -11,6 +11,7 @@ INTEGRATION_TESTS += test_boot_pbi
 INTEGRATION_TESTS += test_boot_pbi2
 INTEGRATION_TESTS += test_boot_pbi3
 INTEGRATION_TESTS += test_boot_pbi4
+INTEGRATION_TESTS += test_boot_pbi5
 INTEGRATION_TESTS += test_flash_bl
 
 QEMU = qemu-system-arm
