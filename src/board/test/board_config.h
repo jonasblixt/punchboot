@@ -15,8 +15,8 @@
 #define PB_MAX_FAIL_BOOT_COUNT 16
 
 
-void test_board_boot(struct pb_pbi *pbi);
+void test_board_boot(struct pb_pbi *pbi, uint8_t system_index);
 
-#define PB_BOOT_FUNC(x) test_board_boot(x)
+#define PB_BOOT_FUNC(x,y) test_board_boot(x,y)
 
 #endif
