@@ -21,13 +21,4 @@ void* memcpy(void *dest, const void *src, size_t sz) {
     return dest;
 }
 
-int memcmp(const void *s1, const void *s2, size_t n) {
-    uint8_t *p1 = (uint8_t*) s1;
-    uint8_t *p2 = (uint8_t*) s2;
-    
-    for (uint32_t i = 0; i < n; i++)
-        if (*p1++ != *p2++)
-            return -1;
-    return 0;
-}
 

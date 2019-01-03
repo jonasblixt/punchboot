@@ -42,9 +42,12 @@ uint32_t pb_write_default_fuse(void)
 uint32_t pb_write_uuid(void) 
 {
     uuid_t uuid;
+    char uuid_str[37];
     uint32_t err = PB_ERR;
 
-    uuid_generate_random(uuid);
+    uuid_generate_time_safe(uuid);
+    uuid_unparse_lower(uuid, uuid_str);
+    printf ("Writing UUID: %s\n",uuid_str);
     err = pb_write(PB_CMD_WRITE_UUID, (uint8_t *) uuid, 16);
 
     if (err != PB_OK)

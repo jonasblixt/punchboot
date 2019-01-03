@@ -23,7 +23,7 @@ endif
 
 SYS_ROOT_PATH = $(shell ${CC} -print-sysroot)
 
-CFLAGS   = -Wall -Wextra -Wunused-result -pedantic-errors -O2
+CFLAGS   = -Wall -Wextra -Wunused-result -O2
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/pb
@@ -33,6 +33,7 @@ CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
 CFLAGS  += -isystem $(SYS_ROOT_PATH)/usr/lib/include
 CFLAGS  += --specs=nosys.specs -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
+CFLAGS  += -I 3pp/fdt/include
 
 LIBS     = 
 
@@ -51,9 +52,24 @@ C_SRCS  += gpt.c
 C_SRCS  += keys.c 
 C_SRCS  += config.c
 C_SRCS  += lib/string.c
+C_SRCS  += lib/memmove.c
+C_SRCS  += lib/memchr.c
+C_SRCS  += lib/memcmp.c
+C_SRCS  += lib/strcmp.c
+C_SRCS  += lib/uuid.c
 C_SRCS  += usb.c
 C_SRCS  += tinyprintf.c
 C_SRCS  += image.c
+
+C_SRCS  += 3pp/fdt/fdt.c
+C_SRCS  += 3pp/fdt/fdt_addresses.c
+C_SRCS  += 3pp/fdt/fdt_empty_tree.c
+C_SRCS  += 3pp/fdt/fdt_ro.c
+C_SRCS  += 3pp/fdt/fdt_rw.c
+C_SRCS  += 3pp/fdt/fdt_strerror.c
+C_SRCS  += 3pp/fdt/fdt_sw.c
+C_SRCS  += 3pp/fdt/fdt_wip.c
+
 
 RSA_KEYS_SRCS ?= ../pki/dev_rsa_public.der    \
 				 ../pki/prod_rsa_public.der   \

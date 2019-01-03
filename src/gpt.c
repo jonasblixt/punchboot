@@ -13,6 +13,7 @@
 #include <crc.h>
 #include <tinyprintf.h>
 #include <string.h>
+#include <uuid.h>
 
 static uint8_t _flag_gpt_ok = false;
 __a4k __no_bss static struct gpt_primary_tbl _gpt1;
@@ -67,7 +68,7 @@ uint32_t gpt_get_part_by_uuid(const uint8_t *uuid, uint32_t *lba_offset)
         if (_gpt1.part[i].first_lba == 0)
             return PB_ERR;
 
-        if (memcmp(_gpt1.part[i].type_uuid, uuid, 16) == 0)
+        if (memcmp(_gpt1.part[i].uuid, uuid, 16) == 0)
         {
             *lba_offset = _gpt1.part[i].first_lba;
             return PB_OK;
@@ -157,10 +158,11 @@ uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks,
         *part_name_ptr++ = 0;
     }
 
-    for (int i = 0; i < 16; i++) 
-        part->uuid[i] = gpt_prng();
+    //for (int i = 0; i < 16; i++) 
+    //    part->uuid[i] = gpt_prng();
     
     memcpy(part->type_uuid, type_uuid, 16);
+    memcpy(part->uuid, type_uuid, 16);
     memcpy(&_gpt2.part[part_idx], part, sizeof(struct gpt_part_hdr));
 
     return PB_OK;
@@ -261,7 +263,9 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
                         (uint32_t) (part[i].last_lba >> 32) & 0xFFFFFFFF,
                         (uint32_t) part[i].last_lba & 0xFFFFFFFF);
     
-        
+     
+        uuid_to_string(part[i].uuid, tmp_string);
+        LOG_INFO(tmp_string);
     }
 
     crc_tmp = hdr->part_array_crc;

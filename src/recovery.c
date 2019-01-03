@@ -295,7 +295,7 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
 
             recovery_send_result_code(dev, err);
-            pb_boot_image(pbi);
+            pb_boot_image(pbi, boot_part);
 
         }
 
@@ -368,7 +368,7 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
-                PB_BOOT_FUNC(pbi);
+                PB_BOOT_FUNC(pbi, SYSTEM_A);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;

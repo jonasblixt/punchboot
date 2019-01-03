@@ -152,6 +152,7 @@ uint32_t board_write_standard_fuses(uint32_t key)
     return PB_OK;
 }
 
+/* TODO: board_configure_parts */
 uint32_t board_write_gpt_tbl(void) 
 {
     gpt_add_part(1, 32768,  part_type_system_a, "System A");
@@ -161,4 +162,10 @@ uint32_t board_write_gpt_tbl(void)
 
     return PB_OK;
 }
+
+uint32_t board_configure_fuses(void)
+{
+    //plat_set_fuse(0, 5,
+}
+
 

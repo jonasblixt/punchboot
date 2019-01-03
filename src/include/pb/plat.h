@@ -22,6 +22,8 @@
 extern const uint8_t part_type_system_a[];
 extern const uint8_t part_type_system_b[];
 extern const uint8_t part_type_config[];
+extern const uint8_t part_type_root_a[];
+extern const uint8_t part_type_root_b[];
 
 /* Platform API Calls */
 void      plat_reset(void);

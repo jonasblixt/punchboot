@@ -23,6 +23,6 @@
 #define BOARD_UUID_FUSE2 15, 6
 #define BOARD_UUID_FUSE3 15, 7
 
-#define PB_BOOT_FUNC(x) pb_boot_linux_with_dt(x)
+#define PB_BOOT_FUNC(pbi, system_index) pb_boot_linux_with_dt(pbi, system_index)
 
 #endif

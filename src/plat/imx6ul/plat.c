@@ -62,6 +62,7 @@ uint32_t plat_write_uuid(uint8_t *uuid, uint32_t key)
 uint32_t plat_early_init(void)
 {
     uint32_t reg;
+    uint32_t err;
 
     platform_timer.base = GP_TIMER1_BASE;
     gp_timer_init(&platform_timer);
@@ -142,6 +143,16 @@ uint32_t plat_early_init(void)
         LOG_INFO("No HAB errors found");
     else
         LOG_ERR("HAB is reporting errors");
+
+    reg = pb_read32(0x020CC000 + 0x14);
+    LOG_INFO("SVNS HPSR: %8.8lX", reg);
+
+    for (uint32_t n = 0; n < 8; n++)
+    {
+        reg = pb_read32(0x021BC580 + n*0x10);
+        LOG_INFO("SRK%lu = 0x%8.8lX", n, reg);
+    }
+
     return PB_OK;
 }
 

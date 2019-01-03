@@ -63,7 +63,7 @@ void pb_main(void)
     if (pb_boot_load_part((uint8_t) boot_part, &pbi) == PB_OK)
     {
         LOG_INFO("Image on part %2.2X verified, booting...", (uint8_t) boot_part);
-        pb_boot_image(pbi);
+        pb_boot_image(pbi, boot_part);
     } else {
         LOG_ERR("Could not boot image on part %2.2X, entering recovery mode...",
                         (uint8_t) boot_part);
