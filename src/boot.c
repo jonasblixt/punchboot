@@ -21,7 +21,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     struct pb_component_hdr *linux = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
 
-    unsigned char part_uuid[37];
+    char part_uuid[37];
 
     LOG_INFO(" LINUX %lX, DTB %lX", linux->load_addr_low, dtb->load_addr_low);
     
@@ -30,19 +30,19 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
         case SYSTEM_A:
         {
             LOG_INFO ("Using root A");
-            uuid_to_string(part_type_root_a, part_uuid);
+            uuid_to_string((uint8_t *) part_type_root_a, part_uuid);
         }
         break;
         case SYSTEM_B:
         {
             LOG_INFO ("Using root B");
-            uuid_to_string(part_type_root_b, part_uuid);
+            uuid_to_string((uint8_t *) part_type_root_b, part_uuid);
         }
         break;
         default:
         {
             LOG_ERR("Invalid root partition %x", system_index);
-            return PB_ERR;
+            return ;
         }
     }
 
@@ -69,14 +69,15 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
             {
                 /* A: 3F85291C-C6FB-42D0-9E1A-AC6B3560C304 */
                 /* B: 3F85292C-C6FB-42D0-9E1A-AC6B3560C304 */
-                unsigned char new_bootargs[128];
+                char new_bootargs[128];
             
                 
                 tfp_sprintf (new_bootargs, "console=ttymxc1,115200 " \
                     "root=PARTUUID=%s " \
                     "rw rootfstype=ext4 gpt rootwait quiet", part_uuid);
 
-                err = fdt_setprop_string(fdt, offset, "bootargs", new_bootargs);
+                err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
+                            (const char *) new_bootargs);
 
                 if (err)
                 {

@@ -171,16 +171,6 @@ uint32_t plat_usb_init(struct usb_device *dev)
         asm("nop");
     
     LOG_INFO("Reset complete");
-    uint32_t usb_id = pb_read32(ehci->base);
-
-    LOG_INFO("ID=0x%8.8lX",usb_id);
-
-    uint32_t usb_dci_version = pb_read32(ehci->base+EHCI_DCIVERSION);
-
-    LOG_INFO("Controller version: v%li.%li",
-                                        (usb_dci_version >> 4)&0x0f,
-                                        (usb_dci_version & 0x0f));
-
 
     ehci_reset_queues();
     ehci_config_ep(USB_EP0_IN,  EHCI_SZ_64B,  0);

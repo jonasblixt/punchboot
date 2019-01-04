@@ -136,7 +136,9 @@ bool pb_image_verify(struct pb_pbi* pbi, uint32_t key_index)
         n++;
     }
     if (flag_sig_ok)
+    {
         LOG_INFO("SIG OK");
+    }
 
     if (flag_sig_ok)
         return PB_OK;

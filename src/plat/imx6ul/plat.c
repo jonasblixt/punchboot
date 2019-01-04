@@ -62,7 +62,6 @@ uint32_t plat_write_uuid(uint8_t *uuid, uint32_t key)
 uint32_t plat_early_init(void)
 {
     uint32_t reg;
-    uint32_t err;
 
     platform_timer.base = GP_TIMER1_BASE;
     gp_timer_init(&platform_timer);
@@ -135,14 +134,18 @@ uint32_t plat_early_init(void)
         return PB_ERR;
 
     if (hab_secureboot_active())
+    {
         LOG_INFO("Secure boot active");
-    else
+    } else {
         LOG_INFO("Secure boot disabled");
+    }
 
     if (hab_has_no_errors() == PB_OK)
+    {
         LOG_INFO("No HAB errors found");
-    else
+    } else {
         LOG_ERR("HAB is reporting errors");
+    }
 
     reg = pb_read32(0x020CC000 + 0x14);
     LOG_INFO("SVNS HPSR: %8.8lX", reg);

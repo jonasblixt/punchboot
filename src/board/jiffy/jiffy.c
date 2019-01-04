@@ -166,6 +166,7 @@ uint32_t board_write_gpt_tbl(void)
 uint32_t board_configure_fuses(void)
 {
     //plat_set_fuse(0, 5,
+    return PB_ERR;
 }
 
 

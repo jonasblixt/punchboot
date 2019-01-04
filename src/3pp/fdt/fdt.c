@@ -78,7 +78,7 @@ const void *fdt_offset_ptr(const void *fdt, int offset, unsigned int len)
 	const char *p;
 
 	if (fdt_version(fdt) >= 0x11)
-		if (((offset + len) < offset)
+		if (((int)(offset + len) < offset)
 		    || ((offset + len) > fdt_size_dt_struct(fdt)))
 			return NULL;
 
@@ -241,7 +241,7 @@ int fdt_move(const void *fdt, void *buf, int bufsize)
 {
 	FDT_CHECK_HEADER(fdt);
 
-	if (fdt_totalsize(fdt) > bufsize)
+	if (fdt_totalsize(fdt) > (unsigned int) bufsize)
 		return -FDT_ERR_NOSPACE;
 
 	memmove(buf, fdt, fdt_totalsize(fdt));
