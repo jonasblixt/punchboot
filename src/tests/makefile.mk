@@ -51,7 +51,8 @@ test: $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS) $(TEST_OBJS)
 		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST);)
 
 	@$(foreach TEST,$(INTEGRATION_TESTS), \
-		QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS)" TEST_NAME="$(TEST)" tests/$(TEST).sh;)
+		QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS)" TEST_NAME="$(TEST)" \
+			tests/$(TEST).sh || exit; )
 
 	@echo "*** ALL $(words ${TESTS} ${INTEGRATION_TESTS}) TESTS PASSED ***"
 

@@ -28,4 +28,5 @@ if [ $result_code -ne 255 ];
 then
     test_end_error
 fi
+
 test_end_ok
