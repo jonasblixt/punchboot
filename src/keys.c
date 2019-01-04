@@ -22,7 +22,6 @@ struct asn1_key * pb_key_get(uint8_t key_index) {
             return (struct asn1_key *) &_binary____pki_field1_rsa_public_der_start;
         case PB_KEY_FIELD2:
             return (struct asn1_key *) &_binary____pki_field2_rsa_public_der_start;
-        case PB_KEY_INV:
         default:
             return NULL;
     }

@@ -24,7 +24,8 @@ struct pb_image_hdr {
     uint32_t header_magic;
     uint32_t header_version;
     uint32_t no_of_components;
-    uint32_t _reserved[16];
+    uint32_t key_index;
+    uint32_t _reserved[15];
     uint8_t sha256[32];
     uint8_t sign[1024];
     uint32_t sign_length;
@@ -55,7 +56,7 @@ struct pb_pbi {
     uint8_t padding[511];
 };
 
-bool pb_image_verify(struct pb_pbi *pbi, uint32_t key_index);
+bool pb_image_verify(struct pb_pbi *pbi);
 uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi);
 struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 
                                             uint32_t comp_type);

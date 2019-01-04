@@ -26,6 +26,7 @@ static FILE *pb_components_fp[PB_IMAGE_MAX_COMP];
 static unsigned char buf[1024*1024];
 
 static int pbimage_gen_output(const char *fn_sign_key,
+                              uint8_t key_index,
                               const char *fn_output,
                               int no_of_components) {
 
@@ -69,6 +70,7 @@ static int pbimage_gen_output(const char *fn_sign_key,
     hdr.header_magic = PB_IMAGE_HEADER_MAGIC;
     hdr.header_version = 1;
     hdr.no_of_components = no_of_components;
+    hdr.key_index = key_index;
 
     sha256_process(&md, (unsigned char *)&hdr, sizeof(struct pb_image_hdr));
     
@@ -182,6 +184,7 @@ int main (int argc, char **argv) {
     int no_of_components = 0;
     int component_type = -1;
     unsigned int load_addr = 0;
+    uint8_t key_index;
     bool flag_type = false;
     bool flag_load = false;
     bool flag_file = false;
@@ -200,7 +203,7 @@ int main (int argc, char **argv) {
         exit(0);
     }
 
-    while ((opt = getopt(argc, argv, "ht:l:f:k:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "ht:l:f:n:k:o:")) != -1) {
         switch (opt) {
             case 'h':
                 pbimage_print_help();
@@ -228,6 +231,9 @@ int main (int argc, char **argv) {
                 flag_load = true;
                 flag_file = false;
                 load_addr = (int)strtol(optarg, NULL, 0);
+            break;
+            case 'n':
+                key_index = (uint8_t) strtol(optarg, NULL, 0);
             break;
             case 'f':
                 if (!flag_load || !flag_type) {
@@ -270,7 +276,10 @@ int main (int argc, char **argv) {
     if (!flag_file) {
         printf ("Incorrect arguments\n");
     } else
-        err = pbimage_gen_output(sign_key_fn, output_fn, no_of_components);
+        err = pbimage_gen_output(sign_key_fn, 
+                                 key_index,
+                                 output_fn, 
+                                 no_of_components);
 
 
     if (sign_key_fn)

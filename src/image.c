@@ -56,7 +56,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
     return PB_OK;
 }
 
-bool pb_image_verify(struct pb_pbi* pbi, uint32_t key_index)
+bool pb_image_verify(struct pb_pbi* pbi)
 {
     unsigned char __a4k sign_copy[1024];
     unsigned int sign_sz = 0;
@@ -81,12 +81,14 @@ bool pb_image_verify(struct pb_pbi* pbi, uint32_t key_index)
     plat_sha256_update((uint8_t *) &pbi->hdr, 
                     sizeof(struct pb_image_hdr));
 
-    for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) {
+    for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
+    {
         plat_sha256_update((uint8_t *) &pbi->comp[i], 
                     sizeof(struct pb_component_hdr));
     }
 
-    for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) {
+    for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
+    {
        plat_sha256_update((uint8_t *) pbi->comp[i].load_addr_low, 
                         pbi->comp[i].component_size);
     }
@@ -98,18 +100,20 @@ bool pb_image_verify(struct pb_pbi* pbi, uint32_t key_index)
     if (memcmp(hash, hash_copy, 32) != 0)
         flag_chk_ok = 0;
 
-    if (!flag_chk_ok) {
+    if (!flag_chk_ok) 
+    {
         LOG_ERR ("Error: SHA Incorrect");
         return PB_ERR;
     }
 
     LOG_INFO("SHA OK");
-    /* TODO: This needs some more thinkning, reflect HAB state? */
 
     uint8_t __a4k output_data[512];
     memset(output_data, 0, 512);
 
-    struct asn1_key *k = pb_key_get(key_index);
+    struct asn1_key *k = pb_key_get(pbi->hdr.key_index);
+
+    LOG_INFO("Key index %lu", pbi->hdr.key_index);
 
     if (k == NULL)
     {

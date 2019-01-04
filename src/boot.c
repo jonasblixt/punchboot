@@ -46,6 +46,8 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
         }
     }
 
+    uint32_t ts0 = plat_get_us_tick();
+
     const void *fdt = (void *) dtb->load_addr_low;
 
     int err = fdt_check_header(fdt);
@@ -88,6 +90,9 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
             }
         }
     }
+
+    uint32_t ts1 = plat_get_us_tick();
+    tfp_printf ("%luus %luus\n\r",ts0, ts1);
 
     volatile uint32_t dtb_addr = dtb->load_addr_low;
     volatile uint32_t linux_addr = linux->load_addr_low;
@@ -158,7 +163,7 @@ uint32_t pb_boot_load_part(uint8_t boot_part, struct pb_pbi **pbi)
         return err;
     }
 
-    err = pb_image_verify(*pbi, PB_KEY_DEV);
+    err = pb_image_verify(*pbi);
 
    
     return err;

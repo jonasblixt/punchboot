@@ -13,11 +13,10 @@
 
 #include <pb.h>
 
-#define PB_KEY_INV    0
-#define PB_KEY_DEV    1
-#define PB_KEY_PROD   2
-#define PB_KEY_FIELD1 3
-#define PB_KEY_FIELD2 4
+#define PB_KEY_DEV    0
+#define PB_KEY_PROD   1
+#define PB_KEY_FIELD1 2
+#define PB_KEY_FIELD2 3
 
 extern uint8_t* _binary____pki_dev_rsa_public_der_start;
 extern uint8_t* _binary____pki_dev_rsa_public_der_end;

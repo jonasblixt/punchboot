@@ -362,9 +362,7 @@ static void recovery_parse_command(struct usb_device *dev,
             if (err != PB_OK)
                 break;
 
-            /* TODO: Implement key management strategy */
-
-            if (pb_image_verify(pbi, PB_KEY_DEV) == PB_OK)
+            if (pb_image_verify(pbi) == PB_OK)
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
