@@ -18,6 +18,7 @@
 static uint8_t _flag_gpt_ok = false;
 __a4k __no_bss static struct gpt_primary_tbl _gpt1;
 __a4k __no_bss static struct gpt_backup_tbl _gpt2;
+__a4k __no_bss static uint8_t pmbr[512];
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 {
@@ -182,15 +183,40 @@ uint32_t gpt_write_tbl(void)
                             - GPT_HEADER_RSZ);
     _gpt1.hdr.hdr_crc = crc_tmp;
 
+    /* Write protective MBR */
+    
+    memset(pmbr, 0, sizeof(pmbr));
+    pmbr[448] = 2;
+    pmbr[449] = 0; 
+    pmbr[450] = 0xEE; // type , 0xEE = GPT
+    pmbr[451] = 0xFF;
+    pmbr[452] = 0xFF;
+    pmbr[453] = 0xFF;
+    pmbr[454] = 0x01;
+    uint32_t llba = (uint32_t) plat_get_lastlba();
+    memcpy(&pmbr[458], &llba, sizeof(uint32_t));
+    pmbr[510] = 0x55;
+    pmbr[511] = 0xAA;
+
+
+    LOG_INFO("writing protective MBR");
+    err = plat_write_block(0,(uint8_t*) pmbr, 1); 
+
+    if (err != PB_OK) 
+    {
+        LOG_ERR ("error writing protective MBR");
+        return PB_ERR;
+    }
+
     /* Write primary GPT Table */
 
-    LOG_INFO("Writing primary GPT tbl to LBA %llu", _gpt1.hdr.current_lba);
+    LOG_INFO("writing primary gpt tbl to lba %llu", _gpt1.hdr.current_lba);
     err = plat_write_block(_gpt1.hdr.current_lba,(uint8_t*) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
     if (err != PB_OK) 
     {
-        LOG_ERR ("Error writing primary GPT table");
+        LOG_ERR ("error writing primary gpt table");
         return PB_ERR;
     }
 
@@ -264,8 +290,6 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
                         (uint32_t) part[i].last_lba & 0xFFFFFFFF);
     
      
-        uuid_to_string(part[i].uuid, tmp_string);
-        LOG_INFO(tmp_string);
     }
 
     crc_tmp = hdr->part_array_crc;
