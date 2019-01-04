@@ -4,7 +4,9 @@ wait_for_qemu_start
 
 dd if=/dev/urandom of=/tmp/random_data bs=64k count=1
 
-$PBI -t LINUX -l 0x49000000 -f /tmp/random_data -k $KEY1 -n 0 -o /tmp/img.pbi
+# Sign with incorrect key index
+
+$PBI -t LINUX -l 0x49000000 -f /tmp/random_data -k $KEY1 -n 1 -o /tmp/img.pbi
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -15,7 +17,7 @@ fi
 $PB boot -x -f /tmp/img.pbi
 result_code=$?
 
-if [ $result_code -ne 0 ];
+if [ $result_code -ne 255 ];
 then
     test_end_error
 fi
