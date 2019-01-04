@@ -417,5 +417,8 @@ int main(int argc, char **argv)
     }
 
     transport_exit();
-	return err;
+    if (err != PB_OK)
+        return -1;
+
+    return 0;
 }
