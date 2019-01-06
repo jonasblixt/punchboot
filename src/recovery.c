@@ -33,7 +33,7 @@ extern const struct fuse uuid_fuses[];
 extern const struct fuse device_info_fuses[];
 extern const struct fuse root_hash_fuses[];
 extern const struct fuse board_fuses[];
-extern const uint32_t *build_root_hash;
+extern const uint32_t build_root_hash[];
 
 const char *recovery_cmd_name[] =
 {
@@ -179,9 +179,9 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
     /* UUID */
 
     n = 0;
-    foreach_fuse(f, uuid_fuses)
+    foreach_fuse_read(f, uuid_fuses)
     {
-        memcpy(&device_uuid[n], &f->value, 4);
+        memcpy(&device_uuid[n], (uint32_t *)&f->value, 4);
         n += 4;
     }
 
@@ -200,18 +200,28 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         n = 0;
         foreach_fuse(f, uuid_fuses)
         {
-            memcpy(&f->value, &(pb_setup->uuid[n]), 4);
+            memcpy((uint32_t *) &f->value, &(pb_setup->uuid[n]), 4);
             n += 4;
         }
     }
 
     /* Root hash */
-
-    foreach_fuse(f, root_hash_fuses)
+    n = 0;
+    foreach_fuse_read(f, root_hash_fuses)
     {
-        memcpy(&root_hash[n], &f->value, 4);
+        root_hash[n++] = f->value;
         if (f->value != 0)
             flag_root_hash_fused = true;
+    }
+
+    if (!flag_root_hash_fused)
+    {
+        uint32_t *root_hash_part = build_root_hash;
+
+        foreach_fuse(f, root_hash_fuses)
+        {
+            f->value = *root_hash_part++;
+        }
     }
 
     /* Device identity */
@@ -243,11 +253,17 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
     flag_board_fused = true;
 
-    foreach_fuse(f, board_fuses)
+    foreach_fuse_read(f, board_fuses)
     {
         if ((f->value & f->default_value) != f->default_value)
             flag_board_fused = false;
     }
+        
+    if (!flag_board_fused)
+    {
+        foreach_fuse(f, board_fuses)
+            f->value = f->default_value;
+    }  
 
     if(pb_setup->dry_run)
     {
@@ -355,10 +371,9 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
         if (!flag_root_hash_fused)
         {
-            foreach_fuse(f, uuid_fuses)
+            foreach_fuse(f, root_hash_fuses)
             {
                 err = plat_fuse_write(f);
-
                 if (err != PB_OK)
                     return err;
             }
@@ -617,8 +632,14 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_READ_UUID:
         {
             uint8_t board_uuid[16];
+            uint32_t n = 0;
 
-            //err = plat_get_uuid(board_uuid);
+            foreach_fuse(f, uuid_fuses)
+            {
+                memcpy(&board_uuid[n], (uint32_t *) &f->value, 4);
+                n += 4;
+            }
+
             recovery_send_response(dev, board_uuid, 16);
         }
         break;

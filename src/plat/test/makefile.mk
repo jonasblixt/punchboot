@@ -24,6 +24,9 @@ PLAT_C_SRCS  += plat/test/gcov.c
 PLAT_C_SRCS  += plat/test/virtio.c
 PLAT_C_SRCS  += plat/test/virtio_serial.c
 PLAT_C_SRCS  += plat/test/virtio_block.c
+PLAT_C_SRCS  += plat/test/tomcrypt_support.c
+PLAT_C_SRCS  += plat/test/test_fuse.c
+PLAT_C_SRCS  += plat/test/root_hash.c
 
 PLAT_ASM_SRCS += plat/test/semihosting_call.S
 

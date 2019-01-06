@@ -2,8 +2,8 @@
 source tests/common.sh
 wait_for_qemu_start
 
-# Fuse random UUID
-$PB fuse -w -n 2
+# Execute device setup
+$PB dev -y -s "0x01 0x02"
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -16,15 +16,6 @@ $PB dev -l
 result_code=$?
 
 if [ $result_code -ne 0 ];
-then
-    test_end_error
-fi
-
-# Fuse random UUID again, this should fail
-$PB fuse -w -n 2
-result_code=$?
-
-if [ $result_code -ne 255 ];
 then
     test_end_error
 fi

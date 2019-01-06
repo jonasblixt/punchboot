@@ -156,15 +156,6 @@ uint32_t plat_early_init(void)
         LOG_ERR("HAB is reporting errors");
     }
 
-    reg = pb_read32(0x020CC000 + 0x14);
-    LOG_INFO("SVNS HPSR: %8.8lX", reg);
-
-    for (uint32_t n = 0; n < 8; n++)
-    {
-        reg = pb_read32(0x021BC580 + n*0x10);
-        LOG_INFO("SRK%lu = 0x%8.8lX", n, reg);
-    }
-
     return PB_OK;
 }
 

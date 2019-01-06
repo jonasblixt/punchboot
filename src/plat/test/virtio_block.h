@@ -7,6 +7,9 @@
  *
  */
 
+#ifndef __VIRTIO_BLOCK_H__
+#define __VIRTIO_BLOCK_H__
+
 #include <stdint.h>
 #include <plat/test/virtio_mmio.h>
 #include <plat/test/virtio_queue.h>
@@ -69,4 +72,4 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 							uint32_t lba,
 							uint8_t *buf,
 							uint32_t no_of_blocks);
-
+#endif

@@ -20,7 +20,7 @@ then
     test_end_error
 fi
 
-$PB boot -s -a
+$PB boot -s A
 result_code=$?
 
 if [ $result_code -ne 0 ];

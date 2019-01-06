@@ -26,7 +26,7 @@ fi
 
 # System B partition should still be intact
 
-$PB boot -s -b
+$PB boot -s b
 result_code=$?
 
 if [ $result_code -ne 0 ];

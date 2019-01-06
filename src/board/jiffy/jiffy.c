@@ -21,8 +21,6 @@
 #include <plat/imx6ul/imx_regs.h>
 #include <plat/imx6ul/imx_uart.h>
 #include <plat/imx6ul/ehci.h>
-#include <plat/imx6ul/gpt.h>
-#include <plat/imx6ul/ocotp.h>
 
 #include "board_config.h"
 
@@ -152,25 +150,28 @@ uint8_t board_force_recovery(void)
 {
     uint8_t force_recovery = false;
     uint32_t err;
-    struct fuse * boot_fuse = (struct fuse *) &board_fuses[0];
+    struct fuse * bf = (struct fuse *) board_fuses;
 
     /* Check force recovery input switch */
     if ( (pb_read32(0x020A8008) & (1 << 4)) == 0)
         force_recovery = true;
  
-    err = plat_fuse_read(boot_fuse);
+    err = plat_fuse_read(bf);
 
     if (err != PB_OK)
     {
+        LOG_ERR("Could not read boot fuse, forcing recovery");
         force_recovery = true;
-
-
-        if (boot_fuse->value != boot_fuse->default_value)
-            force_recovery = true;
     }
 
-    if (force_recovery) 
-        LOG_ERR ("OTP not set, forcing recovery mode");
+    if ( (bf->value & bf->default_value) !=
+            bf->default_value)
+    {
+        LOG_ERR ("OTP not set, forcing recovery mode %8.8lX %8.8lX",
+                bf->value, bf->default_value);
+        force_recovery = true;
+    }
+
 
     return force_recovery;
 }
