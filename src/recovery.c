@@ -491,9 +491,24 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_SET_CONFIG_VAL:
         {
             uint32_t data[2];
+            int32_t tmp_val;
+            struct pb_config_item *items = config_get_tbl();
 
             recovery_read_data(dev, (uint8_t *) data, 8);
             
+
+            err = config_get_uint32_t(data[0], &tmp_val);
+
+            if (err != PB_OK)
+                break;
+
+            if (items[data[0]].access != PB_CONFIG_ITEM_RW)
+            {
+                err = PB_ERR;
+                LOG_ERR ("Key is read only");
+                break;
+            }
+
             LOG_INFO("Set key %lu to %lu", data[0], data[1]);
             err = config_set_uint32_t(data[0], data[1]);
             if (err != PB_OK)

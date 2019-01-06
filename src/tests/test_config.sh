@@ -38,4 +38,13 @@ then
     test_end_error
 fi
 
+# Write to read only key
+$PB config -w -n 0 -v 1
+result_code=$?
+
+if [ $result_code -ne 255 ];
+then
+    test_end_error
+fi
+
 test_end_ok
