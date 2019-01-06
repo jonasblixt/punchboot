@@ -19,6 +19,7 @@
 #include <config.h>
 #include <string.h>
 #include <boot.h>
+#include <uuid.h>
 #include <board_config.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
@@ -26,6 +27,13 @@
 
 static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
 static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
+static char __no_bss report_text_buffer[1024*10];
+
+extern const struct fuse uuid_fuses[];
+extern const struct fuse device_info_fuses[];
+extern const struct fuse root_hash_fuses[];
+extern const struct fuse board_fuses[];
+extern const uint32_t *build_root_hash;
 
 const char *recovery_cmd_name[] =
 {
@@ -39,12 +47,13 @@ const char *recovery_cmd_name[] =
     "PB_CMD_GET_CONFIG_TBL",
     "PB_CMD_GET_CONFIG_VAL",
     "PB_CMD_SET_CONFIG_VAL",
-    "PB_CMD_WRITE_UUID",
     "PB_CMD_READ_UUID",
     "PB_CMD_WRITE_DFLT_GPT",
-    "PB_CMD_WRITE_DFLT_FUSE",
     "PB_CMD_BOOT_RAM",
+    "PB_CMD_SETUP",
+    "PB_CMD_SETUP_LOCK",
 };
+
 
 static uint32_t recovery_flash_bootloader(uint8_t *bfr, 
                                           uint32_t blocks_to_write) 
@@ -146,6 +155,237 @@ static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
     memcpy(recovery_cmd_buffer, (uint8_t *) &value, sizeof(uint32_t));
     plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sizeof(uint32_t));
     plat_usb_wait_for_ep_completion(USB_EP3_IN);
+}
+
+
+static uint32_t recovery_setup_device(struct usb_device *dev,
+                                      struct pb_device_setup *pb_setup)
+{
+    uint32_t pos = 0;
+    uint32_t err;
+    uint32_t n;
+
+    uint8_t device_uuid[16];
+    char device_uuid_str[37];
+    bool flag_uuid_fused = false;
+
+    uint32_t root_hash[8];
+    bool flag_root_hash_fused = false;
+
+    bool flag_devid_fused = false;
+    bool flag_devid_revvar_fused = false;
+
+    bool flag_board_fused = true;
+    /* UUID */
+
+    n = 0;
+    foreach_fuse(f, uuid_fuses)
+    {
+        memcpy(&device_uuid[n], &f->value, 4);
+        n += 4;
+    }
+
+    for (uint32_t n = 0; n < 16; n++)
+    {
+        if (device_uuid[n] != 0)
+            flag_uuid_fused = true;
+    }
+
+    if (flag_uuid_fused)
+    {
+        uuid_to_string(device_uuid, device_uuid_str);
+    } else {
+        uuid_to_string(pb_setup->uuid, device_uuid_str);
+        /* Prepare UUID fuses to be written */
+        n = 0;
+        foreach_fuse(f, uuid_fuses)
+        {
+            memcpy(&f->value, &(pb_setup->uuid[n]), 4);
+            n += 4;
+        }
+    }
+
+    /* Root hash */
+
+    foreach_fuse(f, root_hash_fuses)
+    {
+        memcpy(&root_hash[n], &f->value, 4);
+        if (f->value != 0)
+            flag_root_hash_fused = true;
+    }
+
+    /* Device identity */
+    struct fuse *devid = (struct fuse *) device_info_fuses;
+    err = plat_fuse_read(devid);
+    
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not access device identity fuse");
+        return err;
+    }  
+
+    if ((devid->value & 0xFFFF0000) != 0)
+    {
+        flag_devid_fused = true;
+    } else {
+        devid->value = devid->default_value;
+    }
+
+    if ((devid->value & 0x0000FFFF) != 0)
+    {
+        flag_devid_revvar_fused = true;
+    } else {
+        devid->value |= ((pb_setup->device_variant << 8) & 0xff00) |
+                        ((pb_setup->device_revision) & 0xff);
+    }
+
+    /* Board fuses */
+
+    flag_board_fused = true;
+
+    foreach_fuse(f, board_fuses)
+    {
+        if ((f->value & f->default_value) != f->default_value)
+            flag_board_fused = false;
+    }
+
+    if(pb_setup->dry_run)
+    {
+        pos += tfp_sprintf(&report_text_buffer[pos], "-- Device setup report --\n");
+
+        /* UUID */
+        if (!flag_uuid_fused)
+        {
+            pos += tfp_sprintf(&report_text_buffer[pos], 
+                    "Will Write UUID (%s) to:\n",
+                    device_uuid_str);
+ 
+
+        } else {
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "UUID already fused (%s)\n", device_uuid_str);
+        }
+        
+        foreach_fuse(f, uuid_fuses)
+            pos += plat_fuse_to_string(f, &report_text_buffer[pos], 64);
+
+        /* Root hash */
+        if (!flag_root_hash_fused)
+        {
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "Will write root key hash:\n");
+        } else {
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "Root key hash already fused:\n");
+        }
+
+        foreach_fuse(f, root_hash_fuses)
+            pos += plat_fuse_to_string(f, &report_text_buffer[pos], 64);
+
+        /* Device identity */
+
+        if (!flag_devid_fused)
+        {
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "Will write device identity: %4.4lX\n", 
+                            devid->default_value >> 16);
+        } else {
+
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "Device identity already fused: %4.4lX\n", 
+                            devid->value >> 16);
+
+            if ( (devid->value & 0xFFFF0000) != devid->default_value)
+            {
+                pos += tfp_sprintf(&report_text_buffer[pos],
+                            "  WARNING: device id mismatch with build in value\n");
+
+                pos += tfp_sprintf(&report_text_buffer[pos],
+                            "    0x%8.8lX != 0x%8.8lX\n", 
+                                (devid->value & 0xFFFF0000), 
+                                devid->default_value);
+            }
+        }
+
+        if (!flag_devid_revvar_fused)
+        {
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "Will write device variant: %2.2X, rev: %2.2X\n", 
+                            (uint8_t) pb_setup->device_variant,
+                            (uint8_t) pb_setup->device_revision);
+        } else {
+
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "Device var/rev already fused, var: %2.2X, rev: %2.2X \n", 
+                            (uint8_t) ((devid->value >> 8) & 0xff),
+                            (uint8_t) (devid->value & 0xff));
+        }
+
+        pos += plat_fuse_to_string(devid, &report_text_buffer[pos], 64);
+
+        /* Board fuses */
+        if (!flag_board_fused)
+        {
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "Will write board fuses\n");
+        } else {
+
+            pos += tfp_sprintf(&report_text_buffer[pos],
+                        "Board fuses already fused\n");
+        }
+
+        foreach_fuse(f, board_fuses)
+            pos += plat_fuse_to_string(f, &report_text_buffer[pos], 64);
+
+        report_text_buffer[pos] = 0;
+        recovery_send_response(dev, (uint8_t *) report_text_buffer, pos+1);
+    } else {
+        /* Perform the actual fuse programming */
+
+        if (!flag_uuid_fused)
+        {
+            foreach_fuse(f, uuid_fuses)
+            {
+                err = plat_fuse_write(f);
+
+                if (err != PB_OK)
+                    return err;
+            }
+        }
+
+        if (!flag_root_hash_fused)
+        {
+            foreach_fuse(f, uuid_fuses)
+            {
+                err = plat_fuse_write(f);
+
+                if (err != PB_OK)
+                    return err;
+            }
+        }
+
+        if (!flag_devid_fused || !flag_devid_revvar_fused)
+        {
+            err = plat_fuse_write(devid);
+
+                if (err != PB_OK)
+                    return err;
+        }
+
+        if (!flag_board_fused)
+        {
+            foreach_fuse(f, board_fuses)
+            {
+                err = plat_fuse_write(f);
+
+                if (err != PB_OK)
+                    return err;
+            }
+        }
+    }
+
+
+    return PB_OK;
 }
 
 static void recovery_parse_command(struct usb_device *dev, 
@@ -377,15 +617,9 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_READ_UUID:
         {
             uint8_t board_uuid[16];
-            err = plat_get_uuid(board_uuid);
+
+            //err = plat_get_uuid(board_uuid);
             recovery_send_response(dev, board_uuid, 16);
-        }
-        break;
-        case PB_CMD_WRITE_UUID:
-        {
-            uint8_t board_uuid[16];
-            recovery_read_data(dev, board_uuid, 16);
-            err = plat_write_uuid(board_uuid, BOARD_OTP_WRITE_KEY);
         }
         break;
         case PB_CMD_WRITE_DFLT_GPT:
@@ -402,7 +636,7 @@ static void recovery_parse_command(struct usb_device *dev,
             if (err != PB_OK)
                 break;
 
-            err = board_write_gpt_tbl();
+            err = board_configure_gpt_tbl();
 
             if (err != PB_OK)
                 break;
@@ -410,10 +644,22 @@ static void recovery_parse_command(struct usb_device *dev,
             err = gpt_write_tbl();
         }
         break;
-        case PB_CMD_WRITE_DFLT_FUSE:
+        case PB_CMD_SETUP:
         {
-            LOG_INFO ("Writing default boot fuses");
-            err = board_write_standard_fuses(BOARD_OTP_WRITE_KEY);
+            struct pb_device_setup pb_setup;
+            LOG_INFO ("Performing device setup");
+
+            recovery_read_data(dev, (uint8_t *) &pb_setup,
+                                sizeof(struct pb_device_setup));
+            
+            err = recovery_setup_device(dev, &pb_setup);
+
+        }
+        break;
+        case PB_CMD_SETUP_LOCK:
+        {
+            LOG_INFO ("Locking device setup");
+            /* TODO: Implement */
         }
         break;
         default:

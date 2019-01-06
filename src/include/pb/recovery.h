@@ -26,11 +26,11 @@ enum {
     PB_CMD_GET_CONFIG_TBL,
     PB_CMD_GET_CONFIG_VAL,
     PB_CMD_SET_CONFIG_VAL,
-    PB_CMD_WRITE_UUID,
     PB_CMD_READ_UUID,
     PB_CMD_WRITE_DFLT_GPT,
-    PB_CMD_WRITE_DFLT_FUSE,
     PB_CMD_BOOT_RAM,
+    PB_CMD_SETUP,
+    PB_CMD_SETUP_LOCK,
 };
 
 extern const char *recovery_cmd_name[];
@@ -53,6 +53,14 @@ struct pb_cmd_write_part
     uint32_t lba_offset;
     uint32_t part_no;
     uint32_t buffer_id;
+} __attribute__ ((packed));
+
+struct pb_device_setup
+{
+    uint8_t uuid[16];
+    uint8_t device_variant;
+    uint8_t device_revision;
+    uint8_t dry_run;
 } __attribute__ ((packed));
 
 void recovery_initialize(void);

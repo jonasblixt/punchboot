@@ -15,7 +15,9 @@
 #include <gpt.h>
 #include <image.h>
 #include <boot.h>
+#include <fuse.h>
 
+#include <plat/imx6ul/plat.h>
 #include <plat/imx6ul/imx_regs.h>
 #include <plat/imx6ul/imx_uart.h>
 #include <plat/imx6ul/ehci.h>
@@ -54,6 +56,44 @@ const uint8_t part_type_root_b[] =
     0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
 };
 
+
+const struct fuse uuid_fuses[] =
+{
+    IMX6UL_FUSE_BANK_WORD(15, 4, "UUID0"),
+    IMX6UL_FUSE_BANK_WORD(15, 5, "UUID1"),
+    IMX6UL_FUSE_BANK_WORD(15, 6, "UUID2"),
+    IMX6UL_FUSE_BANK_WORD(15, 7, "UUID3"),
+    IMX6UL_FUSE_END,
+};
+
+const struct fuse device_info_fuses[] =
+{
+    IMX6UL_FUSE_BANK_WORD_VAL(15, 3, "Device Info", JIFFY_DEVICE_ID),
+    IMX6UL_FUSE_END,
+};
+
+const struct fuse root_hash_fuses[] =
+{
+    IMX6UL_FUSE_BANK_WORD(3, 0, "SRK0"),
+    IMX6UL_FUSE_BANK_WORD(3, 1, "SRK1"),
+    IMX6UL_FUSE_BANK_WORD(3, 2, "SRK2"),
+    IMX6UL_FUSE_BANK_WORD(3, 3, "SRK3"),
+    IMX6UL_FUSE_BANK_WORD(3, 4, "SRK4"),
+    IMX6UL_FUSE_BANK_WORD(3, 5, "SRK5"),
+    IMX6UL_FUSE_BANK_WORD(3, 6, "SRK6"),
+    IMX6UL_FUSE_BANK_WORD(3, 7, "SRK7"),
+    IMX6UL_FUSE_END,
+};
+
+
+const struct fuse board_fuses[] =
+{
+    IMX6UL_FUSE_BANK_WORD_VAL(0, 5, "BOOT Config",        0x0000c060),
+    IMX6UL_FUSE_BANK_WORD_VAL(0, 6, "BOOT from fuse bit", 0x00000010),
+    IMX6UL_FUSE_END,
+};
+
+
 static struct ehci_device ehcidev = 
 {
     .base = EHCI_PHY_BASE,
@@ -66,19 +106,6 @@ static struct usb_device usbdev =
 
 uint32_t board_usb_init(struct usb_device **dev)
 {
-    uint32_t reg;
-    /* Enable USB PLL */
-    /* TODO: Add reg defs */
-    reg = pb_read32(0x020C8000+0x10);
-    reg |= (1<<6);
-    pb_write32(reg, 0x020C8000+0x10);
-
-    /* Power up USB */
-    /* TODO: Add reg defs */
-    pb_write32 ((1 << 31) | (1 << 30), 0x020C9038);
-    pb_write32(0xFFFFFFFF, 0x020C9008);
- 
-
     *dev = &usbdev;
     return PB_OK;
 }
@@ -124,36 +151,31 @@ uint32_t board_init(void)
 uint8_t board_force_recovery(void) 
 {
     uint8_t force_recovery = false;
-    uint32_t boot_fuse = 0x0;
+    uint32_t err;
+    struct fuse * boot_fuse = (struct fuse *) &board_fuses[0];
 
-
+    /* Check force recovery input switch */
     if ( (pb_read32(0x020A8008) & (1 << 4)) == 0)
         force_recovery = true;
-
-    ocotp_read(0, 5, &boot_fuse);
  
-    if (boot_fuse != 0x0000C060) 
+    err = plat_fuse_read(boot_fuse);
+
+    if (err != PB_OK)
     {
         force_recovery = true;
-        LOG_ERR ("OTP not set, forcing recovery mode");
+
+
+        if (boot_fuse->value != boot_fuse->default_value)
+            force_recovery = true;
     }
+
+    if (force_recovery) 
+        LOG_ERR ("OTP not set, forcing recovery mode");
 
     return force_recovery;
 }
 
-uint32_t board_write_standard_fuses(uint32_t key) 
-{
-    if (key != BOARD_OTP_WRITE_KEY) 
-        return PB_ERR;
-
-    /* Enable EMMC0 BOOT */
-    ocotp_write(0, 5, 0x0000c060);
-    ocotp_write(0, 6, 0x00000010);
-    return PB_OK;
-}
-
-/* TODO: board_configure_parts */
-uint32_t board_write_gpt_tbl(void) 
+uint32_t board_configure_gpt_tbl(void) 
 {
     gpt_add_part(1, 32768,  part_type_system_a, "System A");
     gpt_add_part(2, 32768,  part_type_system_b, "System B");
@@ -163,10 +185,5 @@ uint32_t board_write_gpt_tbl(void)
     return PB_OK;
 }
 
-uint32_t board_configure_fuses(void)
-{
-    //plat_set_fuse(0, 5,
-    return PB_ERR;
-}
 
 

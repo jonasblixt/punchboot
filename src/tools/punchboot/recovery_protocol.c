@@ -5,7 +5,7 @@
 #include <pb/gpt.h>
 #include <pb/image.h>
 #include <uuid/uuid.h>
-
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -19,6 +19,61 @@
 
 
 
+uint32_t pb_recovery_setup(uint8_t device_version,
+                        uint8_t device_variant,
+                        char **setup_report,
+                        bool dry_run)
+{
+
+    uuid_t uuid;
+    char uuid_str[37];
+    uint32_t err = PB_ERR;
+    uint32_t report_length = 0;
+    struct pb_device_setup setup;
+
+    uuid_generate_time_safe(uuid);
+    uuid_unparse_lower(uuid, uuid_str);
+
+    memcpy(setup.uuid, &uuid, 16);
+    setup.device_revision = device_version;
+    setup.device_variant = device_variant;
+    setup.dry_run = dry_run;
+
+    err = pb_write(PB_CMD_SETUP, (uint8_t *) &setup,
+                            sizeof(struct pb_device_setup));
+
+    if (err != PB_OK)
+        return err;
+
+
+    if (dry_run)
+    {   
+        err = pb_read((uint8_t*) &report_length, sizeof(uint32_t));
+
+        if (err != PB_OK)
+            return err;
+
+        *setup_report = malloc(report_length);
+
+        if (*setup_report == NULL)
+            return PB_ERR;
+
+
+        err = pb_read((uint8_t*) *setup_report, report_length);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
+        return err;
+
+
+    return PB_OK;
+}
+
 uint32_t pb_install_default_gpt(void) 
 {
     if (pb_write(PB_CMD_WRITE_DFLT_GPT, NULL, 0) != PB_OK)
@@ -27,34 +82,6 @@ uint32_t pb_install_default_gpt(void)
     return pb_read_result_code();
 }
 
-uint32_t pb_write_default_fuse(void) 
-{
-    uint32_t err = PB_ERR;
-
-    err = pb_write(PB_CMD_WRITE_DFLT_FUSE, NULL, 0);
-
-    if (err != PB_OK)
-        return err;
-
-    return pb_read_result_code();
-}
-
-uint32_t pb_write_uuid(void) 
-{
-    uuid_t uuid;
-    char uuid_str[37];
-    uint32_t err = PB_ERR;
-
-    uuid_generate_time_safe(uuid);
-    uuid_unparse_lower(uuid, uuid_str);
-    printf ("Writing UUID: %s\n",uuid_str);
-    err = pb_write(PB_CMD_WRITE_UUID, (uint8_t *) uuid, 16);
-
-    if (err != PB_OK)
-        return err;
-
-    return pb_read_result_code();
-}
 
 
 uint32_t pb_read_uuid(uint8_t *uuid)

@@ -65,7 +65,9 @@ uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
         asm("nop");
     
     tmp = pb_read32(_dev->base + OCOTP_CTRL);
-    if (tmp & OCOTP_CTRL_ERROR) {
+
+    if (tmp & OCOTP_CTRL_ERROR) 
+    {
         pb_write32(tmp & ~OCOTP_CTRL_ERROR, _dev->base + OCOTP_CTRL);
         return PB_ERR;
     }
@@ -80,7 +82,8 @@ uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
         asm("nop");
     
     tmp = pb_read32(_dev->base + OCOTP_CTRL);
-    if (tmp & OCOTP_CTRL_ERROR) {
+    if (tmp & OCOTP_CTRL_ERROR) 
+    {
         pb_write32(tmp & ~OCOTP_CTRL_ERROR, _dev->base + OCOTP_CTRL);
         return PB_ERR;
     }
@@ -97,7 +100,8 @@ uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
         asm("nop");
     
     tmp = pb_read32(_dev->base + OCOTP_CTRL);
-    if (tmp & OCOTP_CTRL_ERROR) {
+    if (tmp & OCOTP_CTRL_ERROR) 
+    {
         pb_write32(tmp & ~OCOTP_CTRL_ERROR, _dev->base + OCOTP_CTRL);
         return PB_ERR;
     }

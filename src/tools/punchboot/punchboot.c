@@ -98,7 +98,7 @@ static void print_boot_help(void)
     printf (" Bootloader:\n");
     printf ("  punchboot boot -w -f <fn>           - Install bootloader\n");
     printf ("  punchboot boot -r                   - Reset device\n");
-    printf ("  punchboot boot -s -a or -b          - BOOT System A or B\n");
+    printf ("  punchboot boot -s A or B            - BOOT System A or B\n");
     printf ("  punchboot boot -l                   - Display version\n");
     printf ("  punchboot boot -x -f <fn>           - Load image to RAM and execute it\n");
     printf ("\n");
@@ -109,6 +109,8 @@ static void print_dev_help(void)
 {
     printf (" Device:\n");
     printf ("  punchboot dev -l                    - Display device information\n");
+    printf ("  punchboot dev -s \"<rev> <var>\" [-y] - Perform device setup\n");
+    printf ("  punchboot dev -w [-y]               - Lock device setup\n");
     printf ("\n");
 }
 
@@ -130,22 +132,12 @@ static void print_part_help(void)
     printf ("\n");
 }
 
-static void print_fuse_help(void)
-{
-    printf (" Fuse Management (WARNING: these operations are OTP and can't be reverted):\n");
-    printf ("  punchboot fuse -w -n <n>            - Install fuse set <n>\n");
-    printf ("                        1             - Boot fuses\n\r");
-    printf ("                        2             - Device Identity\n\r");
-    printf ("\n");
-}
-
 static void print_help(void) {
     print_help_header();
     print_boot_help();
     print_dev_help();
     print_config_help();
     print_part_help();
-    print_fuse_help();
 }
 
 int main(int argc, char **argv) 
@@ -165,23 +157,27 @@ int main(int argc, char **argv)
     bool flag_list = false;
     bool flag_reset = false;
     bool flag_help = false;
-    bool flag_boot = false;
+    bool flag_s = false;
     bool flag_index = false;
     bool flag_install = false;
     bool flag_value = false;
     bool flag_execute = false;
     bool flag_a = false;
     bool flag_b = false;
+    bool flag_y = false;
 
     char *fn = NULL;
     char *cmd = argv[1];
+    char *s_arg = NULL;
     uint32_t cmd_value = 0;
 
     if (transport_init() != 0)
         exit(-1);
 
-    while ((c = getopt (argc-1, &argv[1], "hiwrabxsln:f:v:")) != -1) {
-        switch (c) {
+    while ((c = getopt (argc-1, &argv[1], "hiwraybxs:ln:f:v:")) != -1) 
+    {
+        switch (c) 
+        {
             case 'w':
                 flag_write = true;
             break;
@@ -193,6 +189,9 @@ int main(int argc, char **argv)
             break;
             case 'b':
                 flag_b = true;
+            break;
+            case 'y':
+                flag_y = true;
             break;
             case 'r':
                 flag_reset = true;
@@ -214,7 +213,8 @@ int main(int argc, char **argv)
                 flag_value = true;
                 cmd_value = atoi(optarg);
             case 's':
-                flag_boot = true;
+                flag_s = true;
+                s_arg = optarg;
             break;
             case 'h':
                 flag_help = true;
@@ -238,6 +238,61 @@ int main(int argc, char **argv)
 
             if (err != PB_OK)
                 return -1;
+        } else if (flag_s) {
+            unsigned int device_version;
+            unsigned int device_variant;
+            char *setup_report = NULL;
+            bool dry_run = !flag_y;
+            int result = sscanf(s_arg, "%x %x", 
+                        &device_version, &device_variant);
+
+            if (result != 2)
+                return -1;
+
+            printf ("Performing device setup: Version=0x%2.2X, Variant=0x%2.2X\n",
+                            device_version, device_variant);
+
+            err = pb_recovery_setup(device_version,
+                                 device_variant,
+                                 &setup_report,
+                                 dry_run);
+
+            if (err != PB_OK)
+                return -1;
+
+            if (setup_report != NULL && dry_run)
+            {
+                printf("%s",setup_report);
+                free(setup_report);
+            }
+
+            if (dry_run)
+            {
+                char confirm_input[5];
+                printf ("\n\nWARNING: This is a permanent change, writing fuses " \
+                        "can not be reverted. This could brick your device.\n"
+                        "\n\nType 'yes' + <Enter> to proceed: ");
+                fgets(confirm_input, 5, stdin);
+
+                if (strncmp(confirm_input, "yes", 3)  != 0)
+                {
+                    printf ("Aborted\n");
+                    return -1;
+                }
+
+                err = pb_recovery_setup(device_version,
+                                     device_variant,
+                                     &setup_report,
+                                     false);
+
+                if (err != PB_OK)
+                {
+                    printf ("ERROR: Something went wrong\n");
+                    return -1;
+                }
+
+                printf ("Success\n");
+            }
         } else {
             print_help_header();
             print_dev_help();
@@ -246,18 +301,20 @@ int main(int argc, char **argv)
 
     if (strcmp(cmd, "boot") == 0) 
     {
-        if ( !(flag_boot | flag_list | flag_write | flag_execute | flag_reset ))
+        if ( !(flag_s | flag_list | flag_write | flag_execute | flag_reset ))
         {
             print_help_header();
             print_boot_help();
             return 0;
         }
 
-        if (flag_boot) 
+        if (flag_s) 
         {
-            if (flag_a)
+            char *part = s_arg;
+
+            if ((part[0] == 'A') || (part[0] == 'a') )
                 err = pb_boot_part(0xAA);
-            else if (flag_b)
+            else if ((part[0] == 'B') || (part[0] == 'b') )
                 err = pb_boot_part(0xBB);
             else
                 err = PB_ERR;
@@ -378,43 +435,6 @@ int main(int argc, char **argv)
         }
     }
 
-    if (strcmp(cmd, "fuse") == 0) 
-    {
-
-        if (flag_write && cmd_index > 0) 
-        {
-            switch (cmd_index) 
-            {
-                case 1:
-                {
-                    printf ("Installing boot fuses...\n");
-                    err = pb_write_default_fuse();
-                    
-                    if (err != PB_OK)
-                        printf ("Error: Could not install boot fuses\n");
-                }
-                break;
-                case 2:
-                {
-                    printf ("Installing unique ID\n");
-                    err = pb_write_uuid();
-
-                    if (err != PB_OK)
-                        printf ("Error: Could not install UUID fuses\n");
-                }
-                break;
-                default:
-                {
-                    printf ("Error: Invalid fuse set\n");
-                    err = PB_ERR;
-                }
-            }
-
-        } else {
-            print_help_header();
-            print_fuse_help();
-        }
-    }
 
     transport_exit();
     if (err != PB_OK)

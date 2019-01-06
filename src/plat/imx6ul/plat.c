@@ -9,55 +9,64 @@
 #include <plat/imx6ul/usdhc.h>
 #include <plat/imx6ul/hab.h>
 #include <board_config.h>
+#include <fuse.h>
 
 static struct ocotp_dev ocotp;
 static struct gp_timer platform_timer;
 static struct fsl_caam caam;
 
+#define IMX6UL_FUSE_SHADOW_BASE 0x021BC000
+
+uint32_t  plat_fuse_read(struct fuse *f)
+{
+    if (!(f->status & FUSE_VALID))
+        return PB_ERR;
+
+    if (!f->addr)
+    {
+        f->addr = f->bank*0x80 + f->word*0x10 + 0x400;
+
+        if (f->bank >= 6)
+            f->addr += 0x100;
+    }
+
+    if (!f->shadow)
+        f->shadow = IMX6UL_FUSE_SHADOW_BASE + f->addr;
+
+    f->value = pb_read32(f->shadow);
+
+    return PB_OK;
+}
+
+uint32_t  plat_fuse_write(struct fuse *f)
+{
+    char s[64];    
+
+    plat_fuse_to_string(f, s, 64);
+
+    if ((f->status & FUSE_VALID) != FUSE_VALID)
+    {
+        LOG_ERR("Could not write fuse %s\n", s);
+        return PB_ERR;
+    }
+
+    LOG_INFO("Writing: %s\n\r", s);
+
+    return ocotp_write(f->bank, f->word, f->value);
+}
+
+uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
+{
+    return tfp_snprintf(s, n,
+            "   FUSE<%lu,%lu> 0x%4.4lX %s = 0x%8.8lX\n",
+                f->bank, f->word, f->addr,
+                f->description, f->value);
+}
+
 uint32_t plat_get_us_tick(void) 
 {
     return gp_timer_get_tick(&platform_timer);
 }
-
-
-uint32_t plat_get_uuid(uint8_t *uuid) 
-{
-    uint32_t *uuid_ptr = (uint32_t *) uuid;
-
-    ocotp_read(BOARD_UUID_FUSE0, &uuid_ptr[0]);
-    ocotp_read(BOARD_UUID_FUSE1, &uuid_ptr[1]);
-    ocotp_read(BOARD_UUID_FUSE2, &uuid_ptr[2]);
-    ocotp_read(BOARD_UUID_FUSE3, &uuid_ptr[3]);
-
-    return PB_OK;
-}
-
-uint32_t plat_write_uuid(uint8_t *uuid, uint32_t key) 
-{
-    uint32_t *uuid_ptr = (uint32_t *) uuid;
-    uint8_t tmp_uuid[16];
-
-    if (key != BOARD_OTP_WRITE_KEY)
-        return PB_ERR;
-
-    plat_get_uuid(tmp_uuid);
-
-    for (int i = 0; i < 16; i++) 
-    {
-        if (tmp_uuid[i] != 0) 
-        {
-            LOG_ERR ("Can't write UUID, fuses already programmed");
-            return PB_ERR;
-        }
-    }
-    ocotp_write(BOARD_UUID_FUSE0, uuid_ptr[0]);
-    ocotp_write(BOARD_UUID_FUSE1, uuid_ptr[1]);
-    ocotp_write(BOARD_UUID_FUSE2, uuid_ptr[2]);
-    ocotp_write(BOARD_UUID_FUSE3, uuid_ptr[3]);
-
-    return PB_OK;
-}
-
 
 uint32_t plat_early_init(void)
 {
