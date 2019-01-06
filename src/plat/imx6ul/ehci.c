@@ -163,6 +163,16 @@ uint32_t plat_usb_init(struct usb_device *dev)
 
     LOG_INFO ("Init...");
 
+
+    /* Enable USB PLL */
+    reg = pb_read32(0x020C8000+0x10);
+    reg |= (1<<6);
+    pb_write32(reg, 0x020C8000+0x10);
+
+    /* Power up USB */
+    pb_write32 ((1 << 31) | (1 << 30), 0x020C9038);
+    pb_write32(0xFFFFFFFF, 0x020C9008);
+
     reg = pb_read32(ehci->base+EHCI_CMD);
     reg |= (1<<1);
     pb_write32(reg, ehci->base+EHCI_CMD);
