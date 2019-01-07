@@ -6,7 +6,7 @@
 #ifndef __ASM_MACROS_S__
 #define __ASM_MACROS_S__
 
-#include <asm_macros_common.S>
+#include <arch/armv7a/asm_macros_common.S>
 
 #define WORD_SIZE	4
 

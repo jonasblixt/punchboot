@@ -12,7 +12,7 @@
 #include <io.h>
 #include <string.h>
 #include <tinyprintf.h>
-#include <board_config.h>
+#include <board/config.h>
 
 #include "ehci.h"
 

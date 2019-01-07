@@ -1,6 +1,6 @@
 CFLAGS   += -march=armv7-a
 
-CFLAGS   += -I arch/armv7a
+CFLAGS   += -I arch/armv7a/include
 
 ARCH_ASM_SRCS += arch/armv7a/entry_armv7a.S
 ARCH_ASM_SRCS += arch/armv7a/strlen-armv7.S

@@ -12,6 +12,7 @@
 #define __PB_IO_H_
 
 #include <pb.h>
+#include <arch/arch.h>
 
 static inline void pb_write32(uint32_t data, __iomem addr)
 {

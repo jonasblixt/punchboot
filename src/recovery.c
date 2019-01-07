@@ -20,7 +20,7 @@
 #include <string.h>
 #include <boot.h>
 #include <uuid.h>
-#include <board_config.h>
+#include <board/config.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
 #define RECOVERY_BULK_BUFFER_SZ 1024*1024*8

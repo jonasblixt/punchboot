@@ -8,7 +8,7 @@
 #include <plat/imx6ul/imx_uart.h>
 #include <plat/imx6ul/usdhc.h>
 #include <plat/imx6ul/hab.h>
-#include <board_config.h>
+#include <board/config.h>
 #include <fuse.h>
 
 static struct ocotp_dev ocotp;

@@ -13,7 +13,6 @@ then
 fi
 
 echo Installing GPT
-sleep 0.1
 # Install GPT partitions
 $PB part -i
 result_code=$?

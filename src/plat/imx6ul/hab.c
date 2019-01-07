@@ -1,4 +1,5 @@
 #include <pb.h>
+#include <io.h>
 #include <plat/imx6ul/hab.h>
 #include <plat/imx6ul/ocotp.h>
 #include <stdbool.h>

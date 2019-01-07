@@ -22,7 +22,7 @@
 #include <plat/imx6ul/imx_uart.h>
 #include <plat/imx6ul/ehci.h>
 
-#include "board_config.h"
+#include <board/config.h>
 
 const uint8_t part_type_config[] = 
 {

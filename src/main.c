@@ -13,7 +13,7 @@
 #include <recovery.h>
 #include <config.h>
 #include <gpt.h>
-#include <board_config.h>
+#include <board/config.h>
 #include <io.h>
 #include <image.h>
 #include <keys.h>

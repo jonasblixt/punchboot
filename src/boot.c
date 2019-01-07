@@ -4,11 +4,10 @@
 #include <gpt.h>
 #include <image.h>
 #include <tinyprintf.h>
-#include <board_config.h>
+#include <board/config.h>
 #include <keys.h>
 #include <board.h>
 #include <plat.h>
-#include <board_config.h>
 #include <libfdt.h>
 #include <uuid.h>
 
@@ -96,7 +95,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
 
     volatile uint32_t dtb_addr = dtb->load_addr_low;
     volatile uint32_t linux_addr = linux->load_addr_low;
-
+/* TODO: This must be moved to ARCH-code
 
     asm volatile(   "mov r0, #0" "\n\r"
                     "mov r1, #0xFFFFFFFF" "\n\r"
@@ -107,6 +106,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     asm volatile(  "mov pc, %0" "\n\r"
                     :
                     : "r" (linux_addr));
+*/
 }
 
 uint32_t pb_boot_image(struct pb_pbi *pbi, uint8_t system_index)

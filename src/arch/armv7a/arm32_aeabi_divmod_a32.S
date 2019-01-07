@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <asm_macros.S>
+#include <arch/armv7a/asm_macros.S>
 
 /*
  * EABI wrappers from the udivmod and idivmod functions

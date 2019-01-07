@@ -46,7 +46,6 @@ enum {
 
 #define UNUSED(x) (void)(x)
 
-typedef volatile uint32_t __iomem;
 
 #define __no_bss __attribute__((section (".bigbuffer")))
 #define __a4k  __attribute__ ((aligned(4096)))

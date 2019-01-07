@@ -2,14 +2,6 @@
 
 TARGET  = pb
 
-CROSS_COMPILE ?= arm-eabi-
-
-CC=$(CROSS_COMPILE)gcc
-LD=$(CROSS_COMPILE)ld
-AR=$(CROSS_COMPILE)ar
-SIZE=$(CROSS_COMPILE)size
-STRIP=$(CROSS_COMPILE)strip
-OBJCOPY=$(CROSS_COMPILE)objcopy
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
@@ -21,7 +13,6 @@ ifndef LOGLEVEL
 	LOGLEVEL = 0
 endif
 
-SYS_ROOT_PATH = $(shell ${CC} -print-sysroot)
 
 CFLAGS   = -Wall -Wextra -Wunused-result -O2
 CFLAGS  += -nostdlib -nostartfiles
@@ -30,7 +21,6 @@ CFLAGS  += -I. -I include/pb
 CFLAGS  += -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
-CFLAGS  += -isystem $(SYS_ROOT_PATH)/usr/lib/include
 CFLAGS  += --specs=nosys.specs -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
@@ -81,6 +71,21 @@ FINAL_IMAGE =
 include board/$(BOARD)/makefile.mk
 include plat/$(PB_PLAT_NAME)/makefile.mk
 include arch/$(PB_ARCH_NAME)/makefile.mk
+
+
+CROSS_COMPILE ?= arm-eabi-
+
+CC=$(CROSS_COMPILE)gcc
+LD=$(CROSS_COMPILE)ld
+AR=$(CROSS_COMPILE)ar
+SIZE=$(CROSS_COMPILE)size
+STRIP=$(CROSS_COMPILE)strip
+OBJCOPY=$(CROSS_COMPILE)objcopy
+
+
+SYS_ROOT_PATH = $(shell ${CC} -print-sysroot)
+
+CFLAGS  += -isystem $(SYS_ROOT_PATH)/usr/lib/include
 
 LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY) 
 LDFLAGS += -Tarch/$(PB_ARCH_NAME)/link.lds
