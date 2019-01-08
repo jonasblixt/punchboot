@@ -1,5 +1,8 @@
 CROSS_COMPILE = aarch64-elf-
 
+ARCH_OUTPUT = elf64-littleaarch64
+ARCH = aarch64
+
 CFLAGS   += -march=armv8-a
 CFLAGS   += -I arch/armv8a/include
 

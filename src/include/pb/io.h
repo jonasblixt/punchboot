@@ -8,8 +8,8 @@
  */
 
 
-#ifndef __PB_IO_H_
-#define __PB_IO_H_
+#ifndef __PB_IO_H__
+#define __PB_IO_H__
 
 #include <pb.h>
 #include <arch/arch.h>

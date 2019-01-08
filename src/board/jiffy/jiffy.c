@@ -19,7 +19,7 @@
 
 #include <plat/imx6ul/plat.h>
 #include <plat/imx6ul/imx_regs.h>
-#include <plat/imx6ul/imx_uart.h>
+#include <plat/imx/imx_uart.h>
 #include <plat/imx6ul/ehci.h>
 
 #include <board/config.h>

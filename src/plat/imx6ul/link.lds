@@ -6,6 +6,6 @@
 
 MEMORY
 {
-    ocram (rx)  : ORIGIN = 0x908000, LENGTH = 64K
-    dram (rx)   : ORIGIN = 0x80001000, LENGTH = 128M
+    pbram (rx)  : ORIGIN = 0x80001000, LENGTH = 128K
+    dram (rx)   : ORIGIN = 0x80021000, LENGTH = 128M
 }

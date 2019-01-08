@@ -5,7 +5,7 @@
 #include <plat/imx6ul/gpt.h>
 #include <plat/imx6ul/caam.h>
 #include <plat/imx6ul/ocotp.h>
-#include <plat/imx6ul/imx_uart.h>
+#include <plat/imx/imx_uart.h>
 #include <plat/imx6ul/usdhc.h>
 #include <plat/imx6ul/hab.h>
 #include <board/config.h>
@@ -67,6 +67,16 @@ uint32_t plat_get_us_tick(void)
 {
     return gp_timer_get_tick(&platform_timer);
 }
+
+
+/* UART Interface */
+
+void plat_uart_putc(void *ptr, char c) 
+{
+    UNUSED(ptr);
+    imx_uart_putc(c);
+}
+
 
 uint32_t plat_early_init(void)
 {

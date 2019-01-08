@@ -1,0 +1,29 @@
+[Header]
+Version = 4.1
+Security Configuration = Open
+Hash Algorithm = sha256
+Engine Configuration = 0
+Certificate Format = X509
+Signature Format = CMS
+Engine = CAAM
+
+[Install SRK]
+File = "__SRK_TBL__"
+# This selects which key is used for signing: index = IMG(n-1)
+Source index = 0
+
+[Install CSFK]
+File = "__CSFK_PEM__"
+
+[Authenticate CSF]
+
+[Install Key]
+# Key slot index used to authenticate the key to be installed
+Verification index = 0
+# Key to install
+Target index = 2
+File = "__IMG_PEM__"
+
+[Authenticate Data]
+Verification index = 2
+__BLOCKS__

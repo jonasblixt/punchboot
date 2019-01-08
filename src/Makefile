@@ -47,10 +47,12 @@ C_SRCS  += lib/memchr.c
 C_SRCS  += lib/memcmp.c
 C_SRCS  += lib/strcmp.c
 C_SRCS  += lib/uuid.c
+C_SRCS  += lib/memset.c
+C_SRCS  += lib/strlen.c
 C_SRCS  += usb.c
 C_SRCS  += tinyprintf.c
 C_SRCS  += image.c
-
+# Lib fdt
 C_SRCS  += 3pp/fdt/fdt.c
 C_SRCS  += 3pp/fdt/fdt_addresses.c
 C_SRCS  += 3pp/fdt/fdt_empty_tree.c
@@ -128,7 +130,7 @@ $(TARGET): $(OBJS) main.o
 
 %.dero: %.der
 	@echo KEY $<
-	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm $< $@
+	@$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
 
 %.o: %.S
 	@echo AS $<

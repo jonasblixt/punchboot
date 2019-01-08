@@ -10,12 +10,12 @@
 
 #include <plat.h>
 #include <io.h>
-#include "imx_uart.h"
-#include "imx_regs.h"
+#include <plat/imx/imx_uart.h>
 
-volatile uint32_t _uart_base;
+__iomem _uart_base;
 
-void imx_uart_putc(char c) {
+void imx_uart_putc(char c) 
+{
     volatile uint32_t usr2;
     
     for (;;) {
@@ -28,23 +28,19 @@ void imx_uart_putc(char c) {
 
 }
 
-void plat_uart_putc(void *ptr, char c) {
-    (void) (ptr); /* Supress warning of unused parameter */
-    imx_uart_putc(c);
-}
-
-void imx_uart_init(__iomem uart_base) {
+void imx_uart_init(__iomem uart_base) 
+{
     volatile uint32_t reg;
     _uart_base = uart_base;
-
-    
     pb_write32(0, _uart_base+UCR1);
     pb_write32(0, _uart_base+UCR2);
 
-    for (;;) {
+
+    for (;;) 
+    {
         reg = pb_read32(_uart_base+UCR2);
         
-        if (reg & UCR2_SRST)
+        if ((reg & UCR2_SRST) == UCR2_SRST)
             break;
     }
 
@@ -55,7 +51,9 @@ void imx_uart_init(__iomem uart_base) {
     pb_write32(0x0000, _uart_base+ UTS);
     pb_write32((4 << 7), _uart_base+ UFCR);
     pb_write32(0x000f, _uart_base+ UBIR);
-    pb_write32(80000000 / (2 * 115200),_uart_base+ UBMR);
+    /* TODO: clk  parameter */
+    /*250000000 / (2 * 115200)*/
+    pb_write32(0x6C,_uart_base+ UBMR);
     pb_write32((UCR2_WS | UCR2_IRTS | UCR2_RXEN | 
                 UCR2_TXEN | UCR2_SRST), _uart_base+ UCR2);
 

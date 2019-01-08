@@ -20,12 +20,15 @@ SRK_FUSE_BIN ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin
 PB_CSF_TEMPLATE = plat/imx8m/pb.csf.template
 SED = $(shell which sed)
 
-PLAT_C_SRCS  += plat/imx6ul/imx_uart.c
+PLAT_C_SRCS  += plat/imx/imx_uart.c
+PLAT_C_SRCS  += plat/imx8m/plat.c
+
+CFLAGS += -I plat/imx8m/include
 
 $(eval PB_SRKS=$(shell hexdump -e '/4 "0x"' -e '/4 "%X"",\n"' < $(SRK_FUSE_BIN)))
-$(shell rm -f plat/imx6ul/hab_srks.*)
-$(shell echo "#include <stdint.h>\nconst uint32_t build_root_hash[8] ={$(PB_SRKS)};" > plat/imx6ul/hab_srks.c)
-# PLAT_C_SRCS  += plat/imx8m/hab_srks.c
+$(shell rm -f plat/imx8m/hab_srks.*)
+$(shell echo "#include <stdint.h>\nconst uint32_t build_root_hash[8] ={$(PB_SRKS)};" > plat/imx8m/hab_srks.c)
+PLAT_C_SRCS  += plat/imx8m/hab_srks.c
 
 plat_clean:
 	@-rm -rf plat/imx8m/*.o

@@ -19,7 +19,7 @@ SECTIONS
 		*(.text)
         . = ALIGN(8);
         _etext = .;
-    } > dram
+    } > pbram
 
     . = ALIGN(8);
     PROVIDE (_code_end = .);
@@ -30,19 +30,19 @@ SECTIONS
         *(.rodata .rodata.*)
         . = ALIGN(8);
         _edata = .;
-    } > dram
+    } > pbram
 
     . = ALIGN(8);
     PROVIDE (_zero_region_start = .);
 
-    .bss :
+    .bss (NOLOAD):
     {
         _bss_start = .;
         *(.bss)
-        . = ALIGN(8);
         _bss_end = .;
-	} > dram
+	} > pbram
 
+    . = ALIGN(8);
     PROVIDE (_zero_region_end = .);
    
  	.stack :
@@ -51,7 +51,7 @@ SECTIONS
         . = . + 32*1024 ;
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
-    } > dram
+    } > pbram
                             
     .bigbuffer (NOLOAD): 
     {
@@ -63,3 +63,7 @@ SECTIONS
 
     PROVIDE(end = .);
 }
+
+
+_bss_size = (_bss_end - _bss_start)>>3;
+
