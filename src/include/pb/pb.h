@@ -18,9 +18,10 @@
 enum {
     PB_OK,
     PB_ERR,
+    PB_TIMEOUT,
 };
 
-#if LOGLEVEL >= 1
+#if LOGLEVEL >= 2
     #define LOG_INFO(...) \
         do { tfp_printf("INFO %s: " , __func__);\
              tfp_printf(__VA_ARGS__);\
@@ -34,21 +35,35 @@ enum {
     #define LOG_INFO2(...)
 #endif
 
-#define LOG_WARN(...) \
-    do { tfp_printf("WARN %s: " , __func__);\
-         tfp_printf(__VA_ARGS__);\
-         tfp_printf("\n\r"); } while(0)
+#if LOGLEVEL >= 3
+    #define LOG_DBG(...) \
+        do { tfp_printf("DBG %s: " , __func__);\
+             tfp_printf(__VA_ARGS__);\
+             tfp_printf("\n\r"); } while(0)
+#else
+    #define LOG_DBG(...)
+#endif
 
-#define LOG_ERR(...) \
-    do { tfp_printf("ERROR %s: " , __func__);\
-         tfp_printf(__VA_ARGS__);\
-         tfp_printf("\n\r"); } while(0)
+#if LOGLEVEL >= 1
+    #define LOG_WARN(...) \
+        do { tfp_printf("WARN %s: " , __func__);\
+             tfp_printf(__VA_ARGS__);\
+             tfp_printf("\n\r"); } while(0)
 
+    #define LOG_ERR(...) \
+        do { tfp_printf("ERROR %s: " , __func__);\
+             tfp_printf(__VA_ARGS__);\
+             tfp_printf("\n\r"); } while(0)
+#else
+    #define LOG_WARN(...)
+    #define LOG_ERR(...)
+#endif
 #define UNUSED(x) (void)(x)
 
 
 #define __no_bss __attribute__((section (".bigbuffer")))
 #define __a4k  __attribute__ ((aligned(4096)))
+#define __a16b  __attribute__ ((aligned(16)))
 #ifndef __packed
     #define __packed __attribute__ ((packed))
 #endif

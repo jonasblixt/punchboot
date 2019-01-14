@@ -15,3 +15,4 @@ src/3pp/tinyprintf/*.o
 src/pb.csf
 src/qemu.log
 src/plat/imx6ul/hab_srks.c
+src/plat/imx8m/hab_srks.c

@@ -51,5 +51,6 @@
 #define  USR2_TXFE (1<<14)
 
 void imx_uart_init(__iomem base);
+void imx_uart_putc(char c);
 
 #endif

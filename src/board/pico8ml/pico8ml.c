@@ -5,6 +5,8 @@
 #include <usb.h>
 #include <fuse.h>
 
+#include <plat/imx/xhci.h>
+#include <plat/imx/usdhc.h>
 #include <plat/imx8m/plat.h>
 
 const uint8_t part_type_config[] = 
@@ -75,13 +77,41 @@ const struct fuse board_fuses[] =
 };
 
 
-uint32_t board_init(void)
+static struct xhci_device xhcidev = 
 {
+    .base = 0x38100000,
+};
+
+static struct usb_device board_usb_device =
+{
+    .platform_data = &xhcidev,
+};
+
+
+uint32_t board_early_init(void)
+{
+    uint32_t reg;
 
     /* Enable UART1 clock */
     pb_write32((1 << 28) ,0x30388004 + 94*0x80);
     /* Ungate UART1 clock */
     pb_write32(3, 0x30384004 + 0x10*73);
+
+    /* Ungate GPIO blocks */
+
+    pb_write32(3, 0x30384004 + 0x10*11);
+    pb_write32(3, 0x30384004 + 0x10*12);
+    pb_write32(3, 0x30384004 + 0x10*13);
+    pb_write32(3, 0x30384004 + 0x10*14);
+    pb_write32(3, 0x30384004 + 0x10*15);
+
+
+    pb_write32(3, 0x30384004 + 0x10*27);
+    pb_write32(3, 0x30384004 + 0x10*28);
+    pb_write32(3, 0x30384004 + 0x10*29);
+    pb_write32(3, 0x30384004 + 0x10*30);
+    pb_write32(3, 0x30384004 + 0x10*31);
+
 
     /* UART1 pad mux */
     pb_write32(0, 0x30330234);
@@ -90,6 +120,48 @@ uint32_t board_init(void)
     /* UART1 PAD settings */
     pb_write32(7, 0x3033049C);
     pb_write32(7, 0x303304A0);
+
+    /* USDHC1 reset */
+    /* Configure as GPIO 2 10*/
+    pb_write32 (5, 0x303300C8);
+    pb_write32((1 << 10), 0x30210004);
+
+    pb_setbit32(1<<10, 0x30210000);
+
+    /* USDHC1 mux */
+    pb_write32 (0, 0x303300A0);
+    pb_write32 (0, 0x303300A4);
+
+    pb_write32 (0, 0x303300A8);
+    pb_write32 (0, 0x303300AC);
+    pb_write32 (0, 0x303300B0);
+    pb_write32 (0, 0x303300B4);
+    pb_write32 (0, 0x303300B8);
+    pb_write32 (0, 0x303300BC);
+    pb_write32 (0, 0x303300C0);
+
+    pb_write32 (0, 0x303300C4);
+    /* Setup USDHC1 pins */
+#define USDHC1_PAD_CONF ((1 << 7) | (1 << 6) | (2 << 3) | 6)
+    pb_write32(USDHC1_PAD_CONF, 0x30330308);
+    pb_write32(USDHC1_PAD_CONF, 0x3033030C);
+    pb_write32(USDHC1_PAD_CONF, 0x30330310);
+    pb_write32(USDHC1_PAD_CONF, 0x30330314);
+    pb_write32(USDHC1_PAD_CONF, 0x30330318);
+    pb_write32(USDHC1_PAD_CONF, 0x3033031C);
+    pb_write32(USDHC1_PAD_CONF, 0x30330320);
+    pb_write32(USDHC1_PAD_CONF, 0x30330324);
+    pb_write32(USDHC1_PAD_CONF, 0x30330328);
+    pb_write32(USDHC1_PAD_CONF, 0x3033032C);
+
+    pb_clrbit32(1<<10, 0x30210000);
+
+    return PB_OK;
+}
+
+uint32_t board_late_init(void)
+{
+    uint32_t err;
 
 
     return PB_OK;
@@ -107,7 +179,8 @@ uint32_t board_get_debug_uart(void)
 
 uint32_t board_usb_init(struct usb_device **usbdev)
 {
-    return PB_ERR;
+    *usbdev = &board_usb_device;
+    return PB_OK;
 }
 
 bool board_force_recovery(void)

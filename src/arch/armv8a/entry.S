@@ -20,8 +20,15 @@
 .global _reset
 _reset:
 
-	ldr	x0, =_bss_start		/* this is auto-relocated! */
-	ldr	x1, =_bss_end			/* this is auto-relocated! */
+    branch_if_master x0 x1 master_cpu
+
+    wfe
+    b .
+
+master_cpu:
+
+	ldr	x0, =_bss_start
+	ldr	x1, =_bss_end
 clear_loop:
 	str	xzr, [x0], #8
 	cmp	x0, x1

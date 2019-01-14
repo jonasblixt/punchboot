@@ -21,7 +21,6 @@ SECTIONS
         _etext = .;
     } > pbram
 
-    . = ALIGN(8);
     PROVIDE (_code_end = .);
 
     .data :
@@ -32,26 +31,25 @@ SECTIONS
         _edata = .;
     } > pbram
 
-    . = ALIGN(8);
-    PROVIDE (_zero_region_start = .);
+    PROVIDE (_data_region_end = .);
 
     .bss (NOLOAD):
     {
+        PROVIDE (_zero_region_start = .);
         _bss_start = .;
         *(.bss)
+        . = ALIGN(8);
         _bss_end = .;
-	} > pbram
-
-    . = ALIGN(8);
-    PROVIDE (_zero_region_end = .);
+        PROVIDE (_zero_region_end = .);
+	} > pbram2
    
- 	.stack :
+ 	.stack (NOLOAD):
     {
         PROVIDE(_stack_start = .);
-        . = . + 32*1024 ;
+        . = . + 20*1024 ;
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
-    } > pbram
+    } > pbram2
                             
     .bigbuffer (NOLOAD): 
     {

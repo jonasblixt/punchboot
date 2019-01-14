@@ -12,7 +12,7 @@
 #include <io.h>
 #include <tinyprintf.h>
 #include <string.h>
-#include "caam.h"
+#include <plat/imx/caam.h>
 
 /* Commands  */
 #define CAAM_CMD_HEADER  0xB0800000
@@ -40,7 +40,8 @@
 static struct caam_hash_ctx ctx;
 static struct fsl_caam *d;
 
-static int caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job) {
+static uint32_t caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job) 
+{
 
     d->input_ring[0] = (uint32_t) job;
     pb_write32(1, d->base + CAAM_IRJAR0);
@@ -56,12 +57,14 @@ static int caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job) {
     return PB_OK;
 }
 
-uint32_t plat_sha256_init(void) {
+uint32_t caam_sha256_init(void) 
+{
     memset(&ctx, 0, sizeof(struct caam_hash_ctx));
     return PB_OK;
 }
 
-uint32_t plat_sha256_update(uint8_t *data, uint32_t sz) {
+uint32_t caam_sha256_update(uint8_t *data, uint32_t sz) 
+{
 
     struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
 
@@ -76,7 +79,8 @@ uint32_t plat_sha256_update(uint8_t *data, uint32_t sz) {
     return PB_OK;
 }
 
-uint32_t plat_sha256_finalize(uint8_t *out) {
+uint32_t caam_sha256_finalize(uint8_t *out) 
+{
     uint32_t __a4k desc[9];
     struct caam_sg_entry *e_last = &ctx.sg_tbl[ctx.sg_count-1];
 
@@ -104,7 +108,7 @@ uint32_t plat_sha256_finalize(uint8_t *out) {
    return PB_OK;
 }
 
-uint32_t plat_rsa_enc(uint8_t *input,  uint32_t input_sz,
+uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
                     uint8_t *output, struct asn1_key *k)
 {
 
@@ -136,7 +140,8 @@ uint32_t plat_rsa_enc(uint8_t *input,  uint32_t input_sz,
 
 }
 
-int caam_init(struct fsl_caam *caam_dev) {
+uint32_t caam_init(struct fsl_caam *caam_dev) 
+{
 
     d = caam_dev;
 

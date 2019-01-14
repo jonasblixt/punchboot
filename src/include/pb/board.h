@@ -21,7 +21,8 @@ struct board_info {
     uint8_t var;
 } __attribute__ ((packed)) ;
 
-uint32_t board_init(void);
+uint32_t board_early_init(void);
+uint32_t board_late_init(void);
 uint8_t  board_force_recovery(void);
 uint32_t board_configure_gpt_tbl(void);
 uint32_t board_usb_init(struct usb_device **dev);

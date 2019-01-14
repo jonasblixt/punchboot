@@ -12,6 +12,7 @@
 #define __USDHC_EMMC_H__
 
 #include <pb.h>
+#include <io.h>
 
 #define GENMASK(h, l) \
 	(((~0UL) << (l)) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
@@ -94,6 +95,17 @@
 #define MMC_STATE_PRG			(7 << 9)
 
 
+
+#define VENDORSPEC_CKEN		0x00004000
+#define VENDORSPEC_PEREN	0x00002000
+#define VENDORSPEC_HCKEN	0x00001000
+#define VENDORSPEC_IPGEN	0x00000800
+#define VENDORSPEC_INIT		0x20007809
+
+
+#define PROCTL_INIT		0x00000020
+#define PROCTL_DTW_4		0x00000002
+#define PROCTL_DTW_8		0x00000004
 
 
 /*
@@ -284,16 +296,22 @@
 
 
 
+#define MMC_RSP_PRESENT (1 << 0)
+#define MMC_RSP_136	(1 << 1)		/* 136 bit response */
+#define MMC_RSP_CRC	(1 << 2)		/* expect valid crc */
+#define MMC_RSP_BUSY	(1 << 3)		/* card may send busy */
+#define MMC_RSP_OPCODE	(1 << 4)		/* response contains opcode */
 
-#define MMC_RSP_NONE 0
-#define MMC_RSP_R1 0x1A
-//#define MMC_RSP_R1b
-#define MMC_RSP_R2 0x09
-//#define MMC_RSP_R3
-//#define MMC_RSP_R4
-#define MMC_RSP_R5 0x1A
-#define MMC_RSP_R6 0x1A
-#define MMC_RSP_R7 0x1A
+#define MMC_RSP_NONE	(0)
+#define MMC_RSP_R1	(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE)
+#define MMC_RSP_R1b	(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE| \
+			MMC_RSP_BUSY)
+#define MMC_RSP_R2	(MMC_RSP_PRESENT|MMC_RSP_136|MMC_RSP_CRC)
+#define MMC_RSP_R3	(MMC_RSP_PRESENT)
+#define MMC_RSP_R4	(MMC_RSP_PRESENT)
+#define MMC_RSP_R5	(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE)
+#define MMC_RSP_R6	(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE)
+#define MMC_RSP_R7	(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE)
 
 
 
@@ -452,10 +470,25 @@ struct mmc_ext_csd {
 };
 
 
+struct usdhc_device
+{
+    __iomem base;
+    uint16_t clk_ident;
+    uint16_t clk;
+    uint64_t sectors;
+};
 
-void usdhc_emmc_xfer_blocks(uint32_t start_lba, uint8_t *bfr, uint32_t nblocks, uint8_t wr, uint8_t async);
-void usdhc_emmc_switch_part(uint8_t part_no);
-void usdhc_emmc_init(void);
+
+uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
+                                uint32_t start_lba, 
+                                uint8_t *bfr, 
+                                uint32_t nblocks, 
+                                uint8_t wr, 
+                                uint8_t async);
+
+uint32_t usdhc_emmc_switch_part(struct usdhc_device *dev, 
+                                uint8_t part_no);
+uint32_t usdhc_emmc_init(struct usdhc_device *dev);
 
 
 #endif

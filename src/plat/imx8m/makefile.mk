@@ -21,6 +21,11 @@ PB_CSF_TEMPLATE = plat/imx8m/pb.csf.template
 SED = $(shell which sed)
 
 PLAT_C_SRCS  += plat/imx/imx_uart.c
+PLAT_C_SRCS  += plat/imx/usdhc.c
+PLAT_C_SRCS  += plat/imx/gpt.c
+PLAT_C_SRCS  += plat/imx/caam.c
+PLAT_C_SRCS  += plat/imx/xhci.c
+
 PLAT_C_SRCS  += plat/imx8m/plat.c
 
 CFLAGS += -I plat/imx8m/include

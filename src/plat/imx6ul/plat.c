@@ -141,7 +141,7 @@ uint32_t plat_early_init(void)
         init_printf(NULL, &plat_uart_putc);
     }
 
-    usdhc_emmc_init();
+    usdhc_emmc_init(0x02190000);
 
     ocotp.base = 0x021BC000;
     ocotp_init(&ocotp);

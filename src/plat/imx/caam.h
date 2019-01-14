@@ -78,7 +78,8 @@ struct rsa_enc_pdb {
     uint32_t f_len; // Input length
 } __attribute__ ((packed));
 
-struct caam_hash_ctx {
+struct caam_hash_ctx 
+{
     struct caam_sg_entry sg_tbl[32];
     uint16_t sg_count;
     uint32_t total_bytes;
@@ -90,6 +91,11 @@ struct fsl_caam {
    uint32_t __a4k output_ring[JOB_RING_ENTRIES*2];
 };
 
-int caam_init(struct fsl_caam *d);
+uint32_t caam_init(struct fsl_caam *d);
+uint32_t caam_sha256_init(void);
+uint32_t caam_sha256_update(uint8_t *data, uint32_t sz);
+uint32_t caam_sha256_finalize(uint8_t *out);
+uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
+                    uint8_t *output, struct asn1_key *k);
 
 #endif /* __CAAM_H__ */
