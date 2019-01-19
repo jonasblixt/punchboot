@@ -37,6 +37,7 @@ PLAT_C_SRCS =
 
 C_SRCS   = boot.c
 C_SRCS  += recovery.c
+C_SRCS  += delay.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c 
 C_SRCS  += keys.c 

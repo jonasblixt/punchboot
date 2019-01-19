@@ -21,6 +21,7 @@
 #include <boot.h>
 #include <uuid.h>
 #include <board/config.h>
+#include <plat/defs.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
 #define RECOVERY_BULK_BUFFER_SZ 1024*1024*8
@@ -65,10 +66,10 @@ static uint32_t recovery_flash_bootloader(uint8_t *bfr,
     }
 
     plat_switch_part(PLAT_EMMC_PART_BOOT0);
-    plat_write_block(2, bfr, blocks_to_write);
+    plat_write_block(PB_BOOTPART_OFFSET, bfr, blocks_to_write);
 
     plat_switch_part(PLAT_EMMC_PART_BOOT1);
-    plat_write_block(2, bfr, blocks_to_write);
+    plat_write_block(PB_BOOTPART_OFFSET, bfr, blocks_to_write);
 
     plat_switch_part(PLAT_EMMC_PART_USER);
  
@@ -115,7 +116,7 @@ static uint32_t recovery_send_response(struct usb_device *dev,
     if (err != PB_OK)
         return err;
 
-    plat_usb_wait_for_ep_completion(USB_EP3_IN);
+    plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
 
     if (sz > RECOVERY_CMD_BUFFER_SZ)
         return PB_ERR;
@@ -127,7 +128,7 @@ static uint32_t recovery_send_response(struct usb_device *dev,
     if (err != PB_OK)
         return err;
 
-    plat_usb_wait_for_ep_completion(USB_EP3_IN);
+    plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
 
     return PB_OK;
 }
@@ -142,7 +143,7 @@ static uint32_t recovery_read_data(struct usb_device *dev,
     if (err != PB_OK)
         return err;
 
-    plat_usb_wait_for_ep_completion(USB_EP2_OUT);
+    plat_usb_wait_for_ep_completion(dev, USB_EP2_OUT);
 
     memcpy(bfr, recovery_cmd_buffer, sz);
 
@@ -154,7 +155,7 @@ static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
     /* Send result code */
     memcpy(recovery_cmd_buffer, (uint8_t *) &value, sizeof(uint32_t));
     plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sizeof(uint32_t));
-    plat_usb_wait_for_ep_completion(USB_EP3_IN);
+    plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
 }
 
 
@@ -618,7 +619,7 @@ static void recovery_parse_command(struct usb_device *dev,
                                         (uint8_t *) pbi->comp[i].load_addr_low,
                                         pbi->comp[i].component_size );
 
-                plat_usb_wait_for_ep_completion(USB_EP1_OUT);
+                plat_usb_wait_for_ep_completion(dev, USB_EP1_OUT);
 
                 if (err != PB_OK)
                 {

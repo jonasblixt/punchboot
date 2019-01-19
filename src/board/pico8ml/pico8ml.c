@@ -5,7 +5,7 @@
 #include <usb.h>
 #include <fuse.h>
 
-#include <plat/imx/xhci.h>
+#include <plat/imx/dwc3.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx8m/plat.h>
 
@@ -77,14 +77,14 @@ const struct fuse board_fuses[] =
 };
 
 
-static struct xhci_device xhcidev = 
+static struct dwc3_device dwc3dev = 
 {
     .base = 0x38100000,
 };
 
 static struct usb_device board_usb_device =
 {
-    .platform_data = &xhcidev,
+    .platform_data = &dwc3dev,
 };
 
 
@@ -169,7 +169,12 @@ uint32_t board_late_init(void)
 
 uint32_t board_configure_gpt_tbl(void)
 {
-    return PB_ERR;
+    gpt_add_part(1, 32768,  part_type_system_a, "System A");
+    gpt_add_part(2, 32768,  part_type_system_b, "System B");
+    gpt_add_part(3, 512000, part_type_root_a,   "Root A");
+    gpt_add_part(4, 512000, part_type_root_b,   "Root B");
+
+    return PB_OK;
 }
 
 uint32_t board_get_debug_uart(void)

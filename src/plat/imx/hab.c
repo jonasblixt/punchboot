@@ -1,7 +1,7 @@
 #include <pb.h>
 #include <io.h>
-#include <plat/imx6ul/hab.h>
-#include <plat/imx6ul/ocotp.h>
+#include <plat/imx/hab.h>
+#include <plat/imx/ocotp.h>
 #include <stdbool.h>
 #include <tinyprintf.h>
 

@@ -14,7 +14,6 @@
 
 #include <plat/imx/usdhc.h>
 #include <io.h>
-#include <plat/imx6ul/imx_regs.h>
 
 static uint32_t _raw_cid[4];
 static uint32_t _raw_csd[4];
@@ -344,7 +343,6 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     {
         err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_OP_COND, 0xC0ff8080, 2);
 
-        LOG_INFO("PS: %8.8X", pb_read32(dev->base + USDHC_PRES_STATE));
         if (err != PB_OK)
             return err;
 

@@ -1,7 +1,7 @@
 #include <plat.h>
 #include <io.h>
 #include <tinyprintf.h>
-#include "ocotp.h"
+#include <plat/imx/ocotp.h>
 
 #undef OCOTP_DEBUG
 

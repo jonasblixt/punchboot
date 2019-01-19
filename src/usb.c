@@ -39,6 +39,9 @@ static const uint8_t qf_descriptor[] = {
  *
  */
 
+
+static const uint8_t descriptor_300[] = "\x04\x03\x04\x09";
+
 static const struct usb_descriptors descriptors = {
     .device = {
         .bLength = 0x12, // length of this descriptor
@@ -48,7 +51,7 @@ static const struct usb_descriptors descriptors = {
         .bDeviceSubClass = 0x00, // Device Subclass (specified in interface descriptor)
         .bDeviceProtocol = 0x00, // Device Protocol (specified in interface descriptor)
         .bMaxPacketSize = 0x40, // Max packet size for control endpoint
-        .idVendor = 0xffff, // Freescale Vendor ID. -- DO NOT USE IN A PRODUCT
+        .idVendor = 0xFfff, // Freescale Vendor ID. -- DO NOT USE IN A PRODUCT
         .idProduct = 0x0001, // Decvice ID -- DO NOT USE IN A PRODUCT
         .bcdDevice = 0x0000, // Device revsion
         .iManufacturer = 0x01, // Index of  Manufacturer string descriptor
@@ -108,13 +111,16 @@ static const uint8_t usb_string_id[] =
 
 
 static uint8_t __a4k __no_bss usb_data_buffer[4096];
+static bool addr_set = false;
 
 static void usb_send_ep0(struct usb_device *dev, uint8_t *bfr, uint32_t sz)
 {
     memcpy(usb_data_buffer, bfr, sz);
     plat_usb_transfer(dev, USB_EP0_IN, usb_data_buffer, sz);
+    plat_usb_wait_for_ep_completion(dev, USB_EP0_IN);
+
     plat_usb_transfer(dev, USB_EP0_OUT, NULL, 0);
-    plat_usb_wait_for_ep_completion(USB_EP0_IN);
+    plat_usb_wait_for_ep_completion(dev, USB_EP0_OUT);
 }
 
 static uint32_t usb_process_setup_pkt(struct usb_device *dev,
@@ -131,6 +137,8 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
     switch (request) 
     {
         case USB_GET_DESCRIPTOR:
+        {
+            //LOG_DBG("Get descriptor 0x%4.4X", setup->wValue);
             if(setup->wValue == 0x0600) 
             {
                 usb_send_ep0(dev, (uint8_t *) qf_descriptor, 
@@ -154,8 +162,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
 
                 usb_send_ep0(dev, (uint8_t *) &descriptors.config, sz);
             } else if (setup->wValue == 0x0300) { 
-                const uint8_t _usb_data[] = "\x04\x03\x04\x09";
-                usb_send_ep0(dev, (uint8_t *) _usb_data, 4);
+                usb_send_ep0(dev, descriptor_300, 4);
             } else if(setup->wValue == 0x0301) {
                 
                 sz = setup->wLength > sizeof(usb_string_id)?
@@ -176,29 +183,42 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
             } else {
                 LOG_ERR ("Unhandeled descriptor 0x%4.4X", setup->wValue);
             }
+        }
         break;
         case USB_SET_ADDRESS:
-            plat_usb_set_address(dev, (setup->wValue << 25) | ( 1 << 24 ));
-            usb_send_ep0(dev,NULL,0);
+        {
+            plat_usb_set_address(dev, setup->wValue );
+            plat_usb_transfer(dev, USB_EP0_IN, NULL, 0);
+            plat_usb_wait_for_ep_completion(dev, USB_EP0_IN);
+        }
         break;
         case USB_SET_CONFIGURATION:
-            usb_send_ep0(dev,NULL, 0);
+        {
+            plat_usb_transfer(dev, USB_EP0_IN, NULL, 0);
+            plat_usb_wait_for_ep_completion(dev, USB_EP0_IN);
             plat_usb_set_configuration(dev);
+        }
         break;
         case USB_SET_IDLE:
+        {
             usb_send_ep0(dev,NULL,0);
+        }
         break;
         case USB_GET_STATUS:
+        {
             usb_send_ep0(dev,(uint8_t *) &device_status, 2);
             usb_send_ep0(dev,NULL,0);
+        }
         break;
         default:
+        {
             LOG_ERR ("EP0 Unhandled request %4.4x",request);
             LOG_ERR (" bRequestType = 0x%2.2x", setup->bRequestType);
             LOG_ERR (" bRequest = 0x%2.2x", setup->bRequest);
             LOG_ERR (" wValue = 0x%4.4x", setup->wValue);
             LOG_ERR (" wIndex = 0x%4.4x",setup->wIndex);
             LOG_ERR (" wLength = 0x%4.4x",setup->wLength);
+        }
     }
 
     return PB_OK;

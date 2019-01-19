@@ -64,6 +64,7 @@ enum {
 #define __no_bss __attribute__((section (".bigbuffer")))
 #define __a4k  __attribute__ ((aligned(4096)))
 #define __a16b  __attribute__ ((aligned(16)))
+
 #ifndef __packed
     #define __packed __attribute__ ((packed))
 #endif

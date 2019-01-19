@@ -29,6 +29,7 @@ extern const uint8_t part_type_root_b[];
 /* Platform API Calls */
 void      plat_reset(void);
 uint32_t  plat_get_us_tick(void);
+void      plat_delay_ms(uint32_t);
 void      plat_wdog_init(void);
 void      plat_wdog_kick(void);
 uint32_t  plat_early_init(void);
@@ -59,7 +60,8 @@ uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep,
                             uint8_t *bfr, uint32_t sz);
 void      plat_usb_set_address(struct usb_device *dev, uint32_t addr);
 void      plat_usb_set_configuration(struct usb_device *dev);
-void      plat_usb_wait_for_ep_completion(uint32_t ep);
+void      plat_usb_wait_for_ep_completion(struct usb_device *dev,
+                                            uint32_t ep);
 
 /* UART Interface */
 void      plat_uart_putc(void *ptr, char c);

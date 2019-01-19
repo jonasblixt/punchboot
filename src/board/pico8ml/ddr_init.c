@@ -60,7 +60,7 @@ static inline unsigned int get_stream_message(void)
 
 static inline void decode_major_message(unsigned int mail)
 {
-	LOG_INFO("[PMU Major message = 0x%08x]", mail);
+	LOG_DBG("[PMU Major message = 0x%08x]", mail);
 }
 
 static inline void decode_streaming_message(void)
@@ -69,13 +69,13 @@ static inline void decode_streaming_message(void)
 	int i = 0;
 
 	string_index = get_stream_message();
-	LOG_INFO("	PMU String index = 0x%08x", string_index);
+	LOG_DBG("	PMU String index = 0x%08x", string_index);
 
 
 	while (i < (string_index & 0xffff))
     {
 		arg = get_stream_message();
-		LOG_INFO("	arg[%d] = 0x%08x", i, arg);
+		LOG_DBG("	arg[%d] = 0x%08x", i, arg);
 		i++;
 	}
 }

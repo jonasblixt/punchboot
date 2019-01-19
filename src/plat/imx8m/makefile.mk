@@ -24,9 +24,11 @@ PLAT_C_SRCS  += plat/imx/imx_uart.c
 PLAT_C_SRCS  += plat/imx/usdhc.c
 PLAT_C_SRCS  += plat/imx/gpt.c
 PLAT_C_SRCS  += plat/imx/caam.c
-PLAT_C_SRCS  += plat/imx/xhci.c
-
+PLAT_C_SRCS  += plat/imx/dwc3.c
+PLAT_C_SRCS  += plat/imx/hab.c
+PLAT_C_SRCS  += plat/imx/ocotp.c
 PLAT_C_SRCS  += plat/imx8m/plat.c
+PLAT_C_SRCS  += plat/imx/wdog.c
 
 CFLAGS += -I plat/imx8m/include
 
