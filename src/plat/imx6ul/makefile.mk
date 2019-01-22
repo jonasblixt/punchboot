@@ -24,14 +24,13 @@ CFLAGS += -I plat/imx6ul/include
 
 PLAT_C_SRCS  += plat/imx/imx_uart.c
 PLAT_C_SRCS  += plat/imx6ul/plat.c
-PLAT_C_SRCS  += plat/imx6ul/ehci.c
-PLAT_C_SRCS  += plat/imx6/usdhc.c
-PLAT_C_SRCS  += plat/imx6ul/reset.c
-PLAT_C_SRCS  += plat/imx6ul/gpt.c
-PLAT_C_SRCS  += plat/imx6ul/caam.c
-PLAT_C_SRCS  += plat/imx6ul/ocotp.c
-PLAT_C_SRCS	 += plat/imx6ul/wdog.c
-PLAT_C_SRCS  += plat/imx6ul/hab.c
+PLAT_C_SRCS  += plat/imx/ehci.c
+PLAT_C_SRCS  += plat/imx/usdhc.c
+PLAT_C_SRCS  += plat/imx/gpt.c
+PLAT_C_SRCS  += plat/imx/caam.c
+PLAT_C_SRCS  += plat/imx/ocotp.c
+PLAT_C_SRCS	 += plat/imx/wdog.c
+PLAT_C_SRCS  += plat/imx/hab.c
 
 
 $(eval PB_SRKS=$(shell hexdump -e '/4 "0x"' -e '/4 "%X"",\n"' < $(SRK_FUSE_BIN)))
@@ -40,6 +39,7 @@ $(shell echo "#include <stdint.h>\nconst uint32_t build_root_hash[8] ={$(PB_SRKS
 PLAT_C_SRCS  += plat/imx6ul/hab_srks.c
 
 plat_clean:
+	@-rm -rf plat/imx/*.o
 	@-rm -rf plat/imx6ul/*.o
 	@-rm -rf plat/imx6ul/hab_srks.*
 

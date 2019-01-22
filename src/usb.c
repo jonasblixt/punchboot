@@ -111,7 +111,6 @@ static const uint8_t usb_string_id[] =
 
 
 static uint8_t __a4k __no_bss usb_data_buffer[4096];
-static bool addr_set = false;
 
 static void usb_send_ep0(struct usb_device *dev, uint8_t *bfr, uint32_t sz)
 {
@@ -162,7 +161,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
 
                 usb_send_ep0(dev, (uint8_t *) &descriptors.config, sz);
             } else if (setup->wValue == 0x0300) { 
-                usb_send_ep0(dev, descriptor_300, 4);
+                usb_send_ep0(dev, (uint8_t *) descriptor_300, 4);
             } else if(setup->wValue == 0x0301) {
                 
                 sz = setup->wLength > sizeof(usb_string_id)?

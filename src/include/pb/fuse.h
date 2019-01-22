@@ -7,11 +7,11 @@
 #define FUSE_VALID 1
 
 #define foreach_fuse_read(__f, __var) \
-    for (volatile struct fuse *__f = (struct fuse *)__var; \
+    for (struct fuse *__f = (struct fuse *)__var; \
         (plat_fuse_read(__f) == PB_OK); __f++)
 
 #define foreach_fuse(__f, __var) \
-    for (volatile struct fuse *__f = (struct fuse *)__var; \
+    for (struct fuse *__f = (struct fuse *)__var; \
         ((__f->status & FUSE_VALID) == FUSE_VALID); __f++)
 
 struct fuse

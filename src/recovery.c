@@ -173,14 +173,11 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
     uint8_t device_uuid[16];
     char device_uuid_str[37];
     bool flag_uuid_fused = false;
-
-    uint32_t root_hash[8];
     bool flag_root_hash_fused = false;
-
     bool flag_devid_fused = false;
     bool flag_devid_revvar_fused = false;
-
     bool flag_board_fused = true;
+
     /* UUID */
 
     n = 0;
@@ -211,10 +208,8 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
     }
 
     /* Root hash */
-    n = 0;
     foreach_fuse_read(f, root_hash_fuses)
     {
-        root_hash[n++] = f->value;
         if (f->value != 0)
             flag_root_hash_fused = true;
     }
@@ -272,7 +267,8 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
     if(pb_setup->dry_run)
     {
-        pos += tfp_sprintf(&report_text_buffer[pos], "-- Device setup report --\n");
+        pos += tfp_sprintf(&report_text_buffer[pos], 
+                                    "-- Device setup report --\n");
 
         /* UUID */
         if (!flag_uuid_fused)
@@ -412,7 +408,6 @@ static void recovery_parse_command(struct usb_device *dev,
                                        struct usb_pb_command *cmd)
 {
     uint32_t err = PB_OK;
-    extern char end;
 
     LOG_INFO ("0x%8.8lX %s, sz=%lub", cmd->command, 
                                       recovery_cmd_name[cmd->command],
@@ -502,7 +497,7 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_read_data(dev, (uint8_t *) data, 8);
             
 
-            err = config_get_uint32_t(data[0], &tmp_val);
+            err = config_get_uint32_t(data[0], (uint32_t *)&tmp_val);
 
             if (err != PB_OK)
                 break;

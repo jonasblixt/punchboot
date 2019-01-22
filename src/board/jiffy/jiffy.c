@@ -18,9 +18,9 @@
 #include <fuse.h>
 
 #include <plat/imx6ul/plat.h>
-#include <plat/imx6ul/imx_regs.h>
+#include <plat/regs.h>
 #include <plat/imx/imx_uart.h>
-#include <plat/imx6ul/ehci.h>
+#include <plat/imx/ehci.h>
 
 #include <board/config.h>
 

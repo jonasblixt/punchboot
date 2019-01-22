@@ -2,20 +2,46 @@
 #include <plat.h>
 #include <io.h>
 #include <tinyprintf.h>
-#include <plat/imx6ul/gpt.h>
-#include <plat/imx6ul/caam.h>
-#include <plat/imx6ul/ocotp.h>
+#include <plat/imx/gpt.h>
+#include <plat/imx/caam.h>
+#include <plat/imx/ocotp.h>
 #include <plat/imx/imx_uart.h>
-#include <plat/imx6ul/usdhc.h>
-#include <plat/imx6ul/hab.h>
+#include <plat/imx/usdhc.h>
+#include <plat/imx/wdog.h>
+#include <plat/imx/hab.h>
 #include <board/config.h>
 #include <fuse.h>
 
 static struct ocotp_dev ocotp;
 static struct gp_timer platform_timer;
 static struct fsl_caam caam;
+static struct usdhc_device usdhc0;
 
 #define IMX6UL_FUSE_SHADOW_BASE 0x021BC000
+
+static struct imx_wdog_device wdog_device;
+
+/* Platform API Calls */
+void      plat_reset(void)
+{
+    imx_wdog_reset_now();
+}
+
+uint32_t  plat_get_us_tick(void)
+{
+    return gp_timer_get_tick(&platform_timer);
+}
+
+void      plat_wdog_init(void)
+{
+    wdog_device.base = 0x020BC000;
+    imx_wdog_init(&wdog_device, 1);
+}
+
+void      plat_wdog_kick(void)
+{
+    imx_wdog_kick();
+}
 
 uint32_t  plat_fuse_read(struct fuse *f)
 {
@@ -63,11 +89,6 @@ uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
                 f->description, f->value);
 }
 
-uint32_t plat_get_us_tick(void) 
-{
-    return gp_timer_get_tick(&platform_timer);
-}
-
 
 /* UART Interface */
 
@@ -78,11 +99,70 @@ void plat_uart_putc(void *ptr, char c)
 }
 
 
+/* EMMC Interface */
+
+uint32_t plat_write_block(uint32_t lba_offset, 
+                          uint8_t *bfr, 
+                          uint32_t no_of_blocks) 
+{
+    return usdhc_emmc_xfer_blocks(&usdhc0, 
+                                  lba_offset, 
+                                  bfr, 
+                                  no_of_blocks, 
+                                  1, 0);
+}
+
+uint32_t plat_read_block(uint32_t lba_offset, 
+                         uint8_t *bfr, 
+                         uint32_t no_of_blocks) 
+{
+    return usdhc_emmc_xfer_blocks(&usdhc0,
+                                  lba_offset, 
+                                  bfr, 
+                                  no_of_blocks, 
+                                  0, 0);
+}
+
+uint32_t plat_switch_part(uint8_t part_no) 
+{
+    return usdhc_emmc_switch_part(&usdhc0, part_no);
+}
+
+uint64_t plat_get_lastlba(void) 
+{
+    return usdhc0.sectors-1;
+}
+
+/* Crypto Interface */
+uint32_t  plat_sha256_init(void)
+{
+    return caam_sha256_init();
+}
+
+uint32_t  plat_sha256_update(uint8_t *bfr, uint32_t sz)
+{
+    return caam_sha256_update(bfr,sz);
+}
+
+uint32_t  plat_sha256_finalize(uint8_t *out)
+{
+    return caam_sha256_finalize(out);
+}
+
+uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
+                        struct asn1_key *k)
+{
+    return caam_rsa_enc(sig, sig_sz, out, k);
+}
+
+
+
 uint32_t plat_early_init(void)
 {
     uint32_t reg;
+    uint32_t err;
 
-    platform_timer.base = GP_TIMER1_BASE;
+    platform_timer.base = 0x02098000;
     gp_timer_init(&platform_timer);
 
 
@@ -141,10 +221,21 @@ uint32_t plat_early_init(void)
         init_printf(NULL, &plat_uart_putc);
     }
 
-    usdhc_emmc_init(0x02190000);
-
     ocotp.base = 0x021BC000;
     ocotp_init(&ocotp);
+
+
+    usdhc0.base = 0x30B40000;
+    usdhc0.clk_ident = 0x20EF;
+    usdhc0.clk = 0x000F;
+
+    err = usdhc_emmc_init(&usdhc0);
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not initialize eMMC");
+        return err;
+    }
 
     /* Configure CAAM */
     caam.base = 0x02140000;

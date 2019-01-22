@@ -277,7 +277,6 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
 uint32_t usdhc_emmc_init(struct usdhc_device *dev) 
 {
     uint32_t err;
-    uint32_t reg;
 
     LOG_DBG ("Controller reset");
 
@@ -338,15 +337,12 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
             break;
     }
     LOG_DBG("Waiting for eMMC to power up");
-    volatile uint32_t r3;
     while (1) 
     {
         err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_OP_COND, 0xC0ff8080, 2);
 
         if (err != PB_OK)
             return err;
-
-        r3 = pb_read32(dev->base+USDHC_CMD_RSP0);
 
         if ( pb_read32(dev->base+USDHC_CMD_RSP0) ==  0xC0FF8080) // Wait for eMMC to power up 
             break;
