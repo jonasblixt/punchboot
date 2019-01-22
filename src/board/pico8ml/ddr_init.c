@@ -105,6 +105,7 @@ volatile unsigned int tmp, tmp_t, i;
 
 void ddr_init(void)
 {
+
 	/** Initialize DDR clock and DDRC registers **/
 	reg32_write(0x3038a088,0x7070000);
 	reg32_write(0x3038a084,0x4030000);

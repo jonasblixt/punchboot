@@ -220,6 +220,8 @@ int main (int argc, char **argv) {
                     component_type = PB_IMAGE_COMPTYPE_DT;
                 else if (strcmp(optarg, "LINUX") == 0)
                     component_type = PB_IMAGE_COMPTYPE_LINUX;
+                else if (strcmp(optarg, "ATF") == 0)
+                    component_type = PB_IMAGE_COMPTYPE_ATF;
                 else if (strcmp(optarg, "RAMDISK") == 0)
                     component_type = PB_IMAGE_COMPTYPE_RAMDISK;
                 else {

@@ -32,7 +32,7 @@ uint32_t imx_wdog_kick(void)
 
 uint32_t imx_wdog_reset_now(void)
 {
-    pb_clrbit32(1<<4, _dev->base+WDOG_WCR);
+    pb_write16(1<<2, _dev->base + WDOG_WCR);
     while(1)
         asm("wfi");
 }

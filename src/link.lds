@@ -13,25 +13,26 @@ SECTIONS
 
 	. = PB_ENTRY;
 
-    PROVIDE (_code_start = .);
 	.text :
  	{
+        PROVIDE (_code_start = .);
 		*(.text)
         . = ALIGN(8);
         _etext = .;
+        PROVIDE (_code_end = .);
     } > pbram
 
-    PROVIDE (_code_end = .);
 
     .data :
     {
+        PROVIDE (_data_region_start = .);
         *(.data)
         *(.rodata .rodata.*)
         . = ALIGN(8);
         _edata = .;
+        PROVIDE (_data_region_end = .);
     } > pbram
 
-    PROVIDE (_data_region_end = .);
 
     .bss (NOLOAD):
     {

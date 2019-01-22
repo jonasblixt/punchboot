@@ -9,6 +9,19 @@
 #define DWC3_EV_BUFFER_SIZE 128
 #define DWC3_DEF_TIMEOUT_ms 10
 #define DWC3_NO_TRBS 128
+#define DWC3_PHY_CTRL0			0xF0040
+#define DWC3_PHY_CTRL0_REF_SSP_EN	BIT(2)
+
+#define DWC3_PHY_CTRL1			0xF0044
+#define DWC3_PHY_CTRL1_RESET		BIT(0)
+#define DWC3_PHY_CTRL1_COMMONONN		BIT(1)
+#define DWC3_PHY_CTRL1_ATERESET		BIT(3)
+#define DWC3_PHY_CTRL1_VDATSRCENB0	BIT(19)
+#define DWC3_PHY_CTRL1_VDATDETENB0	BIT(20)
+
+#define DWC3_PHY_CTRL2			0xF0048
+#define DWC3_PHY_CTRL2_TXENABLEN0	BIT(8)
+
 
 static volatile __a4k __no_bss uint32_t _ev_buffer[DWC3_EV_BUFFER_SIZE];
 static volatile uint32_t _ev_index = 0;
@@ -160,6 +173,28 @@ static void dwc3_reset(struct dwc3_device *dev)
 uint32_t dwc3_init(struct dwc3_device *dev)
 {
     uint32_t err;
+    uint32_t reg;
+
+	reg = pb_read32(dev->base + DWC3_PHY_CTRL1);
+	reg &= ~(DWC3_PHY_CTRL1_VDATSRCENB0 | DWC3_PHY_CTRL1_VDATDETENB0 |
+			DWC3_PHY_CTRL1_COMMONONN);
+
+	reg |= DWC3_PHY_CTRL1_RESET | DWC3_PHY_CTRL1_ATERESET;
+	pb_write32(reg, dev->base + DWC3_PHY_CTRL1);
+
+	reg = pb_read32(dev->base + DWC3_PHY_CTRL0);
+	reg |= DWC3_PHY_CTRL0_REF_SSP_EN;
+	pb_write32(reg, dev->base + DWC3_PHY_CTRL0);
+
+	reg = pb_read32(dev->base + DWC3_PHY_CTRL2);
+
+	reg |= DWC3_PHY_CTRL2_TXENABLEN0;
+	pb_write32(reg, dev->base + DWC3_PHY_CTRL2);
+
+	reg = pb_read32(dev->base + DWC3_PHY_CTRL1);
+	reg &= ~(DWC3_PHY_CTRL1_RESET | DWC3_PHY_CTRL1_ATERESET);
+	pb_write32(reg, dev->base + DWC3_PHY_CTRL1);
+
 
     dev->version = (pb_read32(dev->base + DWC3_CAPLENGTH) >> 16) & 0xFFFF;
     dev->caps = pb_read32(dev->base + DWC3_CAPLENGTH) & 0xFF;

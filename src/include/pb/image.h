@@ -37,7 +37,7 @@ struct pb_image_hdr {
 #define PB_IMAGE_COMPTYPE_LINUX    2
 #define PB_IMAGE_COMPTYPE_DT       3
 #define PB_IMAGE_COMPTYPE_RAMDISK  4
-
+#define PB_IMAGE_COMPTYPE_ATF      5
 
 /* Component header */
 struct pb_component_hdr {

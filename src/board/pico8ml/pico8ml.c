@@ -169,8 +169,8 @@ uint32_t board_late_init(void)
 
 uint32_t board_configure_gpt_tbl(void)
 {
-    gpt_add_part(1, 32768,  part_type_system_a, "System A");
-    gpt_add_part(2, 32768,  part_type_system_b, "System B");
+    gpt_add_part(1, 62768,  part_type_system_a, "System A");
+    gpt_add_part(2, 62768,  part_type_system_b, "System B");
     gpt_add_part(3, 512000, part_type_root_a,   "Root A");
     gpt_add_part(4, 512000, part_type_root_b,   "Root B");
 

@@ -20,6 +20,8 @@ SRK_FUSE_BIN ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin
 PB_CSF_TEMPLATE = plat/imx6ul/pb.csf.template
 SED = $(shell which sed)
 
+CFLAGS += -I plat/imx6ul/include
+
 PLAT_C_SRCS  += plat/imx/imx_uart.c
 PLAT_C_SRCS  += plat/imx6ul/plat.c
 PLAT_C_SRCS  += plat/imx6ul/ehci.c

@@ -36,6 +36,10 @@ extern const struct fuse root_hash_fuses[];
 extern const struct fuse board_fuses[];
 extern const uint32_t build_root_hash[];
 
+
+extern char _code_start, _code_end, _data_region_start, _data_region_end, 
+            _zero_region_start, _zero_region_end, _stack_start, _stack_end;
+
 const char *recovery_cmd_name[] =
 {
     "PB_CMD_RESET",
@@ -594,12 +598,43 @@ static void recovery_parse_command(struct usb_device *dev,
                                     pbi->comp[i].load_addr_low,
                                     pbi->comp[i].component_offset);
 
-                if (pbi->comp[i].load_addr_low < ((unsigned int) &end))
+
+                uint32_t la = pbi->comp[i].load_addr_low;
+                uint32_t sz = pbi->comp[i].component_size;
+
+                if ( (la <= (unsigned int) &_stack_end) &&
+                     ((la+sz) >= (unsigned int) &_stack_start))
                 {
-                    LOG_ERR("image overlapping with bootloader memory");
+                    LOG_ERR("image overlapping with PB stack");
                     err = PB_ERR;
                     break;
                 }
+
+                if ( (la <= (unsigned int) &_data_region_end) &&
+                     ((la+sz) >= (unsigned int) &_data_region_start))
+                {
+                    LOG_ERR("image overlapping with PB data");
+                    err = PB_ERR;
+                    break;
+                }
+
+
+                if ( (la <= (unsigned int) &_zero_region_end) &&
+                     ((la+sz) >= (unsigned int) &_zero_region_start))
+                {
+                    LOG_ERR("image overlapping with PB bss");
+                    err = PB_ERR;
+                    break;
+                }
+
+                if ( (la <= (unsigned int) &_code_end) &&
+                     ((la+sz) >= (unsigned int) &_code_start))
+                {
+                    LOG_ERR("image overlapping with PB code");
+                    err = PB_ERR;
+                    break;
+                }
+
             }
 
 

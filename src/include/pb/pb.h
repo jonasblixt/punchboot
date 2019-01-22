@@ -58,8 +58,10 @@ enum {
     #define LOG_WARN(...)
     #define LOG_ERR(...)
 #endif
+
 #define UNUSED(x) (void)(x)
 
+#define BIT(x) (1<<x)
 
 #define __no_bss __attribute__((section (".bigbuffer")))
 #define __a4k  __attribute__ ((aligned(4096)))

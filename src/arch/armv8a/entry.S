@@ -7,14 +7,15 @@
  *
  */
 
-.macro	branch_if_master, xreg1, xreg2, master_label
-	mrs	\xreg1, mpidr_el1
-	lsr	\xreg2, \xreg1, #32
-	lsl	\xreg1, \xreg1, #40
-	lsr	\xreg1, \xreg1, #40
-	orr	\xreg1, \xreg1, \xreg2
-	cbz	\xreg1, \master_label
+.macro branch_if_master, xreg1, xreg2, master_label
+       mrs     \xreg1, mpidr_el1
+       lsr     \xreg2, \xreg1, #32
+       lsl     \xreg1, \xreg1, #40
+       lsr     \xreg1, \xreg1, #40
+       orr     \xreg1, \xreg1, \xreg2
+       cbz     \xreg1, \master_label
 .endm
+
 
 .section .text
 .global _reset
@@ -26,7 +27,6 @@ _reset:
     b .
 
 master_cpu:
-
 	ldr	x0, =_bss_start
 	ldr	x1, =_bss_end
 clear_loop:

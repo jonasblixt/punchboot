@@ -105,6 +105,10 @@ uint32_t  plat_early_init(void)
     pb_write32(3, 0x30384004 + 0x10*84);
     pb_write32(3, 0x30384004 + 0x10*85);
 
+    /* Configure PAD_GPIO1_IO02 as wdog output */
+    pb_write32((1 << 6) | 6, 0x30330298);
+    pb_write32(1, 0x30330030);
+
     board_early_init();
 
     imx_uart_init(board_get_debug_uart());
@@ -185,13 +189,6 @@ uint32_t  plat_early_init(void)
     {
         LOG_ERR("Board late init failed");
         return err;
-    }
-
-
-    for (uint32_t n = 0; n < 31; n++)
-    {
-        uint32_t addr = 0x30360000+n*4;
-        LOG_INFO("PLL: 0x%8.8X",pb_read32(addr));
     }
 
     pb_write32((1<<2), 0x303A00F8);

@@ -8,7 +8,8 @@
 #include <keys.h>
 
 static struct __a4k __no_bss pb_pbi _pbi;
-extern char end;
+extern char _code_start, _code_end, _data_region_start, _data_region_end, 
+            _zero_region_start, _zero_region_end, _stack_start, _stack_end;
 
 uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 {
@@ -40,9 +41,35 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
         LOG_INFO("Loading component %lu, %lu bytes",i, 
                                 _pbi.comp[i].component_size);
 
-        if (_pbi.comp[i].load_addr_low < ((unsigned int) &end))
+        uint32_t la = _pbi.comp[i].load_addr_low;
+        uint32_t sz = _pbi.comp[i].component_size;
+
+        if ( (la <= (unsigned int) &_stack_end) &&
+             ((la+sz) >= (unsigned int) &_stack_start))
         {
-            LOG_ERR("image overlapping with bootloader memory");
+            LOG_ERR("image overlapping with PB stack");
+            return PB_ERR;
+        }
+
+        if ( (la <= (unsigned int) &_data_region_end) &&
+             ((la+sz) >= (unsigned int) &_data_region_start))
+        {
+            LOG_ERR("image overlapping with PB data");
+            return PB_ERR;
+        }
+
+
+        if ( (la <= (unsigned int) &_zero_region_end) &&
+             ((la+sz) >= (unsigned int) &_zero_region_start))
+        {
+            LOG_ERR("image overlapping with PB bss");
+            return PB_ERR;
+        }
+
+        if ( (la <= (unsigned int) &_code_end) &&
+             ((la+sz) >= (unsigned int) &_code_start))
+        {
+            LOG_ERR("image overlapping with PB code");
             return PB_ERR;
         }
 
