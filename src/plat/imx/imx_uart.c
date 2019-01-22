@@ -12,51 +12,54 @@
 #include <io.h>
 #include <plat/imx/imx_uart.h>
 
-__iomem _uart_base;
+struct imx_uart_device *_dev;
 
 void imx_uart_putc(char c) 
 {
     volatile uint32_t usr2;
     
     for (;;) {
-        usr2 = pb_read32(_uart_base+USR2);
+        usr2 = pb_read32(_dev->base+USR2);
 
         if (usr2 & (1<<3))
             break;
     }
-    pb_write32(c, _uart_base+UTXD);
+    pb_write32(c, _dev->base+UTXD);
 
 }
 
-void imx_uart_init(__iomem uart_base) 
+uint32_t imx_uart_init(struct imx_uart_device *dev) 
 {
     volatile uint32_t reg;
-    _uart_base = uart_base;
-    pb_write32(0, _uart_base+UCR1);
-    pb_write32(0, _uart_base+UCR2);
+    _dev = dev;
+
+    if (dev == NULL)
+        return PB_ERR;
+
+    pb_write32(0, _dev->base+UCR1);
+    pb_write32(0, _dev->base+UCR2);
 
 
     for (;;) 
     {
-        reg = pb_read32(_uart_base+UCR2);
+        reg = pb_read32(_dev->base+UCR2);
         
         if ((reg & UCR2_SRST) == UCR2_SRST)
             break;
     }
 
-    pb_write32(0x0704, _uart_base+ UCR3);
-    pb_write32(0x8000, _uart_base+ UCR4);
-    pb_write32(0x002b, _uart_base+ UESC);
-    pb_write32(0x0000, _uart_base+ UTIM);
-    pb_write32(0x0000, _uart_base+ UTS);
-    pb_write32((4 << 7), _uart_base+ UFCR);
-    pb_write32(0x000f, _uart_base+ UBIR);
-    /* TODO: clk  parameter */
-    /*250000000 / (2 * 115200)*/
-    pb_write32(0x6C,_uart_base+ UBMR);
+    pb_write32(0x0704, _dev->base+ UCR3);
+    pb_write32(0x8000, _dev->base+ UCR4);
+    pb_write32(0x002b, _dev->base+ UESC);
+    pb_write32(0x0000, _dev->base+ UTIM);
+    pb_write32(0x0000, _dev->base+ UTS);
+    pb_write32((4 << 7), _dev->base+ UFCR);
+    pb_write32(0x000f, _dev->base+ UBIR);
+    pb_write32(dev->baudrate,_dev->base+ UBMR);
     pb_write32((UCR2_WS | UCR2_IRTS | UCR2_RXEN | 
-                UCR2_TXEN | UCR2_SRST), _uart_base+ UCR2);
+                UCR2_TXEN | UCR2_SRST), _dev->base+ UCR2);
 
-    pb_write32(UCR1_UARTEN, _uart_base+ UCR1);
+    pb_write32(UCR1_UARTEN, _dev->base+ UCR1);
 
+    return PB_OK;
 }

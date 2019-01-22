@@ -13,8 +13,13 @@ uint32_t imx_wdog_init(struct imx_wdog_device *dev, uint32_t delay)
     _dev = dev;
 
     /* Timeout value = 9 * 0.5 + 0.5 = 5 s */
-    pb_write16((delay*2 << 8) | (1 << 2) | (1 << 3) | (1 << 4), 
+    pb_write16((delay*2 << 8) | (1 << 2) | 
+                                (1 << 3) | 
+                                (1 << 4) |
+                                (1 << 5), 
                 _dev->base + WDOG_WCR);
+
+    pb_write16(0, _dev->base + WDOG_WMCR);
 
     return imx_wdog_kick();
 }
@@ -32,7 +37,8 @@ uint32_t imx_wdog_kick(void)
 
 uint32_t imx_wdog_reset_now(void)
 {
-    pb_write16(1<<2, _dev->base + WDOG_WCR);
+    pb_write16((1<<6)|(1<<2), _dev->base + WDOG_WCR);
+
     while(1)
-        asm("wfi");
+        asm("nop");
 }

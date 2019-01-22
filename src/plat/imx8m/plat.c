@@ -20,6 +20,8 @@ static struct dwc3_device *dwc30;
 static __no_bss struct fsl_caam caam;
 static struct ocotp_dev ocotp;
 static struct imx_wdog_device wdog_device;
+static struct imx_uart_device uart_device;
+
 /* Platform API Calls */
 void      plat_reset(void)
 {
@@ -33,8 +35,15 @@ uint32_t  plat_get_us_tick(void)
 
 void      plat_wdog_init(void)
 {
+
+
+    /* Configure PAD_GPIO1_IO02 as wdog output */
+    pb_write32((1 << 7)|(1 << 6) | 6, 0x30330298);
+    pb_write32(1, 0x30330030);
+
     wdog_device.base = 0x30280000;
     imx_wdog_init(&wdog_device, 1);
+
 }
 
 void      plat_wdog_kick(void)
@@ -105,13 +114,13 @@ uint32_t  plat_early_init(void)
     pb_write32(3, 0x30384004 + 0x10*84);
     pb_write32(3, 0x30384004 + 0x10*85);
 
-    /* Configure PAD_GPIO1_IO02 as wdog output */
-    pb_write32((1 << 6) | 6, 0x30330298);
-    pb_write32(1, 0x30330030);
 
     board_early_init();
 
-    imx_uart_init(board_get_debug_uart());
+    uart_device.base = board_get_debug_uart();
+    uart_device.baudrate = 0x6C;
+
+    imx_uart_init(&uart_device);
 
     init_printf(NULL, &plat_uart_putc);
 

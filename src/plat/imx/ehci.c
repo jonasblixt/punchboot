@@ -217,7 +217,7 @@ uint32_t plat_usb_transfer (struct usb_device *dev, uint8_t ep,
 void plat_usb_set_address(struct usb_device *dev, uint32_t addr)
 {
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
-    pb_write32(addr, ehci->base+EHCI_DEVICEADDR);
+    pb_write32((addr << 25) | (1 <<24), ehci->base+EHCI_DEVICEADDR);
 }
 
 void plat_usb_set_configuration(struct usb_device *dev)

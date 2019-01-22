@@ -7,6 +7,8 @@ CFLAGS   += -march=armv8-a
 CFLAGS   += -I arch/armv8a/include
 
 ARCH_ASM_SRCS += arch/armv8a/entry.S
+ARCH_C_SRCS += arch/armv8a/boot.c
+
 
 arch_clean:
 	@-rm -rf arch/armv8a/*.o

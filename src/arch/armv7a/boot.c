@@ -19,15 +19,13 @@ void arch_jump(uint32_t pc, uint32_t arg0,
                     "mov r1, %1" "\n\r"
                     "mov r2, %2" "\n\r"
                     "mov r3, %3" "\n\r"
+                    "mov pc, %4" "\n\r"
                     :
                     : "r" (_arg0),
                       "r" (_arg1),
                       "r" (_arg2),
-                      "r" (_arg3));
-
-    asm volatile(  "mov pc, %0" "\n\r"
-                    :
-                    : "r" (_pc));
+                      "r" (_arg3),
+                      "r" (_pc));
 
     while(1)
         asm volatile ("wfi");

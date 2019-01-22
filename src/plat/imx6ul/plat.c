@@ -16,6 +16,7 @@ static struct ocotp_dev ocotp;
 static struct gp_timer platform_timer;
 static struct fsl_caam caam;
 static struct usdhc_device usdhc0;
+static struct imx_uart_device uart0;
 
 #define IMX6UL_FUSE_SHADOW_BASE 0x021BC000
 
@@ -35,7 +36,7 @@ uint32_t  plat_get_us_tick(void)
 void      plat_wdog_init(void)
 {
     wdog_device.base = 0x020BC000;
-    imx_wdog_init(&wdog_device, 1);
+    imx_wdog_init(&wdog_device, 5);
 }
 
 void      plat_wdog_kick(void)
@@ -215,19 +216,19 @@ uint32_t plat_early_init(void)
     
     board_init();
 
-    if (board_get_debug_uart() != 0)
-    {
-        imx_uart_init(board_get_debug_uart());
-        init_printf(NULL, &plat_uart_putc);
-    }
+    uart0.base = board_get_debug_uart();
+    uart0.baudrate = 80000000L / (2 * 115200);
+
+    imx_uart_init(&uart0);
+    init_printf(NULL, &plat_uart_putc);
 
     ocotp.base = 0x021BC000;
     ocotp_init(&ocotp);
 
 
-    usdhc0.base = 0x30B40000;
-    usdhc0.clk_ident = 0x20EF;
-    usdhc0.clk = 0x000F;
+    usdhc0.base = 0x02190000;
+    usdhc0.clk_ident = 0x10E1;
+    usdhc0.clk = 0x0101;
 
     err = usdhc_emmc_init(&usdhc0);
 

@@ -155,7 +155,7 @@ typedef void hapi_clock_init_t(void);
 #define HAB_ENG_RTL		0x77   /* RTL simulation engine */
 #define HAB_ENG_SW		0xff   /* Software engine */
 
-#define HAB_RVT_BASE			0x00000880 // 100
+#define HAB_RVT_BASE			0x00000100 
 
 #define HAB_RVT_ENTRY			(*(uint32_t *)(HAB_RVT_BASE + 0x04))
 #define HAB_RVT_EXIT			(*(uint32_t *)(HAB_RVT_BASE + 0x08))

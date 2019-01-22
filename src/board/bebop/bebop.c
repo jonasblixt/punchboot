@@ -15,25 +15,15 @@
 #include <gpt.h>
 #include <usb.h>
 
-#include <plat/imx6ul/imx_regs.h>
-#include <plat/imx6ul/imx_uart.h>
-#include <plat/imx6ul/ehci.h>
-#include <plat/imx6ul/usdhc.h>
-#include <plat/imx6ul/gpt.h>
-#include <plat/imx6ul/caam.h>
-#include <plat/imx6ul/ocotp.h>
+#include <plat/regs.h>
+#include <plat/imx/imx_uart.h>
+#include <plat/imx/ehci.h>
+#include <plat/imx/usdhc.h>
+#include <plat/imx/gpt.h>
+#include <plat/imx/caam.h>
+#include <plat/imx/ocotp.h>
 
-#include "board_config.h"
-
-/**
- *  TODO:
- *
- *  - Install fuses
- *    - Device Info structure
- *    - Ethernet MAC
- *
- *
- */
+#include <board/config.h>
 
 
 const uint8_t part_type_config[] = {0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 

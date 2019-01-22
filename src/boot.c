@@ -118,13 +118,18 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
                 /* B: 3F85292C-C6FB-42D0-9E1A-AC6B3560C304 */
                 char new_bootargs[256];
             
-                
+                /*
                 tfp_sprintf (new_bootargs, "console=ttymxc0,115200 " \
                     "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
                     "cma=768M " \
                     "root=PARTUUID=%s " \
                     "rw rootfstype=ext4 gpt rootwait", part_uuid);
+                */
 
+                tfp_sprintf (new_bootargs, "console=ttymxc1,115200 " \
+                    "earlyprintk " \
+                    "root=PARTUUID=%s " \
+                    "rw rootfstype=ext4 gpt rootwait", part_uuid);
                 err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
                             (const char *) new_bootargs);
 
@@ -139,20 +144,13 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     }
 
     uint32_t ts1 = plat_get_us_tick();
-    tfp_printf ("%lus %lus\n\r",ts0, ts1);
-
-    arch_jump(linux_addr, 0, 0xFFFFFFFF, dtb_addr, 0);
-
-    /*
-    asm volatile(  "mov x4, %0" "\n\r"
-                   "mov x0, %1" "\n\r"
-                   "br x4" "\n\r"
-                    :
-                    : "r" (atf_addr),
-                      "r" (&bl31_params));
+    tfp_printf ("%luus %luus\n\r",ts0, ts1);
+/*
+    if (atf_addr)
+        arch_jump(atf_addr, (uint32_t)&bl31_params, 0,0,0);
+    else 
+        arch_jump(linux_addr, 0, 0xFFFFFFFF, dtb_addr, 0);
 */
-/* TODO: This must be moved to ARCH-code
-
     asm volatile(   "mov r0, #0" "\n\r"
                     "mov r1, #0xFFFFFFFF" "\n\r"
                     "mov r2, %0" "\n\r"
@@ -162,8 +160,6 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     asm volatile(  "mov pc, %0" "\n\r"
                     :
                     : "r" (linux_addr));
-*/
-
     while(1);
 }
 
