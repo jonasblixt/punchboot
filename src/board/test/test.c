@@ -24,7 +24,7 @@
 #include <plat/test/gcov.h>
 #include <plat/test/plat.h>
 
-#include "board_config.h"
+#include <board/config.h>
 
 const uint8_t part_type_config[] = 
 {

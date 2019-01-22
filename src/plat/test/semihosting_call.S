@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <asm_macros_common.S>
+#include <arch/armv7a/asm_macros_common.S>
 
 	.globl	semihosting_call
 

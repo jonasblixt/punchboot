@@ -10,7 +10,7 @@
 
 PB_ARCH_NAME = armv7a
 
-CFLAGS += -mtune=cortex-a15
+CFLAGS += -mtune=cortex-a15 -I plat/test/include
 
 PLAT_C_SRCS  += plat/test/uart.c
 PLAT_C_SRCS  += plat/test/usb_test.c
