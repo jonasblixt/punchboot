@@ -15,16 +15,16 @@ uint32_t  plat_sha256_init(void)
     return PB_OK;
 }
 
-uint32_t  plat_sha256_update(uint8_t *bfr, uint32_t sz)
+uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz)
 {
     if (sha256_process(&md, (const unsigned char*) bfr, sz) != CRYPT_OK)
         return PB_ERR;
     return PB_OK;
 }
 
-uint32_t  plat_sha256_finalize(uint8_t *out)
+uint32_t  plat_sha256_finalize(uintptr_t out)
 {
-    if (sha256_done(&md, out) != CRYPT_OK)
+    if (sha256_done(&md, (unsigned char *)out) != CRYPT_OK)
         return PB_ERR;
     return PB_OK;
 }

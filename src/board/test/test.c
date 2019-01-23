@@ -105,7 +105,7 @@ uint32_t board_usb_init(struct usb_device **dev)
 	return PB_OK;
 }
 
-uint32_t board_init(void)
+uint32_t board_early_init(void)
 {
 
     test_uart_init();
@@ -132,11 +132,18 @@ uint32_t board_configure_gpt_tbl()
 
 void test_board_boot(struct pb_pbi *pbi, uint8_t system_index)
 {
-
+    UNUSED(system_index);
     struct pb_component_hdr *linux = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
 
 	LOG_INFO("Booting linux image at addr %8.8lX",linux->load_addr_low);
 
     plat_reset();
+}
+
+uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
+{
+    UNUSED(buf);
+    UNUSED(boot_part_uuid);
+    return PB_OK;
 }

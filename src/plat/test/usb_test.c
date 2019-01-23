@@ -51,8 +51,6 @@ uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep,
                             uint8_t *bfr, uint32_t sz)
 {
     uint8_t status = 0;
-    uint32_t bytes_to_transfer = sz;
-    uint32_t chunk = 0;
     UNUSED(dev);
 
     if (ep & 1)

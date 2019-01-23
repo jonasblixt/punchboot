@@ -63,7 +63,7 @@ uint32_t plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 
 uint32_t plat_early_init(void)
 {
-    board_init();
+    board_early_init();
 
 
     virtio_block.dev.device_id = 2;
@@ -99,19 +99,20 @@ uint32_t plat_get_us_tick(void)
 
 
 uint32_t  plat_write_block(uint32_t lba_offset, 
-                                uint8_t *bfr, 
+                                uintptr_t bfr, 
                                 uint32_t no_of_blocks)
 {
-	return virtio_block_write(blk, blk_off+lba_offset, bfr, no_of_blocks);
+	return virtio_block_write(blk, blk_off+lba_offset, (uint8_t *)bfr, no_of_blocks);
 
 }
 
 
 uint32_t  plat_read_block( uint32_t lba_offset, 
-                                uint8_t *bfr, 
+                                uintptr_t bfr, 
                                 uint32_t no_of_blocks)
 {
-    return virtio_block_read(blk, blk_off+lba_offset, bfr, no_of_blocks);
+    return virtio_block_read(blk, blk_off+lba_offset, (uint8_t *)bfr, 
+                                no_of_blocks);
 }
 
 uint32_t  plat_switch_part(uint8_t part_no)

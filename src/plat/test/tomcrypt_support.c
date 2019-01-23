@@ -3,7 +3,7 @@
 #include <pb.h>
 #include <stdlib.h>
 #include <time.h>
-
+#include <tinyprintf.h>
 /* simplistic malloc functions needed by libtomcrypt */
 
 #define HEAP_SZ 1024*1024

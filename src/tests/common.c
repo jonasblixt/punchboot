@@ -12,8 +12,12 @@ void __assert_func(const char *fn,
                    const char *assert_func,
                    const char *asdf)
 {
+
+    UNUSED(asdf);
     tfp_printf("Assert failed %s:%i (%s)\n\r",fn, line_no, assert_func);
     semihosting_sys_exit(1);
+
+    while(1);
 }
 
 void pb_main(void) 

@@ -72,7 +72,6 @@ static void gcov_update_counter(struct gcov_info *info,
 	struct gcov_ctr_info *ci_ptr;
 	unsigned int fi_idx;
 	unsigned int ct_idx;
-	unsigned int cv_idx;
 
     for (fi_idx = 0; fi_idx < info->n_functions; fi_idx++) 
     {
@@ -99,11 +98,7 @@ static void gcov_update_counter(struct gcov_info *info,
 
 static void gcov_load_data(struct gcov_info *info)
 {
-	struct gcov_fn_info *fi_ptr;
-	struct gcov_ctr_info *ci_ptr;
-	unsigned int fi_idx;
 	unsigned int ct_idx;
-	unsigned int cv_idx;
     uint32_t dummy;
 
     long fd = semihosting_file_open(info->filename, 0);
