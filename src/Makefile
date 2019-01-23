@@ -151,6 +151,7 @@ clean: board_clean arch_clean plat_clean
 	@-rm -rf tests/*.o
 	@-rm -f $(OBJS)
 	@-rm -f *.gcda *.gcno
+	@-rm -f qemu.log
 	@-rm -f tests/*.gcda tests/*.gcno
 	@find -name "*.gcno" -exec rm -f {} \;
 	@find -name "*.gcda" -exec rm -f {} \;
