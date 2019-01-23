@@ -14,9 +14,6 @@
 #include <pb.h>
 #include <io.h>
 
-#define GENMASK(h, l) \
-	(((~0UL) << (l)) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
-
 #define USDHC_MAKE_CMD(c, f)		(((c & 0xff) << 24) | ((f & 0xff) << 16))
 
 

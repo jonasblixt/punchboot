@@ -49,15 +49,15 @@ uint32_t config_init(void)
         return PB_ERR;
     }
 
-    plat_read_block(_config_lba_offset, (uint8_t *) &_config_data, 1);
+    plat_read_block(_config_lba_offset, (uintptr_t) &_config_data, 1);
 
 
     if ((crc32 (0, (uint8_t *)_config_data.data, _config_tot_size) 
             == _config_data.crc) && (_config_data._magic == PB_CONFIG_MAGIC) ) 
     {
-       LOG_INFO ("Found valid config, %lu bytes", _config_tot_size);
+       LOG_INFO ("Found valid config, %"PRIu32" bytes", _config_tot_size);
     } else {
-        LOG_WARN ("CRC 0x%8.8lX", _config_data.crc);
+        LOG_WARN ("CRC 0x%8.8"PRIx32, _config_data.crc);
         LOG_WARN ("Corrupt config, installing default...");
         n = 0;
         do
@@ -78,9 +78,9 @@ uint8_t config_ok(void)
     return _flag_config_ok;
 }
 
-uint8_t* config_get_tbl(void) 
+struct pb_config_item * config_get_tbl(void) 
 {
-    return (uint8_t *) _pb_config;
+    return (struct pb_config_item *) _pb_config;
 }
 
 uint32_t config_get_tbl_sz(void) 
@@ -120,10 +120,10 @@ uint32_t config_commit(void)
     _config_data.crc = 
                 crc32(0, (uint8_t *) _config_data.data, _config_tot_size);
 
-    plat_write_block(_config_lba_offset, (uint8_t *) &_config_data, 1);
+    plat_write_block(_config_lba_offset, (uintptr_t) &_config_data, 1);
 
-    LOG_INFO ("LBA offset = 0x%8.8lX", _config_lba_offset);
-    LOG_INFO ("Wrote %lu bytes, CRC: 0x%8.8lX", _config_tot_size,
+    LOG_INFO ("LBA offset = 0x%8.8"PRIx32, _config_lba_offset);
+    LOG_INFO ("Wrote %"PRIu32" bytes, CRC: 0x%8.8"PRIx32, _config_tot_size,
                                                 _config_data.crc);
 
     return PB_OK;

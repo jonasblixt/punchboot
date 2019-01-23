@@ -200,7 +200,7 @@ uint32_t gpt_write_tbl(void)
 
 
     LOG_INFO("writing protective MBR");
-    err = plat_write_block(0,(uint8_t*) pmbr, 1); 
+    err = plat_write_block(0,(uintptr_t) pmbr, 1); 
 
     if (err != PB_OK) 
     {
@@ -210,8 +210,8 @@ uint32_t gpt_write_tbl(void)
 
     /* Write primary GPT Table */
 
-    LOG_INFO("writing primary gpt tbl to lba %llu", _gpt1.hdr.current_lba);
-    err = plat_write_block(_gpt1.hdr.current_lba,(uint8_t*) &_gpt1, 
+    LOG_INFO("writing primary gpt tbl to lba %" __PRI64(u), _gpt1.hdr.current_lba);
+    err = plat_write_block(_gpt1.hdr.current_lba,(uintptr_t) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
     if (err != PB_OK) 
@@ -231,8 +231,8 @@ uint32_t gpt_write_tbl(void)
 
     /* Write backup GPT table */
 
-    LOG_INFO("Writing backup GPT tbl to LBA %llu", _gpt2.hdr.entries_start_lba);
-    err = plat_write_block(_gpt2.hdr.entries_start_lba, (uint8_t *) &_gpt2,
+    LOG_INFO("Writing backup GPT tbl to LBA %" __PRI64(u), _gpt2.hdr.entries_start_lba);
+    err = plat_write_block(_gpt2.hdr.entries_start_lba, (uintptr_t) &_gpt2,
             sizeof(struct gpt_backup_tbl) / 512);
 
     if (err != PB_OK) 
@@ -281,7 +281,8 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
 
         gpt_part_name(&part[i], tmp_string, sizeof(tmp_string));
 
-        LOG_INFO2 (" %lu - [%16s] lba 0x%8.8lX%8.8lX - 0x%8.8lX%8.8lX\n\r",
+        LOG_INFO2 (" %"PRIu32" - [%16s] lba 0x%8.8"PRIx32"%8.8"PRIx32 \
+                    " - 0x%8.8"PRIx32"%8.8"PRIx32"\n\r",
                         i,
                         tmp_string,
                         (uint32_t) (part[i].first_lba >> 32) & 0xFFFFFFFF,
@@ -324,13 +325,13 @@ uint32_t gpt_init(void)
 {
     _flag_gpt_ok = false;
 
-    plat_read_block(1,(uint8_t*) &_gpt1, 
+    plat_read_block(1,(uintptr_t) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
     if (gpt_is_valid(&_gpt1.hdr, _gpt1.part) != PB_OK)
     {
         LOG_ERR("Primary GPT table is corrupt or missing, trying to recover backup");
-        plat_read_block(plat_get_lastlba(), (uint8_t *) &_gpt2.hdr, 
+        plat_read_block(plat_get_lastlba(), (uintptr_t) &_gpt2.hdr, 
                                 sizeof(struct gpt_header) / 512);
 
         if (gpt_has_valid_header(&_gpt2.hdr) != PB_OK)
@@ -339,7 +340,7 @@ uint32_t gpt_init(void)
             return PB_ERR;
         }
         
-        plat_read_block(_gpt2.hdr.entries_start_lba, (uint8_t *) _gpt2.part,
+        plat_read_block(_gpt2.hdr.entries_start_lba, (uintptr_t) _gpt2.part,
                     (_gpt2.hdr.no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
 
         if (gpt_has_valid_part_array(&_gpt2.hdr, _gpt2.part) != PB_OK)

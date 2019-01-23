@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <inttypes.h>
 
 enum {
     PB_OK,
@@ -60,8 +61,6 @@ enum {
 #endif
 
 #define UNUSED(x) (void)(x)
-
-#define BIT(x) (1<<x)
 
 #define __no_bss __attribute__((section (".bigbuffer")))
 #define __a4k  __attribute__ ((aligned(4096)))

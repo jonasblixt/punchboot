@@ -78,9 +78,6 @@ static uint32_t dwc3_config_ep(struct dwc3_device *dev,
 {
     uint32_t err;
 
-    uint8_t ep2 = ep & 0xFE;
-    uint32_t in = ep&1;
-
     err = dwc3_command(dev, ep, DWC3_DEPCMD_SETEPCONF, 
                     (sz << 3) | (1 << 22) | (type << 1),
                     (ep << 25) | (7 << 8),
@@ -100,7 +97,7 @@ static uint32_t dwc3_config_ep(struct dwc3_device *dev,
 
 static struct dwc3_trb * dwc3_get_next_trb(void)
 {
-    struct dwc3_trb *trb = &trbs[0];
+    struct dwc3_trb *trb = (struct dwc3_trb *) &trbs[0];
 
     for (uint32_t n = 0; n < DWC3_NO_TRBS; n++)
     {
@@ -166,7 +163,7 @@ static void dwc3_reset(struct dwc3_device *dev)
     pb_write32(reg, dev->base + DWC3_DCFG);
 
 
-    dwc3_transfer(dev, USB_EP0_OUT, &setup_pkt, 
+    dwc3_transfer(dev, USB_EP0_OUT,(uint8_t *) &setup_pkt, 
                         sizeof(struct usb_setup_packet));
 }
 
@@ -198,8 +195,8 @@ uint32_t dwc3_init(struct dwc3_device *dev)
 
     dev->version = (pb_read32(dev->base + DWC3_CAPLENGTH) >> 16) & 0xFFFF;
     dev->caps = pb_read32(dev->base + DWC3_CAPLENGTH) & 0xFF;
-    memset(_ev_buffer, 0, DWC3_EV_BUFFER_SIZE*4);
-    memset(trbs, 0, sizeof(struct dwc3_trb) * DWC3_NO_TRBS);
+    memset((void *)_ev_buffer, 0, DWC3_EV_BUFFER_SIZE*4);
+    memset((void *)trbs, 0, sizeof(struct dwc3_trb) * DWC3_NO_TRBS);
 
     for (uint32_t n = 0; n < 8; n++)
         act_trb[n] = NULL;
@@ -287,6 +284,7 @@ void dwc3_set_addr(struct dwc3_device *dev, uint32_t addr)
 
 void dwc3_wait_for_ep_completion(struct dwc3_device *dev, uint32_t ep)
 {
+    UNUSED(dev);
     volatile struct dwc3_trb *trb = act_trb[ep];
 
     uint32_t t = plat_get_us_tick();
@@ -342,9 +340,6 @@ void dwc3_task(struct usb_device *dev)
             (pb_read32(pdev->base + DWC3_GEVNTCOUNT) & 0xFFFF);
     volatile uint32_t ev;
 
-
-    uint32_t sts = pb_read32(pdev->base + DWC3_GSTS);
-
     if (evcnt > 4)
     {
         ev = _ev_buffer[_ev_index];
@@ -352,9 +347,10 @@ void dwc3_task(struct usb_device *dev)
         /* Device Specific Events DEVT*/
         if (ev & 1)
         {
-            uint8_t ev_dev = (ev >> 1) & 0x7F;
+            
+            //uint8_t ev_dev = (ev >> 1) & 0x7F;
             uint8_t ev_type = (ev >> 8) & 0xF;
-            uint16_t ev_info = (ev >> 16) & 0x1FF;
+            //uint16_t ev_info = (ev >> 16) & 0x1FF;
 
             switch (ev_type)
             {
@@ -380,10 +376,10 @@ void dwc3_task(struct usb_device *dev)
                     LOG_ERR("Unknown event %2.2X", ev_type);
             }
         } else  { /* Device Endpoint-n events*/
-            uint32_t ep = (ev >> 1) & 0x1F;
-            uint32_t ev_param = (ev >> 16) & 0xFFFF;
-            uint32_t ev_status = (ev >> 12) & 0xF;
-            uint32_t ev_cc = (ev >> 6) & 0xF;
+            //uint32_t ep = (ev >> 1) & 0x1F;
+            //uint32_t ev_param = (ev >> 16) & 0xFFFF;
+            //uint32_t ev_status = (ev >> 12) & 0xF;
+            //uint32_t ev_cc = (ev >> 6) & 0xF;
             //LOG_INFO("EV EP%u %s, param: %4.4X, sts: %1X, cc: %1X",
             //        ep>>1,ep&1?"IN":"OUT", ev_param, ev_status, ev_cc);
             
@@ -397,8 +393,8 @@ void dwc3_task(struct usb_device *dev)
     
     if (dwc3_trb_hwo(act_trb[USB_EP0_OUT]))
     {
-        dev->on_setup_pkt(dev, &setup_pkt);
-        dwc3_transfer(pdev, USB_EP0_OUT, &setup_pkt, 
+        dev->on_setup_pkt(dev, (struct usb_setup_packet *)&setup_pkt);
+        dwc3_transfer(pdev, USB_EP0_OUT, (uint8_t *)&setup_pkt, 
                         sizeof(struct usb_setup_packet));
     }
 

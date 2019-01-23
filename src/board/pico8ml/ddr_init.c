@@ -2,9 +2,12 @@
 #include <io.h>
 #include <board/pico8ml/ddr.h>
 #include <board/pico8ml/ddr_memory_map.h>
+#include <tinyprintf.h>
 
 #define SRC_DDRC_RCR_ADDR SRC_IPS_BASE_ADDR +0x1000
 #define DDR_CSD1_BASE_ADDR 0x40000000
+
+extern void ddr_cfg_phy_1gb(void) ;
 
 static inline void poll_pmu_message_ready(void)
 {
@@ -60,18 +63,19 @@ static inline unsigned int get_stream_message(void)
 
 static inline void decode_major_message(unsigned int mail)
 {
+    UNUSED(mail);
 	LOG_DBG("[PMU Major message = 0x%08x]", mail);
 }
 
 static inline void decode_streaming_message(void)
 {
 	unsigned int string_index, arg;
-	int i = 0;
+	unsigned int i = 0;
 
 	string_index = get_stream_message();
 	LOG_DBG("	PMU String index = 0x%08x", string_index);
 
-
+    UNUSED(arg);
 	while (i < (string_index & 0xffff))
     {
 		arg = get_stream_message();

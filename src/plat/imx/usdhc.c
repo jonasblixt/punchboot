@@ -129,7 +129,7 @@ static uint32_t usdhc_emmc_check_status(struct usdhc_device *dev)
         (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG) {
         return PB_OK;
     } else if (result & MMC_STATUS_MASK) {
-        LOG_ERR("Status Error: 0x%8.8lX",result);
+        LOG_ERR("Status Error: 0x%8.8"PRIx32,result);
         return PB_ERR;
     }
 
@@ -143,12 +143,12 @@ static uint32_t usdhc_emmc_read_extcsd(struct usdhc_device *dev)
 
     _tbl[0].cmd = ADMA2_TRAN_VALID | ADMA2_END;
     _tbl[0].len = 512;
-    _tbl[0].addr = (uint32_t) _raw_extcsd;
+    _tbl[0].addr = (uint32_t)(uintptr_t) _raw_extcsd;
 
     while (pb_read32(dev->base + USDHC_INT_STATUS) & (1 << 1))
         asm("nop");
 
-    pb_write32((uint32_t) &_tbl[0], dev->base+ USDHC_ADMA_SYS_ADDR);
+    pb_write32((uint32_t)(uintptr_t) &_tbl[0], dev->base+ USDHC_ADMA_SYS_ADDR);
 
 	/* Set ADMA 2 transfer */
 	pb_write32(0x08800224, dev->base+ USDHC_PROT_CTRL);
@@ -163,19 +163,19 @@ static uint32_t usdhc_emmc_read_extcsd(struct usdhc_device *dev)
 
     if (err != PB_OK)
     {
-        LOG_ERR("PRESENT_STATE = 0x%8.8X",
+        LOG_ERR("PRESENT_STATE = 0x%8.8"PRIx32,
                     pb_read32(dev->base + USDHC_PRES_STATE));
-        LOG_ERR("ADMA_ERR_STATUS = 0x%8.8X",
+        LOG_ERR("ADMA_ERR_STATUS = 0x%8.8"PRIx32,
                     pb_read32(dev->base+USDHC_ADMA_ERR_STATUS));
-        LOG_ERR("ADMA_SYSADDR = 0x%8.8X",
+        LOG_ERR("ADMA_SYSADDR = 0x%8.8"PRIx32,
                     pb_read32(dev->base+USDHC_ADMA_SYS_ADDR));
 
-        struct usdhc_adma2_desc *d = (struct usdhc_adma2_desc *)
+        struct usdhc_adma2_desc *d = (struct usdhc_adma2_desc *) (uintptr_t)
                 pb_read32(dev->base + USDHC_ADMA_SYS_ADDR);
 
         LOG_ERR("desc->cmd  = 0x%4.4X", d->cmd);
         LOG_ERR("desc->len  = 0x%4.4X", d->len);
-        LOG_ERR("desc->addr = 0x%8.8X", d->addr);
+        LOG_ERR("desc->addr = 0x%8.8"PRIu32, d->addr);
         return err;
     }
 
@@ -229,7 +229,7 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
 
         tbl_ptr->len = transfer_sz;
         tbl_ptr->cmd = ADMA2_TRAN_VALID;
-        tbl_ptr->addr = (uint32_t) buf_ptr;
+        tbl_ptr->addr = (uint32_t)(uintptr_t) buf_ptr;
 
         if (!remaining_sz) 
             tbl_ptr->cmd |= ADMA2_END;
@@ -240,7 +240,7 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
     } while (remaining_sz);
 
 
-    pb_write32((uint32_t) _tbl, dev->base+ USDHC_ADMA_SYS_ADDR);
+    pb_write32((uint32_t)(uintptr_t) _tbl, dev->base+ USDHC_ADMA_SYS_ADDR);
     
 	/* Set ADMA 2 transfer */
 	pb_write32(0x08800224, dev->base+ USDHC_PROT_CTRL);
@@ -459,12 +459,12 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
 			_raw_extcsd[EXT_CSD_SEC_CNT + 2] << 16 |
 			_raw_extcsd[EXT_CSD_SEC_CNT + 3] << 24;
 
-    LOG_INFO ("%c%c%c%c%c: %u sectors, %u kBytes",
-        (_raw_cid[2] >> 24) & 0xFF,
-        (_raw_cid[2] >> 16) & 0xFF,
-        (_raw_cid[2] >> 8) & 0xFF,
-        (_raw_cid[2] ) & 0xFF,
-        (_raw_cid[1] >> 24) & 0xFF,
+    LOG_INFO ("%c%c%c%c%c: %"__PRI64(u)" sectors, %"__PRI64(u)" kBytes",
+        (int)(_raw_cid[2] >> 24) & 0xFF,
+        (int)(_raw_cid[2] >> 16) & 0xFF,
+        (int)(_raw_cid[2] >> 8) & 0xFF,
+        (int)(_raw_cid[2] ) & 0xFF,
+        (int)(_raw_cid[1] >> 24) & 0xFF,
         dev->sectors,(dev->sectors)>>1);
     LOG_INFO ("Partconfig: %2.2X", _raw_extcsd[EXT_CSD_PART_CONFIG]);
 

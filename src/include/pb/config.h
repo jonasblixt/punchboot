@@ -38,7 +38,7 @@ uint32_t config_init(void);
 uint32_t config_get_uint32_t(uint8_t index, uint32_t *value);
 uint32_t config_set_uint32_t(uint8_t index, uint32_t value);
 uint32_t config_commit(void);
-uint8_t* config_get_tbl(void);
+struct pb_config_item * config_get_tbl(void);
 uint32_t config_get_tbl_sz(void);
 
 #endif

@@ -36,11 +36,11 @@ uint32_t  plat_early_init(void);
 
 /* EMMC Interface */
 uint32_t  plat_write_block(uint32_t lba_offset, 
-                                uint8_t *bfr, 
+                                uintptr_t bfr,
                                 uint32_t no_of_blocks);
 
 uint32_t  plat_read_block( uint32_t lba_offset, 
-                                uint8_t *bfr, 
+                                uintptr_t bfr, 
                                 uint32_t no_of_blocks);
 
 uint32_t  plat_switch_part(uint8_t part_no);
@@ -48,8 +48,8 @@ uint64_t  plat_get_lastlba(void);
 
 /* Crypto Interface */
 uint32_t  plat_sha256_init(void);
-uint32_t  plat_sha256_update(uint8_t *bfr, uint32_t sz);
-uint32_t  plat_sha256_finalize(uint8_t *out);
+uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz);
+uint32_t  plat_sha256_finalize(uintptr_t out);
 
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
                         struct asn1_key *k);

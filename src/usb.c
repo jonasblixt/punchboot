@@ -13,6 +13,7 @@
 #include <board.h>
 #include <tinyprintf.h>
 #include <string.h>
+#include <inttypes.h>
 
 #define USB_DEBUG
 static struct usb_device *usb_dev;
@@ -227,7 +228,7 @@ void usb_on_command(struct usb_device *dev, struct usb_pb_command *cmd)
 {
     UNUSED(dev);
 
-    LOG_ERR ("Unhandeled command 0x%8.8lX",cmd->command);
+    LOG_ERR ("Unhandeled command 0x%8.8"PRIx32,cmd->command);
 }
 
 uint32_t usb_init(void)

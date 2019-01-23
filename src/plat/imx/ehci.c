@@ -148,6 +148,7 @@ static uint32_t ehci_transfer(struct ehci_device *dev,
 void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
 {
     struct ehci_transfer_head *dtd = current_xfers[ep];
+    UNUSED(dev);
 
     if (dtd == NULL)
         return ;

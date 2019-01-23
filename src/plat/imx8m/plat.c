@@ -251,23 +251,23 @@ uint32_t  plat_early_init(void)
 /* EMMC Interface */
 
 uint32_t plat_write_block(uint32_t lba_offset, 
-                          uint8_t *bfr, 
+                          uintptr_t bfr, 
                           uint32_t no_of_blocks) 
 {
     return usdhc_emmc_xfer_blocks(&usdhc0, 
                                   lba_offset, 
-                                  bfr, 
+                                  (uint8_t*)bfr, 
                                   no_of_blocks, 
                                   1, 0);
 }
 
 uint32_t plat_read_block(uint32_t lba_offset, 
-                         uint8_t *bfr, 
+                         uintptr_t bfr, 
                          uint32_t no_of_blocks) 
 {
     return usdhc_emmc_xfer_blocks(&usdhc0,
                                   lba_offset, 
-                                  bfr, 
+                                  (uint8_t *)bfr, 
                                   no_of_blocks, 
                                   0, 0);
 }
@@ -288,14 +288,14 @@ uint32_t  plat_sha256_init(void)
     return caam_sha256_init();
 }
 
-uint32_t  plat_sha256_update(uint8_t *bfr, uint32_t sz)
+uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz)
 {
-    return caam_sha256_update(bfr,sz);
+    return caam_sha256_update((uint8_t *)bfr,sz);
 }
 
-uint32_t  plat_sha256_finalize(uint8_t *out)
+uint32_t  plat_sha256_finalize(uintptr_t out)
 {
-    return caam_sha256_finalize(out);
+    return caam_sha256_finalize((uint8_t *) out);
 }
 
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
@@ -364,16 +364,21 @@ void plat_uart_putc(void *ptr, char c)
 /* FUSE Interface */
 uint32_t  plat_fuse_read(struct fuse *f)
 {
+    UNUSED(f);
     return PB_ERR;
 }
 
 uint32_t  plat_fuse_write(struct fuse *f)
 {
+    UNUSED(f);
     return PB_ERR;
 }
 
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
+    UNUSED(f);
+    UNUSED(s);
+    UNUSED(n);
     return PB_ERR;
 }
 

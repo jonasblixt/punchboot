@@ -113,7 +113,7 @@ uint32_t board_get_debug_uart(void)
     return UART2_BASE;
 }
 
-uint32_t board_init(void)
+uint32_t board_early_init(void)
 {
     /* Configure UART */
     pb_write32(0, 0x020E0094);
@@ -186,5 +186,14 @@ uint32_t board_configure_gpt_tbl(void)
     return PB_OK;
 }
 
+uint32_t board_configure_bootargs(char *buf, char*boot_part_uuid)
+{
+    tfp_sprintf (buf, "console=ttymxc1,115200 " \
+        "earlyprintk " \
+        "root=PARTUUID=%s " \
+        "rw rootfstype=ext4 gpt rootwait", boot_part_uuid);
+
+    return PB_OK;
+}
 
 

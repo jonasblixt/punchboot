@@ -6,6 +6,7 @@
 #include <io.h>
 #include <gpt.h>
 #include <keys.h>
+#include <inttypes.h>
 
 static struct __a4k __no_bss pb_pbi _pbi;
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
@@ -21,7 +22,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
         return PB_ERR;
     }
 
-    plat_read_block(part_lba_offset, (uint8_t *) &_pbi,
+    plat_read_block(part_lba_offset, (uintptr_t) &_pbi,
                             sizeof(struct pb_pbi)/512);
 
 
@@ -32,42 +33,42 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 
     LOG_INFO ("Component manifest:");
     for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
-        LOG_INFO (" o %lu - LA: 0x%8.8lX OFF:0x%8.8lX",i, 
+        LOG_INFO ("%"PRIu32" - LA: 0x%8.8"PRIx32" OFF:0x%8.8"PRIx32"",i, 
                             _pbi.comp[i].load_addr_low,
                             _pbi.comp[i].component_offset);
     }
 
     for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
-        LOG_INFO("Loading component %lu, %lu bytes",i, 
+        LOG_INFO("Loading component %"PRIu32", %"PRIu32" bytes",i, 
                                 _pbi.comp[i].component_size);
 
-        uint32_t la = _pbi.comp[i].load_addr_low;
+        uintptr_t la = (uintptr_t) _pbi.comp[i].load_addr_low;
         uint32_t sz = _pbi.comp[i].component_size;
 
-        if ( (la <= (unsigned int) &_stack_end) &&
-             ((la+sz) >= (unsigned int) &_stack_start))
+        if ( (la <= (uintptr_t) &_stack_end) &&
+             ((la+sz) >= (uintptr_t) &_stack_start))
         {
             LOG_ERR("image overlapping with PB stack");
             return PB_ERR;
         }
 
-        if ( (la <= (unsigned int) &_data_region_end) &&
-             ((la+sz) >= (unsigned int) &_data_region_start))
+        if ( (la <=  (uintptr_t) &_data_region_end) &&
+             ((la+sz) >=  (uintptr_t) &_data_region_start))
         {
             LOG_ERR("image overlapping with PB data");
             return PB_ERR;
         }
 
 
-        if ( (la <= (unsigned int) &_zero_region_end) &&
-             ((la+sz) >= (unsigned int) &_zero_region_start))
+        if ( (la <=  (uintptr_t) &_zero_region_end) &&
+             ((la+sz) >=  (uintptr_t) &_zero_region_start))
         {
             LOG_ERR("image overlapping with PB bss");
             return PB_ERR;
         }
 
-        if ( (la <= (unsigned int) &_code_end) &&
-             ((la+sz) >= (unsigned int) &_code_start))
+        if ( (la <= (uintptr_t) &_code_end) &&
+             ((la+sz) >= (uintptr_t) &_code_start))
         {
             LOG_ERR("image overlapping with PB code");
             return PB_ERR;
@@ -75,13 +76,14 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 
         plat_read_block(part_lba_offset + 
                     _pbi.comp[i].component_offset/512
-                    , (uint8_t*) _pbi.comp[i].load_addr_low, 
+                    , (uintptr_t) _pbi.comp[i].load_addr_low, 
                     _pbi.comp[i].component_size/512+1);
     }
 
     *pbi = &_pbi;
     return PB_OK;
 }
+
 
 bool pb_image_verify(struct pb_pbi* pbi)
 {
@@ -94,7 +96,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
     if (pbi->hdr.sign_length > sizeof(sign_copy))
             pbi->hdr.sign_length = sizeof(sign_copy);
     
-    LOG_INFO("Signature length = %lu", pbi->hdr.sign_length);
+    LOG_INFO("Signature length = %"PRIu32, pbi->hdr.sign_length);
     memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
     sign_sz = pbi->hdr.sign_length;
     pbi->hdr.sign_length = 0;
@@ -105,22 +107,22 @@ bool pb_image_verify(struct pb_pbi* pbi)
 
     plat_sha256_init();
 
-    plat_sha256_update((uint8_t *) &pbi->hdr, 
+    plat_sha256_update((uintptr_t)&pbi->hdr, 
                     sizeof(struct pb_image_hdr));
 
     for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
     {
-        plat_sha256_update((uint8_t *) &pbi->comp[i], 
+        plat_sha256_update((uintptr_t) &pbi->comp[i], 
                     sizeof(struct pb_component_hdr));
     }
 
     for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
     {
-       plat_sha256_update((uint8_t *) pbi->comp[i].load_addr_low, 
+       plat_sha256_update((uintptr_t) pbi->comp[i].load_addr_low, 
                         pbi->comp[i].component_size);
     }
 
-    plat_sha256_finalize(hash);
+    plat_sha256_finalize((uintptr_t) hash);
 
     uint8_t flag_chk_ok = 1;
 
@@ -140,7 +142,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
 
     struct asn1_key *k = pb_key_get(pbi->hdr.key_index);
 
-    LOG_INFO("Key index %lu", pbi->hdr.key_index);
+    LOG_INFO("Key index %"PRIu32, pbi->hdr.key_index);
 
     if (k == NULL)
     {

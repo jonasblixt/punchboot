@@ -2,7 +2,7 @@
 #include <io.h>
 #include <board/pico8ml/ddr.h>
 #include <board/pico8ml/ddr_memory_map.h>
-
+#include <tinyprintf.h>
 
 #define IMEM_LEN 32768//23400	//byte
 #define DMEM_LEN 16384//1720	//byte
@@ -24,7 +24,7 @@ void ddr_load_train_code(enum fw_type type)
 	unsigned long imem_start = (unsigned long)&_data_region_end + fw_offset;
 	unsigned long dmem_start = imem_start + IMEM_LEN;
 
-    LOG_INFO("Loading imem image from %8.8X", imem_start);
+    LOG_INFO("Loading imem image from %8.8lX", imem_start);
 	pr_from32 = imem_start;
 	pr_to32 = DDR_TRAIN_CODE_BASE_ADDR + 4 * IMEM_OFFSET_ADDR;
 

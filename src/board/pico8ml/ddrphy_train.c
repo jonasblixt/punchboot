@@ -13,7 +13,8 @@
 
 extern void wait_ddrphy_training_complete(void);
 
-void ddr_cfg_phy_1gb(void) {
+void ddr_cfg_phy_1gb(void) 
+{
 	unsigned int tmp, tmp_t;
 
 	//Init DDRPHY register...
@@ -192,9 +193,7 @@ void ddr_cfg_phy_1gb(void) {
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0099, 0x1);
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0099, 0x0);
 
-    LOG_INFO("wait_ddrphy_training_complete");
 	wait_ddrphy_training_complete();
-    LOG_INFO("done");
 
 	//configure DDRPHY-FW DMEM structure @clock1...
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0099, 0x1);

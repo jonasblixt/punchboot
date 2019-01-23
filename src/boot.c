@@ -11,11 +11,17 @@
 #include <libfdt.h>
 #include <uuid.h>
 #include <atf.h>
-#include <arch.h>
+#include <inttypes.h>
 
 static struct atf_bl31_params bl31_params;
 static struct entry_point_info bl33_ep;
 static struct atf_image_info bl33_image;
+
+extern void arch_jump_linux_dt(void* addr, void * dt)
+                                 __attribute__ ((noreturn));
+
+extern void arch_jump_atf(void* atf_addr, void * atf_param)
+                                 __attribute__ ((noreturn));
 
 void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
 {
@@ -32,14 +38,10 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     char part_uuid[37];
 
     if (dtb && linux)
-        LOG_INFO(" LINUX %lX, DTB %lX", linux->load_addr_low, dtb->load_addr_low);
+        LOG_INFO(" LINUX %"PRIx32", DTB %"PRIx32, linux->load_addr_low, dtb->load_addr_low);
     
     if (atf)
-        LOG_INFO("  ATF: 0x%8.8X", atf->load_addr_low);
-
-    volatile uint32_t atf_addr = atf->load_addr_low;
-    volatile uint32_t dtb_addr = dtb->load_addr_low;
-    volatile uint32_t linux_addr = linux->load_addr_low;
+        LOG_INFO("  ATF: 0x%8.8"PRIx32, atf->load_addr_low);
 
     /* Parameter struct for ATF BL31 */
     bl31_params.h.type = PARAM_BL_PARAMS;
@@ -58,7 +60,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     bl33_ep.h.version = 1;
     bl33_ep.h.attr = 1;
     bl33_ep.spsr = 0x000003C9;
-    bl33_ep.pc = (uintptr_t) linux_addr;
+    bl33_ep.pc = (uintptr_t) linux->load_addr_low;
     bl33_ep.args.arg0 = dtb->load_addr_low;
     bl33_ep.args.arg1 = 0;
 
@@ -67,7 +69,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     bl33_image.h.size = sizeof(struct atf_image_info);
     bl33_image.h.attr = 1;
 
-    bl33_image.image_base = (uintptr_t) linux_addr;
+    bl33_image.image_base = (uintptr_t) linux->load_addr_low;
     bl33_image.image_size = linux->component_size;
 
     switch (system_index)
@@ -93,7 +95,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
 
     uint32_t ts0 = plat_get_us_tick();
 
-    const void *fdt = (void *) dtb->load_addr_low;
+    const void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
 
     int err = fdt_check_header(fdt);
     if (err >= 0) 
@@ -114,22 +116,10 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
 
             if (strcmp(name, "chosen") == 0) 
             {
-                /* A: 3F85291C-C6FB-42D0-9E1A-AC6B3560C304 */
-                /* B: 3F85292C-C6FB-42D0-9E1A-AC6B3560C304 */
                 char new_bootargs[256];
             
-                /*
-                tfp_sprintf (new_bootargs, "console=ttymxc0,115200 " \
-                    "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
-                    "cma=768M " \
-                    "root=PARTUUID=%s " \
-                    "rw rootfstype=ext4 gpt rootwait", part_uuid);
-                */
+                board_configure_bootargs(new_bootargs, part_uuid);
 
-                tfp_sprintf (new_bootargs, "console=ttymxc1,115200 " \
-                    "earlyprintk " \
-                    "root=PARTUUID=%s " \
-                    "rw rootfstype=ext4 gpt rootwait", part_uuid);
                 err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
                             (const char *) new_bootargs);
 
@@ -143,23 +133,19 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
         }
     }
 
-    uint32_t ts1 = plat_get_us_tick();
-    tfp_printf ("%luus %luus\n\r",ts0, ts1);
-/*
-    if (atf_addr)
-        arch_jump(atf_addr, (uint32_t)&bl31_params, 0,0,0);
-    else 
-        arch_jump(linux_addr, 0, 0xFFFFFFFF, dtb_addr, 0);
-*/
-    asm volatile(   "mov r0, #0" "\n\r"
-                    "mov r1, #0xFFFFFFFF" "\n\r"
-                    "mov r2, %0" "\n\r"
-                    :
-                    : "r" (dtb_addr));
 
-    asm volatile(  "mov pc, %0" "\n\r"
-                    :
-                    : "r" (linux_addr));
+    uint32_t ts1 = plat_get_us_tick();
+    tfp_printf ("%"PRIu32" us %"PRIu32" us\n\r",ts0, ts1);
+
+    if (atf)
+    {
+        arch_jump_atf((void *)(uintptr_t) atf->load_addr_low, 
+                      (void *)(uintptr_t) &bl31_params);
+    } else {
+        arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr_low, 
+                           (void *)(uintptr_t) dtb->load_addr_low);
+    }
+
     while(1);
 }
 

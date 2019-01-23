@@ -51,11 +51,11 @@ struct entry_point_info
 struct atf_bl31_params 
 {
 	struct atf_param_header h;
-	struct image_info *bl31_image_info;
+	struct atf_image_info *bl31_image_info;
 	struct entry_point_info *bl32_ep_info;
-	struct image_info *bl32_image_info;
+	struct atf_image_info *bl32_image_info;
 	struct entry_point_info *bl33_ep_info;
-	struct image_info *bl33_image_info;
+	struct atf_image_info *bl33_image_info;
 };
 
 

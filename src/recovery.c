@@ -70,10 +70,10 @@ static uint32_t recovery_flash_bootloader(uint8_t *bfr,
     }
 
     plat_switch_part(PLAT_EMMC_PART_BOOT0);
-    plat_write_block(PB_BOOTPART_OFFSET, bfr, blocks_to_write);
+    plat_write_block(PB_BOOTPART_OFFSET, (uintptr_t) bfr, blocks_to_write);
 
     plat_switch_part(PLAT_EMMC_PART_BOOT1);
-    plat_write_block(PB_BOOTPART_OFFSET, bfr, blocks_to_write);
+    plat_write_block(PB_BOOTPART_OFFSET, (uintptr_t) bfr, blocks_to_write);
 
     plat_switch_part(PLAT_EMMC_PART_USER);
  
@@ -102,7 +102,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
     }
     
     return plat_write_block(part_lba_offset + lba_offset, 
-                                bfr, no_of_blocks);
+                                (uintptr_t) bfr, no_of_blocks);
 }
 
 static uint32_t recovery_send_response(struct usb_device *dev, 
@@ -216,7 +216,7 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
     if (!flag_root_hash_fused)
     {
-        uint32_t *root_hash_part = build_root_hash;
+        uint32_t *root_hash_part = (uint32_t *) build_root_hash;
 
         foreach_fuse(f, root_hash_fuses)
         {
@@ -304,12 +304,12 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         if (!flag_devid_fused)
         {
             pos += tfp_sprintf(&report_text_buffer[pos],
-                        "Will write device identity: %4.4lX\n", 
+                        "Will write device identity: %4.4"PRIx32"\n", 
                             devid->default_value >> 16);
         } else {
 
             pos += tfp_sprintf(&report_text_buffer[pos],
-                        "Device identity already fused: %4.4lX\n", 
+                        "Device identity already fused: %4.4"PRIx32"\n", 
                             devid->value >> 16);
 
             if ( (devid->value & 0xFFFF0000) != devid->default_value)
@@ -318,7 +318,7 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
                             "  WARNING: device id mismatch with build in value\n");
 
                 pos += tfp_sprintf(&report_text_buffer[pos],
-                            "    0x%8.8lX != 0x%8.8lX\n", 
+                            "    0x%8.8"PRIx32" != 0x%8.8"PRIx32"\n", 
                                 (devid->value & 0xFFFF0000), 
                                 devid->default_value);
             }
@@ -409,7 +409,7 @@ static void recovery_parse_command(struct usb_device *dev,
 {
     uint32_t err = PB_OK;
 
-    LOG_INFO ("0x%8.8lX %s, sz=%lub", cmd->command, 
+    LOG_INFO ("0x%8.8"PRIx32" %s, sz=%"PRIu32"b", cmd->command, 
                                       recovery_cmd_name[cmd->command],
                                       cmd->size);
 
@@ -422,7 +422,7 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_read_data(dev, (uint8_t *) &cmd_prep,
                                 sizeof(struct pb_cmd_prep_buffer));
  
-            LOG_INFO("Preparing buffer %lu [%lu]",
+            LOG_INFO("Preparing buffer %"PRIu32" [%"PRIu32"]",
                             cmd_prep.buffer_id, cmd_prep.no_of_blocks);
             
             if ( (cmd_prep.no_of_blocks*512) >= RECOVERY_BULK_BUFFER_SZ)
@@ -448,7 +448,7 @@ static void recovery_parse_command(struct usb_device *dev,
             uint32_t no_of_blks = 0;
             recovery_read_data(dev, (uint8_t *) &no_of_blks, 4);
 
-            LOG_INFO ("Flash BL %li",no_of_blks);
+            LOG_INFO ("Flash BL %"PRIu32,no_of_blks);
             recovery_flash_bootloader(recovery_bulk_buffer[0], no_of_blks);
         }
         break;
@@ -482,9 +482,9 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_CONFIG_TBL:
         {
-            LOG_INFO ("Read config %li", config_get_tbl_sz());
+            LOG_INFO ("Read config %"PRIu32, config_get_tbl_sz());
 
-            err = recovery_send_response(dev, config_get_tbl(),
+            err = recovery_send_response(dev, (uint8_t *) config_get_tbl(),
                                               config_get_tbl_sz());
         }
         break;
@@ -509,7 +509,7 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
             }
 
-            LOG_INFO("Set key %lu to %lu", data[0], data[1]);
+            LOG_INFO("Set key %"PRIu32" to %"PRIu32, data[0], data[1]);
             err = config_set_uint32_t(data[0], data[1]);
             if (err != PB_OK)
                 break;
@@ -521,7 +521,7 @@ static void recovery_parse_command(struct usb_device *dev,
             uint32_t config_param = 0;
             uint32_t config_val;
 
-            LOG_INFO("Reading key index, sz=%lu",cmd->size);
+            LOG_INFO("Reading key index, sz=%"PRIu32,cmd->size);
             recovery_read_data(dev, (uint8_t *) &config_param, 4);
 
             err = config_get_uint32_t(config_param, &config_val);
@@ -539,7 +539,8 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_read_data(dev, (uint8_t *) &wr_part,
                                     sizeof(struct pb_cmd_write_part));
             
-            LOG_INFO ("Writing %li blks to part %li with offset %8.8lX using bfr %li",
+            LOG_INFO ("Writing %"PRIu32" blks to part %"PRIu32 \
+                        " with offset %8.8"PRIx32" using bfr %"PRIu32,
                         wr_part.no_of_blocks, wr_part.part_no,
                         wr_part.lba_offset, wr_part.buffer_id);
 
@@ -589,24 +590,25 @@ static void recovery_parse_command(struct usb_device *dev,
 
             for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
             {
-                LOG_INFO (" o %lu - LA: 0x%8.8lX OFF:0x%8.8lX",i, 
+                LOG_INFO (" o %"PRIu32" - LA: 0x%8.8"PRIx32" OFF:0x%8.8"PRIx32,
+                                    i, 
                                     pbi->comp[i].load_addr_low,
                                     pbi->comp[i].component_offset);
 
 
-                uint32_t la = pbi->comp[i].load_addr_low;
+                uintptr_t la = pbi->comp[i].load_addr_low;
                 uint32_t sz = pbi->comp[i].component_size;
 
-                if ( (la <= (unsigned int) &_stack_end) &&
-                     ((la+sz) >= (unsigned int) &_stack_start))
+                if ( (la <= (uintptr_t) &_stack_end) &&
+                     ((la+sz) >= (uintptr_t) &_stack_start))
                 {
                     LOG_ERR("image overlapping with PB stack");
                     err = PB_ERR;
                     break;
                 }
 
-                if ( (la <= (unsigned int) &_data_region_end) &&
-                     ((la+sz) >= (unsigned int) &_data_region_start))
+                if ( (la <= (uintptr_t) &_data_region_end) &&
+                     ((la+sz) >= (uintptr_t) &_data_region_start))
                 {
                     LOG_ERR("image overlapping with PB data");
                     err = PB_ERR;
@@ -614,16 +616,16 @@ static void recovery_parse_command(struct usb_device *dev,
                 }
 
 
-                if ( (la <= (unsigned int) &_zero_region_end) &&
-                     ((la+sz) >= (unsigned int) &_zero_region_start))
+                if ( (la <= (uintptr_t) &_zero_region_end) &&
+                     ((la+sz) >= (uintptr_t) &_zero_region_start))
                 {
                     LOG_ERR("image overlapping with PB bss");
                     err = PB_ERR;
                     break;
                 }
 
-                if ( (la <= (unsigned int) &_code_end) &&
-                     ((la+sz) >= (unsigned int) &_code_start))
+                if ( (la <= (uintptr_t) &_code_end) &&
+                     ((la+sz) >= (uintptr_t) &_code_start))
                 {
                     LOG_ERR("image overlapping with PB code");
                     err = PB_ERR;
@@ -640,13 +642,13 @@ static void recovery_parse_command(struct usb_device *dev,
 
             for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
             {
-                LOG_INFO("Loading component %lu, %lu bytes",i, 
+                LOG_INFO("Loading component %"PRIu32", %"PRIu32" bytes",i, 
                                         pbi->comp[i].component_size);
 
 
 
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
-                                        (uint8_t *) pbi->comp[i].load_addr_low,
+                                        (uint8_t *)(uintptr_t) pbi->comp[i].load_addr_low,
                                         pbi->comp[i].component_size );
 
                 plat_usb_wait_for_ep_completion(dev, USB_EP1_OUT);
@@ -730,7 +732,7 @@ static void recovery_parse_command(struct usb_device *dev,
         }
         break;
         default:
-            LOG_ERR ("Got unknown command: %lx",cmd->command);
+            LOG_ERR ("Got unknown command: %"PRIu32,cmd->command);
     }
     
 

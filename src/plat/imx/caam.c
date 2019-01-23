@@ -43,13 +43,13 @@ static struct fsl_caam *d;
 static uint32_t caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job) 
 {
 
-    d->input_ring[0] = (uint32_t) job;
+    d->input_ring[0] = (uint32_t)(uintptr_t) job;
     pb_write32(1, d->base + CAAM_IRJAR0);
 
     while (pb_read32(d->base + CAAM_ORSFR0) != 1)
         asm("nop");
 
-    if (d->output_ring[0] != (uint32_t) job) {
+    if (d->output_ring[0] != (uint32_t)(uintptr_t) job) {
         tfp_printf ("Job failed\n\r");
         return PB_ERR;
     }
@@ -68,7 +68,7 @@ uint32_t caam_sha256_update(uint8_t *data, uint32_t sz)
 
     struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
 
-    e->addr_lo = (uint32_t) data;
+    e->addr_lo = (uint32_t)(uintptr_t) data;
     e->len_flag = sz;
 
     ctx.sg_count++;
@@ -91,11 +91,11 @@ uint32_t caam_sha256_finalize(uint8_t *out)
         CAAM_ALG_AAI(0) | CAAM_ALG_STATE_INIT_FIN;
 
     desc[2] = CAAM_CMD_FIFOL | ( 2 << 25) | (1 << 22) | (0x14 << 16) |(1 << 24);
-    desc[3] = (uint32_t) ctx.sg_tbl;
+    desc[3] = (uint32_t)(uintptr_t) ctx.sg_tbl;
     desc[4] = ctx.total_bytes;
 
     desc[5] = CAAM_CMD_STORE | (2 << 25) | (0x20 << 16) | 32;
-    desc[6] = (uint32_t) out;
+    desc[6] = (uint32_t)(uintptr_t) out;
 
 
 
@@ -116,10 +116,10 @@ uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
    
     desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
     desc[1] = (3 << 12)|512;
-    desc[2] = (uint32_t) input;
-    desc[3] = (uint32_t) output;
-    desc[4] = (uint32_t) k->mod;
-    desc[5] = (uint32_t) k->exp;
+    desc[2] = (uint32_t)(uintptr_t) input;
+    desc[3] = (uint32_t)(uintptr_t) output;
+    desc[4] = (uint32_t)(uintptr_t) k->mod;
+    desc[5] = (uint32_t)(uintptr_t) k->exp;
     desc[6] = input_sz;
     desc[7] = CAAM_CMD_OP | (0x18 << 16)|(0<<12) ;
 
@@ -155,8 +155,8 @@ uint32_t caam_init(struct fsl_caam *caam_dev)
         d->output_ring[n] = 0;
 
     /* Initialize job rings */
-    pb_write32( (uint32_t) d->input_ring,  d->base + CAAM_IRBAR0);
-    pb_write32( (uint32_t) d->output_ring, d->base + CAAM_ORBAR0);
+    pb_write32( (uint32_t)(uintptr_t) d->input_ring,  d->base + CAAM_IRBAR0);
+    pb_write32( (uint32_t)(uintptr_t) d->output_ring, d->base + CAAM_ORBAR0);
 
     pb_write32( JOB_RING_ENTRIES, d->base + CAAM_IRSR0);
     pb_write32( JOB_RING_ENTRIES, d->base + CAAM_ORSR0);

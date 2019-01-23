@@ -103,23 +103,23 @@ void plat_uart_putc(void *ptr, char c)
 /* EMMC Interface */
 
 uint32_t plat_write_block(uint32_t lba_offset, 
-                          uint8_t *bfr, 
+                          uintptr_t bfr, 
                           uint32_t no_of_blocks) 
 {
     return usdhc_emmc_xfer_blocks(&usdhc0, 
                                   lba_offset, 
-                                  bfr, 
+                                  (uint8_t *) bfr, 
                                   no_of_blocks, 
                                   1, 0);
 }
 
 uint32_t plat_read_block(uint32_t lba_offset, 
-                         uint8_t *bfr, 
+                         uintptr_t bfr, 
                          uint32_t no_of_blocks) 
 {
     return usdhc_emmc_xfer_blocks(&usdhc0,
                                   lba_offset, 
-                                  bfr, 
+                                  (uint8_t *) bfr, 
                                   no_of_blocks, 
                                   0, 0);
 }
@@ -140,14 +140,14 @@ uint32_t  plat_sha256_init(void)
     return caam_sha256_init();
 }
 
-uint32_t  plat_sha256_update(uint8_t *bfr, uint32_t sz)
+uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz)
 {
-    return caam_sha256_update(bfr,sz);
+    return caam_sha256_update((uint8_t *) bfr,sz);
 }
 
-uint32_t  plat_sha256_finalize(uint8_t *out)
+uint32_t  plat_sha256_finalize(uintptr_t out)
 {
-    return caam_sha256_finalize(out);
+    return caam_sha256_finalize((uint8_t *)out);
 }
 
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
@@ -214,7 +214,7 @@ uint32_t plat_early_init(void)
 		*((uint32_t *)csu + i) = 0xffffffff;
 	}
     
-    board_init();
+    board_early_init();
 
     uart0.base = board_get_debug_uart();
     uart0.baudrate = 80000000L / (2 * 115200);

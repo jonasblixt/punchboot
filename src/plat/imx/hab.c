@@ -217,8 +217,8 @@ int hab_has_no_errors(void)
 	hab_rvt_report_event_t *hab_rvt_report_event;
 	hab_rvt_report_status_t *hab_rvt_report_status;
 
-	hab_rvt_report_event = (hab_rvt_report_event_t *)HAB_RVT_REPORT_EVENT;
-	hab_rvt_report_status = (hab_rvt_report_status_t *)HAB_RVT_REPORT_STATUS;
+	hab_rvt_report_event = (hab_rvt_report_event_t *)(uintptr_t)HAB_RVT_REPORT_EVENT;
+	hab_rvt_report_status = (hab_rvt_report_status_t *)(uintptr_t)HAB_RVT_REPORT_STATUS;
 
     result = hab_rvt_report_status(&config, &state);
 	LOG_INFO("configuration: 0x%02x, state: 0x%02x", config, state);
@@ -226,7 +226,7 @@ int hab_has_no_errors(void)
     while (hab_rvt_report_event(HAB_FAILURE, index, _event_data, &bytes) 
                                             == HAB_SUCCESS) 
     {
-        LOG_ERR("Error %lu, event data:", index+1);
+        LOG_ERR("Error %"PRIu32", event data:", index+1);
 
         for (i = 0; i < bytes; i++) 
         {

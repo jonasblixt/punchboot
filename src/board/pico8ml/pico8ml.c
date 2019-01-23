@@ -4,7 +4,8 @@
 #include <stdbool.h>
 #include <usb.h>
 #include <fuse.h>
-
+#include <gpt.h>
+#include <tinyprintf.h>
 #include <plat/imx/dwc3.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx8m/plat.h>
@@ -90,7 +91,6 @@ static struct usb_device board_usb_device =
 
 uint32_t board_early_init(void)
 {
-    uint32_t reg;
 
     /* Enable UART1 clock */
     pb_write32((1 << 28) ,0x30388004 + 94*0x80);
@@ -161,7 +161,6 @@ uint32_t board_early_init(void)
 
 uint32_t board_late_init(void)
 {
-    uint32_t err;
 
 
     return PB_OK;
@@ -191,4 +190,15 @@ uint32_t board_usb_init(struct usb_device **usbdev)
 bool board_force_recovery(void)
 {
     return true;
+}
+
+uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
+{
+    tfp_sprintf (buf, "console=ttymxc0,115200 " \
+        "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
+        "cma=768M " \
+        "root=PARTUUID=%s " \
+        "rw rootfstype=ext4 gpt rootwait", boot_part_uuid);
+
+    return PB_OK;
 }
