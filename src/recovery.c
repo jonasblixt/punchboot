@@ -405,15 +405,15 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 }
 
 static void recovery_parse_command(struct usb_device *dev, 
-                                       struct usb_pb_command *cmd)
+                                       struct pb_cmd_header *cmd)
 {
     uint32_t err = PB_OK;
 
-    LOG_INFO ("0x%8.8"PRIx32" %s, sz=%"PRIu32"b", cmd->command, 
-                                      recovery_cmd_name[cmd->command],
+    LOG_INFO ("0x%8.8"PRIx32" %s, sz=%"PRIu32"b", cmd->cmd, 
+                                      recovery_cmd_name[cmd->cmd],
                                       cmd->size);
 
-    switch (cmd->command) 
+    switch (cmd->cmd) 
     {
         case PB_CMD_PREP_BULK_BUFFER:
         {
@@ -445,11 +445,9 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_FLASH_BOOTLOADER:
         {
-            uint32_t no_of_blks = 0;
-            recovery_read_data(dev, (uint8_t *) &no_of_blks, 4);
-
-            LOG_INFO ("Flash BL %"PRIu32,no_of_blks);
-            recovery_flash_bootloader(recovery_bulk_buffer[0], no_of_blks);
+            LOG_INFO ("Flash BL %"PRIu32,cmd->arg0);
+            recovery_flash_bootloader(recovery_bulk_buffer[0], 
+                        cmd->arg0);
         }
         break;
         case PB_CMD_GET_VERSION:
@@ -490,27 +488,24 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_SET_CONFIG_VAL:
         {
-            uint32_t data[2];
             int32_t tmp_val;
             struct pb_config_item *items = config_get_tbl();
-
-            recovery_read_data(dev, (uint8_t *) data, 8);
             
 
-            err = config_get_uint32_t(data[0], (uint32_t *)&tmp_val);
+            err = config_get_uint32_t(cmd->arg0, (uint32_t *)&tmp_val);
 
             if (err != PB_OK)
                 break;
 
-            if (items[data[0]].access != PB_CONFIG_ITEM_RW)
+            if (items[cmd->arg0].access != PB_CONFIG_ITEM_RW)
             {
                 err = PB_ERR;
                 LOG_ERR ("Key is read only");
                 break;
             }
 
-            LOG_INFO("Set key %"PRIu32" to %"PRIu32, data[0], data[1]);
-            err = config_set_uint32_t(data[0], data[1]);
+            LOG_INFO("Set key %"PRIu32" to %"PRIu32, cmd->arg0, cmd->arg1);
+            err = config_set_uint32_t(cmd->arg0, cmd->arg1);
             if (err != PB_OK)
                 break;
             err = config_commit();
@@ -518,13 +513,11 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_CONFIG_VAL:
         {
-            uint32_t config_param = 0;
             uint32_t config_val;
 
-            LOG_INFO("Reading key index, sz=%"PRIu32,cmd->size);
-            recovery_read_data(dev, (uint8_t *) &config_param, 4);
+            LOG_INFO("Reading key index %"PRIu32,cmd->arg0);
 
-            err = config_get_uint32_t(config_param, &config_val);
+            err = config_get_uint32_t(cmd->arg0, &config_val);
 
             if (err != PB_OK)
                 config_val = 0;
@@ -552,21 +545,14 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_BOOT_PART:
         {
-            uint8_t boot_part = 0;
             struct pb_pbi *pbi = NULL;
-
-            err = recovery_read_data(dev, &boot_part, sizeof(uint8_t));
-
-            if (err != PB_OK)
-                break;
-        
-            err = pb_boot_load_part((uint8_t) boot_part, &pbi);
+            err = pb_boot_load_part((uint8_t) cmd->arg0, &pbi);
             
             if (err != PB_OK)
                 break;
 
             recovery_send_result_code(dev, err);
-            pb_boot_image(pbi, boot_part);
+            pb_boot_image(pbi, cmd->arg0);
 
         }
 
@@ -634,22 +620,21 @@ static void recovery_parse_command(struct usb_device *dev,
 
             }
 
+            recovery_send_result_code(dev, err);
 
             if (err != PB_OK)
                 break;
-
-            recovery_send_result_code(dev, err);
 
             for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
             {
                 LOG_INFO("Loading component %"PRIu32", %"PRIu32" bytes",i, 
                                         pbi->comp[i].component_size);
 
-
-
+                LOG_INFO("Load addr: %X",  pbi->comp[i].load_addr_low);
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
-                                        (uint8_t *)(uintptr_t) pbi->comp[i].load_addr_low,
-                                        pbi->comp[i].component_size );
+                        (uint8_t *)(uintptr_t) pbi->comp[i].load_addr_low,
+                        pbi->comp[i].component_size );
+
 
                 plat_usb_wait_for_ep_completion(dev, USB_EP1_OUT);
 
@@ -732,7 +717,7 @@ static void recovery_parse_command(struct usb_device *dev,
         }
         break;
         default:
-            LOG_ERR ("Got unknown command: %"PRIu32,cmd->command);
+            LOG_ERR ("Got unknown command: %"PRIu32,cmd->cmd);
     }
     
 

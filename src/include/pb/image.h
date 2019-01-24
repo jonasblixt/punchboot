@@ -53,7 +53,7 @@ struct pb_component_hdr {
 struct pb_pbi {
     struct pb_image_hdr hdr;
     struct pb_component_hdr comp[16];
-    uint8_t padding[511];
+    uint8_t padding[16];
 };
 
 bool pb_image_verify(struct pb_pbi *pbi);

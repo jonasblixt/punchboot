@@ -121,25 +121,22 @@ uint32_t dwc3_transfer(struct dwc3_device *dev,
         return PB_ERR;
     }
 
-    if ( (sz < 64) && !(ep&1))
-        xfr_sz = 64;
-
     act_trb[ep] = trb;
 
     trb->bptrh = 0;
     trb->bptrl = ptr_to_u32(bfr);
     trb->ssz = xfr_sz;
-    trb->control = (1 << 11) | (1 << 1) | 1;
+    trb->control = (1 << 11) | (1 << 1) |1;
 
     switch(ep)
     {
         case USB_EP0_OUT:
-            trb->control |= (1 << 10);
             trb->control |= (2 << 4);
+            trb->control |= (1 << 10);
         break;
         case USB_EP0_IN:
-            trb->control |= (1 << 10);
             trb->control |= (1 << 4);
+            trb->control |= (1 << 10);
         break;
         default:
             trb->control |= (1 << 4);
@@ -291,7 +288,8 @@ void dwc3_wait_for_ep_completion(struct dwc3_device *dev, uint32_t ep)
 
     while(trb->control & 1)
     {
-        if ((plat_get_us_tick()-t) > 1000000)
+        plat_wdog_kick();
+        if ((plat_get_us_tick()-t) > 5000000)
         {
             LOG_ERR("Timeout EP%u %s ssz: 0x%8.8X 0x%8.8X",
                 ep>>1, ep&1?"IN":"OUT",trb->ssz, trb->control);
@@ -400,7 +398,7 @@ void dwc3_task(struct usb_device *dev)
 
     if (dwc3_trb_hwo(act_trb[USB_EP2_OUT]))
     {
-        struct usb_pb_command *cmd = (struct usb_pb_command *) cmd_in_bfr;
+        struct pb_cmd_header *cmd = (struct pb_cmd_header *) cmd_in_bfr;
         dev->on_command(dev, cmd);
         dwc3_transfer(pdev, USB_EP2_OUT, (uint8_t *) cmd_in_bfr, 64);
     }

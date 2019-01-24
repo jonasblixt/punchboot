@@ -2,6 +2,7 @@
 #define __USB_H__
 
 #include <pb.h>
+#include <recovery.h>
 
 /* Defines for commands in setup packets */
 #define USB_GET_DESCRIPTOR				0x8006
@@ -98,23 +99,18 @@ struct usb_descriptors {
     const struct usb_endpoint_descriptor endpoint_intr_in;
 } __attribute__ ((packed));
 
-struct usb_pb_command {
-    uint32_t command;
-    uint32_t size;
-} __attribute__ ((packed));
-
 struct usb_device;
 
 typedef uint32_t (*usb_on_setup_pkt_t) (struct usb_device *dev, 
                                         struct usb_setup_packet *pkt);
 typedef void     (*usb_on_command_t)   (struct usb_device *dev,
-                                        struct usb_pb_command *cmd);
+                                        struct pb_cmd_header *cmd);
 typedef void     (*usb_on_error_t)     (struct usb_device *dev,
                                         uint32_t error_code);
 
 struct usb_device {
     void *platform_data;
-    struct usb_pb_command cmd;
+    struct pb_cmd_header cmd;
     usb_on_setup_pkt_t on_setup_pkt;
     usb_on_command_t on_command;
     usb_on_error_t on_error;

@@ -39,7 +39,7 @@ uint32_t pb_recovery_setup(uint8_t device_version,
     setup.device_variant = device_variant;
     setup.dry_run = dry_run;
 
-    err = pb_write(PB_CMD_SETUP, (uint8_t *) &setup,
+    err = pb_write(PB_CMD_SETUP,0,0,0,0, (uint8_t *) &setup,
                             sizeof(struct pb_device_setup));
 
     if (err != PB_OK)
@@ -76,7 +76,7 @@ uint32_t pb_recovery_setup(uint8_t device_version,
 
 uint32_t pb_install_default_gpt(void) 
 {
-    if (pb_write(PB_CMD_WRITE_DFLT_GPT, NULL, 0) != PB_OK)
+    if (pb_write(PB_CMD_WRITE_DFLT_GPT,0,0,0,0, NULL, 0) != PB_OK)
         return PB_ERR;
     
     return pb_read_result_code();
@@ -89,7 +89,7 @@ uint32_t pb_read_uuid(uint8_t *uuid)
     uint32_t err = PB_ERR;
     uint32_t sz = 0;
 
-    err = pb_write(PB_CMD_READ_UUID, NULL, 0);
+    err = pb_write(PB_CMD_READ_UUID,0,0,0,0, NULL, 0);
 
     if (err != PB_OK)
         return err;
@@ -111,7 +111,7 @@ uint32_t pb_reset(void)
 {
     uint32_t err = PB_ERR;
 
-    err = pb_write(PB_CMD_RESET, NULL, 0);
+    err = pb_write(PB_CMD_RESET,0,0,0,0, NULL, 0);
 
     if (err != PB_OK)
         return err;
@@ -123,7 +123,7 @@ uint32_t pb_boot_part(uint8_t part_no)
 {
     uint32_t err = PB_ERR;
 
-    err = pb_write(PB_CMD_BOOT_PART, &part_no, sizeof(uint8_t));
+    err = pb_write(PB_CMD_BOOT_PART,part_no,0,0,0, NULL, 0);
     
     if (err != PB_OK)
         return err;
@@ -136,7 +136,7 @@ uint32_t pb_get_version(char **out)
     uint32_t sz = 0;
     int err;
 
-    err = pb_write(PB_CMD_GET_VERSION, NULL, 0);
+    err = pb_write(PB_CMD_GET_VERSION,0,0,0,0, NULL, 0);
 
     if (err)
         return err;
@@ -172,7 +172,7 @@ uint32_t pb_get_gpt_table(struct gpt_primary_tbl *tbl)
     uint32_t tbl_sz = 0;
     int err;
 
-    err = pb_write(PB_CMD_GET_GPT_TBL, NULL, 0);
+    err = pb_write(PB_CMD_GET_GPT_TBL,0,0,0,0, NULL, 0);
 
     if (err)
         return err;
@@ -195,7 +195,7 @@ uint32_t pb_get_config_value(uint32_t index, uint32_t *value)
     int err;
     uint32_t sz;
 
-    err = pb_write(PB_CMD_GET_CONFIG_VAL, (uint8_t *) &index, 4);
+    err = pb_write(PB_CMD_GET_CONFIG_VAL,index,0,0,0, NULL, 0);
 
     if (err)
         return err;
@@ -216,11 +216,8 @@ uint32_t pb_get_config_value(uint32_t index, uint32_t *value)
 uint32_t pb_set_config_value(uint32_t index, uint32_t val) 
 {
     int err;
-    uint32_t data[2];
-    data[0] = index;
-    data[1] = val;
 
-    err = pb_write(PB_CMD_SET_CONFIG_VAL, (uint8_t *) data, 8);
+    err = pb_write(PB_CMD_SET_CONFIG_VAL,index,val,0,0, NULL, 0);
 
     if (err)
         return err;
@@ -233,7 +230,7 @@ uint32_t pb_get_config_tbl (struct pb_config_item *items)
     int err;
     uint32_t tbl_sz = 0;
 
-    err = pb_write(PB_CMD_GET_CONFIG_TBL, NULL, 0);
+    err = pb_write(PB_CMD_GET_CONFIG_TBL,0,0,0,0, NULL, 0);
 
     if (err) 
         return err;
@@ -288,7 +285,7 @@ uint32_t pb_flash_part (uint8_t part_no, const char *f_name)
             bfr_cmd.no_of_blocks++;
         
         bfr_cmd.buffer_id = buffer_id;
-        pb_write(PB_CMD_PREP_BULK_BUFFER, 
+        pb_write(PB_CMD_PREP_BULK_BUFFER,0,0,0,0, 
                 (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
 
         err = pb_write_bulk(bfr, bfr_cmd.no_of_blocks*512, &sent_sz);
@@ -306,7 +303,7 @@ uint32_t pb_flash_part (uint8_t part_no, const char *f_name)
         wr_cmd.buffer_id = buffer_id;
         buffer_id = !buffer_id;
 
-        pb_write(PB_CMD_WRITE_PART, (uint8_t *) &wr_cmd,
+        pb_write(PB_CMD_WRITE_PART,0,0,0,0, (uint8_t *) &wr_cmd,
                     sizeof(struct pb_cmd_write_part));
 
         err = pb_read_result_code();
@@ -353,7 +350,7 @@ uint32_t pb_program_bootloader (const char *f_name)
     buffer_cmd.buffer_id = 0;
     buffer_cmd.no_of_blocks = no_of_blocks;
     
-    pb_write(PB_CMD_PREP_BULK_BUFFER, (uint8_t *) &buffer_cmd,
+    pb_write(PB_CMD_PREP_BULK_BUFFER,0,0,0,0, (uint8_t *) &buffer_cmd,
                                     sizeof(struct pb_cmd_prep_buffer));
 
     while ((read_sz = fread(bfr, 1, sizeof(bfr), fp)) >0) 
@@ -370,7 +367,7 @@ uint32_t pb_program_bootloader (const char *f_name)
     if (err != PB_OK)
         return err;
 
-    err = pb_write(PB_CMD_FLASH_BOOTLOADER, (uint8_t *) &no_of_blocks, 4);
+    err = pb_write(PB_CMD_FLASH_BOOTLOADER, no_of_blocks,0,0,0, NULL, 0);
 
     if (err != PB_OK)
         return err;
@@ -391,6 +388,9 @@ uint32_t pb_execute_image (const char *f_name)
     uint32_t data_remaining;
     uint32_t bytes_to_send;
     struct pb_pbi pbi;
+    uint8_t zero_padding[511];
+
+    memset(zero_padding,0,511);
 
     fp = fopen (f_name,"rb");
 
@@ -399,7 +399,7 @@ uint32_t pb_execute_image (const char *f_name)
         return -1;
     }
 
-    bfr =  malloc(1024*64);
+    bfr =  malloc(1024*1024);
     
     if (bfr == NULL) {
         printf ("Could not allocate memory\n");
@@ -408,7 +408,7 @@ uint32_t pb_execute_image (const char *f_name)
 
     read_sz = fread(&pbi, 1, sizeof(struct pb_pbi), fp);
 
-    err = pb_write(PB_CMD_BOOT_RAM, (uint8_t *) &pbi, sizeof(struct pb_pbi));
+    err = pb_write(PB_CMD_BOOT_RAM, 0,0,0,0,(uint8_t *) &pbi, sizeof(struct pb_pbi));
     
     if (err != PB_OK)
         return err;
@@ -422,8 +422,8 @@ uint32_t pb_execute_image (const char *f_name)
 
         fseek (fp, pbi.comp[i].component_offset, SEEK_SET);
         data_remaining = pbi.comp[i].component_size;
-
-        while ((read_sz = fread(bfr, 1, 1024*64, fp)) >0) {
+        
+        while ((read_sz = fread(bfr, 1, 1024*1024, fp)) >0) {
 
             if (read_sz > data_remaining)
                 bytes_to_send = data_remaining;
@@ -431,10 +431,9 @@ uint32_t pb_execute_image (const char *f_name)
                 bytes_to_send = read_sz;
 
             err = pb_write_bulk(bfr, bytes_to_send, &sent_sz);
-    
 
             data_remaining = data_remaining - bytes_to_send;
-
+            
             if (!data_remaining)
                 break;
 

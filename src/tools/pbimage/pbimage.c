@@ -23,6 +23,8 @@
 static struct pb_image_hdr hdr;
 static struct pb_component_hdr comp[PB_IMAGE_MAX_COMP];
 static FILE *pb_components_fp[PB_IMAGE_MAX_COMP];
+static uint32_t pb_components_zpad[PB_IMAGE_MAX_COMP];
+
 static unsigned char buf[1024*1024];
 
 static int pbimage_gen_output(const char *fn_sign_key,
@@ -39,9 +41,11 @@ static int pbimage_gen_output(const char *fn_sign_key,
     int padding_sz[PB_IMAGE_MAX_COMP];
     int read_sz = 0;
     int bytes = 0;
+    uint8_t padding_zero[511];
 	const struct ltc_hash_descriptor hash_desc = sha256_desc;
 	const int hash_idx = register_hash(&hash_desc);
 
+    memset(padding_zero,0,511);
 
     fp_key = fopen(fn_sign_key, "rb");
 
@@ -77,7 +81,8 @@ static int pbimage_gen_output(const char *fn_sign_key,
     unsigned int last_offset = sizeof(struct pb_image_hdr) + 
                 PB_IMAGE_MAX_COMP*sizeof(struct pb_component_hdr);
 
-    for (int i = 0; i < no_of_components; i++) {
+    for (int i = 0; i < no_of_components; i++) 
+    {
         printf (" - %i, LA [0x%8.8X], SZ %i\n", i, comp[i].load_addr_low,
                                                 comp[i].component_size);
 
@@ -87,17 +92,26 @@ static int pbimage_gen_output(const char *fn_sign_key,
         padding_sz[i] = (-comp[i].component_offset % 512);
         comp[i].component_offset += padding_sz[i];
 
-        last_offset = comp[i].component_offset + comp[i].component_size;
+        last_offset = comp[i].component_offset + 
+                      comp[i].component_size;
 
         sha256_process(&md, (unsigned char *) &comp[i], 
                             sizeof(struct pb_component_hdr));
 
     }
 
-    for (int i = 0; i < no_of_components; i++) {
-        while ( (read_sz = fread(buf, 1, sizeof(buf),pb_components_fp[i] )) >0) {
+    for (int i = 0; i < no_of_components; i++) 
+    {
+        while ( (read_sz = fread(buf, 1, sizeof(buf),pb_components_fp[i] )) >0) 
+        {
             sha256_process(&md, buf, read_sz);
             bytes += read_sz;
+        }
+        if (pb_components_zpad[i]) 
+        {
+            sha256_process(&md, padding_zero, 
+                                pb_components_zpad[i]);
+            bytes += pb_components_zpad[i];
         }
     }
 
@@ -152,6 +166,11 @@ static int pbimage_gen_output(const char *fn_sign_key,
             fwrite(buf, read_sz, 1, fp_out);
         }
 
+        if (pb_components_zpad[i])
+        {
+            printf ("Writing %u bytes zpad\n", pb_components_zpad[i]);
+            fwrite(padding_zero, pb_components_zpad[i], 1, fp_out);
+        }
         fclose(pb_components_fp[i]);
     }
 
@@ -250,7 +269,15 @@ int main (int argc, char **argv) {
                 
                 stat(optarg, &finfo);
                 
-                comp[no_of_components].component_size = finfo.st_size;
+
+
+                pb_components_zpad[no_of_components] =
+                    512 - (finfo.st_size % 512);
+                printf ("Adding %u bytes of zero pad\n",
+                    pb_components_zpad[no_of_components]);
+
+                comp[no_of_components].component_size = finfo.st_size +
+                    pb_components_zpad[no_of_components];
                 comp[no_of_components].load_addr_low = load_addr;
                 comp[no_of_components].component_type = component_type;
 

@@ -96,13 +96,22 @@ uint32_t pb_read_result_code(void)
 }
 
 
-int pb_write(uint32_t cmd, uint8_t *bfr, int sz) 
+int pb_write(uint32_t cmd, uint32_t arg0,
+                           uint32_t arg1,
+                           uint32_t arg2,
+                           uint32_t arg3,
+                           uint8_t *bfr, int sz) 
 {
     struct pb_cmd_header hdr;
     int err = 0;
     int tx_sz = 0;
 
+
     hdr.cmd = cmd;
+    hdr.arg0 = arg0;
+    hdr.arg1 = arg1;
+    hdr.arg2 = arg2;
+    hdr.arg3 = arg3;
     hdr.size = sz;
 
     err = libusb_interrupt_transfer(h,
@@ -123,6 +132,7 @@ int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
             printf ("USB: cmd=0x%2.2x, transfer err = %i\n",cmd, err);
             return err;
         }
+
     }
 
     return err;

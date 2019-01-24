@@ -39,12 +39,18 @@ struct pb_cmd_header
 {
     uint32_t cmd;
     uint32_t size;
+    uint32_t arg0;
+    uint32_t arg1;
+    uint32_t arg2;
+    uint32_t arg3;
+    uint8_t rz[40];
 } __attribute__ ((packed));
 
 struct pb_cmd_prep_buffer 
 {
     uint32_t buffer_id;
     uint32_t no_of_blocks;
+    uint8_t rz[56];
 } __attribute__ ((packed));
 
 struct pb_cmd_write_part 
@@ -53,6 +59,7 @@ struct pb_cmd_write_part
     uint32_t lba_offset;
     uint32_t part_no;
     uint32_t buffer_id;
+    uint8_t rz[48];
 } __attribute__ ((packed));
 
 struct pb_device_setup
@@ -61,6 +68,7 @@ struct pb_device_setup
     uint8_t device_variant;
     uint8_t device_revision;
     uint8_t dry_run;
+    uint8_t rz[45];
 } __attribute__ ((packed));
 
 void recovery_initialize(void);
