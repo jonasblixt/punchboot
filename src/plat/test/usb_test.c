@@ -27,21 +27,23 @@ uint32_t  plat_usb_init(struct usb_device *dev)
 void      plat_usb_task(struct usb_device *dev)
 {
     struct pb_socket_header hdr;
-    struct usb_pb_command cmd;
+    struct pb_cmd_header cmd;
     uint8_t status = 0;
 
     UNUSED(dev);
+    LOG_INFO("Waiting...");
     virtio_serial_read(&d, (uint8_t *) &hdr, sizeof(struct pb_socket_header));
     virtio_serial_write(&d, &status, 1);
-    //LOG_INFO("Got hdr, ep=%lu, sz=%lu",hdr.ep,hdr.sz);
+    LOG_INFO("Got hdr, ep=%lu, sz=%lu",hdr.ep,hdr.sz);
     if (hdr.ep == 4)
     {
         virtio_serial_read(&d, (uint8_t *) &cmd, 
-                            sizeof(struct usb_pb_command));
+                            sizeof(struct pb_cmd_header));
 
         virtio_serial_write(&d, &status, 1);
 
         dev->on_command(dev, &cmd);
+
     } else {
         LOG_ERR("Unexpected transfer: ep=%lu, sz=%lu", hdr.ep, hdr.sz);
     }

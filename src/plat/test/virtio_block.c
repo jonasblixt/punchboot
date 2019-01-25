@@ -13,7 +13,6 @@
 #include <plat/test/virtio_block.h>
 #include <plat/test/virtio_queue.h>
 
-
 uint32_t virtio_block_init(struct virtio_block_device *d)
 {
 
@@ -47,8 +46,9 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 							uint8_t *buf,
 							uint32_t no_of_blocks)
 {
-	struct virtio_blk_req r;
-	volatile uint8_t status = VIRTIO_BLK_S_UNSUPP;
+
+    __a16b struct virtio_blk_req r;
+    __a16b uint8_t status = VIRTIO_BLK_S_UNSUPP;
 
 	r.type = VIRTIO_BLK_T_OUT;
 	r.sector_low = lba;
@@ -56,19 +56,19 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 	struct virtq *q = &d->q;
     uint16_t idx = q->avail->idx;
 
-    q->desc[idx].addr = (uint32_t) &r;
+    q->desc[idx].addr = (uintptr_t) &r;
     q->desc[idx].len = sizeof(struct virtio_blk_req);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
     q->desc[idx].next = (idx + 1) % q->num;
     idx = (idx + 1) % q->num;
 
-	q->desc[idx].addr = (uint32_t) (buf);
+	q->desc[idx].addr = (uintptr_t) (buf);
 	q->desc[idx].len = 512*no_of_blocks;
 	q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
 	q->desc[idx].next = (idx + 1) % q->num;
 	idx = (idx + 1) % q->num;
 
-    q->desc[idx].addr = (uint32_t) &status;
+    q->desc[idx].addr = (uintptr_t) &status;
     q->desc[idx].len = 1;
     q->desc[idx].flags = VIRTQ_DESC_F_WRITE;
     q->desc[idx].next = 0;
@@ -76,10 +76,10 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 
     q->avail->ring[idx] = idx;
     q->avail->idx += 3;
-
+    
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 	
-	while(q->avail->idx != q->used->idx)
+    while(q->avail->idx != q->used->idx)
 		asm("nop");
 
 	if (status == VIRTIO_BLK_S_OK)
@@ -95,8 +95,9 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 							uint8_t *buf,
 							uint32_t no_of_blocks)
 {
-	struct virtio_blk_req r;
-	volatile uint8_t status = VIRTIO_BLK_S_UNSUPP;
+
+    __a16b struct virtio_blk_req r;
+    __a16b uint8_t status = VIRTIO_BLK_S_UNSUPP;
 
 	r.type = VIRTIO_BLK_T_IN;
 	r.reserved = 0;

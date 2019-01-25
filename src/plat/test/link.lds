@@ -2,7 +2,6 @@
 MEMORY
 {
     ocram (rx)  : ORIGIN = 0x908000, LENGTH = 64K
-
     pbram (rx)   : ORIGIN = 0x40000000, LENGTH = 1M
     pbram2 (rx)   : ORIGIN = 0x40100000, LENGTH = 16M
     dram (rx)   : ORIGIN = 0x41000000, LENGTH = 200M

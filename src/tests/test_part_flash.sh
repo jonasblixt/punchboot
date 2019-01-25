@@ -3,7 +3,7 @@ source tests/common.sh
 wait_for_qemu_start
 
 # Check that disk is OK
-
+echo Checking disk
 sgdisk -v /tmp/disk | grep "No problems found"
 result_code=$?
 
@@ -21,6 +21,7 @@ dd if=/dev/urandom of=/tmp/part_data_b bs=512k count=1
 part_a_sha256=$(sha256sum /tmp/part_data_a | cut -d ' ' -f 1)
 part_b_sha256=$(sha256sum /tmp/part_data_b | cut -d ' ' -f 1)
 
+echo About to write data
 # Flash data
 
 $PB part -w -n 1 -f /tmp/part_data_a
@@ -40,7 +41,7 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
-
+echo Data written
 # Extract data from disk image
 dd if=/tmp/disk of=/tmp/readback_a bs=512 skip=36 count=1024
 dd if=/tmp/disk of=/tmp/readback_b bs=512 skip=1061 count=1024

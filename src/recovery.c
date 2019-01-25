@@ -473,9 +473,11 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_GPT_TBL:
         {
-            uint8_t *bfr = (uint8_t *) gpt_get_tbl();
-
-            recovery_send_response(dev, bfr, sizeof (struct gpt_primary_tbl));          
+            LOG_INFO("Reading part TBL at %p", gpt_get_tbl());
+            LOG_INFO("no_of_parts: %lu", gpt_get_tbl()->hdr.no_of_parts);
+            err = recovery_send_response(dev,(uint8_t*) gpt_get_tbl(), 
+                            sizeof (struct gpt_primary_tbl));          
+            LOG_INFO("Result code=%lu",err);
         }
         break;
         case PB_CMD_GET_CONFIG_TBL:
@@ -630,7 +632,6 @@ static void recovery_parse_command(struct usb_device *dev,
                 LOG_INFO("Loading component %"PRIu32", %"PRIu32" bytes",i, 
                                         pbi->comp[i].component_size);
 
-                LOG_INFO("Load addr: %X",  pbi->comp[i].load_addr_low);
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
                         (uint8_t *)(uintptr_t) pbi->comp[i].load_addr_low,
                         pbi->comp[i].component_size );
@@ -689,13 +690,14 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (err != PB_OK)
                 break;
-
             err = board_configure_gpt_tbl();
 
             if (err != PB_OK)
                 break;
 
             err = gpt_write_tbl();
+            LOG_INFO("Done %lu", err);
+
         }
         break;
         case PB_CMD_SETUP:
@@ -720,9 +722,8 @@ static void recovery_parse_command(struct usb_device *dev,
             LOG_ERR ("Got unknown command: %"PRIu32,cmd->cmd);
     }
     
-
+    
     recovery_send_result_code(dev, err);
-
 }
 
 void recovery_initialize(void)

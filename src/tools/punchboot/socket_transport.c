@@ -44,7 +44,11 @@ uint32_t pb_read_result_code(void)
     return result_code;
 }
 
-int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
+int pb_write(uint32_t cmd, uint32_t arg0,
+                           uint32_t arg1,
+                           uint32_t arg2,
+                           uint32_t arg3,
+                           uint8_t *bfr, int sz)
 {
 	size_t tx_bytes;
 	struct pb_socket_header hdr;
@@ -54,6 +58,10 @@ int pb_write(uint32_t cmd, uint8_t *bfr, int sz)
 
     cmd_hdr.cmd = cmd;
     cmd_hdr.size = sz;
+    cmd_hdr.arg0 = arg0;
+    cmd_hdr.arg1 = arg1;
+    cmd_hdr.arg2 = arg2;
+    cmd_hdr.arg3 = arg3;
 
 	hdr.ep = 4;
 	hdr.sz = sz + sizeof(struct pb_cmd_header);

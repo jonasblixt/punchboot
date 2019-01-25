@@ -8,10 +8,10 @@
 #include <plat/test/virtio_block.h>
 #include <plat/test/test_fuse.h>
 
-struct virtio_block_device virtio_block;
-struct virtio_block_device virtio_block2;
+static struct virtio_block_device virtio_block;
+static struct virtio_block_device virtio_block2;
+static struct virtio_block_device *blk = &virtio_block;
 
-struct virtio_block_device *blk = &virtio_block;
 uint32_t blk_off = 0;
 uint32_t blk_sz = 65535;
 
@@ -102,7 +102,8 @@ uint32_t  plat_write_block(uint32_t lba_offset,
                                 uintptr_t bfr, 
                                 uint32_t no_of_blocks)
 {
-	return virtio_block_write(blk, blk_off+lba_offset, (uint8_t *)bfr, no_of_blocks);
+	return virtio_block_write(blk, blk_off+lba_offset, 
+                                (uint8_t *)bfr, no_of_blocks);
 
 }
 

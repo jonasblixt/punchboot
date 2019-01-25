@@ -78,7 +78,6 @@ uint32_t pb_install_default_gpt(void)
 {
     if (pb_write(PB_CMD_WRITE_DFLT_GPT,0,0,0,0, NULL, 0) != PB_OK)
         return PB_ERR;
-    
     return pb_read_result_code();
 }
 

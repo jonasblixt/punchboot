@@ -364,6 +364,7 @@ int main(int argc, char **argv)
     {
         if (flag_list) 
         {
+            printf("Listing partitions:\n");
             err = print_gpt_table();
 
             if (err != PB_OK)

@@ -16,8 +16,8 @@
 #include <uuid.h>
 
 static uint8_t _flag_gpt_ok = false;
-__a4k __no_bss static struct gpt_primary_tbl _gpt1;
-__a4k __no_bss static struct gpt_backup_tbl _gpt2;
+__a4k __no_bss struct gpt_primary_tbl _gpt1;
+__a4k __no_bss struct gpt_backup_tbl _gpt2;
 __a4k __no_bss static uint8_t pmbr[512];
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
@@ -184,8 +184,9 @@ uint32_t gpt_write_tbl(void)
     _gpt1.hdr.hdr_crc = crc_tmp;
 
     /* Write protective MBR */
-    
+
     memset(pmbr, 0, sizeof(pmbr));
+
     pmbr[448] = 2;
     pmbr[449] = 0; 
     pmbr[450] = 0xEE; // type , 0xEE = GPT
@@ -193,6 +194,7 @@ uint32_t gpt_write_tbl(void)
     pmbr[452] = 0xFF;
     pmbr[453] = 0xFF;
     pmbr[454] = 0x01;
+
     uint32_t llba = (uint32_t) plat_get_lastlba();
     memcpy(&pmbr[458], &llba, sizeof(uint32_t));
     pmbr[510] = 0x55;
@@ -228,6 +230,7 @@ uint32_t gpt_write_tbl(void)
     crc_tmp  = efi_crc32((uint8_t*) &_gpt2.hdr, sizeof(struct gpt_header)
                             - GPT_HEADER_RSZ);
     _gpt2.hdr.hdr_crc = crc_tmp;
+
 
     /* Write backup GPT table */
 
@@ -367,6 +370,6 @@ uint32_t gpt_init(void)
     }
 
     _flag_gpt_ok = true;
-
+    LOG_INFO("_gpt1.hdr.no_of_parts = %u", _gpt1.hdr.no_of_parts);
     return PB_OK;
 }
