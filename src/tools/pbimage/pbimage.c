@@ -168,7 +168,6 @@ static int pbimage_gen_output(const char *fn_sign_key,
 
         if (pb_components_zpad[i])
         {
-            printf ("Writing %u bytes zpad\n", pb_components_zpad[i]);
             fwrite(padding_zero, pb_components_zpad[i], 1, fp_out);
         }
         fclose(pb_components_fp[i]);
@@ -181,15 +180,15 @@ static int pbimage_gen_output(const char *fn_sign_key,
 }
 
 static void pbimage_print_help(void) {
-    printf ("pbimage help:\n\n");
+    printf ("pbimage:\n\n");
 
-    printf("  pbimage -t <type> -l <addr> -f <fn> -k <key fn> -o <output fn>\n");
+    printf("  pbimage -t <type> -l <addr> -f <fn> -k <key fn> -n <key index> -o <output fn>\n");
     printf("\n   Add image <fn>, of type <type> that should be loaded\n"
             "     at address <addr> and signed with key <key_fn>.\n"
             "     Multiple images can be added by chaining several -t -l and -f args\n");
         
-
 }
+
 
 int main (int argc, char **argv) {
     int opt;
@@ -203,10 +202,11 @@ int main (int argc, char **argv) {
     int no_of_components = 0;
     int component_type = -1;
     unsigned int load_addr = 0;
-    uint8_t key_index;
+    uint8_t key_index = 255;
     bool flag_type = false;
     bool flag_load = false;
     bool flag_file = false;
+    bool flag_key_index = false;
 
     char *output_fn = NULL;
     char *sign_key_fn = NULL;
@@ -217,12 +217,14 @@ int main (int argc, char **argv) {
     bzero(&hdr, sizeof(struct pb_image_hdr));
     bzero(&comp, PB_IMAGE_MAX_COMP * sizeof(struct pb_component_hdr));
 
-    if (argc <= 1) {
+    if (argc <= 1) 
+    {
         pbimage_print_help();
         exit(0);
     }
 
-    while ((opt = getopt(argc, argv, "ht:l:f:n:k:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "ht:l:f:n:k:o:")) != -1) 
+    {
         switch (opt) {
             case 'h':
                 pbimage_print_help();
@@ -255,6 +257,7 @@ int main (int argc, char **argv) {
             break;
             case 'n':
                 key_index = (uint8_t) strtol(optarg, NULL, 0);
+                flag_key_index = true;
             break;
             case 'f':
                 if (!flag_load || !flag_type) {
@@ -273,8 +276,6 @@ int main (int argc, char **argv) {
 
                 pb_components_zpad[no_of_components] =
                     512 - (finfo.st_size % 512);
-                printf ("Adding %u bytes of zero pad\n",
-                    pb_components_zpad[no_of_components]);
 
                 comp[no_of_components].component_size = finfo.st_size +
                     pb_components_zpad[no_of_components];
@@ -302,14 +303,15 @@ int main (int argc, char **argv) {
 
     int err = -1;
 
-    if (!flag_file) {
-        printf ("Incorrect arguments\n");
-    } else
+    if (!flag_file || !flag_key_index) 
+    {
+        pbimage_print_help();
+    } else {
         err = pbimage_gen_output(sign_key_fn, 
                                  key_index,
                                  output_fn, 
                                  no_of_components);
-
+    }
 
     if (sign_key_fn)
         free(sign_key_fn);

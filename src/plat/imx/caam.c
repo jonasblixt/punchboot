@@ -47,7 +47,7 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job)
     pb_write32(1, d->base + CAAM_IRJAR0);
 
     while (pb_read32(d->base + CAAM_ORSFR0) != 1)
-        asm("nop");
+        __asm__("nop");
 
     if (d->output_ring[0] != (uint32_t)(uintptr_t) job) {
         tfp_printf ("Job failed\n\r");

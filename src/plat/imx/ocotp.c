@@ -62,7 +62,7 @@ uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
 
     /* Wait for busy flag */
     while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        asm("nop");
+        __asm__("nop");
     
     tmp = pb_read32(_dev->base + OCOTP_CTRL);
 
@@ -79,7 +79,7 @@ uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
 
     /* Wait for busy flag */
     while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        asm("nop");
+        __asm__("nop");
     
     tmp = pb_read32(_dev->base + OCOTP_CTRL);
     if (tmp & OCOTP_CTRL_ERROR) 
@@ -97,7 +97,7 @@ uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
 
     /* Wait for busy flag */
     while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        asm("nop");
+        __asm__("nop");
     
     tmp = pb_read32(_dev->base + OCOTP_CTRL);
     if (tmp & OCOTP_CTRL_ERROR) 
@@ -116,7 +116,7 @@ uint32_t ocotp_read (uint32_t bank, uint32_t row, uint32_t * value) {
 
     /* Wait for busy flag */
     while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        asm("nop");
+        __asm__("nop");
     
     tmp = pb_read32(_dev->base + OCOTP_CTRL);
     if (tmp & OCOTP_CTRL_ERROR) {
@@ -132,7 +132,7 @@ uint32_t ocotp_read (uint32_t bank, uint32_t row, uint32_t * value) {
 
     /* Wait for busy flag */
     while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        asm("nop");
+        __asm__("nop");
  
     *value = pb_read32(_dev->base + OCOTP_READ_FUSE_DATA);
     

@@ -48,7 +48,7 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 {
 
     __a16b struct virtio_blk_req r;
-    __a16b uint8_t status = VIRTIO_BLK_S_UNSUPP;
+    volatile __a16b uint8_t status = VIRTIO_BLK_S_UNSUPP;
 
 	r.type = VIRTIO_BLK_T_OUT;
 	r.sector_low = lba;
@@ -80,7 +80,7 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 	
     while(q->avail->idx != q->used->idx)
-		asm("nop");
+		__asm__ volatile("nop");
 
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;
@@ -97,7 +97,7 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 {
 
     __a16b struct virtio_blk_req r;
-    __a16b uint8_t status = VIRTIO_BLK_S_UNSUPP;
+    volatile __a16b uint8_t status = VIRTIO_BLK_S_UNSUPP;
 
 	r.type = VIRTIO_BLK_T_IN;
 	r.reserved = 0;
@@ -135,7 +135,7 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 
 	while(q->avail->idx != q->used->idx)
-		asm("nop");	
+		__asm__ volatile ("nop");	
 
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;

@@ -24,7 +24,7 @@
 
 
 static volatile __a4k __no_bss uint32_t _ev_buffer[DWC3_EV_BUFFER_SIZE];
-static volatile uint32_t _ev_index = 0;
+static volatile uint32_t _ev_index;
 static volatile __a4k __no_bss struct usb_setup_packet setup_pkt;
 static volatile __a4k __no_bss struct dwc3_trb trbs[DWC3_NO_TRBS];
 static __no_bss struct dwc3_trb *act_trb[8];
@@ -223,7 +223,7 @@ uint32_t dwc3_init(struct dwc3_device *dev)
     pb_setbit32(1<<30, dev->base + DWC3_DCTL);
 
     while (pb_read32(dev->base + DWC3_DCTL) & (1<<30))
-        asm("nop");
+        __asm__("nop");
 
     pb_clrbit32(DWC3_GCTL_SCALEDOWN_MASK, dev->base + DWC3_GCTL);
     pb_clrbit32(1<<17,dev->base + DWC3_GCTL);
@@ -338,7 +338,7 @@ void dwc3_task(struct usb_device *dev)
             (pb_read32(pdev->base + DWC3_GEVNTCOUNT) & 0xFFFF);
     volatile uint32_t ev;
 
-    if (evcnt > 4)
+    if (evcnt >= 4)
     {
         ev = _ev_buffer[_ev_index];
 
@@ -374,13 +374,14 @@ void dwc3_task(struct usb_device *dev)
                     LOG_ERR("Unknown event %2.2X", ev_type);
             }
         } else  { /* Device Endpoint-n events*/
-            //uint32_t ep = (ev >> 1) & 0x1F;
-            //uint32_t ev_param = (ev >> 16) & 0xFFFF;
-            //uint32_t ev_status = (ev >> 12) & 0xF;
-            //uint32_t ev_cc = (ev >> 6) & 0xF;
-            //LOG_INFO("EV EP%u %s, param: %4.4X, sts: %1X, cc: %1X",
-            //        ep>>1,ep&1?"IN":"OUT", ev_param, ev_status, ev_cc);
-            
+            /*
+            uint32_t ep = (ev >> 1) & 0x1F;
+            uint32_t ev_param = (ev >> 16) & 0xFFFF;
+            uint32_t ev_status = (ev >> 12) & 0xF;
+            uint32_t ev_cc = (ev >> 6) & 0xF;
+            LOG_INFO("EV EP%u %s, param: %4.4X, sts: %1X, cc: %1X",
+                    ep>>1,ep&1?"IN":"OUT", ev_param, ev_status, ev_cc);
+            */
         }
 
 

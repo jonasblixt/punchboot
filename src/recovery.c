@@ -359,8 +359,10 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
     } else {
         /* Perform the actual fuse programming */
 
+        
         if (!flag_uuid_fused)
         {
+            LOG_INFO("Writing UUID fuses");
             foreach_fuse(f, uuid_fuses)
             {
                 err = plat_fuse_write(f);
@@ -369,9 +371,10 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
                     return err;
             }
         }
-
+        
         if (!flag_root_hash_fused)
         {
+            LOG_INFO("Writing root hash fuses");
             foreach_fuse(f, root_hash_fuses)
             {
                 err = plat_fuse_write(f);
@@ -382,6 +385,7 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
         if (!flag_devid_fused || !flag_devid_revvar_fused)
         {
+            LOG_INFO("Writing device id fuses");
             err = plat_fuse_write(devid);
 
                 if (err != PB_OK)
@@ -468,16 +472,13 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_send_result_code(dev, err);
             plat_reset();
             while(1)
-                asm("wfi");
+                __asm__ volatile ("wfi");
         }
         break;
         case PB_CMD_GET_GPT_TBL:
         {
-            LOG_INFO("Reading part TBL at %p", gpt_get_tbl());
-            LOG_INFO("no_of_parts: %lu", gpt_get_tbl()->hdr.no_of_parts);
             err = recovery_send_response(dev,(uint8_t*) gpt_get_tbl(), 
                             sizeof (struct gpt_primary_tbl));          
-            LOG_INFO("Result code=%lu",err);
         }
         break;
         case PB_CMD_GET_CONFIG_TBL:
@@ -696,7 +697,6 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
 
             err = gpt_write_tbl();
-            LOG_INFO("Done %lu", err);
 
         }
         break;

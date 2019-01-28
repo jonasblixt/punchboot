@@ -13,8 +13,9 @@
 #include <string.h>
 #include <tinyprintf.h>
 #include <board/config.h>
+#include <recovery.h>
 
-#include "ehci.h"
+#include <plat/imx/ehci.h>
 
 static struct ehci_transfer_head __no_bss __a4k dtds[EHCI_NO_OF_EPS*2][512];
 static struct ehci_queue_head    __no_bss __a4k dqhs[EHCI_NO_OF_EPS*2];
@@ -233,7 +234,7 @@ void plat_usb_set_configuration(struct usb_device *dev)
     pb_write32 ((1 << 23) | (3 << 18), ehci->base+EHCI_ENDPTCTRL3);
 
     ehci_transfer(ehci, USB_EP2_OUT, (uint8_t *) &dev->cmd, 
-                                        sizeof(struct usb_pb_command));
+                                        sizeof(struct pb_cmd_header));
 }
 
 void plat_usb_task(struct usb_device *dev) 
@@ -275,7 +276,7 @@ void plat_usb_task(struct usb_device *dev)
         dev->on_command(dev, &dev->cmd);
         /* Queue up next command to be received */
         ehci_transfer(ehci, USB_EP2_OUT, (uint8_t *) &dev->cmd, 
-                                        sizeof(struct usb_pb_command));
+                                        sizeof(struct pb_cmd_header));
     }
 
     pb_write32(epc, ehci->base + EHCI_ENDPTCOMPLETE);

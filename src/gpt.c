@@ -16,9 +16,9 @@
 #include <uuid.h>
 
 static uint8_t _flag_gpt_ok = false;
-__a4k __no_bss struct gpt_primary_tbl _gpt1;
-__a4k __no_bss struct gpt_backup_tbl _gpt2;
-__a4k __no_bss static uint8_t pmbr[512];
+static __a4k __no_bss struct gpt_primary_tbl _gpt1;
+static __a4k __no_bss struct gpt_backup_tbl _gpt2;
+static __a4k __no_bss uint8_t pmbr[512];
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 {
@@ -370,6 +370,6 @@ uint32_t gpt_init(void)
     }
 
     _flag_gpt_ok = true;
-    LOG_INFO("_gpt1.hdr.no_of_parts = %u", _gpt1.hdr.no_of_parts);
+
     return PB_OK;
 }

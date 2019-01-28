@@ -139,8 +139,10 @@ uint32_t board_early_init(void)
     pb_write32 (0, 0x303300B8);
     pb_write32 (0, 0x303300BC);
     pb_write32 (0, 0x303300C0);
-
     pb_write32 (0, 0x303300C4);
+    //pb_write32 (0, 0x303300C8);
+    pb_write32 (0, 0x303300CC);
+
     /* Setup USDHC1 pins */
 #define USDHC1_PAD_CONF ((1 << 7) | (1 << 6) | (2 << 3) | 6)
     pb_write32(USDHC1_PAD_CONF, 0x30330308);
@@ -154,6 +156,7 @@ uint32_t board_early_init(void)
     pb_write32(USDHC1_PAD_CONF, 0x30330328);
     pb_write32(USDHC1_PAD_CONF, 0x3033032C);
 
+    pb_write32(USDHC1_PAD_CONF, 0x30330334);
     pb_clrbit32(1<<10, 0x30210000);
 
     return PB_OK;

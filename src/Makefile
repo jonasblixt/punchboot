@@ -14,20 +14,29 @@ ifndef LOGLEVEL
 endif
 
 
-CFLAGS   = -Wall -Wextra -Wunused-result -O2
+CFLAGS   = -Wall -Wextra -pedantic -std=c99 -Wunused-result -O2
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/pb
 CFLAGS  += -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
-CFLAGS  += --specs=nosys.specs -fno-common -fno-builtin
+#CFLAGS  += --specs=nosys.specs
+CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
+#CFLAGS  += -falign-functions
+#CFLAGS  += -falign-jumps
+#CFLAGS  += -falign-labels
+#CFLAGS  += -falign-loops
+#CFLAGS  += -fprefetch-loop-arrays
+#CFLAGS  += -finline-functions
+#CFLAGS  += -ffunction-sections
+#CFLAGS  += -fdata-sections
 
 LIBS     = 
 
-LDFLAGS =
+LDFLAGS = 
 
 ASM_SRCS = 
 ARCH_ASM_SRCS =
@@ -116,7 +125,7 @@ all: plat_early $(TARGET).bin board_final plat_final
 	$(info LOGLEVEL:  [${LOGLEVEL}])
 	@echo "VERSION = $(GIT_VERSION)"
 	$(info )
-	@$(SIZE) -x -A $(TARGET)
+	@$(SIZE) -x -B $(TARGET)
 
 todo:
 	@grep -lR "TODO:" *

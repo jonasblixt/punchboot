@@ -35,8 +35,6 @@ uint32_t  plat_get_us_tick(void)
 
 void      plat_wdog_init(void)
 {
-
-
     /* Configure PAD_GPIO1_IO02 as wdog output */
     pb_write32((1 << 7)|(1 << 6) | 6, 0x30330298);
     pb_write32(1, 0x30330030);
@@ -146,7 +144,7 @@ uint32_t  plat_early_init(void)
 	pb_write32(reg & ~FRAC_PLL_BYPASS_MASK, ARM_PLL_CFG0);
 
 	while (!(pb_read32(ARM_PLL_CFG0) & FRAC_PLL_LOCK_MASK))
-		asm("nop");
+		__asm__("nop");
 
     reg = pb_read32(ARM_PLL_CFG0);
     reg &= ~FRAC_PLL_NEWDIV_VAL_MASK;
@@ -209,6 +207,8 @@ uint32_t  plat_early_init(void)
     usdhc0.base = 0x30B40000;
     usdhc0.clk_ident = 0x20EF;
     usdhc0.clk = 0x000F;
+    usdhc0.bus_mode = USDHC_BUS_HS200;
+    usdhc0.bus_width = USDHC_BUS_8BIT;
 
     err = usdhc_emmc_init(&usdhc0);
 

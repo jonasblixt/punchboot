@@ -27,7 +27,7 @@ uint32_t gp_timer_init(struct gp_timer *d)
     pb_write32(d->cr, d->base+GP_TIMER_CR);
 
     while (pb_read32(d->base+GP_TIMER_CR) & (1<<15))
-        asm("nop");
+        __asm__("nop");
  
     d->cr &= ~(1 << 15); 
     pb_write32(d->pr, d->base+GP_TIMER_PR);

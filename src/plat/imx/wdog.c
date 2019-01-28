@@ -40,5 +40,5 @@ uint32_t imx_wdog_reset_now(void)
     pb_write16((1<<6)|(1<<2), _dev->base + WDOG_WCR);
 
     while(1)
-        asm("nop");
+        __asm__("nop");
 }

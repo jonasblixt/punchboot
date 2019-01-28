@@ -153,7 +153,7 @@ uint32_t virtio_mmio_write_one(struct virtio_device *d,
     //LOG_INFO("w %lu %lX %lX",q->queue_index, q->avail->idx, q->used->idx);
     //LOG_INFO("w descriptor_count = %u",descriptor_count);
     while (q->avail->idx != q->used->idx)
-        asm("nop");
+        __asm__ volatile ("nop");
     return len;
 }
 
@@ -195,7 +195,7 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
         pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
         while (q->avail->idx != q->used->idx)
-            asm("nop");
+            __asm__ volatile ("nop");
     }
 
 

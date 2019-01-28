@@ -11,7 +11,7 @@
 #include <plat.h>
 #include <pb.h>
 #include <tinyprintf.h>
-
+#include <string.h>
 #include <plat/imx/usdhc.h>
 #include <io.h>
 
@@ -20,25 +20,23 @@ static uint32_t _raw_csd[4];
 static __a4k __no_bss struct  usdhc_adma2_desc _tbl[256];
 static __a4k __no_bss uint8_t _raw_extcsd[512];
 
-static uint32_t usdhc_emmc_wait_for_cc(struct usdhc_device *dev)
+static uint32_t usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
+                                       uint32_t flags)
 {
     volatile uint32_t irq_status;
-    uint32_t timeout = 0xFFFFF; /* TODO: use plat_getus_tick instead */
-    /* Clear all pending interrupts */
+    uint32_t timeout = plat_get_us_tick();
 
     while (1) {
         irq_status = pb_read32(dev->base + USDHC_INT_STATUS);
 
-        if (!!(irq_status & USDHC_INT_RESPONSE))
+        if (!!(irq_status & flags))
             break;
 
-        timeout--;
-
-        if (!timeout)
+        if ((plat_get_us_tick()-timeout) > 300000)
             return PB_TIMEOUT;
     }
 
-    pb_write32(USDHC_INT_RESPONSE, dev->base+USDHC_INT_STATUS);
+    pb_write32(flags, dev->base+USDHC_INT_STATUS);
 
     return PB_OK;
 }
@@ -75,19 +73,10 @@ static uint32_t usdhc_emmc_send_cmd(struct usdhc_device *dev,
 {
 
     volatile uint32_t pres_state = 0x00;
-    uint32_t timeout = 0xFFFFF;
+    uint32_t timeout = plat_get_us_tick();
     uint32_t err;
     uint32_t command = (cmd << 24) |(resp_type << 16);
-/*
-    if (resp_type & MMC_RSP_136)
-        command |= (1 << 17);
 
-    if (resp_type & MMC_RSP_CRC)
-        command |= (1 << 19);
-
-    if (resp_type & MMC_RSP_BUSY)
-        command |= (1 << 16);
-*/
     while (1) 
     {
         pres_state = pb_read32(dev->base+ USDHC_PRES_STATE);
@@ -96,21 +85,25 @@ static uint32_t usdhc_emmc_send_cmd(struct usdhc_device *dev,
             break;
         }
         
-        timeout--;
 
-        if (!timeout)
-            return PB_TIMEOUT;
+        if ((plat_get_us_tick()-timeout) > 300000)
+        {
+            err = PB_TIMEOUT;
+            goto usdhc_cmd_fail;
+        }
     }
     
     pb_write32(arg, dev->base+ USDHC_CMD_ARG);
     pb_write32(command, dev->base+USDHC_CMD_XFR_TYP);
 
-    err = usdhc_emmc_wait_for_cc(dev);
+    if (cmd == MMC_CMD_SEND_TUNING_BLOCK_HS200)
+        err = usdhc_emmc_wait_for_cc(dev, (1<<5));
+    else
+        err = usdhc_emmc_wait_for_cc(dev, USDHC_INT_RESPONSE);
 
-    if (err != PB_OK)
-        return err;
+usdhc_cmd_fail:
 
-    return PB_OK;
+    return err;
 }
 
 
@@ -146,7 +139,7 @@ static uint32_t usdhc_emmc_read_extcsd(struct usdhc_device *dev)
     _tbl[0].addr = (uint32_t)(uintptr_t) _raw_extcsd;
 
     while (pb_read32(dev->base + USDHC_INT_STATUS) & (1 << 1))
-        asm("nop");
+        __asm__("nop");
 
     pb_write32((uint32_t)(uintptr_t) &_tbl[0], dev->base+ USDHC_ADMA_SYS_ADDR);
 
@@ -247,20 +240,24 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
 
 	pb_write32(0x00000200 | (nblocks << 16), dev->base+ USDHC_BLK_ATT);
 	
-    flags = (1<<31)| (1<<3) | 1;
+    flags = dev->mix_shadow;
 
     cmd = MMC_CMD_WRITE_SINGLE_BLOCK;
-    if (!wr) {
+
+    if (!wr) 
+    {
         flags |= (1 << 4);
         cmd = MMC_CMD_READ_SINGLE_BLOCK;
     }
 
-    if (nblocks > 1) {
+    if (nblocks > 1) 
+    {
         flags |= (1<<5) | (1<<2) | (1<<1);
         cmd = MMC_CMD_WRITE_MULTIPLE_BLOCK;
         if (!wr)
             cmd = MMC_CMD_READ_MULTIPLE_BLOCK;
     }
+
     pb_write32(flags, dev->base + USDHC_MIX_CTRL);
         
     err = usdhc_emmc_send_cmd(dev, cmd, start_lba, MMC_RSP_R1 | 0x20);
@@ -274,6 +271,257 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
     return PB_OK;
 }
 
+static const uint8_t tuning_blk_pattern_8bit[] = {
+	0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00,
+	0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc, 0xcc,
+	0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff, 0xff,
+	0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee, 0xff,
+	0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd, 0xdd,
+	0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff, 0xbb,
+	0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff,
+	0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee, 0xff,
+	0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
+	0x00, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc,
+	0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff,
+	0xff, 0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee,
+	0xff, 0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd,
+	0xdd, 0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff,
+	0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff,
+	0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee,
+};
+
+
+/**
+ * Switching to HS400
+ *
+ * 1) Switch to HS200
+ * 2) Perform tuning
+ * 4) Switch to HS/DDR
+ * 3) Switch to HS400
+ *
+ */
+
+static uint32_t usdhc_setup_hs400(struct usdhc_device *dev)
+{
+    uint32_t reg;
+    uint32_t err;
+
+    LOG_DBG("Switching to HS400 timing");
+
+
+
+    /* Switch to HS200 timing */
+    err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
+                (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
+                (EXT_CSD_HS_TIMING) << 16 |
+                (0x02) << 8,
+                0x1B); // R1b
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not switch to high speed timing");
+        return err;
+    }
+
+    /* Switch to 8-bit/4-bit bus */
+    switch (dev->bus_width)
+    {
+        case USDHC_BUS_8BIT:
+        {
+            err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
+                        (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
+                        (EXT_CSD_BUS_WIDTH) << 16 |
+                        (EXT_CSD_BUS_WIDTH_8) << 8,
+                        0x1B); // R1b
+        }
+        break;
+        case USDHC_BUS_4BIT:
+        default:
+        {
+            err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
+                        (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
+                        (EXT_CSD_BUS_WIDTH) << 16 |
+                        (EXT_CSD_BUS_WIDTH_4) << 8,
+                        0x1B); // R1b
+        }
+        break;
+    }
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not switch bus width");
+        return err;
+    }
+
+    dev->mix_shadow = (1<<31) | 1;
+    pb_write32(dev->mix_shadow | (1 << 4), dev->base+USDHC_MIX_CTRL);
+    pb_write32(dev->clk | (0xF << 16)|(1 << 28),dev->base+USDHC_SYS_CTRL);
+
+    LOG_DBG("Waiting for clock switch");
+    while (1) 
+    {
+        uint32_t pres_state = pb_read32(dev->base+USDHC_PRES_STATE);
+        if (pres_state & (1 << 3))
+            break;
+    }
+
+    /* We are now in HS200 mode, Execute tuning */
+
+    pb_write32((1 << 24) | (40 << 8) | (2 << 20) | (1 << 16) , 
+                    dev->base + USDHC_TUNING_CTRL);
+
+    pb_clrbit32(USDHC_MIX_CTRL_SMPCLK_SEL, 
+                dev->base + USDHC_AUTOCMD12_ERR_STATUS);
+
+    pb_write32(0, dev->base + USDHC_DLL_CTRL);
+    pb_write32(0, dev->base + USDHC_AUTOCMD12_ERR_STATUS);
+
+    pb_clrbit32(USDHC_MIX_CTRL_AUTO_TUNE_EN |
+                                 USDHC_MIX_CTRL_FBCLK_SEL,
+                        dev->base + USDHC_MIX_CTRL);
+    pb_setbit32(USDHC_MIX_CTRL_EXE_TUNE, 
+                dev->base + USDHC_AUTOCMD12_ERR_STATUS);
+
+    pb_write32(dev->mix_shadow | USDHC_MIX_CTRL_AUTO_TUNE_EN |
+                                 USDHC_MIX_CTRL_FBCLK_SEL |
+                                 (1 << 4),
+                                dev->base + USDHC_MIX_CTRL);
+
+    pb_setbit32(1 << 5, dev->base + USDHC_INT_STATUS_EN);
+    /* Set ADMA 2 transfer */
+    pb_write32(0x08800224, dev->base+ USDHC_PROT_CTRL);
+    pb_write32(0x00010080, dev->base+ USDHC_BLK_ATT);
+
+    memset(_raw_extcsd,0,512);
+    err = PB_TIMEOUT;
+
+    for (uint32_t n = 0; n < 40; n++)
+    {
+        _tbl[0].cmd = ADMA2_TRAN_VALID | ADMA2_END;
+        _tbl[0].len = 128;
+        _tbl[0].addr = (uint32_t)(uintptr_t) _raw_extcsd;
+
+        pb_write32((uint32_t)(uintptr_t) &_tbl[0], 
+                        dev->base+ USDHC_ADMA_SYS_ADDR);
+
+        uint32_t err2 = usdhc_emmc_send_cmd(dev, 
+                                  MMC_CMD_SEND_TUNING_BLOCK_HS200, 
+                                  0,
+                                  0x1A);
+
+        if (err2 != PB_OK)
+            break;
+
+        reg = pb_read32(dev->base + USDHC_AUTOCMD12_ERR_STATUS);
+
+		if (    (!(reg & USDHC_EXE_TUNE)) && 
+                (reg & USDHC_SMPCLK_SEL)) 
+        {
+            LOG_INFO("SUCCESS!");
+            err = PB_OK;
+            break;
+        } 
+
+        LOG_INFO("RESP0 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP0)); 
+        LOG_INFO("RESP1 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP1)); 
+        LOG_INFO("RESP2 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP2)); 
+        LOG_INFO("RESP3 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP3)); 
+
+        plat_wdog_kick();       
+        for (uint32_t i = 0; i < 128; i++)
+            tfp_printf("%2.2X ", _raw_extcsd[i]);
+        tfp_printf("\n\r");
+
+
+        LOG_ERR("AUTOCMD12 = 0x%8.8"PRIx32, reg);
+        LOG_ERR("INT_STATUS = 0x%8.8"PRIx32,
+                    pb_read32(dev->base + USDHC_INT_STATUS));
+        LOG_ERR("PRESENT_STATE = 0x%8.8"PRIx32,
+                    pb_read32(dev->base + USDHC_PRES_STATE));
+        LOG_ERR("ADMA_ERR_STATUS = 0x%8.8"PRIx32,
+                    pb_read32(dev->base+USDHC_ADMA_ERR_STATUS));
+
+    }
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Link training failed");
+        return err;
+    }
+
+    LOG_INFO("Tuning completed");
+
+	LOG_DBG("Configured USDHC for new timing");
+
+    return err;
+}
+
+static uint32_t usdhc_setup_hs(struct usdhc_device *dev)
+{
+    uint32_t err;
+
+    LOG_DBG("Switching to HS timing");
+    /* Switch to HS timing */
+    err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
+                (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
+                (EXT_CSD_HS_TIMING) << 16 |
+                (1) << 8,
+                0x1B); // R1b
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not switch to high speed timing");
+        return err;
+    }
+
+
+    /* Switch to 8-bit/4-bit bus */
+    switch (dev->bus_width)
+    {
+        case USDHC_BUS_8BIT:
+        {
+            err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
+                        (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
+                        (EXT_CSD_BUS_WIDTH) << 16 |
+                        (EXT_CSD_DDR_BUS_WIDTH_8) << 8,
+                        0x1B); // R1b
+        }
+        break;
+        case USDHC_BUS_4BIT:
+        default:
+        {
+            err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
+                        (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
+                        (EXT_CSD_BUS_WIDTH) << 16 |
+                        (EXT_CSD_DDR_BUS_WIDTH_4) << 8,
+                        0x1B); // R1b
+        }
+        break;
+    }
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not switch bus width");
+        return err;
+    }
+
+    dev->mix_shadow = (1<<31) | (1 << 3) | 1;
+    pb_write32(dev->mix_shadow | (1 << 4), dev->base+USDHC_MIX_CTRL);
+    pb_write32(dev->clk | (0x0e << 16),dev->base+USDHC_SYS_CTRL);
+
+    LOG_DBG("Waiting for clock switch");
+    while (1) 
+    {
+        uint32_t pres_state = pb_read32(dev->base+USDHC_PRES_STATE);
+        if (pres_state & (1 << 3))
+            break;
+    }
+
+	LOG_DBG("Configured USDHC for new timing");
+
+    return PB_OK;
+}
+
 uint32_t usdhc_emmc_init(struct usdhc_device *dev) 
 {
     uint32_t err;
@@ -281,10 +529,11 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     LOG_DBG ("Controller reset");
 
     /* Reset usdhc controller */
-    pb_setbit32((1 << 24), dev->base + USDHC_SYS_CTRL);
+    pb_setbit32((1 << 28) | (1 << 24), dev->base + USDHC_SYS_CTRL);
+    dev->mix_shadow = 0;
 
     while (pb_read32(dev->base + USDHC_SYS_CTRL) & (1<<24))
-        asm("nop");
+        __asm__("nop");
 
     LOG_DBG("Done");
     pb_write32(0x10801080, dev->base+USDHC_WTMK_LVL);
@@ -351,7 +600,7 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     LOG_DBG ("Card reset complete");
     LOG_DBG("SEND CID");
 
-    err = usdhc_emmc_send_cmd(dev, MMC_CMD_ALL_SEND_CID, 0, 0x09);
+    err = usdhc_emmc_send_cmd(dev, MMC_CMD_ALL_SEND_CID, 0, 0x09); // R2
 
     if (err != PB_OK)
         return err;
@@ -402,48 +651,10 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     if (err != PB_OK)
         return err;
 
-    LOG_DBG("Switching to HS timing");
-    /* Switch to HS timing */
-    err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
-                (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
-                (EXT_CSD_HS_TIMING) << 16 |
-                (1) << 8,
-                0x1B); // R1b
+    err = usdhc_setup_hs(dev);
 
     if (err != PB_OK)
-    {
-        LOG_ERR("Could not switch to high speed timing");
         return err;
-    }
-
-
-    /* Switch to 8-bit bus */
-    err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
-                (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
-                (EXT_CSD_BUS_WIDTH) << 16 |
-                (EXT_CSD_DDR_BUS_WIDTH_8) << 8,
-                0x1B); // R1b
-
-    if (err != PB_OK)
-    {
-        LOG_ERR("Could not switch to 8-bit bus");
-        return err;
-    }
-
-    /* Switch to 52 MHz DDR */
-    /* MMC Clock = base clock (196MHz) / (prescaler * divisor )*/
-    pb_write32((1<<31)| (1<<3)| (1<<4)|1, dev->base+USDHC_MIX_CTRL);
-    pb_write32(dev->clk | (0x0E << 16),dev->base+USDHC_SYS_CTRL);
-
-    LOG_DBG("Waiting for clock switch");
-    while (1) 
-    {
-        uint32_t pres_state = pb_read32(dev->base+USDHC_PRES_STATE);
-        if (pres_state & (1 << 3))
-            break;
-    }
-
-	LOG_DBG("Configured USDHC for new timing");
 
     err = usdhc_emmc_read_extcsd(dev);
 

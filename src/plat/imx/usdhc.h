@@ -74,9 +74,17 @@
 #define MMC_CMD_APP_CMD                 55
 #define MMC_CMD_SPI_READ_OCR            58
 #define MMC_CMD_SPI_CRC_ON_OFF          59
+#define MMC_CMD_SEND_TUNING_BLOCK_HS200	21
 
+/* MIX CTRL register */
 
+#define USDHC_MIX_CTRL_FBCLK_SEL    (1 << 25)
+#define USDHC_MIX_CTRL_AUTO_TUNE_EN (1 << 24)
+#define USDHC_MIX_CTRL_SMPCLK_SEL   (1 << 23)
+#define USDHC_MIX_CTRL_EXE_TUNE     (1 << 22)
 
+#define USDHC_SMPCLK_SEL   (1 << 23)
+#define USDHC_EXE_TUNE     (1 << 22)
 
 #define MMC_SWITCH_MODE_WRITE_BYTE	0x03 /* Set target byte to value */
 
@@ -467,12 +475,28 @@ struct mmc_ext_csd {
 };
 
 
+enum USDHC_BUS_MODE
+{
+    USDHC_BUS_DDR52,
+    USDHC_BUS_HS200,
+    USDHC_BUS_HS400,
+};
+
+enum USDHC_BUS_WITDTH
+{
+    USDHC_BUS_8BIT,
+    USDHC_BUS_4BIT,
+};
+
 struct usdhc_device
 {
     __iomem base;
-    uint16_t clk_ident;
-    uint16_t clk;
-    uint64_t sectors;
+    uint16_t clk_ident; /* Clock divider used during identification */
+    uint16_t clk;       /* Clock divider used during normal operation */
+    uint64_t sectors;   /* Number of sectors, populated by driver */
+    uint32_t bus_mode;
+    uint32_t bus_width;
+    uint32_t mix_shadow;
 };
 
 
