@@ -367,7 +367,7 @@ void dwc3_task(struct usb_device *dev)
                 case 1: /* USB Reset*/
                 {
                     LOG_INFO("USB Reset %u 0x%8.8X", _ev_index, ev);
-                    //dwc3_reset(pdev);
+                    dwc3_reset(pdev);
                 }
                 break;
                 default:
@@ -392,6 +392,9 @@ void dwc3_task(struct usb_device *dev)
     
     if (dwc3_trb_hwo(act_trb[USB_EP0_OUT]))
     {
+        /* Responding to quickly seems problematic on some hosts */
+        /* TODO: This should not be required. */
+        plat_delay_ms(1);
         dev->on_setup_pkt(dev, (struct usb_setup_packet *)&setup_pkt);
         dwc3_transfer(pdev, USB_EP0_OUT, (uint8_t *)&setup_pkt, 
                         sizeof(struct usb_setup_packet));

@@ -11,6 +11,15 @@
 #ifndef IMX6UL_REGS_H__
 #define IMX6UL_REGS_H__
 
+#define HAB_RVT_BASE			0x00000100 
+
+#define HAB_RVT_ENTRY			(*(uint32_t *)(HAB_RVT_BASE + 0x04))
+#define HAB_RVT_EXIT			(*(uint32_t *)(HAB_RVT_BASE + 0x08))
+#define HAB_RVT_CHECK_TARGET		(*(uint32_t *)(HAB_RVT_BASE + 0x0C))
+#define HAB_RVT_AUTHENTICATE_IMAGE	(*(uint32_t *)(HAB_RVT_BASE + 0x10))
+#define HAB_RVT_REPORT_EVENT		(*(uint32_t *)(HAB_RVT_BASE + 0x20))
+#define HAB_RVT_REPORT_STATUS		(*(uint32_t *)(HAB_RVT_BASE + 0x24))
+#define HAB_RVT_FAILSAFE		(*(uint32_t *)(HAB_RVT_BASE + 0x28))
 
 #define PAD_CTL_HYS		(1 << 16)
 #define PAD_CTL_PUS_47K_UP	(1 << 14)

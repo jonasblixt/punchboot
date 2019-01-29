@@ -129,7 +129,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
     volatile uint16_t request;
     request = (setup->bRequestType << 8) | setup->bRequest;
 
-    //LOG_INFO ("EP0 %4.4X %4.4X %ib", request, setup->wValue, setup->wLength);
+    LOG_DBG ("EP0 %4.4X %4.4X %ib", request, setup->wValue, setup->wLength);
 
     uint16_t sz = 0;
     uint16_t device_status = 0;
@@ -138,7 +138,8 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
     {
         case USB_GET_DESCRIPTOR:
         {
-            //LOG_DBG("Get descriptor 0x%4.4X", setup->wValue);
+            LOG_DBG("Get descriptor 0x%4.4X", setup->wValue);
+
             if(setup->wValue == 0x0600) 
             {
                 usb_send_ep0(dev, (uint8_t *) qf_descriptor, 

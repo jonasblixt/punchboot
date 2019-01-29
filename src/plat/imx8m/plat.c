@@ -41,7 +41,7 @@ void      plat_wdog_init(void)
     pb_write32(1, 0x30330030);
 
     wdog_device.base = 0x30280000;
-    imx_wdog_init(&wdog_device, 1);
+    imx_wdog_init(&wdog_device, 5);
 
 }
 
@@ -241,14 +241,14 @@ uint32_t  plat_early_init(void)
     } else {
         LOG_INFO("Secure boot disabled");
     }
-/*
+
     if (hab_has_no_errors() == PB_OK)
     {
         LOG_INFO("No HAB errors found");
     } else {
         LOG_ERR("HAB is reporting errors");
     }
-*/
+
     return err;
 }
 
@@ -326,19 +326,12 @@ uint32_t  plat_usb_init(struct usb_device *dev)
     return PB_OK;
 }
 
-static uint32_t tts;
-void      plat_usb_task(struct usb_device *dev)
+void plat_usb_task(struct usb_device *dev)
 {
-
-    if (plat_get_us_tick()-tts > 1000000)
-    {
-        tts = plat_get_us_tick();
-        tfp_printf("tick\n\r");
-    }
     dwc3_task(dev);
 }
 
-uint32_t  plat_usb_transfer (struct usb_device *dev, 
+uint32_t plat_usb_transfer (struct usb_device *dev, 
                              uint8_t ep, 
                              uint8_t *bfr, 
                              uint32_t sz)

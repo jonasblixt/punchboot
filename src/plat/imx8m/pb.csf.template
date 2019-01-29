@@ -1,5 +1,5 @@
 [Header]
-Version = 4.1
+Version = 4.3
 Security Configuration = Open
 Hash Algorithm = sha256
 Engine Configuration = 0

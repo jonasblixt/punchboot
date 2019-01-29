@@ -3,7 +3,7 @@
 
 #include <pb.h>
 #include <stdint.h>
-
+#include <plat/regs.h>
 /*
  * IVT header definitions
  * Security Reference Manual for i.MX 7Dual and 7Solo Applications Processors,
@@ -155,15 +155,7 @@ typedef void hapi_clock_init_t(void);
 #define HAB_ENG_RTL		0x77   /* RTL simulation engine */
 #define HAB_ENG_SW		0xff   /* Software engine */
 
-#define HAB_RVT_BASE			0x00000100 
 
-#define HAB_RVT_ENTRY			(*(uint32_t *)(HAB_RVT_BASE + 0x04))
-#define HAB_RVT_EXIT			(*(uint32_t *)(HAB_RVT_BASE + 0x08))
-#define HAB_RVT_CHECK_TARGET		(*(uint32_t *)(HAB_RVT_BASE + 0x0C))
-#define HAB_RVT_AUTHENTICATE_IMAGE	(*(uint32_t *)(HAB_RVT_BASE + 0x10))
-#define HAB_RVT_REPORT_EVENT		(*(uint32_t *)(HAB_RVT_BASE + 0x20))
-#define HAB_RVT_REPORT_STATUS		(*(uint32_t *)(HAB_RVT_BASE + 0x24))
-#define HAB_RVT_FAILSAFE		(*(uint32_t *)(HAB_RVT_BASE + 0x28))
 
 #define HAB_CID_ROM 0 /**< ROM Caller ID */
 #define HAB_CID_UBOOT 1 /**< UBOOT Caller ID*/

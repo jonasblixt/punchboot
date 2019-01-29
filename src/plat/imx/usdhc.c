@@ -278,9 +278,7 @@ static uint32_t usdhc_setup_hs200(struct usdhc_device *dev)
     uint32_t reg;
     uint32_t err;
 
-    LOG_DBG("Switching to HS400 timing");
-
-
+    LOG_DBG("Switching to HS200 timing");
 
     /* Switch to HS200 timing */
     err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
@@ -336,10 +334,11 @@ static uint32_t usdhc_setup_hs200(struct usdhc_device *dev)
         if (pres_state & (1 << 3))
             break;
     }
+
     return PB_OK;
 
     /* We are now in HS200 mode, Execute tuning */
-
+/*
     pb_write32((1 << 24) | (40 << 8) | (2 << 20) | (1 << 16) , 
                     dev->base + USDHC_TUNING_CTRL);
 
@@ -361,7 +360,9 @@ static uint32_t usdhc_setup_hs200(struct usdhc_device *dev)
                                 dev->base + USDHC_MIX_CTRL);
 
     pb_setbit32(1 << 5, dev->base + USDHC_INT_STATUS_EN);
+*/
     /* Set ADMA 2 transfer */
+/*
     pb_write32(0x08800224, dev->base+ USDHC_PROT_CTRL);
     pb_write32(0x00010080, dev->base+ USDHC_BLK_ATT);
 
@@ -427,6 +428,7 @@ static uint32_t usdhc_setup_hs200(struct usdhc_device *dev)
 	LOG_DBG("Configured USDHC for new timing");
 
     return err;
+*/
 }
 
 static uint32_t usdhc_setup_hs(struct usdhc_device *dev)

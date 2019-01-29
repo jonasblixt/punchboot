@@ -298,6 +298,11 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
 
     crc_tmp = hdr->part_array_crc;
 
+
+    LOG_INFO("Stored CRC: %8.8X, calc: %8.8X",
+        crc_tmp,
+        efi_crc32((uint8_t *) part, sizeof(struct gpt_part_hdr) *
+                        hdr->no_of_parts));
     if (efi_crc32((uint8_t *) part, sizeof(struct gpt_part_hdr) *
                         hdr->no_of_parts) != crc_tmp) 
     {

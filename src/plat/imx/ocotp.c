@@ -3,7 +3,7 @@
 #include <tinyprintf.h>
 #include <plat/imx/ocotp.h>
 
-#undef OCOTP_DEBUG
+#define OCOTP_DEBUG
 
 static struct ocotp_dev *_dev;
 
@@ -24,33 +24,20 @@ void ocotp_init(struct ocotp_dev *dev) {
  
 #ifdef OCOTP_DEBUG
     tfp_printf("Initializing ocotp at 0x%8.8X\n\r", dev->base);
-  
-    ocotp_dump_fuse(0, 5);
-    ocotp_dump_fuse(0, 6);
+ 
 
-    ocotp_dump_fuse(4, 2);
-    ocotp_dump_fuse(4, 3);
-    ocotp_dump_fuse(4, 4);
+    ocotp_dump_fuse(0, 1);
+    ocotp_dump_fuse(0, 2);
+    ocotp_dump_fuse(0, 3);
 
-    ocotp_dump_fuse(15, 0);
-    ocotp_dump_fuse(15, 1);
+    ocotp_dump_fuse(1, 0);
+    ocotp_dump_fuse(1, 1);
+    ocotp_dump_fuse(1, 2);
 
+    ocotp_dump_fuse(9, 0);
+    ocotp_dump_fuse(9, 1);
+    ocotp_dump_fuse(9, 2);
 
-
-    ocotp_dump_fuse(15, 4);
-    ocotp_dump_fuse(15, 5);
-    ocotp_dump_fuse(15, 6);
-    ocotp_dump_fuse(15, 7);
-
-
-    ocotp_dump_fuse(3, 0);
-    ocotp_dump_fuse(3, 1);
-    ocotp_dump_fuse(3, 2);
-    ocotp_dump_fuse(3, 3);
-    ocotp_dump_fuse(3, 4);
-    ocotp_dump_fuse(3, 5);
-    ocotp_dump_fuse(3, 6);
-    ocotp_dump_fuse(3, 7);
 #endif
 
  

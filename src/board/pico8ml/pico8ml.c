@@ -43,37 +43,36 @@ const uint8_t part_type_root_b[] =
 
 const struct fuse uuid_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD(15, 4, "UUID0"),
-    IMX8M_FUSE_BANK_WORD(15, 5, "UUID1"),
-    IMX8M_FUSE_BANK_WORD(15, 6, "UUID2"),
-    IMX8M_FUSE_BANK_WORD(15, 7, "UUID3"),
+    IMX8M_FUSE_BANK_WORD(14, 0, "UUID0"),
+    IMX8M_FUSE_BANK_WORD(14, 1, "UUID1"),
+    IMX8M_FUSE_BANK_WORD(14, 2, "UUID2"),
+    IMX8M_FUSE_BANK_WORD(14, 3, "UUID3"),
     IMX8M_FUSE_END,
 };
 
 const struct fuse device_info_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD_VAL(15, 3, "Device Info", 0x12340000),
+    IMX8M_FUSE_BANK_WORD_VAL(8, 2, "Device Info", 0x12340000),
     IMX8M_FUSE_END,
 };
 
 const struct fuse root_hash_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD(3, 0, "SRK0"),
-    IMX8M_FUSE_BANK_WORD(3, 1, "SRK1"),
-    IMX8M_FUSE_BANK_WORD(3, 2, "SRK2"),
-    IMX8M_FUSE_BANK_WORD(3, 3, "SRK3"),
-    IMX8M_FUSE_BANK_WORD(3, 4, "SRK4"),
-    IMX8M_FUSE_BANK_WORD(3, 5, "SRK5"),
-    IMX8M_FUSE_BANK_WORD(3, 6, "SRK6"),
-    IMX8M_FUSE_BANK_WORD(3, 7, "SRK7"),
+    IMX8M_FUSE_BANK_WORD(6, 0, "SRK0"),
+    IMX8M_FUSE_BANK_WORD(6, 1, "SRK1"),
+    IMX8M_FUSE_BANK_WORD(6, 2, "SRK2"),
+    IMX8M_FUSE_BANK_WORD(6, 3, "SRK3"),
+    IMX8M_FUSE_BANK_WORD(7, 0, "SRK4"),
+    IMX8M_FUSE_BANK_WORD(7, 1, "SRK5"),
+    IMX8M_FUSE_BANK_WORD(7, 2, "SRK6"),
+    IMX8M_FUSE_BANK_WORD(7, 3, "SRK7"),
     IMX8M_FUSE_END,
 };
 
 
 const struct fuse board_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD_VAL(0, 5, "BOOT Config",        0x0000c060),
-    IMX8M_FUSE_BANK_WORD_VAL(0, 6, "BOOT from fuse bit", 0x00000010),
+    IMX8M_FUSE_BANK_WORD_VAL(1, 3, "BOOT Config",        0x00002060),
     IMX8M_FUSE_END,
 };
 
