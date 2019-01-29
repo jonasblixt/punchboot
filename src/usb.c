@@ -126,10 +126,10 @@ static void usb_send_ep0(struct usb_device *dev, uint8_t *bfr, uint32_t sz)
 static uint32_t usb_process_setup_pkt(struct usb_device *dev,
                                       struct usb_setup_packet *setup)
 {
-    uint16_t request;
+    volatile uint16_t request;
     request = (setup->bRequestType << 8) | setup->bRequest;
 
-    LOG_INFO ("EP0 %4.4X %4.4X %ib", request, setup->wValue, setup->wLength);
+    //LOG_INFO ("EP0 %4.4X %4.4X %ib", request, setup->wValue, setup->wLength);
 
     uint16_t sz = 0;
     uint16_t device_status = 0;
@@ -227,6 +227,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
 void usb_on_command(struct usb_device *dev, struct pb_cmd_header *cmd)
 {
     UNUSED(dev);
+    UNUSED(cmd);
 
     LOG_ERR ("Unhandeled command 0x%8.8"PRIx32,cmd->cmd);
 }

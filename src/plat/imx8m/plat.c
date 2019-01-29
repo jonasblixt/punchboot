@@ -3,6 +3,7 @@
 #include <plat.h>
 #include <tinyprintf.h>
 #include <board.h>
+#include <timing_report.h>
 #include <plat/regs.h>
 #include <plat/imx/imx_uart.h>
 #include <plat/imx8m/clock.h>
@@ -102,9 +103,12 @@ uint32_t  plat_early_init(void)
     uint32_t err;
 
     tmr0.base = 0x302D0000;
-    tmr0.pr = 24;
+    tmr0.pr = 40;
 
+    /* PLL1 div10 */
+    imx8m_clock_cfg(GPT1_CLK_ROOT | (5 << 24), CLK_ROOT_ON);
     gp_timer_init(&tmr0);
+    tr_stamp(TR_POR);
 
     /* Enable and ungate WDOG clocks */
     pb_write32((1 << 28) ,0x30388004 + 0x80*114);
@@ -322,8 +326,15 @@ uint32_t  plat_usb_init(struct usb_device *dev)
     return PB_OK;
 }
 
+static uint32_t tts;
 void      plat_usb_task(struct usb_device *dev)
 {
+
+    if (plat_get_us_tick()-tts > 1000000)
+    {
+        tts = plat_get_us_tick();
+        tfp_printf("tick\n\r");
+    }
     dwc3_task(dev);
 }
 

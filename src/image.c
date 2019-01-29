@@ -4,6 +4,7 @@
 #include <tinyprintf.h>
 #include <plat.h>
 #include <io.h>
+#include <timing_report.h>
 #include <gpt.h>
 #include <keys.h>
 #include <inttypes.h>
@@ -81,6 +82,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
     }
 
     *pbi = &_pbi;
+    tr_stamp(TR_BLOCKREAD);
     return PB_OK;
 }
 
@@ -136,6 +138,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
     }
 
     LOG_INFO("SHA OK");
+    tr_stamp(TR_SHA);
 
     uint8_t __a4k output_data[512];
     memset(output_data, 0, 512);
@@ -172,6 +175,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
     {
         LOG_INFO("SIG OK");
     }
+    tr_stamp(TR_RSA);
 
     if (flag_sig_ok)
         return PB_OK;

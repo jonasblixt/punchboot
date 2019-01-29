@@ -11,6 +11,7 @@
 #include <libfdt.h>
 #include <uuid.h>
 #include <atf.h>
+#include <timing_report.h>
 #include <inttypes.h>
 
 static struct atf_bl31_params bl31_params;
@@ -38,10 +39,14 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     char part_uuid[37];
 
     if (dtb && linux)
+    {
         LOG_INFO(" LINUX %"PRIx32", DTB %"PRIx32, linux->load_addr_low, dtb->load_addr_low);
-    
+    }
+
     if (atf)
+    {
         LOG_INFO("  ATF: 0x%8.8"PRIx32, atf->load_addr_low);
+    }
 
     /* Parameter struct for ATF BL31 */
     bl31_params.h.type = PARAM_BL_PARAMS;
@@ -93,7 +98,6 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
         }
     }
 
-    uint32_t ts0 = plat_get_us_tick();
 
     const void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
 
@@ -133,9 +137,8 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
         }
     }
 
-
-    uint32_t ts1 = plat_get_us_tick();
-    tfp_printf ("%"PRIu32" us %"PRIu32" us\n\r",ts0, ts1);
+    tr_stamp(TR_FINAL);
+    tr_print_result();
 
     if (atf)
     {
@@ -152,7 +155,6 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
 uint32_t pb_boot_image(struct pb_pbi *pbi, uint8_t system_index)
 {
     uint32_t boot_count = 0;
-
 
     config_get_uint32_t(PB_CONFIG_BOOT_COUNT, &boot_count);
     boot_count = boot_count + 1;

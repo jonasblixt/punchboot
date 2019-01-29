@@ -189,7 +189,7 @@ uint32_t plat_early_init(void)
 
     /* Wait for PLL to lock */
     while (!(pb_read32(0x020C8000) & (1<<31)))
-        asm("nop");
+        __asm__("nop");
 
     /* Select re-connect ARM PLL */
     pb_write32(reg & ~(1<<2), 0x020C400C);

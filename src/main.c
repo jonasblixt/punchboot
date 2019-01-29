@@ -18,6 +18,7 @@
 #include <image.h>
 #include <keys.h>
 #include <boot.h>
+#include <timing_report.h>
 
 void pb_main(void) 
 {
@@ -27,6 +28,7 @@ void pb_main(void)
     struct pb_pbi *pbi = NULL;
 
     plat_wdog_init();
+    tr_init();
 
     if (plat_early_init() != PB_OK)
         plat_reset();
@@ -56,8 +58,11 @@ void pb_main(void)
             flag_run_recovery = true;
     }
 
+    tr_stamp(TR_BLINIT);
+
     if (flag_run_recovery)
         goto run_recovery;
+
 
 
     if (pb_boot_load_part((uint8_t) boot_part, &pbi) == PB_OK)

@@ -13,26 +13,24 @@ ifndef LOGLEVEL
 	LOGLEVEL = 0
 endif
 
+ifdef TIMING_REPORT
+	LOGLEVEL = 0
+	TIMING_REPORT=1
+else
+	TIMING_REPORT=0
+endif
 
-CFLAGS   = -Wall -Wextra -pedantic -std=c99 -Wunused-result -O2
+CFLAGS   = -Wall -Wextra -pedantic -std=c11 -Wunused-result -O2
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/pb
 CFLAGS  += -DTINYPRINTF_OVERRIDE_LIBC=0
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
-#CFLAGS  += --specs=nosys.specs
+CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
-#CFLAGS  += -falign-functions
-#CFLAGS  += -falign-jumps
-#CFLAGS  += -falign-labels
-#CFLAGS  += -falign-loops
-#CFLAGS  += -fprefetch-loop-arrays
-#CFLAGS  += -finline-functions
-#CFLAGS  += -ffunction-sections
-#CFLAGS  += -fdata-sections
 
 LIBS     = 
 
@@ -50,6 +48,7 @@ C_SRCS  += delay.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c 
 C_SRCS  += keys.c 
+C_SRCS  += timing_report.c
 C_SRCS  += config.c
 C_SRCS  += lib/string.c
 C_SRCS  += lib/memmove.c

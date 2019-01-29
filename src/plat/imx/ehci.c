@@ -43,17 +43,17 @@ static void ehci_reset(struct ehci_device *dev)
     pb_write32((0xff << 16)  | 0xff, dev->base+EHCI_ENDPTCOMPLETE);
 
     while (pb_read32(dev->base+EHCI_ENDPTPRIME))
-        asm("nop");
+        __asm__("nop");
 
     pb_write32(0xFFFFFFFF, dev->base+EHCI_ENDPTFLUSH);
  
     /* Wait for reset */
     while (!(pb_read32(dev->base+EHCI_USBSTS) & (1<<6)))
-        asm("nop");
+        __asm__("nop");
    
     /* Wait for port to come out of reset */
     while (pb_read32(dev->base+EHCI_PORTSC1) & (1<<8))
-        asm("nop");
+        __asm__("nop");
   
 }
 
@@ -83,7 +83,7 @@ static void ehci_prime_ep(struct ehci_device *dev, uint32_t ep)
     pb_write32(epreg, dev->base + EHCI_ENDPTPRIME);
     
     while (pb_read32(dev->base + EHCI_ENDPTPRIME) & epreg)
-        asm("nop");
+        __asm__("nop");
 }
 
 static uint32_t ehci_transfer(struct ehci_device *dev,
@@ -155,7 +155,7 @@ void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
         return ;
 
     while (dtd->token & 0x80)   
-        asm("nop");
+        __asm__("nop");
 }
 
 uint32_t plat_usb_init(struct usb_device *dev) 
@@ -180,7 +180,7 @@ uint32_t plat_usb_init(struct usb_device *dev)
     pb_write32(reg, ehci->base+EHCI_CMD);
 
     while (pb_read32(ehci->base+EHCI_CMD) & (1<<1))
-        asm("nop");
+        __asm__("nop");
     
     LOG_INFO("Reset complete");
 
@@ -265,7 +265,7 @@ void plat_usb_task(struct usb_device *dev)
         pb_write32 ((1<< 16) | 1, ehci->base + EHCI_ENDPTFLUSH);
 
         while (pb_read32(ehci->base + EHCI_ENDPTSETUPSTAT) & 1)
-            asm("nop");
+            __asm__("nop");
 
         dev->on_setup_pkt(dev, &setup_pkt);
     }

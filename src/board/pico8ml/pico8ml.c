@@ -192,13 +192,14 @@ uint32_t board_usb_init(struct usb_device **usbdev)
 
 bool board_force_recovery(void)
 {
-    return true;
+    return false;
 }
 
 uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
 {
     tfp_sprintf (buf, "console=ttymxc0,115200 " \
-        "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
+        /*"earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \*/
+        "quiet " \
         "cma=768M " \
         "root=PARTUUID=%s " \
         "rw rootfstype=ext4 gpt rootwait", boot_part_uuid);

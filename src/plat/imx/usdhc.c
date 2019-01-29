@@ -17,7 +17,7 @@
 
 static uint32_t _raw_cid[4];
 static uint32_t _raw_csd[4];
-static __a4k __no_bss struct  usdhc_adma2_desc _tbl[256];
+static __a4k __no_bss struct  usdhc_adma2_desc _tbl[1024];
 static __a4k __no_bss uint8_t _raw_extcsd[512];
 
 static uint32_t usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
@@ -163,9 +163,10 @@ static uint32_t usdhc_emmc_read_extcsd(struct usdhc_device *dev)
         LOG_ERR("ADMA_SYSADDR = 0x%8.8"PRIx32,
                     pb_read32(dev->base+USDHC_ADMA_SYS_ADDR));
 
+#if LOGLEVEL > 0
         struct usdhc_adma2_desc *d = (struct usdhc_adma2_desc *) (uintptr_t)
                 pb_read32(dev->base + USDHC_ADMA_SYS_ADDR);
-
+#endif
         LOG_ERR("desc->cmd  = 0x%4.4X", d->cmd);
         LOG_ERR("desc->len  = 0x%4.4X", d->len);
         LOG_ERR("desc->addr = 0x%8.8"PRIu32, d->addr);
@@ -200,6 +201,7 @@ uint32_t usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
 
     return usdhc_emmc_check_status(dev);
 }
+
 
 uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
                                 uint32_t start_lba, 
@@ -271,37 +273,7 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
     return PB_OK;
 }
 
-static const uint8_t tuning_blk_pattern_8bit[] = {
-	0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00,
-	0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc, 0xcc,
-	0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff, 0xff,
-	0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee, 0xff,
-	0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd, 0xdd,
-	0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff, 0xbb,
-	0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff,
-	0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee, 0xff,
-	0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
-	0x00, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc,
-	0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff,
-	0xff, 0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee,
-	0xff, 0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd,
-	0xdd, 0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff,
-	0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff,
-	0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee,
-};
-
-
-/**
- * Switching to HS400
- *
- * 1) Switch to HS200
- * 2) Perform tuning
- * 4) Switch to HS/DDR
- * 3) Switch to HS400
- *
- */
-
-static uint32_t usdhc_setup_hs400(struct usdhc_device *dev)
+static uint32_t usdhc_setup_hs200(struct usdhc_device *dev)
 {
     uint32_t reg;
     uint32_t err;
@@ -364,6 +336,7 @@ static uint32_t usdhc_setup_hs400(struct usdhc_device *dev)
         if (pres_state & (1 << 3))
             break;
     }
+    return PB_OK;
 
     /* We are now in HS200 mode, Execute tuning */
 
@@ -651,13 +624,24 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     if (err != PB_OK)
         return err;
 
-    err = usdhc_setup_hs(dev);
+    switch (dev->bus_mode)
+    {
+        case USDHC_BUS_HS200:
+            err = usdhc_setup_hs200(dev);
+        break;
+        case USDHC_BUS_DDR52:
+            err = usdhc_setup_hs(dev);
+        break;
+        default:
+            LOG_ERR("Invalid bus mode");
+            err = PB_ERR;
+    }
 
     if (err != PB_OK)
         return err;
 
-    err = usdhc_emmc_read_extcsd(dev);
 
+    err = usdhc_emmc_read_extcsd(dev);
     if (err != PB_OK)
     {
         LOG_ERR("Could not read ext CSD");
@@ -678,7 +662,7 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
         (int)(_raw_cid[1] >> 24) & 0xFF,
         dev->sectors,(dev->sectors)>>1);
     LOG_INFO ("Partconfig: %2.2X", _raw_extcsd[EXT_CSD_PART_CONFIG]);
-
+    
     return PB_OK;
 }
 
