@@ -656,7 +656,7 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
 			_raw_extcsd[EXT_CSD_SEC_CNT + 2] << 16 |
 			_raw_extcsd[EXT_CSD_SEC_CNT + 3] << 24;
 
-    LOG_INFO ("%c%c%c%c%c: %"__PRI64(u)" sectors, %"__PRI64(u)" kBytes",
+    LOG_INFO ("%c%c%c%c%c: %"PRIu64" sectors, %"PRIu64" kBytes",
         (int)(_raw_cid[2] >> 24) & 0xFF,
         (int)(_raw_cid[2] >> 16) & 0xFF,
         (int)(_raw_cid[2] >> 8) & 0xFF,

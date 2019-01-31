@@ -7,7 +7,9 @@
 #ifndef IMX8_LPUART_H
 #define IMX8_LPUART_H
 
-#include <drivers/console.h>
+#include <pb.h>
+#include <io.h>
+#include <stdint.h>
 
 #define VERID	0x0
 #define PARAM	0x4
@@ -50,17 +52,15 @@
 #define LPUART_BAUD_BOTHEDGE_MASK                (0x20000U)
 #define LPUART_BAUD_M10_MASK                     (0x20000000U)
 
-#ifndef __ASSEMBLY__
 
-#include <stdint.h>
 
-typedef struct {
-	console_t console;
-	uintptr_t base;
-} console_lpuart_t;
+struct lpuart_device
+{
+	__iomem base;
+    uint32_t baudrate;
+};
 
-int console_lpuart_register(uintptr_t baseaddr, uint32_t clock, uint32_t baud,
-			   console_lpuart_t *console);
-#endif /*__ASSEMBLY__*/
+uint32_t lpuart_init(struct lpuart_device *dev);
+
 
 #endif /* IMX8_LPUART_H */

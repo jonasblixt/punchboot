@@ -1,6 +1,6 @@
 PB_BOARD_NAME = imx8qxmek
 PB_PLAT_NAME   = imx8x
-PB_ENTRY     = 0x7E1000
+PB_ENTRY     = 0x80000000
 
 CFLAGS += -I board/imx8qxmek/include
 

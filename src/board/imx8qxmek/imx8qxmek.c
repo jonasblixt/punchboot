@@ -92,34 +92,6 @@ static struct usb_device board_usb_device =
 uint32_t board_early_init(void)
 {
 
-    /* Enable UART1 clock */
-    pb_write32((1 << 28) ,0x30388004 + 94*0x80);
-    /* Ungate UART1 clock */
-    pb_write32(3, 0x30384004 + 0x10*73);
-
-    /* Ungate GPIO blocks */
-
-    pb_write32(3, 0x30384004 + 0x10*11);
-    pb_write32(3, 0x30384004 + 0x10*12);
-    pb_write32(3, 0x30384004 + 0x10*13);
-    pb_write32(3, 0x30384004 + 0x10*14);
-    pb_write32(3, 0x30384004 + 0x10*15);
-
-
-    pb_write32(3, 0x30384004 + 0x10*27);
-    pb_write32(3, 0x30384004 + 0x10*28);
-    pb_write32(3, 0x30384004 + 0x10*29);
-    pb_write32(3, 0x30384004 + 0x10*30);
-    pb_write32(3, 0x30384004 + 0x10*31);
-
-
-    /* UART1 pad mux */
-    pb_write32(0, 0x30330234);
-    pb_write32(0, 0x30330238);
-    
-    /* UART1 PAD settings */
-    pb_write32(7, 0x3033049C);
-    pb_write32(7, 0x303304A0);
 
     /* USDHC1 reset */
     /* Configure as GPIO 2 10*/

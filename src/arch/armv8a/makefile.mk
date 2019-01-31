@@ -1,4 +1,4 @@
-CROSS_COMPILE = aarch64-elf-
+CROSS_COMPILE ?= aarch64-elf-
 
 ARCH_OUTPUT = elf64-littleaarch64
 ARCH = aarch64

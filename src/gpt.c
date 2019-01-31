@@ -212,7 +212,7 @@ uint32_t gpt_write_tbl(void)
 
     /* Write primary GPT Table */
 
-    LOG_INFO("writing primary gpt tbl to lba %" __PRI64(u), _gpt1.hdr.current_lba);
+    LOG_INFO("writing primary gpt tbl to lba %" PRIu64, _gpt1.hdr.current_lba);
     err = plat_write_block(_gpt1.hdr.current_lba,(uintptr_t) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
@@ -234,7 +234,7 @@ uint32_t gpt_write_tbl(void)
 
     /* Write backup GPT table */
 
-    LOG_INFO("Writing backup GPT tbl to LBA %" __PRI64(u), _gpt2.hdr.entries_start_lba);
+    LOG_INFO("Writing backup GPT tbl to LBA %"PRIu64, _gpt2.hdr.entries_start_lba);
     err = plat_write_block(_gpt2.hdr.entries_start_lba, (uintptr_t) &_gpt2,
             sizeof(struct gpt_backup_tbl) / 512);
 

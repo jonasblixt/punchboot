@@ -143,7 +143,7 @@ $(TARGET): $(OBJS) main.o
 
 %.o: %.S
 	@echo AS $<
-	@$(CC) -c $(CFLAGS) $< -o $@
+	@$(CC) -D__ASSEMBLY__ -c $(CFLAGS) $< -o $@
 
 %.o: %.c
 	@echo CC $<
