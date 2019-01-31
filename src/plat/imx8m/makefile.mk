@@ -43,7 +43,8 @@ plat_clean:
 
 plat_final:
 	$(eval PB_FILESIZE=$(shell stat -c%s "pb.imx"))
-	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE)" | bc	))
+	$(eval PB_FILESIZE2=$(shell echo " $$(( $(PB_FILESIZE) - 0x2000 ))" | bc	))
+	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE2)" | bc	))
 	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0x30 ))" | bc	))
 	@echo "PB imx image size: $(PB_FILESIZE) bytes ($(PB_FILESIZE_HEX)), cst addr $(PB_CST_ADDR)"
 	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x000 $(PB_FILESIZE_HEX) "pb.imx"/g' < $(PB_CSF_TEMPLATE) > pb.csf
@@ -52,3 +53,4 @@ plat_final:
 	@$(SED) -i -e 's#__IMG_PEM__#$(IMG_PEM)#g'  pb.csf
 	@$(CST_TOOL) --o pb_csf.bin --i pb.csf
 	@cat pb.imx pb_csf.bin > pb_signed.imx
+

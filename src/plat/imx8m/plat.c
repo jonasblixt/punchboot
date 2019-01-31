@@ -233,6 +233,7 @@ uint32_t  plat_early_init(void)
 
 
     ocotp.base = 0x30350000;
+    ocotp.words_per_bank = 4;
     ocotp_init(&ocotp);
 
     if (hab_secureboot_active())
@@ -368,22 +369,45 @@ void plat_uart_putc(void *ptr, char c)
 /* FUSE Interface */
 uint32_t  plat_fuse_read(struct fuse *f)
 {
-    UNUSED(f);
-    return PB_ERR;
+    if (!(f->status & FUSE_VALID))
+        return PB_ERR;
+
+    if (!f->addr)
+    {
+        f->addr = f->bank*0x40 + f->word*0x10 + 0x400;
+    }
+
+    if (!f->shadow)
+        f->shadow = IMX8M_FUSE_SHADOW_BASE + f->addr;
+
+    f->value = pb_read32(f->shadow);
+
+    return PB_OK;
 }
 
 uint32_t  plat_fuse_write(struct fuse *f)
 {
-    UNUSED(f);
-    return PB_ERR;
+    char s[64];    
+
+    plat_fuse_to_string(f, s, 64);
+
+    if ((f->status & FUSE_VALID) != FUSE_VALID)
+    {
+        LOG_ERR("Could not write fuse %s\n", s);
+        return PB_ERR;
+    }
+
+    LOG_INFO("Writing: %s\n\r", s);
+
+    return ocotp_write(f->bank, f->word, f->value);
 }
 
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
-    UNUSED(f);
-    UNUSED(s);
-    UNUSED(n);
-    return PB_ERR;
+    return tfp_snprintf(s, n,
+            "   FUSE<%lu,%lu> 0x%4.4lX %s = 0x%8.8lX\n",
+                f->bank, f->word, f->addr,
+                f->description, f->value);
 }
 
 

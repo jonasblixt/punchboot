@@ -21,7 +21,7 @@ board_final: $(TARGET).bin
 	@cat lpddr4_pmu_train_1d_imem_pad.bin lpddr4_pmu_train_1d_dmem_pad.bin > lpddr4_pmu_train_1d_fw.bin
 	@cat lpddr4_pmu_train_2d_imem_pad.bin board/pico8ml/lpddr4_pmu_train_2d_dmem.bin > lpddr4_pmu_train_2d_fw.bin
 	@cat $(TARGET).bin lpddr4_pmu_train_1d_fw.bin lpddr4_pmu_train_2d_fw.bin > $(TARGET)-lpddr4.bin
-	@$(MKIMAGE) -fit -loader $(TARGET)-lpddr4.bin $(PB_ENTRY) -out $(TARGET).imx 
+	@$(MKIMAGE) -csf pb.csf -loader $(TARGET)-lpddr4.bin $(PB_ENTRY) -out $(TARGET).imx 
 
 board_clean:
 	@-rm -rf board/pico8ml/*.o 

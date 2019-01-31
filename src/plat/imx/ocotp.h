@@ -1,7 +1,9 @@
 #include <pb.h>
 
-struct ocotp_dev {
+struct ocotp_dev 
+{
     __iomem base;
+    uint32_t words_per_bank;
 };
 
 #define OCOTP_CTRL           0x0000
@@ -17,7 +19,7 @@ struct ocotp_dev {
 
 #define OCOTP_CTRL_WR_KEY    0x3E77
 
-void ocotp_init(struct ocotp_dev *dev);
+uint32_t ocotp_init(struct ocotp_dev *dev);
 uint32_t ocotp_read (uint32_t bank, uint32_t row, uint32_t * value);
 uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
     

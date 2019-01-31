@@ -367,7 +367,7 @@ void dwc3_task(struct usb_device *dev)
                 case 1: /* USB Reset*/
                 {
                     LOG_INFO("USB Reset %u 0x%8.8X", _ev_index, ev);
-                    dwc3_reset(pdev);
+                    //dwc3_reset(pdev);
                 }
                 break;
                 default:

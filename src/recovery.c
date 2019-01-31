@@ -666,15 +666,15 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_READ_UUID:
         {
+
             uint8_t board_uuid[16];
             uint32_t n = 0;
 
-            foreach_fuse(f, uuid_fuses)
+            foreach_fuse_read(fz, uuid_fuses)
             {
-                memcpy(&board_uuid[n], (uint32_t *) &f->value, 4);
+                memcpy(&board_uuid[n], (uint32_t *) &fz->value, 4);
                 n += 4;
             }
-
             recovery_send_response(dev, board_uuid, 16);
         }
         break;

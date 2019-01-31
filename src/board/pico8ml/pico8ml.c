@@ -43,16 +43,16 @@ const uint8_t part_type_root_b[] =
 
 const struct fuse uuid_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD(14, 0, "UUID0"),
-    IMX8M_FUSE_BANK_WORD(14, 1, "UUID1"),
-    IMX8M_FUSE_BANK_WORD(14, 2, "UUID2"),
-    IMX8M_FUSE_BANK_WORD(14, 3, "UUID3"),
+    IMX8M_FUSE_BANK_WORD(0, 1, "UUID0"),
+    IMX8M_FUSE_BANK_WORD(0, 2, "UUID1"),
+    IMX8M_FUSE_BANK_WORD(0, 3, "UUID2"),
+    IMX8M_FUSE_BANK_WORD(1, 0, "UUID3"),
     IMX8M_FUSE_END,
 };
 
 const struct fuse device_info_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD_VAL(8, 2, "Device Info", 0x12340000),
+    IMX8M_FUSE_BANK_WORD_VAL(14, 0, "Device Info", 0x12340000),
     IMX8M_FUSE_END,
 };
 

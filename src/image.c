@@ -9,7 +9,7 @@
 #include <keys.h>
 #include <inttypes.h>
 
-static struct __a4k __no_bss pb_pbi _pbi;
+static __a4k __no_bss struct pb_pbi _pbi;
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
             _zero_region_start, _zero_region_end, _stack_start, _stack_end;
 

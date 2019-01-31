@@ -223,6 +223,7 @@ uint32_t plat_early_init(void)
     init_printf(NULL, &plat_uart_putc);
 
     ocotp.base = 0x021BC000;
+    ocotp.words_per_bank = 8;
     ocotp_init(&ocotp);
 
 

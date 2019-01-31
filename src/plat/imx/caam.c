@@ -37,7 +37,7 @@
 
 
 
-static struct caam_hash_ctx ctx;
+static __no_bss struct caam_hash_ctx ctx;
 static struct fsl_caam *d;
 
 static uint32_t caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job) 

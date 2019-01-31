@@ -32,7 +32,7 @@ static const uint32_t _config_no_of_items =
                     (sizeof(_pb_config) / sizeof(struct pb_config_item))-1;
 
 
-__a4k static struct pb_config_data _config_data;
+static __a4k __no_bss struct pb_config_data _config_data;
 
 uint32_t config_init(void) 
 {

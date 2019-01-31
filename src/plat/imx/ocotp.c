@@ -3,7 +3,7 @@
 #include <tinyprintf.h>
 #include <plat/imx/ocotp.h>
 
-#define OCOTP_DEBUG
+#undef OCOTP_DEBUG
 
 static struct ocotp_dev *_dev;
 
@@ -18,10 +18,16 @@ static void ocotp_dump_fuse(uint32_t bank, uint32_t row) {
 }
 #endif
 
-void ocotp_init(struct ocotp_dev *dev) {
+uint32_t ocotp_init(struct ocotp_dev *dev) {
 
     _dev = dev;
- 
+
+    if (dev->words_per_bank < 4)
+    {
+        LOG_ERR("Invalid words_per_bank setting");
+        return PB_ERR;
+    }
+
 #ifdef OCOTP_DEBUG
     tfp_printf("Initializing ocotp at 0x%8.8X\n\r", dev->base);
  
@@ -41,7 +47,7 @@ void ocotp_init(struct ocotp_dev *dev) {
 #endif
 
  
-
+    return PB_OK;
 }
 
 uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
@@ -76,7 +82,7 @@ uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
     }
 
     /* Ref manual says this should be 0x3F, but FSL drivers says 0x7F...*/
-    tmp = (bank * 8 + row) & 0x7F;
+    tmp = (bank * _dev->words_per_bank + row) & 0x7F;
 
     pb_write32 ((OCOTP_CTRL_WR_KEY << 16) | tmp, _dev->base + OCOTP_CTRL);
  
@@ -112,7 +118,7 @@ uint32_t ocotp_read (uint32_t bank, uint32_t row, uint32_t * value) {
     }
 
     /* Ref manual says this should be 0x3F, but FSL drivers says 0x7F...*/
-    tmp = (bank * 8 + row) & 0x7F;
+    tmp = (bank * _dev->words_per_bank + row) & 0x7F;
 
     pb_write32 (tmp, _dev->base + OCOTP_CTRL);
     pb_write32 (1, _dev->base + OCOTP_READ_CTRL);

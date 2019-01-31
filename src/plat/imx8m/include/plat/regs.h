@@ -1,6 +1,8 @@
 #ifndef __REGS_H__
 #define __REGS_H__
 
+#define IMX8M_FUSE_SHADOW_BASE 0x30350000
+
 #define HAB_RVT_BASE			0x00000880
 #define IMX_CSU_BASE			(0x303e0000)
 

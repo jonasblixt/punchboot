@@ -113,7 +113,6 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
             if (offset < 0)
                 break;
 
-            /* get the name */
             const char *name = fdt_get_name(fdt, offset, NULL);
             if (!name)
                 continue;
