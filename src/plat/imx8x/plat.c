@@ -8,39 +8,35 @@
 #include <plat/imx/usdhc.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/wdog.h>
+#include <plat/sci/ipc.h>
+#include <plat/sci/sci.h>
+#include <plat/imx8qxp_pads.h>
+#include <plat/iomux.h>
 
 static struct usdhc_device usdhc0;
 static struct gp_timer tmr0;
 static struct imx_wdog_device wdog_device;
 static struct lpuart_device uart_device;
+sc_ipc_t ipc_handle;
 
 /* Platform API Calls */
 void      plat_reset(void)
 {
-    imx_wdog_reset_now();
 }
 
 uint32_t  plat_get_us_tick(void)
 {
-    return gp_timer_get_tick(&tmr0);
+    return 0;// gp_timer_get_tick(&tmr0);
 }
 
 void      plat_wdog_init(void)
 {
 
 
-    /* Configure PAD_GPIO1_IO02 as wdog output */
-    pb_write32((1 << 7)|(1 << 6) | 6, 0x30330298);
-    pb_write32(1, 0x30330030);
-
-    wdog_device.base = 0x30280000;
-    imx_wdog_init(&wdog_device, 1);
-
 }
 
 void      plat_wdog_kick(void)
 {
-    imx_wdog_kick();
 }
 
 uint32_t  plat_early_init(void)
@@ -49,7 +45,31 @@ uint32_t  plat_early_init(void)
     uint32_t err;
 
     
+	if (sc_ipc_open(&ipc_handle, SC_IPC_CH) != SC_ERR_NONE) 
+    {
+		/* No console available now */
+		while (1);
+	}
 
+	/* Power up UART0 */
+	sc_pm_set_resource_power_mode(ipc_handle, SC_R_UART_0, SC_PM_PW_MODE_ON);
+
+	/* Set UART0 clock root to 80 MHz */
+	sc_pm_clock_rate_t rate = 80000000;
+	sc_pm_set_clock_rate(ipc_handle, SC_R_UART_0, 2, &rate);
+
+	/* Enable UART0 clock root */
+	sc_pm_clock_enable(ipc_handle, SC_R_UART_0, 2, true, false);
+
+#define UART_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
+			(SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
+			(SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
+			(SC_PAD_28FDSOI_DSE_DV_LOW << PADRING_DSE_SHIFT) | \
+			(SC_PAD_28FDSOI_PS_PD << PADRING_PULL_SHIFT))
+	/* Configure UART pads */
+	sc_pad_set(ipc_handle, SC_P_UART0_RX, UART_PAD_CTRL);
+
+	sc_pad_set(ipc_handle, SC_P_UART0_TX, UART_PAD_CTRL);
 
     //board_early_init();
 

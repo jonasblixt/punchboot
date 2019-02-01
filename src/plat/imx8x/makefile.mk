@@ -26,6 +26,10 @@ PLAT_C_SRCS  += plat/imx/lpuart.c
 PLAT_C_SRCS  += plat/imx/caam.c
 PLAT_C_SRCS  += plat/imx8x/plat.c
 PLAT_C_SRCS  += plat/imx/wdog.c
+PLAT_C_SRCS  += plat/imx8x/sci/ipc.c
+PLAT_C_SRCS  += plat/imx8x/sci/mx8_mu.c
+PLAT_C_SRCS  += plat/imx8x/sci/svc/pad/pad_rpc_clnt.c
+PLAT_C_SRCS  += plat/imx8x/sci/svc/pm/pm_rpc_clnt.c
 
 CFLAGS += -I plat/imx8x/include
 
@@ -43,7 +47,7 @@ plat_final:
 	@mkimage_imx8 -commit > head.hash
 	@cat pb.bin head.hash > pb_hash.bin
 	@mkimage_imx8 -soc QX -rev B0 \
-				  -append ~/work/firmware-imx-7.6/firmware/seco/ahab-container.img \
+				  -append ~/work/firmware-imx-8.0/firmware/seco/mx8qx-ahab-container.img \
 				  -c -scfw ~/work/acu6c-boot/acu6c-scfw/build_mx8qx_b0/scfw_tcm.bin \
 				  -ap pb_hash.bin a35 0x80000000 -out pb.imx
 
