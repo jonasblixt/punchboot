@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
 #include <usb.h>
-#include <tinyprintf.h>
 #include <plat/test/virtio_serial.h>
 #include <plat/test/socket_proto.h>
 

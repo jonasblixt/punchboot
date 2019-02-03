@@ -156,7 +156,21 @@ uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out,
     return caam_rsa_enc(sig, sig_sz, out, k);
 }
 
+/**
+ *
+ *
+    /* Enable USB PLL */
+    reg = pb_read32(0x020C8000+0x10);
+    reg |= (1<<6);
+    pb_write32(reg, 0x020C8000+0x10);
 
+    /* Power up USB */
+    pb_write32 ((1 << 31) | (1 << 30), 0x020C9038);
+    pb_write32(0xFFFFFFFF, 0x020C9008);
+ *
+ *
+ *
+ */
 
 uint32_t plat_early_init(void)
 {

@@ -836,6 +836,7 @@
 #define CR_WXN		(1 << 19)	/* Write Permision Imply XN	*/
 #define CR_EE		(1 << 25)	/* Exception (Big) Endian	*/
 
+#ifndef __ASSEMBLY__
 
 static inline unsigned int current_el(void)
 {
@@ -877,5 +878,7 @@ static inline void set_sctlr(unsigned int val)
 #define ptr_to_u32(x) ((uint32_t)(uintptr_t) x)
 
 typedef volatile uint64_t __iomem;
+
+#endif
 
 #endif

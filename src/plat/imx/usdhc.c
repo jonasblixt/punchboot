@@ -7,10 +7,9 @@
  *
  */
 
-
+#include <stdio.h>
 #include <plat.h>
 #include <pb.h>
-#include <tinyprintf.h>
 #include <string.h>
 #include <plat/imx/usdhc.h>
 #include <io.h>
@@ -84,7 +83,6 @@ static uint32_t usdhc_emmc_send_cmd(struct usdhc_device *dev,
         if ((pres_state & 0x03) == 0x00) {
             break;
         }
-        
 
         if ((plat_get_us_tick()-timeout) > 300000)
         {
@@ -122,7 +120,7 @@ static uint32_t usdhc_emmc_check_status(struct usdhc_device *dev)
         (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG) {
         return PB_OK;
     } else if (result & MMC_STATUS_MASK) {
-        LOG_ERR("Status Error: 0x%8.8"PRIx32,result);
+        LOG_ERR("Status Error: 0x%x",result);
         return PB_ERR;
     }
 
@@ -156,11 +154,11 @@ static uint32_t usdhc_emmc_read_extcsd(struct usdhc_device *dev)
 
     if (err != PB_OK)
     {
-        LOG_ERR("PRESENT_STATE = 0x%8.8"PRIx32,
+        LOG_ERR("PRESENT_STATE = 0x%x",
                     pb_read32(dev->base + USDHC_PRES_STATE));
-        LOG_ERR("ADMA_ERR_STATUS = 0x%8.8"PRIx32,
+        LOG_ERR("ADMA_ERR_STATUS = 0x%x",
                     pb_read32(dev->base+USDHC_ADMA_ERR_STATUS));
-        LOG_ERR("ADMA_SYSADDR = 0x%8.8"PRIx32,
+        LOG_ERR("ADMA_SYSADDR = 0x%x",
                     pb_read32(dev->base+USDHC_ADMA_SYS_ADDR));
 
 #if LOGLEVEL > 0
@@ -169,7 +167,7 @@ static uint32_t usdhc_emmc_read_extcsd(struct usdhc_device *dev)
 #endif
         LOG_ERR("desc->cmd  = 0x%4.4X", d->cmd);
         LOG_ERR("desc->len  = 0x%4.4X", d->len);
-        LOG_ERR("desc->addr = 0x%8.8"PRIu32, d->addr);
+        LOG_ERR("desc->addr = 0x%x", d->addr);
         return err;
     }
 
@@ -511,10 +509,11 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
         __asm__("nop");
 
     LOG_DBG("Done");
+
     pb_write32(0x10801080, dev->base+USDHC_WTMK_LVL);
 
     pb_write32(0, dev->base + USDHC_MMC_BOOT);
-    pb_write32(0, dev->base + USDHC_MIX_CTRL);
+    pb_write32((1<<31), dev->base + USDHC_MIX_CTRL);
     pb_write32(0, dev->base + USDHC_CLK_TUNE_CTRL_STATUS);
 
     /* Default setup, 1.8V IO */
@@ -534,7 +533,7 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
 
     pb_write32(dev->clk_ident , dev->base+USDHC_SYS_CTRL);
 
-    pb_write32(PROCTL_INIT, dev->base + USDHC_PROT_CTRL);
+    pb_write32(PROCTL_INIT |(1<<23)|(1<<27), dev->base + USDHC_PROT_CTRL);
     
     while (1) 
     {
@@ -560,6 +559,8 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
         if (pres_state & (1 << 3))
             break;
     }
+
+
     LOG_DBG("Waiting for eMMC to power up");
     while (1) 
     {
@@ -585,10 +586,10 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     _raw_cid[2] = pb_read32(dev->base+ USDHC_CMD_RSP2);
     _raw_cid[3] = pb_read32(dev->base+ USDHC_CMD_RSP3);
 
-    LOG_DBG("cid0: %8.8X", _raw_cid[0]);
-    LOG_DBG("cid1: %8.8X", _raw_cid[1]);
-    LOG_DBG("cid2: %8.8X", _raw_cid[2]);
-    LOG_DBG("cid3: %8.8X", _raw_cid[3]);
+    LOG_DBG("cid0: %x", _raw_cid[0]);
+    LOG_DBG("cid1: %x", _raw_cid[1]);
+    LOG_DBG("cid2: %x", _raw_cid[2]);
+    LOG_DBG("cid3: %x", _raw_cid[3]);
 
 
     err = usdhc_emmc_send_cmd(dev, MMC_CMD_SET_RELATIVE_ADDR, 10<<16, 0x1A);  //R6
@@ -606,10 +607,10 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     _raw_csd[0] = pb_read32(dev->base+ USDHC_CMD_RSP3);
 
 
-    LOG_DBG("csd0: %8.8X", _raw_csd[0]);
-    LOG_DBG("csd1: %8.8X", _raw_csd[1]);
-    LOG_DBG("csd2: %8.8X", _raw_csd[2]);
-    LOG_DBG("csd3: %8.8X", _raw_csd[3]);
+    LOG_DBG("csd0: %x", _raw_csd[0]);
+    LOG_DBG("csd1: %x", _raw_csd[1]);
+    LOG_DBG("csd2: %x", _raw_csd[2]);
+    LOG_DBG("csd3: %x", _raw_csd[3]);
 
     LOG_DBG("Select Card");
     /* Select Card */
@@ -656,14 +657,20 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
 			_raw_extcsd[EXT_CSD_SEC_CNT + 2] << 16 |
 			_raw_extcsd[EXT_CSD_SEC_CNT + 3] << 24;
 
-    LOG_INFO ("%c%c%c%c%c: %"PRIu64" sectors, %"PRIu64" kBytes",
-        (int)(_raw_cid[2] >> 24) & 0xFF,
-        (int)(_raw_cid[2] >> 16) & 0xFF,
-        (int)(_raw_cid[2] >> 8) & 0xFF,
-        (int)(_raw_cid[2] ) & 0xFF,
-        (int)(_raw_cid[1] >> 24) & 0xFF,
+
+    char mmc_drive_str[6] =
+    {
+        (char)(_raw_cid[2] >> 24) & 0xFF,
+        (char)(_raw_cid[2] >> 16) & 0xFF,
+        (char)(_raw_cid[2] >> 8) & 0xFF,
+        (char)(_raw_cid[2] ) & 0xFF,
+        (char)(_raw_cid[1] >> 24) & 0xFF,
+        0,
+    };
+
+    LOG_INFO ("%s: %llx sectors, %llu kBytes", mmc_drive_str,
         dev->sectors,(dev->sectors)>>1);
-    LOG_INFO ("Partconfig: %2.2X", _raw_extcsd[EXT_CSD_PART_CONFIG]);
+    LOG_INFO ("Partconfig: %x", _raw_extcsd[EXT_CSD_PART_CONFIG]);
     
     return PB_OK;
 }

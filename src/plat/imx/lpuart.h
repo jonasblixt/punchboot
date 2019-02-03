@@ -61,6 +61,6 @@ struct lpuart_device
 };
 
 uint32_t lpuart_init(struct lpuart_device *dev);
-
+uint32_t lpuart_putc(struct lpuart_device *dev, char c);
 
 #endif /* IMX8_LPUART_H */

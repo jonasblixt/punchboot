@@ -70,4 +70,15 @@ struct ehci_device {
     __iomem base;
 };
 
+
+uint32_t  ehci_usb_init(struct usb_device *dev);
+
+void ehci_usb_set_configuration(struct usb_device *dev);
+void ehci_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep);
+void ehci_usb_task(struct usb_device *dev) ;
+
+uint32_t ehci_transfer(struct ehci_device *dev,
+                                uint32_t ep,
+                                uint8_t *bfr, 
+                                uint32_t size);
 #endif

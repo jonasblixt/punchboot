@@ -7,11 +7,11 @@
  *
  */
 
+#include <stdio.h>
 #include <pb.h>
 #include <plat.h>
 #include <io.h>
 #include <string.h>
-#include <tinyprintf.h>
 #include <board/config.h>
 #include <recovery.h>
 
@@ -42,15 +42,18 @@ static void ehci_reset(struct ehci_device *dev)
     pb_write32(0xFFFF, dev->base+EHCI_ENDPTSETUPSTAT);
     pb_write32((0xff << 16)  | 0xff, dev->base+EHCI_ENDPTCOMPLETE);
 
+    LOG_DBG("Waiting for EP Prime");
     while (pb_read32(dev->base+EHCI_ENDPTPRIME))
         __asm__("nop");
 
     pb_write32(0xFFFFFFFF, dev->base+EHCI_ENDPTFLUSH);
  
+    LOG_DBG("Wait for reset");
     /* Wait for reset */
     while (!(pb_read32(dev->base+EHCI_USBSTS) & (1<<6)))
         __asm__("nop");
    
+    LOG_DBG("Wait for port reset");
     /* Wait for port to come out of reset */
     while (pb_read32(dev->base+EHCI_PORTSC1) & (1<<8))
         __asm__("nop");
@@ -86,7 +89,7 @@ static void ehci_prime_ep(struct ehci_device *dev, uint32_t ep)
         __asm__("nop");
 }
 
-static uint32_t ehci_transfer(struct ehci_device *dev,
+uint32_t ehci_transfer(struct ehci_device *dev,
                                 uint32_t ep,
                                 uint8_t *bfr, 
                                 uint32_t size)
@@ -146,7 +149,7 @@ static uint32_t ehci_transfer(struct ehci_device *dev,
     return PB_OK;
 }
 
-void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
+void ehci_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
 {
     struct ehci_transfer_head *dtd = current_xfers[ep];
     UNUSED(dev);
@@ -158,22 +161,14 @@ void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
         __asm__("nop");
 }
 
-uint32_t plat_usb_init(struct usb_device *dev) 
+uint32_t ehci_usb_init(struct usb_device *dev) 
 {
     uint32_t reg;
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
 
-    LOG_INFO ("Init...");
+    LOG_DBG ("Init...");
 
 
-    /* Enable USB PLL */
-    reg = pb_read32(0x020C8000+0x10);
-    reg |= (1<<6);
-    pb_write32(reg, 0x020C8000+0x10);
-
-    /* Power up USB */
-    pb_write32 ((1 << 31) | (1 << 30), 0x020C9038);
-    pb_write32(0xFFFFFFFF, 0x020C9008);
 
     reg = pb_read32(ehci->base+EHCI_CMD);
     reg |= (1<<1);
@@ -182,23 +177,33 @@ uint32_t plat_usb_init(struct usb_device *dev)
     while (pb_read32(ehci->base+EHCI_CMD) & (1<<1))
         __asm__("nop");
     
-    LOG_INFO("Reset complete");
+    LOG_DBG("Reset complete");
 
     ehci_reset_queues();
+    LOG_DBG("Queues reset");
+
     ehci_config_ep(USB_EP0_IN,  EHCI_SZ_64B,  0);
     ehci_config_ep(USB_EP0_OUT, EHCI_SZ_64B,  0);
     ehci_config_ep(USB_EP1_OUT, EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
     ehci_config_ep(USB_EP2_OUT, EHCI_SZ_64B,  EHCI_INTR_ON_COMPLETE);
     ehci_config_ep(USB_EP3_IN,  EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
 
+    LOG_DBG("EP's configured");
+
     /* Program QH top */
     pb_write32((uint32_t) dqhs, ehci->base + EHCI_ENDPTLISTADDR); 
- 
+    
+    LOG_DBG("QH loaded");
+
     /* Enable USB */
     pb_write32(0x0A | (1 << 4), ehci->base + EHCI_USBMODE);
     pb_write32( (0x40 << 16) |0x01, ehci->base + EHCI_CMD);
 
+    LOG_DBG("USB Enable");
+
     ehci_reset(ehci);
+
+    LOG_DBG("USB Reset complete");
 
     pb_write32(7, ehci->base+EHCI_SBUSCFG);
     pb_write32(0x0000FFFF, ehci->base+EHCI_BURSTSIZE);
@@ -209,20 +214,7 @@ uint32_t plat_usb_init(struct usb_device *dev)
 }
 
 
-uint32_t plat_usb_transfer (struct usb_device *dev, uint8_t ep, 
-                            uint8_t *bfr, uint32_t sz) 
-{
-    struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
-    return ehci_transfer(ehci, ep, bfr, sz);
-}
-
-void plat_usb_set_address(struct usb_device *dev, uint32_t addr)
-{
-    struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
-    pb_write32((addr << 25) | (1 <<24), ehci->base+EHCI_DEVICEADDR);
-}
-
-void plat_usb_set_configuration(struct usb_device *dev)
+void ehci_usb_set_configuration(struct usb_device *dev)
 {
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
 
@@ -237,7 +229,7 @@ void plat_usb_set_configuration(struct usb_device *dev)
                                         sizeof(struct pb_cmd_header));
 }
 
-void plat_usb_task(struct usb_device *dev) 
+void ehci_usb_task(struct usb_device *dev) 
 {
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
     uint32_t sts = pb_read32(ehci->base+EHCI_USBSTS);
@@ -249,6 +241,8 @@ void plat_usb_task(struct usb_device *dev)
     /* EP0 Process setup packets */
     if  (pb_read32(ehci->base+EHCI_ENDPTSETUPSTAT) & 1)
     {
+
+        LOG_DBG("EP1");
         uint32_t cmd_reg = pb_read32(ehci->base+EHCI_CMD);
         struct ehci_queue_head *qh = ehci_get_queue(USB_EP0_OUT);
 

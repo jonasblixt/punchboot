@@ -7,6 +7,9 @@
  *
  */
 
+#include <arch/armv8a/include/arch/arch.h>
+#include <arch/armv8a/asm_macros.S>
+
 .macro branch_if_master, xreg1, xreg2, master_label
        mrs     \xreg1, mpidr_el1
        lsr     \xreg2, \xreg1, #32
@@ -20,6 +23,11 @@
 .section .text
 .global _reset
 _reset:
+
+    mov_imm	x0, (SCTLR_RESET_VAL & ~(SCTLR_EE_BIT | SCTLR_WXN_BIT \
+            | SCTLR_SA_BIT | SCTLR_A_BIT | SCTLR_DSSBS_BIT))
+    msr	sctlr_el3, x0
+    isb
 
     branch_if_master x0 x1 master_cpu
 

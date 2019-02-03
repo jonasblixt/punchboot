@@ -7,10 +7,9 @@
  *
  */
 
-
+#include <stdio.h>
 #include <plat.h>
 #include <io.h>
-#include <tinyprintf.h>
 #include <string.h>
 #include <plat/imx/caam.h>
 
@@ -50,7 +49,7 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job)
         __asm__("nop");
 
     if (d->output_ring[0] != (uint32_t)(uintptr_t) job) {
-        tfp_printf ("Job failed\n\r");
+        printf ("Job failed\n\r");
         return PB_ERR;
     }
     pb_write32(1, d->base + CAAM_ORJRR0);
@@ -130,9 +129,9 @@ uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
         return PB_ERR;
     }
 #ifdef CAAM_DEBUG
-    tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x8810));
-    tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x8814));
-    tfp_printf ("0x%8.8X\n\r",pb_readl(d->base+0x1044));
+    printf ("0x%8.8X\n\r",pb_readl(d->base+0x8810));
+    printf ("0x%8.8X\n\r",pb_readl(d->base+0x8814));
+    printf ("0x%8.8X\n\r",pb_readl(d->base+0x1044));
 #endif
 
 

@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <pb.h>
 #include <plat.h>
-#include <tinyprintf.h>
 #include <tomcrypt.h>
 
 static hash_state md;

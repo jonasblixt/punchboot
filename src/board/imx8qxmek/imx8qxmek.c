@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
 #include <plat.h>
@@ -5,8 +6,7 @@
 #include <usb.h>
 #include <fuse.h>
 #include <gpt.h>
-#include <tinyprintf.h>
-#include <plat/imx/dwc3.h>
+#include <plat/imx/ehci.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx8x/plat.h>
 
@@ -78,55 +78,22 @@ const struct fuse board_fuses[] =
 };
 
 
-static struct dwc3_device dwc3dev = 
+static struct ehci_device ehcidev = 
 {
-    .base = 0x38100000,
+    .base = 0x5b0d0000,
 };
 
-static struct usb_device board_usb_device =
+static struct usb_device board_usbdev =
 {
-    .platform_data = &dwc3dev,
+    .platform_data = &ehcidev,
 };
+
 
 
 uint32_t board_early_init(void)
 {
 
 
-    /* USDHC1 reset */
-    /* Configure as GPIO 2 10*/
-    pb_write32 (5, 0x303300C8);
-    pb_write32((1 << 10), 0x30210004);
-
-    pb_setbit32(1<<10, 0x30210000);
-
-    /* USDHC1 mux */
-    pb_write32 (0, 0x303300A0);
-    pb_write32 (0, 0x303300A4);
-
-    pb_write32 (0, 0x303300A8);
-    pb_write32 (0, 0x303300AC);
-    pb_write32 (0, 0x303300B0);
-    pb_write32 (0, 0x303300B4);
-    pb_write32 (0, 0x303300B8);
-    pb_write32 (0, 0x303300BC);
-    pb_write32 (0, 0x303300C0);
-
-    pb_write32 (0, 0x303300C4);
-    /* Setup USDHC1 pins */
-#define USDHC1_PAD_CONF ((1 << 7) | (1 << 6) | (2 << 3) | 6)
-    pb_write32(USDHC1_PAD_CONF, 0x30330308);
-    pb_write32(USDHC1_PAD_CONF, 0x3033030C);
-    pb_write32(USDHC1_PAD_CONF, 0x30330310);
-    pb_write32(USDHC1_PAD_CONF, 0x30330314);
-    pb_write32(USDHC1_PAD_CONF, 0x30330318);
-    pb_write32(USDHC1_PAD_CONF, 0x3033031C);
-    pb_write32(USDHC1_PAD_CONF, 0x30330320);
-    pb_write32(USDHC1_PAD_CONF, 0x30330324);
-    pb_write32(USDHC1_PAD_CONF, 0x30330328);
-    pb_write32(USDHC1_PAD_CONF, 0x3033032C);
-
-    pb_clrbit32(1<<10, 0x30210000);
 
     return PB_OK;
 }
@@ -150,12 +117,12 @@ uint32_t board_configure_gpt_tbl(void)
 
 uint32_t board_get_debug_uart(void)
 {
-    return 0x30860000;
+    return 0x0;
 }
 
 uint32_t board_usb_init(struct usb_device **usbdev)
 {
-    *usbdev = &board_usb_device;
+    *usbdev = &board_usbdev;
     return PB_OK;
 }
 
@@ -166,7 +133,7 @@ bool board_force_recovery(void)
 
 uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
 {
-    tfp_sprintf (buf, "console=ttymxc0,115200 " \
+    snprintf (buf, 512,"console=ttymxc0,115200 " \
         "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
         "cma=768M " \
         "root=PARTUUID=%s " \
