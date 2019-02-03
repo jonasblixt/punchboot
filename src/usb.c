@@ -12,7 +12,6 @@
 #include <plat.h>
 #include <board.h>
 #include <string.h>
-#include <inttypes.h>
 
 #define USB_DEBUG
 static struct usb_device *usb_dev;

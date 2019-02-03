@@ -1,10 +1,10 @@
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
 #include <usb.h>
 #include <string.h>
 #include <plat/imx/dwc3.h>
 #include <plat.h>
-#include <tinyprintf.h>
 
 #define DWC3_EV_BUFFER_SIZE 128
 #define DWC3_DEF_TIMEOUT_ms 10
@@ -24,11 +24,11 @@
 
 
 static volatile __a4k __no_bss uint32_t _ev_buffer[DWC3_EV_BUFFER_SIZE];
-static volatile uint32_t _ev_index;
-static volatile __a4k __no_bss struct usb_setup_packet setup_pkt;
-static volatile __a4k __no_bss struct dwc3_trb trbs[DWC3_NO_TRBS];
+static uint32_t _ev_index;
+static __a4k __no_bss struct usb_setup_packet setup_pkt;
+static __a4k __no_bss struct dwc3_trb trbs[DWC3_NO_TRBS];
 static __no_bss struct dwc3_trb *act_trb[8];
-__no_bss uint8_t cmd_in_bfr[64];
+static volatile __no_bss uint8_t cmd_in_bfr[64];
 
 static uint32_t dwc3_command(struct dwc3_device *dev,
                          uint8_t ep,
@@ -61,12 +61,10 @@ static uint32_t dwc3_command(struct dwc3_device *dev,
         if ((plat_get_us_tick() - timeout) > (DWC3_DEF_TIMEOUT_ms*1000))
         {
             uint32_t ev_status = pb_read32(dev->base + DWC3_DEPCMD_0 + 0x10*ep);
-            LOG_ERR("CMD %2.2X, Timeout, status = 0x%1X",cmd, (ev_status >> 12) & 0xF);
+            LOG_ERR("CMD %x, Timeout, status = 0x%x",cmd, (ev_status >> 12) & 0xF);
             return PB_TIMEOUT;
         }
     }
-    
-
 
     return PB_OK;
 }
@@ -142,11 +140,11 @@ uint32_t dwc3_transfer(struct dwc3_device *dev,
             trb->control |= (1 << 4);
     }
 
-    dwc3_command(dev, ep, DWC3_DEPCMD_STARTRANS,0,ptr_to_u32(trb),0);
-
-    LOG_DBG("trx EP%u %s, %8.8X, sz %ubytes",(ep>>1), (ep&1?"IN":"OUT"),
+    LOG_DBG("trx EP%u %s, %x, sz %ubytes",(ep>>1), (ep&1?"IN":"OUT"),
                     bfr, sz);
-    return PB_OK;
+    LOG_DBG("trb: %p, dev: %p", trb, dev);
+
+    return dwc3_command(dev, ep, DWC3_DEPCMD_STARTRANS,0,ptr_to_u32(trb),0);
 }
 
 
@@ -160,7 +158,7 @@ static void dwc3_reset(struct dwc3_device *dev)
     pb_write32(reg, dev->base + DWC3_DCFG);
 
 
-    dwc3_transfer(dev, USB_EP0_OUT,(uint8_t *) &setup_pkt, 
+    (void) dwc3_transfer(dev, USB_EP0_OUT,(uint8_t *) &setup_pkt, 
                         sizeof(struct usb_setup_packet));
 }
 
@@ -169,6 +167,7 @@ uint32_t dwc3_init(struct dwc3_device *dev)
     uint32_t err;
     uint32_t reg;
 
+    _ev_index = 0;
 	reg = pb_read32(dev->base + DWC3_PHY_CTRL1);
 	reg &= ~(DWC3_PHY_CTRL1_VDATSRCENB0 | DWC3_PHY_CTRL1_VDATDETENB0 |
 			DWC3_PHY_CTRL1_COMMONONN);
@@ -198,7 +197,7 @@ uint32_t dwc3_init(struct dwc3_device *dev)
     for (uint32_t n = 0; n < 8; n++)
         act_trb[n] = NULL;
 
-    LOG_INFO("HCI ver: 0x%4.4X, caps: 0x%2.2X",dev->version, dev->caps);
+    LOG_INFO("HCI ver: 0x%x, caps: 0x%x",dev->version, dev->caps);
 
     /* Put core in reset */
     pb_setbit32(1<<11, dev->base + DWC3_GCTL);
@@ -221,7 +220,7 @@ uint32_t dwc3_init(struct dwc3_device *dev)
 
     /* Reset usb controller */
     pb_setbit32(1<<30, dev->base + DWC3_DCTL);
-
+    LOG_DBG("reset");
     while (pb_read32(dev->base + DWC3_DCTL) & (1<<30))
         __asm__("nop");
 
@@ -270,7 +269,6 @@ uint32_t dwc3_init(struct dwc3_device *dev)
 
 
 
-
 void dwc3_set_addr(struct dwc3_device *dev, uint32_t addr)
 {
     volatile uint32_t reg = pb_read32(dev->base + DWC3_DCFG);
@@ -291,7 +289,7 @@ void dwc3_wait_for_ep_completion(struct dwc3_device *dev, uint32_t ep)
         plat_wdog_kick();
         if ((plat_get_us_tick()-t) > 5000000)
         {
-            LOG_ERR("Timeout EP%u %s ssz: 0x%8.8X 0x%8.8X",
+            LOG_ERR("Timeout EP%u %s ssz: 0x%x 0x%x",
                 ep>>1, ep&1?"IN":"OUT",trb->ssz, trb->control);
             break;
         }
@@ -334,16 +332,16 @@ void dwc3_task(struct usb_device *dev)
     struct dwc3_device *pdev = 
             (struct dwc3_device *) dev->platform_data;
 
-    volatile uint32_t evcnt = 
-            (pb_read32(pdev->base + DWC3_GEVNTCOUNT) & 0xFFFF);
-    volatile uint32_t ev;
+    uint32_t evcnt = pb_read32(pdev->base + DWC3_GEVNTCOUNT);
+    uint32_t ev;
 
     if (evcnt >= 4)
     {
+        LOG_DBG("evcnt %u",evcnt);
         ev = _ev_buffer[_ev_index];
 
         /* Device Specific Events DEVT*/
-        if (ev & 1)
+        if (_ev_buffer[_ev_index] & 1 == 1)
         {
             
             //uint8_t ev_dev = (ev >> 1) & 0x7F;
@@ -354,39 +352,41 @@ void dwc3_task(struct usb_device *dev)
             {
                 case 3: /* USB/Link state change */
                 {
-                    LOG_INFO("Link state change 0x%8.8X",ev);
+                    LOG_INFO("Link state change 0x%x",ev);
 
                 }
                 break;
                 case 2: /* Connection done */
                 {
                     pb_write32(1 << 17, pdev->base + DWC3_GUSB3PIPECTL);
-                    LOG_INFO("Connection done 0x%8.8X",ev);
+                    LOG_INFO("Connection done 0x%x",ev);
                 }
                 break;
                 case 1: /* USB Reset*/
                 {
-                    LOG_INFO("USB Reset %u 0x%8.8X", _ev_index, ev);
+                    LOG_INFO("USB Reset %u 0x%x", _ev_index, ev);
                     //dwc3_reset(pdev);
                 }
                 break;
                 default:
-                    LOG_ERR("Unknown event %2.2X", ev_type);
+                    LOG_ERR("Unknown event %x", ev_type);
             }
         } else  { /* Device Endpoint-n events*/
-            /*
+            
             uint32_t ep = (ev >> 1) & 0x1F;
             uint32_t ev_param = (ev >> 16) & 0xFFFF;
             uint32_t ev_status = (ev >> 12) & 0xF;
             uint32_t ev_cc = (ev >> 6) & 0xF;
-            LOG_INFO("EV EP%u %s, param: %4.4X, sts: %1X, cc: %1X",
+            LOG_DBG("EV EP%u %s, param: %x, sts: %x, cc: %x",
                     ep>>1,ep&1?"IN":"OUT", ev_param, ev_status, ev_cc);
-            */
+            
         }
 
 
-        _ev_index = (_ev_index + 1) % DWC3_EV_BUFFER_SIZE;
+        _ev_index = ((_ev_index + 1) % DWC3_EV_BUFFER_SIZE);
+        LOG_DBG("ev_index %u", _ev_index);
         pb_write32(4, pdev->base + DWC3_GEVNTCOUNT);
+
     }
 
     

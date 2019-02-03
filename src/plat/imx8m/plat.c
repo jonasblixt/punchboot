@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
 #include <plat.h>
-#include <tinyprintf.h>
 #include <board.h>
 #include <timing_report.h>
 #include <plat/regs.h>
@@ -124,7 +124,6 @@ uint32_t  plat_early_init(void)
 
     imx_uart_init(&uart_device);
 
-    init_printf(NULL, &plat_uart_putc);
 
     /* Configure main clocks */
     imx8m_clock_cfg(ARM_A53_CLK_ROOT, CLK_ROOT_ON);
@@ -404,8 +403,8 @@ uint32_t  plat_fuse_write(struct fuse *f)
 
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
-    return tfp_snprintf(s, n,
-            "   FUSE<%lu,%lu> 0x%4.4lX %s = 0x%8.8lX\n",
+    return snprintf(s, n,
+            "   FUSE<%u,%u> 0x%x %s = 0x%x\n",
                 f->bank, f->word, f->addr,
                 f->description, f->value);
 }

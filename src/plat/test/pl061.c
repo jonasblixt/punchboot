@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
-#include <tinyprintf.h>
 
 #include "pl061.h"
 

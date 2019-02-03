@@ -1,9 +1,9 @@
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
 #include <plat/imx/hab.h>
 #include <plat/imx/ocotp.h>
 #include <stdbool.h>
-#include <tinyprintf.h>
 
 #define IS_HAB_ENABLED_BIT 0x02
 static uint8_t _event_data[128];
@@ -221,27 +221,21 @@ int hab_has_no_errors(void)
 	hab_rvt_report_status = (hab_rvt_report_status_t *)(uintptr_t)HAB_RVT_REPORT_STATUS;
 
     result = hab_rvt_report_status(&config, &state);
-	LOG_INFO("configuration: 0x%02x, state: 0x%02x", config, state);
+	LOG_INFO("configuration: 0x%x, state: 0x%x", config, state);
 
     while (hab_rvt_report_event(HAB_FAILURE, index, _event_data, &bytes) 
                                             == HAB_SUCCESS) 
     {
-        LOG_ERR("Error %"PRIu32", event data:", index+1);
+        LOG_ERR("Error %x, event data:", index+1);
 
         for (i = 0; i < bytes; i++) 
-        {
-            if (i == 0)
-                tfp_printf("\t0x%02x", _event_data[i]);
-            else if ((i % 8) == 0)
-                tfp_printf("\n\r\t0x%02x", _event_data[i]);
-            else
-                tfp_printf(" 0x%02x", _event_data[i]);
-        }
+            printf(" 0x%x", _event_data[i]);
+        printf("\n\r");
 
-        tfp_printf("\n\r%s\r", sts_str[get_idx(hab_statuses, rec->contents[0])]);
-        tfp_printf("%s\r", rsn_str[get_idx(hab_reasons, rec->contents[1])]);
-        tfp_printf("%s\r", ctx_str[get_idx(hab_contexts, rec->contents[2])]);
-        tfp_printf("%s\r", eng_str[get_idx(hab_engines, rec->contents[3])]);
+        //printf("\n\r%s\r", sts_str[get_idx(hab_statuses, rec->contents[0])]);
+        //printf("%s\r", rsn_str[get_idx(hab_reasons, rec->contents[1])]);
+        //printf("%s\r", ctx_str[get_idx(hab_contexts, rec->contents[2])]);
+        //printf("%s\r", eng_str[get_idx(hab_engines, rec->contents[3])]);
 
         bytes = sizeof(_event_data);
         index++;

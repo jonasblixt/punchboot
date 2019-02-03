@@ -286,6 +286,7 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         foreach_fuse(f, uuid_fuses)
             pos += plat_fuse_to_string(f, &report_text_buffer[pos], 64);
 
+
         /* Root hash */
         if (!flag_root_hash_fused)
         {
@@ -309,7 +310,7 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         } else {
 
             pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Device identity already fused: %x\n", 
+                        "Device identity already fused: 0x%08x\n", 
                             devid->value >> 16);
 
             if ( (devid->value & 0xFFFF0000) != devid->default_value)
@@ -327,13 +328,13 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         if (!flag_devid_revvar_fused)
         {
             pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Will write device variant: %2.2X, rev: %2.2X\n", 
+                        "Will write device variant: %x, rev: %x\n", 
                             (uint8_t) pb_setup->device_variant,
                             (uint8_t) pb_setup->device_revision);
         } else {
 
             pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Device var/rev already fused, var: %2.2X, rev: %2.2X \n", 
+                        "Device var/rev already fused, var: %x, rev: %x \n", 
                             (uint8_t) ((devid->value >> 8) & 0xff),
                             (uint8_t) (devid->value & 0xff));
         }
@@ -362,7 +363,7 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         
         if (!flag_uuid_fused)
         {
-            LOG_INFO("Writing UUID fuses");
+            LOG_INFO("Writing UUID fuses:");
             foreach_fuse(f, uuid_fuses)
             {
                 err = plat_fuse_write(f);

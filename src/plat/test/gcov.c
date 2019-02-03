@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <board.h>
 #include <plat.h>
-#include <tinyprintf.h>
 #include <plat/test/gcov.h>
 #include <plat/test/semihosting.h>
 

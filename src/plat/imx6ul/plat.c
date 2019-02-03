@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <board.h>
 #include <plat.h>
 #include <io.h>
-#include <tinyprintf.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/caam.h>
 #include <plat/imx/ocotp.h>
@@ -9,6 +9,7 @@
 #include <plat/imx/usdhc.h>
 #include <plat/imx/wdog.h>
 #include <plat/imx/hab.h>
+#include <plat/imx/ehci.h>
 #include <board/config.h>
 #include <fuse.h>
 
@@ -33,7 +34,7 @@ uint32_t  plat_get_us_tick(void)
     return gp_timer_get_tick(&platform_timer);
 }
 
-void      plat_wdog_init(void)
+void plat_wdog_init(void)
 {
     wdog_device.base = 0x020BC000;
     imx_wdog_init(&wdog_device, 5);
@@ -84,7 +85,7 @@ uint32_t  plat_fuse_write(struct fuse *f)
 
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
-    return tfp_snprintf(s, n,
+    return snprintf(s, n, 255,
             "   FUSE<%lu,%lu> 0x%4.4lX %s = 0x%8.8lX\n",
                 f->bank, f->word, f->addr,
                 f->description, f->value);
@@ -156,9 +157,11 @@ uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out,
     return caam_rsa_enc(sig, sig_sz, out, k);
 }
 
-/**
- *
- *
+
+/* USB Interface API */
+uint32_t  plat_usb_init(struct usb_device *dev)
+{
+    uint32_t reg;
     /* Enable USB PLL */
     reg = pb_read32(0x020C8000+0x10);
     reg |= (1<<6);
@@ -167,10 +170,37 @@ uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out,
     /* Power up USB */
     pb_write32 ((1 << 31) | (1 << 30), 0x020C9038);
     pb_write32(0xFFFFFFFF, 0x020C9008);
- *
- *
- *
- */
+    return ehci_usb_init(dev);
+}
+
+void plat_usb_task(struct usb_device *dev)
+{
+    ehci_usb_task(dev);
+}
+
+uint32_t plat_usb_transfer (struct usb_device *dev, uint8_t ep, 
+                            uint8_t *bfr, uint32_t sz) 
+{
+    struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
+    return ehci_transfer(ehci, ep, bfr, sz);
+}
+
+void plat_usb_set_address(struct usb_device *dev, uint32_t addr)
+{
+    struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
+    pb_write32((addr << 25) | (1 <<24), ehci->base+EHCI_DEVICEADDR);
+}
+
+void plat_usb_set_configuration(struct usb_device *dev)
+{
+    ehci_usb_set_configuration(dev);
+}
+
+void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
+{
+    ehci_usb_wait_for_ep_completion(dev, ep);
+}
+
 
 uint32_t plat_early_init(void)
 {
@@ -178,6 +208,8 @@ uint32_t plat_early_init(void)
     uint32_t err;
 
     platform_timer.base = 0x02098000;
+    platform_timer.pr = 24;
+
     gp_timer_init(&platform_timer);
 
 
@@ -234,7 +266,6 @@ uint32_t plat_early_init(void)
     uart0.baudrate = 80000000L / (2 * 115200);
 
     imx_uart_init(&uart0);
-    init_printf(NULL, &plat_uart_putc);
 
     ocotp.base = 0x021BC000;
     ocotp.words_per_bank = 8;
@@ -244,6 +275,8 @@ uint32_t plat_early_init(void)
     usdhc0.base = 0x02190000;
     usdhc0.clk_ident = 0x10E1;
     usdhc0.clk = 0x0101;
+    usdhc0.bus_mode = USDHC_BUS_DDR52;
+    usdhc0.bus_width = USDHC_BUS_8BIT;
 
     err = usdhc_emmc_init(&usdhc0);
 

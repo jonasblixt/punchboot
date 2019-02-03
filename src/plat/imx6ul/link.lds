@@ -7,6 +7,6 @@
 MEMORY
 {
     pbram (rx)  : ORIGIN = 0x80001000, LENGTH = 128K
-    pbram2 (rx) : ORIGIN = 0x80020000, LENGTH = 16M
-    dram (rx)   : ORIGIN = 0x80120000, LENGTH = 128M
+    pbram2 (rx) : ORIGIN = 0x80021000, LENGTH = 16M
+    dram (rx)   : ORIGIN = 0x81021000, LENGTH = 128M
 }

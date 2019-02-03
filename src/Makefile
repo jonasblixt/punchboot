@@ -22,7 +22,9 @@ endif
 
 CFLAGS   = -Wall -Wextra -pedantic -std=gnu99 -Wunused-result -Os
 CFLAGS  += -nostdlib -nostartfiles
-CFLAGS  += -ffunction-sections -fdata-sections -fno-omit-frame-pointer
+CFLAGS  += -ffunction-sections 
+CFLAGS  += -fdata-sections 
+CFLAGS  += -fno-omit-frame-pointer
 CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/pb
 CFLAGS  += -I include/pb/libc
@@ -43,6 +45,7 @@ ARCH_ASM_SRCS =
 ARCH_C_SRCS =
 PLAT_ASM_SRCS =
 PLAT_C_SRCS =
+BLOB_INPUT  =
 
 C_SRCS   = boot.c
 C_SRCS  += recovery.c
@@ -110,6 +113,7 @@ BOARD_OBJS    = $(BOARD_ASM_SRCS:.S=.o) $(BOARD_C_SRCS:.c=.o)
 OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)  
 OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o) 
 OBJS	 += $(RSA_KEYS_SRCS:.der=.dero)
+OBJS     += $(BLOB_INPUT:.bin=.bino)
 
 ifeq ($(BOARD),test)
 	include tests/makefile.mk
@@ -139,6 +143,10 @@ $(TARGET): $(OBJS) main.o
 
 %.dero: %.der
 	@echo KEY $<
+	@$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
+
+%.bino: %.bin
+	@echo BLOB $<
 	@$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
 
 %.o: %.S

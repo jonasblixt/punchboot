@@ -46,6 +46,47 @@ static void unsigned_dec_print(char **s, size_t n, size_t *chars_printed,
 	}
 }
 
+static int unsigned_num_print(char **s, 
+                              unsigned long long int unum, 
+                              size_t *chars_printed,
+                              unsigned int radix,
+			                  char padc, 
+                              int padn)
+{
+	/* Just need enough space to store 64 bit decimal integer */
+	char num_buf[20];
+	int i = 0, count = 0;
+	unsigned int rem;
+
+	do {
+		rem = unum % radix;
+		if (rem < 0xa)
+			num_buf[i] = '0' + rem;
+		else
+			num_buf[i] = 'a' + (rem - 0xa);
+		i++;
+		unum /= radix;
+	} while (unum > 0U);
+
+	if (padn > 0) {
+		while (i < padn) {
+			*(*s) = padc;
+            (*s)++;
+            (*chars_printed)++;
+			count++;
+			padn--;
+		}
+	}
+
+	while (--i >= 0) {
+		*(*s) = num_buf[i];
+        (*s)++;
+        (*chars_printed)++;
+		count++;
+	}
+
+	return count;
+}
 /*******************************************************************
  * Reduced snprintf to be used for Trusted firmware.
  * The following type specifiers are supported:
@@ -67,6 +108,8 @@ int snprintf(char *s, size_t n, const char *fmt, ...)
 	unsigned int unum;
 	char *str;
 	size_t chars_printed = 0U;
+	char padc = '\0'; /* Padding character */
+	int padn; /* Number of characters to pad */
 
 	if (n == 0U) {
 		/* There isn't space for anything. */
@@ -81,9 +124,11 @@ int snprintf(char *s, size_t n, const char *fmt, ...)
 
 	va_start(args, fmt);
 	while (*fmt != '\0') {
-
+        
 		if (*fmt == '%') {
 			fmt++;
+            padn = 0;
+snprintf_loop:
 			/* Check the format specifier. */
 			switch (*fmt) {
 			case 'i':
@@ -112,6 +157,24 @@ int snprintf(char *s, size_t n, const char *fmt, ...)
 				unum = va_arg(args, unsigned int);
 				unsigned_dec_print(&s, n, &chars_printed, unum);
 				break;
+            case 'x':
+				unum = va_arg(args, unsigned int);
+                unsigned_num_print(&s, unum, &chars_printed,16, padc,padn);
+            break;
+            case '0':
+                padc = '0';
+                padn = 0;
+                fmt++;
+
+                for (;;) {
+                    char ch = *fmt;
+                    if ((ch < '0') || (ch > '9')) {
+                        goto snprintf_loop;
+                    }
+                    padn = (padn * 10) + (ch - '0');
+                    fmt++;
+                }
+                while(1);
 			default:
 				/* Panic on any other format specifier. */
 				LOG_ERR("snprintf: specifier with ASCII code '%d' not supported.",

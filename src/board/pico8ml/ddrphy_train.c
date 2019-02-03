@@ -15,7 +15,7 @@ extern void wait_ddrphy_training_complete(void);
 
 void ddr_cfg_phy_1gb(void) 
 {
-	unsigned int tmp, tmp_t;
+	volatile unsigned int tmp, tmp_t;
 
 	//Init DDRPHY register...
 	reg32_write(0x3c080440,0x2);
@@ -144,7 +144,6 @@ void ddr_cfg_phy_1gb(void)
 	reg32_write(0x3c0800b4,0x0);
 	reg32_write(0x3c4800b4,0x0);
 	reg32_write(0x3c080180,0x2);
-
 	//enable APB bus to access DDRPHY RAM
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0000, 0x0);
 	//load the 1D training image
@@ -194,7 +193,6 @@ void ddr_cfg_phy_1gb(void)
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0099, 0x0);
 
 	wait_ddrphy_training_complete();
-
 	//configure DDRPHY-FW DMEM structure @clock1...
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0099, 0x1);
 
@@ -930,10 +928,12 @@ void ddr_cfg_phy_1gb(void)
 	 * Wait Calibrating done.
 	 */
 	tmp_t = 1;
-	while(tmp_t) {
+	while(tmp_t) 
+    {
 		tmp = reg32_read(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0x20097);
 		tmp_t = tmp & 0x01;
 	}
+
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0000, 0x0);
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0x2006e, 0x0);
 	//disable APB bus to access DDRPHY RAM

@@ -6,10 +6,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
-
+#include <stdio.h>
 #include <board.h>
 #include <io.h>
-#include <tinyprintf.h>
 #include <string.h>
 #include "virtio.h"
 #include "virtio_mmio.h"
@@ -210,6 +209,10 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
 uint32_t virtio_mmio_notify_queue(struct virtio_device *d,
 								  struct virtq *q)
 {
+    if ((d == NULL) || (q == NULL))
+        return PB_ERR;
+
+    LOG_DBG("Queue %u, dev: %p, q: %p",q->queue_index,d,q);
     pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 	return PB_OK;
 }

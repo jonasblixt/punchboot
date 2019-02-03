@@ -7,14 +7,12 @@
  *
  */
 
-
+#include <stdio.h>
 #include <board.h>
 #include <plat.h>
-#include <tinyprintf.h>
 #include <io.h>
 #include <gpt.h>
 #include <usb.h>
-#include <tomcrypt.h>
 
 #include <plat/test/uart.h>
 #include <plat/test/pl061.h>
@@ -109,7 +107,6 @@ uint32_t board_early_init(void)
 {
 
     test_uart_init();
-    init_printf(NULL, &plat_uart_putc);
  
     pl061_init(0x09030000);
 

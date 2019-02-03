@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <board.h>
 #include <io.h>
-#include <tinyprintf.h>
 #include <plat.h>
 #include <string.h>
 #include <fuse.h>
@@ -8,8 +8,8 @@
 #include <plat/test/virtio_block.h>
 #include <plat/test/test_fuse.h>
 
-static struct virtio_block_device virtio_block;
-static struct virtio_block_device virtio_block2;
+static __a4k struct virtio_block_device virtio_block;
+static __a4k struct virtio_block_device virtio_block2;
 static struct virtio_block_device *blk = &virtio_block;
 
 uint32_t blk_off = 0;
@@ -41,10 +41,12 @@ uint32_t plat_fuse_read(struct fuse *f)
 uint32_t plat_fuse_write(struct fuse *f)
 {
     uint32_t err;
+
     if ( (f->status & FUSE_VALID) != FUSE_VALID)
         return PB_ERR;
+    LOG_DBG ("Writing fuse %s",f->description);
 
-    err = test_fuse_write(f->bank, f->value);
+    err = test_fuse_write(&virtio_block2,f->bank, f->value);
 
     if (err != PB_OK)
         LOG_ERR("Could not write fuse");
@@ -53,11 +55,10 @@ uint32_t plat_fuse_write(struct fuse *f)
 
 uint32_t plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
-
     if ( (f->status & FUSE_VALID) != FUSE_VALID)
         return PB_ERR;
 
-    return tfp_snprintf (s,n,"FUSE <%lu> %s = 0x%8.8lX\n", f->bank, 
+    return snprintf (s,n,"FUSE <%u> %s = 0x%08x\n", f->bank, 
                 f->description, f->value);
 }
 
@@ -126,7 +127,7 @@ uint32_t  plat_switch_part(uint8_t part_no)
             /* First 10 blocks are reserved for emulated fuses */
             blk_off = 10;
             blk_sz = 2048;
-            LOG_INFO("Switching to aux disk with offset: %lu blks", blk_off);
+            LOG_INFO("Switching to aux disk with offset: %u blks", blk_off);
         }
         break;
         case PLAT_EMMC_PART_BOOT1:
@@ -134,7 +135,7 @@ uint32_t  plat_switch_part(uint8_t part_no)
             blk = &virtio_block2;
             blk_off = 10 + 8192;
             blk_sz = 2048;
-            LOG_INFO("Switching to aux disk with offset: %lu blks", blk_off);
+            LOG_INFO("Switching to aux disk with offset: %u blks", blk_off);
         }
         break;
         case PLAT_EMMC_PART_USER:
@@ -142,7 +143,7 @@ uint32_t  plat_switch_part(uint8_t part_no)
             blk = &virtio_block;
             blk_off = 0;
             blk_sz = 65535;
-            LOG_INFO("Switching to main disk with offset: %lu blks", blk_off);
+            LOG_INFO("Switching to main disk with offset: %u blks", blk_off);
         }
         break;
         default:

@@ -30,6 +30,9 @@ PLAT_C_SRCS  += plat/imx/ocotp.c
 PLAT_C_SRCS  += plat/imx8m/plat.c
 PLAT_C_SRCS  += plat/imx/wdog.c
 
+BLOB_INPUT += lpddr4_pmu_train_1d_dmem.bin lpddr4_pmu_train_2d_dmem.bin
+BLOB_INPUT += lpddr4_pmu_train_1d_imem.bin lpddr4_pmu_train_2d_imem.bin
+
 CFLAGS += -I plat/imx8m/include
 
 $(eval PB_SRKS=$(shell hexdump -e '/4 "0x"' -e '/4 "%X"",\n"' < $(SRK_FUSE_BIN)))

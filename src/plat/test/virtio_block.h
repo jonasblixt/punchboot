@@ -37,9 +37,9 @@ struct virtio_blk_config {
 
 struct virtio_block_device
 {
+    uint8_t _q_data[VIRTIO_QUEUE_SZ_WITH_PADDING(1024)];
     struct virtio_device dev;
 	struct virtio_blk_config *config;
-    __a4k uint8_t _q_data[VIRTIO_QUEUE_SZ_WITH_PADDING(1024)];
     struct virtq q;
 };
 

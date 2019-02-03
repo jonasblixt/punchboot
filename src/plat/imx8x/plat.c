@@ -107,7 +107,7 @@ uint32_t  plat_early_init(void)
 
     /* Setup USDHC0 */
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
-	rate = 400000000;
+	rate = 200000000;
 	sc_pm_set_clock_rate(ipc_handle, SC_R_SDHC_0, 2, &rate);
 
 	err = sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);

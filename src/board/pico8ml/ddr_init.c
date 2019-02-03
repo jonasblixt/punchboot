@@ -1,15 +1,15 @@
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
 #include <board/pico8ml/ddr.h>
 #include <board/pico8ml/ddr_memory_map.h>
-#include <tinyprintf.h>
 
 #define SRC_DDRC_RCR_ADDR SRC_IPS_BASE_ADDR +0x1000
 #define DDR_CSD1_BASE_ADDR 0x40000000
 
 extern void ddr_cfg_phy_1gb(void) ;
 
-static inline void poll_pmu_message_ready(void)
+static void poll_pmu_message_ready(void)
 {
 	volatile unsigned int reg;
 
@@ -18,9 +18,9 @@ static inline void poll_pmu_message_ready(void)
 	} while (reg & 0x1);
 }
 
-static inline void ack_pmu_message_recieve(void)
+static void ack_pmu_message_recieve(void)
 {
-	unsigned int reg;
+	volatile unsigned int reg;
 
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0)+4*0xd0031,0x0);
 
@@ -31,9 +31,9 @@ static inline void ack_pmu_message_recieve(void)
 	reg32_write(IP2APB_DDRPHY_IPS_BASE_ADDR(0)+4*0xd0031,0x1);
 }
 
-static inline unsigned int get_mail(void)
+static unsigned int get_mail(void)
 {
-	unsigned int reg;
+	volatile unsigned int reg;
 
 	poll_pmu_message_ready();
 
@@ -44,9 +44,9 @@ static inline unsigned int get_mail(void)
 	return reg;
 }
 
-static inline unsigned int get_stream_message(void)
+static unsigned int get_stream_message(void)
 {
-	unsigned int reg, reg2;
+	volatile unsigned int reg, reg2;
 
 	poll_pmu_message_ready();
 
@@ -61,32 +61,32 @@ static inline unsigned int get_stream_message(void)
 	return reg2;
 }
 
-static inline void decode_major_message(unsigned int mail)
+static void decode_major_message(unsigned int mail)
 {
     UNUSED(mail);
-	LOG_DBG("[PMU Major message = 0x%08x]", mail);
+	LOG_DBG("[PMU Major message = 0x%x]", mail);
 }
 
-static inline void decode_streaming_message(void)
+static void decode_streaming_message(void)
 {
 	unsigned int string_index, arg;
 	unsigned int i = 0;
 
 	string_index = get_stream_message();
-	LOG_DBG("	PMU String index = 0x%08x", string_index);
+	LOG_DBG("	PMU String index = 0x%x", string_index);
 
     UNUSED(arg);
 	while (i < (string_index & 0xffff))
     {
 		arg = get_stream_message();
-		LOG_DBG("	arg[%d] = 0x%08x", i, arg);
+		LOG_DBG("	arg[%d] = 0x%x", i, arg);
 		i++;
 	}
 }
 
 void wait_ddrphy_training_complete(void)
 {
-	unsigned int mail;
+	volatile unsigned int mail;
 
 	while (1) 
     {
@@ -136,6 +136,7 @@ void ddr_init(void)
 		tmp=reg32_read(0x30360060);
 		if(tmp&0x80000000) break;
 	}while(1);
+    LOG_DBG("1");
 	reg32_write(0x30391000,0x8f000006);
 	reg32_write(0x3d400304,0x1);
 	reg32_write(0x3d400030,0x1);
@@ -231,6 +232,7 @@ void ddr_init(void)
 		tmp=reg32_read(0x3d400004);
 		if(tmp&0x223) break;
 	}while(1);
+    LOG_DBG("2");
 	reg32_write(0x3d400320,0x0);
 	reg32_write(0x3d000000,0x1);
 	reg32_write(0x3d4001b0,0x10);
@@ -267,9 +269,10 @@ void ddr_init(void)
 	reg32_write(0x3c04c298,0x6);
 	reg32_write(0x3c04c29c,0x7);
 
+    LOG_DBG("2.2");
 	/* Configure DDR PHY's registers */
 	ddr_cfg_phy_1gb();
-
+    LOG_DBG("2.3");
 	reg32_write(DDRC_RFSHCTL3(0), 0x00000000);
 	reg32_write(DDRC_SWCTL(0), 0x0000);
 	/*
@@ -282,12 +285,14 @@ void ddr_init(void)
 
 	/* wait DFISTAT.dfi_init_complete to 1 */
 	tmp_t = 0;
-	while(tmp_t==0){
+	while(tmp_t==0)
+    {
 		tmp  = reg32_read(DDRC_DFISTAT(0));
 		tmp_t = tmp & 0x01;
 		tmp  = reg32_read(DDRC_MRSTAT(0));
 	}
 
+    LOG_DBG("3");
 	reg32_write(DDRC_SWCTL(0), 0x0000);
 
 	/* clear DFIMISC.dfi_init_complete_en */
@@ -304,11 +309,11 @@ void ddr_init(void)
 
 	/* wait SWSTAT.sw_done_ack to 1 */
 	while((reg32_read(DDRC_SWSTAT(0)) & 0x1) == 0)
-		;
+		__asm__("nop");
 
 	/* wait STAT.operating_mode([1:0] for ddr3) to normal state */
 	while ((reg32_read(DDRC_STAT(0)) & 0x3) != 0x1)
-		;
+		__asm__("nop");
 
 	reg32_write(DDRC_PWRCTL(0), 0x00000088);
 	/* reg32_write(DDRC_PWRCTL(0), 0x018a); */

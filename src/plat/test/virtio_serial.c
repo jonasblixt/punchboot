@@ -6,10 +6,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
-
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
-#include <tinyprintf.h>
 #include <plat/test/virtio_serial.h>
 #include <plat/test/virtio_queue.h>
 

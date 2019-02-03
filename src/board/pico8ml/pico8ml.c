@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
 #include <plat.h>
@@ -5,7 +6,6 @@
 #include <usb.h>
 #include <fuse.h>
 #include <gpt.h>
-#include <tinyprintf.h>
 #include <plat/imx/dwc3.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx8m/plat.h>
@@ -196,8 +196,8 @@ bool board_force_recovery(void)
 
 uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
 {
-    tfp_sprintf (buf, "console=ttymxc0,115200 " \
-        /*"earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \*/
+    snprintf (buf, 255,"console=ttymxc0,115200 " \
+        "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
         "quiet " \
         "cma=768M " \
         "root=PARTUUID=%s " \

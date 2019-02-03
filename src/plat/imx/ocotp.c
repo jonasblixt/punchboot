@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <plat.h>
 #include <io.h>
-#include <tinyprintf.h>
 #include <plat/imx/ocotp.h>
 
 #undef OCOTP_DEBUG
@@ -13,7 +13,7 @@ static void ocotp_dump_fuse(uint32_t bank, uint32_t row) {
     uint32_t ret;
 
     ret = ocotp_read(bank, row, &val);
-    tfp_printf ("fuse %i %i: %i, 0x%8.8X\n\r", bank, row, ret, val);
+    printf ("fuse %i %i: %i, 0x%x\n\r", bank, row, ret, val);
 
 }
 #endif
@@ -29,7 +29,7 @@ uint32_t ocotp_init(struct ocotp_dev *dev) {
     }
 
 #ifdef OCOTP_DEBUG
-    tfp_printf("Initializing ocotp at 0x%8.8X\n\r", dev->base);
+    LOG_DBG("Initializing ocotp at 0x%x", dev->base);
  
 
     ocotp_dump_fuse(0, 1);

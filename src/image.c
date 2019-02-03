@@ -7,7 +7,6 @@
 #include <timing_report.h>
 #include <gpt.h>
 #include <keys.h>
-#include <inttypes.h>
 
 static __a4k __no_bss struct pb_pbi _pbi;
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
@@ -34,13 +33,13 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 
     LOG_INFO ("Component manifest:");
     for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
-        LOG_INFO ("%"PRIu32" - LA: 0x%8.8"PRIx32" OFF:0x%8.8"PRIx32"",i, 
+        LOG_INFO ("%x - LA: 0x%x OFF:0x%x",i, 
                             _pbi.comp[i].load_addr_low,
                             _pbi.comp[i].component_offset);
     }
 
     for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
-        LOG_INFO("Loading component %"PRIu32", %"PRIu32" bytes",i, 
+        LOG_INFO("Loading component %u, %u bytes",i, 
                                 _pbi.comp[i].component_size);
 
         uintptr_t la = (uintptr_t) _pbi.comp[i].load_addr_low;
@@ -98,7 +97,6 @@ bool pb_image_verify(struct pb_pbi* pbi)
     if (pbi->hdr.sign_length > sizeof(sign_copy))
             pbi->hdr.sign_length = sizeof(sign_copy);
     
-    LOG_INFO("Signature length = %"PRIu32, pbi->hdr.sign_length);
     memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
     sign_sz = pbi->hdr.sign_length;
     pbi->hdr.sign_length = 0;
@@ -120,7 +118,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
 
     for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
     {
-       plat_sha256_update((uintptr_t) pbi->comp[i].load_addr_low, 
+        plat_sha256_update((uintptr_t) pbi->comp[i].load_addr_low, 
                         pbi->comp[i].component_size);
     }
 
@@ -145,7 +143,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
 
     struct asn1_key *k = pb_key_get(pbi->hdr.key_index);
 
-    LOG_INFO("Key index %"PRIu32, pbi->hdr.key_index);
+    LOG_INFO("Key index %u", pbi->hdr.key_index);
 
     if (k == NULL)
     {

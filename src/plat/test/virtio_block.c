@@ -7,9 +7,9 @@
  *
  */
 
+#include <stdio.h>
 #include <pb.h>
 #include <io.h>
-#include <tinyprintf.h>
 #include <plat/test/virtio_block.h>
 #include <plat/test/virtio_queue.h>
 
@@ -19,6 +19,7 @@ uint32_t virtio_block_init(struct virtio_block_device *d)
 	if (virtio_mmio_init(&d->dev) != PB_OK)
 		return PB_ERR;
 
+    LOG_DBG("VIRTIO %p",&d->dev);
 	d->config = (struct virtio_blk_config *) (d->dev.base + 0x100);
 		
 
@@ -76,9 +77,9 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 
     q->avail->ring[idx] = idx;
     q->avail->idx += 3;
-    
+    LOG_DBG("notify %p", &(d->dev));   
 	virtio_mmio_notify_queue(&d->dev, &d->q);
-	
+	LOG_DBG("Waiting");
     while(q->avail->idx != q->used->idx)
 		__asm__ volatile("nop");
 

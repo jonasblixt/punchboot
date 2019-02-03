@@ -6,25 +6,30 @@
 
 #define TEST_FUSE_MAX 16
 
-static struct virtio_block_device *dev;
-static volatile uint32_t _fuse_box[TEST_FUSE_MAX];
+static uint32_t _fuse_box[TEST_FUSE_MAX];
 
-uint32_t test_fuse_init(struct virtio_block_device *_dev)
+uint32_t test_fuse_init(struct virtio_block_device *dev)
 {
-    dev = _dev;
-    
-    if (_dev == NULL)
+
+    LOG_DBG("using block device %p", dev);
+
+    if (dev == NULL)
         return PB_ERR;
 
-    return virtio_block_read(dev,0,  (uint8_t *) _fuse_box, 1);
+    return virtio_block_read(dev,0,  
+                        (uint8_t *) _fuse_box, 1);
 }
 
-uint32_t test_fuse_write(uint32_t id, uint32_t val)
+uint32_t test_fuse_write(struct virtio_block_device *dev,
+                        uint32_t id, uint32_t val)
 {
     if (id >= TEST_FUSE_MAX)
         return PB_ERR;
 
     _fuse_box[id] |= val;
+
+    LOG_DBG("_fuse_box[%u] = %x, blkdev: %p",id, _fuse_box[id],
+                dev);
 
     return virtio_block_write(dev,0,(uint8_t *) _fuse_box, 1);
 }

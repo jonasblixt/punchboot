@@ -7,10 +7,9 @@
  *
  */
 
-
+#include <stdio.h>
 #include <board.h>
 #include <plat.h>
-#include <tinyprintf.h>
 #include <io.h>
 #include <gpt.h>
 #include <image.h>
@@ -167,7 +166,7 @@ uint8_t board_force_recovery(void)
     if ( (bf->value & bf->default_value) !=
             bf->default_value)
     {
-        LOG_ERR ("OTP not set, forcing recovery mode %8.8lX %8.8lX",
+        LOG_ERR ("OTP not set, forcing recovery mode %x %x",
                 bf->value, bf->default_value);
         force_recovery = true;
     }
@@ -188,11 +187,10 @@ uint32_t board_configure_gpt_tbl(void)
 
 uint32_t board_configure_bootargs(char *buf, char*boot_part_uuid)
 {
-    tfp_sprintf (buf, "console=ttymxc1,115200 " \
+    snprintf (buf, 255, "console=ttymxc1,115200 " \
         "earlyprintk " \
         "root=PARTUUID=%s " \
         "rw rootfstype=ext4 gpt rootwait", boot_part_uuid);
-
     return PB_OK;
 }
 

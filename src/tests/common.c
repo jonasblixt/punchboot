@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <board.h>
 #include <plat.h>
 #include <plat/test/semihosting.h>
-#include <tinyprintf.h>
 #include <assert.h>
 
 #include "test.h"
@@ -14,7 +14,7 @@ void __assert_func(const char *fn,
 {
 
     UNUSED(asdf);
-    tfp_printf("Assert failed %s:%i (%s)\n\r",fn, line_no, assert_func);
+    printf("Assert failed %s:%i (%s)\n\r",fn, line_no, assert_func);
     semihosting_sys_exit(1);
 
     while(1);

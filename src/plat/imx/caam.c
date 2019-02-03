@@ -38,6 +38,7 @@
 
 static __no_bss struct caam_hash_ctx ctx;
 static struct fsl_caam *d;
+static uint32_t __a4k desc[16];
 
 static uint32_t caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job) 
 {
@@ -45,6 +46,7 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam *d, uint32_t *job)
     d->input_ring[0] = (uint32_t)(uintptr_t) job;
     pb_write32(1, d->base + CAAM_IRJAR0);
 
+    LOG_DBG("job sync");
     while (pb_read32(d->base + CAAM_ORSFR0) != 1)
         __asm__("nop");
 
@@ -67,6 +69,8 @@ uint32_t caam_sha256_update(uint8_t *data, uint32_t sz)
 
     struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
 
+
+    LOG_DBG("SHA256 update %p sz %u sgcount %u",data,sz, ctx.sg_count);
     e->addr_lo = (uint32_t)(uintptr_t) data;
     e->len_flag = sz;
 
@@ -80,7 +84,6 @@ uint32_t caam_sha256_update(uint8_t *data, uint32_t sz)
 
 uint32_t caam_sha256_finalize(uint8_t *out) 
 {
-    uint32_t __a4k desc[9];
     struct caam_sg_entry *e_last = &ctx.sg_tbl[ctx.sg_count-1];
 
     e_last->len_flag |= SG_ENTRY_FINAL_BIT;  
@@ -97,7 +100,7 @@ uint32_t caam_sha256_finalize(uint8_t *out)
     desc[6] = (uint32_t)(uintptr_t) out;
 
 
-
+    LOG_DBG("Finalize");
     if (caam_shedule_job_sync(d, desc) != PB_OK) 
     {
         LOG_ERR ("sha256 error");
@@ -110,8 +113,6 @@ uint32_t caam_sha256_finalize(uint8_t *out)
 uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
                     uint8_t *output, struct asn1_key *k)
 {
-
-    uint32_t __a4k desc[10];
    
     desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
     desc[1] = (3 << 12)|512;

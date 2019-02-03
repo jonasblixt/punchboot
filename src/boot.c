@@ -12,7 +12,6 @@
 #include <uuid.h>
 #include <atf.h>
 #include <timing_report.h>
-#include <inttypes.h>
 
 static struct atf_bl31_params bl31_params;
 static struct entry_point_info bl33_ep;
@@ -98,7 +97,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
         }
     }
 
-
+    LOG_DBG("Patching DT");
     const void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
 
     int err = fdt_check_header(fdt);
@@ -135,6 +134,8 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
             }
         }
     }
+    
+    LOG_DBG("Done");
 
     tr_stamp(TR_FINAL);
     tr_print_result();

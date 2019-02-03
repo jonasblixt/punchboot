@@ -20,7 +20,7 @@ uint32_t uuid_to_string(uint8_t *uuid, char *out)
 {
     uuid_t *u = (uuid_t *) uuid;
 
-    snprintf(out,40, "%x-%4.4X-%4.4X-%2.2X%2.2X-%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X",
+    snprintf(out,40, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
         u->time_low,
         u->time_mid,
         u->time_hi_and_version,
@@ -32,6 +32,8 @@ uint32_t uuid_to_string(uint8_t *uuid, char *out)
         u->node[3],
         u->node[4],
         u->node[5]);
+
+    
 
     return PB_OK;
 }
