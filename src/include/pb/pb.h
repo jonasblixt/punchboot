@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <inttypes.h>
 
 enum {
     PB_OK,
@@ -24,13 +23,13 @@ enum {
 
 #if LOGLEVEL >= 2
     #define LOG_INFO(...) \
-        do { tfp_printf("INFO %s: " , __func__);\
-             tfp_printf(__VA_ARGS__);\
-             tfp_printf("\n\r"); } while(0)
+        do { printf("INFO %s: " , __func__);\
+             printf(__VA_ARGS__);\
+             printf("\n\r"); } while(0)
 
     #define LOG_INFO2(...) \
-        do { tfp_printf ("INFO: ");\
-             tfp_printf(__VA_ARGS__); } while(0)
+        do { printf ("INFO: ");\
+             printf(__VA_ARGS__); } while(0)
 #else
     #define LOG_INFO(...)
     #define LOG_INFO2(...)
@@ -38,23 +37,23 @@ enum {
 
 #if LOGLEVEL >= 3
     #define LOG_DBG(...) \
-        do { tfp_printf("DBG %s: " , __func__);\
-             tfp_printf(__VA_ARGS__);\
-             tfp_printf("\n\r"); } while(0)
+        do { printf("DBG %s: " , __func__);\
+             printf(__VA_ARGS__);\
+             printf("\n\r"); } while(0)
 #else
     #define LOG_DBG(...)
 #endif
 
 #if LOGLEVEL >= 1
     #define LOG_WARN(...) \
-        do { tfp_printf("WARN %s: " , __func__);\
-             tfp_printf(__VA_ARGS__);\
-             tfp_printf("\n\r"); } while(0)
+        do { printf("WARN %s: " , __func__);\
+             printf(__VA_ARGS__);\
+             printf("\n\r"); } while(0)
 
     #define LOG_ERR(...) \
-        do { tfp_printf("ERROR %s: " , __func__);\
-             tfp_printf(__VA_ARGS__);\
-             tfp_printf("\n\r"); } while(0)
+        do { printf("ERROR %s: " , __func__);\
+             printf(__VA_ARGS__);\
+             printf("\n\r"); } while(0)
 #else
     #define LOG_WARN(...)
     #define LOG_ERR(...)

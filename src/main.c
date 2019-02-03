@@ -6,10 +6,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
-
+#include <stdio.h>
 #include <board.h>
 #include <plat.h>
-#include <tinyprintf.h>
 #include <recovery.h>
 #include <config.h>
 #include <gpt.h>

@@ -7,6 +7,7 @@
  *
  */
 
+#include <stdio.h>
 #include <recovery.h>
 #include <image.h>
 #include <plat.h>
@@ -14,7 +15,6 @@
 #include <keys.h>
 #include <io.h>
 #include <board.h>
-#include <tinyprintf.h>
 #include <gpt.h>
 #include <config.h>
 #include <string.h>
@@ -25,10 +25,10 @@
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
 #define RECOVERY_BULK_BUFFER_SZ 1024*1024*8
-
+#define REPORT_SZ 1024*10
 static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
 static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
-static char __no_bss report_text_buffer[1024*10];
+static char __no_bss report_text_buffer[REPORT_SZ];
 
 extern const struct fuse uuid_fuses[];
 extern const struct fuse device_info_fuses[];
@@ -267,19 +267,19 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
     if(pb_setup->dry_run)
     {
-        pos += tfp_sprintf(&report_text_buffer[pos], 
+        pos += snprintf(&report_text_buffer[pos], REPORT_SZ-pos,
                                     "-- Device setup report --\n");
 
         /* UUID */
         if (!flag_uuid_fused)
         {
-            pos += tfp_sprintf(&report_text_buffer[pos], 
+            pos += snprintf(&report_text_buffer[pos], REPORT_SZ-pos,
                     "Will Write UUID (%s) to:\n",
                     device_uuid_str);
  
 
         } else {
-            pos += tfp_sprintf(&report_text_buffer[pos],
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
                         "UUID already fused (%s)\n", device_uuid_str);
         }
         
@@ -289,10 +289,10 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         /* Root hash */
         if (!flag_root_hash_fused)
         {
-            pos += tfp_sprintf(&report_text_buffer[pos],
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
                         "Will write root key hash:\n");
         } else {
-            pos += tfp_sprintf(&report_text_buffer[pos],
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
                         "Root key hash already fused:\n");
         }
 
@@ -303,22 +303,22 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
         if (!flag_devid_fused)
         {
-            pos += tfp_sprintf(&report_text_buffer[pos],
-                        "Will write device identity: %4.4"PRIx32"\n", 
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
+                        "Will write device identity: %x\n", 
                             devid->default_value >> 16);
         } else {
 
-            pos += tfp_sprintf(&report_text_buffer[pos],
-                        "Device identity already fused: %4.4"PRIx32"\n", 
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
+                        "Device identity already fused: %x\n", 
                             devid->value >> 16);
 
             if ( (devid->value & 0xFFFF0000) != devid->default_value)
             {
-                pos += tfp_sprintf(&report_text_buffer[pos],
+                pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
                             "  WARNING: device id mismatch with build in value\n");
 
-                pos += tfp_sprintf(&report_text_buffer[pos],
-                            "    0x%8.8"PRIx32" != 0x%8.8"PRIx32"\n", 
+                pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
+                            "    0x%x != 0x%x\n", 
                                 (devid->value & 0xFFFF0000), 
                                 devid->default_value);
             }
@@ -326,13 +326,13 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
         if (!flag_devid_revvar_fused)
         {
-            pos += tfp_sprintf(&report_text_buffer[pos],
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
                         "Will write device variant: %2.2X, rev: %2.2X\n", 
                             (uint8_t) pb_setup->device_variant,
                             (uint8_t) pb_setup->device_revision);
         } else {
 
-            pos += tfp_sprintf(&report_text_buffer[pos],
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
                         "Device var/rev already fused, var: %2.2X, rev: %2.2X \n", 
                             (uint8_t) ((devid->value >> 8) & 0xff),
                             (uint8_t) (devid->value & 0xff));
@@ -343,11 +343,11 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         /* Board fuses */
         if (!flag_board_fused)
         {
-            pos += tfp_sprintf(&report_text_buffer[pos],
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
                         "Will write board fuses\n");
         } else {
 
-            pos += tfp_sprintf(&report_text_buffer[pos],
+            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
                         "Board fuses already fused\n");
         }
 
@@ -413,7 +413,7 @@ static void recovery_parse_command(struct usb_device *dev,
 {
     uint32_t err = PB_OK;
 
-    LOG_INFO ("0x%8.8"PRIx32" %s, sz=%"PRIu32"b", cmd->cmd, 
+    LOG_INFO ("0x%x %s, sz=%ub", cmd->cmd, 
                                       recovery_cmd_name[cmd->cmd],
                                       cmd->size);
 
@@ -426,7 +426,7 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_read_data(dev, (uint8_t *) &cmd_prep,
                                 sizeof(struct pb_cmd_prep_buffer));
  
-            LOG_INFO("Preparing buffer %"PRIu32" [%"PRIu32"]",
+            LOG_INFO("Preparing buffer %u [%u]",
                             cmd_prep.buffer_id, cmd_prep.no_of_blocks);
             
             if ( (cmd_prep.no_of_blocks*512) >= RECOVERY_BULK_BUFFER_SZ)
@@ -449,17 +449,17 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_FLASH_BOOTLOADER:
         {
-            LOG_INFO ("Flash BL %"PRIu32,cmd->arg0);
+            LOG_INFO ("Flash BL %u",cmd->arg0);
             recovery_flash_bootloader(recovery_bulk_buffer[0], 
                         cmd->arg0);
         }
         break;
         case PB_CMD_GET_VERSION:
         {
-            char version_string[255];
+            char version_string[20];
 
             LOG_INFO ("Get version");
-            tfp_sprintf(version_string, "PB %s",VERSION);
+            snprintf(version_string, 20, "PB %s",VERSION);
 
             err = recovery_send_response( dev, 
                                           (uint8_t *) version_string,
@@ -483,7 +483,7 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_CONFIG_TBL:
         {
-            LOG_INFO ("Read config %"PRIu32, config_get_tbl_sz());
+            LOG_INFO ("Read config %u", config_get_tbl_sz());
 
             err = recovery_send_response(dev, (uint8_t *) config_get_tbl(),
                                               config_get_tbl_sz());
@@ -507,7 +507,7 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
             }
 
-            LOG_INFO("Set key %"PRIu32" to %"PRIu32, cmd->arg0, cmd->arg1);
+            LOG_INFO("Set key %u to %u", cmd->arg0, cmd->arg1);
             err = config_set_uint32_t(cmd->arg0, cmd->arg1);
             if (err != PB_OK)
                 break;
@@ -518,7 +518,7 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             uint32_t config_val;
 
-            LOG_INFO("Reading key index %"PRIu32,cmd->arg0);
+            LOG_INFO("Reading key index %u",cmd->arg0);
 
             err = config_get_uint32_t(cmd->arg0, &config_val);
 
@@ -535,8 +535,8 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_read_data(dev, (uint8_t *) &wr_part,
                                     sizeof(struct pb_cmd_write_part));
             
-            LOG_INFO ("Writing %"PRIu32" blks to part %"PRIu32 \
-                        " with offset %8.8"PRIx32" using bfr %"PRIu32,
+            LOG_INFO ("Writing %u blks to part %u" \
+                        " with offset %x using bfr %u",
                         wr_part.no_of_blocks, wr_part.part_no,
                         wr_part.lba_offset, wr_part.buffer_id);
 
@@ -579,7 +579,7 @@ static void recovery_parse_command(struct usb_device *dev,
 
             for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
             {
-                LOG_INFO (" o %"PRIu32" - LA: 0x%8.8"PRIx32" OFF:0x%8.8"PRIx32,
+                LOG_INFO (" o %u - LA: 0x%x OFF:0x%x",
                                     i, 
                                     pbi->comp[i].load_addr_low,
                                     pbi->comp[i].component_offset);
@@ -630,7 +630,7 @@ static void recovery_parse_command(struct usb_device *dev,
 
             for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
             {
-                LOG_INFO("Loading component %"PRIu32", %"PRIu32" bytes",i, 
+                LOG_INFO("Loading component %u, %u bytes",i, 
                                         pbi->comp[i].component_size);
 
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
@@ -719,7 +719,7 @@ static void recovery_parse_command(struct usb_device *dev,
         }
         break;
         default:
-            LOG_ERR ("Got unknown command: %"PRIu32,cmd->cmd);
+            LOG_ERR ("Got unknown command: %u",cmd->cmd);
     }
     
     

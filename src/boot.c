@@ -1,9 +1,9 @@
+#include <stdio.h>
 #include <pb.h>
 #include <boot.h>
 #include <config.h>
 #include <gpt.h>
 #include <image.h>
-#include <tinyprintf.h>
 #include <board/config.h>
 #include <keys.h>
 #include <board.h>
@@ -30,7 +30,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     struct pb_component_hdr *dtb = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
 
-    struct pb_component_hdr *linux = 
+    struct pb_component_hdr *linux2 = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
 
     struct pb_component_hdr *atf = 
@@ -38,14 +38,14 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
 
     char part_uuid[37];
 
-    if (dtb && linux)
+    if (dtb && linux2)
     {
-        LOG_INFO(" LINUX %"PRIx32", DTB %"PRIx32, linux->load_addr_low, dtb->load_addr_low);
+        LOG_INFO(" LINUX %x, DTB %x", linux2->load_addr_low, dtb->load_addr_low);
     }
 
     if (atf)
     {
-        LOG_INFO("  ATF: 0x%8.8"PRIx32, atf->load_addr_low);
+        LOG_INFO("  ATF: 0x%x", atf->load_addr_low);
     }
 
     /* Parameter struct for ATF BL31 */
@@ -65,7 +65,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     bl33_ep.h.version = 1;
     bl33_ep.h.attr = 1;
     bl33_ep.spsr = 0x000003C9;
-    bl33_ep.pc = (uintptr_t) linux->load_addr_low;
+    bl33_ep.pc = (uintptr_t) linux2->load_addr_low;
     bl33_ep.args.arg0 = dtb->load_addr_low;
     bl33_ep.args.arg1 = 0;
 
@@ -74,8 +74,8 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     bl33_image.h.size = sizeof(struct atf_image_info);
     bl33_image.h.attr = 1;
 
-    bl33_image.image_base = (uintptr_t) linux->load_addr_low;
-    bl33_image.image_size = linux->component_size;
+    bl33_image.image_base = (uintptr_t) linux2->load_addr_low;
+    bl33_image.image_size = linux2->component_size;
 
     switch (system_index)
     {
@@ -144,7 +144,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
         arch_jump_atf((void *)(uintptr_t) atf->load_addr_low, 
                       (void *)(uintptr_t) &bl31_params);
     } else {
-        arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr_low, 
+        arch_jump_linux_dt((void *)(uintptr_t) linux2->load_addr_low, 
                            (void *)(uintptr_t) dtb->load_addr_low);
     }
 

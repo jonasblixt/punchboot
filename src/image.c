@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <pb.h>
 #include <image.h>
 #include <string.h>
-#include <tinyprintf.h>
 #include <plat.h>
 #include <io.h>
 #include <timing_report.h>

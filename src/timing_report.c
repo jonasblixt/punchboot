@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <pb.h>
 #include <plat.h>
 #include <timing_report.h>
-#include <tinyprintf.h>
 
 #if TIMING_REPORT >= 1
 
@@ -29,9 +29,9 @@ void tr_stamp(uint32_t kind)
 
 void tr_print_result(void)
 {
-    tfp_printf("Boot timing report:\n\r");
+    printf("Boot timing report:\n\r");
     for (uint32_t i = 0; i < TR_NO; i++)
-        tfp_printf("%s: %"PRIu32" us\n\r", kind_strings[i],
+        printf("%s: %"PRIu32" us\n\r", kind_strings[i],
                                     tr_stamps[i]);
 }
 #else

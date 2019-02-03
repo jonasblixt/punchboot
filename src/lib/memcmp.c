@@ -1,39 +1,24 @@
 /*
-** Copyright 2001, Travis Geiselbrecht. All rights reserved.
-** Distributed under the terms of the NewOS License.
-*/
-/*
- * Copyright (c) 2008 Travis Geiselbrecht
+ * Copyright (c) 2013-2018, ARM Limited and Contributors. All rights reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files
- * (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge,
- * publish, distribute, sublicense, and/or sell copies of the Software,
- * and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: BSD-3-Clause
  */
-#include <string.h>
 
-int
-memcmp(const void *cs, const void *ct, size_t count)
+#include <stddef.h>
+
+int memcmp(const void *s1, const void *s2, size_t len)
 {
-    const unsigned char *su1, *su2;
-    signed char res = 0;
+	const unsigned char *s = s1;
+	const unsigned char *d = s2;
+	unsigned char sc;
+	unsigned char dc;
 
-    for (su1 = cs, su2 = ct; 0 < count; ++su1, ++su2, count--)
-        if ((res = *su1 - *su2) != 0)
-            break;
-    return res;
+	while (len--) {
+		sc = *s++;
+		dc = *d++;
+		if (sc - dc)
+			return (sc - dc);
+	}
+
+	return 0;
 }

@@ -7,11 +7,10 @@
  *
  */
 
-
+#include <stdio.h>
 #include <gpt.h>
 #include <plat.h>
 #include <crc.h>
-#include <tinyprintf.h>
 #include <string.h>
 #include <uuid.h>
 
@@ -212,7 +211,7 @@ uint32_t gpt_write_tbl(void)
 
     /* Write primary GPT Table */
 
-    LOG_INFO("writing primary gpt tbl to lba %" PRIu64, _gpt1.hdr.current_lba);
+    LOG_INFO("writing primary gpt tbl to lba %llu", _gpt1.hdr.current_lba);
     err = plat_write_block(_gpt1.hdr.current_lba,(uintptr_t) &_gpt1, 
                     sizeof(struct gpt_primary_tbl) / 512);
 
@@ -234,7 +233,7 @@ uint32_t gpt_write_tbl(void)
 
     /* Write backup GPT table */
 
-    LOG_INFO("Writing backup GPT tbl to LBA %"PRIu64, _gpt2.hdr.entries_start_lba);
+    LOG_INFO("Writing backup GPT tbl to LBA %llu", _gpt2.hdr.entries_start_lba);
     err = plat_write_block(_gpt2.hdr.entries_start_lba, (uintptr_t) &_gpt2,
             sizeof(struct gpt_backup_tbl) / 512);
 
@@ -284,8 +283,8 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
 
         gpt_part_name(&part[i], tmp_string, sizeof(tmp_string));
 
-        LOG_INFO2 (" %"PRIu32" - [%16s] lba 0x%8.8"PRIx32"%8.8"PRIx32 \
-                    " - 0x%8.8"PRIx32"%8.8"PRIx32"\n\r",
+        LOG_INFO2 (" %u - [%16s] lba 0x%x%x" \
+                    " - 0x%x%x\n\r",
                         i,
                         tmp_string,
                         (uint32_t) (part[i].first_lba >> 32) & 0xFFFFFFFF,

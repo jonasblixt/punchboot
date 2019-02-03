@@ -6,12 +6,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
-
+#include <stdio.h>
 #include <pb.h>
 #include <usb.h>
 #include <plat.h>
 #include <board.h>
-#include <tinyprintf.h>
 #include <string.h>
 #include <inttypes.h>
 

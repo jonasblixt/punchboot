@@ -20,16 +20,18 @@ else
 	TIMING_REPORT=0
 endif
 
-CFLAGS   = -Wall -Wextra -pedantic -std=c11 -Wunused-result -O2
+CFLAGS   = -Wall -Wextra -pedantic -std=gnu99 -Wunused-result -Os
 CFLAGS  += -nostdlib -nostartfiles
+CFLAGS  += -ffunction-sections -fdata-sections -fno-omit-frame-pointer
 CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/pb
-CFLAGS  += -DTINYPRINTF_OVERRIDE_LIBC=0
+CFLAGS  += -I include/pb/libc
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
 CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
+CFLAGS  += -DLTC_NO_FILE
 CFLAGS  += -I 3pp/fdt/include
 
 LIBS     = 
@@ -58,8 +60,11 @@ C_SRCS  += lib/strcmp.c
 C_SRCS  += lib/uuid.c
 C_SRCS  += lib/memset.c
 C_SRCS  += lib/strlen.c
+C_SRCS  += lib/printf.c
+C_SRCS  += lib/snprintf.c
+C_SRCS  += lib/putchar.c
+C_SRCS  += lib/puts.c
 C_SRCS  += usb.c
-C_SRCS  += tinyprintf.c
 C_SRCS  += image.c
 # Lib fdt
 C_SRCS  += 3pp/fdt/fdt.c
@@ -92,11 +97,6 @@ AR=$(CROSS_COMPILE)ar
 SIZE=$(CROSS_COMPILE)size
 STRIP=$(CROSS_COMPILE)strip
 OBJCOPY=$(CROSS_COMPILE)objcopy
-
-
-SYS_ROOT_PATH = $(shell ${CC} -print-sysroot)
-
-CFLAGS  += -isystem $(SYS_ROOT_PATH)/usr/lib/include
 
 LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY) 
 LDFLAGS += -Tarch/$(PB_ARCH_NAME)/link.lds

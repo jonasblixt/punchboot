@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <pb.h>
 #include <uuid.h>
-#include <tinyprintf.h>
 
 typedef union 
 {
@@ -20,7 +20,7 @@ uint32_t uuid_to_string(uint8_t *uuid, char *out)
 {
     uuid_t *u = (uuid_t *) uuid;
 
-    tfp_sprintf(out, "%8.8"PRIx32"-%4.4X-%4.4X-%2.2X%2.2X-%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X",
+    snprintf(out,40, "%x-%4.4X-%4.4X-%2.2X%2.2X-%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X",
         u->time_low,
         u->time_mid,
         u->time_hi_and_version,

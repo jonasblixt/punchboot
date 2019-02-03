@@ -6,12 +6,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
-
+#include <stdio.h>
 #include <config.h>
 #include <plat.h>
 #include <gpt.h>
 #include <crc.h>
-#include <tinyprintf.h>
 
 static uint8_t _flag_config_ok = false;
 static uint32_t _config_lba_offset = 0;
@@ -55,9 +54,9 @@ uint32_t config_init(void)
     if ((crc32 (0, (uint8_t *)_config_data.data, _config_tot_size) 
             == _config_data.crc) && (_config_data._magic == PB_CONFIG_MAGIC) ) 
     {
-       LOG_INFO ("Found valid config, %"PRIu32" bytes", _config_tot_size);
+       LOG_INFO ("Found valid config, %u bytes", _config_tot_size);
     } else {
-        LOG_WARN ("CRC 0x%8.8"PRIx32, _config_data.crc);
+        LOG_WARN ("CRC 0x%x", _config_data.crc);
         LOG_WARN ("Corrupt config, installing default...");
         n = 0;
         do
@@ -122,8 +121,8 @@ uint32_t config_commit(void)
 
     plat_write_block(_config_lba_offset, (uintptr_t) &_config_data, 1);
 
-    LOG_INFO ("LBA offset = 0x%8.8"PRIx32, _config_lba_offset);
-    LOG_INFO ("Wrote %"PRIu32" bytes, CRC: 0x%8.8"PRIx32, _config_tot_size,
+    LOG_INFO ("LBA offset = 0x%x", _config_lba_offset);
+    LOG_INFO ("Wrote %x bytes, CRC: 0x%x", _config_tot_size,
                                                 _config_data.crc);
 
     return PB_OK;
