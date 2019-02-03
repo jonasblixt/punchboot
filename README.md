@@ -70,18 +70,18 @@ Supported architectures:
 | Architecture | Supported               |
 | ------------ | ----------------------- |
 | armv7a       | Yes                     |
-| armv8        | Planned                 |
+| armv8a       | Yes                     |
 
 Supported platforms:
 
-| Platform        | Supported            |
-| --------------- | -------------------- |
-| NXP imx6ul      | Yes                  |
-| NXP imx8m       | Planned              |
-| NXP imx8x       | Planned              |
-| Rockchip RK3399 | Planned              |          
-| Allwinner H3    | Planned              |
-| Allwinner H5    | Planned              |
+| Platform        | Supported            | USB | EMMC | HW Crypto | Secure Boot | Fusebox |
+| --------------- | -------------------- | --- | ---- | --------- | ----------- | ------- |
+| NXP imx6ul      | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
+| NXP imx8m       | Yes                  | Yes | Yes  | Yes       | No          | Yes     |
+| NXP imx8x       | Yes                  | Yes | Yes  | No        | No          | No      |
+| Rockchip RK3399 | Planned              |     |      |           |             |         |
+| Allwinner H3    | Planned              |     |      |           |             |         |
+| Allwinner H5    | Planned              |     |      |           |             |         |
 
 
 Supportd boards:
@@ -90,7 +90,8 @@ Supportd boards:
 | -------------------- | ----------------------- | --------- |
 | Jiffy                | Fully supported         | TBA       |
 | Bebop                | Fully supported         | TBA       |
-| Wandboard PI-8M-LITE | Planned                 | https://www.wandboard.org/products/wandpi-8m/wand-pi-8m-lite/ |
+| Technexion PICO-IMX8M| Partial support         | https://www.technexion.com/products/system-on-modules/pico/pico-compute-modules/detail/PICO-IMX8M |
+| Rockpro64            | Planned                 | https://www.pine64.org/?page_id=61454 |
 | NanoPi-NEO-core      | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core_Feature.html |
 | NanoPi-NEO-core2     | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core2_Feature.html |
 
