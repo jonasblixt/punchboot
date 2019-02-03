@@ -4,9 +4,6 @@
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
- * This code is derived from software contributed to Berkeley by
- * Chris Torek.
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -37,16 +34,20 @@
  * All rights reserved.
  */
 
+#include <stddef.h>
 #include <string.h>
 
-/*
- * Compare strings.
- */
-int
-strcmp(const char *s1, const char *s2)
+char *
+strchr(const char *p, int ch)
 {
-	while (*s1 == *s2++)
-		if (*s1++ == '\0')
-			return (0);
-	return (*(const unsigned char *)s1 - *(const unsigned char *)(s2 - 1));
+	char c;
+
+	c = ch;
+	for (;; ++p) {
+		if (*p == c)
+			return ((char *)p);
+		if (*p == '\0')
+			return (NULL);
+	}
+	/* NOTREACHED */
 }

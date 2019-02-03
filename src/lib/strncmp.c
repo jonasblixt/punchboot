@@ -1,11 +1,8 @@
 /*-
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * Copyright (c) 1990, 1993
+ * Copyright (c) 1989, 1993
  *	The Regents of the University of California.  All rights reserved.
- *
- * This code is derived from software contributed to Berkeley by
- * Chris Torek.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,14 +36,18 @@
 
 #include <string.h>
 
-/*
- * Compare strings.
- */
 int
-strcmp(const char *s1, const char *s2)
+strncmp(const char *s1, const char *s2, size_t n)
 {
-	while (*s1 == *s2++)
+
+	if (n == 0)
+		return (0);
+	do {
+		if (*s1 != *s2++)
+			return (*(const unsigned char *)s1 -
+				*(const unsigned char *)(s2 - 1));
 		if (*s1++ == '\0')
-			return (0);
-	return (*(const unsigned char *)s1 - *(const unsigned char *)(s2 - 1));
+			break;
+	} while (--n != 0);
+	return (0);
 }
