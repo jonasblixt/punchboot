@@ -41,6 +41,8 @@ static uint32_t dwc3_command(struct dwc3_device *dev,
     if (ep > 7)
         return PB_ERR;
 
+    LOG_DBG("cmd %u, ep %u, p0 %x, p1 %x, p2 %x",
+                cmd,ep,p0,p1,p2);
 
     uint32_t param0_addr = DWC3_DEPCMDPAR0_0 + 0x10*ep;
     uint32_t param1_addr = DWC3_DEPCMDPAR1_0 + 0x10*ep;
@@ -220,9 +222,9 @@ uint32_t dwc3_init(struct dwc3_device *dev)
 
     /* Reset usb controller */
     pb_setbit32(1<<30, dev->base + DWC3_DCTL);
-    LOG_DBG("reset");
-    while (pb_read32(dev->base + DWC3_DCTL) & (1<<30))
-        __asm__("nop");
+
+    while (pb_read32(dev->base + DWC3_DCTL) & (1<<30) == (1<<30))
+        __asm__ ("nop");
 
     pb_clrbit32(DWC3_GCTL_SCALEDOWN_MASK, dev->base + DWC3_GCTL);
     pb_clrbit32(1<<17,dev->base + DWC3_GCTL);

@@ -283,8 +283,8 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
 
         gpt_part_name(&part[i], tmp_string, sizeof(tmp_string));
 
-        LOG_INFO2 (" %u - [%s] lba 0x%llx" \
-                    " - 0x%llx\n\r",
+        LOG_INFO2 (" %u - [%s] lba 0x%016llx" \
+                    " - 0x%016llx\n\r",
                         i,
                         tmp_string,
                         part[i].first_lba,
