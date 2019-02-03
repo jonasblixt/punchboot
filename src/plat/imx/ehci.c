@@ -242,7 +242,6 @@ void ehci_usb_task(struct usb_device *dev)
     if  (pb_read32(ehci->base+EHCI_ENDPTSETUPSTAT) & 1)
     {
 
-        LOG_DBG("EP1");
         uint32_t cmd_reg = pb_read32(ehci->base+EHCI_CMD);
         struct ehci_queue_head *qh = ehci_get_queue(USB_EP0_OUT);
 
@@ -278,7 +277,7 @@ void ehci_usb_task(struct usb_device *dev)
     if (sts & 2) 
     {
         pb_write32 (2, ehci->base+EHCI_USBSTS);
-        LOG_ERR ("EHCI: Error %lx",sts);
+        LOG_ERR ("EHCI: Error %x",sts);
         //dev->on_error(dev, sts);
     }
 }

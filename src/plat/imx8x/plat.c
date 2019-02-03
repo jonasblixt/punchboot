@@ -211,13 +211,15 @@ uint32_t  plat_usb_init(struct usb_device *dev)
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_USB_0, SC_PM_PW_MODE_ON);
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
 
+
+
+    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
+
     /* Enable USB PLL */
-    pb_write32((1<<6) |(1 << 12) | (1 << 13) | (1 << 21), 0x5B100000+0xa0);
+    pb_write32(0x00E03040, 0x5B100000+0xa0);
 
     /* Power up USB */
     pb_write32(0x00, 0x5B100000);
-    pb_write32(0x00, 0x5B100030);
-
     LOG_DBG("usb pll: 0x%x",pb_read32(0x5B100000+0xa0));
     return ehci_usb_init(dev);
 }

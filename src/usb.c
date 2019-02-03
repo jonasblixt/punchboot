@@ -128,7 +128,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
     volatile uint16_t request;
     request = (setup->bRequestType << 8) | setup->bRequest;
 
-    LOG_DBG ("EP0 %4.4X %4.4X %ib", request, setup->wValue, setup->wLength);
+    LOG_DBG ("EP0 %x %x %ub", request, setup->wValue, setup->wLength);
 
     uint16_t sz = 0;
     uint16_t device_status = 0;
@@ -137,7 +137,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
     {
         case USB_GET_DESCRIPTOR:
         {
-            LOG_DBG("Get descriptor 0x%4.4X", setup->wValue);
+            LOG_DBG("Get descriptor 0x%x", setup->wValue);
 
             if(setup->wValue == 0x0600) 
             {
@@ -181,7 +181,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
                 usb_send_ep0(dev, (uint8_t *) &descriptors.interface, sz);
                 
             } else {
-                LOG_ERR ("Unhandeled descriptor 0x%4.4X", setup->wValue);
+                LOG_ERR ("Unhandeled descriptor 0x%x", setup->wValue);
             }
         }
         break;
@@ -212,12 +212,12 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
         break;
         default:
         {
-            LOG_ERR ("EP0 Unhandled request %4.4x",request);
-            LOG_ERR (" bRequestType = 0x%2.2x", setup->bRequestType);
-            LOG_ERR (" bRequest = 0x%2.2x", setup->bRequest);
-            LOG_ERR (" wValue = 0x%4.4x", setup->wValue);
-            LOG_ERR (" wIndex = 0x%4.4x",setup->wIndex);
-            LOG_ERR (" wLength = 0x%4.4x",setup->wLength);
+            LOG_ERR ("EP0 Unhandled request %x",request);
+            LOG_ERR (" bRequestType = 0x%x", setup->bRequestType);
+            LOG_ERR (" bRequest = 0x%x", setup->bRequest);
+            LOG_ERR (" wValue = 0x%x", setup->wValue);
+            LOG_ERR (" wIndex = 0x%x",setup->wIndex);
+            LOG_ERR (" wLength = 0x%x",setup->wLength);
         }
     }
 
@@ -229,7 +229,7 @@ void usb_on_command(struct usb_device *dev, struct pb_cmd_header *cmd)
     UNUSED(dev);
     UNUSED(cmd);
 
-    LOG_ERR ("Unhandeled command 0x%8.8"PRIx32,cmd->cmd);
+    LOG_ERR ("Unhandeled command 0x%x",cmd->cmd);
 }
 
 uint32_t usb_init(void)
