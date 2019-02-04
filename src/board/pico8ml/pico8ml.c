@@ -197,7 +197,7 @@ bool board_force_recovery(void)
 uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
 {
     snprintf (buf, 255,"console=ttymxc0,115200 " \
-        "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
+        /*"earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \*/
         "quiet " \
         "cma=768M " \
         "root=PARTUUID=%s " \
