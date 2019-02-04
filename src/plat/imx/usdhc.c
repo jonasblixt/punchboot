@@ -182,10 +182,21 @@ uint32_t usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
     uint32_t err;
     uint8_t value = part_config & ~0x07;
     value |= part_no;
-    
-    if (part_no == 0) 
-        value = 0x10;
 
+    switch (part_no)
+    {
+        case PLAT_EMMC_PART_BOOT0:
+            value = 0x11;
+        break;
+        case PLAT_EMMC_PART_BOOT1:
+            value = 0x0A;
+        break;
+        case PLAT_EMMC_PART_USER:
+            value = 0x08;
+        break;
+        default:
+            return PB_ERR;
+    }
 
     /* Switch active partition */
     err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 

@@ -48,7 +48,7 @@ plat_final:
 	@mkimage_imx8 -commit > head.hash
 	@cat pb.bin head.hash > pb_hash.bin
 	@mkimage_imx8 -soc QX -rev B0 \
-				  -append /work/firmware-imx-8.0/firmware/seco/mx8qx-ahab-container.img \
-				  -c -scfw /work/acu6c-boot/acu6c-scfw/build_mx8qx_b0/scfw_tcm.bin \
+				  -append mx8qx-ahab-container.img \
+				  -c -scfw scfw_tcm.bin \
 				  -ap pb_hash.bin a35 0x80000000 -out pb.imx
 
