@@ -178,18 +178,16 @@ static uint32_t usdhc_emmc_read_extcsd(struct usdhc_device *dev)
 uint32_t usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no) 
 {
 
-    uint8_t part_config = _raw_extcsd[EXT_CSD_PART_CONFIG];
     uint32_t err;
-    uint8_t value = part_config & ~0x07;
-    value |= part_no;
+    uint8_t value = 0;
 
     switch (part_no)
     {
         case PLAT_EMMC_PART_BOOT0:
-            value = 0x11;
+            value = 0x01;
         break;
         case PLAT_EMMC_PART_BOOT1:
-            value = 0x0A;
+            value = 0x02;
         break;
         case PLAT_EMMC_PART_USER:
             value = 0x08;

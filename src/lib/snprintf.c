@@ -63,7 +63,7 @@ static int unsigned_num_print(char **s,
 		if (rem < 0xa)
 			num_buf[i] = '0' + rem;
 		else
-			num_buf[i] = 'a' + (rem - 0xa);
+			num_buf[i] = 'A' + (rem - 0xa);
 		i++;
 		unum /= radix;
 	} while (unum > 0U);
