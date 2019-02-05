@@ -18,7 +18,7 @@
 static struct usdhc_device usdhc0;
 static struct gp_timer tmr0;
 static struct dwc3_device *dwc30;
-static __no_bss struct fsl_caam caam;
+static __no_bss struct fsl_caam_jr caam;
 static struct ocotp_dev ocotp;
 static struct imx_wdog_device wdog_device;
 static struct imx_uart_device uart_device;
@@ -221,7 +221,7 @@ uint32_t  plat_early_init(void)
         return err;
     }
 
-    caam.base = 0x30900000;
+    caam.base = 0x30901000;
     err = caam_init(&caam);
 
     if (err != PB_OK)

@@ -32,6 +32,7 @@ PLAT_C_SRCS  += plat/imx8x/sci/mx8_mu.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/pad/pad_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/pm/pm_rpc_clnt.c
 
+CFLAGS += -D__PLAT_IMX8X__
 CFLAGS += -I plat/imx8x/include
 
 $(eval PB_SRKS=$(shell hexdump -e '/4 "0x"' -e '/4 "%X"",\n"' < $(SRK_FUSE_BIN)))
@@ -49,6 +50,6 @@ plat_final:
 	@cat pb.bin head.hash > pb_hash.bin
 	@mkimage_imx8 -soc QX -rev B0 \
 				  -append mx8qx-ahab-container.img \
-				  -c -scfw scfw_tcm.bin \
+				  -c -scfw scfw_tcm_acu6c_b0.bin \
 				  -ap pb_hash.bin a35 0x80000000 -out pb.imx
 

@@ -15,7 +15,7 @@
 
 static struct ocotp_dev ocotp;
 static struct gp_timer platform_timer;
-static struct fsl_caam caam;
+static struct fsl_caam_jr caam;
 static struct usdhc_device usdhc0;
 static struct imx_uart_device uart0;
 
@@ -287,7 +287,7 @@ uint32_t plat_early_init(void)
     }
 
     /* Configure CAAM */
-    caam.base = 0x02140000;
+    caam.base = 0x02141000;
 
     if (caam_init(&caam) != PB_OK)
         return PB_ERR;

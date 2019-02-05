@@ -8,6 +8,7 @@
 #include <plat/imx/usdhc.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/ehci.h>
+#include <plat/imx/caam.h>
 #include <plat/sci/ipc.h>
 #include <plat/sci/sci.h>
 #include <plat/imx8qxp_pads.h>
@@ -34,6 +35,7 @@
 static struct usdhc_device usdhc0;
 static struct gp_timer tmr0;
 static struct lpuart_device uart_device;
+static __no_bss struct fsl_caam_jr caam;
 
 sc_ipc_t ipc_handle;
 
@@ -146,6 +148,24 @@ uint32_t  plat_early_init(void)
     }
 
 
+	sc_pm_set_resource_power_mode(ipc_handle, 
+                                SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
+	sc_pm_set_resource_power_mode(ipc_handle, 
+                                SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
+	sc_pm_set_resource_power_mode(ipc_handle, 
+                                SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
+	sc_pm_set_resource_power_mode(ipc_handle, 
+                                SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
+
+
+    caam.base = 0x31430000;
+    err = caam_init(&caam);
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not initialize CAAM");
+        return err;
+    }
     return err;
 }
 
@@ -186,19 +206,23 @@ uint64_t plat_get_lastlba(void)
 /* Crypto Interface */
 uint32_t  plat_sha256_init(void)
 {
+    return caam_sha256_init();
 }
 
 uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz)
 {
+    return caam_sha256_update((uint8_t *)bfr,sz);
 }
 
 uint32_t  plat_sha256_finalize(uintptr_t out)
 {
+    return caam_sha256_finalize((uint8_t *) out);
 }
 
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
                         struct asn1_key *k)
 {
+    return caam_rsa_enc(sig, sig_sz, out, k);
 }
 
 /* USB Interface API */

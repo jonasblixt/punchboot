@@ -78,7 +78,7 @@ Supported platforms:
 | --------------- | -------------------- | --- | ---- | --------- | ----------- | ------- |
 | NXP imx6ul      | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
 | NXP imx8m       | Yes                  | Yes | Yes  | Yes       | No          | Yes     |
-| NXP imx8x       | Yes                  | Yes | Yes  | No        | No          | No      |
+| NXP imx8x       | Yes                  | Yes | Yes  | Yes       | No          | No      |
 | Rockchip RK3399 | Planned              |     |      |           |             |         |
 | Allwinner H3    | Planned              |     |      |           |             |         |
 | Allwinner H5    | Planned              |     |      |           |             |         |
