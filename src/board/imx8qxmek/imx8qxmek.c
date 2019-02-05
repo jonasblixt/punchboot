@@ -133,9 +133,8 @@ bool board_force_recovery(void)
 
 uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
 {
-    snprintf (buf, 512,"console=ttymxc0,115200 " \
-        "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
-        "cma=768M " \
+    snprintf (buf, 512,"console=ttyLP0,115200  " \
+        "earlycon=lpuart32,0x5a060000,115200 earlyprintk " \
         "root=PARTUUID=%s " \
         "rw rootfstype=ext4 gpt rootwait", boot_part_uuid);
 
