@@ -511,5 +511,6 @@ uint32_t usdhc_emmc_switch_part(struct usdhc_device *dev,
                                 uint8_t part_no);
 uint32_t usdhc_emmc_init(struct usdhc_device *dev);
 
+void usdhc_emmc_reset(struct usdhc_device *dev);
 
 #endif

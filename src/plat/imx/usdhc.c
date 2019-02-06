@@ -504,6 +504,12 @@ static uint32_t usdhc_setup_hs(struct usdhc_device *dev)
     return PB_OK;
 }
 
+void usdhc_emmc_reset(struct usdhc_device *dev) 
+{
+    /* Reset usdhc controller */
+    pb_setbit32((1 << 28) | (1 << 24), dev->base + USDHC_SYS_CTRL);
+}
+
 uint32_t usdhc_emmc_init(struct usdhc_device *dev) 
 {
     uint32_t err;
