@@ -32,6 +32,9 @@ PLAT_C_SRCS  += plat/imx8x/sci/mx8_mu.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/pad/pad_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/pm/pm_rpc_clnt.c
 
+PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
+
+
 CFLAGS += -D__PLAT_IMX8X__
 CFLAGS += -I plat/imx8x/include
 
