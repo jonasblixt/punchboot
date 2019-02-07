@@ -3,8 +3,8 @@ MEMORY
 {
     reset(rx)   : ORIGIN = 0x80000000, LENGTH = 128K
     pbram (rx)  : ORIGIN = 0x80020000, LENGTH = 256K
-    pbram2 (rx) : ORIGIN = 0xa0060000, LENGTH = 256K
-    dram (rx)   : ORIGIN = 0xa0080000, LENGTH = 128M
+    pbram2 (rx) : ORIGIN = 0x80060000, LENGTH = 256K
+    dram (rx)   : ORIGIN = 0x800a0000, LENGTH = 128M
 
 }
 
@@ -23,7 +23,9 @@ SECTIONS
 
 	.imx8x_reset :
  	{
-		*(.imx8x_reset)
+        PROVIDE (_imx8x_start = .);
+		*(.text.imx8x_reset)
         . = ALIGN(8);
+        PROVIDE (_imx8x_end = .);
     } > reset
 }

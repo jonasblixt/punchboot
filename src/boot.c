@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pb.h>
+#include <io.h>
 #include <boot.h>
 #include <config.h>
 #include <gpt.h>
@@ -137,6 +138,8 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     
     LOG_DBG("Done");
 
+    plat_preboot_cleanup();
+
     tr_stamp(TR_FINAL);
     tr_print_result();
 
@@ -149,7 +152,8 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
                            (void *)(uintptr_t) dtb->load_addr_low);
     }
 
-    while(1);
+    while(1)
+        __asm__ ("nop");
 }
 
 uint32_t pb_boot_image(struct pb_pbi *pbi, uint8_t system_index)

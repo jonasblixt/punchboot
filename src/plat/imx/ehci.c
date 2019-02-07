@@ -55,7 +55,7 @@ static void ehci_reset(struct ehci_device *dev)
    
     LOG_DBG("Wait for port reset");
     /* Wait for port to come out of reset */
-    while (pb_read32(dev->base+EHCI_PORTSC1) & (1<<8))
+    while ((pb_read32(dev->base+EHCI_PORTSC1) & (1<<8)) == (1 <<8))
         __asm__("nop");
   
 }
@@ -85,7 +85,7 @@ static void ehci_prime_ep(struct ehci_device *dev, uint32_t ep)
 
     pb_write32(epreg, dev->base + EHCI_ENDPTPRIME);
     
-    while (pb_read32(dev->base + EHCI_ENDPTPRIME) & epreg)
+    while ((pb_read32(dev->base + EHCI_ENDPTPRIME) & epreg) == epreg)
         __asm__("nop");
 }
 
@@ -166,15 +166,13 @@ uint32_t ehci_usb_init(struct usb_device *dev)
     uint32_t reg;
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
 
-    LOG_DBG ("Init...");
+    LOG_DBG ("Init... base: %x", ehci->base);
 
+    pb_setbit32(1<<1, ehci->base + EHCI_CMD);
 
+    LOG_DBG("Waiting for reset");
 
-    reg = pb_read32(ehci->base+EHCI_CMD);
-    reg |= (1<<1);
-    pb_write32(reg, ehci->base+EHCI_CMD);
-
-    while (pb_read32(ehci->base+EHCI_CMD) & (1<<1))
+    while ((pb_read32(ehci->base+EHCI_CMD) & (1<<1)) == (1 << 1))
         __asm__("nop");
     
     LOG_DBG("Reset complete");

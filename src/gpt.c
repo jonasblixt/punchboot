@@ -157,9 +157,6 @@ uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks,
         *part_name_ptr++ = part_name[i];
         *part_name_ptr++ = 0;
     }
-
-    //for (int i = 0; i < 16; i++) 
-    //    part->uuid[i] = gpt_prng();
     
     memcpy(part->type_uuid, type_uuid, 16);
     memcpy(part->uuid, type_uuid, 16);

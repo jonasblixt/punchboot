@@ -1,3 +1,15 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+#include <arch/armv8a/include/arch/arch.h>
+#include <arch/armv8a/asm_macros.S>
+
 .section .text
 
 .global arch_jump_linux_dt
@@ -15,6 +27,11 @@ arch_jump_atf:
     ldr x1, =0
     ldr x2, =0
     ldr x3, =0
+
+
+    ic ivau, x4
+    isb sy
+    dsb sy
 
     br x4
     b .

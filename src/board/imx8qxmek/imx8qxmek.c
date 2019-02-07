@@ -78,12 +78,12 @@ const struct fuse board_fuses[] =
 };
 
 
-static struct ehci_device ehcidev = 
+const static struct ehci_device ehcidev = 
 {
     .base = 0x5b0d0000,
 };
 
-static struct usb_device board_usbdev =
+const static struct usb_device board_usbdev =
 {
     .platform_data = &ehcidev,
 };
@@ -122,7 +122,16 @@ uint32_t board_get_debug_uart(void)
 
 uint32_t board_usb_init(struct usb_device **usbdev)
 {
-    *usbdev = &board_usbdev;
+    (*usbdev) = &board_usbdev;
+ 
+    LOG_INFO("%p %p", &board_usbdev, (*usbdev));
+    LOG_INFO("%p %p", board_usbdev.platform_data,
+                     (*usbdev)->platform_data);
+
+    struct ehci_device *e = (struct ehci_device *) 
+                                board_usbdev.platform_data;
+
+    LOG_INFO("%x",e->base); 
     return PB_OK;
 }
 

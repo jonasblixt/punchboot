@@ -12,9 +12,9 @@
 #include <arch/armv8a/asm_macros.S>
 
 
-.section .imx8x_reset
+.section .text.imx8x_reset
 .global _imx8x_reset
-
 _imx8x_reset:
     b _reset
+    b .
 

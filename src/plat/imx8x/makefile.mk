@@ -54,5 +54,5 @@ plat_final:
 	@mkimage_imx8 -soc QX -rev B0 \
 				  -append mx8qx-ahab-container.img \
 				  -c -scfw scfw_tcm.bin \
-				  -ap pb_hash.bin a35 $(PB_ENTRY) -out pb.imx
+				  -ap pb_hash.bin a35 0x80000000 -out pb.imx
 

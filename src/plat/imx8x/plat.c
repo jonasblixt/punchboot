@@ -17,13 +17,13 @@
 #define ESDHC_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
                          (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
                          (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-						 (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
+						 (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
                          (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
 #define ESDHC_CLK_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
                              (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
                              (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-						     (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
+						     (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
                              (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
 #define UART_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
@@ -89,6 +89,7 @@ uint32_t  plat_early_init(void)
 
     lpuart_init(&uart_device);
     
+    LOG_INFO("IMX8X init");
     /* Setup GPT0 */
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_GPT_0, SC_PM_PW_MODE_ON);
 	rate = 24000000;
@@ -109,10 +110,11 @@ uint32_t  plat_early_init(void)
 
     /* Setup USDHC0 */
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
-	rate = 400000000;
+	rate = 200000000;
 	sc_pm_set_clock_rate(ipc_handle, SC_R_SDHC_0, 2, &rate);
 
-	err = sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
+	err = sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, 
+                                true, false);
 
 	if (err != SC_ERR_NONE) 
     {
@@ -225,11 +227,21 @@ uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out,
     return caam_rsa_enc(sig, sig_sz, out, k);
 }
 
+void plat_preboot_cleanup(void)
+{
+    usdhc_emmc_reset(&usdhc0);
+
+	sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
+	sc_pm_set_resource_power_mode(ipc_handle, SC_R_SDHC_0, SC_PM_PW_MODE_OFF);
+}
+
 /* USB Interface API */
 uint32_t  plat_usb_init(struct usb_device *dev)
 {
     uint32_t err = PB_OK;
     uint32_t reg;
+
+
 	sc_pm_clock_rate_t rate = 166000000;
 
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_USB_0, SC_PM_PW_MODE_ON);
