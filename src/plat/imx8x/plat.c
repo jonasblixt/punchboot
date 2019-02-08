@@ -233,6 +233,8 @@ void plat_preboot_cleanup(void)
 
 	sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_SDHC_0, SC_PM_PW_MODE_OFF);
+
+	sc_pm_clock_enable(ipc_handle, SC_R_GPT_0, SC_PM_CLK_PER, false, false);
 }
 
 /* USB Interface API */

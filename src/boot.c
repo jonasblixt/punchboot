@@ -138,7 +138,6 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     
     LOG_DBG("Done");
 
-    plat_preboot_cleanup();
 
     tr_stamp(TR_FINAL);
     tr_print_result();
