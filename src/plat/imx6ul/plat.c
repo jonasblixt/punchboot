@@ -27,6 +27,8 @@ static struct imx_wdog_device wdog_device;
 void      plat_reset(void)
 {
     imx_wdog_reset_now();
+    while(1)    
+        __asm__("nop");
 }
 
 uint32_t  plat_get_us_tick(void)
