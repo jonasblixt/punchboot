@@ -55,5 +55,4 @@ plat_final:
 	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' pb.csf
 	@$(SED) -i -e 's#__IMG_PEM__#$(IMG_PEM)#g'  pb.csf
 	@$(CST_TOOL) --o pb_csf.bin --i pb.csf
-	@cat pb.imx pb_csf.bin > pb_signed.imx
 

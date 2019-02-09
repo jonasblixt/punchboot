@@ -15,14 +15,10 @@ IMX_USB         = imx_usb
 FINAL_IMAGE     = $(TARGET).imx
 
 board_final: $(TARGET).bin
-#	@objcopy -I binary -O binary --pad-to 0x8000 --gap-fill=0x0 board/pico8ml/lpddr4_pmu_train_1d_imem.bin lpddr4_pmu_train_1d_imem_pad.bin
-#	@objcopy -I binary -O binary --pad-to 0x4000 --gap-fill=0x0 board/pico8ml/lpddr4_pmu_train_1d_dmem.bin lpddr4_pmu_train_1d_dmem_pad.bin
-#	@objcopy -I binary -O binary --pad-to 0x8000 --gap-fill=0x0 board/pico8ml/lpddr4_pmu_train_2d_imem.bin lpddr4_pmu_train_2d_imem_pad.bin
-#	@cat lpddr4_pmu_train_1d_imem_pad.bin lpddr4_pmu_train_1d_dmem_pad.bin > lpddr4_pmu_train_1d_fw.bin
-#	@cat lpddr4_pmu_train_2d_imem_pad.bin board/pico8ml/lpddr4_pmu_train_2d_dmem.bin > lpddr4_pmu_train_2d_fw.bin
-#	@cat $(TARGET).bin lpddr4_pmu_train_1d_fw.bin lpddr4_pmu_train_2d_fw.bin > $(TARGET)-lpddr4.bin
-	$(MKIMAGE) -csf pb.csf -loader $(TARGET).bin $(PB_ENTRY) -out $(TARGET).imx 
-
+	$(MKIMAGE) -loader $(TARGET).bin $(PB_ENTRY) -out $(TARGET).imx 
+	$(eval PB_FILESIZE=$(shell stat -c%s "pb.imx"))
+	$(eval PB_FILESIZE2=$(shell echo " $$(( $(PB_FILESIZE) - 0x2000 ))" | bc	))
+	@dd if=pb_csf.bin of=pb.imx seek=$(PB_FILESIZE2) bs=1 conv=notrunc
 board_clean:
 	@-rm -rf board/pico8ml/*.o 
 	@-rm -rf *.imx
