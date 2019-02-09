@@ -1,6 +1,0 @@
-[submodule "src/3pp/libtomcrypt"]
-	path = src/3pp/libtomcrypt
-	url = https://github.com/libtom/libtomcrypt.git
-[submodule "src/3pp/libtommath"]
-	path = src/3pp/libtommath
-	url = https://github.com/libtom/libtommath.git
