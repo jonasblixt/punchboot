@@ -27,6 +27,28 @@ PLAT_C_SRCS  += plat/test/virtio_block.c
 PLAT_C_SRCS  += plat/test/test_fuse.c
 PLAT_C_SRCS  += plat/test/root_hash.c
 
+# BearSSL
+
+PLAT_C_SRCS  += 3pp/bearssl/sha2small.c
+PLAT_C_SRCS  += 3pp/bearssl/dec32be.c
+PLAT_C_SRCS  += 3pp/bearssl/enc32be.c
+PLAT_C_SRCS  += 3pp/bearssl/rsa_i62_pub.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_decode.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_decmod.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_ninv31.c
+PLAT_C_SRCS  += 3pp/bearssl/i62_modpow2.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_encode.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_bitlen.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_modpow2.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_tmont.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_muladd.c
+PLAT_C_SRCS  += 3pp/bearssl/i32_div32.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_sub.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_add.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_montmul.c
+PLAT_C_SRCS  += 3pp/bearssl/i31_fmont.c
+PLAT_C_SRCS  += 3pp/bearssl/ccopy.c
+
 PLAT_ASM_SRCS += plat/test/semihosting_call.S
 
 CFLAGS += -fprofile-arcs -ftest-coverage

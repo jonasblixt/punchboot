@@ -27,7 +27,7 @@ uint32_t virtio_mmio_init(struct virtio_device *d)
     if (pb_read32(d->base + VIRTIO_MMIO_VENDOR_ID) != d->vendor_id)
         return PB_ERR;
 
-    LOG_INFO ("Found VIRTIO @ 0x%8.8lX, type: 0x%2.2lX, vendor: 0x%8.8lX, version: %lu", d->base,
+    LOG_INFO ("Found VIRTIO @ 0x%08x, type: 0x%02x, vendor: 0x%08x, version: %u", d->base,
                 pb_read32(d->base + VIRTIO_MMIO_DEVICE_ID),
                 pb_read32(d->base + VIRTIO_MMIO_VENDOR_ID),
                 pb_read32(d->base + VIRTIO_MMIO_VERSION));
@@ -90,7 +90,7 @@ uint32_t virtio_mmio_init_queue(struct virtio_device *d,
     pb_write32(4096, d->base + VIRTIO_MMIO_QUEUE_ALIGN);
     pb_write32( ((uint32_t) q->desc) >> 12, d->base + VIRTIO_MMIO_QUEUE_PFN);
 
-    LOG_INFO ("Virtio Queue %lu init: %8.8lX, %8.8lX, %8.8lX",
+    LOG_INFO ("Virtio Queue %u init: %08x, %08x, %08x",
             q->queue_index, (uint32_t) q->desc,
             (uint32_t) q->avail, (uint32_t) q->used);
 

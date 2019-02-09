@@ -7,6 +7,7 @@
 #include <plat/test/virtio.h>
 #include <plat/test/virtio_block.h>
 #include <plat/test/test_fuse.h>
+#include <3pp/bearssl/bearssl_hash.h>
 
 static __a4k struct virtio_block_device virtio_block;
 static __a4k struct virtio_block_device virtio_block2;
