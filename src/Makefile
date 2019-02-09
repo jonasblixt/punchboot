@@ -175,10 +175,6 @@ clean: board_clean arch_clean plat_clean
 qemu:
 	@$(QEMU) $(QEMU_FLAGS) -kernel $(TARGET)
 
-reallyclean: clean
-	$(MAKE) -C 3pp/libtomcrypt clean
-	$(MAKE) -C 3pp/libtommath clean
-
 .DEFAULT_GOAL := all
 
 # Dependencies

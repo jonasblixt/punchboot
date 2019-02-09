@@ -55,4 +55,3 @@ CFLAGS += -fprofile-arcs -ftest-coverage
 
 plat_clean:
 	@-rm -rf plat/test/*.o plat/test/*.gcda plat/test/*.gcno
-	@make -C 3pp/libtommath clean
