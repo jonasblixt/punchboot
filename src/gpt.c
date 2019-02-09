@@ -99,6 +99,7 @@ uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba)
     prng_state = plat_get_us_tick();
 
     memset((uint8_t *) &_gpt1, 0, sizeof(struct gpt_primary_tbl));
+    memset((uint8_t *) &_gpt2, 0, sizeof(struct gpt_primary_tbl));
 
     hdr->signature = __gpt_header_signature;
     hdr->rev = 0x00010000;
