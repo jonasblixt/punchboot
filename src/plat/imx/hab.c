@@ -222,7 +222,20 @@ int hab_has_no_errors(void)
 
     result = hab_rvt_report_status(&config, &state);
 	LOG_INFO("configuration: 0x%x, state: 0x%x", config, state);
+    LOG_INFO(" result = %u", result);
 
+    while (hab_rvt_report_event(HAB_WARNING, index, _event_data, &bytes) 
+                                            == HAB_SUCCESS) 
+    {
+        LOG_WARN(" %x, event data:", index+1);
+
+        for (i = 0; i < bytes; i++) 
+            printf(" 0x%x", _event_data[i]);
+        printf("\n\r");
+
+        bytes = sizeof(_event_data);
+        index++;
+    }
     while (hab_rvt_report_event(HAB_FAILURE, index, _event_data, &bytes) 
                                             == HAB_SUCCESS) 
     {
@@ -231,11 +244,6 @@ int hab_has_no_errors(void)
         for (i = 0; i < bytes; i++) 
             printf(" 0x%x", _event_data[i]);
         printf("\n\r");
-
-        //printf("\n\r%s\r", sts_str[get_idx(hab_statuses, rec->contents[0])]);
-        //printf("%s\r", rsn_str[get_idx(hab_reasons, rec->contents[1])]);
-        //printf("%s\r", ctx_str[get_idx(hab_contexts, rec->contents[2])]);
-        //printf("%s\r", eng_str[get_idx(hab_engines, rec->contents[3])]);
 
         bytes = sizeof(_event_data);
         index++;
