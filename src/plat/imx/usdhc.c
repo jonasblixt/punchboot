@@ -282,7 +282,6 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
 
 static uint32_t usdhc_setup_hs200(struct usdhc_device *dev)
 {
-    uint32_t reg;
     uint32_t err;
 
     LOG_DBG("Switching to HS200 timing");

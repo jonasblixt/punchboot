@@ -76,7 +76,7 @@ static void ehci_prime_ep(struct ehci_device *dev, uint32_t ep)
     uint32_t epreg = 0;
     struct ehci_queue_head *qh = ehci_get_queue(ep);
 
-    qh->next = (uint32_t) dtds[ep];
+    qh->next = (uint32_t) (uintptr_t) dtds[ep];
  
     if (ep & 1)
         epreg = (1 << ((ep-1)/2 + 16));
@@ -116,7 +116,7 @@ uint32_t ehci_transfer(struct ehci_device *dev,
 
         for (int n = 0; n < 5; n++)
         {
-            dtd->page[n] = (uint32_t) data;
+            dtd->page[n] = (uint32_t)(uintptr_t) data;
             
             if (bytes_to_tx)
             {
@@ -139,7 +139,7 @@ uint32_t ehci_transfer(struct ehci_device *dev,
         {
             struct ehci_transfer_head *dtd_prev = dtd;
             dtd++;
-            dtd_prev->next = (uint32_t) dtd;
+            dtd_prev->next = (uint32_t)(uintptr_t) dtd;
         }
     }
     
@@ -163,10 +163,9 @@ void ehci_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
 
 uint32_t ehci_usb_init(struct usb_device *dev) 
 {
-    uint32_t reg;
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
 
-    LOG_DBG ("Init... base: %x", ehci->base);
+    LOG_DBG ("Init... base: %p", (void *) ehci->base);
 
     pb_setbit32(1<<1, ehci->base + EHCI_CMD);
 
@@ -189,7 +188,7 @@ uint32_t ehci_usb_init(struct usb_device *dev)
     LOG_DBG("EP's configured");
 
     /* Program QH top */
-    pb_write32((uint32_t) dqhs, ehci->base + EHCI_ENDPTLISTADDR); 
+    pb_write32((uint32_t)(uintptr_t) dqhs, ehci->base + EHCI_ENDPTLISTADDR); 
     
     LOG_DBG("QH loaded");
 

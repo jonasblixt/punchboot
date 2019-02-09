@@ -174,7 +174,8 @@ snprintf_loop:
                     padn = (padn * 10) + (ch - '0');
                     fmt++;
                 }
-                while(1);
+                while(1)
+                    __asm__ ("nop");
 			default:
 				/* Panic on any other format specifier. */
 				LOG_ERR("snprintf: specifier with ASCII code '%d' not supported.",

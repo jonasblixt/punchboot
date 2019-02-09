@@ -122,7 +122,7 @@ uint32_t config_commit(void)
     plat_write_block(_config_lba_offset, (uintptr_t) &_config_data, 1);
 
     LOG_INFO ("LBA offset = 0x%x", _config_lba_offset);
-    LOG_INFO ("Wrote %x bytes, CRC: 0x%x", _config_tot_size,
+    LOG_INFO ("Wrote %u bytes, CRC: 0x%x", _config_tot_size,
                                                 _config_data.crc);
 
     return PB_OK;

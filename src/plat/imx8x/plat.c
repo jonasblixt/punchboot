@@ -74,7 +74,6 @@ void plat_wdog_kick(void)
 
 uint32_t  plat_early_init(void)
 {
-    volatile uint32_t reg;
     uint32_t err = PB_OK;
 
     
@@ -269,16 +268,8 @@ void plat_preboot_cleanup(void)
 /* USB Interface API */
 uint32_t  plat_usb_init(struct usb_device *dev)
 {
-    uint32_t err = PB_OK;
-    uint32_t reg;
-
-
-	sc_pm_clock_rate_t rate = 166000000;
-
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_USB_0, SC_PM_PW_MODE_ON);
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
-
-
 
     pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
 
