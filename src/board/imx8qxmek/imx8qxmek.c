@@ -109,8 +109,8 @@ uint32_t board_configure_gpt_tbl(void)
 {
     gpt_add_part(1, 62768,  part_type_system_a, "System A");
     gpt_add_part(2, 62768,  part_type_system_b, "System B");
-    gpt_add_part(3, 512000, part_type_root_a,   "Root A");
-    gpt_add_part(4, 512000, part_type_root_b,   "Root B");
+    gpt_add_part(3, 0x40000, part_type_root_a,   "Root A");
+    gpt_add_part(4, 0x40000, part_type_root_b,   "Root B");
 
     return PB_OK;
 }
@@ -145,7 +145,7 @@ uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
     snprintf (buf, 512,"console=ttyLP0,115200  " \
         "earlycon=lpuart32,0x5a060000,115200 earlyprintk " \
         "root=PARTUUID=%s " \
-        "rw rootfstype=ext4 gpt rootwait", boot_part_uuid);
+        "ro rootfstype=ext4 gpt rootwait", boot_part_uuid);
 
     return PB_OK;
 }

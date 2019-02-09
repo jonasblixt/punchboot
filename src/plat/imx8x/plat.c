@@ -14,16 +14,28 @@
 #include <plat/imx8qxp_pads.h>
 #include <plat/iomux.h>
 
+
+#define LPCG_CLOCK_MASK         0x3U
+#define LPCG_CLOCK_OFF          0x0U
+#define LPCG_CLOCK_ON           0x2U
+#define LPCG_CLOCK_AUTO         0x3U
+#define LPCG_CLOCK_STOP         0x8U
+
+#define LPCG_ALL_CLOCK_OFF      0x00000000U
+#define LPCG_ALL_CLOCK_ON       0x22222222U
+#define LPCG_ALL_CLOCK_AUTO     0x33333333U
+#define LPCG_ALL_CLOCK_STOP     0x88888888U
+
 #define ESDHC_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
                          (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
                          (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-						 (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
+						 (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
                          (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
 #define ESDHC_CLK_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
                              (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
                              (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-						     (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
+						     (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
                              (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
 #define UART_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
@@ -110,8 +122,24 @@ uint32_t  plat_early_init(void)
 
     /* Setup USDHC0 */
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
+
+
+	sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, 
+                                false, false);
+
+    err = sc_pm_set_clock_parent(ipc_handle, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
+
+    if (err != SC_ERR_NONE)
+    {
+        LOG_ERR("usdhc set clock parent failed");
+        return PB_ERR;
+    }
+
 	rate = 200000000;
 	sc_pm_set_clock_rate(ipc_handle, SC_R_SDHC_0, 2, &rate);
+
+    if (rate != 200000000)
+        LOG_INFO("USDHC rate %u Hz", rate);
 
 	err = sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, 
                                 true, false);
@@ -119,8 +147,15 @@ uint32_t  plat_early_init(void)
 	if (err != SC_ERR_NONE) 
     {
 		LOG_ERR("SDHC_0 per clk enable failed!");
-		return err;
+		return PB_ERR;
 	}
+
+	/* Write to LPCG */
+	pb_write32(LPCG_ALL_CLOCK_ON, 0x5B200000);
+
+	/* Wait for clocks to start */
+	while ((pb_read32(0x5B200000) & LPCG_ALL_CLOCK_STOP) != 0U)
+        __asm__("nop");
 
 	sc_pad_set(ipc_handle, SC_P_EMMC0_CLK, ESDHC_CLK_PAD_CTRL);
 	sc_pad_set(ipc_handle, SC_P_EMMC0_CMD, ESDHC_PAD_CTRL);
@@ -229,12 +264,6 @@ uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out,
 
 void plat_preboot_cleanup(void)
 {
-    usdhc_emmc_reset(&usdhc0);
-
-	sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
-	sc_pm_set_resource_power_mode(ipc_handle, SC_R_SDHC_0, SC_PM_PW_MODE_OFF);
-
-	sc_pm_clock_enable(ipc_handle, SC_R_GPT_0, SC_PM_CLK_PER, false, false);
 }
 
 /* USB Interface API */
