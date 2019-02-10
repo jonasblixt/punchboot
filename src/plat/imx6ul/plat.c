@@ -209,6 +209,8 @@ uint32_t plat_early_init(void)
     uint32_t reg;
     uint32_t err;
 
+    plat_wdog_init();
+
     platform_timer.base = 0x02098000;
     platform_timer.pr = 24;
 
@@ -279,6 +281,7 @@ uint32_t plat_early_init(void)
     usdhc0.clk = 0x0101;
     usdhc0.bus_mode = USDHC_BUS_DDR52;
     usdhc0.bus_width = USDHC_BUS_8BIT;
+    usdhc0.boot_bus_cond = 0;
 
     err = usdhc_emmc_init(&usdhc0);
 

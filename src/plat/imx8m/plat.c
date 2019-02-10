@@ -102,6 +102,8 @@ uint32_t  plat_early_init(void)
     volatile uint32_t reg;
     uint32_t err;
 
+    plat_wdog_init();
+
     tmr0.base = 0x302D0000;
     tmr0.pr = 40;
 
@@ -212,6 +214,7 @@ uint32_t  plat_early_init(void)
     usdhc0.clk = 0x000F;
     usdhc0.bus_mode = USDHC_BUS_HS200;
     usdhc0.bus_width = USDHC_BUS_8BIT;
+    usdhc0.boot_bus_cond = 0;
 
     err = usdhc_emmc_init(&usdhc0);
 

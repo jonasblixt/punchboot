@@ -1,2 +1,0 @@
-#include <stdint.h>
-const uint32_t build_root_hash[8] ={0x5020C7D7, 0xBB62B945, 0xDD97C8BE, 0xDC6710DD, 0x2756B777, 0xEF43BC0A, 0x7185604B, 0x3F335991,};

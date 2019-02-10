@@ -520,8 +520,9 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     pb_setbit32((1 << 28) | (1 << 24), dev->base + USDHC_SYS_CTRL);
     dev->mix_shadow = 0;
 
-    while (pb_read32(dev->base + USDHC_SYS_CTRL) & (1<<24))
+    while ((pb_read32(dev->base + USDHC_SYS_CTRL) & (1<<24)) == (1 << 24))
         __asm__("nop");
+
 
     LOG_DBG("Done");
 
@@ -554,13 +555,14 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     {
         uint32_t pres_state = pb_read32(dev->base + USDHC_PRES_STATE);
 
-        if (pres_state & (1 << 3))
+        if ((pres_state & (1 << 3)) == (1 << 3))
             break;
     }
     LOG_DBG("Clocks started");
 
     /* Configure IRQ's */
     pb_write32(0xFFFFFFFF, dev->base + USDHC_INT_STATUS_EN);
+
 
     err = usdhc_emmc_send_cmd(dev,MMC_CMD_GO_IDLE_STATE, 0,MMC_RSP_NONE);
 
@@ -571,10 +573,9 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     {
         uint32_t pres_state = pb_read32(dev->base + USDHC_PRES_STATE);
 
-        if (pres_state & (1 << 3))
+        if ((pres_state & (1 << 3)) == (1 << 3))
             break;
     }
-
 
     LOG_DBG("Waiting for eMMC to power up");
     while (1) 
@@ -584,10 +585,10 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
         if (err != PB_OK)
             return err;
 
-        if ( pb_read32(dev->base+USDHC_CMD_RSP0) ==  0xC0FF8080) // Wait for eMMC to power up 
+        if ( (pb_read32(dev->base+USDHC_CMD_RSP0) ==  0xC0FF8080) ) // Wait for eMMC to power up 
             break;
     }
- 
+
     LOG_DBG ("Card reset complete");
     LOG_DBG("SEND CID");
 
@@ -664,6 +665,24 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     {
         LOG_ERR("Could not read ext CSD");
         return err;
+    }
+
+
+    LOG_DBG("boot bus cond: %x",_raw_extcsd[EXT_CSD_BOOT_BUS_CONDITIONS]);
+
+    
+    if ( (_raw_extcsd[EXT_CSD_BOOT_BUS_CONDITIONS] != dev->boot_bus_cond) )
+    {
+        err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH, 
+                    (MMC_SWITCH_MODE_WRITE_BYTE << 24) | 
+                    (EXT_CSD_BOOT_BUS_CONDITIONS) << 16 |
+                    (0x12) << 8,
+                    0x1B); // R1b
+
+        if (err != PB_OK)
+            return err;
+
+        LOG_INFO("Configured boot bus cond");
     }
 
 	dev->sectors =

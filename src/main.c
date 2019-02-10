@@ -26,7 +26,6 @@ void pb_main(void)
     bool flag_run_recovery = false;
     struct pb_pbi *pbi = NULL;
 
-    plat_wdog_init();
     tr_init();
 
     if (plat_early_init() != PB_OK)

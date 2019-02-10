@@ -140,6 +140,7 @@
 #define EXT_CSD_FW_CONFIG		169	/* R/W */
 #define EXT_CSD_BOOT_WP			173	/* R/W */
 #define EXT_CSD_ERASE_GROUP_DEF		175	/* R/W */
+#define EXT_CSD_BOOT_BUS_CONDITIONS 177
 #define EXT_CSD_PART_CONFIG		179	/* R/W */
 #define EXT_CSD_ERASED_MEM_CONT		181	/* RO */
 #define EXT_CSD_BUS_WIDTH		183	/* R/W */
@@ -497,6 +498,7 @@ struct usdhc_device
     uint32_t bus_mode;
     uint32_t bus_width;
     uint32_t mix_shadow;
+    uint8_t boot_bus_cond;
 };
 
 

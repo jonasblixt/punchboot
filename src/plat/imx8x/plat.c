@@ -64,12 +64,14 @@ uint32_t  plat_get_us_tick(void)
 
 void plat_wdog_init(void)
 {
-
-
+    sc_timer_set_wdog_timeout(ipc_handle, 15000);
+    sc_timer_set_wdog_action(ipc_handle,SC_RM_PT_ALL,SC_TIMER_WDOG_ACTION_BOARD);
+    sc_timer_start_wdog(ipc_handle, true);
 }
 
 void plat_wdog_kick(void)
 {
+    sc_timer_ping_wdog(ipc_handle);
 }
 
 uint32_t  plat_early_init(void)
@@ -78,6 +80,8 @@ uint32_t  plat_early_init(void)
 
     
 	sc_ipc_open(&ipc_handle, SC_IPC_BASE);
+    
+    plat_wdog_init();
 
 	/* Power up UART0 */
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_UART_0, SC_PM_PW_MODE_ON);
@@ -170,10 +174,11 @@ uint32_t  plat_early_init(void)
 	sc_pad_set(ipc_handle, SC_P_EMMC0_RESET_B, ESDHC_PAD_CTRL);
 
     usdhc0.base = 0x5B010000;
-    usdhc0.clk_ident = 0x20EF;
+    usdhc0.clk_ident = 0x08EF;
     usdhc0.clk = 0x000F;
     usdhc0.bus_mode = USDHC_BUS_HS200;
     usdhc0.bus_width = USDHC_BUS_8BIT;
+    usdhc0.boot_bus_cond = 0x12; /* Enable fastboot 8-bit DDR */
 
     err = usdhc_emmc_init(&usdhc0);
 
@@ -202,6 +207,34 @@ uint32_t  plat_early_init(void)
         LOG_ERR("Could not initialize CAAM");
         return err;
     }
+
+    
+    extern const struct fuse board_fuses[];
+    err = plat_fuse_read(board_fuses);
+
+    if (err != PB_OK)
+        LOG_ERR("Could not read boot fuse");
+
+    LOG_INFO("Boot fuse : %08x", board_fuses[0].value);
+
+
+    uint32_t reg;
+
+    err = sc_misc_otp_fuse_read(ipc_handle, 19, &reg);
+
+    if (err != SC_ERR_NONE)
+        return PB_ERR;
+
+    LOG_INFO("Boot config: %08x", reg);
+
+    if (reg == 0)
+    {
+        err = sc_misc_otp_fuse_write(ipc_handle, 19, 0x25);
+
+        if (err != SC_ERR_NONE)
+            LOG_ERR("Could not write fuse!");
+    }
+
     return err;
 }
 
@@ -321,8 +354,19 @@ void plat_uart_putc(void *ptr, char c)
 /* FUSE Interface */
 uint32_t  plat_fuse_read(struct fuse *f)
 {
-    UNUSED(f);
-    return PB_ERR;
+    sc_err_t err;
+
+    if (!(f->status & FUSE_VALID))
+        return PB_ERR;
+
+    if (!f->addr)
+    {
+        f->addr = f->bank;
+    }
+
+    err = sc_misc_otp_fuse_read(ipc_handle, f->addr, (uint32_t *) &(f->value));
+
+    return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
 
 uint32_t  plat_fuse_write(struct fuse *f)

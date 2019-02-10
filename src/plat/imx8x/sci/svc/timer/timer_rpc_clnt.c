@@ -15,10 +15,10 @@
 
 /* Includes */
 
-#include <sci/types.h>
-#include <sci/svc/rm/api.h>
-#include <sci/svc/timer/api.h>
-#include <sci/rpc.h>
+#include <stdint.h>
+#include <plat/sci/svc/rm/api.h>
+#include <plat/sci/svc/timer/api.h>
+#include <plat/sci/rpc.h>
 #include <stdlib.h>
 #include "rpc.h"
 

@@ -41,6 +41,7 @@
 #include <plat/sci/svc/pm/api.h>
 #include <plat/sci/svc/rm/api.h>
 #include <plat/sci/svc/timer/api.h>
+#include <plat/sci/svc/misc/api.h>
 
 #define MU_BASE_ADDR(id)	((0x5D1B0000UL + (id*0x10000)))
 #define SC_IPC_AP_CH0       	(MU_BASE_ADDR(0))

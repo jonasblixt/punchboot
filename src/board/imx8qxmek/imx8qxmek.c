@@ -43,38 +43,39 @@ const uint8_t part_type_root_b[] =
 
 const struct fuse uuid_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD(15, 4, "UUID0"),
-    IMX8M_FUSE_BANK_WORD(15, 5, "UUID1"),
-    IMX8M_FUSE_BANK_WORD(15, 6, "UUID2"),
-    IMX8M_FUSE_BANK_WORD(15, 7, "UUID3"),
-    IMX8M_FUSE_END,
+ /*   IMX8X_FUSE_ROW(15, 4, "UUID0"),
+    IMX8X_FUSE_ROW(15, 5, "UUID1"),
+    IMX8X_FUSE_ROW(15, 6, "UUID2"),
+    IMX8X_FUSE_ROW(15, 7, "UUID3"),*/
+    IMX8X_FUSE_END,
 };
 
 const struct fuse device_info_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD_VAL(15, 3, "Device Info", 0x12340000),
-    IMX8M_FUSE_END,
+  //  IMX8X_FUSE_ROW_VAL(15, 3, "Device Info", 0x12340000),
+    IMX8X_FUSE_END,
 };
 
 const struct fuse root_hash_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD(3, 0, "SRK0"),
-    IMX8M_FUSE_BANK_WORD(3, 1, "SRK1"),
-    IMX8M_FUSE_BANK_WORD(3, 2, "SRK2"),
-    IMX8M_FUSE_BANK_WORD(3, 3, "SRK3"),
-    IMX8M_FUSE_BANK_WORD(3, 4, "SRK4"),
-    IMX8M_FUSE_BANK_WORD(3, 5, "SRK5"),
-    IMX8M_FUSE_BANK_WORD(3, 6, "SRK6"),
-    IMX8M_FUSE_BANK_WORD(3, 7, "SRK7"),
-    IMX8M_FUSE_END,
+/*
+    IMX8X_FUSE_ROW(3, 0, "SRK0"),
+    IMX8X_FUSE_ROW(3, 1, "SRK1"),
+    IMX8X_FUSE_ROW(3, 2, "SRK2"),
+    IMX8X_FUSE_ROW(3, 3, "SRK3"),
+    IMX8X_FUSE_ROW(3, 4, "SRK4"),
+    IMX8X_FUSE_ROW(3, 5, "SRK5"),
+    IMX8X_FUSE_ROW(3, 6, "SRK6"),
+    IMX8X_FUSE_ROW(3, 7, "SRK7"),
+*/
+    IMX8X_FUSE_END,
 };
 
 
 const struct fuse board_fuses[] =
 {
-    IMX8M_FUSE_BANK_WORD_VAL(0, 5, "BOOT Config",        0x0000c060),
-    IMX8M_FUSE_BANK_WORD_VAL(0, 6, "BOOT from fuse bit", 0x00000010),
-    IMX8M_FUSE_END,
+    IMX8X_FUSE_ROW_VAL(18, "BOOT Config", 0x00000002),
+    IMX8X_FUSE_END,
 };
 
 
@@ -134,7 +135,8 @@ bool board_force_recovery(void)
 uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
 {
     snprintf (buf, 512,"console=ttyLP0,115200  " \
-        "earlycon=lpuart32,0x5a060000,115200 earlyprintk " \
+        /*"earlycon=lpuart32,0x5a060000,115200 earlyprintk " \*/
+        "quiet " \
         "root=PARTUUID=%s " \
         "ro rootfstype=ext4 gpt rootwait", boot_part_uuid);
 
