@@ -43,31 +43,37 @@ const uint8_t part_type_root_b[] =
 
 const struct fuse uuid_fuses[] =
 {
- /*   IMX8X_FUSE_ROW(15, 4, "UUID0"),
-    IMX8X_FUSE_ROW(15, 5, "UUID1"),
-    IMX8X_FUSE_ROW(15, 6, "UUID2"),
-    IMX8X_FUSE_ROW(15, 7, "UUID3"),*/
+    IMX8X_FUSE_ROW(544, "UUID0"),
+    IMX8X_FUSE_ROW(545, "UUID1"),
+    IMX8X_FUSE_ROW(546, "UUID2"),
+    IMX8X_FUSE_ROW(547, "UUID3"),
     IMX8X_FUSE_END,
 };
 
 const struct fuse device_info_fuses[] =
 {
-  //  IMX8X_FUSE_ROW_VAL(15, 3, "Device Info", 0x12340000),
+    IMX8X_FUSE_ROW_VAL(548, "Device Info", 0x12340000),
     IMX8X_FUSE_END,
 };
 
 const struct fuse root_hash_fuses[] =
 {
-/*
-    IMX8X_FUSE_ROW(3, 0, "SRK0"),
-    IMX8X_FUSE_ROW(3, 1, "SRK1"),
-    IMX8X_FUSE_ROW(3, 2, "SRK2"),
-    IMX8X_FUSE_ROW(3, 3, "SRK3"),
-    IMX8X_FUSE_ROW(3, 4, "SRK4"),
-    IMX8X_FUSE_ROW(3, 5, "SRK5"),
-    IMX8X_FUSE_ROW(3, 6, "SRK6"),
-    IMX8X_FUSE_ROW(3, 7, "SRK7"),
-*/
+    IMX8X_FUSE_ROW(730, "SRK0"),
+    IMX8X_FUSE_ROW(731, "SRK1"),
+    IMX8X_FUSE_ROW(732, "SRK2"),
+    IMX8X_FUSE_ROW(733, "SRK3"),
+    IMX8X_FUSE_ROW(734, "SRK4"),
+    IMX8X_FUSE_ROW(735, "SRK5"),
+    IMX8X_FUSE_ROW(736, "SRK6"),
+    IMX8X_FUSE_ROW(737, "SRK7"),
+    IMX8X_FUSE_ROW(738, "SRK8"),
+    IMX8X_FUSE_ROW(739, "SRK9"),
+    IMX8X_FUSE_ROW(740, "SRK10"),
+    IMX8X_FUSE_ROW(741, "SRK11"),
+    IMX8X_FUSE_ROW(742, "SRK12"),
+    IMX8X_FUSE_ROW(743, "SRK13"),
+    IMX8X_FUSE_ROW(744, "SRK14"),
+    IMX8X_FUSE_ROW(745, "SRK15"),
     IMX8X_FUSE_END,
 };
 
@@ -75,6 +81,7 @@ const struct fuse root_hash_fuses[] =
 const struct fuse board_fuses[] =
 {
     IMX8X_FUSE_ROW_VAL(18, "BOOT Config", 0x00000002),
+    IMX8X_FUSE_ROW_VAL(19, "Bootconfig2" , 0x00000025),
     IMX8X_FUSE_END,
 };
 

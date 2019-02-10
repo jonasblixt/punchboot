@@ -207,32 +207,12 @@ uint32_t  plat_early_init(void)
         LOG_ERR("Could not initialize CAAM");
         return err;
     }
+    uint32_t val;
 
-    
-    extern const struct fuse board_fuses[];
-    err = plat_fuse_read(board_fuses);
-
-    if (err != PB_OK)
-        LOG_ERR("Could not read boot fuse");
-
-    LOG_INFO("Boot fuse : %08x", board_fuses[0].value);
-
-
-    uint32_t reg;
-
-    err = sc_misc_otp_fuse_read(ipc_handle, 19, &reg);
-
-    if (err != SC_ERR_NONE)
-        return PB_ERR;
-
-    LOG_INFO("Boot config: %08x", reg);
-
-    if (reg == 0)
+    for (uint32_t n = 730; n <= 745; n++)
     {
-        err = sc_misc_otp_fuse_write(ipc_handle, 19, 0x25);
-
-        if (err != SC_ERR_NONE)
-            LOG_ERR("Could not write fuse!");
+        sc_misc_otp_fuse_read(ipc_handle, n, &val);
+        LOG_INFO("%u %08x",n,val);
     }
 
     return err;
@@ -371,16 +351,25 @@ uint32_t  plat_fuse_read(struct fuse *f)
 
 uint32_t  plat_fuse_write(struct fuse *f)
 {
-    UNUSED(f);
-    return PB_ERR;
+    char s[64];
+    uint32_t err;
+
+    plat_fuse_to_string(f, s, 64);
+
+    LOG_INFO("Fusing %s",s);
+
+    err = sc_misc_otp_fuse_write(ipc_handle, f->addr, f->value);
+
+    return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
 
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
-    UNUSED(f);
-    UNUSED(s);
-    UNUSED(n);
-    return PB_ERR;
+
+    return snprintf(s, n,
+            "   FUSE<%u> %s = 0x%08x\n",
+                f->bank,
+                f->description, f->value);
 }
 
 

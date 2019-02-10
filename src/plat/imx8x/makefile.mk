@@ -10,12 +10,11 @@
 
 PB_ARCH_NAME = armv8a
 
-CST_TOOL ?= ~/work/cst-3.1.0/linux64/bin/cst
+CST_TOOL ?= /work/cst-3.1.0/linux64/bin/cst
 
-SRK_TBL  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin)
-CSFK_PEM ?= $(shell realpath ../pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem)
-IMG_PEM  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem)
-SRK_FUSE_BIN ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin)
+SRK_TBL  ?= $(shell realpath ../pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin)
+CSFK_PEM ?= $(shell realpath ../pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem)
+SRK_FUSE_BIN ?= $(shell realpath ../pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin)
 
 PB_CSF_TEMPLATE = plat/imx8x/pb.csf.template
 SED = $(shell which sed)
@@ -36,14 +35,14 @@ PLAT_C_SRCS  += plat/imx8x/sci/svc/misc/misc_rpc_clnt.c
 
 PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
 
-
 CFLAGS += -D__PLAT_IMX8X__
 CFLAGS += -I plat/imx8x/include
 
-$(eval PB_SRKS=$(shell hexdump -e '/4 "0x"' -e '/4 "%X"",\n"' < $(SRK_FUSE_BIN)))
+$(eval PB_SRKS=$(shell od -A none -vtx4 -w4 --endian=big $(SRK_FUSE_BIN) | sed 's/^./0x/' | tr '\n' ',' ))
+
 
 $(shell echo "#include <stdint.h>" > plat/imx8x/hab_srks.c)
-$(shell echo "const uint32_t build_root_hash[8] ={$(PB_SRKS)};" >> plat/imx8x/hab_srks.c)
+$(shell echo "const uint32_t build_root_hash[] ={$(PB_SRKS)};" >> plat/imx8x/hab_srks.c)
 PLAT_C_SRCS  += plat/imx8x/hab_srks.c
 
 plat_clean:
@@ -57,4 +56,7 @@ plat_final:
 				  -append mx8qx-ahab-container.img \
 				  -c -scfw scfw_tcm.bin \
 				  -ap pb_hash.bin a35 0x80000000 -out pb.imx
-
+	@cp $(PB_CSF_TEMPLATE) pb.csf
+	@$(SED) -i -e 's#__SRK_TBL__#$(SRK_TBL)#g' pb.csf
+	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' pb.csf
+	@$(CST_TOOL) -i pb.csf -o $(TARGET)_signed.imx 
