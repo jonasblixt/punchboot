@@ -22,20 +22,26 @@ void tr_init(void)
 {
 }
 
-void tr_stamp(uint32_t kind)
+void tr_stamp_begin(uint32_t kind)
 {
     tr_stamps[kind] = plat_get_us_tick();
+}
+
+void tr_stamp_end(uint32_t kind)
+{
+    tr_stamps[kind] = (plat_get_us_tick() - tr_stamps[kind]);
 }
 
 void tr_print_result(void)
 {
     printf("Boot timing report:\n\r");
     for (uint32_t i = 0; i < TR_NO; i++)
-        printf("%s: %"PRIu32" us\n\r", kind_strings[i],
+        printf("%s: %u us\n\r", kind_strings[i],
                                     tr_stamps[i]);
 }
 #else
 void tr_init(void) {}
-void tr_stamp(uint32_t kind) { UNUSED(kind); }
+void tr_stamp_begin(uint32_t kind) { UNUSED(kind); }
+void tr_stamp_end(uint32_t kind) { UNUSED(kind); }
 void tr_print_result(void) {}
 #endif

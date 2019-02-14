@@ -23,4 +23,6 @@ uint32_t pb_recovery_setup(uint8_t device_version,
                         uint8_t device_variant,
                         char **setup_report,
                         bool dry_run);
+
+uint32_t pb_recovery_setup_lock(void);
 #endif

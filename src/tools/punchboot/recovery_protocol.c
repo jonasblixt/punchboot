@@ -18,6 +18,22 @@
 #include "utils.h"
 
 
+uint32_t pb_recovery_setup_lock(void)
+{
+    uint32_t err;
+
+    err = pb_write(PB_CMD_SETUP_LOCK,0,0,0,0, NULL, 0);
+
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
+        return err;
+
+    return PB_OK;
+}
 
 uint32_t pb_recovery_setup(uint8_t device_version,
                         uint8_t device_variant,

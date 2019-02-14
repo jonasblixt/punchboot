@@ -161,7 +161,6 @@ static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
     plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
 }
 
-
 static uint32_t recovery_setup_device(struct usb_device *dev,
                                       struct pb_device_setup *pb_setup)
 {
@@ -334,12 +333,17 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 
         if (!flag_board_fused)
         {
-            foreach_fuse(f, board_fuses)
+            foreach_fuse_read(f, board_fuses)
             {
-                err = plat_fuse_write(f);
 
-                if (err != PB_OK)
-                    return err;
+                if ((f->value & f->default_value) != f->default_value)
+                {
+                    f->value = f->default_value;
+                    err = plat_fuse_write(f);
+
+                    if (err != PB_OK)
+                        return err;
+                }
             }
         }
     }
@@ -641,7 +645,7 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_SETUP_LOCK:
         {
             LOG_INFO ("Locking device setup");
-            /* TODO: Implement */
+            err = plat_setup_lock();
         }
         break;
         default:

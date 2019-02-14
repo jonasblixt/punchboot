@@ -9,6 +9,10 @@
 #include <plat/imx/ehci.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx8x/plat.h>
+#include <plat/sci/ipc.h>
+#include <plat/sci/sci.h>
+
+static sc_ipc_t ipc_handle;
 
 const uint8_t part_type_config[] = 
 {
@@ -89,10 +93,10 @@ static struct usb_device board_usbdev =
 
 
 
-uint32_t board_early_init(void)
+uint32_t board_early_init(void *data)
 {
 
-
+    ipc_handle = (sc_ipc_t) data;
 
     return PB_OK;
 }
@@ -116,7 +120,7 @@ uint32_t board_configure_gpt_tbl(void)
 
 uint32_t board_get_debug_uart(void)
 {
-    return 0x0;
+    return 0x5A060000;
 }
 
 uint32_t board_usb_init(struct usb_device **usbdev)
@@ -127,7 +131,12 @@ uint32_t board_usb_init(struct usb_device **usbdev)
 
 bool board_force_recovery(void)
 {
-    return true;
+
+    sc_bool_t btn_status;
+
+    sc_misc_get_button_status(ipc_handle, &btn_status);
+
+    return (btn_status == 1);
 }
 
 uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)

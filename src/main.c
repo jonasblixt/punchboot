@@ -31,6 +31,8 @@ void pb_main(void)
     if (plat_early_init() != PB_OK)
         plat_reset();
 
+    tr_stamp_begin(TR_BLINIT);
+
     LOG_INFO ("PB: " VERSION " starting...");
 
     if (gpt_init() != PB_OK)
@@ -56,7 +58,7 @@ void pb_main(void)
             flag_run_recovery = true;
     }
 
-    tr_stamp(TR_BLINIT);
+    tr_stamp_end(TR_BLINIT);
 
     if (flag_run_recovery)
         goto run_recovery;
@@ -65,10 +67,10 @@ void pb_main(void)
 
     if (pb_boot_load_part((uint8_t) boot_part, &pbi) == PB_OK)
     {
-        LOG_INFO("Image on part %2.2X verified, booting...", (uint8_t) boot_part);
+        LOG_INFO("Image on part %02x verified, booting...", (uint8_t) boot_part);
         pb_boot_image(pbi, boot_part);
     } else {
-        LOG_ERR("Could not boot image on part %2.2X, entering recovery mode...",
+        LOG_ERR("Could not boot image on part %02x, entering recovery mode...",
                         (uint8_t) boot_part);
         flag_run_recovery = true;
     }

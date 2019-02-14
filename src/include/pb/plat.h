@@ -72,4 +72,7 @@ uint32_t  plat_fuse_read(struct fuse *f);
 uint32_t  plat_fuse_write(struct fuse *f);
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n);
 
+/* Secure boot */
+uint32_t plat_setup_lock(void);
+
 #endif

@@ -44,12 +44,32 @@
 			(SC_PAD_28FDSOI_DSE_DV_LOW << PADRING_DSE_SHIFT) | \
 			(SC_PAD_28FDSOI_PS_PD << PADRING_PULL_SHIFT))
 
+
+
+#define GPIO_PAD_CTRL   (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
+                         (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
+                         (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
+                         (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
+                         (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
+
+
 static struct usdhc_device usdhc0;
 static struct gp_timer tmr0;
 static struct lpuart_device uart_device;
 static __no_bss struct fsl_caam_jr caam;
 
-sc_ipc_t ipc_handle;
+static sc_ipc_t ipc_handle;
+
+uint32_t plat_setup_lock(void)
+{
+    uint32_t err;
+
+    LOG_INFO("About to change security state to locked");
+
+    err = sc_misc_seco_forward_lifecycle(ipc_handle, 16);
+
+    return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
+}
 
 /* Platform API Calls */
 void plat_reset(void)
@@ -77,17 +97,26 @@ void plat_wdog_kick(void)
 uint32_t  plat_early_init(void)
 {
     uint32_t err = PB_OK;
-
+    sc_pm_clock_rate_t rate;
     
 	sc_ipc_open(&ipc_handle, SC_IPC_BASE);
     
+
+	sc_pm_set_resource_power_mode(ipc_handle, SC_R_GPIO_0, SC_PM_PW_MODE_ON);
+	rate = 1000000;
+	sc_pm_set_clock_rate(ipc_handle, SC_R_GPIO_0, 2, &rate);
+	sc_pm_clock_enable(ipc_handle, SC_R_GPIO_0, 2, true, false);
+    pb_setbit32(1 << 16, GPIO_BASE+0x04);
+    pb_setbit32(1 << 16, GPIO_BASE);
+    sc_pad_set(ipc_handle, SC_P_SPI3_CS0, GPIO_PAD_CTRL | (4 << 27));
+
     plat_wdog_init();
 
 	/* Power up UART0 */
 	sc_pm_set_resource_power_mode(ipc_handle, SC_R_UART_0, SC_PM_PW_MODE_ON);
 
 	/* Set UART0 clock root to 80 MHz */
-	sc_pm_clock_rate_t rate = 80000000;
+	rate = 80000000;
 	sc_pm_set_clock_rate(ipc_handle, SC_R_UART_0, 2, &rate);
 
 	/* Enable UART0 clock root */
@@ -97,9 +126,17 @@ uint32_t  plat_early_init(void)
 	sc_pad_set(ipc_handle, SC_P_UART0_RX, UART_PAD_CTRL);
 	sc_pad_set(ipc_handle, SC_P_UART0_TX, UART_PAD_CTRL);
 
-    //board_early_init();
 
-    uart_device.base = 0x5A060000;//board_get_debug_uart();
+    /* TODO: Maybe define a platform struct with 
+     *   platform specific callbacks / info
+     *   and a void * for platform specific data like ipc_handle
+     *
+     *
+     * */
+
+    board_early_init((void *) ipc_handle);
+
+    uart_device.base = board_get_debug_uart();
     uart_device.baudrate = 0x402008b;
 
     lpuart_init(&uart_device);
@@ -142,7 +179,9 @@ uint32_t  plat_early_init(void)
 	sc_pm_set_clock_rate(ipc_handle, SC_R_SDHC_0, 2, &rate);
 
     if (rate != 200000000)
+    {
         LOG_INFO("USDHC rate %u Hz", rate);
+    }
 
 	err = sc_pm_clock_enable(ipc_handle, SC_R_SDHC_0, SC_PM_CLK_PER, 
                                 true, false);
@@ -208,6 +247,7 @@ uint32_t  plat_early_init(void)
         return err;
     }
 
+
     return err;
 }
 
@@ -269,6 +309,7 @@ uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out,
 
 void plat_preboot_cleanup(void)
 {
+    pb_clrbit32(1 << 16, GPIO_BASE);
 }
 
 /* USB Interface API */

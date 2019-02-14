@@ -16,7 +16,8 @@ enum tr_kinds
 };
 
 void tr_init(void);
-void tr_stamp(uint32_t kind);
+void tr_stamp_begin(uint32_t kind);
+void tr_stamp_end(uint32_t kind);
 void tr_print_result(void);
 
 #endif

@@ -38,6 +38,8 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
 
     char part_uuid[37];
 
+    tr_stamp_begin(TR_FINAL);
+
     if (dtb && linux2)
     {
         LOG_INFO(" LINUX %x, DTB %x", linux2->load_addr_low, dtb->load_addr_low);
@@ -139,7 +141,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     LOG_DBG("Done");
 
 
-    tr_stamp(TR_FINAL);
+    tr_stamp_end(TR_FINAL);
     tr_print_result();
 
     if (atf)

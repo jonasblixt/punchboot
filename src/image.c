@@ -17,6 +17,9 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 
     *pbi = NULL;
 
+
+    tr_stamp_begin(TR_BLOCKREAD);
+
     if (!part_lba_offset) {
         LOG_ERR ("Unknown partition");
         return PB_ERR;
@@ -81,7 +84,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
     }
 
     *pbi = &_pbi;
-    tr_stamp(TR_BLOCKREAD);
+    tr_stamp_end(TR_BLOCKREAD);
     return PB_OK;
 }
 
@@ -100,6 +103,8 @@ bool pb_image_verify(struct pb_pbi* pbi)
     memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
     sign_sz = pbi->hdr.sign_length;
     pbi->hdr.sign_length = 0;
+
+    tr_stamp_begin(TR_SHA);
 
     memcpy (hash_copy, pbi->hdr.sha256,32);
     memset (pbi->hdr.sign, 0, 1024);
@@ -136,8 +141,9 @@ bool pb_image_verify(struct pb_pbi* pbi)
     }
 
     LOG_INFO("SHA OK");
-    tr_stamp(TR_SHA);
+    tr_stamp_end(TR_SHA);
 
+    tr_stamp_begin(TR_RSA);
     uint8_t __a4k output_data[512];
     memset(output_data, 0, 512);
 
@@ -173,7 +179,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
     {
         LOG_INFO("SIG OK");
     }
-    tr_stamp(TR_RSA);
+    tr_stamp_end(TR_RSA);
 
     if (flag_sig_ok)
         return PB_OK;

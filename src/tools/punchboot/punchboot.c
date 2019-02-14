@@ -260,15 +260,19 @@ int main(int argc, char **argv)
             if (dry_run)
             {
                 char confirm_input[5];
-                printf ("\n\nWARNING: This is a permanent change, writing fuses " \
-                        "can not be reverted. This could brick your device.\n"
-                        "\n\nType 'yes' + <Enter> to proceed: ");
-                fgets(confirm_input, 5, stdin);
 
-                if (strncmp(confirm_input, "yes", 3)  != 0)
+                if (!flag_y)
                 {
-                    printf ("Aborted\n");
-                    return -1;
+                    printf ("\n\nWARNING: This is a permanent change, writing fuses " \
+                            "can not be reverted. This could brick your device.\n"
+                            "\n\nType 'yes' + <Enter> to proceed: ");
+                    fgets(confirm_input, 5, stdin);
+
+                    if (strncmp(confirm_input, "yes", 3)  != 0)
+                    {
+                        printf ("Aborted\n");
+                        return -1;
+                    }
                 }
 
                 err = pb_recovery_setup(device_version,
@@ -284,6 +288,28 @@ int main(int argc, char **argv)
 
                 printf ("Success\n");
             }
+        } else if (flag_write) {
+
+            char confirm_input[5];
+            printf ("\n\nWARNING: This is a permanent change, writing fuses " \
+                    "can not be reverted. This could brick your device.\n"
+                    "\n\nType 'yes' + <Enter> to proceed: ");
+            fgets(confirm_input, 5, stdin);
+
+            if (strncmp(confirm_input, "yes", 3)  != 0)
+            {
+                printf ("Aborted\n");
+                return -1;
+            }
+
+            err = pb_recovery_setup_lock();
+
+            if (err != PB_OK)
+            {
+                printf("ERROR: Something went wrong\n");
+                return -1;
+            }
+            printf ("Success");
         } else {
             print_help_header();
             print_dev_help();
