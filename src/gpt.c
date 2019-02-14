@@ -15,8 +15,8 @@
 #include <uuid.h>
 
 static uint8_t _flag_gpt_ok = false;
-static __a4k __no_bss struct gpt_primary_tbl _gpt1;
-static __a4k __no_bss struct gpt_backup_tbl _gpt2;
+static volatile __a4k __no_bss struct gpt_primary_tbl _gpt1;
+static volatile __a4k __no_bss struct gpt_backup_tbl _gpt2;
 static __a4k __no_bss uint8_t pmbr[512];
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
@@ -46,7 +46,7 @@ static void gpt_part_name(struct gpt_part_hdr *part, uint8_t *out, uint8_t len)
 
 struct gpt_primary_tbl * gpt_get_tbl(void) 
 {
-    return &_gpt1;
+    return (&_gpt1);
 }
 
 uint32_t gpt_get_part_first_lba(uint8_t part_no) 
