@@ -30,7 +30,6 @@ static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
 static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
 static char __no_bss report_text_buffer[REPORT_SZ];
 
-extern const struct fuse uuid_fuses[];
 extern const struct fuse device_info_fuses[];
 extern const struct fuse root_hash_fuses[];
 extern const struct fuse board_fuses[];
@@ -168,44 +167,12 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
 {
     uint32_t pos = 0;
     uint32_t err;
-    uint32_t n;
 
-    uint8_t device_uuid[16];
-    char device_uuid_str[37];
-    bool flag_uuid_fused = false;
     bool flag_root_hash_fused = false;
     bool flag_devid_fused = false;
     bool flag_devid_revvar_fused = false;
     bool flag_board_fused = true;
 
-    /* UUID */
-
-    n = 0;
-    foreach_fuse_read(f, uuid_fuses)
-    {
-        memcpy(&device_uuid[n], (uint32_t *)&f->value, 4);
-        n += 4;
-    }
-
-    for (uint32_t n = 0; n < 16; n++)
-    {
-        if (device_uuid[n] != 0)
-            flag_uuid_fused = true;
-    }
-
-    if (flag_uuid_fused)
-    {
-        uuid_to_string(device_uuid, device_uuid_str);
-    } else {
-        uuid_to_string(pb_setup->uuid, device_uuid_str);
-        /* Prepare UUID fuses to be written */
-        n = 0;
-        foreach_fuse(f, uuid_fuses)
-        {
-            memcpy((uint32_t *) &f->value, &(pb_setup->uuid[n]), 4);
-            n += 4;
-        }
-    }
 
     /* Root hash */
     foreach_fuse_read(f, root_hash_fuses)
@@ -269,22 +236,6 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
     {
         pos += snprintf(&report_text_buffer[pos], REPORT_SZ-pos,
                                     "-- Device setup report --\n");
-
-        /* UUID */
-        if (!flag_uuid_fused)
-        {
-            pos += snprintf(&report_text_buffer[pos], REPORT_SZ-pos,
-                    "Will Write UUID (%s) to:\n",
-                    device_uuid_str);
- 
-
-        } else {
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "UUID already fused (%s)\n", device_uuid_str);
-        }
-        
-        foreach_fuse(f, uuid_fuses)
-            pos += plat_fuse_to_string(f, &report_text_buffer[pos], 64);
 
 
         /* Root hash */
@@ -360,18 +311,6 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
     } else {
         /* Perform the actual fuse programming */
 
-        
-        if (!flag_uuid_fused)
-        {
-            LOG_INFO("Writing UUID fuses:");
-            foreach_fuse(f, uuid_fuses)
-            {
-                err = plat_fuse_write(f);
-
-                if (err != PB_OK)
-                    return err;
-            }
-        }
         
         if (!flag_root_hash_fused)
         {
@@ -478,7 +417,7 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_GPT_TBL:
         {
-            err = recovery_send_response(dev,(uint8_t*) gpt_get_tbl(), 
+            err = recovery_send_response(dev,((uint8_t*) gpt_get_tbl()), 
                             sizeof (struct gpt_primary_tbl));          
         }
         break;
@@ -663,20 +602,6 @@ static void recovery_parse_command(struct usb_device *dev,
                 err = PB_ERR;
             }
 
-        }
-        break;
-        case PB_CMD_READ_UUID:
-        {
-
-            uint8_t board_uuid[16];
-            uint32_t n = 0;
-
-            foreach_fuse_read(fz, uuid_fuses)
-            {
-                memcpy(&board_uuid[n], (uint32_t *) &fz->value, 4);
-                n += 4;
-            }
-            recovery_send_response(dev, board_uuid, 16);
         }
         break;
         case PB_CMD_WRITE_DFLT_GPT:

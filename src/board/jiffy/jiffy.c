@@ -53,16 +53,6 @@ const uint8_t part_type_root_b[] =
     0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
 };
 
-
-const struct fuse uuid_fuses[] =
-{
-    IMX6UL_FUSE_BANK_WORD(15, 4, "UUID0"),
-    IMX6UL_FUSE_BANK_WORD(15, 5, "UUID1"),
-    IMX6UL_FUSE_BANK_WORD(15, 6, "UUID2"),
-    IMX6UL_FUSE_BANK_WORD(15, 7, "UUID3"),
-    IMX6UL_FUSE_END,
-};
-
 const struct fuse device_info_fuses[] =
 {
     IMX6UL_FUSE_BANK_WORD_VAL(15, 3, "Device Info", JIFFY_DEVICE_ID),

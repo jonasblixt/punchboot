@@ -64,24 +64,15 @@ static int print_gpt_table(void)
 
 static uint32_t pb_display_device_info(void)
 {
-    char str_device_uuid[37];
-    uint8_t device_uuid_raw[16];
     uint32_t err = PB_ERR;
     char *version_string;
+
     err = pb_get_version(&version_string);
 
     if (err != PB_OK)
         return -1;
-
-    err = pb_read_uuid(device_uuid_raw);
-    
-    if (err != PB_OK)
-        return err;
-
-    uuid_unparse_upper(device_uuid_raw, str_device_uuid);
     printf ("Device info:\n");
     //printf (" Hardware: %s, Revision: %s\n");
-    printf (" UUID: %s\n",str_device_uuid);
     printf (" Security State:\n");
     printf (" Bootloader Version: %s\n",version_string);
     free(version_string);

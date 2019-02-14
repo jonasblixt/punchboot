@@ -207,13 +207,6 @@ uint32_t  plat_early_init(void)
         LOG_ERR("Could not initialize CAAM");
         return err;
     }
-    uint32_t val;
-
-    for (uint32_t n = 730; n <= 745; n++)
-    {
-        sc_misc_otp_fuse_read(ipc_handle, n, &val);
-        LOG_INFO("%u %08x",n,val);
-    }
 
     return err;
 }

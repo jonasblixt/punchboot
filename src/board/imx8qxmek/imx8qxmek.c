@@ -41,18 +41,9 @@ const uint8_t part_type_root_b[] =
 };
 
 
-const struct fuse uuid_fuses[] =
-{
-    IMX8X_FUSE_ROW(544, "UUID0"),
-    IMX8X_FUSE_ROW(545, "UUID1"),
-    IMX8X_FUSE_ROW(546, "UUID2"),
-    IMX8X_FUSE_ROW(547, "UUID3"),
-    IMX8X_FUSE_END,
-};
-
 const struct fuse device_info_fuses[] =
 {
-    IMX8X_FUSE_ROW_VAL(548, "Device Info", 0x12340000),
+    IMX8X_FUSE_ROW_VAL(710, "Device Info", 0x12340000),
     IMX8X_FUSE_END,
 };
 

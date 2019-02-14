@@ -55,15 +55,6 @@ const uint8_t part_type_root_b[] =
 };
 
 
-const struct fuse uuid_fuses[] =
-{
-    TEST_FUSE_BANK_WORD(0, "UUID0"),
-    TEST_FUSE_BANK_WORD(1, "UUID1"),
-    TEST_FUSE_BANK_WORD(2, "UUID2"),
-    TEST_FUSE_BANK_WORD(3, "UUID3"),
-    TEST_FUSE_END,
-};
-
 const struct fuse device_info_fuses[] =
 {
     TEST_FUSE_BANK_WORD_VAL(4, "Device Info", 0x12340000),

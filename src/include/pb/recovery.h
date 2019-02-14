@@ -26,7 +26,6 @@ enum {
     PB_CMD_GET_CONFIG_TBL,
     PB_CMD_GET_CONFIG_VAL,
     PB_CMD_SET_CONFIG_VAL,
-    PB_CMD_READ_UUID,
     PB_CMD_WRITE_DFLT_GPT,
     PB_CMD_BOOT_RAM,
     PB_CMD_SETUP,
@@ -64,11 +63,10 @@ struct pb_cmd_write_part
 
 struct pb_device_setup
 {
-    uint8_t uuid[16];
     uint8_t device_variant;
     uint8_t device_revision;
     uint8_t dry_run;
-    uint8_t rz[45];
+    uint8_t rz[62];
 } __attribute__ ((packed));
 
 void recovery_initialize(void);

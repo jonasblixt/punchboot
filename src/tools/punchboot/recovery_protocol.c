@@ -25,16 +25,10 @@ uint32_t pb_recovery_setup(uint8_t device_version,
                         bool dry_run)
 {
 
-    uuid_t uuid;
-    char uuid_str[37];
     uint32_t err = PB_ERR;
     uint32_t report_length = 0;
     struct pb_device_setup setup;
 
-    uuid_generate_time_safe(uuid);
-    uuid_unparse_lower(uuid, uuid_str);
-
-    memcpy(setup.uuid, &uuid, 16);
     setup.device_revision = device_version;
     setup.device_variant = device_variant;
     setup.dry_run = dry_run;
@@ -81,30 +75,6 @@ uint32_t pb_install_default_gpt(void)
     return pb_read_result_code();
 }
 
-
-
-uint32_t pb_read_uuid(uint8_t *uuid)
-{
-    uint32_t err = PB_ERR;
-    uint32_t sz = 0;
-
-    err = pb_write(PB_CMD_READ_UUID,0,0,0,0, NULL, 0);
-
-    if (err != PB_OK)
-        return err;
-
-    err = pb_read((uint8_t *)&sz, sizeof(uint32_t));
-
-    if (sz != 16)
-        return PB_ERR;
-
-    err = pb_read(uuid, 16);
-
-    if (err != PB_OK)
-        return err;
-
-    return pb_read_result_code();
-}
 
 uint32_t pb_reset(void) 
 {

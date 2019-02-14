@@ -38,7 +38,7 @@ PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
 CFLAGS += -D__PLAT_IMX8X__
 CFLAGS += -I plat/imx8x/include
 
-$(eval PB_SRKS=$(shell od -A none -vtx4 -w4 --endian=big $(SRK_FUSE_BIN) | sed 's/^./0x/' | tr '\n' ',' ))
+$(eval PB_SRKS=$(shell od -A none -vtx4 -w4 $(SRK_FUSE_BIN) | sed 's/^./0x/' | tr '\n' ',' ))
 
 
 $(shell echo "#include <stdint.h>" > plat/imx8x/hab_srks.c)
@@ -53,9 +53,11 @@ plat_final:
 	@mkimage_imx8 -commit > head.hash
 	@cat pb.bin head.hash > pb_hash.bin
 	@mkimage_imx8 -soc QX -rev B0 \
+				  -e emmc_fast \
 				  -append mx8qx-ahab-container.img \
 				  -c -scfw scfw_tcm.bin \
-				  -ap pb_hash.bin a35 0x80000000 -out pb.imx
+				  -ap pb_hash.bin a35 0x80000000 \
+				  -out pb.imx
 	@cp $(PB_CSF_TEMPLATE) pb.csf
 	@$(SED) -i -e 's#__SRK_TBL__#$(SRK_TBL)#g' pb.csf
 	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' pb.csf
