@@ -16,7 +16,6 @@
 #include <io.h>
 #include <board.h>
 #include <gpt.h>
-#include <config.h>
 #include <string.h>
 #include <boot.h>
 #include <uuid.h>
@@ -48,9 +47,7 @@ const char *recovery_cmd_name[] =
     "PB_CMD_GET_GPT_TBL",
     "PB_CMD_WRITE_PART",
     "PB_CMD_BOOT_PART",
-    "PB_CMD_GET_CONFIG_TBL",
-    "PB_CMD_GET_CONFIG_VAL",
-    "PB_CMD_SET_CONFIG_VAL",
+    "PB_CMD_BOOT_ACTIVATE",
     "PB_CMD_READ_UUID",
     "PB_CMD_WRITE_DFLT_GPT",
     "PB_CMD_BOOT_RAM",
@@ -425,51 +422,35 @@ static void recovery_parse_command(struct usb_device *dev,
                             sizeof (struct gpt_primary_tbl));          
         }
         break;
-        case PB_CMD_GET_CONFIG_TBL:
+        case PB_CMD_BOOT_ACTIVATE:
         {
-            LOG_INFO ("Read config %u", config_get_tbl_sz());
+            struct gpt_part_hdr *part_sys_a, *part_sys_b;
+            uint64_t *attr;
+            gpt_get_part_by_uuid(part_type_system_a, &part_sys_a);
+            gpt_get_part_by_uuid(part_type_system_b, &part_sys_b);
 
-            err = recovery_send_response(dev, (uint8_t *) config_get_tbl(),
-                                              config_get_tbl_sz());
-        }
-        break;
-        case PB_CMD_SET_CONFIG_VAL:
-        {
-            int32_t tmp_val;
-            struct pb_config_item *items = config_get_tbl();
-            
-
-            err = config_get_uint32_t(cmd->arg0, (uint32_t *)&tmp_val);
-
-            if (err != PB_OK)
-                break;
-
-            if (items[cmd->arg0].access != PB_CONFIG_ITEM_RW)
+            if (cmd->arg0 == 0)
             {
-                err = PB_ERR;
-                LOG_ERR ("Key is read only");
-                break;
+                attr = (uint64_t *) part_sys_a->attr;
+                (*attr) &= ~GPT_ATTR_BOOTABLE;
+
+                attr = (uint64_t *) part_sys_b->attr;
+                (*attr) &= ~GPT_ATTR_BOOTABLE;
             }
 
-            LOG_INFO("Set key %u to %u", cmd->arg0, cmd->arg1);
-            err = config_set_uint32_t(cmd->arg0, cmd->arg1);
-            if (err != PB_OK)
-                break;
-            err = config_commit();
-        }
-        break;
-        case PB_CMD_GET_CONFIG_VAL:
-        {
-            uint32_t config_val;
+            if ((cmd->arg0 & 1) == 1)
+            {
+                attr = (uint64_t *) part_sys_a->attr;
+                (*attr) |= GPT_ATTR_BOOTABLE;
+            }
 
-            LOG_INFO("Reading key index %u",cmd->arg0);
+            if ((cmd->arg0 & 2) == 2)
+            {
+                attr = (uint64_t *) part_sys_b->attr;
+                (*attr) |= GPT_ATTR_BOOTABLE;
+            }
 
-            err = config_get_uint32_t(cmd->arg0, &config_val);
-
-            if (err != PB_OK)
-                config_val = 0;
-
-            recovery_send_response(dev, (uint8_t *) &config_val, 4);
+            err = gpt_write_tbl();
         }
         break;
         case PB_CMD_WRITE_PART:
@@ -493,13 +474,32 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_BOOT_PART:
         {
             struct pb_pbi *pbi = NULL;
-            err = pb_boot_load_part((uint8_t) cmd->arg0, &pbi);
-            
-            if (err != PB_OK)
-                break;
+            struct gpt_part_hdr *boot_part_a, *boot_part_b;
 
+            err = gpt_get_part_by_uuid(part_type_system_a, &boot_part_a);
+            err = gpt_get_part_by_uuid(part_type_system_b, &boot_part_b);
+
+            if (cmd->arg0 == 1)
+            {
+                LOG_INFO("Loading System A");
+                err = pb_image_load_from_fs(boot_part_a->first_lba, &pbi);
+            } else if (cmd->arg0 == 2) {
+                LOG_INFO("Loading System B");
+                err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi);
+            } else {
+                LOG_ERR("Invalid boot partition");
+                err = PB_ERR;
+            }
+            
             recovery_send_result_code(dev, err);
-            pb_boot_image(pbi, cmd->arg0);
+
+            if (err != PB_OK)
+            {
+                LOG_ERR("Unable to load image");
+                break;
+            }
+
+            pb_boot_linux_with_dt(pbi);
 
         }
 
@@ -600,7 +600,7 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
-                PB_BOOT_FUNC(pbi, SYSTEM_A);
+                pb_boot_linux_with_dt(pbi);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;

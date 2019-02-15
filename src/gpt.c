@@ -15,8 +15,8 @@
 #include <uuid.h>
 
 static uint8_t _flag_gpt_ok = false;
-static volatile __a4k __no_bss struct gpt_primary_tbl _gpt1;
-static volatile __a4k __no_bss struct gpt_backup_tbl _gpt2;
+static __a4k __no_bss struct gpt_primary_tbl _gpt1;
+static __a4k __no_bss struct gpt_backup_tbl _gpt2;
 static __a4k __no_bss uint8_t pmbr[512];
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
@@ -59,7 +59,7 @@ uint64_t gpt_get_part_last_lba(uint8_t part_no)
     return _gpt1.part[part_no & 0x1f].last_lba;
 }
 
-uint32_t gpt_get_part_by_uuid(const uint8_t *uuid, uint32_t *lba_offset) 
+uint32_t gpt_get_part_by_uuid(const uint8_t *uuid, struct gpt_part_hdr **part) 
 {
     if (!_flag_gpt_ok)
         return PB_ERR;
@@ -70,7 +70,7 @@ uint32_t gpt_get_part_by_uuid(const uint8_t *uuid, uint32_t *lba_offset)
 
         if (memcmp(_gpt1.part[i].uuid, uuid, 16) == 0)
         {
-            *lba_offset = _gpt1.part[i].first_lba;
+            (*part) = &_gpt1.part[i];
             return PB_OK;
         }
     }

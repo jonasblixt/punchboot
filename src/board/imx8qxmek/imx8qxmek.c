@@ -91,8 +91,6 @@ static struct usb_device board_usbdev =
     .platform_data = &ehcidev,
 };
 
-
-
 uint32_t board_early_init(void *data)
 {
 
@@ -103,8 +101,6 @@ uint32_t board_early_init(void *data)
 
 uint32_t board_late_init(void)
 {
-
-
     return PB_OK;
 }
 
@@ -131,21 +127,9 @@ uint32_t board_usb_init(struct usb_device **usbdev)
 
 bool board_force_recovery(void)
 {
-
+    return true;
     sc_bool_t btn_status;
-
     sc_misc_get_button_status(ipc_handle, &btn_status);
-
     return (btn_status == 1);
 }
 
-uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
-{
-    snprintf (buf, 512,"console=ttyLP0,115200  " \
-        /*"earlycon=lpuart32,0x5a060000,115200 earlyprintk " \*/
-        "quiet " \
-        "root=PARTUUID=%s " \
-        "ro rootfstype=ext4 gpt rootwait", boot_part_uuid);
-
-    return PB_OK;
-}

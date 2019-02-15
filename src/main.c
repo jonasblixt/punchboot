@@ -10,7 +10,6 @@
 #include <board.h>
 #include <plat.h>
 #include <recovery.h>
-#include <config.h>
 #include <gpt.h>
 #include <board/config.h>
 #include <io.h>
@@ -22,10 +21,10 @@
 void pb_main(void) 
 {
     uint32_t err = 0;
-    uint32_t boot_part = 0;
     bool flag_run_recovery = false;
     struct pb_pbi *pbi = NULL;
-
+    struct gpt_part_hdr *boot_part_a, *boot_part_b;
+    uint64_t *boot_part_attr_a, *boot_part_attr_b;
     tr_init();
 
     if (plat_early_init() != PB_OK)
@@ -38,40 +37,49 @@ void pb_main(void)
     if (gpt_init() != PB_OK)
         flag_run_recovery = true;
 
-    if (config_init() != PB_OK)
-        flag_run_recovery = true;
-
     if (board_force_recovery())
         flag_run_recovery = true;
 
-    err = config_get_uint32_t(PB_CONFIG_BOOT, &boot_part);
+    tr_stamp_end(TR_BLINIT);
 
-    if (err != PB_OK)
+    if (gpt_get_part_by_uuid(part_type_system_a, &boot_part_a) != PB_OK)
         flag_run_recovery = true;
 
-    if (!flag_run_recovery)
-    {
-        uint32_t flag;
-        config_get_uint32_t(PB_CONFIG_FORCE_RECOVERY, &flag);
-
-        if (flag > 0)
-            flag_run_recovery = true;
-    }
-
-    tr_stamp_end(TR_BLINIT);
+    if (gpt_get_part_by_uuid(part_type_system_b, &boot_part_b) != PB_OK)
+        flag_run_recovery = true;
 
     if (flag_run_recovery)
         goto run_recovery;
 
+    boot_part_attr_a = (uint64_t *) boot_part_a->attr;
+    boot_part_attr_b = (uint64_t *) boot_part_b->attr;
 
-
-    if (pb_boot_load_part((uint8_t) boot_part, &pbi) == PB_OK)
+    if (((*boot_part_attr_a) & GPT_ATTR_BOOTABLE) == GPT_ATTR_BOOTABLE)
     {
-        LOG_INFO("Image on part %02x verified, booting...", (uint8_t) boot_part);
-        pb_boot_image(pbi, boot_part);
+        LOG_INFO("Loading System A");
+        err = pb_image_load_from_fs(boot_part_a->first_lba, &pbi);
+    } 
+    else if (((*boot_part_attr_b) & GPT_ATTR_BOOTABLE) == GPT_ATTR_BOOTABLE) 
+    {
+        LOG_INFO("Loading System B");
+        err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi);
+    }
+    
+    if (err != PB_OK)
+    {
+        LOG_ERR("Unable to load image");
+        flag_run_recovery = true;
+        goto run_recovery;
+    }
+
+    err = pb_image_verify(pbi);
+
+    if (err == PB_OK)
+    {
+        LOG_INFO("Image verified, booting...");
+        pb_boot_linux_with_dt(pbi);
     } else {
-        LOG_ERR("Could not boot image on part %02x, entering recovery mode...",
-                        (uint8_t) boot_part);
+        LOG_ERR("Could not boot image, entering recovery mode...");
         flag_run_recovery = true;
     }
 

@@ -33,8 +33,6 @@ CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
 CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
-CFLAGS  += -DLTC_NO_FILE
-CFLAGS  += -I 3pp/fdt/include
 
 LIBS     = 
 
@@ -54,7 +52,6 @@ C_SRCS  += crc.c
 C_SRCS  += gpt.c 
 C_SRCS  += keys.c 
 C_SRCS  += timing_report.c
-C_SRCS  += config.c
 C_SRCS  += lib/string.c
 C_SRCS  += lib/memmove.c
 C_SRCS  += lib/memchr.c
@@ -69,15 +66,6 @@ C_SRCS  += lib/putchar.c
 C_SRCS  += lib/puts.c
 C_SRCS  += usb.c
 C_SRCS  += image.c
-# Lib fdt
-C_SRCS  += 3pp/fdt/fdt.c
-C_SRCS  += 3pp/fdt/fdt_addresses.c
-C_SRCS  += 3pp/fdt/fdt_empty_tree.c
-C_SRCS  += 3pp/fdt/fdt_ro.c
-C_SRCS  += 3pp/fdt/fdt_rw.c
-C_SRCS  += 3pp/fdt/fdt_strerror.c
-C_SRCS  += 3pp/fdt/fdt_sw.c
-C_SRCS  += 3pp/fdt/fdt_wip.c
 
 
 RSA_KEYS_SRCS ?= ../pki/dev_rsa_public.der    \

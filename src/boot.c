@@ -2,14 +2,12 @@
 #include <pb.h>
 #include <io.h>
 #include <boot.h>
-#include <config.h>
 #include <gpt.h>
 #include <image.h>
 #include <board/config.h>
 #include <keys.h>
 #include <board.h>
 #include <plat.h>
-#include <libfdt.h>
 #include <uuid.h>
 #include <atf.h>
 #include <timing_report.h>
@@ -24,7 +22,7 @@ extern void arch_jump_linux_dt(void* addr, void * dt)
 extern void arch_jump_atf(void* atf_addr, void * atf_param)
                                  __attribute__ ((noreturn));
 
-void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
+void pb_boot_linux_with_dt(struct pb_pbi *pbi)
 {
 
     struct pb_component_hdr *dtb = 
@@ -35,8 +33,6 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
 
     struct pb_component_hdr *atf = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
-
-    char part_uuid[37];
 
     tr_stamp_begin(TR_FINAL);
 
@@ -79,70 +75,10 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     bl33_image.image_base = (uintptr_t) linux2->load_addr_low;
     bl33_image.image_size = linux2->component_size;
 
-    switch (system_index)
-    {
-        case SYSTEM_A:
-        {
-            LOG_INFO ("Using root A");
-            uuid_to_string((uint8_t *) part_type_root_a, part_uuid);
-        }
-        break;
-        case SYSTEM_B:
-        {
-            LOG_INFO ("Using root B");
-            uuid_to_string((uint8_t *) part_type_root_b, part_uuid);
-        }
-        break;
-        default:
-        {
-            LOG_ERR("Invalid root partition %x", system_index);
-            return ;
-        }
-    }
-
-    LOG_DBG("Patching DT");
-    const void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
-
-    int err = fdt_check_header(fdt);
-    if (err >= 0) 
-    {
-        int depth = 0;
-        int offset = 0;
-    
-        for (;;) 
-        {
-            offset = fdt_next_node(fdt, offset, &depth);
-            if (offset < 0)
-                break;
-
-            const char *name = fdt_get_name(fdt, offset, NULL);
-            if (!name)
-                continue;
-
-            if (strcmp(name, "chosen") == 0) 
-            {
-                char new_bootargs[256];
-            
-                board_configure_bootargs(new_bootargs, part_uuid);
-
-                err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
-                            (const char *) new_bootargs);
-
-                if (err)
-                {
-                    LOG_ERR("Could not update bootargs");
-                }
-                
-                break;
-            }
-        }
-    }
-    
-    LOG_DBG("Done");
-
-
     tr_stamp_end(TR_FINAL);
     tr_print_result();
+
+    plat_wdog_kick();
 
     if (atf)
     {
@@ -156,64 +92,4 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint8_t system_index)
     while(1)
         __asm__ ("nop");
 }
-
-uint32_t pb_boot_image(struct pb_pbi *pbi, uint8_t system_index)
-{
-    uint32_t boot_count = 0;
-
-    config_get_uint32_t(PB_CONFIG_BOOT_COUNT, &boot_count);
-    boot_count = boot_count + 1;
-    config_set_uint32_t(PB_CONFIG_BOOT_COUNT, boot_count);
-    config_commit();
- 
-    plat_wdog_kick();
-
-    PB_BOOT_FUNC(pbi, system_index);
-
-    return PB_OK;
-}
-
-uint32_t pb_boot_load_part(uint8_t boot_part, struct pb_pbi **pbi)
-{
-    uint32_t err = PB_OK;
-    uint32_t boot_lba_offset = 0;
-
-    switch (boot_part)
-    {
-        case SYSTEM_A:
-        {
-            LOG_INFO ("Loading from system A");
-            err = gpt_get_part_by_uuid(part_type_system_a, &boot_lba_offset);
-        }
-        break;
-        case SYSTEM_B:
-        {
-            LOG_INFO ("Loading from system B");
-            err = gpt_get_part_by_uuid(part_type_system_b, &boot_lba_offset);
-        }
-        break;
-        default:
-        {
-            LOG_ERR("Invalid boot partition %x", boot_part);
-            err = PB_ERR;
-        }
-    }
-
-    if (err != PB_OK)
-        return err;
-
-    err = pb_image_load_from_fs(boot_lba_offset, pbi);
-    
-    if (err != PB_OK)
-    {
-        LOG_ERR("Unable to load image");
-        return err;
-    }
-
-    err = pb_image_verify(*pbi);
-
-   
-    return err;
-}
-
 
