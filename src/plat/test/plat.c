@@ -21,6 +21,11 @@ __inline uint32_t plat_get_ms_tick(void)
     return 1;
 }
 
+uint32_t plat_setup_lock(void)
+{
+    return PB_OK;
+}
+
 uint32_t plat_fuse_read(struct fuse *f)
 {
     uint32_t tmp_val = 0;
@@ -65,7 +70,7 @@ uint32_t plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 
 uint32_t plat_early_init(void)
 {
-    board_early_init();
+    board_early_init(NULL);
 
 
     virtio_block.dev.device_id = 2;
@@ -92,6 +97,10 @@ uint32_t plat_early_init(void)
 
     return PB_OK;
 
+}
+
+void plat_preboot_cleanup(void)
+{
 }
 
 uint32_t plat_get_us_tick(void)

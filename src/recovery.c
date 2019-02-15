@@ -48,7 +48,6 @@ const char *recovery_cmd_name[] =
     "PB_CMD_WRITE_PART",
     "PB_CMD_BOOT_PART",
     "PB_CMD_BOOT_ACTIVATE",
-    "PB_CMD_READ_UUID",
     "PB_CMD_WRITE_DFLT_GPT",
     "PB_CMD_BOOT_RAM",
     "PB_CMD_SETUP",
@@ -425,32 +424,41 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_BOOT_ACTIVATE:
         {
             struct gpt_part_hdr *part_sys_a, *part_sys_b;
-            uint64_t *attr;
+            uint64_t *attr_a, *attr_b;
             gpt_get_part_by_uuid(part_type_system_a, &part_sys_a);
             gpt_get_part_by_uuid(part_type_system_b, &part_sys_b);
 
             if (cmd->arg0 == 0)
             {
-                attr = (uint64_t *) part_sys_a->attr;
-                (*attr) &= ~GPT_ATTR_BOOTABLE;
+                attr_a = (uint64_t *) part_sys_a->attr;
+                (*attr_a) &= ~GPT_ATTR_BOOTABLE;
 
-                attr = (uint64_t *) part_sys_b->attr;
-                (*attr) &= ~GPT_ATTR_BOOTABLE;
+                attr_b = (uint64_t *) part_sys_b->attr;
+                (*attr_b) &= ~GPT_ATTR_BOOTABLE;
             }
 
             if ((cmd->arg0 & 1) == 1)
-            {
-                attr = (uint64_t *) part_sys_a->attr;
-                (*attr) |= GPT_ATTR_BOOTABLE;
+            {   
+                LOG_INFO("Activating System A");
+                attr_a = (uint64_t *) part_sys_a->attr;
+                (*attr_a) |= GPT_ATTR_BOOTABLE;
+
+                attr_b = (uint64_t *) part_sys_b->attr;
+                (*attr_b) &= ~GPT_ATTR_BOOTABLE;
             }
 
             if ((cmd->arg0 & 2) == 2)
             {
-                attr = (uint64_t *) part_sys_b->attr;
-                (*attr) |= GPT_ATTR_BOOTABLE;
+                LOG_INFO("Activating System B");
+                attr_a = (uint64_t *) part_sys_b->attr;
+                (*attr_a) &= ~GPT_ATTR_BOOTABLE;
+
+                attr_b = (uint64_t *) part_sys_b->attr;
+                (*attr_b) |= GPT_ATTR_BOOTABLE;
             }
 
             err = gpt_write_tbl();
+            LOG_INFO("Result %u",err);
         }
         break;
         case PB_CMD_WRITE_PART:
@@ -499,8 +507,11 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
             }
 
-            pb_boot_linux_with_dt(pbi);
-
+#ifdef PB_BOOT_LINUX
+                pb_boot_linux_with_dt(pbi);
+#elif PB_BOOT_TEST
+                plat_reset();
+#endif
         }
 
         break;
@@ -600,7 +611,12 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
+
+#ifdef PB_BOOT_LINUX
                 pb_boot_linux_with_dt(pbi);
+#elif PB_BOOT_TEST
+                plat_reset();
+#endif
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
@@ -617,10 +633,6 @@ static void recovery_parse_command(struct usb_device *dev,
             if (err != PB_OK)
                 break;
 
-            err = gpt_add_part(0, 1, part_type_config, "Config");
-
-            if (err != PB_OK)
-                break;
             err = board_configure_gpt_tbl();
 
             if (err != PB_OK)

@@ -48,10 +48,25 @@ Using libtomcrypt for SHA and RSA:
 | Total             | 1046     | ms   |
 
 
+Measurements taken on IMX8QXP, loading a 14296kByte binary.
+
+Using hardware accelerators for SHA and RSA signatures:
+
+| Parameter         | Value    | Unit |
+| ----------------- |:--------:| ---- |
+| Power On Reset    | 175      | ms   |
+| Bootloader init   | 6.317    | ms   |
+| Blockdev read     | 86.245   | ms   |
+| SHA256 Hash       | 47.649   | ms   |
+| RSA 4096 Signaure | 0.676    | ms   |
+| Linux             | 420      | ms   |
+| Total             | 734      | ms   |
+
+The linux boot time is measured when handover is done to init/user space.
+
 ## Design
 
-Punchboot is written in C and some assembler. Currently armv7a-ve is the only
-supported architecture, but armv8 support will come soon.
+Punchboot is written in C and some assembler. Currently armv7a and armv8 is supported.
 
 The directory layout is as follows:
 

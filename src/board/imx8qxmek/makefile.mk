@@ -3,6 +3,7 @@ PB_PLAT_NAME   = imx8x
 PB_ENTRY     = 0x80200000
 
 CFLAGS += -I board/imx8qxmek/include
+CFLAGS += -DPB_BOOT_LINUX=1
 
 BOARD_C_SRCS += board/imx8qxmek/imx8qxmek.c
 

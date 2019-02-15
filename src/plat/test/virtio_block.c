@@ -64,7 +64,7 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
     idx = (idx + 1) % q->num;
 
 	q->desc[idx].addr = (uintptr_t) (buf);
-	q->desc[idx].len = 512*no_of_blocks;
+	q->desc[idx].len = (512*no_of_blocks);
 	q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
 	q->desc[idx].next = (idx + 1) % q->num;
 	idx = (idx + 1) % q->num;
@@ -80,7 +80,7 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
     LOG_DBG("notify %p", &(d->dev));   
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 	LOG_DBG("Waiting");
-    while(q->avail->idx != q->used->idx)
+    while( (q->avail->idx != q->used->idx) )
 		__asm__ volatile("nop");
 
 	if (status == VIRTIO_BLK_S_OK)

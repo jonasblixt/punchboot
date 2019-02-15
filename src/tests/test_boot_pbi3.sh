@@ -14,7 +14,7 @@ then
     test_end_error
 fi
 
-$PB part -w -n 2 -f /tmp/img.pbi
+$PB part -w -n 1 -f /tmp/img.pbi
 result_code=$?
 
 if [ $result_code -ne 0 ];

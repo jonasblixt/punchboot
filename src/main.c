@@ -63,6 +63,10 @@ void pb_main(void)
     {
         LOG_INFO("Loading System B");
         err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi);
+    } else {
+        LOG_INFO("No bootable system found");
+        flag_run_recovery = true;
+        goto run_recovery;
     }
     
     if (err != PB_OK)
@@ -77,7 +81,11 @@ void pb_main(void)
     if (err == PB_OK)
     {
         LOG_INFO("Image verified, booting...");
-        pb_boot_linux_with_dt(pbi);
+#ifdef PB_BOOT_LINUX
+                pb_boot_linux_with_dt(pbi);
+#elif PB_BOOT_TEST
+                plat_reset();
+#endif
     } else {
         LOG_ERR("Could not boot image, entering recovery mode...");
         flag_run_recovery = true;

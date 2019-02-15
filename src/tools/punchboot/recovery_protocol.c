@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <pb/pb.h>
 #include <pb/recovery.h>
-#include <pb/config.h>
 #include <pb/gpt.h>
 #include <pb/image.h>
 #include <uuid/uuid.h>
@@ -12,7 +11,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
-
 #include "recovery_protocol.h"
 #include "transport.h"
 #include "utils.h"
@@ -116,6 +114,18 @@ uint32_t pb_boot_part(uint8_t part_no)
     return pb_read_result_code();
 }
 
+uint32_t pb_set_bootpart(uint8_t bootpart)
+{
+    uint32_t err = PB_ERR;
+
+    err = pb_write(PB_CMD_BOOT_ACTIVATE,bootpart,0,0,0, NULL, 0);
+    
+    if (err != PB_OK)
+        return err;
+
+    return pb_read_result_code();
+}
+
 uint32_t pb_get_version(char **out)
 {
     uint32_t sz = 0;
@@ -170,64 +180,6 @@ uint32_t pb_get_gpt_table(struct gpt_primary_tbl *tbl)
     err = pb_read((uint8_t*) tbl, tbl_sz);
 
     if (err)
-        return err;
-
-    return pb_read_result_code();
-}
-
-uint32_t pb_get_config_value(uint32_t index, uint32_t *value) 
-{
-    int err;
-    uint32_t sz;
-
-    err = pb_write(PB_CMD_GET_CONFIG_VAL,index,0,0,0, NULL, 0);
-
-    if (err)
-        return err;
-
-    err = pb_read((uint8_t *) &sz, 4);
-
-    if (err)
-        return err;
-
-    err = pb_read((uint8_t *) value, sz);
-
-    if (err)
-        return err;
-
-    return pb_read_result_code();
-}
-
-uint32_t pb_set_config_value(uint32_t index, uint32_t val) 
-{
-    int err;
-
-    err = pb_write(PB_CMD_SET_CONFIG_VAL,index,val,0,0, NULL, 0);
-
-    if (err)
-        return err;
-
-    return pb_read_result_code();
-}
-
-uint32_t pb_get_config_tbl (struct pb_config_item *items) 
-{
-    int err;
-    uint32_t tbl_sz = 0;
-
-    err = pb_write(PB_CMD_GET_CONFIG_TBL,0,0,0,0, NULL, 0);
-
-    if (err) 
-        return err;
-
-    err = pb_read((uint8_t *) &tbl_sz, 4);
-
-    if (err) 
-        return err;
-
-    err = pb_read((uint8_t *) items, tbl_sz);
-
-    if (err) 
         return err;
 
     return pb_read_result_code();

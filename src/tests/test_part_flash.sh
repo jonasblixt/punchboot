@@ -24,7 +24,7 @@ part_b_sha256=$(sha256sum /tmp/part_data_b | cut -d ' ' -f 1)
 echo About to write data
 # Flash data
 
-$PB part -w -n 1 -f /tmp/part_data_a
+$PB part -w -n 0 -f /tmp/part_data_a
 
 result_code=$?
 
@@ -33,7 +33,7 @@ then
     test_end_error
 fi
 
-$PB part -w -n 2 -f /tmp/part_data_b
+$PB part -w -n 1 -f /tmp/part_data_b
 
 result_code=$?
 
@@ -43,8 +43,8 @@ then
 fi
 echo Data written
 # Extract data from disk image
-dd if=/tmp/disk of=/tmp/readback_a bs=512 skip=36 count=1024
-dd if=/tmp/disk of=/tmp/readback_b bs=512 skip=1061 count=1024
+dd if=/tmp/disk of=/tmp/readback_a bs=512 skip=34 count=1024
+dd if=/tmp/disk of=/tmp/readback_b bs=512 skip=1059 count=1024
 
 readback_a_sha256=$(sha256sum /tmp/readback_a | cut -d ' ' -f 1)
 readback_b_sha256=$(sha256sum /tmp/readback_b | cut -d ' ' -f 1)

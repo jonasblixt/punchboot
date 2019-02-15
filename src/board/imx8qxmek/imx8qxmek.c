@@ -14,12 +14,6 @@
 
 static sc_ipc_t ipc_handle;
 
-const uint8_t part_type_config[] = 
-{
-    0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
-    0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8
-};
-
 const uint8_t part_type_system_a[] = 
 {
     0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 0x44, 
@@ -43,7 +37,6 @@ const uint8_t part_type_root_b[] =
     0x2C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
     0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
 };
-
 
 const struct fuse device_info_fuses[] =
 {
@@ -72,7 +65,6 @@ const struct fuse root_hash_fuses[] =
     IMX8X_FUSE_END,
 };
 
-
 const struct fuse board_fuses[] =
 {
     IMX8X_FUSE_ROW_VAL(18, "BOOT Config", 0x00000002),
@@ -93,7 +85,6 @@ static struct usb_device board_usbdev =
 
 uint32_t board_early_init(void *data)
 {
-
     ipc_handle = (sc_ipc_t) data;
 
     return PB_OK;
@@ -106,10 +97,10 @@ uint32_t board_late_init(void)
 
 uint32_t board_configure_gpt_tbl(void)
 {
-    gpt_add_part(1, 62768,  part_type_system_a, "System A");
-    gpt_add_part(2, 62768,  part_type_system_b, "System B");
-    gpt_add_part(3, 0x40000, part_type_root_a,   "Root A");
-    gpt_add_part(4, 0x40000, part_type_root_b,   "Root B");
+    gpt_add_part(0, 62768,  part_type_system_a, "System A");
+    gpt_add_part(1, 62768,  part_type_system_b, "System B");
+    gpt_add_part(2, 0x40000, part_type_root_a,   "Root A");
+    gpt_add_part(3, 0x40000, part_type_root_b,   "Root B");
 
     return PB_OK;
 }
@@ -127,7 +118,6 @@ uint32_t board_usb_init(struct usb_device **usbdev)
 
 bool board_force_recovery(void)
 {
-    return true;
     sc_bool_t btn_status;
     sc_misc_get_button_status(ipc_handle, &btn_status);
     return (btn_status == 1);

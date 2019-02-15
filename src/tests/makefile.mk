@@ -3,7 +3,6 @@ TESTS  = test_boot
 INTEGRATION_TESTS  = test_reset
 INTEGRATION_TESTS += test_device_setup
 INTEGRATION_TESTS += test_part
-INTEGRATION_TESTS += test_config
 INTEGRATION_TESTS += test_corrupt_gpt
 INTEGRATION_TESTS += test_corrupt_gpt2
 INTEGRATION_TESTS += test_part_flash

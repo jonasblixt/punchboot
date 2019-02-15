@@ -6,7 +6,7 @@ dd if=/dev/urandom of=/tmp/random_data bs=64k count=1
 
 # Sign with incorrect key index
 
-$PBI -t LINUX -l 0x49000000 -f /tmp/random_data -k $KEY1 -n 1 -o /tmp/img.pbi
+$PBI -t LINUX -l 0x50000000 -f /tmp/random_data -k $KEY1 -n 1 -o /tmp/img.pbi
 result_code=$?
 
 if [ $result_code -ne 0 ];

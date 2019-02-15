@@ -94,8 +94,9 @@ uint32_t board_usb_init(struct usb_device **dev)
 	return PB_OK;
 }
 
-uint32_t board_early_init(void)
+uint32_t board_early_init(void *data)
 {
+    UNUSED(data);
 
     test_uart_init();
  
@@ -113,8 +114,8 @@ uint8_t board_force_recovery(void)
 
 uint32_t board_configure_gpt_tbl() 
 {
-    gpt_add_part(1, 1024, part_type_system_a, "System A");
-    gpt_add_part(2, 1024, part_type_system_b, "System B");
+    gpt_add_part(0, 1024, part_type_system_a, "System A");
+    gpt_add_part(1, 1024, part_type_system_b, "System B");
     return PB_OK;
 }
 

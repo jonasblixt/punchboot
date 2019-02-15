@@ -3,6 +3,7 @@ PB_PLAT_NAME   = imx8m
 PB_ENTRY     = 0x7E1000
 
 CFLAGS += -I board/pico8ml/include
+CFLAGS += -DPB_BOOT_LINUX=1
 
 BOARD_C_SRCS += board/pico8ml/pico8ml.c
 BOARD_C_SRCS += board/pico8ml/ddr_init.c

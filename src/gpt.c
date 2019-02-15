@@ -119,14 +119,6 @@ uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba)
     for (int i = 0; i < 16; i++) 
         hdr->disk_uuid[i] = gpt_prng();
  
-    /* Configure backup GPT table */
-    memcpy(&_gpt2.hdr, hdr, sizeof(struct gpt_header));
-    
-    hdr = &_gpt2.hdr;
-    hdr->backup_lba = _gpt1.hdr.current_lba;
-    hdr->current_lba = last_lba;
-    hdr->entries_start_lba = last_lba - 
-                (hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512;
 
     return PB_OK;
 }
@@ -165,85 +157,6 @@ uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks,
 
     return PB_OK;
 }
-
-uint32_t gpt_write_tbl(void) 
-{
-    uint32_t crc_tmp = 0;
-    uint32_t err = 0;
-
-    /* Calculate CRC32 for header and part table */
-    _gpt1.hdr.hdr_crc = 0;
-    _gpt1.hdr.part_array_crc = efi_crc32((uint8_t *) _gpt1.part, 
-                sizeof(struct gpt_part_hdr) * _gpt1.hdr.no_of_parts);
-
-    crc_tmp  = efi_crc32((uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header)
-                            - GPT_HEADER_RSZ);
-    _gpt1.hdr.hdr_crc = crc_tmp;
-
-    /* Write protective MBR */
-
-    memset(pmbr, 0, sizeof(pmbr));
-
-    pmbr[448] = 2;
-    pmbr[449] = 0; 
-    pmbr[450] = 0xEE; // type , 0xEE = GPT
-    pmbr[451] = 0xFF;
-    pmbr[452] = 0xFF;
-    pmbr[453] = 0xFF;
-    pmbr[454] = 0x01;
-
-    uint32_t llba = (uint32_t) plat_get_lastlba();
-    memcpy(&pmbr[458], &llba, sizeof(uint32_t));
-    pmbr[510] = 0x55;
-    pmbr[511] = 0xAA;
-
-
-    LOG_INFO("writing protective MBR");
-    err = plat_write_block(0,(uintptr_t) pmbr, 1); 
-
-    if (err != PB_OK) 
-    {
-        LOG_ERR ("error writing protective MBR");
-        return PB_ERR;
-    }
-
-    /* Write primary GPT Table */
-
-    LOG_INFO("writing primary gpt tbl to lba %llu", _gpt1.hdr.current_lba);
-    err = plat_write_block(_gpt1.hdr.current_lba,(uintptr_t) &_gpt1, 
-                    sizeof(struct gpt_primary_tbl) / 512);
-
-    if (err != PB_OK) 
-    {
-        LOG_ERR ("error writing primary gpt table");
-        return PB_ERR;
-    }
-
-
-    _gpt2.hdr.hdr_crc = 0;
-    _gpt2.hdr.part_array_crc = efi_crc32((uint8_t *) _gpt2.part, 
-                sizeof(struct gpt_part_hdr) * _gpt2.hdr.no_of_parts);
-
-    crc_tmp  = efi_crc32((uint8_t*) &_gpt2.hdr, sizeof(struct gpt_header)
-                            - GPT_HEADER_RSZ);
-    _gpt2.hdr.hdr_crc = crc_tmp;
-
-
-    /* Write backup GPT table */
-
-    LOG_INFO("Writing backup GPT tbl to LBA %llu", _gpt2.hdr.entries_start_lba);
-    err = plat_write_block(_gpt2.hdr.entries_start_lba, (uintptr_t) &_gpt2,
-            sizeof(struct gpt_backup_tbl) / 512);
-
-    if (err != PB_OK) 
-    {
-        LOG_ERR ("Error writing backup GPT table");
-        return PB_ERR;
-    }
-
-    return PB_OK;
-}
-
 
 static uint32_t gpt_has_valid_header(struct gpt_header *hdr)
 {
@@ -324,6 +237,100 @@ static uint32_t gpt_is_valid(struct gpt_header *hdr, struct gpt_part_hdr *part)
     return PB_OK;
 }
 
+uint32_t gpt_write_tbl(void) 
+{
+    uint32_t crc_tmp = 0;
+    uint32_t err = 0;
+
+
+    /* Calculate CRC32 for header and part table */
+    _gpt1.hdr.hdr_crc = 0;
+    _gpt1.hdr.part_array_crc = efi_crc32((uint8_t *) _gpt1.part, 
+                sizeof(struct gpt_part_hdr) * _gpt1.hdr.no_of_parts);
+
+    crc_tmp  = efi_crc32((uint8_t*) &_gpt1.hdr, sizeof(struct gpt_header)
+                            - GPT_HEADER_RSZ);
+    _gpt1.hdr.hdr_crc = crc_tmp;
+    
+    /* Write protective MBR */
+
+    memset(pmbr, 0, sizeof(pmbr));
+
+    pmbr[448] = 2;
+    pmbr[449] = 0; 
+    pmbr[450] = 0xEE; // type , 0xEE = GPT
+    pmbr[451] = 0xFF;
+    pmbr[452] = 0xFF;
+    pmbr[453] = 0xFF;
+    pmbr[454] = 0x01;
+
+    uint32_t llba = (uint32_t) plat_get_lastlba();
+    memcpy(&pmbr[458], &llba, sizeof(uint32_t));
+    pmbr[510] = 0x55;
+    pmbr[511] = 0xAA;
+
+
+    LOG_INFO("writing protective MBR");
+    err = plat_write_block(0,(uintptr_t) pmbr, 1); 
+
+    if (err != PB_OK) 
+    {
+        LOG_ERR ("error writing protective MBR");
+        return PB_ERR;
+    }
+
+    /* Write primary GPT Table */
+    
+    LOG_INFO("writing primary gpt tbl to lba %llu", _gpt1.hdr.current_lba);
+    err = plat_write_block(_gpt1.hdr.current_lba,(uintptr_t) &_gpt1, 
+                    sizeof(struct gpt_primary_tbl) / 512);
+
+    if (err != PB_OK) 
+    {
+        LOG_ERR ("error writing primary gpt table");
+        return PB_ERR;
+    }
+
+    /* Configure backup GPT table */
+    memcpy(&_gpt2.hdr, &_gpt1.hdr, sizeof(struct gpt_header));
+    memcpy(_gpt2.part, _gpt1.part, (sizeof(struct gpt_part_hdr)
+                                    * _gpt1.hdr.no_of_parts));
+
+    uint64_t last_lba = plat_get_lastlba();
+
+    struct gpt_header *hdr = (&_gpt2.hdr);
+
+    hdr->backup_lba = _gpt1.hdr.current_lba;
+    hdr->current_lba = last_lba;
+    hdr->entries_start_lba = last_lba - 
+                (hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512;
+
+    hdr->hdr_crc = 0;
+    hdr->part_array_crc = efi_crc32((uint8_t *) _gpt2.part, 
+                sizeof(struct gpt_part_hdr) * _gpt2.hdr.no_of_parts);
+
+    crc_tmp  = efi_crc32((uint8_t*) hdr, sizeof(struct gpt_header)
+                            - GPT_HEADER_RSZ);
+    _gpt2.hdr.hdr_crc = crc_tmp;
+
+
+    /* Write backup GPT table */
+
+    LOG_INFO("Writing backup GPT tbl to LBA %llu", _gpt2.hdr.entries_start_lba);
+    err = plat_write_block(_gpt2.hdr.entries_start_lba, (uintptr_t) &_gpt2,
+            sizeof(struct gpt_backup_tbl) / 512);
+
+    if (err != PB_OK) 
+    {
+        LOG_ERR ("Error writing backup GPT table");
+        return PB_ERR;
+    }
+
+    return PB_OK;
+}
+
+
+
 uint32_t gpt_init(void) 
 {
     _flag_gpt_ok = false;
@@ -334,6 +341,7 @@ uint32_t gpt_init(void)
     if (gpt_is_valid(&_gpt1.hdr, _gpt1.part) != PB_OK)
     {
         LOG_ERR("Primary GPT table is corrupt or missing, trying to recover backup");
+
         plat_read_block(plat_get_lastlba(), (uintptr_t) &_gpt2.hdr, 
                                 sizeof(struct gpt_header) / 512);
 
@@ -342,7 +350,7 @@ uint32_t gpt_init(void)
             LOG_ERR("Invalid backup GPT header, unable to recover");
             return PB_ERR;
         }
-        
+
         plat_read_block(_gpt2.hdr.entries_start_lba, (uintptr_t) _gpt2.part,
                     (_gpt2.hdr.no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
 

@@ -75,6 +75,7 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi)
     bl33_image.image_base = (uintptr_t) linux2->load_addr_low;
     bl33_image.image_size = linux2->component_size;
 
+    plat_preboot_cleanup();
     tr_stamp_end(TR_FINAL);
     tr_print_result();
 

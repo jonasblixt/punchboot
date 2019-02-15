@@ -12,6 +12,8 @@ static __a4k __no_bss struct pb_pbi _pbi;
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
             _zero_region_start, _zero_region_end, _stack_start, _stack_end;
 
+static unsigned char __a4k sign_copy[1024];
+
 uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 {
 
@@ -20,7 +22,8 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 
     tr_stamp_begin(TR_BLOCKREAD);
 
-    if (!part_lba_offset) {
+    if (!part_lba_offset) 
+    {
         LOG_ERR ("Unknown partition");
         return PB_ERR;
     }
@@ -29,19 +32,22 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
                             sizeof(struct pb_pbi)/512);
 
 
-    if (_pbi.hdr.header_magic != PB_IMAGE_HEADER_MAGIC) {
+    if (_pbi.hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
+    {
         LOG_ERR ("Incorrect header magic");
         return PB_ERR;
     }
 
     LOG_INFO ("Component manifest:");
-    for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
+    for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) 
+    {
         LOG_INFO ("%x - LA: 0x%x OFF:0x%x",i, 
                             _pbi.comp[i].load_addr_low,
                             _pbi.comp[i].component_offset);
     }
 
-    for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) {
+    for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) 
+    {
         LOG_INFO("Loading component %u, %u bytes",i, 
                                 _pbi.comp[i].component_size);
 
@@ -91,7 +97,6 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 
 bool pb_image_verify(struct pb_pbi* pbi)
 {
-    unsigned char __a4k sign_copy[1024];
     unsigned int sign_sz = 0;
     unsigned char hash_copy[32];
     unsigned char hash[32];

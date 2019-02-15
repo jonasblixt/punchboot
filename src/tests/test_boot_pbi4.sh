@@ -16,7 +16,7 @@ fi
 
 # Flashing image should fail since it is to big
 
-$PB part -w -n 1 -f /tmp/img.pbi
+$PB part -w -n 0 -f /tmp/img.pbi
 result_code=$?
 
 if [ $result_code -ne 255 ];
