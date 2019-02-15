@@ -15,6 +15,9 @@ INTEGRATION_TESTS += test_flash_bl
 INTEGRATION_TESTS += test_invalid_key_index
 INTEGRATION_TESTS += test_gpt_boot_activate
 INTEGRATION_TESTS += test_gpt_boot_activate_step2
+INTEGRATION_TESTS += test_gpt_boot_activate_step3
+INTEGRATION_TESTS += test_gpt_boot_activate_step4
+INTEGRATION_TESTS += test_gpt_boot_activate_step5
 
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"
