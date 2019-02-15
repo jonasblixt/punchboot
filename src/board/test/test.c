@@ -24,12 +24,6 @@
 
 #include <board/config.h>
 
-const uint8_t part_type_config[] = 
-{
-    0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
-    0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8
-};
-
 const uint8_t part_type_system_a[] = 
 {
     0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 0x44, 
@@ -109,7 +103,7 @@ uint32_t board_early_init(void *data)
 
 uint8_t board_force_recovery(void) 
 {
-    return true;
+    return false;
 }
 
 uint32_t board_configure_gpt_tbl() 
@@ -119,20 +113,3 @@ uint32_t board_configure_gpt_tbl()
     return PB_OK;
 }
 
-void test_board_boot(struct pb_pbi *pbi, uint8_t system_index)
-{
-    UNUSED(system_index);
-    struct pb_component_hdr *linux = 
-            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
-
-	LOG_INFO("Booting linux image at addr %8.8lX",linux->load_addr_low);
-
-    plat_reset();
-}
-
-uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
-{
-    UNUSED(buf);
-    UNUSED(boot_part_uuid);
-    return PB_OK;
-}

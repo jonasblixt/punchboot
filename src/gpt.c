@@ -242,7 +242,6 @@ uint32_t gpt_write_tbl(void)
     uint32_t crc_tmp = 0;
     uint32_t err = 0;
 
-
     /* Calculate CRC32 for header and part table */
     _gpt1.hdr.hdr_crc = 0;
     _gpt1.hdr.part_array_crc = efi_crc32((uint8_t *) _gpt1.part, 

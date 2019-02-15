@@ -57,7 +57,7 @@ void pb_main(void)
     if (((*boot_part_attr_a) & GPT_ATTR_BOOTABLE) == GPT_ATTR_BOOTABLE)
     {
         LOG_INFO("Loading System A");
-        err = pb_image_load_from_fs(boot_part_a->first_lba, &pbi);
+        err = pb_image_load_from_fs((boot_part_a->first_lba), &pbi);
     } 
     else if (((*boot_part_attr_b) & GPT_ATTR_BOOTABLE) == GPT_ATTR_BOOTABLE) 
     {
