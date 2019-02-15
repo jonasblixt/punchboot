@@ -97,6 +97,8 @@ static void uint_div_qr(unsigned int numerator, unsigned int denominator,
 		qr->r = -qr->r;
 }
 
+#ifdef PB_IGNORE
+
 unsigned int __aeabi_uidiv(unsigned int numerator, unsigned int denominator)
 {
 	struct qr qr = { .q_n = 0, .r_n = 0 };
@@ -105,6 +107,7 @@ unsigned int __aeabi_uidiv(unsigned int numerator, unsigned int denominator)
 
 	return qr.q;
 }
+
 
 unsigned int __aeabi_uimod(unsigned int numerator, unsigned int denominator)
 {
@@ -115,6 +118,8 @@ unsigned int __aeabi_uimod(unsigned int numerator, unsigned int denominator)
 	return qr.r;
 }
 
+#endif
+
 unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
 {
 	struct qr qr = { .q_n = 0, .r_n = 0 };
@@ -123,6 +128,8 @@ unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
 
 	return ret_uidivmod_values(qr.q, qr.r);
 }
+
+#ifdef PB_IGNORE
 
 signed int __aeabi_idiv(signed int numerator, signed int denominator)
 {
@@ -201,3 +208,5 @@ signed int __aeabi_idivmod(signed int numerator, signed int denominator)
 
 	return ret_idivmod_values(qr.q, qr.r);
 }
+
+#endif

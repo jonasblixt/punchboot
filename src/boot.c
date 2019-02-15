@@ -8,7 +8,6 @@
 #include <keys.h>
 #include <board.h>
 #include <plat.h>
-#include <uuid.h>
 #include <atf.h>
 #include <timing_report.h>
 

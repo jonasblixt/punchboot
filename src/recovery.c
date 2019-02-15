@@ -18,7 +18,6 @@
 #include <gpt.h>
 #include <string.h>
 #include <boot.h>
-#include <uuid.h>
 #include <board/config.h>
 #include <plat/defs.h>
 

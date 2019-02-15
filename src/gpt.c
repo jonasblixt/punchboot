@@ -12,7 +12,6 @@
 #include <plat.h>
 #include <crc.h>
 #include <string.h>
-#include <uuid.h>
 
 static uint8_t _flag_gpt_ok = false;
 static __a4k __no_bss struct gpt_primary_tbl _gpt1;

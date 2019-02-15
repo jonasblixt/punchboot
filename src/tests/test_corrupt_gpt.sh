@@ -15,7 +15,7 @@ fi
 
 # Trash primary GPT table
 
-dd if=/dev/urandom of=/tmp/disk conv=notrunc bs=512 skip=1 count=33
+dd if=/dev/zero of=/tmp/disk conv=notrunc bs=512 skip=1 count=33
 
 # Make sure it is trashed
 sgdisk -v /tmp/disk | grep "No problems found"

@@ -23,6 +23,7 @@ then
     test_end_error
 fi
 
+$PB boot -a -n 0
 $PB boot -a -n 1
 result_code=$?
 

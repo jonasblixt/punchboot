@@ -57,13 +57,11 @@ C_SRCS  += lib/memmove.c
 C_SRCS  += lib/memchr.c
 C_SRCS  += lib/memcmp.c
 C_SRCS  += lib/strcmp.c
-C_SRCS  += lib/uuid.c
 C_SRCS  += lib/memset.c
 C_SRCS  += lib/strlen.c
 C_SRCS  += lib/printf.c
 C_SRCS  += lib/snprintf.c
 C_SRCS  += lib/putchar.c
-C_SRCS  += lib/puts.c
 C_SRCS  += usb.c
 C_SRCS  += image.c
 
