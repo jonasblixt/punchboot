@@ -102,8 +102,8 @@ static const struct usb_descriptors descriptors = {
 static const uint8_t usb_string_id[] = 
     {0x16,3,'P',0,'u',0,'n',0,'c',0,'h',0,' ',0,'B',0,'O',0,'O',0,'T',0};
 
-static bool flag_zlp;
-
+static bool flag_zlp, flag_wait_for_zlp;
+static bool flag_set_config;
 
 uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep, 
                             uint8_t *bfr, uint32_t sz)
@@ -115,6 +115,12 @@ uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep,
         (ep == USB_EP0_OUT))
     {
         flag_zlp = true;
+    }
+
+    if ((sz == 0) &&
+        (ep == USB_EP0_IN))
+    {
+        flag_wait_for_zlp = true;
     }
 
     /* Set address */
@@ -177,6 +183,7 @@ void      plat_usb_set_address(struct usb_device *dev, uint32_t addr)
 void plat_usb_set_configuration(struct usb_device *dev)
 {
     UNUSED(dev);
+    flag_set_config = true;
 }
 
 void plat_usb_wait_for_ep_completion(uint32_t ep)
@@ -299,8 +306,43 @@ void test_main(void)
     pkt.wValue = 1234;
     pkt.wLength = 0;
     flag_zlp = false;
+    flag_wait_for_zlp = false;
     usbdev.on_setup_pkt(&usbdev, &pkt);
     assert (!flag_zlp);
+    assert (flag_wait_for_zlp);
+    assert(usb_addr == 1234);
+
+
+    pkt.bRequestType = 0x00;
+    pkt.bRequest = 0x09;
+    pkt.wValue = 0;
+    pkt.wLength = 0;
+    flag_zlp = false;
+    flag_wait_for_zlp = false;
+    flag_set_config = false;
+    usbdev.on_setup_pkt(&usbdev, &pkt);
+    assert (!flag_zlp);
+    assert (flag_wait_for_zlp);
+    assert (flag_set_config);
+
+
+    pkt.bRequestType = 0x21;
+    pkt.bRequest = 0x0A;
+    pkt.wValue = 0;
+    pkt.wLength = 0;
+    flag_zlp = false;
+    flag_wait_for_zlp = false;
+    usbdev.on_setup_pkt(&usbdev, &pkt);
+    assert (flag_zlp);
+
+    pkt.bRequestType = 0x80;
+    pkt.bRequest = 0x00;
+    pkt.wValue = 0;
+    pkt.wLength = 0;
+    flag_zlp = false;
+    flag_wait_for_zlp = false;
+    usbdev.on_setup_pkt(&usbdev, &pkt);
+    assert (flag_zlp);
 
     LOG_INFO("USB CH9 test end");
 }
