@@ -1,3 +1,5 @@
+
+#include <stdio.h>
 #include <plat/test/semihosting.h>
 #include <usb.h>
 #include <assert.h>

@@ -47,13 +47,13 @@ struct gpt_part_hdr {
 
 
 struct gpt_primary_tbl {
-    struct gpt_header hdr;
-    struct gpt_part_hdr part[128];
+    volatile struct gpt_header hdr;
+    volatile struct gpt_part_hdr part[128];
 } __attribute__ ((packed));
 
 struct gpt_backup_tbl {
-    struct gpt_part_hdr part[128];
-    struct gpt_header hdr;
+    volatile struct gpt_part_hdr part[128];
+    volatile struct gpt_header hdr;
 } __attribute__ ((packed));
 
 
