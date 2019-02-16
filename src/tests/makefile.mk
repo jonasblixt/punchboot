@@ -1,4 +1,5 @@
-TESTS  = test_boot
+TESTS   = test_boot
+TESTS  += test_usb_ch9
 
 INTEGRATION_TESTS  = test_reset
 INTEGRATION_TESTS += test_device_setup
@@ -35,22 +36,36 @@ QEMU_FLAGS += -device virtio-blk-device,drive=disk_aux
 QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,if=none,format=raw
 
 TEST_C_SRCS += tests/common.c
+TEST_C_SRCS += plat/test/pl061.c
+TEST_C_SRCS += plat/test/gcov.c
+TEST_C_SRCS += usb.c
+TEST_C_SRCS += plat/test/semihosting.c
+TEST_C_SRCS += plat/test/uart.c
+TEST_C_SRCS += lib/printf.c
+TEST_C_SRCS += lib/putchar.c
+TEST_C_SRCS += lib/memcmp.c
+TEST_C_SRCS += lib/strlen.c
+TEST_C_SRCS += lib/memcpy.c
+
+
+TEST_ASM_SRCS += plat/test/semihosting_call.S
 
 TEST_OBJS      = $(TEST_C_SRCS:.c=.o) 
+TEST_OBJS      += $(TEST_ASM_SRCS:.S=.o) 
 
 CFLAGS += -fprofile-arcs -ftest-coverage
 LDFLAGS += 
 
 BOARD = test
 
-test: $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS) $(TEST_OBJS) 
+test: $(ARCH_OBJS) $(TEST_OBJS) 
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32
 	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16
 	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
 	@make -C tools/pbimage CROSS_COMPILE="" CODE_COV=1
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
-		$(LD) $(LDFLAGS) $(OBJS) $(TEST_OBJS) \
+		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
 			 $(LIBS) $(TEST).o -o $(TEST) && \
 		echo "TEST $(TEST)" && \
 		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST);)

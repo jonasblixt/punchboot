@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <board.h>
 #include <plat.h>
+#include <plat/test/pl061.h>
+#include <plat/test/gcov.h>
 #include <plat/test/semihosting.h>
 #include <assert.h>
 
@@ -22,7 +24,12 @@ void __assert_func(const char *fn,
 
 void pb_main(void) 
 {
-    plat_early_init();
+
+    test_uart_init();
+ 
+    pl061_init(0x09030000);
+
+	gcov_init();	
     test_main();
     semihosting_sys_exit(0);
 }
