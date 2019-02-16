@@ -16,12 +16,11 @@ SECTIONS
 	.text :
  	{
         PROVIDE (_code_start = .);
-		*(.text)
+		*(.text .text.*)
         . = ALIGN(8);
         _etext = .;
         PROVIDE (_code_end = .);
     } > pbram
-
 
     .data :
     {
@@ -32,7 +31,6 @@ SECTIONS
         _edata = .;
         PROVIDE (_data_region_end = .);
     } > pbram
-
 
     .bss (NOLOAD):
     {

@@ -542,16 +542,14 @@ static void recovery_parse_command(struct usb_device *dev,
                 uintptr_t la = pbi->comp[i].load_addr_low;
                 uint32_t sz = pbi->comp[i].component_size;
 
-                if ( (la <= (uintptr_t) &_stack_end) &&
-                     ((la+sz) >= (uintptr_t) &_stack_start))
+                if (PB_CHECK_OVERLAP(la,sz,&_stack_start,&_stack_end))
                 {
                     LOG_ERR("image overlapping with PB stack");
                     err = PB_ERR;
                     break;
                 }
 
-                if ( (la <= (uintptr_t) &_data_region_end) &&
-                     ((la+sz) >= (uintptr_t) &_data_region_start))
+                if (PB_CHECK_OVERLAP(la,sz,&_data_region_start,&_data_region_end))
                 {
                     LOG_ERR("image overlapping with PB data");
                     err = PB_ERR;
@@ -559,16 +557,14 @@ static void recovery_parse_command(struct usb_device *dev,
                 }
 
 
-                if ( (la <= (uintptr_t) &_zero_region_end) &&
-                     ((la+sz) >= (uintptr_t) &_zero_region_start))
+                if (PB_CHECK_OVERLAP(la,sz,&_zero_region_start,&_zero_region_end))
                 {
                     LOG_ERR("image overlapping with PB bss");
                     err = PB_ERR;
                     break;
                 }
 
-                if ( (la <= (uintptr_t) &_code_end) &&
-                     ((la+sz) >= (uintptr_t) &_code_start))
+                if (PB_CHECK_OVERLAP(la,sz,&_code_start,&_code_end))
                 {
                     LOG_ERR("image overlapping with PB code");
                     err = PB_ERR;

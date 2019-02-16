@@ -54,30 +54,26 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
         uintptr_t la = (uintptr_t) _pbi.comp[i].load_addr_low;
         uint32_t sz = _pbi.comp[i].component_size;
 
-        if ( (la <= (uintptr_t) &_stack_end) &&
-             ((la+sz) >= (uintptr_t) &_stack_start))
+
+        if (PB_CHECK_OVERLAP(la,sz,&_stack_start,&_stack_end))
         {
             LOG_ERR("image overlapping with PB stack");
             return PB_ERR;
         }
 
-        if ( (la <=  (uintptr_t) &_data_region_end) &&
-             ((la+sz) >=  (uintptr_t) &_data_region_start))
+        if (PB_CHECK_OVERLAP(la,sz,&_data_region_start,&_data_region_end))
         {
             LOG_ERR("image overlapping with PB data");
             return PB_ERR;
         }
 
-
-        if ( (la <=  (uintptr_t) &_zero_region_end) &&
-             ((la+sz) >=  (uintptr_t) &_zero_region_start))
+        if (PB_CHECK_OVERLAP(la,sz,&_zero_region_start,&_zero_region_end))
         {
             LOG_ERR("image overlapping with PB bss");
             return PB_ERR;
         }
 
-        if ( (la <= (uintptr_t) &_code_end) &&
-             ((la+sz) >= (uintptr_t) &_code_start))
+        if (PB_CHECK_OVERLAP(la,sz,&_code_start,&_code_end))
         {
             LOG_ERR("image overlapping with PB code");
             return PB_ERR;
