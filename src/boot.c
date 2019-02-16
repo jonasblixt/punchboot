@@ -10,10 +10,8 @@
 #include <plat.h>
 #include <atf.h>
 #include <timing_report.h>
-
-static struct atf_bl31_params bl31_params;
-static struct entry_point_info bl33_ep;
-static struct atf_image_info bl33_image;
+#include <libfdt.h>
+#include <uuid.h>
 
 extern void arch_jump_linux_dt(void* addr, void * dt)
                                  __attribute__ ((noreturn));
@@ -21,8 +19,11 @@ extern void arch_jump_linux_dt(void* addr, void * dt)
 extern void arch_jump_atf(void* atf_addr, void * atf_param)
                                  __attribute__ ((noreturn));
 
-void pb_boot_linux_with_dt(struct pb_pbi *pbi)
+static char new_bootargs[512];
+
+void pb_boot_linux_with_dt(struct pb_pbi *pbi, uint32_t system_index)
 {
+    char part_uuid[37];
 
     struct pb_component_hdr *dtb = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
@@ -45,46 +46,82 @@ void pb_boot_linux_with_dt(struct pb_pbi *pbi)
         LOG_INFO("  ATF: 0x%x", atf->load_addr_low);
     }
 
-    /* Parameter struct for ATF BL31 */
-    bl31_params.h.type = PARAM_BL_PARAMS;
-    bl31_params.h.version = 1;
-    bl31_params.h.size = sizeof(struct atf_bl31_params);
-    bl31_params.h.attr = 1;
+    switch (system_index)
+    {
+        case SYSTEM_A:
+        {
+            LOG_INFO ("Using root A");
+            uuid_to_string((uint8_t *) part_type_root_a, part_uuid);
+        }
+        break;
+        case SYSTEM_B:
+        {
+            LOG_INFO ("Using root B");
+            uuid_to_string((uint8_t *) part_type_root_b, part_uuid);
+        }
+        break;
+        default:
+        {
+            LOG_ERR("Invalid root partition %x", system_index);
+            return ;
+        }
+    }
+    LOG_INFO("UUID = %s", part_uuid);
 
-    bl31_params.bl31_image_info = NULL;
-    bl31_params.bl32_ep_info = NULL;
-    bl31_params.bl31_image_info = NULL;
-    bl31_params.bl33_ep_info = &bl33_ep;
-    bl31_params.bl33_image_info = &bl33_image;
+    LOG_DBG("Patching DT");
+    void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
+    int err = fdt_check_header(fdt);
 
-    bl33_ep.h.type = PARAM_EP;
-    bl33_ep.h.size = sizeof(struct entry_point_info);
-    bl33_ep.h.version = 1;
-    bl33_ep.h.attr = 1;
-    bl33_ep.spsr = 0x000003C9;
-    bl33_ep.pc = (uintptr_t) linux2->load_addr_low;
-    bl33_ep.args.arg0 = dtb->load_addr_low;
-    bl33_ep.args.arg1 = 0;
+    if (err >= 0) 
+    {
+        int depth = 0;
+        int offset = 0;
+        for (;;) 
+        {
+            offset = fdt_next_node(fdt, offset, &depth);
 
-    bl33_image.h.type = PARAM_IMAGE_BINARY;
-    bl33_image.h.version = 1;
-    bl33_image.h.size = sizeof(struct atf_image_info);
-    bl33_image.h.attr = 1;
+            if (offset < 0)
+                break;
 
-    bl33_image.image_base = (uintptr_t) linux2->load_addr_low;
-    bl33_image.image_size = linux2->component_size;
+            const char *name = fdt_get_name(fdt, offset, NULL);
 
+
+            if (!name)
+                continue;
+
+            if (strcmp(name, "chosen") == 0) 
+            {
+                snprintf (new_bootargs, 512, BOARD_BOOT_ARGS, part_uuid);
+
+                err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
+                            (const char *) new_bootargs);
+
+                if (err)
+                {
+                    LOG_ERR("Could not update bootargs");
+                } else {
+                    LOG_INFO("Bootargs patched");
+                }
+                
+                break;
+            }
+        }
+    }
+    
+    LOG_DBG("Done");
     plat_preboot_cleanup();
     tr_stamp_end(TR_FINAL);
     tr_print_result();
 
     plat_wdog_kick();
 
-    if (atf)
+    if (atf && dtb && linux2)
     {
         arch_jump_atf((void *)(uintptr_t) atf->load_addr_low, 
-                      (void *)(uintptr_t) &bl31_params);
-    } else {
+                      (void *)(uintptr_t) NULL);
+    } 
+    else if(dtb && linux2)
+    {
         arch_jump_linux_dt((void *)(uintptr_t) linux2->load_addr_low, 
                            (void *)(uintptr_t) dtb->load_addr_low);
     }

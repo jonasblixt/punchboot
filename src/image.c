@@ -13,6 +13,7 @@ extern char _code_start, _code_end, _data_region_start, _data_region_end,
             _zero_region_start, _zero_region_end, _stack_start, _stack_end;
 
 static unsigned char __a4k sign_copy[1024];
+static uint8_t __a4k output_data[1024];
 
 uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
 {
@@ -145,7 +146,6 @@ bool pb_image_verify(struct pb_pbi* pbi)
     tr_stamp_end(TR_SHA);
 
     tr_stamp_begin(TR_RSA);
-    uint8_t __a4k output_data[512];
     memset(output_data, 0, 512);
 
     struct asn1_key *k = pb_key_get(pbi->hdr.key_index);

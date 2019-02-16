@@ -22,6 +22,7 @@ void pb_main(void)
 {
     uint32_t err = 0;
     bool flag_run_recovery = false;
+    uint32_t system_index = 0;
     struct pb_pbi *pbi = NULL;
     struct gpt_part_hdr *boot_part_a, *boot_part_b;
     uint64_t *boot_part_attr_a, *boot_part_attr_b;
@@ -57,11 +58,13 @@ void pb_main(void)
     if (((*boot_part_attr_a) & GPT_ATTR_BOOTABLE) == GPT_ATTR_BOOTABLE)
     {
         LOG_INFO("Loading System A");
+        system_index = 1;
         err = pb_image_load_from_fs((boot_part_a->first_lba), &pbi);
     } 
     else if (((*boot_part_attr_b) & GPT_ATTR_BOOTABLE) == GPT_ATTR_BOOTABLE) 
     {
         LOG_INFO("Loading System B");
+        system_index = 2;
         err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi);
     } else {
         LOG_INFO("No bootable system found");
@@ -82,7 +85,7 @@ void pb_main(void)
     {
         LOG_INFO("Image verified, booting...");
 #ifdef PB_BOOT_LINUX
-                pb_boot_linux_with_dt(pbi);
+                pb_boot_linux_with_dt(pbi, system_index);
 #elif PB_BOOT_TEST
                 plat_reset();
 #endif

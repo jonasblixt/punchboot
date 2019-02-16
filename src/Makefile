@@ -20,12 +20,11 @@ else
 	TIMING_REPORT=0
 endif
 
-CFLAGS   = -Wall -Wextra -pedantic -std=c99 -Wunused-result -Os
+CFLAGS   = -Wall -pedantic -Wextra -std=c99 -Wunused-result -Os
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -ffunction-sections 
 CFLAGS  += -fdata-sections 
 CFLAGS  += -fno-omit-frame-pointer
-CFLAGS  += -Wimplicit-fallthrough=0
 CFLAGS  += -I. -I include/pb
 CFLAGS  += -I include/pb/libc
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
@@ -33,6 +32,7 @@ CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
 CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
+CFLAGS  += -I 3pp/fdt/include
 
 LIBS     = 
 
@@ -62,8 +62,19 @@ C_SRCS  += lib/strlen.c
 C_SRCS  += lib/printf.c
 C_SRCS  += lib/snprintf.c
 C_SRCS  += lib/putchar.c
+C_SRCS  += lib/uuid.c
 C_SRCS  += usb.c
 C_SRCS  += image.c
+
+# Lib fdt
+C_SRCS  += 3pp/fdt/fdt.c
+C_SRCS  += 3pp/fdt/fdt_addresses.c
+C_SRCS  += 3pp/fdt/fdt_empty_tree.c
+C_SRCS  += 3pp/fdt/fdt_ro.c
+C_SRCS  += 3pp/fdt/fdt_rw.c
+C_SRCS  += 3pp/fdt/fdt_strerror.c
+C_SRCS  += 3pp/fdt/fdt_sw.c
+C_SRCS  += 3pp/fdt/fdt_wip.c
 
 
 RSA_KEYS_SRCS ?= ../pki/dev_rsa_public.der    \

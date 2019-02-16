@@ -116,9 +116,6 @@ static uint32_t recovery_send_response(struct usb_device *dev,
 
     plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
 
-    if (sz > RECOVERY_CMD_BUFFER_SZ)
-        return PB_ERR;
-
     memcpy(recovery_cmd_buffer, bfr, sz);
  
     err = plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sz);
@@ -507,7 +504,7 @@ static void recovery_parse_command(struct usb_device *dev,
             }
 
 #ifdef PB_BOOT_LINUX
-                pb_boot_linux_with_dt(pbi);
+                pb_boot_linux_with_dt(pbi, cmd->arg0);
 #elif PB_BOOT_TEST
                 plat_reset();
 #endif
@@ -608,7 +605,7 @@ static void recovery_parse_command(struct usb_device *dev,
                 recovery_send_result_code(dev, err);
 
 #ifdef PB_BOOT_LINUX
-                pb_boot_linux_with_dt(pbi);
+                pb_boot_linux_with_dt(pbi, SYSTEM_A);
 #elif PB_BOOT_TEST
                 plat_reset();
 #endif

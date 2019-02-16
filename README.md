@@ -58,7 +58,7 @@ Using hardware accelerators for SHA and RSA signatures:
 | Bootloader init   | 6.317    | ms   |
 | Blockdev read     | 86.245   | ms   |
 | SHA256 Hash       | 47.649   | ms   |
-| RSA 4096 Signaure | 0.676    | ms   |
+| RSA 4096 Signature | 0.676    | ms   |
 | Linux             | 420      | ms   |
 | Total             | 734      | ms   |
 
@@ -93,7 +93,7 @@ Supported platforms:
 | --------------- | -------------------- | --- | ---- | --------- | ----------- | ------- |
 | NXP imx6ul      | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
 | NXP imx8m       | Yes                  | Yes | Yes  | Yes       | No          | Yes     |
-| NXP imx8x       | Yes                  | Yes | Yes  | Yes       | No          | No      |
+| NXP imx8x       | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
 | Rockchip RK3399 | Planned              |     |      |           |             |         |
 | Allwinner H3    | Planned              |     |      |           |             |         |
 | Allwinner H5    | Planned              |     |      |           |             |         |
@@ -109,13 +109,13 @@ Supportd boards:
 | Rockpro64            | Planned                 | https://www.pine64.org/?page_id=61454 |
 | NanoPi-NEO-core      | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core_Feature.html |
 | NanoPi-NEO-core2     | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core2_Feature.html |
-
+| NXP IMX8QXP MEK      | Fully supported         | https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/i.mx-applications-processors/i.mx-8-processors/i.mx-8-multisensory-enablement-kit:i.MX8-MEK |
 
 ## Root of trust
 
 Punchboot is designed to be a part of a secure boot chain. This means that
 the bootloader is cryptographically signed, the ROM code of the SoC must
-support a mechanism to validate this signature, otherwise there is not
+support a mechanism to validate this signature, otherwise there is no
 root of trust.
 
 When punchboot has been verified it, in turn, will load and verify the next
