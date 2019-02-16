@@ -47,6 +47,8 @@ TEST_C_SRCS += lib/memcmp.c
 TEST_C_SRCS += lib/strlen.c
 TEST_C_SRCS += lib/memcpy.c
 
+PB_PLAT_NAME = test
+PB_BOARD_NAME = test
 
 TEST_ASM_SRCS += plat/test/semihosting_call.S
 

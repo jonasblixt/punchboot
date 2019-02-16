@@ -17,6 +17,8 @@ void __assert_func(const char *fn,
 
     UNUSED(asdf);
     printf("Assert failed %s:%i (%s)\n\r",fn, line_no, assert_func);
+
+    gcov_final();
     semihosting_sys_exit(1);
 
     while(1);
@@ -31,5 +33,7 @@ void pb_main(void)
 
 	gcov_init();	
     test_main();
+
+    gcov_final();
     semihosting_sys_exit(0);
 }
