@@ -162,6 +162,11 @@ uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep,
                 assert(memcmp(bfr, descriptor_300,sz) == 0);
             }
             break;
+            case 0x301:
+            {
+                assert(memcmp(bfr, usb_string_id,sz) == 0);
+            }
+            break;
             default:
             {
                 LOG_ERR("Unknown descriptor");
@@ -275,6 +280,17 @@ void test_main(void)
     usbdev.on_setup_pkt(&usbdev, &pkt);
     assert (flag_zlp);
 
+
+    pkt.bRequestType = 0x80;
+    pkt.bRequest = 0x06;
+    pkt.wValue = 0x0301;
+    pkt.wLength = sizeof(usb_string_id);
+
+    flag_zlp = false;
+    usbdev.on_setup_pkt(&usbdev, &pkt);
+    assert (flag_zlp);
+
+
     pkt.bRequestType = 0x80;
     pkt.bRequest = 0x06;
     pkt.wValue = 0x0A00;
@@ -343,6 +359,18 @@ void test_main(void)
     flag_wait_for_zlp = false;
     usbdev.on_setup_pkt(&usbdev, &pkt);
     assert (flag_zlp);
+
+    /* Test invalid request */
+
+    pkt.bRequestType = 0x12;
+    pkt.bRequest = 0x32;
+    pkt.wValue = 0;
+    pkt.wLength = 0;
+    flag_zlp = false;
+    flag_wait_for_zlp = false;
+    usbdev.on_setup_pkt(&usbdev, &pkt);
+    assert (!flag_zlp);
+    assert (!flag_wait_for_zlp);
 
     LOG_INFO("USB CH9 test end");
 }

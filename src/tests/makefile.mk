@@ -1,5 +1,7 @@
 TESTS   = test_boot
 TESTS  += test_usb_ch9
+TESTS  += test_libc
+
 
 INTEGRATION_TESTS  = test_reset
 INTEGRATION_TESTS += test_device_setup
@@ -48,6 +50,8 @@ TEST_C_SRCS += lib/putchar.c
 TEST_C_SRCS += lib/memcmp.c
 TEST_C_SRCS += lib/strlen.c
 TEST_C_SRCS += lib/memcpy.c
+TEST_C_SRCS += lib/strcmp.c
+TEST_C_SRCS += lib/snprintf.c
 
 PB_PLAT_NAME = test
 PB_BOARD_NAME = test

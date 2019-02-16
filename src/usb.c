@@ -223,14 +223,6 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
     return PB_OK;
 }
 
-void usb_on_command(struct usb_device *dev, struct pb_cmd_header *cmd)
-{
-    UNUSED(dev);
-    UNUSED(cmd);
-
-    LOG_ERR ("Unhandeled command 0x%x",cmd->cmd);
-}
-
 uint32_t usb_init(void)
 {
     uint32_t err = PB_OK;
@@ -243,7 +235,7 @@ uint32_t usb_init(void)
         return err;
 
     usb_dev->on_setup_pkt = usb_process_setup_pkt;
-    usb_dev->on_command = usb_on_command;
+    usb_dev->on_command = NULL;
 
     return plat_usb_init(usb_dev);
 }
