@@ -9,7 +9,7 @@
 
 static uint16_t usb_addr = 0;
 static struct usb_setup_packet pkt;
-
+static struct usb_device *usbdev;
 
 
 static const uint8_t qf_descriptor[] = {
@@ -201,25 +201,19 @@ void plat_usb_wait_for_ep_completion(uint32_t ep)
 
 uint32_t  plat_usb_init(struct usb_device *dev)
 {
-    UNUSED(dev);
+    usbdev = dev;
     return PB_OK;
 }
-
 
 void plat_usb_task(struct usb_device *dev)
 {
     UNUSED(dev);
 }
 
-static struct usb_device usbdev =
+uint32_t plat_prepare_recovery(struct pb_platform_setup *plat)
 {
-    .platform_data = NULL,
-};
-
-uint32_t board_usb_init(struct usb_device **dev)
-{
-	*dev = &usbdev;
-	return PB_OK;
+    UNUSED(plat);
+    return PB_OK;
 }
 
 void test_main(void) 
@@ -234,7 +228,7 @@ void test_main(void)
     pkt.wValue = 0x0600;
 
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert(flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -243,7 +237,7 @@ void test_main(void)
     pkt.wLength = 8;
 
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -252,7 +246,7 @@ void test_main(void)
     pkt.wLength = sizeof(descriptors.device);
 
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -261,7 +255,7 @@ void test_main(void)
     pkt.wLength = 8;
 
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -270,7 +264,7 @@ void test_main(void)
     pkt.wLength = sizeof(descriptors.config);
 
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -279,7 +273,7 @@ void test_main(void)
     pkt.wLength = sizeof(descriptor_300);
 
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
 
@@ -289,7 +283,7 @@ void test_main(void)
     pkt.wLength = sizeof(usb_string_id);
 
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
 
@@ -299,7 +293,7 @@ void test_main(void)
     pkt.wLength = 8;
 
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -307,7 +301,7 @@ void test_main(void)
     pkt.wValue = 0x0A00;
     pkt.wLength = sizeof(descriptors.interface);
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
     /* Test invalid descriptor */
@@ -316,7 +310,7 @@ void test_main(void)
     pkt.wValue = 0xABCD;
     pkt.wLength = 1234;
     flag_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (!flag_zlp);
 
     pkt.bRequestType = 0x00;
@@ -325,7 +319,7 @@ void test_main(void)
     pkt.wLength = 0;
     flag_zlp = false;
     flag_wait_for_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (!flag_zlp);
     assert (flag_wait_for_zlp);
     assert(usb_addr == 1234);
@@ -338,7 +332,7 @@ void test_main(void)
     flag_zlp = false;
     flag_wait_for_zlp = false;
     flag_set_config = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (!flag_zlp);
     assert (flag_wait_for_zlp);
     assert (flag_set_config);
@@ -350,7 +344,7 @@ void test_main(void)
     pkt.wLength = 0;
     flag_zlp = false;
     flag_wait_for_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -359,7 +353,7 @@ void test_main(void)
     pkt.wLength = 0;
     flag_zlp = false;
     flag_wait_for_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
 
     /* Test invalid request */
@@ -370,7 +364,7 @@ void test_main(void)
     pkt.wLength = 0;
     flag_zlp = false;
     flag_wait_for_zlp = false;
-    usbdev.on_setup_pkt(&usbdev, &pkt);
+    usbdev->on_setup_pkt(usbdev, &pkt);
     assert (!flag_zlp);
     assert (!flag_wait_for_zlp);
 

@@ -30,6 +30,7 @@ CFLAGS  += -I include/pb/libc
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
 CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
+CFLAGS  += -D__PB_BUILD
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
