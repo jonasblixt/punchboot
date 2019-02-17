@@ -214,7 +214,6 @@ int main(int argc, char **argv)
             unsigned int device_version;
             unsigned int device_variant;
             char *setup_report = NULL;
-            bool dry_run = !flag_y;
             int result = sscanf(s_arg, "%x %x", 
                         &device_version, &device_variant);
 
@@ -224,38 +223,34 @@ int main(int argc, char **argv)
             printf ("Performing device setup: Version=0x%2.2X, Variant=0x%2.2X\n",
                             device_version, device_variant);
 
-            if (dry_run)
+            char confirm_input[5];
+
+            if (!flag_y)
             {
-                char confirm_input[5];
+                printf ("\n\nWARNING: This is a permanent change, writing fuses " \
+                        "can not be reverted. This could brick your device.\n"
+                        "\n\nType 'yes' + <Enter> to proceed: ");
+                fgets(confirm_input, 5, stdin);
 
-                if (!flag_y)
+                if (strncmp(confirm_input, "yes", 3)  != 0)
                 {
-                    printf ("\n\nWARNING: This is a permanent change, writing fuses " \
-                            "can not be reverted. This could brick your device.\n"
-                            "\n\nType 'yes' + <Enter> to proceed: ");
-                    fgets(confirm_input, 5, stdin);
-
-                    if (strncmp(confirm_input, "yes", 3)  != 0)
-                    {
-                        printf ("Aborted\n");
-                        return -1;
-                    }
-                }
-
-                err = pb_recovery_setup(device_version,
-                                     device_variant,
-                                     &setup_report,
-                                     false);
-
-                if (err != PB_OK)
-                {
-                    printf ("ERROR: Something went wrong\n");
+                    printf ("Aborted\n");
                     return -1;
                 }
-
-                printf ("Success\n");
             }
 
+            err = pb_recovery_setup(device_version,
+                                 device_variant,
+                                 &setup_report,
+                                 false);
+
+            if (err != PB_OK)
+            {
+                printf ("ERROR: Something went wrong\n");
+                return -1;
+            }
+
+            printf ("Success\n");
 
         } else if (flag_write) {
 
