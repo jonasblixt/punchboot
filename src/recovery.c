@@ -23,10 +23,9 @@
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
 #define RECOVERY_BULK_BUFFER_SZ 1024*1024*8
-#define REPORT_SZ 1024*10
+
 static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
 static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
-static char __no_bss report_text_buffer[REPORT_SZ];
 
 extern const struct fuse device_info_fuses[];
 extern const struct fuse root_hash_fuses[];
@@ -223,119 +222,41 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
             f->value = f->default_value;
     }  
 
-    if(pb_setup->dry_run)
+    /* Perform the actual fuse programming */
+
+    
+    if (!flag_root_hash_fused)
     {
-        pos += snprintf(&report_text_buffer[pos], REPORT_SZ-pos,
-                                    "-- Device setup report --\n");
-
-
-        /* Root hash */
-        if (!flag_root_hash_fused)
-        {
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Will write root key hash:\n");
-        } else {
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Root key hash already fused:\n");
-        }
-
+        LOG_INFO("Writing root hash fuses");
         foreach_fuse(f, root_hash_fuses)
-            pos += plat_fuse_to_string(f, &report_text_buffer[pos], 64);
-
-        /* Device identity */
-
-        if (!flag_devid_fused)
         {
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Will write device identity: %x\n", 
-                            devid->default_value >> 16);
-        } else {
+            err = plat_fuse_write(f);
+            if (err != PB_OK)
+                return err;
+        }
+    }
 
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Device identity already fused: 0x%08x\n", 
-                            devid->value >> 16);
+    if (!flag_devid_fused || !flag_devid_revvar_fused)
+    {
+        LOG_INFO("Writing device id fuses");
+        err = plat_fuse_write(devid);
 
-            if ( (devid->value & 0xFFFF0000) != devid->default_value)
+            if (err != PB_OK)
+                return err;
+    }
+
+    if (!flag_board_fused)
+    {
+        foreach_fuse_read(f, board_fuses)
+        {
+
+            if ((f->value & f->default_value) != f->default_value)
             {
-                pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                            "  WARNING: device id mismatch with build in value\n");
-
-                pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                            "    0x%x != 0x%x\n", 
-                                (devid->value & 0xFFFF0000), 
-                                devid->default_value);
-            }
-        }
-
-        if (!flag_devid_revvar_fused)
-        {
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Will write device variant: %x, rev: %x\n", 
-                            (uint8_t) pb_setup->device_variant,
-                            (uint8_t) pb_setup->device_revision);
-        } else {
-
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Device var/rev already fused, var: %x, rev: %x \n", 
-                            (uint8_t) ((devid->value >> 8) & 0xff),
-                            (uint8_t) (devid->value & 0xff));
-        }
-
-        pos += plat_fuse_to_string(devid, &report_text_buffer[pos], 64);
-
-        /* Board fuses */
-        if (!flag_board_fused)
-        {
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Will write board fuses\n");
-        } else {
-
-            pos += snprintf(&report_text_buffer[pos],REPORT_SZ-pos,
-                        "Board fuses already fused\n");
-        }
-
-        foreach_fuse(f, board_fuses)
-            pos += plat_fuse_to_string(f, &report_text_buffer[pos], 64);
-
-        report_text_buffer[pos] = 0;
-        recovery_send_response(dev, (uint8_t *) report_text_buffer, pos+1);
-    } else {
-        /* Perform the actual fuse programming */
-
-        
-        if (!flag_root_hash_fused)
-        {
-            LOG_INFO("Writing root hash fuses");
-            foreach_fuse(f, root_hash_fuses)
-            {
+                f->value = f->default_value;
                 err = plat_fuse_write(f);
-                if (err != PB_OK)
-                    return err;
-            }
-        }
-
-        if (!flag_devid_fused || !flag_devid_revvar_fused)
-        {
-            LOG_INFO("Writing device id fuses");
-            err = plat_fuse_write(devid);
 
                 if (err != PB_OK)
                     return err;
-        }
-
-        if (!flag_board_fused)
-        {
-            foreach_fuse_read(f, board_fuses)
-            {
-
-                if ((f->value & f->default_value) != f->default_value)
-                {
-                    f->value = f->default_value;
-                    err = plat_fuse_write(f);
-
-                    if (err != PB_OK)
-                        return err;
-                }
             }
         }
     }

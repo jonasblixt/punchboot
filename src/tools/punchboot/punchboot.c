@@ -233,19 +233,9 @@ int main(int argc, char **argv)
             printf ("Performing device setup: Version=0x%2.2X, Variant=0x%2.2X\n",
                             device_version, device_variant);
 
-            err = pb_recovery_setup(device_version,
-                                 device_variant,
-                                 &setup_report,
-                                 dry_run);
 
             if (err != PB_OK)
                 return -1;
-
-            if (setup_report != NULL && dry_run)
-            {
-                printf("%s",setup_report);
-                free(setup_report);
-            }
 
             if (dry_run)
             {
@@ -278,6 +268,8 @@ int main(int argc, char **argv)
 
                 printf ("Success\n");
             }
+
+
         } else if (flag_write) {
 
             char confirm_input[5];

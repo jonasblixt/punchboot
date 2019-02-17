@@ -73,6 +73,7 @@ const struct fuse board_fuses[] =
 {
     TEST_FUSE_BANK_WORD_VAL(13, "BOOT0", 0x12341234),
     TEST_FUSE_BANK_WORD_VAL(14, "BOOT1", 0xCAFEEFEE),
+    TEST_FUSE_BANK_WORD(15,"REVOKE"),
     TEST_FUSE_END,
 };
 
