@@ -2,6 +2,7 @@
 source tests/common.sh
 wait_for_qemu_start
 
+
 $PB part -l
 result_code=$?
 
@@ -33,5 +34,8 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
+
+sgdisk /tmp/disk -A 1:set:63
+sgdisk /tmp/disk -A 2:set:63
 
 test_end_ok

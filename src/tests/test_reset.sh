@@ -5,3 +5,5 @@ wait_for_qemu_start
 # Send reset command
 $PB boot -r
 wait_for_qemu
+
+
