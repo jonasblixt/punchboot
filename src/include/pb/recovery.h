@@ -12,7 +12,6 @@
 #define __RECOVERY_H__
 
 #include <stdint.h>
-#include <gpt.h>
 
 #define PB_RECOVERY_PROTOCOL_VERSION 1
 
@@ -68,6 +67,12 @@ struct pb_device_setup
     uint8_t rz[62];
 } __attribute__ ((packed));
 
+#ifdef __PB_BUILD
+
+#include <gpt.h>
+
 void recovery_initialize(struct gpt *gpt);
+
+#endif
 
 #endif

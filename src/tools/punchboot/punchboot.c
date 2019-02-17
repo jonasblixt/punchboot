@@ -141,16 +141,13 @@ int main(int argc, char **argv)
     bool flag_s = false;
     bool flag_index = false;
     bool flag_install = false;
-    bool flag_value = false;
     bool flag_execute = false;
     bool flag_a = false;
-    bool flag_b = false;
     bool flag_y = false;
 
     char *fn = NULL;
     char *cmd = argv[1];
     char *s_arg = NULL;
-    uint32_t cmd_value = 0;
 
     if (transport_init() != 0)
         exit(-1);
@@ -167,9 +164,6 @@ int main(int argc, char **argv)
             break;
             case 'a':
                 flag_a = true;
-            break;
-            case 'b':
-                flag_b = true;
             break;
             case 'y':
                 flag_y = true;
@@ -190,9 +184,6 @@ int main(int argc, char **argv)
                 flag_index = true;
                 cmd_index = atoi(optarg);
             break;
-            case 'v':
-                flag_value = true;
-                cmd_value = atoi(optarg);
             case 's':
                 flag_s = true;
                 s_arg = optarg;
@@ -232,10 +223,6 @@ int main(int argc, char **argv)
 
             printf ("Performing device setup: Version=0x%2.2X, Variant=0x%2.2X\n",
                             device_version, device_variant);
-
-
-            if (err != PB_OK)
-                return -1;
 
             if (dry_run)
             {
