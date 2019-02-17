@@ -2,9 +2,8 @@
 source tests/common.sh
 wait_for_qemu_start
 
-
 # After a reboot, bootloader should have recovered from backup GPT tables
-
+sync
 sgdisk -v /tmp/disk | grep "No problems found"
 result_code=$?
 

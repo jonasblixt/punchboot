@@ -98,7 +98,7 @@ static inline void virtio_init_queue(uint8_t *buf, uint32_t n, struct virtq *q)
 
 static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
 {
-    return (uint16_t)(new_idx - event_idx - 1) < (uint16_t)(new_idx - old_idx);
+    return ((uint16_t)(new_idx - event_idx - 1) < (uint16_t)(new_idx - old_idx));
 }
 
 /* Get location of event indices (only with VIRTIO_F_EVENT_IDX) */

@@ -22,6 +22,7 @@ then
     test_end_error
 fi
 
+sleep 0.1
 
 $PB part -l
 result_code=$?

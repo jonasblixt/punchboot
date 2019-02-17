@@ -2,10 +2,9 @@ TESTS   = test_boot
 TESTS  += test_usb_ch9
 TESTS  += test_libc
 
-
 INTEGRATION_TESTS  = test_reset
-INTEGRATION_TESTS += test_device_setup
 INTEGRATION_TESTS += test_part
+INTEGRATION_TESTS += test_device_setup
 INTEGRATION_TESTS += test_corrupt_gpt
 INTEGRATION_TESTS += test_corrupt_gpt2
 INTEGRATION_TESTS += test_part_flash

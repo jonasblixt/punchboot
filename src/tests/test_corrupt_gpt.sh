@@ -4,7 +4,7 @@ wait_for_qemu_start
 
 
 # First make sure that the current image is OK
-
+sync
 sgdisk -v /tmp/disk | grep "No problems found"
 result_code=$?
 
@@ -16,6 +16,7 @@ fi
 # Trash primary GPT table
 
 dd if=/dev/zero of=/tmp/disk conv=notrunc bs=512 skip=1 count=33
+sync
 
 # Make sure it is trashed
 sgdisk -v /tmp/disk | grep "No problems found"

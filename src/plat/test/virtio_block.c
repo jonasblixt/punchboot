@@ -57,30 +57,38 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 	struct virtq *q = &d->q;
     uint16_t idx = q->avail->idx;
 
-    q->desc[idx].addr = (uintptr_t) &r;
+    LOG_DBG("idx %u",idx);
+    q->desc[idx].addr = ((uintptr_t) &r);
     q->desc[idx].len = sizeof(struct virtio_blk_req);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
-    q->desc[idx].next = (idx + 1) % q->num;
-    idx = (idx + 1) % q->num;
+    q->desc[idx].next = ((idx + 1) % q->num);
+    idx = ((idx + 1) % q->num);
 
-	q->desc[idx].addr = (uintptr_t) (buf);
+    LOG_DBG("idx %u",idx);
+	q->desc[idx].addr = ((uintptr_t) (buf));
 	q->desc[idx].len = (512*no_of_blocks);
 	q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
-	q->desc[idx].next = (idx + 1) % q->num;
-	idx = (idx + 1) % q->num;
+	q->desc[idx].next = ((idx + 1) % q->num);
+	idx = ((idx + 1) % q->num);
 
-    q->desc[idx].addr = (uintptr_t) &status;
+    LOG_DBG("idx %u",idx);
+    q->desc[idx].addr = ((uintptr_t) &status);
     q->desc[idx].len = 1;
     q->desc[idx].flags = VIRTQ_DESC_F_WRITE;
     q->desc[idx].next = 0;
-    idx = (idx + 1) % q->num;
+    idx = ((idx + 1) % q->num);
 
     q->avail->ring[idx] = idx;
     q->avail->idx += 3;
+    LOG_DBG("idx %u",idx);
     LOG_DBG("notify %p", &(d->dev));   
+
+    LOG_DBG("%u %u",q->avail->idx, q->used->idx);
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 	LOG_DBG("Waiting");
-    while( (q->avail->idx != q->used->idx) )
+
+    LOG_DBG("%u %u",q->avail->idx, q->used->idx);
+    while( (q->avail->idx) != (q->used->idx) )
 		__asm__ volatile("nop");
 
 	if (status == VIRTIO_BLK_S_OK)
@@ -99,43 +107,42 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 
     __a16b struct virtio_blk_req r;
     volatile __a16b uint8_t status = VIRTIO_BLK_S_UNSUPP;
+	struct virtq *q = &d->q;
+    uint16_t idx = q->avail->idx;
 
 	r.type = VIRTIO_BLK_T_IN;
 	r.reserved = 0;
 	r.sector_low = lba;
 	r.sector_hi = 0;
-/*
-	LOG_INFO ("lba_hi: %8.8lX, lba_low: %8.8lX",
-			(uint32_t) (lba >> 32) & 0xFFFFFFFF,
-			(uint32_t) (lba & 0xFFFFFFFF));
-*/
-	struct virtq *q = &d->q;
-    uint16_t idx = q->avail->idx;
+
+	LOG_DBG ("lba: %016lx", lba);
+
 
     q->desc[idx].addr = (uint32_t) &r;
     q->desc[idx].len = sizeof(struct virtio_blk_req);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
-    q->desc[idx].next = (idx + 1) % q->num;
-    idx = (idx + 1) % q->num;
+    q->desc[idx].next = ((idx + 1) % q->num);
+    idx = ((idx + 1) % q->num);
 
 	q->desc[idx].addr = (uint32_t) buf;
 	q->desc[idx].len = 512*no_of_blocks;
 	q->desc[idx].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
-	q->desc[idx].next = (idx + 1) % q->num;
-	idx = (idx + 1) % q->num;
+	q->desc[idx].next = ((idx + 1) % q->num);
+	idx = ((idx + 1) % q->num);
 
     q->desc[idx].addr = (uint32_t) &status;
     q->desc[idx].len = 1;
     q->desc[idx].flags = VIRTQ_DESC_F_WRITE;
     q->desc[idx].next = 0;
-    idx = (idx + 1) % q->num;
+    idx = ((idx + 1) % q->num);
 
     q->avail->ring[idx] = idx;
     q->avail->idx += 3;
 
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 
-	while(q->avail->idx != q->used->idx)
+    LOG_DBG("%u %u",q->avail->idx, q->used->idx);
+	while( (q->avail->idx) != (q->used->idx) )
 		__asm__ volatile ("nop");	
 
 	if (status == VIRTIO_BLK_S_OK)

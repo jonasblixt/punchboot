@@ -11,6 +11,7 @@ KEY1=../pki/dev_rsa_private.der
 
 wait_for_qemu_start()
 {
+    sync
     while true;
     do
         $PB boot -l > /dev/null 2>&1
@@ -29,7 +30,7 @@ wait_for_qemu()
     then
         exit -1
     fi
-
+    sync
 }
 
 test_end_error()
