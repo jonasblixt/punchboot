@@ -7,110 +7,60 @@
  *
  */
 
-#include <stdio.h>
 #include <board.h>
-#include <plat.h>
-#include <io.h>
-#include <gpt.h>
-#include <usb.h>
-
-#include <plat/test/uart.h>
-#include <plat/test/pl061.h>
-#include <plat/test/virtio.h>
-#include <plat/test/virtio_serial.h>
-#include <plat/test/virtio_block.h>
-#include <plat/test/gcov.h>
 #include <plat/test/plat.h>
 
-#include <board/config.h>
-
-const uint8_t part_type_system_a[] = 
+const struct fusebox pb_fusebox =
 {
-    0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 0x44, 
-    0x82, 0x93, 0xD8, 0xAF, 0x0B, 0xB4, 0x38, 0xD1
+    .identity = TEST_FUSE_BANK_WORD_VAL(4,"Device Info", 0x12340000),
+    .revoke_mask = TEST_FUSE_BANK_WORD(15,"REVOKE"),
+    .fuses = 
+    {
+        TEST_FUSE_BANK_WORD_VAL(5,  "SRK0",  0x5020C7D7),
+        TEST_FUSE_BANK_WORD_VAL(6,  "SRK1",  0xBB62B945),
+        TEST_FUSE_BANK_WORD_VAL(7,  "SRK2",  0xDD97C8BE),
+        TEST_FUSE_BANK_WORD_VAL(8,  "SRK3",  0xDC6710DD),
+        TEST_FUSE_BANK_WORD_VAL(9,  "SRK4",  0x2756B777),
+        TEST_FUSE_BANK_WORD_VAL(10, "SRK5",  0xEF43BC0A),
+        TEST_FUSE_BANK_WORD_VAL(11, "SRK6",  0x7185604B),
+        TEST_FUSE_BANK_WORD_VAL(12, "SRK7",  0x3F335991),
+        TEST_FUSE_BANK_WORD_VAL(13, "BOOT0", 0x12341234),
+        TEST_FUSE_BANK_WORD_VAL(14, "BOOT1", 0xCAFEEFEE),
+        TEST_FUSE_END,
+    },
 };
 
-const uint8_t part_type_system_b[] = 
-{ 
-    0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-const uint8_t part_type_root_a[] = 
-{ 
-    0x1C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-const uint8_t part_type_root_b[] = 
-{ 
-    0x2C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-
-const struct fuse device_info_fuses[] =
+const struct partition_table pb_partition_table[] =
 {
-    TEST_FUSE_BANK_WORD_VAL(4, "Device Info", 0x12340000),
-    TEST_FUSE_END,
+    PB_GPT_ENTRY(1024, PB_PARTUUID_SYSTEM_A, "System A"),
+    PB_GPT_ENTRY(1024, PB_PARTUUID_SYSTEM_B, "System B"),
+    PB_GPT_END,
 };
 
-const struct fuse root_hash_fuses[] =
+/* Punchboot board API */
+
+uint32_t board_early_init(struct pb_platform_setup *plat)
 {
-    TEST_FUSE_BANK_WORD(5, "SRK0"),
-    TEST_FUSE_BANK_WORD(6, "SRK1"),
-    TEST_FUSE_BANK_WORD(7, "SRK2"),
-    TEST_FUSE_BANK_WORD(8, "SRK3"),
-    TEST_FUSE_BANK_WORD(9, "SRK4"),
-    TEST_FUSE_BANK_WORD(10, "SRK5"),
-    TEST_FUSE_BANK_WORD(11, "SRK6"),
-    TEST_FUSE_BANK_WORD(12, "SRK7"),
-    TEST_FUSE_END,
-};
-
-
-const struct fuse board_fuses[] =
-{
-    TEST_FUSE_BANK_WORD_VAL(13, "BOOT0", 0x12341234),
-    TEST_FUSE_BANK_WORD_VAL(14, "BOOT1", 0xCAFEEFEE),
-    TEST_FUSE_BANK_WORD(15,"REVOKE"),
-    TEST_FUSE_END,
-};
-
-
-static struct usb_device usbdev =
-{
-    .platform_data = NULL,
-};
-
-uint32_t board_usb_init(struct usb_device **dev)
-{
-	*dev = &usbdev;
-	return PB_OK;
-}
-
-uint32_t board_early_init(void *data)
-{
-    UNUSED(data);
-
-    test_uart_init();
- 
-    pl061_init(0x09030000);
-
-	gcov_init();	
+    plat->uart_base = 0x09030000;
 
     return PB_OK;
 }
 
-uint8_t board_force_recovery(void) 
+uint32_t board_late_init(struct pb_platform_setup *plat)
 {
+    UNUSED(plat);
+    return PB_OK;
+}
+
+uint32_t board_prepare_recovery(struct pb_platform_setup *plat)
+{
+    UNUSED(plat);
+    return PB_OK;
+}
+
+bool board_force_recovery(struct pb_platform_setup *plat) 
+{
+    UNUSED(plat);
     return false;
-}
-
-uint32_t board_configure_gpt_tbl() 
-{
-    gpt_add_part(0, 1024, part_type_system_a, "System A");
-    gpt_add_part(1, 1024, part_type_system_b, "System B");
-    return PB_OK;
 }
 

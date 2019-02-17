@@ -8,24 +8,54 @@
  */
 
 
-#ifndef __BOARD_H_
-#define __BOARD_H_
+#ifndef __BOARD_H__
+#define __BOARD_H__
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <pb.h>
-#include <usb.h>
-#include <image.h>
+#include <plat/defs.h>
+#include <board/config.h>
+#include <fuse.h>
+#include <gpt.h>
 
-struct board_info {
-    uint16_t type;
-    uint8_t rev;
-    uint8_t var;
-} __attribute__ ((packed)) ;
+/**
+ * Function: board_early_init
+ *
+ * Called as early as possible by platform init code
+ *
+ * Return value: PB_OK if there is no error
+ */
+uint32_t board_early_init(struct pb_platform_setup *plat);
 
-uint32_t board_early_init(void *);
-uint32_t board_late_init(void);
-uint8_t  board_force_recovery(void);
-uint32_t board_configure_gpt_tbl(void);
-uint32_t board_usb_init(struct usb_device **dev);
-uint32_t board_get_debug_uart(void);
+/**
+ * Function: board_late_init
+ *
+ * Called as a last step in the platform init code
+ *
+ * Return value: PB_OK if there is no error
+ */
+uint32_t board_late_init(struct pb_platform_setup *plat);
+
+/**
+ * Function: board_prepare_recovery
+ *
+ * Called before recovery mode is to be initialized and before
+ *  usb controller is initialized.
+ *
+ * Return value: PB_OK if there is no error
+ */
+uint32_t board_prepare_recovery(struct pb_platform_setup *plat);
+
+/**
+ * Function: board_force_recovery
+ *
+ * Called during initialization and forces recovery mode depending on return
+ *   value.
+ *
+ * Return value: True - Force recovery
+ *               False - Normal boot
+ */
+bool  board_force_recovery(struct pb_platform_setup *plat);
 
 #endif

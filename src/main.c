@@ -6,12 +6,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
+
+#include <pb.h>
 #include <stdio.h>
-#include <board.h>
 #include <plat.h>
 #include <recovery.h>
 #include <gpt.h>
-#include <board/config.h>
 #include <io.h>
 #include <image.h>
 #include <keys.h>
@@ -19,14 +19,16 @@
 #include <timing_report.h>
 
 
+static __no_bss __a4k struct pb_pbi pbi;
+static __no_bss __a4k struct gpt gpt;
+
 void pb_main(void) 
 {
     uint32_t err = 0;
+    uint32_t active_system;
     bool flag_run_recovery = false;
-    uint32_t system_index = 0;
-    struct pb_pbi *pbi = NULL;
-    struct gpt_part_hdr *boot_part_a, *boot_part_b;
-    uint64_t *boot_part_attr_a, *boot_part_attr_b;
+    struct gpt_part_hdr *part_system_a, *part_system_b;
+
     tr_init();
 
     if (plat_early_init() != PB_OK)
@@ -36,40 +38,42 @@ void pb_main(void)
 
     LOG_INFO ("PB: " VERSION " starting...");
 
-    if (gpt_init() != PB_OK)
+    if (gpt_init(&gpt) != PB_OK)
         flag_run_recovery = true;
 
-    if (board_force_recovery())
+
+
+    if (plat_force_recovery())
         flag_run_recovery = true;
 
     tr_stamp_end(TR_BLINIT);
 
-    if (gpt_get_part_by_uuid(part_type_system_a, &boot_part_a) != PB_OK)
+    if (gpt_get_part_by_uuid(&gpt, PB_PARTUUID_SYSTEM_A, &part_system_a) != PB_OK)
         flag_run_recovery = true;
 
-    if (gpt_get_part_by_uuid(part_type_system_b, &boot_part_b) != PB_OK)
+    if (gpt_get_part_by_uuid(&gpt, PB_PARTUUID_SYSTEM_B, &part_system_b) != PB_OK)
         flag_run_recovery = true;
 
     if (flag_run_recovery)
         goto run_recovery;
 
-    boot_part_attr_a = (uint64_t *) boot_part_a->attr;
-    boot_part_attr_b = (uint64_t *) boot_part_b->attr;
-
-    if (((*boot_part_attr_a) & GPT_ATTR_BOOTABLE) == GPT_ATTR_BOOTABLE)
+    if (gpt_part_is_bootable(part_system_a))
     {
         LOG_INFO("Loading System A");
-        system_index = 1;
-        err = pb_image_load_from_fs((boot_part_a->first_lba), &pbi);
-    } 
-    else if (((*boot_part_attr_b) & GPT_ATTR_BOOTABLE) == GPT_ATTR_BOOTABLE) 
+        err = pb_image_load_from_fs((part_system_a->first_lba), &pbi);
+        active_system = SYSTEM_A;
+    }
+    else if (gpt_part_is_bootable(part_system_b))
     {
         LOG_INFO("Loading System B");
-        system_index = 2;
-        err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi);
-    } else {
+        err = pb_image_load_from_fs(part_system_b->first_lba, &pbi);
+        active_system = SYSTEM_B;
+    }
+    else
+    {
         LOG_INFO("No bootable system found");
         flag_run_recovery = true;
+
         goto run_recovery;
     }
     
@@ -77,19 +81,16 @@ void pb_main(void)
     {
         LOG_ERR("Unable to load image");
         flag_run_recovery = true;
+        LOG_DBG("array crc %x", gpt.primary.hdr.part_array_crc);
         goto run_recovery;
     }
 
-    err = pb_image_verify(pbi);
+    err = pb_image_verify(&pbi);
 
     if (err == PB_OK)
     {
         LOG_INFO("Image verified, booting...");
-#ifdef PB_BOOT_LINUX
-                pb_boot_linux_with_dt(pbi, system_index);
-#elif PB_BOOT_TEST
-                plat_reset();
-#endif
+        pb_boot(&pbi, active_system);
     } else {
         LOG_ERR("Could not boot image, entering recovery mode...");
         flag_run_recovery = true;
@@ -105,7 +106,8 @@ run_recovery:
 			LOG_ERR("Could not initialize USB");
 			plat_reset();
 		}
-        recovery_initialize();
+
+        recovery_initialize(&gpt);
 
         while (flag_run_recovery)
         {

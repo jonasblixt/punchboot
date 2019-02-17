@@ -7,6 +7,7 @@
  *
  */
 
+#include <pb.h>
 #include <stdio.h>
 #include <recovery.h>
 #include <image.h>
@@ -26,12 +27,10 @@
 
 static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
 static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
-
-extern const struct fuse device_info_fuses[];
-extern const struct fuse root_hash_fuses[];
-extern const struct fuse board_fuses[];
-extern const uint32_t build_root_hash[];
-
+static __no_bss __a4k struct pb_pbi pbi;
+static struct gpt *gpt;
+extern const struct fusebox pb_fusebox;
+extern const struct partition_table pb_partition_table[];
 
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
             _zero_region_start, _zero_region_end, _stack_start, _stack_end;
@@ -80,7 +79,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
 {
     uint32_t part_lba_offset = 0;
 
-    part_lba_offset = gpt_get_part_first_lba(part_no);
+    part_lba_offset = gpt_get_part_first_lba(gpt, part_no);
 
     if (!part_lba_offset) 
     {
@@ -88,7 +87,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
 
-    if ( (lba_offset + no_of_blocks) > gpt_get_part_last_lba(part_no))
+    if ( (lba_offset + no_of_blocks) > gpt_get_part_last_lba(gpt,part_no))
     {
         LOG_ERR ("Trying to write outside of partition");
         return PB_ERR;
@@ -155,35 +154,26 @@ static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
 static uint32_t recovery_setup_device(struct usb_device *dev,
                                       struct pb_device_setup *pb_setup)
 {
-    uint32_t pos = 0;
     uint32_t err;
 
-    bool flag_root_hash_fused = false;
-    bool flag_devid_fused = false;
-    bool flag_devid_revvar_fused = false;
-    bool flag_board_fused = true;
+    UNUSED(dev);
 
-
-    /* Root hash */
-    foreach_fuse_read(f, root_hash_fuses)
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) pb_fusebox.fuses)
     {
-        if (f->value != 0)
-            flag_root_hash_fused = true;
-    }
-
-    if (!flag_root_hash_fused)
-    {
-        uint32_t *root_hash_part = (uint32_t *) build_root_hash;
-
-        foreach_fuse(f, root_hash_fuses)
+        err = plat_fuse_read(f);
+ 
+        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+        if (err != PB_OK)
         {
-            f->value = *root_hash_part++;
-        }
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
     }
 
-    /* Device identity */
-    struct fuse *devid = (struct fuse *) device_info_fuses;
-    err = plat_fuse_read(devid);
+    /* Check device identity */
+    struct fuse *ident = (struct fuse *) &pb_fusebox.identity;
+    err = plat_fuse_read(ident);
     
     if (err != PB_OK)
     {
@@ -191,76 +181,31 @@ static uint32_t recovery_setup_device(struct usb_device *dev,
         return err;
     }  
 
-    if ((devid->value & 0xFFFF0000) != 0)
+    if (pb_fusebox.identity.value != 0)
     {
-        flag_devid_fused = true;
-    } else {
-        devid->value = devid->default_value;
+        LOG_ERR("Device identity already set");
+        return PB_ERR;
     }
 
-    if ((devid->value & 0x0000FFFF) != 0)
-    {
-        flag_devid_revvar_fused = true;
-    } else {
-        devid->value |= ((pb_setup->device_variant << 8) & 0xff00) |
-                        ((pb_setup->device_revision) & 0xff);
-    }
+    ident->value = ident->default_value;
 
-    /* Board fuses */
-
-    flag_board_fused = true;
-
-    foreach_fuse_read(f, board_fuses)
-    {
-        if ((f->value & f->default_value) != f->default_value)
-            flag_board_fused = false;
-    }
-        
-    if (!flag_board_fused)
-    {
-        foreach_fuse(f, board_fuses)
-            f->value = f->default_value;
-    }  
+    ident->value |= ((pb_setup->device_variant << 8) & 0xff00) |
+                    ((pb_setup->device_revision) & 0xff);
 
     /* Perform the actual fuse programming */
-
     
-    if (!flag_root_hash_fused)
+    LOG_INFO("Writing fuses");
+
+    foreach_fuse(f, pb_fusebox.fuses)
     {
-        LOG_INFO("Writing root hash fuses");
-        foreach_fuse(f, root_hash_fuses)
-        {
-            err = plat_fuse_write(f);
-            if (err != PB_OK)
-                return err;
-        }
+        f->value = f->default_value;
+        err = plat_fuse_write(f);
+
+        if (err != PB_OK)
+            return err;
     }
 
-    if (!flag_devid_fused || !flag_devid_revvar_fused)
-    {
-        LOG_INFO("Writing device id fuses");
-        err = plat_fuse_write(devid);
-
-            if (err != PB_OK)
-                return err;
-    }
-
-    if (!flag_board_fused)
-    {
-        foreach_fuse_read(f, board_fuses)
-        {
-
-            if ((f->value & f->default_value) != f->default_value)
-            {
-                f->value = f->default_value;
-                err = plat_fuse_write(f);
-
-                if (err != PB_OK)
-                    return err;
-            }
-        }
-    }
-
+    err = plat_fuse_write((struct fuse *) &pb_fusebox.identity);
 
     return PB_OK;
 }
@@ -316,7 +261,7 @@ static void recovery_parse_command(struct usb_device *dev,
             char version_string[20];
 
             LOG_INFO ("Get version");
-            snprintf(version_string, 20, "PB %s",VERSION);
+            snprintf(version_string, 19, "PB %s",VERSION);
 
             err = recovery_send_response( dev, 
                                           (uint8_t *) version_string,
@@ -334,47 +279,39 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_GPT_TBL:
         {
-            err = recovery_send_response(dev,((uint8_t*) gpt_get_tbl()), 
-                            sizeof (struct gpt_primary_tbl));          
+            LOG_DBG("array crc %x", gpt->primary.hdr.part_array_crc);
+            err = recovery_send_response(dev,(uint8_t*) &gpt->primary,
+                                        sizeof (struct gpt_primary_tbl));  
         }
         break;
         case PB_CMD_BOOT_ACTIVATE:
         {
             struct gpt_part_hdr *part_sys_a, *part_sys_b;
-            uint64_t *attr_a, *attr_b;
-            gpt_get_part_by_uuid(part_type_system_a, &part_sys_a);
-            gpt_get_part_by_uuid(part_type_system_b, &part_sys_b);
+
+            gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &part_sys_a);
+            gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_B, &part_sys_b);
 
             if (cmd->arg0 == 0)
             {
-                attr_a = (uint64_t *) part_sys_a->attr;
-                (*attr_a) &= ~GPT_ATTR_BOOTABLE;
-
-                attr_b = (uint64_t *) part_sys_b->attr;
-                (*attr_b) &= ~GPT_ATTR_BOOTABLE;
+                gpt_part_set_bootable(part_sys_a, false);
+                gpt_part_set_bootable(part_sys_b, false);
             }
 
             if ((cmd->arg0 & 1) == 1)
             {   
                 LOG_INFO("Activating System A");
-                attr_a = (uint64_t *) part_sys_a->attr;
-                (*attr_a) |= GPT_ATTR_BOOTABLE;
-
-                attr_b = (uint64_t *) part_sys_b->attr;
-                (*attr_b) &= ~GPT_ATTR_BOOTABLE;
+                gpt_part_set_bootable(part_sys_a, true);
+                gpt_part_set_bootable(part_sys_b, false);
             }
 
             if ((cmd->arg0 & 2) == 2)
             {
                 LOG_INFO("Activating System B");
-                attr_a = (uint64_t *) part_sys_b->attr;
-                (*attr_a) &= ~GPT_ATTR_BOOTABLE;
-
-                attr_b = (uint64_t *) part_sys_b->attr;
-                (*attr_b) |= GPT_ATTR_BOOTABLE;
+                gpt_part_set_bootable(part_sys_a, false);
+                gpt_part_set_bootable(part_sys_b, true);
             }
 
-            err = gpt_write_tbl();
+            err = gpt_write_tbl(gpt);
             LOG_INFO("Result %u",err);
         }
         break;
@@ -398,11 +335,10 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_BOOT_PART:
         {
-            struct pb_pbi *pbi = NULL;
             struct gpt_part_hdr *boot_part_a, *boot_part_b;
 
-            err = gpt_get_part_by_uuid(part_type_system_a, &boot_part_a);
-            err = gpt_get_part_by_uuid(part_type_system_b, &boot_part_b);
+            err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &boot_part_a);
+            err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_B, &boot_part_b);
 
             if (cmd->arg0 == 1)
             {
@@ -416,95 +352,42 @@ static void recovery_parse_command(struct usb_device *dev,
                 err = PB_ERR;
             }
             
-            recovery_send_result_code(dev, err);
-
-            if (err != PB_OK)
+            if (pb_image_verify(&pbi) == PB_OK)
             {
-                LOG_ERR("Unable to load image");
-                break;
+                LOG_INFO("Booting image...");
+                recovery_send_result_code(dev, err);
+                pb_boot(&pbi, SYSTEM_A);
+            } else {
+                LOG_ERR("Image verification failed");
+                err = PB_ERR;
             }
 
-#ifdef PB_BOOT_LINUX
-                pb_boot_linux_with_dt(pbi, cmd->arg0);
-#elif PB_BOOT_TEST
-                plat_reset();
-#endif
+            recovery_send_result_code(dev, err);
         }
 
         break;
         case PB_CMD_BOOT_RAM:
         {   
-            struct pb_pbi *pbi = pb_image();
+            recovery_read_data(dev, (uint8_t *) &pbi, sizeof(struct pb_pbi));
 
-            recovery_read_data(dev, (uint8_t *) pbi, sizeof(struct pb_pbi));
-
-            if (pbi->hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
-            {
-                LOG_ERR ("Incorrect header magic");
-                err = PB_ERR;
-            }
+            err = pb_image_check_header(&pbi);
 
             if (err != PB_OK)
                 break;
-
-            LOG_INFO ("Component manifest:");
-
-            for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
-            {
-                LOG_INFO (" o %u - LA: 0x%x OFF:0x%x",
-                                    i, 
-                                    pbi->comp[i].load_addr_low,
-                                    pbi->comp[i].component_offset);
-
-
-                uintptr_t la = pbi->comp[i].load_addr_low;
-                uint32_t sz = pbi->comp[i].component_size;
-
-                if (PB_CHECK_OVERLAP(la,sz,&_stack_start,&_stack_end))
-                {
-                    LOG_ERR("image overlapping with PB stack");
-                    err = PB_ERR;
-                    break;
-                }
-
-                if (PB_CHECK_OVERLAP(la,sz,&_data_region_start,&_data_region_end))
-                {
-                    LOG_ERR("image overlapping with PB data");
-                    err = PB_ERR;
-                    break;
-                }
-
-
-                if (PB_CHECK_OVERLAP(la,sz,&_zero_region_start,&_zero_region_end))
-                {
-                    LOG_ERR("image overlapping with PB bss");
-                    err = PB_ERR;
-                    break;
-                }
-
-                if (PB_CHECK_OVERLAP(la,sz,&_code_start,&_code_end))
-                {
-                    LOG_ERR("image overlapping with PB code");
-                    err = PB_ERR;
-                    break;
-                }
-
-            }
 
             recovery_send_result_code(dev, err);
 
             if (err != PB_OK)
                 break;
 
-            for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
+            for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++) 
             {
                 LOG_INFO("Loading component %u, %u bytes",i, 
-                                        pbi->comp[i].component_size);
+                                        pbi.comp[i].component_size);
 
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
-                        (uint8_t *)(uintptr_t) pbi->comp[i].load_addr_low,
-                        pbi->comp[i].component_size );
-
+                        (uint8_t *)(uintptr_t) pbi.comp[i].load_addr_low,
+                        pbi.comp[i].component_size );
 
                 plat_usb_wait_for_ep_completion(dev, USB_EP1_OUT);
 
@@ -520,16 +403,11 @@ static void recovery_parse_command(struct usb_device *dev,
             if (err != PB_OK)
                 break;
 
-            if (pb_image_verify(pbi) == PB_OK)
+            if (pb_image_verify(&pbi) == PB_OK)
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
-
-#ifdef PB_BOOT_LINUX
-                pb_boot_linux_with_dt(pbi, SYSTEM_A);
-#elif PB_BOOT_TEST
-                plat_reset();
-#endif
+                pb_boot(&pbi, SYSTEM_A);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
@@ -541,17 +419,27 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             LOG_INFO ("Installing default GPT table");
 
-            err = gpt_init_tbl(1, plat_get_lastlba());
+            err = gpt_init_tbl(gpt, 1, plat_get_lastlba());
 
             if (err != PB_OK)
                 break;
 
-            err = board_configure_gpt_tbl();
+            uint32_t part_count = 0;
+            for (const struct partition_table *p = pb_partition_table;
+                    (p->no_of_blocks != 0); p++)
+            {
+                err = gpt_add_part(gpt, part_count++, p->no_of_blocks,
+                                                 p->uuid,
+                                                 p->name);
+
+                if (err != PB_OK)
+                    break;
+            }
 
             if (err != PB_OK)
                 break;
 
-            err = gpt_write_tbl();
+            err = gpt_write_tbl(gpt);
 
         }
         break;
@@ -581,8 +469,11 @@ static void recovery_parse_command(struct usb_device *dev,
     recovery_send_result_code(dev, err);
 }
 
-void recovery_initialize(void)
+void recovery_initialize(struct gpt *_gpt)
 {
+    gpt = _gpt;
+    LOG_DBG("array crc %x", gpt->primary.hdr.part_array_crc);
+    LOG_DBG("GPT ptr %p",gpt);
     usb_set_on_command_handler(recovery_parse_command);
 }
 

@@ -14,7 +14,7 @@
 #include <string.h>
 
 #define USB_DEBUG
-static struct usb_device *usb_dev;
+static struct usb_device usb_dev;
 
 static const uint8_t qf_descriptor[] = {
 	0x0A,	//USB_DEV_QUALIFIER_DESC_LEN,
@@ -229,24 +229,24 @@ uint32_t usb_init(void)
     
     LOG_INFO("Init");
 
-    err = board_usb_init(&usb_dev);
+    err = plat_prepare_recovery();
 
     if (err != PB_OK)
         return err;
 
-    usb_dev->on_setup_pkt = usb_process_setup_pkt;
-    usb_dev->on_command = NULL;
+    usb_dev.on_setup_pkt = usb_process_setup_pkt;
+    usb_dev.on_command = NULL;
 
-    return plat_usb_init(usb_dev);
+    return plat_usb_init(&usb_dev);
 }
 
 void usb_set_on_command_handler(usb_on_command_t handler)
 {
-    usb_dev->on_command = handler;
+    usb_dev.on_command = handler;
 }
 
 void usb_task(void)
 {
-    plat_usb_task(usb_dev);
+    plat_usb_task(&usb_dev);
 }
 

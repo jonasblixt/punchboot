@@ -1,4 +1,5 @@
 #include <pb.h>
+#include <stdio.h>
 #include <fuse.h>
 #include <plat/test/test_fuse.h>
 #include <plat/test/virtio.h>

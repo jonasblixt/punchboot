@@ -8,52 +8,30 @@
 #include <gpt.h>
 #include <keys.h>
 
-static __a4k __no_bss struct pb_pbi _pbi;
-extern char _code_start, _code_end, _data_region_start, _data_region_end, 
-            _zero_region_start, _zero_region_end, _stack_start, _stack_end;
+extern char _code_start, _code_end, 
+            _data_region_start, _data_region_end, 
+            _zero_region_start, _zero_region_end, 
+            _stack_start, _stack_end;
 
 static unsigned char __a4k sign_copy[1024];
 static uint8_t __a4k output_data[1024];
 
-uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
+uint32_t pb_image_check_header(struct pb_pbi *pbi)
 {
 
-    *pbi = NULL;
-
-
-    tr_stamp_begin(TR_BLOCKREAD);
-
-    if (!part_lba_offset) 
-    {
-        LOG_ERR ("Unknown partition");
-        return PB_ERR;
-    }
-
-    plat_read_block(part_lba_offset, (uintptr_t) &_pbi,
-                            sizeof(struct pb_pbi)/512);
-
-
-    if (_pbi.hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
+    if (pbi->hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
     {
         LOG_ERR ("Incorrect header magic");
         return PB_ERR;
     }
 
-    LOG_INFO ("Component manifest:");
-    for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) 
+    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
     {
-        LOG_INFO ("%x - LA: 0x%x OFF:0x%x",i, 
-                            _pbi.comp[i].load_addr_low,
-                            _pbi.comp[i].component_offset);
-    }
+        LOG_INFO("Checking component %u, %u bytes",i, 
+                                pbi->comp[i].component_size);
 
-    for (uint32_t i = 0; i < _pbi.hdr.no_of_components; i++) 
-    {
-        LOG_INFO("Loading component %u, %u bytes",i, 
-                                _pbi.comp[i].component_size);
-
-        uintptr_t la = (uintptr_t) _pbi.comp[i].load_addr_low;
-        uint32_t sz = _pbi.comp[i].component_size;
+        uintptr_t la = (uintptr_t) pbi->comp[i].load_addr_low;
+        uint32_t sz = pbi->comp[i].component_size;
 
 
         if (PB_CHECK_OVERLAP(la,sz,&_stack_start,&_stack_end))
@@ -79,14 +57,42 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi **pbi)
             LOG_ERR("image overlapping with PB code");
             return PB_ERR;
         }
-
-        plat_read_block(part_lba_offset + 
-                    _pbi.comp[i].component_offset/512
-                    , (uintptr_t) _pbi.comp[i].load_addr_low, 
-                    _pbi.comp[i].component_size/512+1);
     }
 
-    *pbi = &_pbi;
+    return PB_OK;
+}
+
+uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi)
+{
+    uint32_t err;
+
+    tr_stamp_begin(TR_BLOCKREAD);
+
+    if (!part_lba_offset) 
+    {
+        LOG_ERR ("Unknown partition");
+        return PB_ERR;
+    }
+
+    plat_read_block(part_lba_offset, (uintptr_t) pbi,
+                            (sizeof(struct pb_pbi)/512));
+
+    err = pb_image_check_header(pbi);
+
+    if (err != PB_OK)
+        return err;
+
+    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
+    {
+        volatile uint32_t a = pbi->comp[i].load_addr_low;
+
+        plat_read_block((part_lba_offset + 
+                    (pbi->comp[i].component_offset/512)),
+                    (uintptr_t) a, 
+                    ((pbi->comp[i].component_size/512)+1));
+
+    }
+
     tr_stamp_end(TR_BLOCKREAD);
     return PB_OK;
 }
@@ -186,11 +192,6 @@ bool pb_image_verify(struct pb_pbi* pbi)
         return PB_OK;
     else
         return PB_ERR;
-}
-
-struct pb_pbi * pb_image(void)
-{
-    return &_pbi;
 }
 
 struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 

@@ -33,7 +33,9 @@ void      plat_delay_ms(uint32_t);
 void      plat_wdog_init(void);
 void      plat_wdog_kick(void);
 uint32_t  plat_early_init(void);
-void plat_preboot_cleanup(void);
+void      plat_preboot_cleanup(void);
+bool      plat_force_recovery(void);
+uint32_t  plat_prepare_recovery(void);
 
 /* EMMC Interface */
 uint32_t  plat_write_block(uint32_t lba_offset, 

@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <string.h>
 #include <plat/test/semihosting.h>
 #include <usb.h>
 #include <assert.h>
@@ -7,7 +8,6 @@
 #include "test.h"
 
 static uint16_t usb_addr = 0;
-static uint8_t buffer[1024];
 static struct usb_setup_packet pkt;
 
 

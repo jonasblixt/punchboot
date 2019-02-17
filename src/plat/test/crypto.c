@@ -14,13 +14,13 @@ uint32_t  plat_sha256_init(void)
 
 uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz)
 {
-    br_sha256_update(&sha256_ctx,bfr,sz);
+    br_sha256_update(&sha256_ctx, (void *) bfr,sz);
     return PB_OK;
 }
 
 uint32_t  plat_sha256_finalize(uintptr_t out)
 {
-    br_sha256_out(&sha256_ctx, out);
+    br_sha256_out(&sha256_ctx, (void *) out);
     return PB_OK;
 }
 

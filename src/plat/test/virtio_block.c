@@ -57,21 +57,18 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 	struct virtq *q = &d->q;
     uint16_t idx = q->avail->idx;
 
-    LOG_DBG("idx %u",idx);
     q->desc[idx].addr = ((uintptr_t) &r);
     q->desc[idx].len = sizeof(struct virtio_blk_req);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
     q->desc[idx].next = ((idx + 1) % q->num);
     idx = ((idx + 1) % q->num);
 
-    LOG_DBG("idx %u",idx);
 	q->desc[idx].addr = ((uintptr_t) (buf));
 	q->desc[idx].len = (512*no_of_blocks);
 	q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
 	q->desc[idx].next = ((idx + 1) % q->num);
 	idx = ((idx + 1) % q->num);
 
-    LOG_DBG("idx %u",idx);
     q->desc[idx].addr = ((uintptr_t) &status);
     q->desc[idx].len = 1;
     q->desc[idx].flags = VIRTQ_DESC_F_WRITE;
@@ -80,21 +77,17 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 
     q->avail->ring[idx] = idx;
     q->avail->idx += 3;
-    LOG_DBG("idx %u",idx);
-    LOG_DBG("notify %p", &(d->dev));   
 
-    LOG_DBG("%u %u",q->avail->idx, q->used->idx);
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 	LOG_DBG("Waiting");
 
-    LOG_DBG("%u %u",q->avail->idx, q->used->idx);
     while( (q->avail->idx) != (q->used->idx) )
 		__asm__ volatile("nop");
 
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;
 	
-	LOG_ERR("Failed, lba=%lu, no_of_blocks=%lu",lba,no_of_blocks);
+	LOG_ERR("Failed, lba=%u, no_of_blocks=%u",lba,no_of_blocks);
 	return PB_ERR;
 }
 
@@ -114,9 +107,6 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 	r.reserved = 0;
 	r.sector_low = lba;
 	r.sector_hi = 0;
-
-	LOG_DBG ("lba: %016lx", lba);
-
 
     q->desc[idx].addr = (uint32_t) &r;
     q->desc[idx].len = sizeof(struct virtio_blk_req);
@@ -141,14 +131,13 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 
-    LOG_DBG("%u %u",q->avail->idx, q->used->idx);
 	while( (q->avail->idx) != (q->used->idx) )
 		__asm__ volatile ("nop");	
 
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;
 	
-	LOG_ERR("Failed, lba=%lu, no_of_blocks=%lu",lba,no_of_blocks);
+	LOG_ERR("Failed, lba=%u, no_of_blocks=%u",lba,no_of_blocks);
 	return PB_ERR;
 }
 

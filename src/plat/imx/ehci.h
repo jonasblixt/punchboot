@@ -12,6 +12,7 @@
 #define __EHCI_H__
 
 #include <pb.h>
+#include <usb.h>
 
 #define EHCI_DCIVERSION 0x120
 #define EHCI_USBSTS 0x144

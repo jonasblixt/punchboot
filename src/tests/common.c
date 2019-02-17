@@ -3,6 +3,7 @@
 #include <plat.h>
 #include <plat/test/pl061.h>
 #include <plat/test/gcov.h>
+#include <plat/test/uart.h>
 #include <plat/test/semihosting.h>
 #include <assert.h>
 

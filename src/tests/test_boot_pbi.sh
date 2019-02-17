@@ -12,6 +12,14 @@ then
     test_end_error
 fi
 
+$PB boot -a -n 0
+
+result_code=$?
+
+if [ $result_code -ne 0 ];
+then
+    test_end_error
+fi
 $PB boot -x -f /tmp/img.pbi
 result_code=$?
 

@@ -3,18 +3,30 @@
 #include <io.h>
 #include <plat.h>
 #include <string.h>
+
 #include <fuse.h>
+#include <boot.h>
 #include <plat/test/virtio.h>
 #include <plat/test/virtio_block.h>
 #include <plat/test/test_fuse.h>
+#include <plat/test/gcov.h>
+#include <plat/test/uart.h>
 #include <3pp/bearssl/bearssl_hash.h>
 
 static __a4k struct virtio_block_device virtio_block;
 static __a4k struct virtio_block_device virtio_block2;
-static struct virtio_block_device *blk = &virtio_block;
+static struct virtio_block_device *blk;
+static struct pb_platform_setup setup;
 
 uint32_t blk_off = 0;
 uint32_t blk_sz = 65535;
+
+void pb_boot(struct pb_pbi *pbi, uint32_t active_system)
+{
+    UNUSED(pbi);
+    UNUSED(active_system);
+    plat_reset();
+}
 
 __inline uint32_t plat_get_ms_tick(void) 
 {
@@ -24,6 +36,16 @@ __inline uint32_t plat_get_ms_tick(void)
 uint32_t plat_setup_lock(void)
 {
     return PB_OK;
+}
+
+bool plat_force_recovery(void)
+{
+    return board_force_recovery(&setup);
+}
+
+uint32_t plat_prepare_recovery(void)
+{
+    return board_prepare_recovery(&setup);
 }
 
 uint32_t plat_fuse_read(struct fuse *f)
@@ -72,6 +94,8 @@ uint32_t plat_early_init(void)
 {
     board_early_init(NULL);
 
+    test_uart_init();
+	gcov_init();	
 
     virtio_block.dev.device_id = 2;
     virtio_block.dev.vendor_id = 0x554D4551;
@@ -82,6 +106,8 @@ uint32_t plat_early_init(void)
         LOG_ERR("Could not initialize virtio block device");
         while(1);
     }
+
+    blk = &virtio_block;
 
     virtio_block2.dev.device_id = 2;
     virtio_block2.dev.vendor_id = 0x554D4551;
@@ -113,7 +139,7 @@ uint32_t  plat_write_block(uint32_t lba_offset,
                                 uintptr_t bfr, 
                                 uint32_t no_of_blocks)
 {
-	return virtio_block_write(blk, blk_off+lba_offset, 
+	return virtio_block_write(blk, (blk_off+lba_offset), 
                                 (uint8_t *)bfr, no_of_blocks);
 
 }
@@ -123,7 +149,7 @@ uint32_t  plat_read_block( uint32_t lba_offset,
                                 uintptr_t bfr, 
                                 uint32_t no_of_blocks)
 {
-    return virtio_block_read(blk, blk_off+lba_offset, (uint8_t *)bfr, 
+    return virtio_block_read(blk, (blk_off+lba_offset), (uint8_t *)bfr, 
                                 no_of_blocks);
 }
 

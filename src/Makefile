@@ -20,7 +20,7 @@ else
 	TIMING_REPORT=0
 endif
 
-CFLAGS   = -Wall -pedantic -Wextra -std=c99 -Wunused-result -Os
+CFLAGS   = -Wall -Wextra -std=c99 -Wunused-result -Os
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -ffunction-sections 
 CFLAGS  += -fdata-sections 
@@ -45,8 +45,7 @@ PLAT_ASM_SRCS =
 PLAT_C_SRCS =
 BLOB_INPUT  =
 
-C_SRCS   = boot.c
-C_SRCS  += recovery.c
+C_SRCS   = recovery.c
 C_SRCS  += delay.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c 

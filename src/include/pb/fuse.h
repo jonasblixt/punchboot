@@ -26,4 +26,11 @@ struct fuse
     const char description[20];
 };
 
+struct fusebox
+{
+    struct fuse identity;
+    struct fuse revoke_mask;
+    const struct fuse fuses[];
+};
+
 #endif

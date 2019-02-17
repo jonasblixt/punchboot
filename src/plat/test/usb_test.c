@@ -34,7 +34,7 @@ void      plat_usb_task(struct usb_device *dev)
     LOG_INFO("Waiting...");
     virtio_serial_read(&d, (uint8_t *) &hdr, sizeof(struct pb_socket_header));
     virtio_serial_write(&d, &status, 1);
-    LOG_INFO("Got hdr, ep=%lu, sz=%lu",hdr.ep,hdr.sz);
+    LOG_INFO("Got hdr, ep=%u, sz=%u",hdr.ep,hdr.sz);
     if (hdr.ep == 4)
     {
         virtio_serial_read(&d, (uint8_t *) &cmd, 
@@ -45,7 +45,7 @@ void      plat_usb_task(struct usb_device *dev)
         dev->on_command(dev, &cmd);
 
     } else {
-        LOG_ERR("Unexpected transfer: ep=%lu, sz=%lu", hdr.ep, hdr.sz);
+        LOG_ERR("Unexpected transfer: ep=%u, sz=%u", hdr.ep, hdr.sz);
     }
 }
 
