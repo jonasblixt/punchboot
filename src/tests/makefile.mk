@@ -5,6 +5,7 @@ TESTS  += test_libc
 INTEGRATION_TESTS  = test_reset
 INTEGRATION_TESTS += test_part
 INTEGRATION_TESTS += test_device_setup
+INTEGRATION_TESTS += test_setup_lock
 INTEGRATION_TESTS += test_corrupt_gpt
 INTEGRATION_TESTS += test_corrupt_gpt2
 INTEGRATION_TESTS += test_corrupt_gpt3

@@ -20,6 +20,7 @@ static struct pb_platform_setup setup;
 
 uint32_t blk_off = 0;
 uint32_t blk_sz = 65535;
+static uint32_t setup_locked = 0;
 
 void pb_boot(struct pb_pbi *pbi, uint32_t active_system)
 {
@@ -35,6 +36,9 @@ __inline uint32_t plat_get_ms_tick(void)
 
 uint32_t plat_setup_lock(void)
 {
+    if (setup_locked)
+        return PB_ERR;
+    setup_locked = 1;
     return PB_OK;
 }
 
