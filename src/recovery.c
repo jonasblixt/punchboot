@@ -49,6 +49,7 @@ const char *recovery_cmd_name[] =
     "PB_CMD_BOOT_RAM",
     "PB_CMD_SETUP",
     "PB_CMD_SETUP_LOCK",
+    "PB_CMD_GET_HW_INFO",
 };
 
 
@@ -279,7 +280,6 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_GPT_TBL:
         {
-            LOG_DBG("array crc %x", gpt->primary.hdr.part_array_crc);
             err = recovery_send_response(dev,(uint8_t*) &gpt->primary,
                                         sizeof (struct gpt_primary_tbl));  
         }
@@ -459,6 +459,16 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             LOG_INFO ("Locking device setup");
             err = plat_setup_lock();
+        }
+        break;
+        case PB_CMD_GET_HW_INFO:
+        {
+            struct fuse *f = (struct fuse *) &pb_fusebox.identity;
+
+            plat_fuse_read(f);
+            recovery_send_response(dev,(uint8_t*) &f->value,
+                                        sizeof (uint32_t));  
+            err = PB_OK;
         }
         break;
         default:

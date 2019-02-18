@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <pb/gpt.h>
+#include <pb/recovery.h>
 
 uint32_t pb_get_version(char **out);
 uint32_t pb_install_default_gpt(void);
@@ -22,4 +23,6 @@ uint32_t pb_recovery_setup(uint8_t device_version,
                         bool dry_run);
 
 uint32_t pb_recovery_setup_lock(void);
+uint32_t pb_recovery_get_hw_info(struct pb_hw_info *info);
+
 #endif

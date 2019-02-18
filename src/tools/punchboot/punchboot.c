@@ -65,13 +65,21 @@ static uint32_t pb_display_device_info(void)
 {
     uint32_t err = PB_ERR;
     char *version_string;
+    struct pb_hw_info info;
 
     err = pb_get_version(&version_string);
 
     if (err != PB_OK)
         return -1;
+
+    err = pb_recovery_get_hw_info(&info);
+
+    if (err != PB_OK)
+        return -1;
+
     printf ("Device info:\n");
-    //printf (" Hardware: %s, Revision: %s\n");
+    printf (" Hardware: 0x%04x, Revision: 0x%02x, Variant 0x%02x\n",
+                            info.hw,info.rev,info.var);
     printf (" Security State:\n");
     printf (" Bootloader Version: %s\n",version_string);
     free(version_string);

@@ -16,6 +16,35 @@
 #include "utils.h"
 
 
+uint32_t pb_recovery_get_hw_info(struct pb_hw_info *info)
+{
+
+    uint32_t err;
+    uint32_t sz;
+
+    err = pb_write(PB_CMD_GET_HW_INFO,0,0,0,0, NULL, 0);
+
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read((uint8_t*) &sz, 4);
+
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read((uint8_t *) info, sizeof(struct pb_hw_info));
+
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
+        return err;
+
+    return PB_OK;
+}
+
 uint32_t pb_recovery_setup_lock(void)
 {
     uint32_t err;

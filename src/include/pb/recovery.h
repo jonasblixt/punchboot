@@ -28,6 +28,7 @@ enum {
     PB_CMD_BOOT_RAM,
     PB_CMD_SETUP,
     PB_CMD_SETUP_LOCK,
+    PB_CMD_GET_HW_INFO,
 };
 
 extern const char *recovery_cmd_name[];
@@ -65,6 +66,13 @@ struct pb_device_setup
     uint8_t device_revision;
     uint8_t dry_run;
     uint8_t rz[62];
+} __attribute__ ((packed));
+
+struct pb_hw_info
+{
+    uint8_t rev;
+    uint8_t var;
+    uint16_t hw;
 } __attribute__ ((packed));
 
 #ifdef __PB_BUILD
