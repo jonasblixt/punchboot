@@ -18,6 +18,7 @@ INTEGRATION_TESTS += test_boot_pbi7
 INTEGRATION_TESTS += test_boot_pbi8
 INTEGRATION_TESTS += test_flash_bl
 INTEGRATION_TESTS += test_invalid_key_index
+INTEGRATION_TESTS += test_invalid_key_index2
 INTEGRATION_TESTS += test_gpt_boot_activate
 INTEGRATION_TESTS += test_gpt_boot_activate_step2
 INTEGRATION_TESTS += test_gpt_boot_activate_step3
