@@ -35,7 +35,8 @@ extern uint8_t* _binary____pki_field2_rsa_public_der_end;
 extern uint8_t* _binary____pki_field2_rsa_public_der_size;
 
 
-struct asn1_key {
+struct asn1_key 
+{
     uint8_t rz1[0x21];
     uint8_t mod[512];
     uint8_t rz2[2];
@@ -43,5 +44,7 @@ struct asn1_key {
 } __attribute__ ((packed));
 
 struct asn1_key * pb_key_get(uint8_t key_index);
+uint32_t pb_update_key_revoke_mask(uint32_t mask);
+uint32_t pb_is_key_revoked(uint8_t key_index, bool *result);
 
 #endif

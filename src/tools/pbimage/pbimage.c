@@ -30,7 +30,9 @@ static unsigned char buf[1024*1024];
 static int pbimage_gen_output(const char *fn_sign_key,
                               uint8_t key_index,
                               const char *fn_output,
-                              int no_of_components) {
+                              int no_of_components,
+                              uint32_t key_mask) 
+{
 
     int err = 0;
     FILE *fp_key = NULL;
@@ -75,6 +77,7 @@ static int pbimage_gen_output(const char *fn_sign_key,
     hdr.header_version = 1;
     hdr.no_of_components = no_of_components;
     hdr.key_index = key_index;
+    hdr.key_revoke_mask = key_mask;
 
     sha256_process(&md, (unsigned char *)&hdr, sizeof(struct pb_image_hdr));
     
@@ -182,7 +185,7 @@ static int pbimage_gen_output(const char *fn_sign_key,
 static void pbimage_print_help(void) {
     printf ("pbimage:\n\n");
 
-    printf("  pbimage -t <type> -l <addr> -f <fn> -k <key fn> -n <key index> -o <output fn>\n");
+    printf("  pbimage -t <type> -l <addr> -f <fn> -k <key fn> -n <key index> -o <output fn> [-m <key mask>]\n");
     printf("\n   Add image <fn>, of type <type> that should be loaded\n"
             "     at address <addr> and signed with key <key_fn>.\n"
             "     Multiple images can be added by chaining several -t -l and -f args\n");
@@ -203,9 +206,11 @@ int main (int argc, char **argv) {
     int component_type = -1;
     unsigned int load_addr = 0;
     uint8_t key_index = 255;
+    uint32_t key_mask = 0;
     bool flag_type = false;
     bool flag_load = false;
     bool flag_file = false;
+    bool flag_key_mask = false;
     bool flag_key_index = false;
 
     char *output_fn = NULL;
@@ -223,7 +228,7 @@ int main (int argc, char **argv) {
         exit(0);
     }
 
-    while ((opt = getopt(argc, argv, "ht:l:f:n:k:o:")) != -1) 
+    while ((opt = getopt(argc, argv, "ht:l:f:n:k:o:m:")) != -1) 
     {
         switch (opt) {
             case 'h':
@@ -254,6 +259,10 @@ int main (int argc, char **argv) {
                 flag_load = true;
                 flag_file = false;
                 load_addr = (int)strtol(optarg, NULL, 0);
+            break;
+            case 'm':
+                flag_key_mask = true;
+                key_mask = (uint32_t) strtol(optarg, NULL, 0);
             break;
             case 'n':
                 key_index = (uint8_t) strtol(optarg, NULL, 0);
@@ -310,7 +319,8 @@ int main (int argc, char **argv) {
         err = pbimage_gen_output(sign_key_fn, 
                                  key_index,
                                  output_fn, 
-                                 no_of_components);
+                                 no_of_components,
+                                 key_mask);
     }
 
     if (sign_key_fn)

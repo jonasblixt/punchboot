@@ -6,6 +6,7 @@ PB=tools/punchboot/punchboot
 PBI=tools/pbimage/pbimage
 
 KEY1=../pki/dev_rsa_private.der
+KEY2=../pki/prod_rsa_private.der
 
 #echo QEMU running, PID=$qemu_pid
 

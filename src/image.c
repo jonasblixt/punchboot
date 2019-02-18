@@ -103,6 +103,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
     unsigned int sign_sz = 0;
     unsigned char hash_copy[32];
     unsigned char hash[32];
+    bool key_is_revoked = true;
     uint32_t err = PB_OK;
 
     if (pbi->hdr.sign_length > sizeof(sign_copy))
@@ -118,6 +119,16 @@ bool pb_image_verify(struct pb_pbi* pbi)
     memset (pbi->hdr.sign, 0, 1024);
     memset (pbi->hdr.sha256, 0, 32);
 
+    err = pb_is_key_revoked(pbi->hdr.key_index, &key_is_revoked);
+
+    if (err != PB_OK)
+        return err;
+
+    if (key_is_revoked)
+    {
+        LOG_ERR("Key is revoked");
+        return PB_KEY_REVOKED_ERROR;
+    }
     plat_sha256_init();
 
     plat_sha256_update((uintptr_t)&pbi->hdr, 
@@ -176,17 +187,26 @@ bool pb_image_verify(struct pb_pbi* pbi)
     /* Output is ASN.1 coded, this extracts the decoded checksum */
     uint8_t flag_sig_ok = 1;
     int n = 0;
-    for (uint32_t i = 512-32; i < 512; i++) {
-        if (output_data[i] != hash[n]) {
+    for (uint32_t i = (512-32); i < 512; i++) 
+    {
+        if (output_data[i] != hash[n]) 
+        {
             flag_sig_ok = 0;
         }
         n++;
     }
+
     if (flag_sig_ok)
     {
         LOG_INFO("SIG OK");
+
+        LOG_INFO("Key revoke mask: %08x", pbi->hdr.key_revoke_mask);
+
+        pb_update_key_revoke_mask(pbi->hdr.key_revoke_mask);
     }
+
     tr_stamp_end(TR_RSA);
+
 
     if (flag_sig_ok)
         return PB_OK;

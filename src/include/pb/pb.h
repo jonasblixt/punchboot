@@ -19,6 +19,9 @@ enum {
     PB_OK,
     PB_ERR,
     PB_TIMEOUT,
+    PB_KEY_REVOKED_ERROR,
+    PB_SIGNATURE_ERROR,
+    PB_CHECKSUM_ERROR,
 };
 
 struct partition_table
