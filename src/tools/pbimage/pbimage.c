@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 #include <strings.h>
-#include <tomcrypt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
