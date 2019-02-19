@@ -38,13 +38,6 @@ PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
 CFLAGS += -D__PLAT_IMX8X__
 CFLAGS += -I plat/imx8x/include
 
-$(eval PB_SRKS=$(shell od -A none -vtx4 -w4 $(SRK_FUSE_BIN) | sed 's/^./0x/' | tr '\n' ',' ))
-
-
-$(shell echo "#include <stdint.h>" > plat/imx8x/hab_srks.c)
-$(shell echo "const uint32_t build_root_hash[] ={$(PB_SRKS)};" >> plat/imx8x/hab_srks.c)
-PLAT_C_SRCS  += plat/imx8x/hab_srks.c
-
 plat_clean:
 	@-rm -rf plat/imx8x/*.o
 	@-rm -rf plat/imx8x/hab_srks.*

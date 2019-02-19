@@ -10,7 +10,7 @@
 
 PB_ARCH_NAME = armv8a
 
-CST_TOOL ?= /work/cst_3.1.0
+CST_TOOL ?= /work/cst-3.1.0/linux64/bin/cst
 
 SRK_TBL  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin)
 CSFK_PEM ?= $(shell realpath ../pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem)
@@ -35,16 +35,11 @@ BLOB_INPUT += lpddr4_pmu_train_1d_imem.bin lpddr4_pmu_train_2d_imem.bin
 
 CFLAGS += -I plat/imx8m/include
 
-$(eval PB_SRKS=$(shell hexdump -e '/4 "0x"' -e '/4 "%X"",\n"' < $(SRK_FUSE_BIN)))
-$(shell rm -f plat/imx8m/hab_srks.*)
-$(shell echo "#include <stdint.h>\nconst uint32_t build_root_hash[8] ={$(PB_SRKS)};" > plat/imx8m/hab_srks.c)
-PLAT_C_SRCS  += plat/imx8m/hab_srks.c
-
 plat_clean:
 	@-rm -rf plat/imx8m/*.o
-	@-rm -rf plat/imx8m/hab_srks.*
 
 plat_final:
+	@echo "plat_final"
 	$(eval PB_FILESIZE=$(shell stat -c%s "pb.imx"))
 	$(eval PB_FILESIZE2=$(shell echo " $$(( $(PB_FILESIZE) - 0x2000 ))" | bc	))
 	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE2)" | bc	))

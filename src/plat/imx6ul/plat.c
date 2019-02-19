@@ -24,7 +24,7 @@ static struct imx_uart_device uart0;
 static struct imx_wdog_device wdog_device;
 
 /* Platform API Calls */
-void      plat_reset(void)
+void plat_reset(void)
 {
     imx_wdog_reset_now();
     while(1)    

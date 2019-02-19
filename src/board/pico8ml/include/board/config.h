@@ -1,7 +1,10 @@
 #ifndef __BOARD_CONFIG_H__
 #define __BOARD_CONFIG_H__
 
-
-#define PB_BOOT_FUNC(pbi, system_index) pb_boot_linux_with_dt(pbi, system_index)
+#define  BOARD_BOOT_ARGS "console=ttymxc0,115200 " \
+        "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
+        "cma=768M " \
+        "root=PARTUUID=%s " \
+        "rw rootfstype=ext4 gpt rootwait"
 
 #endif

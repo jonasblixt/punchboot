@@ -15,7 +15,7 @@ uint32_t pb_get_gpt_table(struct gpt_primary_tbl *tbl);
 uint32_t pb_set_bootpart(uint8_t bootpart);
 uint32_t pb_flash_part (uint8_t part_no, const char *f_name);
 uint32_t pb_program_bootloader (const char *f_name);
-uint32_t pb_execute_image (const char *f_name);
+uint32_t pb_execute_image (const char *f_name, uint32_t active_system);
 
 uint32_t pb_recovery_setup(uint8_t device_version,
                         uint8_t device_variant,

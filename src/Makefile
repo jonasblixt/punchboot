@@ -127,9 +127,6 @@ all: plat_early $(TARGET).bin board_final plat_final
 	$(info )
 	@$(SIZE) -x -B $(TARGET)
 
-todo:
-	@grep -lR "TODO:" *
-
 $(TARGET).bin: $(TARGET)
 	@echo OBJCOPY $< $@
 	@$(OBJCOPY) -O binary -R .comment $< $@
@@ -153,9 +150,6 @@ $(TARGET): $(OBJS) main.o
 %.o: %.c
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
-
-install: board_final
-	@punchboot boot -w -r -f $(FINAL_IMAGE)
 
 .PHONY: board_clean arch_clean plat_clean plat_early plat_final
 

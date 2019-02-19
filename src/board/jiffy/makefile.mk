@@ -3,10 +3,9 @@ PB_PLAT_NAME   = imx6ul
 PB_ENTRY     = 0x80001000
 
 CFLAGS += -I board/jiffy/include
-CFLAGS += -DPB_BOOT_LINUX=1
 
 BOARD_C_SRCS += board/jiffy/jiffy.c
-
+BOARD_C_SRCS += boot/atf_linux.c
 
 
 MKIMAGE         = mkimage

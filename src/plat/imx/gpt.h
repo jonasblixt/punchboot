@@ -12,6 +12,7 @@
 #define __PLAT_IMX6UL_GPT__
 
 #include <pb.h>
+#include <io.h>
 
 #define GP_TIMER_CR  0x0000
 #define GP_TIMER_PR  0x0004

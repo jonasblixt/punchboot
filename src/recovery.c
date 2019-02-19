@@ -291,20 +291,20 @@ static void recovery_parse_command(struct usb_device *dev,
             gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &part_sys_a);
             gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_B, &part_sys_b);
 
-            if (cmd->arg0 == 0)
+            if (cmd->arg0 == SYSTEM_NONE)
             {
                 gpt_part_set_bootable(part_sys_a, false);
                 gpt_part_set_bootable(part_sys_b, false);
             }
 
-            if ((cmd->arg0 & 1) == 1)
+            if ((cmd->arg0 & SYSTEM_A) == SYSTEM_A)
             {   
                 LOG_INFO("Activating System A");
                 gpt_part_set_bootable(part_sys_a, true);
                 gpt_part_set_bootable(part_sys_b, false);
             }
 
-            if ((cmd->arg0 & 2) == 2)
+            if ((cmd->arg0 & SYSTEM_B) == SYSTEM_B)
             {
                 LOG_INFO("Activating System B");
                 gpt_part_set_bootable(part_sys_a, false);
@@ -340,11 +340,11 @@ static void recovery_parse_command(struct usb_device *dev,
             err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &boot_part_a);
             err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_B, &boot_part_b);
 
-            if (cmd->arg0 == 1)
+            if (cmd->arg0 == SYSTEM_A)
             {
                 LOG_INFO("Loading System A");
                 err = pb_image_load_from_fs(boot_part_a->first_lba, &pbi);
-            } else if (cmd->arg0 == 2) {
+            } else if (cmd->arg0 == SYSTEM_B) {
                 LOG_INFO("Loading System B");
                 err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi);
             } else {
@@ -356,7 +356,7 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
-                pb_boot(&pbi, SYSTEM_A);
+                pb_boot(&pbi, cmd->arg0);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
@@ -405,9 +405,9 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (pb_image_verify(&pbi) == PB_OK)
             {
-                LOG_INFO("Booting image...");
+                LOG_INFO("Booting image... %u",cmd->arg0);
                 recovery_send_result_code(dev, err);
-                pb_boot(&pbi, SYSTEM_A);
+                pb_boot(&pbi, cmd->arg0);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;

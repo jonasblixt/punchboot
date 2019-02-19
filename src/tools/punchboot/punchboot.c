@@ -94,11 +94,11 @@ static void print_help_header(void)
 static void print_boot_help(void)
 {
     printf (" Bootloader:\n");
-    printf ("  punchboot boot -w -f <fn>           - Install bootloader\n");
-    printf ("  punchboot boot -r                   - Reset device\n");
-    printf ("  punchboot boot -s A or B            - BOOT System A or B\n");
-    printf ("  punchboot boot -x -f <fn>           - Load image to RAM and execute it\n");
-    printf ("  punchboot boot -a -n <bootconf>     - Activate boot partition\n");
+    printf ("  punchboot boot -w -f <fn>              - Install bootloader\n");
+    printf ("  punchboot boot -r                      - Reset device\n");
+    printf ("  punchboot boot -b -s A or B            - BOOT System A or B\n");
+    printf ("  punchboot boot -x -f <fn> [-s A or B]  - Load image to RAM and execute it\n");
+    printf ("  punchboot boot -a -s A, B or none      - Activate system partition\n");
     printf ("\n");
 }
 
@@ -106,9 +106,9 @@ static void print_boot_help(void)
 static void print_dev_help(void)
 {
     printf (" Device:\n");
-    printf ("  punchboot dev -l                    - Display device information\n");
-    printf ("  punchboot dev -s \"<rev> <var>\" [-y] - Perform device setup\n");
-    printf ("  punchboot dev -w [-y]               - Lock device setup\n");
+    printf ("  punchboot dev -l                       - Display device information\n");
+    printf ("  punchboot dev -s \"<rev> <var>\" [-y]    - Perform device setup\n");
+    printf ("  punchboot dev -w [-y]                  - Lock device setup\n");
     printf ("\n");
 }
 
@@ -116,9 +116,9 @@ static void print_part_help(void)
 {
 
     printf (" Partition Management:\n");
-    printf ("  punchboot part -l                   - List partitions\n");
-    printf ("  punchboot part -w -n <n> -f <fn>    - Write 'fn' to partition 'n'\n");
-    printf ("  punchboot part -i                   - Install default GPT table\n");
+    printf ("  punchboot part -l                      - List partitions\n");
+    printf ("  punchboot part -w -n <n> -f <fn>       - Write 'fn' to partition 'n'\n");
+    printf ("  punchboot part -i                      - Install default GPT table\n");
     printf ("\n");
 }
 
@@ -133,6 +133,7 @@ int main(int argc, char **argv)
 {
     extern char *optarg;
     extern int optind, opterr, optopt;
+    uint32_t active_system = SYSTEM_A;
     char c;
     int err;
 
@@ -151,6 +152,7 @@ int main(int argc, char **argv)
     bool flag_install = false;
     bool flag_execute = false;
     bool flag_a = false;
+    bool flag_b = false;
     bool flag_y = false;
 
     char *fn = NULL;
@@ -172,6 +174,9 @@ int main(int argc, char **argv)
             break;
             case 'a':
                 flag_a = true;
+            break;
+            case 'b':
+                flag_b = true;
             break;
             case 'y':
                 flag_y = true;
@@ -300,21 +305,26 @@ int main(int argc, char **argv)
             return 0;
         }
 
-        if (flag_a)
-        {
-            err = pb_set_bootpart(cmd_index);
-        }
-
         if (flag_s) 
         {
             char *part = s_arg;
-
             if ((part[0] == 'A') || (part[0] == 'a') )
-                err = pb_boot_part(1);
+                active_system = SYSTEM_A;
             else if ((part[0] == 'B') || (part[0] == 'b') )
-                err = pb_boot_part(2);
+                active_system = SYSTEM_B;
             else
-                err = PB_ERR;
+                active_system = SYSTEM_NONE;
+
+        }
+
+        if (flag_a)
+        {
+            err = pb_set_bootpart(active_system);
+        }
+
+        if (flag_b)
+        {
+            err = pb_boot_part(active_system);
 
             if (err != PB_OK)
                 return -1;
@@ -330,7 +340,7 @@ int main(int argc, char **argv)
 
         if (flag_execute)
         {
-            err = pb_execute_image(fn);
+            err = pb_execute_image(fn, active_system);
 
             if (err != PB_OK)
                 return -1;

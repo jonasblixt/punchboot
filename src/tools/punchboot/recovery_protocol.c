@@ -344,7 +344,7 @@ uint32_t pb_program_bootloader (const char *f_name)
 
 
 
-uint32_t pb_execute_image (const char *f_name) 
+uint32_t pb_execute_image (const char *f_name, uint32_t active_system) 
 {
     int read_sz = 0;
     int sent_sz = 0;
@@ -374,7 +374,8 @@ uint32_t pb_execute_image (const char *f_name)
 
     read_sz = fread(&pbi, 1, sizeof(struct pb_pbi), fp);
 
-    err = pb_write(PB_CMD_BOOT_RAM, 0,0,0,0,(uint8_t *) &pbi, sizeof(struct pb_pbi));
+    err = pb_write(PB_CMD_BOOT_RAM, active_system,0,0,0,
+                            (uint8_t *) &pbi, sizeof(struct pb_pbi));
     
     if (err != PB_OK)
         return err;

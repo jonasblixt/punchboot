@@ -142,7 +142,7 @@ uint32_t dwc3_transfer(struct dwc3_device *dev,
             trb->control |= (1 << 4);
     }
 
-    LOG_DBG("trx EP%u %s, %x, sz %ubytes",(ep>>1), (ep&1?"IN":"OUT"),
+    LOG_DBG("trx EP%u %s, %p, sz %ubytes",(ep>>1), (ep&1?"IN":"OUT"),
                     bfr, sz);
     LOG_DBG("trb: %p, dev: %p", trb, dev);
 
@@ -223,7 +223,7 @@ uint32_t dwc3_init(struct dwc3_device *dev)
     /* Reset usb controller */
     pb_setbit32(1<<30, dev->base + DWC3_DCTL);
 
-    while (pb_read32(dev->base + DWC3_DCTL) & (1<<30) == (1<<30))
+    while ((pb_read32(dev->base + DWC3_DCTL) & (1<<30)) == (1<<30))
         __asm__ ("nop");
 
     pb_clrbit32(DWC3_GCTL_SCALEDOWN_MASK, dev->base + DWC3_GCTL);
@@ -343,7 +343,7 @@ void dwc3_task(struct usb_device *dev)
         ev = _ev_buffer[_ev_index];
 
         /* Device Specific Events DEVT*/
-        if (_ev_buffer[_ev_index] & 1 == 1)
+        if ((_ev_buffer[_ev_index] & 1) == 1)
         {
             
             //uint8_t ev_dev = (ev >> 1) & 0x7F;

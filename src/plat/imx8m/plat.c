@@ -15,37 +15,50 @@
 #include <plat/imx/ocotp.h>
 #include <plat/imx/wdog.h>
 
-static struct usdhc_device usdhc0;
-static struct gp_timer tmr0;
-static struct dwc3_device *dwc30;
-static __no_bss struct fsl_caam_jr caam;
-static struct ocotp_dev ocotp;
-static struct imx_wdog_device wdog_device;
-static struct imx_uart_device uart_device;
+static __no_bss __a4k struct pb_platform_setup plat;
 
 /* Platform API Calls */
-void      plat_reset(void)
+
+uint32_t plat_setup_lock(void)
+{
+    return PB_ERR;
+}
+
+uint32_t plat_prepare_recovery(void)
+{
+    return board_prepare_recovery(&plat);
+}
+
+bool plat_force_recovery(void)
+{
+    return board_force_recovery(&plat);
+}
+
+void plat_reset(void)
 {
     imx_wdog_reset_now();
 }
 
-uint32_t  plat_get_us_tick(void)
+uint32_t plat_get_us_tick(void)
 {
-    return gp_timer_get_tick(&tmr0);
+    return gp_timer_get_tick(&plat.tmr0);
 }
 
-void      plat_wdog_init(void)
+void plat_preboot_cleanup(void)
+{
+}
+
+void plat_wdog_init(void)
 {
     /* Configure PAD_GPIO1_IO02 as wdog output */
     pb_write32((1 << 7)|(1 << 6) | 6, 0x30330298);
     pb_write32(1, 0x30330030);
 
-    wdog_device.base = 0x30280000;
-    imx_wdog_init(&wdog_device, 5);
-
+    plat.wdog.base = 0x30280000;
+    imx_wdog_init(&plat.wdog, 5);
 }
 
-void      plat_wdog_kick(void)
+void plat_wdog_kick(void)
 {
     imx_wdog_kick();
 }
@@ -97,20 +110,19 @@ uint32_t imx8m_cg_print(uint32_t cg_id)
 }
 #endif
 
-uint32_t  plat_early_init(void)
+uint32_t plat_early_init(void)
 {
     volatile uint32_t reg;
     uint32_t err;
 
-    plat_wdog_init();
+    board_early_init(&plat);
 
-    tmr0.base = 0x302D0000;
-    tmr0.pr = 40;
+    plat_wdog_init();
 
     /* PLL1 div10 */
     imx8m_clock_cfg(GPT1_CLK_ROOT | (5 << 24), CLK_ROOT_ON);
-    gp_timer_init(&tmr0);
-    tr_stamp(TR_POR);
+    gp_timer_init(&plat.tmr0);
+    tr_stamp_begin(TR_POR);
 
     /* Enable and ungate WDOG clocks */
     pb_write32((1 << 28) ,0x30388004 + 0x80*114);
@@ -118,20 +130,12 @@ uint32_t  plat_early_init(void)
     pb_write32(3, 0x30384004 + 0x10*84);
     pb_write32(3, 0x30384004 + 0x10*85);
 
-
-    board_early_init();
-
-    uart_device.base = board_get_debug_uart();
-    uart_device.baudrate = 0x6C;
-
-    imx_uart_init(&uart_device);
-
+    imx_uart_init(&plat.uart0);
 
     /* Configure main clocks */
     imx8m_clock_cfg(ARM_A53_CLK_ROOT, CLK_ROOT_ON);
 
     /* Configure PLL's */
-
 	/* bypass the clock */
 	pb_write32(pb_read32(ARM_PLL_CFG0) | FRAC_PLL_BYPASS_MASK, ARM_PLL_CFG0);
 	/* Set CPU core clock to 1 GHz */
@@ -171,8 +175,6 @@ uint32_t  plat_early_init(void)
 		SSCG_PLL_DIV20_CLKE_MASK;
 	pb_write32(reg, SYS_PLL2_CFG0);
 
-
-
     /* Configure USB clock */
     imx8m_clock_cfg(USB_BUS_CLK_ROOT | (1 << 24), CLK_ROOT_ON);
     imx8m_clock_cfg(USB_CORE_REF_CLK_ROOT, CLK_ROOT_ON);
@@ -195,7 +197,7 @@ uint32_t  plat_early_init(void)
 
     LOG_DBG("LPDDR4 training complete");
 
-    err = board_late_init();
+    err = board_late_init(&plat);
 
     if (err != PB_OK)
     {
@@ -209,14 +211,7 @@ uint32_t  plat_early_init(void)
     pb_write32(0x03030303, 0x30384004 + 0x10*48);
     pb_write32(0x03030303, 0x30384004 + 0x10*81);
 
-    usdhc0.base = 0x30B40000;
-    usdhc0.clk_ident = 0x20EF;
-    usdhc0.clk = 0x000F;
-    usdhc0.bus_mode = USDHC_BUS_HS200;
-    usdhc0.bus_width = USDHC_BUS_8BIT;
-    usdhc0.boot_bus_cond = 0;
-
-    err = usdhc_emmc_init(&usdhc0);
+    err = usdhc_emmc_init(&plat.usdhc0);
 
     if (err != PB_OK)
     {
@@ -224,19 +219,14 @@ uint32_t  plat_early_init(void)
         return err;
     }
 
-    caam.base = 0x30901000;
-    err = caam_init(&caam);
+    err = caam_init(&plat.caam);
 
     if (err != PB_OK)
     {
         LOG_ERR("Could not initialize CAAM");
         return err;
     }
-
-
-    ocotp.base = 0x30350000;
-    ocotp.words_per_bank = 4;
-    ocotp_init(&ocotp);
+    ocotp_init(&plat.ocotp);
 
     if (hab_secureboot_active())
     {
@@ -252,6 +242,7 @@ uint32_t  plat_early_init(void)
         LOG_ERR("HAB is reporting errors");
     }
 
+    tr_stamp_end(TR_POR);
     return err;
 }
 
@@ -261,7 +252,7 @@ uint32_t plat_write_block(uint32_t lba_offset,
                           uintptr_t bfr, 
                           uint32_t no_of_blocks) 
 {
-    return usdhc_emmc_xfer_blocks(&usdhc0, 
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0, 
                                   lba_offset, 
                                   (uint8_t*)bfr, 
                                   no_of_blocks, 
@@ -272,7 +263,7 @@ uint32_t plat_read_block(uint32_t lba_offset,
                          uintptr_t bfr, 
                          uint32_t no_of_blocks) 
 {
-    return usdhc_emmc_xfer_blocks(&usdhc0,
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
                                   lba_offset, 
                                   (uint8_t *)bfr, 
                                   no_of_blocks, 
@@ -281,12 +272,12 @@ uint32_t plat_read_block(uint32_t lba_offset,
 
 uint32_t plat_switch_part(uint8_t part_no) 
 {
-    return usdhc_emmc_switch_part(&usdhc0, part_no);
+    return usdhc_emmc_switch_part(&plat.usdhc0, part_no);
 }
 
 uint64_t plat_get_lastlba(void) 
 {
-    return usdhc0.sectors-1;
+    return (plat.usdhc0.sectors-1);
 }
 
 /* Crypto Interface */
@@ -316,9 +307,8 @@ uint32_t  plat_usb_init(struct usb_device *dev)
 {
     uint32_t err;
 
-    dwc30 = (struct dwc3_device *) dev->platform_data;
-
-    err = dwc3_init(dwc30);
+    dev->platform_data = (void *) &plat.usb0;
+    err = dwc3_init(&plat.usb0);
 
     if (err != PB_OK)
     {

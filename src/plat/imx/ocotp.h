@@ -1,3 +1,6 @@
+#ifndef __IMX_OCOTP_H__
+#define __IMX_OCOTP_H__
+
 #include <pb.h>
 
 struct ocotp_dev 
@@ -23,4 +26,4 @@ uint32_t ocotp_init(struct ocotp_dev *dev);
 uint32_t ocotp_read (uint32_t bank, uint32_t row, uint32_t * value);
 uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
     
-   
+#endif  

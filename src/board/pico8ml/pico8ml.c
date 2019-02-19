@@ -6,81 +6,58 @@
 #include <usb.h>
 #include <fuse.h>
 #include <gpt.h>
+#include <plat/defs.h>
 #include <plat/imx/dwc3.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx8m/plat.h>
 
-const uint8_t part_type_config[] = 
+const struct fusebox pb_fusebox =
 {
-    0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
-    0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8
+    .identity = IMX8M_FUSE_BANK_WORD_VAL(14,0,  "Device Info", 0x12340000),
+    .revoke_mask = IMX8M_FUSE_BANK_WORD(14,1,"REVOKE"),
+    .fuses = 
+    {
+        IMX8M_FUSE_BANK_WORD_VAL(6, 0, "SRK0", 0x5020C7D7),
+        IMX8M_FUSE_BANK_WORD_VAL(6, 1, "SRK1", 0xBB62B945),
+        IMX8M_FUSE_BANK_WORD_VAL(6, 2, "SRK2", 0xDD97C8BE),
+        IMX8M_FUSE_BANK_WORD_VAL(6, 3, "SRK3", 0xDC6710DD),
+        IMX8M_FUSE_BANK_WORD_VAL(7, 0, "SRK4", 0x2756B777),
+        IMX8M_FUSE_BANK_WORD_VAL(7, 1, "SRK5", 0xEF43BC0A),
+        IMX8M_FUSE_BANK_WORD_VAL(7, 2, "SRK6", 0x7185604B),
+        IMX8M_FUSE_BANK_WORD_VAL(7, 3, "SRK7", 0x3F335991),
+        IMX8M_FUSE_BANK_WORD_VAL(1, 3, "BOOT Config",  0x00002060),
+        IMX8M_FUSE_END,
+    },
 };
 
-const uint8_t part_type_system_a[] = 
+const struct partition_table pb_partition_table[] =
 {
-    0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 0x44, 
-    0x82, 0x93, 0xD8, 0xAF, 0x0B, 0xB4, 0x38, 0xD1
+    PB_GPT_ENTRY(62768, PB_PARTUUID_SYSTEM_A, "System A"),
+    PB_GPT_ENTRY(62768, PB_PARTUUID_SYSTEM_B, "System B"),
+    PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_A, "Root A"),
+    PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_B, "Root B"),
+    PB_GPT_END,
 };
 
-const uint8_t part_type_system_b[] = 
-{ 
-    0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-const uint8_t part_type_root_a[] = 
-{ 
-    0x1C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-const uint8_t part_type_root_b[] = 
-{ 
-    0x2C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-
-const struct fuse device_info_fuses[] =
+uint32_t board_early_init(struct pb_platform_setup *plat)
 {
-    IMX8M_FUSE_BANK_WORD_VAL(14, 0, "Device Info", 0x12340000),
-    IMX8M_FUSE_END,
-};
+    plat->uart0.base = 0x30860000;
+    plat->usb0.base = 0x38100000;
+    plat->tmr0.base = 0x302D0000;
+    plat->tmr0.pr = 40;
+    plat->uart0.baudrate = 0x6C;
 
-const struct fuse root_hash_fuses[] =
-{
-    IMX8M_FUSE_BANK_WORD(6, 0, "SRK0"),
-    IMX8M_FUSE_BANK_WORD(6, 1, "SRK1"),
-    IMX8M_FUSE_BANK_WORD(6, 2, "SRK2"),
-    IMX8M_FUSE_BANK_WORD(6, 3, "SRK3"),
-    IMX8M_FUSE_BANK_WORD(7, 0, "SRK4"),
-    IMX8M_FUSE_BANK_WORD(7, 1, "SRK5"),
-    IMX8M_FUSE_BANK_WORD(7, 2, "SRK6"),
-    IMX8M_FUSE_BANK_WORD(7, 3, "SRK7"),
-    IMX8M_FUSE_END,
-};
+    plat->usdhc0.base = 0x30B40000;
+    plat->usdhc0.clk_ident = 0x20EF;
+    plat->usdhc0.clk = 0x000F;
+    plat->usdhc0.bus_mode = USDHC_BUS_HS200;
+    plat->usdhc0.bus_width = USDHC_BUS_8BIT;
+    plat->usdhc0.boot_bus_cond = 0;
 
+    plat->caam.base = 0x30901000;
 
-const struct fuse board_fuses[] =
-{
-    IMX8M_FUSE_BANK_WORD_VAL(1, 3, "BOOT Config",        0x00002060),
-    IMX8M_FUSE_END,
-};
-
-
-static struct dwc3_device dwc3dev = 
-{
-    .base = 0x38100000,
-};
-
-static struct usb_device board_usb_device =
-{
-    .platform_data = &dwc3dev,
-};
-
-
-uint32_t board_early_init(void)
-{
+    plat->ocotp.base = 0x30350000;
+    plat->ocotp.words_per_bank = 4;
 
     /* Enable UART1 clock */
     pb_write32((1 << 28) ,0x30388004 + 94*0x80);
@@ -152,46 +129,21 @@ uint32_t board_early_init(void)
     return PB_OK;
 }
 
-uint32_t board_late_init(void)
+uint32_t board_prepare_recovery(struct pb_platform_setup *plat)
 {
-
-
+    UNUSED(plat);
     return PB_OK;
 }
 
-uint32_t board_configure_gpt_tbl(void)
+uint32_t board_late_init(struct pb_platform_setup *plat)
 {
-    gpt_add_part(1, 62768,  part_type_system_a, "System A");
-    gpt_add_part(2, 62768,  part_type_system_b, "System B");
-    gpt_add_part(3, 512000, part_type_root_a,   "Root A");
-    gpt_add_part(4, 512000, part_type_root_b,   "Root B");
-
+    UNUSED(plat);
     return PB_OK;
 }
 
-uint32_t board_get_debug_uart(void)
+bool board_force_recovery(struct pb_platform_setup *plat)
 {
-    return 0x30860000;
-}
-
-uint32_t board_usb_init(struct usb_device **usbdev)
-{
-    *usbdev = &board_usb_device;
-    return PB_OK;
-}
-
-bool board_force_recovery(void)
-{
+    UNUSED(plat);
     return false;
 }
 
-uint32_t board_configure_bootargs(char *buf, char *boot_part_uuid)
-{
-    snprintf (buf, 255,"console=ttymxc0,115200 " \
-        "earlycon=ec_imx6q,0x30860000,115200 earlyprintk " \
-        "cma=768M " \
-        "root=PARTUUID=%s " \
-        "rw rootfstype=ext4 gpt rootwait", boot_part_uuid);
-
-    return PB_OK;
-}

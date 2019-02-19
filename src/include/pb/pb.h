@@ -16,6 +16,13 @@
 #include <stddef.h>
 
 enum {
+    SYSTEM_NONE = 0,
+    SYSTEM_A = 1,
+    SYSTEM_B = 2,
+    SYSTEM_ALL = 3,
+};
+
+enum {
     PB_OK,
     PB_ERR,
     PB_TIMEOUT,
