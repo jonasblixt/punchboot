@@ -67,7 +67,7 @@ static int pbimage_gen_output(const char *fn_sign_key,
     br_skey_decoder_push(&skey_ctx, buf, key_sz);
     fclose(fp_key);
    
-    if (err == CRYPT_OK) {
+    if (key_sz > 0) {
         printf (" o Read signing key, %i bytes\n",key_sz);
     } else {
         printf ("Can't read key %i\n",err);
