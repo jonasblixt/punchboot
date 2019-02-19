@@ -18,6 +18,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <3pp/bearssl/bearssl_hash.h>
+#include <3pp/bearssl/bearssl_rsa.h>
+#include <3pp/bearssl/bearssl_x509.h>
 #include <pb/image.h>
 
 static struct pb_image_hdr hdr;
@@ -26,6 +29,8 @@ static FILE *pb_components_fp[PB_IMAGE_MAX_COMP];
 static uint32_t pb_components_zpad[PB_IMAGE_MAX_COMP];
 
 static unsigned char buf[1024*1024];
+
+static br_sha256_context sha256_ctx;
 
 static int pbimage_gen_output(const char *fn_sign_key,
                               uint8_t key_index,
@@ -37,15 +42,13 @@ static int pbimage_gen_output(const char *fn_sign_key,
     int err = 0;
     FILE *fp_key = NULL;
     FILE *fp_out = NULL;
-    rsa_key key;
     unsigned char hash[32];
-    hash_state md;
     int padding_sz[PB_IMAGE_MAX_COMP];
     int read_sz = 0;
     int bytes = 0;
     uint8_t padding_zero[511];
-	const struct ltc_hash_descriptor hash_desc = sha256_desc;
-	const int hash_idx = register_hash(&hash_desc);
+    br_rsa_private_key *br_k;
+    br_skey_decoder_context skey_ctx;
 
     memset(padding_zero,0,511);
 
@@ -60,7 +63,9 @@ static int pbimage_gen_output(const char *fn_sign_key,
 
     /* Load private key for signing */
     int key_sz = fread (buf, 1, sizeof(buf), fp_key);
-    err = rsa_import(buf, key_sz, &key) ;
+    //err = rsa_import(buf, key_sz, &key) ;
+    br_skey_decoder_init(&skey_ctx);
+    br_skey_decoder_push(&skey_ctx, buf, key_sz);
     fclose(fp_key);
    
     if (err == CRYPT_OK) {
@@ -71,16 +76,15 @@ static int pbimage_gen_output(const char *fn_sign_key,
     }
 
     /* Create SHA256 */
-    sha256_init(&md);
 
+    br_sha256_init(&sha256_ctx);
     hdr.header_magic = PB_IMAGE_HEADER_MAGIC;
     hdr.header_version = 1;
     hdr.no_of_components = no_of_components;
     hdr.key_index = key_index;
     hdr.key_revoke_mask = key_mask;
 
-    sha256_process(&md, (unsigned char *)&hdr, sizeof(struct pb_image_hdr));
-    
+    br_sha256_update(&sha256_ctx, (void *) &hdr, sizeof(struct pb_image_hdr));
     unsigned int last_offset = sizeof(struct pb_image_hdr) + 
                 PB_IMAGE_MAX_COMP*sizeof(struct pb_component_hdr);
 
@@ -98,27 +102,27 @@ static int pbimage_gen_output(const char *fn_sign_key,
         last_offset = comp[i].component_offset + 
                       comp[i].component_size;
 
-        sha256_process(&md, (unsigned char *) &comp[i], 
-                            sizeof(struct pb_component_hdr));
 
+        br_sha256_update(&sha256_ctx, (unsigned char *) &comp[i], 
+                            sizeof(struct pb_component_hdr));
     }
 
     for (int i = 0; i < no_of_components; i++) 
     {
         while ( (read_sz = fread(buf, 1, sizeof(buf),pb_components_fp[i] )) >0) 
         {
-            sha256_process(&md, buf, read_sz);
+            br_sha256_update(&sha256_ctx, buf, read_sz);
             bytes += read_sz;
         }
         if (pb_components_zpad[i]) 
         {
-            sha256_process(&md, padding_zero, 
+            br_sha256_update(&sha256_ctx, padding_zero, 
                                 pb_components_zpad[i]);
             bytes += pb_components_zpad[i];
         }
     }
 
-    sha256_done(&md, hash);
+    br_sha256_out(&sha256_ctx, hash);
     printf (" o Done,  %i kBytes\n",bytes/1024);
     memcpy(hdr.sha256, hash,32);
 
@@ -129,16 +133,20 @@ static int pbimage_gen_output(const char *fn_sign_key,
 
     /* Create signature */
 
-    const unsigned long saltlen = 0;
-    unsigned long sig_l = 1024;
-    int prng_index = register_prng(&sprng_desc);
-    err = rsa_sign_hash_ex(hdr.sha256, 32, hdr.sign, &sig_l, 
-                LTC_PKCS_1_V1_5,NULL,prng_index,hash_idx,saltlen,&key);
-    
-    hdr.sign_length = (uint32_t) sig_l;
-    if (err != CRYPT_OK) {
-        printf (" o Signing failed!\n");
-        return err;
+    br_k = br_skey_decoder_get_rsa(&skey_ctx);
+
+    hdr.sign_length = 512;
+
+    if (br_k == NULL)
+    {
+        printf ("Error could not decode key file.\n");
+        return -1;
+    }
+
+    if (!br_rsa_i62_pkcs1_sign(NULL, hdr.sha256, 32, br_k, hdr.sign))
+    {
+        printf ("Error: sign failed\n");
+        return -1;
     }
 
     printf (" o Sign %i\n",hdr.sign_length);
@@ -195,12 +203,7 @@ static void pbimage_print_help(void) {
 
 int main (int argc, char **argv) {
     int opt;
-    extern const ltc_math_descriptor ltm_desc;
     /* register prng/hash */
-    if (register_prng(&sprng_desc) == -1) {
-        printf("Error registering sprng");
-        return EXIT_FAILURE;
-    }
 
     int no_of_components = 0;
     int component_type = -1;
@@ -217,7 +220,6 @@ int main (int argc, char **argv) {
     char *sign_key_fn = NULL;
 
     struct stat finfo;
-    ltc_mp = ltm_desc;
 
     bzero(&hdr, sizeof(struct pb_image_hdr));
     bzero(&comp, PB_IMAGE_MAX_COMP * sizeof(struct pb_component_hdr));
