@@ -24,7 +24,7 @@ then
 fi
 
 # Loading image to ram and execute should fail because it overlaps with bootloader
-$PB boot -s -a
+$PB boot -b -s a
 result_code=$?
 
 if [ $result_code -ne 255 ];

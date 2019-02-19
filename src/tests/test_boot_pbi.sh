@@ -12,7 +12,7 @@ then
     test_end_error
 fi
 
-$PB boot -a -n 0
+$PB boot -a -s none
 
 result_code=$?
 

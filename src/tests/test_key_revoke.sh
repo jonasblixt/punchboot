@@ -26,7 +26,7 @@ fi
 echo Testing image step 1
 
 # This should not fail since key is not revoked yet
-$PB boot -s a
+$PB boot -b -s a
 result_code=$?
 
 if [ $result_code -ne 0 ];

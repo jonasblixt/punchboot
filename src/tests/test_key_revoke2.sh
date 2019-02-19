@@ -4,7 +4,7 @@ wait_for_qemu_start
 
 # This should fail since key 0 is now revoked
 
-$PB boot -s a
+$PB boot -b -s a
 result_code=$?
 
 if [ $result_code -ne 255 ];
