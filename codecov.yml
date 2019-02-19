@@ -3,5 +3,5 @@ ignore:
     - src/tests
     - src/plat
     - src/board/test
-    - src/tinyprintf.c
     - src/crc.c
+    - tools/pbimage/3pp
