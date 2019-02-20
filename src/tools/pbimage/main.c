@@ -1,5 +1,7 @@
 #include <pb/pb.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -22,6 +24,7 @@ int main (int argc, char **argv)
     void *memctx = NULL;
     int size = -1;
     char *data = NULL;
+    struct stat finfo;
     uint32_t err;
 
     printf ("pbimage version %s\n\n", VERSION);
@@ -42,9 +45,8 @@ int main (int argc, char **argv)
         return -1;
     }
 
-    fseek( fp, 0, SEEK_END );
-    size = ftell( fp );
-    fseek( fp, 0, SEEK_SET );
+    stat(argv[1], &finfo);
+    size = finfo.st_size;
     data = (char*) malloc( size + 1 );
     size_t read_sz = fread( data, 1, size, fp );
     data[ size ] = '\0';
@@ -255,6 +257,11 @@ int main (int argc, char **argv)
     {
         printf ("Error: Signing failed (%u)\n",err);
     }
+
+    stat(output_fn, &finfo);
+
+    printf ("Done, created '%s', %lu kBytes\n",output_fn,finfo.st_size/1024);
+    
     ini_destroy( ini );
 
     return err;
