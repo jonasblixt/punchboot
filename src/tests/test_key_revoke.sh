@@ -6,8 +6,7 @@ wait_for_qemu_start
 dd if=/dev/urandom of=/tmp/random_data bs=512k count=1
 
 # Create 
-$PBI -t LINUX -l 0x48000000 -f /tmp/random_data -k $KEY1 -n 0 -m 0x00000001 \
-            -o /tmp/img.pbi
+$PBI tests/image_key_revoke.pbc
 result_code=$?
 
 if [ $result_code -ne 0 ];

@@ -12,6 +12,14 @@
 #define USB_SET_ADDRESS                 0x0005
 #define USB_GET_STATUS                  0x8000
 
+#ifndef PB_USB_VID
+    #define PB_USB_VID 0xffff
+#endif
+
+#ifndef PB_USB_PID
+    #define PB_USB_PID 0x0001
+#endif
+
 enum {
     USB_EP0_OUT,
     USB_EP0_IN,

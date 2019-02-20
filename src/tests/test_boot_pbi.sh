@@ -2,9 +2,9 @@
 source tests/common.sh
 wait_for_qemu_start
 
-dd if=/dev/urandom of=/tmp/random_data bs=64k count=1
+dd if=/dev/urandom of=/tmp/random_data bs=1023 count=64
 
-$PBI -t LINUX -l 0x49000000 -f /tmp/random_data -k $KEY1 -n 0 -o /tmp/img.pbi
+$PBI tests/image1.pbc
 result_code=$?
 
 if [ $result_code -ne 0 ];

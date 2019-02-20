@@ -29,6 +29,8 @@ enum {
     PB_KEY_REVOKED_ERROR,
     PB_SIGNATURE_ERROR,
     PB_CHECKSUM_ERROR,
+    PB_ERR_MEM,
+    PB_ERR_IO,
 };
 
 struct partition_table

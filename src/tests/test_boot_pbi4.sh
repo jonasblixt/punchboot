@@ -6,7 +6,8 @@ wait_for_qemu_start
 
 dd if=/dev/urandom of=/tmp/random_data bs=1M count=1
 
-$PBI -t LINUX -l 0x49000000 -f /tmp/random_data -k $KEY1 -n 0 -o /tmp/img.pbi
+$PBI tests/image1.pbc
+
 result_code=$?
 
 if [ $result_code -ne 0 ];

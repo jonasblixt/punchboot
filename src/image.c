@@ -185,6 +185,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
     }
 
     /* Output is ASN.1 coded, this extracts the decoded checksum */
+    /* TODO: Add some ASN1 helpers */
     uint8_t flag_sig_ok = 1;
     int n = 0;
     for (uint32_t i = (512-32); i < 512; i++) 

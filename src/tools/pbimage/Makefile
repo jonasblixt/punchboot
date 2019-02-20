@@ -31,7 +31,8 @@ LIBS    =   -lc -luuid
 LDFLAGS =
 
 ASM_SRCS = 
-C_SRCS   = $(TARGET).c
+C_SRCS   = main.c
+C_SRCS  += pbimage.c
 
 # BearSSL
 

@@ -5,8 +5,7 @@ wait_for_qemu_start
 # Create pbimage
 dd if=/dev/urandom of=/tmp/random_data bs=512k count=1
 
-# Set loading address so it overlaps with bootloader
-$PBI -t LINUX -l 0x42000000 -f /tmp/random_data -k $KEY1 -n 0 -o /tmp/img.pbi
+$PBI tests/image1.pbc
 result_code=$?
 
 if [ $result_code -ne 0 ];

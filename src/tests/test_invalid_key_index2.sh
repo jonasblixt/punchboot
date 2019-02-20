@@ -6,7 +6,7 @@ dd if=/dev/urandom of=/tmp/random_data bs=64k count=1
 
 # Sign with incorrect key index
 
-$PBI -t LINUX -l 0x50000000 -f /tmp/random_data -k $KEY1 -n 4 -o /tmp/img.pbi
+$PBI tests/image_inv_key_index2.pbc
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -23,7 +23,7 @@ then
 fi
 
 
-$PBI -t LINUX -l 0x50000000 -f /tmp/random_data -k $KEY1 -n 31 -o /tmp/img.pbi
+$PBI tests/image_inv_key_index3.pbc
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -40,7 +40,7 @@ then
 fi
 
 
-$PBI -t LINUX -l 0x50000000 -f /tmp/random_data -k $KEY1 -n 32 -o /tmp/img.pbi
+$PBI tests/image_inv_key_index4.pbc
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -56,7 +56,7 @@ then
     test_end_error
 fi
 
-$PBI -t LINUX -l 0x50000000 -f /tmp/random_data -k $KEY1 -n 127 -o /tmp/img.pbi
+$PBI tests/image_inv_key_index5.pbc
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -72,7 +72,7 @@ then
     test_end_error
 fi
 
-$PBI -t LINUX -l 0x50000000 -f /tmp/random_data -k $KEY1 -n 255 -o /tmp/img.pbi
+$PBI tests/image_inv_key_index6.pbc
 result_code=$?
 
 if [ $result_code -ne 0 ];

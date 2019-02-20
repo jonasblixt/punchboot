@@ -1,0 +1,11 @@
+[pbimage]
+key_mask = 0x00000000
+key_index = 0
+key_source = ../pki/dev_rsa_private.der
+output = /tmp/img.pbi
+
+[component]
+type = LINUX
+load_addr = 0x49000000
+file = /tmp/random_data
+

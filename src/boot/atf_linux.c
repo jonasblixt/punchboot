@@ -39,11 +39,15 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
     if (dtb && linux2)
     {
         LOG_INFO(" LINUX %x, DTB %x", linux2->load_addr_low, dtb->load_addr_low);
-    }
-
-    if (atf)
+    } 
+    else if (atf && dtb && linux2)
     {
         LOG_INFO("  ATF: 0x%x", atf->load_addr_low);
+    }
+    else
+    {
+        LOG_ERR("Can't boot image");
+        return;
     }
 
     switch (system_index)

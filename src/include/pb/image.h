@@ -30,15 +30,20 @@ struct pb_image_hdr {
     uint8_t sha256[32];
     uint8_t sign[1024];
     uint32_t sign_length;
+    uint32_t _reserved2[4];
 } __attribute__ ((packed));
 
+enum 
+{ 
+    PB_IMAGE_COMPTYPE_TEE = 0,
+    PB_IMAGE_COMPTYPE_VMM = 1,
+    PB_IMAGE_COMPTYPE_LINUX = 2,
+    PB_IMAGE_COMPTYPE_DT = 3,
+    PB_IMAGE_COMPTYPE_RAMDISK = 4,
+    PB_IMAGE_COMPTYPE_ATF = 5,
+};
 
-#define PB_IMAGE_COMPTYPE_TEE      0
-#define PB_IMAGE_COMPTYPE_VMM      1
-#define PB_IMAGE_COMPTYPE_LINUX    2
-#define PB_IMAGE_COMPTYPE_DT       3
-#define PB_IMAGE_COMPTYPE_RAMDISK  4
-#define PB_IMAGE_COMPTYPE_ATF      5
+
 
 /* Component header */
 struct pb_component_hdr {
@@ -53,8 +58,7 @@ struct pb_component_hdr {
 
 struct pb_pbi {
     struct pb_image_hdr hdr;
-    struct pb_component_hdr comp[16];
-    uint8_t padding[16];
+    struct pb_component_hdr comp[PB_IMAGE_MAX_COMP];
 };
 
 bool pb_image_verify(struct pb_pbi *pbi);
