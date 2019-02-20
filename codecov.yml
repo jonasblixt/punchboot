@@ -4,4 +4,4 @@ ignore:
     - src/plat
     - src/board/test
     - src/crc.c
-    - tools/pbimage/3pp
+    - src/tools/pbimage/3pp

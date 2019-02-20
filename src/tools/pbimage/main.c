@@ -227,8 +227,9 @@ int main (int argc, char **argv)
                     printf (" load address 0x%8.8X\n", comp_load_addr);
                     printf (" source file '%s'\n",comp_file_fn);
 
-                    err = pbimage_append_component(comp_type,comp_load_addr, 
-                                                            comp_file_fn);
+                    err = pbimage_append_component(comp_type,
+                                                   comp_load_addr, 
+                                                   comp_file_fn);
 
                     if (err != PB_OK)
                     {
@@ -250,6 +251,10 @@ int main (int argc, char **argv)
     printf ("Generating output...\n");
     err = pbimage_out(output_fn);
 
+    if (err != PB_OK)
+    {
+        printf ("Error: Signing failed (%u)\n",err);
+    }
     ini_destroy( ini );
 
     return err;

@@ -21,18 +21,31 @@ SIZE=$(CROSS_COMPILE)size
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
-PKG_CONFIG ?= pkg-config
+
+ifndef CRYPTO_BACKEND
+	CRYPTO_BACKEND = bearssl
+endif
+
+
 CFLAGS   = -Wall -O2 -I ../../include/ 
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -std=c99
 CFLAGS  += -I .
 
-LIBS    =   -lc -luuid
+LIBS    = 
 LDFLAGS =
 
 ASM_SRCS = 
 C_SRCS   = main.c
 C_SRCS  += pbimage.c
+
+ifeq ($(CRYPTO_BACKEND), bearssl)
+$(info Crypto: BearSSL)
+C_SRCS += bearssl.c
+else ifeq ($(CRYPTO_BACKEND), opensc)
+$(info Crypto: OpenSC)
+C_SRCS += opensc.c
+endif
 
 # BearSSL
 

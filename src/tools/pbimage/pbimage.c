@@ -18,11 +18,11 @@
 #include <string.h>
 
 #include <3pp/bearssl/bearssl_hash.h>
-#include <3pp/bearssl/bearssl_rsa.h>
-#include <3pp/bearssl/bearssl_x509.h>
 #include <3pp/ini.h>
 #include <pb/image.h>
 #include <pb/pb.h>
+
+#include "crypto.h"
 
 static const char *comp_type_str[] =
 {
@@ -146,6 +146,7 @@ uint32_t pbimage_out(const char *fn)
     uint32_t offset = 0;
     uint32_t ncomp = hdr.no_of_components;
     uint8_t zpad[511];
+    uint32_t err;
     br_sha256_context sha256_ctx;
 
     bzero(zpad,511);
@@ -181,34 +182,18 @@ uint32_t pbimage_out(const char *fn)
 
     br_sha256_out(&sha256_ctx, hdr.sha256);
 
-
-    /* Create signature */
-    br_rsa_private_key *br_k;
-    br_skey_decoder_context skey_ctx;
-
-    FILE *fp_key = fopen(pbi_key_source, "rb");
-
-    if (fp_key == NULL)
-        return PB_ERR_IO;
-
-    unsigned char buf[1024*1024];
-    /* Load private key for signing */
-    int key_sz = fread (buf, 1, sizeof(buf), fp_key);
-    //err = rsa_import(buf, key_sz, &key) ;
-    br_skey_decoder_init(&skey_ctx);
-    br_skey_decoder_push(&skey_ctx, buf, key_sz);
-    fclose(fp_key);
-
-
-    br_k = br_skey_decoder_get_rsa(&skey_ctx);
-
     hdr.sign_length = 512;
 
-    if (br_k == NULL)
-        return PB_ERR_IO;
+    err = crypto_initialize();
 
-    if (!br_rsa_i62_pkcs1_sign(NULL, hdr.sha256, 32, br_k, hdr.sign))
-        return PB_ERR;
+    if (err != PB_OK)
+        return err;
+
+    err = crypto_sign(hdr.sha256,PB_HASH_SHA256,
+                    pbi_key_source,PB_SIGN_RSA4096, hdr.sign);
+
+    if (err != PB_OK)
+        return err;
 
     fwrite(&hdr, sizeof(struct pb_image_hdr), 1, fp);
     fwrite(comp, PB_IMAGE_MAX_COMP*
