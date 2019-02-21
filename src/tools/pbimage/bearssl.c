@@ -58,7 +58,6 @@ uint32_t crypto_sign(uint8_t *hash,
 
     br_skey_decoder_init(&skey_ctx);
     br_skey_decoder_push(&skey_ctx, key_data, key_sz);
-    fclose(fp);
 
     br_k = (br_rsa_private_key *) br_skey_decoder_get_rsa(&skey_ctx);
 
