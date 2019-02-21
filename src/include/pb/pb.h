@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <pb/errors.h>
 
 enum {
     SYSTEM_NONE = 0,
@@ -22,16 +23,6 @@ enum {
     SYSTEM_ALL = 3,
 };
 
-enum {
-    PB_OK,
-    PB_ERR,
-    PB_TIMEOUT,
-    PB_KEY_REVOKED_ERROR,
-    PB_SIGNATURE_ERROR,
-    PB_CHECKSUM_ERROR,
-    PB_ERR_MEM,
-    PB_ERR_IO,
-};
 
 struct partition_table
 {

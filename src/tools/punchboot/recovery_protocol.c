@@ -16,35 +16,6 @@
 #include "utils.h"
 
 
-uint32_t pb_recovery_get_hw_info(struct pb_hw_info *info)
-{
-
-    uint32_t err;
-    uint32_t sz;
-
-    err = pb_write(PB_CMD_GET_HW_INFO,0,0,0,0, NULL, 0);
-
-    if (err != PB_OK)
-        return err;
-
-    err = pb_read((uint8_t*) &sz, 4);
-
-    if (err != PB_OK)
-        return err;
-
-    err = pb_read((uint8_t *) info, sizeof(struct pb_hw_info));
-
-    if (err != PB_OK)
-        return err;
-
-    err = pb_read_result_code();
-
-    if (err != PB_OK)
-        return err;
-
-    return PB_OK;
-}
-
 uint32_t pb_recovery_setup_lock(void)
 {
     uint32_t err;
@@ -62,53 +33,22 @@ uint32_t pb_recovery_setup_lock(void)
     return PB_OK;
 }
 
-uint32_t pb_recovery_setup(uint8_t device_version,
-                        uint8_t device_variant,
-                        char **setup_report,
-                        bool dry_run)
+uint32_t pb_recovery_setup(struct param *params)
 {
 
     uint32_t err = PB_ERR;
-    uint32_t report_length = 0;
-    struct pb_device_setup setup;
+    uint32_t param_count = 0;
 
-    setup.device_revision = device_version;
-    setup.device_variant = device_variant;
-    setup.dry_run = dry_run;
+    while (params[param_count].kind != PB_PARAM_END)
+        param_count++;
 
-    err = pb_write(PB_CMD_SETUP,0,0,0,0, (uint8_t *) &setup,
-                            sizeof(struct pb_device_setup));
+    err = pb_write(PB_CMD_SETUP,param_count,0,0,0, (uint8_t *) params,
+                            sizeof(struct param)*param_count);
 
     if (err != PB_OK)
         return err;
 
-
-    if (dry_run)
-    {   
-        err = pb_read((uint8_t*) &report_length, sizeof(uint32_t));
-
-        if (err != PB_OK)
-            return err;
-
-        *setup_report = malloc(report_length);
-
-        if (*setup_report == NULL)
-            return PB_ERR;
-
-
-        err = pb_read((uint8_t*) *setup_report, report_length);
-
-        if (err != PB_OK)
-            return err;
-    }
-
-    err = pb_read_result_code();
-
-    if (err != PB_OK)
-        return err;
-
-
-    return PB_OK;
+    return pb_read_result_code();
 }
 
 uint32_t pb_install_default_gpt(void) 

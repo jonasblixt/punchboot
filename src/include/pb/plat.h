@@ -15,6 +15,7 @@
 #include <usb.h>
 #include <keys.h>
 #include <fuse.h>
+#include <params.h>
 
 #define PLAT_EMMC_PART_BOOT0 1
 #define PLAT_EMMC_PART_BOOT1 2
@@ -69,6 +70,7 @@ uint32_t  plat_fuse_write(struct fuse *f);
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n);
 
 /* Secure boot */
+uint32_t plat_setup_device(struct param *params);
 uint32_t plat_setup_lock(void);
 
 #endif

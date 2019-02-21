@@ -24,12 +24,13 @@
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
 #define RECOVERY_BULK_BUFFER_SZ 1024*1024*8
+#define RECOVERY_MAX_PARAMS 128
 
 static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
 static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
 static __no_bss __a4k struct pb_pbi pbi;
+static __no_bss __a4k struct param params[RECOVERY_MAX_PARAMS];
 static struct gpt *gpt;
-extern const struct fusebox pb_fusebox;
 extern const struct partition_table pb_partition_table[];
 
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
@@ -150,65 +151,6 @@ static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
     memcpy(recovery_cmd_buffer, (uint8_t *) &value, sizeof(uint32_t));
     plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sizeof(uint32_t));
     plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
-}
-
-static uint32_t recovery_setup_device(struct usb_device *dev,
-                                      struct pb_device_setup *pb_setup)
-{
-    uint32_t err;
-
-    UNUSED(dev);
-
-    /* Read fuses */
-    foreach_fuse(f, (struct fuse *) pb_fusebox.fuses)
-    {
-        err = plat_fuse_read(f);
- 
-        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'",f->description);
-            return err;
-        }  
-    }
-
-    /* Check device identity */
-    struct fuse *ident = (struct fuse *) &pb_fusebox.identity;
-    err = plat_fuse_read(ident);
-    
-    if (err != PB_OK)
-    {
-        LOG_ERR("Could not access device identity fuse");
-        return err;
-    }  
-
-    if (pb_fusebox.identity.value != 0)
-    {
-        LOG_ERR("Device identity already set");
-        return PB_ERR;
-    }
-
-    ident->value = ident->default_value;
-
-    ident->value |= ((pb_setup->device_variant << 8) & 0xff00) |
-                    ((pb_setup->device_revision) & 0xff);
-
-    /* Perform the actual fuse programming */
-    
-    LOG_INFO("Writing fuses");
-
-    foreach_fuse(f, pb_fusebox.fuses)
-    {
-        f->value = f->default_value;
-        err = plat_fuse_write(f);
-
-        if (err != PB_OK)
-            return err;
-    }
-
-    err = plat_fuse_write((struct fuse *) &pb_fusebox.identity);
-
-    return PB_OK;
 }
 
 static void recovery_parse_command(struct usb_device *dev, 
@@ -445,14 +387,19 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_SETUP:
         {
-            struct pb_device_setup pb_setup;
-            LOG_INFO ("Performing device setup");
+            if (cmd->arg0 > RECOVERY_MAX_PARAMS)
+            {
+                err = PB_ERR;
+                LOG_ERR("To many parameters");
+                break;
+            }
 
-            recovery_read_data(dev, (uint8_t *) &pb_setup,
-                                sizeof(struct pb_device_setup));
-            
-            err = recovery_setup_device(dev, &pb_setup);
+            LOG_INFO ("Performing device setup, %u",cmd->arg0);
 
+            recovery_read_data(dev, (uint8_t *) params,
+                    sizeof(struct param) * cmd->arg0);
+
+            err = plat_setup_device(params);
         }
         break;
         case PB_CMD_SETUP_LOCK:
@@ -463,10 +410,9 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_HW_INFO:
         {
-            struct fuse *f = (struct fuse *) &pb_fusebox.identity;
-
-            plat_fuse_read(f);
-            recovery_send_response(dev,(uint8_t*) &f->value,
+            /*TODO: remove*/
+            uint32_t v = 0;
+            recovery_send_response(dev,(uint8_t*) &v,
                                         sizeof (uint32_t));  
             err = PB_OK;
         }
@@ -482,8 +428,6 @@ static void recovery_parse_command(struct usb_device *dev,
 void recovery_initialize(struct gpt *_gpt)
 {
     gpt = _gpt;
-    LOG_DBG("array crc %x", gpt->primary.hdr.part_array_crc);
-    LOG_DBG("GPT ptr %p",gpt);
     usb_set_on_command_handler(recovery_parse_command);
 }
 

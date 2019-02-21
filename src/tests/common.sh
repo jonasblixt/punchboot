@@ -37,6 +37,7 @@ wait_for_qemu()
 test_end_error()
 {
     echo ------- ITEST END ERROR: $TEST_NAME ------------------------
+    sleep 0.1
     $PB boot -r
     wait_for_qemu
     exit -1
@@ -46,6 +47,7 @@ test_end_ok()
 {
 
     echo ------- ITEST END OK: $TEST_NAME ---------------------------
+    sleep 0.1
     $PB boot -r
     wait_for_qemu
 }

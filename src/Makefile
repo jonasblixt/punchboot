@@ -26,6 +26,7 @@ CFLAGS  += -ffunction-sections
 CFLAGS  += -fdata-sections 
 CFLAGS  += -fno-omit-frame-pointer
 CFLAGS  += -I. -I include/pb
+CFLAGS  += -I include
 CFLAGS  += -I include/pb/libc
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)

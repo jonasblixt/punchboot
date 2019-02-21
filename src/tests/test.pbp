@@ -1,0 +1,10 @@
+[parameter]
+name = test
+type = u32
+value = 1234
+
+[parameter]
+name = device_id
+type = u32
+value = 0x12340102
+

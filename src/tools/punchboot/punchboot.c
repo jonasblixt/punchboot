@@ -18,12 +18,142 @@
 #include <stdbool.h>
 #include <string.h>
 #include <pb/pb.h>
+#include <pb/params.h>
 #include <uuid/uuid.h>
 
+#define INI_IMPLEMENTATION
+#include "3pp/ini.h"
 #include "crc.h"
 #include "utils.h"
 #include "transport.h"
 #include "recovery_protocol.h"
+
+#define PB_MAX_PARAMS 128
+
+static struct param params[PB_MAX_PARAMS];
+
+static int load_params(const char *fn)
+{
+    FILE* fp = fopen(fn, "r" );
+    struct stat finfo;
+    void *memctx = NULL;
+    int size = -1;
+    char *data = NULL;
+    int index;
+    uint32_t n;
+    const char *section_name;
+    uint32_t err;
+
+    if (fp == NULL)
+    {
+        printf ("Error: could not read %s\n",fn);
+        return -1;
+    }
+
+    printf ("Loading parameter file: '%s'\n",fn);
+
+    stat(fn, &finfo);
+    size = finfo.st_size;
+    data = (char*) malloc( size + 1 );
+    size_t read_sz = fread( data, 1, size, fp );
+    data[ size ] = '\0';
+    fclose( fp );
+
+    if (read_sz != size)
+    {
+        printf ("Error: could not read file\n");
+        return -1;
+    }
+    ini_t* ini = ini_load(data, memctx);
+    free( data );
+    
+    n = 0;
+    uint32_t param_count = 0;
+    do
+    {
+        section_name = ini_section_name(ini, n);
+        
+        if (section_name)
+        {
+            const char *param_value = NULL;
+            const char *param_type = NULL;
+            const char *param_name = NULL;
+
+            if (strcmp(section_name,"parameter") == 0)
+            {
+
+                index = ini_find_property(ini,n,"value",0);
+
+                if (index >= 0)
+                {
+                    param_value = ini_property_value(ini,n,index);
+                }
+
+                index = ini_find_property(ini,n,"type",0);
+
+                if (index >= 0)
+                {
+                    param_type = ini_property_value(ini,n,index);
+                }
+
+                index = ini_find_property(ini,n,"name",0);
+
+                if (index >= 0)
+                {
+                    param_name = ini_property_value(ini,n,index);
+                }
+
+                if (param_value && param_type && param_name)
+                {
+                    printf ("Parameter:\n");
+                    printf (" name: %s\n",param_name);
+                    printf (" type: %s\n",param_type);
+                    printf (" value: %s\n",param_value);
+
+                    uint8_t *u08_ptr = (uint8_t *) params[param_count].data;
+                    uint16_t *u16_ptr = (uint16_t *) params[param_count].data;
+                    uint32_t *u32_ptr = (uint32_t *) params[param_count].data;
+                    uint64_t *u64_ptr = (uint64_t *) params[param_count].data;
+
+                    memcpy(params[param_count].identifier, param_name, 
+                        strlen(param_name)>PB_PARAM_MAX_IDENT_SIZE ?
+                            PB_PARAM_MAX_IDENT_SIZE:strlen(param_name));
+
+                    if (strcmp(param_type,"u08") == 0)
+                    {
+                        params[param_count].kind = PB_PARAM_U08;
+                        (*u08_ptr) = strtol(param_value,NULL,16);
+                    }
+                    else if (strcmp(param_type,"u16") == 0)
+                    {
+                        params[param_count].kind = PB_PARAM_U16;
+                        (*u16_ptr) = strtol(param_value,NULL,16);
+                    }
+                    else if (strcmp(param_type,"u32") == 0)
+                    {
+                        params[param_count].kind = PB_PARAM_U32;
+                        (*u32_ptr) = strtol(param_value,NULL,16);
+                    }
+                    else if (strcmp(param_type,"u64") == 0)
+                    {
+                        params[param_count].kind = PB_PARAM_U32;
+                        (*u64_ptr) = strtol(param_value,NULL,16);
+                    }
+                    else
+                    {
+                        err = PB_ERR;
+                        break;
+                    }
+                    
+                    param_count++;
+                    params[param_count].kind = PB_PARAM_END;
+                }
+            }
+        }
+        n++;
+    } while(section_name);
+
+}
 
 static int print_gpt_table(void)
 {
@@ -65,21 +195,13 @@ static uint32_t pb_display_device_info(void)
 {
     uint32_t err = PB_ERR;
     char *version_string;
-    struct pb_hw_info info;
 
     err = pb_get_version(&version_string);
 
     if (err != PB_OK)
         return -1;
 
-    err = pb_recovery_get_hw_info(&info);
-
-    if (err != PB_OK)
-        return -1;
-
     printf ("Device info:\n");
-    printf (" Hardware: 0x%04x, Revision: 0x%02x, Variant 0x%02x\n",
-                            info.hw,info.rev,info.var);
     printf (" Security State:\n");
     printf (" Bootloader Version: %s\n",version_string);
     free(version_string);
@@ -107,7 +229,7 @@ static void print_dev_help(void)
 {
     printf (" Device:\n");
     printf ("  punchboot dev -l                       - Display device information\n");
-    printf ("  punchboot dev -s \"<rev> <var>\" [-y]    - Perform device setup\n");
+    printf ("  punchboot dev -i [-f <fn>] [-y]        - Perform device setup\n");
     printf ("  punchboot dev -w [-y]                  - Lock device setup\n");
     printf ("\n");
 }
@@ -223,18 +345,9 @@ int main(int argc, char **argv)
 
             if (err != PB_OK)
                 return -1;
-        } else if (flag_s) {
-            unsigned int device_version;
-            unsigned int device_variant;
-            char *setup_report = NULL;
-            int result = sscanf(s_arg, "%x %x", 
-                        &device_version, &device_variant);
+        } else if (flag_install) {
 
-            if (result != 2)
-                return -1;
-
-            printf ("Performing device setup: Version=0x%2.2X, Variant=0x%2.2X\n",
-                            device_version, device_variant);
+            printf ("Performing device setup\n");
 
             char confirm_input[5];
 
@@ -252,10 +365,14 @@ int main(int argc, char **argv)
                 }
             }
 
-            err = pb_recovery_setup(device_version,
-                                 device_variant,
-                                 &setup_report,
-                                 false);
+            bzero(params, sizeof(struct param) * PB_MAX_PARAMS);
+
+            if (fn != NULL)
+                load_params(fn);
+            else
+                printf("No parameter file supplied\n");
+
+            err = pb_recovery_setup(params);
 
             if (err != PB_OK)
             {

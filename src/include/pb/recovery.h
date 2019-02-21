@@ -60,21 +60,6 @@ struct pb_cmd_write_part
     uint8_t rz[48];
 } __attribute__ ((packed));
 
-struct pb_device_setup
-{
-    uint8_t device_variant;
-    uint8_t device_revision;
-    uint8_t dry_run;
-    uint8_t rz[62];
-} __attribute__ ((packed));
-
-struct pb_hw_info
-{
-    uint8_t rev;
-    uint8_t var;
-    uint16_t hw;
-} __attribute__ ((packed));
-
 #ifdef __PB_BUILD
 
 #include <gpt.h>

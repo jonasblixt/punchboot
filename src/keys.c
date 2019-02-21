@@ -11,6 +11,7 @@
 #include <keys.h>
 #include <fuse.h>
 #include <plat.h>
+#include <board.h>
 
 struct asn1_key * pb_key_get(uint8_t key_index) 
 {
@@ -34,35 +35,30 @@ extern struct fusebox pb_fusebox;
 
 uint32_t pb_update_key_revoke_mask(uint32_t mask)
 {
-    struct fuse *f = &pb_fusebox.revoke_mask;
-
     if (mask == 0)
         return PB_OK;
 
-    f->value = mask;
-
-    return plat_fuse_write(f);
+    return board_update_revoke_mask(mask);
 }
 
 uint32_t pb_is_key_revoked(uint8_t key_index, bool *result)
 {
     uint32_t err;
-
-    struct fuse *f = &pb_fusebox.revoke_mask;
+    uint32_t revoke_mask = 0xFFFFFFFF;
 
     *result = true;
 
     if (key_index > 31)
         return PB_ERR;
 
-    err = plat_fuse_read(f);
+    err = board_read_revoke_mask(&revoke_mask);
 
     if (err != PB_OK)
         return err;
 
     uint32_t key_bit = (1 << key_index);
 
-    if ((f->value & key_bit) == key_bit)
+    if ((revoke_mask & key_bit) == key_bit)
         *result = true;
     else
         *result = false;

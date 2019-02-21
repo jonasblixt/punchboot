@@ -18,6 +18,7 @@
 #include <board/config.h>
 #include <fuse.h>
 #include <gpt.h>
+#include <params.h>
 
 /**
  * Function: board_early_init
@@ -57,5 +58,10 @@ uint32_t board_prepare_recovery(struct pb_platform_setup *plat);
  *               False - Normal boot
  */
 bool  board_force_recovery(struct pb_platform_setup *plat);
+
+uint32_t board_setup_device(struct param *params);
+uint32_t board_setup_lock(void);
+uint32_t board_update_revoke_mask(uint32_t mask);
+uint32_t board_read_revoke_mask(uint32_t *revoke_mask);
 
 #endif

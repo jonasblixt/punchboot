@@ -18,9 +18,10 @@ static __a4k struct virtio_block_device virtio_block2;
 static struct virtio_block_device *blk;
 static struct pb_platform_setup setup;
 
-uint32_t blk_off = 0;
-uint32_t blk_sz = 65535;
+static uint32_t blk_off = 0;
+static uint32_t blk_sz = 65535;
 static uint32_t setup_locked = 0;
+extern const struct fuse fuses[];
 
 void pb_boot(struct pb_pbi *pbi, uint32_t active_system)
 {
@@ -33,6 +34,41 @@ __inline uint32_t plat_get_ms_tick(void)
 {
     return 1;
 }
+
+
+uint32_t plat_setup_device(struct param *params)
+{
+    uint32_t err;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+ 
+        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+    }
+
+    /* Perform the actual fuse programming */
+    
+    LOG_INFO("Writing fuses");
+
+    foreach_fuse(f, fuses)
+    {
+        f->value = f->default_value;
+        err = plat_fuse_write(f);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    return board_setup_device(params);
+}
+
 
 uint32_t plat_setup_lock(void)
 {
