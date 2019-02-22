@@ -50,7 +50,7 @@ const char *recovery_cmd_name[] =
     "PB_CMD_BOOT_RAM",
     "PB_CMD_SETUP",
     "PB_CMD_SETUP_LOCK",
-    "PB_CMD_GET_HW_INFO",
+    "PB_CMD_GET_PARAMS",
 };
 
 
@@ -408,12 +408,32 @@ static void recovery_parse_command(struct usb_device *dev,
             err = plat_setup_lock();
         }
         break;
-        case PB_CMD_GET_HW_INFO:
+        case PB_CMD_GET_PARAMS:
         {
-            /*TODO: remove*/
-            uint32_t v = 0;
-            recovery_send_response(dev,(uint8_t*) &v,
-                                        sizeof (uint32_t));  
+            uint32_t param_count = 0;
+            uint32_t security_state;
+            struct param *p = params;
+
+            err = plat_get_security_state(&security_state);
+
+            if (err != PB_OK)
+                break;
+            
+            param_add_u32(p++, "Security State", security_state);
+            plat_get_params(&p);
+            board_get_params(&p);
+            param_terminate(p++);
+            
+            p = params;
+
+            while (p->kind != PB_PARAM_END)
+            {
+                p++;
+                param_count++;
+            }
+
+            recovery_send_response(dev,(uint8_t*) params,
+                            (sizeof(struct param) * param_count));  
             err = PB_OK;
         }
         break;

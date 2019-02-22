@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 #define VERID	0x0
-#define PARAM	0x4
+#define LPPARAM	0x4
 #define GLOBAL	0x8
 #define PINCFG	0xC
 #define BAUD	0x10

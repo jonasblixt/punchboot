@@ -8,6 +8,7 @@
 
 #define PB_PARAM_MAX_SIZE 64
 #define PB_PARAM_MAX_IDENT_SIZE 20
+#define PB_PARAM_MAX_COUNT 128
 
 enum
 {
@@ -67,5 +68,69 @@ static inline uint32_t param_get_u32(struct param *p, uint32_t *v)
     (*v) = *ptr;
     return PB_OK;
 }
+
+static inline uint32_t param_get_u16(struct param *p, uint16_t *v)
+{
+    if (p->kind != PB_PARAM_U16)
+        return PB_ERR;
+    uint16_t *ptr = (uint16_t *) p->data;
+    (*v) = *ptr;
+    return PB_OK;
+}
+
+
+static inline uint32_t param_add_u32(struct param *p,
+                                     const char *ident,
+                                     uint32_t v)
+{
+    p->kind = PB_PARAM_U32;
+
+    uint32_t *ptr = (uint32_t *) p->data;
+    (*ptr) = v;
+    
+    memcpy(p->identifier, ident, PB_PARAM_MAX_IDENT_SIZE);
+
+    return PB_OK;
+}
+
+
+static inline uint32_t param_add_str(struct param *p,
+                                     const char *ident,
+                                     char *str)
+{
+    uint32_t str_len = strlen(str);
+
+    p->kind = PB_PARAM_STR;
+    
+    if (str_len > PB_PARAM_MAX_SIZE)
+        str_len = PB_PARAM_MAX_SIZE;
+
+    memcpy(p->identifier, ident, PB_PARAM_MAX_IDENT_SIZE);
+
+    memcpy(p->data, str, str_len);
+    p->data[str_len] = 0;
+
+    return PB_OK;
+}
+
+
+static inline uint32_t param_add_uuid(struct param *p,
+                                     const char *ident,
+                                     char *uuid)
+{
+    p->kind = PB_PARAM_UUID;
+    memcpy(p->identifier, ident, PB_PARAM_MAX_IDENT_SIZE);
+    memcpy(p->data, uuid, 16);
+
+    return PB_OK;
+}
+
+
+static inline uint32_t param_terminate(struct param *p)
+{
+    p->kind = PB_PARAM_END;
+    return PB_OK;
+}
+
 
 #endif

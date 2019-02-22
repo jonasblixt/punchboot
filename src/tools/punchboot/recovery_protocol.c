@@ -43,7 +43,32 @@ uint32_t pb_recovery_setup(struct param *params)
         param_count++;
 
     err = pb_write(PB_CMD_SETUP,param_count,0,0,0, (uint8_t *) params,
-                            sizeof(struct param)*param_count);
+                            (sizeof(struct param)*param_count));
+
+    if (err != PB_OK)
+        return err;
+
+    return pb_read_result_code();
+}
+
+uint32_t pb_read_params(struct param **params)
+{
+    uint32_t sz;
+    uint32_t err;
+
+    err = pb_write(PB_CMD_GET_PARAMS,0,0,0,0,NULL,0);
+
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read((uint8_t *) &sz, sizeof(uint32_t));
+
+    if (err != PB_OK)
+        return err;
+
+    (*params) = malloc (sz);
+
+    err = pb_read((uint8_t *) (*params), sz);
 
     if (err != PB_OK)
         return err;

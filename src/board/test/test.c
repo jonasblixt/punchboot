@@ -28,8 +28,6 @@ const struct fuse fuses[] =
     TEST_FUSE_END,
 };
 
-static struct fuse board_revoke_fuse =
-        TEST_FUSE_BANK_WORD(15, "REVOKE");
 static struct fuse board_ident_fuse =
         TEST_FUSE_BANK_WORD(16,"Ident");
 
@@ -95,25 +93,9 @@ uint32_t board_setup_lock(void)
     return PB_OK;
 }
 
-uint32_t board_update_revoke_mask(uint32_t mask)
+uint32_t board_get_params(struct param **pp)
 {
-    if (mask == 0)
-        return PB_OK;
-
-    board_revoke_fuse.value = mask;
-
-    return plat_fuse_write(&board_revoke_fuse);
-}
-
-uint32_t board_read_revoke_mask(uint32_t *revoke_mask)
-{
-    uint32_t err;
-
-    err = plat_fuse_read(&board_revoke_fuse);
-    
-    if (err != PB_OK)
-        return err;
-    (*revoke_mask) = board_revoke_fuse.value;
+    param_add_str((*pp)++, "Board", "Test");
 
     return PB_OK;
 }

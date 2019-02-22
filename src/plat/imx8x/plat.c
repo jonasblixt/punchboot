@@ -27,6 +27,7 @@
 #define LPCG_ALL_CLOCK_STOP     0x88888888U
 
 static struct pb_platform_setup plat;
+extern struct fuse fuses[];
 
 uint32_t plat_setup_lock(void)
 {
@@ -38,6 +39,112 @@ uint32_t plat_setup_lock(void)
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
+
+
+uint32_t plat_setup_device(struct param *params)
+{
+    uint32_t err;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+ 
+        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+    }
+
+    /* Perform the actual fuse programming */
+    
+    LOG_INFO("Writing fuses");
+
+    foreach_fuse(f, fuses)
+    {
+        f->value = f->default_value;
+        err = plat_fuse_write(f);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    return board_setup_device(params);
+}
+
+
+uint32_t plat_get_security_state(uint32_t *state)
+{
+    uint32_t err;
+    (*state) = PB_SECURITY_STATE_NOT_SECURE;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+ 
+        if (f->value)
+        {
+            (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
+            break;
+        }
+
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+    }
+
+    /*TODO: Check SECO for error events */
+    (*state) = PB_SECURITY_STATE_CONFIGURED_OK;
+
+    uint16_t lc;
+    uint16_t monotonic;
+    uint32_t uid_l;
+    uint32_t uid_h;
+
+    sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid_l, &uid_h);
+
+    if (lc == 128)
+        (*state) = PB_SECURITY_STATE_SECURE;
+
+    return PB_OK;
+}
+
+static const char platform_namespace_uuid[] = 
+    "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
+
+uint32_t plat_get_uuid(char *out)
+{
+
+    uint16_t lc;
+    uint16_t monotonic;
+    uint32_t uid_l;
+    uint32_t uid_h;
+
+    sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid_l, &uid_h);
+
+    plat_md5_init();
+    plat_md5_update((uintptr_t)platform_namespace_uuid,16);
+    plat_md5_update((uintptr_t)&uid_l,4);
+    plat_md5_update((uintptr_t)&uid_h,4);
+    plat_md5_finalize((uintptr_t)out);
+    return PB_OK;
+}
+
+uint32_t plat_get_params(struct param **pp)
+{
+    char uuid_raw[16];
+
+    param_add_str((*pp)++, "Platform", "NXP IMX8X");
+    plat_get_uuid(uuid_raw);
+    param_add_uuid((*pp)++, "Device UUID",uuid_raw);
+    return PB_OK;
+}
+
 
 /* Platform API Calls */
 uint32_t plat_prepare_recovery(void)
@@ -187,6 +294,23 @@ uint32_t  plat_sha256_finalize(uintptr_t out)
 {
     return caam_sha256_finalize((uint8_t *) out);
 }
+
+
+uint32_t  plat_md5_init(void)
+{
+    return caam_md5_init();
+}
+
+uint32_t  plat_md5_update(uintptr_t bfr, uint32_t sz)
+{
+    return caam_md5_update((uint8_t *)bfr,sz);
+}
+
+uint32_t  plat_md5_finalize(uintptr_t out)
+{
+    return caam_md5_finalize((uint8_t *) out);
+}
+
 
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
                         struct asn1_key *k)

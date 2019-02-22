@@ -13,12 +13,14 @@
 #include <libfdt.h>
 #include <uuid.h>
 
+
 extern void arch_jump_linux_dt(void* addr, void * dt)
                                  __attribute__ ((noreturn));
 
 extern void arch_jump_atf(void* atf_addr, void * atf_param)
                                  __attribute__ ((noreturn));
 
+extern uint32_t board_linux_patch_dt (void *fdt, int offset);
 static char new_bootargs[512];
 
 void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
@@ -106,7 +108,33 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
                 } else {
                     LOG_INFO("Bootargs patched");
                 }
-                
+             
+
+                char device_uuid[37];
+                char device_uuid_raw[16];
+
+
+                plat_get_uuid(device_uuid_raw);
+                uuid3_to_string((uint8_t *)device_uuid_raw,device_uuid);
+                fdt_setprop_string( (void *) fdt, offset, "device-uuid", 
+                            (const char *) device_uuid);
+
+
+                err = board_linux_patch_dt(fdt, offset);
+
+                if (err)
+                {
+                    LOG_ERR("Could not update board specific params");
+                } else {
+                    LOG_INFO("board params patched");
+                }
+
+                if (system_index == SYSTEM_A)
+                    fdt_setprop_string( (void *) fdt, offset, "active-system", "A");
+                else if(system_index == SYSTEM_B)
+                    fdt_setprop_string( (void *) fdt, offset, "active-system", "B");
+                else
+                    fdt_setprop_string( (void *) fdt, offset, "active-system", "none");
                 break;
             }
         }

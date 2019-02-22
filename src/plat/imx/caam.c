@@ -28,6 +28,7 @@
 
 /* Alg operation defines */
 #define CAAM_ALG_TYPE_SHA256    (0x43 << 16)
+#define CAAM_ALG_TYPE_MD5       (0x40 << 16)
 #define CAAM_ALG_STATE_UPDATE   (0x00 << 2)
 #define CAAM_ALG_STATE_INIT     (0x01 << 2)
 #define CAAM_ALG_STATE_FIN      (0x02 << 2)
@@ -113,6 +114,58 @@ uint32_t caam_sha256_finalize(uint8_t *out)
 
    return PB_OK;
 }
+
+
+
+uint32_t caam_md5_init(void) 
+{
+    memset(&ctx, 0, sizeof(struct caam_hash_ctx));
+    return PB_OK;
+}
+
+uint32_t caam_md5_update(uint8_t *data, uint32_t sz) 
+{
+
+    struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
+
+
+    LOG_DBG("MD5 update %p sz %u sgcount %u",data,sz, ctx.sg_count);
+    e->addr_lo = (uint32_t)(uintptr_t) data;
+    e->len_flag = sz;
+
+    ctx.sg_count++;
+    ctx.total_bytes += sz;
+    if (ctx.sg_count > 32) 
+        return PB_ERR;
+    
+    return PB_OK;
+}
+
+uint32_t caam_md5_finalize(uint8_t *out) 
+{
+    struct caam_sg_entry *e_last = &ctx.sg_tbl[ctx.sg_count-1];
+
+    e_last->len_flag |= SG_ENTRY_FINAL_BIT;  
+   
+    desc[0] = CAAM_CMD_HEADER | 7;
+    desc[1] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_MD5 |
+        CAAM_ALG_AAI(0) | CAAM_ALG_STATE_INIT_FIN;
+
+    desc[2] = CAAM_CMD_FIFOL | ( 2 << 25) | (1 << 22) | (0x14 << 16) |(1 << 24);
+    desc[3] = (uint32_t)(uintptr_t) ctx.sg_tbl;
+    desc[4] = ctx.total_bytes;
+
+    desc[5] = CAAM_CMD_STORE | (2 << 25) | (0x20 << 16) | 16;
+    desc[6] = (uint32_t)(uintptr_t) out;
+
+
+    LOG_DBG("Finalize");
+    if (caam_shedule_job_sync(d, desc) != PB_OK) 
+        return PB_ERR;
+
+   return PB_OK;
+}
+
 
 uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
                     uint8_t *output, struct asn1_key *k)

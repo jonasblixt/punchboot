@@ -101,9 +101,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi)
 bool pb_image_verify(struct pb_pbi* pbi)
 {
     unsigned int sign_sz = 0;
-    unsigned char hash_copy[32];
     unsigned char hash[32];
-    bool key_is_revoked = true;
     uint32_t err = PB_OK;
 
     if (pbi->hdr.sign_length > sizeof(sign_copy))
@@ -115,20 +113,8 @@ bool pb_image_verify(struct pb_pbi* pbi)
 
     tr_stamp_begin(TR_SHA);
 
-    memcpy (hash_copy, pbi->hdr.sha256,32);
     memset (pbi->hdr.sign, 0, 1024);
-    memset (pbi->hdr.sha256, 0, 32);
 
-    err = pb_is_key_revoked(pbi->hdr.key_index, &key_is_revoked);
-
-    if (err != PB_OK)
-        return err;
-
-    if (key_is_revoked)
-    {
-        LOG_ERR("Key is revoked");
-        return PB_KEY_REVOKED_ERROR;
-    }
     plat_sha256_init();
 
     plat_sha256_update((uintptr_t)&pbi->hdr, 
@@ -148,18 +134,6 @@ bool pb_image_verify(struct pb_pbi* pbi)
 
     plat_sha256_finalize((uintptr_t) hash);
 
-    uint8_t flag_chk_ok = 1;
-
-    if (memcmp(hash, hash_copy, 32) != 0)
-        flag_chk_ok = 0;
-
-    if (!flag_chk_ok) 
-    {
-        LOG_ERR ("Error: SHA Incorrect");
-        return PB_ERR;
-    }
-
-    LOG_INFO("SHA OK");
     tr_stamp_end(TR_SHA);
 
     tr_stamp_begin(TR_RSA);
@@ -198,13 +172,7 @@ bool pb_image_verify(struct pb_pbi* pbi)
     }
 
     if (flag_sig_ok)
-    {
         LOG_INFO("SIG OK");
-
-        LOG_INFO("Key revoke mask: %08x", pbi->hdr.key_revoke_mask);
-
-        pb_update_key_revoke_mask(pbi->hdr.key_revoke_mask);
-    }
 
     tr_stamp_end(TR_RSA);
 

@@ -5,4 +5,5 @@
 
 uint32_t uuid_to_string(uint8_t *uuid, char *out);
 
+uint32_t uuid3_to_string(uint8_t *uuid, char *out);
 #endif

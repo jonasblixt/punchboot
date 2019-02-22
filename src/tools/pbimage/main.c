@@ -82,18 +82,6 @@ int main (int argc, char **argv)
             if (strcmp(section_name,"pbimage") == 0)
             {
 
-                index = ini_find_property(ini,n,"key_mask",0);
-
-                if (index >= 0)
-                {
-                    value = ini_property_value(ini,n,index);
-                    key_mask = strtol(value,NULL,16);
-                }
-                else
-                {
-                    printf ("Error: Could not read key mask\n");
-                    error_count++;
-                }
 
                 index = ini_find_property(ini,n,"key_index",0);
 
@@ -141,7 +129,6 @@ int main (int argc, char **argv)
 
     printf ("Punchboot image: \n");
     printf (" key index %u\n", key_index);
-    printf (" key mask 0x%8.8X\n", key_mask);
     printf (" key source '%s'\n", key_source);
     printf (" output file '%s'\n", output_fn);
 

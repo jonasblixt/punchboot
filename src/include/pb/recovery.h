@@ -28,7 +28,7 @@ enum {
     PB_CMD_BOOT_RAM,
     PB_CMD_SETUP,
     PB_CMD_SETUP_LOCK,
-    PB_CMD_GET_HW_INFO,
+    PB_CMD_GET_PARAMS,
 };
 
 extern const char *recovery_cmd_name[];

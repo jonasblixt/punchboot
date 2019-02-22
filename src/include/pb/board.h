@@ -61,7 +61,5 @@ bool  board_force_recovery(struct pb_platform_setup *plat);
 
 uint32_t board_setup_device(struct param *params);
 uint32_t board_setup_lock(void);
-uint32_t board_update_revoke_mask(uint32_t mask);
-uint32_t board_read_revoke_mask(uint32_t *revoke_mask);
-
+uint32_t board_get_params(struct param **pp);
 #endif

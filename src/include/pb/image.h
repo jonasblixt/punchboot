@@ -25,9 +25,7 @@ struct pb_image_hdr {
     uint32_t header_version;
     uint32_t no_of_components;
     uint32_t key_index;
-    uint32_t key_revoke_mask;
-    uint32_t _reserved[14];
-    uint8_t sha256[32];
+    uint32_t _reserved[23];
     uint8_t sign[1024];
     uint32_t sign_length;
     uint32_t _reserved2[4];

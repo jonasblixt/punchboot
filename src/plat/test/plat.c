@@ -36,6 +36,65 @@ __inline uint32_t plat_get_ms_tick(void)
 }
 
 
+uint32_t plat_get_security_state(uint32_t *state)
+{
+    uint32_t err;
+    (*state) = PB_SECURITY_STATE_NOT_SECURE;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+ 
+        if (f->value)
+        {
+            (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
+            break;
+        }
+
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+    }
+
+    /* Perform checks to see if the boot was successful */
+    /* for the test platform there is no point in testing
+     *  this => CONFIGURED_OK */
+    (*state) = PB_SECURITY_STATE_CONFIGURED_OK;
+
+    if (setup_locked)
+        (*state) = PB_SECURITY_STATE_SECURE;
+
+    return PB_OK;
+}
+
+uint32_t plat_get_params(struct param **pp)
+{
+    char uuid_raw[16];
+
+    param_add_str((*pp)++, "Platform", "Test");
+    param_add_str((*pp)++, "Machine", "QEMU, Cortex-A15");
+    plat_get_uuid(uuid_raw);
+    param_add_uuid((*pp)++, "Device UUID",uuid_raw);
+    return PB_OK;
+}
+
+static const char *platform_namespace_uuid = 
+    "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
+
+static const char *device_unique_id = 
+    "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
+
+uint32_t plat_get_uuid(char *out)
+{
+    plat_md5_init();
+    plat_md5_update((uintptr_t)platform_namespace_uuid,36);
+    plat_md5_update((uintptr_t)device_unique_id,8);
+    return plat_md5_finalize((uintptr_t)out);
+}
+
 uint32_t plat_setup_device(struct param *params)
 {
     uint32_t err;

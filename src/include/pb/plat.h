@@ -31,6 +31,8 @@ uint32_t  plat_early_init(void);
 void      plat_preboot_cleanup(void);
 bool      plat_force_recovery(void);
 uint32_t  plat_prepare_recovery(void);
+uint32_t  plat_get_params(struct param **pp);
+uint32_t  plat_get_uuid(char *out);
 
 /* EMMC Interface */
 uint32_t  plat_write_block(uint32_t lba_offset, 
@@ -48,6 +50,9 @@ uint64_t  plat_get_lastlba(void);
 uint32_t  plat_sha256_init(void);
 uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz);
 uint32_t  plat_sha256_finalize(uintptr_t out);
+uint32_t  plat_md5_init(void);
+uint32_t  plat_md5_update(uintptr_t bfr, uint32_t sz);
+uint32_t  plat_md5_finalize(uintptr_t out);
 
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
                         struct asn1_key *k);
@@ -72,5 +77,6 @@ uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n);
 /* Secure boot */
 uint32_t plat_setup_device(struct param *params);
 uint32_t plat_setup_lock(void);
+uint32_t plat_get_security_state(uint32_t *state);
 
 #endif

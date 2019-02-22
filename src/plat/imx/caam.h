@@ -80,4 +80,8 @@ uint32_t caam_sha256_finalize(uint8_t *out);
 uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
                     uint8_t *output, struct asn1_key *k);
 
+uint32_t caam_md5_init(void);
+uint32_t caam_md5_update(uint8_t *data, uint32_t sz);
+uint32_t caam_md5_finalize(uint8_t *out);
+
 #endif /* __CAAM_H__ */

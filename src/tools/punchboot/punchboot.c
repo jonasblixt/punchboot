@@ -153,6 +153,7 @@ static int load_params(const char *fn)
         n++;
     } while(section_name);
 
+    return PB_OK;
 }
 
 static int print_gpt_table(void)
@@ -191,10 +192,52 @@ static int print_gpt_table(void)
     return 0;
 }
 
+static void pb_print_param(struct param *p)
+{
+    printf ("%-20s", p->identifier);
+
+    switch (p->kind)
+    {
+        case PB_PARAM_U16:
+        {
+            uint16_t u16_val;
+            param_get_u16(p, &u16_val);
+            printf("0x%4.4X",u16_val);
+        }
+        break;
+        case PB_PARAM_U32:
+        {
+            uint32_t u32_val;
+            param_get_u32(p, &u32_val);
+            printf("0x%8.8X",u32_val);
+        }
+        break;
+        case PB_PARAM_STR:
+        {
+            char *str_val = (char *) p->data;
+            printf ("%s",str_val);
+        }
+        break;
+        case PB_PARAM_UUID:
+        {
+            char *uuid_raw = (char *) p->data;
+            char uuid_str[37];
+            uuid_unparse_upper(uuid_raw, uuid_str);
+            printf ("%s",uuid_str);
+        }
+        break;
+        default:
+            printf ("...");
+    }
+    
+    printf ("\n");
+}
+
 static uint32_t pb_display_device_info(void)
 {
     uint32_t err = PB_ERR;
     char *version_string;
+    struct param *params;
 
     err = pb_get_version(&version_string);
 
@@ -202,9 +245,25 @@ static uint32_t pb_display_device_info(void)
         return -1;
 
     printf ("Device info:\n");
-    printf (" Security State:\n");
     printf (" Bootloader Version: %s\n",version_string);
-    free(version_string);
+
+    err = pb_read_params(&params);
+
+    if (err != PB_OK)
+        return -1;
+
+
+    printf("\n");
+    printf ("Paramter            Value\n");
+    printf ("--------            -----\n");
+    foreach_param(p, params)
+        pb_print_param(p);
+
+    if (version_string)
+        free(version_string);
+    if (params)
+        free(params);
+
     return PB_OK;
 }
 

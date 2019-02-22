@@ -30,7 +30,10 @@ PLAT_C_SRCS  += plat/test/root_hash.c
 # BearSSL
 
 PLAT_C_SRCS  += 3pp/bearssl/sha2small.c
+PLAT_C_SRCS  += 3pp/bearssl/md5.c
 PLAT_C_SRCS  += 3pp/bearssl/dec32be.c
+PLAT_C_SRCS  += 3pp/bearssl/dec32le.c
+PLAT_C_SRCS  += 3pp/bearssl/enc32le.c
 PLAT_C_SRCS  += 3pp/bearssl/enc32be.c
 PLAT_C_SRCS  += 3pp/bearssl/rsa_i62_pub.c
 PLAT_C_SRCS  += 3pp/bearssl/i31_decode.c

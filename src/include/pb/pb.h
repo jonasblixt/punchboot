@@ -16,13 +16,21 @@
 #include <stddef.h>
 #include <pb/errors.h>
 
-enum {
+enum 
+{
     SYSTEM_NONE = 0,
     SYSTEM_A = 1,
     SYSTEM_B = 2,
     SYSTEM_ALL = 3,
 };
 
+enum
+{
+    PB_SECURITY_STATE_NOT_SECURE,
+    PB_SECURITY_STATE_CONFIGURED_ERR,
+    PB_SECURITY_STATE_CONFIGURED_OK,
+    PB_SECURITY_STATE_SECURE,
+};
 
 struct partition_table
 {

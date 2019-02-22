@@ -5,6 +5,7 @@
 #include <3pp/bearssl/bearssl_rsa.h>
 
 static br_sha256_context sha256_ctx;
+static br_md5_context md5_ctx;
 
 uint32_t  plat_sha256_init(void)
 {
@@ -21,6 +22,24 @@ uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz)
 uint32_t  plat_sha256_finalize(uintptr_t out)
 {
     br_sha256_out(&sha256_ctx, (void *) out);
+    return PB_OK;
+}
+
+uint32_t  plat_md5_init(void)
+{
+    br_md5_init(&md5_ctx);
+    return PB_OK;
+}
+
+uint32_t  plat_md5_update(uintptr_t bfr, uint32_t sz)
+{
+    br_md5_update(&md5_ctx, (void *) bfr,sz);
+    return PB_OK;
+}
+
+uint32_t  plat_md5_finalize(uintptr_t out)
+{
+    br_md5_out(&md5_ctx, (void *) out);
     return PB_OK;
 }
 

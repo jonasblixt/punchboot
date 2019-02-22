@@ -71,7 +71,6 @@ uint32_t pbimage_prepare(uint32_t key_index, uint32_t key_mask,
     hdr.header_version = 1;
     hdr.no_of_components = 0;
     hdr.key_index = key_index;
-    hdr.key_revoke_mask = key_mask;
 
     pbi_key_source = key_source;
     pbi_output_fn = output_fn;
@@ -146,6 +145,7 @@ uint32_t pbimage_out(const char *fn)
     uint32_t offset = 0;
     uint32_t ncomp = hdr.no_of_components;
     uint8_t zpad[511];
+    uint8_t hash[32];
     uint32_t err;
     br_sha256_context sha256_ctx;
 
@@ -180,7 +180,7 @@ uint32_t pbimage_out(const char *fn)
                                       comp[i].component_size);
     }
 
-    br_sha256_out(&sha256_ctx, hdr.sha256);
+    br_sha256_out(&sha256_ctx, hash);
 
     hdr.sign_length = 512;
 
@@ -189,7 +189,7 @@ uint32_t pbimage_out(const char *fn)
     if (err != PB_OK)
         return err;
 
-    err = crypto_sign(hdr.sha256,PB_HASH_SHA256,
+    err = crypto_sign(hash,PB_HASH_SHA256,
                     pbi_key_source,PB_SIGN_RSA4096, hdr.sign);
 
     if (err != PB_OK)

@@ -4,8 +4,10 @@
 #include <plat.h>
 #include <stdbool.h>
 #include <usb.h>
+#include <uuid.h>
 #include <fuse.h>
 #include <gpt.h>
+#include <params.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/usdhc.h>
 #include <plat/defs.h>
@@ -13,33 +15,29 @@
 #include <plat/sci/sci.h>
 #include <plat/imx8qxp_pads.h>
 #include <plat/imx8x/plat.h>
+#include <libfdt.h>
 
-const struct fusebox pb_fusebox =
+const struct fuse fuses[] =
 {
-    .identity = IMX8X_FUSE_ROW_VAL(710,  "Device Info", 0x12340000),
-    .revoke_mask = IMX8X_FUSE_ROW(711,"REVOKE"),
-    .fuses = 
-    {
-        IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
-        IMX8X_FUSE_ROW_VAL(731, "SRK1", 0xfc4dc849),
-        IMX8X_FUSE_ROW_VAL(732, "SRK2", 0xb410b214),
-        IMX8X_FUSE_ROW_VAL(733, "SRK3", 0x0f8d6212),
-        IMX8X_FUSE_ROW_VAL(734, "SRK4", 0xad38b486),
-        IMX8X_FUSE_ROW_VAL(735, "SRK5", 0x9b806149),
-        IMX8X_FUSE_ROW_VAL(736, "SRK6", 0xdd6d397a),
-        IMX8X_FUSE_ROW_VAL(737, "SRK7", 0x4c19d87b),
-        IMX8X_FUSE_ROW_VAL(738, "SRK8", 0x24ac2acd),
-        IMX8X_FUSE_ROW_VAL(739, "SRK9", 0xb6222a62),
-        IMX8X_FUSE_ROW_VAL(740, "SRK10",0xf36d6bd1),
-        IMX8X_FUSE_ROW_VAL(741, "SRK11",0x14cc8e16),
-        IMX8X_FUSE_ROW_VAL(742, "SRK12",0xd749170e),
-        IMX8X_FUSE_ROW_VAL(743, "SRK13",0x22fb187e),
-        IMX8X_FUSE_ROW_VAL(744, "SRK14",0x158f740c),
-        IMX8X_FUSE_ROW_VAL(745, "SRK15",0x8966b0f6),
-        IMX8X_FUSE_ROW_VAL(18, "BOOT Config",  0x00000002),
-        IMX8X_FUSE_ROW_VAL(19, "Bootconfig2" , 0x00000025),
-        IMX8X_FUSE_END,
-    },
+    IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
+    IMX8X_FUSE_ROW_VAL(731, "SRK1", 0xfc4dc849),
+    IMX8X_FUSE_ROW_VAL(732, "SRK2", 0xb410b214),
+    IMX8X_FUSE_ROW_VAL(733, "SRK3", 0x0f8d6212),
+    IMX8X_FUSE_ROW_VAL(734, "SRK4", 0xad38b486),
+    IMX8X_FUSE_ROW_VAL(735, "SRK5", 0x9b806149),
+    IMX8X_FUSE_ROW_VAL(736, "SRK6", 0xdd6d397a),
+    IMX8X_FUSE_ROW_VAL(737, "SRK7", 0x4c19d87b),
+    IMX8X_FUSE_ROW_VAL(738, "SRK8", 0x24ac2acd),
+    IMX8X_FUSE_ROW_VAL(739, "SRK9", 0xb6222a62),
+    IMX8X_FUSE_ROW_VAL(740, "SRK10",0xf36d6bd1),
+    IMX8X_FUSE_ROW_VAL(741, "SRK11",0x14cc8e16),
+    IMX8X_FUSE_ROW_VAL(742, "SRK12",0xd749170e),
+    IMX8X_FUSE_ROW_VAL(743, "SRK13",0x22fb187e),
+    IMX8X_FUSE_ROW_VAL(744, "SRK14",0x158f740c),
+    IMX8X_FUSE_ROW_VAL(745, "SRK15",0x8966b0f6),
+    IMX8X_FUSE_ROW_VAL(18, "BOOT Config",  0x00000002),
+    IMX8X_FUSE_ROW_VAL(19, "Bootconfig2" , 0x00000025),
+    IMX8X_FUSE_END,
 };
 
 const struct partition_table pb_partition_table[] =
@@ -160,6 +158,18 @@ uint32_t board_prepare_recovery(struct pb_platform_setup *plat)
     return PB_OK;
 }
 
+uint32_t board_get_params(struct param **pp)
+{
+    param_add_str((*pp)++, "Board", "IMX8QXPMEK");
+    return PB_OK;
+}
+
+uint32_t board_setup_device(struct param *params)
+{
+    UNUSED(params);
+    return PB_OK;
+}
+
 bool board_force_recovery(struct pb_platform_setup *plat)
 {
     sc_bool_t btn_status;
@@ -167,3 +177,12 @@ bool board_force_recovery(struct pb_platform_setup *plat)
     return (btn_status == 1);
 }
 
+
+
+uint32_t board_linux_patch_dt (void *fdt, int offset)
+{
+    UNUSED(fdt);
+    UNUSED(offset);
+
+    return PB_OK;
+}

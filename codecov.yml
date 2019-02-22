@@ -5,3 +5,4 @@ ignore:
     - src/board/test
     - src/crc.c
     - src/tools/pbimage/3pp
+    - src/tools/punchboot/3pp
