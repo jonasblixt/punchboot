@@ -13,6 +13,7 @@
 #define	__CAAM_H__
 
 #include <pb.h>
+#include <keys.h>
 
 #define JOB_RING_ENTRIES 1
 

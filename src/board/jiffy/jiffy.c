@@ -15,6 +15,7 @@
 #include <image.h>
 #include <boot.h>
 #include <fuse.h>
+#include <params.h>
 
 #include <plat/imx6ul/plat.h>
 #include <plat/regs.h>
@@ -23,87 +24,50 @@
 
 #include <board/config.h>
 
-const uint8_t part_type_config[] = 
+const struct fuse fuses[] =
 {
-    0xF7, 0xDD, 0x45, 0x34, 0xCC, 0xA5, 0xC6, 0x45, 
-    0xAA, 0x17, 0xE4, 0x10, 0xA5, 0x42, 0xBD, 0xB8
-};
-
-const uint8_t part_type_system_a[] = 
-{
-    0x59, 0x04, 0x49, 0x1E, 0x6D, 0xE8, 0x4B, 0x44, 
-    0x82, 0x93, 0xD8, 0xAF, 0x0B, 0xB4, 0x38, 0xD1
-};
-
-const uint8_t part_type_system_b[] = 
-{ 
-    0x3C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-const uint8_t part_type_root_a[] = 
-{ 
-    0x1C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-const uint8_t part_type_root_b[] = 
-{ 
-    0x2C, 0x29, 0x85, 0x3F, 0xFB, 0xC6, 0xD0, 0x42, 
-    0x9E, 0x1A, 0xAC, 0x6B, 0x35, 0x60, 0xC3, 0x04
-};
-
-const struct fuse device_info_fuses[] =
-{
-    IMX6UL_FUSE_BANK_WORD_VAL(15, 3, "Device Info", JIFFY_DEVICE_ID),
-    IMX6UL_FUSE_END,
-};
-
-const struct fuse root_hash_fuses[] =
-{
-    IMX6UL_FUSE_BANK_WORD(3, 0, "SRK0"),
-    IMX6UL_FUSE_BANK_WORD(3, 1, "SRK1"),
-    IMX6UL_FUSE_BANK_WORD(3, 2, "SRK2"),
-    IMX6UL_FUSE_BANK_WORD(3, 3, "SRK3"),
-    IMX6UL_FUSE_BANK_WORD(3, 4, "SRK4"),
-    IMX6UL_FUSE_BANK_WORD(3, 5, "SRK5"),
-    IMX6UL_FUSE_BANK_WORD(3, 6, "SRK6"),
-    IMX6UL_FUSE_BANK_WORD(3, 7, "SRK7"),
-    IMX6UL_FUSE_END,
-};
-
-
-const struct fuse board_fuses[] =
-{
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 0, "SRK0",0x5020C7D7),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 1, "SRK1",0xBB62B945),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 2, "SRK2",0xDD97C8BE),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 3, "SRK3",0xDC6710DD),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 4, "SRK4",0x2756B777),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 5, "SRK5",0xEF43BC0A),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 6, "SRK6",0x7185604B),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 7, "SRK7",0x3F335991),
     IMX6UL_FUSE_BANK_WORD_VAL(0, 5, "BOOT Config",        0x0000c060),
     IMX6UL_FUSE_BANK_WORD_VAL(0, 6, "BOOT from fuse bit", 0x00000010),
     IMX6UL_FUSE_END,
 };
 
 
-static struct ehci_device ehcidev = 
+const struct partition_table pb_partition_table[] =
 {
-    .base = EHCI_PHY_BASE,
+    PB_GPT_ENTRY(62768, PB_PARTUUID_SYSTEM_A, "System A"),
+    PB_GPT_ENTRY(62768, PB_PARTUUID_SYSTEM_B, "System B"),
+    PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_A, "Root A"),
+    PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_B, "Root B"),
+
+    PB_GPT_END,
 };
 
-static struct usb_device usbdev =
+uint32_t board_early_init(struct pb_platform_setup *plat)
 {
-    .platform_data = &ehcidev,
-};
 
-uint32_t board_usb_init(struct usb_device **dev)
-{
-    *dev = &usbdev;
-    return PB_OK;
-}
+    plat->wdog.base = 0x020BC000;
+    plat->usb0.base = EHCI_PHY_BASE,
+    plat->tmr0.base = 0x02098000;
+    plat->tmr0.pr = 24;
 
-uint32_t board_get_debug_uart(void)
-{
-    return UART2_BASE;
-}
+    plat->uart0.base = UART2_BASE;
+    plat->uart0.baudrate = 80000000L / (2 * 115200);
 
-uint32_t board_early_init(void)
-{
+    plat->usdhc0.base = 0x02190000;
+    plat->usdhc0.clk_ident = 0x10E1;
+    plat->usdhc0.clk = 0x0101;
+    plat->usdhc0.bus_mode = USDHC_BUS_DDR52;
+    plat->usdhc0.bus_width = USDHC_BUS_8BIT;
+    plat->usdhc0.boot_bus_cond = 0;
+
     /* Configure UART */
     pb_write32(0, 0x020E0094);
     pb_write32(0, 0x020E0098);
@@ -135,53 +99,46 @@ uint32_t board_early_init(void)
     return PB_OK;
 }
 
-uint8_t board_force_recovery(void) 
+bool board_force_recovery(struct pb_platform_setup *plat) 
 {
     uint8_t force_recovery = false;
     uint32_t err;
-    struct fuse * bf = (struct fuse *) board_fuses;
 
     /* Check force recovery input switch */
     if ( (pb_read32(0x020A8008) & (1 << 4)) == 0)
         force_recovery = true;
- 
-    err = plat_fuse_read(bf);
-
-    if (err != PB_OK)
-    {
-        LOG_ERR("Could not read boot fuse, forcing recovery");
-        force_recovery = true;
-    }
-
-    if ( (bf->value & bf->default_value) !=
-            bf->default_value)
-    {
-        LOG_ERR ("OTP not set, forcing recovery mode %x %x",
-                bf->value, bf->default_value);
-        force_recovery = true;
-    }
-
 
     return force_recovery;
 }
 
-uint32_t board_configure_gpt_tbl(void) 
+uint32_t board_late_init(struct pb_platform_setup *plat)
 {
-    gpt_add_part(1, 32768,  part_type_system_a, "System A");
-    gpt_add_part(2, 32768,  part_type_system_b, "System B");
-    gpt_add_part(3, 512000, part_type_root_a,   "Root A");
-    gpt_add_part(4, 512000, part_type_root_b,   "Root B");
-
+    UNUSED(plat);   
     return PB_OK;
 }
 
-uint32_t board_configure_bootargs(char *buf, char*boot_part_uuid)
+uint32_t board_prepare_recovery(struct pb_platform_setup *plat)
 {
-    snprintf (buf, 255, "console=ttymxc1,115200 " \
-        "earlyprintk " \
-        "root=PARTUUID=%s " \
-        "rw rootfstype=ext4 gpt rootwait", boot_part_uuid);
+    UNUSED(plat);
     return PB_OK;
 }
 
+uint32_t board_get_params(struct param **pp)
+{
+    param_add_str((*pp)++, "Board", "Jiffy");
+    return PB_OK;
+}
 
+uint32_t board_setup_device(struct param *params)
+{
+    UNUSED(params);
+    return PB_OK;
+}
+
+uint32_t board_linux_patch_dt (void *fdt, int offset)
+{
+    UNUSED(fdt);
+    UNUSED(offset);
+
+    return PB_OK;
+}

@@ -194,7 +194,7 @@ bool hab_secureboot_active(void)
 	uint32_t reg;
 	int ret;
 
-	ret = ocotp_read(1, 6, &reg);
+	ret = ocotp_read(0, 6, &reg);
 
 	if (ret != PB_OK) 
     {

@@ -32,16 +32,9 @@ PLAT_C_SRCS  += plat/imx/ocotp.c
 PLAT_C_SRCS	 += plat/imx/wdog.c
 PLAT_C_SRCS  += plat/imx/hab.c
 
-
-$(eval PB_SRKS=$(shell hexdump -e '/4 "0x"' -e '/4 "%X"",\n"' < $(SRK_FUSE_BIN)))
-$(shell rm -f plat/imx6ul/hab_srks.*)
-$(shell echo "#include <stdint.h>\nconst uint32_t build_root_hash[8] ={$(PB_SRKS)};" > plat/imx6ul/hab_srks.c)
-PLAT_C_SRCS  += plat/imx6ul/hab_srks.c
-
 plat_clean:
 	@-rm -rf plat/imx/*.o
 	@-rm -rf plat/imx6ul/*.o
-	@-rm -rf plat/imx6ul/hab_srks.*
 
 plat_final:
 	$(eval PB_FILESIZE=$(shell stat -c%s "pb.imx"))

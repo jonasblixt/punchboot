@@ -3,7 +3,7 @@
 #include <plat.h>
 #include <plat/imx/wdog.h>
 
-static struct imx_wdog_device *_dev = NULL;
+static volatile struct imx_wdog_device *_dev = NULL;
 
 uint32_t imx_wdog_init(struct imx_wdog_device *dev, uint32_t delay)
 {
@@ -13,7 +13,7 @@ uint32_t imx_wdog_init(struct imx_wdog_device *dev, uint32_t delay)
     _dev = dev;
 
     /* Timeout value = 9 * 0.5 + 0.5 = 5 s */
-    pb_write16((delay*2 << 8) | (1 << 2) | 
+    pb_write16(( (delay * 2) << 8) | (1 << 2) | 
                                 (1 << 3) | 
                                 (1 << 4) |
                                 (1 << 5), 
@@ -37,8 +37,12 @@ uint32_t imx_wdog_kick(void)
 
 uint32_t imx_wdog_reset_now(void)
 {
-    pb_write16((1<<6)|(1<<2), _dev->base + WDOG_WCR);
 
-    while(1)
-        __asm__("nop");
+    if (_dev == NULL)
+        return PB_ERR;
+
+    pb_write16( ((1 << 6) | (1 << 2)), _dev->base + WDOG_WCR);
+
+    while (true)
+        __asm__ ("nop");
 }

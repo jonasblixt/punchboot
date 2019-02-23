@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <board.h>
+#include <keys.h>
 #include <plat.h>
 #include <io.h>
 #include <plat/imx/gpt.h>
@@ -12,37 +13,184 @@
 #include <plat/imx/ehci.h>
 #include <board/config.h>
 #include <fuse.h>
+#include <plat/imx6ul/plat.h>
 
-static struct ocotp_dev ocotp;
-static struct gp_timer platform_timer;
-static struct fsl_caam_jr caam;
-static struct usdhc_device usdhc0;
-static struct imx_uart_device uart0;
+static struct pb_platform_setup plat;
+extern const struct fuse fuses[];
+
+static struct fuse lock_fuse = 
+        IMX6UL_FUSE_BANK_WORD(0, 6, "lockfuse");
+
+static struct fuse fuse_uid0 = 
+        IMX6UL_FUSE_BANK_WORD(0, 1, "UID0");
+
+static struct fuse fuse_uid1 = 
+        IMX6UL_FUSE_BANK_WORD(0, 2, "UID1");
 
 #define IMX6UL_FUSE_SHADOW_BASE 0x021BC000
 
-static struct imx_wdog_device wdog_device;
-
 /* Platform API Calls */
+
+uint32_t plat_setup_device(struct param *params)
+{
+    uint32_t err;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+ 
+        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+    }
+
+    /* Perform the actual fuse programming */
+    
+    LOG_INFO("Writing fuses");
+
+    foreach_fuse(f, fuses)
+    {
+        f->value = f->default_value;
+        err = plat_fuse_write(f);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    return board_setup_device(params);
+}
+
+uint32_t plat_setup_lock(void)
+{
+    uint32_t err;
+    uint32_t security_state;
+
+
+    err = plat_get_security_state(&security_state);
+    
+    if (err != PB_OK)
+        return err;
+
+    if (security_state != PB_SECURITY_STATE_CONFIGURED_OK)
+    {
+        LOG_ERR("Device security state is not CONFIGURED_OK, aborting (%u)",
+                security_state);
+        return PB_ERR;
+    }
+
+    LOG_INFO("About to change security state to locked");
+    
+    lock_fuse.value = 0x02;
+
+    err = plat_fuse_write(&lock_fuse);
+
+    if (err != PB_OK)
+        return err;
+
+    return PB_OK;
+}
+
+bool plat_force_recovery(void)
+{
+    return board_force_recovery(&plat);
+}
+
+uint32_t plat_prepare_recovery(void)
+{
+    return board_prepare_recovery(&plat);
+}
+
+void plat_preboot_cleanup(void)
+{
+}
+
+uint32_t plat_get_security_state(uint32_t *state)
+{
+    uint32_t err;
+    (*state) = PB_SECURITY_STATE_NOT_SECURE;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+ 
+        if (f->value)
+        {
+            (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
+            break;
+        }
+
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+    }
+
+
+    if ((*state) == PB_SECURITY_STATE_NOT_SECURE)
+        return PB_OK;
+
+    if (hab_has_no_errors() == PB_OK)
+        (*state) = PB_SECURITY_STATE_CONFIGURED_OK;
+    else
+        (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
+
+    if (hab_secureboot_active())
+        (*state) = PB_SECURITY_STATE_SECURE;
+
+    return PB_OK;
+}
+
+static const char platform_namespace_uuid[] = 
+    "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
+
+uint32_t plat_get_uuid(char *out)
+{
+    plat_fuse_read(&fuse_uid0);
+    plat_fuse_read(&fuse_uid1);
+
+    LOG_INFO("%08x %08x",fuse_uid0.value, fuse_uid1.value);
+
+    plat_md5_init();
+    plat_md5_update((uintptr_t)platform_namespace_uuid,16);
+    plat_md5_update((uintptr_t)&fuse_uid0.value,4);
+    plat_md5_update((uintptr_t)&fuse_uid1.value,4);
+    plat_md5_finalize((uintptr_t)out);
+    return PB_OK;
+}
+
+uint32_t plat_get_params(struct param **pp)
+{
+    char uuid_raw[16];
+
+    param_add_str((*pp)++, "Platform", "NXP IMX6UL");
+    plat_get_uuid(uuid_raw);
+    param_add_uuid((*pp)++, "Device UUID",uuid_raw);
+    return PB_OK;
+}
+
+
 void plat_reset(void)
 {
     imx_wdog_reset_now();
-    while(1)    
-        __asm__("nop");
 }
 
 uint32_t  plat_get_us_tick(void)
 {
-    return gp_timer_get_tick(&platform_timer);
+    return gp_timer_get_tick(&plat.tmr0);
 }
 
 void plat_wdog_init(void)
 {
-    wdog_device.base = 0x020BC000;
-    imx_wdog_init(&wdog_device, 5);
+    imx_wdog_init(&plat.wdog, 5);
 }
 
-void      plat_wdog_kick(void)
+void plat_wdog_kick(void)
 {
     imx_wdog_kick();
 }
@@ -76,19 +224,19 @@ uint32_t  plat_fuse_write(struct fuse *f)
 
     if ((f->status & FUSE_VALID) != FUSE_VALID)
     {
-        LOG_ERR("Could not write fuse %s\n", s);
+        LOG_ERR("Could not write fuse %s", s);
         return PB_ERR;
     }
 
-    LOG_INFO("Writing: %s\n\r", s);
+    LOG_INFO("Writing: %s", s);
 
     return ocotp_write(f->bank, f->word, f->value);
 }
 
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
-    return snprintf(s, n, 255,
-            "   FUSE<%lu,%lu> 0x%4.4lX %s = 0x%8.8lX\n",
+    return snprintf(s, n,
+            "   FUSE<%u,%u> 0x%04x %s = 0x%08x",
                 f->bank, f->word, f->addr,
                 f->description, f->value);
 }
@@ -109,7 +257,7 @@ uint32_t plat_write_block(uint32_t lba_offset,
                           uintptr_t bfr, 
                           uint32_t no_of_blocks) 
 {
-    return usdhc_emmc_xfer_blocks(&usdhc0, 
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0, 
                                   lba_offset, 
                                   (uint8_t *) bfr, 
                                   no_of_blocks, 
@@ -120,7 +268,7 @@ uint32_t plat_read_block(uint32_t lba_offset,
                          uintptr_t bfr, 
                          uint32_t no_of_blocks) 
 {
-    return usdhc_emmc_xfer_blocks(&usdhc0,
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
                                   lba_offset, 
                                   (uint8_t *) bfr, 
                                   no_of_blocks, 
@@ -129,12 +277,12 @@ uint32_t plat_read_block(uint32_t lba_offset,
 
 uint32_t plat_switch_part(uint8_t part_no) 
 {
-    return usdhc_emmc_switch_part(&usdhc0, part_no);
+    return usdhc_emmc_switch_part(&plat.usdhc0, part_no);
 }
 
 uint64_t plat_get_lastlba(void) 
 {
-    return usdhc0.sectors-1;
+    return plat.usdhc0.sectors-1;
 }
 
 /* Crypto Interface */
@@ -153,6 +301,22 @@ uint32_t  plat_sha256_finalize(uintptr_t out)
     return caam_sha256_finalize((uint8_t *)out);
 }
 
+
+uint32_t  plat_md5_init(void)
+{
+    return caam_md5_init();
+}
+
+uint32_t  plat_md5_update(uintptr_t bfr, uint32_t sz)
+{
+    return caam_md5_update((uint8_t *) bfr,sz);
+}
+
+uint32_t  plat_md5_finalize(uintptr_t out)
+{
+    return caam_md5_finalize((uint8_t *)out);
+}
+
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
                         struct asn1_key *k)
 {
@@ -164,6 +328,8 @@ uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out,
 uint32_t  plat_usb_init(struct usb_device *dev)
 {
     uint32_t reg;
+
+    dev->platform_data = (void *) &plat.usb0;
     /* Enable USB PLL */
     reg = pb_read32(0x020C8000+0x10);
     reg |= (1<<6);
@@ -209,13 +375,11 @@ uint32_t plat_early_init(void)
     uint32_t reg;
     uint32_t err;
 
+    board_early_init(&plat);
+    /* Unmask wdog in SRC control reg */
+    pb_write32(0, 0x020D8000);
     plat_wdog_init();
-
-    platform_timer.base = 0x02098000;
-    platform_timer.pr = 24;
-
-    gp_timer_init(&platform_timer);
-
+    gp_timer_init(&plat.tmr0);
 
     /**
      * TODO: Some imx6ul can run at 696 MHz and some others at 528 MHz
@@ -264,26 +428,15 @@ uint32_t plat_early_init(void)
 		*((uint32_t *)csu + i) = 0xffffffff;
 	}
     
-    board_early_init();
-
-    uart0.base = board_get_debug_uart();
-    uart0.baudrate = 80000000L / (2 * 115200);
-
-    imx_uart_init(&uart0);
-
-    ocotp.base = 0x021BC000;
-    ocotp.words_per_bank = 8;
-    ocotp_init(&ocotp);
 
 
-    usdhc0.base = 0x02190000;
-    usdhc0.clk_ident = 0x10E1;
-    usdhc0.clk = 0x0101;
-    usdhc0.bus_mode = USDHC_BUS_DDR52;
-    usdhc0.bus_width = USDHC_BUS_8BIT;
-    usdhc0.boot_bus_cond = 0;
+    imx_uart_init(&plat.uart0);
 
-    err = usdhc_emmc_init(&usdhc0);
+    plat.ocotp.base = 0x021BC000;
+    plat.ocotp.words_per_bank = 8;
+    ocotp_init(&plat.ocotp);
+
+    err = usdhc_emmc_init(&plat.usdhc0);
 
     if (err != PB_OK)
     {
@@ -292,9 +445,9 @@ uint32_t plat_early_init(void)
     }
 
     /* Configure CAAM */
-    caam.base = 0x02141000;
+    plat.caam.base = 0x02141000;
 
-    if (caam_init(&caam) != PB_OK)
+    if (caam_init(&plat.caam) != PB_OK)
         return PB_ERR;
 
     if (hab_secureboot_active())
@@ -311,6 +464,8 @@ uint32_t plat_early_init(void)
         LOG_ERR("HAB is reporting errors");
     }
 
+    if (imx_wdog_kick() != PB_OK)
+        LOG_ERR("WDOG kick failed");
     return PB_OK;
 }
 
