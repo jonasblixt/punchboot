@@ -68,6 +68,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     plat->usdhc0.bus_width = USDHC_BUS_8BIT;
     plat->usdhc0.boot_bus_cond = 0;
 
+
     /* Configure UART */
     pb_write32(0, 0x020E0094);
     pb_write32(0, 0x020E0098);
@@ -77,6 +78,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
 
     pb_write32(5, 0x020E0098); 
     pb_write32(0x2000 | (2 << 14) | (1 << 12), 0x020E0324);
+    
     /* Configure pinmux for usdhc1 */
     pb_write32(0, 0x020E0000+0x1C0); /* CLK MUX */
     pb_write32(0, 0x020E0000+0x1BC); /* CMD MUX */

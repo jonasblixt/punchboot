@@ -29,7 +29,7 @@ const struct fuse fuses[] =
 };
 
 static struct fuse board_ident_fuse =
-        TEST_FUSE_BANK_WORD(16,"Ident");
+        TEST_FUSE_BANK_WORD(15,"Ident");
 
 const struct partition_table pb_partition_table[] =
 {

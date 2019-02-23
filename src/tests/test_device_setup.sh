@@ -3,7 +3,7 @@ source tests/common.sh
 wait_for_qemu_start
 
 # Execute device setup
-$PB dev -y -s -f tests/test.pbp
+$PB dev -y -i -f tests/test.pbp
 result_code=$?
 
 if [ $result_code -ne 0 ];
