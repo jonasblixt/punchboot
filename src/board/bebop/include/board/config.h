@@ -13,10 +13,10 @@
 #define __BOARD_CONFIG__
 
 
-
 #define EHCI_PHY_BASE 0x02184000
 
-#define PB_MAX_FAIL_BOOT_COUNT 16
-
-
+#define BOARD_BOOT_ARGS  "console=ttymxc1,115200 " \
+                         "earlyprintk " \
+                         "root=PARTUUID=%s " \
+                         "rw rootfstype=ext4 gpt rootwait"
 #endif
