@@ -16,7 +16,7 @@ struct pb_platform_setup
     struct gp_timer tmr0;
     struct usdhc_device usdhc0;
     struct imx_uart_device uart0;
-    struct fsl_caam_jr caam;
+    //struct fsl_caam_jr caam;
     struct dwc3_device usb0;
     struct ocotp_dev ocotp;
     struct imx_wdog_device wdog;

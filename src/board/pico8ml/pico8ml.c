@@ -11,23 +11,18 @@
 #include <plat/imx/usdhc.h>
 #include <plat/imx8m/plat.h>
 
-const struct fusebox pb_fusebox =
+const struct fuse fuses[] =
 {
-    .identity = IMX8M_FUSE_BANK_WORD_VAL(14,0,  "Device Info", 0x12340000),
-    .revoke_mask = IMX8M_FUSE_BANK_WORD(14,1,"REVOKE"),
-    .fuses = 
-    {
-        IMX8M_FUSE_BANK_WORD_VAL(6, 0, "SRK0", 0x5020C7D7),
-        IMX8M_FUSE_BANK_WORD_VAL(6, 1, "SRK1", 0xBB62B945),
-        IMX8M_FUSE_BANK_WORD_VAL(6, 2, "SRK2", 0xDD97C8BE),
-        IMX8M_FUSE_BANK_WORD_VAL(6, 3, "SRK3", 0xDC6710DD),
-        IMX8M_FUSE_BANK_WORD_VAL(7, 0, "SRK4", 0x2756B777),
-        IMX8M_FUSE_BANK_WORD_VAL(7, 1, "SRK5", 0xEF43BC0A),
-        IMX8M_FUSE_BANK_WORD_VAL(7, 2, "SRK6", 0x7185604B),
-        IMX8M_FUSE_BANK_WORD_VAL(7, 3, "SRK7", 0x3F335991),
-        IMX8M_FUSE_BANK_WORD_VAL(1, 3, "BOOT Config",  0x00002060),
-        IMX8M_FUSE_END,
-    },
+    IMX8M_FUSE_BANK_WORD_VAL(6, 0, "SRK0", 0x5020C7D7),
+    IMX8M_FUSE_BANK_WORD_VAL(6, 1, "SRK1", 0xBB62B945),
+    IMX8M_FUSE_BANK_WORD_VAL(6, 2, "SRK2", 0xDD97C8BE),
+    IMX8M_FUSE_BANK_WORD_VAL(6, 3, "SRK3", 0xDC6710DD),
+    IMX8M_FUSE_BANK_WORD_VAL(7, 0, "SRK4", 0x2756B777),
+    IMX8M_FUSE_BANK_WORD_VAL(7, 1, "SRK5", 0xEF43BC0A),
+    IMX8M_FUSE_BANK_WORD_VAL(7, 2, "SRK6", 0x7185604B),
+    IMX8M_FUSE_BANK_WORD_VAL(7, 3, "SRK7", 0x3F335991),
+    IMX8M_FUSE_BANK_WORD_VAL(1, 3, "BOOT Config",  0x00002060),
+    IMX8M_FUSE_END,
 };
 
 const struct partition_table pb_partition_table[] =
@@ -54,7 +49,6 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     plat->usdhc0.bus_width = USDHC_BUS_8BIT;
     plat->usdhc0.boot_bus_cond = 0;
 
-    plat->caam.base = 0x30901000;
 
     plat->ocotp.base = 0x30350000;
     plat->ocotp.words_per_bank = 4;
@@ -129,6 +123,19 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     return PB_OK;
 }
 
+
+uint32_t board_get_params(struct param **pp)
+{
+    param_add_str((*pp)++, "Board", "Pico8ml");
+    return PB_OK;
+}
+
+uint32_t board_setup_device(struct param *params)
+{
+    UNUSED(params);
+    return PB_OK;
+}
+
 uint32_t board_prepare_recovery(struct pb_platform_setup *plat)
 {
     UNUSED(plat);
@@ -147,3 +154,10 @@ bool board_force_recovery(struct pb_platform_setup *plat)
     return false;
 }
 
+uint32_t board_linux_patch_dt (void *fdt, int offset)
+{
+    UNUSED(fdt);
+    UNUSED(offset);
+
+    return PB_OK;
+}

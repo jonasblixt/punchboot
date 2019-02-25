@@ -17,9 +17,7 @@ FINAL_IMAGE     = $(TARGET).imx
 board_final: $(TARGET).bin
 	@echo "board_final"
 	$(MKIMAGE) -loader $(TARGET).bin $(PB_ENTRY) -out $(TARGET).imx 
-	$(eval PB_FILESIZE=$(shell stat -c%s "pb.imx"))
-	$(eval PB_FILESIZE2=$(shell echo " $$(( $(PB_FILESIZE) - 0x2000 ))" | bc	))
-	@dd if=pb_csf.bin of=pb.imx seek=$(PB_FILESIZE2) bs=1 conv=notrunc
+	@echo "mkimage done"
 
 board_clean:
 	@-rm -rf board/pico8ml/*.o 

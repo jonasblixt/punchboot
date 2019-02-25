@@ -3,10 +3,12 @@
 #include <io.h>
 #include <plat.h>
 #include <board.h>
+#include <fuse.h>
 #include <timing_report.h>
 #include <plat/regs.h>
 #include <plat/imx/imx_uart.h>
 #include <plat/imx8m/clock.h>
+#include <plat/imx8m/plat.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/caam.h>
@@ -15,9 +17,115 @@
 #include <plat/imx/ocotp.h>
 #include <plat/imx/wdog.h>
 
-static __no_bss __a4k struct pb_platform_setup plat;
+static struct pb_platform_setup plat;
+extern struct fuse fuses[];
+
+static __no_bss struct fsl_caam_jr caam;
+static struct fuse fuse_uid0 = 
+        IMX8M_FUSE_BANK_WORD(0, 1, "UID0");
+
+static struct fuse fuse_uid1 = 
+        IMX8M_FUSE_BANK_WORD(0, 2, "UID1");
 
 /* Platform API Calls */
+
+uint32_t plat_get_security_state(uint32_t *state)
+{
+    uint32_t err;
+    (*state) = PB_SECURITY_STATE_NOT_SECURE;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+ 
+        if (f->value)
+        {
+            (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
+            break;
+        }
+
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+    }
+
+
+    if ((*state) == PB_SECURITY_STATE_NOT_SECURE)
+        return PB_OK;
+
+    if (hab_has_no_errors() == PB_OK)
+        (*state) = PB_SECURITY_STATE_CONFIGURED_OK;
+    else
+        (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
+
+    if (hab_secureboot_active())
+        (*state) = PB_SECURITY_STATE_SECURE;
+
+    return PB_OK;
+}
+
+static const char platform_namespace_uuid[] = 
+    "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
+uint32_t plat_get_uuid(char *out)
+{
+    plat_fuse_read(&fuse_uid0);
+    plat_fuse_read(&fuse_uid1);
+
+    LOG_INFO("%08x %08x",fuse_uid0.value, fuse_uid1.value);
+
+    plat_md5_init();
+    plat_md5_update((uintptr_t)platform_namespace_uuid,16);
+    plat_md5_update((uintptr_t)&fuse_uid0.value,4);
+    plat_md5_update((uintptr_t)&fuse_uid1.value,4);
+    plat_md5_finalize((uintptr_t)out);
+    return PB_OK;
+}
+
+uint32_t plat_get_params(struct param **pp)
+{
+    char uuid_raw[16];
+
+    param_add_str((*pp)++, "Platform", "NXP IMX8M");
+    plat_get_uuid(uuid_raw);
+    param_add_uuid((*pp)++, "Device UUID",uuid_raw);
+    return PB_OK;
+}
+
+uint32_t plat_setup_device(struct param *params)
+{
+    uint32_t err;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+ 
+        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+    }
+
+    /* Perform the actual fuse programming */
+    
+    LOG_INFO("Writing fuses");
+
+    foreach_fuse(f, fuses)
+    {
+        f->value = f->default_value;
+        err = plat_fuse_write(f);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    return board_setup_device(params);
+}
 
 uint32_t plat_setup_lock(void)
 {
@@ -70,7 +178,7 @@ uint32_t imx8m_clock_cfg(uint32_t clk_id, uint32_t flags)
     if (clk_id > 133)
         return PB_ERR;
 
-    pb_write32(flags, 0x30388004 + 0x80*clk_id);
+    pb_write32(flags, (0x30388004 + 0x80*clk_id));
 
     return PB_OK;
 }
@@ -79,7 +187,7 @@ uint32_t imx8m_clock_cfg(uint32_t clk_id, uint32_t flags)
 uint32_t imx8m_clock_print(uint32_t clk_id)
 {
     uint32_t reg;
-    uint32_t addr = 0x30388000 + 0x80*clk_id;
+    uint32_t addr = (0x30388000 + 0x80*clk_id);
 
     if (clk_id > 133)
         return PB_ERR;
@@ -91,7 +199,7 @@ uint32_t imx8m_clock_print(uint32_t clk_id)
     uint32_t pre_podf = (reg >> 16) & 7;
     uint32_t post_podf = reg & 0x1f;
 
-    LOG_INFO("CLK %u, 0x%8.8X = 0x%8.8X", clk_id,addr, reg);
+    LOG_INFO("CLK %u, 0x%08x = 0x%08x", clk_id,addr, reg);
     LOG_INFO("  MUX %u", mux);
     LOG_INFO("  En: %u", enabled);
     LOG_INFO("  Prepodf: %u", pre_podf);
@@ -105,7 +213,7 @@ uint32_t imx8m_cg_print(uint32_t cg_id)
     uint32_t reg;
     uint32_t addr = 0x30384000 + 0x10*cg_id;
     reg = pb_read32(addr);
-    LOG_INFO("CG %u 0x%8.8X = 0x%8.8X",cg_id,addr,reg);
+    LOG_INFO("CG %u 0x%08x = 0x%08x",cg_id,addr,reg);
     return PB_OK;
 }
 #endif
@@ -152,7 +260,7 @@ uint32_t plat_early_init(void)
 	/* unbypass the clock */
 	pb_write32(reg & ~FRAC_PLL_BYPASS_MASK, ARM_PLL_CFG0);
 
-	while (!(pb_read32(ARM_PLL_CFG0) & FRAC_PLL_LOCK_MASK))
+	while ((pb_read32(ARM_PLL_CFG0) & FRAC_PLL_LOCK_MASK) != FRAC_PLL_LOCK_MASK)
 		__asm__("nop");
 
     reg = pb_read32(ARM_PLL_CFG0);
@@ -219,7 +327,8 @@ uint32_t plat_early_init(void)
         return err;
     }
 
-    err = caam_init(&plat.caam);
+    caam.base = 0x30901000;
+    err = caam_init(&caam);
 
     if (err != PB_OK)
     {
@@ -295,6 +404,23 @@ uint32_t  plat_sha256_finalize(uintptr_t out)
 {
     return caam_sha256_finalize((uint8_t *) out);
 }
+
+
+uint32_t  plat_md5_init(void)
+{
+    return caam_md5_init();
+}
+
+uint32_t  plat_md5_update(uintptr_t bfr, uint32_t sz)
+{
+    return caam_md5_update((uint8_t *) bfr,sz);
+}
+
+uint32_t  plat_md5_finalize(uintptr_t out)
+{
+    return caam_md5_finalize((uint8_t *)out);
+}
+
 
 uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
                         struct asn1_key *k)
