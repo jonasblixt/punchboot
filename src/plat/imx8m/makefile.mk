@@ -50,5 +50,6 @@ plat_final:
 	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' pb.csf
 	@$(SED) -i -e 's#__IMG_PEM__#$(IMG_PEM)#g'  pb.csf
 	@$(CST_TOOL) --o pb_csf.bin --i pb.csf
-	@dd if=pb_csf.bin of=pb.imx seek=$(PB_FILESIZE2) bs=1 conv=notrunc
+	@cp $(TARGET).imx $(TARGET)_signed.imx
+	@dd if=pb_csf.bin of=$(TARGET)_signed.imx seek=$(PB_FILESIZE2) bs=1 conv=notrunc
 

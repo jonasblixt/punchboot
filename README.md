@@ -15,7 +15,17 @@ software component of the boot chain, for example an OS kernel, hypervisor
 As the name implies, punchboot is fast, really fast. Infact, boot speed
 is one of the primary design goals.
 
+Punchboot is designed for embedded systems and therfore it has a minimalistic
+ apporach. There is no run-time configuration, everything is configured in 
+ the board files.
 
+Punchboot could be useful if you care about the following:
+ - Boot speed
+ - Secure boot
+ - Downloading software quickly in production
+
+Releases
+ v0.1 - First release, yay! 
 
 ## Metrics
 
@@ -59,10 +69,11 @@ Using hardware accelerators for SHA and RSA signatures:
 | Blockdev read     | 86.245   | ms   |
 | SHA256 Hash       | 47.649   | ms   |
 | RSA 4096 Signature | 0.676    | ms   |
-| Linux             | 420      | ms   |
-| Total             | 734      | ms   |
+| Total             | 314      | ms   |
 
-The linux boot time is measured when handover is done to init/user space.
+The POR time is off due to some unidentified problem with the SCU firmware.
+ A guess would be that this metric should be in the 20ms -range.
+
 
 ## Design
 
@@ -167,14 +178,77 @@ Production units that are shipped from the factory will use field keys. The priv
 is obviously a secure asset and should probably only live in a HSM environment with
 very limited access.
 
-## Device life cycle management
-
-
 ## Testing and integration tests
+Punchboot uses QEMU for all module and integration tests. The 'test' platform
+ and board target relies on virtio serial ports and block devices. The punchboot
+ cli can be built with a domain socket transport instead of USB for communicating
+ with an QEMU environment.
 
+The test platform code includes gcov code that calls the QEMU semihosting API
+ for storing test coverage data on the host.
+
+Building and running tests:
+```
+$ export BOARD=test 
+$ export LOGLEVEL=3
+$ make clean && make && make test
+```
 ## Atomic upgrades
-## Recovery mode
-## PBI Image format
-## pbimage tool
-## punchboot tool
+To allow atomic updates as a minimum there needs to be two system partitions
+ one that is active and another that can be updated and verified before 
+ switching over.
 
+Punchboot uses the 'bootable' attribute in the GPT partition header to indicate
+which partion is bootable or not.
+
+## Recovery mode
+Recovery mode is entered when the system can't boot or if the bootloader is
+ forced by a configurable, external event.
+
+In the recovery mode it is possible to update the bootloader, write data to
+partitions and install default settings.
+
+## pbimage tool
+The pbimage tool is used to create a punchboot compatible image. The tool uses
+ a manifest file to describe which binaries should be included and what signing
+ key that should be used.
+
+Example image manifest:
+
+```
+[pbimage]
+key_index = 1
+key_source = ../pki/prod_rsa_private.der
+output = test_image.pbi
+
+[component]
+type = ATF
+load_addr = 0x80000000
+file = bl31.bin
+
+[component]
+type = DT
+load_addr = 0x82000000
+file = linux.dtb
+
+[component]
+type = LINUX
+load_addr = 0x82020000
+file = Image
+
+```
+
+## punchboot tool
+The punchboot CLI is used for interacting with the recovery mode. A summary of
+ the features available:
+ - Update the bootloader it self
+ - Manually start system A or B
+ - Activate boot partitions
+ - Load image to ram and execute it
+ - Display basic device info
+ - Configure fuses and GPT parition tables
+
+## future work
+ - Support additional memory technologies
+ - Add authentication for the punchboot cli
+ - Support additional platforms

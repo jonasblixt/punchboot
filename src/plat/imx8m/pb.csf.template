@@ -18,9 +18,9 @@ File = "__CSFK_PEM__"
 # 
 
 [Unlock]
-    # Leave Job Ring and DECO master ID registers Unlocked
-    Engine = CAAM
-    Features = MID
+# Leave Job Ring and DECO master ID registers Unlocked
+Engine = CAAM
+Features = MID
 
 [Install Key]
 # Key slot index used to authenticate the key to be installed
