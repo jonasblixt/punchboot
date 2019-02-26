@@ -431,6 +431,8 @@ static void recovery_parse_command(struct usb_device *dev,
                 p++;
                 param_count++;
             }
+        
+            param_count++;
 
             recovery_send_response(dev,(uint8_t*) params,
                             (sizeof(struct param) * param_count));  
