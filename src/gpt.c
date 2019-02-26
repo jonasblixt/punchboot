@@ -140,6 +140,8 @@ uint32_t gpt_add_part(struct gpt *gpt, uint8_t part_idx, uint32_t no_of_blocks,
         *part_name_ptr++ = 0;
     }
     
+    part->attr[7] = 0x80; /* Not bootable */
+
     memcpy(part->type_uuid, type_uuid, 16);
     memcpy(part->uuid, type_uuid, 16);
     memcpy(&gpt->backup.part[part_idx], part, sizeof(struct gpt_part_hdr));
