@@ -254,8 +254,8 @@ static uint32_t pb_display_device_info(void)
 
 
     printf("\n");
-    printf ("Paramter            Value\n");
-    printf ("--------            -----\n");
+    printf ("Parameter           Value\n");
+    printf ("---------           -----\n");
     foreach_param(p, params)
         pb_print_param(p);
 
