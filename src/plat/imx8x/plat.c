@@ -403,7 +403,7 @@ uint32_t  plat_fuse_write(struct fuse *f)
 
     plat_fuse_to_string(f, s, 64);
 
-    LOG_INFO("Fusing %s = 0x%08x",s,f->value);
+    LOG_INFO("Fusing %s",s,f->value);
 
     err = sc_misc_otp_fuse_write(plat.ipc_handle, f->addr, f->value);
 
@@ -416,7 +416,7 @@ uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
 
     return snprintf(s, n,
-            "   FUSE<%u> %s = 0x%08x\n",
+            "   FUSE<%u> %s = 0x%08x",
                 f->bank,
                 f->description, f->value);
 }
