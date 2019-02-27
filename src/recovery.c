@@ -395,9 +395,14 @@ static void recovery_parse_command(struct usb_device *dev,
             }
 
             LOG_INFO ("Performing device setup, %u",cmd->arg0);
+            
+            params[0].kind = PB_PARAM_END;
 
-            recovery_read_data(dev, (uint8_t *) params,
-                    sizeof(struct param) * cmd->arg0);
+            if (cmd->arg0 > 0)
+            {
+                recovery_read_data(dev, (uint8_t *) params,
+                        sizeof(struct param) * cmd->arg0);
+            }
 
             err = plat_setup_device(params);
         }
