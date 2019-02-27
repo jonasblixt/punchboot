@@ -3,6 +3,7 @@
 #include <io.h>
 #include <plat.h>
 #include <board.h>
+#include <uuid.h>
 #include <plat/imx8x/plat.h>
 #include <plat/regs.h>
 #include <plat/imx/lpuart.h>
@@ -122,17 +123,12 @@ uint32_t plat_get_uuid(char *out)
 
     uint16_t lc;
     uint16_t monotonic;
-    uint32_t uid_l;
-    uint32_t uid_h;
+    uint32_t uid[2];
 
-    sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid_l, &uid_h);
-
-    plat_md5_init();
-    plat_md5_update((uintptr_t)platform_namespace_uuid,16);
-    plat_md5_update((uintptr_t)&uid_l,4);
-    plat_md5_update((uintptr_t)&uid_h,4);
-    plat_md5_finalize((uintptr_t)out);
-    return PB_OK;
+    sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid[0], &uid[1]);
+    
+    return uuid_gen_uuid3(platform_namespace_uuid,16,
+                          (const char *) uid, 8, out);
 }
 
 uint32_t plat_get_params(struct param **pp)

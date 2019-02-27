@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pb.h>
+#include <plat.h>
 #include <uuid.h>
 
 typedef union 
@@ -16,6 +17,36 @@ typedef union
     } uuid __packed;
 } uuid_t;
 
+uint32_t uuid_gen_uuid3(const char *ns,
+                        uint32_t ns_length,
+                        const char *unique_data,
+                        uint32_t unique_data_length,
+                        char *out)
+{
+    uint32_t err;
+
+    err = plat_md5_init();
+
+    if (err != PB_OK)
+        return err;
+
+    plat_md5_update((uintptr_t)ns,ns_length);
+    plat_md5_update((uintptr_t)&unique_data,unique_data_length);
+
+    err = plat_md5_finalize((uintptr_t)out);
+
+    if (err != PB_OK)
+        return err;
+
+    uuid_t *u = (uuid_t *) out;
+
+    u->uuid.time_hi_and_version &= 0xFF0F;
+    u->uuid.time_hi_and_version |= 0x0030; /* Version 3*/
+
+    u->uuid.clock_seq_hi_and_res &= 0xFF1F;
+    u->uuid.clock_seq_hi_and_res |= 0x0080; /* RFC4122 variant*/
+    return PB_OK;
+}
 
 uint32_t uuid_to_string(uint8_t *uuid, char *out)
 {
