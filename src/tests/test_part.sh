@@ -35,7 +35,7 @@ then
     test_end_error
 fi
 
-sgdisk /tmp/disk -A 1:set:63
-sgdisk /tmp/disk -A 2:set:63
+
+$PB boot -a -s none
 
 test_end_ok

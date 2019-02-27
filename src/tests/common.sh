@@ -48,6 +48,6 @@ test_end_ok()
 
     echo ------- ITEST END OK: $TEST_NAME ---------------------------
     sleep 0.1
-    $PB boot -r
+    $PB boot -r &> /dev/null
     wait_for_qemu
 }

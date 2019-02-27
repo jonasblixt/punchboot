@@ -12,6 +12,7 @@
 #include <fuse.h>
 #include <plat.h>
 #include <plat/test/plat.h>
+#include <plat/test/semihosting.h>
 
 const struct fuse fuses[] =
 {
@@ -62,7 +63,15 @@ uint32_t board_prepare_recovery(struct pb_platform_setup *plat)
 bool board_force_recovery(struct pb_platform_setup *plat) 
 {
     UNUSED(plat);
-    return false;
+
+    long fd = semihosting_file_open("/tmp/pb_force_recovery", 0);
+
+    if (fd < 0)
+        return false;
+
+    semihosting_file_close(fd);
+
+    return true;
 }
 
 uint32_t board_setup_device(struct param *params)

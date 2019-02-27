@@ -1,5 +1,7 @@
 #!/bin/bash
+touch /tmp/pb_force_recovery
 source tests/common.sh
 wait_for_qemu_start
-sgdisk /tmp/disk -A 1:set:63
-wait_for_qemu
+$PB boot -a -s none
+rm /tmp/pb_force_recovery
+test_end_ok
