@@ -403,7 +403,7 @@ uint32_t  plat_fuse_write(struct fuse *f)
 
     plat_fuse_to_string(f, s, 64);
 
-    LOG_INFO("Fusing %s",s,f->value);
+    LOG_INFO("Fusing %s",s);
 
     err = sc_misc_otp_fuse_write(plat.ipc_handle, f->addr, f->value);
 
