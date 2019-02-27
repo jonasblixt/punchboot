@@ -3,6 +3,7 @@
 #include <keys.h>
 #include <plat.h>
 #include <io.h>
+#include <uuid.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/caam.h>
 #include <plat/imx/ocotp.h>
@@ -154,13 +155,15 @@ uint32_t plat_get_uuid(char *out)
     plat_fuse_read(&fuse_uid0);
     plat_fuse_read(&fuse_uid1);
 
+    uint32_t uid[2];
+
+    uid[0] = fuse_uid0.value;
+    uid[1] = fuse_uid1.value;
+
     LOG_INFO("%08x %08x",fuse_uid0.value, fuse_uid1.value);
 
-    plat_md5_init();
-    plat_md5_update((uintptr_t)platform_namespace_uuid,16);
-    plat_md5_update((uintptr_t)&fuse_uid0.value,4);
-    plat_md5_update((uintptr_t)&fuse_uid1.value,4);
-    plat_md5_finalize((uintptr_t)out);
+    return uuid_gen_uuid3(platform_namespace_uuid,16,
+                          (const char *) uid, 8, out);
     return PB_OK;
 }
 

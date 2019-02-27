@@ -404,8 +404,6 @@ uint32_t  plat_fuse_write(struct fuse *f)
     err = sc_misc_otp_fuse_write(plat.ipc_handle, f->addr, f->value);
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
-
-    return PB_OK;
 }
 
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)

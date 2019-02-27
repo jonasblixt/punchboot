@@ -3,7 +3,7 @@
 #include <io.h>
 #include <plat.h>
 #include <string.h>
-
+#include <uuid.h>
 #include <fuse.h>
 #include <boot.h>
 #include <plat/test/virtio.h>
@@ -89,10 +89,8 @@ static const char *device_unique_id =
 
 uint32_t plat_get_uuid(char *out)
 {
-    plat_md5_init();
-    plat_md5_update((uintptr_t)platform_namespace_uuid,36);
-    plat_md5_update((uintptr_t)device_unique_id,8);
-    return plat_md5_finalize((uintptr_t)out);
+    return uuid_gen_uuid3(platform_namespace_uuid,16,
+                          (const char *) device_unique_id, 8, out);
 }
 
 uint32_t plat_setup_device(struct param *params)
