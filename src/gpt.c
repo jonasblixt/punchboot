@@ -141,6 +141,7 @@ uint32_t gpt_add_part(struct gpt *gpt, uint8_t part_idx, uint32_t no_of_blocks,
     }
     
     part->attr[7] = 0x80; /* Not bootable */
+    part->attr[6] = PB_GPT_ATTR_OK; 
 
     memcpy(part->type_uuid, type_uuid, 16);
     memcpy(part->uuid, type_uuid, 16);
@@ -373,32 +374,58 @@ uint32_t gpt_init(struct gpt *gpt)
     return PB_OK;
 }
 
+uint32_t gpt_pb_attr_setbits(struct gpt_part_hdr *part, uint8_t attr)
+{
+    if (part == NULL)
+        return PB_ERR;
+    
+    part->attr[6] |= attr;
+
+    return PB_OK;
+}
+
+uint32_t gpt_pb_attr_clrbits(struct gpt_part_hdr *part, uint8_t attr)
+{
+    if (part == NULL)
+        return PB_ERR;
+
+    part->attr[6] &= (~attr);
+
+    return PB_OK;
+}
+
+bool gpt_pb_attr_ok(struct gpt_part_hdr *part)
+{
+    if (part == NULL)
+        return false;
+
+    return ((part->attr[6] & PB_GPT_ATTR_OK) == PB_GPT_ATTR_OK);
+}
+
+uint8_t gpt_pb_attr_counter(struct gpt_part_hdr *part)
+{
+    if (part == NULL)
+        return 0;
+    return (part->attr[6] & 0x0f);
+}
+
 uint32_t gpt_part_set_bootable(struct gpt_part_hdr *part, bool bootable)
 {
-    uint64_t *attrs = NULL;
-
     if(part == NULL)
         return PB_ERR;
 
-    attrs = (uint64_t *) part->attr;
-
     if (bootable)
-        (*attrs) &= ~GPT_ATTR_NOT_BOOTABLE;
+        part->attr[7] &= ~0x80;
     else
-        (*attrs) |= GPT_ATTR_NOT_BOOTABLE;
+        part->attr[7] |= 0x80;
 
     return PB_OK;
 }
 
 bool gpt_part_is_bootable(struct gpt_part_hdr *part)
 {
-    uint64_t *attrs = NULL;
-
     if(part == NULL)
         return false;
 
-    attrs = (uint64_t *) part->attr;
-
-    return (((*attrs) & GPT_ATTR_NOT_BOOTABLE) 
-                        != GPT_ATTR_NOT_BOOTABLE);
+    return ((part->attr[7] & 0x80) != 0x80);
 }

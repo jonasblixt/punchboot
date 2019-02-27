@@ -28,6 +28,7 @@ void pb_main(void)
     uint32_t active_system;
     bool flag_run_recovery = false;
     struct gpt_part_hdr *part_system_a, *part_system_b;
+    struct gpt_part_hdr *part;
 
     tr_init();
 
@@ -40,8 +41,6 @@ void pb_main(void)
 
     if (gpt_init(&gpt) != PB_OK)
         flag_run_recovery = true;
-
-
 
     if (plat_force_recovery())
         flag_run_recovery = true;
@@ -60,13 +59,13 @@ void pb_main(void)
     if (gpt_part_is_bootable(part_system_a))
     {
         LOG_INFO("Loading System A");
-        err = pb_image_load_from_fs((part_system_a->first_lba), &pbi);
+        part = part_system_a;
         active_system = SYSTEM_A;
     }
     else if (gpt_part_is_bootable(part_system_b))
     {
         LOG_INFO("Loading System B");
-        err = pb_image_load_from_fs(part_system_b->first_lba, &pbi);
+        part = part_system_b;
         active_system = SYSTEM_B;
     }
     else
@@ -76,12 +75,61 @@ void pb_main(void)
 
         goto run_recovery;
     }
-    
+
+    uint32_t count = gpt_pb_attr_counter(part);
+
+    /* Newly upgraded system? */
+    if (!gpt_pb_attr_ok(part) && (count> 0))
+    {
+        /* Decrement boot counter */
+        count--;
+        gpt_pb_attr_clrbits(part, 0x0f);
+        gpt_pb_attr_setbits(part, count);
+
+        gpt_write_tbl(&gpt);
+    }
+    else if (!gpt_pb_attr_ok(part)) /* Boot counter expired, rollback to other part */
+    {
+        LOG_ERR("System is not bootable, performing rollback");
+        /* Indicate that this system failed by setting 
+         * the rollback bit 
+         * */
+        gpt_pb_attr_setbits(part, PB_GPT_ATTR_ROLLBACK);
+        gpt_part_set_bootable(part, false);
+
+        if (active_system == SYSTEM_A)
+        {
+            part = part_system_b;
+            active_system = SYSTEM_B;
+        }
+        else
+        {
+            part = part_system_a;
+            active_system = SYSTEM_A;
+        }
+
+        /* In the unlikely event that the other system is also broken,
+         * start recovery mode
+         * */
+
+        if (!gpt_pb_attr_ok(part))
+        {
+            LOG_ERR("Other system is also broken, starting recovery");
+            flag_run_recovery = true;
+            goto run_recovery;
+        }
+
+        gpt_part_set_bootable(part, true);
+        gpt_write_tbl(&gpt);
+    }
+
+
+    err = pb_image_load_from_fs(part->first_lba, &pbi);
+
     if (err != PB_OK)
     {
         LOG_ERR("Unable to load image");
         flag_run_recovery = true;
-        LOG_DBG("array crc %x", gpt.primary.hdr.part_array_crc);
         goto run_recovery;
     }
 
