@@ -22,6 +22,8 @@ extern void arch_jump_atf(void* atf_addr, void * atf_param)
 
 extern uint32_t board_linux_patch_dt (void *fdt, int offset);
 static char new_bootargs[512];
+static char device_uuid[37];
+static __a4k __no_bss char device_uuid_raw[16];
 
 void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
 {
@@ -110,12 +112,11 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
                 }
              
 
-                char device_uuid[37];
-                char device_uuid_raw[16];
 
 
                 plat_get_uuid(device_uuid_raw);
                 uuid3_to_string((uint8_t *)device_uuid_raw,device_uuid);
+                LOG_DBG("Device UUID: %s", device_uuid);
                 fdt_setprop_string( (void *) fdt, offset, "device-uuid", 
                             (const char *) device_uuid);
 

@@ -17,6 +17,8 @@ typedef union
     } uuid __packed;
 } uuid_t;
 
+static __a4k __no_bss uint8_t _uuid_aligned_buf[32];
+
 uint32_t uuid_gen_uuid3(const char *ns,
                         uint32_t ns_length,
                         const char *unique_data,
@@ -30,8 +32,16 @@ uint32_t uuid_gen_uuid3(const char *ns,
     if (err != PB_OK)
         return err;
 
-    plat_md5_update((uintptr_t)ns,ns_length);
-    plat_md5_update((uintptr_t)&unique_data,unique_data_length);
+    if (ns_length > 32)
+        return PB_ERR;
+
+    if (unique_data_length > 32)
+        return PB_ERR;
+
+    memcpy(_uuid_aligned_buf, ns, ns_length);
+    plat_md5_update((uintptr_t)_uuid_aligned_buf,ns_length);
+    memcpy(_uuid_aligned_buf, unique_data, unique_data_length);
+    plat_md5_update((uintptr_t)&_uuid_aligned_buf,unique_data_length);
 
     err = plat_md5_finalize((uintptr_t)out);
 
