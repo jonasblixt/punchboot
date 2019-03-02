@@ -201,10 +201,10 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_VERSION:
         {
-            char version_string[20];
+            char version_string[30];
 
             LOG_INFO ("Get version");
-            snprintf(version_string, 19, "PB %s",VERSION);
+            snprintf(version_string, 29, "PB %s",VERSION);
 
             err = recovery_send_response( dev, 
                                           (uint8_t *) version_string,

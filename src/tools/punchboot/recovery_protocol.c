@@ -133,6 +133,7 @@ uint32_t pb_get_version(char **out)
     err = pb_read((uint8_t*) &sz, 4);
 
     *out = malloc(sz+1);
+    bzero (*out, sz+1);
 
     if (err)
     {
@@ -151,8 +152,10 @@ uint32_t pb_get_version(char **out)
     out[sz] = 0;
 
     err = pb_read_result_code();
-    if (err)
+
+    if (err != PB_OK)
         free(*out);
+
     return err;
 }
 
