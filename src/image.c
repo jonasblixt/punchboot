@@ -181,9 +181,11 @@ uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
                                 hash, pbi->hdr.hash_kind,
                                 k);
 
+    if (err != PB_OK)
+        return err;
     tr_stamp_end(TR_VERIFY);
 
-    return err;
+    return PB_OK;
 }
 
 struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 

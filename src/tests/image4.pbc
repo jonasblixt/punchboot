@@ -1,5 +1,6 @@
 [pbimage]
-key_mask = 0x00000000
+hash_kind = SHA256
+sign_kind = RSA4096
 key_index = 0
 key_source = ../pki/dev_rsa_private.der
 output = /tmp/img.pbi

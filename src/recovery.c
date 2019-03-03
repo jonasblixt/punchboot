@@ -297,6 +297,9 @@ static void recovery_parse_command(struct usb_device *dev,
                 err = PB_ERR;
             }
             
+            if (err != PB_OK)
+                break;
+
             if (pb_image_verify(&pbi, (const char *)hash_buffer) == PB_OK)
             {
                 LOG_INFO("Booting image...");
