@@ -12,6 +12,8 @@
 #include <io.h>
 #include <string.h>
 #include <plat/imx/caam.h>
+#include <plat/imx/desc_defines.h>
+#include <plat/imx/desc_helper.h>
 
 /* Commands  */
 #define CAAM_CMD_HEADER  0xB0800000
@@ -63,6 +65,7 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
     return PB_OK;
 }
 
+/*
 uint32_t caam_sha256_init(void) 
 {
     memset(&ctx, 0, sizeof(struct caam_hash_ctx));
@@ -114,8 +117,92 @@ uint32_t caam_sha256_finalize(uint8_t *out)
 
    return PB_OK;
 }
+*/
 
 
+static __a4k __no_bss hash_ctx[128];
+
+uint32_t caam_sha256_init(void) 
+
+{
+    memset(hash_ctx, 0, 128);
+    memset(&ctx, 0, sizeof(struct caam_hash_ctx));
+    return PB_OK;
+}
+
+
+uint32_t caam_sha256_update(uint8_t *data, uint32_t sz) 
+{
+    uint8_t dc = 0;
+
+    desc[dc++] = CAAM_CMD_HEADER;
+    desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_SHA256 |
+        CAAM_ALG_AAI(0);
+
+
+    if (ctx.sg_count == 0)
+    {
+        desc[1] |= CAAM_ALG_STATE_INIT;
+        LOG_INFO("Init %p, %u",data,sz);
+    }
+    else
+    {
+        desc[1] |= CAAM_ALG_STATE_UPDATE;
+        desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX,64);
+        desc[dc++]  = (uint32_t) (uintptr_t) hash_ctx;
+        LOG_INFO("Update %p, %u",data,sz);
+    }
+
+    ctx.sg_count = 1;
+
+    desc[dc++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
+    desc[dc++] = (uint32_t) (uintptr_t) data;
+    desc[dc++] = sz;
+    desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, 64);
+    desc[dc++] = (uint32_t) (uintptr_t) hash_ctx;
+
+    desc[0] |= dc;
+
+    if (caam_shedule_job_sync(d, desc) != PB_OK) 
+    {
+        LOG_ERR ("sha256 error");
+        return PB_ERR;
+    }
+    return PB_OK;
+}
+
+uint32_t caam_sha256_finalize(uint8_t *out) 
+{
+    uint8_t dc = 0;
+
+    desc[dc++] = CAAM_CMD_HEADER;
+    desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_SHA256 |
+        CAAM_ALG_AAI(0) | CAAM_ALG_STATE_FIN;
+
+    desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX,64);
+    desc[dc++]  = (uint32_t) (uintptr_t) hash_ctx;
+    desc[dc++]  = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
+    desc[dc++]  = 0;
+    desc[dc++]  = 0;
+    desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, 64);
+    desc[dc++] = (uint32_t) (uintptr_t) out;
+
+    desc[0] |= dc;
+
+    LOG_DBG("Finalize");
+    if (caam_shedule_job_sync(d, desc) != PB_OK) 
+    {
+        LOG_ERR ("sha256 error");
+        return PB_ERR;
+    }
+
+    printf("SHA:");
+    for (uint8_t n = 0; n < 32; n++)
+        printf ("%02x ",out[n]);
+    printf("\n\r");
+
+   return PB_OK;
+}
 
 uint32_t caam_md5_init(void) 
 {
@@ -189,6 +276,38 @@ uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
 
     return PB_OK;
 }
+
+
+/*
+ * Operation:
+ *   (0x16 << 16) DSA_Verfiy (pg. 335)
+ *
+ *
+ */
+
+uint32_t caam_ecc_enc(uint8_t *input,  uint32_t input_sz,
+                    uint8_t *output, struct asn1_key *k)
+{
+   
+    desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
+    desc[1] = (3 << 12)|512;
+    desc[2] = (uint32_t)(uintptr_t) input;
+    desc[3] = (uint32_t)(uintptr_t) output;
+    desc[4] = (uint32_t)(uintptr_t) k->mod;
+    desc[5] = (uint32_t)(uintptr_t) k->exp;
+    desc[6] = input_sz;
+    desc[7] = CAAM_CMD_OP | (0x18 << 16)|(0<<12) ;
+
+
+ 
+    if (caam_shedule_job_sync(d, desc) != PB_OK) {
+        LOG_ERR ("caam_rsa_enc error");
+        return PB_ERR;
+    }
+
+    return PB_OK;
+}
+
 
 uint32_t caam_init(struct fsl_caam_jr *caam_dev) 
 {

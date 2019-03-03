@@ -36,7 +36,8 @@
 #define CAAM_SMCJR          0x00f4
 #define CAAM_SMCSJR         0x00fc
 
-struct caam_sg_entry {
+struct caam_sg_entry 
+{
 	uint32_t addr_hi;	/* Memory Address of start of buffer - hi */
 	uint32_t addr_lo;	/* Memory Address - lo */
 
@@ -52,7 +53,8 @@ struct caam_sg_entry {
 };
 
 
-struct rsa_enc_pdb {
+struct rsa_enc_pdb 
+{
     uint32_t header; // 24..13 = e_len, 12..0 = n_len
     uint32_t f_ref; // Input pointer
     uint32_t g_ref; // Output pointer
@@ -68,7 +70,8 @@ struct caam_hash_ctx
     uint32_t total_bytes;
 };
 
-struct fsl_caam_jr {
+struct fsl_caam_jr 
+{
     __iomem base;
    uint32_t __a4k input_ring[JOB_RING_ENTRIES];
    uint32_t __a4k output_ring[JOB_RING_ENTRIES*2];
