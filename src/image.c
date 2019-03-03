@@ -164,6 +164,7 @@ uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
 
     struct pb_key *k;
 
+    LOG_DBG("Loading key %u", pbi->hdr.key_index);
     err = pb_crypto_get_key(pbi->hdr.key_index, &k);
 
     if (err != PB_OK)
@@ -172,17 +173,13 @@ uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
         return PB_ERR;
     }
 
-    printf ("SHA256: ");
-    for (uint32_t i = 0; i < 32; i++)
-        printf ("%02x ", hash[i]);
-    printf("\n\r");
-
     err = plat_verify_signature(pbi->sign, pbi->hdr.sign_kind,
                                 hash, pbi->hdr.hash_kind,
                                 k);
 
     if (err != PB_OK)
         return err;
+
     tr_stamp_end(TR_VERIFY);
 
     return PB_OK;

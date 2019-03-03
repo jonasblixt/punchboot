@@ -113,7 +113,7 @@ ifeq ($(BOARD),test)
 endif
 
 
-key_data.o: key_data.c
+key_data: key_data.o
 	@$(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > key_data.c
 	@$(CC) -c $(CFLAGS) key_data.c -o key_data.o
 
