@@ -10,6 +10,13 @@ BOARD_C_SRCS += boot/atf_linux.c
 MKIMAGE         = mkimage_imx8
 FINAL_IMAGE     = $(TARGET).imx
 
+KEYS  = ../pki/dev_rsa_public.der
+KEYS += ../pki/prod_rsa_public.der
+KEYS += ../pki/field1_rsa_public.der
+KEYS += ../pki/field2_rsa_public.der
+
+KEY_TYPE = RSA
+
 board_final: $(TARGET).bin
 	@echo fixme board_final
 board_clean:

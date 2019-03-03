@@ -11,9 +11,8 @@ static const char *kind_strings[] =
 {
     "TR_POR",
     "TR_BLINIT",
-    "TR_BLOCKREAD",
-    "TR_SHA",
-    "TR_RSA",
+    "TR_LOAD",
+    "TR_VERIFY",
     "TR_FINAL"
 };
 

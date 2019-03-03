@@ -5,7 +5,9 @@
 #include <stdbool.h>
 
 
-uint32_t pbimage_prepare(uint32_t key_index, uint32_t key_mask,
+uint32_t pbimage_prepare(uint32_t key_index,
+                         uint32_t hash_kind,
+                         uint32_t sign_kind,
                          const char *key_source,
                          const char *output_fn);
 

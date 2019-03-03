@@ -4,16 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-enum
-{
-    PB_HASH_SHA256,
-};
-
-enum
-{
-    PB_SIGN_RSA4096,
-};
-
 uint32_t crypto_initialize(void);
 
 uint32_t crypto_sign(uint8_t *hash,

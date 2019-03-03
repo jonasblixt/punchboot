@@ -5,6 +5,8 @@ TARGET  = pb
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
+KEY_IMPORT = tools/importkey.py
+
 ifndef BOARD
 $(error BOARD is not set)
 endif
@@ -51,7 +53,7 @@ C_SRCS   = recovery.c
 C_SRCS  += delay.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c 
-C_SRCS  += keys.c 
+C_SRCS  += crypto.c
 C_SRCS  += timing_report.c
 C_SRCS  += lib/string.c
 C_SRCS  += lib/memmove.c
@@ -66,6 +68,7 @@ C_SRCS  += lib/putchar.c
 C_SRCS  += lib/uuid.c
 C_SRCS  += usb.c
 C_SRCS  += image.c
+C_SRCS  += key_data.c
 
 # Lib fdt
 C_SRCS  += 3pp/fdt/fdt.c
@@ -77,18 +80,11 @@ C_SRCS  += 3pp/fdt/fdt_strerror.c
 C_SRCS  += 3pp/fdt/fdt_sw.c
 C_SRCS  += 3pp/fdt/fdt_wip.c
 
-
-RSA_KEYS_SRCS ?= ../pki/dev_rsa_public.der    \
-				 ../pki/prod_rsa_public.der   \
-				 ../pki/field1_rsa_public.der \
-			     ../pki/field2_rsa_public.der
-
 FINAL_IMAGE = 
 
 include board/$(BOARD)/makefile.mk
 include plat/$(PB_PLAT_NAME)/makefile.mk
 include arch/$(PB_ARCH_NAME)/makefile.mk
-
 
 CROSS_COMPILE ?= arm-eabi-
 
@@ -110,12 +106,16 @@ BOARD_OBJS    = $(BOARD_ASM_SRCS:.S=.o) $(BOARD_C_SRCS:.c=.o)
 
 OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)  
 OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o) 
-OBJS	 += $(RSA_KEYS_SRCS:.der=.dero)
 OBJS     += $(BLOB_INPUT:.bin=.bino)
 
 ifeq ($(BOARD),test)
 	include tests/makefile.mk
 endif
+
+
+key_data.o: key_data.c
+	@$(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > key_data.c
+	@$(CC) -c $(CFLAGS) key_data.c -o key_data.o
 
 all: plat_early $(TARGET).bin board_final plat_final
 	$(info Summary:)
@@ -135,10 +135,6 @@ $(TARGET).bin: $(TARGET)
 $(TARGET): $(OBJS) main.o
 	@echo LD $@
 	@$(LD) $(LDFLAGS) $(OBJS) main.o $(LIBS) -o $@
-
-%.dero: %.der
-	@echo KEY $<
-	@$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
 
 %.bino: %.bin
 	@echo BLOB $<
@@ -176,7 +172,6 @@ boot.o:     include/pb/pb.h
 config.o:   include/pb/config.h include/pb/pb.h
 crc.o:      include/pb/pb.h include/pb/crc.h
 gpt.o:		include/pb/pb.h include/pb/gpt.h
-keys.o:		include/pb/pb.h include/pb/keys.h
 main.o:		include/pb/pb.h
 usb.o:		include/pb/pb.h include/pb/usb.h
 recovery.o: include/pb/recovery.h include/pb/pb.h

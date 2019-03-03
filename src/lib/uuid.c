@@ -2,6 +2,7 @@
 #include <pb.h>
 #include <plat.h>
 #include <uuid.h>
+#include <crypto.h>
 
 typedef union 
 {
@@ -17,7 +18,7 @@ typedef union
     } uuid __packed;
 } uuid_t;
 
-static __a4k __no_bss uint8_t _uuid_aligned_buf[32];
+static __a4k __no_bss uint8_t _uuid_aligned_buf[128];
 
 uint32_t uuid_gen_uuid3(const char *ns,
                         uint32_t ns_length,
@@ -27,7 +28,7 @@ uint32_t uuid_gen_uuid3(const char *ns,
 {
     uint32_t err;
 
-    err = plat_md5_init();
+    err = plat_hash_init(PB_HASH_MD5);
 
     if (err != PB_OK)
         return err;
@@ -38,12 +39,15 @@ uint32_t uuid_gen_uuid3(const char *ns,
     if (unique_data_length > 32)
         return PB_ERR;
 
+    memset(_uuid_aligned_buf,0, 64);
     memcpy(_uuid_aligned_buf, ns, ns_length);
-    plat_md5_update((uintptr_t)_uuid_aligned_buf,ns_length);
-    memcpy(_uuid_aligned_buf, unique_data, unique_data_length);
-    plat_md5_update((uintptr_t)&_uuid_aligned_buf,unique_data_length);
+    plat_hash_update((uintptr_t)_uuid_aligned_buf,64);
 
-    err = plat_md5_finalize((uintptr_t)out);
+    memset(_uuid_aligned_buf,0, 64);
+    memcpy(_uuid_aligned_buf, unique_data, unique_data_length);
+    plat_hash_update((uintptr_t)_uuid_aligned_buf,64);
+
+    err = plat_hash_finalize((uintptr_t)out);
 
     if (err != PB_OK)
         return err;

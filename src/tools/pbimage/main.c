@@ -7,6 +7,7 @@
 #include <strings.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <pb/crypto.h>
 
 #define INI_IMPLEMENTATION
 #include "3pp/ini.h"
@@ -64,7 +65,8 @@ int main (int argc, char **argv)
     uint32_t n = 0;
     uint32_t component_count = 0;
     uint32_t key_index = (uint32_t )-1;
-    uint32_t key_mask = 0;
+    uint32_t hash_kind = 0;
+    uint32_t sign_kind = 0;
     uint32_t error_count = 0;
     const char *key_source = NULL;
     const char *section_name = NULL;
@@ -96,6 +98,50 @@ int main (int argc, char **argv)
                     error_count++;
                 }
 
+                index = ini_find_property(ini,n,"hash_kind",0);
+
+                if (index >= 0)
+                {
+                    value = ini_property_value(ini,n,index);
+                    if (strcmp(value, "SHA256") == 0)
+                        hash_kind = PB_HASH_SHA256;
+                    else if (strcmp(value, "SHA384") == 0)
+                        hash_kind = PB_HASH_SHA384;
+                    else if (strcmp(value, "SHA512") == 0)
+                        hash_kind = PB_HASH_SHA512;
+                    else
+                    {
+                        printf ("Error: unsupported hash\n");
+                        return -1;
+                    }
+                }
+                else
+                {
+                    printf ("Error: Could not read hash kind\n");
+                    error_count++;
+                }
+
+
+                index = ini_find_property(ini,n,"sign_kind",0);
+
+                if (index >= 0)
+                {
+                    value = ini_property_value(ini,n,index);
+                    if (strcmp(value, "RSA4096") == 0)
+                        sign_kind = PB_SIGN_RSA4096;
+                    else if (strcmp(value, "EC384") == 0)
+                        sign_kind = PB_SIGN_EC384;
+                    else
+                    {
+                        printf ("Error: unsupported signature\n");
+                        return -1;
+                    }
+                }
+                else
+                {
+                    printf ("Error: Could not read signature kind\n");
+                    error_count++;
+                }
 
                 index = ini_find_property(ini,n,"key_source",0);
 
@@ -138,7 +184,8 @@ int main (int argc, char **argv)
         return -1;
     }
 
-    err = pbimage_prepare(key_index, key_mask, key_source, output_fn);
+    err = pbimage_prepare(key_index, hash_kind, sign_kind, 
+                            key_source, output_fn);
     
     if (err != PB_OK)
     {

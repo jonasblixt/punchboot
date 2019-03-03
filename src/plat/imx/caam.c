@@ -10,7 +10,9 @@
 #include <stdio.h>
 #include <plat.h>
 #include <io.h>
+#include <pb.h>
 #include <string.h>
+#include <crypto.h>
 #include <plat/imx/caam.h>
 #include <plat/imx/desc_defines.h>
 #include <plat/imx/desc_helper.h>
@@ -42,6 +44,8 @@
 static __no_bss struct caam_hash_ctx ctx;
 static struct fsl_caam_jr *d;
 static uint32_t __a4k desc[16];
+static uint32_t current_hash_kind;
+static volatile __a4k __no_bss uint8_t hash_ctx[128];
 
 static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job) 
 {
@@ -92,62 +96,8 @@ static uint32_t caam_wait_for_job(struct fsl_caam_jr *d, uint32_t *job)
     pb_write32(1, d->base + CAAM_ORJRR);
     return PB_OK;
 }
-/*
-uint32_t caam_sha256_init(void) 
-{
-    memset(&ctx, 0, sizeof(struct caam_hash_ctx));
-    return PB_OK;
-}
 
-uint32_t caam_sha256_update(uint8_t *data, uint32_t sz) 
-{
-
-    struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
-
-
-    LOG_DBG("SHA256 update %p sz %u sgcount %u",data,sz, ctx.sg_count);
-    e->addr_lo = (uint32_t)(uintptr_t) data;
-    e->len_flag = sz;
-
-    ctx.sg_count++;
-    ctx.total_bytes += sz;
-    if (ctx.sg_count > 32) 
-        return PB_ERR;
-    
-    return PB_OK;
-}
-
-uint32_t caam_sha256_finalize(uint8_t *out) 
-{
-    struct caam_sg_entry *e_last = &ctx.sg_tbl[ctx.sg_count-1];
-
-    e_last->len_flag |= SG_ENTRY_FINAL_BIT;  
-   
-    desc[0] = CAAM_CMD_HEADER | 7;
-    desc[1] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_SHA256 |
-        CAAM_ALG_AAI(0) | CAAM_ALG_STATE_INIT_FIN;
-
-    desc[2] = CAAM_CMD_FIFOL | ( 2 << 25) | (1 << 22) | (0x14 << 16) |(1 << 24);
-    desc[3] = (uint32_t)(uintptr_t) ctx.sg_tbl;
-    desc[4] = ctx.total_bytes;
-
-    desc[5] = CAAM_CMD_STORE | (2 << 25) | (0x20 << 16) | 32;
-    desc[6] = (uint32_t)(uintptr_t) out;
-
-
-    LOG_DBG("Finalize");
-    if (caam_shedule_job_sync(d, desc) != PB_OK) 
-    {
-        LOG_ERR ("sha256 error");
-        return PB_ERR;
-    }
-
-   return PB_OK;
-}
-*/
-
-static volatile __a4k __no_bss hash_ctx[128];
-uint32_t caam_sha256_init(void) 
+static uint32_t caam_hash_init(uint32_t alg) 
 
 {
     memset(hash_ctx, 0, 128);
@@ -156,15 +106,17 @@ uint32_t caam_sha256_init(void)
 }
 
 
-uint32_t caam_sha256_update(uint8_t *data, uint32_t sz) 
+static uint32_t caam_hash_update(uint32_t alg, uint32_t ctx_sz,
+                                uint8_t *data, uint32_t sz) 
 {
     uint8_t dc = 0;
+
 
     if (ctx.sg_count)
         caam_wait_for_job(d, desc);
 
     desc[dc++] = CAAM_CMD_HEADER;
-    desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_SHA256 |
+    desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | alg |
         CAAM_ALG_AAI(0);
 
 
@@ -176,7 +128,7 @@ uint32_t caam_sha256_update(uint8_t *data, uint32_t sz)
     else
     {
         desc[1] |= CAAM_ALG_STATE_UPDATE;
-        desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX,64);
+        desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX, ctx_sz);
         desc[dc++]  = (uint32_t) (uintptr_t) hash_ctx;
         LOG_INFO("Update %p, %u",data,sz);
     }
@@ -186,158 +138,55 @@ uint32_t caam_sha256_update(uint8_t *data, uint32_t sz)
     desc[dc++] = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
     desc[dc++] = (uint32_t) (uintptr_t) data;
     desc[dc++] = sz;
-    desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, 64);
+    desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, ctx_sz);
     desc[dc++] = (uint32_t) (uintptr_t) hash_ctx;
 
     desc[0] |= dc;
 
-    if (caam_shedule_job_async(d, desc) != PB_OK) 
-    {
-        LOG_ERR ("sha256 error");
-        return PB_ERR;
-    }
-    return PB_OK;
+    return caam_shedule_job_async(d, desc);
 }
 
-uint32_t caam_sha256_finalize(uint8_t *out) 
+static uint32_t caam_hash_finalize(uint32_t alg, uint32_t ctx_sz, uint8_t *out) 
 {
     uint8_t dc = 0;
 
     caam_wait_for_job(d, desc);
 
     desc[dc++] = CAAM_CMD_HEADER;
-    desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_SHA256 |
+    desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | alg |
         CAAM_ALG_AAI(0) | CAAM_ALG_STATE_FIN;
 
-    desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX,64);
+    desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX,ctx_sz);
     desc[dc++]  = (uint32_t) (uintptr_t) hash_ctx;
     desc[dc++]  = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
     desc[dc++]  = 0;
     desc[dc++]  = 0;
-    desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, 64);
+    desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, ctx_sz);
     desc[dc++] = (uint32_t) (uintptr_t) out;
 
     desc[0] |= dc;
 
-    LOG_DBG("Finalize");
-    if (caam_shedule_job_sync(d, desc) != PB_OK) 
-    {
-        LOG_ERR ("sha256 error");
-        return PB_ERR;
-    }
-
-    printf("SHA:");
-    for (uint8_t n = 0; n < 32; n++)
-        printf ("%02x ",out[n]);
-    printf("\n\r");
-
-   return PB_OK;
+    return caam_shedule_job_sync(d, desc);
 }
-
-uint32_t caam_md5_init(void) 
-{
-    memset(&ctx, 0, sizeof(struct caam_hash_ctx));
-    return PB_OK;
-}
-
-uint32_t caam_md5_update(uint8_t *data, uint32_t sz) 
-{
-
-    struct caam_sg_entry *e = &ctx.sg_tbl[ctx.sg_count];
-
-
-    LOG_DBG("MD5 update %p sz %u sgcount %u",data,sz, ctx.sg_count);
-    e->addr_lo = (uint32_t)(uintptr_t) data;
-    e->len_flag = sz;
-
-    ctx.sg_count++;
-    ctx.total_bytes += sz;
-    if (ctx.sg_count > 32) 
-        return PB_ERR;
-    
-    return PB_OK;
-}
-
-uint32_t caam_md5_finalize(uint8_t *out) 
-{
-    struct caam_sg_entry *e_last = &ctx.sg_tbl[ctx.sg_count-1];
-
-    e_last->len_flag |= SG_ENTRY_FINAL_BIT;  
-   
-    desc[0] = CAAM_CMD_HEADER | 7;
-    desc[1] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_MD5 |
-        CAAM_ALG_AAI(0) | CAAM_ALG_STATE_INIT_FIN;
-
-    desc[2] = CAAM_CMD_FIFOL | ( 2 << 25) | (1 << 22) | (0x14 << 16) |(1 << 24);
-    desc[3] = (uint32_t)(uintptr_t) ctx.sg_tbl;
-    desc[4] = ctx.total_bytes;
-
-    desc[5] = CAAM_CMD_STORE | (2 << 25) | (0x20 << 16) | 16;
-    desc[6] = (uint32_t)(uintptr_t) out;
-
-
-    LOG_DBG("Finalize");
-    if (caam_shedule_job_sync(d, desc) != PB_OK) 
-        return PB_ERR;
-
-   return PB_OK;
-}
-
 
 uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
-                    uint8_t *output, struct asn1_key *k)
+                    uint8_t *output, struct pb_key *k)
 {
-   
+    struct pb_rsa4096_key *rsa_key =
+        (struct pb_rsa4096_key *) k->data;
+    
+
     desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
     desc[1] = (3 << 12)|512;
     desc[2] = (uint32_t)(uintptr_t) input;
     desc[3] = (uint32_t)(uintptr_t) output;
-    desc[4] = (uint32_t)(uintptr_t) k->mod;
-    desc[5] = (uint32_t)(uintptr_t) k->exp;
+    desc[4] = (uint32_t)(uintptr_t) rsa_key->mod;
+    desc[5] = (uint32_t)(uintptr_t) rsa_key->exp;
     desc[6] = input_sz;
     desc[7] = CAAM_CMD_OP | (0x18 << 16)|(0<<12) ;
-
-
  
-    if (caam_shedule_job_sync(d, desc) != PB_OK) {
-        LOG_ERR ("caam_rsa_enc error");
-        return PB_ERR;
-    }
-
-    return PB_OK;
+    return caam_shedule_job_sync(d, desc);
 }
-
-
-/*
- * Operation:
- *   (0x16 << 16) DSA_Verfiy (pg. 335)
- *
- *
- */
-
-uint32_t caam_ecc_enc(uint8_t *input,  uint32_t input_sz,
-                    uint8_t *output, struct asn1_key *k)
-{
-   
-    desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
-    desc[1] = (3 << 12)|512;
-    desc[2] = (uint32_t)(uintptr_t) input;
-    desc[3] = (uint32_t)(uintptr_t) output;
-    desc[4] = (uint32_t)(uintptr_t) k->mod;
-    desc[5] = (uint32_t)(uintptr_t) k->exp;
-    desc[6] = input_sz;
-    desc[7] = CAAM_CMD_OP | (0x18 << 16)|(0<<12) ;
-
-
- 
-    if (caam_shedule_job_sync(d, desc) != PB_OK) {
-        LOG_ERR ("caam_rsa_enc error");
-        return PB_ERR;
-    }
-
-    return PB_OK;
-}
-
 
 uint32_t caam_init(struct fsl_caam_jr *caam_dev) 
 {
@@ -363,3 +212,115 @@ uint32_t caam_init(struct fsl_caam_jr *caam_dev)
     return PB_OK;
 }
 
+
+/* Crypto Interface */
+uint32_t  plat_hash_init(uint32_t hash_kind)
+{
+    uint32_t err = PB_ERR;
+
+    current_hash_kind = hash_kind;
+    switch (hash_kind)
+    {
+        case PB_HASH_MD5:
+            err = caam_hash_init(CAAM_ALG_TYPE_MD5);
+        break;
+        case PB_HASH_SHA256:
+            err = caam_hash_init(CAAM_ALG_TYPE_SHA256);
+        break;
+        default:
+            LOG_ERR("Unknown hash");
+            current_hash_kind = PB_HASH_INVALID;
+            err = PB_ERR;
+        break;
+    }
+
+    return err;
+}
+
+uint32_t  plat_hash_update(uintptr_t bfr, uint32_t sz)
+{
+    uint32_t err = PB_ERR;
+
+    switch (current_hash_kind)
+    {
+        case PB_HASH_SHA256:
+            err = caam_hash_update(CAAM_ALG_TYPE_SHA256, 64, (uint8_t *)bfr,sz);
+        break;
+        case PB_HASH_MD5:
+            err = caam_hash_update(CAAM_ALG_TYPE_MD5, 16, (uint8_t *)bfr,sz);
+        break;
+        default:
+            err = PB_ERR;
+    }
+
+    return PB_ERR;
+}
+
+uint32_t  plat_hash_finalize(uintptr_t out)
+{
+    uint32_t err = PB_ERR;
+
+    switch (current_hash_kind)
+    {
+        case PB_HASH_SHA256:
+            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA256,64, out);
+        break;
+        case PB_HASH_MD5:
+            err = caam_hash_finalize(CAAM_ALG_TYPE_MD5,16, out);
+        break;
+        default:
+            err = PB_ERR;
+    }
+
+    return PB_ERR;
+}
+
+static char __no_bss __a4k output_data[1024];
+
+uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
+                                uint8_t *hash, uint32_t hash_kind,
+                                struct pb_key *k)
+{
+    uint32_t err = PB_ERR;
+    bool signature_verified = false;
+
+    switch (sig_kind)
+    {
+        case PB_SIGN_RSA4096:
+        {
+            LOG_DBG("Checking RSA4096 signature...");
+            err = caam_rsa_enc(sig, 512,
+                            output_data, k);
+
+
+            if (err != PB_OK)
+                break;
+
+            uint32_t n = 0;
+            uint32_t y = 0;
+            for (uint32_t i = (512-32); i < 512; i++) 
+            {
+                if (output_data[i] != hash[n]) 
+                    y++;
+                n++;
+            }
+
+            if (y == 0)
+                signature_verified = true;
+            else
+                return PB_ERR;
+
+            LOG_DBG("Signature OK");
+        }
+        break;
+        default:
+            LOG_ERR("Unknown signature format");
+            err = PB_ERR;
+        break;
+    }
+
+    if ( (signature_verified) && (err == PB_OK) )
+        return PB_OK;
+
+    return PB_ERR;
+}

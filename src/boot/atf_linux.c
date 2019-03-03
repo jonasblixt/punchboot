@@ -5,7 +5,7 @@
 #include <gpt.h>
 #include <image.h>
 #include <board/config.h>
-#include <keys.h>
+#include <crypto.h>
 #include <board.h>
 #include <plat.h>
 #include <atf.h>
@@ -40,13 +40,17 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
 
     tr_stamp_begin(TR_FINAL);
 
-    if (dtb && linux2)
+    if (dtb && linux2 && atf)
     {
-        LOG_INFO(" LINUX %x, DTB %x", linux2->load_addr_low, dtb->load_addr_low);
+        LOG_INFO(" LINUX %x, DTB %x, ATF %x", linux2->load_addr_low, 
+                                              dtb->load_addr_low,
+                                              atf->load_addr_low);
     } 
-    else if (atf && dtb && linux2)
+    else if (dtb && linux2)
     {
-        LOG_INFO("  ATF: 0x%x", atf->load_addr_low);
+
+        LOG_INFO(" LINUX %x, DTB %x", linux2->load_addr_low, 
+                                              dtb->load_addr_low);
     }
     else
     {
@@ -140,7 +144,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
             }
         }
     }
-    
+
     LOG_DBG("Done");
     plat_preboot_cleanup();
     tr_stamp_end(TR_FINAL);
@@ -150,6 +154,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
 
     if (atf && dtb && linux2)
     {
+        LOG_DBG("ATF boot");
         arch_jump_atf((void *)(uintptr_t) atf->load_addr_low, 
                       (void *)(uintptr_t) NULL);
     } 

@@ -9,9 +9,8 @@ enum tr_kinds
 {
     TR_POR = 0,
     TR_BLINIT = 1,
-    TR_BLOCKREAD = 2,
-    TR_SHA = 3,
-    TR_RSA = 4,
+    TR_LOAD = 2,
+    TR_VERIFY = 3,
     TR_FINAL = 5,
 };
 

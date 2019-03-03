@@ -13,7 +13,7 @@
 #include <image.h>
 #include <plat.h>
 #include <usb.h>
-#include <keys.h>
+#include <crypto.h>
 #include <io.h>
 #include <board.h>
 #include <gpt.h>
@@ -32,6 +32,7 @@ static __no_bss __a4k struct pb_pbi pbi;
 static __no_bss __a4k struct param params[RECOVERY_MAX_PARAMS];
 static struct gpt *gpt;
 extern const struct partition_table pb_partition_table[];
+static unsigned char hash_buffer[64];
 
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
             _zero_region_start, _zero_region_end, _stack_start, _stack_end;
@@ -285,16 +286,18 @@ static void recovery_parse_command(struct usb_device *dev,
             if (cmd->arg0 == SYSTEM_A)
             {
                 LOG_INFO("Loading System A");
-                err = pb_image_load_from_fs(boot_part_a->first_lba, &pbi);
+                err = pb_image_load_from_fs(boot_part_a->first_lba, &pbi,
+                                                (const char*) hash_buffer);
             } else if (cmd->arg0 == SYSTEM_B) {
                 LOG_INFO("Loading System B");
-                err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi);
+                err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi,
+                                                (const char *)hash_buffer);
             } else {
                 LOG_ERR("Invalid boot partition");
                 err = PB_ERR;
             }
             
-            if (pb_image_verify(&pbi) == PB_OK)
+            if (pb_image_verify(&pbi, (const char *)hash_buffer) == PB_OK)
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
@@ -343,7 +346,7 @@ static void recovery_parse_command(struct usb_device *dev,
             if (err != PB_OK)
                 break;
 
-            if (pb_image_verify(&pbi) == PB_OK)
+            if (pb_image_verify(&pbi, NULL) == PB_OK)
             {
                 LOG_INFO("Booting image... %u",cmd->arg0);
                 recovery_send_result_code(dev, err);

@@ -32,6 +32,7 @@ enum
     PB_SECURITY_STATE_SECURE,
 };
 
+
 struct partition_table
 {
     uint64_t no_of_blocks;

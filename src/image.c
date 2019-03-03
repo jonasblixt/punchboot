@@ -6,18 +6,12 @@
 #include <io.h>
 #include <timing_report.h>
 #include <gpt.h>
-#include <keys.h>
+#include <crypto.h>
 
 extern char _code_start, _code_end, 
             _data_region_start, _data_region_end, 
             _zero_region_start, _zero_region_end, 
             _stack_start, _stack_end;
-
-static unsigned char __a4k sign_copy[1024];
-static uint8_t __a4k output_data[1024];
-static bool flag_precomputed_hash = false;
-static char precomputed_hash[64];
-static uint32_t sign_sz;
 
 #define IMAGE_BLK_CHUNK 1024
 
@@ -67,11 +61,12 @@ uint32_t pb_image_check_header(struct pb_pbi *pbi)
     return PB_OK;
 }
 
-uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi)
+uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
+                                const char *hash)
 {
     uint32_t err;
 
-    tr_stamp_begin(TR_BLOCKREAD);
+    tr_stamp_begin(TR_LOAD);
 
     if (!part_lba_offset) 
     {
@@ -87,23 +82,14 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi)
     if (err != PB_OK)
         return err;
 
-    if (pbi->hdr.sign_length > sizeof(sign_copy))
-            pbi->hdr.sign_length = sizeof(sign_copy);
-    
-    sign_sz = pbi->hdr.sign_length;
-    pbi->hdr.sign_length = 0;
-    memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
-    memset (pbi->hdr.sign, 0, 1024);
+    plat_hash_init(pbi->hdr.hash_kind);
 
-    memset(precomputed_hash,0,64);
-    plat_sha256_init();
-
-    plat_sha256_update((uintptr_t)&pbi->hdr, 
+    plat_hash_update((uintptr_t)&pbi->hdr, 
                     sizeof(struct pb_image_hdr));
 
     for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
     {
-        plat_sha256_update((uintptr_t) &pbi->comp[i], 
+        plat_hash_update((uintptr_t) &pbi->comp[i], 
                     sizeof(struct pb_component_hdr));
     }
 
@@ -118,123 +104,86 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi)
 
         while (no_of_blks)
         {
-            uint32_t blk_read = no_of_blks>IMAGE_BLK_CHUNK?
+            uint32_t blk_read = (no_of_blks>IMAGE_BLK_CHUNK)?
                                         IMAGE_BLK_CHUNK:no_of_blks;
             
             LOG_DBG("R LBA: %u, to: %08x, cnt: %u",
                     blk_start+chunk_offset, a, blk_read);
 
             plat_read_block(blk_start+chunk_offset, (uintptr_t) a, blk_read);
-
+            plat_hash_update((uintptr_t) a, (blk_read*512));
             chunk_offset += blk_read;
             no_of_blks -= blk_read;
             a += blk_read*512;
             c++;
         }
 
-        plat_sha256_update((uintptr_t) pbi->comp[i].load_addr_low, pbi->comp[i].component_size);
         LOG_DBG("Read %u chunks", c);
     }
 
-    plat_sha256_finalize((uintptr_t) precomputed_hash);
-    flag_precomputed_hash = true;
-    tr_stamp_end(TR_BLOCKREAD);
+    plat_hash_finalize((uintptr_t) hash);
+    tr_stamp_end(TR_LOAD);
     return PB_OK;
 }
 
 
-bool pb_image_verify(struct pb_pbi* pbi)
+uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
 {
-    unsigned char hash[32];
+    unsigned char *hash;
+    unsigned char hash_data[32];
     uint32_t err = PB_OK;
 
-    if (pbi->hdr.sign_length > sizeof(sign_copy))
-            pbi->hdr.sign_length = sizeof(sign_copy);
-    
+    tr_stamp_begin(TR_VERIFY);
 
-    tr_stamp_begin(TR_SHA);
-
-
-
-    if (!flag_precomputed_hash)
+    /* No supplied hash, calculate it */
+    if (inhash == NULL)
     {
-
-        sign_sz = pbi->hdr.sign_length;
-        pbi->hdr.sign_length = 0;
-        memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
-        memset (pbi->hdr.sign, 0, 1024);
-        plat_sha256_init();
-
-        plat_sha256_update((uintptr_t)&pbi->hdr, 
+        hash = hash_data;
+        plat_hash_init(pbi->hdr.hash_kind);
+        plat_hash_update((uintptr_t)&pbi->hdr, 
                         sizeof(struct pb_image_hdr));
 
         for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
         {
-            plat_sha256_update((uintptr_t) &pbi->comp[i], 
+            plat_hash_update((uintptr_t) &pbi->comp[i], 
                         sizeof(struct pb_component_hdr));
         }
 
         for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
         {
-            plat_sha256_update((uintptr_t) pbi->comp[i].load_addr_low, 
+            plat_hash_update((uintptr_t) pbi->comp[i].load_addr_low, 
                             pbi->comp[i].component_size);
         }
 
-        plat_sha256_finalize((uintptr_t) hash);
+        plat_hash_finalize((uintptr_t) hash);
     }
     else
     {
-        LOG_DBG("Using pre computed hash");
-        memcpy(hash, precomputed_hash, 32);
+        hash = (unsigned char *) inhash;
     }
 
-    tr_stamp_end(TR_SHA);
+    struct pb_key *k;
 
-    tr_stamp_begin(TR_RSA);
-    memset(output_data, 0, 512);
-
-    struct asn1_key *k = pb_key_get(pbi->hdr.key_index);
-
-    LOG_INFO("Key index %u", pbi->hdr.key_index);
-
-    if (k == NULL)
-    {
-        LOG_ERR("Invalid key");
-        return PB_ERR;
-    }
-
-    err = plat_rsa_enc(sign_copy, sign_sz,
-                    output_data, k);
+    err = pb_crypto_get_key(pbi->hdr.key_index, &k);
 
     if (err != PB_OK)
     {
-        LOG_ERR("plat_rsa_enc failed");
-        return err;
-    }
-
-    /* Output is ASN.1 coded, this extracts the decoded checksum */
-    /* TODO: Add some ASN1 helpers */
-    uint8_t flag_sig_ok = 1;
-    int n = 0;
-    for (uint32_t i = (512-32); i < 512; i++) 
-    {
-        if (output_data[i] != hash[n]) 
-        {
-            flag_sig_ok = 0;
-        }
-        n++;
-    }
-
-    if (flag_sig_ok)
-        LOG_INFO("SIG OK");
-
-    tr_stamp_end(TR_RSA);
-
-
-    if (flag_sig_ok)
-        return PB_OK;
-    else
+        LOG_ERR("Could not read key");
         return PB_ERR;
+    }
+
+    printf ("SHA256: ");
+    for (uint32_t i = 0; i < 32; i++)
+        printf ("%02x ", hash[i]);
+    printf("\n\r");
+
+    err = plat_verify_signature(pbi->sign, pbi->hdr.sign_kind,
+                                hash, pbi->hdr.hash_kind,
+                                k);
+
+    tr_stamp_end(TR_VERIFY);
+
+    return err;
 }
 
 struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 

@@ -14,13 +14,14 @@
 #include <gpt.h>
 #include <io.h>
 #include <image.h>
-#include <keys.h>
+#include <crypto.h>
 #include <boot.h>
 #include <timing_report.h>
 
 
 static __no_bss __a4k struct pb_pbi pbi;
 static __no_bss __a4k struct gpt gpt;
+static char hash_buffer[64];
 
 void pb_main(void) 
 {
@@ -124,7 +125,7 @@ void pb_main(void)
     }
 
 
-    err = pb_image_load_from_fs(part->first_lba, &pbi);
+    err = pb_image_load_from_fs(part->first_lba, &pbi, hash_buffer);
 
     if (err != PB_OK)
     {
@@ -133,7 +134,7 @@ void pb_main(void)
         goto run_recovery;
     }
 
-    err = pb_image_verify(&pbi);
+    err = pb_image_verify(&pbi, (const char*) hash_buffer);
 
     if (err == PB_OK)
     {

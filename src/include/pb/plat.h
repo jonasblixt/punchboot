@@ -13,9 +13,9 @@
 
 #include <pb.h>
 #include <usb.h>
-#include <keys.h>
 #include <fuse.h>
 #include <params.h>
+#include <crypto.h>
 
 #define PLAT_EMMC_PART_BOOT0 1
 #define PLAT_EMMC_PART_BOOT1 2
@@ -47,15 +47,14 @@ uint32_t  plat_switch_part(uint8_t part_no);
 uint64_t  plat_get_lastlba(void);
 
 /* Crypto Interface */
-uint32_t  plat_sha256_init(void);
-uint32_t  plat_sha256_update(uintptr_t bfr, uint32_t sz);
-uint32_t  plat_sha256_finalize(uintptr_t out);
-uint32_t  plat_md5_init(void);
-uint32_t  plat_md5_update(uintptr_t bfr, uint32_t sz);
-uint32_t  plat_md5_finalize(uintptr_t out);
+uint32_t  plat_hash_init(uint32_t hash_kind);
+uint32_t  plat_hash_update(uintptr_t bfr, uint32_t sz);
+uint32_t  plat_hash_finalize(uintptr_t out);
 
-uint32_t  plat_rsa_enc(uint8_t *sig, uint32_t sig_sz, uint8_t *out, 
-                        struct asn1_key *k);
+uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
+                                uint8_t *hash, uint32_t hash_kind,
+                                struct pb_key *k);
+
 /* USB Interface API */
 uint32_t  plat_usb_init(struct usb_device *dev);
 void      plat_usb_task(struct usb_device *dev);

@@ -13,7 +13,7 @@
 #define	__CAAM_H__
 
 #include <pb.h>
-#include <keys.h>
+#include <crypto.h>
 
 #define JOB_RING_ENTRIES 1
 
@@ -78,14 +78,5 @@ struct fsl_caam_jr
 };
 
 uint32_t caam_init(struct fsl_caam_jr *d);
-uint32_t caam_sha256_init(void);
-uint32_t caam_sha256_update(uint8_t *data, uint32_t sz);
-uint32_t caam_sha256_finalize(uint8_t *out);
-uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
-                    uint8_t *output, struct asn1_key *k);
-
-uint32_t caam_md5_init(void);
-uint32_t caam_md5_update(uint8_t *data, uint32_t sz);
-uint32_t caam_md5_finalize(uint8_t *out);
 
 #endif /* __CAAM_H__ */

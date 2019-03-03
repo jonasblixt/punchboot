@@ -20,6 +20,7 @@
 #include <3pp/bearssl/bearssl_hash.h>
 #include <3pp/ini.h>
 #include <pb/image.h>
+#include <pb/crypto.h>
 #include <pb/pb.h>
 
 #include "crypto.h"
@@ -37,6 +38,7 @@ static const char *comp_type_str[] =
 
 static const char *pbi_output_fn = NULL;
 static struct pb_image_hdr hdr;
+static uint8_t signature[1024];
 static struct pb_component_hdr comp[PB_IMAGE_MAX_COMP];
 static void *component_data[PB_IMAGE_MAX_COMP];
 static const char *pbi_key_source = NULL;
@@ -61,7 +63,9 @@ static uint32_t comp_string_to_index(const char *str, uint32_t *index)
     return PB_ERR;
 }
 
-uint32_t pbimage_prepare(uint32_t key_index, uint32_t key_mask,
+uint32_t pbimage_prepare(uint32_t key_index,
+                         uint32_t hash_kind,
+                         uint32_t sign_kind,
                          const char *key_source,
                          const char *output_fn)
 {
@@ -71,6 +75,8 @@ uint32_t pbimage_prepare(uint32_t key_index, uint32_t key_mask,
     hdr.header_version = 1;
     hdr.no_of_components = 0;
     hdr.key_index = key_index;
+    hdr.hash_kind = hash_kind;
+    hdr.sign_kind = sign_kind;
 
     pbi_key_source = key_source;
     pbi_output_fn = output_fn;
@@ -148,6 +154,8 @@ uint32_t pbimage_out(const char *fn)
     uint8_t hash[32];
     uint32_t err;
     br_sha256_context sha256_ctx;
+    br_sha384_context sha384_ctx;
+    br_sha512_context sha512_ctx;
 
     bzero(zpad,511);
     fp = fopen(fn, "wb");
@@ -155,52 +163,137 @@ uint32_t pbimage_out(const char *fn)
     if (fp == NULL)
         return PB_ERR_IO;
 
-    offset = (sizeof(struct pb_image_hdr) + 
+    offset = (sizeof(struct pb_image_hdr) + PB_IMAGE_SIGN_MAX_SIZE +
                 PB_IMAGE_MAX_COMP * sizeof(struct pb_component_hdr));
 
-    br_sha256_init(&sha256_ctx);
+    switch (hdr.hash_kind)
+    {
+        case PB_HASH_SHA256:
+            br_sha256_init(&sha256_ctx);
+        break;
+        case PB_HASH_SHA384:
+            br_sha384_init(&sha384_ctx);
+        break;
+        case PB_HASH_SHA512:
+            br_sha512_init(&sha512_ctx);
+        break;
+        default:
+            return PB_ERR;
+    }
 
     /* Calculate component offsets and checksum */
     
-    br_sha256_update(&sha256_ctx, &hdr, sizeof(struct pb_image_hdr));
+
+    switch (hdr.hash_kind)
+    {
+        case PB_HASH_SHA256:
+            br_sha256_update(&sha256_ctx, &hdr, sizeof(struct pb_image_hdr));
+        break;
+        case PB_HASH_SHA384:
+            br_sha384_update(&sha384_ctx, &hdr, sizeof(struct pb_image_hdr));
+        break;
+        case PB_HASH_SHA512:
+            br_sha512_update(&sha512_ctx, &hdr, sizeof(struct pb_image_hdr));
+        break;
+        default:
+            return PB_ERR;
+    }
 
     for (uint32_t i = 0; i < ncomp; i++)
     {
         comp[i].component_offset = offset;
 
-        br_sha256_update(&sha256_ctx, &comp[i],
-                                      sizeof(struct pb_component_hdr));
+        switch (hdr.hash_kind)
+        {
+            case PB_HASH_SHA256:
+                br_sha256_update(&sha256_ctx, &comp[i],
+                                              sizeof(struct pb_component_hdr));
+            break;
+            case PB_HASH_SHA384:
+
+                br_sha384_update(&sha384_ctx, &comp[i],
+                                              sizeof(struct pb_component_hdr));
+            break;
+            case PB_HASH_SHA512:
+
+                br_sha512_update(&sha512_ctx, &comp[i],
+                                              sizeof(struct pb_component_hdr));
+            break;
+            default:
+                return PB_ERR;
+        }
         offset = comp[i].component_offset + comp[i].component_size;
     }
 
 
     for (uint32_t i = 0; i < ncomp; i++)
     {
-        br_sha256_update(&sha256_ctx, component_data[i],
-                                      comp[i].component_size);
+
+        switch (hdr.hash_kind)
+        {
+            case PB_HASH_SHA256:
+
+                br_sha256_update(&sha256_ctx, component_data[i],
+                                              comp[i].component_size);
+            break;
+            case PB_HASH_SHA384:
+
+                br_sha384_update(&sha384_ctx, component_data[i],
+                                              comp[i].component_size);
+            break;
+            case PB_HASH_SHA512:
+
+                br_sha512_update(&sha512_ctx, component_data[i],
+                                              comp[i].component_size);
+            break;
+            default:
+                return PB_ERR;
+        }
     }
 
-    br_sha256_out(&sha256_ctx, hash);
+    uint8_t hash_size;
 
-    printf("SHA256:");
-    for (uint32_t i = 0; i < 32; i++)
+    switch (hdr.hash_kind)
+    {
+        case PB_HASH_SHA256:
+            br_sha256_out(&sha256_ctx, hash);
+            printf("SHA256:");
+            hash_size = 32;
+        break;
+        case PB_HASH_SHA384:
+            br_sha384_out(&sha384_ctx, hash);
+            printf("SHA384:");
+            hash_size = 48;
+        break;
+        case PB_HASH_SHA512:
+            br_sha512_out(&sha512_ctx, hash);
+            printf("SHA512:");
+            hash_size = 64;
+        break;
+        default:
+            return PB_ERR;
+    }
+
+    for (uint32_t i = 0; i < hash_size; i++)
         printf("%2.2x ", hash[i]);
     printf("\n");
-
-    hdr.sign_length = 512;
 
     err = crypto_initialize();
 
     if (err != PB_OK)
         return err;
 
-    err = crypto_sign(hash,PB_HASH_SHA256,
-                    pbi_key_source,PB_SIGN_RSA4096, hdr.sign);
+    err = crypto_sign(hash,hdr.hash_kind,
+                    pbi_key_source,hdr.sign_kind, signature);
 
     if (err != PB_OK)
+    {
+        printf ("Error: crypto_sign failed (%u)\n",err);
         return err;
+    }
 
     fwrite(&hdr, sizeof(struct pb_image_hdr), 1, fp);
+    fwrite(signature, PB_IMAGE_SIGN_MAX_SIZE, 1, fp);
     fwrite(comp, PB_IMAGE_MAX_COMP*
                 sizeof(struct pb_component_hdr),1,fp);
 
