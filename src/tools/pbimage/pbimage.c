@@ -182,6 +182,11 @@ uint32_t pbimage_out(const char *fn)
 
     br_sha256_out(&sha256_ctx, hash);
 
+    printf("SHA256:");
+    for (uint32_t i = 0; i < 32; i++)
+        printf("%2.2x ", hash[i]);
+    printf("\n");
+
     hdr.sign_length = 512;
 
     err = crypto_initialize();

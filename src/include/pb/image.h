@@ -28,7 +28,7 @@ struct pb_image_hdr {
     uint32_t _reserved[23];
     uint8_t sign[1024];
     uint32_t sign_length;
-    uint32_t _reserved2[4];
+    uint32_t _reserved2[100];
 } __attribute__ ((packed));
 
 enum 
@@ -43,7 +43,7 @@ enum
 
 
 
-/* Component header */
+/* Component header 128b aligned */
 struct pb_component_hdr {
     uint32_t comp_header_version;
     uint32_t component_type;
@@ -51,7 +51,7 @@ struct pb_component_hdr {
     uint32_t load_addr_high;
     uint32_t component_size;
     uint32_t component_offset;
-    uint32_t _reserved[16];
+    uint32_t _reserved[26];
 } __attribute__ ((packed));
 
 struct pb_pbi {

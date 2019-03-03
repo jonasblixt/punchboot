@@ -303,8 +303,6 @@ static void recovery_parse_command(struct usb_device *dev,
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
             }
-
-            recovery_send_result_code(dev, err);
         }
 
         break;

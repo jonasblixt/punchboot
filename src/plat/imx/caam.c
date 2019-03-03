@@ -65,6 +65,33 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
     return PB_OK;
 }
 
+
+static uint32_t caam_shedule_job_async(struct fsl_caam_jr *d, uint32_t *job) 
+{
+
+    d->input_ring[0] = (uint32_t)(uintptr_t) job;
+
+    if (d == NULL)
+        return PB_ERR;
+
+    pb_write32(1, d->base + CAAM_IRJAR);
+
+    return PB_OK;
+}
+
+static uint32_t caam_wait_for_job(struct fsl_caam_jr *d, uint32_t *job)
+{
+    while ((pb_read32(d->base + CAAM_ORSFR) & 1) == 0)
+        __asm__("nop");
+
+    if (d->output_ring[0] != (uint32_t)(uintptr_t) job) 
+    {
+        printf ("Job failed\n\r");
+        return PB_ERR;
+    }
+    pb_write32(1, d->base + CAAM_ORJRR);
+    return PB_OK;
+}
 /*
 uint32_t caam_sha256_init(void) 
 {
@@ -119,9 +146,7 @@ uint32_t caam_sha256_finalize(uint8_t *out)
 }
 */
 
-
-static __a4k __no_bss hash_ctx[128];
-
+static volatile __a4k __no_bss hash_ctx[128];
 uint32_t caam_sha256_init(void) 
 
 {
@@ -134,6 +159,9 @@ uint32_t caam_sha256_init(void)
 uint32_t caam_sha256_update(uint8_t *data, uint32_t sz) 
 {
     uint8_t dc = 0;
+
+    if (ctx.sg_count)
+        caam_wait_for_job(d, desc);
 
     desc[dc++] = CAAM_CMD_HEADER;
     desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_SHA256 |
@@ -163,7 +191,7 @@ uint32_t caam_sha256_update(uint8_t *data, uint32_t sz)
 
     desc[0] |= dc;
 
-    if (caam_shedule_job_sync(d, desc) != PB_OK) 
+    if (caam_shedule_job_async(d, desc) != PB_OK) 
     {
         LOG_ERR ("sha256 error");
         return PB_ERR;
@@ -174,6 +202,8 @@ uint32_t caam_sha256_update(uint8_t *data, uint32_t sz)
 uint32_t caam_sha256_finalize(uint8_t *out) 
 {
     uint8_t dc = 0;
+
+    caam_wait_for_job(d, desc);
 
     desc[dc++] = CAAM_CMD_HEADER;
     desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | CAAM_ALG_TYPE_SHA256 |

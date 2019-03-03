@@ -43,8 +43,22 @@ struct asn1_key
     uint8_t exp[3];
 } __attribute__ ((packed));
 
+#define PB_KEY_INVALID 0
+#define PB_KEY_RSA4096 1
+
+struct pb_rsa4096_key
+{
+    const uint8_t mod[512];
+	const uint8_t exp[3];
+};
+
+struct pb_key
+{
+    const uint32_t kind;
+    const uint32_t id;
+    const void *data;
+};
+
 struct asn1_key * pb_key_get(uint8_t key_index);
-uint32_t pb_update_key_revoke_mask(uint32_t mask);
-uint32_t pb_is_key_revoked(uint8_t key_index, bool *result);
 
 #endif

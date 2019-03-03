@@ -15,6 +15,11 @@ extern char _code_start, _code_end,
 
 static unsigned char __a4k sign_copy[1024];
 static uint8_t __a4k output_data[1024];
+static bool flag_precomputed_hash = false;
+static char precomputed_hash[64];
+static uint32_t sign_sz;
+
+#define IMAGE_BLK_CHUNK 1024
 
 uint32_t pb_image_check_header(struct pb_pbi *pbi)
 {
@@ -82,39 +87,15 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi)
     if (err != PB_OK)
         return err;
 
-    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
-    {
-        volatile uint32_t a = pbi->comp[i].load_addr_low;
-
-        plat_read_block((part_lba_offset + 
-                    (pbi->comp[i].component_offset/512)),
-                    (uintptr_t) a, 
-                    ((pbi->comp[i].component_size/512)+1));
-
-    }
-
-    tr_stamp_end(TR_BLOCKREAD);
-    return PB_OK;
-}
-
-
-bool pb_image_verify(struct pb_pbi* pbi)
-{
-    unsigned int sign_sz = 0;
-    unsigned char hash[32];
-    uint32_t err = PB_OK;
-
     if (pbi->hdr.sign_length > sizeof(sign_copy))
             pbi->hdr.sign_length = sizeof(sign_copy);
     
-    memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
     sign_sz = pbi->hdr.sign_length;
     pbi->hdr.sign_length = 0;
-
-    tr_stamp_begin(TR_SHA);
-
+    memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
     memset (pbi->hdr.sign, 0, 1024);
 
+    memset(precomputed_hash,0,64);
     plat_sha256_init();
 
     plat_sha256_update((uintptr_t)&pbi->hdr, 
@@ -126,13 +107,86 @@ bool pb_image_verify(struct pb_pbi* pbi)
                     sizeof(struct pb_component_hdr));
     }
 
-    for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
+    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
     {
-        plat_sha256_update((uintptr_t) pbi->comp[i].load_addr_low, 
-                        pbi->comp[i].component_size);
+        volatile uint32_t a = pbi->comp[i].load_addr_low;
+        uint32_t blk_start = part_lba_offset + 
+                                    (pbi->comp[i].component_offset/512);
+        uint32_t no_of_blks = (pbi->comp[i].component_size/512);
+        uint32_t chunk_offset = 0;
+        uint32_t c = 0;
+
+        while (no_of_blks)
+        {
+            uint32_t blk_read = no_of_blks>IMAGE_BLK_CHUNK?
+                                        IMAGE_BLK_CHUNK:no_of_blks;
+            
+            LOG_DBG("R LBA: %u, to: %08x, cnt: %u",
+                    blk_start+chunk_offset, a, blk_read);
+
+            plat_read_block(blk_start+chunk_offset, (uintptr_t) a, blk_read);
+
+            chunk_offset += blk_read;
+            no_of_blks -= blk_read;
+            a += blk_read*512;
+            c++;
+        }
+
+        plat_sha256_update((uintptr_t) pbi->comp[i].load_addr_low, pbi->comp[i].component_size);
+        LOG_DBG("Read %u chunks", c);
     }
 
-    plat_sha256_finalize((uintptr_t) hash);
+    plat_sha256_finalize((uintptr_t) precomputed_hash);
+    flag_precomputed_hash = true;
+    tr_stamp_end(TR_BLOCKREAD);
+    return PB_OK;
+}
+
+
+bool pb_image_verify(struct pb_pbi* pbi)
+{
+    unsigned char hash[32];
+    uint32_t err = PB_OK;
+
+    if (pbi->hdr.sign_length > sizeof(sign_copy))
+            pbi->hdr.sign_length = sizeof(sign_copy);
+    
+
+    tr_stamp_begin(TR_SHA);
+
+
+
+    if (!flag_precomputed_hash)
+    {
+
+        sign_sz = pbi->hdr.sign_length;
+        pbi->hdr.sign_length = 0;
+        memcpy(sign_copy, pbi->hdr.sign, pbi->hdr.sign_length);
+        memset (pbi->hdr.sign, 0, 1024);
+        plat_sha256_init();
+
+        plat_sha256_update((uintptr_t)&pbi->hdr, 
+                        sizeof(struct pb_image_hdr));
+
+        for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
+        {
+            plat_sha256_update((uintptr_t) &pbi->comp[i], 
+                        sizeof(struct pb_component_hdr));
+        }
+
+        for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
+        {
+            plat_sha256_update((uintptr_t) pbi->comp[i].load_addr_low, 
+                            pbi->comp[i].component_size);
+        }
+
+        plat_sha256_finalize((uintptr_t) hash);
+    }
+    else
+    {
+        LOG_DBG("Using pre computed hash");
+        memcpy(hash, precomputed_hash, 32);
+    }
 
     tr_stamp_end(TR_SHA);
 
