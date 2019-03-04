@@ -2,6 +2,7 @@
 source tests/common.sh
 wait_for_qemu_start
 
+sync
 # Check that disk is OK
 echo Checking disk
 sgdisk -v /tmp/disk | grep "No problems found"
@@ -42,6 +43,8 @@ then
     test_end_error
 fi
 echo Data written
+sync
+
 # Extract data from disk image
 dd if=/tmp/disk of=/tmp/readback_a bs=512 skip=34 count=1024
 dd if=/tmp/disk of=/tmp/readback_b bs=512 skip=1059 count=1024

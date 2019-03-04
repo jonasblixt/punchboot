@@ -58,7 +58,8 @@ if [ "$boot_status" != "1" ];
 then
     test_end_error
 fi
-
+echo 1/4
+sync
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -68,7 +69,8 @@ if [ "$boot_status" != "1" ];
 then
     test_end_error
 fi
-
+echo 2/4
+sync
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -78,7 +80,8 @@ if [ "$boot_status" != "1" ];
 then
     test_end_error
 fi
-
+echo 3/4
+sync
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -88,5 +91,6 @@ if [ "$boot_status" != "2" ];
 then
     test_end_error
 fi
-
+echo 4/4
+sync
 test_end_ok

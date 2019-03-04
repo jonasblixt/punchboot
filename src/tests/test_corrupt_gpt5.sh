@@ -9,6 +9,7 @@ result_code=$?
 
 if [ $result_code -ne 0 ];
 then
+    echo sgdisk is reporting errors
     test_end_error
 fi
 

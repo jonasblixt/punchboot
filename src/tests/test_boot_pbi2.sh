@@ -20,6 +20,8 @@ then
     test_end_error
 fi
 
+sync
+
 $PB boot -b -s A
 result_code=$?
 

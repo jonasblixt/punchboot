@@ -1,4 +1,5 @@
 #!/bin/bash
+sync
 source tests/common.sh
 wait_for_qemu_start
 
@@ -37,3 +38,4 @@ then
 fi
 
 test_end_ok
+sync

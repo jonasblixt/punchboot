@@ -73,21 +73,26 @@ LDFLAGS +=
 BOARD = test
 
 test: $(ARCH_OBJS) $(TEST_OBJS) 
-	@dd if=/dev/zero of=/tmp/disk bs=1M count=32
-	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16
+	@dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
+	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
 	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
 	@make -C tools/pbimage CROSS_COMPILE="" CODE_COV=1
+	@rm -f test_log.txt
 	@sync
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
 		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
 			 $(LIBS) $(TEST).o -o $(TEST) && \
-		echo "TEST $(TEST)" && \
-		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST);)
+		echo "TEST $(TEST)"  >> test_log.txt && \
+		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST) >> test_log.txt 2>&1;)
 
+	@echo
+	@echo
+	@echo "Running test:"
 	@$(foreach TEST,$(INTEGRATION_TESTS), \
 		QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS)" TEST_NAME="$(TEST)" \
-			tests/$(TEST).sh || exit; )
-
+			tests/$(TEST).sh >> test_log.txt 2>&1 && \
+			echo -n "\r$(TEST)                      " || exit; ) 
+	@echo
 	@echo "*** ALL $(words ${TESTS} ${INTEGRATION_TESTS}) TESTS PASSED ***"
 

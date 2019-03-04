@@ -15,7 +15,7 @@ fi
 # Trash GPT partition header
 
 dd if=/dev/urandom of=/tmp/disk bs=512 skip=2 conv=notrunc count=3
-
+sync
 # Reset
 $PB boot -r
 result_code=$?
