@@ -16,4 +16,6 @@ uint32_t pb_crypto_get_key(uint32_t key_index, struct pb_key **key)
 
 uint32_t pb_crypto_init(struct pb_crypto_backend *backend)
 {
+    UNUSED(backend);
+    return PB_OK;
 }

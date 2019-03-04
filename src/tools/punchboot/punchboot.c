@@ -42,7 +42,6 @@ static int load_params(const char *fn)
     int index;
     uint32_t n;
     const char *section_name;
-    uint32_t err;
 
     if (fp == NULL)
     {
@@ -141,8 +140,7 @@ static int load_params(const char *fn)
                     }
                     else
                     {
-                        err = PB_ERR;
-                        break;
+                        return -1;
                     }
                     
                     param_count++;
@@ -222,7 +220,7 @@ static void pb_print_param(struct param *p)
         {
             char *uuid_raw = (char *) p->data;
             char uuid_str[37];
-            uuid_unparse_upper(uuid_raw, uuid_str);
+            uuid_unparse_upper((const unsigned char*)uuid_raw, uuid_str);
             printf ("%s",uuid_str);
         }
         break;
@@ -415,8 +413,9 @@ int main(int argc, char **argv)
                 printf ("\n\nWARNING: This is a permanent change, writing fuses " \
                         "can not be reverted. This could brick your device.\n"
                         "\n\nType 'yes' + <Enter> to proceed: ");
-                fgets(confirm_input, 5, stdin);
-
+                if (fgets(confirm_input, 5, stdin) != confirm_input)
+                    return PB_ERR;
+                
                 if (strncmp(confirm_input, "yes", 3)  != 0)
                 {
                     printf ("Aborted\n");
@@ -450,7 +449,8 @@ int main(int argc, char **argv)
                 printf ("\n\nWARNING: This is a permanent change, writing fuses " \
                         "can not be reverted. This could brick your device.\n"
                         "\n\nType 'yes' + <Enter> to proceed: ");
-                fgets(confirm_input, 5, stdin);
+                if (fgets(confirm_input, 5, stdin) != confirm_input)
+                    return PB_ERR;
 
                 if (strncmp(confirm_input, "yes", 3)  != 0)
                 {

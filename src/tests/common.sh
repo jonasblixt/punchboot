@@ -1,7 +1,13 @@
 echo ------- ITEST BEGIN: $TEST_NAME ----------------------------
 
-( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
-qemu_pid=$!
+start_qemu()
+{
+    ( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
+    qemu_pid=$!
+}
+
+start_qemu
+
 PB=tools/punchboot/punchboot
 PBI=tools/pbimage/pbimage
 
@@ -9,6 +15,8 @@ KEY1=../pki/dev_rsa_private.der
 KEY2=../pki/prod_rsa_private.der
 
 #echo QEMU running, PID=$qemu_pid
+
+
 
 wait_for_qemu_start()
 {
@@ -38,7 +46,7 @@ test_end_error()
 {
     echo ------- ITEST END ERROR: $TEST_NAME ------------------------
     sleep 0.1
-    $PB boot -r
+    $PB boot -r &> /dev/null
     wait_for_qemu
     exit -1
 }

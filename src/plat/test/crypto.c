@@ -40,13 +40,13 @@ uint32_t  plat_hash_finalize(uintptr_t out)
     return PB_OK;
 }
 
-static char __no_bss __a4k output_data[1024];
+static __no_bss __a4k unsigned char output_data[1024];
 
 uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
                                 uint8_t *hash, uint32_t hash_kind,
                                 struct pb_key *k)
 {
-    uint32_t err = PB_ERR;
+    UNUSED(hash_kind);
     bool signature_verified = false;
 
     switch (sig_kind)
@@ -58,9 +58,9 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
                 (struct pb_rsa4096_key *) k->data;
             br_rsa_public_key br_k;
             
-            br_k.n = rsa_key->mod;
+            br_k.n = (unsigned char*) rsa_key->mod;
             br_k.nlen = 512;
-            br_k.e = rsa_key->exp;
+            br_k.e = (unsigned char*)rsa_key->exp;
             br_k.elen = 3;
 
             memcpy(output_data,sig,512);
@@ -91,7 +91,7 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
         break;
         default:
             LOG_ERR("Unknown signature format");
-            err = PB_ERR;
+            return PB_ERR;
         break;
     }
 

@@ -113,11 +113,11 @@ ifeq ($(BOARD),test)
 endif
 
 
-key_data: key_data.o
+key_data:
 	@$(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > key_data.c
 	@$(CC) -c $(CFLAGS) key_data.c -o key_data.o
 
-all: plat_early $(TARGET).bin board_final plat_final
+all: key_data plat_early $(TARGET).bin board_final plat_final
 	$(info Summary:)
 	$(info )
 	$(info BOARD:     [${PB_BOARD_NAME}])
@@ -151,6 +151,7 @@ $(TARGET): $(OBJS) main.o
 .PHONY: board_clean arch_clean plat_clean plat_early plat_final
 
 clean: board_clean arch_clean plat_clean
+	@-rm -f key_data.*
 	@-rm -rf *.o $(TARGET) $(TARGET).bin *.map out
 	@-rm -rf tests/*.o
 	@-rm -f $(OBJS)

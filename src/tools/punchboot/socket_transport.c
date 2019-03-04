@@ -73,7 +73,10 @@ int pb_write(uint32_t cmd, uint32_t arg0,
 	if (tx_bytes != sizeof(struct pb_socket_header))
 		return -1;
 
-    read(fd, &status, 1);
+    if (read(fd, &status, 1) != 1)
+    {
+        return PB_ERR;
+    }
 
 	tx_bytes = write(fd, &cmd_hdr, sizeof(struct pb_cmd_header));
 
@@ -82,7 +85,8 @@ int pb_write(uint32_t cmd, uint32_t arg0,
 	if (tx_bytes != sizeof(struct pb_cmd_header))
 		return -1;
 
-    read(fd, &status, 1);
+    if (read(fd, &status, 1) != 1)
+        return PB_ERR;
 
     if (bfr && sz) 
     { 
@@ -91,7 +95,8 @@ int pb_write(uint32_t cmd, uint32_t arg0,
         if (tx_bytes != sz)
             return -1;
 
-        read(fd, &status, 1);
+        if (read(fd, &status, 1) != 1)
+            return PB_ERR;
     }
 
 	return result_code;
@@ -108,9 +113,14 @@ int pb_read(uint8_t *bfr, int sz)
     while (remaining)
     {
         if (remaining > 4096)
+        {
             chunk = 4096;
+        }
         else
+        {
             chunk = remaining;
+        }
+
 	    rx_bytes = read(fd, &bfr[read_count], chunk);
         count++;
         remaining -= rx_bytes;
@@ -126,24 +136,22 @@ int pb_read(uint8_t *bfr, int sz)
 
 int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
 {
-    uint8_t status = 0;
-    uint32_t tx_bytes = 0;
-	struct pb_socket_header hdr;
     uint32_t remaining = sz;
     uint32_t chunk = 0;
     uint32_t pos = 0;
-    hdr.ep = 2;
-    hdr.sz = sz;
-   
 
     if (bfr && sz) 
     {
         while (remaining)
         {
             if (remaining > 4096)
+            {
                 chunk = 4096;
+            }
             else
+            {
                 chunk = remaining;
+            }
 
             
             *sz_tx = write(fd, &bfr[pos], chunk);

@@ -19,5 +19,6 @@ uint32_t pb_program_bootloader (const char *f_name);
 uint32_t pb_execute_image (const char *f_name, uint32_t active_system);
 uint32_t pb_recovery_setup(struct param *params);
 uint32_t pb_recovery_setup_lock(void);
+uint32_t pb_read_params(struct param **params);
 
 #endif

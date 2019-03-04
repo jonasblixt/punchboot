@@ -64,7 +64,7 @@ if __name__ == "__main__":
     if key_kind == "EC384":
         for fn in input_files:
             n, e = import_rsa_key(fn)
-            print ("const struct pb_rsa4096_key key%u= {"%(key_count))
+            print ("const struct pb_ec384_key key%u= {"%(key_count))
             print (".mod = {")
             count = 0
             for b in n[::-1]:
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         print ("const struct pb_key keys[] = {")
 
         for n in range(key_count):
-            print (" {.kind = PB_KEY_RSA4096, .id = %u, .data = &key%u},"%(n,n))
+            print (" {.kind = PB_KEY_EC384, .id = %u, .data = &key%u},"%(n,n))
         print("};")
         print("const uint8_t no_of_keys = %u;"%key_count)
     #if key

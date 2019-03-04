@@ -71,6 +71,22 @@ uint32_t crypto_sign(uint8_t *hash,
 
     br_skey_decoder_init(&skey_ctx);
     br_skey_decoder_push(&skey_ctx, key_data, key_sz);
+    br_hash_class *hc;
+
+    switch (sign_kind)
+    {
+        case PB_SIGN_EC256:
+            hc = (br_hash_class *) &br_sha256_vtable;
+        break;
+        case PB_SIGN_EC384:
+            hc = (br_hash_class *) &br_sha384_vtable;
+        break;
+        case PB_SIGN_EC521:
+            hc = (br_hash_class *) &br_sha512_vtable;
+        break;
+        default:
+        break;
+    }
 
     switch (sign_kind)
     {
@@ -89,7 +105,9 @@ uint32_t crypto_sign(uint8_t *hash,
                 err = PB_ERR;
         }
         break;
+        case PB_SIGN_EC256:
         case PB_SIGN_EC384:
+        case PB_SIGN_EC521:
         {
             br_ec_private_key *br_k;
             br_k = (br_ec_private_key *) br_skey_decoder_get_ec(&skey_ctx);
@@ -101,7 +119,7 @@ uint32_t crypto_sign(uint8_t *hash,
                 goto err_out3;
             }
 
-            if(!br_ecdsa_i31_sign_raw(&br_ec_prime_i31,&br_sha384_vtable,
+            if(!br_ecdsa_i31_sign_raw(&br_ec_prime_i31,hc,
                                 hash,br_k,out))
                 err = PB_ERR;
         }

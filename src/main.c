@@ -88,6 +88,7 @@ void pb_main(void)
         gpt_pb_attr_setbits(part, count);
 
         gpt_write_tbl(&gpt);
+        LOG_DBG("Current boot counter: %u", count);
     }
     else if (!gpt_pb_attr_ok(part)) /* Boot counter expired, rollback to other part */
     {
@@ -140,7 +141,9 @@ void pb_main(void)
     {
         LOG_INFO("Image verified, booting...");
         pb_boot(&pbi, active_system);
-    } else {
+    } 
+    else 
+    {
         LOG_ERR("Could not boot image, entering recovery mode...");
         flag_run_recovery = true;
     }

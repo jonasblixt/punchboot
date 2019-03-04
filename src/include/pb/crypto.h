@@ -19,7 +19,7 @@ enum
     PB_SIGN_RSA4096,
     PB_SIGN_EC256,
     PB_SIGN_EC384,
-    PB_SIGN_EC512,
+    PB_SIGN_EC521,
 };
 
 enum
@@ -28,7 +28,7 @@ enum
     PB_KEY_RSA4096,
     PB_KEY_EC256,
     PB_KEY_EC384,
-    PB_KEY_EC512,
+    PB_KEY_EC521,
 };
 
 #define PB_HASH_BUF_SZ 128
