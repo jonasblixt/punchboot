@@ -12,6 +12,7 @@
 #include <plat/test/gcov.h>
 #include <plat/test/uart.h>
 #include <3pp/bearssl/bearssl_hash.h>
+#include <plat/test/semihosting.h>
 
 static __a4k struct virtio_block_device virtio_block;
 static __a4k struct virtio_block_device virtio_block2;
@@ -27,6 +28,19 @@ void pb_boot(struct pb_pbi *pbi, uint32_t active_system)
 {
     UNUSED(pbi);
     UNUSED(active_system);
+
+    long fd = semihosting_file_open("/tmp/pb_boot_status", 6);
+
+    char boot_status[5];
+
+    snprintf(boot_status,5,"%u",active_system);
+
+    size_t bytes_to_write = strlen(boot_status);
+
+    semihosting_file_write(fd, &bytes_to_write, 
+                            (const uintptr_t) boot_status);	
+
+    semihosting_file_close(fd);
     plat_reset();
 }
 
@@ -218,6 +232,8 @@ uint32_t plat_early_init(void)
 
     test_fuse_init(&virtio_block2);
 
+
+    board_late_init(NULL);
     return PB_OK;
 
 }
