@@ -1,7 +1,8 @@
 language: c
 compiler: gcc
 dist: xenial
-
+python:
+  - "3.6"
 env:
   global:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
@@ -11,7 +12,7 @@ env:
    - CROSS_COMPILE="/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi-"
 before_install:
   - sudo apt install libcunit1-dev qemu-system-arm curl git u-boot-tools uuid-dev libusb-1.0-0-dev libtool-bin gdisk python-crypto
-  - pip3 install pycrypto
+  - pip install pycrypto
   - curl -sL https://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/arm-eabi/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi.tar.xz | tar xJ -C /tmp
 
 addons:
