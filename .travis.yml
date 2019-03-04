@@ -11,8 +11,7 @@ env:
    - secure: "Fe8UzmvOO2YIAt5YEa2IKaPnD5lzbuIVZfiAneDQPOxP9FxyL6HxmVtblRFkddaTRxFqPnC0DNnFa20+D/VwxoljjL9USXbaXvuonwRWQ8ujCFm2aymmrxpbHLmD+n3n5OlvMG2zM/xWbn+3G53UHJ5DO8NS3GZEICzWiPHWQkfrHvCKrH46Z0WaqiSwP9+VEgIK+QTBOARzKXhmwswf5CUhBy9u64UoXZGXebtDlR24q1GjBoh0hz4nYhTpq9PlgfLDCK18uA7xsVQ2J/223NE0u91J2ucf1Yb+oMs/MQBr58UuvxUBNMETXwwUXfInrpWCYA3mgFECK24Xc+mNXDJ4LBSPe9Vkjezv8+qoO6nhrrK9z9UchPmydMbLbDvJUDZFoI0mSfgkpEJfPN5zX5LGMypSEF+y2EbT27AwJa2BYMKHa3aYax6Ds7x5fgSZp5T0+gSxT3KPvCSBriMOisqdQDTshwbNUiN9vndkHh0cfCBZ3CcDyXEGMFVIWnq0n7mvtitMMgQA6DGhqnhDoDZXelLh39lwSwgdTpxje7ZEN6cAOyzoVwdIwkHJizfjrWyf7hfufi2rclmkU/oCG+d2QNdLHq9VMVVhUqFQvBPJAY94NKzemdjCLfb9j1KddU5vYZ5HclZrxyZaQGKPLSFR1Nnz9FzGZLr14uc1Rq4="
    - CROSS_COMPILE="/tmp/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi/bin/arm-eabi-"
 before_install:
-  - sudo apt install python3 libcunit1-dev qemu-system-arm curl git u-boot-tools uuid-dev libusb-1.0-0-dev libtool-bin gdisk python-crypto
-  - pip3 install pycrypto
+  - sudo apt install python3 libcunit1-dev qemu-system-arm curl git u-boot-tools uuid-dev libusb-1.0-0-dev libtool-bin gdisk python3-crypto
   - curl -sL https://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/arm-eabi/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi.tar.xz | tar xJ -C /tmp
 
 addons:
