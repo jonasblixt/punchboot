@@ -45,6 +45,11 @@ struct pb_rsa4096_key
 	const uint8_t exp[3];
 };
 
+struct pb_ec_key
+{
+    const uint8_t public_key[129];
+};
+
 struct pb_key
 {
     const uint32_t kind;

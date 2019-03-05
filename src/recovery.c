@@ -32,7 +32,7 @@ static __no_bss __a4k struct pb_pbi pbi;
 static __no_bss __a4k struct param params[RECOVERY_MAX_PARAMS];
 static struct gpt *gpt;
 extern const struct partition_table pb_partition_table[];
-static unsigned char hash_buffer[64];
+static unsigned char hash_buffer[PB_HASH_BUF_SZ];
 
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
             _zero_region_start, _zero_region_end, _stack_start, _stack_end;

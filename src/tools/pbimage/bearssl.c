@@ -92,12 +92,14 @@ uint32_t crypto_sign(uint8_t *hash,
     {
         case PB_SIGN_RSA4096:
         {
+            printf("Creating RSA4096 signature\n");
             br_rsa_private_key *br_k;
             br_k = (br_rsa_private_key *) br_skey_decoder_get_rsa(&skey_ctx);
 
             if (br_k == NULL)
             {
                 err = PB_ERR_IO;
+                printf("Could not decode key");
                 goto err_out3;
             }
 

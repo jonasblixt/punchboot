@@ -21,7 +21,7 @@
 
 static __no_bss __a4k struct pb_pbi pbi;
 static __no_bss __a4k struct gpt gpt;
-static char hash_buffer[64];
+static char hash_buffer[PB_HASH_BUF_SZ];
 
 void pb_main(void) 
 {

@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys
+import ecdsa
 from Crypto.PublicKey import RSA
 
+
+def import_ec_key(fn):
+    f = open(fn,"rb")
+    raw_key_data = f.read()
+    f.close()
+    vk = ecdsa.VerifyingKey.from_der(raw_key_data)
+
+    return vk.to_string()
 
 def import_rsa_key(fn):
     f = open(fn,"rb")
@@ -61,22 +70,17 @@ if __name__ == "__main__":
         print("const uint8_t no_of_keys = %u;"%key_count)
     #if key
 
-    if key_kind == "EC384":
+    if key_kind == "EC":
         for fn in input_files:
-            n, e = import_rsa_key(fn)
-            print ("const struct pb_ec384_key key%u= {"%(key_count))
-            print (".mod = {")
+            data = import_ec_key(fn)
+            print ("const struct pb_ec_key key%u= {"%(key_count))
+            print (".public_key = {")
             count = 0
-            for b in n[::-1]:
+            for b in data[::-1]:
                 print ("0x%x," % b,end='')
                 if count % 10 == 0:
                     print ()
                 count = count + 1
-            print("},")
-
-            print (".exp = {")
-            for b in e[::-1]:
-                print ("0x%x," % b,end='')
             print("},")
             print ("};")
 
