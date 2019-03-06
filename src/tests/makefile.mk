@@ -92,8 +92,7 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@echo "Running test:"
 	@$(foreach TEST,$(INTEGRATION_TESTS), \
 		QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS)" TEST_NAME="$(TEST)" \
-			tests/$(TEST).sh >> test_log.txt 2>&1 && \
-			echo -n "\r$(TEST)                      " || exit; ) 
+			tests/$(TEST).sh || exit; ) 
 	@echo
 	@echo "*** ALL $(words ${TESTS} ${INTEGRATION_TESTS}) TESTS PASSED ***"
 
