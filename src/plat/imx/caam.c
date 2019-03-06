@@ -202,7 +202,7 @@ static uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
     desc[4] = (uint32_t)(uintptr_t) rsa_key->mod;
     desc[5] = (uint32_t)(uintptr_t) rsa_key->exp;
     desc[6] = input_sz;
-    desc[7] = CAAM_CMD_OP | (0x18 << 16)|(0<<12) ;
+    desc[7] = CAAM_CMD_OP | (0x18 << 16);
  
     return caam_shedule_job_sync(d, desc);
 }
@@ -212,17 +212,25 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
                                   struct pb_key *k)
 {
     uint32_t err;
+    uint8_t dc = 0;
     struct pb_ec_key *key =
         (struct pb_ec_key *) k->data;
     
 
-    desc[0] = CAAM_CMD_HEADER | ( 6 << 16) | 7;
-    desc[1] = (1 << 25) | (0x03 << 7);
-    desc[2] = (uint32_t)(uintptr_t) key->public_key;
-    desc[3] = (uint32_t)(uintptr_t) hash;
-    desc[4] = (uint32_t)(uintptr_t) sig;
-    desc[5] = (uint32_t)(uintptr_t) &sig[64];
-    desc[6] = CAAM_CMD_OP|(0x16 << 16) | (4 << 7) | (1 << 1) | 1;
+    for (uint8_t n = 0; n < 16; n++)
+        printf("%02x ", key->public_key[n]);
+    printf("\n\r");
+
+    desc[dc++] = CAAM_CMD_HEADER;
+    desc[dc++] = (1 << 25) | (3 << 7);
+    desc[dc++] = (uint32_t)(uintptr_t) key->public_key;
+    desc[dc++] = (uint32_t)(uintptr_t) hash;
+    desc[dc++] = (uint32_t)(uintptr_t) sig;
+    desc[dc++] = (uint32_t)(uintptr_t) &sig[64];
+    desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (1 << 1) | 1;
+
+    desc[0] |= ((dc-1) << 16) | dc;
+
     err = caam_shedule_job_sync(d, desc);
 
     if (err != PB_OK)
