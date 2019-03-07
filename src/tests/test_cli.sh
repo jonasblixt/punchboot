@@ -1,5 +1,7 @@
 #!/bin/bash
+touch /tmp/pb_force_recovery
 source tests/common.sh
+
 wait_for_qemu_start
 
 # Display help banner
