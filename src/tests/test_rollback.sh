@@ -39,7 +39,7 @@ then
 fi
 
 # Reset
-
+pb_force_recovery_mode_off
 $PB boot -r
 result_code=$?
 
@@ -60,7 +60,7 @@ then
 fi
 echo 1/4
 sync
-sleep 0.1
+wait_for_qemu2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -72,7 +72,7 @@ then
 fi
 echo 2/4
 sync
-sleep 0.1
+wait_for_qemu2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -84,7 +84,7 @@ then
 fi
 echo 3/4
 sync
-sleep 0.1
+wait_for_qemu2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -96,5 +96,5 @@ then
 fi
 echo 4/4
 sync
-sleep 0.1
+wait_for_qemu2
 test_end_ok

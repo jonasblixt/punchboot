@@ -32,6 +32,11 @@ wait_for_qemu_start()
     done
 }
 
+wait_for_qemu2()
+{
+    wait $qemu_pid
+}
+
 wait_for_qemu()
 {
     wait $qemu_pid
