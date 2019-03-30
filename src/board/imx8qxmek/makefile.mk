@@ -10,8 +10,8 @@ BOARD_C_SRCS += boot/atf_linux.c
 MKIMAGE         = mkimage_imx8
 FINAL_IMAGE     = $(TARGET).imx
 
-KEYS  = ../pki/ec_pub.der
-#KEYS += ../pki/prod_rsa_public.der
+KEYS  = ../pki/ec384-pub-key.der
+#KEYS = ../pki/dev_rsa_public.der
 #KEYS += ../pki/field1_rsa_public.der
 #KEYS += ../pki/field2_rsa_public.der
 

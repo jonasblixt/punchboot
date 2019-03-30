@@ -49,8 +49,9 @@ static struct fsl_caam_jr *d;
 static uint32_t __a4k desc[16];
 static uint32_t current_hash_kind;
 static volatile __a4k __no_bss uint8_t hash_ctx[128];
+static __no_bss __a4k uint8_t caam_tmp_buf[4096];
 
-static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job) 
+static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
 {
 
     d->input_ring[0] = (uint32_t)(uintptr_t) job;
@@ -63,7 +64,7 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
     while ((pb_read32(d->base + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
-    if (d->output_ring[0] != (uint32_t)(uintptr_t) job) 
+    if (d->output_ring[0] != (uint32_t)(uintptr_t) job)
     {
         printf ("Job failed\n\r");
         return PB_ERR;
@@ -81,7 +82,7 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
 }
 
 
-static uint32_t caam_shedule_job_async(struct fsl_caam_jr *d, uint32_t *job) 
+static uint32_t caam_shedule_job_async(struct fsl_caam_jr *d, uint32_t *job)
 {
 
     d->input_ring[0] = (uint32_t)(uintptr_t) job;
@@ -99,7 +100,7 @@ static uint32_t caam_wait_for_job(struct fsl_caam_jr *d, uint32_t *job)
     while ((pb_read32(d->base + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
-    if (d->output_ring[0] != (uint32_t)(uintptr_t) job) 
+    if (d->output_ring[0] != (uint32_t)(uintptr_t) job)
     {
         printf ("Job failed\n\r");
         return PB_ERR;
@@ -116,7 +117,7 @@ static uint32_t caam_wait_for_job(struct fsl_caam_jr *d, uint32_t *job)
     return PB_OK;
 }
 
-static uint32_t caam_hash_init(uint32_t alg) 
+static uint32_t caam_hash_init(uint32_t alg)
 
 {
     memset(hash_ctx, 0, 128);
@@ -126,7 +127,7 @@ static uint32_t caam_hash_init(uint32_t alg)
 
 
 static uint32_t caam_hash_update(uint32_t alg, uint32_t ctx_sz,
-                                uint8_t *data, uint32_t sz) 
+                                uint8_t *data, uint32_t sz)
 {
     uint8_t dc = 0;
 
@@ -165,7 +166,7 @@ static uint32_t caam_hash_update(uint32_t alg, uint32_t ctx_sz,
     return caam_shedule_job_async(d, desc);
 }
 
-static uint32_t caam_hash_finalize(uint32_t alg, uint32_t ctx_sz, uint8_t *out) 
+static uint32_t caam_hash_finalize(uint32_t alg, uint32_t ctx_sz, uint8_t *out)
 {
     uint8_t dc = 0;
 
@@ -193,7 +194,6 @@ static uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
 {
     struct pb_rsa4096_key *rsa_key =
         (struct pb_rsa4096_key *) k->data;
-    
 
     desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
     desc[1] = (3 << 12)|512;
@@ -203,7 +203,7 @@ static uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
     desc[5] = (uint32_t)(uintptr_t) rsa_key->exp;
     desc[6] = input_sz;
     desc[7] = CAAM_CMD_OP | (0x18 << 16);
- 
+
     return caam_shedule_job_sync(d, desc);
 }
 
@@ -215,18 +215,31 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
     uint8_t dc = 0;
     struct pb_ec_key *key =
         (struct pb_ec_key *) k->data;
-    
 
-    for (uint8_t n = 0; n < 16; n++)
-        printf("%02x ", key->public_key[n]);
+    memset(caam_tmp_buf,0,4096);
+
+    printf("Key:\n\r");
+    for (uint8_t n = 0; n < 96; n++)
+        printf("0x%02x,", key->public_key[n]);
+    printf("\n\r");
+
+    printf("Sign:\n\r");
+    for (uint8_t n = 0; n < 96; n++)
+        printf("0x%02x,", sig[n]);
+    printf("\n\r");
+
+    printf("Hash:\n\r");
+    for (uint8_t n = 0; n < 48; n++)
+        printf("0x%02x,", hash[n]);
     printf("\n\r");
 
     desc[dc++] = CAAM_CMD_HEADER;
-    desc[dc++] = (1 << 25) | (3 << 7);
+    desc[dc++] = (1 << 22) | (3 << 7);
     desc[dc++] = (uint32_t)(uintptr_t) key->public_key;
     desc[dc++] = (uint32_t)(uintptr_t) hash;
-    desc[dc++] = (uint32_t)(uintptr_t) sig;
-    desc[dc++] = (uint32_t)(uintptr_t) &sig[64];
+    desc[dc++] = (uint32_t)(uintptr_t) &sig[0];
+    desc[dc++] = (uint32_t)(uintptr_t) &sig[48];
+    desc[dc++] = (uint32_t)(uintptr_t) caam_tmp_buf;
     desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (1 << 1) | 1;
 
     desc[0] |= ((dc-1) << 16) | dc;
@@ -239,14 +252,14 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
     return err;
 }
 
-uint32_t caam_init(struct fsl_caam_jr *caam_dev) 
+uint32_t caam_init(struct fsl_caam_jr *caam_dev)
 {
 
     d = caam_dev;
 
     if (d->base == 0)
         return PB_ERR;
-    
+
     for (uint32_t n = 0;n < JOB_RING_ENTRIES; n++)
         d->input_ring[n] = 0;
 
@@ -375,9 +388,9 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
 
             uint32_t n = 0;
             uint32_t y = 0;
-            for (uint32_t i = (512-32); i < 512; i++) 
+            for (uint32_t i = (512-48); i < 512; i++)
             {
-                if (output_data[i] != hash[n]) 
+                if (output_data[i] != hash[n])
                     y++;
                 n++;
             }

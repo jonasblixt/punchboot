@@ -276,7 +276,7 @@ uint32_t pbimage_out(const char *fn)
 
     for (uint32_t i = 0; i < hash_size; i++)
         printf("%2.2x ", hash[i]);
-    printf("\n");
+    printf("\n\n");
 
     err = crypto_initialize();
 
@@ -291,6 +291,25 @@ uint32_t pbimage_out(const char *fn)
         printf ("Error: crypto_sign failed (%u)\n",err);
         return err;
     }
+
+    switch(hdr.sign_kind)
+    {
+        case PB_SIGN_EC384:
+        {
+            printf ("EC384 Signature:");
+            for (uint32_t i = 0; i < 96; i++)
+                printf("%2.2x ", signature[i]);
+        }
+        break;
+        case PB_SIGN_RSA4096:
+        {
+            printf ("RSA4096 Signature:");
+            for (uint32_t i = 0; i < 512; i++)
+                printf("%2.2x ", signature[i]);
+        }
+    }
+
+    printf("\n");
 
     fwrite(&hdr, sizeof(struct pb_image_hdr), 1, fp);
     fwrite(signature, PB_IMAGE_SIGN_MAX_SIZE, 1, fp);

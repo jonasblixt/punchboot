@@ -78,13 +78,14 @@ if __name__ == "__main__":
             print (".public_key = {")
             count = 0
 
-            for b in data[::-1]:
+            #print ("0x04,")
+            #for b in data[::-1]:
+            for b in data:
                 print ("0x%.2x," % b,end='')
                 if (count+1) % 8 == 0:
                     print ()
                 count = count + 1
 
-            print ("0x04,")
             print("},")
             print ("};")
 
