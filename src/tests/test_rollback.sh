@@ -37,9 +37,10 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
-
+sleep 0.1
 # Reset
 force_recovery_mode_off
+sync
 $PB boot -r
 result_code=$?
 
