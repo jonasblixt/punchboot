@@ -39,7 +39,7 @@ then
 fi
 
 # Reset
-pb_force_recovery_mode_off
+force_recovery_mode_off
 $PB boot -r
 result_code=$?
 
