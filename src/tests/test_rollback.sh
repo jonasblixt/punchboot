@@ -50,6 +50,7 @@ then
 fi
 
 wait_for_qemu
+sleep 0.2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -62,6 +63,7 @@ fi
 echo 1/4
 sync
 wait_for_qemu2
+sleep 0.2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -74,6 +76,7 @@ fi
 echo 2/4
 sync
 wait_for_qemu2
+sleep 0.2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -86,6 +89,7 @@ fi
 echo 3/4
 sync
 wait_for_qemu2
+sleep 0.2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
