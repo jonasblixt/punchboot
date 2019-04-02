@@ -1,16 +1,27 @@
-FROM debian:jessie
+FROM ubuntu:trusty
 
-
-RUN apt-get update && apt-get install -y \
+RUN echo "deb mirror://mirrors.ubuntu.com/mirrors.txt trusty main restricted universe multiverse" > /etc/apt/sources.list && \
+    echo "deb mirror://mirrors.ubuntu.com/mirrors.txt trusty-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb mirror://mirrors.ubuntu.com/mirrors.txt trusty-security main restricted universe multiverse" >> /etc/apt/sources.list && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
+    apt-get install -y \
     apt-transport-https \
+    openssl \
+    qemu-system-common \
+    python3 \
     ca-certificates \
     curl \
+    gdisk \
     gnupg2 \
     software-properties-common \
     wget \
     srecord \
     build-essential \
     u-boot-tools \
+    python3-ecdsa \
+    python3-crypto \
+    qemu-system-arm \
+    realpath \
     device-tree-compiler \
     git \
     bc \
@@ -26,4 +37,4 @@ RUN cd /imx-mkimage && make SOC=iMX8QX REVISION=B0 \
 && cp /imx-mkimage/mkimage_imx8 /usr/local/bin/mkimage_imx8m \
 && cd /
 
-RUN echo "export PATH=\"/opt/gcc-arm-none-eabi-7-2018-q2-update/bin:/opt/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu/bin:\$PATH\"" > /etc/environment
+RUN echo "export PATH=\"/opt/gcc-arm-none-eabi-7-2018-q2-update/bin:/opt/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu/bin:/imx-mkimage:\$PATH\"" >> ~/.bashrc

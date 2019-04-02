@@ -15,6 +15,8 @@ extern char _code_start, _code_end,
 
 #define IMAGE_BLK_CHUNK 1024
 
+static unsigned char hash_data[64];
+
 uint32_t pb_image_check_header(struct pb_pbi *pbi)
 {
 
@@ -130,7 +132,6 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
 uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
 {
     unsigned char *hash;
-    unsigned char hash_data[32];
     uint32_t err = PB_OK;
 
     tr_stamp_begin(TR_VERIFY);
@@ -181,7 +182,6 @@ uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
         return err;
 
     tr_stamp_end(TR_VERIFY);
-
     return PB_OK;
 }
 

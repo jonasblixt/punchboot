@@ -446,7 +446,7 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
             else
                 return PB_ERR;
 
-            LOG_DBG("Signature OK");
+            LOG_DBG("Signature %s",signature_verified?"OK":"Fail");
         }
         break;
         case PB_SIGN_NIST521p:

@@ -22,12 +22,14 @@ extern void arch_jump_atf(void* atf_addr, void * atf_param)
 
 extern uint32_t board_linux_patch_dt (void *fdt, int offset);
 static char new_bootargs[512];
-static char device_uuid[37];
+static __a16b char device_uuid[37];
 static __a4k __no_bss char device_uuid_raw[16];
 
 void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
 {
-    char part_uuid[37];
+
+    __a16b char part_uuid[37];
+    char *part_uuid_raw = NULL;
 
     struct pb_component_hdr *dtb = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
@@ -37,6 +39,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
 
     struct pb_component_hdr *atf = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
+    
 
     tr_stamp_begin(TR_FINAL);
 
@@ -48,7 +51,6 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
     } 
     else if (dtb && linux2)
     {
-
         LOG_INFO(" LINUX %x, DTB %x", linux2->load_addr_low, 
                                               dtb->load_addr_low);
     }
@@ -63,13 +65,13 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
         case SYSTEM_A:
         {
             LOG_INFO ("Using root A");
-            uuid_to_string((unsigned char *)PB_PARTUUID_ROOT_A, part_uuid);
+            part_uuid_raw = (char *) PB_PARTUUID_ROOT_A;
         }
         break;
         case SYSTEM_B:
         {
             LOG_INFO ("Using root B");
-            uuid_to_string((unsigned char *) PB_PARTUUID_ROOT_B, part_uuid);
+            part_uuid_raw = (char *) PB_PARTUUID_ROOT_B;
         }
         break;
         default:
@@ -78,8 +80,9 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
             return ;
         }
     }
-    LOG_INFO("UUID = %s", part_uuid);
 
+    uuid_to_string((unsigned char *) part_uuid_raw, part_uuid);
+    LOG_INFO("UUID = %s", part_uuid);
     LOG_DBG("Patching DT");
     void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
     int err = fdt_check_header(fdt);
@@ -88,6 +91,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
     {
         int depth = 0;
         int offset = 0;
+
         for (;;) 
         {
             offset = fdt_next_node(fdt, offset, &depth);

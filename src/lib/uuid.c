@@ -79,8 +79,6 @@ uint32_t uuid_to_string(uint8_t *uuid, char *out)
         u->uuid.node[4],
         u->uuid.node[5]);
 
-    
-
     return PB_OK;
 }
 
