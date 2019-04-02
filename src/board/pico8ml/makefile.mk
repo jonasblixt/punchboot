@@ -14,6 +14,13 @@ MKIMAGE         = mkimage_imx8_imx8m
 IMX_USB         = imx_usb
 FINAL_IMAGE     = $(TARGET).imx
 
+KEYS  = ../pki/secp521r1-pub-key.der
+#KEYS = ../pki/dev_rsa_public.der
+#KEYS += ../pki/field1_rsa_public.der
+#KEYS += ../pki/field2_rsa_public.der
+
+KEY_TYPE = EC
+
 board_final: $(TARGET).bin
 	@echo "board_final"
 	$(MKIMAGE) -loader $(TARGET).bin $(PB_ENTRY) -out $(TARGET).imx 

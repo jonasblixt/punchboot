@@ -98,7 +98,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
 bool board_force_recovery(struct pb_platform_setup *plat) 
 {
     uint8_t force_recovery = false;
-    uint32_t err;
+    UNUSED(plat);
 
     /* Check force recovery input switch */
     if ( (pb_read32(0x0209C008) & (1 << 21)) == 0)

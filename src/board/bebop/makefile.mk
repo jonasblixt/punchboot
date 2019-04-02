@@ -13,6 +13,12 @@ IMX_USB         = imx_usb
 JIFFY_IMAGE_CFG = board/bebop/imximage.cfg
 FINAL_IMAGE     = $(TARGET).imx
 
+KEYS  = ../pki/secp521r1-pub-key.der
+#KEYS = ../pki/dev_rsa_public.der
+#KEYS += ../pki/field1_rsa_public.der
+#KEYS += ../pki/field2_rsa_public.der
+
+KEY_TYPE = EC
 board_final: $(TARGET).bin
 	@$(MKIMAGE) -n $(JIFFY_IMAGE_CFG) -T imximage -e $(PB_ENTRY) \
 			-d $(TARGET).bin $(TARGET).imx 
