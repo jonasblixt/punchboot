@@ -151,7 +151,7 @@ uint32_t pbimage_out(const char *fn)
     uint32_t offset = 0;
     uint32_t ncomp = hdr.no_of_components;
     uint8_t zpad[511];
-    uint8_t hash[32];
+    uint8_t hash[64];
     uint32_t err;
     br_sha256_context sha256_ctx;
     br_sha384_context sha384_ctx;
@@ -294,10 +294,24 @@ uint32_t pbimage_out(const char *fn)
 
     switch(hdr.sign_kind)
     {
+        case PB_SIGN_EC256:
+        {
+            printf ("EC256 Signature:");
+            for (uint32_t i = 0; i < 64; i++)
+                printf("%2.2x ", signature[i]);
+        }
+        break;
         case PB_SIGN_EC384:
         {
             printf ("EC384 Signature:");
             for (uint32_t i = 0; i < 96; i++)
+                printf("%2.2x ", signature[i]);
+        }
+        break;
+        case PB_SIGN_EC521:
+        {
+            printf ("EC521 Signature:");
+            for (uint32_t i = 0; i < 128; i++)
                 printf("%2.2x ", signature[i]);
         }
         break;

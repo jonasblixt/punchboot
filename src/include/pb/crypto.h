@@ -47,7 +47,7 @@ struct pb_rsa4096_key
 
 struct pb_ec_key
 {
-    const uint8_t public_key[129];
+    const __attribute__ ((aligned(4))) uint8_t public_key[129];
 };
 
 struct pb_key

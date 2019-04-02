@@ -49,7 +49,8 @@ static struct fsl_caam_jr *d;
 static uint32_t __a4k desc[16];
 static uint32_t current_hash_kind;
 static volatile __a4k __no_bss uint8_t hash_ctx[128];
-static __no_bss __a4k uint8_t caam_tmp_buf[4096];
+static __no_bss __a16b uint8_t caam_tmp_buf[128];
+static __no_bss __a16b uint8_t caam_ecdsa_key[128];
 
 static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
 {
@@ -208,39 +209,82 @@ static uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
 }
 
 static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
-                                  uint8_t *sig,
+                                  uint8_t *sig,uint32_t sig_kind,
                                   struct pb_key *k)
 {
     uint32_t err;
     uint8_t dc = 0;
+    uint32_t sig_len = 0;
+    uint32_t hash_len = 0;
+    uint8_t caam_sig_type = 0;
     struct pb_ec_key *key =
         (struct pb_ec_key *) k->data;
 
-    memset(caam_tmp_buf,0,4096);
+    memset(caam_tmp_buf,0,128);
+    memset(caam_ecdsa_key,0,128);
 
-    printf("Key:\n\r");
-    for (uint8_t n = 0; n < 96; n++)
-        printf("0x%02x,", key->public_key[n]);
+    switch (hash_kind)
+    {
+        case PB_HASH_SHA256:
+            hash_len = 32;
+        break;
+        case PB_HASH_SHA384:
+            hash_len = 48;
+        break;
+        case PB_HASH_SHA512:
+            hash_len = 64;
+        break;
+        default:
+            LOG_ERR("Unknown hash");
+            return PB_ERR;
+    };
+
+    switch (sig_kind)
+    {
+        case PB_SIGN_EC256:
+            sig_len = 32;
+            caam_sig_type = 2;
+        break;
+        case PB_SIGN_EC384:
+            sig_len = 48;
+            caam_sig_type = 3;
+        break;
+        case PB_SIGN_EC521:
+            sig_len = 64;
+            caam_sig_type = 4;
+        break;
+        default:
+            LOG_ERR("Unknown signature format");
+            return PB_ERR;
+    };
+
+    memcpy(caam_ecdsa_key, key->public_key, sig_len*2);
+
+    printf("Key %u 0x%p:\n\r",sig_len*2,caam_ecdsa_key);
+    for (uint8_t n = 0; n < sig_len*2; n++)
+        printf("0x%02x,", caam_ecdsa_key[n]);
     printf("\n\r");
 
-    printf("Sign:\n\r");
-    for (uint8_t n = 0; n < 96; n++)
+    printf("Sign %u 0x%p:\n\r",sig_len*2,sig);
+    for (uint8_t n = 0; n < sig_len*2; n++)
         printf("0x%02x,", sig[n]);
     printf("\n\r");
 
-    printf("Hash:\n\r");
-    for (uint8_t n = 0; n < 48; n++)
+    printf("Hash %u 0x%p:\n\r",hash_len,hash);
+    for (uint8_t n = 0; n < hash_len; n++)
         printf("0x%02x,", hash[n]);
     printf("\n\r");
 
+
     desc[dc++] = CAAM_CMD_HEADER;
-    desc[dc++] = (1 << 22) | (3 << 7);
-    desc[dc++] = (uint32_t)(uintptr_t) key->public_key;
+    desc[dc++] = (1 << 22) | (caam_sig_type << 7);
+    desc[dc++] = (uint32_t)(uintptr_t) caam_ecdsa_key;
     desc[dc++] = (uint32_t)(uintptr_t) hash;
     desc[dc++] = (uint32_t)(uintptr_t) &sig[0];
-    desc[dc++] = (uint32_t)(uintptr_t) &sig[48];
+    desc[dc++] = (uint32_t)(uintptr_t) &sig[sig_len];
     desc[dc++] = (uint32_t)(uintptr_t) caam_tmp_buf;
-    desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (1 << 1) | 1;
+    desc[dc++] = hash_len;
+    desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (2 << 10) | (1 << 1) /*| 1*/;
 
     desc[0] |= ((dc-1) << 16) | dc;
 
@@ -403,10 +447,28 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
             LOG_DBG("Signature OK");
         }
         break;
+        case PB_SIGN_EC521:
+        {
+            LOG_DBG("Checking EC521 signature...");
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_EC521,k);
+
+            if (err == PB_OK)
+                signature_verified = true;
+        }
+        break;
         case PB_SIGN_EC384:
         {
             LOG_DBG("Checking EC384 signature...");
-            err = caam_ecdsa_verify(hash, hash_kind, sig,k);
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_EC384,k);
+
+            if (err == PB_OK)
+                signature_verified = true;
+        }
+        break;
+        case PB_SIGN_EC256:
+        {
+            LOG_DBG("Checking EC256 signature...");
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_EC256,k);
 
             if (err == PB_OK)
                 signature_verified = true;

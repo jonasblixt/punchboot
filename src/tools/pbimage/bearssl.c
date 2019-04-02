@@ -73,6 +73,7 @@ uint32_t crypto_sign(uint8_t *hash,
     br_skey_decoder_push(&skey_ctx, key_data, key_sz);
     br_hash_class *hc;
 
+    printf ("Key size: %u\n", key_sz);
     switch (sign_kind)
     {
         case PB_SIGN_EC256:
@@ -111,6 +112,7 @@ uint32_t crypto_sign(uint8_t *hash,
         case PB_SIGN_EC384:
         case PB_SIGN_EC521:
         {
+            printf ("Signing...\n");
             br_ec_private_key *br_k;
             br_k = (br_ec_private_key *) br_skey_decoder_get_ec(&skey_ctx);
 
