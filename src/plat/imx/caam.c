@@ -401,7 +401,24 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
                                 struct pb_key *k)
 {
     uint32_t err = PB_ERR;
+    uint8_t hash_length;
     bool signature_verified = false;
+
+    switch(hash_kind)
+    {
+        case PB_HASH_SHA256:
+            hash_length = 32;
+        break;
+        case PB_HASH_SHA384:
+            hash_length = 48;
+        break;
+        case PB_HASH_SHA512:
+            hash_length = 64;
+        break;
+        default:
+            return PB_ERR;
+    }
+
 
     switch (sig_kind)
     {
@@ -417,7 +434,7 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
 
             uint32_t n = 0;
             uint32_t y = 0;
-            for (uint32_t i = (512-48); i < 512; i++)
+            for (uint32_t i = (512-hash_length); i < 512; i++)
             {
                 if (output_data[i] != hash[n])
                     y++;
