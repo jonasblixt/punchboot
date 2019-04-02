@@ -257,26 +257,19 @@ uint32_t pbimage_out(const char *fn)
     {
         case PB_HASH_SHA256:
             br_sha256_out(&sha256_ctx, hash);
-            printf("SHA256:");
             hash_size = 32;
         break;
         case PB_HASH_SHA384:
             br_sha384_out(&sha384_ctx, hash);
-            printf("SHA384:");
             hash_size = 48;
         break;
         case PB_HASH_SHA512:
             br_sha512_out(&sha512_ctx, hash);
-            printf("SHA512:");
             hash_size = 64;
         break;
         default:
             return PB_ERR;
     }
-
-    for (uint32_t i = 0; i < hash_size; i++)
-        printf("%2.2x ", hash[i]);
-    printf("\n\n");
 
     err = crypto_initialize();
 
@@ -291,7 +284,7 @@ uint32_t pbimage_out(const char *fn)
         printf ("Error: crypto_sign failed (%u)\n",err);
         return err;
     }
-
+/*
     switch(hdr.sign_kind)
     {
         case PB_SIGN_NIST256p:
@@ -324,7 +317,7 @@ uint32_t pbimage_out(const char *fn)
     }
 
     printf("\n");
-
+*/
     fwrite(&hdr, sizeof(struct pb_image_hdr), 1, fp);
     fwrite(signature, PB_IMAGE_SIGN_MAX_SIZE, 1, fp);
     fwrite(comp, PB_IMAGE_MAX_COMP*

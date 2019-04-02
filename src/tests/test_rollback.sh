@@ -37,7 +37,7 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
-sleep 0.1
+
 # Reset
 force_recovery_mode_off
 sync
@@ -50,7 +50,6 @@ then
 fi
 
 wait_for_qemu
-sleep 0.2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -61,9 +60,7 @@ then
     test_end_error
 fi
 echo 1/4
-sync
 wait_for_qemu2
-sleep 0.2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -74,9 +71,7 @@ then
     test_end_error
 fi
 echo 2/4
-sync
 wait_for_qemu2
-sleep 0.2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -87,9 +82,7 @@ then
     test_end_error
 fi
 echo 3/4
-sync
 wait_for_qemu2
-sleep 0.2
 start_qemu
 wait_for_qemu_start
 wait_for_qemu
@@ -100,6 +93,5 @@ then
     test_end_error
 fi
 echo 4/4
-sync
 wait_for_qemu2
 test_end_ok

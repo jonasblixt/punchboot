@@ -1,9 +1,14 @@
 echo ------- ITEST BEGIN: $TEST_NAME ----------------------------
 
+wait_for_qemu2()
+{
+    wait $qemu_pid
+}
+
 start_qemu()
 {
-    sync
-    sleep 0.01
+    #sync
+    #sleep 0.1
     ( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
     qemu_pid=$!
 }
@@ -28,14 +33,10 @@ wait_for_qemu_start()
         then
             break;
         fi
-        sleep 0.1
+        sleep 0.01
     done
 }
 
-wait_for_qemu2()
-{
-    wait $qemu_pid
-}
 
 wait_for_qemu()
 {
