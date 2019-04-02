@@ -3,6 +3,7 @@ echo ------- ITEST BEGIN: $TEST_NAME ----------------------------
 wait_for_qemu2()
 {
     wait $qemu_pid
+    sleep 0.1
 }
 
 start_qemu()

@@ -11,6 +11,7 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
+echo Flashing sys A
 
 $PB part -w -n 0 -f /tmp/img.pbi
 result_code=$?
@@ -20,7 +21,8 @@ then
     test_end_error
 fi
 
-$PB part -w -n 0 -f /tmp/img.pbi
+echo Flashing sys B
+$PB part -w -n 1 -f /tmp/img.pbi
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -48,12 +50,16 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
-
+echo "Waiting for qemu to exit"
 wait_for_qemu
+echo "Starting qemu"
 start_qemu
 wait_for_qemu_start
+echo "QEMU started"
 wait_for_qemu
+
 boot_status=$(</tmp/pb_boot_status)
+echo "Read boot status"
 
 if [ "$boot_status" != "1" ];
 then

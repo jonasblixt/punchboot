@@ -11,7 +11,8 @@ enum tr_kinds
     TR_BLINIT = 1,
     TR_LOAD = 2,
     TR_VERIFY = 3,
-    TR_FINAL = 5,
+    TR_DT_PATCH = 4,
+    TR_TOTAL = 5,
 };
 
 void tr_init(void);

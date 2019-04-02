@@ -13,7 +13,7 @@ extern char _code_start, _code_end,
             _zero_region_start, _zero_region_end, 
             _stack_start, _stack_end;
 
-#define IMAGE_BLK_CHUNK 1024
+#define IMAGE_BLK_CHUNK 8192
 
 static unsigned char hash_data[64];
 

@@ -41,7 +41,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
     
 
-    tr_stamp_begin(TR_FINAL);
+    tr_stamp_begin(TR_DT_PATCH);
 
     if (dtb && linux2 && atf)
     {
@@ -101,12 +101,12 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
 
             const char *name = fdt_get_name(fdt, offset, NULL);
 
-
             if (!name)
                 continue;
 
             if (strcmp(name, "chosen") == 0) 
             {
+
                 snprintf (new_bootargs, 512, BOARD_BOOT_ARGS, part_uuid);
 
                 err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
@@ -151,7 +151,9 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
 
     LOG_DBG("Done");
     plat_preboot_cleanup();
-    tr_stamp_end(TR_FINAL);
+    tr_stamp_end(TR_TOTAL);
+    tr_stamp_end(TR_DT_PATCH);
+
     tr_print_result();
 
     plat_wdog_kick();

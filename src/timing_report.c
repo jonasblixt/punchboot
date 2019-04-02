@@ -13,7 +13,8 @@ static const char *kind_strings[] =
     "TR_BLINIT",
     "TR_LOAD",
     "TR_VERIFY",
-    "TR_FINAL"
+    "TR_DT_PATCH",
+    "TR_TOTAL"
 };
 
 

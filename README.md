@@ -65,11 +65,10 @@ Using hardware accelerators for SHA and RSA signatures:
 | Parameter         | Value    | Unit |
 | ----------------- |:--------:| ---- |
 | Power On Reset    | 175      | ms   |
-| Bootloader init   | 6.317    | ms   |
-| Blockdev read     | 86.245   | ms   |
-| SHA256 Hash       | 47.649   | ms   |
+| Bootloader init   | 6.358    | ms   |
+| Blockdev read / hash     | 107   | ms   |
 | RSA 4096 Signature | 0.676    | ms   |
-| Total             | 314      | ms   |
+| Total             | 288      | ms   |
 
 The POR time is off due to some unidentified problem with the SCU firmware.
  A guess would be that this metric should be in the 20ms -range.

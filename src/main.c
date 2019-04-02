@@ -37,6 +37,7 @@ void pb_main(void)
         plat_reset();
 
     tr_stamp_begin(TR_BLINIT);
+    tr_stamp_begin(TR_TOTAL);
 
     LOG_INFO ("PB: " VERSION " starting...");
 
@@ -125,6 +126,7 @@ void pb_main(void)
         gpt_write_tbl(&gpt);
     }
 
+    //LOG_DBG("part->first_lba = %llx",part->first_lba);
 
     err = pb_image_load_from_fs(part->first_lba, &pbi, hash_buffer);
 

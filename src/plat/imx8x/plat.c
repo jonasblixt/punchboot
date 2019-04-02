@@ -182,6 +182,7 @@ uint32_t  plat_early_init(void)
     
 	sc_ipc_open(&plat.ipc_handle, SC_IPC_BASE);
 
+    /* TODO: Temporary code for measuring boot time */
 	sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_GPIO_0, SC_PM_PW_MODE_ON);
 	rate = 1000000;
 	sc_pm_set_clock_rate(plat.ipc_handle, SC_R_GPIO_0, 2, &rate);
@@ -189,6 +190,7 @@ uint32_t  plat_early_init(void)
     pb_setbit32(1 << 16, GPIO_BASE+0x04);
     pb_setbit32(1 << 16, GPIO_BASE);
     sc_pad_set(plat.ipc_handle, SC_P_SPI3_CS0, GPIO_PAD_CTRL | (4 << 27));
+    /* TODO: End of Temporary code */
 
     plat_wdog_init();
 
