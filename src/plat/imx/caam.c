@@ -49,8 +49,8 @@ static struct fsl_caam_jr *d;
 static uint32_t __a4k desc[16];
 static uint32_t current_hash_kind;
 static volatile __a4k __no_bss uint8_t hash_ctx[128];
-static __no_bss __a16b uint8_t caam_tmp_buf[128];
-static __no_bss __a16b uint8_t caam_ecdsa_key[128];
+static __no_bss __a16b uint8_t caam_tmp_buf[132];
+static __no_bss __a16b uint8_t caam_ecdsa_key[132];
 
 static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
 {
@@ -220,8 +220,8 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
     struct pb_ec_key *key =
         (struct pb_ec_key *) k->data;
 
-    memset(caam_tmp_buf,0,128);
-    memset(caam_ecdsa_key,0,128);
+    memset(caam_tmp_buf,0,132);
+    memset(caam_ecdsa_key,0,132);
 
     switch (hash_kind)
     {
@@ -250,7 +250,7 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
             caam_sig_type = 3;
         break;
         case PB_SIGN_EC521:
-            sig_len = 64;
+            sig_len = 66;
             caam_sig_type = 4;
         break;
         default:

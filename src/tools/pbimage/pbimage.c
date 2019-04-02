@@ -311,7 +311,7 @@ uint32_t pbimage_out(const char *fn)
         case PB_SIGN_EC521:
         {
             printf ("EC521 Signature:");
-            for (uint32_t i = 0; i < 128; i++)
+            for (uint32_t i = 0; i < 132; i++)
                 printf("%2.2x ", signature[i]);
         }
         break;
