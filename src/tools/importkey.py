@@ -11,8 +11,7 @@ def import_ec_key(fn):
 
     f.close()
     vk = ecdsa.VerifyingKey.from_der(raw_key_data)
-
-    return vk.to_string()
+    return vk,vk.to_string()
 
 def import_rsa_key(fn):
     f = open(fn,"rb")
@@ -73,7 +72,7 @@ if __name__ == "__main__":
 
     if key_kind == "EC":
         for fn in input_files:
-            data = import_ec_key(fn)
+            vk, data = import_ec_key(fn)
             print ("const struct pb_ec_key key%u= {"%(key_count))
             print (".public_key = {")
             count = 0
@@ -95,7 +94,8 @@ if __name__ == "__main__":
         print ("const struct pb_key keys[] = {")
 
         for n in range(key_count):
-            print (" {.kind = PB_KEY_EC384, .id = %u, .data = &key%u},"%(n,n))
+            print (" {.kind = PB_KEY_%s, .id = %u, .data = &key%u},"%
+                        (vk.curve.name,n,n))
         print("};")
         print("const uint8_t no_of_keys = %u;"%key_count)
     #if key

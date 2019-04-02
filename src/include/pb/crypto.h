@@ -17,18 +17,18 @@ enum
 {
     PB_SIGN_INVALID,
     PB_SIGN_RSA4096,
-    PB_SIGN_EC256,
-    PB_SIGN_EC384,
-    PB_SIGN_EC521,
+    PB_SIGN_NIST256p,
+    PB_SIGN_NIST384p,
+    PB_SIGN_NIST521p,
 };
 
 enum
 {
     PB_KEY_INVALID,
     PB_KEY_RSA4096,
-    PB_KEY_EC256,
-    PB_KEY_EC384,
-    PB_KEY_EC521,
+    PB_KEY_NIST256p,
+    PB_KEY_NIST384p,
+    PB_KEY_NIST521p,
 };
 
 #define PB_HASH_BUF_SZ 128
@@ -47,7 +47,7 @@ struct pb_rsa4096_key
 
 struct pb_ec_key
 {
-    const __attribute__ ((aligned(4))) uint8_t public_key[129];
+    const __attribute__ ((aligned(4))) uint8_t public_key[132];
 };
 
 struct pb_key

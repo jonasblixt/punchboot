@@ -130,11 +130,11 @@ int main (int argc, char **argv)
                     if (strcmp(value, "RSA4096") == 0)
                         sign_kind = PB_SIGN_RSA4096;
                     else if (strcmp(value, "EC384") == 0)
-                        sign_kind = PB_SIGN_EC384;
+                        sign_kind = PB_SIGN_NIST384p;
                     else if (strcmp(value, "EC256") == 0)
-                        sign_kind = PB_SIGN_EC256;
+                        sign_kind = PB_SIGN_NIST256p;
                     else if (strcmp(value, "EC521") == 0)
-                        sign_kind = PB_SIGN_EC521;
+                        sign_kind = PB_SIGN_NIST521p;
                     else
                     {
                         printf ("Error: unsupported signature\n");

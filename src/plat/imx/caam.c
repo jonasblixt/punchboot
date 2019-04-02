@@ -49,8 +49,8 @@ static struct fsl_caam_jr *d;
 static uint32_t __a4k desc[16];
 static uint32_t current_hash_kind;
 static volatile __a4k __no_bss uint8_t hash_ctx[128];
-static __no_bss __a16b uint8_t caam_tmp_buf[132];
-static __no_bss __a16b uint8_t caam_ecdsa_key[132];
+static __no_bss __a16b uint8_t caam_tmp_buf[256];
+static __no_bss __a16b uint8_t caam_ecdsa_key[256];
 
 static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
 {
@@ -121,7 +121,8 @@ static uint32_t caam_wait_for_job(struct fsl_caam_jr *d, uint32_t *job)
 static uint32_t caam_hash_init(uint32_t alg)
 
 {
-    memset(hash_ctx, 0, 128);
+    UNUSED(alg);
+    memset((void *)hash_ctx, 0, 128);
     memset(&ctx, 0, sizeof(struct caam_hash_ctx));
     return PB_OK;
 }
@@ -220,8 +221,8 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
     struct pb_ec_key *key =
         (struct pb_ec_key *) k->data;
 
-    memset(caam_tmp_buf,0,132);
-    memset(caam_ecdsa_key,0,132);
+    memset(caam_tmp_buf,0,256);
+    memset(caam_ecdsa_key,0,256);
 
     switch (hash_kind)
     {
@@ -241,15 +242,15 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
 
     switch (sig_kind)
     {
-        case PB_SIGN_EC256:
+        case PB_SIGN_NIST256p:
             sig_len = 32;
             caam_sig_type = 2;
         break;
-        case PB_SIGN_EC384:
+        case PB_SIGN_NIST384p:
             sig_len = 48;
             caam_sig_type = 3;
         break;
-        case PB_SIGN_EC521:
+        case PB_SIGN_NIST521p:
             sig_len = 66;
             caam_sig_type = 4;
         break;
@@ -260,31 +261,15 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
 
     memcpy(caam_ecdsa_key, key->public_key, sig_len*2);
 
-    printf("Key %u 0x%p:\n\r",sig_len*2,caam_ecdsa_key);
-    for (uint8_t n = 0; n < sig_len*2; n++)
-        printf("0x%02x,", caam_ecdsa_key[n]);
-    printf("\n\r");
-
-    printf("Sign %u 0x%p:\n\r",sig_len*2,sig);
-    for (uint8_t n = 0; n < sig_len*2; n++)
-        printf("0x%02x,", sig[n]);
-    printf("\n\r");
-
-    printf("Hash %u 0x%p:\n\r",hash_len,hash);
-    for (uint8_t n = 0; n < hash_len; n++)
-        printf("0x%02x,", hash[n]);
-    printf("\n\r");
-
-
     desc[dc++] = CAAM_CMD_HEADER;
     desc[dc++] = (1 << 22) | (caam_sig_type << 7);
     desc[dc++] = (uint32_t)(uintptr_t) caam_ecdsa_key;
     desc[dc++] = (uint32_t)(uintptr_t) hash;
-    desc[dc++] = (uint32_t)(uintptr_t) &sig[0];
+    desc[dc++] = (uint32_t)(uintptr_t) sig;
     desc[dc++] = (uint32_t)(uintptr_t) &sig[sig_len];
     desc[dc++] = (uint32_t)(uintptr_t) caam_tmp_buf;
     desc[dc++] = hash_len;
-    desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (2 << 10) | (1 << 1) /*| 1*/;
+    desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (2 << 10) | (1 << 1);
 
     desc[0] |= ((dc-1) << 16) | dc;
 
@@ -353,7 +338,7 @@ uint32_t  plat_hash_init(uint32_t hash_kind)
 
 uint32_t  plat_hash_update(uintptr_t bfr, uint32_t sz)
 {
-    uint32_t err = PB_ERR;
+    uint32_t err;
 
     switch (current_hash_kind)
     {
@@ -373,40 +358,40 @@ uint32_t  plat_hash_update(uintptr_t bfr, uint32_t sz)
             err = PB_ERR;
     }
 
-    return PB_ERR;
+    return err;
 }
 
 uint32_t  plat_hash_finalize(uintptr_t out)
 {
-    uint32_t err = PB_ERR;
+    uint32_t err;
 
     switch (current_hash_kind)
     {
         case PB_HASH_SHA256:
         {
-            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA256,64, out);
+            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA256,64, (uint8_t *)out);
         }
         break;
         case PB_HASH_SHA384:
         {
-            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA384,96, out);
+            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA384,96, (uint8_t *)out);
         }
         break;
         case PB_HASH_SHA512:
         {
-            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA512,128, out);
+            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA512,128, (uint8_t *)out);
         }
         break;
         case PB_HASH_MD5:
         {
-            err = caam_hash_finalize(CAAM_ALG_TYPE_MD5,16, out);
+            err = caam_hash_finalize(CAAM_ALG_TYPE_MD5,16, (uint8_t *)out);
         }
         break;
         default:
             err = PB_ERR;
     }
 
-    return PB_ERR;
+    return err;
 }
 
 static char __no_bss __a4k output_data[1024];
@@ -424,7 +409,7 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
         {
             LOG_DBG("Checking RSA4096 signature...");
             err = caam_rsa_enc(sig, 512,
-                            output_data, k);
+                            (uint8_t *) output_data, k);
 
 
             if (err != PB_OK)
@@ -447,28 +432,28 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
             LOG_DBG("Signature OK");
         }
         break;
-        case PB_SIGN_EC521:
+        case PB_SIGN_NIST521p:
         {
             LOG_DBG("Checking EC521 signature...");
-            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_EC521,k);
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST521p,k);
 
             if (err == PB_OK)
                 signature_verified = true;
         }
         break;
-        case PB_SIGN_EC384:
+        case PB_SIGN_NIST384p:
         {
             LOG_DBG("Checking EC384 signature...");
-            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_EC384,k);
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST384p,k);
 
             if (err == PB_OK)
                 signature_verified = true;
         }
         break;
-        case PB_SIGN_EC256:
+        case PB_SIGN_NIST256p:
         {
             LOG_DBG("Checking EC256 signature...");
-            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_EC256,k);
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST256p,k);
 
             if (err == PB_OK)
                 signature_verified = true;

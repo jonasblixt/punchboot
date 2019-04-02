@@ -294,21 +294,21 @@ uint32_t pbimage_out(const char *fn)
 
     switch(hdr.sign_kind)
     {
-        case PB_SIGN_EC256:
+        case PB_SIGN_NIST256p:
         {
             printf ("EC256 Signature:");
             for (uint32_t i = 0; i < 64; i++)
                 printf("%2.2x ", signature[i]);
         }
         break;
-        case PB_SIGN_EC384:
+        case PB_SIGN_NIST384p:
         {
             printf ("EC384 Signature:");
             for (uint32_t i = 0; i < 96; i++)
                 printf("%2.2x ", signature[i]);
         }
         break;
-        case PB_SIGN_EC521:
+        case PB_SIGN_NIST521p:
         {
             printf ("EC521 Signature:");
             for (uint32_t i = 0; i < 132; i++)

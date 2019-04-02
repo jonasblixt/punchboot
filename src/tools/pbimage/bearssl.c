@@ -76,13 +76,13 @@ uint32_t crypto_sign(uint8_t *hash,
     printf ("Key size: %u\n", key_sz);
     switch (sign_kind)
     {
-        case PB_SIGN_EC256:
+        case PB_SIGN_NIST256p:
             hc = (br_hash_class *) &br_sha256_vtable;
         break;
-        case PB_SIGN_EC384:
+        case PB_SIGN_NIST384p:
             hc = (br_hash_class *) &br_sha384_vtable;
         break;
-        case PB_SIGN_EC521:
+        case PB_SIGN_NIST521p:
             hc = (br_hash_class *) &br_sha512_vtable;
         break;
         default:
@@ -108,9 +108,9 @@ uint32_t crypto_sign(uint8_t *hash,
                 err = PB_ERR;
         }
         break;
-        case PB_SIGN_EC256:
-        case PB_SIGN_EC384:
-        case PB_SIGN_EC521:
+        case PB_SIGN_NIST256p:
+        case PB_SIGN_NIST384p:
+        case PB_SIGN_NIST521p:
         {
             printf ("Signing...\n");
             br_ec_private_key *br_k;
