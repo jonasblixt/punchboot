@@ -7,77 +7,31 @@
 
 # Introduction
 
-Punchboot is a bootloader for ARM SoC's. It is the code that run's after 
-boot ROM code has executed. The primary function is to load the next
-software component of the boot chain, for example an OS kernel, hypervisor 
-or TEE (Trusted Execution Environment) software.
+Punchboot is a bootloader for ARM SoC's. It is designed to:
 
-As the name implies, punchboot is fast, really fast. Infact, boot speed
-is one of the primary design goals.
+ - Boot as fast as possible
+ - Integrate with the SoC's secure boot
+ - Authenticate the next piece of software in the boot chain
+ - Support A/B system paritions for atomic updates
+ - Support automatic rollbacks
+ - Minimize software download time in production
+ - Be useful for day-to-day development
 
 Punchboot is designed for embedded systems and therfore it has a minimalistic 
 apporach. There is no run-time configuration, everything is configured in 
 the board files.
-
-
 
 Punchboot could be useful if you care about the following:
  - Boot speed
  - Secure boot
  - Downloading software quickly in production
 
-Releases
+Releases history:
+
 | Version | Release date | Changes                                          |
 | ------- | ------------ | ------------------------------------------------ |
 | v0.2    | 2019-03-18   | Support for EC signatures, improved boot speed   |
 | v0.1    | 2019-02-25   | First release                                    |
-
-## Metrics
-
-
-Measurements taken on IMX6UL, running at 528 MHz loading a 400kByte binary.
-
-Using hardware accelerators for SHA and RSA signatures:
-
-| Parameter         | Value    | Unit |
-| ----------------- |:--------:| ---- |
-| Power On Reset    | 28       | ms   |
-| Bootloader init   | 7        | ms   |
-| Blockdev read     | 13       | ms   |
-| SHA256 Hash       | 4        | ms   |
-| RSA 4096 Signaure | 5        | ms   |
-|                   |          |      |
-| Total             | 57       | ms   |
-
-
-Using libtomcrypt for SHA and RSA:
-
-| Parameter         | Value    | Unit |
-| ----------------- |:--------:| ---- |
-| Power On Reset    | 28       | ms   |
-| Bootloader init   | 7        | ms   |
-| Blockdev read     | 13       | ms   |
-| SHA256 Hash       | 431      | ms   |
-| RSA 4096 Signaure | 567      | ms   |
-|                   |          |      |
-| Total             | 1046     | ms   |
-
-
-Measurements taken on IMX8QXP, loading a 14296kByte binary.
-
-Using hardware accelerators for SHA and RSA signatures:
-
-| Parameter            | Value    | Unit |
-| -------------------- |:--------:| ---- |
-| Power On Reset       | 175      | ms   |
-| Bootloader init      | 6.358    | ms   |
-| Blockdev read / hash | 107      | ms   |
-| RSA 4096 Signature   | 0.676    | ms   |
-| Total                | 288      | ms   |
-
-The POR time is off due to some unidentified problem with the SCU firmware.
- A guess would be that this metric should be in the 20ms -range.
-
 
 ## Design
 
@@ -260,7 +214,49 @@ The punchboot CLI is used for interacting with the recovery mode. A summary of
  - Display basic device info
  - Configure fuses and GPT parition tables
 
-## future work
- - Support additional memory technologies
- - Add authentication for the punchboot cli
- - Support additional platforms
+## Metrics
+
+
+Measurements taken on IMX6UL, running at 528 MHz loading a 400kByte binary.
+
+Using hardware accelerators for SHA and RSA signatures:
+
+| Parameter         | Value    | Unit |
+| ----------------- |:--------:| ---- |
+| Power On Reset    | 28       | ms   |
+| Bootloader init   | 7        | ms   |
+| Blockdev read     | 13       | ms   |
+| SHA256 Hash       | 4        | ms   |
+| RSA 4096 Signaure | 5        | ms   |
+|                   |          |      |
+| Total             | 57       | ms   |
+
+
+Using libtomcrypt for SHA and RSA:
+
+| Parameter         | Value    | Unit |
+| ----------------- |:--------:| ---- |
+| Power On Reset    | 28       | ms   |
+| Bootloader init   | 7        | ms   |
+| Blockdev read     | 13       | ms   |
+| SHA256 Hash       | 431      | ms   |
+| RSA 4096 Signaure | 567      | ms   |
+|                   |          |      |
+| Total             | 1046     | ms   |
+
+
+Measurements taken on IMX8QXP, loading a 14296kByte binary.
+
+Using hardware accelerators for SHA and RSA signatures:
+
+| Parameter            | Value    | Unit |
+| -------------------- |:--------:| ---- |
+| Power On Reset       | 175      | ms   |
+| Bootloader init      | 6.358    | ms   |
+| Blockdev read / hash | 107      | ms   |
+| RSA 4096 Signature   | 0.676    | ms   |
+| Total                | 288      | ms   |
+
+The POR time is off due to some unidentified problem with the SCU firmware.
+ A guess would be that this metric should be in the 20ms -range.
+
