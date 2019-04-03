@@ -9,15 +9,17 @@
 
 Punchboot is a bootloader for ARM SoC's. It is the code that run's after 
 boot ROM code has executed. The primary function is to load the next
-software component of the boot chain, for example an OS kernel, hypervisor
- or TEE (Trusted Execution Environment) software.
+software component of the boot chain, for example an OS kernel, hypervisor 
+or TEE (Trusted Execution Environment) software.
 
 As the name implies, punchboot is fast, really fast. Infact, boot speed
 is one of the primary design goals.
 
-Punchboot is designed for embedded systems and therfore it has a minimalistic
- apporach. There is no run-time configuration, everything is configured in 
- the board files.
+Punchboot is designed for embedded systems and therfore it has a minimalistic 
+apporach. There is no run-time configuration, everything is configured in 
+the board files.
+
+
 
 Punchboot could be useful if you care about the following:
  - Boot speed
@@ -25,7 +27,10 @@ Punchboot could be useful if you care about the following:
  - Downloading software quickly in production
 
 Releases
- v0.1 - First release, yay! 
+| Version | Release date | Changes                                          |
+| ------- | ------------ | ------------------------------------------------ |
+| v0.2    | 2019-03-18   | Support for EC signatures, improved boot speed   |
+| v0.1    | 2019-02-25   | First release                                    |
 
 ## Metrics
 
@@ -62,13 +67,13 @@ Measurements taken on IMX8QXP, loading a 14296kByte binary.
 
 Using hardware accelerators for SHA and RSA signatures:
 
-| Parameter         | Value    | Unit |
-| ----------------- |:--------:| ---- |
-| Power On Reset    | 175      | ms   |
-| Bootloader init   | 6.358    | ms   |
-| Blockdev read / hash     | 107   | ms   |
-| RSA 4096 Signature | 0.676    | ms   |
-| Total             | 288      | ms   |
+| Parameter            | Value    | Unit |
+| -------------------- |:--------:| ---- |
+| Power On Reset       | 175      | ms   |
+| Bootloader init      | 6.358    | ms   |
+| Blockdev read / hash | 107      | ms   |
+| RSA 4096 Signature   | 0.676    | ms   |
+| Total                | 288      | ms   |
 
 The POR time is off due to some unidentified problem with the SCU firmware.
  A guess would be that this metric should be in the 20ms -range.
@@ -120,6 +125,14 @@ Supportd boards:
 | NanoPi-NEO-core      | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core_Feature.html |
 | NanoPi-NEO-core2     | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core2_Feature.html |
 | NXP IMX8QXP MEK      | Fully supported         | https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/i.mx-applications-processors/i.mx-8-processors/i.mx-8-multisensory-enablement-kit:i.MX8-MEK |
+
+Hardware accelerated signature verification
+
+| Platform        | RSA4096 | EC secp256r1 | EC secp384r1 | EC secp521 |
+| --------------- | ------- | ------------ | ------------ | ---------- |
+| NXP imx6ul      | Yes     | Planned      | Planned      | Planned    |
+| NXP imx8m       | Yes     | Planned      | Planned      | Planned    |
+| NXP imx8x       | Yes     | Yes          | Yes          | Yes        |
 
 ## Root of trust
 

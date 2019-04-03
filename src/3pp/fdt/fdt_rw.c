@@ -104,6 +104,7 @@ static int _fdt_splice(void *fdt, void *splicepoint, int oldlen, int newlen)
 	if ((end - oldlen + newlen) > ((char *)fdt + fdt_totalsize(fdt)))
 		return -FDT_ERR_NOSPACE;
 	memmove(p + newlen, p + oldlen, end - p - oldlen);
+    printf ("%p %p %u\n\r",p+newlen,p+oldlen,end-p-oldlen);
 	return 0;
 }
 

@@ -3,13 +3,21 @@ echo ------- ITEST BEGIN: $TEST_NAME ----------------------------
 wait_for_qemu2()
 {
     wait $qemu_pid
-    sleep 0.1
 }
 
 start_qemu()
 {
-    #sync
-    #sleep 0.1
+
+    while true;
+    do
+        ss -l -x | grep pb_sock > /dev/null 2>&1
+        if [ $? -eq 1 ];
+        then
+            break;
+        fi
+        sleep 0.01
+    done
+
     ( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
     qemu_pid=$!
 }
