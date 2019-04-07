@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-int transport_init(void);
+int transport_init(uint8_t *usb_path, uint8_t usb_path_count);
 int pb_write(uint32_t cmd, uint32_t arg0,
                            uint32_t arg1,
                            uint32_t arg2,

@@ -10,32 +10,70 @@ static libusb_device *dev;
 static libusb_context *ctx = NULL;
 static libusb_device_handle *h = NULL;
 
-
-static libusb_device * find_device(libusb_device **devs)
+ 
+static libusb_device * find_device(libusb_device **devs,
+                                   uint8_t *usb_path,
+                                   uint8_t usb_path_count)
 {
 	libusb_device *dev;
 	int i = 0;
+    uint8_t device_path[16];
+    libusb_device *result = NULL;
 
-	while ((dev = devs[i++]) != NULL) {
+	while ((dev = devs[i++]) != NULL) 
+    {
 		struct libusb_device_descriptor desc;
+
 		int r = libusb_get_device_descriptor(dev, &desc);
-		if (r < 0) {
+
+		if (r < 0) 
+        {
 			return NULL;
 		}
 
-        if ( (desc.idVendor == 0xffff) && (desc.idProduct == 0x0001)) {
-            return dev;
+        if ( (desc.idVendor == 0xffff) && (desc.idProduct == 0x0001)) 
+        {
+            
+            int path_count = libusb_get_port_numbers(dev, device_path, 16);
+
+
+            if (usb_path_count == path_count)
+            {
+                bool found_device = true;
+
+                for (int n = 0; n < path_count; n++)
+                {
+                    if (usb_path[n] != device_path[n])
+                    {
+                        found_device = false;
+                        break;
+                    }
+                }
+
+                if (!found_device)
+                    continue;
+
+                result = dev;
+                break;
+            }
+            else if (usb_path_count == 0)
+            {
+                result = dev;
+                break;
+            }
         }
 		
 	}
 
-    return NULL;
+    return result;
 }
 
-#define CTRL_IN			LIBUSB_ENDPOINT_IN |LIBUSB_REQUEST_TYPE_CLASS|LIBUSB_RECIPIENT_INTERFACE
-#define CTRL_OUT		LIBUSB_ENDPOINT_OUT|LIBUSB_REQUEST_TYPE_CLASS|LIBUSB_RECIPIENT_INTERFACE
+#define CTRL_IN			LIBUSB_ENDPOINT_IN |LIBUSB_REQUEST_TYPE_CLASS| \
+                                                LIBUSB_RECIPIENT_INTERFACE
+#define CTRL_OUT		LIBUSB_ENDPOINT_OUT|LIBUSB_REQUEST_TYPE_CLASS| \
+                                                LIBUSB_RECIPIENT_INTERFACE
 
-int transport_init(void)
+int transport_init(uint8_t *usb_path, uint8_t usb_path_count)
 {
     int r = 0;
 	ssize_t cnt;
@@ -50,28 +88,39 @@ int transport_init(void)
 	if (cnt < 0)
 		return (int) cnt;
 
-	dev = find_device(devs);
+	dev = find_device(devs, usb_path, usb_path_count);
+
 	libusb_free_device_list(devs, 1);
 
-    if (dev == NULL) {
+    if (dev == NULL) 
+    {
         printf ("Could not find device\n\r");
         libusb_exit (NULL);
         return -1;
     }
 
-    h = libusb_open_device_with_vid_pid(ctx, 0xffff, 0x0001);
+    err = libusb_open(dev, &h);
+
+    if (err != 0)
+    {
+        printf ("Could not open device\n");
+        libusb_exit(NULL);
+        return -1;
+    }
 
     if (libusb_kernel_driver_active(h, 0))
 		 libusb_detach_kernel_driver(h, 0);
 
     err = libusb_claim_interface(h, 0);
     
-    if (err != 0) {
+    if (err != 0) 
+    {
         printf ("Claim interface failed (%i)\n", err);
         return -1;
     }
 
-    if (h == NULL) {
+    if (h == NULL) 
+    {
         printf ("Could not open device\n");
         return -1;
     }

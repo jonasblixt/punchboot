@@ -268,6 +268,9 @@ static uint32_t pb_display_device_info(void)
 static void print_help_header(void)
 {
     printf (" --- Punch BOOT " VERSION " ---\n\n");
+
+    printf (" Common parameters:\n");
+    printf ("  punchboot <command> -u \"usb path\"      - Perform operations on device with 'usb path'\n\n");
 }
 
 static void print_boot_help(void)
@@ -313,10 +316,13 @@ int main(int argc, char **argv)
     extern char *optarg;
     extern int optind, opterr, optopt;
     uint32_t active_system = SYSTEM_A;
+    uint8_t usb_path[16];
+    uint8_t usb_path_count = 0;
     char c;
     int err;
 
-    if (argc <= 1) {
+    if (argc <= 1) 
+    {
         print_help();
         exit(0);
     }
@@ -333,15 +339,14 @@ int main(int argc, char **argv)
     bool flag_a = false;
     bool flag_b = false;
     bool flag_y = false;
+    bool flag_u = false;
 
     char *fn = NULL;
     char *cmd = argv[1];
     char *s_arg = NULL;
 
-    if (transport_init() != 0)
-        exit(-1);
 
-    while ((c = getopt (argc-1, &argv[1], "hiwraybxs:ln:f:v:")) != -1) 
+    while ((c = getopt (argc-1, &argv[1], "hiwraybu:xs:ln:f:v:")) != -1) 
     {
         switch (c) 
         {
@@ -376,6 +381,27 @@ int main(int argc, char **argv)
                 flag_index = true;
                 cmd_index = atoi(optarg);
             break;
+            case 'u':
+            {
+                flag_u = true;
+                usb_path_count = 0;
+                char *usb_path_str = NULL;
+                usb_path_str = malloc(strlen(optarg)+1);
+                strcpy(usb_path_str,optarg);
+
+                char delim[] = ":";
+                char *tok = strtok(usb_path_str, delim);
+                
+                while (tok != NULL)
+                {
+                    usb_path[usb_path_count++] = atoi(tok);
+                    
+                    tok = strtok(NULL, delim);
+                }
+
+                free(usb_path_str);
+            }    
+            break;
             case 's':
                 flag_s = true;
                 s_arg = optarg;
@@ -394,6 +420,9 @@ int main(int argc, char **argv)
         exit(0);
     }
 
+    if (transport_init(usb_path, usb_path_count) != 0)
+        exit(-1);
+
     if (strcmp(cmd, "dev") == 0) 
     {
         if (flag_list) 
@@ -402,7 +431,9 @@ int main(int argc, char **argv)
 
             if (err != PB_OK)
                 return -1;
-        } else if (flag_install) {
+        } 
+        else if (flag_install) 
+        {
 
             printf ("Performing device setup\n");
 
@@ -466,7 +497,9 @@ int main(int argc, char **argv)
                 return -1;
             }
             printf ("Success");
-        } else {
+        } 
+        else 
+        {
             print_help_header();
             print_dev_help();
         }
