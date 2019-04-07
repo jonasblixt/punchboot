@@ -13,8 +13,10 @@
 static int fd;
 static struct sockaddr_un addr;
 
-int transport_init(void)
+int transport_init(uint8_t *usb_path, uint8_t usb_path_count)
 {
+    UNUSED(usb_path);
+    UNUSED(usb_path_count);
 
 	if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) 
 	{
