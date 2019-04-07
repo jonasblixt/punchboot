@@ -14,8 +14,9 @@ JIFFY_IMAGE_CFG = board/jiffy/imximage.cfg
 FINAL_IMAGE     = $(TARGET).imx
 
 
-KEYS  = ../pki/dev_rsa_public.der
-KEY_TYPE = RSA
+KEYS  = ../pki/secp256r1-pub-key.der
+# KEYS  = ../pki/dev_rsa_public.der
+KEY_TYPE = EC
 
 board_final: $(TARGET).bin
 	@$(MKIMAGE) -n $(JIFFY_IMAGE_CFG) -T imximage -e $(PB_ENTRY) \

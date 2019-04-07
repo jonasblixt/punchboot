@@ -67,7 +67,7 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
 
     if (d->output_ring[0] != (uint32_t)(uintptr_t) job)
     {
-        printf ("Job failed\n\r");
+        LOG_ERR ("Job failed\n\r");
         return PB_ERR;
     }
     pb_write32(1, d->base + CAAM_ORJRR);
@@ -103,7 +103,7 @@ static uint32_t caam_wait_for_job(struct fsl_caam_jr *d, uint32_t *job)
 
     if (d->output_ring[0] != (uint32_t)(uintptr_t) job)
     {
-        printf ("Job failed\n\r");
+        LOG_ERR ("Job failed\n\r");
         return PB_ERR;
     }
     pb_write32(1, d->base + CAAM_ORJRR);

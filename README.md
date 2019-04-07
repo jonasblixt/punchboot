@@ -84,8 +84,8 @@ Hardware accelerated signature verification
 
 | Platform        | RSA4096 | EC secp256r1 | EC secp384r1 | EC secp521 |
 | --------------- | ------- | ------------ | ------------ | ---------- |
-| NXP imx6ul      | Yes     | Planned      | Planned      | Planned    |
-| NXP imx8m       | Yes     | Planned      | Planned      | Planned    |
+| NXP imx6ul      | Yes     | Yes          | Planned      | Planned    |
+| NXP imx8m       | Yes     | Yes          | Planned      | Planned    |
 | NXP imx8x       | Yes     | Yes          | Yes          | Yes        |
 
 ## Root of trust

@@ -149,8 +149,11 @@ uint32_t plat_get_security_state(uint32_t *state)
 static const char platform_namespace_uuid[] = 
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
+static __a16b uint8_t out_tmp[16];
+
 uint32_t plat_get_uuid(char *out)
 {
+    uint32_t err;
     plat_fuse_read(&fuse_uid0);
     plat_fuse_read(&fuse_uid1);
 
@@ -161,9 +164,11 @@ uint32_t plat_get_uuid(char *out)
 
     LOG_INFO("%08x %08x",fuse_uid0.value, fuse_uid1.value);
 
-    return uuid_gen_uuid3(platform_namespace_uuid,16,
-                          (const char *) uid, 8, out);
-    return PB_OK;
+    err = uuid_gen_uuid3(platform_namespace_uuid,16,
+                          (const char *) uid, 8, out_tmp);
+    memcpy(out,out_tmp,16);
+
+    return err;
 }
 
 uint32_t plat_get_params(struct param **pp)

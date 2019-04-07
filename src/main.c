@@ -126,8 +126,6 @@ void pb_main(void)
         gpt_write_tbl(&gpt);
     }
 
-    //LOG_DBG("part->first_lba = %llx",part->first_lba);
-
     err = pb_image_load_from_fs(part->first_lba, &pbi, hash_buffer);
 
     if (err != PB_OK)

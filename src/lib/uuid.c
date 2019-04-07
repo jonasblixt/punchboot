@@ -18,7 +18,7 @@ typedef union
     } uuid __packed;
 } uuid_t;
 
-static __a4k __no_bss uint8_t _uuid_aligned_buf[128];
+static __a16b __no_bss uint8_t _uuid_aligned_buf[128];
 
 uint32_t uuid_gen_uuid3(const char *ns,
                         uint32_t ns_length,
