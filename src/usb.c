@@ -180,7 +180,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
                 usb_send_ep0(dev, (uint8_t *) &descriptors.interface, sz);
                 
             } else {
-                LOG_ERR ("Unhandeled descriptor 0x%x", setup->wValue);
+                LOG_ERR ("Unhandled descriptor 0x%x", setup->wValue);
             }
         }
         break;

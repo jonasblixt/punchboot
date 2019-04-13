@@ -1,4 +1,5 @@
 all:
+	@make -C src/ BOARD=test LOGLEVEL=10 clean
 	@make -C src/ BOARD=test LOGLEVEL=10
 	@make -C src/ BOARD=test LOGLEVEL=10 test
 clean:

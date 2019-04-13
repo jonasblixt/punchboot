@@ -84,9 +84,17 @@ Hardware accelerated signature verification
 
 | Platform        | RSA4096 | EC secp256r1 | EC secp384r1 | EC secp521 |
 | --------------- | ------- | ------------ | ------------ | ---------- |
-| NXP imx6ul      | Yes     | Yes          | Planned      | Planned    |
-| NXP imx8m       | Yes     | Yes          | Planned      | Planned    |
+| NXP imx6ul      | Yes     | Yes          | No           | No         |
+| NXP imx8m       | Yes     | Yes          | No           | No         |
 | NXP imx8x       | Yes     | Yes          | Yes          | Yes        |
+
+Hardware accelerated hash algorithms
+
+| Platform        | MD5 | SHA256 | SHA384 | SHA512 |
+| --------------- | --- | ------ | ------ | ------ |
+| NXP imx6ul      | Yes | Yes    | No     | No     |
+| NXP imx8m       | Yes | Yes    | No     | No     |
+| NXP imx8x       | Yes | Yes    | Yes    | Yes    |
 
 ## Root of trust
 

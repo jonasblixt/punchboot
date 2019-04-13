@@ -8,6 +8,11 @@
 
 void *memmove(void *dst, const void *src, size_t len)
 {
+
+    if (dst == src)
+    {
+        return dst;
+    }
 	/*
 	 * The following test makes use of unsigned arithmetic overflow to
 	 * more efficiently test the condition !(src <= dst && dst < str+len).
@@ -16,10 +21,13 @@ void *memmove(void *dst, const void *src, size_t len)
 	 * that issue is probably moot as such usage is probably undefined
 	 * behaviour and a bug anyway.
 	 */
-	if ((size_t)dst - (size_t)src >= len) {
+	if ((size_t)dst - (size_t)src >= len)
+    {
 		/* destination not in source data, so can safely use memcpy */
 		return memcpy(dst, src, len);
-	} else {
+	}
+    else
+    {
 		/* copy backwards... */
 		const char *end = dst;
 		const char *s = (const char *)src + len;
