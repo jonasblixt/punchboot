@@ -16,7 +16,7 @@ fi
 
 # Trash primary GPT table
 
-dd if=/dev/zero of=/tmp/disk conv=notrunc bs=512 skip=1 count=33
+dd if=/dev/urandom of=/tmp/disk conv=notrunc bs=512 count=64
 sync
 
 # Make sure it is trashed
