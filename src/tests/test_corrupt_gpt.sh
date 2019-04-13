@@ -18,8 +18,8 @@ fi
 
 dd if=/dev/urandom of=/tmp/disk conv=notrunc bs=512 count=64
 sync
-
-# Make sure it is trashed
+sleep 0.5
+sync
 sgdisk -v /tmp/disk
 result_code=$?
 
