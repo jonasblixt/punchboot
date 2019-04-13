@@ -20,10 +20,10 @@ dd if=/dev/urandom of=/tmp/disk conv=notrunc bs=512 count=64
 sync
 
 # Make sure it is trashed
-sgdisk -v /tmp/disk | grep "No problems found"
+sgdisk -v /tmp/disk
 result_code=$?
 
-if [ $result_code -ne 1 ];
+if [ $result_code -ne 2 ];
 then
     test_end_error
 fi
