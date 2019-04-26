@@ -7,17 +7,17 @@
 
 # Introduction
 
-Punchboot is a bootloader for ARM SoC's. It is designed to:
+Punchboot is a secure and fast bootloader for embedded systems. It is designed to:
 
  - Boot as fast as possible
- - Integrate with the SoC's secure boot
+ - Integrate with the SoC's secure boot functionality
  - Authenticate the next piece of software in the boot chain
  - Support A/B system paritions for atomic updates
  - Support automatic rollbacks
  - Minimize software download time in production
  - Be useful for day-to-day development
 
-Punchboot is designed for embedded systems and therfore it has a minimalistic 
+Punchboot is designed for embedded systems and therefore it has a minimalistic 
 apporach. There is no run-time configuration, everything is configured in 
 the board files.
 
@@ -72,8 +72,8 @@ Supportd boards:
 
 | Board                | Supported               | More info |
 | -------------------- | ----------------------- | --------- |
-| Jiffy                | Fully supported         | TBA       |
-| Bebop                | Fully supported         | TBA       |
+| Jiffy                | Fully supported         | https://github.com/jonpe960/jiffy       |
+| Bebop                | Fully supported         | https://github.com/jonpe960/bebop       |
 | Technexion PICO-IMX8M| Partial support         | https://www.technexion.com/products/system-on-modules/pico/pico-compute-modules/detail/PICO-IMX8M |
 | Rockpro64            | Planned                 | https://www.pine64.org/?page_id=61454 |
 | NanoPi-NEO-core      | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core_Feature.html |

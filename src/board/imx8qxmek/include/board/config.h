@@ -8,6 +8,6 @@
                         "quiet " \
                         "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 " \
                         "root=PARTUUID=%s " \
-                        "ro rootfstype=ext4 gpt rootwait"
+                        "ro rootfstype=squashfs gpt rootwait"
 
 #endif
