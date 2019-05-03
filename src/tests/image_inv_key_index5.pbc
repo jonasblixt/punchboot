@@ -2,7 +2,7 @@
 hash_kind = SHA256
 sign_kind = RSA4096
 key_index = 127
-key_source = ../pki/dev_rsa_private.der
+key_source = ../pki/dev_rsa_private.pem
 output = /tmp/img.pbi
 
 [component]

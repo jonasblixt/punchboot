@@ -1,7 +1,7 @@
 [pbimage]
 key_mask = 0x00000001
 key_index = 0
-key_source = ../pki/dev_rsa_private.der
+key_source = ../pki/dev_rsa_private.pem
 output = /tmp/img.pbi
 
 [component]
