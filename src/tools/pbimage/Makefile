@@ -22,76 +22,16 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
-ifndef CRYPTO_BACKEND
-	CRYPTO_BACKEND = bearssl
-endif
-
-
 CFLAGS   = -Wall -O2 -I ../../include/ 
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
-CFLAGS  += -std=c99
 CFLAGS  += -I .
 
-LIBS    = 
-LDFLAGS =
+LIBS    = -lpkcs11-helper -lcrypto
+LDFLAGS = 
 
 ASM_SRCS = 
 C_SRCS   = main.c
 C_SRCS  += pbimage.c
-
-ifeq ($(CRYPTO_BACKEND), bearssl)
-$(info Crypto: BearSSL)
-C_SRCS += bearssl.c
-else ifeq ($(CRYPTO_BACKEND), opensc)
-$(info Crypto: OpenSC)
-C_SRCS += opensc.c
-endif
-
-# BearSSL
-
-C_SRCS  += 3pp/bearssl/sha2big.c
-C_SRCS  += 3pp/bearssl/sha2small.c
-C_SRCS  += 3pp/bearssl/dec64be.c
-C_SRCS  += 3pp/bearssl/enc64be.c
-C_SRCS  += 3pp/bearssl/dec32be.c
-C_SRCS  += 3pp/bearssl/enc32be.c
-C_SRCS  += 3pp/bearssl/hmac.c
-C_SRCS  += 3pp/bearssl/ec_prime_i31.c
-C_SRCS  += 3pp/bearssl/ec_secp256r1.c
-C_SRCS  += 3pp/bearssl/ec_secp384r1.c
-C_SRCS  += 3pp/bearssl/ec_secp521r1.c
-C_SRCS  += 3pp/bearssl/x509_decoder.c
-C_SRCS  += 3pp/bearssl/skey_decoder.c
-C_SRCS  += 3pp/bearssl/ecdsa_i31_sign_raw.c
-C_SRCS  += 3pp/bearssl/ecdsa_i31_bits.c
-C_SRCS  += 3pp/bearssl/hmac_drbg.c
-C_SRCS  += 3pp/bearssl/rsa_i62_pkcs1_vrfy.c
-C_SRCS  += 3pp/bearssl/rsa_i62_pkcs1_sign.c
-C_SRCS  += 3pp/bearssl/rsa_pkcs1_sig_unpad.c
-C_SRCS  += 3pp/bearssl/rsa_pkcs1_sig_pad.c
-C_SRCS  += 3pp/bearssl/rsa_i62_pub.c
-C_SRCS  += 3pp/bearssl/rsa_i62_priv.c
-C_SRCS  += 3pp/bearssl/i31_decode.c
-C_SRCS  += 3pp/bearssl/i31_iszero.c
-C_SRCS  += 3pp/bearssl/i31_decmod.c
-C_SRCS  += 3pp/bearssl/i31_mulacc.c
-C_SRCS  += 3pp/bearssl/i31_reduce.c
-C_SRCS  += 3pp/bearssl/i31_decred.c
-C_SRCS  += 3pp/bearssl/i31_rshift.c
-C_SRCS  += 3pp/bearssl/i31_ninv31.c
-C_SRCS  += 3pp/bearssl/i62_modpow2.c
-C_SRCS  += 3pp/bearssl/i31_encode.c
-C_SRCS  += 3pp/bearssl/i31_bitlen.c
-C_SRCS  += 3pp/bearssl/i31_modpow2.c
-C_SRCS  += 3pp/bearssl/i31_tmont.c
-C_SRCS  += 3pp/bearssl/i31_muladd.c
-C_SRCS  += 3pp/bearssl/i32_div32.c
-C_SRCS  += 3pp/bearssl/i31_sub.c
-C_SRCS  += 3pp/bearssl/i31_add.c
-C_SRCS  += 3pp/bearssl/i31_montmul.c
-C_SRCS  += 3pp/bearssl/i31_fmont.c
-C_SRCS  += 3pp/bearssl/i31_modpow.c
-C_SRCS  += 3pp/bearssl/ccopy.c
 
 OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 

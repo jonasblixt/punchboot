@@ -11,7 +11,6 @@
 
 #define INI_IMPLEMENTATION
 #include "3pp/ini.h"
-
 #include "pbimage.h"
 
 static void pbimage_print_help(void) 
@@ -69,6 +68,8 @@ int main (int argc, char **argv)
     uint32_t sign_kind = 0;
     uint32_t error_count = 0;
     const char *key_source = NULL;
+    const char *pkcs11_provider = NULL;
+    const char *pkcs11_key_id = NULL;
     const char *section_name = NULL;
     const char *value = NULL;
     const char *output_fn = NULL;
@@ -159,6 +160,15 @@ int main (int argc, char **argv)
                     error_count++;
                 }
 
+                if (strstr(key_source,"PKCS11"))
+                {
+                    index = ini_find_property(ini,n,"pkcs11_provider",0);
+                    pkcs11_provider = ini_property_value(ini,n,index);
+
+                    index = ini_find_property(ini,n,"pkcs11_key_id",0);
+                    pkcs11_key_id = ini_property_value(ini,n,index);
+                }
+
                 index = ini_find_property(ini,n,"output",0);
 
                 if (index >= 0)
@@ -189,7 +199,8 @@ int main (int argc, char **argv)
     }
 
     err = pbimage_prepare(key_index, hash_kind, sign_kind, 
-                            key_source, output_fn);
+                            key_source, pkcs11_provider,
+                            pkcs11_key_id, output_fn);
     
     if (err != PB_OK)
     {
@@ -301,6 +312,8 @@ int main (int argc, char **argv)
     printf ("Done, created '%s', %lu kBytes\n",output_fn,finfo.st_size/1024);
     
     ini_destroy( ini );
+
+    pbimage_cleanup();
 
     return err;
 }

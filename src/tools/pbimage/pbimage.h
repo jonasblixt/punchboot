@@ -9,7 +9,11 @@ uint32_t pbimage_prepare(uint32_t key_index,
                          uint32_t hash_kind,
                          uint32_t sign_kind,
                          const char *key_source,
+                         const char *pkcs11_provider,
+                         const char *pkcs11_key_id,
                          const char *output_fn);
+
+void pbimage_cleanup(void);
 
 uint32_t pbimage_append_component(const char *comp_type,
                                   uint32_t load_addr,
