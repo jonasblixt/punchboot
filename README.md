@@ -96,9 +96,9 @@ Hardware accelerated hash algorithms
 | NXP imx8m       | Yes | Yes    | No     | No     |
 | NXP imx8x       | Yes | Yes    | Yes    | Yes    |
 
-### Secure Boot
+## Secure Boot
 
-## Typical and simplified secure boot flow
+### Typical and simplified secure boot flow
  - ROM loads a set of public keys, calculates the checksum of the keys and compares the result to a fused checksum
  - ROM loads punchboot, calculates checksum and verifies signature using key's in step one
  - Run punchboot
@@ -124,7 +124,7 @@ When punchboot has been verified it, in turn, will load and verify the next
 software component in the boot chain. The bootloader _only_ supports signed
 binaries.
 
-### Testing and integration tests
+## Testing and integration tests
 Punchboot uses QEMU for all module and integration tests. The 'test' platform
  and board target relies on virtio serial ports and block devices. The punchboot
  cli can be built with a domain socket transport instead of USB for communicating
@@ -139,7 +139,7 @@ $ export BOARD=test
 $ export LOGLEVEL=3
 $ make clean && make && make test
 ```
-### A/B paritions and atomic upgrades
+## A/B paritions and atomic upgrades
 To support a robust way of upgrading the system the simplest way is to have two copies
 of the system software; System A and System B. When system A is active System B can be
 reprogrammed and activated only when it is verified. This is known as "Atomic Upgrade"
@@ -147,7 +147,7 @@ reprogrammed and activated only when it is verified. This is known as "Atomic Up
 Punchboot uses the 'bootable' attribute in the GPT partition header to indicate
 which partion is bootable or not. 
 
-## GPT header attributes used by punchboot 
+### GPT header attributes used by punchboot 
 
 Punchboot uses type-specific attributes in the GPT parition header to control the boot flow. GPT is currently the only supported partition format. This might change in the future to allow for simpler boot media.
 
@@ -159,7 +159,7 @@ Punchboot uses type-specific attributes in the GPT parition header to control th
 | 52      | PB_GPT_ATTR_RFU2     | Reserved for future use |
 | 51 - 48 | PB_GPT_ATTR_COUNTER  | Boot counter, used when upgrading to indicate how many boot tries are remaining for this partition |
 
-## Automatic rollback
+### Automatic rollback
 
 Sometimes upgrades fail. Punchboot supports a mechanism for so called automatic rollbacks. 
 
@@ -177,7 +177,15 @@ Punchboot recognizes that none of the System partitions has the OK bit set but S
 
 When returning back to the upgrade application in linux final checks can be performed, for example checking connectivity and such before finally setting the OK bit of system B and thus permanently activate System B
 
-### Recovery mode
+## Device identity
+
+Most modern SoC's provide some kind of unique identity, that is guaranteed to be unique for that particular type of SoC / Vendor etc but can not be guarateed to be globally unique.
+
+Punchboot provides a UUID3 device identity based on a combination of the unique data from the SoC and an allocated, random, namspace UUID per platform.
+
+When booting a linux system this information is relayed to linux through in-line patching of the device-tree. The device identity can be found in '/proc/device-tree/chosen/device-uuid'
+
+## Recovery mode
 Recovery mode is entered when the system can't boot or if the bootloader is forced by a configurable, external event to do so.
 
 In the recovery mode it is possible to update the bootloader, write data to partitions and install default settings. From v0.3 and forward an 'authentication cookie' must be used to interact with the bootloader to prevent malicious activity. The only command that can be executed without authentication is listing the device information (including the device UUID)
