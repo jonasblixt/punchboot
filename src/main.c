@@ -148,6 +148,8 @@ void pb_main(void)
         flag_run_recovery = true;
     }
 
+    uint32_t recovery_timeout_ts = plat_get_us_tick();
+
 run_recovery:
 
     if (flag_run_recovery)
@@ -165,6 +167,13 @@ run_recovery:
         {
             usb_task();
             plat_wdog_kick();
+        }
+
+        if (!usb_has_enumerated() && 
+         ((plat_get_us_tick() - recovery_timeout_ts) > PB_RECOVERY_TIMEOUT_US))
+        {
+            LOG_INFO("Recovery timeout, rebooting...");
+            plat_reset();
         }
     } 
     

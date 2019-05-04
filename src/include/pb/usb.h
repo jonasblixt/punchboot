@@ -116,7 +116,8 @@ typedef void     (*usb_on_command_t)   (struct usb_device *dev,
 typedef void     (*usb_on_error_t)     (struct usb_device *dev,
                                         uint32_t error_code);
 
-struct usb_device {
+struct usb_device 
+{
     void *platform_data;
     struct pb_cmd_header cmd;
     usb_on_setup_pkt_t on_setup_pkt;
@@ -127,5 +128,6 @@ struct usb_device {
 uint32_t usb_init(void);
 void usb_task(void);
 void usb_set_on_command_handler(usb_on_command_t handler);
+bool usb_has_enumerated(void);
 
 #endif

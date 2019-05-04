@@ -40,6 +40,8 @@ struct partition_table
     const char name[20];
 };
 
+#define PB_RECOVERY_TIMEOUT_US 10000000
+
 #define PB_GPT_ENTRY(__blks, __uuid, __name) \
         {.no_of_blocks = __blks, .uuid = __uuid, .name = __name}
 

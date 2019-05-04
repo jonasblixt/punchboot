@@ -18,7 +18,8 @@ typedef union
     } uuid __packed;
 } uuid_t;
 
-static __a16b __no_bss uint8_t _uuid_aligned_buf[128];
+static __a16b __no_bss uint8_t _uuid_aligned_buf[64];
+static __a16b __no_bss uint8_t _uuid_aligned_buf2[64];
 
 uint32_t uuid_gen_uuid3(const char *ns,
                         uint32_t ns_length,
@@ -42,10 +43,19 @@ uint32_t uuid_gen_uuid3(const char *ns,
     memset(_uuid_aligned_buf,0, 64);
     memcpy(_uuid_aligned_buf, ns, ns_length);
     plat_hash_update((uintptr_t)_uuid_aligned_buf,64);
-
-    memset(_uuid_aligned_buf,0, 64);
-    memcpy(_uuid_aligned_buf, unique_data, unique_data_length);
-    plat_hash_update((uintptr_t)_uuid_aligned_buf,64);
+/*
+    for (uint32_t n = 0; n < ns_length; n++)
+        printf ("%02x",_uuid_aligned_buf[n]);
+    printf ("\n\r");
+*/
+    memset(_uuid_aligned_buf2,0, 64);
+    memcpy(_uuid_aligned_buf2, unique_data, unique_data_length);
+    plat_hash_update((uintptr_t)_uuid_aligned_buf2,64);
+/*
+    for (uint32_t n = 0; n < unique_data_length; n++)
+        printf ("%02x",_uuid_aligned_buf[n]);
+    printf ("\n\r");
+*/
 
     err = plat_hash_finalize((uintptr_t)out);
 

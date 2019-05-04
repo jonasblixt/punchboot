@@ -14,7 +14,9 @@
 #include <string.h>
 
 #define USB_DEBUG
+
 static struct usb_device usb_dev;
+static bool _usb_enumerated;
 
 static const uint8_t qf_descriptor[] = {
 	0x0A,	//USB_DEV_QUALIFIER_DESC_LEN,
@@ -196,6 +198,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
             plat_usb_transfer(dev, USB_EP0_IN, NULL, 0);
             plat_usb_wait_for_ep_completion(dev, USB_EP0_IN);
             plat_usb_set_configuration(dev);
+            _usb_enumerated = true;
         }
         break;
         case USB_SET_IDLE:
@@ -234,6 +237,7 @@ uint32_t usb_init(void)
     if (err != PB_OK)
         return err;
 
+    _usb_enumerated = false;
     usb_dev.on_setup_pkt = usb_process_setup_pkt;
     usb_dev.on_command = NULL;
 
@@ -250,3 +254,8 @@ void usb_task(void)
     plat_usb_task(&usb_dev);
 }
 
+
+bool usb_has_enumerated(void)
+{
+    return _usb_enumerated;
+}
