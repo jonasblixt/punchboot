@@ -12,7 +12,7 @@ Punchboot is a secure and fast bootloader for embedded systems. It is designed t
  - Boot as fast as possible
  - Integrate with the SoC's secure boot functionality
  - Authenticate the next piece of software in the boot chain
- - Support A/B system paritions for atomic updates
+ - Support A/B system partitions for atomic updates
  - Support automatic rollbacks
  - Minimize software download time in production
  - Be useful for day-to-day development
@@ -96,18 +96,14 @@ Hardware accelerated hash algorithms
 | NXP imx8m       | Yes | Yes    | No     | No     |
 | NXP imx8x       | Yes | Yes    | Yes    | Yes    |
 
-## Root of trust
+### Secure Boot
 
-Punchboot is designed to be a part of a secure boot chain. This means that
-the bootloader is cryptographically signed, the ROM code of the SoC must
-support a mechanism to validate this signature, otherwise there is no
-root of trust.
-
-When punchboot has been verified it, in turn, will load and verify the next
-software component in the boot chain. The bootloader _only_ supports signed
-binaries. 
-
-### Early boot stages and verification of punchboot binary
+## Typical and simplified secure boot flow
+ - ROM loads a set of public keys, calculates the checksum of the keys and compares the result to a fused checksum
+ - ROM loads punchboot, calculates checksum and verifies signature using key's in step one
+ - Run punchboot
+ - Punchboot loads a PBI bundle, calculates the checksum and verifies the signature using built in keys
+ - Run next step in boot chain
 
 Most SoC:s have a boot rom that includes meachanisms for calculating a checksum
 of the bootloader and cryptographically verifying a signature using a public key
@@ -119,40 +115,16 @@ Normally fuses are a limited resource and therefor a common way is to calculate
 time the device boots it will compute a sha256 checksum and compare it to the
 fused checksum.
 
-### IMX6 boot rom
-The IMX6 SoC:s bootrom support 4 public key's and a method of revoking keys.
-This way it is possible to change the signing key for devices that are already
-in the field to another, known key pair.
+Punchboot is designed to be a part of a secure boot chain. This means that
+the bootloader is cryptographically signed, the ROM code of the SoC must
+support a mechanism to validate this signature, otherwise there is no
+root of trust.
 
-### Key management in punchboot
+When punchboot has been verified it, in turn, will load and verify the next
+software component in the boot chain. The bootloader _only_ supports signed
+binaries.
 
-The punchboot security model requires support for three different signing keys
-for the bootloader binary.
-
- - Production key
- - Development key
- - Field key 1
- - Field key 2
-
-#### Production key
-The production key is used during the device manufacutring. Ideally the root key
-checksums should be fused by the SoC vendor before shipping to the manufacturing
-plant where punchboot will be installed. This way it is substantially more
-difficult to introduce compromised parts in the supply chain.
-
-This key is revoked after final unit test and assembly
-
-#### Development key
-This key should be considered insecure, the idea is that both parts of the key
-can be accessed by the development teams to support low level development and 
-debugging.
-
-#### Field key(s)
-Production units that are shipped from the factory will use field keys. The private key part
-is obviously a secure asset and should probably only live in a HSM environment with
-very limited access.
-
-## Testing and integration tests
+### Testing and integration tests
 Punchboot uses QEMU for all module and integration tests. The 'test' platform
  and board target relies on virtio serial ports and block devices. The punchboot
  cli can be built with a domain socket transport instead of USB for communicating
@@ -167,20 +139,60 @@ $ export BOARD=test
 $ export LOGLEVEL=3
 $ make clean && make && make test
 ```
-## Atomic upgrades
-To allow atomic updates as a minimum there needs to be two system partitions
- one that is active and another that can be updated and verified before 
- switching over.
+### A/B paritions and atomic upgrades
+To support a robust way of upgrading the system the simplest way is to have two copies
+of the system software; System A and System B. When system A is active System B can be
+reprogrammed and activated only when it is verified. This is known as "Atomic Upgrade"
 
 Punchboot uses the 'bootable' attribute in the GPT partition header to indicate
-which partion is bootable or not.
+which partion is bootable or not. 
 
-## Recovery mode
-Recovery mode is entered when the system can't boot or if the bootloader is
- forced by a configurable, external event.
+## GPT header attributes used by punchboot 
 
-In the recovery mode it is possible to update the bootloader, write data to
-partitions and install default settings.
+Punchboot uses type-specific attributes in the GPT parition header to control the boot flow. GPT is currently the only supported partition format. This might change in the future to allow for simpler boot media.
+
+| Bit     | Name                 | Description                                        |
+| ------- | -------------------- | -------------------------------------------------- |
+| 55      | PB_GPT_ATTR_OK       | Partition is as bootable and PB will try to use it |
+| 54      | PB_GPT_ATTR_ROLLBACK | Error bit indicating that this partition could not be used |
+| 53      | PB_GPT_ATTR_RFU1     | Reserved for future use |
+| 52      | PB_GPT_ATTR_RFU2     | Reserved for future use |
+| 51 - 48 | PB_GPT_ATTR_COUNTER  | Boot counter, used when upgrading to indicate how many boot tries are remaining for this partition |
+
+## Automatic rollback
+
+Sometimes upgrades fail. Punchboot supports a mechanism for so called automatic rollbacks. 
+
+![PB Rollback](doc/rollback.png)
+
+The left most column describes a simplified way a linux system could initiate an upgrade. In this case System A is active and System B is to be prepared and eventually activated.
+
+The new software is written to System B, verified, PB_GPT_ATTR_OK, PB_GPT_ATTR_ROLLBACK is reset and PB_GPT_ATTR_COUNTER is programmed to a desired try-count. A cleared OK bit but set counter constitutes and upgrade state and punchboot will try to start this system and decrement the counter unless the counter has reched zero.
+
+If the counter reaches zero the PB_GPT_ATTR_ROLLBACK error bit is set and System A is automatically activated again (Rollback event)
+
+At this point the upgrade is staged, and the OK bit of System A can be cleared and finally the system is reset.
+
+Punchboot recognizes that none of the System partitions has the OK bit set but System B has a non-zero counter. System B is started.
+
+When returning back to the upgrade application in linux final checks can be performed, for example checking connectivity and such before finally setting the OK bit of system B and thus permanently activate System B
+
+### Recovery mode
+Recovery mode is entered when the system can't boot or if the bootloader is forced by a configurable, external event to do so.
+
+In the recovery mode it is possible to update the bootloader, write data to partitions and install default settings. From v0.3 and forward an 'authentication cookie' must be used to interact with the bootloader to prevent malicious activity. The only command that can be executed without authentication is listing the device information (including the device UUID)
+
+The authentication cookie consists of the device UUID encrypted with one of the active key pair's private key. 
+
+## punchboot tool
+The punchboot CLI is used for interacting with the recovery mode. A summary of
+ the features available:
+ - Update the bootloader it self
+ - Manually start system A or B
+ - Activate boot partitions
+ - Load image to ram and execute it
+ - Display basic device info
+ - Configure fuses and GPT parition tables
 
 ## pbimage tool
 The pbimage tool is used to create a punchboot compatible image. The tool uses
@@ -211,16 +223,6 @@ load_addr = 0x82020000
 file = Image
 
 ```
-
-## punchboot tool
-The punchboot CLI is used for interacting with the recovery mode. A summary of
- the features available:
- - Update the bootloader it self
- - Manually start system A or B
- - Activate boot partitions
- - Load image to ram and execute it
- - Display basic device info
- - Configure fuses and GPT parition tables
 
 ## Metrics
 
