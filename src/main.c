@@ -27,6 +27,7 @@ void pb_main(void)
 {
     uint32_t err = 0;
     uint32_t active_system;
+    uint32_t recovery_timeout_ts;
     bool flag_run_recovery = false;
     struct gpt_part_hdr *part_system_a, *part_system_b;
     struct gpt_part_hdr *part;
@@ -148,9 +149,9 @@ void pb_main(void)
         flag_run_recovery = true;
     }
 
-    uint32_t recovery_timeout_ts = plat_get_us_tick();
-
 run_recovery:
+
+    recovery_timeout_ts = plat_get_us_tick();
 
     if (flag_run_recovery)
     {
@@ -167,13 +168,17 @@ run_recovery:
         {
             usb_task();
             plat_wdog_kick();
-        }
 
-        if (!usb_has_enumerated() && 
-         ((plat_get_us_tick() - recovery_timeout_ts) > PB_RECOVERY_TIMEOUT_US))
-        {
-            LOG_INFO("Recovery timeout, rebooting...");
-            plat_reset();
+            uint32_t recovery_timeout_counter = plat_get_us_tick() -
+                                                        recovery_timeout_ts;
+
+            if (!usb_has_enumerated() && 
+                          (recovery_timeout_counter > PB_RECOVERY_TIMEOUT_US))
+            {
+                LOG_INFO("Recovery timeout, rebooting...");
+                plat_reset();
+            }
+
         }
     } 
     

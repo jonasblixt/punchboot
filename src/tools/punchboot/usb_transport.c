@@ -2,6 +2,7 @@
 #include <libusb-1.0/libusb.h>
 #include <pb/pb.h>
 #include <pb/recovery.h>
+#include <pb/usb.h>
 #include "transport.h"
 
 
@@ -31,7 +32,7 @@ static libusb_device * find_device(libusb_device **devs,
 			return NULL;
 		}
 
-        if ( (desc.idVendor == 0xffff) && (desc.idProduct == 0x0001)) 
+        if ( (desc.idVendor == PB_USB_VID) && (desc.idProduct == PB_USB_PID)) 
         {
             
             int path_count = libusb_get_port_numbers(dev, device_path, 16);

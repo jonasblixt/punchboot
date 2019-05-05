@@ -1,8 +1,8 @@
 #ifndef __USB_H__
 #define __USB_H__
 
-#include <pb.h>
-#include <recovery.h>
+#include <pb/pb.h>
+#include <pb/recovery.h>
 
 /* Defines for commands in setup packets */
 #define USB_GET_DESCRIPTOR				0x8006
