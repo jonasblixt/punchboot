@@ -13,11 +13,11 @@
 #define USB_GET_STATUS                  0x8000
 
 #ifndef PB_USB_VID
-    #define PB_USB_VID 0xffff
+    #define PB_USB_VID 0x1209
 #endif
 
 #ifndef PB_USB_PID
-    #define PB_USB_PID 0x0001
+    #define PB_USB_PID 0x2019
 #endif
 
 enum {
