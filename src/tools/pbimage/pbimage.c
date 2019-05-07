@@ -16,8 +16,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
 #include <openssl/pem.h>
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
 #include <pkcs11-helper-1.0/pkcs11h-openssl.h>
