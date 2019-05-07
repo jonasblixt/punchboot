@@ -24,6 +24,7 @@ GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
 CFLAGS   = -Wall -O2 -I ../../include/ 
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
+CFLAGS  += $(shell pkg-config --cflags openssl)
 CFLAGS  += -I .
 
 LIBS    = -lpkcs11-helper -lcrypto
