@@ -141,7 +141,7 @@ void pb_main(void)
     if (err == PB_OK)
     {
         LOG_INFO("Image verified, booting...");
-        pb_boot(&pbi, active_system);
+        pb_boot(&pbi, active_system,false);
     } 
     else 
     {

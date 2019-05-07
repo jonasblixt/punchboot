@@ -25,7 +25,7 @@ static char new_bootargs[512];
 static __a16b char device_uuid[37];
 static __a4k __no_bss char device_uuid_raw[16];
 
-void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
+void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 {
 
     __a16b char part_uuid[37];
@@ -40,25 +40,32 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
     struct pb_component_hdr *atf = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
     
+    struct pb_component_hdr *ramdisk = 
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_RAMDISK);
 
     tr_stamp_begin(TR_DT_PATCH);
 
     if (dtb && linux2 && atf)
     {
-        LOG_INFO(" LINUX %x, DTB %x, ATF %x", linux2->load_addr_low, 
-                                              dtb->load_addr_low,
-                                              atf->load_addr_low);
-    } 
-    else if (dtb && linux2)
-    {
         LOG_INFO(" LINUX %x, DTB %x", linux2->load_addr_low, 
                                               dtb->load_addr_low);
-    }
+    } 
     else
     {
         LOG_ERR("Can't boot image");
         return;
     }
+
+    if (atf)
+        LOG_INFO(" ATF: %x",atf->load_addr_low);
+    else
+        LOG_INFO(" ATF: None");
+
+    if (ramdisk)
+        LOG_INFO(" RAMDISK: %x",ramdisk->load_addr_low);
+    else
+        LOG_INFO(" RAMDISK: None");
+
 
     switch (system_index)
     {
@@ -106,21 +113,70 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index)
 
             if (strcmp(name, "chosen") == 0) 
             {
-
-                snprintf (new_bootargs, 512, BOARD_BOOT_ARGS, part_uuid);
-
-                err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
-                            (const char *) new_bootargs);
-
-                if (err)
+                
+                if (ramdisk)
                 {
-                    LOG_ERR("Could not update bootargs");
+                    err = fdt_setprop_u32( (void *) fdt, offset, 
+                                        "linux,initrd-start",
+                                        ramdisk->load_addr_low);
+
+                    if (err)
+                    {
+                        LOG_ERR("Could not patch initrd");
+                        return;
+                    }
+
+                    err = fdt_setprop_u32( (void *) fdt, offset, 
+                        "linux,initrd-end",
+                        ramdisk->load_addr_low+ramdisk->component_size);
+
+                    if (err)
+                    {
+                        LOG_ERR("Could not patch initrd");
+                        return;
+                    }
+
+                    if (verbose)
+                    {
+                        err = fdt_setprop_string( (void *) fdt, offset, 
+                                    "bootargs", 
+                                    (const char *) BOARD_BOOT_ARGS_VERBOSE);
+                    } else {
+                        err = fdt_setprop_string( (void *) fdt, offset, 
+                                    "bootargs", 
+                                    (const char *) BOARD_BOOT_ARGS);
+                    }
+
+                    if (err)
+                    {
+                        LOG_ERR("Could not update bootargs");
+                        return;
+                    } else {
+                        LOG_INFO("Bootargs patched");
+                    }
+
                 } else {
-                    LOG_INFO("Bootargs patched");
+
+                    if (verbose)
+                    {
+                        snprintf (new_bootargs, 512, BOARD_BOOT_ARGS_VERBOSE, 
+                                                            part_uuid);
+                    } else {
+                        snprintf (new_bootargs, 512, BOARD_BOOT_ARGS, 
+                                                            part_uuid);
+                    }
+
+                    err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
+                                (const char *) new_bootargs);
+
+                    if (err)
+                    {
+                        LOG_ERR("Could not update bootargs");
+                        return;
+                    } else {
+                        LOG_INFO("Bootargs patched");
+                    }
                 }
-             
-
-
 
                 plat_get_uuid(device_uuid_raw);
                 uuid3_to_string((uint8_t *)device_uuid_raw,device_uuid);

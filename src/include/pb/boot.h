@@ -6,6 +6,6 @@
 #include <gpt.h>
 
 
-void pb_boot(struct pb_pbi *pbi, uint32_t system_index);
+void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose);
 
 #endif

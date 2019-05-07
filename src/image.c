@@ -118,6 +118,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
             no_of_blks -= blk_read;
             a += blk_read*512;
             c++;
+            LOG_DBG("no_of_blks = %u",no_of_blks);
         }
 
         LOG_DBG("Read %u chunks", c);

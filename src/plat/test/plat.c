@@ -24,7 +24,7 @@ static uint32_t blk_sz = 65535;
 static uint32_t setup_locked = 0;
 extern const struct fuse fuses[];
 
-void pb_boot(struct pb_pbi *pbi, uint32_t active_system)
+void pb_boot(struct pb_pbi *pbi, uint32_t active_system, bool verbose)
 {
     UNUSED(pbi);
     UNUSED(active_system);
