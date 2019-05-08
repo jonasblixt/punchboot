@@ -20,7 +20,7 @@ start_qemu()
         then
             break;
         fi
-        sleep 0.5
+        sleep 0.1
     done
 
     ( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
@@ -42,7 +42,7 @@ wait_for_qemu_start()
     sync
     while true;
     do
-        $PB boot -l > /dev/null 2>&1
+        $PB dev -l > /dev/null 2>&1
         if [ $? -eq 0 ];
         then
             break;

@@ -19,7 +19,7 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/params.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 
 #define INI_IMPLEMENTATION
 #include "3pp/ini.h"
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
     uint8_t usb_path[16];
     uint8_t usb_path_count = 0;
     char c;
-    int err;
+    int err = PB_ERR;
 
     if (argc <= 1) 
     {
@@ -460,7 +460,7 @@ int main(int argc, char **argv)
             err = pb_display_device_info();
 
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
         } 
         else if (flag_install) 
         {
@@ -480,7 +480,7 @@ int main(int argc, char **argv)
                 if (strncmp(confirm_input, "yes", 3)  != 0)
                 {
                     printf ("Aborted\n");
-                    return -1;
+                    goto pb_done;
                 }
             }
 
@@ -496,7 +496,7 @@ int main(int argc, char **argv)
             if (err != PB_OK)
             {
                 printf ("ERROR: Something went wrong\n");
-                return -1;
+                goto pb_done;
             }
 
             printf ("Success\n");
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
                 if (strncmp(confirm_input, "yes", 3)  != 0)
                 {
                     printf ("Aborted\n");
-                    return -1;
+                    goto pb_done;
                 }
             }
             err = pb_recovery_setup_lock();
@@ -524,7 +524,7 @@ int main(int argc, char **argv)
             if (err != PB_OK)
             {
                 printf("ERROR: Something went wrong\n");
-                return -1;
+                goto pb_done;
             }
             printf ("Success");
         } 
@@ -532,16 +532,18 @@ int main(int argc, char **argv)
         {
             print_help_header();
             print_dev_help();
+            err = PB_OK;
+            goto pb_done;
         }
     }
-
-    if (strcmp(cmd, "boot") == 0) 
+    else if (strcmp(cmd, "boot") == 0) 
     {
         if ( !(flag_s | flag_a | flag_write | flag_execute | flag_reset ))
         {
             print_help_header();
             print_boot_help();
-            return 0;
+            err = PB_OK;
+            goto pb_done;
         }
 
         if (flag_s) 
@@ -566,7 +568,7 @@ int main(int argc, char **argv)
             err = pb_boot_part(active_system, flag_v);
 
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
         }
 
         if (flag_write) 
@@ -574,7 +576,7 @@ int main(int argc, char **argv)
             err = pb_program_bootloader(fn);
 
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
         }
 
         if (flag_execute)
@@ -582,7 +584,7 @@ int main(int argc, char **argv)
             err = pb_execute_image(fn, active_system, flag_v);
 
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
         }
 
         if (flag_reset) 
@@ -590,11 +592,10 @@ int main(int argc, char **argv)
             err = pb_reset();
             
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
         }
     }
-
-    if (strcmp(cmd, "part") == 0) 
+    else if (strcmp(cmd, "part") == 0) 
     {
         if (flag_list) 
         {
@@ -602,25 +603,26 @@ int main(int argc, char **argv)
             err = print_gpt_table();
 
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
 
         } else if (flag_write && flag_index && fn) {
             printf ("Writing %s to part %i\n",fn, cmd_index);
             err = pb_flash_part(cmd_index, fn);
 
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
 
         } else if (flag_install) {
             err = pb_install_default_gpt();
 
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
 
         } else {
             print_help_header();
             print_part_help();
-            return 0;
+            err = PB_OK;
+            goto pb_done;
         }
 
         if (flag_reset) 
@@ -628,11 +630,19 @@ int main(int argc, char **argv)
             err = pb_reset();
 
             if (err != PB_OK)
-                return -1;
+                goto pb_done;
         }
     }
+    else
+    {
+        printf ("Unknown command\n");
+        err = PB_ERR;
+    }
+
+pb_done:
 
     transport_exit();
+
     if (err != PB_OK)
         return -1;
 

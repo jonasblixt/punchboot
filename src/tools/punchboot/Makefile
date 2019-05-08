@@ -24,9 +24,9 @@ PKG_CONFIG ?= pkg-config
 CFLAGS   = -Wall -O2 -I ../../include/ -I/usr/include
 CFLAGS  += -I. -I include/ -I 3pp/libtomcrypt/src/headers -I ../../
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
-CFLAGS  += `$(PKG_CONFIG) --cflags libusb-1.0`
+CFLAGS  += $(shell $(PKG_CONFIG) --cflags libusb-1.0 uuid)
 
-LIBS     = `$(PKG_CONFIG) --libs libusb-1.0` -luuid
+LIBS     = $(shell $(PKG_CONFIG) --libs libusb-1.0 uuid)
 
 LDFLAGS =  
 

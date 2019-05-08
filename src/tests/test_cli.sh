@@ -1,7 +1,6 @@
 #!/bin/bash
-touch /tmp/pb_force_recovery
 source tests/common.sh
-
+force_recovery_mode_on
 wait_for_qemu_start
 
 # Display help banner

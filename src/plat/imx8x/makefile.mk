@@ -12,9 +12,9 @@ PB_ARCH_NAME = armv8a
 
 CST_TOOL ?= /work/cst-3.1.0/linux64/bin/cst
 
-SRK_TBL  ?= $(shell realpath ../pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin)
-CSFK_PEM ?= $(shell realpath ../pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem)
-SRK_FUSE_BIN ?= $(shell realpath ../pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin)
+SRK_TBL  ?= ../pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin
+CSFK_PEM ?= ../pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem
+SRK_FUSE_BIN ?= ../pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin
 
 PB_CSF_TEMPLATE = plat/imx8x/pb.csf.template
 SED = $(shell which sed)

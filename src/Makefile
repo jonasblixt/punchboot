@@ -2,6 +2,7 @@
 
 TARGET  = pb
 
+PYTHON ?= python3
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
@@ -114,7 +115,7 @@ endif
 
 
 key_data:
-	@$(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > key_data.c
+	@$(PYTHON) $(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > key_data.c
 	@$(CC) -c $(CFLAGS) key_data.c -o key_data.o
 
 all: key_data plat_early $(TARGET).bin board_final plat_final

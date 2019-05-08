@@ -3,7 +3,7 @@
 #include <pb/recovery.h>
 #include <pb/gpt.h>
 #include <pb/image.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>

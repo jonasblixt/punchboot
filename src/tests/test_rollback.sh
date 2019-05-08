@@ -54,7 +54,6 @@ echo "Waiting for qemu to exit"
 wait_for_qemu
 echo "Starting qemu"
 start_qemu
-wait_for_qemu_start
 echo "QEMU started"
 wait_for_qemu
 
@@ -68,7 +67,6 @@ fi
 echo 1/4
 wait_for_qemu2
 start_qemu
-wait_for_qemu_start
 wait_for_qemu
 boot_status=$(</tmp/pb_boot_status)
 
@@ -79,7 +77,6 @@ fi
 echo 2/4
 wait_for_qemu2
 start_qemu
-wait_for_qemu_start
 wait_for_qemu
 boot_status=$(</tmp/pb_boot_status)
 
@@ -90,7 +87,6 @@ fi
 echo 3/4
 wait_for_qemu2
 start_qemu
-wait_for_qemu_start
 wait_for_qemu
 boot_status=$(</tmp/pb_boot_status)
 
