@@ -173,8 +173,12 @@ uint32_t board_setup_device(struct param *params)
 bool board_force_recovery(struct pb_platform_setup *plat)
 {
     sc_bool_t btn_status;
+    sc_misc_bt_t boot_type;
+
     sc_misc_get_button_status(plat->ipc_handle, &btn_status);
-    return (btn_status == 1);
+    sc_misc_get_boot_type(plat->ipc_handle, &boot_type);
+
+    return (btn_status == 1) || (boot_type == SC_MISC_BT_SERIAL);
 }
 
 

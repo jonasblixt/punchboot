@@ -32,12 +32,13 @@ enum
     PB_SECURITY_STATE_SECURE,
 };
 
+#define GPT_PART_NAME_MAX_SIZE 36
 
 struct partition_table
 {
     uint64_t no_of_blocks;
     const char uuid[37];
-    const char name[20];
+    const char name[GPT_PART_NAME_MAX_SIZE];
 };
 
 #define PB_RECOVERY_TIMEOUT_US 10000000

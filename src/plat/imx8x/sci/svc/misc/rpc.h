@@ -48,6 +48,7 @@
 #define MISC_FUNC_SET_TEMP 12U	/* Index for misc_set_temp() RPC call */
 #define MISC_FUNC_GET_TEMP 13U	/* Index for misc_get_temp() RPC call */
 #define MISC_FUNC_GET_BOOT_DEV 16U	/* Index for misc_get_boot_dev() RPC call */
+#define MISC_FUNC_GET_BOOT_TYPE 33U /*!< Index for misc_get_boot_type() RPC call */
 #define MISC_FUNC_GET_BUTTON_STATUS 18U	/* Index for misc_get_button_status() RPC call */
 /*@}*/
 

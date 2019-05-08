@@ -72,6 +72,18 @@
 #define SC_MISC_REL_CONTAINER           2U	/* Release container */
 /*@}*/
 
+/*!
+ * @name Defines for sc_misc_bt_t
+ */
+/*@{*/
+#define SC_MISC_BT_PRIMARY              0U
+#define SC_MISC_BT_SECONDARY            1U
+#define SC_MISC_BT_RECOVERY             2U
+#define SC_MISC_BT_MANUFACTURE          3U
+#define SC_MISC_BT_SERIAL               4U
+/*@}*/
+
+
 /* Types */
 
 /*!
@@ -93,6 +105,11 @@ typedef uint8_t sc_misc_seco_auth_cmd_t;
  * This type is used report boot status.
  */
 typedef uint8_t sc_misc_temp_t;
+
+/*!
+ * This type is used report the boot type.
+ */
+typedef uint8_t sc_misc_bt_t;
 
 /* Functions */
 
@@ -524,6 +541,20 @@ sc_err_t sc_misc_get_temp(sc_ipc_t ipc, sc_rsrc_t resource,
  * @param[out]    dev         pointer to return boot device
  */
 void sc_misc_get_boot_dev(sc_ipc_t ipc, sc_rsrc_t * dev);
+
+/*!
+ * This function returns the boot type.
+ *
+ * @param[in]     ipc         IPC handle
+ * @param[out]    type        pointer to return boot type
+ *
+ * @return Returns and error code (SC_ERR_NONE = success).
+ *
+ * Return errors code:
+ * - SC_ERR_UNAVAILABLE if type not passed by ROM
+ */
+sc_err_t sc_misc_get_boot_type(sc_ipc_t ipc, sc_misc_bt_t *type);
+
 
 /*!
  * This function returns the current status of the ON/OFF button.
