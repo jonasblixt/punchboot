@@ -179,7 +179,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                 }
 
                 plat_get_uuid(device_uuid_raw);
-                uuid3_to_string((uint8_t *)device_uuid_raw,device_uuid);
+                uuid_to_string((uint8_t *)device_uuid_raw,device_uuid);
                 LOG_DBG("Device UUID: %s", device_uuid);
                 fdt_setprop_string( (void *) fdt, offset, "device-uuid", 
                             (const char *) device_uuid);

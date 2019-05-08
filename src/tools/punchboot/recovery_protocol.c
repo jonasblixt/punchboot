@@ -96,11 +96,11 @@ uint32_t pb_reset(void)
     return pb_read_result_code();
 }
 
-uint32_t pb_boot_part(uint8_t part_no) 
+uint32_t pb_boot_part(uint8_t part_no, bool verbose) 
 {
     uint32_t err = PB_ERR;
 
-    err = pb_write(PB_CMD_BOOT_PART,part_no,0,0,0, NULL, 0);
+    err = pb_write(PB_CMD_BOOT_PART,part_no,verbose,0,0, NULL, 0);
     
     if (err != PB_OK)
         return err;
@@ -312,7 +312,8 @@ uint32_t pb_program_bootloader (const char *f_name)
 
 
 
-uint32_t pb_execute_image (const char *f_name, uint32_t active_system) 
+uint32_t pb_execute_image (const char *f_name, uint32_t active_system, 
+                            bool verbose) 
 {
     int read_sz = 0;
     int sent_sz = 0;
@@ -342,7 +343,7 @@ uint32_t pb_execute_image (const char *f_name, uint32_t active_system)
 
     read_sz = fread(&pbi, 1, sizeof(struct pb_pbi), fp);
 
-    err = pb_write(PB_CMD_BOOT_RAM, active_system,0,0,0,
+    err = pb_write(PB_CMD_BOOT_RAM, active_system,verbose,0,0,
                             (uint8_t *) &pbi, sizeof(struct pb_pbi));
     
     if (err != PB_OK)

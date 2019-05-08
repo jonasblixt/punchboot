@@ -74,27 +74,6 @@ uint32_t uuid_gen_uuid3(const char *ns,
 
 uint32_t uuid_to_string(uint8_t *uuid, char *out)
 {
-    uuid_t *u = (uuid_t *) uuid;
-
-    snprintf(out,37, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-        u->uuid.time_low,
-        u->uuid.time_mid,
-        u->uuid.time_hi_and_version,
-        u->uuid.clock_seq_hi_and_res,
-        u->uuid.clock_seq_low,
-        u->uuid.node[0],
-        u->uuid.node[1],
-        u->uuid.node[2],
-        u->uuid.node[3],
-        u->uuid.node[4],
-        u->uuid.node[5]);
-
-    return PB_OK;
-}
-
-
-uint32_t uuid3_to_string(uint8_t *uuid, char *out)
-{
     uint32_t *u0 = (uint32_t *) &uuid[0];
     uint16_t *u1 = (uint16_t *) &uuid[4];
     uint16_t *u2 = (uint16_t *) &uuid[6];
@@ -122,6 +101,32 @@ uint32_t uuid3_to_string(uint8_t *uuid, char *out)
                 *u0,*u1,*u2,*u3,*u4,*u5);
 
     
+
+    return PB_OK;
+}
+
+uint32_t uuid_to_guid(uint8_t *uuid, uint8_t *guid)
+{
+    guid[0] = uuid[3];
+    guid[1] = uuid[2];
+    guid[2] = uuid[1];
+    guid[3] = uuid[0];
+
+    guid[4] = uuid[5];
+    guid[5] = uuid[4];
+
+    guid[6] = uuid[7];
+    guid[7] = uuid[6];
+
+    guid[8] = uuid[8];
+    guid[9] = uuid[9];
+
+    guid[10] = uuid[10];
+    guid[11] = uuid[11];
+    guid[12] = uuid[12];
+    guid[13] = uuid[13];
+    guid[14] = uuid[14];
+    guid[15] = uuid[15];
 
     return PB_OK;
 }

@@ -10,4 +10,6 @@ uint32_t uuid_gen_uuid3(const char *ns,
                         const char *unique_data,
                         uint32_t unique_data_length,
                         char *out);
+uint32_t uuid_to_guid(uint8_t *uuid, uint8_t *guid);
+
 #endif

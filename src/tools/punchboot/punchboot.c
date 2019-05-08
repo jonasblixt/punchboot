@@ -154,6 +154,31 @@ static int load_params(const char *fn)
     return PB_OK;
 }
 
+
+static void guid_to_uuid(uint8_t *guid, uint8_t *uuid)
+{
+    guid[0] = uuid[3];
+    guid[1] = uuid[2];
+    guid[2] = uuid[1];
+    guid[3] = uuid[0];
+
+    guid[4] = uuid[5];
+    guid[5] = uuid[4];
+
+    guid[6] = uuid[7];
+    guid[7] = uuid[6];
+
+    guid[8] = uuid[8];
+    guid[9] = uuid[9];
+
+    guid[10] = uuid[10];
+    guid[11] = uuid[11];
+    guid[12] = uuid[12];
+    guid[13] = uuid[13];
+    guid[14] = uuid[14];
+    guid[15] = uuid[15];
+}
+
 static int print_gpt_table(void)
 {
     struct gpt_primary_tbl gpt;
@@ -177,8 +202,9 @@ static int print_gpt_table(void)
 
         if (!part->first_lba)
             break;
-        
-        uuid_unparse_upper(part->type_uuid, str_type_uuid);
+        unsigned char guid[16];
+        guid_to_uuid(guid, part->type_uuid);
+        uuid_unparse_lower(guid, str_type_uuid);
         utils_gpt_part_name(part, tmp_string, 36);
         printf (" %i - [%16s] lba 0x%8.8lX - 0x%8.8lX, TYPE: %s\n", i,
                 tmp_string,
@@ -270,17 +296,17 @@ static void print_help_header(void)
     printf (" --- Punch BOOT " VERSION " ---\n\n");
 
     printf (" Common parameters:\n");
-    printf ("  punchboot <command> -u \"usb path\"      - Perform operations on device with 'usb path'\n\n");
+    printf ("  punchboot <command> -u \"usb path\"           - Perform operations on device with 'usb path'\n\n");
 }
 
 static void print_boot_help(void)
 {
     printf (" Bootloader:\n");
-    printf ("  punchboot boot -w -f <fn>              - Install bootloader\n");
-    printf ("  punchboot boot -r                      - Reset device\n");
-    printf ("  punchboot boot -b -s A or B            - BOOT System A or B\n");
-    printf ("  punchboot boot -x -f <fn> [-s A or B]  - Load image to RAM and execute it\n");
-    printf ("  punchboot boot -a -s A, B or none      - Activate system partition\n");
+    printf ("  punchboot boot -w -f <fn>                   - Install bootloader\n");
+    printf ("  punchboot boot -r                           - Reset device\n");
+    printf ("  punchboot boot -b -s A or B [-v]            - BOOT System A or B -v for verbose output\n");
+    printf ("  punchboot boot -x -f <fn> [-s A or B] [-v]  - Load image to RAM and execute it, -v for verbose output\n");
+    printf ("  punchboot boot -a -s A, B or none           - Activate system partition\n");
     printf ("\n");
 }
 
@@ -288,9 +314,9 @@ static void print_boot_help(void)
 static void print_dev_help(void)
 {
     printf (" Device:\n");
-    printf ("  punchboot dev -l                       - Display device information\n");
-    printf ("  punchboot dev -i [-f <fn>] [-y]        - Perform device setup\n");
-    printf ("  punchboot dev -w [-y]                  - Lock device setup\n");
+    printf ("  punchboot dev -l                            - Display device information\n");
+    printf ("  punchboot dev -i [-f <fn>] [-y]             - Perform device setup\n");
+    printf ("  punchboot dev -w [-y]                       - Lock device setup\n");
     printf ("\n");
 }
 
@@ -298,9 +324,9 @@ static void print_part_help(void)
 {
 
     printf (" Partition Management:\n");
-    printf ("  punchboot part -l                      - List partitions\n");
-    printf ("  punchboot part -w -n <n> -f <fn>       - Write 'fn' to partition 'n'\n");
-    printf ("  punchboot part -i                      - Install default GPT table\n");
+    printf ("  punchboot part -l                           - List partitions\n");
+    printf ("  punchboot part -w -n <n> -f <fn>            - Write 'fn' to partition 'n'\n");
+    printf ("  punchboot part -i                           - Install default GPT table\n");
     printf ("\n");
 }
 
@@ -338,6 +364,7 @@ int main(int argc, char **argv)
     bool flag_execute = false;
     bool flag_a = false;
     bool flag_b = false;
+    bool flag_v = false;
     bool flag_y = false;
     bool flag_u = false;
 
@@ -346,12 +373,15 @@ int main(int argc, char **argv)
     char *s_arg = NULL;
 
 
-    while ((c = getopt (argc-1, &argv[1], "hiwraybu:xs:ln:f:v:")) != -1) 
+    while ((c = getopt (argc-1, &argv[1], "hiwraybu:xs:ln:f:v")) != -1) 
     {
         switch (c) 
         {
             case 'w':
                 flag_write = true;
+            break;
+            case 'v':
+                flag_v = true;
             break;
             case 'x':
                 flag_execute = true;
@@ -533,7 +563,7 @@ int main(int argc, char **argv)
 
         if (flag_b)
         {
-            err = pb_boot_part(active_system);
+            err = pb_boot_part(active_system, flag_v);
 
             if (err != PB_OK)
                 return -1;
@@ -549,7 +579,7 @@ int main(int argc, char **argv)
 
         if (flag_execute)
         {
-            err = pb_execute_image(fn, active_system);
+            err = pb_execute_image(fn, active_system, flag_v);
 
             if (err != PB_OK)
                 return -1;

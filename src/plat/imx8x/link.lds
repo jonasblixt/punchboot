@@ -12,7 +12,7 @@ MEMORY
  * Provide a 128 kByte hole for loading ATF at 0x80000000.
  * The SCFW code seems to have a hardcoded boot vector to that address.
  * The NXP supplied ATF also has a lot of code that assumes that ATF
- * is loaded at that perticular address.
+ * is loaded at that particular address.
  */
 
 

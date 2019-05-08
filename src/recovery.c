@@ -16,6 +16,7 @@
 #include <crypto.h>
 #include <io.h>
 #include <board.h>
+#include <uuid.h>
 #include <gpt.h>
 #include <string.h>
 #include <boot.h>
@@ -281,18 +282,35 @@ static void recovery_parse_command(struct usb_device *dev,
             struct gpt_part_hdr *boot_part_a, *boot_part_b;
 
             err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &boot_part_a);
+
+            if (err != PB_OK)
+            {
+                LOG_ERR("System A not found");
+                break;
+            }
+
             err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_B, &boot_part_b);
 
+            if (err != PB_OK)
+            {
+                LOG_ERR("System B not found");
+                break;
+            }
+            
             if (cmd->arg0 == SYSTEM_A)
             {
                 LOG_INFO("Loading System A");
                 err = pb_image_load_from_fs(boot_part_a->first_lba, &pbi,
                                                 (const char*) hash_buffer);
-            } else if (cmd->arg0 == SYSTEM_B) {
+            } 
+            else if (cmd->arg0 == SYSTEM_B)
+            {
                 LOG_INFO("Loading System B");
                 err = pb_image_load_from_fs(boot_part_b->first_lba, &pbi,
                                                 (const char *)hash_buffer);
-            } else {
+            }
+            else
+            {
                 LOG_ERR("Invalid boot partition");
                 err = PB_ERR;
             }
@@ -304,7 +322,7 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
-                pb_boot(&pbi, cmd->arg0,true);
+                pb_boot(&pbi, cmd->arg0,cmd->arg1);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
@@ -353,7 +371,7 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 LOG_INFO("Booting image... %u",cmd->arg0);
                 recovery_send_result_code(dev, err);
-                pb_boot(&pbi, cmd->arg0, true);
+                pb_boot(&pbi, cmd->arg0, cmd->arg1);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
@@ -374,8 +392,10 @@ static void recovery_parse_command(struct usb_device *dev,
             for (const struct partition_table *p = pb_partition_table;
                     (p->no_of_blocks != 0); p++)
             {
+                unsigned char guid[16];
+                uuid_to_guid((uint8_t *)p->uuid, guid);
                 err = gpt_add_part(gpt, part_count++, p->no_of_blocks,
-                                                 p->uuid,
+                                                 (const char *)guid,
                                                  p->name);
 
                 if (err != PB_OK)

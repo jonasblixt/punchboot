@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <gpt.h>
+#include <uuid.h>
 #include <plat.h>
 #include <crc.h>
 #include <string.h>
@@ -53,11 +54,15 @@ uint64_t gpt_get_part_last_lba(struct gpt *gpt, uint8_t part_no)
 uint32_t gpt_get_part_by_uuid(struct gpt *gpt, const char *uuid, 
                               struct gpt_part_hdr **part) 
 {
+
+    unsigned char guid[16];
+    uuid_to_guid((uint8_t *) uuid, guid);
+
     for (unsigned int i = 0; i < gpt->primary.hdr.no_of_parts; i++) {
         if (gpt->primary.part[i].first_lba == 0)
             return PB_ERR;
 
-        if (memcmp((void *) gpt->primary.part[i].uuid, uuid, 16) == 0)
+        if (memcmp((void *) gpt->primary.part[i].uuid, guid, 16) == 0)
         {
             (*part) = &gpt->primary.part[i];
             return PB_OK;
