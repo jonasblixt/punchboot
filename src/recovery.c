@@ -34,7 +34,7 @@ static __no_bss __a4k struct param params[RECOVERY_MAX_PARAMS];
 static struct gpt *gpt;
 extern const struct partition_table pb_partition_table[];
 static unsigned char hash_buffer[PB_HASH_BUF_SZ];
-
+static bool recovery_authenticated = false;
 extern char _code_start, _code_end, _data_region_start, _data_region_end, 
             _zero_region_start, _zero_region_end, _stack_start, _stack_end;
 
@@ -56,42 +56,28 @@ const char *recovery_cmd_name[] =
     "PB_CMD_AUTHENTICATE",
 };
 
-static __no_bss __a16b char device_uuid[128];
-static __no_bss __a16b char device_uuid_raw[16];
-static __no_bss __a16b char auth_hash[96];
 
-static uint32_t recovery_authenticate(uint32_t key_index, uint8_t *signature,
-                                                uint32_t signature_size)
+static uint32_t recovery_authenticate(uint32_t key_index, 
+                                      uint8_t *signature,
+                                      uint32_t hash_kind,
+                                      uint32_t sign_kind)
 {
-    uint32_t err;
+    uint32_t err = PB_ERR;
+    char device_uuid[128];
+    char device_uuid_raw[16];
+    char auth_hash[96];
     struct pb_key *k;
 
     plat_get_uuid(device_uuid_raw);
 
-    memset(device_uuid,0,128);
+    memset(device_uuid,' ',128);
     memset(auth_hash,0,64);
 
-    uuid_to_string(device_uuid_raw, device_uuid);
-    LOG_INFO("Device UUID: %s %u",device_uuid,strlen(device_uuid));
-
-    //uint32_t *digest_length = (uint32_t *) &device_uuid[60];
-    //*digest_length = 36*8;
-    device_uuid[36] = 0x80;
-    device_uuid[60] = 0x01;
-    device_uuid[61] = 0x20;
-
-    for (uint32_t n = 0; n < 64; n++)
-        printf ("%02x ", device_uuid[n]);
-    printf ("\n\r");
-
-    plat_hash_init(PB_HASH_SHA256);
-    plat_hash_update((uintptr_t) device_uuid, 64);
+    uuid_to_string((uint8_t *) device_uuid_raw, device_uuid);
+    device_uuid[36] = ' ';
+    plat_hash_init(hash_kind);
+    plat_hash_update((uintptr_t) device_uuid, 128);
     plat_hash_finalize((uintptr_t) auth_hash);
-
-    for (uint32_t n = 0; n < 32; n++)
-        printf ("%02x ",auth_hash[n]);
-    printf ("\n\r");
-
 
     LOG_DBG("Loading key %u", key_index);
     err = pb_crypto_get_key(key_index, &k);
@@ -102,8 +88,8 @@ static uint32_t recovery_authenticate(uint32_t key_index, uint8_t *signature,
         return PB_ERR;
     }
 
-    err = plat_verify_signature(signature, PB_SIGN_NIST384p,
-                                auth_hash, PB_HASH_SHA384,
+    err = plat_verify_signature(signature, sign_kind,
+                                (uint8_t *) auth_hash, hash_kind,
                                 k);
 
     if (err != PB_OK)
@@ -220,10 +206,29 @@ static void recovery_parse_command(struct usb_device *dev,
                                        struct pb_cmd_header *cmd)
 {
     uint32_t err = PB_OK;
-
+    uint32_t security_state = -1;
     LOG_INFO ("0x%x %s, sz=%ub", cmd->cmd, 
                                       recovery_cmd_name[cmd->cmd],
                                       cmd->size);
+
+    err = plat_get_security_state(&security_state);
+
+    if (err != PB_OK)
+        goto recovery_error_out;
+
+    if (security_state < 3)
+        recovery_authenticated = true;
+
+    if (!recovery_authenticated)
+    {
+        if (!((cmd->cmd == PB_CMD_AUTHENTICATE) ||
+             (cmd->cmd == PB_CMD_GET_VERSION) ||
+             (cmd->cmd == PB_CMD_GET_PARAMS)) )
+        {
+            LOG_ERR("Not authenticated");
+            goto recovery_error_out;
+        }
+    }
 
     switch (cmd->cmd) 
     {
@@ -535,14 +540,20 @@ static void recovery_parse_command(struct usb_device *dev,
 
             LOG_DBG("Got auth cmd, key_id = %u", cmd->arg0);
 
-            err = recovery_authenticate(cmd->arg0, recovery_cmd_buffer,
-                                        cmd->size);
+            err = recovery_authenticate(cmd->arg0,
+                                        recovery_cmd_buffer,
+                                        cmd->arg2,
+                                        cmd->arg1);
+
+            if (err == PB_OK)
+                recovery_authenticated = true;
         }
         break;
         default:
             LOG_ERR ("Got unknown command: %u",cmd->cmd);
     }
-    
+
+recovery_error_out:
     
     recovery_send_result_code(dev, err);
 }
@@ -550,6 +561,7 @@ static void recovery_parse_command(struct usb_device *dev,
 void recovery_initialize(struct gpt *_gpt)
 {
     gpt = _gpt;
+    recovery_authenticated = false;
     usb_set_on_command_handler(recovery_parse_command);
 }
 

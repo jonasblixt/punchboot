@@ -16,10 +16,11 @@ uint32_t pb_get_gpt_table(struct gpt_primary_tbl *tbl);
 uint32_t pb_set_bootpart(uint8_t bootpart);
 uint32_t pb_flash_part (uint8_t part_no, const char *f_name);
 uint32_t pb_program_bootloader (const char *f_name);
-uint32_t pb_execute_image (const char *f_name, uint32_t active_system, bool verbose);
+uint32_t pb_execute_image (const char *f_name, uint32_t active_system, 
+                            bool verbose);
 uint32_t pb_recovery_setup(struct param *params);
 uint32_t pb_recovery_setup_lock(void);
 uint32_t pb_read_params(struct param **params);
-uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn);
-
+uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
+                                  uint32_t signature_kind, uint32_t hash_kind);
 #endif

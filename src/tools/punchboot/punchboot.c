@@ -19,6 +19,7 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/params.h>
+#include <pb/crypto.h>
 #include <uuid.h>
 
 #define INI_IMPLEMENTATION
@@ -319,6 +320,7 @@ static void print_dev_help(void)
     printf ("  punchboot dev -i [-f <fn>] [-y]             - Perform device setup\n");
     printf ("  punchboot dev -w [-y]                       - Lock device setup\n");
     printf ("  punchboot dev -a [-n <key id>] -f <fn>      - Authenticate\n");
+    printf ("                -s <signature format>:<hash>\n");
     printf ("\n");
 }
 
@@ -530,16 +532,78 @@ int main(int argc, char **argv)
             }
             printf ("Success");
         } 
-        else if (flag_a)
+        else if (flag_a && flag_s)
         {
             uint32_t key_index = 0;
 
             if (flag_index)
                 key_index = cmd_index;
         
+            char delim[] = ":";
+            char *tok = strtok(s_arg, delim);
+            
+            if (tok == NULL)
+            {
+                err = PB_ERR;
+                goto pb_done;
+            }
+
+            printf ("Signature format: %s\n",tok);
+
+            uint32_t signature_kind = 0;
+
+            if (strcmp(tok, "secp256r1") == 0)
+                signature_kind = PB_SIGN_NIST256p;
+            else if (strcmp(tok, "secp384r1") == 0)
+                signature_kind = PB_SIGN_NIST384p;
+            else if (strcmp(tok,"secp521r1") == 0)
+                signature_kind = PB_SIGN_NIST521p;
+            else if (strcmp(tok,"RSA4096") == 0)
+                signature_kind = PB_SIGN_RSA4096;
+            else
+            {
+                printf ("Error: Invalid signature format\n");
+                err = PB_ERR;
+                goto pb_done;
+            }
+
+
+            tok = strtok(NULL, delim);
+
+            if (tok == NULL)
+            {
+                err = PB_ERR;
+                goto pb_done;
+            }
+
+            printf ("Hash: %s\n",tok);
+
+            uint32_t hash_kind = 0;
+
+            if (strcmp(tok,"sha256") == 0)
+                hash_kind = PB_HASH_SHA256;
+            else if (strcmp(tok,"sha384") == 0)
+                hash_kind = PB_HASH_SHA384;
+            else if (strcmp(tok,"sha512") == 0)
+                hash_kind = PB_HASH_SHA512;
+            else
+            {
+                printf ("Error: Invalid hash\n");
+                err = PB_ERR;
+                goto pb_done;
+            }
+
+
             printf ("Authenticating using key index %u and '%s'\n",
                     key_index, fn);
-            err = pb_recovery_authenticate(key_index, fn);
+
+            err = pb_recovery_authenticate(key_index, fn, signature_kind,
+                                                          hash_kind);
+
+            if (err != PB_OK)
+                printf ("Authentication failed\n");
+            else
+                printf ("Authentication successfull\n");
         }
         else 
         {

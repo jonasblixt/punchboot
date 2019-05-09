@@ -124,7 +124,8 @@ size_t br_ecdsa_asn1_to_raw(void *sig, size_t sig_len)
 	return sig_len;
 }
 
-uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn)
+uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
+                                  uint32_t signature_kind, uint32_t hash_kind)
 {
     uint32_t err;
     uint8_t cookie_buffer[PB_RECOVERY_AUTH_COOKIE_SZ];
@@ -133,14 +134,10 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn)
 
     FILE *fp = fopen(fn,"rb");
     int read_sz = fread (cookie_buffer,1,PB_RECOVERY_AUTH_COOKIE_SZ,fp);
-
-    printf ("Read %u bytes\n",read_sz);
-
     read_sz = br_ecdsa_asn1_to_raw(cookie_buffer, read_sz);
 
-    printf ("%u\n",read_sz);
-
-    err = pb_write(PB_CMD_AUTHENTICATE,key_index,0,0,0, cookie_buffer, read_sz);
+    err = pb_write(PB_CMD_AUTHENTICATE,key_index,signature_kind,hash_kind,
+                                        0, cookie_buffer, read_sz);
 
     if (err != PB_OK)
         return err;
