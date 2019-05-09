@@ -30,6 +30,12 @@ Releases history:
 
 | Version | Release date | Changes                                          |
 | ------- | ------------ | ------------------------------------------------ |
+| v0.3    | 2019-05-19   | Support for authentication of recovery mode      |
+|         |              | Support optional verbose boot mode               |
+|         |              | pbimage support for PKCS11/Yubikey backend       |
+|         |              | USB VID/PID allocated from pid.codes, 1209:2019  |
+|         |              | Support for linux/initramfs                      |
+|         |              | Various bugfixes and improvements                |
 | v0.2    | 2019-03-18   | Support for EC signatures, improved boot speed   |
 | v0.1    | 2019-02-25   | First release                                    |
 
