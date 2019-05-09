@@ -20,5 +20,6 @@ uint32_t pb_execute_image (const char *f_name, uint32_t active_system, bool verb
 uint32_t pb_recovery_setup(struct param *params);
 uint32_t pb_recovery_setup_lock(void);
 uint32_t pb_read_params(struct param **params);
+uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn);
 
 #endif

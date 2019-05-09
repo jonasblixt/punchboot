@@ -178,6 +178,8 @@ bool board_force_recovery(struct pb_platform_setup *plat)
     sc_misc_get_button_status(plat->ipc_handle, &btn_status);
     sc_misc_get_boot_type(plat->ipc_handle, &boot_type);
 
+    LOG_INFO("Boot type: %u", boot_type);
+
     return (btn_status == 1) || (boot_type == SC_MISC_BT_SERIAL);
 }
 

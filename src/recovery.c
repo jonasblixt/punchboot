@@ -53,8 +53,69 @@ const char *recovery_cmd_name[] =
     "PB_CMD_SETUP",
     "PB_CMD_SETUP_LOCK",
     "PB_CMD_GET_PARAMS",
+    "PB_CMD_AUTHENTICATE",
 };
 
+static __no_bss __a16b char device_uuid[128];
+static __no_bss __a16b char device_uuid_raw[16];
+static __no_bss __a16b char auth_hash[96];
+
+static uint32_t recovery_authenticate(uint32_t key_index, uint8_t *signature,
+                                                uint32_t signature_size)
+{
+    uint32_t err;
+    struct pb_key *k;
+
+    plat_get_uuid(device_uuid_raw);
+
+    memset(device_uuid,0,128);
+    memset(auth_hash,0,64);
+
+    uuid_to_string(device_uuid_raw, device_uuid);
+    LOG_INFO("Device UUID: %s %u",device_uuid,strlen(device_uuid));
+
+    //uint32_t *digest_length = (uint32_t *) &device_uuid[60];
+    //*digest_length = 36*8;
+    device_uuid[36] = 0x80;
+    device_uuid[60] = 0x01;
+    device_uuid[61] = 0x20;
+
+    for (uint32_t n = 0; n < 64; n++)
+        printf ("%02x ", device_uuid[n]);
+    printf ("\n\r");
+
+    plat_hash_init(PB_HASH_SHA256);
+    plat_hash_update((uintptr_t) device_uuid, 64);
+    plat_hash_finalize((uintptr_t) auth_hash);
+
+    for (uint32_t n = 0; n < 32; n++)
+        printf ("%02x ",auth_hash[n]);
+    printf ("\n\r");
+
+
+    LOG_DBG("Loading key %u", key_index);
+    err = pb_crypto_get_key(key_index, &k);
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not read key");
+        return PB_ERR;
+    }
+
+    err = plat_verify_signature(signature, PB_SIGN_NIST384p,
+                                auth_hash, PB_HASH_SHA384,
+                                k);
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Authentication failed");
+        return err;
+    }
+
+    LOG_INFO("Authentication successfull");
+
+    return PB_OK;
+}
 
 static uint32_t recovery_flash_bootloader(uint8_t *bfr, 
                                           uint32_t blocks_to_write) 
@@ -466,6 +527,16 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_send_response(dev,(uint8_t*) params,
                             (sizeof(struct param) * param_count));  
             err = PB_OK;
+        }
+        break;
+        case PB_CMD_AUTHENTICATE:
+        {
+            recovery_read_data(dev, recovery_cmd_buffer, cmd->size);
+
+            LOG_DBG("Got auth cmd, key_id = %u", cmd->arg0);
+
+            err = recovery_authenticate(cmd->arg0, recovery_cmd_buffer,
+                                        cmd->size);
         }
         break;
         default:

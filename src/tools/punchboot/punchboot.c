@@ -296,7 +296,8 @@ static void print_help_header(void)
     printf (" --- Punch BOOT " VERSION " ---\n\n");
 
     printf (" Common parameters:\n");
-    printf ("  punchboot <command> -u \"usb path\"           - Perform operations on device with 'usb path'\n\n");
+    printf ("  punchboot <command> -u \"usb path\"           - Perform operations on device with 'usb path'\n");
+    printf ("  punchboot <command> -v                      - Verbose output\n\n");
 }
 
 static void print_boot_help(void)
@@ -304,8 +305,8 @@ static void print_boot_help(void)
     printf (" Bootloader:\n");
     printf ("  punchboot boot -w -f <fn>                   - Install bootloader\n");
     printf ("  punchboot boot -r                           - Reset device\n");
-    printf ("  punchboot boot -b -s A or B [-v]            - BOOT System A or B -v for verbose output\n");
-    printf ("  punchboot boot -x -f <fn> [-s A or B] [-v]  - Load image to RAM and execute it, -v for verbose output\n");
+    printf ("  punchboot boot -b -s A or B [-v]            - BOOT System A or B\n");
+    printf ("  punchboot boot -x -f <fn> [-s A or B] [-v]  - Load image to RAM and execute it\n");
     printf ("  punchboot boot -a -s A, B or none           - Activate system partition\n");
     printf ("\n");
 }
@@ -317,6 +318,7 @@ static void print_dev_help(void)
     printf ("  punchboot dev -l                            - Display device information\n");
     printf ("  punchboot dev -i [-f <fn>] [-y]             - Perform device setup\n");
     printf ("  punchboot dev -w [-y]                       - Lock device setup\n");
+    printf ("  punchboot dev -a [-n <key id>] -f <fn>      - Authenticate\n");
     printf ("\n");
 }
 
@@ -528,6 +530,17 @@ int main(int argc, char **argv)
             }
             printf ("Success");
         } 
+        else if (flag_a)
+        {
+            uint32_t key_index = 0;
+
+            if (flag_index)
+                key_index = cmd_index;
+        
+            printf ("Authenticating using key index %u and '%s'\n",
+                    key_index, fn);
+            err = pb_recovery_authenticate(key_index, fn);
+        }
         else 
         {
             print_help_header();

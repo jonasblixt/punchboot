@@ -11,7 +11,7 @@
 extern char _code_start, _code_end, 
             _data_region_start, _data_region_end, 
             _zero_region_start, _zero_region_end, 
-            _stack_start, _stack_end;
+            _stack_start, _stack_end, _big_buffer_start, _big_buffer_end;
 
 #define IMAGE_BLK_CHUNK 8192
 
@@ -56,6 +56,12 @@ uint32_t pb_image_check_header(struct pb_pbi *pbi)
         if (PB_CHECK_OVERLAP(la,sz,&_code_start,&_code_end))
         {
             LOG_ERR("image overlapping with PB code");
+            return PB_ERR;
+        }
+
+        if (PB_CHECK_OVERLAP(la,sz,&_big_buffer_start,&_big_buffer_end))
+        {
+            LOG_ERR("image overlapping with PB buffer");
             return PB_ERR;
         }
     }

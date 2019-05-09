@@ -29,6 +29,7 @@ enum {
     PB_CMD_SETUP,
     PB_CMD_SETUP_LOCK,
     PB_CMD_GET_PARAMS,
+    PB_CMD_AUTHENTICATE,
 };
 
 extern const char *recovery_cmd_name[];

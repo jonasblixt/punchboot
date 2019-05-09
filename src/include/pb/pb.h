@@ -41,6 +41,8 @@ struct partition_table
     const char name[GPT_PART_NAME_MAX_SIZE];
 };
 
+#define PB_RECOVERY_AUTH_COOKIE_SZ 1024
+
 #define PB_RECOVERY_TIMEOUT_US 10000000
 
 #define PB_GPT_ENTRY(__blks, __uuid, __name) \
