@@ -23,6 +23,7 @@ then
     test_end_error
 fi
 
+sync
 sleep 0.1
 
 $PB part -l
