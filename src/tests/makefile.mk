@@ -86,7 +86,7 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 			 $(LIBS) $(TEST).o -o $(TEST) && \
 		echo "TEST $(TEST)"  >> test_log.txt && \
 		sleep 0.1 && \
-		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST) >> test_log.txt 2>&1; )
+		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST) >> test_log.txt 2>&1 || exit; )
 
 	@echo
 	@echo
