@@ -23,7 +23,7 @@ GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 PKG_CONFIG ?= pkg-config
 
 CFLAGS  += -Wall -O2 -I ../../include/
-CFLAGS  += -I. -I include/  -I ../../
+CFLAGS  += -I. -I include/  -I ../../ -std=c99
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += $(shell $(PKG_CONFIG) --cflags libusb-1.0 uuid)
 

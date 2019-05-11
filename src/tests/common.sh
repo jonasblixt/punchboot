@@ -23,7 +23,8 @@ start_qemu()
         sleep 0.1
     done
 
-    ( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
+    #( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
+    ( $QEMU $QEMU_FLAGS -kernel pb ) &
     qemu_pid=$!
 }
 

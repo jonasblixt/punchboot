@@ -22,7 +22,7 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
-CFLAGS  += -Wall -O2 -I ../../include/ 
+CFLAGS  += -Wall -O2 -I ../../include/ -std=c99
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
 CFLAGS  += $(shell pkg-config --cflags openssl libpkcs11-helper-1)
 CFLAGS  += -I .
