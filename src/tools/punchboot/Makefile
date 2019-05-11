@@ -21,14 +21,13 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 PKG_CONFIG ?= pkg-config
-CFLAGS   = -Wall -O2 -I ../../include/ -I/usr/include
-CFLAGS  += -I. -I include/ -I 3pp/libtomcrypt/src/headers -I ../../
+
+CFLAGS  += -Wall -O2 -I ../../include/
+CFLAGS  += -I. -I include/  -I ../../
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += $(shell $(PKG_CONFIG) --cflags libusb-1.0 uuid)
 
 LIBS     = $(shell $(PKG_CONFIG) --libs libusb-1.0 uuid)
-
-LDFLAGS =  
 
 ASM_SRCS = 
 C_SRCS   = $(TARGET).c 

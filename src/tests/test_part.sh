@@ -26,6 +26,8 @@ fi
 sync
 sleep 0.1
 
+echo "Done, listing partitions again"
+
 $PB part -l
 result_code=$?
 
@@ -36,7 +38,9 @@ then
     test_end_error
 fi
 
+echo "Seting 'none' as active system"
 
 $PB boot -a -s none
 
+echo "Done"
 test_end_ok
