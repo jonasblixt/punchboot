@@ -530,13 +530,12 @@ uint32_t pbimage_out(const char *fn)
             memcpy(&signature[66+s_off], &asn1_signature[4+r_sz+2+1], s_sz);
         break;
         case PB_SIGN_RSA4096:
+            memcpy(signature, asn1_signature, signature_size);
         break;
         default:
             printf ("Unknown signature format\n");
             return PB_ERR;
     }
-
-    printf ("%u %u %u %u\n",r_sz,s_sz,r_off,s_off);
 
     fwrite(&hdr, sizeof(struct pb_image_hdr), 1, fp);
     fwrite(signature, PB_IMAGE_SIGN_MAX_SIZE, 1, fp);
