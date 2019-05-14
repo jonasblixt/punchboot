@@ -28,9 +28,7 @@ static __a4k __no_bss char device_uuid_raw[16];
 void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 {
 
-    __a16b char part_uuid[37];
-    const unsigned char root_a_uuid_raw[] = PB_PARTUUID_ROOT_A;
-    const unsigned char root_b_uuid_raw[] = PB_PARTUUID_ROOT_B;
+    char part_uuid[37];
 
     struct pb_component_hdr *dtb = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
@@ -73,14 +71,13 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
         case SYSTEM_A:
         {
             LOG_INFO ("Using root A");
-            uuid_to_string(root_a_uuid_raw, part_uuid);
+            uuid_to_string((const uint8_t *)PB_PARTUUID_ROOT_A, part_uuid);
         }
         break;
         case SYSTEM_B:
         {
             LOG_INFO ("Using root B");
-            uuid_to_string(root_b_uuid_raw, part_uuid);
-            LOG_INFO("uuid_to_string");
+            uuid_to_string((const uint8_t *)PB_PARTUUID_ROOT_B, part_uuid);
         }
         break;
         default:

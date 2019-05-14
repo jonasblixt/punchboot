@@ -72,8 +72,17 @@ uint32_t uuid_gen_uuid3(const char *ns,
     return PB_OK;
 }
 
-uint32_t uuid_to_string(uint8_t *uuid, char *out)
+uint32_t uuid_to_string(const uint8_t *uuid_in, char *out)
 {
+ 
+    uint8_t uuid[16];
+
+    memcpy(uuid,uuid_in,16);
+
+    LOG_INFO("%p", uuid);
+    for (uint32_t n = 0; n < 16; n++)
+        printf ("%02x ", uuid[n]);
+    printf ("\n\r");
     uint32_t *u0 = (uint32_t *) &uuid[0];
     uint16_t *u1 = (uint16_t *) &uuid[4];
     uint16_t *u2 = (uint16_t *) &uuid[6];
@@ -105,7 +114,7 @@ uint32_t uuid_to_string(uint8_t *uuid, char *out)
     return PB_OK;
 }
 
-uint32_t uuid_to_guid(uint8_t *uuid, uint8_t *guid)
+uint32_t uuid_to_guid(const uint8_t *uuid, uint8_t *guid)
 {
     guid[0] = uuid[3];
     guid[1] = uuid[2];
