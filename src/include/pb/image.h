@@ -39,6 +39,7 @@ enum
     PB_IMAGE_COMPTYPE_DT = 3,
     PB_IMAGE_COMPTYPE_RAMDISK = 4,
     PB_IMAGE_COMPTYPE_ATF = 5,
+    PB_IMAGE_COMPTYPE_KERNEL = 6,
 };
 
 /* Component header 128b aligned */

@@ -34,6 +34,7 @@ static const char *comp_type_str[] =
     "DT",
     "RAMDISK",
     "ATF",
+    "KERNEL",
     NULL,
 };
 
