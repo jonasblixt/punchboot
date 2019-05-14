@@ -37,15 +37,15 @@ uint32_t virtio_serial_init(struct virtio_serial_device *d)
     d->config->max_nr_ports = 1;
     d->config->emerg_wr = 1;
     
-    virtio_init_queue(d->_rx_data, 1024, &d->rx);
-    virtio_init_queue(d->_tx_data, 1024, &d->tx);
-    virtio_init_queue(d->_ctrl_rx_data, 1024, &d->ctrl_rx);
-    virtio_init_queue(d->_ctrl_tx_data, 1024, &d->ctrl_tx);
+    virtio_init_queue(d->_rx_data, VIRTIO_SERIAL_QSZ, &d->rx);
+    virtio_init_queue(d->_tx_data, VIRTIO_SERIAL_QSZ, &d->tx);
+    virtio_init_queue(d->_ctrl_rx_data, VIRTIO_SERIAL_QSZ, &d->ctrl_rx);
+    virtio_init_queue(d->_ctrl_tx_data, VIRTIO_SERIAL_QSZ, &d->ctrl_tx);
 
-    virtio_mmio_init_queue(&d->dev, &d->rx, 4, 1024);
-    virtio_mmio_init_queue(&d->dev, &d->tx, 5, 1024);
-    virtio_mmio_init_queue(&d->dev, &d->ctrl_rx, 2, 1024);
-    virtio_mmio_init_queue(&d->dev, &d->ctrl_tx, 3, 1024);
+    virtio_mmio_init_queue(&d->dev, &d->rx, 4, VIRTIO_SERIAL_QSZ);
+    virtio_mmio_init_queue(&d->dev, &d->tx, 5, VIRTIO_SERIAL_QSZ);
+    virtio_mmio_init_queue(&d->dev, &d->ctrl_rx, 2, VIRTIO_SERIAL_QSZ);
+    virtio_mmio_init_queue(&d->dev, &d->ctrl_tx, 3, VIRTIO_SERIAL_QSZ);
 
 
     virtio_mmio_driver_ok(&d->dev);
@@ -67,7 +67,7 @@ uint32_t virtio_serial_init(struct virtio_serial_device *d)
 uint32_t virtio_serial_write(struct virtio_serial_device *d, uint8_t *buf,
                                                         uint32_t len)
 {
-   return virtio_mmio_write_one(&d->dev, &d->tx, buf, len);
+    return virtio_mmio_write_one(&d->dev, &d->tx, buf, len);
 }
 
 uint32_t virtio_serial_read(struct virtio_serial_device *d, uint8_t *buf,

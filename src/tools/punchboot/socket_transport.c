@@ -70,8 +70,6 @@ int pb_write(uint32_t cmd, uint32_t arg0,
 
 	tx_bytes = write(fd, &hdr, sizeof(struct pb_socket_header));
 
-	//printf("hdr: tx_bytes = %li\n",tx_bytes);
-
 	if (tx_bytes != sizeof(struct pb_socket_header))
 		return -1;
 
@@ -129,7 +127,7 @@ int pb_read(uint8_t *bfr, int sz)
         read_count += rx_bytes;
     }
 
-    //printf ("Read %lu bytes (of %i), count = %u\n",read_count,sz,count);
+    printf ("Read %lu bytes (of %i), count = %u\n",read_count,sz,count);
 	if (read_count != sz)
 		return -1;
 

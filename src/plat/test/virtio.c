@@ -111,7 +111,7 @@ uint32_t virtio_mmio_write_one(struct virtio_device *d,
                            uint8_t *buf,
                            uint32_t len)
 {
-    uint16_t idx = q->avail->idx;
+    uint16_t idx = (q->avail->idx % q->num);
     uint32_t bytes_to_transfer = len;
     uint32_t pos = 0;
     uint32_t descriptor_count = 0;
@@ -129,16 +129,18 @@ uint32_t virtio_mmio_write_one(struct virtio_device *d,
         q->desc[idx].addr = (uint32_t) &buf[pos];
         q->desc[idx].len = chunk;
 
+        //idx = ((idx + 1) % (q->num));
+
         if (bytes_to_transfer == 0)
         {
             q->desc[idx].flags = 0;
             q->desc[idx].next = 0;
         } else {
             q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
-            q->desc[idx].next = ((idx + 1) % q->num);
+            q->desc[idx].next = (idx+1) % q->num;
         }
 
-        idx = ((idx + 1) % q->num);
+        idx = ((idx+1)%q->num);
         pos += chunk;
         descriptor_count++;
     }
@@ -146,11 +148,16 @@ uint32_t virtio_mmio_write_one(struct virtio_device *d,
     q->avail->ring[idx] = idx;
     q->avail->idx += descriptor_count;
 
-
+    LOG_DBG("1: %u %u",q->avail->idx,q->used->idx);
     pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
     while ( (q->avail->idx != q->used->idx) )
+    {
         __asm__ volatile ("nop");
+        LOG_DBG("2: %u %u",q->avail->idx,q->used->idx);
+    }
+
+    LOG_DBG("3: %u %u",q->avail->idx,q->used->idx);
     return len;
 }
 
@@ -160,13 +167,13 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
                            uint32_t len)
 {
 
-    uint16_t idx = q->avail->idx;
+    uint16_t idx = (q->avail->idx % q->num);
     uint16_t idx_old = idx;
     uint32_t bytes_to_transfer = len;
     uint32_t pos = 0;
     uint32_t descriptor_count = 0;
     uint32_t chunk;
-
+    
     while (bytes_to_transfer)
     {
         if (bytes_to_transfer > 4096)
@@ -189,12 +196,15 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
         q->avail->ring[idx] = idx;
         q->avail->idx += 1;
 
+        LOG_INFO("%u %u",q->avail->idx,q->used->idx);
         pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
         while ( (q->avail->idx != q->used->idx) )
             __asm__ volatile ("nop");
-    }
 
+        LOG_INFO("%u %u",q->avail->idx,q->used->idx);
+    }
+    
     return (q->used->ring[idx_old].len);
 }
 

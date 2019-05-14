@@ -15,7 +15,7 @@
 #include <plat/test/virtio_queue.h>
 #include <plat/test/virtio.h>
 
-#define VIRTIO_SERIAL_QUEUE_SIZE 1024
+#define VIRTIO_SERIAL_QSZ 1024
 
 #define VIRTIO_CONSOLE_F_SIZE (1 << 0)
 #define VIRTIO_CONSOLE_F_MULTIPORT (1 << 1)
@@ -40,10 +40,10 @@ struct virtio_serial_device {
     struct virtio_device dev;
     struct virtio_serial_config *config;
 
-    __a4k uint8_t _rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(1024)];
-    __a4k uint8_t _tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(1024)];
-    __a4k uint8_t _ctrl_rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(1024)];
-    __a4k uint8_t _ctrl_tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(1024)];
+    __a4k uint8_t _rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
+    __a4k uint8_t _tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
+    __a4k uint8_t _ctrl_rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
+    __a4k uint8_t _ctrl_tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
 
     struct virtq rx;
     struct virtq tx;

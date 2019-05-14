@@ -55,7 +55,7 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 	r.sector_low = lba;
 	r.sector_hi = 0;
 	struct virtq *q = &d->q;
-    uint16_t idx = q->avail->idx;
+    uint16_t idx = (q->avail->idx % q->num);
 
     q->desc[idx].addr = ((uintptr_t) &r);
     q->desc[idx].len = sizeof(struct virtio_blk_req);
@@ -81,9 +81,11 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 	LOG_DBG("Waiting");
 
+    //LOG_DBG("%u %u",q->avail->idx, q->used->idx);
     while( (q->avail->idx) != (q->used->idx) )
 		__asm__ volatile("nop");
 
+    //LOG_DBG("%u %u",q->avail->idx, q->used->idx);
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;
 	
@@ -101,7 +103,7 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
     __a16b struct virtio_blk_req r;
     volatile __a16b uint8_t status = VIRTIO_BLK_S_UNSUPP;
 	struct virtq *q = &d->q;
-    uint16_t idx = q->avail->idx;
+    uint16_t idx = (q->avail->idx % q->num);
 
 	r.type = VIRTIO_BLK_T_IN;
 	r.reserved = 0;
@@ -131,8 +133,11 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 
+    LOG_DBG("%u %u",q->avail->idx, q->used->idx);
 	while( (q->avail->idx) != (q->used->idx) )
 		__asm__ volatile ("nop");	
+
+    LOG_DBG("%u %u",q->avail->idx, q->used->idx);
 
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;
