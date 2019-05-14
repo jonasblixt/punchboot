@@ -148,16 +148,16 @@ uint32_t virtio_mmio_write_one(struct virtio_device *d,
     q->avail->ring[idx] = idx;
     q->avail->idx += descriptor_count;
 
-    LOG_DBG("1: %u %u",q->avail->idx,q->used->idx);
+    //LOG_DBG("1: %u %u",q->avail->idx,q->used->idx);
     pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
     while ( (q->avail->idx != q->used->idx) )
     {
         __asm__ volatile ("nop");
-        LOG_DBG("2: %u %u",q->avail->idx,q->used->idx);
+        //LOG_DBG("2: %u %u",q->avail->idx,q->used->idx);
     }
 
-    LOG_DBG("3: %u %u",q->avail->idx,q->used->idx);
+    //LOG_DBG("3: %u %u",q->avail->idx,q->used->idx);
     return len;
 }
 
@@ -196,13 +196,13 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
         q->avail->ring[idx] = idx;
         q->avail->idx += 1;
 
-        LOG_INFO("%u %u",q->avail->idx,q->used->idx);
+        //LOG_INFO("%u %u",q->avail->idx,q->used->idx);
         pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
         while ( (q->avail->idx != q->used->idx) )
             __asm__ volatile ("nop");
 
-        LOG_INFO("%u %u",q->avail->idx,q->used->idx);
+        //LOG_INFO("%u %u",q->avail->idx,q->used->idx);
     }
     
     return (q->used->ring[idx_old].len);
