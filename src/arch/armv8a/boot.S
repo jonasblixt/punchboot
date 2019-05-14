@@ -35,3 +35,23 @@ arch_jump_atf:
 
     br x4
     b .
+
+
+.global arch_jump
+arch_jump:
+    mov x4, x0 /* Jump address */
+    mov x5, x1 /* Arg1 */
+    mov x6, x2 /* Arg2 */
+    mov x7, x3 /* Arg3 */
+
+    mov x0, x5
+    mov x1, x6
+    mov x2, x7
+    ldr x3, =0
+
+    ic ivau, x4
+    isb sy
+    dsb sy
+
+    br x4
+    b .
