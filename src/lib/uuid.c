@@ -79,10 +79,6 @@ uint32_t uuid_to_string(const uint8_t *uuid_in, char *out)
 
     memcpy(uuid,uuid_in,16);
 
-    LOG_INFO("%p", uuid);
-    for (uint32_t n = 0; n < 16; n++)
-        printf ("%02x ", uuid[n]);
-    printf ("\n\r");
     uint32_t *u0 = (uint32_t *) &uuid[0];
     uint16_t *u1 = (uint16_t *) &uuid[4];
     uint16_t *u2 = (uint16_t *) &uuid[6];
