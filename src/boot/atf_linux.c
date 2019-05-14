@@ -29,7 +29,8 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 {
 
     __a16b char part_uuid[37];
-    char *part_uuid_raw = NULL;
+    const unsigned char root_a_uuid_raw[] = PB_PARTUUID_ROOT_A;
+    const unsigned char root_b_uuid_raw[] = PB_PARTUUID_ROOT_B;
 
     struct pb_component_hdr *dtb = 
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
@@ -72,13 +73,14 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
         case SYSTEM_A:
         {
             LOG_INFO ("Using root A");
-            part_uuid_raw = (char *) PB_PARTUUID_ROOT_A;
+            uuid_to_string(root_a_uuid_raw, part_uuid);
         }
         break;
         case SYSTEM_B:
         {
             LOG_INFO ("Using root B");
-            part_uuid_raw = (char *) PB_PARTUUID_ROOT_B;
+            uuid_to_string(root_b_uuid_raw, part_uuid);
+            LOG_INFO("uuid_to_string");
         }
         break;
         default:
@@ -88,7 +90,6 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
         }
     }
 
-    uuid_to_string((unsigned char *) part_uuid_raw, part_uuid);
     LOG_INFO("UUID = %s", part_uuid);
     LOG_DBG("Patching DT");
     void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
