@@ -5,6 +5,7 @@
 #include <pb/image.h>
 #include <uuid.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -316,7 +317,7 @@ uint32_t pb_get_gpt_table(struct gpt_primary_tbl *tbl)
     return pb_read_result_code();
 }
 
-uint32_t pb_flash_part (uint8_t part_no, const char *f_name) 
+uint32_t pb_flash_part (uint8_t part_no, int64_t offset,  const char *f_name) 
 {
     int read_sz = 0;
     int sent_sz = 0;
@@ -344,7 +345,7 @@ uint32_t pb_flash_part (uint8_t part_no, const char *f_name)
         return PB_ERR;
     }
 
-    wr_cmd.lba_offset = 0;
+    wr_cmd.lba_offset = offset;
     wr_cmd.part_no = part_no;
 
     while ((read_sz = fread(bfr, 1, 1024*1024*4, fp)) >0) {

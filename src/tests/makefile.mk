@@ -30,6 +30,7 @@ INTEGRATION_TESTS += test_gpt_boot_activate_step4
 INTEGRATION_TESTS += test_gpt_boot_activate_step5
 INTEGRATION_TESTS += test_rollback
 INTEGRATION_TESTS += test_cli
+INTEGRATION_TESTS += test_part_offset_write
 
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"

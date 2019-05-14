@@ -9,14 +9,15 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdbool.h>
-#include <string.h>
 #include <pb/pb.h>
 #include <pb/params.h>
 #include <pb/crypto.h>
@@ -329,7 +330,7 @@ static void print_part_help(void)
 
     printf (" Partition Management:\n");
     printf ("  punchboot part -l                           - List partitions\n");
-    printf ("  punchboot part -w -n <n> -f <fn>            - Write 'fn' to partition 'n'\n");
+    printf ("  punchboot part -w -n <n> [-o <blk>] -f <fn> - Write 'fn' to partition 'n' with offset 'o'\n");
     printf ("  punchboot part -i                           - Install default GPT table\n");
     printf ("\n");
 }
@@ -344,8 +345,8 @@ static void print_help(void) {
 int main(int argc, char **argv) 
 {
     extern char *optarg;
-    extern int optind, opterr, optopt;
     uint32_t active_system = SYSTEM_A;
+    int64_t offset = 0;
     uint8_t usb_path[16];
     uint8_t usb_path_count = 0;
     char c;
@@ -370,14 +371,13 @@ int main(int argc, char **argv)
     bool flag_b = false;
     bool flag_v = false;
     bool flag_y = false;
-    bool flag_u = false;
 
     char *fn = NULL;
     char *cmd = argv[1];
     char *s_arg = NULL;
 
 
-    while ((c = getopt (argc-1, &argv[1], "hiwraybu:xs:ln:f:v")) != -1) 
+    while ((c = getopt (argc-1, &argv[1], "hiwraybu:xs:ln:f:vo:")) != -1) 
     {
         switch (c) 
         {
@@ -415,9 +415,11 @@ int main(int argc, char **argv)
                 flag_index = true;
                 cmd_index = atoi(optarg);
             break;
+            case 'o':
+                offset = atoi(optarg);
+            break;
             case 'u':
             {
-                flag_u = true;
                 usb_path_count = 0;
                 char *usb_path_str = NULL;
                 usb_path_str = malloc(strlen(optarg)+1);
@@ -683,8 +685,10 @@ int main(int argc, char **argv)
                 goto pb_done;
 
         } else if (flag_write && flag_index && fn) {
-            printf ("Writing %s to part %i\n",fn, cmd_index);
-            err = pb_flash_part(cmd_index, fn);
+
+            printf ("Writing %s to part %i with offset %li\n",
+                                fn, cmd_index,offset);
+            err = pb_flash_part(cmd_index, offset, fn);
 
             if (err != PB_OK)
                 goto pb_done;
