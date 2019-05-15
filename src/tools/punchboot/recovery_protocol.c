@@ -19,114 +19,7 @@
 #include "transport.h"
 #include "utils.h"
 
-/* br_ecdsa_asn1_to_raw copied from BearSSL library */
-/* see bearssl_ec.h */
-size_t br_ecdsa_asn1_to_raw(void *sig, size_t sig_len)
-{
-	/*
-	 * Note: this code is a bit lenient in that it accepts a few
-	 * deviations to DER with regards to minimality of encoding of
-	 * lengths and integer values. These deviations are still
-	 * unambiguous.
-	 *
-	 * Signature format is a SEQUENCE of two INTEGER values. We
-	 * support only integers of less than 127 bytes each (signed
-	 * encoding) so the resulting raw signature will have length
-	 * at most 254 bytes.
-	 */
-
-	unsigned char *buf, *r, *s;
-	size_t zlen, rlen, slen, off;
-	unsigned char tmp[254];
-
-	buf = sig;
-	if (sig_len < 8) {
-		return 0;
-	}
-
-	/*
-	 * First byte is SEQUENCE tag.
-	 */
-	if (buf[0] != 0x30) {
-		return 0;
-	}
-
-	/*
-	 * The SEQUENCE length will be encoded over one or two bytes. We
-	 * limit the total SEQUENCE contents to 255 bytes, because it
-	 * makes things simpler; this is enough for subgroup orders up
-	 * to 999 bits.
-	 */
-	zlen = buf[1];
-	if (zlen > 0x80) {
-		if (zlen != 0x81) {
-			return 0;
-		}
-		zlen = buf[2];
-		if (zlen != sig_len - 3) {
-			return 0;
-		}
-		off = 3;
-	} else {
-		if (zlen != sig_len - 2) {
-			return 0;
-		}
-		off = 2;
-	}
-
-	/*
-	 * First INTEGER (r).
-	 */
-	if (buf[off ++] != 0x02) {
-		return 0;
-	}
-	rlen = buf[off ++];
-	if (rlen >= 0x80) {
-		return 0;
-	}
-	r = buf + off;
-	off += rlen;
-
-	/*
-	 * Second INTEGER (s).
-	 */
-	if (off + 2 > sig_len) {
-		return 0;
-	}
-	if (buf[off ++] != 0x02) {
-		return 0;
-	}
-	slen = buf[off ++];
-	if (slen >= 0x80 || slen != sig_len - off) {
-		return 0;
-	}
-	s = buf + off;
-
-	/*
-	 * Removing leading zeros from r and s.
-	 */
-	while (rlen > 0 && *r == 0) {
-		rlen --;
-		r ++;
-	}
-	while (slen > 0 && *s == 0) {
-		slen --;
-		s ++;
-	}
-
-	/*
-	 * Compute common length for the two integers, then copy integers
-	 * into the temporary buffer, and finally copy it back over the
-	 * signature buffer.
-	 */
-	zlen = rlen > slen ? rlen : slen;
-	sig_len = zlen << 1;
-	memset(tmp, 0, sig_len);
-	memcpy(tmp + zlen - rlen, r, rlen);
-	memcpy(tmp + sig_len - slen, s, slen);
-	memcpy(sig, tmp, sig_len);
-	return sig_len;
-}
+static unsigned char signature[PB_IMAGE_SIGN_MAX_SIZE];
 
 uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
                                   uint32_t signature_kind, uint32_t hash_kind)
@@ -139,18 +32,50 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
     FILE *fp = fopen(fn,"rb");
     int read_sz = fread (cookie_buffer,1,PB_RECOVERY_AUTH_COOKIE_SZ,fp);
 
+    /* Signature output from openssl is ASN.1 encoded
+     * punchboot requires raw ECDSA signatures
+     * RSA signatures should retain the ASN.1 structure
+     * */
+    uint8_t r_sz = 0;
+    uint8_t s_sz = 0;
+    uint8_t r_off = 0;
+    uint8_t s_off = 0;
+
     switch (signature_kind)
     {
         case PB_SIGN_NIST256p:
+            r_sz = cookie_buffer[3];
+            r_off = r_sz-32;
+            s_sz = cookie_buffer[3+r_sz+2];
+            s_off = s_sz-32;
+            memcpy(&signature[0], &cookie_buffer[3+1+r_off], r_sz);
+            memcpy(&signature[32], &cookie_buffer[3+r_sz+2+1+s_off], s_sz);
+            read_sz = r_sz+r_off+s_sz+s_off;
+        break;
         case PB_SIGN_NIST384p:
+            r_sz = cookie_buffer[3];
+            r_off = r_sz-48;
+            s_sz = cookie_buffer[3+r_sz+2];
+            s_off = s_sz-48;
+            memcpy(&signature[0], &cookie_buffer[4+r_off], r_sz);
+            memcpy(&signature[48], &cookie_buffer[3+r_sz+2+1+s_off], s_sz);
+            read_sz = r_sz+r_off+s_sz+s_off;
+        break;
         case PB_SIGN_NIST521p:
-            read_sz = br_ecdsa_asn1_to_raw(cookie_buffer, read_sz);
+            r_sz = cookie_buffer[4];
+            r_off = 66-r_sz;
+            s_sz = cookie_buffer[4+r_sz+2];
+            s_off = 66-s_sz;
+            memcpy(&signature[r_off], &cookie_buffer[5], r_sz);
+            memcpy(&signature[66+s_off], &cookie_buffer[4+r_sz+2+1], s_sz);
+            read_sz = r_sz+r_off+s_sz+s_off;
         break;
         case PB_SIGN_RSA4096:
+            memcpy(signature, cookie_buffer, read_sz);
         break;
         default:
+            printf ("Unknown signature format\n");
             return PB_ERR;
-        break;
     }
 
     err = pb_write(PB_CMD_AUTHENTICATE,key_index,signature_kind,hash_kind,

@@ -11,7 +11,7 @@
 #ifndef __GPT_H__
 #define __GPT_H__
 
-#include <pb.h>
+#include <pb/pb.h>
 #include <stdint.h>
 #include <stdbool.h>
 
