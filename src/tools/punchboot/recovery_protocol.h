@@ -23,4 +23,6 @@ uint32_t pb_recovery_setup_lock(void);
 uint32_t pb_read_params(struct param **params);
 uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
                                   uint32_t signature_kind, uint32_t hash_kind);
+
+uint32_t pb_is_auhenticated(bool *result);
 #endif

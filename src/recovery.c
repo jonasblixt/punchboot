@@ -54,6 +54,7 @@ const char *recovery_cmd_name[] =
     "PB_CMD_SETUP_LOCK",
     "PB_CMD_GET_PARAMS",
     "PB_CMD_AUTHENTICATE",
+    "PB_CMD_IS_AUTHENTICATED",
 };
 
 
@@ -236,6 +237,7 @@ static void recovery_parse_command(struct usb_device *dev,
     {
         if (!((cmd->cmd == PB_CMD_AUTHENTICATE) ||
              (cmd->cmd == PB_CMD_GET_VERSION) ||
+             (cmd->cmd == PB_CMD_IS_AUTHENTICATED) ||
              (cmd->cmd == PB_CMD_GET_PARAMS)) )
         {
             LOG_ERR("Not authenticated");
@@ -243,13 +245,19 @@ static void recovery_parse_command(struct usb_device *dev,
             goto recovery_error_out;
         }
     }
-    else
-    {
-        recovery_send_result_code(dev, PB_OK);
-    }
-
+    
     switch (cmd->cmd)
     {
+        case PB_CMD_IS_AUTHENTICATED:
+        {
+            uint8_t tmp = 0;
+            
+            if (recovery_authenticated)
+                tmp = 1;
+
+            err = recovery_send_response(dev, &tmp, 1);
+        }
+        break;
         case PB_CMD_PREP_BULK_BUFFER:
         {
             struct pb_cmd_prep_buffer cmd_prep;

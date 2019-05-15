@@ -34,6 +34,25 @@
 
 static struct param params[PB_MAX_PARAMS];
 
+static uint32_t check_auth(void)
+{
+    uint32_t err;
+    bool auth;
+
+    err = pb_is_auhenticated(&auth);
+
+    if (err != PB_OK)
+        return err;
+
+    if (!auth)
+    {
+        printf ("Not authenticated\n");
+        return PB_ERR;
+    }
+
+    return PB_OK;
+}
+
 static int load_params(const char *fn)
 {
     FILE* fp = fopen(fn, "r" );
@@ -188,6 +207,11 @@ static int print_gpt_table(void)
     char str_type_uuid[37];
     uint8_t tmp_string[64];
     struct gpt_part_hdr *part;
+
+    err = check_auth();
+
+    if (err != PB_OK)
+        return err;
 
     err = pb_get_gpt_table(&gpt);
 
@@ -471,6 +495,11 @@ int main(int argc, char **argv)
         else if (flag_install) 
         {
 
+            err = check_auth();
+
+            if (err != PB_OK)
+                goto pb_done;
+
             printf ("Performing device setup\n");
 
             char confirm_input[5];
@@ -508,6 +537,11 @@ int main(int argc, char **argv)
             printf ("Success\n");
 
         } else if (flag_write) {
+
+            err = check_auth();
+
+            if (err != PB_OK)
+                goto pb_done;
 
             char confirm_input[5];
             
@@ -617,6 +651,11 @@ int main(int argc, char **argv)
     }
     else if (strcmp(cmd, "boot") == 0) 
     {
+        err = check_auth();
+
+        if (err != PB_OK)
+            goto pb_done;
+
         if ( !(flag_s | flag_a | flag_write | flag_execute | flag_reset ))
         {
             print_help_header();
@@ -676,6 +715,12 @@ int main(int argc, char **argv)
     }
     else if (strcmp(cmd, "part") == 0) 
     {
+
+        err = check_auth();
+
+        if (err != PB_OK)
+            goto pb_done;
+
         if (flag_list) 
         {
             printf("Listing partitions:\n");

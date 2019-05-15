@@ -21,9 +21,12 @@ then
 fi
 
 echo "Trying to lock setup again..."
-
+sync
+sleep 0.1
 $PB dev -w -y
 result_code=$?
+
+echo $result_code
 
 if [ $result_code -ne 255 ];
 then
