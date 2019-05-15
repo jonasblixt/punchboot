@@ -127,7 +127,7 @@ all: key_data plat_early $(TARGET).bin board_final plat_final
 	$(info LOGLEVEL:  [${LOGLEVEL}])
 	@echo "VERSION = $(GIT_VERSION)"
 	$(info )
-	@$(SIZE) -x -B $(TARGET)
+	@$(SIZE) -x -t -A $(TARGET)
 
 $(TARGET).bin: $(TARGET)
 	@echo OBJCOPY $< $@
