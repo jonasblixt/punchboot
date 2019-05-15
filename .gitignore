@@ -8,7 +8,6 @@
 *.gcno
 *.gcov
 *.pbi
-*.pbc
 *.gz
 cov-int
 blobs
