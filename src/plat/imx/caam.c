@@ -52,15 +52,28 @@ static volatile __a4k __no_bss uint8_t hash_ctx[128];
 static __no_bss __a16b uint8_t caam_tmp_buf[256];
 static __no_bss __a16b uint8_t caam_ecdsa_key[256];
 
-static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
+
+static uint32_t caam_shedule_job_async(struct fsl_caam_jr *d, uint32_t *job)
 {
-
-    d->input_ring[0] = (uint32_t)(uintptr_t) job;
-
     if (d == NULL)
         return PB_ERR;
 
+    d->input_ring[0] = (uint32_t)(uintptr_t) job;
+
+
     pb_write32(1, d->base + CAAM_IRJAR);
+
+    return PB_OK;
+}
+
+static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
+{
+    uint32_t err;
+
+    err = caam_shedule_job_async(d, job);
+
+    if (err != PB_OK)
+        return err;
 
     while ((pb_read32(d->base + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
@@ -83,18 +96,6 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
 }
 
 
-static uint32_t caam_shedule_job_async(struct fsl_caam_jr *d, uint32_t *job)
-{
-
-    d->input_ring[0] = (uint32_t)(uintptr_t) job;
-
-    if (d == NULL)
-        return PB_ERR;
-
-    pb_write32(1, d->base + CAAM_IRJAR);
-
-    return PB_OK;
-}
 
 static uint32_t caam_wait_for_job(struct fsl_caam_jr *d, uint32_t *job)
 {
@@ -132,11 +133,15 @@ static uint32_t caam_hash_update(uint32_t alg, uint32_t ctx_sz,
                                 uint8_t *data, uint32_t sz)
 {
     uint8_t dc = 0;
-
+    uint32_t err;
 
     if (ctx.sg_count)
-        caam_wait_for_job(d, desc);
+    {
+        err = caam_wait_for_job(d, desc);
 
+        if (err != PB_OK)
+            return err;
+    }
     desc[dc++] = CAAM_CMD_HEADER;
     desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | alg |
         CAAM_ALG_AAI(0);
@@ -171,8 +176,12 @@ static uint32_t caam_hash_update(uint32_t alg, uint32_t ctx_sz,
 static uint32_t caam_hash_finalize(uint32_t alg, uint32_t ctx_sz, uint8_t *out)
 {
     uint8_t dc = 0;
+    uint32_t err;
 
-    caam_wait_for_job(d, desc);
+    err = caam_wait_for_job(d, desc);
+
+    if (err != PB_OK)
+        return err;
 
     desc[dc++] = CAAM_CMD_HEADER;
     desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | alg |
@@ -213,7 +222,6 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
                                   uint8_t *sig,uint32_t sig_kind,
                                   struct pb_key *k)
 {
-    uint32_t err;
     uint8_t dc = 0;
     uint32_t sig_len = 0;
     uint32_t hash_len = 0;
@@ -273,12 +281,7 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
 
     desc[0] |= ((dc-1) << 16) | dc;
 
-    err = caam_shedule_job_sync(d, desc);
-
-    if (err != PB_OK)
-        return err;
-
-    return err;
+    return caam_shedule_job_sync(d, desc);
 }
 
 uint32_t caam_init(struct fsl_caam_jr *caam_dev)
@@ -402,7 +405,6 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
 {
     uint32_t err = PB_ERR;
     uint8_t hash_length;
-    bool signature_verified = false;
 
     switch(hash_kind)
     {
@@ -432,48 +434,30 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
             if (err != PB_OK)
                 break;
 
-            uint32_t n = 0;
-            uint32_t y = 0;
-            for (uint32_t i = (512-hash_length); i < 512; i++)
-            {
-                if (output_data[i] != hash[n])
-                    y++;
-                n++;
-            }
-
-            if (y == 0)
-                signature_verified = true;
+            if (memcmp(&output_data[512-hash_length], hash, hash_length) == 0)
+                err = PB_OK;
             else
-                return PB_ERR;
+                err = PB_ERR;
 
-            LOG_DBG("Signature %s",signature_verified?"OK":"Fail");
+            LOG_DBG("Signature %s",(err == PB_OK)?"OK":"Fail");
         }
         break;
         case PB_SIGN_NIST521p:
         {
             LOG_DBG("Checking EC521 signature...");
             err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST521p,k);
-
-            if (err == PB_OK)
-                signature_verified = true;
         }
         break;
         case PB_SIGN_NIST384p:
         {
             LOG_DBG("Checking EC384 signature...");
             err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST384p,k);
-
-            if (err == PB_OK)
-                signature_verified = true;
         }
         break;
         case PB_SIGN_NIST256p:
         {
             LOG_DBG("Checking EC256 signature...");
             err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST256p,k);
-
-            if (err == PB_OK)
-                signature_verified = true;
         }
         break;
         default:
@@ -482,8 +466,5 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
         break;
     }
 
-    if ( (signature_verified) && (err == PB_OK) )
-        return PB_OK;
-
-    return PB_ERR;
+    return err;
 }

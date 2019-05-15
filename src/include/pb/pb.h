@@ -32,6 +32,7 @@ enum
     PB_SECURITY_STATE_SECURE,
 };
 
+
 #define GPT_PART_NAME_MAX_SIZE 36
 
 struct partition_table
@@ -97,6 +98,8 @@ struct partition_table
 #define __no_bss __attribute__((section (".bigbuffer")))
 #define __a4k  __attribute__ ((aligned(4096)))
 #define __a16b  __attribute__ ((aligned(16)))
+
+#define membersof(array) (sizeof(array) / sizeof((array)[0]))
 
 /*
     System A: 2af755d8-8de5-45d5-a862-014cfa735ce0

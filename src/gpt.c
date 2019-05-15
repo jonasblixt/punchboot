@@ -21,11 +21,11 @@ static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 	return (crc32(~0L, buf, sz) ^ ~0L);
 }
 
-static void gpt_part_name(struct gpt_part_hdr *part, uint8_t *out, uint8_t len)
+static void gpt_part_name(struct gpt_part_hdr *part, uint8_t *out)
 {
     uint8_t null_count = 0;
 
-    for (int i = 0; i < len*2; i++)
+    for (int i = 0; i < GPT_PART_NAME_MAX_SIZE*2; i++)
     {
         if (part->name[i])
         {
@@ -95,8 +95,8 @@ uint32_t gpt_init_tbl(struct gpt *gpt, uint64_t first_lba, uint64_t last_lba)
 
     prng_state = plat_get_us_tick();
 
-    memset((uint8_t *) &gpt->primary, 0, sizeof(struct gpt_primary_tbl));
-    memset((uint8_t *) &gpt->backup, 0, sizeof(struct gpt_primary_tbl));
+    memset((uint8_t *) &gpt->primary, 0, sizeof(gpt->primary));
+    memset((uint8_t *) &gpt->backup, 0, sizeof(gpt->backup));
 
     hdr->signature = __gpt_header_signature;
     hdr->rev = 0x00010000;
@@ -112,7 +112,7 @@ uint32_t gpt_init_tbl(struct gpt *gpt, uint64_t first_lba, uint64_t last_lba)
     hdr->entries_start_lba = (gpt->primary.hdr.current_lba + 1);
     hdr->part_entry_sz = sizeof(struct gpt_part_hdr);
 
-    for (int i = 0; i < 16; i++)
+    for (uint32_t i = 0; i < membersof(hdr->disk_uuid); i++)
         hdr->disk_uuid[i] = gpt_prng();
 
 
@@ -183,7 +183,7 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
                                     struct gpt_part_hdr *part)
 {
     uint32_t crc_tmp = 0;
-    uint8_t tmp_string[64];
+    uint8_t tmp_string[GPT_PART_NAME_MAX_SIZE+1];
 
     for (uint32_t i = 0; i < hdr->no_of_parts; i++)
     {
@@ -191,7 +191,7 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
         if (part[i].first_lba == 0)
             break;
 
-        gpt_part_name(&part[i], tmp_string, sizeof(tmp_string));
+        gpt_part_name(&part[i], tmp_string);
 
         LOG_INFO2 (" %u - [%s] lba 0x%016llx" \
                     " - 0x%016llx\n\r",
@@ -281,7 +281,7 @@ uint32_t gpt_write_tbl(struct gpt *gpt)
                             gpt->primary.hdr.current_lba);
     err = plat_write_block(gpt->primary.hdr.current_lba,
                            (uintptr_t) &gpt->primary,
-                           (sizeof(struct gpt_primary_tbl) / 512));
+                           (sizeof(gpt->primary) / 512));
 
     if (err != PB_OK)
     {
@@ -337,7 +337,7 @@ uint32_t gpt_init(struct gpt *gpt)
 
     LOG_DBG("GPT ptr %p", gpt);
     plat_read_block(1,(uintptr_t) &gpt->primary,
-                    sizeof(struct gpt_primary_tbl) / 512);
+                    sizeof(gpt->primary) / 512);
 
     if (gpt_is_valid(&gpt->primary.hdr, gpt->primary.part) != PB_OK)
     {

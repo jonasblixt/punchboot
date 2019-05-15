@@ -11,10 +11,12 @@
 #ifndef __GPT_H__
 #define __GPT_H__
 
+#include <pb.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 #define GPT_HEADER_RSZ 420
+
 
 struct gpt_header 
 {
@@ -52,7 +54,7 @@ struct gpt_part_hdr
     uint64_t first_lba;
     uint64_t last_lba;
     uint8_t attr[8];
-    uint8_t name[72];
+    uint8_t name[GPT_PART_NAME_MAX_SIZE*2];
 } __attribute__ ((packed));
 
 

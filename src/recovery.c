@@ -31,6 +31,7 @@ static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
 static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
 static __no_bss __a4k struct pb_pbi pbi;
 static __no_bss __a4k struct param params[RECOVERY_MAX_PARAMS];
+static __no_bss __a4k uint8_t authentication_cookie[PB_RECOVERY_AUTH_COOKIE_SZ];
 static struct gpt *gpt;
 extern const struct partition_table pb_partition_table[];
 static unsigned char hash_buffer[PB_HASH_BUF_SZ];
@@ -220,6 +221,14 @@ static void recovery_parse_command(struct usb_device *dev,
 {
     uint32_t err = PB_OK;
     uint32_t security_state = -1;
+
+    if (cmd->cmd > sizeof(recovery_cmd_name))
+    {
+        LOG_ERR("Unknown command");
+        err = PB_ERR;
+        goto recovery_error_out;
+    }
+
     LOG_INFO ("0x%x %s, sz=%ub", cmd->cmd, 
                                       recovery_cmd_name[cmd->cmd],
                                       cmd->size);
@@ -298,7 +307,7 @@ static void recovery_parse_command(struct usb_device *dev,
             char version_string[30];
 
             LOG_INFO ("Get version");
-            snprintf(version_string, 29, "PB %s",VERSION);
+            snprintf(version_string, sizeof(version_string), "PB %s",VERSION);
 
             err = recovery_send_response( dev, 
                                           (uint8_t *) version_string,
@@ -516,6 +525,12 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (cmd->arg0 > 0)
             {
+                if (cmd->arg0 > RECOVERY_MAX_PARAMS)
+                {
+                    LOG_ERR("Too many parameters");
+                    err = PB_ERR;
+                    break;
+                }
                 recovery_read_data(dev, (uint8_t *) params,
                         sizeof(struct param) * cmd->arg0);
             }
@@ -559,12 +574,20 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_AUTHENTICATE:
         {
-            recovery_read_data(dev, recovery_cmd_buffer, cmd->size);
+
+            if (cmd->size > PB_RECOVERY_AUTH_COOKIE_SZ)
+            {
+                LOG_ERR("Authentication cookie is to large");
+                err = PB_ERR;
+                break;
+            }
+            
+            recovery_read_data(dev, authentication_cookie, cmd->size);
 
             LOG_DBG("Got auth cmd, key_id = %u", cmd->arg0);
 
             err = recovery_authenticate(cmd->arg0,
-                                        recovery_cmd_buffer,
+                                        authentication_cookie,
                                         cmd->arg2,
                                         cmd->arg1);
 

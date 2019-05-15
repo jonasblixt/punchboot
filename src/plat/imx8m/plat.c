@@ -40,17 +40,18 @@ uint32_t plat_get_security_state(uint32_t *state)
     {
         err = plat_fuse_read(f);
  
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'",f->description);
+            return err;
+        }  
+
         if (f->value)
         {
             (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
             break;
         }
 
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'",f->description);
-            return err;
-        }  
     }
 
 
