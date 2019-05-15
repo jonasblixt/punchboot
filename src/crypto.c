@@ -6,7 +6,7 @@ extern const struct pb_key keys[];
 
 uint32_t pb_crypto_get_key(uint32_t key_index, struct pb_key **key)
 {
-    if (key_index > no_of_keys)
+    if (key_index >= no_of_keys)
         return PB_ERR;
 
     (*key) = (struct pb_key *) &keys[key_index];
