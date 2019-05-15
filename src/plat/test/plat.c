@@ -28,6 +28,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t active_system, bool verbose)
 {
     UNUSED(pbi);
     UNUSED(active_system);
+    UNUSED(verbose);
 
     long fd = semihosting_file_open("/tmp/pb_boot_status", 6);
 

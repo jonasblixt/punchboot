@@ -98,7 +98,7 @@ static uint32_t recovery_authenticate(uint32_t key_index,
         return err;
     }
 
-    LOG_INFO("Authentication successfull");
+    LOG_INFO("Authentication successful");
 
     return PB_OK;
 }
@@ -132,7 +132,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
 
     part_lba_offset = gpt_get_part_first_lba(gpt, part_no);
 
-    if (!part_lba_offset) 
+    if (!part_lba_offset)
     {
         LOG_ERR ("Unknown partition");
         return PB_ERR;
@@ -143,16 +143,16 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         LOG_ERR ("Trying to write outside of partition");
         return PB_ERR;
     }
-    
+
     return plat_write_block(part_lba_offset + lba_offset, 
                                 (uintptr_t) bfr, no_of_blocks);
 }
 
-static uint32_t recovery_send_response(struct usb_device *dev, 
+static uint32_t recovery_send_response(struct usb_device *dev,
                                        uint8_t *bfr, uint32_t sz)
 {
     uint32_t err = PB_OK;
-    
+
     memcpy(recovery_cmd_buffer, (uint8_t *) &sz, 4);
 
     if (sz >= RECOVERY_CMD_BUFFER_SZ)
@@ -166,7 +166,7 @@ static uint32_t recovery_send_response(struct usb_device *dev,
     plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
 
     memcpy(recovery_cmd_buffer, bfr, sz);
- 
+
     err = plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sz);
 
     if (err != PB_OK)
@@ -230,7 +230,7 @@ static void recovery_parse_command(struct usb_device *dev,
         }
     }
 
-    switch (cmd->cmd) 
+    switch (cmd->cmd)
     {
         case PB_CMD_PREP_BULK_BUFFER:
         {
@@ -238,11 +238,11 @@ static void recovery_parse_command(struct usb_device *dev,
 
             recovery_read_data(dev, (uint8_t *) &cmd_prep,
                                 sizeof(struct pb_cmd_prep_buffer));
- 
+
             LOG_INFO("Preparing buffer %u [%u]",
                             cmd_prep.buffer_id, cmd_prep.no_of_blocks);
-            
-            if ( (cmd_prep.no_of_blocks*512) >= RECOVERY_BULK_BUFFER_SZ)
+
+            if ( (cmd_prep.no_of_blocks*512) > RECOVERY_BULK_BUFFER_SZ)
             {
                 err = PB_ERR;
                 break;
@@ -328,18 +328,18 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_WRITE_PART:
         {
             struct pb_cmd_write_part wr_part;
-        
+
             recovery_read_data(dev, (uint8_t *) &wr_part,
                                     sizeof(struct pb_cmd_write_part));
-            
+
             LOG_INFO ("Writing %u blks to part %u" \
                         " with offset %x using bfr %u",
                         wr_part.no_of_blocks, wr_part.part_no,
                         wr_part.lba_offset, wr_part.buffer_id);
 
-            err = recovery_flash_part(wr_part.part_no, 
-                                wr_part.lba_offset, 
-                                wr_part.no_of_blocks, 
+            err = recovery_flash_part(wr_part.part_no,
+                                wr_part.lba_offset,
+                                wr_part.no_of_blocks,
                                 recovery_bulk_buffer[wr_part.buffer_id]);
         }
         break;
