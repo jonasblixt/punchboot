@@ -1,0 +1,4 @@
+# Sign with PKCS11 / Yubikey
+openssl dgst -engine pkcs11 -keyform engine -sign "pkcs11:id=%02;type=private" -sha384 -out uuid.txt.sig uuid.txt
+# Sign with private key on disk
+openssl dgst -sign ../pki/dev_rsa_private.pem -sha384 -out uuid.txt.sig uuid.txt

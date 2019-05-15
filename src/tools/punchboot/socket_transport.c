@@ -127,7 +127,7 @@ int pb_read(uint8_t *bfr, int sz)
         read_count += rx_bytes;
     }
 
-    printf ("Read %u bytes (of %i), count = %u\n",read_count,sz,count);
+    //printf ("Read %u bytes (of %i), count = %u\n",read_count,sz,count);
 	if (read_count != sz)
 		return -1;
 

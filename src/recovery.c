@@ -75,9 +75,21 @@ static uint32_t recovery_authenticate(uint32_t key_index,
 
     uuid_to_string((uint8_t *) device_uuid_raw, device_uuid);
     device_uuid[36] = ' ';
-    plat_hash_init(hash_kind);
-    plat_hash_update((uintptr_t) device_uuid, 128);
-    plat_hash_finalize((uintptr_t) auth_hash);
+
+    err = plat_hash_init(hash_kind);
+    
+    if (err != PB_OK)
+        return PB_ERR;
+
+    err = plat_hash_update((uintptr_t) device_uuid, 128);
+
+    if (err != PB_OK)
+        return PB_ERR;
+
+    err = plat_hash_finalize((uintptr_t) auth_hash);
+
+    if (err != PB_OK)
+        return PB_ERR;
 
     LOG_DBG("Loading key %u", key_index);
     err = pb_crypto_get_key(key_index, &k);
@@ -216,6 +228,7 @@ static void recovery_parse_command(struct usb_device *dev,
     if (err != PB_OK)
         goto recovery_error_out;
 
+    LOG_DBG ("Security state: %u", security_state);
     if (security_state < 3)
         recovery_authenticated = true;
 
@@ -226,8 +239,13 @@ static void recovery_parse_command(struct usb_device *dev,
              (cmd->cmd == PB_CMD_GET_PARAMS)) )
         {
             LOG_ERR("Not authenticated");
+            err = PB_ERR;
             goto recovery_error_out;
         }
+    }
+    else
+    {
+        recovery_send_result_code(dev, PB_OK);
     }
 
     switch (cmd->cmd)
@@ -501,18 +519,15 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             LOG_INFO ("Locking device setup");
             err = plat_setup_lock();
+
+            if (err == PB_OK)
+                recovery_authenticated = false;
         }
         break;
         case PB_CMD_GET_PARAMS:
         {
             uint32_t param_count = 0;
-            uint32_t security_state;
             struct param *p = params;
-
-            err = plat_get_security_state(&security_state);
-
-            if (err != PB_OK)
-                break;
             
             param_add_u32(p++, "Security State", security_state);
             plat_get_params(&p);

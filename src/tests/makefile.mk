@@ -32,6 +32,7 @@ INTEGRATION_TESTS += test_rollback
 INTEGRATION_TESTS += test_cli
 INTEGRATION_TESTS += test_part_offset_write
 INTEGRATION_TESTS += test_overlapping_region
+INTEGRATION_TESTS += test_authentication
 
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"

@@ -605,7 +605,7 @@ int main(int argc, char **argv)
             if (err != PB_OK)
                 printf ("Authentication failed\n");
             else
-                printf ("Authentication successfull\n");
+                printf ("Authentication successful\n");
         }
         else 
         {

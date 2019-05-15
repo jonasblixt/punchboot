@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
+
+
+#include <pb/crypto.h>
 #include "recovery_protocol.h"
 #include "transport.h"
 #include "utils.h"
@@ -135,7 +138,20 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
 
     FILE *fp = fopen(fn,"rb");
     int read_sz = fread (cookie_buffer,1,PB_RECOVERY_AUTH_COOKIE_SZ,fp);
-    read_sz = br_ecdsa_asn1_to_raw(cookie_buffer, read_sz);
+
+    switch (signature_kind)
+    {
+        case PB_SIGN_NIST256p:
+        case PB_SIGN_NIST384p:
+        case PB_SIGN_NIST521p:
+            read_sz = br_ecdsa_asn1_to_raw(cookie_buffer, read_sz);
+        break;
+        case PB_SIGN_RSA4096:
+        break;
+        default:
+            return PB_ERR;
+        break;
+    }
 
     err = pb_write(PB_CMD_AUTHENTICATE,key_index,signature_kind,hash_kind,
                                         0, cookie_buffer, read_sz);
@@ -143,12 +159,7 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
     if (err != PB_OK)
         return err;
 
-    err = pb_read_result_code();
-
-    if (err != PB_OK)
-        return err;
-
-    return PB_OK;
+    return pb_read_result_code();
 }
 
 uint32_t pb_recovery_setup_lock(void)
@@ -165,7 +176,7 @@ uint32_t pb_recovery_setup_lock(void)
     if (err != PB_OK)
         return err;
 
-    return PB_OK;
+    return pb_read_result_code();
 }
 
 uint32_t pb_recovery_setup(struct param *params)
@@ -183,6 +194,11 @@ uint32_t pb_recovery_setup(struct param *params)
     if (err != PB_OK)
         return err;
 
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
+        return err;
+
     return pb_read_result_code();
 }
 
@@ -192,6 +208,11 @@ uint32_t pb_read_params(struct param **params)
     uint32_t err;
 
     err = pb_write(PB_CMD_GET_PARAMS,0,0,0,0,NULL,0);
+
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read_result_code();
 
     if (err != PB_OK)
         return err;
@@ -213,8 +234,16 @@ uint32_t pb_read_params(struct param **params)
 
 uint32_t pb_install_default_gpt(void) 
 {
+    uint32_t err;
+
     if (pb_write(PB_CMD_WRITE_DFLT_GPT,0,0,0,0, NULL, 0) != PB_OK)
         return PB_ERR;
+
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
+        return err;
+
     return pb_read_result_code();
 }
 
@@ -224,6 +253,11 @@ uint32_t pb_reset(void)
     uint32_t err = PB_ERR;
 
     err = pb_write(PB_CMD_RESET,0,0,0,0, NULL, 0);
+
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read_result_code();
 
     if (err != PB_OK)
         return err;
@@ -240,6 +274,11 @@ uint32_t pb_boot_part(uint8_t part_no, bool verbose)
     if (err != PB_OK)
         return err;
 
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
+        return err;
+
     return pb_read_result_code();
 }
 
@@ -249,6 +288,11 @@ uint32_t pb_set_bootpart(uint8_t bootpart)
 
     err = pb_write(PB_CMD_BOOT_ACTIVATE,bootpart,0,0,0, NULL, 0);
     
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read_result_code();
+
     if (err != PB_OK)
         return err;
 
@@ -263,6 +307,11 @@ uint32_t pb_get_version(char **out)
     err = pb_write(PB_CMD_GET_VERSION,0,0,0,0, NULL, 0);
 
     if (err)
+        return err;
+
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
         return err;
 
     err = pb_read((uint8_t*) &sz, 4);
@@ -302,6 +351,11 @@ uint32_t pb_get_gpt_table(struct gpt_primary_tbl *tbl)
     err = pb_write(PB_CMD_GET_GPT_TBL,0,0,0,0, NULL, 0);
 
     if (err)
+        return err;
+
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
         return err;
 
     err = pb_read((uint8_t*) &tbl_sz, 4);
@@ -357,6 +411,11 @@ uint32_t pb_flash_part (uint8_t part_no, int64_t offset,  const char *f_name)
         pb_write(PB_CMD_PREP_BULK_BUFFER,0,0,0,0, 
                 (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
 
+        err = pb_read_result_code();
+
+        if (err != PB_OK)
+            return err;
+
         err = pb_write_bulk(bfr, bfr_cmd.no_of_blocks*512, &sent_sz);
         if (err != 0) {
             printf ("Bulk xfer error, err=%i\n",err);
@@ -374,6 +433,11 @@ uint32_t pb_flash_part (uint8_t part_no, int64_t offset,  const char *f_name)
 
         pb_write(PB_CMD_WRITE_PART,0,0,0,0, (uint8_t *) &wr_cmd,
                     sizeof(struct pb_cmd_write_part));
+
+        err = pb_read_result_code();
+
+        if (err != PB_OK)
+            return err;
 
         err = pb_read_result_code();
 
@@ -422,6 +486,12 @@ uint32_t pb_program_bootloader (const char *f_name)
     pb_write(PB_CMD_PREP_BULK_BUFFER,0,0,0,0, (uint8_t *) &buffer_cmd,
                                     sizeof(struct pb_cmd_prep_buffer));
 
+
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
+        return err;
+
     while ((read_sz = fread(bfr, 1, sizeof(bfr), fp)) >0) 
     {
         err = pb_write_bulk(bfr, read_sz, &sent_sz);
@@ -437,6 +507,11 @@ uint32_t pb_program_bootloader (const char *f_name)
         return err;
 
     err = pb_write(PB_CMD_FLASH_BOOTLOADER, no_of_blocks,0,0,0, NULL, 0);
+
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read_result_code();
 
     if (err != PB_OK)
         return err;
@@ -481,6 +556,11 @@ uint32_t pb_execute_image (const char *f_name, uint32_t active_system,
     err = pb_write(PB_CMD_BOOT_RAM, active_system,verbose,0,0,
                             (uint8_t *) &pbi, sizeof(struct pb_pbi));
     
+    if (err != PB_OK)
+        return err;
+
+    err = pb_read_result_code();
+
     if (err != PB_OK)
         return err;
 

@@ -83,7 +83,7 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
             }
             else
             {
-                LOG_DBG("Signature OK");
+                LOG_DBG("Signature error");
                 return PB_ERR;
             }
 

@@ -11,6 +11,17 @@ then
     test_end_error
 fi
 
+# Authenticate
+$PB dev -a -n 0 -f tests/test_auth_cookie -s RSA4096:sha256
+result_code=$?
+
+if [ $result_code -ne 0 ];
+then
+    test_end_error
+fi
+
+echo "Trying to lock setup again..."
+
 $PB dev -w -y
 result_code=$?
 
