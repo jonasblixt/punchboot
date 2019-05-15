@@ -34,14 +34,14 @@ INTEGRATION_TESTS += test_part_offset_write
 
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"
-QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m 1024 
+QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m 1024
 QEMU_FLAGS += -nographic -semihosting
 # Virtio serial port
-QEMU_FLAGS += -device virtio-serial-device  
-QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,id=foo 
-QEMU_FLAGS += -device virtserialport,chardev=foo  
+QEMU_FLAGS += -device virtio-serial-device
+QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,id=foo
+QEMU_FLAGS += -device virtserialport,chardev=foo
 # Virtio Main disk
-QEMU_FLAGS += -device virtio-blk-device,drive=disk 
+QEMU_FLAGS += -device virtio-blk-device,drive=disk
 QEMU_FLAGS += -drive id=disk,file=/tmp/disk,if=none,format=raw
 # Virtio Aux disk, for bootloader and fuses
 QEMU_FLAGS += -device virtio-blk-device,drive=disk_aux
@@ -66,15 +66,15 @@ PB_BOARD_NAME = test
 
 TEST_ASM_SRCS += plat/test/semihosting_call.S
 
-TEST_OBJS      = $(TEST_C_SRCS:.c=.o) 
-TEST_OBJS      += $(TEST_ASM_SRCS:.S=.o) 
+TEST_OBJS      = $(TEST_C_SRCS:.c=.o)
+TEST_OBJS      += $(TEST_ASM_SRCS:.S=.o)
 
 CFLAGS += -fprofile-arcs -ftest-coverage
-LDFLAGS += 
+LDFLAGS +=
 
 BOARD = test
 
-test: $(ARCH_OBJS) $(TEST_OBJS) 
+test: $(ARCH_OBJS) $(TEST_OBJS)
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
 	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
 	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
@@ -94,7 +94,7 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@echo "Running test:"
 	@$(foreach TEST,$(INTEGRATION_TESTS), \
 		QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS)" TEST_NAME="$(TEST)" \
-			tests/$(TEST).sh || exit; ) 
+			tests/$(TEST).sh || exit; )
 	@echo
 	@echo "*** ALL $(words ${TESTS} ${INTEGRATION_TESTS}) TESTS PASSED ***"
 
