@@ -91,10 +91,8 @@ struct partition_table
 #define UNUSED(x) (void)(x)
 
 #define PB_CHECK_OVERLAP(__a,__sz,__region_start, __region_end) \
-    (( __a >= ((uintptr_t) __region_start) ) && \
-    ( __a <= ((uintptr_t) __region_end) )) || \
-    (( (__a + __sz) >= ((uintptr_t) __region_start) ) && \
-    ( (__a + __sz) <= ((uintptr_t) __region_end) ))
+    (((__a) <= ((uintptr_t) (__region_end))) &&                 \
+     ((__a) + (__sz) >= ((uintptr_t) (__region_start))))
 
 #define __no_bss __attribute__((section (".bigbuffer")))
 #define __a4k  __attribute__ ((aligned(4096)))
