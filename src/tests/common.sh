@@ -62,6 +62,7 @@ wait_for_qemu()
         exit -1
     fi
     echo "QEMU exited normally"
+    sleep 0.2
 }
 
 test_end_error()
@@ -76,6 +77,7 @@ test_end_ok()
 {
 
     echo ------- ITEST END OK: $TEST_NAME ---------------------------
+    sleep 0.2
     $PB boot -r
     wait_for_qemu
 }
