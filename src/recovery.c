@@ -221,7 +221,7 @@ static void recovery_parse_command(struct usb_device *dev,
 {
     uint32_t err = PB_OK;
     uint32_t security_state = -1;
-
+/*
     if (cmd->cmd > sizeof(recovery_cmd_name))
     {
         LOG_ERR("Unknown command");
@@ -232,13 +232,14 @@ static void recovery_parse_command(struct usb_device *dev,
     LOG_INFO ("0x%x %s, sz=%ub", cmd->cmd, 
                                       recovery_cmd_name[cmd->cmd],
                                       cmd->size);
-
+*/
     err = plat_get_security_state(&security_state);
 
     if (err != PB_OK)
         goto recovery_error_out;
 
     LOG_DBG ("Security state: %u", security_state);
+
     if (security_state < 3)
         recovery_authenticated = true;
 
@@ -436,9 +437,6 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_read_data(dev, (uint8_t *) &pbi, sizeof(struct pb_pbi));
 
             err = pb_image_check_header(&pbi);
-
-            if (err != PB_OK)
-                break;
 
             recovery_send_result_code(dev, err);
 

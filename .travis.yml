@@ -27,7 +27,7 @@ addons:
     branch_pattern: "coverity"
 
 script:
-    - make
+    - make tests
 jobs:
     include:
         -   stage: Code Coverage

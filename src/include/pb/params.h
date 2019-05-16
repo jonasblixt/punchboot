@@ -30,9 +30,9 @@ enum
 struct param
 {
     uint32_t kind;
-    char identifier[PB_PARAM_MAX_IDENT_SIZE];
+    char identifier[PB_PARAM_MAX_IDENT_SIZE+1];
     uint8_t reserved[40];
-    uint8_t data[PB_PARAM_MAX_SIZE];
+    uint8_t data[PB_PARAM_MAX_SIZE+1];
 };
 
 #define PARAM(__kind, __ident, __data) \

@@ -67,8 +67,8 @@ uint32_t uuid_gen_uuid3(const char *ns,
     u->uuid.time_hi_and_version &= 0xFF0F;
     u->uuid.time_hi_and_version |= 0x0030; /* Version 3*/
 
-    u->uuid.clock_seq_hi_and_res &= 0xFF1F;
-    u->uuid.clock_seq_hi_and_res |= 0x0080; /* RFC4122 variant*/
+    u->uuid.clock_seq_hi_and_res &= 0x1F;
+    u->uuid.clock_seq_hi_and_res |= 0x80; /* RFC4122 variant*/
     return PB_OK;
 }
 

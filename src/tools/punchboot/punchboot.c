@@ -292,7 +292,10 @@ static uint32_t pb_display_device_info(void)
     err = pb_get_version(&version_string);
 
     if (err != PB_OK)
-        return -1;
+        goto display_info_error;
+
+    if (version_string == NULL)
+        goto display_info_error;
 
     printf ("Device info:\n");
     printf (" Bootloader Version: %s\n",version_string);
@@ -300,7 +303,7 @@ static uint32_t pb_display_device_info(void)
     err = pb_read_params(&params);
 
     if (err != PB_OK)
-        return -1;
+        goto display_info_error;
 
 
     printf("\n");
@@ -309,12 +312,13 @@ static uint32_t pb_display_device_info(void)
     foreach_param(p, params)
         pb_print_param(p);
 
+display_info_error:
     if (version_string)
         free(version_string);
     if (params)
         free(params);
 
-    return PB_OK;
+    return err;
 }
 
 static void print_help_header(void)

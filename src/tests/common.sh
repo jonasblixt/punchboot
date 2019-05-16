@@ -5,6 +5,7 @@ wait_for_qemu2()
     wait $qemu_pid
     echo "QEMU exited $?"
     sync
+    sleep 0.1
 }
 
 start_qemu()
@@ -26,6 +27,8 @@ start_qemu()
     #( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
     ( $QEMU $QEMU_FLAGS -kernel pb ) &
     qemu_pid=$!
+
+    sleep 0.1
 }
 
 force_recovery_mode_on()
@@ -64,6 +67,7 @@ wait_for_qemu()
     echo "QEMU exited normally"
     rm /tmp/pb_sock
     sync
+    sleep 0.1
 }
 
 test_end_error()

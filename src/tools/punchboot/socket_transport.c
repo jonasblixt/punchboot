@@ -58,6 +58,8 @@ int pb_write(uint32_t cmd, uint32_t arg0,
     uint8_t status;
     uint32_t result_code = PB_OK;
 
+    memset(&cmd_hdr,0,sizeof(struct pb_cmd_header));
+
     cmd_hdr.cmd = cmd;
     cmd_hdr.size = sz;
     cmd_hdr.arg0 = arg0;
@@ -65,22 +67,22 @@ int pb_write(uint32_t cmd, uint32_t arg0,
     cmd_hdr.arg2 = arg2;
     cmd_hdr.arg3 = arg3;
 
-	hdr.ep = 4;
-	hdr.sz = sz + sizeof(struct pb_cmd_header);
+    hdr.ep = 4;
+    hdr.sz = sz + sizeof(struct pb_cmd_header);
 
-	tx_bytes = write(fd, &hdr, sizeof(struct pb_socket_header));
+    tx_bytes = write(fd, &hdr, sizeof(struct pb_socket_header));
 
-	if (tx_bytes != sizeof(struct pb_socket_header))
-		return -1;
+    if (tx_bytes != sizeof(struct pb_socket_header))
+    return -1;
 
     if (read(fd, &status, 1) != 1)
     {
-        return PB_ERR;
+       return PB_ERR;
     }
 
-	tx_bytes = write(fd, &cmd_hdr, sizeof(struct pb_cmd_header));
+    tx_bytes = write(fd, &cmd_hdr, sizeof(struct pb_cmd_header));
 
-	//printf("cmd: tx_bytes = %li\n",tx_bytes);
+    //printf("cmd: tx_bytes = %li\n",tx_bytes);
 
 	if (tx_bytes != sizeof(struct pb_cmd_header))
 		return -1;

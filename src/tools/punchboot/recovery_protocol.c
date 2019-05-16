@@ -19,18 +19,22 @@
 #include "transport.h"
 #include "utils.h"
 
-static unsigned char signature[PB_IMAGE_SIGN_MAX_SIZE];
 
 uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
                                   uint32_t signature_kind, uint32_t hash_kind)
 {
     uint32_t err;
     uint8_t cookie_buffer[PB_RECOVERY_AUTH_COOKIE_SZ];
+    unsigned char signature[PB_IMAGE_SIGN_MAX_SIZE];
 
     memset (cookie_buffer,0,PB_RECOVERY_AUTH_COOKIE_SZ);
+    memset (signature,0,PB_IMAGE_SIGN_MAX_SIZE);
 
     FILE *fp = fopen(fn,"rb");
     int read_sz = fread (cookie_buffer,1,PB_RECOVERY_AUTH_COOKIE_SZ,fp);
+
+
+    printf ("Read %i bytes\n",read_sz);
 
     /* Signature output from openssl is ASN.1 encoded
      * punchboot requires raw ECDSA signatures
@@ -50,7 +54,7 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
             s_off = s_sz-32;
             memcpy(&signature[0], &cookie_buffer[3+1+r_off], r_sz);
             memcpy(&signature[32], &cookie_buffer[3+r_sz+2+1+s_off], s_sz);
-            read_sz = r_sz+r_off+s_sz+s_off;
+            read_sz = r_sz+s_sz+r_off+s_off;
         break;
         case PB_SIGN_NIST384p:
             r_sz = cookie_buffer[3];
@@ -59,7 +63,7 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
             s_off = s_sz-48;
             memcpy(&signature[0], &cookie_buffer[4+r_off], r_sz);
             memcpy(&signature[48], &cookie_buffer[3+r_sz+2+1+s_off], s_sz);
-            read_sz = r_sz+r_off+s_sz+s_off;
+            read_sz = r_sz+s_sz+r_off+s_off;
         break;
         case PB_SIGN_NIST521p:
             r_sz = cookie_buffer[4];
@@ -68,7 +72,7 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
             s_off = 66-s_sz;
             memcpy(&signature[r_off], &cookie_buffer[5], r_sz);
             memcpy(&signature[66+s_off], &cookie_buffer[4+r_sz+2+1], s_sz);
-            read_sz = r_sz+r_off+s_sz+s_off;
+            read_sz = r_sz+s_sz+r_off+s_off;
         break;
         case PB_SIGN_RSA4096:
             memcpy(signature, cookie_buffer, read_sz);
@@ -79,7 +83,7 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
     }
 
     err = pb_write(PB_CMD_AUTHENTICATE,key_index,signature_kind,hash_kind,
-                                        0, cookie_buffer, read_sz);
+                                        0, signature, read_sz);
 
     if (err != PB_OK)
         return err;
@@ -251,7 +255,7 @@ uint32_t pb_get_version(char **out)
         return err;
     }
 
-    out[sz] = 0;
+    (*out)[sz] = 0;
 
     err = pb_read_result_code();
 
