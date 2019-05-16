@@ -4,8 +4,6 @@ wait_for_qemu2()
 {
     wait $qemu_pid
     echo "QEMU exited $?"
-    sync
-    sleep 0.1
 }
 
 start_qemu()
@@ -13,6 +11,7 @@ start_qemu()
     # Sometimes the unix domain socket is not properly closed
     # This loop will wait until the socket has closed otherwise qemu will
     # hang the test script
+
 
     while true;
     do
@@ -28,7 +27,6 @@ start_qemu()
     ( $QEMU $QEMU_FLAGS -kernel pb ) &
     qemu_pid=$!
 
-    sleep 0.1
 }
 
 force_recovery_mode_on()
@@ -43,7 +41,6 @@ force_recovery_mode_off()
 
 wait_for_qemu_start()
 {
-    sync
     while true;
     do
         $PB dev -l > /dev/null 2>&1
@@ -65,9 +62,6 @@ wait_for_qemu()
         exit -1
     fi
     echo "QEMU exited normally"
-    rm /tmp/pb_sock
-    sync
-    sleep 0.1
 }
 
 test_end_error()
