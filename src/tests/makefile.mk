@@ -40,14 +40,14 @@ QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m 1024
 QEMU_FLAGS += -nographic -semihosting
 # Virtio serial port
 QEMU_FLAGS += -device virtio-serial-device
-QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,id=foo
-QEMU_FLAGS += -device virtserialport,chardev=foo
+QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,reconnect=1,id=pb_serial
+QEMU_FLAGS += -device virtserialport,chardev=pb_serial
 # Virtio Main disk
 QEMU_FLAGS += -device virtio-blk-device,drive=disk
-QEMU_FLAGS += -drive id=disk,file=/tmp/disk,if=none,format=raw
+QEMU_FLAGS += -drive id=disk,file=/tmp/disk,if=none,cache=directsync,format=raw
 # Virtio Aux disk, for bootloader and fuses
 QEMU_FLAGS += -device virtio-blk-device,drive=disk_aux
-QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,if=none,format=raw
+QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,if=none,cache=directsync,format=raw
 
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/test/pl061.c
