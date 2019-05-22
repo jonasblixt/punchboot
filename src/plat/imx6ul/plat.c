@@ -260,6 +260,24 @@ void plat_uart_putc(void *ptr, char c)
 
 /* EMMC Interface */
 
+
+uint32_t plat_write_block_async(uint32_t lba_offset,
+                          uintptr_t bfr,
+                          uint32_t no_of_blocks)
+{
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
+                                  lba_offset,
+                                  (uint8_t*)bfr,
+                                  no_of_blocks,
+                                  1, 1);
+}
+
+uint32_t plat_flush_block(void)
+{
+    return usdhc_emmc_wait_for_de(&plat.usdhc0);
+}
+
+
 uint32_t plat_write_block(uint32_t lba_offset, 
                           uintptr_t bfr, 
                           uint32_t no_of_blocks) 

@@ -165,7 +165,7 @@ uint32_t  plat_get_us_tick(void)
 
 void plat_wdog_init(void)
 {
-    sc_timer_set_wdog_timeout(plat.ipc_handle, 15000);
+    sc_timer_set_wdog_timeout(plat.ipc_handle, 3000);
     sc_timer_set_wdog_action(plat.ipc_handle,SC_RM_PT_ALL,SC_TIMER_WDOG_ACTION_BOARD);
     sc_timer_start_wdog(plat.ipc_handle, true);
 }
@@ -192,7 +192,7 @@ uint32_t  plat_early_init(void)
     sc_pad_set(plat.ipc_handle, SC_P_SPI3_CS0, GPIO_PAD_CTRL | (4 << 27));
     /* TODO: End of Temporary code */
 
-    plat_wdog_init();
+    //plat_wdog_init();
 
     err = board_early_init(&plat);
 
@@ -254,6 +254,22 @@ uint32_t plat_write_block(uint32_t lba_offset,
                                   (uint8_t*)bfr, 
                                   no_of_blocks, 
                                   1, 0);
+}
+
+uint32_t plat_write_block_async(uint32_t lba_offset, 
+                          uintptr_t bfr, 
+                          uint32_t no_of_blocks) 
+{
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0, 
+                                  lba_offset, 
+                                  (uint8_t*)bfr, 
+                                  no_of_blocks, 
+                                  1, 1);
+}
+
+uint32_t plat_flush_block(void)
+{
+    return usdhc_emmc_wait_for_de(&plat.usdhc0);
 }
 
 uint32_t plat_read_block(uint32_t lba_offset, 

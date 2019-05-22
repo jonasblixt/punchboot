@@ -40,7 +40,7 @@ static uint32_t usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
     return PB_OK;
 }
 
-static uint32_t usdhc_emmc_wait_for_de(struct usdhc_device *dev)
+uint32_t usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 {
     volatile uint32_t irq_status;
     uint32_t timeout = 0xFFFFF;

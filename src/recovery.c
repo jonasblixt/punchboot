@@ -79,7 +79,7 @@ static uint32_t recovery_authenticate(uint32_t key_index,
     device_uuid[36] = ' ';
 
     err = plat_hash_init(hash_kind);
-    
+
     if (err != PB_OK)
         return PB_ERR;
 
@@ -117,10 +117,10 @@ static uint32_t recovery_authenticate(uint32_t key_index,
     return PB_OK;
 }
 
-static uint32_t recovery_flash_bootloader(uint8_t *bfr, 
-                                          uint32_t blocks_to_write) 
+static uint32_t recovery_flash_bootloader(uint8_t *bfr,
+                                          uint32_t blocks_to_write)
 {
-    if (plat_switch_part(PLAT_EMMC_PART_BOOT0) != PB_OK) 
+    if (plat_switch_part(PLAT_EMMC_PART_BOOT0) != PB_OK)
     {
         LOG_ERR ("Could not switch partition");
         return PB_ERR;
@@ -133,14 +133,14 @@ static uint32_t recovery_flash_bootloader(uint8_t *bfr,
     plat_write_block(PB_BOOTPART_OFFSET, (uintptr_t) bfr, blocks_to_write);
 
     plat_switch_part(PLAT_EMMC_PART_USER);
- 
+
     return PB_OK;
 }
 
-static uint32_t recovery_flash_part(uint8_t part_no, 
-                                    uint32_t lba_offset, 
-                                    uint32_t no_of_blocks, 
-                                    uint8_t *bfr) 
+static uint32_t recovery_flash_part(uint8_t part_no,
+                                    uint32_t lba_offset,
+                                    uint32_t no_of_blocks,
+                                    uint8_t *bfr)
 {
     uint32_t part_lba_offset = 0;
 
@@ -158,7 +158,9 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
 
-    return plat_write_block(part_lba_offset + lba_offset, 
+    plat_flush_block();
+
+    return plat_write_block_async(part_lba_offset + lba_offset,
                                 (uintptr_t) bfr, no_of_blocks);
 }
 
@@ -255,13 +257,13 @@ static void recovery_parse_command(struct usb_device *dev,
             goto recovery_error_out;
         }
     }
-    
+
     switch (cmd->cmd)
     {
         case PB_CMD_IS_AUTHENTICATED:
         {
             uint8_t tmp = 0;
-            
+
             if (recovery_authenticated)
                 tmp = 1;
 
@@ -290,7 +292,6 @@ static void recovery_parse_command(struct usb_device *dev,
             }
 
             uint8_t *bfr = recovery_bulk_buffer[cmd_prep.buffer_id];
-
             err = plat_usb_transfer(dev, USB_EP1_OUT, bfr,
                                                 cmd_prep.no_of_blocks*512);
 
@@ -377,6 +378,7 @@ static void recovery_parse_command(struct usb_device *dev,
                                 wr_part.lba_offset,
                                 wr_part.no_of_blocks,
                                 recovery_bulk_buffer[wr_part.buffer_id]);
+
         }
         break;
         case PB_CMD_BOOT_PART:
@@ -550,12 +552,12 @@ static void recovery_parse_command(struct usb_device *dev,
             uint32_t param_count = 0;
             struct param *p = params;
             
-            param_add_u32(p++, "Security State", security_state);
             plat_get_params(&p);
             board_get_params(&p);
             param_terminate(p++);
             
             p = params;
+
 
             while (p->kind != PB_PARAM_END)
             {
