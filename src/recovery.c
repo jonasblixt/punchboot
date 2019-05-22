@@ -300,7 +300,7 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_FLASH_BOOTLOADER:
         {
             LOG_INFO ("Flash BL %u",cmd->arg0);
-            recovery_flash_bootloader(recovery_bulk_buffer[0], 
+            recovery_flash_bootloader(recovery_bulk_buffer[0],
                         cmd->arg0);
         }
         break;
@@ -311,7 +311,7 @@ static void recovery_parse_command(struct usb_device *dev,
             LOG_INFO ("Get version");
             snprintf(version_string, sizeof(version_string), "PB %s",VERSION);
 
-            err = recovery_send_response( dev, 
+            err = recovery_send_response( dev,
                                           (uint8_t *) version_string,
                                           strlen(version_string));
         }
@@ -328,7 +328,7 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_GET_GPT_TBL:
         {
             err = recovery_send_response(dev,(uint8_t*) &gpt->primary,
-                                        sizeof (struct gpt_primary_tbl));  
+                                        sizeof (struct gpt_primary_tbl));
         }
         break;
         case PB_CMD_BOOT_ACTIVATE:
@@ -343,23 +343,25 @@ static void recovery_parse_command(struct usb_device *dev,
                 gpt_part_set_bootable(part_sys_a, false);
                 gpt_part_set_bootable(part_sys_b, false);
             }
-
-            if ((cmd->arg0 & SYSTEM_A) == SYSTEM_A)
-            {   
+            else if (cmd->arg0 == SYSTEM_A)
+            {
                 LOG_INFO("Activating System A");
                 gpt_part_set_bootable(part_sys_a, true);
                 gpt_part_set_bootable(part_sys_b, false);
             }
-
-            if ((cmd->arg0 & SYSTEM_B) == SYSTEM_B)
+            else if (cmd->arg0 == SYSTEM_B)
             {
                 LOG_INFO("Activating System B");
                 gpt_part_set_bootable(part_sys_a, false);
                 gpt_part_set_bootable(part_sys_b, true);
             }
+            else
+            {
+                err = PB_ERR;
+                goto recovery_error_out;
+            }
 
             err = gpt_write_tbl(gpt);
-            LOG_INFO("Result %u",err);
         }
         break;
         case PB_CMD_WRITE_PART:
@@ -400,13 +402,13 @@ static void recovery_parse_command(struct usb_device *dev,
                 LOG_ERR("System B not found");
                 break;
             }
-            
+
             if (cmd->arg0 == SYSTEM_A)
             {
                 LOG_INFO("Loading System A");
                 err = pb_image_load_from_fs(boot_part_a->first_lba, &pbi,
                                                 (const char*) hash_buffer);
-            } 
+            }
             else if (cmd->arg0 == SYSTEM_B)
             {
                 LOG_INFO("Loading System B");
@@ -418,7 +420,7 @@ static void recovery_parse_command(struct usb_device *dev,
                 LOG_ERR("Invalid boot partition");
                 err = PB_ERR;
             }
-            
+
             if (err != PB_OK)
                 break;
 
@@ -435,7 +437,7 @@ static void recovery_parse_command(struct usb_device *dev,
 
         break;
         case PB_CMD_BOOT_RAM:
-        {   
+        {
             recovery_read_data(dev, (uint8_t *) &pbi, sizeof(struct pb_pbi));
 
             err = pb_image_check_header(&pbi);
@@ -445,9 +447,9 @@ static void recovery_parse_command(struct usb_device *dev,
             if (err != PB_OK)
                 break;
 
-            for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++) 
+            for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++)
             {
-                LOG_INFO("Loading component %u, %u bytes",i, 
+                LOG_INFO("Loading component %u, %u bytes",i,
                                         pbi.comp[i].component_size);
 
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
@@ -462,7 +464,7 @@ static void recovery_parse_command(struct usb_device *dev,
                     break;
                 }
             }
-    
+
             LOG_INFO("Loading done");
 
             if (err != PB_OK)
@@ -520,7 +522,7 @@ static void recovery_parse_command(struct usb_device *dev,
             }
 
             LOG_INFO ("Performing device setup, %u",cmd->arg0);
-            
+
             params[0].kind = PB_PARAM_END;
 
             if (cmd->arg0 > 0)
@@ -551,11 +553,10 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             uint32_t param_count = 0;
             struct param *p = params;
-            
+
             plat_get_params(&p);
             board_get_params(&p);
             param_terminate(p++);
-            
             p = params;
 
 
@@ -564,11 +565,11 @@ static void recovery_parse_command(struct usb_device *dev,
                 p++;
                 param_count++;
             }
-        
+
             param_count++;
 
             recovery_send_response(dev,(uint8_t*) params,
-                            (sizeof(struct param) * param_count));  
+                            (sizeof(struct param) * param_count));
             err = PB_OK;
         }
         break;
@@ -581,7 +582,7 @@ static void recovery_parse_command(struct usb_device *dev,
                 err = PB_ERR;
                 break;
             }
-            
+
             recovery_read_data(dev, authentication_cookie, cmd->size);
 
             LOG_DBG("Got auth cmd, key_id = %u", cmd->arg0);
@@ -600,7 +601,7 @@ static void recovery_parse_command(struct usb_device *dev,
     }
 
 recovery_error_out:
-    
+
     recovery_send_result_code(dev, err);
 }
 

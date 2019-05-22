@@ -258,6 +258,19 @@ uint32_t  plat_write_block(uint32_t lba_offset,
 
 }
 
+uint32_t  plat_write_block_async(uint32_t lba_offset, 
+                                uintptr_t bfr, 
+                                uint32_t no_of_blocks)
+{
+	return virtio_block_write(blk, (blk_off+lba_offset), 
+                                (uint8_t *)bfr, no_of_blocks);
+
+}
+
+uint32_t plat_flush_block(void)
+{
+    return PB_OK;
+}
 
 uint32_t  plat_read_block( uint32_t lba_offset, 
                                 uintptr_t bfr, 
