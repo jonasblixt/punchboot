@@ -52,8 +52,8 @@ static const struct usb_descriptors descriptors = {
         .bDeviceSubClass = 0x00, // Device Subclass (specified in interface descriptor)
         .bDeviceProtocol = 0x00, // Device Protocol (specified in interface descriptor)
         .bMaxPacketSize = 0x40, // Max packet size for control endpoint
-        .idVendor = PB_USB_VID, // Freescale Vendor ID. -- DO NOT USE IN A PRODUCT
-        .idProduct = PB_USB_PID, // Decvice ID -- DO NOT USE IN A PRODUCT
+        .idVendor = PB_USB_VID,
+        .idProduct = PB_USB_PID,
         .bcdDevice = 0x0000, // Device revsion
         .iManufacturer = 0x01, // Index of  Manufacturer string descriptor
         .iProduct = 0x01, // Index of Product string descriptor
@@ -76,9 +76,9 @@ static const struct usb_descriptors descriptors = {
         .bInterfaceNumber = 0x00, // This interface = #0
         .bAlternateSetting = 0x00, // Alternate setting
         .bNumEndpoints = 0x03, // Number of endpoints for this interface
-        .bInterfaceClass = 0xFF, // HID class interface
-        .bInterfaceSubClass = 0xFF, // Boot interface Subclass
-        .bInterfaceProtocol = 0xFF, // Mouse protocol
+        .bInterfaceClass = 0xFF, 
+        .bInterfaceSubClass = 0xFF,
+        .bInterfaceProtocol = 0xFF,
         .iInterface = 0, // No string descriptor
     },
     .endpoint_bulk_out = {
@@ -87,7 +87,7 @@ static const struct usb_descriptors descriptors = {
         .bEndpointAddress = 0x01, 
         .bmAttributes = 0x2, 
         .wMaxPacketSize = 0x0200, 
-        .bInterval = 0x00, // 10 ms interval
+        .bInterval = 0x00,
     },
     .endpoint_intr_out = {
         .bLength = 0x07,
@@ -95,7 +95,7 @@ static const struct usb_descriptors descriptors = {
         .bEndpointAddress = 0x02, 
         .bmAttributes = 0x3, 
         .wMaxPacketSize = 0x0040, 
-        .bInterval = 0x05, 
+        .bInterval = 0x01, 
     },
     .endpoint_intr_in = {
         .bLength = 0x07,
@@ -103,7 +103,7 @@ static const struct usb_descriptors descriptors = {
         .bEndpointAddress = 0x83, 
         .bmAttributes = 0x3, 
         .wMaxPacketSize = 0x0200, 
-        .bInterval = 0x05,
+        .bInterval = 0x01,
     }
 };
 
