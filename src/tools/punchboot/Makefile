@@ -22,9 +22,13 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 PKG_CONFIG ?= pkg-config
 
+USB_PID ?= 0x2019
+USB_VID ?= 0x1209
+
 CFLAGS  += -Wall -O2 -I ../../include/
 CFLAGS  += -I. -I include/  -I ../../ -std=c99
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
+CFLAGS  += -DPB_USB_VID=$(USB_VID) -DPB_USB_PID=$(USB_PID)
 CFLAGS  += $(shell $(PKG_CONFIG) --cflags libusb-1.0 uuid)
 
 LIBS     = $(shell $(PKG_CONFIG) --libs libusb-1.0 uuid)
@@ -55,17 +59,7 @@ C_SRCS  += $(TRANSPORT)_transport.c
 
 OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 
-TOMCRYPT_CFLAGS  = -DARGTYPE=3 -DLTC_NO_TEST -DLTC_NO_FILE 
-TOMCRYPT_CFLAGS += -DUSE_LTM -DLTM_DESC -I../libtommath/ -L../libtommath/
-
-
 all: $(TARGET)
-
-libtomcrypt:
-	@$(MAKE) -C 3pp/libtommath CC=$(CC) AR=$(AR)
-	@$(MAKE) -C 3pp/libtomcrypt/ CC=$(CC) AR=$(AR) \
-		CFLAGS="$(TOMCRYPT_CFLAGS)" EXTRALIBS="-ltommath"
-
 
 $(TARGET): $(OBJS)
 	@echo LINK $@ $(LDFLAGS)

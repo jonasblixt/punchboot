@@ -302,15 +302,15 @@ uint32_t pb_flash_part (uint8_t part_no, int64_t offset,  const char *f_name)
 
     fp = fopen (f_name,"rb");
 
-    if (fp == NULL) 
+    if (fp == NULL)
     {
         printf ("Could not open file: %s\n",f_name);
         return PB_ERR;
     }
 
-    bfr =  malloc(1024*1024*8);
-    
-    if (bfr == NULL) 
+    bfr =  malloc(1024*1024*4);
+
+    if (bfr == NULL)
     {
         printf ("Could not allocate memory\n");
         return PB_ERR;
@@ -319,23 +319,31 @@ uint32_t pb_flash_part (uint8_t part_no, int64_t offset,  const char *f_name)
     wr_cmd.lba_offset = offset;
     wr_cmd.part_no = part_no;
 
-    while ((read_sz = fread(bfr, 1, 1024*1024*4, fp)) >0) {
+    while ((read_sz = fread(bfr, 1, 1024*1024*4, fp)) >0)
+    {
        bfr_cmd.no_of_blocks = read_sz / 512;
         if (read_sz % 512)
             bfr_cmd.no_of_blocks++;
-        
+
         bfr_cmd.buffer_id = buffer_id;
-        err = pb_write(PB_CMD_PREP_BULK_BUFFER,0,0,0,0, 
+        err = pb_write(PB_CMD_PREP_BULK_BUFFER,0,0,0,0,
                 (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
 
         if (err != PB_OK)
             return err;
 
         err = pb_write_bulk(bfr, bfr_cmd.no_of_blocks*512, &sent_sz);
-        if (err != 0) {
+
+        if (err != 0)
+        {
             printf ("Bulk xfer error, err=%i\n",err);
             goto err_xfer;
         }
+
+        err = pb_read_result_code();
+
+        if (err != PB_OK)
+            return err;
 
         wr_cmd.no_of_blocks = bfr_cmd.no_of_blocks;
         wr_cmd.buffer_id = buffer_id;
@@ -343,11 +351,6 @@ uint32_t pb_flash_part (uint8_t part_no, int64_t offset,  const char *f_name)
 
         pb_write(PB_CMD_WRITE_PART,0,0,0,0, (uint8_t *) &wr_cmd,
                     sizeof(struct pb_cmd_write_part));
-
-        err = pb_read_result_code();
-
-        if (err != PB_OK)
-            return err;
 
         err = pb_read_result_code();
 

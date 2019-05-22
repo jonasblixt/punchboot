@@ -86,13 +86,13 @@ static int load_params(const char *fn)
     }
     ini_t* ini = ini_load(data, memctx);
     free( data );
-    
+
     n = 0;
     uint32_t param_count = 0;
     do
     {
         section_name = ini_section_name(ini, n);
-        
+
         if (section_name)
         {
             const char *param_value = NULL;
@@ -135,7 +135,7 @@ static int load_params(const char *fn)
                     uint32_t *u32_ptr = (uint32_t *) params[param_count].data;
                     uint64_t *u64_ptr = (uint64_t *) params[param_count].data;
 
-                    memcpy(params[param_count].identifier, param_name, 
+                    memcpy(params[param_count].identifier, param_name,
                         strlen(param_name)>PB_PARAM_MAX_IDENT_SIZE ?
                             PB_PARAM_MAX_IDENT_SIZE:strlen(param_name));
 
@@ -163,7 +163,7 @@ static int load_params(const char *fn)
                     {
                         return -1;
                     }
-                    
+
                     param_count++;
                     params[param_count].kind = PB_PARAM_END;
                 }
@@ -236,7 +236,6 @@ static int print_gpt_table(void)
                 tmp_string,
                 part->first_lba, part->last_lba,
                 str_type_uuid);
-                                
     }
 
     return 0;
@@ -279,15 +278,15 @@ static void pb_print_param(struct param *p)
         default:
             printf ("...");
     }
-    
+
     printf ("\n");
 }
 
 static uint32_t pb_display_device_info(void)
 {
     uint32_t err = PB_ERR;
-    char *version_string;
-    struct param *params;
+    char *version_string = NULL;
+    struct param *params = NULL;
 
     err = pb_get_version(&version_string);
 
@@ -733,10 +732,13 @@ int main(int argc, char **argv)
             if (err != PB_OK)
                 goto pb_done;
 
-        } else if (flag_write && flag_index && fn) {
+        }
+        else if (flag_write && flag_index && fn)
+        {
 
             printf ("Writing %s to part %i with offset %li\n",
                                 fn, cmd_index,offset);
+
             err = pb_flash_part(cmd_index, offset, fn);
 
             if (err != PB_OK)
