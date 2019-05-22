@@ -30,40 +30,42 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     char part_uuid[37];
 
-    struct pb_component_hdr *dtb = 
+    struct pb_component_hdr *dtb =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
 
-    struct pb_component_hdr *linux2 = 
+    struct pb_component_hdr *linux =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
 
-    struct pb_component_hdr *atf = 
+    struct pb_component_hdr *atf =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
-    
-    struct pb_component_hdr *ramdisk = 
+
+    struct pb_component_hdr *ramdisk =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_RAMDISK);
 
     tr_stamp_begin(TR_DT_PATCH);
 
-    if (dtb && linux2 && atf)
-    {
-        LOG_INFO(" LINUX %x, DTB %x", linux2->load_addr_low, 
-                                              dtb->load_addr_low);
-    } 
+    if (dtb)
+        LOG_INFO("DTB %x", dtb->load_addr_low);
+    else
+        LOG_INFO("No DTB");
+
+    if (linux)
+        LOG_INFO("LINUX %x", linux->load_addr_low);
     else
     {
-        LOG_ERR("Can't boot image");
-        return;
+        LOG_ERR("No linux kernel");
+        return PB_ERR;
     }
 
     if (atf)
-        LOG_INFO(" ATF: %x",atf->load_addr_low);
+        LOG_INFO("ATF: %x",atf->load_addr_low);
     else
-        LOG_INFO(" ATF: None");
+        LOG_INFO("ATF: None");
 
     if (ramdisk)
-        LOG_INFO(" RAMDISK: %x",ramdisk->load_addr_low);
+        LOG_INFO("RAMDISK: %x",ramdisk->load_addr_low);
     else
-        LOG_INFO(" RAMDISK: None");
+        LOG_INFO("RAMDISK: None");
 
 
     switch (system_index)
@@ -92,12 +94,12 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
     void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
     int err = fdt_check_header(fdt);
 
-    if (err >= 0) 
+    if (err >= 0)
     {
         int depth = 0;
         int offset = 0;
 
-        for (;;) 
+        for (;;)
         {
             offset = fdt_next_node(fdt, offset, &depth);
 
@@ -109,12 +111,12 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
             if (!name)
                 continue;
 
-            if (strcmp(name, "chosen") == 0) 
+            if (strcmp(name, "chosen") == 0)
             {
-                
+
                 if (ramdisk)
                 {
-                    err = fdt_setprop_u32( (void *) fdt, offset, 
+                    err = fdt_setprop_u32( (void *) fdt, offset,
                                         "linux,initrd-start",
                                         ramdisk->load_addr_low);
 
@@ -124,7 +126,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                         return;
                     }
 
-                    err = fdt_setprop_u32( (void *) fdt, offset, 
+                    err = fdt_setprop_u32( (void *) fdt, offset,
                         "linux,initrd-end",
                         ramdisk->load_addr_low+ramdisk->component_size);
 
@@ -136,12 +138,12 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
                     if (verbose)
                     {
-                        err = fdt_setprop_string( (void *) fdt, offset, 
-                                    "bootargs", 
+                        err = fdt_setprop_string( (void *) fdt, offset,
+                                    "bootargs",
                                     (const char *) BOARD_BOOT_ARGS_VERBOSE);
                     } else {
-                        err = fdt_setprop_string( (void *) fdt, offset, 
-                                    "bootargs", 
+                        err = fdt_setprop_string( (void *) fdt, offset,
+                                    "bootargs",
                                     (const char *) BOARD_BOOT_ARGS);
                     }
 
@@ -157,14 +159,14 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
                     if (verbose)
                     {
-                        snprintf (new_bootargs, 512, BOARD_BOOT_ARGS_VERBOSE, 
+                        snprintf (new_bootargs, 512, BOARD_BOOT_ARGS_VERBOSE,
                                                             part_uuid);
                     } else {
-                        snprintf (new_bootargs, 512, BOARD_BOOT_ARGS, 
+                        snprintf (new_bootargs, 512, BOARD_BOOT_ARGS,
                                                             part_uuid);
                     }
 
-                    err = fdt_setprop_string( (void *) fdt, offset, "bootargs", 
+                    err = fdt_setprop_string( (void *) fdt, offset, "bootargs",
                                 (const char *) new_bootargs);
 
                     if (err)
@@ -212,15 +214,15 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     plat_wdog_kick();
 
-    if (atf && dtb && linux2)
+    if (atf && dtb && linux)
     {
         LOG_DBG("ATF boot");
-        arch_jump_atf((void *)(uintptr_t) atf->load_addr_low, 
+        arch_jump_atf((void *)(uintptr_t) atf->load_addr_low,
                       (void *)(uintptr_t) NULL);
-    } 
-    else if(dtb && linux2)
+    }
+    else if(dtb && linux)
     {
-        arch_jump_linux_dt((void *)(uintptr_t) linux2->load_addr_low, 
+        arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr_low,
                            (void *)(uintptr_t) dtb->load_addr_low);
     }
 

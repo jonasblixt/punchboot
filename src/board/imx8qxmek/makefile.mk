@@ -1,11 +1,12 @@
 PB_BOARD_NAME = imx8qxmek
 PB_PLAT_NAME   = imx8x
-PB_ENTRY     = 0x80200000
+PB_ENTRY     = 0x80000000
 
 CFLAGS += -I board/imx8qxmek/include
 
 BOARD_C_SRCS += board/imx8qxmek/imx8qxmek.c
-BOARD_C_SRCS += boot/atf_linux.c
+BOARD_C_SRCS += boot/lk.c
+#BOARD_C_SRCS += boot/atf_linux.c
 
 MKIMAGE         = mkimage_imx8
 FINAL_IMAGE     = $(TARGET).imx

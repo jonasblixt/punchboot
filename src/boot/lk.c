@@ -38,7 +38,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     plat_wdog_kick();
 
-    arch_jump((void *)(uintptr_t) kernel->load_addr_low, NULL, NULL, NULL);
+    arch_jump((void *)(uintptr_t) atf->load_addr_low, NULL, NULL, NULL);
 
 
     while(1)
