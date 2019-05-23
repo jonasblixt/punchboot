@@ -3,7 +3,7 @@
 #include <string.h>
 #include <plat/test/semihosting.h>
 #include <usb.h>
-#include <assert.h>
+#include <pb/assert.h>
 
 #include "test.h"
 
@@ -355,7 +355,6 @@ void test_main(void)
     flag_wait_for_zlp = false;
     usbdev->on_setup_pkt(usbdev, &pkt);
     assert (flag_zlp);
-
     /* Test invalid request */
 
     pkt.bRequestType = 0x12;

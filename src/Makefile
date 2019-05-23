@@ -23,7 +23,7 @@ else
 	TIMING_REPORT=0
 endif
 
-CFLAGS   = -Wall -Wextra -Wunused-result -Os
+CFLAGS   = -Wall -Wextra -Wunused-result -Os -std=c99
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -ffunction-sections 
 CFLAGS  += -fdata-sections 
@@ -110,7 +110,6 @@ OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 OBJS     += $(BLOB_INPUT:.bin=.bino)
 
 ifeq ($(BOARD),test)
-	CFLAGS += -g
 	include tests/makefile.mk
 endif
 

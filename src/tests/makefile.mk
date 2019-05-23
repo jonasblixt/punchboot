@@ -87,7 +87,6 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
 			 $(LIBS) $(TEST).o -o $(TEST) && \
 		echo "--- Module TEST ---  $(TEST)"  && \
-		sleep 0.1 && \
 		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST) || exit; )
 
 	@echo
