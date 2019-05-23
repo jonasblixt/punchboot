@@ -12,7 +12,6 @@ env:
    - CROSS_COMPILE=arm-none-eabi-
 before_install:
   - sudo apt install python3 libcunit1-dev qemu-system-arm curl git u-boot-tools uuid-dev libusb-1.0-0-dev libtool-bin gdisk python3-crypto python3-ecdsa libpkcs11-helper1 libpkcs11-helper1-dev libssl-dev iproute2 gcc-arm-none-eabi binutils-arm-none-eabi
-#  - curl -sL https://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/arm-eabi/gcc-linaro-7.3.1-2018.05-x86_64_arm-eabi.tar.xz | tar xJ -C /tmp
 
 addons:
   apt:

@@ -25,13 +25,13 @@ endif
 
 CFLAGS   = -Wall -Wextra -Wunused-result -Os -std=c99
 CFLAGS  += -nostdlib -nostartfiles
-CFLAGS  += -ffunction-sections 
-CFLAGS  += -fdata-sections 
+CFLAGS  += -ffunction-sections
+CFLAGS  += -fdata-sections
 CFLAGS  += -fno-omit-frame-pointer
 CFLAGS  += -I. -I include/pb
 CFLAGS  += -I include
 CFLAGS  += -I include/pb/libc
-CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
+CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
 CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
 CFLAGS  += -D__PB_BUILD
@@ -39,11 +39,11 @@ CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
 
-LIBS     = 
+LIBS     =
 
-LDFLAGS = 
+LDFLAGS =
 
-ASM_SRCS = 
+ASM_SRCS =
 ARCH_ASM_SRCS =
 ARCH_C_SRCS =
 PLAT_ASM_SRCS =
@@ -53,7 +53,7 @@ BLOB_INPUT  =
 C_SRCS   = recovery.c
 C_SRCS  += delay.c
 C_SRCS  += crc.c
-C_SRCS  += gpt.c 
+C_SRCS  += gpt.c
 C_SRCS  += crypto.c
 C_SRCS  += timing_report.c
 C_SRCS  += lib/string.c
@@ -81,13 +81,12 @@ C_SRCS  += 3pp/fdt/fdt_strerror.c
 C_SRCS  += 3pp/fdt/fdt_sw.c
 C_SRCS  += 3pp/fdt/fdt_wip.c
 
-FINAL_IMAGE = 
+FINAL_IMAGE =
+
 
 include board/$(BOARD)/makefile.mk
 include plat/$(PB_PLAT_NAME)/makefile.mk
 include arch/$(PB_ARCH_NAME)/makefile.mk
-
-CROSS_COMPILE ?= arm-eabi-
 
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld
@@ -96,23 +95,26 @@ SIZE=$(CROSS_COMPILE)size
 STRIP=$(CROSS_COMPILE)strip
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
-LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY) 
+LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY)
 LDFLAGS += -Tarch/$(PB_ARCH_NAME)/link.lds
 LDFLAGS += -Tplat/$(PB_PLAT_NAME)/link.lds
-LDFLAGS += -Tlink.lds  --build-id=none 
+LDFLAGS += -Tlink.lds  --build-id=none
 
-ARCH_OBJS     = $(ARCH_ASM_SRCS:.S=.o) $(ARCH_C_SRCS:.c=.o) 
-PLAT_OBJS     = $(PLAT_ASM_SRCS:.S=.o) $(PLAT_C_SRCS:.c=.o) 
-BOARD_OBJS    = $(BOARD_ASM_SRCS:.S=.o) $(BOARD_C_SRCS:.c=.o) 
+ARCH_OBJS     = $(ARCH_ASM_SRCS:.S=.o) $(ARCH_C_SRCS:.c=.o)
+PLAT_OBJS     = $(PLAT_ASM_SRCS:.S=.o) $(PLAT_C_SRCS:.c=.o)
+BOARD_OBJS    = $(BOARD_ASM_SRCS:.S=.o) $(BOARD_C_SRCS:.c=.o)
 
-OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)  
-OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o) 
+OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)
+OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 OBJS     += $(BLOB_INPUT:.bin=.bino)
 
-ifeq ($(BOARD),test)
-	include tests/makefile.mk
-endif
 
+ifeq ($(BOARD),test)
+
+CFLAGS += -g  -fprofile-arcs -ftest-coverage
+include tests/makefile.mk
+
+endif
 
 key_data:
 	@$(PYTHON) $(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > key_data.c

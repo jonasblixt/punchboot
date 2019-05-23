@@ -1,4 +1,4 @@
-CROSS_COMPILE ?= /opt/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
+CROSS_COMPILE ?= aarch64-linux-gnu-
 
 ARCH_OUTPUT = elf64-littleaarch64
 ARCH = aarch64

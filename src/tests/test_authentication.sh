@@ -2,6 +2,7 @@
 source tests/common.sh
 wait_for_qemu_start
 
+sleep 0.1
 # Listing partitions should work because security_state < 3
 $PB part -l
 

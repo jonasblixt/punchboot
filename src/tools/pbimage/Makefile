@@ -20,6 +20,18 @@ AR=$(CROSS_COMPILE)ar
 SIZE=$(CROSS_COMPILE)size
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
+ifeq (,$(shell which pkg-config))
+$(error "No pkg-config found")
+endif
+
+ifeq (,$(shell pkg-config --libs --cflags openssl))
+$(error "No openssl detected")
+endif
+
+ifeq (,$(shell pkg-config --libs --cflags libpkcs11-helper-1))
+$(error "No pkcs11-helper detected")
+endif
+
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
 CFLAGS  += -Wall -O2 -I ../../include/ -std=c99

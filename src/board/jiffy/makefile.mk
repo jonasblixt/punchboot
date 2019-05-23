@@ -8,8 +8,8 @@ BOARD_C_SRCS += board/jiffy/jiffy.c
 BOARD_C_SRCS += boot/atf_linux.c
 
 
-MKIMAGE         = mkimage
-IMX_USB         = imx_usb
+MKIMAGE         ?= mkimage
+IMX_USB         ?= imx_usb
 JIFFY_IMAGE_CFG = board/jiffy/imximage.cfg
 FINAL_IMAGE     = $(TARGET).imx
 

@@ -24,14 +24,17 @@ then
 fi
 
 # Loading image to ram and execute should fail because it overlaps with bootloader
+echo Booting system A
 $PB boot -b -s a
 result_code=$?
 
 if [ $result_code -ne 255 ];
 then
+    echo Boot step failed
     test_end_error
 fi
 
+echo Loading from RAM
 # Loading image to ram and execute should fail because it overlaps with bootloader
 $PB boot -x -f /tmp/img.pbi
 result_code=$?

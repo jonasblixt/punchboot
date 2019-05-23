@@ -40,7 +40,6 @@ force_recovery_mode_off()
 
 wait_for_qemu_start()
 {
-    sync
     while true;
     do
         sleep 0.1
@@ -62,7 +61,6 @@ wait_for_qemu()
         exit -1
     fi
     echo "QEMU exited normally"
-    sync
 }
 
 test_end_error()

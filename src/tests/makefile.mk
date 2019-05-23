@@ -44,13 +44,12 @@ QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,id=pb_serial
 QEMU_FLAGS += -device virtserialport,chardev=pb_serial
 # Virtio Main disk
 QEMU_FLAGS += -device virtio-blk-device,drive=disk
-QEMU_FLAGS += -drive id=disk,file=/tmp/disk,if=none,format=raw
+QEMU_FLAGS += -drive id=disk,file=/tmp/disk,cache=none,if=none,format=raw
 # Virtio Aux disk, for bootloader and fuses
 QEMU_FLAGS += -device virtio-blk-device,drive=disk_aux
-QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,if=none,format=raw
+QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,cache=none,if=none,format=raw
 
 TEST_C_SRCS += tests/common.c
-TEST_C_SRCS += plat/test/pl061.c
 TEST_C_SRCS += plat/test/gcov.c
 TEST_C_SRCS += usb.c
 TEST_C_SRCS += plat/test/semihosting.c
@@ -85,7 +84,9 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
 		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
-			 $(LIBS) $(TEST).o -o $(TEST) && \
+			  $(TEST).o $(LIBS) -o $(TEST) || exit; )
+
+	@$(foreach TEST,$(TESTS), \
 		echo "--- Module TEST ---  $(TEST)"  && \
 		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST) || exit; )
 
@@ -101,4 +102,14 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 debug_test: $(ARCH_OBJS) $(TEST_OBJS)
 	@echo "Debugging test $(TEST)"
 	@QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS) $(QEMU_AUX_FLAGS)" TEST_NAME="$(TEST)" \
-			tests/$(TEST).sh 
+			tests/$(TEST).sh
+
+module_tests:
+	$(foreach TEST,$(TESTS), \
+		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
+		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
+			  $(TEST).o $(LIBS) -o $(TEST) || exit; )
+
+	@$(foreach TEST,$(TESTS), \
+		echo "--- Module TEST ---  $(TEST)"  && \
+		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST) || exit; )

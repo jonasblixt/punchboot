@@ -24,17 +24,16 @@ uint32_t  plat_usb_init(struct usb_device *dev)
     return PB_OK;
 }
 
-void      plat_usb_task(struct usb_device *dev)
+void plat_usb_task(struct usb_device *dev)
 {
     struct pb_socket_header hdr;
     struct pb_cmd_header cmd;
     uint8_t status = 0;
 
     UNUSED(dev);
-    LOG_INFO("Waiting...");
     virtio_serial_read(&d, (uint8_t *) &hdr, sizeof(struct pb_socket_header));
     virtio_serial_write(&d, &status, 1);
-    LOG_INFO("Got hdr, ep=%u, sz=%u",hdr.ep,hdr.sz);
+
     if (hdr.ep == 4)
     {
         virtio_serial_read(&d, (uint8_t *) &cmd, 

@@ -11,6 +11,8 @@
 PB_ARCH_NAME = armv8a
 
 CST_TOOL ?= /work/cst-3.1.0/linux64/bin/cst
+MKIMAGE ?= $(shell which mkimage_imx8)
+
 
 SRK_TBL  ?= ../pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin
 CSFK_PEM ?= ../pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem
@@ -43,9 +45,9 @@ plat_clean:
 	@-rm -rf plat/imx8x/hab_srks.*
 
 plat_final:
-	@mkimage_imx8 -commit > head.hash
+	@$(MKIMAGE) -commit > head.hash
 	@cat pb.bin head.hash > pb_hash.bin
-	@mkimage_imx8 -soc QX -rev B0 \
+	@$(MKIMAGE) -soc QX -rev B0 \
 				  -e emmc_fast \
 				  -append mx8qx-ahab-container.img \
 				  -c -scfw scfw_tcm.bin \
