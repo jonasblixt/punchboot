@@ -448,9 +448,7 @@ int main(int argc, char **argv)
             case 'u':
             {
                 usb_path_count = 0;
-                char *usb_path_str = NULL;
-                usb_path_str = malloc(strlen(optarg)+1);
-                strcpy(usb_path_str,optarg);
+                char *usb_path_str = strdup(optarg);
 
                 char delim[] = ":";
                 char *tok = strtok(usb_path_str, delim);
@@ -525,7 +523,12 @@ int main(int argc, char **argv)
             bzero(params, sizeof(struct param) * PB_MAX_PARAMS);
 
             if (fn != NULL)
-                load_params(fn);
+            {
+                err = load_params(fn);
+                
+                if (err != PB_OK)
+                    goto pb_done;
+            }
             else
                 printf("No parameter file supplied\n");
 
@@ -639,6 +642,9 @@ int main(int argc, char **argv)
             err = pb_recovery_authenticate(key_index, fn, signature_kind,
                                                           hash_kind);
 
+            if (err == PB_ERR_FILE_NOT_FOUND)
+                printf ("Could not read '%s'\n",fn);
+
             if (err != PB_OK)
                 printf ("Authentication failed\n");
             else
@@ -669,10 +675,10 @@ int main(int argc, char **argv)
 
         if (flag_s) 
         {
-            char *part = s_arg;
-            if ((part[0] == 'A') || (part[0] == 'a') )
+            int part = tolower(s_arg[0]);
+            if (part == 'a')
                 active_system = SYSTEM_A;
-            else if ((part[0] == 'B') || (part[0] == 'b') )
+            else if (part == 'b')
                 active_system = SYSTEM_B;
             else
                 active_system = SYSTEM_NONE;

@@ -65,11 +65,11 @@ uint32_t virtio_block_init(struct virtio_block_device *d);
 
 uint32_t virtio_block_write(struct virtio_block_device *d,
 							uint32_t lba,
-							uint8_t *buf,
+							uintptr_t buf,
 							uint32_t no_of_blocks);
 
 uint32_t virtio_block_read(struct virtio_block_device *d,
 							uint32_t lba,
-							uint8_t *buf,
+							uintptr_t buf,
 							uint32_t no_of_blocks);
 #endif

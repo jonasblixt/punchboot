@@ -11,6 +11,7 @@ enum {
     PB_CHECKSUM_ERROR,
     PB_ERR_MEM,
     PB_ERR_IO,
+    PB_ERR_FILE_NOT_FOUND,
 };
 
 #endif

@@ -42,5 +42,4 @@ then
     test_end_error
 fi
 
-
 test_end_ok

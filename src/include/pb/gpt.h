@@ -92,4 +92,9 @@ uint32_t gpt_pb_attr_setbits(struct gpt_part_hdr *part, uint8_t attr);
 uint32_t gpt_pb_attr_clrbits(struct gpt_part_hdr *part, uint8_t attr);
 bool gpt_pb_attr_ok(struct gpt_part_hdr *part);
 uint8_t gpt_pb_attr_counter(struct gpt_part_hdr *part);
+
+uint32_t gpt_has_valid_header(struct gpt_header *hdr);
+
+uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
+                                    struct gpt_part_hdr *part);
 #endif

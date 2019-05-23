@@ -18,7 +18,7 @@ uint32_t test_fuse_init(struct virtio_block_device *dev)
         return PB_ERR;
 
     return virtio_block_read(dev,0,  
-                        (uint8_t *) _fuse_box, 1);
+                        (uintptr_t) _fuse_box, 1);
 }
 
 uint32_t test_fuse_write(struct virtio_block_device *dev,
@@ -32,7 +32,7 @@ uint32_t test_fuse_write(struct virtio_block_device *dev,
     LOG_DBG("_fuse_box[%u] = %x, blkdev: %p",id, _fuse_box[id],
                 dev);
 
-    return virtio_block_write(dev,0,(uint8_t *) _fuse_box, 1);
+    return virtio_block_write(dev,0,(uintptr_t) _fuse_box, 1);
 }
 
 

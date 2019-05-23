@@ -23,7 +23,7 @@ else
 	TIMING_REPORT=0
 endif
 
-CFLAGS   = -Wall -Wextra -std=c99 -Wunused-result -Os
+CFLAGS   = -Wall -Wextra -Wunused-result -Os
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -ffunction-sections 
 CFLAGS  += -fdata-sections 
@@ -110,6 +110,7 @@ OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
 OBJS     += $(BLOB_INPUT:.bin=.bino)
 
 ifeq ($(BOARD),test)
+	CFLAGS += -g
 	include tests/makefile.mk
 endif
 
@@ -127,7 +128,7 @@ all: key_data plat_early $(TARGET).bin board_final plat_final
 	$(info LOGLEVEL:  [${LOGLEVEL}])
 	@echo "VERSION = $(GIT_VERSION)"
 	$(info )
-	@$(SIZE) -x -t -A $(TARGET)
+	@$(SIZE) -x -t -B $(TARGET)
 
 $(TARGET).bin: $(TARGET)
 	@echo OBJCOPY $< $@
@@ -163,7 +164,7 @@ clean: board_clean arch_clean plat_clean
 	@find -name "*.gcda" -exec rm -f {} \;
 
 qemu:
-	@$(QEMU) $(QEMU_FLAGS) -kernel $(TARGET)
+	@$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(TARGET)
 
 .DEFAULT_GOAL := all
 

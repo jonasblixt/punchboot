@@ -31,6 +31,10 @@ uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
     memset (signature,0,PB_IMAGE_SIGN_MAX_SIZE);
 
     FILE *fp = fopen(fn,"rb");
+
+    if (fp == NULL)
+        return PB_ERR_FILE_NOT_FOUND;
+
     int read_sz = fread (cookie_buffer,1,PB_RECOVERY_AUTH_COOKIE_SZ,fp);
 
 
@@ -273,6 +277,11 @@ uint32_t pb_get_gpt_table(struct gpt_primary_tbl *tbl)
     err = pb_write(PB_CMD_GET_GPT_TBL,0,0,0,0, NULL, 0);
 
     if (err)
+        return err;
+
+    err = pb_read_result_code();
+
+    if (err != PB_OK)
         return err;
 
     err = pb_read((uint8_t*) &tbl_sz, 4);

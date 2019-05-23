@@ -12,7 +12,6 @@ start_qemu()
     # This loop will wait until the socket has closed otherwise qemu will
     # hang the test script
 
-
     while true;
     do
         ss -l -x | grep pb_sock > /dev/null 2>&1
@@ -41,14 +40,15 @@ force_recovery_mode_off()
 
 wait_for_qemu_start()
 {
+    sync
     while true;
     do
+        sleep 0.1
         $PB dev -l > /dev/null 2>&1
         if [ $? -eq 0 ];
         then
             break;
         fi
-        sleep 0.01
     done
 }
 
@@ -62,12 +62,13 @@ wait_for_qemu()
         exit -1
     fi
     echo "QEMU exited normally"
+    sync
 }
 
 test_end_error()
 {
     echo ------- ITEST END ERROR: $TEST_NAME ------------------------
-    $PB boot -r 
+    $PB boot -r
     wait_for_qemu
     exit -1
 }

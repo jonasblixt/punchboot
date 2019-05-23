@@ -13,6 +13,7 @@ then
     test_end_error
 fi
 
+
 echo Installing GPT
 # Install GPT partitions
 $PB part -i
@@ -22,9 +23,6 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
-
-sync
-sleep 0.1
 
 echo "Done, listing partitions again"
 

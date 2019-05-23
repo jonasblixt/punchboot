@@ -219,14 +219,18 @@ uint32_t gcov_final(void)
 
         gcov_load_data(info);
 		long fd = semihosting_file_open(info->filename, 6);
-        //LOG_INFO("fn: %s",info->filename);
+
         gcov_write_u32(fd, GCOV_DATA_MAGIC);
         gcov_write_u32(fd, info->version);
         gcov_write_u32(fd, info->stamp);
 
+
 		for (fi_idx = 0; fi_idx < info->n_functions; fi_idx++) 
 		{
+            //LOG_INFO("%i %p",info->n_functions, info->functions);
 			fi_ptr = info->functions[fi_idx];
+            
+            //LOG_INFO("fi_ptr %p",fi_ptr);
 
             gcov_write_u32(fd, GCOV_TAG_FUNCTION);
             gcov_write_u32(fd, GCOV_TAG_FUNCTION_LENGTH);
@@ -242,11 +246,11 @@ uint32_t gcov_final(void)
 	
                 gcov_write_u32(fd, GCOV_TAG_FOR_COUNTER(ct_idx));
                 gcov_write_u32(fd, ci_ptr->num * 2);
-                //LOG_INFO("  fi_ptr->ident: %8.8lX, tag: %8.8X, ci_ptr->num = %u, ct_idx = %u",
-                //            fi_ptr->ident,
-                //            GCOV_TAG_FOR_COUNTER(ct_idx),
-                //            ci_ptr->num,
-                //            ct_idx);
+                /*LOG_INFO("  fi_ptr->ident: %8.8lX, tag: %8.8X, ci_ptr->num = %u, ct_idx = %u",
+                            fi_ptr->ident,
+                            GCOV_TAG_FOR_COUNTER(ct_idx),
+                            ci_ptr->num,
+                            ct_idx);*/
 				for (cv_idx = 0; cv_idx < ci_ptr->num; cv_idx++) 
                 {
                     gcov_write_u64(fd, ci_ptr->values[cv_idx]);

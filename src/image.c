@@ -82,8 +82,11 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
         return PB_ERR;
     }
 
-    plat_read_block(part_lba_offset, (uintptr_t) pbi,
+    err = plat_read_block(part_lba_offset, (uintptr_t) pbi,
                             (sizeof(struct pb_pbi)/512));
+
+    if (err != PB_OK)
+        return err;
 
     err = pb_image_check_header(pbi);
 

@@ -155,6 +155,7 @@ run_recovery:
 
     if (flag_run_recovery)
     {
+        LOG_INFO("Initializing recovery mode");
         err = usb_init();
 		if (err != PB_OK)
 		{

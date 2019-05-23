@@ -327,6 +327,29 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_GET_GPT_TBL:
         {
+            err = PB_OK;
+
+            if (gpt == NULL)
+            {
+                err = PB_ERR;
+                goto recovery_error_out;
+            }
+
+            if (gpt_has_valid_header(&gpt->primary.hdr) != PB_OK)
+            {
+                err = PB_ERR;
+                goto recovery_error_out;
+            }
+
+            if (gpt_has_valid_part_array(&gpt->primary.hdr, 
+                                        gpt->primary.part) != PB_OK)
+            {
+                err = PB_ERR;
+                goto recovery_error_out;
+            }
+
+            recovery_send_result_code(dev, err);
+
             err = recovery_send_response(dev,(uint8_t*) &gpt->primary,
                                         sizeof (struct gpt_primary_tbl));
         }
@@ -422,7 +445,10 @@ static void recovery_parse_command(struct usb_device *dev,
             }
 
             if (err != PB_OK)
+            {
+                LOG_ERR("Could not load image");
                 break;
+            }
 
             if (pb_image_verify(&pbi, (const char *)hash_buffer) == PB_OK)
             {
@@ -442,10 +468,11 @@ static void recovery_parse_command(struct usb_device *dev,
 
             err = pb_image_check_header(&pbi);
 
-            recovery_send_result_code(dev, err);
-
             if (err != PB_OK)
                 break;
+
+            recovery_send_result_code(dev, err);
+
 
             for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++)
             {

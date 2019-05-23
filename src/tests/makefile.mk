@@ -40,14 +40,14 @@ QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m 1024
 QEMU_FLAGS += -nographic -semihosting
 # Virtio serial port
 QEMU_FLAGS += -device virtio-serial-device
-QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,reconnect=1,id=pb_serial
+QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,id=pb_serial
 QEMU_FLAGS += -device virtserialport,chardev=pb_serial
 # Virtio Main disk
 QEMU_FLAGS += -device virtio-blk-device,drive=disk
-QEMU_FLAGS += -drive id=disk,file=/tmp/disk,if=none,cache=directsync,format=raw
+QEMU_FLAGS += -drive id=disk,file=/tmp/disk,if=none,format=raw
 # Virtio Aux disk, for bootloader and fuses
 QEMU_FLAGS += -device virtio-blk-device,drive=disk_aux
-QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,if=none,cache=directsync,format=raw
+QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,if=none,format=raw
 
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/test/pl061.c
@@ -81,7 +81,6 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
 	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
 	@make -C tools/pbimage CROSS_COMPILE="" CODE_COV=1
-	@rm -f test_log.txt
 	@sync
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
@@ -100,3 +99,7 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@echo
 	@echo "*** ALL $(words ${TESTS} ${INTEGRATION_TESTS}) TESTS PASSED ***"
 
+debug_test: $(ARCH_OBJS) $(TEST_OBJS)
+	@echo "Debugging test $(TEST)"
+	@QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS) $(QEMU_AUX_FLAGS)" TEST_NAME="$(TEST)" \
+			tests/$(TEST).sh 

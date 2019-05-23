@@ -26,7 +26,7 @@ USB_PID ?= 0x2019
 USB_VID ?= 0x1209
 
 CFLAGS  += -Wall -O2 -I ../../include/
-CFLAGS  += -I. -I include/  -I ../../ -std=c99
+CFLAGS  += -I. -I include/  -I ../../ 
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += -DPB_USB_VID=$(USB_VID) -DPB_USB_PID=$(USB_PID)
 CFLAGS  += $(shell $(PKG_CONFIG) --cflags libusb-1.0 uuid)

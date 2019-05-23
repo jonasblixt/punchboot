@@ -157,7 +157,7 @@ uint32_t gpt_add_part(struct gpt *gpt, uint8_t part_idx, uint32_t no_of_blocks,
     return PB_OK;
 }
 
-static uint32_t gpt_has_valid_header(struct gpt_header *hdr)
+uint32_t gpt_has_valid_header(struct gpt_header *hdr)
 {
 
     if (hdr->signature != __gpt_header_signature)
@@ -176,10 +176,12 @@ static uint32_t gpt_has_valid_header(struct gpt_header *hdr)
         return PB_ERR;
     }
 
+    hdr->hdr_crc = crc_tmp;
+
     return PB_OK;
 }
 
-static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
+uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
                                     struct gpt_part_hdr *part)
 {
     uint32_t crc_tmp = 0;
@@ -214,6 +216,9 @@ static uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
         LOG_ERR ("Partition array CRC error");
         return PB_ERR;
     }
+
+
+    hdr->part_array_crc = crc_tmp;
 
     return PB_OK;
 }
@@ -317,17 +322,11 @@ uint32_t gpt_write_tbl(struct gpt *gpt)
     LOG_INFO("Writing backup GPT tbl to LBA %llu",
                         gpt->backup.hdr.entries_start_lba);
 
-    err = plat_write_block(gpt->backup.hdr.entries_start_lba,
+    err =  plat_write_block(gpt->backup.hdr.entries_start_lba,
                             (uintptr_t) &gpt->backup,
-                            (sizeof(struct gpt_backup_tbl) / 512));
+                            (sizeof(gpt->backup) / 512));
 
-    if (err != PB_OK)
-    {
-        LOG_ERR ("Error writing backup GPT table");
-        return PB_ERR;
-    }
-
-    return PB_OK;
+    return err;
 }
 
 
@@ -335,7 +334,6 @@ uint32_t gpt_write_tbl(struct gpt *gpt)
 uint32_t gpt_init(struct gpt *gpt)
 {
 
-    LOG_DBG("GPT ptr %p", gpt);
     plat_read_block(1,(uintptr_t) &gpt->primary,
                     sizeof(gpt->primary) / 512);
 
