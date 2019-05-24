@@ -158,10 +158,12 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
 
+
     plat_flush_block();
 
     return plat_write_block_async(part_lba_offset + lba_offset,
                                 (uintptr_t) bfr, no_of_blocks);
+
 }
 
 static uint32_t recovery_send_response(struct usb_device *dev,
@@ -299,6 +301,7 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_FLASH_BOOTLOADER:
         {
+            plat_flush_block();
             LOG_INFO ("Flash BL %u",cmd->arg0);
             recovery_flash_bootloader(recovery_bulk_buffer[0],
                         cmd->arg0);
@@ -358,6 +361,8 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             struct gpt_part_hdr *part_sys_a, *part_sys_b;
 
+            plat_flush_block();
+
             gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &part_sys_a);
             gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_B, &part_sys_b);
 
@@ -409,6 +414,8 @@ static void recovery_parse_command(struct usb_device *dev,
         case PB_CMD_BOOT_PART:
         {
             struct gpt_part_hdr *boot_part_a, *boot_part_b;
+
+            plat_flush_block();
 
             err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &boot_part_a);
 
