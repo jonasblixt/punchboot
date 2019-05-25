@@ -27,5 +27,3 @@ board_clean:
 	@-rm -rf board/bebop/*.o 
 	@-rm -rf *.imx
 
-prog:
-	@$(IMX_USB) $(TARGET).imx

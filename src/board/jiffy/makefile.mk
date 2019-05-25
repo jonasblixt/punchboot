@@ -26,5 +26,3 @@ board_clean:
 	@-rm -rf board/jiffy/*.o 
 	@-rm -rf *.imx
 
-prog:
-	@$(IMX_USB) $(TARGET).imx
