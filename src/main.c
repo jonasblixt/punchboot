@@ -17,13 +17,14 @@
 #include <crypto.h>
 #include <boot.h>
 #include <timing_report.h>
+#include <state.h>
 
 
 static __no_bss __a4k struct pb_pbi pbi;
 static __no_bss __a4k struct gpt gpt;
 static char hash_buffer[PB_HASH_BUF_SZ];
 
-void pb_main(void) 
+void pb_main(void)
 {
     uint32_t err = 0;
     uint32_t active_system;
@@ -95,8 +96,8 @@ void pb_main(void)
     else if (!gpt_pb_attr_ok(part)) /* Boot counter expired, rollback to other part */
     {
         LOG_ERR("System is not bootable, performing rollback");
-        /* Indicate that this system failed by setting 
-         * the rollback bit 
+        /* Indicate that this system failed by setting
+         * the rollback bit
          * */
         gpt_pb_attr_setbits(part, PB_GPT_ATTR_ROLLBACK);
         gpt_part_set_bootable(part, false);
@@ -142,8 +143,8 @@ void pb_main(void)
     {
         LOG_INFO("Image verified, booting...");
         pb_boot(&pbi, active_system,false);
-    } 
-    else 
+    }
+    else
     {
         LOG_ERR("Could not boot image, entering recovery mode...");
         flag_run_recovery = true;
@@ -173,7 +174,7 @@ run_recovery:
             uint32_t recovery_timeout_counter = plat_get_us_tick() -
                                                         recovery_timeout_ts;
 
-            if (!usb_has_enumerated() && 
+            if (!usb_has_enumerated() &&
                           (recovery_timeout_counter > PB_RECOVERY_TIMEOUT_US))
             {
                 LOG_INFO("Recovery timeout, rebooting...");
@@ -181,7 +182,7 @@ run_recovery:
             }
 
         }
-    } 
-    
+    }
+
     plat_reset();
 }
