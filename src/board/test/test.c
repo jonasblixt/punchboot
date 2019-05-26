@@ -39,6 +39,8 @@ const struct partition_table pb_partition_table[] =
 {
     PB_GPT_ENTRY(1024, PB_PARTUUID_SYSTEM_A, "System A"),
     PB_GPT_ENTRY(1024, PB_PARTUUID_SYSTEM_B, "System B"),
+    PB_GPT_ENTRY(1, PB_PARTUUID_CONFIG_PRIMARY, "Config Primary"),
+    PB_GPT_ENTRY(1, PB_PARTUUID_CONFIG_BACKUP, "Config Backup"),
     PB_GPT_END,
 };
 

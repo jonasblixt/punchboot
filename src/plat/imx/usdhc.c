@@ -225,6 +225,8 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
     uint32_t cmd = 0;
     uint8_t *buf_ptr = bfr;
 
+    LOG_DBG("start_lba %u, nblocks %u wr %u",start_lba, nblocks,wr);
+
     do {
         transfer_sz = remaining_sz > 0xFE00?0xFE00:remaining_sz;
         remaining_sz -= transfer_sz;

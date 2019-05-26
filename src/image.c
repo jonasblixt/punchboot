@@ -82,7 +82,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
         return PB_ERR;
     }
 
-    LOG_DBG( "LBA: %lu, pbi %p", part_lba_offset, pbi);
+    LOG_DBG( "LBA: %u, pbi %p", part_lba_offset, pbi);
 
     err = plat_read_block(part_lba_offset, (uintptr_t) pbi,
                             (sizeof(struct pb_pbi)/512));

@@ -13,8 +13,7 @@
 #include <plat/test/virtio_block.h>
 #include <plat/test/virtio_queue.h>
 
-static struct virtio_blk_req r;
-static uint8_t status;
+static __a16b uint8_t status;
 
 uint32_t virtio_block_init(struct virtio_block_device *d)
 {
@@ -50,7 +49,7 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 							uintptr_t buf,
 							uint32_t no_of_blocks)
 {
-
+    struct virtio_blk_req r;
     status = VIRTIO_BLK_S_UNSUPP;
 
 	r.type = VIRTIO_BLK_T_OUT;
@@ -98,6 +97,7 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 							uintptr_t buf,
 							uint32_t no_of_blocks)
 {
+    struct virtio_blk_req r;
     status = VIRTIO_BLK_S_UNSUPP;
 	struct virtq *q = &d->q;
     uint16_t idx = (q->avail->idx % q->num);
@@ -130,9 +130,11 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 
+    //LOG_DBG("q->avail->idx = %u, q->used->idx = %u",q->avail->idx,q->used->idx);
 	while( (q->avail->idx) != (q->used->idx) )
 		__asm__ volatile ("nop");	
 
+    //LOG_DBG("q->avail->idx = %u, q->used->idx = %u",q->avail->idx,q->used->idx);
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;
 	

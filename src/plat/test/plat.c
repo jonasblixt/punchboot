@@ -276,6 +276,7 @@ uint32_t  plat_read_block( uint32_t lba_offset,
                                 uintptr_t bfr, 
                                 uint32_t no_of_blocks)
 {
+    LOG_DBG("Reading %lu blocks",no_of_blocks);
     return virtio_block_read(blk, (blk_off+lba_offset), bfr, 
                                 no_of_blocks);
 }

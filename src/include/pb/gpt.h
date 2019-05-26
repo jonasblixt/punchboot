@@ -86,12 +86,15 @@ uint32_t gpt_add_part(struct gpt *gpt, uint8_t part_idx, uint32_t no_of_blocks,
                                         const char *type_uuid, 
                                         const char *part_name);
 
+
 bool gpt_part_is_bootable(struct gpt_part_hdr *part);
 uint32_t gpt_part_set_bootable(struct gpt_part_hdr *part, bool bootable);
 uint32_t gpt_pb_attr_setbits(struct gpt_part_hdr *part, uint8_t attr);
 uint32_t gpt_pb_attr_clrbits(struct gpt_part_hdr *part, uint8_t attr);
-bool gpt_pb_attr_ok(struct gpt_part_hdr *part);
-uint8_t gpt_pb_attr_counter(struct gpt_part_hdr *part);
+//bool gpt_pb_attr_ok(struct gpt_part_hdr *part);
+//uint8_t gpt_pb_attr_counter(struct gpt_part_hdr *part);
+
+
 
 uint32_t gpt_has_valid_header(struct gpt_header *hdr);
 

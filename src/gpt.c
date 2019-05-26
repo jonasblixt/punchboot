@@ -407,21 +407,6 @@ uint32_t gpt_pb_attr_clrbits(struct gpt_part_hdr *part, uint8_t attr)
     return PB_OK;
 }
 
-bool gpt_pb_attr_ok(struct gpt_part_hdr *part)
-{
-    if (part == NULL)
-        return false;
-
-    return ((part->attr[6] & PB_GPT_ATTR_OK) == PB_GPT_ATTR_OK);
-}
-
-uint8_t gpt_pb_attr_counter(struct gpt_part_hdr *part)
-{
-    if (part == NULL)
-        return 0;
-    return (part->attr[6] & 0x0f);
-}
-
 uint32_t gpt_part_set_bootable(struct gpt_part_hdr *part, bool bootable)
 {
     if(part == NULL)

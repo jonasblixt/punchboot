@@ -12,7 +12,6 @@
 cov-int
 blobs
 cscope*
-src/pb
 src/test_*
 src/head.hash
 src/test_log.txt

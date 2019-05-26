@@ -32,13 +32,16 @@ fi
 
 # Setup rollback GPT parameters
 
-$PB dev -i -y -f tests/test_rollback.pbp
-result_code=$?
+#$PB dev -i -y -f tests/test_rollback.pbp
+#result_code=$?
 
-if [ $result_code -ne 0 ];
-then
-    test_end_error
-fi
+#if [ $result_code -ne 0 ];
+#then
+#   test_end_error
+#fi
+
+$PBCONFIG -d /tmp/disk -o 0x824 -b 0x826 -v b
+$PBCONFIG -d /tmp/disk -o 0x824 -b 0x826 -s a -c 3
 
 # Reset
 force_recovery_mode_off

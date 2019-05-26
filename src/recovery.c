@@ -21,6 +21,7 @@
 #include <string.h>
 #include <boot.h>
 #include <board/config.h>
+#include <config.h>
 #include <plat/defs.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
@@ -152,7 +153,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
 
-    if ( (lba_offset + no_of_blocks) > gpt_get_part_last_lba(gpt,part_no))
+    if ( (lba_offset + no_of_blocks) >= gpt_get_part_last_lba(gpt,part_no))
     {
         LOG_ERR ("Trying to write outside of partition");
         return PB_ERR;
@@ -368,28 +369,30 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (cmd->arg0 == SYSTEM_NONE)
             {
-                gpt_part_set_bootable(part_sys_a, false);
-                gpt_part_set_bootable(part_sys_b, false);
+                config_system_enable(SYSTEM_A, false);
+                config_system_enable(SYSTEM_B, false);
             }
             else if (cmd->arg0 == SYSTEM_A)
             {
                 LOG_INFO("Activating System A");
-                gpt_part_set_bootable(part_sys_a, true);
-                gpt_part_set_bootable(part_sys_b, false);
+                config_system_enable(SYSTEM_A, true);
+                config_system_set_verified(SYSTEM_A, true);
+                config_system_enable(SYSTEM_B, false);
             }
             else if (cmd->arg0 == SYSTEM_B)
             {
                 LOG_INFO("Activating System B");
-                gpt_part_set_bootable(part_sys_a, false);
-                gpt_part_set_bootable(part_sys_b, true);
+                config_system_enable(SYSTEM_A, false);
+                config_system_set_verified(SYSTEM_B, true);
+                config_system_enable(SYSTEM_B, true);
             }
             else
             {
                 err = PB_ERR;
                 goto recovery_error_out;
             }
-
-            err = gpt_write_tbl(gpt);
+            
+            err = config_commit();
         }
         break;
         case PB_CMD_WRITE_PART:

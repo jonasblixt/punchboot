@@ -52,6 +52,7 @@ BLOB_INPUT  =
 
 C_SRCS   = recovery.c
 C_SRCS  += delay.c
+C_SRCS  += config.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c
 C_SRCS  += crypto.c

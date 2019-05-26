@@ -80,6 +80,7 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
 	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
 	@make -C tools/pbimage CROSS_COMPILE="" CODE_COV=1
+	@make -C tools/pbconfig CROSS_COMPILE="" CODE_COV=1
 	@sync
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c && \

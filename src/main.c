@@ -17,7 +17,7 @@
 #include <crypto.h>
 #include <boot.h>
 #include <timing_report.h>
-#include <state.h>
+#include <pb/config.h>
 
 
 static __no_bss __a4k struct pb_pbi pbi;
@@ -51,22 +51,33 @@ void pb_main(void)
 
     tr_stamp_end(TR_BLINIT);
 
+    /* Load system partition headers */
+
     if (gpt_get_part_by_uuid(&gpt, PB_PARTUUID_SYSTEM_A, &part_system_a) != PB_OK)
+    {
+        LOG_ERR ("Could not find system A");
         flag_run_recovery = true;
+    }
 
     if (gpt_get_part_by_uuid(&gpt, PB_PARTUUID_SYSTEM_B, &part_system_b) != PB_OK)
+    {
+        LOG_ERR ("Could not find system B");
+        flag_run_recovery = true;
+    }
+
+    if (config_init(&gpt) != PB_OK)
         flag_run_recovery = true;
 
     if (flag_run_recovery)
         goto run_recovery;
 
-    if (gpt_part_is_bootable(part_system_a))
+    if (config_system_enabled(SYSTEM_A))
     {
         LOG_INFO("Loading System A");
         part = part_system_a;
         active_system = SYSTEM_A;
     }
-    else if (gpt_part_is_bootable(part_system_b))
+    else if (config_system_enabled(SYSTEM_B))
     {
         LOG_INFO("Loading System B");
         part = part_system_b;
@@ -80,52 +91,55 @@ void pb_main(void)
         goto run_recovery;
     }
 
-    uint32_t count = gpt_pb_attr_counter(part);
+    uint32_t count = config_get_boot_counter(active_system);
 
     /* Newly upgraded system? */
-    if (!gpt_pb_attr_ok(part) && (count> 0))
+    if (!config_system_verified(active_system) && (count> 0))
     {
         /* Decrement boot counter */
         count--;
-        gpt_pb_attr_clrbits(part, 0x0f);
-        gpt_pb_attr_setbits(part, count);
-
-        gpt_write_tbl(&gpt);
+        config_set_boot_counter(active_system, count);
+        config_commit();
         LOG_DBG("Current boot counter: %u", count);
     }
-    else if (!gpt_pb_attr_ok(part)) /* Boot counter expired, rollback to other part */
+    else if (!config_system_verified(active_system)) /* Boot counter expired, rollback to other part */
     {
         LOG_ERR("System is not bootable, performing rollback");
         /* Indicate that this system failed by setting
          * the rollback bit
          * */
-        gpt_pb_attr_setbits(part, PB_GPT_ATTR_ROLLBACK);
-        gpt_part_set_bootable(part, false);
+
 
         if (active_system == SYSTEM_A)
         {
             part = part_system_b;
             active_system = SYSTEM_B;
+            config_system_enable(SYSTEM_B, true);
+            config_system_enable(SYSTEM_A, false);
+            config_set_boot_error_bits(SYSTEM_A, PB_CONFIG_BOOT_ROLLBACK_ERR);
         }
         else
         {
             part = part_system_a;
             active_system = SYSTEM_A;
+            config_system_enable(SYSTEM_B, false);
+            config_system_enable(SYSTEM_A, true);
+            config_set_boot_error_bits(SYSTEM_B, PB_CONFIG_BOOT_ROLLBACK_ERR);
         }
+
+        config_commit();
 
         /* In the unlikely event that the other system is also broken,
          * start recovery mode
          * */
 
-        if (!gpt_pb_attr_ok(part))
+        if (!config_system_verified(active_system))
         {
             LOG_ERR("Other system is also broken, starting recovery");
             flag_run_recovery = true;
             goto run_recovery;
         }
 
-        gpt_part_set_bootable(part, true);
-        gpt_write_tbl(&gpt);
     }
 
     err = pb_image_load_from_fs(part->first_lba, &pbi, hash_buffer);

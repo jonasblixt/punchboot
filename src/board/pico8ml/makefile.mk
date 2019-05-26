@@ -11,7 +11,6 @@ BOARD_C_SRCS += board/pico8ml/helper.c
 BOARD_C_SRCS += boot/atf_linux.c
 
 MKIMAGE         ?= mkimage_imx8_imx8m
-IMX_USB         ?= imx_usb
 FINAL_IMAGE     = $(TARGET).imx
 
 KEYS  = ../pki/secp256r1-pub-key.der
