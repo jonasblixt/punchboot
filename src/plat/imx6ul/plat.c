@@ -317,6 +317,7 @@ uint32_t  plat_usb_init(struct usb_device *dev)
     uint32_t reg;
 
     dev->platform_data = (void *) &plat.usb0;
+    
     /* Enable USB PLL */
     reg = pb_read32(0x020C8000+0x10);
     reg |= (1<<6);

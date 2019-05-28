@@ -96,7 +96,7 @@ static void gcov_update_counter(struct gcov_info *info,
 
 }
 
-static uint32_t gcov_load_data(struct gcov_info *info)
+static void gcov_load_data(struct gcov_info *info)
 {
 	unsigned int ct_idx;
     uint32_t dummy;
@@ -105,7 +105,7 @@ static uint32_t gcov_load_data(struct gcov_info *info)
 
     if (fd < 0)
     {
-        return ;
+        return;
     }
     //LOG_INFO ("fn: %s",info->filename);
 
@@ -159,8 +159,6 @@ static uint32_t gcov_load_data(struct gcov_info *info)
         }
     }
 
-    
-    //LOG_INFO(" OK");
 gcov_init_err:
 
     semihosting_file_close(fd);

@@ -238,17 +238,18 @@ void ehci_usb_task(struct usb_device *dev)
     /* EP0 Process setup packets */
     if  (pb_read32(ehci->base+EHCI_ENDPTSETUPSTAT) & 1)
     {
-
         uint32_t cmd_reg = pb_read32(ehci->base+EHCI_CMD);
         struct ehci_queue_head *qh = ehci_get_queue(USB_EP0_OUT);
 
-        do {
+        do
+        {
             pb_write32(cmd_reg | (1 << 13), ehci->base + EHCI_CMD);
             memcpy(&setup_pkt, qh->setup, sizeof(struct usb_setup_packet));
-        } while (! (pb_read32(ehci->base + EHCI_CMD) & (1<<13)));
-       
+        }
+        while (! (pb_read32(ehci->base + EHCI_CMD) & (1<<13)));
+    
         pb_write32(1, ehci->base + EHCI_ENDPTSETUPSTAT);
-        
+
         cmd_reg = pb_read32(ehci->base + EHCI_CMD);
         pb_write32(cmd_reg & ~(1 << 13), ehci->base + EHCI_CMD);
 
@@ -258,6 +259,7 @@ void ehci_usb_task(struct usb_device *dev)
             __asm__("nop");
 
         dev->on_setup_pkt(dev, &setup_pkt);
+        LOG_DBG("on_setup_pkt returned");
     }
 
     /* EP2 INTR OUT */

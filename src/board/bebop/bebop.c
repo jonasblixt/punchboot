@@ -46,7 +46,8 @@ const struct partition_table pb_partition_table[] =
     PB_GPT_ENTRY(62768, PB_PARTUUID_SYSTEM_B, "System B"),
     PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_A, "Root A"),
     PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_B, "Root B"),
-
+    PB_GPT_ENTRY(1, PB_PARTUUID_CONFIG_PRIMARY, "Config Primary"),
+    PB_GPT_ENTRY(1, PB_PARTUUID_CONFIG_BACKUP, "Config Backup"),
     PB_GPT_END,
 };
 
@@ -92,6 +93,13 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     pb_write32(1, 0x020E0000+0x1B4); /* DATA7 MUX */
     pb_write32(1, 0x020E0000+0x1A4); /* RESET MUX */
 
+    /* Enable USB PLL */
+    pb_setbit32(1<<6, 0x020c8010);
+
+    /* Power up USB */
+    pb_setbit32( (1 << 31) | (1 << 30), 0x020c9038);
+    pb_write32(0xFFFFFFFF, 0x020C9008);
+
     return PB_OK;
 }
 
@@ -103,6 +111,12 @@ bool board_force_recovery(struct pb_platform_setup *plat)
     /* Check force recovery input switch */
     if ( (pb_read32(0x0209C008) & (1 << 21)) == 0)
         force_recovery = true;
+
+    /* Connected to a charging port? enter recovery */
+    if ((pb_read32(0x020c8000 + 0x1d0) & 0x02) == 0x02)
+        force_recovery = true;
+
+        
     return force_recovery;
 }
 
