@@ -234,6 +234,18 @@ uint32_t  plat_early_init(void)
 	sc_pm_set_resource_power_mode(plat.ipc_handle, 
                                 SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
 
+
+	sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_USB_0, SC_PM_PW_MODE_ON);
+	sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
+
+    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
+
+    /* Enable USB PLL */
+    pb_write32(0x00E03040, 0x5B100000+0xa0);
+
+    /* Power up USB */
+    pb_write32(0x00, 0x5B100000);
+
     plat.caam.base = 0x31430000;
     err = caam_init(&plat.caam);
 
@@ -303,21 +315,7 @@ uint32_t  plat_usb_init(struct usb_device *dev)
 {
 
     dev->platform_data = (void *) &plat.usb;
-    uint32_t ts = plat_get_us_tick();
-	sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_USB_0, SC_PM_PW_MODE_ON);
-	sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
 
-    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
-
-    /* Enable USB PLL */
-    pb_write32(0x00E03040, 0x5B100000+0xa0);
-
-    /* Power up USB */
-    pb_write32(0x00, 0x5B100000);
-
-    ts = plat_get_us_tick() - ts;
-    LOG_DBG("USB init: %u us", ts);
-    LOG_DBG("usb pll: 0x%x",pb_read32(0x5B100000+0xa0));
     return ehci_usb_init(dev);
 }
 

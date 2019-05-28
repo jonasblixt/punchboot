@@ -13,7 +13,7 @@
 #include <plat/test/virtio_block.h>
 #include <plat/test/virtio_queue.h>
 
-static __a16b uint8_t status;
+static volatile __a16b uint8_t status;
 
 uint32_t virtio_block_init(struct virtio_block_device *d)
 {
@@ -23,7 +23,7 @@ uint32_t virtio_block_init(struct virtio_block_device *d)
 
     LOG_DBG("VIRTIO %p",&d->dev);
 	d->config = (struct virtio_blk_config *) (d->dev.base + 0x100);
-		
+
 
 	d->config->blk_size = 512;
 	d->config->writeback = 0;
@@ -38,7 +38,7 @@ uint32_t virtio_block_init(struct virtio_block_device *d)
 
     virtio_init_queue(d->_q_data, 1024, &d->q);
     virtio_mmio_init_queue(&d->dev, &d->q, 0, 1024);
- 
+
 	virtio_mmio_driver_ok(&d->dev);
 
     return PB_OK;
@@ -81,12 +81,14 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
 
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 
+    LOG_DBG("q->avail->idx = %u, q->used->idx = %u",q->avail->idx,q->used->idx);
     while( ((q->avail->idx) != (q->used->idx)) )
 		__asm__ volatile("nop");
 
+    LOG_DBG("q->avail->idx = %u, q->used->idx = %u",q->avail->idx,q->used->idx);
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;
-	
+
 	LOG_ERR("Failed, lba=%u, no_of_blocks=%u",lba,no_of_blocks);
 	return PB_ERR;
 }
@@ -130,14 +132,14 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
 
 	virtio_mmio_notify_queue(&d->dev, &d->q);
 
-    //LOG_DBG("q->avail->idx = %u, q->used->idx = %u",q->avail->idx,q->used->idx);
+    LOG_DBG("q->avail->idx = %u, q->used->idx = %u",q->avail->idx,q->used->idx);
 	while( (q->avail->idx) != (q->used->idx) )
-		__asm__ volatile ("nop");	
-
-    //LOG_DBG("q->avail->idx = %u, q->used->idx = %u",q->avail->idx,q->used->idx);
+		__asm__ volatile ("nop");
+    LOG_DBG("status = %u",status);
+    LOG_DBG("q->avail->idx = %u, q->used->idx = %u",q->avail->idx,q->used->idx);
 	if (status == VIRTIO_BLK_S_OK)
 		return PB_OK;
-	
+
 	LOG_ERR("Failed, lba=%u, no_of_blocks=%u",lba,no_of_blocks);
 	return PB_ERR;
 }

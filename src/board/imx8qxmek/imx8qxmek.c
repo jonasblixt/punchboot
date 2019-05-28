@@ -175,13 +175,25 @@ bool board_force_recovery(struct pb_platform_setup *plat)
 {
     sc_bool_t btn_status;
     sc_misc_bt_t boot_type;
+    bool usb_charger_detected = false;
 
     sc_misc_get_button_status(plat->ipc_handle, &btn_status);
     sc_misc_get_boot_type(plat->ipc_handle, &boot_type);
 
     LOG_INFO("Boot type: %u", boot_type);
 
-    return (btn_status == 1) || (boot_type == SC_MISC_BT_SERIAL);
+    /* Pull up DP for usb charger detection */
+    pb_setbit32(1 << 2, 0x5b100000+0xe0);
+    //LOG_DBG ("USB CHRG detect: 0x%08x",pb_read32(0x5B100000+0xf0));
+    plat_delay_ms(1);
+    if ((pb_read32(0x5b100000+0xf0) & 0x0C) == 0x0C)
+        usb_charger_detected = true;
+    pb_clrbit32(1 << 2, 0x5b100000+0xe0);
+    
+    if (usb_charger_detected)
+        LOG_INFO("USB Charger condition, entering bootloader");
+    return (btn_status == 1) || (boot_type == SC_MISC_BT_SERIAL) ||
+            (usb_charger_detected);
 }
 
 
