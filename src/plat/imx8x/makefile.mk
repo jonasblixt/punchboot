@@ -17,6 +17,8 @@ MKIMAGE ?= $(shell which mkimage_imx8)
 SRK_TBL  ?= ../pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin
 CSFK_PEM ?= ../pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem
 SRK_FUSE_BIN ?= ../pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin
+AHAB_CONTAINER ?= mx8qx-ahab-container.img
+SCFW_BIN ?= scfw_tcm.bin
 
 PB_CSF_TEMPLATE = plat/imx8x/pb.csf.template
 SED = $(shell which sed)
@@ -49,8 +51,8 @@ plat_final:
 	@cat pb.bin head.hash > pb_hash.bin
 	@$(MKIMAGE) -soc QX -rev B0 \
 				  -e emmc_fast \
-				  -append mx8qx-ahab-container.img \
-				  -c -scfw scfw_tcm.bin \
+				  -append $(AHAB_CONTAINER) \
+				  -c -scfw $(SCFW_BIN) \
 				  -ap pb_hash.bin a35 0x80000000 \
 				  -out pb.imx
 	@cp $(PB_CSF_TEMPLATE) pb.csf
