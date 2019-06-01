@@ -73,9 +73,9 @@ struct virtq_used {
 struct virtq {
     unsigned int num;
     uint32_t queue_index;
-    struct virtq_desc *desc;
-    struct virtq_avail *avail;
-    struct virtq_used *used;
+    __attribute__ ((aligned(16))) struct virtq_desc *desc;
+    __attribute__ ((aligned(2))) struct virtq_avail *avail;
+    __attribute__ ((aligned(4))) struct virtq_used *used;
 };
 
 #define VIRTIO_QUEUE_SZ(n) (16*n + 4 + 2*n + 4 + 8*n)
