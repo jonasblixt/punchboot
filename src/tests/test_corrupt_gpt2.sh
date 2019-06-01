@@ -15,7 +15,7 @@ fi
 # After a reboot, bootloader should have recovered from backup GPT tables
 sync
 echo Checking partitions
-sfdisk -V /tmp/disk | grep "No errors detected"
+sgdisk -V /tmp/disk
 result_code=$?
 
 if [ $result_code -ne 0 ];

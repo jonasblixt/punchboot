@@ -15,7 +15,7 @@ fi
 # First make sure that the current image is OK
 echo Checking disk
 sync
-sgdisk -v /tmp/disk
+sgdisk -v /tmp/disk | grep "No problems found"
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -31,10 +31,10 @@ echo
 dd if=/dev/urandom of=/tmp/disk conv=notrunc bs=512 count=64
 sync
 
-sfdisk -V /tmp/disk | grep "No errors detected"
+sgdisk -v /tmp/disk
 result_code=$?
 
-if [ $result_code -ne 1 ];
+if [ $result_code -ne 2 ];
 then
     echo
     echo "Disk reported OK but should have failed"
