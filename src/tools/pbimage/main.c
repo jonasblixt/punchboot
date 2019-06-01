@@ -13,13 +13,13 @@
 #include "3pp/ini.h"
 #include "pbimage.h"
 
-static void pbimage_print_help(void) 
+static void pbimage_print_help(void)
 {
     printf ("pbimage:\n\n");
     printf ("  pbimage <config file>\n");
 }
 
-int main (int argc, char **argv) 
+int main (int argc, char **argv)
 {
     void *memctx = NULL;
     int size = -1;
@@ -29,16 +29,16 @@ int main (int argc, char **argv)
 
     printf ("pbimage version %s\n\n", VERSION);
 
-    if (argc <= 1) 
+    if (argc <= 1)
     {
         pbimage_print_help();
         exit(0);
     }
 
-    
+
     /* Load configuration file */
     FILE* fp = fopen(argv[1], "r" );
-    
+
     if (fp == NULL)
     {
         printf ("Error: could not read %s\n",argv[1]);
@@ -78,7 +78,7 @@ int main (int argc, char **argv)
     do
     {
         section_name = ini_section_name(ini, n);
-        
+
         if (section_name)
         {
 
@@ -91,7 +91,7 @@ int main (int argc, char **argv)
                 if (index >= 0)
                 {
                     value = ini_property_value(ini,n,index);
-                    key_index = atoi(value);
+                    key_index = strtol(value, NULL, 0);
                 }
                 else
                 {
@@ -198,10 +198,10 @@ int main (int argc, char **argv)
         return -1;
     }
 
-    err = pbimage_prepare(key_index, hash_kind, sign_kind, 
+    err = pbimage_prepare(key_index, hash_kind, sign_kind,
                             key_source, pkcs11_provider,
                             pkcs11_key_id, output_fn);
-    
+
     if (err != PB_OK)
     {
         printf ("Could not create image, error %u\n", err);
@@ -213,11 +213,11 @@ int main (int argc, char **argv)
     const char *comp_type;
     const char *comp_file_fn;
     uint32_t comp_load_addr;
-    
+
     do
     {
         section_name = ini_section_name(ini, n);
-        
+
         if (section_name)
         {
 
@@ -251,7 +251,7 @@ int main (int argc, char **argv)
                     else
                     {
                         error_count++;
-                    }  
+                    }
                 }
                 else
                 {
@@ -279,7 +279,7 @@ int main (int argc, char **argv)
                     printf (" source file '%s'\n",comp_file_fn);
 
                     err = pbimage_append_component(comp_type,
-                                                   comp_load_addr, 
+                                                   comp_load_addr,
                                                    comp_file_fn);
 
                     if (err != PB_OK)
@@ -287,14 +287,14 @@ int main (int argc, char **argv)
                         printf ("Error: could not append component (%u)\n",err);
                         return err;
                     }
-                } 
+                }
                 else
                 {
                     printf ("Error could not read component information\n");
                     return -1;
                 }
             }
-        }       
+        }
         n++;
 
     } while (section_name);
@@ -310,7 +310,7 @@ int main (int argc, char **argv)
     stat(output_fn, &finfo);
 
     printf ("Done, created '%s', %lu kBytes\n",output_fn,finfo.st_size/1024);
-    
+
     ini_destroy( ini );
 
     pbimage_cleanup();
