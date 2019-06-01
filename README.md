@@ -150,20 +150,8 @@ To support a robust way of upgrading the system the simplest way is to have two 
 of the system software; System A and System B. When system A is active System B can be
 reprogrammed and activated only when it is verified. This is known as "Atomic Upgrade"
 
-Punchboot uses the 'bootable' attribute in the GPT partition header to indicate
-which partion is bootable or not. 
-
-### GPT header attributes used by punchboot 
-
-Punchboot uses type-specific attributes in the GPT parition header to control the boot flow. GPT is currently the only supported partition format. This might change in the future to allow for simpler boot media.
-
-| Bit     | Name                 | Description                                        |
-| ------- | -------------------- | -------------------------------------------------- |
-| 55      | PB_GPT_ATTR_OK       | Partition is as bootable and PB will try to use it |
-| 54      | PB_GPT_ATTR_ROLLBACK | Error bit indicating that this partition could not be used |
-| 53      | PB_GPT_ATTR_RFU1     | Reserved for future use |
-| 52      | PB_GPT_ATTR_RFU2     | Reserved for future use |
-| 51 - 48 | PB_GPT_ATTR_COUNTER  | Boot counter, used when upgrading to indicate how many boot tries are remaining for this partition |
+Punchboot uses a special config partition to store the current state. The state
+includes information about which system is active, boot count tries and error bits.
 
 ### Automatic rollback
 
@@ -171,17 +159,27 @@ Sometimes upgrades fail. Punchboot supports a mechanism for so called automatic 
 
 ![PB Rollback](doc/rollback.png)
 
-The left most column describes a simplified way a linux system could initiate an upgrade. In this case System A is active and System B is to be prepared and eventually activated.
+The left most column describes a simplified way a linux system could initiate 
+an upgrade. In this case System A is active and System B is to be prepared and 
+eventually activated.
 
-The new software is written to System B, verified, PB_GPT_ATTR_OK, PB_GPT_ATTR_ROLLBACK is reset and PB_GPT_ATTR_COUNTER is programmed to a desired try-count. A cleared OK bit but set counter constitutes and upgrade state and punchboot will try to start this system and decrement the counter unless the counter has reched zero.
+The new software is written to System B and verified then system A verified flag,
+error bits must be reset and boot try counter is programmed to a desired try-count. 
+A cleared OK bit but set counter constitutes and upgrade state and punchboot 
+will try to start this system and decrement the counter unless the counter has reched zero.
 
-If the counter reaches zero the PB_GPT_ATTR_ROLLBACK error bit is set and System A is automatically activated again (Rollback event)
+If the counter reaches zero the error bit is set and System A is automatically 
+activated again (Rollback event)
 
-At this point the upgrade is staged, and the OK bit of System A can be cleared and finally the system is reset.
+At this point the upgrade is staged, and the OK bit of System A can be cleared 
+and finally the system is reset.
 
-Punchboot recognizes that none of the System partitions has the OK bit set but System B has a non-zero counter. System B is started.
+Punchboot recognizes that none of the System partitions has the OK bit set but 
+System B has a non-zero counter. System B is started.
 
-When returning back to the upgrade application in linux final checks can be performed, for example checking connectivity and such before finally setting the OK bit of system B and thus permanently activate System B
+When returning back to the upgrade application in linux final checks can be 
+performed, for example checking connectivity and such before finally setting 
+the OK bit of system B and thus permanently activate System B
 
 ## Device identity
 

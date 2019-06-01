@@ -1,4 +1,6 @@
 *.o
+*.bino
+*.bak
 *.bin
 *.imx
 *.dero
@@ -10,6 +12,7 @@
 *.pbi
 *.gz
 cov-int
+cov.xml
 blobs
 cscope*
 src/test_*
