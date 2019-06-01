@@ -369,6 +369,9 @@ uint32_t pb_flash_part (uint8_t part_no, int64_t offset,  const char *f_name)
         wr_cmd.lba_offset += bfr_cmd.no_of_blocks;
     }
 
+    pb_write(PB_CMD_WRITE_PART_FINAL,0,0,0,0, NULL, 0);
+    err = pb_read_result_code();
+
 err_xfer:
     free(bfr);
     fclose(fp);

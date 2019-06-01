@@ -34,7 +34,7 @@ uint32_t  plat_prepare_recovery(void);
 uint32_t  plat_get_params(struct param **pp);
 uint32_t  plat_get_uuid(char *out);
 
-/* EMMC Interface */
+/* Block Device Interface */
 uint32_t  plat_write_block(uint32_t lba_offset, 
                                 uintptr_t bfr,
                                 uint32_t no_of_blocks);
