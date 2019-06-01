@@ -10,7 +10,6 @@ static libusb_device **devs;
 static libusb_device *dev;
 static libusb_context *ctx = NULL;
 static libusb_device_handle *h = NULL;
-
  
 static libusb_device * find_device(libusb_device **devs,
                                    uint8_t *usb_path,
@@ -77,17 +76,68 @@ static libusb_device * find_device(libusb_device **devs,
 int transport_init(uint8_t *usb_path, uint8_t usb_path_count)
 {
     int r = 0;
-	ssize_t cnt;
     int err = 0;
+    int i = 0;
+    int pb_device_count = 0;
 
 	r = libusb_init(&ctx);
 	if (r < 0)
 		return r;
 
+	if (libusb_get_device_list(NULL, &devs) < 0)
+        return PB_ERR;
 
-	cnt = libusb_get_device_list(NULL, &devs);
-	if (cnt < 0)
-		return (int) cnt;
+
+    if (usb_path_count == 0)
+    {
+	    while ((dev = devs[i++]) != NULL)
+        {
+            struct libusb_device_descriptor desc;
+
+            int r = libusb_get_device_descriptor(dev, &desc);
+
+            if (r < 0) 
+                continue;
+
+            if ( (desc.idVendor == PB_USB_VID) && 
+                            (desc.idProduct == PB_USB_PID)) 
+                pb_device_count++;
+        }
+    }
+
+    if ((usb_path_count == 0) && (pb_device_count > 1))
+    {
+        printf ("Error: Multiple devices detected. Append -u \"<usbpath>\"\n");
+        printf ("Found the following devices:\n");
+        i = 0;
+        
+        while ((dev = devs[i++]) != NULL)
+        {
+            struct libusb_device_descriptor desc;
+
+            int r = libusb_get_device_descriptor(dev, &desc);
+            uint8_t device_path[16];
+
+            if (r < 0) 
+                continue;
+
+            if ( (desc.idVendor == PB_USB_VID) && 
+                            (desc.idProduct == PB_USB_PID)) 
+            {
+                int path_count = libusb_get_port_numbers(dev, device_path,
+                                            16);
+
+                for (uint32_t n = 0; n < path_count; n++)
+                {
+                    printf ("%u",device_path[n]);
+                    if (n < (path_count-1))
+                        printf (":");
+                }
+                printf ("\n");
+            }
+        }
+        return PB_ERR;
+    }
 
 	dev = find_device(devs, usb_path, usb_path_count);
 

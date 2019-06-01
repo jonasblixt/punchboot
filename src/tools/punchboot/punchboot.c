@@ -440,10 +440,10 @@ int main(int argc, char **argv)
             break;
             case 'n':
                 flag_index = true;
-                cmd_index = atoi(optarg);
+                cmd_index = strtol(optarg,NULL,0);
             break;
             case 'o':
-                offset = atoi(optarg);
+                offset = strtol(optarg,NULL,0);
             break;
             case 'u':
             {
@@ -452,16 +452,15 @@ int main(int argc, char **argv)
 
                 char delim[] = ":";
                 char *tok = strtok(usb_path_str, delim);
-                
+
                 while (tok != NULL)
                 {
-                    usb_path[usb_path_count++] = atoi(tok);
-                    
+                    usb_path[usb_path_count++] = strtol(tok,NULL,0);
                     tok = strtok(NULL, delim);
                 }
 
                 free(usb_path_str);
-            }    
+            }
             break;
             case 's':
                 flag_s = true;
@@ -475,7 +474,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if (flag_help) 
+    if (flag_help)
     {
         print_help();
         exit(0);
