@@ -7,7 +7,6 @@
  *
  */
 
-
 #ifndef __PB_H__
 #define __PB_H__
 
@@ -106,8 +105,8 @@ struct partition_table
     System B: c046ccd8-0f2e-4036-984d-76c14dc73992
     Root A:   c284387a-3377-4c0f-b5db-1bcbcff1ba1a
     Root B:   ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb
-    State A:  f5f8c9ae-efb5-4071-9ba9-d313b082281e
-    State B:  656ab3fc-5856-4a5e-a2ae-5a018313b3ee
+    Config primary:  f5f8c9ae-efb5-4071-9ba9-d313b082281e
+    Config backup:  656ab3fc-5856-4a5e-a2ae-5a018313b3ee
 */
 
 #ifndef PB_PARTUUID_SYSTEM_A

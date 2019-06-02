@@ -155,10 +155,16 @@ $(BUILD_DIR)/%.o: %.S
 	@echo AS $<
 	@$(CC) -D__ASSEMBLY__ -c $(CFLAGS) $< -o $@
 
+$(BUILD_DIR)/%.d: %.c
+	@echo DEP $<
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) -M -MT '$(@:.d=.o)' $< > $@
+
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
+
 
 .PHONY: plat_early plat_final board_final
 
@@ -169,4 +175,8 @@ qemu:
 	@$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(BUILD_DIR)/$(TARGET)
 
 .DEFAULT_GOAL := all
+
+
+-include $(OBJS:.o=.d)
+-include $(BUILD_DIR)/main.d
 
