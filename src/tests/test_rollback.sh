@@ -40,8 +40,8 @@ fi
 #   test_end_error
 #fi
 
-$PBCONFIG -d /tmp/disk -o 0x824 -b 0x826 -v b
-$PBCONFIG -d /tmp/disk -o 0x824 -b 0x826 -s a -c 3
+$PBCONFIG -d /tmp/disk -o 0x822 -b 0x823 -v b
+$PBCONFIG -d /tmp/disk -o 0x822 -b 0x823 -s a -c 3
 
 # Reset
 force_recovery_mode_off

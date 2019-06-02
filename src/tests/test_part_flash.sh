@@ -47,7 +47,7 @@ sync
 
 # Extract data from disk image
 dd if=/tmp/disk of=/tmp/readback_a bs=512 skip=34 count=1024
-dd if=/tmp/disk of=/tmp/readback_b bs=512 skip=1059 count=1024
+dd if=/tmp/disk of=/tmp/readback_b bs=512 skip=1058 count=1024
 
 readback_a_sha256=$(sha256sum /tmp/readback_a | cut -d ' ' -f 1)
 readback_b_sha256=$(sha256sum /tmp/readback_b | cut -d ' ' -f 1)

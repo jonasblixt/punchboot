@@ -135,7 +135,7 @@ uint32_t gpt_add_part(struct gpt *gpt, uint8_t part_idx, uint32_t no_of_blocks,
         part->first_lba = prev_part->last_lba+1;
     }
 
-    part->last_lba = part->first_lba + no_of_blocks;
+    part->last_lba = part->first_lba + no_of_blocks - 1;
 
     if (strlen(part_name) > GPT_PART_NAME_MAX_SIZE)
         return PB_ERR;
