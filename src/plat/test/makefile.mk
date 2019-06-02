@@ -56,5 +56,3 @@ PLAT_ASM_SRCS += plat/test/semihosting_call.S
 
 CFLAGS += -fprofile-arcs -ftest-coverage
 
-plat_clean:
-	@-rm -rf plat/test/*.o plat/test/*.gcda plat/test/*.gcno

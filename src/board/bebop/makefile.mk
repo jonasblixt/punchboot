@@ -19,11 +19,9 @@ KEYS  = ../pki/secp256r1-pub-key.der
 #KEYS += ../pki/field2_rsa_public.der
 
 KEY_TYPE = EC
-board_final: $(TARGET).bin
-	@$(MKIMAGE) -n $(JIFFY_IMAGE_CFG) -T imximage -e $(PB_ENTRY) \
-			-d $(TARGET).bin $(TARGET).imx 
 
-board_clean:
-	@-rm -rf board/bebop/*.o 
-	@-rm -rf *.imx
+board_final: $(BUILD_DIR)/$(TARGET).bin
+	@$(MKIMAGE) -n $(JIFFY_IMAGE_CFG) -T imximage -e $(PB_ENTRY) \
+			-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx 
+
 

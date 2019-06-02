@@ -67,8 +67,8 @@ PB_BOARD_NAME = test
 
 TEST_ASM_SRCS += plat/test/semihosting_call.S
 
-TEST_OBJS      = $(TEST_C_SRCS:.c=.o)
-TEST_OBJS      += $(TEST_ASM_SRCS:.S=.o)
+TEST_OBJS    = $(patsubst %.S, $(BUILD_DIR)/%.o, $(TEST_ASM_SRCS))
+TEST_OBJS   += $(patsubst %.c, $(BUILD_DIR)/%.o, $(TEST_C_SRCS))
 
 CFLAGS += -fprofile-arcs -ftest-coverage
 LDFLAGS +=
@@ -76,6 +76,7 @@ LDFLAGS +=
 BOARD = test
 
 test: $(ARCH_OBJS) $(TEST_OBJS)
+	@mkdir -p $(BUILD_DIR)/tests	
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
 	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
 	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
@@ -83,13 +84,13 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@make -C tools/pbconfig CROSS_COMPILE="" CODE_COV=1
 	@sync
 	@$(foreach TEST,$(TESTS), \
-		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
+		$(CC) $(CFLAGS) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \
 		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
-			  $(TEST).o $(LIBS) -o $(TEST) || exit; )
+			  $(BUILD_DIR)/tests/$(TEST).o $(LIBS) -o $(BUILD_DIR)/tests/$(TEST) || exit; )
 
 	@$(foreach TEST,$(TESTS), \
 		echo "--- Module TEST ---  $(TEST)"  && \
-		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST) || exit; )
+		$(QEMU) $(QEMU_FLAGS) -kernel $(BUILD_DIR)/tests/$(TEST) || exit; )
 
 	@echo
 	@echo
@@ -103,14 +104,14 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 debug_test: $(ARCH_OBJS) $(TEST_OBJS)
 	@echo "Debugging test $(TEST)"
 	@QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS) $(QEMU_AUX_FLAGS)" TEST_NAME="$(TEST)" \
-			tests/$(TEST).sh
+			$(BUILD_DIR)/tests/$(TEST).sh
 
 module_tests:
 	$(foreach TEST,$(TESTS), \
-		$(CC) $(CFLAGS) -c tests/$(TEST).c && \
+		$(CC) $(CFLAGS) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \
 		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
-			  $(TEST).o $(LIBS) -o $(TEST) || exit; )
+			  $(BUILD_DIR)/tests/$(TEST).o $(LIBS) -o $(BUILD_DIR)/tests/$(TEST) || exit; )
 
 	@$(foreach TEST,$(TESTS), \
 		echo "--- Module TEST ---  $(TEST)"  && \
-		$(QEMU) $(QEMU_FLAGS) -kernel $(TEST) || exit; )
+		$(QEMU) $(QEMU_FLAGS) -kernel $(BUILD_DIR)/tests/$(TEST) || exit; )

@@ -207,7 +207,8 @@ uint32_t plat_early_init(void)
     board_early_init(NULL);
 
     test_uart_init();
-	gcov_init();	
+    LOG_INFO("Plat start");
+    gcov_init();	
 
     virtio_block.dev.device_id = 2;
     virtio_block.dev.vendor_id = 0x554D4551;

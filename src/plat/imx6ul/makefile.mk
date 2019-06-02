@@ -31,10 +31,6 @@ PLAT_C_SRCS  += plat/imx/ocotp.c
 PLAT_C_SRCS	 += plat/imx/wdog.c
 PLAT_C_SRCS  += plat/imx/hab.c
 
-plat_clean:
-	@-rm -rf plat/imx/*.o
-	@-rm -rf plat/imx6ul/*.o
-
 plat_final:
 	$(CSF_SIGN_TOOL) --csf_key $(PB_CSF_KEY) \
 					 --csf_crt $(PB_CSF_CRT) \
@@ -42,9 +38,10 @@ plat_final:
 					 --img_crt $(PB_IMG_CRT) \
 					 --table $(PB_SRK_TABLE) \
 					 --index 1 \
-					 --image pb.imx \
-					 --output pb_csf.bin
-	@cat pb.imx pb_csf.bin > pb_signed.imx
+					 --image $(BUILD_DIR)/pb.imx \
+					 --output $(BUILD_DIR)/pb_csf.bin
+
+	@cat $(BUILD_DIR)/pb.imx $(BUILD_DIR)/pb_csf.bin > $(BUILD_DIR)/pb_signed.imx
 
 	$(CSF_SIGN_TOOL) --csf_key $(PB_CSF_KEY) \
 					 --csf_crt $(PB_CSF_CRT) \
@@ -53,8 +50,8 @@ plat_final:
 					 --table $(PB_SRK_TABLE) \
 					 --index 1 \
 					 --serial \
-					 --image pb.imx \
-					 --output pb_csf_uuu.bin
+					 --image $(BUILD_DIR)/pb.imx \
+					 --output $(BUILD_DIR)/pb_csf_uuu.bin
 
-	@cat pb.imx pb_csf_uuu.bin > pb_signed_uuu.imx
+	@cat $(BUILD_DIR)/pb.imx $(BUILD_DIR)/pb_csf_uuu.bin > $(BUILD_DIR)/pb_signed_uuu.imx
 

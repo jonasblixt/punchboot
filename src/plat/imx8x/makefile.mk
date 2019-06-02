@@ -42,20 +42,17 @@ PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
 CFLAGS += -D__PLAT_IMX8X__
 CFLAGS += -I plat/imx8x/include
 
-plat_clean:
-	@-rm -rf plat/imx8x/*.o
-	@-rm -rf plat/imx8x/hab_srks.*
-
 plat_final:
-	@$(MKIMAGE) -commit > head.hash
-	@cat pb.bin head.hash > pb_hash.bin
+	@$(MKIMAGE) -commit > $(BUILD_DIR)/head.hash
+	@cat $(BUILD_DIR)/pb.bin $(BUILD_DIR)/head.hash > $(BUILD_DIR)/pb_hash.bin
 	@$(MKIMAGE) -soc QX -rev B0 \
 				  -e emmc_fast \
 				  -append $(AHAB_CONTAINER) \
 				  -c -scfw $(SCFW_BIN) \
-				  -ap pb_hash.bin a35 0x80000000 \
-				  -out pb.imx
-	@cp $(PB_CSF_TEMPLATE) pb.csf
-	@$(SED) -i -e 's#__SRK_TBL__#$(SRK_TBL)#g' pb.csf
-	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' pb.csf
-	@$(CST_TOOL) -i pb.csf -o $(TARGET)_signed.imx 
+				  -ap $(BUILD_DIR)/pb_hash.bin a35 0x80000000 \
+				  -out $(BUILD_DIR)/pb.imx
+	@cp $(PB_CSF_TEMPLATE) $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__SRK_TBL__#$(SRK_TBL)#g' $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__FILE__#$(BUILD_DIR)/pb.imx#g' $(BUILD_DIR)/pb.csf
+	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/$(TARGET)_signed.imx 

@@ -19,8 +19,3 @@ KEYS += ../pki/secp521r1-pub-key.der
 
 KEY_TYPE = EC
 
-board_final: $(TARGET).bin
-	@echo fixme board_final
-board_clean:
-	@-rm -rf board/imx8qxmek/*.o 
-

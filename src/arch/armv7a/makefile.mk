@@ -12,7 +12,4 @@ ARCH_ASM_SRCS += arch/armv7a/uldivmod.S
 ARCH_ASM_SRCS += arch/armv7a/boot.S
 
 ARCH_C_SRCS += arch/armv7a/arm32_aeabi_divmod.c
-arch_clean:
-	@-rm -rf arch/armv7a/*.o
-	@-rm -f arch/armv7a/*.gcno arch/armv7a/*.gcda
 

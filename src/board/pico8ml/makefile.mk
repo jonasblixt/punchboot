@@ -20,11 +20,8 @@ KEYS  = ../pki/secp256r1-pub-key.der
 
 KEY_TYPE = EC
 
-board_final: $(TARGET).bin
+board_final: $(BUILD_DIR)/$(TARGET).bin
 	@echo "board_final"
-	$(MKIMAGE) -loader $(TARGET).bin $(PB_ENTRY) -out $(TARGET).imx 
+	$(MKIMAGE) -loader $(BUILD_DIR)/$(TARGET).bin $(PB_ENTRY) -out $(BUILD_DIR)/$(TARGET).imx 
 	@echo "mkimage done"
 
-board_clean:
-	@-rm -rf board/pico8ml/*.o 
-	@-rm -rf *.imx

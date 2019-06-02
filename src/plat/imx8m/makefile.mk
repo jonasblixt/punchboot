@@ -36,21 +36,18 @@ BLOB_INPUT += lpddr4_pmu_train_1d_imem.bin lpddr4_pmu_train_2d_imem.bin
 
 CFLAGS += -I plat/imx8m/include
 
-plat_clean:
-	@-rm -rf plat/imx8m/*.o
-
 plat_final:
 	@echo "plat_final"
-	$(eval PB_FILESIZE=$(shell stat -c%s "pb.imx"))
+	$(eval PB_FILESIZE=$(shell stat -c%s "${BUILD_DIR}/pb.imx"))
 	$(eval PB_FILESIZE2=$(shell echo " $$(( $(PB_FILESIZE) - 0x2000 ))" | bc	))
 	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE2)" | bc	))
 	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0x30 ))" | bc	))
 	@echo "PB imx image size: $(PB_FILESIZE) bytes ($(PB_FILESIZE_HEX)), cst addr $(PB_CST_ADDR)"
-	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x000 $(PB_FILESIZE_HEX) "pb.imx"/g' < $(PB_CSF_TEMPLATE) > pb.csf
-	@$(SED) -i -e 's#__SRK_TBL__#$(SRK_TBL)#g' pb.csf
-	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' pb.csf
-	@$(SED) -i -e 's#__IMG_PEM__#$(IMG_PEM)#g'  pb.csf
-	@$(CST_TOOL) --o pb_csf.bin --i pb.csf
-	@cp $(TARGET).imx $(TARGET)_signed.imx
-	@dd if=pb_csf.bin of=$(TARGET)_signed.imx seek=$(PB_FILESIZE2) bs=1 conv=notrunc
+	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x000 $(PB_FILESIZE_HEX) "$(BUILD_DIR)\/pb.imx"/g' < $(PB_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__SRK_TBL__#$(SRK_TBL)#g' $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__IMG_PEM__#$(IMG_PEM)#g'  $(BUILD_DIR)/pb.csf
+	@$(CST_TOOL) --o $(BUILD_DIR)/pb_csf.bin --i $(BUILD_DIR)/pb.csf
+	@cp $(BUILD_DIR)/$(TARGET).imx $(BUILD_DIR)/$(TARGET)_signed.imx
+	@dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/$(TARGET)_signed.imx seek=$(PB_FILESIZE2) bs=1 conv=notrunc
 

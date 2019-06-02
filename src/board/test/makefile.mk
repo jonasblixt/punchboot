@@ -15,7 +15,3 @@ KEYS += ../pki/field2_rsa_public.der
 
 KEY_TYPE = RSA
 
-board_clean:
-	@-rm -rf board/test/*.o 
-
-board_final:

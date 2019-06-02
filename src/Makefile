@@ -13,7 +13,7 @@ $(error BOARD is not set)
 endif
 
 ifndef LOGLEVEL
-	LOGLEVEL = 0
+	LOGLEVEL = 3
 endif
 
 ifdef TIMING_REPORT
@@ -83,7 +83,9 @@ C_SRCS  += 3pp/fdt/fdt_sw.c
 C_SRCS  += 3pp/fdt/fdt_wip.c
 
 FINAL_IMAGE =
+BUILD_DIR = build-$(BOARD)
 
+$(shell mkdir -p $(BUILD_DIR))
 
 include board/$(BOARD)/makefile.mk
 include plat/$(PB_PLAT_NAME)/makefile.mk
@@ -101,27 +103,30 @@ LDFLAGS += -Tarch/$(PB_ARCH_NAME)/link.lds
 LDFLAGS += -Tplat/$(PB_PLAT_NAME)/link.lds
 LDFLAGS += -Tlink.lds  --build-id=none
 
-ARCH_OBJS     = $(ARCH_ASM_SRCS:.S=.o) $(ARCH_C_SRCS:.c=.o)
-PLAT_OBJS     = $(PLAT_ASM_SRCS:.S=.o) $(PLAT_C_SRCS:.c=.o)
-BOARD_OBJS    = $(BOARD_ASM_SRCS:.S=.o) $(BOARD_C_SRCS:.c=.o)
+ARCH_OBJS     = $(patsubst %.S, $(BUILD_DIR)/%.o, $(ARCH_ASM_SRCS))
+ARCH_OBJS    += $(patsubst %.c, $(BUILD_DIR)/%.o, $(ARCH_C_SRCS))
+PLAT_OBJS     = $(patsubst %.S, $(BUILD_DIR)/%.o, $(PLAT_ASM_SRCS))
+PLAT_OBJS    += $(patsubst %.c, $(BUILD_DIR)/%.o, $(PLAT_C_SRCS))
+BOARD_OBJS    = $(patsubst %.S, $(BUILD_DIR)/%.o, $(BOARD_ASM_SRCS))
+BOARD_OBJS   += $(patsubst %.c, $(BUILD_DIR)/%.o, $(BOARD_C_SRCS))
 
 OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)
-OBJS     += $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
-OBJS     += $(BLOB_INPUT:.bin=.bino)
+OBJS     += $(patsubst %.c, $(BUILD_DIR)/%.o, $(C_SRCS))
+OBJS     += $(patsubst %.S, $(BUILD_DIR)/%.o, $(ASM_SRCS))
+OBJS     += $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(BLOB_INPUT))
 
 
 ifeq ($(BOARD),test)
-
 CFLAGS += -g  -fprofile-arcs -ftest-coverage
 include tests/makefile.mk
 
 endif
 
 key_data:
-	@$(PYTHON) $(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > key_data.c
-	@$(CC) -c $(CFLAGS) key_data.c -o key_data.o
+	@$(PYTHON) $(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > $(BUILD_DIR)/key_data.c
+	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/key_data.c -o $(BUILD_DIR)/key_data.o
 
-all: key_data plat_early $(TARGET).bin board_final plat_final
+all: key_data plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
 	$(info Summary:)
 	$(info )
 	$(info BOARD:     [${PB_BOARD_NAME}])
@@ -130,54 +135,38 @@ all: key_data plat_early $(TARGET).bin board_final plat_final
 	$(info LOGLEVEL:  [${LOGLEVEL}])
 	@echo "VERSION = $(GIT_VERSION)"
 	$(info )
-	@$(SIZE) -x -t -B $(TARGET)
+	@$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
 
-$(TARGET).bin: $(TARGET)
+$(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@
 	@$(OBJCOPY) -O binary -R .comment $< $@
 
-$(TARGET): $(OBJS) main.o
+$(BUILD_DIR)/$(TARGET): $(OBJS) $(BUILD_DIR)/main.o
 	@echo LD $@
-	@$(LD) $(LDFLAGS) $(OBJS) main.o $(LIBS) -o $@
+	@$(LD) $(LDFLAGS) $(OBJS) $(BUILD_DIR)/main.o $(LIBS) -o $@
 
-%.bino: %.bin
+$(BUILD_DIR)/%.bino: %.bin
+	@mkdir -p $(@D)
 	@echo BLOB $<
 	@$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
 
-%.o: %.S
+$(BUILD_DIR)/%.o: %.S
+	@mkdir -p $(@D)
 	@echo AS $<
 	@$(CC) -D__ASSEMBLY__ -c $(CFLAGS) $< -o $@
 
-%.o: %.c
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(@D)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
-.PHONY: board_clean arch_clean plat_clean plat_early plat_final
+.PHONY: plat_early plat_final board_final
 
-clean: board_clean arch_clean plat_clean
-	@-rm -f key_data.*
-	@-rm -rf *.o $(TARGET) $(TARGET).bin *.map out
-	@-rm -rf tests/*.o
-	@-rm -f $(OBJS)
-	@-rm -f *.gcda *.gcno
-	@-rm -f qemu.log
-	@-rm -f tests/*.gcda tests/*.gcno
-	@find -name "*.gcno" -exec rm -f {} \;
-	@find -name "*.gcda" -exec rm -f {} \;
+clean:
+	@-rm -rf $(BUILD_DIR)/
 
 qemu:
-	@$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(TARGET)
+	@$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(BUILD_DIR)/$(TARGET)
 
 .DEFAULT_GOAL := all
-
-# Dependencies
-# TODO: Review Dependencies
-
-boot.o:     include/pb/pb.h
-config.o:   include/pb/config.h include/pb/pb.h
-crc.o:      include/pb/pb.h include/pb/crc.h
-gpt.o:		include/pb/pb.h include/pb/gpt.h
-main.o:		include/pb/pb.h
-usb.o:		include/pb/pb.h include/pb/usb.h
-recovery.o: include/pb/recovery.h include/pb/pb.h
 
