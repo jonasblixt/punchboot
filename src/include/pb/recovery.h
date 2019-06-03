@@ -65,9 +65,7 @@ struct pb_cmd_write_part
 
 #ifdef __PB_BUILD
 
-#include <gpt.h>
-
-void recovery_initialize(struct gpt *gpt);
+uint32_t recovery_initialize(void);
 
 #endif
 

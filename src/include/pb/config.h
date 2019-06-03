@@ -25,9 +25,7 @@ struct config
 
 #ifdef __PB_BUILD
 
-#include <pb/gpt.h>
-
-uint32_t config_init(struct gpt *gpt);
+uint32_t config_init(void);
 uint32_t config_commit(void);
 bool config_system_enabled(uint32_t system);
 void config_system_enable(uint32_t system, bool enable);

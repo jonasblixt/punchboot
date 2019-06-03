@@ -19,11 +19,12 @@ static unsigned char hash_data[64];
 
 uint32_t pb_image_check_header(struct pb_pbi *pbi)
 {
-
+    uint32_t err = PB_OK;
+    
     if (pbi->hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
     {
         LOG_ERR ("Incorrect header magic");
-        return PB_ERR;
+        err = PB_ERR;
     }
 
     for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
@@ -34,39 +35,38 @@ uint32_t pb_image_check_header(struct pb_pbi *pbi)
         uintptr_t la = (uintptr_t) pbi->comp[i].load_addr_low;
         uint32_t sz = pbi->comp[i].component_size;
 
-
         if (PB_CHECK_OVERLAP(la,sz,&_stack_start,&_stack_end))
         {
+            err = PB_ERR;
             LOG_ERR("image overlapping with PB stack");
-            return PB_ERR;
         }
 
         if (PB_CHECK_OVERLAP(la,sz,&_data_region_start,&_data_region_end))
         {
+            err = PB_ERR;
             LOG_ERR("image overlapping with PB data");
-            return PB_ERR;
         }
 
         if (PB_CHECK_OVERLAP(la,sz,&_zero_region_start,&_zero_region_end))
         {
+            err = PB_ERR;
             LOG_ERR("image overlapping with PB bss");
-            return PB_ERR;
         }
 
         if (PB_CHECK_OVERLAP(la,sz,&_code_start,&_code_end))
         {
+            err = PB_ERR;
             LOG_ERR("image overlapping with PB code");
-            return PB_ERR;
         }
 
         if (PB_CHECK_OVERLAP(la,sz,&_big_buffer_start,&_big_buffer_end))
         {
+            err = PB_ERR;
             LOG_ERR("image overlapping with PB buffer");
-            return PB_ERR;
         }
     }
 
-    return PB_OK;
+    return err;
 }
 
 uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,

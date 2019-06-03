@@ -33,7 +33,6 @@ static uint8_t __a4k __no_bss recovery_bulk_buffer[2][RECOVERY_BULK_BUFFER_SZ];
 static __no_bss __a4k struct pb_pbi pbi;
 static __no_bss __a4k struct param params[RECOVERY_MAX_PARAMS];
 static __no_bss __a4k uint8_t authentication_cookie[PB_RECOVERY_AUTH_COOKIE_SZ];
-static struct gpt *gpt;
 extern const struct partition_table pb_partition_table[];
 static unsigned char hash_buffer[PB_HASH_BUF_SZ];
 static bool recovery_authenticated = false;
@@ -146,7 +145,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
 {
     uint32_t part_lba_offset = 0;
 
-    part_lba_offset = gpt_get_part_first_lba(gpt, part_no);
+    part_lba_offset = gpt_get_part_first_lba(part_no);
 
     if (!part_lba_offset)
     {
@@ -154,7 +153,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
 
-    if ( (lba_offset + no_of_blocks) >= gpt_get_part_last_lba(gpt,part_no))
+    if ( (lba_offset + no_of_blocks) >= gpt_get_part_last_lba(part_no))
     {
         LOG_ERR ("Trying to write outside of partition");
         return PB_ERR;
@@ -330,12 +329,7 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             err = PB_OK;
 
-            if (gpt == NULL)
-            {
-                err = PB_ERR;
-                goto recovery_error_out;
-            }
-
+/*
             if (gpt_has_valid_header(&gpt->primary.hdr) != PB_OK)
             {
                 err = PB_ERR;
@@ -348,10 +342,10 @@ static void recovery_parse_command(struct usb_device *dev,
                 err = PB_ERR;
                 goto recovery_error_out;
             }
-
+*/
             recovery_send_result_code(dev, err);
 
-            err = recovery_send_response(dev,(uint8_t*) &gpt->primary,
+            err = recovery_send_response(dev,(uint8_t*) gpt_get_table(),
                                         sizeof (struct gpt_primary_tbl));
         }
         break;
@@ -359,8 +353,8 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             struct gpt_part_hdr *part_sys_a, *part_sys_b;
 
-            gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &part_sys_a);
-            gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_B, &part_sys_b);
+            gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_A, &part_sys_a);
+            gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_B, &part_sys_b);
 
             if (cmd->arg0 == SYSTEM_NONE)
             {
@@ -420,7 +414,7 @@ static void recovery_parse_command(struct usb_device *dev,
             struct gpt_part_hdr *boot_part_a, *boot_part_b;
 
 
-            err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_A, &boot_part_a);
+            err = gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_A, &boot_part_a);
 
             if (err != PB_OK)
             {
@@ -428,7 +422,7 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
             }
 
-            err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_SYSTEM_B, &boot_part_b);
+            err = gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_B, &boot_part_b);
 
             if (err != PB_OK)
             {
@@ -523,7 +517,7 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             LOG_INFO ("Installing default GPT table");
 
-            err = gpt_init_tbl(gpt, 1, plat_get_lastlba());
+            err = gpt_init_tbl(1, plat_get_lastlba());
 
             if (err != PB_OK)
                 break;
@@ -534,7 +528,7 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 unsigned char guid[16];
                 uuid_to_guid((uint8_t *)p->uuid, guid);
-                err = gpt_add_part(gpt, part_count++, p->no_of_blocks,
+                err = gpt_add_part(part_count++, p->no_of_blocks,
                                                  (const char *)guid,
                                                  p->name);
 
@@ -545,7 +539,7 @@ static void recovery_parse_command(struct usb_device *dev,
             if (err != PB_OK)
                 break;
 
-            err = gpt_write_tbl(gpt);
+            err = gpt_write_tbl();
 
         }
         break;
@@ -642,10 +636,15 @@ recovery_error_out:
     recovery_send_result_code(dev, err);
 }
 
-void recovery_initialize(struct gpt *_gpt)
+uint32_t recovery_initialize(void)
 {
-    gpt = _gpt;
     recovery_authenticated = false;
+
+    if (usb_init() != PB_OK)
+        return PB_ERR;
+        
     usb_set_on_command_handler(recovery_parse_command);
+
+    return PB_OK;
 }
 

@@ -19,9 +19,7 @@
 #include <timing_report.h>
 #include <pb/config.h>
 
-
 static __no_bss __a4k struct pb_pbi pbi;
-static __no_bss __a4k struct gpt gpt;
 static char hash_buffer[PB_HASH_BUF_SZ];
 
 void pb_main(void)
@@ -44,7 +42,7 @@ void pb_main(void)
     LOG_INFO ("PB: " VERSION " starting...");
 
 
-    if (gpt_init(&gpt) != PB_OK)
+    if (gpt_init() != PB_OK)
         flag_run_recovery = true;
 
     if (plat_force_recovery())
@@ -54,19 +52,19 @@ void pb_main(void)
 
     /* Load system partition headers */
 
-    if (gpt_get_part_by_uuid(&gpt, PB_PARTUUID_SYSTEM_A, &part_system_a) != PB_OK)
+    if (gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_A, &part_system_a) != PB_OK)
     {
         LOG_ERR ("Could not find system A");
         flag_run_recovery = true;
     }
 
-    if (gpt_get_part_by_uuid(&gpt, PB_PARTUUID_SYSTEM_B, &part_system_b) != PB_OK)
+    if (gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_B, &part_system_b) != PB_OK)
     {
         LOG_ERR ("Could not find system B");
         flag_run_recovery = true;
     }
 
-    if (config_init(&gpt) != PB_OK)
+    if (config_init() != PB_OK)
         flag_run_recovery = true;
 
     if (flag_run_recovery)
@@ -172,15 +170,14 @@ run_recovery:
     if (flag_run_recovery)
     {
         LOG_INFO("Initializing recovery mode");
-        err = usb_init();
+
+        err = recovery_initialize();
+
 		if (err != PB_OK)
 		{
-			LOG_ERR("Could not initialize USB");
+			LOG_ERR("Could not initialize recovery mode");
 			plat_reset();
 		}
-
-        recovery_initialize(&gpt);
-
         while (flag_run_recovery)
         {
             usb_task();

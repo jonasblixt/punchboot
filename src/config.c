@@ -44,13 +44,13 @@ static void config_defaults(struct config *c)
     c->magic = PB_CONFIG_MAGIC;
 }
 
-uint32_t config_init(struct gpt *gpt)
+uint32_t config_init(void)
 {
     uint32_t err;
     bool primary_config_ok = false;
     bool backup_config_ok = false;
 
-    err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_CONFIG_PRIMARY,
+    err = gpt_get_part_by_uuid(PB_PARTUUID_CONFIG_PRIMARY,
                            &part_config);
 
     if (err != PB_OK)
@@ -59,7 +59,7 @@ uint32_t config_init(struct gpt *gpt)
         return err;
     }
 
-    err = gpt_get_part_by_uuid(gpt, PB_PARTUUID_CONFIG_BACKUP, 
+    err = gpt_get_part_by_uuid(PB_PARTUUID_CONFIG_BACKUP, 
                                  &part_config_backup);
 
     if (err != PB_OK)

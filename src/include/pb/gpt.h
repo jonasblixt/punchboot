@@ -69,16 +69,14 @@ struct gpt
 
 #define PB_GPT_ATTR_OK       (1 << 7) /*Bit 55*/
 
-uint32_t gpt_init(struct gpt *gpt);
-uint32_t gpt_get_part_first_lba(struct gpt *gpt, uint8_t part_no);
-uint64_t gpt_get_part_last_lba(struct gpt *gpt, uint8_t part_no);
-uint32_t gpt_get_part_by_uuid(struct gpt *gpt, const char *uuid, struct gpt_part_hdr **part);
-uint32_t gpt_write_tbl(struct gpt *gpt);
-uint32_t gpt_init_tbl(struct gpt *gpt, uint64_t first_lba, uint64_t last_lba);
-uint32_t gpt_add_part(struct gpt *gpt, uint8_t part_idx, uint32_t no_of_blocks, 
+uint32_t gpt_init(void);
+uint32_t gpt_get_part_first_lba(uint8_t part_no);
+uint64_t gpt_get_part_last_lba(uint8_t part_no);
+uint32_t gpt_get_part_by_uuid(const char *uuid, struct gpt_part_hdr **part);
+uint32_t gpt_write_tbl(void);
+uint32_t gpt_init_tbl(uint64_t first_lba, uint64_t last_lba);
+uint32_t gpt_add_part(uint8_t part_idx, uint32_t no_of_blocks, 
                                         const char *type_uuid, 
                                         const char *part_name);
-uint32_t gpt_has_valid_header(struct gpt_header *hdr);
-uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
-                                    struct gpt_part_hdr *part);
+struct gpt * gpt_get_table(void);
 #endif
