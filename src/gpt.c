@@ -316,9 +316,7 @@ uint32_t gpt_write_tbl(struct gpt *gpt)
                             - GPT_HEADER_RSZ);
     gpt->backup.hdr.hdr_crc = crc_tmp;
 
-    LOG_DBG("no_of_parts %u",gpt->backup.hdr.no_of_parts);
     /* Write backup GPT table */
-
     LOG_INFO("Writing backup GPT tbl to LBA %llu",
                         gpt->backup.hdr.entries_start_lba);
 
@@ -334,26 +332,30 @@ uint32_t gpt_write_tbl(struct gpt *gpt)
 uint32_t gpt_init(struct gpt *gpt)
 {
 
-    plat_read_block(1,(uintptr_t) &gpt->primary,
-                    sizeof(gpt->primary) / 512);
+    /* Read primary and backup GPT headers and parition tables */
+    plat_read_block(1,(uintptr_t) &gpt->primary, sizeof(gpt->primary) / 512);
+    plat_read_block(plat_get_lastlba(), (uintptr_t) &gpt->backup.hdr,
+                    sizeof(struct gpt_header) / 512);
+
+    /* If the backup GPT header is OK, read the backup partition table */
+    /* This must be done in two steps because of how the data structure is
+     * organized */
+    if (gpt_has_valid_header(&gpt->backup.hdr) == PB_OK)
+    {
+        plat_read_block(gpt->backup.hdr.entries_start_lba,
+            (uintptr_t) gpt->backup.part,
+            (gpt->backup.hdr.no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
+    }
 
     if (gpt_is_valid(&gpt->primary.hdr, gpt->primary.part) != PB_OK)
     {
         LOG_ERR("Primary GPT table is corrupt or missing, trying to recover backup");
-
-        plat_read_block(plat_get_lastlba(),
-                        (uintptr_t) &gpt->backup.hdr,
-                        sizeof(struct gpt_header) / 512);
 
         if (gpt_has_valid_header(&gpt->backup.hdr) != PB_OK)
         {
             LOG_ERR("Invalid backup GPT header, unable to recover");
             return PB_ERR;
         }
-
-        plat_read_block(gpt->backup.hdr.entries_start_lba,
-            (uintptr_t) gpt->backup.part,
-            (gpt->backup.hdr.no_of_parts * sizeof(struct gpt_part_hdr)) / 512);
 
         if (gpt_has_valid_part_array(&gpt->backup.hdr, gpt->backup.part) != PB_OK)
         {
@@ -379,51 +381,42 @@ uint32_t gpt_init(struct gpt *gpt)
             return PB_ERR;
         }
     }
-    else
+
+    if (gpt_is_valid(&gpt->backup.hdr, gpt->backup.part) != PB_OK)
     {
-        /* TODO: Primary GPT OK, check backup GPT */
+        LOG_ERR("Backup GPT table is corrupt or missing, trying to recover from primary");
+
+        if (gpt_has_valid_header(&gpt->primary.hdr) != PB_OK)
+        {
+            LOG_ERR("Invalid primary GPT header, unable to recover");
+            return PB_ERR;
+        }
+
+        if (gpt_has_valid_part_array(&gpt->primary.hdr,
+                                     gpt->primary.part) != PB_OK)
+        {
+            LOG_ERR("Invalid primary GPT part array, unable to recover");
+            return PB_ERR;
+        }
+
+        LOG_ERR ("Recovering from primary GPT tables");
+
+        memcpy(&gpt->backup.hdr, &gpt->primary.hdr, sizeof(struct gpt_header));
+        memcpy(gpt->backup.part, gpt->primary.part, (sizeof(struct gpt_part_hdr)
+                    * gpt->primary.hdr.no_of_parts));
+
+        gpt->backup.hdr.backup_lba = 1;
+        gpt->backup.hdr.current_lba = plat_get_lastlba();
+        gpt->backup.hdr.entries_start_lba = (gpt->backup.hdr.current_lba - 
+                ((gpt->backup.hdr.no_of_parts*sizeof(struct gpt_part_hdr)) / 512));
+
+        if (gpt_write_tbl(gpt) != PB_OK)
+        {
+            LOG_ERR("Could not update GPT table, unable to recover");
+            return PB_ERR;
+        }
     }
 
     return PB_OK;
 }
 
-uint32_t gpt_pb_attr_setbits(struct gpt_part_hdr *part, uint8_t attr)
-{
-    if (part == NULL)
-        return PB_ERR;
-
-    part->attr[6] |= attr;
-
-    return PB_OK;
-}
-
-uint32_t gpt_pb_attr_clrbits(struct gpt_part_hdr *part, uint8_t attr)
-{
-    if (part == NULL)
-        return PB_ERR;
-
-    part->attr[6] &= (~attr);
-
-    return PB_OK;
-}
-
-uint32_t gpt_part_set_bootable(struct gpt_part_hdr *part, bool bootable)
-{
-    if(part == NULL)
-        return PB_ERR;
-
-    if (bootable)
-        part->attr[7] &= ~0x80;
-    else
-        part->attr[7] |= 0x80;
-
-    return PB_OK;
-}
-
-bool gpt_part_is_bootable(struct gpt_part_hdr *part)
-{
-    if(part == NULL)
-        return false;
-
-    return ((part->attr[7] & 0x80) != 0x80);
-}

@@ -15,8 +15,6 @@
 #include <plat/test/plat.h>
 #include <plat/test/semihosting.h>
 
-static __no_bss __a4k struct gpt gpt_tmp;
-
 const struct fuse fuses[] =
 {
     TEST_FUSE_BANK_WORD_VAL(5,  "SRK0",  0x5020C7D7),
@@ -98,7 +96,6 @@ uint32_t board_setup_device(struct param *params)
 {
     uint32_t err;
     uint32_t v;
-    uint32_t do_rollback_test = 0;
     struct param *p;
     
     err = param_get_by_id(params, "device_id", &p);
@@ -114,31 +111,6 @@ uint32_t board_setup_device(struct param *params)
     LOG_INFO("Device ID: 0x%08x", v);
 
     board_ident_fuse.value = v;
-
-    err = param_get_by_id(params, "rollback_test", &p);
-    if (err == PB_OK)
-        param_get_u32(p, &do_rollback_test);
-    if ((err == PB_OK) && do_rollback_test)
-    {
-        LOG_INFO("Preparing rollback-test");
-        gpt_init(&gpt_tmp);
-        struct gpt_part_hdr *part_system_a, *part_system_b;
-        gpt_get_part_by_uuid(&gpt_tmp, PB_PARTUUID_SYSTEM_A, &part_system_a);
-        gpt_get_part_by_uuid(&gpt_tmp, PB_PARTUUID_SYSTEM_B, &part_system_b);
-
-
-        gpt_pb_attr_clrbits(part_system_a, 0x0f);
-        gpt_pb_attr_setbits(part_system_a, 3);
-        gpt_pb_attr_clrbits(part_system_a, PB_GPT_ATTR_ROLLBACK);
-        gpt_pb_attr_clrbits(part_system_a, PB_GPT_ATTR_OK);
-        gpt_part_set_bootable(part_system_a, true);
-
-
-        gpt_pb_attr_setbits(part_system_b, PB_GPT_ATTR_OK);
-        gpt_part_set_bootable(part_system_b, false);
-
-        gpt_write_tbl(&gpt_tmp);
-    }
 
     return plat_fuse_write(&board_ident_fuse);
 }

@@ -33,6 +33,7 @@ INTEGRATION_TESTS += test_cli
 INTEGRATION_TESTS += test_part_offset_write
 INTEGRATION_TESTS += test_overlapping_region
 INTEGRATION_TESTS += test_authentication
+INTEGRATION_TESTS += test_corrupt_backup_gpt
 
 QEMU = qemu-system-arm
 QEMU_AUDIO_DRV = "none"
@@ -104,7 +105,7 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 debug_test: $(ARCH_OBJS) $(TEST_OBJS)
 	@echo "Debugging test $(TEST)"
 	@QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS) $(QEMU_AUX_FLAGS)" TEST_NAME="$(TEST)" \
-			$(BUILD_DIR)/tests/$(TEST).sh
+			tests/$(TEST).sh
 
 module_tests:
 	$(foreach TEST,$(TESTS), \

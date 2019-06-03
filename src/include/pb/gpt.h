@@ -38,15 +38,6 @@ struct gpt_header
 
 } __attribute__ ((packed));
 
-#define PB_GPT_ATTR_OK       (1 << 7) /*Bit 55*/
-#define PB_GPT_ATTR_ROLLBACK (1 << 6) /*Bit 54*/
-#define PB_GPT_ATTR_RFU1     (1 << 5) /*Bit 53*/
-#define PB_GPT_ATTR_RFU2     (1 << 4) /*Bit 52*/
-#define PB_GPT_ATTR_COUNTER3 (1 << 3) /*Bit 51*/
-#define PB_GPT_ATTR_COUNTER2 (1 << 2) /*Bit 50*/
-#define PB_GPT_ATTR_COUNTER1 (1 << 1) /*Bit 49*/
-#define PB_GPT_ATTR_COUNTER0 (1 << 0) /*Bit 48*/
-
 struct gpt_part_hdr 
 {
     uint8_t type_uuid[16];
@@ -76,6 +67,8 @@ struct gpt
     struct gpt_backup_tbl backup;
 };
 
+#define PB_GPT_ATTR_OK       (1 << 7) /*Bit 55*/
+
 uint32_t gpt_init(struct gpt *gpt);
 uint32_t gpt_get_part_first_lba(struct gpt *gpt, uint8_t part_no);
 uint64_t gpt_get_part_last_lba(struct gpt *gpt, uint8_t part_no);
@@ -85,19 +78,7 @@ uint32_t gpt_init_tbl(struct gpt *gpt, uint64_t first_lba, uint64_t last_lba);
 uint32_t gpt_add_part(struct gpt *gpt, uint8_t part_idx, uint32_t no_of_blocks, 
                                         const char *type_uuid, 
                                         const char *part_name);
-
-
-bool gpt_part_is_bootable(struct gpt_part_hdr *part);
-uint32_t gpt_part_set_bootable(struct gpt_part_hdr *part, bool bootable);
-uint32_t gpt_pb_attr_setbits(struct gpt_part_hdr *part, uint8_t attr);
-uint32_t gpt_pb_attr_clrbits(struct gpt_part_hdr *part, uint8_t attr);
-//bool gpt_pb_attr_ok(struct gpt_part_hdr *part);
-//uint8_t gpt_pb_attr_counter(struct gpt_part_hdr *part);
-
-
-
 uint32_t gpt_has_valid_header(struct gpt_header *hdr);
-
 uint32_t gpt_has_valid_part_array(struct gpt_header *hdr,
                                     struct gpt_part_hdr *part);
 #endif
