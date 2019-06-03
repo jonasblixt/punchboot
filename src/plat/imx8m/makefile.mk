@@ -11,7 +11,7 @@
 PB_ARCH_NAME = armv8a
 
 CST_TOOL ?= /work/cst-3.1.0/linux64/bin/cst
-
+MKIMAGE ?= mkimage_imx8_imx8m
 
 SRK_TBL  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin)
 CSFK_PEM ?= $(shell realpath ../pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem)
@@ -31,14 +31,20 @@ PLAT_C_SRCS  += plat/imx/ocotp.c
 PLAT_C_SRCS  += plat/imx8m/plat.c
 PLAT_C_SRCS  += plat/imx/wdog.c
 
-BLOB_INPUT += lpddr4_pmu_train_1d_dmem.bin lpddr4_pmu_train_2d_dmem.bin
-BLOB_INPUT += lpddr4_pmu_train_1d_imem.bin lpddr4_pmu_train_2d_imem.bin
+BLOB_INPUT += lpddr4_pmu_train_1d_dmem.bin
+BLOB_INPUT += lpddr4_pmu_train_2d_dmem.bin
+BLOB_INPUT += lpddr4_pmu_train_1d_imem.bin
+BLOB_INPUT += lpddr4_pmu_train_2d_imem.bin
 
 CFLAGS += -I plat/imx8m/include
 
-plat_final:
-	@echo "plat_final"
+imx8m_image:
+	@echo Generating $(BUILD_DIR)/$(TARGET).imx
+	@$(MKIMAGE) -loader $(BUILD_DIR)/$(TARGET).bin $(PB_ENTRY) -out $(BUILD_DIR)/$(TARGET).imx 
+
+plat_final: imx8m_image
 	$(eval PB_FILESIZE=$(shell stat -c%s "${BUILD_DIR}/pb.imx"))
+	@echo $(PB_FILESIZE)
 	$(eval PB_FILESIZE2=$(shell echo " $$(( $(PB_FILESIZE) - 0x2000 ))" | bc	))
 	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE2)" | bc	))
 	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0x30 ))" | bc	))

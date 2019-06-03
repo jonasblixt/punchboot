@@ -38,6 +38,8 @@ CFLAGS  += -D__PB_BUILD
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
+CFLAGS  += -I board/$(BOARD)/include
+CFLAGS  += -MMD -MP
 
 LIBS     =
 
@@ -50,13 +52,17 @@ PLAT_ASM_SRCS =
 PLAT_C_SRCS =
 BLOB_INPUT  =
 
-C_SRCS   = recovery.c
+C_SRCS   = main.c
+C_SRCS  += recovery.c
 C_SRCS  += delay.c
 C_SRCS  += config.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c
 C_SRCS  += crypto.c
 C_SRCS  += timing_report.c
+C_SRCS  += usb.c
+C_SRCS  += image.c
+C_SRCS  += key_data.c
 C_SRCS  += lib/string.c
 C_SRCS  += lib/memmove.c
 C_SRCS  += lib/memchr.c
@@ -68,9 +74,6 @@ C_SRCS  += lib/printf.c
 C_SRCS  += lib/snprintf.c
 C_SRCS  += lib/putchar.c
 C_SRCS  += lib/uuid.c
-C_SRCS  += usb.c
-C_SRCS  += image.c
-C_SRCS  += key_data.c
 
 # Lib fdt
 C_SRCS  += 3pp/fdt/fdt.c
@@ -113,8 +116,10 @@ BOARD_OBJS   += $(patsubst %.c, $(BUILD_DIR)/%.o, $(BOARD_C_SRCS))
 OBJS	  = $(ARCH_OBJS) $(PLAT_OBJS) $(BOARD_OBJS)
 OBJS     += $(patsubst %.c, $(BUILD_DIR)/%.o, $(C_SRCS))
 OBJS     += $(patsubst %.S, $(BUILD_DIR)/%.o, $(ASM_SRCS))
-OBJS     += $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(BLOB_INPUT))
 
+BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(BLOB_INPUT))
+
+DEPS      = $(OBJS:.o=.d)
 
 ifeq ($(BOARD),test)
 CFLAGS += -g  -fprofile-arcs -ftest-coverage
@@ -141,9 +146,9 @@ $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@
 	@$(OBJCOPY) -O binary -R .comment $< $@
 
-$(BUILD_DIR)/$(TARGET): $(OBJS) $(BUILD_DIR)/main.o
+$(BUILD_DIR)/$(TARGET): $(OBJS) $(BLOB_OBJS)
 	@echo LD $@
-	@$(LD) $(LDFLAGS) $(OBJS) $(BUILD_DIR)/main.o $(LIBS) -o $@
+	@$(LD) $(LDFLAGS) $(OBJS) $(BLOB_OBJS) $(LIBS) -o $@
 
 $(BUILD_DIR)/%.bino: %.bin
 	@mkdir -p $(@D)
@@ -155,16 +160,10 @@ $(BUILD_DIR)/%.o: %.S
 	@echo AS $<
 	@$(CC) -D__ASSEMBLY__ -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/%.d: %.c
-	@echo DEP $<
-	@mkdir -p $(@D)
-	@$(CC) $(CFLAGS) -M -MT '$(@:.d=.o)' $< > $@
-
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
-
 
 .PHONY: plat_early plat_final board_final
 
@@ -176,7 +175,5 @@ qemu:
 
 .DEFAULT_GOAL := all
 
-
--include $(OBJS:.o=.d)
--include $(BUILD_DIR)/main.d
+-include $(DEPS)
 

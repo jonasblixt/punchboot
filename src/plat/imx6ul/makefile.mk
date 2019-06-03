@@ -12,6 +12,9 @@ PB_ARCH_NAME = armv7a
 
 SED = $(shell which sed)
 CSF_SIGN_TOOL ?= tools/csftool
+MKIMAGE         ?= mkimage
+
+FINAL_IMAGE     = $(TARGET).imx
 
 PB_SRK_TABLE  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin)
 PB_CSF_KEY ?= $(shell realpath ../pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_key.pem)
@@ -32,6 +35,9 @@ PLAT_C_SRCS	 += plat/imx/wdog.c
 PLAT_C_SRCS  += plat/imx/hab.c
 
 plat_final:
+	@$(MKIMAGE) -n board/$(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
+			-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx 
+
 	$(CSF_SIGN_TOOL) --csf_key $(PB_CSF_KEY) \
 					 --csf_crt $(PB_CSF_CRT) \
 					 --img_key $(PB_IMG_KEY) \
