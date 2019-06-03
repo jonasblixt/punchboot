@@ -35,7 +35,7 @@ INTEGRATION_TESTS += test_overlapping_region
 INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_corrupt_backup_gpt
 
-QEMU = qemu-system-arm
+QEMU ?= qemu-system-arm
 QEMU_AUDIO_DRV = "none"
 QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m 1024
 QEMU_FLAGS += -nographic -semihosting

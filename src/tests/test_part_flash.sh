@@ -31,6 +31,9 @@ result_code=$?
 
 if [ $result_code -ne 0 ];
 then
+    echo
+    echo Could not write to partition 0
+    echo
     test_end_error
 fi
 

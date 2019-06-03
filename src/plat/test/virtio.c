@@ -18,13 +18,13 @@
 
 uint32_t virtio_mmio_init(struct virtio_device *d)
 {
-    if (pb_read32(d->base + VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976)
+    if ((pb_read32(d->base + VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976))
         return PB_ERR;
 
-    if (pb_read32(d->base + VIRTIO_MMIO_DEVICE_ID) != d->device_id)
+    if ((pb_read32(d->base + VIRTIO_MMIO_DEVICE_ID) != d->device_id))
         return PB_ERR;
 
-    if (pb_read32(d->base + VIRTIO_MMIO_VENDOR_ID) != d->vendor_id)
+    if ((pb_read32(d->base + VIRTIO_MMIO_VENDOR_ID) != d->vendor_id))
         return PB_ERR;
 
     LOG_INFO ("Found VIRTIO @ 0x%08x, type: 0x%02x, vendor: 0x%08x, version: %u", d->base,
@@ -34,9 +34,9 @@ uint32_t virtio_mmio_init(struct virtio_device *d)
 
 
     d->status = 0;
-    pb_write32(d->status , d->base + VIRTIO_MMIO_STATUS);
-    d->status |= VIRTIO_STATUS_ACKNOWLEDGE | VIRTIO_STATUS_DRIVER;
-    pb_write32(d->status , d->base + VIRTIO_MMIO_STATUS);
+    pb_write32(d->status , (d->base + VIRTIO_MMIO_STATUS));
+    d->status |= (VIRTIO_STATUS_ACKNOWLEDGE | VIRTIO_STATUS_DRIVER);
+    pb_write32(d->status , (d->base + VIRTIO_MMIO_STATUS));
 
     pb_write32(4096, d->base + VIRTIO_MMIO_GUEST_PAGE_SIZE);
 
@@ -66,7 +66,8 @@ uint32_t virtio_mmio_select_features(struct virtio_device *d, uint32_t feat)
     d->status |= VIRTIO_STATUS_FEATURES_OK;
     pb_write32(d->status , d->base + VIRTIO_MMIO_STATUS);
 
-    if (virtio_mmio_get_status(d) & VIRTIO_STATUS_FAILED)
+    if ((virtio_mmio_get_status(d) & VIRTIO_STATUS_FAILED) == 
+                VIRTIO_STATUS_FAILED)
         return PB_ERR;
 
     return PB_OK;
@@ -88,7 +89,8 @@ uint32_t virtio_mmio_init_queue(struct virtio_device *d,
 
     pb_write32(queue_sz, d->base + VIRTIO_MMIO_QUEUE_NUM);
     pb_write32(4096, d->base + VIRTIO_MMIO_QUEUE_ALIGN);
-    pb_write32( ((uint32_t) q->desc) >> 12, d->base + VIRTIO_MMIO_QUEUE_PFN);
+    pb_write32( (((uint32_t) q->desc) >> 12),
+                    d->base + VIRTIO_MMIO_QUEUE_PFN);
 
     LOG_INFO ("Virtio Queue %u init: %08x, %08x, %08x",
             q->queue_index, (uint32_t) q->desc,
@@ -126,7 +128,7 @@ uint32_t virtio_mmio_write_one(struct virtio_device *d,
 
         bytes_to_transfer -= chunk;
 
-        q->desc[idx].addr = (uint32_t) &buf[pos];
+        q->desc[idx].addr = (uint32_t)(uintptr_t) &buf[pos];
         q->desc[idx].len = chunk;
 
         //idx = ((idx + 1) % (q->num));

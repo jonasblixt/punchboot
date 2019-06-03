@@ -16,8 +16,8 @@
 #define EHCI_PHY_BASE 0x02184000
 
 #define BOARD_BOOT_ARGS_VERBOSE  "console=ttymxc1,115200 " \
-                         "earlyprintk " 
+                         "earlyprintk "
 
 #define BOARD_BOOT_ARGS  "console=ttymxc1,115200 " \
-                         "quiet "
+                         "quiet root=/dev/mmcblk0p3 gpt rootwait"
 #endif

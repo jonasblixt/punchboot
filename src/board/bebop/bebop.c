@@ -77,9 +77,8 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     pb_write32(UART_PAD_CTRL, 0x020E0324);
 
 
-    pb_write32(5, 0x020E0098); 
-    pb_write32(0x2000 | (2 << 14) | (1 << 12), 0x020E0324);
-    
+
+
     /* Configure pinmux for usdhc1 */
     pb_write32(0, 0x020E0000+0x1C0); /* CLK MUX */
     pb_write32(0, 0x020E0000+0x1BC); /* CMD MUX */
@@ -103,26 +102,30 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     return PB_OK;
 }
 
-bool board_force_recovery(struct pb_platform_setup *plat) 
+bool board_force_recovery(struct pb_platform_setup *plat)
 {
     uint8_t force_recovery = false;
     UNUSED(plat);
 
     /* Check force recovery input switch */
+   /* pb_write32(5, 0x020E0098);
+    pb_write32(0x2000 | (2 << 14) | (1 << 12), 0x020E0324);
+
     if ( (pb_read32(0x0209C008) & (1 << 21)) == 0)
         force_recovery = true;
 
+    pb_write32(0, 0x020E0098);
+*/
     /* Connected to a charging port? enter recovery */
     if ((pb_read32(0x020c8000 + 0x1d0) & 0x02) == 0x02)
         force_recovery = true;
 
-        
     return force_recovery;
 }
 
 uint32_t board_late_init(struct pb_platform_setup *plat)
 {
-    UNUSED(plat);   
+    UNUSED(plat);
     return PB_OK;
 }
 
