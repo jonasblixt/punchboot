@@ -34,6 +34,8 @@ INTEGRATION_TESTS += test_part_offset_write
 INTEGRATION_TESTS += test_overlapping_region
 INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_corrupt_backup_gpt
+INTEGRATION_TESTS += test_corrupt_primary_config
+INTEGRATION_TESTS += test_corrupt_backup_config
 
 QEMU ?= qemu-system-arm
 QEMU_AUDIO_DRV = "none"
