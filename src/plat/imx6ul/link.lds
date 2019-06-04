@@ -1,5 +1,15 @@
 
 /**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+
+/**
  * ERR011115: User should set the boot image start address greater or 
  *   equal to 0x908000 (if the boot image running in OCRAM)
  */
