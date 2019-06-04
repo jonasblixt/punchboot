@@ -159,6 +159,9 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
 
+    if (lba_offset > 0)
+        plat_flush_block();
+
     return plat_write_block_async(part_lba_offset + lba_offset,
                                 (uintptr_t) bfr, no_of_blocks);
 
@@ -358,29 +361,26 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (cmd->arg0 == SYSTEM_NONE)
             {
-                config_system_enable(SYSTEM_A, false);
-                config_system_enable(SYSTEM_B, false);
+                config_system_enable(0);
             }
             else if (cmd->arg0 == SYSTEM_A)
             {
                 LOG_INFO("Activating System A");
-                config_system_enable(SYSTEM_A, true);
+                config_system_enable(SYSTEM_A);
                 config_system_set_verified(SYSTEM_A, true);
-                config_system_enable(SYSTEM_B, false);
             }
             else if (cmd->arg0 == SYSTEM_B)
             {
                 LOG_INFO("Activating System B");
-                config_system_enable(SYSTEM_A, false);
                 config_system_set_verified(SYSTEM_B, true);
-                config_system_enable(SYSTEM_B, true);
+                config_system_enable(SYSTEM_B);
             }
             else
             {
                 err = PB_ERR;
                 goto recovery_error_out;
             }
-            
+
             err = config_commit();
         }
         break;

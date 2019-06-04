@@ -147,7 +147,7 @@ uint32_t config_commit(void)
             (uintptr_t) &config, (sizeof(struct config)/512));
 
 config_commit_err:
-    
+
     if (err != PB_OK)
         LOG_ERR("Could not write configuration");
     else
@@ -160,11 +160,11 @@ bool config_system_enabled(uint32_t system)
 {
     if (system == SYSTEM_A)
     {
-        return (config.a_sys_enable==1);
+        return ((config.enable & PB_CONFIG_A_ENABLED) == PB_CONFIG_A_ENABLED);
     }
     else if (system == SYSTEM_B)
     {
-        return (config.b_sys_enable == 1);
+        return ((config.enable & PB_CONFIG_B_ENABLED) == PB_CONFIG_B_ENABLED);
     }
     else
     {
@@ -175,80 +175,49 @@ bool config_system_enabled(uint32_t system)
 
 bool config_system_verified(uint32_t system)
 {
+
     if (system == SYSTEM_A)
     {
-        return (config.a_sys_verified ==1);
+        return ((config.verified & PB_CONFIG_A_VERIFIED) == PB_CONFIG_A_VERIFIED);
     }
     else if (system == SYSTEM_B)
     {
-        return (config.b_sys_verified == 1);
+        return ((config.verified & PB_CONFIG_B_VERIFIED) == PB_CONFIG_B_VERIFIED);
     }
     else
     {
         return false;
     }
 }
-uint32_t config_get_boot_counter(uint32_t system)
+
+uint32_t config_get_remaining_boot_attempts(void)
 {
-    uint8_t counter = 0;
-
-    switch (system)
-    {
-        case SYSTEM_A:
-            counter = config.a_boot_counter;
-        break;
-        case SYSTEM_B:
-            counter = config.b_boot_counter;
-        break;
-        default:
-            counter = 0;
-    };
-
-    return counter;
+    return config.remaining_boot_attempts;
 }
 
-void config_set_boot_counter(uint32_t system, uint8_t counter)
+void config_decrement_boot_attempt(void)
 {
-
-    switch (system)
-    {
-        case SYSTEM_A:
-            config.a_boot_counter = counter;
-        break;
-        case SYSTEM_B:
-            config.b_boot_counter = counter;
-        break;
-        default:
-        break;
-    };
+    if (config.remaining_boot_attempts > 0)
+        config.remaining_boot_attempts--;
 }
 
-void config_set_boot_error_bits(uint32_t system, uint32_t bits)
+void config_set_boot_error(uint32_t bits)
 {
-    switch (system)
-    {
-        case SYSTEM_A:
-            config.a_boot_error = bits;
-        break;
-        case SYSTEM_B:
-            config.b_boot_error = bits;
-        break;
-        default:
-        break;
-    };
+    config.error = bits;
 }
 
-void config_system_enable(uint32_t system, bool enable)
+void config_system_enable(uint32_t system)
 {
     switch (system)
     {
         case SYSTEM_A:
-            config.a_sys_enable = enable;
+            config.enable = PB_CONFIG_A_ENABLED;;
         break;
         case SYSTEM_B:
-            config.b_sys_enable = enable;
+            config.enable = PB_CONFIG_B_ENABLED;;
         break;
         default:
+            config.enable = 0;
         break;
     };
 }
@@ -259,10 +228,18 @@ void config_system_set_verified(uint32_t system, bool verified)
     switch (system)
     {
         case SYSTEM_A:
-            config.a_sys_verified = verified;
+            config.remaining_boot_attempts = 0;
+            if (verified)
+                config.verified |= PB_CONFIG_A_VERIFIED;
+            else
+                config.verified &= ~PB_CONFIG_A_VERIFIED;
         break;
         case SYSTEM_B:
-            config.b_sys_verified = verified;
+            config.remaining_boot_attempts = 0;
+            if (verified)
+                config.verified |= PB_CONFIG_B_VERIFIED;
+            else
+                config.verified &= ~PB_CONFIG_B_VERIFIED;
         break;
         default:
         break;

@@ -1,17 +1,7 @@
 #!/bin/bash
+touch /tmp/pb_force_recovery
 source tests/common.sh
 wait_for_qemu_start
-
-
-$PB part -l
-result_code=$?
-
-# Test read GPT partition
-# this test should fail since the disk is empty
-if [ $result_code -ne 255 ];
-then
-    test_end_error
-fi
 
 
 echo Installing GPT
@@ -25,7 +15,6 @@ then
 fi
 
 echo "Done, listing partitions again"
-
 $PB part -l
 result_code=$?
 

@@ -90,16 +90,16 @@ void pb_main(void)
         goto run_recovery;
     }
 
-    uint32_t count = config_get_boot_counter(active_system);
+    uint32_t count = config_get_remaining_boot_attempts();
+
+    LOG_DBG("Current boot counter: %u", count);
 
     /* Newly upgraded system? */
     if (!config_system_verified(active_system) && (count> 0))
     {
         /* Decrement boot counter */
-        count--;
-        config_set_boot_counter(active_system, count);
+        config_decrement_boot_attempt();
         config_commit();
-        LOG_DBG("Current boot counter: %u", count);
     }
     else if (!config_system_verified(active_system)) /* Boot counter expired, rollback to other part */
     {
@@ -113,17 +113,15 @@ void pb_main(void)
         {
             part = part_system_b;
             active_system = SYSTEM_B;
-            config_system_enable(SYSTEM_B, true);
-            config_system_enable(SYSTEM_A, false);
-            config_set_boot_error_bits(SYSTEM_A, PB_CONFIG_BOOT_ROLLBACK_ERR);
+            config_system_enable(SYSTEM_B);
+            config_set_boot_error(PB_CONFIG_ERROR_A_ROLLBACK);
         }
         else
         {
             part = part_system_a;
             active_system = SYSTEM_A;
-            config_system_enable(SYSTEM_B, false);
-            config_system_enable(SYSTEM_A, true);
-            config_set_boot_error_bits(SYSTEM_B, PB_CONFIG_BOOT_ROLLBACK_ERR);
+            config_system_enable(SYSTEM_A);
+            config_set_boot_error(PB_CONFIG_ERROR_B_ROLLBACK);
         }
 
         config_commit();
