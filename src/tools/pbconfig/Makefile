@@ -26,17 +26,21 @@ $(error "No pkg-config found")
 endif
 
 ifeq (,$(shell $(PKG_CONFIG) --libs --cflags blkid))
-$(error "No openssl detected")
+$(error "No blkid detected")
+endif
+
+ifeq (,$(shell $(PKG_CONFIG) --libs --cflags uuid))
+$(error "No blkid detected")
 endif
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
 CFLAGS  += -Wall -O2 -I ../../include/ -std=c99
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
-CFLAGS  += $(shell $(PKG_CONFIG) --cflags blkid)
+CFLAGS  += $(shell $(PKG_CONFIG) --cflags blkid uuid)
 CFLAGS  += -I . --sysroot $(SYSROOT)
 
-LIBS    = $(shell $(PKG_CONFIG) --libs blkid)
+LIBS    = $(shell $(PKG_CONFIG) --libs blkid uuid)
 
 ASM_SRCS = 
 C_SRCS   = main.c

@@ -174,21 +174,20 @@ load_err_out1:
 
 void print_configuration(void)
 {
-    printf ("Configuration:\n\n");
-    printf ("System     Active       Verified        Boot-try-counter      Errors\n");
-    printf ("------     ------       --------        ----------------      ------\n");
+    printf ("Punchboot status:\n\n");
+    printf ("System A is %s and %s\n", (config.enable & PB_CONFIG_A_ENABLED)?
+                                    "enabled":"disabled",
+                                   (config.verified & PB_CONFIG_A_VERIFIED)?
+                                    "verified":"not verified");
 
-    printf ("  A        %-10s   %-15s %04u                  0x%08x\n",
-        config.a_sys_enable?"active":"inactive",
-        config.a_sys_verified?"verified":"not verified",
-        config.a_boot_counter,
-        config.a_boot_error);
+    printf ("System B is %s and %s\n", (config.enable & PB_CONFIG_B_ENABLED)?
+                                    "enabled":"disabled",
+                                   (config.verified & PB_CONFIG_B_VERIFIED)?
+                                    "verified":"not verified");
 
-    printf ("  B        %-10s   %-15s %04u                  0x%08x\n",
-        config.b_sys_enable?"active":"inactive",
-        config.b_sys_verified?"verified":"not verified",
-        config.b_boot_counter,
-        config.b_boot_error);
+
+    printf ("Errors : 0x%08x\n",config.error);
+    printf ("Remaining boot attempts: %u\n",config.remaining_boot_attempts);
 
 }
 
@@ -203,46 +202,40 @@ uint32_t pbconfig_switch(uint8_t system, uint8_t counter)
     switch (system)
     {
         case SYSTEM_A:
-            config.a_sys_enable = 1;
-            config.b_sys_enable = 0;
+            config.enable = PB_CONFIG_A_ENABLED;
 
             if (counter > 0)
             {
-                config.a_boot_counter = counter;
-                config.a_sys_verified = 0;
-                config.a_boot_error = 0;
+                config.remaining_boot_attempts = counter;
+                config.verified &= ~PB_CONFIG_A_VERIFIED;
+                config.error = 0;
             }
             else
             {
-                config.a_sys_verified = 1;
-                config.a_boot_counter = 0;
-                config.a_boot_error = 0;
+                config.verified |= PB_CONFIG_A_VERIFIED;
+                config.remaining_boot_attempts = 0;
+                config.error = 0;
             }
         break;
         case SYSTEM_B:
-            config.a_sys_enable = 0;
-            config.b_sys_enable = 1;
+            config.enable = PB_CONFIG_B_ENABLED;
 
             if (counter > 0)
             {
-                config.b_sys_verified = 0;
-                config.b_boot_counter = counter;
-                config.b_boot_error = 0;
+                config.remaining_boot_attempts = counter;
+                config.verified &= ~PB_CONFIG_B_VERIFIED;
+                config.error = 0;
             }
             else
             {
-                config.b_sys_verified = 1;
-                config.b_boot_counter = 0;
-                config.b_boot_error = 0;
+                config.verified |= PB_CONFIG_B_VERIFIED;
+                config.remaining_boot_attempts = 0;
+                config.error = 0;
             }
         break;
         case SYSTEM_NONE:
-            config.a_sys_enable = 0;
-            config.a_boot_counter = 0;
-            config.a_boot_error = 0;
-            config.b_sys_enable = 0;
-            config.b_boot_counter = 0;
-            config.b_boot_error = 0;
+            config.enable = 0;
+            config.remaining_boot_attempts = 0;
         break;
         default:
             return PB_ERR;
@@ -258,12 +251,12 @@ uint32_t pbconfig_set_verified(uint8_t system)
     switch (system)
     {
         case SYSTEM_A:
-            config.a_sys_verified = 1;
-            config.a_boot_counter = 0;
+            config.verified |= PB_CONFIG_A_VERIFIED;
+            config.remaining_boot_attempts = 0;
         break;
         case SYSTEM_B:
-            config.a_sys_verified = 1;
-            config.b_boot_counter = 0;
+            config.verified |= PB_CONFIG_B_VERIFIED;
+            config.remaining_boot_attempts = 0;
         break;
         case SYSTEM_NONE:
         break;

@@ -9,6 +9,7 @@
  */
 
 #include <pb/pb.h>
+#include <uuid.h>
 #include <strings.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -16,6 +17,7 @@
 #include <stdbool.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <blkid.h>
 
 #include "pbconfig.h"
 
@@ -100,6 +102,45 @@ int main(int argc, char * const argv[])
         print_help();
         exit(0);
     }    
+
+    /* Find config partitions using UUID's */
+    if (!(flag_primary_offset && flag_backup_offset))
+    {
+        blkid_probe pr;
+        pr = blkid_new_probe_from_filename(device_path);
+
+        if (!pr)
+        {
+            printf("Error: could not probe '%s'\n",device_path);
+            return -1;
+        }
+        
+        blkid_do_probe(pr);
+        blkid_partlist pl = blkid_probe_get_partitions(pr);
+        int no_of_parts = blkid_partlist_numof_partitions(pl);
+
+        for (uint32_t n = 0; n < no_of_parts; n++)
+        {
+            blkid_partition p = blkid_partlist_get_partition(pl,n);
+            uuid_t uuid_raw;
+            uuid_parse(blkid_partition_get_uuid(p), uuid_raw);
+
+            if (memcmp(uuid_raw, PB_PARTUUID_CONFIG_PRIMARY, 16) == 0)
+            {
+                offset_primary = blkid_partition_get_start(p);
+                printf ("Found primary configuration at lba %lx\n",offset_primary);
+            }
+
+            if (memcmp(uuid_raw, PB_PARTUUID_CONFIG_BACKUP, 16) == 0)
+            {
+                offset_backup = blkid_partition_get_start(p);
+                printf ("Found backup configuration at lba %lx\n",offset_backup);
+            }
+
+        }
+
+        blkid_free_probe(pr);
+    }
 
     if (flag_device)
     {
