@@ -36,6 +36,7 @@ INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_corrupt_backup_gpt
 INTEGRATION_TESTS += test_corrupt_primary_config
 INTEGRATION_TESTS += test_corrupt_backup_config
+INTEGRATION_TESTS += test_switch
 
 QEMU ?= qemu-system-arm
 QEMU_AUDIO_DRV = "none"
