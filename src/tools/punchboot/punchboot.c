@@ -369,10 +369,328 @@ static void print_help(void) {
     print_part_help();
 }
 
+static uint32_t part_command(bool flag_list,
+                             bool flag_write,
+                             bool flag_index,
+                             bool flag_install,
+                             bool flag_reset,
+                             uint64_t cmd_index,
+                             uint64_t offset,
+                             const char *fn)
+{
+    uint32_t err;
+
+    err = check_auth();
+
+    if (err != PB_OK)
+        return err;
+
+    if (flag_list) 
+    {
+        printf("Listing partitions:\n");
+        err = print_gpt_table();
+
+        if (err != PB_OK)
+            return err;
+    }
+    else if (flag_write && flag_index && fn)
+    {
+
+        printf ("Writing %s to part %li with offset %li\n",
+                            fn, cmd_index,offset);
+
+        err = pb_flash_part(cmd_index, offset, fn);
+
+        if (err != PB_OK)
+            return err;
+
+    }
+    else if (flag_install)
+    {
+        err = pb_install_default_gpt();
+
+        if (err != PB_OK)
+            return err;
+
+    } else {
+        print_help_header();
+        print_part_help();
+        err = PB_OK;
+        return err;
+    }
+
+    if (flag_reset) 
+        err = pb_reset();
+
+    return err;
+}
+
+static uint32_t boot_command(bool flag_s,
+                             bool flag_a,
+                             bool flag_b,
+                             bool flag_v,
+                             bool flag_write,
+                             bool flag_execute,
+                             bool flag_reset,
+                             const char *s_arg,
+                             const char *fn)
+{
+    uint32_t err;
+    uint32_t active_system = SYSTEM_A;
+
+    err = check_auth();
+
+    if (err != PB_OK)
+        return err;
+
+    if ( !(flag_s | flag_a | flag_write | flag_execute | flag_reset ))
+    {
+        print_help_header();
+        print_boot_help();
+        err = PB_OK;
+        return err;
+    }
+
+    if (flag_s) 
+    {
+        int part = tolower(s_arg[0]);
+        if (part == 'a')
+            active_system = SYSTEM_A;
+        else if (part == 'b')
+            active_system = SYSTEM_B;
+        else
+            active_system = SYSTEM_NONE;
+
+    }
+
+    if (flag_a)
+    {
+        err = pb_set_bootpart(active_system);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    if (flag_b)
+    {
+        err = pb_boot_part(active_system, flag_v);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    if (flag_write) 
+    {
+        err = pb_program_bootloader(fn);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    if (flag_execute)
+    {
+        err = pb_execute_image(fn, active_system, flag_v);
+
+        if (err != PB_OK)
+            return err;
+    }
+
+    if (flag_reset) 
+        err = pb_reset();
+
+    return err;
+}
+
+static uint32_t dev_command(bool flag_list,
+                            bool flag_install,
+                            bool flag_y,
+                            bool flag_write,
+                            bool flag_s,
+                            bool flag_a,
+                            bool flag_index,
+                            uint32_t cmd_index,
+                            const char *s_arg,
+                            const char *fn)
+{
+    uint32_t err;
+
+    if (flag_list) 
+    {
+        err = pb_display_device_info();
+
+        if (err != PB_OK)
+            return err;
+    } 
+    else if (flag_install) 
+    {
+
+        err = check_auth();
+
+        if (err != PB_OK)
+            return err;
+
+        printf ("Performing device setup\n");
+
+        char confirm_input[5];
+
+        if (!flag_y)
+        {
+            printf ("\n\nWARNING: This is a permanent change, writing fuses " \
+                    "can not be reverted. This could brick your device.\n"
+                    "\n\nType 'yes' + <Enter> to proceed: ");
+            if (fgets(confirm_input, 5, stdin) != confirm_input)
+                return PB_ERR;
+            
+            if (strncmp(confirm_input, "yes", 3)  != 0)
+            {
+                printf ("Aborted\n");
+                return PB_ERR;
+            }
+        }
+
+        bzero(params, sizeof(struct param) * PB_MAX_PARAMS);
+
+        if (fn != NULL)
+        {
+            err = load_params(fn);
+            
+            if (err != PB_OK)
+                return err;
+        }
+        else
+            printf("No parameter file supplied\n");
+
+        err = pb_recovery_setup(params);
+
+        if (err != PB_OK)
+        {
+            printf ("ERROR: Something went wrong\n");
+            return err;
+        }
+
+        printf ("Success\n");
+
+    } else if (flag_write) {
+
+        err = check_auth();
+
+        if (err != PB_OK)
+            return err;
+
+        char confirm_input[5];
+        
+        if (!flag_y)
+        {
+            printf ("\n\nWARNING: This is a permanent change, writing fuses " \
+                    "can not be reverted. This could brick your device.\n"
+                    "\n\nType 'yes' + <Enter> to proceed: ");
+            if (fgets(confirm_input, 5, stdin) != confirm_input)
+                return PB_ERR;
+
+            if (strncmp(confirm_input, "yes", 3)  != 0)
+            {
+                printf ("Aborted\n");
+                return PB_ERR;
+            }
+        }
+        err = pb_recovery_setup_lock();
+
+        if (err != PB_OK)
+        {
+            printf("ERROR: Something went wrong\n");
+            return PB_ERR;
+        }
+        printf ("Success");
+    } 
+    else if (flag_a && flag_s)
+    {
+        uint32_t key_index = 0;
+
+        if (flag_index)
+            key_index = cmd_index;
+    
+        char delim[] = ":";
+        char *tok = strtok((char *)s_arg, delim);
+        
+        if (tok == NULL)
+        {
+            err = PB_ERR;
+            return err;
+        }
+
+        printf ("Signature format: %s\n",tok);
+
+        uint32_t signature_kind = 0;
+
+        if (strcmp(tok, "secp256r1") == 0)
+            signature_kind = PB_SIGN_NIST256p;
+        else if (strcmp(tok, "secp384r1") == 0)
+            signature_kind = PB_SIGN_NIST384p;
+        else if (strcmp(tok,"secp521r1") == 0)
+            signature_kind = PB_SIGN_NIST521p;
+        else if (strcmp(tok,"RSA4096") == 0)
+            signature_kind = PB_SIGN_RSA4096;
+        else
+        {
+            printf ("Error: Invalid signature format\n");
+            err = PB_ERR;
+            return err;
+        }
+
+
+        tok = strtok(NULL, delim);
+
+        if (tok == NULL)
+        {
+            err = PB_ERR;
+            return err;
+        }
+
+        printf ("Hash: %s\n",tok);
+
+        uint32_t hash_kind = 0;
+
+        if (strcmp(tok,"sha256") == 0)
+            hash_kind = PB_HASH_SHA256;
+        else if (strcmp(tok,"sha384") == 0)
+            hash_kind = PB_HASH_SHA384;
+        else if (strcmp(tok,"sha512") == 0)
+            hash_kind = PB_HASH_SHA512;
+        else
+        {
+            printf ("Error: Invalid hash\n");
+            err = PB_ERR;
+            return err;
+        }
+
+
+        printf ("Authenticating using key index %u and '%s'\n",
+                key_index, fn);
+
+        err = pb_recovery_authenticate(key_index, fn, signature_kind,
+                                                      hash_kind);
+
+        if (err == PB_ERR_FILE_NOT_FOUND)
+            printf ("Could not read '%s'\n",fn);
+
+        if (err != PB_OK)
+            printf ("Authentication failed\n");
+        else
+            printf ("Authentication successful\n");
+    }
+    else 
+    {
+        print_help_header();
+        print_dev_help();
+        err = PB_OK;
+    }
+
+    return err;
+}
+
 int main(int argc, char **argv) 
 {
     extern char *optarg;
-    uint32_t active_system = SYSTEM_A;
     int64_t offset = 0;
     uint8_t usb_path[16];
     uint8_t usb_path_count = 0;
@@ -485,298 +803,45 @@ int main(int argc, char **argv)
 
     if (strcmp(cmd, "dev") == 0) 
     {
-        if (flag_list) 
-        {
-            err = pb_display_device_info();
-
-            if (err != PB_OK)
-                goto pb_done;
-        } 
-        else if (flag_install) 
-        {
-
-            err = check_auth();
-
-            if (err != PB_OK)
-                goto pb_done;
-
-            printf ("Performing device setup\n");
-
-            char confirm_input[5];
-
-            if (!flag_y)
-            {
-                printf ("\n\nWARNING: This is a permanent change, writing fuses " \
-                        "can not be reverted. This could brick your device.\n"
-                        "\n\nType 'yes' + <Enter> to proceed: ");
-                if (fgets(confirm_input, 5, stdin) != confirm_input)
-                    return PB_ERR;
-                
-                if (strncmp(confirm_input, "yes", 3)  != 0)
-                {
-                    printf ("Aborted\n");
-                    goto pb_done;
-                }
-            }
-
-            bzero(params, sizeof(struct param) * PB_MAX_PARAMS);
-
-            if (fn != NULL)
-            {
-                err = load_params(fn);
-                
-                if (err != PB_OK)
-                    goto pb_done;
-            }
-            else
-                printf("No parameter file supplied\n");
-
-            err = pb_recovery_setup(params);
-
-            if (err != PB_OK)
-            {
-                printf ("ERROR: Something went wrong\n");
-                goto pb_done;
-            }
-
-            printf ("Success\n");
-
-        } else if (flag_write) {
-
-            err = check_auth();
-
-            if (err != PB_OK)
-                goto pb_done;
-
-            char confirm_input[5];
-            
-            if (!flag_y)
-            {
-                printf ("\n\nWARNING: This is a permanent change, writing fuses " \
-                        "can not be reverted. This could brick your device.\n"
-                        "\n\nType 'yes' + <Enter> to proceed: ");
-                if (fgets(confirm_input, 5, stdin) != confirm_input)
-                    return PB_ERR;
-
-                if (strncmp(confirm_input, "yes", 3)  != 0)
-                {
-                    printf ("Aborted\n");
-                    goto pb_done;
-                }
-            }
-            err = pb_recovery_setup_lock();
-
-            if (err != PB_OK)
-            {
-                printf("ERROR: Something went wrong\n");
-                goto pb_done;
-            }
-            printf ("Success");
-        } 
-        else if (flag_a && flag_s)
-        {
-            uint32_t key_index = 0;
-
-            if (flag_index)
-                key_index = cmd_index;
-        
-            char delim[] = ":";
-            char *tok = strtok(s_arg, delim);
-            
-            if (tok == NULL)
-            {
-                err = PB_ERR;
-                goto pb_done;
-            }
-
-            printf ("Signature format: %s\n",tok);
-
-            uint32_t signature_kind = 0;
-
-            if (strcmp(tok, "secp256r1") == 0)
-                signature_kind = PB_SIGN_NIST256p;
-            else if (strcmp(tok, "secp384r1") == 0)
-                signature_kind = PB_SIGN_NIST384p;
-            else if (strcmp(tok,"secp521r1") == 0)
-                signature_kind = PB_SIGN_NIST521p;
-            else if (strcmp(tok,"RSA4096") == 0)
-                signature_kind = PB_SIGN_RSA4096;
-            else
-            {
-                printf ("Error: Invalid signature format\n");
-                err = PB_ERR;
-                goto pb_done;
-            }
-
-
-            tok = strtok(NULL, delim);
-
-            if (tok == NULL)
-            {
-                err = PB_ERR;
-                goto pb_done;
-            }
-
-            printf ("Hash: %s\n",tok);
-
-            uint32_t hash_kind = 0;
-
-            if (strcmp(tok,"sha256") == 0)
-                hash_kind = PB_HASH_SHA256;
-            else if (strcmp(tok,"sha384") == 0)
-                hash_kind = PB_HASH_SHA384;
-            else if (strcmp(tok,"sha512") == 0)
-                hash_kind = PB_HASH_SHA512;
-            else
-            {
-                printf ("Error: Invalid hash\n");
-                err = PB_ERR;
-                goto pb_done;
-            }
-
-
-            printf ("Authenticating using key index %u and '%s'\n",
-                    key_index, fn);
-
-            err = pb_recovery_authenticate(key_index, fn, signature_kind,
-                                                          hash_kind);
-
-            if (err == PB_ERR_FILE_NOT_FOUND)
-                printf ("Could not read '%s'\n",fn);
-
-            if (err != PB_OK)
-                printf ("Authentication failed\n");
-            else
-                printf ("Authentication successful\n");
-        }
-        else 
-        {
-            print_help_header();
-            print_dev_help();
-            err = PB_OK;
-            goto pb_done;
-        }
+        err = dev_command(flag_list,
+                          flag_install,
+                          flag_y,
+                          flag_write,
+                          flag_s,
+                          flag_a,
+                          flag_index,
+                          cmd_index,
+                          s_arg,
+                          fn);
     }
     else if (strcmp(cmd, "boot") == 0) 
     {
-        err = check_auth();
-
-        if (err != PB_OK)
-            goto pb_done;
-
-        if ( !(flag_s | flag_a | flag_write | flag_execute | flag_reset ))
-        {
-            print_help_header();
-            print_boot_help();
-            err = PB_OK;
-            goto pb_done;
-        }
-
-        if (flag_s) 
-        {
-            int part = tolower(s_arg[0]);
-            if (part == 'a')
-                active_system = SYSTEM_A;
-            else if (part == 'b')
-                active_system = SYSTEM_B;
-            else
-                active_system = SYSTEM_NONE;
-
-        }
-
-        if (flag_a)
-        {
-            err = pb_set_bootpart(active_system);
-        }
-
-        if (flag_b)
-        {
-            err = pb_boot_part(active_system, flag_v);
-
-            if (err != PB_OK)
-                goto pb_done;
-        }
-
-        if (flag_write) 
-        {
-            err = pb_program_bootloader(fn);
-
-            if (err != PB_OK)
-                goto pb_done;
-        }
-
-        if (flag_execute)
-        {
-            err = pb_execute_image(fn, active_system, flag_v);
-
-            if (err != PB_OK)
-                goto pb_done;
-        }
-
-        if (flag_reset) 
-        {
-            err = pb_reset();
-            
-            if (err != PB_OK)
-                goto pb_done;
-        }
+        err = boot_command(flag_s,
+                           flag_a,
+                           flag_b,
+                           flag_v,
+                           flag_write,
+                           flag_execute,
+                           flag_reset,
+                           s_arg,
+                           fn);
     }
     else if (strcmp(cmd, "part") == 0) 
     {
-
-        err = check_auth();
-
-        if (err != PB_OK)
-            goto pb_done;
-
-        if (flag_list) 
-        {
-            printf("Listing partitions:\n");
-            err = print_gpt_table();
-
-            if (err != PB_OK)
-                goto pb_done;
-
-        }
-        else if (flag_write && flag_index && fn)
-        {
-
-            printf ("Writing %s to part %i with offset %li\n",
-                                fn, cmd_index,offset);
-
-            err = pb_flash_part(cmd_index, offset, fn);
-
-            if (err != PB_OK)
-                goto pb_done;
-
-        } else if (flag_install) {
-            err = pb_install_default_gpt();
-
-            if (err != PB_OK)
-                goto pb_done;
-
-        } else {
-            print_help_header();
-            print_part_help();
-            err = PB_OK;
-            goto pb_done;
-        }
-
-        if (flag_reset) 
-        {
-            err = pb_reset();
-
-            if (err != PB_OK)
-                goto pb_done;
-        }
+        err = part_command(flag_list,
+                           flag_write,
+                           flag_index,
+                           flag_install,
+                           flag_reset,
+                           cmd_index,
+                           offset,
+                           fn);
     }
     else
     {
         printf ("Unknown command\n");
         err = PB_ERR;
     }
-
-pb_done:
 
     transport_exit();
 
