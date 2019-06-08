@@ -10,17 +10,15 @@
 
 PB_ARCH_NAME = armv7a
 
+CST_TOOL ?= /work/cst-3.1.0/linux64/bin/cst
+
+SRK_TBL  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin)
+CSFK_PEM ?= $(shell realpath ../pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem)
+IMG_PEM  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem)
+SRK_FUSE_BIN ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_fuse.bin)
+
+PB_CSF_TEMPLATE = plat/imx6ul/pb.csf.template
 SED = $(shell which sed)
-CSF_SIGN_TOOL ?= tools/csftool
-MKIMAGE         ?= mkimage
-
-FINAL_IMAGE     = $(TARGET).imx
-
-PB_SRK_TABLE  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin)
-PB_CSF_KEY ?= $(shell realpath ../pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_key.pem)
-PB_CSF_CRT ?= $(shell realpath ../pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem)
-PB_IMG_KEY  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_key.pem)
-PB_IMG_CRT  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem)
 
 CFLAGS += -I plat/imx6ul/include
 
@@ -34,30 +32,18 @@ PLAT_C_SRCS  += plat/imx/ocotp.c
 PLAT_C_SRCS	 += plat/imx/wdog.c
 PLAT_C_SRCS  += plat/imx/hab.c
 
+plat_clean:
+	@-rm -rf plat/imx/*.o
+	@-rm -rf plat/imx6ul/*.o
+
 plat_final:
-	@$(MKIMAGE) -n board/$(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
-			-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx 
-
-	$(CSF_SIGN_TOOL) --csf_key $(PB_CSF_KEY) \
-					 --csf_crt $(PB_CSF_CRT) \
-					 --img_key $(PB_IMG_KEY) \
-					 --img_crt $(PB_IMG_CRT) \
-					 --table $(PB_SRK_TABLE) \
-					 --index 1 \
-					 --image $(BUILD_DIR)/pb.imx \
-					 --output $(BUILD_DIR)/pb_csf.bin
-
-	@cat $(BUILD_DIR)/pb.imx $(BUILD_DIR)/pb_csf.bin > $(BUILD_DIR)/pb_signed.imx
-
-	$(CSF_SIGN_TOOL) --csf_key $(PB_CSF_KEY) \
-					 --csf_crt $(PB_CSF_CRT) \
-					 --img_key $(PB_IMG_KEY) \
-					 --img_crt $(PB_IMG_CRT) \
-					 --table $(PB_SRK_TABLE) \
-					 --index 1 \
-					 --serial \
-					 --image $(BUILD_DIR)/pb.imx \
-					 --output $(BUILD_DIR)/pb_csf_uuu.bin
-
-	@cat $(BUILD_DIR)/pb.imx $(BUILD_DIR)/pb_csf_uuu.bin > $(BUILD_DIR)/pb_signed_uuu.imx
-
+	$(eval PB_FILESIZE=$(shell stat -c%s "pb.imx"))
+	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE)" | bc	))
+	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0xC00 ))" | bc	))
+	@echo "PB imx image size: $(PB_FILESIZE) bytes ($(PB_FILESIZE_HEX)), cst addr $(PB_CST_ADDR)"
+	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x000 $(PB_FILESIZE_HEX) "pb.imx"/g' < $(PB_CSF_TEMPLATE) > pb.csf
+	@$(SED) -i -e 's#__SRK_TBL__#$(SRK_TBL)#g' pb.csf
+	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' pb.csf
+	@$(SED) -i -e 's#__IMG_PEM__#$(IMG_PEM)#g'  pb.csf
+	@$(CST_TOOL) --o pb_csf.bin --i pb.csf
+	@cat pb.imx pb_csf.bin > pb_signed.imx
