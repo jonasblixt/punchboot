@@ -31,15 +31,11 @@ extern void arch_jump_atf(void* atf_addr, void * atf_param)
                                  __attribute__ ((noreturn));
 
 extern uint32_t board_linux_patch_dt (void *fdt, int offset);
-static char new_bootargs[512];
 static __a16b char device_uuid[37];
 static __a4k __no_bss char device_uuid_raw[16];
 
 void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 {
-
-    char part_uuid[37];
-
     struct pb_component_hdr *dtb =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
 
@@ -48,6 +44,9 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     struct pb_component_hdr *atf =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
+
+    struct pb_component_hdr *ramdisk =
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_RAMDISK);
 
     tr_stamp_begin(TR_DT_PATCH);
 
@@ -79,28 +78,15 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
         LOG_INFO("ATF: None");
     }
 
-    switch (system_index)
+    if (ramdisk)
     {
-        case SYSTEM_A:
-        {
-            LOG_INFO ("Using root A");
-            uuid_to_string((const uint8_t *)PB_PARTUUID_ROOT_A, part_uuid);
-        }
-        break;
-        case SYSTEM_B:
-        {
-            LOG_INFO ("Using root B");
-            uuid_to_string((const uint8_t *)PB_PARTUUID_ROOT_B, part_uuid);
-        }
-        break;
-        default:
-        {
-            LOG_ERR("Invalid root partition %x", system_index);
-            return ;
-        }
+        LOG_INFO("RAMDISK: %x",ramdisk->load_addr_low);
+    }
+    else
+    {
+        LOG_INFO("RAMDISK: None");
     }
 
-    LOG_INFO("Root FS UUID = %s", part_uuid);
     LOG_DBG("Patching DT");
     void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
     int err = fdt_check_header(fdt);
@@ -124,17 +110,37 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
             if (strcmp(name, "chosen") == 0)
             {
-                if (verbose)
+
+                err = fdt_setprop_u32( (void *) fdt, offset,
+                                    "linux,initrd-start",
+                                    ramdisk->load_addr_low);
+
+                if (err)
                 {
-                    snprintf (new_bootargs, 512, BOARD_BOOT_ARGS_VERBOSE,
-                                                        part_uuid);
-                } else {
-                    snprintf (new_bootargs, 512, BOARD_BOOT_ARGS,
-                                                        part_uuid);
+                    LOG_ERR("Could not patch initrd");
+                    return;
                 }
 
-                err = fdt_setprop_string( (void *) fdt, offset, "bootargs",
-                            (const char *) new_bootargs);
+                err = fdt_setprop_u32( (void *) fdt, offset,
+                    "linux,initrd-end",
+                    ramdisk->load_addr_low+ramdisk->component_size);
+
+                if (err)
+                {
+                    LOG_ERR("Could not patch initrd");
+                    return;
+                }
+
+                if (verbose)
+                {
+                    err = fdt_setprop_string( (void *) fdt, offset,
+                                "bootargs",
+                                (const char *) BOARD_BOOT_ARGS_VERBOSE);
+                } else {
+                    err = fdt_setprop_string( (void *) fdt, offset,
+                                "bootargs",
+                                (const char *) BOARD_BOOT_ARGS);
+                }
 
                 if (err)
                 {
@@ -143,6 +149,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                 } else {
                     LOG_INFO("Bootargs patched");
                 }
+
 
                 plat_get_uuid(device_uuid_raw);
                 uuid_to_string((uint8_t *)device_uuid_raw,device_uuid);

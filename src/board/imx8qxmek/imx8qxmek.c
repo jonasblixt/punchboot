@@ -191,7 +191,10 @@ bool board_force_recovery(struct pb_platform_setup *plat)
     pb_clrbit32(1 << 2, 0x5b100000+0xe0);
     
     if (usb_charger_detected)
+    {
         LOG_INFO("USB Charger condition, entering bootloader");
+    }
+
     return (btn_status == 1) || (boot_type == SC_MISC_BT_SERIAL) ||
             (usb_charger_detected);
 }

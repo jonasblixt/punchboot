@@ -6,7 +6,7 @@ CFLAGS += -I board/imx8qxmek/include
 
 BOARD_C_SRCS += board/imx8qxmek/imx8qxmek.c
 #BOARD_C_SRCS += boot/lk.c
-BOARD_C_SRCS += boot/atf_linux.c
+BOARD_C_SRCS += boot/atf_linux_initrd.c
 
 MKIMAGE         = mkimage_imx8
 FINAL_IMAGE     = $(TARGET).imx
