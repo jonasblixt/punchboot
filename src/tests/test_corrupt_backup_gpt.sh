@@ -31,7 +31,7 @@ echo
 dd if=/dev/urandom of=/tmp/disk conv=notrunc bs=512 count=34 seek=65502
 sync
 
-sgdisk -v /tmp/disk 2>1 | grep "CRC for the backup"
+sgdisk -v /tmp/disk 2>0 | grep "CRC for the backup"
 result_code=$?
 
 if [ $result_code -ne 0 ];

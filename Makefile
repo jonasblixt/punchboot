@@ -17,7 +17,7 @@ tests:
 coverity:
 	@rm -rf cov-int && \
 		cov-configure --config cov.xml \
-	                  --compiler arm-eabi-gcc --comptype gcc \
+	                  --compiler arm-none-eabi-gcc --comptype gcc \
 					  --template \
 					  --xml-option=skip_file:".*/src/tests/.*" \
 					  --xml-option=skip_file:".*/src/3pp/.*" && \

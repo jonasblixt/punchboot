@@ -39,6 +39,36 @@ Releases history:
 | v0.2    | 2019-03-18   | Support for EC signatures, improved boot speed   |
 | v0.1    | 2019-02-25   | First release                                    |
 
+## Building
+
+The easiest way is using docker.
+
+First generate the docker image using the top most makefile
+
+```
+    make docker
+```
+
+Build the cst tool
+
+```
+docker run -it -u $(id -u $USER) -v <path to punchboot top dir>:/pb/ pb_docker_env make -C /pb/src/tools/imxcst/src
+```
+
+Building the jiffy-board target:
+
+```
+docker run -it -u $(id -u $USER) -v <path to punchboot top dir>:/pb/ pb_docker_env make -C /pb/src BOARD=jiffy LOGLEVEL=3
+```
+
+Run the built in tests:
+
+```
+docker run -it -u $(id -u $USER) -v <path to punchboot top dir>:/pb/ pb_docker_env make -C /pb/ tests
+```
+
+The dockerfile in the top directory details the dependencies on ubuntu xenial
+
 ## Design
 
 Punchboot is written in C and some assembler. Currently armv7a and armv8 is supported.
