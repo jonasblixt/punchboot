@@ -118,7 +118,6 @@ static void usb_send_ep0(struct usb_device *dev, uint8_t *bfr, uint32_t sz)
     memcpy(usb_data_buffer, bfr, sz);
     plat_usb_transfer(dev, USB_EP0_IN, usb_data_buffer, sz);
     plat_usb_wait_for_ep_completion(dev, USB_EP0_IN);
-
     plat_usb_transfer(dev, USB_EP0_OUT, NULL, 0);
     plat_usb_wait_for_ep_completion(dev, USB_EP0_OUT);
 }
@@ -144,16 +143,18 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
             {
                 usb_send_ep0(dev, (uint8_t *) qf_descriptor, 
                                                     sizeof(qf_descriptor));
-            } else if (setup->wValue == 0x0100) {
+            }
+            else if (setup->wValue == 0x0100)
+            {
                 
                 sz = sizeof(struct usb_device_descriptor);
 
                 if (setup->wLength < sz)
                     sz = setup->wLength;
-
                 usb_send_ep0(dev, (uint8_t *) &descriptors.device, sz);
-
-            } else if (setup->wValue == 0x0200) {
+            }
+            else if (setup->wValue == 0x0200)
+            {
                 uint16_t desc_tot_sz = descriptors.config.wTotalLength;
 
                 sz = desc_tot_sz;
@@ -162,16 +163,21 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
                     sz = setup->wLength;
 
                 usb_send_ep0(dev, (uint8_t *) &descriptors.config, sz);
-            } else if (setup->wValue == 0x0300) { 
+            }
+            else if (setup->wValue == 0x0300)
+            { 
                 usb_send_ep0(dev, (uint8_t *) descriptor_300, 4);
-            } else if(setup->wValue == 0x0301) {
-                
+            }
+            else if(setup->wValue == 0x0301)
+            {
                 sz = setup->wLength > sizeof(usb_string_id)?
                             sizeof(usb_string_id): setup->wLength;
                 
                 usb_send_ep0(dev, (uint8_t *) usb_string_id, sz);
      
-            } else if (setup->wValue == 0x0A00) {
+            }
+            else if (setup->wValue == 0x0A00)
+            {
                 uint16_t desc_tot_sz = descriptors.interface.bLength;
 
                 sz = desc_tot_sz;
@@ -181,7 +187,9 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
 
                 usb_send_ep0(dev, (uint8_t *) &descriptors.interface, sz);
                 
-            } else {
+            }
+            else
+            {
                 LOG_ERR ("Unhandled descriptor 0x%x", setup->wValue);
             }
         }

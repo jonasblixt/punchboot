@@ -10,7 +10,7 @@
 
 PB_ARCH_NAME = armv8a
 
-CST_TOOL ?= /work/cst-3.1.0/linux64/bin/cst
+CST_TOOL ?= tools/imxcst/src/build-x86_64-linux-gnu/cst
 MKIMAGE ?= mkimage_imx8_imx8m
 
 SRK_TBL  ?= $(shell realpath ../pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin)

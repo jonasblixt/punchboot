@@ -15,7 +15,6 @@ Source index = 0
 File = "__CSFK_PEM__"
 
 [Authenticate CSF]
-# 
 
 [Install Key]
 # Key slot index used to authenticate the key to be installed
@@ -23,6 +22,10 @@ Verification index = 0
 # Key to install
 Target index = 2
 File = "__IMG_PEM__"
+
+[Authenticate Data]
+Verification index = 2
+__UUU_BLOCKS__
 
 [Authenticate Data]
 Verification index = 2
