@@ -151,11 +151,11 @@ uint32_t dwc3_transfer(struct dwc3_device *dev,
         default:
             trb->control |= (1 << 4);
     }
-
+/*
     LOG_DBG("trx EP%u %s, %p, sz %ubytes",(ep>>1), (ep&1?"IN":"OUT"),
                     bfr, sz);
     LOG_DBG("trb: %p, dev: %p", trb, dev);
-
+*/
     return dwc3_command(dev, ep, DWC3_DEPCMD_STARTRANS,0,ptr_to_u32(trb),0);
 }
 
@@ -349,7 +349,6 @@ void dwc3_task(struct usb_device *dev)
 
     if (evcnt >= 4)
     {
-        LOG_DBG("evcnt %u",evcnt);
         ev = _ev_buffer[_ev_index];
 
         /* Device Specific Events DEVT*/
@@ -384,19 +383,19 @@ void dwc3_task(struct usb_device *dev)
                     LOG_ERR("Unknown event %x", ev_type);
             }
         } else  { /* Device Endpoint-n events*/
-            
+         /*   
             uint32_t ep = (ev >> 1) & 0x1F;
             uint32_t ev_param = (ev >> 16) & 0xFFFF;
             uint32_t ev_status = (ev >> 12) & 0xF;
             uint32_t ev_cc = (ev >> 6) & 0xF;
             LOG_DBG("EV EP%u %s, param: %x, sts: %x, cc: %x",
                     ep>>1,ep&1?"IN":"OUT", ev_param, ev_status, ev_cc);
-            
+           */ 
         }
 
 
         _ev_index = ((_ev_index + 1) % DWC3_EV_BUFFER_SIZE);
-        LOG_DBG("ev_index %u", _ev_index);
+        /*LOG_DBG("ev_index %u", _ev_index);*/
         pb_write32(4, pdev->base + DWC3_GEVNTCOUNT);
 
     }

@@ -155,7 +155,8 @@ includes information about which system is active, boot count tries and error bi
 
 ### Automatic rollback
 
-Sometimes upgrades fail. Punchboot supports a mechanism for so called automatic rollbacks. 
+Sometimes upgrades fail. Punchboot supports a mechanism for so called automatic 
+rollbacks. 
 
 ![PB Rollback](doc/rollback.png)
 
@@ -183,18 +184,51 @@ the OK bit of system B and thus permanently activate System B
 
 ## Device identity
 
-Most modern SoC's provide some kind of unique identity, that is guaranteed to be unique for that particular type of SoC / Vendor etc but can not be guarateed to be globally unique.
+Most modern SoC's provide some kind of unique identity, that is guaranteed to 
+be unique for that particular type of SoC / Vendor etc but can not be guarateed 
+to be globally unique.
 
-Punchboot provides a UUID3 device identity based on a combination of the unique data from the SoC and an allocated, random, namspace UUID per platform.
+Punchboot provides a UUID3 device identity based on a combination of the unique 
+data from the SoC and an allocated, random, namspace UUID per platform.
 
-When booting a linux system this information is relayed to linux through in-line patching of the device-tree. The device identity can be found in '/proc/device-tree/chosen/device-uuid'
+When booting a linux system this information is relayed to linux through 
+in-line patching of the device-tree.
+The device identity can be found in '/proc/device-tree/chosen/device-uuid'
+
+## Allocated UUID's
+
+GPT Partitions
+
+| Partition       | UUID                                 |
+| --------------- | ------------------------------------ |
+| System A        | 2af755d8-8de5-45d5-a862-014cfa735ce0 |
+| System B        | c046ccd8-0f2e-4036-984d-76c14dc73992 |
+| Root A          | c284387a-3377-4c0f-b5db-1bcbcff1ba1a |
+| Root B          | ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb |
+| Config Primary  | f5f8c9ae-efb5-4071-9ba9-d313b082281e |
+| Config Backup   | 656ab3fc-5856-4a5e-a2ae-5a018313b3ee |
+
+Platform namespace UUID's
+
+| Platform        | UUID                                 |
+| --------------- | ------------------------------------ |
+| NXP imx6ul      | aeda39be-792b-4de5-858a-4c357b9b6302 |
+| NXP imx8m       | 3292d7d2-2825-4100-90c3-968f2960c9f2 |
+| NXP imx8x       | aeda39be-792b-4de5-858a-4c357b9b6302 |
 
 ## Recovery mode
-Recovery mode is entered when the system can't boot or if the bootloader is forced by a configurable, external event to do so.
 
-In the recovery mode it is possible to update the bootloader, write data to partitions and install default settings. From v0.3 and forward an 'authentication cookie' must be used to interact with the bootloader to prevent malicious activity. The only command that can be executed without authentication is listing the device information (including the device UUID)
+Recovery mode is entered when the system can't boot or if the bootloader is 
+forced by a configurable, external event to do so.
 
-The authentication cookie consists of the device UUID encrypted with one of the active key pair's private key. 
+In the recovery mode it is possible to update the bootloader, write data to 
+partitions and install default settings. From v0.3 and forward 
+an 'authentication cookie' must be used to interact with the bootloader to 
+prevent malicious activity. The only command that can be executed without 
+authentication is listing the device information (including the device UUID)
+
+The authentication cookie consists of the device UUID encrypted with one of 
+the active key pair's private key. 
 
 ## punchboot tool
 The punchboot CLI is used for interacting with the recovery mode. A summary of

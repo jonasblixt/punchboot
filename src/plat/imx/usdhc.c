@@ -694,6 +694,7 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
 			_raw_extcsd[EXT_CSD_SEC_CNT + 3] << 24;
 
 
+#if LOGLEVEL > 1
     char mmc_drive_str[6] =
     {
         (char)(_raw_cid[2] >> 24) & 0xFF,
@@ -703,6 +704,7 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
         (char)(_raw_cid[1] >> 24) & 0xFF,
         0,
     };
+#endif
 
     LOG_INFO ("%s: %llx sectors, %llu kBytes", mmc_drive_str,
         dev->sectors,(dev->sectors)>>1);
