@@ -30,7 +30,14 @@ Releases history:
 
 | Version | Release date | Changes                                          |
 | ------- | ------------ | ------------------------------------------------ |
-| v0.3    | 2019-05-19   | Support for authentication of recovery mode      |
+| v0.4    | 2019-06-19   | Use separate config partitions instead of GPT headers for storing the state  |
+|         |              | Improve test/build system reliability            |
+|         |              | Docker image can now build all targets and run tests |
+|         |              | NXP's cst 3.2.0 is now released under BSD3 a minimal version is included in the tools folder |
+|         |              | Increased usb flashing speed by interleaving emmc and usb DMA requests |
+|         |              | Added script for creating authentication tokens  |
+|         |              | Various bugfixes and improvements                |
+| v0.3    | 2019-05-09   | Support for authentication of recovery mode      |
 |         |              | Support optional verbose boot mode               |
 |         |              | pbimage support for PKCS11/Yubikey backend       |
 |         |              | USB VID/PID allocated from pid.codes, 1209:2019  |
