@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <openssl/pem.h>
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
 #include <pkcs11-helper-1.0/pkcs11h-openssl.h>
@@ -114,7 +115,8 @@ static PKCS11H_BOOL _pkcs11h_hooks_pin_prompt (
 	IN const size_t pin_max)
 {
 	char prompt[1124];
-	char *p = NULL;
+    struct termios oflags, nflags;
+    char password[64];
 
 	snprintf (prompt, sizeof (prompt)-1, "Please enter '%s' PIN or 'cancel': ", 
                                                             token->display);
@@ -130,10 +132,32 @@ static PKCS11H_BOOL _pkcs11h_hooks_pin_prompt (
 
 	fprintf (stderr, "\n");
 #else
-	p = getpass (prompt);
+   /* disabling echo */
+    tcgetattr(fileno(stdin), &oflags);
+    nflags = oflags;
+    nflags.c_lflag &= ~ECHO;
+    nflags.c_lflag |= ECHONL;
+
+    if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
+        perror("tcsetattr");
+        return EXIT_FAILURE;
+    }
+
+    printf("%s",prompt);
+
+    char *r = fgets(password, sizeof(password), stdin);
+    if (r == NULL)
+        return false;
+    password[strlen(password) - 1] = 0;
+
+    /* restore terminal */
+    if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
+        perror("tcsetattr");
+        return EXIT_FAILURE;
+    }
 #endif
 
-	strncpy (pin, p, pin_max);
+	strncpy (pin, password, pin_max);
 	pin[pin_max-1] = '\0';
 
 	return strcmp (pin, "cancel") != 0;
@@ -480,7 +504,6 @@ uint32_t pbimage_out(const char *fn)
 	}
 
     memset(signature, 0, PB_IMAGE_SIGN_MAX_SIZE);
-
     asn1_signature = OPENSSL_malloc(signature_size);
 
 	if (asn1_signature == NULL) 
