@@ -364,7 +364,7 @@ to the key_index parameter.
 Supported hashes:
 
 | Hash     | hash_kind |
-| -------- | :-------: |
+| -------- | :-------: |
 | SHA256   | 2         |
 | SHA384   | 3         |
 | SHA512   | 4         |
