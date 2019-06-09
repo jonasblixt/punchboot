@@ -151,9 +151,9 @@ Normally fuses are a limited resource and therefor a common way is to calculate
 time the device boots it will compute a sha256 checksum and compare it to the
 fused checksum.
 
-Punchboot is designed to be a part of a secure boot chain. This means that
-the bootloader is cryptographically signed, the ROM code of the SoC must
-support a mechanism to validate this signature, otherwise there is no
+Punchboot is designed to be a part of a secure boot chain. This means that 
+the bootloader is cryptographically signed, the ROM code of the SoC must 
+support a mechanism to validate this signature, otherwise there is no 
 root of trust.
 
 When punchboot has been verified it, in turn, will load and verify the next
@@ -161,13 +161,13 @@ software component in the boot chain. The bootloader _only_ supports signed
 binaries.
 
 ## Testing and integration tests
-Punchboot uses QEMU for all module and integration tests. The 'test' platform
- and board target relies on virtio serial ports and block devices. The punchboot
- cli can be built with a domain socket transport instead of USB for communicating
- with an QEMU environment.
+Punchboot uses QEMU for all module and integration tests. The 'test' platform 
+and board target relies on virtio serial ports and block devices. The punchboot 
+cli can be built with a domain socket transport instead of USB for communicating 
+with an QEMU environment.
 
-The test platform code includes gcov code that calls the QEMU semihosting API
- for storing test coverage data on the host.
+The test platform code includes gcov code that calls the QEMU semihosting API 
+for storing test coverage data on the host.
 
 Building and running tests:
 ```
@@ -272,15 +272,17 @@ The punchboot CLI is used for interacting with the recovery mode. A summary of
 
 ## pbimage tool
 The pbimage tool is used to create a punchboot compatible image. The tool uses
- a manifest file to describe which binaries should be included and what signing
- key that should be used.
+a manifest file to describe which binaries should be included and what signing
+key that should be used.
 
 Example image manifest:
 
 ```
 [pbimage]
-key_index = 1
-key_source = ../pki/prod_rsa_private.der
+key_index = 0
+key_source = ../pki/secp256r1-key-pair.pem
+hash_kind = SHA256
+sign_kind = EC256
 output = test_image.pbi
 
 [component]
@@ -298,6 +300,40 @@ type = LINUX
 load_addr = 0x82020000
 file = Image
 
+```
+
+Signing an image using a yubikey, through opensc:
+
+```
+[pbimage]
+key_index = 1
+key_source = PKCS11
+pkcs11_key_id = 02
+pkcs11_provider = /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
+hash_kind = SHA384
+sign_kind = EC384
+output = acu6c.pbi
+
+
+[component]
+type = ATF
+load_addr = 0x80000000
+file = bl31.bin
+
+[component]
+type = DT
+load_addr = 0x80080000
+file = imx8qxpmek.dtb
+
+[component]
+type = LINUX
+load_addr = 0x80100000
+file = Image
+
+[component]
+type = RAMDISK
+load_addr = 0x80b00000
+file = rootfs.cpio
 ```
 
 ## Metrics
