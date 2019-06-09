@@ -38,6 +38,9 @@ docker:
 	@cd blobs && chmod +x ./firmware-imx-$(IMX_FIRMWARE_VER).bin && \
 			./firmware-imx-$(IMX_FIRMWARE_VER).bin && cd ..
 	@$(DOCKER) build -f pb.Dockerfile -t pb_docker_env .
+dockerenv:
+	@$(DOCKER) run -it -u $(shell id -u ${USER}) -v $(shell realpath .):/pb/ pb_docker_env
+
 clean:
 	@make -C src/ BOARD=test clean
 	@make -C src/tools/punchboot clean
