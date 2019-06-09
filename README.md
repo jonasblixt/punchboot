@@ -335,6 +335,71 @@ type = RAMDISK
 load_addr = 0x80b00000
 file = rootfs.cpio
 ```
+## Punchboot Image Format (pbi)
+
+PBI image
+
+| Region     | Alignment | Offset | Comment            |
+| ---------- | --------- | :----: | ------------------ |
+| Header     | 512 bytes | 0b     | Header data        |
+| Signature  |           | 512b   | Signature data     |
+| Components |           |        | Component data     |
+
+
+### Header
+
+| Field            | Type     | Description                                |
+| ---------------- | -------- | ------------------------------------------ |
+| header_magic     | uint32_t | Magic value                                |
+| haeder_version   | uint32_t | Header version                             |
+| no_of_components | uint32_t | Number of components in the image          |
+| key_index        | uint32_t | Which key pair was used to sign the image  |
+| hash_kind        | uint32_t | Hash algorithm that was used to hash image |
+| sign_kind        | uint32_t | Signature format                           |
+| reserved         |          | Reserved, for future use                   |
+
+Each board makefile contains a list of key's. The order they are added maps 
+to the key_index parameter. 
+
+Supported hashes:
+
+| Hash     | hash_kind |
+| -------- | :-------: |
+| SHA256   | 2         |
+| SHA384   | 3         |
+| SHA512   | 4         |
+
+Supported signature formats
+
+| Signature format | sign_kind |
+| ---------------- | :-------: |
+| secp256          | 2         |
+| secp384          | 3         |
+| secp521          | 4         |
+| rsa4096          | 1         |
+
+### Component
+
+| Field               | Type     | Description                               |
+| ------------------- | -------- | ----------------------------------------- |
+| comp_header_version | uint32_t | Version of component header               |
+| component_type      | uint32_t | Component type                            |
+| load_addr           | uint64_t | Where the component should be loaded into RAM |
+| component_size      | uint32_t | Component size in bytes                   |
+| component_offset    | uint32_t | Component offset within the PBI file      |
+| reserved            |          | Reserved for future use                   |
+
+Supported component types:
+
+| Component type | component_type |
+| -------------- | :------------: |
+| TEE            | 0              |
+| VMM            | 1              |
+| LINUX          | 2              |
+| DT             | 3              |
+| RAMDISK        | 4              |
+| ATF            | 5              |
+| KERNEL         | 6              |
 
 ## Metrics
 
