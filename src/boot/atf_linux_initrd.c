@@ -52,7 +52,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     if (dtb)
     {
-        LOG_INFO("DTB %x", dtb->load_addr_low);
+        LOG_INFO("DTB %p", (void *)(uintptr_t)dtb->load_addr);
     }
     else
     {
@@ -61,7 +61,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     if (linux)
     {
-        LOG_INFO("LINUX %x", linux->load_addr_low);
+        LOG_INFO("LINUX %p", (void *)(uintptr_t)linux->load_addr);
     }
     else
     {
@@ -71,7 +71,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     if (atf)
     {
-        LOG_INFO("ATF: %x",atf->load_addr_low);
+        LOG_INFO("ATF: %p",(void *)(uintptr_t)atf->load_addr);
     }
     else
     {
@@ -80,7 +80,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     if (ramdisk)
     {
-        LOG_INFO("RAMDISK: %x",ramdisk->load_addr_low);
+        LOG_INFO("RAMDISK: %p",(void *)(uintptr_t) ramdisk->load_addr);
     }
     else
     {
@@ -88,7 +88,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
     }
 
     LOG_DBG("Patching DT");
-    void *fdt = (void *)(uintptr_t) dtb->load_addr_low;
+    void *fdt = (void *)(uintptr_t) dtb->load_addr;
     int err = fdt_check_header(fdt);
 
     if (err >= 0)
@@ -113,7 +113,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
                 err = fdt_setprop_u32( (void *) fdt, offset,
                                     "linux,initrd-start",
-                                    ramdisk->load_addr_low);
+                                    ramdisk->load_addr);
 
                 if (err)
                 {
@@ -123,7 +123,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
                 err = fdt_setprop_u32( (void *) fdt, offset,
                     "linux,initrd-end",
-                    ramdisk->load_addr_low+ramdisk->component_size);
+                    ramdisk->load_addr+ramdisk->component_size);
 
                 if (err)
                 {
@@ -190,13 +190,13 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
     if (atf && dtb && linux)
     {
         LOG_DBG("ATF boot");
-        arch_jump_atf((void *)(uintptr_t) atf->load_addr_low,
+        arch_jump_atf((void *)(uintptr_t) atf->load_addr,
                       (void *)(uintptr_t) NULL);
     }
     else if(dtb && linux)
     {
-        arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr_low,
-                           (void *)(uintptr_t) dtb->load_addr_low);
+        arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr,
+                           (void *)(uintptr_t) dtb->load_addr);
     }
 
     while(1)

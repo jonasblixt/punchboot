@@ -484,7 +484,7 @@ static void recovery_parse_command(struct usb_device *dev,
                                         pbi.comp[i].component_size);
 
                 err = plat_usb_transfer(dev, USB_EP1_OUT,
-                        (uint8_t *)(uintptr_t) pbi.comp[i].load_addr_low,
+                        (uint8_t *)(uintptr_t) pbi.comp[i].load_addr,
                         pbi.comp[i].component_size );
 
                 plat_usb_wait_for_ep_completion(dev, USB_EP1_OUT);

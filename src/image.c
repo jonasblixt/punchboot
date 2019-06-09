@@ -42,7 +42,7 @@ uint32_t pb_image_check_header(struct pb_pbi *pbi)
         LOG_INFO("Checking component %u, %u bytes",i, 
                                 pbi->comp[i].component_size);
 
-        uintptr_t la = (uintptr_t) pbi->comp[i].load_addr_low;
+        uintptr_t la = (uintptr_t) pbi->comp[i].load_addr;
         uint32_t sz = pbi->comp[i].component_size;
 
         if (PB_CHECK_OVERLAP(la,sz,&_stack_start,&_stack_end))
@@ -118,7 +118,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
 
     for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
     {
-        volatile uint32_t a = pbi->comp[i].load_addr_low;
+        uintptr_t a = pbi->comp[i].load_addr;
         uint32_t blk_start = part_lba_offset + 
                                     (pbi->comp[i].component_offset/512);
         uint32_t no_of_blks = (pbi->comp[i].component_size/512);
@@ -130,8 +130,8 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
             uint32_t blk_read = (no_of_blks>IMAGE_BLK_CHUNK)?
                                         IMAGE_BLK_CHUNK:no_of_blks;
             
-            LOG_DBG("R LBA: %u, to: %08x, cnt: %u",
-                    blk_start+chunk_offset, a, blk_read);
+            LOG_DBG("R LBA: %u, to: %p, cnt: %u",
+                    blk_start+chunk_offset, (void *) a, blk_read);
 
             plat_read_block(blk_start+chunk_offset, (uintptr_t) a, blk_read);
             plat_hash_update((uintptr_t) a, (blk_read*512));
@@ -174,7 +174,7 @@ uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
 
         for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
         {
-            plat_hash_update((uintptr_t) pbi->comp[i].load_addr_low, 
+            plat_hash_update((uintptr_t) pbi->comp[i].load_addr, 
                             pbi->comp[i].component_size);
         }
 

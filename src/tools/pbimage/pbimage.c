@@ -340,7 +340,7 @@ uint32_t pbimage_append_component(const char *comp_type,
     if (fp == NULL)
         return PB_ERR_IO;
 
-    comp[idx].load_addr_low = load_addr;
+    comp[idx].load_addr = load_addr;
 
     err = comp_string_to_index(comp_type, &comp[idx].component_type);
 

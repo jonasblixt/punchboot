@@ -47,8 +47,7 @@ struct pb_component_hdr
 {
     uint32_t comp_header_version;
     uint32_t component_type;
-    uint32_t load_addr_low;
-    uint32_t load_addr_high;
+    uint64_t load_addr;
     uint32_t component_size;
     uint32_t component_offset;
     uint32_t _reserved[26];
