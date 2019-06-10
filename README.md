@@ -53,19 +53,19 @@ The easiest way is using docker.
 First generate the docker image using the top most makefile
 
 ```
-    make docker
+make docker
 ```
 
 Build the cst tool (for NXP targets)
 
 ```
-docker run -it -u $(id -u $USER) -v <path to punchboot top dir>:/pb/ pb_docker_env make -C /pb/src/tools/imxcst/src
+docker run -it -u $(id -u $USER) -v $(readlink -f .):/pb/ pb_docker_env make -C /pb/src/tools/imxcst/src
 ```
 
 Building the jiffy-board target:
 
 ```
-docker run -it -u $(id -u $USER) -v <path to punchboot top dir>:/pb/ pb_docker_env make -C /pb/src BOARD=jiffy LOGLEVEL=3
+docker run -it -u $(id -u $USER) -v $(readlink -f .):/pb/ pb_docker_env make -C /pb/src BOARD=jiffy LOGLEVEL=3
 ```
 
 ## Run test suite
@@ -73,7 +73,7 @@ docker run -it -u $(id -u $USER) -v <path to punchboot top dir>:/pb/ pb_docker_e
 Run the built in tests:
 
 ```
-docker run -it -u $(id -u $USER) -v <path to punchboot top dir>:/pb/ pb_docker_env make -C /pb/ tests
+docker run -it -u $(id -u $USER) -v $(readlink -f .):/pb/ pb_docker_env make -C /pb/ tests
 ```
 
 The dockerfile in the top directory details the dependencies on ubuntu xenial
@@ -321,7 +321,7 @@ pkcs11_key_id = 02
 pkcs11_provider = /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
 hash_kind = SHA384
 sign_kind = EC384
-output = acu6c.pbi
+output = output.pbi
 
 
 [component]
@@ -439,7 +439,7 @@ Creating the authentication token using the 'createtoken.sh' script located
 in the tools folder. In this example the private key is stored on a yubikey 5 HSM.
 
 ```
-$ ./createtoken.sh 0B177094-6B62-3572-902E-C1DE339ECB01 pkcs11 -sha384 "pkcs11:id=%02;type=private"
+$ ./createtoken.sh 0B177094-6B62-3572-902E-C1DE339ECB01 pkcs11 -sha256 "pkcs11:id=%02;type=private"
 
 engine "pkcs11" set.
 Enter PKCS#11 token PIN for PIV Card Holder pin (PIV_II):

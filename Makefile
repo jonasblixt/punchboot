@@ -33,6 +33,7 @@ coverity:
 		rm -rf coverity.tar.gz
 docker:
 	@rm -rf blobs/*
+	@mkdir -p blobs
 	@wget -q $(IMX_FIRMWARE_URL)
 	@mv firmware-imx-$(IMX_FIRMWARE_VER).bin blobs/
 	@cd blobs && chmod +x ./firmware-imx-$(IMX_FIRMWARE_VER).bin && \
