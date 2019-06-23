@@ -14,3 +14,8 @@
 src/build-*
 cov-int
 cov.xml
+src/tools/imxcst/src/build-*
+src/tools/pbconfig/pbconfig
+src/tools/pbimage/pbimage
+src/tools/punchboot/punchboot
+blobs/
