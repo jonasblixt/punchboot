@@ -22,4 +22,12 @@
 #define HAB_RVT_REPORT_EVENT		((unsigned long)*(uint32_t *)(HAB_RVT_BASE + 0x40))
 #define HAB_RVT_REPORT_STATUS		((unsigned long)*(uint32_t *)(HAB_RVT_BASE + 0x48))
 
+#define SRC_IPS_BASE_ADDR	0x30390000
+#define SRC_DDRC_RCR_ADDR	0x30391000
+#define SRC_DDRC2_RCR_ADDR	0x30391004
+
+#define DDRC_DDR_SS_GPR0	0x3d000000
+#define DDR_CSD1_BASE_ADDR	0x40000000
+#define DDRPHY_CalBusy(X)                    (IP2APB_DDRPHY_IPS_BASE_ADDR(X) + 4*0x020097)
+
 #endif

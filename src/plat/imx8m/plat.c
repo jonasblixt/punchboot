@@ -27,15 +27,16 @@
 #include <plat/imx/hab.h>
 #include <plat/imx/ocotp.h>
 #include <plat/imx/wdog.h>
+#include <plat/umctl2.h>
 
 static struct pb_platform_setup plat;
 extern struct fuse fuses[];
 
 static __no_bss struct fsl_caam_jr caam;
-static struct fuse fuse_uid0 = 
+static struct fuse fuse_uid0 =
         IMX8M_FUSE_BANK_WORD(0, 1, "UID0");
 
-static struct fuse fuse_uid1 = 
+static struct fuse fuse_uid1 =
         IMX8M_FUSE_BANK_WORD(0, 2, "UID1");
 
 /* Platform API Calls */
@@ -49,12 +50,12 @@ uint32_t plat_get_security_state(uint32_t *state)
     foreach_fuse(f, (struct fuse *) fuses)
     {
         err = plat_fuse_read(f);
- 
+
         if (err != PB_OK)
         {
             LOG_ERR("Could not access fuse '%s'",f->description);
             return err;
-        }  
+        }
 
         if (f->value)
         {
@@ -79,8 +80,9 @@ uint32_t plat_get_security_state(uint32_t *state)
     return PB_OK;
 }
 
-static const char platform_namespace_uuid[] = 
+static const char platform_namespace_uuid[] =
     "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
+
 uint32_t plat_get_uuid(char *out)
 {
     plat_fuse_read(&fuse_uid0);
@@ -114,17 +116,16 @@ uint32_t plat_setup_device(struct param *params)
     foreach_fuse(f, (struct fuse *) fuses)
     {
         err = plat_fuse_read(f);
- 
+
         LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
         if (err != PB_OK)
         {
             LOG_ERR("Could not access fuse '%s'",f->description);
             return err;
-        }  
+        }
     }
 
     /* Perform the actual fuse programming */
-    
     LOG_INFO("Writing fuses");
 
     foreach_fuse(f, fuses)
@@ -170,20 +171,14 @@ void plat_preboot_cleanup(void)
 
 void plat_wdog_init(void)
 {
-    /* Configure PAD_GPIO1_IO02 as wdog output */
-    pb_write32((1 << 7)|(1 << 6) | 6, 0x30330298);
-    pb_write32(1, 0x30330030);
-
     plat.wdog.base = 0x30280000;
-    imx_wdog_init(&plat.wdog, 5);
+    imx_wdog_init(&plat.wdog, 15);
 }
 
 void plat_wdog_kick(void)
 {
     imx_wdog_kick();
 }
-
-extern void ddr_init(void);
 
 uint32_t imx8m_clock_cfg(uint32_t clk_id, uint32_t flags)
 {
@@ -304,8 +299,8 @@ uint32_t plat_early_init(void)
     LOG_DBG("SYS PLL2 %08x",pb_read32(0x3036003C));
     LOG_DBG("SYS PLL3 %08x",pb_read32(0x30360048));
     LOG_DBG("DRAM PLL %08x",pb_read32(0x30360060));
-
-    ddr_init();
+    
+    umctl2_init();
 
     LOG_DBG("LPDDR4 training complete");
 
@@ -323,13 +318,7 @@ uint32_t plat_early_init(void)
     pb_write32(0x03030303, 0x30384004 + 0x10*48);
     pb_write32(0x03030303, 0x30384004 + 0x10*81);
 
-    err = usdhc_emmc_init(&plat.usdhc0);
 
-    if (err != PB_OK)
-    {
-        LOG_ERR("Could not initialize eMMC");
-        return err;
-    }
 
     caam.base = 0x30901000;
     err = caam_init(&caam);
@@ -353,6 +342,14 @@ uint32_t plat_early_init(void)
         LOG_INFO("No HAB errors found");
     } else {
         LOG_ERR("HAB is reporting errors");
+    }
+
+    err = usdhc_emmc_init(&plat.usdhc0);
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not initialize eMMC");
+        return err;
     }
 
     tr_stamp_end(TR_POR);

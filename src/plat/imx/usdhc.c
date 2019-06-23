@@ -80,7 +80,8 @@ static uint32_t usdhc_emmc_send_cmd(struct usdhc_device *dev,
     {
         pres_state = pb_read32(dev->base+ USDHC_PRES_STATE);
         
-        if ((pres_state & 0x03) == 0x00) {
+        if ((pres_state & 0x03) == 0x00)
+        {
             break;
         }
 
@@ -101,6 +102,8 @@ static uint32_t usdhc_emmc_send_cmd(struct usdhc_device *dev,
 
 usdhc_cmd_fail:
 
+    if (err == PB_TIMEOUT)
+        LOG_ERR("cmd %x timeout",cmd);
     return err;
 }
 
@@ -117,9 +120,12 @@ static uint32_t usdhc_emmc_check_status(struct usdhc_device *dev)
     uint32_t result = pb_read32(dev->base+USDHC_CMD_RSP0);
 
     if ((result & MMC_STATUS_RDY_FOR_DATA) &&
-        (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG) {
+        (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG)
+    {
         return PB_OK;
-    } else if (result & MMC_STATUS_MASK) {
+    }
+    else if (result & MMC_STATUS_MASK)
+    {
         LOG_ERR("Status Error: 0x%x",result);
         return PB_ERR;
     }
@@ -525,6 +531,11 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     while ((pb_read32(dev->base + USDHC_SYS_CTRL) & (1<<24)) == (1 << 24))
         __asm__("nop");
 
+    /* Send reset */
+    pb_setbit32((1 << 27), dev->base + USDHC_SYS_CTRL);
+
+    while ((pb_read32(dev->base + USDHC_SYS_CTRL) & (1<<27)) == (1 << 27))
+        __asm__("nop");
 
     LOG_DBG("Done");
 
@@ -555,7 +566,7 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     
     while (1) 
     {
-        uint32_t pres_state = pb_read32(dev->base + USDHC_PRES_STATE);
+        volatile uint32_t pres_state = pb_read32(dev->base + USDHC_PRES_STATE);
 
         if ((pres_state & (1 << 3)) == (1 << 3))
             break;
@@ -565,7 +576,6 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
     /* Configure IRQ's */
     pb_write32(0xFFFFFFFF, dev->base + USDHC_INT_STATUS_EN);
 
-
     err = usdhc_emmc_send_cmd(dev,MMC_CMD_GO_IDLE_STATE, 0,MMC_RSP_NONE);
 
     if (err != PB_OK)
@@ -573,7 +583,7 @@ uint32_t usdhc_emmc_init(struct usdhc_device *dev)
 
     while (1) 
     {
-        uint32_t pres_state = pb_read32(dev->base + USDHC_PRES_STATE);
+        volatile uint32_t pres_state = pb_read32(dev->base + USDHC_PRES_STATE);
 
         if ((pres_state & (1 << 3)) == (1 << 3))
             break;

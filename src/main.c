@@ -41,7 +41,6 @@ void pb_main(void)
 
     LOG_INFO ("PB: " VERSION " starting...");
 
-
     if (gpt_init() != PB_OK)
         flag_run_recovery = true;
 

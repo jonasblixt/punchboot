@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -55,7 +54,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     plat->uart0.baudrate = 0x6C;
 
     plat->usdhc0.base = 0x30B40000;
-    plat->usdhc0.clk_ident = 0x20EF;
+    plat->usdhc0.clk_ident = 0x40EF;
     plat->usdhc0.clk = 0x000F;
     plat->usdhc0.bus_mode = USDHC_BUS_HS200;
     plat->usdhc0.bus_width = USDHC_BUS_8BIT;
@@ -77,8 +76,6 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     pb_write32(3, 0x30384004 + 0x10*13);
     pb_write32(3, 0x30384004 + 0x10*14);
     pb_write32(3, 0x30384004 + 0x10*15);
-
-
     pb_write32(3, 0x30384004 + 0x10*27);
     pb_write32(3, 0x30384004 + 0x10*28);
     pb_write32(3, 0x30384004 + 0x10*29);
@@ -89,22 +86,14 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     /* UART1 pad mux */
     pb_write32(0, 0x30330234);
     pb_write32(0, 0x30330238);
-    
+
     /* UART1 PAD settings */
     pb_write32(7, 0x3033049C);
     pb_write32(7, 0x303304A0);
 
-    /* USDHC1 reset */
-    /* Configure as GPIO 2 10*/
-    pb_write32 (5, 0x303300C8);
-    pb_write32((1 << 10), 0x30210004);
-
-    pb_setbit32(1<<10, 0x30210000);
-
     /* USDHC1 mux */
     pb_write32 (0, 0x303300A0);
     pb_write32 (0, 0x303300A4);
-
     pb_write32 (0, 0x303300A8);
     pb_write32 (0, 0x303300AC);
     pb_write32 (0, 0x303300B0);
@@ -113,7 +102,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     pb_write32 (0, 0x303300BC);
     pb_write32 (0, 0x303300C0);
     pb_write32 (0, 0x303300C4);
-    //pb_write32 (0, 0x303300C8);
+    pb_write32 (0, 0x303300C8);
     pb_write32 (0, 0x303300CC);
 
     /* Setup USDHC1 pins */
@@ -128,9 +117,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     pb_write32(USDHC1_PAD_CONF, 0x30330324);
     pb_write32(USDHC1_PAD_CONF, 0x30330328);
     pb_write32(USDHC1_PAD_CONF, 0x3033032C);
-
     pb_write32(USDHC1_PAD_CONF, 0x30330334);
-    pb_clrbit32(1<<10, 0x30210000);
 
     return PB_OK;
 }
@@ -138,7 +125,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
 
 uint32_t board_get_params(struct param **pp)
 {
-    param_add_str((*pp)++, "Board", "Pico8ml");
+    param_add_str((*pp)++, "Board", "imx8mevk");
     return PB_OK;
 }
 

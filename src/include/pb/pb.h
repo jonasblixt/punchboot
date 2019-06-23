@@ -52,12 +52,12 @@ struct partition_table
 
 #if LOGLEVEL >= 2
     #define LOG_INFO(...) \
-        do { printf("INFO %s: " , __func__);\
+        do { printf("I %s: " , __func__);\
              printf(__VA_ARGS__);\
              printf("\n\r"); } while(0)
 
     #define LOG_INFO2(...) \
-        do { printf ("INFO: ");\
+        do { printf ("I: ");\
              printf(__VA_ARGS__); } while(0)
 #else
     #define LOG_INFO(...)
@@ -66,7 +66,7 @@ struct partition_table
 
 #if LOGLEVEL >= 3
     #define LOG_DBG(...) \
-        do { printf("DBG %s: " , __func__);\
+        do { printf("D %s: " , __func__);\
              printf(__VA_ARGS__);\
              printf("\n\r"); } while(0)
 #else
@@ -75,12 +75,12 @@ struct partition_table
 
 #if LOGLEVEL >= 1
     #define LOG_WARN(...) \
-        do { printf("WARN %s: " , __func__);\
+        do { printf("W %s: " , __func__);\
              printf(__VA_ARGS__);\
              printf("\n\r"); } while(0)
 
     #define LOG_ERR(...) \
-        do { printf("ERROR %s: " , __func__);\
+        do { printf("E %s: " , __func__);\
              printf(__VA_ARGS__);\
              printf("\n\r"); } while(0)
 #else
