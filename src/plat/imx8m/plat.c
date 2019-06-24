@@ -377,34 +377,34 @@ uint32_t plat_flush_block(void)
     return usdhc_emmc_wait_for_de(&plat.usdhc0);
 }
 
-uint32_t plat_write_block(uint32_t lba_offset, 
-                          uintptr_t bfr, 
-                          uint32_t no_of_blocks) 
+uint32_t plat_write_block(uint32_t lba_offset,
+                          uintptr_t bfr,
+                          uint32_t no_of_blocks)
 {
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0, 
-                                  lba_offset, 
-                                  (uint8_t*)bfr, 
-                                  no_of_blocks, 
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
+                                  lba_offset,
+                                  (uint8_t*)bfr,
+                                  no_of_blocks,
                                   1, 0);
 }
 
-uint32_t plat_read_block(uint32_t lba_offset, 
-                         uintptr_t bfr, 
-                         uint32_t no_of_blocks) 
+uint32_t plat_read_block(uint32_t lba_offset,
+                         uintptr_t bfr,
+                         uint32_t no_of_blocks)
 {
     return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset, 
-                                  (uint8_t *)bfr, 
-                                  no_of_blocks, 
+                                  lba_offset,
+                                  (uint8_t *)bfr,
+                                  no_of_blocks,
                                   0, 0);
 }
 
-uint32_t plat_switch_part(uint8_t part_no) 
+uint32_t plat_switch_part(uint8_t part_no)
 {
     return usdhc_emmc_switch_part(&plat.usdhc0, part_no);
 }
 
-uint64_t plat_get_lastlba(void) 
+uint64_t plat_get_lastlba(void)
 {
     return (plat.usdhc0.sectors-1);
 }
@@ -431,9 +431,9 @@ void plat_usb_task(struct usb_device *dev)
     dwc3_task(dev);
 }
 
-uint32_t plat_usb_transfer (struct usb_device *dev, 
-                             uint8_t ep, 
-                             uint8_t *bfr, 
+uint32_t plat_usb_transfer (struct usb_device *dev,
+                             uint8_t ep,
+                             uint8_t *bfr,
                              uint32_t sz)
 {
     struct dwc3_device *d = (struct dwc3_device*) dev->platform_data;
@@ -486,7 +486,7 @@ uint32_t  plat_fuse_read(struct fuse *f)
 
 uint32_t  plat_fuse_write(struct fuse *f)
 {
-    char s[64];    
+    char s[64];
 
     plat_fuse_to_string(f, s, 64);
 

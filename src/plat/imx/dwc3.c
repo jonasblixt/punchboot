@@ -50,10 +50,10 @@ static uint32_t dwc3_command(struct dwc3_device *dev,
 
     if (ep > 7)
         return PB_ERR;
-/*
+
     LOG_DBG("cmd %u, ep %u, p0 %x, p1 %x, p2 %x",
                 cmd,ep,p0,p1,p2);
-*/
+
     uint32_t param0_addr = (DWC3_DEPCMDPAR0_0 + 0x10*ep);
     uint32_t param1_addr = (DWC3_DEPCMDPAR1_0 + 0x10*ep);
     uint32_t param2_addr = (DWC3_DEPCMDPAR2_0 + 0x10*ep);
@@ -152,11 +152,11 @@ uint32_t dwc3_transfer(struct dwc3_device *dev,
         default:
             trb->control |= (1 << 4);
     }
-/*
+
     LOG_INFO("trx EP%u %s, %p, sz %ubytes",(ep>>1), (ep&1?"IN":"OUT"),
                     bfr, sz);
     LOG_INFO("trb: %p, dev: %p", trb, dev);
-*/
+
     return dwc3_command(dev, ep, DWC3_DEPCMD_STARTRANS,0,ptr_to_u32(trb),0);
 }
 
@@ -392,6 +392,7 @@ void dwc3_task(struct usb_device *dev)
     
     if (dwc3_trb_hwo(act_trb[USB_EP0_OUT]))
     {
+        plat_delay_ms(1);
         dev->on_setup_pkt(dev, (struct usb_setup_packet *)&setup_pkt);
         dwc3_transfer(pdev, USB_EP0_OUT, (uint8_t *)&setup_pkt, 
                         sizeof(struct usb_setup_packet));

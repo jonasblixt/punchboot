@@ -483,16 +483,31 @@ static void recovery_parse_command(struct usb_device *dev,
                 LOG_INFO("Loading component %u, %u bytes",i,
                                         pbi.comp[i].component_size);
 
-                err = plat_usb_transfer(dev, USB_EP1_OUT,
-                        (uint8_t *)(uintptr_t) pbi.comp[i].load_addr,
-                        pbi.comp[i].component_size );
+                uint32_t remainder = pbi.comp[i].component_size;
+                uint32_t chunk = 0;
+                uint32_t offset = 0;
 
-                plat_usb_wait_for_ep_completion(dev, USB_EP1_OUT);
-
-                if (err != PB_OK)
+                while (remainder)
                 {
-                    LOG_ERR ("Xfer error");
-                    break;
+                    if (remainder > 8*1024*1024)
+                        chunk = 8*1024*1024;
+                    else
+                        chunk = remainder;
+
+                    err = plat_usb_transfer(dev, USB_EP1_OUT,
+                            (uint8_t *)(uintptr_t) pbi.comp[i].load_addr+offset,
+                            chunk );
+
+                    plat_usb_wait_for_ep_completion(dev, USB_EP1_OUT);
+
+                    offset += chunk;
+                    remainder -= chunk;
+
+                    if (err != PB_OK)
+                    {
+                        LOG_ERR ("Xfer error");
+                        break;
+                    }
                 }
             }
 
