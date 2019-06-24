@@ -1,8 +1,8 @@
 ![PB Logo](doc/pb_logo.png)
 
-[![Coverity](https://scan.coverity.com/projects/16584/badge.svg)](https://scan.coverity.com/projects/jonpe960-punchboot)
-[![Build Status](https://travis-ci.org/jonpe960/punchboot.svg?branch=master)](https://travis-ci.org/jonpe960/punchboot)
-[![codecov](https://codecov.io/gh/jonpe960/punchboot/branch/master/graph/badge.svg)](https://codecov.io/gh/jonpe960/punchboot)
+[![Coverity](https://scan.coverity.com/projects/16584/badge.svg)](https://scan.coverity.com/projects/jonasblixt-punchboot)
+[![Build Status](https://travis-ci.org/jonasblixt/punchboot.svg?branch=master)](https://travis-ci.org/jonasblixt/punchboot)
+[![codecov](https://codecov.io/gh/jonasblixt/punchboot/branch/master/graph/badge.svg)](https://codecov.io/gh/jonasblixt/punchboot)
 [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4XMK2G3TPN3BQ)
 
 # Introduction
@@ -117,8 +117,8 @@ Supportd boards:
 
 | Board                | Supported               | More info |
 | -------------------- | ----------------------- | --------- |
-| Jiffy                | Fully supported         | https://github.com/jonpe960/jiffy       |
-| Bebop                | Fully supported         | https://github.com/jonpe960/bebop       |
+| Jiffy                | Fully supported         | https://github.com/jonasblixt/jiffy       |
+| Bebop                | Fully supported         | https://github.com/jonasblixt/bebop       |
 | Technexion PICO-IMX8M| Partial support         | https://www.technexion.com/products/system-on-modules/pico/pico-compute-modules/detail/PICO-IMX8M |
 | Rockpro64            | Planned                 | https://www.pine64.org/?page_id=61454 |
 | NanoPi-NEO-core      | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core_Feature.html |
