@@ -4,8 +4,7 @@ PB_ENTRY     = 0x80000000
 
 CFLAGS += -I board/imx8qxmek/include
 
-BOARD_C_SRCS += board/imx8qxmek/imx8qxmek.c
-#BOARD_C_SRCS += boot/lk.c
+BOARD_C_SRCS += board/imx8qxmek/board.c
 BOARD_C_SRCS += boot/atf_linux_initrd.c
 
 MKIMAGE         = mkimage_imx8

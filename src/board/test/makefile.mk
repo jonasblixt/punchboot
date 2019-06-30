@@ -6,7 +6,7 @@ PB_ENTRY     = 0x40000000
 CFLAGS += -I board/test/include
 CFLAGS += -DPB_BOOT_TEST=1
 
-BOARD_C_SRCS += board/test/test.c
+BOARD_C_SRCS += board/test/board.c
 
 KEYS  = ../pki/dev_rsa_public.der
 KEYS += ../pki/prod_rsa_public.der
