@@ -40,7 +40,7 @@ plat_clean:
 	@-rm -rf plat/imx6ul/*.o
 
 imx6ul_image:
-	@$(MKIMAGE) -n board/$(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
+	@$(MKIMAGE) -n $(BOARD_DIR)/$(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
 				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx 
 
 plat_final: imx6ul_image

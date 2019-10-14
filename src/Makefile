@@ -16,6 +16,10 @@ ifndef LOGLEVEL
 	LOGLEVEL = 3
 endif
 
+ifndef BOARD_DIR
+	BOARD_DIR=board
+endif
+
 ifdef TIMING_REPORT
 	LOGLEVEL = 0
 	TIMING_REPORT=1
@@ -38,7 +42,7 @@ CFLAGS  += -D__PB_BUILD
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
-CFLAGS  += -I board/$(BOARD)/include
+CFLAGS  += -I $(BOARD_DIR)/$(BOARD)/include
 CFLAGS  += -MMD -MP
 
 LIBS     =
@@ -91,7 +95,7 @@ BUILD_DIR = build-$(BOARD)
 
 $(shell mkdir -p $(BUILD_DIR))
 
-include board/$(BOARD)/makefile.mk
+include $(BOARD_DIR)/$(BOARD)/makefile.mk
 include plat/$(PB_PLAT_NAME)/makefile.mk
 include arch/$(PB_ARCH_NAME)/makefile.mk
 
