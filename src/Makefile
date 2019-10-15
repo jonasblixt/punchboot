@@ -85,6 +85,7 @@ C_SRCS  += 3pp/fdt/fdt_strerror.c
 C_SRCS  += 3pp/fdt/fdt_sw.c
 C_SRCS  += 3pp/fdt/fdt_wip.c
 
+LINT_EXCLUDE = key_data.c
 FINAL_IMAGE =
 BUILD_DIR = build-$(BOARD)
 
@@ -131,7 +132,7 @@ key_data:
 	@$(PYTHON) $(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > $(BUILD_DIR)/key_data.c
 	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/key_data.c -o $(BUILD_DIR)/key_data.o
 
-all: key_data plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
+all: key_data plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final check
 	$(info Summary:)
 	$(info )
 	$(info BOARD:     [${PB_BOARD_NAME}])
@@ -164,6 +165,9 @@ $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
+
+check:
+	@cpplint --quiet $(filter-out $(LINT_EXCLUDE), $(C_SRCS))
 
 .PHONY: plat_early plat_final board_final
 

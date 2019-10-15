@@ -8,10 +8,10 @@
 
 size_t strlen(const char *s)
 {
-	const char *cursor = s;
+    const char *cursor = s;
 
-	while (*cursor)
-		cursor++;
+    while (*cursor)
+        cursor++;
 
-	return cursor - s;
+    return cursor - s;
 }

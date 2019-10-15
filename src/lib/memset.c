@@ -8,10 +8,10 @@
 
 void *memset(void *dst, int val, size_t count)
 {
-	char *ptr = dst;
+    char *ptr = dst;
 
-	while (count--)
-		*ptr++ = val;
+    while (count--)
+        *ptr++ = val;
 
-	return dst;
+    return dst;
 }

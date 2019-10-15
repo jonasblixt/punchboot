@@ -39,7 +39,7 @@ void pb_main(void)
     tr_stamp_begin(TR_BLINIT);
     tr_stamp_begin(TR_TOTAL);
 
-    LOG_INFO ("PB: " VERSION " starting...");
+    LOG_INFO("PB: " VERSION " starting...");
 
     if (gpt_init() != PB_OK)
         flag_run_recovery = true;
@@ -53,13 +53,13 @@ void pb_main(void)
 
     if (gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_A, &part_system_a) != PB_OK)
     {
-        LOG_ERR ("Could not find system A");
+        LOG_ERR("Could not find system A");
         flag_run_recovery = true;
     }
 
     if (gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_B, &part_system_b) != PB_OK)
     {
-        LOG_ERR ("Could not find system B");
+        LOG_ERR("Could not find system B");
         flag_run_recovery = true;
     }
 
@@ -100,8 +100,9 @@ void pb_main(void)
         config_decrement_boot_attempt();
         config_commit();
     }
-    else if (!config_system_verified(active_system)) /* Boot counter expired, rollback to other part */
+    else if (!config_system_verified(active_system))
     {
+        /* Boot counter expired, rollback to other part */
         LOG_ERR("System is not bootable, performing rollback");
         /* Indicate that this system failed by setting
          * the rollback bit
@@ -135,7 +136,6 @@ void pb_main(void)
             flag_run_recovery = true;
             goto run_recovery;
         }
-
     }
 
     err = pb_image_load_from_fs(part->first_lba, &pbi, hash_buffer);
@@ -152,7 +152,7 @@ void pb_main(void)
     if (err == PB_OK)
     {
         LOG_INFO("Image verified, booting...");
-        pb_boot(&pbi, active_system,false);
+        pb_boot(&pbi, active_system, false);
     }
     else
     {
@@ -170,11 +170,11 @@ run_recovery:
 
         err = recovery_initialize();
 
-		if (err != PB_OK)
-		{
-			LOG_ERR("Could not initialize recovery mode");
-			plat_reset();
-		}
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not initialize recovery mode");
+            plat_reset();
+        }
         while (flag_run_recovery)
         {
             usb_task();
@@ -189,7 +189,6 @@ run_recovery:
                 LOG_INFO("Recovery timeout, rebooting...");
                 plat_reset();
             }
-
         }
     }
 

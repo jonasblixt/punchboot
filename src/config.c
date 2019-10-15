@@ -64,21 +64,21 @@ uint32_t config_init(void)
 
     if (err != PB_OK)
     {
-        LOG_ERR ("Could not find primary config partition");
+        LOG_ERR("Could not find primary config partition");
         return err;
     }
 
-    err = gpt_get_part_by_uuid(PB_PARTUUID_CONFIG_BACKUP, 
+    err = gpt_get_part_by_uuid(PB_PARTUUID_CONFIG_BACKUP,
                                  &part_config_backup);
 
     if (err != PB_OK)
     {
-        LOG_ERR ("Could not find backup config partition");
+        LOG_ERR("Could not find backup config partition");
         return err;
     }
 
-    LOG_DBG("Primary config at lba: 0x%llx",part_config->first_lba);
-    err = plat_read_block(part_config->first_lba,(uintptr_t) &config,
+    LOG_DBG("Primary config at lba: 0x%llx", part_config->first_lba);
+    err = plat_read_block(part_config->first_lba, (uintptr_t) &config,
                         (sizeof(struct config) / 512));
 
     primary_config_ok = (err == PB_OK)?true:false;
@@ -88,7 +88,7 @@ uint32_t config_init(void)
     if (err != PB_OK)
         primary_config_ok = false;
 
-    LOG_DBG("Backup config at lba: 0x%llx",part_config_backup->first_lba);
+    LOG_DBG("Backup config at lba: 0x%llx", part_config_backup->first_lba);
     err = plat_read_block(part_config_backup->first_lba,
                 (uintptr_t) &config_backup, (sizeof(struct config) / 512));
 
@@ -175,14 +175,15 @@ bool config_system_enabled(uint32_t system)
 
 bool config_system_verified(uint32_t system)
 {
-
     if (system == SYSTEM_A)
     {
-        return ((config.verified & PB_CONFIG_A_VERIFIED) == PB_CONFIG_A_VERIFIED);
+        return ((config.verified & PB_CONFIG_A_VERIFIED)
+                                    == PB_CONFIG_A_VERIFIED);
     }
     else if (system == SYSTEM_B)
     {
-        return ((config.verified & PB_CONFIG_B_VERIFIED) == PB_CONFIG_B_VERIFIED);
+        return ((config.verified & PB_CONFIG_B_VERIFIED)
+                                    == PB_CONFIG_B_VERIFIED);
     }
     else
     {

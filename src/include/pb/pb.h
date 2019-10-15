@@ -31,6 +31,8 @@ enum
     PB_SECURITY_STATE_SECURE,
 };
 
+#define UUID_STRING_SIZE 37
+#define UUID_SIZE 16
 
 #define GPT_PART_NAME_MAX_SIZE 36
 

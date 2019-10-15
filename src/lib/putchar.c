@@ -9,5 +9,5 @@
 int putchar(int c)
 {
     plat_uart_putc(NULL, (unsigned char)c);
-	return c;
+    return c;
 }

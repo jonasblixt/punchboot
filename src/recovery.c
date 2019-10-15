@@ -36,7 +36,7 @@ static __no_bss __a4k uint8_t authentication_cookie[PB_RECOVERY_AUTH_COOKIE_SZ];
 extern const struct partition_table pb_partition_table[];
 static unsigned char hash_buffer[PB_HASH_BUF_SZ];
 static bool recovery_authenticated = false;
-extern char _code_start, _code_end, _data_region_start, _data_region_end, 
+extern char _code_start, _code_end, _data_region_start, _data_region_end,
             _zero_region_start, _zero_region_end, _stack_start, _stack_end;
 
 const char *recovery_cmd_name[] =
@@ -60,7 +60,7 @@ const char *recovery_cmd_name[] =
 };
 
 
-static uint32_t recovery_authenticate(uint32_t key_index, 
+static uint32_t recovery_authenticate(uint32_t key_index,
                                       uint8_t *signature,
                                       uint32_t hash_kind,
                                       uint32_t sign_kind)
@@ -73,8 +73,8 @@ static uint32_t recovery_authenticate(uint32_t key_index,
 
     plat_get_uuid(device_uuid_raw);
 
-    memset(device_uuid,' ',128);
-    memset(auth_hash,0,64);
+    memset(device_uuid, ' ', 128);
+    memset(auth_hash, 0, 64);
 
     uuid_to_string((uint8_t *) device_uuid_raw, device_uuid);
     device_uuid[36] = ' ';
@@ -123,7 +123,7 @@ static uint32_t recovery_flash_bootloader(uint8_t *bfr,
 {
     if (plat_switch_part(PLAT_EMMC_PART_BOOT0) != PB_OK)
     {
-        LOG_ERR ("Could not switch partition");
+        LOG_ERR("Could not switch partition");
         return PB_ERR;
     }
 
@@ -149,13 +149,13 @@ static uint32_t recovery_flash_part(uint8_t part_no,
 
     if (!part_lba_offset)
     {
-        LOG_ERR ("Unknown partition");
+        LOG_ERR("Unknown partition");
         return PB_ERR;
     }
 
     if ( (lba_offset + no_of_blocks) >= gpt_get_part_last_lba(part_no))
     {
-        LOG_ERR ("Trying to write outside of partition");
+        LOG_ERR("Trying to write outside of partition");
         return PB_ERR;
     }
 
@@ -164,7 +164,6 @@ static uint32_t recovery_flash_part(uint8_t part_no,
 
     return plat_write_block_async(part_lba_offset + lba_offset,
                                 (uintptr_t) bfr, no_of_blocks);
-
 }
 
 static uint32_t recovery_send_response(struct usb_device *dev,
@@ -221,7 +220,7 @@ static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
     plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
 }
 
-static void recovery_parse_command(struct usb_device *dev, 
+static void recovery_parse_command(struct usb_device *dev,
                                        struct pb_cmd_header *cmd)
 {
     uint32_t err = PB_OK;
@@ -243,7 +242,7 @@ static void recovery_parse_command(struct usb_device *dev,
     if (err != PB_OK)
         goto recovery_error_out;
 
-    LOG_DBG ("Security state: %u", security_state);
+    LOG_DBG("Security state: %u", security_state);
 
     if (security_state < 3)
         recovery_authenticated = true;
@@ -297,12 +296,11 @@ static void recovery_parse_command(struct usb_device *dev,
             uint8_t *bfr = recovery_bulk_buffer[cmd_prep.buffer_id];
             err = plat_usb_transfer(dev, USB_EP1_OUT, bfr,
                                                 cmd_prep.no_of_blocks*512);
-
         }
         break;
         case PB_CMD_FLASH_BOOTLOADER:
         {
-            LOG_INFO ("Flash BL %u",cmd->arg0);
+            LOG_INFO("Flash BL %u", cmd->arg0);
             recovery_flash_bootloader(recovery_bulk_buffer[0],
                         cmd->arg0);
         }
@@ -311,12 +309,12 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             char version_string[30];
 
-            LOG_INFO ("Get version");
-            snprintf(version_string, sizeof(version_string), "PB %s",VERSION);
+            LOG_INFO("Get version");
+            snprintf(version_string, sizeof(version_string), "PB %s", VERSION);
 
-            err = recovery_send_response( dev,
-                                          (uint8_t *) version_string,
-                                          strlen(version_string));
+            err = recovery_send_response(dev,
+                                         (uint8_t *) version_string,
+                                         strlen(version_string));
         }
         break;
         case PB_CMD_RESET:
@@ -324,8 +322,8 @@ static void recovery_parse_command(struct usb_device *dev,
             err = PB_OK;
             recovery_send_result_code(dev, err);
             plat_reset();
-            while(1)
-                __asm__ volatile ("wfi");
+            while (1)
+                __asm__ volatile("wfi");
         }
         break;
         case PB_CMD_GET_GPT_TBL:
@@ -348,7 +346,7 @@ static void recovery_parse_command(struct usb_device *dev,
 */
             recovery_send_result_code(dev, err);
 
-            err = recovery_send_response(dev,(uint8_t*) gpt_get_table(),
+            err = recovery_send_response(dev, (uint8_t*) gpt_get_table(),
                                         sizeof (struct gpt_primary_tbl));
         }
         break;
@@ -391,7 +389,7 @@ static void recovery_parse_command(struct usb_device *dev,
             recovery_read_data(dev, (uint8_t *) &wr_part,
                                     sizeof(struct pb_cmd_write_part));
 
-            LOG_INFO ("Writing %u blks to part %u" \
+            LOG_INFO("Writing %u blks to part %u" \
                         " with offset %x using bfr %u",
                         wr_part.no_of_blocks, wr_part.part_no,
                         wr_part.lba_offset, wr_part.buffer_id);
@@ -400,7 +398,6 @@ static void recovery_parse_command(struct usb_device *dev,
                                 wr_part.lba_offset,
                                 wr_part.no_of_blocks,
                                 recovery_bulk_buffer[wr_part.buffer_id]);
-
         }
         break;
         case PB_CMD_WRITE_PART_FINAL:
@@ -458,7 +455,7 @@ static void recovery_parse_command(struct usb_device *dev,
             {
                 LOG_INFO("Booting image...");
                 recovery_send_result_code(dev, err);
-                pb_boot(&pbi, cmd->arg0,cmd->arg1);
+                pb_boot(&pbi, cmd->arg0, cmd->arg1);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
@@ -480,7 +477,7 @@ static void recovery_parse_command(struct usb_device *dev,
 
             for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++)
             {
-                LOG_INFO("Loading component %u, %u bytes",i,
+                LOG_INFO("Loading component %u, %u bytes", i,
                                         pbi.comp[i].component_size);
 
                 uint32_t remainder = pbi.comp[i].component_size;
@@ -496,7 +493,7 @@ static void recovery_parse_command(struct usb_device *dev,
 
                     err = plat_usb_transfer(dev, USB_EP1_OUT,
                             (uint8_t *)(uintptr_t) pbi.comp[i].load_addr+offset,
-                            chunk );
+                            chunk);
 
                     plat_usb_wait_for_ep_completion(dev, USB_EP1_OUT);
 
@@ -505,7 +502,7 @@ static void recovery_parse_command(struct usb_device *dev,
 
                     if (err != PB_OK)
                     {
-                        LOG_ERR ("Xfer error");
+                        LOG_ERR("Xfer error");
                         break;
                     }
                 }
@@ -518,19 +515,18 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (pb_image_verify(&pbi, NULL) == PB_OK)
             {
-                LOG_INFO("Booting image... %u",cmd->arg0);
+                LOG_INFO("Booting image... %u", cmd->arg0);
                 recovery_send_result_code(dev, err);
                 pb_boot(&pbi, cmd->arg0, cmd->arg1);
             } else {
                 LOG_ERR("Image verification failed");
                 err = PB_ERR;
             }
-
         }
         break;
         case PB_CMD_WRITE_DFLT_GPT:
         {
-            LOG_INFO ("Installing default GPT table");
+            LOG_INFO("Installing default GPT table");
 
             err = gpt_init_tbl(1, plat_get_lastlba());
 
@@ -555,7 +551,6 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
 
             err = gpt_write_tbl();
-
         }
         break;
         case PB_CMD_SETUP:
@@ -567,7 +562,7 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
             }
 
-            LOG_INFO ("Performing device setup, %u",cmd->arg0);
+            LOG_INFO("Performing device setup, %u", cmd->arg0);
 
             params[0].kind = PB_PARAM_END;
 
@@ -588,7 +583,7 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_SETUP_LOCK:
         {
-            LOG_INFO ("Locking device setup");
+            LOG_INFO("Locking device setup");
             err = plat_setup_lock();
 
             if (err == PB_OK)
@@ -614,14 +609,13 @@ static void recovery_parse_command(struct usb_device *dev,
 
             param_count++;
 
-            recovery_send_response(dev,(uint8_t*) params,
+            recovery_send_response(dev, (uint8_t*) params,
                             (sizeof(struct param) * param_count));
             err = PB_OK;
         }
         break;
         case PB_CMD_AUTHENTICATE:
         {
-
             if (cmd->size > PB_RECOVERY_AUTH_COOKIE_SZ)
             {
                 LOG_ERR("Authentication cookie is to large");
@@ -643,7 +637,7 @@ static void recovery_parse_command(struct usb_device *dev,
         }
         break;
         default:
-            LOG_ERR ("Got unknown command: %u",cmd->cmd);
+            LOG_ERR("Got unknown command: %u", cmd->cmd);
     }
 
 recovery_error_out:
@@ -657,7 +651,7 @@ uint32_t recovery_initialize(void)
 
     if (usb_init() != PB_OK)
         return PB_ERR;
-        
+
     usb_set_on_command_handler(recovery_parse_command);
 
     return PB_OK;

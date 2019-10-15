@@ -19,16 +19,16 @@ static struct usb_device usb_dev;
 static bool _usb_enumerated;
 
 static const uint8_t qf_descriptor[] = {
-	0x0A,	//USB_DEV_QUALIFIER_DESC_LEN,
-	0x06,   //USB_DEV_QUALIFIER_DESC_TYPE,
-	0x00,   //USB_DEV_DESC_SPEC_LB,
-	0x02,   //USB_DEV_DESC_SPEC_HB,
-	0x00,   //USB_DEV_DESC_DEV_CLASS,
-	0x00,   //USB_DEV_DESC_DEV_SUBCLASS,
-	0x00,   //USB_DEV_DESC_DEV_PROTOCOL,
-	0x40,   //USB_DEV_DESC_EP0_MAXPACKETSIZE,
-	0x01,   //USB_DEV_DESC_NUM_OT_SPEED_CONF,
-	0		//USB_DEV_DESC_RESERVED
+    0x0A,   // USB_DEV_QUALIFIER_DESC_LEN,
+    0x06,   // USB_DEV_QUALIFIER_DESC_TYPE,
+    0x00,   // USB_DEV_DESC_SPEC_LB,
+    0x02,   // USB_DEV_DESC_SPEC_HB,
+    0x00,   // USB_DEV_DESC_DEV_CLASS,
+    0x00,   // USB_DEV_DESC_DEV_SUBCLASS,
+    0x00,   // USB_DEV_DESC_DEV_PROTOCOL,
+    0x40,   // USB_DEV_DESC_EP0_MAXPACKETSIZE,
+    0x01,   // USB_DEV_DESC_NUM_OT_SPEED_CONF,
+    0       // USB_DEV_DESC_RESERVED
 };
 
 /**
@@ -45,70 +45,74 @@ static const uint8_t descriptor_300[] = "\x04\x03\x04\x09";
 
 static const struct usb_descriptors descriptors = {
     .device = {
-        .bLength = 0x12, // length of this descriptor
-        .bDescriptorType = 0x01, // Device descriptor
-        .bcdUSB = 0x0200, // USB version 2.0
-        .bDeviceClass = 0x00, // Device class (specified in interface descriptor)
-        .bDeviceSubClass = 0x00, // Device Subclass (specified in interface descriptor)
-        .bDeviceProtocol = 0x00, // Device Protocol (specified in interface descriptor)
-        .bMaxPacketSize = 0x40, // Max packet size for control endpoint
+        .bLength = 0x12,  //  length of this descriptor
+        .bDescriptorType = 0x01,  //  Device descriptor
+        .bcdUSB = 0x0200,  //  USB version 2.0
+        /* Device class (specified in interface descriptor) */
+        .bDeviceClass = 0x00,
+        /* Device Subclass (specified in interface descriptor) */
+        .bDeviceSubClass = 0x00,
+        /* Device Protocol (specified in interface descriptor) */
+        .bDeviceProtocol = 0x00,
+        .bMaxPacketSize = 0x40,  // Max packet size for control endpoint
         .idVendor = PB_USB_VID,
         .idProduct = PB_USB_PID,
-        .bcdDevice = 0x0000, // Device revsion
-        .iManufacturer = 0x01, // Index of  Manufacturer string descriptor
-        .iProduct = 0x01, // Index of Product string descriptor
-        .iSerialNumber = 0x01, // Index of serial number string descriptor
-        .bNumConfigurations = 0x01, // Number of configurations
+        .bcdDevice = 0x0000,  // Device revsion
+        .iManufacturer = 0x01,  // Index of  Manufacturer string descriptor
+        .iProduct = 0x01,  // Index of Product string descriptor
+        .iSerialNumber = 0x01,  // Index of serial number string descriptor
+        .bNumConfigurations = 0x01,  // Number of configurations
     },
     .config = {
-        .bLength = 0x09, //
-        .bDescriptorType = 0x02, // Configuration descriptor
-        .wTotalLength = 0x27, // Total length of data, includes interface, HID and endpoint
-        .bNumInterfaces = 0x01, // Number of interfaces
-        .bConfigurationValue = 0x01, // Number to select for this configuration
-        .iConfiguration = 0x00, // No string descriptor
-        .bmAttributes = 0x80, // Self powered, No remote wakeup
-        .MaxPower = 0xfa 
+        .bLength = 0x09,
+        .bDescriptorType = 0x02,  // Configuration descriptor
+        .wTotalLength = 0x27,  // Total length of data, includes interface
+        .bNumInterfaces = 0x01,  // Number of interfaces
+        .bConfigurationValue = 0x01,  // Number to select for this configuration
+        .iConfiguration = 0x00,  // No string descriptor
+        .bmAttributes = 0x80,  // Self powered, No remote wakeup
+        .MaxPower = 0xfa
     },
     .interface = {
         .bLength = 0x09,
-        .bDescriptorType = 0x04, // Interface descriptor
-        .bInterfaceNumber = 0x00, // This interface = #0
-        .bAlternateSetting = 0x00, // Alternate setting
-        .bNumEndpoints = 0x03, // Number of endpoints for this interface
-        .bInterfaceClass = 0xFF, 
+        .bDescriptorType = 0x04,  // Interface descriptor
+        .bInterfaceNumber = 0x00,  // This interface = #0
+        .bAlternateSetting = 0x00,  // Alternate setting
+        .bNumEndpoints = 0x03,  // Number of endpoints for this interface
+        .bInterfaceClass = 0xFF,
         .bInterfaceSubClass = 0xFF,
         .bInterfaceProtocol = 0xFF,
-        .iInterface = 0, // No string descriptor
+        .iInterface = 0,  // No string descriptor
     },
     .endpoint_bulk_out = {
         .bLength = 0x07,
-        .bDescriptorType = 0x05, // Endpoint descriptor
-        .bEndpointAddress = 0x01, 
-        .bmAttributes = 0x2, 
-        .wMaxPacketSize = 0x0200, 
+        .bDescriptorType = 0x05,  // Endpoint descriptor
+        .bEndpointAddress = 0x01,
+        .bmAttributes = 0x2,
+        .wMaxPacketSize = 0x0200,
         .bInterval = 0x00,
     },
     .endpoint_intr_out = {
         .bLength = 0x07,
-        .bDescriptorType = 0x05, // Endpoint descriptor
-        .bEndpointAddress = 0x02, 
-        .bmAttributes = 0x3, 
-        .wMaxPacketSize = 0x0040, 
-        .bInterval = 0x01, 
+        .bDescriptorType = 0x05,  // Endpoint descriptor
+        .bEndpointAddress = 0x02,
+        .bmAttributes = 0x3,
+        .wMaxPacketSize = 0x0040,
+        .bInterval = 0x01,
     },
     .endpoint_intr_in = {
         .bLength = 0x07,
-        .bDescriptorType = 0x05, // Endpoint descriptor
-        .bEndpointAddress = 0x83, 
-        .bmAttributes = 0x3, 
-        .wMaxPacketSize = 0x0200, 
+        .bDescriptorType = 0x05,  // Endpoint descriptor
+        .bEndpointAddress = 0x83,
+        .bmAttributes = 0x3,
+        .wMaxPacketSize = 0x0200,
         .bInterval = 0x01,
     }
 };
 
-static const uint8_t usb_string_id[] = 
-    {0x16,3,'P',0,'u',0,'n',0,'c',0,'h',0,' ',0,'B',0,'O',0,'O',0,'T',0};
+static const uint8_t usb_string_id[] =
+    {0x16, 3, 'P', 0, 'u', 0, 'n', 0, 'c', 0, 'h', 0, ' ', 0,
+     'B', 0, 'O', 0, 'O', 0, 'T', 0};
 
 
 static uint8_t __a4k __no_bss usb_data_buffer[4096];
@@ -128,25 +132,24 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
     volatile uint16_t request;
     request = (setup->bRequestType << 8) | setup->bRequest;
 
-    LOG_DBG ("EP0 %x %x %ub", request, setup->wValue, setup->wLength);
+    LOG_DBG("EP0 %x %x %ub", request, setup->wValue, setup->wLength);
 
     uint16_t sz = 0;
     uint16_t device_status = 0;
 
-    switch (request) 
+    switch (request)
     {
         case USB_GET_DESCRIPTOR:
         {
             LOG_DBG("Get descriptor 0x%x", setup->wValue);
 
-            if(setup->wValue == 0x0600) 
+            if (setup->wValue == 0x0600)
             {
-                usb_send_ep0(dev, (uint8_t *) qf_descriptor, 
+                usb_send_ep0(dev, (uint8_t *) qf_descriptor,
                                                     sizeof(qf_descriptor));
             }
             else if (setup->wValue == 0x0100)
             {
-                
                 sz = sizeof(struct usb_device_descriptor);
 
                 if (setup->wLength < sz)
@@ -165,16 +168,14 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
                 usb_send_ep0(dev, (uint8_t *) &descriptors.config, sz);
             }
             else if (setup->wValue == 0x0300)
-            { 
+            {
                 usb_send_ep0(dev, (uint8_t *) descriptor_300, 4);
             }
-            else if(setup->wValue == 0x0301)
+            else if (setup->wValue == 0x0301)
             {
                 sz = setup->wLength > sizeof(usb_string_id)?
                             sizeof(usb_string_id): setup->wLength;
-                
                 usb_send_ep0(dev, (uint8_t *) usb_string_id, sz);
-     
             }
             else if (setup->wValue == 0x0A00)
             {
@@ -186,17 +187,16 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
                     sz = setup->wLength;
 
                 usb_send_ep0(dev, (uint8_t *) &descriptors.interface, sz);
-                
             }
             else
             {
-                LOG_ERR ("Unhandled descriptor 0x%x", setup->wValue);
+                LOG_ERR("Unhandled descriptor 0x%x", setup->wValue);
             }
         }
         break;
         case USB_SET_ADDRESS:
         {
-            plat_usb_set_address(dev, setup->wValue );
+            plat_usb_set_address(dev, setup->wValue);
             plat_usb_transfer(dev, USB_EP0_IN, NULL, 0);
             plat_usb_wait_for_ep_completion(dev, USB_EP0_IN);
         }
@@ -211,23 +211,23 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
         break;
         case USB_SET_IDLE:
         {
-            usb_send_ep0(dev,NULL,0);
+            usb_send_ep0(dev, NULL, 0);
         }
         break;
         case USB_GET_STATUS:
         {
-            usb_send_ep0(dev,(uint8_t *) &device_status, 2);
-            usb_send_ep0(dev,NULL,0);
+            usb_send_ep0(dev, (uint8_t *) &device_status, 2);
+            usb_send_ep0(dev, NULL, 0);
         }
         break;
         default:
         {
-            LOG_ERR ("EP0 Unhandled request %x",request);
-            LOG_ERR (" bRequestType = 0x%x", setup->bRequestType);
-            LOG_ERR (" bRequest = 0x%x", setup->bRequest);
-            LOG_ERR (" wValue = 0x%x", setup->wValue);
-            LOG_ERR (" wIndex = 0x%x",setup->wIndex);
-            LOG_ERR (" wLength = 0x%x",setup->wLength);
+            LOG_ERR("EP0 Unhandled request %x", request);
+            LOG_ERR(" bRequestType = 0x%x", setup->bRequestType);
+            LOG_ERR(" bRequest = 0x%x", setup->bRequest);
+            LOG_ERR(" wValue = 0x%x", setup->wValue);
+            LOG_ERR(" wIndex = 0x%x", setup->wIndex);
+            LOG_ERR(" wLength = 0x%x", setup->wLength);
         }
     }
 
@@ -237,7 +237,7 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
 uint32_t usb_init(void)
 {
     uint32_t err = PB_OK;
-    
+
     LOG_INFO("Init");
 
     err = plat_prepare_recovery();

@@ -18,9 +18,9 @@
 #include <gpt.h>
 #include <crypto.h>
 
-extern char _code_start, _code_end, 
-            _data_region_start, _data_region_end, 
-            _zero_region_start, _zero_region_end, 
+extern char _code_start, _code_end,
+            _data_region_start, _data_region_end,
+            _zero_region_start, _zero_region_end,
             _stack_start, _stack_end, _big_buffer_start, _big_buffer_end;
 
 #define IMAGE_BLK_CHUNK 8192
@@ -30,46 +30,46 @@ static unsigned char hash_data[64];
 uint32_t pb_image_check_header(struct pb_pbi *pbi)
 {
     uint32_t err = PB_OK;
-    
-    if (pbi->hdr.header_magic != PB_IMAGE_HEADER_MAGIC) 
+
+    if (pbi->hdr.header_magic != PB_IMAGE_HEADER_MAGIC)
     {
-        LOG_ERR ("Incorrect header magic");
+        LOG_ERR("Incorrect header magic");
         err = PB_ERR;
     }
 
-    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
+    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++)
     {
-        LOG_INFO("Checking component %u, %u bytes",i, 
+        LOG_INFO("Checking component %u, %u bytes", i,
                                 pbi->comp[i].component_size);
 
         uintptr_t la = (uintptr_t) pbi->comp[i].load_addr;
         uint32_t sz = pbi->comp[i].component_size;
 
-        if (PB_CHECK_OVERLAP(la,sz,&_stack_start,&_stack_end))
+        if (PB_CHECK_OVERLAP(la, sz, &_stack_start, &_stack_end))
         {
             err = PB_ERR;
             LOG_ERR("image overlapping with PB stack");
         }
 
-        if (PB_CHECK_OVERLAP(la,sz,&_data_region_start,&_data_region_end))
+        if (PB_CHECK_OVERLAP(la, sz, &_data_region_start, &_data_region_end))
         {
             err = PB_ERR;
             LOG_ERR("image overlapping with PB data");
         }
 
-        if (PB_CHECK_OVERLAP(la,sz,&_zero_region_start,&_zero_region_end))
+        if (PB_CHECK_OVERLAP(la, sz, &_zero_region_start, &_zero_region_end))
         {
             err = PB_ERR;
             LOG_ERR("image overlapping with PB bss");
         }
 
-        if (PB_CHECK_OVERLAP(la,sz,&_code_start,&_code_end))
+        if (PB_CHECK_OVERLAP(la, sz, &_code_start, &_code_end))
         {
             err = PB_ERR;
             LOG_ERR("image overlapping with PB code");
         }
 
-        if (PB_CHECK_OVERLAP(la,sz,&_big_buffer_start,&_big_buffer_end))
+        if (PB_CHECK_OVERLAP(la, sz, &_big_buffer_start, &_big_buffer_end))
         {
             err = PB_ERR;
             LOG_ERR("image overlapping with PB buffer");
@@ -86,13 +86,13 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
 
     tr_stamp_begin(TR_LOAD);
 
-    if (!part_lba_offset) 
+    if (!part_lba_offset)
     {
-        LOG_ERR ("Unknown partition");
+        LOG_ERR("Unknown partition");
         return PB_ERR;
     }
 
-    LOG_DBG( "LBA: %u, pbi %p", part_lba_offset, pbi);
+    LOG_DBG("LBA: %u, pbi %p", part_lba_offset, pbi);
 
     err = plat_read_block(part_lba_offset, (uintptr_t) pbi,
                             (sizeof(struct pb_pbi)/512));
@@ -107,19 +107,19 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
 
     plat_hash_init(pbi->hdr.hash_kind);
 
-    plat_hash_update((uintptr_t)&pbi->hdr, 
+    plat_hash_update((uintptr_t)&pbi->hdr,
                     sizeof(struct pb_image_hdr));
 
-    for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
+    for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++)
     {
-        plat_hash_update((uintptr_t) &pbi->comp[i], 
+        plat_hash_update((uintptr_t) &pbi->comp[i],
                     sizeof(struct pb_component_hdr));
     }
 
-    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++) 
+    for (uint32_t i = 0; i < pbi->hdr.no_of_components; i++)
     {
         uintptr_t a = pbi->comp[i].load_addr;
-        uint32_t blk_start = part_lba_offset + 
+        uint32_t blk_start = part_lba_offset +
                                     (pbi->comp[i].component_offset/512);
         uint32_t no_of_blks = (pbi->comp[i].component_size/512);
         uint32_t chunk_offset = 0;
@@ -127,9 +127,9 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
 
         while (no_of_blks)
         {
-            uint32_t blk_read = (no_of_blks>IMAGE_BLK_CHUNK)?
+            uint32_t blk_read = (no_of_blks > IMAGE_BLK_CHUNK)?
                                         IMAGE_BLK_CHUNK:no_of_blks;
-            
+
             LOG_DBG("R LBA: %u, to: %p, cnt: %u",
                     blk_start+chunk_offset, (void *) a, blk_read);
 
@@ -139,7 +139,7 @@ uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, struct pb_pbi *pbi,
             no_of_blks -= blk_read;
             a += blk_read*512;
             c++;
-            LOG_DBG("no_of_blks = %u",no_of_blks);
+            LOG_DBG("no_of_blks = %u", no_of_blks);
         }
 
         LOG_DBG("Read %u chunks", c);
@@ -163,18 +163,18 @@ uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
     {
         hash = hash_data;
         plat_hash_init(pbi->hdr.hash_kind);
-        plat_hash_update((uintptr_t)&pbi->hdr, 
+        plat_hash_update((uintptr_t)&pbi->hdr,
                         sizeof(struct pb_image_hdr));
 
-        for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
+        for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++)
         {
-            plat_hash_update((uintptr_t) &pbi->comp[i], 
+            plat_hash_update((uintptr_t) &pbi->comp[i],
                         sizeof(struct pb_component_hdr));
         }
 
-        for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++) 
+        for (unsigned int i = 0; i < pbi->hdr.no_of_components; i++)
         {
-            plat_hash_update((uintptr_t) pbi->comp[i].load_addr, 
+            plat_hash_update((uintptr_t) pbi->comp[i].load_addr,
                             pbi->comp[i].component_size);
         }
 
@@ -207,7 +207,7 @@ uint32_t pb_image_verify(struct pb_pbi* pbi, const char *inhash)
     return PB_OK;
 }
 
-struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 
+struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi,
                                             uint32_t comp_type)
 {
     if (pbi == NULL)

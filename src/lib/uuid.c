@@ -14,7 +14,7 @@
 #include <uuid.h>
 #include <crypto.h>
 
-typedef union 
+typedef union
 {
     uint8_t raw[16];
     struct
@@ -50,17 +50,17 @@ uint32_t uuid_gen_uuid3(const char *ns,
     if (unique_data_length > 32)
         return PB_ERR;
 
-    memset(_uuid_aligned_buf,0, 64);
+    memset(_uuid_aligned_buf, 0, 64);
     memcpy(_uuid_aligned_buf, ns, ns_length);
-    plat_hash_update((uintptr_t)_uuid_aligned_buf,64);
+    plat_hash_update((uintptr_t)_uuid_aligned_buf, 64);
 /*
     for (uint32_t n = 0; n < ns_length; n++)
         printf ("%02x",_uuid_aligned_buf[n]);
     printf ("\n\r");
 */
-    memset(_uuid_aligned_buf2,0, 64);
+    memset(_uuid_aligned_buf2, 0, 64);
     memcpy(_uuid_aligned_buf2, unique_data, unique_data_length);
-    plat_hash_update((uintptr_t)_uuid_aligned_buf2,64);
+    plat_hash_update((uintptr_t)_uuid_aligned_buf2, 64);
 /*
     for (uint32_t n = 0; n < unique_data_length; n++)
         printf ("%02x",_uuid_aligned_buf[n]);
@@ -84,10 +84,9 @@ uint32_t uuid_gen_uuid3(const char *ns,
 
 uint32_t uuid_to_string(const uint8_t *uuid_in, char *out)
 {
- 
     uint8_t uuid[16];
 
-    memcpy(uuid,uuid_in,16);
+    memcpy(uuid, uuid_in, 16);
 
     uint32_t *u0 = (uint32_t *) &uuid[0];
     uint16_t *u1 = (uint16_t *) &uuid[4];
@@ -112,10 +111,8 @@ uint32_t uuid_to_string(const uint8_t *uuid_in, char *out)
           ((*u5 >> 8)  & 0xff00) |
           ((*u5 << 24) & 0xff000000);
 
-    snprintf(out,37, "%08x-%04x-%04x-%04x-%04x%08x",
-                *u0,*u1,*u2,*u3,*u4,*u5);
-
-    
+    snprintf(out, UUID_STRING_SIZE, "%08x-%04x-%04x-%04x-%04x%08x",
+                *u0, *u1, *u2, *u3, *u4, *u5);
 
     return PB_OK;
 }
