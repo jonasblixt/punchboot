@@ -8,13 +8,12 @@
  */
 
 
-#ifndef __UTILS_H__
-#define __UTILS_H__
+#ifndef TOOLS_PUNCHBOOT_UTILS_H_
+#define TOOLS_PUNCHBOOT_UTILS_H_
 
 #include <stdint.h>
 #include <pb/gpt.h>
 
 void utils_gpt_part_name(struct gpt_part_hdr *part, uint8_t *out, uint8_t len);
- 
 
-#endif
+#endif  // TOOLS_PUNCHBOOT_UTILS_H_

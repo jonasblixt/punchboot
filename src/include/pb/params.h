@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,8 +7,8 @@
  *
  */
 
-#ifndef __PB_PARAMS_H__
-#define __PB_PARAMS_H__
+#ifndef INCLUDE_PB_PARAMS_H_
+#define INCLUDE_PB_PARAMS_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -46,13 +45,13 @@ struct param
 };
 
 #define PARAM(__kind, __ident, __data) \
-            ({ .kind = __kind, .identifier = __ident, .data = __data},)
+            ({ .kind = __kind, .identifier = __ident, .data = __data}, )
 
 
-#define foreach_param(__p,__params) \
+#define foreach_param(__p, __params) \
         for (struct param *__p = __params; __p->kind != PB_PARAM_END; __p++)
 
-static inline uint32_t param_get_by_id(struct param *params, 
+static inline uint32_t param_get_by_id(struct param *params,
                                        const char *id,
                                        struct param **out)
 {
@@ -60,13 +59,13 @@ static inline uint32_t param_get_by_id(struct param *params,
 
     foreach_param(p, params)
     {
-        if (strcmp(p->identifier,id) == 0)
+        if (strcmp(p->identifier, id) == 0)
         {
             (*out) = p;
             return PB_OK;
         }
     }
-    
+
     return PB_ERR;
 }
 
@@ -97,7 +96,7 @@ static inline uint32_t param_add_u32(struct param *p,
 
     uint32_t *ptr = (uint32_t *) p->data;
     (*ptr) = v;
-    
+
     memcpy(p->identifier, ident, PB_PARAM_MAX_IDENT_SIZE);
 
     return PB_OK;
@@ -111,7 +110,7 @@ static inline uint32_t param_add_str(struct param *p,
     uint32_t str_len = strlen(str);
 
     p->kind = PB_PARAM_STR;
-    
+
     if (str_len > PB_PARAM_MAX_SIZE)
         str_len = PB_PARAM_MAX_SIZE;
 
@@ -143,4 +142,4 @@ static inline uint32_t param_terminate(struct param *p)
 }
 
 
-#endif
+#endif  // INCLUDE_PB_PARAMS_H_

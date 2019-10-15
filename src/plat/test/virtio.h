@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef __VIRTIO_H__
-#define __VIRTIO_H__
+#ifndef PLAT_TEST_VIRTIO_H_
+#define PLAT_TEST_VIRTIO_H_
 
 #include <stdint.h>
 #include <plat/test/virtio_queue.h>
@@ -50,5 +50,5 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
                            uint32_t len);
 
 uint32_t virtio_mmio_notify_queue(struct virtio_device *d,
-								  struct virtq *q);
-#endif
+                                  struct virtq *q);
+#endif  // PLAT_TEST_VIRTIO_H_

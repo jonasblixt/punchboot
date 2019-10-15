@@ -1,10 +1,19 @@
-#ifndef __UMCTL2_H__
-#define __UMCTL2_H__
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+#ifndef PLAT_IMX8M_INCLUDE_PLAT_UMCTL2_H_
+#define PLAT_IMX8M_INCLUDE_PLAT_UMCTL2_H_
 
 #define DDRC_DDR_SS_GPR0         0x3d000000
 
 #define DDRC_IPS_BASE_ADDR(X) (0x3d400000 + (X * 0x2000000))
-#define DDRC_IPS_BASE_ADDR_0	0x3f400000
+#define DDRC_IPS_BASE_ADDR_0    0x3f400000
 
 #define DDRC_MSTR_0             0x3d400000
 #define DDRC_STAT_0             0x3d400004
@@ -90,12 +99,10 @@
 #define DDRC_DFIUPD0_0          0x3d4001a0
 #define DDRC_DFIUPD1_0          0x3d4001a4
 #define DDRC_DFIUPD2_0          0x3d4001a8
-//#define DDRC_DFIUPD3(X)       (  DDRC_IPS_BASE_ADDR(X) + 0x1ac)     // iMX8 hasn't it
 #define DDRC_DFIMISC_0          0x3d4001b0
 #define DDRC_DFITMG2_0          0x3d4001b4
 #define DDRC_DFITMG3_0          0x3d4001b8
 #define DDRC_DFISTAT_0          0x3d4001bc
-//
 #define DDRC_DBICTL_0           0x3d4001c0
 #define DDRC_DFIPHYMSTR_0       0x3d4001c4
 #define DDRC_TRAINCTL0_0        0x3d4001d0
@@ -278,7 +285,6 @@
 #define DDRC_DFIUPD0(X)          (DDRC_IPS_BASE_ADDR(X) + 0x1a0)
 #define DDRC_DFIUPD1(X)          (DDRC_IPS_BASE_ADDR(X) + 0x1a4)
 #define DDRC_DFIUPD2(X)          (DDRC_IPS_BASE_ADDR(X) + 0x1a8)
-//#define DDRC_DFIUPD3(X)        (  DDRC_IPS_BASE_ADDR(X) + 0x1ac)     // iMX8 hasn't it
 #define DDRC_DFIMISC(X)          (DDRC_IPS_BASE_ADDR(X) + 0x1b0)
 #define DDRC_DFITMG2(X)          (DDRC_IPS_BASE_ADDR(X) + 0x1b4)
 #define DDRC_DFITMG3(X)          (DDRC_IPS_BASE_ADDR(X) + 0x1b8)
@@ -486,7 +492,7 @@
 #define DDRC_FREQ3_DRAMTMG15(X)        (DDRC_IPS_BASE_ADDR(X) + 0x413C)
 #define DDRC_FREQ3_DRAMTMG16(X)        (DDRC_IPS_BASE_ADDR(X) + 0x4140)
 #if 0
-/*todo fix*/
+/* todo fix */
 #define DDRC_FREQ3_DRAMTMG16(X)        (DDRC_IPS_BASE_ADDR(X) + 0x4144)
 #define DDRC_FREQ3_DRAMTMG17(X)        (DDRC_IPS_BASE_ADDR(X) + 0x4140)
 #endif
@@ -502,116 +508,123 @@
 #define DDRC_DFITMG3_SHADOW(X)         (DDRC_IPS_BASE_ADDR(X) + 0x21b8)
 #define DDRC_ODTCFG_SHADOW(X)          (DDRC_IPS_BASE_ADDR(X) + 0x2240)
 
-//#define IP2APB_DDRPHY_IPS_BASE_ADDR(X)     DDRPHY1_IPS_BASE_ADDR - X*0x00030000
-//#define IP2APB_DDRPHY_IPS_BASE_ADDR(X) 0xbc000000 + (X * 0x2000000)
-//#define DDRPHY_MEM(X) 0xbc000000 + (X * 0x2000000) + 0x50000
+// #define IP2APB_DDRPHY_IPS_BASE_ADDR(X)     DDRPHY1_IPS_BASE_ADDR - X*0x00030000
+// #define IP2APB_DDRPHY_IPS_BASE_ADDR(X) 0xbc000000 + (X * 0x2000000)
+// #define DDRPHY_MEM(X) 0xbc000000 + (X * 0x2000000) + 0x50000
 #define IP2APB_DDRPHY_IPS_BASE_ADDR(X) (0x3c000000 + (X * 0x2000000))
 #define DDRPHY_MEM(X) (0x3c000000 + (X * 0x2000000) + 0x50000)
-//#define IP2APB_DDRPHY_IPS_BASE_ADDR(X) 0x3c000000 + (X * 0x2000000)
+// #define IP2APB_DDRPHY_IPS_BASE_ADDR(X) 0x3c000000 + (X * 0x2000000)
 
 
-#define LPDDR4_HDT_CTL_2D	0xC8  /* stage completion */
-#define LPDDR4_HDT_CTL_3200_1D	0xC8  /* stage completion */
-#define LPDDR4_HDT_CTL_400_1D	0xC8  /* stage completion */
-#define LPDDR4_HDT_CTL_100_1D	0xC8  /* stage completion */
+#define LPDDR4_HDT_CTL_2D    0xC8  /* stage completion */
+#define LPDDR4_HDT_CTL_3200_1D    0xC8  /* stage completion */
+#define LPDDR4_HDT_CTL_400_1D    0xC8  /* stage completion */
+#define LPDDR4_HDT_CTL_100_1D    0xC8  /* stage completion */
 
 /* 2D share & weight */
-#define LPDDR4_2D_WEIGHT	0x1f7f
-#define LPDDR4_2D_SHARE		1
-#define LPDDR4_CATRAIN_3200_1d	0
-#define LPDDR4_CATRAIN_400	0
-#define LPDDR4_CATRAIN_100	0
-#define LPDDR4_CATRAIN_3200_2d	0
+#define LPDDR4_2D_WEIGHT    0x1f7f
+#define LPDDR4_2D_SHARE        1
+#define LPDDR4_CATRAIN_3200_1d    0
+#define LPDDR4_CATRAIN_400    0
+#define LPDDR4_CATRAIN_100    0
+#define LPDDR4_CATRAIN_3200_2d    0
 
 #define WR_POST_EXT_3200  /* recommened to define */
 
 /* lpddr4 phy training config */
 /* for LPDDR4 Rtt */
-#define LPDDR4_RTT40	6
-#define LPDDR4_RTT48	5
-#define LPDDR4_RTT60	4
-#define LPDDR4_RTT80	3
-#define LPDDR4_RTT120	2
-#define LPDDR4_RTT240	1
-#define LPDDR4_RTT_DIS	0
+#define LPDDR4_RTT40    6
+#define LPDDR4_RTT48    5
+#define LPDDR4_RTT60    4
+#define LPDDR4_RTT80    3
+#define LPDDR4_RTT120    2
+#define LPDDR4_RTT240    1
+#define LPDDR4_RTT_DIS    0
 
 /* for LPDDR4 Ron */
-#define LPDDR4_RON34	7
-#define LPDDR4_RON40	6
-#define LPDDR4_RON48	5
-#define LPDDR4_RON60	4
-#define LPDDR4_RON80	3
+#define LPDDR4_RON34    7
+#define LPDDR4_RON40    6
+#define LPDDR4_RON48    5
+#define LPDDR4_RON60    4
+#define LPDDR4_RON80    3
 
-#define LPDDR4_PHY_ADDR_RON60	0x1
+#define LPDDR4_PHY_ADDR_RON60    0x1
 #define LPDDR4_PHY_ADDR_RON40   0x3
 #define LPDDR4_PHY_ADDR_RON30   0x7
 #define LPDDR4_PHY_ADDR_RON24   0xf
 #define LPDDR4_PHY_ADDR_RON20   0x1f
 
 /* for read channel */
-#define LPDDR4_RON		LPDDR4_RON40 /* MR3[5:3] */
-#define LPDDR4_PHY_RTT		30
-#define LPDDR4_PHY_VREF_VALUE 	17
+#define LPDDR4_RON        LPDDR4_RON40 /* MR3[5:3] */
+#define LPDDR4_PHY_RTT        30
+#define LPDDR4_PHY_VREF_VALUE     17
 
 /* for write channel */
-#define LPDDR4_PHY_RON		30
-#define LPDDR4_PHY_ADDR_RON	LPDDR4_PHY_ADDR_RON40
-#define LPDDR4_RTT_DQ		LPDDR4_RTT40 /* MR11[2:0] */
-#define LPDDR4_RTT_CA		LPDDR4_RTT40 /* MR11[6:4] */
-#define LPDDR4_RTT_CA_BANK0	LPDDR4_RTT40 /* MR11[6:4] */
-#define LPDDR4_RTT_CA_BANK1	LPDDR4_RTT40 /* LPDDR4_RTT_DIS//MR11[6:4] */
-#define LPDDR4_VREF_VALUE_CA		((1<<6)|(0xd)) /*((0<<6)|(0xe)) MR12 */
-#define LPDDR4_VREF_VALUE_DQ_RANK0	((1<<6)|(0xd)) /* MR14 */
-#define LPDDR4_VREF_VALUE_DQ_RANK1	((1<<6)|(0xd)) /* MR14 */
-#define LPDDR4_MR22_RANK0           	((0<<5)|(1<<4)|(0<<3)|(LPDDR4_RTT40)) /* MR22: OP[5:3]ODTD-CA,CS,CK */
-#define LPDDR4_MR22_RANK1		((0<<5)|(1<<4)|(0<<3)|(LPDDR4_RTT40)) /* MR22: OP[5:3]ODTD-CA,CS,CK */
-#define LPDDR4_MR3_PU_CAL		1 /* MR3[0] */
+#define LPDDR4_PHY_RON        30
+#define LPDDR4_PHY_ADDR_RON    LPDDR4_PHY_ADDR_RON40
+#define LPDDR4_RTT_DQ        LPDDR4_RTT40 /* MR11[2:0] */
+#define LPDDR4_RTT_CA        LPDDR4_RTT40 /* MR11[6:4] */
+#define LPDDR4_RTT_CA_BANK0    LPDDR4_RTT40 /* MR11[6:4] */
 
-#define dwc_ddrphy_apb_wr(addr, data)	pb_write32(data,IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4*(addr))
-#define dwc_ddrphy_apb_rd(addr) pb_read32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4*(addr))
+/* LPDDR4_RTT_DIS/MR11[6:4] */
+#define LPDDR4_RTT_CA_BANK1    LPDDR4_RTT40
+#define LPDDR4_VREF_VALUE_CA        ((1<<6)|(0xd)) /*((0<<6)|(0xe)) MR12 */
+#define LPDDR4_VREF_VALUE_DQ_RANK0    ((1<<6)|(0xd)) /* MR14 */
+#define LPDDR4_VREF_VALUE_DQ_RANK1    ((1<<6)|(0xd)) /* MR14 */
+
+/* MR22: OP[5:3]ODTD-CA,CS,CK */
+#define LPDDR4_MR22_RANK0 ((0<<5)|(1<<4)|(0<<3)|(LPDDR4_RTT40))
+/* MR22: OP[5:3]ODTD-CA,CS,CK */
+#define LPDDR4_MR22_RANK1 ((0<<5)|(1<<4)|(0<<3)|(LPDDR4_RTT40))
+#define LPDDR4_MR3_PU_CAL 1 /* MR3[0] */
+
+#define dwc_ddrphy_apb_wr(addr, data) \
+    pb_write32(data, IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4*(addr))
+#define dwc_ddrphy_apb_rd(addr) \
+    pb_read32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4*(addr))
 
 
 enum fw_type
 {
-	FW_1D_IMAGE,
-	FW_2D_IMAGE,
+    FW_1D_IMAGE,
+    FW_2D_IMAGE,
 };
 
 struct dram_cfg_param
 {
-	unsigned int reg;
-	unsigned int val;
+    unsigned int reg;
+    unsigned int val;
 };
 
 
 struct dram_timing_info
 {
-	/* umctl2 config */
-	struct dram_cfg_param *ddrc_cfg;
-	unsigned int ddrc_cfg_num;
-	/* ddrphy config */
-	struct dram_cfg_param *ddrphy_cfg;
-	unsigned int ddrphy_cfg_num;
-	/* ddr fsp train info */
-	struct dram_fsp_msg *fsp_msg;
-	unsigned int fsp_msg_num;
-	/* ddr phy trained CSR */
-	struct dram_cfg_param *ddrphy_trained_csr;
-	unsigned int ddrphy_trained_csr_num;
-	/* ddr phy PIE */
-	struct dram_cfg_param *ddrphy_pie;
-	unsigned int ddrphy_pie_num;
-	/* initialized fsp table */
-	unsigned int fsp_table[4];
+    /* umctl2 config */
+    struct dram_cfg_param *ddrc_cfg;
+    unsigned int ddrc_cfg_num;
+    /* ddrphy config */
+    struct dram_cfg_param *ddrphy_cfg;
+    unsigned int ddrphy_cfg_num;
+    /* ddr fsp train info */
+    struct dram_fsp_msg *fsp_msg;
+    unsigned int fsp_msg_num;
+    /* ddr phy trained CSR */
+    struct dram_cfg_param *ddrphy_trained_csr;
+    unsigned int ddrphy_trained_csr_num;
+    /* ddr phy PIE */
+    struct dram_cfg_param *ddrphy_pie;
+    unsigned int ddrphy_pie_num;
+    /* initialized fsp table */
+    unsigned int fsp_table[4];
 };
 
 struct dram_fsp_msg
 {
-	unsigned int drate;
-	enum fw_type fw_type;
-	struct dram_cfg_param *fsp_cfg;
-	unsigned int fsp_cfg_num;
+    unsigned int drate;
+    enum fw_type fw_type;
+    struct dram_cfg_param *fsp_cfg;
+    unsigned int fsp_cfg_num;
 };
 uint32_t umctl2_init(void);
 
-#endif
+#endif  // PLAT_IMX8M_INCLUDE_PLAT_UMCTL2_H_

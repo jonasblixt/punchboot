@@ -1,5 +1,5 @@
-#ifndef VIRTQUEUE_H
-#define VIRTQUEUE_H
+#ifndef PLAT_TEST_VIRTIO_QUEUE_H_
+#define PLAT_TEST_VIRTIO_QUEUE_H_
 /*
  *
  * Virtual I/O Device (VIRTIO) Version 1.0
@@ -48,13 +48,13 @@ struct virtq_desc {
         uint16_t flags;
         /* We chain unused descriptors via this, too */
         uint16_t next;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct virtq_avail {
         uint16_t flags;
         volatile uint16_t idx;
         uint16_t ring[];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 /* uint32_t is used here for ids for padding reasons. */
 struct virtq_used_elem {
@@ -62,25 +62,25 @@ struct virtq_used_elem {
         uint32_t id;
         /* Total length of the descriptor chain which was written to. */
         uint32_t len;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct virtq_used {
         uint16_t flags;
         volatile uint16_t idx;
         struct virtq_used_elem ring[];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct virtq {
     unsigned int num;
     uint32_t queue_index;
-    __attribute__ ((aligned(16))) struct virtq_desc *desc;
-    __attribute__ ((aligned(2))) struct virtq_avail *avail;
-    __attribute__ ((aligned(4))) struct virtq_used *used;
+    __attribute__((aligned(16))) struct virtq_desc *desc;
+    __attribute__((aligned(2))) struct virtq_avail *avail;
+    __attribute__((aligned(4))) struct virtq_used *used;
 };
 
 #define VIRTIO_QUEUE_SZ(n) (16*n + 4 + 2*n + 4 + 8*n)
 #define VIRTIO_QUEUE_SZ2(n) (16*n + 4 + 2*n)
-#define VIRTIO_QUEUE_USED_OFFSET(n,a) (((VIRTIO_QUEUE_SZ2(n) \
+#define VIRTIO_QUEUE_USED_OFFSET(n, a) (((VIRTIO_QUEUE_SZ2(n) \
         +a-1) & ~(a-1)))
 #define VIRTIO_QUEUE_AVAIL_OFFSET(n) (16*n)
 
@@ -92,13 +92,15 @@ static inline void virtio_init_queue(uint8_t *buf, uint32_t n, struct virtq *q)
     q->desc = (struct virtq_desc *) buf;
     q->avail = (struct virtq_avail *) (buf +
                     VIRTIO_QUEUE_AVAIL_OFFSET(n));
-    q->used = (struct virtq_used *) (buf + 
+    q->used = (struct virtq_used *) (buf +
                     VIRTIO_QUEUE_USED_OFFSET(n, 4096));
 }
 
-static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
+static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx,
+                                   uint16_t old_idx)
 {
-    return ((uint16_t)(new_idx - event_idx - 1) < (uint16_t)(new_idx - old_idx));
+    return ((uint16_t)(new_idx - event_idx - 1) <
+                                                (uint16_t)(new_idx - old_idx));
 }
 
 /* Get location of event indices (only with VIRTIO_F_EVENT_IDX) */
@@ -115,4 +117,4 @@ static inline uint16_t *virtq_avail_event(struct virtq *vq)
 }
 
 
-#endif /* VIRTQUEUE_H */
+#endif  // PLAT_TEST_VIRTIO_QUEUE_H_

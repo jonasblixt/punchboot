@@ -29,9 +29,9 @@ uint32_t  plat_hash_init(uint32_t hash_kind)
 uint32_t  plat_hash_update(uintptr_t bfr, uint32_t sz)
 {
     if (_hash_kind == PB_HASH_SHA256)
-        br_sha256_update(&sha256_ctx, (void *) bfr,sz);
+        br_sha256_update(&sha256_ctx, (void *) bfr, sz);
     else if (_hash_kind == PB_HASH_MD5)
-        br_md5_update(&md5_ctx, (void *) bfr,sz);
+        br_md5_update(&md5_ctx, (void *) bfr, sz);
     else
         return PB_ERR;
 
@@ -67,22 +67,21 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
             struct pb_rsa4096_key *rsa_key =
                 (struct pb_rsa4096_key *) k->data;
             br_rsa_public_key br_k;
-            
             br_k.n = (unsigned char*) rsa_key->mod;
             br_k.nlen = 512;
             br_k.e = (unsigned char*)rsa_key->exp;
             br_k.elen = 3;
 
-            memcpy(output_data,sig,512);
-            
+            memcpy(output_data, sig, 512);
+
             if (!br_rsa_i62_public(output_data, 512, &br_k))
                 return PB_ERR;
 
             uint32_t n = 0;
             uint32_t y = 0;
-            for (uint32_t i = (512-32); i < 512; i++) 
+            for (uint32_t i = (512-32); i < 512; i++)
             {
-                if (output_data[i] != hash[n]) 
+                if (output_data[i] != hash[n])
                     y++;
                 n++;
             }
@@ -96,7 +95,6 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
                 LOG_DBG("Signature error");
                 return PB_ERR;
             }
-
         }
         break;
         default:

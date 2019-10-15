@@ -20,14 +20,14 @@
 
 /* struct qr - stores qutient/remainder to handle divmod EABI interfaces. */
 struct qr {
-	unsigned int q;		/* computed quotient */
-	unsigned int r;		/* computed remainder */
-	unsigned int q_n;	/* specficies if quotient shall be negative */
-	unsigned int r_n;	/* specficies if remainder shall be negative */
+    unsigned int q;        /* computed quotient */
+    unsigned int r;        /* computed remainder */
+    unsigned int q_n;    /* specficies if quotient shall be negative */
+    unsigned int r_n;    /* specficies if remainder shall be negative */
 };
 
 static void uint_div_qr(unsigned int numerator, unsigned int denominator,
-			struct qr *qr);
+            struct qr *qr);
 
 /* returns in R0 and R1 by tail calling an asm function */
 unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator);
@@ -60,153 +60,153 @@ unsigned int ret_uidivmod_values(unsigned int quotient, unsigned int remainder);
 
 static void division_qr(unsigned int n, unsigned int p, struct qr *qr)
 {
-	unsigned int i = 1, q = 0;
+    unsigned int i = 1, q = 0;
 
-	if (p == 0) {
-		qr->r = 0xFFFFFFFF;	/* division by 0 */
-		return;
-	}
+    if (p == 0) {
+        qr->r = 0xFFFFFFFF;    /* division by 0 */
+        return;
+    }
 
-	while ((p >> 31) == 0) {
-		i = i << 1;	/* count the max division steps */
-		p = p << 1;     /* increase p until it has maximum size*/
-	}
+    while ((p >> 31) == 0) {
+        i = i << 1;    /* count the max division steps */
+        p = p << 1;     /* increase p until it has maximum size*/
+    }
 
-	while (i > 0) {
-		q = q << 1;	/* write bit in q at index (size-1) */
-		if (n >= p) {
-			n -= p;
-			q++;
-		}
-		p = p >> 1;	/* decrease p */
-		i = i >> 1;	/* decrease remaining size in q */
-	}
-	qr->r = n;
-	qr->q = q;
+    while (i > 0) {
+        q = q << 1;    /* write bit in q at index (size-1) */
+        if (n >= p) {
+            n -= p;
+            q++;
+        }
+        p = p >> 1;    /* decrease p */
+        i = i >> 1;    /* decrease remaining size in q */
+    }
+    qr->r = n;
+    qr->q = q;
 }
 
 static void uint_div_qr(unsigned int numerator, unsigned int denominator,
-			struct qr *qr)
+            struct qr *qr)
 {
-	division_qr(numerator, denominator, qr);
+    division_qr(numerator, denominator, qr);
 
-	/* negate quotient and/or remainder according to requester */
-	if (qr->q_n)
-		qr->q = -qr->q;
-	if (qr->r_n)
-		qr->r = -qr->r;
+    /* negate quotient and/or remainder according to requester */
+    if (qr->q_n)
+        qr->q = -qr->q;
+    if (qr->r_n)
+        qr->r = -qr->r;
 }
 
 #ifdef PB_IGNORE
 
 unsigned int __aeabi_uidiv(unsigned int numerator, unsigned int denominator)
 {
-	struct qr qr = { .q_n = 0, .r_n = 0 };
+    struct qr qr = { .q_n = 0, .r_n = 0 };
 
-	uint_div_qr(numerator, denominator, &qr);
+    uint_div_qr(numerator, denominator, &qr);
 
-	return qr.q;
+    return qr.q;
 }
 
 
 unsigned int __aeabi_uimod(unsigned int numerator, unsigned int denominator)
 {
-	struct qr qr = { .q_n = 0, .r_n = 0 };
+    struct qr qr = { .q_n = 0, .r_n = 0 };
 
-	uint_div_qr(numerator, denominator, &qr);
+    uint_div_qr(numerator, denominator, &qr);
 
-	return qr.r;
+    return qr.r;
 }
 
 #endif
 
 unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
 {
-	struct qr qr = { .q_n = 0, .r_n = 0 };
+    struct qr qr = { .q_n = 0, .r_n = 0 };
 
-	uint_div_qr(numerator, denominator, &qr);
+    uint_div_qr(numerator, denominator, &qr);
 
-	return ret_uidivmod_values(qr.q, qr.r);
+    return ret_uidivmod_values(qr.q, qr.r);
 }
 
 #ifdef PB_IGNORE
 
 signed int __aeabi_idiv(signed int numerator, signed int denominator)
 {
-	struct qr qr = { .q_n = 0, .r_n = 0 };
+    struct qr qr = { .q_n = 0, .r_n = 0 };
 
-	if (((numerator < 0) && (denominator > 0)) ||
-	    ((numerator > 0) && (denominator < 0)))
-		qr.q_n = 1;	/* quotient shall be negate */
+    if (((numerator < 0) && (denominator > 0)) ||
+        ((numerator > 0) && (denominator < 0)))
+        qr.q_n = 1;    /* quotient shall be negate */
 
-	if (numerator < 0) {
-		numerator = -numerator;
-		qr.r_n = 1;	/* remainder shall be negate */
-	}
+    if (numerator < 0) {
+        numerator = -numerator;
+        qr.r_n = 1;    /* remainder shall be negate */
+    }
 
-	if (denominator < 0)
-		denominator = -denominator;
+    if (denominator < 0)
+        denominator = -denominator;
 
-	uint_div_qr(numerator, denominator, &qr);
+    uint_div_qr(numerator, denominator, &qr);
 
-	return qr.q;
+    return qr.q;
 }
 
 signed int __aeabi_imod(signed int numerator, signed int denominator)
 {
-	signed int s;
-	signed int i;
-	signed int j;
-	signed int h;
-	struct qr qr = { .q_n = 0, .r_n = 0 };
+    signed int s;
+    signed int i;
+    signed int j;
+    signed int h;
+    struct qr qr = { .q_n = 0, .r_n = 0 };
 
-	/* in case modulo of a power of 2 */
-	for (i = 0, j = 0, h = 0, s = denominator; (s != 0) || (h > 1); i++) {
-		if (s & 1) {
-			j = i;
-			h++;
-		}
-		s = s >> 1;
-	}
-	if (h == 1)
-		return numerator >> j;
+    /* in case modulo of a power of 2 */
+    for (i = 0, j = 0, h = 0, s = denominator; (s != 0) || (h > 1); i++) {
+        if (s & 1) {
+            j = i;
+            h++;
+        }
+        s = s >> 1;
+    }
+    if (h == 1)
+        return numerator >> j;
 
-	if (((numerator < 0) && (denominator > 0)) ||
-	    ((numerator > 0) && (denominator < 0)))
-		qr.q_n = 1;	/* quotient shall be negate */
+    if (((numerator < 0) && (denominator > 0)) ||
+        ((numerator > 0) && (denominator < 0)))
+        qr.q_n = 1;    /* quotient shall be negate */
 
-	if (numerator < 0) {
-		numerator = -numerator;
-		qr.r_n = 1;	/* remainder shall be negate */
-	}
+    if (numerator < 0) {
+        numerator = -numerator;
+        qr.r_n = 1;    /* remainder shall be negate */
+    }
 
-	if (denominator < 0)
-		denominator = -denominator;
+    if (denominator < 0)
+        denominator = -denominator;
 
-	uint_div_qr(numerator, denominator, &qr);
+    uint_div_qr(numerator, denominator, &qr);
 
-	return qr.r;
+    return qr.r;
 }
 
 signed int __aeabi_idivmod(signed int numerator, signed int denominator)
 {
-	struct qr qr = { .q_n = 0, .r_n = 0 };
+    struct qr qr = { .q_n = 0, .r_n = 0 };
 
-	if (((numerator < 0) && (denominator > 0)) ||
-	    ((numerator > 0) && (denominator < 0)))
-		qr.q_n = 1;	/* quotient shall be negate */
+    if (((numerator < 0) && (denominator > 0)) ||
+        ((numerator > 0) && (denominator < 0)))
+        qr.q_n = 1;    /* quotient shall be negate */
 
-	if (numerator < 0) {
-		numerator = -numerator;
-		qr.r_n = 1;	/* remainder shall be negate */
-	}
+    if (numerator < 0) {
+        numerator = -numerator;
+        qr.r_n = 1;    /* remainder shall be negate */
+    }
 
-	if (denominator < 0)
-		denominator = -denominator;
+    if (denominator < 0)
+        denominator = -denominator;
 
-	uint_div_qr(numerator, denominator, &qr);
+    uint_div_qr(numerator, denominator, &qr);
 
-	return ret_idivmod_values(qr.q, qr.r);
+    return ret_idivmod_values(qr.q, qr.r);
 }
 
 #endif

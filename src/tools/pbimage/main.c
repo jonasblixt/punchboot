@@ -25,11 +25,11 @@
 
 static void pbimage_print_help(void)
 {
-    printf ("pbimage:\n\n");
-    printf ("  pbimage <config file>\n");
+    printf("pbimage:\n\n");
+    printf("  pbimage <config file>\n");
 }
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
     void *memctx = NULL;
     int size = -1;
@@ -37,7 +37,7 @@ int main (int argc, char **argv)
     struct stat finfo;
     uint32_t err;
 
-    printf ("pbimage version %s\n\n", VERSION);
+    printf("pbimage version %s\n\n", VERSION);
 
     if (argc <= 1)
     {
@@ -47,33 +47,33 @@ int main (int argc, char **argv)
 
 
     /* Load configuration file */
-    FILE* fp = fopen(argv[1], "r" );
+    FILE* fp = fopen(argv[1], "r");
 
     if (fp == NULL)
     {
-        printf ("Error: could not read %s\n",argv[1]);
+        printf("Error: could not read %s\n", argv[1]);
         return -1;
     }
 
     stat(argv[1], &finfo);
     size = finfo.st_size;
-    data = (char*) malloc( size + 1 );
-    size_t read_sz = fread( data, 1, size, fp );
+    data = (char*) malloc(size + 1);
+    size_t read_sz = fread(data, 1, size, fp);
     data[ size ] = '\0';
-    fclose( fp );
+    fclose(fp);
 
     if (read_sz != size)
     {
-        printf ("Error: could not read file\n");
+        printf("Error: could not read file\n");
         return -1;
     }
     ini_t* ini = ini_load(data, memctx);
-    free( data );
+    free(data);
 
     /* Parse config file */
     uint32_t n = 0;
     uint32_t component_count = 0;
-    uint32_t key_index = (uint32_t )-1;
+    uint32_t key_index = (uint32_t)-1;
     uint32_t hash_kind = 0;
     uint32_t sign_kind = 0;
     uint32_t error_count = 0;
@@ -91,29 +91,26 @@ int main (int argc, char **argv)
 
         if (section_name)
         {
-
-            if (strcmp(section_name,"pbimage") == 0)
+            if (strcmp(section_name, "pbimage") == 0)
             {
-
-
-                index = ini_find_property(ini,n,"key_index",0);
+                index = ini_find_property(ini, n, "key_index", 0);
 
                 if (index >= 0)
                 {
-                    value = ini_property_value(ini,n,index);
+                    value = ini_property_value(ini, n, index);
                     key_index = strtol(value, NULL, 0);
                 }
                 else
                 {
-                    printf ("Error: Could not read key index\n");
+                    printf("Error: Could not read key index\n");
                     error_count++;
                 }
 
-                index = ini_find_property(ini,n,"hash_kind",0);
+                index = ini_find_property(ini, n, "hash_kind", 0);
 
                 if (index >= 0)
                 {
-                    value = ini_property_value(ini,n,index);
+                    value = ini_property_value(ini, n, index);
                     if (strcmp(value, "SHA256") == 0)
                         hash_kind = PB_HASH_SHA256;
                     else if (strcmp(value, "SHA384") == 0)
@@ -122,22 +119,22 @@ int main (int argc, char **argv)
                         hash_kind = PB_HASH_SHA512;
                     else
                     {
-                        printf ("Error: unsupported hash\n");
+                        printf("Error: unsupported hash\n");
                         return -1;
                     }
                 }
                 else
                 {
-                    printf ("Error: Could not read hash kind\n");
+                    printf("Error: Could not read hash kind\n");
                     error_count++;
                 }
 
 
-                index = ini_find_property(ini,n,"sign_kind",0);
+                index = ini_find_property(ini, n, "sign_kind", 0);
 
                 if (index >= 0)
                 {
-                    value = ini_property_value(ini,n,index);
+                    value = ini_property_value(ini, n, index);
                     if (strcmp(value, "RSA4096") == 0)
                         sign_kind = PB_SIGN_RSA4096;
                     else if (strcmp(value, "EC384") == 0)
@@ -148,63 +145,61 @@ int main (int argc, char **argv)
                         sign_kind = PB_SIGN_NIST521p;
                     else
                     {
-                        printf ("Error: unsupported signature\n");
+                        printf("Error: unsupported signature\n");
                         return -1;
                     }
                 }
                 else
                 {
-                    printf ("Error: Could not read signature kind\n");
+                    printf("Error: Could not read signature kind\n");
                     error_count++;
                 }
 
-                index = ini_find_property(ini,n,"key_source",0);
+                index = ini_find_property(ini, n, "key_source", 0);
 
                 if (index >= 0)
                 {
-                    key_source = ini_property_value(ini,n,index);
+                    key_source = ini_property_value(ini, n, index);
                 }
                 else
                 {
-                    printf ("Error: Could not read key source\n");
+                    printf("Error: Could not read key source\n");
                     error_count++;
                 }
 
-                if (strstr(key_source,"PKCS11"))
+                if (strstr(key_source, "PKCS11"))
                 {
-                    index = ini_find_property(ini,n,"pkcs11_provider",0);
-                    pkcs11_provider = ini_property_value(ini,n,index);
+                    index = ini_find_property(ini, n, "pkcs11_provider", 0);
+                    pkcs11_provider = ini_property_value(ini, n, index);
 
-                    index = ini_find_property(ini,n,"pkcs11_key_id",0);
-                    pkcs11_key_id = ini_property_value(ini,n,index);
+                    index = ini_find_property(ini, n, "pkcs11_key_id", 0);
+                    pkcs11_key_id = ini_property_value(ini, n, index);
                 }
 
-                index = ini_find_property(ini,n,"output",0);
+                index = ini_find_property(ini, n, "output", 0);
 
                 if (index >= 0)
                 {
-                    output_fn = ini_property_value(ini,n,index);
+                    output_fn = ini_property_value(ini, n, index);
                 }
                 else
                 {
-                    printf ("Error: Could not read output filename\n");
+                    printf("Error: Could not read output filename\n");
                     error_count++;
                 }
-
             }
         }
         n++;
-
     } while (section_name);
 
-    printf ("Punchboot image: \n");
-    printf (" key index %u\n", key_index);
-    printf (" key source '%s'\n", key_source);
-    printf (" output file '%s'\n", output_fn);
+    printf("Punchboot image: \n");
+    printf(" key index %u\n", key_index);
+    printf(" key source '%s'\n", key_source);
+    printf(" output file '%s'\n", output_fn);
 
     if (error_count)
     {
-        printf ("%u errors reading config file, aborting\n",error_count);
+        printf("%u errors reading config file, aborting\n", error_count);
         return -1;
     }
 
@@ -214,7 +209,7 @@ int main (int argc, char **argv)
 
     if (err != PB_OK)
     {
-        printf ("Could not create image, error %u\n", err);
+        printf("Could not create image, error %u\n", err);
         return -1;
     }
 
@@ -230,33 +225,32 @@ int main (int argc, char **argv)
 
         if (section_name)
         {
-
-            if (strcmp(section_name,"component") == 0)
+            if (strcmp(section_name, "component") == 0)
             {
                 error_count = 0;
 
-                index = ini_find_property(ini,n,"type",0);
+                index = ini_find_property(ini, n, "type", 0);
 
                 if (index >= 0)
                 {
-                    comp_type = ini_property_value(ini,n,index);
+                    comp_type = ini_property_value(ini, n, index);
                     component_count++;
                 }
                 else
                 {
-                    printf ("Error: Could not read component type\n");
+                    printf("Error: Could not read component type\n");
                     error_count++;
                 }
 
-                index = ini_find_property(ini,n,"load_addr",0);
+                index = ini_find_property(ini, n, "load_addr", 0);
 
                 if (index >= 0)
                 {
-                    value = ini_property_value(ini,n,index);
+                    value = ini_property_value(ini, n, index);
 
                     if (value)
                     {
-                        comp_load_addr = strtol(value,NULL,16);
+                        comp_load_addr = strtol(value, NULL, 16);
                     }
                     else
                     {
@@ -265,28 +259,28 @@ int main (int argc, char **argv)
                 }
                 else
                 {
-                    printf ("Error: Could not read component address\n");
+                    printf("Error: Could not read component address\n");
                     error_count++;
                 }
 
-                index = ini_find_property(ini,n,"file",0);
+                index = ini_find_property(ini, n, "file", 0);
 
                 if (index >= 0)
                 {
-                    comp_file_fn = ini_property_value(ini,n,index);
+                    comp_file_fn = ini_property_value(ini, n, index);
                 }
                 else
                 {
-                    printf ("Error: Could not read component file name\n");
+                    printf("Error: Could not read component file name\n");
                     error_count++;
                 }
 
                 if (error_count == 0)
                 {
-                    printf ("Component %u\n",component_count-1);
-                    printf (" type '%s'\n", comp_type);
-                    printf (" load address 0x%8.8X\n", comp_load_addr);
-                    printf (" source file '%s'\n",comp_file_fn);
+                    printf("Component %u\n", component_count-1);
+                    printf(" type '%s'\n", comp_type);
+                    printf(" load address 0x%8.8X\n", comp_load_addr);
+                    printf(" source file '%s'\n", comp_file_fn);
 
                     err = pbimage_append_component(comp_type,
                                                    comp_load_addr,
@@ -294,34 +288,33 @@ int main (int argc, char **argv)
 
                     if (err != PB_OK)
                     {
-                        printf ("Error: could not append component (%u)\n",err);
+                        printf("Error: could not append component (%u)\n", err);
                         return err;
                     }
                 }
                 else
                 {
-                    printf ("Error could not read component information\n");
+                    printf("Error could not read component information\n");
                     return -1;
                 }
             }
         }
         n++;
-
     } while (section_name);
 
-    printf ("Generating output...\n");
+    printf("Generating output...\n");
     err = pbimage_out(output_fn);
 
     if (err != PB_OK)
     {
-        printf ("Error: Signing failed (%u)\n",err);
+        printf("Error: Signing failed (%u)\n", err);
     }
 
     stat(output_fn, &finfo);
 
-    printf ("Done, created '%s', %lu kBytes\n",output_fn,finfo.st_size/1024);
+    printf("Done, created '%s', %lu kBytes\n", output_fn, finfo.st_size/1024);
 
-    ini_destroy( ini );
+    ini_destroy(ini);
 
     pbimage_cleanup();
 

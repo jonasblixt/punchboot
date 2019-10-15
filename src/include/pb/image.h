@@ -8,8 +8,8 @@
  */
 
 
-#ifndef __IMAGE_H__
-#define __IMAGE_H__
+#ifndef INCLUDE_PB_IMAGE_H_
+#define INCLUDE_PB_IMAGE_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -20,7 +20,7 @@
 #define PB_IMAGE_SIGN_MAX_SIZE 1024
 
 /* Image header, 512b aligned */
-struct pb_image_hdr 
+struct pb_image_hdr
 {
     uint32_t header_magic;
     uint32_t header_version;
@@ -29,10 +29,10 @@ struct pb_image_hdr
     uint32_t hash_kind;
     uint32_t sign_kind;
     uint32_t _reserved[122];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
-enum 
-{ 
+enum
+{
     PB_IMAGE_COMPTYPE_TEE = 0,
     PB_IMAGE_COMPTYPE_VMM = 1,
     PB_IMAGE_COMPTYPE_LINUX = 2,
@@ -43,7 +43,7 @@ enum
 };
 
 /* Component header 128b aligned */
-struct pb_component_hdr 
+struct pb_component_hdr
 {
     uint32_t comp_header_version;
     uint32_t component_type;
@@ -51,9 +51,9 @@ struct pb_component_hdr
     uint32_t component_size;
     uint32_t component_offset;
     uint32_t _reserved[26];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
-struct pb_pbi 
+struct pb_pbi
 {
     struct pb_image_hdr hdr;
     uint8_t sign[1024];
@@ -62,12 +62,12 @@ struct pb_pbi
 
 uint32_t pb_image_verify(struct pb_pbi *pbi, const char *inhash);
 
-uint32_t pb_image_load_from_fs(uint32_t part_lba_offset, 
+uint32_t pb_image_load_from_fs(uint32_t part_lba_offset,
                                struct pb_pbi *pbi,
                                const char *hash);
 
-struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi, 
+struct pb_component_hdr * pb_image_get_component(struct pb_pbi *pbi,
                                             uint32_t comp_type);
 uint32_t pb_image_check_header(struct pb_pbi *pbi);
 
-#endif
+#endif  // INCLUDE_PB_IMAGE_H_

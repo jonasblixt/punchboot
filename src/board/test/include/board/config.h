@@ -7,10 +7,8 @@
  *
  */
 
-
-
-#ifndef __BOARD_CONFIG__
-#define __BOARD_CONFIG__
+#ifndef BOARD_TEST_INCLUDE_BOARD_CONFIG_H_
+#define BOARD_TEST_INCLUDE_BOARD_CONFIG_H_
 
 
 #define BOARD_BOOT_ARGS "console=ttyLP0,115200  " \
@@ -18,4 +16,4 @@
                         "root=PARTUUID=%s " \
                         "ro rootfstype=ext4 gpt rootwait"
 
-#endif
+#endif  // BOARD_TEST_INCLUDE_BOARD_CONFIG_H_

@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,8 +7,8 @@
  *
  */
 
-#ifndef __PB_CONFIG_H__
-#define __PB_CONFIG_H__
+#ifndef INCLUDE_PB_CONFIG_H_
+#define INCLUDE_PB_CONFIG_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -32,7 +31,7 @@ struct config
     uint32_t error;
     uint8_t rz[488];
     uint32_t crc;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 #ifdef __PB_BUILD
 
@@ -47,4 +46,4 @@ void config_decrement_boot_attempt(void);
 void config_set_boot_error(uint32_t bits);
 #endif
 
-#endif
+#endif  // INCLUDE_PB_CONFIG_H_

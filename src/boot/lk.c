@@ -1,8 +1,7 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -24,22 +23,19 @@
 #include <uuid.h>
 
 extern void arch_jump(void* addr, void * p0, void *p1, void *p2)
-                                 __attribute__ ((noreturn));
-
-
+                                 __attribute__((noreturn));
 
 void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 {
-
     UNUSED(system_index);
     UNUSED(verbose);
 
-    struct pb_component_hdr *kernel = 
+    struct pb_component_hdr *kernel =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_KERNEL);
 
-    struct pb_component_hdr *atf = 
+    struct pb_component_hdr *atf =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
-    
+
     plat_preboot_cleanup();
     tr_stamp_end(TR_TOTAL);
     tr_stamp_end(TR_DT_PATCH);
@@ -51,7 +47,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
     arch_jump((void *)(uintptr_t) atf->load_addr_low, NULL, NULL, NULL);
 
 
-    while(1)
-        __asm__ ("nop");
+    while (1)
+        __asm__("nop");
 }
 

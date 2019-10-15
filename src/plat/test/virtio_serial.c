@@ -15,15 +15,15 @@
 
 uint32_t virtio_serial_init(struct virtio_serial_device *d)
 {
-    
     if (virtio_mmio_init(&d->dev) != PB_OK)
         return PB_ERR;
 
     uint32_t cap = virtio_mmio_get_features(&d->dev);
 
-    if (cap & VIRTIO_CONSOLE_F_EMERG_WRITE) 
+    if (cap & VIRTIO_CONSOLE_F_EMERG_WRITE)
     {
-        if(virtio_mmio_select_features(&d->dev, VIRTIO_CONSOLE_F_EMERG_WRITE) != PB_OK)
+        if (virtio_mmio_select_features(&d->dev, VIRTIO_CONSOLE_F_EMERG_WRITE)
+                                                                    != PB_OK)
         {
             LOG_ERR("Could not select features");
             return PB_ERR;
@@ -36,7 +36,7 @@ uint32_t virtio_serial_init(struct virtio_serial_device *d)
     d->config->rows = 0;
     d->config->max_nr_ports = 1;
     d->config->emerg_wr = 1;
-    
+
     virtio_init_queue(d->_rx_data, VIRTIO_SERIAL_QSZ, &d->rx);
     virtio_init_queue(d->_tx_data, VIRTIO_SERIAL_QSZ, &d->tx);
     virtio_init_queue(d->_ctrl_rx_data, VIRTIO_SERIAL_QSZ, &d->ctrl_rx);
@@ -55,8 +55,8 @@ uint32_t virtio_serial_init(struct virtio_serial_device *d)
     ctrlm.id = 1;
     ctrlm.event = 6;
     ctrlm.value = 1;
- 
-    virtio_mmio_write_one(&d->dev, &d->ctrl_tx, (uint8_t *) &ctrlm, 
+
+    virtio_mmio_write_one(&d->dev, &d->ctrl_tx, (uint8_t *) &ctrlm,
                         sizeof(struct virtio_serial_control));
 
 

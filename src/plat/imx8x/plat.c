@@ -60,17 +60,17 @@ uint32_t plat_setup_device(struct param *params)
     foreach_fuse(f, (struct fuse *) fuses)
     {
         err = plat_fuse_read(f);
- 
-        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+
+        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
         if (err != PB_OK)
         {
-            LOG_ERR("Could not access fuse '%s'",f->description);
+            LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
-        }  
+        }
     }
 
     /* Perform the actual fuse programming */
-    
+
     LOG_INFO("Writing fuses");
 
     foreach_fuse(f, fuses)
@@ -95,7 +95,7 @@ uint32_t plat_get_security_state(uint32_t *state)
     foreach_fuse(f, (struct fuse *) fuses)
     {
         err = plat_fuse_read(f);
- 
+
         if (f->value)
         {
             (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
@@ -104,9 +104,9 @@ uint32_t plat_get_security_state(uint32_t *state)
 
         if (err != PB_OK)
         {
-            LOG_ERR("Could not access fuse '%s'",f->description);
+            LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
-        }  
+        }
     }
 
     /*TODO: Check SECO for error events */
@@ -125,19 +125,18 @@ uint32_t plat_get_security_state(uint32_t *state)
     return PB_OK;
 }
 
-static const char platform_namespace_uuid[] = 
+static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
 uint32_t plat_get_uuid(char *out)
 {
-
     uint16_t lc;
     uint16_t monotonic;
     uint32_t uid[2];
 
     sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid[0], &uid[1]);
-    
-    return uuid_gen_uuid3(platform_namespace_uuid,16,
+
+    return uuid_gen_uuid3(platform_namespace_uuid, 16,
                           (const char *) uid, 8, out);
 }
 
@@ -147,7 +146,7 @@ uint32_t plat_get_params(struct param **pp)
 
     param_add_str((*pp)++, "Platform", "NXP IMX8X");
     plat_get_uuid(uuid_raw);
-    param_add_uuid((*pp)++, "Device UUID",uuid_raw);
+    param_add_uuid((*pp)++, "Device UUID", uuid_raw);
     return PB_OK;
 }
 
@@ -165,7 +164,7 @@ bool plat_force_recovery(void)
 
 void plat_reset(void)
 {
-    sc_pm_reset(plat.ipc_handle,SC_PM_RESET_TYPE_BOARD);
+    sc_pm_reset(plat.ipc_handle, SC_PM_RESET_TYPE_BOARD);
 }
 
 uint32_t  plat_get_us_tick(void)
@@ -176,7 +175,8 @@ uint32_t  plat_get_us_tick(void)
 void plat_wdog_init(void)
 {
     sc_timer_set_wdog_timeout(plat.ipc_handle, 3000);
-    sc_timer_set_wdog_action(plat.ipc_handle,SC_RM_PT_ALL,SC_TIMER_WDOG_ACTION_BOARD);
+    sc_timer_set_wdog_action(plat.ipc_handle, SC_RM_PT_ALL,
+                             SC_TIMER_WDOG_ACTION_BOARD);
     sc_timer_start_wdog(plat.ipc_handle, true);
 }
 
@@ -189,20 +189,21 @@ uint32_t  plat_early_init(void)
 {
     uint32_t err = PB_OK;
     sc_pm_clock_rate_t rate;
-    
-	sc_ipc_open(&plat.ipc_handle, SC_IPC_BASE);
+
+    sc_ipc_open(&plat.ipc_handle, SC_IPC_BASE);
 
     /* TODO: Temporary code for measuring boot time */
-	sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_GPIO_0, SC_PM_PW_MODE_ON);
-	rate = 1000000;
-	sc_pm_set_clock_rate(plat.ipc_handle, SC_R_GPIO_0, 2, &rate);
-	sc_pm_clock_enable(plat.ipc_handle, SC_R_GPIO_0, 2, true, false);
+    sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_GPIO_0,
+                                  SC_PM_PW_MODE_ON);
+    rate = 1000000;
+    sc_pm_set_clock_rate(plat.ipc_handle, SC_R_GPIO_0, 2, &rate);
+    sc_pm_clock_enable(plat.ipc_handle, SC_R_GPIO_0, 2, true, false);
     pb_setbit32(1 << 16, GPIO_BASE+0x04);
     pb_setbit32(1 << 16, GPIO_BASE);
     sc_pad_set(plat.ipc_handle, SC_P_SPI3_CS0, GPIO_PAD_CTRL | (4 << 27));
     /* TODO: End of Temporary code */
 
-    //plat_wdog_init();
+    // plat_wdog_init();
 
     err = board_early_init(&plat);
 
@@ -211,11 +212,11 @@ uint32_t  plat_early_init(void)
         return err;
     }
 
-	/* Write to LPCG */
-	pb_write32(LPCG_ALL_CLOCK_ON, 0x5B200000);
+    /* Write to LPCG */
+    pb_write32(LPCG_ALL_CLOCK_ON, 0x5B200000);
 
-	/* Wait for clocks to start */
-	while ((pb_read32(0x5B200000) & LPCG_ALL_CLOCK_STOP) != 0U)
+    /* Wait for clocks to start */
+    while ((pb_read32(0x5B200000) & LPCG_ALL_CLOCK_STOP) != 0U)
         __asm__("nop");
 
     err = lpuart_init(&plat.uart0);
@@ -235,18 +236,20 @@ uint32_t  plat_early_init(void)
         return err;
     }
 
-	sc_pm_set_resource_power_mode(plat.ipc_handle, 
+    sc_pm_set_resource_power_mode(plat.ipc_handle,
                                 SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-	sc_pm_set_resource_power_mode(plat.ipc_handle, 
+    sc_pm_set_resource_power_mode(plat.ipc_handle,
                                 SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
-	sc_pm_set_resource_power_mode(plat.ipc_handle, 
+    sc_pm_set_resource_power_mode(plat.ipc_handle,
                                 SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
-	sc_pm_set_resource_power_mode(plat.ipc_handle, 
+    sc_pm_set_resource_power_mode(plat.ipc_handle,
                                 SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
 
 
-	sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_USB_0, SC_PM_PW_MODE_ON);
-	sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_USB_0,
+                                  SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_USB_0_PHY,
+                                  SC_PM_PW_MODE_ON);
 
     pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
 
@@ -267,25 +270,25 @@ uint32_t  plat_early_init(void)
 
 /* EMMC Interface */
 
-uint32_t plat_write_block(uint32_t lba_offset, 
-                          uintptr_t bfr, 
-                          uint32_t no_of_blocks) 
+uint32_t plat_write_block(uint32_t lba_offset,
+                          uintptr_t bfr,
+                          uint32_t no_of_blocks)
 {
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0, 
-                                  lba_offset, 
-                                  (uint8_t*)bfr, 
-                                  no_of_blocks, 
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
+                                  lba_offset,
+                                  (uint8_t*)bfr,
+                                  no_of_blocks,
                                   1, 0);
 }
 
-uint32_t plat_write_block_async(uint32_t lba_offset, 
-                          uintptr_t bfr, 
-                          uint32_t no_of_blocks) 
+uint32_t plat_write_block_async(uint32_t lba_offset,
+                          uintptr_t bfr,
+                          uint32_t no_of_blocks)
 {
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0, 
-                                  lba_offset, 
-                                  (uint8_t*)bfr, 
-                                  no_of_blocks, 
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
+                                  lba_offset,
+                                  (uint8_t*)bfr,
+                                  no_of_blocks,
                                   1, 1);
 }
 
@@ -294,23 +297,23 @@ uint32_t plat_flush_block(void)
     return usdhc_emmc_wait_for_de(&plat.usdhc0);
 }
 
-uint32_t plat_read_block(uint32_t lba_offset, 
-                         uintptr_t bfr, 
-                         uint32_t no_of_blocks) 
+uint32_t plat_read_block(uint32_t lba_offset,
+                         uintptr_t bfr,
+                         uint32_t no_of_blocks)
 {
     return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset, 
-                                  (uint8_t *)bfr, 
-                                  no_of_blocks, 
+                                  lba_offset,
+                                  (uint8_t *)bfr,
+                                  no_of_blocks,
                                   0, 0);
 }
 
-uint32_t plat_switch_part(uint8_t part_no) 
+uint32_t plat_switch_part(uint8_t part_no)
 {
     return usdhc_emmc_switch_part(&plat.usdhc0, part_no);
 }
 
-uint64_t plat_get_lastlba(void) 
+uint64_t plat_get_lastlba(void)
 {
     return plat.usdhc0.sectors-1;
 }
@@ -323,7 +326,6 @@ void plat_preboot_cleanup(void)
 /* USB Interface API */
 uint32_t  plat_usb_init(struct usb_device *dev)
 {
-
     dev->platform_data = (void *) &plat.usb;
 
     return ehci_usb_init(dev);
@@ -334,8 +336,8 @@ void plat_usb_task(struct usb_device *dev)
     ehci_usb_task(dev);
 }
 
-uint32_t plat_usb_transfer (struct usb_device *dev, uint8_t ep, 
-                            uint8_t *bfr, uint32_t sz) 
+uint32_t plat_usb_transfer(struct usb_device *dev, uint8_t ep,
+                            uint8_t *bfr, uint32_t sz)
 {
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
     return ehci_transfer(ehci, ep, bfr, sz);
@@ -359,7 +361,7 @@ void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
 
 /* UART Interface */
 
-void plat_uart_putc(void *ptr, char c) 
+void plat_uart_putc(void *ptr, char c)
 {
     UNUSED(ptr);
     lpuart_putc(&plat.uart0, c);
@@ -378,7 +380,8 @@ uint32_t  plat_fuse_read(struct fuse *f)
         f->addr = f->bank;
     }
 
-    err = sc_misc_otp_fuse_read(plat.ipc_handle, f->addr, (uint32_t *) &(f->value));
+    err = sc_misc_otp_fuse_read(plat.ipc_handle, f->addr,
+                                (uint32_t *) &(f->value));
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
@@ -390,7 +393,7 @@ uint32_t  plat_fuse_write(struct fuse *f)
 
     plat_fuse_to_string(f, s, 64);
 
-    LOG_INFO("Fusing %s",s);
+    LOG_INFO("Fusing %s", s);
 
     err = sc_misc_otp_fuse_write(plat.ipc_handle, f->addr, f->value);
 
@@ -399,7 +402,6 @@ uint32_t  plat_fuse_write(struct fuse *f)
 
 uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
-
     return snprintf(s, n,
             "   FUSE<%u> %s = 0x%08x",
                 f->bank,

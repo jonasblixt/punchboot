@@ -23,7 +23,7 @@ static struct ehci_transfer_head *current_xfers[EHCI_NO_OF_EPS*2];
 
 static void ehci_reset_queues(void)
 {
-    for (uint32_t i = 0; i < EHCI_NO_OF_EPS*2; i++) 
+    for (uint32_t i = 0; i < EHCI_NO_OF_EPS*2; i++)
     {
         dqhs[i].caps = 0;
         dqhs[i].next = 0xDEAD0001;
@@ -36,7 +36,6 @@ static void ehci_reset_queues(void)
 
 static void ehci_reset(struct ehci_device *dev)
 {
-
     pb_write32(0xFFFFFFFF, dev->base+EHCI_USBSTS);
 
     pb_write32(0xFFFF, dev->base+EHCI_ENDPTSETUPSTAT);
@@ -47,17 +46,16 @@ static void ehci_reset(struct ehci_device *dev)
         __asm__("nop");
 
     pb_write32(0xFFFFFFFF, dev->base+EHCI_ENDPTFLUSH);
- 
+
     LOG_DBG("Wait for reset");
     /* Wait for reset */
     while (!(pb_read32(dev->base+EHCI_USBSTS) & (1<<6)))
         __asm__("nop");
-   
+
     LOG_DBG("Wait for port reset");
     /* Wait for port to come out of reset */
     while ((pb_read32(dev->base+EHCI_PORTSC1) & (1<<8)) == (1 <<8))
         __asm__("nop");
-  
 }
 
 static struct ehci_queue_head * ehci_get_queue(uint32_t ep)
@@ -77,21 +75,21 @@ static void ehci_prime_ep(struct ehci_device *dev, uint32_t ep)
     struct ehci_queue_head *qh = ehci_get_queue(ep);
 
     qh->next = (uint32_t) (uintptr_t) dtds[ep];
- 
+
     if (ep & 1)
         epreg = (1 << ((ep-1)/2 + 16));
     else
         epreg = (1 << (ep/2));
 
     pb_write32(epreg, dev->base + EHCI_ENDPTPRIME);
-    
+
     while ((pb_read32(dev->base + EHCI_ENDPTPRIME) & epreg) == epreg)
         __asm__("nop");
 }
 
 uint32_t ehci_transfer(struct ehci_device *dev,
                                 uint32_t ep,
-                                uint8_t *bfr, 
+                                uint8_t *bfr,
                                 uint32_t size)
 {
     struct ehci_transfer_head *dtd = dtds[ep];
@@ -104,7 +102,7 @@ uint32_t ehci_transfer(struct ehci_device *dev,
         dtd->token = 0x80 | (1 << 15);
     }
 
-    while (bytes_to_tx) 
+    while (bytes_to_tx)
     {
         dtd->next = 0xDEAD0001;
         dtd->token = 0x80;
@@ -117,10 +115,10 @@ uint32_t ehci_transfer(struct ehci_device *dev,
         for (int n = 0; n < 5; n++)
         {
             dtd->page[n] = (uint32_t)(uintptr_t) data;
-            
+
             if (bytes_to_tx)
             {
-                if (bytes_to_tx >= EHCI_PAGE_SZ) 
+                if (bytes_to_tx >= EHCI_PAGE_SZ)
                 {
                     data += EHCI_PAGE_SZ;
                     bytes_to_tx -= EHCI_PAGE_SZ;
@@ -134,15 +132,15 @@ uint32_t ehci_transfer(struct ehci_device *dev,
                 dtd->token |= (1 << 15);
             }
         }
-        
-        if (bytes_to_tx) 
+
+        if (bytes_to_tx)
         {
             struct ehci_transfer_head *dtd_prev = dtd;
             dtd++;
             dtd_prev->next = (uint32_t)(uintptr_t) dtd;
         }
     }
-    
+
     ehci_prime_ep(dev, ep);
     current_xfers[ep] = dtd;
 
@@ -155,17 +153,17 @@ void ehci_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
     UNUSED(dev);
 
     if (dtd == NULL)
-        return ;
+        return;
 
-    while (dtd->token & 0x80)   
+    while (dtd->token & 0x80)
         __asm__("nop");
 }
 
-uint32_t ehci_usb_init(struct usb_device *dev) 
+uint32_t ehci_usb_init(struct usb_device *dev)
 {
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
 
-    LOG_DBG ("Init... base: %p", (void *) ehci->base);
+    LOG_DBG("Init... base: %p", (void *) ehci->base);
 
     pb_setbit32(1<<1, ehci->base + EHCI_CMD);
 
@@ -173,7 +171,7 @@ uint32_t ehci_usb_init(struct usb_device *dev)
 
     while ((pb_read32(ehci->base+EHCI_CMD) & (1<<1)) == (1 << 1))
         __asm__("nop");
-    
+
     LOG_DBG("Reset complete");
 
     ehci_reset_queues();
@@ -188,13 +186,13 @@ uint32_t ehci_usb_init(struct usb_device *dev)
     LOG_DBG("EP's configured");
 
     /* Program QH top */
-    pb_write32((uint32_t)(uintptr_t) dqhs, ehci->base + EHCI_ENDPTLISTADDR); 
-    
+    pb_write32((uint32_t)(uintptr_t) dqhs, ehci->base + EHCI_ENDPTLISTADDR);
+
     LOG_DBG("QH loaded");
 
     /* Enable USB */
     pb_write32(0x0A | (1 << 4), ehci->base + EHCI_USBMODE);
-    pb_write32( (0x40 << 16) |0x01, ehci->base + EHCI_CMD);
+    pb_write32((0x40 << 16) |0x01, ehci->base + EHCI_CMD);
 
     LOG_DBG("USB Enable");
 
@@ -205,7 +203,7 @@ uint32_t ehci_usb_init(struct usb_device *dev)
     pb_write32(7, ehci->base+EHCI_SBUSCFG);
     pb_write32(0x0000FFFF, ehci->base+EHCI_BURSTSIZE);
 
-    LOG_INFO ("Init completed");
+    LOG_INFO("Init completed");
 
     return PB_OK;
 }
@@ -216,17 +214,17 @@ void ehci_usb_set_configuration(struct usb_device *dev)
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
 
     /* Configure EP 1 as bulk OUT */
-    pb_write32 ((1 << 7) | (2 << 2) , ehci->base+EHCI_ENDPTCTRL1);
+    pb_write32((1 << 7) | (2 << 2) , ehci->base+EHCI_ENDPTCTRL1);
     /* Configure EP 2 as intr OUT */
-    pb_write32 ((1 << 7) | (3 << 2) , ehci->base+EHCI_ENDPTCTRL2);
+    pb_write32((1 << 7) | (3 << 2) , ehci->base+EHCI_ENDPTCTRL2);
     /* Configure EP3 as intr IN */
-    pb_write32 ((1 << 23) | (3 << 18), ehci->base+EHCI_ENDPTCTRL3);
+    pb_write32((1 << 23) | (3 << 18), ehci->base+EHCI_ENDPTCTRL3);
 
-    ehci_transfer(ehci, USB_EP2_OUT, (uint8_t *) &dev->cmd, 
+    ehci_transfer(ehci, USB_EP2_OUT, (uint8_t *) &dev->cmd,
                                         sizeof(struct pb_cmd_header));
 }
 
-void ehci_usb_task(struct usb_device *dev) 
+void ehci_usb_task(struct usb_device *dev)
 {
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
     uint32_t sts = pb_read32(ehci->base+EHCI_USBSTS);
@@ -245,15 +243,14 @@ void ehci_usb_task(struct usb_device *dev)
         {
             pb_write32(cmd_reg | (1 << 13), ehci->base + EHCI_CMD);
             memcpy(&setup_pkt, qh->setup, sizeof(struct usb_setup_packet));
-        }
-        while (! (pb_read32(ehci->base + EHCI_CMD) & (1<<13)));
-    
+        } while (!(pb_read32(ehci->base + EHCI_CMD) & (1<<13)));
+
         pb_write32(1, ehci->base + EHCI_ENDPTSETUPSTAT);
 
         cmd_reg = pb_read32(ehci->base + EHCI_CMD);
         pb_write32(cmd_reg & ~(1 << 13), ehci->base + EHCI_CMD);
 
-        pb_write32 ((1<< 16) | 1, ehci->base + EHCI_ENDPTFLUSH);
+        pb_write32((1<< 16) | 1, ehci->base + EHCI_ENDPTFLUSH);
 
         while (pb_read32(ehci->base + EHCI_ENDPTSETUPSTAT) & 1)
             __asm__("nop");
@@ -263,21 +260,21 @@ void ehci_usb_task(struct usb_device *dev)
     }
 
     /* EP2 INTR OUT */
-    if  (epc & EHCI_EP2_OUT) 
+    if  (epc & EHCI_EP2_OUT)
     {
         dev->on_command(dev, &dev->cmd);
         /* Queue up next command to be received */
-        ehci_transfer(ehci, USB_EP2_OUT, (uint8_t *) &dev->cmd, 
+        ehci_transfer(ehci, USB_EP2_OUT, (uint8_t *) &dev->cmd,
                                         sizeof(struct pb_cmd_header));
     }
 
     pb_write32(epc, ehci->base + EHCI_ENDPTCOMPLETE);
 
-    if (sts & 2) 
+    if (sts & 2)
     {
-        pb_write32 (2, ehci->base+EHCI_USBSTS);
-        LOG_ERR ("EHCI: Error %x",sts);
-        //dev->on_error(dev, sts);
+        pb_write32(2, ehci->base+EHCI_USBSTS);
+        LOG_ERR("EHCI: Error %x", sts);
+        // dev->on_error(dev, sts);
     }
 }
 

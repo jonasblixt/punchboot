@@ -27,22 +27,22 @@ int transport_init(uint8_t *usb_path, uint8_t usb_path_count)
     UNUSED(usb_path);
     UNUSED(usb_path_count);
 
-	if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) 
-	{
-		perror("socket error");
-		return -1;
-	}
+    if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+    {
+        perror("socket error");
+        return -1;
+    }
 
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, "/tmp/pb_sock", sizeof(addr.sun_path)-1);
     bind(fd, (struct sockaddr*)&addr, sizeof(addr));
 
-	if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-    	perror("connect error");
-    	return -1;
-	}
-	
-	return 0;
+    if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+        perror("connect error");
+        return -1;
+    }
+
+    return 0;
 }
 
 uint32_t pb_read_result_code(void)
@@ -61,13 +61,13 @@ int pb_write(uint32_t cmd, uint32_t arg0,
                            uint32_t arg3,
                            uint8_t *bfr, int sz)
 {
-	size_t tx_bytes;
-	struct pb_socket_header hdr;
+    size_t tx_bytes;
+    struct pb_socket_header hdr;
     struct pb_cmd_header cmd_hdr;
     uint8_t status;
     uint32_t result_code = PB_OK;
 
-    memset(&cmd_hdr,0,sizeof(struct pb_cmd_header));
+    memset(&cmd_hdr, 0, sizeof(struct pb_cmd_header));
 
     cmd_hdr.cmd = cmd;
     cmd_hdr.size = sz;
@@ -91,16 +91,16 @@ int pb_write(uint32_t cmd, uint32_t arg0,
 
     tx_bytes = write(fd, &cmd_hdr, sizeof(struct pb_cmd_header));
 
-    //printf("cmd: tx_bytes = %li\n",tx_bytes);
+    // printf("cmd: tx_bytes = %li\n",tx_bytes);
 
-	if (tx_bytes != sizeof(struct pb_cmd_header))
-		return -1;
+    if (tx_bytes != sizeof(struct pb_cmd_header))
+        return -1;
 
     if (read(fd, &status, 1) != 1)
         return PB_ERR;
 
-    if (bfr && sz) 
-    { 
+    if (bfr && sz)
+    {
         tx_bytes = write(fd, bfr, sz);
 
         if (tx_bytes != sz)
@@ -110,12 +110,12 @@ int pb_write(uint32_t cmd, uint32_t arg0,
             return PB_ERR;
     }
 
-	return result_code;
+    return result_code;
 }
 
 int pb_read(uint8_t *bfr, int sz)
 {
-	size_t rx_bytes;
+    size_t rx_bytes;
     uint32_t remaining = sz;
     uint32_t read_count = 0;
     uint32_t chunk;
@@ -132,17 +132,16 @@ int pb_read(uint8_t *bfr, int sz)
             chunk = remaining;
         }
 
-	    rx_bytes = read(fd, &bfr[read_count], chunk);
+        rx_bytes = read(fd, &bfr[read_count], chunk);
         count++;
         remaining -= rx_bytes;
         read_count += rx_bytes;
     }
 
-    //printf ("Read %u bytes (of %i), count = %u\n",read_count,sz,count);
-	if (read_count != sz)
-		return -1;
+    if (read_count != sz)
+        return -1;
 
-	return 0;
+    return 0;
 }
 
 int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
@@ -151,7 +150,7 @@ int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
     uint32_t chunk = 0;
     uint32_t pos = 0;
 
-    if (bfr && sz) 
+    if (bfr && sz)
     {
         while (remaining)
         {
@@ -164,11 +163,10 @@ int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
                 chunk = remaining;
             }
 
-            
             *sz_tx = write(fd, &bfr[pos], chunk);
 
             if (*sz_tx != chunk) {
-                printf ("Error sending data\n");
+                printf("Error sending data\n");
                 return -1;
             }
             remaining -= chunk;
@@ -176,7 +174,7 @@ int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
         }
     }
 
-	return 0;
+    return 0;
 }
 
 void transport_exit(void)

@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,8 +7,8 @@
  *
  */
 
-#ifndef __PB_ERRORS_H__
-#define __PB_ERRORS_H__
+#ifndef INCLUDE_PB_ERRORS_H_
+#define INCLUDE_PB_ERRORS_H_
 
 
 enum {
@@ -24,4 +23,4 @@ enum {
     PB_ERR_FILE_NOT_FOUND,
 };
 
-#endif
+#endif  // INCLUDE_PB_ERRORS_H_

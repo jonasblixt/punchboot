@@ -7,13 +7,11 @@
  *
  */
 
-
-#ifndef __CRC_H__
-#define __CRC_H__
+#ifndef INCLUDE_PB_CRC_H_
+#define INCLUDE_PB_CRC_H_
 
 #include <stdint.h>
 
 uint32_t crc32(uint32_t crc, const uint8_t *buf, uint32_t size);
 
-
-#endif
+#endif  // INCLUDE_PB_CRC_H_

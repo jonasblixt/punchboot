@@ -10,6 +10,7 @@
 
 #include <plat.h>
 #include <io.h>
+#include "uart.h"
 
 volatile uint32_t _uart_base;
 

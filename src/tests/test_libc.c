@@ -1,3 +1,13 @@
+/**
+ *
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
 #include <stdio.h>
 #include <plat/test/semihosting.h>
 #include <usb.h>
@@ -28,7 +38,7 @@ void plat_usb_wait_for_ep_completion(uint32_t ep)
 }
 
 
-uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep, 
+uint32_t  plat_usb_transfer(struct usb_device *dev, uint8_t ep,
                             uint8_t *bfr, uint32_t sz)
 {
     UNUSED(dev);
@@ -48,22 +58,22 @@ uint32_t plat_prepare_recovery(void)
     return PB_OK;
 };
 
-void test_main(void) 
+void test_main(void)
 
 {
     char s[256];
 
     LOG_INFO("Boot libc");
 
-    snprintf(s,256,"%i", -1234567890);
-    assert (strcmp(s,"-1234567890") == 0);
+    snprintf(s, sizeof(s), "%i", -1234567890);
+    assert(strcmp(s, "-1234567890") == 0);
 
-    snprintf(s,256,"%08x", 0x0000CAFE);
-    LOG_INFO("%s",s);
-    assert (strcmp(s,"0000CAFE") == 0);
+    snprintf(s, sizeof(s), "%08x", 0x0000CAFE);
+    LOG_INFO("%s", s);
+    assert(strcmp(s, "0000CAFE") == 0);
 
 
-    snprintf(s,256,"%x", 0xCAFEBABE);
-    assert (strcmp(s,"CAFEBABE") == 0);
+    snprintf(s, sizeof(s), "%x", 0xCAFEBABE);
+    assert(strcmp(s, "CAFEBABE") == 0);
     LOG_INFO("Boot libc end");
 }

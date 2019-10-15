@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Copyright (c) 1990, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *    The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,14 +40,14 @@
 char *
 strchr(const char *p, int ch)
 {
-	char c;
+    char c;
 
-	c = ch;
-	for (;; ++p) {
-		if (*p == c)
-			return ((char *)p);
-		if (*p == '\0')
-			return (NULL);
-	}
-	/* NOTREACHED */
+    c = ch;
+    for (;; ++p) {
+        if (*p == c)
+            return ((char *)p);
+        if (*p == '\0')
+            return (NULL);
+    }
+    /* NOTREACHED */
 }

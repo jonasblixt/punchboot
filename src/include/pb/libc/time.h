@@ -8,8 +8,8 @@
  * All rights reserved.
  */
 
-#ifndef TIME_H
-#define TIME_H
+#ifndef INCLUDE_PB_LIBC_TIME_H_
+#define INCLUDE_PB_LIBC_TIME_H_
 
 #include <time_.h>
 
@@ -17,4 +17,4 @@
 #define NULL ((void *) 0)
 #endif
 
-#endif /* TIME_H */
+#endif  // INCLUDE_PB_LIBC_TIME_H_

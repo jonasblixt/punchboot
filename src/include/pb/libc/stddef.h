@@ -8,8 +8,8 @@
  * All rights reserved.
  */
 
-#ifndef STDDEF_H
-#define STDDEF_H
+#ifndef INCLUDE_PB_LIBC_STDDEF_H_
+#define INCLUDE_PB_LIBC_STDDEF_H_
 
 #include <stddef_.h>
 
@@ -19,4 +19,4 @@
 
 #define offsetof(st, m) __builtin_offsetof(st, m)
 
-#endif /* STDDEF_H */
+#endif  // INCLUDE_PB_LIBC_STDDEF_H_

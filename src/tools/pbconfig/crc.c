@@ -54,17 +54,17 @@
  * of this function that's actually used in the kernel can be found
  * in sys/libkern.h, where it can be inlined.
  *
- *	u32
- *	crc32(const void *buf, size_t size)
- *	{
- *		const u8 *p = buf;
- *		u32 crc;
+ *    u32
+ *    crc32(const void *buf, size_t size)
+ *    {
+ *        const u8 *p = buf;
+ *        u32 crc;
  *
- *		crc = ~0U;
- *		while (size--)
- *			crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
- *		return crc ^ ~0U;
- *	}
+ *        crc = ~0U;
+ *        while (size--)
+ *            crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
+ *        return crc ^ ~0U;
+ *    }
  */
 
 /* CRC32C routines, these use a different polynomial */
@@ -145,13 +145,13 @@ static const uint32_t crc32Table[256] = {
 
 uint32_t crc32(uint32_t crc, const uint8_t *buf, uint32_t size)
 {
-	const uint8_t *p = buf;
+    const uint8_t *p = buf;
 
 
-	while (size--)
-		crc = crc32Table[(crc ^ *p++) & 0xff] ^ (crc >> 8);
+    while (size--)
+        crc = crc32Table[(crc ^ *p++) & 0xff] ^ (crc >> 8);
 
-	return crc;
+    return crc;
 }
 
 

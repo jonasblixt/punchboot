@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef __VIRTIO_SERIAL_H__
-#define __VIRTIO_SERIAL_H__
+#ifndef PLAT_TEST_VIRTIO_SERIAL_H_
+#define PLAT_TEST_VIRTIO_SERIAL_H_
 
 #include <stdint.h>
 #include <plat/test/virtio_mmio.h>
@@ -42,8 +42,10 @@ struct virtio_serial_device {
 
     __a4k uint8_t _rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
     __a4k uint8_t _tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
-    __a4k uint8_t _ctrl_rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
-    __a4k uint8_t _ctrl_tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
+    __a4k uint8_t _ctrl_rx_data[
+                            VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
+    __a4k uint8_t _ctrl_tx_data[
+                            VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
 
     struct virtq rx;
     struct virtq tx;
@@ -56,4 +58,4 @@ uint32_t virtio_serial_write(struct virtio_serial_device *d, uint8_t *buf,
                                                         uint32_t len);
 uint32_t virtio_serial_read(struct virtio_serial_device *d, uint8_t *buf,
                                                         uint32_t len);
-#endif
+#endif  // PLAT_TEST_VIRTIO_SERIAL_H_

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __SEMIHOSTING_H__
-#define __SEMIHOSTING_H__
+#ifndef PLAT_TEST_SEMIHOSTING_H_
+#define PLAT_TEST_SEMIHOSTING_H_
 
 #include <pb.h>
 #include <stdint.h>
@@ -25,18 +25,18 @@
 #define SEMIHOSTING_SYS_ERRNO           0x13
 #define SEMIHOSTING_SYS_EXIT            0x18
 
-#define FOPEN_MODE_R			0x0
-#define FOPEN_MODE_RB			0x1
-#define FOPEN_MODE_RPLUS		0x2
-#define FOPEN_MODE_RPLUSB		0x3
-#define FOPEN_MODE_W			0x4
-#define FOPEN_MODE_WB			0x5
-#define FOPEN_MODE_WPLUS		0x6
-#define FOPEN_MODE_WPLUSB		0x7
-#define FOPEN_MODE_A			0x8
-#define FOPEN_MODE_AB			0x9
-#define FOPEN_MODE_APLUS		0xa
-#define FOPEN_MODE_APLUSB		0xb
+#define FOPEN_MODE_R            0x0
+#define FOPEN_MODE_RB            0x1
+#define FOPEN_MODE_RPLUS        0x2
+#define FOPEN_MODE_RPLUSB        0x3
+#define FOPEN_MODE_W            0x4
+#define FOPEN_MODE_WB            0x5
+#define FOPEN_MODE_WPLUS        0x6
+#define FOPEN_MODE_WPLUSB        0x7
+#define FOPEN_MODE_A            0x8
+#define FOPEN_MODE_AB            0x9
+#define FOPEN_MODE_APLUS        0xa
+#define FOPEN_MODE_APLUSB        0xb
 
 void semihosting_sys_exit(uint8_t error);
 long semihosting_connection_supported(void);
@@ -44,17 +44,17 @@ long semihosting_file_open(const char *file_name, size_t mode);
 long semihosting_file_seek(long file_handle, long offset);
 long semihosting_file_read(long file_handle, size_t *length, uintptr_t buffer);
 long semihosting_file_write(long file_handle,
-			    size_t *length,
-			    const uintptr_t buffer);
+                size_t *length,
+                const uintptr_t buffer);
 long semihosting_file_close(long file_handle);
 long semihosting_file_length(long file_handle);
 long semihosting_system(char *command_line);
 long semihosting_get_flen(const char *file_name);
 long semihosting_download_file(const char *file_name,
-			       size_t buf_size,
-			       uintptr_t buf);
+                   size_t buf_size,
+                   uintptr_t buf);
 void semihosting_write_char(char character);
 void semihosting_write_string(char *string);
 char semihosting_read_char(void);
 
-#endif /* __SEMIHOSTING_H__ */
+#endif  // PLAT_TEST_SEMIHOSTING_H_

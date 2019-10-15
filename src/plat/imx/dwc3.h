@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,8 +7,8 @@
  *
  */
 
-#ifndef __DWC3_H__
-#define __DWC3_H__
+#ifndef PLAT_IMX_DWC3_H_
+#define PLAT_IMX_DWC3_H_
 
 #include <pb.h>
 #include <usb.h>
@@ -80,9 +79,9 @@
 #define DWC3_DEPCMDPAR0_6 0xC868
 #define DWC3_DEPCMDPAR0_7 0xC878
 
-#define DWC3_GCTL_CORESOFTRESET			(1 << 11)
-#define DWC3_GCTL_SCALEDOWN(n)			((n) << 4)
-#define DWC3_GCTL_SCALEDOWN_MASK		DWC3_GCTL_SCALEDOWN(3)
+#define DWC3_GCTL_CORESOFTRESET            (1 << 11)
+#define DWC3_GCTL_SCALEDOWN(n)            ((n) << 4)
+#define DWC3_GCTL_SCALEDOWN_MASK        DWC3_GCTL_SCALEDOWN(3)
 
 struct dwc3_device
 {
@@ -101,10 +100,10 @@ struct dwc3_trb
 
 uint32_t dwc3_init(struct dwc3_device *dev);
 void dwc3_task(struct usb_device *dev);
-uint32_t dwc3_transfer(struct dwc3_device *dev, 
+uint32_t dwc3_transfer(struct dwc3_device *dev,
             uint8_t ep, uint8_t *bfr, uint32_t sz);
 void dwc3_set_addr(struct dwc3_device *dev, uint32_t addr);
 void dwc3_wait_for_ep_completion(struct dwc3_device *dev, uint32_t ep);
 void dwc3_set_configuration(struct usb_device *dev);
 
-#endif
+#endif  // PLAT_IMX_DWC3_H_

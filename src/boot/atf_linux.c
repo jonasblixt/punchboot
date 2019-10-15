@@ -25,19 +25,18 @@
 
 
 extern void arch_jump_linux_dt(void* addr, void * dt)
-                                 __attribute__ ((noreturn));
+                                 __attribute__((noreturn));
 
 extern void arch_jump_atf(void* atf_addr, void * atf_param)
-                                 __attribute__ ((noreturn));
+                                 __attribute__((noreturn));
 
-extern uint32_t board_linux_patch_dt (void *fdt, int offset);
+extern uint32_t board_linux_patch_dt(void *fdt, int offset);
 static char new_bootargs[512];
 static __a16b char device_uuid[37];
 static __a4k __no_bss char device_uuid_raw[16];
 
 void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 {
-
     char part_uuid[37];
 
     struct pb_component_hdr *dtb =
@@ -67,12 +66,12 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
     else
     {
         LOG_ERR("No linux kernel");
-        return ;
+        return;
     }
 
     if (atf)
     {
-        LOG_INFO("ATF: %p",(void *)(uintptr_t) atf->load_addr);
+        LOG_INFO("ATF: %p", (void *)(uintptr_t) atf->load_addr);
     }
     else
     {
@@ -83,20 +82,20 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
     {
         case SYSTEM_A:
         {
-            LOG_INFO ("Using root A");
+            LOG_INFO("Using root A");
             uuid_to_string((const uint8_t *)PB_PARTUUID_ROOT_A, part_uuid);
         }
         break;
         case SYSTEM_B:
         {
-            LOG_INFO ("Using root B");
+            LOG_INFO("Using root B");
             uuid_to_string((const uint8_t *)PB_PARTUUID_ROOT_B, part_uuid);
         }
         break;
         default:
         {
             LOG_ERR("Invalid root partition %x", system_index);
-            return ;
+            return;
         }
     }
 
@@ -126,14 +125,14 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
             {
                 if (verbose)
                 {
-                    snprintf (new_bootargs, 512, BOARD_BOOT_ARGS_VERBOSE,
-                                                        part_uuid);
+                    snprintf(new_bootargs, sizeof(new_bootargs),
+                                      BOARD_BOOT_ARGS_VERBOSE, part_uuid);
                 } else {
-                    snprintf (new_bootargs, 512, BOARD_BOOT_ARGS,
-                                                        part_uuid);
+                    snprintf(new_bootargs, sizeof(new_bootargs),
+                                        BOARD_BOOT_ARGS, part_uuid);
                 }
 
-                err = fdt_setprop_string( (void *) fdt, offset, "bootargs",
+                err = fdt_setprop_string((void *) fdt, offset, "bootargs",
                             (const char *) new_bootargs);
 
                 if (err)
@@ -145,9 +144,9 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                 }
 
                 plat_get_uuid(device_uuid_raw);
-                uuid_to_string((uint8_t *)device_uuid_raw,device_uuid);
+                uuid_to_string((uint8_t *)device_uuid_raw, device_uuid);
                 LOG_DBG("Device UUID: %s", device_uuid);
-                fdt_setprop_string( (void *) fdt, offset, "device-uuid", 
+                fdt_setprop_string((void *) fdt, offset, "device-uuid",
                             (const char *) device_uuid);
 
 
@@ -161,11 +160,14 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                 }
 
                 if (system_index == SYSTEM_A)
-                    fdt_setprop_string( (void *) fdt, offset, "active-system", "A");
-                else if(system_index == SYSTEM_B)
-                    fdt_setprop_string( (void *) fdt, offset, "active-system", "B");
+                    fdt_setprop_string((void *) fdt, offset,
+                                                        "active-system", "A");
+                else if (system_index == SYSTEM_B)
+                    fdt_setprop_string((void *) fdt, offset,
+                                                        "active-system", "B");
                 else
-                    fdt_setprop_string( (void *) fdt, offset, "active-system", "none");
+                    fdt_setprop_string((void *) fdt, offset,
+                                                    "active-system", "none");
                 break;
             }
         }
@@ -186,13 +188,13 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
         arch_jump_atf((void *)(uintptr_t) atf->load_addr,
                       (void *)(uintptr_t) NULL);
     }
-    else if(dtb && linux)
+    else if (dtb && linux)
     {
         arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr,
                            (void *)(uintptr_t) dtb->load_addr);
     }
 
-    while(1)
-        __asm__ ("nop");
+    while (1)
+        __asm__("nop");
 }
 

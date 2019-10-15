@@ -7,15 +7,15 @@
  *
  */
 
-#ifndef __PB_H__
-#define __PB_H__
+#ifndef INCLUDE_PB_PB_H_
+#define INCLUDE_PB_PB_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <pb/errors.h>
 
-enum 
+enum
 {
     SYSTEM_NONE = 0,
     SYSTEM_A = 1,
@@ -56,11 +56,11 @@ struct partition_table
     #define LOG_INFO(...) \
         do { printf("I %s: " , __func__);\
              printf(__VA_ARGS__);\
-             printf("\n\r"); } while(0)
+             printf("\n\r"); } while (0)
 
     #define LOG_INFO2(...) \
-        do { printf ("I: ");\
-             printf(__VA_ARGS__); } while(0)
+        do { printf("I: ");\
+             printf(__VA_ARGS__); } while (0)
 #else
     #define LOG_INFO(...)
     #define LOG_INFO2(...)
@@ -70,7 +70,7 @@ struct partition_table
     #define LOG_DBG(...) \
         do { printf("D %s: " , __func__);\
              printf(__VA_ARGS__);\
-             printf("\n\r"); } while(0)
+             printf("\n\r"); } while (0)
 #else
     #define LOG_DBG(...)
 #endif
@@ -79,12 +79,12 @@ struct partition_table
     #define LOG_WARN(...) \
         do { printf("W %s: " , __func__);\
              printf(__VA_ARGS__);\
-             printf("\n\r"); } while(0)
+             printf("\n\r"); } while (0)
 
     #define LOG_ERR(...) \
         do { printf("E %s: " , __func__);\
              printf(__VA_ARGS__);\
-             printf("\n\r"); } while(0)
+             printf("\n\r"); } while (0)
 #else
     #define LOG_WARN(...)
     #define LOG_ERR(...)
@@ -92,7 +92,7 @@ struct partition_table
 
 #define UNUSED(x) (void)(x)
 
-#define PB_CHECK_OVERLAP(__a,__sz,__region_start, __region_end) \
+#define PB_CHECK_OVERLAP(__a, __sz, __region_start, __region_end) \
     (((__a) <= ((uintptr_t) (__region_end))) &&                 \
      ((__a) + (__sz) >= ((uintptr_t) (__region_start))))
 
@@ -112,29 +112,33 @@ struct partition_table
 */
 
 #ifndef PB_PARTUUID_SYSTEM_A
-    #define PB_PARTUUID_SYSTEM_A "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62\x01\x4c\xfa\x73\x5c\xe0"
+    #define PB_PARTUUID_SYSTEM_A "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+                                 "\x01\x4c\xfa\x73\x5c\xe0"
 #endif
 
 #ifndef PB_PARTUUID_SYSTEM_B
-    #define PB_PARTUUID_SYSTEM_B "\xc0\x46\xcc\xd8\x0f\x2e\x40\x36\x98\x4d\x76\xc1\x4d\xc7\x39\x92"
+    #define PB_PARTUUID_SYSTEM_B "\xc0\x46\xcc\xd8\x0f\x2e\x40\x36\x98\x4d" \
+                                 "\x76\xc1\x4d\xc7\x39\x92"
 #endif
 
 #ifndef PB_PARTUUID_ROOT_A
-    #define PB_PARTUUID_ROOT_A "\xc2\x84\x38\x7a\x33\x77\x4c\x0f\xb5\xdb\x1b\xcb\xcf\xf1\xba\x1a"
+    #define PB_PARTUUID_ROOT_A "\xc2\x84\x38\x7a\x33\x77\x4c\x0f\xb5\xdb\x1b" \
+                               "\xcb\xcf\xf1\xba\x1a"
 #endif
 
 #ifndef PB_PARTUUID_ROOT_B
-    #define PB_PARTUUID_ROOT_B "\xac\x6a\x1b\x62\x7b\xd0\x46\x0b\x9e\x6a\x9a\x78\x31\xcc\xbf\xbb"
+    #define PB_PARTUUID_ROOT_B "\xac\x6a\x1b\x62\x7b\xd0\x46\x0b\x9e\x6a\x9a" \
+                               "\x78\x31\xcc\xbf\xbb"
 #endif
 
 #ifndef PB_PARTUUID_CONFIG_PRIMARY
-    #define PB_PARTUUID_CONFIG_PRIMARY "\xf5\xf8\xc9\xae\xef\xb5\x40\x71\x9b\xa9\xd3\x13\xb0\x82\x28\x1e"
+    #define PB_PARTUUID_CONFIG_PRIMARY "\xf5\xf8\xc9\xae\xef\xb5\x40\x71\x9b" \
+                                        "\xa9\xd3\x13\xb0\x82\x28\x1e"
 #endif
 
 #ifndef PB_PARTUUID_CONFIG_BACKUP
-    #define PB_PARTUUID_CONFIG_BACKUP "\x65\x6a\xb3\xfc\x58\x56\x4a\x5e\xa2\xae\x5a\x01\x83\x13\xb3\xee"
+    #define PB_PARTUUID_CONFIG_BACKUP "\x65\x6a\xb3\xfc\x58\x56\x4a\x5e\xa2" \
+                                        "\xae\x5a\x01\x83\x13\xb3\xee"
 #endif
 
-#endif
-
-
+#endif  // INCLUDE_PB_PB_H_

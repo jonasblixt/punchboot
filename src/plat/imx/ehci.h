@@ -7,9 +7,8 @@
  *
  */
 
-
-#ifndef __EHCI_H__
-#define __EHCI_H__
+#ifndef PLAT_IMX_EHCI_H_
+#define PLAT_IMX_EHCI_H_
 
 #include <pb.h>
 #include <usb.h>
@@ -50,13 +49,15 @@
 #define EHCI_EP3_OUT (1 << 3)
 #define EHCI_EP3_IN  (1 << 19)
 
-struct ehci_transfer_head {
+struct ehci_transfer_head
+{
     uint32_t next;
     uint32_t token;
     uint32_t page[5];
 } __attribute__((aligned(32))) __attribute__((packed));
 
-struct ehci_queue_head {
+struct ehci_queue_head
+{
     uint32_t caps;
     uint32_t current_dtd;
     uint32_t next;
@@ -67,7 +68,8 @@ struct ehci_queue_head {
     uint32_t padding[4];
 } __attribute__((aligned(32))) __attribute__((packed));
 
-struct ehci_device {
+struct ehci_device
+{
     __iomem base;
 };
 
@@ -76,10 +78,10 @@ uint32_t  ehci_usb_init(struct usb_device *dev);
 
 void ehci_usb_set_configuration(struct usb_device *dev);
 void ehci_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep);
-void ehci_usb_task(struct usb_device *dev) ;
+void ehci_usb_task(struct usb_device *dev);
 
 uint32_t ehci_transfer(struct ehci_device *dev,
                                 uint32_t ep,
-                                uint8_t *bfr, 
+                                uint8_t *bfr,
                                 uint32_t size);
-#endif
+#endif  // PLAT_IMX_EHCI_H_

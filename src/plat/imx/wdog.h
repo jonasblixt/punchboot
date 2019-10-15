@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,8 +7,8 @@
  *
  */
 
-#ifndef __IMX_WDOG_H__
-#define __IMX_WDOG_H__
+#ifndef PLAT_IMX_WDOG_H_
+#define PLAT_IMX_WDOG_H_
 
 #include <pb.h>
 #include <io.h>
@@ -31,4 +30,4 @@ uint32_t imx_wdog_init(struct imx_wdog_device *dev, uint32_t delay);
 uint32_t imx_wdog_kick(void);
 uint32_t imx_wdog_reset_now(void);
 
-#endif
+#endif  // PLAT_IMX_WDOG_H_

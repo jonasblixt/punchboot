@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef STDLIB__H
-#define STDLIB__H
+#ifndef INCLUDE_PB_LIBC_AARCH64_STDLIB__H_
+#define INCLUDE_PB_LIBC_AARCH64_STDLIB__H_
 
 #ifndef SIZET_
 typedef unsigned long size_t;
@@ -15,4 +15,4 @@ typedef unsigned long size_t;
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
-#endif /* STDLIB__H */
+#endif  // INCLUDE_PB_LIBC_AARCH64_STDLIB__H_

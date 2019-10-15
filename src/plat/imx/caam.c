@@ -80,7 +80,7 @@ static uint32_t caam_shedule_job_sync(struct fsl_caam_jr *d, uint32_t *job)
 
     if (d->output_ring[0] != (uint32_t)(uintptr_t) job)
     {
-        LOG_ERR ("Job failed\n\r");
+        LOG_ERR("Job failed");
         return PB_ERR;
     }
     pb_write32(1, d->base + CAAM_ORJRR);
@@ -104,7 +104,7 @@ static uint32_t caam_wait_for_job(struct fsl_caam_jr *d, uint32_t *job)
 
     if (d->output_ring[0] != (uint32_t)(uintptr_t) job)
     {
-        LOG_ERR ("Job failed\n\r");
+        LOG_ERR("Job failed\n\r");
         return PB_ERR;
     }
     pb_write32(1, d->base + CAAM_ORJRR);
@@ -150,14 +150,14 @@ static uint32_t caam_hash_update(uint32_t alg, uint32_t ctx_sz,
     if (ctx.sg_count == 0)
     {
         desc[1] |= CAAM_ALG_STATE_INIT;
-        LOG_INFO("Init %p, %u",data,sz);
+        LOG_INFO("Init %p, %u", data, sz);
     }
     else
     {
         desc[1] |= CAAM_ALG_STATE_UPDATE;
         desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX, ctx_sz);
         desc[dc++]  = (uint32_t) (uintptr_t) hash_ctx;
-        LOG_INFO("Update %p, %u",data,sz);
+        LOG_INFO("Update %p, %u", data, sz);
     }
 
     ctx.sg_count = 1;
@@ -187,7 +187,7 @@ static uint32_t caam_hash_finalize(uint32_t alg, uint32_t ctx_sz, uint8_t *out)
     desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | alg |
         CAAM_ALG_AAI(0) | CAAM_ALG_STATE_FIN;
 
-    desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX,ctx_sz);
+    desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, ctx_sz);
     desc[dc++]  = (uint32_t) (uintptr_t) hash_ctx;
     desc[dc++]  = FIFO_LD_EXT(CLASS_2, MSG, LAST_C2);
     desc[dc++]  = 0;
@@ -218,8 +218,8 @@ static uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
     return caam_shedule_job_sync(d, desc);
 }
 
-static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
-                                  uint8_t *sig,uint32_t sig_kind,
+static uint32_t caam_ecdsa_verify(uint8_t *hash, uint32_t hash_kind,
+                                  uint8_t *sig, uint32_t sig_kind,
                                   struct pb_key *k)
 {
     uint8_t dc = 0;
@@ -229,8 +229,8 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
     struct pb_ec_key *key =
         (struct pb_ec_key *) k->data;
 
-    memset(caam_tmp_buf,0,256);
-    memset(caam_ecdsa_key,0,256);
+    memset(caam_tmp_buf, 0, 256);
+    memset(caam_ecdsa_key, 0, 256);
 
     switch (hash_kind)
     {
@@ -286,24 +286,23 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash,uint32_t hash_kind,
 
 uint32_t caam_init(struct fsl_caam_jr *caam_dev)
 {
-
     d = caam_dev;
 
     if (d->base == 0)
         return PB_ERR;
 
-    for (uint32_t n = 0;n < JOB_RING_ENTRIES; n++)
+    for (uint32_t n = 0; n < JOB_RING_ENTRIES; n++)
         d->input_ring[n] = 0;
 
-    for (uint32_t n = 0;n < JOB_RING_ENTRIES*2; n++)
+    for (uint32_t n = 0; n < JOB_RING_ENTRIES*2; n++)
         d->output_ring[n] = 0;
 
     /* Initialize job rings */
     pb_write32( (uint32_t)(uintptr_t) d->input_ring,  d->base + CAAM_IRBAR);
     pb_write32( (uint32_t)(uintptr_t) d->output_ring, d->base + CAAM_ORBAR);
 
-    pb_write32( JOB_RING_ENTRIES, d->base + CAAM_IRSR);
-    pb_write32( JOB_RING_ENTRIES, d->base + CAAM_ORSR);
+    pb_write32(JOB_RING_ENTRIES, d->base + CAAM_IRSR);
+    pb_write32(JOB_RING_ENTRIES, d->base + CAAM_ORSR);
 
     return PB_OK;
 }
@@ -346,16 +345,19 @@ uint32_t  plat_hash_update(uintptr_t bfr, uint32_t sz)
     switch (current_hash_kind)
     {
         case PB_HASH_SHA256:
-            err = caam_hash_update(CAAM_ALG_TYPE_SHA256, 64, (uint8_t *)bfr,sz);
+            err = caam_hash_update(CAAM_ALG_TYPE_SHA256, 64, (uint8_t *)bfr,
+                                                                sz);
         break;
         case PB_HASH_SHA384:
-            err = caam_hash_update(CAAM_ALG_TYPE_SHA384, 96, (uint8_t *)bfr,sz);
+            err = caam_hash_update(CAAM_ALG_TYPE_SHA384, 96, (uint8_t *)bfr,
+                                                                sz);
         break;
         case PB_HASH_SHA512:
-            err = caam_hash_update(CAAM_ALG_TYPE_SHA512, 128, (uint8_t *)bfr,sz);
+            err = caam_hash_update(CAAM_ALG_TYPE_SHA512, 128, (uint8_t *)bfr,
+                                                                sz);
         break;
         case PB_HASH_MD5:
-            err = caam_hash_update(CAAM_ALG_TYPE_MD5, 16, (uint8_t *)bfr,sz);
+            err = caam_hash_update(CAAM_ALG_TYPE_MD5, 16, (uint8_t *)bfr, sz);
         break;
         default:
             err = PB_ERR;
@@ -372,22 +374,22 @@ uint32_t  plat_hash_finalize(uintptr_t out)
     {
         case PB_HASH_SHA256:
         {
-            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA256,64, (uint8_t *)out);
+            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA256, 64, (uint8_t *)out);
         }
         break;
         case PB_HASH_SHA384:
         {
-            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA384,96, (uint8_t *)out);
+            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA384, 96, (uint8_t *)out);
         }
         break;
         case PB_HASH_SHA512:
         {
-            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA512,128, (uint8_t *)out);
+            err = caam_hash_finalize(CAAM_ALG_TYPE_SHA512, 128, (uint8_t *)out);
         }
         break;
         case PB_HASH_MD5:
         {
-            err = caam_hash_finalize(CAAM_ALG_TYPE_MD5,16, (uint8_t *)out);
+            err = caam_hash_finalize(CAAM_ALG_TYPE_MD5, 16, (uint8_t *)out);
         }
         break;
         default:
@@ -406,7 +408,7 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
     uint32_t err = PB_ERR;
     uint8_t hash_length;
 
-    switch(hash_kind)
+    switch (hash_kind)
     {
         case PB_HASH_SHA256:
             hash_length = 32;
@@ -439,25 +441,25 @@ uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
             else
                 err = PB_ERR;
 
-            LOG_DBG("Signature %s",(err == PB_OK)?"OK":"Fail");
+            LOG_DBG("Signature %s", (err == PB_OK)?"OK":"Fail");
         }
         break;
         case PB_SIGN_NIST521p:
         {
             LOG_DBG("Checking EC521 signature...");
-            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST521p,k);
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST521p, k);
         }
         break;
         case PB_SIGN_NIST384p:
         {
             LOG_DBG("Checking EC384 signature...");
-            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST384p,k);
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST384p, k);
         }
         break;
         case PB_SIGN_NIST256p:
         {
             LOG_DBG("Checking EC256 signature...");
-            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST256p,k);
+            err = caam_ecdsa_verify(hash, hash_kind, sig, PB_SIGN_NIST256p, k);
         }
         break;
         default:

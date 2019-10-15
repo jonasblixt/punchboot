@@ -44,18 +44,18 @@ void pb_boot(struct pb_pbi *pbi, uint32_t active_system, bool verbose)
 
     char boot_status[5];
 
-    snprintf(boot_status,5,"%u",active_system);
+    snprintf(boot_status, sizeof(boot_status), "%u", active_system);
 
     size_t bytes_to_write = strlen(boot_status);
 
-    semihosting_file_write(fd, &bytes_to_write, 
-                            (const uintptr_t) boot_status);	
+    semihosting_file_write(fd, &bytes_to_write,
+                            (const uintptr_t) boot_status);
 
     semihosting_file_close(fd);
     plat_reset();
 }
 
-__inline uint32_t plat_get_ms_tick(void) 
+__inline uint32_t plat_get_ms_tick(void)
 {
     return 1;
 }
@@ -70,7 +70,7 @@ uint32_t plat_get_security_state(uint32_t *state)
     foreach_fuse(f, (struct fuse *) fuses)
     {
         err = plat_fuse_read(f);
- 
+
         if (f->value)
         {
             (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
@@ -79,9 +79,9 @@ uint32_t plat_get_security_state(uint32_t *state)
 
         if (err != PB_OK)
         {
-            LOG_ERR("Could not access fuse '%s'",f->description);
+            LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
-        }  
+        }
     }
 
     /* Perform checks to see if the boot was successful */
@@ -102,19 +102,19 @@ uint32_t plat_get_params(struct param **pp)
     param_add_str((*pp)++, "Platform", "Test");
     param_add_str((*pp)++, "Machine", "QEMU, Cortex-A15");
     plat_get_uuid(uuid_raw);
-    param_add_uuid((*pp)++, "Device UUID",uuid_raw);
+    param_add_uuid((*pp)++, "Device UUID", uuid_raw);
     return PB_OK;
 }
 
-static const char *platform_namespace_uuid = 
+static const char *platform_namespace_uuid =
     "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
 
-static const char *device_unique_id = 
+static const char *device_unique_id =
     "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
 uint32_t plat_get_uuid(char *out)
 {
-    return uuid_gen_uuid3(platform_namespace_uuid,16,
+    return uuid_gen_uuid3(platform_namespace_uuid, 16,
                           (const char *) device_unique_id, 8, out);
 }
 
@@ -126,17 +126,17 @@ uint32_t plat_setup_device(struct param *params)
     foreach_fuse(f, (struct fuse *) fuses)
     {
         err = plat_fuse_read(f);
- 
-        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+
+        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
         if (err != PB_OK)
         {
-            LOG_ERR("Could not access fuse '%s'",f->description);
+            LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
-        }  
+        }
     }
 
     /* Perform the actual fuse programming */
-    
+
     LOG_INFO("Writing fuses");
 
     foreach_fuse(f, fuses)
@@ -194,9 +194,9 @@ uint32_t plat_fuse_write(struct fuse *f)
 
     if ( (f->status & FUSE_VALID) != FUSE_VALID)
         return PB_ERR;
-    LOG_DBG ("Writing fuse %s",f->description);
+    LOG_DBG("Writing fuse %s", f->description);
 
-    err = test_fuse_write(&virtio_block2,f->bank, f->value);
+    err = test_fuse_write(&virtio_block2, f->bank, f->value);
 
     if (err != PB_OK)
         LOG_ERR("Could not write fuse");
@@ -208,7 +208,7 @@ uint32_t plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
     if ( (f->status & FUSE_VALID) != FUSE_VALID)
         return PB_ERR;
 
-    return snprintf (s,n,"FUSE <%u> %s = 0x%08x\n", f->bank, 
+    return snprintf(s, n, "FUSE <%u> %s = 0x%08x\n", f->bank,
                 f->description, f->value);
 }
 
@@ -218,7 +218,7 @@ uint32_t plat_early_init(void)
 
     test_uart_init();
     LOG_INFO("Plat start");
-    gcov_init();	
+    gcov_init();
 
     virtio_block.dev.device_id = 2;
     virtio_block.dev.vendor_id = 0x554D4551;
@@ -227,7 +227,7 @@ uint32_t plat_early_init(void)
     if (virtio_block_init(&virtio_block) != PB_OK)
     {
         LOG_ERR("Could not initialize virtio block device");
-        while(1);
+        while (1) {}
     }
 
     blk = &virtio_block;
@@ -239,7 +239,7 @@ uint32_t plat_early_init(void)
     if (virtio_block_init(&virtio_block2) != PB_OK)
     {
         LOG_ERR("Could not initialize virtio block device");
-        while(1);
+        while (1) {}
     }
 
     test_fuse_init(&virtio_block2);
@@ -247,7 +247,6 @@ uint32_t plat_early_init(void)
 
     board_late_init(NULL);
     return PB_OK;
-
 }
 
 void plat_preboot_cleanup(void)
@@ -260,22 +259,20 @@ uint32_t plat_get_us_tick(void)
 }
 
 
-uint32_t  plat_write_block(uint32_t lba_offset, 
-                                uintptr_t bfr, 
+uint32_t  plat_write_block(uint32_t lba_offset,
+                                uintptr_t bfr,
                                 uint32_t no_of_blocks)
 {
-	return virtio_block_write(blk, (blk_off+lba_offset), 
+    return virtio_block_write(blk, (blk_off+lba_offset),
                                 bfr, no_of_blocks);
-
 }
 
-uint32_t  plat_write_block_async(uint32_t lba_offset, 
-                                uintptr_t bfr, 
+uint32_t  plat_write_block_async(uint32_t lba_offset,
+                                uintptr_t bfr,
                                 uint32_t no_of_blocks)
 {
-	return virtio_block_write(blk, (blk_off+lba_offset), 
+    return virtio_block_write(blk, (blk_off+lba_offset),
                                 bfr, no_of_blocks);
-
 }
 
 uint32_t plat_flush_block(void)
@@ -283,11 +280,11 @@ uint32_t plat_flush_block(void)
     return PB_OK;
 }
 
-uint32_t  plat_read_block( uint32_t lba_offset, 
-                                uintptr_t bfr, 
-                                uint32_t no_of_blocks)
+uint32_t  plat_read_block(uint32_t lba_offset,
+                          uintptr_t bfr,
+                          uint32_t no_of_blocks)
 {
-    return virtio_block_read(blk, (blk_off+lba_offset), bfr, 
+    return virtio_block_read(blk, (blk_off+lba_offset), bfr,
                                 no_of_blocks);
 }
 

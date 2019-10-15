@@ -1,15 +1,14 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#ifndef __IMX8M_DEFS_H__
-#define __IMX8M_DEFS_H__
+#ifndef PLAT_IMX6UL_INCLUDE_PLAT_DEFS_H_
+#define PLAT_IMX6UL_INCLUDE_PLAT_DEFS_H_
 
 #define PB_BOOTPART_OFFSET 2
 
@@ -33,4 +32,4 @@ struct pb_platform_setup
     struct imx_wdog_device wdog;
 };
 
-#endif
+#endif  // PLAT_IMX6UL_INCLUDE_PLAT_DEFS_H_

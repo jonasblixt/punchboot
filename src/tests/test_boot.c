@@ -1,3 +1,12 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
 #include <plat/test/semihosting.h>
 #include <usb.h>
 #include "test.h"
@@ -31,7 +40,7 @@ uint32_t plat_prepare_recovery(struct pb_platform_setup *plat)
     return PB_OK;
 }
 
-uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep, 
+uint32_t  plat_usb_transfer(struct usb_device *dev, uint8_t ep,
                             uint8_t *bfr, uint32_t sz)
 {
     UNUSED(dev);
@@ -45,7 +54,7 @@ void plat_usb_task(struct usb_device *dev)
 {
     UNUSED(dev);
 }
-void test_main(void) 
+void test_main(void)
 
 {
     LOG_INFO("Boot test");

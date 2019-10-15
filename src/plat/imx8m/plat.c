@@ -53,7 +53,7 @@ uint32_t plat_get_security_state(uint32_t *state)
 
         if (err != PB_OK)
         {
-            LOG_ERR("Could not access fuse '%s'",f->description);
+            LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
         }
 
@@ -62,9 +62,7 @@ uint32_t plat_get_security_state(uint32_t *state)
             (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
             break;
         }
-
     }
-
 
     if ((*state) == PB_SECURITY_STATE_NOT_SECURE)
         return PB_OK;
@@ -92,9 +90,9 @@ uint32_t plat_get_uuid(char *out)
     uid[0] = fuse_uid0.value;
     uid[1] = fuse_uid1.value;
 
-    LOG_INFO("%08x %08x",fuse_uid0.value, fuse_uid1.value);
+    LOG_INFO("%08x %08x", fuse_uid0.value, fuse_uid1.value);
 
-    return uuid_gen_uuid3(platform_namespace_uuid,16,
+    return uuid_gen_uuid3(platform_namespace_uuid, 16,
                           (const char *) uid, 8, out);
 }
 
@@ -104,7 +102,7 @@ uint32_t plat_get_params(struct param **pp)
 
     param_add_str((*pp)++, "Platform", "NXP IMX8M");
     plat_get_uuid(uuid_raw);
-    param_add_uuid((*pp)++, "Device UUID",uuid_raw);
+    param_add_uuid((*pp)++, "Device UUID", uuid_raw);
     return PB_OK;
 }
 
@@ -117,10 +115,11 @@ uint32_t plat_setup_device(struct param *params)
     {
         err = plat_fuse_read(f);
 
-        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
+
         if (err != PB_OK)
         {
-            LOG_ERR("Could not access fuse '%s'",f->description);
+            LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
         }
     }
@@ -206,7 +205,7 @@ uint32_t imx8m_clock_print(uint32_t clk_id)
     uint32_t pre_podf = (reg >> 16) & 7;
     uint32_t post_podf = reg & 0x1f;
 
-    LOG_INFO("CLK %u, 0x%08x = 0x%08x", clk_id,addr, reg);
+    LOG_INFO("CLK %u, 0x%08x = 0x%08x", clk_id, addr, reg);
     LOG_INFO("  MUX %u", mux);
     LOG_INFO("  En: %u", enabled);
     LOG_INFO("  Prepodf: %u", pre_podf);
@@ -220,7 +219,7 @@ uint32_t imx8m_cg_print(uint32_t cg_id)
     uint32_t reg;
     uint32_t addr = 0x30384000 + 0x10*cg_id;
     reg = pb_read32(addr);
-    LOG_INFO("CG %u 0x%08x = 0x%08x",cg_id,addr,reg);
+    LOG_INFO("CG %u 0x%08x = 0x%08x", cg_id, addr, reg);
     return PB_OK;
 }
 #endif
@@ -239,7 +238,7 @@ uint32_t plat_early_init(void)
     tr_stamp_begin(TR_POR);
 
     /* Enable and ungate WDOG clocks */
-    pb_write32((1 << 28) ,0x30388004 + 0x80*114);
+    pb_write32((1 << 28), 0x30388004 + 0x80*114);
     pb_write32(3, 0x30384004 + 0x10*83);
     pb_write32(3, 0x30384004 + 0x10*84);
     pb_write32(3, 0x30384004 + 0x10*85);
@@ -250,37 +249,37 @@ uint32_t plat_early_init(void)
     imx8m_clock_cfg(ARM_A53_CLK_ROOT, CLK_ROOT_ON);
 
     /* Configure PLL's */
-	/* bypass the clock */
-	pb_write32(pb_read32(ARM_PLL_CFG0) | FRAC_PLL_BYPASS_MASK, ARM_PLL_CFG0);
-	/* Set CPU core clock to 1 GHz */
-	pb_write32(FRAC_PLL_INT_DIV_CTL_VAL(49), ARM_PLL_CFG1);
+    /* bypass the clock */
+    pb_write32(pb_read32(ARM_PLL_CFG0) | FRAC_PLL_BYPASS_MASK, ARM_PLL_CFG0);
+    /* Set CPU core clock to 1 GHz */
+    pb_write32(FRAC_PLL_INT_DIV_CTL_VAL(49), ARM_PLL_CFG1);
 
-	pb_write32((FRAC_PLL_CLKE_MASK | FRAC_PLL_REFCLK_SEL_OSC_25M |
-			   FRAC_PLL_LOCK_SEL_MASK | FRAC_PLL_NEWDIV_VAL_MASK |
-			   FRAC_PLL_REFCLK_DIV_VAL(4) |
-			   FRAC_PLL_OUTPUT_DIV_VAL(0) | FRAC_PLL_BYPASS_MASK), 
+    pb_write32((FRAC_PLL_CLKE_MASK | FRAC_PLL_REFCLK_SEL_OSC_25M |
+               FRAC_PLL_LOCK_SEL_MASK | FRAC_PLL_NEWDIV_VAL_MASK |
+               FRAC_PLL_REFCLK_DIV_VAL(4) |
+               FRAC_PLL_OUTPUT_DIV_VAL(0) | FRAC_PLL_BYPASS_MASK),
                ARM_PLL_CFG0);
 
-	/* unbypass the clock */
+    /* unbypass the clock */
     pb_clrbit32(FRAC_PLL_BYPASS_MASK, ARM_PLL_CFG0);
 
-	while (((pb_read32(ARM_PLL_CFG0) & FRAC_PLL_LOCK_MASK) != 
+    while (((pb_read32(ARM_PLL_CFG0) & FRAC_PLL_LOCK_MASK) !=
             (uint32_t)FRAC_PLL_LOCK_MASK))
-		__asm__("nop");
-    
+        __asm__("nop");
+
     pb_clrbit32(FRAC_PLL_NEWDIV_VAL_MASK, ARM_PLL_CFG0);
 
-	pb_setbit32(SSCG_PLL_CLKE_MASK | SSCG_PLL_DIV2_CLKE_MASK |
-		SSCG_PLL_DIV3_CLKE_MASK | SSCG_PLL_DIV4_CLKE_MASK |
-		SSCG_PLL_DIV5_CLKE_MASK | SSCG_PLL_DIV6_CLKE_MASK |
-		SSCG_PLL_DIV8_CLKE_MASK | SSCG_PLL_DIV10_CLKE_MASK |
-		SSCG_PLL_DIV20_CLKE_MASK, SYS_PLL1_CFG0);
+    pb_setbit32(SSCG_PLL_CLKE_MASK | SSCG_PLL_DIV2_CLKE_MASK |
+        SSCG_PLL_DIV3_CLKE_MASK | SSCG_PLL_DIV4_CLKE_MASK |
+        SSCG_PLL_DIV5_CLKE_MASK | SSCG_PLL_DIV6_CLKE_MASK |
+        SSCG_PLL_DIV8_CLKE_MASK | SSCG_PLL_DIV10_CLKE_MASK |
+        SSCG_PLL_DIV20_CLKE_MASK, SYS_PLL1_CFG0);
 
-	pb_setbit32(SSCG_PLL_CLKE_MASK | SSCG_PLL_DIV2_CLKE_MASK |
-		SSCG_PLL_DIV3_CLKE_MASK | SSCG_PLL_DIV4_CLKE_MASK |
-		SSCG_PLL_DIV5_CLKE_MASK | SSCG_PLL_DIV6_CLKE_MASK |
-		SSCG_PLL_DIV8_CLKE_MASK | SSCG_PLL_DIV10_CLKE_MASK |
-		SSCG_PLL_DIV20_CLKE_MASK, SYS_PLL2_CFG0);
+    pb_setbit32(SSCG_PLL_CLKE_MASK | SSCG_PLL_DIV2_CLKE_MASK |
+        SSCG_PLL_DIV3_CLKE_MASK | SSCG_PLL_DIV4_CLKE_MASK |
+        SSCG_PLL_DIV5_CLKE_MASK | SSCG_PLL_DIV6_CLKE_MASK |
+        SSCG_PLL_DIV8_CLKE_MASK | SSCG_PLL_DIV10_CLKE_MASK |
+        SSCG_PLL_DIV20_CLKE_MASK, SYS_PLL2_CFG0);
 
     /* Configure USB clock */
     imx8m_clock_cfg((USB_BUS_CLK_ROOT | (1 << 24)), CLK_ROOT_ON);
@@ -294,12 +293,12 @@ uint32_t plat_early_init(void)
 
     LOG_INFO("Main PLL configured");
 
-    LOG_DBG("ARM PLL %08x",pb_read32(0x30360028));
-    LOG_DBG("SYS PLL1 %08x",pb_read32(0x30360030));
-    LOG_DBG("SYS PLL2 %08x",pb_read32(0x3036003C));
-    LOG_DBG("SYS PLL3 %08x",pb_read32(0x30360048));
-    LOG_DBG("DRAM PLL %08x",pb_read32(0x30360060));
-    
+    LOG_DBG("ARM PLL %08x", pb_read32(0x30360028));
+    LOG_DBG("SYS PLL1 %08x", pb_read32(0x30360030));
+    LOG_DBG("SYS PLL2 %08x", pb_read32(0x3036003C));
+    LOG_DBG("SYS PLL3 %08x", pb_read32(0x30360048));
+    LOG_DBG("DRAM PLL %08x", pb_read32(0x30360060));
+
     umctl2_init();
 
     LOG_DBG("LPDDR4 training complete");
@@ -428,10 +427,10 @@ void plat_usb_task(struct usb_device *dev)
     dwc3_task(dev);
 }
 
-uint32_t plat_usb_transfer (struct usb_device *dev,
-                             uint8_t ep,
-                             uint8_t *bfr,
-                             uint32_t sz)
+uint32_t plat_usb_transfer(struct usb_device *dev,
+                           uint8_t ep,
+                           uint8_t *bfr,
+                           uint32_t sz)
 {
     struct dwc3_device *d = (struct dwc3_device*) dev->platform_data;
     return dwc3_transfer(d, ep, bfr, sz);
@@ -456,7 +455,7 @@ void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
 
 /* UART Interface */
 
-void plat_uart_putc(void *ptr, char c) 
+void plat_uart_putc(void *ptr, char c)
 {
     UNUSED(ptr);
     imx_uart_putc(c);

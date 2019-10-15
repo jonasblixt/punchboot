@@ -66,7 +66,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     plat->ocotp.words_per_bank = 4;
 
     /* Enable UART1 clock */
-    pb_write32((1 << 28) ,0x30388004 + 94*0x80);
+    pb_write32((1 << 28), 0x30388004 + 94*0x80);
     /* Ungate UART1 clock */
     pb_write32(3, 0x30384004 + 0x10*73);
 
@@ -96,25 +96,25 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
 
     /* USDHC1 reset */
     /* Configure as GPIO 2 10*/
-    pb_write32 (5, 0x303300C8);
+    pb_write32(5, 0x303300C8);
     pb_write32((1 << 10), 0x30210004);
 
     pb_setbit32(1<<10, 0x30210000);
 
     /* USDHC1 mux */
-    pb_write32 (0, 0x303300A0);
-    pb_write32 (0, 0x303300A4);
+    pb_write32(0, 0x303300A0);
+    pb_write32(0, 0x303300A4);
 
-    pb_write32 (0, 0x303300A8);
-    pb_write32 (0, 0x303300AC);
-    pb_write32 (0, 0x303300B0);
-    pb_write32 (0, 0x303300B4);
-    pb_write32 (0, 0x303300B8);
-    pb_write32 (0, 0x303300BC);
-    pb_write32 (0, 0x303300C0);
-    pb_write32 (0, 0x303300C4);
-    //pb_write32 (0, 0x303300C8);
-    pb_write32 (0, 0x303300CC);
+    pb_write32(0, 0x303300A8);
+    pb_write32(0, 0x303300AC);
+    pb_write32(0, 0x303300B0);
+    pb_write32(0, 0x303300B4);
+    pb_write32(0, 0x303300B8);
+    pb_write32(0, 0x303300BC);
+    pb_write32(0, 0x303300C0);
+    pb_write32(0, 0x303300C4);
+    //  pb_write32 (0, 0x303300C8);
+    pb_write32(0, 0x303300CC);
 
     /* Setup USDHC1 pins */
 #define USDHC1_PAD_CONF ((1 << 7) | (1 << 6) | (2 << 3) | 6)
@@ -166,7 +166,7 @@ bool board_force_recovery(struct pb_platform_setup *plat)
     return false;
 }
 
-uint32_t board_linux_patch_dt (void *fdt, int offset)
+uint32_t board_linux_patch_dt(void *fdt, int offset)
 {
     UNUSED(fdt);
     UNUSED(offset);

@@ -8,11 +8,11 @@
 
 void *memcpy(void *dst, const void *src, size_t len)
 {
-	const char *s = src;
-	char *d = dst;
+    const char *s = src;
+    char *d = dst;
 
-	while (len--)
-		*d++ = *s++;
+    while (len--)
+        *d++ = *s++;
 
-	return dst;
+    return dst;
 }

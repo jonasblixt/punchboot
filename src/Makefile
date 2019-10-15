@@ -9,7 +9,7 @@ GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 KEY_IMPORT = tools/importkey.py
 
 ifndef BOARD
-$(error BOARD is not set)
+	BOARD=test
 endif
 
 ifndef LOGLEVEL
@@ -136,7 +136,7 @@ key_data:
 	@$(PYTHON) $(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > $(BUILD_DIR)/key_data.c
 	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/key_data.c -o $(BUILD_DIR)/key_data.o
 
-all: key_data plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final check
+all: key_data plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
 	$(info Summary:)
 	$(info )
 	$(info BOARD:     [${PB_BOARD_NAME}])
@@ -171,7 +171,11 @@ $(BUILD_DIR)/%.o: %.c
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 check:
-	@cpplint --quiet $(filter-out $(LINT_EXCLUDE), $(C_SRCS))
+	@cpplint --quiet $(shell git ls-files "*.[hc]")
+pmccabe:
+	@pmccabe  $(shell git ls-files "*.[hc]") | sort -n | tail -n 50
+cloc:
+	@cloc $$(git ls-files | grep -v 3pp | xargs)
 
 .PHONY: plat_early plat_final board_final
 

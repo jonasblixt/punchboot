@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,8 +7,8 @@
  *
  */
 
-#ifndef __PUNCHBOOT_USB_H__
-#define __PUNCHBOOT_USB_H__
+#ifndef TOOLS_PUNCHBOOT_TRANSPORT_H_
+#define TOOLS_PUNCHBOOT_TRANSPORT_H_
 
 #include <stdint.h>
 
@@ -24,4 +23,4 @@ int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx);
 void transport_exit(void);
 uint32_t pb_read_result_code(void);
 
-#endif
+#endif  // TOOLS_PUNCHBOOT_TRANSPORT_H_

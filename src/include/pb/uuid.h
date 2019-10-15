@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,8 +7,8 @@
  *
  */
 
-#ifndef __UUID_H__
-#define __UUID_H__
+#ifndef INCLUDE_PB_UUID_H_
+#define INCLUDE_PB_UUID_H_
 
 #include <stdint.h>
 
@@ -21,4 +20,4 @@ uint32_t uuid_gen_uuid3(const char *ns,
                         char *out);
 uint32_t uuid_to_guid(const uint8_t *uuid, uint8_t *guid);
 
-#endif
+#endif  // INCLUDE_PB_UUID_H_

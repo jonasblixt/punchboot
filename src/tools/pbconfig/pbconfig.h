@@ -1,5 +1,14 @@
-#ifndef __PB_CONFIG_H__
-#define __PB_CONFIG_H__
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+#ifndef TOOLS_PBCONFIG_PBCONFIG_H_
+#define TOOLS_PBCONFIG_PBCONFIG_H_
 
 #include <stdint.h>
 
@@ -11,4 +20,4 @@ uint32_t pbconfig_switch(uint8_t system, uint8_t counter);
 
 uint32_t pbconfig_set_verified(uint8_t system);
 
-#endif
+#endif  // TOOLS_PBCONFIG_PBCONFIG_H_

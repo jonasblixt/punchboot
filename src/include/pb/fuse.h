@@ -1,15 +1,14 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#ifndef __PB_FUSE_H__
-#define __PB_FUSE_H__
+#ifndef INCLUDE_PB_FUSE_H_
+#define INCLUDE_PB_FUSE_H_
 
 #include <stdint.h>
 
@@ -36,4 +35,4 @@ struct fuse
     const char description[20];
 };
 
-#endif
+#endif  // INCLUDE_PB_FUSE_H_

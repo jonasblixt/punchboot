@@ -25,12 +25,12 @@
 
 
 extern void arch_jump_linux_dt(void* addr, void * dt)
-                                 __attribute__ ((noreturn));
+                                 __attribute__((noreturn));
 
 extern void arch_jump_atf(void* atf_addr, void * atf_param)
-                                 __attribute__ ((noreturn));
+                                 __attribute__((noreturn));
 
-extern uint32_t board_linux_patch_dt (void *fdt, int offset);
+extern uint32_t board_linux_patch_dt(void *fdt, int offset);
 static __a16b char device_uuid[37];
 static __a4k __no_bss char device_uuid_raw[16];
 
@@ -66,21 +66,30 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
     else
     {
         LOG_ERR("No linux kernel");
-        return ;
+        return;
     }
 
     if (atf)
     {
-        LOG_INFO("ATF: %p",(void *)(uintptr_t)atf->load_addr);
+        LOG_INFO("ATF: %p", (void *)(uintptr_t)atf->load_addr);
     }
     else
     {
         LOG_INFO("ATF: None");
     }
 
+    if (tee)
+    {
+        LOG_INFO("TEE: %p", (void *)(uintptr_t)tee->load_addr);
+    }
+    else
+    {
+        LOG_INFO("TEE: None");
+    }
+
     if (ramdisk)
     {
-        LOG_INFO("RAMDISK: %p",(void *)(uintptr_t) ramdisk->load_addr);
+        LOG_INFO("RAMDISK: %p", (void *)(uintptr_t) ramdisk->load_addr);
     }
     else
     {
@@ -110,8 +119,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
             if (strcmp(name, "chosen") == 0)
             {
-
-                err = fdt_setprop_u32( (void *) fdt, offset,
+                err = fdt_setprop_u32((void *) fdt, offset,
                                     "linux,initrd-start",
                                     ramdisk->load_addr);
 
@@ -121,7 +129,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                     return;
                 }
 
-                err = fdt_setprop_u32( (void *) fdt, offset,
+                err = fdt_setprop_u32((void *) fdt, offset,
                     "linux,initrd-end",
                     ramdisk->load_addr+ramdisk->component_size);
 
@@ -133,11 +141,11 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
                 if (verbose)
                 {
-                    err = fdt_setprop_string( (void *) fdt, offset,
+                    err = fdt_setprop_string((void *) fdt, offset,
                                 "bootargs",
                                 (const char *) BOARD_BOOT_ARGS_VERBOSE);
                 } else {
-                    err = fdt_setprop_string( (void *) fdt, offset,
+                    err = fdt_setprop_string((void *) fdt, offset,
                                 "bootargs",
                                 (const char *) BOARD_BOOT_ARGS);
                 }
@@ -152,9 +160,9 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
 
                 plat_get_uuid(device_uuid_raw);
-                uuid_to_string((uint8_t *)device_uuid_raw,device_uuid);
+                uuid_to_string((uint8_t *)device_uuid_raw, device_uuid);
                 LOG_DBG("Device UUID: %s", device_uuid);
-                fdt_setprop_string( (void *) fdt, offset, "device-uuid", 
+                fdt_setprop_string((void *) fdt, offset, "device-uuid",
                             (const char *) device_uuid);
 
 
@@ -168,11 +176,14 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                 }
 
                 if (system_index == SYSTEM_A)
-                    fdt_setprop_string( (void *) fdt, offset, "active-system", "A");
-                else if(system_index == SYSTEM_B)
-                    fdt_setprop_string( (void *) fdt, offset, "active-system", "B");
+                    fdt_setprop_string((void *) fdt, offset,
+                                                        "active-system", "A");
+                else if (system_index == SYSTEM_B)
+                    fdt_setprop_string((void *) fdt, offset,
+                                                        "active-system", "B");
                 else
-                    fdt_setprop_string( (void *) fdt, offset, "active-system", "none");
+                    fdt_setprop_string((void *) fdt, offset,
+                                                      "active-system", "none");
                 break;
             }
         }
@@ -193,13 +204,13 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
         arch_jump_atf((void *)(uintptr_t) atf->load_addr,
                       (void *)(uintptr_t) NULL);
     }
-    else if(dtb && linux)
+    else if (dtb && linux)
     {
         arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr,
                            (void *)(uintptr_t) dtb->load_addr);
     }
 
-    while(1)
-        __asm__ ("nop");
+    while (1)
+        __asm__("nop");
 }
 

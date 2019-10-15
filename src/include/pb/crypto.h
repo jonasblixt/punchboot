@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,14 +7,14 @@
  *
  */
 
-#ifndef __PB_CRYPTO_H__
-#define __PB_CRYPTO_H__
+#ifndef INCLUDE_PB_CRYPTO_H_
+#define INCLUDE_PB_CRYPTO_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 
 enum
-{   
+{
     PB_HASH_INVALID,
     PB_HASH_MD5,
     PB_HASH_SHA256,
@@ -52,12 +51,12 @@ struct pb_hash_context
 struct pb_rsa4096_key
 {
     const uint8_t mod[512];
-	const uint8_t exp[3];
+    const uint8_t exp[3];
 };
 
 struct pb_ec_key
 {
-    const __attribute__ ((aligned(4))) uint8_t public_key[132];
+    const __attribute__((aligned(4))) uint8_t public_key[132];
 };
 
 struct pb_key
@@ -76,4 +75,4 @@ uint32_t pb_crypto_init(struct pb_crypto_backend *backend);
 uint32_t pb_crypto_get_key(uint32_t key_index, struct pb_key **k);
 #endif
 
-#endif
+#endif  // INCLUDE_PB_CRYPTO_H_

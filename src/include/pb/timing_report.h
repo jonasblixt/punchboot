@@ -8,8 +8,8 @@
  *
  */
 
-#ifndef __TIMING_REPORT_H__
-#define __TIMING_REPORT_H__
+#ifndef INCLUDE_PB_TIMING_REPORT_H_
+#define INCLUDE_PB_TIMING_REPORT_H_
 
 #include <stdint.h>
 
@@ -30,4 +30,4 @@ void tr_stamp_begin(uint32_t kind);
 void tr_stamp_end(uint32_t kind);
 void tr_print_result(void);
 
-#endif
+#endif  // INCLUDE_PB_TIMING_REPORT_H_

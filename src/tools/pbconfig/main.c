@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -24,13 +23,16 @@
 
 static void print_help(void)
 {
-    printf (" --- pbconfig " VERSION " ---\n\n");
-    printf (" Optional parameters:\n");
-    printf ("  pbconfig -d <device> -o primary offset -b backup offset      - \n");
-    printf (" Usage:\n");
-    printf ("  pbconfig -i                                                  - View configuration\n");
-    printf ("  pbconfig -s <A, B or none>  [ -c <counter> ]                 - Switch system\n");
-    printf ("  pbconfig -v <A or B>                                         - Set verified flag\n");
+    printf(" --- pbconfig " VERSION " ---\n\n");
+    printf(" Optional parameters:\n");
+    printf("  pbconfig -d <device> -o primary offset -b backup offset");
+    printf(" Usage:\n");
+    printf("  pbconfig -i                                                  - " \
+                                                        "View configuration\n");
+    printf("  pbconfig -s <A, B or none>  [ -c <counter> ]                 - " \
+                                                        "Switch system\n");
+    printf("  pbconfig -v <A or B>                                         - " \
+                                                        "Set verified flag\n");
 }
 
 int main(int argc, char * const argv[])
@@ -56,7 +58,7 @@ int main(int argc, char * const argv[])
     if (argc < 2)
         flag_help = true;
 
-    while (((c = getopt (argc, argv, "hd:u:s:ic:v:o:b:")) != -1) && (c != 255)) 
+    while (((c = getopt (argc, argv, "hd:u:s:ic:v:o:b:")) != -1) && (c != 255))
     {
         switch (c)
         {
@@ -91,17 +93,17 @@ int main(int argc, char * const argv[])
                 flag_verify = true;
             break;
             default:
-                printf ("Unknown option\n");
-                exit (-1);
+                printf("Unknown option\n");
+                exit(-1);
             break;
         }
     }
 
-    if (flag_help) 
+    if (flag_help)
     {
         print_help();
         exit(0);
-    }    
+    }
 
     /* Find config partitions using UUID's */
     if (!(flag_primary_offset && flag_backup_offset))
@@ -111,32 +113,33 @@ int main(int argc, char * const argv[])
 
         if (!pr)
         {
-            printf("Error: could not probe '%s'\n",device_path);
+            printf("Error: could not probe '%s'\n", device_path);
             return -1;
         }
-        
+
         blkid_do_probe(pr);
         blkid_partlist pl = blkid_probe_get_partitions(pr);
         int no_of_parts = blkid_partlist_numof_partitions(pl);
 
         for (uint32_t n = 0; n < no_of_parts; n++)
         {
-            blkid_partition p = blkid_partlist_get_partition(pl,n);
+            blkid_partition p = blkid_partlist_get_partition(pl, n);
             uuid_t uuid_raw;
             uuid_parse(blkid_partition_get_uuid(p), uuid_raw);
 
             if (memcmp(uuid_raw, PB_PARTUUID_CONFIG_PRIMARY, 16) == 0)
             {
                 offset_primary = blkid_partition_get_start(p);
-                printf ("Found primary configuration at lba %lx\n",offset_primary);
+                printf("Found primary configuration at lba %lx\n",
+                                                        offset_primary);
             }
 
             if (memcmp(uuid_raw, PB_PARTUUID_CONFIG_BACKUP, 16) == 0)
             {
                 offset_backup = blkid_partition_get_start(p);
-                printf ("Found backup configuration at lba %lx\n",offset_backup);
+                printf("Found backup configuration at lba %lx\n",
+                                                        offset_backup);
             }
-
         }
 
         blkid_free_probe(pr);
@@ -163,23 +166,23 @@ int main(int argc, char * const argv[])
     {
         if (strncasecmp(system, "a", 1) == 0)
             err = pbconfig_switch(SYSTEM_A, counter);
-        else if (strncasecmp(system,"b",1) == 0)
+        else if (strncasecmp(system, "b", 1) == 0)
             err = pbconfig_switch(SYSTEM_B, counter);
         else
             err = pbconfig_switch(SYSTEM_NONE, 0);
     }
-    else if(flag_verify)
+    else if (flag_verify)
     {
         if (strncasecmp(system_verified, "a", 1) == 0)
             err = pbconfig_set_verified(SYSTEM_A);
-        else if (strncasecmp(system_verified,"b",1) == 0)
+        else if (strncasecmp(system_verified, "b", 1) == 0)
             err = pbconfig_set_verified(SYSTEM_B);
         else
             err = PB_ERR;
     }
 
     if (err != PB_OK)
-        printf ("Error: operation failed\n");
+        printf("Error: operation failed\n");
 
     return err;
 }

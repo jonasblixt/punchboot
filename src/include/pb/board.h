@@ -7,9 +7,8 @@
  *
  */
 
-
-#ifndef __BOARD_H__
-#define __BOARD_H__
+#ifndef INCLUDE_PB_BOARD_H_
+#define INCLUDE_PB_BOARD_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -62,4 +61,5 @@ bool  board_force_recovery(struct pb_platform_setup *plat);
 uint32_t board_setup_device(struct param *params);
 uint32_t board_setup_lock(void);
 uint32_t board_get_params(struct param **pp);
-#endif
+
+#endif  // INCLUDE_PB_BOARD_H_

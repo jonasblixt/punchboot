@@ -54,19 +54,19 @@ static uint32_t pbconfig_commit(void)
     uint32_t crc = 0;
     int write_sz;
     FILE *fp = fopen(device, "r+b");
-    
-    printf ("Writing configuration...\n");
+
+    printf("Writing configuration...\n");
 
     if (fp == NULL)
     {
-        printf ("Error: Could not open '%s'\n", device);
+        printf("Error: Could not open '%s'\n", device);
         err = PB_ERR_FILE_NOT_FOUND;
         goto commit_err_out1;
     }
 
     if (fseek(fp, primary_offset*512, SEEK_SET) != 0)
     {
-        printf ("Error: seek failed\n");
+        printf("Error: seek failed\n");
         err = PB_ERR_IO;
         goto commit_err_out;
     }
@@ -79,14 +79,14 @@ static uint32_t pbconfig_commit(void)
 
     if (write_sz != sizeof(struct config))
     {
-        printf ("Could not write primary config data");
+        printf("Could not write primary config data");
         err = PB_ERR_IO;
         goto commit_err_out;
     }
 
     if (fseek(fp, backup_offset*512, SEEK_SET) != 0)
     {
-        printf ("Error: seek failed\n");
+        printf("Error: seek failed\n");
         err = PB_ERR_IO;
         goto commit_err_out;
     }
@@ -95,7 +95,7 @@ static uint32_t pbconfig_commit(void)
 
     if (write_sz != sizeof(struct config))
     {
-        printf ("Could not write backup config data");
+        printf("Could not write backup config data");
         err = PB_ERR_IO;
         goto commit_err_out;
     }
@@ -116,17 +116,17 @@ uint32_t pbconfig_load(const char *_device, uint64_t _primary_offset,
     backup_offset = _backup_offset;
 
     FILE *fp = fopen(device, "rb");
-    
+
     if (fp == NULL)
     {
-        printf ("Error: Could not open '%s'\n", device);
+        printf("Error: Could not open '%s'\n", device);
         err = PB_ERR_FILE_NOT_FOUND;
         goto load_err_out1;
     }
 
     if (fseek(fp, primary_offset*512, SEEK_SET) != 0)
     {
-        printf ("Error: seek failed\n");
+        printf("Error: seek failed\n");
         err = PB_ERR_IO;
     }
 
@@ -134,14 +134,14 @@ uint32_t pbconfig_load(const char *_device, uint64_t _primary_offset,
 
     if (read_sz != sizeof(struct config))
     {
-        printf ("Could not read primary config data");
+        printf("Could not read primary config data");
         err = PB_ERR_IO;
         goto load_err_out;
     }
 
     if (fseek(fp, backup_offset*512, SEEK_SET) != 0)
     {
-        printf ("Error: seek failed\n");
+        printf("Error: seek failed\n");
         err = PB_ERR_IO;
     }
 
@@ -149,20 +149,20 @@ uint32_t pbconfig_load(const char *_device, uint64_t _primary_offset,
 
     if (read_sz != sizeof(struct config))
     {
-        printf ("Could not read backup config data");
+        printf("Could not read backup config data");
         err = PB_ERR_IO;
         goto load_err_out;
     }
 
     if (config_validate(&config) != PB_OK)
     {
-        printf ("Primary configuration corrupt\n");
+        printf("Primary configuration corrupt\n");
         err = PB_ERR;
     }
 
     if (config_validate(&config_backup) != PB_OK)
     {
-        printf ("Backup configuration corrupt\n");
+        printf("Backup configuration corrupt\n");
         err = PB_ERR;
     }
 
@@ -174,21 +174,20 @@ load_err_out1:
 
 void print_configuration(void)
 {
-    printf ("Punchboot status:\n\n");
-    printf ("System A is %s and %s\n", (config.enable & PB_CONFIG_A_ENABLED)?
+    printf("Punchboot status:\n\n");
+    printf("System A is %s and %s\n", (config.enable & PB_CONFIG_A_ENABLED)?
                                     "enabled":"disabled",
                                    (config.verified & PB_CONFIG_A_VERIFIED)?
                                     "verified":"not verified");
 
-    printf ("System B is %s and %s\n", (config.enable & PB_CONFIG_B_ENABLED)?
+    printf("System B is %s and %s\n", (config.enable & PB_CONFIG_B_ENABLED)?
                                     "enabled":"disabled",
                                    (config.verified & PB_CONFIG_B_VERIFIED)?
                                     "verified":"not verified");
 
 
-    printf ("Errors : 0x%08x\n",config.error);
-    printf ("Remaining boot attempts: %u\n",config.remaining_boot_attempts);
-
+    printf("Errors : 0x%08x\n", config.error);
+    printf("Remaining boot attempts: %u\n", config.remaining_boot_attempts);
 }
 
 uint32_t pbconfig_load_from_uuid(void)
@@ -247,7 +246,6 @@ uint32_t pbconfig_switch(uint8_t system, uint8_t counter)
 
 uint32_t pbconfig_set_verified(uint8_t system)
 {
-
     switch (system)
     {
         case SYSTEM_A:

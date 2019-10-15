@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef STRING__H
-#define STRING__H
+#ifndef INCLUDE_PB_LIBC_AARCH32_STRING__H_
+#define INCLUDE_PB_LIBC_AARCH32_STRING__H_
 
 #ifndef SIZET_
 typedef unsigned int size_t;
 #define SIZET_
 #endif
 
-#endif /* STRING__H */
+#endif  // INCLUDE_PB_LIBC_AARCH32_STRING__H_

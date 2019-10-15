@@ -29,7 +29,7 @@ uint32_t  plat_usb_init(struct usb_device *dev)
     if (virtio_serial_init(&d) != PB_OK)
     {
         LOG_ERR("Could not initialize virtio serial port");
-        while(1);
+        while (1) {}
     }
     return PB_OK;
 }
@@ -46,7 +46,7 @@ void plat_usb_task(struct usb_device *dev)
 
     if (hdr.ep == 4)
     {
-        virtio_serial_read(&d, (uint8_t *) &cmd, 
+        virtio_serial_read(&d, (uint8_t *) &cmd,
                             sizeof(struct pb_cmd_header));
 
         virtio_serial_write(&d, &status, 1);
@@ -58,7 +58,7 @@ void plat_usb_task(struct usb_device *dev)
     }
 }
 
-uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep, 
+uint32_t  plat_usb_transfer(struct usb_device *dev, uint8_t ep,
                             uint8_t *bfr, uint32_t sz)
 {
     uint8_t status = 0;
@@ -67,8 +67,8 @@ uint32_t  plat_usb_transfer (struct usb_device *dev, uint8_t ep,
     if (ep & 1)
     {
         virtio_serial_write(&d, bfr, sz);
-    } else { 
-        virtio_serial_read(&d, bfr, sz);    
+    } else {
+        virtio_serial_read(&d, bfr, sz);
         virtio_serial_write(&d, &status, 1);
     }
 

@@ -3,6 +3,9 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+#ifndef INCLUDE_PB_LIBC_AARCH64_STDINT__H_
+#define INCLUDE_PB_LIBC_AARCH64_STDINT__H_
+
 
 #define INT8_MAX  0x7F
 #define INT8_MIN  (-INT8_MAX - 1)
@@ -116,3 +119,5 @@ typedef unsigned long uintmax_t;
 
 typedef long register_t;
 typedef unsigned long u_register_t;
+
+#endif  // INCLUDE_PB_LIBC_AARCH64_STDINT__H_

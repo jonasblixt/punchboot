@@ -27,7 +27,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)endian.h	8.1 (Berkeley) 6/10/93
+ *    @(#)endian.h    8.1 (Berkeley) 6/10/93
  * $NetBSD: endian.h,v 1.7 1999/08/21 05:53:51 simonb Exp $
  * $FreeBSD$
  */
@@ -36,8 +36,8 @@
  * All rights reserved.
  */
 
-#ifndef ENDIAN__H
-#define ENDIAN__H
+#ifndef INCLUDE_PB_LIBC_AARCH64_ENDIAN__H_
+#define INCLUDE_PB_LIBC_AARCH64_ENDIAN__H_
 
 #include <stdint.h>
 
@@ -45,84 +45,84 @@
  * Definitions for byte order, according to byte significance from low
  * address to high.
  */
-#define	_LITTLE_ENDIAN  1234    /* LSB first: i386, vax */
-#define	_BIG_ENDIAN     4321    /* MSB first: 68000, ibm, net */
-#define	_PDP_ENDIAN     3412    /* LSB first in word, MSW first in long */
+#define    _LITTLE_ENDIAN  1234    /* LSB first: i386, vax */
+#define    _BIG_ENDIAN     4321    /* MSB first: 68000, ibm, net */
+#define    _PDP_ENDIAN     3412    /* LSB first in word, MSW first in long */
 
-#define	_BYTE_ORDER	_LITTLE_ENDIAN
+#define    _BYTE_ORDER    _LITTLE_ENDIAN
 
 #if __BSD_VISIBLE
-#define	LITTLE_ENDIAN   _LITTLE_ENDIAN
-#define	BIG_ENDIAN      _BIG_ENDIAN
-#define	PDP_ENDIAN      _PDP_ENDIAN
-#define	BYTE_ORDER      _BYTE_ORDER
+#define    LITTLE_ENDIAN   _LITTLE_ENDIAN
+#define    BIG_ENDIAN      _BIG_ENDIAN
+#define    PDP_ENDIAN      _PDP_ENDIAN
+#define    BYTE_ORDER      _BYTE_ORDER
 #endif
 
-#define	_QUAD_HIGHWORD  1
-#define	_QUAD_LOWWORD 0
-#define	__ntohl(x)        (__bswap32(x))
-#define	__ntohs(x)        (__bswap16(x))
-#define	__htonl(x)        (__bswap32(x))
-#define	__htons(x)        (__bswap16(x))
+#define    _QUAD_HIGHWORD  1
+#define    _QUAD_LOWWORD 0
+#define    __ntohl(x)        (__bswap32(x))
+#define    __ntohs(x)        (__bswap16(x))
+#define    __htonl(x)        (__bswap32(x))
+#define    __htons(x)        (__bswap16(x))
 
 static __inline uint64_t
 __bswap64(uint64_t x)
 {
-	uint64_t ret;
+    uint64_t ret;
 
-	__asm __volatile("rev %0, %1\n"
-			 : "=&r" (ret), "+r" (x));
+    __asm __volatile("rev %0, %1\n"
+             : "=&r" (ret), "+r" (x));
 
-	return (ret);
+    return (ret);
 }
 
 static __inline uint32_t
 __bswap32_var(uint32_t v)
 {
-	uint32_t ret;
+    uint32_t ret;
 
-	__asm __volatile("rev32 %x0, %x1\n"
-			 : "=&r" (ret), "+r" (v));
+    __asm __volatile("rev32 %x0, %x1\n"
+             : "=&r" (ret), "+r" (v));
 
-	return (ret);
+    return (ret);
 }
 
 static __inline uint16_t
 __bswap16_var(uint16_t v)
 {
-	uint32_t ret;
+    uint32_t ret;
 
-	__asm __volatile("rev16 %w0, %w1\n"
-			 : "=&r" (ret), "+r" (v));
+    __asm __volatile("rev16 %w0, %w1\n"
+             : "=&r" (ret), "+r" (v));
 
-	return ((uint16_t)ret);
+    return ((uint16_t)ret);
 }
 
 #ifdef __OPTIMIZE__
 
-#define	__bswap32_constant(x)	\
-    ((((x) & 0xff000000U) >> 24) |	\
-     (((x) & 0x00ff0000U) >>  8) |	\
-     (((x) & 0x0000ff00U) <<  8) |	\
+#define    __bswap32_constant(x)    \
+    ((((x) & 0xff000000U) >> 24) |    \
+     (((x) & 0x00ff0000U) >>  8) |    \
+     (((x) & 0x0000ff00U) <<  8) |    \
      (((x) & 0x000000ffU) << 24))
 
-#define	__bswap16_constant(x)	\
-    ((((x) & 0xff00) >> 8) |		\
+#define    __bswap16_constant(x)    \
+    ((((x) & 0xff00) >> 8) |        \
      (((x) & 0x00ff) << 8))
 
-#define	__bswap16(x)	\
-    ((uint16_t)(__builtin_constant_p(x) ?	\
-     __bswap16_constant((uint16_t)(x)) :	\
+#define    __bswap16(x)    \
+    ((uint16_t)(__builtin_constant_p(x) ?    \
+     __bswap16_constant((uint16_t)(x)) :    \
      __bswap16_var(x)))
 
-#define	__bswap32(x)	\
-    ((uint32_t)(__builtin_constant_p(x) ? 	\
-     __bswap32_constant((uint32_t)(x)) :	\
+#define    __bswap32(x)    \
+    ((uint32_t)(__builtin_constant_p(x) ?     \
+     __bswap32_constant((uint32_t)(x)) :    \
      __bswap32_var(x)))
 
 #else
-#define	__bswap16(x)	__bswap16_var(x)
-#define	__bswap32(x)	__bswap32_var(x)
+#define    __bswap16(x)    __bswap16_var(x)
+#define    __bswap32(x)    __bswap32_var(x)
 
 #endif /* __OPTIMIZE__ */
-#endif /* ENDIAN__H */
+#endif  // INCLUDE_PB_LIBC_AARCH64_ENDIAN__H_

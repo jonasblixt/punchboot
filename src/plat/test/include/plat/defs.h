@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef __IMX8M_DEFS_H__
-#define __IMX8M_DEFS_H__
+#ifndef PLAT_TEST_INCLUDE_PLAT_DEFS_H_
+#define PLAT_TEST_INCLUDE_PLAT_DEFS_H_
 
 #include <pb.h>
 #include <io.h>
@@ -20,4 +20,4 @@ struct pb_platform_setup
     __iomem uart_base;
 };
 
-#endif
+#endif  // PLAT_TEST_INCLUDE_PLAT_DEFS_H_

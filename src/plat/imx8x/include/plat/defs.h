@@ -1,16 +1,14 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#ifndef __IMX8M_DEFS_H__
-#define __IMX8M_DEFS_H__
-
+#ifndef PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_
+#define PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_
 
 #include <pb.h>
 #include <io.h>
@@ -38,23 +36,23 @@ struct pb_platform_setup
 
 
 
-#define ESDHC_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
+#define ESDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
                          (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
                          (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-						 (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
+                         (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
                          (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
-#define ESDHC_CLK_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
+#define ESDHC_CLK_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
                              (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
                              (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-						     (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
+                             (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
                              (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
-#define UART_PAD_CTRL	(PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
-			(SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
-			(SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-			(SC_PAD_28FDSOI_DSE_DV_LOW << PADRING_DSE_SHIFT) | \
-			(SC_PAD_28FDSOI_PS_PD << PADRING_PULL_SHIFT))
+#define UART_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
+            (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
+            (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
+            (SC_PAD_28FDSOI_DSE_DV_LOW << PADRING_DSE_SHIFT) | \
+            (SC_PAD_28FDSOI_PS_PD << PADRING_PULL_SHIFT))
 
 
 
@@ -64,4 +62,4 @@ struct pb_platform_setup
                          (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
                          (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
-#endif
+#endif  // PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_

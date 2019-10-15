@@ -1,8 +1,7 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -28,13 +27,13 @@
 static struct pb_platform_setup plat;
 extern const struct fuse fuses[];
 
-static struct fuse lock_fuse = 
+static struct fuse lock_fuse =
         IMX6UL_FUSE_BANK_WORD(0, 6, "lockfuse");
 
-static struct fuse fuse_uid0 = 
+static struct fuse fuse_uid0 =
         IMX6UL_FUSE_BANK_WORD(0, 1, "UID0");
 
-static struct fuse fuse_uid1 = 
+static struct fuse fuse_uid1 =
         IMX6UL_FUSE_BANK_WORD(0, 2, "UID1");
 
 #define IMX6UL_FUSE_SHADOW_BASE 0x021BC000
@@ -49,17 +48,17 @@ uint32_t plat_setup_device(struct param *params)
     foreach_fuse(f, (struct fuse *) fuses)
     {
         err = plat_fuse_read(f);
- 
-        LOG_DBG("Fuse %s: 0x%08x",f->description,f->value);
+
+        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
         if (err != PB_OK)
         {
-            LOG_ERR("Could not access fuse '%s'",f->description);
+            LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
-        }  
+        }
     }
 
     /* Perform the actual fuse programming */
-    
+
     LOG_INFO("Writing fuses");
 
     foreach_fuse(f, fuses)
@@ -81,7 +80,7 @@ uint32_t plat_setup_lock(void)
 
 
     err = plat_get_security_state(&security_state);
-    
+
     if (err != PB_OK)
         return err;
 
@@ -93,7 +92,7 @@ uint32_t plat_setup_lock(void)
     }
 
     LOG_INFO("About to change security state to locked");
-    
+
     lock_fuse.value = 0x02;
 
     err = plat_fuse_write(&lock_fuse);
@@ -116,6 +115,7 @@ uint32_t plat_prepare_recovery(void)
 
 void plat_preboot_cleanup(void)
 {
+    pb_setbit32(1<<1, plat.usb0.base + EHCI_CMD);
 }
 
 uint32_t plat_get_security_state(uint32_t *state)
@@ -127,7 +127,7 @@ uint32_t plat_get_security_state(uint32_t *state)
     foreach_fuse(f, (struct fuse *) fuses)
     {
         err = plat_fuse_read(f);
- 
+
         if (f->value)
         {
             (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
@@ -136,9 +136,9 @@ uint32_t plat_get_security_state(uint32_t *state)
 
         if (err != PB_OK)
         {
-            LOG_ERR("Could not access fuse '%s'",f->description);
+            LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
-        }  
+        }
     }
 
 
@@ -156,7 +156,7 @@ uint32_t plat_get_security_state(uint32_t *state)
     return PB_OK;
 }
 
-static __a16b const char platform_namespace_uuid[] = 
+static __a16b const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
 static __a16b uint8_t out_tmp[16];
@@ -172,11 +172,11 @@ uint32_t plat_get_uuid(char *out)
     uid[0] = fuse_uid0.value;
     uid[1] = fuse_uid1.value;
 
-    LOG_INFO("%08x %08x",fuse_uid0.value, fuse_uid1.value);
+    LOG_INFO("%08x %08x", fuse_uid0.value, fuse_uid1.value);
 
-    err = uuid_gen_uuid3(platform_namespace_uuid,16,
+    err = uuid_gen_uuid3(platform_namespace_uuid, 16,
                           (const char *) uid, 8, (char *)out_tmp);
-    memcpy(out,out_tmp,16);
+    memcpy(out, out_tmp, 16);
 
     return err;
 }
@@ -187,7 +187,7 @@ uint32_t plat_get_params(struct param **pp)
 
     param_add_str((*pp)++, "Platform", "NXP IMX6UL");
     plat_get_uuid(uuid_raw);
-    param_add_uuid((*pp)++, "Device UUID",uuid_raw);
+    param_add_uuid((*pp)++, "Device UUID", uuid_raw);
     return PB_OK;
 }
 
@@ -235,7 +235,7 @@ uint32_t  plat_fuse_read(struct fuse *f)
 
 uint32_t  plat_fuse_write(struct fuse *f)
 {
-    char s[64];    
+    char s[64];
 
     plat_fuse_to_string(f, s, 64);
 
@@ -261,7 +261,7 @@ uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 
 /* UART Interface */
 
-void plat_uart_putc(void *ptr, char c) 
+void plat_uart_putc(void *ptr, char c)
 {
     UNUSED(ptr);
     imx_uart_putc(c);
@@ -288,34 +288,34 @@ uint32_t plat_flush_block(void)
 }
 
 
-uint32_t plat_write_block(uint32_t lba_offset, 
-                          uintptr_t bfr, 
-                          uint32_t no_of_blocks) 
+uint32_t plat_write_block(uint32_t lba_offset,
+                          uintptr_t bfr,
+                          uint32_t no_of_blocks)
 {
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0, 
-                                  lba_offset, 
-                                  (uint8_t *) bfr, 
-                                  no_of_blocks, 
+    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
+                                  lba_offset,
+                                  (uint8_t *) bfr,
+                                  no_of_blocks,
                                   1, 0);
 }
 
-uint32_t plat_read_block(uint32_t lba_offset, 
-                         uintptr_t bfr, 
-                         uint32_t no_of_blocks) 
+uint32_t plat_read_block(uint32_t lba_offset,
+                         uintptr_t bfr,
+                         uint32_t no_of_blocks)
 {
     return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset, 
-                                  (uint8_t *) bfr, 
-                                  no_of_blocks, 
+                                  lba_offset,
+                                  (uint8_t *) bfr,
+                                  no_of_blocks,
                                   0, 0);
 }
 
-uint32_t plat_switch_part(uint8_t part_no) 
+uint32_t plat_switch_part(uint8_t part_no)
 {
     return usdhc_emmc_switch_part(&plat.usdhc0, part_no);
 }
 
-uint64_t plat_get_lastlba(void) 
+uint64_t plat_get_lastlba(void)
 {
     return plat.usdhc0.sectors-1;
 }
@@ -327,14 +327,14 @@ uint32_t  plat_usb_init(struct usb_device *dev)
     uint32_t reg;
 
     dev->platform_data = (void *) &plat.usb0;
-    
+
     /* Enable USB PLL */
     reg = pb_read32(0x020C8000+0x10);
     reg |= (1<<6);
     pb_write32(reg, 0x020C8000+0x10);
 
     /* Power up USB */
-    pb_write32 ((1 << 31) | (1 << 30), 0x020C9038);
+    pb_write32((1 << 31) | (1 << 30), 0x020C9038);
     pb_write32(0xFFFFFFFF, 0x020C9008);
     return ehci_usb_init(dev);
 }
@@ -344,8 +344,8 @@ void plat_usb_task(struct usb_device *dev)
     ehci_usb_task(dev);
 }
 
-uint32_t plat_usb_transfer (struct usb_device *dev, uint8_t ep, 
-                            uint8_t *bfr, uint32_t sz) 
+uint32_t plat_usb_transfer(struct usb_device *dev, uint8_t ep,
+                            uint8_t *bfr, uint32_t sz)
 {
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
     return ehci_transfer(ehci, ep, bfr, sz);
@@ -405,7 +405,7 @@ uint32_t plat_early_init(void)
 
     /* Select re-connect ARM PLL */
     pb_write32(reg & ~(1<<2), 0x020C400C);
-    
+
     /*** End of ARM Clock config ***/
 
 
@@ -423,10 +423,8 @@ uint32_t plat_early_init(void)
     uint32_t csu = 0x21c0000;
     /* Allow everything */
     for (int i = 0; i < 40; i ++) {
-		*((uint32_t *)csu + i) = 0xffffffff;
-	}
-    
-
+        *((uint32_t *)csu + i) = 0xffffffff;
+    }
 
     imx_uart_init(&plat.uart0);
 

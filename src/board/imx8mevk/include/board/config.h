@@ -1,5 +1,14 @@
-#ifndef __BOARD_CONFIG_H__
-#define __BOARD_CONFIG_H__
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+#ifndef BOARD_IMX8MEVK_INCLUDE_BOARD_CONFIG_H_
+#define BOARD_IMX8MEVK_INCLUDE_BOARD_CONFIG_H_
 
 #define  BOARD_BOOT_ARGS "console=ttymxc0,115200 " \
         "quiet " \
@@ -12,4 +21,4 @@
         "cma=768M " \
         "root=PARTUUID=%s " \
         "rw rootfstype=ext4 gpt rootwait"
-#endif
+#endif  // BOARD_IMX8MEVK_INCLUDE_BOARD_CONFIG_H_

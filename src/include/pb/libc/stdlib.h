@@ -8,8 +8,8 @@
  * All rights reserved.
  */
 
-#ifndef STDLIB_H
-#define STDLIB_H
+#ifndef INCLUDE_PB_LIBC_STDLIB_H_
+#define INCLUDE_PB_LIBC_STDLIB_H_
 
 #include <stdlib_.h>
 
@@ -23,4 +23,4 @@ extern void abort(void);
 extern int atexit(void (*func)(void));
 extern void exit(int status);
 
-#endif /* STDLIB_H */
+#endif  // INCLUDE_PB_LIBC_STDLIB_H_

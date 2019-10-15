@@ -26,15 +26,15 @@
 
 const struct fuse fuses[] =
 {
-    IMX6UL_FUSE_BANK_WORD_VAL(3, 0, "SRK0",0x5020C7D7),
-    IMX6UL_FUSE_BANK_WORD_VAL(3, 1, "SRK1",0xBB62B945),
-    IMX6UL_FUSE_BANK_WORD_VAL(3, 2, "SRK2",0xDD97C8BE),
-    IMX6UL_FUSE_BANK_WORD_VAL(3, 3, "SRK3",0xDC6710DD),
-    IMX6UL_FUSE_BANK_WORD_VAL(3, 4, "SRK4",0x2756B777),
-    IMX6UL_FUSE_BANK_WORD_VAL(3, 5, "SRK5",0xEF43BC0A),
-    IMX6UL_FUSE_BANK_WORD_VAL(3, 6, "SRK6",0x7185604B),
-    IMX6UL_FUSE_BANK_WORD_VAL(3, 7, "SRK7",0x3F335991),
-    IMX6UL_FUSE_BANK_WORD_VAL(0, 5, "BOOT Config",        0x0000c060),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 0, "SRK0", 0x5020C7D7),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 1, "SRK1", 0xBB62B945),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 2, "SRK2", 0xDD97C8BE),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 3, "SRK3", 0xDC6710DD),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 4, "SRK4", 0x2756B777),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 5, "SRK5", 0xEF43BC0A),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 6, "SRK6", 0x7185604B),
+    IMX6UL_FUSE_BANK_WORD_VAL(3, 7, "SRK7", 0x3F335991),
+    IMX6UL_FUSE_BANK_WORD_VAL(0, 5, "BOOT Config", 0x0000c060),
     IMX6UL_FUSE_BANK_WORD_VAL(0, 6, "BOOT from fuse bit", 0x00000010),
     IMX6UL_FUSE_END,
 };
@@ -53,7 +53,6 @@ const struct partition_table pb_partition_table[] =
 
 uint32_t board_early_init(struct pb_platform_setup *plat)
 {
-
     plat->wdog.base = 0x020BC000;
     plat->usb0.base = EHCI_PHY_BASE,
     plat->tmr0.base = 0x02098000;
@@ -75,13 +74,13 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     pb_write32(UART_PAD_CTRL, 0x020E0320);
     pb_write32(UART_PAD_CTRL, 0x020E0324);
 
-   /* Configure NAND_DATA2 as GPIO4 4 Input with PU, 
+   /* Configure NAND_DATA2 as GPIO4 4 Input with PU,
     *
     * This is used to force recovery mode
     *
     **/
 
-    pb_write32(5, 0x020E0188); 
+    pb_write32(5, 0x020E0188);
     pb_write32(0x2000 | (1 << 14) | (1 << 12), 0x020E0414);
 
     /* Configure pinmux for usdhc1 */
@@ -100,7 +99,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     return PB_OK;
 }
 
-bool board_force_recovery(struct pb_platform_setup *plat) 
+bool board_force_recovery(struct pb_platform_setup *plat)
 {
     uint8_t force_recovery = false;
     UNUSED(plat);
@@ -114,7 +113,7 @@ bool board_force_recovery(struct pb_platform_setup *plat)
 
 uint32_t board_late_init(struct pb_platform_setup *plat)
 {
-    UNUSED(plat);   
+    UNUSED(plat);
     return PB_OK;
 }
 
@@ -136,7 +135,7 @@ uint32_t board_setup_device(struct param *params)
     return PB_OK;
 }
 
-uint32_t board_linux_patch_dt (void *fdt, int offset)
+uint32_t board_linux_patch_dt(void *fdt, int offset)
 {
     UNUSED(fdt);
     UNUSED(offset);

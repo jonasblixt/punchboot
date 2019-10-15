@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -8,8 +7,8 @@
  *
  */
 
-#ifndef __PB_BOOT_H__
-#define __PB_BOOT_H__
+#ifndef INCLUDE_PB_BOOT_H_
+#define INCLUDE_PB_BOOT_H_
 
 #include <stdint.h>
 #include <image.h>
@@ -18,4 +17,4 @@
 
 void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose);
 
-#endif
+#endif  // INCLUDE_PB_BOOT_H_

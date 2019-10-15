@@ -67,7 +67,7 @@ static uint64_t gcov_read_u64(long fd)
 
 static int counter_active(struct gcov_info *info, unsigned int type)
 {
-	return info->merge[type] ? 1 : 0;
+    return info->merge[type] ? 1 : 0;
 }
 
 
@@ -78,10 +78,10 @@ static void gcov_update_counter(struct gcov_info *info,
                                 uint64_t val)
 
 {
-	struct gcov_fn_info *fi_ptr;
-	struct gcov_ctr_info *ci_ptr;
-	unsigned int fi_idx;
-	unsigned int ct_idx;
+    struct gcov_fn_info *fi_ptr;
+    struct gcov_ctr_info *ci_ptr;
+    unsigned int fi_idx;
+    unsigned int ct_idx;
 
     for (fi_idx = 0; fi_idx < info->n_functions; fi_idx++)
     {
@@ -90,25 +90,21 @@ static void gcov_update_counter(struct gcov_info *info,
 
         if (fi_ptr->ident != f_ident)
             continue;
-        //LOG_INFO ("ident: %8.8lX", f_ident);
+        //  LOG_INFO ("ident: %8.8lX", f_ident);
         for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++) {
-
             if (GCOV_TAG_FOR_COUNTER(ct_idx) == ctr_tag)
             {
-                //LOG_INFO("Updating %lu %llu", num, val);
+                //  LOG_INFO("Updating %lu %llu", num, val);
                 ci_ptr->values[num] += val;
             }
-
-
             ci_ptr++;
         }
     }
-
 }
 
 static void gcov_load_data(struct gcov_info *info)
 {
-	unsigned int ct_idx;
+    unsigned int ct_idx;
     uint32_t dummy;
 
     long fd = semihosting_file_open(info->filename, 0);
@@ -117,7 +113,7 @@ static void gcov_load_data(struct gcov_info *info)
     {
         return;
     }
-    //LOG_INFO ("fn: %s",info->filename);
+    //  LOG_INFO ("fn: %s",info->filename);
 
     if (gcov_read_u32(fd) != GCOV_DATA_MAGIC)
     {
@@ -133,7 +129,7 @@ static void gcov_load_data(struct gcov_info *info)
 
     dummy = gcov_read_u32(fd);
 
-    while(true)
+    while (true)
     {
         if (gcov_read_u32(fd) != GCOV_TAG_FUNCTION)
         {
@@ -154,8 +150,8 @@ static void gcov_load_data(struct gcov_info *info)
 
         for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++)
         {
-			if (!counter_active(info, ct_idx))
-				continue;
+            if (!counter_active(info, ct_idx))
+                continue;
 
             uint32_t ctr_tag = gcov_read_u32(fd);
             uint32_t num = gcov_read_u32(fd) / 2;
@@ -165,7 +161,6 @@ static void gcov_load_data(struct gcov_info *info)
                 uint64_t val = gcov_read_u64(fd);
                 gcov_update_counter(info, n, f_ident, ctr_tag, val);
             }
-
         }
     }
 
@@ -174,62 +169,60 @@ gcov_init_err:
     semihosting_file_close(fd);
 }
 
-void __gcov_init (struct gcov_info *p)
+void __gcov_init(struct gcov_info *p)
 {
-
-	p->next = head;
-	head = p;
-}
-void __gcov_merge_add (gcov_type *counters, unsigned n_counters)
-{
-	UNUSED(counters);
-	UNUSED(n_counters);
-
-	/* Not Used */
+    p->next = head;
+    head = p;
 }
 
-void __gcov_flush (void)
+void __gcov_merge_add(gcov_type *counters, unsigned n_counters)
 {
-	/* Not used */
+    UNUSED(counters);
+    UNUSED(n_counters);
+
+    /* Not Used */
 }
 
-void __gcov_exit (void)
+void __gcov_flush(void)
 {
-	/* Not used */
+    /* Not used */
+}
+
+void __gcov_exit(void)
+{
+    /* Not used */
 }
 
 void gcov_init(void)
 {
-	/* Call gcov initalizers */
- 	extern uint32_t __init_array_start, __init_array_end;
-	void (**pctor)(void) = (void (**)(void)) &__init_array_start;
-	void (**pctor_last)(void) = (void (**)(void)) &__init_array_end;
+    /* Call gcov initalizers */
+     extern uint32_t __init_array_start, __init_array_end;
+    void (**pctor)(void) = (void (**)(void)) &__init_array_start;
+    void (**pctor_last)(void) = (void (**)(void)) &__init_array_end;
 
-	for (; pctor < pctor_last; pctor++)
-		(*pctor)();
-
+    for (; pctor < pctor_last; pctor++)
+        (*pctor)();
 }
 
 
 uint32_t gcov_final(void)
 {
-	struct gcov_fn_info *fi_ptr;
-	struct gcov_ctr_info *ci_ptr;
-	unsigned int fi_idx;
-	unsigned int ct_idx;
-	unsigned int cv_idx;
+    struct gcov_fn_info *fi_ptr;
+    struct gcov_ctr_info *ci_ptr;
+    unsigned int fi_idx;
+    unsigned int ct_idx;
+    unsigned int cv_idx;
 
-	struct gcov_info *info = head;
+    struct gcov_info *info = head;
 
-	for (;info; info = info->next)
-	{
-
+    for (; info; info = info->next)
+    {
         gcov_load_data(info);
-		long fd = semihosting_file_open(info->filename, 6);
+        long fd = semihosting_file_open(info->filename, 6);
 
        if (fd < 0)
         {
-            LOG_ERR("Could not open %s",info->filename);
+            LOG_ERR("Could not open %s", info->filename);
             continue;
         }
 
@@ -237,17 +230,17 @@ uint32_t gcov_final(void)
         gcov_write_u32(fd, info->version);
         gcov_write_u32(fd, info->stamp);
 
-		for (fi_idx = 0; fi_idx < info->n_functions; fi_idx++)
-		{
+        for (fi_idx = 0; fi_idx < info->n_functions; fi_idx++)
+        {
             /*LOG_DBG ("info->n_functions = %u, filename = '%s'",
                         info->n_functions, info->filename);*/
 
             if (info->n_functions > 10000)
                 break;
 
-			fi_ptr = info->functions[fi_idx];
-            
-            //LOG_DBG ("fi_ptr->ident = %x",fi_ptr->ident);
+            fi_ptr = info->functions[fi_idx];
+
+            //  LOG_DBG ("fi_ptr->ident = %x",fi_ptr->ident);
 
             gcov_write_u32(fd, GCOV_TAG_FUNCTION);
             gcov_write_u32(fd, GCOV_TAG_FUNCTION_LENGTH);
@@ -255,14 +248,14 @@ uint32_t gcov_final(void)
             gcov_write_u32(fd, fi_ptr->lineno_checksum);
             gcov_write_u32(fd, fi_ptr->cfg_checksum);
 
-			ci_ptr = fi_ptr->ctrs;
+            ci_ptr = fi_ptr->ctrs;
 
 
 
-			for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++)
+            for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++)
             {
-				if (!counter_active(info, ct_idx))
-					continue;
+                if (!counter_active(info, ct_idx))
+                    continue;
 
                 gcov_write_u32(fd, GCOV_TAG_FOR_COUNTER(ct_idx));
                 gcov_write_u32(fd, ci_ptr->num * 2);
@@ -271,19 +264,19 @@ uint32_t gcov_final(void)
                             GCOV_TAG_FOR_COUNTER(ct_idx),
                             ci_ptr->num,
                             ct_idx);*/
-				for (cv_idx = 0; cv_idx < ci_ptr->num; cv_idx++)
+                for (cv_idx = 0; cv_idx < ci_ptr->num; cv_idx++)
                 {
                     gcov_write_u64(fd, ci_ptr->values[cv_idx]);
                     /*LOG_DBG("  ctr %u, val = %lu",cv_idx,
                                         ci_ptr->values[cv_idx]);*/
                 }
 
-				ci_ptr++;
-			}
-		}
+                ci_ptr++;
+            }
+        }
 
-		semihosting_file_close(fd);
-	}
+        semihosting_file_close(fd);
+    }
 
     return 0;
 }

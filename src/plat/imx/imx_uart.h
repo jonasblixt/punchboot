@@ -7,9 +7,8 @@
  *
  */
 
-
-#ifndef __IMX_UART_H__
-#define __IMX_UART_H__
+#ifndef PLAT_IMX_IMX_UART_H_
+#define PLAT_IMX_IMX_UART_H_
 
 #include <pb.h>
 
@@ -32,21 +31,21 @@
 #define UTS   0xb4 /* UART Test Register (mx31) */
 
 
-#define  UCR2_ESCI	 (1<<15) /* Escape seq interrupt enable */
-#define  UCR2_IRTS	 (1<<14) /* Ignore RTS pin */
-#define  UCR2_CTSC	 (1<<13) /* CTS pin control */
+#define  UCR2_ESCI     (1<<15) /* Escape seq interrupt enable */
+#define  UCR2_IRTS     (1<<14) /* Ignore RTS pin */
+#define  UCR2_CTSC     (1<<13) /* CTS pin control */
 #define  UCR2_CTS        (1<<12) /* Clear to send */
 #define  UCR2_ESCEN      (1<<11) /* Escape enable */
 #define  UCR2_PREN       (1<<8)  /* Parity enable */
 #define  UCR2_PROE       (1<<7)  /* Parity odd/even */
-#define  UCR2_STPB       (1<<6)	 /* Stop */
-#define  UCR2_WS         (1<<5)	 /* Word size */
-#define  UCR2_RTSEN      (1<<4)	 /* Request to send interrupt enable */
-#define  UCR2_TXEN       (1<<2)	 /* Transmitter enabled */
-#define  UCR2_RXEN       (1<<1)	 /* Receiver enabled */
-#define  UCR2_SRST	 (1<<0)	 /* SW reset */
+#define  UCR2_STPB       (1<<6)     /* Stop */
+#define  UCR2_WS         (1<<5)     /* Word size */
+#define  UCR2_RTSEN      (1<<4)     /* Request to send interrupt enable */
+#define  UCR2_TXEN       (1<<2)     /* Transmitter enabled */
+#define  UCR2_RXEN       (1<<1)     /* Receiver enabled */
+#define  UCR2_SRST     (1<<0)     /* SW reset */
 
-#define  UCR1_UARTEN     (1<<0)	 /* UART enabled */
+#define  UCR1_UARTEN     (1<<0)     /* UART enabled */
 #define  USR1_TRDY       (1<<13) /* TX Buffer ready */
 #define  USR2_TXFE (1<<14)
 
@@ -59,4 +58,4 @@ struct imx_uart_device
 uint32_t imx_uart_init(struct imx_uart_device *dev);
 void imx_uart_putc(char c);
 
-#endif
+#endif  // PLAT_IMX_IMX_UART_H_

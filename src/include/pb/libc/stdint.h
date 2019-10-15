@@ -8,9 +8,9 @@
  * All rights reserved.
  */
 
-#ifndef STDINT_H
-#define STDINT_H
+#ifndef INCLUDE_PB_LIBC_STDINT_H_
+#define INCLUDE_PB_LIBC_STDINT_H_
 
 #include <stdint_.h>
 
-#endif /* STDINT_H */
+#endif  // INCLUDE_PB_LIBC_STDINT_H_

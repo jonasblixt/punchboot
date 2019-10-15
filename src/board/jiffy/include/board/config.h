@@ -7,10 +7,8 @@
  *
  */
 
-
-
-#ifndef __BOARD_CONFIG__
-#define __BOARD_CONFIG__
+#ifndef BOARD_JIFFY_INCLUDE_BOARD_CONFIG_H_
+#define BOARD_JIFFY_INCLUDE_BOARD_CONFIG_H_
 
 
 #define EHCI_PHY_BASE 0x02184000
@@ -26,4 +24,4 @@
                          "root=PARTUUID=%s " \
                          "rw rootfstype=ext4 gpt rootwait"
 
-#endif
+#endif  // BOARD_JIFFY_INCLUDE_BOARD_CONFIG_H_

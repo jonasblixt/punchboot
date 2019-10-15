@@ -7,9 +7,8 @@
  *
  */
 
-
-#ifndef __RECOVERY_H__
-#define __RECOVERY_H__
+#ifndef INCLUDE_PB_RECOVERY_H_
+#define INCLUDE_PB_RECOVERY_H_
 
 #include <stdint.h>
 
@@ -45,23 +44,23 @@ struct pb_cmd_header
     uint32_t arg2;
     uint32_t arg3;
     uint8_t rz[40];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
-struct pb_cmd_prep_buffer 
+struct pb_cmd_prep_buffer
 {
     uint32_t buffer_id;
     uint32_t no_of_blocks;
     uint8_t rz[56];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
-struct pb_cmd_write_part 
+struct pb_cmd_write_part
 {
     uint32_t no_of_blocks;
     uint32_t lba_offset;
     uint32_t part_no;
     uint32_t buffer_id;
     uint8_t rz[48];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 #ifdef __PB_BUILD
 
@@ -69,4 +68,4 @@ uint32_t recovery_initialize(void);
 
 #endif
 
-#endif
+#endif  // INCLUDE_PB_RECOVERY_H_

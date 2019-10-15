@@ -8,8 +8,8 @@
  * All rights reserved.
  */
 
-#ifndef STRING_H
-#define STRING_H
+#ifndef INCLUDE_PB_LIBC_STRING_H_
+#define INCLUDE_PB_LIBC_STRING_H_
 
 #include <string_.h>
 
@@ -30,4 +30,4 @@ size_t strnlen(const char *s, size_t maxlen);
 char *strrchr(const char *p, int ch);
 size_t strlcpy(char * dst, const char * src, size_t dsize);
 
-#endif /* STRING_H */
+#endif  // INCLUDE_PB_LIBC_STRING_H_

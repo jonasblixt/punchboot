@@ -8,8 +8,8 @@
  * All rights reserved.
  */
 
-#ifndef STDIO_H
-#define STDIO_H
+#ifndef INCLUDE_PB_LIBC_STDIO_H_
+#define INCLUDE_PB_LIBC_STDIO_H_
 
 #include <cdefs.h>
 #include <stdio_.h>
@@ -30,4 +30,4 @@ int vprintf(const char *fmt, va_list args);
 int putchar(int c);
 int puts(const char *s);
 
-#endif /* STDIO_H */
+#endif  // INCLUDE_PB_LIBC_STDIO_H_

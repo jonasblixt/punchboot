@@ -1,8 +1,7 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Persson <jonpe960@gmail.com>
+ * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -21,13 +20,12 @@ static uint32_t _fuse_box[TEST_FUSE_MAX];
 
 uint32_t test_fuse_init(struct virtio_block_device *dev)
 {
-
     LOG_DBG("using block device %p", dev);
 
     if (dev == NULL)
         return PB_ERR;
 
-    return virtio_block_read(dev,0,  
+    return virtio_block_read(dev, 0,
                         (uintptr_t) _fuse_box, 1);
 }
 
@@ -39,10 +37,9 @@ uint32_t test_fuse_write(struct virtio_block_device *dev,
 
     _fuse_box[id] |= val;
 
-    LOG_DBG("_fuse_box[%u] = %x, blkdev: %p",id, _fuse_box[id],
-                dev);
+    LOG_DBG("_fuse_box[%u] = %x, blkdev: %p", id, _fuse_box[id], dev);
 
-    return virtio_block_write(dev,0,(uintptr_t) _fuse_box, 1);
+    return virtio_block_write(dev, 0, (uintptr_t) _fuse_box, 1);
 }
 
 
@@ -54,5 +51,4 @@ uint32_t test_fuse_read(uint32_t id, uint32_t *val)
     *val = _fuse_box[id];
 
     return PB_OK;
-
 }

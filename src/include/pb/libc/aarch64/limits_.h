@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#ifndef INCLUDE_PB_LIBC_AARCH64_LIMITS__H_
+#define INCLUDE_PB_LIBC_AARCH64_LIMITS__H_
+
 #define SCHAR_MAX  0x7F
 #define SCHAR_MIN  (-SCHAR_MIN - 1)
 #define CHAR_MAX   0x7F
@@ -24,3 +27,5 @@
 
 #define __LONG_BIT 64
 #define __WORD_BIT 32
+
+#endif  // INCLUDE_PB_LIBC_AARCH64_LIMITS__H_

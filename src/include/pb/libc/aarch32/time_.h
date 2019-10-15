@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef TIME__H
-#define TIME__H
+#ifndef INCLUDE_PB_LIBC_AARCH32_TIME__H_
+#define INCLUDE_PB_LIBC_AARCH32_TIME__H_
 
 #ifndef SIZET_
 typedef unsigned int size_t;
@@ -14,4 +14,4 @@ typedef unsigned int size_t;
 
 typedef long int time_t;
 
-#endif /* TIME__H */
+#endif  // INCLUDE_PB_LIBC_AARCH32_TIME__H_

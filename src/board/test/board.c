@@ -31,7 +31,7 @@ const struct fuse fuses[] =
 };
 
 static struct fuse board_ident_fuse =
-        TEST_FUSE_BANK_WORD(15,"Ident");
+        TEST_FUSE_BANK_WORD(15, "Ident");
 
 const struct partition_table pb_partition_table[] =
 {
@@ -65,8 +65,8 @@ uint32_t board_late_init(struct pb_platform_setup *plat)
 
     size_t bytes_to_write = strlen(boot_status);
 
-    semihosting_file_write(fd, &bytes_to_write, 
-                            (const uintptr_t) boot_status);	
+    semihosting_file_write(fd, &bytes_to_write,
+                            (const uintptr_t) boot_status);
 
     semihosting_file_close(fd);
     return PB_OK;
@@ -78,7 +78,7 @@ uint32_t board_prepare_recovery(struct pb_platform_setup *plat)
     return PB_OK;
 }
 
-bool board_force_recovery(struct pb_platform_setup *plat) 
+bool board_force_recovery(struct pb_platform_setup *plat)
 {
     UNUSED(plat);
 
@@ -97,7 +97,7 @@ uint32_t board_setup_device(struct param *params)
     uint32_t err;
     uint32_t v;
     struct param *p;
-    
+
     err = param_get_by_id(params, "device_id", &p);
 
     if (err != PB_OK)

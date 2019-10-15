@@ -16,16 +16,15 @@
 #include <getopt.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <string.h>
 #include <termios.h>
 #include <openssl/pem.h>
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
 #include <pkcs11-helper-1.0/pkcs11h-openssl.h>
-
 #include <3pp/ini.h>
 #include <pb/image.h>
 #include <pb/crypto.h>
 #include <pb/pb.h>
+#include "pbimage.h"
 
 static const char *comp_type_str[] =
 {
@@ -69,70 +68,80 @@ static uint32_t comp_string_to_index(const char *str, uint32_t *index)
     return PB_ERR;
 }
 
-static PKCS11H_BOOL _pkcs11h_hooks_token_prompt (
-	IN void * const global_data,
-	IN void * const user_data,
-	IN const pkcs11h_token_id_t token,
-	IN const unsigned retry)
+static PKCS11H_BOOL _pkcs11h_hooks_token_prompt(
+    IN void * const global_data,
+    IN void * const user_data,
+    IN const pkcs11h_token_id_t token,
+    IN const unsigned retry)
 {
-	char buf[1024];
-	PKCS11H_BOOL fValidInput = FALSE;
-	PKCS11H_BOOL fRet = FALSE;
+    char buf[1024];
+    PKCS11H_BOOL fValidInput = FALSE;
+    PKCS11H_BOOL fRet = FALSE;
 
-	while (!fValidInput) {
-		fprintf (stderr, "Please insert token '%s' 'ok' or 'cancel': ", token->display);
-		if (fgets (buf, sizeof (buf), stdin) == NULL) {
-			printf("fgets failed");
-		}
-		buf[sizeof (buf)-1] = '\0';
-		fflush (stdin);
+    while (!fValidInput)
+    {
+        fprintf(stderr, "Please insert token '%s' 'ok' or 'cancel': ",
+                                                    token->display);
+        if (fgets (buf, sizeof (buf), stdin) == NULL)
+        {
+            printf("fgets failed");
+        }
 
-		if (buf[strlen (buf)-1] == '\n') {
-			buf[strlen (buf)-1] = '\0';
-		}
-		if (buf[strlen (buf)-1] == '\r') {
-			buf[strlen (buf)-1] = '\0';
-		}
+        buf[sizeof(buf)-1] = '\0';
+        fflush(stdin);
 
-		if (!strcmp (buf, "ok")) {
-			fValidInput = TRUE;
-			fRet = TRUE;
-		}
-		else if (!strcmp (buf, "cancel")) {
-			fValidInput = TRUE;
-		}
-	}
+        if (buf[strlen(buf)-1] == '\n')
+        {
+            buf[strlen(buf)-1] = '\0';
+        }
 
-	return fRet;
+        if (buf[strlen(buf)-1] == '\r')
+        {
+            buf[strlen(buf)-1] = '\0';
+        }
+
+        if (!strcmp(buf, "ok"))
+        {
+            fValidInput = TRUE;
+            fRet = TRUE;
+        }
+        else if (!strcmp(buf, "cancel"))
+        {
+            fValidInput = TRUE;
+        }
+    }
+
+    return fRet;
 }
 
-static PKCS11H_BOOL _pkcs11h_hooks_pin_prompt (
-	IN void * const global_data,
-	IN void * const user_data,
-	IN const pkcs11h_token_id_t token,
-	IN const unsigned retry,
-	OUT char * const pin,
-	IN const size_t pin_max)
+static PKCS11H_BOOL _pkcs11h_hooks_pin_prompt(
+    IN void * const global_data,
+    IN void * const user_data,
+    IN const pkcs11h_token_id_t token,
+    IN const unsigned retry,
+    OUT char * const pin,
+    IN const size_t pin_max)
 {
-	char prompt[1124];
+    char prompt[1124];
     struct termios oflags, nflags;
     char password[64];
 
-	snprintf (prompt, sizeof (prompt)-1, "Please enter '%s' PIN or 'cancel': ", 
+    snprintf (prompt, sizeof (prompt)-1, "Please enter '%s' PIN or 'cancel': ",
                                                             token->display);
 
 #if defined(_WIN32)
-	{
-		size_t i = 0;
-		char c;
-		while (i < pin_max && (c = getch ()) != '\r') {
-			pin[i++] = c;
-		}
-	}
+    {
+        size_t i = 0;
+        char c;
+        while (i < pin_max && (c = getch()) != '\r')
+        {
+            pin[i++] = c;
+        }
+    }
 
-	fprintf (stderr, "\n");
+    fprintf(stderr, "\n");
 #else
-   /* disabling echo */
+    /* disabling echo */
     tcgetattr(fileno(stdin), &oflags);
     nflags = oflags;
     nflags.c_lflag &= ~ECHO;
@@ -143,7 +152,7 @@ static PKCS11H_BOOL _pkcs11h_hooks_pin_prompt (
         return EXIT_FAILURE;
     }
 
-    printf("%s",prompt);
+    printf("%s", prompt);
 
     char *r = fgets(password, sizeof(password), stdin);
     if (r == NULL)
@@ -157,10 +166,10 @@ static PKCS11H_BOOL _pkcs11h_hooks_pin_prompt (
     }
 #endif
 
-	strncpy (pin, password, pin_max);
-	pin[pin_max-1] = '\0';
+    strncpy(pin, password, pin_max);
+    pin[pin_max-1] = '\0';
 
-	return strcmp (pin, "cancel") != 0;
+    return strcmp (pin, "cancel") != 0;
 }
 uint32_t pbimage_prepare(uint32_t key_index,
                          uint32_t hash_kind,
@@ -170,8 +179,7 @@ uint32_t pbimage_prepare(uint32_t key_index,
                          const char *pkcs11_key_id,
                          const char *output_fn)
 {
-
-	CK_RV rv;
+    CK_RV rv;
 
     bzero(&hdr, sizeof(struct pb_image_hdr));
     bzero(comp, sizeof(struct pb_component_hdr) * PB_IMAGE_MAX_COMP);
@@ -181,36 +189,35 @@ uint32_t pbimage_prepare(uint32_t key_index,
     hdr.key_index = key_index;
     hdr.hash_kind = hash_kind;
     hdr.sign_kind = sign_kind;
-    
+
     if (strstr(key_source, "PKCS11"))
     {
-
         rv = pkcs11h_initialize();
 
         if (rv != CKR_OK)
         {
-            printf ("pkcs11h_initialize failed\n");
+            printf("pkcs11h_initialize failed\n");
             return PB_ERR;
         }
 
-        rv = pkcs11h_setTokenPromptHook (_pkcs11h_hooks_token_prompt, NULL);
+        rv = pkcs11h_setTokenPromptHook(_pkcs11h_hooks_token_prompt, NULL);
 
         if (rv != CKR_OK)
         {
-            printf ("pkcs11h_setTokenPromptHook failed\n");
+            printf("pkcs11h_setTokenPromptHook failed\n");
             return PB_ERR;
         }
-        
-        rv = pkcs11h_setPINPromptHook (_pkcs11h_hooks_pin_prompt, NULL);
+
+        rv = pkcs11h_setPINPromptHook(_pkcs11h_hooks_pin_prompt, NULL);
 
         if (rv != CKR_OK)
         {
-            printf ("pkcs11h_setPINPromptHook failed\n");
+            printf("pkcs11h_setPINPromptHook failed\n");
             return PB_ERR;
         }
 
-        printf (" PKCS11 provider '%s'\n", pkcs11_provider);
-        
+        printf(" PKCS11 provider '%s'\n", pkcs11_provider);
+
         rv = pkcs11h_addProvider(
                 pkcs11_provider,
                 pkcs11_provider,
@@ -222,11 +229,11 @@ uint32_t pbimage_prepare(uint32_t key_index,
 
         if (rv != CKR_OK)
         {
-            printf ("pkcs11h_addProvider failed\n");
+            printf("pkcs11h_addProvider failed\n");
             return PB_ERR;
         }
-        
-        rv = pkcs11h_certificate_enumCertificateIds (
+
+        rv = pkcs11h_certificate_enumCertificateIds(
                 PKCS11H_ENUM_METHOD_CACHE,
                 NULL,
                 PKCS11H_PROMPT_MASK_ALLOW_ALL,
@@ -235,29 +242,30 @@ uint32_t pbimage_prepare(uint32_t key_index,
 
         if (rv != CKR_OK)
         {
-            printf ("pkcs11h_certificate_enumCertificateIds failed\n");
+            printf("pkcs11h_certificate_enumCertificateIds failed\n");
             return PB_ERR;
         }
 
-        for (temp = certs;temp != NULL;temp = temp->next)
+        for (temp = certs; temp != NULL; temp = temp->next)
         {
-            printf (" Certificate: %s\n", temp->certificate_id->displayName);
+            printf(" Certificate: %s\n", temp->certificate_id->displayName);
 
-            printf ("attrCKA_ID: ");
-            for (uint32_t n = 0 ; n < temp->certificate_id->attrCKA_ID_size; n++)
+            printf("attrCKA_ID: ");
+            for (uint32_t n = 0;
+                n < temp->certificate_id->attrCKA_ID_size; n++)
             {
                 printf("%02x ", temp->certificate_id->attrCKA_ID[n]);
             }
-            printf ("\n");
+            printf("\n");
         }
 
         if (certs == NULL)
         {
-            printf ("Error: No certificates found\n");
+            printf("Error: No certificates found\n");
             return PB_ERR;
         }
 
-        rv = pkcs11h_certificate_create (
+        rv = pkcs11h_certificate_create(
                 certs->certificate_id,
                 NULL,
                 PKCS11H_PROMPT_MASK_ALLOW_ALL,
@@ -266,7 +274,7 @@ uint32_t pbimage_prepare(uint32_t key_index,
 
         if (rv != CKR_OK)
         {
-            printf ("pkcs11h_certificate_create failed\n");
+            printf("pkcs11h_certificate_create failed\n");
             return PB_ERR;
         }
 
@@ -280,7 +288,7 @@ uint32_t pbimage_prepare(uint32_t key_index,
 
         evp = pkcs11h_openssl_session_getEVP(session);
 
-        if (evp == NULL) 
+        if (evp == NULL)
         {
             printf("pkcs11h_openssl_session_getEVP failed\n");
             return PB_ERR;
@@ -292,7 +300,7 @@ uint32_t pbimage_prepare(uint32_t key_index,
         FILE *fp = fopen(key_source, "r");
         if (PEM_read_PrivateKey(fp, &evp, NULL, NULL) == NULL)
         {
-            printf ("Error: Could not read private key\n");
+            printf("Error: Could not read private key\n");
             return PB_ERR;
         }
 
@@ -310,17 +318,16 @@ void pbimage_cleanup(void)
     if (session != NULL)
     {
         pkcs11h_openssl_freeSession(session);
-        pkcs11h_certificate_freeCertificateIdList (issuers);
-        pkcs11h_certificate_freeCertificateIdList (certs);
-        
-        rv = pkcs11h_terminate ();
+        pkcs11h_certificate_freeCertificateIdList(issuers);
+        pkcs11h_certificate_freeCertificateIdList(certs);
+
+        rv = pkcs11h_terminate();
 
         if (rv != CKR_OK)
         {
-            printf ("pkcs11h_terminate failed");
+            printf("pkcs11h_terminate failed");
         }
     }
-
 }
 
 
@@ -328,7 +335,7 @@ uint32_t pbimage_append_component(const char *comp_type,
                                   uint32_t load_addr,
                                   const char *fn)
 {
-    FILE *fp = NULL;  
+    FILE *fp = NULL;
     struct stat finfo;
     uint32_t idx = hdr.no_of_components;
     uint32_t err = PB_OK;
@@ -348,21 +355,21 @@ uint32_t pbimage_append_component(const char *comp_type,
         goto out_err;
 
     stat(fn, &finfo);
-        
+
     padding = 512 - (finfo.st_size % 512);
 
     comp[idx].component_size = finfo.st_size + padding;
 
-    data = malloc (comp[idx].component_size);
+    data = malloc(comp[idx].component_size);
 
     if (data == NULL)
     {
         err = PB_ERR_MEM;
         goto out_err;
     }
-    
+
     bzero(data, comp[idx].component_size);
- 
+
     size_t read_sz = fread(data, finfo.st_size, 1, fp);
 
     if (read_sz != 1)
@@ -394,17 +401,17 @@ uint32_t pbimage_out(const char *fn)
     unsigned char *asn1_signature;
     size_t signature_size;
 
-	EVP_MD_CTX* ctx;
+    EVP_MD_CTX* ctx;
 
     ctx = EVP_MD_CTX_create();
 
-	if (ctx == NULL) 
+    if (ctx == NULL)
     {
-		printf("EVP_MD_CTX_create failed\n");
+        printf("EVP_MD_CTX_create failed\n");
         return PB_ERR;
-	}
+    }
 
-    bzero(zpad,511);
+    bzero(zpad, 511);
     fp = fopen(fn, "wb");
 
     if (fp == NULL)
@@ -416,39 +423,39 @@ uint32_t pbimage_out(const char *fn)
     switch (hdr.hash_kind)
     {
         case PB_HASH_SHA256:
-            if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) == -1) 
+            if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) == -1)
             {
                 printf("EVP_DigestInit_ex failed\n");
                 return PB_ERR;
             }
 
-            if (EVP_DigestSignInit(ctx, NULL, EVP_sha256(), NULL, evp) == -1) 
+            if (EVP_DigestSignInit(ctx, NULL, EVP_sha256(), NULL, evp) == -1)
             {
                 printf("EVP_DigestSignInit failed");
                 return PB_ERR;
             }
         break;
         case PB_HASH_SHA384:
-            if (EVP_DigestInit_ex(ctx, EVP_sha384(), NULL) == -1) 
+            if (EVP_DigestInit_ex(ctx, EVP_sha384(), NULL) == -1)
             {
                 printf("EVP_DigestInit_ex failed\n");
                 return PB_ERR;
             }
 
-            if (EVP_DigestSignInit(ctx, NULL, EVP_sha384(), NULL, evp) == -1) 
+            if (EVP_DigestSignInit(ctx, NULL, EVP_sha384(), NULL, evp) == -1)
             {
                 printf("EVP_DigestSignInit failed");
                 return PB_ERR;
             }
         break;
         case PB_HASH_SHA512:
-            if (EVP_DigestInit_ex(ctx, EVP_sha512(), NULL) == -1) 
+            if (EVP_DigestInit_ex(ctx, EVP_sha512(), NULL) == -1)
             {
                 printf("EVP_DigestInit_ex failed\n");
                 return PB_ERR;
             }
 
-            if (EVP_DigestSignInit(ctx, NULL, EVP_sha512(), NULL, evp) == -1) 
+            if (EVP_DigestSignInit(ctx, NULL, EVP_sha512(), NULL, evp) == -1)
             {
                 printf("EVP_DigestSignInit failed");
                 return PB_ERR;
@@ -460,18 +467,18 @@ uint32_t pbimage_out(const char *fn)
 
     /* Calculate component offsets and checksum */
 
-	if (EVP_DigestSignUpdate(ctx, &hdr, sizeof(struct pb_image_hdr)) == -1) 
+    if (EVP_DigestSignUpdate(ctx, &hdr, sizeof(struct pb_image_hdr)) == -1)
     {
-		printf("EVP_DigestSignUpdate failed");
+        printf("EVP_DigestSignUpdate failed");
         return PB_ERR;
-	}
+    }
 
     for (uint32_t i = 0; i < ncomp; i++)
     {
         comp[i].component_offset = offset;
 
-        if (EVP_DigestSignUpdate(ctx, &comp[i], 
-                    sizeof(struct pb_component_hdr)) == -1) 
+        if (EVP_DigestSignUpdate(ctx, &comp[i],
+                    sizeof(struct pb_component_hdr)) == -1)
         {
             printf("EVP_DigestSignUpdate failed");
             return PB_ERR;
@@ -482,41 +489,40 @@ uint32_t pbimage_out(const char *fn)
 
     for (uint32_t i = 0; i < ncomp; i++)
     {
-
-        if (EVP_DigestSignUpdate(ctx, component_data[i], 
-                    comp[i].component_size) == -1) 
+        if (EVP_DigestSignUpdate(ctx, component_data[i],
+                    comp[i].component_size) == -1)
         {
             printf("EVP_DigestSignUpdate failed\n");
             return PB_ERR;
         }
     }
 
-	if (EVP_DigestSignFinal(ctx, NULL, &signature_size) == -1) 
+    if (EVP_DigestSignFinal(ctx, NULL, &signature_size) == -1)
     {
-		printf("EVP_DigestSignFinal failed\n");
+        printf("EVP_DigestSignFinal failed\n");
         return PB_ERR;
-	}
+    }
 
-	if (signature_size > PB_IMAGE_SIGN_MAX_SIZE) 
+    if (signature_size > PB_IMAGE_SIGN_MAX_SIZE)
     {
-		printf("Signature > PB_IMAGE_SIGN_MAX_SIZE\n");
+        printf("Signature > PB_IMAGE_SIGN_MAX_SIZE\n");
         return PB_ERR;
-	}
+    }
 
     memset(signature, 0, PB_IMAGE_SIGN_MAX_SIZE);
     asn1_signature = OPENSSL_malloc(signature_size);
 
-	if (asn1_signature == NULL) 
+    if (asn1_signature == NULL)
     {
-		printf("OPENSSL_malloc failed\n");
+        printf("OPENSSL_malloc failed\n");
         return PB_ERR;
-	}
+    }
 
-	if (EVP_DigestSignFinal(ctx, asn1_signature, &signature_size) == -1) 
+    if (EVP_DigestSignFinal(ctx, asn1_signature, &signature_size) == -1)
     {
-		printf("EVP_DigestSignFinal failed\n");
+        printf("EVP_DigestSignFinal failed\n");
         return PB_ERR;
-	}
+    }
 
     /* Signature output from openssl is ASN.1 encoded
      * punchboot requires raw ECDSA signatures
@@ -557,22 +563,22 @@ uint32_t pbimage_out(const char *fn)
             memcpy(signature, asn1_signature, signature_size);
         break;
         default:
-            printf ("Unknown signature format\n");
+            printf("Unknown signature format\n");
             return PB_ERR;
     }
 
     fwrite(&hdr, sizeof(struct pb_image_hdr), 1, fp);
     fwrite(signature, PB_IMAGE_SIGN_MAX_SIZE, 1, fp);
     fwrite(comp, PB_IMAGE_MAX_COMP*
-                sizeof(struct pb_component_hdr),1,fp);
+                sizeof(struct pb_component_hdr), 1, fp);
 
     for (uint32_t i = 0; i < ncomp; i++)
-        fwrite(component_data[i],comp[i].component_size,1,fp);
+        fwrite(component_data[i], comp[i].component_size, 1, fp);
 
-    fclose (fp);
+    fclose(fp);
 
-	OPENSSL_free(asn1_signature);
-	EVP_MD_CTX_destroy(ctx);
+    OPENSSL_free(asn1_signature);
+    EVP_MD_CTX_destroy(ctx);
     return PB_OK;
 }
 

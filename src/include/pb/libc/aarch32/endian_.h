@@ -27,7 +27,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)endian.h	8.1 (Berkeley) 6/10/93
+ *    @(#)endian.h    8.1 (Berkeley) 6/10/93
  * $NetBSD: endian.h,v 1.7 1999/08/21 05:53:51 simonb Exp $
  * $FreeBSD$
  */
@@ -36,8 +36,8 @@
  * All rights reserved.
  */
 
-#ifndef ENDIAN__H
-#define ENDIAN__H
+#ifndef INCLUDE_PB_LIBC_AARCH32_ENDIAN__H_
+#define INCLUDE_PB_LIBC_AARCH32_ENDIAN__H_
 
 #include <stdint.h>
 
@@ -50,9 +50,9 @@
 #define _PDP_ENDIAN     3412    /* LSB first in word, MSW first in long */
 
 #ifdef __ARMEB__
-#define _BYTE_ORDER	_BIG_ENDIAN
+#define _BYTE_ORDER    _BIG_ENDIAN
 #else
-#define	_BYTE_ORDER	_LITTLE_ENDIAN
+#define    _BYTE_ORDER    _LITTLE_ENDIAN
 #endif /* __ARMEB__ */
 
 #if __BSD_VISIBLE
@@ -65,10 +65,10 @@
 #ifdef __ARMEB__
 #define _QUAD_HIGHWORD 0
 #define _QUAD_LOWWORD 1
-#define __ntohl(x)	((uint32_t)(x))
-#define __ntohs(x)	((uint16_t)(x))
-#define __htonl(x)	((uint32_t)(x))
-#define __htons(x)	((uint16_t)(x))
+#define __ntohl(x)    ((uint32_t)(x))
+#define __ntohs(x)    ((uint16_t)(x))
+#define __htonl(x)    ((uint32_t)(x))
+#define __htons(x)    ((uint16_t)(x))
 #else
 #define _QUAD_HIGHWORD  1
 #define _QUAD_LOWWORD 0
@@ -81,66 +81,65 @@
 static __inline uint64_t
 __bswap64(uint64_t _x)
 {
-
-	return ((_x >> 56) | ((_x >> 40) & 0xff00) | ((_x >> 24) & 0xff0000) |
-	    ((_x >> 8) & 0xff000000) | ((_x << 8) & ((uint64_t)0xff << 32)) |
-	    ((_x << 24) & ((uint64_t)0xff << 40)) |
-	    ((_x << 40) & ((uint64_t)0xff << 48)) | ((_x << 56)));
+    return ((_x >> 56) | ((_x >> 40) & 0xff00) | ((_x >> 24) & 0xff0000) |
+        ((_x >> 8) & 0xff000000) | ((_x << 8) & ((uint64_t)0xff << 32)) |
+        ((_x << 24) & ((uint64_t)0xff << 40)) |
+        ((_x << 40) & ((uint64_t)0xff << 48)) | ((_x << 56)));
 }
 
 static __inline uint32_t
 __bswap32_var(uint32_t v)
 {
-	uint32_t t1;
+    uint32_t t1;
 
-	__asm __volatile("eor %1, %0, %0, ror #16\n"
-	    		"bic %1, %1, #0x00ff0000\n"
-			"mov %0, %0, ror #8\n"
-			"eor %0, %0, %1, lsr #8\n"
-			 : "+r" (v), "=r" (t1));
+    __asm __volatile("eor %1, %0, %0, ror #16\n"
+                "bic %1, %1, #0x00ff0000\n"
+            "mov %0, %0, ror #8\n"
+            "eor %0, %0, %1, lsr #8\n"
+             : "+r" (v), "=r" (t1));
 
-	return (v);
+    return (v);
 }
 
 static __inline uint16_t
 __bswap16_var(uint16_t v)
 {
-	uint32_t ret = v & 0xffff;
+    uint32_t ret = v & 0xffff;
 
-	__asm __volatile(
-	    "mov    %0, %0, ror #8\n"
-	    "orr    %0, %0, %0, lsr #16\n"
-	    "bic    %0, %0, %0, lsl #16"
-	    : "+r" (ret));
+    __asm __volatile(
+        "mov    %0, %0, ror #8\n"
+        "orr    %0, %0, %0, lsr #16\n"
+        "bic    %0, %0, %0, lsl #16"
+        : "+r" (ret));
 
-	return ((uint16_t)ret);
+    return ((uint16_t)ret);
 }
 
 #ifdef __OPTIMIZE__
 
-#define __bswap32_constant(x)	\
-    ((((x) & 0xff000000U) >> 24) |	\
-     (((x) & 0x00ff0000U) >>  8) |	\
-     (((x) & 0x0000ff00U) <<  8) |	\
+#define __bswap32_constant(x)    \
+    ((((x) & 0xff000000U) >> 24) |    \
+     (((x) & 0x00ff0000U) >>  8) |    \
+     (((x) & 0x0000ff00U) <<  8) |    \
      (((x) & 0x000000ffU) << 24))
 
-#define __bswap16_constant(x)	\
-    ((((x) & 0xff00) >> 8) |		\
+#define __bswap16_constant(x)    \
+    ((((x) & 0xff00) >> 8) |        \
      (((x) & 0x00ff) << 8))
 
-#define __bswap16(x)	\
-    ((uint16_t)(__builtin_constant_p(x) ?	\
-     __bswap16_constant(x) :			\
+#define __bswap16(x)    \
+    ((uint16_t)(__builtin_constant_p(x) ?    \
+     __bswap16_constant(x) :            \
      __bswap16_var(x)))
 
-#define __bswap32(x)	\
-    ((uint32_t)(__builtin_constant_p(x) ? 	\
-     __bswap32_constant(x) :			\
+#define __bswap32(x)    \
+    ((uint32_t)(__builtin_constant_p(x) ?     \
+     __bswap32_constant(x) :            \
      __bswap32_var(x)))
 
 #else
-#define __bswap16(x)	__bswap16_var(x)
-#define __bswap32(x)	__bswap32_var(x)
+#define __bswap16(x)    __bswap16_var(x)
+#define __bswap32(x)    __bswap32_var(x)
 
 #endif /* __OPTIMIZE__ */
-#endif /* ENDIAN__H */
+#endif  // INCLUDE_PB_LIBC_AARCH32_ENDIAN__H_
