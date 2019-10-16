@@ -367,4 +367,4 @@ void test_main(void)
     assert(!flag_wait_for_zlp);
 
     LOG_INFO("USB CH9 test end");
-
+}
