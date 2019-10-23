@@ -45,6 +45,9 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
     struct pb_component_hdr *atf =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
 
+    struct pb_component_hdr *tee =
+            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_TEE);
+
     struct pb_component_hdr *ramdisk =
             pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_RAMDISK);
 
@@ -204,7 +207,13 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
         arch_jump_atf((void *)(uintptr_t) atf->load_addr,
                       (void *)(uintptr_t) NULL);
     }
-    else if (dtb && linux)
+    else if(dtb && linux && !atf && tee)
+    {
+        LOG_INFO("TEE boot");
+        arch_jump_linux_dt((void *)(uintptr_t) tee->load_addr,
+                           (void *)(uintptr_t) dtb->load_addr);
+    }
+    else if(dtb && linux)
     {
         arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr,
                            (void *)(uintptr_t) dtb->load_addr);
