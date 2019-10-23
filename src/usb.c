@@ -217,7 +217,6 @@ static uint32_t usb_process_setup_pkt(struct usb_device *dev,
         case USB_GET_STATUS:
         {
             usb_send_ep0(dev, (uint8_t *) &device_status, 2);
-            usb_send_ep0(dev, NULL, 0);
         }
         break;
         default:
