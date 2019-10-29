@@ -298,6 +298,13 @@ uint32_t pbimage_prepare(uint32_t key_index,
     {
         evp = EVP_PKEY_new();
         FILE *fp = fopen(key_source, "r");
+
+        if (fp == NULL)
+        {
+            printf("Error: Could not open key file: %s\n", key_source);
+            return PB_ERR_IO;
+        }
+
         if (PEM_read_PrivateKey(fp, &evp, NULL, NULL) == NULL)
         {
             printf("Error: Could not read private key\n");
