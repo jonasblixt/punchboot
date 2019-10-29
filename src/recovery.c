@@ -551,6 +551,11 @@ static void recovery_parse_command(struct usb_device *dev,
                 break;
 
             err = gpt_write_tbl();
+
+            if (err != PB_OK)
+                break;
+
+            err = config_init();
         }
         break;
         case PB_CMD_SETUP:
