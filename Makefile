@@ -14,6 +14,15 @@ tests:
 	@make -C src/ BOARD=test LOGLEVEL=10 clean
 	@make -C src/ BOARD=test LOGLEVEL=10
 	@make -C src/ BOARD=test LOGLEVEL=10 test
+
+all-boards:
+	@rm -rf src/build-*
+	@make -C src/ BOARD=test LOGLEVEL=3
+	@make -C src/ BOARD=jiffy LOGLEVEL=3
+	@make -C src/ BOARD=pico8ml LOGLEVEL=3
+	@make -C src/ BOARD=imx8qxmek LOGLEVEL=3
+	@make -C src/ BOARD=imx8mevk LOGLEVEL=3
+
 coverity:
 	@rm -rf cov-int && \
 		cov-configure --config cov.xml \
