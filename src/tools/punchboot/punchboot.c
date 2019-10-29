@@ -715,7 +715,7 @@ int main(int argc, char **argv)
     char *s_arg = NULL;
 
 
-    while ((c = getopt (argc-1, &argv[1], "hiwraybu:xs:ln:f:vo:")) != -1)
+    while ((c = getopt (argc, argv, "hiwraybu:xs:ln:f:vo:")) != -1)
     {
         switch (c)
         {
@@ -781,7 +781,7 @@ int main(int argc, char **argv)
                 flag_help = true;
             break;
             default:
-                abort();
+                exit(-1);
         }
     }
 
