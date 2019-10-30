@@ -249,6 +249,9 @@ uint32_t pb_get_version(char **out)
 
     err = pb_read((uint8_t*) &sz, 4);
 
+    if (sz == 0)
+        return PB_ERR;
+
     *out = malloc(sz+1);
     bzero(*out, sz+1);
 
