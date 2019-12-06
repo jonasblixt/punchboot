@@ -25,7 +25,8 @@
 #include <plat/defs.h>
 
 #define RECOVERY_CMD_BUFFER_SZ  1024*64
-#define RECOVERY_BULK_BUFFER_SZ 1024*1024*8
+#define RECOVERY_BULK_BUFFER_BLOCKS 16384
+#define RECOVERY_BULK_BUFFER_SZ (RECOVERY_BULK_BUFFER_BLOCKS*512)
 #define RECOVERY_MAX_PARAMS 128
 
 static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
@@ -57,6 +58,7 @@ const char *recovery_cmd_name[] =
     "PB_CMD_AUTHENTICATE",
     "PB_CMD_IS_AUTHENTICATED",
     "PB_CMD_WRITE_PART_FINAL",
+    "PB_CMD_VERIFY_PART",
 };
 
 
@@ -119,8 +121,13 @@ static uint32_t recovery_authenticate(uint32_t key_index,
 }
 
 static uint32_t recovery_flash_bootloader(uint8_t *bfr,
-                                          uint32_t blocks_to_write)
+                                          uint32_t blocks_to_write,
+                                          uint32_t file_size,
+                                          char *hash_data)
 {
+    char hash[32];
+    uint32_t rc = PB_OK;
+
     if (plat_switch_part(PLAT_EMMC_PART_BOOT0) != PB_OK)
     {
         LOG_ERR("Could not switch partition");
@@ -129,13 +136,51 @@ static uint32_t recovery_flash_bootloader(uint8_t *bfr,
 
     plat_switch_part(PLAT_EMMC_PART_BOOT0);
     plat_write_block(PB_BOOTPART_OFFSET, (uintptr_t) bfr, blocks_to_write);
+    
+    /* Read back and check hash */
+    plat_read_block(PB_BOOTPART_OFFSET, (uintptr_t) recovery_bulk_buffer[1]
+                    , blocks_to_write);
+
+    plat_hash_init(PB_HASH_SHA256);
+    plat_hash_update((uintptr_t) recovery_bulk_buffer[1],
+                        file_size);
+    plat_hash_finalize((uintptr_t) hash);
+
+    for (uint32_t i = 0; i < 32; i++)
+    {
+        if (hash[i] != hash_data[i])
+        {
+            rc = PB_ERR;
+            goto err_out;
+        }
+    }
 
     plat_switch_part(PLAT_EMMC_PART_BOOT1);
     plat_write_block(PB_BOOTPART_OFFSET, (uintptr_t) bfr, blocks_to_write);
 
+    /* Read back and check hash */
+    plat_read_block(PB_BOOTPART_OFFSET, (uintptr_t) recovery_bulk_buffer[1]
+                    , blocks_to_write);
+
+    plat_hash_init(PB_HASH_SHA256);
+    plat_hash_update((uintptr_t) recovery_bulk_buffer[1],
+                        file_size);
+    plat_hash_finalize((uintptr_t) hash);
+
+    for (uint32_t i = 0; i < 32; i++)
+    {
+        if (hash[i] != hash_data[i])
+        {
+            rc = PB_ERR;
+            goto err_out;
+        }
+    }
+
+err_out:
+    LOG_ERR("Programming bootloader failed");
     plat_switch_part(PLAT_EMMC_PART_USER);
 
-    return PB_OK;
+    return rc;
 }
 
 static uint32_t recovery_flash_part(uint8_t part_no,
@@ -300,9 +345,13 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_FLASH_BOOTLOADER:
         {
-            LOG_INFO("Flash BL %u", cmd->arg0);
-            recovery_flash_bootloader(recovery_bulk_buffer[0],
-                        cmd->arg0);
+            char hash_data_in[32];
+            LOG_INFO("Flash BL %u, %u", cmd->arg0, cmd->arg1);
+
+            recovery_read_data(dev,(uint8_t *) hash_data_in, 32);
+
+            err = recovery_flash_bootloader(recovery_bulk_buffer[0],
+                        cmd->arg0, cmd->arg1, hash_data_in);
         }
         break;
         case PB_CMD_GET_VERSION:
@@ -404,6 +453,52 @@ static void recovery_parse_command(struct usb_device *dev,
         {
             LOG_DBG("Part final, flush");
             err = plat_flush_block();
+        }
+        break;
+        case PB_CMD_VERIFY_PART:
+        {
+            char hash_data_in[32];
+            char hash_data_gen[32];
+
+            uint32_t part_lba_offset = 0;
+
+            part_lba_offset = gpt_get_part_first_lba(cmd->arg0) +
+                                cmd->arg1;
+
+            recovery_read_data(dev,(uint8_t *) hash_data_in, 32);
+
+            LOG_INFO("Verifying part %u with offset %x, size %i bytes",
+                        cmd->arg0, cmd->arg1, cmd->arg2);
+
+            plat_hash_init(PB_HASH_SHA256);
+            uint32_t no_of_blocks = cmd->arg2 / 512;
+            uint32_t chunk = 0;
+
+            while(no_of_blocks)
+            {
+                chunk = (no_of_blocks > RECOVERY_BULK_BUFFER_BLOCKS)?
+                                RECOVERY_BULK_BUFFER_BLOCKS:no_of_blocks;
+
+                plat_read_block(part_lba_offset,
+                                (uintptr_t) recovery_bulk_buffer[0], chunk);
+
+                plat_hash_update((uintptr_t) recovery_bulk_buffer[0],
+                                    chunk*512);
+                part_lba_offset += chunk;
+                no_of_blocks -= chunk;
+            };
+
+            plat_hash_finalize((uintptr_t) hash_data_gen);
+
+            err = PB_OK;
+            for (uint32_t i = 0; i < 32; i++)
+            {
+                if (hash_data_in[i] != hash_data_gen[i])
+                {
+                    err = PB_ERR;
+                    break;
+                }
+            }
         }
         break;
         case PB_CMD_BOOT_PART:

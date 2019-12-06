@@ -22,6 +22,7 @@
 #include <pb/params.h>
 #include <pb/crypto.h>
 #include <uuid.h>
+#include <3pp/bearssl/bearssl_hash.h>
 
 #define INI_IMPLEMENTATION
 #include "3pp/ini.h"
@@ -356,6 +357,7 @@ static void print_part_help(void)
     printf(" Partition Management:\n");
     printf("  punchboot part -l                                 - List partitions\n");
     printf("  punchboot part -w -n <n> [-o <blk>] -f <filename> - Write 'fn' to partition 'n' with offset 'o'\n");
+    printf("  punchboot part -c -n <n> [-o <blk>] -f <filename> - Verify data on partition\n");
     printf("  punchboot part -i                                 - Install default GPT table\n");
     printf("\n");
 }
@@ -369,6 +371,7 @@ static void print_help(void) {
 
 static uint32_t part_command(bool flag_list,
                              bool flag_write,
+                             bool flag_c,
                              bool flag_index,
                              bool flag_install,
                              bool flag_reset,
@@ -397,6 +400,21 @@ static uint32_t part_command(bool flag_list,
                             fn, cmd_index, offset);
 
         err = pb_flash_part(cmd_index, offset, fn);
+
+        if (err != PB_OK)
+            return err;
+    }
+    else if (flag_c && flag_index && fn)
+    {
+        printf("Verifying %s on part %li with offset %li\n",
+                            fn, cmd_index, offset);
+
+        err = pb_check_part(cmd_index, offset, fn);
+
+        if (err != PB_OK)
+            printf ("Verification FAILED\n");
+        else
+            printf ("Verification OK\n");
 
         if (err != PB_OK)
             return err;
@@ -709,13 +727,14 @@ int main(int argc, char **argv)
     bool flag_b = false;
     bool flag_v = false;
     bool flag_y = false;
+    bool flag_c = false;
 
     char *fn = NULL;
     char *cmd = argv[1];
     char *s_arg = NULL;
 
 
-    while ((c = getopt (argc, argv, "hiwraybu:xs:ln:f:vo:")) != -1)
+    while ((c = getopt (argc, argv, "hiwcraybu:xs:ln:f:vo:")) != -1)
     {
         switch (c)
         {
@@ -733,6 +752,9 @@ int main(int argc, char **argv)
             break;
             case 'b':
                 flag_b = true;
+            break;
+            case 'c':
+                flag_c = true;
             break;
             case 'y':
                 flag_y = true;
@@ -823,6 +845,7 @@ int main(int argc, char **argv)
     {
         err = part_command(flag_list,
                            flag_write,
+                           flag_c,
                            flag_index,
                            flag_install,
                            flag_reset,

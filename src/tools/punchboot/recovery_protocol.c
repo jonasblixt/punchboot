@@ -22,7 +22,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-
+#include <3pp/bearssl/bearssl_hash.h>
 #include <pb/crypto.h>
 #include "recovery_protocol.h"
 #include "transport.h"
@@ -307,6 +307,59 @@ uint32_t pb_get_gpt_table(struct gpt_primary_tbl *tbl)
     return pb_read_result_code();
 }
 
+uint32_t pb_check_part(uint8_t part_no, int64_t offset, const char *f_name)
+{
+    br_sha256_context ctx;
+    int rc = PB_OK;
+    char hash_data[32];
+    char *buf = malloc(1024*1024);
+    
+    if (!buf)
+    {
+        rc = PB_ERR;
+        goto err_out;
+    }
+
+    FILE *fp = fopen(f_name, "rb");
+
+    if (!fp)
+    {
+        rc = PB_ERR;
+        goto err_free_buf;
+    }
+
+    br_sha256_init(&ctx);
+    
+    size_t read_data = 0;
+    size_t file_size = 0;
+    do
+    {
+        read_data = fread(buf, 1, 1024*1024, fp);
+        file_size += read_data;
+        br_sha256_update(&ctx, buf, read_data);
+    } while (read_data);
+
+    br_sha256_out(&ctx, hash_data);
+
+    rc = pb_write(PB_CMD_VERIFY_PART, part_no, offset, file_size, 0,
+                    (uint8_t *) hash_data, 32);
+
+    if (rc != PB_OK)
+        goto err_close_fp;
+
+    rc = pb_read_result_code();
+
+    if (rc != PB_OK)
+        goto err_close_fp;
+
+err_close_fp:
+    fclose(fp);
+err_free_buf:
+    free(buf);
+err_out:
+    return rc;
+}
+
 uint32_t pb_flash_part(uint8_t part_no, int64_t offset, const char *f_name)
 {
     int read_sz = 0;
@@ -397,8 +450,10 @@ uint32_t pb_program_bootloader(const char *f_name)
     FILE *fp = NULL;
     unsigned char bfr[1024*1024*1];
     uint32_t no_of_blocks = 0;
+    char hash[32];
     struct stat finfo;
     struct pb_cmd_prep_buffer buffer_cmd;
+    br_sha256_context ctx;
 
     fp = fopen(f_name, "rb");
 
@@ -421,17 +476,20 @@ uint32_t pb_program_bootloader(const char *f_name)
     err = pb_write(PB_CMD_PREP_BULK_BUFFER, 0, 0, 0, 0, (uint8_t *) &buffer_cmd,
                                     sizeof(struct pb_cmd_prep_buffer));
 
-
     if (err != PB_OK)
         return err;
+
+    br_sha256_init(&ctx);
 
     while ((read_sz = fread(bfr, 1, sizeof(bfr), fp)) >0)
     {
         err = pb_write_bulk(bfr, read_sz, &sent_sz);
+        br_sha256_update(&ctx, bfr, read_sz);
         if (err != 0)
             return -1;
     }
 
+    br_sha256_out(&ctx, hash);
     fclose(fp);
 
     err = pb_read_result_code();
@@ -439,7 +497,8 @@ uint32_t pb_program_bootloader(const char *f_name)
     if (err != PB_OK)
         return err;
 
-    err = pb_write(PB_CMD_FLASH_BOOTLOADER, no_of_blocks, 0, 0, 0, NULL, 0);
+    err = pb_write(PB_CMD_FLASH_BOOTLOADER, no_of_blocks, finfo.st_size, 0, 0,
+                    (uint8_t *) hash, 32);
 
     if (err != PB_OK)
         return err;

@@ -42,6 +42,11 @@ C_SRCS   = $(TARGET).c
 C_SRCS  += crc.c
 C_SRCS  += utils.c
 C_SRCS  += recovery_protocol.c
+C_SRCS  += 3pp/bearssl/sha2small.c
+C_SRCS  += 3pp/bearssl/dec32be.c
+C_SRCS  += 3pp/bearssl/dec32le.c
+C_SRCS  += 3pp/bearssl/enc32le.c
+C_SRCS  += 3pp/bearssl/enc32be.c
 
 ifndef TRANSPORT
 		TRANSPORT = usb
@@ -81,6 +86,8 @@ install:
 
 clean: 
 	@-rm -rf *.o $(TARGET)  *.map out
+	@-rm -rf 3pp/bearssl/*.o
+
 reallyclean: clean
 	$(MAKE) -C 3pp/libtomcrypt clean
 	$(MAKE) -C 3pp/libtommath clean
