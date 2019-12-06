@@ -129,11 +129,18 @@ uint32_t plat_setup_device(struct param *params)
 
     foreach_fuse(f, fuses)
     {
-        f->value = f->default_value;
-        err = plat_fuse_write(f);
+        if ((f->value & f->default_value) != f->default_value)
+        {
+            f->value = f->default_value;
+            err = plat_fuse_write(f);
 
-        if (err != PB_OK)
-            return err;
+            if (err != PB_OK)
+                return err;
+        }
+        else
+        {
+            LOG_DBG("Fuse %s already programmed", f->description);
+        }
     }
 
     return board_setup_device(params);
