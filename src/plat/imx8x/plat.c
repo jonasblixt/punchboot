@@ -192,18 +192,7 @@ uint32_t  plat_early_init(void)
 
     sc_ipc_open(&plat.ipc_handle, SC_IPC_BASE);
 
-    /* TODO: Temporary code for measuring boot time */
-    sc_pm_set_resource_power_mode(plat.ipc_handle, SC_R_GPIO_0,
-                                  SC_PM_PW_MODE_ON);
-    rate = 1000000;
-    sc_pm_set_clock_rate(plat.ipc_handle, SC_R_GPIO_0, 2, &rate);
-    sc_pm_clock_enable(plat.ipc_handle, SC_R_GPIO_0, 2, true, false);
-    pb_setbit32(1 << 16, GPIO_BASE+0x04);
-    pb_setbit32(1 << 16, GPIO_BASE);
-    sc_pad_set(plat.ipc_handle, SC_P_SPI3_CS0, GPIO_PAD_CTRL | (4 << 27));
-    /* TODO: End of Temporary code */
-
-    // plat_wdog_init();
+    plat_wdog_init();
 
     err = board_early_init(&plat);
 
@@ -320,7 +309,7 @@ uint64_t plat_get_lastlba(void)
 
 void plat_preboot_cleanup(void)
 {
-    pb_clrbit32(1 << 16, GPIO_BASE);
+
 }
 
 /* USB Interface API */
