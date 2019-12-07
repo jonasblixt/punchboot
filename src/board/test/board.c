@@ -126,3 +126,14 @@ uint32_t board_get_params(struct param **pp)
 
     return PB_OK;
 }
+
+uint32_t board_recovery_command(uint32_t arg0, uint32_t arg1, uint32_t arg2,
+                                uint32_t arg3)
+{
+    UNUSED(arg0);
+    UNUSED(arg1);
+    UNUSED(arg2);
+    UNUSED(arg3);
+
+    return PB_ERR;
+}

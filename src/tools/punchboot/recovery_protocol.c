@@ -591,3 +591,15 @@ err_xfer:
     return err;
 }
 
+uint32_t pb_recovery_board_command(uint32_t arg0, uint32_t arg1, uint32_t arg2,
+                                   uint32_t arg3)
+{
+    uint32_t err;
+
+    err = pb_write(PB_CMD_BOARD_COMMAND, arg0, arg1, arg2, arg3, NULL, 0);
+
+    if (err != PB_OK)
+        return err;
+
+    return pb_read_result_code();
+}

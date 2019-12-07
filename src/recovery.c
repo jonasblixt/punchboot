@@ -59,6 +59,7 @@ const char *recovery_cmd_name[] =
     "PB_CMD_IS_AUTHENTICATED",
     "PB_CMD_WRITE_PART_FINAL",
     "PB_CMD_VERIFY_PART",
+    "PB_CMD_BOARD_COMMAND",
 };
 
 
@@ -734,6 +735,14 @@ static void recovery_parse_command(struct usb_device *dev,
 
             if (err == PB_OK)
                 recovery_authenticated = true;
+        }
+        break;
+        case PB_CMD_BOARD_COMMAND:
+        {
+            err = board_recovery_command(cmd->arg0,
+                                         cmd->arg1,
+                                         cmd->arg2,
+                                         cmd->arg3);
         }
         break;
         default:

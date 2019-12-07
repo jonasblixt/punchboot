@@ -61,5 +61,7 @@ bool  board_force_recovery(struct pb_platform_setup *plat);
 uint32_t board_setup_device(struct param *params);
 uint32_t board_setup_lock(void);
 uint32_t board_get_params(struct param **pp);
+uint32_t board_recovery_command(uint32_t arg0, uint32_t arg1, uint32_t arg2,
+                                uint32_t arg3);
 
 #endif  // INCLUDE_PB_BOARD_H_

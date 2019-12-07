@@ -349,6 +349,7 @@ static void print_dev_help(void)
     printf("  punchboot dev -w [-y]                        - Lock device setup\n");
     printf("  punchboot dev -a [-n <key id>] -f <filename> - Authenticate\n");
     printf("                -s <signature format>:<hash>\n");
+    printf("  punchboot dev -b <arg0>,<arg1>,<arg2>,<arg3> - Issue board specific command\n");
     printf("\n");
 }
 
@@ -520,8 +521,10 @@ static uint32_t dev_command(bool flag_list,
                             bool flag_write,
                             bool flag_s,
                             bool flag_a,
+                            bool flag_b,
                             bool flag_index,
                             uint32_t cmd_index,
+                            const char *extra_args,
                             const char *s_arg,
                             const char *fn)
 {
@@ -689,6 +692,38 @@ static uint32_t dev_command(bool flag_list,
         else
             printf("Authentication successful\n");
     }
+    else if (flag_b)
+    {
+        if (!extra_args)
+        {
+            printf ("Error no parameters supplied\n");
+            return PB_ERR;
+        }
+
+        char delim[] = ",";
+        char *data_in = strdup(extra_args);
+        char *tok = strtok(data_in, delim);
+        uint32_t args[4];
+        uint32_t args_count = 0;
+
+        while (tok != NULL)
+        {
+            args[args_count++] = strtol(tok, NULL, 0);
+            tok = strtok(NULL, delim);
+
+            if (args_count > 3)
+                break;
+        }
+        
+        err = pb_recovery_board_command(args[0], args[1], args[2], args[3]);
+
+        if (err == PB_OK)
+            printf("Command successful\n");
+        else
+            printf("Command failed\n");
+
+        free(data_in);
+    }
     else
     {
         print_help_header();
@@ -732,7 +767,6 @@ int main(int argc, char **argv)
     char *fn = NULL;
     char *cmd = argv[1];
     char *s_arg = NULL;
-
 
     while ((c = getopt (argc, argv, "hiwcraybu:xs:ln:f:vo:")) != -1)
     {
@@ -816,6 +850,8 @@ int main(int argc, char **argv)
     if (transport_init(usb_path, usb_path_count) != 0)
         exit(-1);
 
+    char *extra_args = argv[optind+1];
+
     if (strcmp(cmd, "dev") == 0)
     {
         err = dev_command(flag_list,
@@ -824,8 +860,10 @@ int main(int argc, char **argv)
                           flag_write,
                           flag_s,
                           flag_a,
+                          flag_b,
                           flag_index,
                           cmd_index,
+                          extra_args,
                           s_arg,
                           fn);
     }
