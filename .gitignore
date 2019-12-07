@@ -19,3 +19,6 @@ src/tools/pbconfig/pbconfig
 src/tools/pbimage/pbimage
 src/tools/punchboot/punchboot
 blobs/
+src/tools/pbconfig/src/build*
+src/tools/pbimage/src/build*
+src/tools/punchboot/src/build*
