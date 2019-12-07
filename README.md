@@ -30,6 +30,12 @@ Releases history:
 
 | Version | Release date | Changes                                          |
 | ------- | ------------ | ------------------------------------------------ |
+| v0.5    | 2019-12-07   | Add internal platform API documentation  |
+|         |              | Re-organized tools to include output build directories |
+|         |              | Support board specific commands in recovery mode |
+|         |              | Support verification of data written to partitions without booting |
+|         |              | Support for out-of-tree board directories |
+|         |              | Various bugfixes and improvements |
 | v0.4    | 2019-06-19   | Use separate config partitions instead of GPT headers for storing the state  |
 |         |              | Improve test/build system reliability            |
 |         |              | Docker image can now build all targets and run tests |
@@ -79,6 +85,8 @@ docker run -it -u $(id -u $USER) -v $(readlink -f .):/pb/ pb_docker_env make -C 
 The dockerfile in the top directory details the dependencies on ubuntu xenial
 
 ## Design
+
+[Internal API documentation](doc/platform_api.rst)
 
 Punchboot is written in C and some assembler. Currently armv7a and armv8 is supported.
 
