@@ -29,11 +29,12 @@ PKG_CONFIG ?= pkg-config
 USB_PID ?= 0x2019
 USB_VID ?= 0x1209
 
-CFLAGS  += -Wall -O2 -I ../../include/
-CFLAGS  += -I. -I include/  -I ../../
+CFLAGS  += -Wall -O2 -I ../../../include/
+CFLAGS  += -I. -I include/  -I ../../../
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += -DPB_USB_VID=$(USB_VID) -DPB_USB_PID=$(USB_PID)
 CFLAGS  += $(shell $(PKG_CONFIG) --cflags libusb-1.0 uuid)
+CFLAGS  += -MMD -MP
 
 LIBS     = $(shell $(PKG_CONFIG) --libs libusb-1.0 uuid)
 
@@ -48,11 +49,14 @@ C_SRCS  += 3pp/bearssl/dec32le.c
 C_SRCS  += 3pp/bearssl/enc32le.c
 C_SRCS  += 3pp/bearssl/enc32be.c
 
+BUILD_DIR = build
+
 ifndef TRANSPORT
 		TRANSPORT = usb
 endif
 
 ifeq ($(TRANSPORT), socket)
+	BUILD_DIR = build-test
 	TRANSPORT = socket
 else ifeq ($(TRANSPORT), usb)
 	TRANSPORT = usb
@@ -64,32 +68,33 @@ ifdef CODE_COV
 	CFLAGS += -fprofile-arcs -ftest-coverage
 endif
 
+$(shell mkdir -p $(BUILD_DIR))
+
 C_SRCS  += $(TRANSPORT)_transport.c
 
-OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
+OBJS   += $(patsubst %.c, $(BUILD_DIR)/%.o, $(C_SRCS))
+DEPS      = $(OBJS:.o=.d)
 
-all: $(TARGET)
+all: $(BUILD_DIR)/$(TARGET)
 
-$(TARGET): $(OBJS)
+$(BUILD_DIR)/$(TARGET): $(OBJS)
 	@echo LINK $@ $(LDFLAGS)
 	@$(CC) $(LDFLAGS) $(CFLAGS) $(OBJS) $(LIBS) -o $@
 
-%.o: %.S
-	@echo CC $<
-	@$(CC) -c $(CFLAGS) $< -o $@
-%.o: %.c
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(@D)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install:
-	@install -m 755 $(TARGET) $(PREFIX)/bin
+	@install -m 755 $(BUILD_DIR)/$(TARGET) $(PREFIX)/bin
 
 clean: 
-	@-rm -rf *.o $(TARGET)  *.map out
-	@-rm -rf 3pp/bearssl/*.o
+	@-rm -rf $(BUILD_DIR)/
 
 reallyclean: clean
 	$(MAKE) -C 3pp/libtomcrypt clean
 	$(MAKE) -C 3pp/libtommath clean
 	$(MAKE) -C 3pp/tinyprintf clean
 
+-include $(DEPS)

@@ -2,7 +2,7 @@ CROSS_COMPILE ?= arm-linux-gnueabihf-
 
 all:
 	@make -C pbimage/
-	@make -C punchboot/
+	@make -C punchboot/src
 	@make -C imxcst/src
 clean:
 	@make -C pbimage/ clean

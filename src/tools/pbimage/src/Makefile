@@ -2,10 +2,10 @@
 # Punch BOOT Image creation tool
 #
 # Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
-# 
+#
 # SPDX-License-Identifier: BSD-3-Clause
-# 
-# 
+#
+#
 
 
 # Makefile for Punch BOOT
@@ -34,37 +34,43 @@ endif
 
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
-CFLAGS  += -Wall -O2 -I ../../include/ -std=c99
-CFLAGS  += -DVERSION=\"$(GIT_VERSION)\" 
+CFLAGS  += -Wall -O2 -I ../../../include/ -std=c99
+CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += $(shell pkg-config --cflags openssl libpkcs11-helper-1)
 CFLAGS  += -I . -D_POSIX_C_SOURCE
+CFLAGS  += -MMD -MP
 
 LIBS    = $(shell pkg-config --libs openssl libpkcs11-helper-1)
 
-ASM_SRCS = 
+ASM_SRCS =
 C_SRCS   = main.c
 C_SRCS  += pbimage.c
 
-OBJS     = $(ASM_SRCS:.S=.o) $(C_SRCS:.c=.o)
+$(shell mkdir -p build)
+
+OBJS   += $(patsubst %.c, build/%.o, $(C_SRCS))
+DEPS      = $(OBJS:.o=.d)
 
 ifdef CODE_COV
 	CFLAGS += -fprofile-arcs -ftest-coverage
 endif
 
-all: $(TARGET)
+all: build/$(TARGET)
 
-$(TARGET): $(OBJS)
+build/$(TARGET): $(OBJS)
 	@echo LINK $@ $(LDFLAGS)
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 	@strip $@
 
-%.o: %.c
+build/%.o: %.c
+	@mkdir -p $(@D)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install: all
 	@install -m 755 $(TARGET) $(PREFIX)
 
-clean: 
-	@-rm -rf $(OBJS) $(TARGET)  *.map out
+clean:
+	@-rm -rf build/
 
+-include $(DEPS)

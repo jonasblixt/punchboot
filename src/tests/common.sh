@@ -81,9 +81,9 @@ test_end_ok()
 
 start_qemu
 
-PB=tools/punchboot/punchboot
-PBI=tools/pbimage/pbimage
-PBCONFIG=tools/pbconfig/pbconfig
+PB=tools/punchboot/src/build-test/punchboot
+PBI=tools/pbimage/src/build/pbimage
+PBCONFIG=tools/pbconfig/src/build/pbconfig
 
 KEY1=../pki/dev_rsa_private.der
 KEY2=../pki/prod_rsa_private.der

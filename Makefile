@@ -9,8 +9,9 @@ all:
 	@echo Top level makefile is used to run tests and coverity. \
 			Use src/Makefile for normal builds
 tests:
-	@make -C src/tools/punchboot clean
-	@make -C src/tools/pbimage clean
+	@make -C src/tools/punchboot/src clean
+	@make -C src/tools/pbimage/src clean
+	@make -C src/tools/pbconfig/src clean
 	@make -C src/ BOARD=test LOGLEVEL=10 clean
 	@make -C src/ BOARD=test LOGLEVEL=10
 	@make -C src/ BOARD=test LOGLEVEL=10 test
@@ -53,5 +54,6 @@ dockerenv:
 
 clean:
 	@make -C src/ BOARD=test clean
-	@make -C src/tools/punchboot clean
-	@make -C src/tools/pbimage clean
+	@make -C src/tools/punchboot/src clean
+	@make -C src/tools/pbimage/src clean
+	@make -C src/tools/pbconfig/src clean

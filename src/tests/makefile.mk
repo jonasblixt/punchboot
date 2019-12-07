@@ -80,12 +80,12 @@ LDFLAGS +=
 BOARD = test
 
 test: $(ARCH_OBJS) $(TEST_OBJS)
-	@mkdir -p $(BUILD_DIR)/tests	
+	@mkdir -p $(BUILD_DIR)/tests
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
 	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
-	@make -C tools/punchboot CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
-	@make -C tools/pbimage CROSS_COMPILE="" CODE_COV=1
-	@make -C tools/pbconfig CROSS_COMPILE="" CODE_COV=1
+	@make -C tools/punchboot/src CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
+	@make -C tools/pbimage/src CROSS_COMPILE="" CODE_COV=1
+	@make -C tools/pbconfig/src CROSS_COMPILE="" CODE_COV=1
 	@sync
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \
