@@ -68,7 +68,7 @@ build/%.o: %.c
 	@$(CC) -c $(CFLAGS) $< -o $@
 
 install: all
-	@install -m 755 $(TARGET) $(PREFIX)
+	@install -m 755 build/$(TARGET) $(PREFIX)
 
 clean:
 	@-rm -rf build/
