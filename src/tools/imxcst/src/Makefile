@@ -89,6 +89,6 @@ $(BUILD)/%.c: %.y
 	@$(YACC) -d -o $@ $<
 $(BUILD)/%.c: %.l
 	@echo LEX $@
-	@$(LEX) -t $< > $@
+	@$(LEX) -o $@ $<
 
 -include $(DEPS)
