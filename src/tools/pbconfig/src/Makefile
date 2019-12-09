@@ -12,12 +12,14 @@ TARGET  = pbconfig
 
 PREFIX ?= /usr/bin
 PKG_CONFIG ?= pkg-config
-SYSROOT ?= $(PKG_CONFIG_SYSROOT_DIR)
+
 CC ?= $(CROSS_COMPILE)gcc
 LD ?= $(CROSS_COMPILE)ld
 AR ?= $(CROSS_COMPILE)ar
 SIZE ?= $(CROSS_COMPILE)size
 OBJCOPY ?= $(CROSS_COMPILE)objcopy
+
+SYSROOT ?= $(shell $(CC) -print-sysroot)
 
 ifeq (,$(shell which $(PKG_CONFIG)))
 $(error "No pkg-config found")
@@ -41,7 +43,6 @@ CFLAGS  += -MMD -MP
 
 LIBS    = $(shell $(PKG_CONFIG) --libs blkid uuid)
 
-ASM_SRCS = 
 C_SRCS   = main.c
 C_SRCS  += pbconfig.c
 C_SRCS  += crc.c
@@ -49,7 +50,7 @@ C_SRCS  += crc.c
 $(shell mkdir -p build)
 
 OBJS   += $(patsubst %.c, build/%.o, $(C_SRCS))
-DEPS      = $(OBJS:.o=.d)
+DEPS	= $(OBJS:.o=.d)
 
 ifdef CODE_COV
 	CFLAGS += -fprofile-arcs -ftest-coverage

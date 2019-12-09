@@ -50,7 +50,6 @@ int main(int argc, char * const argv[])
     bool flag_device = false;
     bool flag_primary_offset = false;
     bool flag_backup_offset = false;
-    bool flag_counter = false;
     uint64_t offset_primary = 0;
     uint64_t offset_backup = 0;
     uint8_t counter = 0;
@@ -74,7 +73,6 @@ int main(int argc, char * const argv[])
                 offset_primary = strtol(optarg, NULL, 0);
             break;
             case 'c':
-                flag_counter = true;
                 counter = strtol(optarg, NULL, 0);
             break;
             case 'b':
