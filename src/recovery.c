@@ -178,7 +178,11 @@ static uint32_t recovery_flash_bootloader(uint8_t *bfr,
     }
 
 err_out:
-    LOG_ERR("Programming bootloader failed");
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Programming bootloader failed");
+    }
+
     plat_switch_part(PLAT_EMMC_PART_USER);
 
     return rc;
