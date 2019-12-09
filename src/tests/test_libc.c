@@ -70,10 +70,10 @@ void test_main(void)
 
     snprintf(s, sizeof(s), "%08x", 0x0000CAFE);
     LOG_INFO("%s", s);
-    assert(strcmp(s, "0000CAFE") == 0);
+    assert(strcmp(s, "0000cafe") == 0);
 
 
     snprintf(s, sizeof(s), "%x", 0xCAFEBABE);
-    assert(strcmp(s, "CAFEBABE") == 0);
+    assert(strcmp(s, "cafebabe") == 0);
     LOG_INFO("Boot libc end");
 }
