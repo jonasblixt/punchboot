@@ -1,12 +1,10 @@
-
 # Punch BOOT configuration tool
 #
 # Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
-# 
+#
 # SPDX-License-Identifier: BSD-3-Clause
-# 
-# 
-
+#
+#
 
 # Makefile for Punch BOOT
 
@@ -14,12 +12,12 @@ TARGET  = pbconfig
 
 PREFIX ?= /usr/bin
 PKG_CONFIG ?= pkg-config
-SYSROOT ?= /
-CC=$(CROSS_COMPILE)gcc
-LD=$(CROSS_COMPILE)ld
-AR=$(CROSS_COMPILE)ar
-SIZE=$(CROSS_COMPILE)size
-OBJCOPY=$(CROSS_COMPILE)objcopy
+SYSROOT ?= $(PKG_CONFIG_SYSROOT_DIR)
+CC ?= $(CROSS_COMPILE)gcc
+LD ?= $(CROSS_COMPILE)ld
+AR ?= $(CROSS_COMPILE)ar
+SIZE ?= $(CROSS_COMPILE)size
+OBJCOPY ?= $(CROSS_COMPILE)objcopy
 
 ifeq (,$(shell which $(PKG_CONFIG)))
 $(error "No pkg-config found")

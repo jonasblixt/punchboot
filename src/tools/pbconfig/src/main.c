@@ -51,8 +51,8 @@ int main(int argc, char * const argv[])
     bool flag_primary_offset = false;
     bool flag_backup_offset = false;
     bool flag_counter = false;
-
-    uint64_t offset_primary, offset_backup;
+    uint64_t offset_primary = 0;
+    uint64_t offset_backup = 0;
     uint8_t counter = 0;
 
     if (argc < 2)
