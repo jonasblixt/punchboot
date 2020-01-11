@@ -230,7 +230,6 @@ void ehci_usb_task(struct usb_device *dev)
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
     uint32_t sts = pb_read32(ehci->base+EHCI_USBSTS);
     uint32_t epc = pb_read32(ehci->base+EHCI_ENDPTCOMPLETE);
-    uint32_t port_status = pb_read32(ehci->base + EHCI_PORTSC1);
     struct usb_setup_packet setup_pkt;
     uint32_t tmp;
 

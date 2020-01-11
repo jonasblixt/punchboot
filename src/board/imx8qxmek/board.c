@@ -24,6 +24,7 @@
 #include <plat/sci/sci.h>
 #include <plat/imx8qxp_pads.h>
 #include <plat/imx8x/plat.h>
+#include <pb/board.h>
 #include <libfdt.h>
 
 const struct fuse fuses[] =
@@ -55,6 +56,8 @@ const struct partition_table pb_partition_table[] =
     PB_GPT_ENTRY(62768, PB_PARTUUID_SYSTEM_B, "System B"),
     PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_A, "Root A"),
     PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_B, "Root B"),
+    PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_A, "Data A"),
+    PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_B, "Data B"),
     PB_GPT_ENTRY(1, PB_PARTUUID_CONFIG_PRIMARY, "Config Primary"),
     PB_GPT_ENTRY(1, PB_PARTUUID_CONFIG_BACKUP, "Config Backup"),
     PB_GPT_END,
@@ -197,7 +200,7 @@ bool board_force_recovery(struct pb_platform_setup *plat)
 
     /* Pull up DP for usb charger detection */
     pb_setbit32(1 << 2, 0x5b100000+0xe0);
-    //  LOG_DBG ("USB CHRG detect: 0x%08x",pb_read32(0x5B100000+0xf0));
+    LOG_DBG ("USB CHRG detect: 0x%08x",pb_read32(0x5B100000+0xf0));
     plat_delay_ms(1);
     if ((pb_read32(0x5b100000+0xf0) & 0x0C) == 0x0C)
         usb_charger_detected = true;

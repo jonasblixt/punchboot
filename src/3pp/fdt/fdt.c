@@ -191,6 +191,8 @@ int fdt_next_node(const void *fdt, int offset, int *depth)
 				return -FDT_ERR_NOTFOUND;
 			else
 				return nextoffset;
+        default:
+            break;
 		}
 	} while (tag != FDT_BEGIN_NODE);
 

@@ -141,7 +141,7 @@ uint32_t plat_get_uuid(char *out)
     uint16_t monotonic;
     uint32_t uid[2];
 
-    sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid[0], &uid[1]);
+    //sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid[0], &uid[1]);
 
     return uuid_gen_uuid3(platform_namespace_uuid, 16,
                           (const char *) uid, 8, out);

@@ -45,7 +45,7 @@
 
 
 static __no_bss struct caam_hash_ctx ctx;
-static struct fsl_caam_jr *d;
+static struct fsl_caam_jr *dev;
 static uint32_t __a4k desc[16];
 static uint32_t current_hash_kind;
 static volatile __a4k __no_bss uint8_t hash_ctx[128];
@@ -137,7 +137,7 @@ static uint32_t caam_hash_update(uint32_t alg, uint32_t ctx_sz,
 
     if (ctx.sg_count)
     {
-        err = caam_wait_for_job(d, desc);
+        err = caam_wait_for_job(dev, desc);
 
         if (err != PB_OK)
             return err;
@@ -170,7 +170,7 @@ static uint32_t caam_hash_update(uint32_t alg, uint32_t ctx_sz,
 
     desc[0] |= dc;
 
-    return caam_shedule_job_async(d, desc);
+    return caam_shedule_job_async(dev, desc);
 }
 
 static uint32_t caam_hash_finalize(uint32_t alg, uint32_t ctx_sz, uint8_t *out)
@@ -178,7 +178,7 @@ static uint32_t caam_hash_finalize(uint32_t alg, uint32_t ctx_sz, uint8_t *out)
     uint8_t dc = 0;
     uint32_t err;
 
-    err = caam_wait_for_job(d, desc);
+    err = caam_wait_for_job(dev, desc);
 
     if (err != PB_OK)
         return err;
@@ -197,7 +197,7 @@ static uint32_t caam_hash_finalize(uint32_t alg, uint32_t ctx_sz, uint8_t *out)
 
     desc[0] |= dc;
 
-    return caam_shedule_job_sync(d, desc);
+    return caam_shedule_job_sync(dev, desc);
 }
 
 static uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
@@ -215,7 +215,7 @@ static uint32_t caam_rsa_enc(uint8_t *input,  uint32_t input_sz,
     desc[6] = input_sz;
     desc[7] = CAAM_CMD_OP | (0x18 << 16);
 
-    return caam_shedule_job_sync(d, desc);
+    return caam_shedule_job_sync(dev, desc);
 }
 
 static uint32_t caam_ecdsa_verify(uint8_t *hash, uint32_t hash_kind,
@@ -281,28 +281,28 @@ static uint32_t caam_ecdsa_verify(uint8_t *hash, uint32_t hash_kind,
 
     desc[0] |= ((dc-1) << 16) | dc;
 
-    return caam_shedule_job_sync(d, desc);
+    return caam_shedule_job_sync(dev, desc);
 }
 
 uint32_t caam_init(struct fsl_caam_jr *caam_dev)
 {
-    d = caam_dev;
+    dev = caam_dev;
 
-    if (d->base == 0)
+    if (dev->base == 0)
         return PB_ERR;
 
     for (uint32_t n = 0; n < JOB_RING_ENTRIES; n++)
-        d->input_ring[n] = 0;
+        dev->input_ring[n] = 0;
 
     for (uint32_t n = 0; n < JOB_RING_ENTRIES*2; n++)
-        d->output_ring[n] = 0;
+        dev->output_ring[n] = 0;
 
     /* Initialize job rings */
-    pb_write32( (uint32_t)(uintptr_t) d->input_ring,  d->base + CAAM_IRBAR);
-    pb_write32( (uint32_t)(uintptr_t) d->output_ring, d->base + CAAM_ORBAR);
+    pb_write32( (uint32_t)(uintptr_t) dev->input_ring,  dev->base + CAAM_IRBAR);
+    pb_write32( (uint32_t)(uintptr_t) dev->output_ring, dev->base + CAAM_ORBAR);
 
-    pb_write32(JOB_RING_ENTRIES, d->base + CAAM_IRSR);
-    pb_write32(JOB_RING_ENTRIES, d->base + CAAM_ORSR);
+    pb_write32(JOB_RING_ENTRIES, dev->base + CAAM_IRSR);
+    pb_write32(JOB_RING_ENTRIES, dev->base + CAAM_ORSR);
 
     return PB_OK;
 }

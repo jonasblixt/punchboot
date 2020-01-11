@@ -45,6 +45,29 @@ CFLAGS  += -I 3pp/fdt/include
 CFLAGS  += -I $(BOARD_DIR)/$(BOARD)/include
 CFLAGS  += -MMD -MP
 
+# General warnings
+WARNING = -Wall -Wmissing-include-dirs -Wunused \
+			-Wdisabled-optimization	-Wvla -Wshadow \
+			-Wno-unused-parameter
+WARNING += -Wextra
+WARNING += -Wmissing-declarations
+WARNING += -Wmissing-format-attribute
+WARNING += -Wmissing-prototypes
+WARNING += -Wpointer-arith
+WARNING += -Wredundant-decls
+WARNING += -Wswitch-default
+WARNING += -Waggregate-return
+WARNING += -Wnested-externs
+#WARNING += -Wcast-align
+#WARNING += -Wold-style-definition
+#WARNING += -Wbad-function-cast
+#WARNING += -Wcast-qual
+#WARNING += -Wconversion
+#WARNING += -Wpacked
+#WARNING += -Wpadded
+
+CFLAGS  += $(WARNING)
+
 LIBS     =
 
 LDFLAGS =
@@ -149,6 +172,7 @@ all: key_data plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@
+	@$(STRIP) --strip-all $<
 	@$(OBJCOPY) -O binary -R .comment $< $@
 
 $(BUILD_DIR)/$(TARGET): $(OBJS) $(BLOB_OBJS)
