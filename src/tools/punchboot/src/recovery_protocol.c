@@ -24,79 +24,25 @@
 
 #include <3pp/bearssl/bearssl_hash.h>
 #include <pb/crypto.h>
+#include <bpak/bpak.h>
 #include "recovery_protocol.h"
 #include "transport.h"
 #include "utils.h"
 
 
-uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
-                                  uint32_t signature_kind, uint32_t hash_kind)
+uint32_t pb_recovery_authenticate(uint32_t key_id, const char *fn)
 {
     uint32_t err;
-    uint8_t cookie_buffer[PB_RECOVERY_AUTH_COOKIE_SZ];
-    unsigned char signature[PB_IMAGE_SIGN_MAX_SIZE];
-
-    memset(cookie_buffer, 0, PB_RECOVERY_AUTH_COOKIE_SZ);
-    memset(signature, 0, PB_IMAGE_SIGN_MAX_SIZE);
-
+    uint8_t token_buffer[PB_RECOVERY_AUTH_COOKIE_SZ];
     FILE *fp = fopen(fn, "rb");
 
     if (fp == NULL)
         return PB_ERR_FILE_NOT_FOUND;
 
-    int read_sz = fread(cookie_buffer, 1, PB_RECOVERY_AUTH_COOKIE_SZ, fp);
+    int read_sz = fread(token_buffer, 1, PB_RECOVERY_AUTH_COOKIE_SZ, fp);
+    fclose(fp);
 
-
-    printf("Read %i bytes\n", read_sz);
-
-    /* Signature output from openssl is ASN.1 encoded
-     * punchboot requires raw ECDSA signatures
-     * RSA signatures should retain the ASN.1 structure
-     * */
-    uint8_t r_sz = 0;
-    uint8_t s_sz = 0;
-    uint8_t r_off = 0;
-    uint8_t s_off = 0;
-
-    switch (signature_kind)
-    {
-        case PB_SIGN_NIST256p:
-            r_sz = cookie_buffer[3];
-            r_off = r_sz-32;
-            s_sz = cookie_buffer[3+r_sz+2];
-            s_off = s_sz-32;
-            memcpy(&signature[0], &cookie_buffer[3+1+r_off], r_sz);
-            memcpy(&signature[32], &cookie_buffer[3+r_sz+2+1+s_off], s_sz);
-            read_sz = r_sz+s_sz+r_off+s_off;
-        break;
-        case PB_SIGN_NIST384p:
-            r_sz = cookie_buffer[3];
-            r_off = r_sz-48;
-            s_sz = cookie_buffer[3+r_sz+2];
-            s_off = s_sz-48;
-            memcpy(&signature[0], &cookie_buffer[4+r_off], r_sz);
-            memcpy(&signature[48], &cookie_buffer[3+r_sz+2+1+s_off], s_sz);
-            read_sz = r_sz+s_sz+r_off+s_off;
-        break;
-        case PB_SIGN_NIST521p:
-            r_sz = cookie_buffer[4];
-            r_off = 66-r_sz;
-            s_sz = cookie_buffer[4+r_sz+2];
-            s_off = 66-s_sz;
-            memcpy(&signature[r_off], &cookie_buffer[5], r_sz);
-            memcpy(&signature[66+s_off], &cookie_buffer[4+r_sz+2+1], s_sz);
-            read_sz = r_sz+s_sz+r_off+s_off;
-        break;
-        case PB_SIGN_RSA4096:
-            memcpy(signature, cookie_buffer, read_sz);
-        break;
-        default:
-            printf("Unknown signature format\n");
-            return PB_ERR;
-    }
-
-    err = pb_write(PB_CMD_AUTHENTICATE, key_index, signature_kind, hash_kind,
-                                        0, signature, read_sz);
+    err = pb_write(PB_CMD_AUTHENTICATE, key_id, 0, 0, 0, token_buffer, read_sz);
 
     if (err != PB_OK)
         return err;
@@ -313,7 +259,7 @@ uint32_t pb_check_part(uint8_t part_no, int64_t offset, const char *f_name)
     int rc = PB_OK;
     char hash_data[32];
     char *buf = malloc(1024*1024);
-    
+
     if (!buf)
     {
         rc = PB_ERR;
@@ -329,7 +275,7 @@ uint32_t pb_check_part(uint8_t part_no, int64_t offset, const char *f_name)
     }
 
     br_sha256_init(&ctx);
-    
+
     size_t read_data = 0;
     size_t file_size = 0;
     do
@@ -371,6 +317,7 @@ uint32_t pb_flash_part(uint8_t part_no, int64_t offset, const char *f_name)
 
     struct pb_cmd_prep_buffer bfr_cmd;
     struct pb_cmd_write_part wr_cmd;
+    struct gpt_primary_tbl tbl;
 
     fp = fopen(f_name, "rb");
 
@@ -385,9 +332,85 @@ uint32_t pb_flash_part(uint8_t part_no, int64_t offset, const char *f_name)
     if (bfr == NULL)
     {
         printf("Could not allocate memory\n");
-        return PB_ERR;
+        err = PB_ERR;
+        goto err_close_fd_out;
     }
 
+    err = pb_get_gpt_table(&tbl);
+
+    if (err != PB_OK)
+        goto err_free_bfr_out;
+
+    /*
+     * Read first 4kBytes and figure out if it is a BPAK file
+     *
+     * if (bpak)
+     *  Write 4kByte header at the end of the partition
+     *  seek +4kByte
+     * else
+     *  seek 0
+     *
+     */
+
+    struct bpak_header *h = (struct bpak_header *) bfr;
+
+    read_sz = fread(h, 1, sizeof(*h), fp);
+
+    if ((read_sz == sizeof(*h)) && (bpak_valid_header(h) == BPAK_OK))
+    {
+        printf("Found valid BPAK header\n");
+        printf("Writing header at the end of the partition...\n");
+
+        bfr_cmd.no_of_blocks = read_sz / 512;
+        bfr_cmd.buffer_id = buffer_id;
+
+        err = pb_write(PB_CMD_PREP_BULK_BUFFER, 0, 0, 0, 0,
+                (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
+
+        if (err != PB_OK)
+        {
+            printf("Prep bulk buffer failed\n");
+            goto err_free_bfr_out;
+        }
+
+        printf("Writing %i blocks\n", bfr_cmd.no_of_blocks);
+        err = pb_write_bulk(bfr, bfr_cmd.no_of_blocks*512, &sent_sz);
+
+        if (err != 0)
+        {
+            printf("Bulk xfer error, err=%i\n", err);
+            goto err_free_bfr_out;
+        }
+
+        err = pb_read_result_code();
+
+        if (err != PB_OK)
+            goto err_free_bfr_out;
+
+        wr_cmd.lba_offset = ((tbl.part[part_no].last_lba - \
+                    tbl.part[part_no].first_lba) - bfr_cmd.no_of_blocks + 1);
+        wr_cmd.part_no = part_no;
+        wr_cmd.no_of_blocks = bfr_cmd.no_of_blocks;
+        wr_cmd.buffer_id = buffer_id;
+        buffer_id = !buffer_id;
+
+        printf("Doing write...\n");
+        pb_write(PB_CMD_WRITE_PART, 0, 0, 0, 0, (uint8_t *) &wr_cmd,
+                    sizeof(struct pb_cmd_write_part));
+
+        printf("Waiting for result code\n");
+        err = pb_read_result_code();
+
+        if (err != PB_OK)
+            goto err_free_bfr_out;
+    }
+    else
+    {
+        /* Not a BPAK file, write everyting */
+        fseek(fp, 0, SEEK_SET);
+    }
+
+    printf("Writing data...\n");
     wr_cmd.lba_offset = offset;
     wr_cmd.part_no = part_no;
 
@@ -402,20 +425,20 @@ uint32_t pb_flash_part(uint8_t part_no, int64_t offset, const char *f_name)
                 (uint8_t *) &bfr_cmd, sizeof(struct pb_cmd_prep_buffer));
 
         if (err != PB_OK)
-            return err;
+            goto err_free_bfr_out;
 
         err = pb_write_bulk(bfr, bfr_cmd.no_of_blocks*512, &sent_sz);
 
         if (err != 0)
         {
             printf("Bulk xfer error, err=%i\n", err);
-            goto err_xfer;
+            goto err_free_bfr_out;
         }
 
         err = pb_read_result_code();
 
         if (err != PB_OK)
-            return err;
+            goto err_free_bfr_out;
 
         wr_cmd.no_of_blocks = bfr_cmd.no_of_blocks;
         wr_cmd.buffer_id = buffer_id;
@@ -427,7 +450,7 @@ uint32_t pb_flash_part(uint8_t part_no, int64_t offset, const char *f_name)
         err = pb_read_result_code();
 
         if (err != PB_OK)
-            return err;
+            goto err_free_bfr_out;
 
         wr_cmd.lba_offset += bfr_cmd.no_of_blocks;
     }
@@ -435,8 +458,9 @@ uint32_t pb_flash_part(uint8_t part_no, int64_t offset, const char *f_name)
     pb_write(PB_CMD_WRITE_PART_FINAL, 0, 0, 0, 0, NULL, 0);
     err = pb_read_result_code();
 
-err_xfer:
+err_free_bfr_out:
     free(bfr);
+err_close_fd_out:
     fclose(fp);
     return err;
 }
@@ -519,7 +543,7 @@ uint32_t pb_execute_image(const char *f_name, uint32_t active_system,
     unsigned char *bfr = NULL;
     uint32_t data_remaining;
     uint32_t bytes_to_send;
-    struct pb_pbi pbi;
+    struct bpak_header h;
     uint8_t zero_padding[511];
 
     memset(zero_padding, 0, 511);
@@ -537,33 +561,54 @@ uint32_t pb_execute_image(const char *f_name, uint32_t active_system,
     if (bfr == NULL)
     {
         printf("Could not allocate memory\n");
-        return -1;
+        err = -1;
+        goto err_close_fp_out;
     }
 
-    read_sz = fread(&pbi, 1, sizeof(struct pb_pbi), fp);
+    read_sz = fread(&h, 1, sizeof(h), fp);
+
+    err = bpak_valid_header(&h);
+
+    if (err != BPAK_OK)
+    {
+        printf("Error: Invalid BPAK header\n");
+        goto err_free_bfr_out;
+    }
+
 
     err = pb_write(PB_CMD_BOOT_RAM, active_system, verbose, 0, 0,
-                            (uint8_t *) &pbi, sizeof(struct pb_pbi));
+                            (uint8_t *) &h, sizeof(h));
 
     if (err != PB_OK)
-        return err;
+    {
+        printf("Error: Could not send header\n");
+        goto err_free_bfr_out;
+    }
 
     err = pb_read_result_code();
 
     if (err != PB_OK)
-        return err;
-
-    for (uint32_t i = 0; i < pbi.hdr.no_of_components; i++)
     {
-        fseek(fp, pbi.comp[i].component_offset, SEEK_SET);
-        data_remaining = pbi.comp[i].component_size;
+        printf("Error: got no result code\n");
+        goto err_free_bfr_out;
+    }
 
-        while ((read_sz = fread(bfr, 1, 1024*1024, fp)) >0) {
+    bpak_foreach_part(&h, p)
+    {
+        if (!p->id)
+            break;
+
+        fseek(fp, p->offset, SEEK_SET);
+        data_remaining = p->size + p->pad_bytes;
+
+        while ((read_sz = fread(bfr, 1, 1024*1024, fp)) > 0)
+        {
             if (read_sz > data_remaining)
                 bytes_to_send = data_remaining;
             else
                 bytes_to_send = read_sz;
 
+            printf("bytes_to_send %x\n", bytes_to_send);
             err = pb_write_bulk(bfr, bytes_to_send, &sent_sz);
 
             data_remaining = data_remaining - bytes_to_send;
@@ -573,20 +618,16 @@ uint32_t pb_execute_image(const char *f_name, uint32_t active_system,
 
             if (err != 0) {
                 printf("USB: Bulk xfer error, err=%i\n", err);
-                goto err_xfer;
+                goto err_free_bfr_out;
             }
         }
     }
 
     err = pb_read_result_code();
 
-    if (err != PB_OK)
-        return err;
-
-err_xfer:
-
-
+err_free_bfr_out:
     free(bfr);
+err_close_fp_out:
     fclose(fp);
     return err;
 }

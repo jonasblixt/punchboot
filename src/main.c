@@ -7,19 +7,20 @@
  *
  */
 
-#include <pb.h>
 #include <stdio.h>
-#include <plat.h>
-#include <recovery.h>
-#include <gpt.h>
-#include <io.h>
-#include <image.h>
-#include <crypto.h>
-#include <boot.h>
-#include <timing_report.h>
+#include <pb/pb.h>
+#include <pb/plat.h>
+#include <pb/recovery.h>
+#include <pb/gpt.h>
+#include <pb/io.h>
+#include <pb/image.h>
+#include <pb/crypto.h>
+#include <pb/boot.h>
+#include <pb/timing_report.h>
 #include <pb/config.h>
+#include <bpak/bpak.h>
 
-static __no_bss __a4k struct pb_pbi pbi;
+static __no_bss __a4k struct bpak_header h;
 static char hash_buffer[PB_HASH_BUF_SZ];
 
 void pb_main(void)
@@ -39,7 +40,7 @@ void pb_main(void)
     tr_stamp_begin(TR_BLINIT);
     tr_stamp_begin(TR_TOTAL);
 
-    LOG_INFO("PB: " VERSION " starting...");
+    LOG_INFO("PB: " PB_VERSION " starting...");
 
     if (gpt_init() != PB_OK)
         flag_run_recovery = true;
@@ -138,21 +139,15 @@ void pb_main(void)
         }
     }
 
-    err = pb_image_load_from_fs(part->first_lba, &pbi, hash_buffer);
-
-    if (err != PB_OK)
-    {
-        LOG_ERR("Unable to load image");
-        flag_run_recovery = true;
-        goto run_recovery;
-    }
-
-    err = pb_image_verify(&pbi, (const char*) hash_buffer);
+    err = pb_image_load_from_fs(part->first_lba,
+                                part->last_lba,
+                                &h,
+                                hash_buffer);
 
     if (err == PB_OK)
     {
         LOG_INFO("Image verified, booting...");
-        pb_boot(&pbi, active_system, false);
+        pb_boot(&h, active_system, false);
     }
     else
     {

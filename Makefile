@@ -10,10 +10,10 @@ all:
 			Use src/Makefile for normal builds
 tests:
 	@make -C src/tools/punchboot/src clean
-	@make -C src/tools/pbimage/src clean
 	@make -C src/tools/pbconfig/src clean
 	@make -C src/ BOARD=test LOGLEVEL=10 clean
-	@make -C src/ BOARD=test LOGLEVEL=10
+	@src/tools/gen_test_keystore.sh
+	@make -C src/ BOARD=test KEYSTORE_BPAK=../test_keystore.bpak LOGLEVEL=10
 	@make -C src/ BOARD=test LOGLEVEL=10 test
 
 all-boards:
@@ -55,5 +55,4 @@ dockerenv:
 clean:
 	@make -C src/ BOARD=test clean
 	@make -C src/tools/punchboot/src clean
-	@make -C src/tools/pbimage/src clean
 	@make -C src/tools/pbconfig/src clean

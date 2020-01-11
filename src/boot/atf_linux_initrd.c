@@ -22,9 +22,9 @@
 #include <timing_report.h>
 #include <libfdt.h>
 #include <uuid.h>
+#include <bpak/bpak.h>
 
-
-extern void arch_jump_linux_dt(void* addr, void * dt)
+extern void arch_jump_linux_dt(volatile void* addr, volatile void * dt)
                                  __attribute__((noreturn));
 
 extern void arch_jump_atf(void* atf_addr, void * atf_param)
@@ -34,73 +34,104 @@ extern uint32_t board_linux_patch_dt(void *fdt, int offset);
 static __a16b char device_uuid[37];
 static __a4k __no_bss char device_uuid_raw[16];
 
-void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
+void pb_boot(struct bpak_header *h, uint32_t system_index, bool verbose)
 {
-    struct pb_component_hdr *dtb =
-            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_DT);
-
-    struct pb_component_hdr *linux =
-            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_LINUX);
-
-    struct pb_component_hdr *atf =
-            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_ATF);
-
-    struct pb_component_hdr *tee =
-            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_TEE);
-
-    struct pb_component_hdr *ramdisk =
-            pb_image_get_component(pbi, PB_IMAGE_COMPTYPE_RAMDISK);
+    int rc = BPAK_OK;
+    uint32_t *dtb = NULL;
+    uint32_t *linux = NULL;
+    uint32_t *atf = NULL;
+    uint32_t *tee = NULL;
+    uint32_t *ramdisk = NULL;
+    uint64_t ramdisk_size = 0;
 
     tr_stamp_begin(TR_DT_PATCH);
 
+    rc = bpak_valid_header(h);
+
+    if (rc != BPAK_OK)
+    {
+        LOG_ERR("Invalid BPAK header");
+        return PB_ERR;
+    }
+
+    bpak_foreach_part(h, p)
+    {
+        if (!p->id)
+            break;
+
+        if (p->id == 0xec103b08) /* kernel */
+        {
+            rc = bpak_get_meta_with_ref(h, 0xd1e64a4b, p->id, (void **) &linux);
+            if (rc != BPAK_OK)
+                break;
+        }
+        else if (p->id == 0x56f91b86) /* dt */
+        {
+            rc = bpak_get_meta_with_ref(h, 0xd1e64a4b, p->id, (void **) &dtb);
+
+            if (rc != BPAK_OK)
+                break;
+        }
+        else if (p->id == 0xf4cdac1f) /* ramdisk */
+        {
+            rc = bpak_get_meta_with_ref(h, 0xd1e64a4b, p->id, (void **) &ramdisk);
+            ramdisk_size = p->size;
+
+            if (rc != BPAK_OK)
+                break;
+        }
+        else if (p->id == 0x76aacab9) /* tee */
+        {
+            rc = bpak_get_meta_with_ref(h, 0xd1e64a4b, p->id, (void **) &tee);
+
+            if (rc != BPAK_OK)
+                break;
+        }
+        else if (p->id == 0xa697d988) /* atf */
+        {
+            rc = bpak_get_meta_with_ref(h, 0xd1e64a4b, p->id, (void **) &atf);
+
+            if (rc != BPAK_OK)
+                break;
+        }
+
+        if (rc != BPAK_OK)
+        {
+            LOG_ERR("Could get entry for %x", p->id);
+            return;
+        }
+    }
+
+
+
     if (dtb)
-    {
-        LOG_INFO("DTB %p", (void *)(uintptr_t)dtb->load_addr);
-    }
+        LOG_INFO("DTB 0x%x", *dtb);
     else
-    {
         LOG_INFO("No DTB");
-    }
 
     if (linux)
-    {
-        LOG_INFO("LINUX %p", (void *)(uintptr_t)linux->load_addr);
-    }
+        LOG_INFO("LINUX 0x%x", *linux);
     else
-    {
         LOG_ERR("No linux kernel");
-        return;
-    }
 
     if (atf)
-    {
-        LOG_INFO("ATF: %p", (void *)(uintptr_t)atf->load_addr);
-    }
+        LOG_INFO("ATF: 0x%x", *atf);
     else
-    {
         LOG_INFO("ATF: None");
-    }
 
     if (tee)
-    {
-        LOG_INFO("TEE: %p", (void *)(uintptr_t)tee->load_addr);
-    }
+        LOG_INFO("TEE: 0x%x", *tee);
     else
-    {
         LOG_INFO("TEE: None");
-    }
 
     if (ramdisk)
-    {
-        LOG_INFO("RAMDISK: %p", (void *)(uintptr_t) ramdisk->load_addr);
-    }
+        LOG_INFO("RAMDISK: 0x%x", *ramdisk);
     else
-    {
         LOG_INFO("RAMDISK: None");
-    }
 
-    LOG_DBG("Patching DT");
-    void *fdt = (void *)(uintptr_t) dtb->load_addr;
+    LOG_DBG("Patching DT 0x%x", *dtb);
+
+    void *fdt = (void *) *dtb;
     int err = fdt_check_header(fdt);
 
     if (err >= 0)
@@ -122,9 +153,10 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
             if (strcmp(name, "chosen") == 0)
             {
+                LOG_DBG("Patching...");
                 err = fdt_setprop_u32((void *) fdt, offset,
                                     "linux,initrd-start",
-                                    ramdisk->load_addr);
+                                    *ramdisk);
 
                 if (err)
                 {
@@ -133,9 +165,9 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                 }
 
                 err = fdt_setprop_u32((void *) fdt, offset,
-                    "linux,initrd-end",
-                    ramdisk->load_addr+ramdisk->component_size);
+                    "linux,initrd-end", *ramdisk + ramdisk_size);
 
+                LOG_DBG("Ramdisk %x -> %llx", *ramdisk, *ramdisk + ramdisk_size);
                 if (err)
                 {
                     LOG_ERR("Could not patch initrd");
@@ -144,6 +176,7 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
                 if (verbose)
                 {
+                    LOG_DBG("Verbose boot %s", BOARD_BOOT_ARGS_VERBOSE);
                     err = fdt_setprop_string((void *) fdt, offset,
                                 "bootargs",
                                 (const char *) BOARD_BOOT_ARGS_VERBOSE);
@@ -172,27 +205,33 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
                 err = board_linux_patch_dt(fdt, offset);
 
                 if (err)
-                {
                     LOG_ERR("Could not update board specific params");
-                } else {
+                else
                     LOG_INFO("board params patched");
-                }
 
                 if (system_index == SYSTEM_A)
+                {
+                    LOG_DBG("Booting system A");
                     fdt_setprop_string((void *) fdt, offset,
                                                         "active-system", "A");
+                }
                 else if (system_index == SYSTEM_B)
+                {
+                    LOG_DBG("Booting system B");
                     fdt_setprop_string((void *) fdt, offset,
                                                         "active-system", "B");
+                }
                 else
+                {
+                    LOG_ERR("No active system");
                     fdt_setprop_string((void *) fdt, offset,
                                                       "active-system", "none");
+                }
                 break;
             }
         }
     }
 
-    LOG_DBG("Done");
     plat_preboot_cleanup();
     tr_stamp_end(TR_TOTAL);
     tr_stamp_end(TR_DT_PATCH);
@@ -201,22 +240,23 @@ void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose)
 
     plat_wdog_kick();
 
+
     if (atf && dtb && linux)
     {
         LOG_DBG("ATF boot");
-        arch_jump_atf((void *)(uintptr_t) atf->load_addr,
+        arch_jump_atf((void *)(uintptr_t) *atf,
                       (void *)(uintptr_t) NULL);
     }
     else if(dtb && linux && !atf && tee)
     {
         LOG_INFO("TEE boot");
-        arch_jump_linux_dt((void *)(uintptr_t) tee->load_addr,
-                           (void *)(uintptr_t) dtb->load_addr);
+        arch_jump_linux_dt((void *)(uintptr_t) *tee,
+                           (void *)(uintptr_t) *dtb);
     }
     else if(dtb && linux)
     {
-        arch_jump_linux_dt((void *)(uintptr_t) linux->load_addr,
-                           (void *)(uintptr_t) dtb->load_addr);
+        arch_jump_linux_dt((void *)(uintptr_t) *linux,
+                           (void *)(uintptr_t) *dtb);
     }
 
     while (1)

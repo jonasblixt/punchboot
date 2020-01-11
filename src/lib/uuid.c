@@ -67,7 +67,7 @@ uint32_t uuid_gen_uuid3(const char *ns,
     printf ("\n\r");
 */
 
-    err = plat_hash_finalize((uintptr_t)out);
+    err = plat_hash_finalize((uintptr_t) NULL, 0, (uintptr_t)out, 32);
 
     if (err != PB_OK)
         return err;

@@ -16,6 +16,8 @@ SECTIONS
 	.text :
  	{
         PROVIDE (_code_start = .);
+		*(.vectors .vectors.*)
+        . = ALIGN(8);
 		*(.text .text.*)
         . = ALIGN(8);
         _etext = .;

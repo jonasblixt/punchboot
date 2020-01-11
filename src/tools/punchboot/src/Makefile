@@ -33,10 +33,10 @@ CFLAGS  += -Wall -O2 -I ../../../include/
 CFLAGS  += -I. -I include/  -I ../../../
 CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS  += -DPB_USB_VID=$(USB_VID) -DPB_USB_PID=$(USB_PID)
-CFLAGS  += $(shell $(PKG_CONFIG) --cflags libusb-1.0 uuid)
+CFLAGS  += $(shell $(PKG_CONFIG) --cflags libusb-1.0 uuid bpak)
 CFLAGS  += -MMD -MP
 
-LIBS     = $(shell $(PKG_CONFIG) --libs libusb-1.0 uuid)
+LIBS     = $(shell $(PKG_CONFIG) --libs libusb-1.0 uuid bpak)
 
 ASM_SRCS =
 C_SRCS   = $(TARGET).c

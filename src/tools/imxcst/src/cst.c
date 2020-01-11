@@ -1838,8 +1838,8 @@ int32_t main(int32_t argc, char* argv[])
     if (fi)
         fclose(fi);
 
-    remove(FILE_SIG_CSF_DATA);
-    remove(FILE_SIG_IMG_DATA);
+    //remove(FILE_SIG_CSF_DATA);
+    //remove(FILE_SIG_IMG_DATA);
 
     remove(FILE_PLAIN_DATA);
     remove(FILE_ENCRYPTED_DATA);

@@ -9,13 +9,13 @@
  */
 
 #include <stdio.h>
-#include <board.h>
-#include <io.h>
-#include <plat.h>
 #include <string.h>
-#include <uuid.h>
-#include <fuse.h>
-#include <boot.h>
+#include <pb/board.h>
+#include <pb/io.h>
+#include <pb/plat.h>
+#include <pb/uuid.h>
+#include <pb/fuse.h>
+#include <pb/boot.h>
 #include <plat/test/virtio.h>
 #include <plat/test/virtio_block.h>
 #include <plat/test/test_fuse.h>
@@ -23,6 +23,7 @@
 #include <plat/test/uart.h>
 #include <3pp/bearssl/bearssl_hash.h>
 #include <plat/test/semihosting.h>
+#include <bpak/bpak.h>
 
 static __a4k struct virtio_block_device virtio_block;
 static __a4k struct virtio_block_device virtio_block2;
@@ -34,9 +35,9 @@ static uint32_t blk_sz = 65535;
 static uint32_t setup_locked = 0;
 extern const struct fuse fuses[];
 
-void pb_boot(struct pb_pbi *pbi, uint32_t active_system, bool verbose)
+void pb_boot(struct bpak_header *h, uint32_t active_system, bool verbose)
 {
-    UNUSED(pbi);
+    UNUSED(h);
     UNUSED(active_system);
     UNUSED(verbose);
 

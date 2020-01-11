@@ -22,7 +22,7 @@ INTEGRATION_TESTS += test_boot_pbi7
 INTEGRATION_TESTS += test_boot_pbi8
 INTEGRATION_TESTS += test_flash_bl
 INTEGRATION_TESTS += test_invalid_key_index
-INTEGRATION_TESTS += test_invalid_key_index2
+#INTEGRATION_TESTS += test_invalid_key_index2
 INTEGRATION_TESTS += test_gpt_boot_activate
 INTEGRATION_TESTS += test_gpt_boot_activate_step2
 INTEGRATION_TESTS += test_gpt_boot_activate_step3
@@ -52,6 +52,8 @@ QEMU_FLAGS += -drive id=disk,file=/tmp/disk,cache=none,if=none,format=raw
 # Virtio Aux disk, for bootloader and fuses
 QEMU_FLAGS += -device virtio-blk-device,drive=disk_aux
 QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,cache=none,if=none,format=raw
+# Disable default NIC
+QEMU_FLAGS += -net none
 
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/test/gcov.c
@@ -84,7 +86,6 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
 	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
 	@make -C tools/punchboot/src CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
-	@make -C tools/pbimage/src CROSS_COMPILE="" CODE_COV=1
 	@make -C tools/pbconfig/src CROSS_COMPILE="" CODE_COV=1
 	@sync
 	@$(foreach TEST,$(TESTS), \
