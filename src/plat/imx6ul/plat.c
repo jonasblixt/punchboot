@@ -355,6 +355,7 @@ uint32_t plat_usb_transfer(struct usb_device *dev, uint8_t ep,
                             uint8_t *bfr, uint32_t sz)
 {
     struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
+
     return ehci_transfer(ehci, ep, bfr, sz);
 }
 

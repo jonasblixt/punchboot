@@ -1,12 +1,9 @@
 # Makefile for Punch BOOT
 
 TARGET  = pb
-
-PYTHON ?= python3
-
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
-
-KEY_IMPORT = tools/importkey.py
+BPAK ?= $(shell which bpak)
+KEYSTORE_BPAK ?= internal_keystore.bpak
 
 ifndef BOARD
 	BOARD=test
@@ -27,7 +24,7 @@ else
 	TIMING_REPORT=0
 endif
 
-CFLAGS   = -Wall -Wextra -Wunused-result -Os -std=c99
+CFLAGS   = -Wall -Wextra -Wunused-result -O2 -std=c99
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -ffunction-sections
 CFLAGS  += -fdata-sections
@@ -35,7 +32,7 @@ CFLAGS  += -fno-omit-frame-pointer
 CFLAGS  += -I. -I include/pb
 CFLAGS  += -I include
 CFLAGS  += -I include/pb/libc
-CFLAGS  += -DVERSION=\"$(GIT_VERSION)\"
+CFLAGS  += -DPB_VERSION=\"$(GIT_VERSION)\"
 CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
 CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
 CFLAGS  += -D__PB_BUILD
@@ -50,9 +47,9 @@ WARNING = -Wall -Wmissing-include-dirs -Wunused \
 			-Wdisabled-optimization	-Wvla -Wshadow \
 			-Wno-unused-parameter
 WARNING += -Wextra
-WARNING += -Wmissing-declarations
+#WARNING += -Wmissing-declarations
 WARNING += -Wmissing-format-attribute
-WARNING += -Wmissing-prototypes
+#WARNING += -Wmissing-prototypes
 WARNING += -Wpointer-arith
 WARNING += -Wredundant-decls
 WARNING += -Wswitch-default
@@ -85,11 +82,12 @@ C_SRCS  += delay.c
 C_SRCS  += config.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c
+C_SRCS  += keystore.c
 C_SRCS  += crypto.c
 C_SRCS  += timing_report.c
 C_SRCS  += usb.c
 C_SRCS  += image.c
-C_SRCS  += key_data.c
+C_SRCS  += bpak.c
 C_SRCS  += lib/string.c
 C_SRCS  += lib/memmove.c
 C_SRCS  += lib/memchr.c
@@ -112,7 +110,7 @@ C_SRCS  += 3pp/fdt/fdt_strerror.c
 C_SRCS  += 3pp/fdt/fdt_sw.c
 C_SRCS  += 3pp/fdt/fdt_wip.c
 
-LINT_EXCLUDE = key_data.c
+LINT_EXCLUDE =
 FINAL_IMAGE =
 BUILD_DIR = build-$(BOARD)
 
@@ -155,11 +153,11 @@ include tests/makefile.mk
 
 endif
 
-key_data:
-	@$(PYTHON) $(KEY_IMPORT) $(KEY_TYPE) $(KEYS) > $(BUILD_DIR)/key_data.c
-	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/key_data.c -o $(BUILD_DIR)/key_data.o
+keystore:
+	@$(BPAK) generate keystore --name pb $(KEYSTORE_BPAK) > $(BUILD_DIR)/keystore.c
+	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
-all: key_data plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
+all: keystore plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
 	$(info Summary:)
 	$(info )
 	$(info BOARD:     [${PB_BOARD_NAME}])

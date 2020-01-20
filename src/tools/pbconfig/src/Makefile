@@ -13,13 +13,13 @@ TARGET  = pbconfig
 PREFIX ?= /usr/bin
 PKG_CONFIG ?= pkg-config
 
-CC ?= $(CROSS_COMPILE)gcc
-LD ?= $(CROSS_COMPILE)ld
-AR ?= $(CROSS_COMPILE)ar
-SIZE ?= $(CROSS_COMPILE)size
-OBJCOPY ?= $(CROSS_COMPILE)objcopy
+SYSROOT ?= /
+CC=$(CROSS_COMPILE)gcc
+LD=$(CROSS_COMPILE)ld
+AR=$(CROSS_COMPILE)ar
+SIZE=$(CROSS_COMPILE)size
+OBJCOPY=$(CROSS_COMPILE)objcopy
 
-SYSROOT ?= $(shell $(CC) -print-sysroot)
 
 ifeq (,$(shell which $(PKG_CONFIG)))
 $(error "No pkg-config found")
@@ -60,12 +60,12 @@ all: build/$(TARGET)
 
 build/$(TARGET): $(OBJS)
 	@echo LINK $@ $(LDFLAGS)
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+	$(CC) $(LDFLAGS) $(CFLAGS)  $(OBJS) $(LIBS) -o $@
 
 build/%.o: %.c
 	@mkdir -p $(@D)
 	@echo CC $<
-	@$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@
 
 install: all
 	@install -m 755 $(TARGET) $(PREFIX)

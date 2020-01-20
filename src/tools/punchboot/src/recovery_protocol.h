@@ -31,8 +31,7 @@ uint32_t pb_execute_image(const char *f_name, uint32_t active_system,
 uint32_t pb_recovery_setup(struct param *params);
 uint32_t pb_recovery_setup_lock(void);
 uint32_t pb_read_params(struct param **params);
-uint32_t pb_recovery_authenticate(uint32_t key_index, const char *fn,
-                                  uint32_t signature_kind, uint32_t hash_kind);
+uint32_t pb_recovery_authenticate(uint32_t key_id, const char *fn);
 
 uint32_t pb_is_auhenticated(bool *result);
 uint32_t pb_recovery_board_command(uint32_t arg0, uint32_t arg1, uint32_t arg2,

@@ -271,7 +271,7 @@ static void pb_print_param(struct param *p)
         {
             char *uuid_raw = (char *) p->data;
             char uuid_str[37];
-            uuid_unparse_upper((const unsigned char*)uuid_raw, uuid_str);
+            uuid_unparse_lower((const unsigned char*)uuid_raw, uuid_str);
             printf("%s", uuid_str);
         }
         break;
@@ -616,73 +616,17 @@ static uint32_t dev_command(bool flag_list,
         }
         printf("Success");
     }
-    else if (flag_a && flag_s)
+    else if (flag_a)
     {
-        uint32_t key_index = 0;
+        uint32_t key_id = 0;
 
         if (flag_index)
-            key_index = cmd_index;
+            key_id = cmd_index;
 
-        char delim[] = ":";
-        char *tok = strtok((char *)s_arg, delim);
+        printf("Authenticating using key %x and '%s'\n",
+                key_id, fn);
 
-        if (tok == NULL)
-        {
-            err = PB_ERR;
-            return err;
-        }
-
-        printf("Signature format: %s\n", tok);
-
-        uint32_t signature_kind = 0;
-
-        if (strcmp(tok, "secp256r1") == 0)
-            signature_kind = PB_SIGN_NIST256p;
-        else if (strcmp(tok, "secp384r1") == 0)
-            signature_kind = PB_SIGN_NIST384p;
-        else if (strcmp(tok, "secp521r1") == 0)
-            signature_kind = PB_SIGN_NIST521p;
-        else if (strcmp(tok, "RSA4096") == 0)
-            signature_kind = PB_SIGN_RSA4096;
-        else
-        {
-            printf("Error: Invalid signature format\n");
-            err = PB_ERR;
-            return err;
-        }
-
-
-        tok = strtok(NULL, delim);
-
-        if (tok == NULL)
-        {
-            err = PB_ERR;
-            return err;
-        }
-
-        printf("Hash: %s\n", tok);
-
-        uint32_t hash_kind = 0;
-
-        if (strcmp(tok, "sha256") == 0)
-            hash_kind = PB_HASH_SHA256;
-        else if (strcmp(tok, "sha384") == 0)
-            hash_kind = PB_HASH_SHA384;
-        else if (strcmp(tok, "sha512") == 0)
-            hash_kind = PB_HASH_SHA512;
-        else
-        {
-            printf("Error: Invalid hash\n");
-            err = PB_ERR;
-            return err;
-        }
-
-
-        printf("Authenticating using key index %u and '%s'\n",
-                key_index, fn);
-
-        err = pb_recovery_authenticate(key_index, fn, signature_kind,
-                                                      hash_kind);
+        err = pb_recovery_authenticate(key_id, fn);
 
         if (err == PB_ERR_FILE_NOT_FOUND)
             printf("Could not read '%s'\n", fn);

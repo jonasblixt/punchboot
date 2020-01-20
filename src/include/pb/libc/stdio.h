@@ -15,7 +15,7 @@
 #include <stdio_.h>
 
 #ifndef NULL
-#define NULL ((void *) 0)
+#define NULL ((void *)(uintptr_t) 0)
 #endif
 
 #define EOF            -1

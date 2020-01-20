@@ -12,6 +12,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <bpak/keystore.h>
 
 enum
 {
@@ -26,18 +28,18 @@ enum
 {
     PB_SIGN_INVALID,
     PB_SIGN_RSA4096,
-    PB_SIGN_NIST256p,
-    PB_SIGN_NIST384p,
-    PB_SIGN_NIST521p,
+    PB_SIGN_PRIME256v1,
+    PB_SIGN_SECP384r1,
+    PB_SIGN_SECP521r1,
 };
 
 enum
 {
     PB_KEY_INVALID,
     PB_KEY_RSA4096,
-    PB_KEY_NIST256p,
-    PB_KEY_NIST384p,
-    PB_KEY_NIST521p,
+    PB_KEY_PRIME256v1,
+    PB_KEY_SECP384r1,
+    PB_KEY_SECP521r1,
 };
 
 #define PB_HASH_BUF_SZ 128
@@ -48,31 +50,12 @@ struct pb_hash_context
     uint8_t buf[PB_HASH_BUF_SZ];
 };
 
-struct pb_rsa4096_key
-{
-    const uint8_t mod[512];
-    const uint8_t exp[3];
-};
-
-struct pb_ec_key
-{
-    const __attribute__((aligned(4))) uint8_t public_key[132];
-};
-
-struct pb_key
-{
-    const uint32_t kind;
-    const uint32_t id;
-    const void *data;
-};
-
-struct pb_crypto_backend
-{
-};
-
 #ifdef __PB_BUILD
-uint32_t pb_crypto_init(struct pb_crypto_backend *backend);
-uint32_t pb_crypto_get_key(uint32_t key_index, struct pb_key **k);
+int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, uint8_t *key_sz);
+int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
+                            uint8_t **r, uint8_t **s);
+
+int pb_asn1_rsa_data(struct bpak_key *k, uint8_t **mod, uint8_t **exp);
 #endif
 
 #endif  // INCLUDE_PB_CRYPTO_H_

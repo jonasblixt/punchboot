@@ -2,10 +2,10 @@
 source tests/common.sh
 wait_for_qemu_start
 
-dd if=/dev/urandom of=/tmp/random_data bs=64k count=1
+# Create pbimage
+dd if=/dev/urandom of=/tmp/random_data bs=1024k count=1
 
-# Sign with incorrect key index
-#$PBI tests/image_inv_key_index.pbc
+# Set loading address so it overlaps with bootloader
 set -e
 BPAK=bpak
 IMG=/tmp/img.bpak
@@ -19,14 +19,14 @@ $BPAK add $IMG --meta bpak-package --from_string $PKG_UUID --encoder uuid $V
 $BPAK add $IMG --meta bpak-package-uid --from_string $PKG_UNIQUE_ID --encoder uuid $V
 
 
-$BPAK add $IMG --meta pb-load-addr --from_string 0x49000000 --part-ref kernel \
+$BPAK add $IMG --meta pb-load-addr --from_string 0x40011000 --part-ref kernel \
                       --encoder integer $V
 
 $BPAK add $IMG --part kernel \
                --from_file /tmp/random_data $V
 
 $BPAK sign $IMG --key ../pki/dev_rsa_private.pem \
-                    --key-id invalid-key-id \
+                    --key-id pb-development \
                     --key-store pb $V
 set +e
 result_code=$?
@@ -36,7 +36,8 @@ then
     test_end_error
 fi
 
-$PB boot -x -f /tmp/img.bpak
+# Flashing image, should fail since image is larger then partition
+$PB part -w -n 0 -f /tmp/img.bpak
 result_code=$?
 
 if [ $result_code -ne 255 ];

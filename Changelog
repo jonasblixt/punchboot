@@ -1,0 +1,11 @@
+
+
+v0.6
+----
+
+Starting with v0.6 punchboot uses the new BPAK format, which replaces PBI and
+the pbimage tool.
+
+see https://github.com/jonasblixt/bpak for more details
+
+The changelog is new

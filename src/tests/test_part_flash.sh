@@ -24,7 +24,7 @@ part_b_sha256=$(sha256sum /tmp/part_data_b | cut -d ' ' -f 1)
 
 echo About to write data
 # Flash data
-
+echo Writing part 0
 $PB part -w -n 0 -f /tmp/part_data_a
 
 result_code=$?
@@ -36,7 +36,7 @@ then
     echo
     test_end_error
 fi
-
+echo Writing part 1
 $PB part -w -n 1 -f /tmp/part_data_b
 
 result_code=$?

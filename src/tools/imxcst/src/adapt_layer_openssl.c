@@ -569,6 +569,11 @@ gen_sig_data_ecdsa(const char *in_file,
         sign_bytes = ECDSA_size(EVP_PKEY_get0_EC_KEY(key));
         sign = OPENSSL_malloc(sign_bytes);
 
+        printf("Hash: ");
+        for (int i = 0; i < hash_bytes; i++)
+            printf("%2.2x", hash[i]);
+        printf("\n");
+
         if (0 == ECDSA_sign(0 /* ignored */, hash, hash_bytes, sign, &sign_bytes, EVP_PKEY_get0_EC_KEY(key))) {
             display_error("Failed to generate ECDSA signature");
             err_value = CAL_CRYPTO_API_ERROR;

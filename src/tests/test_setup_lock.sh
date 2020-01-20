@@ -12,7 +12,7 @@ then
 fi
 
 # Authenticate
-$PB dev -a -n 0 -f tests/test_auth_cookie -s RSA4096:sha256
+$PB dev -a -f tests/test_auth_cookie -n 0xa90f9680
 result_code=$?
 
 if [ $result_code -ne 0 ];

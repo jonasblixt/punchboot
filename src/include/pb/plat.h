@@ -16,6 +16,7 @@
 #include <fuse.h>
 #include <params.h>
 #include <crypto.h>
+#include <bpak/keystore.h>
 
 #define PLAT_EMMC_PART_BOOT0 1
 #define PLAT_EMMC_PART_BOOT1 2
@@ -53,11 +54,12 @@ uint32_t plat_write_block_async(uint32_t lba_offset,
 /* Crypto Interface */
 uint32_t  plat_hash_init(uint32_t hash_kind);
 uint32_t  plat_hash_update(uintptr_t bfr, uint32_t sz);
-uint32_t  plat_hash_finalize(uintptr_t out);
+uint32_t  plat_hash_finalize(uintptr_t data, uint32_t sz, uintptr_t out,
+                                uint32_t out_sz);
 
 uint32_t  plat_verify_signature(uint8_t *sig, uint32_t sig_kind,
                                 uint8_t *hash, uint32_t hash_kind,
-                                struct pb_key *k);
+                                struct bpak_key *k);
 
 /* USB Interface API */
 uint32_t  plat_usb_init(struct usb_device *dev);

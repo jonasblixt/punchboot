@@ -51,7 +51,6 @@ uint32_t pb_read_result_code(void)
 
     if (pb_read((uint8_t *) &result_code, sizeof(uint32_t)) != PB_OK)
         result_code = PB_ERR;
-
     return result_code;
 }
 
@@ -179,5 +178,11 @@ int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
 
 void transport_exit(void)
 {
+    usleep(20000);
+    printf("Closing transport\n");
+    /* Closing the socket too quickley makes qemu behave bad.
+        Behaviour is that qemu will hang while sending data even though all
+        data has been received.
+    */
     close(fd);
 }

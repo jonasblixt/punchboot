@@ -13,8 +13,8 @@
 #include <stdint.h>
 #include <image.h>
 #include <gpt.h>
+#include <bpak/bpak.h>
 
-
-void pb_boot(struct pb_pbi *pbi, uint32_t system_index, bool verbose);
+void pb_boot(struct bpak_header *h, uint32_t system_index, bool verbose);
 
 #endif  // INCLUDE_PB_BOOT_H_
