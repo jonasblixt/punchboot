@@ -94,11 +94,8 @@ static inline uint32_t param_add_u32(struct param *p,
 {
     p->kind = PB_PARAM_U32;
 
-    uint32_t *ptr = (uint32_t *) p->data;
-    (*ptr) = v;
-
     memcpy(p->identifier, ident, PB_PARAM_MAX_IDENT_SIZE);
-
+    memcpy(p->data, &v, sizeof(uint32_t));
     return PB_OK;
 }
 

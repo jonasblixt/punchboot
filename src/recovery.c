@@ -300,12 +300,10 @@ static uint32_t recovery_read_data(struct usb_device *dev,
 
 static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
 {
-    LOG_DBG("Sending result code %x\n", value);
     /* Send result code */
     memcpy(recovery_cmd_buffer, (uint8_t *) &value, sizeof(uint32_t));
     plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sizeof(uint32_t));
     plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
-    LOG_DBG("Done");
 }
 
 static int recovery_ram_boot(struct usb_device *dev, struct pb_cmd_header *cmd)
@@ -313,8 +311,6 @@ static int recovery_ram_boot(struct usb_device *dev, struct pb_cmd_header *cmd)
     int err;
     uint32_t hash_kind = 0;
     uint32_t sign_kind = 0;
-
-    LOG_DBG("Reading header %u bytes", sizeof(struct bpak_header));
 
     recovery_read_data(dev, (uint8_t *) &bp_header,
                         sizeof(struct bpak_header));

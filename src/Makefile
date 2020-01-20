@@ -1,12 +1,8 @@
 # Makefile for Punch BOOT
 
 TARGET  = pb
-
-PYTHON ?= python3
-
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
-
-BPAK ?= bpak
+BPAK ?= $(shell which bpak)
 KEYSTORE_BPAK ?= internal_keystore.bpak
 
 ifndef BOARD

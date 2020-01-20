@@ -51,7 +51,7 @@ void pb_boot(struct bpak_header *h, uint32_t system_index, bool verbose)
     if (rc != BPAK_OK)
     {
         LOG_ERR("Invalid BPAK header");
-        return PB_ERR;
+        return;
     }
 
     bpak_foreach_part(h, p)
@@ -131,7 +131,7 @@ void pb_boot(struct bpak_header *h, uint32_t system_index, bool verbose)
 
     LOG_DBG("Patching DT 0x%x", *dtb);
 
-    void *fdt = (void *) *dtb;
+    void *fdt = (void *)(uintptr_t) *dtb;
     int err = fdt_check_header(fdt);
 
     if (err >= 0)

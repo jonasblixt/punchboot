@@ -137,11 +137,9 @@ static const char platform_namespace_uuid[] =
 
 uint32_t plat_get_uuid(char *out)
 {
-    uint16_t lc;
-    uint16_t monotonic;
     uint32_t uid[2];
 
-    //sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid[0], &uid[1]);
+    sc_misc_unique_id(plat.ipc_handle, &uid[0], &uid[1]);
 
     return uuid_gen_uuid3(platform_namespace_uuid, 16,
                           (const char *) uid, 8, out);
@@ -150,10 +148,35 @@ uint32_t plat_get_uuid(char *out)
 uint32_t plat_get_params(struct param **pp)
 {
     char uuid_raw[16];
+    uint32_t version;
+    uint32_t commit;
+    int16_t celsius;
+    int8_t tenths;
+    char temp_str[16];
 
     param_add_str((*pp)++, "Platform", "NXP IMX8X");
     plat_get_uuid(uuid_raw);
     param_add_uuid((*pp)++, "Device UUID", uuid_raw);
+
+
+    sc_misc_build_info(plat.ipc_handle, &version, &commit);
+
+    snprintf(temp_str, sizeof(temp_str), "%u", version);
+    param_add_str((*pp)++, "SCFW build", temp_str);
+    param_add_u32((*pp)++, "SCFW commit", commit);
+
+
+    sc_misc_seco_build_info(plat.ipc_handle, &version, &commit);
+
+    snprintf(temp_str, sizeof(temp_str), "%u", version);
+    param_add_str((*pp)++, "SECO build", temp_str);
+    param_add_u32((*pp)++, "SECO commit", commit);
+
+    sc_misc_get_temp(plat.ipc_handle, SC_R_SYSTEM, SC_MISC_TEMP, &celsius,
+                        &tenths);
+
+    snprintf(temp_str, sizeof(temp_str), "%i.%i deg C", celsius, tenths);
+    param_add_str((*pp)++, "Temperature", temp_str);
     return PB_OK;
 }
 
@@ -195,7 +218,6 @@ void plat_wdog_kick(void)
 uint32_t  plat_early_init(void)
 {
     uint32_t err = PB_OK;
-    sc_pm_clock_rate_t rate;
 
     sc_ipc_open(&plat.ipc_handle, SC_IPC_BASE);
 
