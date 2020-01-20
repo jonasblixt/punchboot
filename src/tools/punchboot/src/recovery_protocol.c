@@ -359,6 +359,25 @@ uint32_t pb_flash_part(uint8_t part_no, int64_t offset, const char *f_name)
     if ((read_sz == sizeof(*h)) && (bpak_valid_header(h) == BPAK_OK))
     {
         printf("Found valid BPAK header\n");
+        /* Calculate required amount of blocks */
+        uint64_t total_size = sizeof(struct bpak_header);
+        bpak_foreach_part(h, p)
+        {
+            if (!p->id)
+                break;
+            total_size += bpak_part_size(p);
+        }
+        
+        uint32_t no_of_blocks = (tbl.part[part_no].last_lba - \
+                    tbl.part[part_no].first_lba);
+
+        if (no_of_blocks <= (total_size / 512))
+        {
+            printf("Error: Not enough space in partition\n");
+            err = PB_ERR;
+            goto err_free_bfr_out;
+        }
+
         printf("Writing header at the end of the partition...\n");
 
         bfr_cmd.no_of_blocks = read_sz / 512;

@@ -3,7 +3,7 @@ source tests/common.sh
 wait_for_qemu_start
 
 # Create pbimage
-dd if=/dev/urandom of=/tmp/random_data bs=512k count=1
+dd if=/dev/urandom of=/tmp/random_data bs=500k count=1
 
 #$PBI tests/image1.pbc
 
