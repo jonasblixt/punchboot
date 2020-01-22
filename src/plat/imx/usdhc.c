@@ -45,6 +45,11 @@ uint32_t usdhc_emmc_wait_for_de(struct usdhc_device *dev)
     volatile uint32_t irq_status;
     uint32_t timeout = 0xFFFFF;
 
+    if (!dev->transfer_in_progress)
+        return PB_OK;
+
+    dev->transfer_in_progress = false;
+
     /* Clear all pending interrupts */
 
     while (1)
@@ -229,6 +234,8 @@ uint32_t usdhc_emmc_xfer_blocks(struct usdhc_device *dev,
     uint8_t *buf_ptr = bfr;
 
     LOG_DBG("start_lba %u, nblocks %u wr %u", start_lba, nblocks, wr);
+
+    dev->transfer_in_progress = true;
 
     do {
         transfer_sz = remaining_sz > 0xFE00?0xFE00:remaining_sz;

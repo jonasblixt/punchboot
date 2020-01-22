@@ -503,6 +503,7 @@ struct usdhc_device
     uint32_t bus_width;
     uint32_t mix_shadow;
     uint8_t boot_bus_cond;
+    bool transfer_in_progress;
 };
 
 
