@@ -325,8 +325,8 @@ static void print_help_header(void)
     printf(" --- Punch BOOT " VERSION " ---\n\n");
 
     printf(" Common parameters:\n");
-    printf("  punchboot <command> -u \"usb path\"           - Perform operations on device with 'usb path'\n");
-    printf("  punchboot <command> -v                      - Verbose output\n\n");
+    printf("  punchboot <command> -u \"usb path\"                 - Perform operations on device with 'usb path'\n");
+    printf("  punchboot <command> -v                            - Verbose output\n\n");
 }
 
 static void print_boot_help(void)
@@ -344,12 +344,12 @@ static void print_boot_help(void)
 static void print_dev_help(void)
 {
     printf(" Device:\n");
-    printf("  punchboot dev -l                             - Display device information\n");
-    printf("  punchboot dev -i [-f <filename>] [-y]        - Perform device setup\n");
-    printf("  punchboot dev -w [-y]                        - Lock device setup\n");
-    printf("  punchboot dev -a [-n <key id>] -f <filename> - Authenticate\n");
+    printf("  punchboot dev -l                                  - Display device information\n");
+    printf("  punchboot dev -i [-f <filename>] [-y]             - Perform device setup\n");
+    printf("  punchboot dev -w [-y]                             - Lock device setup\n");
+    printf("  punchboot dev -a [-n <key id>] -f <filename>      - Authenticate\n");
     printf("                -s <signature format>:<hash>\n");
-    printf("  punchboot dev -b <arg0>,<arg1>,<arg2>,<arg3> - Issue board specific command\n");
+    printf("  punchboot dev -b <arg0>,<arg1>,<arg2>,<arg3>      - Issue board specific command\n");
     printf("\n");
 }
 
