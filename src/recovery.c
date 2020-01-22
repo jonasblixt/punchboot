@@ -243,10 +243,7 @@ static uint32_t recovery_flash_part(uint8_t part_no,
         return PB_ERR;
     }
 
-/*
-    if (lba_offset > 0)
-        plat_flush_block();
-*/
+    plat_flush_block();
 
     return plat_write_block_async(part_lba_offset + lba_offset,
                                 (uintptr_t) bfr, no_of_blocks);
@@ -304,6 +301,72 @@ static void recovery_send_result_code(struct usb_device *dev, uint32_t value)
     memcpy(recovery_cmd_buffer, (uint8_t *) &value, sizeof(uint32_t));
     plat_usb_transfer(dev, USB_EP3_IN, recovery_cmd_buffer, sizeof(uint32_t));
     plat_usb_wait_for_ep_completion(dev, USB_EP3_IN);
+}
+
+static int recovery_verify_part(struct usb_device *dev, struct pb_cmd_header *cmd)
+{
+    int err = PB_OK;
+    char hash_data_in[32];
+    char hash_data_gen[32];
+
+    uint32_t part_lba_offset = 0;
+    uint32_t part_lba_end = 0;
+
+    part_lba_offset = gpt_get_part_first_lba(cmd->arg0) +
+                        cmd->arg1;
+
+    part_lba_end = gpt_get_part_last_lba(cmd->arg0);
+
+    recovery_read_data(dev,(uint8_t *) hash_data_in, 32);
+
+    LOG_INFO("Verifying part %u with offset %x, size %i bytes",
+                cmd->arg0, cmd->arg1, cmd->arg2);
+
+    plat_hash_init(PB_HASH_SHA256);
+    uint32_t no_of_blocks = cmd->arg2 / 512;
+    uint32_t chunk = 0;
+
+    memset(&bp_header, 0, sizeof(bp_header));
+    plat_read_block(part_lba_end - (sizeof(bp_header) / 512) + 1,
+                    (uintptr_t) &bp_header, sizeof(bp_header)/512);
+
+    err = bpak_valid_header(&bp_header);
+
+    if (err == BPAK_OK)
+    {
+        LOG_INFO("Part contains BPAK archive");
+        plat_hash_update((uintptr_t) &bp_header, sizeof(bp_header));
+        no_of_blocks -= sizeof(bp_header)/512;
+    }
+
+    while(no_of_blocks)
+    {
+        chunk = (no_of_blocks > RECOVERY_BULK_BUFFER_BLOCKS)?
+                        RECOVERY_BULK_BUFFER_BLOCKS:no_of_blocks;
+
+        plat_read_block(part_lba_offset,
+                        (uintptr_t) recovery_bulk_buffer[0], chunk);
+
+        plat_hash_update((uintptr_t) recovery_bulk_buffer[0],
+                            chunk*512);
+        part_lba_offset += chunk;
+        no_of_blocks -= chunk;
+    };
+
+    plat_hash_finalize((uintptr_t) NULL, 0, (uintptr_t) hash_data_gen,
+                                        sizeof(hash_data_gen));
+
+    err = PB_OK;
+    for (uint32_t i = 0; i < 32; i++)
+    {
+        if (hash_data_in[i] != hash_data_gen[i])
+        {
+            err = PB_ERR;
+            break;
+        }
+    }
+
+    return err;
 }
 
 static int recovery_ram_boot(struct usb_device *dev, struct pb_cmd_header *cmd)
@@ -464,8 +527,6 @@ static int recovery_ram_boot(struct usb_device *dev, struct pb_cmd_header *cmd)
 
             uintptr_t addr = ((*load_addr) + offset);
 
-            LOG_DBG("Writing to 0x%lx", addr);
-
             err = plat_usb_transfer(dev, USB_EP1_OUT, (uint8_t *) addr, chunk);
 
             if (err != PB_OK)
@@ -486,7 +547,6 @@ static int recovery_ram_boot(struct usb_device *dev, struct pb_cmd_header *cmd)
 
             offset += chunk;
             remainder -= chunk;
-
         }
     }
 
@@ -699,49 +759,7 @@ static void recovery_parse_command(struct usb_device *dev,
         break;
         case PB_CMD_VERIFY_PART:
         {
-            char hash_data_in[32];
-            char hash_data_gen[32];
-
-            uint32_t part_lba_offset = 0;
-
-            part_lba_offset = gpt_get_part_first_lba(cmd->arg0) +
-                                cmd->arg1;
-
-            recovery_read_data(dev,(uint8_t *) hash_data_in, 32);
-
-            LOG_INFO("Verifying part %u with offset %x, size %i bytes",
-                        cmd->arg0, cmd->arg1, cmd->arg2);
-
-            plat_hash_init(PB_HASH_SHA256);
-            uint32_t no_of_blocks = cmd->arg2 / 512;
-            uint32_t chunk = 0;
-
-            while(no_of_blocks)
-            {
-                chunk = (no_of_blocks > RECOVERY_BULK_BUFFER_BLOCKS)?
-                                RECOVERY_BULK_BUFFER_BLOCKS:no_of_blocks;
-
-                plat_read_block(part_lba_offset,
-                                (uintptr_t) recovery_bulk_buffer[0], chunk);
-
-                plat_hash_update((uintptr_t) recovery_bulk_buffer[0],
-                                    chunk*512);
-                part_lba_offset += chunk;
-                no_of_blocks -= chunk;
-            };
-
-            plat_hash_finalize((uintptr_t) NULL, 0, (uintptr_t) hash_data_gen,
-                                                sizeof(hash_data_gen));
-
-            err = PB_OK;
-            for (uint32_t i = 0; i < 32; i++)
-            {
-                if (hash_data_in[i] != hash_data_gen[i])
-                {
-                    err = PB_ERR;
-                    break;
-                }
-            }
+            err = recovery_verify_part(dev, cmd);
         }
         break;
         case PB_CMD_BOOT_PART:
