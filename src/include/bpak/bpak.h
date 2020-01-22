@@ -19,6 +19,7 @@
 #define BPAK_MAX_META 32
 #define BPAK_METADATA_BYTES 2048
 #define BPAK_PART_ALIGN 512
+#define BPAK_META_ALIGN 8
 
 enum bpak_hash_kind
 {
@@ -99,13 +100,14 @@ struct bpak_meta_header
 struct bpak_header
 {
     uint32_t magic;
+    uint8_t pad0[4];
     struct bpak_meta_header meta[BPAK_MAX_META];
     struct bpak_part_header parts[BPAK_MAX_PARTS];
-    uint8_t metadata[BPAK_METADATA_BYTES];
-    uint8_t hash_kind;
-    uint8_t signature_kind;
+    uint8_t metadata[BPAK_METADATA_BYTES]; /* Ensure that metadata array */
+    uint8_t hash_kind;                     /* is aligned to a BPAK_META_ALIGN */
+    uint8_t signature_kind;                /*  boundary */
     uint16_t alignment;
-    uint8_t pad[504];   /* Pad to 4kByte, set to zero */
+    uint8_t pad1[500];   /* Pad to 4kByte, set to zero */
 } __attribute__ ((packed));
 
 

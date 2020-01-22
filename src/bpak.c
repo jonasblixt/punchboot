@@ -71,7 +71,6 @@ int bpak_add_meta(struct bpak_header *hdr, uint32_t id, uint32_t part_ref_id,
             m->offset = new_offset;
             m->size = size;
             m->part_id_ref = part_ref_id;
-
             if ((m->offset + m->size) > BPAK_METADATA_BYTES)
                 return -BPAK_NO_SPACE_LEFT;
 
@@ -80,6 +79,9 @@ int bpak_add_meta(struct bpak_header *hdr, uint32_t id, uint32_t part_ref_id,
         }
 
         new_offset += m->size;
+
+        if (m->size % BPAK_META_ALIGN)
+            new_offset += BPAK_META_ALIGN - (m->size % BPAK_META_ALIGN);
     }
 
     return -BPAK_NO_SPACE_LEFT;
@@ -250,6 +252,8 @@ const char *bpak_signature_kind(uint8_t signature_kind)
             return "secp384r1";
         case BPAK_SIGN_SECP521r1:
             return "secp521r1";
+        case BPAK_SIGN_RSA4096:
+            return "rsa4096";
         default:
             return "Unknown";
     }

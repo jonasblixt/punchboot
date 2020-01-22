@@ -47,14 +47,14 @@ uint32_t pb_image_check_header(struct bpak_header *h)
         if (!p->id)
             break;
 
-        LOG_INFO("Checking component %x, %llu bytes", p->id, bpak_part_size(p));
 
-        uint32_t sz = bpak_part_size(p);
-
+        size_t sz = bpak_part_size(p);
         uint64_t *load_addr = NULL;
-                                              /* pb-load-addr */
+
+                                  /* pb-load-addr */
         err = bpak_get_meta_with_ref(h, 0xd1e64a4b,
                                         p->id, (void **) &load_addr);
+
 
         if (err != BPAK_OK)
         {
