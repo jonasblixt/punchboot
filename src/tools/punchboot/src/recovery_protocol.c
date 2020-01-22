@@ -627,7 +627,6 @@ uint32_t pb_execute_image(const char *f_name, uint32_t active_system,
             else
                 bytes_to_send = read_sz;
 
-            printf("bytes_to_send %x\n", bytes_to_send);
             err = pb_write_bulk(bfr, bytes_to_send, &sent_sz);
 
             data_remaining = data_remaining - bytes_to_send;
