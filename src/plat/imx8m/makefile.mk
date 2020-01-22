@@ -39,11 +39,14 @@ BLOB_INPUT += lpddr4_pmu_train_2d_imem.bin
 
 CFLAGS += -I plat/imx8m/include
 
+imx8m_spl:
+	@echo Building imx8m SPL
+
 imx8m_image:
 	@echo Generating $(BUILD_DIR)/$(TARGET).imx
 	@$(MKIMAGE) -loader $(BUILD_DIR)/$(TARGET).bin $(PB_ENTRY) -out $(BUILD_DIR)/$(TARGET).imx 
 
-plat_final: imx8m_image
+plat_final: imx8m_spl imx8m_image
 	$(eval PB_FILESIZE=$(shell stat -c%s "${BUILD_DIR}/pb.imx"))
 	@echo $(PB_FILESIZE)
 	$(eval PB_FILESIZE2=$(shell echo " $$(( $(PB_FILESIZE) - 0x2000 ))" | bc	))

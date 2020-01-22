@@ -3,7 +3,6 @@ PB_PLAT_NAME   = imx6ul
 PB_ENTRY     = 0x80001000
 
 BOARD_C_SRCS += board/jiffy/board.c
-BOARD_C_SRCS += boot/atf_linux_initrd.c
 
 KEYS  = ../pki/secp256r1-pub-key.der
 

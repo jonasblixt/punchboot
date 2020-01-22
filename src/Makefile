@@ -100,6 +100,10 @@ C_SRCS  += lib/snprintf.c
 C_SRCS  += lib/putchar.c
 C_SRCS  += lib/uuid.c
 
+ifneq ($(BOARD),test)
+C_SRCS  += boot.c
+endif
+
 # Lib fdt
 C_SRCS  += 3pp/fdt/fdt.c
 C_SRCS  += 3pp/fdt/fdt_addresses.c
