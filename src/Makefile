@@ -154,12 +154,9 @@ DEPS      = $(OBJS:.o=.d)
 ifeq ($(BOARD),test)
 CFLAGS += -g  -fprofile-arcs -ftest-coverage
 include tests/makefile.mk
-
 endif
 
-keystore:
-	@$(BPAK) generate keystore --name pb $(KEYSTORE_BPAK) > $(BUILD_DIR)/keystore.c
-	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
+.PHONY: plat_early keystore plat_final board_final
 
 all: keystore plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
 	$(info Summary:)
@@ -171,6 +168,10 @@ all: keystore plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
 	@echo "VERSION = $(GIT_VERSION)"
 	$(info )
 	@$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
+
+keystore:
+	@$(BPAK) generate keystore --name pb $(KEYSTORE_BPAK) > $(BUILD_DIR)/keystore.c
+	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@
@@ -202,8 +203,6 @@ pmccabe:
 	@pmccabe  $(shell git ls-files "*.[hc]") | sort -n | tail -n 50
 cloc:
 	@cloc $$(git ls-files | grep -v 3pp | xargs)
-
-.PHONY: plat_early plat_final board_final
 
 clean:
 	@-rm -rf $(BUILD_DIR)/
