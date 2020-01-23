@@ -305,11 +305,11 @@ uint32_t plat_early_init(void)
     LOG_DBG("SYS PLL2 %08x", pb_read32(0x3036003C));
     LOG_DBG("SYS PLL3 %08x", pb_read32(0x30360048));
     LOG_DBG("DRAM PLL %08x", pb_read32(0x30360060));
-
+/*
     umctl2_init();
 
     LOG_DBG("LPDDR4 training complete");
-
+*/
     err = board_late_init(&plat);
 
     if (err != PB_OK)

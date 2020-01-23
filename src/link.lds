@@ -42,17 +42,17 @@ SECTIONS
         . = ALIGN(8);
         _bss_end = .;
         PROVIDE (_zero_region_end = .);
-	} > pbram2
-   
+	} > pbram
+
  	.stack (NOLOAD):
     {
         PROVIDE(_stack_start = .);
         . = . + 10*1024 ;
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
-    } > pbram2
-                            
-    .bigbuffer (NOLOAD): 
+    } > pbram
+
+    .bigbuffer (NOLOAD):
     {
         PROVIDE(_big_buffer_start = .);
         *(.bigbuffer .bigbuffer*)

@@ -10,14 +10,13 @@
 
 MEMORY
 {
-
-    pbram (rx)  : ORIGIN = 0x7E1000, LENGTH = 128K
-    pbram2 (rx) : ORIGIN = 0x180000, LENGTH = 32K
     umctl2 (rx) : ORIGIN = 0x40000000, LENGTH = 128K
-    dram (rx)   : ORIGIN = 0x48000000, LENGTH = 128M
-
-
+    pbram (rx)  : ORIGIN = 0x40020000, LENGTH = 256k
+    dram (rx)   : ORIGIN = 0x40060000, LENGTH = 24M
 }
+
+/* Used to store run-time training data for the dram -controller
+ */
 
 SECTIONS
 {
