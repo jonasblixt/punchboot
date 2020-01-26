@@ -252,6 +252,8 @@ uint32_t plat_early_init(void)
 
     imx_uart_init(&plat.uart0);
 
+    LOG_DBG("Hello");
+
     /* Configure main clocks */
     imx8m_clock_cfg(ARM_A53_CLK_ROOT, CLK_ROOT_ON);
 
@@ -305,12 +307,12 @@ uint32_t plat_early_init(void)
     LOG_DBG("SYS PLL2 %08x", pb_read32(0x3036003C));
     LOG_DBG("SYS PLL3 %08x", pb_read32(0x30360048));
     LOG_DBG("DRAM PLL %08x", pb_read32(0x30360060));
-/*
+
+    err = board_late_init(&plat);
+
     umctl2_init();
 
     LOG_DBG("LPDDR4 training complete");
-*/
-    err = board_late_init(&plat);
 
     if (err != PB_OK)
     {
@@ -323,8 +325,6 @@ uint32_t plat_early_init(void)
 
     pb_write32(0x03030303, 0x30384004 + 0x10*48);
     pb_write32(0x03030303, 0x30384004 + 0x10*81);
-
-
 
     caam.base = 0x30901000;
     err = caam_init(&caam);

@@ -24,7 +24,7 @@ else
 	TIMING_REPORT=0
 endif
 
-CFLAGS   = -Wall -Wextra -Wunused-result -O2 -std=c99
+CFLAGS   = -Wall -Wextra -Wunused-result -Os -std=c99
 CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -ffunction-sections
 CFLAGS  += -fdata-sections

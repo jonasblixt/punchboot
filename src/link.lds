@@ -42,7 +42,7 @@ SECTIONS
         . = ALIGN(8);
         _bss_end = .;
         PROVIDE (_zero_region_end = .);
-	} > pbram
+	} > pbram2
 
  	.stack (NOLOAD):
     {
@@ -50,7 +50,7 @@ SECTIONS
         . = . + 10*1024 ;
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
-    } > pbram
+    } > pbram2
 
     .bigbuffer (NOLOAD):
     {

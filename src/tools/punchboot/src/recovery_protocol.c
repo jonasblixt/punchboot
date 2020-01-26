@@ -493,7 +493,7 @@ uint32_t pb_program_bootloader(const char *f_name)
     FILE *fp = NULL;
     unsigned char bfr[1024*1024*1];
     uint32_t no_of_blocks = 0;
-    char hash[32];
+    char hash[64];
     struct stat finfo;
     struct pb_cmd_prep_buffer buffer_cmd;
     br_sha256_context ctx;
@@ -541,7 +541,7 @@ uint32_t pb_program_bootloader(const char *f_name)
         return err;
 
     err = pb_write(PB_CMD_FLASH_BOOTLOADER, no_of_blocks, finfo.st_size, 0, 0,
-                    (uint8_t *) hash, 32);
+                    (uint8_t *) hash, 64);
 
     if (err != PB_OK)
         return err;

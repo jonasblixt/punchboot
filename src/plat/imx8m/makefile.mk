@@ -30,43 +30,21 @@ PLAT_C_SRCS  += plat/imx/dwc3.c
 PLAT_C_SRCS  += plat/imx/hab.c
 PLAT_C_SRCS  += plat/imx/ocotp.c
 PLAT_C_SRCS  += plat/imx/wdog.c
+PLAT_C_SRCS  += plat/imx8m/umctl2_lp4.c
 
-SPL_C_SRCS   = plat/imx8m/spl.c
-SPL_C_SRCS  += plat/imx8m/umctl2_lp4.c
-
-SPL_LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY)
-SPL_LDFLAGS += -Tarch/$(PB_ARCH_NAME)/link.lds
-SPL_LDFLAGS += -Tplat/imx8m/spl.lds
-SPL_LDFLAGS += --build-id=none
-
-SPL_BLOB_INPUT  = lpddr4_pmu_train_1d_dmem.bin
-SPL_BLOB_INPUT += lpddr4_pmu_train_2d_dmem.bin
-SPL_BLOB_INPUT += lpddr4_pmu_train_1d_imem.bin
-SPL_BLOB_INPUT += lpddr4_pmu_train_2d_imem.bin
+BLOB_INPUT  = lpddr4_pmu_train_1d_dmem.bin
+BLOB_INPUT += lpddr4_pmu_train_2d_dmem.bin
+BLOB_INPUT += lpddr4_pmu_train_1d_imem.bin
+BLOB_INPUT += lpddr4_pmu_train_2d_imem.bin
 
 CFLAGS += -I plat/imx8m/include
 
-SPL_BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(SPL_BLOB_INPUT))
-
 .PHONY: imx8m_spl
 
-$(BUILD_DIR)/spl.bin: $(BUILD_DIR)/spl
-	@echo OBJCOPY $< $@
-	@$(STRIP) --strip-all $<
-	@$(OBJCOPY) -O binary -R .comment $< $@
-
-$(BUILD_DIR)/spl: $(SPL_OBJS) $(SPL_BLOB_OBJS)
-	@echo LD $@
-	@$(LD) $(SPL_LDFLAGS) $(SPL_OBJS) $(SPL_BLOB_OBJS) -o $@
-
-imx8m_spl: $(BUILD_DIR)/spl.bin
-	@echo Building imx8m SPL
-
-imx8m_image:
+imx8m_image: $(BUILD_DIR)/pb.bin
 	@echo Generating $(BUILD_DIR)/$(TARGET).imx
-	@$(MKIMAGE) -loader $(BUILD_DIR)/spl.bin $(PB_ENTRY) \
-		-second_loader $(BUILD_DIR)/$(TARGET).bin 0x40020000 0x60000 \
-		-out $(BUILD_DIR)/$(TARGET).imx 
+	@$(MKIMAGE) -loader $(BUILD_DIR)/pb.bin $(PB_ENTRY) \
+		-out $(BUILD_DIR)/$(TARGET).imx
 
 plat_final: imx8m_spl imx8m_image
 	$(eval PB_FILESIZE=$(shell stat -c%s "${BUILD_DIR}/pb.imx"))

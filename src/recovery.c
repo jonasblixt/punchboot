@@ -172,6 +172,7 @@ static uint32_t recovery_flash_bootloader(uint8_t *bfr,
     plat_switch_part(PLAT_EMMC_PART_BOOT0);
     plat_write_block(PB_BOOTPART_OFFSET, (uintptr_t) bfr, blocks_to_write);
 
+    LOG_INFO("Bootloader programmed, verifying...");
     /* Read back and check hash */
     plat_read_block(PB_BOOTPART_OFFSET, (uintptr_t) recovery_bulk_buffer[1],
                      blocks_to_write);
@@ -598,6 +599,9 @@ static void recovery_parse_command(struct usb_device *dev,
                                       recovery_cmd_name[cmd->cmd],
                                       cmd->size);
 */
+
+
+
     err = plat_get_security_state(&security_state);
 
     if (err != PB_OK)
@@ -664,7 +668,7 @@ static void recovery_parse_command(struct usb_device *dev,
             char hash_data_in[32];
             LOG_INFO("Flash BL %u, %u", cmd->arg0, cmd->arg1);
 
-            recovery_read_data(dev,(uint8_t *) hash_data_in, 32);
+            recovery_read_data(dev,(uint8_t *) hash_data_in, 64);
 
             err = recovery_flash_bootloader(recovery_bulk_buffer[0],
                         cmd->arg0, cmd->arg1, hash_data_in);
