@@ -3,7 +3,7 @@
 TARGET  = pb
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 BPAK ?= $(shell which bpak)
-KEYSTORE_BPAK ?= internal_keystore.bpak
+KEYSTORE_BPAK ?= ../pki/internal_keystore.bpak
 
 ifndef BOARD
 	BOARD=test
