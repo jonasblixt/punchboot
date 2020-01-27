@@ -15,6 +15,8 @@
 
 static const char ec_identifier[] = "\x2a\x86\x48\xce\x3d\x02\x01";
 static const char rsa_identifier[] = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01";
+static uint8_t sig_ec_r[128];
+static uint8_t sig_ec_s[128];
 
 int pb_asn1_size(const uint8_t *buf, size_t *sz)
 {
@@ -186,6 +188,7 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
     uint8_t offset;
     uint8_t rs_length;
     uint8_t *p = sig;
+    uint8_t z_pad = 0;
 
     switch (sig_kind)
     {
@@ -215,11 +218,27 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
     if (*p++ != 0x02)
         return PB_ERR;
 
+
+    memset(sig_ec_r, 0, sizeof(sig_ec_r));
+    memset(sig_ec_s, 0, sizeof(sig_ec_s));
+
     n = pb_asn1_size(p, &sz);
     p += n;
-    offset = sz - rs_length;
-    //memset(data_r, 0, offset);
-    *r = p + offset;
+
+    if (sz > rs_length)
+    {
+        p++;
+        sz--;
+    }
+    offset = rs_length - sz;
+    *r = sig_ec_r;
+
+
+    LOG_DBG("sig_ec_r size %i offset %i", sz, offset);
+    LOG_DBG("r[0] = %x", p[0]);
+    LOG_DBG("r[%i] = %x", sz, p[sz-1]);
+
+    memcpy(sig_ec_r + offset, p, sz);
     p += sz;
 
     if (*p++ != 0x02)
@@ -227,9 +246,20 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
 
     n = pb_asn1_size(p, &sz);
     p += n;
-    offset = sz - rs_length;
-    //memset(data_s, 0, offset);
 
-    *s = p + offset;
+    if (sz > rs_length)
+    {
+        p++;
+        sz--;
+    }
+    offset = rs_length - sz;
+    *s = sig_ec_s;
+
+
+    LOG_DBG("sig_ec_s size %i offset %i", sz, offset);
+    LOG_DBG("s[0] = %x", p[0]);
+    LOG_DBG("s[%i] = %x", sz, p[sz-1]);
+
+    memcpy(sig_ec_s + offset, p, sz);
     return PB_OK;
 }
