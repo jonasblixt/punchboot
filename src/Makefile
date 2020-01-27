@@ -52,16 +52,7 @@ WARNING += -Wmissing-format-attribute
 #WARNING += -Wmissing-prototypes
 WARNING += -Wpointer-arith
 WARNING += -Wredundant-decls
-WARNING += -Wswitch-default
 WARNING += -Waggregate-return
-WARNING += -Wnested-externs
-#WARNING += -Wcast-align
-#WARNING += -Wold-style-definition
-#WARNING += -Wbad-function-cast
-#WARNING += -Wcast-qual
-#WARNING += -Wconversion
-#WARNING += -Wpacked
-#WARNING += -Wpadded
 
 CFLAGS  += $(WARNING)
 

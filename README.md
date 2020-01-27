@@ -30,6 +30,8 @@ Releases history:
 
 | Version | Release date | Changes                                          |
 | ------- | ------------ | ------------------------------------------------ |
+| v0.6    | 2020-01-27   | New image format (BPAK) that replaces the now deprecated PBI format |   
+|         |              |
 | v0.5    | 2019-12-07   | Add internal platform API documentation  |
 |         |              | Re-organized tools to include output build directories |
 |         |              | Support board specific commands in recovery mode |

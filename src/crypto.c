@@ -18,56 +18,71 @@ static const char rsa_identifier[] = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01";
 static uint8_t sig_ec_r[128];
 static uint8_t sig_ec_s[128];
 
-int pb_asn1_size(const uint8_t *buf, size_t *sz)
+/* Copied from mbedtls */
+int pb_asn1_size(unsigned char **p, size_t *len)
 {
-    uint8_t n_octets = 1;
-    size_t result = 0;
-    uint8_t r[4];
 
-    if (buf[0] & 0x80)
-    {
-        n_octets = buf[0] & 0x7f;
-
-        for (int i = 0; i < n_octets; i++)
-        {
-            r[n_octets-i-1] = buf[i+1];
-        }
-
-        result = *((uint16_t *) r);
-        n_octets++;
-    }
+    if (( **p & 0x80) == 0)
+        *len = *(*p)++;
     else
     {
-        result = buf[0];
+        switch( **p & 0x7F )
+        {
+        case 1:
+            *len = (*p)[1];
+            (*p) += 2;
+            break;
+        case 2:
+            *len = ( (size_t)(*p)[1] << 8 ) | (*p)[2];
+            (*p) += 3;
+            break;
+        case 3:
+            *len = ( (size_t)(*p)[1] << 16 ) |
+                   ( (size_t)(*p)[2] << 8  ) | (*p)[3];
+            (*p) += 4;
+            break;
+        case 4:
+            *len = ( (size_t)(*p)[1] << 24 ) | ( (size_t)(*p)[2] << 16 ) |
+                   ( (size_t)(*p)[3] << 8  ) |           (*p)[4];
+            (*p) += 5;
+            break;
+        default:
+            return -PB_ERR;
+        }
     }
 
-    *sz = result;
-    return n_octets;
+    return PB_OK;
 }
 
 int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, uint8_t *key_sz)
 {
     size_t s;
-    int n;
+    int rc;
     uint8_t *p = k->data;
 
     if (*p++ != 0x30)
         return PB_ERR;
 
-    n = pb_asn1_size(p, &s);
-    p += n;
+    rc = pb_asn1_size(&p, &s);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (*p++ != 0x30)
         return PB_ERR;
 
-    n = pb_asn1_size(p, &s);
-    p += n;
+    rc = pb_asn1_size(&p, &s);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (*p++ != 0x06)
         return PB_ERR;
 
-    n = pb_asn1_size(p, &s);
-    p += n;
+    rc = pb_asn1_size(&p, &s);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (memcmp(p, ec_identifier, s) == 0)
     {
@@ -76,15 +91,20 @@ int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, uint8_t *key_sz)
         if (*p++ != 0x06)
             return PB_ERR;
 
-        n = pb_asn1_size(p, &s);
-        p += n;
+        rc = pb_asn1_size(&p, &s);
+
+        if (rc != PB_OK)
+            return rc;
+
         p += s;
 
         if (*p++ != 0x03)
             return PB_ERR;
 
-        n = pb_asn1_size(p, &s);
-        p += n;
+        rc = pb_asn1_size(&p, &s);
+
+        if (rc != PB_OK)
+            return rc;
 
         p += 2; /* Skip unused bits and compression point */
         s -= 2;
@@ -105,26 +125,32 @@ int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, uint8_t *key_sz)
 int pb_asn1_rsa_data(struct bpak_key *k, uint8_t **mod, uint8_t **exp)
 {
     size_t s;
-    int n;
+    int rc;
     uint8_t *p = k->data;
 
     if (*p++ != 0x30)
         return PB_ERR;
 
-    n = pb_asn1_size(p, &s);
-    p += n;
+    rc = pb_asn1_size(&p, &s);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (*p++ != 0x30)
         return PB_ERR;
 
-    n = pb_asn1_size(p, &s);
-    p += n;
+    rc = pb_asn1_size(&p, &s);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (*p++ != 0x06)
         return PB_ERR;
 
-    n = pb_asn1_size(p, &s);
-    p += n;
+    rc = pb_asn1_size(&p, &s);
+    
+    if (rc != PB_OK)
+        return rc;
 
     if (memcmp(p, rsa_identifier, s) == 0)
     {
@@ -140,8 +166,10 @@ int pb_asn1_rsa_data(struct bpak_key *k, uint8_t **mod, uint8_t **exp)
         {
             return PB_ERR;
         }
-        n = pb_asn1_size(p, &s);
-        p += n;
+        rc = pb_asn1_size(&p, &s);
+
+        if (rc != PB_OK)
+            return rc;
         p++;
 
         if (*p++ != 0x30)
@@ -149,15 +177,19 @@ int pb_asn1_rsa_data(struct bpak_key *k, uint8_t **mod, uint8_t **exp)
             return PB_ERR;
         }
 
-        n = pb_asn1_size(p, &s);
-        p += n;
+        rc = pb_asn1_size(&p, &s);
+
+        if (rc != PB_OK)
+            return rc;
 
         if (*p++ != 0x02)
         {
             return PB_ERR;
         }
-        n = pb_asn1_size(p, &s);
-        p += n;
+        rc = pb_asn1_size(&p, &s);
+
+        if (rc != PB_OK)
+            return rc;
 
         *mod = p+1;
         p += s;
@@ -166,8 +198,10 @@ int pb_asn1_rsa_data(struct bpak_key *k, uint8_t **mod, uint8_t **exp)
         {
             return PB_ERR;
         }
-        n = pb_asn1_size(p, &s);
-        p += n;
+        rc = pb_asn1_size(&p, &s);
+
+        if (rc != PB_OK)
+            return rc;
         *exp = p;
     }
     else
@@ -182,13 +216,10 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
                             uint8_t **r, uint8_t **s)
 {
     size_t sz;
-    int n;
-    uint8_t *data_r = *r;
-    uint8_t *data_s = *s;
+    int rc;
     uint8_t offset;
     uint8_t rs_length;
     uint8_t *p = sig;
-    uint8_t z_pad = 0;
 
     switch (sig_kind)
     {
@@ -212,8 +243,10 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
         return PB_ERR;
     }
 
-    n = pb_asn1_size(p, &sz);
-    p += n;
+    rc = pb_asn1_size(&p, &sz);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (*p++ != 0x02)
         return PB_ERR;
@@ -222,8 +255,10 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
     memset(sig_ec_r, 0, sizeof(sig_ec_r));
     memset(sig_ec_s, 0, sizeof(sig_ec_s));
 
-    n = pb_asn1_size(p, &sz);
-    p += n;
+    rc = pb_asn1_size(&p, &sz);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (sz > rs_length)
     {
@@ -233,19 +268,16 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
     offset = rs_length - sz;
     *r = sig_ec_r;
 
-
-    LOG_DBG("sig_ec_r size %i offset %i", sz, offset);
-    LOG_DBG("r[0] = %x", p[0]);
-    LOG_DBG("r[%i] = %x", sz, p[sz-1]);
-
     memcpy(sig_ec_r + offset, p, sz);
     p += sz;
 
     if (*p++ != 0x02)
         return PB_ERR;
 
-    n = pb_asn1_size(p, &sz);
-    p += n;
+    rc = pb_asn1_size(&p, &sz);
+
+    if (rc != PB_OK)
+        return rc;
 
     if (sz > rs_length)
     {
@@ -254,11 +286,6 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
     }
     offset = rs_length - sz;
     *s = sig_ec_s;
-
-
-    LOG_DBG("sig_ec_s size %i offset %i", sz, offset);
-    LOG_DBG("s[0] = %x", p[0]);
-    LOG_DBG("s[%i] = %x", sz, p[sz-1]);
 
     memcpy(sig_ec_s + offset, p, sz);
     return PB_OK;
