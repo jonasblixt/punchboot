@@ -166,6 +166,7 @@ keystore:
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@
+	@cp $< $<_unstripped
 	@$(STRIP) --strip-all $<
 	@$(OBJCOPY) -O binary -R .comment $< $@
 

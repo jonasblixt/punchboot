@@ -237,6 +237,12 @@ const char *bpak_known_id(uint32_t id)
         return "merkle-root-hash";
     case 0xd1e64a4b:
         return "pb-load-addr";
+    case 0x9a5bab69:
+        return "bpak-version";
+    case 0x0ba87349:
+        return "bpak-dependency";
+    case 0x9e5e4955:
+        return "bpak-key-mask";
     default:
         return "";
     }
@@ -274,3 +280,7 @@ const char *bpak_hash_kind(uint8_t hash_kind)
     }
 }
 
+__attribute__ ((weak)) int bpak_printf(int verbosity, const char *fmt, ...)
+{
+    return BPAK_OK;
+}

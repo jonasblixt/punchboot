@@ -23,6 +23,7 @@ struct bpak_key
     enum bpak_key_kind kind;
     uint16_t size;
     uint32_t id;
+    uint32_t key_mask;
     uint8_t data[];
 };
 struct bpak_keystore

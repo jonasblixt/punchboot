@@ -10,15 +10,15 @@ set -e
 
 $BPAK create $IMG -Y
 
-$BPAK add $IMG --meta bpak-package --from_string $PKG_UUID --encoder uuid
+$BPAK add $IMG --meta bpak-package --from-string $PKG_UUID --encoder uuid
 
 $BPAK add $IMG --part pb-development \
-               --from_file pki/dev_rsa_public.der \
+               --from-file pki/dev_rsa_public.der \
                --encoder key
 
 
-$BPAK add $IMG --meta bpak-key-id --from_string bpak-test-key --encoder id
-$BPAK add $IMG --meta bpak-key-store --from_string bpak-internal --encoder id
+$BPAK add $IMG --meta bpak-key-id --from-string bpak-test-key --encoder id
+$BPAK add $IMG --meta bpak-key-store --from-string bpak-internal --encoder id
 
 $BPAK generate keystore $IMG --name internal
 

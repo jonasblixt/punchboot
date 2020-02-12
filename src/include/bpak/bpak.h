@@ -218,4 +218,6 @@ const char *bpak_known_id(uint32_t id);
 const char *bpak_signature_kind(uint8_t signature_kind);
 const char *bpak_hash_kind(uint8_t hash_kind);
 
+int bpak_printf(int verbosity, const char *fmt, ...);
+
 #endif  // INCLUDE_BPAK_BPAK_H_
