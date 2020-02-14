@@ -159,6 +159,7 @@ static uint32_t usdhc_emmc_read_extcsd(struct usdhc_device *dev)
     if (err != PB_OK)
         return err;
 
+    dev->transfer_in_progress = true;
     err = usdhc_emmc_wait_for_de(dev);
 
     if (err != PB_OK)
