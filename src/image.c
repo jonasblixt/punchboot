@@ -142,9 +142,22 @@ uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
     uint32_t *keystore_id = NULL;
 
                           /* bpak-key-id */
-    bpak_get_meta(h, 0x7da19399, (void **) &key_id);
+    err = bpak_get_meta(h, 0x7da19399, (void **) &key_id);
+
+    if (!key_id || (err != BPAK_OK))
+    {
+        LOG_ERR("Missing bpak-key-id meta\n");
+        return PB_ERR;
+    }
+
                         /* bpak-key-store */
-    bpak_get_meta(h, 0x106c13a7, (void **) &keystore_id);
+    err = bpak_get_meta(h, 0x106c13a7, (void **) &keystore_id);
+
+    if (!keystore_id || (err != BPAK_OK))
+    {
+        LOG_ERR("Missing bpak-key-store meta\n");
+        return PB_ERR;
+    }
 
     LOG_DBG("Key-store: %x", *keystore_id);
     LOG_DBG("Key-ID: %x", *key_id);
@@ -214,6 +227,8 @@ uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
 
     plat_hash_init(hash_kind);
 
+    bool found_signature = false;
+
     /* Copy and zero out the signature metadata before hasing header */
     bpak_foreach_meta(h, m)
     {
@@ -222,11 +237,25 @@ uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
         {
             LOG_DBG("sig zero");
             uint8_t *ptr = &(h->metadata[m->offset]);
+
+            if (m->size > sizeof(signature_data))
+            {
+                LOG_ERR("Signature metadata is too large\n");
+                return PB_ERR;
+            }
+
             memcpy(signature_data, ptr, m->size);
             memset(ptr, 0, m->size);
             memset(m, 0, sizeof(*m));
+            found_signature = true;
             break;
         }
+    }
+
+    if (!found_signature)
+    {
+        LOG_ERR("Could not find a valid signature");
+        return PB_ERR;
     }
 
     plat_hash_update((uintptr_t) h, sizeof(struct bpak_header));
@@ -248,6 +277,7 @@ uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
             LOG_ERR("Could not read pb-entry for part %x", p->id);
             break;
         }
+
         LOG_DBG("Loading part %x --> %p, %llu bytes", p->id,
                         (void *)(uintptr_t) (*load_addr),
                         bpak_part_size(p));

@@ -177,10 +177,22 @@ int bpak_valid_header(struct bpak_header *hdr)
     /* Check alignment of part data blocks */
     bpak_foreach_part(hdr, p)
     {
-        if (p->id)
+        if (!p->id)
+            break;
+
+        if (((p->size + p->pad_bytes) % BPAK_PART_ALIGN) != 0)
+            return -BPAK_BAD_ALIGNMENT;
+    }
+
+    /* Check for out-of-bounds metadata */
+    bpak_foreach_meta(hdr, m)
+    {
+        if (!m->id)
+            break;
+
+        if ((m->size + m->offset) > BPAK_METADATA_BYTES)
         {
-            if (((p->size + p->pad_bytes) % BPAK_PART_ALIGN) != 0)
-                return -BPAK_BAD_ALIGNMENT;
+            return -BPAK_SIZE_ERROR;
         }
     }
 
@@ -227,8 +239,6 @@ const char *bpak_known_id(uint32_t id)
         return "bpak-signature";
     case 0xfb2f1f3f:
         return "bpak-package";
-    case 0x79c3b7b4:
-        return "bpak-package-uid";
     case 0x2d44bbfb:
         return "bpak-transport";
     case  0x7c9b2f93:
