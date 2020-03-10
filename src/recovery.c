@@ -400,9 +400,22 @@ static int recovery_ram_boot(struct usb_device *dev, struct pb_cmd_header *cmd)
     uint32_t *keystore_id = NULL;
 
                           /* bpak-key-id */
-    bpak_get_meta(&bp_header, 0x7da19399, (void **) &key_id);
+    err = bpak_get_meta(&bp_header, 0x7da19399, (void **) &key_id);
+
+    if (!key_id || (err != BPAK_OK))
+    {
+        LOG_ERR("Missing bpak-key-id meta\n");
+        return PB_ERR;
+    }
+
                         /* bpak-key-store */
-    bpak_get_meta(&bp_header, 0x106c13a7, (void **) &keystore_id);
+    err = bpak_get_meta(&bp_header, 0x106c13a7, (void **) &keystore_id);
+
+    if (!keystore_id || (err != BPAK_OK))
+    {
+        LOG_ERR("Missing bpak-key-store meta\n");
+        return PB_ERR;
+    }
 
     LOG_DBG("Key-store: %x", *keystore_id);
     LOG_DBG("Key-ID: %x", *key_id);
@@ -473,6 +486,8 @@ static int recovery_ram_boot(struct usb_device *dev, struct pb_cmd_header *cmd)
     plat_hash_init(hash_kind);
     recovery_send_result_code(dev, err);
 
+    bool found_signature = false;
+
     /* Copy and zero out the signature metadata before hasing header */
     bpak_foreach_meta(&bp_header, m)
     {
@@ -480,12 +495,26 @@ static int recovery_ram_boot(struct usb_device *dev, struct pb_cmd_header *cmd)
         if (m->id == 0xe5679b94)
         {
             LOG_DBG("sig zero");
+
+            if (m->size > sizeof(signature_data))
+            {
+                LOG_ERR("Signature metadata is too large\n");
+                return PB_ERR;
+            }
+
             uint8_t *ptr = &(&bp_header)->metadata[m->offset];
             memcpy(signature_data, ptr, m->size);
             memset(ptr, 0, m->size);
             memset(m, 0, sizeof(*m));
+            found_signature = true;
             break;
         }
+    }
+
+    if (!found_signature)
+    {
+        LOG_ERR("Could not find a valid signature");
+        return PB_ERR;
     }
 
     plat_hash_update((uintptr_t)&bp_header, sizeof(struct bpak_header));
