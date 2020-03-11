@@ -1,0 +1,22 @@
+#ifndef INCLUDE_PB_ERROR_H_
+#define INCLUDE_PB_ERROR_H_
+
+#include <stdint.h>
+
+enum pb_error_code
+{
+    PB_OK,
+    PB_ERR,
+    PB_NOT_SUPPORTED,
+    PB_NO_MEMORY,
+    PB_NOT_AUTHENTICATED,
+    PB_TRANSFER_ERROR,
+    PB_TIMEOUT,
+    PB_KEY_REVOKED_ERROR,
+    PB_SIGNATURE_ERROR,
+    PB_CHECKSUM_ERROR,
+    PB_ERR_IO,
+    PB_ERR_FILE_NOT_FOUND,
+};
+
+#endif  // INCLUDE_PB_ERROR_H_
