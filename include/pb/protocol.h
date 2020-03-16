@@ -11,9 +11,13 @@
 #define INCLUDE_PB_PROTOCOL_H_
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <pb/error.h>
 
 #define PB_PROTO_MAGIC 0x50424c30   /* PBL0 */
+#define PB_COMMAND_REQUEST_MAX_SIZE 55
+#define PB_RESULT_RESPONSE_MAX_SIZE 55
 
 enum pb_auth_method
 {
@@ -22,27 +26,48 @@ enum pb_auth_method
     PB_AUTH_PASSWORD,
 };
 
-enum pb_command
+enum pb_commands
 {
     PB_CMD_INVALID,
-    PB_CMD_RESET,
-    PB_CMD_GET_DEVICE_UUID,
-    PB_CMD_GET_DEVICE_PARAMS,
-    PB_CMD_FUSE_CONFIG,
-    PB_CMD_FUSE_CONFIG_LOCK,
-    PB_CMD_REVOKE_ROM_KEY,
-    PB_CMD_BL_VERSION,
+    PB_CMD_DEVICE_RESET,
+    PB_CMD_DEVICE_UUID_READ,
+    PB_CMD_DEVICE_CONFIG,
+    PB_CMD_DEVICE_CONFIG_LOCK,
+    PB_CMD_DEVICE_EOL,
+    PB_CMD_DEVICE_REVOKE_KEY,
+    PB_CMD_DEVICE_SLC_READ,
+    PB_CMD_VERSION_READ,
     PB_CMD_PART_TBL_GET,
     PB_CMD_PART_TBL_INSTALL,
-    PB_CMD_PART_WRITE,
     PB_CMD_PART_VERIFY,
     PB_CMD_PART_ACTIVATE,
-    PB_CMD_PART_DESCRIBE,
+    PB_CMD_PART_READ_BPAK_HEADER,
     PB_CMD_AUTHENTICATE,
-    PB_CMD_BUFFER_WRITE,
+    PB_CMD_SET_PASSWORD,
+    PB_CMD_STREAM_READ_PARAMS,
+    PB_CMD_STREAM_INITIALIZE,
+    PB_CMD_STREAM_PREPARE_BUFFER,
+    PB_CMD_STREAM_WRITE_BUFFER,
+    PB_CMD_STREAM_FINALIZE,
     PB_CMD_BOOT_PART,
     PB_CMD_BOOT_RAM,
     PB_CMD_BOARD_COMMAND,
+    PB_CMD_BOARD_IDENTIFIER_READ,
+    PB_CMD_BOARD_STATUS_READ,
+    PB_CMD_END,                     /* Sentinel, must be the last entry */
+};
+
+enum pb_results
+{
+    PB_RESULT_OK,
+    PB_RESULT_ERROR,
+    PB_RESULT_AUTHENTICATION_FAILED,
+    PB_RESULT_NOT_AUTHENTICATED,
+    PB_RESULT_NOT_SUPPORTED,
+    PB_RESULT_INVALID_ARGUMENT,
+    PB_RESULT_INVALID_COMMAND,
+    PB_RESULT_PART_VERIFY_FAILED,
+    PB_RESULT_PART_NOT_BOOTABLE,
 };
 
 enum pb_security_life_cycle
@@ -55,60 +80,170 @@ enum pb_security_life_cycle
 };
 
 /**
- * Command header, 64 byte
+ * Punchboot command structure (64 bytes)
+ *
+ * Alignment: 64 bytes
+ *
+ * command:  Command to be executed (enum pb_commands)
+ * size:     Size of data written after the command (if any)
+ * args:     4, 32-bit, optional arguments
+ * request:  Optional request data
  *
  */
 
-struct pb_cmd_header
+struct pb_command
+{
+    uint32_t magic;     /* PB Protocol magic, set to 'PBL0' and changed
+                            for breaking changes in the protocol */
+    uint8_t command;
+    uint32_t size;
+    uint8_t request[PB_COMMAND_REQUEST_MAX_SIZE];
+} __attribute__((packed));
+
+/**
+ * Punchboot command result (64 bytes)
+ *
+ * result_code: Command result code (enum pb_results)
+ * size:        Return data size
+ * response:    Optional response data
+ *
+ */
+
+struct pb_result
 {
     uint32_t magic;
-    uint32_t cmd;
+    uint8_t result_code;
+    uint32_t size;
+    uint8_t response[PB_RESULT_RESPONSE_MAX_SIZE];
+} __attribute__((packed));
+
+/**
+ * PB_CMD_STREAM_READ_PARAMS result structure
+ *
+ * no_of_buffers: Number of buffers that the device allocates
+ * size:          Size of each buffer in bytes
+ * alignment:     Data alignment required by the device
+ *
+ */
+
+struct pb_result_stream_params
+{
+    uint8_t no_of_buffers;
+    uint32_t alignment;
+    uint32_t size;
+} __attribute__((packed));
+
+/**
+ * Initialize streaming write to partition
+ *
+ * size:        Total transfer size
+ * part_uuid:   Partition to write to
+ *
+ */
+
+struct pb_command_stream_initialize
+{
     uint64_t size;
-    uint32_t arg0;
-    uint32_t arg1;
-    uint32_t arg2;
-    uint32_t arg3;
-    uint8_t pad[32];        /* Pad to 64 byte */
-} __attribute__((packed));
+    uint8_t part_uuid[16];
+};
 
-/*
- * Prepare transfer buffer, 64 byte
+/**
+ * Prepare buffer to receive data
  *
- */
-struct pb_cmd_prep_buffer
-{
-    uint64_t no_of_blocks;
-    uint8_t buffer_id;
-    uint8_t pad[55];        /* Pad to 64 bytes */
-} __attribute__((packed));
-
-/* Write command structure, 64 byte
+ * Prepares buffer with id 'id' to receive 'size' number of bytes
  *
- *
+ * This command must always be followd by a data transfer corresponding the
+ *  size field.
  */
 
-struct pb_cmd_write_part
+struct pb_command_stream_prepare_buffer
 {
-    uint64_t no_of_blocks;
+    uint32_t size;
+    uint8_t id;
+} __attribute__((packed));
+
+/**
+ * Write data from an internal buffer to a partition
+ *
+ * size:        Size in bytes
+ * offset:      Offset in bytes
+ * buffer_id:   Buffer to read data from
+ *
+ */
+
+struct pb_command_stream_write_buffer
+{
+    uint32_t size;
     uint64_t offset;
-    uint8_t part_no;
     uint8_t buffer_id;
-    uint8_t pad[46];        /* Pad to 64 bytes */
 } __attribute__((packed));
 
-struct pb_part_table_entry
+/**
+ * Authentication command
+ *
+ *
+ */
+
+struct pb_command_authenticate
 {
-    uint64_t first_block;
-    uint64_t last_block;
-    uint8_t uuid[16];
-    uint32_t block_alignment;
-    uint8_t pad[26];        /* Pad to 64 bytes */
+    uint8_t method;
+    uint16_t size;
 } __attribute__((packed));
 
-int pb_init_header(struct pb_cmd_header *hdr);
-int pb_valid_header(struct pb_cmd_header *hdr);
+/**
+ * Verify partition
+ *
+ * uuid:        Partition UUID
+ * sha256:      Expected SHA256
+ *
+ */
 
-const char *pb_slc_string(enum pb_security_life_cycle slc);
-const char *pb_command_string(enum pb_command cmd);
+struct pb_command_verify_part
+{
+    uint8_t uuid[16];
+    uint8_t sha256[32];
+} __attribute__((packed));
+
+/**
+ * Read device UUID
+ *
+ *
+ */
+
+struct pb_result_device_uuid
+{
+    uint8_t device_uuid[16];
+    uint8_t platform_uuid[16];
+} __attribute__((packed));
+
+/**
+ * Initializes and resets a command structure. The magic value is populated and
+ *  the command code is set.
+ *
+ * Returns PB_OK on success.
+ *
+ */
+
+int pb_protocol_init_command(struct pb_command *command,
+                                enum pb_commands command_code);
+
+int pb_protocol_init_command2(struct pb_command *command,
+                              enum pb_commands command_code,
+                              void *data,
+                              size_t size);
+
+int pb_protocol_init_result(struct pb_result *result,
+                                enum pb_results result_code);
+
+int pb_protocol_init_result2(struct pb_result *result,
+                             enum pb_results result_code,
+                             void *data,
+                             size_t size);
+
+bool pb_protocol_valid_command(struct pb_command *command);
+bool pb_protocol_valid_result(struct pb_result *result);
+bool pb_protocol_requires_auth(struct pb_command *command);
+const char *pb_protocol_slc_string(enum pb_security_life_cycle slc);
+const char *pb_protocol_command_string(enum pb_commands cmd);
 
 #endif  // INCLUDE_PB_PROTOCOL_H_

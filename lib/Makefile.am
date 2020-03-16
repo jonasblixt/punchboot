@@ -2,7 +2,8 @@ lib_LTLIBRARIES = libpunchboot.la
 
 libpunchboot_la_SOURCES = api.c \
 						  protocol.c \
-						  usb.c
+						  usb.c \
+						  socket.c
 
 libpunchboot_la_LDFLAGS = $(LIBUSB_LDFLAGS)
 

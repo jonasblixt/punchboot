@@ -9,180 +9,137 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <pb/pb.h>
-#include <pb/recovery.h>
-#include <plat/test/socket_proto.h>
-#include "transport.h"
+#include <pb/api.h>
+#include <pb/protocol.h>
+#include <pb/error.h>
+#include <pb/socket.h>
 
-static int fd;
-static struct sockaddr_un addr;
-
-int transport_init(uint8_t *usb_path, uint8_t usb_path_count)
+struct pb_socket_private
 {
-    UNUSED(usb_path);
-    UNUSED(usb_path_count);
+    int fd;
+    struct sockaddr_un addr;
+    const char *socket_path;
+};
 
-    if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
-    {
-        perror("socket error");
-        return -1;
-    }
+#define PB_SOCKET_PRIVATE(__ctx) ((struct pb_socket_private *) ctx->transport)
 
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, "/tmp/pb_sock", sizeof(addr.sun_path)-1);
-    bind(fd, (struct sockaddr*)&addr, sizeof(addr));
 
-    if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        perror("connect error");
-        return -1;
-    }
+static int pb_socket_connect(struct pb_context *ctx)
+{
+    int rc;
+    struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
 
-    return 0;
+
+    rc = connect(priv->fd, (struct sockaddr*) &priv->addr,
+                            sizeof(priv->addr));
+
+    if (rc != 0)
+        return -PB_ERR;
+
+    return PB_OK;
 }
 
-uint32_t pb_read_result_code(void)
+static int pb_socket_command(struct pb_context *ctx,
+                            struct pb_command *cmd,
+                            const void *bfr, size_t sz)
 {
-    uint32_t result_code = PB_ERR;
+    int rc;
+    struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
 
-    if (pb_read((uint8_t *) &result_code, sizeof(uint32_t)) != PB_OK)
-        result_code = PB_ERR;
-    return result_code;
-}
 
-int pb_write(uint32_t cmd, uint32_t arg0,
-                           uint32_t arg1,
-                           uint32_t arg2,
-                           uint32_t arg3,
-                           uint8_t *bfr, int sz)
-{
-    size_t tx_bytes;
-    struct pb_socket_header hdr;
-    struct pb_cmd_header cmd_hdr;
-    uint8_t status;
-    uint32_t result_code = PB_OK;
+    ssize_t bytes = write(priv->fd, cmd, sizeof(*cmd));
 
-    memset(&cmd_hdr, 0, sizeof(struct pb_cmd_header));
+    if (bytes != sizeof(*cmd))
+        return -PB_ERR;
 
-    cmd_hdr.cmd = cmd;
-    cmd_hdr.size = sz;
-    cmd_hdr.arg0 = arg0;
-    cmd_hdr.arg1 = arg1;
-    cmd_hdr.arg2 = arg2;
-    cmd_hdr.arg3 = arg3;
-
-    hdr.ep = 4;
-    hdr.sz = sz + sizeof(struct pb_cmd_header);
-
-    tx_bytes = write(fd, &hdr, sizeof(struct pb_socket_header));
-
-    if (tx_bytes != sizeof(struct pb_socket_header))
-    return -1;
-
-    if (read(fd, &status, 1) != 1)
+    if (sz)
     {
-       return PB_ERR;
+        bytes = write(priv->fd, bfr, sz);
+
+        if (bytes != sz)
+            return -PB_ERR;
     }
 
-    tx_bytes = write(fd, &cmd_hdr, sizeof(struct pb_cmd_header));
-
-    // printf("cmd: tx_bytes = %li\n",tx_bytes);
-
-    if (tx_bytes != sizeof(struct pb_cmd_header))
-        return -1;
-
-    if (read(fd, &status, 1) != 1)
-        return PB_ERR;
-
-    if (bfr && sz)
-    {
-        tx_bytes = write(fd, bfr, sz);
-
-        if (tx_bytes != sz)
-            return -1;
-
-        if (read(fd, &status, 1) != 1)
-            return PB_ERR;
-    }
-
-    return result_code;
+    return PB_OK;
 }
 
-int pb_read(uint8_t *bfr, int sz)
+
+static int pb_socket_read(struct pb_context *ctx, void *bfr, size_t sz)
 {
-    size_t rx_bytes;
-    uint32_t remaining = sz;
-    uint32_t read_count = 0;
-    uint32_t chunk;
-    uint32_t count = 0;
+    struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
 
-    while (remaining)
-    {
-        if (remaining > 4096)
-        {
-            chunk = 4096;
-        }
-        else
-        {
-            chunk = remaining;
-        }
+    ssize_t bytes = read(priv->fd, bfr, sz);
 
-        rx_bytes = read(fd, &bfr[read_count], chunk);
-        count++;
-        remaining -= rx_bytes;
-        read_count += rx_bytes;
-    }
+    if (bytes == sz)
+        return PB_OK;
 
-    if (read_count != sz)
-        return -1;
-
-    return 0;
+    return -PB_ERR;
 }
 
-int pb_write_bulk(uint8_t *bfr, int sz, int *sz_tx)
+static int pb_socket_init(struct pb_context *ctx)
 {
-    uint32_t remaining = sz;
-    uint32_t chunk = 0;
-    uint32_t pos = 0;
+    int rc;
+    struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
 
-    if (bfr && sz)
+    priv->fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    if (priv->fd == -1)
     {
-        while (remaining)
-        {
-            if (remaining > 4096)
-            {
-                chunk = 4096;
-            }
-            else
-            {
-                chunk = remaining;
-            }
-
-            *sz_tx = write(fd, &bfr[pos], chunk);
-
-            if (*sz_tx != chunk) {
-                printf("Error sending data\n");
-                return -1;
-            }
-            remaining -= chunk;
-            pos += chunk;
-        }
+        rc = -PB_ERR;
+        goto err_free_transport;
     }
 
-    return 0;
+    priv->addr.sun_family = AF_UNIX;
+
+    strncpy(priv->addr.sun_path, priv->socket_path,
+                sizeof(priv->addr.sun_path)-1);
+    
+    return PB_OK;
+
+err_free_transport:
+    free(ctx->transport);
+    return rc;
 }
 
-void transport_exit(void)
+static int pb_socket_free(struct pb_context *ctx)
 {
-    usleep(20000);
-    printf("Closing transport\n");
+    struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
+
     /* Closing the socket too quickley makes qemu behave bad.
         Behaviour is that qemu will hang while sending data even though all
-        data has been received.
-    */
-    close(fd);
+        data has been received. */
+
+    usleep(20000);
+    close(priv->fd);
+    free(ctx->transport);
+    return PB_OK;
 }
+
+int pb_socket_transport_init(struct pb_context *ctx,
+                             const char socket_path[])
+{
+    ctx->transport = malloc(sizeof(struct pb_socket_private));
+
+    if (!ctx->transport)
+        return -PB_NO_MEMORY;
+
+    memset(ctx->transport, 0, sizeof(struct pb_socket_private));
+
+    struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
+
+    ctx->free = pb_socket_free;
+    ctx->init = pb_socket_init;
+    ctx->read = pb_socket_read;
+    ctx->command = pb_socket_command;
+    ctx->connect = pb_socket_connect;
+    priv->socket_path = socket_path;
+
+    return ctx->init(ctx);
+}
+

@@ -119,28 +119,15 @@ static int pb_usb_free(struct pb_context *ctx)
 }
 
 static int pb_usb_command(struct pb_context *ctx,
-                            uint32_t cmd,
-                            uint32_t arg0,
-                            uint32_t arg1,
-                            uint32_t arg2,
-                            uint32_t arg3,
+                            struct pb_command *cmd,
                             const void *bfr, size_t sz)
 {
     struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
-    struct pb_cmd_header hdr;
     int err = 0;
     int tx_sz = 0;
 
-    hdr.magic = PB_PROTO_MAGIC;
-    hdr.cmd = cmd;
-    hdr.arg0 = arg0;
-    hdr.arg1 = arg1;
-    hdr.arg2 = arg2;
-    hdr.arg3 = arg3;
-    hdr.size = sz;
-
-    err = libusb_interrupt_transfer(priv->h, 0x02, (uint8_t *) &hdr,
-                                            sizeof(hdr), &tx_sz, 0);
+    err = libusb_interrupt_transfer(priv->h, 0x02, (uint8_t *) cmd,
+                                            sizeof(*cmd), &tx_sz, 0);
 
     if (err < 0)
         return -PB_TRANSFER_ERROR;

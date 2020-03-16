@@ -11,72 +11,74 @@
 #include <pb/protocol.h>
 #include <pb/error.h>
 
-int pb_valid_header(struct pb_cmd_header *hdr)
+bool pb_protocol_valid_result(struct pb_result *result)
 {
-    if (hdr->magic != PB_PROTO_MAGIC)
-        return -PB_ERR;
+    if (result->magic != PB_PROTO_MAGIC)
+        return false;
+
+    return true;
+}
+
+int pb_protocol_init_command(struct pb_command *command,
+                                enum pb_commands command_code)
+{
+    memset(command, 0, sizeof(*command));
+    command->magic = PB_PROTO_MAGIC;
+    command->command = (uint8_t) command_code;
 
     return PB_OK;
 }
 
-int pb_init_header(struct pb_cmd_header *hdr)
+int pb_protocol_init_command2(struct pb_command *command,
+                              enum pb_commands command_code,
+                              void *data,
+                              size_t size)
 {
-    memset(hdr, 0, sizeof(*hdr));
-    hdr->magic = PB_PROTO_MAGIC;
+    pb_protocol_init_command(command, command_code);
+
+    if (size < PB_COMMAND_REQUEST_MAX_SIZE)
+        return -PB_NO_MEMORY;
+
+    memcpy(command->request, data, size);
 
     return PB_OK;
 }
 
-const char *pb_command_string(enum pb_command cmd)
+int pb_protocol_init_result(struct pb_result *result,
+                                enum pb_results result_code)
 {
-    switch (cmd)
-    {
-        case PB_CMD_RESET:
-            return "PB_CMD_RESET";
-        case PB_CMD_GET_DEVICE_UUID:
-            return "PB_CMD_GET_DEVICE_UUID";
-        case PB_CMD_GET_DEVICE_PARAMS:
-            return "PB_CMD_GET_DEVICE_PARAMS";
-        case PB_CMD_FUSE_CONFIG:
-            return "PB_CMD_FUSE_CONFIG";
-        case PB_CMD_FUSE_CONFIG_LOCK:
-            return "PB_CMD_FUSE_CONFIG_LOCK";
-        case PB_CMD_REVOKE_ROM_KEY:
-            return "PB_CMD_REVOKE_ROM_KEY";
-        case PB_CMD_BL_VERSION:
-            return "PB_CMD_BL_VERSION";
-        case PB_CMD_PART_TBL_GET:
-            return "PB_CMD_PART_TBL_GET";
-        case PB_CMD_PART_TBL_INSTALL:
-            return "PB_CMD_PART_TBL_INSTALL";
-        case PB_CMD_PART_WRITE:
-            return "PB_CMD_PART_WRITE";
-        case PB_CMD_PART_VERIFY:
-            return "PB_CMD_PART_VERIFY";
-        case PB_CMD_PART_ACTIVATE:
-            return "PB_CMD_PART_ACTIVATE";
-        case PB_CMD_PART_DESCRIBE:
-            return "PB_CMD_PART_DESCRIBE";
-        case PB_CMD_AUTHENTICATE:
-            return "PB_CMD_AUTHENTICATE";
-        case PB_CMD_BUFFER_WRITE:
-            return "PB_CMD_BUFFER_WRITE";
-        case PB_CMD_BOOT_PART:
-            return "PB_CMD_BOOT_PART";
-        case PB_CMD_BOOT_RAM:
-            return "PB_CMD_BOOT_RAM";
-        case PB_CMD_BOARD_COMMAND:
-            return "PB_CMD_BOARD_COMMAND";
-        case PB_CMD_INVALID:
-        default:
-            return "PB_CMD_INVALID";
-    }
+    memset(result, 0, sizeof(*result));
+    result->magic = PB_PROTO_MAGIC;
+    result->result_code = (uint8_t) result_code;
+
+    return PB_OK;
 }
 
-const char *pb_slc_string(enum pb_security_life_cycle slc)
+int pb_protocol_init_result2(struct pb_result *result,
+                             enum pb_results result_code,
+                             void *data,
+                             size_t size)
+{
+    pb_protocol_init_result(result, result_code);
+
+    if (size > PB_RESULT_RESPONSE_MAX_SIZE)
+        return -PB_NO_MEMORY;
+
+    memcpy(result->response, data, size);
+
+    return PB_OK;
+}
+
+const char *pb_protocol_command_string(enum pb_commands cmd)
+{
+    return "";
+}
+
+const char *pb_protocol_slc_string(enum pb_security_life_cycle slc)
 {
     switch (slc)
     {
+#ifndef PB_PROTOCOL_DISABLE_STRINGS
         case PB_SLC_NOT_CONFIGURED:
             return "Not configured";
         case PB_SLC_CONFIGURATION:
@@ -88,6 +90,41 @@ const char *pb_slc_string(enum pb_security_life_cycle slc)
         case PB_SLC_INVALID:
         default:
             return "Invalid";
+#else
+        default:
+            return "";
+#endif
     }
 }
 
+bool pb_protocol_requires_auth(struct pb_command *command)
+{
+    bool result = true;
+
+    /* Commands that do not require authentication */
+    switch (command->command)
+    {
+        case PB_CMD_DEVICE_UUID_READ:
+            result = false;
+        break;
+        case PB_CMD_AUTHENTICATE:
+            result = false;
+        break;
+        default:
+        break;
+    }
+
+    return result;
+}
+
+
+bool pb_protocol_valid_command(struct pb_command *command)
+{
+    if (command->magic != PB_PROTO_MAGIC)
+        return false;
+
+    bool valid_command = ((command->command > PB_CMD_INVALID) &&
+            (command->command < PB_CMD_END));
+
+    return valid_command;
+}

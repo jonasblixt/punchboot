@@ -10,8 +10,8 @@
 
 static int dev_show(struct pb_context *ctx)
 {
-    char version[64];
     int rc;
+    char version[64];
 
     rc = pb_get_version(ctx, version, sizeof(version));
 
@@ -21,7 +21,7 @@ static int dev_show(struct pb_context *ctx)
         return rc;
     }
 
-    printf ("Bootloader version: %s\n", version);
+    printf("Bootloader version: %s\n", version);
 
     return rc;
 }
