@@ -7,15 +7,15 @@
  *
  */
 
-#ifndef INCLUDE_PB_PROTOCOL_H_
-#define INCLUDE_PB_PROTOCOL_H_
+#ifndef INCLUDE_PB_WIRE_H_
+#define INCLUDE_PB_WIRE_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <pb-tools/error.h>
 
-#define PB_PROTO_MAGIC 0x50424c30   /* PBL0 */
+#define PB_WIRE_MAGIC 0x50424c30   /* PBL0 */
 #define PB_COMMAND_REQUEST_MAX_SIZE 55
 #define PB_RESULT_RESPONSE_MAX_SIZE 55
 
@@ -31,20 +31,20 @@ enum pb_commands
     PB_CMD_INVALID,
     PB_CMD_DEVICE_RESET,
     PB_CMD_DEVICE_IDENTIFIER_READ,
-    PB_CMD_DEVICE_CONFIG,
-    PB_CMD_DEVICE_CONFIG_LOCK,
-    PB_CMD_DEVICE_EOL,
-    PB_CMD_DEVICE_REVOKE_KEY,
-    PB_CMD_DEVICE_SLC_READ,
     PB_CMD_DEVICE_READ_CAPS,
-    PB_CMD_VERSION_READ,
+    PB_CMD_SLC_SET_CONFIGURATION,
+    PB_CMD_SLC_SET_CONFIGURATION_LOCK,
+    PB_CMD_SLC_SET_EOL,
+    PB_CMD_SLC_REVOKE_KEY,
+    PB_CMD_SLC_READ,
+    PB_CMD_BOOTLOADER_VERSION_READ,
     PB_CMD_PART_TBL_READ,
     PB_CMD_PART_TBL_INSTALL,
     PB_CMD_PART_VERIFY,
     PB_CMD_PART_ACTIVATE,
     PB_CMD_PART_BPAK_READ,
     PB_CMD_AUTHENTICATE,
-    PB_CMD_SET_PASSWORD,
+    PB_CMD_AUTH_SET_OTP_PASSWORD,
     PB_CMD_STREAM_INITIALIZE,
     PB_CMD_STREAM_PREPARE_BUFFER,
     PB_CMD_STREAM_WRITE_BUFFER,
@@ -56,28 +56,23 @@ enum pb_commands
     PB_CMD_END,                     /* Sentinel, must be the last entry */
 };
 
-enum pb_results
-{
-    PB_RESULT_OK,
-    PB_RESULT_ERROR,
-    PB_RESULT_AUTHENTICATION_FAILED,
-    PB_RESULT_NOT_AUTHENTICATED,
-    PB_RESULT_NOT_SUPPORTED,
-    PB_RESULT_INVALID_ARGUMENT,
-    PB_RESULT_INVALID_COMMAND,
-    PB_RESULT_PART_VERIFY_FAILED,
-    PB_RESULT_PART_NOT_BOOTABLE,
-};
 
+enum pb_slc
+{
+    PB_SLC_INVALID,
+    PB_SLC_NOT_CONFIGURED,
+    PB_SLC_CONFIGURATION,
+    PB_SLC_CONFIGURATION_LOCKED,
+    PB_SLC_EOL,
+};
 
 /**
  * Punchboot command structure (64 bytes)
  *
  * Alignment: 64 bytes
  *
+ * magic:    wire format magic number
  * command:  Command to be executed (enum pb_commands)
- * size:     Size of data written after the command (if any)
- * args:     4, 32-bit, optional arguments
  * request:  Optional request data
  *
  */
@@ -87,7 +82,7 @@ struct pb_command
     uint32_t magic;     /* PB Protocol magic, set to 'PBL0' and changed
                             for breaking changes in the protocol */
     uint8_t command;
-    uint32_t size;
+    uint8_t rz[4];
     uint8_t request[PB_COMMAND_REQUEST_MAX_SIZE];
 } __attribute__((packed));
 
@@ -95,7 +90,6 @@ struct pb_command
  * Punchboot command result (64 bytes)
  *
  * result_code: Command result code (enum pb_results)
- * size:        Return data size
  * response:    Optional response data
  *
  */
@@ -103,8 +97,8 @@ struct pb_command
 struct pb_result
 {
     uint32_t magic;
-    uint8_t result_code;
-    uint32_t size;
+    int8_t result_code;
+    uint8_t rz[4];
     uint8_t response[PB_RESULT_RESPONSE_MAX_SIZE];
 } __attribute__((packed));
 
@@ -232,25 +226,27 @@ struct pb_result_device_identifier
  *
  */
 
-int pb_protocol_init_command(struct pb_command *command,
+int pb_wire_init_command(struct pb_command *command,
                                 enum pb_commands command_code);
 
-int pb_protocol_init_command2(struct pb_command *command,
+int pb_wire_init_command2(struct pb_command *command,
                               enum pb_commands command_code,
                               void *data,
                               size_t size);
 
-int pb_protocol_init_result(struct pb_result *result,
+int pb_wire_init_result(struct pb_result *result,
                                 enum pb_results result_code);
 
-int pb_protocol_init_result2(struct pb_result *result,
+int pb_wire_init_result2(struct pb_result *result,
                              enum pb_results result_code,
                              void *data,
                              size_t size);
 
-bool pb_protocol_valid_command(struct pb_command *command);
-bool pb_protocol_valid_result(struct pb_result *result);
-bool pb_protocol_requires_auth(struct pb_command *command);
-const char *pb_protocol_command_string(enum pb_commands cmd);
+bool pb_wire_valid_command(struct pb_command *command);
+bool pb_wire_valid_result(struct pb_result *result);
+bool pb_wire_requires_auth(struct pb_command *command);
 
-#endif  // INCLUDE_PB_PROTOCOL_H_
+const char *pb_wire_command_string(enum pb_commands cmd);
+const char *pb_wire_slc_string(enum pb_slc slc);
+
+#endif  // INCLUDE_PB_WIRE_H_

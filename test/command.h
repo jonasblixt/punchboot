@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <pb-tools/protocol.h>
+#include <pb-tools/wire.h>
 
 #define PB_MAX_COMMANDS 32
 

@@ -16,7 +16,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <pb-tools/api.h>
-#include <pb-tools/protocol.h>
+#include <pb-tools/wire.h>
 #include <pb-tools/error.h>
 #include <pb-tools/socket.h>
 
@@ -40,9 +40,9 @@ static int pb_socket_connect(struct pb_context *ctx)
                             sizeof(priv->addr));
 
     if (rc != 0)
-        return -PB_ERR;
+        return -PB_RESULT_ERROR;
 
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 static int pb_socket_command(struct pb_context *ctx,
@@ -56,17 +56,17 @@ static int pb_socket_command(struct pb_context *ctx,
     ssize_t bytes = write(priv->fd, cmd, sizeof(*cmd));
 
     if (bytes != sizeof(*cmd))
-        return -PB_ERR;
+        return -PB_RESULT_ERROR;
 
     if (sz)
     {
         bytes = write(priv->fd, bfr, sz);
 
         if (bytes != sz)
-            return -PB_ERR;
+            return -PB_RESULT_ERROR;
     }
 
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 
@@ -77,9 +77,9 @@ static int pb_socket_read(struct pb_context *ctx, void *bfr, size_t sz)
     ssize_t bytes = read(priv->fd, bfr, sz);
 
     if (bytes == sz)
-        return PB_OK;
+        return PB_RESULT_OK;
 
-    return -PB_ERR;
+    return -PB_RESULT_ERROR;
 }
 
 static int pb_socket_init(struct pb_context *ctx)
@@ -91,7 +91,7 @@ static int pb_socket_init(struct pb_context *ctx)
 
     if (priv->fd == -1)
     {
-        rc = -PB_ERR;
+        rc = -PB_RESULT_ERROR;
         goto err_free_transport;
     }
 
@@ -100,7 +100,7 @@ static int pb_socket_init(struct pb_context *ctx)
     strncpy(priv->addr.sun_path, priv->socket_path,
                 sizeof(priv->addr.sun_path)-1);
     
-    return PB_OK;
+    return PB_RESULT_OK;
 
 err_free_transport:
     free(ctx->transport);
@@ -118,7 +118,7 @@ static int pb_socket_free(struct pb_context *ctx)
     usleep(20000);
     close(priv->fd);
     free(ctx->transport);
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 int pb_socket_transport_init(struct pb_context *ctx,
@@ -127,7 +127,7 @@ int pb_socket_transport_init(struct pb_context *ctx,
     ctx->transport = malloc(sizeof(struct pb_socket_private));
 
     if (!ctx->transport)
-        return -PB_NO_MEMORY;
+        return -PB_RESULT_NO_MEMORY;
 
     memset(ctx->transport, 0, sizeof(struct pb_socket_private));
 

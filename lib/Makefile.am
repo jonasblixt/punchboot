@@ -1,11 +1,10 @@
 lib_LTLIBRARIES = libpunchboot.la
 
-libpunchboot_la_SOURCES = api.c \
-                          protocol.c \
+libpunchboot_la_SOURCES = protocol.c \
+						  error.c \
+                          wire.c \
                           usb.c \
-                          socket.c \
-                          slc.c \
-                          partition.c
+                          socket.c
 
 libpunchboot_la_LDFLAGS = $(LIBUSB_LDFLAGS)
 
@@ -20,4 +19,4 @@ libpunchboot_la_LIBS = $(CODE_COVERAGE_LIBS) $(LIBUSB_LIBS)
 
 pkginclude_HEADERS = $(top_srcdir)/include/pb-tools/api.h \
                      $(top_srcdir)/include/pb-tools/error.h \
-                     $(top_srcdir)/include/pb-tools/protocol.h
+                     $(top_srcdir)/include/pb-tools/wire.h

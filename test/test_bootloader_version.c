@@ -2,18 +2,21 @@
 #include "nala.h"
 #include <uuid.h>
 #include <pb-tools/api.h>
+#include <pb-tools/wire.h>
 #include <pb-tools/error.h>
 #include <pb-tools/socket.h>
-#include <pb-tools/wire.h>
 
 #include "test_command_loop.h"
 #include "command.h"
 #include "common.h"
 
-TEST(api_partition)
+TEST(api_bootloader_version)
 {
     int rc;
     struct pb_context *ctx;
+    char version[64];
+
+    test_command_loop_set_authenticated(true);
 
     /* Start command loop */
     rc = test_command_loop_start(NULL);
@@ -29,12 +32,11 @@ TEST(api_partition)
     rc = ctx->connect(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
-    test_command_loop_set_authenticated(true);
+    /* Read bootloader version */
+    rc = pb_api_bootloader_version(ctx, version, sizeof(version));
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
-    /* Read device partition table*/
-    //rc = pb_api_partition_read(ctx, tbl, sizeof(tbl));
-    //ASSERT_EQ(rc, PB_RESULT_OK);
-
+    printf("Version: '%s'\n", version);
 
     /* Stop command loop */
     rc = test_command_loop_stop();

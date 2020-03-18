@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <pb-tools/api.h>
 
 struct pb_context;
@@ -26,6 +27,8 @@ typedef int (*pb_list_devices_t) (struct pb_context *ctx);
 typedef int (*pb_connect_t) (struct pb_context *ctx);
 typedef int (*pb_disconnect_t) (struct pb_context *ctx);
 
+typedef int (*pb_debug_t) (struct pb_context *ctx, int level,
+                           const char *fmt, ...);
 struct pb_context
 {
     bool connected;
@@ -37,10 +40,11 @@ struct pb_context
     pb_list_devices_t list;
     pb_connect_t connect;
     pb_disconnect_t disconnect;
+    pb_debug_t d;
     void *transport;
 };
 
-int pb_api_create_context(struct pb_context **ctx);
+int pb_api_create_context(struct pb_context **ctx, pb_debug_t debug);
 int pb_api_free_context(struct pb_context *ctx);
 
 int pb_api_read_bootloader_version(struct pb_context *ctx, char *version,
@@ -70,6 +74,20 @@ int pb_api_device_configure(struct pb_context *ctx, const void *data,
 
 int pb_api_device_configuration_lock(struct pb_context *ctx, const void *data,
                                 size_t size);
+
+int pb_api_device_read_caps(struct pb_context *ctx,
+                            uint8_t *stream_no_of_buffers,
+                            uint32_t *stream_buffer_alignment,
+                            uint32_t *stream_buffer_size,
+                            uint32_t *operation_timeout_us);
+
+int pb_api_auth_set_otp_password(struct pb_context *ctx,
+                                 const char *password,
+                                 size_t size);
+
+int pb_api_bootloader_version(struct pb_context *ctx,
+                              char *version,
+                              size_t size);
 /*
 int pb_api_partition_read(struct pb_context *ctx,
                           struct pb_partition_table_entry *out,

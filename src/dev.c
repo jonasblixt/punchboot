@@ -15,7 +15,7 @@ static int dev_show(struct pb_context *ctx)
 
     rc = pb_api_read_bootloader_version(ctx, version, sizeof(version));
 
-    if (rc != PB_OK)
+    if (rc != PB_RESULT_OK)
     {
         printf("Error: Version command failed\n");
         return rc;
@@ -97,7 +97,7 @@ int action_dev(int argc, char **argv)
 
     rc = transport_init_helper(&ctx, transport);
 
-    if (rc != PB_OK)
+    if (rc != PB_RESULT_OK)
     {
         printf("Error: Could not initialize context\n");
         return rc;
@@ -105,7 +105,7 @@ int action_dev(int argc, char **argv)
 
     rc = ctx->connect(ctx);
 
-    if (rc != PB_OK)
+    if (rc != PB_RESULT_OK)
     {
         printf("Error: Could not connect to device\n");
         goto err_free_ctx_out;
@@ -116,7 +116,7 @@ int action_dev(int argc, char **argv)
     else if (flag_reset)
         rc = dev_reset(ctx);
 
-    if (rc != PB_OK)
+    if (rc != PB_RESULT_OK)
     {
         printf("Error: Command failed %i\n", rc);
     }

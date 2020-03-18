@@ -1,6 +1,5 @@
 #include "nala.h"
-#include <pb-tools/protocol.h>
-#include <pb-tools/partition.h>
+#include <pb-tools/wire.h>
 
 TEST(alignment)
 {

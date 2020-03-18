@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <libusb.h>
 #include <pb-tools/api.h>
-#include <pb-tools/protocol.h>
+#include <pb-tools/wire.h>
 #include <pb-tools/error.h>
 #include <pb-tools/usb.h>
 
@@ -36,14 +36,14 @@ static int pb_usb_init(struct pb_context *ctx)
     rc = libusb_init(&priv->usb_ctx);
 
     if (rc < 0)
-        return -PB_ERR;
+        return -PB_RESULT_ERROR;
 
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 static int pb_usb_connect(struct pb_context *ctx)
 {
-    int rc = PB_OK;
+    int rc = PB_RESULT_OK;
     int i;
     bool found_device = false;
     struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
@@ -51,7 +51,7 @@ static int pb_usb_connect(struct pb_context *ctx)
     libusb_device **devs;
 
     if (libusb_get_device_list(NULL, &devs) < 0)
-        return -PB_ERR;
+        return -PB_RESULT_ERROR;
 
     while ((dev = devs[i++]) != NULL)
     {
@@ -72,7 +72,7 @@ static int pb_usb_connect(struct pb_context *ctx)
 
     if (!found_device)
     {
-        rc = -PB_ERR;
+        rc = -PB_RESULT_ERROR;
         goto err_free_devs_out;
     }
 
@@ -80,7 +80,7 @@ static int pb_usb_connect(struct pb_context *ctx)
 
     if (rc != 0)
     {
-        rc = -PB_ERR;
+        rc = -PB_RESULT_ERROR;
         goto err_free_devs_out;
     }
 
@@ -91,16 +91,16 @@ static int pb_usb_connect(struct pb_context *ctx)
 
     if (rc != 0)
     {
-        rc = -PB_ERR;
+        rc = -PB_RESULT_ERROR;
         goto err_close_dev_out;
     }
 
     if (priv->h == NULL)
-        rc = -PB_ERR;
+        rc = -PB_RESULT_ERROR;
 
     libusb_free_device_list(devs, 1);
 
-    if (rc == PB_OK)
+    if (rc == PB_RESULT_OK)
         ctx->connected = true;
 
     return rc;
@@ -116,7 +116,7 @@ static int pb_usb_free(struct pb_context *ctx)
 {
     libusb_exit(NULL);
     free(ctx->transport);
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 static int pb_usb_command(struct pb_context *ctx,
@@ -131,7 +131,7 @@ static int pb_usb_command(struct pb_context *ctx,
                                             sizeof(*cmd), &tx_sz, 0);
 
     if (err < 0)
-        return -PB_TRANSFER_ERROR;
+        return -PB_RESULT_TRANSFER_ERROR;
 
     if (sz)
     {
@@ -139,10 +139,10 @@ static int pb_usb_command(struct pb_context *ctx,
                                         sz, &tx_sz, 0);
 
         if (err < 0)
-            return -PB_TRANSFER_ERROR;
+            return -PB_RESULT_TRANSFER_ERROR;
     }
 
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 static int pb_usb_read(struct pb_context *ctx, void *bfr, size_t sz)
@@ -155,9 +155,9 @@ static int pb_usb_read(struct pb_context *ctx, void *bfr, size_t sz)
                                                 bfr, sz , &rx_sz, 1000);
 
     if (err < 0)
-        return -PB_TRANSFER_ERROR;
+        return -PB_RESULT_TRANSFER_ERROR;
 
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 int pb_usb_transport_init(struct pb_context *ctx)
@@ -165,7 +165,7 @@ int pb_usb_transport_init(struct pb_context *ctx)
     ctx->transport = malloc(sizeof(struct pb_usb_private));
 
     if (!ctx->transport)
-        return -PB_NO_MEMORY;
+        return -PB_RESULT_NO_MEMORY;
 
     memset(ctx->transport, 0, sizeof(struct pb_usb_private));
 

@@ -1,8 +1,10 @@
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <pb/protocol.h>
-#include <pb/command.h>
-#include <pb/error.h>
+#include <pb-tools/wire.h>
+#include <pb-tools/error.h>
+
+#include "command.h"
 
 int pb_command_init(struct pb_command_ctx *ctx,
                     pb_command_send_result_t send_result,
@@ -16,13 +18,13 @@ int pb_command_init(struct pb_command_ctx *ctx,
     ctx->read = read;
     ctx->write = write;
 
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 int pb_command_free(struct pb_command_ctx *ctx)
 {
     ctx->authenticated = false;
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 int pb_command_configure(struct pb_command_ctx *ctx,
@@ -30,35 +32,35 @@ int pb_command_configure(struct pb_command_ctx *ctx,
                          pb_command_t command)
 {
     if (command_index > PB_MAX_COMMANDS)
-        return -PB_ERR;
+        return -PB_RESULT_ERROR;
 
     ctx->commands[command_index] = command;
 
-    return PB_OK;
+    return PB_RESULT_OK;
 }
 
 int pb_command_process(struct pb_command_ctx *ctx, struct pb_command *command)
 {
-    int rc = PB_OK;
+    int rc = PB_RESULT_OK;
     struct pb_result result;
     pb_command_t cmd;
 
     memset(&result, 0, sizeof(result));
-    pb_protocol_init_result(&result, PB_RESULT_ERROR);
+    pb_wire_init_result(&result, PB_RESULT_ERROR);
 
     /* Check for invalid commands */
-    if (!pb_protocol_valid_command(command))
+    if (!pb_wire_valid_command(command))
     {
-        pb_protocol_init_result(&result, PB_RESULT_INVALID_COMMAND);
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
         goto command_error_out;
     }
 
     /* Check if command requires authentication */
     //if (pb_slc_get() == PB_SLC_CONFIGURATION_LOCKED)
     //{
-        if (pb_protocol_requires_auth(command) && (!ctx->authenticated))
+        if (pb_wire_requires_auth(command) && (!ctx->authenticated))
         {
-            pb_protocol_init_result(&result, PB_RESULT_NOT_AUTHENTICATED);
+            pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
             goto command_error_out;
         }
     //}
@@ -67,8 +69,9 @@ int pb_command_process(struct pb_command_ctx *ctx, struct pb_command *command)
 
     if (!cmd)
     {
-        rc = -PB_ERR;
-        pb_protocol_init_result(&result, PB_RESULT_NOT_SUPPORTED);
+        printf("Error: Not supported\n");
+        rc = -PB_RESULT_ERROR;
+        pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
         goto command_error_out;
     }
 

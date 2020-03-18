@@ -6,21 +6,22 @@
 
 #include "test_command_loop.h"
 #include "command.h"
+#include "common.h"
 
 TEST(api_init)
 {
     int rc;
     struct pb_context *ctx;
 
-    rc = pb_api_create_context(&ctx);
-    ASSERT_EQ(rc, PB_OK);
+    rc = pb_api_create_context(&ctx, pb_test_debug);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     remove("/tmp/pb_test_sock");
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     rc = pb_api_free_context(ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 }
 
 TEST(api_reset)
@@ -32,30 +33,30 @@ TEST(api_reset)
 
     /* Start command loop */
     rc = test_command_loop_start(NULL);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
 
     /* Create command context and connect */
-    rc = pb_api_create_context(&ctx);
-    ASSERT_EQ(rc, PB_OK);
+    rc = pb_api_create_context(&ctx, pb_test_debug);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     rc = ctx->connect(ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Send device reset command */
     rc = pb_api_device_reset(ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Stop command loop */
     rc = test_command_loop_stop();
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Free command context */
     rc = pb_api_free_context(ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 }
 
 TEST(api_unsupported_function)
@@ -68,33 +69,33 @@ TEST(api_unsupported_function)
 
     /* Start command loop */
     rc = test_command_loop_start(&command_ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
 
     rc = pb_command_configure(command_ctx, PB_CMD_DEVICE_RESET, NULL);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Create command context and connect */
-    rc = pb_api_create_context(&ctx);
-    ASSERT_EQ(rc, PB_OK);
+    rc = pb_api_create_context(&ctx, pb_test_debug);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     rc = ctx->connect(ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Send device reset command */
     rc = pb_api_device_reset(ctx);
-    ASSERT_EQ(rc, -PB_NOT_SUPPORTED);
+    ASSERT_EQ(rc, -PB_RESULT_NOT_SUPPORTED);
 
     /* Stop command loop */
     rc = test_command_loop_stop();
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Free command context */
     rc = pb_api_free_context(ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 }
 
 
@@ -108,24 +109,24 @@ TEST(api_read_device_uuid)
 
     /* Start command loop */
     rc = test_command_loop_start(NULL);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     test_command_loop_set_authenticated(true);
 
     /* Create command context and connect */
-    rc = pb_api_create_context(&ctx);
-    ASSERT_EQ(rc, PB_OK);
+    rc = pb_api_create_context(&ctx, pb_test_debug);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     rc = ctx->connect(ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Send command */
     rc = pb_api_device_read_identifier(ctx, device_uuid_raw, sizeof(device_uuid_raw),
                                             board_id, sizeof(board_id));
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     uuid_unparse(device_uuid_raw, uuid_tmp);
     printf("Device uuid: %s\n", uuid_tmp);
@@ -139,9 +140,60 @@ TEST(api_read_device_uuid)
 
     /* Stop command loop */
     rc = test_command_loop_stop();
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Free command context */
     rc = pb_api_free_context(ctx);
-    ASSERT_EQ(rc, PB_OK);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+}
+
+TEST(api_read_caps)
+{
+    int rc;
+    struct pb_context *ctx;
+
+    uint8_t stream_no_of_buffers;
+    uint32_t stream_buffer_alignment;
+    uint32_t stream_buffer_size;
+    uint32_t operation_timeout_us;
+
+    test_command_loop_set_authenticated(true);
+
+    /* Start command loop */
+    rc = test_command_loop_start(NULL);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+
+    /* Create command context and connect */
+    rc = pb_api_create_context(&ctx, pb_test_debug);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    rc = ctx->connect(ctx);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    /* Send command */
+    rc = pb_api_device_read_caps(ctx,
+                                &stream_no_of_buffers,
+                                &stream_buffer_alignment,
+                                &stream_buffer_size,
+                                &operation_timeout_us);
+
+    printf("%i %s\n", rc, pb_error_string(rc));
+
+    ASSERT_EQ(rc, PB_RESULT_OK);
+    ASSERT_EQ(stream_no_of_buffers, 2);
+    ASSERT_EQ(stream_buffer_alignment, 512);
+    ASSERT_EQ(stream_buffer_size, 1024*1024*4);
+    ASSERT_EQ(operation_timeout_us, 1000*1000*3);
+
+    /* Stop command loop */
+    rc = test_command_loop_stop();
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    /* Free command context */
+    rc = pb_api_free_context(ctx);
+    ASSERT_EQ(rc, PB_RESULT_OK);
 }

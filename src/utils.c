@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb-tools/api.h>
-#include <pb-tools/protocol.h>
+#include <pb-tools/wire.h>
 #include <pb-tools/usb.h>
 #include "tool.h"
 
@@ -17,9 +17,9 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name)
         printf("Initializing transport: %s\n", t);
 
     struct pb_context *ctx = NULL;
-    rc = pb_api_create_context(&ctx);
+    rc = pb_api_create_context(&ctx, NULL);
 
-    if (rc != PB_OK)
+    if (rc != PB_RESULT_OK)
         return rc;
     *ctxp = ctx;
 
@@ -31,7 +31,7 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name)
     {
     }
 
-    if (rc != PB_OK)
+    if (rc != PB_RESULT_OK)
         printf("Error: Could not initialize transport\n");
 
     return rc;
