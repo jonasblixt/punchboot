@@ -1,12 +1,13 @@
 #include <string.h>
 #include "nala.h"
 #include <uuid.h>
-#include <pb/api.h>
-#include <pb/command.h>
-#include <pb/error.h>
-#include <pb/socket.h>
+#include <pb-tools/api.h>
+#include <pb-tools/error.h>
+#include <pb-tools/socket.h>
+#include <pb-tools/slc.h>
 
 #include "test_command_loop.h"
+#include "command.h"
 
 TEST(api_slc1)
 {
@@ -14,12 +15,14 @@ TEST(api_slc1)
     struct pb_context *ctx;
     uint32_t slc = 0;
 
+    test_command_loop_set_authenticated(true);
+
     /* Start command loop */
     rc = test_command_loop_start(NULL);
     ASSERT_EQ(rc, PB_OK);
 
     /* Create command context and connect */
-    rc = pb_create_context(&ctx);
+    rc = pb_api_create_context(&ctx);
     ASSERT_EQ(rc, PB_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
@@ -28,19 +31,19 @@ TEST(api_slc1)
     rc = ctx->connect(ctx);
     ASSERT_EQ(rc, PB_OK);
 
-    test_command_loop_set_authenticated(true);
 
     /* Read security life cycle */
     rc = pb_api_device_read_slc(ctx, &slc);
     ASSERT_EQ(rc, PB_OK);
     ASSERT_EQ(slc, PB_SLC_NOT_CONFIGURED);
 
+    printf("slc: %s\n", pb_slc_string(slc));
     /* Stop command loop */
     rc = test_command_loop_stop();
     ASSERT_EQ(rc, PB_OK);
 
     /* Free command context */
-    rc = pb_free_context(ctx);
+    rc = pb_api_free_context(ctx);
     ASSERT_EQ(rc, PB_OK);
 }
 
@@ -50,12 +53,13 @@ TEST(api_slc_configuration)
     struct pb_context *ctx;
     uint32_t slc = 0;
 
+    test_command_loop_set_authenticated(true);
     /* Start command loop */
     rc = test_command_loop_start(NULL);
     ASSERT_EQ(rc, PB_OK);
 
     /* Create command context and connect */
-    rc = pb_create_context(&ctx);
+    rc = pb_api_create_context(&ctx);
     ASSERT_EQ(rc, PB_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
@@ -64,7 +68,6 @@ TEST(api_slc_configuration)
     rc = ctx->connect(ctx);
     ASSERT_EQ(rc, PB_OK);
 
-    test_command_loop_set_authenticated(true);
 
     /* Perform device configuration */
     rc = pb_api_device_configure(ctx, NULL, 0);
@@ -86,12 +89,13 @@ TEST(api_slc_configuration)
     ASSERT_EQ(rc, PB_OK);
     ASSERT_EQ(slc, PB_SLC_CONFIGURATION);
 
+    printf("slc: %s\n", pb_slc_string(slc));
     /* Stop command loop */
     rc = test_command_loop_stop();
     ASSERT_EQ(rc, PB_OK);
 
     /* Free command context */
-    rc = pb_free_context(ctx);
+    rc = pb_api_free_context(ctx);
     ASSERT_EQ(rc, PB_OK);
 }
 
@@ -102,12 +106,13 @@ TEST(api_slc_configuration_lock)
     struct pb_context *ctx;
     uint32_t slc = 0;
 
+    test_command_loop_set_authenticated(true);
     /* Start command loop */
     rc = test_command_loop_start(NULL);
     ASSERT_EQ(rc, PB_OK);
 
     /* Create command context and connect */
-    rc = pb_create_context(&ctx);
+    rc = pb_api_create_context(&ctx);
     ASSERT_EQ(rc, PB_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
@@ -115,9 +120,6 @@ TEST(api_slc_configuration_lock)
 
     rc = ctx->connect(ctx);
     ASSERT_EQ(rc, PB_OK);
-
-    test_command_loop_set_authenticated(true);
-
 
     /* Perform device configuration */
     rc = pb_api_device_configure(ctx, NULL, 0);
@@ -147,6 +149,7 @@ TEST(api_slc_configuration_lock)
     rc = pb_api_device_read_slc(ctx, &slc);
     ASSERT_EQ(rc, PB_OK);
     ASSERT_EQ(slc, PB_SLC_CONFIGURATION_LOCKED);
+    printf("slc: %s\n", pb_slc_string(slc));
 
     /* Perform device configuration */
     rc = pb_api_device_configure(ctx, NULL, 0);
@@ -162,6 +165,6 @@ TEST(api_slc_configuration_lock)
     ASSERT_EQ(rc, PB_OK);
 
     /* Free command context */
-    rc = pb_free_context(ctx);
+    rc = pb_api_free_context(ctx);
     ASSERT_EQ(rc, PB_OK);
 }

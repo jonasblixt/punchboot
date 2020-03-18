@@ -13,7 +13,7 @@ static int dev_show(struct pb_context *ctx)
     int rc;
     char version[64];
 
-    rc = pb_get_version(ctx, version, sizeof(version));
+    rc = pb_api_read_bootloader_version(ctx, version, sizeof(version));
 
     if (rc != PB_OK)
     {
@@ -28,7 +28,7 @@ static int dev_show(struct pb_context *ctx)
 
 static int dev_reset(struct pb_context *ctx)
 {
-    return pb_device_reset(ctx);
+    return pb_api_device_reset(ctx);
 }
 
 int action_dev(int argc, char **argv)
@@ -122,6 +122,6 @@ int action_dev(int argc, char **argv)
     }
 
 err_free_ctx_out:
-    pb_free_context(ctx);
+    pb_api_free_context(ctx);
     return rc;
 }

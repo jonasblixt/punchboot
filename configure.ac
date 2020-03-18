@@ -33,7 +33,6 @@ AC_SUBST(LIBUSB_LIBS)
 AC_CONFIG_FILES([Makefile
                 src/Makefile
                 lib/Makefile
-                command/Makefile
                 test/Makefile
                 lib/punchboot.pc])
 

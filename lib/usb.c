@@ -12,9 +12,10 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <libusb.h>
-#include <pb/api.h>
-#include <pb/protocol.h>
-#include <pb/error.h>
+#include <pb-tools/api.h>
+#include <pb-tools/protocol.h>
+#include <pb-tools/error.h>
+#include <pb-tools/usb.h>
 
 struct pb_usb_private
 {

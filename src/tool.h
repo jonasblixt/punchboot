@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-#include <pb/api.h>
-#include <pb/error.h>
+#include <pb-tools/api.h>
+#include <pb-tools/error.h>
 
 void print_version(void);
 int pb_get_verbosity(void);

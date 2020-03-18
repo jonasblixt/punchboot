@@ -8,8 +8,8 @@
  */
 
 #include <string.h>
-#include <pb/protocol.h>
-#include <pb/error.h>
+#include <pb-tools/protocol.h>
+#include <pb-tools/error.h>
 
 bool pb_protocol_valid_result(struct pb_result *result)
 {
@@ -74,28 +74,6 @@ const char *pb_protocol_command_string(enum pb_commands cmd)
     return "";
 }
 
-const char *pb_protocol_slc_string(enum pb_security_life_cycle slc)
-{
-    switch (slc)
-    {
-#ifndef PB_PROTOCOL_DISABLE_STRINGS
-        case PB_SLC_NOT_CONFIGURED:
-            return "Not configured";
-        case PB_SLC_CONFIGURATION:
-            return "Configuration";
-        case PB_SLC_CONFIGURATION_LOCKED:
-            return "Configuration locked";
-        case PB_SLC_EOL:
-            return "EOL";
-        case PB_SLC_INVALID:
-        default:
-            return "Invalid";
-#else
-        default:
-            return "";
-#endif
-    }
-}
 
 bool pb_protocol_requires_auth(struct pb_command *command)
 {
@@ -104,7 +82,7 @@ bool pb_protocol_requires_auth(struct pb_command *command)
     /* Commands that do not require authentication */
     switch (command->command)
     {
-        case PB_CMD_DEVICE_UUID_READ:
+        case PB_CMD_DEVICE_IDENTIFIER_READ:
             result = false;
         break;
         case PB_CMD_AUTHENTICATE:

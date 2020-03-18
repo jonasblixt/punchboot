@@ -21,7 +21,9 @@ check_PROGRAMS = test_help \
 				 test_magic \
 				 test_api \
 				 test_authentication \
-				 test_slc
+				 test_slc \
+				 test_partition \
+				 test_api_partition
 
 test_help_SOURCES = test_help.c
 test_help_LDADD = $(COMMON_TEST_LDADD)
@@ -51,10 +53,20 @@ test_slc_SOURCES = test_slc.c test_command_loop.c
 test_slc_LDADD = $(COMMON_TEST_LDADD)
 test_slc_CFLAGS = $(COMMON_TEST_CFLAGS)
 
+test_partition_SOURCES = test_partition.c
+test_partition_LDADD = $(COMMON_TEST_LDADD)
+test_partition_CFLAGS = $(COMMON_TEST_CFLAGS)
+
+test_api_partition_SOURCES = test_api_partition.c test_command_loop.c
+test_api_partition_LDADD = $(COMMON_TEST_LDADD)
+test_api_partition_CFLAGS = $(COMMON_TEST_CFLAGS)
+
 TESTS = test_help \
 		test_ctx \
 		test_alignment \
 		test_magic \
 		test_api \
 		test_authentication \
-		test_slc
+		test_slc \
+		test_partition \
+		test_api_partition

@@ -15,10 +15,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <pb/api.h>
-#include <pb/protocol.h>
-#include <pb/error.h>
-#include <pb/socket.h>
+#include <pb-tools/api.h>
+#include <pb-tools/protocol.h>
+#include <pb-tools/error.h>
+#include <pb-tools/socket.h>
 
 struct pb_socket_private
 {

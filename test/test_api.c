@@ -1,25 +1,25 @@
 #include "nala.h"
 #include <uuid.h>
-#include <pb/api.h>
-#include <pb/command.h>
-#include <pb/error.h>
-#include <pb/socket.h>
+#include <pb-tools/api.h>
+#include <pb-tools/error.h>
+#include <pb-tools/socket.h>
 
 #include "test_command_loop.h"
+#include "command.h"
 
 TEST(api_init)
 {
     int rc;
     struct pb_context *ctx;
 
-    rc = pb_create_context(&ctx);
+    rc = pb_api_create_context(&ctx);
     ASSERT_EQ(rc, PB_OK);
 
     remove("/tmp/pb_test_sock");
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
     ASSERT_EQ(rc, PB_OK);
 
-    rc = pb_free_context(ctx);
+    rc = pb_api_free_context(ctx);
     ASSERT_EQ(rc, PB_OK);
 }
 
@@ -28,14 +28,15 @@ TEST(api_reset)
     int rc;
     struct pb_context *ctx;
 
+    test_command_loop_set_authenticated(true);
+
     /* Start command loop */
     rc = test_command_loop_start(NULL);
     ASSERT_EQ(rc, PB_OK);
 
-    test_command_loop_set_authenticated(true);
 
     /* Create command context and connect */
-    rc = pb_create_context(&ctx);
+    rc = pb_api_create_context(&ctx);
     ASSERT_EQ(rc, PB_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
@@ -45,7 +46,7 @@ TEST(api_reset)
     ASSERT_EQ(rc, PB_OK);
 
     /* Send device reset command */
-    rc = pb_device_reset(ctx);
+    rc = pb_api_device_reset(ctx);
     ASSERT_EQ(rc, PB_OK);
 
     /* Stop command loop */
@@ -53,7 +54,7 @@ TEST(api_reset)
     ASSERT_EQ(rc, PB_OK);
 
     /* Free command context */
-    rc = pb_free_context(ctx);
+    rc = pb_api_free_context(ctx);
     ASSERT_EQ(rc, PB_OK);
 }
 
@@ -63,15 +64,18 @@ TEST(api_unsupported_function)
     struct pb_context *ctx;
     struct pb_command_ctx *command_ctx;
 
+    test_command_loop_set_authenticated(true);
+
     /* Start command loop */
     rc = test_command_loop_start(&command_ctx);
     ASSERT_EQ(rc, PB_OK);
 
-    test_command_loop_set_authenticated(true);
-    command_ctx->device_reset = NULL;
+
+    rc = pb_command_configure(command_ctx, PB_CMD_DEVICE_RESET, NULL);
+    ASSERT_EQ(rc, PB_OK);
 
     /* Create command context and connect */
-    rc = pb_create_context(&ctx);
+    rc = pb_api_create_context(&ctx);
     ASSERT_EQ(rc, PB_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
@@ -81,17 +85,15 @@ TEST(api_unsupported_function)
     ASSERT_EQ(rc, PB_OK);
 
     /* Send device reset command */
-    rc = pb_device_reset(ctx);
-    ASSERT_EQ(rc, -PB_ERR);
-
-    ASSERT_EQ(ctx->last_result.result_code, PB_RESULT_NOT_SUPPORTED);
+    rc = pb_api_device_reset(ctx);
+    ASSERT_EQ(rc, -PB_NOT_SUPPORTED);
 
     /* Stop command loop */
     rc = test_command_loop_stop();
     ASSERT_EQ(rc, PB_OK);
 
     /* Free command context */
-    rc = pb_free_context(ctx);
+    rc = pb_api_free_context(ctx);
     ASSERT_EQ(rc, PB_OK);
 }
 
@@ -100,8 +102,9 @@ TEST(api_read_device_uuid)
 {
     int rc;
     char uuid_tmp[37];
-    struct pb_result_device_uuid uu;
     struct pb_context *ctx;
+    uint8_t device_uuid_raw[16];
+    char board_id[16];
 
     /* Start command loop */
     rc = test_command_loop_start(NULL);
@@ -110,7 +113,7 @@ TEST(api_read_device_uuid)
     test_command_loop_set_authenticated(true);
 
     /* Create command context and connect */
-    rc = pb_create_context(&ctx);
+    rc = pb_api_create_context(&ctx);
     ASSERT_EQ(rc, PB_OK);
 
     rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
@@ -120,28 +123,25 @@ TEST(api_read_device_uuid)
     ASSERT_EQ(rc, PB_OK);
 
     /* Send command */
-    rc = pb_device_read_uuid(ctx, &uu);
+    rc = pb_api_device_read_identifier(ctx, device_uuid_raw, sizeof(device_uuid_raw),
+                                            board_id, sizeof(board_id));
     ASSERT_EQ(rc, PB_OK);
 
-    uuid_unparse(uu.device_uuid, uuid_tmp);
+    uuid_unparse(device_uuid_raw, uuid_tmp);
     printf("Device uuid: %s\n", uuid_tmp);
+    printf("Board: %s\n", board_id);
 
-    uuid_unparse(uu.platform_uuid, uuid_tmp);
-    printf("Platform uuid: %s\n", uuid_tmp);
-
-    uuid_t device_uuid, platform_uuid;
+    uuid_t device_uuid;
 
     uuid_parse("bd4475db-f4c4-454e-a4f1-156d99d0d0e5", device_uuid);
-    uuid_parse("2ba102a6-d9b3-4b4f-80b9-2512b252f773", platform_uuid);
 
-    ASSERT_EQ(uuid_compare(device_uuid, uu.device_uuid), 0);
-    ASSERT_EQ(uuid_compare(platform_uuid, uu.platform_uuid), 0);
+    ASSERT_EQ(uuid_compare(device_uuid, device_uuid_raw), 0);
 
     /* Stop command loop */
     rc = test_command_loop_stop();
     ASSERT_EQ(rc, PB_OK);
 
     /* Free command context */
-    rc = pb_free_context(ctx);
+    rc = pb_api_free_context(ctx);
     ASSERT_EQ(rc, PB_OK);
 }

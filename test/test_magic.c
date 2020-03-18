@@ -1,5 +1,5 @@
 #include "nala.h"
-#include <pb/protocol.h>
+#include <pb-tools/protocol.h>
 
 TEST(magic)
 {

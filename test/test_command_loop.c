@@ -5,11 +5,13 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <uuid.h>
-#include <pb/api.h>
-#include <pb/protocol.h>
-#include <pb/error.h>
-#include <pb/socket.h>
-#include <pb/command.h>
+#include <pb-tools/api.h>
+#include <pb-tools/protocol.h>
+#include <pb-tools/error.h>
+#include <pb-tools/socket.h>
+#include <pb-tools/slc.h>
+
+#include "command.h"
 
 static struct pb_command_ctx ctx;
 static pthread_t thread;
@@ -23,7 +25,7 @@ static bool device_config_lock;
 
 #define SERVER_SOCK_FILE "/tmp/pb_test_sock"
 
-static int pb_command_send_result(struct pb_command_ctx *ctx,
+static int pb_command_send_result(const struct pb_command_ctx *ctx,
                                     struct pb_result *result)
 {
     ssize_t written = write(client_fd, result, sizeof(*result));
@@ -34,13 +36,18 @@ static int pb_command_send_result(struct pb_command_ctx *ctx,
     return PB_OK;
 }
 
-static int pb_command_reset(struct pb_command_ctx *ctx)
+static int pb_command_reset(struct pb_command_ctx *ctx,
+                            const struct pb_command *command,
+                            struct pb_result *result)
 {
     printf("Device reset command\n");
+    pb_protocol_init_result(result, PB_RESULT_OK);
+
     return PB_OK;
 }
 
 static int pb_command_read_slc(struct pb_command_ctx *ctx,
+                               const struct pb_command *command,
                                struct pb_result *result)
 {
     uint32_t slc = PB_SLC_NOT_CONFIGURED;
@@ -58,20 +65,22 @@ static int pb_command_read_slc(struct pb_command_ctx *ctx,
 }
 
 static int pb_command_device_read_uuid(struct pb_command_ctx *ctx,
+                                       const struct pb_command *command,
                                         struct pb_result *result)
 {
-    struct pb_result_device_uuid uu;
+    struct pb_result_device_identifier id;
     printf("Device read uuid command\n");
 
-    uuid_parse("bd4475db-f4c4-454e-a4f1-156d99d0d0e5", uu.device_uuid);
-    uuid_parse("2ba102a6-d9b3-4b4f-80b9-2512b252f773", uu.platform_uuid);
-    return pb_protocol_init_result2(result, PB_RESULT_OK, &uu, sizeof(uu));
+    uuid_parse("bd4475db-f4c4-454e-a4f1-156d99d0d0e5", id.device_uuid);
+    snprintf(id.board_id, sizeof(id.board_id), "Test board");
+
+    return pb_protocol_init_result2(result, PB_RESULT_OK, &id, sizeof(id));
 }
 
 static int pb_authenticate(struct pb_command_ctx *ctx,
-                           struct pb_command *command)
+                           const struct pb_command *command,
+                           struct pb_result *result)
 {
-    struct pb_result result;
     struct pb_command_authenticate *auth = \
                      (struct pb_command_authenticate *) command->request;
 
@@ -79,48 +88,71 @@ static int pb_authenticate(struct pb_command_ctx *ctx,
     uint8_t auth_data[256];
 
 
+    ctx->authenticated = false;
     printf("Got auth request method: %i, size: %i\n", auth->method,
                                                       auth->size);
 
+    pb_protocol_init_result(result, PB_RESULT_ERROR);
 
     ssize_t bytes = read(client_fd, auth_data, auth->size);
 
     if (bytes != auth->size)
+    {
+        printf("Error: bytes != auth->size\n");
         return -PB_ERR;
+    }
 
     if (auth->method != PB_AUTH_PASSWORD)
+    {
+        printf("Error: auth->method != PB_AUTH_PASSWORD\n");
         return -PB_ERR;
+    }
 
     if (memcmp(auth_cookie, auth_data, auth->size) == 0)
+    {
+        printf("Auth OK\n");
+        ctx->authenticated = true;
+        pb_protocol_init_result(result, PB_RESULT_OK);
         return PB_OK;
+    }
 
     return -PB_ERR;
 }
 
 static int pb_command_config(struct pb_command_ctx *ctx,
-                             struct pb_command *command)
+                             const struct pb_command *command,
+                             struct pb_result *result)
 {
     if (device_config_lock)
+    {
+        pb_protocol_init_result(result, PB_RESULT_ERROR);
         return -PB_ERR;
+    }
 
+    pb_protocol_init_result(result, PB_RESULT_OK);
     device_config = true;
     return PB_OK;
 }
 
 static int pb_command_config_lock(struct pb_command_ctx *ctx,
-                             struct pb_command *command)
+                                  const struct pb_command *command,
+                                  struct pb_result *result)
 {
     if (!device_config)
     {
         printf("Error: Trying to lock un-configured device\n");
+        pb_protocol_init_result(result, PB_RESULT_ERROR);
         return -PB_ERR;
     }
 
     if (device_config_lock)
     {
         printf("Error: already locked\n");
+        pb_protocol_init_result(result, PB_RESULT_ERROR);
         return -PB_ERR;
     }
+
+    pb_protocol_init_result(result, PB_RESULT_OK);
     device_config_lock = true;
     return PB_OK;
 }
@@ -154,20 +186,6 @@ static void * test_command_loop(void *arg)
         return NULL;
     }
 
-    memset(&ctx, 0, sizeof(ctx));
-    ctx.device_reset = pb_command_reset;
-    ctx.send_result = pb_command_send_result;
-    ctx.device_read_uuid = pb_command_device_read_uuid;
-    ctx.authenticate = pb_authenticate;
-    ctx.read_slc = pb_command_read_slc;
-    ctx.device_config = pb_command_config;
-    ctx.device_config_lock = pb_command_config_lock;
-
-    rc = pb_command_init(&ctx);
-
-    if (rc != PB_OK)
-        return NULL;
-
     ready = true;
 
     listen(fd, 5);
@@ -187,12 +205,30 @@ static void * test_command_loop(void *arg)
     printf("Command loop stopped\n");
 }
 
+static bool force_auth = false;
+
 int test_command_loop_start(struct pb_command_ctx **ctxp)
 {
     int rc;
 
     run = true;
     ready = false;
+
+    rc = pb_command_init(&ctx, pb_command_send_result, NULL, NULL);
+
+    if (rc != PB_OK)
+        return -PB_ERR;
+
+    ctx.authenticated = force_auth;
+
+    pb_command_configure(&ctx, PB_CMD_DEVICE_RESET, pb_command_reset);
+    pb_command_configure(&ctx, PB_CMD_DEVICE_SLC_READ, pb_command_read_slc);
+    pb_command_configure(&ctx, PB_CMD_DEVICE_CONFIG, &pb_command_config);
+    pb_command_configure(&ctx, PB_CMD_DEVICE_CONFIG_LOCK, &pb_command_config_lock);
+    pb_command_configure(&ctx, PB_CMD_DEVICE_IDENTIFIER_READ,
+                                        pb_command_device_read_uuid);
+    pb_command_configure(&ctx, PB_CMD_AUTHENTICATE,
+                                        pb_authenticate);
 
     rc = pthread_create(&thread, NULL, test_command_loop, NULL);
 
@@ -208,7 +244,7 @@ int test_command_loop_start(struct pb_command_ctx **ctxp)
 
 void test_command_loop_set_authenticated(bool authenticated)
 {
-    ctx.authenticated = authenticated;
+   force_auth = authenticated;
 }
 
 int test_command_loop_stop(void)

@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <pb/error.h>
+#include <pb-tools/error.h>
 
 #define PB_PROTO_MAGIC 0x50424c30   /* PBL0 */
 #define PB_COMMAND_REQUEST_MAX_SIZE 55
@@ -30,21 +30,21 @@ enum pb_commands
 {
     PB_CMD_INVALID,
     PB_CMD_DEVICE_RESET,
-    PB_CMD_DEVICE_UUID_READ,
+    PB_CMD_DEVICE_IDENTIFIER_READ,
     PB_CMD_DEVICE_CONFIG,
     PB_CMD_DEVICE_CONFIG_LOCK,
     PB_CMD_DEVICE_EOL,
     PB_CMD_DEVICE_REVOKE_KEY,
     PB_CMD_DEVICE_SLC_READ,
+    PB_CMD_DEVICE_READ_CAPS,
     PB_CMD_VERSION_READ,
-    PB_CMD_PART_TBL_GET,
+    PB_CMD_PART_TBL_READ,
     PB_CMD_PART_TBL_INSTALL,
     PB_CMD_PART_VERIFY,
     PB_CMD_PART_ACTIVATE,
-    PB_CMD_PART_READ_BPAK_HEADER,
+    PB_CMD_PART_BPAK_READ,
     PB_CMD_AUTHENTICATE,
     PB_CMD_SET_PASSWORD,
-    PB_CMD_STREAM_READ_PARAMS,
     PB_CMD_STREAM_INITIALIZE,
     PB_CMD_STREAM_PREPARE_BUFFER,
     PB_CMD_STREAM_WRITE_BUFFER,
@@ -52,7 +52,6 @@ enum pb_commands
     PB_CMD_BOOT_PART,
     PB_CMD_BOOT_RAM,
     PB_CMD_BOARD_COMMAND,
-    PB_CMD_BOARD_IDENTIFIER_READ,
     PB_CMD_BOARD_STATUS_READ,
     PB_CMD_END,                     /* Sentinel, must be the last entry */
 };
@@ -70,14 +69,6 @@ enum pb_results
     PB_RESULT_PART_NOT_BOOTABLE,
 };
 
-enum pb_security_life_cycle
-{
-    PB_SLC_INVALID,
-    PB_SLC_NOT_CONFIGURED,
-    PB_SLC_CONFIGURATION,
-    PB_SLC_CONFIGURATION_LOCKED,
-    PB_SLC_EOL,
-};
 
 /**
  * Punchboot command structure (64 bytes)
@@ -118,19 +109,28 @@ struct pb_result
 } __attribute__((packed));
 
 /**
- * PB_CMD_STREAM_READ_PARAMS result structure
+ * PB_CMD_DEVICE_READ_CAPS result structure
  *
- * no_of_buffers: Number of buffers that the device allocates
- * size:          Size of each buffer in bytes
- * alignment:     Data alignment required by the device
+ * no_of_buffers:     Number of buffers that the device allocates
+ * buffer_size:       Size of each buffer in bytes
+ * buffer_alignment:  Data alignment required by the device
+ * operation_timeout_us: Timeout in us for any operation
  *
  */
 
-struct pb_result_stream_params
+struct pb_result_device_caps
 {
-    uint8_t no_of_buffers;
-    uint32_t alignment;
-    uint32_t size;
+    uint8_t stream_no_of_buffers;
+    uint32_t stream_buffer_alignment;
+    uint32_t stream_buffer_size;
+    uint32_t operation_timeout_us;
+    uint8_t rz[19];
+} __attribute__((packed));
+
+struct pb_result_part_table_read
+{
+    uint8_t no_of_entries;
+    uint8_t rz[31];
 } __attribute__((packed));
 
 /**
@@ -145,7 +145,8 @@ struct pb_command_stream_initialize
 {
     uint64_t size;
     uint8_t part_uuid[16];
-};
+    uint8_t rz[8];
+} __attribute__((packed));
 
 /**
  * Prepare buffer to receive data
@@ -160,6 +161,7 @@ struct pb_command_stream_prepare_buffer
 {
     uint32_t size;
     uint8_t id;
+    uint8_t rz[27];
 } __attribute__((packed));
 
 /**
@@ -176,6 +178,7 @@ struct pb_command_stream_write_buffer
     uint32_t size;
     uint64_t offset;
     uint8_t buffer_id;
+    uint8_t rz[19];
 } __attribute__((packed));
 
 /**
@@ -188,6 +191,7 @@ struct pb_command_authenticate
 {
     uint8_t method;
     uint16_t size;
+    uint8_t rz[29];
 } __attribute__((packed));
 
 /**
@@ -202,6 +206,7 @@ struct pb_command_verify_part
 {
     uint8_t uuid[16];
     uint8_t sha256[32];
+    uint8_t rz[7];
 } __attribute__((packed));
 
 /**
@@ -210,11 +215,14 @@ struct pb_command_verify_part
  *
  */
 
-struct pb_result_device_uuid
+struct pb_result_device_identifier
 {
     uint8_t device_uuid[16];
-    uint8_t platform_uuid[16];
+    char board_id[16];
+    uint8_t rz[23];
 } __attribute__((packed));
+
+
 
 /**
  * Initializes and resets a command structure. The magic value is populated and
@@ -243,7 +251,6 @@ int pb_protocol_init_result2(struct pb_result *result,
 bool pb_protocol_valid_command(struct pb_command *command);
 bool pb_protocol_valid_result(struct pb_result *result);
 bool pb_protocol_requires_auth(struct pb_command *command);
-const char *pb_protocol_slc_string(enum pb_security_life_cycle slc);
 const char *pb_protocol_command_string(enum pb_commands cmd);
 
 #endif  // INCLUDE_PB_PROTOCOL_H_

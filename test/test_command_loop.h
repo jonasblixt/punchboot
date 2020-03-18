@@ -1,8 +1,8 @@
 #ifndef TEST_COMMAND_LOOP_H_
 #define TEST_COMMAND_LOOP_H_
 
-#include <pb/error.h>
-
+#include <pb-tools/error.h>
+#include "command.h"
 
 int test_command_loop_start(struct pb_command_ctx **ctxp);
 int test_command_loop_stop(void);
