@@ -29,6 +29,7 @@ if read_the_docs_build:
 # ones.
 extensions = [
     "alabaster",
+    "breathe",
     "sphinx.ext.extlinks"
 ]
 
