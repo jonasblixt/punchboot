@@ -107,18 +107,20 @@ struct pb_result
  *
  * no_of_buffers:     Number of buffers that the device allocates
  * buffer_size:       Size of each buffer in bytes
- * buffer_alignment:  Data alignment required by the device
  * operation_timeout_us: Timeout in us for any operation
+ * bpak_stream_support: The device supports streaming concatenated bpak archives
  *
  */
 
 struct pb_result_device_caps
 {
     uint8_t stream_no_of_buffers;
-    uint32_t stream_buffer_alignment;
     uint32_t stream_buffer_size;
-    uint32_t operation_timeout_us;
-    uint8_t rz[19];
+    uint16_t operation_timeout_ms;
+    uint16_t part_erase_timeout_ms;
+    uint8_t bpak_stream_support;
+    uint32_t chunk_transfer_max_bytes;
+    uint8_t rz[18];
 } __attribute__((packed));
 
 struct pb_result_part_table_read
@@ -126,6 +128,23 @@ struct pb_result_part_table_read
     uint8_t no_of_entries;
     uint8_t rz[31];
 } __attribute__((packed));
+
+#define PB_PART_FLAG_BOOTABLE (1 << 0)
+#define PB_PART_FLAG_OTP      (1 << 1)
+#define PB_PART_FLAG_WRITABLE (1 << 2)
+
+struct pb_result_part_table_entry
+{
+    uint8_t uuid[16];
+    char description[16];
+    uint64_t first_block;
+    uint64_t last_block;
+    uint16_t block_size;
+    uint8_t flags;
+    uint8_t memory_id;
+    uint8_t rz[12];
+};
+
 
 /**
  * Initialize streaming write to partition
@@ -137,9 +156,8 @@ struct pb_result_part_table_read
 
 struct pb_command_stream_initialize
 {
-    uint64_t size;
     uint8_t part_uuid[16];
-    uint8_t rz[8];
+    uint8_t rz[16];
 } __attribute__((packed));
 
 /**
@@ -203,6 +221,18 @@ struct pb_command_verify_part
     uint8_t rz[7];
 } __attribute__((packed));
 
+struct pb_command_activate_part
+{
+    uint8_t uuid[16];
+    uint8_t rz[16];
+};
+
+struct pb_command_read_bpak
+{
+    uint8_t uuid[16];
+    uint8_t rz[16];
+};
+
 /**
  * Read device UUID
  *
@@ -217,18 +247,86 @@ struct pb_result_device_identifier
 } __attribute__((packed));
 
 
+/**
+ * SLC read
+ *
+ */
+
+struct pb_result_slc
+{
+    uint8_t slc;
+    uint8_t rz[31];
+} __attribute__((packed));
+
+struct pb_result_slc_key_status
+{
+    uint32_t active[16];
+    uint32_t revoked[16];
+} __attribute((packed));
+
+struct pb_command_revoke_key
+{
+    uint32_t key_id;
+    uint8_t rz[28];
+} __attribute__((packed));
+
+struct pb_command_boot_part
+{
+    uint8_t uuid[16];
+    uint8_t verbose;
+    uint8_t rz[15];
+} __attribute((packed));
+
+struct pb_command_ram_boot
+{
+    uint8_t verbose;
+    uint8_t rz[31];
+} __attribute((packed));
+
+struct pb_command_board
+{
+    uint8_t command;
+    uint32_t request_size;
+    uint32_t response_buffer_size;
+    uint8_t rz[23];
+} __attribute__((packed));
+
+struct pb_result_board
+{
+    uint32_t size;
+    uint8_t rz[28];
+} __attribute__((packed));
+
+
+struct pb_result_board_status
+{
+    uint32_t size;
+    uint8_t rz[28];
+} __attribute__((packed));
 
 /**
  * Initializes and resets a command structure. The magic value is populated and
  *  the command code is set.
  *
- * Returns PB_OK on success.
+ * @param[out] command Pointer to a command structure
+ * @param[in] command_code The actual command code
  *
+ * @return PB_RESULT_OK on success or a negative number on errors
  */
-
 int pb_wire_init_command(struct pb_command *command,
                                 enum pb_commands command_code);
 
+/**
+ * Initializes and resets a command structure. The magic value is populated,
+ *  the command code is set and the request array is populated with data.
+ *
+ * @param[out] command Pointer to a command structure
+ * @param[in] command_code The actual command code
+ * @param[in] data Pointer to data that will be stored in the request array
+ * @param[in] size Number of bytes of data
+ *
+ * @return PB_RESULT_OK on success or a negative number on errors
+ */
 int pb_wire_init_command2(struct pb_command *command,
                               enum pb_commands command_code,
                               void *data,

@@ -16,6 +16,8 @@ enum pb_results
     PB_RESULT_PART_NOT_BOOTABLE,
     PB_RESULT_NO_MEMORY,
     PB_RESULT_TRANSFER_ERROR,
+    PB_RESULT_NOT_FOUND,
+    PB_RESULT_STREAM_NOT_INITIALIZED,
     PB_RESULT_END,              /* Sentinel */
 };
 

@@ -13,7 +13,7 @@ static int dev_show(struct pb_context *ctx)
     int rc;
     char version[64];
 
-    rc = pb_api_read_bootloader_version(ctx, version, sizeof(version));
+    rc = pb_api_bootloader_version(ctx, version, sizeof(version));
 
     if (rc != PB_RESULT_OK)
     {

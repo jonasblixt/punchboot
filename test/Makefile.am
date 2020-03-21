@@ -1,14 +1,18 @@
 COMMON_TEST_CFLAGS = -I $(top_srcdir)/include \
                      -I $(top_srcdir)/lib \
                      $(LIBUSB_CFLAGS) \
+                     $(BPAK_CFLAGS) \
+                     $(BPAK_LDFLAGS) \
+                     $(UUID_CFLAGS) \
                      -fsanitize=address \
-					 -no-pie -g -O0 \
+                     -no-pie -g -O0 \
                      -I /usr/include/uuid
 
 COMMON_TEST_LDADD = libnala.la \
                     $(top_builddir)/lib/libpunchboot.la \
                     $(LIBUSB_LIBS) \
-                    -luuid
+                    $(BPAK_LIBS) \
+                    $(UUID_LIBS)
 
 COMMON_SRCS = common.c \
               command.c \
@@ -25,10 +29,12 @@ check_PROGRAMS = test_help \
                  test_api \
                  test_authentication \
                  test_slc \
-                 test_partition \
                  test_api_partition \
                  test_error_codes \
-				 test_bootloader_version
+                 test_bootloader_version \
+                 test_stream \
+				 test_boot \
+				 test_board
 
 test_help_SOURCES = $(COMMON_SRCS) test_help.c
 test_help_LDADD = $(COMMON_TEST_LDADD)
@@ -58,10 +64,6 @@ test_slc_SOURCES = $(COMMON_SRCS) test_slc.c
 test_slc_LDADD = $(COMMON_TEST_LDADD)
 test_slc_CFLAGS = $(COMMON_TEST_CFLAGS)
 
-test_partition_SOURCES = $(COMMON_SRCS) test_partition.c
-test_partition_LDADD = $(COMMON_TEST_LDADD)
-test_partition_CFLAGS = $(COMMON_TEST_CFLAGS)
-
 test_api_partition_SOURCES = $(COMMON_SRCS) test_api_partition.c
 test_api_partition_LDADD = $(COMMON_TEST_LDADD)
 test_api_partition_CFLAGS = $(COMMON_TEST_CFLAGS)
@@ -70,19 +72,33 @@ test_error_codes_SOURCES = $(COMMON_SRCS) test_error_codes.c
 test_error_codes_LDADD = $(COMMON_TEST_LDADD)
 test_error_codes_CFLAGS = $(COMMON_TEST_CFLAGS)
 
-
 test_bootloader_version_SOURCES = $(COMMON_SRCS) test_bootloader_version.c
 test_bootloader_version_LDADD = $(COMMON_TEST_LDADD)
 test_bootloader_version_CFLAGS = $(COMMON_TEST_CFLAGS)
 
-TESTS = test_help \
+test_stream_SOURCES = $(COMMON_SRCS) test_stream.c
+test_stream_LDADD = $(COMMON_TEST_LDADD)
+test_stream_CFLAGS = $(COMMON_TEST_CFLAGS)
+
+test_boot_SOURCES = $(COMMON_SRCS) test_boot.c
+test_boot_LDADD = $(COMMON_TEST_LDADD)
+test_boot_CFLAGS = $(COMMON_TEST_CFLAGS)
+
+test_board_SOURCES = $(COMMON_SRCS) test_board.c
+test_board_LDADD = $(COMMON_TEST_LDADD)
+test_board_CFLAGS = $(COMMON_TEST_CFLAGS)
+
+TESTS =	prepare_bpak_file.sh \
+		test_help \
         test_ctx \
         test_wire_format \
         test_magic \
         test_api \
         test_authentication \
         test_slc \
-        test_partition \
         test_api_partition \
         test_error_codes \
-		test_bootloader_version
+        test_bootloader_version \
+		test_stream \
+		test_boot \
+		test_board

@@ -1,40 +1,28 @@
-#include "nala.h"
+#include <string.h>
 #include <uuid.h>
 #include <pb-tools/api.h>
+#include <pb-tools/wire.h>
 #include <pb-tools/error.h>
 #include <pb-tools/socket.h>
 
+#include "nala.h"
 #include "test_command_loop.h"
 #include "command.h"
 #include "common.h"
 
-TEST(api_init)
+TEST(boot)
 {
     int rc;
     struct pb_context *ctx;
 
-    rc = pb_api_create_context(&ctx, pb_test_debug);
-    ASSERT_EQ(rc, PB_RESULT_OK);
-
-    remove("/tmp/pb_test_sock");
-    rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
-    ASSERT_EQ(rc, PB_RESULT_OK);
-
-    rc = pb_api_free_context(ctx);
-    ASSERT_EQ(rc, PB_RESULT_OK);
-}
-
-TEST(api_reset)
-{
-    int rc;
-    struct pb_context *ctx;
+    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+                                "\x01\x4c\xfa\x73\x5c\xe1";
 
     test_command_loop_set_authenticated(true);
 
     /* Start command loop */
     rc = test_command_loop_start(NULL);
     ASSERT_EQ(rc, PB_RESULT_OK);
-
 
     /* Create command context and connect */
     rc = pb_api_create_context(&ctx, pb_test_debug);
@@ -46,8 +34,12 @@ TEST(api_reset)
     rc = ctx->connect(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
-    /* Send device reset command */
-    rc = pb_api_device_reset(ctx);
+    /* Install partition table*/
+    rc = pb_api_partition_install_table(ctx);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    /* Boot */
+    rc = pb_api_boot_part(ctx, partuuid, false);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Stop command loop */
@@ -59,20 +51,18 @@ TEST(api_reset)
     ASSERT_EQ(rc, PB_RESULT_OK);
 }
 
-TEST(api_unsupported_function)
+TEST(boot_non_bootable)
 {
     int rc;
     struct pb_context *ctx;
-    struct pb_command_ctx *command_ctx;
+
+    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+                                "\x01\x4c\xfa\x73\x5c\xe0";
 
     test_command_loop_set_authenticated(true);
 
     /* Start command loop */
-    rc = test_command_loop_start(&command_ctx);
-    ASSERT_EQ(rc, PB_RESULT_OK);
-
-
-    rc = pb_command_configure(command_ctx, PB_CMD_DEVICE_RESET, NULL);
+    rc = test_command_loop_start(NULL);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Create command context and connect */
@@ -85,9 +75,54 @@ TEST(api_unsupported_function)
     rc = ctx->connect(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
-    /* Send device reset command */
-    rc = pb_api_device_reset(ctx);
-    ASSERT_EQ(rc, -PB_RESULT_NOT_SUPPORTED);
+    /* Install partition table*/
+    rc = pb_api_partition_install_table(ctx);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    /* Boot */
+    rc = pb_api_boot_part(ctx, partuuid, false);
+    ASSERT_EQ(rc, -PB_RESULT_PART_NOT_BOOTABLE);
+
+    /* Stop command loop */
+    rc = test_command_loop_stop();
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    /* Free command context */
+    rc = pb_api_free_context(ctx);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+}
+
+TEST(boot_invalid_uuid)
+{
+    int rc;
+    struct pb_context *ctx;
+
+    char partuuid[] = "\xFF\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+                                "\x01\x4c\xfa\x73\x5c\xe0";
+
+    test_command_loop_set_authenticated(true);
+
+    /* Start command loop */
+    rc = test_command_loop_start(NULL);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    /* Create command context and connect */
+    rc = pb_api_create_context(&ctx, pb_test_debug);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    rc = ctx->connect(ctx);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    /* Install partition table*/
+    rc = pb_api_partition_install_table(ctx);
+    ASSERT_EQ(rc, PB_RESULT_OK);
+
+    /* Boot */
+    rc = pb_api_boot_part(ctx, partuuid, false);
+    ASSERT_EQ(rc, -PB_RESULT_ERROR);
 
     /* Stop command loop */
     rc = test_command_loop_stop();
@@ -99,19 +134,32 @@ TEST(api_unsupported_function)
 }
 
 
-TEST(api_read_device_uuid)
+TEST(boot_ram)
 {
     int rc;
-    char uuid_tmp[37];
     struct pb_context *ctx;
-    uint8_t device_uuid_raw[16];
-    char board_id[16];
+    uint8_t *data = malloc(1024*1024);
+
+    printf("Reading bpak file...\n");
+
+    FILE *fp = fopen("test.bpak", "rb");
+
+    if (!fp)
+    {
+        printf("Could not open file\n");
+    }
+
+    ASSERT(fp != NULL);
+
+    fread(data, 1, 1024*1024, fp);
+    fclose(fp);
+    printf("Done\n");
+
+    test_command_loop_set_authenticated(true);
 
     /* Start command loop */
     rc = test_command_loop_start(NULL);
     ASSERT_EQ(rc, PB_RESULT_OK);
-
-    test_command_loop_set_authenticated(true);
 
     /* Create command context and connect */
     rc = pb_api_create_context(&ctx, pb_test_debug);
@@ -123,68 +171,16 @@ TEST(api_read_device_uuid)
     rc = ctx->connect(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
-    /* Send command */
-    rc = pb_api_device_read_identifier(ctx, device_uuid_raw, sizeof(device_uuid_raw),
-                                            board_id, sizeof(board_id));
+    /* Install partition table*/
+    rc = pb_api_partition_install_table(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
-    uuid_unparse(device_uuid_raw, uuid_tmp);
-    printf("Device uuid: %s\n", uuid_tmp);
-    printf("Board: %s\n", board_id);
-
-    uuid_t device_uuid;
-
-    uuid_parse("bd4475db-f4c4-454e-a4f1-156d99d0d0e5", device_uuid);
-
-    ASSERT_EQ(uuid_compare(device_uuid, device_uuid_raw), 0);
-
-    /* Stop command loop */
-    rc = test_command_loop_stop();
-    ASSERT_EQ(rc, PB_RESULT_OK);
-
-    /* Free command context */
-    rc = pb_api_free_context(ctx);
-    ASSERT_EQ(rc, PB_RESULT_OK);
-}
-
-TEST(api_read_caps)
-{
-    int rc;
-    struct pb_context *ctx;
-
-    uint8_t stream_no_of_buffers;
-    uint32_t stream_buffer_size;
-    uint16_t operation_timeout_ms;
-    uint16_t part_erase_timeout_ms;
-
-    test_command_loop_set_authenticated(true);
-
-    /* Start command loop */
-    rc = test_command_loop_start(NULL);
+    /* Boot */
+    rc = pb_api_boot_ram(ctx, data, false);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
 
-    /* Create command context and connect */
-    rc = pb_api_create_context(&ctx, pb_test_debug);
-    ASSERT_EQ(rc, PB_RESULT_OK);
-
-    rc = pb_socket_transport_init(ctx, "/tmp/pb_test_sock");
-    ASSERT_EQ(rc, PB_RESULT_OK);
-
-    rc = ctx->connect(ctx);
-    ASSERT_EQ(rc, PB_RESULT_OK);
-
-    struct pb_device_capabilities caps;
-    /* Send command */
-    rc = pb_api_device_read_caps(ctx, &caps);
-
-    printf("%i %s\n", rc, pb_error_string(rc));
-
-    ASSERT_EQ(rc, PB_RESULT_OK);
-    ASSERT_EQ(caps.stream_no_of_buffers, 2);
-    ASSERT_EQ(caps.stream_buffer_size, 1024*1024*4);
-    ASSERT_EQ(caps.operation_timeout_ms, 1000);
-    ASSERT_EQ(caps.part_erase_timeout_ms, 30000);
+    free(data);
 
     /* Stop command loop */
     rc = test_command_loop_stop();

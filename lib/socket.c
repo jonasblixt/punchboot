@@ -82,6 +82,18 @@ static int pb_socket_read(struct pb_context *ctx, void *bfr, size_t sz)
     return -PB_RESULT_ERROR;
 }
 
+static int pb_socket_write(struct pb_context *ctx, const void *bfr, size_t sz)
+{
+    struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
+
+    ssize_t bytes = write(priv->fd, bfr, sz);
+
+    if (bytes == sz)
+        return PB_RESULT_OK;
+
+    return -PB_RESULT_ERROR;
+}
+
 static int pb_socket_init(struct pb_context *ctx)
 {
     int rc;
@@ -136,6 +148,7 @@ int pb_socket_transport_init(struct pb_context *ctx,
     ctx->free = pb_socket_free;
     ctx->init = pb_socket_init;
     ctx->read = pb_socket_read;
+    ctx->write = pb_socket_write;
     ctx->command = pb_socket_command;
     ctx->connect = pb_socket_connect;
     priv->socket_path = socket_path;

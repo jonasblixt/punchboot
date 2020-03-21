@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <pb-tools/api.h>
+#include <bpak/bpak.h>
 
 struct pb_context;
 struct pb_command;
@@ -44,11 +45,18 @@ struct pb_context
     void *transport;
 };
 
+struct pb_device_capabilities
+{
+    uint8_t stream_no_of_buffers;
+    uint32_t stream_buffer_size;
+    uint16_t operation_timeout_ms;
+    uint16_t part_erase_timeout_ms;
+    uint8_t bpak_stream_support;
+    uint32_t chunk_transfer_max_bytes;
+};
+
 int pb_api_create_context(struct pb_context **ctx, pb_debug_t debug);
 int pb_api_free_context(struct pb_context *ctx);
-
-int pb_api_read_bootloader_version(struct pb_context *ctx, char *version,
-                                    size_t size);
 
 int pb_api_device_reset(struct pb_context *ctx);
 
@@ -67,19 +75,21 @@ int pb_api_authenticate_key(struct pb_context *ctx,
                             uint8_t *data,
                             size_t size);
 
-int pb_api_device_read_slc(struct pb_context *ctx, uint32_t *slc);
+int pb_api_slc_read(struct pb_context *ctx,
+                       uint8_t  *slc,
+                       uint8_t *active_keys,
+                       uint8_t *revoked_keys);
 
-int pb_api_device_configure(struct pb_context *ctx, const void *data,
+int pb_api_slc_set_configuration(struct pb_context *ctx, const void *data,
                                 size_t size);
 
-int pb_api_device_configuration_lock(struct pb_context *ctx, const void *data,
+int pb_api_slc_set_configuration_lock(struct pb_context *ctx, const void *data,
                                 size_t size);
+
+int pb_api_slc_revoke_key(struct pb_context *ctx, uint32_t key_id);
 
 int pb_api_device_read_caps(struct pb_context *ctx,
-                            uint8_t *stream_no_of_buffers,
-                            uint32_t *stream_buffer_alignment,
-                            uint32_t *stream_buffer_size,
-                            uint32_t *operation_timeout_us);
+                            struct pb_device_capabilities *caps);
 
 int pb_api_auth_set_otp_password(struct pb_context *ctx,
                                  const char *password,
@@ -88,9 +98,51 @@ int pb_api_auth_set_otp_password(struct pb_context *ctx,
 int pb_api_bootloader_version(struct pb_context *ctx,
                               char *version,
                               size_t size);
-/*
-int pb_api_partition_read(struct pb_context *ctx,
-                          struct pb_partition_table_entry *out,
-                          size_t size);
-*/
+
+int pb_api_partition_read_table(struct pb_context *ctx, void *out, size_t size);
+
+int pb_api_partition_install_table(struct pb_context *ctx);
+
+int pb_api_partition_verify(struct pb_context *ctx,
+                            uint8_t *uuid,
+                            uint8_t *sha256);
+
+int pb_api_partition_activate(struct pb_context *ctx,
+                              uint8_t *uuid);
+
+int pb_api_partition_read_bpak(struct pb_context *ctx,
+                              uint8_t *uuid,
+                              struct bpak_header *header);
+
+int pb_api_stream_init(struct pb_context *ctx, uint8_t *uuid);
+
+int pb_api_stream_prepare_buffer(struct pb_context *ctx,
+                                 uint8_t buffer_id,
+                                 void *data,
+                                 uint32_t size);
+
+int pb_api_stream_write_buffer(struct pb_context *ctx,
+                               uint8_t buffer_id,
+                               uint64_t offset,
+                               uint32_t size);
+
+int pb_api_stream_finalize(struct pb_context *ctx);
+
+int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose);
+
+int pb_api_boot_ram(struct pb_context *ctx,
+                    const void *bpak_image,
+                    bool verbose);
+
+int pb_api_board_command(struct pb_context *ctx,
+                         uint8_t board_command_id,
+                         const void *request,
+                         size_t request_size,
+                         void *response,
+                         size_t response_size);
+
+int pb_api_board_status(struct pb_context *ctx,
+                        char *status,
+                        size_t size);
+
 #endif  // INCLUDE_PB_API_H_

@@ -27,6 +27,10 @@ const char *pb_error_string(enum pb_results result)
             return "Memory error";
         case -PB_RESULT_TRANSFER_ERROR:
             return "Transfer error";
+        case -PB_RESULT_NOT_FOUND:
+            return "Not found";
+        case -PB_RESULT_STREAM_NOT_INITIALIZED:
+            return "Stream not initialized";
         default:
             return "";
     }
