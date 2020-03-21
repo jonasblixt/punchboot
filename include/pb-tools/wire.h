@@ -1,9 +1,15 @@
 /**
+ * \file wire.h
+ *
  * Punch BOOT
  *
  * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * This file contains the 'wire' format for the punchboot bootloader. The
+ *  various structs and defines are used for sending data between host and
+ *  device.
  *
  */
 
@@ -14,6 +20,18 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <pb-tools/error.h>
+
+/**
+ * \def PB_WIRE_MAGIC
+ * Magic number present in all the command and result headers.
+ *
+ * \def PB_COMMAND_REQUEST_MAX_SIZE
+ * Maximum number of bytes that can be embedded in a command request
+ *
+ * \def PB_RESULT_RESPONSE_MAX_SIZE
+ * Maximum number of bytes that can be embedded in a response result
+ *
+ */
 
 #define PB_WIRE_MAGIC 0x50424c30   /* PBL0 */
 #define PB_COMMAND_REQUEST_MAX_SIZE 55
@@ -70,20 +88,14 @@ enum pb_slc
  * Punchboot command structure (64 bytes)
  *
  * Alignment: 64 bytes
- *
- * magic:    wire format magic number
- * command:  Command to be executed (enum pb_commands)
- * request:  Optional request data
- *
  */
-
 struct pb_command
 {
-    uint32_t magic;     /* PB Protocol magic, set to 'PBL0' and changed
+    uint32_t magic;     /*!< PB Protocol magic, set to 'PBL0' and changed
                             for breaking changes in the protocol */
-    uint8_t command;
-    uint8_t rz[4];
-    uint8_t request[PB_COMMAND_REQUEST_MAX_SIZE];
+    uint8_t command;    /*!< Command to be executed (from enum pb_command) */
+    uint8_t rz[4];      /*!< Reserved */
+    uint8_t request[PB_COMMAND_REQUEST_MAX_SIZE]; /*<! Optional request data */
 } __attribute__((packed));
 
 /**
@@ -262,7 +274,7 @@ struct pb_result_slc_key_status
 {
     uint32_t active[16];
     uint32_t revoked[16];
-} __attribute((packed));
+} __attribute__((packed));
 
 struct pb_command_revoke_key
 {
@@ -275,13 +287,13 @@ struct pb_command_boot_part
     uint8_t uuid[16];
     uint8_t verbose;
     uint8_t rz[15];
-} __attribute((packed));
+} __attribute__((packed));
 
 struct pb_command_ram_boot
 {
     uint8_t verbose;
     uint8_t rz[31];
-} __attribute((packed));
+} __attribute__((packed));
 
 struct pb_command_board
 {
