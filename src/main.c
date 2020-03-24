@@ -82,6 +82,10 @@ int main(int argc, char **argv)
         {
             return action_dev(argc, argv);
         }
+        if (strcmp(action, "part") == 0)
+        {
+            return action_part(argc, argv);
+        }
         else
         {
             printf ("Unknown action '%s'\n", action);

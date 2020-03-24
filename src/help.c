@@ -42,6 +42,20 @@ void help_main(void)
     printf("    dev                         Device commands\n");
     printf("    boot                        Boot commands\n");
     printf("    part                        Partition mananagement\n");
+    printf("    auth                        Authentication commands\n");
+    printf("    board                       Board specific commands\n");
+    printf("    slc                         Manage security life cycle\n");
+    help_common_footer();
+}
+
+void help_part(void)
+{
+    help_common_header("part");
+    printf("part options:\n");
+    printf("    -l, --list                          List partitions\n");
+    printf("    -w, --write <filename> [part uuid]  Write data to partition\n");
+    printf("    -i, --install                       Install default partition table\n");
+    printf("    -s, --show [uuid]                   Show BPAK information\n");
     help_common_footer();
 }
 
@@ -50,10 +64,32 @@ void help_dev(void)
     help_common_header("dev");
     printf("dev options:\n");
     printf("    -S, --show                  Display device information\n");
-    printf("    -C, --configure             Configure device fuses\n");
-    printf("    -L, --lock                  Lock configuration\n");
-    printf("    -a, --authenticate          Authenticate\n");
-    printf("    -b, --board-cmd             Issue board specific command\n");
     printf("    -r, --reset                 Reset board\n");
+    help_common_footer();
+}
+
+void help_board(void)
+{
+    help_common_header("board");
+    printf("board options:\n");
+    printf("    -b, --board-cmd             Issue board specific command\n");
+    printf("    -s, --board-status          Show board status\n");
+}
+
+void help_auth(void)
+{
+    help_common_header("auth");
+    printf("auth options:\n");
+    printf("    -a, --authenticate          Authenticate\n");
+    printf("        --set-otp-password      Set OTP password\n");
+}
+
+void help_slc(void)
+{
+    help_common_header("slc");
+    printf("slc options:\n");
+    printf("    -C, --set-configuration       Configure device fuses\n");
+    printf("    -L, --set-configuration-lock  Lock configuration\n");
+    printf("    -E, --set-end-of-life         End of life\n");
     help_common_footer();
 }

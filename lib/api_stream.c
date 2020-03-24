@@ -7,9 +7,18 @@ int pb_api_stream_init(struct pb_context *ctx, uint8_t *uuid)
 {
     int rc;
     struct pb_command_stream_initialize stream_init_command;
+    struct pb_device_capabilities caps;
     struct pb_command cmd;
     struct pb_result result;
+/*
+    rc = pb_api_device_read_caps(ctx, &caps);
 
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
+*/
     ctx->d(ctx, 2, "%s: call\n", __func__);
 
     memset(&stream_init_command, 0, sizeof(stream_init_command));

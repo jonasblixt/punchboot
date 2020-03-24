@@ -14,7 +14,8 @@ TEST(api_partition)
 {
     int rc;
     struct pb_context *ctx;
-    struct pb_result_part_table_entry tbl[128];
+    struct pb_partition_table_entry tbl[128];
+    int entries = 128;
 
     test_command_loop_set_authenticated(true);
 
@@ -35,48 +36,34 @@ TEST(api_partition)
     test_command_loop_set_authenticated(true);
 
     /* Read device partition table*/
-    rc = pb_api_partition_read_table(ctx, tbl, sizeof(tbl));
+    rc = pb_api_partition_read_table(ctx, tbl, &entries);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
 
-    struct pb_result_part_table_entry *entry = tbl;
-    int entry_count = 0;
-
-    while(entry->block_size)
+    for (int i = 0; i < entries; i++)
     {
-        ssize_t bytes = (entry->last_block - entry->first_block) * \
-                            entry->block_size;
-        printf("%s, %li bytes\n", entry->description, bytes);
-        entry++;
-        entry_count++;
+        ssize_t bytes = (tbl[i].last_block - tbl[i].first_block) * \
+                            tbl[i].block_size;
+        printf("%s, %li bytes\n", tbl[i].description, bytes);
     }
 
-    ASSERT_EQ(entry_count, 0);
 
     /* Install partition table*/
     rc = pb_api_partition_install_table(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
+    entries = 16;
+
     /* Read device partition table*/
-    rc = pb_api_partition_read_table(ctx, tbl, sizeof(tbl));
+    rc = pb_api_partition_read_table(ctx, tbl, &entries);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
-
-    entry = tbl;
-    entry_count = 0;
-
-    while(entry->block_size)
+    for (int i = 0; i < entries; i++)
     {
-
-        ssize_t bytes = (entry->last_block - entry->first_block) * \
-                            entry->block_size;
-        printf("%s, %li bytes\n", entry->description, bytes);
-        entry++;
-        entry_count++;
+        ssize_t bytes = (tbl[i].last_block - tbl[i].first_block) * \
+                            tbl[i].block_size;
+        printf("%s, %li bytes\n", tbl[i].description, bytes);
     }
-
-    ASSERT_EQ(entry_count, 2);
-
     /* Stop command loop */
     rc = test_command_loop_stop();
     ASSERT_EQ(rc, PB_RESULT_OK);
@@ -117,7 +104,7 @@ TEST(part_verify)
 
     ASSERT_EQ(rc, PB_RESULT_OK);
     /* Verify partition */
-    rc = pb_api_partition_verify(ctx, partuuid, sha256);
+    rc = pb_api_partition_verify(ctx, partuuid, sha256, 16, false);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Stop command loop */
@@ -160,7 +147,7 @@ TEST(part_verify_fail)
 
     ASSERT_EQ(rc, PB_RESULT_OK);
     /* Verify partition */
-    rc = pb_api_partition_verify(ctx, partuuid, sha256);
+    rc = pb_api_partition_verify(ctx, partuuid, sha256, 16, false);
     ASSERT_EQ(rc, -PB_RESULT_PART_VERIFY_FAILED);
 
     /* Stop command loop */
@@ -202,7 +189,7 @@ TEST(part_verify_invalid_part)
 
     ASSERT_EQ(rc, PB_RESULT_OK);
     /* Verify partition */
-    rc = pb_api_partition_verify(ctx, partuuid, sha256);
+    rc = pb_api_partition_verify(ctx, partuuid, sha256, 16, false);
     ASSERT_EQ(rc, -PB_RESULT_INVALID_ARGUMENT);
 
     /* Stop command loop */

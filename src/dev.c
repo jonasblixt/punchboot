@@ -48,10 +48,6 @@ int action_dev(int argc, char **argv)
         {"verbose",     no_argument,       0,  'v' },
         {"transport",   required_argument, 0,  't' },
         {"show",        no_argument,       0,  'S' },
-        {"configure",   optional_argument, 0,  'C' },
-        {"lock",        optional_argument, 0,  'L' },
-        {"authenticate", no_argument,      0,  'a' },
-        {"board-cmd",   required_argument, 0,  'b' },
         {"reset",       no_argument,       0,  'r' },
         {0,             0,                 0,   0  }
     };

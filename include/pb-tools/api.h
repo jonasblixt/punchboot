@@ -55,6 +55,22 @@ struct pb_device_capabilities
     uint32_t chunk_transfer_max_bytes;
 };
 
+#define PB_PART_FLAG_BOOTABLE (1 << 0)
+#define PB_PART_FLAG_OTP      (1 << 1)
+#define PB_PART_FLAG_WRITABLE (1 << 2)
+#define PB_PART_FLAG_ERASE_BEFORE_WRITE (1 << 3)
+
+struct pb_partition_table_entry
+{
+    uint8_t uuid[16];     /*!< Partition UUID */
+    char description[16]; /*!< Textual description of partition */
+    uint64_t first_block; /*!< Partition start block */
+    uint64_t last_block;  /*!< Last(inclusive) block of partition */
+    uint16_t block_size;  /*!< Block size */
+    uint8_t flags;        /*!< Flags */
+    uint8_t memory_id;    /*!< Physical memory id */
+};
+
 int pb_api_create_context(struct pb_context **ctx, pb_debug_t debug);
 int pb_api_free_context(struct pb_context *ctx);
 
@@ -99,13 +115,17 @@ int pb_api_bootloader_version(struct pb_context *ctx,
                               char *version,
                               size_t size);
 
-int pb_api_partition_read_table(struct pb_context *ctx, void *out, size_t size);
+int pb_api_partition_read_table(struct pb_context *ctx,
+                                struct pb_partition_table_entry *out,
+                                int *entries);
 
 int pb_api_partition_install_table(struct pb_context *ctx);
 
 int pb_api_partition_verify(struct pb_context *ctx,
                             uint8_t *uuid,
-                            uint8_t *sha256);
+                            uint8_t *sha256,
+                            uint32_t size,
+                            bool bpak);
 
 int pb_api_partition_activate(struct pb_context *ctx,
                               uint8_t *uuid);
@@ -113,6 +133,8 @@ int pb_api_partition_activate(struct pb_context *ctx,
 int pb_api_partition_read_bpak(struct pb_context *ctx,
                               uint8_t *uuid,
                               struct bpak_header *header);
+
+int pb_api_partition_erase(struct pb_context *ctx, uint8_t *uuid);
 
 int pb_api_stream_init(struct pb_context *ctx, uint8_t *uuid);
 
