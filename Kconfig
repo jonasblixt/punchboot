@@ -1,0 +1,45 @@
+mainmenu "Punchboot configuration"
+
+
+choice BOARD
+	bool "Board"
+
+config BOARD_QEMU
+	bool "QEMU"
+
+config BOARD_JIFFY
+	bool "Jiffy"
+
+config BOARD_PICO8ML
+	bool "pico8ml"
+
+endchoice
+
+config TOOLCHAIN_PREFIX
+	string "Toolchain prefix"
+	default "arm-eabi-"
+
+config KEYSTORE
+	string "Key-store source"
+	default "pki/internal_keystore.bpak"
+
+choice LOGGING
+	bool "Enable logging"
+	optional
+
+config LOG_LEVEL_1
+	bool "Only log errors"
+
+config LOG_LEVEL_2
+	bool "Log errors and info messages"
+
+config LOG_LEVEL_3
+	bool "Log errors, info and debug messages"
+
+endchoice
+
+
+
+
+
+
