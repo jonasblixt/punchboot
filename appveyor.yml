@@ -10,15 +10,14 @@ configuration:
   - Release
   - Debug
 
-branches:
-  except:
-
 matrix:
   fast_finish: true
 
 install:
   # libusb patched for windows hotplug support
   - git clone https://github.com/libusb/libusb.git "C:\libusb"
+  # bitpacker
+  - git clone https://github.com/jonasblixt/bpak.git "C:\bpak"
   # install innosetup for creating installers
   - choco install InnoSetup
   - set PATH=%PATH%;"C:\Program Files (x86)\Inno Setup 5"
@@ -28,15 +27,16 @@ build_script:
   # Install MinGW dependencies for 64 bit
   - C:\msys64\usr\bin\bash -lc "pacman -Rs --noconfirm mingw-w64-x86_64-gcc-ada mingw-w64-x86_64-gcc-fortran mingw-w64-x86_64-gcc-libgfortran mingw-w64-x86_64-gcc-objc"
   - C:\msys64\usr\bin\bash -lc "rm /mingw64/etc/gdbinit"
-  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-pkg-config mingw-w64-x86_64-python2-pip mingw-w64-x86_64-openblas mingw-w64-x86_64-lapack"
+  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-pkg-config  mingw-w64-x86_64-lapack"
   - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-pip mingw-w64-x86_64-binutils mingw-w64-x86_64-curl"
   - C:\msys64\usr\bin\bash -lc "pacman -U --noconfirm http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libusb-1.0.21-1-any.pkg.tar.xz"
+  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy autoconf-archive libutil-linux libutil-linux-devel libtool"
 
-
+  # Build bpak
+  - ps: pushd "C:\bpak"
+  - C:\msys64\usr\bin\bash -lc "cd C:/bpak && autoreconf -fi && ./configure --disable-tool --disable-codecs && make && make install"
+  - ps: popd
   # Build libsmu MinGW 64 bit
   - echo "Building..."
-  - C:\msys64\usr\bin\bash -lc "cd C:/projects/punchboot-tools && autoconf -fi && ./configure && make"
-
-
-cache:
+  - C:\msys64\usr\bin\bash -lc "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/pkgconfig && cd C:/projects/punchboot-tools && autoreconf -fi && ./configure && make"
 

@@ -12,6 +12,12 @@
 #include "sha256.h"
 
 
+static int part_activate(struct pb_context *ctx, const char *part_uuid)
+{
+    printf("Activate...\n");
+    return PB_RESULT_OK;
+}
+
 static int part_verify(struct pb_context *ctx, const char *filename,
                         const char *part_uuid)
 {
@@ -409,6 +415,7 @@ int action_part(int argc, char **argv)
     bool flag_write = false;
     bool flag_verify = false;
     bool flag_show = false;
+    bool flag_activate = false;
     const char *part_uuid = NULL;
     const char *filename = NULL;
 
@@ -422,17 +429,18 @@ int action_part(int argc, char **argv)
         {"show",        no_argument,       0,  's' },
         {"part",        required_argument, 0,  'p' },
         {"install",     no_argument,       0,  'i' },
-        {"list",        optional_argument, 0,  'l' },
+        {"activate",    required_argument, 0,  'a' },
+        {"list",        no_argument,       0,  'l' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:w:s:il",
+    while ((opt = getopt_long(argc, argv, "hvt:w:s:ilp:c:a:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
         {
             case 'h':
-                help_dev();
+                help_part();
                 return 0;
             case 'v':
                 pb_inc_verbosity();
@@ -453,6 +461,10 @@ int action_part(int argc, char **argv)
             case 'c':
                 flag_verify = true;
                 filename = (const char *) optarg;
+            break;
+            case 'a':
+                flag_activate = true;
+                part_uuid = (const char *) optarg;
             break;
             case 'p':
                 part_uuid = (const char *) optarg;
@@ -505,6 +517,8 @@ int action_part(int argc, char **argv)
         rc = part_verify(ctx, filename, part_uuid);
     else if (flag_show)
         rc = part_show(ctx, part_uuid);
+    else if (flag_activate)
+        rc = part_activate(ctx, part_uuid);
 
     if (rc != PB_RESULT_OK)
     {

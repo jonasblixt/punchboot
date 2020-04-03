@@ -57,6 +57,7 @@ void help_part(void)
     printf("    -w, --write <filename> [--part <uuid>]  Write data to partition\n");
     printf("    -c, --verify <filename> [--part <uuid>] Verify data\n");
     printf("    -i, --install                           Install default partition table\n");
+    printf("    -a, --activate <uuid>                   Activate boot partition\n");
     printf("    -s, --show [--part <uuid>]              Show BPAK information\n");
     help_common_footer();
 }
@@ -66,7 +67,7 @@ void help_boot(void)
     help_common_header("boot");
     printf("boot options:\n");
     printf("    -l, --load <filename> [--part <uuid>]  Load image into ram and boot\n");
-    printf("    -b, --boot <uuid>                      Boot partition 'uuid'\n");
+    printf("    -b, --boot <uuid>                      Boot partition with <uuid>\n");
     printf("\nCommon boot options:\n");
     printf("    --verbose-boot                         Verbose output\n");
     help_common_footer();

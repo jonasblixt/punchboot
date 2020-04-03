@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <stdbool.h>
+#include <uuid.h>
 
 #include "tool.h"
 
@@ -12,16 +13,27 @@ static int dev_show(struct pb_context *ctx)
 {
     int rc;
     char version[64];
+    uuid_t device_uu;
+    char device_uu_str[37];
+    char board_name[17];
 
     rc = pb_api_bootloader_version(ctx, version, sizeof(version));
 
-    if (rc != PB_RESULT_OK)
+    if (rc == PB_RESULT_OK)
     {
-        printf("Error: Version command failed\n");
-        return rc;
+        printf("Bootloader version: %s\n", version);
     }
 
-    printf("Bootloader version: %s\n", version);
+
+    rc = pb_api_device_read_identifier(ctx, device_uu, sizeof(device_uu),
+                                            board_name, sizeof(board_name));
+
+    if (rc == PB_RESULT_OK)
+    {
+        uuid_unparse(device_uu, device_uu_str);
+        printf("Device UUID:        %s\n", device_uu_str);
+        printf("Board name:         %s\n", board_name);
+    }
 
     return rc;
 }
