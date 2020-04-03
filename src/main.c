@@ -86,6 +86,10 @@ int main(int argc, char **argv)
         {
             return action_part(argc, argv);
         }
+        if (strcmp(action, "boot") == 0)
+        {
+            return action_boot(argc, argv);
+        }
         else
         {
             printf ("Unknown action '%s'\n", action);

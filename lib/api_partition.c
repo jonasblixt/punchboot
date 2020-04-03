@@ -80,7 +80,6 @@ int pb_api_partition_read_table(struct pb_context *ctx,
         out[i].first_block = tbl[i].first_block;
         out[i].last_block = tbl[i].last_block;
         out[i].flags = tbl[i].flags;
-        out[i].memory_id = tbl[i].memory_id;
         out[i].block_size = tbl[i].block_size;
     }
 
@@ -227,10 +226,21 @@ int pb_api_partition_read_bpak(struct pb_context *ctx,
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
 
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
+
     rc = ctx->read(ctx, header, sizeof(*header));
 
     if (rc != PB_RESULT_OK)
         return rc;
+
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
 
     ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
                                         pb_error_string(result.result_code));

@@ -3,6 +3,8 @@ bin_PROGRAMS = punchboot
 punchboot_SOURCES  = main.c \
                      dev.c \
 					 part.c \
+					 boot.c \
+					 sha256.c \
                      utils.c \
                      help.c
 

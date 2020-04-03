@@ -119,6 +119,37 @@ static int pb_usb_free(struct pb_context *ctx)
     return PB_RESULT_OK;
 }
 
+
+static int pb_usb_read(struct pb_context *ctx, void *bfr, size_t sz)
+{
+    struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
+    int err = 0;
+    int rx_sz = 0;
+
+    err = libusb_bulk_transfer(priv->h, (LIBUSB_ENDPOINT_IN | 1),
+                                                bfr, sz , &rx_sz, 10000);
+
+    if (err < 0)
+        return -PB_RESULT_TRANSFER_ERROR;
+
+    return PB_RESULT_OK;
+}
+
+static int pb_usb_write(struct pb_context *ctx, const void *bfr, size_t sz)
+{
+    struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
+    int err = 0;
+    int rx_sz = 0;
+
+    err = libusb_bulk_transfer(priv->h, (LIBUSB_ENDPOINT_OUT | 2),
+                                             (void *) bfr, sz , &rx_sz, 10000);
+
+    if (err < 0)
+        return -PB_RESULT_TRANSFER_ERROR;
+
+    return PB_RESULT_OK;
+}
+
 static int pb_usb_command(struct pb_context *ctx,
                             struct pb_command *cmd,
                             const void *bfr, size_t sz)
@@ -127,35 +158,18 @@ static int pb_usb_command(struct pb_context *ctx,
     int err = 0;
     int tx_sz = 0;
 
-    err = libusb_interrupt_transfer(priv->h, 0x02, (uint8_t *) cmd,
-                                            sizeof(*cmd), &tx_sz, 0);
+    err = pb_usb_write(ctx, cmd, sizeof(*cmd));
 
     if (err < 0)
         return -PB_RESULT_TRANSFER_ERROR;
 
     if (sz)
     {
-        err = libusb_interrupt_transfer(priv->h, 0x02, (unsigned char *) bfr,
-                                        sz, &tx_sz, 0);
+        err = pb_usb_write(ctx, (void *) bfr, sz);
 
         if (err < 0)
             return -PB_RESULT_TRANSFER_ERROR;
     }
-
-    return PB_RESULT_OK;
-}
-
-static int pb_usb_read(struct pb_context *ctx, void *bfr, size_t sz)
-{
-    struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
-    int err = 0;
-    int rx_sz = 0;
-
-    err = libusb_interrupt_transfer(priv->h, (LIBUSB_ENDPOINT_IN | 3),
-                                                bfr, sz , &rx_sz, 1000);
-
-    if (err < 0)
-        return -PB_RESULT_TRANSFER_ERROR;
 
     return PB_RESULT_OK;
 }
@@ -172,6 +186,7 @@ int pb_usb_transport_init(struct pb_context *ctx)
     ctx->free = pb_usb_free;
     ctx->init = pb_usb_init;
     ctx->read = pb_usb_read;
+    ctx->write = pb_usb_write;
     ctx->command = pb_usb_command;
     ctx->connect = pb_usb_connect;
 

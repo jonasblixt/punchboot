@@ -68,7 +68,6 @@ struct pb_partition_table_entry
     uint64_t last_block;  /*!< Last(inclusive) block of partition */
     uint16_t block_size;  /*!< Block size */
     uint8_t flags;        /*!< Flags */
-    uint8_t memory_id;    /*!< Physical memory id */
 };
 
 int pb_api_create_context(struct pb_context **ctx, pb_debug_t debug);

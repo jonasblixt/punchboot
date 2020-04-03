@@ -33,6 +33,7 @@ static void help_common_footer(void)
     printf("    -h, --help                  Show help\n");
     printf("    -V, --version               Show version\n");
     printf("    -t, --transport             Communication transport (Default: usb)\n");
+    printf("        --device <uuid>         Select device\n");
 }
 
 void help_main(void)
@@ -52,10 +53,22 @@ void help_part(void)
 {
     help_common_header("part");
     printf("part options:\n");
-    printf("    -l, --list                          List partitions\n");
-    printf("    -w, --write <filename> [part uuid]  Write data to partition\n");
-    printf("    -i, --install                       Install default partition table\n");
-    printf("    -s, --show [uuid]                   Show BPAK information\n");
+    printf("    -l, --list                              List partitions\n");
+    printf("    -w, --write <filename> [--part <uuid>]  Write data to partition\n");
+    printf("    -c, --verify <filename> [--part <uuid>] Verify data\n");
+    printf("    -i, --install                           Install default partition table\n");
+    printf("    -s, --show [--part <uuid>]              Show BPAK information\n");
+    help_common_footer();
+}
+
+void help_boot(void)
+{
+    help_common_header("boot");
+    printf("boot options:\n");
+    printf("    -l, --load <filename> [--part <uuid>]  Load image into ram and boot\n");
+    printf("    -b, --boot <uuid>                      Boot partition 'uuid'\n");
+    printf("\nCommon boot options:\n");
+    printf("    --verbose-boot                         Verbose output\n");
     help_common_footer();
 }
 
@@ -72,7 +85,7 @@ void help_board(void)
 {
     help_common_header("board");
     printf("board options:\n");
-    printf("    -b, --board-cmd             Issue board specific command\n");
+    printf("    -b, --board-cmd <command>   Issue board specific command\n");
     printf("    -s, --board-status          Show board status\n");
 }
 
@@ -80,8 +93,8 @@ void help_auth(void)
 {
     help_common_header("auth");
     printf("auth options:\n");
-    printf("    -a, --authenticate          Authenticate\n");
-    printf("        --set-otp-password      Set OTP password\n");
+    printf("    -a, --authenticate <filename>   Authenticate\n");
+    printf("        --set-otp-password          Set OTP password\n");
 }
 
 void help_slc(void)
@@ -91,5 +104,7 @@ void help_slc(void)
     printf("    -C, --set-configuration       Configure device fuses\n");
     printf("    -L, --set-configuration-lock  Lock configuration\n");
     printf("    -E, --set-end-of-life         End of life\n");
+    printf("\nSLC common options:\n");
+    printf("        --force                   Force\n");
     help_common_footer();
 }

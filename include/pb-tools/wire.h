@@ -43,8 +43,8 @@
  */
 
 #define PB_WIRE_MAGIC 0x50424c30   /* PBL0 */
-#define PB_COMMAND_REQUEST_MAX_SIZE 55
-#define PB_RESULT_RESPONSE_MAX_SIZE 55
+#define PB_COMMAND_REQUEST_MAX_SIZE 503
+#define PB_RESULT_RESPONSE_MAX_SIZE 503
 
 /*! \public
  *
@@ -182,8 +182,7 @@ struct pb_result_part_table_entry
     uint64_t last_block;  /*!< Last(inclusive) block of partition */
     uint16_t block_size;  /*!< Block size */
     uint8_t flags;        /*!< Flags */
-    uint8_t memory_id;    /*!< Physical memory id */
-    uint8_t rz[12];       /*!< Reserved */
+    uint8_t rz[13];       /*!< Reserved */
 };
 
 

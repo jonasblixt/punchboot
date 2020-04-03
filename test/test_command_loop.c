@@ -534,7 +534,6 @@ static int pb_install_part_table(struct pb_command_ctx *ctx,
             .last_block = 1,
             .block_size = 512,
             .flags = PB_PART_FLAG_WRITABLE,
-            .memory_id = 0,
         },
         {
             .uuid = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
@@ -544,7 +543,6 @@ static int pb_install_part_table(struct pb_command_ctx *ctx,
             .last_block = 2047,
             .block_size = 512,
             .flags = PB_PART_FLAG_WRITABLE | PB_PART_FLAG_BOOTABLE,
-            .memory_id = 1,
         },
     };
 

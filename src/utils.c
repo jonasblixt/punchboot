@@ -55,11 +55,11 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name)
 int bytes_to_string(size_t bytes, char *out, size_t size)
 {
     if (bytes > 1024*1024)
-        snprintf(out, size, "%-4li Mb", bytes / (1024*1024));
+        snprintf(out, size, "%-4li MB", bytes / (1024*1024));
     else if (bytes > 1024)
-        snprintf(out, size, "%-4li kb", bytes / 1024);
+        snprintf(out, size, "%-4li kB", bytes / 1024);
     else
-        snprintf(out, size, "%-4li b ", bytes);
+        snprintf(out, size, "%-4li B ", bytes);
 
     return PB_RESULT_OK;
 };
