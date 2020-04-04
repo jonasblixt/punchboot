@@ -16,7 +16,6 @@
 #ifdef WINDOWS
   #include <winsock2.h>
   #include <Ws2tcpip.h>
-  #include <afunix.h>
 #else
   #include <sys/types.h>
   #include <sys/socket.h>

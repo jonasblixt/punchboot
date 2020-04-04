@@ -3,16 +3,19 @@ lib_LTLIBRARIES = libpunchboot.la
 libpunchboot_la_SOURCES = error.c \
                           wire.c \
                           usb.c \
-                          socket.c \
                           api.c \
                           api_stream.c \
                           api_partition.c \
                           api_device.c \
                           api_slc.c \
                           api_authentication.c \
-						  api_boot.c \
+						              api_boot.c \
                           api_misc.c \
-						  api_board.c
+						              api_board.c
+
+if !WINDOWS
+libpunchboot_la_SOURCES += socket.c
+endif
 
 libpunchboot_la_LDFLAGS = $(LIBUSB_LDFLAGS) $(BPAK_LDFLAGS)
 
