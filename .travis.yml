@@ -1,0 +1,15 @@
+language: c
+compiler: gcc
+dist: bionic
+before_install:
+  - sudo apt-get install git lcov uuid-runtime python3-dev libusb-dev libusb-1.0-0 libusb-1.0-0-dev
+  - git clone https://github.com/jonasblixt/bpak
+script:
+    - cd bpak && autoreconf -fi && ./configure && make && sudo make install && cd .. && sudo ldconfig
+    - autoreconf -fi && ./configure --enable-code-coverage && make check || cat test/test-suite.log
+jobs:
+    include:
+        -   stage: Code Coverage
+            after_success:
+                - cd src/
+                - bash <(curl -s https://codecov.io/bash)

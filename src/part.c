@@ -302,9 +302,10 @@ err_out:
 }
 
 static int print_bpak_header(struct bpak_header *h,
-                             char *part_uuid_str)
+                             char *part_uuid_str,
+                             char *part_description)
 {
-    printf("Partition: %s\n", part_uuid_str);
+    printf("Partition: %s (%s)\n", part_uuid_str, part_description);
     printf("Hash:      %s\n", bpak_hash_kind(h->hash_kind));
     printf("Signature: %s\n", bpak_signature_kind(h->signature_kind));
 
@@ -393,7 +394,7 @@ static int part_show(struct pb_context *ctx, const char *part_uuid)
         rc = pb_api_partition_read_bpak(ctx, tbl[i].uuid, &header);
 
         if (rc == PB_RESULT_OK)
-            print_bpak_header(&header, uuid_str);
+            print_bpak_header(&header, uuid_str, tbl[i].description);
     }
 
     rc = PB_RESULT_OK;
