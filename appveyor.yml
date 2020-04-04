@@ -38,5 +38,5 @@ build_script:
   - ps: popd
   # Build libsmu MinGW 64 bit
   - echo "Building..."
-  - C:\msys64\usr\bin\bash -lc "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/pkgconfig && cd C:/projects/punchboot-tools && autoreconf -fi && ./configure && make"
+  - C:\msys64\usr\bin\bash -lc "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/pkgconfig && cd C:/projects/punchboot-tools && autoreconf -fi && ./configure CFLAGS=\"-static\" && make LDFLAGS=\"-all-static\""
 
