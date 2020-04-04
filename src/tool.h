@@ -21,7 +21,8 @@ int action_dev(int argc, char **argv);
 int action_part(int argc, char **argv);
 int action_boot(int argc, char **argv);
 
-int transport_init_helper(struct pb_context **ctxp, const char *transport_name);
+int transport_init_helper(struct pb_context **ctxp, const char *transport_name,
+                            const char *device_uuid);
 int pb_debug(struct pb_context *ctx, int level, const char *fmt, ...);
 int bytes_to_string(size_t bytes, char *out, size_t size);
 

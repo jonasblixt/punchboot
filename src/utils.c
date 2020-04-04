@@ -20,7 +20,8 @@ int pb_debug(struct pb_context *ctx, int level, const char *fmt, ...)
     return PB_RESULT_OK;
 }
 
-int transport_init_helper(struct pb_context **ctxp, const char *transport_name)
+int transport_init_helper(struct pb_context **ctxp, const char *transport_name,
+                            const char *device_uuid)
 {
     int rc;
     char *t = (char *) transport_name;
@@ -40,7 +41,7 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name)
 
     if (strcmp(t, "usb") == 0)
     {
-        rc = pb_usb_transport_init(ctx);
+        rc = pb_usb_transport_init(ctx, device_uuid);
     }
     else if (strcmp(t, "socket") == 0)
     {

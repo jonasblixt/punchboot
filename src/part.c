@@ -409,6 +409,7 @@ int action_part(int argc, char **argv)
     int long_index = 0;
     int rc = 0;
     const char *transport = NULL;
+    const char *device_uuid = NULL;
     struct pb_context *ctx = NULL;
     bool flag_list = false;
     bool flag_install = false;
@@ -424,6 +425,7 @@ int action_part(int argc, char **argv)
         {"help",        no_argument,       0,  'h' },
         {"verbose",     no_argument,       0,  'v' },
         {"transport",   required_argument, 0,  't' },
+        {"device",      required_argument, 0,  'd' },
         {"write",       required_argument, 0,  'w' },
         {"verify",      required_argument, 0,  'c' },
         {"show",        no_argument,       0,  's' },
@@ -434,7 +436,7 @@ int action_part(int argc, char **argv)
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:w:s:ilp:c:a:",
+    while ((opt = getopt_long(argc, argv, "hvt:w:s:ilp:c:a:d:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -472,6 +474,9 @@ int action_part(int argc, char **argv)
             case 's':
                 flag_show = true;
             break;
+            case 'd':
+                device_uuid = (const char *) optarg;
+            break;
             case '?':
                 printf("Unknown option: %c\n", optopt);
                 return -1;
@@ -491,7 +496,7 @@ int action_part(int argc, char **argv)
         return 0;
     }
 
-    rc = transport_init_helper(&ctx, transport);
+    rc = transport_init_helper(&ctx, transport, device_uuid);
 
     if (rc != PB_RESULT_OK)
     {

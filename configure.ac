@@ -42,6 +42,37 @@ AC_SUBST(UUID_LIBS)
 
 AC_CHECK_TOOL([BPAK], [bpak], [:])
 
+AC_CANONICAL_HOST
+
+build_linux=no
+build_windows=no
+build_mac=no
+
+# Detect the target system
+case "${host_os}" in
+    linux*)
+        build_linux=yes
+        AC_DEFINE([LINUX], 1, "Linux build")
+        ;;
+    cygwin*|mingw*)
+        build_windows=yes
+        AC_DEFINE([WINDOWS], 1, "Windows build")
+        ;;
+    darwin*)
+        build_mac=yes
+        AC_DEFINE([OSX], 1, "Mac build")
+        ;;
+    *)
+        AC_MSG_ERROR(["OS $host_os is not supported"])
+        ;;
+esac
+
+# Pass the conditionals to automake
+AM_CONDITIONAL([LINUX], [test "$build_linux" = "yes"])
+AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
+AM_CONDITIONAL([OSX], [test "$build_mac" = "yes"])
+
+
 AC_CONFIG_FILES([Makefile
                 src/Makefile
                 lib/Makefile

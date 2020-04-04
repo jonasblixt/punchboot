@@ -52,19 +52,20 @@ int action_dev(int argc, char **argv)
     bool flag_show = false;
     bool flag_reset = false;
     struct pb_context *ctx = NULL;
-
+    const char *device_uuid = NULL;
 
     struct option long_options[] =
     {
         {"help",        no_argument,       0,  'h' },
         {"verbose",     no_argument,       0,  'v' },
         {"transport",   required_argument, 0,  't' },
+        {"device",      required_argument, 0,  'd' },
         {"show",        no_argument,       0,  'S' },
         {"reset",       no_argument,       0,  'r' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:SC:L:ab:r",
+    while ((opt = getopt_long(argc, argv, "hvt:SC:L:ab:rd:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -77,6 +78,9 @@ int action_dev(int argc, char **argv)
             break;
             case 't':
                 transport = (const char *) optarg;
+            break;
+            case 'd':
+                device_uuid = (const char *) optarg;
             break;
             case 'S':
                 flag_show = true;
@@ -103,7 +107,7 @@ int action_dev(int argc, char **argv)
         return 0;
     }
 
-    rc = transport_init_helper(&ctx, transport);
+    rc = transport_init_helper(&ctx, transport, device_uuid);
 
     if (rc != PB_RESULT_OK)
     {

@@ -23,13 +23,14 @@ int action_boot(int argc, char **argv)
     bool flag_load = false;
     bool flag_verbose_boot = false;
     bool flag_boot = false;
-
+    const char *device_uuid = NULL;
 
     struct option long_options[] =
     {
         {"help",        no_argument,       0,  'h' },
         {"verbose",     no_argument,       0,  'v' },
         {"transport",   required_argument, 0,  't' },
+        {"device",      required_argument, 0,  'd' },
         {"load",        required_argument, 0,  'l' },
         {"boot",        required_argument, 0,  'b' },
         {"verbose-boot", no_argument,      0,  'W' },
@@ -49,6 +50,9 @@ int action_boot(int argc, char **argv)
             break;
             case 't':
                 transport = (const char *) optarg;
+            break;
+            case 'd':
+                device_uuid = (const char *) optarg;
             break;
             case 'l':
                 flag_load = true;
@@ -80,7 +84,7 @@ int action_boot(int argc, char **argv)
         return 0;
     }
 
-    rc = transport_init_helper(&ctx, transport);
+    rc = transport_init_helper(&ctx, transport, device_uuid);
 
     if (rc != PB_RESULT_OK)
     {

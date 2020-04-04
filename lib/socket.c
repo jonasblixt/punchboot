@@ -12,9 +12,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+
+#ifdef WINDOWS
+  #include <winsock2.h>
+  #include <Ws2tcpip.h>
+  #include <afunix.h>
+#else
+  #include <sys/types.h>
+  #include <sys/socket.h>
+  #include <sys/un.h>
+#endif
+
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 #include <pb-tools/error.h>

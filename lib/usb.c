@@ -22,6 +22,7 @@ struct pb_usb_private
     libusb_device *dev;
     libusb_context *usb_ctx;
     libusb_device_handle *h;
+    const char *device_uuid;
 };
 
 #define PB_USB_PRIVATE(__ctx) ((struct pb_usb_private *) ctx->transport)
@@ -46,6 +47,7 @@ static int pb_usb_connect(struct pb_context *ctx)
     int rc = PB_RESULT_OK;
     int i;
     bool found_device = false;
+    char device_serial[128];
     struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
     libusb_device *dev;
     libusb_device **devs;
@@ -64,6 +66,17 @@ static int pb_usb_connect(struct pb_context *ctx)
 
         if ((desc.idVendor == PB_USB_VID) && (desc.idProduct == PB_USB_PID))
         {
+            if (priv->device_uuid)
+            {
+                libusb_open(dev, &priv->h);
+                libusb_get_string_descriptor_ascii(priv->h, desc.iSerialNumber,
+                         device_serial, sizeof(device_serial));
+
+                libusb_close(priv->h);
+
+                if (strcmp(device_serial, priv->device_uuid) != 0)
+                    continue;
+            }
             priv->dev = dev;
             found_device = true;
             break;
@@ -174,7 +187,7 @@ static int pb_usb_command(struct pb_context *ctx,
     return PB_RESULT_OK;
 }
 
-int pb_usb_transport_init(struct pb_context *ctx)
+int pb_usb_transport_init(struct pb_context *ctx, const char *device_uuid)
 {
     ctx->transport = malloc(sizeof(struct pb_usb_private));
 
@@ -182,7 +195,9 @@ int pb_usb_transport_init(struct pb_context *ctx)
         return -PB_RESULT_NO_MEMORY;
 
     memset(ctx->transport, 0, sizeof(struct pb_usb_private));
-
+  
+    struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
+    priv->device_uuid = device_uuid;
     ctx->free = pb_usb_free;
     ctx->init = pb_usb_init;
     ctx->read = pb_usb_read;
