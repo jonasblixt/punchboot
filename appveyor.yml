@@ -40,6 +40,6 @@ build_script:
   - echo "Building..."
   - C:\msys64\usr\bin\bash -lc "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/pkgconfig && cd C:/projects/punchboot-tools && autoreconf -fi && ./configure CFLAGS=\"-static\" && make LDFLAGS=\"-all-static\""
   # Package
-  - iscc C:\projects\punchboot-tools\dist\punchboot-tools-x86.iss
-  - appveyor PushArtifact C:\punchboot-tools-setup-x86.exe
+  - iscc C:\projects\punchboot-tools\dist\punchboot-tools-x64.iss
+  - appveyor PushArtifact C:\punchboot-tools-setup-x64.exe
 

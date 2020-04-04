@@ -1,15 +1,15 @@
 [Setup]
 AppId={{4AC360D3-3BA0-4030-B4AA-F6FE9DFF93BD}
-AppName="punchboot-tools (x86)"
+AppName="punchboot-tools (x64)"
 AppVersion="@VERSION@"
 AppPublisher="Jonas Blixt"
 AppPublisherURL="https://github.com/jonasblixt"
 AppSupportURL="https://github.com/jonasblixt/punchboot-tools"
 AppUpdatesURL="https://github.com/jonasblixt/punchboot-tools"
 LicenseFile="C:\projects\punchboot-tools\LICENSE"
-OutputBaseFilename=punchboot-tools-setup-x86
+OutputBaseFilename=punchboot-tools-setup-x64
 OutputDir="C:\"
-DefaultDirName="{pf32}\punchboot-tools\"
+DefaultDirName="{pf64}\punchboot-tools\"
 Compression=lzma
 SolidCompression=yes
 ChangesEnvironment=yes
@@ -47,6 +47,7 @@ Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
 Source: "C:\projects\punchboot-tools\src\punchboot.exe"; DestDir: "{app}"
 
 [Tasks]
+Name: modifypath; Description: Add application directory to your environmental path
 
 [Run]
 
