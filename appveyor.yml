@@ -14,10 +14,10 @@ matrix:
   fast_finish: true
 
 install:
-  # libusb patched for windows hotplug support
-  - git clone https://github.com/libusb/libusb.git "C:\libusb"
   # bitpacker
   - git clone https://github.com/jonasblixt/bpak.git "C:\bpak"
+  # libwdi
+  - git clone https://github.com/pbatard/libwdi.git "C:\libwdi"
   # install innosetup for creating installers
   - choco install InnoSetup
   - set PATH=%PATH%;"C:\Program Files (x86)\Inno Setup 5"
@@ -36,7 +36,12 @@ build_script:
   - ps: pushd "C:\bpak"
   - C:\msys64\usr\bin\bash -lc "cd C:/bpak && autoreconf -fi && ./configure --disable-tool --disable-codecs && make && make install"
   - ps: popd
-  # Build libsmu MinGW 64 bit
+  # Build libwdi
+  - ps: pushd "C:\libwdi"
+  - git checkout faf20f6a0fad88b741c17e7f6bd3a6fe51fe3044
+  - C:\msys64\usr\bin\bash -lc "./bootstrap.sh && ./configure --with-wdkdir=\"C:/Program Files (x86)/Windows Kits/10\" --disable-32bit && make && make -C examples"
+  - ps: popd
+  # Build punchboot-tools MinGW 64 bit
   - echo "Building..."
   - C:\msys64\usr\bin\bash -lc "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/pkgconfig && cd C:/projects/punchboot-tools && autoreconf -fi && ./configure CFLAGS=\"-static\" && make LDFLAGS=\"-all-static\""
   # Package
