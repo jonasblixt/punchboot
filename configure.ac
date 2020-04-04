@@ -72,7 +72,10 @@ AC_CONFIG_FILES([Makefile
                 src/Makefile
                 lib/Makefile
                 test/Makefile
+                dist/punchboot-tools-x86.iss
                 lib/punchboot.pc])
+
+AC_CONFIG_LINKS([dist/modpath.iss:dist/modpath.iss])
 
 AX_CODE_COVERAGE
 AC_OUTPUT
