@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <stdbool.h>
-#include <uuid.h>
+#include "uuid/uuid.h"
 
 #include "tool.h"
 

@@ -30,7 +30,7 @@ build_script:
   - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-pkg-config  mingw-w64-x86_64-lapack"
   - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-pip mingw-w64-x86_64-binutils mingw-w64-x86_64-curl"
   - C:\msys64\usr\bin\bash -lc "pacman -U --noconfirm http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libusb-1.0.21-1-any.pkg.tar.xz"
-  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy autoconf-archive libutil-linux libutil-linux-devel libtool"
+  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy autoconf-archive libtool"
 
   # Build bpak
   - ps: pushd "C:\bpak"

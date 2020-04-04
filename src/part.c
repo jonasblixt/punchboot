@@ -5,10 +5,10 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <stdbool.h>
-#include <uuid.h>
 #include <bpak/bpak.h>
 #include <bpak/utils.h>
 #include "tool.h"
+#include "uuid/uuid.h"
 #include "sha256.h"
 
 

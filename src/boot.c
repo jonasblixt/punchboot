@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <uuid.h>
+#include "uuid/uuid.h"
 
 #include "tool.h"
 

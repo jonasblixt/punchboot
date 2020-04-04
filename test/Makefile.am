@@ -3,7 +3,6 @@ COMMON_TEST_CFLAGS = -I $(top_srcdir)/include \
                      $(LIBUSB_CFLAGS) \
                      $(BPAK_CFLAGS) \
                      $(BPAK_LDFLAGS) \
-                     $(UUID_CFLAGS) \
                      -fsanitize=address \
                      -no-pie -g -O0 \
                      -I /usr/include/uuid
@@ -11,11 +10,17 @@ COMMON_TEST_CFLAGS = -I $(top_srcdir)/include \
 COMMON_TEST_LDADD = libnala.la \
                     $(top_builddir)/lib/libpunchboot.la \
                     $(LIBUSB_LIBS) \
-                    $(BPAK_LIBS) \
-                    $(UUID_LIBS)
+                    $(BPAK_LIBS)
 
 COMMON_SRCS = common.c \
               command.c \
+			 ../src/uuid/clear.c \
+			 ../src/uuid/compare.c \
+			 ../src/uuid/isnull.c \
+			 ../src/uuid/pack.c \
+			 ../src/uuid/parse.c \
+			 ../src/uuid/unpack.c \
+			 ../src/uuid/unparse.c \
               test_command_loop.c
 
 check_LTLIBRARIES = libnala.la
