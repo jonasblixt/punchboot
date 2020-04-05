@@ -2,26 +2,24 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <io.h>
-#include <boot.h>
-#include <gpt.h>
-#include <image.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <pb/boot.h>
 #include <board/config.h>
-#include <crypto.h>
-#include <board.h>
-#include <plat.h>
-#include <atf.h>
-#include <timing_report.h>
+#include <pb/crypto.h>
+#include <pb/board.h>
+#include <pb/plat.h>
+#include <pb/atf.h>
+#include <pb/timing_report.h>
 #include <libfdt.h>
-#include <uuid.h>
+#include <uuid/uuid.h>
 #include <bpak/bpak.h>
 
 extern void arch_jump_linux_dt(volatile void* addr, volatile void * dt)
@@ -34,8 +32,9 @@ extern uint32_t board_linux_patch_dt(void *fdt, int offset);
 static __a16b char device_uuid[37];
 static __a4k __no_bss char device_uuid_raw[16];
 
-void pb_boot(struct bpak_header *h, uint32_t system_index, bool verbose)
+void pb_boot_(struct bpak_header *h, uint32_t system_index, bool verbose)
 {
+#ifdef __NOPE
     int rc = BPAK_OK;
     uint32_t *dtb = NULL;
     uint32_t *linux = NULL;
@@ -224,8 +223,6 @@ void pb_boot(struct bpak_header *h, uint32_t system_index, bool verbose)
                 (const char *) device_uuid);
 
 
-    err = board_linux_patch_dt(fdt, offset);
-
     if (err)
         LOG_ERR("Could not update board specific params");
     else
@@ -256,25 +253,37 @@ void pb_boot(struct bpak_header *h, uint32_t system_index, bool verbose)
     plat_wdog_kick();
 
 
-    if (atf && dtb && linux)
-    {
-        LOG_DBG("ATF boot");
-        arch_jump_atf((void *)(uintptr_t) *atf,
-                      (void *)(uintptr_t) NULL);
-    }
-    else if(dtb && linux && !atf && tee)
-    {
-        LOG_INFO("TEE boot");
-        arch_jump_linux_dt((void *)(uintptr_t) *tee,
-                           (void *)(uintptr_t) *dtb);
-    }
-    else if(dtb && linux)
-    {
-        arch_jump_linux_dt((void *)(uintptr_t) *linux,
-                           (void *)(uintptr_t) *dtb);
-    }
-
-    while (1)
-        __asm__("nop");
+#endif
 }
 
+int pb_boot_init(struct pb_boot_context *ctx,
+                 struct pb_boot_driver *driver,
+                 struct pb_storage *storage)
+{
+    ctx->driver = driver;
+    return PB_OK;
+}
+
+int pb_boot_free(struct pb_boot_context *ctx)
+{
+    return PB_OK;
+}
+
+int pb_boot_set_active(struct pb_boot_context *ctx, uint8_t *uu)
+{
+    return PB_OK;
+}
+
+int pb_boot_is_active(struct pb_boot_context *ctx, uint8_t *uu, bool *active)
+{
+    return PB_OK;
+}
+
+int pb_boot(struct pb_boot_context *ctx, uint8_t *uu, bool verbose, bool force)
+{
+    int rc;
+
+    rc = ctx->driver->boot(ctx->driver);
+
+    return rc;
+}

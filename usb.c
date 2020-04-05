@@ -16,6 +16,8 @@
 
 #define USB_DEBUG
 
+static char usb_device_uuid[37*2+2] __no_bss;
+
 static const uint8_t qf_descriptor[] =
 {
     0x0A,   // USB_DEV_QUALIFIER_DESC_LEN,
@@ -33,12 +35,10 @@ static const uint8_t qf_descriptor[] =
 /**
  *
  *  Endpoint 0 <--> USB Configuration endpoint
- *  Endpoint 1 <--> BULK OUT, used for transfering large amounts of data
- *  Endpoint 2 <--> INTR OUT, used for commands from host -> device
- *  Endpoint 3 <--> INTR IN, used for responses from device -> host
+ *  Endpoint 1 <--> BULK IN, Data from device to host
+ *  Endpoint 2 <--> BULK OUT, Data from host to device
  *
  */
-
 
 static const uint8_t descriptor_300[] = "\x04\x03\x04\x09";
 
@@ -61,14 +61,14 @@ static const struct usb_descriptors descriptors =
         .bcdDevice = 0x0000,  // Device revsion
         .iManufacturer = 0x01,  // Index of  Manufacturer string descriptor
         .iProduct = 0x01,  // Index of Product string descriptor
-        .iSerialNumber = 0x01,  // Index of serial number string descriptor
+        .iSerialNumber = 0x02,  // Index of serial number string descriptor
         .bNumConfigurations = 0x01,  // Number of configurations
     },
     .config =
     {
         .bLength = 0x09,
         .bDescriptorType = 0x02,  // Configuration descriptor
-        .wTotalLength = 0x27,  // Total length of data, includes interface
+        .wTotalLength = 0x20,  // Total length of data, includes interface
         .bNumInterfaces = 0x01,  // Number of interfaces
         .bConfigurationValue = 0x01,  // Number to select for this configuration
         .iConfiguration = 0x00,  // No string descriptor
@@ -81,39 +81,30 @@ static const struct usb_descriptors descriptors =
         .bDescriptorType = 0x04,  // Interface descriptor
         .bInterfaceNumber = 0x00,  // This interface = #0
         .bAlternateSetting = 0x00,  // Alternate setting
-        .bNumEndpoints = 0x03,  // Number of endpoints for this interface
+        .bNumEndpoints = 0x02,  // Number of endpoints for this interface
         .bInterfaceClass = 0xFF,
         .bInterfaceSubClass = 0xFF,
         .bInterfaceProtocol = 0xFF,
         .iInterface = 0,  // No string descriptor
     },
-    .endpoint_bulk_out =
+    .endpoint_bulk_in =
     {
         .bLength = 0x07,
         .bDescriptorType = 0x05,  // Endpoint descriptor
-        .bEndpointAddress = 0x01,
+        .bEndpointAddress = 0x81,
         .bmAttributes = 0x2,
         .wMaxPacketSize = 0x0200,
         .bInterval = 0x00,
     },
-    .endpoint_intr_out =
+    .endpoint_bulk_out =
     {
         .bLength = 0x07,
         .bDescriptorType = 0x05,  // Endpoint descriptor
         .bEndpointAddress = 0x02,
-        .bmAttributes = 0x3,
-        .wMaxPacketSize = 0x0040,
-        .bInterval = 0x01,
-    },
-    .endpoint_intr_in =
-    {
-        .bLength = 0x07,
-        .bDescriptorType = 0x05,  // Endpoint descriptor
-        .bEndpointAddress = 0x83,
-        .bmAttributes = 0x3,
+        .bmAttributes = 0x2,
         .wMaxPacketSize = 0x0200,
-        .bInterval = 0x01,
-    }
+        .bInterval = 0x00,
+    },
 };
 
 static const uint8_t usb_string_id[] =
@@ -189,6 +180,27 @@ int usb_process_setup_pkt(struct pb_usb_interface *iface,
 
                 rc = usb_send_ep0(iface, (void *) usb_string_id, sz);
             }
+            else if (setup->wValue == 0x0302)
+            {
+                usb_device_uuid[0] = 0x4a;
+                usb_device_uuid[1] = 3;
+                char uuid[37];
+
+                uuid_unparse(drv->device_uuid, uuid);
+
+                sz = setup->wLength > sizeof(usb_device_uuid)?
+                            sizeof(usb_device_uuid): setup->wLength;
+
+                int n = 2;
+                for (int i = 0; i < 36; i++)
+                {
+                   usb_device_uuid[n] = uuid[i];
+                   usb_device_uuid[n+1] = 0;
+                   n += 2;
+                }
+
+                rc = usb_send_ep0(iface, (void *) usb_device_uuid, sz);
+            }
             else if (setup->wValue == 0x0A00)
             {
                 uint16_t desc_tot_sz = descriptors.interface.bLength;
@@ -253,6 +265,5 @@ int usb_process_setup_pkt(struct pb_usb_interface *iface,
         }
     }
 
-    LOG_DBG("rc %i", rc);
     return rc;
 }

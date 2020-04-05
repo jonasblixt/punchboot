@@ -128,9 +128,8 @@ struct usb_descriptors
     const struct usb_device_descriptor device;
     const struct usb_configuration_descriptor config;
     const struct usb_interface_descriptor interface;
+    const struct usb_endpoint_descriptor endpoint_bulk_in;
     const struct usb_endpoint_descriptor endpoint_bulk_out;
-    const struct usb_endpoint_descriptor endpoint_intr_out;
-    const struct usb_endpoint_descriptor endpoint_intr_in;
 } __attribute__((packed));
 
 typedef int (*pb_usb_io_t) (struct pb_transport_driver *drv,
@@ -141,7 +140,7 @@ typedef int (*pb_usb_call_t) (struct pb_transport_driver *drv);
 typedef bool (*pb_usb_status_t) (struct pb_transport_driver *drv);
 
 typedef int (*pb_usb_set_addr_t) (struct pb_transport_driver *drv,
-                                    uint16_t addr);
+                                    uint32_t addr);
 
 struct pb_usb_interface
 {

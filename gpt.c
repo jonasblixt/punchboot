@@ -10,10 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/gpt.h>
-#include <pb/uuid.h>
 #include <pb/plat.h>
 #include <pb/crc.h>
-
+#include <uuid/uuid.h>
 #define GPT_HEADER_RSZ 420
 
 struct gpt_header
@@ -141,16 +140,15 @@ static int gpt_is_valid(struct gpt_header *hdr, struct gpt_part_hdr *part)
     return PB_OK;
 }
 
-static int gpt_init_tbl(struct pb_storage_driver *drv,
-                    uint64_t first_lba, uint64_t last_lba)
+static int gpt_init_tbl(struct pb_storage_driver *drv)
 {
     struct gpt_private *priv = PB_GPT_PRIV(drv);
     struct gpt_header *hdr = &priv->primary.hdr;
 
     prng_state = plat_get_us_tick();
 
-    LOG_INFO("Initializing table at lba %llu, last lba: %llu", first_lba,
-                                                               last_lba);
+    LOG_INFO("Initializing table at lba 1, last lba: %lu",
+                    pb_storage_last_block(drv));
 
     memset((uint8_t *) &priv->primary, 0, sizeof(priv->primary));
     memset((uint8_t *) &priv->backup, 0, sizeof(priv->backup));
@@ -158,13 +156,13 @@ static int gpt_init_tbl(struct pb_storage_driver *drv,
     hdr->signature = __gpt_header_signature;
     hdr->rev = 0x00010000;
     hdr->hdr_sz = sizeof(struct gpt_header) - GPT_HEADER_RSZ;
-    hdr->current_lba = first_lba;
+    hdr->current_lba = 1;
     hdr->no_of_parts = 128;
 
     hdr->first_lba = (hdr->current_lba + 1
             + (hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512);
-    hdr->backup_lba = last_lba;
-    hdr->last_lba = (last_lba - 1 -
+    hdr->backup_lba = pb_storage_last_block(drv);
+    hdr->last_lba = (pb_storage_last_block(drv) - 1 -
                 (hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512);
     hdr->entries_start_lba = (priv->primary.hdr.current_lba + 1);
     hdr->part_entry_sz = sizeof(struct gpt_part_hdr);
@@ -177,8 +175,8 @@ static int gpt_init_tbl(struct pb_storage_driver *drv,
 }
 
 static int gpt_add_part(struct pb_storage_driver *drv,
-                        uint8_t part_idx, uint32_t no_of_blocks,
-                        const char *type_uuid, const char *part_name)
+                        int part_idx, unsigned int no_of_blocks,
+                        const uuid_t type_uuid, const char *part_name)
 {
     struct gpt_private *priv = PB_GPT_PRIV(drv);
     struct gpt_part_hdr *part = &priv->primary.part[part_idx];
@@ -281,14 +279,14 @@ static int gpt_write_tbl(struct pb_storage_driver *drv)
     memcpy(priv->backup.part, priv->primary.part, (sizeof(struct gpt_part_hdr)
                                     * priv->primary.hdr.no_of_parts));
 
-    uint64_t last_lba = pb_storage_blocks(drv);
+    uint64_t last_lba = pb_storage_last_block(drv);
 
     struct gpt_header *hdr = (&priv->backup.hdr);
 
     hdr->backup_lba = priv->primary.hdr.current_lba;
     hdr->current_lba = last_lba;
     hdr->entries_start_lba = (last_lba -
-                ((hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512));
+                ((hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512) - 1);
 
     hdr->hdr_crc = 0;
     hdr->part_array_crc = efi_crc32((uint8_t *) priv->backup.part,
@@ -319,7 +317,8 @@ static int gpt_init(struct pb_storage_driver *drv)
     /* Read primary and backup GPT headers and parition tables */
     drv->read(drv, 1, &priv->primary, (sizeof(priv->primary) / 512));
 
-    size_t backup_lba = pb_storage_blocks(drv) - (sizeof(priv->backup) / 512) - 1;
+    size_t backup_lba = pb_storage_last_block(drv) - \
+                            (sizeof(priv->backup) / 512);
 
     drv->read(drv, backup_lba, &priv->backup, (sizeof(priv->backup) / 512));
 
@@ -405,7 +404,7 @@ static int gpt_init(struct pb_storage_driver *drv)
     for (struct gpt_part_hdr *p = priv->primary.part; p->first_lba; p++)
     {
         uuid_to_guid(p->uuid, uuid);
-        uuid_to_string(uuid, uuid_str);
+        uuid_unparse(uuid, uuid_str);
 
         int n = 0;
         for (int i = 0; i < 16; i++)
@@ -424,14 +423,14 @@ static int gpt_init(struct pb_storage_driver *drv)
 
     /* Translate to internal map format */
 
-    struct pb_storage_map *entries = \
-                         (struct pb_storage_map *) drv->map->map_data;
+    drv->map->map = (struct pb_storage_map *) drv->map->map_data;
+    struct pb_storage_map *entries = drv->map->map;
 
     for (struct gpt_part_hdr *p = priv->primary.part; p->first_lba; p++)
     {
         struct pb_storage_map *part = NULL;
         uuid_to_guid(p->uuid, uuid);
-        uuid_to_string(uuid, uuid_str);
+        uuid_unparse(uuid, uuid_str);
 
         pb_storage_foreach_part(drv->default_map, dp)
         {
@@ -477,16 +476,52 @@ static int gpt_init(struct pb_storage_driver *drv)
     return PB_OK;
 }
 
+static int gpt_install_map(struct pb_storage_driver *drv,
+                            struct pb_storage_map *map)
+{
+    int rc;
+    int part_count = 0;
+    struct pb_storage_map *map_p = map;
+    uuid_t part_uuid;
+    uuid_t part_guid;
+
+    rc = gpt_init_tbl(drv);
+
+    if (rc != PB_OK)
+        return rc;
+
+    while (map_p->valid_entry)
+    {
+        if (map_p->flags & PB_STORAGE_MAP_FLAG_STATIC_MAP)
+        {
+            map_p++;
+            continue;
+        }
+
+        LOG_DBG("Add: %s", map_p->description);
+        uuid_parse(map_p->uuid_str, part_uuid);
+        uuid_to_guid(part_uuid, part_guid);
+        rc = gpt_add_part(drv, part_count++, map_p->no_of_blocks,
+                                part_guid, map_p->description);
+
+        if (rc != PB_OK)
+            break;
+
+        map_p++;
+    }
+
+    return gpt_write_tbl(drv);
+}
+
 int pb_gpt_map_init(struct pb_storage_driver *drv)
 {
-    struct gpt_private *priv = PB_GPT_PRIV(drv);
-
     if (sizeof(struct gpt_private) > drv->map->size)
     {
         return -PB_ERR_MEM;
     }
 
     drv->map->init = gpt_init;
+    drv->map->install = gpt_install_map;
 
     return PB_OK;
 }

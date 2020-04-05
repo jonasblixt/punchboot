@@ -43,8 +43,8 @@
  */
 
 #define PB_WIRE_MAGIC 0x50424c30   /* PBL0 */
-#define PB_COMMAND_REQUEST_MAX_SIZE 55
-#define PB_RESULT_RESPONSE_MAX_SIZE 55
+#define PB_COMMAND_REQUEST_MAX_SIZE 503
+#define PB_RESULT_RESPONSE_MAX_SIZE 503
 
 /*! \public
  *
@@ -156,23 +156,23 @@ struct pb_result_part_table_read
 } __attribute__((packed));
 
 /**
- * \def PB_PART_FLAG_BOOTABLE
+ * \def PB_WIRE_PART_FLAG_BOOTABLE
  * The partition is bootable
  *
- * \def PB_PART_FLAG_OTP
+ * \def PB_WIRE_PART_FLAG_OTP
  * The partition can only be written once
  *
- * \def PB_PART_FLAG_WRITABLE
+ * \def PB_WIRE_PART_FLAG_WRITABLE
  * The partition is writeable
  *
- * \def PB_PART_FLAG_ERASE_BEFORE_WRITE
+ * \def PB_WIRE_PART_FLAG_ERASE_BEFORE_WRITE
  * The partition must be erased before any write operation
  */
 
-#define PB_PART_FLAG_BOOTABLE (1 << 0)
-#define PB_PART_FLAG_OTP      (1 << 1)
-#define PB_PART_FLAG_WRITABLE (1 << 2)
-#define PB_PART_FLAG_ERASE_BEFORE_WRITE (1 << 3)
+#define PB_WIRE_PART_FLAG_BOOTABLE (1 << 0)
+#define PB_WIRE_PART_FLAG_OTP      (1 << 1)
+#define PB_WIRE_PART_FLAG_WRITABLE (1 << 2)
+#define PB_WIRE_PART_FLAG_ERASE_BEFORE_WRITE (1 << 3)
 
 struct pb_result_part_table_entry
 {

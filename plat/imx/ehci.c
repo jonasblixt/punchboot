@@ -61,11 +61,6 @@ static void ehci_reset(struct pb_transport_driver *drv)
 
     pb_write32(0xFFFFFFFF, dev->base+EHCI_ENDPTFLUSH);
 
-    LOG_DBG("Wait for reset");
-    /* Wait for reset */
-    while (!(pb_read32(dev->base+EHCI_USBSTS) & (1<<6)))
-        __asm__("nop");
-
     LOG_DBG("Wait for port reset");
     /* Wait for port to come out of reset */
     while ((pb_read32(dev->base+EHCI_PORTSC1) & (1<<8)) == (1 <<8))
@@ -142,8 +137,6 @@ static int ehci_transfer(struct pb_transport_driver *drv,
     uint32_t bytes_to_tx = size;
     uint8_t *data = bfr;
 
-    LOG_DBG("trx ep: %i", ep);
-
     if (bytes_to_tx == 0)
     {
         dtd->next = 0xDEAD0001;
@@ -200,12 +193,10 @@ static int imx_ehci_usb_set_configuration(struct pb_transport_driver *drv)
 {
     struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
 
-    /* Configure EP 1 as bulk OUT */
-    pb_write32((1 << 7) | (2 << 2) | (1 << 6), (dev->base+EHCI_ENDPTCTRL1));
-    /* Configure EP 2 as intr OUT */
-    pb_write32((1 << 7) | (3 << 2) | (1 << 6), (dev->base+EHCI_ENDPTCTRL2));
-    /* Configure EP3 as intr IN */
-    pb_write32((1 << 23) | (3 << 18) | (1 << 22), (dev->base+EHCI_ENDPTCTRL3));
+    /* Configure EP 1 as bulk IN */
+    pb_write32((1 << 23) | (2 << 18) | (1 << 6), (dev->base+EHCI_ENDPTCTRL1));
+    /* Configure EP 2 as bulk OUT */
+    pb_write32((1 << 7) | (2 << 2) | (1 << 6), (dev->base+EHCI_ENDPTCTRL2));
 
     drv->ready = true;
 
@@ -247,19 +238,6 @@ static int imx_ehci_usb_process(struct pb_transport_driver *drv)
             __asm__("nop");
 
         usb_process_setup_pkt(&dev->iface, &setup_pkt);
-        LOG_DBG("on_setup_pkt returned");
-    }
-
-    /* EP2 INTR OUT */
-    if  (epc & EHCI_EP2_OUT)
-    {
-        LOG_DBG("EP2 irq");
-        //dev->on_command(dev, &dev->cmd);
-        /* Queue up next command to be received */
-
-        //ehci_transfer(drv, USB_EP2_OUT, (uint8_t *) &drv->cmd,
-        //                                sizeof(struct pb_command));
-
     }
 
     pb_write32(epc, dev->base + EHCI_ENDPTCOMPLETE);
@@ -309,7 +287,7 @@ static int imx_ehci_usb_read(struct pb_transport_driver *drv,
 static int imx_ehci_usb_write(struct pb_transport_driver *drv,
                               void *buf, size_t size)
 {
-    return ehci_transfer(drv, USB_EP3_IN, buf, size);
+    return ehci_transfer(drv, USB_EP1_IN, buf, size);
 }
 
 int imx_ehci_usb_free(struct pb_transport_driver *drv)
@@ -342,9 +320,8 @@ int imx_ehci_usb_init(struct pb_transport_driver *drv)
 
     ehci_config_ep(drv, USB_EP0_IN,  EHCI_SZ_64B,  0);
     ehci_config_ep(drv, USB_EP0_OUT, EHCI_SZ_64B,  0);
-    ehci_config_ep(drv, USB_EP1_OUT, EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
-    ehci_config_ep(drv, USB_EP2_OUT, EHCI_SZ_64B,  EHCI_INTR_ON_COMPLETE);
-    ehci_config_ep(drv, USB_EP3_IN,  EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
+    ehci_config_ep(drv, USB_EP1_IN,  EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
+    ehci_config_ep(drv, USB_EP2_OUT, EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
 
     LOG_DBG("EP's configured");
 

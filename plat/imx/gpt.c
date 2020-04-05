@@ -8,8 +8,8 @@
  */
 
 
-#include <io.h>
-#include <pb.h>
+#include <pb/io.h>
+#include <pb/pb.h>
 #include <plat/imx/gpt.h>
 
 uint32_t gp_timer_init(struct gp_timer *d)

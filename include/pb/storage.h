@@ -29,7 +29,8 @@
 
 
 #define PB_STORAGE_MAP_FLAG_STATIC_MAP (1 << 16)
-#define PB_STORAGE_MAP_FLAG_EMMC_BOOT  (1 << 17)
+#define PB_STORAGE_MAP_FLAG_EMMC_BOOT0  (1 << 17)
+#define PB_STORAGE_MAP_FLAG_EMMC_BOOT1  (1 << 18)
 
 struct pb_storage_map
 {
@@ -93,14 +94,14 @@ typedef int (*pb_storage_io_t) (struct pb_storage_driver *drv,
 
 typedef int (*pb_storage_call_t) (struct pb_storage_driver *drv);
 
-typedef int (*pb_storage_install_map_t) (struct pb_storage_driver *drv,
-                                         struct pb_storage_map *map);
+typedef int (*pb_storage_map_t) (struct pb_storage_driver *drv,
+                                  struct pb_storage_map *map);
 
 struct pb_storage_map_driver
 {
     pb_storage_call_t init;
     pb_storage_call_t load;
-    pb_storage_install_map_t install;
+    pb_storage_map_t install;
     struct pb_storage_map *map;
     void *private;
     size_t size;
@@ -128,6 +129,8 @@ struct pb_storage_driver
     pb_storage_io_t write;
     pb_storage_io_t read;
     pb_storage_io_t flush;
+    pb_storage_map_t map_request;
+    pb_storage_map_t map_release;
     const struct pb_storage_map *default_map;
     struct pb_storage_map_driver *map;
     struct pb_storage_platform_driver *platform;
@@ -144,13 +147,13 @@ int pb_storage_init(struct pb_storage *ctx);
 
 int pb_storage_add(struct pb_storage *ctx, struct pb_storage_driver *drv);
 
-int pb_storage_read(struct pb_storage *ctx,
+int pb_storage_read(struct pb_storage_driver *drv,
                     struct pb_storage_map *part,
                     void *buf,
                     size_t blocks,
                     size_t block_offset);
 
-int pb_storage_write(struct pb_storage *ctx,
+int pb_storage_write(struct pb_storage_driver *drv,
                     struct pb_storage_map *part,
                     const void *buf,
                     size_t blocks,
@@ -158,12 +161,14 @@ int pb_storage_write(struct pb_storage *ctx,
 
 int pb_storage_get_part(struct pb_storage *ctx,
                         uint8_t *uuid,
-                        struct pb_storage_map **part);
+                        struct pb_storage_map **part,
+                        struct pb_storage_driver **drv);
 
 int pb_storage_start(struct pb_storage *ctx);
 int pb_storage_install_default(struct pb_storage *ctx);
 int pb_storage_free(struct pb_storage *ctx);
 
+int pb_storage_map(struct pb_storage_driver *drv, struct pb_storage_map **map);
 size_t pb_storage_blocks(struct pb_storage_driver *drv);
 
 size_t pb_storage_last_block(struct pb_storage_driver *drv);

@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -11,12 +11,31 @@
 #define INCLUDE_PB_IMAGE_H_
 
 #include <stdint.h>
+#include <pb/crypto.h>
 #include <bpak/bpak.h>
+#include <pb-tools/wire.h>
 
-uint32_t pb_image_check_header(struct bpak_header *h);
+struct pb_image_load_context;
 
-uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
-                                uint64_t part_lba_end,
-                                struct bpak_header *h,
-                                const char *hash);
+typedef int (*pb_image_read_t) (struct pb_image_load_context *ctx,
+                                void *buf, size_t size);
+
+typedef int (*pb_image_result_t) (struct pb_image_load_context *ctx, int rc);
+
+struct pb_image_load_context
+{
+    struct bpak_header header __a4k;
+    pb_image_read_t read;
+    pb_image_result_t result;
+    size_t chunk_size;
+    uint8_t signature[512];
+    size_t signature_sz;
+    struct pb_result result_data;
+    void *private;
+};
+
+int pb_image_load(struct pb_image_load_context *ctx,
+                  struct pb_crypto *crypto,
+                  struct bpak_keystore *keystore);
+
 #endif  // INCLUDE_PB_IMAGE_H_

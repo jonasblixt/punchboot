@@ -15,7 +15,7 @@
 
 /* Includes */
 
-#include <pb.h>
+#include <pb/pb.h>
 #include <plat/sci/types.h>
 #include <plat/sci/svc/rm/api.h>
 #include <plat/sci/svc/pm/api.h>

@@ -13,9 +13,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <pb/pb.h>
 #include <bpak/keystore.h>
 
-enum
+enum pb_hash_algs
 {
     PB_HASH_INVALID,
     PB_HASH_MD5,
@@ -24,16 +25,7 @@ enum
     PB_HASH_SHA512,
 };
 
-enum
-{
-    PB_SIGN_INVALID,
-    PB_SIGN_RSA4096,
-    PB_SIGN_PRIME256v1,
-    PB_SIGN_SECP384r1,
-    PB_SIGN_SECP521r1,
-};
-
-enum
+enum pb_key_types
 {
     PB_KEY_INVALID,
     PB_KEY_RSA4096,
@@ -42,20 +34,70 @@ enum
     PB_KEY_SECP521r1,
 };
 
-#define PB_HASH_BUF_SZ 128
+struct pb_crypto_driver;
 
 struct pb_hash_context
 {
-    uint32_t hash_kind;
-    uint8_t buf[PB_HASH_BUF_SZ];
+    uint8_t buf[128] __a16b;
+    enum pb_hash_algs alg;
+    struct pb_crypto_driver *driver;
+    bool init;
 };
 
-#ifdef __PB_BUILD
-int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, uint8_t *key_sz);
-int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
-                            uint8_t **r, uint8_t **s);
+typedef int (*pb_crypto_call_t) (struct pb_crypto_driver *drv);
 
-int pb_asn1_rsa_data(struct bpak_key *k, uint8_t **mod, uint8_t **exp);
-#endif
+typedef int (*pb_crypto_hash_init_t) (struct pb_crypto_driver *drv,
+                                      struct pb_hash_context *ctx,
+                                      enum pb_hash_algs alg);
+
+typedef int (*pb_crypto_hash_io_t) (struct pb_crypto_driver *drv,
+                                        struct pb_hash_context *ctx,
+                                        void *buf, size_t size);
+
+typedef int (*pb_crypto_pk_verify_t) (struct pb_crypto_driver *drv,
+                                    struct pb_hash_context *hash,
+                                    struct bpak_key *key,
+                                    void *signature, size_t size);
+
+struct pb_crypto_plat_driver
+{
+    pb_crypto_call_t init;
+    pb_crypto_call_t free;
+    void *private;
+    size_t size;
+};
+
+struct pb_crypto_driver
+{
+    bool ready;
+    pb_crypto_call_t init;
+    pb_crypto_call_t free;
+    pb_crypto_hash_init_t hash_init;
+    pb_crypto_hash_io_t hash_update;
+    pb_crypto_hash_io_t hash_final;
+    pb_crypto_pk_verify_t pk_verify;
+    struct pb_crypto_plat_driver *platform;
+    void *private;
+    size_t size;
+    struct pb_crypto_driver *next;
+};
+
+struct pb_crypto
+{
+    struct pb_crypto_driver *drivers;
+};
+
+int pb_crypto_init(struct pb_crypto *crypto);
+int pb_crypto_free(struct pb_crypto *crypto);
+int pb_crypto_add(struct pb_crypto *crypto, struct pb_crypto_driver *drv);
+int pb_crypto_start(struct pb_crypto *crypto);
+
+int pb_hash_init(struct pb_crypto *crypto, struct pb_hash_context *ctx,
+                        enum pb_hash_algs alg);
+int pb_hash_update(struct pb_hash_context *ctx, void *buf, size_t size);
+int pb_hash_finalize(struct pb_hash_context *ctx, void *buf, size_t size);
+
+int pb_pk_verify(struct pb_crypto *crypto, void *signature, size_t size,
+                    struct pb_hash_context *hash, struct bpak_key *key);
 
 #endif  // INCLUDE_PB_CRYPTO_H_

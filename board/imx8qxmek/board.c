@@ -13,13 +13,13 @@
 #include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/usb.h>
-#include <pb/uuid.h>
 #include <pb/fuse.h>
 #include <pb/gpt.h>
-#include <pb/params.h>
 #include <pb/board.h>
 #include <pb/storage.h>
 #include <pb/transport.h>
+#include <pb/boot.h>
+#include <pb/boot_ab.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/usdhc.h>
 #include <plat/defs.h>
@@ -29,6 +29,9 @@
 #include <plat/imx8x/plat.h>
 #include <plat/imx8x/usdhc.h>
 #include <plat/imx8x/ehci.h>
+#include <plat/imx8x/lpuart.h>
+#include <plat/imx8x/caam.h>
+#include <uuid/uuid.h>
 #include <libfdt.h>
 
 const struct fuse fuses[] =
@@ -59,9 +62,12 @@ const struct fuse fuses[] =
 
 const struct pb_storage_map map[] =
 {
-    PB_STORAGE_MAP2("9eef7544-bf68-4bf7-8678-da117cbccba8",
-        "\x9e\xef\x75\x44\xbf\x68\x4b\xf7\x86\x78\xda\x11\x7c\xbc\xcb\xa8",
-        "eMMC boot", 2048, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT | \
+    PB_STORAGE_MAP("9eef7544-bf68-4bf7-8678-da117cbccba8",
+        "eMMC boot0", 2048, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | \
+                        PB_STORAGE_MAP_FLAG_STATIC_MAP),
+
+    PB_STORAGE_MAP("4ee31690-0c9b-4d56-a6a6-e6d6ecfd4d54",
+        "eMMC boot1", 2048, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT1 | \
                         PB_STORAGE_MAP_FLAG_STATIC_MAP),
 
     PB_STORAGE_MAP("2af755d8-8de5-45d5-a862-014cfa735ce0", "System A", 0xf000,
@@ -76,10 +82,10 @@ const struct pb_storage_map map[] =
     PB_STORAGE_MAP("ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb", "Root B", 0x40000,
             DEF_FLAGS),
 
-    PB_STORAGE_MAP("f5f8c9ae-efb5-4071-9ba9-d313b082281e", "Config Primary",
+    PB_STORAGE_MAP("f5f8c9ae-efb5-4071-9ba9-d313b082281e", "PB State Primary",
             1, PB_STORAGE_MAP_FLAG_VISIBLE),
 
-    PB_STORAGE_MAP("656ab3fc-5856-4a5e-a2ae-5a018313b3ee", "Config Backup",
+    PB_STORAGE_MAP("656ab3fc-5856-4a5e-a2ae-5a018313b3ee", "PB State Backup",
             1, PB_STORAGE_MAP_FLAG_VISIBLE),
 
     PB_STORAGE_MAP_END
@@ -158,30 +164,118 @@ static struct pb_transport_driver usb0_driver =
 
 /* END of USB0*/
 
+
+/* CONSOLE0 driver */
+
+static uint8_t con0_plat_private_data[4096] __no_bss __a4k;
+
+static struct imx_lpuart_device con0_device =
+{
+    .base = 0x5A060000,
+    .baudrate = 0x402008b,
+};
+
+static struct pb_console_plat_driver con0_plat_driver =
+{
+    .private = &con0_plat_private_data,
+    .size = sizeof(con0_plat_private_data),
+};
+
+static struct pb_console_driver con0_driver =
+{
+    .name = "con0",
+    .platform = &con0_plat_driver,
+    .private = &con0_device,
+    .size = sizeof(con0_device),
+};
+
+/* END of CONSOLE0*/
+
+/* CRYPTO0 driver */
+
+static uint8_t crypto0_plat_private_data[4096] __no_bss __a4k;
+static uint8_t crypto0_dev_private_data[4096*2] __no_bss __a4k;
+
+static struct imx_caam_device crypto0_device =
+{
+    .base = 0x31430000,
+    .private = crypto0_dev_private_data,
+    .size = sizeof(crypto0_dev_private_data)
+};
+
+static struct pb_crypto_plat_driver crypto0_plat_driver =
+{
+    .private = crypto0_plat_private_data,
+    .size = sizeof(crypto0_plat_private_data),
+};
+
+static struct pb_crypto_driver crypto0_driver =
+{
+    .platform = &crypto0_plat_driver,
+    .private = &crypto0_device,
+    .size = sizeof(crypto0_device),
+};
+
+/* END of CRYPTO0*/
+
+/* Command mode buffers */
+#define PB_CMD_BUFFER_SIZE (1024*1024*4)
+#define PB_CMD_NO_OF_BUFFERS 2
+
+static uint8_t command_buffers[PB_CMD_NO_OF_BUFFERS][PB_CMD_BUFFER_SIZE] __no_bss __a4k;
+
+/* Platform driver */
+
+/* Boot driver */
+static int update_bootargs(struct pb_boot_driver *boot, void *dtb, int offset)
+{
+    return PB_OK;
+}
+
+static int jump(struct pb_boot_driver *boot)
+{
+    arch_jump_atf((void *)(uintptr_t) NULL,
+                  (void *)(uintptr_t) NULL);
+
+    return -PB_ERR; /* Should not be reached */
+}
+
+static struct pb_boot_ab_driver ab_boot_driver =
+{
+    .a =
+    {
+        .system = "2af755d8-8de5-45d5-a862-014cfa735ce0",
+        .root =   "c284387a-3377-4c0f-b5db-1bcbcff1ba1a",
+    },
+    .b =
+    {
+        .system = "c046ccd8-0f2e-4036-984d-76c14dc73992",
+        .root =   "ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb",
+    },
+};
+
+static struct pb_boot_driver boot_driver =
+{
+    .on_dt_patch_bootargs = update_bootargs,
+    .on_dt_patch_ramdisk = NULL,
+    .on_jump = jump,
+    .boot_image_id = 0xa697d988,
+    .ramdisk_image_id = 0xf4cdac1f,
+    .dtb_image_id = 0x56f91b86,
+    .private = &ab_boot_driver,
+    .size = sizeof(ab_boot_driver),
+};
+
 int board_early_init(struct pb_platform_setup *plat,
                      struct pb_storage *storage,
-                     struct pb_transport *transport)
+                     struct pb_transport *transport,
+                     struct pb_console *console,
+                     struct pb_crypto *crypto,
+                     struct pb_command_context *command_ctx,
+                     struct pb_boot_context *boot)
 {
     int rc = PB_OK;
     sc_pm_clock_rate_t rate;
-
-    plat->uart0.base = 0x5A060000;
-    plat->uart0.baudrate = 0x402008b;
-
-    /* Power up UART0 */
-    sc_pm_set_resource_power_mode(plat->ipc_handle, SC_R_UART_0,
-                                                    SC_PM_PW_MODE_ON);
-
-    /* Set UART0 clock root to 80 MHz */
-    rate = 80000000;
-    sc_pm_set_clock_rate(plat->ipc_handle, SC_R_UART_0, SC_PM_CLK_PER, &rate);
-
-    /* Enable UART0 clock root */
-    sc_pm_clock_enable(plat->ipc_handle, SC_R_UART_0, SC_PM_CLK_PER, true, false);
-
-    /* Configure UART pads */
-    sc_pad_set(plat->ipc_handle, SC_P_UART0_RX, UART_PAD_CTRL);
-    sc_pad_set(plat->ipc_handle, SC_P_UART0_TX, UART_PAD_CTRL);
 
     /* Setup GPT0 */
     sc_pm_set_resource_power_mode(plat->ipc_handle, SC_R_GPT_0,
@@ -196,6 +290,22 @@ int board_early_init(struct pb_platform_setup *plat,
 
     plat->tmr0.base = 0x5D140000;
     plat->tmr0.pr = 24;
+
+    command_ctx->buffer = command_buffers;
+    command_ctx->no_of_buffers = PB_CMD_NO_OF_BUFFERS;
+    command_ctx->buffer_size = PB_CMD_BUFFER_SIZE;
+
+    /* Configure console */
+
+    rc = imx8x_lpuart_setup(&con0_driver, plat->ipc_handle);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_console_add(console, &con0_driver);
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Configure storage */
 
@@ -223,24 +333,33 @@ int board_early_init(struct pb_platform_setup *plat,
 
     rc = pb_transport_add(transport, &usb0_driver);
 
+    if (rc != PB_OK)
+        return rc;
+
+    /* Configure crypto */
+
+    rc = imx8x_caam_setup(&crypto0_driver, plat->ipc_handle);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_crypto_add(crypto, &crypto0_driver);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* Configure boot driver */
+
+    rc = pb_boot_ab_init(boot, &boot_driver, storage);
+
+    if (rc != PB_OK)
+        return rc;
+
     return PB_OK;
 }
 
-uint32_t board_late_init(struct pb_platform_setup *plat)
+uint32_t board_setup_device(void)
 {
-    UNUSED(plat);
-    return PB_OK;
-}
-
-uint32_t board_get_params(struct param **pp)
-{
-    param_add_str((*pp)++, "Board", "IMX8QXPMEK");
-    return PB_OK;
-}
-
-uint32_t board_setup_device(struct param *params)
-{
-    UNUSED(params);
     return PB_OK;
 }
 
@@ -272,24 +391,7 @@ bool board_force_recovery(struct pb_platform_setup *plat)
             (usb_charger_detected);
 }
 
-
-
-uint32_t board_linux_patch_dt(void *fdt, int offset)
+const char * board_get_id(void)
 {
-    UNUSED(fdt);
-    UNUSED(offset);
-
-    return PB_OK;
+    return "imx8qxmek";
 }
-
-uint32_t board_recovery_command(uint32_t arg0, uint32_t arg1, uint32_t arg2,
-                                uint32_t arg3)
-{
-    UNUSED(arg0);
-    UNUSED(arg1);
-    UNUSED(arg2);
-    UNUSED(arg3);
-
-    return PB_ERR;
-}
-

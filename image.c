@@ -24,22 +24,17 @@ extern char _code_start, _code_end,
             _zero_region_start, _zero_region_end,
             _stack_start, _stack_end, _big_buffer_start, _big_buffer_end;
 
-#define IMAGE_BLK_CHUNK 8192
 
-static __no_bss __a4k uint8_t signature_data[1024];
-extern const struct bpak_keystore keystore_pb;
-
-uint32_t pb_image_check_header(struct bpak_header *h)
+static int pb_image_check_header(struct bpak_header *h)
 {
-    uint32_t err = PB_OK;
-
+    int err = PB_OK;
 
     err = bpak_valid_header(h);
 
     if (err != BPAK_OK)
     {
         LOG_ERR("Invalid header");
-        return PB_ERR;
+        return -PB_ERR;
     }
 
     bpak_foreach_part(h, p)
@@ -66,31 +61,31 @@ uint32_t pb_image_check_header(struct bpak_header *h)
 
         if (PB_CHECK_OVERLAP(la, sz, &_stack_start, &_stack_end))
         {
-            err = PB_ERR;
+            err = -PB_ERR;
             LOG_ERR("image overlapping with PB stack");
         }
 
         if (PB_CHECK_OVERLAP(la, sz, &_data_region_start, &_data_region_end))
         {
-            err = PB_ERR;
+            err = -PB_ERR;
             LOG_ERR("image overlapping with PB data");
         }
 
         if (PB_CHECK_OVERLAP(la, sz, &_zero_region_start, &_zero_region_end))
         {
-            err = PB_ERR;
+            err = -PB_ERR;
             LOG_ERR("image overlapping with PB bss");
         }
 
         if (PB_CHECK_OVERLAP(la, sz, &_code_start, &_code_end))
         {
-            err = PB_ERR;
+            err = -PB_ERR;
             LOG_ERR("image overlapping with PB code");
         }
 
         if (PB_CHECK_OVERLAP(la, sz, &_big_buffer_start, &_big_buffer_end))
         {
-            err = PB_ERR;
+            err = -PB_ERR;
             LOG_ERR("image overlapping with PB buffer");
         }
     }
@@ -98,83 +93,65 @@ uint32_t pb_image_check_header(struct bpak_header *h)
     return err;
 }
 
-uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
-                                uint64_t part_lba_end,
-                                struct bpak_header *h,
-                                const char *hash)
+int pb_image_load(struct pb_image_load_context *ctx,
+                  struct pb_crypto *crypto,
+                  struct bpak_keystore *keystore)
 {
-    uint32_t err;
+    int rc;
+    struct pb_hash_context hash;
+    struct bpak_header *h = &ctx->header;
+    struct bpak_key *k = NULL;
     int hash_kind;
-    int sign_kind;
+    uint32_t *key_id = NULL;
+    uint32_t *keystore_id = NULL;
 
     tr_stamp_begin(TR_LOAD);
 
-    if (!part_lba_start)
-    {
-        LOG_ERR("Unknown partition");
-        return PB_ERR;
-    }
+    rc = bpak_valid_header(h);
 
-    err = plat_read_block(part_lba_end - (sizeof(struct bpak_header) / 512) + 1,
-                          (uintptr_t) h,
-                          (sizeof(struct bpak_header)/512));
-
-    if (err != PB_OK)
-    {
-        LOG_ERR("Could not read from block device");
-        return err;
-    }
-
-    err = bpak_valid_header(h);
-
-    if (err != BPAK_OK)
+    if (rc != BPAK_OK)
     {
         LOG_ERR("Invalid BPAK header");
         return PB_ERR;
     }
 
-    err = pb_image_check_header(h);
+    rc = pb_image_check_header(h);
 
-    if (err != PB_OK)
-        return err;
-
-    uint32_t *key_id = NULL;
-    uint32_t *keystore_id = NULL;
+    if (rc != PB_OK)
+        return rc;
 
                           /* bpak-key-id */
-    err = bpak_get_meta(h, 0x7da19399, (void **) &key_id);
+    rc = bpak_get_meta(h, 0x7da19399, (void **) &key_id);
 
-    if (!key_id || (err != BPAK_OK))
+    if (!key_id || (rc != BPAK_OK))
     {
         LOG_ERR("Missing bpak-key-id meta\n");
-        return PB_ERR;
+        return -PB_ERR;
     }
 
                         /* bpak-key-store */
-    err = bpak_get_meta(h, 0x106c13a7, (void **) &keystore_id);
+    rc = bpak_get_meta(h, 0x106c13a7, (void **) &keystore_id);
 
-    if (!keystore_id || (err != BPAK_OK))
+    if (!keystore_id || (rc != BPAK_OK))
     {
         LOG_ERR("Missing bpak-key-store meta\n");
-        return PB_ERR;
+        return -PB_ERR;
     }
 
     LOG_DBG("Key-store: %x", *keystore_id);
     LOG_DBG("Key-ID: %x", *key_id);
 
-    if (*keystore_id != keystore_pb.id)
+    if (*keystore_id != keystore->id)
     {
         LOG_ERR("Invalid key-store");
-        return PB_ERR;
+        return -PB_ERR;
     }
 
-    struct bpak_key *k = NULL;
-
-    for (uint32_t i = 0; i < keystore_pb.no_of_keys; i++)
+    for (int i = 0; i < keystore->no_of_keys; i++)
     {
-        if (keystore_pb.keys[i]->id == *key_id)
+        if (keystore->keys[i]->id == *key_id)
         {
-            k = keystore_pb.keys[i];
+            k = keystore->keys[i];
             break;
         }
     }
@@ -182,14 +159,13 @@ uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
     if (!k)
     {
         LOG_ERR("Key not found");
-        return PB_ERR;
+        return -PB_ERR;
     }
 
     switch (h->hash_kind)
     {
         case BPAK_HASH_SHA256:
             hash_kind = PB_HASH_SHA256;
-            LOG_DBG("SHA256");
         break;
         case BPAK_HASH_SHA384:
             hash_kind = PB_HASH_SHA384;
@@ -198,36 +174,18 @@ uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
             hash_kind = PB_HASH_SHA512;
         break;
         default:
-            err = PB_ERR;
+            rc = -PB_ERR;
     }
 
-    if (err != PB_OK)
-        return err;
+    if (rc != PB_OK)
+        return rc;
 
-    switch (h->signature_kind)
-    {
-        case BPAK_SIGN_PRIME256v1:
-            sign_kind = PB_SIGN_PRIME256v1;
-        break;
-        case BPAK_SIGN_SECP384r1:
-            sign_kind = PB_SIGN_SECP384r1;
-        break;
-        case BPAK_SIGN_SECP521r1:
-            sign_kind = PB_SIGN_SECP521r1;
-        break;
-        case BPAK_SIGN_RSA4096:
-            sign_kind = PB_SIGN_RSA4096;
-        break;
-        default:
-            err = PB_ERR;
-    }
+    rc = pb_hash_init(crypto, &hash, hash_kind);
 
-    if (err != PB_OK)
-        return err;
+    if (rc != PB_OK)
+        return rc;
 
-    plat_hash_init(hash_kind);
-
-    bool found_signature = false;
+    ctx->signature_sz = 0;
 
     /* Copy and zero out the signature metadata before hasing header */
     bpak_foreach_meta(h, m)
@@ -238,27 +196,30 @@ uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
             LOG_DBG("sig zero");
             uint8_t *ptr = &(h->metadata[m->offset]);
 
-            if (m->size > sizeof(signature_data))
+            if (m->size > sizeof(ctx->signature))
             {
                 LOG_ERR("Signature metadata is too large\n");
-                return PB_ERR;
+                return -PB_ERR;
             }
 
-            memcpy(signature_data, ptr, m->size);
+            memcpy(ctx->signature, ptr, m->size);
+            ctx->signature_sz = m->size;
             memset(ptr, 0, m->size);
             memset(m, 0, sizeof(*m));
-            found_signature = true;
             break;
         }
     }
 
-    if (!found_signature)
+    if (!ctx->signature_sz)
     {
         LOG_ERR("Could not find a valid signature");
-        return PB_ERR;
+        return -PB_ERR;
     }
 
-    plat_hash_update((uintptr_t) h, sizeof(struct bpak_header));
+    rc = pb_hash_update(&hash, h, sizeof(*h));
+
+    if (rc != PB_OK)
+        return rc;
 
     uint64_t *load_addr = NULL;
 
@@ -268,72 +229,68 @@ uint32_t pb_image_load_from_fs(uint64_t part_lba_start,
             break;
 
         load_addr = NULL;
-                                              /* pb-load-addr */
-        err = bpak_get_meta_with_ref(h, 0xd1e64a4b,
-                                        p->id, (void **) &load_addr);
+                                   /* pb-load-addr */
+        rc = bpak_get_meta_with_ref(h, 0xd1e64a4b, p->id, (void **) &load_addr);
 
-        if (err != BPAK_OK)
+        if (rc != BPAK_OK)
         {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
             break;
         }
 
+
         LOG_DBG("Loading part %x --> %p, %llu bytes", p->id,
-                        (void *)(uintptr_t) (*load_addr),
-                        bpak_part_size(p));
-
-
+                                (void *)(uintptr_t) (*load_addr),
+                                bpak_part_size(p));
         LOG_DBG("Part offset: %llu", p->offset);
-        uint64_t blk_start = part_lba_start + \
-                     ((p->offset - sizeof(struct bpak_header)) / 512);
 
-        uint32_t no_of_blks = (uint32_t) (bpak_part_size(p) / 512);
+        size_t bytes_to_read = bpak_part_size(p);
+        size_t chunk_size = 0;
+        size_t offset = 0;
 
-        uint64_t chunk_offset = 0;
-        uint32_t c = 0;
-        uint8_t *a = (uint8_t *)(uintptr_t) (*load_addr);
-
-        LOG_DBG("no_of_blks = %u", no_of_blks);
-
-        while (no_of_blks)
+        while (bytes_to_read)
         {
-            uint32_t blk_read = (no_of_blks > IMAGE_BLK_CHUNK)?
-                                        IMAGE_BLK_CHUNK:no_of_blks;
+            chunk_size = bytes_to_read>ctx->chunk_size? \
+                                    ctx->chunk_size:bytes_to_read;
 
-            LOG_DBG("R LBA: %llu, to: %p, cnt: %u",
-                    blk_start+chunk_offset, (void *) a, blk_read);
+            uintptr_t addr = ((*load_addr) + offset);
 
-            plat_read_block(blk_start+chunk_offset, (uintptr_t) a, blk_read);
+            rc = ctx->read(ctx, (void *) addr, chunk_size);
 
-            LOG_DBG("Hashing %p, %u bytes", a, blk_read*512);
-            plat_hash_update((uintptr_t) a, blk_read*512);
-            chunk_offset += blk_read;
-            no_of_blks -= blk_read;
-            a += blk_read*512;
-            c++;
+            if (rc != PB_OK)
+                break;
+
+            rc = pb_hash_update(&hash, (void *) addr, chunk_size);
+
+            if (rc != PB_OK)
+                break;
+
+            bytes_to_read -= chunk_size;
+            offset += chunk_size;
         }
 
+        if (ctx->result)
+        {
+            rc = ctx->result(ctx, rc);
 
-        LOG_DBG("Read %u chunks", c);
+            if (rc != PB_OK)
+                return rc;
+        }
     }
 
-    plat_hash_finalize((uintptr_t) NULL, 0, (uintptr_t) hash, PB_HASH_BUF_SZ);
+    rc = pb_hash_finalize(&hash, NULL, 0);
+
+    if (rc != PB_OK)
+        return rc;
 
     tr_stamp_end(TR_LOAD);
 
-    err = plat_verify_signature(signature_data, sign_kind,
-                                (uint8_t *) hash, hash_kind, k);
-    if (err == PB_OK)
+    rc = pb_pk_verify(crypto, ctx->signature, ctx->signature_sz, &hash ,k);
+
+    if (rc == PB_OK)
         LOG_INFO("Signature Valid");
     else
         LOG_ERR("Signature Invalid");
 
-    return err;
+    return rc;
 }
-
-
-uint32_t pb_image_verify(struct bpak_header *h, const char *inhash)
-{
-    return PB_OK;
-}
-

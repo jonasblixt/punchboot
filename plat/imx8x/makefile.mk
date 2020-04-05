@@ -38,6 +38,8 @@ PLAT_C_SRCS  += plat/imx8x/sci/svc/timer/timer_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/misc/misc_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/usdhc.c
 PLAT_C_SRCS  += plat/imx8x/ehci.c
+PLAT_C_SRCS  += plat/imx8x/lpuart.c
+PLAT_C_SRCS  += plat/imx8x/caam.c
 
 PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
 

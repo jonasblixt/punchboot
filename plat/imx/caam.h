@@ -10,8 +10,8 @@
 #ifndef PLAT_IMX_CAAM_H_
 #define PLAT_IMX_CAAM_H_
 
-#include <pb.h>
-#include <crypto.h>
+#include <pb/pb.h>
+#include <pb/crypto.h>
 
 #define JOB_RING_ENTRIES 1
 
@@ -68,13 +68,14 @@ struct caam_hash_ctx
     uint32_t total_bytes;
 };
 
-struct fsl_caam_jr
+struct imx_caam_device
 {
     __iomem base;
-    uint32_t __a4k input_ring[JOB_RING_ENTRIES];
-    uint32_t __a4k output_ring[JOB_RING_ENTRIES*2];
+    void *private;
+    size_t size;
 };
 
-uint32_t caam_init(struct fsl_caam_jr *d);
+int imx_caam_init(struct pb_crypto_driver *drv);
+int imx_caam_free(struct pb_crypto_driver *drv);
 
 #endif  // PLAT_IMX_CAAM_H_

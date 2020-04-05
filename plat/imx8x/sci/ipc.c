@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <pb.h>
+#include <pb/pb.h>
 #include <plat/sci/scfw.h>
 #include <plat/sci/ipc.h>
 #include <plat/sci/rpc.h>

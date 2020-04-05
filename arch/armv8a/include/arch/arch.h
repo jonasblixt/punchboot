@@ -7,7 +7,9 @@
 #ifndef ARCH_ARMV8A_INCLUDE_ARCH_ARCH_H_
 #define ARCH_ARMV8A_INCLUDE_ARCH_ARCH_H_
 
-#include <utils.h>
+#include <pb/utils.h>
+
+#define ULONG_MAX 0xFFFFFFFFFFFFFFFFUL
 
 /*******************************************************************************
  * MIDR bit definitions

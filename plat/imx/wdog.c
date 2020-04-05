@@ -8,9 +8,9 @@
  *
  */
 
-#include <pb.h>
-#include <io.h>
-#include <plat.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <pb/plat.h>
 #include <plat/imx/wdog.h>
 
 static volatile struct imx_wdog_device *_dev = NULL;

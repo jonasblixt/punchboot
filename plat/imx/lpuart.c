@@ -8,13 +8,36 @@
  *
  */
 
-#include <pb.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <pb/console.h>
 #include <plat/imx/lpuart.h>
 
 
-uint32_t lpuart_init(struct lpuart_device *dev)
+static int lpuart_write(struct pb_console_driver *drv, char *buf, size_t size)
 {
+    struct imx_lpuart_device *dev = (struct imx_lpuart_device *) drv->private;
+
+    for (unsigned int i = 0; i < size; i++)
+    {
+        while (!(pb_read32(dev->base + STAT) & (1 << 22)))
+            __asm__("nop");
+
+        pb_write32(buf[i], dev->base + DATA);
+    }
+
+    return PB_OK;
+}
+
+
+int imx_lpuart_free(struct pb_console_driver *drv)
+{
+    return PB_OK;
+}
+
+int imx_lpuart_init(struct pb_console_driver *drv)
+{
+    struct imx_lpuart_device *dev = (struct imx_lpuart_device *) drv->private;
     uint32_t tmp;
 
     tmp = pb_read32(dev->base + CTRL);
@@ -35,15 +58,9 @@ uint32_t lpuart_init(struct lpuart_device *dev)
 
     pb_write32(CTRL_RE | CTRL_TE, dev->base + CTRL);
 
-    return PB_OK;
-}
+    drv->write = lpuart_write;
+    drv->ready = true;
 
-uint32_t lpuart_putc(struct lpuart_device *dev,
-                     char c)
-{
-    while (!(pb_read32(dev->base + STAT) & (1 << 22)))
-        __asm__("nop");
-    pb_write32(c, dev->base + DATA);
     return PB_OK;
 }
 

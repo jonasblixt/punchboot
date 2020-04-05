@@ -8,11 +8,15 @@
  */
 
 #include <stdio.h>
-#include <plat.h>
-#include <pb.h>
 #include <string.h>
+#include <pb/plat.h>
+#include <pb/pb.h>
+#include <pb/io.h>
 #include <plat/imx/usdhc.h>
-#include <io.h>
+
+#define PLAT_EMMC_PART_BOOT0 1
+#define PLAT_EMMC_PART_BOOT1 2
+#define PLAT_EMMC_PART_USER  0
 
 struct imx_usdhc_private
 {
@@ -24,7 +28,7 @@ struct imx_usdhc_private
 
 #define PB_IMX_USDHC_PRIV(dev) ((struct imx_usdhc_private *) dev->private)
 
-static uint32_t usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
+static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
                                        uint32_t flags)
 {
     volatile uint32_t irq_status;
@@ -38,7 +42,7 @@ static uint32_t usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
             break;
 
         if ((plat_get_us_tick()-timeout) > 300000)
-            return PB_TIMEOUT;
+            return -PB_TIMEOUT;
     }
 
     pb_write32(flags, dev->base+USDHC_INT_STATUS);
@@ -46,7 +50,7 @@ static uint32_t usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
     return PB_OK;
 }
 
-uint32_t usdhc_emmc_wait_for_de(struct usdhc_device *dev)
+static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 {
     volatile uint32_t irq_status;
     uint32_t timeout = 0xFFFFF;
@@ -68,21 +72,21 @@ uint32_t usdhc_emmc_wait_for_de(struct usdhc_device *dev)
         timeout--;
 
         if (!timeout)
-            return PB_TIMEOUT;
+            return -PB_TIMEOUT;
     }
 
     pb_write32(USDHC_INT_DATA_END, dev->base+ USDHC_INT_STATUS);
     return PB_OK;
 }
 
-static uint32_t usdhc_emmc_send_cmd(struct usdhc_device *dev,
+static int usdhc_emmc_send_cmd(struct usdhc_device *dev,
                                     uint8_t cmd,
                                     uint32_t arg,
                                     uint8_t resp_type)
 {
     volatile uint32_t pres_state = 0x00;
     uint32_t timeout = plat_get_us_tick();
-    uint32_t err;
+    int err;
     uint32_t command = (cmd << 24) |(resp_type << 16);
 
     while (1)
@@ -96,7 +100,7 @@ static uint32_t usdhc_emmc_send_cmd(struct usdhc_device *dev,
 
         if ((plat_get_us_tick()-timeout) > 300000)
         {
-            err = PB_TIMEOUT;
+            err = -PB_TIMEOUT;
             goto usdhc_cmd_fail;
         }
     }
@@ -111,15 +115,15 @@ static uint32_t usdhc_emmc_send_cmd(struct usdhc_device *dev,
 
 usdhc_cmd_fail:
 
-    if (err == PB_TIMEOUT)
+    if (err == -PB_TIMEOUT)
         LOG_ERR("cmd %x timeout", cmd);
     return err;
 }
 
 
-static uint32_t usdhc_emmc_check_status(struct usdhc_device *dev)
+static int usdhc_emmc_check_status(struct usdhc_device *dev)
 {
-    uint32_t err;
+    int err;
 
     err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_STATUS, 10<<16, 0x1A);
 
@@ -192,21 +196,25 @@ static int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
 }
 
 
-uint32_t usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
+static int usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
 {
-    uint32_t err;
+    struct imx_usdhc_private *priv = PB_IMX_USDHC_PRIV(dev);
+    int err;
     uint8_t value = 0;
 
     switch (part_no)
     {
         case PLAT_EMMC_PART_BOOT0:
             value = 0x01;
+            LOG_DBG("Switching to boot0");
         break;
         case PLAT_EMMC_PART_BOOT1:
             value = 0x02;
+            LOG_DBG("Switching to boot1");
         break;
         case PLAT_EMMC_PART_USER:
             value = 0x08;
+            LOG_DBG("Switching to user");
         break;
         default:
             return PB_ERR;
@@ -222,7 +230,12 @@ uint32_t usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
     if (err != PB_OK)
         return err;
 
-    return usdhc_emmc_check_status(dev);
+    err = usdhc_emmc_check_status(dev);
+
+    if (err != PB_OK)
+        return err;
+
+    return PB_OK;
 }
 
 
@@ -383,10 +396,10 @@ static int usdhc_setup_hs200(struct usdhc_device *dev)
 
     /* We are now in HS200 mode, Execute tuning */
 /*
-    pb_write32((1 << 24) | (40 << 8) | (2 << 20) | (1 << 16) , 
+    pb_write32((1 << 24) | (40 << 8) | (2 << 20) | (1 << 16) ,
                     dev->base + USDHC_TUNING_CTRL);
 
-    pb_clrbit32(USDHC_MIX_CTRL_SMPCLK_SEL, 
+    pb_clrbit32(USDHC_MIX_CTRL_SMPCLK_SEL,
                 dev->base + USDHC_AUTOCMD12_ERR_STATUS);
 
     pb_write32(0, dev->base + USDHC_DLL_CTRL);
@@ -395,7 +408,7 @@ static int usdhc_setup_hs200(struct usdhc_device *dev)
     pb_clrbit32(USDHC_MIX_CTRL_AUTO_TUNE_EN |
                                  USDHC_MIX_CTRL_FBCLK_SEL,
                         dev->base + USDHC_MIX_CTRL);
-    pb_setbit32(USDHC_MIX_CTRL_EXE_TUNE, 
+    pb_setbit32(USDHC_MIX_CTRL_EXE_TUNE,
                 dev->base + USDHC_AUTOCMD12_ERR_STATUS);
 
     pb_write32(dev->mix_shadow | USDHC_MIX_CTRL_AUTO_TUNE_EN |
@@ -419,11 +432,11 @@ static int usdhc_setup_hs200(struct usdhc_device *dev)
         _tbl[0].len = 128;
         _tbl[0].addr = (uint32_t)(uintptr_t) _raw_extcsd;
 
-        pb_write32((uint32_t)(uintptr_t) &_tbl[0], 
+        pb_write32((uint32_t)(uintptr_t) &_tbl[0],
                         dev->base+ USDHC_ADMA_SYS_ADDR);
 
-        uint32_t err2 = usdhc_emmc_send_cmd(dev, 
-                                  MMC_CMD_SEND_TUNING_BLOCK_HS200, 
+        uint32_t err2 = usdhc_emmc_send_cmd(dev,
+                                  MMC_CMD_SEND_TUNING_BLOCK_HS200,
                                   0,
                                   0x1A);
 
@@ -432,20 +445,20 @@ static int usdhc_setup_hs200(struct usdhc_device *dev)
 
         reg = pb_read32(dev->base + USDHC_AUTOCMD12_ERR_STATUS);
 
-        if (    (!(reg & USDHC_EXE_TUNE)) && 
-                (reg & USDHC_SMPCLK_SEL)) 
+        if (    (!(reg & USDHC_EXE_TUNE)) &&
+                (reg & USDHC_SMPCLK_SEL))
         {
             LOG_INFO("SUCCESS!");
             err = PB_OK;
             break;
-        } 
+        }
 
-        LOG_INFO("RESP0 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP0)); 
-        LOG_INFO("RESP1 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP1)); 
-        LOG_INFO("RESP2 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP2)); 
-        LOG_INFO("RESP3 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP3)); 
+        LOG_INFO("RESP0 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP0));
+        LOG_INFO("RESP1 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP1));
+        LOG_INFO("RESP2 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP2));
+        LOG_INFO("RESP3 = %8.8X", pb_read32(dev->base + USDHC_CMD_RSP3));
 
-        plat_wdog_kick();       
+        plat_wdog_kick();
         for (uint32_t i = 0; i < 128; i++)
             tfp_printf("%2.2X ", _raw_extcsd[i]);
         tfp_printf("\n\r");
@@ -541,9 +554,34 @@ static int usdhc_setup_hs(struct usdhc_device *dev)
     return PB_OK;
 }
 
-static int imx_usdhc_reset(struct usdhc_device *dev)
+static int imx_usdhc_map_request(struct pb_storage_driver *drv,
+                                 struct pb_storage_map *map)
 {
-    return usdhc_emmc_send_cmd(dev, MMC_CMD_GO_IDLE_STATE, 0, MMC_RSP_NONE);
+    struct usdhc_device *dev = (struct usdhc_device *) drv->private;
+    int rc;
+
+    if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT0)
+    {
+        rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_BOOT0);
+    }
+    else if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT1)
+    {
+        rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_BOOT1);
+    }
+    else
+    {
+        rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_USER);
+    }
+
+    return rc;
+}
+
+static int imx_usdhc_map_release(struct pb_storage_driver *drv,
+                                 struct pb_storage_map *map)
+{
+    struct usdhc_device *dev = (struct usdhc_device *) drv->private;
+
+    return usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_USER);
 }
 
 int imx_usdhc_init(struct pb_storage_driver *drv)
@@ -551,12 +589,14 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     int err;
     struct usdhc_device *dev = (struct usdhc_device *) drv->private;
     struct imx_usdhc_private *priv = PB_IMX_USDHC_PRIV(dev);
-    
+
     if (dev->size < sizeof(struct imx_usdhc_private))
         return -PB_ERR_MEM;
 
     drv->read = imx_usdhc_read;
     drv->write = imx_usdhc_write;
+    drv->map_request = imx_usdhc_map_request;
+    drv->map_release = imx_usdhc_map_release;
 
     LOG_DBG("Controller reset");
 

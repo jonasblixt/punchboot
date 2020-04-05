@@ -10,8 +10,8 @@
 #ifndef PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_
 #define PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_
 
-#include <pb.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/io.h>
 #include <plat/sci/ipc.h>
 #include <plat/sci/sci.h>
 #include <plat/imx/gpt.h>
@@ -28,9 +28,6 @@ struct pb_platform_setup
 {
     sc_ipc_t ipc_handle;
     struct gp_timer tmr0;
-    struct usdhc_device usdhc0;
-    struct lpuart_device uart0;
-    struct fsl_caam_jr caam;
 };
 
 

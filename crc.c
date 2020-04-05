@@ -46,7 +46,7 @@
  * CRC32 code derived from work by Gary S. Brown.
  */
 
-#include <crc.h>
+#include <pb/crc.h>
 
 /*
  * A function that calculates the CRC-32 based on the table above is

@@ -9,9 +9,9 @@
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <plat.h>
-#include <timing_report.h>
+#include <pb/pb.h>
+#include <pb/plat.h>
+#include <pb/timing_report.h>
 
 #if TIMING_REPORT >= 1
 

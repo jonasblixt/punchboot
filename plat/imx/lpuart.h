@@ -7,9 +7,10 @@
 #ifndef PLAT_IMX_LPUART_H_
 #define PLAT_IMX_LPUART_H_
 
-#include <pb.h>
-#include <io.h>
 #include <stdint.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <pb/console.h>
 
 #define VERID    0x0
 #define LPPARAM    0x4
@@ -56,13 +57,13 @@
 #define LPUART_BAUD_BOTHEDGE_MASK                (0x20000U)
 #define LPUART_BAUD_M10_MASK                     (0x20000000U)
 
-struct lpuart_device
+struct imx_lpuart_device
 {
     __iomem base;
     uint32_t baudrate;
 };
 
-uint32_t lpuart_init(struct lpuart_device *dev);
-uint32_t lpuart_putc(struct lpuart_device *dev, char c);
+int imx_lpuart_init(struct pb_console_driver *drv);
+int imx_lpuart_free(struct pb_console_driver *drv);
 
 #endif  // PLAT_IMX_LPUART_H_

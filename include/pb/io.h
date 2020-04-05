@@ -11,7 +11,7 @@
 #ifndef INCLUDE_PB_IO_H_
 #define INCLUDE_PB_IO_H_
 
-#include <pb.h>
+#include <pb/pb.h>
 #include <arch/arch.h>
 
 

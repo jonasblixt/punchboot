@@ -15,9 +15,12 @@
 #include <pb/pb.h>
 #include <pb/fuse.h>
 #include <pb/gpt.h>
-#include <pb/params.h>
 #include <pb/storage.h>
 #include <pb/transport.h>
+#include <pb/console.h>
+#include <pb/crypto.h>
+#include <pb/command.h>
+#include <pb/boot.h>
 #include <board/config.h>
 #include <plat/defs.h>
 
@@ -30,7 +33,11 @@
  */
 int board_early_init(struct pb_platform_setup *plat,
                           struct pb_storage *storage,
-                          struct pb_transport *transport);
+                          struct pb_transport *transport,
+                          struct pb_console *console,
+                          struct pb_crypto *crypto,
+                          struct pb_command_context *command_ctx,
+                          struct pb_boot_context *boot);
 
 /**
  * Function: board_late_init
@@ -62,10 +69,11 @@ uint32_t board_prepare_recovery(struct pb_platform_setup *plat);
  */
 bool  board_force_recovery(struct pb_platform_setup *plat);
 
-uint32_t board_setup_device(struct param *params);
+uint32_t board_setup_device(void);
 uint32_t board_setup_lock(void);
-uint32_t board_get_params(struct param **pp);
 uint32_t board_recovery_command(uint32_t arg0, uint32_t arg1, uint32_t arg2,
                                 uint32_t arg3);
+
+const char * board_get_id(void);
 
 #endif  // INCLUDE_PB_BOARD_H_

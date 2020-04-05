@@ -29,7 +29,7 @@ CFLAGS  += -nostdlib -nostartfiles
 CFLAGS  += -ffunction-sections
 CFLAGS  += -fdata-sections
 CFLAGS  += -fno-omit-frame-pointer
-CFLAGS  += -I. -I include/pb
+CFLAGS  += -I. -I include/
 CFLAGS  += -I include
 CFLAGS  += -I include/pb/libc
 CFLAGS  += -DPB_VERSION=\"$(GIT_VERSION)\"
@@ -39,7 +39,9 @@ CFLAGS  += -D__PB_BUILD
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
+CFLAGS  += -I uuid/
 CFLAGS  += -I $(BOARD_DIR)/$(BOARD)/include
+CFLAGS  += -fstack-usage -fstack-check
 CFLAGS  += -MMD -MP
 
 # General warnings
@@ -71,20 +73,33 @@ BLOB_INPUT  =
 C_SRCS   = main.c
 C_SRCS  += delay.c
 #C_SRCS  += config.c
+C_SRCS  += boot.c
+C_SRCS  += boot_ab.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c
 C_SRCS  += keystore.c
 C_SRCS  += crypto.c
+C_SRCS  += asn1.c
 C_SRCS  += timing_report.c
 C_SRCS  += usb.c
 C_SRCS  += transport.c
-# C_SRCS  += image.c
+C_SRCS  += image.c
 C_SRCS  += bpak.c
-C_SRCS  += boot.c
 C_SRCS  += storage.c
-
+C_SRCS  += console.c
 C_SRCS  += wire.c
-# C_SRCS  += command.c
+C_SRCS  += command.c
+
+# UUID lib
+C_SRCS  += uuid/pack.c
+C_SRCS  += uuid/unpack.c
+C_SRCS  += uuid/compare.c
+C_SRCS  += uuid/copy.c
+C_SRCS  += uuid/unparse.c
+C_SRCS  += uuid/parse.c
+C_SRCS  += uuid/clear.c
+C_SRCS  += uuid/conv.c
+C_SRCS  += uuid/uuid3.c
 
 # C library
 C_SRCS  += lib/string.c
@@ -96,8 +111,7 @@ C_SRCS  += lib/memset.c
 C_SRCS  += lib/strlen.c
 C_SRCS  += lib/printf.c
 C_SRCS  += lib/snprintf.c
-C_SRCS  += lib/putchar.c
-C_SRCS  += lib/uuid.c
+C_SRCS  += lib/strtoul.c
 
 # Lib fdt
 C_SRCS  += 3pp/fdt/fdt.c
@@ -190,13 +204,6 @@ $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	@echo CC $<
 	@$(CC) -c $(CFLAGS) $< -o $@
-
-check:
-	@cpplint --quiet $(shell git ls-files "*.[hc]")
-pmccabe:
-	@pmccabe  $(shell git ls-files "*.[hc]") | sort -n | tail -n 50
-cloc:
-	@cloc $$(git ls-files | grep -v 3pp | xargs)
 
 clean:
 	@-rm -rf $(BUILD_DIR)/

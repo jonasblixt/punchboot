@@ -2,8 +2,9 @@
 #include <pb/transport.h>
 
 
-int pb_transport_init(struct pb_transport *ctx)
+int pb_transport_init(struct pb_transport *ctx, uint8_t *device_uuid)
 {
+    ctx->device_uuid = device_uuid;
     return PB_OK;
 }
 
@@ -15,6 +16,7 @@ int pb_transport_free(struct pb_transport *ctx)
 int pb_transport_add(struct pb_transport *ctx,
                         struct pb_transport_driver *drv)
 {
+    drv->device_uuid = ctx->device_uuid;
     ctx->driver = drv;
     return PB_OK;
 }
@@ -53,11 +55,6 @@ int pb_transport_start(struct pb_transport *ctx)
     return PB_OK;
 }
 
-int pb_transport_poll(struct pb_transport *ctx, struct pb_command **cmd)
-{
-    return PB_OK;
-}
-
 int pb_transport_read(struct pb_transport *ctx,
                       void *buf,
                       size_t size)
@@ -72,9 +69,3 @@ int pb_transport_write(struct pb_transport *ctx,
     return ctx->driver->write(ctx->driver, buf, size);
 }
 
-int pb_transport_read_bulk(struct pb_transport *ctx,
-                           void *buf,
-                           size_t size)
-{
-    return ctx->driver->bulk_read(ctx->driver, buf, size);
-}

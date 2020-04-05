@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -47,7 +47,7 @@ SECTIONS
  	.stack (NOLOAD):
     {
         PROVIDE(_stack_start = .);
-        . = . + 10*1024 ;
+        . = . + 2*1024 ;
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
     } > pbram2

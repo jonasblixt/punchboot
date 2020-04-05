@@ -11,8 +11,8 @@
 #ifndef PLAT_IMX_GPT_H_
 #define PLAT_IMX_GPT_H_
 
-#include <pb.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/io.h>
 
 #define GP_TIMER_CR  0x0000
 #define GP_TIMER_PR  0x0004

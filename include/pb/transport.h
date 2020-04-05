@@ -30,9 +30,9 @@ struct pb_transport_driver
     pb_transport_call_t process;
     pb_transport_io_t read;
     pb_transport_io_t write;
-    pb_transport_io_t bulk_read;
     struct pb_transport_plat_driver *platform;
     struct pb_command cmd;
+    uint8_t *device_uuid;
     void *private;
     size_t size;
 };
@@ -40,15 +40,16 @@ struct pb_transport_driver
 struct pb_transport
 {
     struct pb_transport_driver *driver;
+    uint8_t *device_uuid;
 };
 
-int pb_transport_init(struct pb_transport *ctx);
+int pb_transport_init(struct pb_transport *ctx, uint8_t *device_uuid);
 int pb_transport_add(struct pb_transport *ctx,
                         struct pb_transport_driver *drv);
 
 int pb_transport_free(struct pb_transport *ctx);
 int pb_transport_start(struct pb_transport *ctx);
-int pb_transport_poll(struct pb_transport *ctx, struct pb_command **cmd);
+
 int pb_transport_read(struct pb_transport *ctx,
                       void *buf,
                       size_t size);
@@ -56,9 +57,5 @@ int pb_transport_read(struct pb_transport *ctx,
 int pb_transport_write(struct pb_transport *ctx,
                       void *buf,
                       size_t size);
-
-int pb_transport_read_bulk(struct pb_transport *ctx,
-                           void *buf,
-                           size_t size);
 
 #endif  // INCLUDE_PB_TRANSPORT_H_

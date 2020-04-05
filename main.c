@@ -10,223 +10,167 @@
 #include <stdio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/gpt.h>
-#include <pb/io.h>
-#include <pb/image.h>
-#include <pb/crypto.h>
-#include <pb/boot.h>
 #include <pb/timing_report.h>
-#include <pb/config.h>
-#include <bpak/bpak.h>
 #include <pb/command.h>
 #include <pb/storage.h>
 #include <pb/transport.h>
+#include <pb/console.h>
+#include <pb/crypto.h>
+#include <pb/boot.h>
 
+static struct pb_console console;
 static struct pb_storage storage;
 static struct pb_transport transport;
+static struct pb_crypto crypto;
+static struct pb_command cmd;
+static struct pb_command_context command_ctx;
+static struct pb_boot_context boot_ctx;
+extern struct bpak_keystore keystore_pb;
+static uint8_t device_uuid[16] __no_bss;
+
+static int pb_early_init(void)
+{
+    int rc;
+
+    tr_init();
+
+    rc = pb_console_init(&console);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_storage_init(&storage);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_transport_init(&transport, device_uuid);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_crypto_init(&crypto);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_command_init(&command_ctx, &transport, &storage, &crypto,
+                            &keystore_pb);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = plat_early_init(&storage, &transport, &console, &crypto, &command_ctx,
+                         &boot_ctx);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_console_start(&console);
+
+    if (rc != PB_OK)
+        return rc;
+
+    return PB_OK;
+}
+
+int putchar(int c)
+{
+    if (console.driver->ready)
+    {
+        console.driver->write(console.driver, (char *) &c, 1);
+    }
+
+    return c;
+}
 
 void pb_main(void)
 {
     int rc;
     int recovery_timeout_ts;
-    bool flag_run_recovery = false;
+    bool flag_run_command_mode = false;
 
-    tr_init();
-
-    rc = pb_storage_init(&storage);
+    rc = pb_early_init();
 
     if (rc != PB_OK)
-        plat_reset();
-
-    rc = pb_transport_init(&transport);
-
-    if (rc != PB_OK)
-        plat_reset();
-
-    if (plat_early_init(&storage, &transport) != PB_OK)
         plat_reset();
 
     tr_stamp_begin(TR_BLINIT);
     tr_stamp_begin(TR_TOTAL);
 
-    LOG_INFO("PB " PB_VERSION " starting");
+    LOG_INFO("\n\r\n\rPB " PB_VERSION " starting");
 
     rc = pb_storage_start(&storage);
 
     if (rc != PB_OK)
     {
         LOG_ERR("Could not initialize storage");
-        flag_run_recovery = true;
-        //goto run_recovery;
+        flag_run_command_mode = true;
+        goto run_command_mode;
     }
 
-    LOG_DBG("Starting transport");
-
-    rc = pb_transport_start(&transport);
+    rc = pb_crypto_start(&crypto);
 
     if (rc != PB_OK)
     {
-        LOG_ERR("Transport init err");
+        LOG_ERR("Could not initialize crypto");
+        flag_run_command_mode = true;
+        goto run_command_mode;
     }
 
-    LOG_DBG("Transport init done");
+    rc = plat_get_uuid(&crypto, device_uuid);
 
-    struct pb_command cmd;
-    while (1)
+    if (rc != PB_OK)
     {
-        plat_wdog_kick();
-
-        rc = pb_transport_read(&transport, &cmd, sizeof(cmd));
-
-        LOG_DBG("%i cmd %i", rc, cmd.command);
+        LOG_ERR("Could not read device UUID");
+        flag_run_command_mode = true;
+        goto run_command_mode;
     }
 
+    rc = pb_boot(&boot_ctx, NULL, false, false);
 
-#ifdef __NOPE
-
-    if (plat_force_recovery())
-        flag_run_recovery = true;
-
-    tr_stamp_end(TR_BLINIT);
-
-    /* Load system partition headers */
-
-    if (gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_A, &part_system_a) != PB_OK)
+    if (rc != PB_OK)
     {
-        LOG_ERR("Could not find system A");
-        flag_run_recovery = true;
+        LOG_ERR("Could not boot, starting command mode");
     }
 
-    if (gpt_get_part_by_uuid(PB_PARTUUID_SYSTEM_B, &part_system_b) != PB_OK)
-    {
-        LOG_ERR("Could not find system B");
-        flag_run_recovery = true;
-    }
-
-    if (config_init() != PB_OK)
-        flag_run_recovery = true;
-
-    if (flag_run_recovery)
-        goto run_recovery;
-
-    if (config_system_enabled(SYSTEM_A))
-    {
-        LOG_INFO("Loading System A");
-        part = part_system_a;
-        active_system = SYSTEM_A;
-    }
-    else if (config_system_enabled(SYSTEM_B))
-    {
-        LOG_INFO("Loading System B");
-        part = part_system_b;
-        active_system = SYSTEM_B;
-    }
-    else
-    {
-        LOG_INFO("No bootable system found");
-        flag_run_recovery = true;
-
-        goto run_recovery;
-    }
-
-    uint32_t count = config_get_remaining_boot_attempts();
-
-    LOG_DBG("Current boot counter: %u", count);
-
-    /* Newly upgraded system? */
-    if (!config_system_verified(active_system) && (count> 0))
-    {
-        /* Decrement boot counter */
-        config_decrement_boot_attempt();
-        config_commit();
-    }
-    else if (!config_system_verified(active_system))
-    {
-        /* Boot counter expired, rollback to other part */
-        LOG_ERR("System is not bootable, performing rollback");
-        /* Indicate that this system failed by setting
-         * the rollback bit
-         * */
-
-
-        if (active_system == SYSTEM_A)
-        {
-            part = part_system_b;
-            active_system = SYSTEM_B;
-            config_system_enable(SYSTEM_B);
-            config_set_boot_error(PB_CONFIG_ERROR_A_ROLLBACK);
-        }
-        else
-        {
-            part = part_system_a;
-            active_system = SYSTEM_A;
-            config_system_enable(SYSTEM_A);
-            config_set_boot_error(PB_CONFIG_ERROR_B_ROLLBACK);
-        }
-
-        config_commit();
-
-        /* In the unlikely event that the other system is also broken,
-         * start recovery mode
-         * */
-
-        if (!config_system_verified(active_system))
-        {
-            LOG_ERR("Other system is also broken, starting recovery");
-            flag_run_recovery = true;
-            goto run_recovery;
-        }
-    }
-
-    err = pb_image_load_from_fs(part->first_lba,
-                                part->last_lba,
-                                &h,
-                                hash_buffer);
-
-    if (err == PB_OK)
-    {
-        LOG_INFO("Image verified, booting...");
-        pb_boot(&h, active_system, false);
-    }
-    else
-    {
-        LOG_ERR("Could not boot image, entering recovery mode...");
-        flag_run_recovery = true;
-    }
-
-flag_run_recovery = true;
-run_recovery:
+    flag_run_command_mode = true;
+run_command_mode:
 
     recovery_timeout_ts = plat_get_us_tick();
 
-    if (flag_run_recovery)
+    if (flag_run_command_mode)
     {
-        LOG_INFO("Initializing command mode");
+        LOG_DBG("Starting transport");
 
-        rc = command_initialize(&storage);
+        rc = pb_transport_start(&transport);
 
         if (rc != PB_OK)
         {
-            LOG_ERR("Could not initialize recovery mode");
+            LOG_ERR("Transport init err");
             plat_reset();
         }
-        while (flag_run_recovery)
+
+        LOG_DBG("Transport init done");
+
+        while (flag_run_command_mode)
         {
-            usb_task();
-            plat_wdog_kick();
+            rc = pb_transport_read(&transport, &cmd, sizeof(cmd));
 
-            uint32_t recovery_timeout_counter = plat_get_us_tick() -
-                                                        recovery_timeout_ts;
-
-            if (!usb_has_enumerated() &&
-                          (recovery_timeout_counter > PB_RECOVERY_TIMEOUT_US))
+            if (rc != PB_OK)
             {
-                LOG_INFO("Recovery timeout, rebooting...");
-                plat_reset();
+                LOG_ERR("Read error %i", rc);
+                continue;
+            }
+
+            rc = pb_command_parse(&command_ctx, &cmd);
+
+            if (rc != PB_OK)
+            {
+                LOG_ERR("Command error %i", rc);
             }
         }
     }
 
-#endif
     plat_reset();
 }

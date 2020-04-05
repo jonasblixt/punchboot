@@ -10,8 +10,8 @@
 #ifndef PLAT_IMX_WDOG_H_
 #define PLAT_IMX_WDOG_H_
 
-#include <pb.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/io.h>
 
 #define WDOG_WCR  0x0000
 #define WDOG_WSR  0x0002

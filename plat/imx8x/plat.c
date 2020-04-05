@@ -9,11 +9,11 @@
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <io.h>
-#include <plat.h>
-#include <board.h>
-#include <uuid.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <pb/plat.h>
+#include <pb/board.h>
+#include <uuid/uuid.h>
 #include <plat/imx8x/plat.h>
 #include <plat/regs.h>
 #include <plat/imx/lpuart.h>
@@ -53,7 +53,7 @@ uint32_t plat_setup_lock(void)
 }
 
 
-uint32_t plat_setup_device(struct param *params)
+uint32_t plat_setup_device(void)
 {
     uint32_t err;
 
@@ -90,7 +90,7 @@ uint32_t plat_setup_device(struct param *params)
         }
     }
 
-    return board_setup_device(params);
+    return board_setup_device();
 }
 
 
@@ -136,51 +136,15 @@ uint32_t plat_get_security_state(uint32_t *state)
 static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
-uint32_t plat_get_uuid(char *out)
+int plat_get_uuid(struct pb_crypto *crypto, char *out)
 {
     uint32_t uid[2];
 
     sc_misc_unique_id(plat.ipc_handle, &uid[0], &uid[1]);
 
-    return uuid_gen_uuid3(platform_namespace_uuid, 16,
+    return uuid_gen_uuid3(crypto, platform_namespace_uuid,
                           (const char *) uid, 8, out);
 }
-
-uint32_t plat_get_params(struct param **pp)
-{
-    char uuid_raw[16];
-    uint32_t version;
-    uint32_t commit;
-    int16_t celsius;
-    int8_t tenths;
-    char temp_str[16];
-
-    param_add_str((*pp)++, "Platform", "NXP IMX8X");
-    plat_get_uuid(uuid_raw);
-    param_add_uuid((*pp)++, "Device UUID", uuid_raw);
-
-
-    sc_misc_build_info(plat.ipc_handle, &version, &commit);
-
-    snprintf(temp_str, sizeof(temp_str), "%u", version);
-    param_add_str((*pp)++, "SCFW build", temp_str);
-    param_add_u32((*pp)++, "SCFW commit", commit);
-
-
-    sc_misc_seco_build_info(plat.ipc_handle, &version, &commit);
-
-    snprintf(temp_str, sizeof(temp_str), "%u", version);
-    param_add_str((*pp)++, "SECO build", temp_str);
-    param_add_u32((*pp)++, "SECO commit", commit);
-
-    sc_misc_get_temp(plat.ipc_handle, SC_R_SYSTEM, SC_MISC_TEMP, &celsius,
-                        &tenths);
-
-    snprintf(temp_str, sizeof(temp_str), "%i.%i deg C", celsius, tenths);
-    param_add_str((*pp)++, "Temperature", temp_str);
-    return PB_OK;
-}
-
 
 /* Platform API Calls */
 
@@ -213,7 +177,11 @@ void plat_wdog_kick(void)
 }
 
 int plat_early_init(struct pb_storage *storage,
-                    struct pb_transport *transport)
+                    struct pb_transport *transport,
+                    struct pb_console *console,
+                    struct pb_crypto *crypto,
+                    struct pb_command_context *command_ctx,
+                    struct pb_boot_context *boot)
 {
     int err = PB_OK;
 
@@ -221,19 +189,8 @@ int plat_early_init(struct pb_storage *storage,
 
     plat_wdog_init();
 
-    err = board_early_init(&plat, storage, transport);
-
-    if (err != PB_OK)
-        return err;
-
-    /* Write to LPCG */
- //   pb_write32(LPCG_ALL_CLOCK_ON, 0x5B200000);
-
-    /* Wait for clocks to start */
- //   while ((pb_read32(0x5B200000) & LPCG_ALL_CLOCK_STOP) != 0U)
-//        __asm__("nop");
-
-    err = lpuart_init(&plat.uart0);
+    err = board_early_init(&plat, storage, transport, console, crypto,
+                            command_ctx, boot);
 
     if (err != PB_OK)
         return err;
@@ -244,22 +201,6 @@ int plat_early_init(struct pb_storage *storage,
         return err;
 
 
-    sc_pm_set_resource_power_mode(plat.ipc_handle,
-                                SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat.ipc_handle,
-                                SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat.ipc_handle,
-                                SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat.ipc_handle,
-                                SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
-
-
-
-    plat.caam.base = 0x31430000;
-    err = caam_init(&plat.caam);
-
-    if (err != PB_OK)
-        return err;
 
     return err;
 }
@@ -268,14 +209,6 @@ int plat_early_init(struct pb_storage *storage,
 void plat_preboot_cleanup(void)
 {
 
-}
-
-/* UART Interface */
-
-void plat_uart_putc(void *ptr, char c)
-{
-    UNUSED(ptr);
-    lpuart_putc(&plat.uart0, c);
 }
 
 /* FUSE Interface */
