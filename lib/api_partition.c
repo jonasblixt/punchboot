@@ -30,6 +30,9 @@ int pb_api_partition_read_table(struct pb_context *ctx,
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
 
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
+
     memcpy(&tbl_read_result, result.response, sizeof(tbl_read_result));
 
     size_t bytes_to_read = (tbl_read_result.no_of_entries * \

@@ -231,7 +231,8 @@ struct pb_command_authenticate
 {
     uint8_t method;  /*!< Method to use for authenticaton see enum pb_auth_method */
     uint16_t size;   /*!< Authentication data size in bytes */
-    uint8_t rz[29];  /*!< Reserved */
+    uint32_t key_id; /*!< Optional key id for token based auth */
+    uint8_t rz[25];  /*!< Reserved */
 } __attribute__((packed));
 
 /**

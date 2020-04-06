@@ -17,6 +17,7 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
     ctx->d(ctx, 2, "%s: call, method: %i, size: %i\n", __func__, method, size);
 
     auth.method = method;
+    auth.key_id = key_id;
     auth.size = size;
 
     rc = pb_wire_init_command2(&cmd, PB_CMD_AUTHENTICATE, &auth, sizeof(auth));
@@ -36,6 +37,9 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
 
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
+
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
 
     if (size)
     {

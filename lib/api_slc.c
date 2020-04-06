@@ -33,6 +33,9 @@ int pb_api_slc_read(struct pb_context *ctx,
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
 
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
+
     memcpy(&slc_result, result.response, sizeof(slc_result));
 
     ctx->d(ctx, 2, "%s: SLC: %i \n", __func__, slc_result.slc);
