@@ -52,31 +52,6 @@ static int pb_socket_connect(struct pb_context *ctx)
     return PB_RESULT_OK;
 }
 
-static int pb_socket_command(struct pb_context *ctx,
-                            struct pb_command *cmd,
-                            const void *bfr, size_t sz)
-{
-    int rc;
-    struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
-
-
-    ssize_t bytes = write(priv->fd, cmd, sizeof(*cmd));
-
-    if (bytes != sizeof(*cmd))
-        return -PB_RESULT_ERROR;
-
-    if (sz)
-    {
-        bytes = write(priv->fd, bfr, sz);
-
-        if (bytes != sz)
-            return -PB_RESULT_ERROR;
-    }
-
-    return PB_RESULT_OK;
-}
-
-
 static int pb_socket_read(struct pb_context *ctx, void *bfr, size_t sz)
 {
     struct pb_socket_private *priv = PB_SOCKET_PRIVATE(ctx);
@@ -156,7 +131,6 @@ int pb_socket_transport_init(struct pb_context *ctx,
     ctx->init = pb_socket_init;
     ctx->read = pb_socket_read;
     ctx->write = pb_socket_write;
-    ctx->command = pb_socket_command;
     ctx->connect = pb_socket_connect;
     priv->socket_path = socket_path;
 

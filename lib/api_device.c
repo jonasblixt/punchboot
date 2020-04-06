@@ -13,7 +13,7 @@ int pb_api_device_reset(struct pb_context *ctx)
 
     pb_wire_init_command(&cmd, PB_CMD_DEVICE_RESET);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
     {
@@ -52,7 +52,7 @@ int pb_api_device_read_identifier(struct pb_context *ctx,
 
     pb_wire_init_command(&cmd, PB_CMD_DEVICE_IDENTIFIER_READ);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -92,7 +92,7 @@ int pb_api_device_read_caps(struct pb_context *ctx,
 
     pb_wire_init_command(&cmd, PB_CMD_DEVICE_READ_CAPS);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;

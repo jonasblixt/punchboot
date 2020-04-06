@@ -9,9 +9,9 @@ libpunchboot_la_SOURCES = error.c \
                           api_device.c \
                           api_slc.c \
                           api_authentication.c \
-						              api_boot.c \
+                          api_boot.c \
                           api_misc.c \
-						              api_board.c
+                          api_board.c
 
 if !WINDOWS
 libpunchboot_la_SOURCES += socket.c

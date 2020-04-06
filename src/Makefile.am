@@ -4,6 +4,9 @@ punchboot_SOURCES  = main.c \
                      dev.c \
 					 part.c \
 					 boot.c \
+					 board.c \
+					 auth.c \
+					 slc.c \
 					 sha256.c \
                      utils.c \
 					 uuid/clear.c \

@@ -29,7 +29,7 @@ static void help_common_footer(void)
 {
     printf("\n");
     printf("Common options:\n");
-    printf("    -v, --verbose               Verbose output\n");
+    printf("    -v, --verbose               Verbose output (Can be issued multiple times to increase output)\n");
     printf("    -h, --help                  Show help\n");
     printf("    -V, --version               Show version\n");
     printf("    -t, --transport             Communication transport (Default: usb)\n");
@@ -86,25 +86,32 @@ void help_board(void)
 {
     help_common_header("board");
     printf("board options:\n");
-    printf("    -b, --board-cmd <command>   Issue board specific command\n");
-    printf("    -s, --board-status          Show board status\n");
+    printf("    -b, --command <command> [--args <args>] Issue board specific command\n");
+    printf("    -s, --show                              Show board status\n");
+    help_common_footer();
 }
 
 void help_auth(void)
 {
     help_common_header("auth");
     printf("auth options:\n");
-    printf("    -a, --authenticate <filename>   Authenticate\n");
-    printf("        --set-otp-password          Set OTP password\n");
+    printf("    -T, --token <filename> --key-id <id>     Authenticate\n");
+    printf("    -P, --password <password>\n");
+    printf("        --set-otp-password <password>        Set OTP password\n");
+    help_common_footer();
 }
 
 void help_slc(void)
 {
     help_common_header("slc");
     printf("slc options:\n");
+    printf("    -s, --show                    Show SLC status\n");
+    printf("\nDangerous slc options:\n");
     printf("    -C, --set-configuration       Configure device fuses\n");
     printf("    -L, --set-configuration-lock  Lock configuration\n");
     printf("    -E, --set-end-of-life         End of life\n");
+    printf("    -R, --revoke-key <id>         Revoke key\n");
+    printf("    -K, --set-keystore-id <id>    Fuse keystore ID\n");
     printf("\nSLC common options:\n");
     printf("        --force                   Force\n");
     help_common_footer();

@@ -17,7 +17,7 @@ int pb_api_partition_read_table(struct pb_context *ctx,
 
     pb_wire_init_command(&cmd, PB_CMD_PART_TBL_READ);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -76,7 +76,7 @@ int pb_api_partition_read_table(struct pb_context *ctx,
     for (int i = 0; i < tbl_read_result.no_of_entries; i++)
     {
         memcpy(out[i].uuid, tbl[i].uuid, 16);
-        strncpy(out[i].description, tbl[i].description, 16);
+        strncpy(out[i].description, tbl[i].description, 36);
         out[i].first_block = tbl[i].first_block;
         out[i].last_block = tbl[i].last_block;
         out[i].flags = tbl[i].flags;
@@ -101,7 +101,7 @@ int pb_api_partition_install_table(struct pb_context *ctx)
 
     pb_wire_init_command(&cmd, PB_CMD_PART_TBL_INSTALL);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -144,7 +144,7 @@ int pb_api_partition_verify(struct pb_context *ctx,
 
     pb_wire_init_command2(&cmd, PB_CMD_PART_VERIFY, &verify, sizeof(verify));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -178,7 +178,7 @@ int pb_api_partition_activate(struct pb_context *ctx,
     pb_wire_init_command2(&cmd, PB_CMD_PART_ACTIVATE, &activate,
                                     sizeof(activate));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -213,7 +213,7 @@ int pb_api_partition_read_bpak(struct pb_context *ctx,
     pb_wire_init_command2(&cmd, PB_CMD_PART_BPAK_READ, &read_command,
                                     sizeof(read_command));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -262,7 +262,7 @@ int pb_api_partition_erase(struct pb_context *ctx, uint8_t *uuid)
     pb_wire_init_command2(&cmd, PB_CMD_PART_ERASE, &erase_command,
                                     sizeof(erase_command));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;

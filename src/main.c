@@ -90,6 +90,18 @@ int main(int argc, char **argv)
         {
             return action_boot(argc, argv);
         }
+        if (strcmp(action, "slc") == 0)
+        {
+            return action_slc(argc, argv);
+        }
+        if (strcmp(action, "auth") == 0)
+        {
+            return action_auth(argc, argv);
+        }
+        if (strcmp(action, "board") == 0)
+        {
+            return action_board(argc, argv);
+        }
         else
         {
             printf ("Unknown action '%s'\n", action);

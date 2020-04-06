@@ -43,7 +43,7 @@ int action_boot(int argc, char **argv)
         switch (opt)
         {
             case 'h':
-                help_part();
+                help_boot();
                 return 0;
             case 'v':
                 pb_inc_verbosity();

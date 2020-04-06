@@ -26,7 +26,7 @@ int pb_api_board_command(struct pb_context *ctx,
     pb_wire_init_command2(&cmd, PB_CMD_BOARD_COMMAND, &board_command,
                                                       sizeof(board_command));
 
-    rc = ctx->command(ctx, &cmd, request, request_size);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -38,6 +38,22 @@ int pb_api_board_command(struct pb_context *ctx,
 
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
+
+    if (request_size)
+    {
+        rc = ctx->write(ctx, request, request_size);
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        rc = ctx->read(ctx, &result, sizeof(result));
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        if (!pb_wire_valid_result(&result))
+            return -PB_RESULT_ERROR;
+    }
 
     memcpy(&board_result, result.response, sizeof(board_result));
 
@@ -73,7 +89,7 @@ int pb_api_board_status(struct pb_context *ctx,
 
     pb_wire_init_command(&cmd, PB_CMD_BOARD_STATUS_READ);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;

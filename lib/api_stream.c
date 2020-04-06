@@ -28,7 +28,7 @@ int pb_api_stream_init(struct pb_context *ctx, uint8_t *uuid)
                                     &stream_init_command,
                                     sizeof(stream_init_command));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -68,7 +68,7 @@ int pb_api_stream_prepare_buffer(struct pb_context *ctx,
                                     &buffer_command,
                                     sizeof(buffer_command));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -130,7 +130,7 @@ int pb_api_stream_write_buffer(struct pb_context *ctx,
                                     &write_command,
                                     sizeof(write_command));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -159,7 +159,7 @@ int pb_api_stream_finalize(struct pb_context *ctx)
 
     pb_wire_init_command(&cmd, PB_CMD_STREAM_FINALIZE);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;

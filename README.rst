@@ -6,4 +6,5 @@
   :alt: Windows build status
 .. image:: https://travis-ci.org/jonasblixt/punchboot-tools.svg?branch=master
     :target: https://travis-ci.org/jonasblixt/punchboot-tools
-
+.. image:: https://codecov.io/gh/jonasblixt/punchboot-tools/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/jonasblixt/punchboot-tools

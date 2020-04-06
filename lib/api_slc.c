@@ -18,7 +18,7 @@ int pb_api_slc_read(struct pb_context *ctx,
 
     pb_wire_init_command(&cmd, PB_CMD_SLC_READ);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -73,7 +73,7 @@ int pb_api_slc_set_configuration(struct pb_context *ctx, const void *data,
 
     pb_wire_init_command(&cmd, PB_CMD_SLC_SET_CONFIGURATION);
 
-    rc = ctx->command(ctx, &cmd, data, size);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -85,6 +85,22 @@ int pb_api_slc_set_configuration(struct pb_context *ctx, const void *data,
 
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
+
+    if (size)
+    {
+        rc = ctx->write(ctx, data, size);
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        rc = ctx->read(ctx, &result, sizeof(result));
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        if (!pb_wire_valid_result(&result))
+            return -PB_RESULT_ERROR;
+    }
 
     ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
                                         pb_error_string(result.result_code));
@@ -104,7 +120,83 @@ int pb_api_slc_set_configuration_lock(struct pb_context *ctx, const void *data,
 
     pb_wire_init_command(&cmd, PB_CMD_SLC_SET_CONFIGURATION_LOCK);
 
-    rc = ctx->command(ctx, &cmd, data, size);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
+
+    if (size)
+    {
+        rc = ctx->write(ctx, data, size);
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        rc = ctx->read(ctx, &result, sizeof(result));
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        if (!pb_wire_valid_result(&result))
+            return -PB_RESULT_ERROR;
+    }
+
+    ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
+                                        pb_error_string(result.result_code));
+    return result.result_code;
+}
+
+int pb_api_slc_set_end_of_life(struct pb_context *ctx)
+{
+    int rc;
+    struct pb_command cmd;
+    struct pb_result result;
+
+    ctx->d(ctx, 2, "%s: call\n", __func__);
+
+    pb_wire_init_command(&cmd, PB_CMD_SLC_SET_EOL);
+
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
+
+    ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
+                                        pb_error_string(result.result_code));
+    return result.result_code;
+}
+
+int pb_api_slc_set_keystore_id(struct pb_context *ctx, uint32_t keystore_id)
+{
+    int rc;
+    struct pb_command cmd;
+    struct pb_command_set_keystore keystore;
+    struct pb_result result;
+
+    ctx->d(ctx, 2, "%s: call\n", __func__);
+
+    keystore.keystore_id = keystore_id;
+
+    pb_wire_init_command2(&cmd, PB_CMD_SLC_SET_KEYSTORE_ID,
+                            &keystore, sizeof(keystore));
+
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -135,7 +227,7 @@ int pb_api_slc_revoke_key(struct pb_context *ctx, uint32_t key_id)
 
     pb_wire_init_command2(&cmd, PB_CMD_SLC_REVOKE_KEY, &revoke, sizeof(revoke));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;

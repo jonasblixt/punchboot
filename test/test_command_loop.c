@@ -131,6 +131,10 @@ static int pb_authenticate(struct pb_command_ctx *ctx,
     printf("Got auth request method: %i, size: %i\n", auth->method,
                                                       auth->size);
 
+    pb_wire_init_result(result, PB_RESULT_OK);
+
+    ctx->send_result(ctx, result);
+
     pb_wire_init_result(result, -PB_RESULT_ERROR);
 
     ssize_t bytes = read(client_fd, auth_data, auth->size);
@@ -239,7 +243,15 @@ static int pb_board_cmd(struct pb_command_ctx *ctx,
 
     board_result.size = strlen(response);
 
+    pb_wire_init_result(result, PB_RESULT_OK);
 
+    rc = ctx->send_result(ctx, result);
+    
+    if (rc != PB_RESULT_OK)
+    {
+        printf("Error: Could not send result\n");
+        return rc;
+    }
     ssize_t bytes = read(client_fd, buf, board_cmd->request_size);
 
     if (bytes != board_cmd->request_size)
@@ -325,6 +337,9 @@ static int pb_boot_ram(struct pb_command_ctx *ctx,
 
     printf("Boot ram req\n");
 
+    pb_wire_init_result(result, PB_RESULT_OK);
+
+    rc = ctx->send_result(ctx, result);
     ssize_t bytes = read(client_fd, &header, sizeof(header));
 
     if (bytes != sizeof(header))

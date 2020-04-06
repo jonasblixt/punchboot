@@ -67,6 +67,32 @@ AM_CONDITIONAL([LINUX], [test "$build_linux" = "yes"])
 AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
 AM_CONDITIONAL([OSX], [test "$build_mac" = "yes"])
 
+# Build docs?
+AC_MSG_CHECKING( wheter to build the documentation)
+AC_ARG_ENABLE([docs],
+              AS_HELP_STRING([--enable-docs], [Build the bpak documentation]),
+             [enable_docs=$enableval],
+             [enable_docs="no"])
+
+AC_MSG_RESULT($enable_docs)
+AM_CONDITIONAL([BUILD_DOCS], [test x$enable_docs = xyes])
+
+
+AC_CHECK_PROGS([DOXYGEN], [doxygen])
+if test -z "$DOXYGEN"; then
+   AC_MSG_WARN([Doxygen not found - continue without Doxygen support])
+fi
+AC_CHECK_PROGS([DOT], [dot])
+if test -z "$DOT"; then
+   AC_MSG_ERROR([Doxygen needs dot, please install dot first])
+fi
+AC_CHECK_PROGS([PDFLATEX], [pdflatex])
+if test -z "$PDFLATEX"; then
+   AC_MSG_ERROR([Doxygen needs pdflatex program, it is part of TeX http://www.tug.org/texlive/acquire-netinstall.html])
+fi
+AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
+AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/doxygen.cfg])])
+AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Makefile])])
 
 AC_CONFIG_FILES([Makefile
                 src/Makefile

@@ -16,10 +16,14 @@ void help_part(void);
 void help_boot(void);
 void help_auth(void);
 void help_slc(void);
+void help_board(void);
 
 int action_dev(int argc, char **argv);
 int action_part(int argc, char **argv);
 int action_boot(int argc, char **argv);
+int action_slc(int argc, char **argv);
+int action_auth(int argc, char **argv);
+int action_board(int argc, char **argv);
 
 int transport_init_helper(struct pb_context **ctxp, const char *transport_name,
                             const char *device_uuid);

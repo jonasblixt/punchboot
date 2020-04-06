@@ -13,11 +13,6 @@ struct pb_command;
 typedef int (*pb_init_t) (struct pb_context *ctx);
 typedef int (*pb_free_t) (struct pb_context *ctx);
 
-typedef int (*pb_api_command_t) (struct pb_context *ctx,
-                               struct pb_command *cmd,
-                               const void *bfr,
-                               size_t sz);
-
 typedef int (*pb_write_t) (struct pb_context *ctx, const void *bfr,
                                     size_t sz);
 
@@ -35,7 +30,6 @@ struct pb_context
     bool connected;
     pb_init_t init;
     pb_free_t free;
-    pb_api_command_t command;
     pb_write_t write;
     pb_read_t read;
     pb_list_devices_t list;
@@ -63,7 +57,7 @@ struct pb_device_capabilities
 struct pb_partition_table_entry
 {
     uint8_t uuid[16];     /*!< Partition UUID */
-    char description[16]; /*!< Textual description of partition */
+    char description[37]; /*!< Textual description of partition */
     uint64_t first_block; /*!< Partition start block */
     uint64_t last_block;  /*!< Last(inclusive) block of partition */
     uint16_t block_size;  /*!< Block size */
@@ -101,7 +95,10 @@ int pb_api_slc_set_configuration(struct pb_context *ctx, const void *data,
 int pb_api_slc_set_configuration_lock(struct pb_context *ctx, const void *data,
                                 size_t size);
 
+int pb_api_slc_set_end_of_life(struct pb_context *ctx);
+
 int pb_api_slc_revoke_key(struct pb_context *ctx, uint32_t key_id);
+int pb_api_slc_set_keystore_id(struct pb_context *ctx, uint32_t keystore_id);
 
 int pb_api_device_read_caps(struct pb_context *ctx,
                             struct pb_device_capabilities *caps);

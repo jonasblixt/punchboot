@@ -25,7 +25,7 @@ int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose)
                                     &boot_part_command,
                                     sizeof(boot_part_command));
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -79,7 +79,24 @@ int pb_api_boot_ram(struct pb_context *ctx,
     pb_wire_init_command2(&cmd, PB_CMD_BOOT_RAM, &boot_cmd, sizeof(boot_cmd));
 
     ctx->d(ctx, 1, "%s: Loading image..\n", __func__);
-    rc = ctx->command(ctx, &cmd, header, sizeof(*header));
+
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
+
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
+
+    rc = ctx->write(ctx, header, sizeof(*header));
 
     if (rc != PB_RESULT_OK)
         return rc;

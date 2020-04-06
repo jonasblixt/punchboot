@@ -16,7 +16,7 @@ int pb_api_bootloader_version(struct pb_context *ctx,
 
     pb_wire_init_command(&cmd, PB_CMD_BOOTLOADER_VERSION_READ);
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;

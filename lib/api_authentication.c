@@ -24,7 +24,7 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
     if (rc != PB_RESULT_OK)
         return rc;
 
-    rc = ctx->command(ctx, &cmd, data, size);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;
@@ -36,6 +36,22 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
 
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
+
+    if (size)
+    {
+        rc = ctx->write(ctx, data, size);
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        rc = ctx->read(ctx, &result, sizeof(result));
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        if (!pb_wire_valid_result(&result))
+            return -PB_RESULT_ERROR;
+    }
 
     ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
                                         pb_error_string(result.result_code));
@@ -84,7 +100,7 @@ int pb_api_auth_set_otp_password(struct pb_context *ctx,
         return -PB_RESULT_ERROR;
     }
 
-    rc = ctx->command(ctx, &cmd, NULL, 0);
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
         return rc;

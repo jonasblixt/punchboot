@@ -14,8 +14,14 @@
 
 static int part_activate(struct pb_context *ctx, const char *part_uuid)
 {
-    printf("Activate...\n");
-    return PB_RESULT_OK;
+    int rc;
+    uuid_t uu;
+
+    uuid_parse(part_uuid, uu);
+
+    rc = pb_api_partition_activate(ctx, uu);
+
+    return rc;
 }
 
 static int part_verify(struct pb_context *ctx, const char *filename,
@@ -188,10 +194,11 @@ static int part_write(struct pb_context *ctx, const char *filename,
             if (uuid_compare(tbl[i].uuid, uu_part) == 0)
             {
                 offset = tbl[i].block_size * \
-                         (tbl[i].last_block - tbl[i].first_block) - \
+                         (tbl[i].last_block - tbl[i].first_block + 1) - \
                          sizeof(header);
             }
         }
+        printf("Writing header at 0x%lx\n", offset);
         rc = pb_api_stream_write_buffer(ctx, buffer_id, offset, sizeof(header));
 
         if (rc != PB_RESULT_OK)
