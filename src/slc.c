@@ -220,7 +220,7 @@ int action_slc(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Command failed %i\n", rc);
+        printf("Error: Command failed %i (%s)\n", rc, pb_error_string(rc));
     }
 
 err_free_ctx_out:
