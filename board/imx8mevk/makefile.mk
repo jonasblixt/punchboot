@@ -1,3 +1,5 @@
+ifdef CONFIG_BOARD_IMX8MEVK
+
 PB_BOARD_NAME = imx8mevk
 PB_PLAT_NAME  = imx8m
 PB_ENTRY      = 0x7E1000
@@ -8,3 +10,4 @@ KEYS  = ../pki/secp256r1-pub-key.der
 
 KEY_TYPE = EC
 
+endif

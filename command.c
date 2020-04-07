@@ -22,66 +22,93 @@
 #include <pb/boot.h>
 #include <pb/crypto.h>
 #include <board/config.h>
-#include <pb/config.h>
 #include <plat/defs.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
 #include <uuid/uuid.h>
 
-#define RECOVERY_CMD_BUFFER_SZ  1024*64
-#define RECOVERY_BULK_BUFFER_BLOCKS 16384
-#define RECOVERY_BULK_BUFFER_SZ (RECOVERY_BULK_BUFFER_BLOCKS*512)
-#define RECOVERY_MAX_PARAMS 128
-
-static uint8_t __a4k __no_bss recovery_cmd_buffer[RECOVERY_CMD_BUFFER_SZ];
-extern char _code_start, _code_end, _data_region_start, _data_region_end,
-            _zero_region_start, _zero_region_end, _stack_start, _stack_end;
-
-static struct pb_image_load_context load_ctx __no_bss __a4k;
-
-static int ram_load_read(struct pb_image_load_context *ctx,
-                            void *buf, size_t size)
+#ifdef CONFIG_AUTH_TOKEN
+static int auth_token(struct pb_crypto *crypto,
+                      struct bpak_keystore *keystore,
+                      uint8_t *device_uu,
+                      uint32_t key_id, uint8_t *sig, size_t size)
 {
-    struct pb_transport *transport = (struct pb_transport *) ctx->private;
-    struct pb_transport_driver *drv = transport->driver;
+    int rc = -PB_ERR;
+    char device_uu_str[37];
+    struct bpak_key *k = NULL;
+    struct pb_hash_context hash;
 
-    LOG_DBG("Read %lu bytes", size);
-    return drv->read(drv, buf, size);
+    uuid_unparse(device_uu, device_uu_str);
+
+    for (int i = 0; i < keystore->no_of_keys; i++)
+    {
+        if (keystore->keys[i]->id == key_id)
+        {
+            k = keystore->keys[i];
+            break;
+        }
+    }
+
+    if (!k)
+    {
+        LOG_ERR("Key not found");
+        return -PB_ERR;
+    }
+
+    LOG_DBG("Found key %x", k->id);
+
+    int hash_kind = PB_HASH_INVALID;
+
+    switch (k->kind)
+    {
+        case BPAK_KEY_PUB_PRIME256v1:
+            hash_kind = PB_HASH_SHA256;
+        break;
+        case BPAK_KEY_PUB_SECP384r1:
+            hash_kind = PB_HASH_SHA384;
+        break;
+        case BPAK_KEY_PUB_SECP521r1:
+            hash_kind = PB_HASH_SHA512;
+        break;
+        case BPAK_KEY_PUB_RSA4096:
+            hash_kind = PB_HASH_SHA256;
+        break;
+        default:
+            LOG_ERR("Unkown key kind");
+            return -PB_ERR;
+    }
+
+    LOG_DBG("Hash init");
+    rc = pb_hash_init(crypto, &hash, hash_kind);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_hash_update(&hash, NULL, 0);
+
+    if (rc != PB_OK)
+        return rc;
+
+    LOG_DBG("Hash final");
+    rc = pb_hash_finalize(&hash, device_uu_str, 36);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = pb_pk_verify(crypto, sig, size, &hash ,k);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Authentication failed");
+        return rc;
+    }
+
+    LOG_INFO("Authentication successful");
+
+    return PB_OK;
 }
-
-static int ram_load_result(struct pb_image_load_context *ctx, int rc)
-{
-    struct pb_transport *transport = (struct pb_transport *) ctx->private;
-    struct pb_transport_driver *drv = transport->driver;
-
-    pb_wire_init_result(&ctx->result_data, rc);
-    return drv->write(drv, &ctx->result_data, sizeof(ctx->result_data));
-}
-
-
-struct fs_load_private
-{
-    struct pb_storage_driver *sdrv;
-    struct pb_storage_map *map;
-    size_t block_offset;
-};
-
-static int fs_load_read(struct pb_image_load_context *ctx,
-                            void *buf, size_t size)
-{
-    struct fs_load_private *priv = (struct fs_load_private *) ctx->private;
-    int rc;
-    size_t blocks = size / priv->sdrv->block_size;
-
-    LOG_DBG("Read %lu blocks", blocks);
-
-    rc = pb_storage_read(priv->sdrv, priv->map, buf,
-                            blocks, priv->block_offset);
-
-    priv->block_offset += blocks;
-    return rc;
-}
+#endif
 
 int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
 {
@@ -92,6 +119,13 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
     {
         LOG_ERR("Invalid command: %i\n", cmd->command);
         pb_wire_init_result(&ctx->result, -PB_RESULT_INVALID_COMMAND);
+        goto err_out;
+    }
+
+    if (pb_wire_requires_auth(cmd) && (!ctx->authenticated))
+    {
+        LOG_ERR("Not authenticaated");
+        pb_wire_init_result(&ctx->result, -PB_RESULT_NOT_AUTHENTICATED);
         goto err_out;
     }
 
@@ -170,8 +204,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             {
                 size_t bytes = sizeof(struct pb_result_part_table_entry)*(entries);
                 LOG_DBG("Bytes %li", bytes);
-                memcpy(recovery_cmd_buffer, result_tbl, bytes);
-                drv->write(drv, recovery_cmd_buffer, bytes);
+                drv->write(drv, result_tbl, bytes);
             }
 
             pb_wire_init_result(&ctx->result, PB_RESULT_OK);
@@ -193,17 +226,42 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             struct pb_command_ram_boot *ram_boot_cmd = \
                                (struct pb_command_ram_boot *) cmd->request;
 
-            load_ctx.read = ram_load_read;
-            load_ctx.result = ram_load_result;
-            load_ctx.private = ctx->transport;
-            load_ctx.chunk_size = 1024*1024*4;
+            if (ram_boot_cmd->verbose)
+            {
+                LOG_INFO("Verbose boot enabled");
+            }
 
-            drv->read(drv, &load_ctx.header, sizeof(load_ctx.header));
             pb_wire_init_result(&ctx->result, PB_RESULT_OK);
-            drv->write(drv, &ctx->result, sizeof(ctx->result));
+            rc = drv->write(drv, &ctx->result, sizeof(ctx->result));
 
-            rc = pb_image_load(&load_ctx, ctx->crypto, ctx->keystore);
+            if (rc != PB_OK)
+                break;
+
+            rc = drv->read(drv, &ctx->boot->driver->load_ctx->header,
+                            sizeof(struct bpak_header));
+
+            if (rc != PB_OK)
+                break;
+
             pb_wire_init_result(&ctx->result, rc);
+            rc = drv->write(drv, &ctx->result, sizeof(ctx->result));
+
+            if (rc != PB_OK)
+                break;
+
+            rc = pb_boot_load_transport(ctx->boot, ctx->transport);
+
+            pb_wire_init_result(&ctx->result, rc);
+
+            if (rc != PB_OK)
+            {
+                break;
+            }
+
+            drv->write(drv, &ctx->result, sizeof(ctx->result));
+            pb_boot(ctx->boot, ctx->device_uuid, ram_boot_cmd->verbose);
+            return -PB_ERR;
+
         }
         break;
         case PB_CMD_PART_TBL_INSTALL:
@@ -348,11 +406,11 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             if (rc != PB_OK)
             {
                 pb_wire_init_result(&ctx->result, rc);
-                sdrv->map_request(sdrv, ctx->stream_map);
+                sdrv->map_release(sdrv, ctx->stream_map);
                 break;
             }
 
-            rc = sdrv->map_request(sdrv, ctx->stream_map);
+            rc = sdrv->map_release(sdrv, ctx->stream_map);
 
             if (rc != PB_OK)
             {
@@ -507,54 +565,18 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             struct pb_command_boot_part *boot_cmd = \
                 (struct pb_command_boot_part *) cmd->request;
 
-            rc = pb_storage_get_part(ctx->storage, boot_cmd->uuid,
-                                     &ctx->stream_map,
-                                     &ctx->stream_drv);
-
-            if (rc != PB_OK)
-            {
-                LOG_ERR("Could not find partition");
-                pb_wire_init_result(&ctx->result, rc);
-                break;
-            }
-
-            if (!(ctx->stream_map->flags & PB_STORAGE_MAP_FLAG_BOOTABLE))
-            {
-                LOG_ERR("Partition not bootable");
-                pb_wire_init_result(&ctx->result, -PB_RESULT_PART_NOT_BOOTABLE);
-                break;
-            }
-
-            struct pb_storage_driver *sdrv = ctx->stream_drv;
-            struct pb_storage_map *map = ctx->stream_map;
-
-            size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
-            size_t block_offset = map->no_of_blocks - blocks - 1;
-
-            rc = pb_storage_read(sdrv, map, &load_ctx.header,
-                                    blocks, block_offset);
-
-            if (rc != PB_OK)
-            {
-                pb_wire_init_result(&ctx->result, rc);
-                sdrv->map_request(sdrv, ctx->stream_map);
-                break;
-            }
-
-            struct fs_load_private fs_priv;
-
-            fs_priv.sdrv = sdrv;
-            fs_priv.map = map;
-            fs_priv.block_offset = 0;
-
-            load_ctx.read = fs_load_read;
-            load_ctx.result = NULL;
-            load_ctx.private = &fs_priv;
-            load_ctx.chunk_size = 1024*1024*4;
-
-            rc = pb_image_load(&load_ctx, ctx->crypto, ctx->keystore);
-
+            rc = pb_boot_load_fs(ctx->boot, boot_cmd->uuid);
             pb_wire_init_result(&ctx->result, rc);
+
+            drv->write(drv, &ctx->result, sizeof(ctx->result));
+
+            if (rc != PB_OK)
+                break;
+
+            pb_boot(ctx->boot, ctx->device_uuid, boot_cmd->verbose);
+
+            /* Should not return */
+            return -PB_ERR;
         }
         break;
         case PB_CMD_DEVICE_IDENTIFIER_READ:
@@ -565,11 +587,58 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             const char *board_id = board_get_id();
             memset(ident->board_id, 0, sizeof(ident->board_id));
             memcpy(ident->board_id, board_id, strlen(board_id));
-
-            rc = plat_get_uuid(ctx->crypto, ident->device_uuid);
+            memcpy(ident->device_uuid, ctx->device_uuid, 16);
 
             pb_wire_init_result2(&ctx->result, rc,
                                     ident, sizeof(*ident));
+        }
+        break;
+        case PB_CMD_PART_ACTIVATE:
+        {
+            struct pb_command_activate_part *activate_cmd = \
+                (struct pb_command_activate_part *) cmd->request;
+
+            rc = pb_boot_activate(ctx->boot, activate_cmd->uuid);
+
+            pb_wire_init_result(&ctx->result, rc);
+        }
+        break;
+        case PB_CMD_AUTHENTICATE:
+        {
+            struct pb_command_authenticate *auth_cmd = \
+                (struct pb_command_authenticate *) cmd->request;
+
+            LOG_DBG("Auth, method:%u sz:%i", auth_cmd->method, auth_cmd->size);
+            pb_wire_init_result(&ctx->result, -PB_RESULT_NOT_SUPPORTED);
+
+#ifdef CONFIG_AUTH_TOKEN
+            if (auth_cmd->method == PB_AUTH_ASYM_TOKEN)
+            {
+                pb_wire_init_result(&ctx->result, PB_RESULT_OK);
+                drv->write(drv, &ctx->result, sizeof(ctx->result));
+
+                drv->read(drv, ctx->buffer, auth_cmd->size);
+
+                rc = auth_token(ctx->crypto, ctx->keystore, ctx->device_uuid,
+                        auth_cmd->key_id, ctx->buffer, auth_cmd->size);
+
+                if (rc == PB_OK)
+                    ctx->authenticated = true;
+                else
+                    ctx->authenticated = false;
+
+                pb_wire_init_result(&ctx->result, rc);
+            }
+#endif
+
+
+        }
+        break;
+        case PB_CMD_AUTH_SET_OTP_PASSWORD:
+        {
+#ifndef CONFIG_AUTH_PASSWORD
+            pb_wire_init_result(&ctx->result, -PB_RESULT_NOT_SUPPORTED);
+#endif
         }
         break;
         default:
@@ -588,14 +657,19 @@ int pb_command_init(struct pb_command_context *ctx,
                   struct pb_transport *transport,
                   struct pb_storage *storage,
                   struct pb_crypto *crypto,
-                  struct bpak_keystore *keystore)
+                  struct bpak_keystore *keystore,
+                  struct pb_boot_context *boot,
+                  uint8_t *device_uuid)
 {
     memset(ctx, 0, sizeof(ctx));
 
+    ctx->authenticated = false;
     ctx->transport = transport;
     ctx->storage = storage;
     ctx->crypto = crypto;
     ctx->keystore = keystore;
+    ctx->boot = boot;
+    ctx->device_uuid = device_uuid;
 
     return PB_OK;
 }

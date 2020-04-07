@@ -11,7 +11,7 @@
 #ifndef PLAT_TEST_UART_H_
 #define PLAT_TEST_UART_H_
 
-#include <pb.h>
+#include <pb/pb.h>
 
 void test_uart_init(void);
 

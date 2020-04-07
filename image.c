@@ -288,9 +288,13 @@ int pb_image_load(struct pb_image_load_context *ctx,
     rc = pb_pk_verify(crypto, ctx->signature, ctx->signature_sz, &hash ,k);
 
     if (rc == PB_OK)
+    {
         LOG_INFO("Signature Valid");
+    }
     else
+    {
         LOG_ERR("Signature Invalid");
+    }
 
     return rc;
 }

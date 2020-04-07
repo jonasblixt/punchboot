@@ -1,3 +1,5 @@
+ifdef CONFIG_BOARD_IMX8QXMEK
+
 PB_BOARD_NAME = imx8qxmek
 PB_PLAT_NAME   = imx8x
 PB_ENTRY     = 0x80000000
@@ -17,3 +19,4 @@ KEYS += ../pki/secp521r1-pub-key.der
 
 KEY_TYPE = EC
 
+endif

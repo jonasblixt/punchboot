@@ -11,9 +11,9 @@
 #define PLAT_TEST_VIRTIO_SERIAL_H_
 
 #include <stdint.h>
-#include <plat/test/virtio_mmio.h>
-#include <plat/test/virtio_queue.h>
-#include <plat/test/virtio.h>
+#include <plat/qemu/virtio_mmio.h>
+#include <plat/qemu/virtio_queue.h>
+#include <plat/qemu/virtio.h>
 
 #define VIRTIO_SERIAL_QSZ 1024
 

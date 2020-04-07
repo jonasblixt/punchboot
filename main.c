@@ -55,13 +55,13 @@ static int pb_early_init(void)
         return rc;
 
     rc = pb_command_init(&command_ctx, &transport, &storage, &crypto,
-                            &keystore_pb);
+                            &keystore_pb, &boot_ctx, device_uuid);
 
     if (rc != PB_OK)
         return rc;
 
     rc = plat_early_init(&storage, &transport, &console, &crypto, &command_ctx,
-                         &boot_ctx);
+                         &boot_ctx, &keystore_pb);
 
     if (rc != PB_OK)
         return rc;
@@ -87,8 +87,6 @@ int putchar(int c)
 void pb_main(void)
 {
     int rc;
-    int recovery_timeout_ts;
-    bool flag_run_command_mode = false;
 
     rc = pb_early_init();
 
@@ -105,7 +103,6 @@ void pb_main(void)
     if (rc != PB_OK)
     {
         LOG_ERR("Could not initialize storage");
-        flag_run_command_mode = true;
         goto run_command_mode;
     }
 
@@ -114,63 +111,65 @@ void pb_main(void)
     if (rc != PB_OK)
     {
         LOG_ERR("Could not initialize crypto");
-        flag_run_command_mode = true;
         goto run_command_mode;
     }
 
-    rc = plat_get_uuid(&crypto, device_uuid);
+    rc = plat_get_uuid(&crypto, (char *) device_uuid);
 
     if (rc != PB_OK)
     {
         LOG_ERR("Could not read device UUID");
-        flag_run_command_mode = true;
         goto run_command_mode;
     }
 
-    rc = pb_boot(&boot_ctx, NULL, false, false);
+    rc = pb_boot_load_state(&boot_ctx);
 
     if (rc != PB_OK)
     {
         LOG_ERR("Could not boot, starting command mode");
+        goto run_command_mode;
     }
 
-    flag_run_command_mode = true;
-run_command_mode:
+    rc = pb_boot_load_fs(&boot_ctx, NULL);
 
-    recovery_timeout_ts = plat_get_us_tick();
-
-    if (flag_run_command_mode)
+    if (rc != PB_OK)
     {
-        LOG_DBG("Starting transport");
+        LOG_ERR("Could not boot, starting command mode");
+        goto run_command_mode;
+    }
 
-        rc = pb_transport_start(&transport);
+    pb_boot(&boot_ctx, device_uuid, false);
+
+    LOG_ERR("Boot failed");
+
+run_command_mode:
+    LOG_DBG("Starting transport");
+
+    rc = pb_transport_start(&transport, 10);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Transport init err");
+        plat_reset();
+    }
+
+    LOG_DBG("Transport init done");
+
+    while (true)
+    {
+        rc = pb_transport_read(&transport, &cmd, sizeof(cmd));
 
         if (rc != PB_OK)
         {
-            LOG_ERR("Transport init err");
-            plat_reset();
+            LOG_ERR("Read error %i", rc);
+            goto run_command_mode;
         }
 
-        LOG_DBG("Transport init done");
+        rc = pb_command_parse(&command_ctx, &cmd);
 
-        while (flag_run_command_mode)
+        if (rc != PB_OK)
         {
-            rc = pb_transport_read(&transport, &cmd, sizeof(cmd));
-
-            if (rc != PB_OK)
-            {
-                LOG_ERR("Read error %i", rc);
-                continue;
-            }
-
-            rc = pb_command_parse(&command_ctx, &cmd);
-
-            if (rc != PB_OK)
-            {
-                LOG_ERR("Command error %i", rc);
-            }
+            LOG_ERR("Command error %i", rc);
         }
     }
-
-    plat_reset();
 }

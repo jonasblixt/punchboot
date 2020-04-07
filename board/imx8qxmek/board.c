@@ -227,16 +227,34 @@ static uint8_t command_buffers[PB_CMD_NO_OF_BUFFERS][PB_CMD_BUFFER_SIZE] __no_bs
 /* Platform driver */
 
 /* Boot driver */
+
+static uint8_t boot_state[512] __no_bss __a4k;
+static uint8_t boot_state_backup[512] __no_bss __a4k;
+static struct pb_image_load_context load_ctx __no_bss __a4k;
+
 static int update_bootargs(struct pb_boot_driver *boot, void *dtb, int offset)
 {
-    return PB_OK;
+    const char *bootargs;
+
+    if (boot->verbose_boot)
+    {
+        bootargs = "console=ttyLP0,115200  " \
+                   "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk " \
+                   "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
+    }
+    else
+    {
+        bootargs = "console=ttyLP0,115200  " \
+                   "quiet " \
+                   "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
+    }
+
+    return fdt_setprop_string(dtb, offset, "bootargs", bootargs);
 }
 
 static int jump(struct pb_boot_driver *boot)
 {
-    arch_jump_atf((void *)(uintptr_t) NULL,
-                  (void *)(uintptr_t) NULL);
-
+    arch_jump((void *) boot->jump_addr, NULL, NULL, NULL, NULL);
     return -PB_ERR; /* Should not be reached */
 }
 
@@ -244,24 +262,30 @@ static struct pb_boot_ab_driver ab_boot_driver =
 {
     .a =
     {
-        .system = "2af755d8-8de5-45d5-a862-014cfa735ce0",
-        .root =   "c284387a-3377-4c0f-b5db-1bcbcff1ba1a",
+        .name = "A",
+        .image = "2af755d8-8de5-45d5-a862-014cfa735ce0",
+        .board_private = NULL,
     },
     .b =
     {
-        .system = "c046ccd8-0f2e-4036-984d-76c14dc73992",
-        .root =   "ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb",
+        .name = "B",
+        .image = "c046ccd8-0f2e-4036-984d-76c14dc73992",
+        .board_private = NULL,
     },
 };
 
 static struct pb_boot_driver boot_driver =
 {
     .on_dt_patch_bootargs = update_bootargs,
-    .on_dt_patch_ramdisk = NULL,
     .on_jump = jump,
-    .boot_image_id = 0xa697d988,
-    .ramdisk_image_id = 0xf4cdac1f,
-    .dtb_image_id = 0x56f91b86,
+    .boot_image_id = 0xa697d988,    /* atf     */
+    .ramdisk_image_id = 0xf4cdac1f, /* ramdisk */
+    .dtb_image_id = 0x56f91b86,     /* dt */
+    .state = (void *) boot_state,
+    .backup_state = (void *) boot_state_backup,
+    .primary_state_uu = "f5f8c9ae-efb5-4071-9ba9-d313b082281e",
+    .backup_state_uu  = "656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
+    .load_ctx = &load_ctx,
     .private = &ab_boot_driver,
     .size = sizeof(ab_boot_driver),
 };
@@ -272,7 +296,8 @@ int board_early_init(struct pb_platform_setup *plat,
                      struct pb_console *console,
                      struct pb_crypto *crypto,
                      struct pb_command_context *command_ctx,
-                     struct pb_boot_context *boot)
+                     struct pb_boot_context *boot,
+                     struct bpak_keystore *keystore)
 {
     int rc = PB_OK;
     sc_pm_clock_rate_t rate;
@@ -350,7 +375,7 @@ int board_early_init(struct pb_platform_setup *plat,
 
     /* Configure boot driver */
 
-    rc = pb_boot_ab_init(boot, &boot_driver, storage);
+    rc = pb_boot_ab_init(boot, &boot_driver, storage, crypto, keystore);
 
     if (rc != PB_OK)
         return rc;

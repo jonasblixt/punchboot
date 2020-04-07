@@ -396,7 +396,7 @@ static int gpt_init(struct pb_storage_driver *drv)
     }
 
     uint8_t uuid[16];
-    char name[16];
+    char name[37];
     char uuid_str[37];
 
 #if (LOGLEVEL > 1)
@@ -407,13 +407,13 @@ static int gpt_init(struct pb_storage_driver *drv)
         uuid_unparse(uuid, uuid_str);
 
         int n = 0;
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < 36; i++)
         {
             name[i] = p->name[n];
             n += 2;
         }
 
-        name[15] = 0;
+        name[36] = 0;
 
         LOG_DBG("%s: %s, %llu -> %llu", uuid_str, name,
                                       p->first_lba, p->last_lba);
@@ -448,13 +448,13 @@ static int gpt_init(struct pb_storage_driver *drv)
             continue;
 
         int n = 0;
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < 36; i++)
         {
             name[i] = p->name[n];
             n += 2;
         }
 
-        name[15] = 0;
+        name[36] = 0;
 
         LOG_DBG("Copy %s", name);
 

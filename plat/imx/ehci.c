@@ -123,6 +123,9 @@ static int ehci_usb_wait_for_ep_completion(struct pb_transport_driver *drv,
     {
         plat_wdog_kick();
         imx_ehci_usb_process(drv);
+
+        if (!priv->current_xfers[ep])
+            return -PB_ERR;
     }
 
     return PB_OK;
@@ -246,7 +249,7 @@ static int imx_ehci_usb_process(struct pb_transport_driver *drv)
     {
         LOG_DBG("Got RST");
 
-        for (uint32_t i = 2; i < EHCI_NO_OF_EPS*2; i++)
+        for (uint32_t i = 1; i < EHCI_NO_OF_EPS*2; i++)
         {
             priv->dqhs[i].next = 0xDEAD0001;
             priv->dqhs[i].token = 0;

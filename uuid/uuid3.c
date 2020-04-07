@@ -59,7 +59,7 @@ int uuid_gen_uuid3(struct pb_crypto *crypto, const char *namespace_uu,
 
     memcpy(out, hash_ctx.buf, 16);
 
-    uuid3_t *u = (uuid_t *) out;
+    uuid3_t *u = (uuid3_t *) out;
 
     u->uuid.time_hi_and_version &= 0xFF0F;
     u->uuid.time_hi_and_version |= 0x0030; /* Version 3*/

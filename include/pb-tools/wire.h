@@ -72,6 +72,7 @@ enum pb_commands
     PB_CMD_SLC_SET_EOL,
     PB_CMD_SLC_REVOKE_KEY,
     PB_CMD_SLC_READ,
+    PB_CMD_SLC_SET_KEYSTORE_ID,
     PB_CMD_BOOTLOADER_VERSION_READ,
     PB_CMD_PART_TBL_READ,
     PB_CMD_PART_TBL_INSTALL,
@@ -177,12 +178,12 @@ struct pb_result_part_table_read
 struct pb_result_part_table_entry
 {
     uint8_t uuid[16];     /*!< Partition UUID */
-    char description[16]; /*!< Textual description of partition */
+    char description[37]; /*!< Textual description of partition */
     uint64_t first_block; /*!< Partition start block */
     uint64_t last_block;  /*!< Last(inclusive) block of partition */
     uint16_t block_size;  /*!< Block size */
     uint8_t flags;        /*!< Flags */
-    uint8_t rz[13];       /*!< Reserved */
+    uint8_t rz[56];       /*!< Reserved */
 };
 
 
@@ -230,7 +231,8 @@ struct pb_command_authenticate
 {
     uint8_t method;  /*!< Method to use for authenticaton see enum pb_auth_method */
     uint16_t size;   /*!< Authentication data size in bytes */
-    uint8_t rz[29];  /*!< Reserved */
+    uint32_t key_id; /*!< Optional key id for token based auth */
+    uint8_t rz[25];  /*!< Reserved */
 } __attribute__((packed));
 
 /**
@@ -312,6 +314,15 @@ struct pb_result_slc_key_status
 struct pb_command_revoke_key
 {
     uint32_t key_id; /*!< ID of key to revoke */
+    uint8_t rz[28];  /*!< Reserved */
+} __attribute__((packed));
+
+/**
+ * Set keystore id command
+ */
+struct pb_command_set_keystore
+{
+    uint32_t keystore_id; /*!< ID of keystore to fuse */
     uint8_t rz[28];  /*!< Reserved */
 } __attribute__((packed));
 

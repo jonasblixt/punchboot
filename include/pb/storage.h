@@ -37,7 +37,7 @@ struct pb_storage_map
     bool valid_entry;
     char uuid_str[37];
     uint8_t uuid[16];     /*!< Partition UUID */
-    char description[16]; /*!< Textual description of partition */
+    char description[37]; /*!< Textual description of partition */
     uint64_t first_block; /*!< Partition start block */
     uint64_t last_block;  /*!< Last(inclusive) block of partition */
     uint64_t no_of_blocks;

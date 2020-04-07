@@ -9,11 +9,11 @@
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <io.h>
-#include <usb.h>
-#include <plat/test/virtio_serial.h>
-#include <plat/test/socket_proto.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <pb/usb.h>
+#include <plat/qemu/virtio_serial.h>
+#include <plat/qemu/socket_proto.h>
 
 struct virtio_serial_device d;
 static uint32_t usb_addr = 0;

@@ -11,7 +11,7 @@
 #define PLAT_TEST_VIRTIO_H_
 
 #include <stdint.h>
-#include <plat/test/virtio_queue.h>
+#include <plat/qemu/virtio_queue.h>
 
 #define VIRTIO_STATUS_ACKNOWLEDGE 1
 #define VIRTIO_STATUS_DRIVER      2

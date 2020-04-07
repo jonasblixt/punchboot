@@ -1,0 +1,10 @@
+CONFIG_BOARD_QEMU_ARMV7=y
+# CONFIG_BOARD_JIFFY is not set
+# CONFIG_BOARD_PICO8ML is not set
+# CONFIG_BOARD_IMX8QXMEK is not set
+# CONFIG_BOARD_EXTERNAL is not set
+CONFIG_TOOLCHAIN_PREFIX="arm-none-eabi-"
+CONFIG_KEYSTORE="pki/internal_keystore.bpak"
+# CONFIG_LOG_LEVEL_1 is not set
+# CONFIG_LOG_LEVEL_2 is not set
+CONFIG_LOG_LEVEL_3=y

@@ -4,17 +4,22 @@ TARGET  = pb
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 BPAK ?= $(shell which bpak)
 KEYSTORE_BPAK ?= pki/internal_keystore.bpak
+PYTHON = $(shell which python3)
 
-ifndef BOARD
-	BOARD=test
-endif
+$(shell $(PYTHON) scripts/genconfig.py)
+include .config
 
-ifndef LOGLEVEL
+
+ifdef CONFIG_LOG_LEVEL_3
 	LOGLEVEL = 3
 endif
 
-ifndef BOARD_DIR
-	BOARD_DIR=board
+ifdef CONFIG_LOG_LEVEL_2
+	LOGLEVEL = 2
+endif
+
+ifdef CONFIG_LOG_LEVEL_1
+	LOGLEVEL = 1
 endif
 
 ifdef TIMING_REPORT
@@ -40,7 +45,6 @@ CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I 3pp/fdt/include
 CFLAGS  += -I uuid/
-CFLAGS  += -I $(BOARD_DIR)/$(BOARD)/include
 CFLAGS  += -fstack-usage -fstack-check
 CFLAGS  += -MMD -MP
 
@@ -72,7 +76,6 @@ BLOB_INPUT  =
 # Bootloader
 C_SRCS   = main.c
 C_SRCS  += delay.c
-#C_SRCS  += config.c
 C_SRCS  += boot.c
 C_SRCS  += boot_ab.c
 C_SRCS  += crc.c
@@ -123,20 +126,26 @@ C_SRCS  += 3pp/fdt/fdt_wip.c
 
 LINT_EXCLUDE =
 FINAL_IMAGE =
-BUILD_DIR = build-$(BOARD)
 
+-include board/*/Kconfig.board
+include board/*/makefile.mk
+
+BUILD_DIR = build-$(PB_BOARD_NAME)
 $(shell mkdir -p $(BUILD_DIR))
 
-include $(BOARD_DIR)/$(BOARD)/makefile.mk
-include plat/$(PB_PLAT_NAME)/makefile.mk
-include arch/$(PB_ARCH_NAME)/makefile.mk
+-include plat/*/Kconfig.plat
+-include plat/$(PB_PLAT_NAME)/makefile.mk
 
-CC=$(CROSS_COMPILE)gcc
-LD=$(CROSS_COMPILE)ld
-AR=$(CROSS_COMPILE)ar
-SIZE=$(CROSS_COMPILE)size
-STRIP=$(CROSS_COMPILE)strip
-OBJCOPY=$(CROSS_COMPILE)objcopy
+-include arch/*/Kconfig.arch
+-include arch/$(PB_ARCH_NAME)/makefile.mk
+
+
+CC=$(CONFIG_TOOLCHAIN_PREFIX)gcc
+LD=$(CONFIG_TOOLCHAIN_PREFIX)ld
+AR=$(CONFIG_TOOLCHAIN_PREFIX)ar
+SIZE=$(CONFIG_TOOLCHAIN_PREFIX)size
+STRIP=$(CONFIG_TOOLCHAIN_PREFIX)strip
+OBJCOPY=$(CONFIG_TOOLCHAIN_PREFIX)objcopy
 
 LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY)
 LDFLAGS += -Tarch/$(PB_ARCH_NAME)/link.lds
@@ -163,7 +172,10 @@ CFLAGS += -g  -fprofile-arcs -ftest-coverage
 include tests/makefile.mk
 endif
 
-.PHONY: plat_early keystore plat_final board_final
+.PHONY: plat_early keystore plat_final board_final menuconfig
+
+menuconfig:
+	@$(PYTHON) scripts/menuconfig.py
 
 all: keystore plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
 	$(info Summary:)
@@ -177,7 +189,7 @@ all: keystore plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
 	@$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
 
 keystore:
-	@$(BPAK) generate keystore --name pb $(KEYSTORE_BPAK) > $(BUILD_DIR)/keystore.c
+	@$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) > $(BUILD_DIR)/keystore.c
 	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)

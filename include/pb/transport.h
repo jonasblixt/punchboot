@@ -44,11 +44,12 @@ struct pb_transport
 };
 
 int pb_transport_init(struct pb_transport *ctx, uint8_t *device_uuid);
+
 int pb_transport_add(struct pb_transport *ctx,
                         struct pb_transport_driver *drv);
 
 int pb_transport_free(struct pb_transport *ctx);
-int pb_transport_start(struct pb_transport *ctx);
+int pb_transport_start(struct pb_transport *ctx, int timeout_s);
 
 int pb_transport_read(struct pb_transport *ctx,
                       void *buf,

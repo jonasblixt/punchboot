@@ -10,22 +10,22 @@
 
 PB_ARCH_NAME = armv7a
 
-CFLAGS += -mtune=cortex-a15 -I plat/test/include
+CFLAGS += -mtune=cortex-a15 -I plat/qemu/include
 
-PLAT_C_SRCS  += plat/test/uart.c
-PLAT_C_SRCS  += plat/test/usb_test.c
-PLAT_C_SRCS  += plat/test/crypto.c
-PLAT_C_SRCS  += plat/test/reset.c
-PLAT_C_SRCS  += plat/test/pl061.c
-PLAT_C_SRCS  += plat/test/semihosting.c
-PLAT_C_SRCS  += plat/test/wdog.c
-PLAT_C_SRCS  += plat/test/plat.c
-PLAT_C_SRCS  += plat/test/gcov.c
-PLAT_C_SRCS  += plat/test/virtio.c
-PLAT_C_SRCS  += plat/test/virtio_serial.c
-PLAT_C_SRCS  += plat/test/virtio_block.c
-PLAT_C_SRCS  += plat/test/test_fuse.c
-PLAT_C_SRCS  += plat/test/root_hash.c
+PLAT_C_SRCS  += plat/qemu/uart.c
+PLAT_C_SRCS  += plat/qemu/usb_test.c
+PLAT_C_SRCS  += plat/qemu/crypto.c
+PLAT_C_SRCS  += plat/qemu/reset.c
+PLAT_C_SRCS  += plat/qemu/pl061.c
+PLAT_C_SRCS  += plat/qemu/semihosting.c
+PLAT_C_SRCS  += plat/qemu/wdog.c
+PLAT_C_SRCS  += plat/qemu/plat.c
+PLAT_C_SRCS  += plat/qemu/gcov.c
+PLAT_C_SRCS  += plat/qemu/virtio.c
+PLAT_C_SRCS  += plat/qemu/virtio_serial.c
+PLAT_C_SRCS  += plat/qemu/virtio_block.c
+PLAT_C_SRCS  += plat/qemu/test_fuse.c
+PLAT_C_SRCS  += plat/qemu/root_hash.c
 
 # BearSSL
 
@@ -52,7 +52,7 @@ PLAT_C_SRCS  += 3pp/bearssl/i31_montmul.c
 PLAT_C_SRCS  += 3pp/bearssl/i31_fmont.c
 PLAT_C_SRCS  += 3pp/bearssl/ccopy.c
 
-PLAT_ASM_SRCS += plat/test/semihosting_call.S
+PLAT_ASM_SRCS += plat/qemu/semihosting_call.S
 
 CFLAGS += -fprofile-arcs -ftest-coverage
 

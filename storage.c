@@ -113,7 +113,7 @@ int pb_storage_read(struct pb_storage_driver *drv,
 
     if ((block_offset + blocks) > part->no_of_blocks)
     {
-        LOG_ERR("Trying to read outside of partition %lu > %lu",
+        LOG_ERR("Trying to read outside of partition %lu > %llu",
          (block_offset + blocks), part->no_of_blocks);
         return -PB_ERR_MEM;
     }

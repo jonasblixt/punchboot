@@ -36,7 +36,8 @@ int plat_early_init(struct pb_storage *storage,
                     struct pb_console *console,
                     struct pb_crypto *crypto,
                     struct pb_command_context *command_ctx,
-                    struct pb_boot_context *boot);
+                    struct pb_boot_context *boot,
+                    struct bpak_keystore *keystore);
 
 void plat_preboot_cleanup(void);
 bool plat_force_recovery(void);

@@ -116,7 +116,10 @@ static int usdhc_emmc_send_cmd(struct usdhc_device *dev,
 usdhc_cmd_fail:
 
     if (err == -PB_TIMEOUT)
+    {
         LOG_ERR("cmd %x timeout", cmd);
+    }
+
     return err;
 }
 
@@ -198,7 +201,6 @@ static int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
 
 static int usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
 {
-    struct imx_usdhc_private *priv = PB_IMX_USDHC_PRIV(dev);
     int err;
     uint8_t value = 0;
 

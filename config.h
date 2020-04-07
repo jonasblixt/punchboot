@@ -1,6 +1,4 @@
-#define CONFIG_MODULES 1
-#define CONFIG_BOOL 1
-#define CONFIG_STRING "foo"
-#define CONFIG_INT 747
-#define CONFIG_HEX 0xABC
-#define CONFIG_BOOL_CHOICE_SYM_1 1
+#define CONFIG_BOARD_QEMU_ARMV7 1
+#define CONFIG_TOOLCHAIN_PREFIX "arm-none-eabi-"
+#define CONFIG_KEYSTORE "pki/internal_keystore.bpak"
+#define CONFIG_LOG_LEVEL_3 1

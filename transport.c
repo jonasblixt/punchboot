@@ -1,5 +1,6 @@
 #include <pb/pb.h>
 #include <pb/transport.h>
+#include <pb/plat.h>
 
 
 int pb_transport_init(struct pb_transport *ctx, uint8_t *device_uuid)
@@ -21,7 +22,7 @@ int pb_transport_add(struct pb_transport *ctx,
     return PB_OK;
 }
 
-int pb_transport_start(struct pb_transport *ctx)
+int pb_transport_start(struct pb_transport *ctx, int timeout_s)
 {
     int rc;
 
@@ -44,10 +45,19 @@ int pb_transport_start(struct pb_transport *ctx)
     }
 
     LOG_DBG("Waiting for driver to become ready");
+
+    unsigned int start_timeout_ts = plat_get_us_tick() + timeout_s * 1000000L;
+
     while(!ctx->driver->ready)
     {
         ctx->driver->process(ctx->driver);
         plat_wdog_kick();
+
+        if (plat_get_us_tick() > start_timeout_ts)
+        {
+            LOG_ERR("Timeout");
+            return -PB_ERR;
+        }
     }
 
     LOG_DBG("done");

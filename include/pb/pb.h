@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <pb/errors.h>
+#include <config.h>
 
 enum
 {

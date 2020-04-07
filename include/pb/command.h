@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <pb/storage.h>
 #include <pb/transport.h>
+#include <pb/boot.h>
 #include <pb/crypto.h>
 #include <pb-tools/wire.h>
 #include <bpak/bpak.h>
@@ -24,6 +25,7 @@ struct pb_command_context
     struct pb_transport *transport;
     struct pb_crypto *crypto;
     struct bpak_keystore *keystore;
+    struct pb_boot_context *boot;
     bool authenticated;
     void *buffer;
     size_t buffer_size;
@@ -33,6 +35,7 @@ struct pb_command_context
     size_t stream_offset;
     struct pb_hash_context hash_ctx;
     struct pb_result result;
+    uint8_t *device_uuid;
 };
 
 int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd);
@@ -41,6 +44,8 @@ int pb_command_init(struct pb_command_context *command,
                   struct pb_transport *transport,
                   struct pb_storage *storage,
                   struct pb_crypto *crypto,
-                  struct bpak_keystore *keystore);
+                  struct bpak_keystore *keystore,
+                  struct pb_boot_context *boot,
+                  uint8_t *device_uuid);
 
 #endif  // INCLUDE_PB_RECOVERY_H_

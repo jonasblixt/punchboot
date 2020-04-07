@@ -7,7 +7,7 @@
 #ifndef ARCH_ARMV7A_INCLUDE_ARCH_ARCH_H_
 #define ARCH_ARMV7A_INCLUDE_ARCH_ARCH_H_
 
-#include <utils.h>
+#include <pb/utils.h>
 
 typedef volatile uint32_t __iomem;
 

@@ -4,8 +4,8 @@ mainmenu "Punchboot configuration"
 choice BOARD
 	bool "Board"
 
-config BOARD_QEMU
-	bool "QEMU"
+config BOARD_QEMU_ARMV7
+	bool "QEMU ARMv7"
 
 config BOARD_JIFFY
 	bool "Jiffy"
@@ -13,7 +13,17 @@ config BOARD_JIFFY
 config BOARD_PICO8ML
 	bool "pico8ml"
 
+config BOARD_IMX8QXMEK
+	bool "imx8qxmek"
+
+config BOARD_EXTERNAL
+	bool "External source tree"
+
 endchoice
+
+config BOARD_SRC_DIR
+    string "Configure board source directory"
+    depends on BOARD_EXTERNAL
 
 config TOOLCHAIN_PREFIX
 	string "Toolchain prefix"
@@ -38,6 +48,17 @@ config LOG_LEVEL_3
 
 endchoice
 
+choice AUTH
+	bool "Enable command mode authentication"
+	optional
+
+config AUTH_TOKEN
+	bool "Token based authentication"
+
+config AUTH_PASSWORD
+	bool "Password based authentication"
+
+endchoice
 
 
 

@@ -181,7 +181,8 @@ int plat_early_init(struct pb_storage *storage,
                     struct pb_console *console,
                     struct pb_crypto *crypto,
                     struct pb_command_context *command_ctx,
-                    struct pb_boot_context *boot)
+                    struct pb_boot_context *boot,
+                    struct bpak_keystore *keystore)
 {
     int err = PB_OK;
 
@@ -190,7 +191,7 @@ int plat_early_init(struct pb_storage *storage,
     plat_wdog_init();
 
     err = board_early_init(&plat, storage, transport, console, crypto,
-                            command_ctx, boot);
+                            command_ctx, boot, keystore);
 
     if (err != PB_OK)
         return err;

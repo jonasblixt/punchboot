@@ -37,7 +37,8 @@ int board_early_init(struct pb_platform_setup *plat,
                           struct pb_console *console,
                           struct pb_crypto *crypto,
                           struct pb_command_context *command_ctx,
-                          struct pb_boot_context *boot);
+                          struct pb_boot_context *boot,
+                          struct bpak_keystore *keystore);
 
 /**
  * Function: board_late_init

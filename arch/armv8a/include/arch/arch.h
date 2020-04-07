@@ -881,6 +881,12 @@ static inline void set_sctlr(unsigned int val)
 
 typedef volatile uint64_t __iomem;
 
+
+void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
+                                 __attribute__((noreturn));
+
 #endif
+
+
 
 #endif  // ARCH_ARMV8A_INCLUDE_ARCH_ARCH_H_
