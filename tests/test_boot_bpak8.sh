@@ -25,7 +25,7 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x40011000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key ../pki/dev_rsa_private.pem \
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
                     --key-id pb-development \
                     --key-store pb $V
 set +e
@@ -37,7 +37,8 @@ then
 fi
 
 # Flashing image 
-$PB part -w -n 0 -f /tmp/img.bpak
+echo "Flashing A"
+$PB part --write /tmp/img.bpak --part $BOOT_A --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -46,7 +47,9 @@ then
 fi
 
 # Loading image to ram and execute should fail because it overlaps with bootloader
-$PB boot -b -s a
+
+echo Booting system A
+$PB boot --boot $BOOT_A --transport socket
 result_code=$?
 
 if [ $result_code -ne 255 ];
@@ -54,8 +57,9 @@ then
     test_end_error
 fi
 
+echo Loading from RAM
 # Loading image to ram and execute should fail because it overlaps with bootloader
-$PB boot -x -f /tmp/img.bpak
+$PB boot --load /tmp/img.pbi --transport socket
 result_code=$?
 
 if [ $result_code -ne 255 ];

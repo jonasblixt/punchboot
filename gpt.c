@@ -147,7 +147,7 @@ static int gpt_init_tbl(struct pb_storage_driver *drv)
 
     prng_state = plat_get_us_tick();
 
-    LOG_INFO("Initializing table at lba 1, last lba: %lu",
+    LOG_INFO("Initializing table at lba 1, last lba: %zu",
                     pb_storage_last_block(drv));
 
     memset((uint8_t *) &priv->primary, 0, sizeof(priv->primary));
@@ -286,7 +286,7 @@ static int gpt_write_tbl(struct pb_storage_driver *drv)
     hdr->backup_lba = priv->primary.hdr.current_lba;
     hdr->current_lba = last_lba;
     hdr->entries_start_lba = (last_lba -
-                ((hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512) - 1);
+                ((hdr->no_of_parts*sizeof(struct gpt_part_hdr)) / 512));
 
     hdr->hdr_crc = 0;
     hdr->part_array_crc = efi_crc32((uint8_t *) priv->backup.part,
@@ -318,7 +318,7 @@ static int gpt_init(struct pb_storage_driver *drv)
     drv->read(drv, 1, &priv->primary, (sizeof(priv->primary) / 512));
 
     size_t backup_lba = pb_storage_last_block(drv) - \
-                            (sizeof(priv->backup) / 512);
+            ((128*sizeof(struct gpt_part_hdr)) / 512);
 
     drv->read(drv, backup_lba, &priv->backup, (sizeof(priv->backup) / 512));
 
@@ -345,7 +345,7 @@ static int gpt_init(struct pb_storage_driver *drv)
         memcpy(priv->primary.part, priv->backup.part, (sizeof(struct gpt_part_hdr)
                     * priv->backup.hdr.no_of_parts));
 
-        priv->primary.hdr.backup_lba = pb_storage_blocks(drv);
+        priv->primary.hdr.backup_lba = pb_storage_last_block(drv);
         priv->primary.hdr.current_lba = 1;
         priv->primary.hdr.entries_start_lba = (priv->primary.hdr.current_lba + 1);
 

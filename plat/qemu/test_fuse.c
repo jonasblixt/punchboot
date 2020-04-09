@@ -7,12 +7,12 @@
  *
  */
 
-#include <pb.h>
+#include <pb/pb.h>
 #include <stdio.h>
-#include <fuse.h>
-#include <plat/test/test_fuse.h>
-#include <plat/test/virtio.h>
-#include <plat/test/virtio_block.h>
+#include <pb/fuse.h>
+#include <plat/qemu/test_fuse.h>
+#include <plat/qemu/virtio.h>
+#include <plat/qemu/virtio_block.h>
 
 #define TEST_FUSE_MAX 16
 
@@ -24,9 +24,9 @@ uint32_t test_fuse_init(struct virtio_block_device *dev)
 
     if (dev == NULL)
         return PB_ERR;
-
-    return virtio_block_read(dev, 0,
-                        (uintptr_t) _fuse_box, 1);
+return PB_OK;
+//    return virtio_block_read(dev, 0,
+//                        (uintptr_t) _fuse_box, 1);
 }
 
 uint32_t test_fuse_write(struct virtio_block_device *dev,
@@ -38,8 +38,8 @@ uint32_t test_fuse_write(struct virtio_block_device *dev,
     _fuse_box[id] |= val;
 
     LOG_DBG("_fuse_box[%u] = %x, blkdev: %p", id, _fuse_box[id], dev);
-
-    return virtio_block_write(dev, 0, (uintptr_t) _fuse_box, 1);
+    return PB_OK;
+    //return virtio_block_write(dev, 0, (uintptr_t) _fuse_box, 1);
 }
 
 

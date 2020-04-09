@@ -30,7 +30,7 @@ static int ram_load_read(struct pb_image_load_context *ctx,
     struct pb_transport *transport = (struct pb_transport *) ctx->private;
     struct pb_transport_driver *drv = transport->driver;
 
-    LOG_DBG("Read %lu bytes", size);
+    LOG_DBG("Read %zu bytes", size);
     return drv->read(drv, buf, size);
 }
 
@@ -57,7 +57,7 @@ static int fs_load_read(struct pb_image_load_context *ctx,
     int rc;
     size_t blocks = size / priv->sdrv->block_size;
 
-    LOG_DBG("Read %lu blocks", blocks);
+    LOG_DBG("Read %zu blocks", blocks);
 
     rc = pb_storage_read(priv->sdrv, priv->map, buf,
                             blocks, priv->block_offset);
@@ -258,6 +258,8 @@ int pb_boot_load_state(struct pb_boot_context *ctx)
     if (rc != PB_OK)
         return rc;
 
+    LOG_DBG("drv->load_boot_state = %p", drv->load_boot_state);
+
     if (drv->load_boot_state)
     {
         rc = drv->load_boot_state(drv);
@@ -281,6 +283,7 @@ int pb_boot_load_fs(struct pb_boot_context *ctx, uint8_t *boot_part_uu)
     struct pb_storage_driver *stream_drv;
     struct pb_storage_map *stream_map;
     uint8_t *part_uu = NULL;
+    char part_uu_str[37];
 
     if (!boot_part_uu)
         part_uu = ctx->driver->boot_part_uu;
@@ -293,13 +296,15 @@ int pb_boot_load_fs(struct pb_boot_context *ctx, uint8_t *boot_part_uu)
 
     if (rc != PB_OK)
     {
-        LOG_ERR("Could not find partition");
+        uuid_unparse(part_uu, part_uu_str);
+        LOG_ERR("Could not find partition (%s)", part_uu_str);
         return rc;
     }
 
     if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_BOOTABLE))
     {
-        LOG_ERR("Partition not bootable");
+        uuid_unparse(part_uu, part_uu_str);
+        LOG_ERR("Partition not bootable (%s)", part_uu_str);
         return -PB_RESULT_PART_NOT_BOOTABLE;
     }
 
@@ -378,13 +383,18 @@ int pb_boot(struct pb_boot_context *ctx, uint8_t *device_uuid, bool verbose)
         }
     }
 
-    rc = bpak_get_meta_with_ref(&drv->load_ctx->header, 0xd1e64a4b,
-                                drv->dtb_image_id, (void **) &dtb);
 
     /* Prepare device tree */
-    if (rc == BPAK_OK)
+    if (drv->dtb_image_id)
     {
-        LOG_INFO("DTB: 0x%lx", *dtb);
+
+        rc = bpak_get_meta_with_ref(&drv->load_ctx->header, 0xd1e64a4b,
+                                    drv->dtb_image_id, (void **) &dtb);
+
+        if (rc != BPAK_OK)
+            return -PB_ERR;
+
+        LOG_INFO("DTB: 0x%lx (%x)", *dtb, drv->dtb_image_id);
 
         /* Locate the chosen node */
         void *fdt = (void *)(uintptr_t) *dtb;
@@ -482,6 +492,7 @@ int pb_boot(struct pb_boot_context *ctx, uint8_t *device_uuid, bool verbose)
         rc = drv->patch_dt(drv, fdt, offset);
     }
 
+    LOG_INFO("Calling boot driver %p", drv->boot);
     return drv->boot(drv);
 }
 

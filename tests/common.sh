@@ -14,7 +14,7 @@ start_qemu()
 
     while true;
     do
-        ss -l -x | grep pb_sock > /dev/null 2>&1
+        ss -l -x | grep pb.sock > /dev/null 2>&1
         if [ $? -eq 1 ];
         then
             break;
@@ -23,19 +23,24 @@ start_qemu()
     done
 
     #( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
-    ( $QEMU $QEMU_FLAGS -kernel build-test/pb ) &
+    ( $QEMU $QEMU_FLAGS -kernel build-qemuarmv7/pb ) &
     qemu_pid=$!
 
 }
 
 force_recovery_mode_on()
 {
-    touch /tmp/pb_force_recovery
+    touch /tmp/pb_force_command_mode
 }
 
 force_recovery_mode_off()
 {
-    rm -f /tmp/pb_force_recovery
+    rm -f /tmp/pb_force_command_mode
+}
+
+auth()
+{
+    $PB auth --token 2456a34c-d17a-3b6d-9157-bbe585b48e7b.token --key-id 0xa90f9680 --transport socket
 }
 
 wait_for_qemu_start()
@@ -43,12 +48,13 @@ wait_for_qemu_start()
     while true;
     do
         sleep 0.1
-        $PB dev -l > /dev/null 2>&1
+        $PB dev --transport socket --show > /dev/null 2>&1
         if [ $? -eq 0 ];
         then
             break;
         fi
     done
+    auth
 }
 
 
@@ -66,7 +72,7 @@ wait_for_qemu()
 test_end_error()
 {
     echo ------- ITEST END ERROR: $TEST_NAME ------------------------
-    $PB boot -r
+    $PB dev --transport socket --reset
     wait_for_qemu
     exit -1
 }
@@ -75,19 +81,15 @@ test_end_ok()
 {
 
     echo ------- ITEST END OK: $TEST_NAME ---------------------------
-    $PB boot -r
+    $PB dev --transport socket --reset
     wait_for_qemu
 }
 
 start_qemu
 
-PB=tools/punchboot/src/build-test/punchboot
-PBI=tools/pbimage/src/build/pbimage
-PBCONFIG=tools/pbconfig/src/build/pbconfig
-
-KEY1=../pki/dev_rsa_private.der
-KEY2=../pki/prod_rsa_private.der
-
+PB=punchboot
+BOOT_A=2af755d8-8de5-45d5-a862-014cfa735ce0
+BOOT_B=c046ccd8-0f2e-4036-984d-76c14dc73992
 echo QEMU running, PID=$qemu_pid
 
 

@@ -4,7 +4,7 @@ wait_for_qemu_start
 
 sleep 0.1
 # Listing partitions should work because security_state < 3
-$PB part -l
+$PB part --list --transport socket
 
 result_code=$?
 
@@ -14,7 +14,7 @@ then
 fi
 
 # Lock device
-$PB dev -w -y
+$PB slc --set-configuration --force --transport socket
 
 result_code=$?
 
@@ -23,7 +23,16 @@ then
     test_end_error
 fi
 
-$PB dev -l
+$PB slc --set-configuration-lock --force --transport socket
+
+result_code=$?
+
+if [ $result_code -ne 0 ];
+then
+    test_end_error
+fi
+
+$PB dev --list --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -32,7 +41,7 @@ then
 fi
 
 # Listing partitions should not work because security_state == 3
-$PB part -l
+$PB part --list --transport socket
 result_code=$?
 
 if [ $result_code -ne 255 ];
@@ -40,7 +49,7 @@ then
     test_end_error
 fi
 
-$PB boot -r
+$PB dev --reset --transport socket
 result_code=$?
 
 if [ $result_code -ne 255 ];
@@ -48,7 +57,7 @@ then
     test_end_error
 fi
 
-$PB boot -b -s A
+$PB boot --boot $BOOT_A --verbose-boot --transport socket
 result_code=$?
 
 if [ $result_code -ne 255 ];
@@ -56,7 +65,7 @@ then
     test_end_error
 fi
 
-$PB boot -b -s B -v
+$PB boot --boot $BOOT_B --verbose-boot --transport socket
 result_code=$?
 
 if [ $result_code -ne 255 ];
@@ -64,24 +73,7 @@ then
     test_end_error
 fi
 
-$PB boot -a -s A
-result_code=$?
-
-if [ $result_code -ne 255 ];
-then
-    test_end_error
-fi
-
-
-$PB boot -a -s B
-result_code=$?
-
-if [ $result_code -ne 255 ];
-then
-    test_end_error
-fi
-
-$PB boot -w -f /tmp/random_data
+$PB part --activate $BOOT_A --transport socket
 result_code=$?
 
 if [ $result_code -ne 255 ];
@@ -90,7 +82,15 @@ then
 fi
 
 
-$PB boot -x -f /tmp/random_data
+$PB boot --activate $BOOT_B --transport socket
+result_code=$?
+
+if [ $result_code -ne 255 ];
+then
+    test_end_error
+fi
+
+$PB boot --load /tmp/random_data --transport socket
 result_code=$?
 
 if [ $result_code -ne 255 ];
@@ -99,7 +99,8 @@ then
 fi
 
 # Authenticate
-$PB dev -a -n 0xa90f9680 -f tests/test_auth_cookie
+$PB auth --token tests2456a34c-d17a-3b6d-9157-bbe585b48e7b.token \
+         --key-id 0xa90f9680 --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -110,7 +111,7 @@ fi
 sync
 sleep 0.1
 
-$PB part -l
+$PB part --list --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

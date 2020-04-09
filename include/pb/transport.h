@@ -32,6 +32,7 @@ struct pb_transport_driver
     pb_transport_io_t write;
     struct pb_transport_plat_driver *platform;
     struct pb_command cmd;
+    size_t max_chunk_bytes;
     uint8_t *device_uuid;
     void *private;
     size_t size;

@@ -60,7 +60,7 @@ config AUTH_PASSWORD
 
 endchoice
 
-
+source "bearssl/Kconfig.include"
 
 
 

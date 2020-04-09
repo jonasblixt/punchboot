@@ -17,7 +17,7 @@ fi
 dd if=/dev/urandom of=/tmp/disk bs=128 skip=2 conv=notrunc count=1
 
 # Reset
-$PB boot -r
+$PB dev --reset --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

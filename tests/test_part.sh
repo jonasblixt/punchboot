@@ -1,12 +1,12 @@
 #!/bin/bash
-touch /tmp/pb_force_recovery
+touch /tmp/pb_force_command_mode
 source tests/common.sh
 wait_for_qemu_start
 
 
 echo Installing GPT
 # Install GPT partitions
-$PB part -i
+$PB part --install --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -15,7 +15,7 @@ then
 fi
 
 echo "Done, listing partitions again"
-$PB part -l
+$PB part --list --transport socket
 result_code=$?
 
 # Test read GPT partition
@@ -27,7 +27,7 @@ fi
 
 echo "Seting 'none' as active system"
 
-$PB boot -a -s none
+$PB part --activate none --transport socket
 
 echo "Done"
 test_end_ok

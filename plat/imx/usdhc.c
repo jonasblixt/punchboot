@@ -779,7 +779,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
             priv->raw_extcsd[EXT_CSD_SEC_CNT + 2] << 16 |
             priv->raw_extcsd[EXT_CSD_SEC_CNT + 3] << 24;
 
-    drv->last_block = dev->sectors;
+    drv->last_block = dev->sectors - 1;
 
 #if LOGLEVEL > 1
     char mmc_drive_str[6] =

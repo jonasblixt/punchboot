@@ -23,12 +23,13 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key ../pki/dev_rsa_private.pem \
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
                     --key-id pb-development \
                     --key-store pb $V
 set +e
 
-$PB part -w -n 0 -f /tmp/img.bpak
+$PB part --write /tmp/img.bpak --part 2af755d8-8de5-45d5-a862-014cfa735ce0 \
+            --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -38,7 +39,7 @@ fi
 
 sync
 
-$PB boot -b -s A
+$PB boot --boot 2af755d8-8de5-45d5-a862-014cfa735ce0 --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

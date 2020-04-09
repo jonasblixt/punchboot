@@ -23,11 +23,12 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key ../pki/dev_rsa_private.pem \
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
                     --key-id pb-development \
                     --key-store pb $V
 set +e
-$PB part -w -n 1 -f /tmp/img.bpak
+
+$PB part --write /tmp/img.bpak --part $BOOT_B --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -58,7 +59,7 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key ../pki/dev_rsa_private.pem \
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
                     --key-id pb-development \
                     --key-store pb $V
 set +e
@@ -71,18 +72,19 @@ then
 fi
 
 # Flashing image should fail since it is to big
-
-$PB part -w -n 0 -f /tmp/img.bpak
+echo "Flashing A"
+$PB part --write /tmp/img.bpak --part $BOOT_A --transport socket
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 247 ];
 then
+    echo "Result code $result_code"
     test_end_error
 fi
 
 # System B partition should still be intact
-
-$PB boot -b -s b
+echo "Booting B"
+$PB boot --boot $BOOT_B --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

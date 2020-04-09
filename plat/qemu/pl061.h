@@ -10,8 +10,8 @@
 #ifndef PLAT_TEST_PL061_H_
 #define PLAT_TEST_PL061_H_
 
-#include <pb.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/io.h>
 
 void pl061_init(__iomem base);
 void pl061_configure_direction(uint8_t pin, uint8_t dir);

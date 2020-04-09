@@ -9,10 +9,10 @@
  */
 
 #include <stdio.h>
-#include <board.h>
-#include <plat.h>
-#include <plat/test/gcov.h>
-#include <plat/test/semihosting.h>
+#include <pb/board.h>
+#include <pb/plat.h>
+#include <plat/qemu/gcov.h>
+#include <plat/qemu/semihosting.h>
 
 static struct gcov_info *head;
 

@@ -10,8 +10,8 @@
 #ifndef PLAT_TEST_INCLUDE_PLAT_DEFS_H_
 #define PLAT_TEST_INCLUDE_PLAT_DEFS_H_
 
-#include <pb.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/io.h>
 
 #define PB_BOOTPART_OFFSET 2
 

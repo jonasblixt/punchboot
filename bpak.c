@@ -17,6 +17,7 @@ int bpak_get_meta_and_header(struct bpak_header *hdr, uint32_t id,
 
     bpak_foreach_meta(hdr, m)
     {
+
         if (m->id == id)
         {
             if (part_id_ref != 0)

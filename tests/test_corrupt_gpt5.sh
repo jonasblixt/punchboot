@@ -14,7 +14,7 @@ then
 fi
 
 # Reset
-$PB boot -r
+$PB dev --reset --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

@@ -1,25 +1,31 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
 #include <stdio.h>
-#include <pb.h>
+#include <pb/pb.h>
 #include <string.h>
-#include <io.h>
-#include <plat/test/virtio_block.h>
-#include <plat/test/virtio_queue.h>
+#include <pb/io.h>
+#include <plat/qemu/virtio_block.h>
+#include <plat/qemu/virtio_queue.h>
 
 static volatile __a16b uint8_t status;
 
-uint32_t virtio_block_init(struct virtio_block_device *d)
+static int virtio_block_init(struct pb_storage_driver *drv)
 {
+    struct virtio_block_device *d = (struct virtio_block_device *) drv->private;
+
+    LOG_DBG("%s.base = %x", drv->name, d->dev.base);
     if (virtio_mmio_init(&d->dev) != PB_OK)
-        return PB_ERR;
+    {
+        LOG_ERR("virtio_mmio_init failed");
+        return -PB_ERR;
+    }
 
     LOG_DBG("VIRTIO %p", &d->dev);
     d->config = (struct virtio_blk_config *) (d->dev.base + 0x100);
@@ -44,21 +50,22 @@ uint32_t virtio_block_init(struct virtio_block_device *d)
     return PB_OK;
 }
 
-uint32_t virtio_block_write(struct virtio_block_device *d,
-                            uint32_t lba,
-                            uintptr_t buf,
-                            uint32_t no_of_blocks)
+static int virtio_block_write(struct pb_storage_driver *drv,
+                            size_t block_offset,
+                            void *data,
+                            size_t n_blocks)
 {
+    struct virtio_block_device *d = (struct virtio_block_device *) drv->private;
     struct virtio_blk_req r;
     struct virtq *q = &d->q;
     uint16_t idx = (q->avail->idx % q->num);
 
-    LOG_DBG("lba = 0x%x, buf: %p, no_of_blocks: %u", lba, (void *)
-                                                    buf, no_of_blocks);
+    LOG_DBG("lba = 0x%x, buf: %p, no_of_blocks: %u", block_offset, (void *)
+                                                   data, n_blocks);
     status = VIRTIO_BLK_S_UNSUPP;
 
     r.type = VIRTIO_BLK_T_OUT;
-    r.sector_low = lba;
+    r.sector_low = block_offset;
     r.sector_hi = 0;
 
     uint16_t idx_start = idx;
@@ -69,8 +76,8 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
     q->desc[idx].next = ((idx + 1) % q->num);
     idx = ((idx + 1) % q->num);
 
-    q->desc[idx].addr = (uint32_t)((uintptr_t) (buf));
-    q->desc[idx].len = (512*no_of_blocks);
+    q->desc[idx].addr = (uint32_t)((uintptr_t) (data));
+    q->desc[idx].len = (512*n_blocks);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
     q->desc[idx].next = ((idx + 1) % q->num);
     idx = ((idx + 1) % q->num);
@@ -97,27 +104,29 @@ uint32_t virtio_block_write(struct virtio_block_device *d,
     if (status == VIRTIO_BLK_S_OK)
         return PB_OK;
 
-    LOG_ERR("Failed, lba=%u, no_of_blocks=%u", lba, no_of_blocks);
+    LOG_ERR("Failed, lba=%u, no_of_blocks=%u", block_offset, n_blocks);
     return PB_ERR;
 }
 
 
-uint32_t virtio_block_read(struct virtio_block_device *d,
-                            uint32_t lba,
-                            uintptr_t buf,
-                            uint32_t no_of_blocks)
+static int virtio_block_read(struct pb_storage_driver *drv,
+                            size_t block_offset,
+                            void *data,
+                            size_t n_blocks)
 {
+    struct virtio_block_device *d = (struct virtio_block_device *) drv->private;
     struct virtq *q = &d->q;
     struct virtio_blk_req r;
     uint16_t idx = (q->avail->idx % q->num);
     uint16_t idx_start = idx;
     status = VIRTIO_BLK_S_UNSUPP;
-    LOG_DBG("lba = 0x%x, buf: %p, no_of_blocks: %u", lba, (void *)
-                                                    buf, no_of_blocks);
+    LOG_DBG("drv->private = %p", drv->private);
+    LOG_DBG("lba = 0x%x, buf: %p, no_of_blocks: %u", block_offset, (void *)
+                                                    data, n_blocks);
     memset(&r, 0, sizeof(struct virtio_blk_req));
     r.type = VIRTIO_BLK_T_IN;
     r.reserved = 0;
-    r.sector_low = lba;
+    r.sector_low = block_offset;
     r.sector_hi = 0;
 
 
@@ -127,8 +136,8 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
     q->desc[idx].next = ((idx + 1) % q->num);
     idx = ((idx + 1) % q->num);
 
-    q->desc[idx].addr = (uint32_t)((uintptr_t) buf);
-    q->desc[idx].len = (512*no_of_blocks);
+    q->desc[idx].addr = (uint32_t)((uintptr_t) data);
+    q->desc[idx].len = (512*n_blocks);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
     q->desc[idx].next = ((idx + 1) % q->num);
     idx = ((idx + 1) % q->num);
@@ -142,6 +151,7 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
     q->avail->ring[idx_start] = idx_start;
     q->avail->idx++;
 
+    LOG_DBG("notify");
     virtio_mmio_notify_queue(&d->dev, &d->q);
 
     LOG_DBG("status = %u", d->dev.status);
@@ -156,8 +166,17 @@ uint32_t virtio_block_read(struct virtio_block_device *d,
     if (status == VIRTIO_BLK_S_OK)
         return PB_OK;
 
-    LOG_ERR("Failed, lba=%u, no_of_blocks=%u", lba, no_of_blocks);
+    LOG_ERR("Failed, lba=%u, no_of_blocks=%u", block_offset, n_blocks);
     return PB_ERR;
 }
 
 
+int virtio_block_setup(struct pb_storage_driver *drv)
+{
+    drv->init = virtio_block_init;
+    drv->read = virtio_block_read;
+    drv->write = virtio_block_write;
+    drv->map_request = NULL;
+    drv->map_release = NULL;
+    return PB_OK;
+}

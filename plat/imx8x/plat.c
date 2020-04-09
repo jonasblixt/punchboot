@@ -41,7 +41,7 @@
 static struct pb_platform_setup plat;
 extern struct fuse fuses[];
 
-uint32_t plat_setup_lock(void)
+int plat_setup_lock(void)
 {
     uint32_t err;
 
@@ -53,7 +53,7 @@ uint32_t plat_setup_lock(void)
 }
 
 
-uint32_t plat_setup_device(void)
+int plat_setup_device(void)
 {
     uint32_t err;
 
@@ -94,7 +94,7 @@ uint32_t plat_setup_device(void)
 }
 
 
-uint32_t plat_get_security_state(uint32_t *state)
+int plat_get_security_state(uint32_t *state)
 {
     uint32_t err;
     (*state) = PB_SECURITY_STATE_NOT_SECURE;
@@ -213,7 +213,7 @@ void plat_preboot_cleanup(void)
 }
 
 /* FUSE Interface */
-uint32_t  plat_fuse_read(struct fuse *f)
+int plat_fuse_read(struct fuse *f)
 {
     sc_err_t err;
 
@@ -231,7 +231,7 @@ uint32_t  plat_fuse_read(struct fuse *f)
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
 
-uint32_t  plat_fuse_write(struct fuse *f)
+int plat_fuse_write(struct fuse *f)
 {
     char s[64];
     uint32_t err;
@@ -245,7 +245,7 @@ uint32_t  plat_fuse_write(struct fuse *f)
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
 
-uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
+int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
     return snprintf(s, n,
             "   FUSE<%u> %s = 0x%08x",

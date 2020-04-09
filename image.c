@@ -25,7 +25,7 @@ extern char _code_start, _code_end,
             _stack_start, _stack_end, _big_buffer_start, _big_buffer_end;
 
 
-static int pb_image_check_header(struct bpak_header *h)
+int pb_image_check_header(struct bpak_header *h)
 {
     int err = PB_OK;
 
@@ -276,6 +276,12 @@ int pb_image_load(struct pb_image_load_context *ctx,
             if (rc != PB_OK)
                 return rc;
         }
+    }
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Loading failed");
+        return rc;
     }
 
     rc = pb_hash_finalize(&hash, NULL, 0);

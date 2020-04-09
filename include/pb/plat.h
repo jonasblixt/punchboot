@@ -21,6 +21,7 @@
 #include <pb/crypto.h>
 #include <pb/command.h>
 #include <pb/boot.h>
+#include <pb/board.h>
 #include <bpak/keystore.h>
 #include <uuid/uuid.h>
 
@@ -37,20 +38,21 @@ int plat_early_init(struct pb_storage *storage,
                     struct pb_crypto *crypto,
                     struct pb_command_context *command_ctx,
                     struct pb_boot_context *boot,
-                    struct bpak_keystore *keystore);
+                    struct bpak_keystore *keystore,
+                    struct pb_board *board);
 
 void plat_preboot_cleanup(void);
 bool plat_force_recovery(void);
 int plat_get_uuid(struct pb_crypto *crypto, char *out);
 
 /* FUSE Interface */
-uint32_t  plat_fuse_read(struct fuse *f);
-uint32_t  plat_fuse_write(struct fuse *f);
-uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n);
+int plat_fuse_read(struct fuse *f);
+int plat_fuse_write(struct fuse *f);
+int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n);
 
 /* Secure boot */
-uint32_t plat_setup_device(void);
-uint32_t plat_setup_lock(void);
-uint32_t plat_get_security_state(uint32_t *state);
+int plat_setup_device(void);
+int plat_setup_lock(void);
+int plat_get_security_state(uint32_t *state);
 
 #endif  // INCLUDE_PB_PLAT_H_

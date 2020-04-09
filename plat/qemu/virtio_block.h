@@ -11,9 +11,10 @@
 #define PLAT_TEST_VIRTIO_BLOCK_H_
 
 #include <stdint.h>
-#include <plat/test/virtio_mmio.h>
-#include <plat/test/virtio_queue.h>
-#include <plat/test/virtio.h>
+#include <pb/storage.h>
+#include <plat/qemu/virtio_mmio.h>
+#include <plat/qemu/virtio_queue.h>
+#include <plat/qemu/virtio.h>
 
 
 struct virtio_blk_config {
@@ -53,23 +54,14 @@ struct virtio_block_device
 #define VIRTIO_BLK_S_UNSUPP    2
 
 
-struct virtio_blk_req {
+struct virtio_blk_req
+{
     uint32_t type;
     uint32_t reserved;
     uint32_t sector_low;
     uint32_t sector_hi;
 };
 
-uint32_t virtio_block_init(struct virtio_block_device *d);
+int virtio_block_setup(struct pb_storage_driver *drv);
 
-
-uint32_t virtio_block_write(struct virtio_block_device *d,
-                            uint32_t lba,
-                            uintptr_t buf,
-                            uint32_t no_of_blocks);
-
-uint32_t virtio_block_read(struct virtio_block_device *d,
-                            uint32_t lba,
-                            uintptr_t buf,
-                            uint32_t no_of_blocks);
 #endif  // PLAT_TEST_VIRTIO_BLOCK_H_

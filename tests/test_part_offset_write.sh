@@ -6,15 +6,15 @@ wait_for_qemu_start
 dd if=/dev/urandom of=/tmp/random_data bs=512 count=1
 first_sha256=$(sha256sum /tmp/random_data | cut -d ' ' -f 1)
 
-$PB part -w -n 0 -o 1024 -f /tmp/random_data
-result_code=$?
+$PB part --write /tmp/random_data --part $BOOT_A --offset 1000 --transport socket
+result_code=$? 
 
 if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
 
-dd if=/tmp/disk of=/tmp/readback_data bs=512 skip=1058 count=1
+dd if=/tmp/disk of=/tmp/readback_data bs=512 skip=1034 count=1
 
 second_sha256=$(sha256sum /tmp/readback_data | cut -d ' ' -f 1)
 

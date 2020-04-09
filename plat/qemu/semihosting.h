@@ -7,7 +7,7 @@
 #ifndef PLAT_TEST_SEMIHOSTING_H_
 #define PLAT_TEST_SEMIHOSTING_H_
 
-#include <pb.h>
+#include <pb/pb.h>
 #include <stdint.h>
 #include <stddef.h>
 

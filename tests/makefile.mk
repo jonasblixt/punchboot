@@ -1,11 +1,12 @@
-TESTS   = test_boot
-TESTS  += test_usb_ch9
-TESTS  += test_libc
+TESTS =
+#TESTS   = test_boot
+#TESTS  += test_usb_ch9
+#TESTS  += test_libc
 
 INTEGRATION_TESTS  = test_reset
 INTEGRATION_TESTS += test_part
-INTEGRATION_TESTS += test_device_setup
-INTEGRATION_TESTS += test_setup_lock
+#INTEGRATION_TESTS += test_device_setup
+#INTEGRATION_TESTS += test_setup_lock
 INTEGRATION_TESTS += test_corrupt_gpt
 INTEGRATION_TESTS += test_corrupt_gpt2
 INTEGRATION_TESTS += test_corrupt_gpt3
@@ -21,7 +22,7 @@ INTEGRATION_TESTS += test_boot_bpak6
 INTEGRATION_TESTS += test_boot_bpak7
 INTEGRATION_TESTS += test_boot_bpak8
 INTEGRATION_TESTS += test_boot_bpak9
-INTEGRATION_TESTS += test_flash_bl
+#INTEGRATION_TESTS += test_flash_bl
 INTEGRATION_TESTS += test_invalid_key_index
 INTEGRATION_TESTS += test_gpt_boot_activate
 INTEGRATION_TESTS += test_gpt_boot_activate_step2
@@ -32,46 +33,25 @@ INTEGRATION_TESTS += test_rollback
 INTEGRATION_TESTS += test_cli
 INTEGRATION_TESTS += test_part_offset_write
 INTEGRATION_TESTS += test_overlapping_region
-INTEGRATION_TESTS += test_authentication
+#INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_corrupt_backup_gpt
 INTEGRATION_TESTS += test_corrupt_primary_config
 INTEGRATION_TESTS += test_corrupt_backup_config
 INTEGRATION_TESTS += test_switch
 
-QEMU ?= qemu-system-arm
-QEMU_AUDIO_DRV = "none"
-QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m 1024
-QEMU_FLAGS += -nographic -semihosting
-# Virtio serial port
-QEMU_FLAGS += -device virtio-serial-device
-QEMU_FLAGS += -chardev socket,path=/tmp/pb_sock,server,nowait,id=pb_serial
-QEMU_FLAGS += -device virtserialport,chardev=pb_serial
-# Virtio Main disk
-QEMU_FLAGS += -device virtio-blk-device,drive=disk
-QEMU_FLAGS += -drive id=disk,file=/tmp/disk,cache=none,if=none,format=raw
-# Virtio Aux disk, for bootloader and fuses
-QEMU_FLAGS += -device virtio-blk-device,drive=disk_aux
-QEMU_FLAGS += -drive id=disk_aux,file=/tmp/disk_aux,cache=none,if=none,format=raw
-# Disable default NIC
-QEMU_FLAGS += -net none
 
 TEST_C_SRCS += tests/common.c
-TEST_C_SRCS += plat/test/gcov.c
+TEST_C_SRCS += plat/qemu/gcov.c
 TEST_C_SRCS += usb.c
-TEST_C_SRCS += plat/test/semihosting.c
-TEST_C_SRCS += plat/test/uart.c
+TEST_C_SRCS += plat/qemu/semihosting.c
 TEST_C_SRCS += lib/printf.c
-TEST_C_SRCS += lib/putchar.c
 TEST_C_SRCS += lib/memcmp.c
 TEST_C_SRCS += lib/strlen.c
 TEST_C_SRCS += lib/memcpy.c
 TEST_C_SRCS += lib/strcmp.c
 TEST_C_SRCS += lib/snprintf.c
 
-PB_PLAT_NAME = test
-PB_BOARD_NAME = test
-
-TEST_ASM_SRCS += plat/test/semihosting_call.S
+TEST_ASM_SRCS += plat/qemu/semihosting_call.S
 
 TEST_OBJS    = $(patsubst %.S, $(BUILD_DIR)/%.o, $(TEST_ASM_SRCS))
 TEST_OBJS   += $(patsubst %.c, $(BUILD_DIR)/%.o, $(TEST_C_SRCS))
@@ -85,8 +65,6 @@ test: $(ARCH_OBJS) $(TEST_OBJS)
 	@mkdir -p $(BUILD_DIR)/tests
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
 	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
-	@make -C tools/punchboot/src CROSS_COMPILE="" TRANSPORT=socket CODE_COV=1
-	@make -C tools/pbconfig/src CROSS_COMPILE="" CODE_COV=1
 	@sync
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \

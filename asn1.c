@@ -54,7 +54,8 @@ int pb_asn1_size(unsigned char **p, size_t *len)
     return PB_OK;
 }
 
-int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, size_t *key_sz)
+int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, size_t *key_sz,
+                        bool include_compression_point)
 {
     size_t s;
     int rc;
@@ -106,8 +107,16 @@ int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, size_t *key_sz)
         if (rc != PB_OK)
             return rc;
 
-        p += 2; /* Skip unused bits and compression point */
-        s -= 2;
+        if (include_compression_point)
+        {
+            p += 1; /* Skip unused bits */
+            s -= 1;
+        }
+        else
+        {
+            p += 2; /* Skip unused bits and compression point */
+            s -= 2;
+        }
 
         (*data) = p;
         (*key_sz) = s;

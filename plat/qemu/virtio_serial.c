@@ -7,16 +7,16 @@
  *
  */
 #include <stdio.h>
-#include <pb.h>
-#include <io.h>
-#include <plat/test/virtio_serial.h>
-#include <plat/test/virtio_queue.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <plat/qemu/virtio_serial.h>
+#include <plat/qemu/virtio_queue.h>
 
 
-uint32_t virtio_serial_init(struct virtio_serial_device *d)
+int virtio_serial_init(struct virtio_serial_device *d)
 {
     if (virtio_mmio_init(&d->dev) != PB_OK)
-        return PB_ERR;
+        return -PB_ERR;
 
     uint32_t cap = virtio_mmio_get_features(&d->dev);
 
@@ -26,7 +26,7 @@ uint32_t virtio_serial_init(struct virtio_serial_device *d)
                                                                     != PB_OK)
         {
             LOG_ERR("Could not select features");
-            return PB_ERR;
+            return -PB_ERR;
         }
     }
 
@@ -63,15 +63,14 @@ uint32_t virtio_serial_init(struct virtio_serial_device *d)
     return PB_OK;
 }
 
-
-uint32_t virtio_serial_write(struct virtio_serial_device *d, uint8_t *buf,
-                                                        uint32_t len)
+int virtio_serial_write(struct virtio_serial_device *d, void *buf,
+                                                        size_t len)
 {
     return virtio_mmio_write_one(&d->dev, &d->tx, buf, len);
 }
 
-uint32_t virtio_serial_read(struct virtio_serial_device *d, uint8_t *buf,
-                                                        uint32_t len)
+int virtio_serial_read(struct virtio_serial_device *d, void *buf,
+                                                       size_t len)
 {
     return virtio_mmio_read_one(&d->dev, &d->rx, buf, len);
 }

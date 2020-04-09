@@ -22,7 +22,7 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key ../pki/dev_rsa_private.pem \
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
                     --key-id pb-development \
                     --key-store pb $V
 set +e
@@ -32,9 +32,9 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
-echo Flashing sys A
 
-$PB part -w -n 0 -f /tmp/img.bpak
+echo "Flashing A"
+$PB part --write /tmp/img.bpak --part $BOOT_A --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -42,8 +42,9 @@ then
     test_end_error
 fi
 
-echo Flashing sys B
-$PB part -w -n 1 -f /tmp/img.bpak
+echo "Flashing B"
+$PB part --write /tmp/img.bpak --part $BOOT_B --transport socket
+
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -51,23 +52,13 @@ then
     test_end_error
 fi
 
-# Setup rollback GPT parameters
-
-#$PB dev -i -y -f tests/test_rollback.pbp
-#result_code=$?
-
-#if [ $result_code -ne 0 ];
-#then
-#   test_end_error
-#fi
-
-$PBCONFIG -d /tmp/disk -o 0x822 -b 0x823 -v b
-$PBCONFIG -d /tmp/disk -o 0x822 -b 0x823 -s a -c 3
+pbconfig -d /tmp/disk -v b
+pbconfig -d /tmp/disk -s a -c 3
 
 # Reset
 force_recovery_mode_off
 sync
-$PB boot -r
+$PB dev --reset --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -84,7 +75,7 @@ wait_for_qemu
 boot_status=$(</tmp/pb_boot_status)
 echo "Read boot status"
 
-if [ "$boot_status" != "1" ];
+if [ "$boot_status" != "A" ];
 then
     test_end_error
 fi
@@ -94,7 +85,7 @@ start_qemu
 wait_for_qemu
 boot_status=$(</tmp/pb_boot_status)
 
-if [ "$boot_status" != "1" ];
+if [ "$boot_status" != "A" ];
 then
     test_end_error
 fi
@@ -104,7 +95,7 @@ start_qemu
 wait_for_qemu
 boot_status=$(</tmp/pb_boot_status)
 
-if [ "$boot_status" != "1" ];
+if [ "$boot_status" != "A" ];
 then
     test_end_error
 fi
@@ -114,7 +105,7 @@ start_qemu
 wait_for_qemu
 boot_status=$(</tmp/pb_boot_status)
 
-if [ "$boot_status" != "2" ];
+if [ "$boot_status" != "B" ];
 then
     test_end_error
 fi

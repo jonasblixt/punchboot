@@ -6,7 +6,9 @@
 #include <pb/crypto.h>
 #include <bpak/keystore.h>
 
-int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, size_t *key_sz);
+int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, size_t *key_sz,
+                        bool include_compression_point);
+
 int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
                             uint8_t **r, uint8_t **s);
 

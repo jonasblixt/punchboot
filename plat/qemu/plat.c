@@ -13,48 +13,23 @@
 #include <pb/board.h>
 #include <pb/io.h>
 #include <pb/plat.h>
-#include <pb/uuid.h>
+#include <pb/crypto.h>
+#include <uuid/uuid.h>
 #include <pb/fuse.h>
+#include <pb/board.h>
 #include <pb/boot.h>
-#include <plat/test/virtio.h>
-#include <plat/test/virtio_block.h>
-#include <plat/test/test_fuse.h>
-#include <plat/test/gcov.h>
-#include <plat/test/uart.h>
-#include <3pp/bearssl/bearssl_hash.h>
-#include <plat/test/semihosting.h>
+#include <plat/qemu/virtio.h>
+#include <plat/qemu/virtio_block.h>
+#include <plat/qemu/virtio_serial.h>
+#include <plat/qemu/test_fuse.h>
+#include <plat/qemu/gcov.h>
+#include <bearssl/bearssl_hash.h>
+#include <plat/qemu/semihosting.h>
 #include <bpak/bpak.h>
 
-static __a4k struct virtio_block_device virtio_block;
-static __a4k struct virtio_block_device virtio_block2;
-static struct virtio_block_device *blk;
 static struct pb_platform_setup setup;
-
-static uint32_t blk_off = 0;
-static uint32_t blk_sz = 65535;
 static uint32_t setup_locked = 0;
 extern const struct fuse fuses[];
-
-void pb_boot(struct bpak_header *h, uint32_t active_system, bool verbose)
-{
-    UNUSED(h);
-    UNUSED(active_system);
-    UNUSED(verbose);
-
-    long fd = semihosting_file_open("/tmp/pb_boot_status", 6);
-
-    char boot_status[5];
-
-    snprintf(boot_status, sizeof(boot_status), "%u", active_system);
-
-    size_t bytes_to_write = strlen(boot_status);
-
-    semihosting_file_write(fd, &bytes_to_write,
-                            (const uintptr_t) boot_status);
-
-    semihosting_file_close(fd);
-    plat_reset();
-}
 
 __inline uint32_t plat_get_ms_tick(void)
 {
@@ -62,8 +37,9 @@ __inline uint32_t plat_get_ms_tick(void)
 }
 
 
-uint32_t plat_get_security_state(uint32_t *state)
+int plat_get_security_state(uint32_t *state)
 {
+#ifdef __NOPE
     uint32_t err;
     (*state) = PB_SECURITY_STATE_NOT_SECURE;
 
@@ -92,18 +68,7 @@ uint32_t plat_get_security_state(uint32_t *state)
 
     if (setup_locked)
         (*state) = PB_SECURITY_STATE_SECURE;
-
-    return PB_OK;
-}
-
-uint32_t plat_get_params(struct param **pp)
-{
-    char uuid_raw[16];
-
-    param_add_str((*pp)++, "Platform", "Test");
-    param_add_str((*pp)++, "Machine", "QEMU, Cortex-A15");
-    plat_get_uuid(uuid_raw);
-    param_add_uuid((*pp)++, "Device UUID", uuid_raw);
+#endif
     return PB_OK;
 }
 
@@ -113,14 +78,23 @@ static const char *platform_namespace_uuid =
 static const char *device_unique_id =
     "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
-uint32_t plat_get_uuid(char *out)
+int plat_get_uuid(struct pb_crypto *crypto, char *out)
 {
-    return uuid_gen_uuid3(platform_namespace_uuid, 16,
+    int rc;
+    char device_uu_str[37];
+
+    rc = uuid_gen_uuid3(crypto, platform_namespace_uuid,
                           (const char *) device_unique_id, 8, out);
+
+    uuid_unparse((const unsigned char *) out, device_uu_str);
+    LOG_DBG("Get UUID %s", device_uu_str);
+
+    return rc;
 }
 
-uint32_t plat_setup_device(struct param *params)
+int plat_setup_device(void)
 {
+#ifdef __NOPE
     uint32_t err;
 
     /* Read fuses */
@@ -148,12 +122,12 @@ uint32_t plat_setup_device(struct param *params)
         if (err != PB_OK)
             return err;
     }
-
-    return board_setup_device(params);
+#endif
+    return PB_OK;
 }
 
 
-uint32_t plat_setup_lock(void)
+int plat_setup_lock(void)
 {
     if (setup_locked)
         return PB_ERR;
@@ -161,23 +135,13 @@ uint32_t plat_setup_lock(void)
     return PB_OK;
 }
 
-bool plat_force_recovery(void)
-{
-    return board_force_recovery(&setup);
-}
-
-uint32_t plat_prepare_recovery(void)
-{
-    return board_prepare_recovery(&setup);
-}
-
-uint32_t plat_fuse_read(struct fuse *f)
+int plat_fuse_read(struct fuse *f)
 {
     uint32_t tmp_val = 0;
-    uint32_t err;
+    int err;
 
     if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return PB_ERR;
+        return -PB_ERR;
 
     err = test_fuse_read(f->bank, &tmp_val);
 
@@ -189,64 +153,60 @@ uint32_t plat_fuse_read(struct fuse *f)
     return err;
 }
 
-uint32_t plat_fuse_write(struct fuse *f)
+int plat_fuse_write(struct fuse *f)
 {
-    uint32_t err;
+#ifdef __NOPE
+    int err;
 
     if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return PB_ERR;
+        return -PB_ERR;
     LOG_DBG("Writing fuse %s", f->description);
 
-    err = test_fuse_write(&virtio_block2, f->bank, f->value);
+    err = test_fuse_write(&virtio_block, f->bank, f->value);
 
     if (err != PB_OK)
         LOG_ERR("Could not write fuse");
     return err;
+#endif
+    return PB_OK;
 }
 
-uint32_t plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
+int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
     if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return PB_ERR;
+        return -PB_ERR;
 
     return snprintf(s, n, "FUSE <%u> %s = 0x%08x\n", f->bank,
                 f->description, f->value);
 }
 
-uint32_t plat_early_init(void)
+int plat_early_init(struct pb_storage *storage,
+                    struct pb_transport *transport,
+                    struct pb_console *console,
+                    struct pb_crypto *crypto,
+                    struct pb_command_context *command_ctx,
+                    struct pb_boot_context *boot,
+                    struct bpak_keystore *keystore,
+                    struct pb_board *board)
 {
-    board_early_init(NULL);
+    int rc;
 
-    test_uart_init();
-    LOG_INFO("Plat start");
+    rc = board_early_init(&setup,
+                    storage,
+                    transport,
+                    console,
+                    crypto,
+                    command_ctx,
+                    boot,
+                    keystore,
+                    board);
+
+    LOG_INFO("Plat start %i", rc);
     gcov_init();
 
-    virtio_block.dev.device_id = 2;
-    virtio_block.dev.vendor_id = 0x554D4551;
-    virtio_block.dev.base = 0x0A003C00;
+    //test_fuse_init(&virtio_block);
 
-    if (virtio_block_init(&virtio_block) != PB_OK)
-    {
-        LOG_ERR("Could not initialize virtio block device");
-        while (1) {}
-    }
-
-    blk = &virtio_block;
-
-    virtio_block2.dev.device_id = 2;
-    virtio_block2.dev.vendor_id = 0x554D4551;
-    virtio_block2.dev.base = 0x0A003A00;
-
-    if (virtio_block_init(&virtio_block2) != PB_OK)
-    {
-        LOG_ERR("Could not initialize virtio block device");
-        while (1) {}
-    }
-
-    test_fuse_init(&virtio_block2);
-
-
-    board_late_init(NULL);
+    LOG_DBG("Done");
     return PB_OK;
 }
 
@@ -260,76 +220,3 @@ uint32_t plat_get_us_tick(void)
 }
 
 
-uint32_t  plat_write_block(uint32_t lba_offset,
-                                uintptr_t bfr,
-                                uint32_t no_of_blocks)
-{
-    return virtio_block_write(blk, (blk_off+lba_offset),
-                                bfr, no_of_blocks);
-}
-
-uint32_t  plat_write_block_async(uint32_t lba_offset,
-                                uintptr_t bfr,
-                                uint32_t no_of_blocks)
-{
-    return virtio_block_write(blk, (blk_off+lba_offset),
-                                bfr, no_of_blocks);
-}
-
-uint32_t plat_flush_block(void)
-{
-    return PB_OK;
-}
-
-uint32_t  plat_read_block(uint32_t lba_offset,
-                          uintptr_t bfr,
-                          uint32_t no_of_blocks)
-{
-    return virtio_block_read(blk, (blk_off+lba_offset), bfr,
-                                no_of_blocks);
-}
-
-uint32_t  plat_switch_part(uint8_t part_no)
-{
-    switch (part_no)
-    {
-        case PLAT_EMMC_PART_BOOT0:
-        {
-            blk = &virtio_block2;
-            /* First 10 blocks are reserved for emulated fuses */
-            blk_off = 10;
-            blk_sz = 2048;
-            LOG_INFO("Switching to aux disk with offset: %u blks", blk_off);
-        }
-        break;
-        case PLAT_EMMC_PART_BOOT1:
-        {
-            blk = &virtio_block2;
-            blk_off = 10 + 8192;
-            blk_sz = 2048;
-            LOG_INFO("Switching to aux disk with offset: %u blks", blk_off);
-        }
-        break;
-        case PLAT_EMMC_PART_USER:
-        {
-            blk = &virtio_block;
-            blk_off = 0;
-            blk_sz = 65535;
-            LOG_INFO("Switching to main disk with offset: %u blks", blk_off);
-        }
-        break;
-        default:
-        {
-            blk = &virtio_block;
-            blk_off = 0;
-            blk_sz = 65535;
-        }
-    }
-
-    return PB_OK;
-}
-
-uint64_t  plat_get_lastlba(void)
-{
-    return blk_sz;
-}

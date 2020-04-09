@@ -10,3 +10,4 @@ CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_LOG_LEVEL_3=y
 CONFIG_AUTH_TOKEN=y
 # CONFIG_AUTH_PASSWORD is not set
+# CONFIG_BEARSSL is not set

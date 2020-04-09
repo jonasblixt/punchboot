@@ -29,6 +29,13 @@ static int activate_part(struct pb_boot_driver *boot, uint8_t *uu)
         state->verified = PB_STATE_B_VERIFIED;
         state->error = 0;
     }
+    else if (strcmp(uu_str, "00000000-0000-0000-0000-000000000000") == 0)
+    {
+        LOG_ERR("Disable boot partition");
+        state->enable = 0;
+        state->verified = 0;
+        state->error = 0;
+    }
     else
     {
         LOG_ERR("Invalid boot partition");
@@ -65,7 +72,7 @@ static int pb_boot_ab_load_state(struct pb_boot_driver *boot)
             if (!(state->verified & PB_STATE_B_VERIFIED))
             {
                 LOG_ERR("B system not verified, failing");
-                return -PB_ERR;   
+                return -PB_ERR;
             }
 
             priv->active = (struct pb_ab_boot_pair *) &priv->b;
@@ -90,7 +97,7 @@ static int pb_boot_ab_load_state(struct pb_boot_driver *boot)
             if (!(state->verified & PB_STATE_A_VERIFIED))
             {
                 LOG_ERR("A system not verified, failing");
-                return -PB_ERR;   
+                return -PB_ERR;
             }
 
             priv->active = (struct pb_ab_boot_pair *) &priv->a;
@@ -144,14 +151,19 @@ int pb_boot_ab_init(struct pb_boot_context *ctx, struct pb_boot_driver *boot,
                     struct pb_crypto *crypto,
                     struct bpak_keystore *keystore)
 {
-    struct pb_boot_driver *drv = ctx->driver;
+    struct pb_boot_driver *drv = boot;
     struct pb_boot_ab_driver *priv = PB_BOOT_AB_PRIV(boot);
 
     priv->active = NULL;
 
     drv->boot = pb_boot_ab_boot;
     drv->load_boot_state = pb_boot_ab_load_state;
-    drv->patch_dt = pb_boot_ab_patch_dt;
+
+    if (boot->dtb_image_id)
+        drv->patch_dt = pb_boot_ab_patch_dt;
+    else
+        drv->patch_dt = NULL;
+
     drv->activate = activate_part;
 
     return pb_boot_init(ctx, boot, storage, crypto, keystore);

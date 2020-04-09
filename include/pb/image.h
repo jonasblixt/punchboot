@@ -34,6 +34,7 @@ struct pb_image_load_context
     void *private;
 };
 
+int pb_image_check_header(struct bpak_header *h);
 int pb_image_load(struct pb_image_load_context *ctx,
                   struct pb_crypto *crypto,
                   struct bpak_keystore *keystore);

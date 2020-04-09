@@ -16,6 +16,7 @@
 #include <pb/transport.h>
 #include <pb/boot.h>
 #include <pb/crypto.h>
+#include <pb/board.h>
 #include <pb-tools/wire.h>
 #include <bpak/bpak.h>
 
@@ -24,6 +25,7 @@ struct pb_command_context
     struct pb_storage *storage;
     struct pb_transport *transport;
     struct pb_crypto *crypto;
+    struct pb_board *board;
     struct bpak_keystore *keystore;
     struct pb_boot_context *boot;
     bool authenticated;
@@ -44,6 +46,7 @@ int pb_command_init(struct pb_command_context *command,
                   struct pb_transport *transport,
                   struct pb_storage *storage,
                   struct pb_crypto *crypto,
+                  struct pb_board *board,
                   struct bpak_keystore *keystore,
                   struct pb_boot_context *boot,
                   uint8_t *device_uuid);

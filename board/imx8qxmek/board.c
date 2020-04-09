@@ -383,7 +383,7 @@ int board_early_init(struct pb_platform_setup *plat,
     return PB_OK;
 }
 
-uint32_t board_setup_device(void)
+int board_setup_device(void)
 {
     return PB_OK;
 }

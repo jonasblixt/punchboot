@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <plat/test/semihosting.h>
+#include <plat/qemu/semihosting.h>
 #include <string.h>
 
 #ifndef SEMIHOSTING_SUPPORTED

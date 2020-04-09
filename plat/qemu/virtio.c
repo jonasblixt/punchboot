@@ -7,9 +7,9 @@
  *
  */
 #include <stdio.h>
-#include <board.h>
-#include <io.h>
 #include <string.h>
+#include <pb/board.h>
+#include <pb/io.h>
 #include "virtio.h"
 #include "virtio_mmio.h"
 #include "virtio_queue.h"
@@ -17,7 +17,10 @@
 uint32_t virtio_mmio_init(struct virtio_device *d)
 {
     if ((pb_read32(d->base + VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976))
+    {
+        LOG_ERR("Magic error %x", d->base);
         return PB_ERR;
+    }
 
     if ((pb_read32(d->base + VIRTIO_MMIO_DEVICE_ID) != d->device_id))
         return PB_ERR;

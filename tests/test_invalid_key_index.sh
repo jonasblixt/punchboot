@@ -25,7 +25,7 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key ../pki/dev_rsa_private.pem \
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
                     --key-id invalid-key-id \
                     --key-store pb $V
 set +e
@@ -36,7 +36,7 @@ then
     test_end_error
 fi
 
-$PB boot -x -f /tmp/img.bpak
+$PB boot --load /tmp/img.bpak
 result_code=$?
 
 if [ $result_code -ne 255 ];

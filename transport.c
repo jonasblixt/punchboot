@@ -28,12 +28,18 @@ int pb_transport_start(struct pb_transport *ctx, int timeout_s)
 
     LOG_DBG("init %p", ctx->driver);
  
-    rc = ctx->driver->platform->init(ctx->driver);
+    if (!ctx->driver)
+        return -PB_ERR;
 
-    if (rc != PB_OK)
+    if (ctx->driver->platform)
     {
-        LOG_ERR("plat failed %i", rc);
-        return rc;
+        rc = ctx->driver->platform->init(ctx->driver);
+
+        if (rc != PB_OK)
+        {
+            LOG_ERR("plat failed %i", rc);
+            return rc;
+        }
     }
 
     rc = ctx->driver->init(ctx->driver);

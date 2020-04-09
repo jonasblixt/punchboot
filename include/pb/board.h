@@ -24,6 +24,18 @@
 #include <board/config.h>
 #include <plat/defs.h>
 
+struct pb_board;
+struct pb_command_context;
+
+typedef int (*pb_board_call_t) (struct pb_board *board);
+
+struct pb_board
+{
+    const char *name;
+    bool force_command_mode;
+    pb_board_call_t pre_boot;
+};
+
 /**
  * Function: board_early_init
  *
@@ -38,43 +50,9 @@ int board_early_init(struct pb_platform_setup *plat,
                           struct pb_crypto *crypto,
                           struct pb_command_context *command_ctx,
                           struct pb_boot_context *boot,
-                          struct bpak_keystore *keystore);
+                          struct bpak_keystore *keystore,
+                          struct pb_board *board);
 
-/**
- * Function: board_late_init
- *
- * Called as a last step in the platform init code
- *
- * Return value: PB_OK if there is no error
- */
-uint32_t board_late_init(struct pb_platform_setup *plat);
 
-/**
- * Function: board_prepare_recovery
- *
- * Called before recovery mode is to be initialized and before
- *  usb controller is initialized.
- *
- * Return value: PB_OK if there is no error
- */
-uint32_t board_prepare_recovery(struct pb_platform_setup *plat);
-
-/**
- * Function: board_force_recovery
- *
- * Called during initialization and forces recovery mode depending on return
- *   value.
- *
- * Return value: True - Force recovery
- *               False - Normal boot
- */
-bool  board_force_recovery(struct pb_platform_setup *plat);
-
-uint32_t board_setup_device(void);
-uint32_t board_setup_lock(void);
-uint32_t board_recovery_command(uint32_t arg0, uint32_t arg1, uint32_t arg2,
-                                uint32_t arg3);
-
-const char * board_get_id(void);
 
 #endif  // INCLUDE_PB_BOARD_H_

@@ -7,8 +7,8 @@
  *
  */
 
-#include <plat/test/semihosting.h>
-#include <usb.h>
+#include <plat/qemu/semihosting.h>
+#include <pb/usb.h>
 #include "test.h"
 
 uint32_t  plat_usb_init(struct usb_device *dev)

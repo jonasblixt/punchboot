@@ -7,6 +7,7 @@ sync
 sgdisk -v /tmp/disk | grep "No problems found"
 result_code=$?
 
+echo "sgdisk result_code=$result_code"
 if [ $result_code -ne 0 ];
 then
     test_end_error
@@ -17,8 +18,9 @@ fi
 dd if=/dev/urandom of=/tmp/disk bs=512 skip=2 conv=notrunc count=3
 sync
 # Reset
-$PB boot -r
+$PB dev --reset --transport socket
 result_code=$?
+echo "result_code=$result_code"
 
 if [ $result_code -ne 0 ];
 then

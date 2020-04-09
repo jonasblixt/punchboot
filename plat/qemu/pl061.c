@@ -9,8 +9,8 @@
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/io.h>
 
 #include "pl061.h"
 

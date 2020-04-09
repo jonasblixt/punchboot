@@ -11,8 +11,8 @@
 #define TESTS_TEST_H_
 
 #include <stdio.h>
-#include <board.h>
-#include <plat/test/semihosting.h>
+#include <pb/board.h>
+#include <plat/qemu/semihosting.h>
 
 void test_main(void);
 

@@ -86,7 +86,7 @@ int pb_storage_start(struct pb_storage *ctx)
 
             if (rc != PB_OK)
             {
-                LOG_ERR("%s map init err %i\n", drv->name, rc);
+                LOG_ERR("%s map init err %i", drv->name, rc);
                 break;
             }
         }
@@ -113,7 +113,7 @@ int pb_storage_read(struct pb_storage_driver *drv,
 
     if ((block_offset + blocks) > part->no_of_blocks)
     {
-        LOG_ERR("Trying to read outside of partition %lu > %llu",
+        LOG_ERR("Trying to read outside of partition %zu > %llu",
          (block_offset + blocks), part->no_of_blocks);
         return -PB_ERR_MEM;
     }

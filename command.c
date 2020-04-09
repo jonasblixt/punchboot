@@ -79,7 +79,7 @@ static int auth_token(struct pb_crypto *crypto,
             return -PB_ERR;
     }
 
-    LOG_DBG("Hash init");
+    LOG_DBG("Hash init (%s)", device_uu_str);
     rc = pb_hash_init(crypto, &hash, hash_kind);
 
     if (rc != PB_OK)
@@ -203,7 +203,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             if (entries)
             {
                 size_t bytes = sizeof(struct pb_result_part_table_entry)*(entries);
-                LOG_DBG("Bytes %li", bytes);
+                LOG_DBG("Bytes %zu", bytes);
                 drv->write(drv, result_tbl, bytes);
             }
 
@@ -215,7 +215,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             struct pb_result_device_caps caps;
             caps.stream_no_of_buffers = 2;
             caps.stream_buffer_size = 1024;
-            caps.chunk_transfer_max_bytes = 1024*1024*4;
+            caps.chunk_transfer_max_bytes = drv->max_chunk_bytes;
 
             pb_wire_init_result2(&ctx->result, PB_RESULT_OK, &caps, sizeof(caps));
         }
@@ -243,6 +243,26 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             if (rc != PB_OK)
                 break;
 
+            rc = bpak_valid_header(&ctx->boot->driver->load_ctx->header);
+
+            if (rc != BPAK_OK)
+            {
+                LOG_ERR("Invalid BPAK header");
+                rc = -PB_RESULT_ERROR;
+                pb_wire_init_result(&ctx->result, rc);
+                break;
+            }
+
+            rc = pb_image_check_header(&ctx->boot->driver->load_ctx->header);
+
+            if (rc != PB_OK)
+            {
+                LOG_ERR("Bad header");
+                rc = -PB_RESULT_ERROR;
+                pb_wire_init_result(&ctx->result, rc);
+                break;
+            }
+
             pb_wire_init_result(&ctx->result, rc);
             rc = drv->write(drv, &ctx->result, sizeof(ctx->result));
 
@@ -267,6 +287,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
         case PB_CMD_PART_TBL_INSTALL:
         {
             rc = pb_storage_install_default(ctx->storage);
+            pb_wire_init_result(&ctx->result, rc);
         }
         break;
         case PB_CMD_STREAM_INITIALIZE:
@@ -283,7 +304,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
 
             struct pb_storage_driver *sdrv = ctx->stream_drv;
 
-            if (rc == PB_OK)
+            if (rc == PB_OK && sdrv->map_request)
                 rc = sdrv->map_request(sdrv, ctx->stream_map);
 
             pb_wire_init_result(&ctx->result, rc);
@@ -334,7 +355,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             if ((stream_write->offset + stream_write->size) > part_size)
             {
                 LOG_ERR("Trying to write outside of partition");
-                LOG_ERR("%llu > %lu", (stream_write->offset + \
+                LOG_ERR("%llu > %zu", (stream_write->offset + \
                                 stream_write->size), part_size);
                 rc = -PB_RESULT_NO_MEMORY;
                 pb_wire_init_result(&ctx->result, rc);
@@ -344,7 +365,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             size_t blocks = (stream_write->size / sdrv->block_size);
             size_t block_offset = (stream_write->offset / sdrv->block_size);
 
-            LOG_DBG("Writing %lu blocks to offset %lu", blocks, block_offset);
+            LOG_DBG("Writing %zu blocks to offset %zu", blocks, block_offset);
 
             uint8_t *bfr = ((uint8_t *) ctx->buffer) +
                             (ctx->buffer_size*stream_write->buffer_id);
@@ -361,7 +382,11 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             LOG_DBG("Stream final");
             struct pb_storage_driver *sdrv = ctx->stream_drv;
 
-            rc = sdrv->map_release(sdrv, ctx->stream_map);
+            if (sdrv->map_release)
+                rc = sdrv->map_release(sdrv, ctx->stream_map);
+            else
+                rc = PB_RESULT_OK;
+
             pb_wire_init_result(&ctx->result, rc);
         }
         break;
@@ -388,17 +413,27 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
 
 
             size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
-            size_t block_offset = map->no_of_blocks - blocks - 1;
 
-            rc = sdrv->map_request(sdrv, ctx->stream_map);
-
-            if (rc != PB_OK)
+            if (blocks > map->no_of_blocks)
             {
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&ctx->result, -PB_RESULT_ERROR);
                 break;
             }
 
-            LOG_DBG("Reading");
+            size_t block_offset = map->no_of_blocks - blocks;
+
+            if (sdrv->map_request)
+            {
+                rc = sdrv->map_request(sdrv, ctx->stream_map);
+
+                if (rc != PB_OK)
+                {
+                    pb_wire_init_result(&ctx->result, rc);
+                    break;
+                }
+            }
+
+            LOG_DBG("Reading, block offset: %zu", block_offset);
 
             rc = pb_storage_read(sdrv, map, ctx->buffer,
                                     blocks, block_offset);
@@ -410,12 +445,15 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
                 break;
             }
 
-            rc = sdrv->map_release(sdrv, ctx->stream_map);
-
-            if (rc != PB_OK)
+            if (sdrv->map_release)
             {
-                pb_wire_init_result(&ctx->result, rc);
-                break;
+                rc = sdrv->map_release(sdrv, ctx->stream_map);
+
+                if (rc != PB_OK)
+                {
+                    pb_wire_init_result(&ctx->result, rc);
+                    break;
+                }
             }
 
             rc = bpak_valid_header((struct bpak_header *) ctx->buffer);
@@ -459,14 +497,17 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             size_t blocks_to_check = verify_cmd->size / sdrv->block_size;
 
             size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
-            size_t block_offset = map->no_of_blocks - blocks - 1;
+            size_t block_offset = map->no_of_blocks - blocks;
 
-            rc = sdrv->map_request(sdrv, ctx->stream_map);
-
-            if (rc != PB_OK)
+            if (sdrv->map_request)
             {
-                pb_wire_init_result(&ctx->result, rc);
-                break;
+                rc = sdrv->map_request(sdrv, ctx->stream_map);
+
+                if (rc != PB_OK)
+                {
+                    pb_wire_init_result(&ctx->result, rc);
+                    break;
+                }
             }
 
             rc = pb_hash_init(ctx->crypto, &ctx->hash_ctx, PB_HASH_SHA256);
@@ -502,7 +543,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
                 blocks_to_check -= blocks;
             }
 
-            LOG_DBG("Reading %lu blocks", blocks_to_check);
+            LOG_DBG("Reading %zu blocks", blocks_to_check);
             block_offset = 0;
 
             while (blocks_to_check)
@@ -516,7 +557,9 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
                 if (rc != PB_OK)
                 {
                     pb_wire_init_result(&ctx->result, rc);
-                    sdrv->map_request(sdrv, ctx->stream_map);
+
+                    if (sdrv->map_release)
+                        sdrv->map_release(sdrv, ctx->stream_map);
                     break;
                 }
 
@@ -544,13 +587,6 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
                 break;
             }
 
-            rc = sdrv->map_request(sdrv, ctx->stream_map);
-
-            if (rc != PB_OK)
-            {
-                pb_wire_init_result(&ctx->result, rc);
-                break;
-            }
 
             if (memcmp(ctx->hash_ctx.buf, verify_cmd->sha256, 32) == 0)
                 rc = PB_RESULT_OK;
@@ -584,9 +620,8 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             struct pb_result_device_identifier *ident = \
                 (struct pb_result_device_identifier *) ctx->buffer;
 
-            const char *board_id = board_get_id();
             memset(ident->board_id, 0, sizeof(ident->board_id));
-            memcpy(ident->board_id, board_id, strlen(board_id));
+            memcpy(ident->board_id, ctx->board->name, strlen(ctx->board->name));
             memcpy(ident->device_uuid, ctx->device_uuid, 16);
 
             pb_wire_init_result2(&ctx->result, rc,
@@ -657,6 +692,7 @@ int pb_command_init(struct pb_command_context *ctx,
                   struct pb_transport *transport,
                   struct pb_storage *storage,
                   struct pb_crypto *crypto,
+                  struct pb_board *board,
                   struct bpak_keystore *keystore,
                   struct pb_boot_context *boot,
                   uint8_t *device_uuid)
@@ -667,6 +703,7 @@ int pb_command_init(struct pb_command_context *ctx,
     ctx->transport = transport;
     ctx->storage = storage;
     ctx->crypto = crypto;
+    ctx->board = board;
     ctx->keystore = keystore;
     ctx->boot = boot;
     ctx->device_uuid = device_uuid;

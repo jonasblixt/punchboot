@@ -35,6 +35,9 @@ int pb_crypto_start(struct pb_crypto *crypto)
                                    crypto->drivers;
     int rc;
 
+    if (!drv)
+        return -PB_ERR;
+
     if (drv->platform)
     {
         LOG_DBG("crypto plat init");
@@ -44,9 +47,8 @@ int pb_crypto_start(struct pb_crypto *crypto)
             return rc;
     }
 
-    LOG_DBG("init %p", drv->init);
-
-    rc = drv->init(drv);
+    if (drv->init)
+       rc = drv->init(drv);
 
     return rc;
 }

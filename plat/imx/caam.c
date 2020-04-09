@@ -171,7 +171,7 @@ static int caam_ecdsa_verify(struct pb_crypto_driver *drv,
     uint8_t *r = NULL;
     uint8_t *s = NULL;
 
-    if (pb_asn1_eckey_data(key, &key_data, &key_sz) != PB_OK)
+    if (pb_asn1_eckey_data(key, &key_data, &key_sz, false) != PB_OK)
     {
         LOG_ERR("Could not extract key data");
         return -PB_ERR;

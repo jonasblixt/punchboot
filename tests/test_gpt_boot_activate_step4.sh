@@ -1,5 +1,5 @@
 #!/bin/bash
-touch /tmp/pb_force_recovery
+touch /tmp/pb_force_command_mode
 source tests/common.sh
 wait_for_qemu_start
 
@@ -25,7 +25,7 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key ../pki/dev_rsa_private.pem \
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
                     --key-id pb-development \
                     --key-store pb $V
 set +e
@@ -37,7 +37,8 @@ then
 fi
 
 # Flashing image 
-$PB part -w -n 1 -f /tmp/img.bpak
+echo "Flashing B"
+$PB part --write /tmp/img.bpak --part $BOOT_B --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -46,7 +47,7 @@ then
     test_end_error
 fi
 
-$PB boot -a -s B
+$PB part --activate $BOOT_B --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

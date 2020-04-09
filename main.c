@@ -16,6 +16,7 @@
 #include <pb/transport.h>
 #include <pb/console.h>
 #include <pb/crypto.h>
+#include <pb/board.h>
 #include <pb/boot.h>
 
 static struct pb_console console;
@@ -25,6 +26,7 @@ static struct pb_crypto crypto;
 static struct pb_command cmd;
 static struct pb_command_context command_ctx;
 static struct pb_boot_context boot_ctx;
+static struct pb_board board;
 extern struct bpak_keystore keystore_pb;
 static uint8_t device_uuid[16] __no_bss;
 
@@ -54,14 +56,14 @@ static int pb_early_init(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = pb_command_init(&command_ctx, &transport, &storage, &crypto,
+    rc = pb_command_init(&command_ctx, &transport, &storage, &crypto, &board,
                             &keystore_pb, &boot_ctx, device_uuid);
 
     if (rc != PB_OK)
         return rc;
 
     rc = plat_early_init(&storage, &transport, &console, &crypto, &command_ctx,
-                         &boot_ctx, &keystore_pb);
+                         &boot_ctx, &keystore_pb, &board);
 
     if (rc != PB_OK)
         return rc;
@@ -96,15 +98,9 @@ void pb_main(void)
     tr_stamp_begin(TR_BLINIT);
     tr_stamp_begin(TR_TOTAL);
 
-    LOG_INFO("\n\r\n\rPB " PB_VERSION " starting");
-
-    rc = pb_storage_start(&storage);
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not initialize storage");
-        goto run_command_mode;
-    }
+#if LOGLEVEL > 0
+    printf("\n\r\n\rPB " PB_VERSION " starting\n\r");
+#endif
 
     rc = pb_crypto_start(&crypto);
 
@@ -122,11 +118,36 @@ void pb_main(void)
         goto run_command_mode;
     }
 
+    rc = pb_storage_start(&storage);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not initialize storage");
+        goto run_command_mode;
+    }
+
     rc = pb_boot_load_state(&boot_ctx);
 
     if (rc != PB_OK)
     {
-        LOG_ERR("Could not boot, starting command mode");
+        LOG_ERR("Could not load state");
+        goto run_command_mode;
+    }
+
+    if (board.pre_boot)
+    {
+        rc = board.pre_boot(&board);
+
+        if (rc != PB_OK)
+        {
+            LOG_ERR("Board pre_boot failed");
+            goto run_command_mode;
+        }
+    }
+
+    if (board.force_command_mode)
+    {
+        LOG_INFO("Forced command mode");
         goto run_command_mode;
     }
 
@@ -134,7 +155,7 @@ void pb_main(void)
 
     if (rc != PB_OK)
     {
-        LOG_ERR("Could not boot, starting command mode");
+        LOG_ERR("Could not boot");
         goto run_command_mode;
     }
 

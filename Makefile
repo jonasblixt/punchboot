@@ -43,7 +43,7 @@ CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
 CFLAGS  += -D__PB_BUILD
 CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
-CFLAGS  += -I 3pp/fdt/include
+CFLAGS  += -I fdt/include
 CFLAGS  += -I uuid/
 CFLAGS  += -fstack-usage -fstack-check
 CFLAGS  += -MMD -MP
@@ -117,28 +117,24 @@ C_SRCS  += lib/snprintf.c
 C_SRCS  += lib/strtoul.c
 
 # Lib fdt
-C_SRCS  += 3pp/fdt/fdt.c
-C_SRCS  += 3pp/fdt/fdt_addresses.c
-C_SRCS  += 3pp/fdt/fdt_ro.c
-C_SRCS  += 3pp/fdt/fdt_rw.c
-C_SRCS  += 3pp/fdt/fdt_sw.c
-C_SRCS  += 3pp/fdt/fdt_wip.c
+C_SRCS  += fdt/fdt.c
+C_SRCS  += fdt/fdt_addresses.c
+C_SRCS  += fdt/fdt_ro.c
+C_SRCS  += fdt/fdt_rw.c
+C_SRCS  += fdt/fdt_sw.c
+C_SRCS  += fdt/fdt_wip.c
 
 LINT_EXCLUDE =
 FINAL_IMAGE =
 
--include board/*/Kconfig.board
 include board/*/makefile.mk
 
 BUILD_DIR = build-$(PB_BOARD_NAME)
 $(shell mkdir -p $(BUILD_DIR))
 
--include plat/*/Kconfig.plat
--include plat/$(PB_PLAT_NAME)/makefile.mk
-
--include arch/*/Kconfig.arch
--include arch/$(PB_ARCH_NAME)/makefile.mk
-
+include plat/$(PB_PLAT_NAME)/makefile.mk
+include arch/$(PB_ARCH_NAME)/makefile.mk
+include bearssl/makefile.mk
 
 CC=$(CONFIG_TOOLCHAIN_PREFIX)gcc
 LD=$(CONFIG_TOOLCHAIN_PREFIX)ld
@@ -169,8 +165,10 @@ DEPS      = $(OBJS:.o=.d)
 
 ifeq ($(BOARD),test)
 CFLAGS += -g  -fprofile-arcs -ftest-coverage
-include tests/makefile.mk
+
 endif
+
+include tests/makefile.mk
 
 .PHONY: plat_early keystore plat_final board_final menuconfig
 

@@ -9,6 +9,8 @@
 
 #include <pb/utils.h>
 
+#define ULONG_MAX 0xFFFFFFFFUL
+
 typedef volatile uint32_t __iomem;
 
 /*******************************************************************************

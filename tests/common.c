@@ -8,12 +8,11 @@
  */
 
 #include <stdio.h>
-#include <board.h>
-#include <plat.h>
-#include <plat/test/pl061.h>
-#include <plat/test/gcov.h>
-#include <plat/test/uart.h>
-#include <plat/test/semihosting.h>
+#include <pb/board.h>
+#include <pb/plat.h>
+#include <plat/qemu/pl061.h>
+#include <plat/qemu/gcov.h>
+#include <plat/qemu/semihosting.h>
 #include <pb/assert.h>
 #include "test.h"
 
@@ -31,7 +30,7 @@ void __assert(const char *file, unsigned int line,
 
 void pb_main(void)
 {
-    test_uart_init();
+    //test_uart_init();
     gcov_init();
     test_main();
     gcov_final();

@@ -9,9 +9,9 @@
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <plat.h>
-#include <plat/test/semihosting.h>
+#include <pb/pb.h>
+#include <pb/plat.h>
+#include <plat/qemu/semihosting.h>
 #include "pl061.h"
 #include "gcov.h"
 
