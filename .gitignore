@@ -16,3 +16,5 @@ cov-int
 cov.xml
 blobs/
 *.token
+.config
+.config.old
