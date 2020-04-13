@@ -10,13 +10,18 @@ env:
 addons:
   apt:
     update: true
-  packages:
-    - qemu-system-arm
-    - autoconf-archive
+    packages:
+      - qemu-system-arm
+      - autoconf-archive
+      - libusb-1.0-0
+      - libusb-1.0-0-dev
+      - libblkid1
+      - libblkid-dev
+      - uuid-dev
 
 script:
     # Build BPAK library and tools
-    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.3.0
+    - git clone https://github.com/jonasblixt/bpak --depth 1 #--branch v0.3.0
     - pushd bpak
     - autoreconf -fi
     - ./configure
@@ -26,9 +31,7 @@ script:
     - popd
 
     # Build punchboot library and tools
-    - git clone https://github.com/jonasblixt/punchboot-tools \
-                --depth 1 \
-                --branch v0.1.0
+    - git clone https://github.com/jonasblixt/punchboot-tools --depth 1 #--branch v0.1.0
     - pushd punchboot-tools
     - autoreconf -fi
     - ./configure
@@ -37,10 +40,17 @@ script:
     - sudo ldconfig
     - popd
 
-    # Build punchboot
-    - cp configs/qemuarmv7_defconfig .config
+    # Build pbstate, needed for testing
+    - pushd tools/pbstate
+    - autoreconf -fi
+    - ./configure
     - make
-    - make test
+    - sudo make install
+    - popd
+
+    # Build punchboot
+    - cp configs/test_defconfig .config
+    - make check
 
 jobs:
     include:
