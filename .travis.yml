@@ -18,6 +18,7 @@ addons:
       - libblkid1
       - libblkid-dev
       - uuid-dev
+      - gcc-arm-none-eabi
 
 script:
     # Build BPAK library and tools
