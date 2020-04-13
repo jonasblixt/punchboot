@@ -206,18 +206,19 @@ int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
             br_ec_public_key br_k;
             pb_asn1_eckey_data(key, &br_k.q, &br_k.qlen, true);
             br_k.curve = BR_EC_secp384r1;
-            err = br_ecdsa_i31_vrfy_asn1(&br_ec_all_m15, hash->buf, 48,
+            err = br_ecdsa_i31_vrfy_asn1(&br_ec_prime_i31, hash->buf, 48,
                                     &br_k, signature, size);
 
             signature_verified = (err == 1);
         }
+        break;
         case BPAK_KEY_PUB_SECP521r1:
         {
             LOG_DBG("EC521 %zu", size);
             br_ec_public_key br_k;
             pb_asn1_eckey_data(key, &br_k.q, &br_k.qlen, true);
             br_k.curve = BR_EC_secp521r1;
-            err = br_ecdsa_i31_vrfy_asn1(&br_ec_all_m15, hash->buf, 64,
+            err = br_ecdsa_i31_vrfy_asn1(&br_ec_prime_i31, hash->buf, 64,
                                     &br_k, signature, size);
 
             signature_verified = (err == 1);
@@ -230,8 +231,12 @@ int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
     }
 
     if ( (signature_verified) )
+    {
+        LOG_INFO("Sig OK");
         return PB_OK;
+    }
 
+    LOG_ERR("Sig error");
     return -PB_ERR;
 }
 

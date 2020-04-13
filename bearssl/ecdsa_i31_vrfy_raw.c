@@ -88,7 +88,6 @@ br_ecdsa_i31_vrfy_raw(const br_ec_impl *impl,
                                                 cd->generator_len);
 		//return 0;
 	}
-
 	/*
 	 * Get modulus; then decode the r and s values. They must be
 	 * lower than the modulus, and s must not be null.
@@ -146,6 +145,7 @@ br_ecdsa_i31_vrfy_raw(const br_ec_impl *impl,
 	 */
 	ulen = cd->generator_len;
 	memcpy(eU, pk->q, ulen);
+
 	res = impl->muladd(eU, NULL, ulen,
 		tx, nlen, ty, nlen, cd->curve);
 

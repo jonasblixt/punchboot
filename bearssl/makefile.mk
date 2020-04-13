@@ -37,6 +37,8 @@ PLAT_C_SRCS  += bearssl/ecdsa_i31_bits.c
 PLAT_C_SRCS  += bearssl/ecdsa_atr.c
 PLAT_C_SRCS  += bearssl/ec_all_m15.c
 
+PLAT_C_SRCS  += bearssl/ec_prime_i31.c
+
 PLAT_C_SRCS  += bearssl/ec_prime_i15.c
 PLAT_C_SRCS  += bearssl/ec_p256_m15.c
 PLAT_C_SRCS  += bearssl/ec_c25519_m15.c

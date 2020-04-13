@@ -12,7 +12,20 @@ $BPAK create $IMG -Y
 
 $BPAK add $IMG --meta bpak-package --from-string $PKG_UUID --encoder uuid
 
+
 $BPAK add $IMG --part pb-development \
+               --from-file pki/secp256r1-pub-key.der \
+               --encoder key
+
+$BPAK add $IMG --part pb-development2 \
+               --from-file pki/secp384r1-pub-key.der \
+               --encoder key
+
+$BPAK add $IMG --part pb-development3 \
+               --from-file pki/secp521r1-pub-key.der \
+               --encoder key
+
+$BPAK add $IMG --part pb-development4 \
                --from-file pki/dev_rsa_public.der \
                --encoder key
 

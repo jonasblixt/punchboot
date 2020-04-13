@@ -44,6 +44,7 @@ INTEGRATION_TESTS += test_switch
 INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_board
 INTEGRATION_TESTS += test_board_status
+INTEGRATION_TESTS += test_all_sig_formats
 
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/qemu/gcov.c
