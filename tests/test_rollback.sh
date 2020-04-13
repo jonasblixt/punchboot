@@ -52,8 +52,8 @@ then
     test_end_error
 fi
 
-pbconfig -d /tmp/disk -v b
-pbconfig -d /tmp/disk -s a -c 3
+$PBSTATE -d /tmp/disk -v b
+$PBSTATE -d /tmp/disk -s a -c 3
 
 # Reset
 force_recovery_mode_off

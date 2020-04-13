@@ -58,7 +58,7 @@ echo
 echo Activating System A
 echo
 
-pbconfig -d /tmp/disk -s a
+$PBSTATE -d /tmp/disk -s a
 
 # Reset
 force_recovery_mode_off
@@ -92,7 +92,7 @@ echo
 echo Activating System B
 echo
 
-pbconfig -d /tmp/disk -s b
+$PBSTATE -d /tmp/disk -s b
 
 wait_for_qemu2
 start_qemu
