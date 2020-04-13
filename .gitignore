@@ -27,3 +27,5 @@ tools/pbstate/configure
 tools/pbstate/m4/
 tools/pbstate/src/Makefile.in
 tools/pbstate/test/Makefile.in
+
+update.sh
