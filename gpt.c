@@ -69,7 +69,7 @@ struct gpt_private
     uint8_t pmbr[512];
 };
 
-#define PB_GPT_PRIV(_drv) ((struct gpt_private *) drv->map->private)
+#define PB_GPT_PRIV(_drv) ((struct gpt_private *) drv->map_private)
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 {
@@ -308,7 +308,7 @@ static int gpt_write_tbl(struct pb_storage_driver *drv)
     return err;
 }
 
-static int gpt_init(struct pb_storage_driver *drv)
+int gpt_init(struct pb_storage_driver *drv)
 {
     struct gpt_private *priv = PB_GPT_PRIV(drv);
 
@@ -423,8 +423,7 @@ static int gpt_init(struct pb_storage_driver *drv)
 
     /* Translate to internal map format */
 
-    drv->map->map = (struct pb_storage_map *) drv->map->map_data;
-    struct pb_storage_map *entries = drv->map->map;
+    struct pb_storage_map *entries = (struct pb_storage_map *) drv->map_data;
 
     for (struct gpt_part_hdr *p = priv->primary.part; p->first_lba; p++)
     {
@@ -432,7 +431,7 @@ static int gpt_init(struct pb_storage_driver *drv)
         uuid_to_guid(p->uuid, uuid);
         uuid_unparse(uuid, uuid_str);
 
-        pb_storage_foreach_part(drv->default_map, dp)
+        pb_storage_foreach_part(drv->map_default, dp)
         {
             if (!dp->valid_entry)
                 break;
@@ -458,7 +457,7 @@ static int gpt_init(struct pb_storage_driver *drv)
 
         LOG_DBG("Copy %s", name);
 
-        struct pb_storage_map *entry = &entries[drv->map->map_entries++];
+        struct pb_storage_map *entry = &entries[drv->map_entries++];
 
         entry->valid_entry = true;
         memcpy(entry->uuid, uuid, 16);
@@ -469,14 +468,14 @@ static int gpt_init(struct pb_storage_driver *drv)
         entry->flags = part->flags;
     }
 
-    memset(&entries[drv->map->map_entries], 0, sizeof(*entries));
+    memset(&entries[drv->map_entries], 0, sizeof(*entries));
 
-    LOG_DBG("Loaded %i entries", drv->map->map_entries);
+    LOG_DBG("Loaded %i entries", drv->map_entries);
 
     return PB_OK;
 }
 
-static int gpt_install_map(struct pb_storage_driver *drv,
+int gpt_install_map(struct pb_storage_driver *drv,
                             struct pb_storage_map *map)
 {
     int rc;
@@ -511,17 +510,4 @@ static int gpt_install_map(struct pb_storage_driver *drv,
     }
 
     return gpt_write_tbl(drv);
-}
-
-int pb_gpt_map_init(struct pb_storage_driver *drv)
-{
-    if (sizeof(struct gpt_private) > drv->map->size)
-    {
-        return -PB_ERR_MEM;
-    }
-
-    drv->map->init = gpt_init;
-    drv->map->install = gpt_install_map;
-
-    return PB_OK;
 }

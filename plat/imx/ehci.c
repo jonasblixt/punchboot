@@ -13,108 +13,85 @@
 #include <pb/plat.h>
 #include <pb/io.h>
 #include <pb/usb.h>
-#include <board/config.h>
 #include <plat/imx/ehci.h>
 #include <pb-tools/wire.h>
-#include <pb/transport.h>
 
-struct imx_ehci_private
+static struct ehci_transfer_head __no_bss __a4k dtds[EHCI_NO_OF_EPS*2][512];
+static struct ehci_queue_head    __no_bss __a4k dqhs[EHCI_NO_OF_EPS*2];
+static struct ehci_transfer_head *current_xfers[EHCI_NO_OF_EPS*2];
+
+static struct pb_usb_interface iface;
+
+static void ehci_reset_queues(void)
 {
-    struct ehci_transfer_head dtds[EHCI_NO_OF_EPS*2][512] __a4k;
-    struct ehci_queue_head    dqhs[EHCI_NO_OF_EPS*2] __a4k;
-    struct ehci_transfer_head *current_xfers[EHCI_NO_OF_EPS*2];
-};
-
-#define PB_IMX_EHCI(drv) ((struct imx_ehci_device *) drv->private)
-#define PB_IMX_PRIV(dev) ((struct imx_ehci_private *) dev->private)
-
-static int imx_ehci_usb_process(struct pb_transport_driver *drv);
-
-static void ehci_reset_queues(struct pb_transport_driver *drv)
-{
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
-    struct imx_ehci_private *priv = PB_IMX_PRIV(dev);
-
     for (int i = 0; i < EHCI_NO_OF_EPS*2; i++)
     {
-        priv->dqhs[i].caps = 0;
-        priv->dqhs[i].next = 0xDEAD0001;
-        priv->dqhs[i].token = 0;
-        priv->dqhs[i].current_dtd = 0;
+        dqhs[i].caps = 0;
+        dqhs[i].next = 0xDEAD0001;
+        dqhs[i].token = 0;
+        dqhs[i].current_dtd = 0;
 
-        priv->current_xfers[i] = NULL;
+        current_xfers[i] = NULL;
     }
 }
 
-static void ehci_reset(struct pb_transport_driver *drv)
+static void ehci_reset(void)
 {
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
 
-    pb_write32(0xFFFFFFFF, dev->base+EHCI_USBSTS);
+    pb_write32(0xFFFFFFFF, CONFIG_EHCI_BASE+EHCI_USBSTS);
 
-    pb_write32(0xFFFF, dev->base+EHCI_ENDPTSETUPSTAT);
-    pb_write32((0xff << 16)  | 0xff, dev->base+EHCI_ENDPTCOMPLETE);
+    pb_write32(0xFFFF, CONFIG_EHCI_BASE+EHCI_ENDPTSETUPSTAT);
+    pb_write32((0xff << 16)  | 0xff, CONFIG_EHCI_BASE+EHCI_ENDPTCOMPLETE);
 
     LOG_DBG("Waiting for EP Prime");
-    while (pb_read32(dev->base+EHCI_ENDPTPRIME))
+    while (pb_read32(CONFIG_EHCI_BASE+EHCI_ENDPTPRIME))
         __asm__("nop");
 
-    pb_write32(0xFFFFFFFF, dev->base+EHCI_ENDPTFLUSH);
+    pb_write32(0xFFFFFFFF, CONFIG_EHCI_BASE+EHCI_ENDPTFLUSH);
 
     LOG_DBG("Wait for port reset");
     /* Wait for port to come out of reset */
-    while ((pb_read32(dev->base+EHCI_PORTSC1) & (1<<8)) == (1 <<8))
+    while ((pb_read32(CONFIG_EHCI_BASE+EHCI_PORTSC1) & (1<<8)) == (1 <<8))
         __asm__("nop");
 }
 
-static struct ehci_queue_head * ehci_get_queue(struct pb_transport_driver *drv,
-                                               int ep)
+static inline struct ehci_queue_head * ehci_get_queue(int ep)
 {
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
-    struct imx_ehci_private *priv = PB_IMX_PRIV(dev);
-
-    return &priv->dqhs[ep];
+    return &dqhs[ep];
 }
 
-static int ehci_config_ep(struct pb_transport_driver *drv,
-                            int ep, uint32_t size, uint32_t flags)
+static int ehci_config_ep(int ep, uint32_t size, uint32_t flags)
 {
-    struct ehci_queue_head *qh = ehci_get_queue(drv, ep);
+    struct ehci_queue_head *qh = ehci_get_queue(ep);
 
     qh->caps = (1 << 29) | (size << 16) | flags;
 
     return PB_OK;
 }
 
-static int ehci_prime_ep(struct pb_transport_driver *drv, int ep)
+static int ehci_prime_ep(int ep)
 {
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
-    struct imx_ehci_private *priv = PB_IMX_PRIV(dev);
     uint32_t epreg = 0;
-    struct ehci_queue_head *qh = ehci_get_queue(drv, ep);
+    struct ehci_queue_head *qh = ehci_get_queue(ep);
 
-    qh->next = (uint32_t) (uintptr_t) priv->dtds[ep];
+    qh->next = (uint32_t) (uintptr_t) dtds[ep];
 
     if (ep & 1)
         epreg = (1 << ((ep-1)/2 + 16));
     else
         epreg = (1 << (ep/2));
 
-    pb_write32(epreg, dev->base + EHCI_ENDPTPRIME);
+    pb_write32(epreg, CONFIG_EHCI_BASE + EHCI_ENDPTPRIME);
 
-    while ((pb_read32(dev->base + EHCI_ENDPTPRIME) & epreg) == epreg)
+    while ((pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTPRIME) & epreg) == epreg)
         __asm__("nop");
 
     return PB_OK;
 }
 
-static int ehci_usb_wait_for_ep_completion(struct pb_transport_driver *drv,
-                                            int ep)
+static int ehci_usb_wait_for_ep_completion(int ep)
 {
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
-    struct imx_ehci_private *priv = PB_IMX_PRIV(dev);
-
-    volatile struct ehci_transfer_head *dtd = priv->current_xfers[ep];
+    volatile struct ehci_transfer_head *dtd = current_xfers[ep];
 
     if (dtd == NULL)
         return -PB_ERR;
@@ -122,21 +99,18 @@ static int ehci_usb_wait_for_ep_completion(struct pb_transport_driver *drv,
     while (dtd->token & 0x80)
     {
         plat_wdog_kick();
-        imx_ehci_usb_process(drv);
+        imx_ehci_usb_process();
 
-        if (!priv->current_xfers[ep])
+        if (!current_xfers[ep])
             return -PB_ERR;
     }
 
     return PB_OK;
 }
 
-static int ehci_transfer(struct pb_transport_driver *drv,
-                            int ep, void *bfr, size_t size)
+static int ehci_transfer(int ep, void *bfr, size_t size)
 {
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
-    struct imx_ehci_private *priv = PB_IMX_PRIV(dev);
-    struct ehci_transfer_head *dtd = priv->dtds[ep];
+    struct ehci_transfer_head *dtd = dtds[ep];
     uint32_t bytes_to_tx = size;
     uint8_t *data = bfr;
 
@@ -185,65 +159,61 @@ static int ehci_transfer(struct pb_transport_driver *drv,
         }
     }
 
-    ehci_prime_ep(drv, ep);
-    priv->current_xfers[ep] = dtd;
+    ehci_prime_ep(ep);
+    current_xfers[ep] = dtd;
 
-    return ehci_usb_wait_for_ep_completion(drv, ep);
+    return ehci_usb_wait_for_ep_completion(ep);
 }
 
 
-static int imx_ehci_usb_set_configuration(struct pb_transport_driver *drv)
+static int imx_ehci_usb_set_configuration(void)
 {
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
 
     /* Configure EP 1 as bulk IN */
-    pb_write32((1 << 23) | (2 << 18) | (1 << 6), (dev->base+EHCI_ENDPTCTRL1));
+    pb_write32((1 << 23) | (2 << 18) | (1 << 6),
+                (CONFIG_EHCI_BASE+EHCI_ENDPTCTRL1));
     /* Configure EP 2 as bulk OUT */
-    pb_write32((1 << 7) | (2 << 2) | (1 << 6), (dev->base+EHCI_ENDPTCTRL2));
-
-    drv->ready = true;
+    pb_write32((1 << 7) | (2 << 2) | (1 << 6),
+                (CONFIG_EHCI_BASE+EHCI_ENDPTCTRL2));
 
     return PB_OK;
 }
 
-static int imx_ehci_usb_process(struct pb_transport_driver *drv)
+int imx_ehci_usb_process(void)
 {
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
-    struct imx_ehci_private *priv = PB_IMX_PRIV(dev);
-
-    uint32_t sts = pb_read32(dev->base+EHCI_USBSTS);
-    uint32_t epc = pb_read32(dev->base+EHCI_ENDPTCOMPLETE);
+    uint32_t sts = pb_read32(CONFIG_EHCI_BASE+EHCI_USBSTS);
+    uint32_t epc = pb_read32(CONFIG_EHCI_BASE+EHCI_ENDPTCOMPLETE);
     struct usb_setup_packet setup_pkt;
     uint32_t tmp;
 
-    pb_write32(0xFFFFFFFF, dev->base+EHCI_USBSTS);
+    pb_write32(0xFFFFFFFF, CONFIG_EHCI_BASE+EHCI_USBSTS);
 
     /* EP0 Process setup packets */
-    if  (pb_read32(dev->base+EHCI_ENDPTSETUPSTAT) & 1)
+    if  (pb_read32(CONFIG_EHCI_BASE+EHCI_ENDPTSETUPSTAT) & 1)
     {
-        uint32_t cmd_reg = pb_read32(dev->base+EHCI_CMD);
-        struct ehci_queue_head *qh = ehci_get_queue(drv, USB_EP0_OUT);
+        uint32_t cmd_reg = pb_read32(CONFIG_EHCI_BASE+EHCI_CMD);
+        struct ehci_queue_head *qh = ehci_get_queue(USB_EP0_OUT);
 
         do
         {
-            pb_write32(cmd_reg | (1 << 13), dev->base + EHCI_CMD);
+            pb_write32(cmd_reg | (1 << 13), CONFIG_EHCI_BASE + EHCI_CMD);
             memcpy(&setup_pkt, qh->setup, sizeof(struct usb_setup_packet));
-        } while (!(pb_read32(dev->base + EHCI_CMD) & (1<<13)));
+        } while (!(pb_read32(CONFIG_EHCI_BASE + EHCI_CMD) & (1<<13)));
 
-        pb_write32(1, dev->base + EHCI_ENDPTSETUPSTAT);
+        pb_write32(1, CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
 
-        cmd_reg = pb_read32(dev->base + EHCI_CMD);
-        pb_write32(cmd_reg & ~(1 << 13), dev->base + EHCI_CMD);
+        cmd_reg = pb_read32(CONFIG_EHCI_BASE + EHCI_CMD);
+        pb_write32(cmd_reg & ~(1 << 13), CONFIG_EHCI_BASE + EHCI_CMD);
 
-        pb_write32((1<< 16) | 1, dev->base + EHCI_ENDPTFLUSH);
+        pb_write32((1<< 16) | 1, CONFIG_EHCI_BASE + EHCI_ENDPTFLUSH);
 
-        while (pb_read32(dev->base + EHCI_ENDPTSETUPSTAT) & 1)
+        while (pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT) & 1)
             __asm__("nop");
 
-        usb_process_setup_pkt(&dev->iface, &setup_pkt);
+        usb_process_setup_pkt(&iface, &setup_pkt);
     }
 
-    pb_write32(epc, dev->base + EHCI_ENDPTCOMPLETE);
+    pb_write32(epc, CONFIG_EHCI_BASE + EHCI_ENDPTCOMPLETE);
 
     if (sts & (1 << 6))
     {
@@ -251,111 +221,98 @@ static int imx_ehci_usb_process(struct pb_transport_driver *drv)
 
         for (uint32_t i = 1; i < EHCI_NO_OF_EPS*2; i++)
         {
-            priv->dqhs[i].next = 0xDEAD0001;
-            priv->dqhs[i].token = 0;
-            priv->dqhs[i].current_dtd = 0;
-            priv->current_xfers[i] = NULL;
+            dqhs[i].next = 0xDEAD0001;
+            dqhs[i].token = 0;
+            dqhs[i].current_dtd = 0;
+            current_xfers[i] = NULL;
         }
 
-        tmp = pb_read32(dev->base + EHCI_ENDPTSETUPSTAT);
-        pb_write32(tmp, dev->base + EHCI_ENDPTSETUPSTAT);
+        tmp = pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
+        pb_write32(tmp, CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
 
-        tmp = pb_read32(dev->base + EHCI_ENDPTCOMPLETE);
-        pb_write32(tmp, dev->base + EHCI_ENDPTCOMPLETE);
+        tmp = pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTCOMPLETE);
+        pb_write32(tmp, CONFIG_EHCI_BASE + EHCI_ENDPTCOMPLETE);
 
-        pb_write32(0, dev->base+EHCI_DEVICEADDR);
+        pb_write32(0, CONFIG_EHCI_BASE+EHCI_DEVICEADDR);
 
-        while (pb_read32(dev->base+EHCI_ENDPTPRIME))
+        while (pb_read32(CONFIG_EHCI_BASE+EHCI_ENDPTPRIME))
             __asm__("nop");
 
-        pb_write32(0x00FF00FF, dev->base+EHCI_ENDPTFLUSH);
+        pb_write32(0x00FF00FF, CONFIG_EHCI_BASE+EHCI_ENDPTFLUSH);
     }
 
     if (sts & 2)
     {
-        pb_write32(2, dev->base+EHCI_USBSTS);
+        pb_write32(2, CONFIG_EHCI_BASE+EHCI_USBSTS);
         LOG_ERR("EHCI: Error %x", sts);
     }
 
     return PB_OK;
 }
 
-static int imx_ehci_usb_read(struct pb_transport_driver *drv,
-                              void *buf, size_t size)
+int imx_ehci_usb_read(void *buf, size_t size)
 {
-    return ehci_transfer(drv, USB_EP2_OUT, buf, size);
+    return ehci_transfer(USB_EP2_OUT, buf, size);
 }
 
-
-static int imx_ehci_usb_write(struct pb_transport_driver *drv,
-                              void *buf, size_t size)
+int imx_ehci_usb_write(void *buf, size_t size)
 {
-    return ehci_transfer(drv, USB_EP1_IN, buf, size);
+    return ehci_transfer(USB_EP1_IN, buf, size);
 }
 
-int imx_ehci_usb_free(struct pb_transport_driver *drv)
+int imx_ehci_usb_init(void)
 {
-    return PB_OK;
-}
+    LOG_DBG("Init");
 
-int imx_ehci_usb_init(struct pb_transport_driver *drv)
-{
-    struct imx_ehci_device *dev = PB_IMX_EHCI(drv);
-    struct imx_ehci_private *priv = PB_IMX_PRIV(dev);
-
-    LOG_DBG("Init... base: %p %p", (void *) dev->base, priv->dqhs);
-
-    if (sizeof(*priv) > dev->size)
-        return -PB_ERR_MEM;
-
-    memset(priv, 0, sizeof(*priv));
-    pb_setbit32(1<<1, dev->base + EHCI_CMD);
+    pb_setbit32(1<<1, CONFIG_EHCI_BASE + EHCI_CMD);
 
     LOG_DBG("Waiting for reset");
 
-    while ((pb_read32(dev->base+EHCI_CMD) & (1<<1)) == (1 << 1))
+    while ((pb_read32(CONFIG_EHCI_BASE+EHCI_CMD) & (1<<1)) == (1 << 1))
         __asm__("nop");
 
     LOG_DBG("Reset complete");
 
-    ehci_reset_queues(drv);
+    ehci_reset_queues();
     LOG_DBG("Queues reset");
 
-    ehci_config_ep(drv, USB_EP0_IN,  EHCI_SZ_64B,  0);
-    ehci_config_ep(drv, USB_EP0_OUT, EHCI_SZ_64B,  0);
-    ehci_config_ep(drv, USB_EP1_IN,  EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
-    ehci_config_ep(drv, USB_EP2_OUT, EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
+    ehci_config_ep(USB_EP0_IN,  EHCI_SZ_64B,  0);
+    ehci_config_ep(USB_EP0_OUT, EHCI_SZ_64B,  0);
+    ehci_config_ep(USB_EP1_IN,  EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
+    ehci_config_ep(USB_EP2_OUT, EHCI_SZ_512B, EHCI_INTR_ON_COMPLETE);
 
     LOG_DBG("EP's configured");
 
     /* Program QH top */
-    pb_write32((uint32_t)(uintptr_t) priv->dqhs, dev->base + EHCI_ENDPTLISTADDR);
+    pb_write32((uint32_t)(uintptr_t) dqhs, CONFIG_EHCI_BASE + EHCI_ENDPTLISTADDR);
 
     LOG_DBG("QH loaded");
 
     /* Enable USB */
-    pb_write32(0x0A | (1 << 4), dev->base + EHCI_USBMODE);
-    pb_write32((0x40 << 16) |0x01, dev->base + EHCI_CMD);
+    pb_write32(0x0A | (1 << 4), CONFIG_EHCI_BASE + EHCI_USBMODE);
+    pb_write32((0x40 << 16) |0x01, CONFIG_EHCI_BASE + EHCI_CMD);
 
     LOG_DBG("USB Enable");
 
-    ehci_reset(drv);
+    ehci_reset();
 
     LOG_DBG("USB Reset complete");
 
-    pb_write32(7, dev->base+EHCI_SBUSCFG);
-    pb_write32(0x0000FFFF, dev->base+EHCI_BURSTSIZE);
+    pb_write32(7, CONFIG_EHCI_BASE+EHCI_SBUSCFG);
+    pb_write32(0x0000FFFF, CONFIG_EHCI_BASE+EHCI_BURSTSIZE);
 
     LOG_INFO("Init completed");
 
-    dev->iface.transport = drv;
-    dev->iface.write = ehci_transfer;
-    dev->iface.read = ehci_transfer;
-    dev->iface.set_configuration = imx_ehci_usb_set_configuration;
-
-    drv->process = imx_ehci_usb_process;
-    drv->read = imx_ehci_usb_read;
-    drv->write = imx_ehci_usb_write;
+    iface.read = ehci_transfer;
+    iface.write = ehci_transfer;
+    iface.set_address = imx_ehci_set_address;
+    iface.set_configuration = imx_ehci_usb_set_configuration;
+    iface.enumerated = false;
 
     return PB_OK;
+}
+
+bool imx_ehci_usb_ready(void)
+{
+    return iface.enumerated;
 }

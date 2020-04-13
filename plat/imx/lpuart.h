@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <pb/pb.h>
 #include <pb/io.h>
-#include <pb/console.h>
 
 #define VERID    0x0
 #define LPPARAM    0x4
@@ -63,7 +62,7 @@ struct imx_lpuart_device
     uint32_t baudrate;
 };
 
-int imx_lpuart_init(struct pb_console_driver *drv);
-int imx_lpuart_free(struct pb_console_driver *drv);
+int imx_lpuart_init(void);
+int imx_lpuart_write(char *buf, size_t size);
 
 #endif  // PLAT_IMX_LPUART_H_

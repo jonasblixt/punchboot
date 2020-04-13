@@ -18,3 +18,12 @@ blobs/
 *.token
 .config
 .config.old
+
+tools/pbstate/Makefile.in
+tools/pbstate/aclocal.m4
+tools/pbstate/autom4te.cache/
+tools/pbstate/build/
+tools/pbstate/configure
+tools/pbstate/m4/
+tools/pbstate/src/Makefile.in
+tools/pbstate/test/Makefile.in

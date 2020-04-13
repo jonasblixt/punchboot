@@ -10,34 +10,40 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/pb.h>
-#include <pb/command.h>
 #include <pb/image.h>
 #include <pb/plat.h>
 #include <pb/usb.h>
-#include <pb/crypto.h>
 #include <pb/io.h>
 #include <pb/board.h>
 #include <pb/gpt.h>
-#include <pb/transport.h>
 #include <pb/boot.h>
+#include <pb/keystore.h>
 #include <pb/crypto.h>
-#include <board/config.h>
+#include <pb/command.h>
 #include <plat/defs.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
 #include <uuid/uuid.h>
 
+static struct pb_command cmd __a4k __no_bss;
+static struct pb_result result __a4k __no_bss;
+static bool authenticated = false;
+static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] __no_bss __a4k;
+static enum pb_slc slc;
+static struct pb_storage_map *stream_map;
+static struct pb_storage_driver *stream_drv;
+static struct pb_hash_context hash_ctx __no_bss __a4k;
+static uint8_t device_uuid[16];
+
 #ifdef CONFIG_AUTH_TOKEN
-static int auth_token(struct pb_crypto *crypto,
-                      struct bpak_keystore *keystore,
-                      uint8_t *device_uu,
+static int auth_token(uint8_t *device_uu,
                       uint32_t key_id, uint8_t *sig, size_t size)
 {
     int rc = -PB_ERR;
     char device_uu_str[37];
+    struct bpak_keystore *keystore = pb_keystore();
     struct bpak_key *k = NULL;
-    struct pb_hash_context hash;
 
     uuid_unparse(device_uu, device_uu_str);
 
@@ -80,23 +86,23 @@ static int auth_token(struct pb_crypto *crypto,
     }
 
     LOG_DBG("Hash init (%s)", device_uu_str);
-    rc = pb_hash_init(crypto, &hash, hash_kind);
+    rc = plat_hash_init(&hash_ctx, hash_kind);
 
     if (rc != PB_OK)
         return rc;
 
-    rc = pb_hash_update(&hash, NULL, 0);
+    rc = plat_hash_update(&hash_ctx, NULL, 0);
 
     if (rc != PB_OK)
         return rc;
 
     LOG_DBG("Hash final");
-    rc = pb_hash_finalize(&hash, device_uu_str, 36);
+    rc = plat_hash_finalize(&hash_ctx, device_uu_str, 36);
 
     if (rc != PB_OK)
         return rc;
 
-    rc = pb_pk_verify(crypto, sig, size, &hash ,k);
+    rc = plat_pk_verify(sig, size, &hash_ctx ,k);
 
     if (rc != PB_OK)
     {
@@ -110,30 +116,31 @@ static int auth_token(struct pb_crypto *crypto,
 }
 #endif
 
-int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
+static int pb_command_parse(void)
 {
-    struct pb_transport_driver *drv = ctx->transport->driver;
     int rc = PB_OK;
 
-    if (!pb_wire_valid_command(cmd))
+    if (!pb_wire_valid_command(&cmd))
     {
-        LOG_ERR("Invalid command: %i\n", cmd->command);
-        pb_wire_init_result(&ctx->result, -PB_RESULT_INVALID_COMMAND);
+        LOG_ERR("Invalid command: %i\n", cmd.command);
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
         goto err_out;
     }
 
-    if (pb_wire_requires_auth(cmd) && (!ctx->authenticated))
+    if (pb_wire_requires_auth(&cmd) &&
+             (!authenticated) &&
+        (slc == PB_SLC_CONFIGURATION_LOCKED))
     {
         LOG_ERR("Not authenticaated");
-        pb_wire_init_result(&ctx->result, -PB_RESULT_NOT_AUTHENTICATED);
+        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
         goto err_out;
     }
 
-    LOG_DBG("Parse command: %i", cmd->command);
+    LOG_DBG("Parse command: %i", cmd.command);
 
-    pb_wire_init_result(&ctx->result, -PB_RESULT_NOT_SUPPORTED);
+    pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
-    switch (cmd->command)
+    switch (cmd.command)
     {
         case PB_CMD_BOOTLOADER_VERSION_READ:
         {
@@ -142,15 +149,15 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             LOG_INFO("Get version");
             snprintf(version_string, sizeof(version_string), "%s", PB_VERSION);
 
-            pb_wire_init_result2(&ctx->result, PB_RESULT_OK, version_string,
+            pb_wire_init_result2(&result, PB_RESULT_OK, version_string,
                                                         strlen(version_string));
         }
         break;
         case PB_CMD_DEVICE_RESET:
         {
             LOG_INFO("Board reset");
-            pb_wire_init_result(&ctx->result, PB_RESULT_OK);
-            drv->write(drv, &ctx->result, sizeof(ctx->result));
+            pb_wire_init_result(&result, PB_RESULT_OK);
+            plat_transport_write(&result, sizeof(result));
             plat_reset();
 
             while (1)
@@ -161,19 +168,18 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
         break;
         case PB_CMD_PART_TBL_READ:
         {
-            LOG_DBG("TBL read %i", ctx->storage->no_of_drivers);
+            LOG_DBG("TBL read");
             struct pb_result_part_table_read tbl_read_result;
 
             struct pb_result_part_table_entry *result_tbl = \
-                (struct pb_result_part_table_entry *) ctx->buffer;
+                (struct pb_result_part_table_entry *) buffer;
 
             int entries = 0;
 
-            for (int i = 0; i < ctx->storage->no_of_drivers; i++)
+            for (struct pb_storage_driver *sdrv = pb_storage_get_drivers();
+                    sdrv; sdrv = sdrv->next)
             {
-                struct pb_storage_driver *sdrv = ctx->storage->drivers[i];
-
-                pb_storage_foreach_part(sdrv->map->map_data, part)
+                pb_storage_foreach_part(sdrv->map_data, part)
                 {
                     if (!part->valid_entry)
                         break;
@@ -195,162 +201,160 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
 
             tbl_read_result.no_of_entries = entries;
             LOG_DBG("%i entries", entries);
-            pb_wire_init_result2(&ctx->result, PB_RESULT_OK, &tbl_read_result,
+            pb_wire_init_result2(&result, PB_RESULT_OK, &tbl_read_result,
                                                      sizeof(tbl_read_result));
 
-            drv->write(drv, &ctx->result, sizeof(ctx->result));
+            plat_transport_write(&result, sizeof(result));
 
             if (entries)
             {
                 size_t bytes = sizeof(struct pb_result_part_table_entry)*(entries);
                 LOG_DBG("Bytes %zu", bytes);
-                drv->write(drv, result_tbl, bytes);
+                plat_transport_write(result_tbl, bytes);
             }
 
-            pb_wire_init_result(&ctx->result, PB_RESULT_OK);
+            pb_wire_init_result(&result, PB_RESULT_OK);
         }
         break;
         case PB_CMD_DEVICE_READ_CAPS:
         {
             struct pb_result_device_caps caps;
             caps.stream_no_of_buffers = 2;
-            caps.stream_buffer_size = 1024;
-            caps.chunk_transfer_max_bytes = drv->max_chunk_bytes;
+            caps.stream_buffer_size = CONFIG_CMD_BUF_SIZE_KB*1024;
+            caps.chunk_transfer_max_bytes = CONFIG_TRANSPORT_MAX_CHUNK_BYTES;
 
-            pb_wire_init_result2(&ctx->result, PB_RESULT_OK, &caps, sizeof(caps));
+            pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
         }
         break;
         case PB_CMD_BOOT_RAM:
         {
             LOG_DBG("RAM boot");
             struct pb_command_ram_boot *ram_boot_cmd = \
-                               (struct pb_command_ram_boot *) cmd->request;
+                               (struct pb_command_ram_boot *) &cmd.request;
 
+            struct bpak_header *h = pb_image_header();
             if (ram_boot_cmd->verbose)
             {
                 LOG_INFO("Verbose boot enabled");
             }
 
-            pb_wire_init_result(&ctx->result, PB_RESULT_OK);
-            rc = drv->write(drv, &ctx->result, sizeof(ctx->result));
+            pb_wire_init_result(&result, PB_RESULT_OK);
+            rc = plat_transport_write(&result, sizeof(result));
 
             if (rc != PB_OK)
                 break;
 
-            rc = drv->read(drv, &ctx->boot->driver->load_ctx->header,
+            rc = plat_transport_read(h,
                             sizeof(struct bpak_header));
 
             if (rc != PB_OK)
                 break;
 
-            rc = bpak_valid_header(&ctx->boot->driver->load_ctx->header);
+            rc = bpak_valid_header(h);
 
             if (rc != BPAK_OK)
             {
                 LOG_ERR("Invalid BPAK header");
                 rc = -PB_RESULT_ERROR;
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&result, rc);
                 break;
             }
 
-            rc = pb_image_check_header(&ctx->boot->driver->load_ctx->header);
+            rc = pb_image_check_header();
 
             if (rc != PB_OK)
             {
                 LOG_ERR("Bad header");
                 rc = -PB_RESULT_ERROR;
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&result, rc);
                 break;
             }
-
-            pb_wire_init_result(&ctx->result, rc);
-            rc = drv->write(drv, &ctx->result, sizeof(ctx->result));
-
+/*
+            pb_wire_init_result(&result, rc);
+            rc = plat_transport_write(&result, sizeof(result));
+*/
             if (rc != PB_OK)
                 break;
 
-            rc = pb_boot_load_transport(ctx->boot, ctx->transport);
+            rc = pb_boot_load_transport();
 
-            pb_wire_init_result(&ctx->result, rc);
+            pb_wire_init_result(&result, rc);
 
             if (rc != PB_OK)
             {
                 break;
             }
 
-            drv->write(drv, &ctx->result, sizeof(ctx->result));
-            pb_boot(ctx->boot, ctx->device_uuid, ram_boot_cmd->verbose);
+            plat_transport_write(&result, sizeof(result));
+            pb_boot(ram_boot_cmd->verbose);
             return -PB_ERR;
-
         }
         break;
         case PB_CMD_PART_TBL_INSTALL:
         {
-            rc = pb_storage_install_default(ctx->storage);
-            pb_wire_init_result(&ctx->result, rc);
+            rc = pb_storage_install_default();
+            pb_wire_init_result(&result, rc);
         }
         break;
         case PB_CMD_STREAM_INITIALIZE:
         {
             struct pb_command_stream_initialize *stream_init = \
-                    (struct pb_command_stream_initialize *) cmd->request;
+                    (struct pb_command_stream_initialize *) cmd.request;
             char uuid[37];
             uuid_unparse(stream_init->part_uuid, uuid);
             LOG_DBG("Stream init %s", uuid);
 
-            rc = pb_storage_get_part(ctx->storage, stream_init->part_uuid,
-                                     &ctx->stream_map,
-                                     &ctx->stream_drv);
+            rc = pb_storage_get_part(stream_init->part_uuid,
+                                     &stream_map,
+                                     &stream_drv);
 
-            struct pb_storage_driver *sdrv = ctx->stream_drv;
+            if (rc == PB_OK && stream_drv->map_request)
+                rc = stream_drv->map_request(stream_drv, stream_map);
 
-            if (rc == PB_OK && sdrv->map_request)
-                rc = sdrv->map_request(sdrv, ctx->stream_map);
-
-            pb_wire_init_result(&ctx->result, rc);
+            pb_wire_init_result(&result, rc);
         }
         break;
         case PB_CMD_STREAM_PREPARE_BUFFER:
         {
             struct pb_command_stream_prepare_buffer *stream_prep = \
-                (struct pb_command_stream_prepare_buffer *) cmd->request;
+                (struct pb_command_stream_prepare_buffer *) cmd.request;
 
             LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-            if (stream_prep->size > ctx->buffer_size)
+            if (stream_prep->size > (CONFIG_CMD_BUF_SIZE_KB*1024))
             {
-                pb_wire_init_result(&ctx->result, -PB_RESULT_NO_MEMORY);
+                pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
                 break;
             }
 
-            if (stream_prep->id > (ctx->no_of_buffers-1))
+            if (stream_prep->id > 1)
             {
-                pb_wire_init_result(&ctx->result, -PB_RESULT_NO_MEMORY);
+                pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
                 break;
             }
 
-            pb_wire_init_result(&ctx->result, PB_RESULT_OK);
-            drv->write(drv, &ctx->result, sizeof(ctx->result));
+            pb_wire_init_result(&result, PB_RESULT_OK);
+            plat_transport_write(&result, sizeof(result));
 
-            uint8_t *bfr = ((uint8_t *) ctx->buffer) +
-                            (ctx->buffer_size*stream_prep->id);
+            uint8_t *bfr = ((uint8_t *) buffer) +
+                            ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_prep->id);
 
-            rc = drv->read(drv, bfr, stream_prep->size);
+            rc = plat_transport_read(bfr, stream_prep->size);
         }
         break;
         case PB_CMD_STREAM_WRITE_BUFFER:
         {
             struct pb_command_stream_write_buffer *stream_write = \
-                (struct pb_command_stream_write_buffer *) cmd->request;
+                (struct pb_command_stream_write_buffer *) cmd.request;
 
-            struct pb_storage_driver *sdrv = ctx->stream_drv;
+            struct pb_storage_driver *sdrv = stream_drv;
 
             LOG_DBG("Stream write %u, %llu, %i", stream_write->buffer_id,
                                                 stream_write->offset,
                                                 stream_write->size);
 
-            size_t part_size = ctx->stream_map->no_of_blocks *
-                                 ctx->stream_drv->block_size;
+            size_t part_size = stream_map->no_of_blocks *
+                                 stream_drv->block_size;
 
             if ((stream_write->offset + stream_write->size) > part_size)
             {
@@ -358,7 +362,7 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
                 LOG_ERR("%llu > %zu", (stream_write->offset + \
                                 stream_write->size), part_size);
                 rc = -PB_RESULT_NO_MEMORY;
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&result, rc);
                 break;
             }
 
@@ -367,56 +371,56 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
 
             LOG_DBG("Writing %zu blocks to offset %zu", blocks, block_offset);
 
-            uint8_t *bfr = ((uint8_t *) ctx->buffer) +
-                            (ctx->buffer_size*stream_write->buffer_id);
+            uint8_t *bfr = ((uint8_t *) buffer) +
+                      ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_write->buffer_id);
 
             LOG_DBG("Buffer: %p", bfr);
-            rc = pb_storage_write(sdrv, ctx->stream_map, bfr, blocks,
+            rc = pb_storage_write(sdrv, stream_map, bfr, blocks,
                                     block_offset);
 
-            pb_wire_init_result(&ctx->result, rc);
+            pb_wire_init_result(&result, rc);
         }
         break;
         case PB_CMD_STREAM_FINALIZE:
         {
             LOG_DBG("Stream final");
-            struct pb_storage_driver *sdrv = ctx->stream_drv;
+            struct pb_storage_driver *sdrv = stream_drv;
 
             if (sdrv->map_release)
-                rc = sdrv->map_release(sdrv, ctx->stream_map);
+                rc = sdrv->map_release(sdrv, stream_map);
             else
                 rc = PB_RESULT_OK;
 
-            pb_wire_init_result(&ctx->result, rc);
+            pb_wire_init_result(&result, rc);
         }
         break;
         case PB_CMD_PART_BPAK_READ:
         {
             struct pb_command_read_bpak *read_cmd = \
-                (struct pb_command_read_bpak *) cmd->request;
+                (struct pb_command_read_bpak *) cmd.request;
 
             LOG_DBG("Read bpak");
 
-            rc = pb_storage_get_part(ctx->storage, read_cmd->uuid,
-                                     &ctx->stream_map,
-                                     &ctx->stream_drv);
+            rc = pb_storage_get_part(read_cmd->uuid,
+                                     &stream_map,
+                                     &stream_drv);
 
             if (rc != PB_OK)
             {
                 LOG_ERR("Could not find partition");
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&result, rc);
                 break;
             }
 
-            struct pb_storage_driver *sdrv = ctx->stream_drv;
-            struct pb_storage_map *map = ctx->stream_map;
+            struct pb_storage_driver *sdrv = stream_drv;
+            struct pb_storage_map *map = stream_map;
 
 
             size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
 
             if (blocks > map->no_of_blocks)
             {
-                pb_wire_init_result(&ctx->result, -PB_RESULT_ERROR);
+                pb_wire_init_result(&result, -PB_RESULT_ERROR);
                 break;
             }
 
@@ -424,75 +428,75 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
 
             if (sdrv->map_request)
             {
-                rc = sdrv->map_request(sdrv, ctx->stream_map);
+                rc = sdrv->map_request(sdrv, stream_map);
 
                 if (rc != PB_OK)
                 {
-                    pb_wire_init_result(&ctx->result, rc);
+                    pb_wire_init_result(&result, rc);
                     break;
                 }
             }
 
             LOG_DBG("Reading, block offset: %zu", block_offset);
 
-            rc = pb_storage_read(sdrv, map, ctx->buffer,
+            rc = pb_storage_read(sdrv, map, buffer,
                                     blocks, block_offset);
 
             if (rc != PB_OK)
             {
-                pb_wire_init_result(&ctx->result, rc);
-                sdrv->map_release(sdrv, ctx->stream_map);
+                pb_wire_init_result(&result, rc);
+                sdrv->map_release(sdrv, stream_map);
                 break;
             }
 
             if (sdrv->map_release)
             {
-                rc = sdrv->map_release(sdrv, ctx->stream_map);
+                rc = sdrv->map_release(sdrv, stream_map);
 
                 if (rc != PB_OK)
                 {
-                    pb_wire_init_result(&ctx->result, rc);
+                    pb_wire_init_result(&result, rc);
                     break;
                 }
             }
 
-            rc = bpak_valid_header((struct bpak_header *) ctx->buffer);
+            rc = bpak_valid_header((struct bpak_header *) buffer);
 
             if (rc != BPAK_OK)
             {
                 LOG_ERR("Invalid bpak header");
-                pb_wire_init_result(&ctx->result, -PB_RESULT_NOT_FOUND);
+                pb_wire_init_result(&result, -PB_RESULT_NOT_FOUND);
                 break;
             }
 
-            pb_wire_init_result(&ctx->result, rc);
-            drv->write(drv, &ctx->result, sizeof(ctx->result));
+            pb_wire_init_result(&result, rc);
+            plat_transport_write(&result, sizeof(result));
 
-            rc = drv->write(drv, ctx->buffer, sizeof(struct bpak_header));
+            rc = plat_transport_write(buffer, sizeof(struct bpak_header));
 
-            pb_wire_init_result(&ctx->result, rc);
+            pb_wire_init_result(&result, rc);
         }
         break;
         case PB_CMD_PART_VERIFY:
         {
             struct pb_command_verify_part *verify_cmd = \
-                (struct pb_command_verify_part *) cmd->request;
+                (struct pb_command_verify_part *) cmd.request;
 
             LOG_DBG("Verify part");
 
-            rc = pb_storage_get_part(ctx->storage, verify_cmd->uuid,
-                                     &ctx->stream_map,
-                                     &ctx->stream_drv);
+            rc = pb_storage_get_part(verify_cmd->uuid,
+                                     &stream_map,
+                                     &stream_drv);
 
             if (rc != PB_OK)
             {
                 LOG_ERR("Could not find partition");
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&result, rc);
                 break;
             }
 
-            struct pb_storage_driver *sdrv = ctx->stream_drv;
-            struct pb_storage_map *map = ctx->stream_map;
+            struct pb_storage_driver *sdrv = stream_drv;
+            struct pb_storage_map *map = stream_map;
 
             size_t blocks_to_check = verify_cmd->size / sdrv->block_size;
 
@@ -501,42 +505,42 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
 
             if (sdrv->map_request)
             {
-                rc = sdrv->map_request(sdrv, ctx->stream_map);
+                rc = sdrv->map_request(sdrv, stream_map);
 
                 if (rc != PB_OK)
                 {
-                    pb_wire_init_result(&ctx->result, rc);
+                    pb_wire_init_result(&result, rc);
                     break;
                 }
             }
 
-            rc = pb_hash_init(ctx->crypto, &ctx->hash_ctx, PB_HASH_SHA256);
+            rc = plat_hash_init(&hash_ctx, PB_HASH_SHA256);
 
             if (rc != PB_OK)
             {
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&result, rc);
                 break;
             }
 
             if (verify_cmd->bpak)
             {
                 LOG_DBG("Bpak header");
-                rc = pb_storage_read(sdrv, map, ctx->buffer,
+                rc = pb_storage_read(sdrv, map, buffer,
                                         blocks, block_offset);
 
                 if (rc != PB_OK)
                 {
-                    pb_wire_init_result(&ctx->result, rc);
-                    sdrv->map_request(sdrv, ctx->stream_map);
+                    pb_wire_init_result(&result, rc);
+                    sdrv->map_request(sdrv, stream_map);
                     break;
                 }
 
-                rc = pb_hash_update(&ctx->hash_ctx, ctx->buffer,
+                rc = plat_hash_update(&hash_ctx, buffer,
                                         sizeof(struct bpak_header));
 
                 if (rc != PB_OK)
                 {
-                    pb_wire_init_result(&ctx->result, rc);
+                    pb_wire_init_result(&result, rc);
                     break;
                 }
 
@@ -548,27 +552,27 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
 
             while (blocks_to_check)
             {
-                blocks = blocks_to_check>(ctx->buffer_size/sdrv->block_size)? \
-                           (ctx->buffer_size/sdrv->block_size):blocks_to_check;
+                blocks = blocks_to_check>(CONFIG_CMD_BUF_SIZE_KB/2)? \
+                           (CONFIG_CMD_BUF_SIZE_KB/2):blocks_to_check;
 
-                rc = pb_storage_read(sdrv, map, ctx->buffer,
+                rc = pb_storage_read(sdrv, map, buffer,
                                         blocks, block_offset);
 
                 if (rc != PB_OK)
                 {
-                    pb_wire_init_result(&ctx->result, rc);
+                    pb_wire_init_result(&result, rc);
 
                     if (sdrv->map_release)
-                        sdrv->map_release(sdrv, ctx->stream_map);
+                        sdrv->map_release(sdrv, stream_map);
                     break;
                 }
 
-                rc = pb_hash_update(&ctx->hash_ctx, ctx->buffer,
+                rc = plat_hash_update(&hash_ctx, buffer,
                                             (blocks*sdrv->block_size));
 
                 if (rc != PB_OK)
                 {
-                    pb_wire_init_result(&ctx->result, rc);
+                    pb_wire_init_result(&result, rc);
                     break;
                 }
 
@@ -579,38 +583,36 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
             if (rc != PB_OK)
                 break;
 
-            rc = pb_hash_finalize(&ctx->hash_ctx, NULL, 0);
+            rc = plat_hash_finalize(&hash_ctx, NULL, 0);
 
             if (rc != PB_OK)
             {
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&result, rc);
                 break;
             }
 
 
-            if (memcmp(ctx->hash_ctx.buf, verify_cmd->sha256, 32) == 0)
+            if (memcmp(hash_ctx.buf, verify_cmd->sha256, 32) == 0)
                 rc = PB_RESULT_OK;
             else
                 rc = -PB_RESULT_PART_VERIFY_FAILED;
 
-            pb_wire_init_result(&ctx->result, rc);
+            pb_wire_init_result(&result, rc);
         }
         break;
         case PB_CMD_BOOT_PART:
         {
             struct pb_command_boot_part *boot_cmd = \
-                (struct pb_command_boot_part *) cmd->request;
+                (struct pb_command_boot_part *) cmd.request;
+            rc = pb_boot_load_fs(boot_cmd->uuid);
+            pb_wire_init_result(&result, rc);
 
-            rc = pb_boot_load_fs(ctx->boot, boot_cmd->uuid);
-            pb_wire_init_result(&ctx->result, rc);
-
-            drv->write(drv, &ctx->result, sizeof(ctx->result));
+            plat_transport_write(&result, sizeof(result));
 
             if (rc != PB_OK)
                 break;
 
-            pb_boot(ctx->boot, ctx->device_uuid, boot_cmd->verbose);
-
+            pb_boot(boot_cmd->verbose);
             /* Should not return */
             return -PB_ERR;
         }
@@ -618,51 +620,47 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
         case PB_CMD_DEVICE_IDENTIFIER_READ:
         {
             struct pb_result_device_identifier *ident = \
-                (struct pb_result_device_identifier *) ctx->buffer;
-
+                (struct pb_result_device_identifier *) buffer;
             memset(ident->board_id, 0, sizeof(ident->board_id));
-            memcpy(ident->board_id, ctx->board->name, strlen(ctx->board->name));
-            memcpy(ident->device_uuid, ctx->device_uuid, 16);
-
-            pb_wire_init_result2(&ctx->result, rc,
+            memcpy(ident->board_id, board_name(), strlen(board_name()));
+            memcpy(ident->device_uuid, device_uuid, 16);
+            pb_wire_init_result2(&result, rc,
                                     ident, sizeof(*ident));
         }
         break;
         case PB_CMD_PART_ACTIVATE:
         {
             struct pb_command_activate_part *activate_cmd = \
-                (struct pb_command_activate_part *) cmd->request;
-
-            rc = pb_boot_activate(ctx->boot, activate_cmd->uuid);
-
-            pb_wire_init_result(&ctx->result, rc);
+                (struct pb_command_activate_part *) cmd.request;
+            rc = pb_boot_activate(activate_cmd->uuid);
+            pb_wire_init_result(&result, rc);
         }
         break;
         case PB_CMD_AUTHENTICATE:
         {
             struct pb_command_authenticate *auth_cmd = \
-                (struct pb_command_authenticate *) cmd->request;
+                (struct pb_command_authenticate *) cmd.request;
 
             LOG_DBG("Auth, method:%u sz:%i", auth_cmd->method, auth_cmd->size);
-            pb_wire_init_result(&ctx->result, -PB_RESULT_NOT_SUPPORTED);
+            pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
 #ifdef CONFIG_AUTH_TOKEN
             if (auth_cmd->method == PB_AUTH_ASYM_TOKEN)
             {
-                pb_wire_init_result(&ctx->result, PB_RESULT_OK);
-                drv->write(drv, &ctx->result, sizeof(ctx->result));
+                pb_wire_init_result(&result, PB_RESULT_OK);
+                plat_transport_write(&result, sizeof(result));
 
-                drv->read(drv, ctx->buffer, auth_cmd->size);
+                plat_transport_read(buffer[0], auth_cmd->size);
 
-                rc = auth_token(ctx->crypto, ctx->keystore, ctx->device_uuid,
-                        auth_cmd->key_id, ctx->buffer, auth_cmd->size);
+                rc = auth_token(device_uuid,
+                        auth_cmd->key_id, buffer[0], auth_cmd->size);
 
                 if (rc == PB_OK)
-                    ctx->authenticated = true;
+                    authenticated = true;
                 else
-                    ctx->authenticated = false;
+                    authenticated = false;
 
-                pb_wire_init_result(&ctx->result, rc);
+                pb_wire_init_result(&result, rc);
             }
 #endif
 
@@ -672,41 +670,178 @@ int pb_command_parse(struct pb_command_context *ctx, struct pb_command *cmd)
         case PB_CMD_AUTH_SET_OTP_PASSWORD:
         {
 #ifndef CONFIG_AUTH_PASSWORD
-            pb_wire_init_result(&ctx->result, -PB_RESULT_NOT_SUPPORTED);
+            pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 #endif
+        }
+        break;
+        case PB_CMD_BOARD_COMMAND:
+        {
+            struct pb_command_board *board_cmd = \
+                (struct pb_command_board *) cmd.request;
+
+            struct pb_result_board board_result;
+
+            LOG_DBG("Board command %x", board_cmd->command);
+            memset(&board_result, 0, sizeof(board_result));
+
+            uint8_t *bfr = buffer[0];
+
+            pb_wire_init_result(&result, PB_RESULT_OK);
+            plat_transport_write(&result, sizeof(result));
+
+            if (board_cmd->request_size)
+            {
+                rc = plat_transport_read(bfr, board_cmd->request_size);
+
+                if (rc != PB_OK)
+                {
+                    pb_wire_init_result(&result, rc);
+                    break;
+                }
+            }
+
+            uint8_t *bfr_response = buffer[1];
+
+            size_t response_size = CONFIG_CMD_BUF_SIZE_KB*1024;
+            void *plat_private = plat_get_private();
+
+            rc = board_command(plat_private, board_cmd->command,
+                                bfr, board_cmd->request_size,
+                                bfr_response, &response_size);
+
+            board_result.size = response_size;
+            pb_wire_init_result2(&result, rc,
+                            &board_result, sizeof(board_result));
+
+            plat_transport_write(&result, sizeof(result));
+            plat_transport_write(bfr_response, response_size);
+
+        }
+        break;
+        case PB_CMD_BOARD_STATUS_READ:
+        {
+            struct pb_result_board_status status_result;
+
+            uint8_t *bfr_response = buffer[0];
+
+            size_t response_size = CONFIG_CMD_BUF_SIZE_KB*1024;
+            void *plat_private = plat_get_private();
+            rc = board_status(plat_private, bfr_response, &response_size);
+
+            status_result.size = response_size;
+            pb_wire_init_result2(&result, rc,
+                            &status_result, sizeof(status_result));
+
+            plat_transport_write(&result, sizeof(result));
+            plat_transport_write(bfr_response, response_size);
+        }
+        break;
+        case PB_CMD_SLC_SET_CONFIGURATION:
+        {
+            LOG_DBG("Set configuration");
+            rc = plat_slc_set_configuration();
+            pb_wire_init_result(&result, rc);
+            plat_slc_read(&slc);
+        }
+        break;
+        case PB_CMD_SLC_SET_CONFIGURATION_LOCK:
+        {
+            LOG_DBG("Set configuration lock");
+            rc = plat_slc_set_configuration_lock();
+            pb_wire_init_result(&result, rc);
+            plat_slc_read(&slc);
+        }
+        break;
+        case PB_CMD_SLC_SET_EOL:
+        {
+            LOG_DBG("Set EOL");
+            rc = plat_slc_set_end_of_life();
+            pb_wire_init_result(&result, rc);
+            plat_slc_read(&slc);
+        }
+        break;
+        case PB_CMD_SLC_REVOKE_KEY:
+        {
+            struct pb_command_revoke_key *revoke_cmd = \
+                (struct pb_command_revoke_key *) cmd.request;
+
+            LOG_DBG("Revoke key %x", revoke_cmd->key_id);
+
+            rc = plat_slc_revoke_key(revoke_cmd->key_id);
+            pb_wire_init_result(&result, rc);
+        }
+        break;
+        case PB_CMD_SLC_READ:
+        {
+            LOG_DBG("SLC Read");
+            struct pb_result_slc slc_status;
+            rc = plat_slc_read((enum pb_slc *) &slc_status.slc);
+            pb_wire_init_result2(&result, rc, &slc_status,
+                                sizeof(slc_status));
         }
         break;
         default:
         {
-            LOG_ERR("Got unknown command: %u", cmd->command);
-            pb_wire_init_result(&ctx->result, -PB_RESULT_INVALID_COMMAND);
+            LOG_ERR("Got unknown command: %u", cmd.command);
+            pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
         }
     }
 
 err_out:
-    drv->write(drv, &ctx->result, sizeof(ctx->result));
+    plat_transport_write(&result, sizeof(result));
     return rc;
 }
 
-int pb_command_init(struct pb_command_context *ctx,
-                  struct pb_transport *transport,
-                  struct pb_storage *storage,
-                  struct pb_crypto *crypto,
-                  struct pb_board *board,
-                  struct bpak_keystore *keystore,
-                  struct pb_boot_context *boot,
-                  uint8_t *device_uuid)
+void pb_command_run(void)
 {
-    memset(ctx, 0, sizeof(ctx));
+    int rc;
 
-    ctx->authenticated = false;
-    ctx->transport = transport;
-    ctx->storage = storage;
-    ctx->crypto = crypto;
-    ctx->board = board;
-    ctx->keystore = keystore;
-    ctx->boot = boot;
-    ctx->device_uuid = device_uuid;
+    LOG_DBG("Initializing command mode");
 
-    return PB_OK;
+    plat_get_uuid((char *) device_uuid);
+
+restart_command_mode:
+    rc = plat_transport_init();
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Transport init err");
+        plat_reset();
+    }
+
+    unsigned int ready_timeout = plat_get_us_tick();
+
+    LOG_INFO("Waiting for transport to become ready...");
+
+    while (!plat_transport_ready())
+    {
+        plat_transport_process();
+        plat_wdog_kick();
+
+
+         if ((plat_get_us_tick() - ready_timeout) > 
+             (CONFIG_TRANSPORT_READY_TIMEOUT * 1000000L))
+        {
+            LOG_ERR("Timeout, rebooting");
+            plat_reset();
+        }
+    }
+
+    while (true)
+    {
+        rc = plat_transport_read(&cmd, sizeof(cmd));
+
+        if (rc != PB_OK)
+        {
+            LOG_ERR("Read error %i", rc);
+            goto restart_command_mode;
+        }
+
+        rc = pb_command_parse();
+
+        if (rc != PB_OK)
+        {
+            LOG_ERR("Command error %i", rc);
+        }
+    }
 }

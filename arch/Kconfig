@@ -1,0 +1,8 @@
+
+choice ARCH
+    bool "Architecture"
+config ARCH_ARMV8
+	bool "ARMv8"
+config ARCH_ARMV7
+	bool "ARMv7"
+endchoice

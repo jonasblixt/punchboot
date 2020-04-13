@@ -68,14 +68,17 @@ struct caam_hash_ctx
     uint32_t total_bytes;
 };
 
-struct imx_caam_device
-{
-    __iomem base;
-    void *private;
-    size_t size;
-};
+int imx_caam_init(void);
 
-int imx_caam_init(struct pb_crypto_driver *drv);
-int imx_caam_free(struct pb_crypto_driver *drv);
+int caam_pk_verify(struct pb_hash_context *hash,
+                    struct bpak_key *key,
+                    void *signature, size_t size);
+
+int caam_hash_finalize(struct pb_hash_context *ctx,
+                              void *buf, size_t size);
+
+int caam_hash_init(struct pb_hash_context *ctx, enum pb_hash_algs pb_alg);
+
+int caam_hash_update(struct pb_hash_context *ctx, void *buf, size_t size);
 
 #endif  // PLAT_IMX_CAAM_H_

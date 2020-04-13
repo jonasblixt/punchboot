@@ -16,9 +16,10 @@
 
 static volatile __a16b uint8_t status;
 
-static int virtio_block_init(struct pb_storage_driver *drv)
+int virtio_block_init(struct pb_storage_driver *drv)
 {
-    struct virtio_block_device *d = (struct virtio_block_device *) drv->private;
+    struct virtio_block_device *d = \
+                          (struct virtio_block_device *) drv->driver_private;
 
     LOG_DBG("%s.base = %x", drv->name, d->dev.base);
     if (virtio_mmio_init(&d->dev) != PB_OK)
@@ -50,12 +51,13 @@ static int virtio_block_init(struct pb_storage_driver *drv)
     return PB_OK;
 }
 
-static int virtio_block_write(struct pb_storage_driver *drv,
+int virtio_block_write(struct pb_storage_driver *drv,
                             size_t block_offset,
                             void *data,
                             size_t n_blocks)
 {
-    struct virtio_block_device *d = (struct virtio_block_device *) drv->private;
+    struct virtio_block_device *d = \
+                          (struct virtio_block_device *) drv->driver_private;
     struct virtio_blk_req r;
     struct virtq *q = &d->q;
     uint16_t idx = (q->avail->idx % q->num);
@@ -109,18 +111,18 @@ static int virtio_block_write(struct pb_storage_driver *drv,
 }
 
 
-static int virtio_block_read(struct pb_storage_driver *drv,
+int virtio_block_read(struct pb_storage_driver *drv,
                             size_t block_offset,
                             void *data,
                             size_t n_blocks)
 {
-    struct virtio_block_device *d = (struct virtio_block_device *) drv->private;
+    struct virtio_block_device *d = \
+                        (struct virtio_block_device *) drv->driver_private;
     struct virtq *q = &d->q;
     struct virtio_blk_req r;
     uint16_t idx = (q->avail->idx % q->num);
     uint16_t idx_start = idx;
     status = VIRTIO_BLK_S_UNSUPP;
-    LOG_DBG("drv->private = %p", drv->private);
     LOG_DBG("lba = 0x%x, buf: %p, no_of_blocks: %u", block_offset, (void *)
                                                     data, n_blocks);
     memset(&r, 0, sizeof(struct virtio_blk_req));
@@ -168,15 +170,4 @@ static int virtio_block_read(struct pb_storage_driver *drv,
 
     LOG_ERR("Failed, lba=%u, no_of_blocks=%u", block_offset, n_blocks);
     return PB_ERR;
-}
-
-
-int virtio_block_setup(struct pb_storage_driver *drv)
-{
-    drv->init = virtio_block_init;
-    drv->read = virtio_block_read;
-    drv->write = virtio_block_write;
-    drv->map_request = NULL;
-    drv->map_release = NULL;
-    return PB_OK;
 }

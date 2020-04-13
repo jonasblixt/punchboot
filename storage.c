@@ -1,52 +1,66 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/pb.h>
+#include <pb/boot.h>
 #include <pb/storage.h>
 #include <uuid/uuid.h>
 
-int pb_storage_init(struct pb_storage *ctx)
-{
-    memset(ctx, 0, sizeof(*ctx));
+static struct pb_storage_driver *drivers = NULL;
 
-    return PB_OK;
+struct pb_storage_driver * pb_storage_get_drivers(void)
+{
+    return drivers;
 }
 
-int pb_storage_free(struct pb_storage *ctx)
+static int pb_storage_map_init(struct pb_storage_driver *drv)
 {
-    return PB_OK;
-}
+    int rc;
 
-int pb_storage_add(struct pb_storage *ctx, struct pb_storage_driver *drv)
-{
-    if ((ctx->no_of_drivers + 1) > PB_STORAGE_MAX_DRIVERS)
-        return -PB_ERR_MEM;
+    drv->map_entries = 0;
 
-    ctx->drivers[ctx->no_of_drivers++] = drv;
-
-    return PB_OK;
-}
-
-int pb_storage_start(struct pb_storage *ctx)
-{
-    int rc = PB_OK;
-    struct pb_storage_driver *drv;
-
-    for (int i = 0 ;i < ctx->no_of_drivers; i++)
+    if (drv->map_init)
     {
-        drv = ctx->drivers[i];
+        LOG_DBG("map init");
 
-        LOG_INFO("Initializing %s", drv->name);
+        struct pb_storage_map *entries = drv->map_data;
+        size_t block = 0;
 
-        if (drv->platform)
+        pb_storage_foreach_part(drv->map_default, p)
         {
-            rc = drv->platform->init(drv);
-
-            if (rc != PB_OK)
+            if (p->flags & PB_STORAGE_MAP_FLAG_STATIC_MAP)
             {
-                LOG_ERR("%s platform error", drv->name);
-                break;
+                LOG_DBG("Copy static entry %s", p->description);
+
+                p->first_block = block;
+                p->last_block = block + p->no_of_blocks - 1;
+                block += p->no_of_blocks;
+                uuid_parse(p->uuid_str, p->uuid);
+
+                memcpy(&entries[drv->map_entries++], p, sizeof(*p));
             }
         }
+
+        rc = drv->map_init(drv);
+
+        return rc;
+    }
+
+    return PB_OK;
+}
+
+int pb_storage_early_init(void)
+{
+    drivers = NULL;
+    return PB_OK;
+}
+
+int pb_storage_init(void)
+{
+    int rc = PB_OK;
+
+    for (struct pb_storage_driver *drv = drivers; drv; drv = drv->next)
+    {
+        LOG_INFO("Initializing %s", drv->name);
 
         if (drv->init)
         {
@@ -59,42 +73,34 @@ int pb_storage_start(struct pb_storage *ctx)
             }
         }
 
-        if (drv->map)
+        rc = pb_storage_map_init(drv);
+
+        if (rc != PB_OK)
         {
-            LOG_DBG("map init %p", drv->map);
-
-            struct pb_storage_map *entries = drv->map->map_data;
-            drv->map->map_entries = 0;
-            size_t block = 0;
-
-            pb_storage_foreach_part(drv->default_map, p)
-            {
-                if (p->flags & PB_STORAGE_MAP_FLAG_STATIC_MAP)
-                {
-                    LOG_DBG("Copy static entry %s", p->description);
-
-                    p->first_block = block;
-                    p->last_block = block + p->no_of_blocks - 1;
-                    block += p->no_of_blocks;
-                    uuid_parse(p->uuid_str, p->uuid);
-
-                    memcpy(&entries[drv->map->map_entries++], p, sizeof(*p));
-                }
-            }
-
-            rc = drv->map->init(drv);
-
-            if (rc != PB_OK)
-            {
-                LOG_ERR("%s map init err %i", drv->name, rc);
-                break;
-            }
+            LOG_ERR("%s map init err %i", drv->name, rc);
+            break;
         }
     }
 
     LOG_DBG("done %i", rc);
 
     return rc;
+}
+
+int pb_storage_add(struct pb_storage_driver *drv)
+{
+    if (drivers == NULL)
+    {
+        drivers = drv;
+    }
+    else
+    {
+        drivers->next = drv;
+        drivers = drv;
+        drv->next = NULL;
+    }
+
+    return PB_OK;
 }
 
 int pb_storage_read(struct pb_storage_driver *drv,
@@ -141,32 +147,24 @@ int pb_storage_write(struct pb_storage_driver *drv,
     return rc;
 }
 
-int pb_storage_get_part(struct pb_storage *ctx,
-                        uuid_t uu,
-                        struct pb_storage_map **part,
-                        struct pb_storage_driver **driver)
+int pb_storage_get_part(uint8_t *uuid,
+                        struct pb_storage_map **part_out,
+                        struct pb_storage_driver **drv_out)
 {
-    int rc;
+    int rc = -PB_ERR;
 
-    for (int i = 0; i < ctx->no_of_drivers; i++)
+    for (struct pb_storage_driver *drv = drivers; drv; drv = drv->next)
     {
-        struct pb_storage_driver *drv = ctx->drivers[i];
-        const struct pb_storage_map_driver *map_driver = drv->map;
-        const struct pb_storage_map *map = NULL;
-
-        if (map_driver)
-            map = map_driver->map;
-        else
-            map = drv->default_map;
-
         rc = -PB_ERR;
 
-        pb_storage_foreach_part(map, p)
+        struct pb_storage_map *entries = (struct pb_storage_map *) drv->map_data;
+
+        pb_storage_foreach_part(entries, p)
         {
-            if (uuid_compare(uu, p->uuid) == 0)
+            if (uuid_compare(uuid, p->uuid) == 0)
             {
-                (*part) = p;
-                (*driver) = drv;
+                (*part_out) = p;
+                (*drv_out) = drv;
                 rc = PB_OK;
                 goto out;
             }
@@ -177,48 +175,40 @@ out:
     return rc;
 }
 
-int pb_storage_install_default(struct pb_storage *ctx)
+int pb_storage_install_default(void)
 {
     int rc;
     LOG_INFO("Installing default");
 
-    for (int i = 0; i < ctx->no_of_drivers; i++)
+    for (struct pb_storage_driver *drv = drivers; drv; drv = drv->next)
     {
-        struct pb_storage_driver *drv = ctx->drivers[i];
-        const struct pb_storage_map_driver *map_driver = drv->map;
-
-        if (!map_driver)
-            continue;
-        if (!map_driver->install)
+        if (!drv->map_install)
             continue;
 
-        rc = map_driver->install(drv, \
-             (struct pb_storage_map *) drv->default_map);
+        rc = drv->map_install(drv, \
+             (struct pb_storage_map *) drv->map_default);
 
         if (rc != PB_OK)
             break;
+
+        rc = pb_storage_map_init(drv);
+
+        if (rc != PB_OK)
+        {
+            LOG_ERR("%s map init err %i", drv->name, rc);
+            break;
+        }
     }
 
-    return rc;
+    if (rc != PB_OK)
+        return rc;
+
+    return pb_boot_init();
 }
 
 int pb_storage_map(struct pb_storage_driver *drv, struct pb_storage_map **map)
 {
-
-    if (drv->map)
-    {
-        if (drv->map->map)
-            (*map) = drv->map->map;
-    }
-    else if (drv->default_map)
-    {
-        (*map) = (struct pb_storage_map *) drv->default_map;
-    }
-    else
-    {
-        return -PB_ERR;
-    }
-
+    (*map) = (struct pb_storage_map *) drv->map_data;
     return PB_OK;
 }
 

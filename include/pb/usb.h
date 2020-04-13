@@ -12,7 +12,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <pb/transport.h>
 
 /* Defines for commands in setup packets */
 #define USB_GET_DESCRIPTOR     0x8006
@@ -132,25 +131,21 @@ struct usb_descriptors
     const struct usb_endpoint_descriptor endpoint_bulk_out;
 } __attribute__((packed));
 
-typedef int (*pb_usb_io_t) (struct pb_transport_driver *drv,
-                         int ep, void *buf, size_t size);
+typedef int (*pb_usb_io_t) (int ep, void *buf, size_t size);
 
-typedef int (*pb_usb_call_t) (struct pb_transport_driver *drv);
+typedef int (*pb_usb_call_t) (void);
 
-typedef bool (*pb_usb_status_t) (struct pb_transport_driver *drv);
+typedef bool (*pb_usb_status_t) (void);
 
-typedef int (*pb_usb_set_addr_t) (struct pb_transport_driver *drv,
-                                    uint32_t addr);
+typedef int (*pb_usb_set_addr_t) (uint32_t addr);
 
 struct pb_usb_interface
 {
-    uint8_t device_uuid[16];
-    struct pb_transport_driver *transport;
     pb_usb_io_t read;
     pb_usb_io_t write;
     pb_usb_call_t set_configuration;
     pb_usb_set_addr_t set_address;
-    pb_usb_status_t enumerated;
+    bool enumerated;
 };
 
 int usb_process_setup_pkt(struct pb_usb_interface *iface,

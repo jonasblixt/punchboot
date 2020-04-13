@@ -1,0 +1,17 @@
+
+choice PLAT
+    bool "Platform"
+config PLAT_IMX8X
+    bool "NXP IMX8X"
+    depends on ARCH_ARMV8
+config PLAT_IMX8M
+    bool "NXP IMX8M"
+    depends on ARCH_ARMV8
+config PLAT_IMX6UL
+    bool "NXP IMX6UL"
+    depends on ARCH_ARMV7
+config PLAT_QEMU
+    bool "QEMU aarch32"
+    depends on ARCH_ARMV7
+
+endchoice

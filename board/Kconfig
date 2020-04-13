@@ -1,0 +1,17 @@
+
+choice BOARD
+    bool "Board"
+
+config BOARD_IMX8QXMEK
+    bool "NXP IMX8X QX MEK"
+    depends on PLAT_IMX8X
+
+config BOARD_QEMUARMV7
+    bool "QEMU armv7"
+    depends on PLAT_QEMU
+
+config BOARD_TEST
+    bool "QEMU test"
+    depends on PLAT_QEMU
+
+endchoice

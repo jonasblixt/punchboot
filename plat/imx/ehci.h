@@ -12,7 +12,6 @@
 
 #include <pb/pb.h>
 #include <pb/usb.h>
-#include <pb/transport.h>
 
 #define EHCI_DCIVERSION 0x120
 #define EHCI_USBSTS 0x144
@@ -79,7 +78,11 @@ struct imx_ehci_device
     size_t size;
 };
 
-int imx_ehci_usb_init(struct pb_transport_driver *drv);
-int imx_ehci_usb_free(struct pb_transport_driver *drv);
+int imx_ehci_usb_init(void);
+int imx_ehci_set_address(uint32_t addr);
+int imx_ehci_usb_process(void);
+int imx_ehci_usb_read(void *buf, size_t size);
+int imx_ehci_usb_write(void *buf, size_t size);
+bool imx_ehci_usb_ready(void);
 
 #endif  // PLAT_IMX_EHCI_H_

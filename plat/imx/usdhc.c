@@ -248,7 +248,7 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
                                  bool wr,
                                  bool async)
 {
-    struct usdhc_device *dev = (struct usdhc_device *) drv->private;
+    struct usdhc_device *dev = (struct usdhc_device *) drv->driver_private;
     struct imx_usdhc_private *priv = PB_IMX_USDHC_PRIV(dev);
     struct usdhc_adma2_desc *tbl_ptr = priv->tbl;
     size_t transfer_sz = 0;
@@ -559,7 +559,7 @@ static int usdhc_setup_hs(struct usdhc_device *dev)
 static int imx_usdhc_map_request(struct pb_storage_driver *drv,
                                  struct pb_storage_map *map)
 {
-    struct usdhc_device *dev = (struct usdhc_device *) drv->private;
+    struct usdhc_device *dev = (struct usdhc_device *) drv->driver_private;
     int rc;
 
     if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT0)
@@ -581,7 +581,7 @@ static int imx_usdhc_map_request(struct pb_storage_driver *drv,
 static int imx_usdhc_map_release(struct pb_storage_driver *drv,
                                  struct pb_storage_map *map)
 {
-    struct usdhc_device *dev = (struct usdhc_device *) drv->private;
+    struct usdhc_device *dev = (struct usdhc_device *) drv->driver_private;
 
     return usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_USER);
 }
@@ -589,7 +589,7 @@ static int imx_usdhc_map_release(struct pb_storage_driver *drv,
 int imx_usdhc_init(struct pb_storage_driver *drv)
 {
     int err;
-    struct usdhc_device *dev = (struct usdhc_device *) drv->private;
+    struct usdhc_device *dev = (struct usdhc_device *) drv->driver_private;
     struct imx_usdhc_private *priv = PB_IMX_USDHC_PRIV(dev);
 
     if (dev->size < sizeof(struct imx_usdhc_private))
@@ -599,6 +599,11 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     drv->write = imx_usdhc_write;
     drv->map_request = imx_usdhc_map_request;
     drv->map_release = imx_usdhc_map_release;
+
+    err = imx_usdhc_plat_init(dev);
+
+    if (err != PB_OK)
+        return err;
 
     LOG_DBG("Controller reset");
 

@@ -12,13 +12,14 @@
 #define PLAT_TEST_UART_H_
 
 #include <pb/pb.h>
-#include <pb/console.h>
+#include <pb/io.h>
 
 struct qemu_uart_device
 {
     __iomem base;
 };
 
-int qemu_uart_setup(struct pb_console_driver *drv);
+int qemu_uart_write(struct qemu_uart_device *dev, char *buf, size_t size);
+int qemu_uart_init(struct qemu_uart_device *dev);
 
 #endif  // PLAT_TEST_UART_H_

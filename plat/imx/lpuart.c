@@ -10,56 +10,44 @@
 
 #include <pb/pb.h>
 #include <pb/io.h>
-#include <pb/console.h>
+#include <pb/plat.h>
 #include <plat/imx/lpuart.h>
 
 
-static int lpuart_write(struct pb_console_driver *drv, char *buf, size_t size)
+int imx_lpuart_write(char *buf, size_t size)
 {
-    struct imx_lpuart_device *dev = (struct imx_lpuart_device *) drv->private;
-
     for (unsigned int i = 0; i < size; i++)
     {
-        while (!(pb_read32(dev->base + STAT) & (1 << 22)))
+        while (!(pb_read32(CONFIG_LPUART_BASE + STAT) & (1 << 22)))
             __asm__("nop");
 
-        pb_write32(buf[i], dev->base + DATA);
+        pb_write32(buf[i], CONFIG_LPUART_BASE + DATA);
     }
 
     return PB_OK;
 }
 
-
-int imx_lpuart_free(struct pb_console_driver *drv)
+int imx_lpuart_init(void)
 {
-    return PB_OK;
-}
-
-int imx_lpuart_init(struct pb_console_driver *drv)
-{
-    struct imx_lpuart_device *dev = (struct imx_lpuart_device *) drv->private;
     uint32_t tmp;
 
-    tmp = pb_read32(dev->base + CTRL);
+    tmp = pb_read32(CONFIG_LPUART_BASE + CTRL);
     tmp &= ~(CTRL_TE | CTRL_RE);
-    pb_write32(tmp, dev->base + CTRL);
+    pb_write32(tmp, CONFIG_LPUART_BASE + CTRL);
 
-    pb_write32(0, dev->base + MODIR);
-    pb_write32(~(FIFO_TXFE | FIFO_RXFE), dev->base + FIFO);
+    pb_write32(0, CONFIG_LPUART_BASE + MODIR);
+    pb_write32(~(FIFO_TXFE | FIFO_RXFE), CONFIG_LPUART_BASE + FIFO);
 
-    pb_write32(0, dev->base + MATCH);
+    pb_write32(0, CONFIG_LPUART_BASE + MATCH);
 
-    pb_write32(dev->baudrate, dev->base + BAUD);
+    pb_write32(CONFIG_LPUART_BAUDRATE, CONFIG_LPUART_BASE + BAUD);
 
 
-    tmp = pb_read32(dev->base + CTRL);
+    tmp = pb_read32(CONFIG_LPUART_BASE + CTRL);
     tmp &= ~(LPUART_CTRL_PE_MASK | LPUART_CTRL_PT_MASK | LPUART_CTRL_M_MASK);
-    pb_write32(tmp, dev->base + CTRL);
+    pb_write32(tmp, CONFIG_LPUART_BASE + CTRL);
 
-    pb_write32(CTRL_RE | CTRL_TE, dev->base + CTRL);
-
-    drv->write = lpuart_write;
-    drv->ready = true;
+    pb_write32(CTRL_RE | CTRL_TE, CONFIG_LPUART_BASE + CTRL);
 
     return PB_OK;
 }

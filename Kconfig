@@ -1,29 +1,13 @@
 mainmenu "Punchboot configuration"
+comment "Punchboot configuration"
 
+source "arch/Kconfig"
+source "plat/Kconfig"
+source "board/Kconfig"
 
-choice BOARD
-	bool "Board"
-
-config BOARD_QEMU_ARMV7
-	bool "QEMU ARMv7"
-
-config BOARD_JIFFY
-	bool "Jiffy"
-
-config BOARD_PICO8ML
-	bool "pico8ml"
-
-config BOARD_IMX8QXMEK
-	bool "imx8qxmek"
-
-config BOARD_EXTERNAL
-	bool "External source tree"
-
-endchoice
-
-config BOARD_SRC_DIR
-    string "Configure board source directory"
-    depends on BOARD_EXTERNAL
+source "arch/*/Kconfig.include"
+source "plat/*/Kconfig.include"
+source "board/*/Kconfig.include"
 
 config TOOLCHAIN_PREFIX
 	string "Toolchain prefix"
@@ -33,20 +17,9 @@ config KEYSTORE
 	string "Key-store source"
 	default "pki/internal_keystore.bpak"
 
-choice LOGGING
-	bool "Enable logging"
-	optional
-
-config LOG_LEVEL_1
-	bool "Only log errors"
-
-config LOG_LEVEL_2
-	bool "Log errors and info messages"
-
-config LOG_LEVEL_3
-	bool "Log errors, info and debug messages"
-
-endchoice
+config LOGLEVEL
+	int "loglevel"
+    default 0
 
 choice AUTH
 	bool "Enable command mode authentication"
@@ -60,7 +33,26 @@ config AUTH_PASSWORD
 
 endchoice
 
+config CMD_BUF_SIZE_KB
+    int "Command buffer size in kb"
+    default 4096
+
+config TRANSPORT_MAX_CHUNK_BYTES
+    int "Transport maximum chunk size"
+    default 4096
+
+config LOAD_FS_MAX_CHUNK_KB
+    int "File system maximum load chunk size (kb)"
+    default 4096
+
+config ENABLE_WATCHDOG
+	bool "Enable watchdog"
+    default y
+
+config TRANSPORT_READY_TIMEOUT
+	int "Timeout in seconds before transport must become ready"
+    default 10
+
 source "bearssl/Kconfig.include"
-
-
+source "boot/Kconfig.include"
 

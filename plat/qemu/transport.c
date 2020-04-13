@@ -1,13 +1,18 @@
 #include <pb/pb.h>
-#include <pb/transport.h>
 #include <plat/qemu/virtio_serial.h>
 
-static int transport_write(struct pb_transport_driver *drv,
-                                void *buf, size_t size)
+static struct virtio_serial_device dev __a4k =
 {
-    struct virtio_serial_device *dev = \
-                     (struct virtio_serial_device *) drv->private;
+    .dev =
+    {
+        .device_id = 3,
+        .vendor_id = 0x554D4551,
+        .base = 0x0A003E00,
+    },
+};
 
+int plat_transport_write(void *buf, size_t size)
+{
     LOG_DBG("%p, %zu", buf, size);
 
     size_t bytes_to_write = size;
@@ -17,10 +22,9 @@ static int transport_write(struct pb_transport_driver *drv,
 
     while (bytes_to_write)
     {
-        chunk = (bytes_to_write > drv->max_chunk_bytes) ? \
-                        drv->max_chunk_bytes:bytes_to_write;
+        chunk = (bytes_to_write > 4096) ? 4096:bytes_to_write;
 
-        written += virtio_serial_write(dev, p, chunk);
+        written += virtio_serial_write(&dev, p, chunk);
 
         bytes_to_write -= chunk;
         p += chunk;
@@ -36,12 +40,8 @@ static int transport_write(struct pb_transport_driver *drv,
     }
 }
 
-static int transport_read(struct pb_transport_driver *drv,
-                                void *buf, size_t size)
+int plat_transport_read(void *buf, size_t size)
 {
-    struct virtio_serial_device *dev = \
-                     (struct virtio_serial_device *) drv->private;
-
     LOG_DBG("%p, %zu", buf, size);
 
     size_t bytes_to_read = size;
@@ -51,10 +51,9 @@ static int transport_read(struct pb_transport_driver *drv,
 
     while (bytes_to_read)
     {
-        chunk = (bytes_to_read > drv->max_chunk_bytes) ? \
-                        drv->max_chunk_bytes:bytes_to_read;
+        chunk = (bytes_to_read > 4096)?4096:bytes_to_read;
 
-        read_bytes += virtio_serial_read(dev, p, chunk);
+        read_bytes += virtio_serial_read(&dev, p, chunk);
 
         bytes_to_read -= chunk;
         p += chunk;
@@ -69,30 +68,17 @@ static int transport_read(struct pb_transport_driver *drv,
     }
 }
 
-static int transport_init(struct pb_transport_driver *drv)
+int plat_transport_init(void)
 {
-    struct virtio_serial_device *dev = \
-                     (struct virtio_serial_device *) drv->private;
-
-    return virtio_serial_init(dev);
+    return virtio_serial_init(&dev);
 }
 
-static int transport_process(struct pb_transport_driver *drv)
+int plat_transport_process(void)
 {
     return PB_OK;
 }
 
-int virtio_serial_transport_setup(struct pb_transport *transport,
-                                  struct pb_transport_driver *drv)
+bool plat_transport_ready(void)
 {
-    transport->driver = drv;
-
-    drv->max_chunk_bytes = 4096;
-    drv->init = transport_init;
-    drv->write = transport_write;
-    drv->read = transport_read;
-    drv->process = transport_process;
-    drv->ready = true;
-
-    return PB_OK;
+    return true;
 }

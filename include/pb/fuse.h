@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -34,5 +34,7 @@ struct fuse
     uint32_t status;
     const char description[20];
 };
+
+
 
 #endif  // INCLUDE_PB_FUSE_H_

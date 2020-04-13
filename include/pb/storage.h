@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define PB_STORAGE_MAX_DRIVERS 8
-
 /**
  * \def PB_PART_FLAG_BOOTABLE
  * The partition is bootable
@@ -85,7 +83,6 @@ struct pb_storage_map
     }
 
 struct pb_storage_driver;
-struct pb_storage_map_driver;
 
 typedef int (*pb_storage_io_t) (struct pb_storage_driver *drv,
                                 size_t block_offset,
@@ -97,27 +94,6 @@ typedef int (*pb_storage_call_t) (struct pb_storage_driver *drv);
 typedef int (*pb_storage_map_t) (struct pb_storage_driver *drv,
                                   struct pb_storage_map *map);
 
-struct pb_storage_map_driver
-{
-    pb_storage_call_t init;
-    pb_storage_call_t load;
-    pb_storage_map_t install;
-    struct pb_storage_map *map;
-    void *private;
-    size_t size;
-    void *map_data;
-    size_t map_size;
-    int map_entries;
-};
-
-struct pb_storage_platform_driver
-{
-    pb_storage_call_t init;
-    pb_storage_call_t free;
-    void *private;
-    size_t size;
-};
-
 struct pb_storage_driver
 {
     bool ready;
@@ -125,27 +101,28 @@ struct pb_storage_driver
     const size_t block_size;
     int last_block;
     pb_storage_call_t init;
-    pb_storage_call_t free;
     pb_storage_io_t write;
     pb_storage_io_t read;
     pb_storage_io_t flush;
+    const void *driver_private;
+    /* Partition map interface */
+    pb_storage_call_t map_init;
+    pb_storage_map_t map_install;
     pb_storage_map_t map_request;
     pb_storage_map_t map_release;
-    const struct pb_storage_map *default_map;
-    struct pb_storage_map_driver *map;
-    struct pb_storage_platform_driver *platform;
-    const void *private;
+    const struct pb_storage_map *map_default;
+    void *map_private;
+    size_t map_private_size;
+    void *map_data;
+    size_t map_data_size;
+    unsigned int map_entries;
+    struct pb_storage_driver *next;
 };
 
-struct pb_storage
-{
-    int no_of_drivers;
-    struct pb_storage_driver *drivers[PB_STORAGE_MAX_DRIVERS];
-};
+int pb_storage_early_init(void);
+int pb_storage_init(void);
 
-int pb_storage_init(struct pb_storage *ctx);
-
-int pb_storage_add(struct pb_storage *ctx, struct pb_storage_driver *drv);
+int pb_storage_add(struct pb_storage_driver *drv);
 
 int pb_storage_read(struct pb_storage_driver *drv,
                     struct pb_storage_map *part,
@@ -159,18 +136,14 @@ int pb_storage_write(struct pb_storage_driver *drv,
                     size_t blocks,
                     size_t block_offset);
 
-int pb_storage_get_part(struct pb_storage *ctx,
-                        uint8_t *uuid,
+int pb_storage_get_part(uint8_t *uuid,
                         struct pb_storage_map **part,
                         struct pb_storage_driver **drv);
 
-int pb_storage_start(struct pb_storage *ctx);
-int pb_storage_install_default(struct pb_storage *ctx);
-int pb_storage_free(struct pb_storage *ctx);
-
+int pb_storage_install_default(void);
 int pb_storage_map(struct pb_storage_driver *drv, struct pb_storage_map **map);
 size_t pb_storage_blocks(struct pb_storage_driver *drv);
-
 size_t pb_storage_last_block(struct pb_storage_driver *drv);
+struct pb_storage_driver * pb_storage_get_drivers(void);
 
 #endif  // INCLUDE_PB_STORAGE_H_

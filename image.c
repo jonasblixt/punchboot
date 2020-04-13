@@ -14,6 +14,7 @@
 #include <pb/image.h>
 #include <pb/plat.h>
 #include <pb/io.h>
+#include <pb/keystore.h>
 #include <pb/timing_report.h>
 #include <pb/gpt.h>
 #include <pb/crypto.h>
@@ -24,11 +25,14 @@ extern char _code_start, _code_end,
             _zero_region_start, _zero_region_end,
             _stack_start, _stack_end, _big_buffer_start, _big_buffer_end;
 
+static struct bpak_header header __a4k __no_bss;
+static uint8_t signature[512] __a4k __no_bss;
+static size_t signature_sz;
 
-int pb_image_check_header(struct bpak_header *h)
+int pb_image_check_header(void)
 {
     int err = PB_OK;
-
+    struct bpak_header *h = &header;
     err = bpak_valid_header(h);
 
     if (err != BPAK_OK)
@@ -93,15 +97,22 @@ int pb_image_check_header(struct bpak_header *h)
     return err;
 }
 
-int pb_image_load(struct pb_image_load_context *ctx,
-                  struct pb_crypto *crypto,
-                  struct bpak_keystore *keystore)
+struct bpak_header *pb_image_header(void)
+{
+    return &header;
+}
+
+int pb_image_load(pb_image_read_t read_f,
+                  pb_image_result_t result_f,
+                  size_t load_chunk_size,
+                  void *priv)
 {
     int rc;
     struct pb_hash_context hash;
-    struct bpak_header *h = &ctx->header;
+    struct bpak_header *h = &header;
     struct bpak_key *k = NULL;
     int hash_kind;
+    struct bpak_keystore *keystore = pb_keystore();
     uint32_t *key_id = NULL;
     uint32_t *keystore_id = NULL;
 
@@ -115,7 +126,7 @@ int pb_image_load(struct pb_image_load_context *ctx,
         return PB_ERR;
     }
 
-    rc = pb_image_check_header(h);
+    rc = pb_image_check_header();
 
     if (rc != PB_OK)
         return rc;
@@ -180,12 +191,13 @@ int pb_image_load(struct pb_image_load_context *ctx,
     if (rc != PB_OK)
         return rc;
 
-    rc = pb_hash_init(crypto, &hash, hash_kind);
+    memset(&hash, 0, sizeof(hash));
+    rc = plat_hash_init(&hash, hash_kind);
 
     if (rc != PB_OK)
         return rc;
 
-    ctx->signature_sz = 0;
+    signature_sz = 0;
 
     /* Copy and zero out the signature metadata before hasing header */
     bpak_foreach_meta(h, m)
@@ -196,27 +208,35 @@ int pb_image_load(struct pb_image_load_context *ctx,
             LOG_DBG("sig zero");
             uint8_t *ptr = &(h->metadata[m->offset]);
 
-            if (m->size > sizeof(ctx->signature))
+            if (m->size > sizeof(signature))
             {
                 LOG_ERR("Signature metadata is too large\n");
                 return -PB_ERR;
             }
 
-            memcpy(ctx->signature, ptr, m->size);
-            ctx->signature_sz = m->size;
+            memcpy(signature, ptr, m->size);
+            signature_sz = m->size;
             memset(ptr, 0, m->size);
             memset(m, 0, sizeof(*m));
             break;
         }
     }
 
-    if (!ctx->signature_sz)
+    if (!signature_sz)
     {
         LOG_ERR("Could not find a valid signature");
         return -PB_ERR;
     }
 
-    rc = pb_hash_update(&hash, h, sizeof(*h));
+    if (result_f)
+    {
+        rc = result_f(rc, priv);
+
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    rc = plat_hash_update(&hash, h, sizeof(*h));
 
     if (rc != PB_OK)
         return rc;
@@ -250,17 +270,17 @@ int pb_image_load(struct pb_image_load_context *ctx,
 
         while (bytes_to_read)
         {
-            chunk_size = bytes_to_read>ctx->chunk_size? \
-                                    ctx->chunk_size:bytes_to_read;
+            chunk_size = (bytes_to_read>load_chunk_size)? \
+                            load_chunk_size:bytes_to_read;
 
             uintptr_t addr = ((*load_addr) + offset);
 
-            rc = ctx->read(ctx, (void *) addr, chunk_size);
+            rc = read_f((void *) addr, chunk_size, priv);
 
             if (rc != PB_OK)
                 break;
 
-            rc = pb_hash_update(&hash, (void *) addr, chunk_size);
+            rc = plat_hash_update(&hash, (void *) addr, chunk_size);
 
             if (rc != PB_OK)
                 break;
@@ -269,9 +289,9 @@ int pb_image_load(struct pb_image_load_context *ctx,
             offset += chunk_size;
         }
 
-        if (ctx->result)
+        if (result_f)
         {
-            rc = ctx->result(ctx, rc);
+            rc = result_f(rc, priv);
 
             if (rc != PB_OK)
                 return rc;
@@ -284,14 +304,14 @@ int pb_image_load(struct pb_image_load_context *ctx,
         return rc;
     }
 
-    rc = pb_hash_finalize(&hash, NULL, 0);
+    rc = plat_hash_finalize(&hash, NULL, 0);
 
     if (rc != PB_OK)
         return rc;
 
     tr_stamp_end(TR_LOAD);
 
-    rc = pb_pk_verify(crypto, ctx->signature, ctx->signature_sz, &hash ,k);
+    rc = plat_pk_verify(signature, signature_sz, &hash, k);
 
     if (rc == PB_OK)
     {

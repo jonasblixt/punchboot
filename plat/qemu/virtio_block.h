@@ -62,6 +62,17 @@ struct virtio_blk_req
     uint32_t sector_hi;
 };
 
-int virtio_block_setup(struct pb_storage_driver *drv);
+int virtio_block_read(struct pb_storage_driver *drv,
+                            size_t block_offset,
+                            void *data,
+                            size_t n_blocks);
+
+
+int virtio_block_write(struct pb_storage_driver *drv,
+                            size_t block_offset,
+                            void *data,
+                            size_t n_blocks);
+
+int virtio_block_init(struct pb_storage_driver *drv);
 
 #endif  // PLAT_TEST_VIRTIO_BLOCK_H_

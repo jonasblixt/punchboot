@@ -25,7 +25,7 @@
 #include <plat/sci/sci.h>
 #include <plat/imx8qxp_pads.h>
 #include <plat/iomux.h>
-#include <pb/transport.h>
+#include <plat/defs.h>
 
 #define LPCG_CLOCK_MASK         0x3U
 #define LPCG_CLOCK_OFF          0x0U
@@ -38,7 +38,8 @@
 #define LPCG_ALL_CLOCK_AUTO     0x33333333U
 #define LPCG_ALL_CLOCK_STOP     0x88888888U
 
-static struct pb_platform_setup plat;
+static sc_ipc_t ipc;
+static struct gp_timer tmr0;
 extern struct fuse fuses[];
 
 int plat_setup_lock(void)
@@ -47,7 +48,7 @@ int plat_setup_lock(void)
 
     LOG_INFO("About to change security state to locked");
 
-    err = sc_misc_seco_forward_lifecycle(plat.ipc_handle, 16);
+    err = sc_misc_seco_forward_lifecycle(ipc, 16);
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
@@ -90,7 +91,7 @@ int plat_setup_device(void)
         }
     }
 
-    return board_setup_device();
+    return PB_OK;
 }
 
 
@@ -125,7 +126,7 @@ int plat_get_security_state(uint32_t *state)
     uint32_t uid_l;
     uint32_t uid_h;
 
-    sc_misc_seco_chip_info(plat.ipc_handle, &lc, &monotonic, &uid_l, &uid_h);
+    sc_misc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h);
 
     if (lc == 128)
         (*state) = PB_SECURITY_STATE_SECURE;
@@ -136,13 +137,13 @@ int plat_get_security_state(uint32_t *state)
 static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
-int plat_get_uuid(struct pb_crypto *crypto, char *out)
+int plat_get_uuid(char *out)
 {
     uint32_t uid[2];
 
-    sc_misc_unique_id(plat.ipc_handle, &uid[0], &uid[1]);
+    sc_misc_unique_id(ipc, &uid[0], &uid[1]);
 
-    return uuid_gen_uuid3(crypto, platform_namespace_uuid,
+    return uuid_gen_uuid3(platform_namespace_uuid,
                           (const char *) uid, 8, out);
 }
 
@@ -150,60 +151,66 @@ int plat_get_uuid(struct pb_crypto *crypto, char *out)
 
 bool plat_force_recovery(void)
 {
-    return board_force_recovery(&plat);
+    //return board_force_recovery(NULL);
+    return true;
 }
 
 void plat_reset(void)
 {
-    sc_pm_reset(plat.ipc_handle, SC_PM_RESET_TYPE_BOARD);
+    sc_pm_reset(ipc, SC_PM_RESET_TYPE_BOARD);
 }
 
-uint32_t  plat_get_us_tick(void)
+unsigned int plat_get_us_tick(void)
 {
-    return gp_timer_get_tick(&plat.tmr0);
+    return gp_timer_get_tick(&tmr0);
 }
 
 void plat_wdog_init(void)
 {
-    sc_timer_set_wdog_timeout(plat.ipc_handle, 3000);
-    sc_timer_set_wdog_action(plat.ipc_handle, SC_RM_PT_ALL,
+    sc_timer_set_wdog_timeout(ipc, 3000);
+    sc_timer_set_wdog_action(ipc, SC_RM_PT_ALL,
                              SC_TIMER_WDOG_ACTION_BOARD);
-    sc_timer_start_wdog(plat.ipc_handle, true);
+    sc_timer_start_wdog(ipc, true);
 }
 
 void plat_wdog_kick(void)
 {
-    sc_timer_ping_wdog(plat.ipc_handle);
+    sc_timer_ping_wdog(ipc);
 }
 
-int plat_early_init(struct pb_storage *storage,
-                    struct pb_transport *transport,
-                    struct pb_console *console,
-                    struct pb_crypto *crypto,
-                    struct pb_command_context *command_ctx,
-                    struct pb_boot_context *boot,
-                    struct bpak_keystore *keystore)
+int plat_early_init(void)
 {
-    int err = PB_OK;
+    int rc = PB_OK;
+    sc_pm_clock_rate_t rate;
 
-    sc_ipc_open(&plat.ipc_handle, SC_IPC_BASE);
-
-    plat_wdog_init();
-
-    err = board_early_init(&plat, storage, transport, console, crypto,
-                            command_ctx, boot, keystore);
-
-    if (err != PB_OK)
-        return err;
-
-    err = gp_timer_init(&plat.tmr0);
-
-    if (err != PB_OK)
-        return err;
+    sc_ipc_open(&ipc, SC_IPC_BASE);
 
 
 
-    return err;
+    /* Setup GPT0 */
+    sc_pm_set_resource_power_mode(ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
+    rate = 24000000;
+    sc_pm_set_clock_rate(ipc, SC_R_GPT_0, 2, &rate);
+
+    rc = sc_pm_clock_enable(ipc, SC_R_GPT_0, 2, true, false);
+
+    if (rc != SC_ERR_NONE)
+        return -PB_ERR;
+
+    tmr0.base = 0x5D140000;
+    tmr0.pr = 24;
+
+    rc = imx8x_board_early_init(ipc);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = gp_timer_init(&tmr0);
+
+    if (rc != PB_OK)
+        return rc;
+
+    return rc;
 }
 
 
@@ -225,7 +232,7 @@ int plat_fuse_read(struct fuse *f)
         f->addr = f->bank;
     }
 
-    err = sc_misc_otp_fuse_read(plat.ipc_handle, f->addr,
+    err = sc_misc_otp_fuse_read(ipc, f->addr,
                                 (uint32_t *) &(f->value));
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
@@ -240,7 +247,7 @@ int plat_fuse_write(struct fuse *f)
 
     LOG_INFO("Fusing %s", s);
 
-    err = sc_misc_otp_fuse_write(plat.ipc_handle, f->addr, f->value);
+    err = sc_misc_otp_fuse_write(ipc, f->addr, f->value);
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
@@ -253,4 +260,207 @@ int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
                 f->description, f->value);
 }
 
+/* Console API */
+
+int plat_console_init(void)
+{
+    sc_pm_clock_rate_t rate;
+
+    /* Power up UART0 */
+    sc_pm_set_resource_power_mode(ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
+
+    /* Set UART0 clock root to 80 MHz */
+    rate = 80000000;
+    sc_pm_set_clock_rate(ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
+
+    /* Enable UART0 clock root */
+    sc_pm_clock_enable(ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
+
+    /* Configure UART pads */
+    sc_pad_set(ipc, SC_P_UART0_RX, UART_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_UART0_TX, UART_PAD_CTRL);
+
+    return imx_lpuart_init();
+}
+
+int plat_console_putchar(char c)
+{
+    imx_lpuart_write((char *) &c, 1);
+    return PB_OK;
+}
+
+/* Crypto API */
+
+int plat_crypto_init(void)
+{
+
+    sc_pm_set_resource_power_mode(ipc,
+                                SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(ipc,
+                                SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(ipc,
+                                SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(ipc,
+                                SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
+    return imx_caam_init();
+}
+
+int plat_hash_init(struct pb_hash_context *ctx, enum pb_hash_algs alg)
+{
+    return caam_hash_init(ctx, alg);
+}
+
+int plat_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
+{
+    return caam_hash_update(ctx, buf, size);
+}
+
+int plat_hash_finalize(struct pb_hash_context *ctx, void *buf, size_t size)
+{
+    return caam_hash_finalize(ctx, buf, size);
+}
+
+int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
+                        struct bpak_key *key)
+{
+    return caam_pk_verify(hash, key, signature, size);
+}
+
+/* SLC API */
+
+int plat_slc_init(void)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_set_configuration(void)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_set_configuration_lock(void)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_set_end_of_life(void)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_read(enum pb_slc *slc)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_key_active(uint32_t id, bool *active)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_revoke_key(uint32_t id)
+{
+    return -PB_ERR;
+}
+
+/* Transport API */
+
+int imx_ehci_set_address(uint32_t addr)
+{
+    pb_write32((addr << 25) | (1 <<24), CONFIG_EHCI_BASE+EHCI_DEVICEADDR);
+    return PB_OK;
+}
+
+int plat_transport_init(void)
+{
+    sc_pm_set_resource_power_mode(ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
+
+    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
+
+    /* Enable USB PLL */
+    pb_write32(0x00E03040, 0x5B100000+0xa0);
+
+    /* Power up USB */
+    pb_write32(0x00, 0x5B100000);
+
+    return imx_ehci_usb_init();
+}
+
+int plat_transport_process(void)
+{
+    return imx_ehci_usb_process();
+}
+
+int plat_transport_write(void *buf, size_t size)
+{
+    return imx_ehci_usb_write(buf, size);
+}
+
+int plat_transport_read(void *buf, size_t size)
+{
+    return imx_ehci_usb_read(buf, size);
+}
+
+bool plat_transport_ready(void)
+{
+    return imx_ehci_usb_ready();
+}
+
+void *plat_get_private(void)
+{
+    return NULL;
+}
+
+int imx_usdhc_plat_init(struct usdhc_device *dev)
+{
+    int rc;
+    unsigned int rate;
+
+    sc_pm_set_resource_power_mode(ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
+
+
+    sc_pm_clock_enable(ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
+
+    rc = sc_pm_set_clock_parent(ipc, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
+
+    if (rc != SC_ERR_NONE)
+    {
+        LOG_ERR("usdhc set clock parent failed");
+        return -PB_ERR;
+    }
+
+    rate = 200000000;
+    sc_pm_set_clock_rate(ipc, SC_R_SDHC_0, 2, &rate);
+
+    if (rate != 200000000)
+    {
+        LOG_INFO("USDHC rate %u Hz", rate);
+    }
+
+    rc = sc_pm_clock_enable(ipc, SC_R_SDHC_0, SC_PM_CLK_PER,
+                                true, false);
+
+    if (rc != SC_ERR_NONE)
+    {
+        LOG_ERR("SDHC_0 per clk enable failed!");
+        return -PB_ERR;
+    }
+
+
+    sc_pad_set(ipc, SC_P_EMMC0_CLK, ESDHC_CLK_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_CMD, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_DATA0, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_DATA1, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_DATA2, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_DATA3, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_DATA4, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_DATA5, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_DATA6, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_DATA7, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_STROBE, ESDHC_PAD_CTRL);
+    sc_pad_set(ipc, SC_P_EMMC0_RESET_B, ESDHC_PAD_CTRL);
+
+    return PB_OK;
+}
 

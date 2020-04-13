@@ -9,19 +9,6 @@ PYTHON = $(shell which python3)
 $(shell $(PYTHON) scripts/genconfig.py)
 include .config
 
-
-ifdef CONFIG_LOG_LEVEL_3
-	LOGLEVEL = 3
-endif
-
-ifdef CONFIG_LOG_LEVEL_2
-	LOGLEVEL = 2
-endif
-
-ifdef CONFIG_LOG_LEVEL_1
-	LOGLEVEL = 1
-endif
-
 ifdef TIMING_REPORT
 	LOGLEVEL = 0
 	TIMING_REPORT=1
@@ -38,7 +25,7 @@ CFLAGS  += -I. -I include/
 CFLAGS  += -I include
 CFLAGS  += -I include/pb/libc
 CFLAGS  += -DPB_VERSION=\"$(GIT_VERSION)\"
-CFLAGS  += -DLOGLEVEL=$(LOGLEVEL)
+CFLAGS  += -DLOGLEVEL=$(CONFIG_LOGLEVEL)
 CFLAGS  += -DTIMING_REPORT=$(TIMING_REPORT)
 CFLAGS  += -D__PB_BUILD
 CFLAGS  += -fno-common -fno-builtin
@@ -76,20 +63,18 @@ BLOB_INPUT  =
 # Bootloader
 C_SRCS   = main.c
 C_SRCS  += delay.c
-C_SRCS  += boot.c
-C_SRCS  += boot_ab.c
+C_SRCS  += boot/boot.c
+C_SRCS  += boot/ab.c
 C_SRCS  += crc.c
 C_SRCS  += gpt.c
 C_SRCS  += keystore.c
-C_SRCS  += crypto.c
+C_SRCS  += keystore_helpers.c
 C_SRCS  += asn1.c
 C_SRCS  += timing_report.c
 C_SRCS  += usb.c
-C_SRCS  += transport.c
 C_SRCS  += image.c
 C_SRCS  += bpak.c
 C_SRCS  += storage.c
-C_SRCS  += console.c
 C_SRCS  += wire.c
 C_SRCS  += command.c
 
@@ -115,6 +100,7 @@ C_SRCS  += lib/strlen.c
 C_SRCS  += lib/printf.c
 C_SRCS  += lib/snprintf.c
 C_SRCS  += lib/strtoul.c
+C_SRCS  += lib/putchar.c
 
 # Lib fdt
 C_SRCS  += fdt/fdt.c
@@ -128,13 +114,13 @@ LINT_EXCLUDE =
 FINAL_IMAGE =
 
 include board/*/makefile.mk
-
 BUILD_DIR = build-$(PB_BOARD_NAME)
-$(shell mkdir -p $(BUILD_DIR))
-
-include plat/$(PB_PLAT_NAME)/makefile.mk
-include arch/$(PB_ARCH_NAME)/makefile.mk
+include arch/*/makefile.mk
+include plat/*/makefile.mk
 include bearssl/makefile.mk
+include tests/makefile.mk
+
+$(shell mkdir -p $(BUILD_DIR))
 
 CC=$(CONFIG_TOOLCHAIN_PREFIX)gcc
 LD=$(CONFIG_TOOLCHAIN_PREFIX)ld
@@ -144,8 +130,6 @@ STRIP=$(CONFIG_TOOLCHAIN_PREFIX)strip
 OBJCOPY=$(CONFIG_TOOLCHAIN_PREFIX)objcopy
 
 LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY)
-LDFLAGS += -Tarch/$(PB_ARCH_NAME)/link.lds
-LDFLAGS += -Tplat/$(PB_PLAT_NAME)/link.lds
 LDFLAGS += -Tlink.lds  --build-id=none
 
 ARCH_OBJS     = $(patsubst %.S, $(BUILD_DIR)/%.o, $(ARCH_ASM_SRCS))
@@ -163,12 +147,6 @@ BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(BLOB_INPUT))
 
 DEPS      = $(OBJS:.o=.d)
 
-ifeq ($(BOARD),test)
-CFLAGS += -g  -fprofile-arcs -ftest-coverage
-
-endif
-
-include tests/makefile.mk
 
 .PHONY: plat_early keystore plat_final board_final menuconfig
 
@@ -176,14 +154,6 @@ menuconfig:
 	@$(PYTHON) scripts/menuconfig.py
 
 all: keystore plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
-	$(info Summary:)
-	$(info )
-	$(info BOARD:     [${PB_BOARD_NAME}])
-	$(info PLAT:      [${PB_PLAT_NAME}])
-	$(info ARCH:      [${PB_ARCH_NAME}])
-	$(info LOGLEVEL:  [${LOGLEVEL}])
-	@echo "VERSION = $(GIT_VERSION)"
-	$(info )
 	@$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
 
 keystore:
@@ -217,7 +187,15 @@ $(BUILD_DIR)/%.o: %.c
 
 clean:
 	@-rm -rf $(BUILD_DIR)/
+	@-rm -rf *.gcov
 
+gcovr:
+	@gcovr 	--gcov-exclude plat \
+			--gcov-exclude uuid \
+			--gcov-exclude fdt \
+			--gcov-exclude tests \
+			--gcov-exclude lib \
+			--gcov-exclude bearssl
 qemu:
 	@$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(BUILD_DIR)/$(TARGET)
 

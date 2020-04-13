@@ -7,8 +7,7 @@
 #
 #
 
-
-PB_ARCH_NAME = armv8a
+ifdef CONFIG_PLAT_IMX8X
 
 CST_TOOL ?= /work/cst-3.3.0/linux64/bin/cst
 MKIMAGE ?= $(shell which mkimage_imx8)
@@ -36,15 +35,13 @@ PLAT_C_SRCS  += plat/imx8x/sci/svc/pad/pad_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/pm/pm_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/timer/timer_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/misc/misc_rpc_clnt.c
-PLAT_C_SRCS  += plat/imx8x/usdhc.c
-PLAT_C_SRCS  += plat/imx8x/ehci.c
-PLAT_C_SRCS  += plat/imx8x/lpuart.c
-PLAT_C_SRCS  += plat/imx8x/caam.c
 
 PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
 
 CFLAGS += -D__PLAT_IMX8X__
 CFLAGS += -I plat/imx8x/include
+
+LDFLAGS += -Tplat/imx8x/link.lds
 
 .PHONY: imx8x_image
 
@@ -64,3 +61,5 @@ plat_final: imx8x_image
 	@$(SED) -i -e 's#__CSFK_PEM__#$(CSFK_PEM)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__FILE__#$(BUILD_DIR)/pb.imx#g' $(BUILD_DIR)/pb.csf
 	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/$(TARGET)_signed.imx 
+
+endif

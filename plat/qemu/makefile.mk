@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 #
-
+ifdef CONFIG_PLAT_QEMU
 
 PB_ARCH_NAME = armv7a
 
@@ -22,13 +22,15 @@ PLAT_C_SRCS  += plat/qemu/gcov.c
 PLAT_C_SRCS  += plat/qemu/virtio.c
 PLAT_C_SRCS  += plat/qemu/virtio_serial.c
 PLAT_C_SRCS  += plat/qemu/virtio_block.c
-PLAT_C_SRCS  += plat/qemu/test_fuse.c
+PLAT_C_SRCS  += plat/qemu/fuse.c
 PLAT_C_SRCS  += plat/qemu/root_hash.c
 PLAT_C_SRCS  += plat/qemu/transport.c
+PLAT_C_SRCS  += plat/qemu/crypto.c
 
 PLAT_ASM_SRCS += plat/qemu/semihosting_call.S
 
 CFLAGS += -fprofile-arcs -ftest-coverage
+LDFLAGS += -Tplat/qemu/link.lds
 
 QEMU ?= qemu-system-arm
 QEMU_AUDIO_DRV = "none"
@@ -43,3 +45,6 @@ QEMU_FLAGS += -device virtio-blk-device,drive=disk
 QEMU_FLAGS += -drive id=disk,file=/tmp/disk,cache=none,if=none,format=raw
 # Disable default NIC
 QEMU_FLAGS += -net none
+
+
+endif

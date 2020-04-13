@@ -114,21 +114,19 @@ static const uint8_t usb_string_id[] =
 static int usb_send_ep0(struct pb_usb_interface *iface,
                             void *bfr, size_t size)
 {
-    struct pb_transport_driver *drv = iface->transport;
     int rc;
 
-    rc = iface->write(drv, USB_EP0_IN, bfr, size);
+    rc = iface->write(USB_EP0_IN, bfr, size);
 
     if (rc != PB_OK)
         return rc;
 
-    return iface->read(drv, USB_EP0_OUT, NULL, 0);
+    return iface->read(USB_EP0_OUT, NULL, 0);
 }
 
 int usb_process_setup_pkt(struct pb_usb_interface *iface,
                           struct usb_setup_packet *setup)
 {
-    struct pb_transport_driver *drv = iface->transport;
     volatile uint16_t request;
     int rc;
     request = (setup->bRequestType << 8) | setup->bRequest;
@@ -185,8 +183,9 @@ int usb_process_setup_pkt(struct pb_usb_interface *iface,
                 usb_device_uuid[0] = 0x4a;
                 usb_device_uuid[1] = 3;
                 char uuid[37];
-
-                uuid_unparse(drv->device_uuid, uuid);
+                uint8_t device_uuid[16];
+                plat_get_uuid((char *) device_uuid);
+                uuid_unparse(device_uuid, uuid);
 
                 sz = setup->wLength > sizeof(usb_device_uuid)?
                             sizeof(usb_device_uuid): setup->wLength;
@@ -222,23 +221,28 @@ int usb_process_setup_pkt(struct pb_usb_interface *iface,
         case USB_SET_ADDRESS:
         {
             LOG_DBG("Set address");
-            rc = iface->set_address(drv, setup->wValue);
+            rc = iface->set_address(setup->wValue);
 
             if (rc != PB_OK)
                 break;
 
-            rc = iface->write(drv, USB_EP0_IN, NULL, 0);
+            rc = iface->write(USB_EP0_IN, NULL, 0);
         }
         break;
         case USB_SET_CONFIGURATION:
         {
             LOG_DBG("Set configuration");
-            rc = iface->write(drv, USB_EP0_IN, NULL, 0);
+            rc = iface->write(USB_EP0_IN, NULL, 0);
 
             if (rc != PB_OK)
                 break;
 
-            rc = iface->set_configuration(drv);
+            rc = iface->set_configuration();
+
+            if (rc == PB_OK)
+                iface->enumerated = true;
+            else
+                iface->enumerated = false;
         }
         break;
         case USB_SET_IDLE:

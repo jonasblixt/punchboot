@@ -1,12 +1,15 @@
-TESTS =
-#TESTS   = test_boot
-#TESTS  += test_usb_ch9
-#TESTS  += test_libc
+ifdef CONFIG_BOARD_TEST
+# Unit tests
+
+TESTS   = test_boot
+TESTS  += test_usb_ch9
+TESTS  += test_libc
+
+# Integration tests
 
 INTEGRATION_TESTS  = test_reset
 INTEGRATION_TESTS += test_part
-#INTEGRATION_TESTS += test_device_setup
-#INTEGRATION_TESTS += test_setup_lock
+INTEGRATION_TESTS += test_device_setup
 INTEGRATION_TESTS += test_corrupt_gpt
 INTEGRATION_TESTS += test_corrupt_gpt2
 INTEGRATION_TESTS += test_corrupt_gpt3
@@ -22,7 +25,6 @@ INTEGRATION_TESTS += test_boot_bpak6
 INTEGRATION_TESTS += test_boot_bpak7
 INTEGRATION_TESTS += test_boot_bpak8
 INTEGRATION_TESTS += test_boot_bpak9
-#INTEGRATION_TESTS += test_flash_bl
 INTEGRATION_TESTS += test_invalid_key_index
 INTEGRATION_TESTS += test_gpt_boot_activate
 INTEGRATION_TESTS += test_gpt_boot_activate_step2
@@ -33,23 +35,36 @@ INTEGRATION_TESTS += test_rollback
 INTEGRATION_TESTS += test_cli
 INTEGRATION_TESTS += test_part_offset_write
 INTEGRATION_TESTS += test_overlapping_region
-#INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_corrupt_backup_gpt
 INTEGRATION_TESTS += test_corrupt_primary_config
 INTEGRATION_TESTS += test_corrupt_backup_config
 INTEGRATION_TESTS += test_switch
-
+INTEGRATION_TESTS += test_authentication
 
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/qemu/gcov.c
 TEST_C_SRCS += usb.c
 TEST_C_SRCS += plat/qemu/semihosting.c
+TEST_C_SRCS += plat/qemu/uart.c
 TEST_C_SRCS += lib/printf.c
 TEST_C_SRCS += lib/memcmp.c
 TEST_C_SRCS += lib/strlen.c
 TEST_C_SRCS += lib/memcpy.c
+TEST_C_SRCS += lib/memset.c
+TEST_C_SRCS += lib/strtoul.c
 TEST_C_SRCS += lib/strcmp.c
 TEST_C_SRCS += lib/snprintf.c
+TEST_C_SRCS += lib/putchar.c
+
+# UUID lib
+TEST_C_SRCS  += uuid/pack.c
+TEST_C_SRCS  += uuid/unpack.c
+TEST_C_SRCS  += uuid/compare.c
+TEST_C_SRCS  += uuid/copy.c
+TEST_C_SRCS  += uuid/unparse.c
+TEST_C_SRCS  += uuid/parse.c
+TEST_C_SRCS  += uuid/clear.c
+TEST_C_SRCS  += uuid/conv.c
 
 TEST_ASM_SRCS += plat/qemu/semihosting_call.S
 
@@ -61,10 +76,9 @@ LDFLAGS +=
 
 BOARD = test
 
-test: $(ARCH_OBJS) $(TEST_OBJS)
+check: all $(ARCH_OBJS) $(TEST_OBJS)
 	@mkdir -p $(BUILD_DIR)/tests
 	@dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
-	@dd if=/dev/zero of=/tmp/disk_aux bs=1M count=16 > /dev/null 2>&1
 	@sync
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \
@@ -98,3 +112,5 @@ module_tests:
 	@$(foreach TEST,$(TESTS), \
 		echo "--- Module TEST ---  $(TEST)"  && \
 		$(QEMU) $(QEMU_FLAGS) -kernel $(BUILD_DIR)/tests/$(TEST) || exit; )
+
+endif

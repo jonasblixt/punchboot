@@ -1,8 +1,8 @@
 ignore:
-    - src/3pp
-    - src/tests
-    - src/plat
-    - src/board/test
-    - src/crc.c
-    - src/tools/pbimage/3pp
-    - src/tools/punchboot/3pp
+    - bearssl
+    - fdt
+    - tests
+    - plat
+    - uuid
+    - board/test
+    - crc.c

@@ -37,7 +37,6 @@
 
 #include <stdint.h>
 #include <time.h>
-#include <pb/crypto.h>
 
 typedef unsigned char uuid_t[16];
 
@@ -92,7 +91,7 @@ void uuid_unparse_upper(const uuid_t uu, char *out);
 /* conv.c */
 int uuid_to_guid(const uuid_t uu, uuid_t guid);
 
-int uuid_gen_uuid3(struct pb_crypto *crypto, const char *namespace_uu,
+int uuid_gen_uuid3(const char *namespace_uu,
                        const char *unique, size_t size, char *out);
 
 #ifdef __cplusplus

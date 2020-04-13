@@ -23,7 +23,7 @@ start_qemu()
     done
 
     #( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
-    ( $QEMU $QEMU_FLAGS -kernel build-qemuarmv7/pb ) &
+    ( $QEMU $QEMU_FLAGS -kernel build-qemutest/pb ) &
     qemu_pid=$!
 
 }
@@ -54,7 +54,6 @@ wait_for_qemu_start()
             break;
         fi
     done
-    auth
 }
 
 

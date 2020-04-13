@@ -1,6 +1,7 @@
-#include <pb/pb.h>
 #include <string.h>
 #include <pb/crypto.h>
+#include <pb/pb.h>
+#include <pb/plat.h>
 #include <uuid/uuid.h>
 
 typedef union
@@ -21,12 +22,12 @@ static __a16b __no_bss uint8_t _uuid_aligned_buf[64];
 static __a16b __no_bss uint8_t _uuid_aligned_buf2[64];
 static struct pb_hash_context hash_ctx;
 
-int uuid_gen_uuid3(struct pb_crypto *crypto, const char *namespace_uu,
+int uuid_gen_uuid3(const char *namespace_uu,
                        const char *unique, size_t size, char *out)
 {
     int err;
 
-    err = pb_hash_init(crypto, &hash_ctx, PB_HASH_MD5);
+    err = plat_hash_init(&hash_ctx, PB_HASH_MD5);
 
     if (err != PB_OK)
         return err;
@@ -37,7 +38,7 @@ int uuid_gen_uuid3(struct pb_crypto *crypto, const char *namespace_uu,
     memset(_uuid_aligned_buf, 0, sizeof(_uuid_aligned_buf));
     memcpy(_uuid_aligned_buf, namespace_uu, 16);
 
-    err = pb_hash_update(&hash_ctx, _uuid_aligned_buf,
+    err = plat_hash_update(&hash_ctx, _uuid_aligned_buf,
                                         sizeof(_uuid_aligned_buf));
 
     if (err != PB_OK)
@@ -46,13 +47,13 @@ int uuid_gen_uuid3(struct pb_crypto *crypto, const char *namespace_uu,
     memset(_uuid_aligned_buf2, 0, sizeof(_uuid_aligned_buf2));
     memcpy(_uuid_aligned_buf2, unique, size);
 
-    err = pb_hash_update(&hash_ctx, _uuid_aligned_buf2,
+    err = plat_hash_update(&hash_ctx, _uuid_aligned_buf2,
                             sizeof(_uuid_aligned_buf2));
 
     if (err != PB_OK)
         return err;
 
-    err = pb_hash_finalize(&hash_ctx, NULL, 0);
+    err = plat_hash_finalize(&hash_ctx, NULL, 0);
 
     if (err != PB_OK)
         return err;

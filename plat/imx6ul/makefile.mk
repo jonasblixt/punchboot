@@ -6,9 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 #
-
-
-PB_ARCH_NAME = armv7a
+ifdef CONFIG_PLAT_IMX6UL
 
 CST_TOOL ?= tools/imxcst/src/build-x86_64-linux-gnu/cst
 MKIMAGE ?= mkimage
@@ -24,6 +22,8 @@ PB_UUU_CSF_TEMPLATE = plat/imx6ul/pb_uuu.csf.template
 SED = $(shell which sed)
 
 CFLAGS += -I plat/imx6ul/include
+
+LDFLAGS += -Tplat/imx6ul/link.lds
 
 PLAT_C_SRCS  += plat/imx/imx_uart.c
 PLAT_C_SRCS  += plat/imx6ul/plat.c
@@ -64,3 +64,5 @@ plat_final: imx6ul_image
 	@$(SED) -i -e 's#__IMG_PEM__#$(IMG_PEM)#g'  $(BUILD_DIR)/pb_uuu.csf
 	@$(CST_TOOL) --o $(BUILD_DIR)/pb_csf_uuu.bin --i $(BUILD_DIR)/pb_uuu.csf
 	@cat $(BUILD_DIR)/pb.imx $(BUILD_DIR)/pb_csf_uuu.bin > $(BUILD_DIR)/pb_signed_uuu.imx
+
+endif

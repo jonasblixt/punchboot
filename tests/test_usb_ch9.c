@@ -9,15 +9,14 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <plat/test/semihosting.h>
-#include <usb.h>
+#include <plat/qemu/semihosting.h>
+#include <pb/usb.h>
 #include <pb/assert.h>
 
 #include "test.h"
 
-static uint16_t usb_addr = 0;
+static uint32_t usb_addr = 0;
 static struct usb_setup_packet pkt;
-static struct usb_device *usbdev;
 
 
 static const uint8_t qf_descriptor[] = {
@@ -45,69 +44,72 @@ static const uint8_t qf_descriptor[] = {
 
 static const uint8_t descriptor_300[] = "\x04\x03\x04\x09";
 
-static const struct usb_descriptors descriptors = {
-    .device = {
-        .bLength = 0x12,  // length of this descriptor
-        .bDescriptorType = 0x01,  // Device descriptor
-        .bcdUSB = 0x0200,  // USB version 2.0
+
+static const struct usb_descriptors descriptors =
+{
+    .device =
+    {
+        .bLength = 0x12,  //  length of this descriptor
+        .bDescriptorType = 0x01,  //  Device descriptor
+        .bcdUSB = 0x0200,  //  USB version 2.0
+        /* Device class (specified in interface descriptor) */
         .bDeviceClass = 0x00,
+        /* Device Subclass (specified in interface descriptor) */
         .bDeviceSubClass = 0x00,
+        /* Device Protocol (specified in interface descriptor) */
         .bDeviceProtocol = 0x00,
         .bMaxPacketSize = 0x40,  // Max packet size for control endpoint
-        .idVendor = 0x1209,  // Freescale Vendor ID. -- DO NOT USE IN A PRODUCT
-        .idProduct = 0x2019,  // Decvice ID -- DO NOT USE IN A PRODUCT
+        .idVendor = PB_USB_VID,
+        .idProduct = PB_USB_PID,
         .bcdDevice = 0x0000,  // Device revsion
         .iManufacturer = 0x01,  // Index of  Manufacturer string descriptor
         .iProduct = 0x01,  // Index of Product string descriptor
-        .iSerialNumber = 0x01,  // Index of serial number string descriptor
+        .iSerialNumber = 0x02,  // Index of serial number string descriptor
         .bNumConfigurations = 0x01,  // Number of configurations
     },
-    .config = {
+    .config =
+    {
         .bLength = 0x09,
         .bDescriptorType = 0x02,  // Configuration descriptor
-        .wTotalLength = 0x27,
+        .wTotalLength = 0x20,  // Total length of data, includes interface
         .bNumInterfaces = 0x01,  // Number of interfaces
         .bConfigurationValue = 0x01,  // Number to select for this configuration
         .iConfiguration = 0x00,  // No string descriptor
         .bmAttributes = 0x80,  // Self powered, No remote wakeup
         .MaxPower = 0xfa
     },
-    .interface = {
+    .interface =
+    {
         .bLength = 0x09,
         .bDescriptorType = 0x04,  // Interface descriptor
         .bInterfaceNumber = 0x00,  // This interface = #0
         .bAlternateSetting = 0x00,  // Alternate setting
-        .bNumEndpoints = 0x03,  // Number of endpoints for this interface
-        .bInterfaceClass = 0xFF,  // HID class interface
-        .bInterfaceSubClass = 0xFF,  // Boot interface Subclass
-        .bInterfaceProtocol = 0xFF,  // Mouse protocol
+        .bNumEndpoints = 0x02,  // Number of endpoints for this interface
+        .bInterfaceClass = 0xFF,
+        .bInterfaceSubClass = 0xFF,
+        .bInterfaceProtocol = 0xFF,
         .iInterface = 0,  // No string descriptor
     },
-    .endpoint_bulk_out = {
+    .endpoint_bulk_in =
+    {
         .bLength = 0x07,
         .bDescriptorType = 0x05,  // Endpoint descriptor
-        .bEndpointAddress = 0x01,
+        .bEndpointAddress = 0x81,
         .bmAttributes = 0x2,
         .wMaxPacketSize = 0x0200,
-        .bInterval = 0x00,  // 10 ms interval
+        .bInterval = 0x00,
     },
-    .endpoint_intr_out = {
+    .endpoint_bulk_out =
+    {
         .bLength = 0x07,
         .bDescriptorType = 0x05,  // Endpoint descriptor
         .bEndpointAddress = 0x02,
-        .bmAttributes = 0x3,
-        .wMaxPacketSize = 0x0040,
-        .bInterval = 0x05,
-    },
-    .endpoint_intr_in = {
-        .bLength = 0x07,
-        .bDescriptorType = 0x05,  // Endpoint descriptor
-        .bEndpointAddress = 0x83,
-        .bmAttributes = 0x3,
+        .bmAttributes = 0x2,
         .wMaxPacketSize = 0x0200,
-        .bInterval = 0x05,
-    }
+        .bInterval = 0x00,
+    },
 };
+
 
 static const uint8_t usb_string_id[] =
     {0x16, 3, 'P', 0, 'u', 0, 'n', 0, 'c', 0, 'h', 0, ' ',
@@ -116,11 +118,8 @@ static const uint8_t usb_string_id[] =
 static bool flag_zlp, flag_wait_for_zlp;
 static bool flag_set_config;
 
-uint32_t  plat_usb_transfer(struct usb_device *dev, uint8_t ep,
-                            uint8_t *bfr, uint32_t sz)
+static int usb_xfer(int ep, uint8_t *bfr, size_t sz)
 {
-    UNUSED(dev);
-
     if ((sz == 0) &&
         (ep == USB_EP0_OUT))
     {
@@ -181,45 +180,47 @@ uint32_t  plat_usb_transfer(struct usb_device *dev, uint8_t ep,
     return PB_OK;
 }
 
-void      plat_usb_set_address(struct usb_device *dev, uint32_t addr)
+static int test_usb_read(int ep,
+                            void *buf, size_t size)
 {
-    UNUSED(dev);
-    usb_addr = addr;
+    return usb_xfer(ep, buf, size);
 }
 
-void plat_usb_set_configuration(struct usb_device *dev)
+static int test_usb_write(int ep,
+                            void *buf, size_t size)
 {
-    UNUSED(dev);
+    return usb_xfer(ep, buf, size);
+}
+
+static bool test_usb_enumerated(void)
+{
+    return true;
+}
+
+static int test_usb_set_configuration(void)
+{
     flag_set_config = true;
-}
-
-void plat_usb_wait_for_ep_completion(uint32_t ep)
-{
-    UNUSED(ep);
-}
-
-
-uint32_t  plat_usb_init(struct usb_device *dev)
-{
-    usbdev = dev;
     return PB_OK;
 }
 
-void plat_usb_task(struct usb_device *dev)
+static int test_usb_set_address(uint32_t addr)
 {
-    UNUSED(dev);
-}
-
-uint32_t plat_prepare_recovery(struct pb_platform_setup *plat)
-{
-    UNUSED(plat);
+    usb_addr = addr;
     return PB_OK;
 }
+
+static struct pb_usb_interface test_usb_iface =
+{
+    .read = test_usb_read,
+    .write = test_usb_write,
+    .set_configuration = test_usb_set_configuration,
+    .set_address = test_usb_set_address,
+    .enumerated = test_usb_enumerated,
+};
 
 void test_main(void)
 {
     LOG_INFO("USB CH9 test begin");
-    usb_init();
 
     /* Check standard descriptors */
     pkt.bRequestType = 0x80;
@@ -227,7 +228,7 @@ void test_main(void)
     pkt.wValue = 0x0600;
 
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -236,7 +237,7 @@ void test_main(void)
     pkt.wLength = 8;
 
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -245,7 +246,7 @@ void test_main(void)
     pkt.wLength = sizeof(descriptors.device);
 
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -254,7 +255,7 @@ void test_main(void)
     pkt.wLength = 8;
 
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -263,7 +264,7 @@ void test_main(void)
     pkt.wLength = sizeof(descriptors.config);
 
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -272,7 +273,7 @@ void test_main(void)
     pkt.wLength = sizeof(descriptor_300);
 
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
 
@@ -282,7 +283,7 @@ void test_main(void)
     pkt.wLength = sizeof(usb_string_id);
 
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
 
@@ -292,7 +293,7 @@ void test_main(void)
     pkt.wLength = 8;
 
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -300,7 +301,7 @@ void test_main(void)
     pkt.wValue = 0x0A00;
     pkt.wLength = sizeof(descriptors.interface);
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
     /* Test invalid descriptor */
@@ -309,7 +310,7 @@ void test_main(void)
     pkt.wValue = 0xABCD;
     pkt.wLength = 1234;
     flag_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(!flag_zlp);
 
     pkt.bRequestType = 0x00;
@@ -318,7 +319,7 @@ void test_main(void)
     pkt.wLength = 0;
     flag_zlp = false;
     flag_wait_for_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(!flag_zlp);
     assert(flag_wait_for_zlp);
     assert(usb_addr == 1234);
@@ -331,7 +332,7 @@ void test_main(void)
     flag_zlp = false;
     flag_wait_for_zlp = false;
     flag_set_config = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(!flag_zlp);
     assert(flag_wait_for_zlp);
     assert(flag_set_config);
@@ -343,7 +344,7 @@ void test_main(void)
     pkt.wLength = 0;
     flag_zlp = false;
     flag_wait_for_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
 
     pkt.bRequestType = 0x80;
@@ -352,7 +353,7 @@ void test_main(void)
     pkt.wLength = 0;
     flag_zlp = false;
     flag_wait_for_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(flag_zlp);
     /* Test invalid request */
 
@@ -362,7 +363,7 @@ void test_main(void)
     pkt.wLength = 0;
     flag_zlp = false;
     flag_wait_for_zlp = false;
-    usbdev->on_setup_pkt(usbdev, &pkt);
+    usb_process_setup_pkt(&test_usb_iface,&pkt);
     assert(!flag_zlp);
     assert(!flag_wait_for_zlp);
 

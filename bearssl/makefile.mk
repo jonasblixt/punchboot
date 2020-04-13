@@ -51,6 +51,4 @@ PLAT_C_SRCS  += bearssl/i15_tmont.c
 PLAT_C_SRCS  += bearssl/i15_muladd.c
 PLAT_C_SRCS  += bearssl/x509_decoder.c
 
-PLAT_C_SRCS  += bearssl/crypto.c
-
 endif

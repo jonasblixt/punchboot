@@ -3,7 +3,7 @@ source tests/common.sh
 wait_for_qemu_start
 
 # Execute device setup
-$PB dev -y -i -f tests/test.pbp
+$PB slc --set-configuration --force --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -12,7 +12,7 @@ then
 fi
 
 # Get device data
-$PB dev -l
+$PB dev --show --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

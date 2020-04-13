@@ -6,9 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 #
-
-
-PB_ARCH_NAME = armv8a
+ifdef CONFIG_PLAT_IMX8M
 
 CST_TOOL ?= tools/imxcst/src/build-x86_64-linux-gnu/cst
 MKIMAGE ?= mkimage_imx8_imx8m
@@ -39,6 +37,8 @@ BLOB_INPUT += lpddr4_pmu_train_2d_imem.bin
 
 CFLAGS += -I plat/imx8m/include
 
+LDFLAGS += -Tplat/imx8m/link.lds
+
 .PHONY: imx8m_spl
 
 imx8m_image: $(BUILD_DIR)/pb.bin
@@ -60,4 +60,4 @@ plat_final: imx8m_spl imx8m_image
 	@$(CST_TOOL) --o $(BUILD_DIR)/pb_csf.bin --i $(BUILD_DIR)/pb.csf
 	@cp $(BUILD_DIR)/$(TARGET).imx $(BUILD_DIR)/$(TARGET)_signed.imx
 	@dd if=$(BUILD_DIR)/pb_csf.bin of=$(BUILD_DIR)/$(TARGET)_signed.imx seek=$(PB_FILESIZE2) bs=1 conv=notrunc
-
+endif

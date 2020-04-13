@@ -21,9 +21,9 @@ static br_sha256_context sha256_ctx;
 static br_sha384_context sha384_ctx;
 static br_sha512_context sha512_ctx;
 static br_md5_context md5_ctx;
+static uint8_t bearssl_private[4096];
 
-static int bearssl_hash_init(struct pb_crypto_driver *drv,
-                          struct pb_hash_context *ctx,
+int plat_hash_init(struct pb_hash_context *ctx,
                           enum pb_hash_algs alg)
 {
     ctx->alg = alg;
@@ -52,8 +52,7 @@ static int bearssl_hash_init(struct pb_crypto_driver *drv,
     return PB_OK;
 }
 
-static int bearssl_hash_update(struct pb_crypto_driver *drv,
-                              struct pb_hash_context *ctx,
+int plat_hash_update(struct pb_hash_context *ctx,
                               void *buf, size_t size)
 {
 
@@ -83,8 +82,7 @@ static int bearssl_hash_update(struct pb_crypto_driver *drv,
     return PB_OK;
 }
 
-static int bearssl_hash_finalize(struct pb_crypto_driver *drv,
-                              struct pb_hash_context *ctx,
+int plat_hash_finalize(struct pb_hash_context *ctx,
                               void *buf, size_t size)
 {
 
@@ -134,14 +132,12 @@ static int bearssl_hash_finalize(struct pb_crypto_driver *drv,
     return PB_OK;
 }
 
-static int bearssl_pk_verify(struct pb_crypto_driver *drv,
-                            struct pb_hash_context *hash,
-                            struct bpak_key *key,
-                            void *signature, size_t size)
+int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
+                    struct bpak_key *key)
 {
     int err;
     bool signature_verified = false;
-    uint8_t *output_data = drv->private;
+    uint8_t *output_data = bearssl_private;
 
     switch (key->kind)
     {
@@ -201,7 +197,7 @@ static int bearssl_pk_verify(struct pb_crypto_driver *drv,
             err = br_ecdsa_i31_vrfy_asn1(&br_ec_all_m15, hash->buf, 32,
                                     &br_k, signature, size);
             signature_verified = (err == 1);
-            
+
         }
         break;
         case BPAK_KEY_PUB_SECP384r1:
@@ -239,13 +235,7 @@ static int bearssl_pk_verify(struct pb_crypto_driver *drv,
     return -PB_ERR;
 }
 
-int bearssl_setup(struct pb_crypto_driver *drv)
+int plat_crypto_init(void)
 {
-    drv->ready = true;
-    drv->hash_init = bearssl_hash_init;
-    drv->hash_update = bearssl_hash_update;
-    drv->hash_final = bearssl_hash_finalize;
-    drv->pk_verify = bearssl_pk_verify;
-
     return PB_OK;
 }

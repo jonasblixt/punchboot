@@ -5,35 +5,46 @@ python:
   - "3.6"
 env:
   global:
-   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-   #   via the "travis encrypt" command using the project repo's public key
-   #
    - secure: "Fe8UzmvOO2YIAt5YEa2IKaPnD5lzbuIVZfiAneDQPOxP9FxyL6HxmVtblRFkddaTRxFqPnC0DNnFa20+D/VwxoljjL9USXbaXvuonwRWQ8ujCFm2aymmrxpbHLmD+n3n5OlvMG2zM/xWbn+3G53UHJ5DO8NS3GZEICzWiPHWQkfrHvCKrH46Z0WaqiSwP9+VEgIK+QTBOARzKXhmwswf5CUhBy9u64UoXZGXebtDlR24q1GjBoh0hz4nYhTpq9PlgfLDCK18uA7xsVQ2J/223NE0u91J2ucf1Yb+oMs/MQBr58UuvxUBNMETXwwUXfInrpWCYA3mgFECK24Xc+mNXDJ4LBSPe9Vkjezv8+qoO6nhrrK9z9UchPmydMbLbDvJUDZFoI0mSfgkpEJfPN5zX5LGMypSEF+y2EbT27AwJa2BYMKHa3aYax6Ds7x5fgSZp5T0+gSxT3KPvCSBriMOisqdQDTshwbNUiN9vndkHh0cfCBZ3CcDyXEGMFVIWnq0n7mvtitMMgQA6DGhqnhDoDZXelLh39lwSwgdTpxje7ZEN6cAOyzoVwdIwkHJizfjrWyf7hfufi2rclmkU/oCG+d2QNdLHq9VMVVhUqFQvBPJAY94NKzemdjCLfb9j1KddU5vYZ5HclZrxyZaQGKPLSFR1Nnz9FzGZLr14uc1Rq4="
-   - CROSS_COMPILE=arm-none-eabi-
-before_install:
-  - sudo apt install python3 libcunit1-dev qemu-system-arm curl git u-boot-tools uuid-dev libusb-1.0-0-dev libtool-bin gdisk libpkcs11-helper1 libpkcs11-helper1-dev libssl-dev iproute2 gcc-arm-none-eabi binutils-arm-none-eabi libblkid1 libblkid-dev libmbedtls10 libmbedtls-dev autoconf autoconf-archive automake autotools-dev
 
 addons:
   apt:
     update: true
-  coverity_scan:
-    project:
-      name: "jonpe960/punchboot"
-      description: "Build submitted via Travis CI"
-    notification_email: jonpe960@gmail.com
-    build_command_prepend: "cov-configure --comptype gcc --compiler arm-eabi-gcc --template"
-    build_command:   "make"
-    branch_pattern: "coverity"
+  packages:
+    - qemu-system-arm
+    - autoconf-archive
 
 script:
-    - git clone https://github.com/jonasblixt/bpak && cd bpak && autoreconf -fi && ./configure && make && sudo make install && cd .. && sudo ldconfig
-    - ./src/tools/gen_test_keystore.sh
-    - make tests
+    # Build BPAK library and tools
+    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.3.0
+    - pushd bpak
+    - autoreconf -fi
+    - ./configure
+    - make
+    - sudo make install
+    - sudo ldconfig
+    - popd
+
+    # Build punchboot library and tools
+    - git clone https://github.com/jonasblixt/punchboot-tools \
+                --depth 1 \
+                --branch v0.1.0
+    - pushd punchboot-tools
+    - autoreconf -fi
+    - ./configure
+    - make
+    - sudo make install
+    - sudo ldconfig
+    - popd
+
+    # Build punchboot
+    - cp configs/qemuarmv7_defconfig .config
+    - make
+    - make test
+
 jobs:
     include:
         -   stage: Code Coverage
             after_success:
                 - cd src/
                 - bash <(curl -s https://codecov.io/bash)
-after_failure:
-  - cat src/qemu.log

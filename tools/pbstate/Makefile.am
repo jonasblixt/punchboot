@@ -1,0 +1,6 @@
+
+SUBDIRS = src test
+
+EXTRA_DIST = LICENSE README.rst
+
+ACLOCAL_AMFLAGS = -I m4

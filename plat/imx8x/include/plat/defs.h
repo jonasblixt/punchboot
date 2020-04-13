@@ -12,9 +12,6 @@
 
 #include <pb/pb.h>
 #include <pb/io.h>
-#include <plat/sci/ipc.h>
-#include <plat/sci/sci.h>
-#include <plat/imx/gpt.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/lpuart.h>
@@ -23,13 +20,6 @@
 #include <plat/iomux.h>
 
 #define PB_BOOTPART_OFFSET 0
-
-struct pb_platform_setup
-{
-    sc_ipc_t ipc_handle;
-    struct gp_timer tmr0;
-};
-
 
 
 #define ESDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \

@@ -1,8 +1,7 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -18,59 +17,25 @@
 #include <pb/fuse.h>
 #include <pb/board.h>
 #include <pb/boot.h>
+#include <plat/qemu/plat.h>
 #include <plat/qemu/virtio.h>
 #include <plat/qemu/virtio_block.h>
 #include <plat/qemu/virtio_serial.h>
-#include <plat/qemu/test_fuse.h>
+#include <plat/qemu/fuse.h>
 #include <plat/qemu/gcov.h>
+#include <plat/qemu/uart.h>
 #include <bearssl/bearssl_hash.h>
 #include <plat/qemu/semihosting.h>
 #include <bpak/bpak.h>
 
-static struct pb_platform_setup setup;
-static uint32_t setup_locked = 0;
+static struct qemu_uart_device console_uart;
 extern const struct fuse fuses[];
 
-__inline uint32_t plat_get_ms_tick(void)
-{
-    return 1;
-}
+static struct fuse rom_key_revoke_fuse =
+        TEST_FUSE_BANK_WORD(8, "Revoke");
 
-
-int plat_get_security_state(uint32_t *state)
-{
-#ifdef __NOPE
-    uint32_t err;
-    (*state) = PB_SECURITY_STATE_NOT_SECURE;
-
-    /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
-    {
-        err = plat_fuse_read(f);
-
-        if (f->value)
-        {
-            (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
-            break;
-        }
-
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-    /* Perform checks to see if the boot was successful */
-    /* for the test platform there is no point in testing
-     *  this => CONFIGURED_OK */
-    (*state) = PB_SECURITY_STATE_CONFIGURED_OK;
-
-    if (setup_locked)
-        (*state) = PB_SECURITY_STATE_SECURE;
-#endif
-    return PB_OK;
-}
+static struct fuse security_fuse =
+        TEST_FUSE_BANK_WORD(9, "Security fuse");
 
 static const char *platform_namespace_uuid =
     "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
@@ -78,12 +43,18 @@ static const char *platform_namespace_uuid =
 static const char *device_unique_id =
     "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
-int plat_get_uuid(struct pb_crypto *crypto, char *out)
+
+void *plat_get_private(void)
+{
+    return NULL;
+}
+
+int plat_get_uuid(char *out)
 {
     int rc;
     char device_uu_str[37];
 
-    rc = uuid_gen_uuid3(crypto, platform_namespace_uuid,
+    rc = uuid_gen_uuid3(platform_namespace_uuid,
                           (const char *) device_unique_id, 8, out);
 
     uuid_unparse((const unsigned char *) out, device_uu_str);
@@ -92,10 +63,52 @@ int plat_get_uuid(struct pb_crypto *crypto, char *out)
     return rc;
 }
 
-int plat_setup_device(void)
+int plat_fuse_read(struct fuse *f)
 {
-#ifdef __NOPE
-    uint32_t err;
+    uint32_t tmp_val = 0;
+    int err;
+
+    if ( (f->status & FUSE_VALID) != FUSE_VALID)
+        return -PB_ERR;
+
+    err = qemu_fuse_read(f->bank, &tmp_val);
+
+    if (err != PB_OK)
+        LOG_ERR("Could not read fuse");
+
+    f->value = tmp_val;
+
+    return err;
+}
+
+int plat_fuse_write(struct fuse *f)
+{
+    int err;
+
+    if ( (f->status & FUSE_VALID) != FUSE_VALID)
+        return -PB_ERR;
+    LOG_DBG("Writing fuse %s", f->description);
+
+    err = qemu_fuse_write(f->bank, f->value);
+
+    if (err != PB_OK)
+        LOG_ERR("Could not write fuse");
+    return err;
+}
+
+int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
+{
+    if ( (f->status & FUSE_VALID) != FUSE_VALID)
+        return -PB_ERR;
+
+    return snprintf(s, n, "FUSE <%u> %s = 0x%08x\n", f->bank,
+                f->description, f->value);
+}
+
+/* QEMU SLC Interface */
+int plat_slc_set_configuration(void)
+{
+    int err;
 
     /* Read fuses */
     foreach_fuse(f, (struct fuse *) fuses)
@@ -122,96 +135,103 @@ int plat_setup_device(void)
         if (err != PB_OK)
             return err;
     }
-#endif
+
     return PB_OK;
 }
 
-
-int plat_setup_lock(void)
-{
-    if (setup_locked)
-        return PB_ERR;
-    setup_locked = 1;
-    return PB_OK;
-}
-
-int plat_fuse_read(struct fuse *f)
-{
-    uint32_t tmp_val = 0;
-    int err;
-
-    if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return -PB_ERR;
-
-    err = test_fuse_read(f->bank, &tmp_val);
-
-    if (err != PB_OK)
-        LOG_ERR("Could not read fuse");
-
-    f->value = tmp_val;
-
-    return err;
-}
-
-int plat_fuse_write(struct fuse *f)
-{
-#ifdef __NOPE
-    int err;
-
-    if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return -PB_ERR;
-    LOG_DBG("Writing fuse %s", f->description);
-
-    err = test_fuse_write(&virtio_block, f->bank, f->value);
-
-    if (err != PB_OK)
-        LOG_ERR("Could not write fuse");
-    return err;
-#endif
-    return PB_OK;
-}
-
-int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
-{
-    if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return -PB_ERR;
-
-    return snprintf(s, n, "FUSE <%u> %s = 0x%08x\n", f->bank,
-                f->description, f->value);
-}
-
-int plat_early_init(struct pb_storage *storage,
-                    struct pb_transport *transport,
-                    struct pb_console *console,
-                    struct pb_crypto *crypto,
-                    struct pb_command_context *command_ctx,
-                    struct pb_boot_context *boot,
-                    struct bpak_keystore *keystore,
-                    struct pb_board *board)
+int plat_slc_set_configuration_lock(void)
 {
     int rc;
 
-    rc = board_early_init(&setup,
-                    storage,
-                    transport,
-                    console,
-                    crypto,
-                    command_ctx,
-                    boot,
-                    keystore,
-                    board);
+    rc = plat_fuse_read(&security_fuse);
 
-    LOG_INFO("Plat start %i", rc);
-    gcov_init();
+    if (rc != PB_OK)
+        return rc;
 
-    //test_fuse_init(&virtio_block);
+    if (security_fuse.value & (1 << 0))
+    {
+        LOG_ERR("Already locked");
+        return -PB_ERR;
+    }
 
-    LOG_DBG("Done");
+    security_fuse.value |= (1 << 0);
+
+    rc = plat_fuse_write(&security_fuse);
+
+    return rc;
+}
+
+int plat_slc_set_end_of_life(void)
+{
+
+    int rc;
+
+    rc = plat_fuse_read(&security_fuse);
+
+    if (rc != PB_OK)
+        return rc;
+
+    security_fuse.value |= (1 << 1);
+
+    rc = plat_fuse_write(&security_fuse);
+
+    return rc;
+}
+
+int plat_slc_read(enum pb_slc *slc)
+{
+
+    int rc;
+
+    rc = plat_fuse_read(&security_fuse);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (security_fuse.value & (1 << 0))
+    {
+        LOG_INFO("SLC: Configuration locked");
+        *slc = PB_SLC_CONFIGURATION_LOCKED;
+    }
+    else if (security_fuse.value & (1 << 1))
+    {
+        LOG_INFO("SLC: End of life");
+        *slc = PB_SLC_EOL;
+    }
+    else
+    {
+        LOG_INFO("SLC: Configuration");
+        *slc = PB_SLC_CONFIGURATION;
+    }
+
     return PB_OK;
 }
 
-void plat_preboot_cleanup(void)
+int plat_slc_key_active(uint32_t id, bool *active)
 {
+    *active = false;
+    return PB_OK;
+}
+
+int plat_slc_revoke_key(uint32_t id)
+{
+    LOG_INFO("Revoking key 0x%x", id);
+    return PB_OK;
+}
+
+int plat_slc_init(void)
+{
+    int rc;
+    rc = qemu_fuse_init();
+    return rc;
+}
+
+int plat_early_init(void)
+{
+    int rc;
+    rc = board_early_init(NULL);
+    gcov_init();
+    return rc;
 }
 
 uint32_t plat_get_us_tick(void)
@@ -219,4 +239,15 @@ uint32_t plat_get_us_tick(void)
     return 0;
 }
 
+/* Console API */
 
+int plat_console_init(void)
+{
+    return pb_qemu_console_init(&console_uart);
+}
+
+int plat_console_putchar(char c)
+{
+    qemu_uart_write(&console_uart, (char *) &c, 1);
+    return PB_OK;
+}

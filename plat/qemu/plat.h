@@ -7,6 +7,9 @@
  *
  */
 
+#include <pb/pb.h>
+#include <plat/qemu/uart.h>
+
 #ifndef PLAT_TEST_PLAT_H_
 #define PLAT_TEST_PLAT_H_
 
@@ -18,5 +21,8 @@
          .default_value = __v, .status = FUSE_VALID}
 
 #define TEST_FUSE_END { .status = FUSE_INVALID }
+
+
+int pb_qemu_console_init(struct qemu_uart_device *dev);
 
 #endif  // PLAT_TEST_PLAT_H_

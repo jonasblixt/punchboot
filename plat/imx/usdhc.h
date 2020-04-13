@@ -513,4 +513,7 @@ struct usdhc_device
 int imx_usdhc_init(struct pb_storage_driver *drv);
 int imx_usdhc_free(struct pb_storage_driver *drv);
 
+int imx_usdhc_plat_init(struct usdhc_device *dev);
+
+
 #endif  // PLAT_IMX_USDHC_H_

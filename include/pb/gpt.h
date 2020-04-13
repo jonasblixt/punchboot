@@ -15,6 +15,11 @@
 
 #define GPT_PART_NAME_MAX_SIZE 36
 
-int pb_gpt_map_init(struct pb_storage_driver *drv);
+
+int gpt_install_map(struct pb_storage_driver *drv,
+                            struct pb_storage_map *map);
+
+
+int gpt_init(struct pb_storage_driver *drv);
 
 #endif  // INCLUDE_PB_GPT_H_
