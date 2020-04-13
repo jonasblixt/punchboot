@@ -7,6 +7,6 @@ doxyfile.stamp: doxygen.cfg
 
 CLEANFILES = doxyfile.stamp
 
-all-local: doxyfile.stamp
-
 endif
+
+all-local: doxyfile.stamp
