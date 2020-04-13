@@ -94,12 +94,12 @@ fi
 
 AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/doxygen.cfg])])
-AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Makefile])])
 
 AC_CONFIG_FILES([Makefile
                 src/Makefile
                 lib/Makefile
                 test/Makefile
+                docs/Makefile
                 dist/punchboot-tools-x64.iss
                 lib/punchboot.pc])
 
