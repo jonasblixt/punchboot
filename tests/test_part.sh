@@ -27,7 +27,7 @@ fi
 
 echo "Seting 'none' as active system"
 
-$PB part --activate none --transport socket
+$PB boot --activate none --transport socket
 
 echo "Done"
 test_end_ok

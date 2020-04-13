@@ -47,7 +47,7 @@ then
     test_end_error
 fi
 
-$PB part --activate $BOOT_B --transport socket
+$PB boot --activate $BOOT_B --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

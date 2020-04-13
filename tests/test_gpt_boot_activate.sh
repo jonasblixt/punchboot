@@ -48,7 +48,7 @@ then
 fi
 
 echo "Activating $BOOT_A"
-$PB part --activate $BOOT_A --transport socket
+$PB boot --activate $BOOT_A --transport socket
 
 result_code=$?
 

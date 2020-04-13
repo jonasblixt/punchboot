@@ -35,7 +35,7 @@ then
     test_end_error
 fi
 
-$PB part --activate none --transport socket
+$PB boot --activate none --transport socket
 
 result_code=$?
 
