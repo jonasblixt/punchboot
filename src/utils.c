@@ -46,8 +46,13 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name,
     }
     else if (strcmp(t, "socket") == 0)
     {
+#ifdef WINDOWS
+        printf("Error: The socket transport is not supported on windows\n");
+        rc = -PB_RESULT_ERROR;
+#else
         printf("Connecting to /tmp/pb.sock\n");
         rc = pb_socket_transport_init(ctx, "/tmp/pb.sock");
+#endif
     }
 
     if (rc != PB_RESULT_OK)
