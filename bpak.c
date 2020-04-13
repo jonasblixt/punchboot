@@ -46,6 +46,30 @@ int bpak_get_meta_and_header(struct bpak_header *hdr, uint32_t id,
     return -BPAK_NOT_FOUND;
 }
 
+
+int bpak_get_part(struct bpak_header *hdr, uint32_t id,
+                  struct bpak_part_header **part)
+{
+    void *offset = *part;
+
+    bpak_foreach_part(hdr, p)
+    {
+        if (p->id == id)
+        {
+            if (offset)
+            {
+                if (((void *) p) <= offset)
+                    continue;
+            }
+
+            (*part) = p;
+            return BPAK_OK;
+        }
+    }
+
+    return -BPAK_NOT_FOUND;
+}
+
 int bpak_get_meta(struct bpak_header *hdr, uint32_t id, void **ptr)
 {
     return bpak_get_meta_and_header(hdr, id, 0, ptr,

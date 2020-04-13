@@ -714,7 +714,11 @@ static int pb_command_parse(void)
                             &board_result, sizeof(board_result));
 
             plat_transport_write(&result, sizeof(result));
-            plat_transport_write(bfr_response, response_size);
+
+            if (response_size && (rc == PB_OK))
+            {
+                plat_transport_write(bfr_response, response_size);
+            }
 
         }
         break;

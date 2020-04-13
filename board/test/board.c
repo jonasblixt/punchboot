@@ -171,6 +171,7 @@ int board_command(void *plat,
     if (command == 0xc72b6e9e)
     {
         char *arg = (char *) bfr;
+        arg[size] = 0;
         char *response = (char *) response_bfr;
 
         LOG_DBG("test-command (%s)", arg);
@@ -178,6 +179,7 @@ int board_command(void *plat,
 
         (*response_size) = snprintf(response, resp_buf_size,
                                 "Hello test-command: %s\n", arg);
+
         return PB_OK;
     }
     else if (command == 0x349bef54)

@@ -42,6 +42,8 @@ INTEGRATION_TESTS += test_corrupt_primary_config
 INTEGRATION_TESTS += test_corrupt_backup_config
 INTEGRATION_TESTS += test_switch
 INTEGRATION_TESTS += test_authentication
+INTEGRATION_TESTS += test_board
+INTEGRATION_TESTS += test_board_status
 
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/qemu/gcov.c
