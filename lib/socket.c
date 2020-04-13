@@ -47,7 +47,9 @@ static int pb_socket_connect(struct pb_context *ctx)
                             sizeof(priv->addr));
 
     if (rc != 0)
+    {
         return -PB_RESULT_ERROR;
+    }
 
     return PB_RESULT_OK;
 }

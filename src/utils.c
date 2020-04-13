@@ -4,6 +4,7 @@
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 #include <pb-tools/usb.h>
+#include <pb-tools/socket.h>
 #include "tool.h"
 
 int pb_debug(struct pb_context *ctx, int level, const char *fmt, ...)
@@ -45,6 +46,8 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name,
     }
     else if (strcmp(t, "socket") == 0)
     {
+        printf("Connecting to /tmp/pb.sock\n");
+        rc = pb_socket_transport_init(ctx, "/tmp/pb.sock");
     }
 
     if (rc != PB_RESULT_OK)

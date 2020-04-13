@@ -12,20 +12,9 @@
 #include "sha256.h"
 
 
-static int part_activate(struct pb_context *ctx, const char *part_uuid)
-{
-    int rc;
-    uuid_t uu;
-
-    uuid_parse(part_uuid, uu);
-
-    rc = pb_api_partition_activate(ctx, uu);
-
-    return rc;
-}
 
 static int part_verify(struct pb_context *ctx, const char *filename,
-                        const char *part_uuid)
+                        const char *part_uuid, size_t offset)
 {
     struct pb_device_capabilities caps;
     struct bpak_header header;
@@ -105,7 +94,7 @@ err_out:
 }
 
 static int part_write(struct pb_context *ctx, const char *filename,
-                        const char *part_uuid)
+                        const char *part_uuid, size_t block_write_offset)
 {
     uint8_t *chunk_buffer = NULL;
     struct pb_device_capabilities caps;
@@ -211,6 +200,14 @@ static int part_write(struct pb_context *ctx, const char *filename,
         offset = 0;
     }
 
+    if (bpak_file && block_write_offset)
+    {
+        printf("Detected bpak header and offset parameter, ignoring offset\n");
+    }
+    else
+    {
+        offset += (block_write_offset * 512);
+    }
 
     while ((read_bytes = fread(chunk_buffer, 1, chunk_size, fp)) > 0)
     {
@@ -424,7 +421,7 @@ int action_part(int argc, char **argv)
     bool flag_write = false;
     bool flag_verify = false;
     bool flag_show = false;
-    bool flag_activate = false;
+    size_t block_write_offset = 0;
     const char *part_uuid = NULL;
     const char *filename = NULL;
 
@@ -439,12 +436,12 @@ int action_part(int argc, char **argv)
         {"show",        no_argument,       0,  's' },
         {"part",        required_argument, 0,  'p' },
         {"install",     no_argument,       0,  'i' },
-        {"activate",    required_argument, 0,  'a' },
         {"list",        no_argument,       0,  'l' },
+        {"offset",      required_argument, 0,  'O' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:w:silp:c:a:d:",
+    while ((opt = getopt_long(argc, argv, "hvt:w:silp:c:d:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -461,6 +458,9 @@ int action_part(int argc, char **argv)
             case 'l':
                 flag_list = true;
             break;
+            case 'O':
+                block_write_offset = strtol(optarg, NULL, 0);
+            break;
             case 'i':
                 flag_install = true;
             break;
@@ -471,10 +471,6 @@ int action_part(int argc, char **argv)
             case 'c':
                 flag_verify = true;
                 filename = (const char *) optarg;
-            break;
-            case 'a':
-                flag_activate = true;
-                part_uuid = (const char *) optarg;
             break;
             case 'p':
                 part_uuid = (const char *) optarg;
@@ -525,13 +521,11 @@ int action_part(int argc, char **argv)
     else if (flag_install)
         rc = pb_api_partition_install_table(ctx);
     else if (flag_write)
-        rc = part_write(ctx, filename, part_uuid);
+        rc = part_write(ctx, filename, part_uuid, block_write_offset);
     else if (flag_verify)
-        rc = part_verify(ctx, filename, part_uuid);
+        rc = part_verify(ctx, filename, part_uuid, block_write_offset);
     else if (flag_show)
         rc = part_show(ctx, part_uuid);
-    else if (flag_activate)
-        rc = part_activate(ctx, part_uuid);
 
     if (rc != PB_RESULT_OK)
     {

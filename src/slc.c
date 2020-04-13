@@ -65,12 +65,10 @@ int action_slc(int argc, char **argv)
     bool flag_set_configuration = false;
     bool flag_set_configuration_lock = false;
     bool flag_set_end_of_life = false;
-    bool flag_set_keystore_id = false;
     bool flag_force = false;
     const char *transport = NULL;
     const char *device_uuid = NULL;
     uint32_t key_id = 0;
-    uint32_t keystore_id = 0;
     struct pb_context *ctx = NULL;
 
     struct option long_options[] =
@@ -85,11 +83,10 @@ int action_slc(int argc, char **argv)
         {"set-end-of-life", no_argument,   0,  'E' },
         {"show",        no_argument,       0,  's' },
         {"revoke-key",  required_argument, 0,  'R' },
-        {"set-keystore-id", required_argument, 0,  'K' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:d:CLEFsR:K:",
+    while ((opt = getopt_long(argc, argv, "hvt:d:CLEFsR:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -121,10 +118,6 @@ int action_slc(int argc, char **argv)
             case 'R':
                 flag_revoke_key = true;
                 key_id = strtol(optarg, NULL, 0);
-            break;
-            case 'K':
-                flag_set_keystore_id = true;
-                keystore_id = strtol(optarg, NULL, 0);
             break;
             case 's':
                 flag_show = true;
@@ -169,8 +162,7 @@ int action_slc(int argc, char **argv)
     if (flag_set_configuration ||
         flag_set_configuration_lock ||
         flag_set_end_of_life ||
-        flag_revoke_key ||
-        flag_set_keystore_id)
+        flag_revoke_key)
     {
         if (!flag_force)
         {
@@ -192,15 +184,13 @@ int action_slc(int argc, char **argv)
         }
 
         if (flag_set_configuration)
-            rc = pb_api_slc_set_configuration(ctx, NULL, 0);
+            rc = pb_api_slc_set_configuration(ctx);
         else if (flag_set_configuration_lock)
-            rc = pb_api_slc_set_configuration_lock(ctx, NULL, 0);
+            rc = pb_api_slc_set_configuration_lock(ctx);
         else if (flag_set_end_of_life)
             rc = pb_api_slc_set_end_of_life(ctx);
         else if (flag_revoke_key)
             rc = pb_api_slc_revoke_key(ctx, key_id);
-        else if (flag_set_keystore_id)
-            rc = pb_api_slc_set_keystore_id(ctx, keystore_id);
         else
         {
             rc = -PB_RESULT_ERROR;

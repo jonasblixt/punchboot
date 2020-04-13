@@ -4,6 +4,39 @@
 #include <pb-tools/wire.h>
 #include <bpak/bpak.h>
 
+int pb_api_boot_activate(struct pb_context *ctx, uint8_t *uuid)
+{
+    int rc;
+    struct pb_command cmd;
+    struct pb_command_activate_part activate;
+    struct pb_result result;
+
+    ctx->d(ctx, 2, "%s: call\n", __func__);
+
+    memset(&activate, 0, sizeof(activate));
+    memcpy(activate.uuid, uuid, 16);
+
+    pb_wire_init_command2(&cmd, PB_CMD_PART_ACTIVATE, &activate,
+                                    sizeof(activate));
+
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
+
+    ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
+                                        pb_error_string(result.result_code));
+    return result.result_code;
+}
+
 int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose)
 {
     int rc;
@@ -80,6 +113,7 @@ int pb_api_boot_ram(struct pb_context *ctx,
 
     ctx->d(ctx, 1, "%s: Loading image..\n", __func__);
 
+    /* Send command and check result */
     rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
     if (rc != PB_RESULT_OK)
@@ -96,6 +130,7 @@ int pb_api_boot_ram(struct pb_context *ctx,
     if (result.result_code != PB_RESULT_OK)
         return result.result_code;
 
+    /* Write header and check result */
     rc = ctx->write(ctx, header, sizeof(*header));
 
     if (rc != PB_RESULT_OK)
@@ -112,6 +147,7 @@ int pb_api_boot_ram(struct pb_context *ctx,
     if (result.result_code != PB_RESULT_OK)
         return result.result_code;
 
+    /* Stream image */
     bpak_foreach_part(header, p)
     {
         if (!p->id)

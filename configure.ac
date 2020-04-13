@@ -77,7 +77,7 @@ AC_ARG_ENABLE([docs],
 AC_MSG_RESULT($enable_docs)
 AM_CONDITIONAL([BUILD_DOCS], [test x$enable_docs = xyes])
 
-
+if test "x$enable_docs" = "xyes"; then
 AC_CHECK_PROGS([DOXYGEN], [doxygen])
 if test -z "$DOXYGEN"; then
    AC_MSG_WARN([Doxygen not found - continue without Doxygen support])
@@ -90,6 +90,8 @@ AC_CHECK_PROGS([PDFLATEX], [pdflatex])
 if test -z "$PDFLATEX"; then
    AC_MSG_ERROR([Doxygen needs pdflatex program, it is part of TeX http://www.tug.org/texlive/acquire-netinstall.html])
 fi
+fi
+
 AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/doxygen.cfg])])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Makefile])])

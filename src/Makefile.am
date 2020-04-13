@@ -8,6 +8,7 @@ punchboot_SOURCES  = main.c \
 					 auth.c \
 					 slc.c \
 					 sha256.c \
+					 crc.c \
                      utils.c \
 					 uuid/clear.c \
 					 uuid/compare.c \

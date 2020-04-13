@@ -89,7 +89,7 @@ TEST(api_slc_configuration)
 
 
     /* Perform device configuration */
-    rc = pb_api_slc_set_configuration(ctx, NULL, 0);
+    rc = pb_api_slc_set_configuration(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Read security life cycle */
@@ -102,7 +102,7 @@ TEST(api_slc_configuration)
     /* Additional calls to device_configure is allowed */
 
     /* Perform device configuration */
-    rc = pb_api_slc_set_configuration(ctx, NULL, 0);
+    rc = pb_api_slc_set_configuration(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Read security life cycle */
@@ -148,7 +148,7 @@ TEST(api_slc_configuration_lock)
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Perform device configuration */
-    rc = pb_api_slc_set_configuration(ctx, NULL, 0);
+    rc = pb_api_slc_set_configuration(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Read security life cycle */
@@ -159,7 +159,7 @@ TEST(api_slc_configuration_lock)
     ASSERT_EQ(slc, PB_SLC_CONFIGURATION);
 
     /* Perform device configuration */
-    rc = pb_api_slc_set_configuration_lock(ctx, NULL, 0);
+    rc = pb_api_slc_set_configuration_lock(ctx);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Read security life cycle */
@@ -173,7 +173,7 @@ TEST(api_slc_configuration_lock)
     /* Additional calls to device_configuration_lock is _not_ allowed */
 
     /* Perform device configuration */
-    rc = pb_api_slc_set_configuration_lock(ctx, NULL, 0);
+    rc = pb_api_slc_set_configuration_lock(ctx);
     ASSERT_EQ(rc, -PB_RESULT_ERROR);
 
     /* Read security life cycle */
@@ -186,7 +186,7 @@ TEST(api_slc_configuration_lock)
     printf("slc: %s\n", pb_wire_slc_string(slc));
 
     /* Perform device configuration */
-    rc = pb_api_slc_set_configuration(ctx, NULL, 0);
+    rc = pb_api_slc_set_configuration(ctx);
     ASSERT_EQ(rc, -PB_RESULT_ERROR);
 
     /* Read security life cycle */

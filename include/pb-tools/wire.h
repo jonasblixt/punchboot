@@ -72,7 +72,6 @@ enum pb_commands
     PB_CMD_SLC_SET_EOL,
     PB_CMD_SLC_REVOKE_KEY,
     PB_CMD_SLC_READ,
-    PB_CMD_SLC_SET_KEYSTORE_ID,
     PB_CMD_BOOTLOADER_VERSION_READ,
     PB_CMD_PART_TBL_READ,
     PB_CMD_PART_TBL_INSTALL,
@@ -318,15 +317,6 @@ struct pb_command_revoke_key
 } __attribute__((packed));
 
 /**
- * Set keystore id command
- */
-struct pb_command_set_keystore
-{
-    uint32_t keystore_id; /*!< ID of keystore to fuse */
-    uint8_t rz[28];  /*!< Reserved */
-} __attribute__((packed));
-
-/**
  * Boot from partition command
  */
 struct pb_command_boot_part
@@ -355,11 +345,11 @@ struct pb_command_ram_boot
  */
 struct pb_command_board
 {
-    uint8_t command;        /*!< Board command to run */
+    uint32_t command;        /*!< Board command to run */
     uint32_t request_size;  /*!< Request size in bytes */
     uint32_t response_buffer_size;  /*!< Maximum amount of data that can be
                                         included in the response */
-    uint8_t rz[23];         /*!< Reserved */
+    uint8_t rz[20];         /*!< Reserved */
 } __attribute__((packed));
 
 /**

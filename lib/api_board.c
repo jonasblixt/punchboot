@@ -4,7 +4,7 @@
 #include <pb-tools/wire.h>
 
 int pb_api_board_command(struct pb_context *ctx,
-                         uint8_t board_command_id,
+                         uint32_t board_command_id,
                          const void *request,
                          size_t request_size,
                          void *response,
@@ -38,6 +38,9 @@ int pb_api_board_command(struct pb_context *ctx,
 
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
+
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
 
     if (request_size)
     {
@@ -103,6 +106,9 @@ int pb_api_board_status(struct pb_context *ctx,
         return -PB_RESULT_ERROR;
 
     memcpy(&status_result, result.response, sizeof(status_result));
+
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
 
     if (status_result.size > size)
     {

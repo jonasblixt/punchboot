@@ -89,16 +89,13 @@ int pb_api_slc_read(struct pb_context *ctx,
                        uint8_t *active_keys,
                        uint8_t *revoked_keys);
 
-int pb_api_slc_set_configuration(struct pb_context *ctx, const void *data,
-                                size_t size);
+int pb_api_slc_set_configuration(struct pb_context *ctx);
 
-int pb_api_slc_set_configuration_lock(struct pb_context *ctx, const void *data,
-                                size_t size);
+int pb_api_slc_set_configuration_lock(struct pb_context *ctx);
 
 int pb_api_slc_set_end_of_life(struct pb_context *ctx);
 
 int pb_api_slc_revoke_key(struct pb_context *ctx, uint32_t key_id);
-int pb_api_slc_set_keystore_id(struct pb_context *ctx, uint32_t keystore_id);
 
 int pb_api_device_read_caps(struct pb_context *ctx,
                             struct pb_device_capabilities *caps);
@@ -123,8 +120,6 @@ int pb_api_partition_verify(struct pb_context *ctx,
                             uint32_t size,
                             bool bpak);
 
-int pb_api_partition_activate(struct pb_context *ctx,
-                              uint8_t *uuid);
 
 int pb_api_partition_read_bpak(struct pb_context *ctx,
                               uint8_t *uuid,
@@ -152,8 +147,10 @@ int pb_api_boot_ram(struct pb_context *ctx,
                     const void *bpak_image,
                     bool verbose);
 
+int pb_api_boot_activate(struct pb_context *ctx, uint8_t *uuid);
+
 int pb_api_board_command(struct pb_context *ctx,
-                         uint8_t board_command_id,
+                         uint32_t board_command_id,
                          const void *request,
                          size_t request_size,
                          void *response,

@@ -11,6 +11,21 @@
 
 #include "tool.h"
 
+static int part_activate(struct pb_context *ctx, const char *part_uuid)
+{
+    int rc;
+    uuid_t uu;
+
+    if (strcmp(part_uuid, "none") == 0)
+        memset(uu, 0, sizeof(uu));
+    else
+        uuid_parse(part_uuid, uu);
+
+    rc = pb_api_boot_activate(ctx, uu);
+
+    return rc;
+}
+
 int action_boot(int argc, char **argv)
 {
     int opt;
@@ -23,6 +38,7 @@ int action_boot(int argc, char **argv)
     bool flag_load = false;
     bool flag_verbose_boot = false;
     bool flag_boot = false;
+    bool flag_activate = false;
     const char *device_uuid = NULL;
 
     struct option long_options[] =
@@ -33,11 +49,12 @@ int action_boot(int argc, char **argv)
         {"device",      required_argument, 0,  'd' },
         {"load",        required_argument, 0,  'l' },
         {"boot",        required_argument, 0,  'b' },
+        {"activate",    required_argument, 0,  'a' },
         {"verbose-boot", no_argument,      0,  'W' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:l:",
+    while ((opt = getopt_long(argc, argv, "hvt:l:a:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -68,6 +85,10 @@ int action_boot(int argc, char **argv)
             case '?':
                 printf("Unknown option: %c\n", optopt);
                 return -1;
+            break;
+            case 'a':
+                flag_activate = true;
+                part_uuid = (const char *) optarg;
             break;
             case ':':
                 printf("Missing arg for %c\n", optopt);
@@ -156,6 +177,8 @@ int action_boot(int argc, char **argv)
 
         rc = pb_api_boot_part(ctx, uu, flag_verbose_boot);
     }
+    else if (flag_activate)
+        rc = part_activate(ctx, part_uuid);
     else
     {
         printf("Error: Unknown command\n");

@@ -8,6 +8,7 @@
 #include "uuid/uuid.h"
 
 #include "tool.h"
+#include "crc.h"
 
 static int board_show_status(struct pb_context *ctx)
 {
@@ -28,8 +29,12 @@ static int board_command(struct pb_context *ctx, int command,
 {
     int rc;
     char *result_buffer = malloc(4096);
+    size_t args_len = 0;
 
-    rc = pb_api_board_command(ctx, command, args, strlen(args),
+    if (args)
+        args_len = strlen(args);
+
+    rc = pb_api_board_command(ctx, command, args, args_len,
                                    result_buffer, 4096);
 
     if (rc == PB_RESULT_OK)
@@ -46,7 +51,7 @@ int action_board(int argc, char **argv)
     int rc = 0;
     bool flag_show_status = false;
     bool flag_command = false;
-    int command = 0;
+    uint32_t command = 0;
     const char *command_args = NULL;
     const char *transport = NULL;
     const char *device_uuid = NULL;
@@ -86,7 +91,7 @@ int action_board(int argc, char **argv)
             break;
             case 'b':
                 flag_command = true;
-                command = strtol(optarg, NULL, 0);
+                command = crc32(0, optarg, strlen(optarg));
             break;
             case 'A':
                 command_args = (const char *) optarg;
