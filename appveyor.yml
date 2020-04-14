@@ -8,15 +8,14 @@ environment:
 
 configuration:
   - Release
-  - Debug
 
 matrix:
   fast_finish: true
 
 install:
   # bitpacker
-  - git clone https://github.com/jonasblixt/bpak.git "C:\bpak"
-  # libwdi
+  - git clone https://github.com/jonasblixt/bpak.git "C:\bpak" --depth 1 --branch v0.3.0
+  # libwdi, specific commit checked out in build step
   - git clone https://github.com/pbatard/libwdi.git "C:\libwdi"
   # install innosetup for creating installers
   - choco install InnoSetup

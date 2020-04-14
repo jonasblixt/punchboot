@@ -38,19 +38,22 @@ static int slc_show(struct pb_context *ctx)
         printf("Unknown\n");
 
     printf("\nKey status:\n\n");
-    printf("Active      Revoked\n");
-    printf("------      -------\n");
+    printf("Active       Revoked\n");
+    printf("------       -------\n");
 
     for (int i = 0; i < 16; i++)
     {
-        if (active_keys[i])
-            printf("0x%8.8x   ", active_keys[i]);
-        else
-            printf("             ");
+        if (active_keys[i] || revoked_keys[i])
+        {
+            if (active_keys[i])
+                printf("0x%8.8x   ", active_keys[i]);
+            else
+                printf("             ");
 
-        if (revoked_keys[i])
-            printf("0x%8.8x", revoked_keys[i]);
-        printf("\n");
+            if (revoked_keys[i])
+                printf("0x%8.8x", revoked_keys[i]);
+            printf("\n");
+        }
     }
 
 };
