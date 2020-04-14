@@ -11,5 +11,4 @@ jobs:
     include:
         -   stage: Code Coverage
             after_success:
-                - cd src/
                 - bash <(curl -s https://codecov.io/bash)
