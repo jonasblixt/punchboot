@@ -120,11 +120,11 @@ static struct pb_storage_driver usdhc0_driver =
 
 /* END of USDHC0 */
 
-#ifdef __NOPE
-static int update_bootargs(void *dtb, int offset)
+int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
 {
-    const char *bootargs;
-    if (boot->verbose_boot)
+    const char *bootargs = NULL;
+
+    if (verbose_boot)
     {
         bootargs = "console=ttyLP0,115200  " \
                    "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk " \
@@ -136,18 +136,11 @@ static int update_bootargs(void *dtb, int offset)
                    "quiet " \
                    "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
     }
-    return fdt_setprop_string(dtb, offset, "bootargs", bootargs);
+    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 
 }
-#endif
 
-int board_jump(const char *part_uu_str)
-{
-    //arch_jump((void *) boot->jump_addr, NULL, NULL, NULL, NULL);
-    return -PB_ERR; /* Should not be reached */
-}
-
-int imx8x_board_early_init(sc_ipc_t ipc)
+int board_early_init(void *plat)
 {
     int rc = PB_OK;
 
@@ -164,19 +157,21 @@ int board_setup_device(void)
     return PB_OK;
 }
 
-bool board_force_recovery(void *plat)
+bool board_force_command_mode(void *plat)
 {
-#ifdef __NOPE
+    struct imx8x_private *priv = IMX8X_PRIV(plat);
+
     sc_bool_t btn_status;
     sc_misc_bt_t boot_type;
     bool usb_charger_detected = false;
 
-    sc_misc_get_button_status(plat->ipc_handle, &btn_status);
-    sc_misc_get_boot_type(plat->ipc_handle, &boot_type);
+    sc_misc_get_button_status(priv->ipc, &btn_status);
+    sc_misc_get_boot_type(priv->ipc, &boot_type);
 
-    LOG_INFO("Boot type: %u", boot_type);
+    LOG_INFO("Boot type: %u %i %p", boot_type, btn_status, priv);
 
     /* Pull up DP for usb charger detection */
+    
     pb_setbit32(1 << 2, 0x5b100000+0xe0);
     LOG_DBG ("USB CHRG detect: 0x%08x",pb_read32(0x5B100000+0xf0));
     plat_delay_ms(1);
@@ -191,8 +186,6 @@ bool board_force_recovery(void *plat)
 
     return (btn_status == 1) || (boot_type == SC_MISC_BT_SERIAL) ||
             (usb_charger_detected);
-#endif
-    return true;
 }
 
 const char * board_name(void)
@@ -209,6 +202,7 @@ int board_command(void *plat,
                      size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
+    *response_size = 0;
     return PB_OK;
 }
 
@@ -221,21 +215,8 @@ int board_status(void *plat,
 
     (*response_size) = snprintf(response, resp_buf_size,
                             "Board status OK!\n");
+    response[(*response_size)++] = 0;
+
     return PB_OK;
 }
 
-
-int board_pre_boot(void *plat)
-{
-    return PB_OK;
-}
-
-bool board_force_command_mode(void *plat)
-{
-    return true;
-}
-
-int plat_patch_bootargs(void *fdt, int offset)
-{
-    return PB_OK;
-}

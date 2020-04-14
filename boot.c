@@ -301,7 +301,7 @@ int pb_boot_load_fs(uint8_t *boot_part_uu)
 int pb_boot_load_transport(void)
 {
     return pb_image_load(ram_load_read, ram_load_result,
-                         CONFIG_TRANSPORT_MAX_CHUNK_BYTES,
+                         CONFIG_TRANSPORT_MAX_CHUNK_KB*1024,
                          NULL);
 }
 
@@ -399,7 +399,7 @@ int pb_boot(bool verbose)
                 (const char *) device_uuid_str);
 
     LOG_DBG("Updating bootargs");
-    rc = plat_patch_bootargs(fdt, offset);
+    rc = plat_patch_bootargs(fdt, offset, verbose);
 
     if (rc != 0)
         return -PB_ERR;
@@ -438,17 +438,28 @@ int pb_boot(bool verbose)
     }
 
     LOG_DBG("Ramdisk %lx -> %lx", *ramdisk, *ramdisk + ramdisk_bytes);
-#endif
-    //rc = drv->patch_dt(drv, fdt, offset);
-#endif
+#endif  // CONFIG_BOOT_RAMDISK
+#endif  // CONFIG_BOOT_DT
 
     LOG_INFO("Calling boot driver");
 
 #ifdef CONFIG_BOOT_DT
-    return pb_boot_driver_boot(fdt, offset);
+    rc = pb_boot_driver_boot(fdt, offset);
 #else
-    return pb_boot_driver_boot(NULL, 0);
+    rc = pb_boot_driver_boot(NULL, 0);
+#endif  // CONFIG_BOOT_DT
+
+    if (rc != PB_OK)
+        return rc;
+#ifdef CONFIG_OVERRIDE_ARCH_JUMP
+    uint8_t *part_uu = pb_boot_driver_get_part_uu();
+    plat_boot_override(part_uu);
+#else
+    arch_jump((void *) jump_addr, NULL, NULL, NULL, NULL);
 #endif
+
+    LOG_ERR("Jump returned %p", (void *) jump_addr);
+    return -PB_ERR;
 }
 
 int pb_boot_activate(uint8_t *uu)

@@ -37,8 +37,6 @@ then
     test_end_error
 fi
 
-sync
-
 $PB boot --boot 2af755d8-8de5-45d5-a862-014cfa735ce0 --transport socket
 result_code=$?
 

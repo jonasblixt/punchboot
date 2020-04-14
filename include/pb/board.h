@@ -22,12 +22,12 @@
  * Return value: PB_OK if there is no error
  */
 
-int board_pre_boot(void *plat);
+int board_early_init(void *plat);
 int board_late_init(void *plat);
 bool board_force_command_mode(void *plat);
+int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot);
 
-int board_jump(const char *boot_part_uu_str);
-
+int board_boot_override(void *plat, uint8_t *uuid);
 int board_command(void *plat,
                      uint32_t command,
                      void *bfr,

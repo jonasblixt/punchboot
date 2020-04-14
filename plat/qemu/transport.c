@@ -20,7 +20,8 @@ int plat_transport_write(void *buf, size_t size)
 
     while (bytes_to_write)
     {
-        chunk = (bytes_to_write > 4096) ? 4096:bytes_to_write;
+        chunk = (bytes_to_write > (CONFIG_TRANSPORT_MAX_CHUNK_KB*1024)) ? \
+            (CONFIG_TRANSPORT_MAX_CHUNK_KB*1024):bytes_to_write;
 
         written += virtio_serial_write(&dev, p, chunk);
 
@@ -47,7 +48,8 @@ int plat_transport_read(void *buf, size_t size)
 
     while (bytes_to_read)
     {
-        chunk = (bytes_to_read > 4096)?4096:bytes_to_read;
+        chunk = (bytes_to_read > (CONFIG_TRANSPORT_MAX_CHUNK_KB*1024)) ? \
+                (CONFIG_TRANSPORT_MAX_CHUNK_KB*1024):bytes_to_read;
 
         read_bytes += virtio_serial_read(&dev, p, chunk);
 

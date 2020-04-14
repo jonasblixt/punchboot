@@ -10,23 +10,8 @@
 
 .section .text
 
-.globl arch_jump_linux_dt
-arch_jump_linux_dt:
-
-    mov r4, r0 /* Jump address */
-    mov r5, r1 /* Device tree address */
-
-    mov r0, #0
-    mov r1, #0xFFFFFFFF
-    mov r2, r5
-    mov r3, #0
-
-    mov pc, r4
-    b .
-
-
-.globl arch_jump_atf
-arch_jump_atf:
+.globl arch_jump
+arch_jump:
 
     mov r4, r0 /* Jump address */
     mov r5, r1 /* BL31 image parameters struct */

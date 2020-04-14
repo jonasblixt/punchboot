@@ -329,3 +329,13 @@ int plat_console_putchar(char c)
     qemu_uart_write(&console_uart, (char *) &c, 1);
     return PB_OK;
 }
+
+bool plat_force_command_mode(void)
+{
+    return board_force_command_mode(NULL);
+}
+
+int plat_boot_override(uint8_t *uuid)
+{
+    return board_boot_override(NULL, uuid);
+}

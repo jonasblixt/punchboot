@@ -23,6 +23,11 @@
 
 #define IMX8X_FUSE_END { .status = FUSE_INVALID }
 
-int imx8x_board_early_init(sc_ipc_t ipc);
+#define IMX8X_PRIV(__p) ((struct imx8x_private *) __p)
+
+struct imx8x_private
+{
+    sc_ipc_t ipc;
+};
 
 #endif  // PLAT_IMX8X_PLAT_H_

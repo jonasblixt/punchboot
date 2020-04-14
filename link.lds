@@ -7,10 +7,8 @@
  *
  */
 
-
 SECTIONS
 {
-
 	. = PB_ENTRY;
 
 	.text :

@@ -33,9 +33,10 @@ int plat_early_init(void);
 int plat_late_init(void);
 void *plat_get_private(void);
 void plat_preboot_cleanup(void);
-bool plat_force_recovery(void);
+bool plat_force_command_mode(void);
 int plat_get_uuid(char *out);
-int plat_patch_bootargs(void *fdt, int offset);
+int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot);
+int plat_boot_override(uint8_t *uuid);
 
 /* Console API */
 int plat_console_init(void);

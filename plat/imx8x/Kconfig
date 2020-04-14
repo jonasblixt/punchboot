@@ -1,0 +1,65 @@
+menu "imx8x configuration"
+    depends on PLAT_IMX8X
+    comment "Console configuration"
+
+config LPUART_BASE
+    hex "Console port base address"
+    default 0x5A060000
+
+config LPUART_BAUDRATE
+    hex "Baudrate setting"
+    default 0x402008b
+
+comment "USB Transport"
+config EHCI_BASE
+    hex "EHCI base address"
+    default 0x5b0d0000
+
+comment "CAAM"
+config IMX_CAAM_BASE
+    hex "CAAM base address"
+    default 0x31430000
+
+
+menu "Output image"
+config IMX8X_CREATE_IMX_IMAGE
+    bool "Create imx-image"
+    default n
+
+config IMX8X_MKIMAGE_TOOL
+    string "mkimage tool"
+    default "mkimage_imx8"
+    depends on IMX8X_CREATE_IMX_IMAGE
+
+config IMX8X_SCFW_IMAGE
+    string "SCU Firmware image"
+    default "blobs/scfw_tcm.bin"
+    depends on IMX8X_CREATE_IMX_IMAGE
+
+config IMX8X_AHAB_IMAGE
+    string "AHAB image"
+    default "blobs/mx8qx-ahab-container.img"
+    depends on IMX8X_CREATE_IMX_IMAGE
+
+config IMX8X_SIGN_IMAGE
+    bool "Sign image"
+    default n
+    depends on IMX8X_CREATE_IMX_IMAGE
+
+config IMX8X_CST_TOOL
+    string "NXP Signing tool (CST)"
+    default "cst"
+    depends on IMX8X_SIGN_IMAGE
+
+config IMX8X_SRK_TABLE
+    string "SRK Table binary"
+    default "pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin"
+    depends on IMX8X_SIGN_IMAGE
+
+config IMX8X_SIGN_CERT
+    string "Signing certificate"
+    default "pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem"
+    depends on IMX8X_SIGN_IMAGE
+endmenu
+
+endmenu

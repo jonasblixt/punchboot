@@ -7,6 +7,8 @@ CONFIG_ARCH_ARMV8=y
 CONFIG_PLAT_IMX8X=y
 # CONFIG_PLAT_IMX8M is not set
 CONFIG_BOARD_IMX8QXMEK=y
+CONFIG_EHCI_BASE=0x5b0d0000
+CONFIG_IMX_CAAM_BASE=0x31430000
 
 #
 # imx8x configuration
@@ -21,25 +23,36 @@ CONFIG_LPUART_BAUDRATE=0x402008b
 #
 # USB Transport
 #
-CONFIG_EHCI_BASE=0x5b0d0000
 
 #
 # CAAM
 #
-CONFIG_IMX_CAAM_BASE=0x31430000
+
+#
+# Output image
+#
+CONFIG_IMX8X_CREATE_IMX_IMAGE=y
+CONFIG_IMX8X_MKIMAGE_TOOL="mkimage_imx8"
+CONFIG_IMX8X_SCFW_IMAGE="blobs/scfw_tcm.bin"
+CONFIG_IMX8X_AHAB_IMAGE="blobs/mx8qx-ahab-container.img"
+CONFIG_IMX8X_SIGN_IMAGE=y
+CONFIG_IMX8X_CST_TOOL="/work/cst-3.3.0/linux64/bin/cst"
+CONFIG_IMX8X_SRK_TABLE="pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin"
+CONFIG_IMX8X_SIGN_CERT="pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem"
+# end of Output image
 # end of imx8x configuration
 
 CONFIG_TOOLCHAIN_PREFIX="aarch64-linux-gnu-"
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_LOGLEVEL=3
+# CONFIG_BEARSSL is not set
+
+#
+# Authentication
+#
 CONFIG_AUTH_TOKEN=y
 # CONFIG_AUTH_PASSWORD is not set
-CONFIG_CMD_BUF_SIZE_KB=4096
-CONFIG_TRANSPORT_MAX_CHUNK_BYTES=1048576
-CONFIG_LOAD_FS_MAX_CHUNK_KB=4096
-CONFIG_ENABLE_WATCHDOG=y
-CONFIG_TRANSPORT_READY_TIMEOUT=10
-# CONFIG_BEARSSL is not set
+# end of Authentication
 
 #
 # Boot configuration
@@ -59,3 +72,13 @@ CONFIG_BOOT_RAMDISK_ID=0xf4cdac1f
 CONFIG_BOOT_AB_A_UUID="2af755d8-8de5-45d5-a862-014cfa735ce0"
 CONFIG_BOOT_AB_B_UUID="c046ccd8-0f2e-4036-984d-76c14dc73992"
 # end of Boot configuration
+
+#
+# Command mode transport configuration
+#
+CONFIG_CMD_BUF_SIZE_KB=4096
+CONFIG_TRANSPORT_MAX_CHUNK_KB=4096
+CONFIG_LOAD_FS_MAX_CHUNK_KB=4096
+CONFIG_ENABLE_WATCHDOG=y
+CONFIG_TRANSPORT_READY_TIMEOUT=10
+# end of Command mode transport configuration

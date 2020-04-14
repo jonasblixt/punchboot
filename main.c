@@ -20,7 +20,6 @@
 void pb_main(void)
 {
     int rc;
-    void *plat = NULL;
 
 #ifdef CONFIG_ENABLE_WATCHDOG
     plat_wdog_init();
@@ -36,9 +35,6 @@ void pb_main(void)
     if (rc != PB_OK)
         plat_reset();
 
-
-    /* TODO: REMOVE */
-    plat = plat_get_private();
 
     tr_stamp_begin(TR_BLINIT);
     tr_stamp_begin(TR_TOTAL);
@@ -77,19 +73,11 @@ void pb_main(void)
 
     if (rc != PB_OK)
     {
-        LOG_ERR("Could not load state");
+        LOG_ERR("Could not load boot state");
         goto run_command_mode;
     }
 
-    rc = board_pre_boot(plat);
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Board pre_boot failed");
-        goto run_command_mode;
-    }
-
-    if (board_force_command_mode(plat))
+    if (plat_force_command_mode())
     {
         LOG_INFO("Forced command mode");
         goto run_command_mode;

@@ -38,7 +38,7 @@
 #define LPCG_ALL_CLOCK_AUTO     0x33333333U
 #define LPCG_ALL_CLOCK_STOP     0x88888888U
 
-static sc_ipc_t ipc;
+static struct imx8x_private private;
 static struct gp_timer tmr0;
 extern struct fuse fuses[];
 
@@ -48,7 +48,7 @@ int plat_setup_lock(void)
 
     LOG_INFO("About to change security state to locked");
 
-    err = sc_misc_seco_forward_lifecycle(ipc, 16);
+    err = sc_misc_seco_forward_lifecycle(private.ipc, 16);
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
@@ -126,7 +126,7 @@ int plat_get_security_state(uint32_t *state)
     uint32_t uid_l;
     uint32_t uid_h;
 
-    sc_misc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h);
+    sc_misc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
 
     if (lc == 128)
         (*state) = PB_SECURITY_STATE_SECURE;
@@ -141,7 +141,7 @@ int plat_get_uuid(char *out)
 {
     uint32_t uid[2];
 
-    sc_misc_unique_id(ipc, &uid[0], &uid[1]);
+    sc_misc_unique_id(private.ipc, &uid[0], &uid[1]);
 
     return uuid_gen_uuid3(platform_namespace_uuid,
                           (const char *) uid, 8, out);
@@ -149,15 +149,14 @@ int plat_get_uuid(char *out)
 
 /* Platform API Calls */
 
-bool plat_force_recovery(void)
+bool plat_force_command_mode(void)
 {
-    //return board_force_recovery(NULL);
-    return true;
+    return board_force_command_mode(&private);
 }
 
 void plat_reset(void)
 {
-    sc_pm_reset(ipc, SC_PM_RESET_TYPE_BOARD);
+    sc_pm_reset(private.ipc, SC_PM_RESET_TYPE_BOARD);
 }
 
 unsigned int plat_get_us_tick(void)
@@ -167,15 +166,15 @@ unsigned int plat_get_us_tick(void)
 
 void plat_wdog_init(void)
 {
-    sc_timer_set_wdog_timeout(ipc, 3000);
-    sc_timer_set_wdog_action(ipc, SC_RM_PT_ALL,
+    sc_timer_set_wdog_timeout(private.ipc, 3000);
+    sc_timer_set_wdog_action(private.ipc, SC_RM_PT_ALL,
                              SC_TIMER_WDOG_ACTION_BOARD);
-    sc_timer_start_wdog(ipc, true);
+    sc_timer_start_wdog(private.ipc, true);
 }
 
 void plat_wdog_kick(void)
 {
-    sc_timer_ping_wdog(ipc);
+    sc_timer_ping_wdog(private.ipc);
 }
 
 int plat_early_init(void)
@@ -183,16 +182,16 @@ int plat_early_init(void)
     int rc = PB_OK;
     sc_pm_clock_rate_t rate;
 
-    sc_ipc_open(&ipc, SC_IPC_BASE);
+    sc_ipc_open(&private.ipc, SC_IPC_BASE);
 
 
 
     /* Setup GPT0 */
-    sc_pm_set_resource_power_mode(ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
     rate = 24000000;
-    sc_pm_set_clock_rate(ipc, SC_R_GPT_0, 2, &rate);
+    sc_pm_set_clock_rate(private.ipc, SC_R_GPT_0, 2, &rate);
 
-    rc = sc_pm_clock_enable(ipc, SC_R_GPT_0, 2, true, false);
+    rc = sc_pm_clock_enable(private.ipc, SC_R_GPT_0, 2, true, false);
 
     if (rc != SC_ERR_NONE)
         return -PB_ERR;
@@ -200,7 +199,19 @@ int plat_early_init(void)
     tmr0.base = 0x5D140000;
     tmr0.pr = 24;
 
-    rc = imx8x_board_early_init(ipc);
+    /* Enable usb stuff */
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
+
+    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
+
+    /* Enable USB PLL */
+    pb_write32(0x00E03040, 0x5B100000+0xa0);
+
+    /* Power up USB */
+    pb_write32(0x00, 0x5B100000);
+
+    rc = board_early_init(&private);
 
     if (rc != PB_OK)
         return rc;
@@ -232,7 +243,7 @@ int plat_fuse_read(struct fuse *f)
         f->addr = f->bank;
     }
 
-    err = sc_misc_otp_fuse_read(ipc, f->addr,
+    err = sc_misc_otp_fuse_read(private.ipc, f->addr,
                                 (uint32_t *) &(f->value));
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
@@ -247,7 +258,7 @@ int plat_fuse_write(struct fuse *f)
 
     LOG_INFO("Fusing %s", s);
 
-    err = sc_misc_otp_fuse_write(ipc, f->addr, f->value);
+    err = sc_misc_otp_fuse_write(private.ipc, f->addr, f->value);
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
@@ -267,18 +278,18 @@ int plat_console_init(void)
     sc_pm_clock_rate_t rate;
 
     /* Power up UART0 */
-    sc_pm_set_resource_power_mode(ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
 
     /* Set UART0 clock root to 80 MHz */
     rate = 80000000;
-    sc_pm_set_clock_rate(ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
+    sc_pm_set_clock_rate(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
 
     /* Enable UART0 clock root */
-    sc_pm_clock_enable(ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
+    sc_pm_clock_enable(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
 
     /* Configure UART pads */
-    sc_pad_set(ipc, SC_P_UART0_RX, UART_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_UART0_TX, UART_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_UART0_RX, UART_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_UART0_TX, UART_PAD_CTRL);
 
     return imx_lpuart_init();
 }
@@ -294,13 +305,13 @@ int plat_console_putchar(char c)
 int plat_crypto_init(void)
 {
 
-    sc_pm_set_resource_power_mode(ipc,
+    sc_pm_set_resource_power_mode(private.ipc,
                                 SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(ipc,
+    sc_pm_set_resource_power_mode(private.ipc,
                                 SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(ipc,
+    sc_pm_set_resource_power_mode(private.ipc,
                                 SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(ipc,
+    sc_pm_set_resource_power_mode(private.ipc,
                                 SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
     return imx_caam_init();
 }
@@ -330,7 +341,7 @@ int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
 
 int plat_slc_init(void)
 {
-    return -PB_ERR;
+    return PB_OK;
 }
 
 int plat_slc_set_configuration(void)
@@ -363,6 +374,11 @@ int plat_slc_revoke_key(uint32_t id)
     return -PB_ERR;
 }
 
+int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
+{
+    return -PB_ERR;
+}
+
 /* Transport API */
 
 int imx_ehci_set_address(uint32_t addr)
@@ -373,16 +389,6 @@ int imx_ehci_set_address(uint32_t addr)
 
 int plat_transport_init(void)
 {
-    sc_pm_set_resource_power_mode(ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
-
-    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
-
-    /* Enable USB PLL */
-    pb_write32(0x00E03040, 0x5B100000+0xa0);
-
-    /* Power up USB */
-    pb_write32(0x00, 0x5B100000);
 
     return imx_ehci_usb_init();
 }
@@ -412,17 +418,22 @@ void *plat_get_private(void)
     return NULL;
 }
 
+int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
+{
+    return board_patch_bootargs(&private, fdt, offset, verbose_boot);
+}
+
 int imx_usdhc_plat_init(struct usdhc_device *dev)
 {
     int rc;
     unsigned int rate;
 
-    sc_pm_set_resource_power_mode(ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
 
 
-    sc_pm_clock_enable(ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
+    sc_pm_clock_enable(private.ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
 
-    rc = sc_pm_set_clock_parent(ipc, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
+    rc = sc_pm_set_clock_parent(private.ipc, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
 
     if (rc != SC_ERR_NONE)
     {
@@ -431,14 +442,14 @@ int imx_usdhc_plat_init(struct usdhc_device *dev)
     }
 
     rate = 200000000;
-    sc_pm_set_clock_rate(ipc, SC_R_SDHC_0, 2, &rate);
+    sc_pm_set_clock_rate(private.ipc, SC_R_SDHC_0, 2, &rate);
 
     if (rate != 200000000)
     {
         LOG_INFO("USDHC rate %u Hz", rate);
     }
 
-    rc = sc_pm_clock_enable(ipc, SC_R_SDHC_0, SC_PM_CLK_PER,
+    rc = sc_pm_clock_enable(private.ipc, SC_R_SDHC_0, SC_PM_CLK_PER,
                                 true, false);
 
     if (rc != SC_ERR_NONE)
@@ -448,18 +459,18 @@ int imx_usdhc_plat_init(struct usdhc_device *dev)
     }
 
 
-    sc_pad_set(ipc, SC_P_EMMC0_CLK, ESDHC_CLK_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_CMD, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_DATA0, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_DATA1, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_DATA2, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_DATA3, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_DATA4, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_DATA5, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_DATA6, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_DATA7, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_STROBE, ESDHC_PAD_CTRL);
-    sc_pad_set(ipc, SC_P_EMMC0_RESET_B, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_CLK, ESDHC_CLK_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_CMD, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_DATA0, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_DATA1, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_DATA2, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_DATA3, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_DATA4, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_DATA5, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_DATA6, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_DATA7, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_STROBE, ESDHC_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_EMMC0_RESET_B, ESDHC_PAD_CTRL);
 
     return PB_OK;
 }

@@ -127,6 +127,57 @@ static int auth_token(uint8_t *device_uu,
 }
 #endif
 
+static int ram_boot(void)
+{
+    int rc;
+
+    struct pb_command_board *board_cmd = \
+        (struct pb_command_board *) cmd.request;
+
+    struct pb_result_board board_result;
+
+    LOG_DBG("Board command %x", board_cmd->command);
+    memset(&board_result, 0, sizeof(board_result));
+
+    uint8_t *bfr = buffer[0];
+
+    pb_wire_init_result(&result, PB_RESULT_OK);
+    plat_transport_write(&result, sizeof(result));
+
+    if (board_cmd->request_size)
+    {
+        rc = plat_transport_read(bfr, board_cmd->request_size);
+
+        if (rc != PB_OK)
+        {
+            pb_wire_init_result(&result, rc);
+            return rc;
+        }
+    }
+
+    uint8_t *bfr_response = buffer[1];
+
+    size_t response_size = CONFIG_CMD_BUF_SIZE_KB*1024;
+    void *plat_private = plat_get_private();
+
+    rc = board_command(plat_private, board_cmd->command,
+                        bfr, board_cmd->request_size,
+                        bfr_response, &response_size);
+
+    board_result.size = response_size;
+    pb_wire_init_result2(&result, rc,
+                    &board_result, sizeof(board_result));
+
+
+    if (response_size && (rc == PB_OK))
+    {
+        plat_transport_write(&result, sizeof(result));
+        plat_transport_write(bfr_response, response_size);
+    }
+
+    return rc;
+}
+
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
@@ -232,7 +283,7 @@ static int pb_command_parse(void)
             struct pb_result_device_caps caps;
             caps.stream_no_of_buffers = 2;
             caps.stream_buffer_size = CONFIG_CMD_BUF_SIZE_KB*1024;
-            caps.chunk_transfer_max_bytes = CONFIG_TRANSPORT_MAX_CHUNK_BYTES;
+            caps.chunk_transfer_max_bytes = CONFIG_TRANSPORT_MAX_CHUNK_KB*1024;
 
             pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
         }
@@ -687,49 +738,7 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_BOARD_COMMAND:
         {
-            struct pb_command_board *board_cmd = \
-                (struct pb_command_board *) cmd.request;
-
-            struct pb_result_board board_result;
-
-            LOG_DBG("Board command %x", board_cmd->command);
-            memset(&board_result, 0, sizeof(board_result));
-
-            uint8_t *bfr = buffer[0];
-
-            pb_wire_init_result(&result, PB_RESULT_OK);
-            plat_transport_write(&result, sizeof(result));
-
-            if (board_cmd->request_size)
-            {
-                rc = plat_transport_read(bfr, board_cmd->request_size);
-
-                if (rc != PB_OK)
-                {
-                    pb_wire_init_result(&result, rc);
-                    break;
-                }
-            }
-
-            uint8_t *bfr_response = buffer[1];
-
-            size_t response_size = CONFIG_CMD_BUF_SIZE_KB*1024;
-            void *plat_private = plat_get_private();
-
-            rc = board_command(plat_private, board_cmd->command,
-                                bfr, board_cmd->request_size,
-                                bfr_response, &response_size);
-
-            board_result.size = response_size;
-            pb_wire_init_result2(&result, rc,
-                            &board_result, sizeof(board_result));
-
-            plat_transport_write(&result, sizeof(result));
-
-            if (response_size && (rc == PB_OK))
-            {
-                plat_transport_write(bfr_response, response_size);
-            }
+            rc = ram_boot();
 
         }
         break;

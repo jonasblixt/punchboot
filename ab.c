@@ -173,11 +173,12 @@ int pb_boot_driver_boot(int *dtb, int offset)
     rc = fdt_setprop_string(dtb, offset, "active-system", &dt_part_name);
 
     if (rc != PB_OK)
+    {
+        LOG_ERR("Patch dt");
         return rc;
+    }
 #endif
 
-
-    board_jump(active_uu_str);
-    return -PB_ERR;
+    return PB_OK;
 }
 

@@ -108,9 +108,12 @@ static struct pb_storage_driver virtio_driver =
 
 /* END of storage */
 
-int board_jump(const char *boot_part_uu_str)
+int board_boot_override(void *plat, uint8_t *boot_part_uu)
 {
     LOG_DBG("Boot!");
+    char boot_part_uu_str[37];
+
+    uuid_unparse(boot_part_uu, boot_part_uu_str);
 
     long fd = semihosting_file_open("/tmp/pb_boot_status", 6);
 
@@ -137,11 +140,6 @@ int board_jump(const char *boot_part_uu_str)
 
 /* Board specific */
 
-int board_pre_boot(void *plat)
-{
-
-    return PB_OK;
-}
 
 bool board_force_command_mode(void *plat)
 {

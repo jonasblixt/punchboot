@@ -1,0 +1,7 @@
+menu "QEMU platform configuration"
+
+config OVERRIDE_ARCH_JUMP
+    bool "Call board specific jump function"
+    default n
+
+endmenu

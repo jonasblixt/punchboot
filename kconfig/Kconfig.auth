@@ -1,0 +1,16 @@
+menu "Authentication"
+
+choice AUTH
+	bool "Enable command mode authentication"
+	optional
+
+config AUTH_TOKEN
+	bool "Token based authentication"
+
+config AUTH_PASSWORD
+	bool "Password based authentication"
+
+endchoice
+
+
+endmenu

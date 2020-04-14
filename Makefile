@@ -63,8 +63,10 @@ BLOB_INPUT  =
 # Bootloader
 C_SRCS   = main.c
 C_SRCS  += delay.c
-C_SRCS  += boot/boot.c
-C_SRCS  += boot/ab.c
+C_SRCS  += boot.c
+ifdef CONFIG_BOOT_AB
+C_SRCS  += ab.c
+endif
 C_SRCS  += crc.c
 C_SRCS  += gpt.c
 C_SRCS  += keystore.c
@@ -110,9 +112,6 @@ C_SRCS  += fdt/fdt_rw.c
 C_SRCS  += fdt/fdt_sw.c
 C_SRCS  += fdt/fdt_wip.c
 
-LINT_EXCLUDE =
-FINAL_IMAGE =
-
 include board/*/makefile.mk
 BUILD_DIR = build-$(PB_BOARD_NAME)
 include arch/*/makefile.mk
@@ -147,14 +146,16 @@ BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(BLOB_INPUT))
 
 DEPS      = $(OBJS:.o=.d)
 
+FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).bin
 
-.PHONY: plat_early keystore plat_final board_final menuconfig
+.PHONY: keystore menuconfig
 
 menuconfig:
 	@$(PYTHON) scripts/menuconfig.py
 
-all: keystore plat_early $(BUILD_DIR)/$(TARGET).bin board_final plat_final
+all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 	@$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
+	@echo "Success, final output: $(FINAL_OUTPUT)"
 
 keystore:
 	@$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) > $(BUILD_DIR)/keystore.c
@@ -166,7 +167,7 @@ $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@$(STRIP) --strip-all $<
 	@$(OBJCOPY) -O binary -R .comment $< $@
 
-$(BUILD_DIR)/$(TARGET): $(OBJS) $(BLOB_OBJS)
+$(BUILD_DIR)/$(TARGET): keystore $(OBJS) $(BLOB_OBJS)
 	@echo LD $@
 	@$(LD) $(LDFLAGS) $(OBJS) $(BLOB_OBJS) $(LIBS) -o $@
 

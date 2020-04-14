@@ -5,9 +5,9 @@ source "arch/Kconfig"
 source "plat/Kconfig"
 source "board/Kconfig"
 
-source "arch/*/Kconfig.include"
-source "plat/*/Kconfig.include"
-source "board/*/Kconfig.include"
+source "arch/*/Kconfig"
+source "plat/*/Kconfig"
+source "board/*/Kconfig"
 
 config TOOLCHAIN_PREFIX
 	string "Toolchain prefix"
@@ -21,38 +21,8 @@ config LOGLEVEL
 	int "loglevel"
     default 0
 
-choice AUTH
-	bool "Enable command mode authentication"
-	optional
 
-config AUTH_TOKEN
-	bool "Token based authentication"
 
-config AUTH_PASSWORD
-	bool "Password based authentication"
-
-endchoice
-
-config CMD_BUF_SIZE_KB
-    int "Command buffer size in kb"
-    default 4096
-
-config TRANSPORT_MAX_CHUNK_BYTES
-    int "Transport maximum chunk size"
-    default 4096
-
-config LOAD_FS_MAX_CHUNK_KB
-    int "File system maximum load chunk size (kb)"
-    default 4096
-
-config ENABLE_WATCHDOG
-	bool "Enable watchdog"
-    default y
-
-config TRANSPORT_READY_TIMEOUT
-	int "Timeout in seconds before transport must become ready"
-    default 10
-
-source "bearssl/Kconfig.include"
-source "boot/Kconfig.include"
+source "bearssl/Kconfig"
+source "kconfig/Kconfig.*"
 
