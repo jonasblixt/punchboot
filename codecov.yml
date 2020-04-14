@@ -1,5 +1,6 @@
 ignore:
   - src/*
+  - src/uuid
   - test/*
   - lib/usb.c
 
