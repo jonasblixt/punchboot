@@ -1,4 +1,5 @@
 ignore:
-    - src
-    - test
-    - lib/usb.c
+  - src/*
+  - test/*
+  - lib/usb.c
+
