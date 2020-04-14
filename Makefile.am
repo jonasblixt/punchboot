@@ -1,5 +1,5 @@
 
-SUBDIRS = lib src test docs
+SUBDIRS = lib src test
 
 EXTRA_DIST = LICENSE README.rst
 

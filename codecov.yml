@@ -1,3 +1,4 @@
 ignore:
     - src
     - test
+    - lib/usb.c
