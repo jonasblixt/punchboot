@@ -14,4 +14,8 @@ config BOARD_TEST
     bool "QEMU test"
     depends on PLAT_QEMU
 
+config BOARD_JIFFY
+    bool "Jiffy"
+    depends on PLAT_IMX6UL
+
 endchoice

@@ -1,28 +1,24 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
 #include <stdio.h>
-#include <board.h>
-#include <plat.h>
-#include <io.h>
-#include <gpt.h>
-#include <image.h>
-#include <boot.h>
-#include <fuse.h>
-#include <params.h>
-
+#include <pb/board.h>
+#include <pb/plat.h>
+#include <pb/io.h>
+#include <pb/gpt.h>
+#include <pb/image.h>
+#include <pb/boot.h>
+#include <pb/fuse.h>
 #include <plat/imx6ul/plat.h>
 #include <plat/regs.h>
 #include <plat/imx/imx_uart.h>
 #include <plat/imx/ehci.h>
-
-#include <board/config.h>
 
 const struct fuse fuses[] =
 {
@@ -51,7 +47,7 @@ const struct partition_table pb_partition_table[] =
     PB_GPT_END,
 };
 
-uint32_t board_early_init(struct pb_platform_setup *plat)
+int board_early_init(void *plat)
 {
     plat->wdog.base = 0x020BC000;
     plat->usb0.base = EHCI_PHY_BASE,
@@ -99,7 +95,7 @@ uint32_t board_early_init(struct pb_platform_setup *plat)
     return PB_OK;
 }
 
-bool board_force_recovery(struct pb_platform_setup *plat)
+bool board_force_recovery(void *plat)
 {
     uint8_t force_recovery = false;
     UNUSED(plat);
@@ -111,45 +107,9 @@ bool board_force_recovery(struct pb_platform_setup *plat)
     return force_recovery;
 }
 
-uint32_t board_late_init(struct pb_platform_setup *plat)
+int board_late_init(void *plat)
 {
     UNUSED(plat);
     return PB_OK;
 }
 
-uint32_t board_prepare_recovery(struct pb_platform_setup *plat)
-{
-    UNUSED(plat);
-    return PB_OK;
-}
-
-uint32_t board_get_params(struct param **pp)
-{
-    param_add_str((*pp)++, "Board", "Jiffy");
-    return PB_OK;
-}
-
-uint32_t board_setup_device(struct param *params)
-{
-    UNUSED(params);
-    return PB_OK;
-}
-
-uint32_t board_linux_patch_dt(void *fdt, int offset)
-{
-    UNUSED(fdt);
-    UNUSED(offset);
-
-    return PB_OK;
-}
-
-uint32_t board_recovery_command(uint32_t arg0, uint32_t arg1, uint32_t arg2,
-                                uint32_t arg3)
-{
-    UNUSED(arg0);
-    UNUSED(arg1);
-    UNUSED(arg2);
-    UNUSED(arg3);
-
-    return PB_ERR;
-}

@@ -4,6 +4,7 @@ ifdef CONFIG_BOARD_TEST
 TESTS   = test_boot
 TESTS  += test_usb_ch9
 TESTS  += test_libc
+TESTS  += test_asn1
 
 # Integration tests
 
@@ -41,14 +42,17 @@ INTEGRATION_TESTS += test_corrupt_backup_gpt
 INTEGRATION_TESTS += test_corrupt_primary_config
 INTEGRATION_TESTS += test_corrupt_backup_config
 INTEGRATION_TESTS += test_switch
-INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_board
 INTEGRATION_TESTS += test_board_status
 INTEGRATION_TESTS += test_all_sig_formats
+INTEGRATION_TESTS += test_authentication
+INTEGRATION_TESTS += test_revoke_key
+
 
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/qemu/gcov.c
 TEST_C_SRCS += usb.c
+TEST_C_SRCS += asn1.c
 TEST_C_SRCS += plat/qemu/semihosting.c
 TEST_C_SRCS += plat/qemu/uart.c
 TEST_C_SRCS += lib/printf.c

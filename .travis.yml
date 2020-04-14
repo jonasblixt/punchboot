@@ -15,14 +15,14 @@ addons:
       - autoconf-archive
       - libusb-1.0-0
       - libusb-1.0-0-dev
-      - libblkid1
-      - libblkid-dev
-      - uuid-dev
+      - libblkid1    # Only for pbstate, could be removed
+      - libblkid-dev # -//-
+      - uuid-dev     # -//-
       - gcc-arm-none-eabi
 
 script:
     # Build BPAK library and tools
-    - git clone https://github.com/jonasblixt/bpak --depth 1 #--branch v0.3.0
+    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.3.0
     - pushd bpak
     - autoreconf -fi
     - ./configure

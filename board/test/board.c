@@ -39,14 +39,14 @@ const struct fuse board_ident_fuse =
         TEST_FUSE_BANK_WORD(7, "Ident");
 
 
-/*
-static struct pb_rom_keys rom_keys[] =
+const uint32_t rom_key_map[] =
 {
-    {"Rom key0", false, 0, 0xa90f9680},
-    {"Rom key1", false, 1, 0x25c6dd36},
-    {"Rom key2", false, 2, 0x52c1eda0},
+    0xa90f9680,
+    0x25c6dd36,
+    0x52c1eda0,
+    0xcca57803,
+    0x00000000,
 };
-*/
 
 #define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
                    PB_STORAGE_MAP_FLAG_VISIBLE)

@@ -194,7 +194,7 @@ int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
             for (int i = 0; i < 32; i++)
                 printf("%x", hash->buf[i]);
             printf("\n\r");
-            err = br_ecdsa_i31_vrfy_asn1(&br_ec_all_m15, hash->buf, 32,
+            err = br_ecdsa_i31_vrfy_asn1(&br_ec_prime_i31, hash->buf, 32,
                                     &br_k, signature, size);
             signature_verified = (err == 1);
 

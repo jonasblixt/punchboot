@@ -32,7 +32,7 @@ CFLAGS  += -fno-common -fno-builtin
 CFLAGS  += -ffreestanding -fno-exceptions
 CFLAGS  += -I fdt/include
 CFLAGS  += -I uuid/
-CFLAGS  += -fstack-usage -fstack-check
+CFLAGS  += -fstack-usage
 CFLAGS  += -MMD -MP
 
 # General warnings

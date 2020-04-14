@@ -35,22 +35,8 @@ PLAT_C_SRCS  += bearssl/ecdsa_i31_vrfy_asn1.c
 PLAT_C_SRCS  += bearssl/ecdsa_i31_vrfy_raw.c
 PLAT_C_SRCS  += bearssl/ecdsa_i31_bits.c
 PLAT_C_SRCS  += bearssl/ecdsa_atr.c
-PLAT_C_SRCS  += bearssl/ec_all_m15.c
 
 PLAT_C_SRCS  += bearssl/ec_prime_i31.c
 
-PLAT_C_SRCS  += bearssl/ec_prime_i15.c
-PLAT_C_SRCS  += bearssl/ec_p256_m15.c
-PLAT_C_SRCS  += bearssl/ec_c25519_m15.c
-PLAT_C_SRCS  += bearssl/i15_add.c
-PLAT_C_SRCS  += bearssl/i15_sub.c
-PLAT_C_SRCS  += bearssl/i15_montmul.c
-PLAT_C_SRCS  += bearssl/i15_modpow.c
-PLAT_C_SRCS  += bearssl/i15_encode.c
-PLAT_C_SRCS  += bearssl/i15_decmod.c
-PLAT_C_SRCS  += bearssl/i15_iszero.c
-PLAT_C_SRCS  += bearssl/i15_tmont.c
-PLAT_C_SRCS  += bearssl/i15_muladd.c
-PLAT_C_SRCS  += bearssl/x509_decoder.c
 
 endif

@@ -8,8 +8,9 @@
  */
 
 
-#include <plat.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/plat.h>
+#include <pb/io.h>
 #include <plat/imx/imx_uart.h>
 
 struct imx_uart_device *_dev;

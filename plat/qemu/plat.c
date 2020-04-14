@@ -30,12 +30,15 @@
 
 static struct qemu_uart_device console_uart;
 extern const struct fuse fuses[];
+extern const uint32_t rom_key_map[];
 
 static struct fuse rom_key_revoke_fuse =
         TEST_FUSE_BANK_WORD(8, "Revoke");
 
 static struct fuse security_fuse =
         TEST_FUSE_BANK_WORD(9, "Security fuse");
+
+static struct pb_result_slc_key_status key_status;
 
 static const char *platform_namespace_uuid =
     "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
@@ -209,13 +212,55 @@ int plat_slc_read(enum pb_slc *slc)
 
 int plat_slc_key_active(uint32_t id, bool *active)
 {
+    int rc;
     *active = false;
+    rc = plat_slc_get_key_status(NULL);
+
+    if (rc != PB_OK)
+        return rc;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!key_status.active[i])
+            continue;
+        if (key_status.active[i] == id)
+        {
+            *active = true;
+            break;
+        }
+    }
+
     return PB_OK;
 }
 
 int plat_slc_revoke_key(uint32_t id)
 {
+    int rc;
     LOG_INFO("Revoking key 0x%x", id);
+
+    rc = plat_slc_get_key_status(NULL);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+        return rc;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+        if (rom_key_map[i] != id)
+            continue;
+
+        if (!(rom_key_revoke_fuse.value & (1 << i)))
+        {
+            rom_key_revoke_fuse.value |= (1 << i);
+            return plat_fuse_write(&rom_key_revoke_fuse);
+        }
+    }
     return PB_OK;
 }
 
@@ -226,9 +271,42 @@ int plat_slc_init(void)
     return rc;
 }
 
+int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
+{
+    int rc;
+
+    if (status)
+        (*status) = &key_status;
+
+    rc = plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+        return rc;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_revoke_fuse.value & (1 << i))
+        {
+            key_status.active[i] = 0;
+            key_status.revoked[i] = rom_key_map[i];
+        }
+        else
+        {
+            key_status.revoked[i] = 0;
+            key_status.active[i] = rom_key_map[i];
+        }
+    }
+
+    return PB_OK;
+}
+
 int plat_early_init(void)
 {
     int rc;
+    memset(&key_status, 0, sizeof(key_status));
     rc = board_early_init(NULL);
     gcov_init();
     return rc;

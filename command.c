@@ -44,7 +44,18 @@ static int auth_token(uint8_t *device_uu,
     char device_uu_str[37];
     struct bpak_keystore *keystore = pb_keystore();
     struct bpak_key *k = NULL;
+    bool active = false;
 
+    rc = plat_slc_key_active(key_id, &active);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (!active)
+    {
+        LOG_ERR("Invalid or revoked key (%x)", key_id);
+        return -PB_ERR;
+    }
     uuid_unparse(device_uu, device_uu_str);
 
     for (int i = 0; i < keystore->no_of_keys; i++)
@@ -782,6 +793,13 @@ static int pb_command_parse(void)
             rc = plat_slc_read((enum pb_slc *) &slc_status.slc);
             pb_wire_init_result2(&result, rc, &slc_status,
                                 sizeof(slc_status));
+
+            plat_transport_write(&result, sizeof(result));
+
+            struct pb_result_slc_key_status *key_status;
+            rc = plat_slc_get_key_status(&key_status);
+            plat_transport_write(key_status, sizeof(*key_status));
+            pb_wire_init_result(&result, rc);
         }
         break;
         default:
@@ -801,7 +819,8 @@ void pb_command_run(void)
     int rc;
 
     LOG_DBG("Initializing command mode");
-
+    authenticated = false;
+    plat_slc_read(&slc);
     plat_get_uuid((char *) device_uuid);
 
 restart_command_mode:
@@ -823,7 +842,7 @@ restart_command_mode:
         plat_wdog_kick();
 
 
-         if ((plat_get_us_tick() - ready_timeout) > 
+         if ((plat_get_us_tick() - ready_timeout) >
              (CONFIG_TRANSPORT_READY_TIMEOUT * 1000000L))
         {
             LOG_ERR("Timeout, rebooting");

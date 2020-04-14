@@ -10,7 +10,7 @@
 #ifndef PLAT_IMX_IMX_UART_H_
 #define PLAT_IMX_IMX_UART_H_
 
-#include <pb.h>
+#include <pb/pb.h>
 
 
 /* Register definitions */

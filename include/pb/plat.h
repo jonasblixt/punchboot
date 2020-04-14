@@ -54,6 +54,7 @@ int plat_slc_set_end_of_life(void);
 int plat_slc_read(enum pb_slc *slc);
 int plat_slc_key_active(uint32_t id, bool *active);
 int plat_slc_revoke_key(uint32_t id);
+int plat_slc_get_key_status(struct pb_result_slc_key_status **status);
 
 /* Crypto API */
 int plat_crypto_init(void);

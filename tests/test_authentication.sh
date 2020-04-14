@@ -7,6 +7,7 @@ echo "Test auth"
 # Listing partitions should work because security_state < 3
 $PB part --list --transport socket
 
+
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -24,6 +25,8 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
+
+$PB slc --show --transport socket
 
 echo "lock config"
 $PB slc --set-configuration-lock --force --transport socket
@@ -116,5 +119,8 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
+
+dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
+sync
 
 test_end_ok

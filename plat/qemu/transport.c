@@ -13,8 +13,6 @@ static struct virtio_serial_device dev __a4k =
 
 int plat_transport_write(void *buf, size_t size)
 {
-    LOG_DBG("%p, %zu", buf, size);
-
     size_t bytes_to_write = size;
     size_t chunk = 0;
     size_t written = 0;
@@ -42,8 +40,6 @@ int plat_transport_write(void *buf, size_t size)
 
 int plat_transport_read(void *buf, size_t size)
 {
-    LOG_DBG("%p, %zu", buf, size);
-
     size_t bytes_to_read = size;
     size_t chunk = 0;
     size_t read_bytes = 0;

@@ -61,9 +61,11 @@ int virtio_block_write(struct pb_storage_driver *drv,
     struct virtio_blk_req r;
     struct virtq *q = &d->q;
     uint16_t idx = (q->avail->idx % q->num);
-
+/*
     LOG_DBG("lba = 0x%x, buf: %p, no_of_blocks: %u", block_offset, (void *)
                                                    data, n_blocks);
+*/
+
     status = VIRTIO_BLK_S_UNSUPP;
 
     r.type = VIRTIO_BLK_T_OUT;
@@ -94,15 +96,16 @@ int virtio_block_write(struct pb_storage_driver *drv,
     q->avail->idx++;
 
     virtio_mmio_notify_queue(&d->dev, &d->q);
-
+/*
     LOG_DBG("q->avail->idx = %u, q->used->idx = %u",
                 q->avail->idx, q->used->idx);
+*/
     while ( ((q->avail->idx) != (q->used->idx)) )
         __asm__ volatile("nop");
-
+/*
     LOG_DBG("q->avail->idx = %u, q->used->idx = %u",
                     q->avail->idx, q->used->idx);
-
+*/
     if (status == VIRTIO_BLK_S_OK)
         return PB_OK;
 
@@ -123,8 +126,10 @@ int virtio_block_read(struct pb_storage_driver *drv,
     uint16_t idx = (q->avail->idx % q->num);
     uint16_t idx_start = idx;
     status = VIRTIO_BLK_S_UNSUPP;
+/*
     LOG_DBG("lba = 0x%x, buf: %p, no_of_blocks: %u", block_offset, (void *)
                                                     data, n_blocks);
+*/
     memset(&r, 0, sizeof(struct virtio_blk_req));
     r.type = VIRTIO_BLK_T_IN;
     r.reserved = 0;
@@ -153,18 +158,20 @@ int virtio_block_read(struct pb_storage_driver *drv,
     q->avail->ring[idx_start] = idx_start;
     q->avail->idx++;
 
-    LOG_DBG("notify");
     virtio_mmio_notify_queue(&d->dev, &d->q);
-
+/*
     LOG_DBG("status = %u", d->dev.status);
     LOG_DBG("q->avail->idx = %u, q->used->idx = %u",
                 q->avail->idx, q->used->idx);
+*/
+
     while ( (q->avail->idx) != (q->used->idx) )
         __asm__ volatile ("nop");
+/*
     LOG_DBG("status = %u", d->dev.status);
     LOG_DBG("q->avail->idx = %u, q->used->idx = %u",
                     q->avail->idx, q->used->idx);
-
+*/
     if (status == VIRTIO_BLK_S_OK)
         return PB_OK;
 

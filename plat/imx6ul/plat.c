@@ -8,10 +8,10 @@
  */
 
 #include <stdio.h>
-#include <board.h>
-#include <plat.h>
-#include <io.h>
-#include <uuid.h>
+#include <pb/board.h>
+#include <pb/plat.h>
+#include <pb/io.h>
+#include <uuid/uuid.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/caam.h>
 #include <plat/imx/ocotp.h>
@@ -20,11 +20,9 @@
 #include <plat/imx/wdog.h>
 #include <plat/imx/hab.h>
 #include <plat/imx/ehci.h>
-#include <board/config.h>
-#include <fuse.h>
+#include <pb/fuse.h>
 #include <plat/imx6ul/plat.h>
 
-static struct pb_platform_setup plat;
 extern const struct fuse fuses[];
 
 static struct fuse lock_fuse =
@@ -188,17 +186,6 @@ uint32_t plat_get_uuid(char *out)
     return err;
 }
 
-uint32_t plat_get_params(struct param **pp)
-{
-    char uuid_raw[16];
-
-    param_add_str((*pp)++, "Platform", "NXP IMX6UL");
-    plat_get_uuid(uuid_raw);
-    param_add_uuid((*pp)++, "Device UUID", uuid_raw);
-    return PB_OK;
-}
-
-
 void plat_reset(void)
 {
     imx_wdog_reset_now();
@@ -273,108 +260,6 @@ void plat_uart_putc(void *ptr, char c)
     UNUSED(ptr);
     imx_uart_putc(c);
 }
-
-
-/* EMMC Interface */
-
-
-uint32_t plat_write_block_async(uint32_t lba_offset,
-                          uintptr_t bfr,
-                          uint32_t no_of_blocks)
-{
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset,
-                                  (uint8_t*)bfr,
-                                  no_of_blocks,
-                                  1, 1);
-}
-
-uint32_t plat_flush_block(void)
-{
-    return usdhc_emmc_wait_for_de(&plat.usdhc0);
-}
-
-
-uint32_t plat_write_block(uint32_t lba_offset,
-                          uintptr_t bfr,
-                          uint32_t no_of_blocks)
-{
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset,
-                                  (uint8_t *) bfr,
-                                  no_of_blocks,
-                                  1, 0);
-}
-
-uint32_t plat_read_block(uint32_t lba_offset,
-                         uintptr_t bfr,
-                         uint32_t no_of_blocks)
-{
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset,
-                                  (uint8_t *) bfr,
-                                  no_of_blocks,
-                                  0, 0);
-}
-
-uint32_t plat_switch_part(uint8_t part_no)
-{
-    return usdhc_emmc_switch_part(&plat.usdhc0, part_no);
-}
-
-uint64_t plat_get_lastlba(void)
-{
-    return plat.usdhc0.sectors-1;
-}
-
-
-/* USB Interface API */
-uint32_t  plat_usb_init(struct usb_device *dev)
-{
-    uint32_t reg;
-
-    dev->platform_data = (void *) &plat.usb0;
-
-    /* Enable USB PLL */
-    reg = pb_read32(0x020C8000+0x10);
-    reg |= (1<<6);
-    pb_write32(reg, 0x020C8000+0x10);
-
-    /* Power up USB */
-    pb_write32((1 << 31) | (1 << 30), 0x020C9038);
-    pb_write32(0xFFFFFFFF, 0x020C9008);
-    return ehci_usb_init(dev);
-}
-
-void plat_usb_task(struct usb_device *dev)
-{
-    ehci_usb_task(dev);
-}
-
-uint32_t plat_usb_transfer(struct usb_device *dev, uint8_t ep,
-                            uint8_t *bfr, uint32_t sz)
-{
-    struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
-
-    return ehci_transfer(ehci, ep, bfr, sz);
-}
-
-void plat_usb_set_address(struct usb_device *dev, uint32_t addr)
-{
-    struct ehci_device *ehci = (struct ehci_device *) dev->platform_data;
-    pb_write32((addr << 25) | (1 <<24), ehci->base+EHCI_DEVICEADDR);
-}
-
-void plat_usb_set_configuration(struct usb_device *dev)
-{
-    ehci_usb_set_configuration(dev);
-}
-
-void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
-{
-    ehci_usb_wait_for_ep_completion(dev, ep);
-}
-
 
 uint32_t plat_early_init(void)
 {
@@ -473,3 +358,46 @@ uint32_t plat_early_init(void)
     return PB_OK;
 }
 
+/* Transport API */
+
+int plat_transport_process(void)
+{
+    return imx_ehci_usb_process();
+}
+
+int plat_transport_write(void *buf, size_t size)
+{
+    return imx_ehci_usb_write(buf, size);
+}
+
+int plat_transport_read(void *buf, size_t size)
+{
+    return imx_ehci_usb_read(buf, size);
+}
+
+bool plat_transport_ready(void)
+{
+    return imx_ehci_usb_ready();
+}
+
+int imx_ehci_set_address(uint32_t addr)
+{
+    pb_write32((addr << 25) | (1 <<24), CONFIG_EHCI_BASE+EHCI_DEVICEADDR);
+    return PB_OK;
+}
+
+int plat_transport_init(void)
+{
+    uint32_t reg;
+
+    /* Enable USB PLL */
+    reg = pb_read32(0x020C8000+0x10);
+    reg |= (1<<6);
+    pb_write32(reg, 0x020C8000+0x10);
+
+    /* Power up USB */
+    pb_write32((1 << 31) | (1 << 30), 0x020C9038);
+    pb_write32(0xFFFFFFFF, 0x020C9008);
+
+    return imx_ehci_usb_init();
+}

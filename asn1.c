@@ -15,8 +15,8 @@
 
 static const char ec_identifier[] = "\x2a\x86\x48\xce\x3d\x02\x01";
 static const char rsa_identifier[] = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01";
-static uint8_t sig_ec_r[128];
-static uint8_t sig_ec_s[128];
+static uint8_t sig_ec_r[128] __no_bss;
+static uint8_t sig_ec_s[128] __no_bss;
 
 /* Copied from mbedtls */
 int pb_asn1_size(unsigned char **p, size_t *len)
@@ -120,7 +120,7 @@ int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, size_t *key_sz,
 
         (*data) = p;
         (*key_sz) = s;
-            
+
     }
     else
     {
@@ -157,7 +157,7 @@ int pb_asn1_rsa_data(struct bpak_key *k, uint8_t **mod, uint8_t **exp)
         return PB_ERR;
 
     rc = pb_asn1_size(&p, &s);
-    
+
     if (rc != PB_OK)
         return rc;
 

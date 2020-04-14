@@ -35,10 +35,6 @@ PLAT_C_SRCS  += plat/imx/ocotp.c
 PLAT_C_SRCS	 += plat/imx/wdog.c
 PLAT_C_SRCS  += plat/imx/hab.c
 
-plat_clean:
-	@-rm -rf plat/imx/*.o
-	@-rm -rf plat/imx6ul/*.o
-
 imx6ul_image:
 	@$(MKIMAGE) -n $(BOARD_DIR)/$(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
 				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx 

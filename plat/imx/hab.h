@@ -10,7 +10,7 @@
 #ifndef PLAT_IMX_HAB_H_
 #define PLAT_IMX_HAB_H_
 
-#include <pb.h>
+#include <pb/pb.h>
 #include <stdint.h>
 #include <plat/regs.h>
 /*
