@@ -32,7 +32,11 @@ static int board_command(struct pb_context *ctx, int command,
     size_t args_len = 0;
 
     if (args)
+    {
         args_len = strlen(args);
+    }
+
+    memset(result_buffer, 0, 4096);
 
     rc = pb_api_board_command(ctx, command, args, args_len,
                                    result_buffer, 4096);

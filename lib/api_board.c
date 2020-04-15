@@ -120,6 +120,17 @@ int pb_api_board_status(struct pb_context *ctx,
     if (rc != PB_RESULT_OK)
         return rc;
 
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
+
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
+
     ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
                                         pb_error_string(result.result_code));
 
