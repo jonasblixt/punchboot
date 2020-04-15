@@ -14,16 +14,12 @@
 #include <pb/storage.h>
 #include <pb/command.h>
 #include <pb/crypto.h>
-#include <pb/board.h>
 #include <pb/boot.h>
 
 void pb_main(void)
 {
     int rc;
 
-#ifdef CONFIG_ENABLE_WATCHDOG
-    plat_wdog_init();
-#endif
 
     /*
      * Perform really early stuff, like setup RAM and other
@@ -35,6 +31,9 @@ void pb_main(void)
     if (rc != PB_OK)
         plat_reset();
 
+#ifdef CONFIG_ENABLE_WATCHDOG
+    plat_wdog_init();
+#endif
 
     tr_stamp_begin(TR_BLINIT);
     tr_stamp_begin(TR_TOTAL);

@@ -1,7 +1,24 @@
 menu "QEMU platform configuration"
+depends on PLAT_QEMU
 
 config OVERRIDE_ARCH_JUMP
     bool "Call board specific jump function"
+    default n
+
+config QEMU_RAM_MB
+    int "Memory in mb"
+    default 1024
+
+config QEMU_VIRTIO_DISK
+    string "Virtio disk file"
+    default "/tmp/disk"
+
+config QEMU_VIRTIO_DISK_SIZE_MB
+    int "Virtio disk size (mb)"
+    default 30
+
+config QEMU_ENABLE_TEST_COVERAGE
+    bool "Enable gcov test coverage"
     default n
 
 endmenu

@@ -1,9 +1,18 @@
 echo ------- ITEST BEGIN: $TEST_NAME ----------------------------
 
+source ../.config
+
 wait_for_qemu2()
 {
     wait $qemu_pid
     echo "QEMU exited $?"
+}
+
+reset_disk()
+{
+	dd if=/dev/zero of=$CONFIG_QEMU_VIRTIO_DISK bs=1M \
+		count=$CONFIG_QEMU_VIRTIO_DISK_SIZE_MB > /dev/null 2>&1
+	sync
 }
 
 start_qemu()

@@ -87,7 +87,8 @@ BOARD = test
 
 check: all $(ARCH_OBJS) $(TEST_OBJS)
 	@mkdir -p $(BUILD_DIR)/tests
-	@dd if=/dev/zero of=/tmp/disk bs=1M count=32 > /dev/null 2>&1
+	@dd if=/dev/zero of=$(CONFIG_QEMU_VIRTIO_DISK) bs=1M \
+		count=$(CONFIG_QEMU_VIRTIO_DISK_SIZE_MB) > /dev/null 2>&1
 	@sync
 	@$(foreach TEST,$(TESTS), \
 		$(CC) $(CFLAGS) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \

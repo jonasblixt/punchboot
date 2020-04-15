@@ -42,6 +42,13 @@ pb_entry:
     orr    r0, r0, r2
     mcr    p15, 0, r0, c1, c0, 0
 
+    /* Allow unaligned access */
+	mrc 	p15, 0, r0, c1, c0, 0
+	ldr		r1, =#0xfffffffd
+	and		r0, r0, r1 					/* enable unaligned access */	
+	mcr		p15, 0, r0, c1, c0, 0
+	isb
+
     /* Clear BSS and HEAP */
     ldr    r1, __zero_region_start
     ldr    r2, __zero_region_end

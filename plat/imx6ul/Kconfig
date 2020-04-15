@@ -13,4 +13,80 @@ config IMX_CAAM_BASE
     hex "CAAM base address"
     default 0x31430000
 
+comment "Watchdog"
+config IMX_WATCHDOG_BASE
+    hex "Watchdog base"
+    default 0x020BC000
+    depends on ENABLE_WATCHDOG
+
+comment "Generic timer"
+config IMX_GPT_BASE
+    hex "IMX timer base"
+    default 0x02098000
+
+config IMX_GPT_PR
+    int "IMX timer divisor"
+    default 24
+
+comment "Debug serial port"
+
+config IMX_UART_BASE
+    hex "IMX uart base"
+    default 0x021E8000
+
+config IMX_UART_BAUDRATE
+    int "IMX uart baudrate"
+    default 115200
+
+comment "Fusebox"
+
+config IMX_OCOTP_BASE
+    hex "IMX OCOTP base"
+    default 0x021BC000
+
+config IMX_OCOTP_WORDS_PER_BANK
+    int "Words per bank"
+    default 8
+
+config IMX_OCOTP_DEBUG
+    bool "Enable OCOTP debug printouts"
+    default n
+
+
+menu "Output image"
+config IMX6UL_CREATE_IMX_IMAGE
+    bool "Create imx-image"
+    default n
+
+config IMX6UL_MKIMAGE_TOOL
+    string "mkimage tool"
+    default "mkimage_imx8"
+    depends on IMX6UL_CREATE_IMX_IMAGE
+
+config IMX6UL_SIGN_IMAGE
+    bool "Sign image"
+    default n
+    depends on IMX6UL_CREATE_IMX_IMAGE
+
+config IMX6UL_CST_TOOL
+    string "NXP Signing tool (CST)"
+    default "cst"
+    depends on IMX6UL_SIGN_IMAGE
+
+config IMX6UL_SRK_TABLE
+    string "SRK Table binary"
+    default "pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
+    depends on IMX6UL_SIGN_IMAGE
+
+config IMX6UL_SIGN_CERT
+    string "Signing certificate"
+    default "pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
+    depends on IMX6UL_SIGN_IMAGE
+
+config IMX6UL_IMAGE_SIGN_CERT
+    string "Signing certificate"
+    default "pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
+    depends on IMX6UL_SIGN_IMAGE
+endmenu
+
 endmenu

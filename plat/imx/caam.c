@@ -276,14 +276,14 @@ int caam_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
     if (ctx->init)
     {
         desc[1] |= CAAM_ALG_STATE_INIT;
-        LOG_DBG("Init %p, %lu", buf, size);
+        LOG_DBG("Init %p, %zu", buf, size);
     }
     else
     {
         desc[1] |= CAAM_ALG_STATE_UPDATE;
         desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX, block_size);
         desc[dc++]  = (uint32_t) (uintptr_t) ctx->buf;
-        LOG_DBG("Update %p, %lu", buf, size);
+        LOG_DBG("Update %p, %zu", buf, size);
     }
 
     ctx->init = false;

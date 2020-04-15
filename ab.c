@@ -149,6 +149,8 @@ int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit)
     if (!active_uu_str)
     {
         LOG_INFO("No active system");
+        active_uu_str = NULL;
+        memset(active_uu, 0, 16);
     }
     else
     {

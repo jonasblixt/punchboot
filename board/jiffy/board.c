@@ -19,6 +19,8 @@
 #include <plat/regs.h>
 #include <plat/imx/imx_uart.h>
 #include <plat/imx/ehci.h>
+#include <plat/imx/usdhc.h>
+#include <libfdt.h>
 
 const struct fuse fuses[] =
 {
@@ -35,41 +37,99 @@ const struct fuse fuses[] =
     IMX6UL_FUSE_END,
 };
 
+#define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
+                   PB_STORAGE_MAP_FLAG_VISIBLE)
 
-const struct partition_table pb_partition_table[] =
+const struct pb_storage_map map[] =
 {
-    PB_GPT_ENTRY(62768, PB_PARTUUID_SYSTEM_A, "System A"),
-    PB_GPT_ENTRY(62768, PB_PARTUUID_SYSTEM_B, "System B"),
-    PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_A, "Root A"),
-    PB_GPT_ENTRY(0x40000, PB_PARTUUID_ROOT_B, "Root B"),
-    PB_GPT_ENTRY(1, PB_PARTUUID_CONFIG_PRIMARY, "Config Primary"),
-    PB_GPT_ENTRY(1, PB_PARTUUID_CONFIG_BACKUP, "Config Backup"),
-    PB_GPT_END,
+    PB_STORAGE_MAP3("9eef7544-bf68-4bf7-8678-da117cbccba8",
+        "eMMC boot0", 2, 2050, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | \
+                        PB_STORAGE_MAP_FLAG_STATIC_MAP),
+
+    PB_STORAGE_MAP3("4ee31690-0c9b-4d56-a6a6-e6d6ecfd4d54",
+        "eMMC boot1", 2, 2050, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT1 | \
+                        PB_STORAGE_MAP_FLAG_STATIC_MAP),
+
+    PB_STORAGE_MAP("2af755d8-8de5-45d5-a862-014cfa735ce0", "System A", 0xf000,
+            DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
+
+    PB_STORAGE_MAP("c046ccd8-0f2e-4036-984d-76c14dc73992", "System B", 0xf000,
+            DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
+
+    PB_STORAGE_MAP("c284387a-3377-4c0f-b5db-1bcbcff1ba1a", "Root A", 0x40000,
+            DEF_FLAGS),
+
+    PB_STORAGE_MAP("ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb", "Root B", 0x40000,
+            DEF_FLAGS),
+
+    PB_STORAGE_MAP("f5f8c9ae-efb5-4071-9ba9-d313b082281e", "PB State Primary",
+            1, PB_STORAGE_MAP_FLAG_VISIBLE),
+
+    PB_STORAGE_MAP("656ab3fc-5856-4a5e-a2ae-5a018313b3ee", "PB State Backup",
+            1, PB_STORAGE_MAP_FLAG_VISIBLE),
+
+    PB_STORAGE_MAP_END
 };
+
+
+/* USDHC0 driver configuration */
+
+static uint8_t usdhc0_dev_private_data[4096*4] __no_bss __a4k;
+static uint8_t usdhc0_gpt_map_data[4096*10] __no_bss __a4k;
+static uint8_t usdhc0_map_data[4096*4] __no_bss __a4k;
+
+static const struct usdhc_device usdhc0 =
+{
+    .base = 0x02190000,
+    .clk_ident = 0x10E1,
+    .clk = 0x0101,
+    .bus_mode = USDHC_BUS_DDR52,
+    .bus_width = USDHC_BUS_8BIT,
+    .boot_bus_cond = 0x0, 
+    .private = usdhc0_dev_private_data,
+    .size = sizeof(usdhc0_dev_private_data),
+};
+
+static struct pb_storage_driver usdhc0_driver =
+{
+    .name = "eMMC0",
+    .block_size = 512,
+    .driver_private = &usdhc0,
+    .init = imx_usdhc_init,
+    .map_default = map,
+    .map_init = gpt_init,
+    .map_install = gpt_install_map,
+    .map_private = usdhc0_gpt_map_data,
+    .map_private_size = sizeof(usdhc0_map_data),
+    .map_data = usdhc0_map_data,
+    .map_data_size = sizeof(usdhc0_map_data),
+};
+
+/* END of USDHC0 */
+
+int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
+{
+    const char *bootargs = NULL;
+
+    if (verbose_boot)
+    {
+        bootargs = "console=ttyLP0,115200  " \
+                   "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk " \
+                   "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
+    }
+    else
+    {
+        bootargs = "console=ttyLP0,115200  " \
+                   "quiet " \
+                   "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
+    }
+    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
+
+}
 
 int board_early_init(void *plat)
 {
-    plat->wdog.base = 0x020BC000;
-    plat->usb0.base = EHCI_PHY_BASE,
-    plat->tmr0.base = 0x02098000;
-    plat->tmr0.pr = 24;
-
-    plat->uart0.base = UART2_BASE;
-    plat->uart0.baudrate = 80000000L / (2 * 115200);
-
-    plat->usdhc0.base = 0x02190000;
-    plat->usdhc0.clk_ident = 0x10E1;
-    plat->usdhc0.clk = 0x0101;
-    plat->usdhc0.bus_mode = USDHC_BUS_DDR52;
-    plat->usdhc0.bus_width = USDHC_BUS_8BIT;
-    plat->usdhc0.boot_bus_cond = 0;
-
-    /* Configure UART */
-    pb_write32(0, 0x020E0094);
-    pb_write32(0, 0x020E0098);
-    pb_write32(UART_PAD_CTRL, 0x020E0320);
-    pb_write32(UART_PAD_CTRL, 0x020E0324);
-
+    int rc;
    /* Configure NAND_DATA2 as GPIO4 4 Input with PU,
     *
     * This is used to force recovery mode
@@ -79,23 +139,16 @@ int board_early_init(void *plat)
     pb_write32(5, 0x020E0188);
     pb_write32(0x2000 | (1 << 14) | (1 << 12), 0x020E0414);
 
-    /* Configure pinmux for usdhc1 */
-    pb_write32(0, 0x020E0000+0x1C0); /* CLK MUX */
-    pb_write32(0, 0x020E0000+0x1BC); /* CMD MUX */
-    pb_write32(0, 0x020E0000+0x1C4); /* DATA0 MUX */
-    pb_write32(0, 0x020E0000+0x1C8); /* DATA1 MUX */
-    pb_write32(0, 0x020E0000+0x1CC); /* DATA2 MUX */
-    pb_write32(0, 0x020E0000+0x1D0); /* DATA3 MUX */
-    pb_write32(1, 0x020E0000+0x1A8); /* DATA4 MUX */
-    pb_write32(1, 0x020E0000+0x1AC); /* DATA5 MUX */
-    pb_write32(1, 0x020E0000+0x1B0); /* DATA6 MUX */
-    pb_write32(1, 0x020E0000+0x1B4); /* DATA7 MUX */
-    pb_write32(1, 0x020E0000+0x1A4); /* RESET MUX */
+
+    rc = pb_storage_add(&usdhc0_driver);
+
+    if (rc != PB_OK)
+        return rc;
 
     return PB_OK;
 }
 
-bool board_force_recovery(void *plat)
+bool board_force_command_mode(void *plat)
 {
     uint8_t force_recovery = false;
     UNUSED(plat);
@@ -104,12 +157,44 @@ bool board_force_recovery(void *plat)
     if ( (pb_read32(0x020A8008) & (1 << 4)) == 0)
         force_recovery = true;
 
+    force_recovery = true;
     return force_recovery;
 }
 
 int board_late_init(void *plat)
 {
     UNUSED(plat);
+    return PB_OK;
+}
+
+const char *board_name(void)
+{
+    return "Jiffy";
+}
+
+int board_command(void *plat,
+                     uint32_t command,
+                     void *bfr,
+                     size_t size,
+                     void *response_bfr,
+                     size_t *response_size)
+{
+    LOG_DBG("%x, %p, %zu", command, bfr, size);
+    *response_size = 0;
+    return PB_OK;
+}
+
+int board_status(void *plat,
+                    void *response_bfr,
+                    size_t *response_size)
+{
+    char *response = (char *) response_bfr;
+    size_t resp_buf_size = *response_size;
+
+    (*response_size) = snprintf(response, resp_buf_size,
+                            "Board status OK!\n");
+    response[(*response_size)++] = 0;
+
     return PB_OK;
 }
 

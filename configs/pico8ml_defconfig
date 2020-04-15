@@ -4,50 +4,9 @@
 #
 CONFIG_ARCH_ARMV8=y
 # CONFIG_ARCH_ARMV7 is not set
-CONFIG_PLAT_IMX8X=y
-# CONFIG_PLAT_IMX8M is not set
-CONFIG_BOARD_IMX8QXMEK=y
-CONFIG_EHCI_BASE=0x5b0d0000
-CONFIG_IMX_CAAM_BASE=0x31430000
-CONFIG_IMX_GPT_BASE=0x5D140000
-CONFIG_IMX_GPT_PR=24
-
-#
-# imx8x configuration
-#
-
-#
-# Console configuration
-#
-CONFIG_LPUART_BASE=0x5A060000
-CONFIG_LPUART_BAUDRATE=0x402008b
-
-#
-# USB Transport
-#
-
-#
-# CAAM
-#
-
-#
-# Generic timer
-#
-
-#
-# Output image
-#
-CONFIG_IMX8X_CREATE_IMX_IMAGE=y
-CONFIG_IMX8X_MKIMAGE_TOOL="mkimage_imx8"
-CONFIG_IMX8X_SCFW_IMAGE="blobs/scfw_tcm.bin"
-CONFIG_IMX8X_AHAB_IMAGE="blobs/mx8qx-ahab-container.img"
-CONFIG_IMX8X_SIGN_IMAGE=y
-CONFIG_IMX8X_CST_TOOL="/work/cst-3.3.0/linux64/bin/cst"
-CONFIG_IMX8X_SRK_TABLE="pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin"
-CONFIG_IMX8X_SIGN_CERT="pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem"
-# end of Output image
-# end of imx8x configuration
-
+# CONFIG_PLAT_IMX8X is not set
+CONFIG_PLAT_IMX8M=y
+CONFIG_BOARD_PICO8ML=y
 CONFIG_TOOLCHAIN_PREFIX="aarch64-linux-gnu-"
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_LOGLEVEL=3
@@ -70,7 +29,7 @@ CONFIG_AUTH_TOKEN=y
 # Boot configuration
 #
 CONFIG_BOOT_AB=y
-CONFIG_BOOT_IMAGE_ID=0xa697d988
+CONFIG_BOOT_IMAGE_ID=0xec103b08
 CONFIG_BOOT_STATE_PRIMARY_UU="f5f8c9ae-efb5-4071-9ba9-d313b082281e"
 CONFIG_BOOT_STATE_BACKUP_UU="656ab3fc-5856-4a5e-a2ae-5a018313b3ee"
 CONFIG_BOOT_DT=y

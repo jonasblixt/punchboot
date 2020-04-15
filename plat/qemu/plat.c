@@ -308,7 +308,11 @@ int plat_early_init(void)
     int rc;
     memset(&key_status, 0, sizeof(key_status));
     rc = board_early_init(NULL);
+
+#ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
     gcov_init();
+#endif
+
     return rc;
 }
 
@@ -338,4 +342,20 @@ bool plat_force_command_mode(void)
 int plat_boot_override(uint8_t *uuid)
 {
     return board_boot_override(NULL, uuid);
+}
+
+int plat_status(void *response_bfr,
+                    size_t *response_size)
+{
+    return board_status(NULL, response_bfr, response_size);
+}
+
+int plat_command(uint32_t command,
+                     void *bfr,
+                     size_t size,
+                     void *response_bfr,
+                     size_t *response_size)
+{
+    return board_command(NULL, command, bfr, size,
+                            response_bfr, response_size);
 }

@@ -34,6 +34,7 @@ CFLAGS  += -I fdt/include
 CFLAGS  += -I uuid/
 CFLAGS  += -fstack-usage
 CFLAGS  += -MMD -MP
+CFLAGS  += -mno-unaligned-access
 
 # General warnings
 WARNING = -Wall -Wmissing-include-dirs -Wunused \
@@ -197,8 +198,6 @@ gcovr:
 			--gcov-exclude tests \
 			--gcov-exclude lib \
 			--gcov-exclude bearssl
-qemu:
-	@$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(BUILD_DIR)/$(TARGET)
 
 .DEFAULT_GOAL := all
 

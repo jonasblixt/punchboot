@@ -19,4 +19,10 @@
 
 #define IMX6UL_FUSE_END { .status = FUSE_INVALID }
 
+#define IMX6UL_PRIV(__p) ((struct imx6ul_private *) __p)
+
+struct imx6ul_private
+{
+};
+
 #endif  // PLAT_IMX6UL_PLAT_H_

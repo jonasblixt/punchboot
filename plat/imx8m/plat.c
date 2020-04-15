@@ -1,21 +1,21 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <io.h>
-#include <uuid.h>
-#include <plat.h>
-#include <board.h>
-#include <fuse.h>
-#include <timing_report.h>
+#include <string.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <uuid/uuid.h>
+#include <pb/plat.h>
+#include <pb/board.h>
+#include <pb/fuse.h>
+#include <pb/timing_report.h>
 #include <plat/regs.h>
 #include <plat/imx/imx_uart.h>
 #include <plat/imx8m/clock.h>

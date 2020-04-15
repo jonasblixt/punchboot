@@ -31,9 +31,13 @@ static int pb_storage_map_init(struct pb_storage_driver *drv)
             {
                 LOG_DBG("Copy static entry %s", p->description);
 
-                p->first_block = block;
-                p->last_block = block + p->no_of_blocks - 1;
-                block += p->no_of_blocks;
+                if (!p->first_block)
+                {
+                    p->first_block = block;
+                    p->last_block = block + p->no_of_blocks - 1;
+                    block += p->no_of_blocks;
+                }
+
                 uuid_parse(p->uuid_str, p->uuid);
 
                 memcpy(&entries[drv->map_entries++], p, sizeof(*p));

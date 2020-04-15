@@ -4,7 +4,7 @@ wait_for_qemu_start
 
 # After a reboot, bootloader should have recovered from backup GPT tables
 sync
-sgdisk -v /tmp/disk
+sgdisk -v $CONFIG_QEMU_VIRTIO_DISK
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -14,7 +14,7 @@ fi
 
 # Trash GPT header
 
-dd if=/dev/urandom of=/tmp/disk bs=128 skip=2 conv=notrunc count=1
+dd if=/dev/urandom of=$CONFIG_QEMU_VIRTIO_DISK bs=128 skip=2 conv=notrunc count=1
 
 # Reset
 $PB dev --reset --transport socket

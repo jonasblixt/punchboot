@@ -49,13 +49,7 @@
 #define  USR1_TRDY       (1<<13) /* TX Buffer ready */
 #define  USR2_TXFE (1<<14)
 
-struct imx_uart_device
-{
-    __iomem base;
-    uint32_t baudrate;
-};
-
-uint32_t imx_uart_init(struct imx_uart_device *dev);
+int imx_uart_init(__iomem base_addr, unsigned int baudrate);
 void imx_uart_putc(char c);
 
 #endif  // PLAT_IMX_IMX_UART_H_

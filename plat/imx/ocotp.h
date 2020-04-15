@@ -13,12 +13,6 @@
 
 #include <pb/pb.h>
 
-struct ocotp_dev
-{
-    __iomem base;
-    uint32_t words_per_bank;
-};
-
 #define OCOTP_CTRL           0x0000
 #define OCOTP_TIMING         0x0010
 #define OCOTP_DATA           0x0020
@@ -32,8 +26,8 @@ struct ocotp_dev
 
 #define OCOTP_CTRL_WR_KEY    0x3E77
 
-uint32_t ocotp_init(struct ocotp_dev *dev);
-uint32_t ocotp_read(uint32_t bank, uint32_t row, uint32_t * value);
-uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
+int ocotp_init(__iomem base, unsigned int words_per_bank);
+int ocotp_read(uint32_t bank, uint32_t row, uint32_t * value);
+int ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
 
 #endif  // PLAT_IMX_OCOTP_H_

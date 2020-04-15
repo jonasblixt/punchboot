@@ -12,30 +12,35 @@
 #include <pb/pb.h>
 #include <plat/imx/gpt.h>
 
-uint32_t gp_timer_init(struct gp_timer *d)
-{
-    pb_write32(1<<15, d->base+GP_TIMER_CR);
+static __iomem base;
 
-    while (pb_read32(d->base+GP_TIMER_CR) & (1<<15))
+int gp_timer_init(__iomem base_addr, unsigned int pr)
+{
+    uint32_t cr = 0;
+    base = base_addr;
+
+    pb_write32(1<<15, base+GP_TIMER_CR);
+
+    while (pb_read32(base+GP_TIMER_CR) & (1<<15))
         __asm__("nop");
 
-    pb_write32(d->pr, d->base+GP_TIMER_PR);
+    pb_write32(pr, base+GP_TIMER_PR);
 
 
-    d->cr = (2 << 6) | (1 << 9) | (1 << 10);
-    pb_write32(d->cr, d->base+GP_TIMER_CR);
+    cr = (2 << 6) | (1 << 9) | (1 << 10);
+    pb_write32(cr, base+GP_TIMER_CR);
 
     /* Enable timer */
-    d->cr |= 1;
+    cr |= 1;
 
-    pb_write32(d->cr, d->base+GP_TIMER_CR);
+    pb_write32(cr, base+GP_TIMER_CR);
 
     return PB_OK;
 }
 
-uint32_t gp_timer_get_tick(struct gp_timer *d)
+unsigned int gp_timer_get_tick(void)
 {
-    return (pb_read32(d->base+GP_TIMER_CNT));
+    return (pb_read32(base+GP_TIMER_CNT));
 }
 
 

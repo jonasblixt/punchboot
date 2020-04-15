@@ -39,13 +39,15 @@ static __a4k __no_bss struct usb_setup_packet setup_pkt;
 static __a4k __no_bss struct dwc3_trb trbs[DWC3_NO_TRBS];
 static __no_bss struct dwc3_trb *act_trb[8];
 static volatile __no_bss uint8_t cmd_in_bfr[64];
+static __iomem base;
+static uint32_t version;
+static uint32_t caps;
 
-static uint32_t dwc3_command(struct dwc3_device *dev,
-                             uint8_t ep,
-                             uint32_t cmd,
-                             uint32_t p0,
-                             uint32_t p1,
-                             uint32_t p2)
+static int dwc3_command(uint8_t ep,
+                         uint32_t cmd,
+                         uint32_t p0,
+                         uint32_t p1,
+                         uint32_t p2)
 {
     if (ep > 7)
         return PB_ERR;
@@ -57,12 +59,12 @@ static uint32_t dwc3_command(struct dwc3_device *dev,
     uint32_t param1_addr = (DWC3_DEPCMDPAR1_0 + 0x10*ep);
     uint32_t param2_addr = (DWC3_DEPCMDPAR2_0 + 0x10*ep);
 
-    pb_write32(p0, (dev->base + param0_addr));
-    pb_write32(p1, (dev->base + param1_addr));
-    pb_write32(p2, (dev->base + param2_addr));
+    pb_write32(p0, (base + param0_addr));
+    pb_write32(p1, (base + param1_addr));
+    pb_write32(p2, (base + param2_addr));
 
     pb_write32((DWC3_DEPCMD_ACT | cmd),
-            (dev->base + DWC3_DEPCMD_0 + (0x10*ep)));
+            (base + DWC3_DEPCMD_0 + (0x10*ep)));
 
     volatile uint32_t timeout = plat_get_us_tick();
 

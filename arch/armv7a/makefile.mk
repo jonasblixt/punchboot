@@ -1,10 +1,10 @@
 ifdef CONFIG_ARCH_ARMV7
 
-CROSS_COMPILE ?= arm-none-eabi-
 ARCH_OUTPUT = elf32-littlearm
 ARCH = arm
 
-CFLAGS   += -march=armv7-a -DAARCH32
+# CFLAGS   += -march=armv7-a 
+CFLAGS   += -DAARCH32
 CFLAGS   += -I arch/armv7a/include
 CFLAGS   += -I include/pb/libc/aarch32
 

@@ -18,4 +18,8 @@ config BOARD_JIFFY
     bool "Jiffy"
     depends on PLAT_IMX6UL
 
+config BOARD_PICO8ML
+    bool "pico8ml"
+    depends on PLAT_IMX8M
+
 endchoice

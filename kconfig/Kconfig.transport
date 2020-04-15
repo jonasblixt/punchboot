@@ -12,9 +12,6 @@ config LOAD_FS_MAX_CHUNK_KB
     int "File system maximum load chunk size (kB)"
     default 4096
 
-config ENABLE_WATCHDOG
-	bool "Enable watchdog"
-    default y
 
 config TRANSPORT_READY_TIMEOUT
 	int "Timeout in seconds before transport must become ready"

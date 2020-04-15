@@ -70,6 +70,17 @@ struct pb_storage_map
         .flags = __flags, \
     }
 
+#define PB_STORAGE_MAP3(__uuid_str, __desc, __start_blk, __end_blk, __flags) \
+    { \
+        .valid_entry = true, \
+        .uuid_str = __uuid_str, \
+        .uuid = "", \
+        .description = __desc, \
+        .first_block = __start_blk, \
+        .last_block = __end_blk, \
+        .no_of_blocks = (__end_blk - __start_blk + 1), \
+        .flags = __flags, \
+    }
 #define PB_STORAGE_MAP_END \
     { \
         .valid_entry = false, \

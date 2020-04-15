@@ -9,11 +9,11 @@
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <io.h>
+#include <stdbool.h>
+#include <pb/pb.h>
+#include <pb/io.h>
 #include <plat/imx/hab.h>
 #include <plat/imx/ocotp.h>
-#include <stdbool.h>
 
 #define IS_HAB_ENABLED_BIT 0x02
 static uint8_t _event_data[128];

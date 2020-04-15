@@ -19,15 +19,8 @@
 #define WDOG_WICR 0x0006
 #define WDOG_WMCR 0x0008
 
-
-struct imx_wdog_device
-{
-    __iomem base;
-    uint32_t delay;
-};
-
-uint32_t imx_wdog_init(struct imx_wdog_device *dev, uint32_t delay);
-uint32_t imx_wdog_kick(void);
-uint32_t imx_wdog_reset_now(void);
+int imx_wdog_init(__iomem base, unsigned int delay);
+int imx_wdog_kick(void);
+int imx_wdog_reset_now(void);
 
 #endif  // PLAT_IMX_WDOG_H_

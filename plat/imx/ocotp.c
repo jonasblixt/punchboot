@@ -1,24 +1,24 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
 #include <stdio.h>
-#include <plat.h>
-#include <io.h>
+#include <pb/pb.h>
+#include <pb/plat.h>
+#include <pb/io.h>
 #include <plat/imx/ocotp.h>
 
-#undef OCOTP_DEBUG
+static __iomem base;
+static uint32_t wpb;
 
-static struct ocotp_dev *_dev;
-
-#ifdef OCOTP_DEBUG
-static void ocotp_dump_fuse(uint32_t bank, uint32_t row) {
+#ifdef CONFIG_IMX_OCOTP_DEBUG
+static void ocotp_dump_fuse(uint32_t bank, uint32_t row)
+{
     uint32_t val;
     uint32_t ret;
 
@@ -27,16 +27,18 @@ static void ocotp_dump_fuse(uint32_t bank, uint32_t row) {
 }
 #endif
 
-uint32_t ocotp_init(struct ocotp_dev *dev) {
-    _dev = dev;
+int ocotp_init(__iomem base_addr, unsigned int words_per_bank)
+{
+    base = base_addr;
+    wpb = words_per_bank;
 
-    if (dev->words_per_bank < 4)
+    if (words_per_bank < 4)
     {
         LOG_ERR("Invalid words_per_bank setting");
         return PB_ERR;
     }
 
-#ifdef OCOTP_DEBUG
+#ifdef CONFIG_IMX_OCOTP_DEBUG
     LOG_DBG("Initializing ocotp at 0x%x", dev->base);
 
     ocotp_dump_fuse(0, 1);
@@ -56,88 +58,86 @@ uint32_t ocotp_init(struct ocotp_dev *dev) {
     return PB_OK;
 }
 
-uint32_t ocotp_write(uint32_t bank, uint32_t row, uint32_t value) {
+int ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
+{
      uint32_t tmp = 0;
 
     /* Wait for busy flag */
-    while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
+    while (pb_read32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
         __asm__("nop");
 
-    tmp = pb_read32(_dev->base + OCOTP_CTRL);
+    tmp = pb_read32(base + OCOTP_CTRL);
 
     if (tmp & OCOTP_CTRL_ERROR)
     {
-        pb_write32(tmp & ~OCOTP_CTRL_ERROR, _dev->base + OCOTP_CTRL);
+        pb_write32(tmp & ~OCOTP_CTRL_ERROR, base + OCOTP_CTRL);
         return PB_ERR;
     }
 
 
     pb_write32((5 << 22) | (0x06 << 16) | (1 << 12) | 0x299,
-                                    _dev->base + OCOTP_TIMING);
+                                    base + OCOTP_TIMING);
 
 
     /* Wait for busy flag */
-    while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
+    while (pb_read32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
         __asm__("nop");
 
-    tmp = pb_read32(_dev->base + OCOTP_CTRL);
+    tmp = pb_read32(base + OCOTP_CTRL);
     if (tmp & OCOTP_CTRL_ERROR)
     {
-        pb_write32(tmp & ~OCOTP_CTRL_ERROR, _dev->base + OCOTP_CTRL);
+        pb_write32(tmp & ~OCOTP_CTRL_ERROR, base + OCOTP_CTRL);
         return PB_ERR;
     }
 
     /* Ref manual says this should be 0x3F, but FSL drivers says 0x7F...*/
-    tmp = (bank * _dev->words_per_bank + row) & 0x7F;
+    tmp = ((bank * wpb) + row) & 0x7F;
 
-    pb_write32((OCOTP_CTRL_WR_KEY << 16) | tmp, _dev->base + OCOTP_CTRL);
+    pb_write32((OCOTP_CTRL_WR_KEY << 16) | tmp, base + OCOTP_CTRL);
 
-    pb_write32(value, _dev->base + OCOTP_DATA);
+    pb_write32(value, base + OCOTP_DATA);
 
     /* Wait for busy flag */
-    while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
+    while (pb_read32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
         __asm__("nop");
 
-    tmp = pb_read32(_dev->base + OCOTP_CTRL);
+    tmp = pb_read32(base + OCOTP_CTRL);
     if (tmp & OCOTP_CTRL_ERROR)
     {
-        pb_write32(tmp & ~OCOTP_CTRL_ERROR, _dev->base + OCOTP_CTRL);
+        pb_write32(tmp & ~OCOTP_CTRL_ERROR, base + OCOTP_CTRL);
         return PB_ERR;
     }
-
-
 
     return PB_OK;
 }
 
-uint32_t ocotp_read(uint32_t bank, uint32_t row, uint32_t * value)
+int ocotp_read(uint32_t bank, uint32_t row, uint32_t * value)
 {
     uint32_t tmp = 0;
 
     /* Wait for busy flag */
-    while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
+    while (pb_read32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
         __asm__("nop");
 
-    tmp = pb_read32(_dev->base + OCOTP_CTRL);
-    if (tmp & OCOTP_CTRL_ERROR) {
-        pb_write32(tmp & ~OCOTP_CTRL_ERROR, _dev->base + OCOTP_CTRL);
+    tmp = pb_read32(base + OCOTP_CTRL);
+
+    if (tmp & OCOTP_CTRL_ERROR)
+    {
+        pb_write32(tmp & ~OCOTP_CTRL_ERROR, base + OCOTP_CTRL);
         return PB_ERR;
     }
 
     /* Ref manual says this should be 0x3F, but FSL drivers says 0x7F...*/
-    tmp = (bank * _dev->words_per_bank + row) & 0x7F;
+    tmp = ((bank * wpb) + row) & 0x7F;
 
-    pb_write32(tmp, _dev->base + OCOTP_CTRL);
-    pb_write32(1, _dev->base + OCOTP_READ_CTRL);
+    pb_write32(tmp, base + OCOTP_CTRL);
+    pb_write32(1, base + OCOTP_READ_CTRL);
 
     /* Wait for busy flag */
-    while (pb_read32(_dev->base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
+    while (pb_read32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
         __asm__("nop");
 
-    *value = pb_read32(_dev->base + OCOTP_READ_FUSE_DATA);
+    *value = pb_read32(base + OCOTP_READ_FUSE_DATA);
 
     return PB_OK;
 }
-
-
-

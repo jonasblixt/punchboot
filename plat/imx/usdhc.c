@@ -258,7 +258,7 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
     uint32_t cmd = 0;
     uint8_t *buf_ptr = bfr;
 
-    LOG_DBG("start_lba %lu, nblocks %lu wr %u", start_lba, nblocks, wr);
+    LOG_DBG("start_lba %zu, nblocks %zu wr %u", start_lba, nblocks, wr);
 
     dev->transfer_in_progress = true;
 

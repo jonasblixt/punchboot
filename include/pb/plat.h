@@ -31,13 +31,20 @@ void plat_wdog_kick(void);
 
 int plat_early_init(void);
 int plat_late_init(void);
-void *plat_get_private(void);
 void plat_preboot_cleanup(void);
 bool plat_force_command_mode(void);
 int plat_get_uuid(char *out);
 int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot);
 int plat_boot_override(uint8_t *uuid);
 
+int plat_command(uint32_t command,
+                     void *bfr,
+                     size_t size,
+                     void *response_bfr,
+                     size_t *response_size);
+
+int plat_status(void *response_bfr,
+                    size_t *response_size);
 /* Console API */
 int plat_console_init(void);
 int plat_console_putchar(char c);

@@ -13,45 +13,40 @@
 #include <pb/plat.h>
 #include <plat/imx/wdog.h>
 
-static volatile struct imx_wdog_device *_dev = NULL;
+static __iomem base;
+static unsigned int wdog_delay_s;
 
-uint32_t imx_wdog_init(struct imx_wdog_device *dev, uint32_t delay)
+int imx_wdog_init(__iomem base_addr, unsigned int delay)
 {
-    if ((dev == NULL) || !delay)
-        return PB_ERR;
-
-    _dev = dev;
+    base = base_addr;
+    wdog_delay_s = delay;
 
     /* Timeout value = 9 * 0.5 + 0.5 = 5 s */
     pb_write16(( (delay * 2) << 8) | (1 << 2) |
                                 (1 << 3) |
                                 (1 << 4) |
                                 (1 << 5),
-                _dev->base + WDOG_WCR);
+                base + WDOG_WCR);
 
-    pb_write16(0, _dev->base + WDOG_WMCR);
+    pb_write16(0, base + WDOG_WMCR);
 
     return imx_wdog_kick();
 }
 
-uint32_t imx_wdog_kick(void)
+int imx_wdog_kick(void)
 {
-    if (_dev == NULL)
-        return PB_ERR;
-
-    pb_write16(0x5555, _dev->base + WDOG_WSR);
-    pb_write16(0xAAAA, _dev->base + WDOG_WSR);
+    pb_write16(0x5555, base + WDOG_WSR);
+    pb_write16(0xAAAA, base + WDOG_WSR);
 
     return PB_OK;
 }
 
-uint32_t imx_wdog_reset_now(void)
+int imx_wdog_reset_now(void)
 {
-    if (_dev == NULL)
-        return PB_ERR;
-
-    pb_write16(((1 << 6) | (1 << 2)), _dev->base + WDOG_WCR);
+    pb_write16(((1 << 6) | (1 << 2)), base + WDOG_WCR);
 
     while (true)
         __asm__("nop");
+
+    return -PB_ERR;
 }

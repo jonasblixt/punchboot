@@ -39,7 +39,6 @@
 #define LPCG_ALL_CLOCK_STOP     0x88888888U
 
 static struct imx8x_private private;
-static struct gp_timer tmr0;
 extern struct fuse fuses[];
 
 int plat_setup_lock(void)
@@ -161,7 +160,7 @@ void plat_reset(void)
 
 unsigned int plat_get_us_tick(void)
 {
-    return gp_timer_get_tick(&tmr0);
+    return gp_timer_get_tick();
 }
 
 void plat_wdog_init(void)
@@ -196,9 +195,6 @@ int plat_early_init(void)
     if (rc != SC_ERR_NONE)
         return -PB_ERR;
 
-    tmr0.base = 0x5D140000;
-    tmr0.pr = 24;
-
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
@@ -216,7 +212,7 @@ int plat_early_init(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = gp_timer_init(&tmr0);
+    rc = gp_timer_init(CONFIG_IMX_GPT_BASE, CONFIG_IMX_GPT_PR);
 
     if (rc != PB_OK)
         return rc;
@@ -413,11 +409,6 @@ bool plat_transport_ready(void)
     return imx_ehci_usb_ready();
 }
 
-void *plat_get_private(void)
-{
-    return NULL;
-}
-
 int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
 {
     return board_patch_bootargs(&private, fdt, offset, verbose_boot);
@@ -475,3 +466,18 @@ int imx_usdhc_plat_init(struct usdhc_device *dev)
     return PB_OK;
 }
 
+int plat_status(void *response_bfr,
+                    size_t *response_size)
+{
+    return board_status(&private, response_bfr, response_size);
+}
+
+int plat_command(uint32_t command,
+                     void *bfr,
+                     size_t size,
+                     void *response_bfr,
+                     size_t *response_size)
+{
+    return board_command(&private, command, bfr, size,
+                            response_bfr, response_size);
+}

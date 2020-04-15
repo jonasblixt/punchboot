@@ -20,6 +20,14 @@ config IMX_CAAM_BASE
     hex "CAAM base address"
     default 0x31430000
 
+comment "Generic timer"
+config IMX_GPT_BASE
+    hex "IMX timer base"
+    default 0x5D140000
+
+config IMX_GPT_PR
+    int "IMX timer divisor"
+    default 24
 
 menu "Output image"
 config IMX8X_CREATE_IMX_IMAGE
