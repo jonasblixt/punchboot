@@ -25,6 +25,10 @@
     Engine = CAAM
     Features = MID
 
+[Unlock]
+    Engine = CAAM
+    Features = RNG
+
 [Install Key]
     # Key slot index used to authenticate the key to be installed
     Verification index = 0
