@@ -62,6 +62,8 @@ int pb_storage_init(void)
 {
     int rc = PB_OK;
 
+    LOG_DBG("Storage init");
+
     for (struct pb_storage_driver *drv = drivers; drv; drv = drv->next)
     {
         LOG_INFO("Initializing %s", drv->name);
@@ -93,6 +95,8 @@ int pb_storage_init(void)
 
 int pb_storage_add(struct pb_storage_driver *drv)
 {
+    LOG_DBG("%p", &drivers);
+
     if (drivers == NULL)
     {
         drivers = drv;
@@ -104,6 +108,7 @@ int pb_storage_add(struct pb_storage_driver *drv)
         drv->next = NULL;
     }
 
+    LOG_DBG("%p", drivers);
     return PB_OK;
 }
 

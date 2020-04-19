@@ -34,7 +34,6 @@ CFLAGS  += -I fdt/include
 CFLAGS  += -I uuid/
 CFLAGS  += -fstack-usage
 CFLAGS  += -MMD -MP
-CFLAGS  += -mno-unaligned-access
 
 # General warnings
 WARNING = -Wall -Wmissing-include-dirs -Wunused \
@@ -174,7 +173,7 @@ $(BUILD_DIR)/$(TARGET): keystore $(OBJS) $(BLOB_OBJS)
 
 $(BUILD_DIR)/%.bino: %.bin
 	@mkdir -p $(@D)
-	@echo BLOB $<
+	@echo BLOB $< $@
 	@$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
 
 $(BUILD_DIR)/%.o: %.S

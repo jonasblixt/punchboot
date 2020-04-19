@@ -54,7 +54,13 @@ int imx_uart_init(__iomem base_addr, unsigned int baudrate)
     pb_write32((4 << 7), base + UFCR);
     pb_write32(0x000f, base + UBIR);
 
+#if CONFIG_PLAT_IMX6UL
     pb_write32((uint32_t)(80000000L / (2 * baudrate)), base + UBMR);
+#elif CONFIG_PLAT_IMX8M
+    pb_write32((uint32_t)(25000000L / (2 * baudrate)), base + UBMR);
+#endif
+
+
     pb_write32((UCR2_WS | UCR2_IRTS | UCR2_RXEN |
                 UCR2_TXEN | UCR2_SRST), base + UCR2);
 

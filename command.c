@@ -129,7 +129,7 @@ static int auth_token(uint8_t *device_uu,
 }
 #endif
 
-static int ram_boot(void)
+static int cmd_board(void)
 {
     int rc;
 
@@ -592,6 +592,94 @@ static int cmd_boot_ram(void)
     return -PB_ERR;
 }
 
+static int cmd_slc_read(void)
+{
+    int rc;
+    struct pb_result_slc slc_status;
+    rc = plat_slc_read((enum pb_slc *) &slc_status.slc);
+    pb_wire_init_result2(&result, rc, &slc_status,
+                        sizeof(slc_status));
+
+    plat_transport_write(&result, sizeof(result));
+
+    struct pb_result_slc_key_status *key_status;
+
+    rc = plat_slc_get_key_status(&key_status);
+    plat_transport_write(key_status, sizeof(*key_status));
+    pb_wire_init_result(&result, rc);
+
+    return rc;
+}
+
+static int cmd_stream_init(void)
+{
+    int rc;
+
+    struct pb_command_stream_initialize *stream_init = \
+            (struct pb_command_stream_initialize *) cmd.request;
+    char uuid[37];
+    uuid_unparse(stream_init->part_uuid, uuid);
+    LOG_DBG("Stream init %s", uuid);
+
+    rc = pb_storage_get_part(stream_init->part_uuid,
+                             &stream_map,
+                             &stream_drv);
+
+    if (rc == PB_OK && stream_drv->map_request)
+        rc = stream_drv->map_request(stream_drv, stream_map);
+
+    pb_wire_init_result(&result, rc);
+
+    return rc;
+}
+
+static int cmd_stream_prep_buffer(void)
+{
+    int rc;
+    struct pb_command_stream_prepare_buffer *stream_prep = \
+        (struct pb_command_stream_prepare_buffer *) cmd.request;
+
+    LOG_DBG("%p", stream_prep);
+    LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
+
+    if (stream_prep->size > (CONFIG_CMD_BUF_SIZE_KB*1024))
+    {
+        pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
+        return -PB_RESULT_NO_MEMORY;
+    }
+
+    if (stream_prep->id > 1)
+    {
+        pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
+        return -PB_RESULT_NO_MEMORY;
+    }
+
+    pb_wire_init_result(&result, PB_RESULT_OK);
+    plat_transport_write(&result, sizeof(result));
+
+    uint8_t *bfr = ((uint8_t *) buffer) +
+                    ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_prep->id);
+
+    rc = plat_transport_read(bfr, stream_prep->size);
+    return rc;
+}
+
+static int cmd_stream_final(void)
+{
+    int rc;
+    LOG_DBG("Stream final");
+    struct pb_storage_driver *sdrv = stream_drv;
+
+    if (sdrv->map_release)
+        rc = sdrv->map_release(sdrv, stream_map);
+    else
+        rc = PB_RESULT_OK;
+
+    pb_wire_init_result(&result, rc);
+
+    return rc;
+}
+
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
@@ -607,7 +695,7 @@ static int pb_command_parse(void)
              (!authenticated) &&
         (slc == PB_SLC_CONFIGURATION_LOCKED))
     {
-        LOG_ERR("Not authenticaated");
+        LOG_ERR("Not authenticated");
         pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
         goto err_out;
     }
@@ -643,9 +731,7 @@ static int pb_command_parse(void)
         }
         break;
         case PB_CMD_PART_TBL_READ:
-        {
             rc = cmd_part_tbl_read();
-        }
         break;
         case PB_CMD_DEVICE_READ_CAPS:
         {
@@ -667,67 +753,16 @@ static int pb_command_parse(void)
         }
         break;
         case PB_CMD_STREAM_INITIALIZE:
-        {
-            struct pb_command_stream_initialize *stream_init = \
-                    (struct pb_command_stream_initialize *) cmd.request;
-            char uuid[37];
-            uuid_unparse(stream_init->part_uuid, uuid);
-            LOG_DBG("Stream init %s", uuid);
-
-            rc = pb_storage_get_part(stream_init->part_uuid,
-                                     &stream_map,
-                                     &stream_drv);
-
-            if (rc == PB_OK && stream_drv->map_request)
-                rc = stream_drv->map_request(stream_drv, stream_map);
-
-            pb_wire_init_result(&result, rc);
-        }
+            rc = cmd_stream_init();
         break;
         case PB_CMD_STREAM_PREPARE_BUFFER:
-        {
-            struct pb_command_stream_prepare_buffer *stream_prep = \
-                (struct pb_command_stream_prepare_buffer *) cmd.request;
-
-            LOG_DBG("%p", stream_prep);
-            LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
-
-            if (stream_prep->size > (CONFIG_CMD_BUF_SIZE_KB*1024))
-            {
-                pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
-                break;
-            }
-
-            if (stream_prep->id > 1)
-            {
-                pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
-                break;
-            }
-
-            pb_wire_init_result(&result, PB_RESULT_OK);
-            plat_transport_write(&result, sizeof(result));
-
-            uint8_t *bfr = ((uint8_t *) buffer) +
-                            ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_prep->id);
-
-            rc = plat_transport_read(bfr, stream_prep->size);
-        }
+            rc = cmd_stream_prep_buffer();
         break;
         case PB_CMD_STREAM_WRITE_BUFFER:
             rc = cmd_stream_write();
         break;
         case PB_CMD_STREAM_FINALIZE:
-        {
-            LOG_DBG("Stream final");
-            struct pb_storage_driver *sdrv = stream_drv;
-
-            if (sdrv->map_release)
-                rc = sdrv->map_release(sdrv, stream_map);
-            else
-                rc = PB_RESULT_OK;
-
-            pb_wire_init_result(&result, rc);
-        }
+            rc = cmd_stream_final();
         break;
         case PB_CMD_PART_BPAK_READ:
             rc = cmd_bpak_read();
@@ -782,7 +817,7 @@ static int pb_command_parse(void)
         }
         break;
         case PB_CMD_BOARD_COMMAND:
-            rc = ram_boot();
+            rc = cmd_board();
         break;
         case PB_CMD_BOARD_STATUS_READ:
         {
@@ -837,20 +872,7 @@ static int pb_command_parse(void)
         }
         break;
         case PB_CMD_SLC_READ:
-        {
-            LOG_DBG("SLC Read");
-            struct pb_result_slc slc_status;
-            rc = plat_slc_read((enum pb_slc *) &slc_status.slc);
-            pb_wire_init_result2(&result, rc, &slc_status,
-                                sizeof(slc_status));
-
-            plat_transport_write(&result, sizeof(result));
-
-            struct pb_result_slc_key_status *key_status;
-            rc = plat_slc_get_key_status(&key_status);
-            plat_transport_write(key_status, sizeof(*key_status));
-            pb_wire_init_result(&result, rc);
-        }
+            rc = cmd_slc_read();
         break;
         default:
         {

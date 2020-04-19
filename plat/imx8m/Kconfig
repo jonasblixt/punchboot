@@ -1,0 +1,107 @@
+menu "imx8m configuration"
+    depends on PLAT_IMX8M
+    comment "Console configuration"
+
+
+comment "USB Transport"
+config DWC3_BASE
+    hex "DWC3 base address"
+    default 0x38100000
+
+comment "CAAM"
+config IMX_CAAM_BASE
+    hex "CAAM base address"
+    default 0x30901000
+
+comment "Watchdog"
+config IMX_WATCHDOG_BASE
+    hex "Watchdog base"
+    default 0x30280000
+    depends on ENABLE_WATCHDOG
+
+comment "Generic timer"
+config IMX_GPT_BASE
+    hex "IMX timer base"
+    default 0x302D0000
+
+config IMX_GPT_PR
+    int "IMX timer divisor"
+    default 40
+
+comment "Debug serial port"
+
+config IMX_UART_BASE
+    hex "IMX uart base"
+    default 0x30860000
+
+config IMX_UART_BAUDRATE
+    int "IMX uart baudrate"
+    default 115200
+
+comment "Fusebox"
+
+config IMX_OCOTP_BASE
+    hex "IMX OCOTP base"
+    default 0x30350000
+
+config IMX_OCOTP_WORDS_PER_BANK
+    int "Words per bank"
+    default 4
+
+config IMX_OCOTP_DEBUG
+    bool "Enable OCOTP debug printouts"
+    default n
+
+config IMX8M_UMCTL_TRAIN_1D_D
+    string "UMCTL 1D Train data"
+    default "blobs/lpddr4_pmu_train_1d_dmem.bin"
+
+config IMX8M_UMCTL_TRAIN_1D_I
+    string "UMCTL 1D Train data"
+    default "blobs/lpddr4_pmu_train_1d_imem.bin"
+
+config IMX8M_UMCTL_TRAIN_2D_D
+    string "UMCTL 2D Train data"
+    default "blobs/lpddr4_pmu_train_2d_dmem.bin"
+
+config IMX8M_UMCTL_TRAIN_2D_I
+    string "UMCTL 1D Train data"
+    default "blobs/lpddr4_pmu_train_2d_imem.bin"
+
+menu "Output image"
+config IMX8M_CREATE_IMX_IMAGE
+    bool "Create imx-image"
+    default n
+
+config IMX8M_MKIMAGE_TOOL
+    string "mkimage tool"
+    default "mkimage_imx8"
+    depends on IMX8M_CREATE_IMX_IMAGE
+
+config IMX8M_SIGN_IMAGE
+    bool "Sign image"
+    default n
+    depends on IMX8M_CREATE_IMX_IMAGE
+
+config IMX8M_CST_TOOL
+    string "NXP Signing tool (CST)"
+    default "cst"
+    depends on IMX8M_SIGN_IMAGE
+
+config IMX8M_SRK_TABLE
+    string "SRK Table binary"
+    default "pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
+    depends on IMX8M_SIGN_IMAGE
+
+config IMX8M_SIGN_CERT
+    string "Signing certificate"
+    default "pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
+    depends on IMX8M_SIGN_IMAGE
+
+config IMX8M_IMAGE_SIGN_CERT
+    string "Signing certificate"
+    default "pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
+    depends on IMX8M_SIGN_IMAGE
+endmenu
+
+endmenu

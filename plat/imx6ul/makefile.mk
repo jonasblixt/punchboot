@@ -17,7 +17,6 @@ PB_UUU_CSF_TEMPLATE = plat/imx6ul/pb_uuu.csf.template
 SED = $(shell which sed)
 
 CFLAGS += -I plat/imx6ul/include
-CFLAGS += -mcpu=cortex-a7 -mtune=cortex-a7
 
 LDFLAGS += -Tplat/imx6ul/link.lds
 

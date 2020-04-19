@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pb.h>
-#include <io.h>
-#include <plat.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <pb/plat.h>
 #include <plat/umctl2.h>
 #include <plat/regs.h>
 #include <plat/imx8m/clock.h>
@@ -22,14 +22,14 @@
 #define DDR_TRAIN_CODE_BASE_ADDR IP2APB_DDRPHY_IPS_BASE_ADDR(0)
 
 extern uint32_t _data_region_end;
-extern uint32_t  _binary_lpddr4_pmu_train_1d_imem_bin_start;
-extern uint32_t  _binary_lpddr4_pmu_train_1d_dmem_bin_start;
-extern uint32_t  _binary_lpddr4_pmu_train_2d_imem_bin_start;
-extern uint32_t  _binary_lpddr4_pmu_train_2d_dmem_bin_start;
-extern uint32_t  _binary_lpddr4_pmu_train_1d_imem_bin_end;
-extern uint32_t  _binary_lpddr4_pmu_train_1d_dmem_bin_end;
-extern uint32_t  _binary_lpddr4_pmu_train_2d_imem_bin_end;
-extern uint32_t  _binary_lpddr4_pmu_train_2d_dmem_bin_end;
+extern uint32_t  _binary_blobs_lpddr4_pmu_train_1d_imem_bin_start;
+extern uint32_t  _binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start;
+extern uint32_t  _binary_blobs_lpddr4_pmu_train_2d_imem_bin_start;
+extern uint32_t  _binary_blobs_lpddr4_pmu_train_2d_dmem_bin_start;
+extern uint32_t  _binary_blobs_lpddr4_pmu_train_1d_imem_bin_end;
+extern uint32_t  _binary_blobs_lpddr4_pmu_train_1d_dmem_bin_end;
+extern uint32_t  _binary_blobs_lpddr4_pmu_train_2d_imem_bin_end;
+extern uint32_t  _binary_blobs_lpddr4_pmu_train_2d_dmem_bin_end;
 
 
 #define __umctl2 __attribute__ ((section (".umctl2") ))
@@ -48,21 +48,21 @@ static uint32_t umctl2_load_training_firmware(enum fw_type type)
 
     if (type == FW_1D_IMAGE)
     {
-        imem_start = (unsigned long)&_binary_lpddr4_pmu_train_1d_imem_bin_start;
-        dmem_start = (unsigned long)&_binary_lpddr4_pmu_train_1d_dmem_bin_start;
-        imem_sz = (unsigned long) &_binary_lpddr4_pmu_train_1d_imem_bin_end;
-        imem_sz -= (unsigned long)&_binary_lpddr4_pmu_train_1d_imem_bin_start;
-        dmem_sz = (unsigned long)&_binary_lpddr4_pmu_train_1d_dmem_bin_end;
-        dmem_sz -= (unsigned long)&_binary_lpddr4_pmu_train_1d_dmem_bin_start;
+        imem_start = (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_imem_bin_start;
+        dmem_start = (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start;
+        imem_sz = (unsigned long) &_binary_blobs_lpddr4_pmu_train_1d_imem_bin_end;
+        imem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_imem_bin_start;
+        dmem_sz = (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_dmem_bin_end;
+        dmem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start;
     }
     else
     {
-        imem_start = (unsigned long)&_binary_lpddr4_pmu_train_2d_imem_bin_start;
-        dmem_start = (unsigned long)&_binary_lpddr4_pmu_train_2d_dmem_bin_start;
-        imem_sz = (unsigned long)&_binary_lpddr4_pmu_train_2d_imem_bin_end;
-        imem_sz -= (unsigned long)&_binary_lpddr4_pmu_train_2d_imem_bin_start;
-        dmem_sz = (unsigned long)&_binary_lpddr4_pmu_train_2d_dmem_bin_end;
-        dmem_sz -= (unsigned long)&_binary_lpddr4_pmu_train_2d_dmem_bin_start;
+        imem_start = (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_imem_bin_start;
+        dmem_start = (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_start;
+        imem_sz = (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_imem_bin_end;
+        imem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_imem_bin_start;
+        dmem_sz = (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_end;
+        dmem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_start;
     }
 
     LOG_DBG("Loading image from %lx, sz %lu bytes", imem_start, imem_sz);

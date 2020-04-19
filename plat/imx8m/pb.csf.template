@@ -1,29 +1,41 @@
 [Header]
-Version = 4.3
-Hash Algorithm = sha256
-Engine Configuration = 0
-Certificate Format = X509
-Signature Format = CMS
-Engine = CAAM
+    Version = 4.3
+    Hash Algorithm = sha256
+    Engine = CAAM
+    Engine Configuration = 0
+    Certificate Format = X509
+    Signature Format = CMS
+
+
 
 [Install SRK]
-File = "__SRK_TBL__"
-# This selects which key is used for signing: index = IMG(n-1)
-Source index = 0
+    # This selects which key is used for signing: index = IMG(n-1)
+    File = "__SRK_TBL__"
+    Source index = 0
 
 [Install CSFK]
-File = "__CSFK_PEM__"
+    # Key used to authenticate the CSF data
+    File = "__CSFK_PEM__"
 
 [Authenticate CSF]
-# 
+# Whole line comment
+
+[Unlock]
+    # Leave Job Ring and DECO master ID registers Unlocked
+    Engine = CAAM
+    Features = MID
 
 [Install Key]
-# Key slot index used to authenticate the key to be installed
-Verification index = 0
-# Key to install
-Target index = 2
-File = "__IMG_PEM__"
+    # Key slot index used to authenticate the key to be installed
+    Verification index = 0
+    # Key to install
+    Target index = 2
+    # Key to install
+    File = "__IMG_PEM__"
+
 
 [Authenticate Data]
-Verification index = 2
-__BLOCKS__
+    # Key slot index used to authenticate the image data
+    Verification index = 2
+    # Authenticate Start Address, Offset, Length and file
+    __BLOCKS__

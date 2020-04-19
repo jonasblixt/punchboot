@@ -38,6 +38,7 @@ static struct fuse fuse_uid1 =
 #define IMX6UL_FUSE_SHADOW_BASE 0x021BC000
 
 static struct imx6ul_private private;
+static struct pb_result_slc_key_status key_status;
 
 /* Platform API Calls */
 
@@ -168,7 +169,30 @@ int plat_slc_set_end_of_life(void)
 
 int plat_slc_read(enum pb_slc *slc)
 {
-    *slc = PB_SLC_CONFIGURATION;
+    int err;
+    *slc = PB_SLC_NOT_CONFIGURED;
+
+    // Read fuses
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+
+        if (f->value)
+        {
+            (*slc) = PB_SLC_CONFIGURATION;
+            break;
+        }
+
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'", f->description);
+            return err;
+        }
+    }
+
+    if (hab_secureboot_active())
+        (*slc) = PB_SLC_CONFIGURATION_LOCKED;
+
     return PB_OK;
 }
 
@@ -185,7 +209,8 @@ int plat_slc_revoke_key(uint32_t id)
 
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 {
-    return -PB_ERR;
+    (*status) = &key_status;
+    return PB_OK;
 }
 
 /*
@@ -194,45 +219,7 @@ void plat_preboot_cleanup(void)
     pb_setbit32(1<<1, plat.usb0.base + EHCI_CMD);
 }
 */
-/*
-uint32_t plat_get_security_state(uint32_t *state)
-{
-    uint32_t err;
-    (*state) = PB_SECURITY_STATE_NOT_SECURE;
 
-    // Read fuses
-    foreach_fuse(f, (struct fuse *) fuses)
-    {
-        err = plat_fuse_read(f);
-
-        if (f->value)
-        {
-            (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
-            break;
-        }
-
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-
-    if ((*state) == PB_SECURITY_STATE_NOT_SECURE)
-        return PB_OK;
-
-    if (hab_has_no_errors() == PB_OK)
-        (*state) = PB_SECURITY_STATE_CONFIGURED_OK;
-    else
-        (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
-
-    if (hab_secureboot_active())
-        (*state) = PB_SECURITY_STATE_SECURE;
-
-    return PB_OK;
-}
-*/
 static __a16b const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 

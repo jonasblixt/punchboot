@@ -92,11 +92,12 @@ struct dwc3_trb
     uint32_t control;
 } __packed;
 
-int dwc3_init(void);
+int dwc3_init(__iomem base_addr);
 int dwc3_process(void);
 int dwc3_read(void *bfr, size_t sz);
 int dwc3_write(void *bfr, size_t sz);
 int dwc3_set_address(uint32_t addr);
+int dwc3_set_configuration(void);
 bool dwc3_ready(void);
 
 #endif  // PLAT_IMX_DWC3_H_

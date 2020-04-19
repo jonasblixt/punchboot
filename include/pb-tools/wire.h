@@ -183,7 +183,7 @@ struct pb_result_part_table_entry
     uint16_t block_size;  /*!< Block size */
     uint8_t flags;        /*!< Flags */
     uint8_t rz[56];       /*!< Reserved */
-};
+} __attribute__((packed));
 
 
 /**

@@ -19,4 +19,11 @@
 
 #define IMX8M_FUSE_END { .status = FUSE_INVALID }
 
+#define IMX8M_PRIV(__p) ((struct imx8m_private *) __p)
+
+struct imx8m_private
+{
+    uint32_t soc_ver_var;
+};
+
 #endif  // PLAT_IMX8M_PLAT_H_

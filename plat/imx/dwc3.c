@@ -9,12 +9,12 @@
  */
 
 #include <stdio.h>
-#include <pb.h>
-#include <io.h>
-#include <usb.h>
 #include <string.h>
+#include <pb/pb.h>
+#include <pb/io.h>
+#include <pb/usb.h>
 #include <plat/imx/dwc3.h>
-#include <plat.h>
+#include <pb/plat.h>
 
 #define DWC3_EV_BUFFER_SIZE 128
 #define DWC3_DEF_TIMEOUT_ms 10
@@ -38,10 +38,10 @@ static uint32_t _ev_index;
 static __a4k __no_bss struct usb_setup_packet setup_pkt;
 static __a4k __no_bss struct dwc3_trb trbs[DWC3_NO_TRBS];
 static __no_bss struct dwc3_trb *act_trb[8];
-static volatile __no_bss uint8_t cmd_in_bfr[64];
 static __iomem base;
 static uint32_t version;
 static uint32_t caps;
+static struct pb_usb_interface iface;
 
 static int dwc3_command(uint8_t ep,
                          uint32_t cmd,
@@ -51,10 +51,10 @@ static int dwc3_command(uint8_t ep,
 {
     if (ep > 7)
         return PB_ERR;
-
+/*
     LOG_DBG("cmd %u, ep %u, p0 %x, p1 %x, p2 %x",
                 cmd, ep, p0, p1, p2);
-
+*/
     uint32_t param0_addr = (DWC3_DEPCMDPAR0_0 + 0x10*ep);
     uint32_t param1_addr = (DWC3_DEPCMDPAR1_0 + 0x10*ep);
     uint32_t param2_addr = (DWC3_DEPCMDPAR2_0 + 0x10*ep);
@@ -68,12 +68,12 @@ static int dwc3_command(uint8_t ep,
 
     volatile uint32_t timeout = plat_get_us_tick();
 
-    while ((pb_read32((dev->base + DWC3_DEPCMD_0 +
+    while ((pb_read32((base + DWC3_DEPCMD_0 +
                 (0x10*ep))) & DWC3_DEPCMD_ACT) == DWC3_DEPCMD_ACT)
     {
         if ((plat_get_us_tick() - timeout) > (DWC3_DEF_TIMEOUT_ms*1000))
         {
-            uint32_t ev_status = pb_read32(dev->base + DWC3_DEPCMD_0 + 0x10*ep);
+            uint32_t ev_status = pb_read32(base + DWC3_DEPCMD_0 + 0x10*ep);
             LOG_ERR("CMD %x, Timeout, status = 0x%x", cmd,
                                         (ev_status >> 12) & 0xF);
             return PB_TIMEOUT;
@@ -83,14 +83,13 @@ static int dwc3_command(uint8_t ep,
     return PB_OK;
 }
 
-static uint32_t dwc3_config_ep(struct dwc3_device *dev,
-                               uint8_t ep,
-                               uint32_t sz,
-                               uint32_t type)
+static int dwc3_config_ep(uint8_t ep,
+                           uint32_t sz,
+                           uint32_t type)
 {
-    uint32_t err;
+    int err;
 
-    err = dwc3_command(dev, ep, DWC3_DEPCMD_SETEPCONF,
+    err = dwc3_command(ep, DWC3_DEPCMD_SETEPCONF,
                     ((sz << 3) | (1 << 22) | (type << 1)),
                     ((ep << 25) | (7 << 8)),
                     0);
@@ -98,7 +97,7 @@ static uint32_t dwc3_config_ep(struct dwc3_device *dev,
     if (err != PB_OK)
         return err;
 
-    err = dwc3_command(dev, ep, DWC3_DEPCMD_SETTRANRE, 1, 0, 0);
+    err = dwc3_command(ep, DWC3_DEPCMD_SETTRANRE, 1, 0, 0);
 
     if (err != PB_OK)
         return err;
@@ -121,11 +120,10 @@ static struct dwc3_trb * dwc3_get_next_trb(void)
     return NULL;
 }
 
-uint32_t dwc3_transfer(struct dwc3_device *dev,
-            uint8_t ep, uint8_t *bfr, uint32_t sz)
+int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
 {
     struct dwc3_trb *trb = dwc3_get_next_trb();
-    uint32_t xfr_sz = sz;
+    size_t xfr_sz = sz;
 
     if (trb == NULL)
     {
@@ -154,46 +152,65 @@ uint32_t dwc3_transfer(struct dwc3_device *dev,
             trb->control |= (1 << 4);
     }
 
-    LOG_INFO("trx EP%u %s, %p, sz %ubytes", (ep>>1), (ep&1?"IN":"OUT"),
+    LOG_INFO("trx EP%u %s, %p, sz %zu bytes", (ep>>1), (ep&1?"IN":"OUT"),
                     bfr, sz);
-    LOG_INFO("trb: %p, dev: %p", trb, dev);
 
-    return dwc3_command(dev, ep, DWC3_DEPCMD_STARTRANS, 0, ptr_to_u32(trb), 0);
+    return dwc3_command(ep, DWC3_DEPCMD_STARTRANS, 0, ptr_to_u32(trb), 0);
+}
+
+int dwc3_transfer(int ep, void *bfr, size_t sz)
+{
+    int rc;
+
+    rc = dwc3_transfer_no_wait(ep, bfr, sz);
+
+    if (rc != PB_OK)
+        return rc;
+
+    volatile struct dwc3_trb *trb = act_trb[ep];
+
+    while ((trb->control & 1) == 1)
+    {
+        plat_wdog_kick();
+//        dwc3_process();
+    }
+
+    return PB_OK;
 }
 
 
-static void dwc3_reset(struct dwc3_device *dev)
+static void dwc3_reset(void)
 {
     /* Read DCFG and mask out Device address*/
-    pb_clrbit32(0x3F8, dev->base + DWC3_DCFG);
+    pb_clrbit32(0x3F8, base + DWC3_DCFG);
 
-    dwc3_transfer(dev, USB_EP0_OUT, (uint8_t *) &setup_pkt,
+    dwc3_transfer_no_wait(USB_EP0_OUT, (uint8_t *) &setup_pkt,
                         sizeof(struct usb_setup_packet));
 }
 
-uint32_t dwc3_init(struct dwc3_device *dev)
+int dwc3_init(__iomem base_addr)
 {
-    uint32_t err;
+    int err;
     volatile uint32_t reg = 0;
-
+    base = base_addr;
     _ev_index = 0;
 
 
     pb_clrbit32((DWC3_PHY_CTRL1_VDATSRCENB0 | DWC3_PHY_CTRL1_VDATDETENB0 |
-            DWC3_PHY_CTRL1_COMMONONN), dev->base + DWC3_PHY_CTRL1);
+            DWC3_PHY_CTRL1_COMMONONN), base + DWC3_PHY_CTRL1);
 
     pb_setbit32((DWC3_PHY_CTRL1_RESET | DWC3_PHY_CTRL1_ATERESET),
-                    dev->base + DWC3_PHY_CTRL1);
+                    base + DWC3_PHY_CTRL1);
 
-    pb_setbit32(DWC3_PHY_CTRL0_REF_SSP_EN, dev->base + DWC3_PHY_CTRL0);
+    pb_setbit32(DWC3_PHY_CTRL0_REF_SSP_EN, base + DWC3_PHY_CTRL0);
 
-    pb_setbit32(DWC3_PHY_CTRL2_TXENABLEN0, dev->base + DWC3_PHY_CTRL2);
+    pb_setbit32(DWC3_PHY_CTRL2_TXENABLEN0, base + DWC3_PHY_CTRL2);
 
     pb_clrbit32((DWC3_PHY_CTRL1_RESET | DWC3_PHY_CTRL1_ATERESET),
-                    dev->base + DWC3_PHY_CTRL1);
+                    base + DWC3_PHY_CTRL1);
 
-    dev->version = (pb_read32(dev->base + DWC3_CAPLENGTH) >> 16) & 0xFFFF;
-    dev->caps = pb_read32(dev->base + DWC3_CAPLENGTH) & 0xFF;
+    version = (pb_read32(base + DWC3_CAPLENGTH) >> 16) & 0xFFFF;
+    caps = pb_read32(base + DWC3_CAPLENGTH) & 0xFF;
 
     memset((void *)_ev_buffer, 0, sizeof(_ev_buffer));
     memset((void *)trbs, 0, sizeof(trbs));
@@ -201,72 +218,79 @@ uint32_t dwc3_init(struct dwc3_device *dev)
     for (uint32_t n = 0; n < 8; n++)
         act_trb[n] = NULL;
 
-    LOG_INFO("HCI ver: 0x%x, caps: 0x%x", dev->version, dev->caps);
+    LOG_INFO("HCI ver: 0x%x, caps: 0x%x", version, caps);
 
     /* Put core in reset */
-    pb_setbit32(1<<11, dev->base + DWC3_GCTL);
+    pb_setbit32(1<<11, base + DWC3_GCTL);
     /* Reset USB3 PHY */
-    pb_setbit32(1 << 31, dev->base + DWC3_GUSB3PIPECTL);
+    pb_setbit32(1 << 31, base + DWC3_GUSB3PIPECTL);
     /* Reset USB2 PHY */
-    pb_setbit32(1 << 31, dev->base + DWC3_GUSB2PHYCFG);
+    pb_setbit32(1 << 31, base + DWC3_GUSB2PHYCFG);
 
     plat_delay_ms(100);
 
     /* Release resets */
-    pb_clrbit32(1 << 31, dev->base + DWC3_GUSB3PIPECTL);
-    pb_clrbit32(1 << 31, dev->base + DWC3_GUSB2PHYCFG);
+    pb_clrbit32(1 << 31, base + DWC3_GUSB3PIPECTL);
+    pb_clrbit32(1 << 31, base + DWC3_GUSB2PHYCFG);
 
-    plat_delay_ms(100);
+    plat_delay_ms(100); /* TODO: Is this really needed? */
 
-    pb_clrbit32(1<<11, dev->base + DWC3_GCTL);
-    pb_clrbit32(1<<6, dev->base + DWC3_GUSB2PHYCFG);
+    pb_clrbit32(1<<11, base + DWC3_GCTL);
+    pb_clrbit32(1<<6, base + DWC3_GUSB2PHYCFG);
 
     /* Reset usb controller */
-    pb_setbit32(1<<30, dev->base + DWC3_DCTL);
+    pb_setbit32(1<<30, base + DWC3_DCTL);
 
     do
     {
-        reg = pb_read32(dev->base + DWC3_DCTL);
+        reg = pb_read32(base + DWC3_DCTL);
     } while (reg & (1 << 30));
 
-    pb_write32(ptr_to_u32(_ev_buffer), dev->base + DWC3_GEVNTADRLO);
+    pb_write32(ptr_to_u32(_ev_buffer), base + DWC3_GEVNTADRLO);
 
-    pb_clrbit32(DWC3_GCTL_SCALEDOWN_MASK, dev->base + DWC3_GCTL);
-    pb_clrbit32(1<<17, dev->base + DWC3_GCTL);
+    pb_clrbit32(DWC3_GCTL_SCALEDOWN_MASK, base + DWC3_GCTL);
+    pb_clrbit32(1<<17, base + DWC3_GCTL);
 
 
-    pb_write32(0x82, dev->base + DWC3_GTXFIFOSIZ_0);
-    pb_write32(0x305, dev->base + DWC3_GRXFIFOSIZ_0);
+    pb_write32(0x82, base + DWC3_GTXFIFOSIZ_0);
+    pb_write32(0x305, base + DWC3_GRXFIFOSIZ_0);
     /* Configure event buffer */
-    pb_write32(0 , dev->base + DWC3_GEVNTADRHI);
-    pb_write32(DWC3_EV_BUFFER_SIZE*4, dev->base + DWC3_GEVNTSIZ);
-    pb_write32(0, dev->base + DWC3_GEVNTCOUNT);
-    pb_setbit32(((2 << 12) | 1), dev->base + DWC3_GCTL);
-    pb_setbit32((1 << 11), dev->base + DWC3_DCFG);
+    pb_write32(0 , base + DWC3_GEVNTADRHI);
+    pb_write32(DWC3_EV_BUFFER_SIZE*4, base + DWC3_GEVNTSIZ);
+    pb_write32(0, base + DWC3_GEVNTCOUNT);
+    pb_setbit32(((2 << 12) | 1), base + DWC3_GCTL);
+    pb_setbit32((1 << 11), base + DWC3_DCFG);
 
-    pb_write32((0xF |(1 << 9)), dev->base + DWC3_DEVTEN);
+    pb_write32((0xF |(1 << 9)), base + DWC3_DEVTEN);
 
-    err = dwc3_command(dev, 0, DWC3_DEPCMD_STARTNEWC, 0, 0, 0);
+    err = dwc3_command(0, DWC3_DEPCMD_STARTNEWC, 0, 0, 0);
 
     if (err != PB_OK)
         return err;
 
     /* Perform EP0 out configuration */
-    err = dwc3_config_ep(dev, 0, 64, 0);
+    err = dwc3_config_ep(0, 64, 0);
 
     if (err != PB_OK)
         return err;
 
-    err = dwc3_config_ep(dev, 1, 64, 0);
+    err = dwc3_config_ep(1, 64, 0);
 
     if (err != PB_OK)
         return err;
 
 
-    dwc3_reset(dev);
+    dwc3_reset();
 
-    pb_write32(3, dev->base + DWC3_DALEPENA);
-    pb_setbit32(1<<31, dev->base + DWC3_DCTL);
+    pb_write32(3, base + DWC3_DALEPENA);
+    pb_setbit32(1<<31, base + DWC3_DCTL);
+
+
+    iface.read = dwc3_transfer;
+    iface.write = dwc3_transfer;
+    iface.set_address = dwc3_set_address;
+    iface.set_configuration = dwc3_set_configuration;
+    iface.enumerated = false;
 
     LOG_INFO("Done");
     return PB_OK;
@@ -274,48 +298,25 @@ uint32_t dwc3_init(struct dwc3_device *dev)
 
 
 
-void dwc3_set_addr(struct dwc3_device *dev, uint32_t addr)
+int dwc3_set_address(uint32_t addr)
 {
-    volatile uint32_t reg = pb_read32(dev->base + DWC3_DCFG);
+    volatile uint32_t reg = pb_read32(base + DWC3_DCFG);
 
     reg = (addr << 3) | (64 << 17) | (1 << 11);
-    pb_write32(reg, dev->base + DWC3_DCFG);
+    pb_write32(reg, base + DWC3_DCFG);
+    return PB_OK;
 }
 
-void dwc3_wait_for_ep_completion(struct dwc3_device *dev, uint32_t ep)
+int dwc3_set_configuration(void)
 {
-    UNUSED(dev);
-    volatile struct dwc3_trb *trb = act_trb[ep];
-
-    uint32_t t = plat_get_us_tick();
-
-    while ((trb->control & 1) == 1)
-    {
-        plat_wdog_kick();
-        if ((plat_get_us_tick()-t) > 5000000)
-        {
-            LOG_ERR("Timeout EP%u %s ssz: 0x%x 0x%x",
-                ep>>1, ep&1?"IN":"OUT", trb->ssz, trb->control);
-            break;
-        }
-    }
-}
-
-
-void dwc3_set_configuration(struct usb_device *dev)
-{
-    struct dwc3_device *pdev = (struct dwc3_device *) dev->platform_data;
-    dwc3_command(pdev, 0, DWC3_DEPCMD_STARTNEWC|(2<<16), 0, 0, 0);
-    dwc3_config_ep(pdev, USB_EP1_OUT, 512, 2);
-    dwc3_config_ep(pdev, USB_EP2_OUT, 64, 3);
-    dwc3_config_ep(pdev, USB_EP3_IN, 512, 3);
+    dwc3_command(0, DWC3_DEPCMD_STARTNEWC|(2<<16), 0, 0, 0);
+    dwc3_config_ep(USB_EP1_IN, 512, 2);
+    dwc3_config_ep(USB_EP2_OUT, 512, 2);
 
     pb_setbit32((1 << USB_EP2_OUT) |
-                (1 << USB_EP1_OUT) |
-                (1 << USB_EP3_IN), pdev->base + DWC3_DALEPENA);
+                (1 << USB_EP1_IN), base + DWC3_DALEPENA);
 
-    dwc3_transfer(pdev, USB_EP2_OUT, (uint8_t *) cmd_in_bfr,
-                        64);
+    return PB_OK;
 }
 
 static bool dwc3_trb_hwo(struct dwc3_trb *trb)
@@ -329,12 +330,9 @@ static bool dwc3_trb_hwo(struct dwc3_trb *trb)
     return true;
 }
 
-void dwc3_task(struct usb_device *dev)
+int dwc3_process(void)
 {
-    struct dwc3_device *pdev =
-            (struct dwc3_device *) dev->platform_data;
-
-    uint32_t evcnt = pb_read32(pdev->base + DWC3_GEVNTCOUNT);
+    uint32_t evcnt = pb_read32(base + DWC3_GEVNTCOUNT);
     volatile uint32_t ev;
 
     if (evcnt >= 4)
@@ -355,7 +353,7 @@ void dwc3_task(struct usb_device *dev)
                 break;
                 case 2: /* Connection done */
                 {
-                    pb_write32(1 << 17, pdev->base + DWC3_GUSB3PIPECTL);
+                    pb_write32(1 << 17, base + DWC3_GUSB3PIPECTL);
                     LOG_INFO("Connection done 0x%x", ev);
                 }
                 break;
@@ -371,7 +369,7 @@ void dwc3_task(struct usb_device *dev)
         }
         else
         { /* Device Endpoint-n events*/
-          /*  
+          /*
             uint32_t ep = (ev >> 1) & 0x1F;
             uint32_t ev_param = (ev >> 16) & 0xFFFF;
             uint32_t ev_status = (ev >> 12) & 0xF;
@@ -384,21 +382,33 @@ void dwc3_task(struct usb_device *dev)
 
         _ev_index = (((_ev_index + 1) % DWC3_EV_BUFFER_SIZE));
         /*LOG_DBG("ev_index %u", _ev_index);*/
-        pb_write32(4, pdev->base + DWC3_GEVNTCOUNT);
+        pb_write32(4, base + DWC3_GEVNTCOUNT);
     }
 
     if (dwc3_trb_hwo(act_trb[USB_EP0_OUT]))
     {
         plat_delay_ms(1);
-        dev->on_setup_pkt(dev, (struct usb_setup_packet *)&setup_pkt);
-        dwc3_transfer(pdev, USB_EP0_OUT, (uint8_t *)&setup_pkt,
+
+        usb_process_setup_pkt(&iface, &setup_pkt);
+        dwc3_transfer_no_wait(USB_EP0_OUT, (uint8_t *)&setup_pkt,
                         sizeof(struct usb_setup_packet));
     }
 
-    if (dwc3_trb_hwo(act_trb[USB_EP2_OUT]))
-    {
-        struct pb_cmd_header *cmd = (struct pb_cmd_header *) cmd_in_bfr;
-        dev->on_command(dev, cmd);
-        dwc3_transfer(pdev, USB_EP2_OUT, (uint8_t *) cmd_in_bfr, 64);
-    }
+    return PB_OK;
 }
+
+int dwc3_read(void *buf, size_t size)
+{
+    return dwc3_transfer(USB_EP2_OUT, buf, size);
+}
+
+int dwc3_write(void *buf, size_t size)
+{
+    return dwc3_transfer(USB_EP1_IN, buf, size);
+}
+
+bool dwc3_ready(void)
+{
+    return iface.enumerated;
+}
+

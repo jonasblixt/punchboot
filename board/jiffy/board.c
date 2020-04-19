@@ -40,6 +40,15 @@ const struct fuse fuses[] =
 #define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
                    PB_STORAGE_MAP_FLAG_VISIBLE)
 
+const uint32_t rom_key_map[] =
+{
+    0xa90f9680,
+    0x25c6dd36,
+    0x52c1eda0,
+    0xcca57803,
+    0x00000000,
+};
+
 const struct pb_storage_map map[] =
 {
     PB_STORAGE_MAP3("9eef7544-bf68-4bf7-8678-da117cbccba8",
@@ -113,15 +122,13 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
 
     if (verbose_boot)
     {
-        bootargs = "console=ttyLP0,115200  " \
-                   "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk " \
-                   "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
+        bootargs = "console=ttymxc1,115200 " \
+                         "earlyprintk ";
     }
     else
     {
-        bootargs = "console=ttyLP0,115200  " \
-                   "quiet " \
-                   "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
+        bootargs = "console=ttymxc1,115200 " \
+                         "quiet ";
     }
     return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 

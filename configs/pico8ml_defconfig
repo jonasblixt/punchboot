@@ -7,6 +7,66 @@ CONFIG_ARCH_ARMV8=y
 # CONFIG_PLAT_IMX8X is not set
 CONFIG_PLAT_IMX8M=y
 CONFIG_BOARD_PICO8ML=y
+CONFIG_IMX_CAAM_BASE=0x31430000
+CONFIG_IMX_WATCHDOG_BASE=0x30280000
+CONFIG_IMX_GPT_BASE=0x302D0000
+CONFIG_IMX_GPT_PR=24
+CONFIG_IMX_UART_BASE=0x30860000
+CONFIG_IMX_UART_BAUDRATE=115200
+CONFIG_IMX_OCOTP_BASE=0x30350000
+CONFIG_IMX_OCOTP_WORDS_PER_BANK=4
+# CONFIG_IMX_OCOTP_DEBUG is not set
+
+#
+# imx8m configuration
+#
+
+#
+# Console configuration
+#
+
+#
+# USB Transport
+#
+CONFIG_DWC3_BASE=0x03180000
+
+#
+# CAAM
+#
+
+#
+# Watchdog
+#
+
+#
+# Generic timer
+#
+
+#
+# Debug serial port
+#
+
+#
+# Fusebox
+#
+CONFIG_IMX8M_UMCTL_TRAIN_1D_D="blobs/lpddr4_pmu_train_1d_dmem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_1D_I="blobs/lpddr4_pmu_train_1d_imem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_2D_D="blobs/lpddr4_pmu_train_2d_dmem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_2D_I="blobs/lpddr4_pmu_train_2d_imem.bin"
+
+#
+# Output image
+#
+CONFIG_IMX8M_CREATE_IMX_IMAGE=y
+CONFIG_IMX8M_MKIMAGE_TOOL="mkimage_imx8"
+CONFIG_IMX8M_SIGN_IMAGE=y
+CONFIG_IMX8M_CST_TOOL="cst"
+CONFIG_IMX8M_SRK_TABLE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
+CONFIG_IMX8M_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
+CONFIG_IMX8M_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
+# end of Output image
+# end of imx8m configuration
+
 CONFIG_TOOLCHAIN_PREFIX="aarch64-linux-gnu-"
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_LOGLEVEL=3

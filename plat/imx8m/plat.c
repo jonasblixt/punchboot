@@ -29,10 +29,10 @@
 #include <plat/imx/wdog.h>
 #include <plat/umctl2.h>
 
-static struct pb_platform_setup plat;
+static struct imx8m_private private;
 extern struct fuse fuses[];
 
-static __no_bss struct fsl_caam_jr caam;
+static struct pb_result_slc_key_status key_status;
 static struct fuse fuse_uid0 =
         IMX8M_FUSE_BANK_WORD(0, 1, "UID0");
 
@@ -81,7 +81,7 @@ uint32_t plat_get_security_state(uint32_t *state)
 static const char platform_namespace_uuid[] =
     "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
 
-uint32_t plat_get_uuid(char *out)
+int plat_get_uuid(char *out)
 {
     plat_fuse_read(&fuse_uid0);
     plat_fuse_read(&fuse_uid1);
@@ -92,20 +92,11 @@ uint32_t plat_get_uuid(char *out)
 
     LOG_INFO("%08x %08x", fuse_uid0.value, fuse_uid1.value);
 
-    return uuid_gen_uuid3(platform_namespace_uuid, 16,
+    return uuid_gen_uuid3(platform_namespace_uuid,
                           (const char *) uid, 8, out);
 }
 
-uint32_t plat_get_params(struct param **pp)
-{
-    char uuid_raw[16];
-
-    param_add_str((*pp)++, "Platform", "NXP IMX8M");
-    plat_get_uuid(uuid_raw);
-    param_add_uuid((*pp)++, "Device UUID", uuid_raw);
-    return PB_OK;
-}
-
+#ifdef __NOPE
 uint32_t plat_setup_device(struct param *params)
 {
     uint32_t err;
@@ -145,21 +136,7 @@ uint32_t plat_setup_device(struct param *params)
 
     return board_setup_device(params);
 }
-
-uint32_t plat_setup_lock(void)
-{
-    return PB_ERR;
-}
-
-uint32_t plat_prepare_recovery(void)
-{
-    return board_prepare_recovery(&plat);
-}
-
-bool plat_force_recovery(void)
-{
-    return board_force_recovery(&plat);
-}
+#endif
 
 void plat_reset(void)
 {
@@ -168,7 +145,7 @@ void plat_reset(void)
 
 uint32_t plat_get_us_tick(void)
 {
-    return gp_timer_get_tick(&plat.tmr0);
+    return gp_timer_get_tick();
 }
 
 void plat_preboot_cleanup(void)
@@ -177,8 +154,7 @@ void plat_preboot_cleanup(void)
 
 void plat_wdog_init(void)
 {
-    plat.wdog.base = 0x30280000;
-    imx_wdog_init(&plat.wdog, 15);
+    imx_wdog_init(CONFIG_IMX_WATCHDOG_BASE, CONFIG_WATCHDOG_TIMEOUT);
 }
 
 void plat_wdog_kick(void)
@@ -231,17 +207,31 @@ uint32_t imx8m_cg_print(uint32_t cg_id)
 }
 #endif
 
-uint32_t plat_early_init(void)
+int plat_early_init(void)
 {
-    uint32_t err;
+    /* Read SOC variant and version */
 
-    board_early_init(&plat);
+     private.soc_ver_var = pb_read32(CCM_ANALOG_DIGPROG);
 
-    plat_wdog_init();
+    /* Ungate GPIO blocks */
+
+    pb_write32(3, 0x30384004 + 0x10*11);
+    pb_write32(3, 0x30384004 + 0x10*12);
+    pb_write32(3, 0x30384004 + 0x10*13);
+    pb_write32(3, 0x30384004 + 0x10*14);
+    pb_write32(3, 0x30384004 + 0x10*15);
+
+
+    pb_write32(3, 0x30384004 + 0x10*27);
+    pb_write32(3, 0x30384004 + 0x10*28);
+    pb_write32(3, 0x30384004 + 0x10*29);
+    pb_write32(3, 0x30384004 + 0x10*30);
+    pb_write32(3, 0x30384004 + 0x10*31);
 
     /* PLL1 div10 */
     imx8m_clock_cfg(GPT1_CLK_ROOT | (5 << 24), CLK_ROOT_ON);
-    gp_timer_init(&plat.tmr0);
+
+    gp_timer_init(CONFIG_IMX_GPT_BASE, CONFIG_IMX_GPT_PR);
     tr_stamp_begin(TR_POR);
 
     /* Enable and ungate WDOG clocks */
@@ -250,9 +240,6 @@ uint32_t plat_early_init(void)
     pb_write32(3, 0x30384004 + 0x10*84);
     pb_write32(3, 0x30384004 + 0x10*85);
 
-    imx_uart_init(&plat.uart0);
-
-    LOG_DBG("Hello");
 
     /* Configure main clocks */
     imx8m_clock_cfg(ARM_A53_CLK_ROOT, CLK_ROOT_ON);
@@ -300,125 +287,75 @@ uint32_t plat_early_init(void)
     pb_write32(3, 0x30384004 + 0x10*79);
     pb_write32(3, 0x30384004 + 0x10*80);
 
-    LOG_INFO("Main PLL configured");
+    plat_console_init();
 
-    LOG_DBG("ARM PLL %08x", pb_read32(0x30360028));
-    LOG_DBG("SYS PLL1 %08x", pb_read32(0x30360030));
-    LOG_DBG("SYS PLL2 %08x", pb_read32(0x3036003C));
-    LOG_DBG("SYS PLL3 %08x", pb_read32(0x30360048));
-    LOG_DBG("DRAM PLL %08x", pb_read32(0x30360060));
-
-    err = board_late_init(&plat);
 
     umctl2_init();
 
     LOG_DBG("LPDDR4 training complete");
 
-    if (err != PB_OK)
-    {
-        LOG_ERR("Board late init failed");
-        return err;
-    }
-
     pb_write32((1<<2), 0x303A00F8);
-
 
     pb_write32(0x03030303, 0x30384004 + 0x10*48);
     pb_write32(0x03030303, 0x30384004 + 0x10*81);
 
-    caam.base = 0x30901000;
-    err = caam_init(&caam);
-
-    if (err != PB_OK)
-    {
-        LOG_ERR("Could not initialize CAAM");
-        return err;
-    }
-    ocotp_init(&plat.ocotp);
-
-    if (hab_secureboot_active())
-    {
-        LOG_INFO("Secure boot active");
-    } else {
-        LOG_INFO("Secure boot disabled");
-    }
-
-    if (hab_has_no_errors() == PB_OK)
-    {
-        LOG_INFO("No HAB errors found");
-    } else {
-        LOG_ERR("HAB is reporting errors");
-    }
-
-    err = usdhc_emmc_init(&plat.usdhc0);
-
-    if (err != PB_OK)
-    {
-        LOG_ERR("Could not initialize eMMC");
-        return err;
-    }
+    ocotp_init(CONFIG_IMX_OCOTP_BASE,
+               CONFIG_IMX_OCOTP_WORDS_PER_BANK);
 
     tr_stamp_end(TR_POR);
-    return err;
+
+    LOG_DBG("Board early");
+    return board_early_init(&private);
 }
 
-/* EMMC Interface */
 
-uint32_t plat_write_block_async(uint32_t lba_offset,
-                          uintptr_t bfr,
-                          uint32_t no_of_blocks)
+int imx_usdhc_plat_init(struct usdhc_device *dev)
 {
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset,
-                                  (uint8_t*)bfr,
-                                  no_of_blocks,
-                                  1, 1);
+    /* USDHC1 reset */
+    /* Configure as GPIO 2 10*/
+    pb_write32(5, 0x303300C8);
+    pb_write32((1 << 10), 0x30210004);
+
+    pb_setbit32(1<<10, 0x30210000);
+
+    /* USDHC1 mux */
+    pb_write32(0, 0x303300A0);
+    pb_write32(0, 0x303300A4);
+
+    pb_write32(0, 0x303300A8);
+    pb_write32(0, 0x303300AC);
+    pb_write32(0, 0x303300B0);
+    pb_write32(0, 0x303300B4);
+    pb_write32(0, 0x303300B8);
+    pb_write32(0, 0x303300BC);
+    pb_write32(0, 0x303300C0);
+    pb_write32(0, 0x303300C4);
+    //  pb_write32 (0, 0x303300C8);
+    pb_write32(0, 0x303300CC);
+
+    /* Setup USDHC1 pins */
+#define USDHC1_PAD_CONF ((1 << 7) | (1 << 6) | (2 << 3) | 6)
+    pb_write32(USDHC1_PAD_CONF, 0x30330308);
+    pb_write32(USDHC1_PAD_CONF, 0x3033030C);
+    pb_write32(USDHC1_PAD_CONF, 0x30330310);
+    pb_write32(USDHC1_PAD_CONF, 0x30330314);
+    pb_write32(USDHC1_PAD_CONF, 0x30330318);
+    pb_write32(USDHC1_PAD_CONF, 0x3033031C);
+    pb_write32(USDHC1_PAD_CONF, 0x30330320);
+    pb_write32(USDHC1_PAD_CONF, 0x30330324);
+    pb_write32(USDHC1_PAD_CONF, 0x30330328);
+    pb_write32(USDHC1_PAD_CONF, 0x3033032C);
+
+    pb_write32(USDHC1_PAD_CONF, 0x30330334);
+    pb_clrbit32(1<<10, 0x30210000);
+    return PB_OK;
 }
 
-uint32_t plat_flush_block(void)
+int plat_transport_init(void)
 {
-    return usdhc_emmc_wait_for_de(&plat.usdhc0);
-}
+    int err;
 
-uint32_t plat_write_block(uint32_t lba_offset,
-                          uintptr_t bfr,
-                          uint32_t no_of_blocks)
-{
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset,
-                                  (uint8_t*)bfr,
-                                  no_of_blocks,
-                                  1, 0);
-}
-
-uint32_t plat_read_block(uint32_t lba_offset,
-                         uintptr_t bfr,
-                         uint32_t no_of_blocks)
-{
-    return usdhc_emmc_xfer_blocks(&plat.usdhc0,
-                                  lba_offset,
-                                  (uint8_t *)bfr,
-                                  no_of_blocks,
-                                  0, 0);
-}
-
-uint32_t plat_switch_part(uint8_t part_no)
-{
-    return usdhc_emmc_switch_part(&plat.usdhc0, part_no);
-}
-
-uint64_t plat_get_lastlba(void)
-{
-    return (plat.usdhc0.sectors-1);
-}
-
-/* USB Interface API */
-uint32_t  plat_usb_init(struct usb_device *dev)
-{
-    uint32_t err;
-
-    dev->platform_data = (void *) &plat.usb0;
-    err = dwc3_init(&plat.usb0);
+    err = dwc3_init(CONFIG_DWC3_BASE);
 
     if (err != PB_OK)
     {
@@ -429,47 +366,62 @@ uint32_t  plat_usb_init(struct usb_device *dev)
     return PB_OK;
 }
 
-void plat_usb_task(struct usb_device *dev)
+
+/* Transport API */
+
+int plat_transport_process(void)
 {
-    dwc3_task(dev);
+    return dwc3_process();
 }
 
-uint32_t plat_usb_transfer(struct usb_device *dev,
-                           uint8_t ep,
-                           uint8_t *bfr,
-                           uint32_t sz)
+int plat_transport_write(void *buf, size_t size)
 {
-    struct dwc3_device *d = (struct dwc3_device*) dev->platform_data;
-    return dwc3_transfer(d, ep, bfr, sz);
+    return dwc3_write(buf, size);
 }
 
-void plat_usb_set_address(struct usb_device *dev, uint32_t addr)
+int plat_transport_read(void *buf, size_t size)
 {
-    struct dwc3_device *d = (struct dwc3_device*) dev->platform_data;
-    dwc3_set_addr(d, addr);
+    return dwc3_read(buf, size);
 }
 
-void plat_usb_set_configuration(struct usb_device *dev)
+bool plat_transport_ready(void)
 {
-    dwc3_set_configuration(dev);
+    return dwc3_ready();
 }
 
-void plat_usb_wait_for_ep_completion(struct usb_device *dev, uint32_t ep)
+int imx_ehci_set_address(uint32_t addr)
 {
-    struct dwc3_device *d = (struct dwc3_device*) dev->platform_data;
-    dwc3_wait_for_ep_completion(d, ep);
+    return dwc3_set_address(addr);
 }
 
 /* UART Interface */
 
-void plat_uart_putc(void *ptr, char c)
+int plat_console_init(void)
 {
-    UNUSED(ptr);
-    imx_uart_putc(c);
+    /* Enable UART1 clock */
+    pb_write32((1 << 28), 0x30388004 + 94*0x80);
+    /* Ungate UART1 clock */
+    pb_write32(3, 0x30384004 + 0x10*73);
+
+    /* UART1 pad mux */
+    pb_write32(0, 0x30330234);
+    pb_write32(0, 0x30330238);
+
+    /* UART1 PAD settings */
+    pb_write32(7, 0x3033049C);
+    pb_write32(7, 0x303304A0);
+
+    return imx_uart_init(CONFIG_IMX_UART_BASE,
+                  CONFIG_IMX_UART_BAUDRATE);
 }
 
+int plat_console_putchar(char c)
+{
+    imx_uart_putc(c);
+    return PB_OK;
+}
 /* FUSE Interface */
-uint32_t  plat_fuse_read(struct fuse *f)
+int plat_fuse_read(struct fuse *f)
 {
     if (!(f->status & FUSE_VALID))
         return PB_ERR;
@@ -487,7 +439,7 @@ uint32_t  plat_fuse_read(struct fuse *f)
     return PB_OK;
 }
 
-uint32_t  plat_fuse_write(struct fuse *f)
+int plat_fuse_write(struct fuse *f)
 {
     char s[64];
 
@@ -504,7 +456,7 @@ uint32_t  plat_fuse_write(struct fuse *f)
     return ocotp_write(f->bank, f->word, f->value);
 }
 
-uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
+int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 {
     return snprintf(s, n,
             "   FUSE<%u,%u> 0x%x %s = 0x%x\n",
@@ -513,3 +465,114 @@ uint32_t  plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 }
 
 
+
+
+int plat_crypto_init(void)
+{
+    return imx_caam_init();
+}
+
+int plat_hash_init(struct pb_hash_context *ctx, enum pb_hash_algs alg)
+{
+    return caam_hash_init(ctx, alg);
+}
+
+int plat_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
+{
+    return caam_hash_update(ctx, buf, size);
+}
+
+int plat_hash_finalize(struct pb_hash_context *ctx, void *buf, size_t size)
+{
+    return caam_hash_finalize(ctx, buf, size);
+}
+
+int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
+                        struct bpak_key *key)
+{
+    return caam_pk_verify(hash, key, signature, size);
+}
+
+int plat_status(void *response_bfr,
+                    size_t *response_size)
+{
+    return board_status(&private, response_bfr, response_size);
+}
+
+
+/* SLC API */
+
+int plat_slc_init(void)
+{
+    if (hab_secureboot_active())
+    {
+        LOG_INFO("Secure boot active");
+    } else {
+        LOG_INFO("Secure boot disabled");
+    }
+
+    if (hab_has_no_errors() == PB_OK)
+    {
+        LOG_INFO("No HAB errors found");
+    } else {
+        LOG_ERR("HAB is reporting errors");
+    }
+    return PB_OK;
+}
+
+int plat_slc_set_configuration(void)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_set_configuration_lock(void)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_set_end_of_life(void)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_read(enum pb_slc *slc)
+{
+    return PB_OK;
+}
+
+int plat_slc_key_active(uint32_t id, bool *active)
+{
+    *active = true;
+    return PB_OK;
+}
+
+int plat_slc_revoke_key(uint32_t id)
+{
+    return -PB_ERR;
+}
+
+int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
+{
+    (*status) = &key_status;
+    return PB_OK;
+}
+
+bool plat_force_command_mode(void)
+{
+    return board_force_command_mode(&private);
+}
+
+int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
+{
+    return board_patch_bootargs(&private, fdt, offset, verbose_boot);
+}
+
+int plat_command(uint32_t command,
+                     void *bfr,
+                     size_t size,
+                     void *response_bfr,
+                     size_t *response_size)
+{
+    return board_command(&private, command, bfr, size,
+                            response_bfr, response_size);
+}

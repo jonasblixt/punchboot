@@ -29,3 +29,4 @@ tools/pbstate/src/Makefile.in
 tools/pbstate/test/Makefile.in
 
 update.sh
+config.h
