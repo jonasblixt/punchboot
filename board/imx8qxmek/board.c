@@ -85,6 +85,15 @@ const struct pb_storage_map map[] =
     PB_STORAGE_MAP_END
 };
 
+const uint32_t rom_key_map[] =
+{
+    0xa90f9680,
+    0x25c6dd36,
+    0x52c1eda0,
+    0xcca57803,
+    0x00000000,
+};
+
 /* USDHC0 driver configuration */
 
 static uint8_t usdhc0_dev_private_data[4096*4] __no_bss __a4k;
@@ -210,11 +219,30 @@ int board_status(void *plat,
                     void *response_bfr,
                     size_t *response_size)
 {
+    struct imx8x_private *priv = IMX8X_PRIV(plat);
+    uint32_t scu_version;
+    uint32_t scu_commit;
+    uint32_t seco_version;
+    uint32_t seco_commit;
+    int16_t celsius;
+    int8_t tenths;
+
     char *response = (char *) response_bfr;
     size_t resp_buf_size = *response_size;
 
+    sc_misc_build_info(priv->ipc, &scu_version, &scu_commit);
+    sc_misc_seco_build_info(priv->ipc, &seco_version, &seco_commit);
+    sc_misc_get_temp(priv->ipc, SC_R_SYSTEM, SC_MISC_TEMP, &celsius,
+                        &tenths);
+
     (*response_size) = snprintf(response, resp_buf_size,
-                            "Board status OK!\n");
+                            "SCFW: %u, %x\n" \
+                            "SECO: %u, %x\n" \
+                            "CPU Temperature: %i.%i deg C\n",
+                            scu_version, scu_commit,
+                            seco_version, seco_commit,
+                            celsius, tenths);
+
     response[(*response_size)++] = 0;
 
     return PB_OK;

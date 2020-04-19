@@ -2,13 +2,14 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <pb/plat.h>
@@ -40,98 +41,13 @@
 
 static struct imx8x_private private;
 extern struct fuse fuses[];
+extern const uint32_t rom_key_map[];
 
-int plat_setup_lock(void)
-{
-    uint32_t err;
+static struct pb_result_slc_key_status key_status;
 
-    LOG_INFO("About to change security state to locked");
+static enum pb_slc slc_status;
 
-    err = sc_misc_seco_forward_lifecycle(private.ipc, 16);
-
-    return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
-}
-
-
-int plat_setup_device(void)
-{
-    uint32_t err;
-
-    /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
-    {
-        err = plat_fuse_read(f);
-
-        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-    /* Perform the actual fuse programming */
-
-    LOG_INFO("Writing fuses");
-
-    foreach_fuse(f, fuses)
-    {
-        if ((f->value & f->default_value) != f->default_value)
-        {
-            f->value = f->default_value;
-            err = plat_fuse_write(f);
-
-            if (err != PB_OK)
-                return err;
-        }
-        else
-        {
-            LOG_DBG("Fuse %s already programmed", f->description);
-        }
-    }
-
-    return PB_OK;
-}
-
-
-int plat_get_security_state(uint32_t *state)
-{
-    uint32_t err;
-    (*state) = PB_SECURITY_STATE_NOT_SECURE;
-
-    /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
-    {
-        err = plat_fuse_read(f);
-
-        if (f->value)
-        {
-            (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
-            break;
-        }
-
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-    /*TODO: Check SECO for error events */
-    (*state) = PB_SECURITY_STATE_CONFIGURED_OK;
-
-    uint16_t lc;
-    uint16_t monotonic;
-    uint32_t uid_l;
-    uint32_t uid_h;
-
-    sc_misc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
-
-    if (lc == 128)
-        (*state) = PB_SECURITY_STATE_SECURE;
-
-    return PB_OK;
-}
+static struct fuse rom_key_revoke_fuse = IMX8X_FUSE_ROW(11, "Revoke");
 
 static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
@@ -182,7 +98,6 @@ int plat_early_init(void)
     sc_pm_clock_rate_t rate;
 
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
-
     plat_console_init();
 
     /* Setup GPT0 */
@@ -218,12 +133,6 @@ int plat_early_init(void)
         return rc;
 
     return rc;
-}
-
-
-void plat_preboot_cleanup(void)
-{
-
 }
 
 /* FUSE Interface */
@@ -337,17 +246,70 @@ int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
 
 int plat_slc_init(void)
 {
-    return PB_OK;
+    return plat_slc_read(&slc_status);
 }
 
 int plat_slc_set_configuration(void)
 {
-    return -PB_ERR;
+    int err;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+
+        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'", f->description);
+            return err;
+        }
+    }
+
+    /* Perform the actual fuse programming */
+
+    LOG_INFO("Writing fuses");
+
+    foreach_fuse(f, fuses)
+    {
+        if ((f->value & f->default_value) != f->default_value)
+        {
+            f->value = f->default_value;
+            err = plat_fuse_write(f);
+
+            if (err != PB_OK)
+                return err;
+        }
+        else
+        {
+            LOG_DBG("Fuse %s already programmed", f->description);
+        }
+    }
+
+    return PB_OK;
 }
 
 int plat_slc_set_configuration_lock(void)
 {
-    return -PB_ERR;
+    int err;
+    uint16_t lc;
+    uint16_t monotonic;
+    uint32_t uid_l;
+    uint32_t uid_h;
+
+    sc_misc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
+
+    if (lc == 128)
+    {
+        LOG_INFO("Configuration already locked");
+        return PB_OK;
+    }
+
+    LOG_INFO("About to change security state to locked");
+
+    err = sc_misc_seco_forward_lifecycle(private.ipc, 16);
+
+    return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
 
 int plat_slc_set_end_of_life(void)
@@ -357,22 +319,170 @@ int plat_slc_set_end_of_life(void)
 
 int plat_slc_read(enum pb_slc *slc)
 {
-    return -PB_ERR;
+    int err;
+    (*slc) = PB_SLC_NOT_CONFIGURED;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+
+        if (f->value)
+        {
+            (*slc) = PB_SLC_CONFIGURATION;
+            break;
+        }
+
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'", f->description);
+            return err;
+        }
+    }
+
+    uint16_t lc;
+    uint16_t monotonic;
+    uint32_t uid_l;
+    uint32_t uid_h;
+
+    sc_misc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
+
+    if (lc == 128)
+    {
+        (*slc) = PB_SLC_CONFIGURATION_LOCKED;
+    }
+
+    return PB_OK;
 }
 
 int plat_slc_key_active(uint32_t id, bool *active)
 {
-    return -PB_ERR;
+    int rc;
+    unsigned int rom_index = 0;
+    bool found_key = false;
+
+    *active = false;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_map[i] == id)
+        {
+            rom_index = i;
+            found_key = true;
+        }
+    }
+
+    if (!found_key)
+    {
+        LOG_ERR("Could not find key");
+        return -PB_ERR;
+    }
+
+    rc =  plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not read revoke fuse");
+        return rc;
+    }
+
+    uint32_t revoke_value = (1 << rom_index);
+
+    if ((rom_key_revoke_fuse.value & revoke_value) == revoke_value)
+        (*active) = false;
+    else
+        (*active) = true;
+
+    return PB_OK;
 }
 
 int plat_slc_revoke_key(uint32_t id)
 {
-    return -PB_ERR;
+    int rc;
+    unsigned int rom_index = 0;
+    bool found_key = false;
+    LOG_INFO("Revoking key 0x%x", id);
+
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_map[i] == id)
+        {
+            rom_index = i;
+            found_key = true;
+        }
+    }
+
+    if (!found_key)
+    {
+        LOG_ERR("Could not find key");
+        return -PB_ERR;
+    }
+
+    rc =  plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not read revoke fuse");
+        return rc;
+    }
+
+    LOG_DBG("Revoke fuse = 0x%x", rom_key_revoke_fuse.value);
+
+    uint32_t revoke_value = (1 << rom_index);
+
+    if ((rom_key_revoke_fuse.value & revoke_value) == revoke_value)
+    {
+        LOG_INFO("Key already revoked");
+        return PB_OK;
+    }
+
+    LOG_DBG("About to write 0x%x", revoke_value);
+
+    rom_key_revoke_fuse.value |= revoke_value;
+    rom_key_revoke_fuse.value |= (revoke_value << 16);
+
+    return plat_fuse_write(&rom_key_revoke_fuse);
 }
 
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 {
-    return -PB_ERR;
+    int rc;
+
+    memset(&key_status, 0, sizeof(key_status));
+
+    if (status)
+        (*status) = &key_status;
+
+    rc = plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+        return rc;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_revoke_fuse.value & (1 << i))
+        {
+            key_status.active[i] = 0;
+            key_status.revoked[i] = rom_key_map[i];
+        }
+        else
+        {
+            key_status.revoked[i] = 0;
+            key_status.active[i] = rom_key_map[i];
+        }
+    }
+
+    return PB_OK;
 }
 
 /* Transport API */

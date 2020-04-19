@@ -8,7 +8,7 @@ File = "__SRK_TBL__"
 # Public key certificate in PEM format on this example only using SRK key
 Source = "__CSFK_PEM__"
 # Index of the public key certificate within the SRK table (0 .. 3)
-Source index = 0
+Source index = __KEY_INDEX__
 # Type of SRK set (NXP or OEM)
 Source set = OEM
 # bitmask of the revoked SRKs

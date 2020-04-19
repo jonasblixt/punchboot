@@ -51,6 +51,7 @@ imx8x_image: $(BUILD_DIR)/$(TARGET).bin
 
 imx8x_sign_image: imx8x_image
 	@cp $(PB_CSF_TEMPLATE) $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__KEY_INDEX__#$(CONFIG_IMX8X_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__SRK_TBL__#$(CONFIG_IMX8X_SRK_TABLE)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__CSFK_PEM__#$(CONFIG_IMX8X_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__FILE__#$(BUILD_DIR)/pb.imx#g' $(BUILD_DIR)/pb.csf
