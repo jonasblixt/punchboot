@@ -43,8 +43,8 @@
  */
 
 #define PB_WIRE_MAGIC 0x50424c30   /* PBL0 */
-#define PB_COMMAND_REQUEST_MAX_SIZE 503
-#define PB_RESULT_RESPONSE_MAX_SIZE 503
+#define PB_COMMAND_REQUEST_MAX_SIZE 504
+#define PB_RESULT_RESPONSE_MAX_SIZE 504
 
 /*! \public
  *
@@ -112,7 +112,7 @@ struct pb_command
     uint32_t magic;     /*!< PB wire format magic, set to 'PBL0' and changed
                             for breaking changes in the protocol */
     uint8_t command;    /*!< Command to be executed, from enum pb_commands */
-    uint8_t rz[4];      /*!< Reserved */
+    uint8_t rz[3];      /*!< Reserved */
     uint8_t request[PB_COMMAND_REQUEST_MAX_SIZE]; /*<! Optional request data */
 } __attribute__((packed));
 
@@ -125,7 +125,7 @@ struct pb_result
 {
     uint32_t magic;     /*!< PB wire format magic */
     int8_t result_code; /*!< Command result code */
-    uint8_t rz[4];      /*!< Reserved */
+    uint8_t rz[3];      /*!< Reserved */
     uint8_t response[PB_RESULT_RESPONSE_MAX_SIZE]; /*!< Response data */
 } __attribute__((packed));
 
@@ -183,7 +183,7 @@ struct pb_result_part_table_entry
     uint16_t block_size;  /*!< Block size */
     uint8_t flags;        /*!< Flags */
     uint8_t rz[56];       /*!< Reserved */
-};
+} __attribute__((packed));
 
 
 /**
