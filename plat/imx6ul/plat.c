@@ -25,6 +25,7 @@
 #include <plat/imx6ul/plat.h>
 
 extern const struct fuse fuses[];
+extern const uint32_t rom_key_map[];
 
 static struct fuse lock_fuse =
         IMX6UL_FUSE_BANK_WORD(0, 6, "lockfuse");
@@ -35,82 +36,14 @@ static struct fuse fuse_uid0 =
 static struct fuse fuse_uid1 =
         IMX6UL_FUSE_BANK_WORD(0, 2, "UID1");
 
+static struct fuse rom_key_revoke_fuse =
+        IMX6UL_FUSE_BANK_WORD(5, 7, "Revoke");
+
 #define IMX6UL_FUSE_SHADOW_BASE 0x021BC000
 
 static struct imx6ul_private private;
 static struct pb_result_slc_key_status key_status;
 
-/* Platform API Calls */
-
-int plat_setup_device(void)
-{
-    uint32_t err;
-    return -PB_ERR;
-    /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
-    {
-        err = plat_fuse_read(f);
-
-        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-    /* Perform the actual fuse programming */
-
-    LOG_INFO("Writing fuses");
-
-    foreach_fuse(f, fuses)
-    {
-        if ((f->value & f->default_value) != f->default_value)
-        {
-            f->value = f->default_value;
-            err = plat_fuse_write(f);
-
-            if (err != PB_OK)
-                return err;
-        }
-        else
-        {
-            LOG_DBG("Fuse %s already programmed", f->description);
-        }
-    }
-
-  //  return board_setup_device();
-}
-
-int plat_setup_lock(void)
-{
-/*
-
-    uint32_t err;
-    uint32_t security_state;
-    err = plat_get_security_state(&security_state);
-
-    if (err != PB_OK)
-        return err;
-
-    if (security_state != PB_SECURITY_STATE_CONFIGURED_OK)
-    {
-        LOG_ERR("Device security state is not CONFIGURED_OK, aborting (%u)",
-                security_state);
-        return PB_ERR;
-    }
-
-    LOG_INFO("About to change security state to locked");
-
-    lock_fuse.value = 0x02;
-
-    err = plat_fuse_write(&lock_fuse);
-
-    if (err != PB_OK)
-        return err;
-*/
-    return PB_OK;
-}
 
 bool plat_force_command_mode(void)
 {
@@ -154,12 +87,69 @@ int plat_slc_init(void)
 
 int plat_slc_set_configuration(void)
 {
-    return -PB_ERR;
+    int err;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+
+        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'", f->description);
+            return err;
+        }
+    }
+
+    /* Perform the actual fuse programming */
+
+    LOG_INFO("Writing fuses");
+
+    foreach_fuse(f, fuses)
+    {
+        if ((f->value & f->default_value) != f->default_value)
+        {
+            f->value = f->default_value;
+            err = plat_fuse_write(f);
+
+            if (err != PB_OK)
+                return err;
+        }
+        else
+        {
+            LOG_DBG("Fuse %s already programmed", f->description);
+        }
+    }
+
+    return PB_OK;
 }
 
 int plat_slc_set_configuration_lock(void)
 {
-    return -PB_ERR;
+    int err;
+    enum pb_slc slc;
+    err = plat_slc_read(&slc);
+
+    if (err != PB_OK)
+        return err;
+
+    if (slc == PB_SLC_CONFIGURATION_LOCKED)
+    {
+        LOG_INFO("Configuration already locked");
+        return PB_OK;
+    }
+    else if (slc != PB_SLC_CONFIGURATION)
+    {
+        LOG_ERR("SLC is not in configuration, aborting (%u)", slc);
+        return PB_ERR;
+    }
+
+    LOG_INFO("About to change security state to locked");
+
+    lock_fuse.value = 0x02;
+
+    return plat_fuse_write(&lock_fuse);
 }
 
 int plat_slc_set_end_of_life(void)
@@ -209,7 +199,35 @@ int plat_slc_revoke_key(uint32_t id)
 
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 {
-    (*status) = &key_status;
+    int rc;
+
+    memset(&key_status, 0, sizeof(key_status));
+
+    if (status)
+        (*status) = &key_status;
+
+    rc = plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+        return rc;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_revoke_fuse.value & (1 << i))
+        {
+            key_status.active[i] = 0;
+            key_status.revoked[i] = rom_key_map[i];
+        }
+        else
+        {
+            key_status.revoked[i] = 0;
+            key_status.active[i] = rom_key_map[i];
+        }
+    }
+
     return PB_OK;
 }
 

@@ -23,6 +23,10 @@ Verification index = 0
 Target index = 2
 File = "__IMG_PEM__"
 
+[Unlock]
+    Engine = OCOTP
+    Features = SRK Revoke
+
 [Authenticate Data]
 Verification index = 2
 __UUU_BLOCKS__
