@@ -347,21 +347,21 @@ void test_main(void)
     uint8_t *r = NULL;
     uint8_t *s = NULL;
 
-    rc = pb_asn1_ecsig_to_rs(secp256, BPAK_SIGN_PRIME256v1, &r, &s);
+    rc = pb_asn1_ecsig_to_rs((uint8_t *)secp256, BPAK_SIGN_PRIME256v1, &r, &s);
 
     assert(rc == PB_OK);
     printf("r = %p, s = %p\n\r", r, s);
     assert(r);
     assert(s);
 
-    rc = pb_asn1_ecsig_to_rs(secp384, BPAK_SIGN_SECP384r1, &r, &s);
+    rc = pb_asn1_ecsig_to_rs((uint8_t *)secp384, BPAK_SIGN_SECP384r1, &r, &s);
 
     assert(rc == PB_OK);
     printf("r = %p, s = %p\n\r", r, s);
     assert(r);
     assert(s);
 
-    rc = pb_asn1_ecsig_to_rs(secp521, BPAK_SIGN_SECP521r1, &r, &s);
+    rc = pb_asn1_ecsig_to_rs((uint8_t *)secp521, BPAK_SIGN_SECP521r1, &r, &s);
 
     assert(rc == PB_OK);
     printf("r = %p, s = %p\n\r", r, s);

@@ -18,7 +18,6 @@
 static uint32_t usb_addr = 0;
 static struct usb_setup_packet pkt;
 
-
 static const uint8_t qf_descriptor[] = {
     0x0A,   // USB_DEV_QUALIFIER_DESC_LEN,
     0x06,   // USB_DEV_QUALIFIER_DESC_TYPE,
@@ -192,20 +191,17 @@ static int test_usb_write(int ep,
     return usb_xfer(ep, buf, size);
 }
 
-static bool test_usb_enumerated(void)
-{
-    return true;
-}
-
 static int test_usb_set_configuration(void)
 {
     flag_set_config = true;
     return PB_OK;
 }
+static struct pb_usb_interface test_usb_iface;
 
 static int test_usb_set_address(uint32_t addr)
 {
     usb_addr = addr;
+    test_usb_iface.enumerated = true;
     return PB_OK;
 }
 
@@ -215,7 +211,7 @@ static struct pb_usb_interface test_usb_iface =
     .write = test_usb_write,
     .set_configuration = test_usb_set_configuration,
     .set_address = test_usb_set_address,
-    .enumerated = test_usb_enumerated,
+    .enumerated = false,
 };
 
 void test_main(void)
