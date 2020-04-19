@@ -9,7 +9,7 @@ Engine = CAAM
 [Install SRK]
 File = "__SRK_TBL__"
 # This selects which key is used for signing: index = IMG(n-1)
-Source index = 0
+Source index = __KEY_INDEX__
 
 [Install CSFK]
 File = "__CSFK_PEM__"

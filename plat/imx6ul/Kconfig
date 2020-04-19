@@ -78,6 +78,11 @@ config IMX6UL_SRK_TABLE
     default "pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
     depends on IMX6UL_SIGN_IMAGE
 
+config IMX6UL_KEY_INDEX
+    int "Key index (0-3)"
+    default 0
+    depends on IMX6UL_SIGN_IMAGE
+
 config IMX6UL_SIGN_CERT
     string "Signing certificate"
     default "pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"

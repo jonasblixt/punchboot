@@ -58,12 +58,13 @@ CONFIG_IMX6UL_MKIMAGE_TOOL="mkimage"
 CONFIG_IMX6UL_SIGN_IMAGE=y
 CONFIG_IMX6UL_CST_TOOL="/work/cst-3.3.0/linux64/bin/cst"
 CONFIG_IMX6UL_SRK_TABLE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
+CONFIG_IMX6UL_KEY_INDEX=0
 CONFIG_IMX6UL_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
 CONFIG_IMX6UL_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
 # end of Output image
 # end of imx6ul configuration
 
-CONFIG_TOOLCHAIN_PREFIX="/opt/gcc-arm-none-eabi-9-2019-q4-major/bin/arm-none-eabi-"
+CONFIG_TOOLCHAIN_PREFIX="/opt/gcc-arm-8.3-2019.03-x86_64-arm-eabi/bin/arm-eabi-"
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_LOGLEVEL=3
 CONFIG_ENABLE_WATCHDOG=y

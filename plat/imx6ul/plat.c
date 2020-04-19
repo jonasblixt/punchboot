@@ -188,7 +188,45 @@ int plat_slc_read(enum pb_slc *slc)
 
 int plat_slc_key_active(uint32_t id, bool *active)
 {
-    *active = true;
+    int rc;
+    unsigned int rom_index = 0;
+    bool found_key = false;
+
+    *active = false;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_map[i] == id)
+        {
+            rom_index = i;
+            found_key = true;
+        }
+    }
+
+    if (!found_key)
+    {
+        LOG_ERR("Could not find key");
+        return -PB_ERR;
+    }
+
+    rc =  plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not read revoke fuse");
+        return rc;
+    }
+
+    uint32_t revoke_value = (1 << rom_index);
+
+    if ((rom_key_revoke_fuse.value & revoke_value) == revoke_value)
+        (*active) = false;
+    else
+        (*active) = true;
+
     return PB_OK;
 }
 

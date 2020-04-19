@@ -43,6 +43,7 @@ imx6ul_sign_image: imx6ul_image
 	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0xC00 ))" | bc	))
 	@echo "PB imx image size: $(PB_FILESIZE) bytes ($(PB_FILESIZE_HEX)), cst addr $(PB_CST_ADDR)"
 	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x000 $(PB_FILESIZE_HEX) "$(BUILD_DIR)\/pb.imx"/g' < $(PB_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__KEY_INDEX__#$(CONFIG_IMX6UL_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__SRK_TBL__#$(CONFIG_IMX6UL_SRK_TABLE)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__CSFK_PEM__#$(CONFIG_IMX6UL_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__IMG_PEM__#$(CONFIG_IMX6UL_IMAGE_SIGN_CERT)#g'  $(BUILD_DIR)/pb.csf
@@ -52,6 +53,7 @@ imx6ul_sign_image: imx6ul_image
 	$(eval PB_OFFSET=0x$(shell dd if=$(BUILD_DIR)/pb.imx bs=1 skip=45 count=2 2>/dev/null | xxd -p))
 	@$(SED) -e 's/__UUU_BLOCKS__/Blocks = 0x00910000 0x02c $(PB_OFFSET) "$(BUILD_DIR)\/pb.imx"/g' < $(PB_UUU_CSF_TEMPLATE) > $(BUILD_DIR)/pb_uuu.csf
 	@$(SED) -i -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x000 $(PB_FILESIZE_HEX) "$(BUILD_DIR)\/pb.imx"/g' $(BUILD_DIR)/pb_uuu.csf
+	@$(SED) -i -e 's#__KEY_INDEX__#$(CONFIG_IMX6UL_KEY_INDEX)#g' $(BUILD_DIR)/pb_uuu.csf
 	@$(SED) -i -e 's#__SRK_TBL__#$(CONFIG_IMX6UL_SRK_TABLE)#g' $(BUILD_DIR)/pb_uuu.csf
 	@$(SED) -i -e 's#__CSFK_PEM__#$(CONFIG_IMX6UL_SIGN_CERT)#g' $(BUILD_DIR)/pb_uuu.csf
 	@$(SED) -i -e 's#__IMG_PEM__#$(CONFIG_IMX6UL_IMAGE_SIGN_CERT)#g'  $(BUILD_DIR)/pb_uuu.csf
