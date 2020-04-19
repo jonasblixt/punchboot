@@ -42,6 +42,8 @@ fi
 
 wait_for_qemu2
 start_qemu
+
+wait_for_qemu_start
 # secp384
 
 set -e
@@ -73,6 +75,8 @@ fi
 
 wait_for_qemu2
 start_qemu
+
+wait_for_qemu_start
 # rsa4096
 
 set -e
