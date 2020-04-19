@@ -194,7 +194,53 @@ int plat_slc_key_active(uint32_t id, bool *active)
 
 int plat_slc_revoke_key(uint32_t id)
 {
-    return -PB_ERR;
+    int rc;
+    unsigned int rom_index = 0;
+    bool found_key = false;
+    LOG_INFO("Revoking key 0x%x", id);
+
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_map[i] == id)
+        {
+            rom_index = i;
+            found_key = true;
+        }
+    }
+
+    if (!found_key)
+    {
+        LOG_ERR("Could not find key");
+        return -PB_ERR;
+    }
+
+    rc =  plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not read revoke fuse");
+        return rc;
+    }
+
+    LOG_DBG("Revoke fuse = 0x%x", rom_key_revoke_fuse.value);
+
+    uint32_t revoke_value = (1 << rom_index);
+
+    if ((rom_key_revoke_fuse.value & revoke_value) == revoke_value)
+    {
+        LOG_INFO("Key already revoked");
+        return PB_OK;
+    }
+
+    LOG_DBG("About to write 0x%x", revoke_value);
+
+    rom_key_revoke_fuse.value |= revoke_value;
+
+    return plat_fuse_write(&rom_key_revoke_fuse);
 }
 
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
