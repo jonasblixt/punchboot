@@ -50,6 +50,7 @@ build_script:
 
 artifacts:
     - path: 'punchboot-tools-setup-*.exe'
+      name: punchboot_tools
 
 deploy:
   release: $(tag)
@@ -57,6 +58,7 @@ deploy:
   provider: GitHub
   auth_token:
     secure: "MI3lZI3eO/bf379rNHCswSsznfJfU9WAjzybws3iKIB/5GkrKqLgbZtQVJVfxixg" # your encrypted token from GitHub
+  artifact: punchboot_tools
   draft: false
   prerelease: false
   on:
