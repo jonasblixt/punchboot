@@ -41,7 +41,8 @@ TEST(board_command)
     rc = pb_api_board_command(ctx, 1, request, strlen(request),
                                       response_buffer, sizeof(response_buffer));
     ASSERT_EQ(rc, PB_RESULT_OK);
-    ASSERT_EQ((char *) response_buffer, "Hello");
+    printf("%zu '%s'\n", strlen(response_buffer), response_buffer);
+    ASSERT_MEMORY((char *) response_buffer, "Hello", 5);
 
     /* Stop command loop */
     rc = test_command_loop_stop();
@@ -56,7 +57,7 @@ TEST(board_status)
 {
     int rc;
     struct pb_context *ctx;
-    char response_buffer[128];
+    char response_buffer[1024];
 
     test_command_loop_set_authenticated(true);
 
