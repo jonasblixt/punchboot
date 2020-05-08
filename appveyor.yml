@@ -49,7 +49,7 @@ build_script:
   - appveyor PushArtifact c:\punchboot-tools-setup-*.exe
 
 artifacts:
-    - path: punchboot-tools-setup-x64-$(tag).exe
+    - path: 'punchboot-tools-setup-*.exe'
 
 deploy:
   release: $(tag)
