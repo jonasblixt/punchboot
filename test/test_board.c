@@ -18,7 +18,7 @@ TEST(board_command)
     char request[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe1";
 
-    char response_buffer[128];
+    char response_buffer[1024];
 
     test_command_loop_set_authenticated(true);
 
@@ -41,7 +41,7 @@ TEST(board_command)
     rc = pb_api_board_command(ctx, 1, request, strlen(request),
                                       response_buffer, sizeof(response_buffer));
     ASSERT_EQ(rc, PB_RESULT_OK);
-    ASSERT(strcmp(response_buffer, "Hello") == 0);
+    ASSERT_EQ((char *) response_buffer, "Hello");
 
     /* Stop command loop */
     rc = test_command_loop_stop();
