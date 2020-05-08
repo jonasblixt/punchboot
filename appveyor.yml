@@ -24,12 +24,13 @@ install:
 build_script:
 
   # Install MinGW dependencies for 64 bit
-  - C:\msys64\usr\bin\bash -lc "pacman -Rs --noconfirm mingw-w64-x86_64-gcc-ada mingw-w64-x86_64-gcc-fortran mingw-w64-x86_64-gcc-libgfortran mingw-w64-x86_64-gcc-objc"
-  - C:\msys64\usr\bin\bash -lc "rm /mingw64/etc/gdbinit"
-  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-pkg-config  mingw-w64-x86_64-lapack"
-  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-pip mingw-w64-x86_64-binutils mingw-w64-x86_64-curl"
+  - C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm pacman"
+  - C:\msys64\usr\bin\bash -lc "pacman -Syu --noconfirm"
+  - C:\msys64\usr\bin\bash -lc "pacman -Syu --noconfirm"
+  - C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config"
+  - C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm mingw-w64-x86_64-python mingw-w64-x86_64-python-setuptools"
   - C:\msys64\usr\bin\bash -lc "pacman -U --noconfirm http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libusb-1.0.21-1-any.pkg.tar.xz"
-  - C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Sy autoconf-archive libtool"
+  - C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm autoconf-archive libtool"
 
   # Build bpak
   - ps: pushd "C:\bpak"
