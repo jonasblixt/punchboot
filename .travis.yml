@@ -2,7 +2,7 @@ language: c
 compiler: gcc
 dist: bionic
 before_install:
-  - sudo apt-get install git lcov uuid-runtime python3-dev libusb-dev libusb-1.0-0 libusb-1.0-0-dev doxygen doxygen-latex manpages-posix graphviz
+  - sudo apt-get install git lcov uuid-runtime python3-dev libusb-dev libusb-1.0-0 libusb-1.0-0-dev doxygen doxygen-latex manpages-posix graphviz python3-setuptools
   - git clone https://github.com/jonasblixt/bpak
 script:
     - cd bpak && autoreconf -fi && ./configure && make && sudo make install && cd .. && sudo ldconfig
