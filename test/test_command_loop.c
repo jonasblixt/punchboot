@@ -229,7 +229,7 @@ static int pb_board_cmd(struct pb_command_ctx *ctx,
                              struct pb_result *result)
 {
     int rc = -PB_RESULT_ERROR;
-    uint8_t buf[128];
+    uint8_t buf[1024];
     char *response = "Hello";
 
     struct pb_command_board *board_cmd = \
@@ -246,25 +246,19 @@ static int pb_board_cmd(struct pb_command_ctx *ctx,
     pb_wire_init_result(result, PB_RESULT_OK);
 
     rc = ctx->send_result(ctx, result);
-    
+
     if (rc != PB_RESULT_OK)
     {
         printf("Error: Could not send result\n");
         return rc;
     }
-    ssize_t bytes = read(client_fd, buf, board_cmd->request_size);
-
-    if (bytes != board_cmd->request_size)
-    {
-        printf("Error: Could not read board request\n");
-        return -PB_RESULT_ERROR;
-    }
+    ssize_t bytes = read(client_fd, buf, sizeof(buf));
 
     pb_wire_init_result2(result, PB_RESULT_OK, &board_result,
                             sizeof(board_result));
 
     rc = ctx->send_result(ctx, result);
-    
+
     if (rc != PB_RESULT_OK)
     {
         printf("Error: Could not send result\n");
@@ -303,7 +297,7 @@ static int pb_board_status(struct pb_command_ctx *ctx,
                             sizeof(status_result));
 
     rc = ctx->send_result(ctx, result);
-    
+
     if (rc != PB_RESULT_OK)
     {
         printf("Error: Could not send result\n");
