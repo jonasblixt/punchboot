@@ -1,13 +1,13 @@
 [Setup]
 AppId={{4AC360D3-3BA0-4030-B4AA-F6FE9DFF93BD}
-AppName="punchboot-tools (x64)"
+AppName="punchboot-tools-@VERSION@ (x64)"
 AppVersion="@VERSION@"
 AppPublisher="Jonas Blixt"
 AppPublisherURL="https://github.com/jonasblixt"
 AppSupportURL="https://github.com/jonasblixt/punchboot-tools"
 AppUpdatesURL="https://github.com/jonasblixt/punchboot-tools"
 LicenseFile="C:\projects\punchboot-tools\LICENSE"
-OutputBaseFilename=punchboot-tools-setup-x64
+OutputBaseFilename=punchboot-tools-setup-x64-@VERSION@
 OutputDir="C:\"
 DefaultDirName="{pf64}\punchboot-tools\"
 Compression=lzma
