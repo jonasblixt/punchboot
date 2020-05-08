@@ -67,9 +67,12 @@ AM_CONDITIONAL([LINUX], [test "$build_linux" = "yes"])
 AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
 AM_CONDITIONAL([OSX], [test "$build_mac" = "yes"])
 
+AM_PATH_PYTHON([3.0],, [:])
+
 AC_CONFIG_FILES([Makefile
                 src/Makefile
                 lib/Makefile
+                python/Makefile
                 test/Makefile
                 dist/punchboot-tools-x64.iss
                 lib/punchboot.pc])

@@ -13,6 +13,7 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
     struct pb_command cmd;
     struct pb_result result;
     struct pb_command_authenticate auth;
+    uint8_t auth_buf[1024];
 
     ctx->d(ctx, 2, "%s: call, method: %i, size: %i\n", __func__, method, size);
 
@@ -43,7 +44,10 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
 
     if (size)
     {
-        rc = ctx->write(ctx, data, size);
+        memset(auth_buf, 0, sizeof(auth_buf));
+        memcpy(auth_buf, data, size);
+
+        rc = ctx->write(ctx, auth_buf, sizeof(auth_buf));
 
         if (rc != PB_RESULT_OK)
             return rc;

@@ -51,6 +51,8 @@ int pb_command_process(struct pb_command_ctx *ctx, struct pb_command *command)
     /* Check for invalid commands */
     if (!pb_wire_valid_command(command))
     {
+        printf("Error: Invalid command %i [%x]\n", command->command,
+                                                   command->magic);
         pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
         goto command_error_out;
     }

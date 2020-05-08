@@ -15,8 +15,12 @@ int pb_api_board_command(struct pb_context *ctx,
     struct pb_result result;
     struct pb_command_board board_command;
     struct pb_result_board board_result;
+    uint8_t request_buffer[1024];
 
     ctx->d(ctx, 2, "%s: call\n", __func__);
+
+    if (request_size > sizeof(request_buffer))
+        return -PB_RESULT_NO_MEMORY;
 
     memset(&board_command, 0, sizeof(board_command));
     board_command.command = board_command_id;
@@ -44,19 +48,23 @@ int pb_api_board_command(struct pb_context *ctx,
 
     if (request_size)
     {
-        rc = ctx->write(ctx, request, request_size);
+        memset(request_buffer, 0, sizeof(request_buffer));
+        memcpy(request_buffer, request, request_size);
+
+        rc = ctx->write(ctx, request_buffer, sizeof(request_buffer));
 
         if (rc != PB_RESULT_OK)
             return rc;
 
-        rc = ctx->read(ctx, &result, sizeof(result));
-
-        if (rc != PB_RESULT_OK)
-            return rc;
-
-        if (!pb_wire_valid_result(&result))
-            return -PB_RESULT_ERROR;
     }
+
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
 
     memcpy(&board_result, result.response, sizeof(board_result));
 
@@ -71,7 +79,15 @@ int pb_api_board_command(struct pb_context *ctx,
 
         if (rc != PB_RESULT_OK)
             return rc;
-    }
+
+        rc = ctx->read(ctx, &result, sizeof(result));
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        if (!pb_wire_valid_result(&result))
+            return -PB_RESULT_ERROR;
+        }
 
     ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
                                         pb_error_string(result.result_code));

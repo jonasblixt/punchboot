@@ -124,7 +124,7 @@ static int pb_authenticate(struct pb_command_ctx *ctx,
     struct pb_command_authenticate *auth = \
                      (struct pb_command_authenticate *) command->request;
 
-    uint8_t auth_data[256];
+    uint8_t auth_data[1024];
 
 
     ctx->authenticated = false;
@@ -137,14 +137,14 @@ static int pb_authenticate(struct pb_command_ctx *ctx,
 
     pb_wire_init_result(result, -PB_RESULT_ERROR);
 
-    ssize_t bytes = read(client_fd, auth_data, auth->size);
-
+    ssize_t bytes = read(client_fd, auth_data, sizeof(auth_data));
+/*
     if (bytes != auth->size)
     {
         printf("Error: bytes != auth->size\n");
         return -PB_RESULT_ERROR;
     }
-
+*/
     if (auth->method != PB_AUTH_PASSWORD)
     {
         printf("Error: auth->method != PB_AUTH_PASSWORD\n");
