@@ -47,13 +47,16 @@ build_script:
   # Package
   - iscc C:\projects\punchboot-tools\dist\punchboot-tools-x64.iss
   - appveyor PushArtifact c:\punchboot-tools-setup-*.exe
+
+artifacts:
+    - path: punchboot-tools-setup-x64-$(tag).exe
+
 deploy:
   release: $(tag)
   description: 'Release description'
   provider: GitHub
   auth_token:
     secure: "MI3lZI3eO/bf379rNHCswSsznfJfU9WAjzybws3iKIB/5GkrKqLgbZtQVJVfxixg" # your encrypted token from GitHub
-    artifact: c:\punchboot-tools-setup-x64-.*\.exe
   draft: false
   prerelease: false
   on:
