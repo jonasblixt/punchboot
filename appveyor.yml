@@ -46,14 +46,15 @@ build_script:
   - C:\msys64\usr\bin\bash -lc "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/pkgconfig && cd C:/projects/punchboot-tools && autoreconf -fi && ./configure CFLAGS=\"-static\" && make LDFLAGS=\"-all-static\""
   # Package
   - iscc C:\projects\punchboot-tools\dist\punchboot-tools-x64.iss
-  - appveyor PushArtifact c:\punchboot-tools-setup-x64.exe
+  # push all dist files as artifacts
+  - ps: Get-ChildItem c:\punchboot-tools-setup.\* | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
 
 deploy:
   description: 'Release description'
   provider: GitHub
   auth_token:
     secure: "MI3lZI3eO/bf379rNHCswSsznfJfU9WAjzybws3iKIB/5GkrKqLgbZtQVJVfxixg" # your encrypted token from GitHub
-    artifact: c:\punchboot-tools-setup-x64.exe 
+    artifact: c:\punchboot-tools-setup-x64.\*.exe 
   draft: false
   prerelease: false
   on:
