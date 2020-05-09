@@ -47,7 +47,7 @@ build_script:
   # Package
   - iscc C:\projects\punchboot-tools\dist\punchboot-tools-x64.iss
   # push all dist files as artifacts
-  - ps: Get-ChildItem -Path c:\ -Include punchboot-tools-setup* | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: Get-ChildItem -Path c:\ -Filter "punchboot-tools-setup*" | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
 
 deploy:
   description: 'Release description'
