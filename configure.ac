@@ -1,7 +1,7 @@
 dnl Punchboot tools
 
 AC_PREREQ(2.59)
-AC_INIT([punchboot-tools], [0.1.12], [Jonas Blixt, <jonpe960@gmail.com>])
+AC_INIT([punchboot], [0.1.13], [Jonas Blixt, <jonpe960@gmail.com>])
 
 m4_pattern_forbid([^AX_(CHECK_ENABLE_DEBUG|CODE_COVERAGE|COMPILER_FLAGS|COMPILER_FLAGS_(CFLAGS|CXXFLAGS|LDFLAGS))\b],
   [Unexpanded AX_ macro found. Please install GNU autoconf-archive])
@@ -67,12 +67,9 @@ AM_CONDITIONAL([LINUX], [test "$build_linux" = "yes"])
 AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
 AM_CONDITIONAL([OSX], [test "$build_mac" = "yes"])
 
-AM_PATH_PYTHON([3.0],, [:])
-
 AC_CONFIG_FILES([Makefile
                 src/Makefile
                 lib/Makefile
-                python/Makefile
                 test/Makefile
                 dist/punchboot-tools-x64.iss
                 lib/punchboot.pc])

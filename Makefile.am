@@ -1,5 +1,5 @@
 
-SUBDIRS = lib src python test
+SUBDIRS = lib src test
 
 EXTRA_DIST = LICENSE README.rst
 
