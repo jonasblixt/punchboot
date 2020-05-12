@@ -30,3 +30,4 @@ tools/pbstate/test/Makefile.in
 
 update.sh
 config.h
+__pycache__

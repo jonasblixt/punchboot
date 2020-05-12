@@ -5,8 +5,10 @@ GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 BPAK ?= $(shell which bpak)
 KEYSTORE_BPAK ?= pki/internal_keystore.bpak
 PYTHON = $(shell which python3)
+EXT_BOARD ?= board/
 
-$(shell $(PYTHON) scripts/genconfig.py)
+
+$(shell EXT_BOARD=$(EXT_BOARD) $(PYTHON) scripts/genconfig.py)
 include .config
 
 ifdef TIMING_REPORT
@@ -112,7 +114,7 @@ C_SRCS  += fdt/fdt_rw.c
 C_SRCS  += fdt/fdt_sw.c
 C_SRCS  += fdt/fdt_wip.c
 
-include board/*/makefile.mk
+include $(EXT_BOARD)/*/makefile.mk
 BUILD_DIR = build-$(PB_BOARD_NAME)
 include arch/*/makefile.mk
 include plat/*/makefile.mk
@@ -151,7 +153,7 @@ FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).bin
 .PHONY: keystore menuconfig
 
 menuconfig:
-	@$(PYTHON) scripts/menuconfig.py
+	@EXT_BOARD=$(EXT_BOARD) $(PYTHON) scripts/menuconfig.py 
 
 all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 	@$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)

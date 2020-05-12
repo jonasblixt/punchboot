@@ -3,11 +3,11 @@ comment "Punchboot configuration"
 
 source "arch/Kconfig"
 source "plat/Kconfig"
-source "board/Kconfig"
+source "$(EXT_BOARD)/Kconfig"
 
 source "arch/*/Kconfig"
 source "plat/*/Kconfig"
-source "board/*/Kconfig"
+source "$EXT_BOARD/*/Kconfig"
 
 config TOOLCHAIN_PREFIX
 	string "Toolchain prefix"
