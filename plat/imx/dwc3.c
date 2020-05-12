@@ -172,7 +172,12 @@ int dwc3_transfer(int ep, void *bfr, size_t sz)
     while ((trb->control & 1) == 1)
     {
         plat_wdog_kick();
-//        dwc3_process();
+
+        if ((ep == USB_EP2_OUT) ||
+            (ep == USB_EP1_IN))
+        {
+            dwc3_process();
+        }
     }
 
     return PB_OK;

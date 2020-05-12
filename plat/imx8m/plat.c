@@ -31,6 +31,7 @@
 
 static struct imx8m_private private;
 extern struct fuse fuses[];
+extern const uint32_t rom_key_map[];
 
 static struct pb_result_slc_key_status key_status;
 static struct fuse fuse_uid0 =
@@ -39,44 +40,8 @@ static struct fuse fuse_uid0 =
 static struct fuse fuse_uid1 =
         IMX8M_FUSE_BANK_WORD(0, 2, "UID1");
 
-/* Platform API Calls */
-
-uint32_t plat_get_security_state(uint32_t *state)
-{
-    uint32_t err;
-    (*state) = PB_SECURITY_STATE_NOT_SECURE;
-
-    /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
-    {
-        err = plat_fuse_read(f);
-
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-
-        if (f->value)
-        {
-            (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
-            break;
-        }
-    }
-
-    if ((*state) == PB_SECURITY_STATE_NOT_SECURE)
-        return PB_OK;
-
-    if (hab_has_no_errors() == PB_OK)
-        (*state) = PB_SECURITY_STATE_CONFIGURED_OK;
-    else
-        (*state) = PB_SECURITY_STATE_CONFIGURED_ERR;
-
-    if (hab_secureboot_active())
-        (*state) = PB_SECURITY_STATE_SECURE;
-
-    return PB_OK;
-}
+static struct fuse rom_key_revoke_fuse =
+        IMX8M_FUSE_BANK_WORD(9, 3, "Revoke");
 
 static const char platform_namespace_uuid[] =
     "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
@@ -96,48 +61,6 @@ int plat_get_uuid(char *out)
                           (const char *) uid, 8, out);
 }
 
-#ifdef __NOPE
-uint32_t plat_setup_device(struct param *params)
-{
-    uint32_t err;
-
-    /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
-    {
-        err = plat_fuse_read(f);
-
-        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
-
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-    /* Perform the actual fuse programming */
-    LOG_INFO("Writing fuses");
-
-    foreach_fuse(f, fuses)
-    {
-        if ((f->value & f->default_value) != f->default_value)
-        {
-            f->value = f->default_value;
-            err = plat_fuse_write(f);
-
-            if (err != PB_OK)
-                return err;
-        }
-        else
-        {
-            LOG_DBG("Fuse %s already programmed", f->description);
-        }
-    }
-
-    return board_setup_device(params);
-}
-#endif
-
 void plat_reset(void)
 {
     imx_wdog_reset_now();
@@ -146,10 +69,6 @@ void plat_reset(void)
 uint32_t plat_get_us_tick(void)
 {
     return gp_timer_get_tick();
-}
-
-void plat_preboot_cleanup(void)
-{
 }
 
 void plat_wdog_init(void)
@@ -464,9 +383,6 @@ int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
                 f->description, f->value);
 }
 
-
-
-
 int plat_crypto_init(void)
 {
     return imx_caam_init();
@@ -522,7 +438,42 @@ int plat_slc_init(void)
 
 int plat_slc_set_configuration(void)
 {
-    return -PB_ERR;
+    int err;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+
+        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
+
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'", f->description);
+            return err;
+        }
+    }
+
+    /* Perform the actual fuse programming */
+    LOG_INFO("Writing fuses");
+
+    foreach_fuse(f, fuses)
+    {
+        if ((f->value & f->default_value) != f->default_value)
+        {
+            f->value = f->default_value;
+            err = plat_fuse_write(f);
+
+            if (err != PB_OK)
+                return err;
+        }
+        else
+        {
+            LOG_DBG("Fuse %s already programmed", f->description);
+        }
+    }
+
+    return PB_OK;
 }
 
 int plat_slc_set_configuration_lock(void)
@@ -537,12 +488,74 @@ int plat_slc_set_end_of_life(void)
 
 int plat_slc_read(enum pb_slc *slc)
 {
+    int err;
+    (*slc) = PB_SLC_NOT_CONFIGURED;
+
+    /* Read fuses */
+    foreach_fuse(f, (struct fuse *) fuses)
+    {
+        err = plat_fuse_read(f);
+
+        if (err != PB_OK)
+        {
+            LOG_ERR("Could not access fuse '%s'", f->description);
+            return err;
+        }
+
+        if (f->value)
+        {
+            (*slc) = PB_SLC_CONFIGURATION;
+            break;
+        }
+    }
+
+    if (hab_secureboot_active())
+        (*slc) = PB_SLC_CONFIGURATION_LOCKED;
+
     return PB_OK;
 }
 
 int plat_slc_key_active(uint32_t id, bool *active)
 {
-    *active = true;
+    int rc;
+    unsigned int rom_index = 0;
+    bool found_key = false;
+
+    *active = false;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_map[i] == id)
+        {
+            rom_index = i;
+            found_key = true;
+        }
+    }
+
+    if (!found_key)
+    {
+        LOG_ERR("Could not find key");
+        return -PB_ERR;
+    }
+
+    rc =  plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not read revoke fuse");
+        return rc;
+    }
+
+    uint32_t revoke_value = (1 << rom_index);
+
+    if ((rom_key_revoke_fuse.value & revoke_value) == revoke_value)
+        (*active) = false;
+    else
+        (*active) = true;
+
     return PB_OK;
 }
 
@@ -553,7 +566,35 @@ int plat_slc_revoke_key(uint32_t id)
 
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 {
-    (*status) = &key_status;
+    int rc;
+
+    memset(&key_status, 0, sizeof(key_status));
+
+    if (status)
+        (*status) = &key_status;
+
+    rc = plat_fuse_read(&rom_key_revoke_fuse);
+
+    if (rc != PB_OK)
+        return rc;
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (!rom_key_map[i])
+            break;
+
+        if (rom_key_revoke_fuse.value & (1 << i))
+        {
+            key_status.active[i] = 0;
+            key_status.revoked[i] = rom_key_map[i];
+        }
+        else
+        {
+            key_status.revoked[i] = 0;
+            key_status.active[i] = rom_key_map[i];
+        }
+    }
+
     return PB_OK;
 }
 

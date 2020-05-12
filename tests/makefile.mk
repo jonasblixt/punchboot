@@ -5,6 +5,7 @@ TESTS   = test_boot
 TESTS  += test_usb_ch9
 TESTS  += test_libc
 TESTS  += test_asn1
+TESTS  += test_fletcher
 
 # Integration tests
 
@@ -64,6 +65,7 @@ TEST_C_SRCS += lib/strtoul.c
 TEST_C_SRCS += lib/strcmp.c
 TEST_C_SRCS += lib/snprintf.c
 TEST_C_SRCS += lib/putchar.c
+TEST_C_SRCS += lib/fletcher.c
 
 # UUID lib
 TEST_C_SRCS  += uuid/pack.c

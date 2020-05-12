@@ -6,12 +6,10 @@
     Certificate Format = X509
     Signature Format = CMS
 
-
-
 [Install SRK]
     # This selects which key is used for signing: index = IMG(n-1)
     File = "__SRK_TBL__"
-    Source index = 0
+    Source index = __KEY_INDEX__
 
 [Install CSFK]
     # Key used to authenticate the CSF data
@@ -36,7 +34,6 @@
     Target index = 2
     # Key to install
     File = "__IMG_PEM__"
-
 
 [Authenticate Data]
     # Key slot index used to authenticate the image data

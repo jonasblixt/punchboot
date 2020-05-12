@@ -140,7 +140,23 @@ int board_command(void *plat,
                      size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
-    *response_size = 0;
+
+    if (command == 0xf93ba110)
+    {
+        LOG_DBG("Got test command");
+        char *response = (char *) response_bfr;
+        size_t resp_buf_size = *response_size;
+
+        (*response_size) = snprintf(response, resp_buf_size,
+                                    "Test command hello 0x%x\n", command);
+
+        response[(*response_size)++] = 0;
+    }
+    else
+    {
+        *response_size = 0;
+    }
+
     return PB_OK;
 }
 
