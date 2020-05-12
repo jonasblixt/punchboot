@@ -28,6 +28,7 @@ PLAT_C_SRCS  += plat/imx8x/sci/svc/pad/pad_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/pm/pm_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/timer/timer_rpc_clnt.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/misc/misc_rpc_clnt.c
+PLAT_C_SRCS  += plat/imx8x/sci/svc/rm/rm_rpc_clnt.c
 
 PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
 

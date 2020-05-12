@@ -81,10 +81,50 @@ unsigned int plat_get_us_tick(void)
 
 void plat_wdog_init(void)
 {
-    sc_timer_set_wdog_timeout(private.ipc, 3000);
-    sc_timer_set_wdog_action(private.ipc, SC_RM_PT_ALL,
-                             SC_TIMER_WDOG_ACTION_BOARD);
-    sc_timer_start_wdog(private.ipc, true);
+    sc_rm_pt_t partition;
+    sc_err_t err;
+
+    err = sc_rm_get_partition(private.ipc, &partition);
+    if (err)
+    {
+        LOG_ERR("Could not get partition for setting watchdog: %u", err);
+        goto log_err;
+    }
+
+    err = sc_timer_set_wdog_action(private.ipc, partition,
+            SC_TIMER_WDOG_ACTION_BOARD);
+    if (err)
+    {
+        LOG_ERR("Could not set watchdog action: %u", err);
+        goto log_err;
+    }
+
+    err = sc_timer_set_wdog_timeout(private.ipc,
+                CONFIG_WATCHDOG_TIMEOUT*1000);
+    if (err)
+    {
+        LOG_ERR("Could not set watchdog timeout: %u", err);
+        goto log_err;
+    }
+
+    /* If the last argument to sc_timer_start_wdog is set to true, the
+     * watchdog will be locked and cannot be reconfigured. Currently,
+     * it should be possible to reconfigure the watchdog from Linux. */
+
+    err = sc_timer_start_wdog(private.ipc, false);
+    if (err)
+    {
+        LOG_ERR("Could not enable watchdog: %u", err);
+        goto log_err;
+    }
+
+    LOG_INFO("Watchdog enabled with a %u ms timeout!",
+                        CONFIG_WATCHDOG_TIMEOUT*1000);
+
+    return;
+
+log_err:
+    LOG_ERR("Watchdog NOT enabled!");
 }
 
 void plat_wdog_kick(void)
