@@ -183,7 +183,7 @@ int plat_early_init(void)
 
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
 
-
+    plat_console_init();
 
     /* Setup GPT0 */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);

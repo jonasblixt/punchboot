@@ -32,14 +32,12 @@ void pb_main(void)
         plat_reset();
 
 #ifdef CONFIG_ENABLE_WATCHDOG
-    LOG_DBG("Enable wdog");
     plat_wdog_init();
 #endif
 
     tr_stamp_begin(TR_BLINIT);
     tr_stamp_begin(TR_TOTAL);
 
-    LOG_DBG("Console init");
     plat_console_init();
 
 #if LOGLEVEL > 0

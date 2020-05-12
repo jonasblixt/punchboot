@@ -95,8 +95,6 @@ int pb_storage_init(void)
 
 int pb_storage_add(struct pb_storage_driver *drv)
 {
-    LOG_DBG("%p", &drivers);
-
     if (drivers == NULL)
     {
         drivers = drv;
@@ -108,7 +106,6 @@ int pb_storage_add(struct pb_storage_driver *drv)
         drv->next = NULL;
     }
 
-    LOG_DBG("%p", drivers);
     return PB_OK;
 }
 
