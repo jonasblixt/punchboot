@@ -148,7 +148,8 @@ static int cmd_board(void)
 
     if (board_cmd->request_size)
     {
-        rc = plat_transport_read(bfr, board_cmd->request_size);
+        LOG_DBG("Reading request data");
+        rc = plat_transport_read(bfr, 1024);
 
         if (rc != PB_OK)
         {
@@ -170,8 +171,11 @@ static int cmd_board(void)
                     &board_result, sizeof(board_result));
 
 
+    LOG_DBG("Response: %zu bytes", response_size);
+
     if (response_size && (rc == PB_OK))
     {
+        LOG_DBG("Sending response");
         plat_transport_write(&result, sizeof(result));
         plat_transport_write(bfr_response, response_size);
     }
@@ -280,7 +284,7 @@ static int cmd_auth(void)
         pb_wire_init_result(&result, PB_RESULT_OK);
         plat_transport_write(&result, sizeof(result));
 
-        plat_transport_read(buffer[0], auth_cmd->size);
+        plat_transport_read(buffer[0], 1024);
 
         rc = auth_token(device_uuid,
                 auth_cmd->key_id, buffer[0], auth_cmd->size);

@@ -105,6 +105,7 @@ C_SRCS  += lib/printf.c
 C_SRCS  += lib/snprintf.c
 C_SRCS  += lib/strtoul.c
 C_SRCS  += lib/putchar.c
+C_SRCS  += lib/fletcher.c
 
 # Lib fdt
 C_SRCS  += fdt/fdt.c
