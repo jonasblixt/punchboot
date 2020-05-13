@@ -21,7 +21,7 @@ libpunchboot_la_LDFLAGS = $(LIBUSB_LDFLAGS) $(BPAK_LDFLAGS)
 
 libpunchboot_la_CFLAGS = -I$(top_srcdir)/include \
                            $(LIBUSB_CFLAGS) \
-                           $(BPAK_CFLAGS) \
+                           $(BPAK_CFLAGS) \
                            $(CODE_COVERAGE_CFLAGS)
 
 pkgconfigdir = $(libdir)/pkgconfig
