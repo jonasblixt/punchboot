@@ -92,7 +92,7 @@ int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit)
              abstate->remaining_boot_attempts > 0)
         {
             abstate->remaining_boot_attempts--;
-            *commit = true;
+            *commit = true; /* Update state data */
             active_uu_str = a_part_uu_str;
             dt_part_name = 'A';
         }
@@ -120,7 +120,9 @@ int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit)
              abstate->remaining_boot_attempts > 0)
         {
             abstate->remaining_boot_attempts--;
+            *commit = true; /* Update state data */
             active_uu_str = b_part_uu_str;
+            dt_part_name = 'B';
         }
         else if (!(abstate->verified & PB_STATE_B_VERIFIED))
         {
