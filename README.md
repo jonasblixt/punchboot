@@ -59,16 +59,10 @@ Releases history:
 
 The easiest way is using docker.
 
-First generate the docker image using the top most makefile
+Building the docker image:
 
 ```
-make docker
-```
-
-Build the cst tool (for NXP targets)
-
-```
-docker run -it -u $(id -u $USER) -v $(readlink -f .):/pb/ pb_docker_env make -C /pb/src/tools/imxcst/src
+$ docker build -f pb.Dockerfile -t pb_docker_env .
 ```
 
 Building the jiffy-board target:
@@ -244,17 +238,6 @@ in-line patching of the device-tree.
 The device identity can be found in '/proc/device-tree/chosen/device-uuid'
 
 ## Allocated UUID's
-
-GPT Partitions
-
-| Partition       | UUID                                 |
-| --------------- | ------------------------------------ |
-| System A        | 2af755d8-8de5-45d5-a862-014cfa735ce0 |
-| System B        | c046ccd8-0f2e-4036-984d-76c14dc73992 |
-| Root A          | c284387a-3377-4c0f-b5db-1bcbcff1ba1a |
-| Root B          | ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb |
-| Config Primary  | f5f8c9ae-efb5-4071-9ba9-d313b082281e |
-| Config Backup   | 656ab3fc-5856-4a5e-a2ae-5a018313b3ee |
 
 Platform namespace UUID's
 

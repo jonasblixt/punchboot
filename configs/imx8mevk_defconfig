@@ -59,9 +59,9 @@ CONFIG_IMX8M_UMCTL_TRAIN_2D_I="blobs/lpddr4_pmu_train_2d_imem.bin"
 # Output image
 #
 CONFIG_IMX8M_CREATE_IMX_IMAGE=y
-CONFIG_IMX8M_MKIMAGE_TOOL="/work/imx-mkimage/iMX8M/mkimage_imx8"
+CONFIG_IMX8M_MKIMAGE_TOOL="mkimage_imx8_imx8m"
 CONFIG_IMX8M_SIGN_IMAGE=y
-CONFIG_IMX8M_CST_TOOL="/work/cst-3.3.0/linux64/bin/cst"
+CONFIG_IMX8M_CST_TOOL="cst"
 CONFIG_IMX8M_SRK_TABLE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
 CONFIG_IMX8M_KEY_INDEX=0
 CONFIG_IMX8M_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
