@@ -2,7 +2,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -20,6 +20,7 @@
 #include <plat/imx/dwc3.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx8m/plat.h>
+#include <libfdt.h>
 
 const struct fuse fuses[] =
 {
@@ -174,15 +175,6 @@ int board_status(void *plat,
     unsigned int base_ver = 0;
     unsigned int metal_ver = 0;
 
-    
-/*
-    LOG_DBG("ARM PLL %08x", pb_read32(0x30360028));
-    LOG_DBG("SYS PLL1 %08x", pb_read32(0x30360030));
-    LOG_DBG("SYS PLL2 %08x", pb_read32(0x3036003C));
-    LOG_DBG("SYS PLL3 %08x", pb_read32(0x30360048));
-    LOG_DBG("DRAM PLL %08x", pb_read32(0x30360060));
-*/
-
     switch ((priv->soc_ver_var >> 16) & 0x0f)
     {
         case 0x02:
@@ -240,5 +232,18 @@ bool board_force_command_mode(void *plat)
 
 int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
 {
-    return PB_OK;
+    const char *bootargs = NULL;
+
+    if (verbose_boot)
+    {
+        bootargs = "console=ttymxc0,115200 " \
+                         "earlyprintk ";
+    }
+    else
+    {
+        bootargs = "console=ttymxc0,115200 " \
+                         "quiet ";
+    }
+
+    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 }

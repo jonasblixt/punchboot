@@ -53,19 +53,19 @@ config IMX_OCOTP_DEBUG
     default n
 
 config IMX8M_UMCTL_TRAIN_1D_D
-    string "UMCTL 1D Train data"
+    string "UMCTL 1D Train d-data"
     default "blobs/lpddr4_pmu_train_1d_dmem.bin"
 
 config IMX8M_UMCTL_TRAIN_1D_I
-    string "UMCTL 1D Train data"
+    string "UMCTL 1D Train i-data"
     default "blobs/lpddr4_pmu_train_1d_imem.bin"
 
 config IMX8M_UMCTL_TRAIN_2D_D
-    string "UMCTL 2D Train data"
+    string "UMCTL 2D Train d-data"
     default "blobs/lpddr4_pmu_train_2d_dmem.bin"
 
 config IMX8M_UMCTL_TRAIN_2D_I
-    string "UMCTL 1D Train data"
+    string "UMCTL 2D Train i-data"
     default "blobs/lpddr4_pmu_train_2d_imem.bin"
 
 menu "Output image"

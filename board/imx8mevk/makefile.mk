@@ -6,8 +6,6 @@ PB_ENTRY      = 0x7E1000
 
 BOARD_C_SRCS += board/imx8mevk/board.c
 
-KEYS  = ../pki/secp256r1-pub-key.der
-
-KEY_TYPE = EC
+CFLAGS += -I board/imx8mevk/include
 
 endif

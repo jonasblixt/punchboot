@@ -1,0 +1,112 @@
+
+#
+# Punchboot configuration
+#
+CONFIG_ARCH_ARMV8=y
+# CONFIG_ARCH_ARMV7 is not set
+# CONFIG_PLAT_IMX8X is not set
+CONFIG_PLAT_IMX8M=y
+# CONFIG_BOARD_PICO8ML is not set
+CONFIG_BOARD_IMX8MEVK=y
+CONFIG_IMX_CAAM_BASE=0x30901000
+CONFIG_IMX_WATCHDOG_BASE=0x30280000
+CONFIG_IMX_GPT_BASE=0x302D0000
+CONFIG_IMX_GPT_PR=24
+CONFIG_IMX_UART_BASE=0x30860000
+CONFIG_IMX_UART_BAUDRATE=115200
+CONFIG_IMX_OCOTP_BASE=0x30350000
+CONFIG_IMX_OCOTP_WORDS_PER_BANK=4
+# CONFIG_IMX_OCOTP_DEBUG is not set
+
+#
+# imx8m configuration
+#
+
+#
+# Console configuration
+#
+
+#
+# USB Transport
+#
+CONFIG_DWC3_BASE=0x38100000
+
+#
+# CAAM
+#
+
+#
+# Watchdog
+#
+
+#
+# Generic timer
+#
+
+#
+# Debug serial port
+#
+
+#
+# Fusebox
+#
+CONFIG_IMX8M_UMCTL_TRAIN_1D_D="blobs/lpddr4_pmu_train_1d_dmem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_1D_I="blobs/lpddr4_pmu_train_1d_imem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_2D_D="blobs/lpddr4_pmu_train_2d_dmem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_2D_I="blobs/lpddr4_pmu_train_2d_imem.bin"
+
+#
+# Output image
+#
+CONFIG_IMX8M_CREATE_IMX_IMAGE=y
+CONFIG_IMX8M_MKIMAGE_TOOL="/work/imx-mkimage/iMX8M/mkimage_imx8"
+CONFIG_IMX8M_SIGN_IMAGE=y
+CONFIG_IMX8M_CST_TOOL="/work/cst-3.3.0/linux64/bin/cst"
+CONFIG_IMX8M_SRK_TABLE="pki/imx6ul_hab_testkeys/SRK_1_2_3_4_table.bin"
+CONFIG_IMX8M_KEY_INDEX=0
+CONFIG_IMX8M_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
+CONFIG_IMX8M_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
+# end of Output image
+# end of imx8m configuration
+
+CONFIG_TOOLCHAIN_PREFIX="aarch64-linux-gnu-"
+CONFIG_KEYSTORE="pki/internal_keystore.bpak"
+CONFIG_LOGLEVEL=3
+CONFIG_ENABLE_WATCHDOG=y
+CONFIG_WATCHDOG_TIMEOUT=5
+# CONFIG_BEARSSL is not set
+
+#
+# Authentication
+#
+CONFIG_AUTH_TOKEN=y
+# CONFIG_AUTH_PASSWORD is not set
+# end of Authentication
+
+#
+# Boot configuration
+#
+
+#
+# Boot configuration
+#
+CONFIG_BOOT_AB=y
+CONFIG_BOOT_IMAGE_ID=0xec103b08
+CONFIG_BOOT_STATE_PRIMARY_UU="f5f8c9ae-efb5-4071-9ba9-d313b082281e"
+CONFIG_BOOT_STATE_BACKUP_UU="656ab3fc-5856-4a5e-a2ae-5a018313b3ee"
+CONFIG_BOOT_DT=y
+CONFIG_BOOT_DT_ID=0x56f91b86
+CONFIG_BOOT_RAMDISK=y
+CONFIG_BOOT_RAMDISK_ID=0xf4cdac1f
+CONFIG_BOOT_AB_A_UUID="2af755d8-8de5-45d5-a862-014cfa735ce0"
+CONFIG_BOOT_AB_B_UUID="c046ccd8-0f2e-4036-984d-76c14dc73992"
+# end of Boot configuration
+
+#
+# Command mode transport configuration
+#
+CONFIG_CMD_BUF_SIZE_KB=4096
+CONFIG_TRANSPORT_MAX_CHUNK_KB=4096
+CONFIG_LOAD_FS_MAX_CHUNK_KB=4096
+CONFIG_TRANSPORT_READY_TIMEOUT=10
+# end of Command mode transport configuration

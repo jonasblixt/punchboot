@@ -22,4 +22,8 @@ config BOARD_PICO8ML
     bool "pico8ml"
     depends on PLAT_IMX8M
 
+config BOARD_IMX8MEVK
+    bool "NXP IMX8M EVK"
+    depends on PLAT_IMX8M
+
 endchoice
