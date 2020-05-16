@@ -68,7 +68,9 @@ $ docker build -f pb.Dockerfile -t pb_docker_env .
 Building the jiffy-board target:
 
 ```
-docker run -it -u $(id -u $USER) -v $(readlink -f .):/pb/ pb_docker_env make -C /pb/src BOARD=jiffy LOGLEVEL=3
+$ ./run_docker.sh
+$ cp configs/jiffy_defconfig .config
+$ make
 ```
 
 ## Run test suite
@@ -76,7 +78,10 @@ docker run -it -u $(id -u $USER) -v $(readlink -f .):/pb/ pb_docker_env make -C 
 Run the built in tests:
 
 ```
-docker run -it -u $(id -u $USER) -v $(readlink -f .):/pb/ pb_docker_env make -C /pb/ tests
+$ ./run_docker.sh
+$ cp configs/test_defconfig .config
+$ make
+$ make check
 ```
 
 The dockerfile in the top directory details the dependencies on ubuntu xenial
@@ -313,7 +318,7 @@ engine "pkcs11" set.
 Enter PKCS#11 token PIN for PIV Card Holder pin (PIV_II):
 Enter PKCS#11 key PIN for SIGN key:
  
-$ punchboot dev -a -n <key-id> -f ./0B177094-6B62-3572-902E-C1DE339ECB01.token
+$ punchboot auth --token ./0B177094-6B62-3572-902E-C1DE339ECB01.token --key-id 0xa90f9680
 
 Signature format: secp256r1
 Hash: sha256
