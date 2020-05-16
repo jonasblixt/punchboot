@@ -1,7 +1,30 @@
+v0.7.0
+------
+
+* Separated the host tools to separate repository 'punchboot-tools'.
+https://github.com/jonasblixt/punchboot-tools
+
+* Complete re-write of the protocol to eliminate depenanices for eMMC, GPT
+partition format. Punchboot now carries it's own representation of partitions
+which intends to be generic enough to support different types of memories,
+partition formats and memory configurations.
+
+* Introduction of KConfig for configuration. This replaces almost all
+parameters for make
+
+* Rename 'pbconfig' tool to 'pbstate' which more accuratly reflects it's
+pourpose
+
+* 'Recovery mode' is renamed to 'Command mode'
+
+* API to extract BPAK headers when they exist. By invoking the punchboot cli
+like this 'punchboot part --show' a list of BPAK headers are presented
+
+* Test platform support for EC algs
 
 
-v0.6
-----
+v0.6.0
+------
 
 Starting with v0.6 punchboot uses the new BPAK format, which replaces PBI and
 the pbimage tool.
