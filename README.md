@@ -89,8 +89,6 @@ The dockerfile in the top directory details the dependencies on ubuntu xenial
 
 ## Design
 
-[Internal API documentation](doc/platform_api.rst)
-
 Punchboot is written in C and some assembler. Currently armv7a and armv8 is supported.
 
 The directory layout is as follows:
