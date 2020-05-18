@@ -14,6 +14,7 @@
 #include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/board.h>
+#include <xlat_tables.h>
 #include <uuid/uuid.h>
 #include <plat/imx8x/plat.h>
 #include <plat/regs.h>
@@ -39,9 +40,18 @@
 #define LPCG_ALL_CLOCK_AUTO     0x33333333U
 #define LPCG_ALL_CLOCK_STOP     0x88888888U
 
-static struct imx8x_private private;
+
+extern char _code_start, _code_end,
+            _data_region_start, _data_region_end,
+            _ro_data_region_start, _ro_data_region_end,
+            _zero_region_start, _zero_region_end,
+            _stack_start, _stack_end,
+            _big_buffer_start, _big_buffer_end, end;
+
 extern struct fuse fuses[];
 extern const uint32_t rom_key_map[];
+
+static struct imx8x_private private;
 
 static struct pb_result_slc_key_status key_status;
 
@@ -51,6 +61,26 @@ static struct fuse rom_key_revoke_fuse = IMX8X_FUSE_ROW(11, "Revoke");
 
 static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
+
+static struct pb_timestamp ts_mmu_init = TIMESTAMP("MMU init");
+
+static const mmap_region_t imx_mmap[] = {
+    /* Map UART */
+    MAP_REGION_FLAT(CONFIG_LPUART_BASE, (64 * 1024), MT_DEVICE | MT_RW),
+    /* Connecivity */
+    MAP_REGION_FLAT(0x5b270000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 2*/
+    MAP_REGION_FLAT(0x5b280000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 3*/
+    MAP_REGION_FLAT(0x5b200000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USDHC0*/
+    MAP_REGION_FLAT(0x5b210000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USDHC0*/
+    MAP_REGION_FLAT(0x5b0d0000, (832*1024), MT_DEVICE | MT_RW), /* USB stuff*/
+    MAP_REGION_FLAT(0x5b010000, (128*1024), MT_DEVICE | MT_RW), /* USDHC*/
+
+    /* Low speed I/O */
+    MAP_REGION_FLAT(0x5d000000, (8*1024*1024), MT_DEVICE | MT_RW),
+    /* CAAM block*/
+    MAP_REGION_FLAT(0x31430000, (64 * 1024), MT_DEVICE | MT_RW),
+    {0}
+};
 
 int plat_get_uuid(char *out)
 {
@@ -134,6 +164,68 @@ int plat_early_init(void)
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
     plat_console_init();
 
+    /* Configure MMU */
+
+    uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
+    size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
+                      ((uintptr_t) &_ro_data_region_start);
+
+    uintptr_t code_start = (uintptr_t) &_code_start;
+    size_t code_size = ((uintptr_t) &_code_end) -
+                      ((uintptr_t) &_code_start);
+
+    uintptr_t stack_start = (uintptr_t) &_stack_start;
+    size_t stack_size = ((uintptr_t) &_stack_end) -
+                      ((uintptr_t) &_stack_start);
+
+    uintptr_t rw_start = (uintptr_t) &_data_region_start;
+/*
+    size_t rw_size = ((uintptr_t) &_data_region_end) -
+                      ((uintptr_t) &_data_region_start);
+
+    uintptr_t bss_start = (uintptr_t) &_zero_region_start;
+    size_t bss_size = ((uintptr_t) &_zero_region_end) -
+                      ((uintptr_t) &_zero_region_start);
+
+    uintptr_t bb_start = (uintptr_t) &_big_buffer_start;
+    size_t bb_size = ((uintptr_t) &_big_buffer_end) -
+                      ((uintptr_t) &_big_buffer_start);
+*/
+
+
+    timestamp_begin(&ts_mmu_init);
+
+    reset_xlat_tables();
+    mmap_add_region(code_start, code_start, code_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(stack_start, stack_start, stack_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(ro_start, ro_start, ro_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+    /*mmap_add_region(rw_start, rw_start, rw_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(bss_start, bss_start, bss_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(bb_start, bb_start, bb_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+                            */
+    /* Add ram */
+
+    /* Map ATF hole */
+    mmap_add_region(0x80000000, 0x80000000,
+                            (0x20000),
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(rw_start, rw_start,
+                            (1024*1024*1024),
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add(imx_mmap);
+
+    init_xlat_tables();
+
+    enable_mmu_el3(0);
+    timestamp_end(&ts_mmu_init);
+
+    //printf("MMU init: %u us", timestamp_read_us(&ts_mmu_init));
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
@@ -268,7 +360,7 @@ int plat_slc_set_configuration(void)
     int err;
 
     /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
+    foreach_fuse(f, fuses)
     {
         err = plat_fuse_read(f);
 
@@ -348,7 +440,7 @@ int plat_slc_read(enum pb_slc *slc)
     (*slc) = PB_SLC_NOT_CONFIGURED;
 
     /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
+    foreach_fuse(f, fuses)
     {
         err = plat_fuse_read(f);
 
@@ -429,6 +521,7 @@ int plat_slc_revoke_key(uint32_t id)
     int rc;
     unsigned int rom_index = 0;
     bool found_key = false;
+
     LOG_INFO("Revoking key 0x%x", id);
 
 
@@ -510,6 +603,12 @@ int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
     return PB_OK;
 }
 
+/*
+ .text.imx_ehci_set_address
+                0x0000000080036d1c       0x30 build-imx8qxmek/plat/imx8x/plat.o
+                0x0000000080036d1c                imx_ehci_set_address
+*/
+
 /* Transport API */
 
 int imx_ehci_set_address(uint32_t addr)
@@ -520,7 +619,6 @@ int imx_ehci_set_address(uint32_t addr)
 
 int plat_transport_init(void)
 {
-
     return imx_ehci_usb_init();
 }
 

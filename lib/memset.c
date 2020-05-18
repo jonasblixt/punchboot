@@ -5,6 +5,7 @@
  */
 
 #include <stddef.h>
+#include <string.h>
 
 void *memset(void *dst, int val, size_t count)
 {

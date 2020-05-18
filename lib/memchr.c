@@ -5,6 +5,7 @@
  */
 
 #include <stddef.h>
+#include <string.h>
 
 void *memchr(const void *src, int c, size_t len)
 {

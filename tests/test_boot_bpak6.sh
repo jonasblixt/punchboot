@@ -49,6 +49,8 @@ fi
 
 # Loading image to ram and execute should fail because it overlaps with bootloader
 
+echo "Booting part B"
+
 $PB boot --boot $BOOT_A --transport socket
 result_code=$?
 
@@ -58,6 +60,8 @@ then
 fi
 
 # Loading image to ram and execute should fail because it overlaps with bootloader
+
+echo "Ramloading image"
 
 $PB boot --load /tmp/img.pbi --transport socket
 result_code=$?

@@ -73,12 +73,16 @@ enum
      ((__a) + (__sz) >= ((uintptr_t) (__region_start))))
 
 #define __no_bss __attribute__((section (".bigbuffer")))
+#define __translation_table __attribute__((section (".translation_table")))
 #define __a4k  __attribute__ ((aligned(4096)))
 #define __a16b  __attribute__ ((aligned(16)))
+#define __a16k  __attribute__ ((aligned(16384)))
 
 #define membersof(array) (sizeof(array) / sizeof((array)[0]))
-#define    __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
+#define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
 
 void pb_delay_ms(unsigned int ms);
+void pb_delay_us(unsigned int us);
+void pb_main(void);
 
 #endif  // INCLUDE_PB_PB_H_

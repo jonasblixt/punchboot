@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/pb.h>
+#include <pb/asn1.h>
 #include <pb/crypto.h>
 #include <bpak/keystore.h>
 

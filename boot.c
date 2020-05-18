@@ -12,6 +12,7 @@
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <pb/boot.h>
+#include <pb/arch.h>
 #include <pb/crypto.h>
 #include <pb/board.h>
 #include <pb/plat.h>
@@ -320,7 +321,6 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 {
     int rc;
     uintptr_t *entry = 0;
-    uint32_t *key_id = NULL;
 
     uint8_t device_uuid[16];
 
@@ -343,6 +343,7 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 
 #ifdef CONFIG_BOOT_RAMDISK
     uintptr_t *ramdisk = 0;
+    uint32_t *key_id = NULL;
 
     rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
                             CONFIG_BOOT_RAMDISK_ID, (void **) &ramdisk);
@@ -356,7 +357,16 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 #ifdef CONFIG_BOOT_DT
     uintptr_t *dtb = 0;
 
+    struct bpak_part_header *pdtb = NULL;
+
     timestamp_begin(&ts_dtb_patch);
+
+    rc = bpak_get_part(h,
+                       CONFIG_BOOT_DT_ID,
+                       &pdtb);
+
+    if (rc != BPAK_OK)
+        return -PB_ERR;
 
     rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
                                 CONFIG_BOOT_DT_ID, (void **) &dtb);
@@ -512,6 +522,40 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 
     LOG_DBG("Ready to jump");
 
+    if (ts_total)
+    {
+        timestamp_end(ts_total);
+
+#if (CONFIG_BOOT_DT && CONFIG_BOOT_POP_TIMING)
+        rc = fdt_setprop_u32((void *) fdt, offset, "pb,boot-time",
+                                                 timestamp_read_us(ts_total));
+
+        if (rc)
+        {
+            LOG_ERR("Could not pb,boot-time");
+            return -PB_ERR;
+        }
+#endif
+    }
+
+#ifdef CONFIG_DUMP_TIMING_ANALYSIS
+    struct pb_timestamp *first_ts = timestamp_get_first();
+
+    printf("--- Timing report begin ---\n\r");
+    timestamp_foreach(first_ts, ts)
+    {
+        printf("%s %u us\n\r", timestamp_description(ts),
+                                timestamp_read_us(ts));
+    }
+
+    printf("--- Timing report end ---\n\r");
+#endif
+
+#ifdef CONFIG_BOOT_DT
+    size_t dtb_size = bpak_part_size(pdtb);
+    arch_clean_cache_range(*dtb, dtb_size);
+#endif
+
 #ifdef CONFIG_CALL_EARLY_PLAT_BOOT
     bool abort_boot = false;
 
@@ -527,36 +571,9 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     }
 #endif
 
-    if (ts_total)
-    {
-        timestamp_end(ts_total);
 
-#if (CONFIG_BOOT_DT && CONFIG_BOOT_POP_TIMING)
-
-    rc = fdt_setprop_u32((void *) fdt, offset, "pb,boot-time",
-                                             timestamp_read_us(ts_total));
-
-    if (rc)
-    {
-        LOG_ERR("Could not pb,boot-time");
-        return -PB_ERR;
-    }
-
-#endif
-    }
-
-#ifdef CONFIG_DUMP_TIMING_ANALYSIS
-    struct pb_timestamp *first_ts = timestamp_get_first();
-
-    printf("--- Timing report begin ---\n\r");
-    timestamp_foreach(first_ts, ts)
-    {
-        printf("%s %u us\n\r", timestamp_description(ts), 
-                                timestamp_read_us(ts));
-    }
-
-    printf("--- Timing report end ---\n\r");
-#endif
+    arch_clean_cache_range((uintptr_t) &jump_addr, sizeof(jump_addr));
+    arch_disable_mmu();
 
 #ifdef CONFIG_OVERRIDE_ARCH_JUMP
     uint8_t *part_uu = pb_boot_driver_get_part_uu();
@@ -574,8 +591,8 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 #else
     LOG_DBG("Jumping to %p", (void *) jump_addr);
     arch_jump((void *) jump_addr, NULL, NULL, NULL, NULL);
-#endif
-#endif
+#endif  // CONFIG_BOOT_ENABLE_DTB_BOOTARG
+#endif  // CONFIG_OVERRIDE_ARCH_JUMP
 
     LOG_ERR("Jump returned %p", (void *) jump_addr);
     return -PB_ERR;

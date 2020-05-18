@@ -11,6 +11,7 @@
 #include <string.h>
 #include <pb/plat.h>
 #include <pb/arch.h>
+#include <pb/timestamp.h>
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <plat/imx/usdhc.h>
@@ -18,6 +19,8 @@
 #define PLAT_EMMC_PART_BOOT0 1
 #define PLAT_EMMC_PART_BOOT1 2
 #define PLAT_EMMC_PART_USER  0
+
+//static struct pb_timestamp ts_usdhc = TIMESTAMP("USDHC");
 
 struct imx_usdhc_private
 {
@@ -73,7 +76,10 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
         timeout--;
 
         if (!timeout)
+        {
+            LOG_ERR("Xfer timeout");
             return -PB_TIMEOUT;
+        }
     }
 
     pb_write32(USDHC_INT_DATA_END, dev->base+ USDHC_INT_STATUS);
@@ -110,15 +116,24 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
     pb_write32(command, dev->base+USDHC_CMD_XFR_TYP);
 
     if (cmd == MMC_CMD_SEND_TUNING_BLOCK_HS200)
+    {
         err = usdhc_emmc_wait_for_cc(dev, (1<<5));
+    }
     else
+    {
         err = usdhc_emmc_wait_for_cc(dev, USDHC_INT_RESPONSE);
+    }
 
 usdhc_cmd_fail:
 
     if (err == -PB_TIMEOUT)
     {
         LOG_ERR("cmd %x timeout", cmd);
+    }
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("%i", err);
     }
 
     return err;
@@ -162,6 +177,7 @@ int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
     while (pb_read32(dev->base + USDHC_INT_STATUS) & (1 << 1))
         __asm__("nop");
 
+    arch_clean_cache_range((uintptr_t) priv->tbl, sizeof(priv->tbl[0]));
     pb_write32((uint32_t)(uintptr_t) priv->tbl, dev->base+ USDHC_ADMA_SYS_ADDR);
 
     /* Set ADMA 2 transfer */
@@ -195,6 +211,7 @@ int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
         return err;
     }
 
+    arch_invalidate_cache_range((uintptr_t) priv->raw_extcsd, 512);
     return PB_OK;
 }
 
@@ -274,6 +291,8 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
         if (!remaining_sz)
             tbl_ptr->cmd |= ADMA2_END;
 
+        arch_clean_cache_range((uintptr_t) tbl_ptr, sizeof(*tbl_ptr));
+
         buf_ptr += transfer_sz;
         tbl_ptr++;
     } while (remaining_sz);
@@ -312,7 +331,9 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
         return err;
 
     if (!async)
+    {
         return usdhc_emmc_wait_for_de(dev);
+    }
 
     return PB_OK;
 }
@@ -322,6 +343,7 @@ static int imx_usdhc_write(struct pb_storage_driver *drv,
                             void *data,
                             size_t n_blocks)
 {
+    arch_clean_cache_range((uintptr_t) data, n_blocks * 512);
     return imx_usdhc_xfer_blocks(drv, block_offset, data, n_blocks, 1, 0);
 }
 
@@ -330,7 +352,11 @@ static int imx_usdhc_read(struct pb_storage_driver *drv,
                             void *data,
                             size_t n_blocks)
 {
-    return imx_usdhc_xfer_blocks(drv, block_offset, data, n_blocks, 0, 0);
+    int rc;
+    rc = imx_usdhc_xfer_blocks(drv, block_offset, data, n_blocks, 0, 0);
+
+    arch_invalidate_cache_range((uintptr_t) data, n_blocks * 512);
+    return rc;
 }
 
 static int usdhc_setup_hs200(struct usdhc_device *dev)
@@ -595,6 +621,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     if (dev->size < sizeof(struct imx_usdhc_private))
         return -PB_ERR_MEM;
 
+
     drv->read = imx_usdhc_read;
     drv->write = imx_usdhc_write;
     drv->map_request = imx_usdhc_map_request;
@@ -619,8 +646,6 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
 
     while ((pb_read32(dev->base + USDHC_SYS_CTRL) & (1<<27)) == (1 << 27))
         __asm__("nop");
-
-    LOG_DBG("Done");
 
     pb_write32(0x10801080, dev->base+USDHC_WTMK_LVL);
 
@@ -674,6 +699,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
 
     LOG_DBG("Waiting for eMMC to power up");
 
+    //timestamp_begin(&ts_usdhc);
     while (1)
     {
         err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_OP_COND, 0x40ff8080, 2);
@@ -692,6 +718,8 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
         }
     }
 
+    //timestamp_end(&ts_usdhc);
+    //printf("\n\rusdhc ts: %u ms\n\r", timestamp_read_us(&ts_usdhc)/1000);
     LOG_DBG("Card reset complete");
     LOG_DBG("SEND CID");
 
@@ -809,6 +837,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     LOG_INFO("%s: %llx sectors, %llu kBytes", mmc_drive_str,
         dev->sectors, (dev->sectors)>>1);
     LOG_INFO("Partconfig: %x", priv->raw_extcsd[EXT_CSD_PART_CONFIG]);
+
 
     return PB_OK;
 }

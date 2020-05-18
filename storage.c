@@ -37,9 +37,7 @@ static int pb_storage_map_init(struct pb_storage_driver *drv)
                     p->last_block = block + p->no_of_blocks - 1;
                     block += p->no_of_blocks;
                 }
-
                 uuid_parse(p->uuid_str, p->uuid);
-
                 memcpy(&entries[drv->map_entries++], p, sizeof(*p));
             }
         }
@@ -62,7 +60,7 @@ int pb_storage_init(void)
 {
     int rc = PB_OK;
 
-    LOG_DBG("Storage init");
+    LOG_DBG("Storage init <%p>", drivers);
 
     for (struct pb_storage_driver *drv = drivers; drv; drv = drv->next)
     {

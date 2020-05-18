@@ -14,23 +14,23 @@ MKIMAGE ?= mkimage_imx8m
 PB_CSF_TEMPLATE = plat/imx8m/pb.csf.template
 SED = $(shell which sed)
 
-PLAT_C_SRCS  += plat/imx8m/plat.c
-PLAT_C_SRCS  += plat/imx/imx_uart.c
-PLAT_C_SRCS  += plat/imx/usdhc.c
-PLAT_C_SRCS  += plat/imx/caam.c
-PLAT_C_SRCS  += plat/imx/dwc3.c
-PLAT_C_SRCS  += plat/imx/hab.c
-PLAT_C_SRCS  += plat/imx/ocotp.c
-PLAT_C_SRCS  += plat/imx/wdog.c
-PLAT_C_SRCS  += plat/imx8m/umctl2_lp4.c
+src-y  += plat/imx8m/plat.c
+src-y  += plat/imx/imx_uart.c
+src-y  += plat/imx/usdhc.c
+src-y  += plat/imx/caam.c
+src-y  += plat/imx/dwc3.c
+src-y  += plat/imx/hab.c
+src-y  += plat/imx/ocotp.c
+src-y  += plat/imx/wdog.c
+src-y  += plat/imx8m/umctl2_lp4.c
 
-BLOB_INPUT  = $(patsubst "%",%,$(CONFIG_IMX8M_UMCTL_TRAIN_1D_D)) \
+blobs-y  = $(patsubst "%",%,$(CONFIG_IMX8M_UMCTL_TRAIN_1D_D)) \
 	$(patsubst "%",%,$(CONFIG_IMX8M_UMCTL_TRAIN_1D_I)) \
 	$(patsubst "%",%,$(CONFIG_IMX8M_UMCTL_TRAIN_2D_D)) \
 	$(patsubst "%",%,$(CONFIG_IMX8M_UMCTL_TRAIN_2D_I))
 
-CFLAGS += -I plat/imx8m/include
-LDFLAGS += -Tplat/imx8m/link.lds
+cflags-y += -I plat/imx8m/include
+ldflags-y += -Tplat/imx8m/link.lds
 
 MKIMAGE_OPTS =
 #MKIMAGE_OPTS += -dev emmc_fastboot 

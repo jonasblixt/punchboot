@@ -11,8 +11,7 @@
 #define ARRAY_SIZE(a)                \
     (sizeof(a) / sizeof((a)[0]))
 
-#define IS_POWER_OF_TWO(x)            \
-    (((x) & ((x) - 1)) == 0)
+#define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 
 #define SIZE_FROM_LOG2_WORDS(n)        (4 << (n))
 

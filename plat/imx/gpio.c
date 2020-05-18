@@ -28,23 +28,23 @@
 
 void gpio_set_pin(uint8_t bank, uint8_t pin, uint8_t value)
 {
-	/* Set pin value*/
-	if (value)
-		pb_setbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + DR);
-	else
-		pb_clrbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + DR);
+    /* Set pin value*/
+    if (value)
+        pb_setbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + DR);
+    else
+        pb_clrbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + DR);
 
-	/* Set direction output*/
-	pb_setbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + GDIR);
+    /* Set direction output*/
+    pb_setbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + GDIR);
 }
 
 uint8_t gpio_get_pin(uint8_t bank, uint8_t pin)
 {
-	/* Set direction input*/
-	pb_clrbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + GDIR);
+    /* Set direction input*/
+    pb_clrbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + GDIR);
 
-	/* Read bank value*/
-	uint32_t bank_val = pb_read32(GPIO_BANK_BASE(bank) + PSR);
+    /* Read bank value*/
+    uint32_t bank_val = pb_read32(GPIO_BANK_BASE(bank) + PSR);
 
-	return (bank_val >> pin) & 0x1;
+    return (bank_val >> pin) & 0x1;
 }

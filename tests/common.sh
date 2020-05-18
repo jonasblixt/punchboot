@@ -1,6 +1,6 @@
 echo ------- ITEST BEGIN: $TEST_NAME ----------------------------
 
-source ../.config
+source .config
 
 wait_for_qemu2()
 {

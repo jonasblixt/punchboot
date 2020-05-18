@@ -9,4 +9,8 @@ config DEBUG_SYMBOLS
 config STACK_USAGE
     bool "Generate stack usage information"
 
+config STACK_SIZE_KB
+    int "Stack size in Kbyte"
+    default 2
+
 endmenu

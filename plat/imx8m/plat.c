@@ -15,6 +15,7 @@
 #include <pb/plat.h>
 #include <pb/board.h>
 #include <pb/fuse.h>
+#include <xlat_tables.h>
 #include <plat/regs.h>
 #include <plat/imx/imx_uart.h>
 #include <plat/imx8m/clock.h>
@@ -22,6 +23,7 @@
 #include <plat/imx/usdhc.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/caam.h>
+#include <plat/imx/ehci.h>
 #include <plat/imx/dwc3.h>
 #include <plat/imx/hab.h>
 #include <plat/imx/ocotp.h>
@@ -44,6 +46,34 @@ static struct fuse rom_key_revoke_fuse =
 
 static const char platform_namespace_uuid[] =
     "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
+
+
+extern char _code_start, _code_end,
+            _data_region_start, _data_region_end,
+            _ro_data_region_start, _ro_data_region_end,
+            _zero_region_start, _zero_region_end,
+            _stack_start, _stack_end,
+            _big_buffer_start, _big_buffer_end, end;
+
+
+static const mmap_region_t imx_mmap[] =
+{
+    /* UMCTL2 state */
+    MAP_REGION_FLAT(0x40000000, (128 * 1024), MT_MEMORY | MT_RW),
+    /* DDRC */
+    MAP_REGION_FLAT(0x3c000000, (22 * 1024 * 1024), MT_DEVICE | MT_RW),
+    /* Boot ROM API*/
+    MAP_REGION_FLAT(0x00000000, (128 * 1024), MT_MEMORY | MT_RO | MT_EXECUTE),
+    /* Periph (AIPS) */
+    MAP_REGION_FLAT(0x30000000, (16 * 1024 * 1024), MT_DEVICE | MT_RW),
+    /* OCRAM */
+    MAP_REGION_FLAT(0x00900000, (128 * 1024), MT_MEMORY | MT_RW),
+    /* GVP */
+    MAP_REGION_FLAT(0x32000000, 0x20000, MT_DEVICE | MT_RW),
+    /* USB */
+    MAP_REGION_FLAT(0x38100000, (2 * 1024 * 1024), MT_DEVICE | MT_RW),
+    {0}
+};
 
 int plat_get_uuid(char *out)
 {
@@ -75,24 +105,25 @@ void plat_wdog_kick(void)
     imx_wdog_kick();
 }
 
-uint32_t imx8m_clock_cfg(uint32_t clk_id, uint32_t flags)
+static int imx8m_clock_cfg(uint32_t clk_id, uint32_t flags)
 {
     if (clk_id > 133)
-        return PB_ERR;
+        return -PB_ERR;
 
     pb_write32(flags, (0x30388004 + 0x80*clk_id));
 
     return PB_OK;
 }
 
+/*
 #if LOGLEVEL >= 3
-uint32_t imx8m_clock_print(uint32_t clk_id)
+static int imx8m_clock_print(uint32_t clk_id)
 {
     uint32_t reg;
     uint32_t addr = (0x30388000 + 0x80*clk_id);
 
     if (clk_id > 133)
-        return PB_ERR;
+        return -PB_ERR;
 
     reg = pb_read32(addr);
 
@@ -110,7 +141,7 @@ uint32_t imx8m_clock_print(uint32_t clk_id)
     return PB_OK;
 }
 
-uint32_t imx8m_cg_print(uint32_t cg_id)
+static int imx8m_cg_print(uint32_t cg_id)
 {
     uint32_t reg;
     uint32_t addr = 0x30384000 + 0x10*cg_id;
@@ -119,9 +150,12 @@ uint32_t imx8m_cg_print(uint32_t cg_id)
     return PB_OK;
 }
 #endif
+*/
+
 
 int plat_early_init(void)
 {
+
     /* Read SOC variant and version */
 
      private.soc_ver_var = pb_read32(CCM_ANALOG_DIGPROG);
@@ -200,6 +234,7 @@ int plat_early_init(void)
     plat_console_init();
 
 
+
     umctl2_init();
 
     LOG_DBG("LPDDR4 training complete");
@@ -208,6 +243,64 @@ int plat_early_init(void)
 
     pb_write32(0x03030303, 0x30384004 + 0x10*48);
     pb_write32(0x03030303, 0x30384004 + 0x10*81);
+
+    /* Configure MMU */
+
+    uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
+    size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
+                      ((uintptr_t) &_ro_data_region_start);
+
+    uintptr_t code_start = (uintptr_t) &_code_start;
+    size_t code_size = ((uintptr_t) &_code_end) -
+                      ((uintptr_t) &_code_start);
+
+    uintptr_t stack_start = (uintptr_t) &_stack_start;
+    size_t stack_size = ((uintptr_t) &_stack_end) -
+                      ((uintptr_t) &_stack_start);
+
+    uintptr_t rw_start = (uintptr_t) &_data_region_start;
+
+    size_t rw_size = ((uintptr_t) &_data_region_end) -
+                      ((uintptr_t) &_data_region_start);
+
+    uintptr_t bss_start = (uintptr_t) &_zero_region_start;
+    size_t bss_size = ((uintptr_t) &_zero_region_end) -
+                      ((uintptr_t) &_zero_region_start);
+
+
+    uintptr_t bb_start = (uintptr_t) &_big_buffer_start;
+    size_t bb_size = ((uintptr_t) &_big_buffer_end) -
+                      ((uintptr_t) &_big_buffer_start);
+
+    reset_xlat_tables();
+
+    mmap_add_region(code_start, code_start, code_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(stack_start, stack_start, stack_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(ro_start, ro_start, ro_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(rw_start, rw_start, rw_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(bss_start, bss_start, bss_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(bb_start, bb_start, bb_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    /* Add ram */
+
+    mmap_add_region(bb_start + bb_size, bb_start + bb_size,
+                            (1024*1024*1024),
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add(imx_mmap);
+
+
+    init_xlat_tables();
+
+    enable_mmu_el3(0);
+
+    /* MMU Config end */
+
 
     ocotp_init(CONFIG_IMX_OCOTP_BASE,
                CONFIG_IMX_OCOTP_WORDS_PER_BANK);

@@ -3,17 +3,19 @@ ifdef CONFIG_ARCH_ARMV8
 ARCH_OUTPUT = elf64-littleaarch64
 ARCH = aarch64
 
-CFLAGS   += -march=armv8-a -DAARCH64
-CFLAGS  += -mstrict-align -mgeneral-regs-only
-CFLAGS   += -I arch/armv8a/include
-CFLAGS   += -I include/pb/libc/aarch64
+cflags-y += -march=armv8-a -DAARCH64
+cflags-y += -mstrict-align -mgeneral-regs-only
+cflags-y += -I arch/armv8a/include
+cflags-y += -I include/pb/libc/aarch64
 
-LDFLAGS += -Tarch/armv8a/link.lds
+ldflags-y += -Tarch/armv8a/link.lds
 
-ARCH_ASM_SRCS += arch/armv8a/entry.S
-ARCH_ASM_SRCS += arch/armv8a/boot.S
-ARCH_ASM_SRCS += arch/armv8a/timer.S
+asm-y += arch/armv8a/entry.S
+asm-y += arch/armv8a/boot.S
+asm-y += arch/armv8a/timer.S
+asm-y += arch/armv8a/cache-ops.S
+asm-y += arch/armv8a/misc_helpers.S
 
-ARCH_C_SRCS += arch/armv8a/arch.c
+src-y += arch/armv8a/arch.c
 
 endif

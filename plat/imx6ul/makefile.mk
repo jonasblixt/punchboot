@@ -16,21 +16,22 @@ PB_UUU_CSF_TEMPLATE = plat/imx6ul/pb_uuu.csf.template
 
 SED = $(shell which sed)
 
-CFLAGS += -I plat/imx6ul/include
+cflags-y += -I plat/imx6ul/include
+cflags-y += -mtune=cortex-a7
 
-LDFLAGS += -Tplat/imx6ul/link.lds
+ldflags-y += -Tplat/imx6ul/link.lds
 
-PLAT_C_SRCS  += plat/imx/imx_uart.c
-PLAT_C_SRCS  += plat/imx6ul/plat.c
-PLAT_C_SRCS  += plat/imx/ehci.c
-PLAT_C_SRCS  += plat/imx/usdhc.c
-PLAT_C_SRCS  += plat/imx/caam.c
-PLAT_C_SRCS  += plat/imx/ocotp.c
-PLAT_C_SRCS	 += plat/imx/wdog.c
-PLAT_C_SRCS  += plat/imx/hab.c
+src-y  += plat/imx/imx_uart.c
+src-y  += plat/imx6ul/plat.c
+src-y  += plat/imx/ehci.c
+src-y  += plat/imx/usdhc.c
+src-y  += plat/imx/caam.c
+src-y  += plat/imx/ocotp.c
+src-y  += plat/imx/wdog.c
+src-y  += plat/imx/hab.c
 
 imx6ul_image: $(BUILD_DIR)/$(TARGET).bin
-	@$(MKIMAGE) -n board/jiffy/imximage.cfg -T imximage -e $(PB_ENTRY) \
+	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
 				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx 
 
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)

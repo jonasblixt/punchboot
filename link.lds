@@ -9,58 +9,71 @@
 
 SECTIONS
 {
-	. = PB_ENTRY;
+    . = PB_ENTRY;
 
-	.text :
- 	{
+    .text :
+     {
+        . = ALIGN(4096);
         PROVIDE (_code_start = .);
-		*(.vectors .vectors.*)
-        . = ALIGN(8);
-		*(.text .text.*)
-        . = ALIGN(8);
+        *(.vectors .vectors.*)
+        *(.text .text.*)
+        . = ALIGN(4096);
         _etext = .;
         PROVIDE (_code_end = .);
     } > pbram
 
     .data :
     {
+        . = ALIGN(4096);
         PROVIDE (_data_region_start = .);
-        *(.data)
-        *(.rodata .rodata.*)
-        . = ALIGN(8);
+        *(.data .data.*)
+        . = ALIGN(4096);
         _edata = .;
         PROVIDE (_data_region_end = .);
     } > pbram
 
+    .ro_data :
+    {
+        . = ALIGN(4096);
+        PROVIDE (_ro_data_region_start = .);
+        *(.rodata)
+        *(.igot.plt)
+        *(.got .got.*)
+        *(.rodata .rodata.*)
+        . = ALIGN(4096);
+        _edata = .;
+        PROVIDE (_ro_data_region_end = .);
+    } > pbram
+
     .bss (NOLOAD):
     {
+        . = ALIGN(4096);
         PROVIDE (_zero_region_start = .);
-        _bss_start = .;
         *(.bss)
-        . = ALIGN(8);
-        _bss_end = .;
+        *(.bss .bss.*)
+        . = ALIGN(4096);
         PROVIDE (_zero_region_end = .);
-	} > pbram2
+    } > pbram
 
- 	.stack (NOLOAD):
+     .stack (NOLOAD):
     {
+        . = ALIGN(4096);
         PROVIDE(_stack_start = .);
-        . = . + 2*1024 ;
-        . = ALIGN(8);
+        . = . + PB_STACK_SIZE_KB*1024 ;
+        . = ALIGN(4096);
         PROVIDE(_stack_end = .);
-    } > pbram2
+    } > pbram
 
     .bigbuffer (NOLOAD):
     {
+        . = ALIGN(4096);
         PROVIDE(_big_buffer_start = .);
         *(.bigbuffer .bigbuffer*)
-        . = ALIGN(8);
+        . = ALIGN(4096);
+        *(xlat_table)
+        . = ALIGN(4096);
         PROVIDE(_big_buffer_end = .);
     } > dram
 
     PROVIDE(end = .);
 }
-
-
-_bss_size = (_bss_end - _bss_start)>>3;
-

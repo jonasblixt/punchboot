@@ -27,6 +27,7 @@ int plat_console_putchar(char c)
     qemu_uart_write(&console_uart, (char *) &c, 1);
     return PB_OK;
 }
+/*
 void __assert(const char *file, unsigned int line,
               const char *assertion)
 {
@@ -36,7 +37,7 @@ void __assert(const char *file, unsigned int line,
     semihosting_sys_exit(1);
 
     while (1) {}
-}
+}*/
 
 int plat_get_uuid(char *out)
 {

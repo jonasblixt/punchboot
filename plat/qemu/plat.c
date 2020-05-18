@@ -17,6 +17,7 @@
 #include <pb/fuse.h>
 #include <pb/board.h>
 #include <pb/boot.h>
+#include <xlat_tables.h>
 #include <plat/qemu/plat.h>
 #include <plat/qemu/virtio.h>
 #include <plat/qemu/virtio_block.h>
@@ -28,6 +29,14 @@
 #include <plat/qemu/semihosting.h>
 #include <bpak/bpak.h>
 
+extern char _code_start, _code_end,
+            _data_region_start, _data_region_end,
+            _ro_data_region_start, _ro_data_region_end,
+            _zero_region_start, _zero_region_end,
+            _stack_start, _stack_end,
+            _big_buffer_start, _big_buffer_end, end,
+            __init_array_start, __init_array_end2,
+            __fini_array_start, __fini_array_end2;
 static struct qemu_uart_device console_uart;
 extern const struct fuse fuses[];
 extern const uint32_t rom_key_map[];
@@ -46,11 +55,11 @@ static const char *platform_namespace_uuid =
 static const char *device_unique_id =
     "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
-
-void *plat_get_private(void)
+static const mmap_region_t qemu_mmap[] =
 {
-    return NULL;
-}
+    MAP_REGION_FLAT(0x00000000, (1024 * 1024 * 1024), MT_DEVICE | MT_RW),
+    {0}
+};
 
 int plat_get_uuid(char *out)
 {
@@ -311,10 +320,89 @@ int plat_early_init(void)
 {
     int rc;
     memset(&key_status, 0, sizeof(key_status));
+
+    /* Configure MMU */
+
+    uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
+    size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
+                      ((uintptr_t) &_ro_data_region_start);
+
+    uintptr_t code_start = (uintptr_t) &_code_start;
+    size_t code_size = ((uintptr_t) &_code_end) -
+                      ((uintptr_t) &_code_start);
+
+    uintptr_t stack_start = (uintptr_t) &_stack_start;
+    size_t stack_size = ((uintptr_t) &_stack_end) -
+                      ((uintptr_t) &_stack_start);
+
+    uintptr_t rw_start = (uintptr_t) &_data_region_start;
+
+    size_t rw_size = ((uintptr_t) &_data_region_end) -
+                      ((uintptr_t) &_data_region_start);
+
+    uintptr_t bss_start = (uintptr_t) &_zero_region_start;
+    size_t bss_size = ((uintptr_t) &_zero_region_end) -
+                      ((uintptr_t) &_zero_region_start);
+
+    uintptr_t bb_start = (uintptr_t) &_big_buffer_start;
+    size_t bb_size = ((uintptr_t) &_big_buffer_end) -
+                      ((uintptr_t) &_big_buffer_start);
+
+    uintptr_t init_array_start = (uintptr_t) &__init_array_start;
+    size_t init_array_size = ((uintptr_t) &__init_array_end2) -
+                             ((uintptr_t) &__init_array_start);
+
+    uintptr_t fini_array_start = (uintptr_t) &__fini_array_start;
+    size_t fini_array_size = ((uintptr_t) &__fini_array_end2) -
+                             ((uintptr_t) &__fini_array_start);
+
+    plat_console_init();
+
+    reset_xlat_tables();
+
+    mmap_add_region(code_start, code_start, code_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(stack_start, stack_start, stack_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(ro_start, ro_start, ro_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+
+#ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
+    mmap_add_region(init_array_start, init_array_start, init_array_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE);
+
+    mmap_add_region(fini_array_start, fini_array_start, fini_array_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE);
+#endif
+
+    mmap_add_region(rw_start, rw_start, rw_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(bss_start, bss_start, bss_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(bb_start, bb_start, bb_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    /* Add ram */
+
+    mmap_add_region(bb_start + bb_size, bb_start + bb_size,
+                            (1024*1024*1024),
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add(qemu_mmap);
+
+    init_xlat_tables();
+    LOG_DBG("About to enable MMU");
+    enable_mmu_svc_mon(0);
+    LOG_DBG("MMU Enabled");
+
+
+
     rc = board_early_init(NULL);
 
 #ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
+    LOG_DBG("Initializing GCOV");
     gcov_init();
+    LOG_DBG("Done");
 #endif
 
     return rc;

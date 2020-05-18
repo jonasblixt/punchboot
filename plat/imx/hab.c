@@ -86,6 +86,9 @@ int hab_has_no_errors(void)
     hab_rvt_report_status =
                 (hab_rvt_report_status_t *)(uintptr_t)HAB_RVT_REPORT_STATUS;
 
+    LOG_DBG("Calling hab_rvt_report_status <%p> <%p>", hab_rvt_report_status,
+                                                       hab_rvt_report_event);
+
     result = hab_rvt_report_status(&config, &state);
     LOG_INFO("configuration: 0x%x, state: 0x%x", config, state);
     LOG_INFO(" result = %u", result);

@@ -1,4 +1,5 @@
 #include <pb/pb.h>
+#include <pb/keystore.h>
 #include <bpak/keystore.h>
 
 extern struct bpak_keystore keystore_pb;

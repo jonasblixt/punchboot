@@ -10,30 +10,28 @@ ifdef CONFIG_PLAT_QEMU
 
 PB_ARCH_NAME = armv7a
 
-CFLAGS += -mtune=cortex-a15 -I plat/qemu/include
+cflags-y += -mtune=cortex-a15 -I plat/qemu/include
 
-PLAT_C_SRCS  += plat/qemu/uart.c
-PLAT_C_SRCS  += plat/qemu/reset.c
-PLAT_C_SRCS  += plat/qemu/pl061.c
-PLAT_C_SRCS  += plat/qemu/semihosting.c
-PLAT_C_SRCS  += plat/qemu/wdog.c
-PLAT_C_SRCS  += plat/qemu/plat.c
-PLAT_C_SRCS  += plat/qemu/virtio.c
-PLAT_C_SRCS  += plat/qemu/virtio_serial.c
-PLAT_C_SRCS  += plat/qemu/virtio_block.c
-PLAT_C_SRCS  += plat/qemu/fuse.c
-PLAT_C_SRCS  += plat/qemu/root_hash.c
-PLAT_C_SRCS  += plat/qemu/transport.c
-PLAT_C_SRCS  += plat/qemu/crypto.c
+src-y  += plat/qemu/uart.c
+src-y  += plat/qemu/reset.c
+src-y  += plat/qemu/pl061.c
+src-y  += plat/qemu/semihosting.c
+src-y  += plat/qemu/wdog.c
+src-y  += plat/qemu/plat.c
+src-y  += plat/qemu/virtio.c
+src-y  += plat/qemu/virtio_serial.c
+src-y  += plat/qemu/virtio_block.c
+src-y  += plat/qemu/fuse.c
+src-y  += plat/qemu/root_hash.c
+src-y  += plat/qemu/transport.c
+src-y  += plat/qemu/crypto.c
 
-PLAT_ASM_SRCS += plat/qemu/semihosting_call.S
+asm-y += plat/qemu/semihosting_call.S
 
-ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
-PLAT_C_SRCS  += plat/qemu/gcov.c
-CFLAGS += -g -fprofile-arcs -ftest-coverage
-endif
+src-$(CONFIG_QEMU_ENABLE_TEST_COVERAGE)  += plat/qemu/gcov.c
+cflags-$(CONFIG_QEMU_ENABLE_TEST_COVERAGE) += -g -fprofile-arcs -ftest-coverage
 
-LDFLAGS += -Tplat/qemu/link.lds
+ldflags-y += -Tplat/qemu/link.lds
 
 QEMU ?= qemu-system-arm
 QEMU_AUDIO_DRV = "none"

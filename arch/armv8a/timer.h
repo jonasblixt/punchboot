@@ -2,9 +2,8 @@
 #define ARCH_ARMV8A_TIMER_H_
 
 #include <stdint.h>
-
-uint32_t read_cntps_tval_el1(void);
-uint32_t read_cntp_tval_el0(void);
-uint32_t read_cntfrq_el0(void);
-
+#define TIMER_CNTCR (0)
+#define TIMER_CNTSR (4)
+#define TIMER_CNTCV1 (8)
+#define TIMER_CNTCV2 (12)
 #endif  // ARCH_ARMV8A_TIMER_H_

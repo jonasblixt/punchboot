@@ -10,6 +10,6 @@ source "kconfig/Kconfig.generic"
 source "kconfig/Kconfig.build"
 source "kconfig/Kconfig.auth"
 source "kconfig/Kconfig.boot"
-source "kconfig/Kconfig.library"
+source "lib/Kconfig"
 source "kconfig/Kconfig.transport"
 

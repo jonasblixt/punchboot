@@ -10,10 +10,14 @@
 
 #include <pb/plat.h>
 #include <pb/io.h>
+#include <pb/arch.h>
 #include "uart.h"
 
 int qemu_uart_write(struct qemu_uart_device *dev, char *buf, size_t size)
 {
+
+    arch_clean_cache_range((uintptr_t) buf, size);
+
     for (unsigned int i = 0; i < size; i++)
         pb_write32(buf[i], dev->base); /* Transmit char */
 

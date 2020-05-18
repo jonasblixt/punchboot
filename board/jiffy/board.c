@@ -22,7 +22,7 @@
 #include <plat/imx/usdhc.h>
 #include <libfdt.h>
 
-const struct fuse fuses[] =
+struct fuse fuses[] =
 {
     IMX6UL_FUSE_BANK_WORD_VAL(3, 0, "SRK0", 0x5020C7D7),
     IMX6UL_FUSE_BANK_WORD_VAL(3, 1, "SRK1", 0xBB62B945),
@@ -49,7 +49,7 @@ const uint32_t rom_key_map[] =
     0x00000000,
 };
 
-const struct pb_storage_map map[] =
+struct pb_storage_map map[] =
 {
     PB_STORAGE_MAP3("9eef7544-bf68-4bf7-8678-da117cbccba8",
         "eMMC boot0", 2, 2050, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | \
@@ -87,7 +87,7 @@ static uint8_t usdhc0_dev_private_data[4096*4] __no_bss __a4k;
 static uint8_t usdhc0_gpt_map_data[4096*10] __no_bss __a4k;
 static uint8_t usdhc0_map_data[4096*4] __no_bss __a4k;
 
-static const struct usdhc_device usdhc0 =
+static struct usdhc_device usdhc0 =
 {
     .base = 0x02190000,
     .clk_ident = 0x10E1,

@@ -14,4 +14,6 @@ int pb_asn1_ecsig_to_rs(uint8_t *sig, uint8_t sig_kind,
 
 int pb_asn1_rsa_data(struct bpak_key *k, uint8_t **mod, uint8_t **exp);
 
+int pb_asn1_size(unsigned char **p, size_t *len);
+
 #endif  // INCLUDE_PB_ASN1_H_

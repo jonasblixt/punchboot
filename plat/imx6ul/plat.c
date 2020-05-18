@@ -12,6 +12,7 @@
 #include <pb/board.h>
 #include <pb/plat.h>
 #include <pb/io.h>
+#include <xlat_tables.h>
 #include <uuid/uuid.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/caam.h>
@@ -23,6 +24,14 @@
 #include <plat/imx/ehci.h>
 #include <pb/fuse.h>
 #include <plat/imx6ul/plat.h>
+
+
+extern char _code_start, _code_end,
+            _data_region_start, _data_region_end,
+            _ro_data_region_start, _ro_data_region_end,
+            _zero_region_start, _zero_region_end,
+            _stack_start, _stack_end,
+            _big_buffer_start, _big_buffer_end, end;
 
 extern const struct fuse fuses[];
 extern const uint32_t rom_key_map[];
@@ -44,6 +53,21 @@ static struct fuse rom_key_revoke_fuse =
 static struct imx6ul_private private;
 static struct pb_result_slc_key_status key_status;
 
+
+//static struct pb_timestamp ts_mmu_init = TIMESTAMP("MMU init");
+
+static const mmap_region_t imx_mmap[] =
+{
+    /* Boot ROM API*/
+    MAP_REGION_FLAT(0x00000000, (128 * 1024), MT_MEMORY | MT_RO | MT_EXECUTE),
+    /* Needed for HAB*/
+    MAP_REGION_FLAT(0x00900000, (256 * 1024), MT_MEMORY | MT_RW),
+    /* AIPS-1 */
+    MAP_REGION_FLAT(0x02000000, (1024 * 1024), MT_DEVICE | MT_RW),
+    /* AIPS-2 */
+    MAP_REGION_FLAT(0x02100000, (1024 * 1024), MT_DEVICE | MT_RW),
+    {0}
+};
 
 bool plat_force_command_mode(void)
 {
@@ -519,6 +543,62 @@ int plat_early_init(void)
     }
 
 
+    /* Configure MMU */
+
+    uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
+    size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
+                      ((uintptr_t) &_ro_data_region_start);
+
+    uintptr_t code_start = (uintptr_t) &_code_start;
+    size_t code_size = ((uintptr_t) &_code_end) -
+                      ((uintptr_t) &_code_start);
+
+    uintptr_t stack_start = (uintptr_t) &_stack_start;
+    size_t stack_size = ((uintptr_t) &_stack_end) -
+                      ((uintptr_t) &_stack_start);
+
+    uintptr_t rw_start = (uintptr_t) &_data_region_start;
+
+    size_t rw_size = ((uintptr_t) &_data_region_end) -
+                      ((uintptr_t) &_data_region_start);
+
+    uintptr_t bss_start = (uintptr_t) &_zero_region_start;
+    size_t bss_size = ((uintptr_t) &_zero_region_end) -
+                      ((uintptr_t) &_zero_region_start);
+
+    uintptr_t bb_start = (uintptr_t) &_big_buffer_start;
+    size_t bb_size = ((uintptr_t) &_big_buffer_end) -
+                      ((uintptr_t) &_big_buffer_start);
+
+
+    plat_console_init();
+    //timestamp_begin(&ts_mmu_init);
+
+    reset_xlat_tables();
+
+    mmap_add_region(code_start, code_start, code_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(stack_start, stack_start, stack_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(ro_start, ro_start, ro_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(rw_start, rw_start, rw_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(bss_start, bss_start, bss_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(bb_start, bb_start, bb_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    /* Add ram */
+
+    mmap_add_region(bb_start + bb_size, bb_start + bb_size,
+                            (1024*1024*1024),
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add(imx_mmap);
+
+    init_xlat_tables();
+    enable_mmu_svc_mon(0);
+    //timestamp_end(&ts_mmu_init);
     ocotp_init(CONFIG_IMX_OCOTP_BASE,
                CONFIG_IMX_OCOTP_WORDS_PER_BANK);
 

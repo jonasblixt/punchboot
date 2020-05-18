@@ -7,9 +7,8 @@
 #ifndef INCLUDE_PB_ASSERT_H_
 #define INCLUDE_PB_ASSERT_H_
 
-#define assert(e)    ((e) ? (void)0 : __assert(__FILE__, __LINE__, #e))
+#define assert(e) ((e) ? (void)0 : __assert(__FILE__, __LINE__))
 
-void __assert(const char *file, unsigned int line,
-              const char *assertion);
+void __assert(const char *file, unsigned int line);
 
 #endif  // INCLUDE_PB_ASSERT_H_

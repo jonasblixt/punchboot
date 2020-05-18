@@ -22,7 +22,7 @@
 #include <plat/imx8m/plat.h>
 #include <libfdt.h>
 
-const struct fuse fuses[] =
+struct fuse fuses[] =
 {
     IMX8M_FUSE_BANK_WORD_VAL(6, 0, "SRK0", 0x5020C7D7),
     IMX8M_FUSE_BANK_WORD_VAL(6, 1, "SRK1", 0xBB62B945),
@@ -48,7 +48,7 @@ const uint32_t rom_key_map[] =
     0x00000000,
 };
 
-const struct pb_storage_map map[] =
+struct pb_storage_map map[] =
 {
     PB_STORAGE_MAP3("9eef7544-bf68-4bf7-8678-da117cbccba8",
         "eMMC boot0", 66, 4162, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | \
@@ -86,11 +86,11 @@ static uint8_t usdhc0_dev_private_data[4096*4] __no_bss __a4k;
 static uint8_t usdhc0_gpt_map_data[4096*10] __no_bss __a4k;
 static uint8_t usdhc0_map_data[4096*4] __no_bss __a4k;
 
-static const struct usdhc_device usdhc0 =
+static struct usdhc_device usdhc0 =
 {
     .base = 0x30B40000,
     .clk_ident = 0x20EF,
-    .clk = 0x000F,
+    .clk = 0x0010,
     .bus_mode = USDHC_BUS_HS200,
     .bus_width = USDHC_BUS_8BIT,
     .boot_bus_cond = 0x0,
@@ -117,9 +117,7 @@ int board_early_init(void *plat)
 {
     int rc;
 
-    LOG_DBG("Hello %p %zu", &usdhc0_driver, usdhc0_driver.block_size);
     rc = pb_storage_add(&usdhc0_driver);
-    LOG_DBG("rc = %i", rc);
 
     if (rc != PB_OK)
         return rc;
@@ -227,7 +225,7 @@ int board_status(void *plat,
 
 bool board_force_command_mode(void *plat)
 {
-    return true;
+    return false;
 }
 
 int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
@@ -237,7 +235,7 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     if (verbose_boot)
     {
         bootargs = "console=ttymxc0,115200 " \
-                         "earlyprintk ";
+                         "earlycon=ec_imx6q,0x30860000,115200 earlyprintk ";
     }
     else
     {
@@ -245,5 +243,6 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
                          "quiet ";
     }
 
+    LOG_DBG("Bootargs: '%s'", bootargs);
     return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 }
