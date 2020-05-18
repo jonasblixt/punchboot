@@ -159,9 +159,9 @@ for storing test coverage data on the host.
 
 Building and running tests:
 ```
-$ export BOARD=test 
-$ export LOGLEVEL=3
-$ make clean && make && make test
+$ cp configs/test_defconfig .config
+$ make
+$ make check
 ```
 ## A/B paritions and atomic upgrades
 To support a robust way of upgrading the system the simplest way is to have two copies
@@ -269,15 +269,9 @@ Example:
 ```
 $ punchboot dev --show
 
-Device info:
- Bootloader Version: PB v0.3-82-gea3a-dirty
-
-Parameter           Value
----------           -----
-Platform            NXP IMX8M
-Device UUID         0B177094-6B62-3572-902E-C1DE339ECB01
-Board               Pico8ml
-
+Bootloader version: v0.6.1-40-ga47f-dirty
+Device UUID:        0b177094-6b62-3572-902e-c1de339ecb01
+Board name:         pico8ml
 ```
 Creating the authentication token using the 'createtoken.sh' script located 
 in the tools folder. In this example the private key is stored on a yubikey 5 HSM.
