@@ -11,8 +11,6 @@
 #include "uuid/uuid.h"
 #include "sha256.h"
 
-
-
 static int part_verify(struct pb_context *ctx, const char *filename,
                         const char *part_uuid, size_t offset)
 {
@@ -31,7 +29,7 @@ static int part_verify(struct pb_context *ctx, const char *filename,
 
     if (!fp)
     {
-        printf("Error: Could not open '%s'\n", filename);
+        fprintf(stderr, "Error: Could not open '%s'\n", filename);
         return -PB_RESULT_ERROR;
     }
 
@@ -42,7 +40,11 @@ static int part_verify(struct pb_context *ctx, const char *filename,
     if (read_bytes == sizeof(header) &&
         (bpak_valid_header(&header) == BPAK_OK))
     {
-        printf("Detected bpak header\n");
+        if (pb_get_verbosity() > 0)
+        {
+            printf("Detected bpak header\n");
+        }
+
         bpak_file = true;
 
         rc = mbedtls_sha256_update_ret(&sha256, (char *) &header,
@@ -109,7 +111,7 @@ static int part_write(struct pb_context *ctx, const char *filename,
 
     if (!fp)
     {
-        printf("Error: Could not open '%s'\n", filename);
+        fprintf(stderr, "Error: Could not open '%s'\n", filename);
         return -PB_RESULT_ERROR;
     }
 
@@ -134,7 +136,10 @@ static int part_write(struct pb_context *ctx, const char *filename,
     if (!entries)
         goto err_free_entries;
 
-    printf("Writing '%s' to '%s'\n", filename, part_uuid);
+    if (pb_get_verbosity() > 0)
+    {
+        printf("Writing '%s' to '%s'\n", filename, part_uuid);
+    }
 
     chunk_buffer = malloc(chunk_size + 1);
 
@@ -145,7 +150,7 @@ static int part_write(struct pb_context *ctx, const char *filename,
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Stream initialization failed (%i)\n", rc);
+        fprintf(stderr, "Error: Stream initialization failed (%i)\n", rc);
         goto err_out;
     }
 
@@ -158,7 +163,11 @@ static int part_write(struct pb_context *ctx, const char *filename,
     if (read_bytes == sizeof(header) &&
         (bpak_valid_header(&header) == BPAK_OK))
     {
-        printf("Detected bpak header\n");
+        if (pb_get_verbosity() > 1)
+        {
+            printf("Detected bpak header\n");
+        }
+
         bpak_file = true;
     }
     else
@@ -174,7 +183,7 @@ static int part_write(struct pb_context *ctx, const char *filename,
 
         if (rc != PB_RESULT_OK)
         {
-            printf("Error: Could not write header");
+            fprintf(stderr, "Error: Could not write header");
             goto err_out;
         }
 
@@ -187,12 +196,17 @@ static int part_write(struct pb_context *ctx, const char *filename,
                          sizeof(header);
             }
         }
-        printf("Writing header at 0x%lx\n", offset);
+
+        if (pb_get_verbosity() > 1)
+        {
+            printf("Writing header at 0x%lx\n", offset);
+        }
+
         rc = pb_api_stream_write_buffer(ctx, buffer_id, offset, sizeof(header));
 
         if (rc != PB_RESULT_OK)
         {
-            printf("Error: Could not write header");
+            fprintf(stderr, "Error: Could not write header");
             goto err_out;
         }
 
@@ -202,7 +216,8 @@ static int part_write(struct pb_context *ctx, const char *filename,
 
     if (bpak_file && block_write_offset)
     {
-        printf("Detected bpak header and offset parameter, ignoring offset\n");
+        fprintf(stderr,
+                    "Detected bpak header and offset parameter, ignoring offset\n");
     }
     else
     {
@@ -482,11 +497,11 @@ int action_part(int argc, char **argv)
                 device_uuid = (const char *) optarg;
             break;
             case '?':
-                printf("Unknown option: %c\n", optopt);
+                fprintf(stderr, "Unknown option: %c\n", optopt);
                 return -1;
             break;
             case ':':
-                printf("Missing arg for %c\n", optopt);
+                fprintf(stderr, "Missing arg for %c\n", optopt);
                 return -1;
             break;
             default:
@@ -504,7 +519,7 @@ int action_part(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not initialize context\n");
+        fprintf(stderr, "Error: Could not initialize context\n");
         return rc;
     }
 
@@ -512,7 +527,7 @@ int action_part(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not connect to device\n");
+        fprintf(stderr, "Error: Could not connect to device\n");
         goto err_free_ctx_out;
     }
 
@@ -529,7 +544,8 @@ int action_part(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Command failed %i (%s)\n", rc, pb_error_string(rc));
+        fprintf(stderr, "Error: Command failed %i (%s)\n", rc,
+                            pb_error_string(rc));
     }
 
 err_free_ctx_out:

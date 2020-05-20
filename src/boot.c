@@ -83,7 +83,7 @@ int action_boot(int argc, char **argv)
                 flag_verbose_boot = true;
             break;
             case '?':
-                printf("Unknown option: %c\n", optopt);
+                fprintf(stderr, "Unknown option: %c\n", optopt);
                 return -1;
             break;
             case 'a':
@@ -91,7 +91,7 @@ int action_boot(int argc, char **argv)
                 part_uuid = (const char *) optarg;
             break;
             case ':':
-                printf("Missing arg for %c\n", optopt);
+                fprintf(stderr, "Missing arg for %c\n", optopt);
                 return -1;
             break;
             default:
@@ -109,7 +109,7 @@ int action_boot(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not initialize context\n");
+        fprintf(stderr, "Error: Could not initialize context\n");
         return rc;
     }
 
@@ -117,7 +117,7 @@ int action_boot(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not connect to device\n");
+        fprintf(stderr, "Error: Could not connect to device\n");
         goto err_free_ctx_out;
     }
 
@@ -125,7 +125,7 @@ int action_boot(int argc, char **argv)
     {
         if (!filename)
         {
-            printf("Error: No filename supplied\n");
+            fprintf(stderr, "Error: No filename supplied\n");
             rc = -PB_RESULT_ERROR;
             goto err_free_ctx_out;
         }
@@ -133,7 +133,7 @@ int action_boot(int argc, char **argv)
 
         if (stat(filename, &stat_buffer) != 0)
         {
-            printf("Error: Could not open '%s'\n", filename);
+            fprintf(stderr, "Error: Could not open '%s'\n", filename);
             rc = -PB_RESULT_ERROR;
             goto err_free_ctx_out;
         }
@@ -142,7 +142,7 @@ int action_boot(int argc, char **argv)
 
         if (!image_buffer)
         {
-            printf("Error: could not allocate buffer\n");
+            fprintf(stderr, "Error: could not allocate buffer\n");
             rc = -PB_RESULT_ERROR;
             goto err_free_ctx_out;
         }
@@ -151,7 +151,7 @@ int action_boot(int argc, char **argv)
 
         if (!fp)
         {
-            printf("Error: Could not open '%s' for reading\n", filename);
+            fprintf(stderr, "Error: Could not open '%s' for reading\n", filename);
             rc = -PB_RESULT_ERROR;
             goto err_free_ctx_out;
         }
@@ -160,7 +160,7 @@ int action_boot(int argc, char **argv)
 
         if (read_bytes != stat_buffer.st_size)
         {
-            printf("Error: Could not read data\n");
+            fprintf(stderr, "Error: Could not read data\n");
             rc = -PB_RESULT_ERROR;
             fclose(fp);
             goto err_free_ctx_out;
@@ -181,13 +181,14 @@ int action_boot(int argc, char **argv)
         rc = part_activate(ctx, part_uuid);
     else
     {
-        printf("Error: Unknown command\n");
+        fprintf(stderr, "Error: Unknown command\n");
         rc = -PB_RESULT_ERROR;
     }
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Command failed %i (%s)\n", rc, pb_error_string(rc));
+        fprintf(stderr, "Error: Command failed %i (%s)\n", rc,
+                        pb_error_string(rc));
     }
 
 err_free_ctx_out:

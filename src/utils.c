@@ -14,7 +14,11 @@ int pb_debug(struct pb_context *ctx, int level, const char *fmt, ...)
     if (pb_get_verbosity() >= level)
     {
         va_start(args, fmt);
-        vprintf(fmt, args);
+
+        if (level == 0)
+            vfprintf(stderr, fmt, args);
+        else
+            vprintf(fmt, args);
         va_end(args);
     }
 
@@ -50,13 +54,14 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name,
         printf("Error: The socket transport is not supported on windows\n");
         rc = -PB_RESULT_ERROR;
 #else
-        printf("Connecting to /tmp/pb.sock\n");
+        if (pb_get_verbosity() > 2)
+            printf("Connecting to /tmp/pb.sock\n");
         rc = pb_socket_transport_init(ctx, "/tmp/pb.sock");
 #endif
     }
 
     if (rc != PB_RESULT_OK)
-        printf("Error: Could not initialize transport\n");
+        fprintf(stderr, "Error: Could not initialize transport\n");
 
     return rc;
 }

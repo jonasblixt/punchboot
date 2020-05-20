@@ -126,11 +126,11 @@ int action_slc(int argc, char **argv)
                 flag_show = true;
             break;
             case '?':
-                printf("Unknown option: %c\n", optopt);
+                fprintf(stderr, "Unknown option: %c\n", optopt);
                 return -1;
             break;
             case ':':
-                printf("Missing arg for %c\n", optopt);
+                fprintf(stderr, "Missing arg for %c\n", optopt);
                 return -1;
             break;
             default:
@@ -148,7 +148,7 @@ int action_slc(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not initialize context\n");
+        fprintf(stderr, "Error: Could not initialize context\n");
         return rc;
     }
 
@@ -156,7 +156,7 @@ int action_slc(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not connect to device\n");
+        fprintf(stderr, "Error: Could not connect to device\n");
         goto err_free_ctx_out;
     }
 
@@ -197,7 +197,7 @@ int action_slc(int argc, char **argv)
         else
         {
             rc = -PB_RESULT_ERROR;
-            printf("Error: Unknown command\n");
+            fprintf(stderr, "Error: Unknown command\n");
         }
     }
     else
@@ -207,13 +207,14 @@ int action_slc(int argc, char **argv)
         else
         {
             rc = -PB_RESULT_ERROR;
-            printf("Error: Unknown command\n");
+            fprintf(stderr, "Error: Unknown command\n");
         }
     }
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Command failed %i (%s)\n", rc, pb_error_string(rc));
+        fprintf(stderr, "Error: Command failed %i (%s)\n", rc,
+                        pb_error_string(rc));
     }
 
 err_free_ctx_out:

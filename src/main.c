@@ -60,7 +60,7 @@ int main(int argc, char **argv)
                 transport = optarg;
             break;
             case ':':
-                printf("Missing arg for %c\n", optopt);
+                fprintf(stderr, "Missing arg for %c\n", optopt);
                 return -1;
             break;
              default:
@@ -104,13 +104,13 @@ int main(int argc, char **argv)
         }
         else
         {
-            printf ("Unknown action '%s'\n", action);
+            fprintf (stderr, "Unknown action '%s'\n", action);
             return -1;
         }
     }
     else
     {
-        printf("Unknown action\n");
+        fprintf(stderr, "Unknown action\n");
         return -1;
     }
 

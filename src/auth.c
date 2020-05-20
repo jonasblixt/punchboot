@@ -20,7 +20,7 @@ static int auth_token(struct pb_context *ctx,
 
     if (!token_buffer)
     {
-        printf("Error: Could not allocate memory\n");
+        fprintf(stderr, "Error: Could not allocate memory\n");
         rc = -PB_RESULT_NO_MEMORY;
         goto err_out;
     }
@@ -29,7 +29,7 @@ static int auth_token(struct pb_context *ctx,
 
     if (!fp)
     {
-        printf("Error: Could not open '%s'\n", token_file_name);
+        fprintf(stderr, "Error: Could not open '%s'\n", token_file_name);
         rc = -PB_RESULT_ERROR;
         goto err_free_out;
     }
@@ -38,7 +38,7 @@ static int auth_token(struct pb_context *ctx,
 
     if (!read)
     {
-        printf("Error: Empty file\n");
+        fprintf(stderr, "Error: Empty file\n");
         rc = -PB_RESULT_ERROR;
         goto err_close_fp;
     }
@@ -126,11 +126,11 @@ int action_auth(int argc, char **argv)
                 password = (const char *) optarg;
             break;
             case '?':
-                printf("Unknown option: %c\n", optopt);
+                fprintf(stderr, "Unknown option: %c\n", optopt);
                 return -1;
             break;
             case ':':
-                printf("Missing arg for %c\n", optopt);
+                fprintf(stderr, "Missing arg for %c\n", optopt);
                 return -1;
             break;
             default:
@@ -148,7 +148,7 @@ int action_auth(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not initialize context\n");
+        fprintf(stderr, "Error: Could not initialize context\n");
         return rc;
     }
 
@@ -156,7 +156,7 @@ int action_auth(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not connect to device\n");
+        fprintf(stderr, "Error: Could not connect to device\n");
         goto err_free_ctx_out;
     }
 
@@ -168,13 +168,14 @@ int action_auth(int argc, char **argv)
         rc = auth_set_password(ctx, password);
     else
     {
-        printf("Error: Unknown auth method\n");
+        fprintf(stderr, "Error: Unknown auth method\n");
         rc = -PB_RESULT_ERROR;
     }
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Command failed %i (%s)\n", rc, pb_error_string(rc));
+        fprintf(stderr, "Error: Command failed %i (%s)\n", rc,
+                            pb_error_string(rc));
     }
 
 err_free_ctx_out:

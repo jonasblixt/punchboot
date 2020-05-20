@@ -101,11 +101,11 @@ int action_board(int argc, char **argv)
                 command_args = (const char *) optarg;
             break;
             case '?':
-                printf("Unknown option: %c\n", optopt);
+                fprintf(stderr, "Unknown option: %c\n", optopt);
                 return -1;
             break;
             case ':':
-                printf("Missing arg for %c\n", optopt);
+                fprintf(stderr, "Missing arg for %c\n", optopt);
                 return -1;
             break;
             default:
@@ -123,7 +123,7 @@ int action_board(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not initialize context\n");
+        fprintf(stderr, "Error: Could not initialize context\n");
         return rc;
     }
 
@@ -131,7 +131,7 @@ int action_board(int argc, char **argv)
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Could not connect to device\n");
+        fprintf(stderr, "Error: Could not connect to device\n");
         goto err_free_ctx_out;
     }
 
@@ -145,13 +145,14 @@ int action_board(int argc, char **argv)
     }
     else
     {
-        printf("Error: Unknown command\n");
+        fprintf(stderr, "Error: Unknown command\n");
         rc = -PB_RESULT_ERROR;
     }
 
     if (rc != PB_RESULT_OK)
     {
-        printf("Error: Command failed %i (%s)\n", rc, pb_error_string(rc));
+        fprintf(stderr, "Error: Command failed %i (%s)\n", rc,
+                        pb_error_string(rc));
     }
 
 err_free_ctx_out:
