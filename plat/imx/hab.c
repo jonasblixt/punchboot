@@ -46,20 +46,27 @@ static inline uint8_t get_idx(uint8_t *list, uint8_t tgt)
     return -1;
 }
 
-bool hab_secureboot_active(void)
+int hab_secureboot_active(bool *result)
 {
     uint32_t reg;
     int ret;
+
+    (*result) = false;
 
     ret = ocotp_read(0, 6, &reg);
 
     if (ret != PB_OK)
     {
         LOG_ERR("Secure boot fuse read error");
-        return ret;
+        return -PB_ERR;
     }
 
-    return (reg & IS_HAB_ENABLED_BIT) == IS_HAB_ENABLED_BIT;
+    if ((reg & IS_HAB_ENABLED_BIT) == IS_HAB_ENABLED_BIT)
+    {
+        (*result) = true;
+    }
+
+    return PB_OK;
 }
 
 int hab_has_no_errors(void)

@@ -420,7 +420,18 @@ int plat_status(void *response_bfr,
 
 int plat_slc_init(void)
 {
-    if (hab_secureboot_active())
+    int rc;
+    bool sec_boot_active = false;
+
+    rc = hab_secureboot_active(&sec_boot_active);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not read secure boot status");
+        return rc;
+    }
+
+    if (sec_boot_active)
     {
         LOG_INFO("Secure boot active");
     } else {
@@ -509,8 +520,16 @@ int plat_slc_read(enum pb_slc *slc)
         }
     }
 
-    if (hab_secureboot_active())
+    bool sec_boot_active = false;
+    err = hab_secureboot_active(&sec_boot_active);
+
+    if (err != PB_OK)
+        return err;
+
+    if (sec_boot_active)
+    {
         (*slc) = PB_SLC_CONFIGURATION_LOCKED;
+    }
 
     return PB_OK;
 }

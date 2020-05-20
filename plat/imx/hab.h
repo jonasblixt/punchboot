@@ -180,7 +180,7 @@ typedef void hapi_clock_init_t(void);
 
 
 
-bool hab_secureboot_active(void);
+int hab_secureboot_active(bool *result);
 int hab_has_no_errors(void);
 
 #endif  // PLAT_IMX_HAB_H_
