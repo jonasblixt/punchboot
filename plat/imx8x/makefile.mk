@@ -22,6 +22,7 @@ PLAT_C_SRCS  += plat/imx/ehci.c
 PLAT_C_SRCS  += plat/imx/caam.c
 PLAT_C_SRCS  += plat/imx8x/plat.c
 PLAT_C_SRCS  += plat/imx/wdog.c
+PLAT_C_SRCS  += plat/imx/usbdcd.c
 PLAT_C_SRCS  += plat/imx8x/sci/ipc.c
 PLAT_C_SRCS  += plat/imx8x/sci/mx8_mu.c
 PLAT_C_SRCS  += plat/imx8x/sci/svc/pad/pad_rpc_clnt.c

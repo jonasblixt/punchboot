@@ -20,6 +20,11 @@ config IMX_CAAM_BASE
     hex "CAAM base address"
     default 0x31430000
 
+comment "USBDCD"
+config IMX_USBDCD_BASE
+    hex "USB DCD base address"
+    default 0x5b100800
+
 comment "Generic timer"
 config IMX_GPT_BASE
     hex "IMX timer base"
