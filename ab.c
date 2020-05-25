@@ -107,6 +107,7 @@ int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit)
 
             *commit = true;
             abstate->enable = PB_STATE_B_ENABLED;
+            abstate->error = PB_STATE_ERROR_A_ROLLBACK;
             active_uu_str = b_part_uu_str;
             dt_part_name = 'B';
         }
@@ -137,6 +138,7 @@ int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit)
 
             *commit = true;
             abstate->enable = PB_STATE_A_ENABLED;
+            abstate->error = PB_STATE_ERROR_B_ROLLBACK;
             active_uu_str = a_part_uu_str;
             dt_part_name = 'A';
         }
