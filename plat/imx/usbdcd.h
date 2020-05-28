@@ -11,6 +11,7 @@
 #define PLAT_IMX_USBDCD_H_
 
 #include <stdint.h>
+#include <pb/usb.h>
 
 #define IMX_USBDCD_CONTROL (0x00)
 #define IMX_USBDCD_CLOCK   (0x04)
@@ -21,7 +22,6 @@
 #define IMX_USBDCD_TIMER2_BC11 (0x18)
 #define IMX_USBDCD_TIMER2_BC12 (0x18)
 
-
 struct imx_usbdcd
 {
     uintptr_t base;
@@ -29,6 +29,7 @@ struct imx_usbdcd
 
 int imx_usbdcd_init(struct imx_usbdcd *dev, uintptr_t base);
 int imx_usbdcd_start(struct imx_usbdcd *dev);
-int imx_usbdcd_poll_result(struct imx_usbdcd *dev, uint8_t *result);
+int imx_usbdcd_poll_result(struct imx_usbdcd *dev,
+                            enum usb_charger_type *result);
 
 #endif  // PLAT_IMX_USBDCD_H_
