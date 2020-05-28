@@ -205,7 +205,7 @@ int pb_boot_init(void)
     int rc;
 
 #ifdef CONFIG_CALL_EARLY_PLAT_BOOT
-    rc = plat_boot_early();
+    rc = plat_early_boot();
 
     if (rc != PB_OK)
         return rc;
