@@ -131,6 +131,14 @@ struct usb_descriptors
     const struct usb_endpoint_descriptor endpoint_bulk_out;
 } __attribute__((packed));
 
+enum usb_charger_type
+{
+    USB_CHARGER_UNKNOWN,
+    USB_CHARGER_CDP,
+    USB_CHARGER_DCP,
+    USB_CHARGER_SDP,
+};
+
 typedef int (*pb_usb_io_t) (int ep, void *buf, size_t size);
 
 typedef int (*pb_usb_call_t) (void);

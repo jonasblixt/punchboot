@@ -39,5 +39,8 @@ int board_status(void *plat,
                     void *response_bfr,
                     size_t *response_size);
 
+int board_early_boot(void *plat);
+int board_late_boot(void *plat, bool *abort_boot);
+
 const char *board_name(void);
 #endif  // INCLUDE_PB_BOARD_H_

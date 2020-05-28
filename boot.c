@@ -204,6 +204,13 @@ int pb_boot_init(void)
 {
     int rc;
 
+#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
+    rc = plat_boot_early();
+
+    if (rc != PB_OK)
+        return rc;
+#endif
+
     uuid_parse(CONFIG_BOOT_STATE_PRIMARY_UU, primary_uu);
     uuid_parse(CONFIG_BOOT_STATE_BACKUP_UU, backup_uu);
 
@@ -451,6 +458,22 @@ int pb_boot(bool verbose)
 
     if (rc != PB_OK)
         return rc;
+
+#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
+    bool abort_boot = false;
+
+    rc = plat_late_boot(&abort_boot);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (abort_boot)
+    {
+        LOG_INFO("Aborting boot process");
+        return PB_OK;
+    }
+#endif
+
 #ifdef CONFIG_OVERRIDE_ARCH_JUMP
     uint8_t *part_uu = pb_boot_driver_get_part_uu();
     plat_boot_override(part_uu);

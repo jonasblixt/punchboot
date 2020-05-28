@@ -30,6 +30,9 @@ config WATCHDOG_TIMEOUT
     default 5
     depends on ENABLE_WATCHDOG
 
+config CALL_EARLY_PLAT_BOOT
+	bool "Call early/late plat/board boot callbacks"
+    default n
 
 source "bearssl/Kconfig"
 source "kconfig/Kconfig.*"

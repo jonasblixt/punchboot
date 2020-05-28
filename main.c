@@ -92,7 +92,7 @@ void pb_main(void)
 
     pb_boot(false);
 
-    LOG_ERR("Boot failed");
+    LOG_INFO("Boot stopped, entering command mode");
 
 run_command_mode:
     pb_command_run();

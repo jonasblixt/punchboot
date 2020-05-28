@@ -37,6 +37,9 @@ int plat_get_uuid(char *out);
 int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot);
 int plat_boot_override(uint8_t *uuid);
 
+int plat_early_boot(void);
+int plat_late_boot(bool *abort_boot);
+
 int plat_command(uint32_t command,
                      void *bfr,
                      size_t size,
