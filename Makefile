@@ -193,6 +193,12 @@ clean:
 	@-rm -rf $(BUILD_DIR)/
 	@-rm -rf *.gcov
 
+install: all
+	@test -d $(INSTALL_DIR) || echo "You must set INSTALL_DIR"
+	@test -d $(INSTALL_DIR)
+	@echo Installing $(FINAL_OUTPUT) to '$(INSTALL_DIR)'
+	@cp $(FINAL_OUTPUT) $(INSTALL_DIR)
+
 gcovr:
 	@gcovr 	--gcov-exclude plat \
 			--gcov-exclude uuid \
