@@ -40,14 +40,14 @@ LDFLAGS += -Tplat/imx8x/link.lds
 .PHONY: imx8x_image imx8x_sign_image
 
 imx8x_image: $(BUILD_DIR)/$(TARGET).bin
-	@$(MKIMAGE) -commit > $(BUILD_DIR)/head.hash > /dev/null
+	@$(MKIMAGE) -commit > $(BUILD_DIR)/head.hash
 	@cat $(BUILD_DIR)/pb.bin $(BUILD_DIR)/head.hash > $(BUILD_DIR)/pb_hash.bin
 	@$(MKIMAGE) -soc QX -rev B0 \
 				  -e emmc_fast \
 				  -append $(CONFIG_IMX8X_AHAB_IMAGE) \
 				  -c -scfw $(CONFIG_IMX8X_SCFW_IMAGE) \
 				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(PB_ENTRY) \
-				  -out $(BUILD_DIR)/pb.imx 2> /dev/null > /dev/null
+				  -out $(BUILD_DIR)/pb.imx
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
 
 imx8x_sign_image: imx8x_image
