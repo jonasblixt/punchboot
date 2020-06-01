@@ -30,6 +30,7 @@ struct pb_timestamp
     struct pb_timestamp *next;
 };
 
+void timestamp_init(void);
 int timestamp_begin(struct pb_timestamp *ts);
 int timestamp_end(struct pb_timestamp *ts);
 const char *timestamp_description(struct pb_timestamp *ts);

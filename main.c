@@ -27,6 +27,7 @@ void pb_main(void)
 {
     int rc;
 
+    timestamp_init();
     timestamp_end(&ts_ll_init);
 
     /*

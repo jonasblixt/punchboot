@@ -14,6 +14,12 @@
 static struct pb_timestamp *first = NULL;
 static struct pb_timestamp *last = NULL;
 
+void timestamp_init(void)
+{
+    first = NULL;
+    last = NULL;
+}
+
 int timestamp_begin(struct pb_timestamp *ts)
 {
     ts->begin_ts_us = arch_get_us_tick();
