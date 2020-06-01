@@ -12,5 +12,8 @@ LDFLAGS += -Tarch/armv8a/link.lds
 
 ARCH_ASM_SRCS += arch/armv8a/entry.S
 ARCH_ASM_SRCS += arch/armv8a/boot.S
+ARCH_ASM_SRCS += arch/armv8a/timer.S
+
+ARCH_C_SRCS += arch/armv8a/arch.c
 
 endif

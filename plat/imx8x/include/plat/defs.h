@@ -48,4 +48,7 @@
                          (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
                          (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
+#define COUNTER_FREQUENCY (8000000)
+#define COUNTER_US_SHIFT (3)
+
 #endif  // PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_

@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/pb.h>
+#include <pb/arch.h>
 #include <pb/image.h>
 #include <pb/plat.h>
 #include <pb/usb.h>
@@ -908,7 +909,7 @@ restart_command_mode:
         plat_reset();
     }
 
-    unsigned int ready_timeout = plat_get_us_tick();
+    unsigned int ready_timeout = arch_get_us_tick();
 
     LOG_INFO("Waiting for transport to become ready...");
 
@@ -918,7 +919,7 @@ restart_command_mode:
         plat_wdog_kick();
 
 
-         if ((plat_get_us_tick() - ready_timeout) >
+         if ((arch_get_us_tick() - ready_timeout) >
              (CONFIG_TRANSPORT_READY_TIMEOUT * 1000000L))
         {
             LOG_ERR("Timeout, rebooting");

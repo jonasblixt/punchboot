@@ -15,7 +15,9 @@ ARCH_ASM_SRCS += arch/armv7a/entry_armv7a.S
 ARCH_ASM_SRCS += arch/armv7a/arm32_aeabi_divmod_a32.S
 ARCH_ASM_SRCS += arch/armv7a/uldivmod.S
 ARCH_ASM_SRCS += arch/armv7a/boot.S
+ARCH_ASM_SRCS += arch/armv7a/timer.S
 
 ARCH_C_SRCS += arch/armv7a/arm32_aeabi_divmod.c
+ARCH_C_SRCS += arch/armv7a/arch.c
 
 endif

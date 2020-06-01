@@ -74,11 +74,6 @@ void plat_reset(void)
     sc_pm_reset(private.ipc, SC_PM_RESET_TYPE_BOARD);
 }
 
-unsigned int plat_get_us_tick(void)
-{
-    return gp_timer_get_tick();
-}
-
 void plat_wdog_init(void)
 {
     sc_rm_pt_t partition;
@@ -134,21 +129,8 @@ void plat_wdog_kick(void)
 
 int plat_early_init(void)
 {
-    int rc = PB_OK;
-    sc_pm_clock_rate_t rate;
-
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
     plat_console_init();
-
-    /* Setup GPT0 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
-    rate = 24000000;
-    sc_pm_set_clock_rate(private.ipc, SC_R_GPT_0, 2, &rate);
-
-    rc = sc_pm_clock_enable(private.ipc, SC_R_GPT_0, 2, true, false);
-
-    if (rc != SC_ERR_NONE)
-        return -PB_ERR;
 
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
@@ -162,17 +144,7 @@ int plat_early_init(void)
     /* Power up USB */
     pb_write32(0x00, 0x5B100000);
 
-    rc = board_early_init(&private);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = gp_timer_init(CONFIG_IMX_GPT_BASE, CONFIG_IMX_GPT_PR);
-
-    if (rc != PB_OK)
-        return rc;
-
-    return rc;
+    return board_early_init(&private);
 }
 
 /* FUSE Interface */

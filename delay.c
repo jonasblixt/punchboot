@@ -2,20 +2,19 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#include <pb/plat.h>
+#include <pb/arch.h>
 
-
-void plat_delay_ms(uint32_t delay)
+void pb_delay_ms(uint32_t delay)
 {
-    uint32_t ts = plat_get_us_tick();
+    uint32_t ts = arch_get_us_tick();
 
-    while ( (plat_get_us_tick()-ts) < (delay*1000))
+    while ( (arch_get_us_tick()-ts) < (delay*1000))
         __asm__ volatile ("nop");
 }
 

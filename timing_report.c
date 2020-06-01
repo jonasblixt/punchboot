@@ -34,12 +34,12 @@ void tr_init(void)
 
 void tr_stamp_begin(uint32_t kind)
 {
-    tr_stamps[kind] = plat_get_us_tick();
+    tr_stamps[kind] = arch_get_us_tick();
 }
 
 void tr_stamp_end(uint32_t kind)
 {
-    tr_stamps[kind] = (plat_get_us_tick() - tr_stamps[kind]);
+    tr_stamps[kind] = (arch_get_us_tick() - tr_stamps[kind]);
 }
 
 void tr_print_result(void)

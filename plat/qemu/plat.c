@@ -316,11 +316,6 @@ int plat_early_init(void)
     return rc;
 }
 
-uint32_t plat_get_us_tick(void)
-{
-    return 0;
-}
-
 /* Console API */
 
 int plat_console_init(void)
