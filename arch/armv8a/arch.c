@@ -4,6 +4,6 @@
 
 unsigned int arch_get_us_tick(void)
 {
-    uint32_t tick = (0xFFFFFFFF - read_cntps_tval_el1());
+    uint32_t tick = (0xFFFFFFFF - read_cntp_tval_el0());
     return (tick >> COUNTER_US_SHIFT);
 }
