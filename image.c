@@ -15,7 +15,7 @@
 #include <pb/plat.h>
 #include <pb/io.h>
 #include <pb/keystore.h>
-#include <pb/timing_report.h>
+#include <pb/timestamp.h>
 #include <pb/gpt.h>
 #include <pb/crypto.h>
 #include <bpak/bpak.h>
@@ -28,6 +28,8 @@ extern char _code_start, _code_end,
 static struct bpak_header header __a4k __no_bss;
 static uint8_t signature[512] __a4k __no_bss;
 static size_t signature_sz;
+static struct pb_timestamp ts_load = TIMESTAMP("Image load and hash");
+static struct pb_timestamp ts_signature = TIMESTAMP("Verify signature");
 
 int pb_image_check_header(void)
 {
@@ -116,7 +118,7 @@ int pb_image_load(pb_image_read_t read_f,
     uint32_t *key_id = NULL;
     uint32_t *keystore_id = NULL;
 
-    tr_stamp_begin(TR_LOAD);
+    timestamp_begin(&ts_load);
 
     rc = bpak_valid_header(h);
 
@@ -309,7 +311,9 @@ int pb_image_load(pb_image_read_t read_f,
     if (rc != PB_OK)
         return rc;
 
-    tr_stamp_end(TR_LOAD);
+    timestamp_end(&ts_load);
+
+    timestamp_begin(&ts_signature);
 
     rc = plat_pk_verify(signature, signature_sz, &hash, k);
 
@@ -321,6 +325,8 @@ int pb_image_load(pb_image_read_t read_f,
     {
         LOG_ERR("Signature Invalid");
     }
+
+    timestamp_end(&ts_signature);
 
     return rc;
 }

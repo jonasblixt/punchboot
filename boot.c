@@ -17,7 +17,7 @@
 #include <pb/plat.h>
 #include <pb/atf.h>
 #include <pb/crc.h>
-#include <pb/timing_report.h>
+#include <pb/timestamp.h>
 #include <libfdt.h>
 #include <uuid/uuid.h>
 #include <bpak/bpak.h>
@@ -30,6 +30,11 @@ static struct pb_storage_map *primary_map, *backup_map;
 static struct pb_storage_driver *sdrv;
 static struct pb_result result __no_bss __a4k;
 static uintptr_t jump_addr;
+static struct pb_timestamp ts_total = TIMESTAMP("Total");
+
+#ifdef CONFIG_BOOT_DT
+static struct pb_timestamp ts_dtb_patch = TIMESTAMP("DT Patch");
+#endif
 
 static int ram_load_read(void *buf, size_t size, void *private)
 {
@@ -350,6 +355,8 @@ int pb_boot(bool verbose)
 #ifdef CONFIG_BOOT_DT
     uintptr_t *dtb = 0;
 
+    timestamp_begin(&ts_dtb_patch);
+
     rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
                                 CONFIG_BOOT_DT_ID, (void **) &dtb);
 
@@ -446,6 +453,7 @@ int pb_boot(bool verbose)
 
     LOG_DBG("Ramdisk %lx -> %lx", *ramdisk, *ramdisk + ramdisk_bytes);
 #endif  // CONFIG_BOOT_RAMDISK
+    timestamp_end(&ts_dtb_patch);
 #endif  // CONFIG_BOOT_DT
 
     LOG_INFO("Calling boot driver");
@@ -472,6 +480,21 @@ int pb_boot(bool verbose)
         LOG_INFO("Aborting boot process");
         return PB_OK;
     }
+#endif
+
+    timestamp_end(&ts_total);
+
+#ifdef CONFIG_DUMP_TIMING_ANALYSIS
+    struct pb_timestamp *first_ts = timestamp_get_first();
+
+    printf("--- Timing report begin ---\n\r");
+    timestamp_foreach(first_ts, ts)
+    {
+        printf("%s %u us\n\r", timestamp_description(ts), 
+                                timestamp_read_us(ts));
+    }
+
+    printf("--- Timing report end ---\n\r");
 #endif
 
 #ifdef CONFIG_OVERRIDE_ARCH_JUMP

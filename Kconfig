@@ -34,6 +34,13 @@ config CALL_EARLY_PLAT_BOOT
 	bool "Call early/late plat/board boot callbacks"
     default n
 
+config DUMP_TIMING_ANALYSIS
+    bool "Dump timing analysis"
+    default n
+    help
+        Print internal timestamps just before jump.
+        This is mostly meaningful if loglevel is 0.
+
 source "bearssl/Kconfig"
 source "kconfig/Kconfig.*"
 
