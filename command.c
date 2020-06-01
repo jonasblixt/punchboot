@@ -593,7 +593,7 @@ static int cmd_boot_ram(void)
     }
 
     plat_transport_write(&result, sizeof(result));
-    pb_boot(ram_boot_cmd->verbose);
+    pb_boot(NULL, ram_boot_cmd->verbose);
     return -PB_ERR;
 }
 
@@ -787,7 +787,7 @@ static int pb_command_parse(void)
             if (rc != PB_OK)
                 break;
 
-            pb_boot(boot_cmd->verbose);
+            pb_boot(NULL, boot_cmd->verbose);
             /* Should not return */
             return -PB_ERR;
         }

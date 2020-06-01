@@ -16,24 +16,24 @@
 #include <pb/crypto.h>
 #include <pb/boot.h>
 
-static struct pb_timestamp ts_ll_init = TIMESTAMP("Low-level init");
 static struct pb_timestamp ts_plat_early = TIMESTAMP("Platform early");
 static struct pb_timestamp ts_crypto = TIMESTAMP("Crypto");
 static struct pb_timestamp ts_storage = TIMESTAMP("Storage");
 static struct pb_timestamp ts_slc = TIMESTAMP("SLC");
 static struct pb_timestamp ts_boot_init = TIMESTAMP("Boot init");
+static struct pb_timestamp ts_total = TIMESTAMP("Total");
 
 void pb_main(void)
 {
     int rc;
 
     timestamp_init();
-    timestamp_end(&ts_ll_init);
 
     /*
      * Perform really early stuff, like setup RAM and other
      * arch/platform specific tasks
      */
+    timestamp_begin(&ts_total);
     timestamp_begin(&ts_plat_early);
     pb_storage_early_init();
     rc = plat_early_init();
@@ -110,7 +110,7 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-    pb_boot(false);
+    pb_boot(&ts_total, false);
 
     LOG_INFO("Boot stopped, entering command mode");
 

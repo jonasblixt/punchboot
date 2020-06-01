@@ -41,4 +41,10 @@ config BOOT_AB_B_UUID
     string "B partition UUID"
     depends on BOOT_AB
 
+config BOOT_POP_TIMING
+    bool "Include timestamp in device-tree"
+    depends on BOOT_DT
+    default n
+
+
 endmenu

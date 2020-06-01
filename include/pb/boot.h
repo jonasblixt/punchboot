@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <pb/image.h>
 #include <pb/storage.h>
+#include <pb/timestamp.h>
 #include <bpak/bpak.h>
 #include <uuid/uuid.h>
 
@@ -34,7 +35,7 @@ int pb_boot_load_transport(void);
 
 int pb_boot_load_fs(uint8_t *boot_part_uu);
 
-int pb_boot(bool verbose);
+int pb_boot(struct pb_timestamp *ts_total, bool verbose);
 
 int pb_boot_activate(uint8_t *uu);
 

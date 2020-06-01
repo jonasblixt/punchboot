@@ -30,7 +30,6 @@ static struct pb_storage_map *primary_map, *backup_map;
 static struct pb_storage_driver *sdrv;
 static struct pb_result result __no_bss __a4k;
 static uintptr_t jump_addr;
-static struct pb_timestamp ts_total = TIMESTAMP("Total");
 
 #ifdef CONFIG_BOOT_DT
 static struct pb_timestamp ts_dtb_patch = TIMESTAMP("DT Patch");
@@ -317,7 +316,7 @@ int pb_boot_load_transport(void)
                          NULL);
 }
 
-int pb_boot(bool verbose)
+int pb_boot(struct pb_timestamp *ts_total, bool verbose)
 {
     int rc;
     uintptr_t *entry = 0;
@@ -482,7 +481,23 @@ int pb_boot(bool verbose)
     }
 #endif
 
-    timestamp_end(&ts_total);
+    if (ts_total)
+    {
+        timestamp_end(ts_total);
+
+#if (CONFIG_BOOT_DT && CONFIG_BOOT_POP_TIMING)
+
+    rc = fdt_setprop_u32((void *) fdt, offset, "pb,boot-time",
+                                             timestamp_read_us(ts_total));
+
+    if (rc)
+    {
+        LOG_ERR("Could not patch initrd");
+        return -PB_ERR;
+    }
+
+#endif
+    }
 
 #ifdef CONFIG_DUMP_TIMING_ANALYSIS
     struct pb_timestamp *first_ts = timestamp_get_first();
