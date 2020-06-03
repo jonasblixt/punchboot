@@ -9,5 +9,5 @@ docker run  -it --rm \
             -v /etc/passwd:/etc/passwd \
             -v /etc/group:/etc/group \
             -u ${UID} \
-            -w ${PWD} pb_docker_env
+            -w ${PWD} pb_docker_env $@
 
