@@ -492,7 +492,7 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose)
 
     if (rc)
     {
-        LOG_ERR("Could not patch initrd");
+        LOG_ERR("Could not pb,boot-time");
         return -PB_ERR;
     }
 
