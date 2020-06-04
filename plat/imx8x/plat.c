@@ -76,6 +76,7 @@ void plat_reset(void)
 
 void plat_wdog_init(void)
 {
+#ifdef CONFIG_ENABLE_WATCHDOG
     sc_rm_pt_t partition;
     sc_err_t err;
 
@@ -120,6 +121,7 @@ void plat_wdog_init(void)
 
 log_err:
     LOG_ERR("Watchdog NOT enabled!");
+#endif
 }
 
 void plat_wdog_kick(void)
