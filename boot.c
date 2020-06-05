@@ -464,7 +464,12 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose)
 #endif  // CONFIG_BOOT_DT
 
     if (rc != PB_OK)
+    {
+        LOG_ERR("Boot driver failed");
         return rc;
+    }
+
+    LOG_DBG("Ready to jump");
 
 #ifdef CONFIG_CALL_EARLY_PLAT_BOOT
     bool abort_boot = false;
@@ -516,7 +521,19 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose)
     uint8_t *part_uu = pb_boot_driver_get_part_uu();
     plat_boot_override(part_uu);
 #else
+#ifdef CONFIG_BOOT_ENABLE_DTB_BOOTARG
+    LOG_DBG("Jumping to %p, %p",
+                (void *) jump_addr,
+                (void *) (*dtb));
+    arch_jump((void *) jump_addr,
+                NULL,
+                (void *) 0xffffffff,
+                (void *) (*dtb),
+                NULL);
+#else
+    LOG_DBG("Jumping to %p", (void *) jump_addr);
     arch_jump((void *) jump_addr, NULL, NULL, NULL, NULL);
+#endif
 #endif
 
     LOG_ERR("Jump returned %p", (void *) jump_addr);

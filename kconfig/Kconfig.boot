@@ -33,6 +33,10 @@ config BOOT_RAMDISK_ID
     hex "Ramdisk image id"
     depends on BOOT_RAMDISK
 
+config BOOT_ENABLE_DTB_BOOTARG
+    bool "Pass argument to kernel with device tree address"
+    depends on BOOT_RAMDISK
+
 config BOOT_AB_A_UUID
     string "A partition UUID"
     depends on BOOT_AB
