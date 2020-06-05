@@ -15,7 +15,6 @@
 #include <pb/plat.h>
 #include <pb/board.h>
 #include <pb/fuse.h>
-#include <pb/timing_report.h>
 #include <plat/regs.h>
 #include <plat/imx/imx_uart.h>
 #include <plat/imx8m/clock.h>
@@ -145,8 +144,6 @@ int plat_early_init(void)
     /* PLL1 div10 */
     imx8m_clock_cfg(GPT1_CLK_ROOT | (5 << 24), CLK_ROOT_ON);
 
-    tr_stamp_begin(TR_POR);
-
     /* Enable and ungate WDOG clocks */
     pb_write32((1 << 28), 0x30388004 + 0x80*114);
     pb_write32(3, 0x30384004 + 0x10*83);
@@ -214,8 +211,6 @@ int plat_early_init(void)
 
     ocotp_init(CONFIG_IMX_OCOTP_BASE,
                CONFIG_IMX_OCOTP_WORDS_PER_BANK);
-
-    tr_stamp_end(TR_POR);
 
     LOG_DBG("Board early");
     return board_early_init(&private);
