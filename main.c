@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <pb/pb.h>
+#include <pb/arch.h>
 #include <pb/plat.h>
 #include <pb/timestamp.h>
 #include <pb/storage.h>
@@ -27,6 +28,7 @@ void pb_main(void)
 {
     int rc;
 
+    arch_init();
     timestamp_init();
 
     /*

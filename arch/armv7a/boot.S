@@ -13,14 +13,12 @@
 .globl arch_jump
 arch_jump:
 
-    mov r4, r0 /* Jump address */
-    mov r5, r1 /* BL31 image parameters struct */
-
+    mov r5, r0 /* Jump address */
     mov r0, r1
-    ldr r1, =0
-    ldr r2, =0
-    ldr r3, =0
+    mov r1, r2
+    mov r2, r3
+    mov r3, r4
 
-    mov pc, r4
+    mov pc, r5
     b .
 
