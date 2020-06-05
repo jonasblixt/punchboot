@@ -4,8 +4,10 @@
 
 void arch_init(void)
 {
+#ifndef CONFIG_PLAT_QEMU
     /* Enable generic timers */
     pb_write32(1, SCTR_BASE_ADDRESS + TIMER_CNTCR);
+#endif
 }
 
 unsigned int arch_get_us_tick(void)
