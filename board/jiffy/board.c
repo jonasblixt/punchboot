@@ -187,6 +187,8 @@ int board_command(void *plat,
                      size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
+    //LOG_DBG("tick: %u", arch_get_us_tick());
+    //LOG_DBG("tick2: %u", read_cntp_tval());
     *response_size = 0;
     return PB_OK;
 }
