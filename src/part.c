@@ -107,13 +107,21 @@ static int part_write(struct pb_context *ctx, const char *filename,
     size_t chunk_size = 0;
     struct pb_partition_table_entry *tbl;
     int entries = 128;
-    FILE *fp = fopen(filename, "rb");
+    FILE *fp = NULL;
+    size_t file_size_bytes = 0;
+    struct timeval ts1, ts2;
+
+    fp = fopen(filename, "rb");
 
     if (!fp)
     {
         fprintf(stderr, "Error: Could not open '%s'\n", filename);
         return -PB_RESULT_ERROR;
     }
+
+    fseek(fp, -1, SEEK_END);
+    file_size_bytes = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
 
     /* Read device capabilities */
     rc = pb_api_device_read_caps(ctx, &caps);
@@ -175,6 +183,7 @@ static int part_write(struct pb_context *ctx, const char *filename,
         fseek(fp, 0, SEEK_SET);
     }
 
+    gettimeofday(&ts1, NULL);
 
     if (bpak_file)
     {
@@ -243,6 +252,18 @@ static int part_write(struct pb_context *ctx, const char *filename,
     }
 
     pb_api_stream_finalize(ctx);
+
+    gettimeofday(&ts2, NULL);
+
+    long time_us = (ts2.tv_sec*1E6 + ts2.tv_usec) -
+                  (ts1.tv_sec*1E6 + ts1.tv_usec);
+
+    if (pb_get_verbosity())
+    {
+        printf("Wrote %zu bytes in %.1f ms (%.1f MByte/s)\n",
+            file_size_bytes, time_us / 1000.0,
+            (float) (file_size_bytes/1024/1024) / time_us*1E6);
+    }
 
 err_free_entries:
     free(tbl);
