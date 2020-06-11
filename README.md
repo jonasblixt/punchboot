@@ -26,35 +26,6 @@ Punchboot could be useful if you care about the following:
  - Secure boot
  - Downloading software quickly in production
 
-Releases history:
-
-| Version | Release date | Changes                                          |
-| ------- | ------------ | ------------------------------------------------ |
-| v0.7.0  | 2020-05-16   | Separation of host tools to separate project, punchboot-tools |
-|         |              | See 'Changelog' for more details |
-| v0.6    | 2020-01-27   | New image format (BPAK) that replaces the now deprecated PBI format |   
-| v0.5    | 2019-12-07   | Add internal platform API documentation  |
-|         |              | Re-organized tools to include output build directories |
-|         |              | Support board specific commands in recovery mode |
-|         |              | Support verification of data written to partitions without booting |
-|         |              | Support for out-of-tree board directories |
-|         |              | Various bugfixes and improvements |
-| v0.4    | 2019-06-19   | Use separate config partitions instead of GPT headers for storing the state  |
-|         |              | Improve test/build system reliability            |
-|         |              | Docker image can now build all targets and run tests |
-|         |              | NXP's cst 3.2.0 is now released under BSD3 a minimal version is included in the tools folder |
-|         |              | Increased usb flashing speed by interleaving emmc and usb DMA requests |
-|         |              | Added script for creating authentication tokens  |
-|         |              | Various bugfixes and improvements                |
-| v0.3    | 2019-05-09   | Support for authentication of recovery mode      |
-|         |              | Support optional verbose boot mode               |
-|         |              | pbimage support for PKCS11/Yubikey backend       |
-|         |              | USB VID/PID allocated from pid.codes, 1209:2019  |
-|         |              | Support for linux/initramfs                      |
-|         |              | Various bugfixes and improvements                |
-| v0.2    | 2019-03-18   | Support for EC signatures, improved boot speed   |
-| v0.1    | 2019-02-25   | First release                                    |
-
 ## Building
 
 The easiest way is using docker.
