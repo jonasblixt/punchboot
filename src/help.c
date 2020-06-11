@@ -79,6 +79,7 @@ void help_dev(void)
     printf("dev options:\n");
     printf("    -S, --show                  Display device information\n");
     printf("    -r, --reset                 Reset board\n");
+    printf("    -w, --wait <seconds>        Wait for device to enumerate\n");
     help_common_footer();
 }
 

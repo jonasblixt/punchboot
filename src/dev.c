@@ -48,9 +48,11 @@ int action_dev(int argc, char **argv)
     int opt;
     int long_index = 0;
     int rc = 0;
+    long int wait_timeout_seconds = 0;
     const char *transport = NULL;
     bool flag_show = false;
     bool flag_reset = false;
+    bool flag_wait = false;
     struct pb_context *ctx = NULL;
     const char *device_uuid = NULL;
 
@@ -62,10 +64,11 @@ int action_dev(int argc, char **argv)
         {"device",      required_argument, 0,  'd' },
         {"show",        no_argument,       0,  'S' },
         {"reset",       no_argument,       0,  'r' },
+        {"wait",        required_argument, 0,  'w' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:SC:L:ab:rd:",
+    while ((opt = getopt_long(argc, argv, "hvt:SC:L:ab:rd:w:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -87,6 +90,10 @@ int action_dev(int argc, char **argv)
             break;
             case 'r':
                 flag_reset = true;
+            break;
+            case 'w':
+                flag_wait = true;
+                wait_timeout_seconds = strtol(optarg, NULL, 0);
             break;
             case '?':
                 fprintf(stderr, "Unknown option: %c\n", optopt);
@@ -113,6 +120,37 @@ int action_dev(int argc, char **argv)
     {
         fprintf(stderr, "Error: Could not initialize context\n");
         return rc;
+    }
+
+    if (flag_wait)
+    {
+        if (pb_get_verbosity() > 1)
+        {
+            printf("Waiting for device (timeout %li seconds)\n",
+                                    wait_timeout_seconds);
+        }
+
+        for (int i = 0; i < wait_timeout_seconds; i++)
+        {
+            rc = ctx->connect(ctx);
+
+            if (rc == PB_RESULT_OK)
+            {
+                if (pb_get_verbosity())
+                {
+                    printf("Found device\n");
+                }
+
+                rc = 0;
+                goto err_free_ctx_out;
+            }
+
+            sleep(1);
+        }
+
+        fprintf(stderr, "Error: Could not find device, timeout\n");
+        rc = -1;
+        goto err_free_ctx_out;
     }
 
     rc = ctx->connect(ctx);
