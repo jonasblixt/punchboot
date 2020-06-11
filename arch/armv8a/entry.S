@@ -35,8 +35,8 @@ _reset:
     b .
 
 master_cpu:
-	ldr	x0, =_bss_start
-	ldr	x1, =_bss_end
+	ldr	x0, =__zero_region_start
+	ldr	x1, =__zero_region_end
 clear_loop:
 	str	xzr, [x0], #8
 	cmp	x0, x1
@@ -49,3 +49,7 @@ clear_loop:
     bl pb_main
     b .
 
+__zero_region_start:
+    .word _zero_region_start
+__zero_region_end:
+    .word _zero_region_end
