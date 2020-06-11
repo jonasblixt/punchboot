@@ -80,7 +80,7 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
     return PB_OK;
 }
 
-static int usdhc_emmc_send_cmd(struct usdhc_device *dev,
+int usdhc_emmc_send_cmd(struct usdhc_device *dev,
                                     uint8_t cmd,
                                     uint32_t arg,
                                     uint8_t resp_type)
@@ -124,8 +124,7 @@ usdhc_cmd_fail:
     return err;
 }
 
-
-static int usdhc_emmc_check_status(struct usdhc_device *dev)
+int usdhc_emmc_check_status(struct usdhc_device *dev)
 {
     int err;
 
@@ -151,7 +150,7 @@ static int usdhc_emmc_check_status(struct usdhc_device *dev)
 }
 
 
-static int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
+int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
 {
     int err;
     struct imx_usdhc_private *priv = PB_IMX_USDHC_PRIV(dev);

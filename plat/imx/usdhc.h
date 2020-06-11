@@ -512,8 +512,14 @@ struct usdhc_device
 
 int imx_usdhc_init(struct pb_storage_driver *drv);
 int imx_usdhc_free(struct pb_storage_driver *drv);
-
 int imx_usdhc_plat_init(struct usdhc_device *dev);
+int usdhc_emmc_read_extcsd(struct usdhc_device *dev);
 
+int usdhc_emmc_send_cmd(struct usdhc_device *dev,
+                                    uint8_t cmd,
+                                    uint32_t arg,
+                                    uint8_t resp_type);
+
+int usdhc_emmc_check_status(struct usdhc_device *dev);
 
 #endif  // PLAT_IMX_USDHC_H_
