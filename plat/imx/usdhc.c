@@ -11,6 +11,7 @@
 #include <string.h>
 #include <pb/plat.h>
 #include <pb/arch.h>
+#include <pb/timestamp.h>
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <plat/imx/usdhc.h>
@@ -18,6 +19,8 @@
 #define PLAT_EMMC_PART_BOOT0 1
 #define PLAT_EMMC_PART_BOOT1 2
 #define PLAT_EMMC_PART_USER  0
+
+static struct pb_timestamp ts_usdhc = TIMESTAMP("USDHC");
 
 struct imx_usdhc_private
 {
@@ -595,6 +598,8 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     if (dev->size < sizeof(struct imx_usdhc_private))
         return -PB_ERR_MEM;
 
+    timestamp_begin(&ts_usdhc);
+
     drv->read = imx_usdhc_read;
     drv->write = imx_usdhc_write;
     drv->map_request = imx_usdhc_map_request;
@@ -809,6 +814,8 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     LOG_INFO("%s: %llx sectors, %llu kBytes", mmc_drive_str,
         dev->sectors, (dev->sectors)>>1);
     LOG_INFO("Partconfig: %x", priv->raw_extcsd[EXT_CSD_PART_CONFIG]);
+
+    timestamp_end(&ts_usdhc);
 
     return PB_OK;
 }
