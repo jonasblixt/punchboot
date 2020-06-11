@@ -1,0 +1,30 @@
+menu "Generic options"
+
+config KEYSTORE
+	string "Key-store source"
+	default "pki/internal_keystore.bpak"
+
+config LOGLEVEL
+	int "loglevel"
+    default 0
+
+config ENABLE_WATCHDOG
+	bool "Enable watchdog"
+    default y
+
+config WATCHDOG_TIMEOUT
+    int "Watchdog timeout (s)"
+    default 5
+    depends on ENABLE_WATCHDOG
+
+config CALL_EARLY_PLAT_BOOT
+	bool "Call early/late plat/board boot callbacks"
+    default n
+
+config DUMP_TIMING_ANALYSIS
+    bool "Dump timing analysis"
+    default n
+    help
+        Print internal timestamps just before jump.
+        This is mostly meaningful if loglevel is 0.
+endmenu

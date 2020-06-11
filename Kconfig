@@ -1,5 +1,4 @@
 mainmenu "Punchboot configuration"
-comment "Punchboot configuration"
 
 source "arch/Kconfig"
 source "plat/Kconfig"
@@ -9,38 +8,10 @@ source "arch/*/Kconfig"
 source "plat/*/Kconfig"
 source "$EXT_BOARD/*/Kconfig"
 
-config TOOLCHAIN_PREFIX
-	string "Toolchain prefix"
-	default "arm-eabi-"
-
-config KEYSTORE
-	string "Key-store source"
-	default "pki/internal_keystore.bpak"
-
-config LOGLEVEL
-	int "loglevel"
-    default 0
-
-config ENABLE_WATCHDOG
-	bool "Enable watchdog"
-    default y
-
-config WATCHDOG_TIMEOUT
-    int "Watchdog timeout (s)"
-    default 5
-    depends on ENABLE_WATCHDOG
-
-config CALL_EARLY_PLAT_BOOT
-	bool "Call early/late plat/board boot callbacks"
-    default n
-
-config DUMP_TIMING_ANALYSIS
-    bool "Dump timing analysis"
-    default n
-    help
-        Print internal timestamps just before jump.
-        This is mostly meaningful if loglevel is 0.
-
-source "bearssl/Kconfig"
-source "kconfig/Kconfig.*"
+source "kconfig/Kconfig.generic"
+source "kconfig/Kconfig.build"
+source "kconfig/Kconfig.auth"
+source "kconfig/Kconfig.boot"
+source "kconfig/Kconfig.library"
+source "kconfig/Kconfig.transport"
 

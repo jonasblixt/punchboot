@@ -1,0 +1,15 @@
+menu "Build configuration"
+
+config TOOLCHAIN_PREFIX
+    string "Toolchain prefix"
+
+config OPTIMIZE
+    string "Optimize level"
+
+config DEBUG_SYMBOLS
+    bool "Enable debug symbols"
+
+config STACK_USAGE
+    bool "Generate stack usage information"
+
+endmenu

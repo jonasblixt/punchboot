@@ -51,7 +51,7 @@ config IMX_OCOTP_WORDS_PER_BANK
 config IMX_OCOTP_DEBUG
     bool "Enable OCOTP debug printouts"
     default n
-
+endmenu
 
 menu "Output image"
 config IMX6UL_CREATE_IMX_IMAGE
@@ -92,6 +92,4 @@ config IMX6UL_IMAGE_SIGN_CERT
     string "Signing certificate"
     default "pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
     depends on IMX6UL_SIGN_IMAGE
-endmenu
-
 endmenu
