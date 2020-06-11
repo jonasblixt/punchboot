@@ -1,0 +1,85 @@
+
+
+--- Timing report begin (Pre MMU) ---
+Low-level init 510654529 us
+Platform early 1985 us
+Crypto 71 us
+Storage 33112 us
+SLC 1464 us
+Boot init 933 us
+Image load and hash 88780 us
+Verify signature 5827 us
+DT Patch 41183 us
+Total 510829607 us
+--- Timing report end ---
+
+v0.7.6
+------
+ PB: Active key in DT, only one, the active key
+ PB: USB regression, ca 13MByte/s on imx8x
+ PB/imx8x: Test key revoke with old acu6c board
+ PB: Early UART to support abort/error handlers
+ PB: Remove changelog from README only use 'Changelog'
+
+v0.8 (Main feature: MMU memory protection and data cache)
+----
+ PB/imx6ul: Check if timing measurement still works
+ PB: Provide time-stamps in device-tree?
+ PB: Enable MMU for memory protection and speed improvements when manipulating
+    the device-tree
+ PB: Remove code for overlap checking when MMU stuff is in place
+ PB: Always verbose Kconfig option
+ PB: Test with device tree and ramdisk
+ PB/test: add -stack-protector -fstack-check for test target
+ PB/CAAM: Fix RSA implementation
+ PB/imx: Create usb PHY driver
+ PB: bpak_helper hash,sig -> pb_hash, pb_sig
+    o Get and zero signature
+ PB: keystore_helper
+ PB: Support writing a complete, concatenated image
+    o Mapping of bpak -archive to GPT <---> UUID
+    o Should both A and B set's be written
+    o On non A/B -system?
+ PB/imx8x: Update to latest SCFW api, 1.2.7.1
+    - Review deprecated API calls
+ PB/IMX: CAAM derived key's for crypto storage in linux
+    - Pass via DT?
+
+v0.9
+----
+ eMMC: RPMB support
+
+ PB/imx8m: Check if caam/rng unlock makes any differance for the hab event
+    3.3.2.2. Option 2 – Set RNG trim in fuse (from AN4581)
+ PB: Statistics / logging module
+    o Support logging to raw partition
+    o Support statistics collection
+
+ PB/imx8x: Investigate SC_BD_FLAGS_EARLY_CPU_START, mkimage flag
+            (see SCU documentation sc_fw_port.pdf)
+ PB/IMX6UL: Force recovery mode when booting via ROM USB
+ PB/IMX8M: Force recovery mode when booting via ROM USB
+ PB/IMX: Support CAAM TRGN early init
+ DOC: Contributor guide
+ DOC: Readme ToC
+ DOC: boot drivers
+ DOC: imx8x platform guide
+    o setup instructions for imx8xmek board
+    o scfw
+    o atf, reset patch
+    o dt, reserved memory
+ PB/EMMC: Management commands, diagnostics, enable SLC
+ PB: Go through all TODO's in the code
+ PB/IMX8X: Fuse row lock, investigate
+ PB/IMX8X: Review fuse settings with NXP
+ DOC: imx8m platform guide
+ DOC: imx6ul platform guide
+ DOC: Release checklist
+ PB: Go through debug/info and error debug prints, too much spewing in
+            loglevel 1 and 2
+ PB/LS1012: Add platform support
+ PB/IMX8M: Calibrate timer
+ PB/IMX8M: Secure BOOT
+ PB/IMX8M: Support loading aux core
+    o GPU/Video Core?
+ PB/IMX8X: Support loading aux core
