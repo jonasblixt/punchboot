@@ -300,7 +300,11 @@ int plat_slc_set_configuration(void)
         }
     }
 
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
+    return board_slc_set_configuration(&private);
+#else
     return PB_OK;
+#endif
 }
 
 int plat_slc_set_configuration_lock(void)
@@ -323,7 +327,14 @@ int plat_slc_set_configuration_lock(void)
 
     err = sc_misc_seco_forward_lifecycle(private.ipc, 16);
 
-    return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
+    if (err != SC_ERR_NONE)
+        return -PB_ERR;
+
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
+    return board_slc_set_configuration_lock(&private);
+#else
+    return PB_OK;
+#endif
 }
 
 int plat_slc_set_end_of_life(void)

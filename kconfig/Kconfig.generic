@@ -27,4 +27,18 @@ config DUMP_TIMING_ANALYSIS
     help
         Print internal timestamps just before jump.
         This is mostly meaningful if loglevel is 0.
+
+config CALL_BOARD_SLC_SET_CONFIGURATION
+    bool "Call board_slc_set_configuration"
+    default n
+    help
+        When the SLC configuration command is invoked the platform code also
+        calls board_slc_set_configuration.
+
+config CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
+    bool "Call board_slc_set_configuration_lock"
+    default n
+    help
+        When the SLC configuration lock command is invoked the platform code also
+        calls board_slc_set_configuration_lock.
 endmenu

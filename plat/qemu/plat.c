@@ -139,7 +139,11 @@ int plat_slc_set_configuration(void)
             return err;
     }
 
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
+    return board_slc_set_configuration(&private);
+#else
     return PB_OK;
+#endif
 }
 
 int plat_slc_set_configuration_lock(void)

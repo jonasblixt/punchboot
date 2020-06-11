@@ -473,12 +473,23 @@ int plat_slc_set_configuration(void)
         }
     }
 
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
+    return board_slc_set_configuration(&private);
+#else
     return PB_OK;
+#endif
 }
 
 int plat_slc_set_configuration_lock(void)
 {
+    /* Not supported yet on IMX8M */
     return -PB_ERR;
+
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
+    return board_slc_set_configuration_lock(&private);
+#else
+    return PB_OK;
+#endif
 }
 
 int plat_slc_set_end_of_life(void)

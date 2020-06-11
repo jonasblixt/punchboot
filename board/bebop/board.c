@@ -213,3 +213,12 @@ int board_status(void *plat,
     return PB_OK;
 }
 
+int board_slc_set_configuration(void *plat)
+{
+    return PB_OK;
+}
+
+int board_slc_set_configuration_lock(void *plat)
+{
+    return PB_OK;
+}

@@ -133,7 +133,11 @@ int plat_slc_set_configuration(void)
         }
     }
 
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
+    return board_slc_set_configuration(&private);
+#else
     return PB_OK;
+#endif
 }
 
 int plat_slc_set_configuration_lock(void)
@@ -160,7 +164,16 @@ int plat_slc_set_configuration_lock(void)
 
     lock_fuse.value = 0x02;
 
-    return plat_fuse_write(&lock_fuse);
+    err = plat_fuse_write(&lock_fuse);
+
+    if (err != PB_OK)
+        return err;
+
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
+    return board_slc_set_configuration_lock(&private);
+#else
+    return PB_OK;
+#endif
 }
 
 int plat_slc_set_end_of_life(void)
