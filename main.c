@@ -55,6 +55,10 @@ void pb_main(void)
     printf("\n\r\n\rPB " PB_VERSION " starting\n\r");
 #endif
 
+#ifdef CONFIG_ENABLE_WATCHDOG
+    plat_wdog_init();
+#endif
+
     timestamp_begin(&ts_crypto);
     rc = plat_crypto_init();
 

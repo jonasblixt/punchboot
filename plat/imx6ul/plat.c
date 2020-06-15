@@ -22,6 +22,7 @@
 #include <plat/imx/hab.h>
 #include <plat/imx/ehci.h>
 #include <pb/fuse.h>
+#include <pb/vm.h>
 #include <plat/imx6ul/plat.h>
 
 extern const struct fuse fuses[];
@@ -43,6 +44,57 @@ static struct fuse rom_key_revoke_fuse =
 
 static struct imx6ul_private private;
 static struct pb_result_slc_key_status key_status;
+
+uint32_t initial_translation_table[4096] __a16k __translation_table;
+
+/* initial memory mappings. parsed by start.S */
+struct mmu_initial_mapping mmu_initial_mappings[] =
+{
+    /* all of memory */
+    {
+        .phys = 0x80000000,
+        .virt = 0x80000000,
+        .size = (1024 * 1024 * 1024),
+        .flags = 0,
+        .name = "memory"
+    },
+
+    {
+        .phys = 0,
+        .virt = 0,
+        .size = (92 * 1024),
+        .flags = 0,
+        .name = "BOOT ROM"
+    },
+
+    /* This must be mapped for HAB callbacks to work*/
+    {
+        .phys = 0x9c0000,
+        .virt = 0x9c0000,
+        .size = (256 * 1024),
+        .flags = 0,
+        .name = "Reserved 1"
+    },
+
+    {
+        .phys = 0x02000000,
+        .virt = 0x02000000,
+        .size = (1024 * 1024),
+        .flags = MMU_INITIAL_MAPPING_FLAG_DEVICE,
+        .name = "AIPS-1"
+    },
+
+    {
+        .phys = 0x02100000,
+        .virt = 0x02100000,
+        .size = (1024 * 1024),
+        .flags = MMU_INITIAL_MAPPING_FLAG_DEVICE,
+        .name = "AIPS-2"
+    },
+
+    /* null entry to terminate the list */
+    { 0 }
+};
 
 
 bool plat_force_command_mode(void)

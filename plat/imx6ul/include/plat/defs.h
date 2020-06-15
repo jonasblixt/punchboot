@@ -5,5 +5,6 @@
 #define COUNTER_US_SHIFT (3)
 
 #define SCTR_BASE_ADDRESS 0x21dc000
+#define CACHE_LINE 32
 
 #endif  // PLAT_IMX6UL_INCLUDE_DEFS_H_

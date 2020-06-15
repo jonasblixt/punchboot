@@ -165,6 +165,7 @@ int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
     while (pb_read32(dev->base + USDHC_INT_STATUS) & (1 << 1))
         __asm__("nop");
 
+    arch_clean_cache_range((uintptr_t) priv->tbl, sizeof(priv->tbl[0]));
     pb_write32((uint32_t)(uintptr_t) priv->tbl, dev->base+ USDHC_ADMA_SYS_ADDR);
 
     /* Set ADMA 2 transfer */
@@ -198,6 +199,7 @@ int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
         return err;
     }
 
+    arch_invalidate_cache_range((uintptr_t) priv->raw_extcsd, 512);
     return PB_OK;
 }
 
@@ -277,6 +279,8 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
         if (!remaining_sz)
             tbl_ptr->cmd |= ADMA2_END;
 
+        arch_clean_cache_range((uintptr_t) tbl_ptr, sizeof(*tbl_ptr));
+
         buf_ptr += transfer_sz;
         tbl_ptr++;
     } while (remaining_sz);
@@ -325,6 +329,7 @@ static int imx_usdhc_write(struct pb_storage_driver *drv,
                             void *data,
                             size_t n_blocks)
 {
+    arch_clean_cache_range((uintptr_t) data, n_blocks * 512);
     return imx_usdhc_xfer_blocks(drv, block_offset, data, n_blocks, 1, 0);
 }
 
@@ -333,7 +338,11 @@ static int imx_usdhc_read(struct pb_storage_driver *drv,
                             void *data,
                             size_t n_blocks)
 {
-    return imx_usdhc_xfer_blocks(drv, block_offset, data, n_blocks, 0, 0);
+    int rc;
+    rc = imx_usdhc_xfer_blocks(drv, block_offset, data, n_blocks, 0, 0);
+
+    arch_invalidate_cache_range((uintptr_t) data, n_blocks * 512);
+    return rc;
 }
 
 static int usdhc_setup_hs200(struct usdhc_device *dev)

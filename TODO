@@ -11,6 +11,28 @@ Image load and hash 88780 us
 Verify signature 5827 us
 DT Patch 41183 us
 Total 510829607 us
+--- Timing report begin (imx6ul, no-mmu) ---
+Platform early 72 us
+Crypto 4 us
+Storage 22697 us
+SLC 59 us
+Boot init 1288 us
+Image load and hash 95580 us
+Verify signature 6503 us
+DT Patch 9847 us
+Total 137026 us
+--- Timing report end ---
+
+--- Timing report begin (imx6ul, mmu) ---
+Platform early 58 us
+Crypto 2 us
+Storage 9295 us
+SLC 12 us
+Boot init 393 us
+Image load and hash 94779 us
+Verify signature 6399 us
+DT Patch 224 us
+Total 111593 us
 --- Timing report end ---
 
 v0.7.6

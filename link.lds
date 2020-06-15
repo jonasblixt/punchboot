@@ -58,6 +58,15 @@ SECTIONS
         PROVIDE(_big_buffer_end = .);
     } > dram
 
+    .translation_table (NOLOAD):
+    {
+        PROVIDE(_translation_table_start = .);
+        . = ALIGN(14);
+        *(.translation_table .translation_table*)
+        . = ALIGN(14);
+        PROVIDE(_translation_table_end = .);
+    } > dram
+
     PROVIDE(end = .);
 }
 

@@ -22,6 +22,7 @@
 #include <plat/imx/imx_uart.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/usdhc.h>
+#include <arch/cp15.h>
 #include <libfdt.h>
 
 const struct fuse fuses[] =
@@ -188,12 +189,6 @@ int board_command(void *plat,
                      size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
-    //LOG_DBG("tick: %u", arch_get_us_tick());
-    if (command == 0x4c902bff)
-    {
-        LOG_DBG("tick2: %u", arch_get_us_tick());
-
-    }
 
     *response_size = 0;
     return PB_OK;

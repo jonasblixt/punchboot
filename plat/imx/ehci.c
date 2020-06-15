@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <arch/arch.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/io.h>
@@ -33,6 +34,7 @@ static void ehci_reset_queues(void)
 
         current_xfers[i] = NULL;
     }
+
 }
 
 static void ehci_reset(void)
@@ -66,6 +68,8 @@ static int ehci_config_ep(int ep, uint32_t size, uint32_t flags)
 
     qh->caps = (1 << 29) | (size << 16) | flags;
 
+    arch_clean_cache_range((uintptr_t) qh, sizeof(*qh));
+
     return PB_OK;
 }
 
@@ -76,10 +80,17 @@ static int ehci_prime_ep(int ep)
 
     qh->next = (uint32_t) (uintptr_t) dtds[ep];
 
+    arch_clean_cache_range((uintptr_t) qh, sizeof(*qh));
+    arch_clean_cache_range((uintptr_t) dtds[ep], sizeof(dtds[0][0])*512);
+
     if (ep & 1)
+    {
         epreg = (1 << ((ep-1)/2 + 16));
+    }
     else
+    {
         epreg = (1 << (ep/2));
+    }
 
     pb_write32(epreg, CONFIG_EHCI_BASE + EHCI_ENDPTPRIME);
 
@@ -93,6 +104,8 @@ static int ehci_usb_wait_for_ep_completion(int ep)
 {
     volatile struct ehci_transfer_head *dtd = current_xfers[ep];
 
+    arch_invalidate_cache_range((uintptr_t) dtd, sizeof(*dtd));
+
     if (dtd == NULL)
         return -PB_ERR;
 
@@ -100,6 +113,8 @@ static int ehci_usb_wait_for_ep_completion(int ep)
     {
         plat_wdog_kick();
         imx_ehci_usb_process();
+
+        arch_invalidate_cache_range((uintptr_t) dtd, sizeof(*dtd));
 
         if (!current_xfers[ep])
             return -PB_ERR;
@@ -111,6 +126,7 @@ static int ehci_usb_wait_for_ep_completion(int ep)
 static int ehci_transfer(int ep, void *bfr, size_t size)
 {
     struct ehci_transfer_head *dtd = dtds[ep];
+    int rc;
     uint32_t bytes_to_tx = size;
     uint8_t *data = bfr;
 
@@ -120,15 +136,24 @@ static int ehci_transfer(int ep, void *bfr, size_t size)
         dtd->token = 0x80 | (1 << 15);
     }
 
+    if ((ep & 1) && bfr && size) /* Input to host, flush cache*/
+    {
+        arch_clean_cache_range((uintptr_t) bfr, size);
+    }
+
     while (bytes_to_tx)
     {
         dtd->next = 0xDEAD0001;
         dtd->token = 0x80;
 
-        if (bytes_to_tx > 5*EHCI_PAGE_SZ)
-            dtd->token |= (5*EHCI_PAGE_SZ) << 16;
+        if (bytes_to_tx > (5*EHCI_PAGE_SZ))
+        {
+            dtd->token |= ((5*EHCI_PAGE_SZ) << 16);
+        }
         else
-            dtd->token |= bytes_to_tx << 16;
+        {
+            dtd->token |= (bytes_to_tx << 16);
+        }
 
         for (int n = 0; n < 5; n++)
         {
@@ -148,6 +173,7 @@ static int ehci_transfer(int ep, void *bfr, size_t size)
             } else {
                 data = NULL;
                 dtd->token |= (1 << 15);
+                arch_clean_cache_range((uintptr_t) dtd, sizeof(*dtd));
             }
         }
 
@@ -156,15 +182,23 @@ static int ehci_transfer(int ep, void *bfr, size_t size)
             struct ehci_transfer_head *dtd_prev = dtd;
             dtd++;
             dtd_prev->next = (uint32_t)(uintptr_t) dtd;
+            arch_clean_cache_range((uintptr_t) dtd_prev, sizeof(*dtd_prev));
         }
+
     }
 
     ehci_prime_ep(ep);
     current_xfers[ep] = dtd;
 
-    return ehci_usb_wait_for_ep_completion(ep);
-}
+    rc = ehci_usb_wait_for_ep_completion(ep);
 
+    if (!(ep & 1) && bfr && size) /* Output from host, invalidate cache*/
+    {
+        arch_invalidate_cache_range((uintptr_t) bfr, size);
+    }
+
+    return rc;
+}
 
 static int imx_ehci_usb_set_configuration(void)
 {
@@ -197,6 +231,9 @@ int imx_ehci_usb_process(void)
         do
         {
             pb_write32(cmd_reg | (1 << 13), CONFIG_EHCI_BASE + EHCI_CMD);
+
+            arch_invalidate_cache_range((uintptr_t) qh->setup,
+                                                    sizeof(*qh->setup));
             memcpy(&setup_pkt, qh->setup, sizeof(struct usb_setup_packet));
         } while (!(pb_read32(CONFIG_EHCI_BASE + EHCI_CMD) & (1<<13)));
 
@@ -225,6 +262,8 @@ int imx_ehci_usb_process(void)
             dqhs[i].token = 0;
             dqhs[i].current_dtd = 0;
             current_xfers[i] = NULL;
+
+            arch_clean_cache_range((uintptr_t) &dqhs[i], sizeof(dqhs[0]));
         }
 
         tmp = pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
@@ -284,6 +323,7 @@ int imx_ehci_usb_init(void)
     LOG_DBG("EP's configured");
 
     /* Program QH top */
+
     pb_write32((uint32_t)(uintptr_t) dqhs, CONFIG_EHCI_BASE + EHCI_ENDPTLISTADDR);
 
     LOG_DBG("QH loaded");

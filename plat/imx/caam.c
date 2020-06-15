@@ -59,6 +59,7 @@ static uint32_t alg;
 static int caam_shedule_job_async(uint32_t *job)
 {
     input_ring[0] = (uint32_t)(uintptr_t) job;
+    arch_clean_cache_range((uintptr_t) input_ring, sizeof(input_ring[0]));
     pb_write32(1, CONFIG_IMX_CAAM_BASE + CAAM_IRJAR);
 
     return PB_OK;
@@ -76,6 +77,7 @@ static int caam_shedule_job_sync(uint32_t *job)
     while ((pb_read32(CONFIG_IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
+    arch_invalidate_cache_range((uintptr_t) output_ring, sizeof(output_ring[0]));
     if (output_ring[0] != (uint32_t)(uintptr_t) job)
     {
         LOG_ERR("Job failed");
@@ -100,6 +102,8 @@ static int caam_wait_for_job(uint32_t *job)
 
     while ((pb_read32(CONFIG_IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
+
+    arch_invalidate_cache_range((uintptr_t) output_ring, sizeof(output_ring[0]));
 
     if (output_ring[0] != (uint32_t)(uintptr_t) job)
     {
@@ -165,11 +169,11 @@ int caam_ecdsa_verify(struct pb_hash_context *hash,
         return -PB_ERR;
     }
 
-    memset(caam_tmp_buf, 0, 256);
-    memset(caam_ecdsa_key, 0, 256);
+    memset(caam_tmp_buf, 0, sizeof(caam_tmp_buf));
+    memset(caam_ecdsa_key, 0, sizeof(caam_ecdsa_key));
     memcpy(caam_ecdsa_key, key_data, key_sz);
-    memcpy(caam_ecdsa_r, r, 66);
-    memcpy(caam_ecdsa_s, s, 66);
+    memcpy(caam_ecdsa_r, r, sizeof(caam_ecdsa_r));
+    memcpy(caam_ecdsa_s, s, sizeof(caam_ecdsa_s));
 
     switch (hash->alg)
     {
@@ -205,6 +209,12 @@ int caam_ecdsa_verify(struct pb_hash_context *hash,
             return -PB_ERR;
     };
 
+    arch_clean_cache_range((uintptr_t) caam_tmp_buf, sizeof(caam_tmp_buf));
+    arch_clean_cache_range((uintptr_t) caam_ecdsa_key, sizeof(caam_ecdsa_key));
+    arch_clean_cache_range((uintptr_t) caam_ecdsa_r, sizeof(caam_ecdsa_r));
+    arch_clean_cache_range((uintptr_t) caam_ecdsa_s, sizeof(caam_ecdsa_s));
+    arch_clean_cache_range((uintptr_t) caam_ecdsa_hash, hash_len);
+
     desc[dc++] = CAAM_CMD_HEADER;
     desc[dc++] = (1 << 22) | (caam_sig_type << 7);
     desc[dc++] = (uint32_t)(uintptr_t) caam_ecdsa_key;
@@ -216,6 +226,8 @@ int caam_ecdsa_verify(struct pb_hash_context *hash,
     desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (2 << 10) | (1 << 1);
 
     desc[0] |= ((dc-1) << 16) | dc;
+
+    arch_clean_cache_range((uintptr_t) desc, sizeof(desc[0]) * dc);
 
     return caam_shedule_job_sync(desc);
 }
@@ -251,6 +263,7 @@ int caam_hash_init(struct pb_hash_context *ctx, enum pb_hash_algs pb_alg)
     }
 
     memset(ctx->buf, 0, block_size);
+    arch_clean_cache_range((uintptr_t) ctx->buf, block_size);
 
     return PB_OK;
 }
@@ -259,6 +272,8 @@ int caam_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
 {
     uint8_t dc = 0;
     int err = PB_OK;
+
+    arch_clean_cache_range((uintptr_t) buf, size);
 
     if (!ctx->init)
     {
@@ -296,6 +311,7 @@ int caam_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
 
     desc[0] |= dc;
 
+    arch_clean_cache_range((uintptr_t) desc, sizeof(desc[0]) * dc);
     return caam_shedule_job_async(desc);
 }
 
@@ -304,6 +320,8 @@ int caam_hash_finalize(struct pb_hash_context *ctx,
 {
     int err;
     int dc = 0;
+
+    arch_clean_cache_range((uintptr_t) buf, size);
 
     err = caam_wait_for_job(desc);
 
@@ -324,7 +342,11 @@ int caam_hash_finalize(struct pb_hash_context *ctx,
 
     desc[0] |= dc;
 
+    arch_clean_cache_range((uintptr_t) desc, sizeof(desc[0]) * dc);
+
     err = caam_shedule_job_sync(desc);
+
+    arch_invalidate_cache_range((uintptr_t) ctx->buf, block_size);
 
 #if LOGLEVEL > 1
     if (err == PB_OK)
@@ -407,11 +429,14 @@ int imx_caam_init(void)
 {
     LOG_INFO("CAAM init %p", (void *) CONFIG_IMX_CAAM_BASE);
 
-    for (int n = 0; n < JOB_RING_ENTRIES; n++)
-        input_ring[n] = 0;
+    memset(input_ring, 0, sizeof(input_ring[0]) * JOB_RING_ENTRIES);
+    memset(output_ring, 0, sizeof(output_ring[0]) * JOB_RING_ENTRIES * 2);
 
-    for (int n = 0; n < JOB_RING_ENTRIES*2; n++)
-        output_ring[n] = 0;
+    arch_clean_cache_range((uintptr_t) input_ring,
+                sizeof(input_ring[0]) * JOB_RING_ENTRIES);
+
+    arch_clean_cache_range((uintptr_t) output_ring,
+                sizeof(output_ring[0]) * JOB_RING_ENTRIES * 2);
 
     /* Initialize job rings */
     pb_write32((uint32_t)(uintptr_t) input_ring,  CONFIG_IMX_CAAM_BASE + CAAM_IRBAR);

@@ -36,7 +36,7 @@ enum pb_key_types
 
 struct pb_hash_context
 {
-    uint8_t buf[128] __a16b;
+    uint8_t buf[128] __a4k;
     enum pb_hash_algs alg;
     bool init;
 };
