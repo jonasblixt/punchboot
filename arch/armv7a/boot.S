@@ -12,7 +12,7 @@
 
 .globl arch_jump
 arch_jump:
-
+    /* Flush caches and disable MMU */
     bl armv7a_cp15_disable_mmu
 
     mov r5, r0 /* Jump address */

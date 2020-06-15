@@ -62,9 +62,9 @@ func (armv7a_cp15_disable_mmu)
     bic     r12, #(1<<2)
     mcr     p15, 0, r12, c1, c0, 0
 
-    mrc p15, 0, r1, c1, c0, 0
-    bic r1, r1, #0x1
-    mcr p15, 0, r1, c1, c0, 0
+    mrc p15, 0, r12, c1, c0, 0
+    bic r12, r12, #0x1
+    mcr p15, 0, r12, c1, c0, 0
 
     bx lr
 
