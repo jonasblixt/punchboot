@@ -43,6 +43,8 @@ int virtio_block_init(struct pb_storage_driver *drv)
     d->config->topology.min_io_size = 512;
     d->config->topology.opt_io_size = 512;
 
+    arch_clean_cache_range((uintptr_t) d->config, sizeof(*d->config));
+
     virtio_init_queue(d->_q_data, 1024, &d->q);
     virtio_mmio_init_queue(&d->dev, &d->q, 0, 1024);
 
@@ -136,27 +138,33 @@ int virtio_block_read(struct pb_storage_driver *drv,
     r.sector_low = block_offset;
     r.sector_hi = 0;
 
+    arch_clean_cache_range((uintptr_t) &r, sizeof(r));
 
     q->desc[idx].addr = (uint32_t)((uintptr_t) &r);
     q->desc[idx].len = sizeof(struct virtio_blk_req);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT;
     q->desc[idx].next = ((idx + 1) % q->num);
+    arch_clean_cache_range((uintptr_t) &q->desc[idx], sizeof(q->desc[idx]));
     idx = ((idx + 1) % q->num);
 
     q->desc[idx].addr = (uint32_t)((uintptr_t) data);
     q->desc[idx].len = (512*n_blocks);
     q->desc[idx].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
     q->desc[idx].next = ((idx + 1) % q->num);
+    arch_clean_cache_range((uintptr_t) &q->desc[idx], sizeof(q->desc[idx]));
     idx = ((idx + 1) % q->num);
 
     q->desc[idx].addr = (uint32_t)((uintptr_t) &status);
     q->desc[idx].len = 1;
     q->desc[idx].flags = VIRTQ_DESC_F_WRITE;
     q->desc[idx].next = 0;
+    arch_clean_cache_range((uintptr_t) &q->desc[idx], sizeof(q->desc[idx]));
     idx = ((idx + 1) % q->num);
 
     q->avail->ring[idx_start] = idx_start;
     q->avail->idx++;
+
+    arch_clean_cache_range((uintptr_t) q->avail, sizeof(*q->avail));
 
     virtio_mmio_notify_queue(&d->dev, &d->q);
 /*
@@ -166,12 +174,16 @@ int virtio_block_read(struct pb_storage_driver *drv,
 */
 
     while ( (q->avail->idx) != (q->used->idx) )
+    {
+        arch_invalidate_cache_range((uintptr_t) q->avail, sizeof(*q->avail));
         __asm__ volatile ("nop");
+    }
 /*
     LOG_DBG("status = %u", d->dev.status);
     LOG_DBG("q->avail->idx = %u, q->used->idx = %u",
                     q->avail->idx, q->used->idx);
 */
+    arch_invalidate_cache_range((uintptr_t) &status, sizeof(status));
     if (status == VIRTIO_BLK_S_OK)
         return PB_OK;
 

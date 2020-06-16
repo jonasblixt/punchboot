@@ -1,3 +1,3 @@
 PB_ENTRY     = 0x40000000
-CFLAGS += -I $(BOARD)/include
-BOARD_C_SRCS += $(BOARD)/board.c
+cflags-y += -DPB_BOOT_TEST=1
+src-y += $(BOARD)/board.c

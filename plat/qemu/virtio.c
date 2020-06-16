@@ -51,7 +51,7 @@ uint32_t virtio_mmio_get_features(struct virtio_device *d)
     return pb_read32(d->base + VIRTIO_MMIO_DEVICE_FEATURES);
 }
 
-uint32_t virtio_mmio_get_status(struct virtio_device *d)
+static uint32_t virtio_mmio_get_status(struct virtio_device *d)
 {
     return pb_read32(d->base + VIRTIO_MMIO_STATUS);
 }
@@ -142,6 +142,8 @@ uint32_t virtio_mmio_write_one(struct virtio_device *d,
             q->desc[idx].next = (idx+1) % q->num;
         }
 
+        arch_clean_cache_range((uintptr_t) &q->desc[idx], sizeof(q->desc[0]));
+
         idx = ((idx+1)%q->num);
         pos += chunk;
         descriptor_count++;
@@ -150,12 +152,15 @@ uint32_t virtio_mmio_write_one(struct virtio_device *d,
     q->avail->ring[idx] = idx;
     q->avail->idx += descriptor_count;
 
+    arch_clean_cache_range((uintptr_t) q->avail, sizeof(*q->avail));
+
     //  LOG_DBG("1: %u %u",q->avail->idx,q->used->idx);
     pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
     while ( (q->avail->idx != q->used->idx) )
     {
         __asm__ volatile ("nop");
+        arch_invalidate_cache_range((uintptr_t) q->avail, sizeof(*q->avail));
         //  LOG_DBG("2: %u %u",q->avail->idx,q->used->idx);
     }
 
@@ -190,6 +195,8 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
         q->desc[idx].flags = VIRTQ_DESC_F_WRITE;
         q->desc[idx].next = 0;
 
+        arch_clean_cache_range((uintptr_t) &q->desc[idx], sizeof(q->desc[0]));
+
         idx = ((idx + 1) % q->num);
         pos += chunk;
         descriptor_count++;
@@ -197,14 +204,19 @@ uint32_t virtio_mmio_read_one(struct virtio_device *d,
         q->avail->ring[idx] = idx;
         q->avail->idx += 1;
 
+        arch_clean_cache_range((uintptr_t) q->avail, sizeof(*q->avail));
         //  LOG_INFO("%u %u",q->avail->idx,q->used->idx);
         pb_write32(q->queue_index, d->base + VIRTIO_MMIO_QUEUE_NOTIFY);
 
         while ( (q->avail->idx != q->used->idx) )
-            __asm__ volatile ("nop");
-
+        {
+            arch_invalidate_cache_range((uintptr_t) q->avail, sizeof(*q->avail));
+        }
         //  LOG_INFO("%u %u",q->avail->idx,q->used->idx);
     }
+
+    arch_invalidate_cache_range((uintptr_t) &q->used->ring[idx_old],
+                                sizeof(q->used->ring[idx_old]));
 
     return (q->used->ring[idx_old].len);
 }
@@ -220,6 +232,8 @@ uint32_t virtio_mmio_notify_queue(struct virtio_device *d,
     }
 
     LOG_DBG("Queue %u, dev: %p, q: %p", q->queue_index, d, q);
+
+    arch_clean_cache_range((uintptr_t) q, sizeof(*q));
 
     pb_write32((q->queue_index), (d->base + VIRTIO_MMIO_QUEUE_NOTIFY));
 

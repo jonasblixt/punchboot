@@ -3,7 +3,7 @@ ifdef CONFIG_ARCH_ARMV7
 ARCH_OUTPUT = elf32-littlearm
 ARCH = arm
 
-cflags-y   += -march=armv7-a 
+cflags-y   += -march=armv7-a
 cflags-y   += -DAARCH32
 cflags-y   += -I arch/armv7a/include
 cflags-y   += -I include/pb/libc/aarch32
