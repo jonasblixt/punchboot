@@ -68,7 +68,11 @@ config IMX8M_UMCTL_TRAIN_2D_I
     string "UMCTL 2D Train i-data"
     default "blobs/lpddr4_pmu_train_2d_imem.bin"
 
+
+endmenu
+
 menu "Output image"
+    depends on PLAT_IMX8M
 config IMX8M_CREATE_IMX_IMAGE
     bool "Create imx-image"
     default n
@@ -107,6 +111,4 @@ config IMX8M_IMAGE_SIGN_CERT
     string "Signing certificate"
     default "pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
     depends on IMX8M_SIGN_IMAGE
-endmenu
-
 endmenu

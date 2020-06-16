@@ -54,6 +54,8 @@ config IMX_OCOTP_DEBUG
 endmenu
 
 menu "Output image"
+    depends on PLAT_IMX6UL
+
 config IMX6UL_CREATE_IMX_IMAGE
     bool "Create imx-image"
     default n

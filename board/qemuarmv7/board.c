@@ -21,7 +21,6 @@
 #include <plat/qemu/semihosting.h>
 #include <plat/qemu/virtio_block.h>
 #include <plat/qemu/virtio_serial.h>
-#include <plat/qemu/transport.h>
 #include <libfdt.h>
 
 const struct fuse fuses[] =
@@ -40,6 +39,14 @@ const struct fuse board_ident_fuse =
         TEST_FUSE_BANK_WORD(7, "Ident");
 
 
+const uint32_t rom_key_map[] =
+{
+    0xa90f9680,
+    0x25c6dd36,
+    0x52c1eda0,
+    0xcca57803,
+    0x00000000,
+};
 /*
 static struct pb_rom_keys rom_keys[] =
 {
@@ -87,31 +94,24 @@ static struct virtio_block_device virtio_block __a4k =
         .base = 0x0A003C00,
     },
 };
-
-static struct pb_storage_map_driver virtio_map_driver =
-{
-    .map_data = map_data,
-    .map_size = sizeof(map_data),
-    .private = gpt_private_data,
-    .size = sizeof(gpt_private_data),
-    .init = gpt_init,
-    .install = gpt_install_map,
-};
-
 static struct pb_storage_driver virtio_driver =
 {
     .name = "virtio0",
     .block_size = 512,
-    .default_map = map,
-    .map = &virtio_map_driver,
-    .platform = NULL,
-    .private = &virtio_block,
-    .last_block = 65535,
+    .driver_private = &virtio_block,
+    .last_block = (CONFIG_QEMU_VIRTIO_DISK_SIZE_MB*2048-1),
     .init = virtio_block_init,
     .read = virtio_block_read,
     .write = virtio_block_write,
-};
 
+    .map_default = map,
+    .map_init = gpt_init,
+    .map_install = gpt_install_map,
+    .map_data = map_data,
+    .map_data_size = sizeof(map_data),
+    .map_private = gpt_private_data,
+    .map_private_size = sizeof(gpt_private_data),
+};
 /* END of storage */
 
 int board_jump(const char *boot_part_uu_str)

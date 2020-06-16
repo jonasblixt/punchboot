@@ -1,14 +1,18 @@
 # Makefile for Punch BOOT
 
+ifndef BOARD
+$(error BOARD is not defined)
+endif
+
+Q ?= @
+
 TARGET  = pb
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 BPAK ?= $(shell which bpak)
 KEYSTORE_BPAK ?= pki/internal_keystore.bpak
 PYTHON = $(shell which python3)
-EXT_BOARD ?= board/
 
-
-$(shell EXT_BOARD=$(EXT_BOARD) $(PYTHON) scripts/genconfig.py)
+$(shell BOARD=$(BOARD) $(PYTHON) scripts/genconfig.py)
 include .config
 
 ifdef TIMING_REPORT
@@ -115,8 +119,9 @@ C_SRCS  += fdt/fdt_rw.c
 C_SRCS  += fdt/fdt_sw.c
 C_SRCS  += fdt/fdt_wip.c
 
-include $(EXT_BOARD)/*/makefile.mk
-BUILD_DIR ?= build-$(PB_BOARD_NAME)
+BUILD_DIR ?= build-$(lastword $(subst /, ,$(BOARD)))
+
+include $(BOARD)/makefile.mk
 include arch/*/makefile.mk
 include plat/*/makefile.mk
 include bearssl/makefile.mk
@@ -154,40 +159,40 @@ FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).bin
 .PHONY: keystore menuconfig
 
 menuconfig:
-	@EXT_BOARD=$(EXT_BOARD) $(PYTHON) scripts/menuconfig.py 
+	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/menuconfig.py 
 
 all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
-	@$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
+	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
 	@echo "Success, final output: $(FINAL_OUTPUT)"
 
 keystore:
-	@$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) > $(BUILD_DIR)/keystore.c
-	@$(CC) -c $(CFLAGS) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
+	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) > $(BUILD_DIR)/keystore.c
+	$(Q)$(CC) -c $(CFLAGS) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@
-	@cp $< $<_unstripped
-	@$(STRIP) --strip-all $<
-	@$(OBJCOPY) -O binary -R .comment $< $@
+	$(Q)cp $< $<_unstripped
+	$(Q)$(STRIP) --strip-all $<
+	$(Q)$(OBJCOPY) -O binary -R .comment $< $@
 
 $(BUILD_DIR)/$(TARGET): keystore $(OBJS) $(BLOB_OBJS)
 	@echo LD $@
-	@$(LD) $(LDFLAGS) $(OBJS) $(BLOB_OBJS) $(LIBS) -o $@
+	$(Q)$(LD) $(LDFLAGS) $(OBJS) $(BLOB_OBJS) $(LIBS) -o $@
 
 $(BUILD_DIR)/%.bino: %.bin
 	@mkdir -p $(@D)
 	@echo BLOB $< $@
-	@$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
+	$(Q)$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
 
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(@D)
 	@echo AS $<
-	@$(CC) -D__ASSEMBLY__ -c $(CFLAGS) $< -o $@
+	$(Q)$(CC) -D__ASSEMBLY__ -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	@echo CC $<
-	@$(CC) -c $(CFLAGS) $< -o $@
+	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
 	@-rm -rf $(BUILD_DIR)/

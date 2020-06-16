@@ -2,12 +2,10 @@ mainmenu "Punchboot configuration"
 
 source "arch/Kconfig"
 source "plat/Kconfig"
-source "$(EXT_BOARD)/Kconfig"
-
 source "arch/*/Kconfig"
 source "plat/*/Kconfig"
-source "$EXT_BOARD/*/Kconfig"
 
+source "kconfig/Kconfig.board"
 source "kconfig/Kconfig.generic"
 source "kconfig/Kconfig.build"
 source "kconfig/Kconfig.auth"

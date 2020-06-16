@@ -17,7 +17,9 @@
 
 void plat_reset(void)
 {
+#ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
     gcov_final();
+#endif
     semihosting_sys_exit(0);
 }
 

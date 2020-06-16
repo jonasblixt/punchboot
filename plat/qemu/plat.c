@@ -340,7 +340,11 @@ bool plat_force_command_mode(void)
 
 int plat_boot_override(uint8_t *uuid)
 {
+#ifdef CONFIG_OVERRIDE_ARCH_JUMP
     return board_boot_override(NULL, uuid);
+#else
+    return PB_OK;
+#endif
 }
 
 int plat_status(void *response_bfr,

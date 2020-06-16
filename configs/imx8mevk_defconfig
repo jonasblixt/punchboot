@@ -1,13 +1,7 @@
-
-#
-# Punchboot configuration
-#
 CONFIG_ARCH_ARMV8=y
 # CONFIG_ARCH_ARMV7 is not set
 # CONFIG_PLAT_IMX8X is not set
 CONFIG_PLAT_IMX8M=y
-# CONFIG_BOARD_PICO8ML is not set
-CONFIG_BOARD_IMX8MEVK=y
 CONFIG_IMX_CAAM_BASE=0x30901000
 CONFIG_IMX_WATCHDOG_BASE=0x30280000
 CONFIG_IMX_GPT_BASE=0x302D0000
@@ -69,18 +63,36 @@ CONFIG_IMX8M_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v
 # end of Output image
 # end of imx8m configuration
 
-CONFIG_TOOLCHAIN_PREFIX="aarch64-linux-gnu-"
+#
+# Board configuration
+#
+
+#
+# Generic options
+#
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_LOGLEVEL=3
 CONFIG_ENABLE_WATCHDOG=y
 CONFIG_WATCHDOG_TIMEOUT=5
-# CONFIG_BEARSSL is not set
+# CONFIG_CALL_EARLY_PLAT_BOOT is not set
+# CONFIG_DUMP_TIMING_ANALYSIS is not set
+# CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION is not set
+# CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK is not set
+# end of Generic options
+
+#
+# Build configuration
+#
+CONFIG_OPTIMIZE="s"
+# CONFIG_DEBUG_SYMBOLS is not set
+# CONFIG_STACK_USAGE is not set
+# end of Build configuration
 
 #
 # Authentication
 #
-CONFIG_AUTH_TOKEN=y
-# CONFIG_AUTH_PASSWORD is not set
+CONFIG_AUTH=y
+CONFIG_AUTH_METHOD_TOKEN=y
 # end of Authentication
 
 #
@@ -98,9 +110,17 @@ CONFIG_BOOT_DT=y
 CONFIG_BOOT_DT_ID=0x56f91b86
 CONFIG_BOOT_RAMDISK=y
 CONFIG_BOOT_RAMDISK_ID=0xf4cdac1f
+# CONFIG_BOOT_ENABLE_DTB_BOOTARG is not set
 CONFIG_BOOT_AB_A_UUID="2af755d8-8de5-45d5-a862-014cfa735ce0"
 CONFIG_BOOT_AB_B_UUID="c046ccd8-0f2e-4036-984d-76c14dc73992"
+# CONFIG_BOOT_POP_TIMING is not set
 # end of Boot configuration
+
+#
+# Library
+#
+# CONFIG_BEARSSL is not set
+# end of Library
 
 #
 # Command mode transport configuration
