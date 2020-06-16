@@ -22,7 +22,7 @@ addons:
 
 script:
     # Build BPAK library and tools
-    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.3.0
+    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.3.5
     - pushd bpak
     - autoreconf -fi
     - ./configure
@@ -32,7 +32,7 @@ script:
     - popd
 
     # Build punchboot library and tools
-    - git clone https://github.com/jonasblixt/punchboot-tools --depth 1 #--branch v0.1.0
+    - git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v0.1.16
     - pushd punchboot-tools
     - autoreconf -fi
     - ./configure
@@ -51,7 +51,7 @@ script:
 
     # Build punchboot
     - cp configs/test_defconfig .config
-    - make check
+    - make CROSS_COMPILE=arm-none-eabi- BOARD=board/test check
 
 jobs:
     include:
