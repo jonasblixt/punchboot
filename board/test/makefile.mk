@@ -1,5 +1,5 @@
 PB_ENTRY     = 0x40000000
-CFLAGS += -I $(BOARD)/include
-BOARD_C_SRCS += $(BOARD)/board.c
+cflags-y += -I $(BOARD)/include
+src-y += $(BOARD)/board.c
 
 include tests/makefile.mk

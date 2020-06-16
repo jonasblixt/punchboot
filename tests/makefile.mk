@@ -49,10 +49,22 @@ INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_revoke_key
 
 
+
+TEST_ASM_SRCS += arch/armv7a/entry_armv7a.S
+TEST_ASM_SRCS += arch/armv7a/arm32_aeabi_divmod_a32.S
+TEST_ASM_SRCS += arch/armv7a/uldivmod.S
+TEST_ASM_SRCS += arch/armv7a/boot.S
+TEST_ASM_SRCS += arch/armv7a/timer.S
+TEST_ASM_SRCS += arch/armv7a/cp15.S
+
+TEST_C_SRCS += arch/armv7a/arm32_aeabi_divmod.c
+TEST_C_SRCS += arch/armv7a/arch.c
+
+
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/qemu/gcov.c
 TEST_C_SRCS += usb.c
-TEST_C_SRCS += asn1.c
+TEST_C_SRCS += lib/asn1.c
 TEST_C_SRCS += plat/qemu/semihosting.c
 TEST_C_SRCS += plat/qemu/uart.c
 TEST_C_SRCS += lib/printf.c
@@ -67,43 +79,40 @@ TEST_C_SRCS += lib/putchar.c
 TEST_C_SRCS += lib/fletcher.c
 
 # UUID lib
-TEST_C_SRCS  += uuid/pack.c
-TEST_C_SRCS  += uuid/unpack.c
-TEST_C_SRCS  += uuid/compare.c
-TEST_C_SRCS  += uuid/copy.c
-TEST_C_SRCS  += uuid/unparse.c
-TEST_C_SRCS  += uuid/parse.c
-TEST_C_SRCS  += uuid/clear.c
-TEST_C_SRCS  += uuid/conv.c
+TEST_C_SRCS  += lib/uuid/pack.c
+TEST_C_SRCS  += lib/uuid/unpack.c
+TEST_C_SRCS  += lib/uuid/compare.c
+TEST_C_SRCS  += lib/uuid/copy.c
+TEST_C_SRCS  += lib/uuid/unparse.c
+TEST_C_SRCS  += lib/uuid/parse.c
+TEST_C_SRCS  += lib/uuid/clear.c
+TEST_C_SRCS  += lib/uuid/conv.c
 
 TEST_ASM_SRCS += plat/qemu/semihosting_call.S
 
 TEST_OBJS    = $(patsubst %.S, $(BUILD_DIR)/%.o, $(TEST_ASM_SRCS))
 TEST_OBJS   += $(patsubst %.c, $(BUILD_DIR)/%.o, $(TEST_C_SRCS))
 
-CFLAGS += -fprofile-arcs -ftest-coverage
-LDFLAGS +=
-
-BOARD = test
+cflags-y += -fprofile-arcs -ftest-coverage
 
 check: all $(ARCH_OBJS) $(TEST_OBJS)
 	@mkdir -p $(BUILD_DIR)/tests
 	@dd if=/dev/zero of=$(CONFIG_QEMU_VIRTIO_DISK) bs=1M \
 		count=$(CONFIG_QEMU_VIRTIO_DISK_SIZE_MB) > /dev/null 2>&1
 	@sync
-	@$(foreach TEST,$(TESTS), \
-		$(CC) $(CFLAGS) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \
-		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
+	$(Q)$(foreach TEST,$(TESTS), \
+		$(CC) $(cflags-y) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \
+		$(LD) $(ldflags-y) $(ARCH_OBJS) $(TEST_OBJS) \
 			  $(BUILD_DIR)/tests/$(TEST).o $(LIBS) -o $(BUILD_DIR)/tests/$(TEST) || exit; )
 
-	@$(foreach TEST,$(TESTS), \
+	$(Q)$(foreach TEST,$(TESTS), \
 		echo "--- Module TEST ---  $(TEST)"  && \
 		$(QEMU) $(QEMU_FLAGS) -kernel $(BUILD_DIR)/tests/$(TEST) || exit; )
 
 	@echo
 	@echo
 	@echo "Running test:"
-	@$(foreach TEST,$(INTEGRATION_TESTS), \
+	$(Q)$(foreach TEST,$(INTEGRATION_TESTS), \
 		QEMU="$(QEMU)" QEMU_FLAGS="$(QEMU_FLAGS)" TEST_NAME="$(TEST)" \
 			tests/$(TEST).sh || exit; )
 	@echo
@@ -115,11 +124,11 @@ debug_test: $(ARCH_OBJS) $(TEST_OBJS)
 			tests/$(TEST).sh
 
 module_tests:
-	$(foreach TEST,$(TESTS), \
-		$(CC) $(CFLAGS) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \
-		$(LD) $(LDFLAGS) $(ARCH_OBJS) $(TEST_OBJS) \
+	$(Q)$(foreach TEST,$(TESTS), \
+		$(CC) $(cflags-y) -c tests/$(TEST).c -o $(BUILD_DIR)/tests/$(TEST).o && \
+		$(LD) $(ldflags-y) $(ARCH_OBJS) $(TEST_OBJS) \
 			  $(BUILD_DIR)/tests/$(TEST).o $(LIBS) -o $(BUILD_DIR)/tests/$(TEST) || exit; )
 
-	@$(foreach TEST,$(TESTS), \
+	$(Q)$(foreach TEST,$(TESTS), \
 		echo "--- Module TEST ---  $(TEST)"  && \
 		$(QEMU) $(QEMU_FLAGS) -kernel $(BUILD_DIR)/tests/$(TEST) || exit; )

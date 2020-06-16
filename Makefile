@@ -29,29 +29,38 @@ else
 	TIMING_REPORT=0
 endif
 
-cflags-y   = -Wall -Wextra -Wunused-result -std=c99
+cflags-y   = -std=c99
 cflags-y  += -O$(CONFIG_OPTIMIZE)
 cflags-y  += -nostdlib -nostartfiles
 cflags-y  += -ffunction-sections
 cflags-y  += -fdata-sections
 cflags-y  += -fno-omit-frame-pointer
+cflags-y  += -DPB_VERSION=\"$(GIT_VERSION)\"
+cflags-y  += -DLOGLEVEL=$(CONFIG_LOGLEVEL)
+cflags-y  += -DTIMING_REPORT=$(TIMING_REPORT)
+cflags-y  += -fno-common -fno-builtin
+cflags-y  += -ffreestanding -fno-exceptions
+cflags-y  += -fstack-usage
+cflags-y  += -MMD -MP
+
+# Include path
+cflags-y  += -I lib/fdt/include
+cflags-y  += -I lib/uuid/
 cflags-y  += -I. -I include/ -I lib/
 cflags-y  += -I include
 cflags-y  += -I include/pb/libc
 cflags-y  += -I $(BOARD)/include
-cflags-y  += -DPB_VERSION=\"$(GIT_VERSION)\"
-cflags-y  += -DLOGLEVEL=$(CONFIG_LOGLEVEL)
-cflags-y  += -DTIMING_REPORT=$(TIMING_REPORT)
-cflags-y  += -D__PB_BUILD
-cflags-y  += -fno-common -fno-builtin
-cflags-y  += -ffreestanding -fno-exceptions
-cflags-y  += -I lib/fdt/include
-cflags-y  += -I lib/uuid/
-cflags-y  += -fstack-usage
-cflags-y  += -MMD -MP
-cflags-y += -Wall -Wmissing-include-dirs -Wunused \
-			-Wdisabled-optimization	-Wvla -Wshadow \
-			-Wno-unused-parameter
+
+# Warnings
+cflags-y += -Wall
+cflags-y += -Wextra
+cflags-y += -Wunused-result
+cflags-y += -Wmissing-include-dirs
+cflags-y += -Wunused
+cflags-y += -Wdisabled-optimization
+cflags-y += -Wvla
+cflags-y += -Wshadow
+cflags-y += -Wno-unused-parameter
 cflags-y += -Wextra
 #cflags-y += -Wmissing-declarations
 cflags-y += -Wmissing-format-attribute

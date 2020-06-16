@@ -169,12 +169,14 @@ gcov_init_err:
     semihosting_file_close(fd);
 }
 
+void __gcov_init(struct gcov_info *p); /* Suppress build warning */
 void __gcov_init(struct gcov_info *p)
 {
     p->next = head;
     head = p;
 }
 
+void __gcov_merge_add(gcov_type *counters, unsigned n_counters);
 void __gcov_merge_add(gcov_type *counters, unsigned n_counters)
 {
     UNUSED(counters);
@@ -183,11 +185,13 @@ void __gcov_merge_add(gcov_type *counters, unsigned n_counters)
     /* Not Used */
 }
 
+void __gcov_flush(void);
 void __gcov_flush(void)
 {
     /* Not used */
 }
 
+void __gcov_exit(void);
 void __gcov_exit(void)
 {
     /* Not used */

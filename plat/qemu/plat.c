@@ -73,11 +73,6 @@ struct mmu_initial_mapping mmu_initial_mappings[] =
     { 0 }
 };
 
-void *plat_get_private(void)
-{
-    return NULL;
-}
-
 int plat_get_uuid(char *out)
 {
     int rc;

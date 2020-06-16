@@ -1,4 +1,5 @@
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <plat/qemu/virtio_serial.h>
 
 static struct virtio_serial_device dev __a4k =
