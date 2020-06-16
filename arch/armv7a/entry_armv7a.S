@@ -61,6 +61,7 @@ _zeroing_done:
 
     ldr sp, =_stack_end
 
+/* MMU setup routine copied from little kernel */
 .Lsetup_mmu:
 
     /* set up the mmu according to mmu_initial_mappings */

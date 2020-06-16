@@ -24,6 +24,7 @@ mov	\reg, #WORD_SIZE
 lsl	\reg, \reg, \tmp
 .endm
 
+/* Copied from arm-trusted-firmware */
 .macro do_dcache_maintenance_by_mva op, coproc, opc1, CRn, CRm, opc2
 	/* Exit early if size is zero */
 	cmp	r1, #0
