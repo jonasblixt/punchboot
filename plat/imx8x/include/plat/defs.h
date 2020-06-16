@@ -16,6 +16,7 @@
 #include <plat/imx/ehci.h>
 #include <plat/imx/lpuart.h>
 #include <plat/imx/caam.h>
+#include <plat/imx/gpio.h>
 #include <plat/imx8qxp_pads.h>
 #include <plat/iomux.h>
 

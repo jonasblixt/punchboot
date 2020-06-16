@@ -19,6 +19,7 @@ PLAT_C_SRCS  += plat/imx/usdhc.c
 PLAT_C_SRCS  += plat/imx/lpuart.c
 PLAT_C_SRCS  += plat/imx/ehci.c
 PLAT_C_SRCS  += plat/imx/caam.c
+PLAT_C_SRCS  += plat/imx/gpio.c
 PLAT_C_SRCS  += plat/imx8x/plat.c
 PLAT_C_SRCS  += plat/imx/wdog.c
 PLAT_C_SRCS  += plat/imx/usbdcd.c
