@@ -17,20 +17,20 @@
 #include <stdlib.h>
 #include <blkid.h>
 
-#include "pbconfig.h"
+#include "pbstate.h"
 
 
 static void print_help(void)
 {
-    printf(" --- pbconfig " VERSION " ---\n\n");
+    printf(" --- pbstate " VERSION " ---\n\n");
     printf(" Optional parameters:\n");
-    printf("  pbconfig -d <device> -o primary offset -b backup offset");
+    printf("  pbstate -d <device> -o primary offset -b backup offset");
     printf(" Usage:\n");
-    printf("  pbconfig -i                                                  - " \
+    printf("  pbstate -i                                                  - " \
                                                         "View configuration\n");
-    printf("  pbconfig -s <A, B or none>  [ -c <counter> ]                 - " \
+    printf("  pbstate -s <A, B or none>  [ -c <counter> ]                 - " \
                                                         "Switch system\n");
-    printf("  pbconfig -v <A or B>                                         - " \
+    printf("  pbstate -v <A or B>                                         - " \
                                                         "Set verified flag\n");
 }
 
@@ -142,7 +142,7 @@ int main(int argc, char * const argv[])
 
     if (flag_device)
     {
-        err = pbconfig_load(device_path, offset_primary, offset_backup);
+        err = pbstate_load(device_path, offset_primary, offset_backup);
 
         if (err != 0)
             return -1;
@@ -160,18 +160,18 @@ int main(int argc, char * const argv[])
     else if (flag_switch)
     {
         if (strncasecmp(system, "a", 1) == 0)
-            err = pbconfig_switch(SYSTEM_A, counter);
+            err = pbstate_switch(SYSTEM_A, counter);
         else if (strncasecmp(system, "b", 1) == 0)
-            err = pbconfig_switch(SYSTEM_B, counter);
+            err = pbstate_switch(SYSTEM_B, counter);
         else
-            err = pbconfig_switch(SYSTEM_NONE, 0);
+            err = pbstate_switch(SYSTEM_NONE, 0);
     }
     else if (flag_verify)
     {
         if (strncasecmp(system_verified, "a", 1) == 0)
-            err = pbconfig_set_verified(SYSTEM_A);
+            err = pbstate_set_verified(SYSTEM_A);
         else if (strncasecmp(system_verified, "b", 1) == 0)
-            err = pbconfig_set_verified(SYSTEM_B);
+            err = pbstate_set_verified(SYSTEM_B);
         else
             err = -1;
     }

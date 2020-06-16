@@ -3,7 +3,7 @@ bin_PROGRAMS = pbstate
 
 pbstate_SOURCES  = main.c \
 				   crc.c \
-				   pbconfig.c
+				   pbstate.c
 
 pbstate_CFLAGS  = $(BLKID_CFLAGS) \
                   $(UUID_CFLAGS) \

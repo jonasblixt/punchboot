@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 #include <blkid.h>
-#include "pbconfig.h"
+#include "pbstate.h"
 #include "crc.h"
 
 #define PB_STATE_MAGIC 0x026d4a65
@@ -67,7 +67,7 @@ config_err_out:
     return err;
 }
 
-static uint32_t pbconfig_commit(void)
+static uint32_t pbstate_commit(void)
 {
     uint32_t err = 0;
     uint32_t crc = 0;
@@ -125,7 +125,7 @@ commit_err_out1:
     return err;
 }
 
-uint32_t pbconfig_load(const char *_device, uint64_t _primary_offset,
+uint32_t pbstate_load(const char *_device, uint64_t _primary_offset,
                         uint64_t _backup_offset)
 {
     int read_sz = 0;
@@ -209,13 +209,13 @@ void print_configuration(void)
     printf("Remaining boot attempts: %u\n", config.remaining_boot_attempts);
 }
 
-uint32_t pbconfig_load_from_uuid(void)
+uint32_t pbstate_load_from_uuid(void)
 {
     return -1;
 }
 
 
-uint32_t pbconfig_switch(uint8_t system, uint8_t counter)
+uint32_t pbstate_switch(uint8_t system, uint8_t counter)
 {
     switch (system)
     {
@@ -260,10 +260,10 @@ uint32_t pbconfig_switch(uint8_t system, uint8_t counter)
         break;
     }
 
-    return pbconfig_commit();
+    return pbstate_commit();
 }
 
-uint32_t pbconfig_set_verified(uint8_t system)
+uint32_t pbstate_set_verified(uint8_t system)
 {
     switch (system)
     {
@@ -281,5 +281,5 @@ uint32_t pbconfig_set_verified(uint8_t system)
             return -1;
         break;
     }
-    return pbconfig_commit();
+    return pbstate_commit();
 }

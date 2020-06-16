@@ -8,11 +8,11 @@
  */
 
 
-#ifndef TOOLS_PBCONFIG_CRC_H_
-#define TOOLS_PBCONFIG_CRC_H_
+#ifndef TOOLS_PBSTATE_CRC_H_
+#define TOOLS_PBSTATE_CRC_H_
 
 #include <stdint.h>
 
 uint32_t crc32(uint32_t crc, const uint8_t *buf, uint32_t size);
 
-#endif  // TOOLS_PBCONFIG_CRC_H_
+#endif  // TOOLS_PBSTATE_CRC_H_
