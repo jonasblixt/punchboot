@@ -138,6 +138,7 @@ STRIP=$(CROSS_COMPILE)strip
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
 LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY)
+LDFLAGS += --defsym=PB_STACK_SIZE_KB=$(CONFIG_STACK_SIZE_KB)
 LDFLAGS += -Tlink.lds  --build-id=none
 
 ARCH_OBJS     = $(patsubst %.S, $(BUILD_DIR)/%.o, $(ARCH_ASM_SRCS))

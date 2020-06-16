@@ -45,7 +45,7 @@ SECTIONS
  	.stack (NOLOAD):
     {
         PROVIDE(_stack_start = .);
-        . = . + 2*1024 ;
+        . = . + PB_STACK_SIZE_KB*1024 ;
         . = ALIGN(8);
         PROVIDE(_stack_end = .);
     } > pbram2
