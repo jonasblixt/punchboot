@@ -36,7 +36,7 @@ static struct pb_storage_driver *stream_drv;
 static struct pb_hash_context hash_ctx __no_bss __a4k;
 static uint8_t device_uuid[16];
 
-#ifdef CONFIG_AUTH_TOKEN
+#ifdef CONFIG_AUTH_METHOD_TOKEN
 static int auth_token(uint8_t *device_uu,
                       uint32_t key_id, uint8_t *sig, size_t size)
 {
@@ -279,7 +279,7 @@ static int cmd_auth(void)
     LOG_DBG("cmd.request = %p", cmd.request);
     pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
-#ifdef CONFIG_AUTH_TOKEN
+#ifdef CONFIG_AUTH_METHOD_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN)
     {
         pb_wire_init_result(&result, PB_RESULT_OK);
@@ -297,6 +297,9 @@ static int cmd_auth(void)
 
         pb_wire_init_result(&result, rc);
     }
+#else
+    UNUSED(auth_cmd);
+    UNUSED(rc);
 #endif
 
     return PB_OK;
@@ -816,9 +819,7 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_AUTH_SET_OTP_PASSWORD:
         {
-#ifndef CONFIG_AUTH_PASSWORD
             pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
-#endif
         }
         break;
         case PB_CMD_BOARD_COMMAND:
@@ -896,7 +897,11 @@ void pb_command_run(void)
     int rc;
 
     LOG_DBG("Initializing command mode");
+#ifdef CONFIG_AUTH
     authenticated = false;
+#else
+    authenticated = true;
+#endif
     plat_slc_read(&slc);
     plat_get_uuid((char *) device_uuid);
 

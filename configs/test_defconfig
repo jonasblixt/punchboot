@@ -1,13 +1,15 @@
-
-#
-# Punchboot configuration
-#
 # CONFIG_ARCH_ARMV8 is not set
 CONFIG_ARCH_ARMV7=y
 # CONFIG_PLAT_IMX6UL is not set
 CONFIG_PLAT_QEMU=y
 # CONFIG_BOARD_QEMUARMV7 is not set
 CONFIG_BOARD_TEST=y
+
+#
+# Output image
+#
+# CONFIG_IMX6UL_CREATE_IMX_IMAGE is not set
+# end of Output image
 
 #
 # QEMU platform configuration
@@ -19,20 +21,33 @@ CONFIG_QEMU_VIRTIO_DISK_SIZE_MB=32
 CONFIG_QEMU_ENABLE_TEST_COVERAGE=y
 # end of QEMU platform configuration
 
-CONFIG_TOOLCHAIN_PREFIX="arm-none-eabi-"
+#
+# Generic options
+#
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_LOGLEVEL=3
 CONFIG_ENABLE_WATCHDOG=y
 CONFIG_WATCHDOG_TIMEOUT=5
 # CONFIG_CALL_EARLY_PLAT_BOOT is not set
 CONFIG_DUMP_TIMING_ANALYSIS=y
-CONFIG_BEARSSL=y
+# CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION is not set
+# CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK is not set
+# end of Generic options
+
+#
+# Build configuration
+#
+CONFIG_TOOLCHAIN_PREFIX="arm-none-eabi-"
+CONFIG_OPTIMIZE=""
+# CONFIG_DEBUG_SYMBOLS is not set
+# CONFIG_STACK_USAGE is not set
+# end of Build configuration
 
 #
 # Authentication
 #
-CONFIG_AUTH_TOKEN=y
-# CONFIG_AUTH_PASSWORD is not set
+CONFIG_AUTH=y
+CONFIG_AUTH_METHOD_TOKEN=y
 # end of Authentication
 
 #
@@ -51,6 +66,12 @@ CONFIG_BOOT_STATE_BACKUP_UU="656ab3fc-5856-4a5e-a2ae-5a018313b3ee"
 CONFIG_BOOT_AB_A_UUID="2af755d8-8de5-45d5-a862-014cfa735ce0"
 CONFIG_BOOT_AB_B_UUID="c046ccd8-0f2e-4036-984d-76c14dc73992"
 # end of Boot configuration
+
+#
+# Library
+#
+CONFIG_BEARSSL=y
+# end of Library
 
 #
 # Command mode transport configuration

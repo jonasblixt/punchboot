@@ -1,16 +1,16 @@
 menu "Authentication"
 
-choice AUTH
+config AUTH
 	bool "Enable command mode authentication"
-	optional
+	default y
 
-config AUTH_TOKEN
+choice AUTH_METHOD
+    prompt "Authentication method"
+    depends on AUTH
+
+config AUTH_METHOD_TOKEN
 	bool "Token based authentication"
 
-config AUTH_PASSWORD
-	bool "Password based authentication"
-
 endchoice
-
 
 endmenu
