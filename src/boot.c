@@ -54,7 +54,7 @@ int action_boot(int argc, char **argv)
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:l:a:",
+    while ((opt = getopt_long(argc, argv, "hvt:d:l:a:b:W",
                    long_options, &long_index )) != -1)
     {
         switch (opt)

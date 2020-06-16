@@ -68,7 +68,7 @@ int action_dev(int argc, char **argv)
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:SC:L:ab:rd:w:",
+    while ((opt = getopt_long(argc, argv, "hvt:d:Srw:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
