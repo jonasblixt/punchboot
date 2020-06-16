@@ -17,6 +17,7 @@
 #include <pb/fuse.h>
 #include <pb/board.h>
 #include <pb/boot.h>
+#include <pb/vm.h>
 #include <plat/qemu/plat.h>
 #include <plat/qemu/virtio.h>
 #include <plat/qemu/virtio_block.h>
@@ -46,6 +47,31 @@ static const char *platform_namespace_uuid =
 static const char *device_unique_id =
     "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
+uint32_t initial_translation_table[4096] __a16k __translation_table;
+
+/* initial memory mappings. parsed by start.S */
+struct mmu_initial_mapping mmu_initial_mappings[] =
+{
+    /* all of memory */
+    {
+        .phys = 0x40000000,
+        .virt = 0x40000000,
+        .size = (1024 * 1024 * 1024),
+        .flags = 0,
+        .name = "memory"
+    },
+
+    {
+        .phys = 0,
+        .virt = 0,
+        .size = (1024 * 1024 * 1024),
+        .flags = MMU_INITIAL_MAPPING_FLAG_DEVICE,
+        .name = "Devices"
+    },
+
+    /* null entry to terminate the list */
+    { 0 }
+};
 
 void *plat_get_private(void)
 {
