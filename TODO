@@ -16,13 +16,12 @@ Total 510829607 us
 v0.7.6
 ------
  PB: Active key in DT, only one, the active key
- PB: USB regression, ca 13MByte/s on imx8x
  PB/imx8x: Test key revoke with old acu6c board
- PB: Early UART to support abort/error handlers
- PB: Remove changelog from README only use 'Changelog'
 
 v0.8 (Main feature: MMU memory protection and data cache)
 ----
+ PB: Early UART to support abort/error handlers
+ PB: USB regression, ca 13MByte/s on imx8x
  PB/imx6ul: Check if timing measurement still works
  PB: Provide time-stamps in device-tree?
  PB: Enable MMU for memory protection and speed improvements when manipulating
