@@ -45,11 +45,11 @@ void pb_main(void)
 
     timestamp_end(&ts_plat_early);
 
+    plat_console_init();
+
 #ifdef CONFIG_ENABLE_WATCHDOG
     plat_wdog_init();
 #endif
-
-    plat_console_init();
 
 #if LOGLEVEL > 0
     printf("\n\r\n\rPB " PB_VERSION " starting\n\r");
