@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2020 Actia Nordic AB
+ * Copyright (C) 2020 Jonas Blixt
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *

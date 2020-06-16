@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2020 Actia Nordic AB
+ * Copyright (C) 2020 Jonas Blixt
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -26,7 +26,8 @@
 #define GPIO_BANK_BASE(bank) (CONFIG_IMX_GPIO_BASE + GPIO_REG_BANK_SIZE * bank)
 #define GPIO_PIN(pin) (1 << (pin))
 
-void gpio_set_pin(uint8_t bank, uint8_t pin, uint8_t value) {
+void gpio_set_pin(uint8_t bank, uint8_t pin, uint8_t value)
+{
 	/* Set pin value*/
 	if (value)
 		pb_setbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + DR);
@@ -37,7 +38,8 @@ void gpio_set_pin(uint8_t bank, uint8_t pin, uint8_t value) {
 	pb_setbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + GDIR);
 }
 
-uint8_t gpio_get_pin(uint8_t bank, uint8_t pin){
+uint8_t gpio_get_pin(uint8_t bank, uint8_t pin)
+{
 	/* Set direction input*/
 	pb_clrbit32(GPIO_PIN(pin), GPIO_BANK_BASE(bank) + GDIR);
 
