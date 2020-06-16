@@ -32,7 +32,7 @@ start_qemu()
     done
 
     #( $QEMU $QEMU_FLAGS -kernel pb >> qemu.log 2>&1 ) &
-    ( $QEMU $QEMU_FLAGS -kernel build-qemutest/pb ) &
+    ( $QEMU $QEMU_FLAGS -kernel build-test/pb ) &
     qemu_pid=$!
 
 }

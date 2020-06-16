@@ -20,6 +20,7 @@ v0.7.6
 
 v0.8 (Main feature: MMU memory protection and data cache)
 ----
+ PB/test: Add test boot code that parses device-tree
  PB: Early UART to support abort/error handlers
  PB: USB regression, ca 13MByte/s on imx8x
  PB/imx6ul: Check if timing measurement still works

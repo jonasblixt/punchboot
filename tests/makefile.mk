@@ -1,4 +1,3 @@
-ifdef CONFIG_BOARD_TEST
 # Unit tests
 
 TESTS   = test_boot
@@ -124,5 +123,3 @@ module_tests:
 	@$(foreach TEST,$(TESTS), \
 		echo "--- Module TEST ---  $(TEST)"  && \
 		$(QEMU) $(QEMU_FLAGS) -kernel $(BUILD_DIR)/tests/$(TEST) || exit; )
-
-endif

@@ -125,7 +125,7 @@ include $(BOARD)/makefile.mk
 include arch/*/makefile.mk
 include plat/*/makefile.mk
 include bearssl/makefile.mk
-include tests/makefile.mk
+#include tests/makefile.mk
 
 $(shell mkdir -p $(BUILD_DIR))
 
