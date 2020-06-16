@@ -116,7 +116,7 @@ C_SRCS  += fdt/fdt_sw.c
 C_SRCS  += fdt/fdt_wip.c
 
 include $(EXT_BOARD)/*/makefile.mk
-BUILD_DIR = build-$(PB_BOARD_NAME)
+BUILD_DIR ?= build-$(PB_BOARD_NAME)
 include arch/*/makefile.mk
 include plat/*/makefile.mk
 include bearssl/makefile.mk
@@ -124,12 +124,12 @@ include tests/makefile.mk
 
 $(shell mkdir -p $(BUILD_DIR))
 
-CC=$(CONFIG_TOOLCHAIN_PREFIX)gcc
-LD=$(CONFIG_TOOLCHAIN_PREFIX)ld
-AR=$(CONFIG_TOOLCHAIN_PREFIX)ar
-SIZE=$(CONFIG_TOOLCHAIN_PREFIX)size
-STRIP=$(CONFIG_TOOLCHAIN_PREFIX)strip
-OBJCOPY=$(CONFIG_TOOLCHAIN_PREFIX)objcopy
+CC=$(CROSS_COMPILE)gcc
+LD=$(CROSS_COMPILE)ld
+AR=$(CROSS_COMPILE)ar
+SIZE=$(CROSS_COMPILE)size
+STRIP=$(CROSS_COMPILE)strip
+OBJCOPY=$(CROSS_COMPILE)objcopy
 
 LDFLAGS += --defsym=PB_ENTRY=$(PB_ENTRY)
 LDFLAGS += -Tlink.lds  --build-id=none

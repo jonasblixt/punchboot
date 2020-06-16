@@ -1,8 +1,5 @@
 menu "Build configuration"
 
-config TOOLCHAIN_PREFIX
-    string "Toolchain prefix"
-
 config OPTIMIZE
     string "Optimize level"
 
