@@ -1,4 +1,5 @@
 #include <pb/io.h>
+#include <pb/arch.h>
 #include <arch/armv7a/timer.h>
 #include <plat/defs.h>
 

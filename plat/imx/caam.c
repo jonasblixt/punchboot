@@ -145,7 +145,7 @@ static int caam_rsa_enc(uint8_t *signature, size_t input_sz,
     return PB_ERR;
 }
 
-int caam_ecdsa_verify(struct pb_hash_context *hash,
+static int caam_ecdsa_verify(struct pb_hash_context *hash,
                             struct bpak_key *key,
                             void *signature)
 {

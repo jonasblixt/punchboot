@@ -37,6 +37,7 @@
 #include <pb/pb.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <string.h>
 #include <arch/arch.h>
 
 /*

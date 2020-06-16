@@ -8,6 +8,7 @@
  *
  */
 
+#include <pb/pb.h>
 #include <pb/arch.h>
 
 void pb_delay_ms(uint32_t delay)

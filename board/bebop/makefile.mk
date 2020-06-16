@@ -1,2 +1,2 @@
 PB_ENTRY     = 0x80001000
-BOARD_C_SRCS += $(BOARD)/board.c
+src-y += $(BOARD)/board.c

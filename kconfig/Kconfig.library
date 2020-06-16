@@ -1,5 +1,0 @@
-menu "Library"
-
-source "bearssl/Kconfig"
-
-endmenu
