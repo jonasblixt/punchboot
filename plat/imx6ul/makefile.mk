@@ -8,8 +8,8 @@
 #
 ifdef CONFIG_PLAT_IMX6UL
 
-CST_TOOL := $(CONFIG_IMX6UL_CST_TOOL)
-MKIMAGE := $(CONFIG_IMX6UL_MKIMAGE_TOOL)
+CST_TOOL ?= cst
+MKIMAGE ?= mkimage
 
 PB_CSF_TEMPLATE = plat/imx6ul/pb.csf.template
 PB_UUU_CSF_TEMPLATE = plat/imx6ul/pb_uuu.csf.template
