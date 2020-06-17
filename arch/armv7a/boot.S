@@ -18,19 +18,18 @@ arch_jump:
     mov r8, r3
     mov r9, r4
 
-    /* Flush caches and disable MMU */
-
-    mov r0, #0x83000000
-    mov r1, #0x100000
-    bl arch_clean_cache_range
+    cpsid    if
 
     bl armv7a_cp15_disable_mmu
+    bl arch_disable_cache
 
     mov r0, r6
     mov r1, r7
     mov r2, r8
     mov r3, r9
 
+    isb
+    dsb
     mov pc, r5
     b .
 
