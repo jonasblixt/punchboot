@@ -77,20 +77,10 @@ config IMX8M_CREATE_IMX_IMAGE
     bool "Create imx-image"
     default n
 
-config IMX8M_MKIMAGE_TOOL
-    string "mkimage tool"
-    default "mkimage_imx8"
-    depends on IMX8M_CREATE_IMX_IMAGE
-
 config IMX8M_SIGN_IMAGE
     bool "Sign image"
     default n
     depends on IMX8M_CREATE_IMX_IMAGE
-
-config IMX8M_CST_TOOL
-    string "NXP Signing tool (CST)"
-    default "cst"
-    depends on IMX8M_SIGN_IMAGE
 
 config IMX8M_SRK_TABLE
     string "SRK Table binary"

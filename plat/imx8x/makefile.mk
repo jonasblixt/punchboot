@@ -9,8 +9,8 @@
 
 ifdef CONFIG_PLAT_IMX8X
 
-CST_TOOL := $(CONFIG_IMX8X_CST_TOOL)
-MKIMAGE := $(CONFIG_IMX8X_MKIMAGE_TOOL)
+CST_TOOL ?= cst
+MKIMAGE ?= mkimage_imx8x
 
 PB_CSF_TEMPLATE = plat/imx8x/pb.csf.template
 SED = $(shell which sed)
