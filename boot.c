@@ -320,6 +320,8 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose)
 {
     int rc;
     uintptr_t *entry = 0;
+    uint32_t *key_id = NULL;
+
     uint8_t device_uuid[16];
 
     struct bpak_header *h = pb_image_header();
@@ -416,6 +418,45 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose)
 
     if (rc != 0)
         return -PB_ERR;
+
+    /* Update SLC related parameters in DT */
+    enum pb_slc slc;
+
+    rc = plat_slc_read(&slc);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* SLC state */
+    fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
+
+                          /* bpak-key-id */
+    rc = bpak_get_meta(h, 0x7da19399, (void **) &key_id);
+
+    if (!key_id || (rc != BPAK_OK))
+    {
+        LOG_ERR("Missing bpak-key-id meta\n");
+        return -PB_ERR;
+    }
+
+    /* Current key ID we're using for boot image */
+    fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", *key_id);
+
+    struct pb_result_slc_key_status *key_status;
+
+    rc = plat_slc_get_key_status(&key_status);
+
+    if (rc != PB_OK)
+        return rc;
+
+    for (unsigned int i = 0; i < membersof(key_status->active); i++)
+    {
+        if (key_status->active[i])
+        {
+            fdt_appendprop_u32((void *) fdt, offset, "pb,slc-available-keys",
+                                    key_status->active[i]);
+        }
+    }
 
 #ifdef CONFIG_BOOT_RAMDISK
     struct bpak_part_header *pramdisk = NULL;
