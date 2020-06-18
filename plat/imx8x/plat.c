@@ -14,6 +14,7 @@
 #include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/board.h>
+#include <pb/vm.h>
 #include <uuid/uuid.h>
 #include <plat/imx8x/plat.h>
 #include <plat/regs.h>
@@ -51,6 +52,64 @@ static struct fuse rom_key_revoke_fuse = IMX8X_FUSE_ROW(11, "Revoke");
 
 static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
+
+
+/* initial memory mappings. parsed by start.S */
+struct mmu_initial_mapping mmu_initial_mappings[] =
+{
+    /* Map first Gbyte of memory */
+    {
+        .phys = 0x80000000,
+        .virt = 0x80000000,
+        .size = (1024 * 1024 * 1024),
+        .flags = 0,
+        .name = "memory"
+    },
+
+    {
+        .phys = 0x5f000000,
+        .virt = 0x5f000000,
+        .size = (16 * 1024 * 1024),
+        .flags = MMU_INITIAL_MAPPING_FLAG_DEVICE,
+        .name = "High speed I/O"
+    },
+
+    {
+        .phys = 0x5d000000,
+        .virt = 0x5d000000,
+        .size = (16 * 1024 * 1024),
+        .flags = MMU_INITIAL_MAPPING_FLAG_DEVICE,
+        .name = "Low speed I/O"
+    },
+
+    {
+        .phys = 0x5c000000,
+        .virt = 0x5c000000,
+        .size = (16 * 1024 * 1024),
+        .flags = MMU_INITIAL_MAPPING_FLAG_DEVICE,
+        .name = "Db"
+    },
+
+    {
+        .phys = 0x5b000000,
+        .virt = 0x5b000000,
+        .size = (16 * 1024 * 1024),
+        .flags = MMU_INITIAL_MAPPING_FLAG_DEVICE,
+        .name = "Connectivity"
+    },
+
+    {
+        .phys = 0x30000000,
+        .virt = 0x30000000,
+        .size = (64 * 1024 * 1024),
+        .flags = MMU_INITIAL_MAPPING_FLAG_DEVICE,
+        .name = "System Control Unit"
+    },
+    /* null entry to terminate the list */
+    { 0 }
+};
+
+uint32_t initial_translation_table[4096] __a16k __translation_table;
 
 int plat_get_uuid(char *out)
 {
