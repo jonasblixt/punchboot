@@ -1,6 +1,8 @@
 #ifndef INCLUDE_VM_H_
 #define INCLUDE_VM_H_
 
+#include <config.h>
+
 #if CONFIG_ARCH_ARMV8
 #define __MMU_INITIAL_MAPPING_PHYS_OFFSET 0
 #define __MMU_INITIAL_MAPPING_VIRT_OFFSET 8

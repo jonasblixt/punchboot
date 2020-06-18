@@ -161,11 +161,6 @@ int board_early_init(void *plat)
     return PB_OK;
 }
 
-int board_setup_device(void)
-{
-    return PB_OK;
-}
-
 bool board_force_command_mode(void *plat)
 {
     struct imx8x_private *priv = IMX8X_PRIV(plat);

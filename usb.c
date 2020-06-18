@@ -154,7 +154,6 @@ int usb_process_setup_pkt(struct pb_usb_interface *iface,
                 if (setup->wLength < sz)
                     sz = setup->wLength;
 
-                LOG_DBG("Write %p, %zu", &descriptors.device, sz);
                 rc = usb_send_ep0(iface, (void *) &descriptors.device, sz);
             }
             else if (setup->wValue == 0x0200)

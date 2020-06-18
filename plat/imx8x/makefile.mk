@@ -15,29 +15,29 @@ MKIMAGE ?= mkimage_imx8x
 PB_CSF_TEMPLATE = plat/imx8x/pb.csf.template
 SED = $(shell which sed)
 
-PLAT_C_SRCS  += plat/imx/usdhc.c
-PLAT_C_SRCS  += plat/imx/lpuart.c
-PLAT_C_SRCS  += plat/imx/ehci.c
-PLAT_C_SRCS  += plat/imx/caam.c
-PLAT_C_SRCS  += plat/imx/gpio.c
-PLAT_C_SRCS  += plat/imx8x/plat.c
-PLAT_C_SRCS  += plat/imx/wdog.c
-PLAT_C_SRCS  += plat/imx/usbdcd.c
-PLAT_C_SRCS  += plat/imx8x/sci/ipc.c
-PLAT_C_SRCS  += plat/imx8x/sci/mx8_mu.c
-PLAT_C_SRCS  += plat/imx8x/sci/svc/pad/pad_rpc_clnt.c
-PLAT_C_SRCS  += plat/imx8x/sci/svc/pm/pm_rpc_clnt.c
-PLAT_C_SRCS  += plat/imx8x/sci/svc/timer/timer_rpc_clnt.c
-PLAT_C_SRCS  += plat/imx8x/sci/svc/misc/misc_rpc_clnt.c
-PLAT_C_SRCS  += plat/imx8x/sci/svc/seco/seco_rpc_clnt.c
-PLAT_C_SRCS  += plat/imx8x/sci/svc/rm/rm_rpc_clnt.c
+src-y  += plat/imx/usdhc.c
+src-y  += plat/imx/lpuart.c
+src-y  += plat/imx/ehci.c
+src-y  += plat/imx/caam.c
+src-y  += plat/imx/gpio.c
+src-y  += plat/imx8x/plat.c
+src-y  += plat/imx/wdog.c
+src-y  += plat/imx/usbdcd.c
+src-y  += plat/imx8x/sci/ipc.c
+src-y  += plat/imx8x/sci/mx8_mu.c
+src-y  += plat/imx8x/sci/svc/pad/pad_rpc_clnt.c
+src-y  += plat/imx8x/sci/svc/pm/pm_rpc_clnt.c
+src-y  += plat/imx8x/sci/svc/timer/timer_rpc_clnt.c
+src-y  += plat/imx8x/sci/svc/misc/misc_rpc_clnt.c
+src-y  += plat/imx8x/sci/svc/seco/seco_rpc_clnt.c
+src-y  += plat/imx8x/sci/svc/rm/rm_rpc_clnt.c
 
-PLAT_ASM_SRCS += plat/imx8x/reset_vector.S
+asm-y += plat/imx8x/reset_vector.S
 
-CFLAGS += -D__PLAT_IMX8X__
-CFLAGS += -I plat/imx8x/include
+cflags-y += -I plat/imx8x/include
+cflags-y += -mtune=cortex-a35
 
-LDFLAGS += -Tplat/imx8x/link.lds
+ldflags-y += -Tplat/imx8x/link.lds
 
 .PHONY: imx8x_image imx8x_sign_image
 

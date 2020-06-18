@@ -840,6 +840,8 @@
 
 #ifndef __ASSEMBLY__
 
+#include <stdint.h>
+
 static inline unsigned int current_el(void)
 {
     unsigned int el;
@@ -884,6 +886,11 @@ typedef volatile uint64_t __iomem;
 
 void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
                                  __attribute__((noreturn));
+
+
+void arch_invalidate_cache_range(uintptr_t start, size_t len);
+void arch_clean_cache_range(uintptr_t start, size_t len);
+void arch_clean_invalidate_cache_range(uintptr_t start, size_t len);
 
 #endif
 

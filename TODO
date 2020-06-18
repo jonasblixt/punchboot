@@ -35,6 +35,21 @@ DT Patch 224 us
 Total 111593 us
 --- Timing report end ---
 
+
+--- Timing report begin ---
+IMX8X: no-mmu, BR: f45d4a548955a2ef651fd834bce26be402916ed1
+Platform early 1983 us
+Crypto 70 us
+Storage 112464 us
+SLC 1465 us
+Boot init 859 us
+Image load and hash 89495 us
+Verify signature 5816 us
+DT Patch 55042 us
+Total 268999 us
+--- Timing report end ---
+
+
 v0.7.6
 ------
  PB: Active key in DT, only one, the active key
