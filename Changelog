@@ -1,3 +1,39 @@
+v0.7.7 (2020-06-17)
+------
+
+Bugfix: Prefix all filepath's in board make files with $(BOARD) to ensure that
+out-of-tree board code works as expected.
+
+v0.7.6 (2020-06-17)
+------
+Feature/PB: Add support for board SLC callbacks
+
+IMX/USDHC: Expose some of the low level calls for manipulating the extcsd
+outside of the usdhc dirver.
+
+Bugfix/PB: Force 'authenticated' to true when command mode authentication is
+disabled through Kconfig
+
+Feature/PB: Allow setting CROSS_COMPILE, BOARD and various tools as a environment
+variables to support better integration with build systems like yocto and
+buildroot.
+
+Feature/IMX8X: Add SECO API
+
+Feature/IMX: Add GPIO driver
+
+Feature/PB: Include SLC information in device tree. This change introduces the
+following new items in the device-tree:
+
+        pb,slc = <0>;
+        pb,slc-available-keys = <>;
+        pb,slc-active-key = <0x00000000>;
+
+pb,slc 					- The current "Security Life Cycle" (SLC)
+pb,slc-available-keys 	- Available key ID's (Keys that have not been revoked)
+pb,slc-active-key		- Key that was used to authenticate the boot image
+
+
 v0.7.5 (2020-06-05)
 ------
 
