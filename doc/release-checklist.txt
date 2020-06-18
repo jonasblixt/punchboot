@@ -1,0 +1,16 @@
+
+
+1) Run tests
+    $ cp configs/test_defconfig .config
+    $ make CROSS_COMPILE=arm-none-eabi- BOARD=board/test check
+
+2) Update 'Changelog'
+    Run 'git log --oneline --decorate' for summary of changes
+
+3) Update README if relevant
+
+4) Update 'VERSION'
+
+5) git tag vX.Y.Z
+
+6) git push && git push --tags
