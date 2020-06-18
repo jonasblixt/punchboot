@@ -40,6 +40,7 @@ CFLAGS  += -I fdt/include
 CFLAGS  += -I uuid/
 CFLAGS  += -fstack-usage
 CFLAGS  += -MMD -MP
+CFLAGS  += -I $(BOARD)/include
 
 # General warnings
 WARNING = -Wall -Wmissing-include-dirs -Wunused \
