@@ -18,8 +18,8 @@ typedef union
     } uuid __packed;
 } uuid3_t;
 
-static __a16b __no_bss uint8_t _uuid_aligned_buf[64];
-static __a16b __no_bss uint8_t _uuid_aligned_buf2[64];
+static __a4k __no_bss uint8_t _uuid_aligned_buf[64];
+static __a4k __no_bss uint8_t _uuid_aligned_buf2[64];
 static struct pb_hash_context hash_ctx;
 
 int uuid_gen_uuid3(const char *namespace_uu,

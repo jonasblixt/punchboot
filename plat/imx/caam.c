@@ -321,7 +321,12 @@ int caam_hash_finalize(struct pb_hash_context *ctx,
     int err;
     int dc = 0;
 
-    arch_clean_cache_range((uintptr_t) buf, size);
+    LOG_DBG("Buf <%p> %zu", buf, size);
+
+    if (buf && size)
+    {
+        arch_clean_cache_range((uintptr_t) buf, size);
+    }
 
     err = caam_wait_for_job(desc);
 

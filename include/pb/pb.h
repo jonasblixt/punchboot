@@ -79,7 +79,7 @@ enum
 #define __a16k  __attribute__ ((aligned(16384)))
 
 #define membersof(array) (sizeof(array) / sizeof((array)[0]))
-#define    __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
+#define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
 
 void pb_delay_ms(unsigned int ms);
 void pb_main(void);

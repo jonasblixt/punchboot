@@ -607,7 +607,6 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     if (dev->size < sizeof(struct imx_usdhc_private))
         return -PB_ERR_MEM;
 
-    timestamp_begin(&ts_usdhc);
 
     drv->read = imx_usdhc_read;
     drv->write = imx_usdhc_write;
@@ -635,6 +634,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
         __asm__("nop");
 
     LOG_DBG("Done");
+
 
     pb_write32(0x10801080, dev->base+USDHC_WTMK_LVL);
 
@@ -688,6 +688,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
 
     LOG_DBG("Waiting for eMMC to power up");
 
+    //timestamp_begin(&ts_usdhc);
     while (1)
     {
         err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_OP_COND, 0x40ff8080, 2);
@@ -706,6 +707,8 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
         }
     }
 
+    //timestamp_end(&ts_usdhc);
+    //printf("\n\rusdhc ts: %u ms\n\r", timestamp_read_us(&ts_usdhc)/1000);
     LOG_DBG("Card reset complete");
     LOG_DBG("SEND CID");
 
@@ -824,7 +827,6 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
         dev->sectors, (dev->sectors)>>1);
     LOG_INFO("Partconfig: %x", priv->raw_extcsd[EXT_CSD_PART_CONFIG]);
 
-    timestamp_end(&ts_usdhc);
 
     return PB_OK;
 }

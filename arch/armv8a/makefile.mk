@@ -14,6 +14,7 @@ asm-y += arch/armv8a/entry.S
 asm-y += arch/armv8a/boot.S
 asm-y += arch/armv8a/timer.S
 asm-y += arch/armv8a/cache-ops.S
+asm-y += arch/armv8a/misc_helpers.S
 
 src-y += arch/armv8a/arch.c
 

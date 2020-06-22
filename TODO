@@ -84,6 +84,7 @@ v0.8 (Main feature: MMU memory protection and data cache)
 
 v0.9
 ----
+ IMX8qxmek-board: Use USB3 port as default for command mode
  eMMC: RPMB support
 
  PB/imx8m: Check if caam/rng unlock makes any differance for the hab event

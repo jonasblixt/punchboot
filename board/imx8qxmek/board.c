@@ -28,7 +28,7 @@
 #include <uuid/uuid.h>
 #include <libfdt.h>
 
-const struct fuse fuses[] =
+static struct fuse fuses[] =
 {
     IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
     IMX8X_FUSE_ROW_VAL(731, "SRK1", 0xfc4dc849),
@@ -54,7 +54,7 @@ const struct fuse fuses[] =
 #define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
                    PB_STORAGE_MAP_FLAG_VISIBLE)
 
-const struct pb_storage_map map[] =
+static struct pb_storage_map map[] =
 {
     PB_STORAGE_MAP("9eef7544-bf68-4bf7-8678-da117cbccba8",
         "eMMC boot0", 2048, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | \
@@ -85,7 +85,7 @@ const struct pb_storage_map map[] =
     PB_STORAGE_MAP_END
 };
 
-const uint32_t rom_key_map[] =
+static const uint32_t rom_key_map[] =
 {
     0xa90f9680,
     0x25c6dd36,
@@ -147,6 +147,16 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     }
     return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 
+}
+
+struct fuse* board_get_fuses(void)
+{
+    return fuses;
+}
+
+const uint32_t * board_get_rom_key_map(void)
+{
+    return rom_key_map;
 }
 
 int board_early_init(void *plat)

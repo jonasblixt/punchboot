@@ -7,12 +7,8 @@
  *
  */
 
-#include <pb/vm.h>
-#include <arch/mmu.h>
-#include <arch/armv8a/include/arch/arch.h>
+#include <arch/arch.h>
 #include <arch/armv8a/asm_macros.S>
-
-tmp                     .req x9
 
 .macro branch_if_master, xreg1, xreg2, master_label
        mrs     \xreg1, mpidr_el1
@@ -35,25 +31,35 @@ _reset:
 master_cpu:
 
     /* Enable caches */
-    mrs     tmp, sctlr_el3
-    orr     tmp, tmp, #(1<<12) /* Enable icache */
-    orr     tmp, tmp, #(1<<2)  /* Enable dcache/ucache */
-    orr     tmp, tmp, #(1<<3)  /* Enable Stack Alignment Check EL3 */
-    bic     tmp, tmp, #(1<<1)  /* Disable Alignment Checking for EL3 */
-    msr     sctlr_el3, tmp
+    mrs     x9, sctlr_el3
+    orr     x9, x9, #(1<<12) /* Enable icache */
+    orr     x9, x9, #(1<<2)  /* Enable dcache/ucache */
+    orr     x9, x9, #(1<<3)  /* Enable Stack Alignment Check EL3 */
+    bic     x9, x9, #(1<<1)  /* Disable Alignment Checking for EL3 */
+    msr     sctlr_el3, x9
 
-    /* Zero out BSS */
-	ldr	x0, =__zero_region_start
-	ldr	x1, =__zero_region_end
-clear_loop:
-	str	xzr, [x0], #8
-	cmp	x0, x1
-	b.lo	clear_loop
+    mov_imm    x0, (SCTLR_RESET_VAL & ~(SCTLR_EE_BIT | SCTLR_WXN_BIT \
+            | SCTLR_SA_BIT | SCTLR_A_BIT | SCTLR_DSSBS_BIT))
+    msr    sctlr_el3, x0
+    isb
+
+.L__do_bss:
+    ldr     x9, =_zero_region_start
+    ldr     x10, =_zero_region_end
+    sub     x10, x10, x9
+    cbz     x10, .L__bss_loop_done
+.L__bss_loop:
+    sub     x10, x10, #8
+    str     xzr, [x9], #8
+    cbnz    x10, .L__bss_loop
+.L__bss_loop_done:
+
 
     ldr x0, =_stack_end
     mov sp, x0
 
     mov x0, #0
+
     bl pb_main
     b .
 

@@ -19,6 +19,8 @@ arch_jump:
     mov x6, x2 /* Arg2 */
     mov x7, x3 /* Arg3 */
 
+    bl disable_mmu_el3
+
     mov x0, x5
     mov x1, x6
     mov x2, x7

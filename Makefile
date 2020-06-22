@@ -31,6 +31,7 @@ endif
 
 cflags-y   = -std=c99
 cflags-y  += -O$(CONFIG_OPTIMIZE)
+cflags-$(CONFIG_DEBUG_SYMBOLS) += -g
 cflags-y  += -nostdlib -nostartfiles
 cflags-y  += -ffunction-sections
 cflags-y  += -fdata-sections
@@ -93,7 +94,7 @@ include plat/*/makefile.mk
 
 $(shell mkdir -p $(BUILD_DIR))
 
-
+ldflags-y += -Map=$(BUILD_DIR)/pb.map 
 ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)
 ldflags-y += --defsym=PB_STACK_SIZE_KB=$(CONFIG_STACK_SIZE_KB)
 ldflags-y += -Tlink.lds  --build-id=none

@@ -47,10 +47,6 @@ void pb_main(void)
 
     plat_console_init();
 
-#ifdef CONFIG_ENABLE_WATCHDOG
-    plat_wdog_init();
-#endif
-
 #if LOGLEVEL > 0
     printf("\n\r\n\rPB " PB_VERSION " starting\n\r");
 #endif
@@ -60,6 +56,7 @@ void pb_main(void)
 #endif
 
     timestamp_begin(&ts_crypto);
+
     rc = plat_crypto_init();
 
     if (rc != PB_OK)
@@ -68,9 +65,10 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-    timestamp_end(&ts_crypto);
 
+    timestamp_end(&ts_crypto);
     timestamp_begin(&ts_storage);
+
     rc = pb_storage_init();
 
     if (rc != PB_OK)
