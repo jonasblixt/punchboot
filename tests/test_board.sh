@@ -15,13 +15,25 @@ then
 fi
 
 # Test unknown command
-$PB board --command test-command2 \
+$PB board --command test-unknown \
           --args 0x00112233 \
           --transport socket
 
 result_code=$?
 
 if [ $result_code -ne 255 ];
+then
+    test_end_error
+fi
+
+# Test failing command 'test-command2'
+$PB board --command test-command2 \
+          --args 0x00112233 \
+          --transport socket
+
+result_code=$?
+
+if [ $result_code -ne 128 ];
 then
     test_end_error
 fi

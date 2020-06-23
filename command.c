@@ -174,7 +174,7 @@ static int cmd_board(void)
 
     LOG_DBG("Response: %zu bytes", response_size);
 
-    if (response_size && (rc == PB_OK))
+    if (response_size)
     {
         LOG_DBG("Sending response");
         plat_transport_write(&result, sizeof(result));

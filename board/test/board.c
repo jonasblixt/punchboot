@@ -120,7 +120,7 @@ int board_boot_override(void *plat, uint8_t *boot_part_uu)
     if (fd < 0)
         return PB_ERR;
 
-    size_t bytes_to_write = 1; 
+    size_t bytes_to_write = 1;
     char name = '?';
 
     if (strcmp(boot_part_uu_str, CONFIG_BOOT_AB_A_UUID) == 0)
@@ -164,26 +164,34 @@ int board_command(void *plat,
                      void *response_bfr,
                      size_t *response_size)
 {
+    size_t resp_buf_size = *response_size;
+    char *response = (char *) response_bfr;
+
     LOG_DBG("%x, %p, %zu", command, bfr, size);
 
-    if (command == 0xc72b6e9e)
+    if (command == 0xc72b6e9e) /* test-command */
     {
         char *arg = (char *) bfr;
         arg[size] = 0;
-        char *response = (char *) response_bfr;
 
         LOG_DBG("test-command (%s)", arg);
-        size_t resp_buf_size = *response_size;
 
         (*response_size) = snprintf(response, resp_buf_size,
                                 "Hello test-command: %s\n", arg);
 
         return PB_OK;
     }
-    else if (command == 0x349bef54)
+    else if (command == 0xdfa7c4ad)
     {
-        LOG_DBG("test-fuse 0x349bef54");
 
+        (*response_size) = snprintf(response, resp_buf_size,
+                                "Should return error code -128\n");
+        return -128;
+    }
+    else
+    {
+        LOG_ERR("Unknown command %x", command);
+        (*response_size) = 0;
     }
 
     return -PB_ERR;
