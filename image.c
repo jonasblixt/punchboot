@@ -31,6 +31,75 @@ static size_t signature_sz;
 static struct pb_timestamp ts_load = TIMESTAMP("Image load and hash");
 static struct pb_timestamp ts_signature = TIMESTAMP("Verify signature");
 
+int pb_image_check_header(void)
+{
+    int err = PB_OK;
+    struct bpak_header *h = &header;
+    err = bpak_valid_header(h);
+
+    if (err != BPAK_OK)
+    {
+        LOG_ERR("Invalid header");
+        return -PB_ERR;
+    }
+
+    bpak_foreach_part(h, p)
+    {
+        if (!p->id)
+            break;
+
+
+        size_t sz = bpak_part_size(p);
+        uint64_t *load_addr = NULL;
+
+                                  /* pb-load-addr */
+        err = bpak_get_meta_with_ref(h, 0xd1e64a4b,
+                                        p->id, (void **) &load_addr);
+
+
+        if (err != BPAK_OK)
+        {
+            LOG_ERR("Could not read pb-entry for part %x", p->id);
+            break;
+        }
+
+        uint64_t la = *load_addr;
+
+        if (PB_CHECK_OVERLAP(la, sz, &_stack_start, &_stack_end))
+        {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB stack");
+        }
+
+        if (PB_CHECK_OVERLAP(la, sz, &_data_region_start, &_data_region_end))
+        {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB data");
+        }
+
+        if (PB_CHECK_OVERLAP(la, sz, &_zero_region_start, &_zero_region_end))
+        {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB bss");
+        }
+
+        if (PB_CHECK_OVERLAP(la, sz, &_code_start, &_code_end))
+        {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB code");
+        }
+
+        if (PB_CHECK_OVERLAP(la, sz, &_big_buffer_start, &_big_buffer_end))
+        {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB buffer");
+        }
+    }
+
+    return err;
+}
+
+
 struct bpak_header *pb_image_header(void)
 {
     return &header;
@@ -59,6 +128,11 @@ int pb_image_load(pb_image_read_t read_f,
         LOG_ERR("Invalid BPAK header");
         return PB_ERR;
     }
+
+    rc = pb_image_check_header();
+
+    if (rc != PB_OK)
+        return rc;
 
                           /* bpak-key-id */
     rc = bpak_get_meta(h, 0x7da19399, (void **) &key_id);

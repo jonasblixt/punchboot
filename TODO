@@ -68,8 +68,6 @@ v0.8 (Main feature: MMU memory protection and data cache)
 PB: Populate vectors and abort handlers
 PB: Enable MMU for memory protection and speed improvements when manipulating
 the device-tree
-PB: Re-introduce range checking when loading an image, exluding checks for
-    overlaps with code and RO-data since the MMU already covers that.
 
 PB/imx8m: Test MMU support
 PB/imx6ul: Use xlat-lib for mmu stuff

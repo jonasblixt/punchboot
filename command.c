@@ -576,6 +576,16 @@ static int cmd_boot_ram(void)
         return rc;
     }
 
+    rc = pb_image_check_header();
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Bad header");
+        rc = -PB_RESULT_ERROR;
+        pb_wire_init_result(&result, rc);
+        return rc;
+    }
+
     if (rc != PB_OK)
         return rc;
 

@@ -58,7 +58,11 @@ master_cpu:
     ldr x0, =_stack_end
     mov sp, x0
 
+    ldr x0, = Vector_table_el3
+    msr VBAR_EL3, x0
+
     mov x0, #0
+
 
     bl pb_main
     b .
@@ -67,3 +71,84 @@ __zero_region_start:
     .word _zero_region_start
 __zero_region_end:
     .word _zero_region_end
+
+.balign 0x800
+Vector_table_el3:
+curr_el_sp0_sync:
+mov x0, #0
+bl exception
+b .
+.balign 0x80
+curr_el_sp0_irq:
+mov x0, #1
+bl exception
+b .
+.balign 0x80
+curr_el_sp0_fiq:
+mov x0, #2
+bl exception
+b .
+.balign 0x80
+curr_el_sp0_serror:
+mov x0, #3
+bl exception
+b .
+.balign 0x80
+curr_el_spx_sync:
+bl exception_sync
+b .
+.balign 0x80
+curr_el_spx_irq:
+mov x0, #5
+bl exception
+b .
+.balign 0x80
+curr_el_spx_fiq:
+mov x0, #6
+bl exception
+b .
+.balign 0x80
+curr_el_spx_serror:
+mov x0, #7
+bl exception
+b .
+.balign 0x80
+lower_el_aarch64_sync:
+mov x0, #8
+bl exception
+b .
+.balign 0x80
+lower_el_aarch64_irq:
+mov x0, #9
+bl exception
+b .
+.balign 0x80
+lower_el_aarch64_fiq:
+mov x0, #10
+bl exception
+b .
+.balign 0x80
+lower_el_aarch64_serror:
+mov x0, #11
+bl exception
+b .
+.balign 0x80
+lower_el_aarch32_sync:
+mov x0, #12
+bl exception
+b .
+.balign 0x80
+lower_el_aarch32_irq:
+mov x0, #13
+bl exception
+b .
+.balign 0x80
+lower_el_aarch32_fiq:
+mov x0, #14
+bl exception
+b .
+.balign 0x80
+lower_el_aarch32_serror:
+mov x0, #15
+bl exception
+b .

@@ -208,6 +208,7 @@ int plat_early_init(void)
                             */
     /* Add ram */
 
+    /* Map ATF hole */
     mmap_add_region(0x80000000, 0x80000000,
                             (0x20000),
                             MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);

@@ -976,6 +976,9 @@ void arch_invalidate_cache_range(uintptr_t start, size_t len);
 void arch_clean_cache_range(uintptr_t start, size_t len);
 void arch_clean_invalidate_cache_range(uintptr_t start, size_t len);
 
+void exception(int index);
+void exception_sync(void);
+
 #endif
 
 #endif /* ARCH_H */

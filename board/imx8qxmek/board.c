@@ -197,7 +197,6 @@ const char * board_name(void)
     return "imx8qxmek";
 }
 
-
 int board_command(void *plat,
                      uint32_t command,
                      void *bfr,
@@ -207,6 +206,7 @@ int board_command(void *plat,
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
     *response_size = 0;
+
     return PB_OK;
 }
 
