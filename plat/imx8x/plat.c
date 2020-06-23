@@ -623,8 +623,8 @@ int plat_early_boot(void)
     return board_early_boot(&private);
 }
 
-int plat_late_boot(bool *abort_boot)
+int plat_late_boot(bool *abort_boot, bool manual)
 {
-    return board_late_boot(&private, abort_boot);
+    return board_late_boot(&private, abort_boot, manual);
 }
 #endif

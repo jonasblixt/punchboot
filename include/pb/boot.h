@@ -35,7 +35,9 @@ int pb_boot_load_transport(void);
 
 int pb_boot_load_fs(uint8_t *boot_part_uu);
 
-int pb_boot(struct pb_timestamp *ts_total, bool verbose);
+int pb_boot(struct pb_timestamp *ts_total,
+            bool verbose,
+            bool manual);
 
 int pb_boot_activate(uint8_t *uu);
 

@@ -180,7 +180,7 @@ bool board_force_command_mode(void *plat)
     LOG_INFO("Boot type: %u %i %p", boot_type, btn_status, priv);
 
     /* Pull up DP for usb charger detection */
-    
+
     pb_setbit32(1 << 2, 0x5b100000+0xe0);
     LOG_DBG ("USB CHRG detect: 0x%08x",pb_read32(0x5B100000+0xf0));
     pb_delay_ms(1);

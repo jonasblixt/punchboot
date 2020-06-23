@@ -236,3 +236,16 @@ const char *board_name(void)
 {
     return "qemuarmv7";
 }
+
+int board_early_boot(void *plat)
+{
+    LOG_DBG("call");
+    return PB_OK;
+}
+
+int board_late_boot(void *plat, bool *abort_boot, bool manual)
+{
+    LOG_DBG("manual = %i", manual);
+    (*abort_boot) = false;
+    return PB_OK;
+}

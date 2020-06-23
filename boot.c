@@ -316,7 +316,7 @@ int pb_boot_load_transport(void)
                          NULL);
 }
 
-int pb_boot(struct pb_timestamp *ts_total, bool verbose)
+int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 {
     int rc;
     uintptr_t *entry = 0;
@@ -515,7 +515,7 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose)
 #ifdef CONFIG_CALL_EARLY_PLAT_BOOT
     bool abort_boot = false;
 
-    rc = plat_late_boot(&abort_boot);
+    rc = plat_late_boot(&abort_boot, manual);
 
     if (rc != PB_OK)
         return rc;

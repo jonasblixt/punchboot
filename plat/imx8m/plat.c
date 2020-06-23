@@ -636,3 +636,15 @@ int plat_command(uint32_t command,
     return board_command(&private, command, bfr, size,
                             response_bfr, response_size);
 }
+
+#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
+int plat_early_boot(void)
+{
+    return board_early_boot(&private);
+}
+
+int plat_late_boot(bool *abort_boot, bool manual)
+{
+    return board_late_boot(&private, abort_boot, manual);
+}
+#endif

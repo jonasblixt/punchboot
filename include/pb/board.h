@@ -40,7 +40,7 @@ int board_status(void *plat,
                     size_t *response_size);
 
 int board_early_boot(void *plat);
-int board_late_boot(void *plat, bool *abort_boot);
+int board_late_boot(void *plat, bool *abort_boot, bool manual);
 int board_slc_set_configuration(void *plat);
 int board_slc_set_configuration_lock(void *plat);
 

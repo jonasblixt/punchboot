@@ -112,7 +112,7 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-    pb_boot(&ts_total, false);
+    pb_boot(&ts_total, false, false);
 
     LOG_INFO("Boot stopped, entering command mode");
 
