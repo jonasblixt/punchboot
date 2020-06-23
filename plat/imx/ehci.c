@@ -342,16 +342,13 @@ int imx_ehci_usb_init(void)
     pb_write32(0x0000FFFF, CONFIG_EHCI_BASE+EHCI_BURSTSIZE);
 
     LOG_INFO("Init completed");
-    imx_ehci_set_address(0);
-    uintptr_t arne = (uintptr_t) imx_ehci_set_address;
-    LOG_INFO("Init completed 1 %lx", arne);
+
     iface.read = ehci_transfer;
     iface.write = ehci_transfer;
     iface.set_address = imx_ehci_set_address;
     iface.set_configuration = imx_ehci_usb_set_configuration;
     iface.enumerated = false;
 
-    LOG_INFO("Init completed 2");
     return PB_OK;
 }
 

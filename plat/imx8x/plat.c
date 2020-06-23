@@ -48,6 +48,9 @@ extern char _code_start, _code_end,
             _stack_start, _stack_end,
             _big_buffer_start, _big_buffer_end, end;
 
+extern struct fuse fuses[];
+extern const uint32_t rom_key_map[];
+
 static struct imx8x_private private;
 
 static struct pb_result_slc_key_status key_status;
@@ -167,14 +170,6 @@ int plat_early_init(void)
     size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
                       ((uintptr_t) &_ro_data_region_start);
 
-    uintptr_t rw_start = (uintptr_t) &_data_region_start;
-    size_t rw_size = ((uintptr_t) &_data_region_end) -
-                      ((uintptr_t) &_data_region_start);
-
-    uintptr_t bss_start = (uintptr_t) &_zero_region_start;
-    size_t bss_size = ((uintptr_t) &_zero_region_end) -
-                      ((uintptr_t) &_zero_region_start);
-
     uintptr_t code_start = (uintptr_t) &_code_start;
     size_t code_size = ((uintptr_t) &_code_end) -
                       ((uintptr_t) &_code_start);
@@ -183,11 +178,19 @@ int plat_early_init(void)
     size_t stack_size = ((uintptr_t) &_stack_end) -
                       ((uintptr_t) &_stack_start);
 
+    uintptr_t rw_start = (uintptr_t) &_data_region_start;
+/*
+    size_t rw_size = ((uintptr_t) &_data_region_end) -
+                      ((uintptr_t) &_data_region_start);
+
+    uintptr_t bss_start = (uintptr_t) &_zero_region_start;
+    size_t bss_size = ((uintptr_t) &_zero_region_end) -
+                      ((uintptr_t) &_zero_region_start);
+
     uintptr_t bb_start = (uintptr_t) &_big_buffer_start;
     size_t bb_size = ((uintptr_t) &_big_buffer_end) -
                       ((uintptr_t) &_big_buffer_start);
-
-    uintptr_t end_addr = (uintptr_t) &end;
+*/
 
     timestamp_begin(&ts_mmu_init);
     mmap_add_region(code_start, code_start, code_size,
@@ -353,7 +356,7 @@ int plat_slc_set_configuration(void)
     int err;
 
     /* Read fuses */
-    foreach_fuse(f, board_get_fuses())
+    foreach_fuse(f, fuses)
     {
         err = plat_fuse_read(f);
 
@@ -369,7 +372,7 @@ int plat_slc_set_configuration(void)
 
     LOG_INFO("Writing fuses");
 
-    foreach_fuse(f, board_get_fuses())
+    foreach_fuse(f, fuses)
     {
         if ((f->value & f->default_value) != f->default_value)
         {
@@ -433,7 +436,7 @@ int plat_slc_read(enum pb_slc *slc)
     (*slc) = PB_SLC_NOT_CONFIGURED;
 
     /* Read fuses */
-    foreach_fuse(f, board_get_fuses())
+    foreach_fuse(f, fuses)
     {
         err = plat_fuse_read(f);
 
@@ -470,7 +473,6 @@ int plat_slc_key_active(uint32_t id, bool *active)
     int rc;
     unsigned int rom_index = 0;
     bool found_key = false;
-    const uint32_t *rom_key_map = board_get_rom_key_map();
 
     *active = false;
 
@@ -515,7 +517,7 @@ int plat_slc_revoke_key(uint32_t id)
     int rc;
     unsigned int rom_index = 0;
     bool found_key = false;
-    const uint32_t *rom_key_map = board_get_rom_key_map();
+
     LOG_INFO("Revoking key 0x%x", id);
 
 
@@ -566,7 +568,6 @@ int plat_slc_revoke_key(uint32_t id)
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 {
     int rc;
-    const uint32_t *rom_key_map = board_get_rom_key_map();
 
     memset(&key_status, 0, sizeof(key_status));
 

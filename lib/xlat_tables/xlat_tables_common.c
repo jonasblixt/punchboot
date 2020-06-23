@@ -322,9 +322,6 @@ static mmap_region_t *init_xlation_table_inner(mmap_region_t *mm,
                     uint64_t *table,
                     unsigned int level)
 {
-    assert((level >= XLAT_TABLE_LEVEL_MIN) &&
-           (level <= XLAT_TABLE_LEVEL_MAX));
-
     unsigned int level_size_shift =
                L0_XLAT_ADDRESS_SHIFT - level * XLAT_TABLE_ENTRIES_SHIFT;
     u_register_t level_size = (u_register_t)1 << level_size_shift;

@@ -35,7 +35,6 @@ DT Patch 224 us
 Total 111593 us
 --- Timing report end ---
 
-
 --- Timing report begin ---
 IMX8X: no-mmu, BR: f45d4a548955a2ef651fd834bce26be402916ed1
 Platform early 1983 us
@@ -49,22 +48,46 @@ DT Patch 55042 us
 Total 268999 us
 --- Timing report end ---
 
-
-v0.7.6
-------
- PB: Active key in DT, only one, the active key
- PB/imx8x: Test key revoke with old acu6c board
+--- Timing report begin ---
+PB: 559f3312575d7f443f879c915527deb045b1175a
+IMX8X: mmu, BR: f45d4a548955a2ef651fd834bce26be402916ed1
+MMU init 7507 us
+Platform early 9338 us
+Crypto 63 us
+Storage 20518 us
+SLC 1409 us
+Boot init 332 us
+Image load and hash 91022 us
+Verify signature 5741 us
+DT Patch 3186 us
+Total 133150 us
+--- Timing report end ---
 
 v0.8 (Main feature: MMU memory protection and data cache)
 ----
- PB/test: Add test boot code that parses device-tree
- PB: Early UART to support abort/error handlers
- PB: USB regression, ca 13MByte/s on imx8x
- PB/imx6ul: Check if timing measurement still works
- PB: Provide time-stamps in device-tree?
- PB: Enable MMU for memory protection and speed improvements when manipulating
-    the device-tree
- PB: Remove code for overlap checking when MMU stuff is in place
+PB: Populate vectors and abort handlers
+PB: Enable MMU for memory protection and speed improvements when manipulating
+the device-tree
+PB: Re-introduce range checking when loading an image, exluding checks for
+    overlaps with code and RO-data since the MMU already covers that.
+
+PB/imx8m: Test MMU support
+PB/imx6ul: Use xlat-lib for mmu stuff
+PB/imx8x: Test key revoke with old acu6c board
+PB/imx8x: Measure SCFW/ROM boot time with latest SCFW-firmware
+PB/imx6ul: Measure ROM boot time
+PB/Doc: Update README with new timing data
+PB/imx6ul: Check if timing measurement still works
+PB: Remove code for overlap checking when MMU stuff is in place
+
+PB/doc: Building guide
+PB/doc: Create boot image
+PB/doc: 
+
+v0.9 (New BPAK format, breaking changes to make it more secure when parsing)
+----
+
+ PB: Introduce async storage API for speeding up writes to disk over USB
  PB: Always verbose Kconfig option
  PB: Test with device tree and ramdisk
  PB/test: add -stack-protector -fstack-check for test target
@@ -77,13 +100,9 @@ v0.8 (Main feature: MMU memory protection and data cache)
     o Mapping of bpak -archive to GPT <---> UUID
     o Should both A and B set's be written
     o On non A/B -system?
- PB/imx8x: Update to latest SCFW api, 1.2.7.1
-    - Review deprecated API calls
+ PB/test: Add test boot code that parses device-tree
  PB/IMX: CAAM derived key's for crypto storage in linux
     - Pass via DT?
-
-v0.9
-----
  IMX8qxmek-board: Use USB3 port as default for command mode
  eMMC: RPMB support
 

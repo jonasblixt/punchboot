@@ -20,7 +20,7 @@
 #define PLAT_EMMC_PART_BOOT1 2
 #define PLAT_EMMC_PART_USER  0
 
-static struct pb_timestamp ts_usdhc = TIMESTAMP("USDHC");
+//static struct pb_timestamp ts_usdhc = TIMESTAMP("USDHC");
 
 struct imx_usdhc_private
 {
