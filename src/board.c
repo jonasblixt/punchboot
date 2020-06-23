@@ -41,8 +41,7 @@ static int board_command(struct pb_context *ctx, int command,
     rc = pb_api_board_command(ctx, command, args, args_len,
                                    result_buffer, 4096);
 
-    if (rc == PB_RESULT_OK)
-        printf("%s\n", result_buffer);
+    printf("%s\n", result_buffer);
 
     free(result_buffer);
     return rc;
