@@ -8,26 +8,19 @@
  *
  */
 
+
 .section .text
 
 .globl arch_jump
 arch_jump:
     mov r5, r0 /* Jump address */
-    mov r6, r1
-    mov r7, r2
-    mov r8, r3
-    mov r9, r4
+    mov r0, r1
+    mov r1, r2
+    mov r2, r3
+    mov r3, r4
 
-    cpsid    if
-
-    bl armv7a_cp15_disable_mmu
-    bl arch_disable_cache
-
-    mov r0, r6
-    mov r1, r7
-    mov r2, r8
-    mov r3, r9
-
+    mcr p15, 0, r0, c7, c5, 0
+    mcr p15, 0, r0, c7, c5, 6
     isb
     dsb
     mov pc, r5

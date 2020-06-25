@@ -17,6 +17,7 @@ asm-y += arch/armv7a/uldivmod.S
 asm-y += arch/armv7a/boot.S
 asm-y += arch/armv7a/timer.S
 asm-y += arch/armv7a/cp15.S
+asm-y += arch/armv7a/misc_helpers.S
 
 src-y += arch/armv7a/arm32_aeabi_divmod.c
 src-y += arch/armv7a/arch.c

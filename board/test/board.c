@@ -23,7 +23,7 @@
 #include <plat/qemu/virtio_serial.h>
 #include <libfdt.h>
 
-const struct fuse fuses[] =
+struct fuse fuses[] =
 {
     TEST_FUSE_BANK_WORD_VAL(0,  "SRK0",  0x5020C7D7),
     TEST_FUSE_BANK_WORD_VAL(1,  "SRK1",  0xBB62B945),
@@ -35,7 +35,7 @@ const struct fuse fuses[] =
     TEST_FUSE_END,
 };
 
-const struct fuse board_ident_fuse =
+struct fuse board_ident_fuse =
         TEST_FUSE_BANK_WORD(7, "Ident");
 
 
@@ -51,7 +51,7 @@ const uint32_t rom_key_map[] =
 #define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
                    PB_STORAGE_MAP_FLAG_VISIBLE)
 
-const struct pb_storage_map map[] =
+struct pb_storage_map map[] =
 {
 
     PB_STORAGE_MAP("2af755d8-8de5-45d5-a862-014cfa735ce0", "System A", 1024,

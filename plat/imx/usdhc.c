@@ -633,9 +633,6 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     while ((pb_read32(dev->base + USDHC_SYS_CTRL) & (1<<27)) == (1 << 27))
         __asm__("nop");
 
-    LOG_DBG("Done");
-
-
     pb_write32(0x10801080, dev->base+USDHC_WTMK_LVL);
 
     pb_write32(0, dev->base + USDHC_MMC_BOOT);

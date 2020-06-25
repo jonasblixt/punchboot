@@ -56,6 +56,7 @@ TEST_ASM_SRCS += arch/armv7a/uldivmod.S
 TEST_ASM_SRCS += arch/armv7a/boot.S
 TEST_ASM_SRCS += arch/armv7a/timer.S
 TEST_ASM_SRCS += arch/armv7a/cp15.S
+TEST_ASM_SRCS += arch/armv7a/misc_helpers.S
 
 TEST_C_SRCS += arch/armv7a/arm32_aeabi_divmod.c
 TEST_C_SRCS += arch/armv7a/arch.c
@@ -77,6 +78,7 @@ TEST_C_SRCS += lib/strcmp.c
 TEST_C_SRCS += lib/snprintf.c
 TEST_C_SRCS += lib/putchar.c
 TEST_C_SRCS += lib/fletcher.c
+TEST_C_SRCS += lib/assert.c
 
 # UUID lib
 TEST_C_SRCS  += lib/uuid/pack.c

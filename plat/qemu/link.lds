@@ -22,19 +22,25 @@ SECTIONS
 {
     .init_array :
     {
+        . = ALIGN(4096);
         PROVIDE(__init_array_start = .);
 		KEEP(*(SORT(.init_array.*)))
 		KEEP(*(.init_array))
         PROVIDE(__init_array_end = .);
+        . = ALIGN(4096);
+        PROVIDE(__init_array_end2 = .); /* Align to page, for mmu mapping */
     } > dram
 
 	. = ALIGN(8);
 
     .fini_array :
     {
+        . = ALIGN(4096);
         PROVIDE(__fini_array_start = .);
 		KEEP(*(SORT(.fini_array.*)))
 		KEEP(*(.fini_array))
         PROVIDE(__fini_array_end = .);
+        . = ALIGN(4096);
+        PROVIDE(__fini_array_end2 = .);
     } > dram
 }

@@ -31,7 +31,7 @@ src-y  += plat/imx/wdog.c
 src-y  += plat/imx/hab.c
 
 imx6ul_image: $(BUILD_DIR)/$(TARGET).bin
-	@$(MKIMAGE) -n board/jiffy/imximage.cfg -T imximage -e $(PB_ENTRY) \
+	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
 				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx 
 
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)

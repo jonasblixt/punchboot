@@ -7,12 +7,9 @@
 #ifndef ARCH_ARMV7A_INCLUDE_ARCH_ARCH_H_
 #define ARCH_ARMV7A_INCLUDE_ARCH_ARCH_H_
 
-#include <stdint.h>
 #include <pb/utils.h>
 
 #define ULONG_MAX 0xFFFFFFFFUL
-
-typedef volatile uint32_t __iomem;
 
 /*******************************************************************************
  * MIDR bit definitions
@@ -465,6 +462,10 @@ typedef volatile uint32_t __iomem;
 #define MAIR1_ATTR_SET(attr, index)    ((attr) << (((index) - U(3)) << U(3)))
 
 /* System register defines The format is: coproc, opt1, CRn, CRm, opt2 */
+#define IFSR       p15, 0, c5, c0, 1
+#define DFSR       p15, 0, c5, c0, 0
+#define IFAR       p15, 0, c6, c0, 2
+#define DFAR       p15, 0, c6, c0, 0
 #define SCR        p15, 0, c1, c1, 0
 #define SCTLR        p15, 0, c1, c0, 0
 #define ACTLR        p15, 0, c1, c0, 1
@@ -685,6 +686,13 @@ typedef volatile uint32_t __iomem;
 #define AMEVTYPER1E    p15, 0, c13, c15, 6
 #define AMEVTYPER1F    p15, 0, c13, c15, 7
 
+#ifndef __ASSEMBLY__
+
+#include <stdint.h>
+#include <stddef.h>
+#include <pb/utils.h>
+
+typedef volatile uint32_t __iomem;
 
 void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
                                  __attribute__((noreturn));
@@ -692,5 +700,6 @@ void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
 void arch_invalidate_cache_range(uintptr_t start, size_t len);
 void arch_clean_cache_range(uintptr_t start, size_t len);
 void arch_clean_invalidate_cache_range(uintptr_t start, size_t len);
+#endif  // __ASSEMBLY__
 
 #endif  // ARCH_ARMV7A_INCLUDE_ARCH_ARCH_H_

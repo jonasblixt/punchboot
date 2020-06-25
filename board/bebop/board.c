@@ -25,7 +25,7 @@
 #include <arch/cp15.h>
 #include <libfdt.h>
 
-const struct fuse fuses[] =
+struct fuse fuses[] =
 {
     IMX6UL_FUSE_BANK_WORD_VAL(3, 0, "SRK0", 0x5020C7D7),
     IMX6UL_FUSE_BANK_WORD_VAL(3, 1, "SRK1", 0xBB62B945),
@@ -52,7 +52,7 @@ const uint32_t rom_key_map[] =
     0x00000000,
 };
 
-const struct pb_storage_map map[] =
+struct pb_storage_map map[] =
 {
     PB_STORAGE_MAP3("9eef7544-bf68-4bf7-8678-da117cbccba8",
         "eMMC boot0", 2, 2050, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | \
@@ -90,14 +90,14 @@ static uint8_t usdhc0_dev_private_data[4096*4] __no_bss __a4k;
 static uint8_t usdhc0_gpt_map_data[4096*10] __no_bss __a4k;
 static uint8_t usdhc0_map_data[4096*4] __no_bss __a4k;
 
-static const struct usdhc_device usdhc0 =
+static struct usdhc_device usdhc0 =
 {
     .base = 0x02190000,
     .clk_ident = 0x10E1,
     .clk = 0x0101,
     .bus_mode = USDHC_BUS_DDR52,
     .bus_width = USDHC_BUS_8BIT,
-    .boot_bus_cond = 0x0, 
+    .boot_bus_cond = 0x0,
     .private = usdhc0_dev_private_data,
     .size = sizeof(usdhc0_dev_private_data),
 };
@@ -191,6 +191,7 @@ int board_command(void *plat,
     LOG_DBG("%x, %p, %zu", command, bfr, size);
 
     *response_size = 0;
+
     return PB_OK;
 }
 

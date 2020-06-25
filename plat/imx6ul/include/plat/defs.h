@@ -7,4 +7,10 @@
 #define SCTR_BASE_ADDRESS 0x21dc000
 #define CACHE_LINE 32
 
+#define PLAT_VIRT_ADDR_SPACE_SIZE	(1ull << 32)
+#define PLAT_PHY_ADDR_SPACE_SIZE	(1ull << 32)
+
+#define MAX_XLAT_TABLES			32
+#define MAX_MMAP_REGIONS		32
+
 #endif  // PLAT_IMX6UL_INCLUDE_DEFS_H_

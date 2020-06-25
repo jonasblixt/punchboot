@@ -81,6 +81,7 @@ void enable_mmu_direct_el3(unsigned int flags);
 /* AArch32 specific translation table API */
 void enable_mmu_svc_mon(unsigned int flags);
 void enable_mmu_hyp(unsigned int flags);
+void disable_mmu_svc_mon(void);
 
 void enable_mmu_direct_svc_mon(unsigned int flags);
 void enable_mmu_direct_hyp(unsigned int flags);

@@ -20,9 +20,13 @@ void exception(int index)
     printf("Index %i\n\r", index);
 }
 
-
 void exception_sync(void)
 {
     printf("*** SYNCHRONOUS EXCEPTION ***\n\r");
     printf("FAR: 0x%lx\n\r", read_far_el3());
+}
+
+void arch_disable_mmu(void)
+{
+    disable_mmu_el3();
 }

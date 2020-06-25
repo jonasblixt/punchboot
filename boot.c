@@ -558,6 +558,8 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     printf("--- Timing report end ---\n\r");
 #endif
 
+    arch_disable_mmu();
+
 #ifdef CONFIG_OVERRIDE_ARCH_JUMP
     uint8_t *part_uu = pb_boot_driver_get_part_uu();
     plat_boot_override(part_uu);
