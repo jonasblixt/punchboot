@@ -321,7 +321,6 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 {
     int rc;
     uintptr_t *entry = 0;
-    uint32_t *key_id = NULL;
 
     uint8_t device_uuid[16];
 
@@ -344,6 +343,7 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 
 #ifdef CONFIG_BOOT_RAMDISK
     uintptr_t *ramdisk = 0;
+    uint32_t *key_id = NULL;
 
     rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
                             CONFIG_BOOT_RAMDISK_ID, (void **) &ramdisk);

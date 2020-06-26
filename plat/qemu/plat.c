@@ -380,9 +380,6 @@ int plat_early_init(void)
 
     /* Add ram */
 
-    LOG_DBG("Mapping rest of the ram as %08x -> %08x",
-            bb_start + bb_size, bb_start + bb_size + 1024*1024*1024);
-
     mmap_add_region(bb_start + bb_size, bb_start + bb_size,
                             (1024*1024*1024),
                             MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
