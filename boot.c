@@ -357,7 +357,16 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 #ifdef CONFIG_BOOT_DT
     uintptr_t *dtb = 0;
 
+    struct bpak_part_header *pdtb = NULL;
+
     timestamp_begin(&ts_dtb_patch);
+
+    rc = bpak_get_part(h,
+                       CONFIG_BOOT_DT_ID,
+                       &pdtb);
+
+    if (rc != BPAK_OK)
+        return -PB_ERR;
 
     rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
                                 CONFIG_BOOT_DT_ID, (void **) &dtb);
@@ -559,6 +568,13 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     printf("--- Timing report end ---\n\r");
 #endif
 
+#ifdef CONFIG_BOOT_DT
+    size_t dtb_size = bpak_part_size(pdtb);
+    arch_clean_cache_range(*dtb, dtb_size);
+#endif
+
+    arch_clean_cache_range(*dtb, dtb_size);
+    arch_clean_cache_range((uintptr_t) &jump_addr, sizeof(jump_addr));
     arch_disable_mmu();
 
 #ifdef CONFIG_OVERRIDE_ARCH_JUMP

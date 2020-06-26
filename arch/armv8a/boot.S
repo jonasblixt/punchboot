@@ -24,9 +24,5 @@ arch_jump:
     mov x2, x7
     ldr x3, =0
 
-    ic ivau, x4
-    isb sy
-    dsb sy
-
     br x4
     b .

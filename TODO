@@ -65,15 +65,9 @@ Total 133150 us
 
 v0.8 (Main feature: MMU memory protection and data cache)
 ----
-PB: Populate vectors and abort handlers
-PB: Enable MMU for memory protection and speed improvements when manipulating
-the device-tree
-
 PB/imx8m: Test MMU support
-PB/imx6ul: Use xlat-lib for mmu stuff
 PB/imx8x: Test key revoke with old acu6c board
 PB/imx8x: Measure SCFW/ROM boot time with latest SCFW-firmware
-PB/imx6ul: Measure ROM boot time
 PB/Doc: Update README with new timing data
 PB/imx6ul: Check if timing measurement still works
 PB: Remove code for overlap checking when MMU stuff is in place
@@ -84,7 +78,7 @@ PB/doc:
 
 v0.9 (New BPAK format, breaking changes to make it more secure when parsing)
 ----
-
+PB/imx6ul: Measure ROM boot time
  PB: Introduce async storage API for speeding up writes to disk over USB
  PB: Always verbose Kconfig option
  PB: Test with device tree and ramdisk

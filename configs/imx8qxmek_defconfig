@@ -60,7 +60,7 @@ CONFIG_IMX8X_SIGN_CERT="pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem
 # Generic options
 #
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
-CONFIG_LOGLEVEL=0
+CONFIG_LOGLEVEL=3
 CONFIG_ENABLE_WATCHDOG=y
 CONFIG_WATCHDOG_TIMEOUT=5
 # CONFIG_CALL_EARLY_PLAT_BOOT is not set

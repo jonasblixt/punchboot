@@ -365,11 +365,13 @@ int plat_early_init(void)
     mmap_add_region(ro_start, ro_start, ro_size,
                             MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
 
+#ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
     mmap_add_region(init_array_start, init_array_start, init_array_size,
                             MT_RW | MT_MEMORY | MT_EXECUTE);
 
     mmap_add_region(fini_array_start, fini_array_start, fini_array_size,
                             MT_RW | MT_MEMORY | MT_EXECUTE);
+#endif
 
     mmap_add_region(rw_start, rw_start, rw_size,
                             MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);

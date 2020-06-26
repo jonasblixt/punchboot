@@ -45,9 +45,12 @@ void arch_disable_mmu(void)
 
     sctlr = read_sctlr();
     sctlr &= ~(SCTLR_WXN_BIT | SCTLR_M_BIT);
-
     write_sctlr(sctlr);
+
     isb();
+    dsb();
 
     LOG_DBG("MMU Disabled");
+
+    return;
 }
