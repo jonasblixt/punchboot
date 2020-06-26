@@ -14,10 +14,6 @@
 
 #include "../xlat_tables_private.h"
 
-#if (ARM_ARCH_MAJOR == 7) && !defined(ARMV7_SUPPORTS_LARGE_PAGE_ADDRESSING)
-#error ARMv7 target does not support LPAE MMU descriptors
-#endif
-
 #define XLAT_TABLE_LEVEL_BASE    \
        GET_XLAT_TABLE_LEVEL_BASE(PLAT_VIRT_ADDR_SPACE_SIZE)
 
@@ -60,8 +56,6 @@ void init_xlat_tables(void)
     init_xlation_table(0U, base_xlation_table, XLAT_TABLE_LEVEL_BASE,
                         &max_va, &max_pa);
 
-    assert(max_va <= (PLAT_VIRT_ADDR_SPACE_SIZE - 1U));
-    assert(max_pa <= (PLAT_PHY_ADDR_SPACE_SIZE - 1U));
     assert((PLAT_PHY_ADDR_SPACE_SIZE - 1U) <= get_max_supported_pa());
 }
 
@@ -84,7 +78,6 @@ void enable_mmu_svc_mon(unsigned int flags)
     /* Invalidate TLBs at the current exception level */
     tlbiall();
 
-    LOG_DBG("3");
     /*
      * Set TTBCR bits as well. Set TTBR0 table properties. Disable TTBR1.
      */

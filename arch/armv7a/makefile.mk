@@ -3,11 +3,13 @@ ifdef CONFIG_ARCH_ARMV7
 ARCH_OUTPUT = elf32-littlearm
 ARCH = arm
 
-cflags-y   += -march=armv7-a
-cflags-y   += -DAARCH32
-cflags-y   += -I arch/armv7a/include
-cflags-y   += -I include/pb/libc/aarch32
-cflags-y  += -mno-unaligned-access
+cflags-y += -march=armv7-a
+cflags-y += -DAARCH32
+cflags-y += -I arch/armv7a/include
+cflags-y += -I include/pb/libc/aarch32
+cflags-y += -mno-unaligned-access
+cflags-y += -DARM_ARCH_MAJOR=7
+cflags-y += -DARMV7_SUPPORTS_LARGE_PAGE_ADDRESSING
 
 ldflags-y += -Tarch/armv7a/link.lds
 

@@ -595,9 +595,7 @@ int plat_early_init(void)
     mmap_add(imx_mmap);
 
     init_xlat_tables();
-    LOG_DBG("About to enable MMU");
     enable_mmu_svc_mon(0);
-    LOG_DBG("MMU Enabled");
     timestamp_end(&ts_mmu_init);
     ocotp_init(CONFIG_IMX_OCOTP_BASE,
                CONFIG_IMX_OCOTP_WORDS_PER_BANK);

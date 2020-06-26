@@ -14,15 +14,16 @@
 .globl arch_jump
 arch_jump:
     mov r5, r0 /* Jump address */
+
     mov r0, r1
     mov r1, r2
     mov r2, r3
     mov r3, r4
 
-    mcr p15, 0, r0, c7, c5, 0
-    mcr p15, 0, r0, c7, c5, 6
     isb
     dsb
+
+    cpsid if
     mov pc, r5
     b .
 

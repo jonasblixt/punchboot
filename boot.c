@@ -12,6 +12,7 @@
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <pb/boot.h>
+#include <pb/arch.h>
 #include <pb/crypto.h>
 #include <pb/board.h>
 #include <pb/plat.h>

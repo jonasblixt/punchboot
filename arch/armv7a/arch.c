@@ -31,24 +31,23 @@ unsigned int arch_get_us_tick(void)
 void exception(int id)
 {
     printf("*** %s (%i) EXCEPTION ***\n\r", exception_strings[id], id);
-    printf("IFAR: 0x%08x, DFAR 0x%08x\n\r", read_ifar(), read_dfar());
-    printf("IFSR: 0x%08x, DFSR 0x%08x\n\r", read_ifsr(), read_dfsr());
-    printf("SCTLR: 0x%08x\n\r", read_sctlr());
+    printf("IFAR: 0x%08lx, DFAR 0x%08lx\n\r", read_ifar(), read_dfar());
+    printf("IFSR: 0x%08lx, DFSR 0x%08lx\n\r", read_ifsr(), read_dfsr());
+    printf("SCTLR: 0x%08lx\n\r", read_sctlr());
 }
 
 void arch_disable_mmu(void)
 {
-
-    /**
-     * Disable cache
-     * Outer cache disable
-     * Invalidate d cache all
-     * i cache disable
-     * Invalidate i cache all
-     *
-     */
-
     arch_disable_cache();
     disable_mmu_secure();
-    LOG_DBG("MMU Disabled %x", armv7a_cp15_read_sctlr());
+
+    unsigned int sctlr;
+
+    sctlr = read_sctlr();
+    sctlr &= ~(SCTLR_WXN_BIT | SCTLR_M_BIT);
+
+    write_sctlr(sctlr);
+    isb();
+
+    LOG_DBG("MMU Disabled");
 }
