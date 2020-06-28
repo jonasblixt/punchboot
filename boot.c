@@ -573,8 +573,10 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     arch_clean_cache_range(*dtb, dtb_size);
 #endif
 
-    arch_clean_cache_range(*dtb, dtb_size);
     arch_clean_cache_range((uintptr_t) &jump_addr, sizeof(jump_addr));
+
+    //LOG_DBG("dtb_size = %zu", dtb_size);
+    //LOG_DBG("sizeof(jump_addr) = %zu", sizeof(jump_addr));
     arch_disable_mmu();
 
 #ifdef CONFIG_OVERRIDE_ARCH_JUMP

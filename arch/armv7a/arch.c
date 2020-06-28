@@ -4,6 +4,13 @@
 #include <arch/armv7a/timer.h>
 #include <plat/defs.h>
 
+extern char _code_start, _code_end,
+            _data_region_start, _data_region_end,
+            _ro_data_region_start, _ro_data_region_end,
+            _zero_region_start, _zero_region_end,
+            _stack_start, _stack_end,
+            _big_buffer_start, _big_buffer_end, end;
+
 const char *exception_strings[] =
 {
     "Undefined",
@@ -38,6 +45,13 @@ void exception(int id)
 
 void arch_disable_mmu(void)
 {
+
+    uintptr_t stack_start = (uintptr_t) &_stack_start;
+    size_t stack_size = ((uintptr_t) &_stack_end) -
+                      ((uintptr_t) &_stack_start);
+
+    arch_clean_cache_range(stack_start, stack_size);
+
     arch_disable_cache();
     disable_mmu_secure();
 
@@ -48,9 +62,6 @@ void arch_disable_mmu(void)
     write_sctlr(sctlr);
 
     isb();
-    dsb();
 
     LOG_DBG("MMU Disabled");
-
-    return;
 }

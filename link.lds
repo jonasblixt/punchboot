@@ -52,8 +52,6 @@ SECTIONS
         _bss_start = .;
         *(.bss .bss.*)
         . = ALIGN(4096);
-        *(xlat_table)
-        . = ALIGN(4096);
         _bss_end = .;
         PROVIDE (_zero_region_end = .);
     } > pbram2
@@ -72,6 +70,8 @@ SECTIONS
         . = ALIGN(4096);
         PROVIDE(_big_buffer_start = .);
         *(.bigbuffer .bigbuffer*)
+        . = ALIGN(4096);
+        *(xlat_table)
         . = ALIGN(4096);
         PROVIDE(_big_buffer_end = .);
     } > dram

@@ -36,6 +36,20 @@ Total 111593 us
 --- Timing report end ---
 
 --- Timing report begin ---
+IMX6UL: mmu
+Platform early 12390 us
+Crypto 3 us
+Storage 9265 us
+SLC 14 us
+Boot init 381 us
+Image load and hash 94367 us
+Verify signature 6385 us
+DT Patch 896 us
+Total 124124 us
+--- Timing report end ---
+
+
+--- Timing report begin ---
 IMX8X: no-mmu, BR: f45d4a548955a2ef651fd834bce26be402916ed1
 Platform early 1983 us
 Crypto 70 us
@@ -68,9 +82,9 @@ v0.8 (Main feature: MMU memory protection and data cache)
 PB/imx8m: Test MMU support
 PB/imx8x: Test key revoke with old acu6c board
 PB/imx8x: Measure SCFW/ROM boot time with latest SCFW-firmware
+PB: Update docker
 PB/Doc: Update README with new timing data
 PB/imx6ul: Check if timing measurement still works
-PB: Remove code for overlap checking when MMU stuff is in place
 
 PB/doc: Building guide
 PB/doc: Create boot image

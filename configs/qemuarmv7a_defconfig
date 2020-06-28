@@ -36,6 +36,7 @@ CONFIG_DUMP_TIMING_ANALYSIS=y
 CONFIG_OPTIMIZE="2"
 # CONFIG_DEBUG_SYMBOLS is not set
 # CONFIG_STACK_USAGE is not set
+CONFIG_STACK_SIZE_KB=2
 # end of Build configuration
 
 #

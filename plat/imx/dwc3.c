@@ -135,7 +135,7 @@ int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
     act_trb[ep] = trb;
 
     trb->bptrh = 0;
-    trb->bptrl = ptr_to_u32(bfr);
+    trb->bptrl = (uintptr_t) bfr;
     trb->ssz = xfr_sz;
     trb->control = ((1 << 11) | (1 << 1) |1);
 
@@ -156,7 +156,7 @@ int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
     LOG_INFO("trx EP%u %s, %p, sz %zu bytes", (ep>>1), (ep&1?"IN":"OUT"),
                     bfr, sz);
 
-    return dwc3_command(ep, DWC3_DEPCMD_STARTRANS, 0, ptr_to_u32(trb), 0);
+    return dwc3_command(ep, DWC3_DEPCMD_STARTRANS, 0, (uintptr_t) trb, 0);
 }
 
 int dwc3_transfer(int ep, void *bfr, size_t sz)
@@ -252,7 +252,7 @@ int dwc3_init(__iomem base_addr)
         reg = pb_read32(base + DWC3_DCTL);
     } while (reg & (1 << 30));
 
-    pb_write32(ptr_to_u32(_ev_buffer), base + DWC3_GEVNTADRLO);
+    pb_write32((uintptr_t) _ev_buffer, base + DWC3_GEVNTADRLO);
 
     pb_clrbit32(DWC3_GCTL_SCALEDOWN_MASK, base + DWC3_GCTL);
     pb_clrbit32(1<<17, base + DWC3_GCTL);

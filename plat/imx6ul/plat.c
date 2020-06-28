@@ -54,7 +54,7 @@ static struct imx6ul_private private;
 static struct pb_result_slc_key_status key_status;
 
 
-static struct pb_timestamp ts_mmu_init = TIMESTAMP("MMU init");
+//static struct pb_timestamp ts_mmu_init = TIMESTAMP("MMU init");
 
 static const mmap_region_t imx_mmap[] =
 {
@@ -572,7 +572,7 @@ int plat_early_init(void)
 
 
     plat_console_init();
-    timestamp_begin(&ts_mmu_init);
+    //timestamp_begin(&ts_mmu_init);
 
     mmap_add_region(code_start, code_start, code_size,
                             MT_RO | MT_MEMORY | MT_EXECUTE);
@@ -596,7 +596,7 @@ int plat_early_init(void)
 
     init_xlat_tables();
     enable_mmu_svc_mon(0);
-    timestamp_end(&ts_mmu_init);
+    //timestamp_end(&ts_mmu_init);
     ocotp_init(CONFIG_IMX_OCOTP_BASE,
                CONFIG_IMX_OCOTP_WORDS_PER_BANK);
 

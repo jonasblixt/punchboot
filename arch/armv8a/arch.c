@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <pb/arch.h>
 #include <arch/armv8a/timer.h>
 #include <arch/arch_helpers.h>
@@ -23,7 +24,8 @@ void exception(int index)
 void exception_sync(void)
 {
     printf("*** SYNCHRONOUS EXCEPTION ***\n\r");
-    printf("FAR: 0x%lx\n\r", read_far_el3());
+    printf("FAR: 0x%08lx\n\r", read_far_el3());
+    printf("SCTLR: 0x%08lx\n\r", read_sctlr_el3());
 }
 
 void arch_disable_mmu(void)

@@ -395,6 +395,10 @@ void init_xlation_table(uintptr_t base_va, uint64_t *table,
 {
     unsigned int el = xlat_arch_current_el();
 
+    memset(xlat_tables, 0, sizeof(uint64_t) * MAX_XLAT_TABLES * 
+                                              XLAT_TABLE_ENTRIES);
+
+
     execute_never_mask = xlat_arch_get_xn_desc(el);
 
     if (el == 3U) {
