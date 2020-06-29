@@ -20,7 +20,7 @@
 .endm
 
 
-.section .text
+.section .vectors
 .global _reset
 _reset:
     branch_if_master x0 x1 master_cpu
@@ -62,7 +62,6 @@ master_cpu:
     msr VBAR_EL3, x0
 
     mov x0, #0
-
 
     bl pb_main
     b .
@@ -152,3 +151,5 @@ lower_el_aarch32_serror:
 mov x0, #15
 bl exception
 b .
+
+

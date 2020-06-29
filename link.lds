@@ -49,12 +49,11 @@ SECTIONS
     {
         . = ALIGN(4096);
         PROVIDE (_zero_region_start = .);
-        _bss_start = .;
+        *(.bss)
         *(.bss .bss.*)
         . = ALIGN(4096);
-        _bss_end = .;
         PROVIDE (_zero_region_end = .);
-    } > pbram2
+    } > pbram
 
      .stack (NOLOAD):
     {
@@ -63,7 +62,7 @@ SECTIONS
         . = . + PB_STACK_SIZE_KB*1024 ;
         . = ALIGN(4096);
         PROVIDE(_stack_end = .);
-    } > pbram2
+    } > pbram
 
     .bigbuffer (NOLOAD):
     {
@@ -78,7 +77,3 @@ SECTIONS
 
     PROVIDE(end = .);
 }
-
-
-_bss_size = (_bss_end - _bss_start)>>3;
-

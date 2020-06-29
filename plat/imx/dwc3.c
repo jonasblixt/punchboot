@@ -113,6 +113,8 @@ static struct dwc3_trb * dwc3_get_next_trb(void)
 
     for (uint32_t n = 0; n < DWC3_NO_TRBS; n++)
     {
+        arch_invalidate_cache_range((uintptr_t) trb, sizeof(*trb));
+
         if ((trb->control & 1) == 0)
             return trb;
         trb++;
@@ -125,6 +127,11 @@ int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
 {
     struct dwc3_trb *trb = dwc3_get_next_trb();
     size_t xfr_sz = sz;
+
+    if (ep & 1)
+    {
+        arch_clean_cache_range((uintptr_t) bfr, sz);
+    }
 
     if (trb == NULL)
     {
@@ -156,6 +163,8 @@ int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
     LOG_INFO("trx EP%u %s, %p, sz %zu bytes", (ep>>1), (ep&1?"IN":"OUT"),
                     bfr, sz);
 
+    arch_clean_cache_range((uintptr_t) trb, sizeof(*trb));
+
     return dwc3_command(ep, DWC3_DEPCMD_STARTRANS, 0, (uintptr_t) trb, 0);
 }
 
@@ -172,6 +181,7 @@ int dwc3_transfer(int ep, void *bfr, size_t sz)
 
     while ((trb->control & 1) == 1)
     {
+        arch_invalidate_cache_range((uintptr_t) trb, sizeof(*trb));
         plat_wdog_kick();
 
         if ((ep == USB_EP2_OUT) ||
@@ -252,6 +262,7 @@ int dwc3_init(__iomem base_addr)
         reg = pb_read32(base + DWC3_DCTL);
     } while (reg & (1 << 30));
 
+    arch_clean_cache_range((uintptr_t) _ev_buffer, sizeof(_ev_buffer));
     pb_write32((uintptr_t) _ev_buffer, base + DWC3_GEVNTADRLO);
 
     pb_clrbit32(DWC3_GCTL_SCALEDOWN_MASK, base + DWC3_GCTL);
@@ -330,6 +341,8 @@ static bool dwc3_trb_hwo(struct dwc3_trb *trb)
     if (trb == NULL)
         return false;
 
+    arch_invalidate_cache_range((uintptr_t) trb, sizeof(*trb));
+
     if ((trb->control & 1) == 1)
         return false;
 
@@ -343,6 +356,7 @@ int dwc3_process(void)
 
     if (evcnt >= 4)
     {
+        arch_invalidate_cache_range((uintptr_t) _ev_buffer, sizeof(_ev_buffer));
         ev = _ev_buffer[_ev_index];
 
         /* Device Specific Events DEVT*/
@@ -393,6 +407,7 @@ int dwc3_process(void)
 
     if (dwc3_trb_hwo(act_trb[USB_EP0_OUT]))
     {
+        arch_invalidate_cache_range((uintptr_t) &setup_pkt, sizeof(setup_pkt));
         pb_delay_ms(1);
 
         usb_process_setup_pkt(&iface, &setup_pkt);
@@ -405,11 +420,15 @@ int dwc3_process(void)
 
 int dwc3_read(void *buf, size_t size)
 {
-    return dwc3_transfer(USB_EP2_OUT, buf, size);
+    int rc;
+    rc = dwc3_transfer(USB_EP2_OUT, buf, size);
+    arch_invalidate_cache_range((uintptr_t) buf, size);
+    return rc;
 }
 
 int dwc3_write(void *buf, size_t size)
 {
+    arch_clean_cache_range((uintptr_t) buf, size);
     return dwc3_transfer(USB_EP1_IN, buf, size);
 }
 

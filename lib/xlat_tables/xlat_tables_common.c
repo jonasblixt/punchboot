@@ -26,9 +26,9 @@
             (((level) == U(1)) ? LVL1_SPACER : \
             (((level) == U(2)) ? LVL2_SPACER : LVL3_SPACER)))
 
-//#define MMU_LOG_LEVEL 10
-//#define debug_print(...) printf(__VA_ARGS__)
-#define debug_print(...) ((void)0)
+#define MMU_LOG_LEVEL 10
+#define debug_print(...) printf(__VA_ARGS__)
+//#define debug_print(...) ((void)0)
 
 #define UNSET_DESC    ~0ULL
 #define MT_UNKNOWN    ~0U
@@ -369,7 +369,6 @@ static mmap_region_t *init_xlation_table_inner(mmap_region_t *mm,
         if (desc == UNSET_DESC) {
             /* Area not covered by a region so need finer table */
             uint64_t *new_table = xlat_tables[next_xlat];
-
             next_xlat++;
             assert(next_xlat <= MAX_XLAT_TABLES);
             desc = TABLE_DESC | (uintptr_t)new_table;
@@ -389,15 +388,18 @@ static mmap_region_t *init_xlation_table_inner(mmap_region_t *mm,
     return mm;
 }
 
+void reset_xlat_tables(void)
+{
+    memset(xlat_tables, 0, sizeof(uint64_t) * MAX_XLAT_TABLES * 
+                                              XLAT_TABLE_ENTRIES);
+    printf("next_xlat = %x <%p>\n\r", next_xlat, &next_xlat);
+}
+
 void init_xlation_table(uintptr_t base_va, uint64_t *table,
             unsigned int level, uintptr_t *max_va,
             unsigned long long *max_pa)
 {
     unsigned int el = xlat_arch_current_el();
-
-    memset(xlat_tables, 0, sizeof(uint64_t) * MAX_XLAT_TABLES * 
-                                              XLAT_TABLE_ENTRIES);
-
 
     execute_never_mask = xlat_arch_get_xn_desc(el);
 

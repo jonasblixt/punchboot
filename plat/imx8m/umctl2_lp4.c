@@ -65,7 +65,7 @@ static uint32_t umctl2_load_training_firmware(enum fw_type type)
         dmem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_start;
     }
 
-    LOG_DBG("Loading image from %lx, sz %lu bytes", imem_start, imem_sz);
+    LOG_INFO("Loading image from %lx, sz %lu bytes", imem_start, imem_sz);
 
     pr_from32 = imem_start;
     pr_to32 = DDR_TRAIN_CODE_BASE_ADDR + 4 * IMEM_OFFSET_ADDR;

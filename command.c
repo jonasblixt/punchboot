@@ -926,8 +926,7 @@ restart_command_mode:
         plat_transport_process();
         plat_wdog_kick();
 
-
-         if ((arch_get_us_tick() - ready_timeout) >
+        if ((arch_get_us_tick() - ready_timeout) >
              (CONFIG_TRANSPORT_READY_TIMEOUT * 1000000L))
         {
             LOG_ERR("Timeout, rebooting");
