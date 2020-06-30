@@ -45,7 +45,7 @@ static int pb_usb_init(struct pb_context *ctx)
 static int pb_usb_connect(struct pb_context *ctx)
 {
     int rc = PB_RESULT_OK;
-    int i;
+    int i = 0;
     bool found_device = false;
     char device_serial[128];
     struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
