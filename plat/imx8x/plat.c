@@ -519,54 +519,55 @@ int plat_slc_key_active(uint32_t id, bool *active)
 int plat_slc_revoke_key(uint32_t id)
 {
     int rc;
-    unsigned int rom_index = 0;
-    bool found_key = false;
+    uint32_t info, fuse_before;
+    UNUSED(id);
 
-    LOG_INFO("Revoking key 0x%x", id);
-
-
-    for (int i = 0; i < 16; i++)
-    {
-        if (!rom_key_map[i])
-            break;
-
-        if (rom_key_map[i] == id)
-        {
-            rom_index = i;
-            found_key = true;
-        }
-    }
-
-    if (!found_key)
-    {
-        LOG_ERR("Could not find key");
-        return -PB_ERR;
-    }
+    LOG_INFO("Revoking keys as specified in image header");
 
     rc =  plat_fuse_read(&rom_key_revoke_fuse);
-
     if (rc != PB_OK)
     {
         LOG_ERR("Could not read revoke fuse");
         return rc;
     }
+    LOG_INFO("Revocation fuse before revocation = %x",
+            rom_key_revoke_fuse.value);
+    fuse_before = rom_key_revoke_fuse.value;
 
-    LOG_DBG("Revoke fuse = 0x%x", rom_key_revoke_fuse.value);
+    /* Commit OEM revocations = 0x10 */
+    info = 0x10;
 
-    uint32_t revoke_value = (1 << rom_index);
-
-    if ((rom_key_revoke_fuse.value & revoke_value) == revoke_value)
+    /* sc_seco_commit returns which resource was revoked in info. In
+     * our case, info should be 0x10 for OEM key after the revocation
+     * is done. */
+    rc = sc_seco_commit(private.ipc, &info);
+    if (rc != SC_ERR_NONE)
     {
-        LOG_INFO("Key already revoked");
-        return PB_OK;
+        LOG_ERR("sc_seco_commit failed: %i", rc);
+        return PB_ERR;
+    }
+    LOG_INFO("Commit reply: %x", info);
+
+    rc =  plat_fuse_read(&rom_key_revoke_fuse);
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not read revoke fuse");
+        return rc;
+    }
+    LOG_INFO("Revocation fuse after revocation = %x",
+             rom_key_revoke_fuse.value);
+
+    if (fuse_before == rom_key_revoke_fuse.value)
+    {
+        LOG_ERR("The revocation fuse had the same value before "
+                "and after revocation!");
+        return PB_ERR;
     }
 
-    LOG_DBG("About to write 0x%x", revoke_value);
+    LOG_INFO("Revocation fuse changed bits: %x",
+             fuse_before ^ rom_key_revoke_fuse.value);
 
-    rom_key_revoke_fuse.value |= revoke_value;
-    rom_key_revoke_fuse.value |= (revoke_value << 16);
-
-    return plat_fuse_write(&rom_key_revoke_fuse);
+    return PB_OK;
 }
 
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
