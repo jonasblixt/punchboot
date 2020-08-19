@@ -192,7 +192,10 @@ int plat_early_init(void)
                       ((uintptr_t) &_big_buffer_start);
 */
 
+
     timestamp_begin(&ts_mmu_init);
+
+    reset_xlat_tables();
     mmap_add_region(code_start, code_start, code_size,
                             MT_RO | MT_MEMORY | MT_EXECUTE);
     mmap_add_region(stack_start, stack_start, stack_size,

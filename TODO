@@ -82,6 +82,26 @@ v0.8 (Main feature: MMU memory protection and data cache)
 PB/imx8m: Test MMU support
 PB/imx8x: Test key revoke with old acu6c board
 PB/imx8x: Measure SCFW/ROM boot time with latest SCFW-firmware
+PB/usdhc: Flakey behaviour on imx8x reported
+    - A small delay between MMC_CMD_GO_IDLE_STATE and MMC_CMD_SEND_OP_COND
+        seems to help
+
+
+    while (1)
+    {
+                                                            /* Should be 40..., dont set status bit*/
+        err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_OP_COND, 0xC0ff8080, 2);
+
+        if (err != PB_OK)
+            return err;
+
+        /* Wait for eMMC to power up */
+        if ( (pb_read32(dev->base+USDHC_CMD_RSP0) ==  0xC0FF8080) )
+            break;
+
+        /* Only check bit 31 for power up completion*/
+    }
+
 PB: Update docker
 PB/Doc: Update README with new timing data
 PB/imx6ul: Check if timing measurement still works

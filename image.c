@@ -28,6 +28,7 @@ extern char _code_start, _code_end,
 static struct bpak_header header __a4k __no_bss;
 static uint8_t signature[512] __a4k __no_bss;
 static size_t signature_sz;
+static struct pb_hash_context hash;
 static struct pb_timestamp ts_load = TIMESTAMP("Image load and hash");
 static struct pb_timestamp ts_signature = TIMESTAMP("Verify signature");
 
@@ -111,7 +112,6 @@ int pb_image_load(pb_image_read_t read_f,
                   void *priv)
 {
     int rc;
-    struct pb_hash_context hash;
     struct bpak_header *h = &header;
     struct bpak_key *k = NULL;
     int hash_kind;
@@ -194,13 +194,13 @@ int pb_image_load(pb_image_read_t read_f,
     if (rc != PB_OK)
         return rc;
 
-    memset(&hash, 0, sizeof(hash));
     rc = plat_hash_init(&hash, hash_kind);
 
     if (rc != PB_OK)
         return rc;
 
     signature_sz = 0;
+
 
     /* Copy and zero out the signature metadata before hasing header */
     bpak_foreach_meta(h, m)

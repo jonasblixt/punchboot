@@ -105,24 +105,25 @@ void plat_wdog_kick(void)
     imx_wdog_kick();
 }
 
-uint32_t imx8m_clock_cfg(uint32_t clk_id, uint32_t flags)
+static int imx8m_clock_cfg(uint32_t clk_id, uint32_t flags)
 {
     if (clk_id > 133)
-        return PB_ERR;
+        return -PB_ERR;
 
     pb_write32(flags, (0x30388004 + 0x80*clk_id));
 
     return PB_OK;
 }
 
+/*
 #if LOGLEVEL >= 3
-uint32_t imx8m_clock_print(uint32_t clk_id)
+static int imx8m_clock_print(uint32_t clk_id)
 {
     uint32_t reg;
     uint32_t addr = (0x30388000 + 0x80*clk_id);
 
     if (clk_id > 133)
-        return PB_ERR;
+        return -PB_ERR;
 
     reg = pb_read32(addr);
 
@@ -140,7 +141,7 @@ uint32_t imx8m_clock_print(uint32_t clk_id)
     return PB_OK;
 }
 
-uint32_t imx8m_cg_print(uint32_t cg_id)
+static int imx8m_cg_print(uint32_t cg_id)
 {
     uint32_t reg;
     uint32_t addr = 0x30384000 + 0x10*cg_id;
@@ -149,6 +150,8 @@ uint32_t imx8m_cg_print(uint32_t cg_id)
     return PB_OK;
 }
 #endif
+*/
+
 
 int plat_early_init(void)
 {
@@ -294,9 +297,7 @@ int plat_early_init(void)
 
     init_xlat_tables();
 
-    printf("MMU begin %d\n\r", arch_get_us_tick());
     enable_mmu_el3(0);
-    printf("MMU end %d\n\r", arch_get_us_tick());
 
     /* MMU Config end */
 

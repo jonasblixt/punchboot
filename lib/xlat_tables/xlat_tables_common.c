@@ -26,9 +26,9 @@
             (((level) == U(1)) ? LVL1_SPACER : \
             (((level) == U(2)) ? LVL2_SPACER : LVL3_SPACER)))
 
-#define MMU_LOG_LEVEL 10
-#define debug_print(...) printf(__VA_ARGS__)
-//#define debug_print(...) ((void)0)
+//#define MMU_LOG_LEVEL 10
+//#define debug_print(...) printf(__VA_ARGS__)
+#define debug_print(...) ((void)0)
 
 #define UNSET_DESC    ~0ULL
 #define MT_UNKNOWN    ~0U
@@ -392,7 +392,6 @@ void reset_xlat_tables(void)
 {
     memset(xlat_tables, 0, sizeof(uint64_t) * MAX_XLAT_TABLES * 
                                               XLAT_TABLE_ENTRIES);
-    printf("next_xlat = %x <%p>\n\r", next_xlat, &next_xlat);
 }
 
 void init_xlation_table(uintptr_t base_va, uint64_t *table,

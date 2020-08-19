@@ -88,5 +88,7 @@ void mmap_add_region(unsigned long long base_pa, uintptr_t base_va,
 		     size_t size, unsigned int attr);
 void mmap_add(const mmap_region_t *mm);
 
+void reset_xlat_tables(void);
+
 #endif /*__ASSEMBLER__*/
 #endif /* XLAT_TABLES_H */

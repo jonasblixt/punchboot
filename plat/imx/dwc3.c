@@ -123,7 +123,7 @@ static struct dwc3_trb * dwc3_get_next_trb(void)
     return NULL;
 }
 
-int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
+static int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
 {
     struct dwc3_trb *trb = dwc3_get_next_trb();
     size_t xfr_sz = sz;
@@ -168,7 +168,7 @@ int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
     return dwc3_command(ep, DWC3_DEPCMD_STARTRANS, 0, (uintptr_t) trb, 0);
 }
 
-int dwc3_transfer(int ep, void *bfr, size_t sz)
+static int dwc3_transfer(int ep, void *bfr, size_t sz)
 {
     int rc;
 
