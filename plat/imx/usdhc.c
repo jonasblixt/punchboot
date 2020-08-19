@@ -643,9 +643,9 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     /* Set clock to 400 kHz */
     /* MMC Clock = base clock (196MHz) / (prescaler * divisor )*/
 
-    pb_write32(dev->clk_ident , dev->base+USDHC_SYS_CTRL);
+    pb_write32(dev->clk_ident, dev->base+USDHC_SYS_CTRL);
 
-    pb_write32(PROCTL_INIT |(1<<23)|(1<<27), dev->base + USDHC_PROT_CTRL);
+    pb_write32(PROCTL_INIT | (1<<23) | (1<<27), dev->base + USDHC_PROT_CTRL);
 
     while (1)
     {
@@ -673,15 +673,23 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     }
 
     LOG_DBG("Waiting for eMMC to power up");
+
     while (1)
     {
-        err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_OP_COND, 0xC0ff8080, 2);
+        err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_OP_COND, 0x40ff8080, 2);
 
         if (err != PB_OK)
             return err;
+
         /* Wait for eMMC to power up */
-        if ( (pb_read32(dev->base+USDHC_CMD_RSP0) ==  0xC0FF8080) )
+        if (pb_read32(dev->base+USDHC_CMD_RSP0) & (1 << 31))
+        {
             break;
+        }
+        else
+        {
+            pb_delay_ms(1);
+        }
     }
 
     LOG_DBG("Card reset complete");
@@ -692,10 +700,10 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     if (err != PB_OK)
         return err;
 
-    priv->raw_cid[0] = pb_read32(dev->base+ USDHC_CMD_RSP0);
-    priv->raw_cid[1] = pb_read32(dev->base+ USDHC_CMD_RSP1);
-    priv->raw_cid[2] = pb_read32(dev->base+ USDHC_CMD_RSP2);
-    priv->raw_cid[3] = pb_read32(dev->base+ USDHC_CMD_RSP3);
+    priv->raw_cid[0] = pb_read32(dev->base + USDHC_CMD_RSP0);
+    priv->raw_cid[1] = pb_read32(dev->base + USDHC_CMD_RSP1);
+    priv->raw_cid[2] = pb_read32(dev->base + USDHC_CMD_RSP2);
+    priv->raw_cid[3] = pb_read32(dev->base + USDHC_CMD_RSP3);
 
     LOG_DBG("cid0: %x", priv->raw_cid[0]);
     LOG_DBG("cid1: %x", priv->raw_cid[1]);
