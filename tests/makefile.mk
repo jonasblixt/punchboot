@@ -64,6 +64,7 @@ TEST_C_SRCS += arch/armv7a/arch.c
 
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += plat/qemu/gcov.c
+TEST_C_SRCS += plat/qemu/reset.c
 TEST_C_SRCS += usb.c
 TEST_C_SRCS += lib/asn1.c
 TEST_C_SRCS += plat/qemu/semihosting.c

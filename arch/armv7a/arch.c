@@ -1,5 +1,6 @@
 #include <pb/io.h>
 #include <pb/arch.h>
+#include <pb/plat.h>
 #include <arch/arch_helpers.h>
 #include <arch/armv7a/timer.h>
 #include <plat/defs.h>
@@ -41,6 +42,7 @@ void exception(int id)
     printf("IFAR: 0x%08lx, DFAR 0x%08lx\n\r", read_ifar(), read_dfar());
     printf("IFSR: 0x%08lx, DFSR 0x%08lx\n\r", read_ifsr(), read_dfsr());
     printf("SCTLR: 0x%08lx\n\r", read_sctlr());
+    plat_reset();
 }
 
 void arch_disable_mmu(void)
