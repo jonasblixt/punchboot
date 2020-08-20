@@ -76,7 +76,10 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
         timeout--;
 
         if (!timeout)
+        {
+            LOG_ERR("Xfer timeout");
             return -PB_TIMEOUT;
+        }
     }
 
     pb_write32(USDHC_INT_DATA_END, dev->base+ USDHC_INT_STATUS);
@@ -113,15 +116,24 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
     pb_write32(command, dev->base+USDHC_CMD_XFR_TYP);
 
     if (cmd == MMC_CMD_SEND_TUNING_BLOCK_HS200)
+    {
         err = usdhc_emmc_wait_for_cc(dev, (1<<5));
+    }
     else
+    {
         err = usdhc_emmc_wait_for_cc(dev, USDHC_INT_RESPONSE);
+    }
 
 usdhc_cmd_fail:
 
     if (err == -PB_TIMEOUT)
     {
         LOG_ERR("cmd %x timeout", cmd);
+    }
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("%i", err);
     }
 
     return err;
@@ -319,7 +331,9 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
         return err;
 
     if (!async)
+    {
         return usdhc_emmc_wait_for_de(dev);
+    }
 
     return PB_OK;
 }

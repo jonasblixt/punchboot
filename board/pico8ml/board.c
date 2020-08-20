@@ -117,9 +117,7 @@ int board_early_init(void *plat)
 {
     int rc;
 
-    LOG_DBG("Hello %p %zu", &usdhc0_driver, usdhc0_driver.block_size);
     rc = pb_storage_add(&usdhc0_driver);
-    LOG_DBG("rc = %i", rc);
 
     if (rc != PB_OK)
         return rc;

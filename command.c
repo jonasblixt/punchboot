@@ -418,7 +418,7 @@ static int cmd_part_verify(void)
 
         if (rc != PB_OK)
         {
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
             return rc;
         }
 
@@ -440,7 +440,8 @@ static int cmd_part_verify(void)
 
         if (rc != PB_OK)
         {
-            pb_wire_init_result(&result, rc);
+            LOG_ERR("read error");
+            pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
 
             if (sdrv->map_release)
                 sdrv->map_release(sdrv, stream_map);
@@ -452,6 +453,7 @@ static int cmd_part_verify(void)
 
         if (rc != PB_OK)
         {
+            LOG_ERR("Hash update error");
             pb_wire_init_result(&result, rc);
             break;
         }
@@ -482,6 +484,7 @@ static int cmd_part_verify(void)
             printf("%x", verify_cmd->sha256[i] & 0xff);
         printf("\n\r");
 #endif
+        LOG_ERR("Verification failed");
         rc = -PB_RESULT_PART_VERIFY_FAILED;
     }
 
