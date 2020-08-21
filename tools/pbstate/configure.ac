@@ -25,14 +25,6 @@ dnl Check if Libtool is present
 dnl Libtool is used for building share libraries
 AC_PROG_LIBTOOL
 
-PKG_CHECK_MODULES(BLKID, [blkid >= 2.0.0])
-AC_SUBST(BLKID_CFLAGS)
-AC_SUBST(BLKID_LIBS)
-
-PKG_CHECK_MODULES(UUID, [uuid >= 2.0.0])
-AC_SUBST(UUID_CFLAGS)
-AC_SUBST(UUID_LIBS)
-
 AC_ARG_VAR([PRIMARY_STATE_UUID], Primary state partition UUID)
 AC_ARG_VAR([BACKUP_STATE_UUID], Backup state partition UUID)
 
@@ -44,6 +36,7 @@ AC_MSG_NOTICE([Backup state UUID: $BACKUP_STATE_UUID])
 
 AC_CONFIG_FILES([Makefile
                 src/Makefile
+                src/pbstate.pc
                 test/Makefile])
 AX_CODE_COVERAGE
 

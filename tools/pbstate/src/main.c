@@ -7,7 +7,6 @@
  *
  */
 
-#include <uuid.h>
 #include <strings.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -15,7 +14,6 @@
 #include <stdbool.h>
 #include <getopt.h>
 #include <stdlib.h>
-#include <blkid.h>
 
 #include "pbstate.h"
 
@@ -34,10 +32,28 @@ static void print_help(void)
                                                         "Set verified flag\n");
 }
 
+static void print_configuration(void)
+{
+    printf("Punchboot status:\n\n");
+    printf("System A is %s and %s\n", pbstate_is_system_active(PBSTATE_SYSTEM_A)?
+                                    "enabled":"disabled",
+                                    pbstate_is_system_verified(PBSTATE_SYSTEM_A)?
+                                    "verified":"not verified");
+
+    printf("System B is %s and %s\n", pbstate_is_system_active(PBSTATE_SYSTEM_B)?
+                                    "enabled":"disabled",
+                                    pbstate_is_system_verified(PBSTATE_SYSTEM_B)?
+                                    "verified":"not verified");
+
+
+    printf("Errors : 0x%08x\n", pbstate_get_errors());
+    printf("Remaining boot attempts: %u\n", pbstate_get_boot_attempts());
+}
+
 int main(int argc, char * const argv[])
 {
     extern char *optarg;
-    uint32_t err;
+    int err;
     char c;
     char *device_path = NULL;
     char *system = NULL;
@@ -56,7 +72,7 @@ int main(int argc, char * const argv[])
     if (argc < 2)
         flag_help = true;
 
-    while (((c = getopt (argc, argv, "hd:u:s:ic:v:o:b:")) != -1) && (c != 255))
+    while (((c = getopt (argc, argv, "hd:u:s:ic:v:")) != -1) && (c != 255))
     {
         switch (c)
         {
@@ -67,16 +83,8 @@ int main(int argc, char * const argv[])
                 flag_device = true;
                 device_path = optarg;
             break;
-            case 'o':
-                flag_primary_offset = true;
-                offset_primary = strtol(optarg, NULL, 0);
-            break;
             case 'c':
                 counter = strtol(optarg, NULL, 0);
-            break;
-            case 'b':
-                flag_backup_offset  = true;
-                offset_backup = strtol(optarg, NULL, 0);
             break;
             case 'i':
                 flag_show = true;
@@ -102,54 +110,17 @@ int main(int argc, char * const argv[])
         exit(0);
     }
 
-    /* Find config partitions using UUID's */
-    if (!(flag_primary_offset && flag_backup_offset))
-    {
-        blkid_probe pr;
-        pr = blkid_new_probe_from_filename(device_path);
-
-        if (!pr)
-        {
-            printf("Error: could not probe '%s'\n", device_path);
-            return -1;
-        }
-
-        blkid_do_probe(pr);
-        blkid_partlist pl = blkid_probe_get_partitions(pr);
-        int no_of_parts = blkid_partlist_numof_partitions(pl);
-
-        for (uint32_t n = 0; n < no_of_parts; n++)
-        {
-            blkid_partition p = blkid_partlist_get_partition(pl, n);
-
-            if (strcmp(blkid_partition_get_uuid(p), PRIMARY_STATE_UUID) == 0)
-            {
-                offset_primary = blkid_partition_get_start(p);
-                printf("Found primary configuration at lba %lx\n",
-                                                        offset_primary);
-            }
-
-            if (strcmp(blkid_partition_get_uuid(p), BACKUP_STATE_UUID) == 0)
-            {
-                offset_backup = blkid_partition_get_start(p);
-                printf("Found backup configuration at lba %lx\n",
-                                                        offset_backup);
-            }
-        }
-
-        blkid_free_probe(pr);
-    }
-
     if (flag_device)
     {
-        err = pbstate_load(device_path, offset_primary, offset_backup);
+        err = pbstate_load(device_path, printf);
 
         if (err != 0)
             return -1;
     }
     else
     {
-        /* UUID */
+        printf("Error: No device specified\n");
+        return -1;
     }
 
 
@@ -160,18 +131,18 @@ int main(int argc, char * const argv[])
     else if (flag_switch)
     {
         if (strncasecmp(system, "a", 1) == 0)
-            err = pbstate_switch(SYSTEM_A, counter);
+            err = pbstate_switch_system(PBSTATE_SYSTEM_A, counter);
         else if (strncasecmp(system, "b", 1) == 0)
-            err = pbstate_switch(SYSTEM_B, counter);
+            err = pbstate_switch_system(PBSTATE_SYSTEM_B, counter);
         else
-            err = pbstate_switch(SYSTEM_NONE, 0);
+            err = pbstate_switch_system(PBSTATE_SYSTEM_NONE, 0);
     }
     else if (flag_verify)
     {
         if (strncasecmp(system_verified, "a", 1) == 0)
-            err = pbstate_set_verified(SYSTEM_A);
+            err = pbstate_set_system_verified(PBSTATE_SYSTEM_A);
         else if (strncasecmp(system_verified, "b", 1) == 0)
-            err = pbstate_set_verified(SYSTEM_B);
+            err = pbstate_set_system_verified(PBSTATE_SYSTEM_B);
         else
             err = -1;
     }
