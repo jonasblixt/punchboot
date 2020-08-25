@@ -353,7 +353,7 @@ int caam_hash_finalize(struct pb_hash_context *ctx,
 
     arch_invalidate_cache_range((uintptr_t) ctx->buf, block_size);
 
-#if LOGLEVEL > 1
+#if LOGLEVEL > 2
     if (err == PB_OK)
     {
         printf("Hash: ");

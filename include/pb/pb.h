@@ -82,6 +82,7 @@ enum
 #define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
 
 void pb_delay_ms(unsigned int ms);
+void pb_delay_us(unsigned int us);
 void pb_main(void);
 
 #endif  // INCLUDE_PB_PB_H_

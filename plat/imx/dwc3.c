@@ -56,6 +56,8 @@ static int dwc3_command(uint8_t ep,
     LOG_DBG("cmd %u, ep %u, p0 %x, p1 %x, p2 %x",
                 cmd, ep, p0, p1, p2);
 */
+
+
     uint32_t param0_addr = (DWC3_DEPCMDPAR0_0 + 0x10*ep);
     uint32_t param1_addr = (DWC3_DEPCMDPAR1_0 + 0x10*ep);
     uint32_t param2_addr = (DWC3_DEPCMDPAR2_0 + 0x10*ep);
@@ -68,10 +70,12 @@ static int dwc3_command(uint8_t ep,
             (base + DWC3_DEPCMD_0 + (0x10*ep)));
 
     volatile uint32_t timeout = arch_get_us_tick();
+    volatile uint32_t status;
 
-    while ((pb_read32((base + DWC3_DEPCMD_0 +
-                (0x10*ep))) & DWC3_DEPCMD_ACT) == DWC3_DEPCMD_ACT)
+    do
     {
+        status = pb_read32((base + DWC3_DEPCMD_0 + (0x10*ep)));
+
         if ((arch_get_us_tick() - timeout) > (DWC3_DEF_TIMEOUT_ms*1000))
         {
             uint32_t ev_status = pb_read32(base + DWC3_DEPCMD_0 + 0x10*ep);
@@ -79,7 +83,7 @@ static int dwc3_command(uint8_t ep,
                                         (ev_status >> 12) & 0xF);
             return PB_TIMEOUT;
         }
-    }
+    } while (status & DWC3_DEPCMD_ACT);
 
     return PB_OK;
 }
@@ -127,6 +131,8 @@ static int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
 {
     struct dwc3_trb *trb = dwc3_get_next_trb();
     size_t xfr_sz = sz;
+
+    pb_delay_us(200);
 
     if (ep & 1)
     {
@@ -295,7 +301,6 @@ int dwc3_init(__iomem base_addr)
 
     if (err != PB_OK)
         return err;
-
 
     dwc3_reset();
 

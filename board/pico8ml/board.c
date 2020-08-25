@@ -90,7 +90,7 @@ static struct usdhc_device usdhc0 =
 {
     .base = 0x30B40000,
     .clk_ident = 0x20EF,
-    .clk = 0x000F,
+    .clk = 0x0010,
     .bus_mode = USDHC_BUS_HS200,
     .bus_width = USDHC_BUS_8BIT,
     .boot_bus_cond = 0x0,
@@ -235,7 +235,7 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     if (verbose_boot)
     {
         bootargs = "console=ttymxc0,115200 " \
-                         "earlyprintk ";
+                         "earlycon=ec_imx6q,0x30860000,115200 earlyprintk ";
     }
     else
     {
@@ -243,5 +243,6 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
                          "quiet ";
     }
 
+    LOG_DBG("Bootargs: '%s'", bootargs);
     return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 }

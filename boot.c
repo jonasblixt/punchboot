@@ -561,7 +561,7 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     printf("--- Timing report begin ---\n\r");
     timestamp_foreach(first_ts, ts)
     {
-        printf("%s %u us\n\r", timestamp_description(ts), 
+        printf("%s %u us\n\r", timestamp_description(ts),
                                 timestamp_read_us(ts));
     }
 
@@ -574,9 +574,6 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 #endif
 
     arch_clean_cache_range((uintptr_t) &jump_addr, sizeof(jump_addr));
-
-    //LOG_DBG("dtb_size = %zu", dtb_size);
-    //LOG_DBG("sizeof(jump_addr) = %zu", sizeof(jump_addr));
     arch_disable_mmu();
 
 #ifdef CONFIG_OVERRIDE_ARCH_JUMP
@@ -595,8 +592,8 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 #else
     LOG_DBG("Jumping to %p", (void *) jump_addr);
     arch_jump((void *) jump_addr, NULL, NULL, NULL, NULL);
-#endif
-#endif
+#endif  // CONFIG_BOOT_ENABLE_DTB_BOOTARG
+#endif  // CONFIG_OVERRIDE_ARCH_JUMP
 
     LOG_ERR("Jump returned %p", (void *) jump_addr);
     return -PB_ERR;
