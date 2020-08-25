@@ -352,6 +352,7 @@ static int cmd_stream_write(void)
 static int cmd_part_verify(void)
 {
     int rc;
+    int buffer_id = 0;
 
     struct pb_command_verify_part *verify_cmd = \
         (struct pb_command_verify_part *) cmd.request;
@@ -432,7 +433,9 @@ static int cmd_part_verify(void)
         blocks = blocks_to_check>(CONFIG_CMD_BUF_SIZE_KB/2)? \
                    (CONFIG_CMD_BUF_SIZE_KB/2):blocks_to_check;
 
-        rc = pb_storage_read(sdrv, map, buffer,
+        buffer_id = !buffer_id;
+
+        rc = pb_storage_read(sdrv, map, buffer[buffer_id],
                                 blocks, block_offset);
 
         if (rc != PB_OK)
@@ -444,7 +447,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = plat_hash_update(&hash_ctx, buffer,
+        rc = plat_hash_update(&hash_ctx, buffer[buffer_id],
                                     (blocks*sdrv->block_size));
 
         if (rc != PB_OK)
