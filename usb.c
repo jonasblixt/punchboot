@@ -120,7 +120,7 @@ static int usb_send_ep0(struct pb_usb_interface *iface,
 
     if (rc != PB_OK)
         return rc;
-
+    LOG_ERR("Debug1");
     return iface->read(USB_EP0_OUT, NULL, 0);
 }
 

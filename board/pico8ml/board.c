@@ -90,7 +90,7 @@ static struct usdhc_device usdhc0 =
 {
     .base = 0x30B40000,
     .clk_ident = 0x20EF,
-    .clk = 0x0010,
+    .clk = 0x000F,
     .bus_mode = USDHC_BUS_HS200,
     .bus_width = USDHC_BUS_8BIT,
     .boot_bus_cond = 0x0,

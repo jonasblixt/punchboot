@@ -132,8 +132,6 @@ static int dwc3_transfer_no_wait(int ep, void *bfr, size_t sz)
     struct dwc3_trb *trb = dwc3_get_next_trb();
     size_t xfr_sz = sz;
 
-    pb_delay_us(200);
-
     if (ep & 1)
     {
         arch_clean_cache_range((uintptr_t) bfr, sz);
