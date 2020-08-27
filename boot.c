@@ -522,36 +522,19 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 
     LOG_DBG("Ready to jump");
 
-#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
-    bool abort_boot = false;
-
-    rc = plat_late_boot(&abort_boot, manual);
-
-    if (rc != PB_OK)
-        return rc;
-
-    if (abort_boot)
-    {
-        LOG_INFO("Aborting boot process");
-        return PB_OK;
-    }
-#endif
-
     if (ts_total)
     {
         timestamp_end(ts_total);
 
 #if (CONFIG_BOOT_DT && CONFIG_BOOT_POP_TIMING)
+        rc = fdt_setprop_u32((void *) fdt, offset, "pb,boot-time",
+                                                 timestamp_read_us(ts_total));
 
-    rc = fdt_setprop_u32((void *) fdt, offset, "pb,boot-time",
-                                             timestamp_read_us(ts_total));
-
-    if (rc)
-    {
-        LOG_ERR("Could not pb,boot-time");
-        return -PB_ERR;
-    }
-
+        if (rc)
+        {
+            LOG_ERR("Could not pb,boot-time");
+            return -PB_ERR;
+        }
 #endif
     }
 
@@ -572,6 +555,22 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     size_t dtb_size = bpak_part_size(pdtb);
     arch_clean_cache_range(*dtb, dtb_size);
 #endif
+
+#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
+    bool abort_boot = false;
+
+    rc = plat_late_boot(&abort_boot, manual);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (abort_boot)
+    {
+        LOG_INFO("Aborting boot process");
+        return PB_OK;
+    }
+#endif
+
 
     arch_clean_cache_range((uintptr_t) &jump_addr, sizeof(jump_addr));
     arch_disable_mmu();
