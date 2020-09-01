@@ -49,6 +49,8 @@ void arch_disable_mmu(void)
                       ((uintptr_t) &_stack_start);
 
     arch_clean_cache_range(stack_start, stack_size);
+    arch_invalidate_cache_range(stack_start, stack_size);
+
     LOG_DBG("Disabling MMU");
     disable_mmu_el3();
     LOG_DBG("Done");
