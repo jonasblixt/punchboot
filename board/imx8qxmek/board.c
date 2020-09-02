@@ -100,7 +100,7 @@ static uint8_t usdhc0_dev_private_data[4096*4] __no_bss __a4k;
 static uint8_t usdhc0_gpt_map_data[4096*10] __no_bss __a4k;
 static uint8_t usdhc0_map_data[4096*4] __no_bss __a4k;
 
-static const struct usdhc_device usdhc0 =
+static struct usdhc_device usdhc0 =
 {
     .base = 0x5B010000,
     .clk_ident = 0x08EF,
