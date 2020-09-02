@@ -24,5 +24,8 @@ arch_jump:
     mov x2, x7
     ldr x3, =0
 
+    ic iallu  /* Invalidate the whole I$ */
+    dsb sy    /* Ensure completion of cache op */
+
     br x4
     b .
