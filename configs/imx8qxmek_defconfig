@@ -44,12 +44,8 @@ CONFIG_IMX_USBDCD_BASE=0x5b100800
 # Output image
 #
 CONFIG_IMX8X_CREATE_IMX_IMAGE=y
-CONFIG_IMX8X_SCFW_IMAGE="blobs/scfw_tcm.bin"
-CONFIG_IMX8X_AHAB_IMAGE="blobs/mx8qx-ahab-container.img"
 CONFIG_IMX8X_SIGN_IMAGE=y
-CONFIG_IMX8X_SRK_TABLE="pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin"
 CONFIG_IMX8X_KEY_INDEX=0
-CONFIG_IMX8X_SIGN_CERT="pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem"
 # end of Output image
 
 #
