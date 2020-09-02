@@ -198,12 +198,14 @@ static int caam_ecdsa_verify(struct pb_hash_context *hash,
         case BPAK_KEY_PUB_PRIME256v1:
             caam_sig_type = 2;
         break;
+#if CONFIG_PLAT_IMX8X
         case BPAK_KEY_PUB_SECP384r1:
             caam_sig_type = 3;
         break;
         case BPAK_KEY_PUB_SECP521r1:
             caam_sig_type = 4;
         break;
+#endif
         default:
             LOG_ERR("Unknown signature format");
             return -PB_ERR;
