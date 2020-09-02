@@ -47,7 +47,7 @@ void pb_main(void)
 
     plat_console_init();
 
-#if LOGLEVEL > 0
+#if LOGLEVEL > 1
     printf("\n\r\n\rPB " PB_VERSION " starting\n\r");
 #endif
 
