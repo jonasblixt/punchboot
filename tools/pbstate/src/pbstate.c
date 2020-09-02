@@ -143,6 +143,8 @@ static int pbstate_commit(void)
         goto commit_err_out;
     }
 
+    sync(); /* Ensure that data is written to disk */
+
 commit_err_out:
     close(fd);
 commit_err_out1:
