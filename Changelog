@@ -1,3 +1,10 @@
+v0.8.2 (2020-09-02)
+------
+Bugfixes:
+	Armv8: Invalidate instruction cache before jump
+	pbtools: Partition UUID fix
+	board/imx8qxmek: usdhc0 struct should not be const
+
 v0.8.0 (2020-08-31)
 ------
 
