@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -253,7 +254,7 @@ int pbstate_load(const char *_device, pbstate_printfunc_t _printfunc)
     if (!primary_ok && backup_ok)
     {
         LOG("Primary configuration corrupt, using backup\n");
-        memcpy(&config, &config_backup, sizeof(*config));
+        memcpy(&config, &config_backup, sizeof(config));
     }
     else if (!primary_ok)
     {
