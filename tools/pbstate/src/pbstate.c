@@ -187,7 +187,7 @@ int pbstate_load(const char *_device, pbstate_printfunc_t _printfunc)
 
     err = gpt_init(device, &table);
     if (err != GPT_OK) {
-        LOG("Error: Failed to load GPT\n");
+        LOG("Error: Failed to load GPT %i\n", err);
         errno = ENOMEM;
         return -1;
     }
@@ -248,8 +248,15 @@ int pbstate_load(const char *_device, pbstate_printfunc_t _printfunc)
         goto load_error_close;
     }
 
-    primary_ok = config_validate(&config) != 0;
-    backup_ok = config_validate(&config_backup) != 0;
+    if (config_validate(&config) == GPT_OK)
+        primary_ok = true;
+    else
+        primary_ok = false;
+
+    if (config_validate(&config_backup) == GPT_OK)
+        backup_ok = true;
+    else
+        backup_ok = false;
 
     if (!primary_ok && backup_ok)
     {
