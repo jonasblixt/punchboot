@@ -11,8 +11,12 @@ ifdef CONFIG_PLAT_IMX8X
 
 CST_TOOL ?= cst
 MKIMAGE ?= mkimage_imx8x
-
+IMX8X_AHAB_IMAGE ?= mx8qx-ahab-container.img
+IMX8X_SCFW_IMAGE ?= scfw_tcm.bin
+IMX8X_SRK_TABLE ?= pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin
+IMX8X_SIGN_CERT ?= pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem
 PB_CSF_TEMPLATE = plat/imx8x/pb.csf.template
+
 SED = $(shell which sed)
 
 src-y  += plat/imx/usdhc.c
@@ -42,12 +46,16 @@ ldflags-y += -Tplat/imx8x/link.lds
 .PHONY: imx8x_image imx8x_sign_image
 
 imx8x_image: $(BUILD_DIR)/$(TARGET).bin
+	@echo Using SCFW image: $(shell readlink -f $(IMX8X_SCFW_IMAGE))
+	@echo Using AHAB image: $(shell readlink -f $(IMX8X_AHAB_IMAGE))
+	@echo Using SRK Table: $(shell readlink -f $(IMX8X_SRK_TABLE))
+	@echo Using signing cert: $(shell readlink -f $(IMX8X_SIGN_CERT))
 	@$(MKIMAGE) -commit > $(BUILD_DIR)/head.hash
 	@cat $(BUILD_DIR)/pb.bin $(BUILD_DIR)/head.hash > $(BUILD_DIR)/pb_hash.bin
 	@$(MKIMAGE) -soc QX -rev B0 \
 				  -e emmc_fast \
-				  -append $(CONFIG_IMX8X_AHAB_IMAGE) \
-				  -c -scfw $(CONFIG_IMX8X_SCFW_IMAGE) \
+				  -append $(IMX8X_AHAB_IMAGE) \
+				  -c -scfw $(IMX8X_SCFW_IMAGE) \
 				  -ap $(BUILD_DIR)/pb_hash.bin a35 $(PB_ENTRY) \
 				  -out $(BUILD_DIR)/pb.imx
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
@@ -55,8 +63,8 @@ imx8x_image: $(BUILD_DIR)/$(TARGET).bin
 imx8x_sign_image: imx8x_image
 	@cp $(PB_CSF_TEMPLATE) $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__KEY_INDEX__#$(CONFIG_IMX8X_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf
-	@$(SED) -i -e 's#__SRK_TBL__#$(CONFIG_IMX8X_SRK_TABLE)#g' $(BUILD_DIR)/pb.csf
-	@$(SED) -i -e 's#__CSFK_PEM__#$(CONFIG_IMX8X_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__SRK_TBL__#$(IMX8X_SRK_TABLE)#g' $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__CSFK_PEM__#$(IMX8X_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__FILE__#$(BUILD_DIR)/pb.imx#g' $(BUILD_DIR)/pb.csf
 	@$(CST_TOOL) -i $(BUILD_DIR)/pb.csf -o $(BUILD_DIR)/$(TARGET)_signed.imx  > /dev/null
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET)_signed.imx)
