@@ -50,3 +50,4 @@ config IMX8X_SIGN_IMAGE
     bool "Sign image"
     default n
     depends on IMX8X_CREATE_IMX_IMAGE
+endmenu
