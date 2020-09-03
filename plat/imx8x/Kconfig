@@ -50,9 +50,3 @@ config IMX8X_SIGN_IMAGE
     bool "Sign image"
     default n
     depends on IMX8X_CREATE_IMX_IMAGE
-
-config IMX8X_KEY_INDEX
-    int "Signing key index (0-3)"
-    default 0
-    depends on IMX8X_SIGN_IMAGE
-endmenu

@@ -15,6 +15,8 @@ IMX8X_AHAB_IMAGE ?= mx8qx-ahab-container.img
 IMX8X_SCFW_IMAGE ?= scfw_tcm.bin
 IMX8X_SRK_TABLE ?= pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin
 IMX8X_SIGN_CERT ?= pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem
+IMX8X_KEY_INDEX ?= 0
+IMX8X_KEY_REVOKE_MASK ?= 0
 PB_CSF_TEMPLATE = plat/imx8x/pb.csf.template
 
 SED = $(shell which sed)
@@ -62,7 +64,8 @@ imx8x_image: $(BUILD_DIR)/$(TARGET).bin
 
 imx8x_sign_image: imx8x_image
 	@cp $(PB_CSF_TEMPLATE) $(BUILD_DIR)/pb.csf
-	@$(SED) -i -e 's#__KEY_INDEX__#$(CONFIG_IMX8X_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__KEY_INDEX__#$(IMX8X_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf
+	@$(SED) -i -e 's#__KEY_REVOKE_MASK__#$(IMX8X_KEY_REVOKE_MASK)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__SRK_TBL__#$(IMX8X_SRK_TABLE)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__CSFK_PEM__#$(IMX8X_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__FILE__#$(BUILD_DIR)/pb.imx#g' $(BUILD_DIR)/pb.csf
