@@ -507,8 +507,9 @@ int plat_slc_key_active(uint32_t id, bool *active)
     }
 
     uint32_t revoke_value = (1 << rom_index);
+    uint8_t rom_key_mask = (rom_key_revoke_fuse.value >> 8) & 0x0f;
 
-    if ((rom_key_revoke_fuse.value & revoke_value) == revoke_value)
+    if ((rom_key_mask & revoke_value) == revoke_value)
         (*active) = false;
     else
         (*active) = true;
@@ -584,12 +585,16 @@ int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
     if (rc != PB_OK)
         return rc;
 
+    LOG_DBG("ROM revoke mask: %08x", rom_key_revoke_fuse.value);
+
+    uint8_t rom_key_mask = (rom_key_revoke_fuse.value >> 8) & 0x0f;
+
     for (int i = 0; i < 16; i++)
     {
         if (!rom_key_map[i])
             break;
 
-        if (rom_key_revoke_fuse.value & (1 << i))
+        if (rom_key_mask & (1 << i))
         {
             key_status.active[i] = 0;
             key_status.revoked[i] = rom_key_map[i];
