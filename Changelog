@@ -1,3 +1,11 @@
+v0.8.3 (2020-09-03)
+------
+pbstate: Split in to lib and CLI
+pbstate: Built in GPT support instead of depending on blkid library
+imx8x: Key revocation is now implemented
+imx8x: All paramters controlling image signing are now optional make
+parameters
+
 v0.8.2 (2020-09-02)
 ------
 Bugfixes:
