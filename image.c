@@ -176,6 +176,20 @@ int pb_image_load(pb_image_read_t read_f,
         return -PB_ERR;
     }
 
+    bool active = false;
+
+    rc = plat_slc_key_active(*key_id, &active);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (!active)
+    {
+        LOG_ERR("Invalid or revoked key (%x)", *key_id);
+        return -PB_ERR;
+    }
+
+
     switch (h->hash_kind)
     {
         case BPAK_HASH_SHA256:
