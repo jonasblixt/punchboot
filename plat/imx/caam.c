@@ -273,7 +273,10 @@ int caam_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
     uint8_t dc = 0;
     int err = PB_OK;
 
-    arch_clean_cache_range((uintptr_t) buf, size);
+    if (size)
+    {
+        arch_clean_cache_range((uintptr_t) buf, size);
+    }
 
     if (!ctx->init)
     {
