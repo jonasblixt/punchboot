@@ -118,7 +118,8 @@ all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
 	@echo "Success, final output: $(FINAL_OUTPUT)"
 
-keystore:
+$(BUILD_DIR)/keystore.o:
+	@echo GEN $(BUILD_DIR)/keystore.c
 	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) > $(BUILD_DIR)/keystore.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
@@ -128,7 +129,7 @@ $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	$(Q)$(STRIP) --strip-all $<
 	$(Q)$(OBJCOPY) -O binary -R .comment $< $@
 
-$(BUILD_DIR)/$(TARGET): keystore $(OBJS) $(BLOB_OBJS)
+$(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS)
 	@echo LD $@
 	$(Q)$(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS) $(LIBS) -o $@
 
