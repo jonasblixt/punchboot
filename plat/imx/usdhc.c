@@ -353,8 +353,9 @@ static int imx_usdhc_read(struct pb_storage_driver *drv,
                             size_t n_blocks)
 {
     int rc;
-    rc = imx_usdhc_xfer_blocks(drv, block_offset, data, n_blocks, 0, 0);
 
+    arch_clean_cache_range((uintptr_t) data, n_blocks * 512);
+    rc = imx_usdhc_xfer_blocks(drv, block_offset, data, n_blocks, 0, 0);
     arch_invalidate_cache_range((uintptr_t) data, n_blocks * 512);
     return rc;
 }
