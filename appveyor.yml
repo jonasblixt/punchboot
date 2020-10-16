@@ -14,7 +14,7 @@ matrix:
 
 install:
   # bitpacker
-  - git clone https://github.com/jonasblixt/bpak.git "C:\bpak" --depth 1 --branch v0.3.0
+  - git clone https://github.com/jonasblixt/bpak.git "C:\bpak" --depth 1 --branch v0.4.0
   # libwdi, specific commit checked out in build step
   - git clone https://github.com/pbatard/libwdi.git "C:\libwdi"
   # install innosetup for creating installers
@@ -29,7 +29,7 @@ build_script:
   - C:\msys64\usr\bin\bash -lc "pacman -Syu --noconfirm"
   - C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm mingw-w64-x86_64-gcc mingw-w64-x86_64-pkg-config"
   - C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm mingw-w64-x86_64-python mingw-w64-x86_64-python-setuptools"
-  - C:\msys64\usr\bin\bash -lc "pacman -U --noconfirm http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libusb-1.0.21-1-any.pkg.tar.xz"
+  - C:\msys64\usr\bin\bash -lc "pacman -U --noconfirm http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libusb-1.0.23-1-any.pkg.tar.xz"
   - C:\msys64\usr\bin\bash -lc "pacman -Sy --noconfirm autoconf-archive libtool"
 
   # Build bpak

@@ -1,7 +1,7 @@
 COMMON_TEST_CFLAGS = -I $(top_srcdir)/include \
                      -I $(top_srcdir)/lib \
                      $(LIBUSB_CFLAGS) \
-                     $(BPAK_CFLAGS) \
+                     $(BPAK_CFLAGS) \
                      $(BPAK_LDFLAGS) \
                      -fsanitize=address \
                      -no-pie -g -O0 \
@@ -12,15 +12,15 @@ COMMON_TEST_LDADD = libnala.la \
                     $(LIBUSB_LIBS) \
                     $(BPAK_LIBS)
 
-COMMON_SRCS = common.c \
-              command.c \
-			 ../src/uuid/clear.c \
-			 ../src/uuid/compare.c \
-			 ../src/uuid/isnull.c \
-			 ../src/uuid/pack.c \
-			 ../src/uuid/parse.c \
-			 ../src/uuid/unpack.c \
-			 ../src/uuid/unparse.c \
+COMMON_SRCS = command.c \
+              common.c \
+             ../src/uuid/clear.c \
+             ../src/uuid/compare.c \
+             ../src/uuid/isnull.c \
+             ../src/uuid/pack.c \
+             ../src/uuid/parse.c \
+             ../src/uuid/unpack.c \
+             ../src/uuid/unparse.c \
               test_command_loop.c
 
 check_LTLIBRARIES = libnala.la
@@ -38,8 +38,8 @@ check_PROGRAMS = test_help \
                  test_error_codes \
                  test_bootloader_version \
                  test_stream \
-				 test_boot \
-				 test_board
+                 test_boot \
+                 test_board
 
 test_help_SOURCES = $(COMMON_SRCS) test_help.c
 test_help_LDADD = $(COMMON_TEST_LDADD)
@@ -93,8 +93,8 @@ test_board_SOURCES = $(COMMON_SRCS) test_board.c
 test_board_LDADD = $(COMMON_TEST_LDADD)
 test_board_CFLAGS = $(COMMON_TEST_CFLAGS)
 
-TESTS =	prepare_bpak_file.sh \
-		test_help \
+TESTS =    prepare_bpak_file.sh \
+        test_help \
         test_ctx \
         test_wire_format \
         test_magic \
@@ -104,6 +104,6 @@ TESTS =	prepare_bpak_file.sh \
         test_api_partition \
         test_error_codes \
         test_bootloader_version \
-		test_stream \
-		test_boot \
-		test_board
+        test_stream \
+        test_boot \
+        test_board

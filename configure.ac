@@ -1,7 +1,7 @@
 dnl Punchboot tools
 
 AC_PREREQ(2.59)
-AC_INIT([punchboot], [0.1.20], [Jonas Blixt, <jonpe960@gmail.com>])
+AC_INIT([punchboot], [0.2.0], [Jonas Blixt, <jonpe960@gmail.com>])
 
 m4_pattern_forbid([^AX_(CHECK_ENABLE_DEBUG|CODE_COVERAGE|COMPILER_FLAGS|COMPILER_FLAGS_(CFLAGS|CXXFLAGS|LDFLAGS))\b],
   [Unexpanded AX_ macro found. Please install GNU autoconf-archive])
@@ -30,7 +30,7 @@ AC_SUBST(LIBUSB_CFLAGS)
 AC_SUBST(LIBUSB_LDFLAGS)
 AC_SUBST(LIBUSB_LIBS)
 
-PKG_CHECK_MODULES(BPAK, [bpak >= 0.2.0])
+PKG_CHECK_MODULES(BPAK, [bpak >= 0.4.0])
 AC_SUBST(BPAK_CFLAGS)
 AC_SUBST(BPAK_LDFLAGS)
 AC_SUBST(BPAK_LIBS)
