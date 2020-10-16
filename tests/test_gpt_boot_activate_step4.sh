@@ -25,9 +25,10 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
-                    --key-id pb-development \
-                    --key-store pb $V
+$BPAK set $IMG --key-id pb-development \
+               --keystore-id pb $V
+
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem
 set +e
 result_code=$?
 

@@ -14,12 +14,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define BPAK_HEADER_MAGIC 0x4250414b
+#define BPAK_HEADER_MAGIC 0x42504132
 #define BPAK_MAX_PARTS 32
 #define BPAK_MAX_META 32
-#define BPAK_METADATA_BYTES 2048
+#define BPAK_METADATA_BYTES 1920
 #define BPAK_PART_ALIGN 512
 #define BPAK_META_ALIGN 8
+#define BPAK_SIGNATURE_MAX_BYTES 512
 
 enum bpak_hash_kind
 {
@@ -48,6 +49,12 @@ enum bpak_errors
     BPAK_BAD_ALIGNMENT,
     BPAK_SEEK_ERROR,
     BPAK_NOT_SUPPORTED,
+};
+
+enum bpak_header_pos
+{
+    BPAK_HEADER_POS_FIRST,
+    BPAK_HEADER_POS_LAST,
 };
 
 /* Data within this part is not included in hashing context */
@@ -107,9 +114,15 @@ struct bpak_header
     uint8_t hash_kind;                     /* is aligned to a BPAK_META_ALIGN */
     uint8_t signature_kind;                /*  boundary */
     uint16_t alignment;
-    uint8_t pad1[500];   /* Pad to 4kByte, set to zero */
+    uint8_t payload_hash[64];
+    uint32_t key_id;
+    uint32_t keystore_id;
+    uint8_t pad1[42];
+    uint8_t signature[BPAK_SIGNATURE_MAX_BYTES];
+    uint16_t signature_sz;
 } __attribute__ ((packed));
 
+#define BPAK_MIN(__a, __b) (((__a) > (__b))?(__b):(__a))
 
 #define bpak_foreach_part(__hdr, __var) \
     for (struct bpak_part_header *__var = (__hdr)->parts; \
@@ -191,6 +204,16 @@ int bpak_add_part(struct bpak_header *hdr, uint32_t id,
 int bpak_valid_header(struct bpak_header *hdr);
 
 /*
+ * Copy the signature to '*signature' and zero out the signature area in the
+ *  header.
+ *
+ * Signature size is returned in '*size'
+ **/
+
+int bpak_copyz_signature(struct bpak_header *header, uint8_t *signature,
+                         size_t *size);
+
+/*
  * Initialize empty header structure
  */
 int bpak_init_header(struct bpak_header *hdr);
@@ -219,5 +242,7 @@ const char *bpak_signature_kind(uint8_t signature_kind);
 const char *bpak_hash_kind(uint8_t hash_kind);
 
 int bpak_printf(int verbosity, const char *fmt, ...);
+
+const char *bpak_version(void);
 
 #endif  // INCLUDE_BPAK_BPAK_H_

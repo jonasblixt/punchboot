@@ -116,8 +116,6 @@ int pb_image_load(pb_image_read_t read_f,
     struct bpak_key *k = NULL;
     int hash_kind;
     struct bpak_keystore *keystore = pb_keystore();
-    uint32_t *key_id = NULL;
-    uint32_t *keystore_id = NULL;
 
     timestamp_begin(&ts_load);
 
@@ -129,33 +127,10 @@ int pb_image_load(pb_image_read_t read_f,
         return PB_ERR;
     }
 
-    rc = pb_image_check_header();
+    LOG_DBG("Key-store: %x", h->keystore_id);
+    LOG_DBG("Key-ID: %x", h->key_id);
 
-    if (rc != PB_OK)
-        return rc;
-
-                          /* bpak-key-id */
-    rc = bpak_get_meta(h, 0x7da19399, (void **) &key_id);
-
-    if (!key_id || (rc != BPAK_OK))
-    {
-        LOG_ERR("Missing bpak-key-id meta\n");
-        return -PB_ERR;
-    }
-
-                        /* bpak-key-store */
-    rc = bpak_get_meta(h, 0x106c13a7, (void **) &keystore_id);
-
-    if (!keystore_id || (rc != BPAK_OK))
-    {
-        LOG_ERR("Missing bpak-key-store meta\n");
-        return -PB_ERR;
-    }
-
-    LOG_DBG("Key-store: %x", *keystore_id);
-    LOG_DBG("Key-ID: %x", *key_id);
-
-    if (*keystore_id != keystore->id)
+    if (h->keystore_id != keystore->id)
     {
         LOG_ERR("Invalid key-store");
         return -PB_ERR;
@@ -163,7 +138,7 @@ int pb_image_load(pb_image_read_t read_f,
 
     for (int i = 0; i < keystore->no_of_keys; i++)
     {
-        if (keystore->keys[i]->id == *key_id)
+        if (keystore->keys[i]->id == h->key_id)
         {
             k = keystore->keys[i];
             break;
@@ -178,28 +153,32 @@ int pb_image_load(pb_image_read_t read_f,
 
     bool active = false;
 
-    rc = plat_slc_key_active(*key_id, &active);
+    rc = plat_slc_key_active(h->key_id, &active);
 
     if (rc != PB_OK)
         return rc;
 
     if (!active)
     {
-        LOG_ERR("Invalid or revoked key (%x)", *key_id);
+        LOG_ERR("Invalid or revoked key (%x)", h->key_id);
         return -PB_ERR;
     }
 
+    size_t hash_sz = 0;
 
     switch (h->hash_kind)
     {
         case BPAK_HASH_SHA256:
             hash_kind = PB_HASH_SHA256;
+            hash_sz = 32;
         break;
         case BPAK_HASH_SHA384:
             hash_kind = PB_HASH_SHA384;
+            hash_sz = 48;
         break;
         case BPAK_HASH_SHA512:
             hash_kind = PB_HASH_SHA512;
+            hash_sz = 64;
         break;
         default:
             rc = -PB_ERR;
@@ -213,37 +192,42 @@ int pb_image_load(pb_image_read_t read_f,
     if (rc != PB_OK)
         return rc;
 
-    signature_sz = 0;
+    signature_sz = sizeof(signature);
 
+    rc = bpak_copyz_signature(h, signature, &signature_sz);
 
-    /* Copy and zero out the signature metadata before hasing header */
-    bpak_foreach_meta(h, m)
+    if (rc != PB_OK)
+        return rc;
+
+    rc = plat_hash_update(&hash, h, sizeof(*h));
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = plat_hash_finalize(&hash, NULL, 0);
+
+    if (rc != PB_OK)
+        return rc;
+
+    timestamp_begin(&ts_signature);
+
+    rc = plat_pk_verify(signature, signature_sz, &hash, k);
+
+    if (rc == PB_OK)
     {
-                    /* bpak-signature */
-        if (m->id == 0xe5679b94)
-        {
-            LOG_DBG("sig zero");
-            uint8_t *ptr = &(h->metadata[m->offset]);
-
-            if (m->size > sizeof(signature))
-            {
-                LOG_ERR("Signature metadata is too large\n");
-                return -PB_ERR;
-            }
-
-            memcpy(signature, ptr, m->size);
-            signature_sz = m->size;
-            memset(ptr, 0, m->size);
-            memset(m, 0, sizeof(*m));
-            break;
-        }
+        LOG_INFO("Signature Valid");
+    }
+    else
+    {
+        LOG_ERR("Signature Invalid");
     }
 
-    if (!signature_sz)
-    {
-        LOG_ERR("Could not find a valid signature");
-        return -PB_ERR;
-    }
+    timestamp_end(&ts_signature);
+
+    rc = pb_image_check_header();
+
+    if (rc != PB_OK)
+        return rc;
 
     if (result_f)
     {
@@ -253,7 +237,9 @@ int pb_image_load(pb_image_read_t read_f,
             return rc;
     }
 
-    rc = plat_hash_update(&hash, h, sizeof(*h));
+    /* Compute payload hash */
+
+    rc = plat_hash_init(&hash, hash_kind);
 
     if (rc != PB_OK)
         return rc;
@@ -326,22 +312,13 @@ int pb_image_load(pb_image_read_t read_f,
     if (rc != PB_OK)
         return rc;
 
+    if (memcmp(h->payload_hash, hash.buf, hash_sz) != 0)
+    {
+        LOG_ERR("Payload hash incorrect");
+        return -1;
+    }
+
     timestamp_end(&ts_load);
-
-    timestamp_begin(&ts_signature);
-
-    rc = plat_pk_verify(signature, signature_sz, &hash, k);
-
-    if (rc == PB_OK)
-    {
-        LOG_INFO("Signature Valid");
-    }
-    else
-    {
-        LOG_ERR("Signature Invalid");
-    }
-
-    timestamp_end(&ts_signature);
 
     return rc;
 }

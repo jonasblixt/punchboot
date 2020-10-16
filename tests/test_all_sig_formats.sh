@@ -26,9 +26,10 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key pki/secp521r1-key-pair.pem \
-                    --key-id pb-development3 \
-                    --key-store pb $V
+$BPAK set $IMG --key-id pb-development3 \
+               --keystore-id pb $V
+
+$BPAK sign $IMG --key pki/secp521r1-key-pair.pem
 set +e
 
 $PB boot --load /tmp/img.bpak --transport socket
@@ -59,9 +60,10 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key pki/secp384r1-key-pair.pem \
-                    --key-id pb-development2 \
-                    --key-store pb $V
+$BPAK set $IMG --key-id pb-development2 \
+               --keystore-id pb $V
+
+$BPAK sign $IMG --key pki/secp384r1-key-pair.pem
 
 set +e
 $PB boot --load /tmp/img.bpak --transport socket
@@ -92,9 +94,10 @@ $BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
 $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
-$BPAK sign $IMG --key pki/dev_rsa_private.pem \
-                    --key-id pb-development4 \
-                    --key-store pb $V
+$BPAK set $IMG --key-id pb-development4 \
+               --keystore-id pb $V
+
+$BPAK sign $IMG --key pki/dev_rsa_private.pem
 
 set +e
 $PB boot --load /tmp/img.bpak --transport socket

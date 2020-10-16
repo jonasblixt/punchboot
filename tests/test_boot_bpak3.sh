@@ -26,9 +26,10 @@ $BPAK add $IMG --part kernel \
                --from-file /tmp/random_data $V
 
 
-$BPAK sign $IMG --key pki/secp256r1-key-pair.pem \
-                    --key-id pb-development \
-                    --key-store pb $V
+$BPAK set $IMG --key-id pb-development \
+               --keystore-id pb $V
+
+$BPAK sign $IMG --key pki/secp256r1-key-pair.pem
 set +e
 result_code=$?
 
