@@ -343,7 +343,6 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 
 #ifdef CONFIG_BOOT_RAMDISK
     uintptr_t *ramdisk = 0;
-    uint32_t *key_id = NULL;
 
     rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
                             CONFIG_BOOT_RAMDISK_ID, (void **) &ramdisk);
@@ -440,17 +439,8 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     /* SLC state */
     fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
 
-                          /* bpak-key-id */
-    rc = bpak_get_meta(h, 0x7da19399, (void **) &key_id);
-
-    if (!key_id || (rc != BPAK_OK))
-    {
-        LOG_ERR("Missing bpak-key-id meta\n");
-        return -PB_ERR;
-    }
-
     /* Current key ID we're using for boot image */
-    fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", *key_id);
+    fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", h->key_id);
 
     struct pb_result_slc_key_status *key_status;
 
