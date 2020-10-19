@@ -340,3 +340,11 @@ Using hardware accelerators for SHA and RSA signatures:
 The POR time is off due to some unidentified problem with the SCU firmware.
  A guess would be that this metric should be in the 20ms -range.
 
+## Contributing
+
+1. Fork the repository
+2. Implement new feature or bugfix on a branch
+3. Implement test case(s) to ensure that future changes do not break legacy
+4. Run checks: cp configs/test_defconfig .config && make check
+5. Create pull request
+
