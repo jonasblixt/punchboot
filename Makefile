@@ -104,6 +104,7 @@ OBJS += $(patsubst %.c, $(BUILD_DIR)/%.o, $(src-y))
 OBJS += $(patsubst %.S, $(BUILD_DIR)/%.o, $(asm-y))
 
 BLOB_OBJS = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(blobs-y))
+BLOB_OBJS2 = $(patsubst %.bin, $(BUILD_DIR)/%.bino, $(notdir $(blobs-y)))
 
 DEPS      = $(OBJS:.o=.d)
 
@@ -131,12 +132,15 @@ $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 
 $(BUILD_DIR)/$(TARGET): $(BUILD_DIR)/keystore.o $(OBJS) $(BLOB_OBJS)
 	@echo LD $@
-	$(Q)$(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS) $(LIBS) -o $@
+	$(Q)$(LD) $(ldflags-y) $(OBJS) $(BLOB_OBJS2) $(LIBS) -o $@
 
 $(BUILD_DIR)/%.bino: %.bin
 	@mkdir -p $(@D)
-	@echo BLOB $< $@
-	$(Q)$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) $< $@
+	@mkdir -p blobs/
+	@mkdir -p $(BUILD_DIR)/blobs
+	@cp $< blobs/
+	@echo BLOB $< $(notdir $<)
+	$(Q)$(OBJCOPY) -I binary -O $(ARCH_OUTPUT) -B $(ARCH) blobs/$(notdir $<) $(BUILD_DIR)/$(notdir $@)
 
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(@D)
