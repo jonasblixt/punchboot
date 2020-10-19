@@ -215,6 +215,7 @@ int dwc3_init(__iomem base_addr)
     base = base_addr;
     _ev_index = 0;
 
+    LOG_DBG("DWC3 init %llx", base_addr);
 
     pb_clrbit32((DWC3_PHY_CTRL1_VDATSRCENB0 | DWC3_PHY_CTRL1_VDATDETENB0 |
             DWC3_PHY_CTRL1_COMMONONN), base + DWC3_PHY_CTRL1);

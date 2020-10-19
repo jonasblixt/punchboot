@@ -23,7 +23,8 @@ SED = $(shell which sed)
 
 src-y  += plat/imx/usdhc.c
 src-y  += plat/imx/lpuart.c
-src-y  += plat/imx/ehci.c
+src-$(CONFIG_IMX8X_USB1)  += plat/imx/ehci.c
+src-$(CONFIG_IMX8X_USB2)  += plat/imx/dwc3.c
 src-y  += plat/imx/caam.c
 src-y  += plat/imx/gpio.c
 src-y  += plat/imx8x/plat.c

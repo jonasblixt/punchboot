@@ -18,7 +18,7 @@
 #include <pb/board.h>
 #include <pb/storage.h>
 #include <pb/boot.h>
-#include <plat/imx/ehci.h>
+#include <plat/imx/dwc3.h>
 #include <plat/imx/usdhc.h>
 #include <plat/defs.h>
 #include <plat/sci/ipc.h>

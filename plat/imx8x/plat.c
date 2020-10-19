@@ -22,6 +22,7 @@
 #include <plat/imx/usdhc.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/ehci.h>
+#include <plat/imx/dwc3.h>
 #include <plat/imx/caam.h>
 #include <plat/sci/ipc.h>
 #include <plat/sci/sci.h>
@@ -72,6 +73,7 @@ static const mmap_region_t imx_mmap[] = {
     MAP_REGION_FLAT(0x5b280000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 3*/
     MAP_REGION_FLAT(0x5b200000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USDHC0*/
     MAP_REGION_FLAT(0x5b210000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USDHC0*/
+    MAP_REGION_FLAT(0x5b120000, (256*1024), MT_DEVICE | MT_RW), /* USB 2 */
     MAP_REGION_FLAT(0x5b0d0000, (832*1024), MT_DEVICE | MT_RW), /* USB stuff*/
     MAP_REGION_FLAT(0x5b010000, (128*1024), MT_DEVICE | MT_RW), /* USDHC*/
 
@@ -617,6 +619,7 @@ int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 
 /* Transport API */
 
+#ifdef CONFIG_IMX8X_USB1
 int imx_ehci_set_address(uint32_t addr)
 {
     pb_write32((addr << 25) | (1 <<24), CONFIG_EHCI_BASE+EHCI_DEVICEADDR);
@@ -647,6 +650,53 @@ bool plat_transport_ready(void)
 {
     return imx_ehci_usb_ready();
 }
+#elif CONFIG_IMX8X_USB2
+int plat_transport_init(void)
+{
+    int err;
+
+    err = dwc3_init(CONFIG_DWC3_BASE);
+
+    if (err != PB_OK)
+    {
+        LOG_ERR("Could not initalize dwc3");
+        return err;
+    }
+
+    return PB_OK;
+}
+
+
+/* Transport API */
+
+int plat_transport_process(void)
+{
+    return dwc3_process();
+}
+
+int plat_transport_write(void *buf, size_t size)
+{
+    return dwc3_write(buf, size);
+}
+
+int plat_transport_read(void *buf, size_t size)
+{
+    return dwc3_read(buf, size);
+}
+
+bool plat_transport_ready(void)
+{
+    return dwc3_ready();
+}
+
+int imx_ehci_set_address(uint32_t addr)
+{
+    return dwc3_set_address(addr);
+}
+
+#else
+#error "No USB transport selected"
+#endif
 
 int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
 {

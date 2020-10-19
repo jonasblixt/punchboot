@@ -10,10 +10,26 @@ config LPUART_BAUDRATE
     hex "Baudrate setting"
     default 0x402008b
 
+choice IMX8X_USB
+    bool "Platform"
+config IMX8X_USB1
+    bool "Use USB1"
+    depends on PLAT_IMX8X
+config IMX8X_USB2
+    bool "Use USB2"
+    depends on PLAT_IMX8X
+endchoice
+
 comment "USB Transport"
 config EHCI_BASE
     hex "EHCI base address"
     default 0x5b0d0000
+    depends on IMX8X_USB1
+
+config DWC3_BASE
+    hex "DWC3 base address"
+    default 0x5b120000
+    depends on IMX8X_USB2
 
 comment "CAAM"
 config IMX_CAAM_BASE
