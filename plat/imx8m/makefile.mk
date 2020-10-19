@@ -59,7 +59,7 @@ imx8m_sign_image: imx8m_image
 	$(eval PB_FILESIZE_HEX=0x$(shell echo "obase=16; $(PB_FILESIZE2)" | bc	))
 	$(eval PB_CST_ADDR=0x$(shell echo "obase=16; $$(( $(PB_ENTRY) - 0x40 ))" | bc	))
 	@echo "PB imx image size: $(PB_FILESIZE) bytes ($(PB_FILESIZE_HEX)), cst addr $(PB_CST_ADDR)"
-	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x1a000 $(PB_FILESIZE_HEX) "$(BUILD_DIR)\/pb_pad.imx"/g' < $(PB_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
+	@$(SED) -e 's/__BLOCKS__/Blocks = $(PB_CST_ADDR) 0x0 $(PB_FILESIZE_HEX) "$(BUILD_DIR)\/pb_pad.imx"/g' < $(PB_CSF_TEMPLATE) > $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__KEY_INDEX__#$(CONFIG_IMX8M_KEY_INDEX)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__SRK_TBL__#$(CONFIG_IMX8M_SRK_TABLE)#g' $(BUILD_DIR)/pb.csf
 	@$(SED) -i -e 's#__CSFK_PEM__#$(CONFIG_IMX8M_SIGN_CERT)#g' $(BUILD_DIR)/pb.csf
