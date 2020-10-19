@@ -183,13 +183,13 @@ int pb_boot_driver_boot(int *dtb, int offset)
     switch (dt_part_name)
     {
         case 'A':
-            rc = fdt_setprop_string(dtb, offset, "active-system", "A");
+            rc = fdt_setprop_string(dtb, offset, "pb,active-system", "A");
         break;
         case 'B':
-            rc = fdt_setprop_string(dtb, offset, "active-system", "B");
+            rc = fdt_setprop_string(dtb, offset, "pb,active-system", "B");
         break;
         default:
-            rc = fdt_setprop_string(dtb, offset, "active-system", "?");
+            rc = fdt_setprop_string(dtb, offset, "pb,active-system", "?");
     }
 
     if (rc != PB_OK)

@@ -419,7 +419,7 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     uuid_unparse(device_uuid, device_uuid_str);
 
     LOG_DBG("Device UUID: %s", device_uuid_str);
-    fdt_setprop_string((void *) fdt, offset, "device-uuid",
+    fdt_setprop_string((void *) fdt, offset, "pb,device-uuid",
                 (const char *) device_uuid_str);
 
     LOG_DBG("Updating bootargs");
