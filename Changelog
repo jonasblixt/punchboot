@@ -1,3 +1,13 @@
+v0.9.0 (2020-10-20)
+------
+PB: Update to BPAK 0.4 which contains important security fixes and also introduces
+a breaking change to the file format. This requires users to update to
+punchboot-tools >= 0.2 and bpak >= 0.4
+
+IMX/imx8m: Allow ddr/hdmi blobs to stored externally relative to the source tree
+
+PB: Use the 'pb' prefix on all device-tree nodes that are owned by PB
+
 v0.8.3 (2020-09-03)
 ------
 pbstate: Split in to lib and CLI
