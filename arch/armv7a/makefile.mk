@@ -4,6 +4,7 @@ ARCH_OUTPUT = elf32-littlearm
 ARCH = arm
 
 cflags-y += -march=armv7-a
+cflags-y += -mfloat-abi=soft
 cflags-y += -DAARCH32
 cflags-y += -I arch/armv7a/include
 cflags-y += -I include/pb/libc/aarch32
