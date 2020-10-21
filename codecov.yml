@@ -1,6 +1,7 @@
 ignore:
-    - bearssl
-    - fdt
+    - lib/bearssl
+    - lib/fdt
+    - lib/xlat_tables
     - tests
     - plat
     - uuid
