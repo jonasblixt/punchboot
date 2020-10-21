@@ -1,3 +1,13 @@
+v0.9.1 (2020-10-21)
+------
+PB: Added pb_boot_driver_set_part_uu in the boot driver API to allow manual
+override of active boot partition. This is used when ram loading or manually
+loading from a partition to indcate which system is active.
+
+Bugfixes:
+	armv7: Force float-abi to soft otherwise it might fail on hardfloat
+	toolchains since PB does not enable neon stuff.
+
 v0.9.0 (2020-10-20)
 ------
 PB: Update to BPAK 0.4 which contains important security fixes and also introduces
