@@ -145,6 +145,7 @@ int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose);
 
 int pb_api_boot_ram(struct pb_context *ctx,
                     const void *bpak_image,
+                    uint8_t *uuid,
                     bool verbose);
 
 int pb_api_boot_activate(struct pb_context *ctx, uint8_t *uuid);

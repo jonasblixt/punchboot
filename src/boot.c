@@ -39,6 +39,7 @@ int action_boot(int argc, char **argv)
     bool flag_verbose_boot = false;
     bool flag_boot = false;
     bool flag_activate = false;
+    bool flag_part = false;
     const char *device_uuid = NULL;
 
     struct option long_options[] =
@@ -49,12 +50,13 @@ int action_boot(int argc, char **argv)
         {"device",      required_argument, 0,  'd' },
         {"load",        required_argument, 0,  'l' },
         {"boot",        required_argument, 0,  'b' },
+        {"part",        required_argument, 0,  'p' },
         {"activate",    required_argument, 0,  'a' },
         {"verbose-boot", no_argument,      0,  'W' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:d:l:a:b:W",
+    while ((opt = getopt_long(argc, argv, "hvt:d:l:a:b:Wp:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -64,6 +66,10 @@ int action_boot(int argc, char **argv)
                 return 0;
             case 'v':
                 pb_inc_verbosity();
+            break;
+            case 'p':
+                flag_part = true;
+                part_uuid = (const char *) optarg;
             break;
             case 't':
                 transport = (const char *) optarg;
@@ -168,7 +174,15 @@ int action_boot(int argc, char **argv)
 
         fclose(fp);
 
-        rc = pb_api_boot_ram(ctx, image_buffer, flag_verbose_boot);
+        uuid_t uu;
+        memset(uu, 0, sizeof(uu));
+
+        if (flag_part) {
+            uuid_parse(part_uuid, uu);
+        }
+
+        rc = pb_api_boot_ram(ctx, image_buffer, (uint8_t *) &uu,
+                                    flag_verbose_boot);
     }
     else if (flag_boot)
     {

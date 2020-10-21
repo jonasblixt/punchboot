@@ -176,7 +176,7 @@ TEST(boot_ram)
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Boot */
-    rc = pb_api_boot_ram(ctx, data, false);
+    rc = pb_api_boot_ram(ctx, data, NULL, false);
     ASSERT_EQ(rc, PB_RESULT_OK);
 
 

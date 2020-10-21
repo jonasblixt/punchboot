@@ -79,6 +79,7 @@ int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose)
 
 int pb_api_boot_ram(struct pb_context *ctx,
                     const void *bpak_image,
+                    uint8_t *uuid,
                     bool verbose)
 {
     int rc;
@@ -108,6 +109,9 @@ int pb_api_boot_ram(struct pb_context *ctx,
         boot_cmd.verbose = 1;
     else
         boot_cmd.verbose = 0;
+
+    if (uuid != NULL)
+        memcpy(boot_cmd.uuid, uuid, 16);
 
     pb_wire_init_command2(&cmd, PB_CMD_BOOT_RAM, &boot_cmd, sizeof(boot_cmd));
 

@@ -334,7 +334,8 @@ struct pb_command_boot_part
 struct pb_command_ram_boot
 {
     uint8_t verbose;    /*!< Verbose boot output */
-    uint8_t rz[31];     /*!< Reserved */
+    uint8_t uuid[16];   /*!< Make it look like we are booting this part */
+    uint8_t rz[15];     /*!< Reserved */
 } __attribute__((packed));
 
 /**
