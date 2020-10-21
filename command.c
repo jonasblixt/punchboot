@@ -602,6 +602,7 @@ static int cmd_boot_ram(void)
     }
 
     plat_transport_write(&result, sizeof(result));
+    pb_boot_driver_set_part_uu(ram_boot_cmd->uuid);
     pb_boot(NULL, ram_boot_cmd->verbose, true);
     return -PB_ERR;
 }
@@ -796,6 +797,7 @@ static int pb_command_parse(void)
             if (rc != PB_OK)
                 break;
 
+            pb_boot_driver_set_part_uu(boot_cmd->uuid);
             pb_boot(NULL, boot_cmd->verbose, true);
             /* Should not return */
             return -PB_ERR;

@@ -173,6 +173,35 @@ uint8_t *pb_boot_driver_get_part_uu(void)
     return active_uu;
 }
 
+int pb_boot_driver_set_part_uu(uint8_t *uu)
+{
+    char uu_str[37];
+
+    uuid_unparse(uu, uu_str);
+
+    LOG_DBG("Setting boot part uuid %s", uu_str);
+
+    if (strcmp(uu_str, a_part_uu_str) == 0)
+    {
+        active_uu_str = a_part_uu_str;
+        dt_part_name = 'A';
+        LOG_DBG("Booting A system");
+    }
+    else if (strcmp(uu_str, b_part_uu_str) == 0)
+    {
+        active_uu_str = b_part_uu_str;
+        dt_part_name = 'B';
+        LOG_DBG("Booting B system");
+    }
+    else
+    {
+        active_uu_str = "";
+        dt_part_name = '?';
+    }
+
+    return PB_OK;
+}
+
 int pb_boot_driver_boot(int *dtb, int offset)
 {
 
