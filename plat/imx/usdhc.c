@@ -165,7 +165,7 @@ int usdhc_emmc_check_status(struct usdhc_device *dev)
 }
 
 
-int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
+int usdhc_emmc_read_extcsd(struct usdhc_device *dev, uint8_t **output)
 {
     int err;
     struct imx_usdhc_private *priv = PB_IMX_USDHC_PRIV(dev);
@@ -212,6 +212,11 @@ int usdhc_emmc_read_extcsd(struct usdhc_device *dev)
     }
 
     arch_invalidate_cache_range((uintptr_t) priv->raw_extcsd, 512);
+
+    if (output != NULL) {
+        (*output) = priv->raw_extcsd;
+    }
+
     return PB_OK;
 }
 
@@ -792,7 +797,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     if (err != PB_OK)
         return err;
 
-    err = usdhc_emmc_read_extcsd(dev);
+    err = usdhc_emmc_read_extcsd(dev, NULL);
     if (err != PB_OK)
     {
         LOG_ERR("Could not read ext CSD");

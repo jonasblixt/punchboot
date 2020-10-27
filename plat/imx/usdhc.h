@@ -126,9 +126,11 @@
 #define EXT_CSD_EXP_EVENTS_STATUS    54    /* RO, 2 bytes */
 #define EXT_CSD_EXP_EVENTS_CTRL        56    /* R/W, 2 bytes */
 #define EXT_CSD_DATA_SECTOR_SIZE    61    /* R */
+#define EXT_CSD_ENH_SIZE_MULT       140   /* R/W, 3 bytes */
 #define EXT_CSD_GP_SIZE_MULT        143    /* R/W */
 #define EXT_CSD_PARTITION_SETTING_COMPLETED 155    /* R/W */
 #define EXT_CSD_PARTITION_ATTRIBUTE    156    /* R/W */
+#define EXT_CSD_MAX_ENH_SIZE_MULT    157    /* RO, 3 bytes */
 #define EXT_CSD_PARTITION_SUPPORT    160    /* RO */
 #define EXT_CSD_HPI_MGMT        161    /* R/W */
 #define EXT_CSD_RST_N_FUNCTION        162    /* R/W */
@@ -209,6 +211,12 @@
 
 #define EXT_CSD_PART_SETTING_COMPLETED    (0x1)
 #define EXT_CSD_PART_SUPPORT_PART_EN    (0x1)
+
+#define EXT_CSD_ENH_4         (1<<4)
+#define EXT_CSD_ENH_3         (1<<3)
+#define EXT_CSD_ENH_2         (1<<2)
+#define EXT_CSD_ENH_1         (1<<1)
+#define EXT_CSD_ENH_USR       (1<<0)
 
 #define EXT_CSD_CMD_SET_NORMAL        (1<<0)
 #define EXT_CSD_CMD_SET_SECURE        (1<<1)
@@ -513,7 +521,7 @@ struct usdhc_device
 int imx_usdhc_init(struct pb_storage_driver *drv);
 int imx_usdhc_free(struct pb_storage_driver *drv);
 int imx_usdhc_plat_init(struct usdhc_device *dev);
-int usdhc_emmc_read_extcsd(struct usdhc_device *dev);
+int usdhc_emmc_read_extcsd(struct usdhc_device *dev, uint8_t **output);
 
 int usdhc_emmc_send_cmd(struct usdhc_device *dev,
                                     uint8_t cmd,
