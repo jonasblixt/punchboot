@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2018 NXP
+ * Copyright 2017-2019 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,7 +9,7 @@
  * Header file containing the public API for the System Controller (SC)
  * Pad Control (PAD) function.
  *
- * @addtogroup PAD_SVC (SVC) Pad Service
+ * @addtogroup PAD_SVC PAD: Pad Service
  *
  * Module for the Pad Control (PAD) service.
  *
@@ -43,13 +43,16 @@
  *
  * Pads are managed as a resource by the Resource Manager (RM).  They have
  * assigned owners and only the owners can configure the pads. Some of the
- * pads are reserved for use by the SCFW itself and this can be overriden
+ * pads are reserved for use by the SCFW itself and this can be overridden
  * with the implementation of board_config_sc(). Additionally, pads may
  * be assigned to various other partitions via the implementation of
  * board_system_config().
  *
  * Note muxing two input pads to the same IP functional signal will
  * result in undefined behavior.
+ *
+ * @includedoc pad/details.dox
+ *
  * @{
  */
 
@@ -58,8 +61,8 @@
 
 /* Includes */
 
-#include <plat/sci/types.h>
-#include <plat/sci/svc/rm/api.h>
+#include <plat/sci/sci_types.h>
+#include <plat/sci/svc/rm/sci_rm_api.h>
 
 /* Defines */
 
@@ -67,7 +70,7 @@
  * @name Defines for type widths
  */
 /*@{*/
-#define SC_PAD_MUX_W            3	/* Width of mux parameter */
+#define SC_PAD_MUX_W            3U	/* Width of mux parameter */
 /*@}*/
 
 /*!
@@ -157,7 +160,7 @@ typedef uint8_t sc_pad_config_t;
  * This type is used to declare a pad low-power isolation config.
  * ISO_LATE is the most common setting. ISO_EARLY is only used when
  * an output pad is directly determined by another input pad. The
- * other two are only used when SW wants to directly contol isolation.
+ * other two are only used when SW wants to directly control isolation.
  */
 typedef uint8_t sc_pad_iso_t;
 

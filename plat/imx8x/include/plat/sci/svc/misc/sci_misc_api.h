@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2018 NXP
+ * Copyright 2017-2019 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,7 +9,7 @@
  * Header file containing the public API for the System Controller (SC)
  * Miscellaneous (MISC) function.
  *
- * @addtogroup MISC_SVC (SVC) Miscellaneous Service
+ * @addtogroup MISC_SVC MISC: Miscellaneous Service
  *
  * Module for the Miscellaneous (MISC) service.
  *
@@ -21,9 +21,8 @@
 
 /* Includes */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <plat/sci/svc/rm/api.h>
+#include <plat/sci/sci_types.h>
+#include <plat/sci/svc/rm/sci_rm_api.h>
 
 /* Defines */
 
@@ -46,15 +45,6 @@
 /*@}*/
 
 /*!
- * @name Defines for sc_misc_seco_auth_cmd_t
- */
-/*@{*/
-#define SC_MISC_SECO_AUTH_SECO_FW       0U	/* SECO Firmware */
-#define SC_MISC_SECO_AUTH_HDMI_TX_FW    1U	/* HDMI TX Firmware */
-#define SC_MISC_SECO_AUTH_HDMI_RX_FW    2U	/* HDMI RX Firmware */
-/*@}*/
-
-/*!
  * @name Defines for sc_misc_temp_t
  */
 /*@{*/
@@ -64,25 +54,15 @@
 /*@}*/
 
 /*!
- * @name Defines for sc_misc_seco_auth_cmd_t
- */
-/*@{*/
-#define SC_MISC_AUTH_CONTAINER          0U	/* Authenticate container */
-#define SC_MISC_VERIFY_IMAGE            1U	/* Verify image */
-#define SC_MISC_REL_CONTAINER           2U	/* Release container */
-/*@}*/
-
-/*!
  * @name Defines for sc_misc_bt_t
  */
 /*@{*/
-#define SC_MISC_BT_PRIMARY              0U
-#define SC_MISC_BT_SECONDARY            1U
-#define SC_MISC_BT_RECOVERY             2U
-#define SC_MISC_BT_MANUFACTURE          3U
-#define SC_MISC_BT_SERIAL               4U
+#define SC_MISC_BT_PRIMARY              0U	/* Primary boot */
+#define SC_MISC_BT_SECONDARY            1U	/* Secondary boot */
+#define SC_MISC_BT_RECOVERY             2U	/* Recovery boot */
+#define SC_MISC_BT_MANUFACTURE          3U	/* Manufacture boot */
+#define SC_MISC_BT_SERIAL               4U	/* Serial boot */
 /*@}*/
-
 
 /* Types */
 
@@ -95,11 +75,6 @@ typedef uint8_t sc_misc_dma_group_t;
  * This type is used report boot status.
  */
 typedef uint8_t sc_misc_boot_status_t;
-
-/*!
- * This type is used to issue SECO authenticate commands.
- */
-typedef uint8_t sc_misc_seco_auth_cmd_t;
 
 /*!
  * This type is used report boot status.
@@ -210,155 +185,6 @@ sc_err_t sc_misc_set_dma_group(sc_ipc_t ipc, sc_rsrc_t resource,
 /* @} */
 
 /*!
- * @name Security Functions
- * @{
- */
-
-/*!
- * This function loads a SECO image.
- *
- * @param[in]     ipc         IPC handle
- * @param[in]     addr_src    address of image source
- * @param[in]     addr_dst    address of image destination
- * @param[in]     len         lenth of image to load
- * @param[in]     fw          SC_TRUE = firmware load
- *
- * @return Returns an error code (SC_ERR_NONE = success).
- *
- * Return errors codes:
- * - SC_ERR_PARM if word fuse index param out of range or invalid
- * - SC_ERR_UNAVAILABLE if SECO not available
- *
- * This is used to load images via the SECO. Examples include SECO
- * Firmware and IVT/CSF data used for authentication. These are usually
- * loaded into SECO TCM. \a addr_src is in secure memory.
- *
- * See the Security Reference Manual (SRM) for more info.
- */
-sc_err_t sc_misc_seco_image_load(sc_ipc_t ipc, sc_faddr_t addr_src,
-				 sc_faddr_t addr_dst, uint32_t len,
-				 sc_bool_t fw);
-
-/*!
- * This function is used to authenticate a SECO image or command.
- *
- * @param[in]     ipc         IPC handle
- * @param[in]     cmd         authenticate command
- * @param[in]     addr        address of/or metadata
- *
- * @return Returns an error code (SC_ERR_NONE = success).
- *
- * Return errors codes:
- * - SC_ERR_PARM if word fuse index param out of range or invalid
- * - SC_ERR_UNAVAILABLE if SECO not available
- *
- * This is used to authenticate a SECO image or issue a security
- * command. \a addr often points to an container. It is also
- * just data (or even unused) for some commands.
- *
- * See the Security Reference Manual (SRM) for more info.
- */
-sc_err_t sc_misc_seco_authenticate(sc_ipc_t ipc,
-				   sc_misc_seco_auth_cmd_t cmd,
-				   sc_faddr_t addr);
-
-/*!
- * This function securely writes a group of fuse words.
- *
- * @param[in]     ipc         IPC handle
- * @param[in]     addr        address of message block
- *
- * @return Returns and error code (SC_ERR_NONE = success).
- *
- * Return errors codes:
- * - SC_ERR_UNAVAILABLE if SECO not available
- *
- * Note \a addr must be a pointer to a signed message block.
- *
- * See the Security Reference Manual (SRM) for more info.
- */
-sc_err_t sc_misc_seco_fuse_write(sc_ipc_t ipc, sc_faddr_t addr);
-
-/*!
- * This function securely enables debug.
- *
- * @param[in]     ipc         IPC handle
- * @param[in]     addr        address of message block
- *
- * @return Returns and error code (SC_ERR_NONE = success).
- *
- * Return errors codes:
- * - SC_ERR_UNAVAILABLE if SECO not available
- *
- * Note \a addr must be a pointer to a signed message block.
- *
- * See the Security Reference Manual (SRM) for more info.
- */
-sc_err_t sc_misc_seco_enable_debug(sc_ipc_t ipc, sc_faddr_t addr);
-
-/*!
- * This function updates the lifecycle of the device.
- *
- * @param[in]     ipc         IPC handle
- * @param[in]     lifecycle   new lifecycle
- *
- * @return Returns and error code (SC_ERR_NONE = success).
- *
- * Return errors codes:
- * - SC_ERR_UNAVAILABLE if SECO not available
- *
- * This message is used for going from Open to NXP Closed to OEM Closed.
- *
- * See the Security Reference Manual (SRM) for more info.
- */
-sc_err_t sc_misc_seco_forward_lifecycle(sc_ipc_t ipc, uint32_t lifecycle);
-
-/*!
- * This function updates the lifecycle to one of the return lifecycles.
- *
- * @param[in]     ipc         IPC handle
- * @param[in]     addr        address of message block
- *
- * @return Returns and error code (SC_ERR_NONE = success).
- *
- * Return errors codes:
- * - SC_ERR_UNAVAILABLE if SECO not available
- *
- * Note \a addr must be a pointer to a signed message block.
- *
- * To switch back to NXP states (Full Field Return), message must be signed
- * by NXP SRK. For OEM States (Partial Field Return), must be signed by OEM
- * SRK.
- *
- * See the Security Reference Manual (SRM) for more info.
- */
-sc_err_t sc_misc_seco_return_lifecycle(sc_ipc_t ipc, sc_faddr_t addr);
-
-/*!
- * This function is used to return the SECO FW build info.
- *
- * @param[in]     ipc         IPC handle
- * @param[out]    version     pointer to return build number
- * @param[out]    commit      pointer to return commit ID (git SHA-1)
- */
-void sc_misc_seco_build_info(sc_ipc_t ipc, uint32_t *version, uint32_t *commit);
-
-/*!
- * This function is used to return SECO chip info.
- *
- * @param[in]     ipc         IPC handle
- * @param[out]    lc          pointer to return lifecycle
- * @param[out]    monotonic   pointer to return monotonic counter
- * @param[out]    uid_l       pointer to return UID (lower 32 bits)
- * @param[out]    uid_h       pointer to return UID (upper 32 bits)
- */
-sc_err_t sc_misc_seco_chip_info(sc_ipc_t ipc, uint16_t *lc,
-				uint16_t *monotonic, uint32_t *uid_l,
-				uint32_t *uid_h);
-
-/* @} */
-
-/*!
  * @name Debug Functions
  * @{
  */
@@ -392,6 +218,23 @@ sc_err_t sc_misc_waveform_capture(sc_ipc_t ipc, sc_bool_t enable);
  * @param[out]    commit      pointer to return commit ID (git SHA-1)
  */
 void sc_misc_build_info(sc_ipc_t ipc, uint32_t *build, uint32_t *commit);
+
+/*!
+ * This function is used to return the SCFW API versions.
+ *
+ * @param[in]     ipc         IPC handle
+ * @param[out]    cl_maj      pointer to return major part of client version
+ * @param[out]    cl_min      pointer to return minor part of client version
+ * @param[out]    sv_maj      pointer to return major part of SCFW version
+ * @param[out]    sv_min      pointer to return minor part of SCFW version
+ *
+ * Client version is the version of the API ported to and used by the caller.
+ * SCFW version is the version of the SCFW binary running on the CPU.
+ *
+ * Note a major version difference indicates a break in compatibility.
+ */
+void sc_misc_api_ver(sc_ipc_t ipc, uint16_t *cl_maj,
+		     uint16_t *cl_min, uint16_t *sv_maj, uint16_t *sv_min);
 
 /*!
  * This function is used to return the device's unique ID.
@@ -480,16 +323,24 @@ sc_err_t sc_misc_boot_done(sc_ipc_t ipc, sc_rsrc_t cpu);
 sc_err_t sc_misc_otp_fuse_read(sc_ipc_t ipc, uint32_t word, uint32_t *val);
 
 /*!
- * This function writes a given fuse word index.
+ * This function writes a given fuse word index. Only the owner of the
+ * SC_R_SYSTEM resource or a partition with access permissions to
+ * SC_R_SYSTEM can do this.
  *
  * @param[in]     ipc         IPC handle
  * @param[in]     word        fuse word index
  * @param[in]     val         fuse write value
  *
+ * The command is passed as is to SECO. SECO uses part of the
+ * \a word parameter to indicate if the fuse should be locked
+ * after programming. See the "Write common fuse" section of
+ * the SECO API Reference Guide for more info.
+ *
  * @return Returns and error code (SC_ERR_NONE = success).
  *
  * Return errors codes:
  * - SC_ERR_PARM if word fuse index param out of range or invalid
+ * - SC_ERR_NOACCESS if caller does not have SC_R_SYSTEM access
  * - SC_ERR_NOACCESS if write operation failed
  * - SC_ERR_LOCKED if write operation is locked
  */
@@ -512,6 +363,8 @@ sc_err_t sc_misc_otp_fuse_write(sc_ipc_t ipc, uint32_t word, uint32_t val);
  *
  * Return errors codes:
  * - SC_ERR_PARM if parameters invalid
+ * - SC_ERR_NOACCESS if caller does not own the resource
+ * - SC_ERR_NOPOWER if power domain of resource not powered
  */
 sc_err_t sc_misc_set_temp(sc_ipc_t ipc, sc_rsrc_t resource,
 			  sc_misc_temp_t temp, int16_t celsius, int8_t tenths);
@@ -529,6 +382,8 @@ sc_err_t sc_misc_set_temp(sc_ipc_t ipc, sc_rsrc_t resource,
  *
  * Return errors codes:
  * - SC_ERR_PARM if parameters invalid
+ * - SC_ERR_BUSY if temp not ready yet (time delay after power on)
+ * - SC_ERR_NOPOWER if power domain of resource not powered
  */
 sc_err_t sc_misc_get_temp(sc_ipc_t ipc, sc_rsrc_t resource,
 			  sc_misc_temp_t temp, int16_t * celsius,
@@ -553,8 +408,22 @@ void sc_misc_get_boot_dev(sc_ipc_t ipc, sc_rsrc_t * dev);
  * Return errors code:
  * - SC_ERR_UNAVAILABLE if type not passed by ROM
  */
-sc_err_t sc_misc_get_boot_type(sc_ipc_t ipc, sc_misc_bt_t *type);
+sc_err_t sc_misc_get_boot_type(sc_ipc_t ipc, sc_misc_bt_t * type);
 
+/*!
+ * This function returns the boot container index.
+ *
+ * @param[in]     ipc         IPC handle
+ * @param[out]    idx         pointer to return index
+ *
+ * Return \a idx = 1 for first container, 2 for second.
+ *
+ * @return Returns and error code (SC_ERR_NONE = success).
+ *
+ * Return errors code:
+ * - SC_ERR_UNAVAILABLE if index not passed by ROM
+ */
+sc_err_t sc_misc_get_boot_container(sc_ipc_t ipc, uint8_t *idx);
 
 /*!
  * This function returns the current status of the ON/OFF button.
@@ -563,6 +432,29 @@ sc_err_t sc_misc_get_boot_type(sc_ipc_t ipc, sc_misc_bt_t *type);
  * @param[out]    status      pointer to return button status
  */
 void sc_misc_get_button_status(sc_ipc_t ipc, sc_bool_t *status);
+
+/*!
+ * This function returns the ROM patch checksum.
+ *
+ * @param[in]     ipc         IPC handle
+ * @param[out]    checksum    pointer to return checksum
+ *
+ * @return Returns and error code (SC_ERR_NONE = success).
+ */
+sc_err_t sc_misc_rompatch_checksum(sc_ipc_t ipc, uint32_t *checksum);
+
+/*!
+ * This function calls the board IOCTL function.
+ *
+ * @param[in]     ipc         IPC handle
+ * @param[in,out] parm1       pointer to pass parameter 1
+ * @param[in,out] parm2       pointer to pass parameter 2
+ * @param[in,out] parm3       pointer to pass parameter 3
+ *
+ * @return Returns and error code (SC_ERR_NONE = success).
+ */
+sc_err_t sc_misc_board_ioctl(sc_ipc_t ipc, uint32_t *parm1,
+			     uint32_t *parm2, uint32_t *parm3);
 
 /* @} */
 

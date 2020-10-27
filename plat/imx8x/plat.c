@@ -17,16 +17,16 @@
 #include <xlat_tables.h>
 #include <uuid/uuid.h>
 #include <plat/imx8x/plat.h>
-#include <plat/regs.h>
 #include <plat/imx/lpuart.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/caam.h>
-#include <plat/sci/ipc.h>
 #include <plat/sci/sci.h>
-#include <plat/imx8qxp_pads.h>
-#include <plat/iomux.h>
+#include <plat/sci/sci_ipc.h>
+#include <plat/sci/svc/seco/sci_seco_api.h>
+#include <plat/imx8qx_pads.h>
+#include <plat/imx8_iomux.h>
 #include <plat/defs.h>
 
 #define LPCG_CLOCK_MASK         0x3U
@@ -407,7 +407,7 @@ int plat_slc_set_configuration_lock(void)
     uint32_t uid_l;
     uint32_t uid_h;
 
-    sc_misc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
+    sc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
 
     if (lc == 128)
     {
@@ -417,7 +417,7 @@ int plat_slc_set_configuration_lock(void)
 
     LOG_INFO("About to change security state to locked");
 
-    err = sc_misc_seco_forward_lifecycle(private.ipc, 16);
+    err = sc_seco_forward_lifecycle(private.ipc, 16);
 
     if (err != SC_ERR_NONE)
         return -PB_ERR;
@@ -462,7 +462,7 @@ int plat_slc_read(enum pb_slc *slc)
     uint32_t uid_l;
     uint32_t uid_h;
 
-    sc_misc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
+    sc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
 
     if (lc == 128)
     {

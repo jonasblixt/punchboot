@@ -18,8 +18,11 @@
 #include <plat/imx/lpuart.h>
 #include <plat/imx/caam.h>
 #include <plat/imx/gpio.h>
-#include <plat/imx8qxp_pads.h>
-#include <plat/iomux.h>
+#include <plat/imx8qx_pads.h>
+#include <plat/imx8_iomux.h>
+
+/* Taken from ATF. */
+#include "platform_def.h"
 
 #define PB_BOOTPART_OFFSET 0
 

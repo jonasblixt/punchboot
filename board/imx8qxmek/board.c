@@ -21,9 +21,9 @@
 #include <plat/imx/ehci.h>
 #include <plat/imx/usdhc.h>
 #include <plat/defs.h>
-#include <plat/sci/ipc.h>
+#include <plat/sci/sci_ipc.h>
 #include <plat/sci/sci.h>
-#include <plat/imx8qxp_pads.h>
+#include <plat/sci/svc/seco/sci_seco_api.h>
 #include <plat/imx8x/plat.h>
 #include <uuid/uuid.h>
 #include <libfdt.h>
@@ -226,7 +226,7 @@ int board_status(void *plat,
     size_t resp_buf_size = *response_size;
 
     sc_misc_build_info(priv->ipc, &scu_version, &scu_commit);
-    sc_misc_seco_build_info(priv->ipc, &seco_version, &seco_commit);
+    sc_seco_build_info(priv->ipc, &seco_version, &seco_commit);
     sc_misc_get_temp(priv->ipc, SC_R_SYSTEM, SC_MISC_TEMP, &celsius,
                         &tenths);
 

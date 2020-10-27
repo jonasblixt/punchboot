@@ -10,9 +10,9 @@
 #ifndef PLAT_IMX8X_PLAT_H_
 #define PLAT_IMX8X_PLAT_H_
 
-#include <plat/sci/ipc.h>
+#include <plat/sci/sci_ipc.h>
 #include <plat/sci/sci.h>
-#include <plat/imx8qxp_pads.h>
+#include <plat/imx8qx_pads.h>
 
 #define IMX8X_FUSE_ROW(__r, __d) \
         {.bank = __r , .word = 0, .description = __d, .status = FUSE_VALID}

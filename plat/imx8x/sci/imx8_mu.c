@@ -1,12 +1,27 @@
 /*
- * Copyright 2017 NXP
+ * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <pb/pb.h>
 #include <pb/io.h>
-#include "mx8_mu.h"
+
+#include "imx8_mu.h"
+
+void MU_Resume(uint32_t base)
+{
+	uint32_t reg, i;
+
+	reg = pb_read32(base + MU_ACR_OFFSET1);
+	/* Clear GIEn, RIEn, TIEn, GIRn and ABFn. */
+	reg &= ~(MU_CR_GIEn_MASK1 | MU_CR_RIEn_MASK1 | MU_CR_TIEn_MASK1
+			| MU_CR_GIRn_MASK1 | MU_CR_Fn_MASK1);
+	pb_write32(base + MU_ACR_OFFSET1, reg);
+
+	/* Enable all RX interrupts */
+	for (i = 0; i < MU_RR_COUNT; i++)
+		MU_EnableRxFullInt(base, i);
+}
 
 void MU_EnableRxFullInt(uint32_t base, uint32_t index)
 {

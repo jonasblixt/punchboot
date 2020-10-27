@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <pb/pb.h>
-#include <plat/sci/scfw.h>
-#include <plat/sci/ipc.h>
-#include <plat/sci/rpc.h>
-#include <stdint.h>
+#include <plat/sci/sci_scfw.h>
+#include <plat/sci/sci_ipc.h>
+#include <plat/sci/sci_rpc.h>
+#include <stdlib.h>
 
-#include "mx8_mu.h"
+#include "imx8_mu.h"
 
 
 void sc_call_rpc(sc_ipc_t ipc, sc_rpc_msg_t *msg, sc_bool_t no_resp)
