@@ -82,6 +82,26 @@ static struct pb_storage_map map[] =
     PB_STORAGE_MAP("656ab3fc-5856-4a5e-a2ae-5a018313b3ee", "PB State Backup",
             1, PB_STORAGE_MAP_FLAG_VISIBLE),
 
+    PB_STORAGE_MAP("4581af22-99e6-4a94-b821-b60c42d74758", "Root overlay A",
+                        0xf000, DEF_FLAGS),
+
+    PB_STORAGE_MAP("da2ca04f-a693-4284-b897-3906cfa1eb13", "Root overlay B",
+                        0xf000, DEF_FLAGS),
+
+    PB_STORAGE_MAP("23477731-7e33-403b-b836-899a0b1d55db", "RoT extension A",
+                        0x100, DEF_FLAGS),
+
+    PB_STORAGE_MAP("6ffd077c-32df-49e7-b11e-845449bd8edd", "RoT extension B",
+                        0x100, DEF_FLAGS),
+
+    PB_STORAGE_MAP("9697399d-e2da-47d9-8eb5-88daea46da1b", "System storage A",
+                        0x40000, DEF_FLAGS),
+
+    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "System storage B",
+                        0x40000, DEF_FLAGS),
+
+    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "Mass storage",
+                        0x200000, DEF_FLAGS),
     PB_STORAGE_MAP_END
 };
 
@@ -136,14 +156,13 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     if (verbose_boot)
     {
         bootargs = "console=ttyLP0,115200  " \
-                   "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk " \
-                   "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
+                   "quiet ";
     }
     else
     {
+
         bootargs = "console=ttyLP0,115200  " \
-                   "quiet " \
-                   "fec.macaddr=0xe2,0xf4,0x91,0x3a,0x82,0x93 ";
+                   "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ";
     }
     return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 
