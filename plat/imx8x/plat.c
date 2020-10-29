@@ -28,6 +28,7 @@
 #include <plat/imx8qx_pads.h>
 #include <plat/imx8_iomux.h>
 #include <plat/defs.h>
+#include <board/config.h>
 
 #define LPCG_CLOCK_MASK         0x3U
 #define LPCG_CLOCK_OFF          0x0U
@@ -216,7 +217,7 @@ int plat_early_init(void)
                             (0x20000),
                             MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
     mmap_add_region(rw_start, rw_start,
-                            (1024*1024*1024),
+                            (RAM_SIZE),
                             MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
     mmap_add(imx_mmap);
 

@@ -53,8 +53,8 @@
                          (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
                          (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
-#define PLAT_VIRT_ADDR_SPACE_SIZE	(1ull << 32)
-#define PLAT_PHY_ADDR_SPACE_SIZE	(1ull << 32)
+#define PLAT_VIRT_ADDR_SPACE_SIZE	(2ull << 32)
+#define PLAT_PHY_ADDR_SPACE_SIZE	(2ull << 32)
 
 #define MAX_XLAT_TABLES			32
 #define MAX_MMAP_REGIONS		32
