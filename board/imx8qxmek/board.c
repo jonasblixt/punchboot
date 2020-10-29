@@ -156,13 +156,12 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     if (verbose_boot)
     {
         bootargs = "console=ttyLP0,115200  " \
-                   "quiet ";
+                   "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ";
     }
     else
     {
-
         bootargs = "console=ttyLP0,115200  " \
-                   "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ";
+                   "quiet ";
     }
     return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 

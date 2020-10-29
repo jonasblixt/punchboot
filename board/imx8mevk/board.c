@@ -255,7 +255,7 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     if (verbose_boot)
     {
         bootargs = "console=ttymxc0,115200 " \
-                         "earlyprintk ";
+                         " earlyprintk ";
     }
     else
     {
