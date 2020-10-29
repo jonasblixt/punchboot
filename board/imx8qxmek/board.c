@@ -28,6 +28,8 @@
 #include <uuid/uuid.h>
 #include <libfdt.h>
 
+static struct pb_hash_context hash;
+
 struct fuse fuses[] =
 {
     IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
@@ -261,3 +263,34 @@ int board_status(void *plat,
     return PB_OK;
 }
 
+#ifdef CONFIG_AUTH_METHOD_PASSWORD
+int board_command_mode_auth(char *password, size_t length)
+{
+    int rc;
+    /* Password: test123 */
+    const uint8_t secret[] = "\xec\xd7\x18\x70\xd1\x96\x33\x16\xa9\x7e\x3a\xc3\x40\x8c\x98\x35\xad\x8c\xf0\xf3\xc1\xbc\x70\x35\x27\xc3\x02\x65\x53\x4f\x75\xae";
+
+    rc = plat_hash_init(&hash, PB_HASH_SHA256);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = plat_hash_update(&hash, NULL, 0);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = plat_hash_finalize(&hash, password, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (memcmp(secret, hash.buf, length) == 0) {
+        LOG_DBG("Password auth: Success");
+        return PB_OK;
+    } else {
+        LOG_DBG("Password auth: Failed");
+        return -PB_ERR;
+    }
+}
+#endif

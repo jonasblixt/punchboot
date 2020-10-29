@@ -43,6 +43,7 @@ int board_early_boot(void *plat);
 int board_late_boot(void *plat, bool *abort_boot, bool manual);
 int board_slc_set_configuration(void *plat);
 int board_slc_set_configuration_lock(void *plat);
+int board_command_mode_auth(char *password, size_t length);
 const char *board_name(void);
 
 #endif  // INCLUDE_PB_BOARD_H_

@@ -297,6 +297,22 @@ static int cmd_auth(void)
 
         pb_wire_init_result(&result, rc);
     }
+#elif CONFIG_AUTH_METHOD_PASSWORD
+    if (auth_cmd->method == PB_AUTH_PASSWORD)
+    {
+        pb_wire_init_result(&result, PB_RESULT_OK);
+        plat_transport_write(&result, sizeof(result));
+
+        plat_transport_read(buffer[0], 1024);
+        rc = board_command_mode_auth((char *) buffer[0], auth_cmd->size);
+
+        if (rc == PB_OK)
+            authenticated = true;
+        else
+            authenticated = false;
+
+        pb_wire_init_result(&result, rc);
+    }
 #else
     UNUSED(auth_cmd);
     UNUSED(rc);
