@@ -18,6 +18,7 @@
 
 #define PLAT_EMMC_PART_BOOT0 1
 #define PLAT_EMMC_PART_BOOT1 2
+#define PLAT_EMMC_PART_RPMB 3
 #define PLAT_EMMC_PART_USER  0
 
 //static struct pb_timestamp ts_usdhc = TIMESTAMP("USDHC");
@@ -235,6 +236,10 @@ static int usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
         case PLAT_EMMC_PART_BOOT1:
             value = 0x02;
             LOG_DBG("Switching to boot1");
+        break;
+        case PLAT_EMMC_PART_RPMB:
+            value = 0x03;
+            LOG_DBG("Switching to RPMB");
         break;
         case PLAT_EMMC_PART_USER:
             value = 0x08;
@@ -601,6 +606,10 @@ static int imx_usdhc_map_request(struct pb_storage_driver *drv,
     else if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT1)
     {
         rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_BOOT1);
+    }
+    else if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_RPMB)
+    {
+        rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_RPMB);
     }
     else
     {
