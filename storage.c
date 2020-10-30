@@ -31,12 +31,18 @@ static int pb_storage_map_init(struct pb_storage_driver *drv)
             {
                 LOG_DBG("Copy static entry %s", p->description);
 
-                if (!p->first_block)
-                {
+                if (((p->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT0) || \
+                     (p->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT1) || \
+                     (p->flags & PB_STORAGE_MAP_FLAG_EMMC_RPMB))) {
+
+                    p->first_block = 0;
+                    p->last_block = p->no_of_blocks - 1;
+                } else if (!p->first_block) {
                     p->first_block = block;
                     p->last_block = block + p->no_of_blocks - 1;
                     block += p->no_of_blocks;
                 }
+
                 uuid_parse(p->uuid_str, p->uuid);
                 memcpy(&entries[drv->map_entries++], p, sizeof(*p));
             }

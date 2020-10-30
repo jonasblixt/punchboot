@@ -29,6 +29,7 @@
 #define PB_STORAGE_MAP_FLAG_STATIC_MAP (1 << 16)
 #define PB_STORAGE_MAP_FLAG_EMMC_BOOT0  (1 << 17)
 #define PB_STORAGE_MAP_FLAG_EMMC_BOOT1  (1 << 18)
+#define PB_STORAGE_MAP_FLAG_EMMC_RPMB  (1 << 19)
 
 struct pb_storage_map
 {
