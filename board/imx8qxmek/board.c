@@ -66,6 +66,11 @@ static struct pb_storage_map map[] =
         "eMMC boot1", 2048, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT1 | \
                         PB_STORAGE_MAP_FLAG_STATIC_MAP),
 
+    PB_STORAGE_MAP("8d75d8b9-b169-4de6-bee0-48abdc95c408",
+        "eMMC RPMB", 2048, PB_STORAGE_MAP_FLAG_VISIBLE | \
+                            PB_STORAGE_MAP_FLAG_EMMC_RPMB | \
+                            PB_STORAGE_MAP_FLAG_STATIC_MAP),
+
     PB_STORAGE_MAP("2af755d8-8de5-45d5-a862-014cfa735ce0", "System A", 0xf000,
             DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
 
@@ -102,7 +107,7 @@ static struct pb_storage_map map[] =
     PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "System storage B",
                         0x40000, DEF_FLAGS),
 
-    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "Mass storage",
+    PB_STORAGE_MAP("39792364-d3e3-4013-ac51-caaea65e4334", "Mass storage",
                         0x200000, DEF_FLAGS),
     PB_STORAGE_MAP_END
 };
@@ -267,8 +272,44 @@ int board_status(void *plat,
 int board_command_mode_auth(char *password, size_t length)
 {
     int rc;
+    struct pb_storage_map *rpmb_map;
+    struct pb_storage_driver *rpmb_drv;
     /* Password: test123 */
     const uint8_t secret[] = "\xec\xd7\x18\x70\xd1\x96\x33\x16\xa9\x7e\x3a\xc3\x40\x8c\x98\x35\xad\x8c\xf0\xf3\xc1\xbc\x70\x35\x27\xc3\x02\x65\x53\x4f\x75\xae";
+    uint8_t secret2[512];
+    uuid_t rpmb_uu;
+
+    uuid_parse("8d75d8b9-b169-4de6-bee0-48abdc95c408", rpmb_uu);
+
+    rc = pb_storage_get_part(rpmb_uu, &rpmb_map, &rpmb_drv);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("Could not find partition");
+        return rc;
+    }
+
+    rc = rpmb_drv->map_request(rpmb_drv, rpmb_map);
+
+    if (rc != PB_OK) {
+        LOG_ERR("map_request failed");
+        return rc;
+    }
+
+    rc = pb_storage_read(rpmb_drv, rpmb_map, secret2, 1, 0);
+
+    if (rc != PB_OK)
+    {
+        LOG_ERR("RPMB Read failed");
+        return rc;
+    }
+
+    rc = rpmb_drv->map_release(rpmb_drv, rpmb_map);
+
+    if (rc != PB_OK) {
+        LOG_ERR("map_release failed");
+        return rc;
+    }
 
     rc = plat_hash_init(&hash, PB_HASH_SHA256);
 
