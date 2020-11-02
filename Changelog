@@ -1,3 +1,9 @@
+v0.9.4 (2020-11-02)
+------
+PB/storage: Add support for RPMB access
+board/imx8qxmek: Add password based authentication demo
+PB/storage bugfix: Do not increment the block offset on special eMMC parts
+
 v0.9.1 (2020-10-21)
 ------
 PB: Added pb_boot_driver_set_part_uu in the boot driver API to allow manual
