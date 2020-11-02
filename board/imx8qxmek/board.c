@@ -272,11 +272,10 @@ int board_status(void *plat,
 int board_command_mode_auth(char *password, size_t length)
 {
     int rc;
+    bool authenticated = false;
     struct pb_storage_map *rpmb_map;
     struct pb_storage_driver *rpmb_drv;
-    /* Password: test123 */
-    const uint8_t secret[] = "\xec\xd7\x18\x70\xd1\x96\x33\x16\xa9\x7e\x3a\xc3\x40\x8c\x98\x35\xad\x8c\xf0\xf3\xc1\xbc\x70\x35\x27\xc3\x02\x65\x53\x4f\x75\xae";
-    uint8_t secret2[512];
+    uint8_t secret[512];
     uuid_t rpmb_uu;
 
     uuid_parse("8d75d8b9-b169-4de6-bee0-48abdc95c408", rpmb_uu);
@@ -286,24 +285,57 @@ int board_command_mode_auth(char *password, size_t length)
     if (rc != PB_OK)
     {
         LOG_ERR("Could not find partition");
-        return rc;
+        goto err_out;
     }
 
     rc = rpmb_drv->map_request(rpmb_drv, rpmb_map);
 
     if (rc != PB_OK) {
         LOG_ERR("map_request failed");
-        return rc;
+        goto err_out;
     }
 
-    rc = pb_storage_read(rpmb_drv, rpmb_map, secret2, 1, 0);
+    rc = pb_storage_read(rpmb_drv, rpmb_map, secret, 1, 0);
 
     if (rc != PB_OK)
     {
         LOG_ERR("RPMB Read failed");
-        return rc;
+        goto err_release_out;
     }
 
+    printf("RPMB sha256: ");
+    for (int i = 0; i < 32; i++) {
+        printf("%02x", secret[i] & 0xFF);
+    }
+    printf("\n\r");
+
+    rc = plat_hash_init(&hash, PB_HASH_SHA256);
+
+    if (rc != PB_OK) {
+        goto err_release_out;
+    }
+
+    rc = plat_hash_update(&hash, NULL, 0);
+
+    if (rc != PB_OK) {
+        goto err_release_out;
+    }
+
+    rc = plat_hash_finalize(&hash, password, length);
+
+    if (rc != PB_OK) {
+        goto err_release_out;
+    }
+
+    if (memcmp(secret, hash.buf, length) == 0) {
+        LOG_DBG("Password auth: Success");
+        authenticated = true;
+    } else {
+        LOG_DBG("Password auth: Failed");
+        authenticated = false;
+    }
+
+err_release_out:
     rc = rpmb_drv->map_release(rpmb_drv, rpmb_map);
 
     if (rc != PB_OK) {
@@ -311,26 +343,10 @@ int board_command_mode_auth(char *password, size_t length)
         return rc;
     }
 
-    rc = plat_hash_init(&hash, PB_HASH_SHA256);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = plat_hash_update(&hash, NULL, 0);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = plat_hash_finalize(&hash, password, length);
-
-    if (rc != PB_OK)
-        return rc;
-
-    if (memcmp(secret, hash.buf, length) == 0) {
-        LOG_DBG("Password auth: Success");
+err_out:
+    if ((rc == PB_OK) && (authenticated == true)) {
         return PB_OK;
     } else {
-        LOG_DBG("Password auth: Failed");
         return -PB_ERR;
     }
 }
