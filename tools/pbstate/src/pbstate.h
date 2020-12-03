@@ -39,6 +39,8 @@ int pbstate_force_rollback(void);
 
 uint32_t pbstate_get_errors(void);
 
+int pbstate_clear_error(uint32_t error_flag);
+
 int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts);
 
 int pbstate_set_system_verified(pbstate_system_t system);

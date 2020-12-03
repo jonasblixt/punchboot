@@ -336,6 +336,13 @@ uint32_t pbstate_get_errors(void)
     return config.error;
 }
 
+int pbstate_clear_error(uint32_t error_flag)
+{
+    config.error &= ~error_flag;
+
+    return pbstate_commit();
+}
+
 int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts)
 {
     switch (system)
