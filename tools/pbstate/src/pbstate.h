@@ -35,6 +35,8 @@ bool pbstate_is_system_verified(pbstate_system_t system);
 
 uint32_t pbstate_get_boot_attempts(void);
 
+int pbstate_force_rollback(void);
+
 uint32_t pbstate_get_errors(void);
 
 int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts);

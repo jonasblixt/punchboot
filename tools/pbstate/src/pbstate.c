@@ -310,6 +310,27 @@ uint32_t pbstate_get_boot_attempts(void)
     return config.remaining_boot_attempts;
 }
 
+int pbstate_force_rollback(void)
+{
+    /* Rolling back a verified system is not allowed */
+    if (pbstate_is_system_active(PBSTATE_SYSTEM_A)
+        && pbstate_is_system_verified(PBSTATE_SYSTEM_A))
+    {
+        errno = EPERM;
+        return -1;
+    }
+    if (pbstate_is_system_active(PBSTATE_SYSTEM_B)
+        && pbstate_is_system_verified(PBSTATE_SYSTEM_B))
+    {
+        errno = EPERM;
+        return -1;
+    }
+
+    config.remaining_boot_attempts = 0;
+
+    return pbstate_commit();
+}
+
 uint32_t pbstate_get_errors(void)
 {
     return config.error;
