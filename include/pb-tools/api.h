@@ -139,6 +139,12 @@ int pb_api_stream_write_buffer(struct pb_context *ctx,
                                uint64_t offset,
                                uint32_t size);
 
+int pb_api_stream_read_buffer(struct pb_context *ctx,
+                              uint8_t buffer_id,
+                              uint64_t offset,
+                              uint32_t size,
+                              void *data);
+
 int pb_api_stream_finalize(struct pb_context *ctx);
 
 int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose);

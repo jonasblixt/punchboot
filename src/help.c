@@ -58,6 +58,7 @@ void help_part(void)
     printf("    -c, --verify <filename> [--part <uuid>] Verify data\n");
     printf("    -i, --install                           Install default partition table\n");
     printf("    -s, --show [--part <uuid>]              Show BPAK information\n");
+    printf("    -D, --dump <filename> [--part <uuid>]   Dump partition to file\n");
     help_common_footer();
 }
 

@@ -89,6 +89,7 @@ enum pb_commands
     PB_CMD_BOOT_RAM,
     PB_CMD_BOARD_COMMAND,
     PB_CMD_BOARD_STATUS_READ,
+    PB_CMD_STREAM_READ_BUFFER,
     PB_CMD_END,                     /* Sentinel, must be the last entry */
 };
 
@@ -215,6 +216,17 @@ struct pb_command_stream_prepare_buffer
 struct pb_command_stream_write_buffer
 {
     uint32_t size;     /*!< Bytes to transfer from buffer to partition */
+    uint64_t offset;   /*!< Offset in bytes into the partition */
+    uint8_t buffer_id; /*!< Source buffer id */
+    uint8_t rz[19];    /*!< Reserved */
+} __attribute__((packed));
+
+/**
+ * Read data from a partition to an internal buffer
+ */
+struct pb_command_stream_read_buffer
+{
+    uint32_t size;     /*!< Bytes to transfer from partition to buffer */
     uint64_t offset;   /*!< Offset in bytes into the partition */
     uint8_t buffer_id; /*!< Source buffer id */
     uint8_t rz[19];    /*!< Reserved */

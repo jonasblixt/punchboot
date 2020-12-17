@@ -444,6 +444,124 @@ err_out:
     return rc;
 }
 
+static int part_dump(struct pb_context *ctx, const char* filename, const char* part_uuid)
+{
+    struct pb_device_capabilities caps;
+    struct pb_partition_table_entry *tbl;
+    uuid_t uu_part;
+    int partition_table_index = -1;
+    size_t chunk_size;
+    size_t offset = 0;
+    int buffer_id = 0;
+    unsigned char* buffer;
+    int entries = 128;
+    int rc = -PB_RESULT_ERROR;
+    char uuid_str[37];
+    FILE* fp;
+    bool part_is_bpak = false;
+
+    fp = fopen(filename, "wb");
+
+    if (!fp)
+    {
+        fprintf(stderr, "Error: Could not open '%s'\n", filename);
+        return -PB_RESULT_ERROR;
+    }
+
+    /* Read device capabilities */
+    rc = pb_api_device_read_caps(ctx, &caps);
+
+    if (rc != PB_RESULT_OK)
+        goto err_close_fp;
+
+    uuid_parse(part_uuid, uu_part);
+    chunk_size = caps.chunk_transfer_max_bytes;
+
+    buffer = malloc(chunk_size);
+    if (!buffer)
+    {
+        rc = -PB_RESULT_NO_MEMORY;
+        goto err_close_fp;
+    }
+
+    tbl = malloc(sizeof(struct pb_partition_table_entry) * entries);
+    if (!tbl)
+    {
+        rc = -PB_RESULT_NO_MEMORY;
+        goto err_free_buf;
+    }
+
+    rc = pb_api_partition_read_table(ctx, tbl, &entries);
+
+    if (rc != PB_RESULT_OK)
+        goto err_free_tbl;
+
+    if (!entries)
+        goto err_free_tbl;
+
+    for (int i = 0; i < entries; i++)
+    {
+        struct bpak_header header;
+        uuid_unparse(tbl[i].uuid, uuid_str);
+
+        if (part_uuid)
+            if (strcmp(uuid_str, part_uuid) != 0)
+                continue;
+
+        rc = pb_api_partition_read_bpak(ctx, tbl[i].uuid, &header);
+
+        if (rc == PB_RESULT_OK)
+            part_is_bpak = true;
+        else if (rc != -PB_RESULT_NOT_FOUND)
+            goto err_free_tbl;
+
+        partition_table_index = i;
+
+        break;
+    }
+
+    rc = pb_api_stream_init(ctx, uu_part);
+
+    if (rc != PB_RESULT_OK)
+    {
+        fprintf(stderr, "Error: Stream initialization failed (%i)\n", rc);
+        goto err_free_tbl;
+    }
+
+    if (part_is_bpak) // TODO: Actual BPAK header extraction
+    {
+    }
+
+    for (size_t bytes_left = tbl[partition_table_index].block_size * (tbl[partition_table_index].last_block - tbl[partition_table_index].first_block + 1); bytes_left > 0; bytes_left -= chunk_size)
+    {
+        size_t to_read = bytes_left > chunk_size ? chunk_size : bytes_left;
+        rc = pb_api_stream_read_buffer(ctx, buffer_id, offset,
+                                       to_read, buffer);
+
+        if (rc != PB_RESULT_OK)
+            break;
+
+        buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers;
+
+        if (fwrite(buffer, 1, to_read, fp) == to_read)
+        {
+             rc = -PB_RESULT_ERROR;
+             break;
+        }
+        offset += to_read;
+    }
+
+    pb_api_stream_finalize(ctx);
+
+err_free_tbl:
+    free(tbl);
+err_free_buf:
+    free(buffer);
+err_close_fp:
+    fclose(fp);
+    return rc;
+}
+
 int action_part(int argc, char **argv)
 {
     int opt;
@@ -457,6 +575,7 @@ int action_part(int argc, char **argv)
     bool flag_write = false;
     bool flag_verify = false;
     bool flag_show = false;
+    bool flag_dump = false;
     size_t block_write_offset = 0;
     const char *part_uuid = NULL;
     const char *filename = NULL;
@@ -474,10 +593,11 @@ int action_part(int argc, char **argv)
         {"install",     no_argument,       0,  'i' },
         {"list",        no_argument,       0,  'l' },
         {"offset",      required_argument, 0,  'O' },
+        {"dump",        required_argument, 0,  'D' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:w:silp:c:d:",
+    while ((opt = getopt_long(argc, argv, "hvt:w:silp:c:d:D:",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -506,6 +626,10 @@ int action_part(int argc, char **argv)
             break;
             case 'c':
                 flag_verify = true;
+                filename = (const char *) optarg;
+            break;
+            case 'D':
+                flag_dump = true;
                 filename = (const char *) optarg;
             break;
             case 'p':
@@ -562,6 +686,8 @@ int action_part(int argc, char **argv)
         rc = part_verify(ctx, filename, part_uuid, block_write_offset);
     else if (flag_show)
         rc = part_show(ctx, part_uuid);
+    else if (flag_dump)
+        rc = part_dump(ctx, filename, part_uuid);
 
     if (rc != PB_RESULT_OK)
     {
