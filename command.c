@@ -321,6 +321,65 @@ static int cmd_auth(void)
     return PB_OK;
 }
 
+static int cmd_stream_read(void)
+{
+    int rc;
+    struct pb_command_stream_read_buffer *stream_read = \
+        (struct pb_command_stream_read_buffer *) cmd.request;
+
+    LOG_DBG("Stream read %u, %llu, %i", stream_read->buffer_id,
+                                        stream_read->offset,
+                                        stream_read->size);
+
+    /* Partition must be marked as dumpable, don't dump partitions that may contain sensitive data */
+    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_DUMPABLE))
+    {
+        LOG_ERR("Partition may not be dumped");
+        rc = -PB_RESULT_ERROR;
+        pb_wire_init_result(&result, rc);
+        return rc;
+    }
+
+    size_t part_size = stream_map->no_of_blocks *
+                         stream_drv->block_size;
+
+    if ((stream_read->offset + stream_read->size) > part_size)
+    {
+        LOG_ERR("Trying to read outside of partition");
+        LOG_ERR("%llu > %zu", (stream_read->offset + \
+                        stream_read->size), part_size);
+        rc = -PB_RESULT_NO_MEMORY;
+        pb_wire_init_result(&result, rc);
+        return rc;
+    }
+
+    size_t blocks = (stream_read->size / stream_drv->block_size);
+    size_t block_offset = (stream_read->offset / stream_drv->block_size);
+
+    if (stream_read->size % stream_drv->block_size)
+        blocks++;
+
+    LOG_DBG("Reading %zu blocks at offset %zu", blocks, block_offset);
+
+    uint8_t *bfr = ((uint8_t *) buffer) +
+              ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_read->buffer_id);
+
+    LOG_DBG("Buffer: %p", bfr);
+    rc = pb_storage_read(stream_drv, stream_map, bfr, blocks,
+                            block_offset);
+
+    pb_wire_init_result(&result, rc);
+
+    if (rc == PB_OK)
+    {
+        plat_transport_write(&result, sizeof(result));
+        rc = plat_transport_write(bfr, stream_read->size);
+        pb_wire_init_result(&result, rc);
+    }
+
+    return rc;
+}
+
 static int cmd_stream_write(void)
 {
     int rc;
@@ -788,6 +847,9 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_STREAM_PREPARE_BUFFER:
             rc = cmd_stream_prep_buffer();
+        break;
+        case PB_CMD_STREAM_READ_BUFFER:
+            rc = cmd_stream_read();
         break;
         case PB_CMD_STREAM_WRITE_BUFFER:
             rc = cmd_stream_write();

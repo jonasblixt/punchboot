@@ -16,6 +16,9 @@
  *
  * \def PB_PART_FLAG_ERASE_BEFORE_WRITE
  * The partition must be erased before any write operation
+ *
+ * \def PB_STORAGE_MAP_FLAG_DUMPABLE
+ * The partition can be read back
  */
 
 #define PB_STORAGE_MAP_FLAG_BOOTABLE (1 << 0)
@@ -24,6 +27,7 @@
 #define PB_STORAGE_MAP_FLAG_ERASE_BEFORE_WRITE (1 << 3)
 #define PB_STORAGE_MAP_FLAG_DISK_MAP (1 << 4)
 #define PB_STORAGE_MAP_FLAG_VISIBLE (1 << 5)
+#define PB_STORAGE_MAP_FLAG_DUMPABLE (1 << 6)
 
 
 #define PB_STORAGE_MAP_FLAG_STATIC_MAP (1 << 16)
