@@ -1,5 +1,5 @@
-#ifndef INCLUDE_PB_ERROR_H_
-#define INCLUDE_PB_ERROR_H_
+#ifndef INCLUDE_PB_TOOLS_ERROR_H_
+#define INCLUDE_PB_TOOLS_ERROR_H_
 
 #include <stdint.h>
 
