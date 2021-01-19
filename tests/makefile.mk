@@ -47,6 +47,8 @@ INTEGRATION_TESTS += test_board_status
 INTEGRATION_TESTS += test_all_sig_formats
 INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_revoke_key
+INTEGRATION_TESTS += test_part_dump
+INTEGRATION_TESTS += test_part_dump2
 
 
 

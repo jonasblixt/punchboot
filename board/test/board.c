@@ -69,6 +69,9 @@ struct pb_storage_map map[] =
     PB_STORAGE_MAP("44acdcbe-dcb0-4d89-b0ad-8f96967f8c95", "Fuse array",
             1, PB_STORAGE_MAP_FLAG_VISIBLE),
 
+    PB_STORAGE_MAP("ff4ddc6c-ad7a-47e8-8773-6729392dd1b5", "Dumpable", 2048,
+            DEF_FLAGS | PB_STORAGE_MAP_FLAG_DUMPABLE),
+
     PB_STORAGE_MAP_END
 };
 
