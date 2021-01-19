@@ -222,13 +222,13 @@ struct pb_command_stream_write_buffer
 } __attribute__((packed));
 
 /**
- * Read data from a partition
+ * Read data from a partition to an internal buffer
  *
  * This command does not need a prepare_buffer CMD before it.
  */
 struct pb_command_stream_read_buffer
 {
-    uint32_t size;     /*!< Bytes to transfer from partition */
+    uint32_t size;     /*!< Bytes to transfer from partition to buffer */
     uint64_t offset;   /*!< Offset in bytes into the partition */
     uint8_t buffer_id; /*!< Source buffer id */
     uint8_t rz[19];    /*!< Reserved */
@@ -247,6 +247,7 @@ struct pb_command_authenticate
     uint32_t key_id; /*!< Optional key id for token based auth */
     uint8_t rz[25];  /*!< Reserved */
 } __attribute__((packed));
+
 /**
  * Verify partition
  *
