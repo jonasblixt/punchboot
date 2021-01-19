@@ -188,7 +188,7 @@ struct pb_result_part_table_entry
 
 
 /**
- * Initialize streaming write to partition
+ * Initialize streaming to or from a partition
  *
  */
 struct pb_command_stream_initialize
@@ -223,6 +223,8 @@ struct pb_command_stream_write_buffer
 
 /**
  * Read data from a partition to an internal buffer
+ *
+ * This command does not need a prepare_buffer CMD before it.
  */
 struct pb_command_stream_read_buffer
 {
