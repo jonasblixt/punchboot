@@ -38,6 +38,7 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
 {
     volatile uint32_t irq_status;
     uint32_t timeout = arch_get_us_tick();
+    int rc = PB_OK;
 
     while (1)
     {
@@ -46,19 +47,22 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
         if (!!(irq_status & flags))
             break;
 
-        if ((arch_get_us_tick()-timeout) > 300000)
-            return -PB_TIMEOUT;
+        if ((arch_get_us_tick() - timeout) > 300000) {
+            rc = -PB_TIMEOUT;
+            goto err_out;
+        }
     }
 
-    pb_write32(flags, dev->base+USDHC_INT_STATUS);
-
-    return PB_OK;
+err_out:
+    pb_write32(flags, dev->base + USDHC_INT_STATUS);
+    return rc;
 }
 
 static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 {
     volatile uint32_t irq_status;
-    uint32_t timeout = 0xFFFFF;
+    uint32_t timeout = arch_get_us_tick();
+    int rc = PB_OK;
 
     if (!dev->transfer_in_progress)
         return PB_OK;
@@ -69,22 +73,20 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 
     while (1)
     {
-        irq_status = pb_read32(dev->base+ USDHC_INT_STATUS);
+        irq_status = pb_read32(dev->base + USDHC_INT_STATUS);
 
         if (!!(irq_status & USDHC_INT_DATA_END))
             break;
 
-        timeout--;
-
-        if (!timeout)
-        {
-            LOG_ERR("Xfer timeout");
-            return -PB_TIMEOUT;
+        if ((arch_get_us_tick() - timeout) > 300000) {
+            rc = -PB_TIMEOUT;
+            goto err_out;
         }
     }
 
-    pb_write32(USDHC_INT_DATA_END, dev->base+ USDHC_INT_STATUS);
-    return PB_OK;
+err_out:
+    pb_write32(USDHC_INT_DATA_END, dev->base + USDHC_INT_STATUS);
+    return rc;
 }
 
 int usdhc_emmc_send_cmd(struct usdhc_device *dev,
