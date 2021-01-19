@@ -532,7 +532,11 @@ static int part_dump(struct pb_context *ctx, const char* filename, const char* p
     {
     }
 
-    for (size_t bytes_left = tbl[partition_table_index].block_size * (tbl[partition_table_index].last_block - tbl[partition_table_index].first_block + 1); bytes_left > 0; bytes_left -= chunk_size)
+    size_t bytes_left = tbl[partition_table_index].block_size * \
+                                (tbl[partition_table_index].last_block - \
+                                tbl[partition_table_index].first_block + 1);
+
+    for (; bytes_left > 0; bytes_left -= chunk_size)
     {
         size_t to_read = bytes_left > chunk_size ? chunk_size : bytes_left;
         rc = pb_api_stream_read_buffer(ctx, buffer_id, offset,
@@ -543,9 +547,10 @@ static int part_dump(struct pb_context *ctx, const char* filename, const char* p
 
         buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers;
 
-        if (fwrite(buffer, 1, to_read, fp) == to_read)
+        if (fwrite(buffer, 1, to_read, fp) != to_read)
         {
              rc = -PB_RESULT_ERROR;
+             fprintf(stderr, "Error: Write failed\n");
              break;
         }
         offset += to_read;
