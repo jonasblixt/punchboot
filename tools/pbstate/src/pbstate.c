@@ -102,6 +102,8 @@ static int pbstate_commit(void)
     int fd = open(device, O_WRONLY | O_DSYNC);
 
     LOG("Writing configuration...\n");
+    LOG("  Primary block : %u\n", primary_offset);
+    LOG("  Backup block  : %u\n", backup_offset);
 
     if (fd == -1)
     {
