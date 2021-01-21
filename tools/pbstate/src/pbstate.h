@@ -27,7 +27,9 @@ typedef enum pbstate_system {
 #define PB_STATE_ERROR_A_ROLLBACK (1 << 0)
 #define PB_STATE_ERROR_B_ROLLBACK (1 << 1)
 
-int pbstate_load(const char *_device, pbstate_printfunc_t _printfunc);
+int pbstate_load(const char *p_device,
+                 const char *b_device,
+                 pbstate_printfunc_t _printfunc);
 
 bool pbstate_is_system_active(pbstate_system_t system);
 

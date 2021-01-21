@@ -59,7 +59,17 @@ echo
 echo Activating System A
 echo
 
-$PBSTATE -d /tmp/disk -s a
+# $PBSTATE -d /tmp/disk -s a
+
+dd if=$CONFIG_QEMU_VIRTIO_DISK of=/tmp/pb_config_primary bs=512 count=1 skip=2082
+dd if=$CONFIG_QEMU_VIRTIO_DISK of=/tmp/pb_config_backup bs=512 count=1 skip=2083
+
+$PBSTATE -p /tmp/pb_config_primary -b /tmp/pb_config_backup -s a
+
+dd if=/tmp/pb_config_primary of=$CONFIG_QEMU_VIRTIO_DISK bs=512 count=1 seek=2082 conv=notrunc
+dd if=/tmp/pb_config_backup of=$CONFIG_QEMU_VIRTIO_DISK bs=512 count=1 seek=2083 conv=notrunc
+
+#$PB boot --activate 2af755d8-8de5-45d5-a862-014cfa735ce0 --transport socket
 
 # Reset
 force_recovery_mode_off
@@ -93,8 +103,15 @@ echo
 echo Activating System B
 echo
 
-$PBSTATE -d /tmp/disk -s b
+#$PBSTATE -d /tmp/disk -s b
 
+dd if=$CONFIG_QEMU_VIRTIO_DISK of=/tmp/pb_config_primary bs=512 count=1 skip=2082
+dd if=$CONFIG_QEMU_VIRTIO_DISK of=/tmp/pb_config_backup bs=512 count=1 skip=2083
+
+$PBSTATE -p /tmp/pb_config_primary -b /tmp/pb_config_backup -s b
+
+dd if=/tmp/pb_config_primary of=$CONFIG_QEMU_VIRTIO_DISK bs=512 count=1 seek=2082 conv=notrunc
+dd if=/tmp/pb_config_backup of=$CONFIG_QEMU_VIRTIO_DISK bs=512 count=1 seek=2083 conv=notrunc
 wait_for_qemu2
 start_qemu
 wait_for_qemu

@@ -53,8 +53,14 @@ then
     test_end_error
 fi
 
-$PBSTATE -d /tmp/disk -v b
-$PBSTATE -d /tmp/disk -s a -c 3
+dd if=$CONFIG_QEMU_VIRTIO_DISK of=/tmp/pb_config_primary bs=512 count=1 skip=2082
+dd if=$CONFIG_QEMU_VIRTIO_DISK of=/tmp/pb_config_backup bs=512 count=1 skip=2083
+
+$PBSTATE -p /tmp/pb_config_primary -b /tmp/pb_config_backup -v b
+$PBSTATE -p /tmp/pb_config_primary -b /tmp/pb_config_backup -s a -c 3
+
+dd if=/tmp/pb_config_primary of=$CONFIG_QEMU_VIRTIO_DISK bs=512 count=1 seek=2082 conv=notrunc
+dd if=/tmp/pb_config_backup of=$CONFIG_QEMU_VIRTIO_DISK bs=512 count=1 seek=2083 conv=notrunc
 
 # Reset
 force_recovery_mode_off

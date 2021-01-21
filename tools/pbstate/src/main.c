@@ -17,19 +17,30 @@
 
 #include "pbstate.h"
 
+static void print_version(void)
+{
+    printf("pbstate v%s\n", PACKAGE_VERSION);
+}
 
 static void print_help(void)
 {
-    printf(" --- pbstate " VERSION " ---\n\n");
-    printf(" Optional parameters:\n");
-    printf("  pbstate -d <device> -o primary offset -b backup offset");
-    printf(" Usage:\n");
-    printf("  pbstate -i                                                  - " \
-                                                        "View configuration\n");
-    printf("  pbstate -s <A, B or none>  [ -c <counter> ]                 - " \
-                                                        "Switch system\n");
-    printf("  pbstate -v <A or B>                                         - " \
-                                                        "Set verified flag\n");
+    print_version();
+    printf("\n");
+    printf("Usage: pbstate -p <primary device> -b <backup device> Command\n");
+    printf("\n");
+    printf("Required parameters:\n");
+    printf("    -p, --primary              Primary state partition\n");
+    printf("    -b, --backup               Backup state partition\n");
+    printf("\n");
+    printf("Commands:\n");
+    printf("    -s, --switch <System ID>   Switch active system\n");
+    printf("    -v, --verified <System ID> Set system to verified state\n");
+    printf("    -i, --info                 Print current state\n");
+    printf("    -h, --help                 Display this help\n");
+    printf("    -V, --version              Display version\n");
+    printf("\n");
+    printf("Optional parameter for switch command:\n");
+    printf("    -c, --count <n>            Set the system to not verified and boot retry counter to <n>\n");
 }
 
 static void print_configuration(void)
@@ -52,36 +63,56 @@ static void print_configuration(void)
 
 int main(int argc, char * const argv[])
 {
-    extern char *optarg;
+    int opt;
+    int long_index = 0;
     int err;
     char c;
-    char *device_path = NULL;
-    char *system = NULL;
-    char *system_verified = NULL;
+    const char *primary_device_path = NULL;
+    const char *backup_device_path = NULL;
+    const char *system = NULL;
+    const char *system_verified = NULL;
     bool flag_help = false;
     bool flag_switch = false;
     bool flag_show = false;
     bool flag_verify = false;
-    bool flag_device = false;
-    bool flag_primary_offset = false;
-    bool flag_backup_offset = false;
     uint64_t offset_primary = 0;
     uint64_t offset_backup = 0;
     uint8_t counter = 0;
 
-    if (argc < 2)
-        flag_help = true;
-
-    while (((c = getopt (argc, argv, "hd:u:s:ic:v:")) != -1) && (c != 255))
+    struct option long_options[] =
     {
-        switch (c)
-        {
+        {"primary",   required_argument,   0,  'p' },
+        {"backup",    required_argument,   0,  'b' },
+        {"switch",    required_argument,   0,  's' },
+        {"count",     required_argument,   0,  'c' },
+        {"verified",  required_argument,   0,  'v' },
+        {"info",      no_argument,         0,  'i' },
+        {"help",      no_argument,         0,  'h' },
+        {"version",   no_argument,         0,  'V' },
+        {0,           0,                   0,   0  }
+    };
+
+    if (argc < 2) {
+        print_help();
+        return 0;
+    }
+
+    while ((opt = getopt_long(argc, argv, "p:b:s:c:v:ihV",
+                   long_options, &long_index )) != -1) {
+        switch (opt) {
             case 'h':
-                flag_help = true;
+                print_help();
+                return 0;
             break;
-            case 'd':
-                flag_device = true;
-                device_path = optarg;
+            case 'V':
+                print_version();
+                return 0;
+            break;
+            case 'p':
+                primary_device_path = optarg;
+            break;
+            case 'b':
+                backup_device_path = optarg;
             break;
             case 'c':
                 counter = strtol(optarg, NULL, 0);
@@ -97,32 +128,25 @@ int main(int argc, char * const argv[])
                 system_verified = optarg;
                 flag_verify = true;
             break;
-            default:
-                printf("Unknown option\n");
-                exit(-1);
+            case ':':
+                fprintf(stderr, "Missing arg for %c\n", optopt);
+                return -1;
             break;
+             default:
+                print_help();
+                exit(EXIT_FAILURE);
         }
     }
 
-    if (flag_help)
-    {
-        print_help();
-        exit(0);
+    if ((primary_device_path == NULL) || (backup_device_path == NULL)) {
+        fprintf(stderr, "Error: Missing required -p and -b parameters\n");
+        exit(EXIT_FAILURE);
     }
 
-    if (flag_device)
-    {
-        err = pbstate_load(device_path, printf);
+    err = pbstate_load(primary_device_path, backup_device_path, printf);
 
-        if (err != 0)
-            return -1;
-    }
-    else
-    {
-        printf("Error: No device specified\n");
+    if (err != 0)
         return -1;
-    }
-
 
     if (flag_show)
     {

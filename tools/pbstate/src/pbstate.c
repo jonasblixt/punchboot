@@ -41,7 +41,8 @@ struct pb_boot_state /* 512 bytes */
 static struct pb_boot_state config;
 static struct pb_boot_state config_backup;
 static uint64_t primary_offset, backup_offset;
-static const char *device;
+static const char *primary_device;
+static const char *backup_device;
 
 static pbstate_printfunc_t printfunc;
 
@@ -99,22 +100,15 @@ static int pbstate_commit(void)
     int err = 0;
     uint32_t crc = 0;
     int write_sz;
-    int fd = open(device, O_WRONLY | O_DSYNC);
+    int fd = open(primary_device, O_WRONLY | O_DSYNC);
 
     LOG("Writing configuration...\n");
 
     if (fd == -1)
     {
-        LOG("Error: Could not open '%s'\n", device);
+        LOG("Error: Could not open '%s'\n", primary_device);
         err = -1;
         goto commit_err_out1;
-    }
-
-    if (lseek(fd, primary_offset*512, SEEK_SET) == (off_t)-1)
-    {
-        LOG("Error: seek failed\n");
-        err = -1;
-        goto commit_err_out;
     }
 
     config.crc = 0;
@@ -128,11 +122,14 @@ static int pbstate_commit(void)
         goto commit_err_out;
     }
 
-    if (lseek(fd, backup_offset*512, SEEK_SET) == (off_t)-1)
+    close(fd);
+    fd = open(backup_device, O_WRONLY | O_DSYNC);
+
+    if (fd == -1)
     {
-        LOG("Error: seek failed\n");
+        LOG("Error: Could not open '%s'\n", backup_device);
         err = -1;
-        goto commit_err_out;
+        goto commit_err_out1;
     }
 
     /* Synchronize backup partition with primary partition */
@@ -174,81 +171,47 @@ static int read_config(int fd, struct pb_boot_state* config)
     return 0;
 }
 
-int pbstate_load(const char *_device, pbstate_printfunc_t _printfunc)
+int pbstate_load(const char *p_device,
+                 const char *b_device,
+                 pbstate_printfunc_t _printfunc)
 {
     int err = 0;
     int fd = 0;
     bool primary_ok;
     bool backup_ok;
-    struct gpt_table *table;
-    struct gpt_part_hdr *part_header;
 
-    device = _device;
+    primary_device = p_device;
+    backup_device = b_device;
     printfunc = _printfunc;
 
+    fd = open(primary_device, O_RDONLY);
 
-    err = gpt_init(device, &table);
-    if (err != GPT_OK) {
-        LOG("Error: Failed to load GPT %i\n", err);
-        errno = ENOMEM;
-        return -1;
-    }
-
-    err = gpt_part_by_uuid(table, PRIMARY_STATE_UUID, &part_header);
-    if (err != GPT_OK) {
-        LOG("Error: Could not find primary partition\n");
-        errno = EINVAL;
-        err = -1;
-        goto load_error_free_gpt;
-    }
-
-    primary_offset = part_header->first_lba;
-
-    err = gpt_part_by_uuid(table, BACKUP_STATE_UUID, &part_header);
-    if (err != GPT_OK) {
-        LOG("Error: Could not find backup partition\n");
-        errno = EINVAL;
-        err = -1;
-        goto load_error_free_gpt;
-    }
-
-    backup_offset = part_header->first_lba;
-
-    fd = open(device, O_RDONLY);
     if (fd == -1)
     {
-        LOG("Error: Could not open '%s'\n", device);
-        err = -1;
-        goto load_error_free_gpt;
-    }
-
-    if (lseek(fd, primary_offset*512, SEEK_SET) == (off_t)-1)
-    {
-        LOG("Error: seek failed\n");
-        err = -1;
-        goto load_error_close;
+        LOG("Error: Could not open '%s'\n", primary_device);
+        return -1;
     }
 
     if (read_config(fd, &config) != 0)
     {
         LOG("Could not read primary config data\n");
-        err = -1;
-        goto load_error_close;
     }
 
-    if (lseek(fd, backup_offset*512, SEEK_SET) == (off_t)-1)
+    close(fd);
+    fd = open(backup_device, O_RDONLY);
+
+    if (fd == -1)
     {
-        LOG("Error: seek failed\n");
-        err = -1;
-        goto load_error_close;
+        LOG("Error: Could not open '%s'\n", primary_device);
+        return -1;
     }
 
     if (read_config(fd, &config_backup) != 0)
     {
         LOG("Could not read backup config data\n");
-        err = -1;
-        goto load_error_close;
     }
+
+    close(fd);
 
     if (config_validate(&config) == GPT_OK)
         primary_ok = true;
@@ -272,10 +235,6 @@ int pbstate_load(const char *_device, pbstate_printfunc_t _printfunc)
         err = -1;
     }
 
-load_error_close:
-    close(fd);
-load_error_free_gpt:
-    gpt_free(table);
     return err;
 }
 
