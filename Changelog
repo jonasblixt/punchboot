@@ -1,3 +1,18 @@
+v0.9.5 (2021-01-21)
+------
+imx/usdhc: Adjust DE, "Data END" interrupt timeout to 300ms. Previously this
+timeout relied on a simple counter and now that the MMU and caches are enabled
+this timeout became significatly shorter.
+
+pbstate: Remove support for accessing the raw disk. 
+Problems have been observed when mixing writes to partitions and the
+'raw' disk device. Therefore pbstate will in the future require
+--primary and --backup parameters to the primary and backup state
+partition.
+
+pb: Support for dumping partitions which has explicitly been set as "DUMPABLE"
+
+
 v0.9.4 (2020-11-02)
 ------
 PB/storage: Add support for RPMB access
