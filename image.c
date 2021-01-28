@@ -181,6 +181,7 @@ int pb_image_load(pb_image_read_t read_f,
             hash_sz = 64;
         break;
         default:
+            LOG_ERR("Unknown hash_kind value 0x%x", h->hash_kind);
             rc = -PB_ERR;
     }
 
@@ -196,8 +197,10 @@ int pb_image_load(pb_image_read_t read_f,
 
     rc = bpak_copyz_signature(h, signature, &signature_sz);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+        LOG_ERR("Invalid signature area: size=%d", h->signature_sz);
         return rc;
+    }
 
     rc = plat_hash_update(&hash, h, sizeof(*h));
 
