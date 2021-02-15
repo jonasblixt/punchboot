@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__revoke__key" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_revoke_key</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__revoke__key_1a6b93dba46b3fa6fbd363d1105c09311c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_command_revoke_key::key_id</definition>
+        <argsstring></argsstring>
+        <name>key_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>ID of key to revoke </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="329" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="329" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__revoke__key_1a174e5625c57dedf14a3345e671c3f109" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_revoke_key::rz[28]</definition>
+        <argsstring>[28]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="330" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="330" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Revoke key command </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="328" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="327" bodyend="331"/>
+    <listofallmembers>
+      <member refid="structpb__command__revoke__key_1a6b93dba46b3fa6fbd363d1105c09311c" prot="public" virt="non-virtual"><scope>pb_command_revoke_key</scope><name>key_id</name></member>
+      <member refid="structpb__command__revoke__key_1a174e5625c57dedf14a3345e671c3f109" prot="public" virt="non-virtual"><scope>pb_command_revoke_key</scope><name>rz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

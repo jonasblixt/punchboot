@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__result" kind="struct" language="C++" prot="public">
+    <compoundname>pb_result</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__result_1abf4b5c5730a4fc7ac3fdb1ed70a412f1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_result::magic</definition>
+        <argsstring></argsstring>
+        <name>magic</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>PB wire format magic </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="127" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result_1aae39409d9cd1da2a390d2666e1f35450" prot="public" static="no" mutable="no">
+        <type>int8_t</type>
+        <definition>int8_t pb_result::result_code</definition>
+        <argsstring></argsstring>
+        <name>result_code</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Command result code </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="128" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result_1a7ae704b210b447ff4c3f647158d3e4a4" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result::rz[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="129" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result_1adc7cc4fe0149d564e39733ffeb96bfe7" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result::response[PB_RESULT_RESPONSE_MAX_SIZE]</definition>
+        <argsstring>[PB_RESULT_RESPONSE_MAX_SIZE]</argsstring>
+        <name>response</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Response data </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="130" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Punchboot command result (64 bytes)</para><para>Alignment: 64 Bytes </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="126" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="125" bodyend="131"/>
+    <listofallmembers>
+      <member refid="structpb__result_1abf4b5c5730a4fc7ac3fdb1ed70a412f1" prot="public" virt="non-virtual"><scope>pb_result</scope><name>magic</name></member>
+      <member refid="structpb__result_1adc7cc4fe0149d564e39733ffeb96bfe7" prot="public" virt="non-virtual"><scope>pb_result</scope><name>response</name></member>
+      <member refid="structpb__result_1aae39409d9cd1da2a390d2666e1f35450" prot="public" virt="non-virtual"><scope>pb_result</scope><name>result_code</name></member>
+      <member refid="structpb__result_1a7ae704b210b447ff4c3f647158d3e4a4" prot="public" virt="non-virtual"><scope>pb_result</scope><name>rz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

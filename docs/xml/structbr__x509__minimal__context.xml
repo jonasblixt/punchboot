@@ -1,0 +1,755 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__x509__minimal__context" kind="struct" language="C++" prot="public">
+    <compoundname>br_x509_minimal_context</compoundname>
+    <includes refid="bearssl__x509_8h" local="no">bearssl_x509.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ac9e193316a098ecfc5d46daeb9d891d2" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__x509_8h_1acf3af5c1ad4007b178e4c6d68ce5bb0d" kindref="member">br_x509_class</ref> *</type>
+        <definition>const br_x509_class* br_x509_minimal_context::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="638" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="638" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a1ccb33878a874774242917d7b243e9bf" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__x509__pkey" kindref="compound">br_x509_pkey</ref></type>
+        <definition>br_x509_pkey br_x509_minimal_context::pkey</definition>
+        <argsstring></argsstring>
+        <name>pkey</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="642" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="642" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aaa4e3ae17ea1b83e091d396d55d9995f" prot="public" static="no" mutable="no">
+        <type>uint32_t *</type>
+        <definition>uint32_t* br_x509_minimal_context::dp</definition>
+        <argsstring></argsstring>
+        <name>dp</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="646" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="646" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ad30f21e7542d27e08d156ff4752937ac" prot="public" static="no" mutable="no">
+        <type>uint32_t *</type>
+        <definition>uint32_t* br_x509_minimal_context::rp</definition>
+        <argsstring></argsstring>
+        <name>rp</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="647" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="647" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1afefd230fe5ef96d39d68565298f9336f" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_x509_minimal_context::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="648" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="648" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a77a98afc5afc0cd7920c379479281a0d" prot="public" static="no" mutable="no">
+        <type>struct br_x509_minimal_context::@9</type>
+        <definition>struct br_x509_minimal_context::@9  br_x509_minimal_context::cpu</definition>
+        <argsstring></argsstring>
+        <name>cpu</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="649" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a108a9596cc587e028deaf3293f8949c3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_minimal_context::dp_stack[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>dp_stack</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="650" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="650" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a433660e9b920afb28bb0b746512c2411" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_minimal_context::rp_stack[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>rp_stack</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="651" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="651" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ae42cb6cf2dad921bee7470fe58f4d273" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int br_x509_minimal_context::err</definition>
+        <argsstring></argsstring>
+        <name>err</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="652" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="652" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a61e197f272014bd762100e351571e786" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* br_x509_minimal_context::server_name</definition>
+        <argsstring></argsstring>
+        <name>server_name</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="655" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="655" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a3aeabc51863f6022943b451555ffa792" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::key_usages</definition>
+        <argsstring></argsstring>
+        <name>key_usages</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="658" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="658" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a78e7f79a7b30c41f8bddcebfeaf1c9e8" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_minimal_context::days</definition>
+        <argsstring></argsstring>
+        <name>days</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="661" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="661" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a65a4d58b30e873e17287dba15b2b1187" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_minimal_context::seconds</definition>
+        <argsstring></argsstring>
+        <name>seconds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="661" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="661" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a98b62ea66799e5496bdabb662c11bdf5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_minimal_context::cert_length</definition>
+        <argsstring></argsstring>
+        <name>cert_length</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="665" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="665" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aa54029e7b999f627214752169c0187c0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_minimal_context::num_certs</definition>
+        <argsstring></argsstring>
+        <name>num_certs</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="670" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="670" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a26135db7777e4ab3f5082eaade23d9a9" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_x509_minimal_context::hbuf</definition>
+        <argsstring></argsstring>
+        <name>hbuf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="673" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="673" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a810fd435124a86270d953bd7e2e3f807" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_x509_minimal_context::hlen</definition>
+        <argsstring></argsstring>
+        <name>hlen</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="674" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="674" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a773f40f5491f3e177753c581c8cab677" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::pad[256]</definition>
+        <argsstring>[256]</argsstring>
+        <name>pad</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="677" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="677" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aeeb606de875b9d66560ececd0a6c2449" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::ee_pkey_data[BR_X509_BUFSIZE_KEY]</definition>
+        <argsstring>[BR_X509_BUFSIZE_KEY]</argsstring>
+        <name>ee_pkey_data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="680" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="680" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a951b0c1f8f049320b20fd80fb554855b" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::pkey_data[BR_X509_BUFSIZE_KEY]</definition>
+        <argsstring>[BR_X509_BUFSIZE_KEY]</argsstring>
+        <name>pkey_data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="683" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="683" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aa3de723a0b05d7bae22b3442dacced51" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::cert_signer_key_type</definition>
+        <argsstring></argsstring>
+        <name>cert_signer_key_type</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="688" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="688" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aba16db137f2e6074033362d7436e575f" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t br_x509_minimal_context::cert_sig_hash_oid</definition>
+        <argsstring></argsstring>
+        <name>cert_sig_hash_oid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="689" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="689" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aa25ab141c0dd5bf6123e14cf89085a05" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::cert_sig_hash_len</definition>
+        <argsstring></argsstring>
+        <name>cert_sig_hash_len</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="690" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="690" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ae3eaa07b5acef89afeed3c705dab363c" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::cert_sig[BR_X509_BUFSIZE_SIG]</definition>
+        <argsstring>[BR_X509_BUFSIZE_SIG]</argsstring>
+        <name>cert_sig</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="693" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="693" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aee279a5f9f38633d3031f12544b45548" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t br_x509_minimal_context::cert_sig_len</definition>
+        <argsstring></argsstring>
+        <name>cert_sig_len</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="694" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="694" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ae88aed66a3cbf664846d855f7512961c" prot="public" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t br_x509_minimal_context::min_rsa_size</definition>
+        <argsstring></argsstring>
+        <name>min_rsa_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="697" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="697" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a23e9e2cbf3b1201c905a7e58df04a2fe" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__x509__trust__anchor" kindref="compound">br_x509_trust_anchor</ref> *</type>
+        <definition>const br_x509_trust_anchor* br_x509_minimal_context::trust_anchors</definition>
+        <argsstring></argsstring>
+        <name>trust_anchors</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="700" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="700" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ab39914b06367d76c3f2ed403878020a9" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_x509_minimal_context::trust_anchors_num</definition>
+        <argsstring></argsstring>
+        <name>trust_anchors_num</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="701" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="701" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ab9f0a963a6b58338c1ea15322742b762" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::do_mhash</definition>
+        <argsstring></argsstring>
+        <name>do_mhash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="706" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="706" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a6539b61eb34289c5db2a3ba1ae745c16" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__multihash__context" kindref="compound">br_multihash_context</ref></type>
+        <definition>br_multihash_context br_x509_minimal_context::mhash</definition>
+        <argsstring></argsstring>
+        <name>mhash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="707" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="707" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1afeebcb339eb3610402010aa53c1dd868" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::tbs_hash[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>tbs_hash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="708" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="708" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1af1b78e513f281f2e0ccd1fc41d287068" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::do_dn_hash</definition>
+        <argsstring></argsstring>
+        <name>do_dn_hash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="713" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="713" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a8c8111d8bb1cad9ce96bfd436be186cc" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+        <definition>const br_hash_class* br_x509_minimal_context::dn_hash_impl</definition>
+        <argsstring></argsstring>
+        <name>dn_hash_impl</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="714" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="714" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aa1be0360ceea41f608ea6cf53db76fa5" prot="public" static="no" mutable="no">
+        <type><ref refid="unionbr__hash__compat__context" kindref="compound">br_hash_compat_context</ref></type>
+        <definition>br_hash_compat_context br_x509_minimal_context::dn_hash</definition>
+        <argsstring></argsstring>
+        <name>dn_hash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="715" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="715" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a81a6e6837787ab9e55cbda3141db89b1" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::current_dn_hash[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>current_dn_hash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="716" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="716" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a942dffb82326ff8f9ad9381e1302251c" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::next_dn_hash[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>next_dn_hash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="717" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="717" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1aab7f2b88ab53ac8f5e98d95dbf8c9c04" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_minimal_context::saved_dn_hash[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>saved_dn_hash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="718" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="718" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ad8cd2409c592a7ea5703709cc01485e8" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__name__element" kindref="compound">br_name_element</ref> *</type>
+        <definition>br_name_element* br_x509_minimal_context::name_elts</definition>
+        <argsstring></argsstring>
+        <name>name_elts</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="723" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="723" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a5ec0576b4ce5c0f2ee44251ffb2f90fe" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_x509_minimal_context::num_name_elts</definition>
+        <argsstring></argsstring>
+        <name>num_name_elts</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="724" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="724" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a7b685de41d456f7858163017425a616e" prot="public" static="no" mutable="no">
+        <type><ref refid="bearssl__rsa_8h_1a9ee06c1a4ae5af9e900d877a87ec8b17" kindref="member">br_rsa_pkcs1_vrfy</ref></type>
+        <definition>br_rsa_pkcs1_vrfy br_x509_minimal_context::irsa</definition>
+        <argsstring></argsstring>
+        <name>irsa</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="729" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="729" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1a1a99221f08a19a59a49642873a24e784" prot="public" static="no" mutable="no">
+        <type><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy</ref></type>
+        <definition>br_ecdsa_vrfy br_x509_minimal_context::iecdsa</definition>
+        <argsstring></argsstring>
+        <name>iecdsa</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="730" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="730" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__minimal__context_1ab6732239169636811c683be8a3ab68f7" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+        <definition>const br_ec_impl* br_x509_minimal_context::iec</definition>
+        <argsstring></argsstring>
+        <name>iec</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="731" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="731" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The &quot;minimal&quot; X.509 engine structure. </para>    </briefdescription>
+    <detaileddescription>
+<para>The structure contents are opaque (they shall not be accessed directly), except for the first field (the vtable).</para><para>The &quot;minimal&quot; engine performs a rudimentary but serviceable X.509 path validation. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="262">
+        <label>br_hash_class_</label>
+        <link refid="structbr__hash__class__"/>
+      </node>
+      <node id="267">
+        <label>br_sha224_context</label>
+        <link refid="structbr__sha224__context"/>
+        <childnode refid="262" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="265">
+        <label>br_ec_public_key</label>
+        <link refid="structbr__ec__public__key"/>
+      </node>
+      <node id="263">
+        <label>br_x509_class_</label>
+        <link refid="structbr__x509__class__"/>
+        <childnode refid="264" relation="usage">
+          <edgelabel>get_pkey</edgelabel>
+        </childnode>
+      </node>
+      <node id="274">
+        <label>br_multihash_context</label>
+        <link refid="structbr__multihash__context"/>
+        <childnode refid="262" relation="usage">
+          <edgelabel>impl</edgelabel>
+        </childnode>
+      </node>
+      <node id="258">
+        <label>br_x509_minimal_context</label>
+        <link refid="structbr__x509__minimal__context"/>
+        <childnode refid="259" relation="usage">
+          <edgelabel>irsa</edgelabel>
+        </childnode>
+        <childnode refid="260" relation="usage">
+          <edgelabel>name_elts</edgelabel>
+        </childnode>
+        <childnode refid="261" relation="usage">
+          <edgelabel>iec</edgelabel>
+          <edgelabel>iecdsa</edgelabel>
+        </childnode>
+        <childnode refid="262" relation="usage">
+          <edgelabel>dn_hash_impl</edgelabel>
+        </childnode>
+        <childnode refid="263" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+        <childnode refid="266" relation="usage">
+          <edgelabel>dn_hash</edgelabel>
+        </childnode>
+        <childnode refid="264" relation="usage">
+          <edgelabel>pkey</edgelabel>
+        </childnode>
+        <childnode refid="272" relation="usage">
+          <edgelabel>trust_anchors</edgelabel>
+        </childnode>
+        <childnode refid="274" relation="usage">
+          <edgelabel>mhash</edgelabel>
+        </childnode>
+      </node>
+      <node id="264">
+        <label>br_x509_pkey</label>
+        <link refid="structbr__x509__pkey"/>
+        <childnode refid="259" relation="usage">
+          <edgelabel>rsa</edgelabel>
+        </childnode>
+        <childnode refid="265" relation="usage">
+          <edgelabel>ec</edgelabel>
+        </childnode>
+      </node>
+      <node id="261">
+        <label>br_ec_impl</label>
+        <link refid="structbr__ec__impl"/>
+      </node>
+      <node id="260">
+        <label>br_name_element</label>
+        <link refid="structbr__name__element"/>
+      </node>
+      <node id="273">
+        <label>br_x500_name</label>
+        <link refid="structbr__x500__name"/>
+      </node>
+      <node id="271">
+        <label>br_md5sha1_context</label>
+        <link refid="structbr__md5sha1__context"/>
+        <childnode refid="262" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="272">
+        <label>br_x509_trust_anchor</label>
+        <link refid="structbr__x509__trust__anchor"/>
+        <childnode refid="264" relation="usage">
+          <edgelabel>pkey</edgelabel>
+        </childnode>
+        <childnode refid="273" relation="usage">
+          <edgelabel>dn</edgelabel>
+        </childnode>
+      </node>
+      <node id="269">
+        <label>br_sha384_context</label>
+        <link refid="structbr__sha384__context"/>
+        <childnode refid="262" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="270">
+        <label>br_md5_context</label>
+        <link refid="structbr__md5__context"/>
+        <childnode refid="262" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="266">
+        <label>br_hash_compat_context</label>
+        <link refid="unionbr__hash__compat__context"/>
+        <childnode refid="267" relation="usage">
+          <edgelabel>sha256</edgelabel>
+          <edgelabel>sha224</edgelabel>
+        </childnode>
+        <childnode refid="262" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+        <childnode refid="268" relation="usage">
+          <edgelabel>sha1</edgelabel>
+        </childnode>
+        <childnode refid="269" relation="usage">
+          <edgelabel>sha384</edgelabel>
+          <edgelabel>sha512</edgelabel>
+        </childnode>
+        <childnode refid="270" relation="usage">
+          <edgelabel>md5</edgelabel>
+        </childnode>
+        <childnode refid="271" relation="usage">
+          <edgelabel>md5sha1</edgelabel>
+        </childnode>
+      </node>
+      <node id="259">
+        <label>br_rsa_public_key</label>
+        <link refid="structbr__rsa__public__key"/>
+      </node>
+      <node id="268">
+        <label>br_sha1_context</label>
+        <link refid="structbr__sha1__context"/>
+        <childnode refid="262" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="637" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="637" bodyend="734"/>
+    <listofallmembers>
+      <member refid="structbr__x509__minimal__context_1a98b62ea66799e5496bdabb662c11bdf5" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>cert_length</name></member>
+      <member refid="structbr__x509__minimal__context_1ae3eaa07b5acef89afeed3c705dab363c" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>cert_sig</name></member>
+      <member refid="structbr__x509__minimal__context_1aa25ab141c0dd5bf6123e14cf89085a05" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>cert_sig_hash_len</name></member>
+      <member refid="structbr__x509__minimal__context_1aba16db137f2e6074033362d7436e575f" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>cert_sig_hash_oid</name></member>
+      <member refid="structbr__x509__minimal__context_1aee279a5f9f38633d3031f12544b45548" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>cert_sig_len</name></member>
+      <member refid="structbr__x509__minimal__context_1aa3de723a0b05d7bae22b3442dacced51" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>cert_signer_key_type</name></member>
+      <member refid="structbr__x509__minimal__context_1a77a98afc5afc0cd7920c379479281a0d" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>cpu</name></member>
+      <member refid="structbr__x509__minimal__context_1a81a6e6837787ab9e55cbda3141db89b1" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>current_dn_hash</name></member>
+      <member refid="structbr__x509__minimal__context_1a78e7f79a7b30c41f8bddcebfeaf1c9e8" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>days</name></member>
+      <member refid="structbr__x509__minimal__context_1aa1be0360ceea41f608ea6cf53db76fa5" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>dn_hash</name></member>
+      <member refid="structbr__x509__minimal__context_1a8c8111d8bb1cad9ce96bfd436be186cc" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>dn_hash_impl</name></member>
+      <member refid="structbr__x509__minimal__context_1af1b78e513f281f2e0ccd1fc41d287068" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>do_dn_hash</name></member>
+      <member refid="structbr__x509__minimal__context_1ab9f0a963a6b58338c1ea15322742b762" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>do_mhash</name></member>
+      <member refid="structbr__x509__minimal__context_1aaa4e3ae17ea1b83e091d396d55d9995f" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>dp</name></member>
+      <member refid="structbr__x509__minimal__context_1a108a9596cc587e028deaf3293f8949c3" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>dp_stack</name></member>
+      <member refid="structbr__x509__minimal__context_1aeeb606de875b9d66560ececd0a6c2449" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>ee_pkey_data</name></member>
+      <member refid="structbr__x509__minimal__context_1ae42cb6cf2dad921bee7470fe58f4d273" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>err</name></member>
+      <member refid="structbr__x509__minimal__context_1a26135db7777e4ab3f5082eaade23d9a9" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>hbuf</name></member>
+      <member refid="structbr__x509__minimal__context_1a810fd435124a86270d953bd7e2e3f807" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>hlen</name></member>
+      <member refid="structbr__x509__minimal__context_1ab6732239169636811c683be8a3ab68f7" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>iec</name></member>
+      <member refid="structbr__x509__minimal__context_1a1a99221f08a19a59a49642873a24e784" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>iecdsa</name></member>
+      <member refid="structbr__x509__minimal__context_1afefd230fe5ef96d39d68565298f9336f" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>ip</name></member>
+      <member refid="structbr__x509__minimal__context_1a7b685de41d456f7858163017425a616e" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>irsa</name></member>
+      <member refid="structbr__x509__minimal__context_1a3aeabc51863f6022943b451555ffa792" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>key_usages</name></member>
+      <member refid="structbr__x509__minimal__context_1a6539b61eb34289c5db2a3ba1ae745c16" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>mhash</name></member>
+      <member refid="structbr__x509__minimal__context_1ae88aed66a3cbf664846d855f7512961c" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>min_rsa_size</name></member>
+      <member refid="structbr__x509__minimal__context_1ad8cd2409c592a7ea5703709cc01485e8" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>name_elts</name></member>
+      <member refid="structbr__x509__minimal__context_1a942dffb82326ff8f9ad9381e1302251c" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>next_dn_hash</name></member>
+      <member refid="structbr__x509__minimal__context_1aa54029e7b999f627214752169c0187c0" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>num_certs</name></member>
+      <member refid="structbr__x509__minimal__context_1a5ec0576b4ce5c0f2ee44251ffb2f90fe" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>num_name_elts</name></member>
+      <member refid="structbr__x509__minimal__context_1a773f40f5491f3e177753c581c8cab677" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>pad</name></member>
+      <member refid="structbr__x509__minimal__context_1a1ccb33878a874774242917d7b243e9bf" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>pkey</name></member>
+      <member refid="structbr__x509__minimal__context_1a951b0c1f8f049320b20fd80fb554855b" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>pkey_data</name></member>
+      <member refid="structbr__x509__minimal__context_1ad30f21e7542d27e08d156ff4752937ac" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>rp</name></member>
+      <member refid="structbr__x509__minimal__context_1a433660e9b920afb28bb0b746512c2411" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>rp_stack</name></member>
+      <member refid="structbr__x509__minimal__context_1aab7f2b88ab53ac8f5e98d95dbf8c9c04" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>saved_dn_hash</name></member>
+      <member refid="structbr__x509__minimal__context_1a65a4d58b30e873e17287dba15b2b1187" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>seconds</name></member>
+      <member refid="structbr__x509__minimal__context_1a61e197f272014bd762100e351571e786" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>server_name</name></member>
+      <member refid="structbr__x509__minimal__context_1afeebcb339eb3610402010aa53c1dd868" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>tbs_hash</name></member>
+      <member refid="structbr__x509__minimal__context_1a23e9e2cbf3b1201c905a7e58df04a2fe" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>trust_anchors</name></member>
+      <member refid="structbr__x509__minimal__context_1ab39914b06367d76c3f2ed403878020a9" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>trust_anchors_num</name></member>
+      <member refid="structbr__x509__minimal__context_1ac9e193316a098ecfc5d46daeb9d891d2" prot="public" virt="non-virtual"><scope>br_x509_minimal_context</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

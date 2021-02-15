@@ -1,0 +1,231 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbpak__header" kind="struct" language="C++" prot="public">
+    <compoundname>bpak_header</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbpak__header_1aca592714523cf7c22522b6029d1b6ce1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t bpak_header::magic</definition>
+        <argsstring></argsstring>
+        <name>magic</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="109" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1a6a07de952d96674585dd0659a86f0f93" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_header::pad0[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>pad0</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="110" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1a5c73f20c83a026674a90a94431924627" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structbpak__meta__header" kindref="compound">bpak_meta_header</ref></type>
+        <definition>struct bpak_meta_header bpak_header::meta[BPAK_MAX_META]</definition>
+        <argsstring>[BPAK_MAX_META]</argsstring>
+        <name>meta</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="110" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1ae2795f463936d5f1260ffe97572c1666" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref></type>
+        <definition>struct bpak_part_header bpak_header::parts[BPAK_MAX_PARTS]</definition>
+        <argsstring>[BPAK_MAX_PARTS]</argsstring>
+        <name>parts</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="110" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1a16121dc2c1d3fffeaba2c0d8bb916a05" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_header::metadata[BPAK_METADATA_BYTES]</definition>
+        <argsstring>[BPAK_METADATA_BYTES]</argsstring>
+        <name>metadata</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="113" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1a8c86bca96eea83a3cf3c9ab6bf300a04" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_header::hash_kind</definition>
+        <argsstring></argsstring>
+        <name>hash_kind</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="114" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1ae90cee9c4c72a0533c854587c6faa7df" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_header::signature_kind</definition>
+        <argsstring></argsstring>
+        <name>signature_kind</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="115" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1a687de3b1b9a32e786e91fbeb7f06176c" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t bpak_header::alignment</definition>
+        <argsstring></argsstring>
+        <name>alignment</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="116" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1aa9959ada9294c1baeecb8357cc8f6e38" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_header::payload_hash[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>payload_hash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="117" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1a84b8b5673bb39f392ef14c32fc139db5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t bpak_header::key_id</definition>
+        <argsstring></argsstring>
+        <name>key_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="118" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1ae944cc2a3865901ad4345bf3dffe24f1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t bpak_header::keystore_id</definition>
+        <argsstring></argsstring>
+        <name>keystore_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="119" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1a7ad1add151bbf73045bca15e0e53d011" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_header::pad1[42]</definition>
+        <argsstring>[42]</argsstring>
+        <name>pad1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="120" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1aaba938f15e66cc901e7db47e55cd829c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_header::signature[BPAK_SIGNATURE_MAX_BYTES]</definition>
+        <argsstring>[BPAK_SIGNATURE_MAX_BYTES]</argsstring>
+        <name>signature</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="121" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__header_1afdbaa453b3ef711df3c0a53948153330" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t bpak_header::signature_sz</definition>
+        <argsstring></argsstring>
+        <name>signature_sz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="122" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="16">
+        <label>bpak_meta_header</label>
+        <link refid="structbpak__meta__header"/>
+      </node>
+      <node id="14">
+        <label>bpak_header</label>
+        <link refid="structbpak__header"/>
+        <childnode refid="15" relation="usage">
+          <edgelabel>parts</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>meta</edgelabel>
+        </childnode>
+      </node>
+      <node id="15">
+        <label>bpak_part_header</label>
+        <link refid="structbpak__part__header"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/include/bpak/bpak.h" line="108" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="107" bodyend="123"/>
+    <listofallmembers>
+      <member refid="structbpak__header_1a687de3b1b9a32e786e91fbeb7f06176c" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>alignment</name></member>
+      <member refid="structbpak__header_1a8c86bca96eea83a3cf3c9ab6bf300a04" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>hash_kind</name></member>
+      <member refid="structbpak__header_1a84b8b5673bb39f392ef14c32fc139db5" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>key_id</name></member>
+      <member refid="structbpak__header_1ae944cc2a3865901ad4345bf3dffe24f1" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>keystore_id</name></member>
+      <member refid="structbpak__header_1aca592714523cf7c22522b6029d1b6ce1" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>magic</name></member>
+      <member refid="structbpak__header_1a5c73f20c83a026674a90a94431924627" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>meta</name></member>
+      <member refid="structbpak__header_1a16121dc2c1d3fffeaba2c0d8bb916a05" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>metadata</name></member>
+      <member refid="structbpak__header_1a6a07de952d96674585dd0659a86f0f93" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>pad0</name></member>
+      <member refid="structbpak__header_1a7ad1add151bbf73045bca15e0e53d011" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>pad1</name></member>
+      <member refid="structbpak__header_1ae2795f463936d5f1260ffe97572c1666" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>parts</name></member>
+      <member refid="structbpak__header_1aa9959ada9294c1baeecb8357cc8f6e38" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>payload_hash</name></member>
+      <member refid="structbpak__header_1aaba938f15e66cc901e7db47e55cd829c" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>signature</name></member>
+      <member refid="structbpak__header_1ae90cee9c4c72a0533c854587c6faa7df" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>signature_kind</name></member>
+      <member refid="structbpak__header_1afdbaa453b3ef711df3c0a53948153330" prot="public" virt="non-virtual"><scope>bpak_header</scope><name>signature_sz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,171 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="xlat__tables__arch_8h" kind="file" language="C++">
+    <compoundname>xlat_tables_arch.h</compoundname>
+    <includes refid="pb_8h" local="no">pb/pb.h</includes>
+    <includes refid="utils_8h" local="no">pb/utils.h</includes>
+    <includedby refid="xlat__tables__private_8h" local="no">/docs/lib/xlat_tables/xlat_tables_private.h</includedby>
+    <incdepgraph>
+      <node id="696">
+        <label>stdio.h</label>
+        <link refid="stdio_8h_source"/>
+        <childnode refid="697" relation="include">
+        </childnode>
+        <childnode refid="698" relation="include">
+        </childnode>
+        <childnode refid="699" relation="include">
+        </childnode>
+      </node>
+      <node id="705">
+        <label>pb/errors.h</label>
+        <link refid="errors_8h_source"/>
+      </node>
+      <node id="703">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="704" relation="include">
+        </childnode>
+      </node>
+      <node id="701">
+        <label>stdint_.h</label>
+      </node>
+      <node id="695">
+        <label>pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="696" relation="include">
+        </childnode>
+        <childnode refid="700" relation="include">
+        </childnode>
+        <childnode refid="702" relation="include">
+        </childnode>
+        <childnode refid="703" relation="include">
+        </childnode>
+        <childnode refid="705" relation="include">
+        </childnode>
+        <childnode refid="706" relation="include">
+        </childnode>
+      </node>
+      <node id="697">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="704">
+        <label>stddef_.h</label>
+      </node>
+      <node id="698">
+        <label>stdio_.h</label>
+      </node>
+      <node id="694">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_arch.h</label>
+        <link refid="xlat__tables__arch_8h"/>
+        <childnode refid="695" relation="include">
+        </childnode>
+        <childnode refid="707" relation="include">
+        </childnode>
+      </node>
+      <node id="702">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="699">
+        <label>stdarg.h</label>
+        <link refid="stdarg_8h_source"/>
+      </node>
+      <node id="700">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="701" relation="include">
+        </childnode>
+      </node>
+      <node id="706">
+        <label>config.h</label>
+      </node>
+      <node id="707">
+        <label>pb/utils.h</label>
+        <link refid="utils_8h_source"/>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="708">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_arch.h</label>
+        <link refid="xlat__tables__arch_8h"/>
+        <childnode refid="709" relation="include">
+        </childnode>
+      </node>
+      <node id="709">
+        <label>/docs/lib/xlat_tables/xlat_tables_private.h</label>
+        <link refid="xlat__tables__private_8h_source"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="xlat__tables__arch_8h_1a8033b1fa9663dcd3b9a1205d1c6c2d72" prot="public" static="no">
+        <name>CHECK_PHY_ADDR_SPACE_SIZE</name>
+        <param><defname>__size__</defname></param>
+        <initializer>IS_POWER_OF_TWO(__size__)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_arch.h" line="26" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_arch.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__arch_8h_1ae03aeed82e82a26ef151e73f727050ee" prot="public" static="no">
+        <name>GET_NUM_BASE_LEVEL_ENTRIES</name>
+        <param><defname>addr_space_size</defname></param>
+        <initializer>((addr_space_size) &gt;&gt;						\
+		XLAT_ADDR_SHIFT(GET_XLAT_TABLE_LEVEL_BASE(addr_space_size)))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_arch.h" line="32" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_arch.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2017-2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>XLAT_TABLES_ARCH_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLES_ARCH_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/pb.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/utils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>CONFIG_ARCH_ARMV8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;aarch64/xlat_tables_aarch64.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>CONFIG_ARCH_ARMV7</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;aarch32/xlat_tables_aarch32.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#error<sp/>&quot;Unknown<sp/>arch&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/>Evaluates<sp/>to<sp/>1<sp/>if<sp/>the<sp/>given<sp/>physical<sp/>address<sp/>space<sp/>size<sp/>is<sp/>a<sp/>power<sp/>of<sp/>2,</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*<sp/>or<sp/>0<sp/>if<sp/>it&apos;s<sp/>not.</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CHECK_PHY_ADDR_SPACE_SIZE(__size__)<sp/>IS_POWER_OF_TWO(__size__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*<sp/>Compute<sp/>the<sp/>number<sp/>of<sp/>entries<sp/>required<sp/>at<sp/>the<sp/>initial<sp/>lookup<sp/>level<sp/>to<sp/>address</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/>the<sp/>whole<sp/>virtual<sp/>address<sp/>space.</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GET_NUM_BASE_LEVEL_ENTRIES(addr_space_size)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="33"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((addr_space_size)<sp/>&gt;&gt;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="34"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>XLAT_ADDR_SHIFT(GET_XLAT_TABLE_LEVEL_BASE(addr_space_size)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>XLAT_TABLES_ARCH_H<sp/>*/</highlight><highlight class="preprocessor"></highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/xlat_tables/xlat_tables_arch.h"/>
+  </compounddef>
+</doxygen>

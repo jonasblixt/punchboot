@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__aes__big__cbcdec__keys" kind="struct" language="C++" prot="public">
+    <compoundname>br_aes_big_cbcdec_keys</compoundname>
+    <includes refid="bearssl__block_8h" local="no">bearssl_block.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__aes__big__cbcdec__keys_1a379ffc6c76c3bcd68b976e460734a8a3" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__block_8h_1a5542970c820eeee2e62766368be8fb7f" kindref="member">br_block_cbcdec_class</ref> *</type>
+        <definition>const br_block_cbcdec_class* br_aes_big_cbcdec_keys::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to vtable for this context. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="726" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="726" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__big__cbcdec__keys_1a2533d2054903920cfa6f312648004a74" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_aes_big_cbcdec_keys::skey[60]</definition>
+        <argsstring>[60]</argsstring>
+        <name>skey</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="728" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="728" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__big__cbcdec__keys_1aa7d5cf29a176319c68ce96da9695e63b" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_aes_big_cbcdec_keys::num_rounds</definition>
+        <argsstring></argsstring>
+        <name>num_rounds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="729" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="729" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Context for AES subkeys (<computeroutput>aes_big</computeroutput> implementation, CBC decryption). </para>    </briefdescription>
+    <detaileddescription>
+<para>First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="29">
+        <label>br_aes_big_cbcdec_keys</label>
+        <link refid="structbr__aes__big__cbcdec__keys"/>
+        <childnode refid="30" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="30">
+        <label>br_block_cbcdec_class_</label>
+        <link refid="structbr__block__cbcdec__class__"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="724" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="724" bodyend="731"/>
+    <listofallmembers>
+      <member refid="structbr__aes__big__cbcdec__keys_1aa7d5cf29a176319c68ce96da9695e63b" prot="public" virt="non-virtual"><scope>br_aes_big_cbcdec_keys</scope><name>num_rounds</name></member>
+      <member refid="structbr__aes__big__cbcdec__keys_1a2533d2054903920cfa6f312648004a74" prot="public" virt="non-virtual"><scope>br_aes_big_cbcdec_keys</scope><name>skey</name></member>
+      <member refid="structbr__aes__big__cbcdec__keys_1a379ffc6c76c3bcd68b976e460734a8a3" prot="public" virt="non-virtual"><scope>br_aes_big_cbcdec_keys</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

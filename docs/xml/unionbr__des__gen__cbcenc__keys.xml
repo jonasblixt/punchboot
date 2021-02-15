@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="unionbr__des__gen__cbcenc__keys" kind="union" language="C++" prot="public">
+    <compoundname>br_des_gen_cbcenc_keys</compoundname>
+    <includes refid="bearssl__block_8h" local="no">bearssl_block.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionbr__des__gen__cbcenc__keys_1ad01f95fd1a21269da612dff1f3a4a845" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__block_8h_1ad0ecff523e21a74dc1143dcfa52aa251" kindref="member">br_block_cbcenc_class</ref> *</type>
+        <definition>const br_block_cbcenc_class* br_des_gen_cbcenc_keys::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2404" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2404" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__des__gen__cbcenc__keys_1aed306d20d220d15950f572fe0a0615b6" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__des__tab__cbcenc__keys" kindref="compound">br_des_tab_cbcenc_keys</ref></type>
+        <definition>br_des_tab_cbcenc_keys br_des_gen_cbcenc_keys::tab</definition>
+        <argsstring></argsstring>
+        <name>tab</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2405" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2405" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__des__gen__cbcenc__keys_1ad67e7450699bb3ca4cf008b46bb019ea" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__des__ct__cbcenc__keys" kindref="compound">br_des_ct_cbcenc_keys</ref></type>
+        <definition>br_des_ct_cbcenc_keys br_des_gen_cbcenc_keys::ct</definition>
+        <argsstring></argsstring>
+        <name>ct</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2406" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2406" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Aggregate structure large enough to be used as context for subkeys (CBC encryption) for all DES implementations. </para>    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="171">
+        <label>br_block_cbcenc_class_</label>
+        <link refid="structbr__block__cbcenc__class__"/>
+      </node>
+      <node id="170">
+        <label>br_des_tab_cbcenc_keys</label>
+        <link refid="structbr__des__tab__cbcenc__keys"/>
+        <childnode refid="171" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="169">
+        <label>br_des_gen_cbcenc_keys</label>
+        <link refid="unionbr__des__gen__cbcenc__keys"/>
+        <childnode refid="170" relation="usage">
+          <edgelabel>tab</edgelabel>
+        </childnode>
+        <childnode refid="171" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+        <childnode refid="172" relation="usage">
+          <edgelabel>ct</edgelabel>
+        </childnode>
+      </node>
+      <node id="172">
+        <label>br_des_ct_cbcenc_keys</label>
+        <link refid="structbr__des__ct__cbcenc__keys"/>
+        <childnode refid="171" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="2403" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2403" bodyend="2407"/>
+    <listofallmembers>
+      <member refid="unionbr__des__gen__cbcenc__keys_1ad67e7450699bb3ca4cf008b46bb019ea" prot="public" virt="non-virtual"><scope>br_des_gen_cbcenc_keys</scope><name>ct</name></member>
+      <member refid="unionbr__des__gen__cbcenc__keys_1aed306d20d220d15950f572fe0a0615b6" prot="public" virt="non-virtual"><scope>br_des_gen_cbcenc_keys</scope><name>tab</name></member>
+      <member refid="unionbr__des__gen__cbcenc__keys_1ad01f95fd1a21269da612dff1f3a4a845" prot="public" virt="non-virtual"><scope>br_des_gen_cbcenc_keys</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

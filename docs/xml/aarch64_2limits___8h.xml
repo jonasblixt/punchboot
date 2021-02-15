@@ -1,0 +1,274 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="aarch64_2limits___8h" kind="file" language="C++">
+    <compoundname>limits_.h</compoundname>
+    <includedby refid="limits_8h" local="no">/docs/include/pb/libc/limits.h</includedby>
+    <invincdepgraph>
+      <node id="248">
+        <label>/docs/include/pb/libc/aarch64/limits_.h</label>
+        <link refid="aarch64_2limits___8h"/>
+        <childnode refid="249" relation="include">
+        </childnode>
+      </node>
+      <node id="250">
+        <label>/docs/lib/bearssl/inner.h</label>
+        <link refid="inner_8h_source"/>
+      </node>
+      <node id="249">
+        <label>/docs/include/pb/libc/limits.h</label>
+        <link refid="limits_8h_source"/>
+        <childnode refid="250" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="aarch64_2limits___8h_1a8c13fdd8c2840edf0cb04a65297037bb" prot="public" static="no">
+        <name>SCHAR_MAX</name>
+        <initializer>0x7F</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="10" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1aa05d197000ad5c143ada0fcd9379b236" prot="public" static="no">
+        <name>SCHAR_MIN</name>
+        <initializer>(-SCHAR_MIN - 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="11" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a778eefd6535a9d4b752fca5dd0af58db" prot="public" static="no">
+        <name>CHAR_MAX</name>
+        <initializer>0x7F</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="12" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a5d707bd32338557ced18c6ac76ca1b3a" prot="public" static="no">
+        <name>CHAR_MIN</name>
+        <initializer>(-CHAR_MAX - 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="13" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a4066e640ee269d5d8f83ff6643b7af5f" prot="public" static="no">
+        <name>UCHAR_MAX</name>
+        <initializer>0xFFU</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="14" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a1f758438cb1c7bcf55da2431f5e319e6" prot="public" static="no">
+        <name>SHRT_MAX</name>
+        <initializer>0x7FFF</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="15" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1ae59de266aceffa1c258ac13f45fe0d18" prot="public" static="no">
+        <name>SHRT_MIN</name>
+        <initializer>(-SHRT_MAX - 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="16" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a689b119da994dece91d44b5aeac643ed" prot="public" static="no">
+        <name>USHRT_MAX</name>
+        <initializer>0xFFFFU</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="17" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a9ec306f36d50c7375e74f0d1c55a3a67" prot="public" static="no">
+        <name>INT_MAX</name>
+        <initializer>0x7FFFFFFF</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="18" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a21658776274b3d146c674318b635a334" prot="public" static="no">
+        <name>INT_MIN</name>
+        <initializer>(-INT_MAX - 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="19" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1ac998ea02fbd821fc123d60445ce76f38" prot="public" static="no">
+        <name>UINT_MAX</name>
+        <initializer>0xFFFFFFFFU</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="20" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a50fece4db74f09568b2938db583c5655" prot="public" static="no">
+        <name>LONG_MAX</name>
+        <initializer>0x7FFFFFFFFFFFFFFFL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="21" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1ae8a44c5a7436466221e0f3859d02420f" prot="public" static="no">
+        <name>LONG_MIN</name>
+        <initializer>(-LONG_MAX - 1L)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="22" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a41c51926a1997aab3503f9083935e06c" prot="public" static="no">
+        <name>ULONG_MAX</name>
+        <initializer>0xFFFFFFFFFFFFFFFFUL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="23" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1a23ec2cf7fc07ea8f817bbac758402baf" prot="public" static="no">
+        <name>LLONG_MAX</name>
+        <initializer>0x7FFFFFFFFFFFFFFFLL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="24" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1af17a13b2ae0e9c24c020ac1f044f30c2" prot="public" static="no">
+        <name>LLONG_MIN</name>
+        <initializer>(-LLONG_MAX - 1LL)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="25" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1aa1dd7166a75b73ad62b111ae6fc17c59" prot="public" static="no">
+        <name>ULLONG_MAX</name>
+        <initializer>0xFFFFFFFFFFFFFFFFULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="26" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1ab9e94095835457a53ba42bc115ec6c56" prot="public" static="no">
+        <name>__LONG_BIT</name>
+        <initializer>64</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="28" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2limits___8h_1aaa476f2b93aa9bb7a054a2d12808e474" prot="public" static="no">
+        <name>__WORD_BIT</name>
+        <initializer>32</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/limits_.h" line="29" column="9" bodyfile="/docs/include/pb/libc/aarch64/limits_.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_LIBC_AARCH64_LIMITS__H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_LIBC_AARCH64_LIMITS__H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCHAR_MAX<sp/><sp/>0x7F</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCHAR_MIN<sp/><sp/>(-SCHAR_MIN<sp/>-<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CHAR_MAX<sp/><sp/><sp/>0x7F</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CHAR_MIN<sp/><sp/><sp/>(-CHAR_MAX<sp/>-<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UCHAR_MAX<sp/><sp/>0xFFU</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SHRT_MAX<sp/><sp/><sp/>0x7FFF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SHRT_MIN<sp/><sp/><sp/>(-SHRT_MAX<sp/>-<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USHRT_MAX<sp/><sp/>0xFFFFU</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INT_MAX<sp/><sp/><sp/><sp/>0x7FFFFFFF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INT_MIN<sp/><sp/><sp/><sp/>(-INT_MAX<sp/>-<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UINT_MAX<sp/><sp/><sp/>0xFFFFFFFFU</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LONG_MAX<sp/><sp/><sp/>0x7FFFFFFFFFFFFFFFL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LONG_MIN<sp/><sp/><sp/>(-LONG_MAX<sp/>-<sp/>1L)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ULONG_MAX<sp/><sp/>0xFFFFFFFFFFFFFFFFUL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LLONG_MAX<sp/><sp/>0x7FFFFFFFFFFFFFFFLL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LLONG_MIN<sp/><sp/>(-LLONG_MAX<sp/>-<sp/>1LL)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ULLONG_MAX<sp/>0xFFFFFFFFFFFFFFFFULL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__LONG_BIT<sp/>64</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__WORD_BIT<sp/>32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_LIBC_AARCH64_LIMITS__H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/libc/aarch64/limits_.h"/>
+  </compounddef>
+</doxygen>

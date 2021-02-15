@@ -1,0 +1,218 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__x509__class__" kind="struct" language="C++" prot="public">
+    <compoundname>br_x509_class_</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__x509__class___1a93c4a22bc7c439b5e32033d561b5fe85" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_x509_class_::context_size</definition>
+        <argsstring></argsstring>
+        <name>context_size</name>
+        <briefdescription>
+<para>X.509 context size, in bytes. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="373" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="373" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__class___1a61fcfd55c81fd2d32edeedd64714c7e2" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_x509_class_::start_chain) (const br_x509_class **ctx, const char *server_name)</definition>
+        <argsstring>)(const br_x509_class **ctx, const char *server_name)</argsstring>
+        <name>start_chain</name>
+        <briefdescription>
+<para>Start a new chain. </para>        </briefdescription>
+        <detaileddescription>
+<para>This method shall set the vtable (first field) of the context structure.</para><para>The <computeroutput>server_name</computeroutput>, if not <computeroutput>NULL</computeroutput>, will be considered as a fully qualified domain name, to be matched against the <computeroutput>dNSName</computeroutput> elements of the end-entity certificate&apos;s SAN extension (if there is no SAN, then the Common Name from the subjectDN will be used). If <computeroutput>server_name</computeroutput> is <computeroutput>NULL</computeroutput> then no such matching is performed.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>validation context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>server_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>server name to match (or <computeroutput>NULL</computeroutput>). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="390" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="390" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__class___1a7f09733a83c0badbb24128d26440ff55" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_x509_class_::start_cert) (const br_x509_class **ctx, uint32_t length)</definition>
+        <argsstring>)(const br_x509_class **ctx, uint32_t length)</argsstring>
+        <name>start_cert</name>
+        <briefdescription>
+<para>Start a new certificate. </para>        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>validation context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>length</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>new certificate length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="399" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="399" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__class___1a132f22c46f8798f0e2cce6d14b49140d" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_x509_class_::append) (const br_x509_class **ctx, const unsigned char *buf, size_t len)</definition>
+        <argsstring>)(const br_x509_class **ctx, const unsigned char *buf, size_t len)</argsstring>
+        <name>append</name>
+        <briefdescription>
+<para>Receive some bytes for the current certificate. </para>        </briefdescription>
+        <detaileddescription>
+<para>This function may be called several times in succession for a given certificate. The caller guarantees that for each call, <computeroutput>len</computeroutput> is not zero, and the sum of all chunk lengths for a certificate matches the total certificate length which was provided in the previous <computeroutput><ref refid="structbr__x509__class___1a7f09733a83c0badbb24128d26440ff55" kindref="member">start_cert()</ref></computeroutput> call.</para><para>If the new certificate is empty (no byte at all) then this function won&apos;t be called at all.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>validation context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>certificate data chunk. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>certificate data chunk length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="417" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="417" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__class___1afd2f28171e46b4a1408101d54a59b18c" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_x509_class_::end_cert) (const br_x509_class **ctx)</definition>
+        <argsstring>)(const br_x509_class **ctx)</argsstring>
+        <name>end_cert</name>
+        <briefdescription>
+<para>Finish the current certificate. </para>        </briefdescription>
+        <detaileddescription>
+<para>This function is called when the end of the current certificate is reached.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>validation context. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="428" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="428" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__class___1a362ee4b09649989960014aa9b3bf2fdc" prot="public" static="no" mutable="no">
+        <type>unsigned(*</type>
+        <definition>unsigned(* br_x509_class_::end_chain) (const br_x509_class **ctx)</definition>
+        <argsstring>)(const br_x509_class **ctx)</argsstring>
+        <name>end_chain</name>
+        <briefdescription>
+<para>Finish the chain. </para>        </briefdescription>
+        <detaileddescription>
+<para>This function is called at the end of the chain. It shall return either 0 if the validation was successful, or a non-zero error code. The <computeroutput>BR_ERR_X509_*</computeroutput> constants are error codes, though other values may be possible.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>validation context. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>0 on success, or a non-zero error code. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="441" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="441" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__class___1a307c5d22b156e8affd3f7f3f0b7f87ba" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__x509__pkey" kindref="compound">br_x509_pkey</ref> *(*</type>
+        <definition>const br_x509_pkey*(* br_x509_class_::get_pkey) (const br_x509_class *const *ctx, unsigned *usages)</definition>
+        <argsstring>)(const br_x509_class *const *ctx, unsigned *usages)</argsstring>
+        <name>get_pkey</name>
+        <briefdescription>
+<para>Get the resulting end-entity public key. </para>        </briefdescription>
+        <detaileddescription>
+<para>The decoded public key is returned. The returned pointer may be valid only as long as the context structure is unmodified, i.e. it may cease to be valid if the context is released or reused.</para><para>This function <emphasis>may</emphasis> return <computeroutput>NULL</computeroutput> if the validation failed. However, returning a public key does not mean that the validation was wholly successful; some engines may return a decoded public key even if the chain did not end on a trusted anchor.</para><para>If validation succeeded and <computeroutput>usage</computeroutput> is not <computeroutput>NULL</computeroutput>, then <computeroutput>*usage</computeroutput> is filled with a combination of <computeroutput>BR_KEYTYPE_SIGN</computeroutput> and/or <computeroutput>BR_KEYTYPE_KEYX</computeroutput> that specifies the validated key usage types. It is the caller&apos;s responsibility to check that value against the intended use of the public key.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>validation context. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the end-entity public key, or <computeroutput>NULL</computeroutput>. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="466" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="466" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="245">
+        <label>br_ec_public_key</label>
+        <link refid="structbr__ec__public__key"/>
+      </node>
+      <node id="242">
+        <label>br_x509_class_</label>
+        <link refid="structbr__x509__class__"/>
+        <childnode refid="243" relation="usage">
+          <edgelabel>get_pkey</edgelabel>
+        </childnode>
+      </node>
+      <node id="243">
+        <label>br_x509_pkey</label>
+        <link refid="structbr__x509__pkey"/>
+        <childnode refid="244" relation="usage">
+          <edgelabel>rsa</edgelabel>
+        </childnode>
+        <childnode refid="245" relation="usage">
+          <edgelabel>ec</edgelabel>
+        </childnode>
+      </node>
+      <node id="244">
+        <label>br_rsa_public_key</label>
+        <link refid="structbr__rsa__public__key"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="369" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="369" bodyend="468"/>
+    <listofallmembers>
+      <member refid="structbr__x509__class___1a132f22c46f8798f0e2cce6d14b49140d" prot="public" virt="non-virtual"><scope>br_x509_class_</scope><name>append</name></member>
+      <member refid="structbr__x509__class___1a93c4a22bc7c439b5e32033d561b5fe85" prot="public" virt="non-virtual"><scope>br_x509_class_</scope><name>context_size</name></member>
+      <member refid="structbr__x509__class___1afd2f28171e46b4a1408101d54a59b18c" prot="public" virt="non-virtual"><scope>br_x509_class_</scope><name>end_cert</name></member>
+      <member refid="structbr__x509__class___1a362ee4b09649989960014aa9b3bf2fdc" prot="public" virt="non-virtual"><scope>br_x509_class_</scope><name>end_chain</name></member>
+      <member refid="structbr__x509__class___1a307c5d22b156e8affd3f7f3f0b7f87ba" prot="public" virt="non-virtual"><scope>br_x509_class_</scope><name>get_pkey</name></member>
+      <member refid="structbr__x509__class___1a7f09733a83c0badbb24128d26440ff55" prot="public" virt="non-virtual"><scope>br_x509_class_</scope><name>start_cert</name></member>
+      <member refid="structbr__x509__class___1a61fcfd55c81fd2d32edeedd64714c7e2" prot="public" virt="non-virtual"><scope>br_x509_class_</scope><name>start_chain</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

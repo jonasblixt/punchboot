@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__x509__trust__anchor" kind="struct" language="C++" prot="public">
+    <compoundname>br_x509_trust_anchor</compoundname>
+    <includes refid="bearssl__x509_8h" local="no">bearssl_x509.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__x509__trust__anchor_1aa2443241c80366d647110a92f27b04a9" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__x500__name" kindref="compound">br_x500_name</ref></type>
+        <definition>br_x500_name br_x509_trust_anchor::dn</definition>
+        <argsstring></argsstring>
+        <name>dn</name>
+        <briefdescription>
+<para>Encoded DN (X.500 name). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="257" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="257" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__trust__anchor_1a71b8c4a0218e48d7faa711952d32b0e1" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_x509_trust_anchor::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <briefdescription>
+<para>Anchor flags (e.g. <computeroutput>BR_X509_TA_CA</computeroutput>). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="259" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="259" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__trust__anchor_1a7eb4fab6abb7b3e2cb7b46799d8d8db6" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__x509__pkey" kindref="compound">br_x509_pkey</ref></type>
+        <definition>br_x509_pkey br_x509_trust_anchor::pkey</definition>
+        <argsstring></argsstring>
+        <name>pkey</name>
+        <briefdescription>
+<para>Anchor public key. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="261" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="261" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Trust anchor structure. </para>    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="283">
+        <label>br_ec_public_key</label>
+        <link refid="structbr__ec__public__key"/>
+      </node>
+      <node id="281">
+        <label>br_x509_pkey</label>
+        <link refid="structbr__x509__pkey"/>
+        <childnode refid="282" relation="usage">
+          <edgelabel>rsa</edgelabel>
+        </childnode>
+        <childnode refid="283" relation="usage">
+          <edgelabel>ec</edgelabel>
+        </childnode>
+      </node>
+      <node id="284">
+        <label>br_x500_name</label>
+        <link refid="structbr__x500__name"/>
+      </node>
+      <node id="280">
+        <label>br_x509_trust_anchor</label>
+        <link refid="structbr__x509__trust__anchor"/>
+        <childnode refid="281" relation="usage">
+          <edgelabel>pkey</edgelabel>
+        </childnode>
+        <childnode refid="284" relation="usage">
+          <edgelabel>dn</edgelabel>
+        </childnode>
+      </node>
+      <node id="282">
+        <label>br_rsa_public_key</label>
+        <link refid="structbr__rsa__public__key"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="255" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="255" bodyend="262"/>
+    <listofallmembers>
+      <member refid="structbr__x509__trust__anchor_1aa2443241c80366d647110a92f27b04a9" prot="public" virt="non-virtual"><scope>br_x509_trust_anchor</scope><name>dn</name></member>
+      <member refid="structbr__x509__trust__anchor_1a71b8c4a0218e48d7faa711952d32b0e1" prot="public" virt="non-virtual"><scope>br_x509_trust_anchor</scope><name>flags</name></member>
+      <member refid="structbr__x509__trust__anchor_1a7eb4fab6abb7b3e2cb7b46799d8d8db6" prot="public" virt="non-virtual"><scope>br_x509_trust_anchor</scope><name>pkey</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

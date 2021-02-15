@@ -1,0 +1,1203 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="xlat__tables__defs_8h" kind="file" language="C++">
+    <compoundname>xlat_tables_defs.h</compoundname>
+    <includes refid="xlat__mmu__helpers_8h" local="no">xlat_mmu_helpers.h</includes>
+    <includedby refid="xlat__tables__aarch32_8h" local="no">/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h</includedby>
+    <includedby refid="xlat__tables__aarch64_8h" local="no">/docs/include/pb/xlat_tables/aarch64/xlat_tables_aarch64.h</includedby>
+    <includedby refid="xlat__tables_8h" local="no">/docs/include/pb/xlat_tables/xlat_tables.h</includedby>
+    <incdepgraph>
+      <node id="717">
+        <label>stdint_.h</label>
+      </node>
+      <node id="715">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="718">
+        <label>string.h</label>
+        <link refid="string_8h_source"/>
+        <childnode refid="719" relation="include">
+        </childnode>
+      </node>
+      <node id="713">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_defs.h</label>
+        <link refid="xlat__tables__defs_8h"/>
+        <childnode refid="714" relation="include">
+        </childnode>
+      </node>
+      <node id="714">
+        <label>xlat_mmu_helpers.h</label>
+        <link refid="xlat__mmu__helpers_8h_source"/>
+        <childnode refid="715" relation="include">
+        </childnode>
+        <childnode refid="716" relation="include">
+        </childnode>
+        <childnode refid="718" relation="include">
+        </childnode>
+      </node>
+      <node id="716">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="717" relation="include">
+        </childnode>
+      </node>
+      <node id="719">
+        <label>string_.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="721">
+        <label>/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h</label>
+        <link refid="xlat__tables__aarch32_8h_source"/>
+      </node>
+      <node id="722">
+        <label>/docs/include/pb/xlat_tables/aarch64/xlat_tables_aarch64.h</label>
+        <link refid="xlat__tables__aarch64_8h_source"/>
+      </node>
+      <node id="723">
+        <label>/docs/include/pb/xlat_tables/xlat_tables.h</label>
+        <link refid="xlat__tables_8h_source"/>
+      </node>
+      <node id="720">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_defs.h</label>
+        <link refid="xlat__tables__defs_8h"/>
+        <childnode refid="721" relation="include">
+        </childnode>
+        <childnode refid="722" relation="include">
+        </childnode>
+        <childnode refid="723" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a1f035d9e979c4b077e547eb97d3353c2" prot="public" static="no">
+        <name>NUM_2MB_IN_GB</name>
+        <initializer>(U(1) &lt;&lt; 9)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="13" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a1b43bb5252bb445e35cf2e82625fcc4c" prot="public" static="no">
+        <name>NUM_4K_IN_2MB</name>
+        <initializer>(U(1) &lt;&lt; 9)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="14" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a10ad9c48ac14c147156ac86ba9527bee" prot="public" static="no">
+        <name>NUM_GB_IN_4GB</name>
+        <initializer>(U(1) &lt;&lt; 2)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="15" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a60a29df7640b61faa3151f887b207a9e" prot="public" static="no">
+        <name>TWO_MB_SHIFT</name>
+        <initializer>U(21)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="17" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aab07c91c409eb884004fa92ecd8af4bd" prot="public" static="no">
+        <name>ONE_GB_SHIFT</name>
+        <initializer>U(30)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="18" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a0726f5a882a110ffe2adc3e77c414472" prot="public" static="no">
+        <name>FOUR_KB_SHIFT</name>
+        <initializer>U(12)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="19" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aafb79df992f7559e3f16b059997bf17a" prot="public" static="no">
+        <name>ONE_GB_INDEX</name>
+        <param><defname>x</defname></param>
+        <initializer>((x) &gt;&gt; ONE_GB_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="21" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1adcf07ba7bf251a56ee663873525a8525" prot="public" static="no">
+        <name>TWO_MB_INDEX</name>
+        <param><defname>x</defname></param>
+        <initializer>((x) &gt;&gt; TWO_MB_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="22" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a2e3adeabbc732a60b1c48e8358f510d4" prot="public" static="no">
+        <name>FOUR_KB_INDEX</name>
+        <param><defname>x</defname></param>
+        <initializer>((x) &gt;&gt; FOUR_KB_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="23" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aad1444967f68c6071685200454b114c3" prot="public" static="no">
+        <name>PAGE_SIZE_4KB</name>
+        <initializer>U(4096)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="25" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aab09eb3fcf9ebbfd5b9b356d311994e0" prot="public" static="no">
+        <name>PAGE_SIZE_16KB</name>
+        <initializer>U(16384)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="26" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a855bd521e21c4eda61815587a1c69966" prot="public" static="no">
+        <name>PAGE_SIZE_64KB</name>
+        <initializer>U(65536)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="27" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a5d874ec825dc1310b3b863c2680b7d77" prot="public" static="no">
+        <name>INVALID_DESC</name>
+        <initializer>U(0x0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="29" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aecb19f839b189c1b3a82a1784672d504" prot="public" static="no">
+        <name>BLOCK_DESC</name>
+        <initializer>U(0x1) /* Table levels 0-2 */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="34" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1af86353f281b4e5e4858805ba9a5120fc" prot="public" static="no">
+        <name>TABLE_DESC</name>
+        <initializer>U(0x3) /* Table levels 0-2 */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="36" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a5cda17b1a018789e54ed3cec277737d5" prot="public" static="no">
+        <name>PAGE_DESC</name>
+        <initializer>U(0x3) /* Table level 3 */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="41" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a31712acaf3aa9abbcc18a0e16e7a3158" prot="public" static="no">
+        <name>DESC_MASK</name>
+        <initializer>U(0x3)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="43" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aa44bb95dec8ef8911739e226966a9979" prot="public" static="no">
+        <name>FIRST_LEVEL_DESC_N</name>
+        <initializer>ONE_GB_SHIFT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="45" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a25cc0baaa46c3ceae35e3337b1befe90" prot="public" static="no">
+        <name>SECOND_LEVEL_DESC_N</name>
+        <initializer>TWO_MB_SHIFT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="46" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aef3c97cc455173da9f0a7b31fadfc540" prot="public" static="no">
+        <name>THIRD_LEVEL_DESC_N</name>
+        <initializer>FOUR_KB_SHIFT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="47" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a931d1f74b71bcd0d39dbc52dedc60823" prot="public" static="no">
+        <name>XN</name>
+        <initializer>(ULL(1) &lt;&lt; 2)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="50" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a7f1814f9187c5986ad067d847696d26a" prot="public" static="no">
+        <name>UXN</name>
+        <initializer>(ULL(1) &lt;&lt; 2)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="52" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aaf01a33e79865e4e3d5084645c17de1e" prot="public" static="no">
+        <name>PXN</name>
+        <initializer>(ULL(1) &lt;&lt; 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="53" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1adeda2a8f0fa95075eac3751d08aad3b3" prot="public" static="no">
+        <name>CONT_HINT</name>
+        <initializer>(ULL(1) &lt;&lt; 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="54" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a715efae90e495936f09253b0b167d7d3" prot="public" static="no">
+        <name>UPPER_ATTRS</name>
+        <param><defname>x</defname></param>
+        <initializer>(((x) &amp; ULL(0x7)) &lt;&lt; 52)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="55" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a8c88a7debc91fbb05ac0d0b87d2ee741" prot="public" static="no">
+        <name>NON_GLOBAL</name>
+        <initializer>(U(1) &lt;&lt; 9)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="57" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1af293db224d8acc6ae0fe651184ee55e0" prot="public" static="no">
+        <name>ACCESS_FLAG</name>
+        <initializer>(U(1) &lt;&lt; 8)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="58" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1abe4f3201c9950469bffd7388de35a8a2" prot="public" static="no">
+        <name>NSH</name>
+        <initializer>(U(0x0) &lt;&lt; 6)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="59" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a2b0f11014eb4a12ccb73b0828d297bbf" prot="public" static="no">
+        <name>OSH</name>
+        <initializer>(U(0x2) &lt;&lt; 6)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="60" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a10e082efb7ed2f203d93c4e005392ed3" prot="public" static="no">
+        <name>ISH</name>
+        <initializer>(U(0x3) &lt;&lt; 6)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="61" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a2281d6d873ee3fa38b6f63fe915e5a41" prot="public" static="no">
+        <name>TABLE_ADDR_MASK</name>
+        <initializer>ULL(0x0000FFFFFFFFF000)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="68" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a961df43a2ee0866eb4f2fe76110c7949" prot="public" static="no">
+        <name>PAGE_SIZE_SHIFT</name>
+        <initializer>FOUR_KB_SHIFT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="74" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a7d467c1d283fdfa1f2081ba1e0d01b6e" prot="public" static="no">
+        <name>PAGE_SIZE</name>
+        <initializer>(U(1) &lt;&lt; PAGE_SIZE_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="75" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a33df3622b7aafa8e3051a40da4710450" prot="public" static="no">
+        <name>PAGE_SIZE_MASK</name>
+        <initializer>(PAGE_SIZE - U(1))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="76" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ac8cb9ad2c77bfd2581a35f9dfdf6624d" prot="public" static="no">
+        <name>IS_PAGE_ALIGNED</name>
+        <param><defname>addr</defname></param>
+        <initializer>(((addr) &amp; PAGE_SIZE_MASK) == U(0))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="77" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1acb6b723ca53a2671ec0464e15f3eca03" prot="public" static="no">
+        <name>XLAT_ENTRY_SIZE_SHIFT</name>
+        <initializer>U(3)	/* Each MMU table entry is 8 bytes */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="82" column="10" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a038e4f5f37b7163e46cd42f4adcba65e" prot="public" static="no">
+        <name>XLAT_ENTRY_SIZE</name>
+        <initializer>(U(1) &lt;&lt; XLAT_ENTRY_SIZE_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="84" column="10" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a01db5cf0726c33c93e6aa5f2a019dc7c" prot="public" static="no">
+        <name>XLAT_TABLE_SIZE_SHIFT</name>
+        <initializer>PAGE_SIZE_SHIFT /* Size of one complete table */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="86" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a99228d0f04df399f4bac726f98c23250" prot="public" static="no">
+        <name>XLAT_TABLE_SIZE</name>
+        <initializer>(U(1) &lt;&lt; XLAT_TABLE_SIZE_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="87" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a20f85906fccf90ec62cc529a766a624a" prot="public" static="no">
+        <name>XLAT_TABLE_LEVEL_MAX</name>
+        <initializer>U(3)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="89" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1adc51e94b8af3ed4b5b3f9c2ce6bf809c" prot="public" static="no">
+        <name>XLAT_TABLE_ENTRIES_SHIFT</name>
+        <initializer>(XLAT_TABLE_SIZE_SHIFT - XLAT_ENTRY_SIZE_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="92" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a42332ba8cf4a7b090e2021093a7c1660" prot="public" static="no">
+        <name>XLAT_TABLE_ENTRIES</name>
+        <initializer>(U(1) &lt;&lt; XLAT_TABLE_ENTRIES_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="93" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a9c99aae57b3f386c5ec9348160cffa68" prot="public" static="no">
+        <name>XLAT_TABLE_ENTRIES_MASK</name>
+        <initializer>(XLAT_TABLE_ENTRIES - U(1))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="94" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1afaa0966185445d4f4d5cd87cc9755672" prot="public" static="no">
+        <name>L3_XLAT_ADDRESS_SHIFT</name>
+        <initializer>PAGE_SIZE_SHIFT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="97" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a71ffd7d6bc25bc476934314880cfa510" prot="public" static="no">
+        <name>L2_XLAT_ADDRESS_SHIFT</name>
+        <initializer>(L3_XLAT_ADDRESS_SHIFT + XLAT_TABLE_ENTRIES_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="98" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1aaf103d95dfc308c73fd49d3c6711b782" prot="public" static="no">
+        <name>L1_XLAT_ADDRESS_SHIFT</name>
+        <initializer>(L2_XLAT_ADDRESS_SHIFT + XLAT_TABLE_ENTRIES_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="99" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a224d21697f900753d22a6e7badee29b5" prot="public" static="no">
+        <name>L0_XLAT_ADDRESS_SHIFT</name>
+        <initializer>(L1_XLAT_ADDRESS_SHIFT + XLAT_TABLE_ENTRIES_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="100" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a476d1a7eed8c05c03feb4bffafea5e48" prot="public" static="no">
+        <name>XLAT_ADDR_SHIFT</name>
+        <param><defname>level</defname></param>
+        <initializer>(PAGE_SIZE_SHIFT + \
+		  ((XLAT_TABLE_LEVEL_MAX - (level)) * XLAT_TABLE_ENTRIES_SHIFT))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="101" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a0399da804c1e2d1c9fc713327176975f" prot="public" static="no">
+        <name>XLAT_BLOCK_SIZE</name>
+        <param><defname>level</defname></param>
+        <initializer>(UL(1) &lt;&lt; XLAT_ADDR_SHIFT(level))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="104" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a64981d3fba1521dca3d72a4b0dcb7148" prot="public" static="no">
+        <name>XLAT_BLOCK_MASK</name>
+        <param><defname>level</defname></param>
+        <initializer>(XLAT_BLOCK_SIZE(level) - UL(1))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="106" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a5a8d4601f714fc4c16ba87332c7da2de" prot="public" static="no">
+        <name>XLAT_ADDR_MASK</name>
+        <param><defname>level</defname></param>
+        <initializer>(~XLAT_BLOCK_MASK(level))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="108" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a5cb3b6fedabd6fa8b2fb6a35e8c3055a" prot="public" static="no">
+        <name>XLAT_TABLE_IDX</name>
+        <param><defname>virtual_addr</defname></param>
+        <param><defname>level</defname></param>
+        <initializer>(((virtual_addr) &gt;&gt; XLAT_ADDR_SHIFT(level)) &amp; ULL(0x1FF))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="113" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1af67a06e383ce70db329458ad27193659" prot="public" static="no">
+        <name>AP2_SHIFT</name>
+        <initializer>U(0x7)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="124" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ac91fddef009f14bbebdc01d884606e98" prot="public" static="no">
+        <name>AP2_RO</name>
+        <initializer>ULL(0x1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="125" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a7afb83539cd3c7911b02fbbc85969bf0" prot="public" static="no">
+        <name>AP2_RW</name>
+        <initializer>ULL(0x0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="126" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a539601ce93b618da0424f6af539d4994" prot="public" static="no">
+        <name>AP1_SHIFT</name>
+        <initializer>U(0x6)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="128" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ab37bfacebe25caa8a4b5368a37b0d4cb" prot="public" static="no">
+        <name>AP1_ACCESS_UNPRIVILEGED</name>
+        <initializer>ULL(0x1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="129" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ae7954d2b1bf277e76b9aa1a42e25dbf6" prot="public" static="no">
+        <name>AP1_NO_ACCESS_UNPRIVILEGED</name>
+        <initializer>ULL(0x0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="130" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1af3a7403c53e78a3856009680d26cd777" prot="public" static="no">
+        <name>AP1_RES1</name>
+        <initializer>ULL(0x1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="131" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ad5154db1eb2a4ceee053463e72e8a372" prot="public" static="no">
+        <name>AP_RO</name>
+        <initializer>(AP2_RO &lt;&lt; 5)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="137" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ab887fce5fcb9ce98b0dfd551cff9bf4d" prot="public" static="no">
+        <name>AP_RW</name>
+        <initializer>(AP2_RW &lt;&lt; 5)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="138" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a895b56bca6e8ae75f780ff5b51399b25" prot="public" static="no">
+        <name>AP_ACCESS_UNPRIVILEGED</name>
+        <initializer>(AP1_ACCESS_UNPRIVILEGED    &lt;&lt; 4)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="139" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a23d90bfcaffaa04008f7a7ef9a4a6922" prot="public" static="no">
+        <name>AP_NO_ACCESS_UNPRIVILEGED</name>
+        <initializer>(AP1_NO_ACCESS_UNPRIVILEGED &lt;&lt; 4)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="140" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a3489aaa75e412e33db7a9abab562f65a" prot="public" static="no">
+        <name>AP_ONE_VA_RANGE_RES1</name>
+        <initializer>(AP1_RES1 &lt;&lt; 4)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="141" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a06c201f90533d5b49cd039c960327968" prot="public" static="no">
+        <name>NS</name>
+        <initializer>(U(0x1) &lt;&lt; 3)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="142" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a6e1160959b3e9856de41a2c55c3bb3b1" prot="public" static="no">
+        <name>ATTR_NON_CACHEABLE_INDEX</name>
+        <initializer>ULL(0x2)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="143" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1afbdd55d5e0076c460682fb8abc68d4f8" prot="public" static="no">
+        <name>ATTR_DEVICE_INDEX</name>
+        <initializer>ULL(0x1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="144" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a4bca49abd4233c12da16b6b11597b61e" prot="public" static="no">
+        <name>ATTR_IWBWA_OWBWA_NTR_INDEX</name>
+        <initializer>ULL(0x0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="145" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a074f6911f7f6ea1d288f924c3ad68eae" prot="public" static="no">
+        <name>LOWER_ATTRS</name>
+        <param><defname>x</defname></param>
+        <initializer>(((x) &amp; U(0xfff)) &lt;&lt; 2)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="146" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a6cfea386ddfe40d15de6ac3c3f8be1fc" prot="public" static="no">
+        <name>ATTR_NON_CACHEABLE</name>
+        <initializer>MAKE_MAIR_NORMAL_MEMORY(MAIR_NORM_NC, MAIR_NORM_NC)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="149" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1af403ad03085250b66ea43a0f5582d625" prot="public" static="no">
+        <name>ATTR_DEVICE</name>
+        <initializer>MAIR_DEV_nGnRE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="151" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1add2bcdefb2d549c5e3337ef5c266ad46" prot="public" static="no">
+        <name>ATTR_IWBWA_OWBWA_NTR</name>
+        <initializer>MAKE_MAIR_NORMAL_MEMORY(MAIR_NORM_WB_NTR_RWA, MAIR_NORM_WB_NTR_RWA)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="153" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a1c17239b23d2e6239bd147efbb7aeb1f" prot="public" static="no">
+        <name>MAIR_ATTR_SET</name>
+        <param><defname>attr</defname></param>
+        <param><defname>index</defname></param>
+        <initializer>((attr) &lt;&lt; ((index) &lt;&lt; 3))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="154" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a4376356e085a76f94f6be71f8038cfa9" prot="public" static="no">
+        <name>ATTR_INDEX_MASK</name>
+        <initializer>U(0x3)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="155" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a8a80c7f9dd78501c2e14e0eb59ca7da7" prot="public" static="no">
+        <name>ATTR_INDEX_GET</name>
+        <param><defname>attr</defname></param>
+        <initializer>(((attr) &gt;&gt; 2) &amp; ATTR_INDEX_MASK)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="156" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a9379323a6f1fb57de8d1455bc93ce499" prot="public" static="no">
+        <name>ATTR_INDEX_SHIFT</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="164" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a1f5db4131dbccc65acfa9f407755a813" prot="public" static="no">
+        <name>NS_SHIFT</name>
+        <initializer>5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="166" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a16dd2e270fa07443642d7b6510798beb" prot="public" static="no">
+        <name>SHAREABILITY_SHIFT</name>
+        <initializer>8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="168" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ae440db194cb0db7bb4b9b60b1f4a25eb" prot="public" static="no">
+        <name>ACCESS_FLAG_SHIFT</name>
+        <initializer>10</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="170" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a18165239d56421b7271e1836a981cfca" prot="public" static="no">
+        <name>NOT_GLOBAL_SHIFT</name>
+        <initializer>11</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="172" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a8ee23676951214ccc4cd4e1abb457bd8" prot="public" static="no">
+        <name>CONT_HINT_SHIFT</name>
+        <initializer>52</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="174" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1a91b5b70cc3e297ac058f53f974acef59" prot="public" static="no">
+        <name>PXN_SHIFT</name>
+        <initializer>53</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="176" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ac0cdee51120acf4ff1eaef6931384d49" prot="public" static="no">
+        <name>XN_SHIFT</name>
+        <initializer>54</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="177" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__defs_8h_1ae9917d815dcb5d7384553ca4a8d112cc" prot="public" static="no">
+        <name>UXN_SHIFT</name>
+        <initializer>XN_SHIFT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h" line="178" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_defs.h" bodystart="178" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2017-2019,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>XLAT_TABLES_DEFS_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLES_DEFS_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;xlat_mmu_helpers.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Miscellaneous<sp/>MMU<sp/>related<sp/>constants<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NUM_2MB_IN_GB<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>9)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NUM_4K_IN_2MB<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>9)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NUM_GB_IN_4GB<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TWO_MB_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(21)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ONE_GB_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(30)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FOUR_KB_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(12)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ONE_GB_INDEX(x)<sp/><sp/><sp/><sp/><sp/>((x)<sp/>&gt;&gt;<sp/>ONE_GB_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TWO_MB_INDEX(x)<sp/><sp/><sp/><sp/><sp/>((x)<sp/>&gt;&gt;<sp/>TWO_MB_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FOUR_KB_INDEX(x)<sp/><sp/><sp/><sp/>((x)<sp/>&gt;&gt;<sp/>FOUR_KB_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PAGE_SIZE_4KB<sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(4096)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PAGE_SIZE_16KB<sp/><sp/><sp/><sp/><sp/><sp/>U(16384)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PAGE_SIZE_64KB<sp/><sp/><sp/><sp/><sp/><sp/>U(65536)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INVALID_DESC<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(0x0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*<sp/>A<sp/>block<sp/>descriptor<sp/>points<sp/>to<sp/>a<sp/>region<sp/>of<sp/>memory<sp/>bigger<sp/>than<sp/>the<sp/>granule<sp/>size</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*<sp/>(e.g.<sp/>a<sp/>2MB<sp/>region<sp/>when<sp/>the<sp/>granule<sp/>size<sp/>is<sp/>4KB).</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BLOCK_DESC<sp/><sp/><sp/><sp/><sp/><sp/>U(0x1)<sp/></highlight><highlight class="comment">/*<sp/>Table<sp/>levels<sp/>0-2<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>A<sp/>table<sp/>descriptor<sp/>points<sp/>to<sp/>the<sp/>next<sp/>level<sp/>of<sp/>translation<sp/>table.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TABLE_DESC<sp/><sp/><sp/><sp/><sp/><sp/>U(0x3)<sp/></highlight><highlight class="comment">/*<sp/>Table<sp/>levels<sp/>0-2<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="38"><highlight class="comment"><sp/>*<sp/>A<sp/>page<sp/>descriptor<sp/>points<sp/>to<sp/>a<sp/>page,<sp/>i.e.<sp/>a<sp/>memory<sp/>region<sp/>whose<sp/>size<sp/>is<sp/>the</highlight></codeline>
+<codeline lineno="39"><highlight class="comment"><sp/>*<sp/>translation<sp/>granule<sp/>size<sp/>(e.g.<sp/>4KB).</highlight></codeline>
+<codeline lineno="40"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PAGE_DESC<sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(0x3)<sp/></highlight><highlight class="comment">/*<sp/>Table<sp/>level<sp/>3<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DESC_MASK<sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(0x3)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FIRST_LEVEL_DESC_N<sp/><sp/>ONE_GB_SHIFT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SECOND_LEVEL_DESC_N<sp/>TWO_MB_SHIFT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>THIRD_LEVEL_DESC_N<sp/><sp/>FOUR_KB_SHIFT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>XN:<sp/>Translation<sp/>regimes<sp/>that<sp/>support<sp/>one<sp/>VA<sp/>range<sp/>(EL2<sp/>and<sp/>EL3).<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XN<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(ULL(1)<sp/>&lt;&lt;<sp/>2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>UXN,<sp/>PXN:<sp/>Translation<sp/>regimes<sp/>that<sp/>support<sp/>two<sp/>VA<sp/>ranges<sp/>(EL1&amp;0).<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UXN<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(ULL(1)<sp/>&lt;&lt;<sp/>2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PXN<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(ULL(1)<sp/>&lt;&lt;<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CONT_HINT<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(ULL(1)<sp/>&lt;&lt;<sp/>0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UPPER_ATTRS(x)<sp/><sp/><sp/><sp/><sp/><sp/>(((x)<sp/>&amp;<sp/>ULL(0x7))<sp/>&lt;&lt;<sp/>52)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NON_GLOBAL<sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>9)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ACCESS_FLAG<sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>8)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NSH<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(0x0)<sp/>&lt;&lt;<sp/>6)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>OSH<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(0x2)<sp/>&lt;&lt;<sp/>6)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ISH<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(0x3)<sp/>&lt;&lt;<sp/>6)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__aarch64__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Guarded<sp/>Page<sp/>bit<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GP<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(ULL(1)<sp/>&lt;&lt;<sp/>50)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TABLE_ADDR_MASK<sp/><sp/><sp/><sp/><sp/>ULL(0x0000FFFFFFFFF000)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="71"><highlight class="comment"><sp/>*<sp/>The<sp/>ARMv8-A<sp/>architecture<sp/>allows<sp/>translation<sp/>granule<sp/>sizes<sp/>of<sp/>4KB,<sp/>16KB<sp/>or</highlight></codeline>
+<codeline lineno="72"><highlight class="comment"><sp/>*<sp/>64KB.<sp/>However,<sp/>only<sp/>4KB<sp/>are<sp/>supported<sp/>at<sp/>the<sp/>moment.</highlight></codeline>
+<codeline lineno="73"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PAGE_SIZE_SHIFT<sp/><sp/><sp/><sp/><sp/>FOUR_KB_SHIFT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PAGE_SIZE<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>PAGE_SIZE_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PAGE_SIZE_MASK<sp/><sp/><sp/><sp/><sp/><sp/>(PAGE_SIZE<sp/>-<sp/>U(1))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>IS_PAGE_ALIGNED(addr)<sp/><sp/><sp/>(((addr)<sp/>&amp;<sp/>PAGE_SIZE_MASK)<sp/>==<sp/>U(0))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>(ARM_ARCH_MAJOR<sp/>==<sp/>7)<sp/>&amp;&amp;<sp/>!ARMV7_SUPPORTS_LARGE_PAGE_ADDRESSING</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_ENTRY_SIZE_SHIFT<sp/><sp/><sp/>U(2)<sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Each<sp/>MMU<sp/>table<sp/>entry<sp/>is<sp/>4<sp/>bytes<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_ENTRY_SIZE_SHIFT<sp/><sp/><sp/>U(3)<sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Each<sp/>MMU<sp/>table<sp/>entry<sp/>is<sp/>8<sp/>bytes<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_ENTRY_SIZE<sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>XLAT_ENTRY_SIZE_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_SIZE_SHIFT<sp/><sp/><sp/>PAGE_SIZE_SHIFT<sp/></highlight><highlight class="comment">/*<sp/>Size<sp/>of<sp/>one<sp/>complete<sp/>table<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_SIZE<sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>XLAT_TABLE_SIZE_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_LEVEL_MAX<sp/><sp/><sp/><sp/>U(3)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Values<sp/>for<sp/>number<sp/>of<sp/>entries<sp/>in<sp/>each<sp/>MMU<sp/>translation<sp/>table<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_ENTRIES_SHIFT<sp/>(XLAT_TABLE_SIZE_SHIFT<sp/>-<sp/>XLAT_ENTRY_SIZE_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_ENTRIES<sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>XLAT_TABLE_ENTRIES_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_ENTRIES_MASK<sp/>(XLAT_TABLE_ENTRIES<sp/>-<sp/>U(1))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Values<sp/>to<sp/>convert<sp/>a<sp/>memory<sp/>address<sp/>to<sp/>an<sp/>index<sp/>into<sp/>a<sp/>translation<sp/>table<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>L3_XLAT_ADDRESS_SHIFT<sp/><sp/><sp/>PAGE_SIZE_SHIFT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>L2_XLAT_ADDRESS_SHIFT<sp/><sp/><sp/>(L3_XLAT_ADDRESS_SHIFT<sp/>+<sp/>XLAT_TABLE_ENTRIES_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>L1_XLAT_ADDRESS_SHIFT<sp/><sp/><sp/>(L2_XLAT_ADDRESS_SHIFT<sp/>+<sp/>XLAT_TABLE_ENTRIES_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>L0_XLAT_ADDRESS_SHIFT<sp/><sp/><sp/>(L1_XLAT_ADDRESS_SHIFT<sp/>+<sp/>XLAT_TABLE_ENTRIES_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_ADDR_SHIFT(level)<sp/><sp/>(PAGE_SIZE_SHIFT<sp/>+<sp/>\</highlight></codeline>
+<codeline lineno="102"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>((XLAT_TABLE_LEVEL_MAX<sp/>-<sp/>(level))<sp/>*<sp/>XLAT_TABLE_ENTRIES_SHIFT))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_BLOCK_SIZE(level)<sp/><sp/>(UL(1)<sp/>&lt;&lt;<sp/>XLAT_ADDR_SHIFT(level))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Mask<sp/>to<sp/>get<sp/>the<sp/>bits<sp/>used<sp/>to<sp/>index<sp/>inside<sp/>a<sp/>block<sp/>of<sp/>a<sp/>certain<sp/>level<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_BLOCK_MASK(level)<sp/><sp/>(XLAT_BLOCK_SIZE(level)<sp/>-<sp/>UL(1))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Mask<sp/>to<sp/>get<sp/>the<sp/>address<sp/>bits<sp/>common<sp/>to<sp/>a<sp/>block<sp/>of<sp/>a<sp/>certain<sp/>table<sp/>level*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_ADDR_MASK(level)<sp/><sp/><sp/>(~XLAT_BLOCK_MASK(level))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="110"><highlight class="comment"><sp/>*<sp/>Extract<sp/>from<sp/>the<sp/>given<sp/>virtual<sp/>address<sp/>the<sp/>index<sp/>into<sp/>the<sp/>given<sp/>lookup<sp/>level.</highlight></codeline>
+<codeline lineno="111"><highlight class="comment"><sp/>*<sp/>This<sp/>macro<sp/>assumes<sp/>the<sp/>system<sp/>is<sp/>using<sp/>the<sp/>4KB<sp/>translation<sp/>granule.</highlight></codeline>
+<codeline lineno="112"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_IDX(virtual_addr,<sp/>level)<sp/>\</highlight></codeline>
+<codeline lineno="114"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(((virtual_addr)<sp/>&gt;&gt;<sp/>XLAT_ADDR_SHIFT(level))<sp/>&amp;<sp/>ULL(0x1FF))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="117"><highlight class="comment"><sp/>*<sp/>The<sp/>ARMv8<sp/>translation<sp/>table<sp/>descriptor<sp/>format<sp/>defines<sp/>AP[2:1]<sp/>as<sp/>the<sp/>Access</highlight></codeline>
+<codeline lineno="118"><highlight class="comment"><sp/>*<sp/>Permissions<sp/>bits,<sp/>and<sp/>does<sp/>not<sp/>define<sp/>an<sp/>AP[0]<sp/>bit.</highlight></codeline>
+<codeline lineno="119"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="120"><highlight class="comment"><sp/>*<sp/>AP[1]<sp/>is<sp/>valid<sp/>only<sp/>for<sp/>a<sp/>stage<sp/>1<sp/>translation<sp/>that<sp/>supports<sp/>two<sp/>VA<sp/>ranges</highlight></codeline>
+<codeline lineno="121"><highlight class="comment"><sp/>*<sp/>(i.e.<sp/>in<sp/>the<sp/>ARMv8A.0<sp/>architecture,<sp/>that<sp/>is<sp/>the<sp/>S-EL1&amp;0<sp/>regime).<sp/>It<sp/>is<sp/>RES1</highlight></codeline>
+<codeline lineno="122"><highlight class="comment"><sp/>*<sp/>when<sp/>stage<sp/>1<sp/>translations<sp/>can<sp/>only<sp/>support<sp/>one<sp/>VA<sp/>range.</highlight></codeline>
+<codeline lineno="123"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP2_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(0x7)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP2_RO<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ULL(0x1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP2_RW<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ULL(0x0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP1_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(0x6)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP1_ACCESS_UNPRIVILEGED<sp/><sp/><sp/><sp/><sp/>ULL(0x1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP1_NO_ACCESS_UNPRIVILEGED<sp/><sp/>ULL(0x0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP1_RES1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ULL(0x1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="134"><highlight class="comment"><sp/>*<sp/>The<sp/>following<sp/>definitions<sp/>must<sp/>all<sp/>be<sp/>passed<sp/>to<sp/>the<sp/>LOWER_ATTRS()<sp/>macro<sp/>to</highlight></codeline>
+<codeline lineno="135"><highlight class="comment"><sp/>*<sp/>get<sp/>the<sp/>right<sp/>bitmask.</highlight></codeline>
+<codeline lineno="136"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP_RO<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(AP2_RO<sp/>&lt;&lt;<sp/>5)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP_RW<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(AP2_RW<sp/>&lt;&lt;<sp/>5)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP_ACCESS_UNPRIVILEGED<sp/><sp/><sp/><sp/><sp/><sp/>(AP1_ACCESS_UNPRIVILEGED<sp/><sp/><sp/><sp/>&lt;&lt;<sp/>4)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP_NO_ACCESS_UNPRIVILEGED<sp/><sp/><sp/>(AP1_NO_ACCESS_UNPRIVILEGED<sp/>&lt;&lt;<sp/>4)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>AP_ONE_VA_RANGE_RES1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(AP1_RES1<sp/>&lt;&lt;<sp/>4)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(0x1)<sp/>&lt;&lt;<sp/>3)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_NON_CACHEABLE_INDEX<sp/><sp/><sp/><sp/>ULL(0x2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_DEVICE_INDEX<sp/><sp/><sp/><sp/><sp/><sp/><sp/>ULL(0x1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_IWBWA_OWBWA_NTR_INDEX<sp/><sp/>ULL(0x0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LOWER_ATTRS(x)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(((x)<sp/>&amp;<sp/>U(0xfff))<sp/>&lt;&lt;<sp/>2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Normal<sp/>Memory,<sp/>Outer<sp/>Write-Through<sp/>non-transient,<sp/>Inner<sp/>Non-cacheable<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_NON_CACHEABLE<sp/><sp/><sp/><sp/><sp/><sp/>MAKE_MAIR_NORMAL_MEMORY(MAIR_NORM_NC,<sp/>MAIR_NORM_NC)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Device-nGnRE<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_DEVICE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MAIR_DEV_nGnRE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Normal<sp/>Memory,<sp/>Outer<sp/>Write-Back<sp/>non-transient,<sp/>Inner<sp/>Write-Back<sp/>non-transient<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_IWBWA_OWBWA_NTR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MAKE_MAIR_NORMAL_MEMORY(MAIR_NORM_WB_NTR_RWA,<sp/>MAIR_NORM_WB_NTR_RWA)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MAIR_ATTR_SET(attr,<sp/>index)<sp/><sp/>((attr)<sp/>&lt;&lt;<sp/>((index)<sp/>&lt;&lt;<sp/>3))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_INDEX_MASK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(0x3)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_INDEX_GET(attr)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(((attr)<sp/>&gt;&gt;<sp/>2)<sp/>&amp;<sp/>ATTR_INDEX_MASK)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="159"><highlight class="comment"><sp/>*<sp/>Shift<sp/>values<sp/>for<sp/>the<sp/>attributes<sp/>fields<sp/>in<sp/>a<sp/>block<sp/>or<sp/>page<sp/>descriptor.</highlight></codeline>
+<codeline lineno="160"><highlight class="comment"><sp/>*<sp/>See<sp/>section<sp/>D4.3.3<sp/>in<sp/>the<sp/>ARMv8-A<sp/>ARM<sp/>(issue<sp/>B.a).</highlight></codeline>
+<codeline lineno="161"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Memory<sp/>attributes<sp/>index<sp/>field,<sp/>AttrIndx[2:0].<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATTR_INDEX_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Non-secure<sp/>bit,<sp/>NS.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NS_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Shareability<sp/>field,<sp/>SH[1:0]<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SHAREABILITY_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>The<sp/>Access<sp/>Flag,<sp/>AF.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ACCESS_FLAG_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/>10</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>The<sp/>not<sp/>global<sp/>bit,<sp/>nG.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NOT_GLOBAL_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Contiguous<sp/>hint<sp/>bit.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CONT_HINT_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>52</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Execute-never<sp/>bits,<sp/>XN.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PXN_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>53</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XN_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>54</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UXN_SHIFT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>XN_SHIFT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>XLAT_TABLES_DEFS_H<sp/>*/</highlight><highlight class="preprocessor"></highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/xlat_tables/xlat_tables_defs.h"/>
+  </compounddef>
+</doxygen>

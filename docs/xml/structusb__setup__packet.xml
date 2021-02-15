@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structusb__setup__packet" kind="struct" language="C++" prot="public">
+    <compoundname>usb_setup_packet</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structusb__setup__packet_1aaea05f60cc195c4fa77f7c78b5a8bb01" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_setup_packet::bRequestType</definition>
+        <argsstring></argsstring>
+        <name>bRequestType</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Characteristics of request </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="54" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__setup__packet_1aab50ed2f2cdcc1d747f6f224fe9d2018" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_setup_packet::bRequest</definition>
+        <argsstring></argsstring>
+        <name>bRequest</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Specific request </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="55" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__setup__packet_1a619fbc1b9b6452f4394da713bdbc6a89" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_setup_packet::wValue</definition>
+        <argsstring></argsstring>
+        <name>wValue</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Word-sized field that varies according to request </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="56" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__setup__packet_1a953c058f0e31481a3d59b404037be009" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_setup_packet::wIndex</definition>
+        <argsstring></argsstring>
+        <name>wIndex</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Index </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="58" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__setup__packet_1a3421c921569bf3727534652c5f71da96" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_setup_packet::wLength</definition>
+        <argsstring></argsstring>
+        <name>wLength</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Number of bytes to transfer </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="59" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/usb.h" line="53" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="52" bodyend="60"/>
+    <listofallmembers>
+      <member refid="structusb__setup__packet_1aab50ed2f2cdcc1d747f6f224fe9d2018" prot="public" virt="non-virtual"><scope>usb_setup_packet</scope><name>bRequest</name></member>
+      <member refid="structusb__setup__packet_1aaea05f60cc195c4fa77f7c78b5a8bb01" prot="public" virt="non-virtual"><scope>usb_setup_packet</scope><name>bRequestType</name></member>
+      <member refid="structusb__setup__packet_1a953c058f0e31481a3d59b404037be009" prot="public" virt="non-virtual"><scope>usb_setup_packet</scope><name>wIndex</name></member>
+      <member refid="structusb__setup__packet_1a3421c921569bf3727534652c5f71da96" prot="public" virt="non-virtual"><scope>usb_setup_packet</scope><name>wLength</name></member>
+      <member refid="structusb__setup__packet_1a619fbc1b9b6452f4394da713bdbc6a89" prot="public" virt="non-virtual"><scope>usb_setup_packet</scope><name>wValue</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

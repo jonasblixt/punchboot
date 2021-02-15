@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structfdt__node__header" kind="struct" language="C++" prot="public">
+    <compoundname>fdt_node_header</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structfdt__node__header_1a073164a8ce430c15d2147ccba6bc7340" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_node_header::tag</definition>
+        <argsstring></argsstring>
+        <name>tag</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="82" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__node__header_1aab823ddad5b747d212c38271e73e3388" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char fdt_node_header::name[0]</definition>
+        <argsstring>[0]</argsstring>
+        <name>name</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="83" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/fdt/include/fdt.h" line="81" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="81" bodyend="84"/>
+    <listofallmembers>
+      <member refid="structfdt__node__header_1aab823ddad5b747d212c38271e73e3388" prot="public" virt="non-virtual"><scope>fdt_node_header</scope><name>name</name></member>
+      <member refid="structfdt__node__header_1a073164a8ce430c15d2147ccba6bc7340" prot="public" virt="non-virtual"><scope>fdt_node_header</scope><name>tag</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

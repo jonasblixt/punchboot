@@ -1,0 +1,252 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="asn1_8h" kind="file" language="C++">
+    <compoundname>asn1.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="stddef_8h" local="no">stddef.h</includes>
+    <includes refid="crypto_8h" local="no">pb/crypto.h</includes>
+    <includes refid="bpak_2keystore_8h" local="no">bpak/keystore.h</includes>
+    <incdepgraph>
+      <node id="77">
+        <label>stdio.h</label>
+        <link refid="stdio_8h_source"/>
+        <childnode refid="78" relation="include">
+        </childnode>
+        <childnode refid="79" relation="include">
+        </childnode>
+        <childnode refid="80" relation="include">
+        </childnode>
+      </node>
+      <node id="69">
+        <label>/docs/include/pb/asn1.h</label>
+        <link refid="asn1_8h"/>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+      </node>
+      <node id="81">
+        <label>pb/errors.h</label>
+        <link refid="errors_8h_source"/>
+      </node>
+      <node id="72">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="73" relation="include">
+        </childnode>
+      </node>
+      <node id="74">
+        <label>pb/crypto.h</label>
+        <link refid="crypto_8h_source"/>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="76" relation="include">
+        </childnode>
+        <childnode refid="83" relation="include">
+        </childnode>
+      </node>
+      <node id="71">
+        <label>stdint_.h</label>
+      </node>
+      <node id="76">
+        <label>pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="77" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="81" relation="include">
+        </childnode>
+        <childnode refid="82" relation="include">
+        </childnode>
+      </node>
+      <node id="78">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="73">
+        <label>stddef_.h</label>
+      </node>
+      <node id="79">
+        <label>stdio_.h</label>
+      </node>
+      <node id="83">
+        <label>bpak/keystore.h</label>
+        <link refid="bpak_2keystore_8h_source"/>
+        <childnode refid="84" relation="include">
+        </childnode>
+      </node>
+      <node id="75">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="80">
+        <label>stdarg.h</label>
+        <link refid="stdarg_8h_source"/>
+      </node>
+      <node id="84">
+        <label>bpak/bpak.h</label>
+        <link refid="bpak_8h_source"/>
+        <childnode refid="70" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+      </node>
+      <node id="70">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="71" relation="include">
+        </childnode>
+      </node>
+      <node id="82">
+        <label>config.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="asn1_8h_1a8cf68d54009852e03e49186aa3a8fd71" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_asn1_eckey_data</definition>
+        <argsstring>(struct bpak_key *k, uint8_t **data, size_t *key_sz, bool include_compression_point)</argsstring>
+        <name>pb_asn1_eckey_data</name>
+        <param>
+          <type>struct <ref refid="structbpak__key" kindref="compound">bpak_key</ref> *</type>
+          <declname>k</declname>
+        </param>
+        <param>
+          <type>uint8_t **</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>key_sz</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>include_compression_point</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/asn1.h" line="9" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="asn1_8h_1a4896a520d5408507fc9aa5e9c2670a71" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_asn1_ecsig_to_rs</definition>
+        <argsstring>(uint8_t *sig, uint8_t sig_kind, uint8_t **r, uint8_t **s)</argsstring>
+        <name>pb_asn1_ecsig_to_rs</name>
+        <param>
+          <type>uint8_t *</type>
+          <declname>sig</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>sig_kind</declname>
+        </param>
+        <param>
+          <type>uint8_t **</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>uint8_t **</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/asn1.h" line="12" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="asn1_8h_1a9574384e69cd98a44b4289ab81b32ed7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_asn1_rsa_data</definition>
+        <argsstring>(struct bpak_key *k, uint8_t **mod, uint8_t **exp)</argsstring>
+        <name>pb_asn1_rsa_data</name>
+        <param>
+          <type>struct <ref refid="structbpak__key" kindref="compound">bpak_key</ref> *</type>
+          <declname>k</declname>
+        </param>
+        <param>
+          <type>uint8_t **</type>
+          <declname>mod</declname>
+        </param>
+        <param>
+          <type>uint8_t **</type>
+          <declname>exp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/asn1.h" line="15" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="asn1_8h_1a0b01e6c4672f8baf9be76fd14c09bf58" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_asn1_size</definition>
+        <argsstring>(unsigned char **p, size_t *len)</argsstring>
+        <name>pb_asn1_size</name>
+        <param>
+          <type>unsigned char **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/asn1.h" line="17" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_ASN1_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_ASN1_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stddef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/crypto.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;bpak/keystore.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_asn1_eckey_data(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__key" kindref="compound">bpak_key</ref><sp/>*k,<sp/>uint8_t<sp/>**data,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>*key_sz,</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>include_compression_point);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_asn1_ecsig_to_rs(uint8_t<sp/>*sig,<sp/>uint8_t<sp/>sig_kind,</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/>**r,<sp/>uint8_t<sp/>**s);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_asn1_rsa_data(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__key" kindref="compound">bpak_key</ref><sp/>*k,<sp/>uint8_t<sp/>**mod,<sp/>uint8_t<sp/>**exp);</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_asn1_size(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>**p,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>*len);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_ASN1_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/asn1.h"/>
+  </compounddef>
+</doxygen>

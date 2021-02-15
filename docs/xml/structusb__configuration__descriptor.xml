@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structusb__configuration__descriptor" kind="struct" language="C++" prot="public">
+    <compoundname>usb_configuration_descriptor</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structusb__configuration__descriptor_1ab9c6c2de84915b82847ca49167596fb4" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_configuration_descriptor::bLength</definition>
+        <argsstring></argsstring>
+        <name>bLength</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="84" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__configuration__descriptor_1a422f4aaad90b35ad0d673ef979226193" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_configuration_descriptor::bDescriptorType</definition>
+        <argsstring></argsstring>
+        <name>bDescriptorType</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="85" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__configuration__descriptor_1a3bab127754404e5aa3a84a7c71faf384" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_configuration_descriptor::wTotalLength</definition>
+        <argsstring></argsstring>
+        <name>wTotalLength</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="86" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__configuration__descriptor_1ac25b62cff61550327f9d0e75a83a80dc" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_configuration_descriptor::bNumInterfaces</definition>
+        <argsstring></argsstring>
+        <name>bNumInterfaces</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="89" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__configuration__descriptor_1af28ee6897bc865285877fc30d4daef72" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_configuration_descriptor::bConfigurationValue</definition>
+        <argsstring></argsstring>
+        <name>bConfigurationValue</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="91" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__configuration__descriptor_1ae4daf96c6127c8a04d3a10f709832491" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_configuration_descriptor::iConfiguration</definition>
+        <argsstring></argsstring>
+        <name>iConfiguration</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="93" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__configuration__descriptor_1a071e054db03712a2fe12207afaf09d95" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_configuration_descriptor::bmAttributes</definition>
+        <argsstring></argsstring>
+        <name>bmAttributes</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="95" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__configuration__descriptor_1af278db8803b7a8939f3ca202965e14c3" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_configuration_descriptor::MaxPower</definition>
+        <argsstring></argsstring>
+        <name>MaxPower</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="96" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/usb.h" line="83" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="82" bodyend="97"/>
+    <listofallmembers>
+      <member refid="structusb__configuration__descriptor_1af28ee6897bc865285877fc30d4daef72" prot="public" virt="non-virtual"><scope>usb_configuration_descriptor</scope><name>bConfigurationValue</name></member>
+      <member refid="structusb__configuration__descriptor_1a422f4aaad90b35ad0d673ef979226193" prot="public" virt="non-virtual"><scope>usb_configuration_descriptor</scope><name>bDescriptorType</name></member>
+      <member refid="structusb__configuration__descriptor_1ab9c6c2de84915b82847ca49167596fb4" prot="public" virt="non-virtual"><scope>usb_configuration_descriptor</scope><name>bLength</name></member>
+      <member refid="structusb__configuration__descriptor_1a071e054db03712a2fe12207afaf09d95" prot="public" virt="non-virtual"><scope>usb_configuration_descriptor</scope><name>bmAttributes</name></member>
+      <member refid="structusb__configuration__descriptor_1ac25b62cff61550327f9d0e75a83a80dc" prot="public" virt="non-virtual"><scope>usb_configuration_descriptor</scope><name>bNumInterfaces</name></member>
+      <member refid="structusb__configuration__descriptor_1ae4daf96c6127c8a04d3a10f709832491" prot="public" virt="non-virtual"><scope>usb_configuration_descriptor</scope><name>iConfiguration</name></member>
+      <member refid="structusb__configuration__descriptor_1af278db8803b7a8939f3ca202965e14c3" prot="public" virt="non-virtual"><scope>usb_configuration_descriptor</scope><name>MaxPower</name></member>
+      <member refid="structusb__configuration__descriptor_1a3bab127754404e5aa3a84a7c71faf384" prot="public" virt="non-virtual"><scope>usb_configuration_descriptor</scope><name>wTotalLength</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

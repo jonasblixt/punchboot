@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__ec__public__key" kind="struct" language="C++" prot="public">
+    <compoundname>br_ec_public_key</compoundname>
+    <includes refid="bearssl__ec_8h" local="no">bearssl_ec.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__ec__public__key_1a930302b66b7f28782e5aa9f4bcf22345" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int br_ec_public_key::curve</definition>
+        <argsstring></argsstring>
+        <name>curve</name>
+        <briefdescription>
+<para>Identifier for the curve used by this key. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="243" column="1" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="243" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__ec__public__key_1a86f049d7119ab3c88c91379bfb84758c" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_ec_public_key::q</definition>
+        <argsstring></argsstring>
+        <name>q</name>
+        <briefdescription>
+<para>Public curve point (uncompressed format). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="245" column="1" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="245" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__ec__public__key_1a6c944306cac7952ce882f4b550997201" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_ec_public_key::qlen</definition>
+        <argsstring></argsstring>
+        <name>qlen</name>
+        <briefdescription>
+<para>Length of public curve point (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="247" column="1" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Structure for an EC public key. </para>    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_ec.h" line="241" column="1" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="241" bodyend="248"/>
+    <listofallmembers>
+      <member refid="structbr__ec__public__key_1a930302b66b7f28782e5aa9f4bcf22345" prot="public" virt="non-virtual"><scope>br_ec_public_key</scope><name>curve</name></member>
+      <member refid="structbr__ec__public__key_1a86f049d7119ab3c88c91379bfb84758c" prot="public" virt="non-virtual"><scope>br_ec_public_key</scope><name>q</name></member>
+      <member refid="structbr__ec__public__key_1a6c944306cac7952ce882f4b550997201" prot="public" virt="non-virtual"><scope>br_ec_public_key</scope><name>qlen</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

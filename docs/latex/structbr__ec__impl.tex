@@ -1,0 +1,228 @@
+\hypertarget{structbr__ec__impl}{}\section{br\+\_\+ec\+\_\+impl Struct Reference}
+\label{structbr__ec__impl}\index{br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}}
+
+
+Type for an EC implementation.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+ec.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \hyperlink{structbr__ec__impl_ab69ca9dac77a15e383b4f87aa9bca444}{supported\+\_\+curves}
+\begin{DoxyCompactList}\small\item\em Supported curves. \end{DoxyCompactList}\item 
+const unsigned char $\ast$($\ast$ \hyperlink{structbr__ec__impl_aefb8a81a4434ba81fd669874d9bc6ab8}{generator} )(int curve, size\+\_\+t $\ast$len)
+\begin{DoxyCompactList}\small\item\em Get the conventional generator. \end{DoxyCompactList}\item 
+const unsigned char $\ast$($\ast$ \hyperlink{structbr__ec__impl_a41234ee4172eadd1c59b5f5ef5540b81}{order} )(int curve, size\+\_\+t $\ast$len)
+\begin{DoxyCompactList}\small\item\em Get the subgroup order. \end{DoxyCompactList}\item 
+size\+\_\+t($\ast$ \hyperlink{structbr__ec__impl_a8b786258f39d2d26e03e96dec95a6d23}{xoff} )(int curve, size\+\_\+t $\ast$len)
+\begin{DoxyCompactList}\small\item\em Get the offset and length for the X coordinate. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \hyperlink{structbr__ec__impl_abc4f4ce448754b7f93632a284bfe4b3d}{mul} )(unsigned char $\ast$G, size\+\_\+t Glen, const unsigned char $\ast$x, size\+\_\+t xlen, int curve)
+\begin{DoxyCompactList}\small\item\em Multiply a curve point by an integer. \end{DoxyCompactList}\item 
+size\+\_\+t($\ast$ \hyperlink{structbr__ec__impl_a54a7c34d0e99d453bbb588ae8ad813e1}{mulgen} )(unsigned char $\ast$R, const unsigned char $\ast$x, size\+\_\+t xlen, int curve)
+\begin{DoxyCompactList}\small\item\em Multiply the generator by an integer. \end{DoxyCompactList}\item 
+uint32\+\_\+t($\ast$ \hyperlink{structbr__ec__impl_afc5304c88c29ed502f0f0a8a77cec71a}{muladd} )(unsigned char $\ast$A, const unsigned char $\ast$B, size\+\_\+t len, const unsigned char $\ast$x, size\+\_\+t xlen, const unsigned char $\ast$y, size\+\_\+t ylen, int curve)
+\begin{DoxyCompactList}\small\item\em Multiply two points by two integers and add the results. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Type for an EC implementation. 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structbr__ec__impl_aefb8a81a4434ba81fd669874d9bc6ab8}\label{structbr__ec__impl_aefb8a81a4434ba81fd669874d9bc6ab8}} 
+\index{br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}!generator@{generator}}
+\index{generator@{generator}!br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}}
+\subsubsection{\texorpdfstring{generator}{generator}}
+{\footnotesize\ttfamily const unsigned char$\ast$($\ast$ br\+\_\+ec\+\_\+impl\+::generator) (int curve, size\+\_\+t $\ast$len)}
+
+
+
+Get the conventional generator. 
+
+This function returns the conventional generator (encoded curve point) for the specified curve. This function M\+U\+ST N\+OT be called if the curve is not supported.
+
+
+\begin{DoxyParams}{Parameters}
+{\em curve} & curve identifier. \\
+\hline
+{\em len} & receiver for the encoded generator length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the encoded generator. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbr__ec__impl_abc4f4ce448754b7f93632a284bfe4b3d}\label{structbr__ec__impl_abc4f4ce448754b7f93632a284bfe4b3d}} 
+\index{br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}!mul@{mul}}
+\index{mul@{mul}!br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}}
+\subsubsection{\texorpdfstring{mul}{mul}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ br\+\_\+ec\+\_\+impl\+::mul) (unsigned char $\ast$G, size\+\_\+t Glen, const unsigned char $\ast$x, size\+\_\+t xlen, int curve)}
+
+
+
+Multiply a curve point by an integer. 
+
+The source point is provided in array {\ttfamily G} (of size {\ttfamily Glen} bytes); the multiplication result is written over it. The multiplier {\ttfamily x} (of size {\ttfamily xlen} bytes) uses unsigned big-\/endian encoding.
+
+Rules\+:
+
+
+\begin{DoxyItemize}
+\item The specified curve M\+U\+ST be supported.
+\item The source point must be a valid point on the relevant curve subgroup (and not the \char`\"{}point at infinity\char`\"{} either). If this is not the case, then this function returns an error (0).
+\item The multiplier integer M\+U\+ST be non-\/zero and less than the curve subgroup order. If this property does not hold, then the result is indeterminate and an error code is not guaranteed.
+\end{DoxyItemize}
+
+Returned value is 1 on success, 0 on error. On error, the contents of {\ttfamily G} are indeterminate.
+
+
+\begin{DoxyParams}{Parameters}
+{\em G} & point to multiply. \\
+\hline
+{\em Glen} & length of the encoded point (in bytes). \\
+\hline
+{\em x} & multiplier (unsigned big-\/endian). \\
+\hline
+{\em xlen} & multiplier length (in bytes). \\
+\hline
+{\em curve} & curve identifier. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbr__ec__impl_afc5304c88c29ed502f0f0a8a77cec71a}\label{structbr__ec__impl_afc5304c88c29ed502f0f0a8a77cec71a}} 
+\index{br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}!muladd@{muladd}}
+\index{muladd@{muladd}!br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}}
+\subsubsection{\texorpdfstring{muladd}{muladd}}
+{\footnotesize\ttfamily uint32\+\_\+t($\ast$ br\+\_\+ec\+\_\+impl\+::muladd) (unsigned char $\ast$A, const unsigned char $\ast$B, size\+\_\+t len, const unsigned char $\ast$x, size\+\_\+t xlen, const unsigned char $\ast$y, size\+\_\+t ylen, int curve)}
+
+
+
+Multiply two points by two integers and add the results. 
+
+The point {\ttfamily x$\ast$A + y$\ast$B} is computed and written back in the {\ttfamily A} array.
+
+Rules\+:
+
+
+\begin{DoxyItemize}
+\item The specified curve M\+U\+ST be supported.
+\item The source points ({\ttfamily A} and {\ttfamily B}) must be valid points on the relevant curve subgroup (and not the \char`\"{}point at
+    infinity\char`\"{} either). If this is not the case, then this function returns an error (0).
+\item If the {\ttfamily B} pointer is {\ttfamily N\+U\+LL}, then the conventional subgroup generator is used. With some implementations, this may be faster than providing a pointer to the generator.
+\item The multiplier integers ({\ttfamily x} and {\ttfamily y}) M\+U\+ST be non-\/zero and less than the curve subgroup order. If either integer is zero, then an error is reported, but if one of them is not lower than the subgroup order, then the result is indeterminate and an error code is not guaranteed.
+\item If the final result is the point at infinity, then an error is returned.
+\end{DoxyItemize}
+
+Returned value is 1 on success, 0 on error. On error, the contents of {\ttfamily A} are indeterminate.
+
+
+\begin{DoxyParams}{Parameters}
+{\em A} & first point to multiply. \\
+\hline
+{\em B} & second point to multiply ({\ttfamily N\+U\+LL} for the generator). \\
+\hline
+{\em len} & common length of the encoded points (in bytes). \\
+\hline
+{\em x} & multiplier for {\ttfamily A} (unsigned big-\/endian). \\
+\hline
+{\em xlen} & length of multiplier for {\ttfamily A} (in bytes). \\
+\hline
+{\em y} & multiplier for {\ttfamily A} (unsigned big-\/endian). \\
+\hline
+{\em ylen} & length of multiplier for {\ttfamily A} (in bytes). \\
+\hline
+{\em curve} & curve identifier. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbr__ec__impl_a54a7c34d0e99d453bbb588ae8ad813e1}\label{structbr__ec__impl_a54a7c34d0e99d453bbb588ae8ad813e1}} 
+\index{br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}!mulgen@{mulgen}}
+\index{mulgen@{mulgen}!br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}}
+\subsubsection{\texorpdfstring{mulgen}{mulgen}}
+{\footnotesize\ttfamily size\+\_\+t($\ast$ br\+\_\+ec\+\_\+impl\+::mulgen) (unsigned char $\ast$R, const unsigned char $\ast$x, size\+\_\+t xlen, int curve)}
+
+
+
+Multiply the generator by an integer. 
+
+The multiplier M\+U\+ST be non-\/zero and less than the curve subgroup order. Results are indeterminate if this property does not hold.
+
+
+\begin{DoxyParams}{Parameters}
+{\em R} & output buffer for the point. \\
+\hline
+{\em x} & multiplier (unsigned big-\/endian). \\
+\hline
+{\em xlen} & multiplier length (in bytes). \\
+\hline
+{\em curve} & curve identifier. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+encoded result point length (in bytes). 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbr__ec__impl_a41234ee4172eadd1c59b5f5ef5540b81}\label{structbr__ec__impl_a41234ee4172eadd1c59b5f5ef5540b81}} 
+\index{br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}!order@{order}}
+\index{order@{order}!br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}}
+\subsubsection{\texorpdfstring{order}{order}}
+{\footnotesize\ttfamily const unsigned char$\ast$($\ast$ br\+\_\+ec\+\_\+impl\+::order) (int curve, size\+\_\+t $\ast$len)}
+
+
+
+Get the subgroup order. 
+
+This function returns the order of the subgroup generated by the conventional generator, for the specified curve. Unsigned big-\/endian encoding is used. This function M\+U\+ST N\+OT be called if the curve is not supported.
+
+
+\begin{DoxyParams}{Parameters}
+{\em curve} & curve identifier. \\
+\hline
+{\em len} & receiver for the encoded order length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the encoded order. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbr__ec__impl_ab69ca9dac77a15e383b4f87aa9bca444}\label{structbr__ec__impl_ab69ca9dac77a15e383b4f87aa9bca444}} 
+\index{br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}!supported\+\_\+curves@{supported\+\_\+curves}}
+\index{supported\+\_\+curves@{supported\+\_\+curves}!br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}}
+\subsubsection{\texorpdfstring{supported\+\_\+curves}{supported\_curves}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+ec\+\_\+impl\+::supported\+\_\+curves}
+
+
+
+Supported curves. 
+
+This word is a bitfield\+: bit {\ttfamily x} is set if the curve of ID {\ttfamily x} is supported. E.\+g. an implementation supporting both N\+I\+ST P-\/256 (secp256r1, ID 23) and N\+I\+ST P-\/384 (secp384r1, ID 24) will have value {\ttfamily 0x01800000} in this field. \mbox{\Hypertarget{structbr__ec__impl_a8b786258f39d2d26e03e96dec95a6d23}\label{structbr__ec__impl_a8b786258f39d2d26e03e96dec95a6d23}} 
+\index{br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}!xoff@{xoff}}
+\index{xoff@{xoff}!br\+\_\+ec\+\_\+impl@{br\+\_\+ec\+\_\+impl}}
+\subsubsection{\texorpdfstring{xoff}{xoff}}
+{\footnotesize\ttfamily size\+\_\+t($\ast$ br\+\_\+ec\+\_\+impl\+::xoff) (int curve, size\+\_\+t $\ast$len)}
+
+
+
+Get the offset and length for the X coordinate. 
+
+This function returns the offset and length (in bytes) of the X coordinate in an encoded non-\/zero point.
+
+
+\begin{DoxyParams}{Parameters}
+{\em curve} & curve identifier. \\
+\hline
+{\em len} & receiver for the X coordinate length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the offset for the X coordinate (in bytes). 
+\end{DoxyReturn}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__ec_8h}{bearssl\+\_\+ec.\+h}\end{DoxyCompactItemize}

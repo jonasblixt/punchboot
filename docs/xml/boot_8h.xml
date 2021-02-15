@@ -1,0 +1,469 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="boot_8h" kind="file" language="C++">
+    <compoundname>boot.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="image_8h" local="no">pb/image.h</includes>
+    <includes refid="storage_8h" local="no">pb/storage.h</includes>
+    <includes refid="timestamp_8h" local="no">pb/timestamp.h</includes>
+    <includes refid="bpak_8h" local="no">bpak/bpak.h</includes>
+    <includes refid="uuid_8h" local="no">uuid/uuid.h</includes>
+    <includedby refid="plat_8h" local="no">/docs/include/pb/plat.h</includedby>
+    <incdepgraph>
+      <node id="117">
+        <label>pb-tools/wire.h</label>
+        <link refid="wire_8h"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+        <childnode refid="106" relation="include">
+        </childnode>
+        <childnode refid="118" relation="include">
+        </childnode>
+      </node>
+      <node id="109">
+        <label>stdio.h</label>
+        <link refid="stdio_8h_source"/>
+        <childnode refid="110" relation="include">
+        </childnode>
+        <childnode refid="111" relation="include">
+        </childnode>
+        <childnode refid="112" relation="include">
+        </childnode>
+      </node>
+      <node id="113">
+        <label>pb/errors.h</label>
+        <link refid="errors_8h_source"/>
+      </node>
+      <node id="106">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="107" relation="include">
+        </childnode>
+      </node>
+      <node id="122">
+        <label>time.h</label>
+        <link refid="time_8h_source"/>
+        <childnode refid="123" relation="include">
+        </childnode>
+      </node>
+      <node id="104">
+        <label>pb/crypto.h</label>
+        <link refid="crypto_8h_source"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+        <childnode refid="106" relation="include">
+        </childnode>
+        <childnode refid="108" relation="include">
+        </childnode>
+        <childnode refid="115" relation="include">
+        </childnode>
+      </node>
+      <node id="120">
+        <label>pb/timestamp.h</label>
+        <link refid="timestamp_8h_source"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+      </node>
+      <node id="102">
+        <label>stdint_.h</label>
+      </node>
+      <node id="108">
+        <label>pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="109" relation="include">
+        </childnode>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+        <childnode refid="106" relation="include">
+        </childnode>
+        <childnode refid="113" relation="include">
+        </childnode>
+        <childnode refid="114" relation="include">
+        </childnode>
+      </node>
+      <node id="110">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="118">
+        <label>pb-tools/error.h</label>
+        <link refid="error_8h_source"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+      </node>
+      <node id="123">
+        <label>time_.h</label>
+      </node>
+      <node id="121">
+        <label>uuid/uuid.h</label>
+        <link refid="uuid_8h_source"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="122" relation="include">
+        </childnode>
+      </node>
+      <node id="107">
+        <label>stddef_.h</label>
+      </node>
+      <node id="111">
+        <label>stdio_.h</label>
+      </node>
+      <node id="115">
+        <label>bpak/keystore.h</label>
+        <link refid="bpak_2keystore_8h_source"/>
+        <childnode refid="116" relation="include">
+        </childnode>
+      </node>
+      <node id="105">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="112">
+        <label>stdarg.h</label>
+        <link refid="stdarg_8h_source"/>
+      </node>
+      <node id="116">
+        <label>bpak/bpak.h</label>
+        <link refid="bpak_8h_source"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+        <childnode refid="106" relation="include">
+        </childnode>
+      </node>
+      <node id="103">
+        <label>pb/image.h</label>
+        <link refid="image_8h_source"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="104" relation="include">
+        </childnode>
+        <childnode refid="116" relation="include">
+        </childnode>
+        <childnode refid="117" relation="include">
+        </childnode>
+      </node>
+      <node id="119">
+        <label>pb/storage.h</label>
+        <link refid="storage_8h_source"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="105" relation="include">
+        </childnode>
+      </node>
+      <node id="100">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h"/>
+        <childnode refid="101" relation="include">
+        </childnode>
+        <childnode refid="103" relation="include">
+        </childnode>
+        <childnode refid="119" relation="include">
+        </childnode>
+        <childnode refid="120" relation="include">
+        </childnode>
+        <childnode refid="116" relation="include">
+        </childnode>
+        <childnode refid="121" relation="include">
+        </childnode>
+      </node>
+      <node id="101">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="102" relation="include">
+        </childnode>
+      </node>
+      <node id="114">
+        <label>config.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="125">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="124">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h"/>
+        <childnode refid="125" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structpb__boot__state" prot="public">pb_boot_state</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="boot_8h_1a09728ebd3f82a912516baccaa6074c7c" prot="public" static="no">
+        <name>PB_STATE_MAGIC</name>
+        <initializer>0x026d4a65</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Punch BOOT</para><para>Copyright (C) 2020 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="20" column="9" bodyfile="/docs/include/pb/boot.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="boot_8h_1a7e93f30067b50125d817acfb82d5e7b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_boot_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="30" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1abbc013d7cc379b779271ec4478cf1afd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_load_state</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_boot_load_state</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="32" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1af7c2cb2a934dabd02150dc9e24f5c35b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_load_transport</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_boot_load_transport</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="34" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1a99fe042a2930e13b7c84d3f7b460bb4a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_load_fs</definition>
+        <argsstring>(uint8_t *boot_part_uu)</argsstring>
+        <name>pb_boot_load_fs</name>
+        <param>
+          <type>uint8_t *</type>
+          <declname>boot_part_uu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="36" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1a682ed77adeb98a7424e8d98a8a604157" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot</definition>
+        <argsstring>(struct pb_timestamp *ts_total, bool verbose, bool manual)</argsstring>
+        <name>pb_boot</name>
+        <param>
+          <type>struct <ref refid="structpb__timestamp" kindref="compound">pb_timestamp</ref> *</type>
+          <declname>ts_total</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>verbose</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>manual</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="38" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1a27498b1d293f2de343b586d6075da2e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_activate</definition>
+        <argsstring>(uint8_t *uu)</argsstring>
+        <name>pb_boot_activate</name>
+        <param>
+          <type>uint8_t *</type>
+          <declname>uu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="42" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1a2c98fd41b4d48942ea5531179ef25fce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_driver_load_state</definition>
+        <argsstring>(struct pb_boot_state *state, bool *commit)</argsstring>
+        <name>pb_boot_driver_load_state</name>
+        <param>
+          <type>struct <ref refid="structpb__boot__state" kindref="compound">pb_boot_state</ref> *</type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>commit</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="45" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1a8589743144cbd7cf8891d36bd15a4ca3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint8_t *</type>
+        <definition>uint8_t* pb_boot_driver_get_part_uu</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_boot_driver_get_part_uu</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="46" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1acb60ae120cead0a68cf5fc143a3b9ae7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_driver_boot</definition>
+        <argsstring>(int *dtb, int offset)</argsstring>
+        <name>pb_boot_driver_boot</name>
+        <param>
+          <type>int *</type>
+          <declname>dtb</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="47" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1aaa415d68367e4cd17be51217251536f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_driver_activate</definition>
+        <argsstring>(struct pb_boot_state *state, uint8_t *uu)</argsstring>
+        <name>pb_boot_driver_activate</name>
+        <param>
+          <type>struct <ref refid="structpb__boot__state" kindref="compound">pb_boot_state</ref> *</type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type>uint8_t *</type>
+          <declname>uu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="48" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="boot_8h_1a7ce690631496503e63af8cde81371444" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_boot_driver_set_part_uu</definition>
+        <argsstring>(uint8_t *uu)</argsstring>
+        <name>pb_boot_driver_set_part_uu</name>
+        <param>
+          <type>uint8_t *</type>
+          <declname>uu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="49" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="10"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_BOOT_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_BOOT_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/image.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/storage.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/timestamp.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;bpak/bpak.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;uuid/uuid.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STATE_MAGIC<sp/>0x026d4a65</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="structpb__boot__state" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__boot__state" kindref="compound">pb_boot_state</ref><sp/></highlight><highlight class="comment">/*<sp/>512<sp/>bytes<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>magic;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal">[468];</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>rz[36];</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>crc;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_load_state(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_load_transport(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_load_fs(uint8_t<sp/>*boot_part_uu);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__timestamp" kindref="compound">pb_timestamp</ref><sp/>*ts_total,</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>verbose,</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>manual);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_activate(uint8_t<sp/>*uu);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Boot<sp/>driver<sp/>API<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_driver_load_state(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__boot__state" kindref="compound">pb_boot_state</ref><sp/>*state,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*commit);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">uint8_t<sp/>*pb_boot_driver_get_part_uu(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_driver_boot(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*dtb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>offset);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_driver_activate(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__boot__state" kindref="compound">pb_boot_state</ref><sp/>*state,<sp/>uint8_t<sp/>*uu);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_boot_driver_set_part_uu(uint8_t<sp/>*uu);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_BOOT_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/boot.h"/>
+  </compounddef>
+</doxygen>

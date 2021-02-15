@@ -1,0 +1,70 @@
+\hypertarget{structbr__block__cbcenc__class__}{}\section{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+ Struct Reference}
+\label{structbr__block__cbcenc__class__}\index{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+}}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__block__cbcenc__class___ae731a8e995309f146d78b3877145c110}\label{structbr__block__cbcenc__class___ae731a8e995309f146d78b3877145c110}} 
+size\+\_\+t \hyperlink{structbr__block__cbcenc__class___ae731a8e995309f146d78b3877145c110}{context\+\_\+size}
+\begin{DoxyCompactList}\small\item\em Size (in bytes) of the context structure appropriate for containing subkeys. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__block__cbcenc__class___a2c42f682029f08d66eb025ae1c732834}\label{structbr__block__cbcenc__class___a2c42f682029f08d66eb025ae1c732834}} 
+unsigned \hyperlink{structbr__block__cbcenc__class___a2c42f682029f08d66eb025ae1c732834}{block\+\_\+size}
+\begin{DoxyCompactList}\small\item\em Size of individual blocks (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__block__cbcenc__class___a541cb6678a10f233ad918e5a2220f5cf}\label{structbr__block__cbcenc__class___a541cb6678a10f233ad918e5a2220f5cf}} 
+unsigned \hyperlink{structbr__block__cbcenc__class___a541cb6678a10f233ad918e5a2220f5cf}{log\+\_\+block\+\_\+size}
+\begin{DoxyCompactList}\small\item\em Base-\/2 logarithm of the size of individual blocks, expressed in bytes. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__block__cbcenc__class___ab148e2bacebbee1588b9c7c0847a7d42}{init} )(const \hyperlink{bearssl__block_8h_ad0ecff523e21a74dc1143dcfa52aa251}{br\+\_\+block\+\_\+cbcenc\+\_\+class} $\ast$$\ast$ctx, const void $\ast$key, size\+\_\+t key\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Initialisation function. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__block__cbcenc__class___a4f6818866dd7e39c07319ccbd6e99c07}{run} )(const \hyperlink{bearssl__block_8h_ad0ecff523e21a74dc1143dcfa52aa251}{br\+\_\+block\+\_\+cbcenc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$iv, void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Run the C\+BC encryption. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structbr__block__cbcenc__class___ab148e2bacebbee1588b9c7c0847a7d42}\label{structbr__block__cbcenc__class___ab148e2bacebbee1588b9c7c0847a7d42}} 
+\index{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+}!init@{init}}
+\index{init@{init}!br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{init}{init}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+\+::init) (const \hyperlink{bearssl__block_8h_ad0ecff523e21a74dc1143dcfa52aa251}{br\+\_\+block\+\_\+cbcenc\+\_\+class} $\ast$$\ast$ctx, const void $\ast$key, size\+\_\+t key\+\_\+len)}
+
+
+
+Initialisation function. 
+
+This function sets the {\ttfamily vtable} field in the context structure. The key length M\+U\+ST be one of the key lengths supported by the implementation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & context structure to initialise. \\
+\hline
+{\em key} & secret key. \\
+\hline
+{\em key\+\_\+len} & key length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__block__cbcenc__class___a4f6818866dd7e39c07319ccbd6e99c07}\label{structbr__block__cbcenc__class___a4f6818866dd7e39c07319ccbd6e99c07}} 
+\index{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+}!run@{run}}
+\index{run@{run}!br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{run}{run}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+block\+\_\+cbcenc\+\_\+class\+\_\+\+::run) (const \hyperlink{bearssl__block_8h_ad0ecff523e21a74dc1143dcfa52aa251}{br\+\_\+block\+\_\+cbcenc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$iv, void $\ast$data, size\+\_\+t len)}
+
+
+
+Run the C\+BC encryption. 
+
+The {\ttfamily iv} parameter points to the IV for this run; it is updated with a copy of the last encrypted block. The data is encrypted \char`\"{}in place\char`\"{}; its length ({\ttfamily len}) M\+U\+ST be a multiple of the block size.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & context structure (already initialised). \\
+\hline
+{\em iv} & IV for C\+BC encryption (updated). \\
+\hline
+{\em data} & data to encrypt. \\
+\hline
+{\em len} & data length (in bytes, multiple of block size). \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__block_8h}{bearssl\+\_\+block.\+h}\end{DoxyCompactItemize}

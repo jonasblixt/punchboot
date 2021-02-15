@@ -1,0 +1,152 @@
+\hypertarget{structbr__hash__class__}{}\section{br\+\_\+hash\+\_\+class\+\_\+ Struct Reference}
+\label{structbr__hash__class__}\index{br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__hash__class___a53b629c36645dd703da6ccefa245a78d}\label{structbr__hash__class___a53b629c36645dd703da6ccefa245a78d}} 
+size\+\_\+t \hyperlink{structbr__hash__class___a53b629c36645dd703da6ccefa245a78d}{context\+\_\+size}
+\begin{DoxyCompactList}\small\item\em Size (in bytes) of the context structure appropriate for computing this hash function. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{structbr__hash__class___a83ce0b40ed9d8de4cdfde6391c7d8728}{desc}
+\begin{DoxyCompactList}\small\item\em Descriptor word that contains information about the hash function. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__hash__class___a576d5f1abbd1bb61a8686e0ff0f0d2ff}{init} )(const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$$\ast$ctx)
+\begin{DoxyCompactList}\small\item\em Initialisation method. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__hash__class___a5f8725811995c5064c87939c1957547e}{update} )(const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$$\ast$ctx, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Data injection method. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__hash__class___a8a200645aa525939cb33d6c448c24e65}{out} )(const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$const $\ast$ctx, void $\ast$dst)
+\begin{DoxyCompactList}\small\item\em Produce hash output. \end{DoxyCompactList}\item 
+uint64\+\_\+t($\ast$ \hyperlink{structbr__hash__class___ad5feeec7686f6d9ea9c378353c308d10}{state} )(const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$const $\ast$ctx, void $\ast$dst)
+\begin{DoxyCompactList}\small\item\em Get running state. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__hash__class___a1b8f07b0f48736ed41b5a7900f9bf335}{set\+\_\+state} )(const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$$\ast$ctx, const void $\ast$stb, uint64\+\_\+t count)
+\begin{DoxyCompactList}\small\item\em Set running state. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structbr__hash__class___a83ce0b40ed9d8de4cdfde6391c7d8728}\label{structbr__hash__class___a83ce0b40ed9d8de4cdfde6391c7d8728}} 
+\index{br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}!desc@{desc}}
+\index{desc@{desc}!br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{desc}{desc}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+hash\+\_\+class\+\_\+\+::desc}
+
+
+
+Descriptor word that contains information about the hash function. 
+
+For each word {\ttfamily xxx} described below, use {\ttfamily B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+xxx\+\_\+\+O\+FF} and {\ttfamily B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+xxx\+\_\+\+M\+A\+SK} to access the specific value, as follows\+: \begin{DoxyVerb}(hf->desc >> BR_HASHDESC_xxx_OFF) & BR_HASHDESC_xxx_MASK
+\end{DoxyVerb}
+
+
+The defined elements are\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily ID}\+: the symbolic identifier for the function, as defined in \href{https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1}{\tt T\+LS} (M\+D5 = 1, S\+H\+A-\/1 = 2,...).
+\item {\ttfamily O\+UT}\+: hash output size, in bytes.
+\item {\ttfamily S\+T\+A\+TE}\+: internal running state size, in bytes.
+\item {\ttfamily L\+B\+L\+EN}\+: base-\/2 logarithm for the internal block size, as defined for H\+M\+AC processing (this is 6 for M\+D5, S\+H\+A-\/1, S\+H\+A-\/224 and S\+H\+A-\/256, since these functions use 64-\/byte blocks; for S\+H\+A-\/384 and S\+H\+A-\/512, this is 7, corresponding to their 128-\/byte blocks).
+\end{DoxyItemize}
+
+The descriptor may contain a few other flags. \mbox{\Hypertarget{structbr__hash__class___a576d5f1abbd1bb61a8686e0ff0f0d2ff}\label{structbr__hash__class___a576d5f1abbd1bb61a8686e0ff0f0d2ff}} 
+\index{br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}!init@{init}}
+\index{init@{init}!br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{init}{init}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+hash\+\_\+class\+\_\+\+::init) (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$$\ast$ctx)}
+
+
+
+Initialisation method. 
+
+This method takes as parameter a pointer to a context area, that it initialises. The first field of the context is set to this vtable; other elements are initialised for a new hash computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to (the first field of) the context. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__hash__class___a8a200645aa525939cb33d6c448c24e65}\label{structbr__hash__class___a8a200645aa525939cb33d6c448c24e65}} 
+\index{br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}!out@{out}}
+\index{out@{out}!br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{out}{out}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+hash\+\_\+class\+\_\+\+::out) (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$const $\ast$ctx, void $\ast$dst)}
+
+
+
+Produce hash output. 
+
+The hash output corresponding to all data bytes injected in the context since the last {\ttfamily \hyperlink{structbr__hash__class___a576d5f1abbd1bb61a8686e0ff0f0d2ff}{init()}} call is computed, and written in the buffer pointed to by {\ttfamily dst}. The hash output size depends on the implemented hash function (e.\+g. 16 bytes for M\+D5). The context is {\itshape not} modified by this call, so further bytes may be afterwards injected to continue the current computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to (the first field of) the context. \\
+\hline
+{\em dst} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__hash__class___a1b8f07b0f48736ed41b5a7900f9bf335}\label{structbr__hash__class___a1b8f07b0f48736ed41b5a7900f9bf335}} 
+\index{br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}!set\+\_\+state@{set\+\_\+state}}
+\index{set\+\_\+state@{set\+\_\+state}!br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{set\+\_\+state}{set\_state}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+hash\+\_\+class\+\_\+\+::set\+\_\+state) (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$$\ast$ctx, const void $\ast$stb, uint64\+\_\+t count)}
+
+
+
+Set running state. 
+
+This methods replaces the running state for the function.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to (the first field of) the context. \\
+\hline
+{\em stb} & source buffer for the state. \\
+\hline
+{\em count} & injected total byte length. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__hash__class___ad5feeec7686f6d9ea9c378353c308d10}\label{structbr__hash__class___ad5feeec7686f6d9ea9c378353c308d10}} 
+\index{br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}!state@{state}}
+\index{state@{state}!br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{state}{state}}
+{\footnotesize\ttfamily uint64\+\_\+t($\ast$ br\+\_\+hash\+\_\+class\+\_\+\+::state) (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$const $\ast$ctx, void $\ast$dst)}
+
+
+
+Get running state. 
+
+This method saves the current running state into the {\ttfamily dst} buffer. What constitutes the \char`\"{}running state\char`\"{} depends on the hash function; for Merkle-\/\+Damgård hash functions (like M\+D5 or S\+H\+A-\/1), this is the output obtained after processing each block. The number of bytes injected so far is returned. The context is not modified by this call.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to (the first field of) the context. \\
+\hline
+{\em dst} & destination buffer for the state. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the injected total byte length. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbr__hash__class___a5f8725811995c5064c87939c1957547e}\label{structbr__hash__class___a5f8725811995c5064c87939c1957547e}} 
+\index{br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}!update@{update}}
+\index{update@{update}!br\+\_\+hash\+\_\+class\+\_\+@{br\+\_\+hash\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{update}{update}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+hash\+\_\+class\+\_\+\+::update) (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$$\ast$ctx, const void $\ast$data, size\+\_\+t len)}
+
+
+
+Data injection method. 
+
+The {\ttfamily len} bytes starting at address {\ttfamily data} are injected into the running hash computation incarnated by the specified context. The context is updated accordingly. It is allowed to have {\ttfamily len == 0}, in which case {\ttfamily data} is ignored (and could be {\ttfamily N\+U\+LL}), and nothing happens. on the input data.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to (the first field of) the context. \\
+\hline
+{\em data} & pointer to the first data byte to inject. \\
+\hline
+{\em len} & number of bytes to inject. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__hash_8h}{bearssl\+\_\+hash.\+h}\end{DoxyCompactItemize}

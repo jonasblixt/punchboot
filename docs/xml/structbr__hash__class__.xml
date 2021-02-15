@@ -1,0 +1,199 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__hash__class__" kind="struct" language="C++" prot="public">
+    <compoundname>br_hash_class_</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__hash__class___1a53b629c36645dd703da6ccefa245a78d" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_hash_class_::context_size</definition>
+        <argsstring></argsstring>
+        <name>context_size</name>
+        <briefdescription>
+<para>Size (in bytes) of the context structure appropriate for computing this hash function. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="227" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hash__class___1a83ce0b40ed9d8de4cdfde6391c7d8728" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_hash_class_::desc</definition>
+        <argsstring></argsstring>
+        <name>desc</name>
+        <briefdescription>
+<para>Descriptor word that contains information about the hash function. </para>        </briefdescription>
+        <detaileddescription>
+<para>For each word <computeroutput>xxx</computeroutput> described below, use <computeroutput>BR_HASHDESC_xxx_OFF</computeroutput> and <computeroutput>BR_HASHDESC_xxx_MASK</computeroutput> to access the specific value, as follows: <verbatim>(hf-&gt;desc &gt;&gt; BR_HASHDESC_xxx_OFF) &amp; BR_HASHDESC_xxx_MASK
+</verbatim></para><para>The defined elements are:</para><para><itemizedlist>
+<listitem><para><computeroutput>ID</computeroutput>: the symbolic identifier for the function, as defined in <ulink url="https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1">TLS</ulink> (MD5 = 1, SHA-1 = 2,...).</para></listitem><listitem><para><computeroutput>OUT</computeroutput>: hash output size, in bytes.</para></listitem><listitem><para><computeroutput>STATE</computeroutput>: internal running state size, in bytes.</para></listitem><listitem><para><computeroutput>LBLEN</computeroutput>: base-2 logarithm for the internal block size, as defined for HMAC processing (this is 6 for MD5, SHA-1, SHA-224 and SHA-256, since these functions use 64-byte blocks; for SHA-384 and SHA-512, this is 7, corresponding to their 128-byte blocks).</para></listitem></itemizedlist>
+</para><para>The descriptor may contain a few other flags. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="257" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="257" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hash__class___1a576d5f1abbd1bb61a8686e0ff0f0d2ff" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_hash_class_::init) (const br_hash_class **ctx)</definition>
+        <argsstring>)(const br_hash_class **ctx)</argsstring>
+        <name>init</name>
+        <briefdescription>
+<para>Initialisation method. </para>        </briefdescription>
+        <detaileddescription>
+<para>This method takes as parameter a pointer to a context area, that it initialises. The first field of the context is set to this vtable; other elements are initialised for a new hash computation.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to (the first field of) the context. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="269" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="269" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hash__class___1a5f8725811995c5064c87939c1957547e" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_hash_class_::update) (const br_hash_class **ctx, const void *data, size_t len)</definition>
+        <argsstring>)(const br_hash_class **ctx, const void *data, size_t len)</argsstring>
+        <name>update</name>
+        <briefdescription>
+<para>Data injection method. </para>        </briefdescription>
+        <detaileddescription>
+<para>The <computeroutput>len</computeroutput> bytes starting at address <computeroutput>data</computeroutput> are injected into the running hash computation incarnated by the specified context. The context is updated accordingly. It is allowed to have <computeroutput>len == 0</computeroutput>, in which case <computeroutput>data</computeroutput> is ignored (and could be <computeroutput>NULL</computeroutput>), and nothing happens. on the input data.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to (the first field of) the context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to the first data byte to inject. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>number of bytes to inject. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="285" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="285" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hash__class___1a8a200645aa525939cb33d6c448c24e65" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_hash_class_::out) (const br_hash_class *const *ctx, void *dst)</definition>
+        <argsstring>)(const br_hash_class *const *ctx, void *dst)</argsstring>
+        <name>out</name>
+        <briefdescription>
+<para>Produce hash output. </para>        </briefdescription>
+        <detaileddescription>
+<para>The hash output corresponding to all data bytes injected in the context since the last <computeroutput><ref refid="structbr__hash__class___1a576d5f1abbd1bb61a8686e0ff0f0d2ff" kindref="member">init()</ref></computeroutput> call is computed, and written in the buffer pointed to by <computeroutput>dst</computeroutput>. The hash output size depends on the implemented hash function (e.g. 16 bytes for MD5). The context is <emphasis>not</emphasis> modified by this call, so further bytes may be afterwards injected to continue the current computation.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to (the first field of) the context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dst</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>destination buffer for the hash output. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="300" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="300" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hash__class___1ad5feeec7686f6d9ea9c378353c308d10" prot="public" static="no" mutable="no">
+        <type>uint64_t(*</type>
+        <definition>uint64_t(* br_hash_class_::state) (const br_hash_class *const *ctx, void *dst)</definition>
+        <argsstring>)(const br_hash_class *const *ctx, void *dst)</argsstring>
+        <name>state</name>
+        <briefdescription>
+<para>Get running state. </para>        </briefdescription>
+        <detaileddescription>
+<para>This method saves the current running state into the <computeroutput>dst</computeroutput> buffer. What constitutes the &quot;running state&quot; depends on the hash function; for Merkle-Damgård hash functions (like MD5 or SHA-1), this is the output obtained after processing each block. The number of bytes injected so far is returned. The context is not modified by this call.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to (the first field of) the context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dst</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>destination buffer for the state. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the injected total byte length. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="316" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="316" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hash__class___1a1b8f07b0f48736ed41b5a7900f9bf335" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_hash_class_::set_state) (const br_hash_class **ctx, const void *stb, uint64_t count)</definition>
+        <argsstring>)(const br_hash_class **ctx, const void *stb, uint64_t count)</argsstring>
+        <name>set_state</name>
+        <briefdescription>
+<para>Set running state. </para>        </briefdescription>
+        <detaileddescription>
+<para>This methods replaces the running state for the function.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to (the first field of) the context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>source buffer for the state. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>injected total byte length. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="327" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="327" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_hash.h" line="222" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="222" bodyend="329"/>
+    <listofallmembers>
+      <member refid="structbr__hash__class___1a53b629c36645dd703da6ccefa245a78d" prot="public" virt="non-virtual"><scope>br_hash_class_</scope><name>context_size</name></member>
+      <member refid="structbr__hash__class___1a83ce0b40ed9d8de4cdfde6391c7d8728" prot="public" virt="non-virtual"><scope>br_hash_class_</scope><name>desc</name></member>
+      <member refid="structbr__hash__class___1a576d5f1abbd1bb61a8686e0ff0f0d2ff" prot="public" virt="non-virtual"><scope>br_hash_class_</scope><name>init</name></member>
+      <member refid="structbr__hash__class___1a8a200645aa525939cb33d6c448c24e65" prot="public" virt="non-virtual"><scope>br_hash_class_</scope><name>out</name></member>
+      <member refid="structbr__hash__class___1a1b8f07b0f48736ed41b5a7900f9bf335" prot="public" virt="non-virtual"><scope>br_hash_class_</scope><name>set_state</name></member>
+      <member refid="structbr__hash__class___1ad5feeec7686f6d9ea9c378353c308d10" prot="public" virt="non-virtual"><scope>br_hash_class_</scope><name>state</name></member>
+      <member refid="structbr__hash__class___1a5f8725811995c5064c87939c1957547e" prot="public" virt="non-virtual"><scope>br_hash_class_</scope><name>update</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

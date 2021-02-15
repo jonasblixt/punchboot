@@ -1,0 +1,38 @@
+\hypertarget{structbr__aes__x86ni__ctrcbc__keys}{}\section{br\+\_\+aes\+\_\+x86ni\+\_\+ctrcbc\+\_\+keys Struct Reference}
+\label{structbr__aes__x86ni__ctrcbc__keys}\index{br\+\_\+aes\+\_\+x86ni\+\_\+ctrcbc\+\_\+keys@{br\+\_\+aes\+\_\+x86ni\+\_\+ctrcbc\+\_\+keys}}
+
+
+Context for A\+ES subkeys ({\ttfamily aes\+\_\+x86ni} implementation, C\+TR encryption and decryption + C\+B\+C-\/\+M\+AC).  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+block.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__aes__x86ni__ctrcbc__keys_a3559cf99c9885531fbc6392025cf1332}\label{structbr__aes__x86ni__ctrcbc__keys_a3559cf99c9885531fbc6392025cf1332}} 
+const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$ \hyperlink{structbr__aes__x86ni__ctrcbc__keys_a3559cf99c9885531fbc6392025cf1332}{vtable}
+\begin{DoxyCompactList}\small\item\em Pointer to vtable for this context. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__aes__x86ni__ctrcbc__keys_ac05e3122e813b727473465a1a7e0af07}\label{structbr__aes__x86ni__ctrcbc__keys_ac05e3122e813b727473465a1a7e0af07}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\>unsigned char {\bfseries skni} \mbox{[}16 $\ast$15\mbox{]}\\
+\} {\bfseries skey}\\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{structbr__aes__x86ni__ctrcbc__keys_a28ed96beef8d0cd260cf293fe6ffe6bd}\label{structbr__aes__x86ni__ctrcbc__keys_a28ed96beef8d0cd260cf293fe6ffe6bd}} 
+unsigned {\bfseries num\+\_\+rounds}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Context for A\+ES subkeys ({\ttfamily aes\+\_\+x86ni} implementation, C\+TR encryption and decryption + C\+B\+C-\/\+M\+AC). 
+
+First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__block_8h}{bearssl\+\_\+block.\+h}\end{DoxyCompactItemize}

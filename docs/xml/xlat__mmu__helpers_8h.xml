@@ -1,0 +1,403 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="xlat__mmu__helpers_8h" kind="file" language="C++">
+    <compoundname>xlat_mmu_helpers.h</compoundname>
+    <includes refid="stdbool_8h" local="no">stdbool.h</includes>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="string_8h" local="no">string.h</includes>
+    <includedby refid="xlat__tables_8h" local="no">/docs/include/pb/xlat_tables/xlat_tables.h</includedby>
+    <includedby refid="xlat__tables__defs_8h" local="no">/docs/include/pb/xlat_tables/xlat_tables_defs.h</includedby>
+    <incdepgraph>
+      <node id="675">
+        <label>stdint_.h</label>
+      </node>
+      <node id="673">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="676">
+        <label>string.h</label>
+        <link refid="string_8h_source"/>
+        <childnode refid="677" relation="include">
+        </childnode>
+      </node>
+      <node id="672">
+        <label>/docs/include/pb/xlat_tables/xlat_mmu_helpers.h</label>
+        <link refid="xlat__mmu__helpers_8h"/>
+        <childnode refid="673" relation="include">
+        </childnode>
+        <childnode refid="674" relation="include">
+        </childnode>
+        <childnode refid="676" relation="include">
+        </childnode>
+      </node>
+      <node id="674">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="675" relation="include">
+        </childnode>
+      </node>
+      <node id="677">
+        <label>string_.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="681">
+        <label>/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h</label>
+        <link refid="xlat__tables__aarch32_8h_source"/>
+      </node>
+      <node id="682">
+        <label>/docs/include/pb/xlat_tables/aarch64/xlat_tables_aarch64.h</label>
+        <link refid="xlat__tables__aarch64_8h_source"/>
+      </node>
+      <node id="679">
+        <label>/docs/include/pb/xlat_tables/xlat_tables.h</label>
+        <link refid="xlat__tables_8h_source"/>
+      </node>
+      <node id="680">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_defs.h</label>
+        <link refid="xlat__tables__defs_8h_source"/>
+        <childnode refid="681" relation="include">
+        </childnode>
+        <childnode refid="682" relation="include">
+        </childnode>
+        <childnode refid="679" relation="include">
+        </childnode>
+      </node>
+      <node id="678">
+        <label>/docs/include/pb/xlat_tables/xlat_mmu_helpers.h</label>
+        <link refid="xlat__mmu__helpers_8h"/>
+        <childnode refid="679" relation="include">
+        </childnode>
+        <childnode refid="680" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="xlat__mmu__helpers_8h_1a01f2c5e6ef9aaf646486f975ab15e10c" prot="public" static="no">
+        <name>DISABLE_DCACHE</name>
+        <initializer>(U(1) &lt;&lt; 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="21" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__mmu__helpers_8h_1ad41c4caaab20b2bfcd97493df83da736" prot="public" static="no">
+        <name>XLAT_TABLE_NC</name>
+        <initializer>(U(1) &lt;&lt; 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="42" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__mmu__helpers_8h_1a23f2ca07e2b02794e41943c1ad9b8471" prot="public" static="no">
+        <name>MMU_CFG_MAIR</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="48" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__mmu__helpers_8h_1ab40618ac88a7e5aac49f77ea198892c1" prot="public" static="no">
+        <name>MMU_CFG_TCR</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="49" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__mmu__helpers_8h_1aca981d1755dcca0c4419760712eec54c" prot="public" static="no">
+        <name>MMU_CFG_TTBR0</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="50" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__mmu__helpers_8h_1afc2c8b5b904469eaeca67d974b64a645" prot="public" static="no">
+        <name>MMU_CFG_PARAM_MAX</name>
+        <initializer>3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="51" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="xlat__mmu__helpers_8h_1ad9f63d3c87ac1a1cf9fe539426058864" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void setup_mmu_cfg</definition>
+        <argsstring>(uint64_t *params, unsigned int flags, const uint64_t *base_table, unsigned long long max_pa, uintptr_t max_va, int xlat_regime)</argsstring>
+        <name>setup_mmu_cfg</name>
+        <param>
+          <type>uint64_t *</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>const uint64_t *</type>
+          <declname>base_table</declname>
+        </param>
+        <param>
+          <type>unsigned long long</type>
+          <declname>max_pa</declname>
+        </param>
+        <param>
+          <type>uintptr_t</type>
+          <declname>max_va</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>xlat_regime</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="66" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__mmu__helpers_8h_1ac58bfe9ffcb7411dbde77b32d9d39265" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_mmu_svc_mon</definition>
+        <argsstring>(unsigned int flags)</argsstring>
+        <name>enable_mmu_svc_mon</name>
+        <param>
+          <type>unsigned int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="82" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__mmu__helpers_8h_1a055562c597808846bc553aaa0a04833f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_mmu_hyp</definition>
+        <argsstring>(unsigned int flags)</argsstring>
+        <name>enable_mmu_hyp</name>
+        <param>
+          <type>unsigned int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="83" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__mmu__helpers_8h_1af3010eb3d251561b52c16c22d3172441" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void disable_mmu_svc_mon</definition>
+        <argsstring>(void)</argsstring>
+        <name>disable_mmu_svc_mon</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="84" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__mmu__helpers_8h_1a7065408c6721bef24920156995030225" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_mmu_direct_svc_mon</definition>
+        <argsstring>(unsigned int flags)</argsstring>
+        <name>enable_mmu_direct_svc_mon</name>
+        <param>
+          <type>unsigned int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="86" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__mmu__helpers_8h_1a01c9df4242ffd17117dd4ccd5f63be59" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_mmu_direct_hyp</definition>
+        <argsstring>(unsigned int flags)</argsstring>
+        <name>enable_mmu_direct_hyp</name>
+        <param>
+          <type>unsigned int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="87" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__mmu__helpers_8h_1a3cd3a9382f6072f1ff8daa28f34705fb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool xlat_arch_is_granule_size_supported</definition>
+        <argsstring>(size_t size)</argsstring>
+        <name>xlat_arch_is_granule_size_supported</name>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="90" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__mmu__helpers_8h_1a8a00d4543fb687365da155ab792b9971" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t xlat_arch_get_max_supported_granule_size</definition>
+        <argsstring>(void)</argsstring>
+        <name>xlat_arch_get_max_supported_granule_size</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h" line="91" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2014-2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>XLAT_MMU_HELPERS_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_MMU_HELPERS_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>*<sp/>The<sp/>following<sp/>flags<sp/>are<sp/>passed<sp/>to<sp/>enable_mmu_xxx()<sp/>to<sp/>override<sp/>the<sp/>default</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/>*<sp/>values<sp/>used<sp/>to<sp/>program<sp/>system<sp/>registers<sp/>while<sp/>enabling<sp/>the<sp/>MMU.</highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/>*<sp/>When<sp/>this<sp/>flag<sp/>is<sp/>used,<sp/>all<sp/>data<sp/>access<sp/>to<sp/>Normal<sp/>memory<sp/>from<sp/>this<sp/>EL<sp/>and<sp/>all</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*<sp/>Normal<sp/>memory<sp/>accesses<sp/>to<sp/>the<sp/>translation<sp/>tables<sp/>of<sp/>this<sp/>EL<sp/>are<sp/>non-cacheable</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/>for<sp/>all<sp/>levels<sp/>of<sp/>data<sp/>and<sp/>unified<sp/>cache<sp/>until<sp/>the<sp/>caches<sp/>are<sp/>enabled<sp/>by</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>setting<sp/>the<sp/>bit<sp/>SCTLR_ELx.C.</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DISABLE_DCACHE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/>Mark<sp/>the<sp/>translation<sp/>tables<sp/>as<sp/>non-cacheable<sp/>for<sp/>the<sp/>MMU<sp/>table<sp/>walker,<sp/>which</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*<sp/>is<sp/>a<sp/>different<sp/>observer<sp/>from<sp/>the<sp/>PE/CPU.<sp/>If<sp/>the<sp/>flag<sp/>is<sp/>not<sp/>specified,<sp/>the</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*<sp/>tables<sp/>are<sp/>cacheable<sp/>for<sp/>the<sp/>MMU<sp/>table<sp/>walker.</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*<sp/>Note<sp/>that,<sp/>as<sp/>far<sp/>as<sp/>the<sp/>PE/CPU<sp/>observer<sp/>is<sp/>concerned,<sp/>the<sp/>attributes<sp/>used</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*<sp/>are<sp/>the<sp/>ones<sp/>specified<sp/>in<sp/>the<sp/>translation<sp/>tables<sp/>themselves.<sp/>The<sp/>MAIR</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/>register<sp/>specifies<sp/>the<sp/>cacheability<sp/>through<sp/>the<sp/>field<sp/>AttrIndx<sp/>of<sp/>the<sp/>lower</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*<sp/>attributes<sp/>of<sp/>the<sp/>translation<sp/>tables.<sp/>The<sp/>shareability<sp/>is<sp/>specified<sp/>in<sp/>the<sp/>SH</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*<sp/>field<sp/>of<sp/>the<sp/>lower<sp/>attributes.</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="34"><highlight class="comment"><sp/>*<sp/>The<sp/>MMU<sp/>table<sp/>walker<sp/>uses<sp/>the<sp/>attributes<sp/>specified<sp/>in<sp/>the<sp/>fields<sp/>ORGNn,<sp/>IRGNn</highlight></codeline>
+<codeline lineno="35"><highlight class="comment"><sp/>*<sp/>and<sp/>SHn<sp/>of<sp/>the<sp/>TCR<sp/>register<sp/>to<sp/>access<sp/>the<sp/>translation<sp/>tables.</highlight></codeline>
+<codeline lineno="36"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="37"><highlight class="comment"><sp/>*<sp/>The<sp/>attributes<sp/>specified<sp/>in<sp/>the<sp/>TCR<sp/>register<sp/>and<sp/>the<sp/>tables<sp/>can<sp/>be<sp/>different</highlight></codeline>
+<codeline lineno="38"><highlight class="comment"><sp/>*<sp/>as<sp/>there<sp/>are<sp/>no<sp/>checks<sp/>to<sp/>prevent<sp/>that.<sp/>Special<sp/>care<sp/>must<sp/>be<sp/>taken<sp/>to<sp/>ensure</highlight></codeline>
+<codeline lineno="39"><highlight class="comment"><sp/>*<sp/>that<sp/>there<sp/>aren&apos;t<sp/>mismatches.<sp/>The<sp/>behaviour<sp/>in<sp/>that<sp/>case<sp/>is<sp/>described<sp/>in<sp/>the</highlight></codeline>
+<codeline lineno="40"><highlight class="comment"><sp/>*<sp/>sections<sp/>&apos;Mismatched<sp/>memory<sp/>attributes&apos;<sp/>in<sp/>the<sp/>ARMv8<sp/>ARM.</highlight></codeline>
+<codeline lineno="41"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_NC<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="45"><highlight class="comment"><sp/>*<sp/>Offsets<sp/>into<sp/>a<sp/>mmu_cfg_params<sp/>array<sp/>generated<sp/>by<sp/>setup_mmu_cfg().<sp/>All</highlight></codeline>
+<codeline lineno="46"><highlight class="comment"><sp/>*<sp/>parameters<sp/>are<sp/>64<sp/>bits<sp/>wide.</highlight></codeline>
+<codeline lineno="47"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MMU_CFG_MAIR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MMU_CFG_TCR<sp/><sp/><sp/><sp/><sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MMU_CFG_TTBR0<sp/><sp/><sp/><sp/><sp/><sp/><sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MMU_CFG_PARAM_MAX<sp/><sp/><sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__ASSEMBLER__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdbool.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="comment">//#include<sp/>&lt;arch_helpers.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="62"><highlight class="comment"><sp/>*<sp/>Return<sp/>the<sp/>values<sp/>that<sp/>the<sp/>MMU<sp/>configuration<sp/>registers<sp/>must<sp/>contain<sp/>for<sp/>the</highlight></codeline>
+<codeline lineno="63"><highlight class="comment"><sp/>*<sp/>specified<sp/>translation<sp/>context.<sp/>`params`<sp/>must<sp/>be<sp/>a<sp/>pointer<sp/>to<sp/>array<sp/>of<sp/>size</highlight></codeline>
+<codeline lineno="64"><highlight class="comment"><sp/>*<sp/>MMU_CFG_PARAM_MAX.</highlight></codeline>
+<codeline lineno="65"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setup_mmu_cfg(uint64_t<sp/>*params,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint64_t<sp/>*base_table,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>max_pa,</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uintptr_t<sp/>max_va,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>xlat_regime);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__aarch64__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>AArch64<sp/>specific<sp/>translation<sp/>table<sp/>APIs<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_el1(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_el2(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_el3(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_direct_el1(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_direct_el2(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_direct_el3(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>AArch32<sp/>specific<sp/>translation<sp/>table<sp/>API<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_svc_mon(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_hyp(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>disable_mmu_svc_mon(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_direct_svc_mon(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_mmu_direct_hyp(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>__aarch64__<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>xlat_arch_is_granule_size_supported(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>xlat_arch_get_max_supported_granule_size(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>__ASSEMBLER__<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>XLAT_MMU_HELPERS_H<sp/>*/</highlight><highlight class="preprocessor"></highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/xlat_tables/xlat_mmu_helpers.h"/>
+  </compounddef>
+</doxygen>

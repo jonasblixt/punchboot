@@ -1,0 +1,286 @@
+\hypertarget{bearssl__rand_8h}{}\section{/docs/lib/bearssl/bearssl\+\_\+rand.h File Reference}
+\label{bearssl__rand_8h}\index{/docs/lib/bearssl/bearssl\+\_\+rand.\+h@{/docs/lib/bearssl/bearssl\+\_\+rand.\+h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}bearssl\+\_\+block.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}bearssl\+\_\+hash.\+h\char`\"{}}\newline
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structbr__prng__class__}{br\+\_\+prng\+\_\+class\+\_\+}
+\item 
+struct \hyperlink{structbr__hmac__drbg__context}{br\+\_\+hmac\+\_\+drbg\+\_\+context}
+\begin{DoxyCompactList}\small\item\em Context for H\+M\+A\+C\+\_\+\+D\+R\+BG. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__aesctr__drbg__context}{br\+\_\+aesctr\+\_\+drbg\+\_\+context}
+\begin{DoxyCompactList}\small\item\em Context for A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \hyperlink{structbr__prng__class__}{br\+\_\+prng\+\_\+class\+\_\+} \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class}
+\begin{DoxyCompactList}\small\item\em Class type for P\+R\+NG implementations. \end{DoxyCompactList}\item 
+typedef int($\ast$ \hyperlink{bearssl__rand_8h_a7f747cc74fa6d396553b5e14fcc9c772}{br\+\_\+prng\+\_\+seeder}) (const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$ctx)
+\begin{DoxyCompactList}\small\item\em Type for a provider of entropy seeds. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{bearssl__rand_8h_a58cf6b0db9299c8fc9887fb3076faaa6}{br\+\_\+hmac\+\_\+drbg\+\_\+init} (\hyperlink{structbr__hmac__drbg__context}{br\+\_\+hmac\+\_\+drbg\+\_\+context} $\ast$ctx, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$digest\+\_\+class, const void $\ast$seed, size\+\_\+t seed\+\_\+len)
+\begin{DoxyCompactList}\small\item\em H\+M\+A\+C\+\_\+\+D\+R\+BG initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__rand_8h_a437648daed6aa0bb3010afdf2007058e}{br\+\_\+hmac\+\_\+drbg\+\_\+generate} (\hyperlink{structbr__hmac__drbg__context}{br\+\_\+hmac\+\_\+drbg\+\_\+context} $\ast$ctx, void $\ast$out, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Random bytes generation with H\+M\+A\+C\+\_\+\+D\+R\+BG. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__rand_8h_a385ff65e18d604dc5e1a83f57be261dc}{br\+\_\+hmac\+\_\+drbg\+\_\+update} (\hyperlink{structbr__hmac__drbg__context}{br\+\_\+hmac\+\_\+drbg\+\_\+context} $\ast$ctx, const void $\ast$seed, size\+\_\+t seed\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Inject additional seed bytes in H\+M\+A\+C\+\_\+\+D\+R\+BG. \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rand_8h_a7f747cc74fa6d396553b5e14fcc9c772}{br\+\_\+prng\+\_\+seeder} \hyperlink{bearssl__rand_8h_a68e106d317ed0a5468c6f9c7b0c9469b}{br\+\_\+prng\+\_\+seeder\+\_\+system} (const char $\ast$$\ast$name)
+\begin{DoxyCompactList}\small\item\em Get a seeder backed by the operating system or hardware. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__rand_8h_ae294fd1b6cfbcaabfbe4bbb06175e568}{br\+\_\+aesctr\+\_\+drbg\+\_\+init} (\hyperlink{structbr__aesctr__drbg__context}{br\+\_\+aesctr\+\_\+drbg\+\_\+context} $\ast$ctx, const \hyperlink{bearssl__block_8h_a8934ac58af503220bfb6e6cbc2cfb209}{br\+\_\+block\+\_\+ctr\+\_\+class} $\ast$aesctr, const void $\ast$seed, size\+\_\+t seed\+\_\+len)
+\begin{DoxyCompactList}\small\item\em A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__rand_8h_a2d83e2f602fa1c2ebb5455e28468abc0}{br\+\_\+aesctr\+\_\+drbg\+\_\+generate} (\hyperlink{structbr__aesctr__drbg__context}{br\+\_\+aesctr\+\_\+drbg\+\_\+context} $\ast$ctx, void $\ast$out, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Random bytes generation with A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__rand_8h_ad3b4395f288969292ba7444560411f45}{br\+\_\+aesctr\+\_\+drbg\+\_\+update} (\hyperlink{structbr__aesctr__drbg__context}{br\+\_\+aesctr\+\_\+drbg\+\_\+context} $\ast$ctx, const void $\ast$seed, size\+\_\+t seed\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Inject additional seed bytes in A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{bearssl__rand_8h_a163b0cd0209b0731af4a0bd3dc1d7372}\label{bearssl__rand_8h_a163b0cd0209b0731af4a0bd3dc1d7372}} 
+const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} \hyperlink{bearssl__rand_8h_a163b0cd0209b0731af4a0bd3dc1d7372}{br\+\_\+hmac\+\_\+drbg\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Statically allocated, constant vtable for H\+M\+A\+C\+\_\+\+D\+R\+BG. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__rand_8h_a59292f33df84b88841a70a23f7feb816}\label{bearssl__rand_8h_a59292f33df84b88841a70a23f7feb816}} 
+const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} \hyperlink{bearssl__rand_8h_a59292f33df84b88841a70a23f7feb816}{br\+\_\+aesctr\+\_\+drbg\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Statically allocated, constant vtable for A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsection*{Pseudo-\/\+Random Generators}
+
+A P\+R\+NG is a state-\/based engine that outputs pseudo-\/random bytes on demand. It is initialized with an initial seed, and additional seed bytes can be added afterwards. Bytes produced depend on the seeds and also on the exact sequence of calls (including sizes requested for each call).
+
+\subsubsection*{Procedural and O\+OP A\+PI}
+
+For the P\+R\+NG of name \char`\"{}`xxx`\char`\"{}, two A\+PI are provided. The {\itshape procedural} A\+PI defined a context structure {\ttfamily br\+\_\+xxx\+\_\+context} and three functions\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily br\+\_\+xxx\+\_\+init()}
+
+Initialise the context with an initial seed.
+\item {\ttfamily br\+\_\+xxx\+\_\+generate()}
+
+Produce some pseudo-\/random bytes.
+\item {\ttfamily br\+\_\+xxx\+\_\+update()}
+
+Inject some additional seed.
+\end{DoxyItemize}
+
+The initialisation function sets the first context field ({\ttfamily vtable}) to a pointer to the vtable that supports the O\+OP A\+PI. The O\+OP A\+PI provides access to the same functions through function pointers, named {\ttfamily init()}, {\ttfamily generate()} and {\ttfamily update()}.
+
+Note that the context initialisation method may accept additional parameters, provided as a \textquotesingle{}const void $\ast$\textquotesingle{} pointer at A\+PI level. These additional parameters depend on the implemented P\+R\+NG.
+
+\subsubsection*{H\+M\+A\+C\+\_\+\+D\+R\+BG}
+
+H\+M\+A\+C\+\_\+\+D\+R\+BG is defined in \href{http://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-90Ar1.pdf}{\tt N\+I\+ST SP 800-\/90A Revision 1}. It uses H\+M\+AC repeatedly, over some configurable underlying hash function. In Bear\+S\+SL, it is implemented under the \char`\"{}`hmac\+\_\+drbg`\char`\"{} name. The \char`\"{}extra parameters\char`\"{} pointer for context initialisation should be set to a pointer to the vtable for the underlying hash function (e.\+g. pointer to {\ttfamily br\+\_\+sha256\+\_\+vtable} to use H\+M\+A\+C\+\_\+\+D\+R\+BG with S\+H\+A-\/256).
+
+According to the N\+I\+ST standard, each request shall produce up to 2\textsuperscript{19} bits (i.\+e. 64 kB of data); moreover, the context shall be reseeded at least once every 2\textsuperscript{48} requests. This implementation does not maintain the reseed counter (the threshold is too high to be reached in practice) and does not object to producing more than 64 kB in a single request; thus, the code cannot fail, which corresponds to the fact that the A\+PI has no room for error codes. However, this implies that requesting more than 64 kB in one {\ttfamily generate()} request, or making more than 2\textsuperscript{48} requests without reseeding, is formally out of N\+I\+ST specification. There is no currently known security penalty for exceeding the N\+I\+ST limits, and, in any case, H\+M\+A\+C\+\_\+\+D\+R\+BG usage in implementing S\+S\+L/\+T\+LS always stays much below these thresholds.
+
+\subsubsection*{A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG}
+
+A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG is a custom P\+R\+NG based on A\+E\+S-\/128 in C\+TR mode. This is meant to be used only in situations where you are desperate for speed, and have an hardware-\/optimized A\+E\+S/\+C\+TR implementation. Whether this will yield perceptible improvements depends on what you use the pseudorandom bytes for, and how many you want; for instance, R\+SA key pair generation uses a substantial amount of randomness, and using A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG instead of H\+M\+A\+C\+\_\+\+D\+R\+BG yields a 15 to 20\% increase in key generation speed on a recent x86 C\+PU (Intel Core i7-\/6567U at 3.\+30 G\+Hz).
+
+Internally, it uses C\+TR mode with successive counter values, starting at zero (counter value expressed over 128 bits, big-\/endian convention). The counter is not allowed to reach 32768; thus, every 32768$\ast$16 bytes at most, the {\ttfamily update()} function is run (on an empty seed, if none is provided). The {\ttfamily update()} function computes the new A\+E\+S-\/128 key by applying a custom hash function to the concatenation of a state-\/dependent word (encryption of an all-\/one block with the current key) and the new seed. The custom hash function uses Hirose\textquotesingle{}s construction over A\+E\+S-\/256; see the comments in {\ttfamily aesctr\+\_\+drbg.\+c} for details.
+
+This D\+R\+BG does not follow an existing standard, and thus should be considered as inadequate for production use until it has been properly analysed. 
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}\label{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+prng\+\_\+class@{br\+\_\+prng\+\_\+class}}
+\index{br\+\_\+prng\+\_\+class@{br\+\_\+prng\+\_\+class}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+prng\+\_\+class}{br\_prng\_class}}
+{\footnotesize\ttfamily typedef struct \hyperlink{structbr__prng__class__}{br\+\_\+prng\+\_\+class\+\_\+} \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class}}
+
+
+
+Class type for P\+R\+NG implementations. 
+
+A {\ttfamily br\+\_\+prng\+\_\+class} instance references the methods implementing a P\+R\+NG. Constant instances of this structure are defined for each implemented P\+R\+NG. Such instances are also called \char`\"{}vtables\char`\"{}. \mbox{\Hypertarget{bearssl__rand_8h_a7f747cc74fa6d396553b5e14fcc9c772}\label{bearssl__rand_8h_a7f747cc74fa6d396553b5e14fcc9c772}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+prng\+\_\+seeder@{br\+\_\+prng\+\_\+seeder}}
+\index{br\+\_\+prng\+\_\+seeder@{br\+\_\+prng\+\_\+seeder}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+prng\+\_\+seeder}{br\_prng\_seeder}}
+{\footnotesize\ttfamily typedef int($\ast$ br\+\_\+prng\+\_\+seeder) (const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$ctx)}
+
+
+
+Type for a provider of entropy seeds. 
+
+A \char`\"{}seeder\char`\"{} is a function that is able to obtain random values from some source and inject them as entropy seed in a P\+R\+NG. A seeder shall guarantee that the total entropy of the injected seed is large enough to seed a P\+R\+NG for purposes of cryptographic key generation (i.\+e. at least 128 bits).
+
+A seeder may report a failure to obtain adequate entropy. Seeders shall endeavour to fix themselves transient errors by trying again; thus, callers may consider reported errors as permanent.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & P\+R\+NG context to seed. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{bearssl__rand_8h_a2d83e2f602fa1c2ebb5455e28468abc0}\label{bearssl__rand_8h_a2d83e2f602fa1c2ebb5455e28468abc0}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+aesctr\+\_\+drbg\+\_\+generate@{br\+\_\+aesctr\+\_\+drbg\+\_\+generate}}
+\index{br\+\_\+aesctr\+\_\+drbg\+\_\+generate@{br\+\_\+aesctr\+\_\+drbg\+\_\+generate}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+aesctr\+\_\+drbg\+\_\+generate()}{br\_aesctr\_drbg\_generate()}}
+{\footnotesize\ttfamily void br\+\_\+aesctr\+\_\+drbg\+\_\+generate (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__aesctr__drbg__context}{br\+\_\+aesctr\+\_\+drbg\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+Random bytes generation with A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG. 
+
+This method produces {\ttfamily len} pseudorandom bytes, in the {\ttfamily out} buffer. The context is updated accordingly.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG context. \\
+\hline
+{\em out} & output buffer. \\
+\hline
+{\em len} & number of pseudorandom bytes to produce. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__rand_8h_ae294fd1b6cfbcaabfbe4bbb06175e568}\label{bearssl__rand_8h_ae294fd1b6cfbcaabfbe4bbb06175e568}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+aesctr\+\_\+drbg\+\_\+init@{br\+\_\+aesctr\+\_\+drbg\+\_\+init}}
+\index{br\+\_\+aesctr\+\_\+drbg\+\_\+init@{br\+\_\+aesctr\+\_\+drbg\+\_\+init}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+aesctr\+\_\+drbg\+\_\+init()}{br\_aesctr\_drbg\_init()}}
+{\footnotesize\ttfamily void br\+\_\+aesctr\+\_\+drbg\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__aesctr__drbg__context}{br\+\_\+aesctr\+\_\+drbg\+\_\+context} $\ast$}]{ctx,  }\item[{const \hyperlink{bearssl__block_8h_a8934ac58af503220bfb6e6cbc2cfb209}{br\+\_\+block\+\_\+ctr\+\_\+class} $\ast$}]{aesctr,  }\item[{const void $\ast$}]{seed,  }\item[{size\+\_\+t}]{seed\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG initialisation. 
+
+The context to initialise is provided as a pointer to its first field (the vtable pointer); this function sets that first field to a pointer to the vtable.
+
+The internal A\+ES key is first set to the all-\/zero key; then, the {\ttfamily \hyperlink{bearssl__rand_8h_ad3b4395f288969292ba7444560411f45}{br\+\_\+aesctr\+\_\+drbg\+\_\+update()}} function is called with the provided {\ttfamily seed}. The call is performed even if the seed length ({\ttfamily seed\+\_\+len}) is zero.
+
+The {\ttfamily aesctr} parameter defines the underlying A\+E\+S/\+C\+TR implementation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG context to initialise. \\
+\hline
+{\em aesctr} & vtable for the A\+E\+S/\+C\+TR implementation. \\
+\hline
+{\em seed} & initial seed (can be {\ttfamily N\+U\+LL} if {\ttfamily seed\+\_\+len} is zero). \\
+\hline
+{\em seed\+\_\+len} & initial seed length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__rand_8h_ad3b4395f288969292ba7444560411f45}\label{bearssl__rand_8h_ad3b4395f288969292ba7444560411f45}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+aesctr\+\_\+drbg\+\_\+update@{br\+\_\+aesctr\+\_\+drbg\+\_\+update}}
+\index{br\+\_\+aesctr\+\_\+drbg\+\_\+update@{br\+\_\+aesctr\+\_\+drbg\+\_\+update}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+aesctr\+\_\+drbg\+\_\+update()}{br\_aesctr\_drbg\_update()}}
+{\footnotesize\ttfamily void br\+\_\+aesctr\+\_\+drbg\+\_\+update (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__aesctr__drbg__context}{br\+\_\+aesctr\+\_\+drbg\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{seed,  }\item[{size\+\_\+t}]{seed\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+Inject additional seed bytes in A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG. 
+
+The provided seed bytes are added into the A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG internal entropy pool. The process does not {\itshape replace} existing entropy, thus pushing non-\/random bytes (i.\+e. bytes which are known to the attackers) does not degrade the overall quality of generated bytes.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & A\+E\+S\+C\+T\+R\+\_\+\+D\+R\+BG context. \\
+\hline
+{\em seed} & additional seed. \\
+\hline
+{\em seed\+\_\+len} & additional seed length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__rand_8h_a437648daed6aa0bb3010afdf2007058e}\label{bearssl__rand_8h_a437648daed6aa0bb3010afdf2007058e}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+hmac\+\_\+drbg\+\_\+generate@{br\+\_\+hmac\+\_\+drbg\+\_\+generate}}
+\index{br\+\_\+hmac\+\_\+drbg\+\_\+generate@{br\+\_\+hmac\+\_\+drbg\+\_\+generate}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+hmac\+\_\+drbg\+\_\+generate()}{br\_hmac\_drbg\_generate()}}
+{\footnotesize\ttfamily void br\+\_\+hmac\+\_\+drbg\+\_\+generate (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__hmac__drbg__context}{br\+\_\+hmac\+\_\+drbg\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+Random bytes generation with H\+M\+A\+C\+\_\+\+D\+R\+BG. 
+
+This method produces {\ttfamily len} pseudorandom bytes, in the {\ttfamily out} buffer. The context is updated accordingly. Formally, requesting more than 65536 bytes in one request falls out of specification limits (but it won\textquotesingle{}t fail).
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & H\+M\+A\+C\+\_\+\+D\+R\+BG context. \\
+\hline
+{\em out} & output buffer. \\
+\hline
+{\em len} & number of pseudorandom bytes to produce. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__rand_8h_a58cf6b0db9299c8fc9887fb3076faaa6}\label{bearssl__rand_8h_a58cf6b0db9299c8fc9887fb3076faaa6}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+hmac\+\_\+drbg\+\_\+init@{br\+\_\+hmac\+\_\+drbg\+\_\+init}}
+\index{br\+\_\+hmac\+\_\+drbg\+\_\+init@{br\+\_\+hmac\+\_\+drbg\+\_\+init}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+hmac\+\_\+drbg\+\_\+init()}{br\_hmac\_drbg\_init()}}
+{\footnotesize\ttfamily void br\+\_\+hmac\+\_\+drbg\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__hmac__drbg__context}{br\+\_\+hmac\+\_\+drbg\+\_\+context} $\ast$}]{ctx,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{digest\+\_\+class,  }\item[{const void $\ast$}]{seed,  }\item[{size\+\_\+t}]{seed\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+H\+M\+A\+C\+\_\+\+D\+R\+BG initialisation. 
+
+The context to initialise is provided as a pointer to its first field (the vtable pointer); this function sets that first field to a pointer to the vtable.
+
+The {\ttfamily seed} value is what is called, in N\+I\+ST terminology, the concatenation of the \char`\"{}seed\char`\"{}, \char`\"{}nonce\char`\"{} and \char`\"{}personalization string\char`\"{}, in that order.
+
+The {\ttfamily digest\+\_\+class} parameter defines the underlying hash function. Formally, the N\+I\+ST standard specifies that the hash function shall be only S\+H\+A-\/1 or one of the S\+H\+A-\/2 functions. This implementation also works with any other implemented hash function (such as M\+D5), but this is non-\/standard and therefore not recommended.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & H\+M\+A\+C\+\_\+\+D\+R\+BG context to initialise. \\
+\hline
+{\em digest\+\_\+class} & vtable for the underlying hash function. \\
+\hline
+{\em seed} & initial seed. \\
+\hline
+{\em seed\+\_\+len} & initial seed length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__rand_8h_a385ff65e18d604dc5e1a83f57be261dc}\label{bearssl__rand_8h_a385ff65e18d604dc5e1a83f57be261dc}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+hmac\+\_\+drbg\+\_\+update@{br\+\_\+hmac\+\_\+drbg\+\_\+update}}
+\index{br\+\_\+hmac\+\_\+drbg\+\_\+update@{br\+\_\+hmac\+\_\+drbg\+\_\+update}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+hmac\+\_\+drbg\+\_\+update()}{br\_hmac\_drbg\_update()}}
+{\footnotesize\ttfamily void br\+\_\+hmac\+\_\+drbg\+\_\+update (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__hmac__drbg__context}{br\+\_\+hmac\+\_\+drbg\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{seed,  }\item[{size\+\_\+t}]{seed\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+Inject additional seed bytes in H\+M\+A\+C\+\_\+\+D\+R\+BG. 
+
+The provided seed bytes are added into the H\+M\+A\+C\+\_\+\+D\+R\+BG internal entropy pool. The process does not {\itshape replace} existing entropy, thus pushing non-\/random bytes (i.\+e. bytes which are known to the attackers) does not degrade the overall quality of generated bytes.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & H\+M\+A\+C\+\_\+\+D\+R\+BG context. \\
+\hline
+{\em seed} & additional seed. \\
+\hline
+{\em seed\+\_\+len} & additional seed length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__rand_8h_a68e106d317ed0a5468c6f9c7b0c9469b}\label{bearssl__rand_8h_a68e106d317ed0a5468c6f9c7b0c9469b}} 
+\index{bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}!br\+\_\+prng\+\_\+seeder\+\_\+system@{br\+\_\+prng\+\_\+seeder\+\_\+system}}
+\index{br\+\_\+prng\+\_\+seeder\+\_\+system@{br\+\_\+prng\+\_\+seeder\+\_\+system}!bearssl\+\_\+rand.\+h@{bearssl\+\_\+rand.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+prng\+\_\+seeder\+\_\+system()}{br\_prng\_seeder\_system()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rand_8h_a7f747cc74fa6d396553b5e14fcc9c772}{br\+\_\+prng\+\_\+seeder} br\+\_\+prng\+\_\+seeder\+\_\+system (\begin{DoxyParamCaption}\item[{const char $\ast$$\ast$}]{name }\end{DoxyParamCaption})}
+
+
+
+Get a seeder backed by the operating system or hardware. 
+
+Get a seeder that feeds on R\+NG facilities provided by the current operating system or hardware. If no such facility is known, then 0 is returned.
+
+If {\ttfamily name} is not {\ttfamily N\+U\+LL}, then {\ttfamily $\ast$name} is set to a symbolic string that identifies the seeder implementation. If no seeder is returned and {\ttfamily name} is not {\ttfamily N\+U\+LL}, then {\ttfamily $\ast$name} is set to a pointer to the constant string {\ttfamily \char`\"{}none\char`\"{}}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em name} & receiver for seeder name, or {\ttfamily N\+U\+LL}. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the system seeder, if available, or 0. 
+\end{DoxyReturn}

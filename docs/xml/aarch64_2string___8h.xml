@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="aarch64_2string___8h" kind="file" language="C++">
+    <compoundname>string_.h</compoundname>
+    <includedby refid="string_8h" local="no">/docs/include/pb/libc/string.h</includedby>
+    <invincdepgraph>
+      <node id="372">
+        <label>/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h</label>
+        <link refid="xlat__tables__aarch32_8h_source"/>
+      </node>
+      <node id="373">
+        <label>/docs/include/pb/xlat_tables/aarch64/xlat_tables_aarch64.h</label>
+        <link refid="xlat__tables__aarch64_8h_source"/>
+      </node>
+      <node id="365">
+        <label>/docs/lib/bearssl/bearssl_rsa.h</label>
+        <link refid="bearssl__rsa_8h"/>
+        <childnode refid="364" relation="include">
+        </childnode>
+      </node>
+      <node id="362">
+        <label>/docs/lib/bearssl/bearssl_rand.h</label>
+        <link refid="bearssl__rand_8h"/>
+        <childnode refid="363" relation="include">
+        </childnode>
+      </node>
+      <node id="370">
+        <label>/docs/include/pb/xlat_tables/xlat_tables.h</label>
+        <link refid="xlat__tables_8h_source"/>
+      </node>
+      <node id="364">
+        <label>/docs/lib/bearssl/bearssl_x509.h</label>
+        <link refid="bearssl__x509_8h"/>
+      </node>
+      <node id="367">
+        <label>/docs/lib/fdt/include/libfdt_env.h</label>
+        <link refid="libfdt__env_8h_source"/>
+        <childnode refid="368" relation="include">
+        </childnode>
+      </node>
+      <node id="368">
+        <label>/docs/lib/fdt/include/libfdt.h</label>
+        <link refid="libfdt_8h_source"/>
+      </node>
+      <node id="366">
+        <label>/docs/lib/bearssl/inner.h</label>
+        <link refid="inner_8h_source"/>
+      </node>
+      <node id="360">
+        <label>/docs/include/pb/libc/string.h</label>
+        <link refid="string_8h_source"/>
+        <childnode refid="361" relation="include">
+        </childnode>
+        <childnode refid="366" relation="include">
+        </childnode>
+        <childnode refid="367" relation="include">
+        </childnode>
+        <childnode refid="369" relation="include">
+        </childnode>
+      </node>
+      <node id="371">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_defs.h</label>
+        <link refid="xlat__tables__defs_8h_source"/>
+        <childnode refid="372" relation="include">
+        </childnode>
+        <childnode refid="373" relation="include">
+        </childnode>
+        <childnode refid="370" relation="include">
+        </childnode>
+      </node>
+      <node id="363">
+        <label>/docs/lib/bearssl/bearssl_ec.h</label>
+        <link refid="bearssl__ec_8h"/>
+        <childnode refid="364" relation="include">
+        </childnode>
+      </node>
+      <node id="369">
+        <label>/docs/include/pb/xlat_tables/xlat_mmu_helpers.h</label>
+        <link refid="xlat__mmu__helpers_8h_source"/>
+        <childnode refid="370" relation="include">
+        </childnode>
+        <childnode refid="371" relation="include">
+        </childnode>
+      </node>
+      <node id="361">
+        <label>/docs/lib/bearssl/bearssl_hash.h</label>
+        <link refid="bearssl__hash_8h"/>
+        <childnode refid="362" relation="include">
+        </childnode>
+        <childnode refid="365" relation="include">
+        </childnode>
+        <childnode refid="364" relation="include">
+        </childnode>
+        <childnode refid="366" relation="include">
+        </childnode>
+      </node>
+      <node id="359">
+        <label>/docs/include/pb/libc/aarch64/string_.h</label>
+        <link refid="aarch64_2string___8h"/>
+        <childnode refid="360" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="aarch64_2string___8h_1a55165e486b91d3e2ff90166afc77906e" prot="public" static="no">
+        <name>SIZET_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/string_.h" line="12" column="9" bodyfile="/docs/include/pb/libc/aarch64/string_.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="aarch64_2string___8h_1acf18a0d6c4b39d531e021702e9a77984" prot="public" static="no">
+        <type>unsigned long</type>
+        <definition>typedef unsigned long size_t</definition>
+        <argsstring></argsstring>
+        <name>size_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/string_.h" line="11" column="1" bodyfile="/docs/include/pb/libc/aarch64/string_.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_LIBC_AARCH64_STRING__H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_LIBC_AARCH64_STRING__H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>SIZET_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>size_t;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SIZET_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_LIBC_AARCH64_STRING__H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/libc/aarch64/string_.h"/>
+  </compounddef>
+</doxygen>

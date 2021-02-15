@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbpak__part__header" kind="struct" language="C++" prot="public">
+    <compoundname>bpak_part_header</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbpak__part__header_1aac876f711a05b5d59a471303e08ad72c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t bpak_part_header::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="85" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__part__header_1a8a09a8d9adac920e8d979ff06e1e0c86" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t bpak_part_header::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="86" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__part__header_1afcef32c53bf2be12d1a272c33230a080" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t bpak_part_header::offset</definition>
+        <argsstring></argsstring>
+        <name>offset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="87" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__part__header_1a8e2d81c643379ae57f14ccef7dafa0eb" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t bpak_part_header::transport_size</definition>
+        <argsstring></argsstring>
+        <name>transport_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="88" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__part__header_1a763865b8bacf84ad5d2be2dd09b9f1cc" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t bpak_part_header::pad_bytes</definition>
+        <argsstring></argsstring>
+        <name>pad_bytes</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="91" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__part__header_1ad67ad1013fb48a5b5890cf49a2c75a8b" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_part_header::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="92" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__part__header_1ad6636c9af6f0c8a8deb3e56219163806" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_part_header::pad</definition>
+        <argsstring></argsstring>
+        <name>pad</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="93" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/bpak/bpak.h" line="84" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="83" bodyend="94"/>
+    <listofallmembers>
+      <member refid="structbpak__part__header_1ad67ad1013fb48a5b5890cf49a2c75a8b" prot="public" virt="non-virtual"><scope>bpak_part_header</scope><name>flags</name></member>
+      <member refid="structbpak__part__header_1aac876f711a05b5d59a471303e08ad72c" prot="public" virt="non-virtual"><scope>bpak_part_header</scope><name>id</name></member>
+      <member refid="structbpak__part__header_1afcef32c53bf2be12d1a272c33230a080" prot="public" virt="non-virtual"><scope>bpak_part_header</scope><name>offset</name></member>
+      <member refid="structbpak__part__header_1ad6636c9af6f0c8a8deb3e56219163806" prot="public" virt="non-virtual"><scope>bpak_part_header</scope><name>pad</name></member>
+      <member refid="structbpak__part__header_1a763865b8bacf84ad5d2be2dd09b9f1cc" prot="public" virt="non-virtual"><scope>bpak_part_header</scope><name>pad_bytes</name></member>
+      <member refid="structbpak__part__header_1a8a09a8d9adac920e8d979ff06e1e0c86" prot="public" virt="non-virtual"><scope>bpak_part_header</scope><name>size</name></member>
+      <member refid="structbpak__part__header_1a8e2d81c643379ae57f14ccef7dafa0eb" prot="public" virt="non-virtual"><scope>bpak_part_header</scope><name>transport_size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

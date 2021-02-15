@@ -1,0 +1,38 @@
+\hypertarget{structpb__command__read__bpak}{}\section{pb\+\_\+command\+\_\+read\+\_\+bpak Struct Reference}
+\label{structpb__command__read__bpak}\index{pb\+\_\+command\+\_\+read\+\_\+bpak@{pb\+\_\+command\+\_\+read\+\_\+bpak}}
+
+
+{\ttfamily \#include $<$wire.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command__read__bpak_a864071f41f9639da6b9bdd0634664382}{uuid} \mbox{[}16\mbox{]}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command__read__bpak_aead50c13a66431b183a78ba2af349c10}{rz} \mbox{[}16\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Read B\+P\+AK header command
+
+If the last 4k\+Byte of the partition contains a valid bpak header the header is sent to the host using this command. 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structpb__command__read__bpak_aead50c13a66431b183a78ba2af349c10}\label{structpb__command__read__bpak_aead50c13a66431b183a78ba2af349c10}} 
+\index{pb\+\_\+command\+\_\+read\+\_\+bpak@{pb\+\_\+command\+\_\+read\+\_\+bpak}!rz@{rz}}
+\index{rz@{rz}!pb\+\_\+command\+\_\+read\+\_\+bpak@{pb\+\_\+command\+\_\+read\+\_\+bpak}}
+\subsubsection{\texorpdfstring{rz}{rz}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+\_\+read\+\_\+bpak\+::rz\mbox{[}16\mbox{]}}
+
+Reserved \mbox{\Hypertarget{structpb__command__read__bpak_a864071f41f9639da6b9bdd0634664382}\label{structpb__command__read__bpak_a864071f41f9639da6b9bdd0634664382}} 
+\index{pb\+\_\+command\+\_\+read\+\_\+bpak@{pb\+\_\+command\+\_\+read\+\_\+bpak}!uuid@{uuid}}
+\index{uuid@{uuid}!pb\+\_\+command\+\_\+read\+\_\+bpak@{pb\+\_\+command\+\_\+read\+\_\+bpak}}
+\subsubsection{\texorpdfstring{uuid}{uuid}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+\_\+read\+\_\+bpak\+::uuid\mbox{[}16\mbox{]}}
+
+Partition U\+U\+ID 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/include/pb-\/tools/\hyperlink{wire_8h}{wire.\+h}\end{DoxyCompactItemize}

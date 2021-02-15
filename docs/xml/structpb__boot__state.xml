@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__boot__state" kind="struct" language="C++" prot="public">
+    <compoundname>pb_boot_state</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__boot__state_1a48fd3a69632338febecf0adbcbd04c99" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_boot_state::magic</definition>
+        <argsstring></argsstring>
+        <name>magic</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="24" column="1" bodyfile="/docs/include/pb/boot.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__boot__state_1ad6945c69453eaa110db04a99703686c2" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_boot_state::private[468]</definition>
+        <argsstring>[468]</argsstring>
+        <name>private</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="25" column="1" bodyfile="/docs/include/pb/boot.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__boot__state_1af2112908c164339cc2961082c639e8ff" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_boot_state::rz[36]</definition>
+        <argsstring>[36]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="26" column="1" bodyfile="/docs/include/pb/boot.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__boot__state_1a26ce9406ae1b395781a06108d5e5c50c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_boot_state::crc</definition>
+        <argsstring></argsstring>
+        <name>crc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/boot.h" line="27" column="1" bodyfile="/docs/include/pb/boot.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/boot.h" line="23" column="1" bodyfile="/docs/include/pb/boot.h" bodystart="22" bodyend="28"/>
+    <listofallmembers>
+      <member refid="structpb__boot__state_1a26ce9406ae1b395781a06108d5e5c50c" prot="public" virt="non-virtual"><scope>pb_boot_state</scope><name>crc</name></member>
+      <member refid="structpb__boot__state_1a48fd3a69632338febecf0adbcbd04c99" prot="public" virt="non-virtual"><scope>pb_boot_state</scope><name>magic</name></member>
+      <member refid="structpb__boot__state_1ad6945c69453eaa110db04a99703686c2" prot="public" virt="non-virtual"><scope>pb_boot_state</scope><name>private</name></member>
+      <member refid="structpb__boot__state_1af2112908c164339cc2961082c639e8ff" prot="public" virt="non-virtual"><scope>pb_boot_state</scope><name>rz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

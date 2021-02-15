@@ -1,0 +1,167 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="atf_8h" kind="file" language="C++">
+    <compoundname>atf.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <incdepgraph>
+      <node id="90">
+        <label>stdint_.h</label>
+      </node>
+      <node id="88">
+        <label>/docs/include/pb/atf.h</label>
+        <link refid="atf_8h"/>
+        <childnode refid="89" relation="include">
+        </childnode>
+      </node>
+      <node id="89">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="90" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structatf__param__header" prot="public">atf_param_header</innerclass>
+    <innerclass refid="structatf__image__info" prot="public">atf_image_info</innerclass>
+    <innerclass refid="structaapcs64__params" prot="public">aapcs64_params</innerclass>
+    <innerclass refid="structentry__point__info" prot="public">entry_point_info</innerclass>
+    <innerclass refid="structatf__bl31__params" prot="public">atf_bl31_params</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="atf_8h_1a4439209281b72b2b95ca02a82e15b836" prot="public" static="no">
+        <name>PARAM_EP</name>
+        <initializer>0x01</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Punch BOOT</para><para>Copyright (C) 2018 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="16" column="9" bodyfile="/docs/include/pb/atf.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="atf_8h_1a100b4eee32d0a9774da65042244019ff" prot="public" static="no">
+        <name>PARAM_IMAGE_BINARY</name>
+        <initializer>0x02</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="17" column="9" bodyfile="/docs/include/pb/atf.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="atf_8h_1aaec8f1fdc45b936f4e5f60b720e997ef" prot="public" static="no">
+        <name>PARAM_BL31</name>
+        <initializer>0x03</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="18" column="9" bodyfile="/docs/include/pb/atf.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="atf_8h_1a8c9e1170f5b91d2176295d2ac1cbc42a" prot="public" static="no">
+        <name>PARAM_BL_LOAD_INFO</name>
+        <initializer>0x04</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="19" column="9" bodyfile="/docs/include/pb/atf.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="atf_8h_1a77aa01dd9bc6704fb5cdb90bef6e8b65" prot="public" static="no">
+        <name>PARAM_BL_PARAMS</name>
+        <initializer>0x05</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="20" column="9" bodyfile="/docs/include/pb/atf.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="atf_8h_1a2b12573a3f386e58ec0e530c6e7b164f" prot="public" static="no">
+        <name>PARAM_PSCI_LIB_ARGS</name>
+        <initializer>0x06</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="21" column="9" bodyfile="/docs/include/pb/atf.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="10"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_ATF_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_ATF_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PARAM_EP<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x01</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PARAM_IMAGE_BINARY<sp/><sp/><sp/><sp/>0x02</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PARAM_BL31<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x03</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PARAM_BL_LOAD_INFO<sp/><sp/><sp/><sp/>0x04</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PARAM_BL_PARAMS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x05</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PARAM_PSCI_LIB_ARGS<sp/><sp/><sp/><sp/>0x06</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="structatf__param__header" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__param__header" kindref="compound">atf_param_header</ref></highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>type;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>type<sp/>of<sp/>the<sp/>structure<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>version;<sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>version<sp/>of<sp/>this<sp/>structure<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>size;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>size<sp/>of<sp/>this<sp/>structure<sp/>in<sp/>bytes<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>attr;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>attributes:<sp/>unused<sp/>bits<sp/>SBZ<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="structatf__image__info" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__image__info" kindref="compound">atf_image_info</ref></highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__param__header" kindref="compound">atf_param_header</ref><sp/>h;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>uintptr_t<sp/>image_base;<sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>physical<sp/>address<sp/>of<sp/>base<sp/>of<sp/>image<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>image_size;<sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>bytes<sp/>read<sp/>from<sp/>image<sp/>file<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="structaapcs64__params" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structaapcs64__params" kindref="compound">aapcs64_params</ref></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>arg0;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>arg1;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>arg2;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>arg3;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>arg4;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>arg5;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>arg6;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>arg7;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="structentry__point__info" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structentry__point__info" kindref="compound">entry_point_info</ref></highlight></codeline>
+<codeline lineno="52"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__param__header" kindref="compound">atf_param_header</ref><sp/>h;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>uintptr_t<sp/>pc;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>spsr;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structaapcs64__params" kindref="compound">aapcs64_params</ref><sp/>args;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="structatf__bl31__params" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__bl31__params" kindref="compound">atf_bl31_params</ref></highlight></codeline>
+<codeline lineno="61"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__param__header" kindref="compound">atf_param_header</ref><sp/>h;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__image__info" kindref="compound">atf_image_info</ref><sp/>*bl31_image_info;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structentry__point__info" kindref="compound">entry_point_info</ref><sp/>*bl32_ep_info;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__image__info" kindref="compound">atf_image_info</ref><sp/>*bl32_image_info;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structentry__point__info" kindref="compound">entry_point_info</ref><sp/>*bl33_ep_info;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structatf__image__info" kindref="compound">atf_image_info</ref><sp/>*bl33_image_info;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_ATF_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/atf.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,224 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structxlat__ctx" kind="struct" language="C++" prot="public">
+    <compoundname>xlat_ctx</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structxlat__ctx_1a2b11408026d239d9e0779ca95c815779" prot="public" static="no" mutable="no">
+        <type>unsigned long long</type>
+        <definition>unsigned long long xlat_ctx::pa_max_address</definition>
+        <argsstring></argsstring>
+        <name>pa_max_address</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="53" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1a2512b62f64e6718a06bb34cfd4bd204b" prot="public" static="no" mutable="no">
+        <type>uintptr_t</type>
+        <definition>uintptr_t xlat_ctx::va_max_address</definition>
+        <argsstring></argsstring>
+        <name>va_max_address</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="54" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1aad30a51b18ca6b2162d64796d6270145" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structmmap__region" kindref="compound">mmap_region</ref> *</type>
+        <definition>struct mmap_region* xlat_ctx::mmap</definition>
+        <argsstring></argsstring>
+        <name>mmap</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="64" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1ad64b521b3a033eaea269bc895773b80c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int xlat_ctx::mmap_num</definition>
+        <argsstring></argsstring>
+        <name>mmap_num</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="65" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1ac763338d8076a2fa1fdb3b0d17c5054e" prot="public" static="no" mutable="no">
+        <type>uint64_t(*</type>
+        <definition>uint64_t(* xlat_ctx::tables)[XLAT_TABLE_ENTRIES]</definition>
+        <argsstring>)[XLAT_TABLE_ENTRIES]</argsstring>
+        <name>tables</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="72" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1a2e77c3cabc8d4c0e6d0450fe1fc8f833" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int xlat_ctx::tables_num</definition>
+        <argsstring></argsstring>
+        <name>tables_num</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="73" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1afbfbb1f0732cf0e98af0a1fb653f1976" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int xlat_ctx::next_table</definition>
+        <argsstring></argsstring>
+        <name>next_table</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="85" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1ab279d73067deb5eb16e28bedeff74c3b" prot="public" static="no" mutable="no">
+        <type>uint64_t *</type>
+        <definition>uint64_t* xlat_ctx::base_table</definition>
+        <argsstring></argsstring>
+        <name>base_table</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="91" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1ad6cf4c10f7b7d78495a803293825d10f" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int xlat_ctx::base_table_entries</definition>
+        <argsstring></argsstring>
+        <name>base_table_entries</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="92" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1af6e2767e7b3b7e1d1eaa9f71731fe146" prot="public" static="no" mutable="no">
+        <type>unsigned long long</type>
+        <definition>unsigned long long xlat_ctx::max_pa</definition>
+        <argsstring></argsstring>
+        <name>max_pa</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="99" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1aa6d3f314a4f453996888709fb24e803f" prot="public" static="no" mutable="no">
+        <type>uintptr_t</type>
+        <definition>uintptr_t xlat_ctx::max_va</definition>
+        <argsstring></argsstring>
+        <name>max_va</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="100" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1aab6577b89067af023d0dcd08793aee2f" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int xlat_ctx::base_level</definition>
+        <argsstring></argsstring>
+        <name>base_level</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="103" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1a60d2b76c19f2354523c528dcfc866ccc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool xlat_ctx::initialized</definition>
+        <argsstring></argsstring>
+        <name>initialized</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="106" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structxlat__ctx_1aabcef47052f6fe2aa60b5d6f04bcc362" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int xlat_ctx::xlat_regime</definition>
+        <argsstring></argsstring>
+        <name>xlat_regime</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="112" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="381">
+        <label>xlat_ctx</label>
+        <link refid="structxlat__ctx"/>
+        <childnode refid="382" relation="usage">
+          <edgelabel>mmap</edgelabel>
+        </childnode>
+      </node>
+      <node id="382">
+        <label>mmap_region</label>
+        <link refid="structmmap__region"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" line="49" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2_helpers.h" bodystart="49" bodyend="113"/>
+    <listofallmembers>
+      <member refid="structxlat__ctx_1aab6577b89067af023d0dcd08793aee2f" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>base_level</name></member>
+      <member refid="structxlat__ctx_1ab279d73067deb5eb16e28bedeff74c3b" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>base_table</name></member>
+      <member refid="structxlat__ctx_1ad6cf4c10f7b7d78495a803293825d10f" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>base_table_entries</name></member>
+      <member refid="structxlat__ctx_1a60d2b76c19f2354523c528dcfc866ccc" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>initialized</name></member>
+      <member refid="structxlat__ctx_1af6e2767e7b3b7e1d1eaa9f71731fe146" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>max_pa</name></member>
+      <member refid="structxlat__ctx_1aa6d3f314a4f453996888709fb24e803f" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>max_va</name></member>
+      <member refid="structxlat__ctx_1aad30a51b18ca6b2162d64796d6270145" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>mmap</name></member>
+      <member refid="structxlat__ctx_1ad64b521b3a033eaea269bc895773b80c" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>mmap_num</name></member>
+      <member refid="structxlat__ctx_1afbfbb1f0732cf0e98af0a1fb653f1976" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>next_table</name></member>
+      <member refid="structxlat__ctx_1a2b11408026d239d9e0779ca95c815779" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>pa_max_address</name></member>
+      <member refid="structxlat__ctx_1ac763338d8076a2fa1fdb3b0d17c5054e" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>tables</name></member>
+      <member refid="structxlat__ctx_1a2e77c3cabc8d4c0e6d0450fe1fc8f833" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>tables_num</name></member>
+      <member refid="structxlat__ctx_1a2512b62f64e6718a06bb34cfd4bd204b" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>va_max_address</name></member>
+      <member refid="structxlat__ctx_1aabcef47052f6fe2aa60b5d6f04bcc362" prot="public" virt="non-virtual"><scope>xlat_ctx</scope><name>xlat_regime</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

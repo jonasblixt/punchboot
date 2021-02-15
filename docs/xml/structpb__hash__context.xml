@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__hash__context" kind="struct" language="C++" prot="public">
+    <compoundname>pb_hash_context</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__hash__context_1a2589da3736d2c155dfdf9dda41ed4295" prot="public" static="no" mutable="no">
+        <type>uint8_t buf [128]</type>
+        <definition>uint8_t buf [128] pb_hash_context::__a4k</definition>
+        <argsstring></argsstring>
+        <name>__a4k</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/crypto.h" line="39" column="1" bodyfile="/docs/include/pb/crypto.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__hash__context_1ac8bf85d71f707cc60b2b4c5d8be42026" prot="public" static="no" mutable="no">
+        <type>enum pb_hash_algs</type>
+        <definition>enum pb_hash_algs pb_hash_context::alg</definition>
+        <argsstring></argsstring>
+        <name>alg</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/crypto.h" line="39" column="1" bodyfile="/docs/include/pb/crypto.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__hash__context_1a2dda6ac980fcc3245655df056404df20" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool pb_hash_context::init</definition>
+        <argsstring></argsstring>
+        <name>init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/crypto.h" line="41" column="1" bodyfile="/docs/include/pb/crypto.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/crypto.h" line="38" column="1" bodyfile="/docs/include/pb/crypto.h" bodystart="37" bodyend="42"/>
+    <listofallmembers>
+      <member refid="structpb__hash__context_1a2589da3736d2c155dfdf9dda41ed4295" prot="public" virt="non-virtual"><scope>pb_hash_context</scope><name>__a4k</name></member>
+      <member refid="structpb__hash__context_1ac8bf85d71f707cc60b2b4c5d8be42026" prot="public" virt="non-virtual"><scope>pb_hash_context</scope><name>alg</name></member>
+      <member refid="structpb__hash__context_1a2dda6ac980fcc3245655df056404df20" prot="public" virt="non-virtual"><scope>pb_hash_context</scope><name>init</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

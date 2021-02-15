@@ -1,0 +1,80 @@
+\hypertarget{structbr__name__element}{}\section{br\+\_\+name\+\_\+element Struct Reference}
+\label{structbr__name__element}\index{br\+\_\+name\+\_\+element@{br\+\_\+name\+\_\+element}}
+
+
+Type for receiving a name element.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+x509.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+const unsigned char $\ast$ \hyperlink{structbr__name__element_ae21b72b8ccfe1f2da35a43d307e16a76}{oid}
+\begin{DoxyCompactList}\small\item\em Element O\+ID. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__name__element_a63622d35b5d168c6bbcdf28d50b32210}\label{structbr__name__element_a63622d35b5d168c6bbcdf28d50b32210}} 
+char $\ast$ \hyperlink{structbr__name__element_a63622d35b5d168c6bbcdf28d50b32210}{buf}
+\begin{DoxyCompactList}\small\item\em Destination buffer. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{structbr__name__element_a4dfc9930093f0dbbaa94dd8684d58716}{len}
+\begin{DoxyCompactList}\small\item\em Length (in bytes) of the destination buffer. \end{DoxyCompactList}\item 
+int \hyperlink{structbr__name__element_a19c2c4bf8e97473e995130193eec553b}{status}
+\begin{DoxyCompactList}\small\item\em Decoding status. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Type for receiving a name element. 
+
+An array of such structures can be provided to the X.\+509 decoding engines. If the specified elements are found in the certificate subject DN or the S\+AN extension, then the name contents are copied as zero-\/terminated strings into the buffer.
+
+The decoder converts Teletex\+String and B\+M\+P\+String to U\+T\+F8\+String, and ensures that the resulting string is zero-\/terminated. If the string does not fit in the provided buffer, then the copy is aborted and an error is reported. 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structbr__name__element_a4dfc9930093f0dbbaa94dd8684d58716}\label{structbr__name__element_a4dfc9930093f0dbbaa94dd8684d58716}} 
+\index{br\+\_\+name\+\_\+element@{br\+\_\+name\+\_\+element}!len@{len}}
+\index{len@{len}!br\+\_\+name\+\_\+element@{br\+\_\+name\+\_\+element}}
+\subsubsection{\texorpdfstring{len}{len}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+name\+\_\+element\+::len}
+
+
+
+Length (in bytes) of the destination buffer. 
+
+The buffer M\+U\+ST N\+OT be smaller than 1 byte. \mbox{\Hypertarget{structbr__name__element_ae21b72b8ccfe1f2da35a43d307e16a76}\label{structbr__name__element_ae21b72b8ccfe1f2da35a43d307e16a76}} 
+\index{br\+\_\+name\+\_\+element@{br\+\_\+name\+\_\+element}!oid@{oid}}
+\index{oid@{oid}!br\+\_\+name\+\_\+element@{br\+\_\+name\+\_\+element}}
+\subsubsection{\texorpdfstring{oid}{oid}}
+{\footnotesize\ttfamily const unsigned char$\ast$ br\+\_\+name\+\_\+element\+::oid}
+
+
+
+Element O\+ID. 
+
+For X.\+500 name elements (to be extracted from the subject DN), this is the encoded O\+ID for the requested name element; the first byte shall contain the length of the D\+E\+R-\/encoded O\+ID value, followed by the O\+ID value (for instance, O\+ID 2.\+5.\+4.\+3, for id-\/at-\/common\+Name, will be {\ttfamily 03 55 04 03}). This is equivalent to full D\+ER encoding with the length but without the tag.
+
+For S\+AN name elements, the first byte ({\ttfamily oid\mbox{[}0\mbox{]}}) has value 0, followed by another byte that matches the expected General\+Name tag. Allowed second byte values are then\+:
+
+
+\begin{DoxyItemize}
+\item 1\+: {\ttfamily rfc822\+Name}
+\item 2\+: {\ttfamily d\+N\+S\+Name}
+\item 6\+: {\ttfamily uniform\+Resource\+Identifier}
+\item 0\+: {\ttfamily other\+Name}
+\end{DoxyItemize}
+
+If first and second byte are 0, then this is a S\+AN element of type {\ttfamily other\+Name}; the {\ttfamily oid\mbox{[}\mbox{]}} array should then contain, right after the two bytes of value 0, an encoded O\+ID (with the same conventions as for X.\+500 name elements). If a match is found for that O\+ID, then the corresponding name element will be extracted, as long as it is a supported string type. \mbox{\Hypertarget{structbr__name__element_a19c2c4bf8e97473e995130193eec553b}\label{structbr__name__element_a19c2c4bf8e97473e995130193eec553b}} 
+\index{br\+\_\+name\+\_\+element@{br\+\_\+name\+\_\+element}!status@{status}}
+\index{status@{status}!br\+\_\+name\+\_\+element@{br\+\_\+name\+\_\+element}}
+\subsubsection{\texorpdfstring{status}{status}}
+{\footnotesize\ttfamily int br\+\_\+name\+\_\+element\+::status}
+
+
+
+Decoding status. 
+
+Status is 0 if the name element was not found, 1 if it was found and decoded, or -\/1 on error. Error conditions include an unrecognised encoding, an invalid encoding, or a string too large for the destination buffer. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__x509_8h}{bearssl\+\_\+x509.\+h}\end{DoxyCompactItemize}

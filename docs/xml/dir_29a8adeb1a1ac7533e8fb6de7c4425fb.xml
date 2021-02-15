@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="dir_29a8adeb1a1ac7533e8fb6de7c4425fb" kind="dir">
+    <compoundname>/docs/lib/bearssl</compoundname>
+    <innerfile refid="bearssl__block_8h">bearssl_block.h</innerfile>
+    <innerfile refid="bearssl__ec_8h">bearssl_ec.h</innerfile>
+    <innerfile refid="bearssl__hash_8h">bearssl_hash.h</innerfile>
+    <innerfile refid="bearssl__rand_8h">bearssl_rand.h</innerfile>
+    <innerfile refid="bearssl__rsa_8h">bearssl_rsa.h</innerfile>
+    <innerfile refid="bearssl__x509_8h">bearssl_x509.h</innerfile>
+    <innerfile refid="inner_8h">inner.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/"/>
+  </compounddef>
+</doxygen>

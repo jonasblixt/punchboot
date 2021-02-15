@@ -1,0 +1,1049 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="bpak_8h" kind="file" language="C++">
+    <compoundname>bpak.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="stdbool_8h" local="no">stdbool.h</includes>
+    <includes refid="stddef_8h" local="no">stddef.h</includes>
+    <includedby refid="bpak_2keystore_8h" local="no">/docs/include/bpak/keystore.h</includedby>
+    <includedby refid="boot_8h" local="no">/docs/include/pb/boot.h</includedby>
+    <includedby refid="image_8h" local="no">/docs/include/pb/image.h</includedby>
+    <incdepgraph>
+      <node id="4">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>stdint_.h</label>
+      </node>
+      <node id="5">
+        <label>stddef_.h</label>
+      </node>
+      <node id="3">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="0">
+        <label>/docs/include/bpak/bpak.h</label>
+        <link refid="bpak_8h"/>
+        <childnode refid="1" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="8">
+        <label>/docs/include/pb/asn1.h</label>
+        <link refid="asn1_8h_source"/>
+      </node>
+      <node id="9">
+        <label>/docs/include/pb/crypto.h</label>
+        <link refid="crypto_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>/docs/include/bpak/keystore.h</label>
+        <link refid="bpak_2keystore_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>/docs/include/bpak/bpak.h</label>
+        <link refid="bpak_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="10">
+        <label>/docs/include/pb/image.h</label>
+        <link refid="image_8h_source"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>/docs/include/pb/keystore.h</label>
+        <link refid="pb_2keystore_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structbpak__transport__meta" prot="public">bpak_transport_meta</innerclass>
+    <innerclass refid="structbpak__part__header" prot="public">bpak_part_header</innerclass>
+    <innerclass refid="structbpak__meta__header" prot="public">bpak_meta_header</innerclass>
+    <innerclass refid="structbpak__header" prot="public">bpak_header</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="bpak_8h_1a3571c35935835f25b76064f1d38e339e" prot="public" static="no">
+        <name>BPAK_HEADER_MAGIC</name>
+        <initializer>0x42504132</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>BPAK - Bit Packer</para><para>Copyright (C) 2019 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="17" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1aa7c433d9b72ff652629a8a8e1cf11ffe" prot="public" static="no">
+        <name>BPAK_MAX_PARTS</name>
+        <initializer>32</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="18" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1ac687b6cda5f3e46c4a1f27242cecf25f" prot="public" static="no">
+        <name>BPAK_MAX_META</name>
+        <initializer>32</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="19" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1ab04fd796441662a30a80c020c3093f33" prot="public" static="no">
+        <name>BPAK_METADATA_BYTES</name>
+        <initializer>1920</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="20" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1a65ba61c41bc97482fe5d53aca6528abc" prot="public" static="no">
+        <name>BPAK_PART_ALIGN</name>
+        <initializer>512</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="21" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1a47f0a0f089b26b9bf555f1916dd349f3" prot="public" static="no">
+        <name>BPAK_META_ALIGN</name>
+        <initializer>8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="22" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1af72b404dc89df3420d09ff08ca238e40" prot="public" static="no">
+        <name>BPAK_SIGNATURE_MAX_BYTES</name>
+        <initializer>512</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="23" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1a593932709a7419d7b80285952c9dd36c" prot="public" static="no">
+        <name>BPAK_FLAG_EXCLUDE_FROM_HASH</name>
+        <initializer>(1 &lt;&lt; 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="61" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1a2715600aeee0d17ac198f388462d7cef" prot="public" static="no">
+        <name>BPAK_FLAG_TRANSPORT</name>
+        <initializer>(1 &lt;&lt; 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="70" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1aaeaf9dfee42e36afbc498c03b7e91099" prot="public" static="no">
+        <name>BPAK_MIN</name>
+        <param><defname>__a</defname></param>
+        <param><defname>__b</defname></param>
+        <initializer>(((__a) &gt; (__b))?(__b):(__a))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="125" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1a83edc518c4f866dcdc9861e5860168b6" prot="public" static="no">
+        <name>bpak_foreach_part</name>
+        <param><defname>__hdr</defname></param>
+        <param><defname>__var</defname></param>
+        <initializer>for (struct <ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref> *__var = (__hdr)-&gt;parts; \
+       __var != &amp;((__hdr)-&gt;parts[BPAK_MAX_PARTS]); __var++)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="127" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bpak_8h_1affffce9875116d3e543e71a704b27af9" prot="public" static="no">
+        <name>bpak_foreach_meta</name>
+        <param><defname>__hdr</defname></param>
+        <param><defname>__var</defname></param>
+        <initializer>for (struct <ref refid="structbpak__meta__header" kindref="compound">bpak_meta_header</ref> *__var = (__hdr)-&gt;meta; \
+       __var != &amp;((__hdr)-&gt;meta[BPAK_MAX_META]); __var++)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="131" column="9" bodyfile="/docs/include/bpak/bpak.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="bpak_8h_1a92f8d1fb23a2031043cde9fda94dc3ca" prot="public" static="no">
+        <name>bpak_hash_kind</name>
+        <enumvalue id="bpak_8h_1a92f8d1fb23a2031043cde9fda94dc3caa3b23c43cc1b6ca299101c1aac67f27e1" prot="public">
+          <name>BPAK_HASH_INVALID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a92f8d1fb23a2031043cde9fda94dc3caaa6072f35f5983308b0f290b2bbeb668f" prot="public">
+          <name>BPAK_HASH_SHA256</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a92f8d1fb23a2031043cde9fda94dc3caa7ac544159b297bf67656e35f54bdb450" prot="public">
+          <name>BPAK_HASH_SHA384</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a92f8d1fb23a2031043cde9fda94dc3caab8f8183f36123dc9bd9de1d38f8d10e4" prot="public">
+          <name>BPAK_HASH_SHA512</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="26" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="25" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="enum" id="bpak_8h_1a8f63c840274ac8ee8b9370b1d4103fc9" prot="public" static="no">
+        <name>bpak_signature_kind</name>
+        <enumvalue id="bpak_8h_1a8f63c840274ac8ee8b9370b1d4103fc9a33329d63509ebc5b102d13aff726b701" prot="public">
+          <name>BPAK_SIGN_INVALID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a8f63c840274ac8ee8b9370b1d4103fc9aafe5ca6f3cfa950f5068e59c8807430a" prot="public">
+          <name>BPAK_SIGN_RSA4096</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a8f63c840274ac8ee8b9370b1d4103fc9af61bb85e26ab5a7303f572831e45b3e7" prot="public">
+          <name>BPAK_SIGN_PRIME256v1</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a8f63c840274ac8ee8b9370b1d4103fc9a8c43a95903d459bc21c79580226c341d" prot="public">
+          <name>BPAK_SIGN_SECP384r1</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a8f63c840274ac8ee8b9370b1d4103fc9ab633da8d90a65422078a494ac28ee69a" prot="public">
+          <name>BPAK_SIGN_SECP521r1</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="34" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="33" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="enum" id="bpak_8h_1a35200dc3100734c97442be3798abadb2" prot="public" static="no">
+        <name>bpak_errors</name>
+        <enumvalue id="bpak_8h_1a35200dc3100734c97442be3798abadb2aee69cecbeb64b5667f3ec6a8f3c8bfa5" prot="public">
+          <name>BPAK_OK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a35200dc3100734c97442be3798abadb2ac7e62dcc4d165b66920363ce4e79efa1" prot="public">
+          <name>BPAK_FAILED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a35200dc3100734c97442be3798abadb2afc41f4c7c430f1d6ceb09b265a854335" prot="public">
+          <name>BPAK_NOT_FOUND</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a35200dc3100734c97442be3798abadb2a0e254982a588703e6e4ecfe8e3a17dff" prot="public">
+          <name>BPAK_SIZE_ERROR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a35200dc3100734c97442be3798abadb2aae7f33b6953c85170b477bb7ff6e58b2" prot="public">
+          <name>BPAK_NO_SPACE_LEFT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a35200dc3100734c97442be3798abadb2a5c726745bec9cc3b3c0d3d345e1d27ba" prot="public">
+          <name>BPAK_BAD_ALIGNMENT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a35200dc3100734c97442be3798abadb2a075d5b6f8362d4e3d240b07f954d0668" prot="public">
+          <name>BPAK_SEEK_ERROR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1a35200dc3100734c97442be3798abadb2a4b74c3db8b1f2de46d4f7bb727ca3caa" prot="public">
+          <name>BPAK_NOT_SUPPORTED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="43" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="42" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="enum" id="bpak_8h_1add05253fb76e8232a9c2bd8da056a1a1" prot="public" static="no">
+        <name>bpak_header_pos</name>
+        <enumvalue id="bpak_8h_1add05253fb76e8232a9c2bd8da056a1a1a80dfcf85f828f0c14bff28a26d4007e5" prot="public">
+          <name>BPAK_HEADER_POS_FIRST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="bpak_8h_1add05253fb76e8232a9c2bd8da056a1a1a58c7fc023ea7af7638097de05b949732" prot="public">
+          <name>BPAK_HEADER_POS_LAST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="55" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="54" bodyend="58"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="bpak_8h_1a2cffc65345732ec741b19fa591b95719" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_get_meta</definition>
+        <argsstring>(struct bpak_header *hdr, uint32_t id, void **ptr)</argsstring>
+        <name>bpak_get_meta</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>hdr</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>void **</type>
+          <declname>ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="150" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1aa2aacccda5155f4b979d7c91572fd399" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_get_meta_with_ref</definition>
+        <argsstring>(struct bpak_header *hdr, uint32_t id, uint32_t part_id_ref, void **ptr)</argsstring>
+        <name>bpak_get_meta_with_ref</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>hdr</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>part_id_ref</declname>
+        </param>
+        <param>
+          <type>void **</type>
+          <declname>ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="153" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a1c1953c67747b0665b5720bc26fe8979" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_get_meta_and_header</definition>
+        <argsstring>(struct bpak_header *hdr, uint32_t id, uint32_t part_id_ref, void **ptr, struct bpak_meta_header **header)</argsstring>
+        <name>bpak_get_meta_and_header</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>hdr</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>part_id_ref</declname>
+        </param>
+        <param>
+          <type>void **</type>
+          <declname>ptr</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structbpak__meta__header" kindref="compound">bpak_meta_header</ref> **</type>
+          <declname>header</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="157" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1aa6ed30bda2b710d2270e988ad5ca44b8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_add_meta</definition>
+        <argsstring>(struct bpak_header *hdr, uint32_t id, uint32_t part_ref_id, void **ptr, uint16_t size)</argsstring>
+        <name>bpak_add_meta</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>hdr</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>part_ref_id</declname>
+        </param>
+        <param>
+          <type>void **</type>
+          <declname>ptr</declname>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="169" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1ab349b1562702f7dc5c56a176139e02be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_get_part</definition>
+        <argsstring>(struct bpak_header *hdr, uint32_t id, struct bpak_part_header **part)</argsstring>
+        <name>bpak_get_part</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>hdr</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref> **</type>
+          <declname>part</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="184" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a5902389447e49dc4a53d1c18507043ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_add_part</definition>
+        <argsstring>(struct bpak_header *hdr, uint32_t id, struct bpak_part_header **part)</argsstring>
+        <name>bpak_add_part</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>hdr</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref> **</type>
+          <declname>part</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="196" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a3097e3a06de1f158f2aa7682ed1fc7a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_valid_header</definition>
+        <argsstring>(struct bpak_header *hdr)</argsstring>
+        <name>bpak_valid_header</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>hdr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="204" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a3346fed4e933135c005991f8883870ef" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_copyz_signature</definition>
+        <argsstring>(struct bpak_header *header, uint8_t *signature, size_t *size)</argsstring>
+        <name>bpak_copyz_signature</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>header</declname>
+        </param>
+        <param>
+          <type>uint8_t *</type>
+          <declname>signature</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="213" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a975ca448e52c933b9f97493d56d924d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_init_header</definition>
+        <argsstring>(struct bpak_header *hdr)</argsstring>
+        <name>bpak_init_header</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>hdr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="219" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a63696ba2c5dcefdc90c812177842d6b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint64_t</type>
+        <definition>uint64_t bpak_part_offset</definition>
+        <argsstring>(struct bpak_header *h, struct bpak_part_header *part)</argsstring>
+        <name>bpak_part_offset</name>
+        <param>
+          <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref> *</type>
+          <declname>part</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="224" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a178c7fab8b043752a3c594aeac466fb6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint64_t</type>
+        <definition>uint64_t bpak_part_size</definition>
+        <argsstring>(struct bpak_part_header *part)</argsstring>
+        <name>bpak_part_size</name>
+        <param>
+          <type>struct <ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref> *</type>
+          <declname>part</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="233" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a632b1f65313e637ff42212782b6bfdb9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* bpak_error_string</definition>
+        <argsstring>(int code)</argsstring>
+        <name>bpak_error_string</name>
+        <param>
+          <type>int</type>
+          <declname>code</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="236" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1ab5ad56a7ea5b17f703fa80dbdd802544" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* bpak_known_id</definition>
+        <argsstring>(uint32_t id)</argsstring>
+        <name>bpak_known_id</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="240" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1aeb91f1ee1a1bcc87c242f29229b68b7b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* bpak_signature_kind</definition>
+        <argsstring>(uint8_t signature_kind)</argsstring>
+        <name>bpak_signature_kind</name>
+        <param>
+          <type>uint8_t</type>
+          <declname>signature_kind</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="241" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1ab4f0887838f4a49dfc34e3a92903cf9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* bpak_hash_kind</definition>
+        <argsstring>(uint8_t hash_kind)</argsstring>
+        <name>bpak_hash_kind</name>
+        <param>
+          <type>uint8_t</type>
+          <declname>hash_kind</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="242" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1abb7b55762e472ab013a0fce1b298aaff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int bpak_printf</definition>
+        <argsstring>(int verbosity, const char *fmt,...)</argsstring>
+        <name>bpak_printf</name>
+        <param>
+          <type>int</type>
+          <declname>verbosity</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="244" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bpak_8h_1a75b4b46c7511f631d1160ffcf0515a79" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* bpak_version</definition>
+        <argsstring>(void)</argsstring>
+        <name>bpak_version</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="246" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="10"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_BPAK_BPAK_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_BPAK_BPAK_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdbool.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stddef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_HEADER_MAGIC<sp/>0x42504132</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_MAX_PARTS<sp/>32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_MAX_META<sp/>32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_METADATA_BYTES<sp/>1920</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_PART_ALIGN<sp/>512</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_META_ALIGN<sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_SIGNATURE_MAX_BYTES<sp/>512</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>bpak_hash_kind</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_HASH_INVALID,</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_HASH_SHA256,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_HASH_SHA384,</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_HASH_SHA512,</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>bpak_signature_kind</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_SIGN_INVALID,</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_SIGN_RSA4096,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_SIGN_PRIME256v1,</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_SIGN_SECP384r1,</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_SIGN_SECP521r1,</highlight></codeline>
+<codeline lineno="40"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>bpak_errors</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_OK,</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_FAILED,</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_NOT_FOUND,</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_SIZE_ERROR,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_NO_SPACE_LEFT,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_BAD_ALIGNMENT,</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_SEEK_ERROR,</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_NOT_SUPPORTED,</highlight></codeline>
+<codeline lineno="52"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>bpak_header_pos</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_HEADER_POS_FIRST,</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/>BPAK_HEADER_POS_LAST,</highlight></codeline>
+<codeline lineno="58"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Data<sp/>within<sp/>this<sp/>part<sp/>is<sp/>not<sp/>included<sp/>in<sp/>hashing<sp/>context<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_FLAG_EXCLUDE_FROM_HASH<sp/>(1<sp/>&lt;&lt;<sp/>0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="64"><highlight class="comment"><sp/>*<sp/>Part<sp/>data<sp/>stream<sp/>prepared<sp/>for<sp/>transport.<sp/>When<sp/>this<sp/>bit<sp/>is<sp/>set<sp/>the<sp/>following</highlight></codeline>
+<codeline lineno="65"><highlight class="comment"><sp/>*<sp/><sp/>metadata<sp/>must<sp/>be<sp/>included:</highlight></codeline>
+<codeline lineno="66"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="67"><highlight class="comment"><sp/>*<sp/>bpak-transport<sp/>(struct<sp/>bpak_transport_meta)</highlight></codeline>
+<codeline lineno="68"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="69"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_FLAG_TRANSPORT<sp/>(1<sp/>&lt;&lt;<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Bits<sp/>2<sp/>-<sp/>7<sp/>are<sp/>reserved<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>32<sp/>bytes<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="structbpak__transport__meta" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbpak__transport__meta" kindref="compound">bpak_transport_meta</ref></highlight></codeline>
+<codeline lineno="76"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>alg_id_encode;<sp/></highlight><highlight class="comment">/*<sp/>Algorithm<sp/>Encoder/Decoder<sp/>ID<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>alg_id_decode;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>data[24];<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Algorithm<sp/>specific<sp/>data<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal">}<sp/>__attribute__<sp/>((packed));</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>32<sp/>byte<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="structbpak__part__header" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref></highlight></codeline>
+<codeline lineno="84"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>id;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Part<sp/>identifier<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>size;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Data<sp/>block<sp/>size*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>offset;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Offset<sp/>in<sp/>data<sp/>stream<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>transport_size;<sp/></highlight><highlight class="comment">/*<sp/>Should<sp/>be<sp/>populated<sp/>when<sp/>part<sp/>data<sp/>is</highlight></codeline>
+<codeline lineno="89"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>prepared<sp/>for<sp/>transport.<sp/>With<sp/>the<sp/>encoded</highlight></codeline>
+<codeline lineno="90"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>size<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>pad_bytes;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Part<sp/>padding<sp/>up<sp/>to<sp/>the<sp/>next<sp/>128<sp/>byte<sp/>boundary*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>flags;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Flags<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>pad;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Pad<sp/>to<sp/>32<sp/>bytes,<sp/>set<sp/>to<sp/>zero<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal">}<sp/>__attribute__<sp/>((packed));</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>16<sp/>byte<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97" refid="structbpak__meta__header" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbpak__meta__header" kindref="compound">bpak_meta_header</ref></highlight></codeline>
+<codeline lineno="98"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>id;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Metadata<sp/>identifier<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>size;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Size<sp/>of<sp/>metadata<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>offset;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Offset<sp/>in<sp/>&apos;metadata&apos;<sp/>byte<sp/>array<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>part_id_ref;<sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Optional<sp/>reference<sp/>to<sp/>a<sp/>part<sp/>id<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>pad[4];<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Pad<sp/>to<sp/>16<sp/>bytes<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal">}<sp/>__attribute__<sp/>((packed));</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>4<sp/>kBytes<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107" refid="structbpak__header" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbpak__header" kindref="compound">bpak_header</ref></highlight></codeline>
+<codeline lineno="108"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>magic;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>pad0[4];</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbpak__meta__header" kindref="compound">bpak_meta_header</ref><sp/>meta[BPAK_MAX_META];</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref><sp/>parts[BPAK_MAX_PARTS];</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>metadata[BPAK_METADATA_BYTES];<sp/></highlight><highlight class="comment">/*<sp/>Ensure<sp/>that<sp/>metadata<sp/>array<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>hash_kind;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>is<sp/>aligned<sp/>to<sp/>a<sp/>BPAK_META_ALIGN<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>signature_kind;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/><sp/>boundary<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>alignment;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>payload_hash[64];</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>key_id;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>keystore_id;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>pad1[42];</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>signature[BPAK_SIGNATURE_MAX_BYTES];</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>signature_sz;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal">}<sp/>__attribute__<sp/>((packed));</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BPAK_MIN(__a,<sp/>__b)<sp/>(((__a)<sp/>&gt;<sp/>(__b))?(__b):(__a))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>bpak_foreach_part(__hdr,<sp/>__var)<sp/>\</highlight></codeline>
+<codeline lineno="128"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>for<sp/>(struct<sp/>bpak_part_header<sp/>*__var<sp/>=<sp/>(__hdr)-&gt;parts;<sp/>\</highlight></codeline>
+<codeline lineno="129"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/>__var<sp/>!=<sp/>&amp;((__hdr)-&gt;parts[BPAK_MAX_PARTS]);<sp/>__var++)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>bpak_foreach_meta(__hdr,<sp/>__var)<sp/>\</highlight></codeline>
+<codeline lineno="132"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>for<sp/>(struct<sp/>bpak_meta_header<sp/>*__var<sp/>=<sp/>(__hdr)-&gt;meta;<sp/>\</highlight></codeline>
+<codeline lineno="133"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/>__var<sp/>!=<sp/>&amp;((__hdr)-&gt;meta[BPAK_MAX_META]);<sp/>__var++)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="137"><highlight class="comment"><sp/>*<sp/>Retrive<sp/>pointer<sp/>to<sp/>metadata<sp/>with<sp/>id<sp/>&apos;id&apos;.<sp/>If<sp/>*ptr<sp/>equals<sp/>NULL</highlight></codeline>
+<codeline lineno="138"><highlight class="comment"><sp/>*<sp/><sp/>the<sp/>function<sp/>will<sp/>search<sp/>from<sp/>the<sp/>beginning<sp/>of<sp/>the<sp/>header<sp/>array.</highlight></codeline>
+<codeline lineno="139"><highlight class="comment"><sp/>*<sp/><sp/>When<sp/>*ptr<sp/>points<sp/>to<sp/>some<sp/>data<sp/>within<sp/>the<sp/>metadata<sp/>block,<sp/>the<sp/>function</highlight></codeline>
+<codeline lineno="140"><highlight class="comment"><sp/>*<sp/><sp/>will<sp/>search<sp/>forward<sp/>from<sp/>that<sp/>point.</highlight></codeline>
+<codeline lineno="141"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="142"><highlight class="comment"><sp/>*<sp/>&apos;ptr&apos;<sp/>pointer<sp/>is<sp/>assigned<sp/>to<sp/>the<sp/>location<sp/>of<sp/>the<sp/>metadata<sp/>within</highlight></codeline>
+<codeline lineno="143"><highlight class="comment"><sp/>*<sp/><sp/>the<sp/>hdr-&gt;metadata<sp/>byte<sp/>array.</highlight></codeline>
+<codeline lineno="144"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="145"><highlight class="comment"><sp/>*<sp/>Returns:<sp/>BPAK_OK<sp/>on<sp/>success</highlight></codeline>
+<codeline lineno="146"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>-BPAK_NOT_FOUND<sp/>if<sp/>the<sp/>metadata<sp/>is<sp/>missing</highlight></codeline>
+<codeline lineno="147"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="148"><highlight class="comment"><sp/>**/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_get_meta(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*hdr,<sp/>uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**ptr);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Get<sp/>pointer<sp/>to<sp/>meta<sp/>data<sp/>with<sp/>&apos;id&apos;<sp/>and<sp/>a<sp/>part<sp/>reference<sp/>id<sp/>&apos;part_id_ref&apos;<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_get_meta_with_ref(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*hdr,<sp/>uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>part_id_ref,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**ptr);</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Get<sp/>pointer<sp/>to<sp/>both<sp/>the<sp/>metadata<sp/>header<sp/>and<sp/>the<sp/>actual<sp/>data<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_get_meta_and_header(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*hdr,<sp/>uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>part_id_ref,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**ptr,<sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__meta__header" kindref="compound">bpak_meta_header</ref><sp/>**header);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="161"><highlight class="comment"><sp/>*<sp/>Add<sp/>new<sp/>metadata<sp/>with<sp/>id<sp/>&apos;id&apos;<sp/>of<sp/>size<sp/>&apos;size&apos;.<sp/>*ptr<sp/>is<sp/>assigned</highlight></codeline>
+<codeline lineno="162"><highlight class="comment"><sp/>*<sp/>to<sp/>a<sp/>pointer<sp/>within<sp/>the<sp/>hdr-&gt;metadata<sp/>byte<sp/>array.</highlight></codeline>
+<codeline lineno="163"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="164"><highlight class="comment"><sp/>*<sp/>Returns:</highlight></codeline>
+<codeline lineno="165"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>BPAK_OK<sp/>on<sp/>success</highlight></codeline>
+<codeline lineno="166"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>-BPAK_NO_SPACE<sp/>if<sp/>the<sp/>metadata<sp/>array<sp/>is<sp/>full</highlight></codeline>
+<codeline lineno="167"><highlight class="comment"><sp/>**/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_add_meta(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*hdr,<sp/>uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>uint32_t<sp/>part_ref_id,</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**ptr,<sp/>uint16_t<sp/>size);</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="173"><highlight class="comment"><sp/>*<sp/>Retrive<sp/>pointer<sp/>to<sp/>part<sp/>with<sp/>id<sp/>&apos;id&apos;.</highlight></codeline>
+<codeline lineno="174"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="175"><highlight class="comment"><sp/>*<sp/>part<sp/>pointer<sp/>is<sp/>assigned<sp/>to<sp/>the<sp/>location<sp/>of<sp/>the<sp/>part<sp/>header<sp/>within</highlight></codeline>
+<codeline lineno="176"><highlight class="comment"><sp/>*<sp/><sp/>the<sp/>hdr-&gt;parts<sp/>array.</highlight></codeline>
+<codeline lineno="177"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="178"><highlight class="comment"><sp/>*<sp/>Returns:<sp/>BPAK_OK<sp/>on<sp/>success</highlight></codeline>
+<codeline lineno="179"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>-BPAK_FAILED<sp/>if<sp/>part_id<sp/>already<sp/>exists</highlight></codeline>
+<codeline lineno="180"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>-BPAK_NOT_FOUND<sp/>if<sp/>the<sp/>part<sp/>is<sp/>missing</highlight></codeline>
+<codeline lineno="181"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="182"><highlight class="comment"><sp/>**/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_get_part(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*hdr,<sp/>uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref><sp/>**part);</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="188"><highlight class="comment"><sp/>*<sp/>Add<sp/>new<sp/>part<sp/>with<sp/>&apos;id&apos;.<sp/>*ptr<sp/>is<sp/>assigned<sp/>to<sp/>a<sp/>pointer<sp/>within</highlight></codeline>
+<codeline lineno="189"><highlight class="comment"><sp/>*<sp/>the<sp/>hdr-&gt;parts<sp/>array.</highlight></codeline>
+<codeline lineno="190"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="191"><highlight class="comment"><sp/>*<sp/>Returns:</highlight></codeline>
+<codeline lineno="192"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>BPAK_OK<sp/>on<sp/>success</highlight></codeline>
+<codeline lineno="193"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>-BPAK_NO_SPACE<sp/>if<sp/>the<sp/>array<sp/>is<sp/>full</highlight></codeline>
+<codeline lineno="194"><highlight class="comment"><sp/>**/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_add_part(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*hdr,<sp/>uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref><sp/>**part);</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="200"><highlight class="comment"><sp/>*<sp/>Check<sp/>magic<sp/>numbers<sp/>in<sp/>the<sp/>header<sp/>and<sp/>check<sp/>that<sp/>all<sp/>parts<sp/>have<sp/>the<sp/>correct</highlight></codeline>
+<codeline lineno="201"><highlight class="comment"><sp/>*<sp/><sp/>alignment.</highlight></codeline>
+<codeline lineno="202"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_valid_header(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*hdr);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="207"><highlight class="comment"><sp/>*<sp/>Copy<sp/>the<sp/>signature<sp/>to<sp/>&apos;*signature&apos;<sp/>and<sp/>zero<sp/>out<sp/>the<sp/>signature<sp/>area<sp/>in<sp/>the</highlight></codeline>
+<codeline lineno="208"><highlight class="comment"><sp/>*<sp/><sp/>header.</highlight></codeline>
+<codeline lineno="209"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="210"><highlight class="comment"><sp/>*<sp/>Signature<sp/>size<sp/>is<sp/>returned<sp/>in<sp/>&apos;*size&apos;</highlight></codeline>
+<codeline lineno="211"><highlight class="comment"><sp/>**/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_copyz_signature(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*header,<sp/>uint8_t<sp/>*signature,</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>*size);</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="217"><highlight class="comment"><sp/>*<sp/>Initialize<sp/>empty<sp/>header<sp/>structure</highlight></codeline>
+<codeline lineno="218"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_init_header(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*hdr);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="222"><highlight class="comment"><sp/>*<sp/>Get<sp/>data<sp/>offset<sp/>of<sp/>&apos;part&apos;<sp/>within<sp/>the<sp/>BPAK<sp/>stream</highlight></codeline>
+<codeline lineno="223"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal">uint64_t<sp/>bpak_part_offset(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*h,<sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref><sp/>*part);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="227"><highlight class="comment"><sp/>*<sp/>Get<sp/>size<sp/>of<sp/>&apos;part&apos;</highlight></codeline>
+<codeline lineno="228"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="229"><highlight class="comment"><sp/>*<sp/>Returns:</highlight></codeline>
+<codeline lineno="230"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Data<sp/>size<sp/>+<sp/>padding<sp/>bytes<sp/>or<sp/>transport<sp/>size<sp/>without<sp/>padding</highlight></codeline>
+<codeline lineno="231"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>depending<sp/>on<sp/>if<sp/>the<sp/>transport<sp/>bit<sp/>is<sp/>set<sp/>in<sp/>part-&gt;flags</highlight></codeline>
+<codeline lineno="232"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="233"><highlight class="normal">uint64_t<sp/>bpak_part_size(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__part__header" kindref="compound">bpak_part_header</ref><sp/>*part);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Translate<sp/>error<sp/>codes<sp/>to<sp/>string<sp/>representation<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*bpak_error_string(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>code);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Return<sp/>string<sp/>representaion<sp/>of<sp/>known<sp/>id&apos;s<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*bpak_known_id(uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*bpak_signature_kind(uint8_t<sp/>signature_kind);</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*bpak_hash_kind(uint8_t<sp/>hash_kind);</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bpak_printf(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>verbosity,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/>...);</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight></codeline>
+<codeline lineno="246"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*bpak_version(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_BPAK_BPAK_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/bpak/bpak.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,54 @@
+\hypertarget{structpb__command__authenticate}{}\section{pb\+\_\+command\+\_\+authenticate Struct Reference}
+\label{structpb__command__authenticate}\index{pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}}
+
+
+{\ttfamily \#include $<$wire.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command__authenticate_acd90b94a995d430da2a6852990f4c97e}{method}
+\item 
+uint16\+\_\+t \hyperlink{structpb__command__authenticate_a3d67499c136e9580c2670d4e11ebd8c3}{size}
+\item 
+uint32\+\_\+t \hyperlink{structpb__command__authenticate_a2a045294ae4341302bab1866546d185b}{key\+\_\+id}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command__authenticate_a8946e60668166aff43b462f59f168828}{rz} \mbox{[}25\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Authentication command
+
+The authentication command must be followed by a write opertion by the host that contains the authentication data. 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structpb__command__authenticate_a2a045294ae4341302bab1866546d185b}\label{structpb__command__authenticate_a2a045294ae4341302bab1866546d185b}} 
+\index{pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}!key\+\_\+id@{key\+\_\+id}}
+\index{key\+\_\+id@{key\+\_\+id}!pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}}
+\subsubsection{\texorpdfstring{key\+\_\+id}{key\_id}}
+{\footnotesize\ttfamily uint32\+\_\+t pb\+\_\+command\+\_\+authenticate\+::key\+\_\+id}
+
+Optional key id for token based auth \mbox{\Hypertarget{structpb__command__authenticate_acd90b94a995d430da2a6852990f4c97e}\label{structpb__command__authenticate_acd90b94a995d430da2a6852990f4c97e}} 
+\index{pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}!method@{method}}
+\index{method@{method}!pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}}
+\subsubsection{\texorpdfstring{method}{method}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+\_\+authenticate\+::method}
+
+Method to use for authenticaton see enum pb\+\_\+auth\+\_\+method \mbox{\Hypertarget{structpb__command__authenticate_a8946e60668166aff43b462f59f168828}\label{structpb__command__authenticate_a8946e60668166aff43b462f59f168828}} 
+\index{pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}!rz@{rz}}
+\index{rz@{rz}!pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}}
+\subsubsection{\texorpdfstring{rz}{rz}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+\_\+authenticate\+::rz\mbox{[}25\mbox{]}}
+
+Reserved \mbox{\Hypertarget{structpb__command__authenticate_a3d67499c136e9580c2670d4e11ebd8c3}\label{structpb__command__authenticate_a3d67499c136e9580c2670d4e11ebd8c3}} 
+\index{pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}!size@{size}}
+\index{size@{size}!pb\+\_\+command\+\_\+authenticate@{pb\+\_\+command\+\_\+authenticate}}
+\subsubsection{\texorpdfstring{size}{size}}
+{\footnotesize\ttfamily uint16\+\_\+t pb\+\_\+command\+\_\+authenticate\+::size}
+
+Authentication data size in bytes 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/include/pb-\/tools/\hyperlink{wire_8h}{wire.\+h}\end{DoxyCompactItemize}

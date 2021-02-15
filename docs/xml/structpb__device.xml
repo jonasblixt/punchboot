@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__device" kind="struct" language="C++" prot="public">
+    <compoundname>pb_device</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__device_1a6b4bb1e69d172bdc5b69678dd7e64b58" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool pb_device::ready</definition>
+        <argsstring></argsstring>
+        <name>ready</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/device.h" line="13" column="1" bodyfile="/docs/include/pb/device.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__device_1aa55592d7a291a1d106b90f898cfe294d" prot="public" static="no" mutable="no">
+        <type>pb_device_init_t</type>
+        <definition>pb_device_init_t pb_device::platform_init</definition>
+        <argsstring></argsstring>
+        <name>platform_init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/device.h" line="14" column="1" bodyfile="/docs/include/pb/device.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__device_1a5025519bd9e6c6f595a13416543658e9" prot="public" static="no" mutable="no">
+        <type>pb_device_init_t</type>
+        <definition>pb_device_init_t pb_device::init</definition>
+        <argsstring></argsstring>
+        <name>init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/device.h" line="15" column="1" bodyfile="/docs/include/pb/device.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__device_1a0bcf4c345cda2f12b4bba1466b0668c3" prot="public" static="no" mutable="no">
+        <type>pb_device_init_t platform_free pb_device_init_t</type>
+        <definition>pb_device_init_t platform_free pb_device_init_t pb_device::free</definition>
+        <argsstring></argsstring>
+        <name>free</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/device.h" line="17" column="1" bodyfile="/docs/include/pb/device.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__device_1a5b80356b4e8c9afa14d360769b53db86" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* pb_device::private</definition>
+        <argsstring></argsstring>
+        <name>private</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/device.h" line="18" column="1" bodyfile="/docs/include/pb/device.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="332">
+        <label>pb_device</label>
+        <link refid="structpb__device"/>
+        <childnode refid="332" relation="usage">
+          <edgelabel>platform_init</edgelabel>
+          <edgelabel>init</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/include/pb/device.h" line="12" column="1" bodyfile="/docs/include/pb/device.h" bodystart="11" bodyend="19"/>
+    <listofallmembers>
+      <member refid="structpb__device_1a0bcf4c345cda2f12b4bba1466b0668c3" prot="public" virt="non-virtual"><scope>pb_device</scope><name>free</name></member>
+      <member refid="structpb__device_1a5025519bd9e6c6f595a13416543658e9" prot="public" virt="non-virtual"><scope>pb_device</scope><name>init</name></member>
+      <member refid="structpb__device_1aa55592d7a291a1d106b90f898cfe294d" prot="public" virt="non-virtual"><scope>pb_device</scope><name>platform_init</name></member>
+      <member refid="structpb__device_1a5b80356b4e8c9afa14d360769b53db86" prot="public" virt="non-virtual"><scope>pb_device</scope><name>private</name></member>
+      <member refid="structpb__device_1a6b4bb1e69d172bdc5b69678dd7e64b58" prot="public" virt="non-virtual"><scope>pb_device</scope><name>ready</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

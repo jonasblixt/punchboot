@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structfdt__header" kind="struct" language="C++" prot="public">
+    <compoundname>fdt_header</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structfdt__header_1a65fb0559969843780cf6d3192952af0a" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::magic</definition>
+        <argsstring></argsstring>
+        <name>magic</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="58" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1a142ef62b173b9e13c512bbb231106345" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::totalsize</definition>
+        <argsstring></argsstring>
+        <name>totalsize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="59" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1a350b29eb98ea9ab1df4379e19d9f6a08" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::off_dt_struct</definition>
+        <argsstring></argsstring>
+        <name>off_dt_struct</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="60" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1a4eb64188c5a8fecc9eb0acac4a0ac002" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::off_dt_strings</definition>
+        <argsstring></argsstring>
+        <name>off_dt_strings</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="61" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1aceb981c230e48eea58d9501b2a52fada" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::off_mem_rsvmap</definition>
+        <argsstring></argsstring>
+        <name>off_mem_rsvmap</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="62" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1a5df82a5fef43c5d827478d41e78ed649" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::version</definition>
+        <argsstring></argsstring>
+        <name>version</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="63" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1a230fb2743cc67cc1dd20d7e92fddae1e" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::last_comp_version</definition>
+        <argsstring></argsstring>
+        <name>last_comp_version</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="64" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1ac2746c258f91f98614e281b078863d00" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::boot_cpuid_phys</definition>
+        <argsstring></argsstring>
+        <name>boot_cpuid_phys</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="67" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1a64c5ed9e447a81137bf30a6bc3c627ee" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::size_dt_strings</definition>
+        <argsstring></argsstring>
+        <name>size_dt_strings</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="70" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__header_1a5d7585b3780d6e983fe0924a0e23ffcb" prot="public" static="no" mutable="no">
+        <type>fdt32_t</type>
+        <definition>fdt32_t fdt_header::size_dt_struct</definition>
+        <argsstring></argsstring>
+        <name>size_dt_struct</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="73" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/fdt/include/fdt.h" line="57" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="57" bodyend="74"/>
+    <listofallmembers>
+      <member refid="structfdt__header_1ac2746c258f91f98614e281b078863d00" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>boot_cpuid_phys</name></member>
+      <member refid="structfdt__header_1a230fb2743cc67cc1dd20d7e92fddae1e" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>last_comp_version</name></member>
+      <member refid="structfdt__header_1a65fb0559969843780cf6d3192952af0a" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>magic</name></member>
+      <member refid="structfdt__header_1a4eb64188c5a8fecc9eb0acac4a0ac002" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>off_dt_strings</name></member>
+      <member refid="structfdt__header_1a350b29eb98ea9ab1df4379e19d9f6a08" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>off_dt_struct</name></member>
+      <member refid="structfdt__header_1aceb981c230e48eea58d9501b2a52fada" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>off_mem_rsvmap</name></member>
+      <member refid="structfdt__header_1a64c5ed9e447a81137bf30a6bc3c627ee" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>size_dt_strings</name></member>
+      <member refid="structfdt__header_1a5d7585b3780d6e983fe0924a0e23ffcb" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>size_dt_struct</name></member>
+      <member refid="structfdt__header_1a142ef62b173b9e13c512bbb231106345" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>totalsize</name></member>
+      <member refid="structfdt__header_1a5df82a5fef43c5d827478d41e78ed649" prot="public" virt="non-virtual"><scope>fdt_header</scope><name>version</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

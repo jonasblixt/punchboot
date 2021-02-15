@@ -1,0 +1,630 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="bearssl__rand_8h" kind="file" language="C++">
+    <compoundname>bearssl_rand.h</compoundname>
+    <includes refid="stddef_8h" local="no">stddef.h</includes>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="bearssl__block_8h" local="yes">bearssl_block.h</includes>
+    <includes refid="bearssl__hash_8h" local="yes">bearssl_hash.h</includes>
+    <includedby refid="bearssl__ec_8h" local="yes">/docs/lib/bearssl/bearssl_ec.h</includedby>
+    <incdepgraph>
+      <node id="778">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="779" relation="include">
+        </childnode>
+      </node>
+      <node id="781">
+        <label>stdint_.h</label>
+      </node>
+      <node id="777">
+        <label>/docs/lib/bearssl/bearssl_rand.h</label>
+        <link refid="bearssl__rand_8h"/>
+        <childnode refid="778" relation="include">
+        </childnode>
+        <childnode refid="780" relation="include">
+        </childnode>
+        <childnode refid="782" relation="include">
+        </childnode>
+        <childnode refid="783" relation="include">
+        </childnode>
+      </node>
+      <node id="779">
+        <label>stddef_.h</label>
+      </node>
+      <node id="784">
+        <label>string.h</label>
+        <link refid="string_8h_source"/>
+        <childnode refid="785" relation="include">
+        </childnode>
+      </node>
+      <node id="783">
+        <label>bearssl_hash.h</label>
+        <link refid="bearssl__hash_8h"/>
+        <childnode refid="778" relation="include">
+        </childnode>
+        <childnode refid="780" relation="include">
+        </childnode>
+        <childnode refid="784" relation="include">
+        </childnode>
+      </node>
+      <node id="780">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="781" relation="include">
+        </childnode>
+      </node>
+      <node id="785">
+        <label>string_.h</label>
+      </node>
+      <node id="782">
+        <label>bearssl_block.h</label>
+        <link refid="bearssl__block_8h"/>
+        <childnode refid="778" relation="include">
+        </childnode>
+        <childnode refid="780" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="786">
+        <label>/docs/lib/bearssl/bearssl_rand.h</label>
+        <link refid="bearssl__rand_8h"/>
+        <childnode refid="787" relation="include">
+        </childnode>
+      </node>
+      <node id="788">
+        <label>/docs/lib/bearssl/bearssl_x509.h</label>
+        <link refid="bearssl__x509_8h"/>
+      </node>
+      <node id="787">
+        <label>/docs/lib/bearssl/bearssl_ec.h</label>
+        <link refid="bearssl__ec_8h"/>
+        <childnode refid="788" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structbr__prng__class__" prot="public">br_prng_class_</innerclass>
+    <innerclass refid="structbr__hmac__drbg__context" prot="public">br_hmac_drbg_context</innerclass>
+    <innerclass refid="structbr__aesctr__drbg__context" prot="public">br_aesctr_drbg_context</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="bearssl__rand_8h_1a249aef3beeba050eea56048e6a479fba" prot="public" static="no">
+        <type>struct <ref refid="structbr__prng__class__" kindref="compound">br_prng_class_</ref></type>
+        <definition>typedef struct br_prng_class_ br_prng_class</definition>
+        <argsstring></argsstring>
+        <name>br_prng_class</name>
+        <briefdescription>
+<para>Class type for PRNG implementations. </para>        </briefdescription>
+        <detaileddescription>
+<para>A <computeroutput>br_prng_class</computeroutput> instance references the methods implementing a PRNG. Constant instances of this structure are defined for each implemented PRNG. Such instances are also called &quot;vtables&quot;. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="1113" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="bearssl__rand_8h_1a7f747cc74fa6d396553b5e14fcc9c772" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* br_prng_seeder) (const br_prng_class **ctx)</definition>
+        <argsstring>)(const br_prng_class **ctx)</argsstring>
+        <name>br_prng_seeder</name>
+        <briefdescription>
+<para>Type for a provider of entropy seeds. </para>        </briefdescription>
+        <detaileddescription>
+<para>A &quot;seeder&quot; is a function that is able to obtain random values from some source and inject them as entropy seed in a PRNG. A seeder shall guarantee that the total entropy of the injected seed is large enough to seed a PRNG for purposes of cryptographic key generation (i.e. at least 128 bits).</para><para>A seeder may report a failure to obtain adequate entropy. Seeders shall endeavour to fix themselves transient errors by trying again; thus, callers may consider reported errors as permanent.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>PRNG context to seed. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>1 on success, 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="301" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="bearssl__rand_8h_1a163b0cd0209b0731af4a0bd3dc1d7372" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__rand_8h_1a249aef3beeba050eea56048e6a479fba" kindref="member">br_prng_class</ref></type>
+        <definition>const br_prng_class br_hmac_drbg_vtable</definition>
+        <argsstring></argsstring>
+        <name>br_hmac_drbg_vtable</name>
+        <briefdescription>
+<para>Statically allocated, constant vtable for HMAC_DRBG. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="213" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__rand_8h_1a59292f33df84b88841a70a23f7feb816" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__rand_8h_1a249aef3beeba050eea56048e6a479fba" kindref="member">br_prng_class</ref></type>
+        <definition>const br_prng_class br_aesctr_drbg_vtable</definition>
+        <argsstring></argsstring>
+        <name>br_aesctr_drbg_vtable</name>
+        <briefdescription>
+<para>Statically allocated, constant vtable for AESCTR_DRBG. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="342" column="1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="bearssl__rand_8h_1a58cf6b0db9299c8fc9887fb3076faaa6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void br_hmac_drbg_init</definition>
+        <argsstring>(br_hmac_drbg_context *ctx, const br_hash_class *digest_class, const void *seed, size_t seed_len)</argsstring>
+        <name>br_hmac_drbg_init</name>
+        <param>
+          <type><ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+          <declname>digest_class</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>seed_len</declname>
+        </param>
+        <briefdescription>
+<para>HMAC_DRBG initialisation. </para>        </briefdescription>
+        <detaileddescription>
+<para>The context to initialise is provided as a pointer to its first field (the vtable pointer); this function sets that first field to a pointer to the vtable.</para><para>The <computeroutput>seed</computeroutput> value is what is called, in NIST terminology, the concatenation of the &quot;seed&quot;, &quot;nonce&quot; and &quot;personalization string&quot;, in that order.</para><para>The <computeroutput>digest_class</computeroutput> parameter defines the underlying hash function. Formally, the NIST standard specifies that the hash function shall be only SHA-1 or one of the SHA-2 functions. This implementation also works with any other implemented hash function (such as MD5), but this is non-standard and therefore not recommended.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>HMAC_DRBG context to initialise. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>digest_class</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>vtable for the underlying hash function. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>initial seed. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>initial seed length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="237" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__rand_8h_1a437648daed6aa0bb3010afdf2007058e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void br_hmac_drbg_generate</definition>
+        <argsstring>(br_hmac_drbg_context *ctx, void *out, size_t len)</argsstring>
+        <name>br_hmac_drbg_generate</name>
+        <param>
+          <type><ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>out</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+<para>Random bytes generation with HMAC_DRBG. </para>        </briefdescription>
+        <detaileddescription>
+<para>This method produces <computeroutput>len</computeroutput> pseudorandom bytes, in the <computeroutput>out</computeroutput> buffer. The context is updated accordingly. Formally, requesting more than 65536 bytes in one request falls out of specification limits (but it won&apos;t fail).</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>HMAC_DRBG context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>out</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>output buffer. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>number of pseudorandom bytes to produce. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="252" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__rand_8h_1a385ff65e18d604dc5e1a83f57be261dc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void br_hmac_drbg_update</definition>
+        <argsstring>(br_hmac_drbg_context *ctx, const void *seed, size_t seed_len)</argsstring>
+        <name>br_hmac_drbg_update</name>
+        <param>
+          <type><ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>seed_len</declname>
+        </param>
+        <briefdescription>
+<para>Inject additional seed bytes in HMAC_DRBG. </para>        </briefdescription>
+        <detaileddescription>
+<para>The provided seed bytes are added into the HMAC_DRBG internal entropy pool. The process does not <emphasis>replace</emphasis> existing entropy, thus pushing non-random bytes (i.e. bytes which are known to the attackers) does not degrade the overall quality of generated bytes.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>HMAC_DRBG context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional seed. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional seed length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="266" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__rand_8h_1a21496c5746151597138638f62adc8a5e" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+        <definition>static const br_hash_class* br_hmac_drbg_get_hash</definition>
+        <argsstring>(const br_hmac_drbg_context *ctx)</argsstring>
+        <name>br_hmac_drbg_get_hash</name>
+        <param>
+          <type>const <ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+<para>Get the hash function implementation used by a given instance of HMAC_DRBG. </para>        </briefdescription>
+        <detaileddescription>
+<para>This calls MUST NOT be performed on a context which was not previously initialised.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>HMAC_DRBG context. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the hash function vtable. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="280" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="280" bodyend="283"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__rand_8h_1a68e106d317ed0a5468c6f9c7b0c9469b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="bearssl__rand_8h_1a7f747cc74fa6d396553b5e14fcc9c772" kindref="member">br_prng_seeder</ref></type>
+        <definition>br_prng_seeder br_prng_seeder_system</definition>
+        <argsstring>(const char **name)</argsstring>
+        <name>br_prng_seeder_system</name>
+        <param>
+          <type>const char **</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Get a seeder backed by the operating system or hardware. </para>        </briefdescription>
+        <detaileddescription>
+<para>Get a seeder that feeds on RNG facilities provided by the current operating system or hardware. If no such facility is known, then 0 is returned.</para><para>If <computeroutput>name</computeroutput> is not <computeroutput>NULL</computeroutput>, then <computeroutput>*name</computeroutput> is set to a symbolic string that identifies the seeder implementation. If no seeder is returned and <computeroutput>name</computeroutput> is not <computeroutput>NULL</computeroutput>, then <computeroutput>*name</computeroutput> is set to a pointer to the constant string <computeroutput>&quot;none&quot;</computeroutput>.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>receiver for seeder name, or <computeroutput>NULL</computeroutput>. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the system seeder, if available, or 0. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="318" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__rand_8h_1ae294fd1b6cfbcaabfbe4bbb06175e568" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void br_aesctr_drbg_init</definition>
+        <argsstring>(br_aesctr_drbg_context *ctx, const br_block_ctr_class *aesctr, const void *seed, size_t seed_len)</argsstring>
+        <name>br_aesctr_drbg_init</name>
+        <param>
+          <type><ref refid="structbr__aesctr__drbg__context" kindref="compound">br_aesctr_drbg_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>const <ref refid="bearssl__block_8h_1a8934ac58af503220bfb6e6cbc2cfb209" kindref="member">br_block_ctr_class</ref> *</type>
+          <declname>aesctr</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>seed_len</declname>
+        </param>
+        <briefdescription>
+<para>AESCTR_DRBG initialisation. </para>        </briefdescription>
+        <detaileddescription>
+<para>The context to initialise is provided as a pointer to its first field (the vtable pointer); this function sets that first field to a pointer to the vtable.</para><para>The internal AES key is first set to the all-zero key; then, the <computeroutput><ref refid="bearssl__rand_8h_1ad3b4395f288969292ba7444560411f45" kindref="member">br_aesctr_drbg_update()</ref></computeroutput> function is called with the provided <computeroutput>seed</computeroutput>. The call is performed even if the seed length (<computeroutput>seed_len</computeroutput>) is zero.</para><para>The <computeroutput>aesctr</computeroutput> parameter defines the underlying AES/CTR implementation.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>AESCTR_DRBG context to initialise. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>aesctr</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>vtable for the AES/CTR implementation. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>initial seed (can be <computeroutput>NULL</computeroutput> if <computeroutput>seed_len</computeroutput> is zero). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>initial seed length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="362" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__rand_8h_1a2d83e2f602fa1c2ebb5455e28468abc0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void br_aesctr_drbg_generate</definition>
+        <argsstring>(br_aesctr_drbg_context *ctx, void *out, size_t len)</argsstring>
+        <name>br_aesctr_drbg_generate</name>
+        <param>
+          <type><ref refid="structbr__aesctr__drbg__context" kindref="compound">br_aesctr_drbg_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>out</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+<para>Random bytes generation with AESCTR_DRBG. </para>        </briefdescription>
+        <detaileddescription>
+<para>This method produces <computeroutput>len</computeroutput> pseudorandom bytes, in the <computeroutput>out</computeroutput> buffer. The context is updated accordingly.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>AESCTR_DRBG context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>out</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>output buffer. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>number of pseudorandom bytes to produce. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="375" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__rand_8h_1ad3b4395f288969292ba7444560411f45" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void br_aesctr_drbg_update</definition>
+        <argsstring>(br_aesctr_drbg_context *ctx, const void *seed, size_t seed_len)</argsstring>
+        <name>br_aesctr_drbg_update</name>
+        <param>
+          <type><ref refid="structbr__aesctr__drbg__context" kindref="compound">br_aesctr_drbg_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>seed_len</declname>
+        </param>
+        <briefdescription>
+<para>Inject additional seed bytes in AESCTR_DRBG. </para>        </briefdescription>
+        <detaileddescription>
+<para>The provided seed bytes are added into the AESCTR_DRBG internal entropy pool. The process does not <emphasis>replace</emphasis> existing entropy, thus pushing non-random bytes (i.e. bytes which are known to the attackers) does not degrade the overall quality of generated bytes.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>AESCTR_DRBG context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional seed. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional seed length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="390" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><heading level="1">Pseudo-Random Generators</heading>
+</para><para>A PRNG is a state-based engine that outputs pseudo-random bytes on demand. It is initialized with an initial seed, and additional seed bytes can be added afterwards. Bytes produced depend on the seeds and also on the exact sequence of calls (including sizes requested for each call).</para><para><heading level="2">Procedural and OOP API</heading>
+</para><para>For the PRNG of name &quot;`xxx`&quot;, two API are provided. The <emphasis>procedural</emphasis> API defined a context structure <computeroutput>br_xxx_context</computeroutput> and three functions:</para><para><itemizedlist>
+<listitem><para><computeroutput>br_xxx_init()</computeroutput></para><para>Initialise the context with an initial seed.</para></listitem><listitem><para><computeroutput>br_xxx_generate()</computeroutput></para><para>Produce some pseudo-random bytes.</para></listitem><listitem><para><computeroutput>br_xxx_update()</computeroutput></para><para>Inject some additional seed.</para></listitem></itemizedlist>
+</para><para>The initialisation function sets the first context field (<computeroutput>vtable</computeroutput>) to a pointer to the vtable that supports the OOP API. The OOP API provides access to the same functions through function pointers, named <computeroutput>init()</computeroutput>, <computeroutput>generate()</computeroutput> and <computeroutput>update()</computeroutput>.</para><para>Note that the context initialisation method may accept additional parameters, provided as a &apos;const void *&apos; pointer at API level. These additional parameters depend on the implemented PRNG.</para><para><heading level="2">HMAC_DRBG</heading>
+</para><para>HMAC_DRBG is defined in <ulink url="http://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-90Ar1.pdf">NIST SP 800-90A Revision 1</ulink>. It uses HMAC repeatedly, over some configurable underlying hash function. In BearSSL, it is implemented under the &quot;`hmac_drbg`&quot; name. The &quot;extra parameters&quot; pointer for context initialisation should be set to a pointer to the vtable for the underlying hash function (e.g. pointer to <computeroutput>br_sha256_vtable</computeroutput> to use HMAC_DRBG with SHA-256).</para><para>According to the NIST standard, each request shall produce up to 2<superscript>19</superscript> bits (i.e. 64 kB of data); moreover, the context shall be reseeded at least once every 2<superscript>48</superscript> requests. This implementation does not maintain the reseed counter (the threshold is too high to be reached in practice) and does not object to producing more than 64 kB in a single request; thus, the code cannot fail, which corresponds to the fact that the API has no room for error codes. However, this implies that requesting more than 64 kB in one <computeroutput>generate()</computeroutput> request, or making more than 2<superscript>48</superscript> requests without reseeding, is formally out of NIST specification. There is no currently known security penalty for exceeding the NIST limits, and, in any case, HMAC_DRBG usage in implementing SSL/TLS always stays much below these thresholds.</para><para><heading level="2">AESCTR_DRBG</heading>
+</para><para>AESCTR_DRBG is a custom PRNG based on AES-128 in CTR mode. This is meant to be used only in situations where you are desperate for speed, and have an hardware-optimized AES/CTR implementation. Whether this will yield perceptible improvements depends on what you use the pseudorandom bytes for, and how many you want; for instance, RSA key pair generation uses a substantial amount of randomness, and using AESCTR_DRBG instead of HMAC_DRBG yields a 15 to 20% increase in key generation speed on a recent x86 CPU (Intel Core i7-6567U at 3.30 GHz).</para><para>Internally, it uses CTR mode with successive counter values, starting at zero (counter value expressed over 128 bits, big-endian convention). The counter is not allowed to reach 32768; thus, every 32768*16 bytes at most, the <computeroutput>update()</computeroutput> function is run (on an empty seed, if none is provided). The <computeroutput>update()</computeroutput> function computes the new AES-128 key by applying a custom hash function to the concatenation of a state-dependent word (encryption of an all-one block with the current key) and the new seed. The custom hash function uses Hirose&apos;s construction over AES-256; see the comments in <computeroutput>aesctr_drbg.c</computeroutput> for details.</para><para>This DRBG does not follow an existing standard, and thus should be considered as inadequate for production use until it has been properly analysed. </para>    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2016<sp/>Thomas<sp/>Pornin<sp/>&lt;pornin@bolet.org&gt;</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>Permission<sp/>is<sp/>hereby<sp/>granted,<sp/>free<sp/>of<sp/>charge,<sp/>to<sp/>any<sp/>person<sp/>obtaining<sp/></highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*<sp/>a<sp/>copy<sp/>of<sp/>this<sp/>software<sp/>and<sp/>associated<sp/>documentation<sp/>files<sp/>(the</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"><sp/>*<sp/>&quot;Software&quot;),<sp/>to<sp/>deal<sp/>in<sp/>the<sp/>Software<sp/>without<sp/>restriction,<sp/>including</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*<sp/>without<sp/>limitation<sp/>the<sp/>rights<sp/>to<sp/>use,<sp/>copy,<sp/>modify,<sp/>merge,<sp/>publish,</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>distribute,<sp/>sublicense,<sp/>and/or<sp/>sell<sp/>copies<sp/>of<sp/>the<sp/>Software,<sp/>and<sp/>to</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>permit<sp/>persons<sp/>to<sp/>whom<sp/>the<sp/>Software<sp/>is<sp/>furnished<sp/>to<sp/>do<sp/>so,<sp/>subject<sp/>to</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*<sp/>the<sp/>following<sp/>conditions:</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/>*<sp/>The<sp/>above<sp/>copyright<sp/>notice<sp/>and<sp/>this<sp/>permission<sp/>notice<sp/>shall<sp/>be<sp/></highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>*<sp/>included<sp/>in<sp/>all<sp/>copies<sp/>or<sp/>substantial<sp/>portions<sp/>of<sp/>the<sp/>Software.</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/>*<sp/>THE<sp/>SOFTWARE<sp/>IS<sp/>PROVIDED<sp/>&quot;AS<sp/>IS&quot;,<sp/>WITHOUT<sp/>WARRANTY<sp/>OF<sp/>ANY<sp/>KIND,<sp/></highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/>*<sp/>EXPRESS<sp/>OR<sp/>IMPLIED,<sp/>INCLUDING<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO<sp/>THE<sp/>WARRANTIES<sp/>OF</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*<sp/>MERCHANTABILITY,<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE<sp/>AND<sp/></highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/>NONINFRINGEMENT.<sp/>IN<sp/>NO<sp/>EVENT<sp/>SHALL<sp/>THE<sp/>AUTHORS<sp/>OR<sp/>COPYRIGHT<sp/>HOLDERS</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>BE<sp/>LIABLE<sp/>FOR<sp/>ANY<sp/>CLAIM,<sp/>DAMAGES<sp/>OR<sp/>OTHER<sp/>LIABILITY,<sp/>WHETHER<sp/>IN<sp/>AN</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*<sp/>ACTION<sp/>OF<sp/>CONTRACT,<sp/>TORT<sp/>OR<sp/>OTHERWISE,<sp/>ARISING<sp/>FROM,<sp/>OUT<sp/>OF<sp/>OR<sp/>IN</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/>CONNECTION<sp/>WITH<sp/>THE<sp/>SOFTWARE<sp/>OR<sp/>THE<sp/>USE<sp/>OR<sp/>OTHER<sp/>DEALINGS<sp/>IN<sp/>THE</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/>SOFTWARE.</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>BR_BEARSSL_RAND_H__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BR_BEARSSL_RAND_H__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stddef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="bearssl__block_8h" kindref="compound">bearssl_block.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="bearssl__hash_8h" kindref="compound">bearssl_hash.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__cplusplus</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;C&quot;</highlight><highlight class="normal"><sp/>{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="bearssl__rand_8h_1a249aef3beeba050eea56048e6a479fba" refkind="member"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbr__prng__class__" kindref="compound">br_prng_class_</ref><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref>;</highlight></codeline>
+<codeline lineno="135" refid="structbr__prng__class__" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbr__prng__class__" kindref="compound">br_prng_class_</ref><sp/>{</highlight></codeline>
+<codeline lineno="140" refid="structbr__prng__class___1a2f3ec37b1ac8e0157489db17de371396" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class___1a2f3ec37b1ac8e0157489db17de371396" kindref="member">context_size</ref>;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161" refid="structbr__prng__class___1ae54c9bffd6e8aed1099b33a425d0af58" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>void<sp/>(*<ref refid="structbr__prng__class___1ae54c9bffd6e8aed1099b33a425d0af58" kindref="member">init</ref>)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/>**ctx,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*params,</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*seed,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>seed_len);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174" refid="structbr__prng__class___1a34fa7747beda004295733790bbf9671d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>void<sp/>(*<ref refid="structbr__prng__class___1a34fa7747beda004295733790bbf9671d" kindref="member">generate</ref>)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/>**ctx,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*out,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>len);</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186" refid="structbr__prng__class___1ab26e31262e16bc2d8bf47c2c5b5e6a38" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>void<sp/>(*<ref refid="structbr__prng__class___1ab26e31262e16bc2d8bf47c2c5b5e6a38" kindref="member">update</ref>)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/>**ctx,</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*seed,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>seed_len);</highlight></codeline>
+<codeline lineno="188"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="196" refid="structbr__hmac__drbg__context" refkind="compound"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="202" refid="structbr__hmac__drbg__context_1a273d6a6f75ec5da343f43ca800ad9f52" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/>*<ref refid="structbr__hmac__drbg__context_1a273d6a6f75ec5da343f43ca800ad9f52" kindref="member">vtable</ref>;</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>BR_DOXYGEN_IGNORE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>K[64];</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>V[64];</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hash__class__" kindref="compound">br_hash_class</ref><sp/>*digest_class;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal">}<sp/><ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref>;</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/><ref refid="bearssl__rand_8h_1a163b0cd0209b0731af4a0bd3dc1d7372" kindref="member">br_hmac_drbg_vtable</ref>;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="bearssl__rand_8h_1a58cf6b0db9299c8fc9887fb3076faaa6" kindref="member">br_hmac_drbg_init</ref>(<ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref><sp/>*ctx,</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hash__class__" kindref="compound">br_hash_class</ref><sp/>*digest_class,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*seed,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>seed_len);</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight></codeline>
+<codeline lineno="252"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="bearssl__rand_8h_1a437648daed6aa0bb3010afdf2007058e" kindref="member">br_hmac_drbg_generate</ref>(<ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref><sp/>*ctx,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*out,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>len);</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"></highlight></codeline>
+<codeline lineno="266"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="bearssl__rand_8h_1a385ff65e18d604dc5e1a83f57be261dc" kindref="member">br_hmac_drbg_update</ref>(<ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref><sp/>*ctx,</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*seed,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>seed_len);</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight></codeline>
+<codeline lineno="279"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hash__class__" kindref="compound">br_hash_class</ref><sp/>*</highlight></codeline>
+<codeline lineno="280"><highlight class="normal">br_hmac_drbg_get_hash(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hmac__drbg__context" kindref="compound">br_hmac_drbg_context</ref><sp/>*ctx)</highlight></codeline>
+<codeline lineno="281"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ctx-&gt;digest_class;</highlight></codeline>
+<codeline lineno="283"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight></codeline>
+<codeline lineno="301" refid="bearssl__rand_8h_1a7f747cc74fa6d396553b5e14fcc9c772" refkind="member"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*<ref refid="bearssl__rand_8h_1a7f747cc74fa6d396553b5e14fcc9c772" kindref="member">br_prng_seeder</ref>)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/>**ctx);</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"></highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><ref refid="bearssl__rand_8h_1a7f747cc74fa6d396553b5e14fcc9c772" kindref="member">br_prng_seeder</ref><sp/><ref refid="bearssl__rand_8h_1a68e106d317ed0a5468c6f9c7b0c9469b" kindref="member">br_prng_seeder_system</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>**name);</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"></highlight></codeline>
+<codeline lineno="326" refid="structbr__aesctr__drbg__context" refkind="compound"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="332" refid="structbr__aesctr__drbg__context_1a226fd8f8f1eb58a04734402668aa3a74" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/>*<ref refid="structbr__aesctr__drbg__context_1a226fd8f8f1eb58a04734402668aa3a74" kindref="member">vtable</ref>;</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>BR_DOXYGEN_IGNORE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="unionbr__aes__gen__ctr__keys" kindref="compound">br_aes_gen_ctr_keys</ref><sp/>sk;</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>cc;</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal">}<sp/><ref refid="structbr__aesctr__drbg__context" kindref="compound">br_aesctr_drbg_context</ref>;</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"></highlight></codeline>
+<codeline lineno="342"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/><ref refid="bearssl__rand_8h_1a59292f33df84b88841a70a23f7feb816" kindref="member">br_aesctr_drbg_vtable</ref>;</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"></highlight></codeline>
+<codeline lineno="362"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="bearssl__rand_8h_1ae294fd1b6cfbcaabfbe4bbb06175e568" kindref="member">br_aesctr_drbg_init</ref>(<ref refid="structbr__aesctr__drbg__context" kindref="compound">br_aesctr_drbg_context</ref><sp/>*ctx,</highlight></codeline>
+<codeline lineno="363"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__block__ctr__class__" kindref="compound">br_block_ctr_class</ref><sp/>*aesctr,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*seed,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>seed_len);</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"></highlight></codeline>
+<codeline lineno="375"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="bearssl__rand_8h_1a2d83e2f602fa1c2ebb5455e28468abc0" kindref="member">br_aesctr_drbg_generate</ref>(<ref refid="structbr__aesctr__drbg__context" kindref="compound">br_aesctr_drbg_context</ref><sp/>*ctx,</highlight></codeline>
+<codeline lineno="376"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*out,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>len);</highlight></codeline>
+<codeline lineno="377"><highlight class="normal"></highlight></codeline>
+<codeline lineno="390"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="bearssl__rand_8h_1ad3b4395f288969292ba7444560411f45" kindref="member">br_aesctr_drbg_update</ref>(<ref refid="structbr__aesctr__drbg__context" kindref="compound">br_aesctr_drbg_context</ref><sp/>*ctx,</highlight></codeline>
+<codeline lineno="391"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*seed,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>seed_len);</highlight></codeline>
+<codeline lineno="392"><highlight class="normal"></highlight></codeline>
+<codeline lineno="393"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__cplusplus</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="394"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="395"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="396"><highlight class="normal"></highlight></codeline>
+<codeline lineno="397"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/docs/lib/bearssl/bearssl_rand.h"/>
+  </compounddef>
+</doxygen>

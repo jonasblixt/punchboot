@@ -1,0 +1,114 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__result__device__caps" kind="struct" language="C++" prot="public">
+    <compoundname>pb_result_device_caps</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__result__device__caps_1a7b145b0eb656bf957da9ec7adfd91060" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_device_caps::stream_no_of_buffers</definition>
+        <argsstring></argsstring>
+        <name>stream_no_of_buffers</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Number of stream buffers </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="138" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__device__caps_1a95fc165d071ed1df657e80117e1ab902" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_result_device_caps::stream_buffer_size</definition>
+        <argsstring></argsstring>
+        <name>stream_buffer_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Size of stream buffers in bytes </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="139" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__device__caps_1a8b2405618a75944f28959f0e1df7b747" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t pb_result_device_caps::operation_timeout_ms</definition>
+        <argsstring></argsstring>
+        <name>operation_timeout_ms</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Generic operation timeout </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="140" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__device__caps_1aad094d645f05d1f8ed740b766d68e6fd" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t pb_result_device_caps::part_erase_timeout_ms</definition>
+        <argsstring></argsstring>
+        <name>part_erase_timeout_ms</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maximum erase time for a partition </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="141" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__device__caps_1ab9de81caa8fccde91cd7ff1e4b14091f" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_device_caps::bpak_stream_support</definition>
+        <argsstring></argsstring>
+        <name>bpak_stream_support</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set to 1 if the device supports receiving concatenated bpak archives </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="142" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__device__caps_1a10af479a333360bf63b8bc5fccbcc130" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_result_device_caps::chunk_transfer_max_bytes</definition>
+        <argsstring></argsstring>
+        <name>chunk_transfer_max_bytes</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maximum number of bytes in one transfer </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="145" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__device__caps_1aa677655f643620dbe12b5b1f5e99455a" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_device_caps::rz[18]</definition>
+        <argsstring>[18]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="147" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Device capabilities </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="137" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="136" bodyend="148"/>
+    <listofallmembers>
+      <member refid="structpb__result__device__caps_1ab9de81caa8fccde91cd7ff1e4b14091f" prot="public" virt="non-virtual"><scope>pb_result_device_caps</scope><name>bpak_stream_support</name></member>
+      <member refid="structpb__result__device__caps_1a10af479a333360bf63b8bc5fccbcc130" prot="public" virt="non-virtual"><scope>pb_result_device_caps</scope><name>chunk_transfer_max_bytes</name></member>
+      <member refid="structpb__result__device__caps_1a8b2405618a75944f28959f0e1df7b747" prot="public" virt="non-virtual"><scope>pb_result_device_caps</scope><name>operation_timeout_ms</name></member>
+      <member refid="structpb__result__device__caps_1aad094d645f05d1f8ed740b766d68e6fd" prot="public" virt="non-virtual"><scope>pb_result_device_caps</scope><name>part_erase_timeout_ms</name></member>
+      <member refid="structpb__result__device__caps_1aa677655f643620dbe12b5b1f5e99455a" prot="public" virt="non-virtual"><scope>pb_result_device_caps</scope><name>rz</name></member>
+      <member refid="structpb__result__device__caps_1a95fc165d071ed1df657e80117e1ab902" prot="public" virt="non-virtual"><scope>pb_result_device_caps</scope><name>stream_buffer_size</name></member>
+      <member refid="structpb__result__device__caps_1a7b145b0eb656bf957da9ec7adfd91060" prot="public" virt="non-virtual"><scope>pb_result_device_caps</scope><name>stream_no_of_buffers</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

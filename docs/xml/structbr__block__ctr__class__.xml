@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__block__ctr__class__" kind="struct" language="C++" prot="public">
+    <compoundname>br_block_ctr_class_</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__block__ctr__class___1a5ab70fc09d3f896286db4d9ab141b687" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_block_ctr_class_::context_size</definition>
+        <argsstring></argsstring>
+        <name>context_size</name>
+        <briefdescription>
+<para>Size (in bytes) of the context structure appropriate for containing subkeys. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="512" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="512" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctr__class___1a5855b6805ea76905618791a911deeefc" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_block_ctr_class_::block_size</definition>
+        <argsstring></argsstring>
+        <name>block_size</name>
+        <briefdescription>
+<para>Size of individual blocks (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="517" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="517" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctr__class___1a9d839e9063043a3e7389d57b61c9c09e" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_block_ctr_class_::log_block_size</definition>
+        <argsstring></argsstring>
+        <name>log_block_size</name>
+        <briefdescription>
+<para>Base-2 logarithm of the size of individual blocks, expressed in bytes. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="523" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="523" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctr__class___1aa18275294e3f478f7f348be2e0acb989" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_block_ctr_class_::init) (const br_block_ctr_class **ctx, const void *key, size_t key_len)</definition>
+        <argsstring>)(const br_block_ctr_class **ctx, const void *key, size_t key_len)</argsstring>
+        <name>init</name>
+        <briefdescription>
+<para>Initialisation function. </para>        </briefdescription>
+        <detaileddescription>
+<para>This function sets the <computeroutput>vtable</computeroutput> field in the context structure. The key length MUST be one of the key lengths supported by the implementation.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure to initialise. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>secret key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>key length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="536" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="536" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctr__class___1a3ef339b01b47bd4dba2e084148db0530" prot="public" static="no" mutable="no">
+        <type>uint32_t(*</type>
+        <definition>uint32_t(* br_block_ctr_class_::run) (const br_block_ctr_class *const *ctx, const void *iv, uint32_t cc, void *data, size_t len)</definition>
+        <argsstring>)(const br_block_ctr_class *const *ctx, const void *iv, uint32_t cc, void *data, size_t len)</argsstring>
+        <name>run</name>
+        <briefdescription>
+<para>Run the CTR encryption or decryption. </para>        </briefdescription>
+        <detaileddescription>
+<para>The <computeroutput>iv</computeroutput> parameter points to the IV for this run; its length is exactly 4 bytes less than the block size (e.g. 12 bytes for AES/CTR). The IV is combined with a 32-bit block counter to produce the block value which is processed with the block cipher.</para><para>The data to encrypt or decrypt is updated &quot;in place&quot;. Its length (<computeroutput>len</computeroutput> bytes) is not required to be a multiple of the block size; if the final block is partial, then the corresponding key stream bits are dropped.</para><para>The resulting counter value is returned.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure (already initialised). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>iv</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>IV for CTR encryption/decryption. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>initial value for the block counter. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data to encrypt or decrypt. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the new block counter value. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="562" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="562" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="507" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="507" bodyend="564"/>
+    <listofallmembers>
+      <member refid="structbr__block__ctr__class___1a5855b6805ea76905618791a911deeefc" prot="public" virt="non-virtual"><scope>br_block_ctr_class_</scope><name>block_size</name></member>
+      <member refid="structbr__block__ctr__class___1a5ab70fc09d3f896286db4d9ab141b687" prot="public" virt="non-virtual"><scope>br_block_ctr_class_</scope><name>context_size</name></member>
+      <member refid="structbr__block__ctr__class___1aa18275294e3f478f7f348be2e0acb989" prot="public" virt="non-virtual"><scope>br_block_ctr_class_</scope><name>init</name></member>
+      <member refid="structbr__block__ctr__class___1a9d839e9063043a3e7389d57b61c9c09e" prot="public" virt="non-virtual"><scope>br_block_ctr_class_</scope><name>log_block_size</name></member>
+      <member refid="structbr__block__ctr__class___1a3ef339b01b47bd4dba2e084148db0530" prot="public" virt="non-virtual"><scope>br_block_ctr_class_</scope><name>run</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

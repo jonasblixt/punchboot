@@ -1,0 +1,142 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structatf__bl31__params" kind="struct" language="C++" prot="public">
+    <compoundname>atf_bl31_params</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structatf__bl31__params_1aebe47862a7887884fa2a187489c75959" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structatf__param__header" kindref="compound">atf_param_header</ref></type>
+        <definition>struct atf_param_header atf_bl31_params::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="55" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structatf__bl31__params_1af32028c21cb5077758fafd8ceec7a01e" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structatf__image__info" kindref="compound">atf_image_info</ref> *</type>
+        <definition>struct atf_image_info* atf_bl31_params::bl31_image_info</definition>
+        <argsstring></argsstring>
+        <name>bl31_image_info</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="63" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structatf__bl31__params_1aba990f9207530d7e86231059bd5cdb60" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structentry__point__info" kindref="compound">entry_point_info</ref> *</type>
+        <definition>struct entry_point_info* atf_bl31_params::bl32_ep_info</definition>
+        <argsstring></argsstring>
+        <name>bl32_ep_info</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="64" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structatf__bl31__params_1a93272088e5ad2fc29704fc4ee789a052" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structatf__image__info" kindref="compound">atf_image_info</ref> *</type>
+        <definition>struct atf_image_info* atf_bl31_params::bl32_image_info</definition>
+        <argsstring></argsstring>
+        <name>bl32_image_info</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="65" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structatf__bl31__params_1a0fa9e0d7ea485b35e6e37a36baa9c47d" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structentry__point__info" kindref="compound">entry_point_info</ref> *</type>
+        <definition>struct entry_point_info* atf_bl31_params::bl33_ep_info</definition>
+        <argsstring></argsstring>
+        <name>bl33_ep_info</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="66" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structatf__bl31__params_1a9c9f1ba464fb9d6dededd756ed86fef7" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structatf__image__info" kindref="compound">atf_image_info</ref> *</type>
+        <definition>struct atf_image_info* atf_bl31_params::bl33_image_info</definition>
+        <argsstring></argsstring>
+        <name>bl33_image_info</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="67" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>atf_bl31_params</label>
+        <link refid="structatf__bl31__params"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>bl31_image_info</edgelabel>
+          <edgelabel>bl33_image_info</edgelabel>
+          <edgelabel>bl32_image_info</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>h</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>bl32_ep_info</edgelabel>
+          <edgelabel>bl33_ep_info</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>aapcs64_params</label>
+        <link refid="structaapcs64__params"/>
+      </node>
+      <node id="6">
+        <label>entry_point_info</label>
+        <link refid="structentry__point__info"/>
+        <childnode refid="7" relation="usage">
+          <edgelabel>args</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>h</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>atf_image_info</label>
+        <link refid="structatf__image__info"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>h</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>atf_param_header</label>
+        <link refid="structatf__param__header"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/include/pb/atf.h" line="61" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="60" bodyend="68"/>
+    <listofallmembers>
+      <member refid="structatf__bl31__params_1af32028c21cb5077758fafd8ceec7a01e" prot="public" virt="non-virtual"><scope>atf_bl31_params</scope><name>bl31_image_info</name></member>
+      <member refid="structatf__bl31__params_1aba990f9207530d7e86231059bd5cdb60" prot="public" virt="non-virtual"><scope>atf_bl31_params</scope><name>bl32_ep_info</name></member>
+      <member refid="structatf__bl31__params_1a93272088e5ad2fc29704fc4ee789a052" prot="public" virt="non-virtual"><scope>atf_bl31_params</scope><name>bl32_image_info</name></member>
+      <member refid="structatf__bl31__params_1a0fa9e0d7ea485b35e6e37a36baa9c47d" prot="public" virt="non-virtual"><scope>atf_bl31_params</scope><name>bl33_ep_info</name></member>
+      <member refid="structatf__bl31__params_1a9c9f1ba464fb9d6dededd756ed86fef7" prot="public" virt="non-virtual"><scope>atf_bl31_params</scope><name>bl33_image_info</name></member>
+      <member refid="structatf__bl31__params_1aebe47862a7887884fa2a187489c75959" prot="public" virt="non-virtual"><scope>atf_bl31_params</scope><name>h</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

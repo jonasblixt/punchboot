@@ -1,0 +1,538 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="usb_8h" kind="file" language="C++">
+    <compoundname>usb.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="stdbool_8h" local="no">stdbool.h</includes>
+    <includedby refid="plat_8h" local="no">/docs/include/pb/plat.h</includedby>
+    <incdepgraph>
+      <node id="644">
+        <label>stdint_.h</label>
+      </node>
+      <node id="642">
+        <label>/docs/include/pb/usb.h</label>
+        <link refid="usb_8h"/>
+        <childnode refid="643" relation="include">
+        </childnode>
+        <childnode refid="645" relation="include">
+        </childnode>
+      </node>
+      <node id="645">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="643">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="644" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="646">
+        <label>/docs/include/pb/usb.h</label>
+        <link refid="usb_8h"/>
+        <childnode refid="647" relation="include">
+        </childnode>
+      </node>
+      <node id="647">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structusb__setup__packet" prot="public">usb_setup_packet</innerclass>
+    <innerclass refid="structusb__device__descriptor" prot="public">usb_device_descriptor</innerclass>
+    <innerclass refid="structusb__configuration__descriptor" prot="public">usb_configuration_descriptor</innerclass>
+    <innerclass refid="structusb__interface__descriptor" prot="public">usb_interface_descriptor</innerclass>
+    <innerclass refid="structusb__endpoint__descriptor" prot="public">usb_endpoint_descriptor</innerclass>
+    <innerclass refid="structusb__descriptors" prot="public">usb_descriptors</innerclass>
+    <innerclass refid="structpb__usb__interface" prot="public">pb_usb_interface</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="usb_8h_1ab643fa62dbe13073d08006c516b87f9a" prot="public" static="no">
+        <name>USB_GET_DESCRIPTOR</name>
+        <initializer>0x8006</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Punch BOOT</para><para>Copyright (C) 2020 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="17" column="9" bodyfile="/docs/include/pb/usb.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="usb_8h_1ad22d7586d7c748cf53830e2b610a2ac7" prot="public" static="no">
+        <name>USB_SET_CONFIGURATION</name>
+        <initializer>0x0009</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="18" column="9" bodyfile="/docs/include/pb/usb.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="usb_8h_1aea84810d71fa35c1f119c612bc5d4c1d" prot="public" static="no">
+        <name>USB_SET_IDLE</name>
+        <initializer>0x210A</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="19" column="9" bodyfile="/docs/include/pb/usb.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="usb_8h_1aa67b33c92058865b65a155ee097b90b8" prot="public" static="no">
+        <name>USB_SET_FEATURE</name>
+        <initializer>0x0003</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="20" column="9" bodyfile="/docs/include/pb/usb.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="usb_8h_1a87c078925af5119ea0bf02123df950de" prot="public" static="no">
+        <name>USB_SET_ADDRESS</name>
+        <initializer>0x0005</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="21" column="9" bodyfile="/docs/include/pb/usb.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="usb_8h_1a7ae4f2fc0c17aa90a9dbc09d05cbf011" prot="public" static="no">
+        <name>USB_GET_STATUS</name>
+        <initializer>0x8000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="22" column="9" bodyfile="/docs/include/pb/usb.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="usb_8h_1a2b4e73bf13df0502b9413afdd7cfdc08" prot="public" static="no">
+        <name>PB_USB_VID</name>
+        <initializer>0x1209</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="25" column="13" bodyfile="/docs/include/pb/usb.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="usb_8h_1a4455702ac7952f975e91e3aa0cdb7b06" prot="public" static="no">
+        <name>PB_USB_PID</name>
+        <initializer>0x2019</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="29" column="13" bodyfile="/docs/include/pb/usb.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4" prot="public" static="no">
+        <name>pb_usb_eps</name>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4acc062d5dfd6a5e5e02d11e70df5086db" prot="public">
+          <name>USB_EP0_OUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4ac931f2d0c4f0b34572ced3d89fb6acd0" prot="public">
+          <name>USB_EP0_IN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4aaa0b360718196e1222794553b94f51bc" prot="public">
+          <name>USB_EP1_OUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4ad82ace148be0ea18eb6d8b7f3fe4a7fc" prot="public">
+          <name>USB_EP1_IN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4a1977512328ba72ec10e5e052db5372dc" prot="public">
+          <name>USB_EP2_OUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4af86e6caee56864b47d1c612703aa87c7" prot="public">
+          <name>USB_EP2_IN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4a51039ffb00ef56a1d33dbf84287f06c1" prot="public">
+          <name>USB_EP3_OUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4a280b4b65fad95bf1332569f7b55e7a33" prot="public">
+          <name>USB_EP3_IN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4a39832341e6103eec46f67d8127095f60" prot="public">
+          <name>USB_EP4_OUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4ac86bb1e36d9f41222e3c619f9cdaa2b7" prot="public">
+          <name>USB_EP4_IN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4ab05ec5fb233cfbb30761769e88f185db" prot="public">
+          <name>USB_EP5_OUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4aec04fd6619311464093e3076d9e06076" prot="public">
+          <name>USB_EP5_IN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4a0e4030aa18653d0423ac36e430f84226" prot="public">
+          <name>USB_EP6_OUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4a1f1c2d09a7d9985e4a78be8fc1d8b9c5" prot="public">
+          <name>USB_EP6_IN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4a269ebee603911258e1673a0e0c577e8e" prot="public">
+          <name>USB_EP7_OUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1a960cc78b00f2ade2a715050b3bd0dcd4a88ed9c10cf676c3e0f9c0d0e89ec66ad" prot="public">
+          <name>USB_EP7_IN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="33" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="32" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="enum" id="usb_8h_1ac465aa55f9eb9a58847df1923320ea05" prot="public" static="no">
+        <name>usb_charger_type</name>
+        <enumvalue id="usb_8h_1ac465aa55f9eb9a58847df1923320ea05a22aaaa57e48841daaa537cf0c1fc7dc1" prot="public">
+          <name>USB_CHARGER_UNKNOWN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1ac465aa55f9eb9a58847df1923320ea05acfa449bec4d6a096c15d8e2b0e796bcd" prot="public">
+          <name>USB_CHARGER_CDP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1ac465aa55f9eb9a58847df1923320ea05a490b2d3420ee8c1c828aaa364e5634b2" prot="public">
+          <name>USB_CHARGER_DCP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="usb_8h_1ac465aa55f9eb9a58847df1923320ea05a325119bc5891992c9161a4afb16bdaae" prot="public">
+          <name>USB_CHARGER_SDP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="135" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="134" bodyend="140"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="usb_8h_1af3795d8a035b027cbb84d6de5ca7f51d" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* pb_usb_io_t) (int ep, void *buf, size_t size)</definition>
+        <argsstring>)(int ep, void *buf, size_t size)</argsstring>
+        <name>pb_usb_io_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="142" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="usb_8h_1a26ac8726f14592f2513ab119b158a440" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* pb_usb_call_t) (void)</definition>
+        <argsstring>)(void)</argsstring>
+        <name>pb_usb_call_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="144" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="usb_8h_1ab70063f9e29e835ac742d65481b20789" prot="public" static="no">
+        <type>bool(*</type>
+        <definition>typedef bool(* pb_usb_status_t) (void)</definition>
+        <argsstring>)(void)</argsstring>
+        <name>pb_usb_status_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="146" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="usb_8h_1abd56811519cdde31126c9998f6a443f1" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* pb_usb_set_addr_t) (uint32_t addr)</definition>
+        <argsstring>)(uint32_t addr)</argsstring>
+        <name>pb_usb_set_addr_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="148" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="usb_8h_1af0b7431513732d8ac03c980d36b8b07e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int usb_process_setup_pkt</definition>
+        <argsstring>(struct pb_usb_interface *iface, struct usb_setup_packet *setup)</argsstring>
+        <name>usb_process_setup_pkt</name>
+        <param>
+          <type>struct <ref refid="structpb__usb__interface" kindref="compound">pb_usb_interface</ref> *</type>
+          <declname>iface</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structusb__setup__packet" kindref="compound">usb_setup_packet</ref> *</type>
+          <declname>setup</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="159" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="10"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_USB_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_USB_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdbool.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Defines<sp/>for<sp/>commands<sp/>in<sp/>setup<sp/>packets<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USB_GET_DESCRIPTOR<sp/><sp/><sp/><sp/><sp/>0x8006</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USB_SET_CONFIGURATION<sp/><sp/>0x0009</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USB_SET_IDLE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x210A</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USB_SET_FEATURE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x0003</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USB_SET_ADDRESS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x0005</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USB_GET_STATUS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0x8000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>PB_USB_VID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor"><sp/><sp/><sp/><sp/>#define<sp/>PB_USB_VID<sp/>0x1209</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>PB_USB_PID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor"><sp/><sp/><sp/><sp/>#define<sp/>PB_USB_PID<sp/>0x2019</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>pb_usb_eps</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP0_OUT,</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP0_IN,</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP1_OUT,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP1_IN,</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP2_OUT,</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP2_IN,</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP3_OUT,</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP3_IN,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP4_OUT,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP4_IN,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP5_OUT,</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP5_IN,</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP6_OUT,</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP6_IN,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP7_OUT,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_EP7_IN,</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="structusb__setup__packet" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__setup__packet" kindref="compound">usb_setup_packet</ref></highlight></codeline>
+<codeline lineno="53"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54" refid="structusb__setup__packet_1aaea05f60cc195c4fa77f7c78b5a8bb01" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__setup__packet_1aaea05f60cc195c4fa77f7c78b5a8bb01" kindref="member">bRequestType</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="55" refid="structusb__setup__packet_1aab50ed2f2cdcc1d747f6f224fe9d2018" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__setup__packet_1aab50ed2f2cdcc1d747f6f224fe9d2018" kindref="member">bRequest</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="56" refid="structusb__setup__packet_1a619fbc1b9b6452f4394da713bdbc6a89" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structusb__setup__packet_1a619fbc1b9b6452f4394da713bdbc6a89" kindref="member">wValue</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="58" refid="structusb__setup__packet_1a953c058f0e31481a3d59b404037be009" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structusb__setup__packet_1a953c058f0e31481a3d59b404037be009" kindref="member">wIndex</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="59" refid="structusb__setup__packet_1a3421c921569bf3727534652c5f71da96" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structusb__setup__packet_1a3421c921569bf3727534652c5f71da96" kindref="member">wLength</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="60"><highlight class="normal">}<sp/><sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="structusb__device__descriptor" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__device__descriptor" kindref="compound">usb_device_descriptor</ref></highlight></codeline>
+<codeline lineno="63"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="64" refid="structusb__device__descriptor_1af3f980ad55af3fd6c222a8802996ab63" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1af3f980ad55af3fd6c222a8802996ab63" kindref="member">bLength</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="65" refid="structusb__device__descriptor_1ad1ba08da6ad5b6023f1d0d1461daab7d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1ad1ba08da6ad5b6023f1d0d1461daab7d" kindref="member">bDescriptorType</ref>;<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="66" refid="structusb__device__descriptor_1aa400edb6c3183d4922411cdaf980b84e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structusb__device__descriptor_1aa400edb6c3183d4922411cdaf980b84e" kindref="member">bcdUSB</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="67" refid="structusb__device__descriptor_1aa657267e1d9762b7d2ed3eb60a78d9ad" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1aa657267e1d9762b7d2ed3eb60a78d9ad" kindref="member">bDeviceClass</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="68" refid="structusb__device__descriptor_1aecfbe730bc3eeccc9c4b5fd17f5f3c3c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1aecfbe730bc3eeccc9c4b5fd17f5f3c3c" kindref="member">bDeviceSubClass</ref>;<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="69" refid="structusb__device__descriptor_1a56829af76e57a6ea4fc621b52a0664f8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1a56829af76e57a6ea4fc621b52a0664f8" kindref="member">bDeviceProtocol</ref>;<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="70" refid="structusb__device__descriptor_1af4ea427f5567e12e319297535e54e192" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1af4ea427f5567e12e319297535e54e192" kindref="member">bMaxPacketSize</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="71" refid="structusb__device__descriptor_1a043126e48bebbab536540e44428b6b4f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structusb__device__descriptor_1a043126e48bebbab536540e44428b6b4f" kindref="member">idVendor</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="72" refid="structusb__device__descriptor_1a70d5ecc7bad486b8a8840d86aa151579" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structusb__device__descriptor_1a70d5ecc7bad486b8a8840d86aa151579" kindref="member">idProduct</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="73" refid="structusb__device__descriptor_1a41416aa4a49999d2f3f0f67bdc5fa7da" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structusb__device__descriptor_1a41416aa4a49999d2f3f0f67bdc5fa7da" kindref="member">bcdDevice</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="74" refid="structusb__device__descriptor_1ad082330020575944b8471459b816cb40" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1ad082330020575944b8471459b816cb40" kindref="member">iManufacturer</ref>;<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="76" refid="structusb__device__descriptor_1acb90b91c59e65adbcc21949cf0f486f7" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1acb90b91c59e65adbcc21949cf0f486f7" kindref="member">iProduct</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="77" refid="structusb__device__descriptor_1a105d91b68091e61c9b13ea673fb98eaf" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1a105d91b68091e61c9b13ea673fb98eaf" kindref="member">iSerialNumber</ref>;<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="79" refid="structusb__device__descriptor_1a603204b0517e9ece9bc0d8476b2a7cdc" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structusb__device__descriptor_1a603204b0517e9ece9bc0d8476b2a7cdc" kindref="member">bNumConfigurations</ref>;<sp/></highlight></codeline>
+<codeline lineno="80"><highlight class="normal">}<sp/><sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="structusb__configuration__descriptor" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__configuration__descriptor" kindref="compound">usb_configuration_descriptor</ref></highlight></codeline>
+<codeline lineno="83"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bLength;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Size<sp/>of<sp/>descriptor</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bDescriptorType;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>CONFIGURATION<sp/>Descriptor<sp/>Type</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>wTotalLength;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Total<sp/>length<sp/>of<sp/>data<sp/>returned<sp/>for<sp/>this</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>configuration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bNumInterfaces;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Number<sp/>of<sp/>interfaces<sp/>supported<sp/>by</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>this<sp/>configuration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bConfigurationValue;<sp/><sp/></highlight><highlight class="comment">//<sp/>Value<sp/>to<sp/>use<sp/>as<sp/>an<sp/>argument<sp/>to<sp/>the<sp/>to</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>select<sp/>this<sp/>configuration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>iConfiguration;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Index<sp/>of<sp/>string<sp/>descriptor<sp/>describing</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>this<sp/>configuration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bmAttributes;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Configuration<sp/>characteristics</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>MaxPower;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Maximum<sp/>power<sp/>consumption<sp/>of<sp/>the<sp/>USB<sp/>device</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal">}<sp/><sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="structusb__interface__descriptor" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__interface__descriptor" kindref="compound">usb_interface_descriptor</ref></highlight></codeline>
+<codeline lineno="100"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bLength;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Size<sp/>of<sp/>this<sp/>descriptor<sp/>in<sp/>bytes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bDescriptorType;<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>INTERFACE<sp/>Descriptor<sp/>Type</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bInterfaceNumber;<sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Number<sp/>of<sp/>this<sp/>interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bAlternateSetting;<sp/><sp/></highlight><highlight class="comment">//<sp/>Value<sp/>used<sp/>to<sp/>select<sp/>this<sp/>alternate<sp/>setting</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bNumEndpoints;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Number<sp/>of<sp/>endpoints<sp/>used<sp/>by<sp/>this<sp/>interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bInterfaceClass;<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Class<sp/>code</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bInterfaceSubClass;<sp/><sp/></highlight><highlight class="comment">//<sp/>Subclass<sp/>code</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bInterfaceProtocol;<sp/><sp/></highlight><highlight class="comment">//<sp/>Protocol<sp/>code</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>iInterface;<sp/><sp/></highlight><highlight class="comment">//<sp/>Index<sp/>of<sp/>string<sp/>descriptor<sp/>describing<sp/>this<sp/>interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal">}<sp/><sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113" refid="structusb__endpoint__descriptor" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__endpoint__descriptor" kindref="compound">usb_endpoint_descriptor</ref></highlight></codeline>
+<codeline lineno="114"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bLength;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Size<sp/>of<sp/>this<sp/>descriptor<sp/>in<sp/>bytes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bDescriptorType;<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>ENDPOINT<sp/>Descriptor<sp/>Type</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bEndpointAddress;<sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>address<sp/>of<sp/>the<sp/>endpoint<sp/>on<sp/>the<sp/>USB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>device<sp/>described<sp/>by<sp/>this<sp/>descriptor</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bmAttributes;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>endpoint&apos;ss<sp/>attributes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>wMaxPacketSize;<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Maximum<sp/>packet<sp/>size</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>bInterval;<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Interval<sp/>for<sp/>polling<sp/>endpoint<sp/>for<sp/>data<sp/>transfers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal">}<sp/><sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125" refid="structusb__descriptors" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__descriptors" kindref="compound">usb_descriptors</ref></highlight></codeline>
+<codeline lineno="126"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__device__descriptor" kindref="compound">usb_device_descriptor</ref><sp/>device;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__configuration__descriptor" kindref="compound">usb_configuration_descriptor</ref><sp/>config;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__interface__descriptor" kindref="compound">usb_interface_descriptor</ref><sp/>interface;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__endpoint__descriptor" kindref="compound">usb_endpoint_descriptor</ref><sp/>endpoint_bulk_in;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structusb__endpoint__descriptor" kindref="compound">usb_endpoint_descriptor</ref><sp/>endpoint_bulk_out;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>usb_charger_type</highlight></codeline>
+<codeline lineno="135"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_CHARGER_UNKNOWN,</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_CHARGER_CDP,</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_CHARGER_DCP,</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/>USB_CHARGER_SDP,</highlight></codeline>
+<codeline lineno="140"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*pb_usb_io_t)<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ep,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*pb_usb_call_t)<sp/>(void);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>bool<sp/>(*pb_usb_status_t)<sp/>(void);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*pb_usb_set_addr_t)<sp/>(uint32_t<sp/>addr);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150" refid="structpb__usb__interface" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__usb__interface" kindref="compound">pb_usb_interface</ref></highlight></codeline>
+<codeline lineno="151"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_usb_io_t<sp/>read;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_usb_io_t<sp/>write;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_usb_call_t<sp/>set_configuration;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_usb_set_addr_t<sp/>set_address;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enumerated;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>usb_process_setup_pkt(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__usb__interface" kindref="compound">pb_usb_interface</ref><sp/>*iface,</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structusb__setup__packet" kindref="compound">usb_setup_packet</ref><sp/>*setup);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_USB_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/usb.h"/>
+  </compounddef>
+</doxygen>

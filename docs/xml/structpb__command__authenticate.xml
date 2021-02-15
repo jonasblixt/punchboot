@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__authenticate" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_authenticate</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__authenticate_1acd90b94a995d430da2a6852990f4c97e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_authenticate::method</definition>
+        <argsstring></argsstring>
+        <name>method</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Method to use for authenticaton see enum pb_auth_method </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="245" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="245" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__authenticate_1a3d67499c136e9580c2670d4e11ebd8c3" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t pb_command_authenticate::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Authentication data size in bytes </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="246" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="246" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__authenticate_1a2a045294ae4341302bab1866546d185b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_command_authenticate::key_id</definition>
+        <argsstring></argsstring>
+        <name>key_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Optional key id for token based auth </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="247" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__authenticate_1a8946e60668166aff43b462f59f168828" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_authenticate::rz[25]</definition>
+        <argsstring>[25]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="248" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="248" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Authentication command</para><para>The authentication command must be followed by a write opertion by the host that contains the authentication data. </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="244" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="243" bodyend="249"/>
+    <listofallmembers>
+      <member refid="structpb__command__authenticate_1a2a045294ae4341302bab1866546d185b" prot="public" virt="non-virtual"><scope>pb_command_authenticate</scope><name>key_id</name></member>
+      <member refid="structpb__command__authenticate_1acd90b94a995d430da2a6852990f4c97e" prot="public" virt="non-virtual"><scope>pb_command_authenticate</scope><name>method</name></member>
+      <member refid="structpb__command__authenticate_1a8946e60668166aff43b462f59f168828" prot="public" virt="non-virtual"><scope>pb_command_authenticate</scope><name>rz</name></member>
+      <member refid="structpb__command__authenticate_1a3d67499c136e9580c2670d4e11ebd8c3" prot="public" virt="non-virtual"><scope>pb_command_authenticate</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

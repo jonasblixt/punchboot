@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__sha384__context" kind="struct" language="C++" prot="public">
+    <compoundname>br_sha384_context</compoundname>
+    <includes refid="bearssl__hash_8h" local="no">bearssl_hash.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__sha384__context_1adb2aaa29a1399ec390409dc9fc8cad16" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+        <definition>const br_hash_class* br_sha384_context::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to vtable for this context. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="786" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="786" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__sha384__context_1a8eb7e108b1669f86e44944725f719f06" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_sha384_context::buf[128]</definition>
+        <argsstring>[128]</argsstring>
+        <name>buf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="788" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="788" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__sha384__context_1adff7776fbbaa2c22a6c921426963abab" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t br_sha384_context::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="789" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="789" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__sha384__context_1a3ba8af8d9f4d742dab386c6980353858" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t br_sha384_context::val[8]</definition>
+        <argsstring>[8]</argsstring>
+        <name>val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="790" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="790" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>SHA-384 context. </para>    </briefdescription>
+    <detaileddescription>
+<para>First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="226">
+        <label>br_hash_class_</label>
+        <link refid="structbr__hash__class__"/>
+      </node>
+      <node id="225">
+        <label>br_sha384_context</label>
+        <link refid="structbr__sha384__context"/>
+        <childnode refid="226" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_hash.h" line="782" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="782" bodyend="792"/>
+    <listofallmembers>
+      <member refid="structbr__sha384__context_1a8eb7e108b1669f86e44944725f719f06" prot="public" virt="non-virtual"><scope>br_sha384_context</scope><name>buf</name></member>
+      <member refid="structbr__sha384__context_1adff7776fbbaa2c22a6c921426963abab" prot="public" virt="non-virtual"><scope>br_sha384_context</scope><name>count</name></member>
+      <member refid="structbr__sha384__context_1a3ba8af8d9f4d742dab386c6980353858" prot="public" virt="non-virtual"><scope>br_sha384_context</scope><name>val</name></member>
+      <member refid="structbr__sha384__context_1adb2aaa29a1399ec390409dc9fc8cad16" prot="public" virt="non-virtual"><scope>br_sha384_context</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__asn1__uint" kind="struct" language="C++" prot="public">
+    <compoundname>br_asn1_uint</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__asn1__uint_1ade00cde8bd8bc528bd8e3396beaf473b" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_asn1_uint::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="2080" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2080" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__asn1__uint_1a454b7dc6ee61934d28b5231c8a3fb5ed" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_asn1_uint::len</definition>
+        <argsstring></argsstring>
+        <name>len</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="2081" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2081" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__asn1__uint_1a2fe28c59f37721265ca98014ebb1c6d5" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_asn1_uint::asn1len</definition>
+        <argsstring></argsstring>
+        <name>asn1len</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="2082" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2082" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/inner.h" line="2079" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2079" bodyend="2083"/>
+    <listofallmembers>
+      <member refid="structbr__asn1__uint_1a2fe28c59f37721265ca98014ebb1c6d5" prot="public" virt="non-virtual"><scope>br_asn1_uint</scope><name>asn1len</name></member>
+      <member refid="structbr__asn1__uint_1ade00cde8bd8bc528bd8e3396beaf473b" prot="public" virt="non-virtual"><scope>br_asn1_uint</scope><name>data</name></member>
+      <member refid="structbr__asn1__uint_1a454b7dc6ee61934d28b5231c8a3fb5ed" prot="public" virt="non-virtual"><scope>br_asn1_uint</scope><name>len</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

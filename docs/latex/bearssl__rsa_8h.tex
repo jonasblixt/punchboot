@@ -1,0 +1,2039 @@
+\hypertarget{bearssl__rsa_8h}{}\section{/docs/lib/bearssl/bearssl\+\_\+rsa.h File Reference}
+\label{bearssl__rsa_8h}\index{/docs/lib/bearssl/bearssl\+\_\+rsa.\+h@{/docs/lib/bearssl/bearssl\+\_\+rsa.\+h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}bearssl\+\_\+hash.\+h\char`\"{}}\newline
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key}
+\begin{DoxyCompactList}\small\item\em R\+SA public key. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key}
+\begin{DoxyCompactList}\small\item\em R\+SA private key. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{bearssl__rsa_8h_a815e649c36eaeaaca75435b8964a1981}{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A1}~((const unsigned char $\ast$)\char`\"{}\textbackslash{}x05\textbackslash{}x2\+B\textbackslash{}x0\+E\textbackslash{}x03\textbackslash{}x02\textbackslash{}x1A\char`\"{})
+\begin{DoxyCompactList}\small\item\em Type for a R\+SA signature generation engine (P\+SS). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__rsa_8h_ab29aa8ea85eac4489f5891204ef71a8c}\label{bearssl__rsa_8h_ab29aa8ea85eac4489f5891204ef71a8c}} 
+\#define \hyperlink{bearssl__rsa_8h_ab29aa8ea85eac4489f5891204ef71a8c}{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A224}~((const unsigned char $\ast$)\char`\"{}\textbackslash{}x09\textbackslash{}x60\textbackslash{}x86\textbackslash{}x48\textbackslash{}x01\textbackslash{}x65\textbackslash{}x03\textbackslash{}x04\textbackslash{}x02\textbackslash{}x04\char`\"{})
+\begin{DoxyCompactList}\small\item\em Encoded O\+ID for S\+H\+A-\/224 (in R\+SA P\+K\+CS\#1 signatures). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__rsa_8h_ace154a99e1432b1a066d356eebfdadfa}\label{bearssl__rsa_8h_ace154a99e1432b1a066d356eebfdadfa}} 
+\#define \hyperlink{bearssl__rsa_8h_ace154a99e1432b1a066d356eebfdadfa}{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A256}~((const unsigned char $\ast$)\char`\"{}\textbackslash{}x09\textbackslash{}x60\textbackslash{}x86\textbackslash{}x48\textbackslash{}x01\textbackslash{}x65\textbackslash{}x03\textbackslash{}x04\textbackslash{}x02\textbackslash{}x01\char`\"{})
+\begin{DoxyCompactList}\small\item\em Encoded O\+ID for S\+H\+A-\/256 (in R\+SA P\+K\+CS\#1 signatures). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__rsa_8h_a6a55f643d23cb3ac74082094d7906aad}\label{bearssl__rsa_8h_a6a55f643d23cb3ac74082094d7906aad}} 
+\#define \hyperlink{bearssl__rsa_8h_a6a55f643d23cb3ac74082094d7906aad}{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A384}~((const unsigned char $\ast$)\char`\"{}\textbackslash{}x09\textbackslash{}x60\textbackslash{}x86\textbackslash{}x48\textbackslash{}x01\textbackslash{}x65\textbackslash{}x03\textbackslash{}x04\textbackslash{}x02\textbackslash{}x02\char`\"{})
+\begin{DoxyCompactList}\small\item\em Encoded O\+ID for S\+H\+A-\/384 (in R\+SA P\+K\+CS\#1 signatures). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__rsa_8h_ae7bd98226f182dbaf9f914ac5fb80580}\label{bearssl__rsa_8h_ae7bd98226f182dbaf9f914ac5fb80580}} 
+\#define \hyperlink{bearssl__rsa_8h_ae7bd98226f182dbaf9f914ac5fb80580}{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A512}~((const unsigned char $\ast$)\char`\"{}\textbackslash{}x09\textbackslash{}x60\textbackslash{}x86\textbackslash{}x48\textbackslash{}x01\textbackslash{}x65\textbackslash{}x03\textbackslash{}x04\textbackslash{}x02\textbackslash{}x03\char`\"{})
+\begin{DoxyCompactList}\small\item\em Encoded O\+ID for S\+H\+A-\/512 (in R\+SA P\+K\+CS\#1 signatures). \end{DoxyCompactList}\item 
+\#define \hyperlink{bearssl__rsa_8h_a15e8845949a1bf95c679c62557b61237}{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+S\+I\+ZE}(size)~(5 $\ast$ (((size) + 15) $>$$>$ 4))
+\begin{DoxyCompactList}\small\item\em Get buffer size to hold R\+SA private key elements. \end{DoxyCompactList}\item 
+\#define \hyperlink{bearssl__rsa_8h_ae8cd0870bccef433f66997fbfa95d044}{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+S\+I\+ZE}(size)~(4 + (((size) + 7) $>$$>$ 3))
+\begin{DoxyCompactList}\small\item\em Get buffer size to hold R\+SA public key elements. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef uint32\+\_\+t($\ast$ \hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public}) (unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em Type for a R\+SA public key engine. \end{DoxyCompactList}\item 
+typedef uint32\+\_\+t($\ast$ \hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy}) (const unsigned char $\ast$x, size\+\_\+t xlen, const unsigned char $\ast$hash\+\_\+oid, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk, unsigned char $\ast$hash\+\_\+out)
+\begin{DoxyCompactList}\small\item\em Type for a R\+SA signature verification engine (P\+K\+CS\#1 v1.\+5). \end{DoxyCompactList}\item 
+typedef uint32\+\_\+t($\ast$ \hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private}) (unsigned char $\ast$x, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em Type for a R\+SA signature verification engine (P\+SS). \end{DoxyCompactList}\item 
+typedef uint32\+\_\+t($\ast$ \hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign}) (const unsigned char $\ast$hash\+\_\+oid, const unsigned char $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, unsigned char $\ast$x)
+\begin{DoxyCompactList}\small\item\em Type for a R\+SA signature generation engine (P\+K\+CS\#1 v1.\+5). \end{DoxyCompactList}\item 
+typedef uint32\+\_\+t($\ast$ \hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt}) (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$dig, const void $\ast$label, size\+\_\+t label\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, void $\ast$data, size\+\_\+t $\ast$len)
+\begin{DoxyCompactList}\small\item\em Type for a R\+SA decryption engine (O\+A\+EP). \end{DoxyCompactList}\item 
+typedef size\+\_\+t($\ast$ \hyperlink{bearssl__rsa_8h_a9a30757ef7b79641b27a3431bfe8874e}{br\+\_\+rsa\+\_\+compute\+\_\+modulus}) (void $\ast$n, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em Type for R\+SA key pair generator implementation. \end{DoxyCompactList}\item 
+typedef uint32\+\_\+t($\ast$ \hyperlink{bearssl__rsa_8h_ab497818a6f2585fea9387b01f4a922e1}{br\+\_\+rsa\+\_\+compute\+\_\+pubexp}) (const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em Type for a public exponent computing function. \end{DoxyCompactList}\item 
+typedef size\+\_\+t($\ast$ \hyperlink{bearssl__rsa_8h_ac7e80273a3a9edc13468c6e479f40f28}{br\+\_\+rsa\+\_\+compute\+\_\+privexp}) (void $\ast$d, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, uint32\+\_\+t pubexp)
+\begin{DoxyCompactList}\small\item\em Type for a private exponent computing function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_ac352f411eca5ec01119c537be37d3656}{br\+\_\+rsa\+\_\+i32\+\_\+public} (unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em R\+SA public key engine \char`\"{}i32\char`\"{}. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a9889bf6982e3cf9829138131be3c626f}{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+vrfy} (const unsigned char $\ast$x, size\+\_\+t xlen, const unsigned char $\ast$hash\+\_\+oid, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk, unsigned char $\ast$hash\+\_\+out)
+\begin{DoxyCompactList}\small\item\em R\+SA signature verification engine \char`\"{}i32\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a9797c7d2aa9b89a9abdc4b9e01bd1067}{br\+\_\+rsa\+\_\+i32\+\_\+pss\+\_\+vrfy} (const unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf\+\_\+data, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf\+\_\+mgf1, const void $\ast$hash, size\+\_\+t salt\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em R\+SA signature verification engine \char`\"{}i32\char`\"{} (P\+SS signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a1022010003c6d57134a077a04007c00b}{br\+\_\+rsa\+\_\+i32\+\_\+private} (unsigned char $\ast$x, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em R\+SA private key engine \char`\"{}i32\char`\"{}. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_ad7c1d1ddec99983263e387a0dfee8d55}{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+sign} (const unsigned char $\ast$hash\+\_\+oid, const unsigned char $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, unsigned char $\ast$x)
+\begin{DoxyCompactList}\small\item\em R\+SA signature generation engine \char`\"{}i32\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a66b7b887dee035f0a7e9c9f069607324}{br\+\_\+rsa\+\_\+i31\+\_\+public} (unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em R\+SA signature generation engine \char`\"{}i32\char`\"{} (P\+SS signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a040cfd6374d2d5ba134e089f99116d4b}{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+vrfy} (const unsigned char $\ast$x, size\+\_\+t xlen, const unsigned char $\ast$hash\+\_\+oid, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk, unsigned char $\ast$hash\+\_\+out)
+\begin{DoxyCompactList}\small\item\em R\+SA signature verification engine \char`\"{}i31\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_ad16d4cf5173707740d3d8996abb7fe44}{br\+\_\+rsa\+\_\+i31\+\_\+pss\+\_\+vrfy} (const unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf\+\_\+data, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf\+\_\+mgf1, const void $\ast$hash, size\+\_\+t salt\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em R\+SA signature verification engine \char`\"{}i31\char`\"{} (P\+SS signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_ac81516db5646d1e323333623180ca737}{br\+\_\+rsa\+\_\+i31\+\_\+private} (unsigned char $\ast$x, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em R\+SA private key engine \char`\"{}i31\char`\"{}. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_ab4294ed643d96474d3bca79aa5e650fe}{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+sign} (const unsigned char $\ast$hash\+\_\+oid, const unsigned char $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, unsigned char $\ast$x)
+\begin{DoxyCompactList}\small\item\em R\+SA signature generation engine \char`\"{}i31\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_aaa865f120975ed6ddf1d3dab08ca1c5a}{br\+\_\+rsa\+\_\+i62\+\_\+public} (unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em R\+SA signature generation engine \char`\"{}i31\char`\"{} (P\+SS signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_af4c246e8c57c031fb2803967765dee04}{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy} (const unsigned char $\ast$x, size\+\_\+t xlen, const unsigned char $\ast$hash\+\_\+oid, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk, unsigned char $\ast$hash\+\_\+out)
+\begin{DoxyCompactList}\small\item\em R\+SA signature verification engine \char`\"{}i62\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a507516c2b4238e824703565668ba47b9}{br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+vrfy} (const unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf\+\_\+data, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf\+\_\+mgf1, const void $\ast$hash, size\+\_\+t salt\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em R\+SA signature verification engine \char`\"{}i62\char`\"{} (P\+SS signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_ae0b0d182b913b50de9863e82c6caef04}{br\+\_\+rsa\+\_\+i62\+\_\+private} (unsigned char $\ast$x, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em R\+SA private key engine \char`\"{}i62\char`\"{}. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a9d71305804fa9038ced239be59559b12}{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign} (const unsigned char $\ast$hash\+\_\+oid, const unsigned char $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, unsigned char $\ast$x)
+\begin{DoxyCompactList}\small\item\em R\+SA signature generation engine \char`\"{}i62\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public} \hyperlink{bearssl__rsa_8h_a6f5c8547d3d6b6b49588d8f7d05a3bcc}{br\+\_\+rsa\+\_\+i62\+\_\+public\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em R\+SA signature generation engine \char`\"{}i62\char`\"{} (P\+SS signatures). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy} \hyperlink{bearssl__rsa_8h_a93198c035a3951982f8a5cda79ef362d}{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Get the R\+SA \char`\"{}i62\char`\"{} implementation (P\+K\+CS\#1 v1.\+5 signature verification), if available. \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private} \hyperlink{bearssl__rsa_8h_a399ad7529be433ec208042eeaf22534b}{br\+\_\+rsa\+\_\+i62\+\_\+private\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Get the R\+SA \char`\"{}i62\char`\"{} implementation (P\+SS signature verification), if available. \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign} \hyperlink{bearssl__rsa_8h_a7bb17eeae232d6a22e73a1ec4fcd6308}{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Get the R\+SA \char`\"{}i62\char`\"{} implementation (P\+K\+CS\#1 v1.\+5 signature generation), if available. \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt} \hyperlink{bearssl__rsa_8h_a2d54ee6a0c2521dcbf72e53c27bcdfa3}{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Get the R\+SA \char`\"{}i62\char`\"{} implementation (P\+SS signature generation), if available. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_abae12d9326f85deebe73b30d8587bea5}{br\+\_\+rsa\+\_\+i15\+\_\+public} (unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em R\+SA public key engine \char`\"{}i15\char`\"{}. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a523c19243ff86b7721d296673cc65743}{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+vrfy} (const unsigned char $\ast$x, size\+\_\+t xlen, const unsigned char $\ast$hash\+\_\+oid, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk, unsigned char $\ast$hash\+\_\+out)
+\begin{DoxyCompactList}\small\item\em R\+SA signature verification engine \char`\"{}i15\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a914a7fc59895d3efe6f1d4f97c6675a3}{br\+\_\+rsa\+\_\+i15\+\_\+pss\+\_\+vrfy} (const unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf\+\_\+data, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf\+\_\+mgf1, const void $\ast$hash, size\+\_\+t salt\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)
+\begin{DoxyCompactList}\small\item\em R\+SA signature verification engine \char`\"{}i15\char`\"{} (P\+SS signatures). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a060e9e9aca1fe6bfa700c76eda09ebe0}{br\+\_\+rsa\+\_\+i15\+\_\+private} (unsigned char $\ast$x, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em R\+SA private key engine \char`\"{}i15\char`\"{}. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a0a5650ab032e3492f83f6f3263c74f76}{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+sign} (const unsigned char $\ast$hash\+\_\+oid, const unsigned char $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, unsigned char $\ast$x)
+\begin{DoxyCompactList}\small\item\em R\+SA signature generation engine \char`\"{}i15\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public} \hyperlink{bearssl__rsa_8h_af697a17ed3b1a0537e154b850ebbdfcd}{br\+\_\+rsa\+\_\+public\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em R\+SA signature generation engine \char`\"{}i15\char`\"{} (P\+SS signatures). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private} \hyperlink{bearssl__rsa_8h_a3a3334ff0b0072e59d8bf5477bc9c9ed}{br\+\_\+rsa\+\_\+private\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} R\+SA implementation (private-\/key operations). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy} \hyperlink{bearssl__rsa_8h_ad0f63d3969b5c2877836e8bc62cf60d8}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} R\+SA implementation (P\+K\+CS\#1 v1.\+5 signature verification). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign} \hyperlink{bearssl__rsa_8h_a53c33b40a9e69de7f0920f960b3fe0f3}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} R\+SA implementation (P\+SS signature verification). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt} \hyperlink{bearssl__rsa_8h_a45b81ba38527f30a820f35e7139fd8fa}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} R\+SA implementation (P\+SS signature generation). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_af9346eacc5c9e1c92649d5a8c6ff173e}{br\+\_\+rsa\+\_\+ssl\+\_\+decrypt} (\hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private} core, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, unsigned char $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em R\+SA decryption helper, for S\+S\+L/\+T\+LS. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a87d081c95ae1340736954f99a20788b5}{br\+\_\+rsa\+\_\+i15\+\_\+oaep\+\_\+decrypt} (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$dig, const void $\ast$label, size\+\_\+t label\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, void $\ast$data, size\+\_\+t $\ast$len)
+\begin{DoxyCompactList}\small\item\em R\+SA encryption (O\+A\+EP) with the \char`\"{}i15\char`\"{} engine. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_ac73f15d91f0a256781999eabbc0a0f01}{br\+\_\+rsa\+\_\+i31\+\_\+oaep\+\_\+decrypt} (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$dig, const void $\ast$label, size\+\_\+t label\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, void $\ast$data, size\+\_\+t $\ast$len)
+\begin{DoxyCompactList}\small\item\em R\+SA encryption (O\+A\+EP) with the \char`\"{}i31\char`\"{} engine. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a2f3971fbb6053759fb95ed7ebfc274da}{br\+\_\+rsa\+\_\+i32\+\_\+oaep\+\_\+decrypt} (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$dig, const void $\ast$label, size\+\_\+t label\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, void $\ast$data, size\+\_\+t $\ast$len)
+\begin{DoxyCompactList}\small\item\em R\+SA encryption (O\+A\+EP) with the \char`\"{}i32\char`\"{} engine. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a7a255ca9e14d83df4ae48cb27b7e8cf7}{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt} (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$dig, const void $\ast$label, size\+\_\+t label\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, void $\ast$data, size\+\_\+t $\ast$len)
+\begin{DoxyCompactList}\small\item\em R\+SA encryption (O\+A\+EP) with the \char`\"{}i62\char`\"{} engine. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__rsa_8h_a9ba7b6f414c70aa2ce0437e910217daa}{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+modulus} (void $\ast$n, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em Recompute R\+SA modulus (\char`\"{}i15\char`\"{} engine). \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__rsa_8h_a7c1ce8eac67f8103dba7de9ed961dccf}{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+modulus} (void $\ast$n, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em Recompute R\+SA modulus (\char`\"{}i31\char`\"{} engine). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_a9a30757ef7b79641b27a3431bfe8874e}{br\+\_\+rsa\+\_\+compute\+\_\+modulus} \hyperlink{bearssl__rsa_8h_a9f2a3b4960034283183588d53d68b51d}{br\+\_\+rsa\+\_\+compute\+\_\+modulus\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} R\+SA implementation (recompute modulus). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a77238f40db189250f90dda7462b0a008}{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+pubexp} (const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em Recompute R\+SA public exponent (\char`\"{}i15\char`\"{} engine). \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__rsa_8h_a46cb658ac235bb8af2ae5fe90eb5fac3}{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+pubexp} (const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em Recompute R\+SA public exponent (\char`\"{}i31\char`\"{} engine). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_ab497818a6f2585fea9387b01f4a922e1}{br\+\_\+rsa\+\_\+compute\+\_\+pubexp} \hyperlink{bearssl__rsa_8h_a391a384a9e26548d49f19df60e9b5065}{br\+\_\+rsa\+\_\+compute\+\_\+pubexp\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} R\+SA implementation (recompute public exponent). \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__rsa_8h_a0848962e49d52203e3eb96d73172ed59}{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+privexp} (void $\ast$d, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, uint32\+\_\+t pubexp)
+\begin{DoxyCompactList}\small\item\em Recompute R\+SA private exponent (\char`\"{}i15\char`\"{} engine). \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__rsa_8h_ac2a223bcba74b6234425560c9d1063c8}{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+privexp} (void $\ast$d, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, uint32\+\_\+t pubexp)
+\begin{DoxyCompactList}\small\item\em Recompute R\+SA private exponent (\char`\"{}i31\char`\"{} engine). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__rsa_8h_ac7e80273a3a9edc13468c6e479f40f28}{br\+\_\+rsa\+\_\+compute\+\_\+privexp} \hyperlink{bearssl__rsa_8h_aaede1ff499ca9a3bd69c33a6757ed1d3}{br\+\_\+rsa\+\_\+compute\+\_\+privexp\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} R\+SA implementation (recompute private exponent). \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsection*{R\+SA}
+
+This file documents the R\+SA implementations provided with Bear\+S\+SL. Note that the S\+SL engine accesses these implementations through a configurable A\+PI, so it is possible to, for instance, run a S\+SL server which uses a R\+SA engine which is not based on this code.
+
+\subsubsection*{Key Elements}
+
+R\+SA public and private keys consist in lists of big integers. All such integers are represented with big-\/endian unsigned notation\+: first byte is the most significant, and the value is positive (so there is no dedicated \char`\"{}sign bit\char`\"{}). Public and private key structures thus contain, for each such integer, a pointer to the first value byte ({\ttfamily unsigned char $\ast$}), and a length ({\ttfamily size\+\_\+t}) which is the number of relevant bytes. As a general rule, minimal-\/length encoding is not enforced\+: values may have extra leading bytes of value 0.
+
+R\+SA public keys consist in two integers\+:
+
+
+\begin{DoxyItemize}
+\item the modulus ({\ttfamily n});
+\item the public exponent ({\ttfamily e}).
+\end{DoxyItemize}
+
+R\+SA private keys, as defined in \href{https://tools.ietf.org/html/rfc3447}{\tt P\+K\+CS\#1}, contain eight integers\+:
+
+
+\begin{DoxyItemize}
+\item the modulus ({\ttfamily n});
+\item the public exponent ({\ttfamily e});
+\item the private exponent ({\ttfamily d});
+\item the first prime factor ({\ttfamily p});
+\item the second prime factor ({\ttfamily q});
+\item the first reduced exponent ({\ttfamily dp}, which is {\ttfamily d} modulo {\ttfamily p-\/1});
+\item the second reduced exponent ({\ttfamily dq}, which is {\ttfamily d} modulo {\ttfamily q-\/1});
+\item the C\+RT coefficient ({\ttfamily iq}, the inverse of {\ttfamily q} modulo {\ttfamily p}).
+\end{DoxyItemize}
+
+However, the implementations defined in Bear\+S\+SL use only five of these integers\+: {\ttfamily p}, {\ttfamily q}, {\ttfamily dp}, {\ttfamily dq} and {\ttfamily iq}.
+
+\subsubsection*{Security Features and Limitations}
+
+The implementations contained in Bear\+S\+SL have the following limitations and features\+:
+
+
+\begin{DoxyItemize}
+\item They are constant-\/time. This means that the execution time and memory access pattern may depend on the {\itshape lengths} of the private key components, but not on their value, nor on the value of the operand. Note that this property is not achieved through random masking, but \char`\"{}true\char`\"{} constant-\/time code.
+\item They support only private keys with two prime factors. R\+SA private keys with three or more prime factors are nominally supported, but rarely used; they may offer faster operations, at the expense of more code and potentially a reduction in security if there are \char`\"{}too many\char`\"{} prime factors.
+\item The public exponent may have arbitrary length. Of course, it is a good idea to keep public exponents small, so that public key operations are fast; but, contrary to some widely deployed implementations, Bear\+S\+SL has no problem with public exponents longer than 32 bits.
+\item The two prime factors of the modulus need not have the same length (but severely imbalanced factor lengths might reduce security). Similarly, there is no requirement that the first factor ({\ttfamily p}) be greater than the second factor ({\ttfamily q}).
+\item Prime factors and modulus must be smaller than a compile-\/time limit. This is made necessary by the use of fixed-\/size stack buffers, and the limit has been adjusted to keep stack usage under 2 kB for the R\+SA operations. Currently, the maximum modulus size is 4096 bits, and the maximum prime factor size is 2080 bits.
+\item The R\+SA functions themselves do not enforce lower size limits, except that which is absolutely necessary for the operation to mathematically make sense (e.\+g. a P\+K\+CS\#1 v1.\+5 signature with S\+H\+A-\/1 requires a modulus of at least 361 bits). It is up to users of this code to enforce size limitations when appropriate (e.\+g. the X.\+509 validation engine, by default, rejects R\+SA keys of less than 1017 bits).
+\item Within the size constraints expressed above, arbitrary bit lengths are supported. There is no requirement that prime factors or modulus have a size multiple of 8 or 16.
+\item When verifying P\+K\+CS\#1 v1.\+5 signatures, both variants of the hash function identifying header (with and without the A\+S\+N.\+1 N\+U\+LL) are supported. When producing such signatures, the variant with the A\+S\+N.\+1 N\+U\+LL is used.
+\end{DoxyItemize}
+
+\subsubsection*{Implementations}
+
+Three R\+SA implementations are included\+:
+
+
+\begin{DoxyItemize}
+\item The {\bfseries i32} implementation internally represents big integers as arrays of 32-\/bit integers. It is perfunctory and portable, but not very efficient.
+\item The {\bfseries i31} implementation uses 32-\/bit integers, each containing 31 bits worth of integer data. The i31 implementation is somewhat faster than the i32 implementation (the reduced integer size makes carry propagation easier) for a similar code footprint, but uses very slightly larger stack buffers (about 4\% bigger).
+\item The {\bfseries i62} implementation is similar to the i31 implementation, except that it internally leverages the 64x64-\/$>$128 multiplication opcode. This implementation is available only on architectures where such an opcode exists. It is much faster than i31.
+\item The {\bfseries i15} implementation uses 16-\/bit integers, each containing 15 bits worth of integer data. Multiplication results fit on 32 bits, so this won\textquotesingle{}t use the \char`\"{}widening\char`\"{} multiplication routine on A\+RM Cortex M0/\+M0+, for much better performance and constant-\/time execution. 
+\end{DoxyItemize}
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{bearssl__rsa_8h_a815e649c36eaeaaca75435b8964a1981}\label{bearssl__rsa_8h_a815e649c36eaeaaca75435b8964a1981}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A1@{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A1}}
+\index{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A1@{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A1}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A1}{BR\_HASH\_OID\_SHA1}}
+{\footnotesize\ttfamily \#define B\+R\+\_\+\+H\+A\+S\+H\+\_\+\+O\+I\+D\+\_\+\+S\+H\+A1~((const unsigned char $\ast$)\char`\"{}\textbackslash{}x05\textbackslash{}x2\+B\textbackslash{}x0\+E\textbackslash{}x03\textbackslash{}x02\textbackslash{}x1A\char`\"{})}
+
+
+
+Type for a R\+SA signature generation engine (P\+SS). 
+
+Parameters are\+:
+
+
+\begin{DoxyItemize}
+\item An initialized P\+R\+NG for salt generation. If the salt length is zero ({\ttfamily salt\+\_\+len} parameter), then the P\+R\+NG is optional (this is not the typical case, as the security proof of R\+S\+A/\+P\+SS is tighter when a non-\/empty salt is used).
+\item The hash function which was used to hash the message.
+\item The hash function to use with M\+G\+F1 within the P\+SS padding. This is not necessarily the same function as the one used to hash the message.
+\item The hashed message.
+\item The salt length, in bytes.
+\item The R\+SA private key.
+\item The output buffer, that receives the signature.
+\end{DoxyItemize}
+
+Returned value is 1 on success, 0 on error. Error conditions include a too small modulus for the provided hash and salt lengths, or some invalid key parameters. The signature length is exactly {\ttfamily (sk-\/$>$n\+\_\+bitlen+7)/8} bytes.
+
+This function is expected to be constant-\/time with regards to the private key bytes (lengths of the modulus and the individual factors may leak, though) and to the hashed data.
+
+
+\begin{DoxyParams}{Parameters}
+{\em rng} & P\+R\+NG for salt generation ({\ttfamily N\+U\+LL} if {\ttfamily salt\+\_\+len} is zero). \\
+\hline
+{\em hf\+\_\+data} & hash function used to hash the signed data. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hashed message. \\
+\hline
+{\em salt\+\_\+len} & salt length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the signature value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. Encoded O\+ID for S\+H\+A-\/1 (in R\+SA P\+K\+CS\#1 signatures). 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a15e8845949a1bf95c679c62557b61237}\label{bearssl__rsa_8h_a15e8845949a1bf95c679c62557b61237}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+S\+I\+ZE@{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+S\+I\+ZE}}
+\index{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+S\+I\+ZE@{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+S\+I\+ZE}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+S\+I\+ZE}{BR\_RSA\_KBUF\_PRIV\_SIZE}}
+{\footnotesize\ttfamily \#define B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+S\+I\+ZE(\begin{DoxyParamCaption}\item[{}]{size }\end{DoxyParamCaption})~(5 $\ast$ (((size) + 15) $>$$>$ 4))}
+
+
+
+Get buffer size to hold R\+SA private key elements. 
+
+This macro returns the length (in bytes) of the buffer needed to receive the elements of a R\+SA private key, as generated by one of the {\ttfamily br\+\_\+rsa\+\_\+$\ast$\+\_\+keygen()} functions. If the provided size is a constant expression, then the whole macro evaluates to a constant expression.
+
+
+\begin{DoxyParams}{Parameters}
+{\em size} & target key size (modulus size, in bits) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the length of the private key buffer, in bytes. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ae8cd0870bccef433f66997fbfa95d044}\label{bearssl__rsa_8h_ae8cd0870bccef433f66997fbfa95d044}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+S\+I\+ZE@{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+S\+I\+ZE}}
+\index{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+S\+I\+ZE@{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+S\+I\+ZE}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+S\+I\+ZE}{BR\_RSA\_KBUF\_PUB\_SIZE}}
+{\footnotesize\ttfamily \#define B\+R\+\_\+\+R\+S\+A\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+S\+I\+ZE(\begin{DoxyParamCaption}\item[{}]{size }\end{DoxyParamCaption})~(4 + (((size) + 7) $>$$>$ 3))}
+
+
+
+Get buffer size to hold R\+SA public key elements. 
+
+This macro returns the length (in bytes) of the buffer needed to receive the elements of a R\+SA public key, as generated by one of the {\ttfamily br\+\_\+rsa\+\_\+$\ast$\+\_\+keygen()} functions. If the provided size is a constant expression, then the whole macro evaluates to a constant expression.
+
+
+\begin{DoxyParams}{Parameters}
+{\em size} & target key size (modulus size, in bits) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the length of the public key buffer, in bytes. 
+\end{DoxyReturn}
+
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{bearssl__rsa_8h_a9a30757ef7b79641b27a3431bfe8874e}\label{bearssl__rsa_8h_a9a30757ef7b79641b27a3431bfe8874e}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+compute\+\_\+modulus@{br\+\_\+rsa\+\_\+compute\+\_\+modulus}}
+\index{br\+\_\+rsa\+\_\+compute\+\_\+modulus@{br\+\_\+rsa\+\_\+compute\+\_\+modulus}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+compute\+\_\+modulus}{br\_rsa\_compute\_modulus}}
+{\footnotesize\ttfamily typedef size\+\_\+t($\ast$ br\+\_\+rsa\+\_\+compute\+\_\+modulus) (void $\ast$n, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)}
+
+
+
+Type for R\+SA key pair generator implementation. 
+
+This function generates a new R\+SA key pair whose modulus has bit length {\ttfamily size} bits. The private key elements are written in the {\ttfamily kbuf\+\_\+priv} buffer, and pointer values and length fields to these elements are populated in the provided private key structure {\ttfamily sk}. Similarly, the public key elements are written in {\ttfamily kbuf\+\_\+pub}, with pointers and lengths set in {\ttfamily pk}.
+
+If {\ttfamily pk} is {\ttfamily N\+U\+LL}, then {\ttfamily kbuf\+\_\+pub} may be {\ttfamily N\+U\+LL}, and only the private key is set.
+
+If {\ttfamily pubexp} is not zero, then its value will be used as public exponent. Valid R\+SA public exponent values are odd integers greater than 1. If {\ttfamily pubexp} is zero, then the public exponent will have value 3.
+
+The provided P\+R\+NG ({\ttfamily rng\+\_\+ctx}) must have already been initialized and seeded.
+
+Returned value is 1 on success, 0 on error. An error is reported if the requested range is outside of the supported key sizes, or if an invalid non-\/zero public exponent value is provided. Supported range starts at 512 bits, and up to an implementation-\/defined maximum (by default 4096 bits). Note that key sizes up to 768 bits have been broken in practice, and sizes lower than 2048 bits are usually considered to be weak and should not be used.
+
+
+\begin{DoxyParams}{Parameters}
+{\em rng\+\_\+ctx} & source P\+R\+NG context (already initialized) \\
+\hline
+{\em sk} & R\+SA private key structure (destination) \\
+\hline
+{\em kbuf\+\_\+priv} & buffer for private key elements \\
+\hline
+{\em pk} & R\+SA public key structure (destination), or {\ttfamily N\+U\+LL} \\
+\hline
+{\em kbuf\+\_\+pub} & buffer for public key elements, or {\ttfamily N\+U\+LL} \\
+\hline
+{\em size} & target R\+SA modulus size (in bits) \\
+\hline
+{\em pubexp} & public exponent to use, or zero \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error (invalid parameters) R\+SA key pair generation with the \char`\"{}i15\char`\"{} engine.
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+keygen
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rng\+\_\+ctx} & source P\+R\+NG context (already initialized) \\
+\hline
+{\em sk} & R\+SA private key structure (destination) \\
+\hline
+{\em kbuf\+\_\+priv} & buffer for private key elements \\
+\hline
+{\em pk} & R\+SA public key structure (destination), or {\ttfamily N\+U\+LL} \\
+\hline
+{\em kbuf\+\_\+pub} & buffer for public key elements, or {\ttfamily N\+U\+LL} \\
+\hline
+{\em size} & target R\+SA modulus size (in bits) \\
+\hline
+{\em pubexp} & public exponent to use, or zero \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error (invalid parameters) R\+SA key pair generation with the \char`\"{}i31\char`\"{} engine.
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+keygen
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rng\+\_\+ctx} & source P\+R\+NG context (already initialized) \\
+\hline
+{\em sk} & R\+SA private key structure (destination) \\
+\hline
+{\em kbuf\+\_\+priv} & buffer for private key elements \\
+\hline
+{\em pk} & R\+SA public key structure (destination), or {\ttfamily N\+U\+LL} \\
+\hline
+{\em kbuf\+\_\+pub} & buffer for public key elements, or {\ttfamily N\+U\+LL} \\
+\hline
+{\em size} & target R\+SA modulus size (in bits) \\
+\hline
+{\em pubexp} & public exponent to use, or zero \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error (invalid parameters) R\+SA key pair generation with the \char`\"{}i62\char`\"{} engine.
+\end{DoxyReturn}
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily br\+\_\+rsa\+\_\+i62\+\_\+keygen\+\_\+get()} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+keygen
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rng\+\_\+ctx} & source P\+R\+NG context (already initialized) \\
+\hline
+{\em sk} & R\+SA private key structure (destination) \\
+\hline
+{\em kbuf\+\_\+priv} & buffer for private key elements \\
+\hline
+{\em pk} & R\+SA public key structure (destination), or {\ttfamily N\+U\+LL} \\
+\hline
+{\em kbuf\+\_\+pub} & buffer for public key elements, or {\ttfamily N\+U\+LL} \\
+\hline
+{\em size} & target R\+SA modulus size (in bits) \\
+\hline
+{\em pubexp} & public exponent to use, or zero \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error (invalid parameters) Get the R\+SA \char`\"{}i62\char`\"{} implementation (key pair generation), if available.
+
+the implementation, or 0. Get \char`\"{}default\char`\"{} R\+SA implementation (key pair generation).
+\end{DoxyReturn}
+This returns the preferred implementation of R\+SA (key pair generation) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. Type for a modulus computing function.
+\end{DoxyReturn}
+Such a function computes the public modulus from the private key. The encoded modulus (unsigned big-\/endian) is written on {\ttfamily n}, and the size (in bytes) is returned. If {\ttfamily n} is {\ttfamily N\+U\+LL}, then the size is returned but the modulus itself is not computed.
+
+If the key size exceeds an internal limit, 0 is returned.
+
+
+\begin{DoxyParams}{Parameters}
+{\em n} & destination buffer (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the modulus length (in bytes), or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ac7e80273a3a9edc13468c6e479f40f28}\label{bearssl__rsa_8h_ac7e80273a3a9edc13468c6e479f40f28}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+compute\+\_\+privexp@{br\+\_\+rsa\+\_\+compute\+\_\+privexp}}
+\index{br\+\_\+rsa\+\_\+compute\+\_\+privexp@{br\+\_\+rsa\+\_\+compute\+\_\+privexp}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+compute\+\_\+privexp}{br\_rsa\_compute\_privexp}}
+{\footnotesize\ttfamily typedef size\+\_\+t($\ast$ br\+\_\+rsa\+\_\+compute\+\_\+privexp) (void $\ast$d, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, uint32\+\_\+t pubexp)}
+
+
+
+Type for a private exponent computing function. 
+
+An R\+SA private key ({\ttfamily \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key}}) contains two reduced private exponents, which are sufficient to perform private key operations. However, standard encoding formats for R\+SA private keys require also a copy of the complete private exponent (non-\/reduced), which this function recomputes.
+
+This function suceeds if all the following conditions hold\+:
+
+
+\begin{DoxyItemize}
+\item Both private factors {\ttfamily p} and {\ttfamily q} are equal to 3 modulo 4.
+\item The provided public exponent {\ttfamily pubexp} is correct, and, in particular, is odd, relatively prime to {\ttfamily p-\/1} and {\ttfamily q-\/1}, and greater than 1.
+\item No internal storage limit is exceeded.
+\end{DoxyItemize}
+
+For all private keys produced by the key generator functions ({\ttfamily br\+\_\+rsa\+\_\+keygen} type), this function succeeds. Note that the A\+PI restricts the public exponent to a maximum size of 32 bits.
+
+The encoded private exponent is written in {\ttfamily d} (unsigned big-\/endian convention), and the length (in bytes) is returned. If {\ttfamily d} is {\ttfamily N\+U\+LL}, then the exponent is not written anywhere, but the length is still returned. On error, 0 is returned.
+
+Not all error conditions are detected when {\ttfamily d} is {\ttfamily N\+U\+LL}; therefore, the returned value shall be checked also when actually producing the value.
+
+
+\begin{DoxyParams}{Parameters}
+{\em d} & destination buffer (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em pubexp} & the public exponent. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the private exponent length (in bytes), or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ab497818a6f2585fea9387b01f4a922e1}\label{bearssl__rsa_8h_ab497818a6f2585fea9387b01f4a922e1}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+compute\+\_\+pubexp@{br\+\_\+rsa\+\_\+compute\+\_\+pubexp}}
+\index{br\+\_\+rsa\+\_\+compute\+\_\+pubexp@{br\+\_\+rsa\+\_\+compute\+\_\+pubexp}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+compute\+\_\+pubexp}{br\_rsa\_compute\_pubexp}}
+{\footnotesize\ttfamily typedef uint32\+\_\+t($\ast$ br\+\_\+rsa\+\_\+compute\+\_\+pubexp) (const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)}
+
+
+
+Type for a public exponent computing function. 
+
+Such a function recomputes the public exponent from the private key. 0 is returned if any of the following occurs\+:
+
+
+\begin{DoxyItemize}
+\item Either {\ttfamily p} or {\ttfamily q} is not equal to 3 modulo 4.
+\item The public exponent does not fit on 32 bits.
+\item An internal limit is exceeded.
+\item The private key is invalid in some way.
+\end{DoxyItemize}
+
+For all private keys produced by the key generator functions ({\ttfamily br\+\_\+rsa\+\_\+keygen} type), this function succeeds and returns the true public exponent. The public exponent is always an odd integer greater than 1.
+
+\begin{DoxyReturn}{Returns}
+the public exponent, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}\label{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt}}
+\index{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt}{br\_rsa\_oaep\_decrypt}}
+{\footnotesize\ttfamily typedef uint32\+\_\+t($\ast$ br\+\_\+rsa\+\_\+oaep\+\_\+decrypt) (const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$dig, const void $\ast$label, size\+\_\+t label\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, void $\ast$data, size\+\_\+t $\ast$len)}
+
+
+
+Type for a R\+SA decryption engine (O\+A\+EP). 
+
+Parameters are\+:
+
+
+\begin{DoxyItemize}
+\item A hash function, used internally with the mask generation function (M\+G\+F1).
+\item A label. The {\ttfamily label} pointer may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero (an empty label, which is the default in P\+K\+CS\#1 v2.\+2).
+\item The private key.
+\item The source and destination buffer. The buffer initially contains the encrypted message; the buffer contents are altered, and the decrypted message is written at the start of that buffer (decrypted message is always shorter than the encrypted message).
+\end{DoxyItemize}
+
+If decryption fails in any way, then {\ttfamily $\ast$len} is unmodified, and the function returns 0. Otherwise, {\ttfamily $\ast$len} is set to the decrypted message length, and 1 is returned. The implementation is responsible for checking that the input message length matches the key modulus length, and that the padding is correct.
+
+Implementations M\+U\+ST use constant-\/time check of the validity of the O\+A\+EP padding, at least until the leading byte and hash value have been checked. Whether overall decryption worked, and the length of the decrypted message, may leak.
+
+
+\begin{DoxyParams}{Parameters}
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em data} & input/output buffer. \\
+\hline
+{\em len} & encrypted/decrypted message length. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}\label{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign}}
+\index{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign}{br\_rsa\_pkcs1\_sign}}
+{\footnotesize\ttfamily typedef uint32\+\_\+t($\ast$ br\+\_\+rsa\+\_\+pkcs1\+\_\+sign) (const unsigned char $\ast$hash\+\_\+oid, const unsigned char $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk, unsigned char $\ast$x)}
+
+
+
+Type for a R\+SA signature generation engine (P\+K\+CS\#1 v1.\+5). 
+
+Parameters are\+:
+
+
+\begin{DoxyItemize}
+\item The encoded O\+ID for the hash function. The provided array must begin with a single byte that contains the length of the O\+ID value (in bytes), followed by exactly that many bytes. This parameter may also be {\ttfamily N\+U\+LL}, in which case the raw hash value should be used with the P\+K\+CS\#1 v1.\+5 \char`\"{}type 1\char`\"{} padding (as used in S\+S\+L/\+T\+LS up to T\+L\+S-\/1.\+1, with a 36-\/byte hash value).
+\item The hash value computes over the data to sign (its length is expressed in bytes).
+\item The R\+SA private key.
+\item The output buffer, that receives the signature.
+\end{DoxyItemize}
+
+Returned value is 1 on success, 0 on error. Error conditions include a too small modulus for the provided hash O\+ID and value, or some invalid key parameters. The signature length is exactly {\ttfamily (sk-\/$>$n\+\_\+bitlen+7)/8} bytes.
+
+This function is expected to be constant-\/time with regards to the private key bytes (lengths of the modulus and the individual factors may leak, though) and to the hashed data.
+
+
+\begin{DoxyParams}{Parameters}
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash} & hash value. \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the signature value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}\label{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy}{br\_rsa\_pkcs1\_vrfy}}
+{\footnotesize\ttfamily typedef uint32\+\_\+t($\ast$ br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy) (const unsigned char $\ast$x, size\+\_\+t xlen, const unsigned char $\ast$hash\+\_\+oid, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk, unsigned char $\ast$hash\+\_\+out)}
+
+
+
+Type for a R\+SA signature verification engine (P\+K\+CS\#1 v1.\+5). 
+
+Parameters are\+:
+
+
+\begin{DoxyItemize}
+\item The signature itself. The provided array is N\+OT modified.
+\item The encoded O\+ID for the hash function. The provided array must begin with a single byte that contains the length of the O\+ID value (in bytes), followed by exactly that many bytes. This parameter may also be {\ttfamily N\+U\+LL}, in which case the raw hash value should be used with the P\+K\+CS\#1 v1.\+5 \char`\"{}type 1\char`\"{} padding (as used in S\+S\+L/\+T\+LS up to T\+L\+S-\/1.\+1, with a 36-\/byte hash value).
+\item The hash output length, in bytes.
+\item The public key.
+\item An output buffer for the hash value. The caller must still compare it with the hash of the data over which the signature is computed.
+\end{DoxyItemize}
+
+{\bfseries Constraints\+:}
+
+
+\begin{DoxyItemize}
+\item Hash length M\+U\+ST be no more than 64 bytes.
+\item O\+ID value length M\+U\+ST be no more than 32 bytes (i.\+e. {\ttfamily hash\+\_\+oid\mbox{[}0\mbox{]}} must have a value in the 0..32 range, inclusive).
+\end{DoxyItemize}
+
+This function verifies that the signature length ({\ttfamily xlen}) matches the modulus length (this function returns 0 on mismatch). If the modulus size exceeds the maximum supported R\+SA size, then the function also returns 0.
+
+Returned value is 1 on success, 0 on error.
+
+Implementations of this type need not be constant-\/time.
+
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash\+\_\+len} & expected hash value length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em hash\+\_\+out} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}\label{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+private@{br\+\_\+rsa\+\_\+private}}
+\index{br\+\_\+rsa\+\_\+private@{br\+\_\+rsa\+\_\+private}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+private}{br\_rsa\_private}}
+{\footnotesize\ttfamily typedef uint32\+\_\+t($\ast$ br\+\_\+rsa\+\_\+private) (unsigned char $\ast$x, const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$sk)}
+
+
+
+Type for a R\+SA signature verification engine (P\+SS). 
+
+Parameters are\+:
+
+
+\begin{DoxyItemize}
+\item The signature itself. The provided array is N\+OT modified.
+\item The hash function which was used to hash the message.
+\item The hash function to use with M\+G\+F1 within the P\+SS padding. This is not necessarily the same hash function as the one which was used to hash the signed message.
+\item The hashed message (as an array of bytes).
+\item The P\+SS salt length (in bytes).
+\item The public key.
+\end{DoxyItemize}
+
+{\bfseries Constraints\+:}
+
+
+\begin{DoxyItemize}
+\item Hash message length M\+U\+ST be no more than 64 bytes.
+\end{DoxyItemize}
+
+Note that, contrary to P\+K\+CS\#1 v1.\+5 signature, the hash value of the signed data cannot be extracted from the signature; it must be provided to the verification function.
+
+This function verifies that the signature length ({\ttfamily xlen}) matches the modulus length (this function returns 0 on mismatch). If the modulus size exceeds the maximum supported R\+SA size, then the function also returns 0.
+
+Returned value is 1 on success, 0 on error.
+
+Implementations of this type need not be constant-\/time.
+
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hf\+\_\+data} & hash function applied on the message. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hash value of the signed message. \\
+\hline
+{\em salt\+\_\+len} & P\+SS salt length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. Type for a R\+SA encryption engine (O\+A\+EP).
+\end{DoxyReturn}
+Parameters are\+:
+
+
+\begin{DoxyItemize}
+\item A source of random bytes. The source must be already initialized.
+\item A hash function, used internally with the mask generation function (M\+G\+F1).
+\item A label. The {\ttfamily label} pointer may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero (an empty label, which is the default in P\+K\+CS\#1 v2.\+2).
+\item The public key.
+\item The destination buffer. Its maximum length (in bytes) is provided; if that length is lower than the public key length, then an error is reported.
+\item The source message.
+\end{DoxyItemize}
+
+The encrypted message output has exactly the same length as the modulus (mathematical length, in bytes, not counting extra leading zeros in the modulus representation in the public key).
+
+The source message ({\ttfamily src}, length {\ttfamily src\+\_\+len}) may overlap with the destination buffer ({\ttfamily dst}, length {\ttfamily dst\+\_\+max\+\_\+len}).
+
+This function returns the actual encrypted message length, in bytes; on error, zero is returned. An error is reported if the output buffer is not large enough, or the public is invalid, or the public key modulus exceeds the maximum supported R\+SA size.
+
+
+\begin{DoxyParams}{Parameters}
+{\em rnd} & source of random bytes. \\
+\hline
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em dst} & destination buffer. \\
+\hline
+{\em dst\+\_\+max\+\_\+len} & destination buffer length (maximum encrypted data size). \\
+\hline
+{\em src} & message to encrypt. \\
+\hline
+{\em src\+\_\+len} & source message length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+encrypted message length (in bytes), or 0 on error. Type for a R\+SA private key engine.
+\end{DoxyReturn}
+The {\ttfamily x\mbox{[}\mbox{]}} buffer is modified in place, and its length is inferred from the modulus length ({\ttfamily x\mbox{[}\mbox{]}} is assumed to have a length of {\ttfamily (sk-\/$>$n\+\_\+bitlen+7)/8} bytes).
+
+Returned value is 1 on success, 0 on error.
+
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}\label{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+public@{br\+\_\+rsa\+\_\+public}}
+\index{br\+\_\+rsa\+\_\+public@{br\+\_\+rsa\+\_\+public}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+public}{br\_rsa\_public}}
+{\footnotesize\ttfamily typedef uint32\+\_\+t($\ast$ br\+\_\+rsa\+\_\+public) (unsigned char $\ast$x, size\+\_\+t xlen, const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$pk)}
+
+
+
+Type for a R\+SA public key engine. 
+
+The public key engine performs the modular exponentiation of the provided value with the public exponent. The value is modified in place.
+
+The value length ({\ttfamily xlen}) is verified to have {\itshape exactly} the same length as the modulus (actual modulus length, without extra leading zeros in the modulus representation in memory). If the length does not match, then this function returns 0 and {\ttfamily x\mbox{[}\mbox{]}} is unmodified.
+
+It {\ttfamily xlen} is correct, then {\ttfamily x\mbox{[}\mbox{]}} is modified. Returned value is 1 on success, 0 on error. Error conditions include an oversized {\ttfamily x\mbox{[}\mbox{]}} (the array has the same length as the modulus, but the numerical value is not lower than the modulus) and an invalid modulus (e.\+g. an even integer). If an error is reported, then the new contents of {\ttfamily x\mbox{[}\mbox{]}} are unspecified.
+
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em xlen} & length of the operand (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{bearssl__rsa_8h_a9f2a3b4960034283183588d53d68b51d}\label{bearssl__rsa_8h_a9f2a3b4960034283183588d53d68b51d}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+compute\+\_\+modulus\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+compute\+\_\+modulus\+\_\+get\+\_\+default}}
+\index{br\+\_\+rsa\+\_\+compute\+\_\+modulus\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+compute\+\_\+modulus\+\_\+get\+\_\+default}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+compute\+\_\+modulus\+\_\+get\+\_\+default()}{br\_rsa\_compute\_modulus\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a9a30757ef7b79641b27a3431bfe8874e}{br\+\_\+rsa\+\_\+compute\+\_\+modulus} br\+\_\+rsa\+\_\+compute\+\_\+modulus\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} R\+SA implementation (recompute modulus). 
+
+This returns the preferred implementation of R\+SA (recompute modulus) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_aaede1ff499ca9a3bd69c33a6757ed1d3}\label{bearssl__rsa_8h_aaede1ff499ca9a3bd69c33a6757ed1d3}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+compute\+\_\+privexp\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+compute\+\_\+privexp\+\_\+get\+\_\+default}}
+\index{br\+\_\+rsa\+\_\+compute\+\_\+privexp\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+compute\+\_\+privexp\+\_\+get\+\_\+default}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+compute\+\_\+privexp\+\_\+get\+\_\+default()}{br\_rsa\_compute\_privexp\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_ac7e80273a3a9edc13468c6e479f40f28}{br\+\_\+rsa\+\_\+compute\+\_\+privexp} br\+\_\+rsa\+\_\+compute\+\_\+privexp\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} R\+SA implementation (recompute private exponent). 
+
+This returns the preferred implementation of R\+SA (recompute private exponent) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a391a384a9e26548d49f19df60e9b5065}\label{bearssl__rsa_8h_a391a384a9e26548d49f19df60e9b5065}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+compute\+\_\+pubexp\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+compute\+\_\+pubexp\+\_\+get\+\_\+default}}
+\index{br\+\_\+rsa\+\_\+compute\+\_\+pubexp\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+compute\+\_\+pubexp\+\_\+get\+\_\+default}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+compute\+\_\+pubexp\+\_\+get\+\_\+default()}{br\_rsa\_compute\_pubexp\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_ab497818a6f2585fea9387b01f4a922e1}{br\+\_\+rsa\+\_\+compute\+\_\+pubexp} br\+\_\+rsa\+\_\+compute\+\_\+pubexp\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} R\+SA implementation (recompute public exponent). 
+
+This returns the preferred implementation of R\+SA (recompute public exponent) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a9ba7b6f414c70aa2ce0437e910217daa}\label{bearssl__rsa_8h_a9ba7b6f414c70aa2ce0437e910217daa}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+modulus@{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+modulus}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+modulus@{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+modulus}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+modulus()}{br\_rsa\_i15\_compute\_modulus()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+modulus (\begin{DoxyParamCaption}\item[{void $\ast$}]{n,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+Recompute R\+SA modulus (\char`\"{}i15\char`\"{} engine). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a9a30757ef7b79641b27a3431bfe8874e}{br\+\_\+rsa\+\_\+compute\+\_\+modulus}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em n} & destination buffer (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the modulus length (in bytes), or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a0848962e49d52203e3eb96d73172ed59}\label{bearssl__rsa_8h_a0848962e49d52203e3eb96d73172ed59}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+privexp@{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+privexp}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+privexp@{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+privexp}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+privexp()}{br\_rsa\_i15\_compute\_privexp()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+privexp (\begin{DoxyParamCaption}\item[{void $\ast$}]{d,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{uint32\+\_\+t}]{pubexp }\end{DoxyParamCaption})}
+
+
+
+Recompute R\+SA private exponent (\char`\"{}i15\char`\"{} engine). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_ac7e80273a3a9edc13468c6e479f40f28}{br\+\_\+rsa\+\_\+compute\+\_\+privexp}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em d} & destination buffer (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em pubexp} & the public exponent. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the private exponent length (in bytes), or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a77238f40db189250f90dda7462b0a008}\label{bearssl__rsa_8h_a77238f40db189250f90dda7462b0a008}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+pubexp@{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+pubexp}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+pubexp@{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+pubexp}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+pubexp()}{br\_rsa\_i15\_compute\_pubexp()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+compute\+\_\+pubexp (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+Recompute R\+SA public exponent (\char`\"{}i15\char`\"{} engine). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_ab497818a6f2585fea9387b01f4a922e1}{br\+\_\+rsa\+\_\+compute\+\_\+pubexp}
+\end{DoxySeeAlso}
+\begin{DoxyReturn}{Returns}
+the public exponent, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a87d081c95ae1340736954f99a20788b5}\label{bearssl__rsa_8h_a87d081c95ae1340736954f99a20788b5}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+i15\+\_\+oaep\+\_\+decrypt}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+i15\+\_\+oaep\+\_\+decrypt}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+oaep\+\_\+decrypt()}{br\_rsa\_i15\_oaep\_decrypt()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+oaep\+\_\+decrypt (\begin{DoxyParamCaption}\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{dig,  }\item[{const void $\ast$}]{label,  }\item[{size\+\_\+t}]{label\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{data,  }\item[{size\+\_\+t $\ast$}]{len }\end{DoxyParamCaption})}
+
+
+
+R\+SA encryption (O\+A\+EP) with the \char`\"{}i15\char`\"{} engine. 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+oaep\+\_\+encrypt
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rnd} & source of random bytes. \\
+\hline
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em dst} & destination buffer. \\
+\hline
+{\em dst\+\_\+max\+\_\+len} & destination buffer length (maximum encrypted data size). \\
+\hline
+{\em src} & message to encrypt. \\
+\hline
+{\em src\+\_\+len} & source message length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+encrypted message length (in bytes), or 0 on error. R\+SA decryption (O\+A\+EP) with the \char`\"{}i15\char`\"{} engine.
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em data} & input/output buffer. \\
+\hline
+{\em len} & encrypted/decrypted message length. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a0a5650ab032e3492f83f6f3263c74f76}\label{bearssl__rsa_8h_a0a5650ab032e3492f83f6f3263c74f76}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+sign}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+sign}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+sign()}{br\_rsa\_i15\_pkcs1\_sign()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+sign (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{hash\+\_\+oid,  }\item[{const unsigned char $\ast$}]{hash,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{unsigned char $\ast$}]{x }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature generation engine \char`\"{}i15\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash} & hash value. \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a523c19243ff86b7721d296673cc65743}\label{bearssl__rsa_8h_a523c19243ff86b7721d296673cc65743}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+vrfy()}{br\_rsa\_i15\_pkcs1\_vrfy()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+pkcs1\+\_\+vrfy (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const unsigned char $\ast$}]{hash\+\_\+oid,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{unsigned char $\ast$}]{hash\+\_\+out }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature verification engine \char`\"{}i15\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash\+\_\+len} & expected hash value length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em hash\+\_\+out} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a060e9e9aca1fe6bfa700c76eda09ebe0}\label{bearssl__rsa_8h_a060e9e9aca1fe6bfa700c76eda09ebe0}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+private@{br\+\_\+rsa\+\_\+i15\+\_\+private}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+private@{br\+\_\+rsa\+\_\+i15\+\_\+private}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+private()}{br\_rsa\_i15\_private()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+private (\begin{DoxyParamCaption}\item[{unsigned char $\ast$}]{x,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+R\+SA private key engine \char`\"{}i15\char`\"{}. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a914a7fc59895d3efe6f1d4f97c6675a3}\label{bearssl__rsa_8h_a914a7fc59895d3efe6f1d4f97c6675a3}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+pss\+\_\+vrfy@{br\+\_\+rsa\+\_\+i15\+\_\+pss\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+pss\+\_\+vrfy@{br\+\_\+rsa\+\_\+i15\+\_\+pss\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+pss\+\_\+vrfy()}{br\_rsa\_i15\_pss\_vrfy()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+pss\+\_\+vrfy (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf\+\_\+data,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf\+\_\+mgf1,  }\item[{const void $\ast$}]{hash,  }\item[{size\+\_\+t}]{salt\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature verification engine \char`\"{}i15\char`\"{} (P\+SS signatures). 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+pss\+\_\+vrfy
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hf\+\_\+data} & hash function applied on the message. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hash value of the signed message. \\
+\hline
+{\em salt\+\_\+len} & P\+SS salt length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_abae12d9326f85deebe73b30d8587bea5}\label{bearssl__rsa_8h_abae12d9326f85deebe73b30d8587bea5}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i15\+\_\+public@{br\+\_\+rsa\+\_\+i15\+\_\+public}}
+\index{br\+\_\+rsa\+\_\+i15\+\_\+public@{br\+\_\+rsa\+\_\+i15\+\_\+public}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i15\+\_\+public()}{br\_rsa\_i15\_public()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i15\+\_\+public (\begin{DoxyParamCaption}\item[{unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk }\end{DoxyParamCaption})}
+
+
+
+R\+SA public key engine \char`\"{}i15\char`\"{}. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em xlen} & length of the operand (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a7c1ce8eac67f8103dba7de9ed961dccf}\label{bearssl__rsa_8h_a7c1ce8eac67f8103dba7de9ed961dccf}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+modulus@{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+modulus}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+modulus@{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+modulus}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+modulus()}{br\_rsa\_i31\_compute\_modulus()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+modulus (\begin{DoxyParamCaption}\item[{void $\ast$}]{n,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+Recompute R\+SA modulus (\char`\"{}i31\char`\"{} engine). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a9a30757ef7b79641b27a3431bfe8874e}{br\+\_\+rsa\+\_\+compute\+\_\+modulus}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em n} & destination buffer (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the modulus length (in bytes), or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ac2a223bcba74b6234425560c9d1063c8}\label{bearssl__rsa_8h_ac2a223bcba74b6234425560c9d1063c8}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+privexp@{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+privexp}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+privexp@{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+privexp}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+privexp()}{br\_rsa\_i31\_compute\_privexp()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+privexp (\begin{DoxyParamCaption}\item[{void $\ast$}]{d,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{uint32\+\_\+t}]{pubexp }\end{DoxyParamCaption})}
+
+
+
+Recompute R\+SA private exponent (\char`\"{}i31\char`\"{} engine). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_ac7e80273a3a9edc13468c6e479f40f28}{br\+\_\+rsa\+\_\+compute\+\_\+privexp}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em d} & destination buffer (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em pubexp} & the public exponent. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the private exponent length (in bytes), or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a46cb658ac235bb8af2ae5fe90eb5fac3}\label{bearssl__rsa_8h_a46cb658ac235bb8af2ae5fe90eb5fac3}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+pubexp@{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+pubexp}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+pubexp@{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+pubexp}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+pubexp()}{br\_rsa\_i31\_compute\_pubexp()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+compute\+\_\+pubexp (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+Recompute R\+SA public exponent (\char`\"{}i31\char`\"{} engine). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_ab497818a6f2585fea9387b01f4a922e1}{br\+\_\+rsa\+\_\+compute\+\_\+pubexp}
+\end{DoxySeeAlso}
+\begin{DoxyReturn}{Returns}
+the public exponent, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ac73f15d91f0a256781999eabbc0a0f01}\label{bearssl__rsa_8h_ac73f15d91f0a256781999eabbc0a0f01}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+i31\+\_\+oaep\+\_\+decrypt}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+i31\+\_\+oaep\+\_\+decrypt}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+oaep\+\_\+decrypt()}{br\_rsa\_i31\_oaep\_decrypt()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+oaep\+\_\+decrypt (\begin{DoxyParamCaption}\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{dig,  }\item[{const void $\ast$}]{label,  }\item[{size\+\_\+t}]{label\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{data,  }\item[{size\+\_\+t $\ast$}]{len }\end{DoxyParamCaption})}
+
+
+
+R\+SA encryption (O\+A\+EP) with the \char`\"{}i31\char`\"{} engine. 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+oaep\+\_\+encrypt
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rnd} & source of random bytes. \\
+\hline
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em dst} & destination buffer. \\
+\hline
+{\em dst\+\_\+max\+\_\+len} & destination buffer length (maximum encrypted data size). \\
+\hline
+{\em src} & message to encrypt. \\
+\hline
+{\em src\+\_\+len} & source message length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+encrypted message length (in bytes), or 0 on error. R\+SA decryption (O\+A\+EP) with the \char`\"{}i31\char`\"{} engine.
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em data} & input/output buffer. \\
+\hline
+{\em len} & encrypted/decrypted message length. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ab4294ed643d96474d3bca79aa5e650fe}\label{bearssl__rsa_8h_ab4294ed643d96474d3bca79aa5e650fe}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+sign}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+sign}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+sign()}{br\_rsa\_i31\_pkcs1\_sign()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+sign (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{hash\+\_\+oid,  }\item[{const unsigned char $\ast$}]{hash,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{unsigned char $\ast$}]{x }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature generation engine \char`\"{}i31\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash} & hash value. \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a040cfd6374d2d5ba134e089f99116d4b}\label{bearssl__rsa_8h_a040cfd6374d2d5ba134e089f99116d4b}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+vrfy()}{br\_rsa\_i31\_pkcs1\_vrfy()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+pkcs1\+\_\+vrfy (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const unsigned char $\ast$}]{hash\+\_\+oid,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{unsigned char $\ast$}]{hash\+\_\+out }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature verification engine \char`\"{}i31\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash\+\_\+len} & expected hash value length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em hash\+\_\+out} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ac81516db5646d1e323333623180ca737}\label{bearssl__rsa_8h_ac81516db5646d1e323333623180ca737}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+private@{br\+\_\+rsa\+\_\+i31\+\_\+private}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+private@{br\+\_\+rsa\+\_\+i31\+\_\+private}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+private()}{br\_rsa\_i31\_private()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+private (\begin{DoxyParamCaption}\item[{unsigned char $\ast$}]{x,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+R\+SA private key engine \char`\"{}i31\char`\"{}. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ad16d4cf5173707740d3d8996abb7fe44}\label{bearssl__rsa_8h_ad16d4cf5173707740d3d8996abb7fe44}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+pss\+\_\+vrfy@{br\+\_\+rsa\+\_\+i31\+\_\+pss\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+pss\+\_\+vrfy@{br\+\_\+rsa\+\_\+i31\+\_\+pss\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+pss\+\_\+vrfy()}{br\_rsa\_i31\_pss\_vrfy()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+pss\+\_\+vrfy (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf\+\_\+data,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf\+\_\+mgf1,  }\item[{const void $\ast$}]{hash,  }\item[{size\+\_\+t}]{salt\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature verification engine \char`\"{}i31\char`\"{} (P\+SS signatures). 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+pss\+\_\+vrfy
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hf\+\_\+data} & hash function applied on the message. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hash value of the signed message. \\
+\hline
+{\em salt\+\_\+len} & P\+SS salt length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a66b7b887dee035f0a7e9c9f069607324}\label{bearssl__rsa_8h_a66b7b887dee035f0a7e9c9f069607324}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i31\+\_\+public@{br\+\_\+rsa\+\_\+i31\+\_\+public}}
+\index{br\+\_\+rsa\+\_\+i31\+\_\+public@{br\+\_\+rsa\+\_\+i31\+\_\+public}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i31\+\_\+public()}{br\_rsa\_i31\_public()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i31\+\_\+public (\begin{DoxyParamCaption}\item[{unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature generation engine \char`\"{}i32\char`\"{} (P\+SS signatures). 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+pss\+\_\+sign
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rng} & P\+R\+NG for salt generation ({\ttfamily N\+U\+LL} if {\ttfamily salt\+\_\+len} is zero). \\
+\hline
+{\em hf\+\_\+data} & hash function used to hash the signed data. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hashed message. \\
+\hline
+{\em salt\+\_\+len} & salt length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the signature value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. R\+SA public key engine \char`\"{}i31\char`\"{}.
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em xlen} & length of the operand (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a2f3971fbb6053759fb95ed7ebfc274da}\label{bearssl__rsa_8h_a2f3971fbb6053759fb95ed7ebfc274da}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i32\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+i32\+\_\+oaep\+\_\+decrypt}}
+\index{br\+\_\+rsa\+\_\+i32\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+i32\+\_\+oaep\+\_\+decrypt}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i32\+\_\+oaep\+\_\+decrypt()}{br\_rsa\_i32\_oaep\_decrypt()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i32\+\_\+oaep\+\_\+decrypt (\begin{DoxyParamCaption}\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{dig,  }\item[{const void $\ast$}]{label,  }\item[{size\+\_\+t}]{label\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{data,  }\item[{size\+\_\+t $\ast$}]{len }\end{DoxyParamCaption})}
+
+
+
+R\+SA encryption (O\+A\+EP) with the \char`\"{}i32\char`\"{} engine. 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+oaep\+\_\+encrypt
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rnd} & source of random bytes. \\
+\hline
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em dst} & destination buffer. \\
+\hline
+{\em dst\+\_\+max\+\_\+len} & destination buffer length (maximum encrypted data size). \\
+\hline
+{\em src} & message to encrypt. \\
+\hline
+{\em src\+\_\+len} & source message length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+encrypted message length (in bytes), or 0 on error. R\+SA decryption (O\+A\+EP) with the \char`\"{}i32\char`\"{} engine.
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em data} & input/output buffer. \\
+\hline
+{\em len} & encrypted/decrypted message length. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ad7c1d1ddec99983263e387a0dfee8d55}\label{bearssl__rsa_8h_ad7c1d1ddec99983263e387a0dfee8d55}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+sign}}
+\index{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+sign}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+sign()}{br\_rsa\_i32\_pkcs1\_sign()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+sign (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{hash\+\_\+oid,  }\item[{const unsigned char $\ast$}]{hash,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{unsigned char $\ast$}]{x }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature generation engine \char`\"{}i32\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash} & hash value. \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a9889bf6982e3cf9829138131be3c626f}\label{bearssl__rsa_8h_a9889bf6982e3cf9829138131be3c626f}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+vrfy()}{br\_rsa\_i32\_pkcs1\_vrfy()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i32\+\_\+pkcs1\+\_\+vrfy (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const unsigned char $\ast$}]{hash\+\_\+oid,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{unsigned char $\ast$}]{hash\+\_\+out }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature verification engine \char`\"{}i32\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash\+\_\+len} & expected hash value length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em hash\+\_\+out} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a1022010003c6d57134a077a04007c00b}\label{bearssl__rsa_8h_a1022010003c6d57134a077a04007c00b}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i32\+\_\+private@{br\+\_\+rsa\+\_\+i32\+\_\+private}}
+\index{br\+\_\+rsa\+\_\+i32\+\_\+private@{br\+\_\+rsa\+\_\+i32\+\_\+private}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i32\+\_\+private()}{br\_rsa\_i32\_private()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i32\+\_\+private (\begin{DoxyParamCaption}\item[{unsigned char $\ast$}]{x,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+R\+SA private key engine \char`\"{}i32\char`\"{}. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a9797c7d2aa9b89a9abdc4b9e01bd1067}\label{bearssl__rsa_8h_a9797c7d2aa9b89a9abdc4b9e01bd1067}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i32\+\_\+pss\+\_\+vrfy@{br\+\_\+rsa\+\_\+i32\+\_\+pss\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+i32\+\_\+pss\+\_\+vrfy@{br\+\_\+rsa\+\_\+i32\+\_\+pss\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i32\+\_\+pss\+\_\+vrfy()}{br\_rsa\_i32\_pss\_vrfy()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i32\+\_\+pss\+\_\+vrfy (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf\+\_\+data,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf\+\_\+mgf1,  }\item[{const void $\ast$}]{hash,  }\item[{size\+\_\+t}]{salt\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature verification engine \char`\"{}i32\char`\"{} (P\+SS signatures). 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+pss\+\_\+vrfy
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hf\+\_\+data} & hash function applied on the message. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hash value of the signed message. \\
+\hline
+{\em salt\+\_\+len} & P\+SS salt length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ac352f411eca5ec01119c537be37d3656}\label{bearssl__rsa_8h_ac352f411eca5ec01119c537be37d3656}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i32\+\_\+public@{br\+\_\+rsa\+\_\+i32\+\_\+public}}
+\index{br\+\_\+rsa\+\_\+i32\+\_\+public@{br\+\_\+rsa\+\_\+i32\+\_\+public}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i32\+\_\+public()}{br\_rsa\_i32\_public()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i32\+\_\+public (\begin{DoxyParamCaption}\item[{unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk }\end{DoxyParamCaption})}
+
+
+
+R\+SA public key engine \char`\"{}i32\char`\"{}. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em xlen} & length of the operand (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a7a255ca9e14d83df4ae48cb27b7e8cf7}\label{bearssl__rsa_8h_a7a255ca9e14d83df4ae48cb27b7e8cf7}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt@{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt()}{br\_rsa\_i62\_oaep\_decrypt()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt (\begin{DoxyParamCaption}\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{dig,  }\item[{const void $\ast$}]{label,  }\item[{size\+\_\+t}]{label\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{data,  }\item[{size\+\_\+t $\ast$}]{len }\end{DoxyParamCaption})}
+
+
+
+R\+SA encryption (O\+A\+EP) with the \char`\"{}i62\char`\"{} engine. 
+
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+encrypt\+\_\+get()} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+oaep\+\_\+encrypt
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rnd} & source of random bytes. \\
+\hline
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em dst} & destination buffer. \\
+\hline
+{\em dst\+\_\+max\+\_\+len} & destination buffer length (maximum encrypted data size). \\
+\hline
+{\em src} & message to encrypt. \\
+\hline
+{\em src\+\_\+len} & source message length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+encrypted message length (in bytes), or 0 on error. R\+SA decryption (O\+A\+EP) with the \char`\"{}i62\char`\"{} engine.
+\end{DoxyReturn}
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily \hyperlink{bearssl__rsa_8h_a2d54ee6a0c2521dcbf72e53c27bcdfa3}{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt\+\_\+get()}} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em dig} & hash function to use with M\+G\+F1. \\
+\hline
+{\em label} & label value (may be {\ttfamily N\+U\+LL} if {\ttfamily label\+\_\+len} is zero). \\
+\hline
+{\em label\+\_\+len} & label length, in bytes. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em data} & input/output buffer. \\
+\hline
+{\em len} & encrypted/decrypted message length. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a2d54ee6a0c2521dcbf72e53c27bcdfa3}\label{bearssl__rsa_8h_a2d54ee6a0c2521dcbf72e53c27bcdfa3}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt\+\_\+get}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt\+\_\+get}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt\+\_\+get()}{br\_rsa\_i62\_oaep\_decrypt\_get()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt} br\+\_\+rsa\+\_\+i62\+\_\+oaep\+\_\+decrypt\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the R\+SA \char`\"{}i62\char`\"{} implementation (P\+SS signature generation), if available. 
+
+\begin{DoxyReturn}{Returns}
+the implementation, or 0. Get the R\+SA \char`\"{}i62\char`\"{} implementation (O\+A\+EP encryption), if available.
+
+the implementation, or 0. Get the R\+SA \char`\"{}i62\char`\"{} implementation (O\+A\+EP decryption), if available.
+
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a9d71305804fa9038ced239be59559b12}\label{bearssl__rsa_8h_a9d71305804fa9038ced239be59559b12}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign@{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign()}{br\_rsa\_i62\_pkcs1\_sign()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{hash\+\_\+oid,  }\item[{const unsigned char $\ast$}]{hash,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{unsigned char $\ast$}]{x }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature generation engine \char`\"{}i62\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). 
+
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily \hyperlink{bearssl__rsa_8h_a7bb17eeae232d6a22e73a1ec4fcd6308}{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign\+\_\+get()}} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash} & hash value. \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a7bb17eeae232d6a22e73a1ec4fcd6308}\label{bearssl__rsa_8h_a7bb17eeae232d6a22e73a1ec4fcd6308}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign\+\_\+get}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign\+\_\+get}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign\+\_\+get()}{br\_rsa\_i62\_pkcs1\_sign\_get()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign} br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+sign\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the R\+SA \char`\"{}i62\char`\"{} implementation (P\+K\+CS\#1 v1.\+5 signature generation), if available. 
+
+\begin{DoxyReturn}{Returns}
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_af4c246e8c57c031fb2803967765dee04}\label{bearssl__rsa_8h_af4c246e8c57c031fb2803967765dee04}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy@{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy()}{br\_rsa\_i62\_pkcs1\_vrfy()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const unsigned char $\ast$}]{hash\+\_\+oid,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{unsigned char $\ast$}]{hash\+\_\+out }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature verification engine \char`\"{}i62\char`\"{} (P\+K\+CS\#1 v1.\+5 signatures). 
+
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily \hyperlink{bearssl__rsa_8h_a93198c035a3951982f8a5cda79ef362d}{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy\+\_\+get()}} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hash\+\_\+oid} & encoded hash algorithm O\+ID (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em hash\+\_\+len} & expected hash value length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+{\em hash\+\_\+out} & output buffer for the hash value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a93198c035a3951982f8a5cda79ef362d}\label{bearssl__rsa_8h_a93198c035a3951982f8a5cda79ef362d}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy\+\_\+get}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy\+\_\+get}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy\+\_\+get()}{br\_rsa\_i62\_pkcs1\_vrfy\_get()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy} br\+\_\+rsa\+\_\+i62\+\_\+pkcs1\+\_\+vrfy\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the R\+SA \char`\"{}i62\char`\"{} implementation (P\+K\+CS\#1 v1.\+5 signature verification), if available. 
+
+\begin{DoxyReturn}{Returns}
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ae0b0d182b913b50de9863e82c6caef04}\label{bearssl__rsa_8h_ae0b0d182b913b50de9863e82c6caef04}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+private@{br\+\_\+rsa\+\_\+i62\+\_\+private}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+private@{br\+\_\+rsa\+\_\+i62\+\_\+private}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+private()}{br\_rsa\_i62\_private()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i62\+\_\+private (\begin{DoxyParamCaption}\item[{unsigned char $\ast$}]{x,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+R\+SA private key engine \char`\"{}i62\char`\"{}. 
+
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily \hyperlink{bearssl__rsa_8h_a399ad7529be433ec208042eeaf22534b}{br\+\_\+rsa\+\_\+i62\+\_\+private\+\_\+get()}} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a399ad7529be433ec208042eeaf22534b}\label{bearssl__rsa_8h_a399ad7529be433ec208042eeaf22534b}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+private\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+private\+\_\+get}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+private\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+private\+\_\+get}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+private\+\_\+get()}{br\_rsa\_i62\_private\_get()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private} br\+\_\+rsa\+\_\+i62\+\_\+private\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the R\+SA \char`\"{}i62\char`\"{} implementation (P\+SS signature verification), if available. 
+
+\begin{DoxyReturn}{Returns}
+the implementation, or 0. Get the R\+SA \char`\"{}i62\char`\"{} implementation (private key operations), if available.
+
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a507516c2b4238e824703565668ba47b9}\label{bearssl__rsa_8h_a507516c2b4238e824703565668ba47b9}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+vrfy@{br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+vrfy}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+vrfy@{br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+vrfy}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+vrfy()}{br\_rsa\_i62\_pss\_vrfy()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+vrfy (\begin{DoxyParamCaption}\item[{const unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf\+\_\+data,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf\+\_\+mgf1,  }\item[{const void $\ast$}]{hash,  }\item[{size\+\_\+t}]{salt\+\_\+len,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature verification engine \char`\"{}i62\char`\"{} (P\+SS signatures). 
+
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+vrfy\+\_\+get()} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+pss\+\_\+vrfy
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & signature buffer. \\
+\hline
+{\em xlen} & signature length (in bytes). \\
+\hline
+{\em hf\+\_\+data} & hash function applied on the message. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hash value of the signed message. \\
+\hline
+{\em salt\+\_\+len} & P\+SS salt length (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_aaa865f120975ed6ddf1d3dab08ca1c5a}\label{bearssl__rsa_8h_aaa865f120975ed6ddf1d3dab08ca1c5a}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+public@{br\+\_\+rsa\+\_\+i62\+\_\+public}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+public@{br\+\_\+rsa\+\_\+i62\+\_\+public}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+public()}{br\_rsa\_i62\_public()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+i62\+\_\+public (\begin{DoxyParamCaption}\item[{unsigned char $\ast$}]{x,  }\item[{size\+\_\+t}]{xlen,  }\item[{const \hyperlink{structbr__rsa__public__key}{br\+\_\+rsa\+\_\+public\+\_\+key} $\ast$}]{pk }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature generation engine \char`\"{}i31\char`\"{} (P\+SS signatures). 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+pss\+\_\+sign
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rng} & P\+R\+NG for salt generation ({\ttfamily N\+U\+LL} if {\ttfamily salt\+\_\+len} is zero). \\
+\hline
+{\em hf\+\_\+data} & hash function used to hash the signed data. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hashed message. \\
+\hline
+{\em salt\+\_\+len} & salt length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the signature value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. R\+SA public key engine \char`\"{}i62\char`\"{}.
+\end{DoxyReturn}
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily \hyperlink{bearssl__rsa_8h_a6f5c8547d3d6b6b49588d8f7d05a3bcc}{br\+\_\+rsa\+\_\+i62\+\_\+public\+\_\+get()}} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em x} & operand to exponentiate. \\
+\hline
+{\em xlen} & length of the operand (in bytes). \\
+\hline
+{\em pk} & R\+SA public key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a6f5c8547d3d6b6b49588d8f7d05a3bcc}\label{bearssl__rsa_8h_a6f5c8547d3d6b6b49588d8f7d05a3bcc}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+i62\+\_\+public\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+public\+\_\+get}}
+\index{br\+\_\+rsa\+\_\+i62\+\_\+public\+\_\+get@{br\+\_\+rsa\+\_\+i62\+\_\+public\+\_\+get}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+i62\+\_\+public\+\_\+get()}{br\_rsa\_i62\_public\_get()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public} br\+\_\+rsa\+\_\+i62\+\_\+public\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature generation engine \char`\"{}i62\char`\"{} (P\+SS signatures). 
+
+This function is defined only on architecture that offer a 64x64-\/$>$128 opcode. Use {\ttfamily br\+\_\+rsa\+\_\+i62\+\_\+pss\+\_\+sign\+\_\+get()} to dynamically obtain a pointer to that function.
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+pss\+\_\+sign
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rng} & P\+R\+NG for salt generation ({\ttfamily N\+U\+LL} if {\ttfamily salt\+\_\+len} is zero). \\
+\hline
+{\em hf\+\_\+data} & hash function used to hash the signed data. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hashed message. \\
+\hline
+{\em salt\+\_\+len} & salt length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the signature value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. Get the R\+SA \char`\"{}i62\char`\"{} implementation (public key operations), if available.
+
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a45b81ba38527f30a820f35e7139fd8fa}\label{bearssl__rsa_8h_a45b81ba38527f30a820f35e7139fd8fa}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+oaep\+\_\+decrypt\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt\+\_\+get\+\_\+default}}
+\index{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt\+\_\+get\+\_\+default}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt\+\_\+get\+\_\+default()}{br\_rsa\_oaep\_decrypt\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a775a9e7056927e1d41866eec92d190c2}{br\+\_\+rsa\+\_\+oaep\+\_\+decrypt} br\+\_\+rsa\+\_\+oaep\+\_\+decrypt\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} R\+SA implementation (P\+SS signature generation). 
+
+This returns the preferred implementation of R\+SA (signature generation) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. Get \char`\"{}default\char`\"{} R\+SA implementation (O\+A\+EP encryption).
+\end{DoxyReturn}
+This returns the preferred implementation of R\+SA (O\+A\+EP encryption) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. Get \char`\"{}default\char`\"{} R\+SA implementation (O\+A\+EP decryption).
+\end{DoxyReturn}
+This returns the preferred implementation of R\+SA (O\+A\+EP decryption) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a53c33b40a9e69de7f0920f960b3fe0f3}\label{bearssl__rsa_8h_a53c33b40a9e69de7f0920f960b3fe0f3}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+pkcs1\+\_\+sign\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign\+\_\+get\+\_\+default}}
+\index{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign\+\_\+get\+\_\+default}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign\+\_\+get\+\_\+default()}{br\_rsa\_pkcs1\_sign\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a24180c531a5c88c08cf7e32e96aa2eca}{br\+\_\+rsa\+\_\+pkcs1\+\_\+sign} br\+\_\+rsa\+\_\+pkcs1\+\_\+sign\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} R\+SA implementation (P\+SS signature verification). 
+
+This returns the preferred implementation of R\+SA (signature verification) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. Get \char`\"{}default\char`\"{} R\+SA implementation (P\+K\+CS\#1 v1.\+5 signature generation).
+\end{DoxyReturn}
+This returns the preferred implementation of R\+SA (signature generation) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_ad0f63d3969b5c2877836e8bc62cf60d8}\label{bearssl__rsa_8h_ad0f63d3969b5c2877836e8bc62cf60d8}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy\+\_\+get\+\_\+default}}
+\index{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy\+\_\+get\+\_\+default}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy\+\_\+get\+\_\+default()}{br\_rsa\_pkcs1\_vrfy\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy} br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} R\+SA implementation (P\+K\+CS\#1 v1.\+5 signature verification). 
+
+This returns the preferred implementation of R\+SA (signature verification) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_a3a3334ff0b0072e59d8bf5477bc9c9ed}\label{bearssl__rsa_8h_a3a3334ff0b0072e59d8bf5477bc9c9ed}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+private\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+private\+\_\+get\+\_\+default}}
+\index{br\+\_\+rsa\+\_\+private\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+private\+\_\+get\+\_\+default}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+private\+\_\+get\+\_\+default()}{br\_rsa\_private\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private} br\+\_\+rsa\+\_\+private\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} R\+SA implementation (private-\/key operations). 
+
+This returns the preferred implementation of R\+SA (private-\/key operations) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_af697a17ed3b1a0537e154b850ebbdfcd}\label{bearssl__rsa_8h_af697a17ed3b1a0537e154b850ebbdfcd}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+public\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+public\+\_\+get\+\_\+default}}
+\index{br\+\_\+rsa\+\_\+public\+\_\+get\+\_\+default@{br\+\_\+rsa\+\_\+public\+\_\+get\+\_\+default}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+public\+\_\+get\+\_\+default()}{br\_rsa\_public\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__rsa_8h_a016776655703f032ef525cf4ff42397c}{br\+\_\+rsa\+\_\+public} br\+\_\+rsa\+\_\+public\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+R\+SA signature generation engine \char`\"{}i15\char`\"{} (P\+SS signatures). 
+
+\begin{DoxySeeAlso}{See also}
+br\+\_\+rsa\+\_\+pss\+\_\+sign
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em rng} & P\+R\+NG for salt generation ({\ttfamily N\+U\+LL} if {\ttfamily salt\+\_\+len} is zero). \\
+\hline
+{\em hf\+\_\+data} & hash function used to hash the signed data. \\
+\hline
+{\em hf\+\_\+mgf1} & hash function to use with M\+G\+F1. \\
+\hline
+{\em hash} & hashed message. \\
+\hline
+{\em salt\+\_\+len} & salt length (in bytes). \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em x} & output buffer for the signature value. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. Get \char`\"{}default\char`\"{} R\+SA implementation (public-\/key operations).
+\end{DoxyReturn}
+This returns the preferred implementation of R\+SA (public-\/key operations) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__rsa_8h_af9346eacc5c9e1c92649d5a8c6ff173e}\label{bearssl__rsa_8h_af9346eacc5c9e1c92649d5a8c6ff173e}} 
+\index{bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}!br\+\_\+rsa\+\_\+ssl\+\_\+decrypt@{br\+\_\+rsa\+\_\+ssl\+\_\+decrypt}}
+\index{br\+\_\+rsa\+\_\+ssl\+\_\+decrypt@{br\+\_\+rsa\+\_\+ssl\+\_\+decrypt}!bearssl\+\_\+rsa.\+h@{bearssl\+\_\+rsa.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+rsa\+\_\+ssl\+\_\+decrypt()}{br\_rsa\_ssl\_decrypt()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+rsa\+\_\+ssl\+\_\+decrypt (\begin{DoxyParamCaption}\item[{\hyperlink{bearssl__rsa_8h_a77085d6f13d25d5e211e6954ff30ff6a}{br\+\_\+rsa\+\_\+private}}]{core,  }\item[{const \hyperlink{structbr__rsa__private__key}{br\+\_\+rsa\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{unsigned char $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+R\+SA decryption helper, for S\+S\+L/\+T\+LS. 
+
+This function performs the R\+SA decryption for a R\+S\+A-\/based key exchange in a S\+S\+L/\+T\+LS server. The provided R\+SA engine is used. The {\ttfamily data} parameter points to the value to decrypt, of length {\ttfamily len} bytes. On success, the 48-\/byte pre-\/master secret is copied into {\ttfamily data}, starting at the first byte of that buffer; on error, the contents of {\ttfamily data} become indeterminate.
+
+This function first checks that the provided value length ({\ttfamily len}) is not lower than 59 bytes, and matches the R\+SA modulus length; if neither of this property is met, then this function returns 0 and the buffer is unmodified.
+
+Otherwise, decryption and then padding verification are performed, both in constant-\/time. A decryption error, or a bad padding, or an incorrect decrypted value length are reported with a returned value of 0; on success, 1 is returned. The caller (S\+SL server engine) is supposed to proceed with a random pre-\/master secret in case of error.
+
+
+\begin{DoxyParams}{Parameters}
+{\em core} & R\+SA private key engine. \\
+\hline
+{\em sk} & R\+SA private key. \\
+\hline
+{\em data} & input/output buffer. \\
+\hline
+{\em len} & length (in bytes) of the data to decrypt. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}

@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__prng__class__" kind="struct" language="C++" prot="public">
+    <compoundname>br_prng_class_</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__prng__class___1a2f3ec37b1ac8e0157489db17de371396" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_prng_class_::context_size</definition>
+        <argsstring></argsstring>
+        <name>context_size</name>
+        <briefdescription>
+<para>Size (in bytes) of the context structure appropriate for running this PRNG. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="140" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__prng__class___1ae54c9bffd6e8aed1099b33a425d0af58" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_prng_class_::init) (const br_prng_class **ctx, const void *params, const void *seed, size_t seed_len)</definition>
+        <argsstring>)(const br_prng_class **ctx, const void *params, const void *seed, size_t seed_len)</argsstring>
+        <name>init</name>
+        <briefdescription>
+<para>Initialisation method. </para>        </briefdescription>
+        <detaileddescription>
+<para>The context to initialise is provided as a pointer to its first field (the vtable pointer); this function sets that first field to a pointer to the vtable.</para><para>The extra parameters depend on the implementation; each implementation defines what kind of extra parameters it expects (if any).</para><para>Requirements on the initial seed depend on the implemented PRNG.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>PRNG context to initialise. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>params</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>extra parameters for the PRNG. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>initial seed. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>initial seed length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="161" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__prng__class___1a34fa7747beda004295733790bbf9671d" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_prng_class_::generate) (const br_prng_class **ctx, void *out, size_t len)</definition>
+        <argsstring>)(const br_prng_class **ctx, void *out, size_t len)</argsstring>
+        <name>generate</name>
+        <briefdescription>
+<para>Random bytes generation. </para>        </briefdescription>
+        <detaileddescription>
+<para>This method produces <computeroutput>len</computeroutput> pseudorandom bytes, in the <computeroutput>out</computeroutput> buffer. The context is updated accordingly.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>PRNG context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>out</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>output buffer. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>number of pseudorandom bytes to produce. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="174" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__prng__class___1ab26e31262e16bc2d8bf47c2c5b5e6a38" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_prng_class_::update) (const br_prng_class **ctx, const void *seed, size_t seed_len)</definition>
+        <argsstring>)(const br_prng_class **ctx, const void *seed, size_t seed_len)</argsstring>
+        <name>update</name>
+        <briefdescription>
+<para>Inject additional seed bytes. </para>        </briefdescription>
+        <detaileddescription>
+<para>The provided seed bytes are added into the PRNG internal entropy pool.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>PRNG context. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional seed. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional seed length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="186" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="186" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_rand.h" line="135" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="135" bodyend="188"/>
+    <listofallmembers>
+      <member refid="structbr__prng__class___1a2f3ec37b1ac8e0157489db17de371396" prot="public" virt="non-virtual"><scope>br_prng_class_</scope><name>context_size</name></member>
+      <member refid="structbr__prng__class___1a34fa7747beda004295733790bbf9671d" prot="public" virt="non-virtual"><scope>br_prng_class_</scope><name>generate</name></member>
+      <member refid="structbr__prng__class___1ae54c9bffd6e8aed1099b33a425d0af58" prot="public" virt="non-virtual"><scope>br_prng_class_</scope><name>init</name></member>
+      <member refid="structbr__prng__class___1ab26e31262e16bc2d8bf47c2c5b5e6a38" prot="public" virt="non-virtual"><scope>br_prng_class_</scope><name>update</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

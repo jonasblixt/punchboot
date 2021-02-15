@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="dir_97aefd0d527b934f1d99a682da8fe6a9" kind="dir">
+    <compoundname>/docs/lib</compoundname>
+    <innerdir refid="dir_29a8adeb1a1ac7533e8fb6de7c4425fb">/docs/lib/bearssl</innerdir>
+    <innerdir refid="dir_dbe3868ece52f6b80c53e6991b7e1eb7">/docs/lib/fdt</innerdir>
+    <innerdir refid="dir_e6f7cfa0c63edcc97e278e7cd50f1166">/docs/lib/uuid</innerdir>
+    <innerdir refid="dir_06136166184463e387782141c38c31b4">/docs/lib/xlat_tables</innerdir>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/"/>
+  </compounddef>
+</doxygen>

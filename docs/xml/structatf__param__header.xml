@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structatf__param__header" kind="struct" language="C++" prot="public">
+    <compoundname>atf_param_header</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structatf__param__header_1ab1e78d3e127762dd33a4e02787e17a63" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t atf_param_header::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="26" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structatf__param__header_1a5cd4022f1637f417e7249df749c48365" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t atf_param_header::version</definition>
+        <argsstring></argsstring>
+        <name>version</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="27" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structatf__param__header_1a024c07d3d5bf45f2e563fdb22d51a5c7" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t atf_param_header::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="28" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structatf__param__header_1af34a45310cda5650f8e351e167dc4750" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t atf_param_header::attr</definition>
+        <argsstring></argsstring>
+        <name>attr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="29" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/atf.h" line="25" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="24" bodyend="30"/>
+    <listofallmembers>
+      <member refid="structatf__param__header_1af34a45310cda5650f8e351e167dc4750" prot="public" virt="non-virtual"><scope>atf_param_header</scope><name>attr</name></member>
+      <member refid="structatf__param__header_1a024c07d3d5bf45f2e563fdb22d51a5c7" prot="public" virt="non-virtual"><scope>atf_param_header</scope><name>size</name></member>
+      <member refid="structatf__param__header_1ab1e78d3e127762dd33a4e02787e17a63" prot="public" virt="non-virtual"><scope>atf_param_header</scope><name>type</name></member>
+      <member refid="structatf__param__header_1a5cd4022f1637f417e7249df749c48365" prot="public" virt="non-virtual"><scope>atf_param_header</scope><name>version</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

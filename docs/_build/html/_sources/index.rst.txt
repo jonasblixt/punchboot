@@ -1,0 +1,13 @@
+Welcome to the punchboot documentation
+======================================
+
+.. toctree::
+   :maxdepth: 1
+   :titlesonly:
+   :hidden:
+
+   intro
+   build
+   user-guide
+   developer-guide
+   license

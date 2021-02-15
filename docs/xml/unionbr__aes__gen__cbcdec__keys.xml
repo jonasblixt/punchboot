@@ -1,0 +1,187 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="unionbr__aes__gen__cbcdec__keys" kind="union" language="C++" prot="public">
+    <compoundname>br_aes_gen_cbcdec_keys</compoundname>
+    <includes refid="bearssl__block_8h" local="no">bearssl_block.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionbr__aes__gen__cbcdec__keys_1abdce2dc2164e1f6a1ff440f56727c0ff" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__block_8h_1a5542970c820eeee2e62766368be8fb7f" kindref="member">br_block_cbcdec_class</ref> *</type>
+        <definition>const br_block_cbcdec_class* br_aes_gen_cbcdec_keys::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2173" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__aes__gen__cbcdec__keys_1a9590f0ae086214d4083a00a58fc2e93a" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__aes__big__cbcdec__keys" kindref="compound">br_aes_big_cbcdec_keys</ref></type>
+        <definition>br_aes_big_cbcdec_keys br_aes_gen_cbcdec_keys::c_big</definition>
+        <argsstring></argsstring>
+        <name>c_big</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2174" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__aes__gen__cbcdec__keys_1a85887e2199ad5e229e5eac65680c1ed2" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__aes__small__cbcdec__keys" kindref="compound">br_aes_small_cbcdec_keys</ref></type>
+        <definition>br_aes_small_cbcdec_keys br_aes_gen_cbcdec_keys::c_small</definition>
+        <argsstring></argsstring>
+        <name>c_small</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2175" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__aes__gen__cbcdec__keys_1ab6b483874b06c20ff5041b231e3ab9d8" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__aes__ct__cbcdec__keys" kindref="compound">br_aes_ct_cbcdec_keys</ref></type>
+        <definition>br_aes_ct_cbcdec_keys br_aes_gen_cbcdec_keys::c_ct</definition>
+        <argsstring></argsstring>
+        <name>c_ct</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2176" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2176" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__aes__gen__cbcdec__keys_1a0edf844aaa62dc621621137269cdec47" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__aes__ct64__cbcdec__keys" kindref="compound">br_aes_ct64_cbcdec_keys</ref></type>
+        <definition>br_aes_ct64_cbcdec_keys br_aes_gen_cbcdec_keys::c_ct64</definition>
+        <argsstring></argsstring>
+        <name>c_ct64</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2177" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__aes__gen__cbcdec__keys_1a6dc6ca7c47e2a8af64d2e67c4ce87439" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__aes__x86ni__cbcdec__keys" kindref="compound">br_aes_x86ni_cbcdec_keys</ref></type>
+        <definition>br_aes_x86ni_cbcdec_keys br_aes_gen_cbcdec_keys::c_x86ni</definition>
+        <argsstring></argsstring>
+        <name>c_x86ni</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2178" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__aes__gen__cbcdec__keys_1a01ffa3d3179f916233efa8b22a386f65" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__aes__pwr8__cbcdec__keys" kindref="compound">br_aes_pwr8_cbcdec_keys</ref></type>
+        <definition>br_aes_pwr8_cbcdec_keys br_aes_gen_cbcdec_keys::c_pwr8</definition>
+        <argsstring></argsstring>
+        <name>c_pwr8</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2179" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2179" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Aggregate structure large enough to be used as context for subkeys (CBC decryption) for all AES implementations. </para>    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="71">
+        <label>br_aes_big_cbcdec_keys</label>
+        <link refid="structbr__aes__big__cbcdec__keys"/>
+        <childnode refid="67" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="67">
+        <label>br_block_cbcdec_class_</label>
+        <link refid="structbr__block__cbcdec__class__"/>
+      </node>
+      <node id="66">
+        <label>br_aes_small_cbcdec_keys</label>
+        <link refid="structbr__aes__small__cbcdec__keys"/>
+        <childnode refid="67" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="68">
+        <label>br_aes_ct64_cbcdec_keys</label>
+        <link refid="structbr__aes__ct64__cbcdec__keys"/>
+        <childnode refid="67" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="70">
+        <label>br_aes_ct_cbcdec_keys</label>
+        <link refid="structbr__aes__ct__cbcdec__keys"/>
+        <childnode refid="67" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="65">
+        <label>br_aes_gen_cbcdec_keys</label>
+        <link refid="unionbr__aes__gen__cbcdec__keys"/>
+        <childnode refid="66" relation="usage">
+          <edgelabel>c_small</edgelabel>
+        </childnode>
+        <childnode refid="68" relation="usage">
+          <edgelabel>c_ct64</edgelabel>
+        </childnode>
+        <childnode refid="69" relation="usage">
+          <edgelabel>c_x86ni</edgelabel>
+        </childnode>
+        <childnode refid="70" relation="usage">
+          <edgelabel>c_ct</edgelabel>
+        </childnode>
+        <childnode refid="67" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+        <childnode refid="71" relation="usage">
+          <edgelabel>c_big</edgelabel>
+        </childnode>
+        <childnode refid="72" relation="usage">
+          <edgelabel>c_pwr8</edgelabel>
+        </childnode>
+      </node>
+      <node id="72">
+        <label>br_aes_pwr8_cbcdec_keys</label>
+        <link refid="structbr__aes__pwr8__cbcdec__keys"/>
+        <childnode refid="67" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="69">
+        <label>br_aes_x86ni_cbcdec_keys</label>
+        <link refid="structbr__aes__x86ni__cbcdec__keys"/>
+        <childnode refid="67" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="2172" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2172" bodyend="2180"/>
+    <listofallmembers>
+      <member refid="unionbr__aes__gen__cbcdec__keys_1a9590f0ae086214d4083a00a58fc2e93a" prot="public" virt="non-virtual"><scope>br_aes_gen_cbcdec_keys</scope><name>c_big</name></member>
+      <member refid="unionbr__aes__gen__cbcdec__keys_1ab6b483874b06c20ff5041b231e3ab9d8" prot="public" virt="non-virtual"><scope>br_aes_gen_cbcdec_keys</scope><name>c_ct</name></member>
+      <member refid="unionbr__aes__gen__cbcdec__keys_1a0edf844aaa62dc621621137269cdec47" prot="public" virt="non-virtual"><scope>br_aes_gen_cbcdec_keys</scope><name>c_ct64</name></member>
+      <member refid="unionbr__aes__gen__cbcdec__keys_1a01ffa3d3179f916233efa8b22a386f65" prot="public" virt="non-virtual"><scope>br_aes_gen_cbcdec_keys</scope><name>c_pwr8</name></member>
+      <member refid="unionbr__aes__gen__cbcdec__keys_1a85887e2199ad5e229e5eac65680c1ed2" prot="public" virt="non-virtual"><scope>br_aes_gen_cbcdec_keys</scope><name>c_small</name></member>
+      <member refid="unionbr__aes__gen__cbcdec__keys_1a6dc6ca7c47e2a8af64d2e67c4ce87439" prot="public" virt="non-virtual"><scope>br_aes_gen_cbcdec_keys</scope><name>c_x86ni</name></member>
+      <member refid="unionbr__aes__gen__cbcdec__keys_1abdce2dc2164e1f6a1ff440f56727c0ff" prot="public" virt="non-virtual"><scope>br_aes_gen_cbcdec_keys</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

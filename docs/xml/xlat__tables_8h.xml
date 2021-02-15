@@ -1,0 +1,476 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="xlat__tables_8h" kind="file" language="C++">
+    <compoundname>xlat_tables.h</compoundname>
+    <includes refid="xlat__tables__defs_8h" local="no">xlat_tables_defs.h</includes>
+    <includes refid="stddef_8h" local="no">stddef.h</includes>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="xlat__mmu__helpers_8h" local="no">xlat_mmu_helpers.h</includes>
+    <incdepgraph>
+      <node id="691">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="692" relation="include">
+        </childnode>
+      </node>
+      <node id="688">
+        <label>stdint_.h</label>
+      </node>
+      <node id="683">
+        <label>/docs/include/pb/xlat_tables/xlat_tables.h</label>
+        <link refid="xlat__tables_8h"/>
+        <childnode refid="684" relation="include">
+        </childnode>
+        <childnode refid="691" relation="include">
+        </childnode>
+        <childnode refid="687" relation="include">
+        </childnode>
+        <childnode refid="685" relation="include">
+        </childnode>
+      </node>
+      <node id="692">
+        <label>stddef_.h</label>
+      </node>
+      <node id="686">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="689">
+        <label>string.h</label>
+        <link refid="string_8h_source"/>
+        <childnode refid="690" relation="include">
+        </childnode>
+      </node>
+      <node id="684">
+        <label>xlat_tables_defs.h</label>
+        <link refid="xlat__tables__defs_8h_source"/>
+        <childnode refid="685" relation="include">
+        </childnode>
+      </node>
+      <node id="685">
+        <label>xlat_mmu_helpers.h</label>
+        <link refid="xlat__mmu__helpers_8h_source"/>
+        <childnode refid="686" relation="include">
+        </childnode>
+        <childnode refid="687" relation="include">
+        </childnode>
+        <childnode refid="689" relation="include">
+        </childnode>
+      </node>
+      <node id="687">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="688" relation="include">
+        </childnode>
+      </node>
+      <node id="690">
+        <label>string_.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structmmap__region" prot="public">mmap_region</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="xlat__tables_8h_1a5ade79ec7ac9763856edfb41e6b088b1" prot="public" static="no">
+        <name>MAP_REGION_FLAT</name>
+        <param><defname>adr</defname></param>
+        <param><defname>sz</defname></param>
+        <param><defname>attr</defname></param>
+        <initializer>MAP_REGION(adr, adr, sz, attr)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="21" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1aba05891fa4b1a7d13ca0b56c8637b27b" prot="public" static="no">
+        <name>MAP_REGION</name>
+        <param><defname>pa</defname></param>
+        <param><defname>va</defname></param>
+        <param><defname>sz</defname></param>
+        <param><defname>attr</defname></param>
+        <initializer>{(pa), (va), (sz), (attr)}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="26" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1aac0064c36c372d9a62d3a7a4fa8dc72c" prot="public" static="no">
+        <name>MT_TYPE_MASK</name>
+        <initializer>U(0x7)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="31" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a4e004eb15d3b88b76d7e350f032fa8f1" prot="public" static="no">
+        <name>MT_TYPE</name>
+        <param><defname>_attr</defname></param>
+        <initializer>((_attr) &amp; MT_TYPE_MASK)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="32" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a4796895c7c90277cd1eae3c34fecd96c" prot="public" static="no">
+        <name>MT_PERM_SHIFT</name>
+        <initializer>U(3)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="34" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a4e94c3f3e790bb5c1afaa6ffa1094c8d" prot="public" static="no">
+        <name>MT_SEC_SHIFT</name>
+        <initializer>U(4)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="36" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1ac75c197d523dd7d18ff8edb4669026bd" prot="public" static="no">
+        <name>MT_EXECUTE_SHIFT</name>
+        <initializer>U(5)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="38" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1ab0d5bcaf320e734ca524c213bb950de1" prot="public" static="no">
+        <name>MT_DEVICE</name>
+        <initializer>U(0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="50" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a9a38b95827023bc819acc524e9646055" prot="public" static="no">
+        <name>MT_NON_CACHEABLE</name>
+        <initializer>U(1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="51" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a7139eb362d2d8dd2bd6fb34032fdd960" prot="public" static="no">
+        <name>MT_MEMORY</name>
+        <initializer>U(2)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="52" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a596089f139287e4696c2fe9c9add4074" prot="public" static="no">
+        <name>MT_RO</name>
+        <initializer>(U(0) &lt;&lt; MT_PERM_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="55" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a2f968826efe83004f350f2264fc5b192" prot="public" static="no">
+        <name>MT_RW</name>
+        <initializer>(U(1) &lt;&lt; MT_PERM_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="56" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a9a2ae47063f7f1b105796d5e3114118f" prot="public" static="no">
+        <name>MT_SECURE</name>
+        <initializer>(U(0) &lt;&lt; MT_SEC_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="58" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a2b0dcb4b334e2fd3eb31eb7451dfc005" prot="public" static="no">
+        <name>MT_NS</name>
+        <initializer>(U(1) &lt;&lt; MT_SEC_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="59" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a28bcf086bc649f4499301549cfe025f1" prot="public" static="no">
+        <name>MT_EXECUTE</name>
+        <initializer>(U(0) &lt;&lt; MT_EXECUTE_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="68" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1ac47d6f3061671f34f1cfad13a4e247f8" prot="public" static="no">
+        <name>MT_EXECUTE_NEVER</name>
+        <initializer>(U(1) &lt;&lt; MT_EXECUTE_SHIFT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="69" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1a2be93dd1d9ce579eeab97ba376141823" prot="public" static="no">
+        <name>MT_CODE</name>
+        <initializer>(MT_MEMORY | MT_RO | MT_EXECUTE)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="72" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables_8h_1ad197ad866cd6a1b7cc6605baad2996f1" prot="public" static="no">
+        <name>MT_RO_DATA</name>
+        <initializer>(MT_MEMORY | MT_RO | MT_EXECUTE_NEVER)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="73" column="9" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="xlat__tables_8h_1a2d24847d428f74cab7218737a54d6a86" prot="public" static="no">
+        <type>struct <ref refid="structmmap__region" kindref="compound">mmap_region</ref></type>
+        <definition>typedef struct mmap_region  mmap_region_t</definition>
+        <argsstring></argsstring>
+        <name>mmap_region_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="83" column="1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="xlat__tables_8h_1a7fbc67686603de9300d9e7ca01395732" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void init_xlat_tables</definition>
+        <argsstring>(void)</argsstring>
+        <name>init_xlat_tables</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="86" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__tables_8h_1a5b894d4b62fbc21ef45b330e6ca834c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mmap_add_region</definition>
+        <argsstring>(unsigned long long base_pa, uintptr_t base_va, size_t size, unsigned int attr)</argsstring>
+        <name>mmap_add_region</name>
+        <param>
+          <type>unsigned long long</type>
+          <declname>base_pa</declname>
+        </param>
+        <param>
+          <type>uintptr_t</type>
+          <declname>base_va</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>attr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="87" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__tables_8h_1a0a5de827af011614e322fb9df8e52fbf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mmap_add</definition>
+        <argsstring>(const mmap_region_t *mm)</argsstring>
+        <name>mmap_add</name>
+        <param>
+          <type>const <ref refid="structmmap__region" kindref="compound">mmap_region_t</ref> *</type>
+          <declname>mm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="89" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__tables_8h_1ab7b63733d337a121e482c84b183d95a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void reset_xlat_tables</definition>
+        <argsstring>(void)</argsstring>
+        <name>reset_xlat_tables</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="91" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2014-2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>XLAT_TABLES_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLES_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;xlat_tables_defs.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__ASSEMBLER__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stddef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;xlat_mmu_helpers.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Helper<sp/>macro<sp/>to<sp/>define<sp/>entries<sp/>for<sp/>mmap_region_t.<sp/>It<sp/>creates</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>identity<sp/>mappings<sp/>for<sp/>each<sp/>region.</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MAP_REGION_FLAT(adr,<sp/>sz,<sp/>attr)<sp/>MAP_REGION(adr,<sp/>adr,<sp/>sz,<sp/>attr)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Helper<sp/>macro<sp/>to<sp/>define<sp/>entries<sp/>for<sp/>mmap_region_t.<sp/>It<sp/>allows<sp/>to</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/>re-map<sp/>address<sp/>mappings<sp/>from<sp/>&apos;pa&apos;<sp/>to<sp/>&apos;va&apos;<sp/>for<sp/>each<sp/>region.</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MAP_REGION(pa,<sp/>va,<sp/>sz,<sp/>attr)<sp/>{(pa),<sp/>(va),<sp/>(sz),<sp/>(attr)}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*<sp/>Shifts<sp/>and<sp/>masks<sp/>to<sp/>access<sp/>fields<sp/>of<sp/>an<sp/>mmap<sp/>attribute</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_TYPE_MASK<sp/><sp/><sp/><sp/>U(0x7)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_TYPE(_attr)<sp/><sp/>((_attr)<sp/>&amp;<sp/>MT_TYPE_MASK)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Access<sp/>permissions<sp/>(RO/RW)<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_PERM_SHIFT<sp/><sp/><sp/>U(3)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Security<sp/>state<sp/>(SECURE/NS)<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_SEC_SHIFT<sp/><sp/><sp/><sp/>U(4)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Access<sp/>permissions<sp/>for<sp/>instruction<sp/>execution<sp/>(EXECUTE/EXECUTE_NEVER)<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_EXECUTE_SHIFT<sp/><sp/><sp/><sp/>U(5)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="41"><highlight class="comment"><sp/>*<sp/>Memory<sp/>mapping<sp/>attributes</highlight></codeline>
+<codeline lineno="42"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="45"><highlight class="comment"><sp/>*<sp/>Memory<sp/>types<sp/>supported.</highlight></codeline>
+<codeline lineno="46"><highlight class="comment"><sp/>*<sp/>These<sp/>are<sp/>organised<sp/>so<sp/>that,<sp/>going<sp/>down<sp/>the<sp/>list,<sp/>the<sp/>memory<sp/>types<sp/>are</highlight></codeline>
+<codeline lineno="47"><highlight class="comment"><sp/>*<sp/>getting<sp/>weaker;<sp/>conversely<sp/>going<sp/>up<sp/>the<sp/>list<sp/>the<sp/>memory<sp/>types<sp/>are<sp/>getting</highlight></codeline>
+<codeline lineno="48"><highlight class="comment"><sp/>*<sp/>stronger.</highlight></codeline>
+<codeline lineno="49"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_DEVICE<sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_NON_CACHEABLE<sp/><sp/><sp/><sp/>U(1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_MEMORY<sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Values<sp/>up<sp/>to<sp/>7<sp/>are<sp/>reserved<sp/>to<sp/>add<sp/>new<sp/>memory<sp/>types<sp/>in<sp/>the<sp/>future<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_RO<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(0)<sp/>&lt;&lt;<sp/>MT_PERM_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_RW<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>MT_PERM_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_SECURE<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(0)<sp/>&lt;&lt;<sp/>MT_SEC_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_NS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>MT_SEC_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="62"><highlight class="comment"><sp/>*<sp/>Access<sp/>permissions<sp/>for<sp/>instruction<sp/>execution<sp/>are<sp/>only<sp/>relevant<sp/>for<sp/>normal</highlight></codeline>
+<codeline lineno="63"><highlight class="comment"><sp/>*<sp/>read-only<sp/>memory,<sp/>i.e.<sp/>MT_MEMORY<sp/>|<sp/>MT_RO.<sp/>They<sp/>are<sp/>ignored<sp/>(and<sp/>potentially</highlight></codeline>
+<codeline lineno="64"><highlight class="comment"><sp/>*<sp/>overridden)<sp/>otherwise:</highlight></codeline>
+<codeline lineno="65"><highlight class="comment"><sp/>*<sp/><sp/>-<sp/>Device<sp/>memory<sp/>is<sp/>always<sp/>marked<sp/>as<sp/>execute-never.</highlight></codeline>
+<codeline lineno="66"><highlight class="comment"><sp/>*<sp/><sp/>-<sp/>Read-write<sp/>normal<sp/>memory<sp/>is<sp/>always<sp/>marked<sp/>as<sp/>execute-never.</highlight></codeline>
+<codeline lineno="67"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_EXECUTE<sp/><sp/><sp/><sp/><sp/><sp/>(U(0)<sp/>&lt;&lt;<sp/>MT_EXECUTE_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_EXECUTE_NEVER<sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>MT_EXECUTE_SHIFT)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Compound<sp/>attributes<sp/>for<sp/>most<sp/>common<sp/>usages<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_CODE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(MT_MEMORY<sp/>|<sp/>MT_RO<sp/>|<sp/>MT_EXECUTE)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MT_RO_DATA<sp/><sp/><sp/><sp/><sp/><sp/>(MT_MEMORY<sp/>|<sp/>MT_RO<sp/>|<sp/>MT_EXECUTE_NEVER)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="76"><highlight class="comment"><sp/>*<sp/>Structure<sp/>for<sp/>specifying<sp/>a<sp/>single<sp/>region<sp/>of<sp/>memory.</highlight></codeline>
+<codeline lineno="77"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="structmmap__region" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structmmap__region" kindref="compound">mmap_region</ref><sp/>{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/><sp/>base_pa;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>uintptr_t<sp/><sp/><sp/><sp/><sp/><sp/><sp/>base_va;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>size;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>attr;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">}<sp/><ref refid="structmmap__region" kindref="compound">mmap_region_t</ref>;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Generic<sp/>translation<sp/>table<sp/>APIs<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>init_xlat_tables(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>mmap_add_region(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>base_pa,<sp/>uintptr_t<sp/>base_va,</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>attr);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>mmap_add(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structmmap__region" kindref="compound">mmap_region_t</ref><sp/>*mm);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_xlat_tables(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*__ASSEMBLER__*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>XLAT_TABLES_H<sp/>*/</highlight><highlight class="preprocessor"></highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/xlat_tables/xlat_tables.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,279 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__block__ctrcbc__class__" kind="struct" language="C++" prot="public">
+    <compoundname>br_block_ctrcbc_class_</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__block__ctrcbc__class___1a74b9fae6a21c846f9146f6c5d735212c" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_block_ctrcbc_class_::context_size</definition>
+        <argsstring></argsstring>
+        <name>context_size</name>
+        <briefdescription>
+<para>Size (in bytes) of the context structure appropriate for containing subkeys. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="579" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="579" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctrcbc__class___1af15e472287ac70fcfe2fa31825e22214" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_block_ctrcbc_class_::block_size</definition>
+        <argsstring></argsstring>
+        <name>block_size</name>
+        <briefdescription>
+<para>Size of individual blocks (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="584" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="584" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctrcbc__class___1a968f2abc1b0035034294633e30c69ab7" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_block_ctrcbc_class_::log_block_size</definition>
+        <argsstring></argsstring>
+        <name>log_block_size</name>
+        <briefdescription>
+<para>Base-2 logarithm of the size of individual blocks, expressed in bytes. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="590" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="590" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctrcbc__class___1ae9fc5896bb00f38332ff72960c73d397" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_block_ctrcbc_class_::init) (const br_block_ctrcbc_class **ctx, const void *key, size_t key_len)</definition>
+        <argsstring>)(const br_block_ctrcbc_class **ctx, const void *key, size_t key_len)</argsstring>
+        <name>init</name>
+        <briefdescription>
+<para>Initialisation function. </para>        </briefdescription>
+        <detaileddescription>
+<para>This function sets the <computeroutput>vtable</computeroutput> field in the context structure. The key length MUST be one of the key lengths supported by the implementation.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure to initialise. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>secret key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>key length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="603" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="603" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctrcbc__class___1a43fe57f6aab19bb24d59b8e5f76dc562" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_block_ctrcbc_class_::encrypt) (const br_block_ctrcbc_class *const *ctx, void *ctr, void *cbcmac, void *data, size_t len)</definition>
+        <argsstring>)(const br_block_ctrcbc_class *const *ctx, void *ctr, void *cbcmac, void *data, size_t len)</argsstring>
+        <name>encrypt</name>
+        <briefdescription>
+<para>Run the CTR encryption + CBC-MAC. </para>        </briefdescription>
+        <detaileddescription>
+<para>The <computeroutput>ctr</computeroutput> parameter points to the counter; its length shall be equal to the block size. It is updated by this function as encryption proceeds.</para><para>The <computeroutput>cbcmac</computeroutput> parameter points to the IV for CBC-MAC. The MAC is computed over the encrypted data (output of CTR encryption). Its length shall be equal to the block size. The computed CBC-MAC value is written over the <computeroutput>cbcmac</computeroutput> array.</para><para>The data to encrypt is updated &quot;in place&quot;. Its length (<computeroutput>len</computeroutput> bytes) MUST be a multiple of the block size.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure (already initialised). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ctr</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>counter for CTR encryption (initial and final). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cbcmac</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>IV and output buffer for CBC-MAC. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data to encrypt. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="627" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="627" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctrcbc__class___1ae22aeea0d1a1961dada2e3699f3f94e6" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_block_ctrcbc_class_::decrypt) (const br_block_ctrcbc_class *const *ctx, void *ctr, void *cbcmac, void *data, size_t len)</definition>
+        <argsstring>)(const br_block_ctrcbc_class *const *ctx, void *ctr, void *cbcmac, void *data, size_t len)</argsstring>
+        <name>decrypt</name>
+        <briefdescription>
+<para>Run the CTR decryption + CBC-MAC. </para>        </briefdescription>
+        <detaileddescription>
+<para>The <computeroutput>ctr</computeroutput> parameter points to the counter; its length shall be equal to the block size. It is updated by this function as decryption proceeds.</para><para>The <computeroutput>cbcmac</computeroutput> parameter points to the IV for CBC-MAC. The MAC is computed over the encrypted data (i.e. before CTR decryption). Its length shall be equal to the block size. The computed CBC-MAC value is written over the <computeroutput>cbcmac</computeroutput> array.</para><para>The data to decrypt is updated &quot;in place&quot;. Its length (<computeroutput>len</computeroutput> bytes) MUST be a multiple of the block size.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure (already initialised). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ctr</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>counter for CTR encryption (initial and final). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cbcmac</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>IV and output buffer for CBC-MAC. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data to decrypt. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="651" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="651" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctrcbc__class___1ababdd95a98b5583ca53347b43a69d1ee" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_block_ctrcbc_class_::ctr) (const br_block_ctrcbc_class *const *ctx, void *ctr, void *data, size_t len)</definition>
+        <argsstring>)(const br_block_ctrcbc_class *const *ctx, void *ctr, void *data, size_t len)</argsstring>
+        <name>ctr</name>
+        <briefdescription>
+<para>Run the CTR encryption/decryption only. </para>        </briefdescription>
+        <detaileddescription>
+<para>The <computeroutput>ctr</computeroutput> parameter points to the counter; its length shall be equal to the block size. It is updated by this function as decryption proceeds.</para><para>The data to decrypt is updated &quot;in place&quot;. Its length (<computeroutput>len</computeroutput> bytes) MUST be a multiple of the block size.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure (already initialised). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ctr</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>counter for CTR encryption (initial and final). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data to decrypt. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="669" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="669" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__ctrcbc__class___1ad8a236c61c6191fe54f7c3014035aa54" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_block_ctrcbc_class_::mac) (const br_block_ctrcbc_class *const *ctx, void *cbcmac, const void *data, size_t len)</definition>
+        <argsstring>)(const br_block_ctrcbc_class *const *ctx, void *cbcmac, const void *data, size_t len)</argsstring>
+        <name>mac</name>
+        <briefdescription>
+<para>Run the CBC-MAC only. </para>        </briefdescription>
+        <detaileddescription>
+<para>The <computeroutput>cbcmac</computeroutput> parameter points to the IV for CBC-MAC. The MAC is computed over the encrypted data (i.e. before CTR decryption). Its length shall be equal to the block size. The computed CBC-MAC value is written over the <computeroutput>cbcmac</computeroutput> array.</para><para>The data is unmodified. Its length (<computeroutput>len</computeroutput> bytes) MUST be a multiple of the block size.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure (already initialised). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cbcmac</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>IV and output buffer for CBC-MAC. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data to decrypt. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="688" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="688" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="574" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="574" bodyend="690"/>
+    <listofallmembers>
+      <member refid="structbr__block__ctrcbc__class___1af15e472287ac70fcfe2fa31825e22214" prot="public" virt="non-virtual"><scope>br_block_ctrcbc_class_</scope><name>block_size</name></member>
+      <member refid="structbr__block__ctrcbc__class___1a74b9fae6a21c846f9146f6c5d735212c" prot="public" virt="non-virtual"><scope>br_block_ctrcbc_class_</scope><name>context_size</name></member>
+      <member refid="structbr__block__ctrcbc__class___1ababdd95a98b5583ca53347b43a69d1ee" prot="public" virt="non-virtual"><scope>br_block_ctrcbc_class_</scope><name>ctr</name></member>
+      <member refid="structbr__block__ctrcbc__class___1ae22aeea0d1a1961dada2e3699f3f94e6" prot="public" virt="non-virtual"><scope>br_block_ctrcbc_class_</scope><name>decrypt</name></member>
+      <member refid="structbr__block__ctrcbc__class___1a43fe57f6aab19bb24d59b8e5f76dc562" prot="public" virt="non-virtual"><scope>br_block_ctrcbc_class_</scope><name>encrypt</name></member>
+      <member refid="structbr__block__ctrcbc__class___1ae9fc5896bb00f38332ff72960c73d397" prot="public" virt="non-virtual"><scope>br_block_ctrcbc_class_</scope><name>init</name></member>
+      <member refid="structbr__block__ctrcbc__class___1a968f2abc1b0035034294633e30c69ab7" prot="public" virt="non-virtual"><scope>br_block_ctrcbc_class_</scope><name>log_block_size</name></member>
+      <member refid="structbr__block__ctrcbc__class___1ad8a236c61c6191fe54f7c3014035aa54" prot="public" virt="non-virtual"><scope>br_block_ctrcbc_class_</scope><name>mac</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

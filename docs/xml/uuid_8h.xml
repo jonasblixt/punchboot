@@ -1,0 +1,547 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="uuid_8h" kind="file" language="C++">
+    <compoundname>uuid.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="time_8h" local="no">time.h</includes>
+    <includedby refid="uuidP_8h" local="yes">/docs/lib/uuid/uuidP.h</includedby>
+    <includedby refid="boot_8h" local="no">/docs/include/pb/boot.h</includedby>
+    <includedby refid="plat_8h" local="no">/docs/include/pb/plat.h</includedby>
+    <incdepgraph>
+      <node id="852">
+        <label>time.h</label>
+        <link refid="time_8h_source"/>
+        <childnode refid="853" relation="include">
+        </childnode>
+      </node>
+      <node id="851">
+        <label>stdint_.h</label>
+      </node>
+      <node id="853">
+        <label>time_.h</label>
+      </node>
+      <node id="849">
+        <label>/docs/lib/uuid/uuid.h</label>
+        <link refid="uuid_8h"/>
+        <childnode refid="850" relation="include">
+        </childnode>
+        <childnode refid="852" relation="include">
+        </childnode>
+      </node>
+      <node id="850">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="851" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="854">
+        <label>/docs/lib/uuid/uuid.h</label>
+        <link refid="uuid_8h"/>
+        <childnode refid="855" relation="include">
+        </childnode>
+        <childnode refid="856" relation="include">
+        </childnode>
+        <childnode refid="857" relation="include">
+        </childnode>
+      </node>
+      <node id="855">
+        <label>/docs/lib/uuid/uuidP.h</label>
+        <link refid="uuidP_8h_source"/>
+      </node>
+      <node id="857">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="856">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="857" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="uuid_8h_1a96eea04272860973eb057fb119211a89" prot="public" static="no">
+        <name>UUID_VARIANT_NCS</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="44" column="9" bodyfile="/docs/lib/uuid/uuid.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="uuid_8h_1aa10bfe9f7ea7762151bebc841117d2a0" prot="public" static="no">
+        <name>UUID_VARIANT_DCE</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="45" column="9" bodyfile="/docs/lib/uuid/uuid.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="uuid_8h_1a7b6b2e67138c91112ecfb6c63b98e720" prot="public" static="no">
+        <name>UUID_VARIANT_MICROSOFT</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="46" column="9" bodyfile="/docs/lib/uuid/uuid.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="uuid_8h_1ab080868393be7d17d0ef1609ae7852cd" prot="public" static="no">
+        <name>UUID_VARIANT_OTHER</name>
+        <initializer>3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="47" column="9" bodyfile="/docs/lib/uuid/uuid.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="uuid_8h_1a756c83af73d37e47521a60c1f18dfd2c" prot="public" static="no">
+        <name>UUID_TYPE_DCE_TIME</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="50" column="9" bodyfile="/docs/lib/uuid/uuid.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="uuid_8h_1af340e294e1dbe7b9132c87402fa221f8" prot="public" static="no">
+        <name>UUID_TYPE_DCE_RANDOM</name>
+        <initializer>4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="51" column="9" bodyfile="/docs/lib/uuid/uuid.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="uuid_8h_1a84c04d7f90ec0056a71f32f83f51f17b" prot="public" static="no">
+        <name>UUID_DEFINE</name>
+        <param><defname>name</defname></param>
+        <param><defname>u0</defname></param>
+        <param><defname>u1</defname></param>
+        <param><defname>u2</defname></param>
+        <param><defname>u3</defname></param>
+        <param><defname>u4</defname></param>
+        <param><defname>u5</defname></param>
+        <param><defname>u6</defname></param>
+        <param><defname>u7</defname></param>
+        <param><defname>u8</defname></param>
+        <param><defname>u9</defname></param>
+        <param><defname>u10</defname></param>
+        <param><defname>u11</defname></param>
+        <param><defname>u12</defname></param>
+        <param><defname>u13</defname></param>
+        <param><defname>u14</defname></param>
+        <param><defname>u15</defname></param>
+        <initializer>static const uuid_t name = {u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="58" column="10" bodyfile="/docs/lib/uuid/uuid.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="uuid_8h_1afe72ea97f61d26d4b92d56c4d3b40a78" prot="public" static="no">
+        <type>unsigned char</type>
+        <definition>typedef unsigned char uuid_t[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>uuid_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="41" column="1" bodyfile="/docs/lib/uuid/uuid.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="uuid_8h_1aa39e286931426a49953b7561cb68a0ac" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void uuid_clear</definition>
+        <argsstring>(uuid_t uu)</argsstring>
+        <name>uuid_clear</name>
+        <param>
+          <type>uuid_t</type>
+          <declname>uu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="67" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1a3924b3a31ed8dba10259cc74a78e6fa6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int uuid_compare</definition>
+        <argsstring>(const uuid_t uu1, const uuid_t uu2)</argsstring>
+        <name>uuid_compare</name>
+        <param>
+          <type>const uuid_t</type>
+          <declname>uu1</declname>
+        </param>
+        <param>
+          <type>const uuid_t</type>
+          <declname>uu2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="70" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1ad2d4f2b8ed9928f615e65d0820ae5f3f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void uuid_copy</definition>
+        <argsstring>(uuid_t dst, const uuid_t src)</argsstring>
+        <name>uuid_copy</name>
+        <param>
+          <type>uuid_t</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>const uuid_t</type>
+          <declname>src</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="73" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1a804579c25f4e14c9f7b2d6252efdecea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void uuid_generate</definition>
+        <argsstring>(uuid_t out)</argsstring>
+        <name>uuid_generate</name>
+        <param>
+          <type>uuid_t</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="76" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1a7c4e3960c7460adf5491ee6445dc92dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void uuid_generate_random</definition>
+        <argsstring>(uuid_t out)</argsstring>
+        <name>uuid_generate_random</name>
+        <param>
+          <type>uuid_t</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="77" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1ab6a83c8c0da7ea1b2dd35389670ec38e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void uuid_generate_time</definition>
+        <argsstring>(uuid_t out)</argsstring>
+        <name>uuid_generate_time</name>
+        <param>
+          <type>uuid_t</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="78" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1a3b32ab5ccc9a84ebf860fb7538867036" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int uuid_is_null</definition>
+        <argsstring>(const uuid_t uu)</argsstring>
+        <name>uuid_is_null</name>
+        <param>
+          <type>const uuid_t</type>
+          <declname>uu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="81" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1a36e03ea393dabc0d2a3fca3a26785deb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int uuid_parse</definition>
+        <argsstring>(const char *in, uuid_t uu)</argsstring>
+        <name>uuid_parse</name>
+        <param>
+          <type>const char *</type>
+          <declname>in</declname>
+        </param>
+        <param>
+          <type>uuid_t</type>
+          <declname>uu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="84" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1ace9f965469a6d0871f557e619ca20fe0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void uuid_unparse</definition>
+        <argsstring>(const uuid_t uu, char *out)</argsstring>
+        <name>uuid_unparse</name>
+        <param>
+          <type>const uuid_t</type>
+          <declname>uu</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="87" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1a0588d28ea4da8b7f660ecd042e408b8a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void uuid_unparse_lower</definition>
+        <argsstring>(const uuid_t uu, char *out)</argsstring>
+        <name>uuid_unparse_lower</name>
+        <param>
+          <type>const uuid_t</type>
+          <declname>uu</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="88" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1a58bdc3a6019fea193367a75f45fadb12" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void uuid_unparse_upper</definition>
+        <argsstring>(const uuid_t uu, char *out)</argsstring>
+        <name>uuid_unparse_upper</name>
+        <param>
+          <type>const uuid_t</type>
+          <declname>uu</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="89" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1abb1daee14de8b7d13040b61407cc6454" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int uuid_to_guid</definition>
+        <argsstring>(const uuid_t uu, uuid_t guid)</argsstring>
+        <name>uuid_to_guid</name>
+        <param>
+          <type>const uuid_t</type>
+          <declname>uu</declname>
+        </param>
+        <param>
+          <type>uuid_t</type>
+          <declname>guid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="92" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="uuid_8h_1a7137e1bad22a204df31615614d1bae91" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int uuid_gen_uuid3</definition>
+        <argsstring>(const char *namespace_uu, const char *unique, size_t size, char *out)</argsstring>
+        <name>uuid_gen_uuid3</name>
+        <param>
+          <type>const char *</type>
+          <declname>namespace_uu</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>unique</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuid.h" line="94" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Public<sp/>include<sp/>file<sp/>for<sp/>the<sp/>UUID<sp/>library</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(C)<sp/>1996,<sp/>1997,<sp/>1998<sp/>Theodore<sp/>Ts&apos;o.</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"><sp/>*<sp/>%Begin-Header%</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*<sp/>Redistribution<sp/>and<sp/>use<sp/>in<sp/>source<sp/>and<sp/>binary<sp/>forms,<sp/>with<sp/>or<sp/>without</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>modification,<sp/>are<sp/>permitted<sp/>provided<sp/>that<sp/>the<sp/>following<sp/>conditions</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>are<sp/>met:</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*<sp/>1.<sp/>Redistributions<sp/>of<sp/>source<sp/>code<sp/>must<sp/>retain<sp/>the<sp/>above<sp/>copyright</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>notice,<sp/>and<sp/>the<sp/>entire<sp/>permission<sp/>notice<sp/>in<sp/>its<sp/>entirety,</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>including<sp/>the<sp/>disclaimer<sp/>of<sp/>warranties.</highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>*<sp/>2.<sp/>Redistributions<sp/>in<sp/>binary<sp/>form<sp/>must<sp/>reproduce<sp/>the<sp/>above<sp/>copyright</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following<sp/>disclaimer<sp/>in<sp/>the</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>documentation<sp/>and/or<sp/>other<sp/>materials<sp/>provided<sp/>with<sp/>the<sp/>distribution.</highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/>*<sp/>3.<sp/>The<sp/>name<sp/>of<sp/>the<sp/>author<sp/>may<sp/>not<sp/>be<sp/>used<sp/>to<sp/>endorse<sp/>or<sp/>promote</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>products<sp/>derived<sp/>from<sp/>this<sp/>software<sp/>without<sp/>specific<sp/>prior</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>written<sp/>permission.</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*<sp/>THIS<sp/>SOFTWARE<sp/>IS<sp/>PROVIDED<sp/>``AS<sp/>IS&apos;&apos;<sp/>AND<sp/>ANY<sp/>EXPRESS<sp/>OR<sp/>IMPLIED</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/>WARRANTIES,<sp/>INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>THE<sp/>IMPLIED<sp/>WARRANTIES</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/>OF<sp/>MERCHANTABILITY<sp/>AND<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE,<sp/>ALL<sp/>OF</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*<sp/>WHICH<sp/>ARE<sp/>HEREBY<sp/>DISCLAIMED.<sp/><sp/>IN<sp/>NO<sp/>EVENT<sp/>SHALL<sp/>THE<sp/>AUTHOR<sp/>BE</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/>LIABLE<sp/>FOR<sp/>ANY<sp/>DIRECT,<sp/>INDIRECT,<sp/>INCIDENTAL,<sp/>SPECIAL,<sp/>EXEMPLARY,<sp/>OR</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*<sp/>CONSEQUENTIAL<sp/>DAMAGES<sp/>(INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>PROCUREMENT</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*<sp/>OF<sp/>SUBSTITUTE<sp/>GOODS<sp/>OR<sp/>SERVICES;<sp/>LOSS<sp/>OF<sp/>USE,<sp/>DATA,<sp/>OR<sp/>PROFITS;<sp/>OR</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"><sp/>*<sp/>BUSINESS<sp/>INTERRUPTION)<sp/>HOWEVER<sp/>CAUSED<sp/>AND<sp/>ON<sp/>ANY<sp/>THEORY<sp/>OF</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*<sp/>LIABILITY,<sp/>WHETHER<sp/>IN<sp/>CONTRACT,<sp/>STRICT<sp/>LIABILITY,<sp/>OR<sp/>TORT</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*<sp/>(INCLUDING<sp/>NEGLIGENCE<sp/>OR<sp/>OTHERWISE)<sp/>ARISING<sp/>IN<sp/>ANY<sp/>WAY<sp/>OUT<sp/>OF<sp/>THE</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/>USE<sp/>OF<sp/>THIS<sp/>SOFTWARE,<sp/>EVEN<sp/>IF<sp/>NOT<sp/>ADVISED<sp/>OF<sp/>THE<sp/>POSSIBILITY<sp/>OF<sp/>SUCH</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*<sp/>DAMAGE.</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*<sp/>%End-Header%</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>_UUID_UUID_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>_UUID_UUID_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;time.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>uuid_t[16];</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>UUID<sp/>Variant<sp/>definitions<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UUID_VARIANT_NCS<sp/><sp/><sp/><sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UUID_VARIANT_DCE<sp/><sp/><sp/><sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UUID_VARIANT_MICROSOFT<sp/><sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UUID_VARIANT_OTHER<sp/><sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>UUID<sp/>Type<sp/>definitions<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UUID_TYPE_DCE_TIME<sp/><sp/><sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UUID_TYPE_DCE_RANDOM<sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Allow<sp/>UUID<sp/>constants<sp/>to<sp/>be<sp/>defined<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__GNUC__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UUID_DEFINE(name,u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15)<sp/>\</highlight></codeline>
+<codeline lineno="56"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>static<sp/>const<sp/>uuid_t<sp/>name<sp/>__attribute__<sp/>((unused))<sp/>=<sp/>{u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UUID_DEFINE(name,u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15)<sp/>\</highlight></codeline>
+<codeline lineno="59"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>static<sp/>const<sp/>uuid_t<sp/>name<sp/>=<sp/>{u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__cplusplus</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;C&quot;</highlight><highlight class="normal"><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>clear.c<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>uuid_clear(uuid_t<sp/>uu);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>compare.c<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>uuid_compare(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uuid_t<sp/>uu1,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uuid_t<sp/>uu2);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>copy.c<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>uuid_copy(uuid_t<sp/>dst,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uuid_t<sp/>src);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>gen_uuid.c<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>uuid_generate(uuid_t<sp/>out);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>uuid_generate_random(uuid_t<sp/>out);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>uuid_generate_time(uuid_t<sp/>out);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>isnull.c<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>uuid_is_null(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uuid_t<sp/>uu);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>parse.c<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>uuid_parse(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*in,<sp/>uuid_t<sp/>uu);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>unparse.c<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>uuid_unparse(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uuid_t<sp/>uu,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*out);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>uuid_unparse_lower(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uuid_t<sp/>uu,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*out);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>uuid_unparse_upper(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uuid_t<sp/>uu,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*out);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>conv.c<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>uuid_to_guid(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uuid_t<sp/>uu,<sp/>uuid_t<sp/>guid);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>uuid_gen_uuid3(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*namespace_uu,</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*unique,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*out);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__cplusplus</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>_UUID_UUID_H<sp/>*/</highlight><highlight class="preprocessor"></highlight></codeline>
+    </programlisting>
+    <location file="/docs/lib/uuid/uuid.h"/>
+  </compounddef>
+</doxygen>

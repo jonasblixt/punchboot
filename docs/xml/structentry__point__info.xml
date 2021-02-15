@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structentry__point__info" kind="struct" language="C++" prot="public">
+    <compoundname>entry_point_info</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structentry__point__info_1aa708290136c422f350aa3c7149b88da6" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structatf__param__header" kindref="compound">atf_param_header</ref></type>
+        <definition>struct atf_param_header entry_point_info::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="48" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structentry__point__info_1ab4244cfe6135f947cfb85fb585f70a1b" prot="public" static="no" mutable="no">
+        <type>uintptr_t</type>
+        <definition>uintptr_t entry_point_info::pc</definition>
+        <argsstring></argsstring>
+        <name>pc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="54" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structentry__point__info_1a4256aa23b3d15650e82531eb600cbb01" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t entry_point_info::spsr</definition>
+        <argsstring></argsstring>
+        <name>spsr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="55" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structentry__point__info_1a2da08358a9dd8e225489d34d8a05f75e" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structaapcs64__params" kindref="compound">aapcs64_params</ref></type>
+        <definition>struct aapcs64_params entry_point_info::args</definition>
+        <argsstring></argsstring>
+        <name>args</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="55" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="287">
+        <label>aapcs64_params</label>
+        <link refid="structaapcs64__params"/>
+      </node>
+      <node id="286">
+        <label>entry_point_info</label>
+        <link refid="structentry__point__info"/>
+        <childnode refid="287" relation="usage">
+          <edgelabel>args</edgelabel>
+        </childnode>
+        <childnode refid="288" relation="usage">
+          <edgelabel>h</edgelabel>
+        </childnode>
+      </node>
+      <node id="288">
+        <label>atf_param_header</label>
+        <link refid="structatf__param__header"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/include/pb/atf.h" line="52" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="51" bodyend="57"/>
+    <listofallmembers>
+      <member refid="structentry__point__info_1a2da08358a9dd8e225489d34d8a05f75e" prot="public" virt="non-virtual"><scope>entry_point_info</scope><name>args</name></member>
+      <member refid="structentry__point__info_1aa708290136c422f350aa3c7149b88da6" prot="public" virt="non-virtual"><scope>entry_point_info</scope><name>h</name></member>
+      <member refid="structentry__point__info_1ab4244cfe6135f947cfb85fb585f70a1b" prot="public" virt="non-virtual"><scope>entry_point_info</scope><name>pc</name></member>
+      <member refid="structentry__point__info_1a4256aa23b3d15650e82531eb600cbb01" prot="public" virt="non-virtual"><scope>entry_point_info</scope><name>spsr</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

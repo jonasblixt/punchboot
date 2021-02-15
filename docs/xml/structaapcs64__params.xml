@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structaapcs64__params" kind="struct" language="C++" prot="public">
+    <compoundname>aapcs64_params</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structaapcs64__params_1a5465d94b97b821d931eebebdaacbbd1d" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t aapcs64_params::arg0</definition>
+        <argsstring></argsstring>
+        <name>arg0</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="41" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structaapcs64__params_1ae1845ff22423889f0337943a60cdfc56" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t aapcs64_params::arg1</definition>
+        <argsstring></argsstring>
+        <name>arg1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="42" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structaapcs64__params_1afe7464e0da05bf55e33229a08570046b" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t aapcs64_params::arg2</definition>
+        <argsstring></argsstring>
+        <name>arg2</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="43" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structaapcs64__params_1a062d81cb8b343198c4a168efd945899d" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t aapcs64_params::arg3</definition>
+        <argsstring></argsstring>
+        <name>arg3</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="44" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structaapcs64__params_1abc94add19e297928c23867bef538d8bb" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t aapcs64_params::arg4</definition>
+        <argsstring></argsstring>
+        <name>arg4</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="45" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structaapcs64__params_1a0004d07042e59954e708315dbd951ed9" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t aapcs64_params::arg5</definition>
+        <argsstring></argsstring>
+        <name>arg5</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="46" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structaapcs64__params_1ab19c731bcf60b31d24d2f6b92c0bfd6a" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t aapcs64_params::arg6</definition>
+        <argsstring></argsstring>
+        <name>arg6</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="47" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structaapcs64__params_1a3606694f886757c140deef1b33b81856" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t aapcs64_params::arg7</definition>
+        <argsstring></argsstring>
+        <name>arg7</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/atf.h" line="48" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/atf.h" line="40" column="1" bodyfile="/docs/include/pb/atf.h" bodystart="39" bodyend="49"/>
+    <listofallmembers>
+      <member refid="structaapcs64__params_1a5465d94b97b821d931eebebdaacbbd1d" prot="public" virt="non-virtual"><scope>aapcs64_params</scope><name>arg0</name></member>
+      <member refid="structaapcs64__params_1ae1845ff22423889f0337943a60cdfc56" prot="public" virt="non-virtual"><scope>aapcs64_params</scope><name>arg1</name></member>
+      <member refid="structaapcs64__params_1afe7464e0da05bf55e33229a08570046b" prot="public" virt="non-virtual"><scope>aapcs64_params</scope><name>arg2</name></member>
+      <member refid="structaapcs64__params_1a062d81cb8b343198c4a168efd945899d" prot="public" virt="non-virtual"><scope>aapcs64_params</scope><name>arg3</name></member>
+      <member refid="structaapcs64__params_1abc94add19e297928c23867bef538d8bb" prot="public" virt="non-virtual"><scope>aapcs64_params</scope><name>arg4</name></member>
+      <member refid="structaapcs64__params_1a0004d07042e59954e708315dbd951ed9" prot="public" virt="non-virtual"><scope>aapcs64_params</scope><name>arg5</name></member>
+      <member refid="structaapcs64__params_1ab19c731bcf60b31d24d2f6b92c0bfd6a" prot="public" virt="non-virtual"><scope>aapcs64_params</scope><name>arg6</name></member>
+      <member refid="structaapcs64__params_1a3606694f886757c140deef1b33b81856" prot="public" virt="non-virtual"><scope>aapcs64_params</scope><name>arg7</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,91 @@
+\hypertarget{structbr__prng__class__}{}\section{br\+\_\+prng\+\_\+class\+\_\+ Struct Reference}
+\label{structbr__prng__class__}\index{br\+\_\+prng\+\_\+class\+\_\+@{br\+\_\+prng\+\_\+class\+\_\+}}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__prng__class___a2f3ec37b1ac8e0157489db17de371396}\label{structbr__prng__class___a2f3ec37b1ac8e0157489db17de371396}} 
+size\+\_\+t \hyperlink{structbr__prng__class___a2f3ec37b1ac8e0157489db17de371396}{context\+\_\+size}
+\begin{DoxyCompactList}\small\item\em Size (in bytes) of the context structure appropriate for running this P\+R\+NG. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__prng__class___ae54c9bffd6e8aed1099b33a425d0af58}{init} )(const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$ctx, const void $\ast$params, const void $\ast$seed, size\+\_\+t seed\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Initialisation method. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__prng__class___a34fa7747beda004295733790bbf9671d}{generate} )(const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$ctx, void $\ast$out, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Random bytes generation. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__prng__class___ab26e31262e16bc2d8bf47c2c5b5e6a38}{update} )(const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$ctx, const void $\ast$seed, size\+\_\+t seed\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Inject additional seed bytes. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structbr__prng__class___a34fa7747beda004295733790bbf9671d}\label{structbr__prng__class___a34fa7747beda004295733790bbf9671d}} 
+\index{br\+\_\+prng\+\_\+class\+\_\+@{br\+\_\+prng\+\_\+class\+\_\+}!generate@{generate}}
+\index{generate@{generate}!br\+\_\+prng\+\_\+class\+\_\+@{br\+\_\+prng\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{generate}{generate}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+prng\+\_\+class\+\_\+\+::generate) (const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$ctx, void $\ast$out, size\+\_\+t len)}
+
+
+
+Random bytes generation. 
+
+This method produces {\ttfamily len} pseudorandom bytes, in the {\ttfamily out} buffer. The context is updated accordingly.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & P\+R\+NG context. \\
+\hline
+{\em out} & output buffer. \\
+\hline
+{\em len} & number of pseudorandom bytes to produce. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__prng__class___ae54c9bffd6e8aed1099b33a425d0af58}\label{structbr__prng__class___ae54c9bffd6e8aed1099b33a425d0af58}} 
+\index{br\+\_\+prng\+\_\+class\+\_\+@{br\+\_\+prng\+\_\+class\+\_\+}!init@{init}}
+\index{init@{init}!br\+\_\+prng\+\_\+class\+\_\+@{br\+\_\+prng\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{init}{init}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+prng\+\_\+class\+\_\+\+::init) (const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$ctx, const void $\ast$params, const void $\ast$seed, size\+\_\+t seed\+\_\+len)}
+
+
+
+Initialisation method. 
+
+The context to initialise is provided as a pointer to its first field (the vtable pointer); this function sets that first field to a pointer to the vtable.
+
+The extra parameters depend on the implementation; each implementation defines what kind of extra parameters it expects (if any).
+
+Requirements on the initial seed depend on the implemented P\+R\+NG.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & P\+R\+NG context to initialise. \\
+\hline
+{\em params} & extra parameters for the P\+R\+NG. \\
+\hline
+{\em seed} & initial seed. \\
+\hline
+{\em seed\+\_\+len} & initial seed length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__prng__class___ab26e31262e16bc2d8bf47c2c5b5e6a38}\label{structbr__prng__class___ab26e31262e16bc2d8bf47c2c5b5e6a38}} 
+\index{br\+\_\+prng\+\_\+class\+\_\+@{br\+\_\+prng\+\_\+class\+\_\+}!update@{update}}
+\index{update@{update}!br\+\_\+prng\+\_\+class\+\_\+@{br\+\_\+prng\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{update}{update}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+prng\+\_\+class\+\_\+\+::update) (const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$ctx, const void $\ast$seed, size\+\_\+t seed\+\_\+len)}
+
+
+
+Inject additional seed bytes. 
+
+The provided seed bytes are added into the P\+R\+NG internal entropy pool.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & P\+R\+NG context. \\
+\hline
+{\em seed} & additional seed. \\
+\hline
+{\em seed\+\_\+len} & additional seed length (in bytes). \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__rand_8h}{bearssl\+\_\+rand.\+h}\end{DoxyCompactItemize}

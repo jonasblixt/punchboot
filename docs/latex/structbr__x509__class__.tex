@@ -1,0 +1,150 @@
+\hypertarget{structbr__x509__class__}{}\section{br\+\_\+x509\+\_\+class\+\_\+ Struct Reference}
+\label{structbr__x509__class__}\index{br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__x509__class___a93c4a22bc7c439b5e32033d561b5fe85}\label{structbr__x509__class___a93c4a22bc7c439b5e32033d561b5fe85}} 
+size\+\_\+t \hyperlink{structbr__x509__class___a93c4a22bc7c439b5e32033d561b5fe85}{context\+\_\+size}
+\begin{DoxyCompactList}\small\item\em X.\+509 context size, in bytes. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__x509__class___a61fcfd55c81fd2d32edeedd64714c7e2}{start\+\_\+chain} )(const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx, const char $\ast$server\+\_\+name)
+\begin{DoxyCompactList}\small\item\em Start a new chain. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__x509__class___a7f09733a83c0badbb24128d26440ff55}{start\+\_\+cert} )(const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx, uint32\+\_\+t length)
+\begin{DoxyCompactList}\small\item\em Start a new certificate. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__x509__class___a132f22c46f8798f0e2cce6d14b49140d}{append} )(const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx, const unsigned char $\ast$buf, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Receive some bytes for the current certificate. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__x509__class___afd2f28171e46b4a1408101d54a59b18c}{end\+\_\+cert} )(const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx)
+\begin{DoxyCompactList}\small\item\em Finish the current certificate. \end{DoxyCompactList}\item 
+unsigned($\ast$ \hyperlink{structbr__x509__class___a362ee4b09649989960014aa9b3bf2fdc}{end\+\_\+chain} )(const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx)
+\begin{DoxyCompactList}\small\item\em Finish the chain. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__x509__pkey}{br\+\_\+x509\+\_\+pkey} $\ast$($\ast$ \hyperlink{structbr__x509__class___a307c5d22b156e8affd3f7f3f0b7f87ba}{get\+\_\+pkey} )(const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$const $\ast$ctx, unsigned $\ast$usages)
+\begin{DoxyCompactList}\small\item\em Get the resulting end-\/entity public key. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structbr__x509__class___a132f22c46f8798f0e2cce6d14b49140d}\label{structbr__x509__class___a132f22c46f8798f0e2cce6d14b49140d}} 
+\index{br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}!append@{append}}
+\index{append@{append}!br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{append}{append}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+x509\+\_\+class\+\_\+\+::append) (const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx, const unsigned char $\ast$buf, size\+\_\+t len)}
+
+
+
+Receive some bytes for the current certificate. 
+
+This function may be called several times in succession for a given certificate. The caller guarantees that for each call, {\ttfamily len} is not zero, and the sum of all chunk lengths for a certificate matches the total certificate length which was provided in the previous {\ttfamily \hyperlink{structbr__x509__class___a7f09733a83c0badbb24128d26440ff55}{start\+\_\+cert()}} call.
+
+If the new certificate is empty (no byte at all) then this function won\textquotesingle{}t be called at all.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & validation context. \\
+\hline
+{\em buf} & certificate data chunk. \\
+\hline
+{\em len} & certificate data chunk length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__x509__class___afd2f28171e46b4a1408101d54a59b18c}\label{structbr__x509__class___afd2f28171e46b4a1408101d54a59b18c}} 
+\index{br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}!end\+\_\+cert@{end\+\_\+cert}}
+\index{end\+\_\+cert@{end\+\_\+cert}!br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{end\+\_\+cert}{end\_cert}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+x509\+\_\+class\+\_\+\+::end\+\_\+cert) (const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx)}
+
+
+
+Finish the current certificate. 
+
+This function is called when the end of the current certificate is reached.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & validation context. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__x509__class___a362ee4b09649989960014aa9b3bf2fdc}\label{structbr__x509__class___a362ee4b09649989960014aa9b3bf2fdc}} 
+\index{br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}!end\+\_\+chain@{end\+\_\+chain}}
+\index{end\+\_\+chain@{end\+\_\+chain}!br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{end\+\_\+chain}{end\_chain}}
+{\footnotesize\ttfamily unsigned($\ast$ br\+\_\+x509\+\_\+class\+\_\+\+::end\+\_\+chain) (const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx)}
+
+
+
+Finish the chain. 
+
+This function is called at the end of the chain. It shall return either 0 if the validation was successful, or a non-\/zero error code. The {\ttfamily B\+R\+\_\+\+E\+R\+R\+\_\+\+X509\+\_\+$\ast$} constants are error codes, though other values may be possible.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & validation context. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+0 on success, or a non-\/zero error code. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbr__x509__class___a307c5d22b156e8affd3f7f3f0b7f87ba}\label{structbr__x509__class___a307c5d22b156e8affd3f7f3f0b7f87ba}} 
+\index{br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}!get\+\_\+pkey@{get\+\_\+pkey}}
+\index{get\+\_\+pkey@{get\+\_\+pkey}!br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{get\+\_\+pkey}{get\_pkey}}
+{\footnotesize\ttfamily const \hyperlink{structbr__x509__pkey}{br\+\_\+x509\+\_\+pkey}$\ast$($\ast$ br\+\_\+x509\+\_\+class\+\_\+\+::get\+\_\+pkey) (const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$const $\ast$ctx, unsigned $\ast$usages)}
+
+
+
+Get the resulting end-\/entity public key. 
+
+The decoded public key is returned. The returned pointer may be valid only as long as the context structure is unmodified, i.\+e. it may cease to be valid if the context is released or reused.
+
+This function {\itshape may} return {\ttfamily N\+U\+LL} if the validation failed. However, returning a public key does not mean that the validation was wholly successful; some engines may return a decoded public key even if the chain did not end on a trusted anchor.
+
+If validation succeeded and {\ttfamily usage} is not {\ttfamily N\+U\+LL}, then {\ttfamily $\ast$usage} is filled with a combination of {\ttfamily B\+R\+\_\+\+K\+E\+Y\+T\+Y\+P\+E\+\_\+\+S\+I\+GN} and/or {\ttfamily B\+R\+\_\+\+K\+E\+Y\+T\+Y\+P\+E\+\_\+\+K\+E\+YX} that specifies the validated key usage types. It is the caller\textquotesingle{}s responsibility to check that value against the intended use of the public key.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & validation context. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the end-\/entity public key, or {\ttfamily N\+U\+LL}. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structbr__x509__class___a7f09733a83c0badbb24128d26440ff55}\label{structbr__x509__class___a7f09733a83c0badbb24128d26440ff55}} 
+\index{br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}!start\+\_\+cert@{start\+\_\+cert}}
+\index{start\+\_\+cert@{start\+\_\+cert}!br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{start\+\_\+cert}{start\_cert}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+x509\+\_\+class\+\_\+\+::start\+\_\+cert) (const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx, uint32\+\_\+t length)}
+
+
+
+Start a new certificate. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & validation context. \\
+\hline
+{\em length} & new certificate length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__x509__class___a61fcfd55c81fd2d32edeedd64714c7e2}\label{structbr__x509__class___a61fcfd55c81fd2d32edeedd64714c7e2}} 
+\index{br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}!start\+\_\+chain@{start\+\_\+chain}}
+\index{start\+\_\+chain@{start\+\_\+chain}!br\+\_\+x509\+\_\+class\+\_\+@{br\+\_\+x509\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{start\+\_\+chain}{start\_chain}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+x509\+\_\+class\+\_\+\+::start\+\_\+chain) (const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$$\ast$ctx, const char $\ast$server\+\_\+name)}
+
+
+
+Start a new chain. 
+
+This method shall set the vtable (first field) of the context structure.
+
+The {\ttfamily server\+\_\+name}, if not {\ttfamily N\+U\+LL}, will be considered as a fully qualified domain name, to be matched against the {\ttfamily d\+N\+S\+Name} elements of the end-\/entity certificate\textquotesingle{}s S\+AN extension (if there is no S\+AN, then the Common Name from the subject\+DN will be used). If {\ttfamily server\+\_\+name} is {\ttfamily N\+U\+LL} then no such matching is performed.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & validation context. \\
+\hline
+{\em server\+\_\+name} & server name to match (or {\ttfamily N\+U\+LL}). \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__x509_8h}{bearssl\+\_\+x509.\+h}\end{DoxyCompactItemize}

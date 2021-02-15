@@ -1,0 +1,365 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__x509__decoder__context" kind="struct" language="C++" prot="public">
+    <compoundname>br_x509_decoder_context</compoundname>
+    <includes refid="bearssl__x509_8h" local="no">bearssl_x509.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a3e24f8a8aeac3e8dd5321f37cd86f96a" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__x509__pkey" kindref="compound">br_x509_pkey</ref></type>
+        <definition>br_x509_pkey br_x509_decoder_context::pkey</definition>
+        <argsstring></argsstring>
+        <name>pkey</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="928" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="928" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1aaa011d21311871aac554ccec9d64f421" prot="public" static="no" mutable="no">
+        <type>uint32_t *</type>
+        <definition>uint32_t* br_x509_decoder_context::dp</definition>
+        <argsstring></argsstring>
+        <name>dp</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="932" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="932" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a6f4899de325e7c43bd718867d8c64a58" prot="public" static="no" mutable="no">
+        <type>uint32_t *</type>
+        <definition>uint32_t* br_x509_decoder_context::rp</definition>
+        <argsstring></argsstring>
+        <name>rp</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="933" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="933" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a2ea2a1007225740f355176ddd53d63b9" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_x509_decoder_context::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="934" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="934" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a2e037fec7266eaf531f4ee51d85f48da" prot="public" static="no" mutable="no">
+        <type>struct br_x509_decoder_context::@10</type>
+        <definition>struct br_x509_decoder_context::@10  br_x509_decoder_context::cpu</definition>
+        <argsstring></argsstring>
+        <name>cpu</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="935" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1aeffa92e73986a7666aa9eba76b318b0f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_decoder_context::dp_stack[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>dp_stack</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="936" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="936" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a0aaf540234c710357eb2c03635e37a83" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_decoder_context::rp_stack[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>rp_stack</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="937" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="937" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a0e1f2d8f6c0d8d4a1fe912444887ff61" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int br_x509_decoder_context::err</definition>
+        <argsstring></argsstring>
+        <name>err</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="938" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="938" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a2c92d7be139030dae492e577d7a05521" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_decoder_context::pad[256]</definition>
+        <argsstring>[256]</argsstring>
+        <name>pad</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="941" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="941" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a3f37429e4a2b5bd9f121fc67899ce8ac" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_decoder_context::decoded</definition>
+        <argsstring></argsstring>
+        <name>decoded</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="944" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="944" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1aff9fe4dea250194d22e14c1fd6cf2be0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_decoder_context::notbefore_days</definition>
+        <argsstring></argsstring>
+        <name>notbefore_days</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="947" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="947" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1af0fe11bfe78af5362f3ead5a4141d2a7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_decoder_context::notbefore_seconds</definition>
+        <argsstring></argsstring>
+        <name>notbefore_seconds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="947" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="947" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1ae58d3e5d2d799d6d4cca1868b5cbeaf4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_decoder_context::notafter_days</definition>
+        <argsstring></argsstring>
+        <name>notafter_days</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="948" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="948" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1acf956a4bbd8ecf6a4b58593eda0b825e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_x509_decoder_context::notafter_seconds</definition>
+        <argsstring></argsstring>
+        <name>notafter_seconds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="948" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="948" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1ae3ca73c303e558e9b83e2a2e352f0ff7" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_decoder_context::isCA</definition>
+        <argsstring></argsstring>
+        <name>isCA</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="952" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="952" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a34feeaaf55a31cc603154c199daeb322" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_decoder_context::copy_dn</definition>
+        <argsstring></argsstring>
+        <name>copy_dn</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="956" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="956" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1a0d469609fb95360702fde088d0599347" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* br_x509_decoder_context::append_dn_ctx</definition>
+        <argsstring></argsstring>
+        <name>append_dn_ctx</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="957" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="957" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1ace3c38671e7b31941a2e3058a46eae8f" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_x509_decoder_context::append_dn) (void *ctx, const void *buf, size_t len)</definition>
+        <argsstring>)(void *ctx, const void *buf, size_t len)</argsstring>
+        <name>append_dn</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="958" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="958" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1aa5b3cf692a211c94291f849994c6242e" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_x509_decoder_context::hbuf</definition>
+        <argsstring></argsstring>
+        <name>hbuf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="961" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="961" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1addc9e6d099d84efef3ba34f1f4aead14" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_x509_decoder_context::hlen</definition>
+        <argsstring></argsstring>
+        <name>hlen</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="962" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="962" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1ad1e7cc7d1a4c9f6d91ade443d6de88ca" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_decoder_context::pkey_data[BR_X509_BUFSIZE_KEY]</definition>
+        <argsstring>[BR_X509_BUFSIZE_KEY]</argsstring>
+        <name>pkey_data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="965" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="965" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1af7c0ecac6f3900d8b1a0b582e3688724" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_decoder_context::signer_key_type</definition>
+        <argsstring></argsstring>
+        <name>signer_key_type</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="968" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="968" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__decoder__context_1aa4484875be7f6cf83e8ddc236051d7ff" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_decoder_context::signer_hash_id</definition>
+        <argsstring></argsstring>
+        <name>signer_hash_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="969" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="969" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>X.509 decoder context. </para>    </briefdescription>
+    <detaileddescription>
+<para>This structure is <emphasis>not</emphasis> for X.509 validation, but for extracting names and public keys from encoded certificates. Intended usage is to use (self-signed) certificates as trust anchors.</para><para>Contents are opaque and shall not be accessed directly. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="250">
+        <label>br_ec_public_key</label>
+        <link refid="structbr__ec__public__key"/>
+      </node>
+      <node id="248">
+        <label>br_x509_pkey</label>
+        <link refid="structbr__x509__pkey"/>
+        <childnode refid="249" relation="usage">
+          <edgelabel>rsa</edgelabel>
+        </childnode>
+        <childnode refid="250" relation="usage">
+          <edgelabel>ec</edgelabel>
+        </childnode>
+      </node>
+      <node id="247">
+        <label>br_x509_decoder_context</label>
+        <link refid="structbr__x509__decoder__context"/>
+        <childnode refid="248" relation="usage">
+          <edgelabel>pkey</edgelabel>
+        </childnode>
+      </node>
+      <node id="249">
+        <label>br_rsa_public_key</label>
+        <link refid="structbr__rsa__public__key"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="924" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="924" bodyend="972"/>
+    <listofallmembers>
+      <member refid="structbr__x509__decoder__context_1ace3c38671e7b31941a2e3058a46eae8f" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>append_dn</name></member>
+      <member refid="structbr__x509__decoder__context_1a0d469609fb95360702fde088d0599347" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>append_dn_ctx</name></member>
+      <member refid="structbr__x509__decoder__context_1a34feeaaf55a31cc603154c199daeb322" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>copy_dn</name></member>
+      <member refid="structbr__x509__decoder__context_1a2e037fec7266eaf531f4ee51d85f48da" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>cpu</name></member>
+      <member refid="structbr__x509__decoder__context_1a3f37429e4a2b5bd9f121fc67899ce8ac" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>decoded</name></member>
+      <member refid="structbr__x509__decoder__context_1aaa011d21311871aac554ccec9d64f421" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>dp</name></member>
+      <member refid="structbr__x509__decoder__context_1aeffa92e73986a7666aa9eba76b318b0f" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>dp_stack</name></member>
+      <member refid="structbr__x509__decoder__context_1a0e1f2d8f6c0d8d4a1fe912444887ff61" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>err</name></member>
+      <member refid="structbr__x509__decoder__context_1aa5b3cf692a211c94291f849994c6242e" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>hbuf</name></member>
+      <member refid="structbr__x509__decoder__context_1addc9e6d099d84efef3ba34f1f4aead14" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>hlen</name></member>
+      <member refid="structbr__x509__decoder__context_1a2ea2a1007225740f355176ddd53d63b9" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>ip</name></member>
+      <member refid="structbr__x509__decoder__context_1ae3ca73c303e558e9b83e2a2e352f0ff7" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>isCA</name></member>
+      <member refid="structbr__x509__decoder__context_1ae58d3e5d2d799d6d4cca1868b5cbeaf4" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>notafter_days</name></member>
+      <member refid="structbr__x509__decoder__context_1acf956a4bbd8ecf6a4b58593eda0b825e" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>notafter_seconds</name></member>
+      <member refid="structbr__x509__decoder__context_1aff9fe4dea250194d22e14c1fd6cf2be0" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>notbefore_days</name></member>
+      <member refid="structbr__x509__decoder__context_1af0fe11bfe78af5362f3ead5a4141d2a7" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>notbefore_seconds</name></member>
+      <member refid="structbr__x509__decoder__context_1a2c92d7be139030dae492e577d7a05521" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>pad</name></member>
+      <member refid="structbr__x509__decoder__context_1a3e24f8a8aeac3e8dd5321f37cd86f96a" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>pkey</name></member>
+      <member refid="structbr__x509__decoder__context_1ad1e7cc7d1a4c9f6d91ade443d6de88ca" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>pkey_data</name></member>
+      <member refid="structbr__x509__decoder__context_1a6f4899de325e7c43bd718867d8c64a58" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>rp</name></member>
+      <member refid="structbr__x509__decoder__context_1a0aaf540234c710357eb2c03635e37a83" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>rp_stack</name></member>
+      <member refid="structbr__x509__decoder__context_1aa4484875be7f6cf83e8ddc236051d7ff" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>signer_hash_id</name></member>
+      <member refid="structbr__x509__decoder__context_1af7c0ecac6f3900d8b1a0b582e3688724" prot="public" virt="non-virtual"><scope>br_x509_decoder_context</scope><name>signer_key_type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

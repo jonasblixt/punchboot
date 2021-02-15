@@ -1,0 +1,1219 @@
+\hypertarget{bearssl__hash_8h}{}\section{/docs/lib/bearssl/bearssl\+\_\+hash.h File Reference}
+\label{bearssl__hash_8h}\index{/docs/lib/bearssl/bearssl\+\_\+hash.\+h@{/docs/lib/bearssl/bearssl\+\_\+hash.\+h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include $<$string.\+h$>$}\newline
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structbr__hash__class__}{br\+\_\+hash\+\_\+class\+\_\+}
+\item 
+struct \hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context}
+\begin{DoxyCompactList}\small\item\em M\+D5 context. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context}
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/1 context. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context}
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/224 context. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context}
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/384 context. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context}
+\begin{DoxyCompactList}\small\item\em M\+D5+\+S\+H\+A-\/1 context. \end{DoxyCompactList}\item 
+union \hyperlink{unionbr__hash__compat__context}{br\+\_\+hash\+\_\+compat\+\_\+context}
+\begin{DoxyCompactList}\small\item\em Aggregate context for configurable hash function support. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context}
+\begin{DoxyCompactList}\small\item\em Multi-\/hasher context structure. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a32a85e0d1ab12cdff747a18e364232d2}\label{bearssl__hash_8h_a32a85e0d1ab12cdff747a18e364232d2}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+ID}(id)~((uint32\+\_\+t)(id) $<$$<$ B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+I\+D\+\_\+\+O\+FF)
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_aa9b9432202f52577aa4060603ba6befe}\label{bearssl__hash_8h_aa9b9432202f52577aa4060603ba6befe}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+I\+D\+\_\+\+O\+FF}~0
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_aaef7ff9855edd30445f9e1cce5493a01}\label{bearssl__hash_8h_aaef7ff9855edd30445f9e1cce5493a01}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+I\+D\+\_\+\+M\+A\+SK}~0x\+FF
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_ace4453e1447ee1d3c44295d7f8a6956b}\label{bearssl__hash_8h_ace4453e1447ee1d3c44295d7f8a6956b}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+O\+UT}(size)~((uint32\+\_\+t)(size) $<$$<$ B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+O\+U\+T\+\_\+\+O\+FF)
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_ad0834ff2fac74346b071c8db7d21f5bb}\label{bearssl__hash_8h_ad0834ff2fac74346b071c8db7d21f5bb}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+O\+U\+T\+\_\+\+O\+FF}~8
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a1f9ba92cbff89e883002cd49ea9725dc}\label{bearssl__hash_8h_a1f9ba92cbff89e883002cd49ea9725dc}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+O\+U\+T\+\_\+\+M\+A\+SK}~0x7F
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a24cc8f2abe9985f3763e8aea27f41f87}\label{bearssl__hash_8h_a24cc8f2abe9985f3763e8aea27f41f87}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+S\+T\+A\+TE}(size)~((uint32\+\_\+t)(size) $<$$<$ B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+S\+T\+A\+T\+E\+\_\+\+O\+FF)
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a3e7ffe2b45e31f0d35e24f131b75eedc}\label{bearssl__hash_8h_a3e7ffe2b45e31f0d35e24f131b75eedc}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+S\+T\+A\+T\+E\+\_\+\+O\+FF}~15
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_ad1dc68e52f272ae3b0def0fbd8aeeea0}\label{bearssl__hash_8h_ad1dc68e52f272ae3b0def0fbd8aeeea0}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+S\+T\+A\+T\+E\+\_\+\+M\+A\+SK}~0x\+FF
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a649ecbca14d3564bb47db56d870128ef}\label{bearssl__hash_8h_a649ecbca14d3564bb47db56d870128ef}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+L\+B\+L\+EN}(ls)~((uint32\+\_\+t)(ls) $<$$<$ B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+L\+B\+L\+E\+N\+\_\+\+O\+FF)
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_adf6626f9dc3f03a1ac6649d433c58c37}\label{bearssl__hash_8h_adf6626f9dc3f03a1ac6649d433c58c37}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+L\+B\+L\+E\+N\+\_\+\+O\+FF}~23
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a0db9be1bde2e4f84f46ce93ec87e5151}\label{bearssl__hash_8h_a0db9be1bde2e4f84f46ce93ec87e5151}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+L\+B\+L\+E\+N\+\_\+\+M\+A\+SK}~0x0F
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a8e94842c7e99c52bfe53081473e33fc5}\label{bearssl__hash_8h_a8e94842c7e99c52bfe53081473e33fc5}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+M\+D\+\_\+\+P\+A\+D\+D\+I\+NG}~((uint32\+\_\+t)1 $<$$<$ 28)
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a3a741ec6b4e0f273d4b264c31641e47f}\label{bearssl__hash_8h_a3a741ec6b4e0f273d4b264c31641e47f}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+M\+D\+\_\+\+P\+A\+D\+D\+I\+N\+G\+\_\+128}~((uint32\+\_\+t)1 $<$$<$ 29)
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a56c80c866e4afc127c78905fd4279770}\label{bearssl__hash_8h_a56c80c866e4afc127c78905fd4279770}} 
+\#define {\bfseries B\+R\+\_\+\+H\+A\+S\+H\+D\+E\+S\+C\+\_\+\+M\+D\+\_\+\+P\+A\+D\+D\+I\+N\+G\+\_\+\+BE}~((uint32\+\_\+t)1 $<$$<$ 30)
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a42c99336cf302182bbcc28d840408de3}\label{bearssl__hash_8h_a42c99336cf302182bbcc28d840408de3}} 
+\#define \hyperlink{bearssl__hash_8h_a42c99336cf302182bbcc28d840408de3}{br\+\_\+md5\+\_\+\+ID}~1
+\begin{DoxyCompactList}\small\item\em Symbolic identifier for M\+D5. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_adbab9a6322c4af56d4c7d9557a33fa55}\label{bearssl__hash_8h_adbab9a6322c4af56d4c7d9557a33fa55}} 
+\#define \hyperlink{bearssl__hash_8h_adbab9a6322c4af56d4c7d9557a33fa55}{br\+\_\+md5\+\_\+\+S\+I\+ZE}~16
+\begin{DoxyCompactList}\small\item\em M\+D5 output size (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_acebafe1b4ea9c302fdaf4a215eb0fb81}\label{bearssl__hash_8h_acebafe1b4ea9c302fdaf4a215eb0fb81}} 
+\#define \hyperlink{bearssl__hash_8h_acebafe1b4ea9c302fdaf4a215eb0fb81}{br\+\_\+sha1\+\_\+\+ID}~2
+\begin{DoxyCompactList}\small\item\em Symbolic identifier for S\+H\+A-\/1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_af2add9a9e1d2cb48e37c763beeed5a43}\label{bearssl__hash_8h_af2add9a9e1d2cb48e37c763beeed5a43}} 
+\#define \hyperlink{bearssl__hash_8h_af2add9a9e1d2cb48e37c763beeed5a43}{br\+\_\+sha1\+\_\+\+S\+I\+ZE}~20
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/1 output size (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_af24c0a2a7ac5713391069fb7ccc01996}\label{bearssl__hash_8h_af24c0a2a7ac5713391069fb7ccc01996}} 
+\#define \hyperlink{bearssl__hash_8h_af24c0a2a7ac5713391069fb7ccc01996}{br\+\_\+sha224\+\_\+\+ID}~3
+\begin{DoxyCompactList}\small\item\em Symbolic identifier for S\+H\+A-\/224. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a39448cd1ec009190541e1be5f1c34092}\label{bearssl__hash_8h_a39448cd1ec009190541e1be5f1c34092}} 
+\#define \hyperlink{bearssl__hash_8h_a39448cd1ec009190541e1be5f1c34092}{br\+\_\+sha224\+\_\+\+S\+I\+ZE}~28
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/224 output size (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a74d79bb00b490778be147e3e40569fee}\label{bearssl__hash_8h_a74d79bb00b490778be147e3e40569fee}} 
+\#define \hyperlink{bearssl__hash_8h_a74d79bb00b490778be147e3e40569fee}{br\+\_\+sha256\+\_\+\+ID}~4
+\begin{DoxyCompactList}\small\item\em Symbolic identifier for S\+H\+A-\/256. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_aa8f082193cac7771f3872f1b7aa97457}\label{bearssl__hash_8h_aa8f082193cac7771f3872f1b7aa97457}} 
+\#define \hyperlink{bearssl__hash_8h_aa8f082193cac7771f3872f1b7aa97457}{br\+\_\+sha256\+\_\+\+S\+I\+ZE}~32
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/256 output size (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_ab216c1ab29f9a31e1a9e73a4dbab1bf6}\label{bearssl__hash_8h_ab216c1ab29f9a31e1a9e73a4dbab1bf6}} 
+\#define {\bfseries br\+\_\+sha256\+\_\+update}~\hyperlink{bearssl__hash_8h_a7310e2a905f3c0ce90a0b1aa88f89475}{br\+\_\+sha224\+\_\+update}
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a498649535d3b72aed7e481bcb2cbc7c1}\label{bearssl__hash_8h_a498649535d3b72aed7e481bcb2cbc7c1}} 
+\#define {\bfseries br\+\_\+sha256\+\_\+state}~\hyperlink{bearssl__hash_8h_a40f1486516809dcef586f368b02216e0}{br\+\_\+sha224\+\_\+state}
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a07d09a601954a750f26fa7706cdd00c5}\label{bearssl__hash_8h_a07d09a601954a750f26fa7706cdd00c5}} 
+\#define {\bfseries br\+\_\+sha256\+\_\+set\+\_\+state}~\hyperlink{bearssl__hash_8h_af543b1782f1d39f4557dfac93b1e311c}{br\+\_\+sha224\+\_\+set\+\_\+state}
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a0e2217e85194284521a51a68a34c49c7}\label{bearssl__hash_8h_a0e2217e85194284521a51a68a34c49c7}} 
+\#define \hyperlink{bearssl__hash_8h_a0e2217e85194284521a51a68a34c49c7}{br\+\_\+sha384\+\_\+\+ID}~5
+\begin{DoxyCompactList}\small\item\em Symbolic identifier for S\+H\+A-\/384. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_ac144bb346fc8d413a07f07eab627e74f}\label{bearssl__hash_8h_ac144bb346fc8d413a07f07eab627e74f}} 
+\#define \hyperlink{bearssl__hash_8h_ac144bb346fc8d413a07f07eab627e74f}{br\+\_\+sha384\+\_\+\+S\+I\+ZE}~48
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/384 output size (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a96479080f06dc9a893844406d2cff822}\label{bearssl__hash_8h_a96479080f06dc9a893844406d2cff822}} 
+\#define \hyperlink{bearssl__hash_8h_a96479080f06dc9a893844406d2cff822}{br\+\_\+sha512\+\_\+\+ID}~6
+\begin{DoxyCompactList}\small\item\em Symbolic identifier for S\+H\+A-\/512. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a4d2de91522fa3e8008bcc326c342c89b}\label{bearssl__hash_8h_a4d2de91522fa3e8008bcc326c342c89b}} 
+\#define \hyperlink{bearssl__hash_8h_a4d2de91522fa3e8008bcc326c342c89b}{br\+\_\+sha512\+\_\+\+S\+I\+ZE}~64
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/512 output size (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a7d7064bf98efc95167602e221e3a6c1e}\label{bearssl__hash_8h_a7d7064bf98efc95167602e221e3a6c1e}} 
+\#define {\bfseries br\+\_\+sha512\+\_\+update}~\hyperlink{bearssl__hash_8h_a4d8322810db3c53943881248a7fed729}{br\+\_\+sha384\+\_\+update}
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a41438d1d8633805d7be2526d2d7c6d14}\label{bearssl__hash_8h_a41438d1d8633805d7be2526d2d7c6d14}} 
+\#define {\bfseries br\+\_\+sha512\+\_\+state}~\hyperlink{bearssl__hash_8h_a5cb31e87af33ab51de2982a36351efc5}{br\+\_\+sha384\+\_\+state}
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a37e689968b11d5c709f01c03f5abc1ef}\label{bearssl__hash_8h_a37e689968b11d5c709f01c03f5abc1ef}} 
+\#define {\bfseries br\+\_\+sha512\+\_\+set\+\_\+state}~\hyperlink{bearssl__hash_8h_afc4fd7a33f3918b5e860e757d1e75d71}{br\+\_\+sha384\+\_\+set\+\_\+state}
+\item 
+\#define \hyperlink{bearssl__hash_8h_a863c89b0fafda39d5d8962b19b737f4e}{br\+\_\+md5sha1\+\_\+\+ID}~0
+\begin{DoxyCompactList}\small\item\em Symbolic identifier for M\+D5+\+S\+H\+A-\/1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_aebf08f240af1bf6b3bb28311a53d3833}\label{bearssl__hash_8h_aebf08f240af1bf6b3bb28311a53d3833}} 
+\#define \hyperlink{bearssl__hash_8h_aebf08f240af1bf6b3bb28311a53d3833}{br\+\_\+md5sha1\+\_\+\+S\+I\+ZE}~36
+\begin{DoxyCompactList}\small\item\em M\+D5+\+S\+H\+A-\/1 output size (in bytes). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \hyperlink{structbr__hash__class__}{br\+\_\+hash\+\_\+class\+\_\+} \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class}
+\begin{DoxyCompactList}\small\item\em Class type for hash function implementations. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a884f78fd8a40e739916601b2213b59e6}\label{bearssl__hash_8h_a884f78fd8a40e739916601b2213b59e6}} 
+typedef \hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} {\bfseries br\+\_\+sha256\+\_\+context}
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_ab2d7656d68951c9340e41f64403685de}\label{bearssl__hash_8h_ab2d7656d68951c9340e41f64403685de}} 
+typedef \hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} {\bfseries br\+\_\+sha512\+\_\+context}
+\item 
+typedef void($\ast$ \hyperlink{bearssl__hash_8h_a06b9d6420d8038e78efbb53fb4a26eae}{br\+\_\+ghash}) (void $\ast$y, const void $\ast$h, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Type for a G\+H\+A\+SH implementation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{bearssl__hash_8h_a327516bdef675d61ab15b809cc42536a}{br\+\_\+md5\+\_\+init} (\hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em M\+D5 context initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_af40e3352df8dd2b09137bff113d501eb}{br\+\_\+md5\+\_\+update} (\hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$ctx, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Inject some data bytes in a running M\+D5 computation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a6066a47965a7c2c31684df53f304799b}{br\+\_\+md5\+\_\+out} (const \hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Compute M\+D5 output. \end{DoxyCompactList}\item 
+uint64\+\_\+t \hyperlink{bearssl__hash_8h_a801d0c0dbdb788b96e96ea69476b9887}{br\+\_\+md5\+\_\+state} (const \hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Save M\+D5 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_aee877ce9b1785b36a002f1aea8e01f78}{br\+\_\+md5\+\_\+set\+\_\+state} (\hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$ctx, const void $\ast$stb, uint64\+\_\+t count)
+\begin{DoxyCompactList}\small\item\em Restore M\+D5 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a2384f9e51f7e67f875140649870c8075}{br\+\_\+sha1\+\_\+init} (\hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/1 context initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_ad5bee10b391c9c1cf647a98a6120c732}{br\+\_\+sha1\+\_\+update} (\hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$ctx, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Inject some data bytes in a running S\+H\+A-\/1 computation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a47412559bf48abfa7666d8ba6f8c678c}{br\+\_\+sha1\+\_\+out} (const \hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Compute S\+H\+A-\/1 output. \end{DoxyCompactList}\item 
+uint64\+\_\+t \hyperlink{bearssl__hash_8h_af2669b87984d1aead0632d01706b704f}{br\+\_\+sha1\+\_\+state} (const \hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Save S\+H\+A-\/1 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a4e3514683f72f8803ed5b41a4e1eda24}{br\+\_\+sha1\+\_\+set\+\_\+state} (\hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$ctx, const void $\ast$stb, uint64\+\_\+t count)
+\begin{DoxyCompactList}\small\item\em Restore S\+H\+A-\/1 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a91ece438a9fc80dc3b456aef3df7781e}{br\+\_\+sha224\+\_\+init} (\hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/224 context initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a7310e2a905f3c0ce90a0b1aa88f89475}{br\+\_\+sha224\+\_\+update} (\hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$ctx, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Inject some data bytes in a running S\+H\+A-\/224 computation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_af53f8c444f14191383f9f0b22e34e792}{br\+\_\+sha224\+\_\+out} (const \hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Compute S\+H\+A-\/224 output. \end{DoxyCompactList}\item 
+uint64\+\_\+t \hyperlink{bearssl__hash_8h_a40f1486516809dcef586f368b02216e0}{br\+\_\+sha224\+\_\+state} (const \hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Save S\+H\+A-\/224 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_af543b1782f1d39f4557dfac93b1e311c}{br\+\_\+sha224\+\_\+set\+\_\+state} (\hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$ctx, const void $\ast$stb, uint64\+\_\+t count)
+\begin{DoxyCompactList}\small\item\em Restore S\+H\+A-\/224 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a949408045ab075839c699022f9f68a73}{br\+\_\+sha256\+\_\+init} (\hyperlink{structbr__sha224__context}{br\+\_\+sha256\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/256 context initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a68dcbfd55a35576fc8e4aecbf476fd11}{br\+\_\+sha256\+\_\+out} (const \hyperlink{structbr__sha224__context}{br\+\_\+sha256\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Compute S\+H\+A-\/256 output. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a2596f734fa0da9e13f11345dafec616c}{br\+\_\+sha384\+\_\+init} (\hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/384 context initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a4d8322810db3c53943881248a7fed729}{br\+\_\+sha384\+\_\+update} (\hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$ctx, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Inject some data bytes in a running S\+H\+A-\/384 computation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a92143866501f0941ce3546033d9ca7fe}{br\+\_\+sha384\+\_\+out} (const \hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Compute S\+H\+A-\/384 output. \end{DoxyCompactList}\item 
+uint64\+\_\+t \hyperlink{bearssl__hash_8h_a5cb31e87af33ab51de2982a36351efc5}{br\+\_\+sha384\+\_\+state} (const \hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Save S\+H\+A-\/384 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_afc4fd7a33f3918b5e860e757d1e75d71}{br\+\_\+sha384\+\_\+set\+\_\+state} (\hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$ctx, const void $\ast$stb, uint64\+\_\+t count)
+\begin{DoxyCompactList}\small\item\em Restore S\+H\+A-\/384 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a87d16f76a966afeda00bbf58a64e6f92}{br\+\_\+sha512\+\_\+init} (\hyperlink{structbr__sha384__context}{br\+\_\+sha512\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em S\+H\+A-\/512 context initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_add7e62e41a02736efea20b89c63902b9}{br\+\_\+sha512\+\_\+out} (const \hyperlink{structbr__sha384__context}{br\+\_\+sha512\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Compute S\+H\+A-\/512 output. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_aeebb882c0a9fda2ee5e9f9a678b58f2d}{br\+\_\+md5sha1\+\_\+init} (\hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em M\+D5+\+S\+H\+A-\/1 context initialisation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a3719e9948e1ecf5cf7d2c042aab07a8f}{br\+\_\+md5sha1\+\_\+update} (\hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$ctx, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Inject some data bytes in a running M\+D5+\+S\+H\+A-\/1 computation. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a9d3a681efa08d6adca5a0902ad5b68d0}{br\+\_\+md5sha1\+\_\+out} (const \hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Compute M\+D5+\+S\+H\+A-\/1 output. \end{DoxyCompactList}\item 
+uint64\+\_\+t \hyperlink{bearssl__hash_8h_a0358c22dfed3054ba81d524bed53027a}{br\+\_\+md5sha1\+\_\+state} (const \hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$ctx, void $\ast$out)
+\begin{DoxyCompactList}\small\item\em Save M\+D5+\+S\+H\+A-\/1 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a1471c410abe94e6631410023cd9e1992}{br\+\_\+md5sha1\+\_\+set\+\_\+state} (\hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$ctx, const void $\ast$stb, uint64\+\_\+t count)
+\begin{DoxyCompactList}\small\item\em Restore M\+D5+\+S\+H\+A-\/1 running state. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_af9a9e454a2e69fdcfafd4c27e866b526}{br\+\_\+multihash\+\_\+zero} (\hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em Clear a multi-\/hasher context. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a18fd76f8d1c2b40169b9899127d47136}{br\+\_\+multihash\+\_\+init} (\hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} $\ast$ctx)
+\begin{DoxyCompactList}\small\item\em Reset a multi-\/hasher context. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_ae9b9736423fad34dd0613fbb9b1d3149}{br\+\_\+multihash\+\_\+update} (\hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} $\ast$ctx, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Inject some data bytes in a running multi-\/hashing computation. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__hash_8h_a9631a82310a6e1248c974414c39a30fe}{br\+\_\+multihash\+\_\+out} (const \hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} $\ast$ctx, int id, void $\ast$dst)
+\begin{DoxyCompactList}\small\item\em Compute a hash output from a multi-\/hasher. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_afa4160818f8ea8bfc5869a5625520e34}{br\+\_\+ghash\+\_\+ctmul} (void $\ast$y, const void $\ast$h, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em G\+H\+A\+SH implementation using multiplications (mixed 32-\/bit). \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a4d173225ad510f8757601e839ffbb82f}{br\+\_\+ghash\+\_\+ctmul32} (void $\ast$y, const void $\ast$h, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em G\+H\+A\+SH implementation using multiplications (strict 32-\/bit). \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a2fd9bd9fc9531066cec8e722a3c9de36}{br\+\_\+ghash\+\_\+ctmul64} (void $\ast$y, const void $\ast$h, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em G\+H\+A\+SH implementation using multiplications (64-\/bit). \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a5089d68c22f18510fddd8708c93915a3}{br\+\_\+ghash\+\_\+pclmul} (void $\ast$y, const void $\ast$h, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em G\+H\+A\+SH implementation using the {\ttfamily pclmulqdq} opcode (part of the A\+E\+S-\/\+NI instructions). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__hash_8h_a06b9d6420d8038e78efbb53fb4a26eae}{br\+\_\+ghash} \hyperlink{bearssl__hash_8h_a2cf285e0e630ff13b7641e24dc574c09}{br\+\_\+ghash\+\_\+pclmul\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Obtain the {\ttfamily pclmul} G\+H\+A\+SH implementation, if available. \end{DoxyCompactList}\item 
+void \hyperlink{bearssl__hash_8h_a3a9ec93d144301e2a11e73fd75f90575}{br\+\_\+ghash\+\_\+pwr8} (void $\ast$y, const void $\ast$h, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em G\+H\+A\+SH implementation using the P\+O\+W\+E\+R8 opcodes. \end{DoxyCompactList}\item 
+\hyperlink{bearssl__hash_8h_a06b9d6420d8038e78efbb53fb4a26eae}{br\+\_\+ghash} \hyperlink{bearssl__hash_8h_ae717cf3cabedd7fb93af1f5d676000fb}{br\+\_\+ghash\+\_\+pwr8\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Obtain the {\ttfamily pwr8} G\+H\+A\+SH implementation, if available. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{bearssl__hash_8h_ac94ba2258a7b845b3b103f231d96bfdc}\label{bearssl__hash_8h_ac94ba2258a7b845b3b103f231d96bfdc}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} \hyperlink{bearssl__hash_8h_ac94ba2258a7b845b3b103f231d96bfdc}{br\+\_\+md5\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Constant vtable for M\+D5. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a7bfc9c94f4553ed9ab1d2bdda81db9db}\label{bearssl__hash_8h_a7bfc9c94f4553ed9ab1d2bdda81db9db}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} \hyperlink{bearssl__hash_8h_a7bfc9c94f4553ed9ab1d2bdda81db9db}{br\+\_\+sha1\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Constant vtable for S\+H\+A-\/1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a3e9da33567b629168106d78ad5331de2}\label{bearssl__hash_8h_a3e9da33567b629168106d78ad5331de2}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} \hyperlink{bearssl__hash_8h_a3e9da33567b629168106d78ad5331de2}{br\+\_\+sha224\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Constant vtable for S\+H\+A-\/224. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a927ac5204d96fdffb96495ea893123fe}\label{bearssl__hash_8h_a927ac5204d96fdffb96495ea893123fe}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} \hyperlink{bearssl__hash_8h_a927ac5204d96fdffb96495ea893123fe}{br\+\_\+sha256\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Constant vtable for S\+H\+A-\/256. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a84ad19accb85ad8b0776dd667d538f42}\label{bearssl__hash_8h_a84ad19accb85ad8b0776dd667d538f42}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} \hyperlink{bearssl__hash_8h_a84ad19accb85ad8b0776dd667d538f42}{br\+\_\+sha384\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Constant vtable for S\+H\+A-\/384. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_a982a18d69d7520a63a4d25dee2c9aee3}\label{bearssl__hash_8h_a982a18d69d7520a63a4d25dee2c9aee3}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} \hyperlink{bearssl__hash_8h_a982a18d69d7520a63a4d25dee2c9aee3}{br\+\_\+sha512\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Constant vtable for S\+H\+A-\/512. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__hash_8h_ae650e30ac0b2ed86921bc5d562d232f6}\label{bearssl__hash_8h_ae650e30ac0b2ed86921bc5d562d232f6}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} \hyperlink{bearssl__hash_8h_ae650e30ac0b2ed86921bc5d562d232f6}{br\+\_\+md5sha1\+\_\+vtable}
+\begin{DoxyCompactList}\small\item\em Constant vtable for M\+D5+\+S\+H\+A-\/1. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsection*{Hash Functions}
+
+This file documents the A\+PI for hash functions.
+
+\subsubsection*{Procedural A\+PI}
+
+For each implemented hash function, of name \char`\"{}`xxx`\char`\"{}, the following elements are defined\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily br\+\_\+xxx\+\_\+vtable}
+
+An externally defined instance of {\ttfamily br\+\_\+hash\+\_\+class}.
+\item {\ttfamily br\+\_\+xxx\+\_\+\+S\+I\+ZE}
+
+A macro that evaluates to the output size (in bytes) of the hash function.
+\item {\ttfamily br\+\_\+xxx\+\_\+\+ID}
+
+A macro that evaluates to a symbolic identifier for the hash function. Such identifiers are used with H\+M\+AC and signature algorithm implementations.
+
+N\+O\+TE\+: for the \char`\"{}standard\char`\"{} hash functions defined in \href{https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1}{\tt the T\+LS standard}, the symbolic identifiers match the constants used in T\+LS, i.\+e. 1 to 6 for M\+D5, S\+H\+A-\/1, S\+H\+A-\/224, S\+H\+A-\/256, S\+H\+A-\/384 and S\+H\+A-\/512, respectively.
+\item {\ttfamily br\+\_\+xxx\+\_\+context}
+
+Context for an ongoing computation. It is allocated by the caller, and a pointer to it is passed to all functions. A context contains no interior pointer, so it can be moved around and cloned (with a simple {\ttfamily memcpy()} or equivalent) in order to capture the function state at some point. Computations that use distinct context structures are independent of each other. The first field of {\ttfamily br\+\_\+xxx\+\_\+context} is always a pointer to the {\ttfamily br\+\_\+xxx\+\_\+vtable} structure; {\ttfamily br\+\_\+xxx\+\_\+init()} sets that pointer.
+\item {\ttfamily br\+\_\+xxx\+\_\+init(br\+\_\+xxx\+\_\+context $\ast$ctx)}
+
+Initialise the provided context. Previous contents of the structure are ignored. This calls resets the context to the start of a new hash computation; it also sets the first field of the context structure (called {\ttfamily vtable}) to a pointer to the statically allocated constant {\ttfamily br\+\_\+xxx\+\_\+vtable} structure.
+\item {\ttfamily br\+\_\+xxx\+\_\+update(br\+\_\+xxx\+\_\+context $\ast$ctx, const void $\ast$data, size\+\_\+t len)}
+
+Add some more bytes to the hash computation represented by the provided context.
+\item {\ttfamily br\+\_\+xxx\+\_\+out(const br\+\_\+xxx\+\_\+context $\ast$ctx, void $\ast$out)}
+
+Complete the hash computation and write the result in the provided buffer. The output buffer M\+U\+ST be large enough to accommodate the result. The context is N\+OT modified by this operation, so this function can be used to get a \char`\"{}partial hash\char`\"{} while still keeping the possibility of adding more bytes to the input.
+\item {\ttfamily br\+\_\+xxx\+\_\+state(const br\+\_\+xxx\+\_\+context $\ast$ctx, void $\ast$out)}
+
+Get a copy of the \char`\"{}current state\char`\"{} for the computation so far. For MD functions (M\+D5, S\+H\+A-\/1, S\+H\+A-\/2 family), this is the running state resulting from the processing of the last complete input block. Returned value is the current input length (in bytes).
+\item {\ttfamily br\+\_\+xxx\+\_\+set\+\_\+state(br\+\_\+xxx\+\_\+context $\ast$ctx, const void $\ast$stb, uint64\+\_\+t count)}
+
+Set the internal state to the provided values. The \textquotesingle{}stb\textquotesingle{} and \textquotesingle{}count\textquotesingle{} values shall match that which was obtained from {\ttfamily br\+\_\+xxx\+\_\+state()}. This restores the hash state only if the state values were at an appropriate block boundary. This does N\+OT set the {\ttfamily vtable} pointer in the context.
+\end{DoxyItemize}
+
+Context structures can be discarded without any explicit deallocation. Hash function implementations are purely software and don\textquotesingle{}t reserve any resources outside of the context structure itself.
+
+\subsubsection*{Object-\/\+Oriented A\+PI}
+
+For each hash function that follows the procedural A\+PI described above, an object-\/oriented A\+PI is also provided. In that A\+PI, function pointers from the vtable ({\ttfamily br\+\_\+xxx\+\_\+vtable}) are used. The vtable incarnates object-\/oriented programming. An introduction on the O\+OP concept used here can be read on the Bear\+S\+SL Web site\+:~\newline
+ ~~~\href{https://www.bearssl.org/oop.html}{\tt https\+://www.\+bearssl.\+org/oop.\+html}
+
+The vtable offers functions called {\ttfamily init()}, {\ttfamily update()}, {\ttfamily out()}, {\ttfamily set()} and {\ttfamily set\+\_\+state()}, which are in fact the functions from the procedural A\+PI. That vtable also contains two informative fields\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily context\+\_\+size}
+
+The size of the context structure ({\ttfamily br\+\_\+xxx\+\_\+context}), in bytes. This can be used by generic implementations to perform dynamic context allocation.
+\item {\ttfamily desc}
+
+A \char`\"{}descriptor\char`\"{} field that encodes some information on the hash function\+: symbolic identifier, output size, state size, internal block size, details on the padding.
+\end{DoxyItemize}
+
+Users of this object-\/oriented A\+PI (in particular generic H\+M\+AC implementations) may make the following assumptions\+:
+
+
+\begin{DoxyItemize}
+\item Hash output size is no more than 64 bytes.
+\item Hash internal state size is no more than 64 bytes.
+\item Internal block size is a power of two, no less than 16 and no more than 256.
+\end{DoxyItemize}
+
+\subsubsection*{Implemented Hash Functions}
+
+Implemented hash functions are\+:
+
+\tabulinesep=1mm
+\begin{longtabu} spread 0pt [c]{*{4}{|X[-1]}|}
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Function }&\textbf{ Name }&\PBS\centering \textbf{ Output length }&\PBS\centering \textbf{ State length  }\\\cline{1-4}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ Function }&\textbf{ Name }&\PBS\centering \textbf{ Output length }&\PBS\centering \textbf{ State length  }\\\cline{1-4}
+\endhead
+M\+D5 &md5 &\PBS\centering 16 &\PBS\centering 16 \\\cline{1-4}
+S\+H\+A-\/1 &sha1 &\PBS\centering 20 &\PBS\centering 20 \\\cline{1-4}
+S\+H\+A-\/224 &sha224 &\PBS\centering 28 &\PBS\centering 32 \\\cline{1-4}
+S\+H\+A-\/256 &sha256 &\PBS\centering 32 &\PBS\centering 32 \\\cline{1-4}
+S\+H\+A-\/384 &sha384 &\PBS\centering 48 &\PBS\centering 64 \\\cline{1-4}
+S\+H\+A-\/512 &sha512 &\PBS\centering 64 &\PBS\centering 64 \\\cline{1-4}
+M\+D5+\+S\+H\+A-\/1 &md5sha1 &\PBS\centering 36 &\PBS\centering 36 \\\cline{1-4}
+\end{longtabu}
+(M\+D5+\+S\+H\+A-\/1 is the concatenation of M\+D5 and S\+H\+A-\/1 computed over the same input; in the implementation, the internal data buffer is shared, thus making it more memory-\/efficient than separate M\+D5 and S\+H\+A-\/1. It can be useful in implementing S\+SL 3.\+0, T\+LS 1.\+0 and T\+LS 1.\+1.)
+
+\subsubsection*{Multi-\/\+Hasher}
+
+An aggregate hasher is provided, that can compute several standard hash functions in parallel. It uses {\ttfamily \hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context}} and a procedural A\+PI. It is configured with the implementations (the vtables) that it should use; it will then compute all these hash functions in parallel, on the same input. It is meant to be used in cases when the hash of an object will be used, but the exact hash function is not known yet (typically, streamed processing on X.\+509 certificates).
+
+Only the standard hash functions (M\+D5, S\+H\+A-\/1, S\+H\+A-\/224, S\+H\+A-\/256, S\+H\+A-\/384 and S\+H\+A-\/512) are supported by the multi-\/hasher.
+
+\subsubsection*{G\+H\+A\+SH}
+
+G\+H\+A\+SH is not a generic hash function; it is a {\itshape universal} hash function, which, as the name does not say, means that it C\+A\+N\+N\+OT be used in most places where a hash function is needed. G\+H\+A\+SH is used within the G\+CM encryption mode, to provide the checked integrity functionality.
+
+A G\+H\+A\+SH implementation is basically a function that uses the type defined in this file under the name {\ttfamily br\+\_\+ghash}\+: \begin{DoxyVerb}typedef void (*br_ghash)(void *y, const void *h, const void *data, size_t len);
+\end{DoxyVerb}
+
+
+The {\ttfamily y} pointer refers to a 16-\/byte value which is used as input, and receives the output of the G\+H\+A\+SH invocation. {\ttfamily h} is a 16-\/byte secret value (that serves as key). {\ttfamily data} and {\ttfamily len} define the input data.
+
+Three G\+H\+A\+SH implementations are provided, all constant-\/time, based on the use of integer multiplications with appropriate masking to cancel carry propagation. 
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{bearssl__hash_8h_a863c89b0fafda39d5d8962b19b737f4e}\label{bearssl__hash_8h_a863c89b0fafda39d5d8962b19b737f4e}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5sha1\+\_\+\+ID@{br\+\_\+md5sha1\+\_\+\+ID}}
+\index{br\+\_\+md5sha1\+\_\+\+ID@{br\+\_\+md5sha1\+\_\+\+ID}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5sha1\+\_\+\+ID}{br\_md5sha1\_ID}}
+{\footnotesize\ttfamily \#define br\+\_\+md5sha1\+\_\+\+ID~0}
+
+
+
+Symbolic identifier for M\+D5+\+S\+H\+A-\/1. 
+
+M\+D5+\+S\+H\+A-\/1 is the concatenation of M\+D5 and S\+H\+A-\/1, computed over the same input. It is not one of the functions identified in T\+LS, so we give it a symbolic identifier of value 0. 
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{bearssl__hash_8h_a06b9d6420d8038e78efbb53fb4a26eae}\label{bearssl__hash_8h_a06b9d6420d8038e78efbb53fb4a26eae}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+ghash@{br\+\_\+ghash}}
+\index{br\+\_\+ghash@{br\+\_\+ghash}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ghash}{br\_ghash}}
+{\footnotesize\ttfamily typedef void($\ast$ br\+\_\+ghash) (void $\ast$y, const void $\ast$h, const void $\ast$data, size\+\_\+t len)}
+
+
+
+Type for a G\+H\+A\+SH implementation. 
+
+G\+H\+A\+SH is a sort of keyed hash meant to be used to implement G\+CM in combination with a block cipher (with 16-\/byte blocks).
+
+The {\ttfamily y} array has length 16 bytes and is used for input and output; in a complete G\+H\+A\+SH run, it starts with an all-\/zero value. {\ttfamily h} is a 16-\/byte value that serves as key (it is derived from the encryption key in G\+CM, using the block cipher). The data length ({\ttfamily len}) is expressed in bytes. The {\ttfamily y} array is updated.
+
+If the data length is not a multiple of 16, then the data is implicitly padded with zeros up to the next multiple of 16. Thus, when using G\+H\+A\+SH in G\+CM, this method may be called twice, for the associated data and for the ciphertext, respectively; the zero-\/padding implements exactly the G\+CM rules.
+
+
+\begin{DoxyParams}{Parameters}
+{\em y} & the array to update. \\
+\hline
+{\em h} & the G\+H\+A\+SH key. \\
+\hline
+{\em data} & the input data (may be {\ttfamily N\+U\+LL} if {\ttfamily len} is zero). \\
+\hline
+{\em len} & the input data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}\label{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+hash\+\_\+class@{br\+\_\+hash\+\_\+class}}
+\index{br\+\_\+hash\+\_\+class@{br\+\_\+hash\+\_\+class}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+hash\+\_\+class}{br\_hash\_class}}
+{\footnotesize\ttfamily typedef struct \hyperlink{structbr__hash__class__}{br\+\_\+hash\+\_\+class\+\_\+} \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class}}
+
+
+
+Class type for hash function implementations. 
+
+A {\ttfamily br\+\_\+hash\+\_\+class} instance references the methods implementing a hash function. Constant instances of this structure are defined for each implemented hash function. Such instances are also called \char`\"{}vtables\char`\"{}.
+
+Vtables are used to support object-\/oriented programming, as described on \href{https://www.bearssl.org/oop.html}{\tt the Bear\+S\+SL Web site}. 
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{bearssl__hash_8h_afa4160818f8ea8bfc5869a5625520e34}\label{bearssl__hash_8h_afa4160818f8ea8bfc5869a5625520e34}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+ghash\+\_\+ctmul@{br\+\_\+ghash\+\_\+ctmul}}
+\index{br\+\_\+ghash\+\_\+ctmul@{br\+\_\+ghash\+\_\+ctmul}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ghash\+\_\+ctmul()}{br\_ghash\_ctmul()}}
+{\footnotesize\ttfamily void br\+\_\+ghash\+\_\+ctmul (\begin{DoxyParamCaption}\item[{void $\ast$}]{y,  }\item[{const void $\ast$}]{h,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+G\+H\+A\+SH implementation using multiplications (mixed 32-\/bit). 
+
+This implementation uses multiplications of 32-\/bit values, with a 64-\/bit result. It is constant-\/time (if multiplications are constant-\/time).
+
+
+\begin{DoxyParams}{Parameters}
+{\em y} & the array to update. \\
+\hline
+{\em h} & the G\+H\+A\+SH key. \\
+\hline
+{\em data} & the input data (may be {\ttfamily N\+U\+LL} if {\ttfamily len} is zero). \\
+\hline
+{\em len} & the input data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a4d173225ad510f8757601e839ffbb82f}\label{bearssl__hash_8h_a4d173225ad510f8757601e839ffbb82f}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+ghash\+\_\+ctmul32@{br\+\_\+ghash\+\_\+ctmul32}}
+\index{br\+\_\+ghash\+\_\+ctmul32@{br\+\_\+ghash\+\_\+ctmul32}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ghash\+\_\+ctmul32()}{br\_ghash\_ctmul32()}}
+{\footnotesize\ttfamily void br\+\_\+ghash\+\_\+ctmul32 (\begin{DoxyParamCaption}\item[{void $\ast$}]{y,  }\item[{const void $\ast$}]{h,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+G\+H\+A\+SH implementation using multiplications (strict 32-\/bit). 
+
+This implementation uses multiplications of 32-\/bit values, with a 32-\/bit result. It is usually somewhat slower than {\ttfamily \hyperlink{bearssl__hash_8h_afa4160818f8ea8bfc5869a5625520e34}{br\+\_\+ghash\+\_\+ctmul()}}, but it is expected to be faster on architectures for which the 32-\/bit multiplication opcode does not yield the upper 32 bits of the product. It is constant-\/time (if multiplications are constant-\/time).
+
+
+\begin{DoxyParams}{Parameters}
+{\em y} & the array to update. \\
+\hline
+{\em h} & the G\+H\+A\+SH key. \\
+\hline
+{\em data} & the input data (may be {\ttfamily N\+U\+LL} if {\ttfamily len} is zero). \\
+\hline
+{\em len} & the input data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a2fd9bd9fc9531066cec8e722a3c9de36}\label{bearssl__hash_8h_a2fd9bd9fc9531066cec8e722a3c9de36}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+ghash\+\_\+ctmul64@{br\+\_\+ghash\+\_\+ctmul64}}
+\index{br\+\_\+ghash\+\_\+ctmul64@{br\+\_\+ghash\+\_\+ctmul64}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ghash\+\_\+ctmul64()}{br\_ghash\_ctmul64()}}
+{\footnotesize\ttfamily void br\+\_\+ghash\+\_\+ctmul64 (\begin{DoxyParamCaption}\item[{void $\ast$}]{y,  }\item[{const void $\ast$}]{h,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+G\+H\+A\+SH implementation using multiplications (64-\/bit). 
+
+This implementation uses multiplications of 64-\/bit values, with a 64-\/bit result. It is constant-\/time (if multiplications are constant-\/time). It is substantially faster than {\ttfamily \hyperlink{bearssl__hash_8h_afa4160818f8ea8bfc5869a5625520e34}{br\+\_\+ghash\+\_\+ctmul()}} and {\ttfamily \hyperlink{bearssl__hash_8h_a4d173225ad510f8757601e839ffbb82f}{br\+\_\+ghash\+\_\+ctmul32()}} on most 64-\/bit architectures.
+
+
+\begin{DoxyParams}{Parameters}
+{\em y} & the array to update. \\
+\hline
+{\em h} & the G\+H\+A\+SH key. \\
+\hline
+{\em data} & the input data (may be {\ttfamily N\+U\+LL} if {\ttfamily len} is zero). \\
+\hline
+{\em len} & the input data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a5089d68c22f18510fddd8708c93915a3}\label{bearssl__hash_8h_a5089d68c22f18510fddd8708c93915a3}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+ghash\+\_\+pclmul@{br\+\_\+ghash\+\_\+pclmul}}
+\index{br\+\_\+ghash\+\_\+pclmul@{br\+\_\+ghash\+\_\+pclmul}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ghash\+\_\+pclmul()}{br\_ghash\_pclmul()}}
+{\footnotesize\ttfamily void br\+\_\+ghash\+\_\+pclmul (\begin{DoxyParamCaption}\item[{void $\ast$}]{y,  }\item[{const void $\ast$}]{h,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+G\+H\+A\+SH implementation using the {\ttfamily pclmulqdq} opcode (part of the A\+E\+S-\/\+NI instructions). 
+
+This implementation is available only on x86 platforms where the compiler supports the relevant intrinsic functions. Even if the compiler supports these functions, the local C\+PU might not support the {\ttfamily pclmulqdq} opcode, meaning that a call will fail with an illegal instruction exception. To safely obtain a pointer to this function when supported (or 0 otherwise), use {\ttfamily \hyperlink{bearssl__hash_8h_a2cf285e0e630ff13b7641e24dc574c09}{br\+\_\+ghash\+\_\+pclmul\+\_\+get()}}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em y} & the array to update. \\
+\hline
+{\em h} & the G\+H\+A\+SH key. \\
+\hline
+{\em data} & the input data (may be {\ttfamily N\+U\+LL} if {\ttfamily len} is zero). \\
+\hline
+{\em len} & the input data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a2cf285e0e630ff13b7641e24dc574c09}\label{bearssl__hash_8h_a2cf285e0e630ff13b7641e24dc574c09}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+ghash\+\_\+pclmul\+\_\+get@{br\+\_\+ghash\+\_\+pclmul\+\_\+get}}
+\index{br\+\_\+ghash\+\_\+pclmul\+\_\+get@{br\+\_\+ghash\+\_\+pclmul\+\_\+get}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ghash\+\_\+pclmul\+\_\+get()}{br\_ghash\_pclmul\_get()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__hash_8h_a06b9d6420d8038e78efbb53fb4a26eae}{br\+\_\+ghash} br\+\_\+ghash\+\_\+pclmul\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Obtain the {\ttfamily pclmul} G\+H\+A\+SH implementation, if available. 
+
+If the {\ttfamily pclmul} implementation was compiled in the library (depending on the compiler abilities) {\itshape and} the local C\+PU appears to support the opcode, then this function will return a pointer to the {\ttfamily \hyperlink{bearssl__hash_8h_a5089d68c22f18510fddd8708c93915a3}{br\+\_\+ghash\+\_\+pclmul()}} function. Otherwise, it will return {\ttfamily 0}.
+
+\begin{DoxyReturn}{Returns}
+the {\ttfamily pclmul} G\+H\+A\+SH implementation, or {\ttfamily 0}. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__hash_8h_a3a9ec93d144301e2a11e73fd75f90575}\label{bearssl__hash_8h_a3a9ec93d144301e2a11e73fd75f90575}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+ghash\+\_\+pwr8@{br\+\_\+ghash\+\_\+pwr8}}
+\index{br\+\_\+ghash\+\_\+pwr8@{br\+\_\+ghash\+\_\+pwr8}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ghash\+\_\+pwr8()}{br\_ghash\_pwr8()}}
+{\footnotesize\ttfamily void br\+\_\+ghash\+\_\+pwr8 (\begin{DoxyParamCaption}\item[{void $\ast$}]{y,  }\item[{const void $\ast$}]{h,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+G\+H\+A\+SH implementation using the P\+O\+W\+E\+R8 opcodes. 
+
+This implementation is available only on P\+O\+W\+E\+R8 platforms (and later). To safely obtain a pointer to this function when supported (or 0 otherwise), use {\ttfamily \hyperlink{bearssl__hash_8h_ae717cf3cabedd7fb93af1f5d676000fb}{br\+\_\+ghash\+\_\+pwr8\+\_\+get()}}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em y} & the array to update. \\
+\hline
+{\em h} & the G\+H\+A\+SH key. \\
+\hline
+{\em data} & the input data (may be {\ttfamily N\+U\+LL} if {\ttfamily len} is zero). \\
+\hline
+{\em len} & the input data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_ae717cf3cabedd7fb93af1f5d676000fb}\label{bearssl__hash_8h_ae717cf3cabedd7fb93af1f5d676000fb}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+ghash\+\_\+pwr8\+\_\+get@{br\+\_\+ghash\+\_\+pwr8\+\_\+get}}
+\index{br\+\_\+ghash\+\_\+pwr8\+\_\+get@{br\+\_\+ghash\+\_\+pwr8\+\_\+get}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ghash\+\_\+pwr8\+\_\+get()}{br\_ghash\_pwr8\_get()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__hash_8h_a06b9d6420d8038e78efbb53fb4a26eae}{br\+\_\+ghash} br\+\_\+ghash\+\_\+pwr8\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Obtain the {\ttfamily pwr8} G\+H\+A\+SH implementation, if available. 
+
+If the {\ttfamily pwr8} implementation was compiled in the library (depending on the compiler abilities) {\itshape and} the local C\+PU appears to support the opcode, then this function will return a pointer to the {\ttfamily \hyperlink{bearssl__hash_8h_a3a9ec93d144301e2a11e73fd75f90575}{br\+\_\+ghash\+\_\+pwr8()}} function. Otherwise, it will return {\ttfamily 0}.
+
+\begin{DoxyReturn}{Returns}
+the {\ttfamily pwr8} G\+H\+A\+SH implementation, or {\ttfamily 0}. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__hash_8h_a327516bdef675d61ab15b809cc42536a}\label{bearssl__hash_8h_a327516bdef675d61ab15b809cc42536a}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5\+\_\+init@{br\+\_\+md5\+\_\+init}}
+\index{br\+\_\+md5\+\_\+init@{br\+\_\+md5\+\_\+init}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5\+\_\+init()}{br\_md5\_init()}}
+{\footnotesize\ttfamily void br\+\_\+md5\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+M\+D5 context initialisation. 
+
+This function initialises or resets a context for a new M\+D5 computation. It also sets the vtable pointer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a6066a47965a7c2c31684df53f304799b}\label{bearssl__hash_8h_a6066a47965a7c2c31684df53f304799b}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5\+\_\+out@{br\+\_\+md5\+\_\+out}}
+\index{br\+\_\+md5\+\_\+out@{br\+\_\+md5\+\_\+out}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5\+\_\+out()}{br\_md5\_out()}}
+{\footnotesize\ttfamily void br\+\_\+md5\+\_\+out (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Compute M\+D5 output. 
+
+The M\+D5 output for the concatenation of all bytes injected in the provided context since the last initialisation or reset call, is computed and written in the buffer pointed to by {\ttfamily out}. The context itself is not modified, so extra bytes may be injected afterwards to continue that computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_aee877ce9b1785b36a002f1aea8e01f78}\label{bearssl__hash_8h_aee877ce9b1785b36a002f1aea8e01f78}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5\+\_\+set\+\_\+state@{br\+\_\+md5\+\_\+set\+\_\+state}}
+\index{br\+\_\+md5\+\_\+set\+\_\+state@{br\+\_\+md5\+\_\+set\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5\+\_\+set\+\_\+state()}{br\_md5\_set\_state()}}
+{\footnotesize\ttfamily void br\+\_\+md5\+\_\+set\+\_\+state (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{stb,  }\item[{uint64\+\_\+t}]{count }\end{DoxyParamCaption})}
+
+
+
+Restore M\+D5 running state. 
+
+The running state for M\+D5 is set to the provided values.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em stb} & source buffer for the running state. \\
+\hline
+{\em count} & the injected total byte length. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a801d0c0dbdb788b96e96ea69476b9887}\label{bearssl__hash_8h_a801d0c0dbdb788b96e96ea69476b9887}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5\+\_\+state@{br\+\_\+md5\+\_\+state}}
+\index{br\+\_\+md5\+\_\+state@{br\+\_\+md5\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5\+\_\+state()}{br\_md5\_state()}}
+{\footnotesize\ttfamily uint64\+\_\+t br\+\_\+md5\+\_\+state (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Save M\+D5 running state. 
+
+The running state for M\+D5 (output of the last internal block processing) is written in the buffer pointed to by {\ttfamily out}. The number of bytes injected since the last initialisation or reset call is returned. The context is not modified.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the running state. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the injected total byte length. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__hash_8h_af40e3352df8dd2b09137bff113d501eb}\label{bearssl__hash_8h_af40e3352df8dd2b09137bff113d501eb}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5\+\_\+update@{br\+\_\+md5\+\_\+update}}
+\index{br\+\_\+md5\+\_\+update@{br\+\_\+md5\+\_\+update}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5\+\_\+update()}{br\_md5\_update()}}
+{\footnotesize\ttfamily void br\+\_\+md5\+\_\+update (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__md5__context}{br\+\_\+md5\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+Inject some data bytes in a running M\+D5 computation. 
+
+The provided context is updated with some data bytes. If the number of bytes ({\ttfamily len}) is zero, then the data pointer ({\ttfamily data}) is ignored and may be {\ttfamily N\+U\+LL}, and this function does nothing.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em data} & pointer to the injected data. \\
+\hline
+{\em len} & injected data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_aeebb882c0a9fda2ee5e9f9a678b58f2d}\label{bearssl__hash_8h_aeebb882c0a9fda2ee5e9f9a678b58f2d}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5sha1\+\_\+init@{br\+\_\+md5sha1\+\_\+init}}
+\index{br\+\_\+md5sha1\+\_\+init@{br\+\_\+md5sha1\+\_\+init}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5sha1\+\_\+init()}{br\_md5sha1\_init()}}
+{\footnotesize\ttfamily void br\+\_\+md5sha1\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+M\+D5+\+S\+H\+A-\/1 context initialisation. 
+
+This function initialises or resets a context for a new S\+H\+A-\/512 computation. It also sets the vtable pointer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a9d3a681efa08d6adca5a0902ad5b68d0}\label{bearssl__hash_8h_a9d3a681efa08d6adca5a0902ad5b68d0}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5sha1\+\_\+out@{br\+\_\+md5sha1\+\_\+out}}
+\index{br\+\_\+md5sha1\+\_\+out@{br\+\_\+md5sha1\+\_\+out}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5sha1\+\_\+out()}{br\_md5sha1\_out()}}
+{\footnotesize\ttfamily void br\+\_\+md5sha1\+\_\+out (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Compute M\+D5+\+S\+H\+A-\/1 output. 
+
+The M\+D5+\+S\+H\+A-\/1 output for the concatenation of all bytes injected in the provided context since the last initialisation or reset call, is computed and written in the buffer pointed to by {\ttfamily out}. The context itself is not modified, so extra bytes may be injected afterwards to continue that computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a1471c410abe94e6631410023cd9e1992}\label{bearssl__hash_8h_a1471c410abe94e6631410023cd9e1992}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5sha1\+\_\+set\+\_\+state@{br\+\_\+md5sha1\+\_\+set\+\_\+state}}
+\index{br\+\_\+md5sha1\+\_\+set\+\_\+state@{br\+\_\+md5sha1\+\_\+set\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5sha1\+\_\+set\+\_\+state()}{br\_md5sha1\_set\_state()}}
+{\footnotesize\ttfamily void br\+\_\+md5sha1\+\_\+set\+\_\+state (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{stb,  }\item[{uint64\+\_\+t}]{count }\end{DoxyParamCaption})}
+
+
+
+Restore M\+D5+\+S\+H\+A-\/1 running state. 
+
+The running state for M\+D5+\+S\+H\+A-\/1 is set to the provided values.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em stb} & source buffer for the running state. \\
+\hline
+{\em count} & the injected total byte length. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a0358c22dfed3054ba81d524bed53027a}\label{bearssl__hash_8h_a0358c22dfed3054ba81d524bed53027a}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5sha1\+\_\+state@{br\+\_\+md5sha1\+\_\+state}}
+\index{br\+\_\+md5sha1\+\_\+state@{br\+\_\+md5sha1\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5sha1\+\_\+state()}{br\_md5sha1\_state()}}
+{\footnotesize\ttfamily uint64\+\_\+t br\+\_\+md5sha1\+\_\+state (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Save M\+D5+\+S\+H\+A-\/1 running state. 
+
+The running state for M\+D5+\+S\+H\+A-\/1 (output of the last internal block processing) is written in the buffer pointed to by {\ttfamily out}. The number of bytes injected since the last initialisation or reset call is returned. The context is not modified.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the running state. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the injected total byte length. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__hash_8h_a3719e9948e1ecf5cf7d2c042aab07a8f}\label{bearssl__hash_8h_a3719e9948e1ecf5cf7d2c042aab07a8f}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+md5sha1\+\_\+update@{br\+\_\+md5sha1\+\_\+update}}
+\index{br\+\_\+md5sha1\+\_\+update@{br\+\_\+md5sha1\+\_\+update}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+md5sha1\+\_\+update()}{br\_md5sha1\_update()}}
+{\footnotesize\ttfamily void br\+\_\+md5sha1\+\_\+update (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__md5sha1__context}{br\+\_\+md5sha1\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+Inject some data bytes in a running M\+D5+\+S\+H\+A-\/1 computation. 
+
+The provided context is updated with some data bytes. If the number of bytes ({\ttfamily len}) is zero, then the data pointer ({\ttfamily data}) is ignored and may be {\ttfamily N\+U\+LL}, and this function does nothing.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em data} & pointer to the injected data. \\
+\hline
+{\em len} & injected data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a18fd76f8d1c2b40169b9899127d47136}\label{bearssl__hash_8h_a18fd76f8d1c2b40169b9899127d47136}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+multihash\+\_\+init@{br\+\_\+multihash\+\_\+init}}
+\index{br\+\_\+multihash\+\_\+init@{br\+\_\+multihash\+\_\+init}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+multihash\+\_\+init()}{br\_multihash\_init()}}
+{\footnotesize\ttfamily void br\+\_\+multihash\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+Reset a multi-\/hasher context. 
+
+This function prepares the context for a new hashing computation, for all implementations configured at that point.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & the multi-\/hasher context. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a9631a82310a6e1248c974414c39a30fe}\label{bearssl__hash_8h_a9631a82310a6e1248c974414c39a30fe}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+multihash\+\_\+out@{br\+\_\+multihash\+\_\+out}}
+\index{br\+\_\+multihash\+\_\+out@{br\+\_\+multihash\+\_\+out}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+multihash\+\_\+out()}{br\_multihash\_out()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+multihash\+\_\+out (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} $\ast$}]{ctx,  }\item[{int}]{id,  }\item[{void $\ast$}]{dst }\end{DoxyParamCaption})}
+
+
+
+Compute a hash output from a multi-\/hasher. 
+
+The hash output for the concatenation of all bytes injected in the provided context since the last initialisation or reset call, is computed and written in the buffer pointed to by {\ttfamily dst}. The hash function to use is identified by {\ttfamily id} and must be one of the standard hash functions. If that hash function was indeed configured in the multi-\/hasher context, the corresponding hash value is written in {\ttfamily dst} and its length (in bytes) is returned. If the hash function was {\itshape not} configured, then nothing is written in {\ttfamily dst} and 0 is returned.
+
+The context itself is not modified, so extra bytes may be injected afterwards to continue the hash computations.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em id} & the hash function symbolic identifier. \\
+\hline
+{\em dst} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the hash output length (in bytes), or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__hash_8h_ae9b9736423fad34dd0613fbb9b1d3149}\label{bearssl__hash_8h_ae9b9736423fad34dd0613fbb9b1d3149}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+multihash\+\_\+update@{br\+\_\+multihash\+\_\+update}}
+\index{br\+\_\+multihash\+\_\+update@{br\+\_\+multihash\+\_\+update}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+multihash\+\_\+update()}{br\_multihash\_update()}}
+{\footnotesize\ttfamily void br\+\_\+multihash\+\_\+update (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+Inject some data bytes in a running multi-\/hashing computation. 
+
+The provided context is updated with some data bytes. If the number of bytes ({\ttfamily len}) is zero, then the data pointer ({\ttfamily data}) is ignored and may be {\ttfamily N\+U\+LL}, and this function does nothing.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em data} & pointer to the injected data. \\
+\hline
+{\em len} & injected data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_af9a9e454a2e69fdcfafd4c27e866b526}\label{bearssl__hash_8h_af9a9e454a2e69fdcfafd4c27e866b526}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+multihash\+\_\+zero@{br\+\_\+multihash\+\_\+zero}}
+\index{br\+\_\+multihash\+\_\+zero@{br\+\_\+multihash\+\_\+zero}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+multihash\+\_\+zero()}{br\_multihash\_zero()}}
+{\footnotesize\ttfamily void br\+\_\+multihash\+\_\+zero (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+Clear a multi-\/hasher context. 
+
+This should always be called once on a given context, {\itshape before} setting the implementation pointers.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & the multi-\/hasher context. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a2384f9e51f7e67f875140649870c8075}\label{bearssl__hash_8h_a2384f9e51f7e67f875140649870c8075}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha1\+\_\+init@{br\+\_\+sha1\+\_\+init}}
+\index{br\+\_\+sha1\+\_\+init@{br\+\_\+sha1\+\_\+init}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha1\+\_\+init()}{br\_sha1\_init()}}
+{\footnotesize\ttfamily void br\+\_\+sha1\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+S\+H\+A-\/1 context initialisation. 
+
+This function initialises or resets a context for a new S\+H\+A-\/1 computation. It also sets the vtable pointer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a47412559bf48abfa7666d8ba6f8c678c}\label{bearssl__hash_8h_a47412559bf48abfa7666d8ba6f8c678c}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha1\+\_\+out@{br\+\_\+sha1\+\_\+out}}
+\index{br\+\_\+sha1\+\_\+out@{br\+\_\+sha1\+\_\+out}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha1\+\_\+out()}{br\_sha1\_out()}}
+{\footnotesize\ttfamily void br\+\_\+sha1\+\_\+out (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Compute S\+H\+A-\/1 output. 
+
+The S\+H\+A-\/1 output for the concatenation of all bytes injected in the provided context since the last initialisation or reset call, is computed and written in the buffer pointed to by {\ttfamily out}. The context itself is not modified, so extra bytes may be injected afterwards to continue that computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a4e3514683f72f8803ed5b41a4e1eda24}\label{bearssl__hash_8h_a4e3514683f72f8803ed5b41a4e1eda24}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha1\+\_\+set\+\_\+state@{br\+\_\+sha1\+\_\+set\+\_\+state}}
+\index{br\+\_\+sha1\+\_\+set\+\_\+state@{br\+\_\+sha1\+\_\+set\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha1\+\_\+set\+\_\+state()}{br\_sha1\_set\_state()}}
+{\footnotesize\ttfamily void br\+\_\+sha1\+\_\+set\+\_\+state (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{stb,  }\item[{uint64\+\_\+t}]{count }\end{DoxyParamCaption})}
+
+
+
+Restore S\+H\+A-\/1 running state. 
+
+The running state for S\+H\+A-\/1 is set to the provided values.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em stb} & source buffer for the running state. \\
+\hline
+{\em count} & the injected total byte length. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_af2669b87984d1aead0632d01706b704f}\label{bearssl__hash_8h_af2669b87984d1aead0632d01706b704f}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha1\+\_\+state@{br\+\_\+sha1\+\_\+state}}
+\index{br\+\_\+sha1\+\_\+state@{br\+\_\+sha1\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha1\+\_\+state()}{br\_sha1\_state()}}
+{\footnotesize\ttfamily uint64\+\_\+t br\+\_\+sha1\+\_\+state (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Save S\+H\+A-\/1 running state. 
+
+The running state for S\+H\+A-\/1 (output of the last internal block processing) is written in the buffer pointed to by {\ttfamily out}. The number of bytes injected since the last initialisation or reset call is returned. The context is not modified.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the running state. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the injected total byte length. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__hash_8h_ad5bee10b391c9c1cf647a98a6120c732}\label{bearssl__hash_8h_ad5bee10b391c9c1cf647a98a6120c732}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha1\+\_\+update@{br\+\_\+sha1\+\_\+update}}
+\index{br\+\_\+sha1\+\_\+update@{br\+\_\+sha1\+\_\+update}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha1\+\_\+update()}{br\_sha1\_update()}}
+{\footnotesize\ttfamily void br\+\_\+sha1\+\_\+update (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha1__context}{br\+\_\+sha1\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+Inject some data bytes in a running S\+H\+A-\/1 computation. 
+
+The provided context is updated with some data bytes. If the number of bytes ({\ttfamily len}) is zero, then the data pointer ({\ttfamily data}) is ignored and may be {\ttfamily N\+U\+LL}, and this function does nothing.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em data} & pointer to the injected data. \\
+\hline
+{\em len} & injected data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a91ece438a9fc80dc3b456aef3df7781e}\label{bearssl__hash_8h_a91ece438a9fc80dc3b456aef3df7781e}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha224\+\_\+init@{br\+\_\+sha224\+\_\+init}}
+\index{br\+\_\+sha224\+\_\+init@{br\+\_\+sha224\+\_\+init}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha224\+\_\+init()}{br\_sha224\_init()}}
+{\footnotesize\ttfamily void br\+\_\+sha224\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+S\+H\+A-\/224 context initialisation. 
+
+This function initialises or resets a context for a new S\+H\+A-\/224 computation. It also sets the vtable pointer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_af53f8c444f14191383f9f0b22e34e792}\label{bearssl__hash_8h_af53f8c444f14191383f9f0b22e34e792}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha224\+\_\+out@{br\+\_\+sha224\+\_\+out}}
+\index{br\+\_\+sha224\+\_\+out@{br\+\_\+sha224\+\_\+out}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha224\+\_\+out()}{br\_sha224\_out()}}
+{\footnotesize\ttfamily void br\+\_\+sha224\+\_\+out (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Compute S\+H\+A-\/224 output. 
+
+The S\+H\+A-\/224 output for the concatenation of all bytes injected in the provided context since the last initialisation or reset call, is computed and written in the buffer pointed to by {\ttfamily out}. The context itself is not modified, so extra bytes may be injected afterwards to continue that computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_af543b1782f1d39f4557dfac93b1e311c}\label{bearssl__hash_8h_af543b1782f1d39f4557dfac93b1e311c}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha224\+\_\+set\+\_\+state@{br\+\_\+sha224\+\_\+set\+\_\+state}}
+\index{br\+\_\+sha224\+\_\+set\+\_\+state@{br\+\_\+sha224\+\_\+set\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha224\+\_\+set\+\_\+state()}{br\_sha224\_set\_state()}}
+{\footnotesize\ttfamily void br\+\_\+sha224\+\_\+set\+\_\+state (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{stb,  }\item[{uint64\+\_\+t}]{count }\end{DoxyParamCaption})}
+
+
+
+Restore S\+H\+A-\/224 running state. 
+
+The running state for S\+H\+A-\/224 is set to the provided values.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em stb} & source buffer for the running state. \\
+\hline
+{\em count} & the injected total byte length. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a40f1486516809dcef586f368b02216e0}\label{bearssl__hash_8h_a40f1486516809dcef586f368b02216e0}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha224\+\_\+state@{br\+\_\+sha224\+\_\+state}}
+\index{br\+\_\+sha224\+\_\+state@{br\+\_\+sha224\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha224\+\_\+state()}{br\_sha224\_state()}}
+{\footnotesize\ttfamily uint64\+\_\+t br\+\_\+sha224\+\_\+state (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Save S\+H\+A-\/224 running state. 
+
+The running state for S\+H\+A-\/224 (output of the last internal block processing) is written in the buffer pointed to by {\ttfamily out}. The number of bytes injected since the last initialisation or reset call is returned. The context is not modified.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the running state. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the injected total byte length. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__hash_8h_a7310e2a905f3c0ce90a0b1aa88f89475}\label{bearssl__hash_8h_a7310e2a905f3c0ce90a0b1aa88f89475}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha224\+\_\+update@{br\+\_\+sha224\+\_\+update}}
+\index{br\+\_\+sha224\+\_\+update@{br\+\_\+sha224\+\_\+update}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha224\+\_\+update()}{br\_sha224\_update()}}
+{\footnotesize\ttfamily void br\+\_\+sha224\+\_\+update (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha224__context}{br\+\_\+sha224\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+Inject some data bytes in a running S\+H\+A-\/224 computation. 
+
+The provided context is updated with some data bytes. If the number of bytes ({\ttfamily len}) is zero, then the data pointer ({\ttfamily data}) is ignored and may be {\ttfamily N\+U\+LL}, and this function does nothing.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em data} & pointer to the injected data. \\
+\hline
+{\em len} & injected data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a949408045ab075839c699022f9f68a73}\label{bearssl__hash_8h_a949408045ab075839c699022f9f68a73}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha256\+\_\+init@{br\+\_\+sha256\+\_\+init}}
+\index{br\+\_\+sha256\+\_\+init@{br\+\_\+sha256\+\_\+init}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha256\+\_\+init()}{br\_sha256\_init()}}
+{\footnotesize\ttfamily void br\+\_\+sha256\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha224__context}{br\+\_\+sha256\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+S\+H\+A-\/256 context initialisation. 
+
+This function initialises or resets a context for a new S\+H\+A-\/256 computation. It also sets the vtable pointer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a68dcbfd55a35576fc8e4aecbf476fd11}\label{bearssl__hash_8h_a68dcbfd55a35576fc8e4aecbf476fd11}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha256\+\_\+out@{br\+\_\+sha256\+\_\+out}}
+\index{br\+\_\+sha256\+\_\+out@{br\+\_\+sha256\+\_\+out}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha256\+\_\+out()}{br\_sha256\_out()}}
+{\footnotesize\ttfamily void br\+\_\+sha256\+\_\+out (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__sha224__context}{br\+\_\+sha256\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Compute S\+H\+A-\/256 output. 
+
+The S\+H\+A-\/256 output for the concatenation of all bytes injected in the provided context since the last initialisation or reset call, is computed and written in the buffer pointed to by {\ttfamily out}. The context itself is not modified, so extra bytes may be injected afterwards to continue that computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a2596f734fa0da9e13f11345dafec616c}\label{bearssl__hash_8h_a2596f734fa0da9e13f11345dafec616c}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha384\+\_\+init@{br\+\_\+sha384\+\_\+init}}
+\index{br\+\_\+sha384\+\_\+init@{br\+\_\+sha384\+\_\+init}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha384\+\_\+init()}{br\_sha384\_init()}}
+{\footnotesize\ttfamily void br\+\_\+sha384\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+S\+H\+A-\/384 context initialisation. 
+
+This function initialises or resets a context for a new S\+H\+A-\/384 computation. It also sets the vtable pointer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a92143866501f0941ce3546033d9ca7fe}\label{bearssl__hash_8h_a92143866501f0941ce3546033d9ca7fe}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha384\+\_\+out@{br\+\_\+sha384\+\_\+out}}
+\index{br\+\_\+sha384\+\_\+out@{br\+\_\+sha384\+\_\+out}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha384\+\_\+out()}{br\_sha384\_out()}}
+{\footnotesize\ttfamily void br\+\_\+sha384\+\_\+out (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Compute S\+H\+A-\/384 output. 
+
+The S\+H\+A-\/384 output for the concatenation of all bytes injected in the provided context since the last initialisation or reset call, is computed and written in the buffer pointed to by {\ttfamily out}. The context itself is not modified, so extra bytes may be injected afterwards to continue that computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_afc4fd7a33f3918b5e860e757d1e75d71}\label{bearssl__hash_8h_afc4fd7a33f3918b5e860e757d1e75d71}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha384\+\_\+set\+\_\+state@{br\+\_\+sha384\+\_\+set\+\_\+state}}
+\index{br\+\_\+sha384\+\_\+set\+\_\+state@{br\+\_\+sha384\+\_\+set\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha384\+\_\+set\+\_\+state()}{br\_sha384\_set\_state()}}
+{\footnotesize\ttfamily void br\+\_\+sha384\+\_\+set\+\_\+state (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{stb,  }\item[{uint64\+\_\+t}]{count }\end{DoxyParamCaption})}
+
+
+
+Restore S\+H\+A-\/384 running state. 
+
+The running state for S\+H\+A-\/384 is set to the provided values.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em stb} & source buffer for the running state. \\
+\hline
+{\em count} & the injected total byte length. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a5cb31e87af33ab51de2982a36351efc5}\label{bearssl__hash_8h_a5cb31e87af33ab51de2982a36351efc5}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha384\+\_\+state@{br\+\_\+sha384\+\_\+state}}
+\index{br\+\_\+sha384\+\_\+state@{br\+\_\+sha384\+\_\+state}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha384\+\_\+state()}{br\_sha384\_state()}}
+{\footnotesize\ttfamily uint64\+\_\+t br\+\_\+sha384\+\_\+state (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Save S\+H\+A-\/384 running state. 
+
+The running state for S\+H\+A-\/384 (output of the last internal block processing) is written in the buffer pointed to by {\ttfamily out}. The number of bytes injected since the last initialisation or reset call is returned. The context is not modified.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the running state. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the injected total byte length. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__hash_8h_a4d8322810db3c53943881248a7fed729}\label{bearssl__hash_8h_a4d8322810db3c53943881248a7fed729}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha384\+\_\+update@{br\+\_\+sha384\+\_\+update}}
+\index{br\+\_\+sha384\+\_\+update@{br\+\_\+sha384\+\_\+update}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha384\+\_\+update()}{br\_sha384\_update()}}
+{\footnotesize\ttfamily void br\+\_\+sha384\+\_\+update (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha384__context}{br\+\_\+sha384\+\_\+context} $\ast$}]{ctx,  }\item[{const void $\ast$}]{data,  }\item[{size\+\_\+t}]{len }\end{DoxyParamCaption})}
+
+
+
+Inject some data bytes in a running S\+H\+A-\/384 computation. 
+
+The provided context is updated with some data bytes. If the number of bytes ({\ttfamily len}) is zero, then the data pointer ({\ttfamily data}) is ignored and may be {\ttfamily N\+U\+LL}, and this function does nothing.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em data} & pointer to the injected data. \\
+\hline
+{\em len} & injected data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_a87d16f76a966afeda00bbf58a64e6f92}\label{bearssl__hash_8h_a87d16f76a966afeda00bbf58a64e6f92}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha512\+\_\+init@{br\+\_\+sha512\+\_\+init}}
+\index{br\+\_\+sha512\+\_\+init@{br\+\_\+sha512\+\_\+init}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha512\+\_\+init()}{br\_sha512\_init()}}
+{\footnotesize\ttfamily void br\+\_\+sha512\+\_\+init (\begin{DoxyParamCaption}\item[{\hyperlink{structbr__sha384__context}{br\+\_\+sha512\+\_\+context} $\ast$}]{ctx }\end{DoxyParamCaption})}
+
+
+
+S\+H\+A-\/512 context initialisation. 
+
+This function initialises or resets a context for a new S\+H\+A-\/512 computation. It also sets the vtable pointer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{bearssl__hash_8h_add7e62e41a02736efea20b89c63902b9}\label{bearssl__hash_8h_add7e62e41a02736efea20b89c63902b9}} 
+\index{bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}!br\+\_\+sha512\+\_\+out@{br\+\_\+sha512\+\_\+out}}
+\index{br\+\_\+sha512\+\_\+out@{br\+\_\+sha512\+\_\+out}!bearssl\+\_\+hash.\+h@{bearssl\+\_\+hash.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+sha512\+\_\+out()}{br\_sha512\_out()}}
+{\footnotesize\ttfamily void br\+\_\+sha512\+\_\+out (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__sha384__context}{br\+\_\+sha512\+\_\+context} $\ast$}]{ctx,  }\item[{void $\ast$}]{out }\end{DoxyParamCaption})}
+
+
+
+Compute S\+H\+A-\/512 output. 
+
+The S\+H\+A-\/512 output for the concatenation of all bytes injected in the provided context since the last initialisation or reset call, is computed and written in the buffer pointed to by {\ttfamily out}. The context itself is not modified, so extra bytes may be injected afterwards to continue that computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & pointer to the context structure. \\
+\hline
+{\em out} & destination buffer for the hash output. \\
+\hline
+\end{DoxyParams}

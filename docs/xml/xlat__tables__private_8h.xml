@@ -1,0 +1,236 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="xlat__tables__private_8h" kind="file" language="C++">
+    <compoundname>xlat_tables_private.h</compoundname>
+    <includes local="no">plat/defs.h</includes>
+    <includes refid="xlat__tables__arch_8h" local="no">xlat_tables_arch.h</includes>
+    <incdepgraph>
+      <node id="871">
+        <label>stdio.h</label>
+        <link refid="stdio_8h_source"/>
+        <childnode refid="872" relation="include">
+        </childnode>
+        <childnode refid="873" relation="include">
+        </childnode>
+        <childnode refid="874" relation="include">
+        </childnode>
+      </node>
+      <node id="880">
+        <label>pb/errors.h</label>
+        <link refid="errors_8h_source"/>
+      </node>
+      <node id="878">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="879" relation="include">
+        </childnode>
+      </node>
+      <node id="876">
+        <label>stdint_.h</label>
+      </node>
+      <node id="870">
+        <label>pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="871" relation="include">
+        </childnode>
+        <childnode refid="875" relation="include">
+        </childnode>
+        <childnode refid="877" relation="include">
+        </childnode>
+        <childnode refid="878" relation="include">
+        </childnode>
+        <childnode refid="880" relation="include">
+        </childnode>
+        <childnode refid="881" relation="include">
+        </childnode>
+      </node>
+      <node id="872">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="879">
+        <label>stddef_.h</label>
+      </node>
+      <node id="873">
+        <label>stdio_.h</label>
+      </node>
+      <node id="869">
+        <label>xlat_tables_arch.h</label>
+        <link refid="xlat__tables__arch_8h_source"/>
+        <childnode refid="870" relation="include">
+        </childnode>
+        <childnode refid="882" relation="include">
+        </childnode>
+      </node>
+      <node id="877">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="868">
+        <label>plat/defs.h</label>
+      </node>
+      <node id="874">
+        <label>stdarg.h</label>
+        <link refid="stdarg_8h_source"/>
+      </node>
+      <node id="867">
+        <label>/docs/lib/xlat_tables/xlat_tables_private.h</label>
+        <link refid="xlat__tables__private_8h"/>
+        <childnode refid="868" relation="include">
+        </childnode>
+        <childnode refid="869" relation="include">
+        </childnode>
+      </node>
+      <node id="875">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="876" relation="include">
+        </childnode>
+      </node>
+      <node id="881">
+        <label>config.h</label>
+      </node>
+      <node id="882">
+        <label>pb/utils.h</label>
+        <link refid="utils_8h_source"/>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="xlat__tables__private_8h_1ac729b4613c2717662461f7c61d0d0429" prot="public" static="no">
+        <name>XLAT_BLOCK_LEVEL_MIN</name>
+        <initializer>MIN_LVL_BLOCK_DESC</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/xlat_tables/xlat_tables_private.h" line="15" column="9" bodyfile="/docs/lib/xlat_tables/xlat_tables_private.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="xlat__tables__private_8h_1a2e7dbafd1ac8b0664e1bf2c353b7eb46" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void print_mmap</definition>
+        <argsstring>(void)</argsstring>
+        <name>print_mmap</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/xlat_tables/xlat_tables_private.h" line="17" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__tables__private_8h_1a3757e5d22faf4c89cf73b3403028088c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int xlat_arch_current_el</definition>
+        <argsstring>(void)</argsstring>
+        <name>xlat_arch_current_el</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/xlat_tables/xlat_tables_private.h" line="20" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__tables__private_8h_1a325e77ce30ef3abacbb96af16957e18b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint64_t</type>
+        <definition>uint64_t xlat_arch_get_xn_desc</definition>
+        <argsstring>(unsigned int el)</argsstring>
+        <name>xlat_arch_get_xn_desc</name>
+        <param>
+          <type>unsigned int</type>
+          <declname>el</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/xlat_tables/xlat_tables_private.h" line="27" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="xlat__tables__private_8h_1a67c3ed9fe1ce92246a0a49ecedf35c41" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void init_xlation_table</definition>
+        <argsstring>(uintptr_t base_va, uint64_t *table, unsigned int level, uintptr_t *max_va, unsigned long long *max_pa)</argsstring>
+        <name>init_xlation_table</name>
+        <param>
+          <type>uintptr_t</type>
+          <declname>base_va</declname>
+        </param>
+        <param>
+          <type>uint64_t *</type>
+          <declname>table</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>uintptr_t *</type>
+          <declname>max_va</declname>
+        </param>
+        <param>
+          <type>unsigned long long *</type>
+          <declname>max_pa</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/xlat_tables/xlat_tables_private.h" line="29" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2016-2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>XLAT_TABLES_PRIVATE_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLES_PRIVATE_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;plat/defs.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;xlat_tables_arch.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Alias<sp/>to<sp/>retain<sp/>compatibility<sp/>with<sp/>the<sp/>old<sp/>#define<sp/>name<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_BLOCK_LEVEL_MIN<sp/><sp/><sp/><sp/>MIN_LVL_BLOCK_DESC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>print_mmap(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Returns<sp/>the<sp/>current<sp/>Exception<sp/>Level.<sp/>The<sp/>returned<sp/>EL<sp/>must<sp/>be<sp/>1<sp/>or<sp/>higher.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>xlat_arch_current_el(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*<sp/>Returns<sp/>the<sp/>bit<sp/>mask<sp/>that<sp/>has<sp/>to<sp/>be<sp/>ORed<sp/>to<sp/>the<sp/>rest<sp/>of<sp/>a<sp/>translation<sp/>table</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/>descriptor<sp/>so<sp/>that<sp/>execution<sp/>of<sp/>code<sp/>is<sp/>prohibited<sp/>at<sp/>the<sp/>given<sp/>Exception</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*<sp/>Level.</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">uint64_t<sp/>xlat_arch_get_xn_desc(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>el);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>init_xlation_table(uintptr_t<sp/>base_va,<sp/>uint64_t<sp/>*table,</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/>uintptr_t<sp/>*max_va,</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>*max_pa);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>XLAT_TABLES_PRIVATE_H<sp/>*/</highlight><highlight class="preprocessor"></highlight></codeline>
+    </programlisting>
+    <location file="/docs/lib/xlat_tables/xlat_tables_private.h"/>
+  </compounddef>
+</doxygen>

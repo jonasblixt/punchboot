@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__ec__curve__def" kind="struct" language="C++" prot="public">
+    <compoundname>br_ec_curve_def</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__ec__curve__def_1ac8be580f8b0cc720e0769d5c83efcc7d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int br_ec_curve_def::curve</definition>
+        <argsstring></argsstring>
+        <name>curve</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="2023" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2023" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__ec__curve__def_1abab91e048a470c9307dc709456bd175c" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_ec_curve_def::order</definition>
+        <argsstring></argsstring>
+        <name>order</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="2024" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2024" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__ec__curve__def_1acc9d4a8a15a82319e470202433fd390d" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_ec_curve_def::order_len</definition>
+        <argsstring></argsstring>
+        <name>order_len</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="2025" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2025" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__ec__curve__def_1a161602ba207115ae41304e2b9963ceb0" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_ec_curve_def::generator</definition>
+        <argsstring></argsstring>
+        <name>generator</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="2026" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2026" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__ec__curve__def_1ad1a92747e9528625d98eb8f22b78e678" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_ec_curve_def::generator_len</definition>
+        <argsstring></argsstring>
+        <name>generator_len</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="2027" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2027" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/inner.h" line="2022" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="2022" bodyend="2028"/>
+    <listofallmembers>
+      <member refid="structbr__ec__curve__def_1ac8be580f8b0cc720e0769d5c83efcc7d" prot="public" virt="non-virtual"><scope>br_ec_curve_def</scope><name>curve</name></member>
+      <member refid="structbr__ec__curve__def_1a161602ba207115ae41304e2b9963ceb0" prot="public" virt="non-virtual"><scope>br_ec_curve_def</scope><name>generator</name></member>
+      <member refid="structbr__ec__curve__def_1ad1a92747e9528625d98eb8f22b78e678" prot="public" virt="non-virtual"><scope>br_ec_curve_def</scope><name>generator_len</name></member>
+      <member refid="structbr__ec__curve__def_1abab91e048a470c9307dc709456bd175c" prot="public" virt="non-virtual"><scope>br_ec_curve_def</scope><name>order</name></member>
+      <member refid="structbr__ec__curve__def_1acc9d4a8a15a82319e470202433fd390d" prot="public" virt="non-virtual"><scope>br_ec_curve_def</scope><name>order_len</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

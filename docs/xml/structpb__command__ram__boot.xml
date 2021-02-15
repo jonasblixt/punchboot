@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__ram__boot" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_ram_boot</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__ram__boot_1aca6546127ee7aedc307ceaa43e5889d1" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_ram_boot::verbose</definition>
+        <argsstring></argsstring>
+        <name>verbose</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Verbose boot output </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="350" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="350" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__ram__boot_1a291f18dcf94b09ce46be0409353aa22f" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_ram_boot::uuid[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>uuid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Make it look like we are booting this part </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="351" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="351" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__ram__boot_1a2968fdc7715d7ce4297812605b789c4d" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_ram_boot::rz[15]</definition>
+        <argsstring>[15]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="352" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="352" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Ram boot command</para><para>A bpak image is transfered to ram and executed </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="349" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="348" bodyend="353"/>
+    <listofallmembers>
+      <member refid="structpb__command__ram__boot_1a2968fdc7715d7ce4297812605b789c4d" prot="public" virt="non-virtual"><scope>pb_command_ram_boot</scope><name>rz</name></member>
+      <member refid="structpb__command__ram__boot_1a291f18dcf94b09ce46be0409353aa22f" prot="public" virt="non-virtual"><scope>pb_command_ram_boot</scope><name>uuid</name></member>
+      <member refid="structpb__command__ram__boot_1aca6546127ee7aedc307ceaa43e5889d1" prot="public" virt="non-virtual"><scope>pb_command_ram_boot</scope><name>verbose</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

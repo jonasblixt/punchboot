@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structusb__descriptors" kind="struct" language="C++" prot="public">
+    <compoundname>usb_descriptors</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structusb__descriptors_1af4505ec88b6a9554c33a5be91b480206" prot="public" static="no" mutable="no">
+        <type>const struct <ref refid="structusb__device__descriptor" kindref="compound">usb_device_descriptor</ref></type>
+        <definition>const struct usb_device_descriptor usb_descriptors::device</definition>
+        <argsstring></argsstring>
+        <name>device</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="121" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__descriptors_1aa706158ac6a5894aa5db8ba3f9d8ee0f" prot="public" static="no" mutable="no">
+        <type>const struct <ref refid="structusb__configuration__descriptor" kindref="compound">usb_configuration_descriptor</ref></type>
+        <definition>const struct usb_configuration_descriptor usb_descriptors::config</definition>
+        <argsstring></argsstring>
+        <name>config</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="121" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__descriptors_1a28ca1e21411c801d49ef967f6172e161" prot="public" static="no" mutable="no">
+        <type>const struct <ref refid="structusb__interface__descriptor" kindref="compound">usb_interface_descriptor</ref></type>
+        <definition>const struct usb_interface_descriptor usb_descriptors::interface</definition>
+        <argsstring></argsstring>
+        <name>interface</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="121" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__descriptors_1a735508f42d719a3213b93fc054ca26a1" prot="public" static="no" mutable="no">
+        <type>const struct <ref refid="structusb__endpoint__descriptor" kindref="compound">usb_endpoint_descriptor</ref></type>
+        <definition>const struct usb_endpoint_descriptor usb_descriptors::endpoint_bulk_in</definition>
+        <argsstring></argsstring>
+        <name>endpoint_bulk_in</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="121" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__descriptors_1a21d423293e81d623cff808ff006f9272" prot="public" static="no" mutable="no">
+        <type>const struct <ref refid="structusb__endpoint__descriptor" kindref="compound">usb_endpoint_descriptor</ref></type>
+        <definition>const struct usb_endpoint_descriptor usb_descriptors::endpoint_bulk_out</definition>
+        <argsstring></argsstring>
+        <name>endpoint_bulk_out</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="121" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="365">
+        <label>usb_descriptors</label>
+        <link refid="structusb__descriptors"/>
+        <childnode refid="366" relation="usage">
+          <edgelabel>interface</edgelabel>
+        </childnode>
+        <childnode refid="367" relation="usage">
+          <edgelabel>device</edgelabel>
+        </childnode>
+        <childnode refid="368" relation="usage">
+          <edgelabel>endpoint_bulk_in</edgelabel>
+          <edgelabel>endpoint_bulk_out</edgelabel>
+        </childnode>
+        <childnode refid="369" relation="usage">
+          <edgelabel>config</edgelabel>
+        </childnode>
+      </node>
+      <node id="367">
+        <label>usb_device_descriptor</label>
+        <link refid="structusb__device__descriptor"/>
+      </node>
+      <node id="366">
+        <label>usb_interface_descriptor</label>
+        <link refid="structusb__interface__descriptor"/>
+      </node>
+      <node id="368">
+        <label>usb_endpoint_descriptor</label>
+        <link refid="structusb__endpoint__descriptor"/>
+      </node>
+      <node id="369">
+        <label>usb_configuration_descriptor</label>
+        <link refid="structusb__configuration__descriptor"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/include/pb/usb.h" line="126" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="125" bodyend="132"/>
+    <listofallmembers>
+      <member refid="structusb__descriptors_1aa706158ac6a5894aa5db8ba3f9d8ee0f" prot="public" virt="non-virtual"><scope>usb_descriptors</scope><name>config</name></member>
+      <member refid="structusb__descriptors_1af4505ec88b6a9554c33a5be91b480206" prot="public" virt="non-virtual"><scope>usb_descriptors</scope><name>device</name></member>
+      <member refid="structusb__descriptors_1a735508f42d719a3213b93fc054ca26a1" prot="public" virt="non-virtual"><scope>usb_descriptors</scope><name>endpoint_bulk_in</name></member>
+      <member refid="structusb__descriptors_1a21d423293e81d623cff808ff006f9272" prot="public" virt="non-virtual"><scope>usb_descriptors</scope><name>endpoint_bulk_out</name></member>
+      <member refid="structusb__descriptors_1a28ca1e21411c801d49ef967f6172e161" prot="public" virt="non-virtual"><scope>usb_descriptors</scope><name>interface</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

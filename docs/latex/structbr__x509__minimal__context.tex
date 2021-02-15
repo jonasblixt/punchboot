@@ -1,0 +1,150 @@
+\hypertarget{structbr__x509__minimal__context}{}\section{br\+\_\+x509\+\_\+minimal\+\_\+context Struct Reference}
+\label{structbr__x509__minimal__context}\index{br\+\_\+x509\+\_\+minimal\+\_\+context@{br\+\_\+x509\+\_\+minimal\+\_\+context}}
+
+
+The \char`\"{}minimal\char`\"{} X.\+509 engine structure.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+x509.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_ac9e193316a098ecfc5d46daeb9d891d2}\label{structbr__x509__minimal__context_ac9e193316a098ecfc5d46daeb9d891d2}} 
+const \hyperlink{bearssl__x509_8h_acf3af5c1ad4007b178e4c6d68ce5bb0d}{br\+\_\+x509\+\_\+class} $\ast$ {\bfseries vtable}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a1ccb33878a874774242917d7b243e9bf}\label{structbr__x509__minimal__context_a1ccb33878a874774242917d7b243e9bf}} 
+\hyperlink{structbr__x509__pkey}{br\+\_\+x509\+\_\+pkey} {\bfseries pkey}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a77a98afc5afc0cd7920c379479281a0d}\label{structbr__x509__minimal__context_a77a98afc5afc0cd7920c379479281a0d}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+struct \{\\
+\>uint32\_t $\ast$ {\bfseries dp}\\
+\>uint32\_t $\ast$ {\bfseries rp}\\
+\>const unsigned char $\ast$ {\bfseries ip}\\
+\} {\bfseries cpu}\\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a108a9596cc587e028deaf3293f8949c3}\label{structbr__x509__minimal__context_a108a9596cc587e028deaf3293f8949c3}} 
+uint32\+\_\+t {\bfseries dp\+\_\+stack} \mbox{[}32\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a433660e9b920afb28bb0b746512c2411}\label{structbr__x509__minimal__context_a433660e9b920afb28bb0b746512c2411}} 
+uint32\+\_\+t {\bfseries rp\+\_\+stack} \mbox{[}32\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_ae42cb6cf2dad921bee7470fe58f4d273}\label{structbr__x509__minimal__context_ae42cb6cf2dad921bee7470fe58f4d273}} 
+int {\bfseries err}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a61e197f272014bd762100e351571e786}\label{structbr__x509__minimal__context_a61e197f272014bd762100e351571e786}} 
+const char $\ast$ {\bfseries server\+\_\+name}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a3aeabc51863f6022943b451555ffa792}\label{structbr__x509__minimal__context_a3aeabc51863f6022943b451555ffa792}} 
+unsigned char {\bfseries key\+\_\+usages}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a78e7f79a7b30c41f8bddcebfeaf1c9e8}\label{structbr__x509__minimal__context_a78e7f79a7b30c41f8bddcebfeaf1c9e8}} 
+uint32\+\_\+t {\bfseries days}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a65a4d58b30e873e17287dba15b2b1187}\label{structbr__x509__minimal__context_a65a4d58b30e873e17287dba15b2b1187}} 
+uint32\+\_\+t {\bfseries seconds}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a98b62ea66799e5496bdabb662c11bdf5}\label{structbr__x509__minimal__context_a98b62ea66799e5496bdabb662c11bdf5}} 
+uint32\+\_\+t {\bfseries cert\+\_\+length}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_aa54029e7b999f627214752169c0187c0}\label{structbr__x509__minimal__context_aa54029e7b999f627214752169c0187c0}} 
+uint32\+\_\+t {\bfseries num\+\_\+certs}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a26135db7777e4ab3f5082eaade23d9a9}\label{structbr__x509__minimal__context_a26135db7777e4ab3f5082eaade23d9a9}} 
+const unsigned char $\ast$ {\bfseries hbuf}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a810fd435124a86270d953bd7e2e3f807}\label{structbr__x509__minimal__context_a810fd435124a86270d953bd7e2e3f807}} 
+size\+\_\+t {\bfseries hlen}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a773f40f5491f3e177753c581c8cab677}\label{structbr__x509__minimal__context_a773f40f5491f3e177753c581c8cab677}} 
+unsigned char {\bfseries pad} \mbox{[}256\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_aeeb606de875b9d66560ececd0a6c2449}\label{structbr__x509__minimal__context_aeeb606de875b9d66560ececd0a6c2449}} 
+unsigned char {\bfseries ee\+\_\+pkey\+\_\+data} \mbox{[}B\+R\+\_\+\+X509\+\_\+\+B\+U\+F\+S\+I\+Z\+E\+\_\+\+K\+EY\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a951b0c1f8f049320b20fd80fb554855b}\label{structbr__x509__minimal__context_a951b0c1f8f049320b20fd80fb554855b}} 
+unsigned char {\bfseries pkey\+\_\+data} \mbox{[}B\+R\+\_\+\+X509\+\_\+\+B\+U\+F\+S\+I\+Z\+E\+\_\+\+K\+EY\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_aa3de723a0b05d7bae22b3442dacced51}\label{structbr__x509__minimal__context_aa3de723a0b05d7bae22b3442dacced51}} 
+unsigned char {\bfseries cert\+\_\+signer\+\_\+key\+\_\+type}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_aba16db137f2e6074033362d7436e575f}\label{structbr__x509__minimal__context_aba16db137f2e6074033362d7436e575f}} 
+uint16\+\_\+t {\bfseries cert\+\_\+sig\+\_\+hash\+\_\+oid}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_aa25ab141c0dd5bf6123e14cf89085a05}\label{structbr__x509__minimal__context_aa25ab141c0dd5bf6123e14cf89085a05}} 
+unsigned char {\bfseries cert\+\_\+sig\+\_\+hash\+\_\+len}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_ae3eaa07b5acef89afeed3c705dab363c}\label{structbr__x509__minimal__context_ae3eaa07b5acef89afeed3c705dab363c}} 
+unsigned char {\bfseries cert\+\_\+sig} \mbox{[}B\+R\+\_\+\+X509\+\_\+\+B\+U\+F\+S\+I\+Z\+E\+\_\+\+S\+IG\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_aee279a5f9f38633d3031f12544b45548}\label{structbr__x509__minimal__context_aee279a5f9f38633d3031f12544b45548}} 
+uint16\+\_\+t {\bfseries cert\+\_\+sig\+\_\+len}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_ae88aed66a3cbf664846d855f7512961c}\label{structbr__x509__minimal__context_ae88aed66a3cbf664846d855f7512961c}} 
+int16\+\_\+t {\bfseries min\+\_\+rsa\+\_\+size}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a23e9e2cbf3b1201c905a7e58df04a2fe}\label{structbr__x509__minimal__context_a23e9e2cbf3b1201c905a7e58df04a2fe}} 
+const \hyperlink{structbr__x509__trust__anchor}{br\+\_\+x509\+\_\+trust\+\_\+anchor} $\ast$ {\bfseries trust\+\_\+anchors}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_ab39914b06367d76c3f2ed403878020a9}\label{structbr__x509__minimal__context_ab39914b06367d76c3f2ed403878020a9}} 
+size\+\_\+t {\bfseries trust\+\_\+anchors\+\_\+num}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_ab9f0a963a6b58338c1ea15322742b762}\label{structbr__x509__minimal__context_ab9f0a963a6b58338c1ea15322742b762}} 
+unsigned char {\bfseries do\+\_\+mhash}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a6539b61eb34289c5db2a3ba1ae745c16}\label{structbr__x509__minimal__context_a6539b61eb34289c5db2a3ba1ae745c16}} 
+\hyperlink{structbr__multihash__context}{br\+\_\+multihash\+\_\+context} {\bfseries mhash}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_afeebcb339eb3610402010aa53c1dd868}\label{structbr__x509__minimal__context_afeebcb339eb3610402010aa53c1dd868}} 
+unsigned char {\bfseries tbs\+\_\+hash} \mbox{[}64\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_af1b78e513f281f2e0ccd1fc41d287068}\label{structbr__x509__minimal__context_af1b78e513f281f2e0ccd1fc41d287068}} 
+unsigned char {\bfseries do\+\_\+dn\+\_\+hash}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a8c8111d8bb1cad9ce96bfd436be186cc}\label{structbr__x509__minimal__context_a8c8111d8bb1cad9ce96bfd436be186cc}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$ {\bfseries dn\+\_\+hash\+\_\+impl}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_aa1be0360ceea41f608ea6cf53db76fa5}\label{structbr__x509__minimal__context_aa1be0360ceea41f608ea6cf53db76fa5}} 
+\hyperlink{unionbr__hash__compat__context}{br\+\_\+hash\+\_\+compat\+\_\+context} {\bfseries dn\+\_\+hash}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a81a6e6837787ab9e55cbda3141db89b1}\label{structbr__x509__minimal__context_a81a6e6837787ab9e55cbda3141db89b1}} 
+unsigned char {\bfseries current\+\_\+dn\+\_\+hash} \mbox{[}64\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a942dffb82326ff8f9ad9381e1302251c}\label{structbr__x509__minimal__context_a942dffb82326ff8f9ad9381e1302251c}} 
+unsigned char {\bfseries next\+\_\+dn\+\_\+hash} \mbox{[}64\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_aab7f2b88ab53ac8f5e98d95dbf8c9c04}\label{structbr__x509__minimal__context_aab7f2b88ab53ac8f5e98d95dbf8c9c04}} 
+unsigned char {\bfseries saved\+\_\+dn\+\_\+hash} \mbox{[}64\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_ad8cd2409c592a7ea5703709cc01485e8}\label{structbr__x509__minimal__context_ad8cd2409c592a7ea5703709cc01485e8}} 
+\hyperlink{structbr__name__element}{br\+\_\+name\+\_\+element} $\ast$ {\bfseries name\+\_\+elts}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a5ec0576b4ce5c0f2ee44251ffb2f90fe}\label{structbr__x509__minimal__context_a5ec0576b4ce5c0f2ee44251ffb2f90fe}} 
+size\+\_\+t {\bfseries num\+\_\+name\+\_\+elts}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a7b685de41d456f7858163017425a616e}\label{structbr__x509__minimal__context_a7b685de41d456f7858163017425a616e}} 
+\hyperlink{bearssl__rsa_8h_a9ee06c1a4ae5af9e900d877a87ec8b17}{br\+\_\+rsa\+\_\+pkcs1\+\_\+vrfy} {\bfseries irsa}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_a1a99221f08a19a59a49642873a24e784}\label{structbr__x509__minimal__context_a1a99221f08a19a59a49642873a24e784}} 
+\hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy} {\bfseries iecdsa}
+\item 
+\mbox{\Hypertarget{structbr__x509__minimal__context_ab6732239169636811c683be8a3ab68f7}\label{structbr__x509__minimal__context_ab6732239169636811c683be8a3ab68f7}} 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$ {\bfseries iec}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+The \char`\"{}minimal\char`\"{} X.\+509 engine structure. 
+
+The structure contents are opaque (they shall not be accessed directly), except for the first field (the vtable).
+
+The \char`\"{}minimal\char`\"{} engine performs a rudimentary but serviceable X.\+509 path validation. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__x509_8h}{bearssl\+\_\+x509.\+h}\end{DoxyCompactItemize}

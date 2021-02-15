@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="aarch64_2stdlib___8h" kind="file" language="C++">
+    <compoundname>stdlib_.h</compoundname>
+    <includedby refid="stdlib_8h" local="no">/docs/include/pb/libc/stdlib.h</includedby>
+    <invincdepgraph>
+      <node id="354">
+        <label>/docs/include/pb/libc/aarch64/stdlib_.h</label>
+        <link refid="aarch64_2stdlib___8h"/>
+        <childnode refid="355" relation="include">
+        </childnode>
+      </node>
+      <node id="355">
+        <label>/docs/include/pb/libc/stdlib.h</label>
+        <link refid="stdlib_8h_source"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="aarch64_2stdlib___8h_1a55165e486b91d3e2ff90166afc77906e" prot="public" static="no">
+        <name>SIZET_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/stdlib_.h" line="12" column="9" bodyfile="/docs/include/pb/libc/aarch64/stdlib_.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2stdlib___8h_1a73efe787c131b385070f25d18b7c9aa4" prot="public" static="no">
+        <name>EXIT_FAILURE</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/stdlib_.h" line="15" column="9" bodyfile="/docs/include/pb/libc/aarch64/stdlib_.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2stdlib___8h_1a687984f47d8cce148d1b914d2b79612a" prot="public" static="no">
+        <name>EXIT_SUCCESS</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/stdlib_.h" line="16" column="9" bodyfile="/docs/include/pb/libc/aarch64/stdlib_.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="aarch64_2stdlib___8h_1acf18a0d6c4b39d531e021702e9a77984" prot="public" static="no">
+        <type>unsigned long</type>
+        <definition>typedef unsigned long size_t</definition>
+        <argsstring></argsstring>
+        <name>size_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/stdlib_.h" line="11" column="1" bodyfile="/docs/include/pb/libc/aarch64/stdlib_.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_LIBC_AARCH64_STDLIB__H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_LIBC_AARCH64_STDLIB__H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>SIZET_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">long</highlight><highlight class="normal"><sp/>size_t;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SIZET_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EXIT_FAILURE<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EXIT_SUCCESS<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_LIBC_AARCH64_STDLIB__H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/libc/aarch64/stdlib_.h"/>
+  </compounddef>
+</doxygen>

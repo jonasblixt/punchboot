@@ -1,0 +1,306 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="io_8h" kind="file" language="C++">
+    <compoundname>io.h</compoundname>
+    <includes refid="pb_8h" local="no">pb/pb.h</includes>
+    <includes local="no">arch/arch.h</includes>
+    <incdepgraph>
+      <node id="223">
+        <label>stdio.h</label>
+        <link refid="stdio_8h_source"/>
+        <childnode refid="224" relation="include">
+        </childnode>
+        <childnode refid="225" relation="include">
+        </childnode>
+        <childnode refid="226" relation="include">
+        </childnode>
+      </node>
+      <node id="232">
+        <label>pb/errors.h</label>
+        <link refid="errors_8h_source"/>
+      </node>
+      <node id="230">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="231" relation="include">
+        </childnode>
+      </node>
+      <node id="228">
+        <label>stdint_.h</label>
+      </node>
+      <node id="222">
+        <label>pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="223" relation="include">
+        </childnode>
+        <childnode refid="227" relation="include">
+        </childnode>
+        <childnode refid="229" relation="include">
+        </childnode>
+        <childnode refid="230" relation="include">
+        </childnode>
+        <childnode refid="232" relation="include">
+        </childnode>
+        <childnode refid="233" relation="include">
+        </childnode>
+      </node>
+      <node id="224">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="234">
+        <label>arch/arch.h</label>
+      </node>
+      <node id="231">
+        <label>stddef_.h</label>
+      </node>
+      <node id="225">
+        <label>stdio_.h</label>
+      </node>
+      <node id="229">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="226">
+        <label>stdarg.h</label>
+        <link refid="stdarg_8h_source"/>
+      </node>
+      <node id="221">
+        <label>/docs/include/pb/io.h</label>
+        <link refid="io_8h"/>
+        <childnode refid="222" relation="include">
+        </childnode>
+        <childnode refid="234" relation="include">
+        </childnode>
+      </node>
+      <node id="227">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="228" relation="include">
+        </childnode>
+      </node>
+      <node id="233">
+        <label>config.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="io_8h_1ad99b2d8ae1089c4c38d3808783db4e14" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void pb_write32</definition>
+        <argsstring>(uint32_t data, __iomem addr)</argsstring>
+        <name>pb_write32</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>__iomem</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Punch BOOT</para><para>Copyright (C) 2018 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/io.h" line="18" column="1" bodyfile="/docs/include/pb/io.h" bodystart="18" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="io_8h_1a6141d48aa9a3a1d858d43680c4259371" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void pb_write16</definition>
+        <argsstring>(uint16_t data, __iomem addr)</argsstring>
+        <name>pb_write16</name>
+        <param>
+          <type>uint16_t</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>__iomem</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/io.h" line="23" column="1" bodyfile="/docs/include/pb/io.h" bodystart="23" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="io_8h_1a88dc544e40d9d5a564f3e54fe0521d88" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void pb_write8</definition>
+        <argsstring>(uint8_t data, __iomem addr)</argsstring>
+        <name>pb_write8</name>
+        <param>
+          <type>uint8_t</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>__iomem</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/io.h" line="28" column="1" bodyfile="/docs/include/pb/io.h" bodystart="28" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="io_8h_1ab3a88f51785f5ceea48da19356a338da" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>static uint32_t pb_read32</definition>
+        <argsstring>(__iomem addr)</argsstring>
+        <name>pb_read32</name>
+        <param>
+          <type>__iomem</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/io.h" line="33" column="1" bodyfile="/docs/include/pb/io.h" bodystart="33" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="io_8h_1a677b1441be6535d114eeeddb407a1793" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint16_t</type>
+        <definition>static uint16_t pb_read16</definition>
+        <argsstring>(__iomem addr)</argsstring>
+        <name>pb_read16</name>
+        <param>
+          <type>__iomem</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/io.h" line="38" column="1" bodyfile="/docs/include/pb/io.h" bodystart="38" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="io_8h_1a51ff448aa1fdb0015f064b8ee687d651" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint8_t</type>
+        <definition>static uint8_t pb_read8</definition>
+        <argsstring>(__iomem addr)</argsstring>
+        <name>pb_read8</name>
+        <param>
+          <type>__iomem</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/io.h" line="43" column="1" bodyfile="/docs/include/pb/io.h" bodystart="43" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="io_8h_1a686f15abefe842e999cf7f3d72bcd1bb" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void pb_setbit32</definition>
+        <argsstring>(uint32_t bit, __iomem addr)</argsstring>
+        <name>pb_setbit32</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>bit</declname>
+        </param>
+        <param>
+          <type>__iomem</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/io.h" line="48" column="1" bodyfile="/docs/include/pb/io.h" bodystart="48" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="io_8h_1aa95715ccd6da7f85831ebd037ce0f0dd" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void pb_clrbit32</definition>
+        <argsstring>(uint32_t bit, __iomem addr)</argsstring>
+        <name>pb_clrbit32</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>bit</declname>
+        </param>
+        <param>
+          <type>__iomem</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/io.h" line="56" column="1" bodyfile="/docs/include/pb/io.h" bodystart="56" bodyend="61"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="11"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_IO_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_IO_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/pb.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;arch/arch.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>pb_write32(uint32_t<sp/>data,<sp/>__iomem<sp/>addr)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/>*((</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint32_t<sp/>*)addr)<sp/>=<sp/>data;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>pb_write16(uint16_t<sp/>data,<sp/>__iomem<sp/>addr)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>*((</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint16_t<sp/>*)addr)<sp/>=<sp/>data;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>pb_write8(uint8_t<sp/>data,<sp/>__iomem<sp/>addr)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>*((</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint8_t<sp/>*)addr)<sp/>=<sp/>data;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint32_t<sp/>pb_read32(__iomem<sp/>addr)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*((</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint32_t<sp/>*)addr);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint16_t<sp/>pb_read16(__iomem<sp/>addr)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*((</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint16_t<sp/>*)addr);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint8_t<sp/>pb_read8(__iomem<sp/>addr)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*((</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint8_t<sp/>*)addr);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>pb_setbit32(uint32_t<sp/>bit,<sp/>__iomem<sp/>addr)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint32_t<sp/>reg<sp/>=<sp/>pb_read32(addr);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>reg<sp/>|=<sp/>bit;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_write32(reg,<sp/>addr);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>pb_clrbit32(uint32_t<sp/>bit,<sp/>__iomem<sp/>addr)</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint32_t<sp/>reg<sp/>=<sp/>pb_read32(addr);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>reg<sp/>&amp;=<sp/>~bit;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_write32(reg,<sp/>addr);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_IO_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/io.h"/>
+  </compounddef>
+</doxygen>

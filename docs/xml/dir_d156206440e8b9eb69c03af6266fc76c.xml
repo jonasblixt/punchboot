@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="dir_d156206440e8b9eb69c03af6266fc76c" kind="dir">
+    <compoundname>/docs/include/pb/xlat_tables/aarch32</compoundname>
+    <innerfile refid="xlat__tables__aarch32_8h">xlat_tables_aarch32.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/xlat_tables/aarch32/"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,246 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__skey__decoder__context" kind="struct" language="C++" prot="public">
+    <compoundname>br_skey_decoder_context</compoundname>
+    <includes refid="bearssl__x509_8h" local="no">bearssl_x509.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1a073ab32d6bc6d8cec16bce0e3fac782f" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__rsa__private__key" kindref="compound">br_rsa_private_key</ref></type>
+        <definition>br_rsa_private_key br_skey_decoder_context::rsa</definition>
+        <argsstring></argsstring>
+        <name>rsa</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1118" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1a56cf0748a86115685eb761297cdbaf32" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref></type>
+        <definition>br_ec_private_key br_skey_decoder_context::ec</definition>
+        <argsstring></argsstring>
+        <name>ec</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1119" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1ad792ce74a8b4c26134fe97bd9b9132ed" prot="public" static="no" mutable="no">
+        <type>union br_skey_decoder_context::@11</type>
+        <definition>union br_skey_decoder_context::@11  br_skey_decoder_context::key</definition>
+        <argsstring></argsstring>
+        <name>key</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1120" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1a44b198fb05796c3614be035ef4b8dfaa" prot="public" static="no" mutable="no">
+        <type>uint32_t *</type>
+        <definition>uint32_t* br_skey_decoder_context::dp</definition>
+        <argsstring></argsstring>
+        <name>dp</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1124" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1ab4156b8f72784b9165947bba6f534b38" prot="public" static="no" mutable="no">
+        <type>uint32_t *</type>
+        <definition>uint32_t* br_skey_decoder_context::rp</definition>
+        <argsstring></argsstring>
+        <name>rp</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1125" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1a050a3e4bb79f61869cf28964d39ea1f3" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_skey_decoder_context::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1126" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1aba258aed7c1c52d4d216605df88a7ace" prot="public" static="no" mutable="no">
+        <type>struct br_skey_decoder_context::@12</type>
+        <definition>struct br_skey_decoder_context::@12  br_skey_decoder_context::cpu</definition>
+        <argsstring></argsstring>
+        <name>cpu</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1127" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1a16ce6828031af8bc4fa7106e2bca3a01" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_skey_decoder_context::dp_stack[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>dp_stack</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1128" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1adf3911661e78273930063173137f5ff9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_skey_decoder_context::rp_stack[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>rp_stack</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1129" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1ac5d5bc0d714e920d69238364e9f4d8c8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int br_skey_decoder_context::err</definition>
+        <argsstring></argsstring>
+        <name>err</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1130" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1ab0c8dc56e4c498ca4fc58d2765fa35f9" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_skey_decoder_context::hbuf</definition>
+        <argsstring></argsstring>
+        <name>hbuf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1133" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1a911c8e3d8ecad672e36ad15222e5e452" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_skey_decoder_context::hlen</definition>
+        <argsstring></argsstring>
+        <name>hlen</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1134" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1a5ec264a8aa3f61c740b638322420c59f" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_skey_decoder_context::pad[256]</definition>
+        <argsstring>[256]</argsstring>
+        <name>pad</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1137" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1aa7d7d44d50b9b44603917eec6c6335ef" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_skey_decoder_context::key_type</definition>
+        <argsstring></argsstring>
+        <name>key_type</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1140" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__skey__decoder__context_1a39a49b8873e34364d113b9cea8fe863a" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_skey_decoder_context::key_data[3 *BR_X509_BUFSIZE_SIG]</definition>
+        <argsstring>[3 *BR_X509_BUFSIZE_SIG]</argsstring>
+        <name>key_data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1145" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1145" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Private key decoder context. </para>    </briefdescription>
+    <detaileddescription>
+<para>The private key decoder recognises RSA and EC private keys, either in their raw, DER-encoded format, or wrapped in an unencrypted PKCS#8 archive (again DER-encoded).</para><para>Structure contents are opaque and shall not be accessed directly. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="230">
+        <label>br_ec_private_key</label>
+        <link refid="structbr__ec__private__key"/>
+      </node>
+      <node id="228">
+        <label>br_skey_decoder_context</label>
+        <link refid="structbr__skey__decoder__context"/>
+        <childnode refid="229" relation="usage">
+          <edgelabel>rsa</edgelabel>
+        </childnode>
+        <childnode refid="230" relation="usage">
+          <edgelabel>ec</edgelabel>
+        </childnode>
+      </node>
+      <node id="229">
+        <label>br_rsa_private_key</label>
+        <link refid="structbr__rsa__private__key"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="1114" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1114" bodyend="1147"/>
+    <listofallmembers>
+      <member refid="structbr__skey__decoder__context_1aba258aed7c1c52d4d216605df88a7ace" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>cpu</name></member>
+      <member refid="structbr__skey__decoder__context_1a44b198fb05796c3614be035ef4b8dfaa" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>dp</name></member>
+      <member refid="structbr__skey__decoder__context_1a16ce6828031af8bc4fa7106e2bca3a01" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>dp_stack</name></member>
+      <member refid="structbr__skey__decoder__context_1a56cf0748a86115685eb761297cdbaf32" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>ec</name></member>
+      <member refid="structbr__skey__decoder__context_1ac5d5bc0d714e920d69238364e9f4d8c8" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>err</name></member>
+      <member refid="structbr__skey__decoder__context_1ab0c8dc56e4c498ca4fc58d2765fa35f9" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>hbuf</name></member>
+      <member refid="structbr__skey__decoder__context_1a911c8e3d8ecad672e36ad15222e5e452" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>hlen</name></member>
+      <member refid="structbr__skey__decoder__context_1a050a3e4bb79f61869cf28964d39ea1f3" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>ip</name></member>
+      <member refid="structbr__skey__decoder__context_1ad792ce74a8b4c26134fe97bd9b9132ed" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>key</name></member>
+      <member refid="structbr__skey__decoder__context_1a39a49b8873e34364d113b9cea8fe863a" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>key_data</name></member>
+      <member refid="structbr__skey__decoder__context_1aa7d7d44d50b9b44603917eec6c6335ef" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>key_type</name></member>
+      <member refid="structbr__skey__decoder__context_1a5ec264a8aa3f61c740b638322420c59f" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>pad</name></member>
+      <member refid="structbr__skey__decoder__context_1ab4156b8f72784b9165947bba6f534b38" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>rp</name></member>
+      <member refid="structbr__skey__decoder__context_1adf3911661e78273930063173137f5ff9" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>rp_stack</name></member>
+      <member refid="structbr__skey__decoder__context_1a073ab32d6bc6d8cec16bce0e3fac782f" prot="public" virt="non-virtual"><scope>br_skey_decoder_context</scope><name>rsa</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

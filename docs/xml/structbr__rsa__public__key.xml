@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__rsa__public__key" kind="struct" language="C++" prot="public">
+    <compoundname>br_rsa_public_key</compoundname>
+    <includes refid="bearssl__rsa_8h" local="no">bearssl_rsa.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__rsa__public__key_1a3d73ffff37329e2e1c9efdae8ddfa53f" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_rsa_public_key::n</definition>
+        <argsstring></argsstring>
+        <name>n</name>
+        <briefdescription>
+<para>Modulus. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="163" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__public__key_1acae4c476eba789845538804d565d3f55" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_rsa_public_key::nlen</definition>
+        <argsstring></argsstring>
+        <name>nlen</name>
+        <briefdescription>
+<para>Modulus length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="165" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__public__key_1acc109cf04cf03328927471bae376731c" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_rsa_public_key::e</definition>
+        <argsstring></argsstring>
+        <name>e</name>
+        <briefdescription>
+<para>Public exponent. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="167" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__public__key_1a25c48aea2fbaf14e669dc9cf1827cbc9" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_rsa_public_key::elen</definition>
+        <argsstring></argsstring>
+        <name>elen</name>
+        <briefdescription>
+<para>Public exponent length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="169" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>RSA public key. </para>    </briefdescription>
+    <detaileddescription>
+<para>The structure references the modulus and the public exponent. Both integers use unsigned big-endian representation; extra leading bytes of value 0 are allowed. </para>    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_rsa.h" line="161" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="161" bodyend="170"/>
+    <listofallmembers>
+      <member refid="structbr__rsa__public__key_1acc109cf04cf03328927471bae376731c" prot="public" virt="non-virtual"><scope>br_rsa_public_key</scope><name>e</name></member>
+      <member refid="structbr__rsa__public__key_1a25c48aea2fbaf14e669dc9cf1827cbc9" prot="public" virt="non-virtual"><scope>br_rsa_public_key</scope><name>elen</name></member>
+      <member refid="structbr__rsa__public__key_1a3d73ffff37329e2e1c9efdae8ddfa53f" prot="public" virt="non-virtual"><scope>br_rsa_public_key</scope><name>n</name></member>
+      <member refid="structbr__rsa__public__key_1acae4c476eba789845538804d565d3f55" prot="public" virt="non-virtual"><scope>br_rsa_public_key</scope><name>nlen</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

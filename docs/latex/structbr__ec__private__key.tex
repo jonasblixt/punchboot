@@ -1,0 +1,33 @@
+\hypertarget{structbr__ec__private__key}{}\section{br\+\_\+ec\+\_\+private\+\_\+key Struct Reference}
+\label{structbr__ec__private__key}\index{br\+\_\+ec\+\_\+private\+\_\+key@{br\+\_\+ec\+\_\+private\+\_\+key}}
+
+
+Structure for an EC private key.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+ec.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__ec__private__key_ae18fadf79653c4b17ed7ca701cf696cc}\label{structbr__ec__private__key_ae18fadf79653c4b17ed7ca701cf696cc}} 
+int \hyperlink{structbr__ec__private__key_ae18fadf79653c4b17ed7ca701cf696cc}{curve}
+\begin{DoxyCompactList}\small\item\em Identifier for the curve used by this key. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__ec__private__key_a3df4d7dc8f5b2220b498e123a39b2798}\label{structbr__ec__private__key_a3df4d7dc8f5b2220b498e123a39b2798}} 
+unsigned char $\ast$ \hyperlink{structbr__ec__private__key_a3df4d7dc8f5b2220b498e123a39b2798}{x}
+\begin{DoxyCompactList}\small\item\em Private key (integer, unsigned big-\/endian encoding). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__ec__private__key_a287998c207df113e27ae61c19588c2f9}\label{structbr__ec__private__key_a287998c207df113e27ae61c19588c2f9}} 
+size\+\_\+t \hyperlink{structbr__ec__private__key_a287998c207df113e27ae61c19588c2f9}{xlen}
+\begin{DoxyCompactList}\small\item\em Private key length (in bytes). \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Structure for an EC private key. 
+
+The private key is an integer modulo the curve subgroup order. The encoding below tolerates extra leading zeros. In general, it is recommended that the private key has the same length as the curve subgroup order. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__ec_8h}{bearssl\+\_\+ec.\+h}\end{DoxyCompactItemize}

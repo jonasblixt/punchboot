@@ -1,0 +1,39 @@
+\hypertarget{structbr__md5sha1__context}{}\section{br\+\_\+md5sha1\+\_\+context Struct Reference}
+\label{structbr__md5sha1__context}\index{br\+\_\+md5sha1\+\_\+context@{br\+\_\+md5sha1\+\_\+context}}
+
+
+M\+D5+\+S\+H\+A-\/1 context.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+hash.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__md5sha1__context_a09d819dd750941a1e29fc0f36a5f2d68}\label{structbr__md5sha1__context_a09d819dd750941a1e29fc0f36a5f2d68}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$ \hyperlink{structbr__md5sha1__context_a09d819dd750941a1e29fc0f36a5f2d68}{vtable}
+\begin{DoxyCompactList}\small\item\em Pointer to vtable for this context. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__md5sha1__context_a82aabfae452d2fad39629cc767e0f2b6}\label{structbr__md5sha1__context_a82aabfae452d2fad39629cc767e0f2b6}} 
+unsigned char {\bfseries buf} \mbox{[}64\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__md5sha1__context_a35304751176ec6b87cc20a8849a735fa}\label{structbr__md5sha1__context_a35304751176ec6b87cc20a8849a735fa}} 
+uint64\+\_\+t {\bfseries count}
+\item 
+\mbox{\Hypertarget{structbr__md5sha1__context_a8ce87fb0ac9631a315580ad7e1770634}\label{structbr__md5sha1__context_a8ce87fb0ac9631a315580ad7e1770634}} 
+uint32\+\_\+t {\bfseries val\+\_\+md5} \mbox{[}4\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__md5sha1__context_a8be38f3582f7159952267b7063056984}\label{structbr__md5sha1__context_a8be38f3582f7159952267b7063056984}} 
+uint32\+\_\+t {\bfseries val\+\_\+sha1} \mbox{[}5\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+M\+D5+\+S\+H\+A-\/1 context. 
+
+First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__hash_8h}{bearssl\+\_\+hash.\+h}\end{DoxyCompactItemize}

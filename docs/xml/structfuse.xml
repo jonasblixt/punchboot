@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structfuse" kind="struct" language="C++" prot="public">
+    <compoundname>fuse</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structfuse_1ad242b99d53c8225d2af697f681c7ee15" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t fuse::bank</definition>
+        <argsstring></argsstring>
+        <name>bank</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/fuse.h" line="28" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfuse_1a8b24717adb9c006992cc8faec275d449" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t fuse::word</definition>
+        <argsstring></argsstring>
+        <name>word</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/fuse.h" line="29" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfuse_1a7eba052d76a6c3b8e9a61a7b8a723249" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t fuse::shadow</definition>
+        <argsstring></argsstring>
+        <name>shadow</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/fuse.h" line="30" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfuse_1a6915d0773b606b1ddf03bb30029288a3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t fuse::addr</definition>
+        <argsstring></argsstring>
+        <name>addr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/fuse.h" line="31" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfuse_1a9db2f4d2a8b6961492e78836fb22a07d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>volatile uint32_t fuse::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/fuse.h" line="32" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfuse_1a16eb2f78c923ff2dcf6f815f9a8c69ce" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t fuse::default_value</definition>
+        <argsstring></argsstring>
+        <name>default_value</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/fuse.h" line="33" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfuse_1af74bba2e296898d01fb1bb7a52964e37" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t fuse::status</definition>
+        <argsstring></argsstring>
+        <name>status</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/fuse.h" line="34" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfuse_1a0bddd65ed058fc0ab82bcfeb0e8b9a29" prot="public" static="no" mutable="no">
+        <type>const char</type>
+        <definition>const char fuse::description[20]</definition>
+        <argsstring>[20]</argsstring>
+        <name>description</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/fuse.h" line="35" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/fuse.h" line="27" column="1" bodyfile="/docs/include/pb/fuse.h" bodystart="26" bodyend="36"/>
+    <listofallmembers>
+      <member refid="structfuse_1a6915d0773b606b1ddf03bb30029288a3" prot="public" virt="non-virtual"><scope>fuse</scope><name>addr</name></member>
+      <member refid="structfuse_1ad242b99d53c8225d2af697f681c7ee15" prot="public" virt="non-virtual"><scope>fuse</scope><name>bank</name></member>
+      <member refid="structfuse_1a16eb2f78c923ff2dcf6f815f9a8c69ce" prot="public" virt="non-virtual"><scope>fuse</scope><name>default_value</name></member>
+      <member refid="structfuse_1a0bddd65ed058fc0ab82bcfeb0e8b9a29" prot="public" virt="non-virtual"><scope>fuse</scope><name>description</name></member>
+      <member refid="structfuse_1a7eba052d76a6c3b8e9a61a7b8a723249" prot="public" virt="non-virtual"><scope>fuse</scope><name>shadow</name></member>
+      <member refid="structfuse_1af74bba2e296898d01fb1bb7a52964e37" prot="public" virt="non-virtual"><scope>fuse</scope><name>status</name></member>
+      <member refid="structfuse_1a9db2f4d2a8b6961492e78836fb22a07d" prot="public" virt="non-virtual"><scope>fuse</scope><name>value</name></member>
+      <member refid="structfuse_1a8b24717adb9c006992cc8faec275d449" prot="public" virt="non-virtual"><scope>fuse</scope><name>word</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

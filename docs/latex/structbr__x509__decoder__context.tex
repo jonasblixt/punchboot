@@ -1,0 +1,93 @@
+\hypertarget{structbr__x509__decoder__context}{}\section{br\+\_\+x509\+\_\+decoder\+\_\+context Struct Reference}
+\label{structbr__x509__decoder__context}\index{br\+\_\+x509\+\_\+decoder\+\_\+context@{br\+\_\+x509\+\_\+decoder\+\_\+context}}
+
+
+X.\+509 decoder context.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+x509.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_a3e24f8a8aeac3e8dd5321f37cd86f96a}\label{structbr__x509__decoder__context_a3e24f8a8aeac3e8dd5321f37cd86f96a}} 
+\hyperlink{structbr__x509__pkey}{br\+\_\+x509\+\_\+pkey} {\bfseries pkey}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_a2e037fec7266eaf531f4ee51d85f48da}\label{structbr__x509__decoder__context_a2e037fec7266eaf531f4ee51d85f48da}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+struct \{\\
+\>uint32\_t $\ast$ {\bfseries dp}\\
+\>uint32\_t $\ast$ {\bfseries rp}\\
+\>const unsigned char $\ast$ {\bfseries ip}\\
+\} {\bfseries cpu}\\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_aeffa92e73986a7666aa9eba76b318b0f}\label{structbr__x509__decoder__context_aeffa92e73986a7666aa9eba76b318b0f}} 
+uint32\+\_\+t {\bfseries dp\+\_\+stack} \mbox{[}32\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_a0aaf540234c710357eb2c03635e37a83}\label{structbr__x509__decoder__context_a0aaf540234c710357eb2c03635e37a83}} 
+uint32\+\_\+t {\bfseries rp\+\_\+stack} \mbox{[}32\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_a0e1f2d8f6c0d8d4a1fe912444887ff61}\label{structbr__x509__decoder__context_a0e1f2d8f6c0d8d4a1fe912444887ff61}} 
+int {\bfseries err}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_a2c92d7be139030dae492e577d7a05521}\label{structbr__x509__decoder__context_a2c92d7be139030dae492e577d7a05521}} 
+unsigned char {\bfseries pad} \mbox{[}256\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_a3f37429e4a2b5bd9f121fc67899ce8ac}\label{structbr__x509__decoder__context_a3f37429e4a2b5bd9f121fc67899ce8ac}} 
+unsigned char {\bfseries decoded}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_aff9fe4dea250194d22e14c1fd6cf2be0}\label{structbr__x509__decoder__context_aff9fe4dea250194d22e14c1fd6cf2be0}} 
+uint32\+\_\+t {\bfseries notbefore\+\_\+days}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_af0fe11bfe78af5362f3ead5a4141d2a7}\label{structbr__x509__decoder__context_af0fe11bfe78af5362f3ead5a4141d2a7}} 
+uint32\+\_\+t {\bfseries notbefore\+\_\+seconds}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_ae58d3e5d2d799d6d4cca1868b5cbeaf4}\label{structbr__x509__decoder__context_ae58d3e5d2d799d6d4cca1868b5cbeaf4}} 
+uint32\+\_\+t {\bfseries notafter\+\_\+days}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_acf956a4bbd8ecf6a4b58593eda0b825e}\label{structbr__x509__decoder__context_acf956a4bbd8ecf6a4b58593eda0b825e}} 
+uint32\+\_\+t {\bfseries notafter\+\_\+seconds}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_ae3ca73c303e558e9b83e2a2e352f0ff7}\label{structbr__x509__decoder__context_ae3ca73c303e558e9b83e2a2e352f0ff7}} 
+unsigned char {\bfseries is\+CA}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_a34feeaaf55a31cc603154c199daeb322}\label{structbr__x509__decoder__context_a34feeaaf55a31cc603154c199daeb322}} 
+unsigned char {\bfseries copy\+\_\+dn}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_a0d469609fb95360702fde088d0599347}\label{structbr__x509__decoder__context_a0d469609fb95360702fde088d0599347}} 
+void $\ast$ {\bfseries append\+\_\+dn\+\_\+ctx}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_ace3c38671e7b31941a2e3058a46eae8f}\label{structbr__x509__decoder__context_ace3c38671e7b31941a2e3058a46eae8f}} 
+void($\ast$ {\bfseries append\+\_\+dn} )(void $\ast$ctx, const void $\ast$buf, size\+\_\+t len)
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_aa5b3cf692a211c94291f849994c6242e}\label{structbr__x509__decoder__context_aa5b3cf692a211c94291f849994c6242e}} 
+const unsigned char $\ast$ {\bfseries hbuf}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_addc9e6d099d84efef3ba34f1f4aead14}\label{structbr__x509__decoder__context_addc9e6d099d84efef3ba34f1f4aead14}} 
+size\+\_\+t {\bfseries hlen}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_ad1e7cc7d1a4c9f6d91ade443d6de88ca}\label{structbr__x509__decoder__context_ad1e7cc7d1a4c9f6d91ade443d6de88ca}} 
+unsigned char {\bfseries pkey\+\_\+data} \mbox{[}B\+R\+\_\+\+X509\+\_\+\+B\+U\+F\+S\+I\+Z\+E\+\_\+\+K\+EY\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_af7c0ecac6f3900d8b1a0b582e3688724}\label{structbr__x509__decoder__context_af7c0ecac6f3900d8b1a0b582e3688724}} 
+unsigned char {\bfseries signer\+\_\+key\+\_\+type}
+\item 
+\mbox{\Hypertarget{structbr__x509__decoder__context_aa4484875be7f6cf83e8ddc236051d7ff}\label{structbr__x509__decoder__context_aa4484875be7f6cf83e8ddc236051d7ff}} 
+unsigned char {\bfseries signer\+\_\+hash\+\_\+id}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+X.\+509 decoder context. 
+
+This structure is {\itshape not} for X.\+509 validation, but for extracting names and public keys from encoded certificates. Intended usage is to use (self-\/signed) certificates as trust anchors.
+
+Contents are opaque and shall not be accessed directly. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__x509_8h}{bearssl\+\_\+x509.\+h}\end{DoxyCompactItemize}

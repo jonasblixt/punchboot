@@ -1,0 +1,1058 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="wire_8h" kind="file" language="C++">
+    <compoundname>wire.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="stdbool_8h" local="no">stdbool.h</includes>
+    <includes refid="stddef_8h" local="no">stddef.h</includes>
+    <includes refid="error_8h" local="no">pb-tools/error.h</includes>
+    <includedby refid="image_8h" local="no">/docs/include/pb/image.h</includedby>
+    <includedby refid="plat_8h" local="no">/docs/include/pb/plat.h</includedby>
+    <incdepgraph>
+      <node id="52">
+        <label>/docs/include/pb-tools/wire.h</label>
+        <link refid="wire_8h"/>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="56">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="57" relation="include">
+        </childnode>
+      </node>
+      <node id="54">
+        <label>stdint_.h</label>
+      </node>
+      <node id="58">
+        <label>pb-tools/error.h</label>
+        <link refid="error_8h_source"/>
+        <childnode refid="53" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>stddef_.h</label>
+      </node>
+      <node id="55">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="53">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="54" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="59">
+        <label>/docs/include/pb-tools/wire.h</label>
+        <link refid="wire_8h"/>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+      </node>
+      <node id="62">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="60">
+        <label>/docs/include/pb/image.h</label>
+        <link refid="image_8h_source"/>
+        <childnode refid="61" relation="include">
+        </childnode>
+      </node>
+      <node id="61">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="62" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structpb__command" prot="public">pb_command</innerclass>
+    <innerclass refid="structpb__result" prot="public">pb_result</innerclass>
+    <innerclass refid="structpb__result__device__caps" prot="public">pb_result_device_caps</innerclass>
+    <innerclass refid="structpb__result__part__table__read" prot="public">pb_result_part_table_read</innerclass>
+    <innerclass refid="structpb__result__part__table__entry" prot="public">pb_result_part_table_entry</innerclass>
+    <innerclass refid="structpb__command__stream__initialize" prot="public">pb_command_stream_initialize</innerclass>
+    <innerclass refid="structpb__command__stream__prepare__buffer" prot="public">pb_command_stream_prepare_buffer</innerclass>
+    <innerclass refid="structpb__command__stream__write__buffer" prot="public">pb_command_stream_write_buffer</innerclass>
+    <innerclass refid="structpb__command__stream__read__buffer" prot="public">pb_command_stream_read_buffer</innerclass>
+    <innerclass refid="structpb__command__authenticate" prot="public">pb_command_authenticate</innerclass>
+    <innerclass refid="structpb__command__verify__part" prot="public">pb_command_verify_part</innerclass>
+    <innerclass refid="structpb__command__activate__part" prot="public">pb_command_activate_part</innerclass>
+    <innerclass refid="structpb__command__read__bpak" prot="public">pb_command_read_bpak</innerclass>
+    <innerclass refid="structpb__command__erase__part" prot="public">pb_command_erase_part</innerclass>
+    <innerclass refid="structpb__result__device__identifier" prot="public">pb_result_device_identifier</innerclass>
+    <innerclass refid="structpb__result__slc" prot="public">pb_result_slc</innerclass>
+    <innerclass refid="structpb__result__slc__key__status" prot="public">pb_result_slc_key_status</innerclass>
+    <innerclass refid="structpb__command__revoke__key" prot="public">pb_command_revoke_key</innerclass>
+    <innerclass refid="structpb__command__boot__part" prot="public">pb_command_boot_part</innerclass>
+    <innerclass refid="structpb__command__ram__boot" prot="public">pb_command_ram_boot</innerclass>
+    <innerclass refid="structpb__command__board" prot="public">pb_command_board</innerclass>
+    <innerclass refid="structpb__result__board" prot="public">pb_result_board</innerclass>
+    <innerclass refid="structpb__result__board__status" prot="public">pb_result_board_status</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="wire_8h_1ad0dd99e9f0f8e9e48030fb5d47d94188" prot="public" static="no">
+        <name>PB_WIRE_MAGIC</name>
+        <initializer>0x50424c30   /* PBL0 */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Magic number present in all the command and result headers. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="45" column="9" bodyfile="/docs/include/pb-tools/wire.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="wire_8h_1ab4a82f18920c6584ecf0a2d918d803e0" prot="public" static="no">
+        <name>PB_COMMAND_REQUEST_MAX_SIZE</name>
+        <initializer>504</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maximum number of bytes that can be embedded in a command request </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="46" column="9" bodyfile="/docs/include/pb-tools/wire.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="wire_8h_1a2e780e3a8957b04e0dd4bc78cd595551" prot="public" static="no">
+        <name>PB_RESULT_RESPONSE_MAX_SIZE</name>
+        <initializer>504</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maximum number of bytes that can be embedded in a response result </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="47" column="9" bodyfile="/docs/include/pb-tools/wire.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="wire_8h_1a5d52f351dcb56ca6a8d1f3d400d1ec80" prot="public" static="no">
+        <name>PB_WIRE_PART_FLAG_BOOTABLE</name>
+        <initializer>(1 &lt;&lt; 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The partition is bootable </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="173" column="9" bodyfile="/docs/include/pb-tools/wire.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="wire_8h_1a852014a2a7e6c2ee3ac9e539e813d69f" prot="public" static="no">
+        <name>PB_WIRE_PART_FLAG_OTP</name>
+        <initializer>(1 &lt;&lt; 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The partition can only be written once </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="174" column="9" bodyfile="/docs/include/pb-tools/wire.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="wire_8h_1a47dc893b214ea68ba2fb346d98d01a8f" prot="public" static="no">
+        <name>PB_WIRE_PART_FLAG_WRITABLE</name>
+        <initializer>(1 &lt;&lt; 2)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The partition is writeable </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="175" column="9" bodyfile="/docs/include/pb-tools/wire.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="wire_8h_1a7f38a47791607976cd3c57776139712f" prot="public" static="no">
+        <name>PB_WIRE_PART_FLAG_ERASE_BEFORE_WRITE</name>
+        <initializer>(1 &lt;&lt; 3)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The partition must be erased before any write operation </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="176" column="9" bodyfile="/docs/include/pb-tools/wire.h" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="wire_8h_1a2688f91ff31893ed24fe4346ed170d86" prot="public" static="no">
+        <name>pb_auth_method</name>
+        <enumvalue id="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a2945104e4cba2f408cf5606050cd29a2" prot="public">
+          <name>PB_AUTH_INVALID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Invalid, guard </para>          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a053b385b87d5a96f4be156359c05b268" prot="public">
+          <name>PB_AUTH_ASYM_TOKEN</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Use a signature based authentication token </para>          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a4841153ec382cc57c275ac12dad2972c" prot="public">
+          <name>PB_AUTH_PASSWORD</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Use a password based authentication </para>          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The punchboot protocol support two different methods of authentication. The device may choose to implement more then one. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="55" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="54" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="enum" id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" prot="public" static="no">
+        <name>pb_commands</name>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a86b66205c2f117c68a1fd471bcddc315" prot="public">
+          <name>PB_CMD_INVALID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a2d6db1fae61958a2ef13439cdfa15937" prot="public">
+          <name>PB_CMD_DEVICE_RESET</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9ae91d58949c7d69aeec2b0055650f2072" prot="public">
+          <name>PB_CMD_DEVICE_IDENTIFIER_READ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a0176f56eab98e1d93509f9290d490b1d" prot="public">
+          <name>PB_CMD_DEVICE_READ_CAPS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a2f3053475ab61ccca5523a0b8517ce97" prot="public">
+          <name>PB_CMD_SLC_SET_CONFIGURATION</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9ab57e9dfe4401de2366b273797d5085a3" prot="public">
+          <name>PB_CMD_SLC_SET_CONFIGURATION_LOCK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a2074a232806a476c5010243cfe0c3163" prot="public">
+          <name>PB_CMD_SLC_SET_EOL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a2aa687d5222aee26fa952613840aeafd" prot="public">
+          <name>PB_CMD_SLC_REVOKE_KEY</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a1424a103db9e41a82bb04a72e666aa82" prot="public">
+          <name>PB_CMD_SLC_READ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9ab74cd26410e36d3db0f451699d7a088f" prot="public">
+          <name>PB_CMD_BOOTLOADER_VERSION_READ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a28b47762176d1865db942734c7c4cacb" prot="public">
+          <name>PB_CMD_PART_TBL_READ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a57f282a0a2139d240367df67e91b6ef0" prot="public">
+          <name>PB_CMD_PART_TBL_INSTALL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a2c3ea37047edfa14607f998bba4c0e7e" prot="public">
+          <name>PB_CMD_PART_VERIFY</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9adf506cc1932fe773d8106b56cb08c7ad" prot="public">
+          <name>PB_CMD_PART_ACTIVATE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9aad6b6a5bee10156662aecc536ca1a02f" prot="public">
+          <name>PB_CMD_PART_BPAK_READ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a995afa5b165ebfdee2a79427696a3713" prot="public">
+          <name>PB_CMD_PART_ERASE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a97cd61357673ba74f0935f78408323d4" prot="public">
+          <name>PB_CMD_AUTHENTICATE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9acdd6e1e6cc2204ca5ee57c00a416af92" prot="public">
+          <name>PB_CMD_AUTH_SET_OTP_PASSWORD</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a3451e33d36b6739d2c8139bc9a41dd64" prot="public">
+          <name>PB_CMD_STREAM_INITIALIZE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a698876be8b5ee74e1410c90fccbc6e47" prot="public">
+          <name>PB_CMD_STREAM_PREPARE_BUFFER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a65fabccf2d8f18e534b52aa7aabadc34" prot="public">
+          <name>PB_CMD_STREAM_WRITE_BUFFER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a54abbf2031a899c008274649fd4e15a9" prot="public">
+          <name>PB_CMD_STREAM_FINALIZE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a6c591b9c26d87374e352421f3b7ef75e" prot="public">
+          <name>PB_CMD_BOOT_PART</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9ab8654346b06aeccaa31167f7d7adef6b" prot="public">
+          <name>PB_CMD_BOOT_RAM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a5efe105856dde8bc5b96444ce0f63339" prot="public">
+          <name>PB_CMD_BOARD_COMMAND</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9aa35ffbdafb1bf05a5303db64faa35700" prot="public">
+          <name>PB_CMD_BOARD_STATUS_READ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a143dc1ac7d2242b82cefc9cafd9bd59e" prot="public">
+          <name>PB_CMD_STREAM_READ_BUFFER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a48a06c09311bc669668acee91c3cb4f9a9dd584b91320b793f4d89de832488191" prot="public">
+          <name>PB_CMD_END</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Punchboot commands </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="65" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="64" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="enum" id="wire_8h_1a7a4e0c3aa6fa52b688953c4b4057b96e" prot="public" static="no">
+        <name>pb_slc</name>
+        <enumvalue id="wire_8h_1a7a4e0c3aa6fa52b688953c4b4057b96ea23a94ddeec2a4085964ed5995165b629" prot="public">
+          <name>PB_SLC_INVALID</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a7a4e0c3aa6fa52b688953c4b4057b96ea517582423cbfd786ca376876df0c5031" prot="public">
+          <name>PB_SLC_NOT_CONFIGURED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a7a4e0c3aa6fa52b688953c4b4057b96ea7fe6bdda44b26924972969d561eea343" prot="public">
+          <name>PB_SLC_CONFIGURATION</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a7a4e0c3aa6fa52b688953c4b4057b96eac3eeab63409ec358d362c9934ba7b734" prot="public">
+          <name>PB_SLC_CONFIGURATION_LOCKED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="wire_8h_1a7a4e0c3aa6fa52b688953c4b4057b96ea6ddf448c57370b0e808de63fc609a8cb" prot="public">
+          <name>PB_SLC_EOL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="98" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="97" bodyend="104"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="wire_8h_1a4369971e2219cd9dac7db28e74cdc0a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_wire_init_command</definition>
+        <argsstring>(struct pb_command *command, enum pb_commands command_code)</argsstring>
+        <name>pb_wire_init_command</name>
+        <param>
+          <type>struct <ref refid="structpb__command" kindref="compound">pb_command</ref> *</type>
+          <declname>command</declname>
+        </param>
+        <param>
+          <type>enum <ref refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" kindref="member">pb_commands</ref></type>
+          <declname>command_code</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Initializes and resets a command structure. The magic value is populated and the command code is set.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">command</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a command structure </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">command_code</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The actual command code</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>PB_RESULT_OK on success or a negative number on errors </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="397" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="wire_8h_1a33c4521f8c8c71fe6cde4e6f50a337ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_wire_init_command2</definition>
+        <argsstring>(struct pb_command *command, enum pb_commands command_code, void *data, size_t size)</argsstring>
+        <name>pb_wire_init_command2</name>
+        <param>
+          <type>struct <ref refid="structpb__command" kindref="compound">pb_command</ref> *</type>
+          <declname>command</declname>
+        </param>
+        <param>
+          <type>enum <ref refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" kindref="member">pb_commands</ref></type>
+          <declname>command_code</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Initializes and resets a command structure. The magic value is populated, the command code is set and the request array is populated with data.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">command</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a command structure </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">command_code</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The actual command code </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to data that will be stored in the request array </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bytes of data</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>PB_RESULT_OK on success or a negative number on errors </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="411" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="wire_8h_1ab09c94a5a8730b827bba18036a5889be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_wire_init_result</definition>
+        <argsstring>(struct pb_result *result, enum pb_results result_code)</argsstring>
+        <name>pb_wire_init_result</name>
+        <param>
+          <type>struct <ref refid="structpb__result" kindref="compound">pb_result</ref> *</type>
+          <declname>result</declname>
+        </param>
+        <param>
+          <type>enum pb_results</type>
+          <declname>result_code</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Initializes and resets a result structure. The magic value is populated and the result code is set.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">result</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to a <ref refid="structpb__result" kindref="compound">pb_result</ref> structure </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">result_code</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The result code</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>PB_RESULT_OK on success or a negative number on errors </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="426" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="wire_8h_1ad9d67cc202eb40ff33217ee960a9fd58" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_wire_init_result2</definition>
+        <argsstring>(struct pb_result *result, enum pb_results result_code, void *data, size_t size)</argsstring>
+        <name>pb_wire_init_result2</name>
+        <param>
+          <type>struct <ref refid="structpb__result" kindref="compound">pb_result</ref> *</type>
+          <declname>result</declname>
+        </param>
+        <param>
+          <type>enum pb_results</type>
+          <declname>result_code</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Initializes and resets a result structure. The magic value is populated and the result code is set.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">result</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to a <ref refid="structpb__result" kindref="compound">pb_result</ref> structure </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">result_code</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The result code </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to data that will be stored in the response array </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the data</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>PB_RESULT_OK on success or a negative number on errors </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="441" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="wire_8h_1acba9f70ade176178b07dc443585d2196" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool pb_wire_valid_command</definition>
+        <argsstring>(struct pb_command *command)</argsstring>
+        <name>pb_wire_valid_command</name>
+        <param>
+          <type>struct <ref refid="structpb__command" kindref="compound">pb_command</ref> *</type>
+          <declname>command</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Checks that a command is valid and contains the correct magic number</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">command</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The command to check</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True on if the command is valid or false if not </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="452" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="wire_8h_1a44f1e2b5110c2e5cdc40fb8dd306caff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool pb_wire_valid_result</definition>
+        <argsstring>(struct pb_result *result)</argsstring>
+        <name>pb_wire_valid_result</name>
+        <param>
+          <type>struct <ref refid="structpb__result" kindref="compound">pb_result</ref> *</type>
+          <declname>result</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Checks that a result is valid and contains the correct magic number</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">result</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The result to check</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True on if the result is valid or false if not </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="461" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="wire_8h_1af7a12ffc1efcde0b83d42c130983f97f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool pb_wire_requires_auth</definition>
+        <argsstring>(struct pb_command *command)</argsstring>
+        <name>pb_wire_requires_auth</name>
+        <param>
+          <type>struct <ref refid="structpb__command" kindref="compound">pb_command</ref> *</type>
+          <declname>command</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Checks if a command requires the user to authenticate before issuing the command.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">command</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The command to check</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True if the command requires an authenticated session </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="471" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="wire_8h_1aaaa3fb4c4d6836e4bdc89cff634583c1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* pb_wire_command_string</definition>
+        <argsstring>(enum pb_commands cmd)</argsstring>
+        <name>pb_wire_command_string</name>
+        <param>
+          <type>enum <ref refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" kindref="member">pb_commands</ref></type>
+          <declname>cmd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Translates a punchboot command to a textual representation</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">cmd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The command</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>a string or &quot;&quot; </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="480" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="wire_8h_1adf6d386f587a9c11d3238e94c206faaa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* pb_wire_slc_string</definition>
+        <argsstring>(enum pb_slc slc)</argsstring>
+        <name>pb_wire_slc_string</name>
+        <param>
+          <type>enum pb_slc</type>
+          <declname>slc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Translates a punchboot security life cycle value to a string</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">slc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>SLC value</para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>a string or &quot;&quot; </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="489" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Punch BOOT</para><para>Copyright (C) 2020 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause</para><para>This file contains the &apos;wire&apos; format for the punchboot bootloader. The various structs and defines are used for sending data between host and device.</para><para>Generally a struct <ref refid="structpb__command" kindref="compound">pb_command</ref> is sent from the host and the device is expected to respond with a struct <ref refid="structpb__result" kindref="compound">pb_result</ref>.</para><para>Additional read/writes are optional but must always be terminated by sending a struct <ref refid="structpb__result" kindref="compound">pb_result</ref></para><para>The <ref refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" kindref="member">pb_commands</ref> enum encodes all of the available commands. </para>    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="25"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_WIRE_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_WIRE_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdbool.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stddef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb-tools/error.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="wire_8h_1ad0dd99e9f0f8e9e48030fb5d47d94188" refkind="member"><highlight class="preprocessor">#define<sp/>PB_WIRE_MAGIC<sp/>0x50424c30<sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>PBL0<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="wire_8h_1ab4a82f18920c6584ecf0a2d918d803e0" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_COMMAND_REQUEST_MAX_SIZE<sp/>504</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="wire_8h_1a2e780e3a8957b04e0dd4bc78cd595551" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_RESULT_RESPONSE_MAX_SIZE<sp/>504</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="wire_8h_1a2688f91ff31893ed24fe4346ed170d86" refkind="member"><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1a2688f91ff31893ed24fe4346ed170d86" kindref="member">pb_auth_method</ref></highlight></codeline>
+<codeline lineno="55"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56" refid="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a2945104e4cba2f408cf5606050cd29a2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a2945104e4cba2f408cf5606050cd29a2" kindref="member">PB_AUTH_INVALID</ref>,<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="57" refid="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a053b385b87d5a96f4be156359c05b268" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a053b385b87d5a96f4be156359c05b268" kindref="member">PB_AUTH_ASYM_TOKEN</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="58" refid="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a4841153ec382cc57c275ac12dad2972c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="wire_8h_1a2688f91ff31893ed24fe4346ed170d86a4841153ec382cc57c275ac12dad2972c" kindref="member">PB_AUTH_PASSWORD</ref>,<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="59"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" refkind="member"><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" kindref="member">pb_commands</ref></highlight></codeline>
+<codeline lineno="65"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_INVALID,</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_DEVICE_RESET,</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_DEVICE_IDENTIFIER_READ,</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_DEVICE_READ_CAPS,</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_SLC_SET_CONFIGURATION,</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_SLC_SET_CONFIGURATION_LOCK,</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_SLC_SET_EOL,</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_SLC_REVOKE_KEY,</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_SLC_READ,</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_BOOTLOADER_VERSION_READ,</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_PART_TBL_READ,</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_PART_TBL_INSTALL,</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_PART_VERIFY,</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_PART_ACTIVATE,</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_PART_BPAK_READ,</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_PART_ERASE,</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_AUTHENTICATE,</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_AUTH_SET_OTP_PASSWORD,</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_STREAM_INITIALIZE,</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_STREAM_PREPARE_BUFFER,</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_STREAM_WRITE_BUFFER,</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_STREAM_FINALIZE,</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_BOOT_PART,</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_BOOT_RAM,</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_BOARD_COMMAND,</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_BOARD_STATUS_READ,</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_STREAM_READ_BUFFER,</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CMD_END,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Sentinel,<sp/>must<sp/>be<sp/>the<sp/>last<sp/>entry<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>pb_slc</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_SLC_INVALID,</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_SLC_NOT_CONFIGURED,</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_SLC_CONFIGURATION,</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_SLC_CONFIGURATION_LOCKED,</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_SLC_EOL,</highlight></codeline>
+<codeline lineno="104"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111" refid="structpb__command" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command" kindref="compound">pb_command</ref></highlight></codeline>
+<codeline lineno="112"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="113" refid="structpb__command_1a30bf4a04fc414f789f9c9bb6eb3170c3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command_1a30bf4a04fc414f789f9c9bb6eb3170c3" kindref="member">magic</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="115" refid="structpb__command_1ac3e1f16f1bfe6daec419cf9ec1b51b1e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1ac3e1f16f1bfe6daec419cf9ec1b51b1e" kindref="member">command</ref>;<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="116" refid="structpb__command_1abaf981ef1685501792ec2510789d0269" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[3];<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>request[<ref refid="wire_8h_1ab4a82f18920c6584ecf0a2d918d803e0" kindref="member">PB_COMMAND_REQUEST_MAX_SIZE</ref>];<sp/></highlight><highlight class="comment">/*&lt;!<sp/>Optional<sp/>request<sp/>data<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125" refid="structpb__result" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result" kindref="compound">pb_result</ref></highlight></codeline>
+<codeline lineno="126"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="127" refid="structpb__result_1abf4b5c5730a4fc7ac3fdb1ed70a412f1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__result_1abf4b5c5730a4fc7ac3fdb1ed70a412f1" kindref="member">magic</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="128" refid="structpb__result_1aae39409d9cd1da2a390d2666e1f35450" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>int8_t<sp/><ref refid="structpb__result_1aae39409d9cd1da2a390d2666e1f35450" kindref="member">result_code</ref>;<sp/></highlight></codeline>
+<codeline lineno="129" refid="structpb__result_1a7ae704b210b447ff4c3f647158d3e4a4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[3];<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="130" refid="structpb__result_1adc7cc4fe0149d564e39733ffeb96bfe7" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>response[<ref refid="wire_8h_1a2e780e3a8957b04e0dd4bc78cd595551" kindref="member">PB_RESULT_RESPONSE_MAX_SIZE</ref>];<sp/></highlight></codeline>
+<codeline lineno="131"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136" refid="structpb__result__device__caps" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result__device__caps" kindref="compound">pb_result_device_caps</ref></highlight></codeline>
+<codeline lineno="137"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="138" refid="structpb__result__device__caps_1a7b145b0eb656bf957da9ec7adfd91060" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__result__device__caps_1a7b145b0eb656bf957da9ec7adfd91060" kindref="member">stream_no_of_buffers</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="139" refid="structpb__result__device__caps_1a95fc165d071ed1df657e80117e1ab902" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__result__device__caps_1a95fc165d071ed1df657e80117e1ab902" kindref="member">stream_buffer_size</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="140" refid="structpb__result__device__caps_1a8b2405618a75944f28959f0e1df7b747" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structpb__result__device__caps_1a8b2405618a75944f28959f0e1df7b747" kindref="member">operation_timeout_ms</ref>;<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="141" refid="structpb__result__device__caps_1aad094d645f05d1f8ed740b766d68e6fd" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structpb__result__device__caps_1aad094d645f05d1f8ed740b766d68e6fd" kindref="member">part_erase_timeout_ms</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="142" refid="structpb__result__device__caps_1ab9de81caa8fccde91cd7ff1e4b14091f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__result__device__caps_1ab9de81caa8fccde91cd7ff1e4b14091f" kindref="member">bpak_stream_support</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="145" refid="structpb__result__device__caps_1a10af479a333360bf63b8bc5fccbcc130" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__result__device__caps_1a10af479a333360bf63b8bc5fccbcc130" kindref="member">chunk_transfer_max_bytes</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="147" refid="structpb__result__device__caps_1aa677655f643620dbe12b5b1f5e99455a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[18];<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="148"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153" refid="structpb__result__part__table__read" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result__part__table__read" kindref="compound">pb_result_part_table_read</ref></highlight></codeline>
+<codeline lineno="154"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="155" refid="structpb__result__part__table__read_1af50385764b2d502f364aec8269afe942" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__result__part__table__read_1af50385764b2d502f364aec8269afe942" kindref="member">no_of_entries</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="156" refid="structpb__result__part__table__read_1a26d2d375f1f46f3f91476cf0740b33e4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[31];<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="157"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="wire_8h_1a5d52f351dcb56ca6a8d1f3d400d1ec80" refkind="member"><highlight class="preprocessor">#define<sp/>PB_WIRE_PART_FLAG_BOOTABLE<sp/>(1<sp/>&lt;&lt;<sp/>0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174" refid="wire_8h_1a852014a2a7e6c2ee3ac9e539e813d69f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_WIRE_PART_FLAG_OTP<sp/><sp/><sp/><sp/><sp/><sp/>(1<sp/>&lt;&lt;<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="175" refid="wire_8h_1a47dc893b214ea68ba2fb346d98d01a8f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_WIRE_PART_FLAG_WRITABLE<sp/>(1<sp/>&lt;&lt;<sp/>2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="176" refid="wire_8h_1a7f38a47791607976cd3c57776139712f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_WIRE_PART_FLAG_ERASE_BEFORE_WRITE<sp/>(1<sp/>&lt;&lt;<sp/>3)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178" refid="structpb__result__part__table__entry" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result__part__table__entry" kindref="compound">pb_result_part_table_entry</ref></highlight></codeline>
+<codeline lineno="179"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="180" refid="structpb__result__part__table__entry_1ab2c25d3e918316995cb10bf8c5b6e570" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structuuid" kindref="compound">uuid</ref>[16];<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="181" refid="structpb__result__part__table__entry_1ad674bff063ae41707537251879271f1d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>description[37];<sp/></highlight></codeline>
+<codeline lineno="182" refid="structpb__result__part__table__entry_1a06fa60ef2575572355df4a99b8fa8021" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/><ref refid="structpb__result__part__table__entry_1a06fa60ef2575572355df4a99b8fa8021" kindref="member">first_block</ref>;<sp/></highlight></codeline>
+<codeline lineno="183" refid="structpb__result__part__table__entry_1ae2138f883104b134fc86aef6e86c65a3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/><ref refid="structpb__result__part__table__entry_1ae2138f883104b134fc86aef6e86c65a3" kindref="member">last_block</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="184" refid="structpb__result__part__table__entry_1a3aea21a1faaee753154a66e1d76950b2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structpb__result__part__table__entry_1a3aea21a1faaee753154a66e1d76950b2" kindref="member">block_size</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="185" refid="structpb__result__part__table__entry_1a98380186209b742310605b9399da4a25" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__result__part__table__entry_1a98380186209b742310605b9399da4a25" kindref="member">flags</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="186" refid="structpb__result__part__table__entry_1a29434ef5700b5218b552b4589f9eeb84" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[56];<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="187"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194" refid="structpb__command__stream__initialize" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__stream__initialize" kindref="compound">pb_command_stream_initialize</ref></highlight></codeline>
+<codeline lineno="195"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="196" refid="structpb__command__stream__initialize_1acc1cf9e777fa1386bd9f2765667c9c76" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>part_uuid[16];<sp/></highlight></codeline>
+<codeline lineno="197" refid="structpb__command__stream__initialize_1a13e6043226d71fae7bc08081a4917074" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[16];<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="198"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206" refid="structpb__command__stream__prepare__buffer" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__stream__prepare__buffer" kindref="compound">pb_command_stream_prepare_buffer</ref></highlight></codeline>
+<codeline lineno="207"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="208" refid="structpb__command__stream__prepare__buffer_1a64c7d97b8194cf69b5aea6a2634e5427" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__stream__prepare__buffer_1a64c7d97b8194cf69b5aea6a2634e5427" kindref="member">size</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="209" refid="structpb__command__stream__prepare__buffer_1a180f6db3eab9cdc5e928f2a7a80e4101" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command__stream__prepare__buffer_1a180f6db3eab9cdc5e928f2a7a80e4101" kindref="member">id</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="210" refid="structpb__command__stream__prepare__buffer_1a368af527cd426e6841c1b62353eb22b9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[27];<sp/></highlight></codeline>
+<codeline lineno="211"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight></codeline>
+<codeline lineno="216" refid="structpb__command__stream__write__buffer" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__stream__write__buffer" kindref="compound">pb_command_stream_write_buffer</ref></highlight></codeline>
+<codeline lineno="217"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="218" refid="structpb__command__stream__write__buffer_1acb91696c62fe1c32809a8f6480098f09" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__stream__write__buffer_1acb91696c62fe1c32809a8f6480098f09" kindref="member">size</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="219" refid="structpb__command__stream__write__buffer_1ae9e39d7400d9e4115bac8dac48c6e8ad" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/><ref refid="structpb__command__stream__write__buffer_1ae9e39d7400d9e4115bac8dac48c6e8ad" kindref="member">offset</ref>;<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="220" refid="structpb__command__stream__write__buffer_1a6dd25bf25a7d43a4caa4e19027fb9592" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command__stream__write__buffer_1a6dd25bf25a7d43a4caa4e19027fb9592" kindref="member">buffer_id</ref>;<sp/></highlight></codeline>
+<codeline lineno="221" refid="structpb__command__stream__write__buffer_1abbbd45ad43e4731565c0cb6d8e5eeed7" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[19];<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="222"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="229" refid="structpb__command__stream__read__buffer" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__stream__read__buffer" kindref="compound">pb_command_stream_read_buffer</ref></highlight></codeline>
+<codeline lineno="230"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="231" refid="structpb__command__stream__read__buffer_1a68276a1d4200270fc50e5575bc727108" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__stream__read__buffer_1a68276a1d4200270fc50e5575bc727108" kindref="member">size</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="232" refid="structpb__command__stream__read__buffer_1acc87519cac4a49e9a39785671f196eca" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/><ref refid="structpb__command__stream__read__buffer_1acc87519cac4a49e9a39785671f196eca" kindref="member">offset</ref>;<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="233" refid="structpb__command__stream__read__buffer_1a9f5fdcf5c7f015077fb2e652a881fcae" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command__stream__read__buffer_1a9f5fdcf5c7f015077fb2e652a881fcae" kindref="member">buffer_id</ref>;<sp/></highlight></codeline>
+<codeline lineno="234" refid="structpb__command__stream__read__buffer_1a5b6337bd93c4645553a7f9e5d7b3c0a6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[19];<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="235"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight></codeline>
+<codeline lineno="243" refid="structpb__command__authenticate" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__authenticate" kindref="compound">pb_command_authenticate</ref></highlight></codeline>
+<codeline lineno="244"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="245" refid="structpb__command__authenticate_1acd90b94a995d430da2a6852990f4c97e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command__authenticate_1acd90b94a995d430da2a6852990f4c97e" kindref="member">method</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="246" refid="structpb__command__authenticate_1a3d67499c136e9580c2670d4e11ebd8c3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structpb__command__authenticate_1a3d67499c136e9580c2670d4e11ebd8c3" kindref="member">size</ref>;<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="247" refid="structpb__command__authenticate_1a2a045294ae4341302bab1866546d185b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__authenticate_1a2a045294ae4341302bab1866546d185b" kindref="member">key_id</ref>;<sp/></highlight></codeline>
+<codeline lineno="248" refid="structpb__command__authenticate_1a8946e60668166aff43b462f59f168828" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[25];<sp/><sp/></highlight></codeline>
+<codeline lineno="249"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"></highlight></codeline>
+<codeline lineno="256" refid="structpb__command__verify__part" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__verify__part" kindref="compound">pb_command_verify_part</ref></highlight></codeline>
+<codeline lineno="257"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="258" refid="structpb__command__verify__part_1a6ce15232d298fe6def0fee469d767f08" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structuuid" kindref="compound">uuid</ref>[16];<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="259" refid="structpb__command__verify__part_1a7e6ae274bb8d87efdecfb3c3ad26c041" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>sha256[32];<sp/></highlight></codeline>
+<codeline lineno="260" refid="structpb__command__verify__part_1ac8ea38bcb00b9f1ff506140d69d2bdf6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__verify__part_1ac8ea38bcb00b9f1ff506140d69d2bdf6" kindref="member">size</ref>;<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="261" refid="structpb__command__verify__part_1ab86a640981402a2dcf3e90130d4da631" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command__verify__part_1ab86a640981402a2dcf3e90130d4da631" kindref="member">bpak</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="262" refid="structpb__command__verify__part_1a21d981c6e7acedfa22e5c1390c4f64b1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[2];<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="263"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"></highlight></codeline>
+<codeline lineno="269" refid="structpb__command__activate__part" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__activate__part" kindref="compound">pb_command_activate_part</ref></highlight></codeline>
+<codeline lineno="270"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="271" refid="structpb__command__activate__part_1a872a2ee6ae1edf5f06589a228776c02e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structuuid" kindref="compound">uuid</ref>[16];<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="272" refid="structpb__command__activate__part_1aa4ffcb89615bc2b29e05e5676ee10cc0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[16];<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="273"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"></highlight></codeline>
+<codeline lineno="281" refid="structpb__command__read__bpak" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__read__bpak" kindref="compound">pb_command_read_bpak</ref></highlight></codeline>
+<codeline lineno="282"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="283" refid="structpb__command__read__bpak_1a864071f41f9639da6b9bdd0634664382" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structuuid" kindref="compound">uuid</ref>[16];<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="284" refid="structpb__command__read__bpak_1aead50c13a66431b183a78ba2af349c10" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[16];<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="285"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight></codeline>
+<codeline lineno="290" refid="structpb__command__erase__part" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__erase__part" kindref="compound">pb_command_erase_part</ref></highlight></codeline>
+<codeline lineno="291"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="292" refid="structpb__command__erase__part_1ad7c0a5ecf5c2811771bccd4f6e306962" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structuuid" kindref="compound">uuid</ref>[16];<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="293" refid="structpb__command__erase__part_1a31f332f2f1f75a4dc4437bb29442b0c5" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[16];<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="294"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"></highlight></codeline>
+<codeline lineno="299" refid="structpb__result__device__identifier" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result__device__identifier" kindref="compound">pb_result_device_identifier</ref></highlight></codeline>
+<codeline lineno="300"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="301" refid="structpb__result__device__identifier_1a3d7e21087287f7ff2c4b68902cc99070" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>device_uuid[16];<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="302" refid="structpb__result__device__identifier_1a2bb6bed12674b71a651446553e365995" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>board_id[16];<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="303" refid="structpb__result__device__identifier_1a61f8df8d8daee46f197c754db1b9594e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[23];<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="304"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"></highlight></codeline>
+<codeline lineno="309" refid="structpb__result__slc" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result__slc" kindref="compound">pb_result_slc</ref></highlight></codeline>
+<codeline lineno="310"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="311" refid="structpb__result__slc_1ab784c0c613afb99d978f8d560ec72fe3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__result__slc_1ab784c0c613afb99d978f8d560ec72fe3" kindref="member">slc</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="312" refid="structpb__result__slc_1a81d33e682a6b72de829c0751b3278ee0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[31];<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="313"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"></highlight></codeline>
+<codeline lineno="318" refid="structpb__result__slc__key__status" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result__slc__key__status" kindref="compound">pb_result_slc_key_status</ref></highlight></codeline>
+<codeline lineno="319"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="320" refid="structpb__result__slc__key__status_1ac27f9285a325e804ac4ce52c06383065" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>active[16];<sp/><sp/></highlight></codeline>
+<codeline lineno="321" refid="structpb__result__slc__key__status_1ac805564d0f28d72ce1df05e57be1d7d9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>revoked[16];<sp/></highlight></codeline>
+<codeline lineno="322"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"></highlight></codeline>
+<codeline lineno="327" refid="structpb__command__revoke__key" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__revoke__key" kindref="compound">pb_command_revoke_key</ref></highlight></codeline>
+<codeline lineno="328"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="329" refid="structpb__command__revoke__key_1a6b93dba46b3fa6fbd363d1105c09311c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__revoke__key_1a6b93dba46b3fa6fbd363d1105c09311c" kindref="member">key_id</ref>;<sp/></highlight></codeline>
+<codeline lineno="330" refid="structpb__command__revoke__key_1a174e5625c57dedf14a3345e671c3f109" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[28];<sp/><sp/></highlight></codeline>
+<codeline lineno="331"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"></highlight></codeline>
+<codeline lineno="336" refid="structpb__command__boot__part" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__boot__part" kindref="compound">pb_command_boot_part</ref></highlight></codeline>
+<codeline lineno="337"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="338" refid="structpb__command__boot__part_1ad14c4b46462741aeffdf774d84e62ad9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structuuid" kindref="compound">uuid</ref>[16];<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="339" refid="structpb__command__boot__part_1abe5ac22da3fcb1fc93a8890a8e6862b4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command__boot__part_1abe5ac22da3fcb1fc93a8890a8e6862b4" kindref="member">verbose</ref>;<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="340" refid="structpb__command__boot__part_1ab2a06e190bd04a3c37c53e48bb496b7a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[15];<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="341"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"></highlight></codeline>
+<codeline lineno="348" refid="structpb__command__ram__boot" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__ram__boot" kindref="compound">pb_command_ram_boot</ref></highlight></codeline>
+<codeline lineno="349"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="350" refid="structpb__command__ram__boot_1aca6546127ee7aedc307ceaa43e5889d1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command__ram__boot_1aca6546127ee7aedc307ceaa43e5889d1" kindref="member">verbose</ref>;<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="351" refid="structpb__command__ram__boot_1a291f18dcf94b09ce46be0409353aa22f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structuuid" kindref="compound">uuid</ref>[16];<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="352" refid="structpb__command__ram__boot_1a2968fdc7715d7ce4297812605b789c4d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[15];<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="353"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"></highlight></codeline>
+<codeline lineno="361" refid="structpb__command__board" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__command__board" kindref="compound">pb_command_board</ref></highlight></codeline>
+<codeline lineno="362"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="363" refid="structpb__command__board_1a0a82ab61f71bcf4b68319d01b90a78b7" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__board_1a0a82ab61f71bcf4b68319d01b90a78b7" kindref="member">command</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="364" refid="structpb__command__board_1a748f573d48c798718123eee30d4c6708" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__board_1a748f573d48c798718123eee30d4c6708" kindref="member">request_size</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="365" refid="structpb__command__board_1a1257207ae1c927f6ad15b9d992847dba" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__command__board_1a1257207ae1c927f6ad15b9d992847dba" kindref="member">response_buffer_size</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="367" refid="structpb__command__board_1a1b4c5932c2b9ea9eb359a0a7cb59d174" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[20];<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="368"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"></highlight></codeline>
+<codeline lineno="373" refid="structpb__result__board" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result__board" kindref="compound">pb_result_board</ref></highlight></codeline>
+<codeline lineno="374"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="375" refid="structpb__result__board_1a6b0e205d20cf657ed855c17243f83c5f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__result__board_1a6b0e205d20cf657ed855c17243f83c5f" kindref="member">size</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="376" refid="structpb__result__board_1a06c24c93eca4e76349d338a8a522388e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[28];<sp/></highlight></codeline>
+<codeline lineno="377"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"></highlight></codeline>
+<codeline lineno="382" refid="structpb__result__board__status" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__result__board__status" kindref="compound">pb_result_board_status</ref></highlight></codeline>
+<codeline lineno="383"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="384" refid="structpb__result__board__status_1afcbf35c339a827ecb018c7e6f09eb0c6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structpb__result__board__status_1afcbf35c339a827ecb018c7e6f09eb0c6" kindref="member">size</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="385" refid="structpb__result__board__status_1aeb4858ab69adb045a7e35e637dfcee25" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structpb__command_1abaf981ef1685501792ec2510789d0269" kindref="member">rz</ref>[28];<sp/></highlight></codeline>
+<codeline lineno="386"><highlight class="normal">}<sp/>__attribute__((packed));</highlight></codeline>
+<codeline lineno="387"><highlight class="normal"></highlight></codeline>
+<codeline lineno="397"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1a4369971e2219cd9dac7db28e74cdc0a8" kindref="member">pb_wire_init_command</ref>(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__command" kindref="compound">pb_command</ref><sp/>*<ref refid="structpb__command_1ac3e1f16f1bfe6daec419cf9ec1b51b1e" kindref="member">command</ref>,</highlight></codeline>
+<codeline lineno="398"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" kindref="member">pb_commands</ref><sp/>command_code);</highlight></codeline>
+<codeline lineno="399"><highlight class="normal"></highlight></codeline>
+<codeline lineno="411"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1a33c4521f8c8c71fe6cde4e6f50a337ce" kindref="member">pb_wire_init_command2</ref>(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__command" kindref="compound">pb_command</ref><sp/>*<ref refid="structpb__command_1ac3e1f16f1bfe6daec419cf9ec1b51b1e" kindref="member">command</ref>,</highlight></codeline>
+<codeline lineno="412"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" kindref="member">pb_commands</ref><sp/>command_code,</highlight></codeline>
+<codeline lineno="413"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,</highlight></codeline>
+<codeline lineno="414"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="415"><highlight class="normal"></highlight></codeline>
+<codeline lineno="426"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1ab09c94a5a8730b827bba18036a5889be" kindref="member">pb_wire_init_result</ref>(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__result" kindref="compound">pb_result</ref><sp/>*result,</highlight></codeline>
+<codeline lineno="427"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>pb_results<sp/>result_code);</highlight></codeline>
+<codeline lineno="428"><highlight class="normal"></highlight></codeline>
+<codeline lineno="441"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1ad9d67cc202eb40ff33217ee960a9fd58" kindref="member">pb_wire_init_result2</ref>(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__result" kindref="compound">pb_result</ref><sp/>*result,</highlight></codeline>
+<codeline lineno="442"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>pb_results<sp/>result_code,</highlight></codeline>
+<codeline lineno="443"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,</highlight></codeline>
+<codeline lineno="444"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="452"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1acba9f70ade176178b07dc443585d2196" kindref="member">pb_wire_valid_command</ref>(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__command" kindref="compound">pb_command</ref><sp/>*<ref refid="structpb__command_1ac3e1f16f1bfe6daec419cf9ec1b51b1e" kindref="member">command</ref>);</highlight></codeline>
+<codeline lineno="453"><highlight class="normal"></highlight></codeline>
+<codeline lineno="461"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1a44f1e2b5110c2e5cdc40fb8dd306caff" kindref="member">pb_wire_valid_result</ref>(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__result" kindref="compound">pb_result</ref><sp/>*result);</highlight></codeline>
+<codeline lineno="462"><highlight class="normal"></highlight></codeline>
+<codeline lineno="471"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1af7a12ffc1efcde0b83d42c130983f97f" kindref="member">pb_wire_requires_auth</ref>(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__command" kindref="compound">pb_command</ref><sp/>*<ref refid="structpb__command_1ac3e1f16f1bfe6daec419cf9ec1b51b1e" kindref="member">command</ref>);</highlight></codeline>
+<codeline lineno="472"><highlight class="normal"></highlight></codeline>
+<codeline lineno="480"><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="wire_8h_1aaaa3fb4c4d6836e4bdc89cff634583c1" kindref="member">pb_wire_command_string</ref>(</highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="wire_8h_1a48a06c09311bc669668acee91c3cb4f9" kindref="member">pb_commands</ref><sp/>cmd);</highlight></codeline>
+<codeline lineno="481"><highlight class="normal"></highlight></codeline>
+<codeline lineno="489"><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="wire_8h_1adf6d386f587a9c11d3238e94c206faaa" kindref="member">pb_wire_slc_string</ref>(</highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>pb_slc<sp/>slc);</highlight></codeline>
+<codeline lineno="490"><highlight class="normal"></highlight></codeline>
+<codeline lineno="491"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_WIRE_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb-tools/wire.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__rsa__private__key" kind="struct" language="C++" prot="public">
+    <compoundname>br_rsa_private_key</compoundname>
+    <includes refid="bearssl__rsa_8h" local="no">bearssl_rsa.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__rsa__private__key_1a283fea483aeeab2fb03021ce54e1b5ce" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_rsa_private_key::n_bitlen</definition>
+        <argsstring></argsstring>
+        <name>n_bitlen</name>
+        <briefdescription>
+<para>Modulus bit length (in bits, exact value). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="183" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1a591f80a155fc42e1d79e8169fad15d4a" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_rsa_private_key::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <briefdescription>
+<para>First prime factor. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="185" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1ab6fd51db3cd1ca46172091640c2258aa" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_rsa_private_key::plen</definition>
+        <argsstring></argsstring>
+        <name>plen</name>
+        <briefdescription>
+<para>First prime factor length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="187" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="187" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1ac30acdf290d3dc4a686af6b03c245581" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_rsa_private_key::q</definition>
+        <argsstring></argsstring>
+        <name>q</name>
+        <briefdescription>
+<para>Second prime factor. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="189" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1aebb01978bb7b68f16669460b9f3cbcb2" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_rsa_private_key::qlen</definition>
+        <argsstring></argsstring>
+        <name>qlen</name>
+        <briefdescription>
+<para>Second prime factor length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="191" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1a1a9343cde32431aca1a7d3b2a367cf97" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_rsa_private_key::dp</definition>
+        <argsstring></argsstring>
+        <name>dp</name>
+        <briefdescription>
+<para>First reduced private exponent. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="193" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1aa1abb815bf9961340ca48f96fdd7a879" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_rsa_private_key::dplen</definition>
+        <argsstring></argsstring>
+        <name>dplen</name>
+        <briefdescription>
+<para>First reduced private exponent length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="195" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1ab236059c4f4ad886af9411b790c0d700" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_rsa_private_key::dq</definition>
+        <argsstring></argsstring>
+        <name>dq</name>
+        <briefdescription>
+<para>Second reduced private exponent. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="197" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1a2c53fb346f8b1deb36a5c448ec504dbc" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_rsa_private_key::dqlen</definition>
+        <argsstring></argsstring>
+        <name>dqlen</name>
+        <briefdescription>
+<para>Second reduced private exponent length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="199" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1aef2776053e415528d6c61ef6bfe69580" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_rsa_private_key::iq</definition>
+        <argsstring></argsstring>
+        <name>iq</name>
+        <briefdescription>
+<para>CRT coefficient. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="201" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="201" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__rsa__private__key_1aa3bcdfee6999d70f8ea1bafd2b9cec63" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_rsa_private_key::iqlen</definition>
+        <argsstring></argsstring>
+        <name>iqlen</name>
+        <briefdescription>
+<para>CRT coefficient length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rsa.h" line="203" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>RSA private key. </para>    </briefdescription>
+    <detaileddescription>
+<para>The structure references the private factors, reduced private exponents, and CRT coefficient. It also contains the bit length of the modulus. The big integers use unsigned big-endian representation; extra leading bytes of value 0 are allowed. However, the modulus bit length (<computeroutput>n_bitlen</computeroutput>) MUST be exact. </para>    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_rsa.h" line="181" column="1" bodyfile="/docs/lib/bearssl/bearssl_rsa.h" bodystart="181" bodyend="204"/>
+    <listofallmembers>
+      <member refid="structbr__rsa__private__key_1a1a9343cde32431aca1a7d3b2a367cf97" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>dp</name></member>
+      <member refid="structbr__rsa__private__key_1aa1abb815bf9961340ca48f96fdd7a879" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>dplen</name></member>
+      <member refid="structbr__rsa__private__key_1ab236059c4f4ad886af9411b790c0d700" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>dq</name></member>
+      <member refid="structbr__rsa__private__key_1a2c53fb346f8b1deb36a5c448ec504dbc" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>dqlen</name></member>
+      <member refid="structbr__rsa__private__key_1aef2776053e415528d6c61ef6bfe69580" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>iq</name></member>
+      <member refid="structbr__rsa__private__key_1aa3bcdfee6999d70f8ea1bafd2b9cec63" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>iqlen</name></member>
+      <member refid="structbr__rsa__private__key_1a283fea483aeeab2fb03021ce54e1b5ce" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>n_bitlen</name></member>
+      <member refid="structbr__rsa__private__key_1a591f80a155fc42e1d79e8169fad15d4a" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>p</name></member>
+      <member refid="structbr__rsa__private__key_1ab6fd51db3cd1ca46172091640c2258aa" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>plen</name></member>
+      <member refid="structbr__rsa__private__key_1ac30acdf290d3dc4a686af6b03c245581" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>q</name></member>
+      <member refid="structbr__rsa__private__key_1aebb01978bb7b68f16669460b9f3cbcb2" prot="public" virt="non-virtual"><scope>br_rsa_private_key</scope><name>qlen</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__activate__part" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_activate_part</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__activate__part_1a872a2ee6ae1edf5f06589a228776c02e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_activate_part::uuid[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>uuid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>UUID of partition to activate </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="271" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="271" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__activate__part_1aa4ffcb89615bc2b29e05e5676ee10cc0" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_activate_part::rz[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="272" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="272" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Activate bootable partition command </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="270" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="269" bodyend="273"/>
+    <listofallmembers>
+      <member refid="structpb__command__activate__part_1aa4ffcb89615bc2b29e05e5676ee10cc0" prot="public" virt="non-virtual"><scope>pb_command_activate_part</scope><name>rz</name></member>
+      <member refid="structpb__command__activate__part_1a872a2ee6ae1edf5f06589a228776c02e" prot="public" virt="non-virtual"><scope>pb_command_activate_part</scope><name>uuid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,76 @@
+\hypertarget{structpb__result__device__caps}{}\section{pb\+\_\+result\+\_\+device\+\_\+caps Struct Reference}
+\label{structpb__result__device__caps}\index{pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}}
+
+
+{\ttfamily \#include $<$wire.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint8\+\_\+t \hyperlink{structpb__result__device__caps_a7b145b0eb656bf957da9ec7adfd91060}{stream\+\_\+no\+\_\+of\+\_\+buffers}
+\item 
+uint32\+\_\+t \hyperlink{structpb__result__device__caps_a95fc165d071ed1df657e80117e1ab902}{stream\+\_\+buffer\+\_\+size}
+\item 
+uint16\+\_\+t \hyperlink{structpb__result__device__caps_a8b2405618a75944f28959f0e1df7b747}{operation\+\_\+timeout\+\_\+ms}
+\item 
+uint16\+\_\+t \hyperlink{structpb__result__device__caps_aad094d645f05d1f8ed740b766d68e6fd}{part\+\_\+erase\+\_\+timeout\+\_\+ms}
+\item 
+uint8\+\_\+t \hyperlink{structpb__result__device__caps_ab9de81caa8fccde91cd7ff1e4b14091f}{bpak\+\_\+stream\+\_\+support}
+\item 
+uint32\+\_\+t \hyperlink{structpb__result__device__caps_a10af479a333360bf63b8bc5fccbcc130}{chunk\+\_\+transfer\+\_\+max\+\_\+bytes}
+\item 
+uint8\+\_\+t \hyperlink{structpb__result__device__caps_aa677655f643620dbe12b5b1f5e99455a}{rz} \mbox{[}18\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Device capabilities 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structpb__result__device__caps_ab9de81caa8fccde91cd7ff1e4b14091f}\label{structpb__result__device__caps_ab9de81caa8fccde91cd7ff1e4b14091f}} 
+\index{pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}!bpak\+\_\+stream\+\_\+support@{bpak\+\_\+stream\+\_\+support}}
+\index{bpak\+\_\+stream\+\_\+support@{bpak\+\_\+stream\+\_\+support}!pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}}
+\subsubsection{\texorpdfstring{bpak\+\_\+stream\+\_\+support}{bpak\_stream\_support}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+result\+\_\+device\+\_\+caps\+::bpak\+\_\+stream\+\_\+support}
+
+Set to 1 if the device supports receiving concatenated bpak archives \mbox{\Hypertarget{structpb__result__device__caps_a10af479a333360bf63b8bc5fccbcc130}\label{structpb__result__device__caps_a10af479a333360bf63b8bc5fccbcc130}} 
+\index{pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}!chunk\+\_\+transfer\+\_\+max\+\_\+bytes@{chunk\+\_\+transfer\+\_\+max\+\_\+bytes}}
+\index{chunk\+\_\+transfer\+\_\+max\+\_\+bytes@{chunk\+\_\+transfer\+\_\+max\+\_\+bytes}!pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}}
+\subsubsection{\texorpdfstring{chunk\+\_\+transfer\+\_\+max\+\_\+bytes}{chunk\_transfer\_max\_bytes}}
+{\footnotesize\ttfamily uint32\+\_\+t pb\+\_\+result\+\_\+device\+\_\+caps\+::chunk\+\_\+transfer\+\_\+max\+\_\+bytes}
+
+Maximum number of bytes in one transfer \mbox{\Hypertarget{structpb__result__device__caps_a8b2405618a75944f28959f0e1df7b747}\label{structpb__result__device__caps_a8b2405618a75944f28959f0e1df7b747}} 
+\index{pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}!operation\+\_\+timeout\+\_\+ms@{operation\+\_\+timeout\+\_\+ms}}
+\index{operation\+\_\+timeout\+\_\+ms@{operation\+\_\+timeout\+\_\+ms}!pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}}
+\subsubsection{\texorpdfstring{operation\+\_\+timeout\+\_\+ms}{operation\_timeout\_ms}}
+{\footnotesize\ttfamily uint16\+\_\+t pb\+\_\+result\+\_\+device\+\_\+caps\+::operation\+\_\+timeout\+\_\+ms}
+
+Generic operation timeout \mbox{\Hypertarget{structpb__result__device__caps_aad094d645f05d1f8ed740b766d68e6fd}\label{structpb__result__device__caps_aad094d645f05d1f8ed740b766d68e6fd}} 
+\index{pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}!part\+\_\+erase\+\_\+timeout\+\_\+ms@{part\+\_\+erase\+\_\+timeout\+\_\+ms}}
+\index{part\+\_\+erase\+\_\+timeout\+\_\+ms@{part\+\_\+erase\+\_\+timeout\+\_\+ms}!pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}}
+\subsubsection{\texorpdfstring{part\+\_\+erase\+\_\+timeout\+\_\+ms}{part\_erase\_timeout\_ms}}
+{\footnotesize\ttfamily uint16\+\_\+t pb\+\_\+result\+\_\+device\+\_\+caps\+::part\+\_\+erase\+\_\+timeout\+\_\+ms}
+
+Maximum erase time for a partition \mbox{\Hypertarget{structpb__result__device__caps_aa677655f643620dbe12b5b1f5e99455a}\label{structpb__result__device__caps_aa677655f643620dbe12b5b1f5e99455a}} 
+\index{pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}!rz@{rz}}
+\index{rz@{rz}!pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}}
+\subsubsection{\texorpdfstring{rz}{rz}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+result\+\_\+device\+\_\+caps\+::rz\mbox{[}18\mbox{]}}
+
+Reserved \mbox{\Hypertarget{structpb__result__device__caps_a95fc165d071ed1df657e80117e1ab902}\label{structpb__result__device__caps_a95fc165d071ed1df657e80117e1ab902}} 
+\index{pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}!stream\+\_\+buffer\+\_\+size@{stream\+\_\+buffer\+\_\+size}}
+\index{stream\+\_\+buffer\+\_\+size@{stream\+\_\+buffer\+\_\+size}!pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}}
+\subsubsection{\texorpdfstring{stream\+\_\+buffer\+\_\+size}{stream\_buffer\_size}}
+{\footnotesize\ttfamily uint32\+\_\+t pb\+\_\+result\+\_\+device\+\_\+caps\+::stream\+\_\+buffer\+\_\+size}
+
+Size of stream buffers in bytes \mbox{\Hypertarget{structpb__result__device__caps_a7b145b0eb656bf957da9ec7adfd91060}\label{structpb__result__device__caps_a7b145b0eb656bf957da9ec7adfd91060}} 
+\index{pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}!stream\+\_\+no\+\_\+of\+\_\+buffers@{stream\+\_\+no\+\_\+of\+\_\+buffers}}
+\index{stream\+\_\+no\+\_\+of\+\_\+buffers@{stream\+\_\+no\+\_\+of\+\_\+buffers}!pb\+\_\+result\+\_\+device\+\_\+caps@{pb\+\_\+result\+\_\+device\+\_\+caps}}
+\subsubsection{\texorpdfstring{stream\+\_\+no\+\_\+of\+\_\+buffers}{stream\_no\_of\_buffers}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+result\+\_\+device\+\_\+caps\+::stream\+\_\+no\+\_\+of\+\_\+buffers}
+
+Number of stream buffers 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/include/pb-\/tools/\hyperlink{wire_8h}{wire.\+h}\end{DoxyCompactItemize}

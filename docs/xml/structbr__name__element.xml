@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__name__element" kind="struct" language="C++" prot="public">
+    <compoundname>br_name_element</compoundname>
+    <includes refid="bearssl__x509_8h" local="no">bearssl_x509.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__name__element_1ae21b72b8ccfe1f2da35a43d307e16a76" prot="public" static="no" mutable="no">
+        <type>const unsigned char *</type>
+        <definition>const unsigned char* br_name_element::oid</definition>
+        <argsstring></argsstring>
+        <name>oid</name>
+        <briefdescription>
+<para>Element OID. </para>        </briefdescription>
+        <detaileddescription>
+<para>For X.500 name elements (to be extracted from the subject DN), this is the encoded OID for the requested name element; the first byte shall contain the length of the DER-encoded OID value, followed by the OID value (for instance, OID 2.5.4.3, for id-at-commonName, will be <computeroutput>03 55 04 03</computeroutput>). This is equivalent to full DER encoding with the length but without the tag.</para><para>For SAN name elements, the first byte (<computeroutput>oid[0]</computeroutput>) has value 0, followed by another byte that matches the expected GeneralName tag. Allowed second byte values are then:</para><para><itemizedlist>
+<listitem><para>1: <computeroutput>rfc822Name</computeroutput></para></listitem><listitem><para>2: <computeroutput>dNSName</computeroutput></para></listitem><listitem><para>6: <computeroutput>uniformResourceIdentifier</computeroutput></para></listitem><listitem><para>0: <computeroutput>otherName</computeroutput></para></listitem></itemizedlist>
+</para><para>If first and second byte are 0, then this is a SAN element of type <computeroutput>otherName</computeroutput>; the <computeroutput>oid[]</computeroutput> array should then contain, right after the two bytes of value 0, an encoded OID (with the same conventions as for X.500 name elements). If a match is found for that OID, then the corresponding name element will be extracted, as long as it is a supported string type. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="602" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="602" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__name__element_1a63622d35b5d168c6bbcdf28d50b32210" prot="public" static="no" mutable="no">
+        <type>char *</type>
+        <definition>char* br_name_element::buf</definition>
+        <argsstring></argsstring>
+        <name>buf</name>
+        <briefdescription>
+<para>Destination buffer. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="607" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="607" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__name__element_1a4dfc9930093f0dbbaa94dd8684d58716" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_name_element::len</definition>
+        <argsstring></argsstring>
+        <name>len</name>
+        <briefdescription>
+<para>Length (in bytes) of the destination buffer. </para>        </briefdescription>
+        <detaileddescription>
+<para>The buffer MUST NOT be smaller than 1 byte. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="614" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="614" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__name__element_1a19c2c4bf8e97473e995130193eec553b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int br_name_element::status</definition>
+        <argsstring></argsstring>
+        <name>status</name>
+        <briefdescription>
+<para>Decoding status. </para>        </briefdescription>
+        <detaileddescription>
+<para>Status is 0 if the name element was not found, 1 if it was found and decoded, or -1 on error. Error conditions include an unrecognised encoding, an invalid encoding, or a string too large for the destination buffer. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="624" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="624" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Type for receiving a name element. </para>    </briefdescription>
+    <detaileddescription>
+<para>An array of such structures can be provided to the X.509 decoding engines. If the specified elements are found in the certificate subject DN or the SAN extension, then the name contents are copied as zero-terminated strings into the buffer.</para><para>The decoder converts TeletexString and BMPString to UTF8String, and ensures that the resulting string is zero-terminated. If the string does not fit in the provided buffer, then the copy is aborted and an error is reported. </para>    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="571" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="571" bodyend="626"/>
+    <listofallmembers>
+      <member refid="structbr__name__element_1a63622d35b5d168c6bbcdf28d50b32210" prot="public" virt="non-virtual"><scope>br_name_element</scope><name>buf</name></member>
+      <member refid="structbr__name__element_1a4dfc9930093f0dbbaa94dd8684d58716" prot="public" virt="non-virtual"><scope>br_name_element</scope><name>len</name></member>
+      <member refid="structbr__name__element_1ae21b72b8ccfe1f2da35a43d307e16a76" prot="public" virt="non-virtual"><scope>br_name_element</scope><name>oid</name></member>
+      <member refid="structbr__name__element_1a19c2c4bf8e97473e995130193eec553b" prot="public" virt="non-virtual"><scope>br_name_element</scope><name>status</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

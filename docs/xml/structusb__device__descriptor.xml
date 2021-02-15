@@ -1,0 +1,211 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structusb__device__descriptor" kind="struct" language="C++" prot="public">
+    <compoundname>usb_device_descriptor</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structusb__device__descriptor_1af3f980ad55af3fd6c222a8802996ab63" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::bLength</definition>
+        <argsstring></argsstring>
+        <name>bLength</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Size of this descriptor in bytes </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="64" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1ad1ba08da6ad5b6023f1d0d1461daab7d" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::bDescriptorType</definition>
+        <argsstring></argsstring>
+        <name>bDescriptorType</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>DEVICE Descriptor Type </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="65" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1aa400edb6c3183d4922411cdaf980b84e" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_device_descriptor::bcdUSB</definition>
+        <argsstring></argsstring>
+        <name>bcdUSB</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>USB Specification Release Number </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="66" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1aa657267e1d9762b7d2ed3eb60a78d9ad" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::bDeviceClass</definition>
+        <argsstring></argsstring>
+        <name>bDeviceClass</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Class code </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="67" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1aecfbe730bc3eeccc9c4b5fd17f5f3c3c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::bDeviceSubClass</definition>
+        <argsstring></argsstring>
+        <name>bDeviceSubClass</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Subclass code </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="68" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1a56829af76e57a6ea4fc621b52a0664f8" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::bDeviceProtocol</definition>
+        <argsstring></argsstring>
+        <name>bDeviceProtocol</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Protocol code </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="69" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1af4ea427f5567e12e319297535e54e192" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::bMaxPacketSize</definition>
+        <argsstring></argsstring>
+        <name>bMaxPacketSize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maximum packet size for endpoint zero </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="70" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1a043126e48bebbab536540e44428b6b4f" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_device_descriptor::idVendor</definition>
+        <argsstring></argsstring>
+        <name>idVendor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Vendor ID </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="71" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1a70d5ecc7bad486b8a8840d86aa151579" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_device_descriptor::idProduct</definition>
+        <argsstring></argsstring>
+        <name>idProduct</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Product ID </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="72" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1a41416aa4a49999d2f3f0f67bdc5fa7da" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_device_descriptor::bcdDevice</definition>
+        <argsstring></argsstring>
+        <name>bcdDevice</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Device release number </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="73" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1ad082330020575944b8471459b816cb40" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::iManufacturer</definition>
+        <argsstring></argsstring>
+        <name>iManufacturer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Index of string descriptor describing manufacturer </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="74" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1acb90b91c59e65adbcc21949cf0f486f7" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::iProduct</definition>
+        <argsstring></argsstring>
+        <name>iProduct</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Index of string descriptor describing product </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="76" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1a105d91b68091e61c9b13ea673fb98eaf" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::iSerialNumber</definition>
+        <argsstring></argsstring>
+        <name>iSerialNumber</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Index of string descriptor describing the device&apos;s serial number </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="77" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__device__descriptor_1a603204b0517e9ece9bc0d8476b2a7cdc" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_device_descriptor::bNumConfigurations</definition>
+        <argsstring></argsstring>
+        <name>bNumConfigurations</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Number of possible configurations </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="79" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/usb.h" line="63" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="62" bodyend="80"/>
+    <listofallmembers>
+      <member refid="structusb__device__descriptor_1a41416aa4a49999d2f3f0f67bdc5fa7da" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bcdDevice</name></member>
+      <member refid="structusb__device__descriptor_1aa400edb6c3183d4922411cdaf980b84e" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bcdUSB</name></member>
+      <member refid="structusb__device__descriptor_1ad1ba08da6ad5b6023f1d0d1461daab7d" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bDescriptorType</name></member>
+      <member refid="structusb__device__descriptor_1aa657267e1d9762b7d2ed3eb60a78d9ad" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bDeviceClass</name></member>
+      <member refid="structusb__device__descriptor_1a56829af76e57a6ea4fc621b52a0664f8" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bDeviceProtocol</name></member>
+      <member refid="structusb__device__descriptor_1aecfbe730bc3eeccc9c4b5fd17f5f3c3c" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bDeviceSubClass</name></member>
+      <member refid="structusb__device__descriptor_1af3f980ad55af3fd6c222a8802996ab63" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bLength</name></member>
+      <member refid="structusb__device__descriptor_1af4ea427f5567e12e319297535e54e192" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bMaxPacketSize</name></member>
+      <member refid="structusb__device__descriptor_1a603204b0517e9ece9bc0d8476b2a7cdc" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>bNumConfigurations</name></member>
+      <member refid="structusb__device__descriptor_1a70d5ecc7bad486b8a8840d86aa151579" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>idProduct</name></member>
+      <member refid="structusb__device__descriptor_1a043126e48bebbab536540e44428b6b4f" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>idVendor</name></member>
+      <member refid="structusb__device__descriptor_1ad082330020575944b8471459b816cb40" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>iManufacturer</name></member>
+      <member refid="structusb__device__descriptor_1acb90b91c59e65adbcc21949cf0f486f7" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>iProduct</name></member>
+      <member refid="structusb__device__descriptor_1a105d91b68091e61c9b13ea673fb98eaf" prot="public" virt="non-virtual"><scope>usb_device_descriptor</scope><name>iSerialNumber</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

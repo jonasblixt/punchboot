@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__aes__ct64__cbcdec__keys" kind="struct" language="C++" prot="public">
+    <compoundname>br_aes_ct64_cbcdec_keys</compoundname>
+    <includes refid="bearssl__block_8h" local="no">bearssl_block.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__aes__ct64__cbcdec__keys_1a43a346c9f307096b8e7671f6798a27ab" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__block_8h_1a5542970c820eeee2e62766368be8fb7f" kindref="member">br_block_cbcdec_class</ref> *</type>
+        <definition>const br_block_cbcdec_class* br_aes_ct64_cbcdec_keys::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to vtable for this context. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1386" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1386" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__ct64__cbcdec__keys_1a41e6173dd1367856fd3116beed30004c" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t br_aes_ct64_cbcdec_keys::skey[30]</definition>
+        <argsstring>[30]</argsstring>
+        <name>skey</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1388" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1388" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__ct64__cbcdec__keys_1a76459cac779d178193ee9abf431b05a6" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_aes_ct64_cbcdec_keys::num_rounds</definition>
+        <argsstring></argsstring>
+        <name>num_rounds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1389" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1389" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Context for AES subkeys (<computeroutput>aes_ct64</computeroutput> implementation, CBC decryption). </para>    </briefdescription>
+    <detaileddescription>
+<para>First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="42">
+        <label>br_block_cbcdec_class_</label>
+        <link refid="structbr__block__cbcdec__class__"/>
+      </node>
+      <node id="41">
+        <label>br_aes_ct64_cbcdec_keys</label>
+        <link refid="structbr__aes__ct64__cbcdec__keys"/>
+        <childnode refid="42" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="1384" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1384" bodyend="1391"/>
+    <listofallmembers>
+      <member refid="structbr__aes__ct64__cbcdec__keys_1a76459cac779d178193ee9abf431b05a6" prot="public" virt="non-virtual"><scope>br_aes_ct64_cbcdec_keys</scope><name>num_rounds</name></member>
+      <member refid="structbr__aes__ct64__cbcdec__keys_1a41e6173dd1367856fd3116beed30004c" prot="public" virt="non-virtual"><scope>br_aes_ct64_cbcdec_keys</scope><name>skey</name></member>
+      <member refid="structbr__aes__ct64__cbcdec__keys_1a43a346c9f307096b8e7671f6798a27ab" prot="public" virt="non-virtual"><scope>br_aes_ct64_cbcdec_keys</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

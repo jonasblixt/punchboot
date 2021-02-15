@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__aes__ct__ctr__keys" kind="struct" language="C++" prot="public">
+    <compoundname>br_aes_ct_ctr_keys</compoundname>
+    <includes refid="bearssl__block_8h" local="no">bearssl_block.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__aes__ct__ctr__keys_1af1bb322ecd571a1a99529ceac021775f" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__block_8h_1a8934ac58af503220bfb6e6cbc2cfb209" kindref="member">br_block_ctr_class</ref> *</type>
+        <definition>const br_block_ctr_class* br_aes_ct_ctr_keys::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to vtable for this context. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1181" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__ct__ctr__keys_1accd7fdfc8f750cb9db05dfe3cefd593e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_aes_ct_ctr_keys::skey[60]</definition>
+        <argsstring>[60]</argsstring>
+        <name>skey</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1183" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__ct__ctr__keys_1a350a40e14a23515e073aeccf18e4580a" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_aes_ct_ctr_keys::num_rounds</definition>
+        <argsstring></argsstring>
+        <name>num_rounds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1184" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1184" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Context for AES subkeys (<computeroutput>aes_ct</computeroutput> implementation, CTR encryption and decryption). </para>    </briefdescription>
+    <detaileddescription>
+<para>First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="59">
+        <label>br_aes_ct_ctr_keys</label>
+        <link refid="structbr__aes__ct__ctr__keys"/>
+        <childnode refid="60" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="60">
+        <label>br_block_ctr_class_</label>
+        <link refid="structbr__block__ctr__class__"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="1179" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1179" bodyend="1186"/>
+    <listofallmembers>
+      <member refid="structbr__aes__ct__ctr__keys_1a350a40e14a23515e073aeccf18e4580a" prot="public" virt="non-virtual"><scope>br_aes_ct_ctr_keys</scope><name>num_rounds</name></member>
+      <member refid="structbr__aes__ct__ctr__keys_1accd7fdfc8f750cb9db05dfe3cefd593e" prot="public" virt="non-virtual"><scope>br_aes_ct_ctr_keys</scope><name>skey</name></member>
+      <member refid="structbr__aes__ct__ctr__keys_1af1bb322ecd571a1a99529ceac021775f" prot="public" virt="non-virtual"><scope>br_aes_ct_ctr_keys</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

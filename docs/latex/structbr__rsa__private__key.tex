@@ -1,0 +1,57 @@
+\hypertarget{structbr__rsa__private__key}{}\section{br\+\_\+rsa\+\_\+private\+\_\+key Struct Reference}
+\label{structbr__rsa__private__key}\index{br\+\_\+rsa\+\_\+private\+\_\+key@{br\+\_\+rsa\+\_\+private\+\_\+key}}
+
+
+R\+SA private key.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+rsa.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_a283fea483aeeab2fb03021ce54e1b5ce}\label{structbr__rsa__private__key_a283fea483aeeab2fb03021ce54e1b5ce}} 
+uint32\+\_\+t \hyperlink{structbr__rsa__private__key_a283fea483aeeab2fb03021ce54e1b5ce}{n\+\_\+bitlen}
+\begin{DoxyCompactList}\small\item\em Modulus bit length (in bits, exact value). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_a591f80a155fc42e1d79e8169fad15d4a}\label{structbr__rsa__private__key_a591f80a155fc42e1d79e8169fad15d4a}} 
+unsigned char $\ast$ \hyperlink{structbr__rsa__private__key_a591f80a155fc42e1d79e8169fad15d4a}{p}
+\begin{DoxyCompactList}\small\item\em First prime factor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_ab6fd51db3cd1ca46172091640c2258aa}\label{structbr__rsa__private__key_ab6fd51db3cd1ca46172091640c2258aa}} 
+size\+\_\+t \hyperlink{structbr__rsa__private__key_ab6fd51db3cd1ca46172091640c2258aa}{plen}
+\begin{DoxyCompactList}\small\item\em First prime factor length (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_ac30acdf290d3dc4a686af6b03c245581}\label{structbr__rsa__private__key_ac30acdf290d3dc4a686af6b03c245581}} 
+unsigned char $\ast$ \hyperlink{structbr__rsa__private__key_ac30acdf290d3dc4a686af6b03c245581}{q}
+\begin{DoxyCompactList}\small\item\em Second prime factor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_aebb01978bb7b68f16669460b9f3cbcb2}\label{structbr__rsa__private__key_aebb01978bb7b68f16669460b9f3cbcb2}} 
+size\+\_\+t \hyperlink{structbr__rsa__private__key_aebb01978bb7b68f16669460b9f3cbcb2}{qlen}
+\begin{DoxyCompactList}\small\item\em Second prime factor length (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_a1a9343cde32431aca1a7d3b2a367cf97}\label{structbr__rsa__private__key_a1a9343cde32431aca1a7d3b2a367cf97}} 
+unsigned char $\ast$ \hyperlink{structbr__rsa__private__key_a1a9343cde32431aca1a7d3b2a367cf97}{dp}
+\begin{DoxyCompactList}\small\item\em First reduced private exponent. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_aa1abb815bf9961340ca48f96fdd7a879}\label{structbr__rsa__private__key_aa1abb815bf9961340ca48f96fdd7a879}} 
+size\+\_\+t \hyperlink{structbr__rsa__private__key_aa1abb815bf9961340ca48f96fdd7a879}{dplen}
+\begin{DoxyCompactList}\small\item\em First reduced private exponent length (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_ab236059c4f4ad886af9411b790c0d700}\label{structbr__rsa__private__key_ab236059c4f4ad886af9411b790c0d700}} 
+unsigned char $\ast$ \hyperlink{structbr__rsa__private__key_ab236059c4f4ad886af9411b790c0d700}{dq}
+\begin{DoxyCompactList}\small\item\em Second reduced private exponent. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_a2c53fb346f8b1deb36a5c448ec504dbc}\label{structbr__rsa__private__key_a2c53fb346f8b1deb36a5c448ec504dbc}} 
+size\+\_\+t \hyperlink{structbr__rsa__private__key_a2c53fb346f8b1deb36a5c448ec504dbc}{dqlen}
+\begin{DoxyCompactList}\small\item\em Second reduced private exponent length (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_aef2776053e415528d6c61ef6bfe69580}\label{structbr__rsa__private__key_aef2776053e415528d6c61ef6bfe69580}} 
+unsigned char $\ast$ \hyperlink{structbr__rsa__private__key_aef2776053e415528d6c61ef6bfe69580}{iq}
+\begin{DoxyCompactList}\small\item\em C\+RT coefficient. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__private__key_aa3bcdfee6999d70f8ea1bafd2b9cec63}\label{structbr__rsa__private__key_aa3bcdfee6999d70f8ea1bafd2b9cec63}} 
+size\+\_\+t \hyperlink{structbr__rsa__private__key_aa3bcdfee6999d70f8ea1bafd2b9cec63}{iqlen}
+\begin{DoxyCompactList}\small\item\em C\+RT coefficient length (in bytes). \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+R\+SA private key. 
+
+The structure references the private factors, reduced private exponents, and C\+RT coefficient. It also contains the bit length of the modulus. The big integers use unsigned big-\/endian representation; extra leading bytes of value 0 are allowed. However, the modulus bit length ({\ttfamily n\+\_\+bitlen}) M\+U\+ST be exact. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__rsa_8h}{bearssl\+\_\+rsa.\+h}\end{DoxyCompactItemize}

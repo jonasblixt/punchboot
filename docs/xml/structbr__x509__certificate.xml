@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__x509__certificate" kind="struct" language="C++" prot="public">
+    <compoundname>br_x509_certificate</compoundname>
+    <includes refid="bearssl__x509_8h" local="no">bearssl_x509.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__x509__certificate_1a05ee770fbbc9ab1bbe4e932af3f3a22e" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_x509_certificate::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <briefdescription>
+<para>The DER-encoded certificate data. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1100" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__certificate_1aef9b6a9e5470288040f251b892fa1b4f" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_x509_certificate::data_len</definition>
+        <argsstring></argsstring>
+        <name>data_len</name>
+        <briefdescription>
+<para>The DER-encoded certificate length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="1102" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1102" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Type for an X.509 certificate (DER-encoded). </para>    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="1098" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="1098" bodyend="1103"/>
+    <listofallmembers>
+      <member refid="structbr__x509__certificate_1a05ee770fbbc9ab1bbe4e932af3f3a22e" prot="public" virt="non-virtual"><scope>br_x509_certificate</scope><name>data</name></member>
+      <member refid="structbr__x509__certificate_1aef9b6a9e5470288040f251b892fa1b4f" prot="public" virt="non-virtual"><scope>br_x509_certificate</scope><name>data_len</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

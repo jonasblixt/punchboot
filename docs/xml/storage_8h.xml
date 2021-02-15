@@ -1,0 +1,725 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="storage_8h" kind="file" language="C++">
+    <compoundname>storage.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="stdbool_8h" local="no">stdbool.h</includes>
+    <includedby refid="boot_8h" local="no">/docs/include/pb/boot.h</includedby>
+    <includedby refid="command_8h" local="no">/docs/include/pb/command.h</includedby>
+    <includedby refid="gpt_8h" local="no">/docs/include/pb/gpt.h</includedby>
+    <includedby refid="plat_8h" local="no">/docs/include/pb/plat.h</includedby>
+    <incdepgraph>
+      <node id="629">
+        <label>stdint_.h</label>
+      </node>
+      <node id="630">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="627">
+        <label>/docs/include/pb/storage.h</label>
+        <link refid="storage_8h"/>
+        <childnode refid="628" relation="include">
+        </childnode>
+        <childnode refid="630" relation="include">
+        </childnode>
+      </node>
+      <node id="628">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="629" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="635">
+        <label>/docs/include/pb/gpt.h</label>
+        <link refid="gpt_8h_source"/>
+      </node>
+      <node id="634">
+        <label>/docs/include/pb/command.h</label>
+        <link refid="command_8h_source"/>
+      </node>
+      <node id="633">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="631">
+        <label>/docs/include/pb/storage.h</label>
+        <link refid="storage_8h"/>
+        <childnode refid="632" relation="include">
+        </childnode>
+        <childnode refid="634" relation="include">
+        </childnode>
+        <childnode refid="635" relation="include">
+        </childnode>
+        <childnode refid="633" relation="include">
+        </childnode>
+      </node>
+      <node id="632">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="633" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structpb__storage__map" prot="public">pb_storage_map</innerclass>
+    <innerclass refid="structpb__storage__driver" prot="public">pb_storage_driver</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="storage_8h_1af92e65ed863b01609c46416037bbf2ae" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_BOOTABLE</name>
+        <initializer>(1 &lt;&lt; 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="24" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1a64a0523eaeeb590190530fc7be2ece89" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_OTP</name>
+        <initializer>(1 &lt;&lt; 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="25" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1aa57a64ef62820bc28d796b9a070d5e2f" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_WRITABLE</name>
+        <initializer>(1 &lt;&lt; 2)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="26" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1ac170b896268bf6b8ac75fbebd4bf85e5" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_ERASE_BEFORE_WRITE</name>
+        <initializer>(1 &lt;&lt; 3)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="27" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1a732f82892fddb9a2d9c53e2a00879df7" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_DISK_MAP</name>
+        <initializer>(1 &lt;&lt; 4)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="28" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1a6feeeb34228a75dacc926cd68c9f1803" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_VISIBLE</name>
+        <initializer>(1 &lt;&lt; 5)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="29" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1adb146705930b7f74862bad40bf3f1f0b" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_DUMPABLE</name>
+        <initializer>(1 &lt;&lt; 6)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The partition can be read back </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="30" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1aeba7c5ec114a249b16eb7b1a53c284b3" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_STATIC_MAP</name>
+        <initializer>(1 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="33" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1a739426e5b4cb006cc2e7fa03f65f604b" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_EMMC_BOOT0</name>
+        <initializer>(1 &lt;&lt; 17)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="34" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1af6059b1643b0584b717e2b1036cc9f57" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_EMMC_BOOT1</name>
+        <initializer>(1 &lt;&lt; 18)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="35" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1a471ea3f4c826ecfb76063b69b9510c1f" prot="public" static="no">
+        <name>PB_STORAGE_MAP_FLAG_EMMC_RPMB</name>
+        <initializer>(1 &lt;&lt; 19)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="36" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1af2149a4d7de07a517c6e751c8df004a0" prot="public" static="no">
+        <name>pb_storage_foreach_part</name>
+        <param><defname>__tbl</defname></param>
+        <param><defname>__part</defname></param>
+        <initializer>for (struct <ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref> *__part = (struct <ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref> *)__tbl; \
+                __part-&gt;valid_entry; __part++)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="50" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1a7e33b732ca791d55d3d043ed60ee34fb" prot="public" static="no">
+        <name>PB_STORAGE_MAP</name>
+        <param><defname>__uuid_str</defname></param>
+        <param><defname>__desc</defname></param>
+        <param><defname>__blks</defname></param>
+        <param><defname>__flags</defname></param>
+        <initializer>{ \
+        .valid_entry = true, \
+        .uuid_str = __uuid_str, \
+        .<ref refid="structuuid" kindref="compound">uuid</ref> = &quot;&quot;, \
+        .description = __desc, \
+        .first_block = 0, \
+        .last_block = 0, \
+        .no_of_blocks = __blks, \
+        .flags = __flags, \
+    }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="54" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1a758807c63bdd564899a427d9f3d015a5" prot="public" static="no">
+        <name>PB_STORAGE_MAP2</name>
+        <param><defname>__uuid_str</defname></param>
+        <param><defname>__uuid_bytes</defname></param>
+        <param><defname>__desc</defname></param>
+        <param><defname>__blks</defname></param>
+        <param><defname>__flags</defname></param>
+        <initializer>{ \
+        .valid_entry = true, \
+        .uuid_str = __uuid_str, \
+        .<ref refid="structuuid" kindref="compound">uuid</ref> = __uuid_bytes, \
+        .description = __desc, \
+        .first_block = 0, \
+        .last_block = 0, \
+        .no_of_blocks = __blks, \
+        .flags = __flags, \
+    }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="66" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1a27869e85c4a754bd12270c2619073e02" prot="public" static="no">
+        <name>PB_STORAGE_MAP3</name>
+        <param><defname>__uuid_str</defname></param>
+        <param><defname>__desc</defname></param>
+        <param><defname>__start_blk</defname></param>
+        <param><defname>__end_blk</defname></param>
+        <param><defname>__flags</defname></param>
+        <initializer>{ \
+        .valid_entry = true, \
+        .uuid_str = __uuid_str, \
+        .<ref refid="structuuid" kindref="compound">uuid</ref> = &quot;&quot;, \
+        .description = __desc, \
+        .first_block = __start_blk, \
+        .last_block = __end_blk, \
+        .no_of_blocks = (__end_blk - __start_blk + 1), \
+        .flags = __flags, \
+    }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="78" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="storage_8h_1abbb9dee6ab6aa594a66e71609e702dd8" prot="public" static="no">
+        <name>PB_STORAGE_MAP_END</name>
+        <initializer>{ \
+        .valid_entry = false, \
+        .<ref refid="structuuid" kindref="compound">uuid</ref> = &quot;&quot;, \
+        .uuid_str = &quot;&quot;, \
+        .description = &quot;&quot;, \
+        .first_block = 0, \
+        .last_block = 0, \
+        .no_of_blocks = 0, \
+        .flags = 0, \
+    }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="89" column="9" bodyfile="/docs/include/pb/storage.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="storage_8h_1ab35a2f7b754984d58c8e3d27d6236b5f" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* pb_storage_io_t) (struct pb_storage_driver *drv, size_t block_offset, void *buf, size_t n_blocks)</definition>
+        <argsstring>)(struct pb_storage_driver *drv, size_t block_offset, void *buf, size_t n_blocks)</argsstring>
+        <name>pb_storage_io_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="103" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="storage_8h_1a4072bf2b6430f352853adc14a8fb18c9" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* pb_storage_call_t) (struct pb_storage_driver *drv)</definition>
+        <argsstring>)(struct pb_storage_driver *drv)</argsstring>
+        <name>pb_storage_call_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="108" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="storage_8h_1a0872c46477ef68648c03c5c546a700ae" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* pb_storage_map_t) (struct pb_storage_driver *drv, struct pb_storage_map *map)</definition>
+        <argsstring>)(struct pb_storage_driver *drv, struct pb_storage_map *map)</argsstring>
+        <name>pb_storage_map_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="110" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="storage_8h_1ab0defba4b6b414ebf6e8c6ff9f8cb61b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_storage_early_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_storage_early_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="138" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1a52569b672f9ff56843da6c99c5cfa4db" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_storage_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_storage_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="139" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1a18440d1af37d25298bfb634b0f0099e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_storage_add</definition>
+        <argsstring>(struct pb_storage_driver *drv)</argsstring>
+        <name>pb_storage_add</name>
+        <param>
+          <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> *</type>
+          <declname>drv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="141" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1aeef12df02ed9ab27b55aed832f0daab6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_storage_read</definition>
+        <argsstring>(struct pb_storage_driver *drv, struct pb_storage_map *part, void *buf, size_t blocks, size_t block_offset)</argsstring>
+        <name>pb_storage_read</name>
+        <param>
+          <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> *</type>
+          <declname>drv</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref> *</type>
+          <declname>part</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>blocks</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>block_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="143" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1aee4a91215951815663d814a2ff1ab96a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_storage_write</definition>
+        <argsstring>(struct pb_storage_driver *drv, struct pb_storage_map *part, const void *buf, size_t blocks, size_t block_offset)</argsstring>
+        <name>pb_storage_write</name>
+        <param>
+          <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> *</type>
+          <declname>drv</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref> *</type>
+          <declname>part</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>blocks</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>block_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="149" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1a83ced5688a787e5d54a76890a0b1e30c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_storage_get_part</definition>
+        <argsstring>(uint8_t *uuid, struct pb_storage_map **part, struct pb_storage_driver **drv)</argsstring>
+        <name>pb_storage_get_part</name>
+        <param>
+          <type>uint8_t *</type>
+          <declname>uuid</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref> **</type>
+          <declname>part</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> **</type>
+          <declname>drv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="155" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1ab4685edc5c107ffed28b6c63b4aeda8a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_storage_install_default</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_storage_install_default</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="159" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1a73163b9f9b7f3da82da5914a062a35af" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_storage_map</definition>
+        <argsstring>(struct pb_storage_driver *drv, struct pb_storage_map **map)</argsstring>
+        <name>pb_storage_map</name>
+        <param>
+          <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> *</type>
+          <declname>drv</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref> **</type>
+          <declname>map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="160" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1a8319113cb9733b679e3e6706307e1574" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t pb_storage_blocks</definition>
+        <argsstring>(struct pb_storage_driver *drv)</argsstring>
+        <name>pb_storage_blocks</name>
+        <param>
+          <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> *</type>
+          <declname>drv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="161" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1a8416e6dce31084d04cdeaae3e00a581b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t pb_storage_last_block</definition>
+        <argsstring>(struct pb_storage_driver *drv)</argsstring>
+        <name>pb_storage_last_block</name>
+        <param>
+          <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> *</type>
+          <declname>drv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="162" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="storage_8h_1af361ebc1ba307072b6afa9d9cde52006" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> *</type>
+        <definition>struct pb_storage_driver* pb_storage_get_drivers</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_storage_get_drivers</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="163" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_STORAGE_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_STORAGE_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdbool.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_BOOTABLE<sp/>(1<sp/>&lt;&lt;<sp/>0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_OTP<sp/><sp/><sp/><sp/><sp/><sp/>(1<sp/>&lt;&lt;<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_WRITABLE<sp/>(1<sp/>&lt;&lt;<sp/>2)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_ERASE_BEFORE_WRITE<sp/>(1<sp/>&lt;&lt;<sp/>3)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_DISK_MAP<sp/>(1<sp/>&lt;&lt;<sp/>4)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_VISIBLE<sp/>(1<sp/>&lt;&lt;<sp/>5)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_DUMPABLE<sp/>(1<sp/>&lt;&lt;<sp/>6)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_STATIC_MAP<sp/>(1<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_EMMC_BOOT0<sp/><sp/>(1<sp/>&lt;&lt;<sp/>17)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_EMMC_BOOT1<sp/><sp/>(1<sp/>&lt;&lt;<sp/>18)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_FLAG_EMMC_RPMB<sp/><sp/>(1<sp/>&lt;&lt;<sp/>19)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="structpb__storage__map" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref></highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>valid_entry;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>uuid_str[37];</highlight></codeline>
+<codeline lineno="42" refid="structpb__storage__map_1a0491349496d1cda5ccc5b80309acb510" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structuuid" kindref="compound">uuid</ref>[16];<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="43" refid="structpb__storage__map_1ac42d2ba42fc7243da9cf33683e0e057a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__map_1ac42d2ba42fc7243da9cf33683e0e057a" kindref="member">description</ref>[37];<sp/></highlight></codeline>
+<codeline lineno="44" refid="structpb__storage__map_1a0186dcefcc1c5e2554ccfb369c213a62" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/><ref refid="structpb__storage__map_1a0186dcefcc1c5e2554ccfb369c213a62" kindref="member">first_block</ref>;<sp/></highlight></codeline>
+<codeline lineno="45" refid="structpb__storage__map_1a22da423ce1fa0596f6fab325c73e8230" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/><ref refid="structpb__storage__map_1a22da423ce1fa0596f6fab325c73e8230" kindref="member">last_block</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>no_of_blocks;</highlight></codeline>
+<codeline lineno="47" refid="structpb__storage__map_1a766fb83ed4a54c8e04242ed9ff7acaff" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__map_1a766fb83ed4a54c8e04242ed9ff7acaff" kindref="member">flags</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="48"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>pb_storage_foreach_part(__tbl,<sp/>__part)<sp/>\</highlight></codeline>
+<codeline lineno="51"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>for<sp/>(struct<sp/>pb_storage_map<sp/>*__part<sp/>=<sp/>(struct<sp/>pb_storage_map<sp/>*)__tbl;<sp/>\</highlight></codeline>
+<codeline lineno="52"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>__part-&gt;valid_entry;<sp/>__part++)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP(__uuid_str,<sp/>__desc,<sp/>__blks,<sp/>__flags)<sp/>\</highlight></codeline>
+<codeline lineno="55"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>{<sp/>\</highlight></codeline>
+<codeline lineno="56"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.valid_entry<sp/>=<sp/>true,<sp/>\</highlight></codeline>
+<codeline lineno="57"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.uuid_str<sp/>=<sp/>__uuid_str,<sp/>\</highlight></codeline>
+<codeline lineno="58"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.uuid<sp/>=<sp/>&quot;&quot;,<sp/>\</highlight></codeline>
+<codeline lineno="59"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.description<sp/>=<sp/>__desc,<sp/>\</highlight></codeline>
+<codeline lineno="60"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.first_block<sp/>=<sp/>0,<sp/>\</highlight></codeline>
+<codeline lineno="61"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.last_block<sp/>=<sp/>0,<sp/>\</highlight></codeline>
+<codeline lineno="62"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.no_of_blocks<sp/>=<sp/>__blks,<sp/>\</highlight></codeline>
+<codeline lineno="63"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.flags<sp/>=<sp/>__flags,<sp/>\</highlight></codeline>
+<codeline lineno="64"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP2(__uuid_str,<sp/>__uuid_bytes,<sp/>__desc,<sp/>__blks,<sp/>__flags)<sp/>\</highlight></codeline>
+<codeline lineno="67"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>{<sp/>\</highlight></codeline>
+<codeline lineno="68"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.valid_entry<sp/>=<sp/>true,<sp/>\</highlight></codeline>
+<codeline lineno="69"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.uuid_str<sp/>=<sp/>__uuid_str,<sp/>\</highlight></codeline>
+<codeline lineno="70"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.uuid<sp/>=<sp/>__uuid_bytes,<sp/>\</highlight></codeline>
+<codeline lineno="71"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.description<sp/>=<sp/>__desc,<sp/>\</highlight></codeline>
+<codeline lineno="72"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.first_block<sp/>=<sp/>0,<sp/>\</highlight></codeline>
+<codeline lineno="73"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.last_block<sp/>=<sp/>0,<sp/>\</highlight></codeline>
+<codeline lineno="74"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.no_of_blocks<sp/>=<sp/>__blks,<sp/>\</highlight></codeline>
+<codeline lineno="75"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.flags<sp/>=<sp/>__flags,<sp/>\</highlight></codeline>
+<codeline lineno="76"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP3(__uuid_str,<sp/>__desc,<sp/>__start_blk,<sp/>__end_blk,<sp/>__flags)<sp/>\</highlight></codeline>
+<codeline lineno="79"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>{<sp/>\</highlight></codeline>
+<codeline lineno="80"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.valid_entry<sp/>=<sp/>true,<sp/>\</highlight></codeline>
+<codeline lineno="81"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.uuid_str<sp/>=<sp/>__uuid_str,<sp/>\</highlight></codeline>
+<codeline lineno="82"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.uuid<sp/>=<sp/>&quot;&quot;,<sp/>\</highlight></codeline>
+<codeline lineno="83"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.description<sp/>=<sp/>__desc,<sp/>\</highlight></codeline>
+<codeline lineno="84"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.first_block<sp/>=<sp/>__start_blk,<sp/>\</highlight></codeline>
+<codeline lineno="85"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.last_block<sp/>=<sp/>__end_blk,<sp/>\</highlight></codeline>
+<codeline lineno="86"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.no_of_blocks<sp/>=<sp/>(__end_blk<sp/>-<sp/>__start_blk<sp/>+<sp/>1),<sp/>\</highlight></codeline>
+<codeline lineno="87"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.flags<sp/>=<sp/>__flags,<sp/>\</highlight></codeline>
+<codeline lineno="88"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PB_STORAGE_MAP_END<sp/>\</highlight></codeline>
+<codeline lineno="90"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>{<sp/>\</highlight></codeline>
+<codeline lineno="91"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.valid_entry<sp/>=<sp/>false,<sp/>\</highlight></codeline>
+<codeline lineno="92"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.uuid<sp/>=<sp/>&quot;&quot;,<sp/>\</highlight></codeline>
+<codeline lineno="93"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.uuid_str<sp/>=<sp/>&quot;&quot;,<sp/>\</highlight></codeline>
+<codeline lineno="94"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.description<sp/>=<sp/>&quot;&quot;,<sp/>\</highlight></codeline>
+<codeline lineno="95"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.first_block<sp/>=<sp/>0,<sp/>\</highlight></codeline>
+<codeline lineno="96"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.last_block<sp/>=<sp/>0,<sp/>\</highlight></codeline>
+<codeline lineno="97"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.no_of_blocks<sp/>=<sp/>0,<sp/>\</highlight></codeline>
+<codeline lineno="98"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.flags<sp/>=<sp/>0,<sp/>\</highlight></codeline>
+<codeline lineno="99"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref>;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*pb_storage_io_t)<sp/>(</highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv,</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>block_offset,</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>n_blocks);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*pb_storage_call_t)<sp/>(</highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*pb_storage_map_t)<sp/>(</highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv,</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref><sp/>*map);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113" refid="structpb__storage__driver" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref></highlight></codeline>
+<codeline lineno="114"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ready;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>block_size;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__map_1a22da423ce1fa0596f6fab325c73e8230" kindref="member">last_block</ref>;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_storage_call_t<sp/>init;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_storage_io_t<sp/>write;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_storage_io_t<sp/>read;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_storage_io_t<sp/>flush;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*driver_private;</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Partition<sp/>map<sp/>interface<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_storage_call_t<sp/>map_init;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_storage_map_t<sp/>map_install;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_storage_map_t<sp/>map_request;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>pb_storage_map_t<sp/>map_release;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref><sp/>*map_default;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*map_private;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>map_private_size;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*map_data;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>map_data_size;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>map_entries;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*next;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_storage_early_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_storage_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_storage_add(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_storage_read(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv,</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref><sp/>*part,</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>blocks,</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>block_offset);</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_storage_write(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv,</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref><sp/>*part,</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>blocks,</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>block_offset);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_storage_get_part(uint8_t<sp/>*<ref refid="structuuid" kindref="compound">uuid</ref>,</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref><sp/>**part,</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>**drv);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_storage_install_default(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref>(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv,<sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref><sp/>**map);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>pb_storage_blocks(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>pb_storage_last_block(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*drv);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref><sp/>*<sp/>pb_storage_get_drivers(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_STORAGE_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/storage.h"/>
+  </compounddef>
+</doxygen>

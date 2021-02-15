@@ -1,0 +1,183 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="errors_8h" kind="file" language="C++">
+    <compoundname>errors.h</compoundname>
+    <includedby refid="pb_8h" local="no">/docs/include/pb/pb.h</includedby>
+    <invincdepgraph>
+      <node id="165">
+        <label>/docs/include/pb/asn1.h</label>
+        <link refid="asn1_8h_source"/>
+      </node>
+      <node id="162">
+        <label>/docs/include/pb/errors.h</label>
+        <link refid="errors_8h"/>
+        <childnode refid="163" relation="include">
+        </childnode>
+      </node>
+      <node id="164">
+        <label>/docs/include/pb/crypto.h</label>
+        <link refid="crypto_8h_source"/>
+        <childnode refid="165" relation="include">
+        </childnode>
+        <childnode refid="166" relation="include">
+        </childnode>
+        <childnode refid="168" relation="include">
+        </childnode>
+      </node>
+      <node id="163">
+        <label>/docs/include/pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="164" relation="include">
+        </childnode>
+        <childnode refid="169" relation="include">
+        </childnode>
+        <childnode refid="170" relation="include">
+        </childnode>
+        <childnode refid="171" relation="include">
+        </childnode>
+        <childnode refid="168" relation="include">
+        </childnode>
+        <childnode refid="172" relation="include">
+        </childnode>
+      </node>
+      <node id="172">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_arch.h</label>
+        <link refid="xlat__tables__arch_8h_source"/>
+        <childnode refid="173" relation="include">
+        </childnode>
+      </node>
+      <node id="169">
+        <label>/docs/include/pb/gpt.h</label>
+        <link refid="gpt_8h_source"/>
+      </node>
+      <node id="173">
+        <label>/docs/lib/xlat_tables/xlat_tables_private.h</label>
+        <link refid="xlat__tables__private_8h_source"/>
+      </node>
+      <node id="170">
+        <label>/docs/include/pb/io.h</label>
+        <link refid="io_8h_source"/>
+      </node>
+      <node id="168">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="166">
+        <label>/docs/include/pb/image.h</label>
+        <link refid="image_8h_source"/>
+        <childnode refid="167" relation="include">
+        </childnode>
+      </node>
+      <node id="167">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="168" relation="include">
+        </childnode>
+      </node>
+      <node id="171">
+        <label>/docs/include/pb/keystore.h</label>
+        <link refid="pb_2keystore_8h_source"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9e" prot="public" static="no">
+        <name>@13</name>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9eabf3a57bb267ece7ce35f6d8dcbd94966" prot="public">
+          <name>PB_OK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9ead894d74de702a1e1950821bbe8c745e9" prot="public">
+          <name>PB_ERR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9ea457bb0d154422a806c46799c0e8ee080" prot="public">
+          <name>PB_TIMEOUT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9ea1b652396553a3703fb2e482a4285e430" prot="public">
+          <name>PB_KEY_REVOKED_ERROR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9ea3c7437f1c00fd95480225250b8ce93e1" prot="public">
+          <name>PB_SIGNATURE_ERROR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9eaef119a832c980c9fa311eec0bfcff534" prot="public">
+          <name>PB_CHECKSUM_ERROR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9ea602bb6e104c724a7fdb32ba432fc8e77" prot="public">
+          <name>PB_ERR_MEM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9ea8910f07c371ced3ea0b471a60421fa6f" prot="public">
+          <name>PB_ERR_IO</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="errors_8h_1a05589fbab0657f08285ebdfe93f5ec9ea2f0a7f30edb206371e7d0cb7643261aa" prot="public">
+          <name>PB_ERR_FILE_NOT_FOUND</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Punch BOOT</para><para>Copyright (C) 2018 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/errors.h" line="14" column="1" bodyfile="/docs/include/pb/errors.h" bodystart="14" bodyend="24"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="10"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_ERRORS_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_ERRORS_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_OK,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_ERR,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_TIMEOUT,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_KEY_REVOKED_ERROR,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_SIGNATURE_ERROR,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_CHECKSUM_ERROR,</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_ERR_MEM,</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_ERR_IO,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>PB_ERR_FILE_NOT_FOUND,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_ERRORS_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/errors.h"/>
+  </compounddef>
+</doxygen>

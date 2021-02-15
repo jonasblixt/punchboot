@@ -1,0 +1,49 @@
+\hypertarget{structpb__command}{}\section{pb\+\_\+command Struct Reference}
+\label{structpb__command}\index{pb\+\_\+command@{pb\+\_\+command}}
+
+
+{\ttfamily \#include $<$wire.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \hyperlink{structpb__command_a30bf4a04fc414f789f9c9bb6eb3170c3}{magic}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command_ac3e1f16f1bfe6daec419cf9ec1b51b1e}{command}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command_abaf981ef1685501792ec2510789d0269}{rz} \mbox{[}3\mbox{]}
+\item 
+\mbox{\Hypertarget{structpb__command_a83e52f4f19b5351dc6de7d1bddc9aa8f}\label{structpb__command_a83e52f4f19b5351dc6de7d1bddc9aa8f}} 
+uint8\+\_\+t {\bfseries request} \mbox{[}\hyperlink{wire_8h_ab4a82f18920c6584ecf0a2d918d803e0}{P\+B\+\_\+\+C\+O\+M\+M\+A\+N\+D\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Punchboot command structure (64 bytes)
+
+Alignment\+: 64 bytes 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structpb__command_ac3e1f16f1bfe6daec419cf9ec1b51b1e}\label{structpb__command_ac3e1f16f1bfe6daec419cf9ec1b51b1e}} 
+\index{pb\+\_\+command@{pb\+\_\+command}!command@{command}}
+\index{command@{command}!pb\+\_\+command@{pb\+\_\+command}}
+\subsubsection{\texorpdfstring{command}{command}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+::command}
+
+Command to be executed, from enum pb\+\_\+commands \mbox{\Hypertarget{structpb__command_a30bf4a04fc414f789f9c9bb6eb3170c3}\label{structpb__command_a30bf4a04fc414f789f9c9bb6eb3170c3}} 
+\index{pb\+\_\+command@{pb\+\_\+command}!magic@{magic}}
+\index{magic@{magic}!pb\+\_\+command@{pb\+\_\+command}}
+\subsubsection{\texorpdfstring{magic}{magic}}
+{\footnotesize\ttfamily uint32\+\_\+t pb\+\_\+command\+::magic}
+
+PB wire format magic, set to \textquotesingle{}P\+B\+L0\textquotesingle{} and changed for breaking changes in the protocol \mbox{\Hypertarget{structpb__command_abaf981ef1685501792ec2510789d0269}\label{structpb__command_abaf981ef1685501792ec2510789d0269}} 
+\index{pb\+\_\+command@{pb\+\_\+command}!rz@{rz}}
+\index{rz@{rz}!pb\+\_\+command@{pb\+\_\+command}}
+\subsubsection{\texorpdfstring{rz}{rz}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+::rz\mbox{[}3\mbox{]}}
+
+Reserved 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/include/pb-\/tools/\hyperlink{wire_8h}{wire.\+h}\end{DoxyCompactItemize}

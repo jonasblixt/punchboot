@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__storage__map" kind="struct" language="C++" prot="public">
+    <compoundname>pb_storage_map</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__storage__map_1a19212e332b8d5e268a8c9b518e041ae9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool pb_storage_map::valid_entry</definition>
+        <argsstring></argsstring>
+        <name>valid_entry</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="40" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__map_1a8d41bf23d81e8e05ea68102730061f51" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char pb_storage_map::uuid_str[37]</definition>
+        <argsstring>[37]</argsstring>
+        <name>uuid_str</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="41" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__map_1a0491349496d1cda5ccc5b80309acb510" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_storage_map::uuid[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>uuid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Partition UUID </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="42" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__map_1ac42d2ba42fc7243da9cf33683e0e057a" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char pb_storage_map::description[37]</definition>
+        <argsstring>[37]</argsstring>
+        <name>description</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Textual description of partition </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="43" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__map_1a0186dcefcc1c5e2554ccfb369c213a62" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t pb_storage_map::first_block</definition>
+        <argsstring></argsstring>
+        <name>first_block</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Partition start block </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="44" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__map_1a22da423ce1fa0596f6fab325c73e8230" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t pb_storage_map::last_block</definition>
+        <argsstring></argsstring>
+        <name>last_block</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Last(inclusive) block of partition </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="45" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__map_1af6eeed5a091c62b2c38f7923657581ec" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t pb_storage_map::no_of_blocks</definition>
+        <argsstring></argsstring>
+        <name>no_of_blocks</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="46" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__map_1a766fb83ed4a54c8e04242ed9ff7acaff" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int pb_storage_map::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Flags </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="47" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/storage.h" line="39" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="38" bodyend="48"/>
+    <listofallmembers>
+      <member refid="structpb__storage__map_1ac42d2ba42fc7243da9cf33683e0e057a" prot="public" virt="non-virtual"><scope>pb_storage_map</scope><name>description</name></member>
+      <member refid="structpb__storage__map_1a0186dcefcc1c5e2554ccfb369c213a62" prot="public" virt="non-virtual"><scope>pb_storage_map</scope><name>first_block</name></member>
+      <member refid="structpb__storage__map_1a766fb83ed4a54c8e04242ed9ff7acaff" prot="public" virt="non-virtual"><scope>pb_storage_map</scope><name>flags</name></member>
+      <member refid="structpb__storage__map_1a22da423ce1fa0596f6fab325c73e8230" prot="public" virt="non-virtual"><scope>pb_storage_map</scope><name>last_block</name></member>
+      <member refid="structpb__storage__map_1af6eeed5a091c62b2c38f7923657581ec" prot="public" virt="non-virtual"><scope>pb_storage_map</scope><name>no_of_blocks</name></member>
+      <member refid="structpb__storage__map_1a0491349496d1cda5ccc5b80309acb510" prot="public" virt="non-virtual"><scope>pb_storage_map</scope><name>uuid</name></member>
+      <member refid="structpb__storage__map_1a8d41bf23d81e8e05ea68102730061f51" prot="public" virt="non-virtual"><scope>pb_storage_map</scope><name>uuid_str</name></member>
+      <member refid="structpb__storage__map_1a19212e332b8d5e268a8c9b518e041ae9" prot="public" virt="non-virtual"><scope>pb_storage_map</scope><name>valid_entry</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

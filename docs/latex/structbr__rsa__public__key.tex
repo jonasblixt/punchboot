@@ -1,0 +1,36 @@
+\hypertarget{structbr__rsa__public__key}{}\section{br\+\_\+rsa\+\_\+public\+\_\+key Struct Reference}
+\label{structbr__rsa__public__key}\index{br\+\_\+rsa\+\_\+public\+\_\+key@{br\+\_\+rsa\+\_\+public\+\_\+key}}
+
+
+R\+SA public key.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+rsa.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__rsa__public__key_a3d73ffff37329e2e1c9efdae8ddfa53f}\label{structbr__rsa__public__key_a3d73ffff37329e2e1c9efdae8ddfa53f}} 
+unsigned char $\ast$ \hyperlink{structbr__rsa__public__key_a3d73ffff37329e2e1c9efdae8ddfa53f}{n}
+\begin{DoxyCompactList}\small\item\em Modulus. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__public__key_acae4c476eba789845538804d565d3f55}\label{structbr__rsa__public__key_acae4c476eba789845538804d565d3f55}} 
+size\+\_\+t \hyperlink{structbr__rsa__public__key_acae4c476eba789845538804d565d3f55}{nlen}
+\begin{DoxyCompactList}\small\item\em Modulus length (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__public__key_acc109cf04cf03328927471bae376731c}\label{structbr__rsa__public__key_acc109cf04cf03328927471bae376731c}} 
+unsigned char $\ast$ \hyperlink{structbr__rsa__public__key_acc109cf04cf03328927471bae376731c}{e}
+\begin{DoxyCompactList}\small\item\em Public exponent. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__rsa__public__key_a25c48aea2fbaf14e669dc9cf1827cbc9}\label{structbr__rsa__public__key_a25c48aea2fbaf14e669dc9cf1827cbc9}} 
+size\+\_\+t \hyperlink{structbr__rsa__public__key_a25c48aea2fbaf14e669dc9cf1827cbc9}{elen}
+\begin{DoxyCompactList}\small\item\em Public exponent length (in bytes). \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+R\+SA public key. 
+
+The structure references the modulus and the public exponent. Both integers use unsigned big-\/endian representation; extra leading bytes of value 0 are allowed. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__rsa_8h}{bearssl\+\_\+rsa.\+h}\end{DoxyCompactItemize}

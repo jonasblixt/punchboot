@@ -1,0 +1,580 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="utils_8h" kind="file" language="C++">
+    <compoundname>utils.h</compoundname>
+    <includedby refid="xlat__tables__arch_8h" local="no">/docs/include/pb/xlat_tables/xlat_tables_arch.h</includedby>
+    <invincdepgraph>
+      <node id="650">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_arch.h</label>
+        <link refid="xlat__tables__arch_8h_source"/>
+        <childnode refid="651" relation="include">
+        </childnode>
+      </node>
+      <node id="651">
+        <label>/docs/lib/xlat_tables/xlat_tables_private.h</label>
+        <link refid="xlat__tables__private_8h_source"/>
+      </node>
+      <node id="649">
+        <label>/docs/include/pb/utils.h</label>
+        <link refid="utils_8h"/>
+        <childnode refid="650" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="utils_8h_1a25f003de16c08a4888b69f619d70f427" prot="public" static="no">
+        <name>ARRAY_SIZE</name>
+        <param><defname>a</defname></param>
+        <initializer>(sizeof(a) / sizeof((a)[0]))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="11" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a52d277cbf33f76350b2fcb21c24640ee" prot="public" static="no">
+        <name>IS_POWER_OF_TWO</name>
+        <param><defname>x</defname></param>
+        <initializer>(((x) &amp; ((x) - 1)) == 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="14" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a29a7a60c186a0b3dee7ef49573f55752" prot="public" static="no">
+        <name>SIZE_FROM_LOG2_WORDS</name>
+        <param><defname>n</defname></param>
+        <initializer>(4 &lt;&lt; (n))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="16" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1af663332e282ea2f89be26a5a0e565545" prot="public" static="no">
+        <name>BIT_32</name>
+        <param><defname>nr</defname></param>
+        <initializer>(U(1) &lt;&lt; (nr))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="18" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a20d7feb483ebade0a97e168648793ada" prot="public" static="no">
+        <name>BIT_64</name>
+        <param><defname>nr</defname></param>
+        <initializer>(ULL(1) &lt;&lt; (nr))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="19" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a7b846473f310e6962ca8b763772cf862" prot="public" static="no">
+        <name>BIT</name>
+        <initializer>BIT_64</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="24" column="10" bodyfile="/docs/include/pb/utils.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a69346dd6a217e8bea2aa23d72a77b1fe" prot="public" static="no">
+        <name>GENMASK_32</name>
+        <param><defname>h</defname></param>
+        <param><defname>l</defname></param>
+        <initializer>(((~UINT32_C(0)) &lt;&lt; (l)) &amp; (~UINT32_C(0) &gt;&gt; (32 - 1 - (h))))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="39" column="10" bodyfile="/docs/include/pb/utils.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a3b3efa4763e7fafff4fc7f3e42baaf36" prot="public" static="no">
+        <name>GENMASK_64</name>
+        <param><defname>h</defname></param>
+        <param><defname>l</defname></param>
+        <initializer>(((~UINT64_C(0)) &lt;&lt; (l)) &amp; (~UINT64_C(0) &gt;&gt; (64 - 1 - (h))))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="42" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1af25bdd0b4833106048095d272562fd7e" prot="public" static="no">
+        <name>GENMASK</name>
+        <initializer>GENMASK_64</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="49" column="10" bodyfile="/docs/include/pb/utils.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a70efa3b151c15caad24cf822261d05a5" prot="public" static="no">
+        <name>DIV_ROUND_UP_2EVAL</name>
+        <param><defname>n</defname></param>
+        <param><defname>d</defname></param>
+        <initializer>(((n) + (d) - 1) / (d))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="56" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1ad241a91c358c4226343f98e899725dea" prot="public" static="no">
+        <name>div_round_up</name>
+        <param><defname>val</defname></param>
+        <param><defname>div</defname></param>
+        <initializer>__extension__ ({    \
+    __typeof__(div) _div = (div);        \
+    ((val) + _div - (__typeof__(div)) 1) / _div;        \
+})</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="58" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a74e75242132eaabbc1c512488a135926" prot="public" static="no">
+        <name>MIN</name>
+        <param><defname>x</defname></param>
+        <param><defname>y</defname></param>
+        <initializer>__extension__ ({    \
+    __typeof__(x) _x = (x);        \
+    __typeof__(y) _y = (y);        \
+    (void)(&amp;_x == &amp;_y);        \
+    _x &lt; _y ? _x : _y;        \
+})</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="63" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1aacc3ee1a7f283f8ef65cea31f4436a95" prot="public" static="no">
+        <name>MAX</name>
+        <param><defname>x</defname></param>
+        <param><defname>y</defname></param>
+        <initializer>__extension__ ({    \
+    __typeof__(x) _x = (x);        \
+    __typeof__(y) _y = (y);        \
+    (void)(&amp;_x == &amp;_y);        \
+    _x &gt; _y ? _x : _y;        \
+})</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="70" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a71fd726bd0e48c5f2821ae60f7d90f11" prot="public" static="no">
+        <name>round_boundary</name>
+        <param><defname>value</defname></param>
+        <param><defname>boundary</defname></param>
+        <initializer>((__typeof__(value))((boundary) - 1))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="85" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a6e99317cf3dc4c81b07a21e1764ca9da" prot="public" static="no">
+        <name>round_up</name>
+        <param><defname>value</defname></param>
+        <param><defname>boundary</defname></param>
+        <initializer>((((value) - 1) | round_boundary(value, boundary)) + 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="88" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a1c02fb617ef867dd0c360f2775927f1f" prot="public" static="no">
+        <name>round_down</name>
+        <param><defname>value</defname></param>
+        <param><defname>boundary</defname></param>
+        <initializer>((value) &amp; ~round_boundary(value, boundary))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="91" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1aac8ad9cc1c320126ec9c800d3594fb64" prot="public" static="no">
+        <name>check_uptr_overflow</name>
+        <param><defname>_ptr</defname></param>
+        <param><defname>_inc</defname></param>
+        <initializer>((_ptr) &gt; (UINTPTR_MAX - (_inc)))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="98" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1af86ec99a3ab069e3281a6435cfc69835" prot="public" static="no">
+        <name>check_u32_overflow</name>
+        <param><defname>_u32</defname></param>
+        <param><defname>_inc</defname></param>
+        <initializer>((_u32) &gt; (UINT32_MAX - (_inc)))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="105" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a5a4148f5a6e19376c70ea6a57d3624a4" prot="public" static="no">
+        <name>U</name>
+        <param><defname>_x</defname></param>
+        <initializer>(_x##U)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="124" column="13" bodyfile="/docs/include/pb/utils.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a12ed0a5eeab2a1bf8b4adbe5ed3658b3" prot="public" static="no">
+        <name>UL</name>
+        <param><defname>_x</defname></param>
+        <initializer>(_x##UL)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="125" column="11" bodyfile="/docs/include/pb/utils.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a9a422a714057ad2f972c4c788af8fd48" prot="public" static="no">
+        <name>ULL</name>
+        <param><defname>_x</defname></param>
+        <initializer>(_x##ULL)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="126" column="10" bodyfile="/docs/include/pb/utils.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a248aacf7974886bd4caeba40086c9b9c" prot="public" static="no">
+        <name>L</name>
+        <param><defname>_x</defname></param>
+        <initializer>(_x##L)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="127" column="12" bodyfile="/docs/include/pb/utils.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a64420a15f1e1c69bd0bde1a40cfcfa04" prot="public" static="no">
+        <name>LL</name>
+        <param><defname>_x</defname></param>
+        <initializer>(_x##LL)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="128" column="11" bodyfile="/docs/include/pb/utils.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1ab89c30c5f09d393225054b1f091e77f6" prot="public" static="no">
+        <name>REGSZ</name>
+        <initializer>U(8)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="135" column="10" bodyfile="/docs/include/pb/utils.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a8b0734b6b3fa6153877ee494e278cd7c" prot="public" static="no">
+        <name>ARM_ARCH_AT_LEAST</name>
+        <param><defname>_maj</defname></param>
+        <param><defname>_min</defname></param>
+        <initializer>((ARM_ARCH_MAJOR &gt; (_maj)) || \
+     ((ARM_ARCH_MAJOR == (_maj)) &amp;&amp; (ARM_ARCH_MINOR &gt;= (_min))))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="142" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1ac85049fe26f8fe6a875cf499bc01a641" prot="public" static="no">
+        <name>IMPORT_SYM</name>
+        <param><defname>type</defname></param>
+        <param><defname>sym</defname></param>
+        <param><defname>name</defname></param>
+        <initializer>extern char sym[];\
+    static const __attribute__((unused)) type name = (type) sym;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="150" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1aace8fac2287a31d9a92dc9d78ffde433" prot="public" static="no">
+        <name>ASSERT_SYM_PTR_ALIGN</name>
+        <param><defname>sym</defname></param>
+        <initializer>assert(((size_t)(sym) % __alignof__(*(sym))) == 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="160" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="160" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a99ad0e26d85f7be6473a2c23dbfaf4e1" prot="public" static="no">
+        <name>COMPILER_BARRIER</name>
+        <param></param>
+        <initializer>__asm__ volatile (&quot;&quot; ::: &quot;memory&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="163" column="9" bodyfile="/docs/include/pb/utils.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="utils_8h_1a42a89cd49bafb78567d29b16c171c4d0" prot="public" static="no">
+        <name>SPECULATION_SAFE_VALUE</name>
+        <param><defname>var</defname></param>
+        <initializer>var</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/utils.h" line="169" column="11" bodyfile="/docs/include/pb/utils.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2016-2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_UTILS_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_UTILS_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Compute<sp/>the<sp/>number<sp/>of<sp/>elements<sp/>in<sp/>the<sp/>given<sp/>array<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ARRAY_SIZE(a)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="12"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(sizeof(a)<sp/>/<sp/>sizeof((a)[0]))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>IS_POWER_OF_TWO(x)<sp/>(((x)<sp/>&amp;<sp/>((x)<sp/>-<sp/>1))<sp/>==<sp/>0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SIZE_FROM_LOG2_WORDS(n)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(4<sp/>&lt;&lt;<sp/>(n))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BIT_32(nr)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(U(1)<sp/>&lt;&lt;<sp/>(nr))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BIT_64(nr)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(ULL(1)<sp/>&lt;&lt;<sp/>(nr))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>AARCH32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BIT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>BIT_32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BIT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>BIT_64</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*<sp/>Create<sp/>a<sp/>contiguous<sp/>bitmask<sp/>starting<sp/>at<sp/>bit<sp/>position<sp/>@l<sp/>and<sp/>ending<sp/>at</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*<sp/>position<sp/>@h.<sp/>For<sp/>example</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/>GENMASK_64(39,<sp/>21)<sp/>gives<sp/>us<sp/>the<sp/>64bit<sp/>vector<sp/>0x000000ffffe00000.</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(__LINKER__)<sp/>||<sp/>defined(__ASSEMBLY__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GENMASK_32(h,<sp/>l)<sp/>\</highlight></codeline>
+<codeline lineno="34"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(((0xFFFFFFFF)<sp/>&lt;&lt;<sp/>(l))<sp/>&amp;<sp/>(0xFFFFFFFF<sp/>&gt;&gt;<sp/>(32<sp/>-<sp/>1<sp/>-<sp/>(h))))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GENMASK_64(h,<sp/>l)<sp/>\</highlight></codeline>
+<codeline lineno="37"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((~0<sp/>&lt;&lt;<sp/>(l))<sp/>&amp;<sp/>(~0<sp/>&gt;&gt;<sp/>(64<sp/>-<sp/>1<sp/>-<sp/>(h))))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GENMASK_32(h,<sp/>l)<sp/>\</highlight></codeline>
+<codeline lineno="40"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(((~UINT32_C(0))<sp/>&lt;&lt;<sp/>(l))<sp/>&amp;<sp/>(~UINT32_C(0)<sp/>&gt;&gt;<sp/>(32<sp/>-<sp/>1<sp/>-<sp/>(h))))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GENMASK_64(h,<sp/>l)<sp/>\</highlight></codeline>
+<codeline lineno="43"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(((~UINT64_C(0))<sp/>&lt;&lt;<sp/>(l))<sp/>&amp;<sp/>(~UINT64_C(0)<sp/>&gt;&gt;<sp/>(64<sp/>-<sp/>1<sp/>-<sp/>(h))))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>AARCH32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GENMASK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>GENMASK_32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GENMASK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>GENMASK_64</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="53"><highlight class="comment"><sp/>*<sp/>This<sp/>variant<sp/>of<sp/>div_round_up<sp/>can<sp/>be<sp/>used<sp/>in<sp/>macro<sp/>definition<sp/>but<sp/>should<sp/>not</highlight></codeline>
+<codeline lineno="54"><highlight class="comment"><sp/>*<sp/>be<sp/>used<sp/>in<sp/>C<sp/>code<sp/>as<sp/>the<sp/>`div`<sp/>parameter<sp/>is<sp/>evaluated<sp/>twice.</highlight></codeline>
+<codeline lineno="55"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DIV_ROUND_UP_2EVAL(n,<sp/>d)<sp/><sp/><sp/><sp/>(((n)<sp/>+<sp/>(d)<sp/>-<sp/>1)<sp/>/<sp/>(d))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>div_round_up(val,<sp/>div)<sp/>__extension__<sp/>({<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="59"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>__typeof__(div)<sp/>_div<sp/>=<sp/>(div);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="60"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((val)<sp/>+<sp/>_div<sp/>-<sp/>(__typeof__(div))<sp/>1)<sp/>/<sp/>_div;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="61"><highlight class="preprocessor">})</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MIN(x,<sp/>y)<sp/>__extension__<sp/>({<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="64"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>__typeof__(x)<sp/>_x<sp/>=<sp/>(x);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="65"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>__typeof__(y)<sp/>_y<sp/>=<sp/>(y);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="66"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(void)(&amp;_x<sp/>==<sp/>&amp;_y);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="67"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>_x<sp/>&lt;<sp/>_y<sp/>?<sp/>_x<sp/>:<sp/>_y;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="68"><highlight class="preprocessor">})</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MAX(x,<sp/>y)<sp/>__extension__<sp/>({<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="71"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>__typeof__(x)<sp/>_x<sp/>=<sp/>(x);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="72"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>__typeof__(y)<sp/>_y<sp/>=<sp/>(y);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="73"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(void)(&amp;_x<sp/>==<sp/>&amp;_y);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="74"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>_x<sp/>&gt;<sp/>_y<sp/>?<sp/>_x<sp/>:<sp/>_y;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="75"><highlight class="preprocessor">})</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="78"><highlight class="comment"><sp/>*<sp/>The<sp/>round_up()<sp/>macro<sp/>rounds<sp/>up<sp/>a<sp/>value<sp/>to<sp/>the<sp/>given<sp/>boundary<sp/>in<sp/>a</highlight></codeline>
+<codeline lineno="79"><highlight class="comment"><sp/>*<sp/>type-agnostic<sp/>yet<sp/>type-safe<sp/>manner.<sp/>The<sp/>boundary<sp/>must<sp/>be<sp/>a<sp/>power<sp/>of<sp/>two.</highlight></codeline>
+<codeline lineno="80"><highlight class="comment"><sp/>*<sp/>In<sp/>other<sp/>words,<sp/>it<sp/>computes<sp/>the<sp/>smallest<sp/>multiple<sp/>of<sp/>boundary<sp/>which<sp/>is</highlight></codeline>
+<codeline lineno="81"><highlight class="comment"><sp/>*<sp/>greater<sp/>than<sp/>or<sp/>equal<sp/>to<sp/>value.</highlight></codeline>
+<codeline lineno="82"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="83"><highlight class="comment"><sp/>*<sp/>round_down()<sp/>is<sp/>similar<sp/>but<sp/>rounds<sp/>the<sp/>value<sp/>down<sp/>instead.</highlight></codeline>
+<codeline lineno="84"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>round_boundary(value,<sp/>boundary)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="86"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((__typeof__(value))((boundary)<sp/>-<sp/>1))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>round_up(value,<sp/>boundary)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="89"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((((value)<sp/>-<sp/>1)<sp/>|<sp/>round_boundary(value,<sp/>boundary))<sp/>+<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>round_down(value,<sp/>boundary)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="92"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((value)<sp/>&amp;<sp/>~round_boundary(value,<sp/>boundary))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="95"><highlight class="comment"><sp/>*<sp/>Evaluates<sp/>to<sp/>1<sp/>if<sp/>(ptr<sp/>+<sp/>inc)<sp/>overflows,<sp/>0<sp/>otherwise.</highlight></codeline>
+<codeline lineno="96"><highlight class="comment"><sp/>*<sp/>Both<sp/>arguments<sp/>must<sp/>be<sp/>unsigned<sp/>pointer<sp/>values<sp/>(i.e.<sp/>uintptr_t).</highlight></codeline>
+<codeline lineno="97"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>check_uptr_overflow(_ptr,<sp/>_inc)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="99"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((_ptr)<sp/>&gt;<sp/>(UINTPTR_MAX<sp/>-<sp/>(_inc)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="102"><highlight class="comment"><sp/>*<sp/>Evaluates<sp/>to<sp/>1<sp/>if<sp/>(u32<sp/>+<sp/>inc)<sp/>overflows,<sp/>0<sp/>otherwise.</highlight></codeline>
+<codeline lineno="103"><highlight class="comment"><sp/>*<sp/>Both<sp/>arguments<sp/>must<sp/>be<sp/>32-bit<sp/>unsigned<sp/>integers<sp/>(i.e.<sp/>effectively<sp/>uint32_t).</highlight></codeline>
+<codeline lineno="104"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>check_u32_overflow(_u32,<sp/>_inc)<sp/>\</highlight></codeline>
+<codeline lineno="106"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((_u32)<sp/>&gt;<sp/>(UINT32_MAX<sp/>-<sp/>(_inc)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="109"><highlight class="comment"><sp/>*<sp/>For<sp/>those<sp/>constants<sp/>to<sp/>be<sp/>shared<sp/>between<sp/>C<sp/>and<sp/>other<sp/>sources,<sp/>apply<sp/>a<sp/>&apos;U&apos;,</highlight></codeline>
+<codeline lineno="110"><highlight class="comment"><sp/>*<sp/>&apos;UL&apos;,<sp/>&apos;ULL&apos;,<sp/>&apos;L&apos;<sp/>or<sp/>&apos;LL&apos;<sp/>suffix<sp/>to<sp/>the<sp/>argument<sp/>only<sp/>in<sp/>C,<sp/>to<sp/>avoid</highlight></codeline>
+<codeline lineno="111"><highlight class="comment"><sp/>*<sp/>undefined<sp/>or<sp/>unintended<sp/>behaviour.</highlight></codeline>
+<codeline lineno="112"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="113"><highlight class="comment"><sp/>*<sp/>The<sp/>GNU<sp/>assembler<sp/>and<sp/>linker<sp/>do<sp/>not<sp/>support<sp/>these<sp/>suffixes<sp/>(it<sp/>causes<sp/>the</highlight></codeline>
+<codeline lineno="114"><highlight class="comment"><sp/>*<sp/>build<sp/>process<sp/>to<sp/>fail)<sp/>therefore<sp/>the<sp/>suffix<sp/>is<sp/>omitted<sp/>when<sp/>used<sp/>in<sp/>linker</highlight></codeline>
+<codeline lineno="115"><highlight class="comment"><sp/>*<sp/>scripts<sp/>and<sp/>assembler<sp/>files.</highlight></codeline>
+<codeline lineno="116"><highlight class="comment">*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(__LINKER__)<sp/>||<sp/>defined(__ASSEMBLY__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/><sp/><sp/>U(_x)<sp/><sp/><sp/><sp/>(_x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/><sp/>UL(_x)<sp/><sp/><sp/><sp/>(_x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/>ULL(_x)<sp/><sp/><sp/><sp/>(_x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/><sp/><sp/>L(_x)<sp/><sp/><sp/><sp/>(_x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/><sp/>LL(_x)<sp/><sp/><sp/><sp/>(_x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/><sp/><sp/>U(_x)<sp/><sp/><sp/><sp/>(_x##U)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/><sp/>UL(_x)<sp/><sp/><sp/><sp/>(_x##UL)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/>ULL(_x)<sp/><sp/><sp/><sp/>(_x##ULL)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/><sp/><sp/>L(_x)<sp/><sp/><sp/><sp/>(_x##L)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/><sp/>LL(_x)<sp/><sp/><sp/><sp/>(_x##LL)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Register<sp/>size<sp/>of<sp/>the<sp/>current<sp/>architecture.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>AARCH32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REGSZ<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(4)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REGSZ<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>U(8)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="139"><highlight class="comment"><sp/>*<sp/>Test<sp/>for<sp/>the<sp/>current<sp/>architecture<sp/>version<sp/>to<sp/>be<sp/>at<sp/>least<sp/>the<sp/>version</highlight></codeline>
+<codeline lineno="140"><highlight class="comment"><sp/>*<sp/>expected.</highlight></codeline>
+<codeline lineno="141"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ARM_ARCH_AT_LEAST(_maj,<sp/>_min)<sp/>\</highlight></codeline>
+<codeline lineno="143"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((ARM_ARCH_MAJOR<sp/>&gt;<sp/>(_maj))<sp/>||<sp/>\</highlight></codeline>
+<codeline lineno="144"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>((ARM_ARCH_MAJOR<sp/>==<sp/>(_maj))<sp/>&amp;&amp;<sp/>(ARM_ARCH_MINOR<sp/>&gt;=<sp/>(_min))))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="147"><highlight class="comment"><sp/>*<sp/>Import<sp/>an<sp/>assembly<sp/>or<sp/>linker<sp/>symbol<sp/>as<sp/>a<sp/>C<sp/>expression<sp/>with<sp/>the<sp/>specified</highlight></codeline>
+<codeline lineno="148"><highlight class="comment"><sp/>*<sp/>type</highlight></codeline>
+<codeline lineno="149"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>IMPORT_SYM(type,<sp/>sym,<sp/>name)<sp/>\</highlight></codeline>
+<codeline lineno="151"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>extern<sp/>char<sp/>sym[];\</highlight></codeline>
+<codeline lineno="152"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>static<sp/>const<sp/>__attribute__((unused))<sp/>type<sp/>name<sp/>=<sp/>(type)<sp/>sym;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="155"><highlight class="comment"><sp/>*<sp/>When<sp/>the<sp/>symbol<sp/>is<sp/>used<sp/>to<sp/>hold<sp/>a<sp/>pointer,<sp/>its<sp/>alignment<sp/>can<sp/>be<sp/>asserted</highlight></codeline>
+<codeline lineno="156"><highlight class="comment"><sp/>*<sp/>with<sp/>this<sp/>macro.<sp/>For<sp/>example,<sp/>if<sp/>there<sp/>is<sp/>a<sp/>linker<sp/>symbol<sp/>that<sp/>is<sp/>going<sp/>to</highlight></codeline>
+<codeline lineno="157"><highlight class="comment"><sp/>*<sp/>be<sp/>used<sp/>as<sp/>a<sp/>64-bit<sp/>pointer,<sp/>the<sp/>value<sp/>of<sp/>the<sp/>linker<sp/>symbol<sp/>must<sp/>also<sp/>be</highlight></codeline>
+<codeline lineno="158"><highlight class="comment"><sp/>*<sp/>aligned<sp/>to<sp/>64<sp/>bit.<sp/>This<sp/>macro<sp/>makes<sp/>sure<sp/>this<sp/>is<sp/>the<sp/>case.</highlight></codeline>
+<codeline lineno="159"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ASSERT_SYM_PTR_ALIGN(sym)<sp/>\</highlight></codeline>
+<codeline lineno="161"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>assert(((size_t)(sym)<sp/>%<sp/>__alignof__(*(sym)))<sp/>==<sp/>0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>COMPILER_BARRIER()<sp/>__asm__<sp/>volatile<sp/>(&quot;&quot;<sp/>:::<sp/>&quot;memory&quot;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Compiler<sp/>builtin<sp/>of<sp/>GCC<sp/>&gt;=<sp/>9<sp/>and<sp/>planned<sp/>in<sp/>llvm<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__HAVE_SPECULATION_SAFE_VALUE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/>SPECULATION_SAFE_VALUE(var)<sp/>__builtin_speculation_safe_value(var)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="preprocessor">#<sp/>define<sp/>SPECULATION_SAFE_VALUE(var)<sp/>var</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_UTILS_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/utils.h"/>
+  </compounddef>
+</doxygen>

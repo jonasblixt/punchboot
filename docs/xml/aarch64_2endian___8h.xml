@@ -1,0 +1,365 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="aarch64_2endian___8h" kind="file" language="C++">
+    <compoundname>endian_.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includedby refid="endian_8h" local="no">/docs/include/pb/libc/endian.h</includedby>
+    <incdepgraph>
+      <node id="242">
+        <label>stdint_.h</label>
+      </node>
+      <node id="240">
+        <label>/docs/include/pb/libc/aarch64/endian_.h</label>
+        <link refid="aarch64_2endian___8h"/>
+        <childnode refid="241" relation="include">
+        </childnode>
+      </node>
+      <node id="241">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="242" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="243">
+        <label>/docs/include/pb/libc/aarch64/endian_.h</label>
+        <link refid="aarch64_2endian___8h"/>
+        <childnode refid="244" relation="include">
+        </childnode>
+      </node>
+      <node id="244">
+        <label>/docs/include/pb/libc/endian.h</label>
+        <link refid="endian_8h_source"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="aarch64_2endian___8h_1a5d99495913bef59732f11727834e50bf" prot="public" static="no">
+        <name>_LITTLE_ENDIAN</name>
+        <initializer>1234    /* LSB first: i386, vax */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="48" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1a2f0abcd30dd2d135427857502e0e709c" prot="public" static="no">
+        <name>_BIG_ENDIAN</name>
+        <initializer>4321    /* MSB first: 68000, ibm, net */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="49" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1aca6b90c7eb2dcfb8676d52c36340d4f7" prot="public" static="no">
+        <name>_PDP_ENDIAN</name>
+        <initializer>3412    /* LSB first in word, MSW first in long */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="50" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1ab1064514796177b18c84cccb918f4735" prot="public" static="no">
+        <name>_BYTE_ORDER</name>
+        <initializer>_LITTLE_ENDIAN</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="52" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1a7eaac45d4115e3143a8775abb93c2eed" prot="public" static="no">
+        <name>_QUAD_HIGHWORD</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="61" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1aba97a56cb953e7c610c1877249774951" prot="public" static="no">
+        <name>_QUAD_LOWWORD</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="62" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1ab1d1a7caf5e80ad8df9877da65baced7" prot="public" static="no">
+        <name>__ntohl</name>
+        <param><defname>x</defname></param>
+        <initializer>(__bswap32(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="63" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1a4a71b41c8daa01c80f1d9f6fe8885fd9" prot="public" static="no">
+        <name>__ntohs</name>
+        <param><defname>x</defname></param>
+        <initializer>(__bswap16(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="64" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1a8a177ea506664de448e3731fc1fb9f4e" prot="public" static="no">
+        <name>__htonl</name>
+        <param><defname>x</defname></param>
+        <initializer>(__bswap32(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="65" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1a7e336522e166999138224c27b08ce9b6" prot="public" static="no">
+        <name>__htons</name>
+        <param><defname>x</defname></param>
+        <initializer>(__bswap16(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="66" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1a7acc0b9efdcd291ced0e8c7677ff346e" prot="public" static="no">
+        <name>__bswap16</name>
+        <param><defname>x</defname></param>
+        <initializer>__bswap16_var(x)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="124" column="13" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="aarch64_2endian___8h_1a5549763737b6ce4d115477cf341af1d6" prot="public" static="no">
+        <name>__bswap32</name>
+        <param><defname>x</defname></param>
+        <initializer>__bswap32_var(x)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="125" column="12" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="aarch64_2endian___8h_1a1a06515ab7d074e580eafbc48dd29e89" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint64_t</type>
+        <definition>static __inline uint64_t __bswap64</definition>
+        <argsstring>(uint64_t x)</argsstring>
+        <name>__bswap64</name>
+        <param>
+          <type>uint64_t</type>
+          <declname>x</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="69" column="1" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="69" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="aarch64_2endian___8h_1a015aa36cec45a8359547dc4a0ae00eed" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint32_t</type>
+        <definition>static __inline uint32_t __bswap32_var</definition>
+        <argsstring>(uint32_t v)</argsstring>
+        <name>__bswap32_var</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="80" column="1" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="80" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="aarch64_2endian___8h_1aa1620895ac2fe4f83605f8d80b323ef4" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint16_t</type>
+        <definition>static __inline uint16_t __bswap16_var</definition>
+        <argsstring>(uint16_t v)</argsstring>
+        <name>__bswap16_var</name>
+        <param>
+          <type>uint16_t</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/aarch64/endian_.h" line="91" column="1" bodyfile="/docs/include/pb/libc/aarch64/endian_.h" bodystart="91" bodyend="99"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*-</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2001<sp/>David<sp/>E.<sp/>O&apos;Brien</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"><sp/>*<sp/>Redistribution<sp/>and<sp/>use<sp/>in<sp/>source<sp/>and<sp/>binary<sp/>forms,<sp/>with<sp/>or<sp/>without</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*<sp/>modification,<sp/>are<sp/>permitted<sp/>provided<sp/>that<sp/>the<sp/>following<sp/>conditions</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>are<sp/>met:</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>1.<sp/>Redistributions<sp/>of<sp/>source<sp/>code<sp/>must<sp/>retain<sp/>the<sp/>above<sp/>copyright</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following<sp/>disclaimer.</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>*<sp/>2.<sp/>Redistributions<sp/>in<sp/>binary<sp/>form<sp/>must<sp/>reproduce<sp/>the<sp/>above<sp/>copyright</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following<sp/>disclaimer<sp/>in<sp/>the</highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>documentation<sp/>and/or<sp/>other<sp/>materials<sp/>provided<sp/>with<sp/>the<sp/>distribution.</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"><sp/>*<sp/>3.<sp/>Neither<sp/>the<sp/>name<sp/>of<sp/>the<sp/>University<sp/>nor<sp/>the<sp/>names<sp/>of<sp/>its<sp/>contributors</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>may<sp/>be<sp/>used<sp/>to<sp/>endorse<sp/>or<sp/>promote<sp/>products<sp/>derived<sp/>from<sp/>this<sp/>software</highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>without<sp/>specific<sp/>prior<sp/>written<sp/>permission.</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/>THIS<sp/>SOFTWARE<sp/>IS<sp/>PROVIDED<sp/>BY<sp/>THE<sp/>REGENTS<sp/>AND<sp/>CONTRIBUTORS<sp/>``AS<sp/>IS&apos;&apos;<sp/>AND</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>ANY<sp/>EXPRESS<sp/>OR<sp/>IMPLIED<sp/>WARRANTIES,<sp/>INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>THE</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*<sp/>IMPLIED<sp/>WARRANTIES<sp/>OF<sp/>MERCHANTABILITY<sp/>AND<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/>ARE<sp/>DISCLAIMED.<sp/><sp/>IN<sp/>NO<sp/>EVENT<sp/>SHALL<sp/>THE<sp/>REGENTS<sp/>OR<sp/>CONTRIBUTORS<sp/>BE<sp/>LIABLE</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/>FOR<sp/>ANY<sp/>DIRECT,<sp/>INDIRECT,<sp/>INCIDENTAL,<sp/>SPECIAL,<sp/>EXEMPLARY,<sp/>OR<sp/>CONSEQUENTIAL</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*<sp/>DAMAGES<sp/>(INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>PROCUREMENT<sp/>OF<sp/>SUBSTITUTE<sp/>GOODS</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/>OR<sp/>SERVICES;<sp/>LOSS<sp/>OF<sp/>USE,<sp/>DATA,<sp/>OR<sp/>PROFITS;<sp/>OR<sp/>BUSINESS<sp/>INTERRUPTION)</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*<sp/>HOWEVER<sp/>CAUSED<sp/>AND<sp/>ON<sp/>ANY<sp/>THEORY<sp/>OF<sp/>LIABILITY,<sp/>WHETHER<sp/>IN<sp/>CONTRACT,<sp/>STRICT</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*<sp/>LIABILITY,<sp/>OR<sp/>TORT<sp/>(INCLUDING<sp/>NEGLIGENCE<sp/>OR<sp/>OTHERWISE)<sp/>ARISING<sp/>IN<sp/>ANY<sp/>WAY</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"><sp/>*<sp/>OUT<sp/>OF<sp/>THE<sp/>USE<sp/>OF<sp/>THIS<sp/>SOFTWARE,<sp/>EVEN<sp/>IF<sp/>ADVISED<sp/>OF<sp/>THE<sp/>POSSIBILITY<sp/>OF</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*<sp/>SUCH<sp/>DAMAGE.</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>@(#)endian.h<sp/><sp/><sp/><sp/>8.1<sp/>(Berkeley)<sp/>6/10/93</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*<sp/>$NetBSD:<sp/>endian.h,v<sp/>1.7<sp/>1999/08/21<sp/>05:53:51<sp/>simonb<sp/>Exp<sp/>$</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*<sp/>$FreeBSD$</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="35"><highlight class="comment"><sp/>*<sp/>Portions<sp/>copyright<sp/>(c)<sp/>2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.</highlight></codeline>
+<codeline lineno="36"><highlight class="comment"><sp/>*<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="37"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_LIBC_AARCH64_ENDIAN__H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_LIBC_AARCH64_ENDIAN__H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="45"><highlight class="comment"><sp/>*<sp/>Definitions<sp/>for<sp/>byte<sp/>order,<sp/>according<sp/>to<sp/>byte<sp/>significance<sp/>from<sp/>low</highlight></codeline>
+<codeline lineno="46"><highlight class="comment"><sp/>*<sp/>address<sp/>to<sp/>high.</highlight></codeline>
+<codeline lineno="47"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>_LITTLE_ENDIAN<sp/><sp/>1234<sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>LSB<sp/>first:<sp/>i386,<sp/>vax<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>_BIG_ENDIAN<sp/><sp/><sp/><sp/><sp/>4321<sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>MSB<sp/>first:<sp/>68000,<sp/>ibm,<sp/>net<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>_PDP_ENDIAN<sp/><sp/><sp/><sp/><sp/>3412<sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>LSB<sp/>first<sp/>in<sp/>word,<sp/>MSW<sp/>first<sp/>in<sp/>long<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>_BYTE_ORDER<sp/><sp/><sp/><sp/>_LITTLE_ENDIAN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>__BSD_VISIBLE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>LITTLE_ENDIAN<sp/><sp/><sp/>_LITTLE_ENDIAN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>BIG_ENDIAN<sp/><sp/><sp/><sp/><sp/><sp/>_BIG_ENDIAN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>PDP_ENDIAN<sp/><sp/><sp/><sp/><sp/><sp/>_PDP_ENDIAN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>BYTE_ORDER<sp/><sp/><sp/><sp/><sp/><sp/>_BYTE_ORDER</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>_QUAD_HIGHWORD<sp/><sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>_QUAD_LOWWORD<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__ntohl(x)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(__bswap32(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__ntohs(x)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(__bswap16(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__htonl(x)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(__bswap32(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__htons(x)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(__bswap16(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint64_t</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">__bswap64(uint64_t<sp/>x)</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>uint64_t<sp/>ret;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>__asm<sp/>__volatile(</highlight><highlight class="stringliteral">&quot;rev<sp/>%0,<sp/>%1\n&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;=&amp;r&quot;</highlight><highlight class="normal"><sp/>(ret),<sp/></highlight><highlight class="stringliteral">&quot;+r&quot;</highlight><highlight class="normal"><sp/>(x));</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(ret);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint32_t</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">__bswap32_var(uint32_t<sp/>v)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>ret;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>__asm<sp/>__volatile(</highlight><highlight class="stringliteral">&quot;rev32<sp/>%x0,<sp/>%x1\n&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;=&amp;r&quot;</highlight><highlight class="normal"><sp/>(ret),<sp/></highlight><highlight class="stringliteral">&quot;+r&quot;</highlight><highlight class="normal"><sp/>(v));</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(ret);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint16_t</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">__bswap16_var(uint16_t<sp/>v)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>ret;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>__asm<sp/>__volatile(</highlight><highlight class="stringliteral">&quot;rev16<sp/>%w0,<sp/>%w1\n&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;=&amp;r&quot;</highlight><highlight class="normal"><sp/>(ret),<sp/></highlight><highlight class="stringliteral">&quot;+r&quot;</highlight><highlight class="normal"><sp/>(v));</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((uint16_t)ret);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__OPTIMIZE__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__bswap32_constant(x)<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="104"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((((x)<sp/>&amp;<sp/>0xff000000U)<sp/>&gt;&gt;<sp/>24)<sp/>|<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="105"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>(((x)<sp/>&amp;<sp/>0x00ff0000U)<sp/>&gt;&gt;<sp/><sp/>8)<sp/>|<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="106"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>(((x)<sp/>&amp;<sp/>0x0000ff00U)<sp/>&lt;&lt;<sp/><sp/>8)<sp/>|<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="107"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>(((x)<sp/>&amp;<sp/>0x000000ffU)<sp/>&lt;&lt;<sp/>24))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__bswap16_constant(x)<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="110"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((((x)<sp/>&amp;<sp/>0xff00)<sp/>&gt;&gt;<sp/>8)<sp/>|<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="111"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>(((x)<sp/>&amp;<sp/>0x00ff)<sp/>&lt;&lt;<sp/>8))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__bswap16(x)<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="114"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((uint16_t)(__builtin_constant_p(x)<sp/>?<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="115"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>__bswap16_constant((uint16_t)(x))<sp/>:<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="116"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>__bswap16_var(x)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__bswap32(x)<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="119"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>((uint32_t)(__builtin_constant_p(x)<sp/>?<sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="120"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>__bswap32_constant((uint32_t)(x))<sp/>:<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="121"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>__bswap32_var(x)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__bswap16(x)<sp/><sp/><sp/><sp/>__bswap16_var(x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>__bswap32(x)<sp/><sp/><sp/><sp/>__bswap32_var(x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>__OPTIMIZE__<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_LIBC_AARCH64_ENDIAN__H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/libc/aarch64/endian_.h"/>
+  </compounddef>
+</doxygen>

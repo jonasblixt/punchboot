@@ -1,0 +1,38 @@
+\hypertarget{structbr__aes__x86ni__ctr__keys}{}\section{br\+\_\+aes\+\_\+x86ni\+\_\+ctr\+\_\+keys Struct Reference}
+\label{structbr__aes__x86ni__ctr__keys}\index{br\+\_\+aes\+\_\+x86ni\+\_\+ctr\+\_\+keys@{br\+\_\+aes\+\_\+x86ni\+\_\+ctr\+\_\+keys}}
+
+
+Context for A\+ES subkeys ({\ttfamily aes\+\_\+x86ni} implementation, C\+TR encryption and decryption).  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+block.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__aes__x86ni__ctr__keys_abfd1aa4d5d363932acc554dd958aabde}\label{structbr__aes__x86ni__ctr__keys_abfd1aa4d5d363932acc554dd958aabde}} 
+const \hyperlink{bearssl__block_8h_a8934ac58af503220bfb6e6cbc2cfb209}{br\+\_\+block\+\_\+ctr\+\_\+class} $\ast$ \hyperlink{structbr__aes__x86ni__ctr__keys_abfd1aa4d5d363932acc554dd958aabde}{vtable}
+\begin{DoxyCompactList}\small\item\em Pointer to vtable for this context. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__aes__x86ni__ctr__keys_a5ba98b209e5703d17930a985913873fc}\label{structbr__aes__x86ni__ctr__keys_a5ba98b209e5703d17930a985913873fc}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\>unsigned char {\bfseries skni} \mbox{[}16 $\ast$15\mbox{]}\\
+\} {\bfseries skey}\\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{structbr__aes__x86ni__ctr__keys_a224e846115d5c1e73d2110ff25f6bda9}\label{structbr__aes__x86ni__ctr__keys_a224e846115d5c1e73d2110ff25f6bda9}} 
+unsigned {\bfseries num\+\_\+rounds}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Context for A\+ES subkeys ({\ttfamily aes\+\_\+x86ni} implementation, C\+TR encryption and decryption). 
+
+First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__block_8h}{bearssl\+\_\+block.\+h}\end{DoxyCompactItemize}

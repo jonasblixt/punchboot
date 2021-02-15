@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__timestamp" kind="struct" language="C++" prot="public">
+    <compoundname>pb_timestamp</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__timestamp_1ab691fdd70fcbecbc0434a6dd6ca4e20f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_timestamp::begin_ts_us</definition>
+        <argsstring></argsstring>
+        <name>begin_ts_us</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/timestamp.h" line="27" column="1" bodyfile="/docs/include/pb/timestamp.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__timestamp_1adbb3b12132d65cad2398c2b418b5b7a6" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_timestamp::end_ts_us</definition>
+        <argsstring></argsstring>
+        <name>end_ts_us</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/timestamp.h" line="28" column="1" bodyfile="/docs/include/pb/timestamp.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__timestamp_1a6467d5961245604922fa4af84f86ef7f" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* pb_timestamp::description</definition>
+        <argsstring></argsstring>
+        <name>description</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/timestamp.h" line="29" column="1" bodyfile="/docs/include/pb/timestamp.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__timestamp_1a29a900b3e1026bdd935e9523fa39b937" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structpb__timestamp" kindref="compound">pb_timestamp</ref> *</type>
+        <definition>struct pb_timestamp* pb_timestamp::next</definition>
+        <argsstring></argsstring>
+        <name>next</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/timestamp.h" line="30" column="1" bodyfile="/docs/include/pb/timestamp.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="359">
+        <label>pb_timestamp</label>
+        <link refid="structpb__timestamp"/>
+        <childnode refid="359" relation="usage">
+          <edgelabel>next</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/include/pb/timestamp.h" line="26" column="1" bodyfile="/docs/include/pb/timestamp.h" bodystart="25" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structpb__timestamp_1ab691fdd70fcbecbc0434a6dd6ca4e20f" prot="public" virt="non-virtual"><scope>pb_timestamp</scope><name>begin_ts_us</name></member>
+      <member refid="structpb__timestamp_1a6467d5961245604922fa4af84f86ef7f" prot="public" virt="non-virtual"><scope>pb_timestamp</scope><name>description</name></member>
+      <member refid="structpb__timestamp_1adbb3b12132d65cad2398c2b418b5b7a6" prot="public" virt="non-virtual"><scope>pb_timestamp</scope><name>end_ts_us</name></member>
+      <member refid="structpb__timestamp_1a29a900b3e1026bdd935e9523fa39b937" prot="public" virt="non-virtual"><scope>pb_timestamp</scope><name>next</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

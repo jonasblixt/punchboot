@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="unionbr__union__u16" kind="union" language="C++" prot="public">
+    <compoundname>br_union_u16</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionbr__union__u16_1abfc629d1372cd1364922319f5dde167e" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t br_union_u16::u</definition>
+        <argsstring></argsstring>
+        <name>u</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="453" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="453" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionbr__union__u16_1a41e4316c0487dd01cf0dec91acfc13d3" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_union_u16::b[sizeof(uint16_t)]</definition>
+        <argsstring>[sizeof(uint16_t)]</argsstring>
+        <name>b</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/inner.h" line="454" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="454" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/inner.h" line="452" column="1" bodyfile="/docs/lib/bearssl/inner.h" bodystart="452" bodyend="455"/>
+    <listofallmembers>
+      <member refid="unionbr__union__u16_1a41e4316c0487dd01cf0dec91acfc13d3" prot="public" virt="non-virtual"><scope>br_union_u16</scope><name>b</name></member>
+      <member refid="unionbr__union__u16_1abfc629d1372cd1364922319f5dde167e" prot="public" virt="non-virtual"><scope>br_union_u16</scope><name>u</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

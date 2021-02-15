@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__multihash__context" kind="struct" language="C++" prot="public">
+    <compoundname>br_multihash_context</compoundname>
+    <includes refid="bearssl__hash_8h" local="no">bearssl_hash.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__multihash__context_1a7c3e73fba08eb084b42dcc6e8c7d27e8" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_multihash_context::buf[128]</definition>
+        <argsstring>[128]</argsstring>
+        <name>buf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1109" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__multihash__context_1ab006765daf9fa7e8bceba62579da9878" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t br_multihash_context::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1110" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__multihash__context_1abf44ad4f1169dda14e16609cbecc5d9c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_multihash_context::val_32[25]</definition>
+        <argsstring>[25]</argsstring>
+        <name>val_32</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1111" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__multihash__context_1a81009588ed9a32b512d3da1ca8d1cd6a" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t br_multihash_context::val_64[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>val_64</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1112" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__multihash__context_1a4818d658223b1f425b60015f43bb2fbb" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+        <definition>const br_hash_class* br_multihash_context::impl[6]</definition>
+        <argsstring>[6]</argsstring>
+        <name>impl</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1113" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1113" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Multi-hasher context structure. </para>    </briefdescription>
+    <detaileddescription>
+<para>The multi-hasher runs up to six hash functions in the standard TLS list (MD5, SHA-1, SHA-224, SHA-256, SHA-384 and SHA-512) in parallel, over the same input.</para><para>The multi-hasher does <emphasis>not</emphasis> follow the OOP structure with a vtable. Instead, it is configured with the vtables of the hash functions it should run. Structure fields are not supposed to be accessed directly. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="209">
+        <label>br_hash_class_</label>
+        <link refid="structbr__hash__class__"/>
+      </node>
+      <node id="208">
+        <label>br_multihash_context</label>
+        <link refid="structbr__multihash__context"/>
+        <childnode refid="209" relation="usage">
+          <edgelabel>impl</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_hash.h" line="1107" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1107" bodyend="1115"/>
+    <listofallmembers>
+      <member refid="structbr__multihash__context_1a7c3e73fba08eb084b42dcc6e8c7d27e8" prot="public" virt="non-virtual"><scope>br_multihash_context</scope><name>buf</name></member>
+      <member refid="structbr__multihash__context_1ab006765daf9fa7e8bceba62579da9878" prot="public" virt="non-virtual"><scope>br_multihash_context</scope><name>count</name></member>
+      <member refid="structbr__multihash__context_1a4818d658223b1f425b60015f43bb2fbb" prot="public" virt="non-virtual"><scope>br_multihash_context</scope><name>impl</name></member>
+      <member refid="structbr__multihash__context_1abf44ad4f1169dda14e16609cbecc5d9c" prot="public" virt="non-virtual"><scope>br_multihash_context</scope><name>val_32</name></member>
+      <member refid="structbr__multihash__context_1a81009588ed9a32b512d3da1ca8d1cd6a" prot="public" virt="non-virtual"><scope>br_multihash_context</scope><name>val_64</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__usb__interface" kind="struct" language="C++" prot="public">
+    <compoundname>pb_usb_interface</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__usb__interface_1a89048c2b97ec0760b94a34dd515820f0" prot="public" static="no" mutable="no">
+        <type>pb_usb_io_t</type>
+        <definition>pb_usb_io_t pb_usb_interface::read</definition>
+        <argsstring></argsstring>
+        <name>read</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="152" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__usb__interface_1a9765ec96f8214b1b0b4e12eef28c8f7b" prot="public" static="no" mutable="no">
+        <type>pb_usb_io_t</type>
+        <definition>pb_usb_io_t pb_usb_interface::write</definition>
+        <argsstring></argsstring>
+        <name>write</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="153" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__usb__interface_1afb980960e64261457b6c0ddede1da46d" prot="public" static="no" mutable="no">
+        <type>pb_usb_call_t</type>
+        <definition>pb_usb_call_t pb_usb_interface::set_configuration</definition>
+        <argsstring></argsstring>
+        <name>set_configuration</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="154" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__usb__interface_1aa3f37d9a2738a2e25059dd74a01c1901" prot="public" static="no" mutable="no">
+        <type>pb_usb_set_addr_t</type>
+        <definition>pb_usb_set_addr_t pb_usb_interface::set_address</definition>
+        <argsstring></argsstring>
+        <name>set_address</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="155" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__usb__interface_1acc52117398fe9d3c9445f392ed76aae8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool pb_usb_interface::enumerated</definition>
+        <argsstring></argsstring>
+        <name>enumerated</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="156" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/usb.h" line="151" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="150" bodyend="157"/>
+    <listofallmembers>
+      <member refid="structpb__usb__interface_1acc52117398fe9d3c9445f392ed76aae8" prot="public" virt="non-virtual"><scope>pb_usb_interface</scope><name>enumerated</name></member>
+      <member refid="structpb__usb__interface_1a89048c2b97ec0760b94a34dd515820f0" prot="public" virt="non-virtual"><scope>pb_usb_interface</scope><name>read</name></member>
+      <member refid="structpb__usb__interface_1aa3f37d9a2738a2e25059dd74a01c1901" prot="public" virt="non-virtual"><scope>pb_usb_interface</scope><name>set_address</name></member>
+      <member refid="structpb__usb__interface_1afb980960e64261457b6c0ddede1da46d" prot="public" virt="non-virtual"><scope>pb_usb_interface</scope><name>set_configuration</name></member>
+      <member refid="structpb__usb__interface_1a9765ec96f8214b1b0b4e12eef28c8f7b" prot="public" virt="non-virtual"><scope>pb_usb_interface</scope><name>write</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

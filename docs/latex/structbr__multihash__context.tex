@@ -1,0 +1,41 @@
+\hypertarget{structbr__multihash__context}{}\section{br\+\_\+multihash\+\_\+context Struct Reference}
+\label{structbr__multihash__context}\index{br\+\_\+multihash\+\_\+context@{br\+\_\+multihash\+\_\+context}}
+
+
+Multi-\/hasher context structure.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+hash.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__multihash__context_a7c3e73fba08eb084b42dcc6e8c7d27e8}\label{structbr__multihash__context_a7c3e73fba08eb084b42dcc6e8c7d27e8}} 
+unsigned char {\bfseries buf} \mbox{[}128\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__multihash__context_ab006765daf9fa7e8bceba62579da9878}\label{structbr__multihash__context_ab006765daf9fa7e8bceba62579da9878}} 
+uint64\+\_\+t {\bfseries count}
+\item 
+\mbox{\Hypertarget{structbr__multihash__context_abf44ad4f1169dda14e16609cbecc5d9c}\label{structbr__multihash__context_abf44ad4f1169dda14e16609cbecc5d9c}} 
+uint32\+\_\+t {\bfseries val\+\_\+32} \mbox{[}25\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__multihash__context_a81009588ed9a32b512d3da1ca8d1cd6a}\label{structbr__multihash__context_a81009588ed9a32b512d3da1ca8d1cd6a}} 
+uint64\+\_\+t {\bfseries val\+\_\+64} \mbox{[}16\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__multihash__context_a4818d658223b1f425b60015f43bb2fbb}\label{structbr__multihash__context_a4818d658223b1f425b60015f43bb2fbb}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$ {\bfseries impl} \mbox{[}6\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Multi-\/hasher context structure. 
+
+The multi-\/hasher runs up to six hash functions in the standard T\+LS list (M\+D5, S\+H\+A-\/1, S\+H\+A-\/224, S\+H\+A-\/256, S\+H\+A-\/384 and S\+H\+A-\/512) in parallel, over the same input.
+
+The multi-\/hasher does {\itshape not} follow the O\+OP structure with a vtable. Instead, it is configured with the vtables of the hash functions it should run. Structure fields are not supposed to be accessed directly. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__hash_8h}{bearssl\+\_\+hash.\+h}\end{DoxyCompactItemize}

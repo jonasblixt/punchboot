@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structmmap__region" kind="struct" language="C++" prot="public">
+    <compoundname>mmap_region</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmmap__region_1aa504eb9a95df5f3c2b25d1ade584baac" prot="public" static="no" mutable="no">
+        <type>unsigned long long</type>
+        <definition>unsigned long long mmap_region::base_pa</definition>
+        <argsstring></argsstring>
+        <name>base_pa</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="79" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmmap__region_1aef965e3a5c0314f09c73099fd9591d27" prot="public" static="no" mutable="no">
+        <type>uintptr_t</type>
+        <definition>uintptr_t mmap_region::base_va</definition>
+        <argsstring></argsstring>
+        <name>base_va</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="80" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmmap__region_1af65c54f482b71203d92c84986c498b71" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t mmap_region::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="81" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmmap__region_1a9c19a01be7bde3f5216f2c314ec37ddb" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int mmap_region::attr</definition>
+        <argsstring></argsstring>
+        <name>attr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="82" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmmap__region_1adec7918c33da9cffab49de41946a299a" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t mmap_region::granularity</definition>
+        <argsstring></argsstring>
+        <name>granularity</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/xlat_tables_v2.h" line="140" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables_v2.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/xlat_tables/xlat_tables.h" line="78" column="1" bodyfile="/docs/include/pb/xlat_tables/xlat_tables.h" bodystart="78" bodyend="83"/>
+    <listofallmembers>
+      <member refid="structmmap__region_1a9c19a01be7bde3f5216f2c314ec37ddb" prot="public" virt="non-virtual"><scope>mmap_region</scope><name>attr</name></member>
+      <member refid="structmmap__region_1aa504eb9a95df5f3c2b25d1ade584baac" prot="public" virt="non-virtual"><scope>mmap_region</scope><name>base_pa</name></member>
+      <member refid="structmmap__region_1aef965e3a5c0314f09c73099fd9591d27" prot="public" virt="non-virtual"><scope>mmap_region</scope><name>base_va</name></member>
+      <member refid="structmmap__region_1adec7918c33da9cffab49de41946a299a" prot="public" virt="non-virtual"><scope>mmap_region</scope><name>granularity</name></member>
+      <member refid="structmmap__region_1af65c54f482b71203d92c84986c498b71" prot="public" virt="non-virtual"><scope>mmap_region</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

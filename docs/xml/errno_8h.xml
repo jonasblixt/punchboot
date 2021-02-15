@@ -1,0 +1,1275 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="errno_8h" kind="file" language="C++">
+    <compoundname>errno.h</compoundname>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="errno_8h_1add669d31505a077f769cff8e66c780b3" prot="public" static="no">
+        <name>EPERM</name>
+        <initializer>1        /* Operation not permitted */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="47" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a03e689f378f643d16ea7537918528a48" prot="public" static="no">
+        <name>ENOENT</name>
+        <initializer>2        /* No such file or directory */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="48" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a462e47a8af6288232a5df548221ada4c" prot="public" static="no">
+        <name>ESRCH</name>
+        <initializer>3        /* No such process */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="49" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a46b83d9f6c23b1b65a8cecfd775ddaed" prot="public" static="no">
+        <name>EINTR</name>
+        <initializer>4        /* Interrupted system call */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="50" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a70979f50f9c83e5aebab3d6a1bd4cf35" prot="public" static="no">
+        <name>EIO</name>
+        <initializer>5        /* Input/output error */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="51" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a2b3884b11e4932bd372bb6d899d6fbfe" prot="public" static="no">
+        <name>ENXIO</name>
+        <initializer>6        /* Device not configured */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="52" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aba8481985c201ff726f349d7f2d09895" prot="public" static="no">
+        <name>E2BIG</name>
+        <initializer>7        /* Argument list too long */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="53" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a4d0b1b435ec441e7d50a430b83df5832" prot="public" static="no">
+        <name>ENOEXEC</name>
+        <initializer>8        /* Exec format error */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="54" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ac54507d66b43ad12f9356257323c0018" prot="public" static="no">
+        <name>EBADF</name>
+        <initializer>9        /* Bad file descriptor */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="55" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a47b42c351e0e011a048058d224205c0f" prot="public" static="no">
+        <name>ECHILD</name>
+        <initializer>10        /* No child processes */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="56" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a55cc70ce0ba661298f3c412095dfeeb6" prot="public" static="no">
+        <name>EDEADLK</name>
+        <initializer>11        /* Resource deadlock avoided */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="57" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a6a05c923dad0c1208043e9c20a58c8e5" prot="public" static="no">
+        <name>ENOMEM</name>
+        <initializer>12        /* Cannot allocate memory */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="59" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ac2a2e9fa555401f94478f74e01868032" prot="public" static="no">
+        <name>EACCES</name>
+        <initializer>13        /* Permission denied */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="60" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a3f317946e043623f9d6b93dbf60e6316" prot="public" static="no">
+        <name>EFAULT</name>
+        <initializer>14        /* Bad address */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="61" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aa0a4b0e307e83f52be51099f01156936" prot="public" static="no">
+        <name>ENOTBLK</name>
+        <initializer>15        /* Block device required */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="62" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a8368025077a0385849d6817b2007c095" prot="public" static="no">
+        <name>EBUSY</name>
+        <initializer>16        /* Device busy */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="63" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a0a3bef9e5c47e42917692b5dae3b5498" prot="public" static="no">
+        <name>EEXIST</name>
+        <initializer>17        /* File exists */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="64" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a3396cf9fb0ff5af3a18dd2a2bbdb21e1" prot="public" static="no">
+        <name>EXDEV</name>
+        <initializer>18        /* Cross-device link */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="65" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ab9b8cc17d1947160d13faaba7a18d6d1" prot="public" static="no">
+        <name>ENODEV</name>
+        <initializer>19        /* Operation not supported by device */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="66" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a9262fb92f7ef662d0bdd577912a5b101" prot="public" static="no">
+        <name>ENOTDIR</name>
+        <initializer>20        /* Not a directory */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="67" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ae22c3a1e0a38f3896de238cc30d0e19b" prot="public" static="no">
+        <name>EISDIR</name>
+        <initializer>21        /* Is a directory */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="68" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a2d1678d5a7cc8ce499643f3b8957def4" prot="public" static="no">
+        <name>EINVAL</name>
+        <initializer>22        /* Invalid argument */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="69" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a5554094b3fb4bb6ebeb0157cb3f82a55" prot="public" static="no">
+        <name>ENFILE</name>
+        <initializer>23        /* Too many open files in system */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="70" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a64a75c174882ddbfa726c7fd040f87a1" prot="public" static="no">
+        <name>EMFILE</name>
+        <initializer>24        /* Too many open files */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="71" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ac3daf409082bb528032f4452a81e1034" prot="public" static="no">
+        <name>ENOTTY</name>
+        <initializer>25        /* Inappropriate ioctl for device */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="72" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aaed12e82224923d599b6f1939c8e0971" prot="public" static="no">
+        <name>ETXTBSY</name>
+        <initializer>26        /* Text file busy */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="73" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1af5401a500939ed1812c04ca200b95eef" prot="public" static="no">
+        <name>EFBIG</name>
+        <initializer>27        /* File too large */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="74" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a088abe8bad2df798edad3053d719b937" prot="public" static="no">
+        <name>ENOSPC</name>
+        <initializer>28        /* No space left on device */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="75" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a0e42d4f9fecdcf5fcca2b333252173c3" prot="public" static="no">
+        <name>ESPIPE</name>
+        <initializer>29        /* Illegal seek */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="76" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1acb02bb67dddd7ca8cf82634a0781d58d" prot="public" static="no">
+        <name>EROFS</name>
+        <initializer>30        /* Read-only filesystem */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="77" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a97f59fa1a5a2f61b792c1b9dfc218072" prot="public" static="no">
+        <name>EMLINK</name>
+        <initializer>31        /* Too many links */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="78" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a5f8d33deb08fa27c04897b278ac7f965" prot="public" static="no">
+        <name>EPIPE</name>
+        <initializer>32        /* Broken pipe */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="79" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a5fe247e079b591a68e0fdbf7caec5b70" prot="public" static="no">
+        <name>EDOM</name>
+        <initializer>33        /* Numerical argument out of domain */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="82" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aa1591a4f3a86360108de5b9ba34980ca" prot="public" static="no">
+        <name>ERANGE</name>
+        <initializer>34        /* Result too large */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="83" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1af0fac1cea1165b4debec7f686edf3313" prot="public" static="no">
+        <name>EAGAIN</name>
+        <initializer>35        /* Resource temporarily unavailable */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="86" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a4a3a0b3605fd3b2336455062ee8e25f0" prot="public" static="no">
+        <name>EWOULDBLOCK</name>
+        <initializer>EAGAIN        /* Operation would block */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="87" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a6c045d5be06e715cc335784a7320714e" prot="public" static="no">
+        <name>EINPROGRESS</name>
+        <initializer>36        /* Operation now in progress */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="88" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aa4ccb54aa806de3e41a8515f06db85d4" prot="public" static="no">
+        <name>EALREADY</name>
+        <initializer>37        /* Operation already in progress */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="89" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ae34fa7a550ac1c415daa2e114a1c0f38" prot="public" static="no">
+        <name>ENOTSOCK</name>
+        <initializer>38        /* Socket operation on non-socket */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="92" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a0e416d3478cf030e37e90c55d68ad97a" prot="public" static="no">
+        <name>EDESTADDRREQ</name>
+        <initializer>39        /* Destination address required */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="93" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ae37becfaa095a9df5c5c788bce5aa06f" prot="public" static="no">
+        <name>EMSGSIZE</name>
+        <initializer>40        /* Message too long */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="94" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ae6014faa948366b8321d755204acf755" prot="public" static="no">
+        <name>EPROTOTYPE</name>
+        <initializer>41        /* Protocol wrong type for socket */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="95" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1acd570f8ab92198653b4459773dc3bca3" prot="public" static="no">
+        <name>ENOPROTOOPT</name>
+        <initializer>42        /* Protocol not available */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="96" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ad581c46fdd4dee9419f60eaff40415e7" prot="public" static="no">
+        <name>EPROTONOSUPPORT</name>
+        <initializer>43        /* Protocol not supported */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="97" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a891103a0628442461b41d4d85fb6d945" prot="public" static="no">
+        <name>ESOCKTNOSUPPORT</name>
+        <initializer>44        /* Socket type not supported */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="98" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a4b807895c74cea4d0302bf27725d4b9d" prot="public" static="no">
+        <name>EOPNOTSUPP</name>
+        <initializer>45        /* Operation not supported */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="99" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a91457bbf35f0f1085619a99423bb1f33" prot="public" static="no">
+        <name>ENOTSUP</name>
+        <initializer>EOPNOTSUPP    /* Operation not supported */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="100" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a871b9fabb281dbc2d3b81cb79c163c20" prot="public" static="no">
+        <name>EPFNOSUPPORT</name>
+        <initializer>46        /* Protocol family not supported */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="101" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a4c3a793b4d51cb7dd020af92e536fe21" prot="public" static="no">
+        <name>EAFNOSUPPORT</name>
+        <initializer>47</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="104" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a61676e39b42371c65c3b960a91887b03" prot="public" static="no">
+        <name>EADDRINUSE</name>
+        <initializer>48        /* Address already in use */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="105" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a556612e55358838192165684c971a44f" prot="public" static="no">
+        <name>EADDRNOTAVAIL</name>
+        <initializer>49        /* Can&apos;t assign requested address */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="106" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aac51995026fa19cdd0ad84a272304af0" prot="public" static="no">
+        <name>ENETDOWN</name>
+        <initializer>50        /* Network is down */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="109" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a3f91f1ad503432783c7a5d1481b45419" prot="public" static="no">
+        <name>ENETUNREACH</name>
+        <initializer>51        /* Network is unreachable */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="110" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a92750db73ff8e83591c977bbb3a5bea1" prot="public" static="no">
+        <name>ENETRESET</name>
+        <initializer>52        /* Network dropped connection on reset */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="111" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a45342991e001e28bbf87916d92b7e09a" prot="public" static="no">
+        <name>ECONNABORTED</name>
+        <initializer>53        /* Software caused connection abort */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="112" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1add4258b08af02fbe4590fbaae7260037" prot="public" static="no">
+        <name>ECONNRESET</name>
+        <initializer>54        /* Connection reset by peer */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="113" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a9e655f47bfd914a1174f281fc31cf63d" prot="public" static="no">
+        <name>ENOBUFS</name>
+        <initializer>55        /* No buffer space available */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="114" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a164ca8549da7a385e2fe1cba823b9eaf" prot="public" static="no">
+        <name>EISCONN</name>
+        <initializer>56        /* Socket is already connected */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="115" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1af23e48762a0676f49d480db91cfd5e4b" prot="public" static="no">
+        <name>ENOTCONN</name>
+        <initializer>57        /* Socket is not connected */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="116" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a2a55c5dd8b54ff5aace6c274c6726d68" prot="public" static="no">
+        <name>ESHUTDOWN</name>
+        <initializer>58        /* Can&apos;t send after socket shutdown */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="117" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a10426080250efba47f4aaf254036ff00" prot="public" static="no">
+        <name>ETOOMANYREFS</name>
+        <initializer>59        /* Too many references: can&apos;t splice */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="118" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a597718e59a8fc9c4d4ab63f5a34e28b1" prot="public" static="no">
+        <name>ETIMEDOUT</name>
+        <initializer>60        /* Operation timed out */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="119" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aad88020b394ef1aa4af2f4ef9b4c8b39" prot="public" static="no">
+        <name>ECONNREFUSED</name>
+        <initializer>61        /* Connection refused */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="120" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a2f78c246352d2bf2f19dc5d43da2f0c9" prot="public" static="no">
+        <name>ELOOP</name>
+        <initializer>62        /* Too many levels of symbolic links */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="122" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a41d5ab3a8a05f9c5eab536c9cfba305b" prot="public" static="no">
+        <name>ENAMETOOLONG</name>
+        <initializer>63        /* File name too long */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="123" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aa92bcaf70544db6998f4c503026359c5" prot="public" static="no">
+        <name>EHOSTDOWN</name>
+        <initializer>64        /* Host is down */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="126" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a53e186028fc992c3341ccb0d4d239b24" prot="public" static="no">
+        <name>EHOSTUNREACH</name>
+        <initializer>65        /* No route to host */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="127" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aa0f602f3fd369a6fede82190710b9c5c" prot="public" static="no">
+        <name>ENOTEMPTY</name>
+        <initializer>66        /* Directory not empty */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="128" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a801513ca187af849409e07fda8554a83" prot="public" static="no">
+        <name>EPROCLIM</name>
+        <initializer>67        /* Too many processes */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="131" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a9b153104ed38c8579f009f81bc7b2dc9" prot="public" static="no">
+        <name>EUSERS</name>
+        <initializer>68        /* Too many users */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="132" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aa5a48566b00cf9062d9deeeb0682cdaf" prot="public" static="no">
+        <name>EDQUOT</name>
+        <initializer>69        /* Disc quota exceeded */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="133" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a09e189d2214d9fe2847d27bf270ca1d7" prot="public" static="no">
+        <name>ESTALE</name>
+        <initializer>70        /* Stale NFS file handle */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="136" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a5e1edba49c18fc631dbf54ff53702d4a" prot="public" static="no">
+        <name>EREMOTE</name>
+        <initializer>71        /* Too many levels of remote in path */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="137" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1accd95700f2ccb6e1b7209f333d097fbd" prot="public" static="no">
+        <name>EBADRPC</name>
+        <initializer>72        /* RPC struct is bad */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="138" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a04d0929518f1e98cf4bc19e369e1c22e" prot="public" static="no">
+        <name>ERPCMISMATCH</name>
+        <initializer>73        /* RPC version wrong */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="139" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a90f3aa66e6674d20ee8865cf13ceef96" prot="public" static="no">
+        <name>EPROGUNAVAIL</name>
+        <initializer>74        /* RPC prog. not avail */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="140" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ab8b339b25f51a8258322489cd156297d" prot="public" static="no">
+        <name>EPROGMISMATCH</name>
+        <initializer>75        /* Program version wrong */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="141" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1acf125cc6a4f2ebea3cd54c56026dd019" prot="public" static="no">
+        <name>EPROCUNAVAIL</name>
+        <initializer>76        /* Bad procedure for program */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="142" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a65e1a7bda392be276a701988d0604e63" prot="public" static="no">
+        <name>ENOLCK</name>
+        <initializer>77        /* No locks available */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="144" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a43785b9969e0bd1af532dbde06c5540b" prot="public" static="no">
+        <name>ENOSYS</name>
+        <initializer>78        /* Function not implemented */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="145" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a940ffe53c91c0b90f8188122ea1bdbf0" prot="public" static="no">
+        <name>EFTYPE</name>
+        <initializer>79        /* Inappropriate file type or format */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="147" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a337712b7a18369302de561206ac9fe67" prot="public" static="no">
+        <name>EAUTH</name>
+        <initializer>80        /* Authentication error */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="148" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a5ce75bab474b7024f241605d2ace2011" prot="public" static="no">
+        <name>ENEEDAUTH</name>
+        <initializer>81        /* Need authenticator */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="149" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ad9913290fef890d46a6b7e8b4bfb1c29" prot="public" static="no">
+        <name>EIDRM</name>
+        <initializer>82        /* Identifier removed */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="150" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ae40596feaa3f66f5440b485bf7c1c2d1" prot="public" static="no">
+        <name>ENOMSG</name>
+        <initializer>83        /* No message of desired type */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="151" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a888552a5e3c78b5883904cf5d55244ab" prot="public" static="no">
+        <name>EOVERFLOW</name>
+        <initializer>84      /* Value too large to be stored in data type */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="152" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a9532d840ef91fd8e1ecc5d7ca7cbf212" prot="public" static="no">
+        <name>ECANCELED</name>
+        <initializer>85        /* Operation canceled */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="153" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ac6c071293826a4e66a717bb38db7794d" prot="public" static="no">
+        <name>EILSEQ</name>
+        <initializer>86        /* Illegal byte sequence */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="154" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a55a8e5eff7a0d587756f49933483f876" prot="public" static="no">
+        <name>ENOATTR</name>
+        <initializer>87        /* Attribute not found */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="155" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aa24a3816ababc5ecc37c74e6cf323650" prot="public" static="no">
+        <name>EDOOFUS</name>
+        <initializer>88        /* Programming error */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="157" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a251e9b536ed96ccb16aa28ca2d5bd656" prot="public" static="no">
+        <name>EBADMSG</name>
+        <initializer>89        /* Bad message */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="159" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a4d7b69d7ce0dfa0a9b998403b4ffe226" prot="public" static="no">
+        <name>EMULTIHOP</name>
+        <initializer>90        /* Multihop attempted */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="160" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="160" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1add4408349a756880be9d91efadb8aed0" prot="public" static="no">
+        <name>ENOLINK</name>
+        <initializer>91        /* Link has been severed */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="161" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1a5a92de56e8ebe19cbd8a2ce8c80ad03e" prot="public" static="no">
+        <name>EPROTO</name>
+        <initializer>92        /* Protocol error */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="162" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ab671bda46f526bf49a39d0416e35509c" prot="public" static="no">
+        <name>ENOTCAPABLE</name>
+        <initializer>93        /* Capabilities insufficient */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="164" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ab48933b679aeb4ee78f1b9d9c7c3c97e" prot="public" static="no">
+        <name>ECAPMODE</name>
+        <initializer>94        /* Not permitted in capability mode */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="165" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1ac69acb8e9e296867cc3f9fdf4223d05d" prot="public" static="no">
+        <name>ENOTRECOVERABLE</name>
+        <initializer>95        /* State not recoverable */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="166" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1af3f021d87caf24b44761036578c7beae" prot="public" static="no">
+        <name>EOWNERDEAD</name>
+        <initializer>96        /* Previous owner died */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="167" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="errno_8h_1aa17adaafb4877f1753128a30266ea0fd" prot="public" static="no">
+        <name>ELAST</name>
+        <initializer>96        /* Must be equal largest errno */</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/errno.h" line="169" column="12" bodyfile="/docs/include/pb/libc/errno.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*-</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>1982,<sp/>1986,<sp/>1989,<sp/>1993</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>The<sp/>Regents<sp/>of<sp/>the<sp/>University<sp/>of<sp/>California.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"><sp/>*<sp/>(c)<sp/>UNIX<sp/>System<sp/>Laboratories,<sp/>Inc.</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*<sp/>All<sp/>or<sp/>some<sp/>portions<sp/>of<sp/>this<sp/>file<sp/>are<sp/>derived<sp/>from<sp/>material<sp/>licensed</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>to<sp/>the<sp/>University<sp/>of<sp/>California<sp/>by<sp/>American<sp/>Telephone<sp/>and<sp/>Telegraph</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>Co.<sp/>or<sp/>Unix<sp/>System<sp/>Laboratories,<sp/>Inc.<sp/>and<sp/>are<sp/>reproduced<sp/>herein<sp/>with</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*<sp/>the<sp/>permission<sp/>of<sp/>UNIX<sp/>System<sp/>Laboratories,<sp/>Inc.</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/>*<sp/>Redistribution<sp/>and<sp/>use<sp/>in<sp/>source<sp/>and<sp/>binary<sp/>forms,<sp/>with<sp/>or<sp/>without</highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>*<sp/>modification,<sp/>are<sp/>permitted<sp/>provided<sp/>that<sp/>the<sp/>following<sp/>conditions</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"><sp/>*<sp/>are<sp/>met:</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/>*<sp/>1.<sp/>Redistributions<sp/>of<sp/>source<sp/>code<sp/>must<sp/>retain<sp/>the<sp/>above<sp/>copyright</highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following<sp/>disclaimer.</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*<sp/>2.<sp/>Redistributions<sp/>in<sp/>binary<sp/>form<sp/>must<sp/>reproduce<sp/>the<sp/>above<sp/>copyright</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following<sp/>disclaimer<sp/>in<sp/>the</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>documentation<sp/>and/or<sp/>other<sp/>materials<sp/>provided<sp/>with<sp/>the<sp/>distribution.</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*<sp/>3.<sp/>Neither<sp/>the<sp/>name<sp/>of<sp/>the<sp/>University<sp/>nor<sp/>the<sp/>names<sp/>of<sp/>its<sp/>contributors</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>may<sp/>be<sp/>used<sp/>to<sp/>endorse<sp/>or<sp/>promote<sp/>products<sp/>derived<sp/>from<sp/>this<sp/>software</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>without<sp/>specific<sp/>prior<sp/>written<sp/>permission.</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/>THIS<sp/>SOFTWARE<sp/>IS<sp/>PROVIDED<sp/>BY<sp/>THE<sp/>REGENTS<sp/>AND<sp/>CONTRIBUTORS<sp/>``AS<sp/>IS&apos;&apos;<sp/>AND</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*<sp/>ANY<sp/>EXPRESS<sp/>OR<sp/>IMPLIED<sp/>WARRANTIES,<sp/>INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>THE</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*<sp/>IMPLIED<sp/>WARRANTIES<sp/>OF<sp/>MERCHANTABILITY<sp/>AND<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"><sp/>*<sp/>ARE<sp/>DISCLAIMED.<sp/><sp/>IN<sp/>NO<sp/>EVENT<sp/>SHALL<sp/>THE<sp/>REGENTS<sp/>OR<sp/>CONTRIBUTORS<sp/>BE<sp/>LIABLE</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*<sp/>FOR<sp/>ANY<sp/>DIRECT,<sp/>INDIRECT,<sp/>INCIDENTAL,<sp/>SPECIAL,<sp/>EXEMPLARY,<sp/>OR<sp/>CONSEQUENTIAL</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*<sp/>DAMAGES<sp/>(INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>PROCUREMENT<sp/>OF<sp/>SUBSTITUTE<sp/>GOODS</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/>OR<sp/>SERVICES;<sp/>LOSS<sp/>OF<sp/>USE,<sp/>DATA,<sp/>OR<sp/>PROFITS;<sp/>OR<sp/>BUSINESS<sp/>INTERRUPTION)</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*<sp/>HOWEVER<sp/>CAUSED<sp/>AND<sp/>ON<sp/>ANY<sp/>THEORY<sp/>OF<sp/>LIABILITY,<sp/>WHETHER<sp/>IN<sp/>CONTRACT,<sp/>STRICT</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*<sp/>LIABILITY,<sp/>OR<sp/>TORT<sp/>(INCLUDING<sp/>NEGLIGENCE<sp/>OR<sp/>OTHERWISE)<sp/>ARISING<sp/>IN<sp/>ANY<sp/>WAY</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/>*<sp/>OUT<sp/>OF<sp/>THE<sp/>USE<sp/>OF<sp/>THIS<sp/>SOFTWARE,<sp/>EVEN<sp/>IF<sp/>ADVISED<sp/>OF<sp/>THE<sp/>POSSIBILITY<sp/>OF</highlight></codeline>
+<codeline lineno="34"><highlight class="comment"><sp/>*<sp/>SUCH<sp/>DAMAGE.</highlight></codeline>
+<codeline lineno="35"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="36"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>@(#)errno.h<sp/><sp/><sp/><sp/>8.5<sp/>(Berkeley)<sp/>1/21/94</highlight></codeline>
+<codeline lineno="37"><highlight class="comment"><sp/>*<sp/>$FreeBSD$</highlight></codeline>
+<codeline lineno="38"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="40"><highlight class="comment"><sp/>*<sp/>Portions<sp/>copyright<sp/>(c)<sp/>2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.</highlight></codeline>
+<codeline lineno="41"><highlight class="comment"><sp/>*<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="42"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_LIBC_ERRNO_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_LIBC_ERRNO_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPERM<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>not<sp/>permitted<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOENT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>2<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>No<sp/>such<sp/>file<sp/>or<sp/>directory<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ESRCH<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>3<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>No<sp/>such<sp/>process<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EINTR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>4<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Interrupted<sp/>system<sp/>call<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EIO<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>5<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Input/output<sp/>error<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENXIO<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>6<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Device<sp/>not<sp/>configured<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>E2BIG<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>7<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Argument<sp/>list<sp/>too<sp/>long<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOEXEC<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>8<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Exec<sp/>format<sp/>error<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EBADF<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>9<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Bad<sp/>file<sp/>descriptor<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ECHILD<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>10<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>No<sp/>child<sp/>processes<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EDEADLK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>11<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Resource<sp/>deadlock<sp/>avoided<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>11<sp/>was<sp/>EAGAIN<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOMEM<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>12<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Cannot<sp/>allocate<sp/>memory<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EACCES<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>13<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Permission<sp/>denied<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EFAULT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>14<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Bad<sp/>address<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTBLK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>15<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Block<sp/>device<sp/>required<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EBUSY<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>16<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Device<sp/>busy<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EEXIST<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>17<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>File<sp/>exists<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EXDEV<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>18<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Cross-device<sp/>link<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENODEV<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>19<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>not<sp/>supported<sp/>by<sp/>device<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTDIR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>20<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Not<sp/>a<sp/>directory<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EISDIR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>21<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Is<sp/>a<sp/>directory<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EINVAL<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>22<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Invalid<sp/>argument<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENFILE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>23<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Too<sp/>many<sp/>open<sp/>files<sp/>in<sp/>system<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EMFILE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>24<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Too<sp/>many<sp/>open<sp/>files<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTTY<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>25<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Inappropriate<sp/>ioctl<sp/>for<sp/>device<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ETXTBSY<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>26<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Text<sp/>file<sp/>busy<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EFBIG<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>27<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>File<sp/>too<sp/>large<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOSPC<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>28<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>No<sp/>space<sp/>left<sp/>on<sp/>device<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ESPIPE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>29<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Illegal<sp/>seek<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EROFS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>30<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Read-only<sp/>filesystem<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EMLINK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>31<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Too<sp/>many<sp/>links<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPIPE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>32<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Broken<sp/>pipe<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>math<sp/>software<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EDOM<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>33<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Numerical<sp/>argument<sp/>out<sp/>of<sp/>domain<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ERANGE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>34<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Result<sp/>too<sp/>large<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>non-blocking<sp/>and<sp/>interrupt<sp/>i/o<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EAGAIN<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>35<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Resource<sp/>temporarily<sp/>unavailable<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EWOULDBLOCK<sp/><sp/><sp/><sp/>EAGAIN<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>would<sp/>block<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EINPROGRESS<sp/><sp/><sp/><sp/>36<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>now<sp/>in<sp/>progress<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EALREADY<sp/><sp/><sp/><sp/>37<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>already<sp/>in<sp/>progress<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>ipc/network<sp/>software<sp/>--<sp/>argument<sp/>errors<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTSOCK<sp/><sp/><sp/><sp/>38<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Socket<sp/>operation<sp/>on<sp/>non-socket<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EDESTADDRREQ<sp/><sp/><sp/><sp/>39<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Destination<sp/>address<sp/>required<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EMSGSIZE<sp/><sp/><sp/><sp/>40<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Message<sp/>too<sp/>long<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPROTOTYPE<sp/><sp/><sp/><sp/>41<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Protocol<sp/>wrong<sp/>type<sp/>for<sp/>socket<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOPROTOOPT<sp/><sp/><sp/><sp/>42<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Protocol<sp/>not<sp/>available<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPROTONOSUPPORT<sp/><sp/><sp/><sp/>43<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Protocol<sp/>not<sp/>supported<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ESOCKTNOSUPPORT<sp/><sp/><sp/><sp/>44<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Socket<sp/>type<sp/>not<sp/>supported<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EOPNOTSUPP<sp/><sp/><sp/><sp/>45<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>not<sp/>supported<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTSUP<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>EOPNOTSUPP<sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>not<sp/>supported<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPFNOSUPPORT<sp/><sp/><sp/><sp/>46<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Protocol<sp/>family<sp/>not<sp/>supported<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Address<sp/>family<sp/>not<sp/>supported<sp/>by<sp/>protocol<sp/>family<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EAFNOSUPPORT<sp/><sp/><sp/><sp/>47</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EADDRINUSE<sp/><sp/><sp/><sp/>48<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Address<sp/>already<sp/>in<sp/>use<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EADDRNOTAVAIL<sp/><sp/><sp/><sp/>49<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Can&apos;t<sp/>assign<sp/>requested<sp/>address<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>ipc/network<sp/>software<sp/>--<sp/>operational<sp/>errors<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENETDOWN<sp/><sp/><sp/><sp/>50<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Network<sp/>is<sp/>down<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENETUNREACH<sp/><sp/><sp/><sp/>51<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Network<sp/>is<sp/>unreachable<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENETRESET<sp/><sp/><sp/><sp/>52<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Network<sp/>dropped<sp/>connection<sp/>on<sp/>reset<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ECONNABORTED<sp/><sp/><sp/><sp/>53<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Software<sp/>caused<sp/>connection<sp/>abort<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ECONNRESET<sp/><sp/><sp/><sp/>54<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Connection<sp/>reset<sp/>by<sp/>peer<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOBUFS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>55<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>No<sp/>buffer<sp/>space<sp/>available<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EISCONN<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>56<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Socket<sp/>is<sp/>already<sp/>connected<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTCONN<sp/><sp/><sp/><sp/>57<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Socket<sp/>is<sp/>not<sp/>connected<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ESHUTDOWN<sp/><sp/><sp/><sp/>58<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Can&apos;t<sp/>send<sp/>after<sp/>socket<sp/>shutdown<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ETOOMANYREFS<sp/><sp/><sp/><sp/>59<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Too<sp/>many<sp/>references:<sp/>can&apos;t<sp/>splice<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ETIMEDOUT<sp/><sp/><sp/><sp/>60<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>timed<sp/>out<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ECONNREFUSED<sp/><sp/><sp/><sp/>61<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Connection<sp/>refused<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ELOOP<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>62<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Too<sp/>many<sp/>levels<sp/>of<sp/>symbolic<sp/>links<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENAMETOOLONG<sp/><sp/><sp/><sp/>63<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>File<sp/>name<sp/>too<sp/>long<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>should<sp/>be<sp/>rearranged<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EHOSTDOWN<sp/><sp/><sp/><sp/>64<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Host<sp/>is<sp/>down<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EHOSTUNREACH<sp/><sp/><sp/><sp/>65<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>No<sp/>route<sp/>to<sp/>host<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTEMPTY<sp/><sp/><sp/><sp/>66<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Directory<sp/>not<sp/>empty<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>quotas<sp/>&amp;<sp/>mush<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPROCLIM<sp/><sp/><sp/><sp/>67<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Too<sp/>many<sp/>processes<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EUSERS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>68<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Too<sp/>many<sp/>users<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EDQUOT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>69<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Disc<sp/>quota<sp/>exceeded<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Network<sp/>File<sp/>System<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ESTALE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>70<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Stale<sp/>NFS<sp/>file<sp/>handle<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EREMOTE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>71<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Too<sp/>many<sp/>levels<sp/>of<sp/>remote<sp/>in<sp/>path<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EBADRPC<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>72<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>RPC<sp/>struct<sp/>is<sp/>bad<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ERPCMISMATCH<sp/><sp/><sp/><sp/>73<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>RPC<sp/>version<sp/>wrong<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPROGUNAVAIL<sp/><sp/><sp/><sp/>74<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>RPC<sp/>prog.<sp/>not<sp/>avail<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPROGMISMATCH<sp/><sp/><sp/><sp/>75<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Program<sp/>version<sp/>wrong<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPROCUNAVAIL<sp/><sp/><sp/><sp/>76<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Bad<sp/>procedure<sp/>for<sp/>program<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOLCK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>77<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>No<sp/>locks<sp/>available<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOSYS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>78<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Function<sp/>not<sp/>implemented<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EFTYPE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>79<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Inappropriate<sp/>file<sp/>type<sp/>or<sp/>format<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EAUTH<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>80<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Authentication<sp/>error<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENEEDAUTH<sp/><sp/><sp/><sp/>81<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Need<sp/>authenticator<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EIDRM<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>82<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Identifier<sp/>removed<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOMSG<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>83<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>No<sp/>message<sp/>of<sp/>desired<sp/>type<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EOVERFLOW<sp/><sp/><sp/><sp/>84<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Value<sp/>too<sp/>large<sp/>to<sp/>be<sp/>stored<sp/>in<sp/>data<sp/>type<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ECANCELED<sp/><sp/><sp/><sp/>85<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Operation<sp/>canceled<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EILSEQ<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>86<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Illegal<sp/>byte<sp/>sequence<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOATTR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>87<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Attribute<sp/>not<sp/>found<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EDOOFUS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>88<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Programming<sp/>error<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EBADMSG<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>89<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Bad<sp/>message<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EMULTIHOP<sp/><sp/><sp/><sp/>90<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Multihop<sp/>attempted<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOLINK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>91<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Link<sp/>has<sp/>been<sp/>severed<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EPROTO<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>92<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Protocol<sp/>error<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTCAPABLE<sp/><sp/><sp/><sp/>93<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Capabilities<sp/>insufficient<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ECAPMODE<sp/><sp/><sp/><sp/>94<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Not<sp/>permitted<sp/>in<sp/>capability<sp/>mode<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ENOTRECOVERABLE<sp/><sp/><sp/><sp/>95<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>State<sp/>not<sp/>recoverable<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>EOWNERDEAD<sp/><sp/><sp/><sp/>96<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Previous<sp/>owner<sp/>died<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>ELAST<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>96<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*<sp/>Must<sp/>be<sp/>equal<sp/>largest<sp/>errno<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_LIBC_ERRNO_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/libc/errno.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,277 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="stdio_8h" kind="file" language="C++">
+    <compoundname>stdio.h</compoundname>
+    <includes refid="cdefs_8h" local="no">cdefs.h</includes>
+    <includes local="no">stdio_.h</includes>
+    <includes refid="stdarg_8h" local="no">stdarg.h</includes>
+    <includedby refid="pb_8h" local="no">/docs/include/pb/pb.h</includedby>
+    <incdepgraph>
+      <node id="533">
+        <label>/docs/include/pb/libc/stdio.h</label>
+        <link refid="stdio_8h"/>
+        <childnode refid="534" relation="include">
+        </childnode>
+        <childnode refid="535" relation="include">
+        </childnode>
+        <childnode refid="536" relation="include">
+        </childnode>
+      </node>
+      <node id="534">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="535">
+        <label>stdio_.h</label>
+      </node>
+      <node id="536">
+        <label>stdarg.h</label>
+        <link refid="stdarg_8h_source"/>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="537">
+        <label>/docs/include/pb/libc/stdio.h</label>
+        <link refid="stdio_8h"/>
+        <childnode refid="538" relation="include">
+        </childnode>
+      </node>
+      <node id="540">
+        <label>/docs/include/pb/asn1.h</label>
+        <link refid="asn1_8h_source"/>
+      </node>
+      <node id="539">
+        <label>/docs/include/pb/crypto.h</label>
+        <link refid="crypto_8h_source"/>
+        <childnode refid="540" relation="include">
+        </childnode>
+        <childnode refid="541" relation="include">
+        </childnode>
+        <childnode refid="543" relation="include">
+        </childnode>
+      </node>
+      <node id="538">
+        <label>/docs/include/pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="539" relation="include">
+        </childnode>
+        <childnode refid="544" relation="include">
+        </childnode>
+        <childnode refid="545" relation="include">
+        </childnode>
+        <childnode refid="546" relation="include">
+        </childnode>
+        <childnode refid="543" relation="include">
+        </childnode>
+        <childnode refid="547" relation="include">
+        </childnode>
+      </node>
+      <node id="547">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_arch.h</label>
+        <link refid="xlat__tables__arch_8h_source"/>
+        <childnode refid="548" relation="include">
+        </childnode>
+      </node>
+      <node id="544">
+        <label>/docs/include/pb/gpt.h</label>
+        <link refid="gpt_8h_source"/>
+      </node>
+      <node id="548">
+        <label>/docs/lib/xlat_tables/xlat_tables_private.h</label>
+        <link refid="xlat__tables__private_8h_source"/>
+      </node>
+      <node id="545">
+        <label>/docs/include/pb/io.h</label>
+        <link refid="io_8h_source"/>
+      </node>
+      <node id="543">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="541">
+        <label>/docs/include/pb/image.h</label>
+        <link refid="image_8h_source"/>
+        <childnode refid="542" relation="include">
+        </childnode>
+      </node>
+      <node id="542">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="543" relation="include">
+        </childnode>
+      </node>
+      <node id="546">
+        <label>/docs/include/pb/keystore.h</label>
+        <link refid="pb_2keystore_8h_source"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="stdio_8h_1a070d2ce7b6bb7e5c05602aa8c308d0c4" prot="public" static="no">
+        <name>NULL</name>
+        <initializer>((void *)(uintptr_t) 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/stdio.h" line="19" column="9" bodyfile="/docs/include/pb/libc/stdio.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="stdio_8h_1a59adc4c82490d23754cd39c2fb99b0da" prot="public" static="no">
+        <name>EOF</name>
+        <initializer>-1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/stdio.h" line="22" column="9" bodyfile="/docs/include/pb/libc/stdio.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="stdio_8h_1a5ee893f34b63e26647c17a8bbcdae936" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int printf</definition>
+        <argsstring>(const char *fmt,...) __printflike(1</argsstring>
+        <name>printf</name>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/stdio.h" line="24" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="stdio_8h_1ab1f54a26b21f0f17200e4a0fc7e63c24" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int int</type>
+        <definition>int int snprintf</definition>
+        <argsstring>(char *s, size_t n, const char *fmt,...) __printflike(3</argsstring>
+        <name>snprintf</name>
+        <param>
+          <type>char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/stdio.h" line="25" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="stdio_8h_1a62c01c3defd0495d0073b92deff17d7f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int int int</type>
+        <definition>int int int vprintf</definition>
+        <argsstring>(const char *fmt, va_list args)</argsstring>
+        <name>vprintf</name>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>va_list</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/stdio.h" line="27" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="stdio_8h_1af4de2514b7778805db3815e8dd6cf09a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int putchar</definition>
+        <argsstring>(int c)</argsstring>
+        <name>putchar</name>
+        <param>
+          <type>int</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/stdio.h" line="29" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="stdio_8h_1ad41876f99f190c7488e64ef39c50a23f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int puts</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>puts</name>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/stdio.h" line="30" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2012-2017<sp/>Roberto<sp/>E.<sp/>Vargas<sp/>Caballero</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*<sp/>Portions<sp/>copyright<sp/>(c)<sp/>2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_LIBC_STDIO_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_LIBC_STDIO_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cdefs.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdio_.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdarg.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>NULL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NULL<sp/>((void<sp/>*)(uintptr_t)<sp/>0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EOF<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>-1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>printf(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/>...)<sp/>__printflike(1,<sp/>2);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>snprintf(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>n,<sp/>const<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/>...)<sp/>__printflike(3,<sp/>4);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vprintf(const<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/>va_list<sp/>args);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>putchar(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>c);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>puts(const<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_LIBC_STDIO_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/libc/stdio.h"/>
+  </compounddef>
+</doxygen>

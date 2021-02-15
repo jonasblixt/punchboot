@@ -1,0 +1,1020 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="plat_8h" kind="file" language="C++">
+    <compoundname>plat.h</compoundname>
+    <includes refid="pb_8h" local="no">pb/pb.h</includes>
+    <includes refid="usb_8h" local="no">pb/usb.h</includes>
+    <includes refid="fuse_8h" local="no">pb/fuse.h</includes>
+    <includes refid="crypto_8h" local="no">pb/crypto.h</includes>
+    <includes refid="storage_8h" local="no">pb/storage.h</includes>
+    <includes refid="boot_8h" local="no">pb/boot.h</includes>
+    <includes refid="board_8h" local="no">pb/board.h</includes>
+    <includes refid="bpak_2keystore_8h" local="no">bpak/keystore.h</includes>
+    <includes refid="uuid_8h" local="no">uuid/uuid.h</includes>
+    <includes refid="wire_8h" local="no">pb-tools/wire.h</includes>
+    <incdepgraph>
+      <node id="619">
+        <label>pb-tools/wire.h</label>
+        <link refid="wire_8h"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="606" relation="include">
+        </childnode>
+        <childnode refid="607" relation="include">
+        </childnode>
+        <childnode refid="620" relation="include">
+        </childnode>
+      </node>
+      <node id="600">
+        <label>stdio.h</label>
+        <link refid="stdio_8h_source"/>
+        <childnode refid="601" relation="include">
+        </childnode>
+        <childnode refid="602" relation="include">
+        </childnode>
+        <childnode refid="603" relation="include">
+        </childnode>
+      </node>
+      <node id="609">
+        <label>pb/errors.h</label>
+        <link refid="errors_8h_source"/>
+      </node>
+      <node id="607">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="608" relation="include">
+        </childnode>
+      </node>
+      <node id="623">
+        <label>time.h</label>
+        <link refid="time_8h_source"/>
+        <childnode refid="624" relation="include">
+        </childnode>
+      </node>
+      <node id="613">
+        <label>pb/crypto.h</label>
+        <link refid="crypto_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="606" relation="include">
+        </childnode>
+        <childnode refid="607" relation="include">
+        </childnode>
+        <childnode refid="599" relation="include">
+        </childnode>
+        <childnode refid="614" relation="include">
+        </childnode>
+      </node>
+      <node id="621">
+        <label>pb/timestamp.h</label>
+        <link refid="timestamp_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+      </node>
+      <node id="605">
+        <label>stdint_.h</label>
+      </node>
+      <node id="599">
+        <label>pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="600" relation="include">
+        </childnode>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="606" relation="include">
+        </childnode>
+        <childnode refid="607" relation="include">
+        </childnode>
+        <childnode refid="609" relation="include">
+        </childnode>
+        <childnode refid="610" relation="include">
+        </childnode>
+      </node>
+      <node id="612">
+        <label>pb/fuse.h</label>
+        <link refid="fuse_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+      </node>
+      <node id="601">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="620">
+        <label>pb-tools/error.h</label>
+        <link refid="error_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+      </node>
+      <node id="625">
+        <label>pb/board.h</label>
+        <link refid="board_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="606" relation="include">
+        </childnode>
+        <childnode refid="607" relation="include">
+        </childnode>
+      </node>
+      <node id="624">
+        <label>time_.h</label>
+      </node>
+      <node id="622">
+        <label>uuid/uuid.h</label>
+        <link refid="uuid_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="623" relation="include">
+        </childnode>
+      </node>
+      <node id="608">
+        <label>stddef_.h</label>
+      </node>
+      <node id="602">
+        <label>stdio_.h</label>
+      </node>
+      <node id="611">
+        <label>pb/usb.h</label>
+        <link refid="usb_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="606" relation="include">
+        </childnode>
+      </node>
+      <node id="614">
+        <label>bpak/keystore.h</label>
+        <link refid="bpak_2keystore_8h_source"/>
+        <childnode refid="615" relation="include">
+        </childnode>
+      </node>
+      <node id="606">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="603">
+        <label>stdarg.h</label>
+        <link refid="stdarg_8h_source"/>
+      </node>
+      <node id="615">
+        <label>bpak/bpak.h</label>
+        <link refid="bpak_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="606" relation="include">
+        </childnode>
+        <childnode refid="607" relation="include">
+        </childnode>
+      </node>
+      <node id="598">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h"/>
+        <childnode refid="599" relation="include">
+        </childnode>
+        <childnode refid="611" relation="include">
+        </childnode>
+        <childnode refid="612" relation="include">
+        </childnode>
+        <childnode refid="613" relation="include">
+        </childnode>
+        <childnode refid="616" relation="include">
+        </childnode>
+        <childnode refid="617" relation="include">
+        </childnode>
+        <childnode refid="625" relation="include">
+        </childnode>
+        <childnode refid="614" relation="include">
+        </childnode>
+        <childnode refid="622" relation="include">
+        </childnode>
+        <childnode refid="619" relation="include">
+        </childnode>
+      </node>
+      <node id="618">
+        <label>pb/image.h</label>
+        <link refid="image_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="613" relation="include">
+        </childnode>
+        <childnode refid="615" relation="include">
+        </childnode>
+        <childnode refid="619" relation="include">
+        </childnode>
+      </node>
+      <node id="616">
+        <label>pb/storage.h</label>
+        <link refid="storage_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="606" relation="include">
+        </childnode>
+      </node>
+      <node id="617">
+        <label>pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="604" relation="include">
+        </childnode>
+        <childnode refid="618" relation="include">
+        </childnode>
+        <childnode refid="616" relation="include">
+        </childnode>
+        <childnode refid="621" relation="include">
+        </childnode>
+        <childnode refid="615" relation="include">
+        </childnode>
+        <childnode refid="622" relation="include">
+        </childnode>
+      </node>
+      <node id="604">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="605" relation="include">
+        </childnode>
+      </node>
+      <node id="610">
+        <label>config.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="plat_8h_1afdd533163a0e61014b1cf7d0a07a41f7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void plat_reset</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_reset</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Punch BOOT</para><para>Copyright (C) 2020 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="26" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a742314e674ef8341497b236dac76127f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void plat_wdog_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_wdog_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="27" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a744e1c2a091791ac45616dcecd95388a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void plat_wdog_kick</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_wdog_kick</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="28" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a0cfc44cf9794cbb128fca5eec4fd3337" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_early_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_early_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="30" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a99bbecf2fe4a220ac65bae37fccd17f1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_late_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_late_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="31" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1af7e41e4d4de2c2777703bb117a57a351" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void plat_preboot_cleanup</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_preboot_cleanup</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="32" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1add73bd2ffb26cbc9f6c854757ad0171c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool plat_force_command_mode</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_force_command_mode</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="33" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a853e64b2a5c6ca840de5234e0b2705a1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_get_uuid</definition>
+        <argsstring>(char *out)</argsstring>
+        <name>plat_get_uuid</name>
+        <param>
+          <type>char *</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="34" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a567199b92571235f9587ae7e50027f70" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_patch_bootargs</definition>
+        <argsstring>(void *fdt, int offset, bool verbose_boot)</argsstring>
+        <name>plat_patch_bootargs</name>
+        <param>
+          <type>void *</type>
+          <declname>fdt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>verbose_boot</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="35" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a38395c6cdb64440bdb4df80f50e6ddb0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_boot_override</definition>
+        <argsstring>(uint8_t *uuid)</argsstring>
+        <name>plat_boot_override</name>
+        <param>
+          <type>uint8_t *</type>
+          <declname>uuid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="36" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1adbd234e5afd7a4e353cd26695d452618" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_early_boot</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_early_boot</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="38" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a662e7fcff23917a0c21fcefad86270a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_late_boot</definition>
+        <argsstring>(bool *abort_boot, bool manual)</argsstring>
+        <name>plat_late_boot</name>
+        <param>
+          <type>bool *</type>
+          <declname>abort_boot</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>manual</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="39" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1af5bb3bf8d64d75ca70801d1b1f329895" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_command</definition>
+        <argsstring>(uint32_t command, void *bfr, size_t size, void *response_bfr, size_t *response_size)</argsstring>
+        <name>plat_command</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>command</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>bfr</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>response_bfr</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>response_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="41" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a4a84525968fa22ec98b840d26ff4a430" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_status</definition>
+        <argsstring>(void *response_bfr, size_t *response_size)</argsstring>
+        <name>plat_status</name>
+        <param>
+          <type>void *</type>
+          <declname>response_bfr</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>response_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="47" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a5b0e5ba20006f657292653fa36dac8db" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_console_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_console_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="50" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a83b75dda225a2838a404a40088703256" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_console_putchar</definition>
+        <argsstring>(char c)</argsstring>
+        <name>plat_console_putchar</name>
+        <param>
+          <type>char</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="51" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1aaecbe3d726053abde396896e6e9ae870" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_fuse_read</definition>
+        <argsstring>(struct fuse *f)</argsstring>
+        <name>plat_fuse_read</name>
+        <param>
+          <type>struct <ref refid="structfuse" kindref="compound">fuse</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="54" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a3b6829d0d9b4c786cf9424f1c166c19e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_fuse_write</definition>
+        <argsstring>(struct fuse *f)</argsstring>
+        <name>plat_fuse_write</name>
+        <param>
+          <type>struct <ref refid="structfuse" kindref="compound">fuse</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="55" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a420b8f29cdde5675d78dfd338720a360" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_fuse_to_string</definition>
+        <argsstring>(struct fuse *f, char *s, uint32_t n)</argsstring>
+        <name>plat_fuse_to_string</name>
+        <param>
+          <type>struct <ref refid="structfuse" kindref="compound">fuse</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type>char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="56" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a68f0cf80b2b1157ea88bee85c400aaaf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_slc_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_slc_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="59" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a98f71aafaa0e271221b68d76fea14554" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_slc_set_configuration</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_slc_set_configuration</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="60" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a11a46e80ac209fc89a75fde15a849336" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_slc_set_configuration_lock</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_slc_set_configuration_lock</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="61" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a4d37f3f1f37d54330f558c077d34ae99" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_slc_set_end_of_life</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_slc_set_end_of_life</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="62" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1aa81f2421f723830b2efcc64e37329436" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_slc_read</definition>
+        <argsstring>(enum pb_slc *slc)</argsstring>
+        <name>plat_slc_read</name>
+        <param>
+          <type>enum pb_slc *</type>
+          <declname>slc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="63" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a33cba2378155799597953f2a27cb591a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_slc_key_active</definition>
+        <argsstring>(uint32_t id, bool *active)</argsstring>
+        <name>plat_slc_key_active</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>active</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="64" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a2acc1fb848f8a47bd532efdb715513bc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_slc_revoke_key</definition>
+        <argsstring>(uint32_t id)</argsstring>
+        <name>plat_slc_revoke_key</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="65" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1ae0b9fc2a57262c2f4ae7e2bea6d85dc8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_slc_get_key_status</definition>
+        <argsstring>(struct pb_result_slc_key_status **status)</argsstring>
+        <name>plat_slc_get_key_status</name>
+        <param>
+          <type>struct <ref refid="structpb__result__slc__key__status" kindref="compound">pb_result_slc_key_status</ref> **</type>
+          <declname>status</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="66" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a2f6ebed60051cf0d7ec28102ee1c2069" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_crypto_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_crypto_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="69" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1ad3a444d705035952d5edf259bd38dfc0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_hash_init</definition>
+        <argsstring>(struct pb_hash_context *ctx, enum pb_hash_algs alg)</argsstring>
+        <name>plat_hash_init</name>
+        <param>
+          <type>struct <ref refid="structpb__hash__context" kindref="compound">pb_hash_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>enum pb_hash_algs</type>
+          <declname>alg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="70" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a7a2eb0d571a39f1996f46c5ad5ef7251" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_hash_update</definition>
+        <argsstring>(struct pb_hash_context *ctx, void *buf, size_t size)</argsstring>
+        <name>plat_hash_update</name>
+        <param>
+          <type>struct <ref refid="structpb__hash__context" kindref="compound">pb_hash_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="71" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a023e01c0ae5f58a23eed211725c3d116" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_hash_finalize</definition>
+        <argsstring>(struct pb_hash_context *ctx, void *buf, size_t size)</argsstring>
+        <name>plat_hash_finalize</name>
+        <param>
+          <type>struct <ref refid="structpb__hash__context" kindref="compound">pb_hash_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="72" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1afb044333a3326e85fedc10c4ea798d6e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_pk_verify</definition>
+        <argsstring>(void *signature, size_t size, struct pb_hash_context *hash, struct bpak_key *key)</argsstring>
+        <name>plat_pk_verify</name>
+        <param>
+          <type>void *</type>
+          <declname>signature</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structpb__hash__context" kindref="compound">pb_hash_context</ref> *</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="structbpak__key" kindref="compound">bpak_key</ref> *</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="73" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a427aa542d712d6d9e50941ac10b4f852" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_transport_init</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_transport_init</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="77" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1aa684c679353f517ad69e217c9fe78a4f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_transport_process</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_transport_process</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="78" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a429595deab9c24c257160350c9d7fbd1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool plat_transport_ready</definition>
+        <argsstring>(void)</argsstring>
+        <name>plat_transport_ready</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="79" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1a13d26152468b2e1f9a9b51fe9c27f469" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_transport_write</definition>
+        <argsstring>(void *buf, size_t size)</argsstring>
+        <name>plat_transport_write</name>
+        <param>
+          <type>void *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="80" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="plat_8h_1ab5fb3bb12ebce2da0cd50390d1512ec2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int plat_transport_read</definition>
+        <argsstring>(void *buf, size_t size)</argsstring>
+        <name>plat_transport_read</name>
+        <param>
+          <type>void *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/plat.h" line="81" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="10"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_PLAT_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_PLAT_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/pb.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/usb.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/fuse.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/crypto.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/storage.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/boot.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/board.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/fuse.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;bpak/keystore.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;uuid/uuid.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="wire_8h" kindref="compound">pb-tools/wire.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Platform<sp/>API<sp/>Calls<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>plat_reset(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>plat_wdog_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>plat_wdog_kick(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_early_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_late_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>plat_preboot_cleanup(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>plat_force_command_mode(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_get_uuid(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*out);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_patch_bootargs(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*fdt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>offset,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>verbose_boot);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_boot_override(uint8_t<sp/>*<ref refid="structuuid" kindref="compound">uuid</ref>);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_early_boot(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_late_boot(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*abort_boot,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>manual);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_command(uint32_t<sp/>command,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*bfr,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*response_bfr,</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>*response_size);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_status(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*response_bfr,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>*response_size);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Console<sp/>API<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_console_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_console_putchar(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>c);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Fusebox<sp/>API<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_fuse_read(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structfuse" kindref="compound">fuse</ref><sp/>*f);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_fuse_write(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structfuse" kindref="compound">fuse</ref><sp/>*f);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_fuse_to_string(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structfuse" kindref="compound">fuse</ref><sp/>*f,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s,<sp/>uint32_t<sp/>n);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Security<sp/>Life<sp/>Cycle<sp/>(SLC)<sp/>API<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_slc_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_slc_set_configuration(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_slc_set_configuration_lock(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_slc_set_end_of_life(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_slc_read(</highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>pb_slc<sp/>*slc);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_slc_key_active(uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*active);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_slc_revoke_key(uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_slc_get_key_status(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__result__slc__key__status" kindref="compound">pb_result_slc_key_status</ref><sp/>**status);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Crypto<sp/>API<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_crypto_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_hash_init(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__hash__context" kindref="compound">pb_hash_context</ref><sp/>*ctx,<sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>pb_hash_algs<sp/>alg);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_hash_update(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__hash__context" kindref="compound">pb_hash_context</ref><sp/>*ctx,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_hash_finalize(</highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__hash__context" kindref="compound">pb_hash_context</ref><sp/>*ctx,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_pk_verify(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*signature,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size,<sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structpb__hash__context" kindref="compound">pb_hash_context</ref><sp/>*hash,</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/><ref refid="structbpak__key" kindref="compound">bpak_key</ref><sp/>*key);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Transport<sp/>API<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_transport_init(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_transport_process(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>plat_transport_ready(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_transport_write(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>plat_transport_read(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_PLAT_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/plat.h"/>
+  </compounddef>
+</doxygen>

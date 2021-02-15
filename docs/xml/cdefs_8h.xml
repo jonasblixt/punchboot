@@ -1,0 +1,282 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="cdefs_8h" kind="file" language="C++">
+    <compoundname>cdefs.h</compoundname>
+    <includedby refid="endian_8h" local="no">/docs/include/pb/libc/endian.h</includedby>
+    <includedby refid="stdio_8h" local="no">/docs/include/pb/libc/stdio.h</includedby>
+    <invincdepgraph>
+      <node id="386">
+        <label>/docs/include/pb/libc/stdio.h</label>
+        <link refid="stdio_8h_source"/>
+        <childnode refid="387" relation="include">
+        </childnode>
+      </node>
+      <node id="389">
+        <label>/docs/include/pb/asn1.h</label>
+        <link refid="asn1_8h_source"/>
+      </node>
+      <node id="388">
+        <label>/docs/include/pb/crypto.h</label>
+        <link refid="crypto_8h_source"/>
+        <childnode refid="389" relation="include">
+        </childnode>
+        <childnode refid="390" relation="include">
+        </childnode>
+        <childnode refid="392" relation="include">
+        </childnode>
+      </node>
+      <node id="387">
+        <label>/docs/include/pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="388" relation="include">
+        </childnode>
+        <childnode refid="393" relation="include">
+        </childnode>
+        <childnode refid="394" relation="include">
+        </childnode>
+        <childnode refid="395" relation="include">
+        </childnode>
+        <childnode refid="392" relation="include">
+        </childnode>
+        <childnode refid="396" relation="include">
+        </childnode>
+      </node>
+      <node id="384">
+        <label>/docs/include/pb/libc/cdefs.h</label>
+        <link refid="cdefs_8h"/>
+        <childnode refid="385" relation="include">
+        </childnode>
+        <childnode refid="386" relation="include">
+        </childnode>
+      </node>
+      <node id="385">
+        <label>/docs/include/pb/libc/endian.h</label>
+        <link refid="endian_8h_source"/>
+      </node>
+      <node id="396">
+        <label>/docs/include/pb/xlat_tables/xlat_tables_arch.h</label>
+        <link refid="xlat__tables__arch_8h_source"/>
+        <childnode refid="397" relation="include">
+        </childnode>
+      </node>
+      <node id="393">
+        <label>/docs/include/pb/gpt.h</label>
+        <link refid="gpt_8h_source"/>
+      </node>
+      <node id="397">
+        <label>/docs/lib/xlat_tables/xlat_tables_private.h</label>
+        <link refid="xlat__tables__private_8h_source"/>
+      </node>
+      <node id="394">
+        <label>/docs/include/pb/io.h</label>
+        <link refid="io_8h_source"/>
+      </node>
+      <node id="392">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="390">
+        <label>/docs/include/pb/image.h</label>
+        <link refid="image_8h_source"/>
+        <childnode refid="391" relation="include">
+        </childnode>
+      </node>
+      <node id="391">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="392" relation="include">
+        </childnode>
+      </node>
+      <node id="395">
+        <label>/docs/include/pb/keystore.h</label>
+        <link refid="pb_2keystore_8h_source"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="cdefs_8h_1a76082b09261c8d1d35bcc0b41e916fb6" prot="public" static="no">
+        <name>__dead2</name>
+        <initializer>__attribute__((__noreturn__))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="10" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a4e1585cb1b8a465a6a9a702d97bb4ad8" prot="public" static="no">
+        <name>__deprecated</name>
+        <initializer>__attribute__((__deprecated__))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="11" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a0fe7dde4488278fd739041b673efa525" prot="public" static="no">
+        <name>__packed</name>
+        <initializer>__attribute__((__packed__))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="12" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a9314dbac96b8097be9506b69c32f5ae9" prot="public" static="no">
+        <name>__used</name>
+        <initializer>__attribute__((__used__))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="13" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a2e3484535ee610c8e19e9859563abe48" prot="public" static="no">
+        <name>__unused</name>
+        <initializer>__attribute__((__unused__))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="14" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a5ec304e7577e6c1a8a36c3096fc466af" prot="public" static="no">
+        <name>__aligned</name>
+        <param><defname>x</defname></param>
+        <initializer>__attribute__((__aligned__(x)))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="15" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a4d0b72ccc36b88935355451e332b5deb" prot="public" static="no">
+        <name>__section</name>
+        <param><defname>x</defname></param>
+        <initializer>__attribute__((__section__(x)))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="16" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1aca8f1e05ca62886e6d99e8dc006e5500" prot="public" static="no">
+        <name>__init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="24" column="10" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1ab302334d9a77a6925be4e5b45397e4a3" prot="public" static="no">
+        <name>__printflike</name>
+        <param><defname>fmtarg</defname></param>
+        <param><defname>firstvararg</defname></param>
+        <initializer>__attribute__((__format__(__printf__, fmtarg, firstvararg)))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="27" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a424a5f4e95e6ece167dda8b0a331c67d" prot="public" static="no">
+        <name>__weak_reference</name>
+        <param><defname>sym</defname></param>
+        <param><defname>alias</defname></param>
+        <initializer>__asm__(&quot;.weak alias&quot;);        \
+    __asm__(&quot;.equ alias, sym&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="30" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a375c4dc9f0fb338999de81aab826f9d6" prot="public" static="no">
+        <name>__STRING</name>
+        <param><defname>x</defname></param>
+        <initializer>#x</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="34" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cdefs_8h_1a3e0c7f2a7eab14679cb4aab84353df86" prot="public" static="no">
+        <name>__XSTRING</name>
+        <param><defname>x</defname></param>
+        <initializer>__STRING(x)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/cdefs.h" line="35" column="9" bodyfile="/docs/include/pb/libc/cdefs.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_LIBC_CDEFS_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_LIBC_CDEFS_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__dead2<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>__attribute__((__noreturn__))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__deprecated<sp/><sp/><sp/><sp/>__attribute__((__deprecated__))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__packed<sp/><sp/><sp/><sp/>__attribute__((__packed__))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__used<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>__attribute__((__used__))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__unused<sp/><sp/><sp/><sp/>__attribute__((__unused__))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__aligned(x)<sp/><sp/><sp/><sp/>__attribute__((__aligned__(x)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__section(x)<sp/><sp/><sp/><sp/>__attribute__((__section__(x)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>RECLAIM_INIT_CODE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>Add<sp/>each<sp/>function<sp/>to<sp/>a<sp/>section<sp/>that<sp/>is<sp/>unique<sp/>so<sp/>the<sp/>functions<sp/>can<sp/>still</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*<sp/>be<sp/>garbage<sp/>collected</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__init<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>__section(&quot;.text.init.&quot;<sp/>__FILE__<sp/>&quot;.&quot;<sp/>__XSTRING(__LINE__))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__init</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__printflike(fmtarg,<sp/>firstvararg)<sp/>\</highlight></codeline>
+<codeline lineno="28"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>__attribute__((__format__(__printf__,<sp/>fmtarg,<sp/>firstvararg)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__weak_reference(sym,<sp/>alias)<sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="31"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>__asm__(&quot;.weak<sp/>alias&quot;);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="32"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>__asm__(&quot;.equ<sp/>alias,<sp/>sym&quot;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__STRING(x)<sp/><sp/><sp/><sp/>#x</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__XSTRING(x)<sp/><sp/><sp/><sp/>__STRING(x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_LIBC_CDEFS_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/libc/cdefs.h"/>
+  </compounddef>
+</doxygen>

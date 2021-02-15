@@ -1,0 +1,399 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="libfdt__env_8h" kind="file" language="C++">
+    <compoundname>libfdt_env.h</compoundname>
+    <includes refid="stddef_8h" local="no">stddef.h</includes>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="string_8h" local="no">string.h</includes>
+    <includedby refid="libfdt_8h" local="no">/docs/lib/fdt/include/libfdt.h</includedby>
+    <incdepgraph>
+      <node id="838">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="839" relation="include">
+        </childnode>
+      </node>
+      <node id="841">
+        <label>stdint_.h</label>
+      </node>
+      <node id="839">
+        <label>stddef_.h</label>
+      </node>
+      <node id="837">
+        <label>/docs/lib/fdt/include/libfdt_env.h</label>
+        <link refid="libfdt__env_8h"/>
+        <childnode refid="838" relation="include">
+        </childnode>
+        <childnode refid="840" relation="include">
+        </childnode>
+        <childnode refid="842" relation="include">
+        </childnode>
+      </node>
+      <node id="842">
+        <label>string.h</label>
+        <link refid="string_8h_source"/>
+        <childnode refid="843" relation="include">
+        </childnode>
+      </node>
+      <node id="840">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="841" relation="include">
+        </childnode>
+      </node>
+      <node id="843">
+        <label>string_.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="844">
+        <label>/docs/lib/fdt/include/libfdt_env.h</label>
+        <link refid="libfdt__env_8h"/>
+        <childnode refid="845" relation="include">
+        </childnode>
+      </node>
+      <node id="845">
+        <label>/docs/lib/fdt/include/libfdt.h</label>
+        <link refid="libfdt_8h_source"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="libfdt__env_8h_1ab95a84e6535084347da05cdf197e045c" prot="public" static="no">
+        <name>__force</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="63" column="10" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="libfdt__env_8h_1a0a94220228d52a4743bb8f43501b5e49" prot="public" static="no">
+        <name>__bitwise</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="64" column="9" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="libfdt__env_8h_1a3d910014a8638ce531b884ecad935f25" prot="public" static="no">
+        <name>EXTRACT_BYTE</name>
+        <param><defname>x</defname></param>
+        <param><defname>n</defname></param>
+        <initializer>((unsigned long long)((uint8_t *)&amp;x)[n])</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="71" column="9" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="libfdt__env_8h_1aeab912ed41ddb1ef15e4b4c6ac14e666" prot="public" static="no">
+        <name>CPU_TO_FDT16</name>
+        <param><defname>x</defname></param>
+        <initializer>((EXTRACT_BYTE(x, 0) &lt;&lt; 8) | EXTRACT_BYTE(x, 1))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="72" column="9" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="libfdt__env_8h_1ad455c74090723a17a4c183ae02f4c401" prot="public" static="no">
+        <name>CPU_TO_FDT32</name>
+        <param><defname>x</defname></param>
+        <initializer>((EXTRACT_BYTE(x, 0) &lt;&lt; 24) | (EXTRACT_BYTE(x, 1) &lt;&lt; 16) | \
+			 (EXTRACT_BYTE(x, 2) &lt;&lt; 8) | EXTRACT_BYTE(x, 3))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="73" column="9" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="libfdt__env_8h_1a75cbcf8d6ddc9779aaf52a9a1087a8f6" prot="public" static="no">
+        <name>CPU_TO_FDT64</name>
+        <param><defname>x</defname></param>
+        <initializer>((EXTRACT_BYTE(x, 0) &lt;&lt; 56) | (EXTRACT_BYTE(x, 1) &lt;&lt; 48) | \
+			 (EXTRACT_BYTE(x, 2) &lt;&lt; 40) | (EXTRACT_BYTE(x, 3) &lt;&lt; 32) | \
+			 (EXTRACT_BYTE(x, 4) &lt;&lt; 24) | (EXTRACT_BYTE(x, 5) &lt;&lt; 16) | \
+			 (EXTRACT_BYTE(x, 6) &lt;&lt; 8) | EXTRACT_BYTE(x, 7))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="75" column="9" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="libfdt__env_8h_1a22244343a8e530d07133a8e0cec10ea2" prot="public" static="no">
+        <type>uint16_t __bitwise</type>
+        <definition>typedef uint16_t __bitwise fdt16_t</definition>
+        <argsstring></argsstring>
+        <name>fdt16_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="67" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="libfdt__env_8h_1a49f5983db4c16194f4dbe74d8383951d" prot="public" static="no">
+        <type>uint32_t __bitwise</type>
+        <definition>typedef uint32_t __bitwise fdt32_t</definition>
+        <argsstring></argsstring>
+        <name>fdt32_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="68" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="libfdt__env_8h_1a15d73e8788be45006982af1605f5355b" prot="public" static="no">
+        <type>uint64_t __bitwise</type>
+        <definition>typedef uint64_t __bitwise fdt64_t</definition>
+        <argsstring></argsstring>
+        <name>fdt64_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="69" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="libfdt__env_8h_1a55a50a3b689fcf397a5df7dac2533c1c" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint16_t</type>
+        <definition>static uint16_t fdt16_to_cpu</definition>
+        <argsstring>(fdt16_t x)</argsstring>
+        <name>fdt16_to_cpu</name>
+        <param>
+          <type>fdt16_t</type>
+          <declname>x</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="80" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="80" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="libfdt__env_8h_1a4c4ebf681c2d259b45fd08763dfbdb12" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>fdt16_t</type>
+        <definition>static fdt16_t cpu_to_fdt16</definition>
+        <argsstring>(uint16_t x)</argsstring>
+        <name>cpu_to_fdt16</name>
+        <param>
+          <type>uint16_t</type>
+          <declname>x</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="84" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="84" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="libfdt__env_8h_1a6485ea7225a1927cc5ab1a34dabe298f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>static uint32_t fdt32_to_cpu</definition>
+        <argsstring>(fdt32_t x)</argsstring>
+        <name>fdt32_to_cpu</name>
+        <param>
+          <type>fdt32_t</type>
+          <declname>x</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="89" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="89" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="libfdt__env_8h_1a06ce41f441b8a56710000af3c3e516e5" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>fdt32_t</type>
+        <definition>static fdt32_t cpu_to_fdt32</definition>
+        <argsstring>(uint32_t x)</argsstring>
+        <name>cpu_to_fdt32</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>x</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="93" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="93" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="libfdt__env_8h_1a5396406ea98e87fd7a42e0d1d7a80a89" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint64_t</type>
+        <definition>static uint64_t fdt64_to_cpu</definition>
+        <argsstring>(fdt64_t x)</argsstring>
+        <name>fdt64_to_cpu</name>
+        <param>
+          <type>fdt64_t</type>
+          <declname>x</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="98" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="98" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="libfdt__env_8h_1a516d5270419a4000d9617b3df5e6f665" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>fdt64_t</type>
+        <definition>static fdt64_t cpu_to_fdt64</definition>
+        <argsstring>(uint64_t x)</argsstring>
+        <name>cpu_to_fdt64</name>
+        <param>
+          <type>uint64_t</type>
+          <declname>x</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/libfdt_env.h" line="102" column="1" bodyfile="/docs/lib/fdt/include/libfdt_env.h" bodystart="102" bodyend="105"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#ifndef<sp/>_LIBFDT_ENV_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>_LIBFDT_ENV_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>libfdt<sp/>-<sp/>Flat<sp/>Device<sp/>Tree<sp/>manipulation</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(C)<sp/>2006<sp/>David<sp/>Gibson,<sp/>IBM<sp/>Corporation.</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>2012<sp/>Kim<sp/>Phillips,<sp/>Freescale<sp/>Semiconductor.</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>libfdt<sp/>is<sp/>dual<sp/>licensed:<sp/>you<sp/>can<sp/>use<sp/>it<sp/>either<sp/>under<sp/>the<sp/>terms<sp/>of</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>the<sp/>GPL,<sp/>or<sp/>the<sp/>BSD<sp/>license,<sp/>at<sp/>your<sp/>option.</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>*<sp/><sp/>a)<sp/>This<sp/>library<sp/>is<sp/>free<sp/>software;<sp/>you<sp/>can<sp/>redistribute<sp/>it<sp/>and/or</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>modify<sp/>it<sp/>under<sp/>the<sp/>terms<sp/>of<sp/>the<sp/>GNU<sp/>General<sp/>Public<sp/>License<sp/>as</highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>published<sp/>by<sp/>the<sp/>Free<sp/>Software<sp/>Foundation;<sp/>either<sp/>version<sp/>2<sp/>of<sp/>the</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>License,<sp/>or<sp/>(at<sp/>your<sp/>option)<sp/>any<sp/>later<sp/>version.</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>This<sp/>library<sp/>is<sp/>distributed<sp/>in<sp/>the<sp/>hope<sp/>that<sp/>it<sp/>will<sp/>be<sp/>useful,</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>but<sp/>WITHOUT<sp/>ANY<sp/>WARRANTY;<sp/>without<sp/>even<sp/>the<sp/>implied<sp/>warranty<sp/>of</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>MERCHANTABILITY<sp/>or<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE.<sp/><sp/>See<sp/>the</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>GNU<sp/>General<sp/>Public<sp/>License<sp/>for<sp/>more<sp/>details.</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>You<sp/>should<sp/>have<sp/>received<sp/>a<sp/>copy<sp/>of<sp/>the<sp/>GNU<sp/>General<sp/>Public</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>License<sp/>along<sp/>with<sp/>this<sp/>library;<sp/>if<sp/>not,<sp/>write<sp/>to<sp/>the<sp/>Free</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>Software<sp/>Foundation,<sp/>Inc.,<sp/>51<sp/>Franklin<sp/>St,<sp/>Fifth<sp/>Floor,<sp/>Boston,</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>MA<sp/>02110-1301<sp/>USA</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*<sp/>Alternatively,</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*<sp/><sp/>b)<sp/>Redistribution<sp/>and<sp/>use<sp/>in<sp/>source<sp/>and<sp/>binary<sp/>forms,<sp/>with<sp/>or</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>without<sp/>modification,<sp/>are<sp/>permitted<sp/>provided<sp/>that<sp/>the<sp/>following</highlight></codeline>
+<codeline lineno="30"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>conditions<sp/>are<sp/>met:</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>1.<sp/>Redistributions<sp/>of<sp/>source<sp/>code<sp/>must<sp/>retain<sp/>the<sp/>above</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>copyright<sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following</highlight></codeline>
+<codeline lineno="34"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>disclaimer.</highlight></codeline>
+<codeline lineno="35"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>2.<sp/>Redistributions<sp/>in<sp/>binary<sp/>form<sp/>must<sp/>reproduce<sp/>the<sp/>above</highlight></codeline>
+<codeline lineno="36"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>copyright<sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following</highlight></codeline>
+<codeline lineno="37"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>disclaimer<sp/>in<sp/>the<sp/>documentation<sp/>and/or<sp/>other<sp/>materials</highlight></codeline>
+<codeline lineno="38"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>provided<sp/>with<sp/>the<sp/>distribution.</highlight></codeline>
+<codeline lineno="39"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="40"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>THIS<sp/>SOFTWARE<sp/>IS<sp/>PROVIDED<sp/>BY<sp/>THE<sp/>COPYRIGHT<sp/>HOLDERS<sp/>AND</highlight></codeline>
+<codeline lineno="41"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>CONTRIBUTORS<sp/>&quot;AS<sp/>IS&quot;<sp/>AND<sp/>ANY<sp/>EXPRESS<sp/>OR<sp/>IMPLIED<sp/>WARRANTIES,</highlight></codeline>
+<codeline lineno="42"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>THE<sp/>IMPLIED<sp/>WARRANTIES<sp/>OF</highlight></codeline>
+<codeline lineno="43"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>MERCHANTABILITY<sp/>AND<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE<sp/>ARE</highlight></codeline>
+<codeline lineno="44"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>DISCLAIMED.<sp/>IN<sp/>NO<sp/>EVENT<sp/>SHALL<sp/>THE<sp/>COPYRIGHT<sp/>OWNER<sp/>OR</highlight></codeline>
+<codeline lineno="45"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>CONTRIBUTORS<sp/>BE<sp/>LIABLE<sp/>FOR<sp/>ANY<sp/>DIRECT,<sp/>INDIRECT,<sp/>INCIDENTAL,</highlight></codeline>
+<codeline lineno="46"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>SPECIAL,<sp/>EXEMPLARY,<sp/>OR<sp/>CONSEQUENTIAL<sp/>DAMAGES<sp/>(INCLUDING,<sp/>BUT</highlight></codeline>
+<codeline lineno="47"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>PROCUREMENT<sp/>OF<sp/>SUBSTITUTE<sp/>GOODS<sp/>OR<sp/>SERVICES;</highlight></codeline>
+<codeline lineno="48"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>LOSS<sp/>OF<sp/>USE,<sp/>DATA,<sp/>OR<sp/>PROFITS;<sp/>OR<sp/>BUSINESS<sp/>INTERRUPTION)</highlight></codeline>
+<codeline lineno="49"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>HOWEVER<sp/>CAUSED<sp/>AND<sp/>ON<sp/>ANY<sp/>THEORY<sp/>OF<sp/>LIABILITY,<sp/>WHETHER<sp/>IN</highlight></codeline>
+<codeline lineno="50"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>CONTRACT,<sp/>STRICT<sp/>LIABILITY,<sp/>OR<sp/>TORT<sp/>(INCLUDING<sp/>NEGLIGENCE<sp/>OR</highlight></codeline>
+<codeline lineno="51"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>OTHERWISE)<sp/>ARISING<sp/>IN<sp/>ANY<sp/>WAY<sp/>OUT<sp/>OF<sp/>THE<sp/>USE<sp/>OF<sp/>THIS<sp/>SOFTWARE,</highlight></codeline>
+<codeline lineno="52"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/><sp/>EVEN<sp/>IF<sp/>ADVISED<sp/>OF<sp/>THE<sp/>POSSIBILITY<sp/>OF<sp/>SUCH<sp/>DAMAGE.</highlight></codeline>
+<codeline lineno="53"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stddef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__CHECKER__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__force<sp/>__attribute__((force))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__bitwise<sp/>__attribute__((bitwise))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__force</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__bitwise</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>uint16_t<sp/>__bitwise<sp/>fdt16_t;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>uint32_t<sp/>__bitwise<sp/>fdt32_t;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>uint64_t<sp/>__bitwise<sp/>fdt64_t;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EXTRACT_BYTE(x,<sp/>n)<sp/><sp/>((unsigned<sp/>long<sp/>long)((uint8_t<sp/>*)&amp;x)[n])</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CPU_TO_FDT16(x)<sp/>((EXTRACT_BYTE(x,<sp/>0)<sp/>&lt;&lt;<sp/>8)<sp/>|<sp/>EXTRACT_BYTE(x,<sp/>1))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CPU_TO_FDT32(x)<sp/>((EXTRACT_BYTE(x,<sp/>0)<sp/>&lt;&lt;<sp/>24)<sp/>|<sp/>(EXTRACT_BYTE(x,<sp/>1)<sp/>&lt;&lt;<sp/>16)<sp/>|<sp/>\</highlight></codeline>
+<codeline lineno="74"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(EXTRACT_BYTE(x,<sp/>2)<sp/>&lt;&lt;<sp/>8)<sp/>|<sp/>EXTRACT_BYTE(x,<sp/>3))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CPU_TO_FDT64(x)<sp/>((EXTRACT_BYTE(x,<sp/>0)<sp/>&lt;&lt;<sp/>56)<sp/>|<sp/>(EXTRACT_BYTE(x,<sp/>1)<sp/>&lt;&lt;<sp/>48)<sp/>|<sp/>\</highlight></codeline>
+<codeline lineno="76"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(EXTRACT_BYTE(x,<sp/>2)<sp/>&lt;&lt;<sp/>40)<sp/>|<sp/>(EXTRACT_BYTE(x,<sp/>3)<sp/>&lt;&lt;<sp/>32)<sp/>|<sp/>\</highlight></codeline>
+<codeline lineno="77"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(EXTRACT_BYTE(x,<sp/>4)<sp/>&lt;&lt;<sp/>24)<sp/>|<sp/>(EXTRACT_BYTE(x,<sp/>5)<sp/>&lt;&lt;<sp/>16)<sp/>|<sp/>\</highlight></codeline>
+<codeline lineno="78"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(EXTRACT_BYTE(x,<sp/>6)<sp/>&lt;&lt;<sp/>8)<sp/>|<sp/>EXTRACT_BYTE(x,<sp/>7))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint16_t<sp/>fdt16_to_cpu(fdt16_t<sp/>x)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(__force<sp/>uint16_t)CPU_TO_FDT16(x);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>fdt16_t<sp/>cpu_to_fdt16(uint16_t<sp/>x)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(__force<sp/>fdt16_t)CPU_TO_FDT16(x);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint32_t<sp/>fdt32_to_cpu(fdt32_t<sp/>x)</highlight></codeline>
+<codeline lineno="90"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(__force<sp/>uint32_t)CPU_TO_FDT32(x);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>fdt32_t<sp/>cpu_to_fdt32(uint32_t<sp/>x)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(__force<sp/>fdt32_t)CPU_TO_FDT32(x);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint64_t<sp/>fdt64_to_cpu(fdt64_t<sp/>x)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(__force<sp/>uint64_t)CPU_TO_FDT64(x);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>fdt64_t<sp/>cpu_to_fdt64(uint64_t<sp/>x)</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(__force<sp/>fdt64_t)CPU_TO_FDT64(x);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>CPU_TO_FDT64</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>CPU_TO_FDT32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>CPU_TO_FDT16</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>EXTRACT_BYTE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>_LIBFDT_ENV_H<sp/>*/</highlight><highlight class="preprocessor"></highlight></codeline>
+    </programlisting>
+    <location file="/docs/lib/fdt/include/libfdt_env.h"/>
+  </compounddef>
+</doxygen>

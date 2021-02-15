@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbpak__transport__meta" kind="struct" language="C++" prot="public">
+    <compoundname>bpak_transport_meta</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbpak__transport__meta_1abcf65d121bf0ceb3f596c17394bc7e7e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t bpak_transport_meta::alg_id_encode</definition>
+        <argsstring></argsstring>
+        <name>alg_id_encode</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="77" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__transport__meta_1a21ce6898206e76dd2f0b136972f19170" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t bpak_transport_meta::alg_id_decode</definition>
+        <argsstring></argsstring>
+        <name>alg_id_decode</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="78" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbpak__transport__meta_1adb6148d2c55ddf74cd7dec1af505b7e2" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t bpak_transport_meta::data[24]</definition>
+        <argsstring>[24]</argsstring>
+        <name>data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/bpak/bpak.h" line="79" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/bpak/bpak.h" line="76" column="1" bodyfile="/docs/include/bpak/bpak.h" bodystart="75" bodyend="80"/>
+    <listofallmembers>
+      <member refid="structbpak__transport__meta_1a21ce6898206e76dd2f0b136972f19170" prot="public" virt="non-virtual"><scope>bpak_transport_meta</scope><name>alg_id_decode</name></member>
+      <member refid="structbpak__transport__meta_1abcf65d121bf0ceb3f596c17394bc7e7e" prot="public" virt="non-virtual"><scope>bpak_transport_meta</scope><name>alg_id_encode</name></member>
+      <member refid="structbpak__transport__meta_1adb6148d2c55ddf74cd7dec1af505b7e2" prot="public" virt="non-virtual"><scope>bpak_transport_meta</scope><name>data</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

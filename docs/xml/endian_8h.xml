@@ -1,0 +1,646 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="endian_8h" kind="file" language="C++">
+    <compoundname>endian.h</compoundname>
+    <includes refid="cdefs_8h" local="no">cdefs.h</includes>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes local="no">endian_.h</includes>
+    <incdepgraph>
+      <node id="403">
+        <label>stdint_.h</label>
+      </node>
+      <node id="401">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="400">
+        <label>/docs/include/pb/libc/endian.h</label>
+        <link refid="endian_8h"/>
+        <childnode refid="401" relation="include">
+        </childnode>
+        <childnode refid="402" relation="include">
+        </childnode>
+        <childnode refid="404" relation="include">
+        </childnode>
+      </node>
+      <node id="404">
+        <label>endian_.h</label>
+      </node>
+      <node id="402">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="403" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="endian_8h_1af3bfd349519cdf98adcb6b234425c651" prot="public" static="no">
+        <name>bswap16</name>
+        <param><defname>x</defname></param>
+        <initializer>__bswap16(x)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="45" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a3e376c247d19427f3c01311e816f2574" prot="public" static="no">
+        <name>bswap32</name>
+        <param><defname>x</defname></param>
+        <initializer>__bswap32(x)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="46" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a69935d8b7d0238c6d27f46ed1c5d4050" prot="public" static="no">
+        <name>bswap64</name>
+        <param><defname>x</defname></param>
+        <initializer>__bswap64(x)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="47" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a4b9167199621b390f82c3e5361ba6df6" prot="public" static="no">
+        <name>htobe16</name>
+        <param><defname>x</defname></param>
+        <initializer>bswap16((x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="54" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1aa65407014913309932b9a5ea3c16a86d" prot="public" static="no">
+        <name>htobe32</name>
+        <param><defname>x</defname></param>
+        <initializer>bswap32((x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="55" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a5c81b75e6da4507e0a90b6f6169c4787" prot="public" static="no">
+        <name>htobe64</name>
+        <param><defname>x</defname></param>
+        <initializer>bswap64((x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="56" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a3ea73a6089f61223b225c46e2ba58a47" prot="public" static="no">
+        <name>htole16</name>
+        <param><defname>x</defname></param>
+        <initializer>((uint16_t)(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="57" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a9bea1e76e277f13ae39ac86095510bfa" prot="public" static="no">
+        <name>htole32</name>
+        <param><defname>x</defname></param>
+        <initializer>((uint32_t)(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="58" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a3070a5f8867dbc37bdafcb1a7cd491bf" prot="public" static="no">
+        <name>htole64</name>
+        <param><defname>x</defname></param>
+        <initializer>((uint64_t)(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="59" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1abb9b3120f6457dc04471c134fee1d221" prot="public" static="no">
+        <name>be16toh</name>
+        <param><defname>x</defname></param>
+        <initializer>bswap16((x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="61" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a6acac399720b3a57d9050420aa0aac41" prot="public" static="no">
+        <name>be32toh</name>
+        <param><defname>x</defname></param>
+        <initializer>bswap32((x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="62" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1af94eb043f5be14b4f260fb9b4c89ca2e" prot="public" static="no">
+        <name>be64toh</name>
+        <param><defname>x</defname></param>
+        <initializer>bswap64((x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="63" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1a684a5d26d1989cbd925e97292cc81c72" prot="public" static="no">
+        <name>le16toh</name>
+        <param><defname>x</defname></param>
+        <initializer>((uint16_t)(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="64" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1ad2dfbafcefb3add65ea44e581398e90a" prot="public" static="no">
+        <name>le32toh</name>
+        <param><defname>x</defname></param>
+        <initializer>((uint32_t)(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="65" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="endian_8h_1afeefd2e03c936cc08821e7fa67946c4a" prot="public" static="no">
+        <name>le64toh</name>
+        <param><defname>x</defname></param>
+        <initializer>((uint64_t)(x))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="66" column="12" bodyfile="/docs/include/pb/libc/endian.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="endian_8h_1afc46e6ff6880c564ad41f1b423b6d1b9" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint16_t</type>
+        <definition>static __inline uint16_t be16dec</definition>
+        <argsstring>(const void *pp)</argsstring>
+        <name>be16dec</name>
+        <param>
+          <type>const void *</type>
+          <declname>pp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="86" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="86" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1afe6ab1e09b8c22c123c4bb7963a544c1" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint32_t</type>
+        <definition>static __inline uint32_t be32dec</definition>
+        <argsstring>(const void *pp)</argsstring>
+        <name>be32dec</name>
+        <param>
+          <type>const void *</type>
+          <declname>pp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="94" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="94" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1a3ee54178bd9d6c8518b40a6742246025" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint64_t</type>
+        <definition>static __inline uint64_t be64dec</definition>
+        <argsstring>(const void *pp)</argsstring>
+        <name>be64dec</name>
+        <param>
+          <type>const void *</type>
+          <declname>pp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="102" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="102" bodyend="107"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1a5d6ce8e08df18c22c2cd45bf9c5ef795" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint16_t</type>
+        <definition>static __inline uint16_t le16dec</definition>
+        <argsstring>(const void *pp)</argsstring>
+        <name>le16dec</name>
+        <param>
+          <type>const void *</type>
+          <declname>pp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="110" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="110" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1a60d1b8c33b6a7d8af852d1bee541a340" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint32_t</type>
+        <definition>static __inline uint32_t le32dec</definition>
+        <argsstring>(const void *pp)</argsstring>
+        <name>le32dec</name>
+        <param>
+          <type>const void *</type>
+          <declname>pp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="118" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="118" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1a551f780bad06faa0b66d1b1c98e6c6b7" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline uint64_t</type>
+        <definition>static __inline uint64_t le64dec</definition>
+        <argsstring>(const void *pp)</argsstring>
+        <name>le64dec</name>
+        <param>
+          <type>const void *</type>
+          <declname>pp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="126" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="126" bodyend="131"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1aaa2dfc8ed69993b1e3e6cc6f75ca2180" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline void</type>
+        <definition>static __inline void be16enc</definition>
+        <argsstring>(void *pp, uint16_t u)</argsstring>
+        <name>be16enc</name>
+        <param>
+          <type>void *</type>
+          <declname>pp</declname>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="134" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="134" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1a281758a49164cca9b5874908ea15e739" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline void</type>
+        <definition>static __inline void be32enc</definition>
+        <argsstring>(void *pp, uint32_t u)</argsstring>
+        <name>be32enc</name>
+        <param>
+          <type>void *</type>
+          <declname>pp</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="143" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="143" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1aefcab6dbff552a58e5c8f31a3c1ba101" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline void</type>
+        <definition>static __inline void be64enc</definition>
+        <argsstring>(void *pp, uint64_t u)</argsstring>
+        <name>be64enc</name>
+        <param>
+          <type>void *</type>
+          <declname>pp</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="154" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="154" bodyend="160"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1adde33b0e7890e55982b3885e44cd9de1" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline void</type>
+        <definition>static __inline void le16enc</definition>
+        <argsstring>(void *pp, uint16_t u)</argsstring>
+        <name>le16enc</name>
+        <param>
+          <type>void *</type>
+          <declname>pp</declname>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="163" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="163" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1ae5d34f0835fa9b552ca5933585697df3" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline void</type>
+        <definition>static __inline void le32enc</definition>
+        <argsstring>(void *pp, uint32_t u)</argsstring>
+        <name>le32enc</name>
+        <param>
+          <type>void *</type>
+          <declname>pp</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="172" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="172" bodyend="180"/>
+      </memberdef>
+      <memberdef kind="function" id="endian_8h_1a4055e163ca520b07848970722b3b6953" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__inline void</type>
+        <definition>static __inline void le64enc</definition>
+        <argsstring>(void *pp, uint64_t u)</argsstring>
+        <name>le64enc</name>
+        <param>
+          <type>void *</type>
+          <declname>pp</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/libc/endian.h" line="183" column="1" bodyfile="/docs/include/pb/libc/endian.h" bodystart="183" bodyend="189"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*-</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-2-Clause-FreeBSD</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2002<sp/>Thomas<sp/>Moestl<sp/>&lt;tmm@FreeBSD.org&gt;</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*<sp/>Redistribution<sp/>and<sp/>use<sp/>in<sp/>source<sp/>and<sp/>binary<sp/>forms,<sp/>with<sp/>or<sp/>without</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>modification,<sp/>are<sp/>permitted<sp/>provided<sp/>that<sp/>the<sp/>following<sp/>conditions</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>are<sp/>met:</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*<sp/>1.<sp/>Redistributions<sp/>of<sp/>source<sp/>code<sp/>must<sp/>retain<sp/>the<sp/>above<sp/>copyright</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following<sp/>disclaimer.</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/>*<sp/>2.<sp/>Redistributions<sp/>in<sp/>binary<sp/>form<sp/>must<sp/>reproduce<sp/>the<sp/>above<sp/>copyright</highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>notice,<sp/>this<sp/>list<sp/>of<sp/>conditions<sp/>and<sp/>the<sp/>following<sp/>disclaimer<sp/>in<sp/>the</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>documentation<sp/>and/or<sp/>other<sp/>materials<sp/>provided<sp/>with<sp/>the<sp/>distribution.</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/>*<sp/>THIS<sp/>SOFTWARE<sp/>IS<sp/>PROVIDED<sp/>BY<sp/>THE<sp/>AUTHOR<sp/>AND<sp/>CONTRIBUTORS<sp/>``AS<sp/>IS&apos;&apos;<sp/>AND</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*<sp/>ANY<sp/>EXPRESS<sp/>OR<sp/>IMPLIED<sp/>WARRANTIES,<sp/>INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>THE</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/>IMPLIED<sp/>WARRANTIES<sp/>OF<sp/>MERCHANTABILITY<sp/>AND<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>ARE<sp/>DISCLAIMED.<sp/><sp/>IN<sp/>NO<sp/>EVENT<sp/>SHALL<sp/>THE<sp/>AUTHOR<sp/>OR<sp/>CONTRIBUTORS<sp/>BE<sp/>LIABLE</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*<sp/>FOR<sp/>ANY<sp/>DIRECT,<sp/>INDIRECT,<sp/>INCIDENTAL,<sp/>SPECIAL,<sp/>EXEMPLARY,<sp/>OR<sp/>CONSEQUENTIAL</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/>DAMAGES<sp/>(INCLUDING,<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO,<sp/>PROCUREMENT<sp/>OF<sp/>SUBSTITUTE<sp/>GOODS</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/>OR<sp/>SERVICES;<sp/>LOSS<sp/>OF<sp/>USE,<sp/>DATA,<sp/>OR<sp/>PROFITS;<sp/>OR<sp/>BUSINESS<sp/>INTERRUPTION)</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*<sp/>HOWEVER<sp/>CAUSED<sp/>AND<sp/>ON<sp/>ANY<sp/>THEORY<sp/>OF<sp/>LIABILITY,<sp/>WHETHER<sp/>IN<sp/>CONTRACT,<sp/>STRICT</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/>LIABILITY,<sp/>OR<sp/>TORT<sp/>(INCLUDING<sp/>NEGLIGENCE<sp/>OR<sp/>OTHERWISE)<sp/>ARISING<sp/>IN<sp/>ANY<sp/>WAY</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*<sp/>OUT<sp/>OF<sp/>THE<sp/>USE<sp/>OF<sp/>THIS<sp/>SOFTWARE,<sp/>EVEN<sp/>IF<sp/>ADVISED<sp/>OF<sp/>THE<sp/>POSSIBILITY<sp/>OF</highlight></codeline>
+<codeline lineno="26"><highlight class="comment"><sp/>*<sp/>SUCH<sp/>DAMAGE.</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"><sp/>*<sp/>$FreeBSD$</highlight></codeline>
+<codeline lineno="29"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="31"><highlight class="comment"><sp/>*<sp/>Portions<sp/>copyright<sp/>(c)<sp/>2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.</highlight></codeline>
+<codeline lineno="32"><highlight class="comment"><sp/>*<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="33"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_LIBC_ENDIAN_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_LIBC_ENDIAN_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cdefs.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;endian_.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="43"><highlight class="comment"><sp/>*<sp/>General<sp/>byte<sp/>order<sp/>swapping<sp/>functions.</highlight></codeline>
+<codeline lineno="44"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>bswap16(x)<sp/><sp/><sp/><sp/>__bswap16(x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>bswap32(x)<sp/><sp/><sp/><sp/>__bswap32(x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>bswap64(x)<sp/><sp/><sp/><sp/>__bswap64(x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="50"><highlight class="comment"><sp/>*<sp/>Host<sp/>to<sp/>big<sp/>endian,<sp/>host<sp/>to<sp/>little<sp/>endian,<sp/>big<sp/>endian<sp/>to<sp/>host,<sp/>and<sp/>little</highlight></codeline>
+<codeline lineno="51"><highlight class="comment"><sp/>*<sp/>endian<sp/>to<sp/>host<sp/>byte<sp/>order<sp/>functions<sp/>as<sp/>detailed<sp/>in<sp/>byteorder(9).</highlight></codeline>
+<codeline lineno="52"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_BYTE_ORDER<sp/>==<sp/>_LITTLE_ENDIAN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htobe16(x)<sp/><sp/><sp/><sp/>bswap16((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htobe32(x)<sp/><sp/><sp/><sp/>bswap32((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htobe64(x)<sp/><sp/><sp/><sp/>bswap64((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htole16(x)<sp/><sp/><sp/><sp/>((uint16_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htole32(x)<sp/><sp/><sp/><sp/>((uint32_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htole64(x)<sp/><sp/><sp/><sp/>((uint64_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>be16toh(x)<sp/><sp/><sp/><sp/>bswap16((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>be32toh(x)<sp/><sp/><sp/><sp/>bswap32((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>be64toh(x)<sp/><sp/><sp/><sp/>bswap64((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>le16toh(x)<sp/><sp/><sp/><sp/>((uint16_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>le32toh(x)<sp/><sp/><sp/><sp/>((uint32_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>le64toh(x)<sp/><sp/><sp/><sp/>((uint64_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="preprocessor">#else<sp/></highlight><highlight class="comment">/*<sp/>_BYTE_ORDER<sp/>!=<sp/>_LITTLE_ENDIAN<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htobe16(x)<sp/><sp/><sp/><sp/>((uint16_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htobe32(x)<sp/><sp/><sp/><sp/>((uint32_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htobe64(x)<sp/><sp/><sp/><sp/>((uint64_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htole16(x)<sp/><sp/><sp/><sp/>bswap16((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htole32(x)<sp/><sp/><sp/><sp/>bswap32((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>htole64(x)<sp/><sp/><sp/><sp/>bswap64((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>be16toh(x)<sp/><sp/><sp/><sp/>((uint16_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>be32toh(x)<sp/><sp/><sp/><sp/>((uint32_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>be64toh(x)<sp/><sp/><sp/><sp/>((uint64_t)(x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>le16toh(x)<sp/><sp/><sp/><sp/>bswap16((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>le32toh(x)<sp/><sp/><sp/><sp/>bswap32((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/><sp/><sp/><sp/>le64toh(x)<sp/><sp/><sp/><sp/>bswap64((x))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>_BYTE_ORDER<sp/>==<sp/>_LITTLE_ENDIAN<sp/>*/</highlight><highlight class="preprocessor"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>Alignment-agnostic<sp/>encode/decode<sp/>bytestream<sp/>to/from<sp/>little/big<sp/>endian.<sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint16_t</highlight></codeline>
+<codeline lineno="86"><highlight class="normal">be16dec(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp)</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*p<sp/>=<sp/>(uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*)pp;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((p[0]<sp/>&lt;&lt;<sp/>8)<sp/>|<sp/>p[1]);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint32_t</highlight></codeline>
+<codeline lineno="94"><highlight class="normal">be32dec(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp)</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*p<sp/>=<sp/>(uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*)pp;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(((</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)p[0]<sp/>&lt;&lt;<sp/>24)<sp/>|<sp/>(p[1]<sp/>&lt;&lt;<sp/>16)<sp/>|<sp/>(p[2]<sp/>&lt;&lt;<sp/>8)<sp/>|<sp/>p[3]);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint64_t</highlight></codeline>
+<codeline lineno="102"><highlight class="normal">be64dec(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp)</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*p<sp/>=<sp/>(uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*)pp;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(((uint64_t)be32dec(p)<sp/>&lt;&lt;<sp/>32)<sp/>|<sp/>be32dec(p<sp/>+<sp/>4));</highlight></codeline>
+<codeline lineno="107"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint16_t</highlight></codeline>
+<codeline lineno="110"><highlight class="normal">le16dec(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp)</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*p<sp/>=<sp/>(uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*)pp;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((p[1]<sp/>&lt;&lt;<sp/>8)<sp/>|<sp/>p[0]);</highlight></codeline>
+<codeline lineno="115"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint32_t</highlight></codeline>
+<codeline lineno="118"><highlight class="normal">le32dec(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp)</highlight></codeline>
+<codeline lineno="119"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*p<sp/>=<sp/>(uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*)pp;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(((</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)p[3]<sp/>&lt;&lt;<sp/>24)<sp/>|<sp/>(p[2]<sp/>&lt;&lt;<sp/>16)<sp/>|<sp/>(p[1]<sp/>&lt;&lt;<sp/>8)<sp/>|<sp/>p[0]);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/>uint64_t</highlight></codeline>
+<codeline lineno="126"><highlight class="normal">le64dec(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*p<sp/>=<sp/>(uint8_t<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*)pp;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(((uint64_t)le32dec(p<sp/>+<sp/>4)<sp/>&lt;&lt;<sp/>32)<sp/>|<sp/>le32dec(p));</highlight></codeline>
+<codeline lineno="131"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal">be16enc(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp,<sp/>uint16_t<sp/>u)</highlight></codeline>
+<codeline lineno="135"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*p<sp/>=<sp/>(uint8_t<sp/>*)pp;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/>p[0]<sp/>=<sp/>(u<sp/>&gt;&gt;<sp/>8)<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/>p[1]<sp/>=<sp/>u<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal">be32enc(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp,<sp/>uint32_t<sp/>u)</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*p<sp/>=<sp/>(uint8_t<sp/>*)pp;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/>p[0]<sp/>=<sp/>(u<sp/>&gt;&gt;<sp/>24)<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>p[1]<sp/>=<sp/>(u<sp/>&gt;&gt;<sp/>16)<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>p[2]<sp/>=<sp/>(u<sp/>&gt;&gt;<sp/>8)<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/>p[3]<sp/>=<sp/>u<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal">be64enc(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp,<sp/>uint64_t<sp/>u)</highlight></codeline>
+<codeline lineno="155"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*p<sp/>=<sp/>(uint8_t<sp/>*)pp;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/>be32enc(p,<sp/>(uint32_t)(u<sp/>&gt;&gt;<sp/>32));</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/>be32enc(p<sp/>+<sp/>4,<sp/>(uint32_t)(u<sp/>&amp;<sp/>0xffffffffU));</highlight></codeline>
+<codeline lineno="160"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal">le16enc(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp,<sp/>uint16_t<sp/>u)</highlight></codeline>
+<codeline lineno="164"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*p<sp/>=<sp/>(uint8_t<sp/>*)pp;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/>p[0]<sp/>=<sp/>u<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/>p[1]<sp/>=<sp/>(u<sp/>&gt;&gt;<sp/>8)<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal">le32enc(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp,<sp/>uint32_t<sp/>u)</highlight></codeline>
+<codeline lineno="173"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*p<sp/>=<sp/>(uint8_t<sp/>*)pp;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/>p[0]<sp/>=<sp/>u<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/>p[1]<sp/>=<sp/>(u<sp/>&gt;&gt;<sp/>8)<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/>p[2]<sp/>=<sp/>(u<sp/>&gt;&gt;<sp/>16)<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/>p[3]<sp/>=<sp/>(u<sp/>&gt;&gt;<sp/>24)<sp/>&amp;<sp/>0xff;</highlight></codeline>
+<codeline lineno="180"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__inline<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal">le64enc(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pp,<sp/>uint64_t<sp/>u)</highlight></codeline>
+<codeline lineno="184"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>*p<sp/>=<sp/>(uint8_t<sp/>*)pp;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/>le32enc(p,<sp/>(uint32_t)(u<sp/>&amp;<sp/>0xffffffffU));</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/>le32enc(p<sp/>+<sp/>4,<sp/>(uint32_t)(u<sp/>&gt;&gt;<sp/>32));</highlight></codeline>
+<codeline lineno="189"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_LIBC_ENDIAN_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/libc/endian.h"/>
+  </compounddef>
+</doxygen>

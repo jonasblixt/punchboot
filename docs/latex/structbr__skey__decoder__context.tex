@@ -1,0 +1,69 @@
+\hypertarget{structbr__skey__decoder__context}{}\section{br\+\_\+skey\+\_\+decoder\+\_\+context Struct Reference}
+\label{structbr__skey__decoder__context}\index{br\+\_\+skey\+\_\+decoder\+\_\+context@{br\+\_\+skey\+\_\+decoder\+\_\+context}}
+
+
+Private key decoder context.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+x509.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_ad792ce74a8b4c26134fe97bd9b9132ed}\label{structbr__skey__decoder__context_ad792ce74a8b4c26134fe97bd9b9132ed}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\>\hyperlink{structbr__rsa__private__key}{br\_rsa\_private\_key} {\bfseries rsa}\\
+\>\hyperlink{structbr__ec__private__key}{br\_ec\_private\_key} {\bfseries ec}\\
+\} {\bfseries key}\\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_aba258aed7c1c52d4d216605df88a7ace}\label{structbr__skey__decoder__context_aba258aed7c1c52d4d216605df88a7ace}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+struct \{\\
+\>uint32\_t $\ast$ {\bfseries dp}\\
+\>uint32\_t $\ast$ {\bfseries rp}\\
+\>const unsigned char $\ast$ {\bfseries ip}\\
+\} {\bfseries cpu}\\
+
+\end{tabbing}\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_a16ce6828031af8bc4fa7106e2bca3a01}\label{structbr__skey__decoder__context_a16ce6828031af8bc4fa7106e2bca3a01}} 
+uint32\+\_\+t {\bfseries dp\+\_\+stack} \mbox{[}32\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_adf3911661e78273930063173137f5ff9}\label{structbr__skey__decoder__context_adf3911661e78273930063173137f5ff9}} 
+uint32\+\_\+t {\bfseries rp\+\_\+stack} \mbox{[}32\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_ac5d5bc0d714e920d69238364e9f4d8c8}\label{structbr__skey__decoder__context_ac5d5bc0d714e920d69238364e9f4d8c8}} 
+int {\bfseries err}
+\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_ab0c8dc56e4c498ca4fc58d2765fa35f9}\label{structbr__skey__decoder__context_ab0c8dc56e4c498ca4fc58d2765fa35f9}} 
+const unsigned char $\ast$ {\bfseries hbuf}
+\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_a911c8e3d8ecad672e36ad15222e5e452}\label{structbr__skey__decoder__context_a911c8e3d8ecad672e36ad15222e5e452}} 
+size\+\_\+t {\bfseries hlen}
+\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_a5ec264a8aa3f61c740b638322420c59f}\label{structbr__skey__decoder__context_a5ec264a8aa3f61c740b638322420c59f}} 
+unsigned char {\bfseries pad} \mbox{[}256\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_aa7d7d44d50b9b44603917eec6c6335ef}\label{structbr__skey__decoder__context_aa7d7d44d50b9b44603917eec6c6335ef}} 
+unsigned char {\bfseries key\+\_\+type}
+\item 
+\mbox{\Hypertarget{structbr__skey__decoder__context_a39a49b8873e34364d113b9cea8fe863a}\label{structbr__skey__decoder__context_a39a49b8873e34364d113b9cea8fe863a}} 
+unsigned char {\bfseries key\+\_\+data} \mbox{[}3 $\ast$B\+R\+\_\+\+X509\+\_\+\+B\+U\+F\+S\+I\+Z\+E\+\_\+\+S\+IG\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Private key decoder context. 
+
+The private key decoder recognises R\+SA and EC private keys, either in their raw, D\+E\+R-\/encoded format, or wrapped in an unencrypted P\+K\+CS\#8 archive (again D\+E\+R-\/encoded).
+
+Structure contents are opaque and shall not be accessed directly. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__x509_8h}{bearssl\+\_\+x509.\+h}\end{DoxyCompactItemize}

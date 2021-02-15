@@ -1,0 +1,319 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__storage__driver" kind="struct" language="C++" prot="public">
+    <compoundname>pb_storage_driver</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__storage__driver_1ae9db5ff1d7571fa49db466976208ec92" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool pb_storage_driver::ready</definition>
+        <argsstring></argsstring>
+        <name>ready</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="115" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a0165f88905a4d36e0554d615f70240c7" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* pb_storage_driver::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="116" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a99c2617854098bde0bfc765be19b6c84" prot="public" static="no" mutable="no">
+        <type>const size_t</type>
+        <definition>const size_t pb_storage_driver::block_size</definition>
+        <argsstring></argsstring>
+        <name>block_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="117" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a65e6e83ef322392e8499725c761c5dcc" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int pb_storage_driver::last_block</definition>
+        <argsstring></argsstring>
+        <name>last_block</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="118" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a602e08a1d0a5694933b023e7cf11a0a5" prot="public" static="no" mutable="no">
+        <type>pb_storage_call_t</type>
+        <definition>pb_storage_call_t pb_storage_driver::init</definition>
+        <argsstring></argsstring>
+        <name>init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="119" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a0650e0ace84763e23cdbb80e120a9822" prot="public" static="no" mutable="no">
+        <type>pb_storage_io_t</type>
+        <definition>pb_storage_io_t pb_storage_driver::write</definition>
+        <argsstring></argsstring>
+        <name>write</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="120" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a88d7474a091fb99580edd9ffc4b47da9" prot="public" static="no" mutable="no">
+        <type>pb_storage_io_t</type>
+        <definition>pb_storage_io_t pb_storage_driver::read</definition>
+        <argsstring></argsstring>
+        <name>read</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="121" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1ae1647901e1c714f50b3e7a18a97d58d1" prot="public" static="no" mutable="no">
+        <type>pb_storage_io_t</type>
+        <definition>pb_storage_io_t pb_storage_driver::flush</definition>
+        <argsstring></argsstring>
+        <name>flush</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="122" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1ac5d38810dc9fceaf5248347056d1821c" prot="public" static="no" mutable="no">
+        <type>const void *</type>
+        <definition>const void* pb_storage_driver::driver_private</definition>
+        <argsstring></argsstring>
+        <name>driver_private</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="123" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a6b1f32d7a894c2da878d782dfabc6b85" prot="public" static="no" mutable="no">
+        <type>pb_storage_call_t</type>
+        <definition>pb_storage_call_t pb_storage_driver::map_init</definition>
+        <argsstring></argsstring>
+        <name>map_init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="125" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1ae0ee938c289aaf3a17e1c33801c589d1" prot="public" static="no" mutable="no">
+        <type>pb_storage_map_t</type>
+        <definition>pb_storage_map_t pb_storage_driver::map_install</definition>
+        <argsstring></argsstring>
+        <name>map_install</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="126" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a48c5c1345e24ce89c24e51a1f1c39d42" prot="public" static="no" mutable="no">
+        <type>pb_storage_map_t</type>
+        <definition>pb_storage_map_t pb_storage_driver::map_request</definition>
+        <argsstring></argsstring>
+        <name>map_request</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="127" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a3b9ab25c8b5051686556a6d44520beaa" prot="public" static="no" mutable="no">
+        <type>pb_storage_map_t</type>
+        <definition>pb_storage_map_t pb_storage_driver::map_release</definition>
+        <argsstring></argsstring>
+        <name>map_release</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="128" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1ac151fbc69970f5d90adb2477b293fe57" prot="public" static="no" mutable="no">
+        <type>const struct <ref refid="structpb__storage__map" kindref="compound">pb_storage_map</ref> *</type>
+        <definition>const struct pb_storage_map* pb_storage_driver::map_default</definition>
+        <argsstring></argsstring>
+        <name>map_default</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="129" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1ac57e3f5c64d9f061c1356c4bf8c36e2a" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* pb_storage_driver::map_private</definition>
+        <argsstring></argsstring>
+        <name>map_private</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="130" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1afe9a9a53fc6672ec75020b145abe45dc" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t pb_storage_driver::map_private_size</definition>
+        <argsstring></argsstring>
+        <name>map_private_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="131" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1aced8d5100eb9d79d98680c6f1cc957a4" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* pb_storage_driver::map_data</definition>
+        <argsstring></argsstring>
+        <name>map_data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="132" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1ae41d391e46bc5b03eade9ee15a46c676" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t pb_storage_driver::map_data_size</definition>
+        <argsstring></argsstring>
+        <name>map_data_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="133" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1af9dad94e782aef715efba8d6128c79d6" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int pb_storage_driver::map_entries</definition>
+        <argsstring></argsstring>
+        <name>map_entries</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="134" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__storage__driver_1a9d56a1f4fbb0786f070a00864f886667" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structpb__storage__driver" kindref="compound">pb_storage_driver</ref> *</type>
+        <definition>struct pb_storage_driver* pb_storage_driver::next</definition>
+        <argsstring></argsstring>
+        <name>next</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/storage.h" line="135" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="355">
+        <label>pb_storage_map</label>
+        <link refid="structpb__storage__map"/>
+      </node>
+      <node id="354">
+        <label>pb_storage_driver</label>
+        <link refid="structpb__storage__driver"/>
+        <childnode refid="355" relation="usage">
+          <edgelabel>map_default</edgelabel>
+        </childnode>
+        <childnode refid="354" relation="usage">
+          <edgelabel>next</edgelabel>
+          <edgelabel>map_request</edgelabel>
+          <edgelabel>read</edgelabel>
+          <edgelabel>write</edgelabel>
+          <edgelabel>map_init</edgelabel>
+          <edgelabel>map_release</edgelabel>
+          <edgelabel>map_install</edgelabel>
+          <edgelabel>flush</edgelabel>
+          <edgelabel>init</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/include/pb/storage.h" line="114" column="1" bodyfile="/docs/include/pb/storage.h" bodystart="113" bodyend="136"/>
+    <listofallmembers>
+      <member refid="structpb__storage__driver_1a99c2617854098bde0bfc765be19b6c84" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>block_size</name></member>
+      <member refid="structpb__storage__driver_1ac5d38810dc9fceaf5248347056d1821c" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>driver_private</name></member>
+      <member refid="structpb__storage__driver_1ae1647901e1c714f50b3e7a18a97d58d1" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>flush</name></member>
+      <member refid="structpb__storage__driver_1a602e08a1d0a5694933b023e7cf11a0a5" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>init</name></member>
+      <member refid="structpb__storage__driver_1a65e6e83ef322392e8499725c761c5dcc" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>last_block</name></member>
+      <member refid="structpb__storage__driver_1aced8d5100eb9d79d98680c6f1cc957a4" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_data</name></member>
+      <member refid="structpb__storage__driver_1ae41d391e46bc5b03eade9ee15a46c676" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_data_size</name></member>
+      <member refid="structpb__storage__driver_1ac151fbc69970f5d90adb2477b293fe57" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_default</name></member>
+      <member refid="structpb__storage__driver_1af9dad94e782aef715efba8d6128c79d6" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_entries</name></member>
+      <member refid="structpb__storage__driver_1a6b1f32d7a894c2da878d782dfabc6b85" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_init</name></member>
+      <member refid="structpb__storage__driver_1ae0ee938c289aaf3a17e1c33801c589d1" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_install</name></member>
+      <member refid="structpb__storage__driver_1ac57e3f5c64d9f061c1356c4bf8c36e2a" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_private</name></member>
+      <member refid="structpb__storage__driver_1afe9a9a53fc6672ec75020b145abe45dc" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_private_size</name></member>
+      <member refid="structpb__storage__driver_1a3b9ab25c8b5051686556a6d44520beaa" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_release</name></member>
+      <member refid="structpb__storage__driver_1a48c5c1345e24ce89c24e51a1f1c39d42" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>map_request</name></member>
+      <member refid="structpb__storage__driver_1a0165f88905a4d36e0554d615f70240c7" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>name</name></member>
+      <member refid="structpb__storage__driver_1a9d56a1f4fbb0786f070a00864f886667" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>next</name></member>
+      <member refid="structpb__storage__driver_1a88d7474a091fb99580edd9ffc4b47da9" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>read</name></member>
+      <member refid="structpb__storage__driver_1ae9db5ff1d7571fa49db466976208ec92" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>ready</name></member>
+      <member refid="structpb__storage__driver_1a0650e0ace84763e23cdbb80e120a9822" prot="public" virt="non-virtual"><scope>pb_storage_driver</scope><name>write</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__board" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_board</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__board_1a0a82ab61f71bcf4b68319d01b90a78b7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_command_board::command</definition>
+        <argsstring></argsstring>
+        <name>command</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Board command to run </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="363" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="363" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__board_1a748f573d48c798718123eee30d4c6708" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_command_board::request_size</definition>
+        <argsstring></argsstring>
+        <name>request_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Request size in bytes </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="364" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="364" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__board_1a1257207ae1c927f6ad15b9d992847dba" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_command_board::response_buffer_size</definition>
+        <argsstring></argsstring>
+        <name>response_buffer_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maximum amount of data that can be included in the response </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="365" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="365" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__board_1a1b4c5932c2b9ea9eb359a0a7cb59d174" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_board::rz[20]</definition>
+        <argsstring>[20]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="367" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="367" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Board specific command</para><para>This optional command, when called will run a function in the board module that can be unique for a board. </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="362" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="361" bodyend="368"/>
+    <listofallmembers>
+      <member refid="structpb__command__board_1a0a82ab61f71bcf4b68319d01b90a78b7" prot="public" virt="non-virtual"><scope>pb_command_board</scope><name>command</name></member>
+      <member refid="structpb__command__board_1a748f573d48c798718123eee30d4c6708" prot="public" virt="non-virtual"><scope>pb_command_board</scope><name>request_size</name></member>
+      <member refid="structpb__command__board_1a1257207ae1c927f6ad15b9d992847dba" prot="public" virt="non-virtual"><scope>pb_command_board</scope><name>response_buffer_size</name></member>
+      <member refid="structpb__command__board_1a1b4c5932c2b9ea9eb359a0a7cb59d174" prot="public" virt="non-virtual"><scope>pb_command_board</scope><name>rz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

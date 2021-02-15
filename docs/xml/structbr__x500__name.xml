@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__x500__name" kind="struct" language="C++" prot="public">
+    <compoundname>br_x500_name</compoundname>
+    <includes refid="bearssl__x509_8h" local="no">bearssl_x509.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__x500__name_1aa0be18c6acf0e6585f5abde290c873dc" prot="public" static="no" mutable="no">
+        <type>unsigned char *</type>
+        <definition>unsigned char* br_x500_name::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <briefdescription>
+<para>Encoded DN data. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="247" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x500__name_1af204bdadd183aee37e421bd2bd516c13" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_x500_name::len</definition>
+        <argsstring></argsstring>
+        <name>len</name>
+        <briefdescription>
+<para>Encoded DN length (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="249" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="249" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Distinguished Name (X.500) structure. </para>    </briefdescription>
+    <detaileddescription>
+<para>The DN is DER-encoded. </para>    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="245" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="245" bodyend="250"/>
+    <listofallmembers>
+      <member refid="structbr__x500__name_1aa0be18c6acf0e6585f5abde290c873dc" prot="public" virt="non-virtual"><scope>br_x500_name</scope><name>data</name></member>
+      <member refid="structbr__x500__name_1af204bdadd183aee37e421bd2bd516c13" prot="public" virt="non-virtual"><scope>br_x500_name</scope><name>len</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,400 @@
+\hypertarget{wire_8h}{}\section{/docs/include/pb-\/tools/wire.h File Reference}
+\label{wire_8h}\index{/docs/include/pb-\/tools/wire.\+h@{/docs/include/pb-\/tools/wire.\+h}}
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$pb-\/tools/error.\+h$>$}\newline
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structpb__command}{pb\+\_\+command}
+\item 
+struct \hyperlink{structpb__result}{pb\+\_\+result}
+\item 
+struct \hyperlink{structpb__result__device__caps}{pb\+\_\+result\+\_\+device\+\_\+caps}
+\item 
+struct \hyperlink{structpb__result__part__table__read}{pb\+\_\+result\+\_\+part\+\_\+table\+\_\+read}
+\item 
+struct \hyperlink{structpb__result__part__table__entry}{pb\+\_\+result\+\_\+part\+\_\+table\+\_\+entry}
+\item 
+struct \hyperlink{structpb__command__stream__initialize}{pb\+\_\+command\+\_\+stream\+\_\+initialize}
+\item 
+struct \hyperlink{structpb__command__stream__prepare__buffer}{pb\+\_\+command\+\_\+stream\+\_\+prepare\+\_\+buffer}
+\item 
+struct \hyperlink{structpb__command__stream__write__buffer}{pb\+\_\+command\+\_\+stream\+\_\+write\+\_\+buffer}
+\item 
+struct \hyperlink{structpb__command__stream__read__buffer}{pb\+\_\+command\+\_\+stream\+\_\+read\+\_\+buffer}
+\item 
+struct \hyperlink{structpb__command__authenticate}{pb\+\_\+command\+\_\+authenticate}
+\item 
+struct \hyperlink{structpb__command__verify__part}{pb\+\_\+command\+\_\+verify\+\_\+part}
+\item 
+struct \hyperlink{structpb__command__activate__part}{pb\+\_\+command\+\_\+activate\+\_\+part}
+\item 
+struct \hyperlink{structpb__command__read__bpak}{pb\+\_\+command\+\_\+read\+\_\+bpak}
+\item 
+struct \hyperlink{structpb__command__erase__part}{pb\+\_\+command\+\_\+erase\+\_\+part}
+\item 
+struct \hyperlink{structpb__result__device__identifier}{pb\+\_\+result\+\_\+device\+\_\+identifier}
+\item 
+struct \hyperlink{structpb__result__slc}{pb\+\_\+result\+\_\+slc}
+\item 
+struct \hyperlink{structpb__result__slc__key__status}{pb\+\_\+result\+\_\+slc\+\_\+key\+\_\+status}
+\item 
+struct \hyperlink{structpb__command__revoke__key}{pb\+\_\+command\+\_\+revoke\+\_\+key}
+\item 
+struct \hyperlink{structpb__command__boot__part}{pb\+\_\+command\+\_\+boot\+\_\+part}
+\item 
+struct \hyperlink{structpb__command__ram__boot}{pb\+\_\+command\+\_\+ram\+\_\+boot}
+\item 
+struct \hyperlink{structpb__command__board}{pb\+\_\+command\+\_\+board}
+\item 
+struct \hyperlink{structpb__result__board}{pb\+\_\+result\+\_\+board}
+\item 
+struct \hyperlink{structpb__result__board__status}{pb\+\_\+result\+\_\+board\+\_\+status}
+\end{DoxyCompactItemize}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{wire_8h_ad0dd99e9f0f8e9e48030fb5d47d94188}{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+M\+A\+G\+IC}~0x50424c30   /$\ast$ P\+B\+L0 $\ast$/
+\item 
+\#define \hyperlink{wire_8h_ab4a82f18920c6584ecf0a2d918d803e0}{P\+B\+\_\+\+C\+O\+M\+M\+A\+N\+D\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}~504
+\item 
+\#define \hyperlink{wire_8h_a2e780e3a8957b04e0dd4bc78cd595551}{P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+R\+E\+S\+P\+O\+N\+S\+E\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}~504
+\item 
+\#define \hyperlink{wire_8h_a5d52f351dcb56ca6a8d1f3d400d1ec80}{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+B\+O\+O\+T\+A\+B\+LE}~(1 $<$$<$ 0)
+\item 
+\#define \hyperlink{wire_8h_a852014a2a7e6c2ee3ac9e539e813d69f}{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+O\+TP}~(1 $<$$<$ 1)
+\item 
+\#define \hyperlink{wire_8h_a47dc893b214ea68ba2fb346d98d01a8f}{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+W\+R\+I\+T\+A\+B\+LE}~(1 $<$$<$ 2)
+\item 
+\#define \hyperlink{wire_8h_a7f38a47791607976cd3c57776139712f}{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+E\+R\+A\+S\+E\+\_\+\+B\+E\+F\+O\+R\+E\+\_\+\+W\+R\+I\+TE}~(1 $<$$<$ 3)
+\end{DoxyCompactItemize}
+\subsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \hyperlink{wire_8h_a2688f91ff31893ed24fe4346ed170d86}{pb\+\_\+auth\+\_\+method} \{ \hyperlink{wire_8h_a2688f91ff31893ed24fe4346ed170d86a2945104e4cba2f408cf5606050cd29a2}{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+I\+N\+V\+A\+L\+ID}, 
+\hyperlink{wire_8h_a2688f91ff31893ed24fe4346ed170d86a053b385b87d5a96f4be156359c05b268}{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+A\+S\+Y\+M\+\_\+\+T\+O\+K\+EN}, 
+\hyperlink{wire_8h_a2688f91ff31893ed24fe4346ed170d86a4841153ec382cc57c275ac12dad2972c}{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+P\+A\+S\+S\+W\+O\+RD}
+ \}
+\item 
+enum \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands} \{ \newline
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+I\+N\+V\+A\+L\+ID}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+D\+E\+V\+I\+C\+E\+\_\+\+R\+E\+S\+ET}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+D\+E\+V\+I\+C\+E\+\_\+\+I\+D\+E\+N\+T\+I\+F\+I\+E\+R\+\_\+\+R\+E\+AD}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+D\+E\+V\+I\+C\+E\+\_\+\+R\+E\+A\+D\+\_\+\+C\+A\+PS}, 
+\newline
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+L\+C\+\_\+\+S\+E\+T\+\_\+\+C\+O\+N\+F\+I\+G\+U\+R\+A\+T\+I\+ON}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+L\+C\+\_\+\+S\+E\+T\+\_\+\+C\+O\+N\+F\+I\+G\+U\+R\+A\+T\+I\+O\+N\+\_\+\+L\+O\+CK}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+L\+C\+\_\+\+S\+E\+T\+\_\+\+E\+OL}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+L\+C\+\_\+\+R\+E\+V\+O\+K\+E\+\_\+\+K\+EY}, 
+\newline
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+L\+C\+\_\+\+R\+E\+AD}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+B\+O\+O\+T\+L\+O\+A\+D\+E\+R\+\_\+\+V\+E\+R\+S\+I\+O\+N\+\_\+\+R\+E\+AD}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+P\+A\+R\+T\+\_\+\+T\+B\+L\+\_\+\+R\+E\+AD}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+P\+A\+R\+T\+\_\+\+T\+B\+L\+\_\+\+I\+N\+S\+T\+A\+LL}, 
+\newline
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+P\+A\+R\+T\+\_\+\+V\+E\+R\+I\+FY}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+P\+A\+R\+T\+\_\+\+A\+C\+T\+I\+V\+A\+TE}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+P\+A\+R\+T\+\_\+\+B\+P\+A\+K\+\_\+\+R\+E\+AD}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+P\+A\+R\+T\+\_\+\+E\+R\+A\+SE}, 
+\newline
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+A\+U\+T\+H\+E\+N\+T\+I\+C\+A\+TE}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+A\+U\+T\+H\+\_\+\+S\+E\+T\+\_\+\+O\+T\+P\+\_\+\+P\+A\+S\+S\+W\+O\+RD}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+T\+R\+E\+A\+M\+\_\+\+I\+N\+I\+T\+I\+A\+L\+I\+ZE}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+T\+R\+E\+A\+M\+\_\+\+P\+R\+E\+P\+A\+R\+E\+\_\+\+B\+U\+F\+F\+ER}, 
+\newline
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+T\+R\+E\+A\+M\+\_\+\+W\+R\+I\+T\+E\+\_\+\+B\+U\+F\+F\+ER}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+T\+R\+E\+A\+M\+\_\+\+F\+I\+N\+A\+L\+I\+ZE}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+B\+O\+O\+T\+\_\+\+P\+A\+RT}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+B\+O\+O\+T\+\_\+\+R\+AM}, 
+\newline
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+B\+O\+A\+R\+D\+\_\+\+C\+O\+M\+M\+A\+ND}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+B\+O\+A\+R\+D\+\_\+\+S\+T\+A\+T\+U\+S\+\_\+\+R\+E\+AD}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+S\+T\+R\+E\+A\+M\+\_\+\+R\+E\+A\+D\+\_\+\+B\+U\+F\+F\+ER}, 
+{\bfseries P\+B\+\_\+\+C\+M\+D\+\_\+\+E\+ND}
+ \}
+\item 
+\mbox{\Hypertarget{wire_8h_a7a4e0c3aa6fa52b688953c4b4057b96e}\label{wire_8h_a7a4e0c3aa6fa52b688953c4b4057b96e}} 
+enum {\bfseries pb\+\_\+slc} \{ \newline
+{\bfseries P\+B\+\_\+\+S\+L\+C\+\_\+\+I\+N\+V\+A\+L\+ID}, 
+{\bfseries P\+B\+\_\+\+S\+L\+C\+\_\+\+N\+O\+T\+\_\+\+C\+O\+N\+F\+I\+G\+U\+R\+ED}, 
+{\bfseries P\+B\+\_\+\+S\+L\+C\+\_\+\+C\+O\+N\+F\+I\+G\+U\+R\+A\+T\+I\+ON}, 
+{\bfseries P\+B\+\_\+\+S\+L\+C\+\_\+\+C\+O\+N\+F\+I\+G\+U\+R\+A\+T\+I\+O\+N\+\_\+\+L\+O\+C\+K\+ED}, 
+\newline
+{\bfseries P\+B\+\_\+\+S\+L\+C\+\_\+\+E\+OL}
+ \}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \hyperlink{wire_8h_a4369971e2219cd9dac7db28e74cdc0a8}{pb\+\_\+wire\+\_\+init\+\_\+command} (struct \hyperlink{structpb__command}{pb\+\_\+command} $\ast$command, enum \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands} command\+\_\+code)
+\item 
+int \hyperlink{wire_8h_a33c4521f8c8c71fe6cde4e6f50a337ce}{pb\+\_\+wire\+\_\+init\+\_\+command2} (struct \hyperlink{structpb__command}{pb\+\_\+command} $\ast$command, enum \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands} command\+\_\+code, void $\ast$data, size\+\_\+t size)
+\item 
+int \hyperlink{wire_8h_ab09c94a5a8730b827bba18036a5889be}{pb\+\_\+wire\+\_\+init\+\_\+result} (struct \hyperlink{structpb__result}{pb\+\_\+result} $\ast$result, enum pb\+\_\+results result\+\_\+code)
+\item 
+int \hyperlink{wire_8h_ad9d67cc202eb40ff33217ee960a9fd58}{pb\+\_\+wire\+\_\+init\+\_\+result2} (struct \hyperlink{structpb__result}{pb\+\_\+result} $\ast$result, enum pb\+\_\+results result\+\_\+code, void $\ast$data, size\+\_\+t size)
+\item 
+bool \hyperlink{wire_8h_acba9f70ade176178b07dc443585d2196}{pb\+\_\+wire\+\_\+valid\+\_\+command} (struct \hyperlink{structpb__command}{pb\+\_\+command} $\ast$command)
+\item 
+bool \hyperlink{wire_8h_a44f1e2b5110c2e5cdc40fb8dd306caff}{pb\+\_\+wire\+\_\+valid\+\_\+result} (struct \hyperlink{structpb__result}{pb\+\_\+result} $\ast$result)
+\item 
+bool \hyperlink{wire_8h_af7a12ffc1efcde0b83d42c130983f97f}{pb\+\_\+wire\+\_\+requires\+\_\+auth} (struct \hyperlink{structpb__command}{pb\+\_\+command} $\ast$command)
+\item 
+const char $\ast$ \hyperlink{wire_8h_aaaa3fb4c4d6836e4bdc89cff634583c1}{pb\+\_\+wire\+\_\+command\+\_\+string} (enum \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands} cmd)
+\item 
+const char $\ast$ \hyperlink{wire_8h_adf6d386f587a9c11d3238e94c206faaa}{pb\+\_\+wire\+\_\+slc\+\_\+string} (enum pb\+\_\+slc slc)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Punch B\+O\+OT
+
+Copyright (C) 2020 Jonas Blixt \href{mailto:jonpe960@gmail.com}{\tt jonpe960@gmail.\+com}
+
+S\+P\+D\+X-\/\+License-\/\+Identifier\+: B\+S\+D-\/3-\/\+Clause
+
+This file contains the \textquotesingle{}wire\textquotesingle{} format for the punchboot bootloader. The various structs and defines are used for sending data between host and device.
+
+Generally a struct \hyperlink{structpb__command}{pb\+\_\+command} is sent from the host and the device is expected to respond with a struct \hyperlink{structpb__result}{pb\+\_\+result}.
+
+Additional read/writes are optional but must always be terminated by sending a struct \hyperlink{structpb__result}{pb\+\_\+result}
+
+The \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands} enum encodes all of the available commands. 
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{wire_8h_ab4a82f18920c6584ecf0a2d918d803e0}\label{wire_8h_ab4a82f18920c6584ecf0a2d918d803e0}} 
+\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+C\+O\+M\+M\+A\+N\+D\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE@{P\+B\+\_\+\+C\+O\+M\+M\+A\+N\+D\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}}
+\index{P\+B\+\_\+\+C\+O\+M\+M\+A\+N\+D\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE@{P\+B\+\_\+\+C\+O\+M\+M\+A\+N\+D\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{P\+B\+\_\+\+C\+O\+M\+M\+A\+N\+D\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}{PB\_COMMAND\_REQUEST\_MAX\_SIZE}}
+{\footnotesize\ttfamily \#define P\+B\+\_\+\+C\+O\+M\+M\+A\+N\+D\+\_\+\+R\+E\+Q\+U\+E\+S\+T\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE~504}
+
+Maximum number of bytes that can be embedded in a command request \mbox{\Hypertarget{wire_8h_a2e780e3a8957b04e0dd4bc78cd595551}\label{wire_8h_a2e780e3a8957b04e0dd4bc78cd595551}} 
+\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+R\+E\+S\+P\+O\+N\+S\+E\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE@{P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+R\+E\+S\+P\+O\+N\+S\+E\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}}
+\index{P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+R\+E\+S\+P\+O\+N\+S\+E\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE@{P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+R\+E\+S\+P\+O\+N\+S\+E\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+R\+E\+S\+P\+O\+N\+S\+E\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}{PB\_RESULT\_RESPONSE\_MAX\_SIZE}}
+{\footnotesize\ttfamily \#define P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+R\+E\+S\+P\+O\+N\+S\+E\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE~504}
+
+Maximum number of bytes that can be embedded in a response result \mbox{\Hypertarget{wire_8h_ad0dd99e9f0f8e9e48030fb5d47d94188}\label{wire_8h_ad0dd99e9f0f8e9e48030fb5d47d94188}} 
+\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+M\+A\+G\+IC@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+M\+A\+G\+IC}}
+\index{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+M\+A\+G\+IC@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+M\+A\+G\+IC}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+M\+A\+G\+IC}{PB\_WIRE\_MAGIC}}
+{\footnotesize\ttfamily \#define P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+M\+A\+G\+IC~0x50424c30   /$\ast$ P\+B\+L0 $\ast$/}
+
+Magic number present in all the command and result headers. \mbox{\Hypertarget{wire_8h_a5d52f351dcb56ca6a8d1f3d400d1ec80}\label{wire_8h_a5d52f351dcb56ca6a8d1f3d400d1ec80}} 
+\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+B\+O\+O\+T\+A\+B\+LE@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+B\+O\+O\+T\+A\+B\+LE}}
+\index{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+B\+O\+O\+T\+A\+B\+LE@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+B\+O\+O\+T\+A\+B\+LE}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+B\+O\+O\+T\+A\+B\+LE}{PB\_WIRE\_PART\_FLAG\_BOOTABLE}}
+{\footnotesize\ttfamily \#define P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+B\+O\+O\+T\+A\+B\+LE~(1 $<$$<$ 0)}
+
+The partition is bootable \mbox{\Hypertarget{wire_8h_a7f38a47791607976cd3c57776139712f}\label{wire_8h_a7f38a47791607976cd3c57776139712f}} 
+\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+E\+R\+A\+S\+E\+\_\+\+B\+E\+F\+O\+R\+E\+\_\+\+W\+R\+I\+TE@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+E\+R\+A\+S\+E\+\_\+\+B\+E\+F\+O\+R\+E\+\_\+\+W\+R\+I\+TE}}
+\index{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+E\+R\+A\+S\+E\+\_\+\+B\+E\+F\+O\+R\+E\+\_\+\+W\+R\+I\+TE@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+E\+R\+A\+S\+E\+\_\+\+B\+E\+F\+O\+R\+E\+\_\+\+W\+R\+I\+TE}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+E\+R\+A\+S\+E\+\_\+\+B\+E\+F\+O\+R\+E\+\_\+\+W\+R\+I\+TE}{PB\_WIRE\_PART\_FLAG\_ERASE\_BEFORE\_WRITE}}
+{\footnotesize\ttfamily \#define P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+E\+R\+A\+S\+E\+\_\+\+B\+E\+F\+O\+R\+E\+\_\+\+W\+R\+I\+TE~(1 $<$$<$ 3)}
+
+The partition must be erased before any write operation \mbox{\Hypertarget{wire_8h_a852014a2a7e6c2ee3ac9e539e813d69f}\label{wire_8h_a852014a2a7e6c2ee3ac9e539e813d69f}} 
+\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+O\+TP@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+O\+TP}}
+\index{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+O\+TP@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+O\+TP}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+O\+TP}{PB\_WIRE\_PART\_FLAG\_OTP}}
+{\footnotesize\ttfamily \#define P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+O\+TP~(1 $<$$<$ 1)}
+
+The partition can only be written once \mbox{\Hypertarget{wire_8h_a47dc893b214ea68ba2fb346d98d01a8f}\label{wire_8h_a47dc893b214ea68ba2fb346d98d01a8f}} 
+\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+W\+R\+I\+T\+A\+B\+LE@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+W\+R\+I\+T\+A\+B\+LE}}
+\index{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+W\+R\+I\+T\+A\+B\+LE@{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+W\+R\+I\+T\+A\+B\+LE}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+W\+R\+I\+T\+A\+B\+LE}{PB\_WIRE\_PART\_FLAG\_WRITABLE}}
+{\footnotesize\ttfamily \#define P\+B\+\_\+\+W\+I\+R\+E\+\_\+\+P\+A\+R\+T\+\_\+\+F\+L\+A\+G\+\_\+\+W\+R\+I\+T\+A\+B\+LE~(1 $<$$<$ 2)}
+
+The partition is writeable 
+
+\subsection{Enumeration Type Documentation}
+\mbox{\Hypertarget{wire_8h_a2688f91ff31893ed24fe4346ed170d86}\label{wire_8h_a2688f91ff31893ed24fe4346ed170d86}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+auth\+\_\+method@{pb\+\_\+auth\+\_\+method}}
+\index{pb\+\_\+auth\+\_\+method@{pb\+\_\+auth\+\_\+method}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+auth\+\_\+method}{pb\_auth\_method}}
+{\footnotesize\ttfamily enum \hyperlink{wire_8h_a2688f91ff31893ed24fe4346ed170d86}{pb\+\_\+auth\+\_\+method}}
+
+The punchboot protocol support two different methods of authentication. The device may choose to implement more then one. \begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+I\+N\+V\+A\+L\+ID@{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+I\+N\+V\+A\+L\+ID}!wire.\+h@{wire.\+h}}\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+I\+N\+V\+A\+L\+ID@{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+I\+N\+V\+A\+L\+ID}}}\mbox{\Hypertarget{wire_8h_a2688f91ff31893ed24fe4346ed170d86a2945104e4cba2f408cf5606050cd29a2}\label{wire_8h_a2688f91ff31893ed24fe4346ed170d86a2945104e4cba2f408cf5606050cd29a2}} 
+P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+I\+N\+V\+A\+L\+ID&Invalid, guard \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+A\+S\+Y\+M\+\_\+\+T\+O\+K\+EN@{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+A\+S\+Y\+M\+\_\+\+T\+O\+K\+EN}!wire.\+h@{wire.\+h}}\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+A\+S\+Y\+M\+\_\+\+T\+O\+K\+EN@{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+A\+S\+Y\+M\+\_\+\+T\+O\+K\+EN}}}\mbox{\Hypertarget{wire_8h_a2688f91ff31893ed24fe4346ed170d86a053b385b87d5a96f4be156359c05b268}\label{wire_8h_a2688f91ff31893ed24fe4346ed170d86a053b385b87d5a96f4be156359c05b268}} 
+P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+A\+S\+Y\+M\+\_\+\+T\+O\+K\+EN&Use a signature based authentication token \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+P\+A\+S\+S\+W\+O\+RD@{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+P\+A\+S\+S\+W\+O\+RD}!wire.\+h@{wire.\+h}}\index{wire.\+h@{wire.\+h}!P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+P\+A\+S\+S\+W\+O\+RD@{P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+P\+A\+S\+S\+W\+O\+RD}}}\mbox{\Hypertarget{wire_8h_a2688f91ff31893ed24fe4346ed170d86a4841153ec382cc57c275ac12dad2972c}\label{wire_8h_a2688f91ff31893ed24fe4346ed170d86a4841153ec382cc57c275ac12dad2972c}} 
+P\+B\+\_\+\+A\+U\+T\+H\+\_\+\+P\+A\+S\+S\+W\+O\+RD&Use a password based authentication \\
+\hline
+
+\end{DoxyEnumFields}
+\mbox{\Hypertarget{wire_8h_a48a06c09311bc669668acee91c3cb4f9}\label{wire_8h_a48a06c09311bc669668acee91c3cb4f9}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+commands@{pb\+\_\+commands}}
+\index{pb\+\_\+commands@{pb\+\_\+commands}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+commands}{pb\_commands}}
+{\footnotesize\ttfamily enum \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands}}
+
+Punchboot commands 
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{wire_8h_aaaa3fb4c4d6836e4bdc89cff634583c1}\label{wire_8h_aaaa3fb4c4d6836e4bdc89cff634583c1}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+command\+\_\+string@{pb\+\_\+wire\+\_\+command\+\_\+string}}
+\index{pb\+\_\+wire\+\_\+command\+\_\+string@{pb\+\_\+wire\+\_\+command\+\_\+string}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+command\+\_\+string()}{pb\_wire\_command\_string()}}
+{\footnotesize\ttfamily const char$\ast$ pb\+\_\+wire\+\_\+command\+\_\+string (\begin{DoxyParamCaption}\item[{enum \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands}}]{cmd }\end{DoxyParamCaption})}
+
+Translates a punchboot command to a textual representation
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em cmd} & The command\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a string or \char`\"{}\char`\"{} 
+\end{DoxyReturn}
+\mbox{\Hypertarget{wire_8h_a4369971e2219cd9dac7db28e74cdc0a8}\label{wire_8h_a4369971e2219cd9dac7db28e74cdc0a8}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+init\+\_\+command@{pb\+\_\+wire\+\_\+init\+\_\+command}}
+\index{pb\+\_\+wire\+\_\+init\+\_\+command@{pb\+\_\+wire\+\_\+init\+\_\+command}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+init\+\_\+command()}{pb\_wire\_init\_command()}}
+{\footnotesize\ttfamily int pb\+\_\+wire\+\_\+init\+\_\+command (\begin{DoxyParamCaption}\item[{struct \hyperlink{structpb__command}{pb\+\_\+command} $\ast$}]{command,  }\item[{enum \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands}}]{command\+\_\+code }\end{DoxyParamCaption})}
+
+Initializes and resets a command structure. The magic value is populated and the command code is set.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em command} & Pointer to a command structure \\
+\hline
+\mbox{\tt in}  & {\em command\+\_\+code} & The actual command code\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+OK on success or a negative number on errors 
+\end{DoxyReturn}
+\mbox{\Hypertarget{wire_8h_a33c4521f8c8c71fe6cde4e6f50a337ce}\label{wire_8h_a33c4521f8c8c71fe6cde4e6f50a337ce}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+init\+\_\+command2@{pb\+\_\+wire\+\_\+init\+\_\+command2}}
+\index{pb\+\_\+wire\+\_\+init\+\_\+command2@{pb\+\_\+wire\+\_\+init\+\_\+command2}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+init\+\_\+command2()}{pb\_wire\_init\_command2()}}
+{\footnotesize\ttfamily int pb\+\_\+wire\+\_\+init\+\_\+command2 (\begin{DoxyParamCaption}\item[{struct \hyperlink{structpb__command}{pb\+\_\+command} $\ast$}]{command,  }\item[{enum \hyperlink{wire_8h_a48a06c09311bc669668acee91c3cb4f9}{pb\+\_\+commands}}]{command\+\_\+code,  }\item[{void $\ast$}]{data,  }\item[{size\+\_\+t}]{size }\end{DoxyParamCaption})}
+
+Initializes and resets a command structure. The magic value is populated, the command code is set and the request array is populated with data.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em command} & Pointer to a command structure \\
+\hline
+\mbox{\tt in}  & {\em command\+\_\+code} & The actual command code \\
+\hline
+\mbox{\tt in}  & {\em data} & Pointer to data that will be stored in the request array \\
+\hline
+\mbox{\tt in}  & {\em size} & Number of bytes of data\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+OK on success or a negative number on errors 
+\end{DoxyReturn}
+\mbox{\Hypertarget{wire_8h_ab09c94a5a8730b827bba18036a5889be}\label{wire_8h_ab09c94a5a8730b827bba18036a5889be}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+init\+\_\+result@{pb\+\_\+wire\+\_\+init\+\_\+result}}
+\index{pb\+\_\+wire\+\_\+init\+\_\+result@{pb\+\_\+wire\+\_\+init\+\_\+result}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+init\+\_\+result()}{pb\_wire\_init\_result()}}
+{\footnotesize\ttfamily int pb\+\_\+wire\+\_\+init\+\_\+result (\begin{DoxyParamCaption}\item[{struct \hyperlink{structpb__result}{pb\+\_\+result} $\ast$}]{result,  }\item[{enum pb\+\_\+results}]{result\+\_\+code }\end{DoxyParamCaption})}
+
+Initializes and resets a result structure. The magic value is populated and the result code is set.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em result} & pointer to a \hyperlink{structpb__result}{pb\+\_\+result} structure \\
+\hline
+\mbox{\tt in}  & {\em result\+\_\+code} & The result code\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+OK on success or a negative number on errors 
+\end{DoxyReturn}
+\mbox{\Hypertarget{wire_8h_ad9d67cc202eb40ff33217ee960a9fd58}\label{wire_8h_ad9d67cc202eb40ff33217ee960a9fd58}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+init\+\_\+result2@{pb\+\_\+wire\+\_\+init\+\_\+result2}}
+\index{pb\+\_\+wire\+\_\+init\+\_\+result2@{pb\+\_\+wire\+\_\+init\+\_\+result2}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+init\+\_\+result2()}{pb\_wire\_init\_result2()}}
+{\footnotesize\ttfamily int pb\+\_\+wire\+\_\+init\+\_\+result2 (\begin{DoxyParamCaption}\item[{struct \hyperlink{structpb__result}{pb\+\_\+result} $\ast$}]{result,  }\item[{enum pb\+\_\+results}]{result\+\_\+code,  }\item[{void $\ast$}]{data,  }\item[{size\+\_\+t}]{size }\end{DoxyParamCaption})}
+
+Initializes and resets a result structure. The magic value is populated and the result code is set.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt out}  & {\em result} & pointer to a \hyperlink{structpb__result}{pb\+\_\+result} structure \\
+\hline
+\mbox{\tt in}  & {\em result\+\_\+code} & The result code \\
+\hline
+\mbox{\tt in}  & {\em data} & Pointer to data that will be stored in the response array \\
+\hline
+\mbox{\tt in}  & {\em size} & size in bytes of the data\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+P\+B\+\_\+\+R\+E\+S\+U\+L\+T\+\_\+\+OK on success or a negative number on errors 
+\end{DoxyReturn}
+\mbox{\Hypertarget{wire_8h_af7a12ffc1efcde0b83d42c130983f97f}\label{wire_8h_af7a12ffc1efcde0b83d42c130983f97f}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+requires\+\_\+auth@{pb\+\_\+wire\+\_\+requires\+\_\+auth}}
+\index{pb\+\_\+wire\+\_\+requires\+\_\+auth@{pb\+\_\+wire\+\_\+requires\+\_\+auth}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+requires\+\_\+auth()}{pb\_wire\_requires\_auth()}}
+{\footnotesize\ttfamily bool pb\+\_\+wire\+\_\+requires\+\_\+auth (\begin{DoxyParamCaption}\item[{struct \hyperlink{structpb__command}{pb\+\_\+command} $\ast$}]{command }\end{DoxyParamCaption})}
+
+Checks if a command requires the user to authenticate before issuing the command.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em command} & The command to check\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the command requires an authenticated session 
+\end{DoxyReturn}
+\mbox{\Hypertarget{wire_8h_adf6d386f587a9c11d3238e94c206faaa}\label{wire_8h_adf6d386f587a9c11d3238e94c206faaa}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+slc\+\_\+string@{pb\+\_\+wire\+\_\+slc\+\_\+string}}
+\index{pb\+\_\+wire\+\_\+slc\+\_\+string@{pb\+\_\+wire\+\_\+slc\+\_\+string}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+slc\+\_\+string()}{pb\_wire\_slc\_string()}}
+{\footnotesize\ttfamily const char$\ast$ pb\+\_\+wire\+\_\+slc\+\_\+string (\begin{DoxyParamCaption}\item[{enum pb\+\_\+slc}]{slc }\end{DoxyParamCaption})}
+
+Translates a punchboot security life cycle value to a string
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em slc} & S\+LC value\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a string or \char`\"{}\char`\"{} 
+\end{DoxyReturn}
+\mbox{\Hypertarget{wire_8h_acba9f70ade176178b07dc443585d2196}\label{wire_8h_acba9f70ade176178b07dc443585d2196}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+valid\+\_\+command@{pb\+\_\+wire\+\_\+valid\+\_\+command}}
+\index{pb\+\_\+wire\+\_\+valid\+\_\+command@{pb\+\_\+wire\+\_\+valid\+\_\+command}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+valid\+\_\+command()}{pb\_wire\_valid\_command()}}
+{\footnotesize\ttfamily bool pb\+\_\+wire\+\_\+valid\+\_\+command (\begin{DoxyParamCaption}\item[{struct \hyperlink{structpb__command}{pb\+\_\+command} $\ast$}]{command }\end{DoxyParamCaption})}
+
+Checks that a command is valid and contains the correct magic number
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em command} & The command to check\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True on if the command is valid or false if not 
+\end{DoxyReturn}
+\mbox{\Hypertarget{wire_8h_a44f1e2b5110c2e5cdc40fb8dd306caff}\label{wire_8h_a44f1e2b5110c2e5cdc40fb8dd306caff}} 
+\index{wire.\+h@{wire.\+h}!pb\+\_\+wire\+\_\+valid\+\_\+result@{pb\+\_\+wire\+\_\+valid\+\_\+result}}
+\index{pb\+\_\+wire\+\_\+valid\+\_\+result@{pb\+\_\+wire\+\_\+valid\+\_\+result}!wire.\+h@{wire.\+h}}
+\subsubsection{\texorpdfstring{pb\+\_\+wire\+\_\+valid\+\_\+result()}{pb\_wire\_valid\_result()}}
+{\footnotesize\ttfamily bool pb\+\_\+wire\+\_\+valid\+\_\+result (\begin{DoxyParamCaption}\item[{struct \hyperlink{structpb__result}{pb\+\_\+result} $\ast$}]{result }\end{DoxyParamCaption})}
+
+Checks that a result is valid and contains the correct magic number
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em result} & The result to check\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True on if the result is valid or false if not 
+\end{DoxyReturn}

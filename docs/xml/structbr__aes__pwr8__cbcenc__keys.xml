@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__aes__pwr8__cbcenc__keys" kind="struct" language="C++" prot="public">
+    <compoundname>br_aes_pwr8_cbcenc_keys</compoundname>
+    <includes refid="bearssl__block_8h" local="no">bearssl_block.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__aes__pwr8__cbcenc__keys_1a8b3fa91e685250c7a195a4d2bc488edf" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__block_8h_1ad0ecff523e21a74dc1143dcfa52aa251" kindref="member">br_block_cbcenc_class</ref> *</type>
+        <definition>const br_block_cbcenc_class* br_aes_pwr8_cbcenc_keys::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to vtable for this context. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1878" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1878" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__pwr8__cbcenc__keys_1af71f31a00eb2c15f673495bb4550fb5c" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_aes_pwr8_cbcenc_keys::skni[16 *15]</definition>
+        <argsstring>[16 *15]</argsstring>
+        <name>skni</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1881" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1881" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__pwr8__cbcenc__keys_1ac8e72b6a578d271fcc851ba5199bfe16" prot="public" static="no" mutable="no">
+        <type>union br_aes_pwr8_cbcenc_keys::@4</type>
+        <definition>union br_aes_pwr8_cbcenc_keys::@4  br_aes_pwr8_cbcenc_keys::skey</definition>
+        <argsstring></argsstring>
+        <name>skey</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1882" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__pwr8__cbcenc__keys_1a32776755b34c159e248c4210aa43699d" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_aes_pwr8_cbcenc_keys::num_rounds</definition>
+        <argsstring></argsstring>
+        <name>num_rounds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1883" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1883" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Context for AES subkeys (<computeroutput>aes_pwr8</computeroutput> implementation, CBC encryption). </para>    </briefdescription>
+    <detaileddescription>
+<para>First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="105">
+        <label>br_block_cbcenc_class_</label>
+        <link refid="structbr__block__cbcenc__class__"/>
+      </node>
+      <node id="104">
+        <label>br_aes_pwr8_cbcenc_keys</label>
+        <link refid="structbr__aes__pwr8__cbcenc__keys"/>
+        <childnode refid="105" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="1876" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1876" bodyend="1885"/>
+    <listofallmembers>
+      <member refid="structbr__aes__pwr8__cbcenc__keys_1a32776755b34c159e248c4210aa43699d" prot="public" virt="non-virtual"><scope>br_aes_pwr8_cbcenc_keys</scope><name>num_rounds</name></member>
+      <member refid="structbr__aes__pwr8__cbcenc__keys_1ac8e72b6a578d271fcc851ba5199bfe16" prot="public" virt="non-virtual"><scope>br_aes_pwr8_cbcenc_keys</scope><name>skey</name></member>
+      <member refid="structbr__aes__pwr8__cbcenc__keys_1af71f31a00eb2c15f673495bb4550fb5c" prot="public" virt="non-virtual"><scope>br_aes_pwr8_cbcenc_keys</scope><name>skni</name></member>
+      <member refid="structbr__aes__pwr8__cbcenc__keys_1a8b3fa91e685250c7a195a4d2bc488edf" prot="public" virt="non-virtual"><scope>br_aes_pwr8_cbcenc_keys</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

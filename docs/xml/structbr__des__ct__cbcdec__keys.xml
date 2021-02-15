@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__des__ct__cbcdec__keys" kind="struct" language="C++" prot="public">
+    <compoundname>br_des_ct_cbcdec_keys</compoundname>
+    <includes refid="bearssl__block_8h" local="no">bearssl_block.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__des__ct__cbcdec__keys_1a3fc3b0c828f8700877bf515625061492" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__block_8h_1a5542970c820eeee2e62766368be8fb7f" kindref="member">br_block_cbcdec_class</ref> *</type>
+        <definition>const br_block_cbcdec_class* br_des_ct_cbcdec_keys::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to vtable for this context. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2333" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2333" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__des__ct__cbcdec__keys_1a14f316bc4726106083d923172fecf062" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_des_ct_cbcdec_keys::skey[96]</definition>
+        <argsstring>[96]</argsstring>
+        <name>skey</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2335" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2335" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__des__ct__cbcdec__keys_1a21053abf98129fd59dd6c4a0b8888b28" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_des_ct_cbcdec_keys::num_rounds</definition>
+        <argsstring></argsstring>
+        <name>num_rounds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="2336" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2336" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Context for DES subkeys (<computeroutput>des_ct</computeroutput> implementation, CBC decryption). </para>    </briefdescription>
+    <detaileddescription>
+<para>First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="158">
+        <label>br_des_ct_cbcdec_keys</label>
+        <link refid="structbr__des__ct__cbcdec__keys"/>
+        <childnode refid="159" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="159">
+        <label>br_block_cbcdec_class_</label>
+        <link refid="structbr__block__cbcdec__class__"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="2331" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="2331" bodyend="2338"/>
+    <listofallmembers>
+      <member refid="structbr__des__ct__cbcdec__keys_1a21053abf98129fd59dd6c4a0b8888b28" prot="public" virt="non-virtual"><scope>br_des_ct_cbcdec_keys</scope><name>num_rounds</name></member>
+      <member refid="structbr__des__ct__cbcdec__keys_1a14f316bc4726106083d923172fecf062" prot="public" virt="non-virtual"><scope>br_des_ct_cbcdec_keys</scope><name>skey</name></member>
+      <member refid="structbr__des__ct__cbcdec__keys_1a3fc3b0c828f8700877bf515625061492" prot="public" virt="non-virtual"><scope>br_des_ct_cbcdec_keys</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

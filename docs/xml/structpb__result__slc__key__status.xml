@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__result__slc__key__status" kind="struct" language="C++" prot="public">
+    <compoundname>pb_result_slc_key_status</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__result__slc__key__status_1ac27f9285a325e804ac4ce52c06383065" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_result_slc_key_status::active[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>active</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>ID&apos;s of keys that are active </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="320" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__slc__key__status_1ac805564d0f28d72ce1df05e57be1d7d9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_result_slc_key_status::revoked[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>revoked</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>ID&apos;s of keys that are revoked </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="321" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="321" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Active/Revoked keys result </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="319" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="318" bodyend="322"/>
+    <listofallmembers>
+      <member refid="structpb__result__slc__key__status_1ac27f9285a325e804ac4ce52c06383065" prot="public" virt="non-virtual"><scope>pb_result_slc_key_status</scope><name>active</name></member>
+      <member refid="structpb__result__slc__key__status_1ac805564d0f28d72ce1df05e57be1d7d9" prot="public" virt="non-virtual"><scope>pb_result_slc_key_status</scope><name>revoked</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

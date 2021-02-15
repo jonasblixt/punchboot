@@ -1,0 +1,161 @@
+\hypertarget{structbr__block__ctrcbc__class__}{}\section{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+ Struct Reference}
+\label{structbr__block__ctrcbc__class__}\index{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__block__ctrcbc__class___a74b9fae6a21c846f9146f6c5d735212c}\label{structbr__block__ctrcbc__class___a74b9fae6a21c846f9146f6c5d735212c}} 
+size\+\_\+t \hyperlink{structbr__block__ctrcbc__class___a74b9fae6a21c846f9146f6c5d735212c}{context\+\_\+size}
+\begin{DoxyCompactList}\small\item\em Size (in bytes) of the context structure appropriate for containing subkeys. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__block__ctrcbc__class___af15e472287ac70fcfe2fa31825e22214}\label{structbr__block__ctrcbc__class___af15e472287ac70fcfe2fa31825e22214}} 
+unsigned \hyperlink{structbr__block__ctrcbc__class___af15e472287ac70fcfe2fa31825e22214}{block\+\_\+size}
+\begin{DoxyCompactList}\small\item\em Size of individual blocks (in bytes). \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__block__ctrcbc__class___a968f2abc1b0035034294633e30c69ab7}\label{structbr__block__ctrcbc__class___a968f2abc1b0035034294633e30c69ab7}} 
+unsigned \hyperlink{structbr__block__ctrcbc__class___a968f2abc1b0035034294633e30c69ab7}{log\+\_\+block\+\_\+size}
+\begin{DoxyCompactList}\small\item\em Base-\/2 logarithm of the size of individual blocks, expressed in bytes. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__block__ctrcbc__class___ae9fc5896bb00f38332ff72960c73d397}{init} )(const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$$\ast$ctx, const void $\ast$key, size\+\_\+t key\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Initialisation function. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__block__ctrcbc__class___a43fe57f6aab19bb24d59b8e5f76dc562}{encrypt} )(const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$\hyperlink{structbr__block__ctrcbc__class___ababdd95a98b5583ca53347b43a69d1ee}{ctr}, void $\ast$cbcmac, void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Run the C\+TR encryption + C\+B\+C-\/\+M\+AC. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__block__ctrcbc__class___ae22aeea0d1a1961dada2e3699f3f94e6}{decrypt} )(const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$\hyperlink{structbr__block__ctrcbc__class___ababdd95a98b5583ca53347b43a69d1ee}{ctr}, void $\ast$cbcmac, void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Run the C\+TR decryption + C\+B\+C-\/\+M\+AC. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__block__ctrcbc__class___ababdd95a98b5583ca53347b43a69d1ee}{ctr} )(const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$ctr, void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Run the C\+TR encryption/decryption only. \end{DoxyCompactList}\item 
+void($\ast$ \hyperlink{structbr__block__ctrcbc__class___ad8a236c61c6191fe54f7c3014035aa54}{mac} )(const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$cbcmac, const void $\ast$data, size\+\_\+t len)
+\begin{DoxyCompactList}\small\item\em Run the C\+B\+C-\/\+M\+AC only. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structbr__block__ctrcbc__class___ababdd95a98b5583ca53347b43a69d1ee}\label{structbr__block__ctrcbc__class___ababdd95a98b5583ca53347b43a69d1ee}} 
+\index{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}!ctr@{ctr}}
+\index{ctr@{ctr}!br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{ctr}{ctr}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+\+::ctr) (const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$ctr, void $\ast$data, size\+\_\+t len)}
+
+
+
+Run the C\+TR encryption/decryption only. 
+
+The {\ttfamily ctr} parameter points to the counter; its length shall be equal to the block size. It is updated by this function as decryption proceeds.
+
+The data to decrypt is updated \char`\"{}in place\char`\"{}. Its length ({\ttfamily len} bytes) M\+U\+ST be a multiple of the block size.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & context structure (already initialised). \\
+\hline
+{\em ctr} & counter for C\+TR encryption (initial and final). \\
+\hline
+{\em data} & data to decrypt. \\
+\hline
+{\em len} & data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__block__ctrcbc__class___ae22aeea0d1a1961dada2e3699f3f94e6}\label{structbr__block__ctrcbc__class___ae22aeea0d1a1961dada2e3699f3f94e6}} 
+\index{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}!decrypt@{decrypt}}
+\index{decrypt@{decrypt}!br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{decrypt}{decrypt}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+\+::decrypt) (const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$\hyperlink{structbr__block__ctrcbc__class___ababdd95a98b5583ca53347b43a69d1ee}{ctr}, void $\ast$cbcmac, void $\ast$data, size\+\_\+t len)}
+
+
+
+Run the C\+TR decryption + C\+B\+C-\/\+M\+AC. 
+
+The {\ttfamily ctr} parameter points to the counter; its length shall be equal to the block size. It is updated by this function as decryption proceeds.
+
+The {\ttfamily cbcmac} parameter points to the IV for C\+B\+C-\/\+M\+AC. The M\+AC is computed over the encrypted data (i.\+e. before C\+TR decryption). Its length shall be equal to the block size. The computed C\+B\+C-\/\+M\+AC value is written over the {\ttfamily cbcmac} array.
+
+The data to decrypt is updated \char`\"{}in place\char`\"{}. Its length ({\ttfamily len} bytes) M\+U\+ST be a multiple of the block size.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & context structure (already initialised). \\
+\hline
+{\em ctr} & counter for C\+TR encryption (initial and final). \\
+\hline
+{\em cbcmac} & IV and output buffer for C\+B\+C-\/\+M\+AC. \\
+\hline
+{\em data} & data to decrypt. \\
+\hline
+{\em len} & data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__block__ctrcbc__class___a43fe57f6aab19bb24d59b8e5f76dc562}\label{structbr__block__ctrcbc__class___a43fe57f6aab19bb24d59b8e5f76dc562}} 
+\index{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}!encrypt@{encrypt}}
+\index{encrypt@{encrypt}!br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{encrypt}{encrypt}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+\+::encrypt) (const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$\hyperlink{structbr__block__ctrcbc__class___ababdd95a98b5583ca53347b43a69d1ee}{ctr}, void $\ast$cbcmac, void $\ast$data, size\+\_\+t len)}
+
+
+
+Run the C\+TR encryption + C\+B\+C-\/\+M\+AC. 
+
+The {\ttfamily ctr} parameter points to the counter; its length shall be equal to the block size. It is updated by this function as encryption proceeds.
+
+The {\ttfamily cbcmac} parameter points to the IV for C\+B\+C-\/\+M\+AC. The M\+AC is computed over the encrypted data (output of C\+TR encryption). Its length shall be equal to the block size. The computed C\+B\+C-\/\+M\+AC value is written over the {\ttfamily cbcmac} array.
+
+The data to encrypt is updated \char`\"{}in place\char`\"{}. Its length ({\ttfamily len} bytes) M\+U\+ST be a multiple of the block size.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & context structure (already initialised). \\
+\hline
+{\em ctr} & counter for C\+TR encryption (initial and final). \\
+\hline
+{\em cbcmac} & IV and output buffer for C\+B\+C-\/\+M\+AC. \\
+\hline
+{\em data} & data to encrypt. \\
+\hline
+{\em len} & data length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__block__ctrcbc__class___ae9fc5896bb00f38332ff72960c73d397}\label{structbr__block__ctrcbc__class___ae9fc5896bb00f38332ff72960c73d397}} 
+\index{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}!init@{init}}
+\index{init@{init}!br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{init}{init}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+\+::init) (const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$$\ast$ctx, const void $\ast$key, size\+\_\+t key\+\_\+len)}
+
+
+
+Initialisation function. 
+
+This function sets the {\ttfamily vtable} field in the context structure. The key length M\+U\+ST be one of the key lengths supported by the implementation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & context structure to initialise. \\
+\hline
+{\em key} & secret key. \\
+\hline
+{\em key\+\_\+len} & key length (in bytes). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{structbr__block__ctrcbc__class___ad8a236c61c6191fe54f7c3014035aa54}\label{structbr__block__ctrcbc__class___ad8a236c61c6191fe54f7c3014035aa54}} 
+\index{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}!mac@{mac}}
+\index{mac@{mac}!br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+@{br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+}}
+\subsubsection{\texorpdfstring{mac}{mac}}
+{\footnotesize\ttfamily void($\ast$ br\+\_\+block\+\_\+ctrcbc\+\_\+class\+\_\+\+::mac) (const \hyperlink{bearssl__block_8h_acc35dad952fda67b68df0b107fe26f0b}{br\+\_\+block\+\_\+ctrcbc\+\_\+class} $\ast$const $\ast$ctx, void $\ast$cbcmac, const void $\ast$data, size\+\_\+t len)}
+
+
+
+Run the C\+B\+C-\/\+M\+AC only. 
+
+The {\ttfamily cbcmac} parameter points to the IV for C\+B\+C-\/\+M\+AC. The M\+AC is computed over the encrypted data (i.\+e. before C\+TR decryption). Its length shall be equal to the block size. The computed C\+B\+C-\/\+M\+AC value is written over the {\ttfamily cbcmac} array.
+
+The data is unmodified. Its length ({\ttfamily len} bytes) M\+U\+ST be a multiple of the block size.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ctx} & context structure (already initialised). \\
+\hline
+{\em cbcmac} & IV and output buffer for C\+B\+C-\/\+M\+AC. \\
+\hline
+{\em data} & data to decrypt. \\
+\hline
+{\em len} & data length (in bytes). \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__block_8h}{bearssl\+\_\+block.\+h}\end{DoxyCompactItemize}

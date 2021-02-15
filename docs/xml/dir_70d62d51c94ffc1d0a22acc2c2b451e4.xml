@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="dir_70d62d51c94ffc1d0a22acc2c2b451e4" kind="dir">
+    <compoundname>/docs/include/pb/libc</compoundname>
+    <innerdir refid="dir_f152a41ae68d258e2735b1f3a4bc95d3">/docs/include/pb/libc/aarch32</innerdir>
+    <innerdir refid="dir_6a4f89362060f705faa55beb860a8a5c">/docs/include/pb/libc/aarch64</innerdir>
+    <innerfile refid="cdefs_8h">cdefs.h</innerfile>
+    <innerfile refid="ctype_8h">ctype.h</innerfile>
+    <innerfile refid="endian_8h">endian.h</innerfile>
+    <innerfile refid="errno_8h">errno.h</innerfile>
+    <innerfile refid="limits_8h">limits.h</innerfile>
+    <innerfile refid="stdarg_8h">stdarg.h</innerfile>
+    <innerfile refid="stdbool_8h">stdbool.h</innerfile>
+    <innerfile refid="stddef_8h">stddef.h</innerfile>
+    <innerfile refid="stdint_8h">stdint.h</innerfile>
+    <innerfile refid="stdio_8h">stdio.h</innerfile>
+    <innerfile refid="stdlib_8h">stdlib.h</innerfile>
+    <innerfile refid="string_8h">string.h</innerfile>
+    <innerfile refid="time_8h">time.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/libc/"/>
+  </compounddef>
+</doxygen>

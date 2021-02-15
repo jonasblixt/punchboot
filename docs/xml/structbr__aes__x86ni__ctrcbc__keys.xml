@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__aes__x86ni__ctrcbc__keys" kind="struct" language="C++" prot="public">
+    <compoundname>br_aes_x86ni_ctrcbc_keys</compoundname>
+    <includes refid="bearssl__block_8h" local="no">bearssl_block.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__aes__x86ni__ctrcbc__keys_1a3559cf99c9885531fbc6392025cf1332" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__block_8h_1acc35dad952fda67b68df0b107fe26f0b" kindref="member">br_block_ctrcbc_class</ref> *</type>
+        <definition>const br_block_ctrcbc_class* br_aes_x86ni_ctrcbc_keys::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to vtable for this context. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1640" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1640" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__x86ni__ctrcbc__keys_1a8f99fcee5fed28cd1fea39fea3a74612" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_aes_x86ni_ctrcbc_keys::skni[16 *15]</definition>
+        <argsstring>[16 *15]</argsstring>
+        <name>skni</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1643" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1643" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__x86ni__ctrcbc__keys_1ac05e3122e813b727473465a1a7e0af07" prot="public" static="no" mutable="no">
+        <type>union br_aes_x86ni_ctrcbc_keys::@3</type>
+        <definition>union br_aes_x86ni_ctrcbc_keys::@3  br_aes_x86ni_ctrcbc_keys::skey</definition>
+        <argsstring></argsstring>
+        <name>skey</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1644" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aes__x86ni__ctrcbc__keys_1a28ed96beef8d0cd260cf293fe6ffe6bd" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_aes_x86ni_ctrcbc_keys::num_rounds</definition>
+        <argsstring></argsstring>
+        <name>num_rounds</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="1645" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1645" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Context for AES subkeys (<computeroutput>aes_x86ni</computeroutput> implementation, CTR encryption and decryption + CBC-MAC). </para>    </briefdescription>
+    <detaileddescription>
+<para>First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="135">
+        <label>br_block_ctrcbc_class_</label>
+        <link refid="structbr__block__ctrcbc__class__"/>
+      </node>
+      <node id="134">
+        <label>br_aes_x86ni_ctrcbc_keys</label>
+        <link refid="structbr__aes__x86ni__ctrcbc__keys"/>
+        <childnode refid="135" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="1638" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="1638" bodyend="1647"/>
+    <listofallmembers>
+      <member refid="structbr__aes__x86ni__ctrcbc__keys_1a28ed96beef8d0cd260cf293fe6ffe6bd" prot="public" virt="non-virtual"><scope>br_aes_x86ni_ctrcbc_keys</scope><name>num_rounds</name></member>
+      <member refid="structbr__aes__x86ni__ctrcbc__keys_1ac05e3122e813b727473465a1a7e0af07" prot="public" virt="non-virtual"><scope>br_aes_x86ni_ctrcbc_keys</scope><name>skey</name></member>
+      <member refid="structbr__aes__x86ni__ctrcbc__keys_1a8f99fcee5fed28cd1fea39fea3a74612" prot="public" virt="non-virtual"><scope>br_aes_x86ni_ctrcbc_keys</scope><name>skni</name></member>
+      <member refid="structbr__aes__x86ni__ctrcbc__keys_1a3559cf99c9885531fbc6392025cf1332" prot="public" virt="non-virtual"><scope>br_aes_x86ni_ctrcbc_keys</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

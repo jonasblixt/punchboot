@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__x509__pkey" kind="struct" language="C++" prot="public">
+    <compoundname>br_x509_pkey</compoundname>
+    <includes refid="bearssl__x509_8h" local="no">bearssl_x509.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__x509__pkey_1ae71f837af474a3a78e41a2be9c54001f" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_x509_pkey::key_type</definition>
+        <argsstring></argsstring>
+        <name>key_type</name>
+        <briefdescription>
+<para>Key type: <computeroutput>BR_KEYTYPE_RSA</computeroutput> or <computeroutput>BR_KEYTYPE_EC</computeroutput> </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="230" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="230" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__pkey_1a7f7c843bd143d99567e9975cfddb4aba" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__rsa__public__key" kindref="compound">br_rsa_public_key</ref></type>
+        <definition>br_rsa_public_key br_x509_pkey::rsa</definition>
+        <argsstring></argsstring>
+        <name>rsa</name>
+        <briefdescription>
+<para>RSA public key. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="234" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="234" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__pkey_1a406633613711a0ccd38729a11c84e2a8" prot="public" static="no" mutable="no">
+        <type><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref></type>
+        <definition>br_ec_public_key br_x509_pkey::ec</definition>
+        <argsstring></argsstring>
+        <name>ec</name>
+        <briefdescription>
+<para>EC public key. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="236" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__x509__pkey_1a7bfc548716e7850cbefe5810ddc9441e" prot="public" static="no" mutable="no">
+        <type>union br_x509_pkey::@8</type>
+        <definition>union br_x509_pkey::@8  br_x509_pkey::key</definition>
+        <argsstring></argsstring>
+        <name>key</name>
+        <briefdescription>
+<para>Actual public key. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_x509.h" line="237" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Aggregate structure for public keys. </para>    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="278">
+        <label>br_ec_public_key</label>
+        <link refid="structbr__ec__public__key"/>
+      </node>
+      <node id="276">
+        <label>br_x509_pkey</label>
+        <link refid="structbr__x509__pkey"/>
+        <childnode refid="277" relation="usage">
+          <edgelabel>rsa</edgelabel>
+        </childnode>
+        <childnode refid="278" relation="usage">
+          <edgelabel>ec</edgelabel>
+        </childnode>
+      </node>
+      <node id="277">
+        <label>br_rsa_public_key</label>
+        <link refid="structbr__rsa__public__key"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_x509.h" line="228" column="1" bodyfile="/docs/lib/bearssl/bearssl_x509.h" bodystart="228" bodyend="238"/>
+    <listofallmembers>
+      <member refid="structbr__x509__pkey_1a406633613711a0ccd38729a11c84e2a8" prot="public" virt="non-virtual"><scope>br_x509_pkey</scope><name>ec</name></member>
+      <member refid="structbr__x509__pkey_1a7bfc548716e7850cbefe5810ddc9441e" prot="public" virt="non-virtual"><scope>br_x509_pkey</scope><name>key</name></member>
+      <member refid="structbr__x509__pkey_1ae71f837af474a3a78e41a2be9c54001f" prot="public" virt="non-virtual"><scope>br_x509_pkey</scope><name>key_type</name></member>
+      <member refid="structbr__x509__pkey_1a7f7c843bd143d99567e9975cfddb4aba" prot="public" virt="non-virtual"><scope>br_x509_pkey</scope><name>rsa</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

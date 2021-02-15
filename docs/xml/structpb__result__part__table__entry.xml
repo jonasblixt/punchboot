@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__result__part__table__entry" kind="struct" language="C++" prot="public">
+    <compoundname>pb_result_part_table_entry</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__result__part__table__entry_1ab2c25d3e918316995cb10bf8c5b6e570" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_part_table_entry::uuid[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>uuid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Partition UUID </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="180" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__part__table__entry_1ad674bff063ae41707537251879271f1d" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char pb_result_part_table_entry::description[37]</definition>
+        <argsstring>[37]</argsstring>
+        <name>description</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Textual description of partition </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="181" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__part__table__entry_1a06fa60ef2575572355df4a99b8fa8021" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t pb_result_part_table_entry::first_block</definition>
+        <argsstring></argsstring>
+        <name>first_block</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Partition start block </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="182" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__part__table__entry_1ae2138f883104b134fc86aef6e86c65a3" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t pb_result_part_table_entry::last_block</definition>
+        <argsstring></argsstring>
+        <name>last_block</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Last(inclusive) block of partition </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="183" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__part__table__entry_1a3aea21a1faaee753154a66e1d76950b2" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t pb_result_part_table_entry::block_size</definition>
+        <argsstring></argsstring>
+        <name>block_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Block size </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="184" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__part__table__entry_1a98380186209b742310605b9399da4a25" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_part_table_entry::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Flags </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="185" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__part__table__entry_1a29434ef5700b5218b552b4589f9eeb84" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_part_table_entry::rz[56]</definition>
+        <argsstring>[56]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="186" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="186" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="179" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="178" bodyend="187"/>
+    <listofallmembers>
+      <member refid="structpb__result__part__table__entry_1a3aea21a1faaee753154a66e1d76950b2" prot="public" virt="non-virtual"><scope>pb_result_part_table_entry</scope><name>block_size</name></member>
+      <member refid="structpb__result__part__table__entry_1ad674bff063ae41707537251879271f1d" prot="public" virt="non-virtual"><scope>pb_result_part_table_entry</scope><name>description</name></member>
+      <member refid="structpb__result__part__table__entry_1a06fa60ef2575572355df4a99b8fa8021" prot="public" virt="non-virtual"><scope>pb_result_part_table_entry</scope><name>first_block</name></member>
+      <member refid="structpb__result__part__table__entry_1a98380186209b742310605b9399da4a25" prot="public" virt="non-virtual"><scope>pb_result_part_table_entry</scope><name>flags</name></member>
+      <member refid="structpb__result__part__table__entry_1ae2138f883104b134fc86aef6e86c65a3" prot="public" virt="non-virtual"><scope>pb_result_part_table_entry</scope><name>last_block</name></member>
+      <member refid="structpb__result__part__table__entry_1a29434ef5700b5218b552b4589f9eeb84" prot="public" virt="non-virtual"><scope>pb_result_part_table_entry</scope><name>rz</name></member>
+      <member refid="structpb__result__part__table__entry_1ab2c25d3e918316995cb10bf8c5b6e570" prot="public" virt="non-virtual"><scope>pb_result_part_table_entry</scope><name>uuid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

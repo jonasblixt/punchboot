@@ -1,0 +1,1038 @@
+\hypertarget{bearssl__ec_8h}{}\section{/docs/lib/bearssl/bearssl\+\_\+ec.h File Reference}
+\label{bearssl__ec_8h}\index{/docs/lib/bearssl/bearssl\+\_\+ec.\+h@{/docs/lib/bearssl/bearssl\+\_\+ec.\+h}}
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}bearssl\+\_\+rand.\+h\char`\"{}}\newline
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key}
+\begin{DoxyCompactList}\small\item\em Structure for an EC public key. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key}
+\begin{DoxyCompactList}\small\item\em Structure for an EC private key. \end{DoxyCompactList}\item 
+struct \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl}
+\begin{DoxyCompactList}\small\item\em Type for an EC implementation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{bearssl__ec_8h_afe3f3fe6e28832e5a6e31e10b64b45b8}\label{bearssl__ec_8h_afe3f3fe6e28832e5a6e31e10b64b45b8}} 
+\#define \hyperlink{bearssl__ec_8h_afe3f3fe6e28832e5a6e31e10b64b45b8}{B\+R\+\_\+\+E\+C\+\_\+sect163k1}~1
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect163k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a27e9c4aeffd0f893548d7e9ffd0a6b53}\label{bearssl__ec_8h_a27e9c4aeffd0f893548d7e9ffd0a6b53}} 
+\#define \hyperlink{bearssl__ec_8h_a27e9c4aeffd0f893548d7e9ffd0a6b53}{B\+R\+\_\+\+E\+C\+\_\+sect163r1}~2
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect163r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a329728365a17355436d5f1118034578d}\label{bearssl__ec_8h_a329728365a17355436d5f1118034578d}} 
+\#define \hyperlink{bearssl__ec_8h_a329728365a17355436d5f1118034578d}{B\+R\+\_\+\+E\+C\+\_\+sect163r2}~3
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect163r2. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a416bfe01284b1a3abf9da2a80e29468b}\label{bearssl__ec_8h_a416bfe01284b1a3abf9da2a80e29468b}} 
+\#define \hyperlink{bearssl__ec_8h_a416bfe01284b1a3abf9da2a80e29468b}{B\+R\+\_\+\+E\+C\+\_\+sect193r1}~4
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect193r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a52c62d8a066daebf8100e9361cbb90ec}\label{bearssl__ec_8h_a52c62d8a066daebf8100e9361cbb90ec}} 
+\#define \hyperlink{bearssl__ec_8h_a52c62d8a066daebf8100e9361cbb90ec}{B\+R\+\_\+\+E\+C\+\_\+sect193r2}~5
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect193r2. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a2270a4de8927b4aa988e242dec69327f}\label{bearssl__ec_8h_a2270a4de8927b4aa988e242dec69327f}} 
+\#define \hyperlink{bearssl__ec_8h_a2270a4de8927b4aa988e242dec69327f}{B\+R\+\_\+\+E\+C\+\_\+sect233k1}~6
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect233k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_aca5e467785724e03e7f328ede207ed3b}\label{bearssl__ec_8h_aca5e467785724e03e7f328ede207ed3b}} 
+\#define \hyperlink{bearssl__ec_8h_aca5e467785724e03e7f328ede207ed3b}{B\+R\+\_\+\+E\+C\+\_\+sect233r1}~7
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect233r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a1a090b39827f800f2d547b3603f730ee}\label{bearssl__ec_8h_a1a090b39827f800f2d547b3603f730ee}} 
+\#define \hyperlink{bearssl__ec_8h_a1a090b39827f800f2d547b3603f730ee}{B\+R\+\_\+\+E\+C\+\_\+sect239k1}~8
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect239k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_abdd859ee367efce171126054d9db6e2a}\label{bearssl__ec_8h_abdd859ee367efce171126054d9db6e2a}} 
+\#define \hyperlink{bearssl__ec_8h_abdd859ee367efce171126054d9db6e2a}{B\+R\+\_\+\+E\+C\+\_\+sect283k1}~9
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect283k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a8a609a0a23dad62dcf3937ed22fba18c}\label{bearssl__ec_8h_a8a609a0a23dad62dcf3937ed22fba18c}} 
+\#define \hyperlink{bearssl__ec_8h_a8a609a0a23dad62dcf3937ed22fba18c}{B\+R\+\_\+\+E\+C\+\_\+sect283r1}~10
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect283r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a26a0b0cf836ac3e3e28657ac7edd2243}\label{bearssl__ec_8h_a26a0b0cf836ac3e3e28657ac7edd2243}} 
+\#define \hyperlink{bearssl__ec_8h_a26a0b0cf836ac3e3e28657ac7edd2243}{B\+R\+\_\+\+E\+C\+\_\+sect409k1}~11
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect409k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_afd387f4bd1d342388fc4ed687ec081b9}\label{bearssl__ec_8h_afd387f4bd1d342388fc4ed687ec081b9}} 
+\#define \hyperlink{bearssl__ec_8h_afd387f4bd1d342388fc4ed687ec081b9}{B\+R\+\_\+\+E\+C\+\_\+sect409r1}~12
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect409r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a082264390695a1bc1a8b074bd8e0c8d6}\label{bearssl__ec_8h_a082264390695a1bc1a8b074bd8e0c8d6}} 
+\#define \hyperlink{bearssl__ec_8h_a082264390695a1bc1a8b074bd8e0c8d6}{B\+R\+\_\+\+E\+C\+\_\+sect571k1}~13
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect571k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a2be7514edb01c2554e558c8109280e65}\label{bearssl__ec_8h_a2be7514edb01c2554e558c8109280e65}} 
+\#define \hyperlink{bearssl__ec_8h_a2be7514edb01c2554e558c8109280e65}{B\+R\+\_\+\+E\+C\+\_\+sect571r1}~14
+\begin{DoxyCompactList}\small\item\em Identifier for named curve sect571r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_ac1ee6ad2b1869a16d792ce1e01520a84}\label{bearssl__ec_8h_ac1ee6ad2b1869a16d792ce1e01520a84}} 
+\#define \hyperlink{bearssl__ec_8h_ac1ee6ad2b1869a16d792ce1e01520a84}{B\+R\+\_\+\+E\+C\+\_\+secp160k1}~15
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp160k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a03df4d6362901579c41734c6e9f971e5}\label{bearssl__ec_8h_a03df4d6362901579c41734c6e9f971e5}} 
+\#define \hyperlink{bearssl__ec_8h_a03df4d6362901579c41734c6e9f971e5}{B\+R\+\_\+\+E\+C\+\_\+secp160r1}~16
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp160r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_ae977d093488f0decf87d5e33da8f8e66}\label{bearssl__ec_8h_ae977d093488f0decf87d5e33da8f8e66}} 
+\#define \hyperlink{bearssl__ec_8h_ae977d093488f0decf87d5e33da8f8e66}{B\+R\+\_\+\+E\+C\+\_\+secp160r2}~17
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp160r2. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_ae552e6df02b3556ed82841f92bbe1b5f}\label{bearssl__ec_8h_ae552e6df02b3556ed82841f92bbe1b5f}} 
+\#define \hyperlink{bearssl__ec_8h_ae552e6df02b3556ed82841f92bbe1b5f}{B\+R\+\_\+\+E\+C\+\_\+secp192k1}~18
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp192k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_ab7fb4e9820a26e42771471b3addaa2a2}\label{bearssl__ec_8h_ab7fb4e9820a26e42771471b3addaa2a2}} 
+\#define \hyperlink{bearssl__ec_8h_ab7fb4e9820a26e42771471b3addaa2a2}{B\+R\+\_\+\+E\+C\+\_\+secp192r1}~19
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp192r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a830bceff09b7a8a5e9b8a2487789975b}\label{bearssl__ec_8h_a830bceff09b7a8a5e9b8a2487789975b}} 
+\#define \hyperlink{bearssl__ec_8h_a830bceff09b7a8a5e9b8a2487789975b}{B\+R\+\_\+\+E\+C\+\_\+secp224k1}~20
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp224k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a825d599fe803a188c220ad127ad2cd68}\label{bearssl__ec_8h_a825d599fe803a188c220ad127ad2cd68}} 
+\#define \hyperlink{bearssl__ec_8h_a825d599fe803a188c220ad127ad2cd68}{B\+R\+\_\+\+E\+C\+\_\+secp224r1}~21
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp224r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_af5307149adfe0ab483d9fbf016571bb7}\label{bearssl__ec_8h_af5307149adfe0ab483d9fbf016571bb7}} 
+\#define \hyperlink{bearssl__ec_8h_af5307149adfe0ab483d9fbf016571bb7}{B\+R\+\_\+\+E\+C\+\_\+secp256k1}~22
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp256k1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a4fec44131f69f344e29a42fc8c574f53}\label{bearssl__ec_8h_a4fec44131f69f344e29a42fc8c574f53}} 
+\#define \hyperlink{bearssl__ec_8h_a4fec44131f69f344e29a42fc8c574f53}{B\+R\+\_\+\+E\+C\+\_\+secp256r1}~23
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp256r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_add4f9faf87c86696fdf0b99d7cea873f}\label{bearssl__ec_8h_add4f9faf87c86696fdf0b99d7cea873f}} 
+\#define \hyperlink{bearssl__ec_8h_add4f9faf87c86696fdf0b99d7cea873f}{B\+R\+\_\+\+E\+C\+\_\+secp384r1}~24
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp384r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_ab67c02a8588907cdfa2e362c8d78c557}\label{bearssl__ec_8h_ab67c02a8588907cdfa2e362c8d78c557}} 
+\#define \hyperlink{bearssl__ec_8h_ab67c02a8588907cdfa2e362c8d78c557}{B\+R\+\_\+\+E\+C\+\_\+secp521r1}~25
+\begin{DoxyCompactList}\small\item\em Identifier for named curve secp521r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a6d401d36f1d3e97f527bee25325fc42d}\label{bearssl__ec_8h_a6d401d36f1d3e97f527bee25325fc42d}} 
+\#define \hyperlink{bearssl__ec_8h_a6d401d36f1d3e97f527bee25325fc42d}{B\+R\+\_\+\+E\+C\+\_\+brainpool\+P256r1}~26
+\begin{DoxyCompactList}\small\item\em Identifier for named curve brainpool\+P256r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_aa61b398cf890b9592d9654f12954c426}\label{bearssl__ec_8h_aa61b398cf890b9592d9654f12954c426}} 
+\#define \hyperlink{bearssl__ec_8h_aa61b398cf890b9592d9654f12954c426}{B\+R\+\_\+\+E\+C\+\_\+brainpool\+P384r1}~27
+\begin{DoxyCompactList}\small\item\em Identifier for named curve brainpool\+P384r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_aa927b41f23f5a95e09aa8ae5d1978ac9}\label{bearssl__ec_8h_aa927b41f23f5a95e09aa8ae5d1978ac9}} 
+\#define \hyperlink{bearssl__ec_8h_aa927b41f23f5a95e09aa8ae5d1978ac9}{B\+R\+\_\+\+E\+C\+\_\+brainpool\+P512r1}~28
+\begin{DoxyCompactList}\small\item\em Identifier for named curve brainpool\+P512r1. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_a49383d64a752e5a0a72f0e23d534c84a}\label{bearssl__ec_8h_a49383d64a752e5a0a72f0e23d534c84a}} 
+\#define \hyperlink{bearssl__ec_8h_a49383d64a752e5a0a72f0e23d534c84a}{B\+R\+\_\+\+E\+C\+\_\+curve25519}~29
+\begin{DoxyCompactList}\small\item\em Identifier for named curve Curve25519. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{bearssl__ec_8h_aeefe093924e5b0d859dcd99de7125cb5}\label{bearssl__ec_8h_aeefe093924e5b0d859dcd99de7125cb5}} 
+\#define \hyperlink{bearssl__ec_8h_aeefe093924e5b0d859dcd99de7125cb5}{B\+R\+\_\+\+E\+C\+\_\+curve448}~30
+\begin{DoxyCompactList}\small\item\em Identifier for named curve Curve448. \end{DoxyCompactList}\item 
+\#define \hyperlink{bearssl__ec_8h_a2681efca64879d9d57ec744e1b608312}{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}~72
+\begin{DoxyCompactList}\small\item\em Maximum size for EC private key element buffer. \end{DoxyCompactList}\item 
+\#define \hyperlink{bearssl__ec_8h_a3d8975cd838d2c42955f6a6ac2066d71}{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}~145
+\begin{DoxyCompactList}\small\item\em Maximum size for EC public key element buffer. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef size\+\_\+t($\ast$ \hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign}) (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf, const void $\ast$hash\+\_\+value, const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$sk, void $\ast$sig)
+\begin{DoxyCompactList}\small\item\em Type for an E\+C\+D\+SA signer function. \end{DoxyCompactList}\item 
+typedef uint32\+\_\+t($\ast$ \hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy}) (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const void $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$pk, const void $\ast$sig, size\+\_\+t sig\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Type for an E\+C\+D\+SA signature verification function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$ \hyperlink{bearssl__ec_8h_a72c2f5c8bda538b46e7bcf7e0c23cee2}{br\+\_\+ec\+\_\+p256\+\_\+m62\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Get the \char`\"{}m62\char`\"{} implementation of P-\/256, if available. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$ \hyperlink{bearssl__ec_8h_a51f4066e0c51f4f44b489ef211056125}{br\+\_\+ec\+\_\+p256\+\_\+m64\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Get the \char`\"{}m64\char`\"{} implementation of P-\/256, if available. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$ \hyperlink{bearssl__ec_8h_a629267c888b32036c23340bb90c23255}{br\+\_\+ec\+\_\+c25519\+\_\+m62\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Get the \char`\"{}m62\char`\"{} implementation of Curve25519, if available. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$ \hyperlink{bearssl__ec_8h_a40250bf26ac5b282a229a31dd702a6f2}{br\+\_\+ec\+\_\+c25519\+\_\+m64\+\_\+get} (void)
+\begin{DoxyCompactList}\small\item\em Get the \char`\"{}m64\char`\"{} implementation of Curve25519, if available. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$ \hyperlink{bearssl__ec_8h_a39d4de479b5890bced8bc728e0d0b5a5}{br\+\_\+ec\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get the \char`\"{}default\char`\"{} EC implementation for the current system. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__ec_8h_aa8685a896c92092dfff0844895bf8fd6}{br\+\_\+ecdsa\+\_\+raw\+\_\+to\+\_\+asn1} (void $\ast$sig, size\+\_\+t sig\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Convert a signature from \char`\"{}raw\char`\"{} to \char`\"{}asn1\char`\"{}. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__ec_8h_a89311669cc19963ffbc21edae802f7d0}{br\+\_\+ecdsa\+\_\+asn1\+\_\+to\+\_\+raw} (void $\ast$sig, size\+\_\+t sig\+\_\+len)
+\begin{DoxyCompactList}\small\item\em Convert a signature from \char`\"{}asn1\char`\"{} to \char`\"{}raw\char`\"{}. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__ec_8h_a15e352550078ffc433ea4452031c0e42}{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+asn1} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf, const void $\ast$hash\+\_\+value, const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$sk, void $\ast$sig)
+\begin{DoxyCompactList}\small\item\em E\+C\+D\+SA signature generator, \char`\"{}i31\char`\"{} implementation, \char`\"{}asn1\char`\"{} format. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__ec_8h_af0d1db2090cb57a1fc897db0d4475452}{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+raw} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf, const void $\ast$hash\+\_\+value, const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$sk, void $\ast$sig)
+\begin{DoxyCompactList}\small\item\em E\+C\+D\+SA signature generator, \char`\"{}i31\char`\"{} implementation, \char`\"{}raw\char`\"{} format. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__ec_8h_acf5297e4631a9b96fe55f4f1c8d3722d}{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+asn1} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const void $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$pk, const void $\ast$sig, size\+\_\+t sig\+\_\+len)
+\begin{DoxyCompactList}\small\item\em E\+C\+D\+SA signature verifier, \char`\"{}i31\char`\"{} implementation, \char`\"{}asn1\char`\"{} format. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__ec_8h_a47fc61d29a23105789d2bca47365a765}{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+raw} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const void $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$pk, const void $\ast$sig, size\+\_\+t sig\+\_\+len)
+\begin{DoxyCompactList}\small\item\em E\+C\+D\+SA signature verifier, \char`\"{}i31\char`\"{} implementation, \char`\"{}raw\char`\"{} format. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__ec_8h_a56c421161765c3ecffe2b7498633d52b}{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+asn1} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf, const void $\ast$hash\+\_\+value, const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$sk, void $\ast$sig)
+\begin{DoxyCompactList}\small\item\em E\+C\+D\+SA signature generator, \char`\"{}i15\char`\"{} implementation, \char`\"{}asn1\char`\"{} format. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__ec_8h_a3a5ac2751071e7e7e48d2d6864b36214}{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+raw} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf, const void $\ast$hash\+\_\+value, const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$sk, void $\ast$sig)
+\begin{DoxyCompactList}\small\item\em E\+C\+D\+SA signature generator, \char`\"{}i15\char`\"{} implementation, \char`\"{}raw\char`\"{} format. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__ec_8h_a45f9bce33bfcdb79944aaeb828734776}{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+asn1} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const void $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$pk, const void $\ast$sig, size\+\_\+t sig\+\_\+len)
+\begin{DoxyCompactList}\small\item\em E\+C\+D\+SA signature verifier, \char`\"{}i15\char`\"{} implementation, \char`\"{}asn1\char`\"{} format. \end{DoxyCompactList}\item 
+uint32\+\_\+t \hyperlink{bearssl__ec_8h_a80f39ee3f0fd79cdf4783a11a7794d29}{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+raw} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const void $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$pk, const void $\ast$sig, size\+\_\+t sig\+\_\+len)
+\begin{DoxyCompactList}\small\item\em E\+C\+D\+SA signature verifier, \char`\"{}i15\char`\"{} implementation, \char`\"{}raw\char`\"{} format. \end{DoxyCompactList}\item 
+\hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign} \hyperlink{bearssl__ec_8h_a8792bb1f074376dcb06555e2ed09e95f}{br\+\_\+ecdsa\+\_\+sign\+\_\+asn1\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} E\+C\+D\+SA implementation (signer, asn1 format). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign} \hyperlink{bearssl__ec_8h_a9be2f2ab22fe6cbae6428d89f18a48f5}{br\+\_\+ecdsa\+\_\+sign\+\_\+raw\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} E\+C\+D\+SA implementation (signer, raw format). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy} \hyperlink{bearssl__ec_8h_a7da8b968706d9a2ef2bf006d25f425bd}{br\+\_\+ecdsa\+\_\+vrfy\+\_\+asn1\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} E\+C\+D\+SA implementation (verifier, asn1 format). \end{DoxyCompactList}\item 
+\hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy} \hyperlink{bearssl__ec_8h_a879a96d7668b7ed052a67178ed40284d}{br\+\_\+ecdsa\+\_\+vrfy\+\_\+raw\+\_\+get\+\_\+default} (void)
+\begin{DoxyCompactList}\small\item\em Get \char`\"{}default\char`\"{} E\+C\+D\+SA implementation (verifier, raw format). \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__ec_8h_ae98b21797958ced991e4357b1aec6046}{br\+\_\+ec\+\_\+keygen} (const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$rng\+\_\+ctx, const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$sk, void $\ast$kbuf, int curve)
+\begin{DoxyCompactList}\small\item\em Generate a new EC private key. \end{DoxyCompactList}\item 
+size\+\_\+t \hyperlink{bearssl__ec_8h_a18b65bfdad2b76d0ae1698b9b117cb65}{br\+\_\+ec\+\_\+compute\+\_\+pub} (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$pk, void $\ast$kbuf, const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$sk)
+\begin{DoxyCompactList}\small\item\em Compute EC public key from EC private key. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_a0a94be2772bc96d8b9c09dec8fce9cff}{br\+\_\+ec\+\_\+prime\+\_\+i31}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}i31\char`\"{}. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_abe3ec1fc90bbd9110dd8926c3de92d87}{br\+\_\+ec\+\_\+prime\+\_\+i15}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}i15\char`\"{}. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_a75382b7ed2f5d001ff82d0eea34443ad}{br\+\_\+ec\+\_\+p256\+\_\+m15}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}m15\char`\"{} for P-\/256. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_a5f92eceb81689da7db99bf47b176e468}{br\+\_\+ec\+\_\+p256\+\_\+m31}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}m31\char`\"{} for P-\/256. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_a7947c958ebc5923f0d87768cc23e9c11}{br\+\_\+ec\+\_\+p256\+\_\+m62}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}m62\char`\"{} (specialised code) for P-\/256. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_a9ef9cb86c46b4988d12353ef667638a8}{br\+\_\+ec\+\_\+p256\+\_\+m64}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}m64\char`\"{} (specialised code) for P-\/256. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_a68dd96112ca3a13cf82f51450012668c}{br\+\_\+ec\+\_\+c25519\+\_\+i15}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}i15\char`\"{} (generic code) for Curve25519. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_a01c01309c61cdcd60f324639d9af5a59}{br\+\_\+ec\+\_\+c25519\+\_\+i31}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}i31\char`\"{} (generic code) for Curve25519. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_ad37faf5afe66fdcdba05af742b9dab97}{br\+\_\+ec\+\_\+c25519\+\_\+m15}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}m15\char`\"{} (specialised code) for Curve25519. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_ad357341db87f49933183fe9454d6444d}{br\+\_\+ec\+\_\+c25519\+\_\+m31}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}m31\char`\"{} (specialised code) for Curve25519. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_a8e07e26ac1a793981c6f1f8795d915bf}{br\+\_\+ec\+\_\+c25519\+\_\+m62}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}m62\char`\"{} (specialised code) for Curve25519. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_aee8470bea440fedb66475757605b5dff}{br\+\_\+ec\+\_\+c25519\+\_\+m64}
+\begin{DoxyCompactList}\small\item\em EC implementation \char`\"{}m64\char`\"{} (specialised code) for Curve25519. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_ab82db19c7437280b93dead4377b8a2c2}{br\+\_\+ec\+\_\+all\+\_\+m15}
+\begin{DoxyCompactList}\small\item\em Aggregate EC implementation \char`\"{}m15\char`\"{}. \end{DoxyCompactList}\item 
+const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} \hyperlink{bearssl__ec_8h_acf6a7441b737f3670e5545b18a456c09}{br\+\_\+ec\+\_\+all\+\_\+m31}
+\begin{DoxyCompactList}\small\item\em Aggregate EC implementation \char`\"{}m31\char`\"{}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsection*{Elliptic Curves}
+
+This file documents the EC implementations provided with Bear\+S\+SL, and E\+C\+D\+SA.
+
+\subsubsection*{Elliptic Curve A\+PI}
+
+Only \char`\"{}named curves\char`\"{} are supported. Each EC implementation supports one or several named curves, identified by symbolic identifiers. These identifiers are small integers, that correspond to the values registered by the \href{http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8}{\tt I\+A\+NA}.
+
+Since all currently defined elliptic curve identifiers are in the 0..31 range, it is convenient to encode support of some curves in a 32-\/bit word, such that bit x corresponds to curve of identifier x.
+
+An EC implementation is incarnated by a {\ttfamily \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl}} instance, that offers the following fields\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily supported\+\_\+curves}
+
+A 32-\/bit word that documents the identifiers of the curves supported by this implementation.
+\item {\ttfamily generator()}
+
+Callback method that returns a pointer to the conventional generator point for that curve.
+\item {\ttfamily order()}
+
+Callback method that returns a pointer to the subgroup order for that curve. That value uses unsigned big-\/endian encoding.
+\item {\ttfamily xoff()}
+
+Callback method that returns the offset and length of the X coordinate in an encoded point.
+\item {\ttfamily mul()}
+
+Multiply a curve point with an integer.
+\item {\ttfamily mulgen()}
+
+Multiply the curve generator with an integer. This may be faster than the generic {\ttfamily mul()}.
+\item {\ttfamily muladd()}
+
+Multiply two curve points by two integers, and return the sum of the two products.
+\end{DoxyItemize}
+
+All curve points are represented in uncompressed format. The {\ttfamily mul()} and {\ttfamily muladd()} methods take care to validate that the provided points are really part of the relevant curve subgroup.
+
+For all point multiplication functions, the following holds\+:
+
+
+\begin{DoxyItemize}
+\item Functions validate that the provided points are valid members of the relevant curve subgroup. An error is reported if that is not the case.
+\item Processing is constant-\/time, even if the point operands are not valid. This holds for both the source and resulting points, and the multipliers (integers). Only the byte length of the provided multiplier arrays (not their actual value length in bits) may leak through timing-\/based side channels.
+\item The multipliers (integers) M\+U\+ST be lower than the subgroup order. If this property is not met, then the result is indeterminate, but an error value is not ncessearily returned.
+\end{DoxyItemize}
+
+\subsubsection*{E\+C\+D\+SA}
+
+E\+C\+D\+SA signatures have two standard formats, called \char`\"{}raw\char`\"{} and \char`\"{}asn1\char`\"{}. Internally, such a signature is a pair of modular integers {\ttfamily (r,s)}. The \char`\"{}raw\char`\"{} format is the concatenation of the unsigned big-\/endian encodings of these two integers, possibly left-\/padded with zeros so that they have the same encoded length. The \char`\"{}asn1\char`\"{} format is the D\+ER encoding of an A\+S\+N.\+1 structure that contains the two integer values\+: \begin{DoxyVerb}ECDSASignature ::= SEQUENCE {
+    r   INTEGER,
+    s   INTEGER
+}
+\end{DoxyVerb}
+
+
+In general, in all of X.\+509 and S\+S\+L/\+T\+LS, the \char`\"{}asn1\char`\"{} format is used. Bear\+S\+SL offers E\+C\+D\+SA implementations for both formats; conversion functions between the two formats are also provided. Conversion of a \char`\"{}raw\char`\"{} format signature into \char`\"{}asn1\char`\"{} may enlarge a signature by no more than 9 bytes for all supported curves; conversely, conversion of an \char`\"{}asn1\char`\"{} signature to \char`\"{}raw\char`\"{} may expand the signature but the \char`\"{}raw\char`\"{} length will never be more than twice the length of the \char`\"{}asn1\char`\"{} length (and usually it will be shorter).
+
+Note that for a given signature, the \char`\"{}raw\char`\"{} format is not fully deterministic, in that it does not enforce a minimal common length. 
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{bearssl__ec_8h_a2681efca64879d9d57ec744e1b608312}\label{bearssl__ec_8h_a2681efca64879d9d57ec744e1b608312}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE@{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}}
+\index{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE@{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}{BR\_EC\_KBUF\_PRIV\_MAX\_SIZE}}
+{\footnotesize\ttfamily \#define B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE~72}
+
+
+
+Maximum size for EC private key element buffer. 
+
+This is the largest number of bytes that {\ttfamily \hyperlink{bearssl__ec_8h_ae98b21797958ced991e4357b1aec6046}{br\+\_\+ec\+\_\+keygen()}} may need or ever return. \mbox{\Hypertarget{bearssl__ec_8h_a3d8975cd838d2c42955f6a6ac2066d71}\label{bearssl__ec_8h_a3d8975cd838d2c42955f6a6ac2066d71}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE@{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}}
+\index{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE@{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE}{BR\_EC\_KBUF\_PUB\_MAX\_SIZE}}
+{\footnotesize\ttfamily \#define B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+U\+B\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE~145}
+
+
+
+Maximum size for EC public key element buffer. 
+
+This is the largest number of bytes that {\ttfamily br\+\_\+ec\+\_\+compute\+\_\+public()} may need or ever return. 
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}\label{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+sign@{br\+\_\+ecdsa\+\_\+sign}}
+\index{br\+\_\+ecdsa\+\_\+sign@{br\+\_\+ecdsa\+\_\+sign}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+sign}{br\_ecdsa\_sign}}
+{\footnotesize\ttfamily typedef size\+\_\+t($\ast$ br\+\_\+ecdsa\+\_\+sign) (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$hf, const void $\ast$hash\+\_\+value, const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$sk, void $\ast$sig)}
+
+
+
+Type for an E\+C\+D\+SA signer function. 
+
+A pointer to the EC implementation is provided. The hash value is assumed to have the length inferred from the designated hash function class.
+
+Signature is written in the buffer pointed to by {\ttfamily sig}, and the length (in bytes) is returned. On error, nothing is written in the buffer, and 0 is returned. This function returns 0 if the specified curve is not supported by the provided EC implementation.
+
+The signature format is either \char`\"{}raw\char`\"{} or \char`\"{}asn1\char`\"{}, depending on the implementation; maximum length is predictable from the implemented curve\+:
+
+\tabulinesep=1mm
+\begin{longtabu} spread 0pt [c]{*{3}{|X[-1]}|}
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ curve }&\PBS\raggedleft \textbf{ raw }&\PBS\raggedleft \textbf{ asn1  }\\\cline{1-3}
+\endfirsthead
+\hline
+\endfoot
+\hline
+\rowcolor{\tableheadbgcolor}\textbf{ curve }&\PBS\raggedleft \textbf{ raw }&\PBS\raggedleft \textbf{ asn1  }\\\cline{1-3}
+\endhead
+N\+I\+ST P-\/256 &\PBS\raggedleft 64 &\PBS\raggedleft 72 \\\cline{1-3}
+N\+I\+ST P-\/384 &\PBS\raggedleft 96 &\PBS\raggedleft 104 \\\cline{1-3}
+N\+I\+ST P-\/521 &\PBS\raggedleft 132 &\PBS\raggedleft 139 \\\cline{1-3}
+\end{longtabu}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hf} & hash function used to process the data. \\
+\hline
+{\em hash\+\_\+value} & signed data (hashed). \\
+\hline
+{\em sk} & EC private key. \\
+\hline
+{\em sig} & destination buffer. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the signature length (in bytes), or 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}\label{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+vrfy@{br\+\_\+ecdsa\+\_\+vrfy}}
+\index{br\+\_\+ecdsa\+\_\+vrfy@{br\+\_\+ecdsa\+\_\+vrfy}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+vrfy}{br\_ecdsa\_vrfy}}
+{\footnotesize\ttfamily typedef uint32\+\_\+t($\ast$ br\+\_\+ecdsa\+\_\+vrfy) (const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$impl, const void $\ast$hash, size\+\_\+t hash\+\_\+len, const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$pk, const void $\ast$sig, size\+\_\+t sig\+\_\+len)}
+
+
+
+Type for an E\+C\+D\+SA signature verification function. 
+
+A pointer to the EC implementation is provided. The hashed value, computed over the purportedly signed data, is also provided with its length.
+
+The signature format is either \char`\"{}raw\char`\"{} or \char`\"{}asn1\char`\"{}, depending on the implementation.
+
+Returned value is 1 on success (valid signature), 0 on error. This function returns 0 if the specified curve is not supported by the provided EC implementation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hash} & signed data (hashed). \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em pk} & EC public key. \\
+\hline
+{\em sig} & signature. \\
+\hline
+{\em sig\+\_\+len} & signature length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{bearssl__ec_8h_a629267c888b32036c23340bb90c23255}\label{bearssl__ec_8h_a629267c888b32036c23340bb90c23255}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+c25519\+\_\+m62\+\_\+get@{br\+\_\+ec\+\_\+c25519\+\_\+m62\+\_\+get}}
+\index{br\+\_\+ec\+\_\+c25519\+\_\+m62\+\_\+get@{br\+\_\+ec\+\_\+c25519\+\_\+m62\+\_\+get}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+c25519\+\_\+m62\+\_\+get()}{br\_ec\_c25519\_m62\_get()}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl}$\ast$ br\+\_\+ec\+\_\+c25519\+\_\+m62\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the \char`\"{}m62\char`\"{} implementation of Curve25519, if available. 
+
+\begin{DoxyReturn}{Returns}
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a40250bf26ac5b282a229a31dd702a6f2}\label{bearssl__ec_8h_a40250bf26ac5b282a229a31dd702a6f2}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+c25519\+\_\+m64\+\_\+get@{br\+\_\+ec\+\_\+c25519\+\_\+m64\+\_\+get}}
+\index{br\+\_\+ec\+\_\+c25519\+\_\+m64\+\_\+get@{br\+\_\+ec\+\_\+c25519\+\_\+m64\+\_\+get}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+c25519\+\_\+m64\+\_\+get()}{br\_ec\_c25519\_m64\_get()}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl}$\ast$ br\+\_\+ec\+\_\+c25519\+\_\+m64\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the \char`\"{}m64\char`\"{} implementation of Curve25519, if available. 
+
+\begin{DoxyReturn}{Returns}
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a18b65bfdad2b76d0ae1698b9b117cb65}\label{bearssl__ec_8h_a18b65bfdad2b76d0ae1698b9b117cb65}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+compute\+\_\+pub@{br\+\_\+ec\+\_\+compute\+\_\+pub}}
+\index{br\+\_\+ec\+\_\+compute\+\_\+pub@{br\+\_\+ec\+\_\+compute\+\_\+pub}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+compute\+\_\+pub()}{br\_ec\_compute\_pub()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+ec\+\_\+compute\+\_\+pub (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{\hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{void $\ast$}]{kbuf,  }\item[{const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$}]{sk }\end{DoxyParamCaption})}
+
+
+
+Compute EC public key from EC private key. 
+
+This function uses the provided elliptic curve implementation ({\ttfamily impl}) to compute the public key corresponding to the private key held in {\ttfamily sk}. The public key point is written into {\ttfamily kbuf}, which is then linked from the {\ttfamily $\ast$pk} structure. The size of the public key point, i.\+e. the number of bytes used in {\ttfamily kbuf}, is returned.
+
+If {\ttfamily kbuf} is {\ttfamily N\+U\+LL}, then the public key point is N\+OT computed, and the public key structure {\ttfamily $\ast$pk} is unmodified ({\ttfamily pk} may be {\ttfamily N\+U\+LL} in that case). The size of the public key point is still returned.
+
+If {\ttfamily pk} is {\ttfamily N\+U\+LL} but {\ttfamily kbuf} is not {\ttfamily N\+U\+LL}, then the public key point is computed and stored in {\ttfamily kbuf}, and its size is returned.
+
+If the curve used by the private key is not supported by the curve implementation, then this function returns zero.
+
+The private key M\+U\+ST be valid. An off-\/range private key value is not necessarily detected, and leads to unpredictable results.
+
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & the elliptic curve implementation. \\
+\hline
+{\em pk} & the public key structure to fill (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em kbuf} & the public key point buffer (or {\ttfamily N\+U\+LL}). \\
+\hline
+{\em sk} & the source private key. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the public key point length (in bytes), or zero. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a39d4de479b5890bced8bc728e0d0b5a5}\label{bearssl__ec_8h_a39d4de479b5890bced8bc728e0d0b5a5}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+get\+\_\+default@{br\+\_\+ec\+\_\+get\+\_\+default}}
+\index{br\+\_\+ec\+\_\+get\+\_\+default@{br\+\_\+ec\+\_\+get\+\_\+default}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+get\+\_\+default()}{br\_ec\_get\_default()}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl}$\ast$ br\+\_\+ec\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the \char`\"{}default\char`\"{} EC implementation for the current system. 
+
+This returns a pointer to the preferred implementation on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default EC implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_ae98b21797958ced991e4357b1aec6046}\label{bearssl__ec_8h_ae98b21797958ced991e4357b1aec6046}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+keygen@{br\+\_\+ec\+\_\+keygen}}
+\index{br\+\_\+ec\+\_\+keygen@{br\+\_\+ec\+\_\+keygen}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+keygen()}{br\_ec\_keygen()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+ec\+\_\+keygen (\begin{DoxyParamCaption}\item[{const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$$\ast$}]{rng\+\_\+ctx,  }\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{\hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{kbuf,  }\item[{int}]{curve }\end{DoxyParamCaption})}
+
+
+
+Generate a new EC private key. 
+
+If the specified {\ttfamily curve} is not supported by the elliptic curve implementation ({\ttfamily impl}), then this function returns zero.
+
+The {\ttfamily sk} structure fields are set to the new private key data. In particular, {\ttfamily sk.\+x} is made to point to the provided key buffer ({\ttfamily kbuf}), in which the actual private key data is written. That buffer is assumed to be large enough. The {\ttfamily B\+R\+\_\+\+E\+C\+\_\+\+K\+B\+U\+F\+\_\+\+P\+R\+I\+V\+\_\+\+M\+A\+X\+\_\+\+S\+I\+ZE} defines the maximum size for all supported curves.
+
+The number of bytes used in {\ttfamily kbuf} is returned. If {\ttfamily kbuf} is {\ttfamily N\+U\+LL}, then the private key is not actually generated, and {\ttfamily sk} may also be {\ttfamily N\+U\+LL}; the minimum length for {\ttfamily kbuf} is still computed and returned.
+
+If {\ttfamily sk} is {\ttfamily N\+U\+LL} but {\ttfamily kbuf} is not {\ttfamily N\+U\+LL}, then the private key is still generated and stored in {\ttfamily kbuf}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em rng\+\_\+ctx} & source P\+R\+NG context (already initialized). \\
+\hline
+{\em impl} & the elliptic curve implementation. \\
+\hline
+{\em sk} & the private key structure to fill, or {\ttfamily N\+U\+LL}. \\
+\hline
+{\em kbuf} & the key element buffer, or {\ttfamily N\+U\+LL}. \\
+\hline
+{\em curve} & the curve identifier. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the key data length (in bytes), or zero. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a72c2f5c8bda538b46e7bcf7e0c23cee2}\label{bearssl__ec_8h_a72c2f5c8bda538b46e7bcf7e0c23cee2}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+p256\+\_\+m62\+\_\+get@{br\+\_\+ec\+\_\+p256\+\_\+m62\+\_\+get}}
+\index{br\+\_\+ec\+\_\+p256\+\_\+m62\+\_\+get@{br\+\_\+ec\+\_\+p256\+\_\+m62\+\_\+get}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+p256\+\_\+m62\+\_\+get()}{br\_ec\_p256\_m62\_get()}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl}$\ast$ br\+\_\+ec\+\_\+p256\+\_\+m62\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the \char`\"{}m62\char`\"{} implementation of P-\/256, if available. 
+
+\begin{DoxyReturn}{Returns}
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a51f4066e0c51f4f44b489ef211056125}\label{bearssl__ec_8h_a51f4066e0c51f4f44b489ef211056125}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+p256\+\_\+m64\+\_\+get@{br\+\_\+ec\+\_\+p256\+\_\+m64\+\_\+get}}
+\index{br\+\_\+ec\+\_\+p256\+\_\+m64\+\_\+get@{br\+\_\+ec\+\_\+p256\+\_\+m64\+\_\+get}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+p256\+\_\+m64\+\_\+get()}{br\_ec\_p256\_m64\_get()}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl}$\ast$ br\+\_\+ec\+\_\+p256\+\_\+m64\+\_\+get (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get the \char`\"{}m64\char`\"{} implementation of P-\/256, if available. 
+
+\begin{DoxyReturn}{Returns}
+the implementation, or 0. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a89311669cc19963ffbc21edae802f7d0}\label{bearssl__ec_8h_a89311669cc19963ffbc21edae802f7d0}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+asn1\+\_\+to\+\_\+raw@{br\+\_\+ecdsa\+\_\+asn1\+\_\+to\+\_\+raw}}
+\index{br\+\_\+ecdsa\+\_\+asn1\+\_\+to\+\_\+raw@{br\+\_\+ecdsa\+\_\+asn1\+\_\+to\+\_\+raw}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+asn1\+\_\+to\+\_\+raw()}{br\_ecdsa\_asn1\_to\_raw()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+ecdsa\+\_\+asn1\+\_\+to\+\_\+raw (\begin{DoxyParamCaption}\item[{void $\ast$}]{sig,  }\item[{size\+\_\+t}]{sig\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+Convert a signature from \char`\"{}asn1\char`\"{} to \char`\"{}raw\char`\"{}. 
+
+Conversion is done \char`\"{}in place\char`\"{} and the new length is returned. Conversion may enlarge the signature, but the new signature length will be less than twice the source length at most. On error, 0 is returned (error conditions include an invalid A\+S\+N.\+1 structure or an oversized integer).
+
+
+\begin{DoxyParams}{Parameters}
+{\em sig} & signature to convert. \\
+\hline
+{\em sig\+\_\+len} & signature length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the new signature length, or 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a56c421161765c3ecffe2b7498633d52b}\label{bearssl__ec_8h_a56c421161765c3ecffe2b7498633d52b}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+asn1@{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+asn1}}
+\index{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+asn1@{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+asn1}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+asn1()}{br\_ecdsa\_i15\_sign\_asn1()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+asn1 (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf,  }\item[{const void $\ast$}]{hash\+\_\+value,  }\item[{const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{sig }\end{DoxyParamCaption})}
+
+
+
+E\+C\+D\+SA signature generator, \char`\"{}i15\char`\"{} implementation, \char`\"{}asn1\char`\"{} format. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign()}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hf} & hash function used to process the data. \\
+\hline
+{\em hash\+\_\+value} & signed data (hashed). \\
+\hline
+{\em sk} & EC private key. \\
+\hline
+{\em sig} & destination buffer. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the signature length (in bytes), or 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a3a5ac2751071e7e7e48d2d6864b36214}\label{bearssl__ec_8h_a3a5ac2751071e7e7e48d2d6864b36214}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+raw@{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+raw}}
+\index{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+raw@{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+raw}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+raw()}{br\_ecdsa\_i15\_sign\_raw()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+ecdsa\+\_\+i15\+\_\+sign\+\_\+raw (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf,  }\item[{const void $\ast$}]{hash\+\_\+value,  }\item[{const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{sig }\end{DoxyParamCaption})}
+
+
+
+E\+C\+D\+SA signature generator, \char`\"{}i15\char`\"{} implementation, \char`\"{}raw\char`\"{} format. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign()}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hf} & hash function used to process the data. \\
+\hline
+{\em hash\+\_\+value} & signed data (hashed). \\
+\hline
+{\em sk} & EC private key. \\
+\hline
+{\em sig} & destination buffer. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the signature length (in bytes), or 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a45f9bce33bfcdb79944aaeb828734776}\label{bearssl__ec_8h_a45f9bce33bfcdb79944aaeb828734776}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+asn1@{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+asn1}}
+\index{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+asn1@{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+asn1}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+asn1()}{br\_ecdsa\_i15\_vrfy\_asn1()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+asn1 (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{const void $\ast$}]{hash,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{const void $\ast$}]{sig,  }\item[{size\+\_\+t}]{sig\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+E\+C\+D\+SA signature verifier, \char`\"{}i15\char`\"{} implementation, \char`\"{}asn1\char`\"{} format. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy()}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hash} & signed data (hashed). \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em pk} & EC public key. \\
+\hline
+{\em sig} & signature. \\
+\hline
+{\em sig\+\_\+len} & signature length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a80f39ee3f0fd79cdf4783a11a7794d29}\label{bearssl__ec_8h_a80f39ee3f0fd79cdf4783a11a7794d29}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+raw@{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+raw}}
+\index{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+raw@{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+raw}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+raw()}{br\_ecdsa\_i15\_vrfy\_raw()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+ecdsa\+\_\+i15\+\_\+vrfy\+\_\+raw (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{const void $\ast$}]{hash,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{const void $\ast$}]{sig,  }\item[{size\+\_\+t}]{sig\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+E\+C\+D\+SA signature verifier, \char`\"{}i15\char`\"{} implementation, \char`\"{}raw\char`\"{} format. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy()}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hash} & signed data (hashed). \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em pk} & EC public key. \\
+\hline
+{\em sig} & signature. \\
+\hline
+{\em sig\+\_\+len} & signature length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a15e352550078ffc433ea4452031c0e42}\label{bearssl__ec_8h_a15e352550078ffc433ea4452031c0e42}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+asn1@{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+asn1}}
+\index{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+asn1@{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+asn1}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+asn1()}{br\_ecdsa\_i31\_sign\_asn1()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+asn1 (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf,  }\item[{const void $\ast$}]{hash\+\_\+value,  }\item[{const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{sig }\end{DoxyParamCaption})}
+
+
+
+E\+C\+D\+SA signature generator, \char`\"{}i31\char`\"{} implementation, \char`\"{}asn1\char`\"{} format. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign()}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hf} & hash function used to process the data. \\
+\hline
+{\em hash\+\_\+value} & signed data (hashed). \\
+\hline
+{\em sk} & EC private key. \\
+\hline
+{\em sig} & destination buffer. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the signature length (in bytes), or 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_af0d1db2090cb57a1fc897db0d4475452}\label{bearssl__ec_8h_af0d1db2090cb57a1fc897db0d4475452}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+raw@{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+raw}}
+\index{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+raw@{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+raw}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+raw()}{br\_ecdsa\_i31\_sign\_raw()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+ecdsa\+\_\+i31\+\_\+sign\+\_\+raw (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$}]{hf,  }\item[{const void $\ast$}]{hash\+\_\+value,  }\item[{const \hyperlink{structbr__ec__private__key}{br\+\_\+ec\+\_\+private\+\_\+key} $\ast$}]{sk,  }\item[{void $\ast$}]{sig }\end{DoxyParamCaption})}
+
+
+
+E\+C\+D\+SA signature generator, \char`\"{}i31\char`\"{} implementation, \char`\"{}raw\char`\"{} format. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign()}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hf} & hash function used to process the data. \\
+\hline
+{\em hash\+\_\+value} & signed data (hashed). \\
+\hline
+{\em sk} & EC private key. \\
+\hline
+{\em sig} & destination buffer. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the signature length (in bytes), or 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_acf5297e4631a9b96fe55f4f1c8d3722d}\label{bearssl__ec_8h_acf5297e4631a9b96fe55f4f1c8d3722d}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+asn1@{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+asn1}}
+\index{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+asn1@{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+asn1}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+asn1()}{br\_ecdsa\_i31\_vrfy\_asn1()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+asn1 (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{const void $\ast$}]{hash,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{const void $\ast$}]{sig,  }\item[{size\+\_\+t}]{sig\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+E\+C\+D\+SA signature verifier, \char`\"{}i31\char`\"{} implementation, \char`\"{}asn1\char`\"{} format. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy()}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hash} & signed data (hashed). \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em pk} & EC public key. \\
+\hline
+{\em sig} & signature. \\
+\hline
+{\em sig\+\_\+len} & signature length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a47fc61d29a23105789d2bca47365a765}\label{bearssl__ec_8h_a47fc61d29a23105789d2bca47365a765}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+raw@{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+raw}}
+\index{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+raw@{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+raw}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+raw()}{br\_ecdsa\_i31\_vrfy\_raw()}}
+{\footnotesize\ttfamily uint32\+\_\+t br\+\_\+ecdsa\+\_\+i31\+\_\+vrfy\+\_\+raw (\begin{DoxyParamCaption}\item[{const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} $\ast$}]{impl,  }\item[{const void $\ast$}]{hash,  }\item[{size\+\_\+t}]{hash\+\_\+len,  }\item[{const \hyperlink{structbr__ec__public__key}{br\+\_\+ec\+\_\+public\+\_\+key} $\ast$}]{pk,  }\item[{const void $\ast$}]{sig,  }\item[{size\+\_\+t}]{sig\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+E\+C\+D\+SA signature verifier, \char`\"{}i31\char`\"{} implementation, \char`\"{}raw\char`\"{} format. 
+
+\begin{DoxySeeAlso}{See also}
+\hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy()}
+\end{DoxySeeAlso}
+
+\begin{DoxyParams}{Parameters}
+{\em impl} & EC implementation to use. \\
+\hline
+{\em hash} & signed data (hashed). \\
+\hline
+{\em hash\+\_\+len} & hash value length (in bytes). \\
+\hline
+{\em pk} & EC public key. \\
+\hline
+{\em sig} & signature. \\
+\hline
+{\em sig\+\_\+len} & signature length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 on success, 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_aa8685a896c92092dfff0844895bf8fd6}\label{bearssl__ec_8h_aa8685a896c92092dfff0844895bf8fd6}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+raw\+\_\+to\+\_\+asn1@{br\+\_\+ecdsa\+\_\+raw\+\_\+to\+\_\+asn1}}
+\index{br\+\_\+ecdsa\+\_\+raw\+\_\+to\+\_\+asn1@{br\+\_\+ecdsa\+\_\+raw\+\_\+to\+\_\+asn1}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+raw\+\_\+to\+\_\+asn1()}{br\_ecdsa\_raw\_to\_asn1()}}
+{\footnotesize\ttfamily size\+\_\+t br\+\_\+ecdsa\+\_\+raw\+\_\+to\+\_\+asn1 (\begin{DoxyParamCaption}\item[{void $\ast$}]{sig,  }\item[{size\+\_\+t}]{sig\+\_\+len }\end{DoxyParamCaption})}
+
+
+
+Convert a signature from \char`\"{}raw\char`\"{} to \char`\"{}asn1\char`\"{}. 
+
+Conversion is done \char`\"{}in place\char`\"{} and the new length is returned. Conversion may enlarge the signature, but by no more than 9 bytes at most. On error, 0 is returned (error conditions include an odd raw signature length, or an oversized integer).
+
+
+\begin{DoxyParams}{Parameters}
+{\em sig} & signature to convert. \\
+\hline
+{\em sig\+\_\+len} & signature length (in bytes). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the new signature length, or 0 on error. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a8792bb1f074376dcb06555e2ed09e95f}\label{bearssl__ec_8h_a8792bb1f074376dcb06555e2ed09e95f}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+sign\+\_\+asn1\+\_\+get\+\_\+default@{br\+\_\+ecdsa\+\_\+sign\+\_\+asn1\+\_\+get\+\_\+default}}
+\index{br\+\_\+ecdsa\+\_\+sign\+\_\+asn1\+\_\+get\+\_\+default@{br\+\_\+ecdsa\+\_\+sign\+\_\+asn1\+\_\+get\+\_\+default}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+sign\+\_\+asn1\+\_\+get\+\_\+default()}{br\_ecdsa\_sign\_asn1\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign} br\+\_\+ecdsa\+\_\+sign\+\_\+asn1\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} E\+C\+D\+SA implementation (signer, asn1 format). 
+
+This returns the preferred implementation of E\+C\+D\+SA signature generation (\char`\"{}asn1\char`\"{} output format) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a9be2f2ab22fe6cbae6428d89f18a48f5}\label{bearssl__ec_8h_a9be2f2ab22fe6cbae6428d89f18a48f5}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+sign\+\_\+raw\+\_\+get\+\_\+default@{br\+\_\+ecdsa\+\_\+sign\+\_\+raw\+\_\+get\+\_\+default}}
+\index{br\+\_\+ecdsa\+\_\+sign\+\_\+raw\+\_\+get\+\_\+default@{br\+\_\+ecdsa\+\_\+sign\+\_\+raw\+\_\+get\+\_\+default}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+sign\+\_\+raw\+\_\+get\+\_\+default()}{br\_ecdsa\_sign\_raw\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__ec_8h_ab7154b0c899ceb3af062c69016258667}{br\+\_\+ecdsa\+\_\+sign} br\+\_\+ecdsa\+\_\+sign\+\_\+raw\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} E\+C\+D\+SA implementation (signer, raw format). 
+
+This returns the preferred implementation of E\+C\+D\+SA signature generation (\char`\"{}raw\char`\"{} output format) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a7da8b968706d9a2ef2bf006d25f425bd}\label{bearssl__ec_8h_a7da8b968706d9a2ef2bf006d25f425bd}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+vrfy\+\_\+asn1\+\_\+get\+\_\+default@{br\+\_\+ecdsa\+\_\+vrfy\+\_\+asn1\+\_\+get\+\_\+default}}
+\index{br\+\_\+ecdsa\+\_\+vrfy\+\_\+asn1\+\_\+get\+\_\+default@{br\+\_\+ecdsa\+\_\+vrfy\+\_\+asn1\+\_\+get\+\_\+default}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+vrfy\+\_\+asn1\+\_\+get\+\_\+default()}{br\_ecdsa\_vrfy\_asn1\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy} br\+\_\+ecdsa\+\_\+vrfy\+\_\+asn1\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} E\+C\+D\+SA implementation (verifier, asn1 format). 
+
+This returns the preferred implementation of E\+C\+D\+SA signature verification (\char`\"{}asn1\char`\"{} output format) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{bearssl__ec_8h_a879a96d7668b7ed052a67178ed40284d}\label{bearssl__ec_8h_a879a96d7668b7ed052a67178ed40284d}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ecdsa\+\_\+vrfy\+\_\+raw\+\_\+get\+\_\+default@{br\+\_\+ecdsa\+\_\+vrfy\+\_\+raw\+\_\+get\+\_\+default}}
+\index{br\+\_\+ecdsa\+\_\+vrfy\+\_\+raw\+\_\+get\+\_\+default@{br\+\_\+ecdsa\+\_\+vrfy\+\_\+raw\+\_\+get\+\_\+default}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ecdsa\+\_\+vrfy\+\_\+raw\+\_\+get\+\_\+default()}{br\_ecdsa\_vrfy\_raw\_get\_default()}}
+{\footnotesize\ttfamily \hyperlink{bearssl__ec_8h_abaff5c9daad6e7dc61e4a1004ef1c8c8}{br\+\_\+ecdsa\+\_\+vrfy} br\+\_\+ecdsa\+\_\+vrfy\+\_\+raw\+\_\+get\+\_\+default (\begin{DoxyParamCaption}\item[{void}]{ }\end{DoxyParamCaption})}
+
+
+
+Get \char`\"{}default\char`\"{} E\+C\+D\+SA implementation (verifier, raw format). 
+
+This returns the preferred implementation of E\+C\+D\+SA signature verification (\char`\"{}raw\char`\"{} output format) on the current system.
+
+\begin{DoxyReturn}{Returns}
+the default implementation. 
+\end{DoxyReturn}
+
+
+\subsection{Variable Documentation}
+\mbox{\Hypertarget{bearssl__ec_8h_ab82db19c7437280b93dead4377b8a2c2}\label{bearssl__ec_8h_ab82db19c7437280b93dead4377b8a2c2}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+all\+\_\+m15@{br\+\_\+ec\+\_\+all\+\_\+m15}}
+\index{br\+\_\+ec\+\_\+all\+\_\+m15@{br\+\_\+ec\+\_\+all\+\_\+m15}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+all\+\_\+m15}{br\_ec\_all\_m15}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+all\+\_\+m15}
+
+
+
+Aggregate EC implementation \char`\"{}m15\char`\"{}. 
+
+This implementation is a wrapper for\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily br\+\_\+ec\+\_\+c25519\+\_\+m15} for Curve25519
+\item {\ttfamily br\+\_\+ec\+\_\+p256\+\_\+m15} for N\+I\+ST P-\/256
+\item {\ttfamily br\+\_\+ec\+\_\+prime\+\_\+i15} for other curves (N\+I\+ST P-\/384 and N\+I\+S\+T-\/\+P512) 
+\end{DoxyItemize}\mbox{\Hypertarget{bearssl__ec_8h_acf6a7441b737f3670e5545b18a456c09}\label{bearssl__ec_8h_acf6a7441b737f3670e5545b18a456c09}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+all\+\_\+m31@{br\+\_\+ec\+\_\+all\+\_\+m31}}
+\index{br\+\_\+ec\+\_\+all\+\_\+m31@{br\+\_\+ec\+\_\+all\+\_\+m31}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+all\+\_\+m31}{br\_ec\_all\_m31}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+all\+\_\+m31}
+
+
+
+Aggregate EC implementation \char`\"{}m31\char`\"{}. 
+
+This implementation is a wrapper for\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily br\+\_\+ec\+\_\+c25519\+\_\+m31} for Curve25519
+\item {\ttfamily br\+\_\+ec\+\_\+p256\+\_\+m31} for N\+I\+ST P-\/256
+\item {\ttfamily br\+\_\+ec\+\_\+prime\+\_\+i31} for other curves (N\+I\+ST P-\/384 and N\+I\+S\+T-\/\+P512) 
+\end{DoxyItemize}\mbox{\Hypertarget{bearssl__ec_8h_a68dd96112ca3a13cf82f51450012668c}\label{bearssl__ec_8h_a68dd96112ca3a13cf82f51450012668c}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+c25519\+\_\+i15@{br\+\_\+ec\+\_\+c25519\+\_\+i15}}
+\index{br\+\_\+ec\+\_\+c25519\+\_\+i15@{br\+\_\+ec\+\_\+c25519\+\_\+i15}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+c25519\+\_\+i15}{br\_ec\_c25519\_i15}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+c25519\+\_\+i15}
+
+
+
+EC implementation \char`\"{}i15\char`\"{} (generic code) for Curve25519. 
+
+This implementation uses the generic code for modular integers (with 15-\/bit words) to support Curve25519. Due to the specificities of the curve definition, the following applies\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily muladd()} is not implemented (the function returns 0 systematically).
+\item {\ttfamily order()} returns 2$^\wedge$255-\/1, since the point multiplication algorithm accepts any 32-\/bit integer as input (it clears the top bit and low three bits systematically). 
+\end{DoxyItemize}\mbox{\Hypertarget{bearssl__ec_8h_a01c01309c61cdcd60f324639d9af5a59}\label{bearssl__ec_8h_a01c01309c61cdcd60f324639d9af5a59}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+c25519\+\_\+i31@{br\+\_\+ec\+\_\+c25519\+\_\+i31}}
+\index{br\+\_\+ec\+\_\+c25519\+\_\+i31@{br\+\_\+ec\+\_\+c25519\+\_\+i31}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+c25519\+\_\+i31}{br\_ec\_c25519\_i31}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+c25519\+\_\+i31}
+
+
+
+EC implementation \char`\"{}i31\char`\"{} (generic code) for Curve25519. 
+
+This implementation uses the generic code for modular integers (with 31-\/bit words) to support Curve25519. Due to the specificities of the curve definition, the following applies\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily muladd()} is not implemented (the function returns 0 systematically).
+\item {\ttfamily order()} returns 2$^\wedge$255-\/1, since the point multiplication algorithm accepts any 32-\/bit integer as input (it clears the top bit and low three bits systematically). 
+\end{DoxyItemize}\mbox{\Hypertarget{bearssl__ec_8h_ad37faf5afe66fdcdba05af742b9dab97}\label{bearssl__ec_8h_ad37faf5afe66fdcdba05af742b9dab97}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+c25519\+\_\+m15@{br\+\_\+ec\+\_\+c25519\+\_\+m15}}
+\index{br\+\_\+ec\+\_\+c25519\+\_\+m15@{br\+\_\+ec\+\_\+c25519\+\_\+m15}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+c25519\+\_\+m15}{br\_ec\_c25519\_m15}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+c25519\+\_\+m15}
+
+
+
+EC implementation \char`\"{}m15\char`\"{} (specialised code) for Curve25519. 
+
+This implementation uses custom code relying on multiplication of integers up to 15 bits. Due to the specificities of the curve definition, the following applies\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily muladd()} is not implemented (the function returns 0 systematically).
+\item {\ttfamily order()} returns 2$^\wedge$255-\/1, since the point multiplication algorithm accepts any 32-\/bit integer as input (it clears the top bit and low three bits systematically). 
+\end{DoxyItemize}\mbox{\Hypertarget{bearssl__ec_8h_ad357341db87f49933183fe9454d6444d}\label{bearssl__ec_8h_ad357341db87f49933183fe9454d6444d}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+c25519\+\_\+m31@{br\+\_\+ec\+\_\+c25519\+\_\+m31}}
+\index{br\+\_\+ec\+\_\+c25519\+\_\+m31@{br\+\_\+ec\+\_\+c25519\+\_\+m31}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+c25519\+\_\+m31}{br\_ec\_c25519\_m31}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+c25519\+\_\+m31}
+
+
+
+EC implementation \char`\"{}m31\char`\"{} (specialised code) for Curve25519. 
+
+This implementation uses custom code relying on multiplication of integers up to 31 bits. Due to the specificities of the curve definition, the following applies\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily muladd()} is not implemented (the function returns 0 systematically).
+\item {\ttfamily order()} returns 2$^\wedge$255-\/1, since the point multiplication algorithm accepts any 32-\/bit integer as input (it clears the top bit and low three bits systematically). 
+\end{DoxyItemize}\mbox{\Hypertarget{bearssl__ec_8h_a8e07e26ac1a793981c6f1f8795d915bf}\label{bearssl__ec_8h_a8e07e26ac1a793981c6f1f8795d915bf}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+c25519\+\_\+m62@{br\+\_\+ec\+\_\+c25519\+\_\+m62}}
+\index{br\+\_\+ec\+\_\+c25519\+\_\+m62@{br\+\_\+ec\+\_\+c25519\+\_\+m62}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+c25519\+\_\+m62}{br\_ec\_c25519\_m62}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+c25519\+\_\+m62}
+
+
+
+EC implementation \char`\"{}m62\char`\"{} (specialised code) for Curve25519. 
+
+This implementation uses custom code relying on multiplication of integers up to 62 bits, with a 124-\/bit result. This implementation is defined only on platforms that offer the 64x64-\/$>$128 multiplication support; use {\ttfamily \hyperlink{bearssl__ec_8h_a629267c888b32036c23340bb90c23255}{br\+\_\+ec\+\_\+c25519\+\_\+m62\+\_\+get()}} to dynamically obtain a pointer to that implementation. Due to the specificities of the curve definition, the following applies\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily muladd()} is not implemented (the function returns 0 systematically).
+\item {\ttfamily order()} returns 2$^\wedge$255-\/1, since the point multiplication algorithm accepts any 32-\/bit integer as input (it clears the top bit and low three bits systematically). 
+\end{DoxyItemize}\mbox{\Hypertarget{bearssl__ec_8h_aee8470bea440fedb66475757605b5dff}\label{bearssl__ec_8h_aee8470bea440fedb66475757605b5dff}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+c25519\+\_\+m64@{br\+\_\+ec\+\_\+c25519\+\_\+m64}}
+\index{br\+\_\+ec\+\_\+c25519\+\_\+m64@{br\+\_\+ec\+\_\+c25519\+\_\+m64}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+c25519\+\_\+m64}{br\_ec\_c25519\_m64}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+c25519\+\_\+m64}
+
+
+
+EC implementation \char`\"{}m64\char`\"{} (specialised code) for Curve25519. 
+
+This implementation uses custom code relying on multiplication of integers up to 64 bits, with a 128-\/bit result. This implementation is defined only on platforms that offer the 64x64-\/$>$128 multiplication support; use {\ttfamily \hyperlink{bearssl__ec_8h_a40250bf26ac5b282a229a31dd702a6f2}{br\+\_\+ec\+\_\+c25519\+\_\+m64\+\_\+get()}} to dynamically obtain a pointer to that implementation. Due to the specificities of the curve definition, the following applies\+:
+
+
+\begin{DoxyItemize}
+\item {\ttfamily muladd()} is not implemented (the function returns 0 systematically).
+\item {\ttfamily order()} returns 2$^\wedge$255-\/1, since the point multiplication algorithm accepts any 32-\/bit integer as input (it clears the top bit and low three bits systematically). 
+\end{DoxyItemize}\mbox{\Hypertarget{bearssl__ec_8h_a75382b7ed2f5d001ff82d0eea34443ad}\label{bearssl__ec_8h_a75382b7ed2f5d001ff82d0eea34443ad}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+p256\+\_\+m15@{br\+\_\+ec\+\_\+p256\+\_\+m15}}
+\index{br\+\_\+ec\+\_\+p256\+\_\+m15@{br\+\_\+ec\+\_\+p256\+\_\+m15}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+p256\+\_\+m15}{br\_ec\_p256\_m15}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+p256\+\_\+m15}
+
+
+
+EC implementation \char`\"{}m15\char`\"{} for P-\/256. 
+
+This implementation uses specialised code for curve secp256r1 (also known as N\+I\+ST P-\/256), with optional Karatsuba decomposition, and fast modular reduction thanks to the field modulus special format. Only 32-\/bit multiplications are used (with 32-\/bit results, not 64-\/bit). \mbox{\Hypertarget{bearssl__ec_8h_a5f92eceb81689da7db99bf47b176e468}\label{bearssl__ec_8h_a5f92eceb81689da7db99bf47b176e468}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+p256\+\_\+m31@{br\+\_\+ec\+\_\+p256\+\_\+m31}}
+\index{br\+\_\+ec\+\_\+p256\+\_\+m31@{br\+\_\+ec\+\_\+p256\+\_\+m31}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+p256\+\_\+m31}{br\_ec\_p256\_m31}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+p256\+\_\+m31}
+
+
+
+EC implementation \char`\"{}m31\char`\"{} for P-\/256. 
+
+This implementation uses specialised code for curve secp256r1 (also known as N\+I\+ST P-\/256), relying on multiplications of 31-\/bit values (M\+U\+L31). \mbox{\Hypertarget{bearssl__ec_8h_a7947c958ebc5923f0d87768cc23e9c11}\label{bearssl__ec_8h_a7947c958ebc5923f0d87768cc23e9c11}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+p256\+\_\+m62@{br\+\_\+ec\+\_\+p256\+\_\+m62}}
+\index{br\+\_\+ec\+\_\+p256\+\_\+m62@{br\+\_\+ec\+\_\+p256\+\_\+m62}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+p256\+\_\+m62}{br\_ec\_p256\_m62}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+p256\+\_\+m62}
+
+
+
+EC implementation \char`\"{}m62\char`\"{} (specialised code) for P-\/256. 
+
+This implementation uses custom code relying on multiplication of integers up to 64 bits, with a 128-\/bit result. This implementation is defined only on platforms that offer the 64x64-\/$>$128 multiplication support; use {\ttfamily \hyperlink{bearssl__ec_8h_a72c2f5c8bda538b46e7bcf7e0c23cee2}{br\+\_\+ec\+\_\+p256\+\_\+m62\+\_\+get()}} to dynamically obtain a pointer to that implementation. \mbox{\Hypertarget{bearssl__ec_8h_a9ef9cb86c46b4988d12353ef667638a8}\label{bearssl__ec_8h_a9ef9cb86c46b4988d12353ef667638a8}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+p256\+\_\+m64@{br\+\_\+ec\+\_\+p256\+\_\+m64}}
+\index{br\+\_\+ec\+\_\+p256\+\_\+m64@{br\+\_\+ec\+\_\+p256\+\_\+m64}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+p256\+\_\+m64}{br\_ec\_p256\_m64}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+p256\+\_\+m64}
+
+
+
+EC implementation \char`\"{}m64\char`\"{} (specialised code) for P-\/256. 
+
+This implementation uses custom code relying on multiplication of integers up to 64 bits, with a 128-\/bit result. This implementation is defined only on platforms that offer the 64x64-\/$>$128 multiplication support; use {\ttfamily \hyperlink{bearssl__ec_8h_a51f4066e0c51f4f44b489ef211056125}{br\+\_\+ec\+\_\+p256\+\_\+m64\+\_\+get()}} to dynamically obtain a pointer to that implementation. \mbox{\Hypertarget{bearssl__ec_8h_abe3ec1fc90bbd9110dd8926c3de92d87}\label{bearssl__ec_8h_abe3ec1fc90bbd9110dd8926c3de92d87}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+prime\+\_\+i15@{br\+\_\+ec\+\_\+prime\+\_\+i15}}
+\index{br\+\_\+ec\+\_\+prime\+\_\+i15@{br\+\_\+ec\+\_\+prime\+\_\+i15}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+prime\+\_\+i15}{br\_ec\_prime\_i15}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+prime\+\_\+i15}
+
+
+
+EC implementation \char`\"{}i15\char`\"{}. 
+
+This implementation internally uses generic code for modular integers, with a representation as sequences of 15-\/bit words. It supports secp256r1, secp384r1 and secp521r1 (aka N\+I\+ST curves P-\/256, P-\/384 and P-\/521). \mbox{\Hypertarget{bearssl__ec_8h_a0a94be2772bc96d8b9c09dec8fce9cff}\label{bearssl__ec_8h_a0a94be2772bc96d8b9c09dec8fce9cff}} 
+\index{bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}!br\+\_\+ec\+\_\+prime\+\_\+i31@{br\+\_\+ec\+\_\+prime\+\_\+i31}}
+\index{br\+\_\+ec\+\_\+prime\+\_\+i31@{br\+\_\+ec\+\_\+prime\+\_\+i31}!bearssl\+\_\+ec.\+h@{bearssl\+\_\+ec.\+h}}
+\subsubsection{\texorpdfstring{br\+\_\+ec\+\_\+prime\+\_\+i31}{br\_ec\_prime\_i31}}
+{\footnotesize\ttfamily const \hyperlink{structbr__ec__impl}{br\+\_\+ec\+\_\+impl} br\+\_\+ec\+\_\+prime\+\_\+i31}
+
+
+
+EC implementation \char`\"{}i31\char`\"{}. 
+
+This implementation internally uses generic code for modular integers, with a representation as sequences of 31-\/bit words. It supports secp256r1, secp384r1 and secp521r1 (aka N\+I\+ST curves P-\/256, P-\/384 and P-\/521). 

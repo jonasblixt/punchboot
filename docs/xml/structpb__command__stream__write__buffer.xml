@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__stream__write__buffer" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_stream_write_buffer</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__stream__write__buffer_1acb91696c62fe1c32809a8f6480098f09" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_command_stream_write_buffer::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Bytes to transfer from buffer to partition </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="218" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__stream__write__buffer_1ae9e39d7400d9e4115bac8dac48c6e8ad" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t pb_command_stream_write_buffer::offset</definition>
+        <argsstring></argsstring>
+        <name>offset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Offset in bytes into the partition </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="219" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="219" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__stream__write__buffer_1a6dd25bf25a7d43a4caa4e19027fb9592" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_stream_write_buffer::buffer_id</definition>
+        <argsstring></argsstring>
+        <name>buffer_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Source buffer id </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="220" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="220" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__stream__write__buffer_1abbbd45ad43e4731565c0cb6d8e5eeed7" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_stream_write_buffer::rz[19]</definition>
+        <argsstring>[19]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="221" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="221" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Write data from an internal buffer to a partition </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="217" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="216" bodyend="222"/>
+    <listofallmembers>
+      <member refid="structpb__command__stream__write__buffer_1a6dd25bf25a7d43a4caa4e19027fb9592" prot="public" virt="non-virtual"><scope>pb_command_stream_write_buffer</scope><name>buffer_id</name></member>
+      <member refid="structpb__command__stream__write__buffer_1ae9e39d7400d9e4115bac8dac48c6e8ad" prot="public" virt="non-virtual"><scope>pb_command_stream_write_buffer</scope><name>offset</name></member>
+      <member refid="structpb__command__stream__write__buffer_1abbbd45ad43e4731565c0cb6d8e5eeed7" prot="public" virt="non-virtual"><scope>pb_command_stream_write_buffer</scope><name>rz</name></member>
+      <member refid="structpb__command__stream__write__buffer_1acb91696c62fe1c32809a8f6480098f09" prot="public" virt="non-virtual"><scope>pb_command_stream_write_buffer</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

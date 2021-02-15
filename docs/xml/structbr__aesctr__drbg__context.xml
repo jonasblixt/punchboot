@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__aesctr__drbg__context" kind="struct" language="C++" prot="public">
+    <compoundname>br_aesctr_drbg_context</compoundname>
+    <includes refid="bearssl__rand_8h" local="no">bearssl_rand.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__aesctr__drbg__context_1a226fd8f8f1eb58a04734402668aa3a74" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__rand_8h_1a249aef3beeba050eea56048e6a479fba" kindref="member">br_prng_class</ref> *</type>
+        <definition>const br_prng_class* br_aesctr_drbg_context::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to the vtable. </para>        </briefdescription>
+        <detaileddescription>
+<para>This field is set with the initialisation method/function. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="332" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="332" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aesctr__drbg__context_1ae5ecd086e30ea3fecf0d1b6da4427cd6" prot="public" static="no" mutable="no">
+        <type><ref refid="unionbr__aes__gen__ctr__keys" kindref="compound">br_aes_gen_ctr_keys</ref></type>
+        <definition>br_aes_gen_ctr_keys br_aesctr_drbg_context::sk</definition>
+        <argsstring></argsstring>
+        <name>sk</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="334" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="334" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__aesctr__drbg__context_1a2708a8657993221e6b54ef0b939a2287" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_aesctr_drbg_context::cc</definition>
+        <argsstring></argsstring>
+        <name>cc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="335" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="335" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Context for AESCTR_DRBG. </para>    </briefdescription>
+    <detaileddescription>
+<para>The context contents are opaque, except the first field, which supports OOP. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="138">
+        <label>br_prng_class_</label>
+        <link refid="structbr__prng__class__"/>
+      </node>
+      <node id="144">
+        <label>br_aes_small_ctr_keys</label>
+        <link refid="structbr__aes__small__ctr__keys"/>
+        <childnode refid="141" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="146">
+        <label>br_aes_ct64_ctr_keys</label>
+        <link refid="structbr__aes__ct64__ctr__keys"/>
+        <childnode refid="141" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="140">
+        <label>br_aes_ct_ctr_keys</label>
+        <link refid="structbr__aes__ct__ctr__keys"/>
+        <childnode refid="141" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="145">
+        <label>br_aes_big_ctr_keys</label>
+        <link refid="structbr__aes__big__ctr__keys"/>
+        <childnode refid="141" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="141">
+        <label>br_block_ctr_class_</label>
+        <link refid="structbr__block__ctr__class__"/>
+      </node>
+      <node id="142">
+        <label>br_aes_pwr8_ctr_keys</label>
+        <link refid="structbr__aes__pwr8__ctr__keys"/>
+        <childnode refid="141" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="137">
+        <label>br_aesctr_drbg_context</label>
+        <link refid="structbr__aesctr__drbg__context"/>
+        <childnode refid="138" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+        <childnode refid="139" relation="usage">
+          <edgelabel>sk</edgelabel>
+        </childnode>
+      </node>
+      <node id="143">
+        <label>br_aes_x86ni_ctr_keys</label>
+        <link refid="structbr__aes__x86ni__ctr__keys"/>
+        <childnode refid="141" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="139">
+        <label>br_aes_gen_ctr_keys</label>
+        <link refid="unionbr__aes__gen__ctr__keys"/>
+        <childnode refid="140" relation="usage">
+          <edgelabel>c_ct</edgelabel>
+        </childnode>
+        <childnode refid="142" relation="usage">
+          <edgelabel>c_pwr8</edgelabel>
+        </childnode>
+        <childnode refid="143" relation="usage">
+          <edgelabel>c_x86ni</edgelabel>
+        </childnode>
+        <childnode refid="144" relation="usage">
+          <edgelabel>c_small</edgelabel>
+        </childnode>
+        <childnode refid="145" relation="usage">
+          <edgelabel>c_big</edgelabel>
+        </childnode>
+        <childnode refid="146" relation="usage">
+          <edgelabel>c_ct64</edgelabel>
+        </childnode>
+        <childnode refid="141" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_rand.h" line="326" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="326" bodyend="337"/>
+    <listofallmembers>
+      <member refid="structbr__aesctr__drbg__context_1a2708a8657993221e6b54ef0b939a2287" prot="public" virt="non-virtual"><scope>br_aesctr_drbg_context</scope><name>cc</name></member>
+      <member refid="structbr__aesctr__drbg__context_1ae5ecd086e30ea3fecf0d1b6da4427cd6" prot="public" virt="non-virtual"><scope>br_aesctr_drbg_context</scope><name>sk</name></member>
+      <member refid="structbr__aesctr__drbg__context_1a226fd8f8f1eb58a04734402668aa3a74" prot="public" virt="non-virtual"><scope>br_aesctr_drbg_context</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

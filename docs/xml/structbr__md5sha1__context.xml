@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__md5sha1__context" kind="struct" language="C++" prot="public">
+    <compoundname>br_md5sha1_context</compoundname>
+    <includes refid="bearssl__hash_8h" local="no">bearssl_hash.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__md5sha1__context_1a09d819dd750941a1e29fc0f36a5f2d68" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+        <definition>const br_hash_class* br_md5sha1_context::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to vtable for this context. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="999" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="999" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__md5sha1__context_1a82aabfae452d2fad39629cc767e0f2b6" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_md5sha1_context::buf[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>buf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1001" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1001" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__md5sha1__context_1a35304751176ec6b87cc20a8849a735fa" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t br_md5sha1_context::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1002" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1002" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__md5sha1__context_1a8ce87fb0ac9631a315580ad7e1770634" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_md5sha1_context::val_md5[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>val_md5</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1003" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1003" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__md5sha1__context_1a8be38f3582f7159952267b7063056984" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t br_md5sha1_context::val_sha1[5]</definition>
+        <argsstring>[5]</argsstring>
+        <name>val_sha1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_hash.h" line="1004" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="1004" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>MD5+SHA-1 context. </para>    </briefdescription>
+    <detaileddescription>
+<para>First field is a pointer to the vtable; it is set by the initialisation function. Other fields are not supposed to be accessed by user code. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="206">
+        <label>br_hash_class_</label>
+        <link refid="structbr__hash__class__"/>
+      </node>
+      <node id="205">
+        <label>br_md5sha1_context</label>
+        <link refid="structbr__md5sha1__context"/>
+        <childnode refid="206" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_hash.h" line="995" column="1" bodyfile="/docs/lib/bearssl/bearssl_hash.h" bodystart="995" bodyend="1006"/>
+    <listofallmembers>
+      <member refid="structbr__md5sha1__context_1a82aabfae452d2fad39629cc767e0f2b6" prot="public" virt="non-virtual"><scope>br_md5sha1_context</scope><name>buf</name></member>
+      <member refid="structbr__md5sha1__context_1a35304751176ec6b87cc20a8849a735fa" prot="public" virt="non-virtual"><scope>br_md5sha1_context</scope><name>count</name></member>
+      <member refid="structbr__md5sha1__context_1a8ce87fb0ac9631a315580ad7e1770634" prot="public" virt="non-virtual"><scope>br_md5sha1_context</scope><name>val_md5</name></member>
+      <member refid="structbr__md5sha1__context_1a8be38f3582f7159952267b7063056984" prot="public" virt="non-virtual"><scope>br_md5sha1_context</scope><name>val_sha1</name></member>
+      <member refid="structbr__md5sha1__context_1a09d819dd750941a1e29fc0f36a5f2d68" prot="public" virt="non-virtual"><scope>br_md5sha1_context</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

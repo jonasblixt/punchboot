@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__read__bpak" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_read_bpak</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__read__bpak_1a864071f41f9639da6b9bdd0634664382" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_read_bpak::uuid[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>uuid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Partition UUID </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="283" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="283" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__read__bpak_1aead50c13a66431b183a78ba2af349c10" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_read_bpak::rz[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="284" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="284" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Read BPAK header command</para><para>If the last 4kByte of the partition contains a valid bpak header the header is sent to the host using this command. </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="282" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="281" bodyend="285"/>
+    <listofallmembers>
+      <member refid="structpb__command__read__bpak_1aead50c13a66431b183a78ba2af349c10" prot="public" virt="non-virtual"><scope>pb_command_read_bpak</scope><name>rz</name></member>
+      <member refid="structpb__command__read__bpak_1a864071f41f9639da6b9bdd0634664382" prot="public" virt="non-virtual"><scope>pb_command_read_bpak</scope><name>uuid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

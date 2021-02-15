@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="dir_6a4f89362060f705faa55beb860a8a5c" kind="dir">
+    <compoundname>/docs/include/pb/libc/aarch64</compoundname>
+    <innerfile refid="aarch64_2endian___8h">endian_.h</innerfile>
+    <innerfile refid="aarch64_2limits___8h">limits_.h</innerfile>
+    <innerfile refid="aarch64_2stddef___8h">stddef_.h</innerfile>
+    <innerfile refid="aarch64_2stdint___8h">stdint_.h</innerfile>
+    <innerfile refid="aarch64_2stdio___8h">stdio_.h</innerfile>
+    <innerfile refid="aarch64_2stdlib___8h">stdlib_.h</innerfile>
+    <innerfile refid="aarch64_2string___8h">string_.h</innerfile>
+    <innerfile refid="aarch64_2time___8h">time_.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/libc/aarch64/"/>
+  </compounddef>
+</doxygen>

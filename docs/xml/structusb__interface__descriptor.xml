@@ -1,0 +1,141 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structusb__interface__descriptor" kind="struct" language="C++" prot="public">
+    <compoundname>usb_interface_descriptor</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structusb__interface__descriptor_1a7959ad865fb5527dba879ded533f5976" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::bLength</definition>
+        <argsstring></argsstring>
+        <name>bLength</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="101" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__interface__descriptor_1a757761276c9053ed877cee89cba167ea" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::bDescriptorType</definition>
+        <argsstring></argsstring>
+        <name>bDescriptorType</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="102" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__interface__descriptor_1aea613784e25f453d059635a8d292a249" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::bInterfaceNumber</definition>
+        <argsstring></argsstring>
+        <name>bInterfaceNumber</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="103" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__interface__descriptor_1aacc6f1a4e77883f97ffb0453e41c5b10" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::bAlternateSetting</definition>
+        <argsstring></argsstring>
+        <name>bAlternateSetting</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="104" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__interface__descriptor_1a1fa779eda460fd7f670f7e1adeceed94" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::bNumEndpoints</definition>
+        <argsstring></argsstring>
+        <name>bNumEndpoints</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="105" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__interface__descriptor_1acccd957d6f023f3d4701abd491c45cf6" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::bInterfaceClass</definition>
+        <argsstring></argsstring>
+        <name>bInterfaceClass</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="106" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__interface__descriptor_1ac807fb07b6b89886836ad5c1253dae82" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::bInterfaceSubClass</definition>
+        <argsstring></argsstring>
+        <name>bInterfaceSubClass</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="107" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__interface__descriptor_1a177ebd30941b905658e1f89654d320c2" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::bInterfaceProtocol</definition>
+        <argsstring></argsstring>
+        <name>bInterfaceProtocol</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="108" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__interface__descriptor_1a63008abbea76cc397836554747386055" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_interface_descriptor::iInterface</definition>
+        <argsstring></argsstring>
+        <name>iInterface</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="109" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/usb.h" line="100" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="99" bodyend="110"/>
+    <listofallmembers>
+      <member refid="structusb__interface__descriptor_1aacc6f1a4e77883f97ffb0453e41c5b10" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>bAlternateSetting</name></member>
+      <member refid="structusb__interface__descriptor_1a757761276c9053ed877cee89cba167ea" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>bDescriptorType</name></member>
+      <member refid="structusb__interface__descriptor_1acccd957d6f023f3d4701abd491c45cf6" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>bInterfaceClass</name></member>
+      <member refid="structusb__interface__descriptor_1aea613784e25f453d059635a8d292a249" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>bInterfaceNumber</name></member>
+      <member refid="structusb__interface__descriptor_1a177ebd30941b905658e1f89654d320c2" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>bInterfaceProtocol</name></member>
+      <member refid="structusb__interface__descriptor_1ac807fb07b6b89886836ad5c1253dae82" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>bInterfaceSubClass</name></member>
+      <member refid="structusb__interface__descriptor_1a7959ad865fb5527dba879ded533f5976" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>bLength</name></member>
+      <member refid="structusb__interface__descriptor_1a1fa779eda460fd7f670f7e1adeceed94" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>bNumEndpoints</name></member>
+      <member refid="structusb__interface__descriptor_1a63008abbea76cc397836554747386055" prot="public" virt="non-virtual"><scope>usb_interface_descriptor</scope><name>iInterface</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

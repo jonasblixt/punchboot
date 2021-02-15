@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="dir_97bab7b1eb6c28e44a5b1a460d174904" kind="dir">
+    <compoundname>/docs/lib/fdt/include</compoundname>
+    <innerfile refid="fdt_8h">fdt.h</innerfile>
+    <innerfile refid="libfdt_8h">libfdt.h</innerfile>
+    <innerfile refid="libfdt__env_8h">libfdt_env.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/fdt/include/"/>
+  </compounddef>
+</doxygen>

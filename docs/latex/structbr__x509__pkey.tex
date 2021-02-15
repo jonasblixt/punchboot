@@ -1,0 +1,36 @@
+\hypertarget{structbr__x509__pkey}{}\section{br\+\_\+x509\+\_\+pkey Struct Reference}
+\label{structbr__x509__pkey}\index{br\+\_\+x509\+\_\+pkey@{br\+\_\+x509\+\_\+pkey}}
+
+
+Aggregate structure for public keys.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+x509.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structbr__x509__pkey_ae71f837af474a3a78e41a2be9c54001f}\label{structbr__x509__pkey_ae71f837af474a3a78e41a2be9c54001f}} 
+unsigned char \hyperlink{structbr__x509__pkey_ae71f837af474a3a78e41a2be9c54001f}{key\+\_\+type}
+\begin{DoxyCompactList}\small\item\em Key type\+: {\ttfamily B\+R\+\_\+\+K\+E\+Y\+T\+Y\+P\+E\+\_\+\+R\+SA} or {\ttfamily B\+R\+\_\+\+K\+E\+Y\+T\+Y\+P\+E\+\_\+\+EC} \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__x509__pkey_a7bfc548716e7850cbefe5810ddc9441e}\label{structbr__x509__pkey_a7bfc548716e7850cbefe5810ddc9441e}} 
+\begin{tabbing}
+xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=xx\=\kill
+union \{\\
+\>\hyperlink{structbr__rsa__public__key}{br\_rsa\_public\_key} \hyperlink{structbr__x509__pkey_a7f7c843bd143d99567e9975cfddb4aba}{rsa}\\
+\>\>{\em RSA public key. }\\
+\>\hyperlink{structbr__ec__public__key}{br\_ec\_public\_key} \hyperlink{structbr__x509__pkey_a406633613711a0ccd38729a11c84e2a8}{ec}\\
+\>\>{\em EC public key. }\\
+\} \hyperlink{structbr__x509__pkey_a7bfc548716e7850cbefe5810ddc9441e}{key}\\
+
+\end{tabbing}\begin{DoxyCompactList}\small\item\em Actual public key. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Aggregate structure for public keys. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__x509_8h}{bearssl\+\_\+x509.\+h}\end{DoxyCompactItemize}

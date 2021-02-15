@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__verify__part" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_verify_part</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__verify__part_1a6ce15232d298fe6def0fee469d767f08" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_verify_part::uuid[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>uuid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>UUID of partition to verify </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="258" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="258" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__verify__part_1a7e6ae274bb8d87efdecfb3c3ad26c041" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_verify_part::sha256[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>sha256</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Expected sha256 hash </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="259" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="259" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__verify__part_1ac8ea38bcb00b9f1ff506140d69d2bdf6" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_command_verify_part::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Size in bytes </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="260" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="260" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__verify__part_1ab86a640981402a2dcf3e90130d4da631" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_verify_part::bpak</definition>
+        <argsstring></argsstring>
+        <name>bpak</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Parse bpak header </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="261" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="261" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__verify__part_1a21d981c6e7acedfa22e5c1390c4f64b1" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_verify_part::rz[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="262" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="262" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Verify partition</para><para>The device computes a sha256 hash and compares with the input hash </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="257" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="256" bodyend="263"/>
+    <listofallmembers>
+      <member refid="structpb__command__verify__part_1ab86a640981402a2dcf3e90130d4da631" prot="public" virt="non-virtual"><scope>pb_command_verify_part</scope><name>bpak</name></member>
+      <member refid="structpb__command__verify__part_1a21d981c6e7acedfa22e5c1390c4f64b1" prot="public" virt="non-virtual"><scope>pb_command_verify_part</scope><name>rz</name></member>
+      <member refid="structpb__command__verify__part_1a7e6ae274bb8d87efdecfb3c3ad26c041" prot="public" virt="non-virtual"><scope>pb_command_verify_part</scope><name>sha256</name></member>
+      <member refid="structpb__command__verify__part_1ac8ea38bcb00b9f1ff506140d69d2bdf6" prot="public" virt="non-virtual"><scope>pb_command_verify_part</scope><name>size</name></member>
+      <member refid="structpb__command__verify__part_1a6ce15232d298fe6def0fee469d767f08" prot="public" virt="non-virtual"><scope>pb_command_verify_part</scope><name>uuid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

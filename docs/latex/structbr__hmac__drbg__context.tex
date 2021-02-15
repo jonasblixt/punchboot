@@ -1,0 +1,48 @@
+\hypertarget{structbr__hmac__drbg__context}{}\section{br\+\_\+hmac\+\_\+drbg\+\_\+context Struct Reference}
+\label{structbr__hmac__drbg__context}\index{br\+\_\+hmac\+\_\+drbg\+\_\+context@{br\+\_\+hmac\+\_\+drbg\+\_\+context}}
+
+
+Context for H\+M\+A\+C\+\_\+\+D\+R\+BG.  
+
+
+
+
+{\ttfamily \#include $<$bearssl\+\_\+rand.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class} $\ast$ \hyperlink{structbr__hmac__drbg__context_a273d6a6f75ec5da343f43ca800ad9f52}{vtable}
+\begin{DoxyCompactList}\small\item\em Pointer to the vtable. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structbr__hmac__drbg__context_a6d8fa50af6777413c2e1d9b4bd618050}\label{structbr__hmac__drbg__context_a6d8fa50af6777413c2e1d9b4bd618050}} 
+unsigned char {\bfseries K} \mbox{[}64\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__hmac__drbg__context_a5a3f78c9bf0724b92ef5efd017e1bcc4}\label{structbr__hmac__drbg__context_a5a3f78c9bf0724b92ef5efd017e1bcc4}} 
+unsigned char {\bfseries V} \mbox{[}64\mbox{]}
+\item 
+\mbox{\Hypertarget{structbr__hmac__drbg__context_a787f46e281b985e688ce74862abc7e40}\label{structbr__hmac__drbg__context_a787f46e281b985e688ce74862abc7e40}} 
+const \hyperlink{bearssl__hash_8h_ae38c1b9d539537cc16fc84388b922d86}{br\+\_\+hash\+\_\+class} $\ast$ {\bfseries digest\+\_\+class}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Context for H\+M\+A\+C\+\_\+\+D\+R\+BG. 
+
+The context contents are opaque, except the first field, which supports O\+OP. 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structbr__hmac__drbg__context_a273d6a6f75ec5da343f43ca800ad9f52}\label{structbr__hmac__drbg__context_a273d6a6f75ec5da343f43ca800ad9f52}} 
+\index{br\+\_\+hmac\+\_\+drbg\+\_\+context@{br\+\_\+hmac\+\_\+drbg\+\_\+context}!vtable@{vtable}}
+\index{vtable@{vtable}!br\+\_\+hmac\+\_\+drbg\+\_\+context@{br\+\_\+hmac\+\_\+drbg\+\_\+context}}
+\subsubsection{\texorpdfstring{vtable}{vtable}}
+{\footnotesize\ttfamily const \hyperlink{bearssl__rand_8h_a249aef3beeba050eea56048e6a479fba}{br\+\_\+prng\+\_\+class}$\ast$ br\+\_\+hmac\+\_\+drbg\+\_\+context\+::vtable}
+
+
+
+Pointer to the vtable. 
+
+This field is set with the initialisation method/function. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/lib/bearssl/\hyperlink{bearssl__rand_8h}{bearssl\+\_\+rand.\+h}\end{DoxyCompactItemize}

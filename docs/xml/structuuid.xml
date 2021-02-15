@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structuuid" kind="struct" language="C++" prot="public">
+    <compoundname>uuid</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structuuid_1aeabb39e916355b8a0cdd8912e8c27317" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t uuid::time_low</definition>
+        <argsstring></argsstring>
+        <name>time_low</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuidP.h" line="46" column="1" bodyfile="/docs/lib/uuid/uuidP.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structuuid_1a0b92f5d247288e1db17317232ae29694" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t uuid::time_mid</definition>
+        <argsstring></argsstring>
+        <name>time_mid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuidP.h" line="47" column="1" bodyfile="/docs/lib/uuid/uuidP.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structuuid_1ac89486073118cbca117c9204aeecb9d4" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t uuid::time_hi_and_version</definition>
+        <argsstring></argsstring>
+        <name>time_hi_and_version</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuidP.h" line="48" column="1" bodyfile="/docs/lib/uuid/uuidP.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structuuid_1a32dab4fbd7eae652430523ef77d477ff" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t uuid::clock_seq</definition>
+        <argsstring></argsstring>
+        <name>clock_seq</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuidP.h" line="49" column="1" bodyfile="/docs/lib/uuid/uuidP.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structuuid_1a2d6a632649ae128bc68dc0a7c154b3ba" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t uuid::node[6]</definition>
+        <argsstring>[6]</argsstring>
+        <name>node</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/uuid/uuidP.h" line="50" column="1" bodyfile="/docs/lib/uuid/uuidP.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/uuid/uuidP.h" line="45" column="1" bodyfile="/docs/lib/uuid/uuidP.h" bodystart="45" bodyend="51"/>
+    <listofallmembers>
+      <member refid="structuuid_1a32dab4fbd7eae652430523ef77d477ff" prot="public" virt="non-virtual"><scope>uuid</scope><name>clock_seq</name></member>
+      <member refid="structuuid_1a2d6a632649ae128bc68dc0a7c154b3ba" prot="public" virt="non-virtual"><scope>uuid</scope><name>node</name></member>
+      <member refid="structuuid_1ac89486073118cbca117c9204aeecb9d4" prot="public" virt="non-virtual"><scope>uuid</scope><name>time_hi_and_version</name></member>
+      <member refid="structuuid_1aeabb39e916355b8a0cdd8912e8c27317" prot="public" virt="non-virtual"><scope>uuid</scope><name>time_low</name></member>
+      <member refid="structuuid_1a0b92f5d247288e1db17317232ae29694" prot="public" virt="non-virtual"><scope>uuid</scope><name>time_mid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

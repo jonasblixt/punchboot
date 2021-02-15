@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="dir_a39a09d9ffda75ae29cbb0cd369cc862" kind="dir">
+    <compoundname>/docs/include/pb</compoundname>
+    <innerdir refid="dir_70d62d51c94ffc1d0a22acc2c2b451e4">/docs/include/pb/libc</innerdir>
+    <innerdir refid="dir_a10e1f3246e6615e1e4b10cb2359860f">/docs/include/pb/xlat_tables</innerdir>
+    <innerfile refid="arch_8h">arch.h</innerfile>
+    <innerfile refid="asm_8h">asm.h</innerfile>
+    <innerfile refid="asn1_8h">asn1.h</innerfile>
+    <innerfile refid="assert_8h">assert.h</innerfile>
+    <innerfile refid="atf_8h">atf.h</innerfile>
+    <innerfile refid="board_8h">board.h</innerfile>
+    <innerfile refid="boot_8h">boot.h</innerfile>
+    <innerfile refid="command_8h">command.h</innerfile>
+    <innerfile refid="crc_8h">crc.h</innerfile>
+    <innerfile refid="crypto_8h">crypto.h</innerfile>
+    <innerfile refid="device_8h">device.h</innerfile>
+    <innerfile refid="errors_8h">errors.h</innerfile>
+    <innerfile refid="fletcher_8h">fletcher.h</innerfile>
+    <innerfile refid="fuse_8h">fuse.h</innerfile>
+    <innerfile refid="gpt_8h">gpt.h</innerfile>
+    <innerfile refid="image_8h">image.h</innerfile>
+    <innerfile refid="io_8h">io.h</innerfile>
+    <innerfile refid="pb_2keystore_8h">keystore.h</innerfile>
+    <innerfile refid="pb_8h">pb.h</innerfile>
+    <innerfile refid="plat_8h">plat.h</innerfile>
+    <innerfile refid="storage_8h">storage.h</innerfile>
+    <innerfile refid="timestamp_8h">timestamp.h</innerfile>
+    <innerfile refid="usb_8h">usb.h</innerfile>
+    <innerfile refid="utils_8h">utils.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/"/>
+  </compounddef>
+</doxygen>

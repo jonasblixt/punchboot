@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="dir_a10e1f3246e6615e1e4b10cb2359860f" kind="dir">
+    <compoundname>/docs/include/pb/xlat_tables</compoundname>
+    <innerdir refid="dir_d156206440e8b9eb69c03af6266fc76c">/docs/include/pb/xlat_tables/aarch32</innerdir>
+    <innerdir refid="dir_143d8e4e1d0ef34a364d8247ef9023c4">/docs/include/pb/xlat_tables/aarch64</innerdir>
+    <innerfile refid="xlat__mmu__helpers_8h">xlat_mmu_helpers.h</innerfile>
+    <innerfile refid="xlat__tables_8h">xlat_tables.h</innerfile>
+    <innerfile refid="xlat__tables__arch_8h">xlat_tables_arch.h</innerfile>
+    <innerfile refid="xlat__tables__compat_8h">xlat_tables_compat.h</innerfile>
+    <innerfile refid="xlat__tables__defs_8h">xlat_tables_defs.h</innerfile>
+    <innerfile refid="xlat__tables__v2_8h">xlat_tables_v2.h</innerfile>
+    <innerfile refid="xlat__tables__v2__helpers_8h">xlat_tables_v2_helpers.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/xlat_tables/"/>
+  </compounddef>
+</doxygen>

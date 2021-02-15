@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__hmac__drbg__context" kind="struct" language="C++" prot="public">
+    <compoundname>br_hmac_drbg_context</compoundname>
+    <includes refid="bearssl__rand_8h" local="no">bearssl_rand.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__hmac__drbg__context_1a273d6a6f75ec5da343f43ca800ad9f52" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__rand_8h_1a249aef3beeba050eea56048e6a479fba" kindref="member">br_prng_class</ref> *</type>
+        <definition>const br_prng_class* br_hmac_drbg_context::vtable</definition>
+        <argsstring></argsstring>
+        <name>vtable</name>
+        <briefdescription>
+<para>Pointer to the vtable. </para>        </briefdescription>
+        <detaileddescription>
+<para>This field is set with the initialisation method/function. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="202" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hmac__drbg__context_1a6d8fa50af6777413c2e1d9b4bd618050" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_hmac_drbg_context::K[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>K</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="204" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="204" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hmac__drbg__context_1a5a3f78c9bf0724b92ef5efd017e1bcc4" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char br_hmac_drbg_context::V[64]</definition>
+        <argsstring>[64]</argsstring>
+        <name>V</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="205" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="205" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__hmac__drbg__context_1a787f46e281b985e688ce74862abc7e40" prot="public" static="no" mutable="no">
+        <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+        <definition>const br_hash_class* br_hmac_drbg_context::digest_class</definition>
+        <argsstring></argsstring>
+        <name>digest_class</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_rand.h" line="206" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="206" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Context for HMAC_DRBG. </para>    </briefdescription>
+    <detaileddescription>
+<para>The context contents are opaque, except the first field, which supports OOP. </para>    </detaileddescription>
+    <collaborationgraph>
+      <node id="200">
+        <label>br_prng_class_</label>
+        <link refid="structbr__prng__class__"/>
+      </node>
+      <node id="198">
+        <label>br_hmac_drbg_context</label>
+        <link refid="structbr__hmac__drbg__context"/>
+        <childnode refid="199" relation="usage">
+          <edgelabel>digest_class</edgelabel>
+        </childnode>
+        <childnode refid="200" relation="usage">
+          <edgelabel>vtable</edgelabel>
+        </childnode>
+      </node>
+      <node id="199">
+        <label>br_hash_class_</label>
+        <link refid="structbr__hash__class__"/>
+      </node>
+    </collaborationgraph>
+    <location file="/docs/lib/bearssl/bearssl_rand.h" line="196" column="1" bodyfile="/docs/lib/bearssl/bearssl_rand.h" bodystart="196" bodyend="208"/>
+    <listofallmembers>
+      <member refid="structbr__hmac__drbg__context_1a787f46e281b985e688ce74862abc7e40" prot="public" virt="non-virtual"><scope>br_hmac_drbg_context</scope><name>digest_class</name></member>
+      <member refid="structbr__hmac__drbg__context_1a6d8fa50af6777413c2e1d9b4bd618050" prot="public" virt="non-virtual"><scope>br_hmac_drbg_context</scope><name>K</name></member>
+      <member refid="structbr__hmac__drbg__context_1a5a3f78c9bf0724b92ef5efd017e1bcc4" prot="public" virt="non-virtual"><scope>br_hmac_drbg_context</scope><name>V</name></member>
+      <member refid="structbr__hmac__drbg__context_1a273d6a6f75ec5da343f43ca800ad9f52" prot="public" virt="non-virtual"><scope>br_hmac_drbg_context</scope><name>vtable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structfdt__reserve__entry" kind="struct" language="C++" prot="public">
+    <compoundname>fdt_reserve_entry</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structfdt__reserve__entry_1a1453319ff97e2d7c2ec0762cee56e98e" prot="public" static="no" mutable="no">
+        <type>fdt64_t</type>
+        <definition>fdt64_t fdt_reserve_entry::address</definition>
+        <argsstring></argsstring>
+        <name>address</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="77" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structfdt__reserve__entry_1ace12399f157bc46877fbcddec98da67e" prot="public" static="no" mutable="no">
+        <type>fdt64_t</type>
+        <definition>fdt64_t fdt_reserve_entry::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/fdt/include/fdt.h" line="78" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/fdt/include/fdt.h" line="76" column="1" bodyfile="/docs/lib/fdt/include/fdt.h" bodystart="76" bodyend="79"/>
+    <listofallmembers>
+      <member refid="structfdt__reserve__entry_1a1453319ff97e2d7c2ec0762cee56e98e" prot="public" virt="non-virtual"><scope>fdt_reserve_entry</scope><name>address</name></member>
+      <member refid="structfdt__reserve__entry_1ace12399f157bc46877fbcddec98da67e" prot="public" virt="non-virtual"><scope>fdt_reserve_entry</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

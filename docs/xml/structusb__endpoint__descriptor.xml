@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structusb__endpoint__descriptor" kind="struct" language="C++" prot="public">
+    <compoundname>usb_endpoint_descriptor</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structusb__endpoint__descriptor_1aac9ff1940e27153339becfd460c5b796" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_endpoint_descriptor::bLength</definition>
+        <argsstring></argsstring>
+        <name>bLength</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="115" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__endpoint__descriptor_1aa6e24b3aa0c8130a4d39f2133ac5ed12" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_endpoint_descriptor::bDescriptorType</definition>
+        <argsstring></argsstring>
+        <name>bDescriptorType</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="116" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__endpoint__descriptor_1a5007051761d339b5bb27268a016947a5" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_endpoint_descriptor::bEndpointAddress</definition>
+        <argsstring></argsstring>
+        <name>bEndpointAddress</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="117" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__endpoint__descriptor_1a938a8fb34155743b6a68b64a79235538" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_endpoint_descriptor::bmAttributes</definition>
+        <argsstring></argsstring>
+        <name>bmAttributes</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="119" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__endpoint__descriptor_1a0b665a4fbe5daf9ede7ae18d75e1c744" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t usb_endpoint_descriptor::wMaxPacketSize</definition>
+        <argsstring></argsstring>
+        <name>wMaxPacketSize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="120" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structusb__endpoint__descriptor_1a8fbc4ec9a4230f70729db036cfc07c44" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t usb_endpoint_descriptor::bInterval</definition>
+        <argsstring></argsstring>
+        <name>bInterval</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/usb.h" line="121" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/include/pb/usb.h" line="114" column="1" bodyfile="/docs/include/pb/usb.h" bodystart="113" bodyend="122"/>
+    <listofallmembers>
+      <member refid="structusb__endpoint__descriptor_1aa6e24b3aa0c8130a4d39f2133ac5ed12" prot="public" virt="non-virtual"><scope>usb_endpoint_descriptor</scope><name>bDescriptorType</name></member>
+      <member refid="structusb__endpoint__descriptor_1a5007051761d339b5bb27268a016947a5" prot="public" virt="non-virtual"><scope>usb_endpoint_descriptor</scope><name>bEndpointAddress</name></member>
+      <member refid="structusb__endpoint__descriptor_1a8fbc4ec9a4230f70729db036cfc07c44" prot="public" virt="non-virtual"><scope>usb_endpoint_descriptor</scope><name>bInterval</name></member>
+      <member refid="structusb__endpoint__descriptor_1aac9ff1940e27153339becfd460c5b796" prot="public" virt="non-virtual"><scope>usb_endpoint_descriptor</scope><name>bLength</name></member>
+      <member refid="structusb__endpoint__descriptor_1a938a8fb34155743b6a68b64a79235538" prot="public" virt="non-virtual"><scope>usb_endpoint_descriptor</scope><name>bmAttributes</name></member>
+      <member refid="structusb__endpoint__descriptor_1a0b665a4fbe5daf9ede7ae18d75e1c744" prot="public" virt="non-virtual"><scope>usb_endpoint_descriptor</scope><name>wMaxPacketSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

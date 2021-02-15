@@ -1,0 +1,62 @@
+\hypertarget{structpb__command__verify__part}{}\section{pb\+\_\+command\+\_\+verify\+\_\+part Struct Reference}
+\label{structpb__command__verify__part}\index{pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}}
+
+
+{\ttfamily \#include $<$wire.\+h$>$}
+
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command__verify__part_a6ce15232d298fe6def0fee469d767f08}{uuid} \mbox{[}16\mbox{]}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command__verify__part_a7e6ae274bb8d87efdecfb3c3ad26c041}{sha256} \mbox{[}32\mbox{]}
+\item 
+uint32\+\_\+t \hyperlink{structpb__command__verify__part_ac8ea38bcb00b9f1ff506140d69d2bdf6}{size}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command__verify__part_ab86a640981402a2dcf3e90130d4da631}{bpak}
+\item 
+uint8\+\_\+t \hyperlink{structpb__command__verify__part_a21d981c6e7acedfa22e5c1390c4f64b1}{rz} \mbox{[}2\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Verify partition
+
+The device computes a sha256 hash and compares with the input hash 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structpb__command__verify__part_ab86a640981402a2dcf3e90130d4da631}\label{structpb__command__verify__part_ab86a640981402a2dcf3e90130d4da631}} 
+\index{pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}!bpak@{bpak}}
+\index{bpak@{bpak}!pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}}
+\subsubsection{\texorpdfstring{bpak}{bpak}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+\_\+verify\+\_\+part\+::bpak}
+
+Parse bpak header \mbox{\Hypertarget{structpb__command__verify__part_a21d981c6e7acedfa22e5c1390c4f64b1}\label{structpb__command__verify__part_a21d981c6e7acedfa22e5c1390c4f64b1}} 
+\index{pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}!rz@{rz}}
+\index{rz@{rz}!pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}}
+\subsubsection{\texorpdfstring{rz}{rz}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+\_\+verify\+\_\+part\+::rz\mbox{[}2\mbox{]}}
+
+Reserved \mbox{\Hypertarget{structpb__command__verify__part_a7e6ae274bb8d87efdecfb3c3ad26c041}\label{structpb__command__verify__part_a7e6ae274bb8d87efdecfb3c3ad26c041}} 
+\index{pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}!sha256@{sha256}}
+\index{sha256@{sha256}!pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}}
+\subsubsection{\texorpdfstring{sha256}{sha256}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+\_\+verify\+\_\+part\+::sha256\mbox{[}32\mbox{]}}
+
+Expected sha256 hash \mbox{\Hypertarget{structpb__command__verify__part_ac8ea38bcb00b9f1ff506140d69d2bdf6}\label{structpb__command__verify__part_ac8ea38bcb00b9f1ff506140d69d2bdf6}} 
+\index{pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}!size@{size}}
+\index{size@{size}!pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}}
+\subsubsection{\texorpdfstring{size}{size}}
+{\footnotesize\ttfamily uint32\+\_\+t pb\+\_\+command\+\_\+verify\+\_\+part\+::size}
+
+Size in bytes \mbox{\Hypertarget{structpb__command__verify__part_a6ce15232d298fe6def0fee469d767f08}\label{structpb__command__verify__part_a6ce15232d298fe6def0fee469d767f08}} 
+\index{pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}!uuid@{uuid}}
+\index{uuid@{uuid}!pb\+\_\+command\+\_\+verify\+\_\+part@{pb\+\_\+command\+\_\+verify\+\_\+part}}
+\subsubsection{\texorpdfstring{uuid}{uuid}}
+{\footnotesize\ttfamily uint8\+\_\+t pb\+\_\+command\+\_\+verify\+\_\+part\+::uuid\mbox{[}16\mbox{]}}
+
+U\+U\+ID of partition to verify 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/docs/include/pb-\/tools/\hyperlink{wire_8h}{wire.\+h}\end{DoxyCompactItemize}

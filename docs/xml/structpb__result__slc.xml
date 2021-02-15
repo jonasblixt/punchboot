@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__result__slc" kind="struct" language="C++" prot="public">
+    <compoundname>pb_result_slc</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__result__slc_1ab784c0c613afb99d978f8d560ec72fe3" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_slc::slc</definition>
+        <argsstring></argsstring>
+        <name>slc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>SLC state </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="311" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="311" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__slc_1a81d33e682a6b72de829c0751b3278ee0" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_slc::rz[31]</definition>
+        <argsstring>[31]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="312" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="312" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Security Life Cycle (SLC) result </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="310" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="309" bodyend="313"/>
+    <listofallmembers>
+      <member refid="structpb__result__slc_1a81d33e682a6b72de829c0751b3278ee0" prot="public" virt="non-virtual"><scope>pb_result_slc</scope><name>rz</name></member>
+      <member refid="structpb__result__slc_1ab784c0c613afb99d978f8d560ec72fe3" prot="public" virt="non-virtual"><scope>pb_result_slc</scope><name>slc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

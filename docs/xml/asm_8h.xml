@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="asm_8h" kind="file" language="C++">
+    <compoundname>asm.h</compoundname>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="asm_8h_1a130168624aa4ca7dce7840e1c11d0e7f" prot="public" static="no">
+        <name>func</name>
+        <param><defname>__func</defname></param>
+        <initializer>.global __func; .type __func, STT_FUNC; __func:</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/asm.h" line="4" column="9" bodyfile="/docs/include/pb/asm.h" bodystart="4" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_ASM_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_ASM_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>func(__func)<sp/>.global<sp/>__func;<sp/>.type<sp/>__func,<sp/>STT_FUNC;<sp/>__func:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_ASM_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/asm.h"/>
+  </compounddef>
+</doxygen>

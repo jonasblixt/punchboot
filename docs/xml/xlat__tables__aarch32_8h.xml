@@ -1,0 +1,196 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="xlat__tables__aarch32_8h" kind="file" language="C++">
+    <compoundname>xlat_tables_aarch32.h</compoundname>
+    <includes local="no">arch/arch_helpers.h</includes>
+    <includes refid="xlat__tables__defs_8h" local="no">xlat_tables_defs.h</includes>
+    <incdepgraph>
+      <node id="652">
+        <label>/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h</label>
+        <link refid="xlat__tables__aarch32_8h"/>
+        <childnode refid="653" relation="include">
+        </childnode>
+        <childnode refid="654" relation="include">
+        </childnode>
+      </node>
+      <node id="653">
+        <label>arch/arch_helpers.h</label>
+      </node>
+      <node id="658">
+        <label>stdint_.h</label>
+      </node>
+      <node id="656">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="659">
+        <label>string.h</label>
+        <link refid="string_8h_source"/>
+        <childnode refid="660" relation="include">
+        </childnode>
+      </node>
+      <node id="654">
+        <label>xlat_tables_defs.h</label>
+        <link refid="xlat__tables__defs_8h_source"/>
+        <childnode refid="655" relation="include">
+        </childnode>
+      </node>
+      <node id="655">
+        <label>xlat_mmu_helpers.h</label>
+        <link refid="xlat__mmu__helpers_8h_source"/>
+        <childnode refid="656" relation="include">
+        </childnode>
+        <childnode refid="657" relation="include">
+        </childnode>
+        <childnode refid="659" relation="include">
+        </childnode>
+      </node>
+      <node id="657">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="658" relation="include">
+        </childnode>
+      </node>
+      <node id="660">
+        <label>string_.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="xlat__tables__aarch32_8h_1a15868f181721392524b1d063315b2663" prot="public" static="no">
+        <name>MIN_LVL_BLOCK_DESC</name>
+        <initializer>U(1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" line="30" column="9" bodyfile="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__aarch32_8h_1aa04f9588dcc1c4c61aa745bb79ca13d5" prot="public" static="no">
+        <name>XLAT_TABLE_LEVEL_MIN</name>
+        <initializer>U(1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" line="32" column="9" bodyfile="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__aarch32_8h_1a6943e0cbfe09a8f9ebcdc4c57ba0b8e3" prot="public" static="no">
+        <name>MIN_VIRT_ADDR_SPACE_SIZE</name>
+        <initializer>(ULL(1) &lt;&lt; (U(32) - TTBCR_TxSZ_MAX))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" line="45" column="9" bodyfile="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__aarch32_8h_1ad8231cb243d3258163dcff5e24365e2d" prot="public" static="no">
+        <name>MAX_VIRT_ADDR_SPACE_SIZE</name>
+        <initializer>(ULL(1) &lt;&lt; (U(32) - TTBCR_TxSZ_MIN))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" line="46" column="9" bodyfile="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="xlat__tables__aarch32_8h_1ad111f24cc1fe991b15f0e807bd3b8c3b" prot="public" static="no">
+        <name>GET_XLAT_TABLE_LEVEL_BASE</name>
+        <param><defname>_virt_addr_space_sz</defname></param>
+        <initializer>(((_virt_addr_space_sz) &gt; (ULL(1) &lt;&lt; L1_XLAT_ADDRESS_SHIFT)) ?	\
+	 U(1) : U(2))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" line="67" column="9" bodyfile="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2017-2018,<sp/>ARM<sp/>Limited<sp/>and<sp/>Contributors.<sp/>All<sp/>rights<sp/>reserved.</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>SPDX-License-Identifier:<sp/>BSD-3-Clause</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>XLAT_TABLES_AARCH32_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLES_AARCH32_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;arch/arch_helpers.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;xlat_tables_defs.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!defined(PAGE_SIZE)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#error<sp/>&quot;PAGE_SIZE<sp/>is<sp/>not<sp/>defined.&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/>In<sp/>AArch32<sp/>state,<sp/>the<sp/>MMU<sp/>only<sp/>supports<sp/>4KB<sp/>page<sp/>granularity,<sp/>which<sp/>means</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>that<sp/>the<sp/>first<sp/>translation<sp/>table<sp/>level<sp/>is<sp/>either<sp/>1<sp/>or<sp/>2.<sp/>Both<sp/>of<sp/>them<sp/>are</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*<sp/>allowed<sp/>to<sp/>have<sp/>block<sp/>and<sp/>table<sp/>descriptors.<sp/>See<sp/>section<sp/>G4.5.6<sp/>of<sp/>the</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/>ARMv8-A<sp/>Architecture<sp/>Reference<sp/>Manual<sp/>(DDI<sp/>0487A.k)<sp/>for<sp/>more<sp/>information.</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*<sp/>The<sp/>define<sp/>below<sp/>specifies<sp/>the<sp/>first<sp/>table<sp/>level<sp/>that<sp/>allows<sp/>block</highlight></codeline>
+<codeline lineno="24"><highlight class="comment"><sp/>*<sp/>descriptors.</highlight></codeline>
+<codeline lineno="25"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>PAGE_SIZE<sp/>!=<sp/>PAGE_SIZE_4KB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#error<sp/>&quot;Invalid<sp/>granule<sp/>size.<sp/>AArch32<sp/>supports<sp/>4KB<sp/>pages<sp/>only.&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MIN_LVL_BLOCK_DESC<sp/><sp/>U(1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>XLAT_TABLE_LEVEL_MIN<sp/><sp/><sp/><sp/>U(1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="35"><highlight class="comment"><sp/>*<sp/>Define<sp/>the<sp/>architectural<sp/>limits<sp/>of<sp/>the<sp/>virtual<sp/>address<sp/>space<sp/>in<sp/>AArch32</highlight></codeline>
+<codeline lineno="36"><highlight class="comment"><sp/>*<sp/>state.</highlight></codeline>
+<codeline lineno="37"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="38"><highlight class="comment"><sp/>*<sp/>TTBCR.TxSZ<sp/>is<sp/>calculated<sp/>as<sp/>32<sp/>minus<sp/>the<sp/>width<sp/>of<sp/>said<sp/>address<sp/>space.<sp/>The</highlight></codeline>
+<codeline lineno="39"><highlight class="comment"><sp/>*<sp/>value<sp/>of<sp/>TTBCR.TxSZ<sp/>must<sp/>be<sp/>in<sp/>the<sp/>range<sp/>0<sp/>to<sp/>7<sp/>[1],<sp/>which<sp/>means<sp/>that<sp/>the</highlight></codeline>
+<codeline lineno="40"><highlight class="comment"><sp/>*<sp/>virtual<sp/>address<sp/>space<sp/>width<sp/>must<sp/>be<sp/>in<sp/>the<sp/>range<sp/>32<sp/>to<sp/>25<sp/>bits.</highlight></codeline>
+<codeline lineno="41"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="42"><highlight class="comment"><sp/>*<sp/>[1]<sp/>See<sp/>the<sp/>ARMv8-A<sp/>Architecture<sp/>Reference<sp/>Manual<sp/>(DDI<sp/>0487A.j)<sp/>for<sp/>more</highlight></codeline>
+<codeline lineno="43"><highlight class="comment"><sp/>*<sp/>information,<sp/>Section<sp/>G4.6.5</highlight></codeline>
+<codeline lineno="44"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MIN_VIRT_ADDR_SPACE_SIZE<sp/><sp/><sp/><sp/>(ULL(1)<sp/>&lt;&lt;<sp/>(U(32)<sp/>-<sp/>TTBCR_TxSZ_MAX))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MAX_VIRT_ADDR_SPACE_SIZE<sp/><sp/><sp/><sp/>(ULL(1)<sp/>&lt;&lt;<sp/>(U(32)<sp/>-<sp/>TTBCR_TxSZ_MIN))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="49"><highlight class="comment"><sp/>*<sp/>Here<sp/>we<sp/>calculate<sp/>the<sp/>initial<sp/>lookup<sp/>level<sp/>from<sp/>the<sp/>value<sp/>of<sp/>the<sp/>given</highlight></codeline>
+<codeline lineno="50"><highlight class="comment"><sp/>*<sp/>virtual<sp/>address<sp/>space<sp/>size.<sp/>For<sp/>a<sp/>4<sp/>KB<sp/>page<sp/>size,</highlight></codeline>
+<codeline lineno="51"><highlight class="comment"><sp/>*<sp/>-<sp/>level<sp/>1<sp/>supports<sp/>virtual<sp/>address<sp/>spaces<sp/>of<sp/>widths<sp/>32<sp/>to<sp/>31<sp/>bits;</highlight></codeline>
+<codeline lineno="52"><highlight class="comment"><sp/>*<sp/>-<sp/>level<sp/>2<sp/>from<sp/>30<sp/>to<sp/>25.</highlight></codeline>
+<codeline lineno="53"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="54"><highlight class="comment"><sp/>*<sp/>Wider<sp/>or<sp/>narrower<sp/>address<sp/>spaces<sp/>are<sp/>not<sp/>supported.<sp/>As<sp/>a<sp/>result,<sp/>level<sp/>3</highlight></codeline>
+<codeline lineno="55"><highlight class="comment"><sp/>*<sp/>cannot<sp/>be<sp/>used<sp/>as<sp/>the<sp/>initial<sp/>lookup<sp/>level<sp/>with<sp/>4<sp/>KB<sp/>granularity.</highlight></codeline>
+<codeline lineno="56"><highlight class="comment"><sp/>*<sp/>See<sp/>the<sp/>ARMv8-A<sp/>Architecture<sp/>Reference<sp/>Manual<sp/>(DDI<sp/>0487A.j)<sp/>for<sp/>more</highlight></codeline>
+<codeline lineno="57"><highlight class="comment"><sp/>*<sp/>information,<sp/>Section<sp/>G4.6.5</highlight></codeline>
+<codeline lineno="58"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="59"><highlight class="comment"><sp/>*<sp/>For<sp/>example,<sp/>for<sp/>a<sp/>31-bit<sp/>address<sp/>space<sp/>(i.e.<sp/>virt_addr_space_size<sp/>==</highlight></codeline>
+<codeline lineno="60"><highlight class="comment"><sp/>*<sp/>1<sp/>&lt;&lt;<sp/>31),<sp/>TTBCR.TxSZ<sp/>will<sp/>be<sp/>programmed<sp/>to<sp/>(32<sp/>-<sp/>31)<sp/>=<sp/>1.<sp/>According<sp/>to<sp/>Table</highlight></codeline>
+<codeline lineno="61"><highlight class="comment"><sp/>*<sp/>G4-5<sp/>in<sp/>the<sp/>ARM<sp/>ARM,<sp/>the<sp/>initial<sp/>lookup<sp/>level<sp/>for<sp/>an<sp/>address<sp/>space<sp/>like<sp/>that</highlight></codeline>
+<codeline lineno="62"><highlight class="comment"><sp/>*<sp/>is<sp/>1.</highlight></codeline>
+<codeline lineno="63"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="64"><highlight class="comment"><sp/>*<sp/>Note<sp/>that<sp/>this<sp/>macro<sp/>assumes<sp/>that<sp/>the<sp/>given<sp/>virtual<sp/>address<sp/>space<sp/>size<sp/>is</highlight></codeline>
+<codeline lineno="65"><highlight class="comment"><sp/>*<sp/>valid.</highlight></codeline>
+<codeline lineno="66"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>GET_XLAT_TABLE_LEVEL_BASE(_virt_addr_space_sz)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="68"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>(((_virt_addr_space_sz)<sp/>&gt;<sp/>(ULL(1)<sp/>&lt;&lt;<sp/>L1_XLAT_ADDRESS_SHIFT))<sp/>?<sp/><sp/>\</highlight></codeline>
+<codeline lineno="69"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/>U(1)<sp/>:<sp/>U(2))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">/*<sp/>XLAT_TABLES_AARCH32_H<sp/>*/</highlight><highlight class="preprocessor"></highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/xlat_tables/aarch32/xlat_tables_aarch32.h"/>
+  </compounddef>
+</doxygen>

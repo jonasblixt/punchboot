@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__command__boot__part" kind="struct" language="C++" prot="public">
+    <compoundname>pb_command_boot_part</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__command__boot__part_1ad14c4b46462741aeffdf774d84e62ad9" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_boot_part::uuid[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>uuid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>UUID of bootable partition </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="338" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="338" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__boot__part_1abe5ac22da3fcb1fc93a8890a8e6862b4" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_boot_part::verbose</definition>
+        <argsstring></argsstring>
+        <name>verbose</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Verbose boot output </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="339" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="339" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__command__boot__part_1ab2a06e190bd04a3c37c53e48bb496b7a" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_command_boot_part::rz[15]</definition>
+        <argsstring>[15]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="340" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="340" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Boot from partition command </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="337" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="336" bodyend="341"/>
+    <listofallmembers>
+      <member refid="structpb__command__boot__part_1ab2a06e190bd04a3c37c53e48bb496b7a" prot="public" virt="non-virtual"><scope>pb_command_boot_part</scope><name>rz</name></member>
+      <member refid="structpb__command__boot__part_1ad14c4b46462741aeffdf774d84e62ad9" prot="public" virt="non-virtual"><scope>pb_command_boot_part</scope><name>uuid</name></member>
+      <member refid="structpb__command__boot__part_1abe5ac22da3fcb1fc93a8890a8e6862b4" prot="public" virt="non-virtual"><scope>pb_command_boot_part</scope><name>verbose</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__result__device__identifier" kind="struct" language="C++" prot="public">
+    <compoundname>pb_result_device_identifier</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__result__device__identifier_1a3d7e21087287f7ff2c4b68902cc99070" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_device_identifier::device_uuid[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>device_uuid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Device UUID </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="301" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="301" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__device__identifier_1a2bb6bed12674b71a651446553e365995" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char pb_result_device_identifier::board_id[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>board_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Board id string </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="302" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="302" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__device__identifier_1a61f8df8d8daee46f197c754db1b9594e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_device_identifier::rz[23]</definition>
+        <argsstring>[23]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="303" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="303" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Read device identifier </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="300" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="299" bodyend="304"/>
+    <listofallmembers>
+      <member refid="structpb__result__device__identifier_1a2bb6bed12674b71a651446553e365995" prot="public" virt="non-virtual"><scope>pb_result_device_identifier</scope><name>board_id</name></member>
+      <member refid="structpb__result__device__identifier_1a3d7e21087287f7ff2c4b68902cc99070" prot="public" virt="non-virtual"><scope>pb_result_device_identifier</scope><name>device_uuid</name></member>
+      <member refid="structpb__result__device__identifier_1a61f8df8d8daee46f197c754db1b9594e" prot="public" virt="non-virtual"><scope>pb_result_device_identifier</scope><name>rz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

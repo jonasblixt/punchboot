@@ -1,0 +1,275 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="image_8h" kind="file" language="C++">
+    <compoundname>image.h</compoundname>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="crypto_8h" local="no">pb/crypto.h</includes>
+    <includes refid="bpak_8h" local="no">bpak/bpak.h</includes>
+    <includes refid="wire_8h" local="no">pb-tools/wire.h</includes>
+    <includedby refid="boot_8h" local="no">/docs/include/pb/boot.h</includedby>
+    <incdepgraph>
+      <node id="216">
+        <label>pb-tools/wire.h</label>
+        <link refid="wire_8h"/>
+        <childnode refid="201" relation="include">
+        </childnode>
+        <childnode refid="204" relation="include">
+        </childnode>
+        <childnode refid="205" relation="include">
+        </childnode>
+        <childnode refid="217" relation="include">
+        </childnode>
+      </node>
+      <node id="208">
+        <label>stdio.h</label>
+        <link refid="stdio_8h_source"/>
+        <childnode refid="209" relation="include">
+        </childnode>
+        <childnode refid="210" relation="include">
+        </childnode>
+        <childnode refid="211" relation="include">
+        </childnode>
+      </node>
+      <node id="212">
+        <label>pb/errors.h</label>
+        <link refid="errors_8h_source"/>
+      </node>
+      <node id="205">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="206" relation="include">
+        </childnode>
+      </node>
+      <node id="203">
+        <label>pb/crypto.h</label>
+        <link refid="crypto_8h_source"/>
+        <childnode refid="201" relation="include">
+        </childnode>
+        <childnode refid="204" relation="include">
+        </childnode>
+        <childnode refid="205" relation="include">
+        </childnode>
+        <childnode refid="207" relation="include">
+        </childnode>
+        <childnode refid="214" relation="include">
+        </childnode>
+      </node>
+      <node id="202">
+        <label>stdint_.h</label>
+      </node>
+      <node id="207">
+        <label>pb/pb.h</label>
+        <link refid="pb_8h_source"/>
+        <childnode refid="208" relation="include">
+        </childnode>
+        <childnode refid="201" relation="include">
+        </childnode>
+        <childnode refid="204" relation="include">
+        </childnode>
+        <childnode refid="205" relation="include">
+        </childnode>
+        <childnode refid="212" relation="include">
+        </childnode>
+        <childnode refid="213" relation="include">
+        </childnode>
+      </node>
+      <node id="209">
+        <label>cdefs.h</label>
+        <link refid="cdefs_8h_source"/>
+      </node>
+      <node id="217">
+        <label>pb-tools/error.h</label>
+        <link refid="error_8h_source"/>
+        <childnode refid="201" relation="include">
+        </childnode>
+      </node>
+      <node id="206">
+        <label>stddef_.h</label>
+      </node>
+      <node id="210">
+        <label>stdio_.h</label>
+      </node>
+      <node id="214">
+        <label>bpak/keystore.h</label>
+        <link refid="bpak_2keystore_8h_source"/>
+        <childnode refid="215" relation="include">
+        </childnode>
+      </node>
+      <node id="204">
+        <label>stdbool.h</label>
+        <link refid="stdbool_8h_source"/>
+      </node>
+      <node id="211">
+        <label>stdarg.h</label>
+        <link refid="stdarg_8h_source"/>
+      </node>
+      <node id="215">
+        <label>bpak/bpak.h</label>
+        <link refid="bpak_8h_source"/>
+        <childnode refid="201" relation="include">
+        </childnode>
+        <childnode refid="204" relation="include">
+        </childnode>
+        <childnode refid="205" relation="include">
+        </childnode>
+      </node>
+      <node id="200">
+        <label>/docs/include/pb/image.h</label>
+        <link refid="image_8h"/>
+        <childnode refid="201" relation="include">
+        </childnode>
+        <childnode refid="203" relation="include">
+        </childnode>
+        <childnode refid="215" relation="include">
+        </childnode>
+        <childnode refid="216" relation="include">
+        </childnode>
+      </node>
+      <node id="201">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="202" relation="include">
+        </childnode>
+      </node>
+      <node id="213">
+        <label>config.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="220">
+        <label>/docs/include/pb/plat.h</label>
+        <link refid="plat_8h_source"/>
+      </node>
+      <node id="218">
+        <label>/docs/include/pb/image.h</label>
+        <link refid="image_8h"/>
+        <childnode refid="219" relation="include">
+        </childnode>
+      </node>
+      <node id="219">
+        <label>/docs/include/pb/boot.h</label>
+        <link refid="boot_8h_source"/>
+        <childnode refid="220" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="image_8h_1a86a50a7e4de1f4c7b3588ac72b599063" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* pb_image_read_t) (void *buf, size_t size, void *private)</definition>
+        <argsstring>)(void *buf, size_t size, void *private)</argsstring>
+        <name>pb_image_read_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Punch BOOT</para><para>Copyright (C) 2020 Jonas Blixt <ulink url="mailto:jonpe960@gmail.com">jonpe960@gmail.com</ulink></para><para>SPDX-License-Identifier: BSD-3-Clause </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/image.h" line="18" column="1" bodyfile="/docs/include/pb/image.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="image_8h_1a55cdaf1632b54d265b243bc7f7c1219c" prot="public" static="no">
+        <type>int(*</type>
+        <definition>typedef int(* pb_image_result_t) (int rc, void *private)</definition>
+        <argsstring>)(int rc, void *private)</argsstring>
+        <name>pb_image_result_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/image.h" line="19" column="1" bodyfile="/docs/include/pb/image.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="image_8h_1a2b15deefa7094e02b5e46748ba461564" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct <ref refid="structbpak__header" kindref="compound">bpak_header</ref> *</type>
+        <definition>struct bpak_header* pb_image_header</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_image_header</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/image.h" line="21" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="image_8h_1a288760c248450d77669ef480c5c83aa2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_image_check_header</definition>
+        <argsstring>(void)</argsstring>
+        <name>pb_image_check_header</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/image.h" line="22" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="image_8h_1ac5226ca6ecfcf2ffc9ef21575258428d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int pb_image_load</definition>
+        <argsstring>(pb_image_read_t read_f, pb_image_result_t result_f, size_t load_chunk_size, void *priv)</argsstring>
+        <name>pb_image_load</name>
+        <param>
+          <type>pb_image_read_t</type>
+          <declname>read_f</declname>
+        </param>
+        <param>
+          <type>pb_image_result_t</type>
+          <declname>result_f</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>load_chunk_size</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>priv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb/image.h" line="23" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"></codeline>
+<codeline lineno="10"><highlight class="preprocessor">#ifndef<sp/>INCLUDE_PB_IMAGE_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INCLUDE_PB_IMAGE_H_</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;pb/crypto.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;bpak/bpak.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="wire_8h" kindref="compound">pb-tools/wire.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*pb_image_read_t)<sp/>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">private</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>int<sp/>(*pb_image_result_t)<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>rc,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">private</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structbpak__header" kindref="compound">bpak_header</ref><sp/>*pb_image_header(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_image_check_header(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pb_image_load(pb_image_read_t<sp/>read_f,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pb_image_result_t<sp/>result_f,</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>load_chunk_size,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*priv);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/><sp/>//<sp/>INCLUDE_PB_IMAGE_H_</highlight></codeline>
+    </programlisting>
+    <location file="/docs/include/pb/image.h"/>
+  </compounddef>
+</doxygen>

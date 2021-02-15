@@ -1,0 +1,1994 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="bearssl__ec_8h" kind="file" language="C++">
+    <compoundname>bearssl_ec.h</compoundname>
+    <includes refid="stddef_8h" local="no">stddef.h</includes>
+    <includes refid="stdint_8h" local="no">stdint.h</includes>
+    <includes refid="bearssl__rand_8h" local="yes">bearssl_rand.h</includes>
+    <includedby refid="bearssl__x509_8h" local="yes">/docs/lib/bearssl/bearssl_x509.h</includedby>
+    <incdepgraph>
+      <node id="753">
+        <label>stddef.h</label>
+        <link refid="stddef_8h_source"/>
+        <childnode refid="754" relation="include">
+        </childnode>
+      </node>
+      <node id="756">
+        <label>stdint_.h</label>
+      </node>
+      <node id="757">
+        <label>bearssl_rand.h</label>
+        <link refid="bearssl__rand_8h"/>
+        <childnode refid="753" relation="include">
+        </childnode>
+        <childnode refid="755" relation="include">
+        </childnode>
+        <childnode refid="758" relation="include">
+        </childnode>
+        <childnode refid="759" relation="include">
+        </childnode>
+      </node>
+      <node id="754">
+        <label>stddef_.h</label>
+      </node>
+      <node id="760">
+        <label>string.h</label>
+        <link refid="string_8h_source"/>
+        <childnode refid="761" relation="include">
+        </childnode>
+      </node>
+      <node id="752">
+        <label>/docs/lib/bearssl/bearssl_ec.h</label>
+        <link refid="bearssl__ec_8h"/>
+        <childnode refid="753" relation="include">
+        </childnode>
+        <childnode refid="755" relation="include">
+        </childnode>
+        <childnode refid="757" relation="include">
+        </childnode>
+      </node>
+      <node id="759">
+        <label>bearssl_hash.h</label>
+        <link refid="bearssl__hash_8h"/>
+        <childnode refid="753" relation="include">
+        </childnode>
+        <childnode refid="755" relation="include">
+        </childnode>
+        <childnode refid="760" relation="include">
+        </childnode>
+      </node>
+      <node id="755">
+        <label>stdint.h</label>
+        <link refid="stdint_8h_source"/>
+        <childnode refid="756" relation="include">
+        </childnode>
+      </node>
+      <node id="761">
+        <label>string_.h</label>
+      </node>
+      <node id="758">
+        <label>bearssl_block.h</label>
+        <link refid="bearssl__block_8h"/>
+        <childnode refid="753" relation="include">
+        </childnode>
+        <childnode refid="755" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="763">
+        <label>/docs/lib/bearssl/bearssl_x509.h</label>
+        <link refid="bearssl__x509_8h"/>
+      </node>
+      <node id="762">
+        <label>/docs/lib/bearssl/bearssl_ec.h</label>
+        <link refid="bearssl__ec_8h"/>
+        <childnode refid="763" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structbr__ec__public__key" prot="public">br_ec_public_key</innerclass>
+    <innerclass refid="structbr__ec__private__key" prot="public">br_ec_private_key</innerclass>
+    <innerclass refid="structbr__ec__impl" prot="public">br_ec_impl</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="bearssl__ec_8h_1afe3f3fe6e28832e5a6e31e10b64b45b8" prot="public" static="no">
+        <name>BR_EC_sect163k1</name>
+        <initializer>1</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect163k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="149" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a27e9c4aeffd0f893548d7e9ffd0a6b53" prot="public" static="no">
+        <name>BR_EC_sect163r1</name>
+        <initializer>2</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect163r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="152" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a329728365a17355436d5f1118034578d" prot="public" static="no">
+        <name>BR_EC_sect163r2</name>
+        <initializer>3</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect163r2. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="155" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a416bfe01284b1a3abf9da2a80e29468b" prot="public" static="no">
+        <name>BR_EC_sect193r1</name>
+        <initializer>4</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect193r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="158" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a52c62d8a066daebf8100e9361cbb90ec" prot="public" static="no">
+        <name>BR_EC_sect193r2</name>
+        <initializer>5</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect193r2. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="161" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a2270a4de8927b4aa988e242dec69327f" prot="public" static="no">
+        <name>BR_EC_sect233k1</name>
+        <initializer>6</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect233k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="164" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1aca5e467785724e03e7f328ede207ed3b" prot="public" static="no">
+        <name>BR_EC_sect233r1</name>
+        <initializer>7</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect233r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="167" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a1a090b39827f800f2d547b3603f730ee" prot="public" static="no">
+        <name>BR_EC_sect239k1</name>
+        <initializer>8</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect239k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="170" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1abdd859ee367efce171126054d9db6e2a" prot="public" static="no">
+        <name>BR_EC_sect283k1</name>
+        <initializer>9</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect283k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="173" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a8a609a0a23dad62dcf3937ed22fba18c" prot="public" static="no">
+        <name>BR_EC_sect283r1</name>
+        <initializer>10</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect283r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="176" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a26a0b0cf836ac3e3e28657ac7edd2243" prot="public" static="no">
+        <name>BR_EC_sect409k1</name>
+        <initializer>11</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect409k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="179" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1afd387f4bd1d342388fc4ed687ec081b9" prot="public" static="no">
+        <name>BR_EC_sect409r1</name>
+        <initializer>12</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect409r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="182" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a082264390695a1bc1a8b074bd8e0c8d6" prot="public" static="no">
+        <name>BR_EC_sect571k1</name>
+        <initializer>13</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect571k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="185" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a2be7514edb01c2554e558c8109280e65" prot="public" static="no">
+        <name>BR_EC_sect571r1</name>
+        <initializer>14</initializer>
+        <briefdescription>
+<para>Identifier for named curve sect571r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="188" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1ac1ee6ad2b1869a16d792ce1e01520a84" prot="public" static="no">
+        <name>BR_EC_secp160k1</name>
+        <initializer>15</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp160k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="191" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a03df4d6362901579c41734c6e9f971e5" prot="public" static="no">
+        <name>BR_EC_secp160r1</name>
+        <initializer>16</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp160r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="194" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1ae977d093488f0decf87d5e33da8f8e66" prot="public" static="no">
+        <name>BR_EC_secp160r2</name>
+        <initializer>17</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp160r2. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="197" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1ae552e6df02b3556ed82841f92bbe1b5f" prot="public" static="no">
+        <name>BR_EC_secp192k1</name>
+        <initializer>18</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp192k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="200" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1ab7fb4e9820a26e42771471b3addaa2a2" prot="public" static="no">
+        <name>BR_EC_secp192r1</name>
+        <initializer>19</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp192r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="203" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a830bceff09b7a8a5e9b8a2487789975b" prot="public" static="no">
+        <name>BR_EC_secp224k1</name>
+        <initializer>20</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp224k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="206" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="206" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a825d599fe803a188c220ad127ad2cd68" prot="public" static="no">
+        <name>BR_EC_secp224r1</name>
+        <initializer>21</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp224r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="209" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="209" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1af5307149adfe0ab483d9fbf016571bb7" prot="public" static="no">
+        <name>BR_EC_secp256k1</name>
+        <initializer>22</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp256k1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="212" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a4fec44131f69f344e29a42fc8c574f53" prot="public" static="no">
+        <name>BR_EC_secp256r1</name>
+        <initializer>23</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp256r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="215" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1add4f9faf87c86696fdf0b99d7cea873f" prot="public" static="no">
+        <name>BR_EC_secp384r1</name>
+        <initializer>24</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp384r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="218" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1ab67c02a8588907cdfa2e362c8d78c557" prot="public" static="no">
+        <name>BR_EC_secp521r1</name>
+        <initializer>25</initializer>
+        <briefdescription>
+<para>Identifier for named curve secp521r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="221" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="221" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a6d401d36f1d3e97f527bee25325fc42d" prot="public" static="no">
+        <name>BR_EC_brainpoolP256r1</name>
+        <initializer>26</initializer>
+        <briefdescription>
+<para>Identifier for named curve brainpoolP256r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="224" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="224" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1aa61b398cf890b9592d9654f12954c426" prot="public" static="no">
+        <name>BR_EC_brainpoolP384r1</name>
+        <initializer>27</initializer>
+        <briefdescription>
+<para>Identifier for named curve brainpoolP384r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="227" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1aa927b41f23f5a95e09aa8ae5d1978ac9" prot="public" static="no">
+        <name>BR_EC_brainpoolP512r1</name>
+        <initializer>28</initializer>
+        <briefdescription>
+<para>Identifier for named curve brainpoolP512r1. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="230" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="230" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a49383d64a752e5a0a72f0e23d534c84a" prot="public" static="no">
+        <name>BR_EC_curve25519</name>
+        <initializer>29</initializer>
+        <briefdescription>
+<para>Identifier for named curve Curve25519. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="233" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1aeefe093924e5b0d859dcd99de7125cb5" prot="public" static="no">
+        <name>BR_EC_curve448</name>
+        <initializer>30</initializer>
+        <briefdescription>
+<para>Identifier for named curve Curve448. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="236" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a2681efca64879d9d57ec744e1b608312" prot="public" static="no">
+        <name>BR_EC_KBUF_PRIV_MAX_SIZE</name>
+        <initializer>72</initializer>
+        <briefdescription>
+<para>Maximum size for EC private key element buffer. </para>        </briefdescription>
+        <detaileddescription>
+<para>This is the largest number of bytes that <computeroutput><ref refid="bearssl__ec_8h_1ae98b21797958ced991e4357b1aec6046" kindref="member">br_ec_keygen()</ref></computeroutput> may need or ever return. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="892" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="892" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="bearssl__ec_8h_1a3d8975cd838d2c42955f6a6ac2066d71" prot="public" static="no">
+        <name>BR_EC_KBUF_PUB_MAX_SIZE</name>
+        <initializer>145</initializer>
+        <briefdescription>
+<para>Maximum size for EC public key element buffer. </para>        </briefdescription>
+        <detaileddescription>
+<para>This is the largest number of bytes that <computeroutput>br_ec_compute_public()</computeroutput> may need or ever return. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="900" column="9" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="900" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" prot="public" static="no">
+        <type>size_t(*</type>
+        <definition>typedef size_t(* br_ecdsa_sign) (const br_ec_impl *impl, const br_hash_class *hf, const void *hash_value, const br_ec_private_key *sk, void *sig)</definition>
+        <argsstring>)(const br_ec_impl *impl, const br_hash_class *hf, const void *hash_value, const br_ec_private_key *sk, void *sig)</argsstring>
+        <name>br_ecdsa_sign</name>
+        <briefdescription>
+<para>Type for an ECDSA signer function. </para>        </briefdescription>
+        <detaileddescription>
+<para>A pointer to the EC implementation is provided. The hash value is assumed to have the length inferred from the designated hash function class.</para><para>Signature is written in the buffer pointed to by <computeroutput>sig</computeroutput>, and the length (in bytes) is returned. On error, nothing is written in the buffer, and 0 is returned. This function returns 0 if the specified curve is not supported by the provided EC implementation.</para><para>The signature format is either &quot;raw&quot; or &quot;asn1&quot;, depending on the implementation; maximum length is predictable from the implemented curve:</para><para><table rows="4" cols="3"><row>
+<entry thead="yes"><para>curve </para></entry><entry thead="yes"><para>raw </para></entry><entry thead="yes"><para>asn1  </para></entry></row>
+<row>
+<entry thead="no"><para>NIST P-256 </para></entry><entry thead="no"><para>64 </para></entry><entry thead="no"><para>72 </para></entry></row>
+<row>
+<entry thead="no"><para>NIST P-384 </para></entry><entry thead="no"><para>96 </para></entry><entry thead="no"><para>104 </para></entry></row>
+<row>
+<entry thead="no"><para>NIST P-521 </para></entry><entry thead="no"><para>132 </para></entry><entry thead="no"><para>139 </para></entry></row>
+</table>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash function used to process the data. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC private key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>destination buffer. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the signature length (in bytes), or 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="684" column="1" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="684" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" prot="public" static="no">
+        <type>uint32_t(*</type>
+        <definition>typedef uint32_t(* br_ecdsa_vrfy) (const br_ec_impl *impl, const void *hash, size_t hash_len, const br_ec_public_key *pk, const void *sig, size_t sig_len)</definition>
+        <argsstring>)(const br_ec_impl *impl, const void *hash, size_t hash_len, const br_ec_public_key *pk, const void *sig, size_t sig_len)</argsstring>
+        <name>br_ecdsa_vrfy</name>
+        <briefdescription>
+<para>Type for an ECDSA signature verification function. </para>        </briefdescription>
+        <detaileddescription>
+<para>A pointer to the EC implementation is provided. The hashed value, computed over the purportedly signed data, is also provided with its length.</para><para>The signature format is either &quot;raw&quot; or &quot;asn1&quot;, depending on the implementation.</para><para>Returned value is 1 on success (valid signature), 0 on error. This function returns 0 if the specified curve is not supported by the provided EC implementation.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash value length (in bytes). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC public key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>1 on success, 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="710" column="1" bodyfile="/docs/lib/bearssl/bearssl_ec.h" bodystart="710" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="bearssl__ec_8h_1a0a94be2772bc96d8b9c09dec8fce9cff" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_prime_i31</definition>
+        <argsstring></argsstring>
+        <name>br_ec_prime_i31</name>
+        <briefdescription>
+<para>EC implementation &quot;i31&quot;. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation internally uses generic code for modular integers, with a representation as sequences of 31-bit words. It supports secp256r1, secp384r1 and secp521r1 (aka NIST curves P-256, P-384 and P-521). </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="424" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1abe3ec1fc90bbd9110dd8926c3de92d87" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_prime_i15</definition>
+        <argsstring></argsstring>
+        <name>br_ec_prime_i15</name>
+        <briefdescription>
+<para>EC implementation &quot;i15&quot;. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation internally uses generic code for modular integers, with a representation as sequences of 15-bit words. It supports secp256r1, secp384r1 and secp521r1 (aka NIST curves P-256, P-384 and P-521). </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="433" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1a75382b7ed2f5d001ff82d0eea34443ad" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_p256_m15</definition>
+        <argsstring></argsstring>
+        <name>br_ec_p256_m15</name>
+        <briefdescription>
+<para>EC implementation &quot;m15&quot; for P-256. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses specialised code for curve secp256r1 (also known as NIST P-256), with optional Karatsuba decomposition, and fast modular reduction thanks to the field modulus special format. Only 32-bit multiplications are used (with 32-bit results, not 64-bit). </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="443" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1a5f92eceb81689da7db99bf47b176e468" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_p256_m31</definition>
+        <argsstring></argsstring>
+        <name>br_ec_p256_m31</name>
+        <briefdescription>
+<para>EC implementation &quot;m31&quot; for P-256. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses specialised code for curve secp256r1 (also known as NIST P-256), relying on multiplications of 31-bit values (MUL31). </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="452" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1a7947c958ebc5923f0d87768cc23e9c11" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_p256_m62</definition>
+        <argsstring></argsstring>
+        <name>br_ec_p256_m62</name>
+        <briefdescription>
+<para>EC implementation &quot;m62&quot; (specialised code) for P-256. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses custom code relying on multiplication of integers up to 64 bits, with a 128-bit result. This implementation is defined only on platforms that offer the 64x64-&gt;128 multiplication support; use <computeroutput><ref refid="bearssl__ec_8h_1a72c2f5c8bda538b46e7bcf7e0c23cee2" kindref="member">br_ec_p256_m62_get()</ref></computeroutput> to dynamically obtain a pointer to that implementation. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="463" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1a9ef9cb86c46b4988d12353ef667638a8" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_p256_m64</definition>
+        <argsstring></argsstring>
+        <name>br_ec_p256_m64</name>
+        <briefdescription>
+<para>EC implementation &quot;m64&quot; (specialised code) for P-256. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses custom code relying on multiplication of integers up to 64 bits, with a 128-bit result. This implementation is defined only on platforms that offer the 64x64-&gt;128 multiplication support; use <computeroutput><ref refid="bearssl__ec_8h_1a51f4066e0c51f4f44b489ef211056125" kindref="member">br_ec_p256_m64_get()</ref></computeroutput> to dynamically obtain a pointer to that implementation. </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="481" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1a68dd96112ca3a13cf82f51450012668c" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_c25519_i15</definition>
+        <argsstring></argsstring>
+        <name>br_ec_c25519_i15</name>
+        <briefdescription>
+<para>EC implementation &quot;i15&quot; (generic code) for Curve25519. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses the generic code for modular integers (with 15-bit words) to support Curve25519. Due to the specificities of the curve definition, the following applies:</para><para><itemizedlist>
+<listitem><para><computeroutput>muladd()</computeroutput> is not implemented (the function returns 0 systematically).</para></listitem><listitem><para><computeroutput>order()</computeroutput> returns 2^255-1, since the point multiplication algorithm accepts any 32-bit integer as input (it clears the top bit and low three bits systematically). </para></listitem></itemizedlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="502" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1a01c01309c61cdcd60f324639d9af5a59" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_c25519_i31</definition>
+        <argsstring></argsstring>
+        <name>br_ec_c25519_i31</name>
+        <briefdescription>
+<para>EC implementation &quot;i31&quot; (generic code) for Curve25519. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses the generic code for modular integers (with 31-bit words) to support Curve25519. Due to the specificities of the curve definition, the following applies:</para><para><itemizedlist>
+<listitem><para><computeroutput>muladd()</computeroutput> is not implemented (the function returns 0 systematically).</para></listitem><listitem><para><computeroutput>order()</computeroutput> returns 2^255-1, since the point multiplication algorithm accepts any 32-bit integer as input (it clears the top bit and low three bits systematically). </para></listitem></itemizedlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="516" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1ad37faf5afe66fdcdba05af742b9dab97" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_c25519_m15</definition>
+        <argsstring></argsstring>
+        <name>br_ec_c25519_m15</name>
+        <briefdescription>
+<para>EC implementation &quot;m15&quot; (specialised code) for Curve25519. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses custom code relying on multiplication of integers up to 15 bits. Due to the specificities of the curve definition, the following applies:</para><para><itemizedlist>
+<listitem><para><computeroutput>muladd()</computeroutput> is not implemented (the function returns 0 systematically).</para></listitem><listitem><para><computeroutput>order()</computeroutput> returns 2^255-1, since the point multiplication algorithm accepts any 32-bit integer as input (it clears the top bit and low three bits systematically). </para></listitem></itemizedlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="530" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1ad357341db87f49933183fe9454d6444d" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_c25519_m31</definition>
+        <argsstring></argsstring>
+        <name>br_ec_c25519_m31</name>
+        <briefdescription>
+<para>EC implementation &quot;m31&quot; (specialised code) for Curve25519. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses custom code relying on multiplication of integers up to 31 bits. Due to the specificities of the curve definition, the following applies:</para><para><itemizedlist>
+<listitem><para><computeroutput>muladd()</computeroutput> is not implemented (the function returns 0 systematically).</para></listitem><listitem><para><computeroutput>order()</computeroutput> returns 2^255-1, since the point multiplication algorithm accepts any 32-bit integer as input (it clears the top bit and low three bits systematically). </para></listitem></itemizedlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="544" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1a8e07e26ac1a793981c6f1f8795d915bf" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_c25519_m62</definition>
+        <argsstring></argsstring>
+        <name>br_ec_c25519_m62</name>
+        <briefdescription>
+<para>EC implementation &quot;m62&quot; (specialised code) for Curve25519. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses custom code relying on multiplication of integers up to 62 bits, with a 124-bit result. This implementation is defined only on platforms that offer the 64x64-&gt;128 multiplication support; use <computeroutput><ref refid="bearssl__ec_8h_1a629267c888b32036c23340bb90c23255" kindref="member">br_ec_c25519_m62_get()</ref></computeroutput> to dynamically obtain a pointer to that implementation. Due to the specificities of the curve definition, the following applies:</para><para><itemizedlist>
+<listitem><para><computeroutput>muladd()</computeroutput> is not implemented (the function returns 0 systematically).</para></listitem><listitem><para><computeroutput>order()</computeroutput> returns 2^255-1, since the point multiplication algorithm accepts any 32-bit integer as input (it clears the top bit and low three bits systematically). </para></listitem></itemizedlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="561" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1aee8470bea440fedb66475757605b5dff" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_c25519_m64</definition>
+        <argsstring></argsstring>
+        <name>br_ec_c25519_m64</name>
+        <briefdescription>
+<para>EC implementation &quot;m64&quot; (specialised code) for Curve25519. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation uses custom code relying on multiplication of integers up to 64 bits, with a 128-bit result. This implementation is defined only on platforms that offer the 64x64-&gt;128 multiplication support; use <computeroutput><ref refid="bearssl__ec_8h_1a40250bf26ac5b282a229a31dd702a6f2" kindref="member">br_ec_c25519_m64_get()</ref></computeroutput> to dynamically obtain a pointer to that implementation. Due to the specificities of the curve definition, the following applies:</para><para><itemizedlist>
+<listitem><para><computeroutput>muladd()</computeroutput> is not implemented (the function returns 0 systematically).</para></listitem><listitem><para><computeroutput>order()</computeroutput> returns 2^255-1, since the point multiplication algorithm accepts any 32-bit integer as input (it clears the top bit and low three bits systematically). </para></listitem></itemizedlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="585" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1ab82db19c7437280b93dead4377b8a2c2" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_all_m15</definition>
+        <argsstring></argsstring>
+        <name>br_ec_all_m15</name>
+        <briefdescription>
+<para>Aggregate EC implementation &quot;m15&quot;. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation is a wrapper for:</para><para><itemizedlist>
+<listitem><para><computeroutput>br_ec_c25519_m15</computeroutput> for Curve25519</para></listitem><listitem><para><computeroutput>br_ec_p256_m15</computeroutput> for NIST P-256</para></listitem><listitem><para><computeroutput>br_ec_prime_i15</computeroutput> for other curves (NIST P-384 and NIST-P512) </para></listitem></itemizedlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="603" column="1"/>
+      </memberdef>
+      <memberdef kind="variable" id="bearssl__ec_8h_1acf6a7441b737f3670e5545b18a456c09" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></type>
+        <definition>const br_ec_impl br_ec_all_m31</definition>
+        <argsstring></argsstring>
+        <name>br_ec_all_m31</name>
+        <briefdescription>
+<para>Aggregate EC implementation &quot;m31&quot;. </para>        </briefdescription>
+        <detaileddescription>
+<para>This implementation is a wrapper for:</para><para><itemizedlist>
+<listitem><para><computeroutput>br_ec_c25519_m31</computeroutput> for Curve25519</para></listitem><listitem><para><computeroutput>br_ec_p256_m31</computeroutput> for NIST P-256</para></listitem><listitem><para><computeroutput>br_ec_prime_i31</computeroutput> for other curves (NIST P-384 and NIST-P512) </para></listitem></itemizedlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="614" column="1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="bearssl__ec_8h_1a72c2f5c8bda538b46e7bcf7e0c23cee2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+        <definition>const br_ec_impl* br_ec_p256_m62_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ec_p256_m62_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the &quot;m62&quot; implementation of P-256, if available. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>the implementation, or 0. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="470" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a51f4066e0c51f4f44b489ef211056125" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+        <definition>const br_ec_impl* br_ec_p256_m64_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ec_p256_m64_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the &quot;m64&quot; implementation of P-256, if available. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>the implementation, or 0. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="488" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a629267c888b32036c23340bb90c23255" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+        <definition>const br_ec_impl* br_ec_c25519_m62_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ec_c25519_m62_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the &quot;m62&quot; implementation of Curve25519, if available. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>the implementation, or 0. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="568" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a40250bf26ac5b282a229a31dd702a6f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+        <definition>const br_ec_impl* br_ec_c25519_m64_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ec_c25519_m64_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the &quot;m64&quot; implementation of Curve25519, if available. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>the implementation, or 0. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="592" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a39d4de479b5890bced8bc728e0d0b5a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+        <definition>const br_ec_impl* br_ec_get_default</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ec_get_default</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the &quot;default&quot; EC implementation for the current system. </para>        </briefdescription>
+        <detaileddescription>
+<para>This returns a pointer to the preferred implementation on the current system.</para><para><simplesect kind="return"><para>the default EC implementation. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="624" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1aa8685a896c92092dfff0844895bf8fd6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t br_ecdsa_raw_to_asn1</definition>
+        <argsstring>(void *sig, size_t sig_len)</argsstring>
+        <name>br_ecdsa_raw_to_asn1</name>
+        <param>
+          <type>void *</type>
+          <declname>sig</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>sig_len</declname>
+        </param>
+        <briefdescription>
+<para>Convert a signature from &quot;raw&quot; to &quot;asn1&quot;. </para>        </briefdescription>
+        <detaileddescription>
+<para>Conversion is done &quot;in place&quot; and the new length is returned. Conversion may enlarge the signature, but by no more than 9 bytes at most. On error, 0 is returned (error conditions include an odd raw signature length, or an oversized integer).</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature to convert. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the new signature length, or 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="638" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a89311669cc19963ffbc21edae802f7d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t br_ecdsa_asn1_to_raw</definition>
+        <argsstring>(void *sig, size_t sig_len)</argsstring>
+        <name>br_ecdsa_asn1_to_raw</name>
+        <param>
+          <type>void *</type>
+          <declname>sig</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>sig_len</declname>
+        </param>
+        <briefdescription>
+<para>Convert a signature from &quot;asn1&quot; to &quot;raw&quot;. </para>        </briefdescription>
+        <detaileddescription>
+<para>Conversion is done &quot;in place&quot; and the new length is returned. Conversion may enlarge the signature, but the new signature length will be less than twice the source length at most. On error, 0 is returned (error conditions include an invalid ASN.1 structure or an oversized integer).</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature to convert. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the new signature length, or 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="653" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a15e352550078ffc433ea4452031c0e42" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t br_ecdsa_i31_sign_asn1</definition>
+        <argsstring>(const br_ec_impl *impl, const br_hash_class *hf, const void *hash_value, const br_ec_private_key *sk, void *sig)</argsstring>
+        <name>br_ecdsa_i31_sign_asn1</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+          <declname>hf</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>hash_value</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref> *</type>
+          <declname>sk</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>sig</declname>
+        </param>
+        <briefdescription>
+<para>ECDSA signature generator, &quot;i31&quot; implementation, &quot;asn1&quot; format. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign()</ref></para></simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash function used to process the data. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC private key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>destination buffer. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the signature length (in bytes), or 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="726" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1af0d1db2090cb57a1fc897db0d4475452" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t br_ecdsa_i31_sign_raw</definition>
+        <argsstring>(const br_ec_impl *impl, const br_hash_class *hf, const void *hash_value, const br_ec_private_key *sk, void *sig)</argsstring>
+        <name>br_ecdsa_i31_sign_raw</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+          <declname>hf</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>hash_value</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref> *</type>
+          <declname>sk</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>sig</declname>
+        </param>
+        <briefdescription>
+<para>ECDSA signature generator, &quot;i31&quot; implementation, &quot;raw&quot; format. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign()</ref></para></simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash function used to process the data. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC private key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>destination buffer. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the signature length (in bytes), or 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="742" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1acf5297e4631a9b96fe55f4f1c8d3722d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t br_ecdsa_i31_vrfy_asn1</definition>
+        <argsstring>(const br_ec_impl *impl, const void *hash, size_t hash_len, const br_ec_public_key *pk, const void *sig, size_t sig_len)</argsstring>
+        <name>br_ecdsa_i31_vrfy_asn1</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>hash_len</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref> *</type>
+          <declname>pk</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>sig</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>sig_len</declname>
+        </param>
+        <briefdescription>
+<para>ECDSA signature verifier, &quot;i31&quot; implementation, &quot;asn1&quot; format. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy()</ref></para></simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash value length (in bytes). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC public key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>1 on success, 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="759" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a47fc61d29a23105789d2bca47365a765" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t br_ecdsa_i31_vrfy_raw</definition>
+        <argsstring>(const br_ec_impl *impl, const void *hash, size_t hash_len, const br_ec_public_key *pk, const void *sig, size_t sig_len)</argsstring>
+        <name>br_ecdsa_i31_vrfy_raw</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>hash_len</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref> *</type>
+          <declname>pk</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>sig</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>sig_len</declname>
+        </param>
+        <briefdescription>
+<para>ECDSA signature verifier, &quot;i31&quot; implementation, &quot;raw&quot; format. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy()</ref></para></simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash value length (in bytes). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC public key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>1 on success, 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="776" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a56c421161765c3ecffe2b7498633d52b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t br_ecdsa_i15_sign_asn1</definition>
+        <argsstring>(const br_ec_impl *impl, const br_hash_class *hf, const void *hash_value, const br_ec_private_key *sk, void *sig)</argsstring>
+        <name>br_ecdsa_i15_sign_asn1</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+          <declname>hf</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>hash_value</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref> *</type>
+          <declname>sk</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>sig</declname>
+        </param>
+        <briefdescription>
+<para>ECDSA signature generator, &quot;i15&quot; implementation, &quot;asn1&quot; format. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign()</ref></para></simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash function used to process the data. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC private key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>destination buffer. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the signature length (in bytes), or 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="792" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a3a5ac2751071e7e7e48d2d6864b36214" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t br_ecdsa_i15_sign_raw</definition>
+        <argsstring>(const br_ec_impl *impl, const br_hash_class *hf, const void *hash_value, const br_ec_private_key *sk, void *sig)</argsstring>
+        <name>br_ecdsa_i15_sign_raw</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type>const <ref refid="bearssl__hash_8h_1ae38c1b9d539537cc16fc84388b922d86" kindref="member">br_hash_class</ref> *</type>
+          <declname>hf</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>hash_value</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref> *</type>
+          <declname>sk</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>sig</declname>
+        </param>
+        <briefdescription>
+<para>ECDSA signature generator, &quot;i15&quot; implementation, &quot;raw&quot; format. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign()</ref></para></simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash function used to process the data. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC private key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>destination buffer. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the signature length (in bytes), or 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="808" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a45f9bce33bfcdb79944aaeb828734776" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t br_ecdsa_i15_vrfy_asn1</definition>
+        <argsstring>(const br_ec_impl *impl, const void *hash, size_t hash_len, const br_ec_public_key *pk, const void *sig, size_t sig_len)</argsstring>
+        <name>br_ecdsa_i15_vrfy_asn1</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>hash_len</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref> *</type>
+          <declname>pk</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>sig</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>sig_len</declname>
+        </param>
+        <briefdescription>
+<para>ECDSA signature verifier, &quot;i15&quot; implementation, &quot;asn1&quot; format. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy()</ref></para></simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash value length (in bytes). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC public key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>1 on success, 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="825" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a80f39ee3f0fd79cdf4783a11a7794d29" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t br_ecdsa_i15_vrfy_raw</definition>
+        <argsstring>(const br_ec_impl *impl, const void *hash, size_t hash_len, const br_ec_public_key *pk, const void *sig, size_t sig_len)</argsstring>
+        <name>br_ecdsa_i15_vrfy_raw</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>hash_len</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref> *</type>
+          <declname>pk</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>sig</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>sig_len</declname>
+        </param>
+        <briefdescription>
+<para>ECDSA signature verifier, &quot;i15&quot; implementation, &quot;raw&quot; format. </para>        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy()</ref></para></simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC implementation to use. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signed data (hashed). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>hash_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>hash value length (in bytes). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>EC public key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sig_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>signature length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>1 on success, 0 on error. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="842" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a8792bb1f074376dcb06555e2ed09e95f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign</ref></type>
+        <definition>br_ecdsa_sign br_ecdsa_sign_asn1_get_default</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ecdsa_sign_asn1_get_default</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get &quot;default&quot; ECDSA implementation (signer, asn1 format). </para>        </briefdescription>
+        <detaileddescription>
+<para>This returns the preferred implementation of ECDSA signature generation (&quot;asn1&quot; output format) on the current system.</para><para><simplesect kind="return"><para>the default implementation. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="854" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a9be2f2ab22fe6cbae6428d89f18a48f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign</ref></type>
+        <definition>br_ecdsa_sign br_ecdsa_sign_raw_get_default</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ecdsa_sign_raw_get_default</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get &quot;default&quot; ECDSA implementation (signer, raw format). </para>        </briefdescription>
+        <detaileddescription>
+<para>This returns the preferred implementation of ECDSA signature generation (&quot;raw&quot; output format) on the current system.</para><para><simplesect kind="return"><para>the default implementation. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="864" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a7da8b968706d9a2ef2bf006d25f425bd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy</ref></type>
+        <definition>br_ecdsa_vrfy br_ecdsa_vrfy_asn1_get_default</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ecdsa_vrfy_asn1_get_default</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get &quot;default&quot; ECDSA implementation (verifier, asn1 format). </para>        </briefdescription>
+        <detaileddescription>
+<para>This returns the preferred implementation of ECDSA signature verification (&quot;asn1&quot; output format) on the current system.</para><para><simplesect kind="return"><para>the default implementation. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="874" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a879a96d7668b7ed052a67178ed40284d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy</ref></type>
+        <definition>br_ecdsa_vrfy br_ecdsa_vrfy_raw_get_default</definition>
+        <argsstring>(void)</argsstring>
+        <name>br_ecdsa_vrfy_raw_get_default</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get &quot;default&quot; ECDSA implementation (verifier, raw format). </para>        </briefdescription>
+        <detaileddescription>
+<para>This returns the preferred implementation of ECDSA signature verification (&quot;raw&quot; output format) on the current system.</para><para><simplesect kind="return"><para>the default implementation. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="884" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1ae98b21797958ced991e4357b1aec6046" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t br_ec_keygen</definition>
+        <argsstring>(const br_prng_class **rng_ctx, const br_ec_impl *impl, br_ec_private_key *sk, void *kbuf, int curve)</argsstring>
+        <name>br_ec_keygen</name>
+        <param>
+          <type>const <ref refid="bearssl__rand_8h_1a249aef3beeba050eea56048e6a479fba" kindref="member">br_prng_class</ref> **</type>
+          <declname>rng_ctx</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref> *</type>
+          <declname>sk</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>kbuf</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>curve</declname>
+        </param>
+        <briefdescription>
+<para>Generate a new EC private key. </para>        </briefdescription>
+        <detaileddescription>
+<para>If the specified <computeroutput>curve</computeroutput> is not supported by the elliptic curve implementation (<computeroutput>impl</computeroutput>), then this function returns zero.</para><para>The <computeroutput>sk</computeroutput> structure fields are set to the new private key data. In particular, <computeroutput>sk.x</computeroutput> is made to point to the provided key buffer (<computeroutput>kbuf</computeroutput>), in which the actual private key data is written. That buffer is assumed to be large enough. The <computeroutput>BR_EC_KBUF_PRIV_MAX_SIZE</computeroutput> defines the maximum size for all supported curves.</para><para>The number of bytes used in <computeroutput>kbuf</computeroutput> is returned. If <computeroutput>kbuf</computeroutput> is <computeroutput>NULL</computeroutput>, then the private key is not actually generated, and <computeroutput>sk</computeroutput> may also be <computeroutput>NULL</computeroutput>; the minimum length for <computeroutput>kbuf</computeroutput> is still computed and returned.</para><para>If <computeroutput>sk</computeroutput> is <computeroutput>NULL</computeroutput> but <computeroutput>kbuf</computeroutput> is not <computeroutput>NULL</computeroutput>, then the private key is still generated and stored in <computeroutput>kbuf</computeroutput>.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rng_ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>source PRNG context (already initialized). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the elliptic curve implementation. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the private key structure to fill, or <computeroutput>NULL</computeroutput>. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>kbuf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the key element buffer, or <computeroutput>NULL</computeroutput>. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>curve</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the curve identifier. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the key data length (in bytes), or zero. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="928" column="1"/>
+      </memberdef>
+      <memberdef kind="function" id="bearssl__ec_8h_1a18b65bfdad2b76d0ae1698b9b117cb65" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t br_ec_compute_pub</definition>
+        <argsstring>(const br_ec_impl *impl, br_ec_public_key *pk, void *kbuf, const br_ec_private_key *sk)</argsstring>
+        <name>br_ec_compute_pub</name>
+        <param>
+          <type>const <ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref> *</type>
+          <declname>impl</declname>
+        </param>
+        <param>
+          <type><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref> *</type>
+          <declname>pk</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>kbuf</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref> *</type>
+          <declname>sk</declname>
+        </param>
+        <briefdescription>
+<para>Compute EC public key from EC private key. </para>        </briefdescription>
+        <detaileddescription>
+<para>This function uses the provided elliptic curve implementation (<computeroutput>impl</computeroutput>) to compute the public key corresponding to the private key held in <computeroutput>sk</computeroutput>. The public key point is written into <computeroutput>kbuf</computeroutput>, which is then linked from the <computeroutput>*pk</computeroutput> structure. The size of the public key point, i.e. the number of bytes used in <computeroutput>kbuf</computeroutput>, is returned.</para><para>If <computeroutput>kbuf</computeroutput> is <computeroutput>NULL</computeroutput>, then the public key point is NOT computed, and the public key structure <computeroutput>*pk</computeroutput> is unmodified (<computeroutput>pk</computeroutput> may be <computeroutput>NULL</computeroutput> in that case). The size of the public key point is still returned.</para><para>If <computeroutput>pk</computeroutput> is <computeroutput>NULL</computeroutput> but <computeroutput>kbuf</computeroutput> is not <computeroutput>NULL</computeroutput>, then the public key point is computed and stored in <computeroutput>kbuf</computeroutput>, and its size is returned.</para><para>If the curve used by the private key is not supported by the curve implementation, then this function returns zero.</para><para>The private key MUST be valid. An off-range private key value is not necessarily detected, and leads to unpredictable results.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>impl</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the elliptic curve implementation. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the public key structure to fill (or <computeroutput>NULL</computeroutput>). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>kbuf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the public key point buffer (or <computeroutput>NULL</computeroutput>). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the source private key. </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the public key point length (in bytes), or zero. </para></simplesect>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_ec.h" line="960" column="1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><heading level="1">Elliptic Curves</heading>
+</para><para>This file documents the EC implementations provided with BearSSL, and ECDSA.</para><para><heading level="2">Elliptic Curve API</heading>
+</para><para>Only &quot;named curves&quot; are supported. Each EC implementation supports one or several named curves, identified by symbolic identifiers. These identifiers are small integers, that correspond to the values registered by the <ulink url="http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8">IANA</ulink>.</para><para>Since all currently defined elliptic curve identifiers are in the 0..31 range, it is convenient to encode support of some curves in a 32-bit word, such that bit x corresponds to curve of identifier x.</para><para>An EC implementation is incarnated by a <computeroutput><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref></computeroutput> instance, that offers the following fields:</para><para><itemizedlist>
+<listitem><para><computeroutput>supported_curves</computeroutput></para><para>A 32-bit word that documents the identifiers of the curves supported by this implementation.</para></listitem><listitem><para><computeroutput>generator()</computeroutput></para><para>Callback method that returns a pointer to the conventional generator point for that curve.</para></listitem><listitem><para><computeroutput>order()</computeroutput></para><para>Callback method that returns a pointer to the subgroup order for that curve. That value uses unsigned big-endian encoding.</para></listitem><listitem><para><computeroutput>xoff()</computeroutput></para><para>Callback method that returns the offset and length of the X coordinate in an encoded point.</para></listitem><listitem><para><computeroutput>mul()</computeroutput></para><para>Multiply a curve point with an integer.</para></listitem><listitem><para><computeroutput>mulgen()</computeroutput></para><para>Multiply the curve generator with an integer. This may be faster than the generic <computeroutput>mul()</computeroutput>.</para></listitem><listitem><para><computeroutput>muladd()</computeroutput></para><para>Multiply two curve points by two integers, and return the sum of the two products.</para></listitem></itemizedlist>
+</para><para>All curve points are represented in uncompressed format. The <computeroutput>mul()</computeroutput> and <computeroutput>muladd()</computeroutput> methods take care to validate that the provided points are really part of the relevant curve subgroup.</para><para>For all point multiplication functions, the following holds:</para><para><itemizedlist>
+<listitem><para>Functions validate that the provided points are valid members of the relevant curve subgroup. An error is reported if that is not the case.</para></listitem><listitem><para>Processing is constant-time, even if the point operands are not valid. This holds for both the source and resulting points, and the multipliers (integers). Only the byte length of the provided multiplier arrays (not their actual value length in bits) may leak through timing-based side channels.</para></listitem><listitem><para>The multipliers (integers) MUST be lower than the subgroup order. If this property is not met, then the result is indeterminate, but an error value is not ncessearily returned.</para></listitem></itemizedlist>
+</para><para><heading level="2">ECDSA</heading>
+</para><para>ECDSA signatures have two standard formats, called &quot;raw&quot; and &quot;asn1&quot;. Internally, such a signature is a pair of modular integers <computeroutput>(r,s)</computeroutput>. The &quot;raw&quot; format is the concatenation of the unsigned big-endian encodings of these two integers, possibly left-padded with zeros so that they have the same encoded length. The &quot;asn1&quot; format is the DER encoding of an ASN.1 structure that contains the two integer values: <verbatim>ECDSASignature ::= SEQUENCE {
+    r   INTEGER,
+    s   INTEGER
+}
+</verbatim></para><para>In general, in all of X.509 and SSL/TLS, the &quot;asn1&quot; format is used. BearSSL offers ECDSA implementations for both formats; conversion functions between the two formats are also provided. Conversion of a &quot;raw&quot; format signature into &quot;asn1&quot; may enlarge a signature by no more than 9 bytes for all supported curves; conversely, conversion of an &quot;asn1&quot; signature to &quot;raw&quot; may expand the signature but the &quot;raw&quot; length will never be more than twice the length of the &quot;asn1&quot; length (and usually it will be shorter).</para><para>Note that for a given signature, the &quot;raw&quot; format is not fully deterministic, in that it does not enforce a minimal common length. </para>    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="2"><highlight class="comment"><sp/>*<sp/>Copyright<sp/>(c)<sp/>2016<sp/>Thomas<sp/>Pornin<sp/>&lt;pornin@bolet.org&gt;</highlight></codeline>
+<codeline lineno="3"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="4"><highlight class="comment"><sp/>*<sp/>Permission<sp/>is<sp/>hereby<sp/>granted,<sp/>free<sp/>of<sp/>charge,<sp/>to<sp/>any<sp/>person<sp/>obtaining<sp/></highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/>*<sp/>a<sp/>copy<sp/>of<sp/>this<sp/>software<sp/>and<sp/>associated<sp/>documentation<sp/>files<sp/>(the</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"><sp/>*<sp/>&quot;Software&quot;),<sp/>to<sp/>deal<sp/>in<sp/>the<sp/>Software<sp/>without<sp/>restriction,<sp/>including</highlight></codeline>
+<codeline lineno="7"><highlight class="comment"><sp/>*<sp/>without<sp/>limitation<sp/>the<sp/>rights<sp/>to<sp/>use,<sp/>copy,<sp/>modify,<sp/>merge,<sp/>publish,</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>distribute,<sp/>sublicense,<sp/>and/or<sp/>sell<sp/>copies<sp/>of<sp/>the<sp/>Software,<sp/>and<sp/>to</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>permit<sp/>persons<sp/>to<sp/>whom<sp/>the<sp/>Software<sp/>is<sp/>furnished<sp/>to<sp/>do<sp/>so,<sp/>subject<sp/>to</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*<sp/>the<sp/>following<sp/>conditions:</highlight></codeline>
+<codeline lineno="11"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="12"><highlight class="comment"><sp/>*<sp/>The<sp/>above<sp/>copyright<sp/>notice<sp/>and<sp/>this<sp/>permission<sp/>notice<sp/>shall<sp/>be<sp/></highlight></codeline>
+<codeline lineno="13"><highlight class="comment"><sp/>*<sp/>included<sp/>in<sp/>all<sp/>copies<sp/>or<sp/>substantial<sp/>portions<sp/>of<sp/>the<sp/>Software.</highlight></codeline>
+<codeline lineno="14"><highlight class="comment"><sp/>*</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"><sp/>*<sp/>THE<sp/>SOFTWARE<sp/>IS<sp/>PROVIDED<sp/>&quot;AS<sp/>IS&quot;,<sp/>WITHOUT<sp/>WARRANTY<sp/>OF<sp/>ANY<sp/>KIND,<sp/></highlight></codeline>
+<codeline lineno="16"><highlight class="comment"><sp/>*<sp/>EXPRESS<sp/>OR<sp/>IMPLIED,<sp/>INCLUDING<sp/>BUT<sp/>NOT<sp/>LIMITED<sp/>TO<sp/>THE<sp/>WARRANTIES<sp/>OF</highlight></codeline>
+<codeline lineno="17"><highlight class="comment"><sp/>*<sp/>MERCHANTABILITY,<sp/>FITNESS<sp/>FOR<sp/>A<sp/>PARTICULAR<sp/>PURPOSE<sp/>AND<sp/></highlight></codeline>
+<codeline lineno="18"><highlight class="comment"><sp/>*<sp/>NONINFRINGEMENT.<sp/>IN<sp/>NO<sp/>EVENT<sp/>SHALL<sp/>THE<sp/>AUTHORS<sp/>OR<sp/>COPYRIGHT<sp/>HOLDERS</highlight></codeline>
+<codeline lineno="19"><highlight class="comment"><sp/>*<sp/>BE<sp/>LIABLE<sp/>FOR<sp/>ANY<sp/>CLAIM,<sp/>DAMAGES<sp/>OR<sp/>OTHER<sp/>LIABILITY,<sp/>WHETHER<sp/>IN<sp/>AN</highlight></codeline>
+<codeline lineno="20"><highlight class="comment"><sp/>*<sp/>ACTION<sp/>OF<sp/>CONTRACT,<sp/>TORT<sp/>OR<sp/>OTHERWISE,<sp/>ARISING<sp/>FROM,<sp/>OUT<sp/>OF<sp/>OR<sp/>IN</highlight></codeline>
+<codeline lineno="21"><highlight class="comment"><sp/>*<sp/>CONNECTION<sp/>WITH<sp/>THE<sp/>SOFTWARE<sp/>OR<sp/>THE<sp/>USE<sp/>OR<sp/>OTHER<sp/>DEALINGS<sp/>IN<sp/>THE</highlight></codeline>
+<codeline lineno="22"><highlight class="comment"><sp/>*<sp/>SOFTWARE.</highlight></codeline>
+<codeline lineno="23"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>BR_BEARSSL_EC_H__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>BR_BEARSSL_EC_H__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stddef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="bearssl__rand_8h" kindref="compound">bearssl_rand.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__cplusplus</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;C&quot;</highlight><highlight class="normal"><sp/>{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="143"><highlight class="comment"><sp/>*<sp/>Standard<sp/>curve<sp/>ID.<sp/>These<sp/>ID<sp/>are<sp/>equal<sp/>to<sp/>the<sp/>assigned<sp/>numerical</highlight></codeline>
+<codeline lineno="144"><highlight class="comment"><sp/>*<sp/>identifiers<sp/>assigned<sp/>to<sp/>these<sp/>curves<sp/>for<sp/>TLS:</highlight></codeline>
+<codeline lineno="145"><highlight class="comment"><sp/>*<sp/><sp/><sp/><sp/>http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8</highlight></codeline>
+<codeline lineno="146"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149" refid="bearssl__ec_8h_1afe3f3fe6e28832e5a6e31e10b64b45b8" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect163k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152" refid="bearssl__ec_8h_1a27e9c4aeffd0f893548d7e9ffd0a6b53" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect163r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155" refid="bearssl__ec_8h_1a329728365a17355436d5f1118034578d" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect163r2<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158" refid="bearssl__ec_8h_1a416bfe01284b1a3abf9da2a80e29468b" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect193r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161" refid="bearssl__ec_8h_1a52c62d8a066daebf8100e9361cbb90ec" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect193r2<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164" refid="bearssl__ec_8h_1a2270a4de8927b4aa988e242dec69327f" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect233k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>6</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167" refid="bearssl__ec_8h_1aca5e467785724e03e7f328ede207ed3b" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect233r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>7</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170" refid="bearssl__ec_8h_1a1a090b39827f800f2d547b3603f730ee" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect239k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="bearssl__ec_8h_1abdd859ee367efce171126054d9db6e2a" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect283k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>9</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176" refid="bearssl__ec_8h_1a8a609a0a23dad62dcf3937ed22fba18c" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect283r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>10</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179" refid="bearssl__ec_8h_1a26a0b0cf836ac3e3e28657ac7edd2243" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect409k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="182" refid="bearssl__ec_8h_1afd387f4bd1d342388fc4ed687ec081b9" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect409r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185" refid="bearssl__ec_8h_1a082264390695a1bc1a8b074bd8e0c8d6" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect571k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>13</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188" refid="bearssl__ec_8h_1a2be7514edb01c2554e558c8109280e65" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_sect571r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>14</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191" refid="bearssl__ec_8h_1ac1ee6ad2b1869a16d792ce1e01520a84" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp160k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>15</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194" refid="bearssl__ec_8h_1a03df4d6362901579c41734c6e9f971e5" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp160r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>16</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197" refid="bearssl__ec_8h_1ae977d093488f0decf87d5e33da8f8e66" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp160r2<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>17</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200" refid="bearssl__ec_8h_1ae552e6df02b3556ed82841f92bbe1b5f" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp192k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>18</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203" refid="bearssl__ec_8h_1ab7fb4e9820a26e42771471b3addaa2a2" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp192r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>19</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206" refid="bearssl__ec_8h_1a830bceff09b7a8a5e9b8a2487789975b" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp224k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>20</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="209" refid="bearssl__ec_8h_1a825d599fe803a188c220ad127ad2cd68" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp224r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>21</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="212" refid="bearssl__ec_8h_1af5307149adfe0ab483d9fbf016571bb7" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp256k1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>22</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215" refid="bearssl__ec_8h_1a4fec44131f69f344e29a42fc8c574f53" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp256r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>23</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218" refid="bearssl__ec_8h_1add4f9faf87c86696fdf0b99d7cea873f" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp384r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221" refid="bearssl__ec_8h_1ab67c02a8588907cdfa2e362c8d78c557" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_secp521r1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>25</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="222"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224" refid="bearssl__ec_8h_1a6d401d36f1d3e97f527bee25325fc42d" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_brainpoolP256r1<sp/><sp/><sp/><sp/>26</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight></codeline>
+<codeline lineno="227" refid="bearssl__ec_8h_1aa61b398cf890b9592d9654f12954c426" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_brainpoolP384r1<sp/><sp/><sp/><sp/>27</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"></highlight></codeline>
+<codeline lineno="230" refid="bearssl__ec_8h_1aa927b41f23f5a95e09aa8ae5d1978ac9" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_brainpoolP512r1<sp/><sp/><sp/><sp/>28</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight></codeline>
+<codeline lineno="233" refid="bearssl__ec_8h_1a49383d64a752e5a0a72f0e23d534c84a" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_curve25519<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>29</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="234"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236" refid="bearssl__ec_8h_1aeefe093924e5b0d859dcd99de7125cb5" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_curve448<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>30</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="241" refid="structbr__ec__public__key" refkind="compound"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="243" refid="structbr__ec__public__key_1a930302b66b7f28782e5aa9f4bcf22345" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__public__key_1a930302b66b7f28782e5aa9f4bcf22345" kindref="member">curve</ref>;</highlight></codeline>
+<codeline lineno="245" refid="structbr__ec__public__key_1a86f049d7119ab3c88c91379bfb84758c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structbr__ec__public__key_1a86f049d7119ab3c88c91379bfb84758c" kindref="member">q</ref>;</highlight></codeline>
+<codeline lineno="247" refid="structbr__ec__public__key_1a6c944306cac7952ce882f4b550997201" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__public__key_1a6c944306cac7952ce882f4b550997201" kindref="member">qlen</ref>;</highlight></codeline>
+<codeline lineno="248"><highlight class="normal">}<sp/><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref>;</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="258" refid="structbr__ec__private__key" refkind="compound"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="260" refid="structbr__ec__private__key_1ae18fadf79653c4b17ed7ca701cf696cc" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__private__key_1ae18fadf79653c4b17ed7ca701cf696cc" kindref="member">curve</ref>;</highlight></codeline>
+<codeline lineno="262" refid="structbr__ec__private__key_1a3df4d7dc8f5b2220b498e123a39b2798" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structbr__ec__private__key_1a3df4d7dc8f5b2220b498e123a39b2798" kindref="member">x</ref>;</highlight></codeline>
+<codeline lineno="264" refid="structbr__ec__private__key_1a287998c207df113e27ae61c19588c2f9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__private__key_1a287998c207df113e27ae61c19588c2f9" kindref="member">xlen</ref>;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal">}<sp/><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref>;</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"></highlight></codeline>
+<codeline lineno="270" refid="structbr__ec__impl" refkind="compound"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="279" refid="structbr__ec__impl_1ab69ca9dac77a15e383b4f87aa9bca444" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structbr__ec__impl_1ab69ca9dac77a15e383b4f87aa9bca444" kindref="member">supported_curves</ref>;</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight></codeline>
+<codeline lineno="292" refid="structbr__ec__impl_1aefb8a81a4434ba81fd669874d9bc6ab8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*(*generator)(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>curve,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>*len);</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"></highlight></codeline>
+<codeline lineno="306" refid="structbr__ec__impl_1a41234ee4172eadd1c59b5f5ef5540b81" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*(*order)(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>curve,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>*len);</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"></highlight></codeline>
+<codeline lineno="318" refid="structbr__ec__impl_1a8b786258f39d2d26e03e96dec95a6d23" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>size_t<sp/>(*xoff)(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>curve,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>*len);</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"></highlight></codeline>
+<codeline lineno="350" refid="structbr__ec__impl_1abc4f4ce448754b7f93632a284bfe4b3d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>(*mul)(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*G,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>Glen,</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*x,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>xlen,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>curve);</highlight></codeline>
+<codeline lineno="352"><highlight class="normal"></highlight></codeline>
+<codeline lineno="366" refid="structbr__ec__impl_1a54a7c34d0e99d453bbb588ae8ad813e1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>size_t<sp/>(*mulgen)(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*R,</highlight></codeline>
+<codeline lineno="367"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*x,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>xlen,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>curve);</highlight></codeline>
+<codeline lineno="368"><highlight class="normal"></highlight></codeline>
+<codeline lineno="412" refid="structbr__ec__impl_1afc5304c88c29ed502f0f0a8a77cec71a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>(*muladd)(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*A,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*B,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>len,</highlight></codeline>
+<codeline lineno="413"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*x,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>xlen,</highlight></codeline>
+<codeline lineno="414"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*y,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>ylen,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>curve);</highlight></codeline>
+<codeline lineno="415"><highlight class="normal">}<sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref>;</highlight></codeline>
+<codeline lineno="416"><highlight class="normal"></highlight></codeline>
+<codeline lineno="424"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1a0a94be2772bc96d8b9c09dec8fce9cff" kindref="member">br_ec_prime_i31</ref>;</highlight></codeline>
+<codeline lineno="425"><highlight class="normal"></highlight></codeline>
+<codeline lineno="433"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1abe3ec1fc90bbd9110dd8926c3de92d87" kindref="member">br_ec_prime_i15</ref>;</highlight></codeline>
+<codeline lineno="434"><highlight class="normal"></highlight></codeline>
+<codeline lineno="443"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1a75382b7ed2f5d001ff82d0eea34443ad" kindref="member">br_ec_p256_m15</ref>;</highlight></codeline>
+<codeline lineno="444"><highlight class="normal"></highlight></codeline>
+<codeline lineno="452"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1a5f92eceb81689da7db99bf47b176e468" kindref="member">br_ec_p256_m31</ref>;</highlight></codeline>
+<codeline lineno="453"><highlight class="normal"></highlight></codeline>
+<codeline lineno="463"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1a7947c958ebc5923f0d87768cc23e9c11" kindref="member">br_ec_p256_m62</ref>;</highlight></codeline>
+<codeline lineno="464"><highlight class="normal"></highlight></codeline>
+<codeline lineno="470"><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*<ref refid="bearssl__ec_8h_1a72c2f5c8bda538b46e7bcf7e0c23cee2" kindref="member">br_ec_p256_m62_get</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="471"><highlight class="normal"></highlight></codeline>
+<codeline lineno="481"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1a9ef9cb86c46b4988d12353ef667638a8" kindref="member">br_ec_p256_m64</ref>;</highlight></codeline>
+<codeline lineno="482"><highlight class="normal"></highlight></codeline>
+<codeline lineno="488"><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*<ref refid="bearssl__ec_8h_1a51f4066e0c51f4f44b489ef211056125" kindref="member">br_ec_p256_m64_get</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="489"><highlight class="normal"></highlight></codeline>
+<codeline lineno="502"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1a68dd96112ca3a13cf82f51450012668c" kindref="member">br_ec_c25519_i15</ref>;</highlight></codeline>
+<codeline lineno="503"><highlight class="normal"></highlight></codeline>
+<codeline lineno="516"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1a01c01309c61cdcd60f324639d9af5a59" kindref="member">br_ec_c25519_i31</ref>;</highlight></codeline>
+<codeline lineno="517"><highlight class="normal"></highlight></codeline>
+<codeline lineno="530"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1ad37faf5afe66fdcdba05af742b9dab97" kindref="member">br_ec_c25519_m15</ref>;</highlight></codeline>
+<codeline lineno="531"><highlight class="normal"></highlight></codeline>
+<codeline lineno="544"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1ad357341db87f49933183fe9454d6444d" kindref="member">br_ec_c25519_m31</ref>;</highlight></codeline>
+<codeline lineno="545"><highlight class="normal"></highlight></codeline>
+<codeline lineno="561"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1a8e07e26ac1a793981c6f1f8795d915bf" kindref="member">br_ec_c25519_m62</ref>;</highlight></codeline>
+<codeline lineno="562"><highlight class="normal"></highlight></codeline>
+<codeline lineno="568"><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*<ref refid="bearssl__ec_8h_1a629267c888b32036c23340bb90c23255" kindref="member">br_ec_c25519_m62_get</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="569"><highlight class="normal"></highlight></codeline>
+<codeline lineno="585"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1aee8470bea440fedb66475757605b5dff" kindref="member">br_ec_c25519_m64</ref>;</highlight></codeline>
+<codeline lineno="586"><highlight class="normal"></highlight></codeline>
+<codeline lineno="592"><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*<ref refid="bearssl__ec_8h_1a40250bf26ac5b282a229a31dd702a6f2" kindref="member">br_ec_c25519_m64_get</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="593"><highlight class="normal"></highlight></codeline>
+<codeline lineno="603"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1ab82db19c7437280b93dead4377b8a2c2" kindref="member">br_ec_all_m15</ref>;</highlight></codeline>
+<codeline lineno="604"><highlight class="normal"></highlight></codeline>
+<codeline lineno="614"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/><ref refid="bearssl__ec_8h_1acf6a7441b737f3670e5545b18a456c09" kindref="member">br_ec_all_m31</ref>;</highlight></codeline>
+<codeline lineno="615"><highlight class="normal"></highlight></codeline>
+<codeline lineno="624"><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*<ref refid="bearssl__ec_8h_1a39d4de479b5890bced8bc728e0d0b5a5" kindref="member">br_ec_get_default</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="625"><highlight class="normal"></highlight></codeline>
+<codeline lineno="638"><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="bearssl__ec_8h_1aa8685a896c92092dfff0844895bf8fd6" kindref="member">br_ecdsa_raw_to_asn1</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sig_len);</highlight></codeline>
+<codeline lineno="639"><highlight class="normal"></highlight></codeline>
+<codeline lineno="653"><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="bearssl__ec_8h_1a89311669cc19963ffbc21edae802f7d0" kindref="member">br_ecdsa_asn1_to_raw</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sig_len);</highlight></codeline>
+<codeline lineno="654"><highlight class="normal"></highlight></codeline>
+<codeline lineno="684" refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" refkind="member"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>size_t<sp/>(*<ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign</ref>)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="685"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hash__class__" kindref="compound">br_hash_class</ref><sp/>*hf,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash_value,</highlight></codeline>
+<codeline lineno="686"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref><sp/>*sk,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig);</highlight></codeline>
+<codeline lineno="687"><highlight class="normal"></highlight></codeline>
+<codeline lineno="710" refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" refkind="member"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>uint32_t<sp/>(*<ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy</ref>)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="711"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>hash_len,</highlight></codeline>
+<codeline lineno="712"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref><sp/>*pk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sig_len);</highlight></codeline>
+<codeline lineno="713"><highlight class="normal"></highlight></codeline>
+<codeline lineno="726"><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="bearssl__ec_8h_1a15e352550078ffc433ea4452031c0e42" kindref="member">br_ecdsa_i31_sign_asn1</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="727"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hash__class__" kindref="compound">br_hash_class</ref><sp/>*hf,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash_value,</highlight></codeline>
+<codeline lineno="728"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref><sp/>*sk,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig);</highlight></codeline>
+<codeline lineno="729"><highlight class="normal"></highlight></codeline>
+<codeline lineno="742"><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="bearssl__ec_8h_1af0d1db2090cb57a1fc897db0d4475452" kindref="member">br_ecdsa_i31_sign_raw</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="743"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hash__class__" kindref="compound">br_hash_class</ref><sp/>*hf,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash_value,</highlight></codeline>
+<codeline lineno="744"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref><sp/>*sk,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig);</highlight></codeline>
+<codeline lineno="745"><highlight class="normal"></highlight></codeline>
+<codeline lineno="759"><highlight class="normal">uint32_t<sp/><ref refid="bearssl__ec_8h_1acf5297e4631a9b96fe55f4f1c8d3722d" kindref="member">br_ecdsa_i31_vrfy_asn1</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="760"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>hash_len,</highlight></codeline>
+<codeline lineno="761"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref><sp/>*pk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sig_len);</highlight></codeline>
+<codeline lineno="762"><highlight class="normal"></highlight></codeline>
+<codeline lineno="776"><highlight class="normal">uint32_t<sp/><ref refid="bearssl__ec_8h_1a47fc61d29a23105789d2bca47365a765" kindref="member">br_ecdsa_i31_vrfy_raw</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="777"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>hash_len,</highlight></codeline>
+<codeline lineno="778"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref><sp/>*pk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sig_len);</highlight></codeline>
+<codeline lineno="779"><highlight class="normal"></highlight></codeline>
+<codeline lineno="792"><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="bearssl__ec_8h_1a56c421161765c3ecffe2b7498633d52b" kindref="member">br_ecdsa_i15_sign_asn1</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="793"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hash__class__" kindref="compound">br_hash_class</ref><sp/>*hf,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash_value,</highlight></codeline>
+<codeline lineno="794"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref><sp/>*sk,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig);</highlight></codeline>
+<codeline lineno="795"><highlight class="normal"></highlight></codeline>
+<codeline lineno="808"><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="bearssl__ec_8h_1a3a5ac2751071e7e7e48d2d6864b36214" kindref="member">br_ecdsa_i15_sign_raw</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="809"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__hash__class__" kindref="compound">br_hash_class</ref><sp/>*hf,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash_value,</highlight></codeline>
+<codeline lineno="810"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref><sp/>*sk,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig);</highlight></codeline>
+<codeline lineno="811"><highlight class="normal"></highlight></codeline>
+<codeline lineno="825"><highlight class="normal">uint32_t<sp/><ref refid="bearssl__ec_8h_1a45f9bce33bfcdb79944aaeb828734776" kindref="member">br_ecdsa_i15_vrfy_asn1</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="826"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>hash_len,</highlight></codeline>
+<codeline lineno="827"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref><sp/>*pk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sig_len);</highlight></codeline>
+<codeline lineno="828"><highlight class="normal"></highlight></codeline>
+<codeline lineno="842"><highlight class="normal">uint32_t<sp/><ref refid="bearssl__ec_8h_1a80f39ee3f0fd79cdf4783a11a7794d29" kindref="member">br_ecdsa_i15_vrfy_raw</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,</highlight></codeline>
+<codeline lineno="843"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hash,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>hash_len,</highlight></codeline>
+<codeline lineno="844"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref><sp/>*pk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*sig,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>sig_len);</highlight></codeline>
+<codeline lineno="845"><highlight class="normal"></highlight></codeline>
+<codeline lineno="854"><highlight class="normal"><ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign</ref><sp/><ref refid="bearssl__ec_8h_1a8792bb1f074376dcb06555e2ed09e95f" kindref="member">br_ecdsa_sign_asn1_get_default</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="855"><highlight class="normal"></highlight></codeline>
+<codeline lineno="864"><highlight class="normal"><ref refid="bearssl__ec_8h_1ab7154b0c899ceb3af062c69016258667" kindref="member">br_ecdsa_sign</ref><sp/><ref refid="bearssl__ec_8h_1a9be2f2ab22fe6cbae6428d89f18a48f5" kindref="member">br_ecdsa_sign_raw_get_default</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="865"><highlight class="normal"></highlight></codeline>
+<codeline lineno="874"><highlight class="normal"><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy</ref><sp/><ref refid="bearssl__ec_8h_1a7da8b968706d9a2ef2bf006d25f425bd" kindref="member">br_ecdsa_vrfy_asn1_get_default</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="875"><highlight class="normal"></highlight></codeline>
+<codeline lineno="884"><highlight class="normal"><ref refid="bearssl__ec_8h_1abaff5c9daad6e7dc61e4a1004ef1c8c8" kindref="member">br_ecdsa_vrfy</ref><sp/><ref refid="bearssl__ec_8h_1a879a96d7668b7ed052a67178ed40284d" kindref="member">br_ecdsa_vrfy_raw_get_default</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="885"><highlight class="normal"></highlight></codeline>
+<codeline lineno="892" refid="bearssl__ec_8h_1a2681efca64879d9d57ec744e1b608312" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_KBUF_PRIV_MAX_SIZE<sp/><sp/><sp/>72</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="893"><highlight class="normal"></highlight></codeline>
+<codeline lineno="900" refid="bearssl__ec_8h_1a3d8975cd838d2c42955f6a6ac2066d71" refkind="member"><highlight class="preprocessor">#define<sp/>BR_EC_KBUF_PUB_MAX_SIZE<sp/><sp/><sp/><sp/>145</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="901"><highlight class="normal"></highlight></codeline>
+<codeline lineno="928"><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="bearssl__ec_8h_1ae98b21797958ced991e4357b1aec6046" kindref="member">br_ec_keygen</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__prng__class__" kindref="compound">br_prng_class</ref><sp/>**rng_ctx,</highlight></codeline>
+<codeline lineno="929"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,<sp/><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref><sp/>*sk,</highlight></codeline>
+<codeline lineno="930"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*kbuf,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>curve);</highlight></codeline>
+<codeline lineno="931"><highlight class="normal"></highlight></codeline>
+<codeline lineno="960"><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="bearssl__ec_8h_1a18b65bfdad2b76d0ae1698b9b117cb65" kindref="member">br_ec_compute_pub</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__impl" kindref="compound">br_ec_impl</ref><sp/>*impl,<sp/><ref refid="structbr__ec__public__key" kindref="compound">br_ec_public_key</ref><sp/>*pk,</highlight></codeline>
+<codeline lineno="961"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*kbuf,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structbr__ec__private__key" kindref="compound">br_ec_private_key</ref><sp/>*sk);</highlight></codeline>
+<codeline lineno="962"><highlight class="normal"></highlight></codeline>
+<codeline lineno="963"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>__cplusplus</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="964"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="965"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="966"><highlight class="normal"></highlight></codeline>
+<codeline lineno="967"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/docs/lib/bearssl/bearssl_ec.h"/>
+  </compounddef>
+</doxygen>

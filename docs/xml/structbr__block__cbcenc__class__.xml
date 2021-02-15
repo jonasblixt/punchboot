@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structbr__block__cbcenc__class__" kind="struct" language="C++" prot="public">
+    <compoundname>br_block_cbcenc_class_</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structbr__block__cbcenc__class___1ae731a8e995309f146d78b3877145c110" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t br_block_cbcenc_class_::context_size</definition>
+        <argsstring></argsstring>
+        <name>context_size</name>
+        <briefdescription>
+<para>Size (in bytes) of the context structure appropriate for containing subkeys. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="399" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="399" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__cbcenc__class___1a2c42f682029f08d66eb025ae1c732834" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_block_cbcenc_class_::block_size</definition>
+        <argsstring></argsstring>
+        <name>block_size</name>
+        <briefdescription>
+<para>Size of individual blocks (in bytes). </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="404" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="404" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__cbcenc__class___1a541cb6678a10f233ad918e5a2220f5cf" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned br_block_cbcenc_class_::log_block_size</definition>
+        <argsstring></argsstring>
+        <name>log_block_size</name>
+        <briefdescription>
+<para>Base-2 logarithm of the size of individual blocks, expressed in bytes. </para>        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="410" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="410" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__cbcenc__class___1ab148e2bacebbee1588b9c7c0847a7d42" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_block_cbcenc_class_::init) (const br_block_cbcenc_class **ctx, const void *key, size_t key_len)</definition>
+        <argsstring>)(const br_block_cbcenc_class **ctx, const void *key, size_t key_len)</argsstring>
+        <name>init</name>
+        <briefdescription>
+<para>Initialisation function. </para>        </briefdescription>
+        <detaileddescription>
+<para>This function sets the <computeroutput>vtable</computeroutput> field in the context structure. The key length MUST be one of the key lengths supported by the implementation.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure to initialise. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>secret key. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key_len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>key length (in bytes). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="423" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="423" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structbr__block__cbcenc__class___1a4f6818866dd7e39c07319ccbd6e99c07" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* br_block_cbcenc_class_::run) (const br_block_cbcenc_class *const *ctx, void *iv, void *data, size_t len)</definition>
+        <argsstring>)(const br_block_cbcenc_class *const *ctx, void *iv, void *data, size_t len)</argsstring>
+        <name>run</name>
+        <briefdescription>
+<para>Run the CBC encryption. </para>        </briefdescription>
+        <detaileddescription>
+<para>The <computeroutput>iv</computeroutput> parameter points to the IV for this run; it is updated with a copy of the last encrypted block. The data is encrypted &quot;in place&quot;; its length (<computeroutput>len</computeroutput>) MUST be a multiple of the block size.</para><para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>context structure (already initialised). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>iv</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>IV for CBC encryption (updated). </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data to encrypt. </para></parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>data length (in bytes, multiple of block size). </para></parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/lib/bearssl/bearssl_block.h" line="439" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="439" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/docs/lib/bearssl/bearssl_block.h" line="394" column="1" bodyfile="/docs/lib/bearssl/bearssl_block.h" bodystart="394" bodyend="441"/>
+    <listofallmembers>
+      <member refid="structbr__block__cbcenc__class___1a2c42f682029f08d66eb025ae1c732834" prot="public" virt="non-virtual"><scope>br_block_cbcenc_class_</scope><name>block_size</name></member>
+      <member refid="structbr__block__cbcenc__class___1ae731a8e995309f146d78b3877145c110" prot="public" virt="non-virtual"><scope>br_block_cbcenc_class_</scope><name>context_size</name></member>
+      <member refid="structbr__block__cbcenc__class___1ab148e2bacebbee1588b9c7c0847a7d42" prot="public" virt="non-virtual"><scope>br_block_cbcenc_class_</scope><name>init</name></member>
+      <member refid="structbr__block__cbcenc__class___1a541cb6678a10f233ad918e5a2220f5cf" prot="public" virt="non-virtual"><scope>br_block_cbcenc_class_</scope><name>log_block_size</name></member>
+      <member refid="structbr__block__cbcenc__class___1a4f6818866dd7e39c07319ccbd6e99c07" prot="public" virt="non-virtual"><scope>br_block_cbcenc_class_</scope><name>run</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

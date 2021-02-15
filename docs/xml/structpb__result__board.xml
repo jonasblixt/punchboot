@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.13">
+  <compounddef id="structpb__result__board" kind="struct" language="C++" prot="public">
+    <compoundname>pb_result_board</compoundname>
+    <includes refid="wire_8h" local="no">wire.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structpb__result__board_1a6b0e205d20cf657ed855c17243f83c5f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pb_result_board::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Bytes to read after the result structure </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="375" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="375" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structpb__result__board_1a06c24c93eca4e76349d338a8a522388e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t pb_result_board::rz[28]</definition>
+        <argsstring>[28]</argsstring>
+        <name>rz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reserved </para>        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/docs/include/pb-tools/wire.h" line="376" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="376" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>The result structure for the board command </para>    </detaileddescription>
+    <location file="/docs/include/pb-tools/wire.h" line="374" column="1" bodyfile="/docs/include/pb-tools/wire.h" bodystart="373" bodyend="377"/>
+    <listofallmembers>
+      <member refid="structpb__result__board_1a06c24c93eca4e76349d338a8a522388e" prot="public" virt="non-virtual"><scope>pb_result_board</scope><name>rz</name></member>
+      <member refid="structpb__result__board_1a6b0e205d20cf657ed855c17243f83c5f" prot="public" virt="non-virtual"><scope>pb_result_board</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
