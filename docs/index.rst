@@ -9,5 +9,6 @@ Welcome to the punchboot-tools documentation
    intro
    build
    user-guide
+   developer-guide
    c-library-reference
    license
