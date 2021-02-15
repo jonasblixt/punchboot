@@ -28,8 +28,6 @@
 #include <uuid/uuid.h>
 #include <libfdt.h>
 
-static struct pb_hash_context hash;
-
 struct fuse fuses[] =
 {
     IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
