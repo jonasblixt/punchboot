@@ -46,3 +46,5 @@ m4/lt~obsolete.m4
 python/build/
 python/dist/
 python/punchboot.egg-info/
+docs/_build
+docs/latex

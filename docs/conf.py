@@ -9,8 +9,6 @@ import subprocess
 
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 
-print os.getcwd()
-
 if read_the_docs_build:
     subprocess.call('doxygen doxygen.cfg', shell=True)
 
@@ -60,7 +58,13 @@ author = u'Jonas Blixt'
 # built documents.
 #
 # The name of the branch/tag on github
-version = open("../VERSION.txt").read().strip()
+import re
+with open("../configure.ac") as f:
+    r = re.compile(".+\[([0-9\.]+)\]", re.DOTALL)
+    configure_ac_text = f.read()
+    m = r.match(configure_ac_text)
+    version = m.group(1)
+
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -296,4 +300,8 @@ texinfo_documents = [
 
 # extlins
 extlinks = {
+    'github-blob':
+    ('https://github.com/jonasblixt/punchboot-tools/blob/v' + version + '/%s', ''),
+    'github-tree':
+    ('https://github.com/jonasblixt/punchboot-tools/tree/v' + version + '/%s', ''),
 }

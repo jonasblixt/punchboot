@@ -4,7 +4,8 @@
 .. module:: wire_format
    :synopsis: Wire format, how data is serialized
 
-Hello!
+Thos module describes the "wire" format used to communicate between the user 
+space tools and the punchboot bootloader.
 
 ----------------------------------------------
 
