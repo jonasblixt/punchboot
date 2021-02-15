@@ -10,7 +10,6 @@
   :target: https://codecov.io/gh/jonasblixt/punchboot-tools
 
 Punchboot is a secure and fast bootloader for embedded systems. It is designed to:
-
  - Boot as fast as possible
  - Integrate with the SoC's secure boot functionality
  - Authenticate the next piece of software in the boot chain
