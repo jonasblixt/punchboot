@@ -22,7 +22,7 @@ addons:
 
 script:
     # Build BPAK library and tools
-    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.4.0
+    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.5.1
     - pushd bpak
     - autoreconf -fi
     - ./configure
