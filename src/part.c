@@ -681,6 +681,13 @@ int action_part(int argc, char **argv)
         goto err_free_ctx_out;
     }
 
+    if ((flag_write && !part_uuid) ||
+        (flag_dump && !part_uuid)  ||
+        (flag_verify && !part_uuid)) {
+        fprintf(stderr, "Error: missing required --part argument\n");
+        goto err_free_ctx_out;
+    }
+
     if (flag_list)
         rc = part_list(ctx);
     else if (flag_install)
