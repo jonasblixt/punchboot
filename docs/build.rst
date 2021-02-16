@@ -6,8 +6,8 @@ Building and installing
 
 Dependencies:
 
-  1. libusb
-  2. uuid-runtime
+  1. Normal build tools: automake, libtool, pkg-config, make
+  2. libusb
   3. bpak (https://github.com/jonasblixt/bpak)
 
 The 'autoconf-archive' package must be installed before running autoreconf.
