@@ -414,11 +414,11 @@ int plat_slc_set_configuration_lock(void)
     uint32_t uid_h;
 
 #ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
-    rc = board_slc_set_configuration_lock(&private);
+    err = board_slc_set_configuration_lock(&private);
 
-    if (rc != PB_OK) {
+    if (err != PB_OK) {
         LOG_ERR("board_slc_set_configuration failed");
-        return rc;
+        return err;
     }
 #endif
 
