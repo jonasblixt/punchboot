@@ -360,6 +360,15 @@ int plat_slc_set_configuration(void)
 {
     int err;
 
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
+    err = board_slc_set_configuration(&private);
+
+    if (err != PB_OK) {
+        LOG_ERR("board_slc_set_configuration failed");
+        return err;
+    }
+#endif
+
     /* Read fuses */
     foreach_fuse(f, fuses)
     {
@@ -393,11 +402,7 @@ int plat_slc_set_configuration(void)
         }
     }
 
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
-    return board_slc_set_configuration(&private);
-#else
     return PB_OK;
-#endif
 }
 
 int plat_slc_set_configuration_lock(void)
@@ -407,6 +412,15 @@ int plat_slc_set_configuration_lock(void)
     uint16_t monotonic;
     uint32_t uid_l;
     uint32_t uid_h;
+
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
+    rc = board_slc_set_configuration_lock(&private);
+
+    if (rc != PB_OK) {
+        LOG_ERR("board_slc_set_configuration failed");
+        return rc;
+    }
+#endif
 
     sc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
 
@@ -423,11 +437,7 @@ int plat_slc_set_configuration_lock(void)
     if (err != SC_ERR_NONE)
         return -PB_ERR;
 
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
-    return board_slc_set_configuration_lock(&private);
-#else
     return PB_OK;
-#endif
 }
 
 int plat_slc_set_end_of_life(void)

@@ -533,6 +533,15 @@ int plat_slc_set_configuration(void)
 {
     int err;
 
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
+    err = board_slc_set_configuration(&private);
+
+    if (err != PB_OK) {
+        LOG_ERR("board_slc_set_configuration failed");
+        return err;
+    }
+#endif
+
     /* Read fuses */
     foreach_fuse(f, (struct fuse *) fuses)
     {
@@ -566,23 +575,24 @@ int plat_slc_set_configuration(void)
         }
     }
 
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
-    return board_slc_set_configuration(&private);
-#else
     return PB_OK;
-#endif
 }
 
 int plat_slc_set_configuration_lock(void)
 {
-    /* Not supported yet on IMX8M */
-    return -PB_ERR;
+    int rc = -PB_ERR;
 
 #ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
-    return board_slc_set_configuration_lock(&private);
-#else
-    return PB_OK;
+    rc = board_slc_set_configuration_lock(&private);
+
+    if (rc != PB_OK) {
+        LOG_ERR("board_slc_set_configuration_lock failed");
+        return rc;
+    }
 #endif
+
+    /* Not supported yet on IMX8M */
+    return -PB_ERR;
 }
 
 int plat_slc_set_end_of_life(void)

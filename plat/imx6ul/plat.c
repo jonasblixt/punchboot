@@ -168,6 +168,18 @@ int plat_slc_set_configuration_lock(void)
 {
     int err;
     enum pb_slc slc;
+
+
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
+    err = board_slc_set_configuration_lock(&private);
+
+    if (err != PB_OK) {
+        LOG_ERR("board_slc_set_configuration failed");
+        return err;
+    }
+#endif
+
+
     err = plat_slc_read(&slc);
 
     if (err != PB_OK)
@@ -193,11 +205,7 @@ int plat_slc_set_configuration_lock(void)
     if (err != PB_OK)
         return err;
 
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
-    return board_slc_set_configuration_lock(&private);
-#else
     return PB_OK;
-#endif
 }
 
 int plat_slc_set_end_of_life(void)

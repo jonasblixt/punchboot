@@ -122,6 +122,15 @@ int plat_slc_set_configuration(void)
 {
     int err;
 
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
+    err = board_slc_set_configuration(&private);
+
+    if (err != PB_OK) {
+        LOG_ERR("board_slc_set_configuration failed");
+        return err;
+    }
+#endif
+
     /* Read fuses */
     foreach_fuse(f, (struct fuse *) fuses)
     {
@@ -148,16 +157,21 @@ int plat_slc_set_configuration(void)
             return err;
     }
 
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
-    return board_slc_set_configuration(&private);
-#else
     return PB_OK;
-#endif
 }
 
 int plat_slc_set_configuration_lock(void)
 {
     int rc;
+
+#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
+    rc = board_slc_set_configuration_lock(&private);
+
+    if (rc != PB_OK) {
+        LOG_ERR("board_slc_set_configuration failed");
+        return rc;
+    }
+#endif
 
     rc = plat_fuse_read(&security_fuse);
 
