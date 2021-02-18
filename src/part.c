@@ -536,7 +536,7 @@ static int part_dump(struct pb_context *ctx, const char* filename, const char* p
                                 (tbl[partition_table_index].last_block - \
                                 tbl[partition_table_index].first_block + 1);
 
-    for (; bytes_left > 0; bytes_left -= chunk_size)
+    do
     {
         size_t to_read = bytes_left > chunk_size ? chunk_size : bytes_left;
         rc = pb_api_stream_read_buffer(ctx, buffer_id, offset,
@@ -554,7 +554,8 @@ static int part_dump(struct pb_context *ctx, const char* filename, const char* p
              break;
         }
         offset += to_read;
-    }
+        bytes_left -= to_read;
+    } while (bytes_left > 0);
 
     pb_api_stream_finalize(ctx);
 
