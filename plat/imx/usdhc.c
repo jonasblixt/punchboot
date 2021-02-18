@@ -232,19 +232,23 @@ static int usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
     switch (part_no)
     {
         case PLAT_EMMC_PART_BOOT0:
-            value = 0x01;
+            /* Set boot0 R/W, boot1 as bootable */
+            value = (2 << 3) | 0x01;
             LOG_DBG("Switching to boot0");
         break;
         case PLAT_EMMC_PART_BOOT1:
-            value = 0x02;
+            /* Set boot1 R/W, boot0 as bootable */
+            value = (1 << 3) | 0x02;
             LOG_DBG("Switching to boot1");
         break;
         case PLAT_EMMC_PART_RPMB:
-            value = 0x03;
+            /* Enable RPMB access, set boot0 as bootable */
+            value = (1 << 3) | 0x03;
             LOG_DBG("Switching to RPMB");
         break;
         case PLAT_EMMC_PART_USER:
-            value = 0x08;
+            /* Boot 0/1 RO, Boot0 bootable */
+            value = (1 << 3);
             LOG_DBG("Switching to user");
         break;
         default:
