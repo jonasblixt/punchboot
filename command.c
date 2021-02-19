@@ -303,7 +303,9 @@ static int cmd_auth(void)
         pb_wire_init_result(&result, PB_RESULT_OK);
         plat_transport_write(&result, sizeof(result));
 
+        arch_clean_cache_range((uintptr_t) buffer[0], 4096);
         plat_transport_read(buffer[0], 1024);
+
         rc = board_command_mode_auth((char *) buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
@@ -884,7 +886,7 @@ static int pb_command_parse(void)
         case PB_CMD_DEVICE_IDENTIFIER_READ:
         {
             struct pb_result_device_identifier *ident = \
-                (struct pb_result_device_identifier *) buffer;
+                (struct pb_result_device_identifier *) buffer[0];
             memset(ident->board_id, 0, sizeof(ident->board_id));
             memcpy(ident->board_id, board_name(), strlen(board_name()));
             memcpy(ident->device_uuid, device_uuid, 16);
