@@ -136,7 +136,7 @@ static int ehci_transfer(int ep, void *bfr, size_t size)
         dtd->token = 0x80 | (1 << 15);
     }
 
-    if ((ep & 1) && bfr && size) /* Input to host, flush cache*/
+    if (bfr && size) /* Input to host, flush cache*/
     {
         arch_clean_cache_range((uintptr_t) bfr, size);
     }
