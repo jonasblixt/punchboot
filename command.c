@@ -392,6 +392,14 @@ static int cmd_stream_write(void)
                                         stream_write->offset,
                                         stream_write->size);
 
+    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_WRITABLE))
+    {
+        LOG_ERR("Partition may not be written");
+        rc = -PB_RESULT_ERROR;
+        pb_wire_init_result(&result, rc);
+        return rc;
+    }
+
     size_t part_size = stream_map->no_of_blocks *
                          stream_drv->block_size;
 
