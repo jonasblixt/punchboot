@@ -207,10 +207,10 @@ int usdhc_emmc_read_extcsd(struct usdhc_device *dev, uint8_t **output)
 #if LOGLEVEL > 0
         struct usdhc_adma2_desc *d = (struct usdhc_adma2_desc *) (uintptr_t)
                 pb_read32(dev->base + USDHC_ADMA_SYS_ADDR);
-#endif
         LOG_ERR("desc->cmd  = 0x%4.4X", d->cmd);
         LOG_ERR("desc->len  = 0x%4.4X", d->len);
         LOG_ERR("desc->addr = 0x%x", d->addr);
+#endif
         return err;
     }
 
