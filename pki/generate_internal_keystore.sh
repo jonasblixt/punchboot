@@ -7,6 +7,7 @@ PKG_UUID=5df103ef-e774-450b-95c5-1fef51ceec28
 $BPAK create $IMG -Y --hash-kind sha256 --signature-kind prime256v1 $V
 
 $BPAK add $IMG --meta bpak-package --from-string $PKG_UUID --encoder uuid $V
+$BPAK add $IMG --meta keystore-provider-id --from-string pb --encoder id $V
 
 $BPAK add $IMG --part pb-development \
                --from-file secp256r1-pub-key.der $V
