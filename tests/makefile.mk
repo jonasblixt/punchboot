@@ -26,6 +26,7 @@ INTEGRATION_TESTS += test_boot_bpak6
 INTEGRATION_TESTS += test_boot_bpak7
 INTEGRATION_TESTS += test_boot_bpak8
 INTEGRATION_TESTS += test_boot_bpak9
+INTEGRATION_TESTS += test_boot_bpak10
 INTEGRATION_TESTS += test_verify_bpak
 INTEGRATION_TESTS += test_bpak_show
 INTEGRATION_TESTS += test_invalid_key_index
