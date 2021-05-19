@@ -223,6 +223,7 @@ int pb_image_load(pb_image_read_t read_f,
     else
     {
         LOG_ERR("Signature Invalid");
+        return rc;
     }
 
     timestamp_end(&ts_signature);
