@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pb/arch.h>
 #include <pb/gpt.h>
 #include <pb/plat.h>
 #include <pb/crc.h>
@@ -146,7 +145,7 @@ static int gpt_init_tbl(struct pb_storage_driver *drv)
     struct gpt_private *priv = PB_GPT_PRIV(drv);
     struct gpt_header *hdr = &priv->primary.hdr;
 
-    prng_state = arch_get_us_tick();
+    prng_state = plat_get_us_tick();
 
     LOG_INFO("Initializing table at lba 1, last lba: %zu",
                     pb_storage_last_block(drv));

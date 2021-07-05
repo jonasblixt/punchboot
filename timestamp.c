@@ -23,13 +23,13 @@ void timestamp_init(void)
 int timestamp_begin(struct pb_timestamp *ts)
 {
     ts->next = NULL;
-    ts->begin_ts_us = arch_get_us_tick();
+    ts->begin_ts_us = plat_get_us_tick();
     return PB_OK;
 }
 
 int timestamp_end(struct pb_timestamp *ts)
 {
-    ts->end_ts_us = arch_get_us_tick();
+    ts->end_ts_us = plat_get_us_tick();
 
     if (!first)
     {

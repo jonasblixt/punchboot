@@ -23,5 +23,4 @@
 #define MAX_XLAT_TABLES			32
 #define MAX_MMAP_REGIONS		32
 
-
 #endif  // PLAT_TEST_INCLUDE_PLAT_DEFS_H_

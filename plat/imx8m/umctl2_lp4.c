@@ -274,7 +274,7 @@ static void dram_pll_init(uint32_t data_rate)
 
     /* Clear bypass */
     pb_clrbit32(SSCG_PLL_BYPASS1_MASK, 0x30360060);
-    pb_delay_ms(1);
+    plat_delay_ms(1);
     pb_clrbit32(SSCG_PLL_BYPASS2_MASK, 0x30360060);
 
     /* Wait lock */

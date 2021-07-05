@@ -24,6 +24,9 @@
 
 /* Platform API Calls */
 void plat_reset(void);
+unsigned int plat_get_us_tick(void);
+void plat_delay_ms(unsigned int ms);
+void plat_delay_us(unsigned int us);
 void plat_wdog_init(void);
 void plat_wdog_kick(void);
 

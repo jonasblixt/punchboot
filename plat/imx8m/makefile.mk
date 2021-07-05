@@ -17,6 +17,7 @@ SED = $(shell which sed)
 src-y  += plat/imx8m/plat.c
 src-y  += plat/imx/imx_uart.c
 src-y  += plat/imx/usdhc.c
+src-y  += plat/imx/gpt.c
 src-y  += plat/imx/caam.c
 src-y  += plat/imx/dwc3.c
 src-y  += plat/imx/hab.c

@@ -204,7 +204,7 @@ bool board_force_command_mode(void *plat)
 
     pb_setbit32(1 << 2, 0x5b100000+0xe0);
     LOG_DBG ("USB CHRG detect: 0x%08x",pb_read32(0x5B100000+0xf0));
-    pb_delay_ms(1);
+    plat_delay_ms(1);
     if ((pb_read32(0x5b100000+0xf0) & 0x0C) == 0x0C)
         usb_charger_detected = true;
     pb_clrbit32(1 << 2, 0x5b100000+0xe0);

@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/pb.h>
-#include <pb/arch.h>
 #include <pb/io.h>
 #include <pb/usb.h>
 #include <plat/imx/dwc3.h>
@@ -69,14 +68,14 @@ static int dwc3_command(uint8_t ep,
     pb_write32((DWC3_DEPCMD_ACT | cmd),
             (base + DWC3_DEPCMD_0 + (0x10*ep)));
 
-    volatile uint32_t timeout = arch_get_us_tick();
+    volatile uint32_t timeout = plat_get_us_tick();
     volatile uint32_t status;
 
     do
     {
         status = pb_read32((base + DWC3_DEPCMD_0 + (0x10*ep)));
 
-        if ((arch_get_us_tick() - timeout) > (DWC3_DEF_TIMEOUT_ms*1000))
+        if ((plat_get_us_tick() - timeout) > (DWC3_DEF_TIMEOUT_ms*1000))
         {
             uint32_t ev_status = pb_read32(base + DWC3_DEPCMD_0 + 0x10*ep);
             LOG_ERR("CMD %x, Timeout, status = 0x%x", cmd,
@@ -247,13 +246,13 @@ int dwc3_init(__iomem base_addr)
     /* Reset USB2 PHY */
     pb_setbit32(1 << 31, base + DWC3_GUSB2PHYCFG);
 
-    pb_delay_ms(100);
+    plat_delay_ms(100);
 
     /* Release resets */
     pb_clrbit32(1 << 31, base + DWC3_GUSB3PIPECTL);
     pb_clrbit32(1 << 31, base + DWC3_GUSB2PHYCFG);
 
-    pb_delay_ms(100); /* TODO: Is this really needed? */
+    plat_delay_ms(100); /* TODO: Is this really needed? */
 
     pb_clrbit32(1<<11, base + DWC3_GCTL);
     pb_clrbit32(1<<6, base + DWC3_GUSB2PHYCFG);
@@ -411,7 +410,7 @@ int dwc3_process(void)
     if (dwc3_trb_hwo(act_trb[USB_EP0_OUT]))
     {
         arch_invalidate_cache_range((uintptr_t) &setup_pkt, sizeof(setup_pkt));
-        pb_delay_ms(1);
+        plat_delay_ms(1);
 
         usb_process_setup_pkt(&iface, &setup_pkt);
         dwc3_transfer_no_wait(USB_EP0_OUT, (uint8_t *)&setup_pkt,

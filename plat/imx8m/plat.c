@@ -95,6 +95,11 @@ void plat_reset(void)
     imx_wdog_reset_now();
 }
 
+uint32_t plat_get_us_tick(void)
+{
+    return gp_timer_get_tick();
+}
+
 void plat_wdog_init(void)
 {
     imx_wdog_init(CONFIG_IMX_WATCHDOG_BASE, CONFIG_WATCHDOG_TIMEOUT);
@@ -177,6 +182,8 @@ int plat_early_init(void)
 
     /* PLL1 div10 */
     imx8m_clock_cfg(GPT1_CLK_ROOT | (5 << 24), CLK_ROOT_ON);
+
+    gp_timer_init(CONFIG_IMX_GPT_BASE, CONFIG_IMX_GPT_PR);
 
     /* Enable and ungate WDOG clocks */
     pb_write32((1 << 28), 0x30388004 + 0x80*114);

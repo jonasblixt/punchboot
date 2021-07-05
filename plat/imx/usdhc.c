@@ -37,7 +37,7 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
                                        uint32_t flags)
 {
     volatile uint32_t irq_status;
-    uint32_t timeout = arch_get_us_tick();
+    uint32_t timeout = plat_get_us_tick();
     int rc = PB_OK;
 
     while (1)
@@ -47,7 +47,7 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
         if (!!(irq_status & flags))
             break;
 
-        if ((arch_get_us_tick() - timeout) > 300000) {
+        if ((plat_get_us_tick() - timeout) > 300000) {
             rc = -PB_TIMEOUT;
             goto err_out;
         }
@@ -61,7 +61,7 @@ err_out:
 static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 {
     volatile uint32_t irq_status;
-    uint32_t timeout = arch_get_us_tick();
+    uint32_t timeout = plat_get_us_tick();
     int rc = PB_OK;
 
     if (!dev->transfer_in_progress)
@@ -78,7 +78,7 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
         if (!!(irq_status & USDHC_INT_DATA_END))
             break;
 
-        if ((arch_get_us_tick() - timeout) > 300000) {
+        if ((plat_get_us_tick() - timeout) > 300000) {
             rc = -PB_TIMEOUT;
             goto err_out;
         }
@@ -95,7 +95,7 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
                                     uint8_t resp_type)
 {
     volatile uint32_t pres_state = 0x00;
-    uint32_t timeout = arch_get_us_tick();
+    uint32_t timeout = plat_get_us_tick();
     int err;
     uint32_t command = (cmd << 24) |(resp_type << 16);
 
@@ -108,7 +108,7 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
             break;
         }
 
-        if ((arch_get_us_tick()-timeout) > 300000)
+        if ((plat_get_us_tick()-timeout) > 300000)
         {
             err = -PB_TIMEOUT;
             goto usdhc_cmd_fail;
@@ -735,7 +735,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
         }
         else
         {
-            pb_delay_ms(1);
+            plat_delay_ms(1);
         }
     }
 

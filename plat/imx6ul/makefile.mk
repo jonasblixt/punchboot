@@ -25,6 +25,7 @@ src-y  += plat/imx/imx_uart.c
 src-y  += plat/imx6ul/plat.c
 src-y  += plat/imx/ehci.c
 src-y  += plat/imx/usdhc.c
+src-y  += plat/imx/gpt.c
 src-y  += plat/imx/caam.c
 src-y  += plat/imx/ocotp.c
 src-y  += plat/imx/wdog.c
