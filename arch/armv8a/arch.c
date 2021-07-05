@@ -38,6 +38,8 @@ void exception(int index)
 void exception_sync(void)
 {
     printf("*** SYNCHRONOUS EXCEPTION ***\n\r");
+    printf("ESR: 0x%08lx\n\r", read_esr_el3());
+    printf("ELR: 0x%08lx\n\r", read_elr_el3());
     printf("FAR: 0x%08lx\n\r", read_far_el3());
     printf("SCTLR: 0x%08lx\n\r", read_sctlr_el3());
 }
