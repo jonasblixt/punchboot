@@ -917,11 +917,10 @@ static int pb_command_parse(void)
 
             plat_transport_write(&result, sizeof(result));
 
-            if (rc != PB_OK)
-                break;
-
-            pb_boot_driver_set_part_uu(boot_cmd->uuid);
-            pb_boot(NULL, boot_cmd->verbose, true);
+            if (rc == PB_OK) {
+                pb_boot_driver_set_part_uu(boot_cmd->uuid);
+                pb_boot(NULL, boot_cmd->verbose, true);
+            }
             /* Should not return */
             return -PB_ERR;
         }
