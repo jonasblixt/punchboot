@@ -249,3 +249,38 @@ int pb_api_partition_erase(struct pb_context *ctx, uint8_t *uuid)
                                         pb_error_string(result.result_code));
     return result.result_code;
 }
+
+int pb_api_partition_resize(struct pb_context *ctx, uint8_t *uuid,
+                                size_t blocks)
+{
+    int rc;
+    struct pb_command cmd;
+    struct pb_command_resize_part resize_command;
+    struct pb_result result;
+
+    ctx->d(ctx, 2, "%s: call\n", __func__);
+
+    memset(&resize_command, 0, sizeof(resize_command));
+    memcpy(resize_command.uuid, uuid, 16);
+    resize_command.blocks = blocks;
+
+    pb_wire_init_command2(&cmd, PB_CMD_PART_RESIZE, &resize_command,
+                                    sizeof(resize_command));
+
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
+
+    ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
+                                        pb_error_string(result.result_code));
+    return result.result_code;
+}

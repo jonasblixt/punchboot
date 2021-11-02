@@ -90,6 +90,7 @@ enum pb_commands
     PB_CMD_BOARD_COMMAND,
     PB_CMD_BOARD_STATUS_READ,
     PB_CMD_STREAM_READ_BUFFER,
+    PB_CMD_PART_RESIZE,
     PB_CMD_END,                     /* Sentinel, must be the last entry */
 };
 
@@ -291,6 +292,16 @@ struct pb_command_erase_part
 {
     uint8_t uuid[16];   /*!< UUID of partition to erase */
     uint8_t rz[16];     /*!< Reserved */
+};
+
+/**
+ * Resize partition command
+ */
+struct pb_command_resize_part
+{
+    uint8_t uuid[16];   /*!< UUID of partition to erase */
+    size_t blocks;      /*!< Size in 512byte blocks */
+    uint8_t rz[8];      /*!< Reserved */
 };
 
 /**
