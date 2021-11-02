@@ -4,8 +4,8 @@
 .. image:: https://ci.appveyor.com/api/projects/status/2x6idm34r66e0o00/branch/master?svg=true
   :target: https://ci.appveyor.com/project/jonasblixt/punchboot-tools/branch/master
   :alt: Windows build status
-.. image:: https://travis-ci.com/jonasblixt/punchboot-tools.svg?branch=master
-    :target: https://travis-ci.com/jonasblixt/punchboot-tools
+.. image:: https://app.travis-ci.com/jonasblixt/punchboot-tools.svg?branch=master
+    :target: https://app.travis-ci.com/github/jonasblixt/punchboot-tools
 .. image:: https://codecov.io/gh/jonasblixt/punchboot-tools/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/jonasblixt/punchboot-tools
 
