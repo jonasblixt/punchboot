@@ -110,6 +110,9 @@ typedef int (*pb_storage_call_t) (struct pb_storage_driver *drv);
 typedef int (*pb_storage_map_t) (struct pb_storage_driver *drv,
                                   struct pb_storage_map *map);
 
+typedef int (*pb_storage_resize_t) (struct pb_storage_driver *drv,
+                                    struct pb_storage_map *map,
+                                    size_t blocks);
 struct pb_storage_driver
 {
     bool ready;
@@ -126,6 +129,7 @@ struct pb_storage_driver
     pb_storage_map_t map_install;
     pb_storage_map_t map_request;
     pb_storage_map_t map_release;
+    pb_storage_resize_t map_resize;
     const struct pb_storage_map *map_default;
     void *map_private;
     size_t map_private_size;
@@ -155,6 +159,10 @@ int pb_storage_write(struct pb_storage_driver *drv,
 int pb_storage_get_part(uint8_t *uuid,
                         struct pb_storage_map **part,
                         struct pb_storage_driver **drv);
+
+int pb_storage_resize(struct pb_storage_driver *drv,
+                    struct pb_storage_map *part,
+                    size_t blocks);
 
 int pb_storage_install_default(void);
 int pb_storage_map(struct pb_storage_driver *drv, struct pb_storage_map **map);

@@ -778,6 +778,43 @@ static int cmd_stream_final(void)
     return rc;
 }
 
+static int part_resize(uint8_t *part_uu, size_t blocks)
+{
+    int rc;
+    char part_uu_str[37];
+
+    rc = pb_storage_get_part(part_uu,
+                             &stream_map,
+                             &stream_drv);
+
+    if (rc != PB_OK) {
+        uuid_unparse(part_uu, part_uu_str);
+        LOG_ERR("Could not find partition (%s)", part_uu_str);
+        return rc;
+    }
+
+    if (stream_drv->map_resize == NULL) {
+        rc = -PB_RESULT_NOT_SUPPORTED;
+        goto err_out;
+    }
+
+    rc = stream_drv->map_request(stream_drv, stream_map);
+
+    if (rc != PB_OK) {
+        LOG_ERR("map_request failed");
+        goto err_release_out;
+    }
+
+    if (pb_storage_resize(stream_drv, stream_map, blocks) != 0) {
+        rc = -PB_RESULT_INVALID_ARGUMENT;
+    }
+
+err_release_out:
+    stream_drv->map_release(stream_drv, stream_map);
+err_out:
+    return rc;
+}
+
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
@@ -973,6 +1010,15 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_SLC_READ:
             rc = cmd_slc_read();
+        break;
+        case PB_CMD_PART_RESIZE:
+        {
+            struct pb_command_resize_part *resize_cmd = \
+                (struct pb_command_resize_part *) cmd.request;
+            LOG_DBG("Resize partition");
+            rc = part_resize(resize_cmd->uuid, resize_cmd->blocks);;
+            pb_wire_init_result(&result, rc);
+        }
         break;
         default:
         {

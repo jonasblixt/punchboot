@@ -19,6 +19,8 @@
 int gpt_install_map(struct pb_storage_driver *drv,
                             struct pb_storage_map *map);
 
+int gpt_resize_map(struct pb_storage_driver *drv, struct pb_storage_map *map,
+                    size_t blocks);
 
 int gpt_init(struct pb_storage_driver *drv);
 

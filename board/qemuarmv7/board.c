@@ -107,6 +107,7 @@ static struct pb_storage_driver virtio_driver =
     .map_default = map,
     .map_init = gpt_init,
     .map_install = gpt_install_map,
+    .map_resize = gpt_resize,
     .map_data = map_data,
     .map_data_size = sizeof(map_data),
     .map_private = gpt_private_data,

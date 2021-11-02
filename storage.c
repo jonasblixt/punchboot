@@ -231,3 +231,27 @@ size_t pb_storage_last_block(struct pb_storage_driver *drv)
 {
     return (drv->last_block);
 }
+
+int pb_storage_resize(struct pb_storage_driver *drv,
+                    struct pb_storage_map *part,
+                    size_t blocks)
+{
+    int rc;
+
+    if (blocks < 1) {
+        return -PB_ERR_IO;
+    }
+
+    if (drv->map_resize == NULL) {
+        return -PB_ERR;
+    }
+
+    rc = drv->map_resize(drv, part, blocks);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Resize operation failed");
+        return rc;
+    }
+
+    return pb_storage_map_init(drv);
+}

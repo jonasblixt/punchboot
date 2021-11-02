@@ -16,6 +16,18 @@
 
 static volatile __a16b uint8_t status;
 
+static int virtio_map_request(struct pb_storage_driver *drv,
+                                 struct pb_storage_map *map)
+{
+    return PB_OK;
+}
+
+static int virtio_map_release(struct pb_storage_driver *drv,
+                                 struct pb_storage_map *map)
+{
+    return PB_OK;
+}
+
 int virtio_block_init(struct pb_storage_driver *drv)
 {
     struct virtio_block_device *d = \
@@ -49,6 +61,9 @@ int virtio_block_init(struct pb_storage_driver *drv)
     virtio_mmio_init_queue(&d->dev, &d->q, 0, 1024);
 
     virtio_mmio_driver_ok(&d->dev);
+
+    drv->map_request = virtio_map_request;
+    drv->map_release = virtio_map_release;
 
     return PB_OK;
 }

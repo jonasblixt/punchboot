@@ -512,3 +512,49 @@ int gpt_install_map(struct pb_storage_driver *drv,
 
     return gpt_write_tbl(drv);
 }
+
+int gpt_resize_map(struct pb_storage_driver *drv, struct pb_storage_map *map,
+                    size_t blocks)
+{
+    uint8_t uuid[16];
+    char uuid_str[37];
+    ssize_t new_offset = 0;
+    size_t old_size = 0;
+    bool found_part = false;
+    struct gpt_private *priv = PB_GPT_PRIV(drv);
+
+    uuid_unparse(map->uuid, uuid_str);
+    LOG_DBG("Resizing partition %s to %zu blocks", uuid_str, blocks);
+
+    for (struct gpt_part_hdr *p = priv->primary.part; p->first_lba; p++)
+    {
+        uuid_to_guid(p->uuid, uuid);
+
+        if (memcmp(uuid, map->uuid, 16) == 0) {
+            LOG_DBG("Found partition:");
+            found_part = true;
+            old_size = p->last_lba - p->first_lba + 1;
+            new_offset = blocks - old_size;
+            p->last_lba += new_offset;
+            LOG_DBG("  new first lba = %llu, last lba = %llu", p->first_lba,
+                                                               p->last_lba);
+        } else if (found_part) {
+            uuid_unparse(uuid, uuid_str);
+            LOG_DBG("Adjusting offset for %s with %zd blocks", uuid_str,
+                                                               new_offset);
+            LOG_DBG("  old first lba = %llu, last lba = %llu", p->first_lba,
+                                                               p->last_lba);
+            p->first_lba += new_offset;
+            p->last_lba += new_offset;
+
+            LOG_DBG("  new first lba = %llu, last lba = %llu", p->first_lba,
+                                                               p->last_lba);
+        }
+    }
+
+    if (!found_part) {
+        return -PB_ERR;
+    }
+
+    return gpt_write_tbl(drv);
+}
