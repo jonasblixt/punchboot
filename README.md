@@ -1,7 +1,7 @@
 ![PB Logo](doc/pb_logo.png)
 
 [![Coverity](https://scan.coverity.com/projects/16584/badge.svg)](https://scan.coverity.com/projects/jonasblixt-punchboot)
-[![Build Status](https://travis-ci.com/jonasblixt/punchboot.svg?branch=master)](https://travis-ci.com/jonasblixt/punchboot)
+[![Build Status](https://app.travis-ci.com/jonasblixt/punchboot.svg?branch=master)](https://app.travis-ci.com/github/jonasblixt/punchboot)
 [![codecov](https://codecov.io/gh/jonasblixt/punchboot/branch/master/graph/badge.svg)](https://codecov.io/gh/jonasblixt/punchboot)
 [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4XMK2G3TPN3BQ)
 
