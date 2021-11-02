@@ -33,7 +33,10 @@ static int part_verify(struct pb_context *ctx, const char *filename,
         return -PB_RESULT_ERROR;
     }
 
-    uuid_parse(part_uuid, uu_part);
+    if (uuid_parse(part_uuid, uu_part) != 0) {
+        fprintf(stderr, "Error: Invalid UUID\n");
+        return -PB_RESULT_INVALID_ARGUMENT;
+    }
 
     size_t read_bytes = fread(&header, 1, sizeof(header), fp);
 
@@ -129,7 +132,10 @@ static int part_write(struct pb_context *ctx, const char *filename,
     if (rc != PB_RESULT_OK)
         return rc;
 
-    uuid_parse(part_uuid, uu_part);
+    if (uuid_parse(part_uuid, uu_part) != 0) {
+        fprintf(stderr, "Error: Invalid UUID\n");
+        return -PB_RESULT_INVALID_ARGUMENT;
+    }
     chunk_size = caps.chunk_transfer_max_bytes;
 
     /* Read partition table */
@@ -474,7 +480,11 @@ static int part_dump(struct pb_context *ctx, const char* filename, const char* p
     if (rc != PB_RESULT_OK)
         goto err_close_fp;
 
-    uuid_parse(part_uuid, uu_part);
+    if (uuid_parse(part_uuid, uu_part) != 0) {
+        fprintf(stderr, "Error: Invalid UUID\n");
+        rc = -PB_RESULT_INVALID_ARGUMENT;
+        goto err_close_fp;
+    }
     chunk_size = caps.chunk_transfer_max_bytes;
 
     buffer = malloc(chunk_size);
@@ -573,7 +583,10 @@ static int part_resize(struct pb_context *ctx,
                        size_t blocks_count)
 {
     uuid_t uu_part;
-    uuid_parse(part_uuid, uu_part);
+    if (uuid_parse(part_uuid, uu_part) != 0) {
+        fprintf(stderr, "Error: Invalid UUID\n");
+        return -PB_RESULT_INVALID_ARGUMENT;
+    }
     return pb_api_partition_resize(ctx, uu_part, blocks_count);
 }
 

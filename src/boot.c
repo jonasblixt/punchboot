@@ -16,10 +16,14 @@ static int part_activate(struct pb_context *ctx, const char *part_uuid)
     int rc;
     uuid_t uu;
 
-    if (strcmp(part_uuid, "none") == 0)
+    if (strcmp(part_uuid, "none") == 0) {
         memset(uu, 0, sizeof(uu));
-    else
-        uuid_parse(part_uuid, uu);
+    } else {
+        if (uuid_parse(part_uuid, uu) != 0) {
+            fprintf(stderr, "Error: Invalid UUID\n");
+            return -PB_RESULT_INVALID_ARGUMENT;
+        }
+    }
 
     rc = pb_api_boot_activate(ctx, uu);
 
@@ -178,7 +182,11 @@ int action_boot(int argc, char **argv)
         memset(uu, 0, sizeof(uu));
 
         if (flag_part) {
-            uuid_parse(part_uuid, uu);
+            if (uuid_parse(part_uuid, uu) != 0) {
+                fprintf(stderr, "Error: Invalid UUID\n");
+                rc = -PB_RESULT_INVALID_ARGUMENT;
+                goto err_free_ctx_out;
+            }
         }
 
         rc = pb_api_boot_ram(ctx, image_buffer, (uint8_t *) &uu,
@@ -187,7 +195,11 @@ int action_boot(int argc, char **argv)
     else if (flag_boot)
     {
         uuid_t uu;
-        uuid_parse(part_uuid, uu);
+        if (uuid_parse(part_uuid, uu) != 0) {
+            fprintf(stderr, "Error: Invalid UUID\n");
+            rc = -PB_RESULT_INVALID_ARGUMENT;
+            goto err_free_ctx_out;
+        }
 
         rc = pb_api_boot_part(ctx, uu, flag_verbose_boot);
     }
