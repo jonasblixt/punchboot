@@ -20,6 +20,8 @@ void arch_init(void)
     pb_write32(1, SCTR_BASE_ADDRESS + TIMER_CNTCR);
 #endif
 
+    /* Reset systick counter */
+    write_cntp_tval_el0(0);
 }
 
 unsigned int arch_get_us_tick(void)
