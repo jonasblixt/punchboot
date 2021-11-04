@@ -31,6 +31,16 @@ const char *pb_error_string(enum pb_results result)
             return "Not found";
         case -PB_RESULT_STREAM_NOT_INITIALIZED:
             return "Stream not initialized";
+        case -PB_RESULT_TIMEOUT:
+            return "Timeout error";
+        case -PB_RESULT_KEY_REVOKED:
+            return "Invalid key, key is revoked";
+        case -PB_RESULT_SIGNATURE_ERROR:
+            return "Signature error";
+        case -PB_RESULT_MEM_ERROR:
+            return "Memory error";
+        case -PB_RESULT_IO_ERROR:
+            return "I/O Error";
         default:
             return "";
     }
