@@ -33,8 +33,9 @@ $PB board --command test-command2 \
 
 result_code=$?
 
-if [ $result_code -ne 128 ];
+if [ $result_code -ne 255 ];
 then
+    echo "$$result_code = $result_code"
     test_end_error
 fi
 

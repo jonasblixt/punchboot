@@ -79,7 +79,7 @@ echo "Flashing A"
 $PB part --write /tmp/img.bpak --part $BOOT_A --transport socket
 result_code=$?
 
-if [ $result_code -ne 247 ];
+if [ $result_code -ne 239 ];
 then
     echo "Result code $result_code"
     test_end_error

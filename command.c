@@ -130,6 +130,32 @@ static int auth_token(uint8_t *device_uu,
 }
 #endif
 
+static int error_to_wire(int error_code)
+{
+    switch (error_code) {
+        case PB_OK:
+            return PB_RESULT_OK;
+        case -PB_ERR:
+            return -PB_RESULT_ERROR;
+        case -PB_TIMEOUT:
+            return -PB_RESULT_TIMEOUT;
+        case -PB_KEY_REVOKED_ERROR:
+            return -PB_RESULT_KEY_REVOKED;
+        case -PB_SIGNATURE_ERROR:
+            return -PB_RESULT_SIGNATURE_ERROR;
+        case -PB_CHECKSUM_ERROR:
+            return -PB_CHECKSUM_ERROR;
+        case -PB_ERR_MEM:
+            return -PB_RESULT_MEM_ERROR;
+        case -PB_ERR_IO:
+            return -PB_RESULT_IO_ERROR;
+        case -PB_ERR_FILE_NOT_FOUND:
+            return -PB_RESULT_NOT_FOUND;
+        default:
+            return -PB_RESULT_ERROR;
+    }
+}
+
 static int cmd_board(void)
 {
     int rc;
@@ -154,7 +180,7 @@ static int cmd_board(void)
 
         if (rc != PB_OK)
         {
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
     }
@@ -168,7 +194,7 @@ static int cmd_board(void)
                         bfr_response, &response_size);
 
     board_result.size = response_size;
-    pb_wire_init_result2(&result, rc,
+    pb_wire_init_result2(&result, error_to_wire(rc),
                     &board_result, sizeof(board_result));
 
 
@@ -199,7 +225,7 @@ static int cmd_bpak_read(void)
     if (rc != PB_OK)
     {
         LOG_ERR("Could not find partition");
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -223,7 +249,7 @@ static int cmd_bpak_read(void)
 
         if (rc != PB_OK)
         {
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
     }
@@ -235,7 +261,7 @@ static int cmd_bpak_read(void)
 
     if (rc != PB_OK)
     {
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
         sdrv->map_release(sdrv, stream_map);
         return rc;
     }
@@ -246,7 +272,7 @@ static int cmd_bpak_read(void)
 
         if (rc != PB_OK)
         {
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
     }
@@ -260,12 +286,12 @@ static int cmd_bpak_read(void)
         return rc;
     }
 
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
     plat_transport_write(&result, sizeof(result));
 
     rc = plat_transport_write(buffer, sizeof(struct bpak_header));
 
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
 }
 
@@ -295,7 +321,7 @@ static int cmd_auth(void)
         else
             authenticated = false;
 
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
     }
 #elif CONFIG_AUTH_METHOD_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD)
@@ -311,7 +337,7 @@ static int cmd_auth(void)
         else
             authenticated = false;
 
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
     }
 #else
     UNUSED(auth_cmd);
@@ -336,7 +362,7 @@ static int cmd_stream_read(void)
     {
         LOG_ERR("Partition may not be dumped");
         rc = -PB_RESULT_ERROR;
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -349,7 +375,7 @@ static int cmd_stream_read(void)
         LOG_ERR("%llu > %zu", (stream_read->offset + \
                         stream_read->size), part_size);
         rc = -PB_RESULT_NO_MEMORY;
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -368,13 +394,13 @@ static int cmd_stream_read(void)
     rc = pb_storage_read(stream_drv, stream_map, bfr, blocks,
                             block_offset);
 
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
 
     if (rc == PB_OK)
     {
         plat_transport_write(&result, sizeof(result));
         rc = plat_transport_write(bfr, stream_read->size);
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
     }
 
     return rc;
@@ -395,8 +421,8 @@ static int cmd_stream_write(void)
     if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_WRITABLE))
     {
         LOG_ERR("Partition may not be written");
-        rc = -PB_RESULT_ERROR;
-        pb_wire_init_result(&result, rc);
+        rc = -PB_ERR;
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -408,8 +434,8 @@ static int cmd_stream_write(void)
         LOG_ERR("Trying to write outside of partition");
         LOG_ERR("%llu > %zu", (stream_write->offset + \
                         stream_write->size), part_size);
-        rc = -PB_RESULT_NO_MEMORY;
-        pb_wire_init_result(&result, rc);
+        rc = -PB_ERR_IO;
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -428,7 +454,7 @@ static int cmd_stream_write(void)
     rc = pb_storage_write(sdrv, stream_map, bfr, blocks,
                             block_offset);
 
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
 }
 
@@ -449,7 +475,7 @@ static int cmd_part_verify(void)
     if (rc != PB_OK)
     {
         LOG_ERR("Could not find partition");
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -470,7 +496,7 @@ static int cmd_part_verify(void)
 
         if (rc != PB_OK)
         {
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
     }
@@ -479,7 +505,7 @@ static int cmd_part_verify(void)
 
     if (rc != PB_OK)
     {
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -491,7 +517,7 @@ static int cmd_part_verify(void)
 
         if (rc != PB_OK)
         {
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             sdrv->map_request(sdrv, stream_map);
             return rc;
         }
@@ -537,7 +563,7 @@ static int cmd_part_verify(void)
         if (rc != PB_OK)
         {
             LOG_ERR("Hash update error");
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             break;
         }
 
@@ -552,7 +578,7 @@ static int cmd_part_verify(void)
 
     if (rc != PB_OK)
     {
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -571,7 +597,7 @@ static int cmd_part_verify(void)
         rc = -PB_RESULT_PART_VERIFY_FAILED;
     }
 
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
 }
 
@@ -657,8 +683,7 @@ static int cmd_boot_ram(void)
     if (rc != BPAK_OK)
     {
         LOG_ERR("Invalid BPAK header");
-        rc = -PB_RESULT_ERROR;
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, -PB_RESULT_ERROR);
         return rc;
     }
 
@@ -667,8 +692,7 @@ static int cmd_boot_ram(void)
     if (rc != PB_OK)
     {
         LOG_ERR("Bad header");
-        rc = -PB_RESULT_ERROR;
-        pb_wire_init_result(&result, rc);
+        pb_wire_init_result(&result, -PB_RESULT_ERROR);
         return rc;
     }
 
@@ -677,7 +701,7 @@ static int cmd_boot_ram(void)
 
     rc = pb_boot_load_transport();
 
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
 
     if (rc != PB_OK)
     {
@@ -695,7 +719,7 @@ static int cmd_slc_read(void)
     int rc;
     struct pb_result_slc slc_status;
     rc = plat_slc_read((enum pb_slc *) &slc_status.slc);
-    pb_wire_init_result2(&result, rc, &slc_status,
+    pb_wire_init_result2(&result, error_to_wire(rc), &slc_status,
                         sizeof(slc_status));
 
     plat_transport_write(&result, sizeof(result));
@@ -704,7 +728,7 @@ static int cmd_slc_read(void)
 
     rc = plat_slc_get_key_status(&key_status);
     plat_transport_write(key_status, sizeof(*key_status));
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
 
     return rc;
 }
@@ -726,7 +750,7 @@ static int cmd_stream_init(void)
     if (rc == PB_OK && stream_drv->map_request)
         rc = stream_drv->map_request(stream_drv, stream_map);
 
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
 
     return rc;
 }
@@ -773,7 +797,7 @@ static int cmd_stream_final(void)
     else
         rc = PB_RESULT_OK;
 
-    pb_wire_init_result(&result, rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
 
     return rc;
 }
@@ -884,7 +908,7 @@ static int pb_command_parse(void)
         case PB_CMD_PART_TBL_INSTALL:
         {
             rc = pb_storage_install_default();
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
         case PB_CMD_STREAM_INITIALIZE:
@@ -913,7 +937,7 @@ static int pb_command_parse(void)
             struct pb_command_boot_part *boot_cmd = \
                 (struct pb_command_boot_part *) cmd.request;
             rc = pb_boot_load_fs(boot_cmd->uuid);
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
 
             plat_transport_write(&result, sizeof(result));
 
@@ -932,7 +956,7 @@ static int pb_command_parse(void)
             memset(ident->board_id, 0, sizeof(ident->board_id));
             memcpy(ident->board_id, board_name(), strlen(board_name()));
             memcpy(ident->device_uuid, device_uuid, 16);
-            pb_wire_init_result2(&result, rc,
+            pb_wire_init_result2(&result, error_to_wire(rc),
                                     ident, sizeof(*ident));
         }
         break;
@@ -941,7 +965,7 @@ static int pb_command_parse(void)
             struct pb_command_activate_part *activate_cmd = \
                 (struct pb_command_activate_part *) cmd.request;
             rc = pb_boot_activate(activate_cmd->uuid);
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
         case PB_CMD_AUTHENTICATE:
@@ -965,7 +989,7 @@ static int pb_command_parse(void)
             rc = plat_status(bfr_response, &response_size);
 
             status_result.size = response_size;
-            pb_wire_init_result2(&result, rc,
+            pb_wire_init_result2(&result, error_to_wire(rc),
                             &status_result, sizeof(status_result));
 
             plat_transport_write(&result, sizeof(result));
@@ -976,7 +1000,7 @@ static int pb_command_parse(void)
         {
             LOG_DBG("Set configuration");
             rc = plat_slc_set_configuration();
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             plat_slc_read(&slc);
         }
         break;
@@ -984,7 +1008,7 @@ static int pb_command_parse(void)
         {
             LOG_DBG("Set configuration lock");
             rc = plat_slc_set_configuration_lock();
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             plat_slc_read(&slc);
         }
         break;
@@ -992,7 +1016,7 @@ static int pb_command_parse(void)
         {
             LOG_DBG("Set EOL");
             rc = plat_slc_set_end_of_life();
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
             plat_slc_read(&slc);
         }
         break;
@@ -1004,7 +1028,7 @@ static int pb_command_parse(void)
             LOG_DBG("Revoke key %x", revoke_cmd->key_id);
 
             rc = plat_slc_revoke_key(revoke_cmd->key_id);
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
         case PB_CMD_SLC_READ:
@@ -1016,7 +1040,7 @@ static int pb_command_parse(void)
                 (struct pb_command_resize_part *) cmd.request;
             LOG_DBG("Resize partition");
             rc = part_resize(resize_cmd->uuid, resize_cmd->blocks);;
-            pb_wire_init_result(&result, rc);
+            pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
         default:

@@ -223,6 +223,10 @@ const char * board_name(void)
     return "imx8qxmek";
 }
 
+#include <arch/armv8a/timer.h>
+#include <arch/arch_helpers.h>
+#include <plat/defs.h>
+
 int board_command(void *plat,
                      uint32_t command,
                      void *bfr,
@@ -232,6 +236,16 @@ int board_command(void *plat,
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
     *response_size = 0;
+
+    uint64_t tick_raw = read_cntp_tval_el0();
+
+    if (command == 0x37eb47d0) { /* 'tick' */
+        LOG_DBG("tick %llx", tick_raw);
+    } else if (command == 0x96bf4850) {
+        write_cntp_ctl_el0(0);
+        write_cntp_tval_el0(0);
+        write_cntp_ctl_el0(0 | (32 << 8));
+    }
 
     return PB_OK;
 }
