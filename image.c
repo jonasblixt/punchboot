@@ -15,7 +15,7 @@
 #include <pb/plat.h>
 #include <pb/io.h>
 #include <pb/keystore.h>
-#include <pb/timestamp.h>
+#include <pb/time.h>
 #include <pb/gpt.h>
 #include <pb/crypto.h>
 #include <bpak/bpak.h>

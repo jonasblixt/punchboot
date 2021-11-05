@@ -1076,18 +1076,18 @@ restart_command_mode:
         plat_reset();
     }
 
-    unsigned int ready_timeout = plat_get_us_tick();
+    struct pb_timeout to;
 
     LOG_INFO("Waiting for transport to become ready...");
+
+    pb_timeout_init_us(&to, CONFIG_TRANSPORT_READY_TIMEOUT * 1000000L);
 
     while (!plat_transport_ready())
     {
         plat_transport_process();
         plat_wdog_kick();
 
-        if ((plat_get_us_tick() - ready_timeout) >
-             (CONFIG_TRANSPORT_READY_TIMEOUT * 1000000L))
-        {
+        if (pb_timeout_has_expired(&to)) {
             LOG_ERR("Timeout, rebooting");
             plat_reset();
         }

@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2021 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -11,7 +11,7 @@
 #include <string.h>
 #include <pb/plat.h>
 #include <pb/arch.h>
-#include <pb/timestamp.h>
+#include <pb/time.h>
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <plat/imx/usdhc.h>
@@ -37,8 +37,10 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
                                        uint32_t flags)
 {
     volatile uint32_t irq_status;
-    uint32_t timeout = plat_get_us_tick();
+    struct pb_timeout to;
     int rc = PB_OK;
+
+    pb_timeout_init_us(&to, 300000);
 
     while (1)
     {
@@ -47,7 +49,7 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
         if (!!(irq_status & flags))
             break;
 
-        if ((plat_get_us_tick() - timeout) > 300000) {
+        if (pb_timeout_has_expired(&to)) {
             rc = -PB_TIMEOUT;
             goto err_out;
         }
@@ -61,7 +63,7 @@ err_out:
 static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 {
     volatile uint32_t irq_status;
-    uint32_t timeout = plat_get_us_tick();
+    struct pb_timeout to;
     int rc = PB_OK;
 
     if (!dev->transfer_in_progress)
@@ -71,6 +73,8 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 
     /* Clear all pending interrupts */
 
+    pb_timeout_init_us(&to, 300000);
+
     while (1)
     {
         irq_status = pb_read32(dev->base + USDHC_INT_STATUS);
@@ -78,7 +82,7 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
         if (!!(irq_status & USDHC_INT_DATA_END))
             break;
 
-        if ((plat_get_us_tick() - timeout) > 300000) {
+        if (pb_timeout_has_expired(&to)) {
             rc = -PB_TIMEOUT;
             goto err_out;
         }
@@ -95,9 +99,11 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
                                     uint8_t resp_type)
 {
     volatile uint32_t pres_state = 0x00;
-    uint32_t timeout = plat_get_us_tick();
+    struct pb_timeout to;
     int err;
     uint32_t command = (cmd << 24) |(resp_type << 16);
+
+    pb_timeout_init_us(&to, 300000);
 
     while (1)
     {
@@ -108,7 +114,7 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
             break;
         }
 
-        if ((plat_get_us_tick()-timeout) > 300000)
+        if (pb_timeout_has_expired(&to))
         {
             err = -PB_TIMEOUT;
             goto usdhc_cmd_fail;
@@ -348,10 +354,14 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
 
     if (!async)
     {
-        return usdhc_emmc_wait_for_de(dev);
+        err = usdhc_emmc_wait_for_de(dev);
+
+        if (err != PB_OK) {
+            LOG_ERR("xfer failed (%i)", err);
+        }
     }
 
-    return PB_OK;
+    return err;
 }
 
 static int imx_usdhc_write(struct pb_storage_driver *drv,
@@ -735,7 +745,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
         }
         else
         {
-            plat_delay_ms(1);
+            pb_delay_ms(1);
         }
     }
 

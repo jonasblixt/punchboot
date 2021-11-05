@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <pb/image.h>
 #include <pb/storage.h>
-#include <pb/timestamp.h>
+#include <pb/time.h>
 #include <bpak/bpak.h>
 #include <uuid/uuid.h>
 

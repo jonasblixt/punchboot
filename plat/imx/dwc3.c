@@ -68,14 +68,16 @@ static int dwc3_command(uint8_t ep,
     pb_write32((DWC3_DEPCMD_ACT | cmd),
             (base + DWC3_DEPCMD_0 + (0x10*ep)));
 
-    volatile uint32_t timeout = plat_get_us_tick();
+    struct pb_timeout to;
     volatile uint32_t status;
+
+    pb_timeout_init_us(&to, DWC3_DEF_TIMEOUT_ms*1000);
 
     do
     {
         status = pb_read32((base + DWC3_DEPCMD_0 + (0x10*ep)));
 
-        if ((plat_get_us_tick() - timeout) > (DWC3_DEF_TIMEOUT_ms*1000))
+        if (pb_timeout_has_expired(&to))
         {
             uint32_t ev_status = pb_read32(base + DWC3_DEPCMD_0 + 0x10*ep);
             LOG_ERR("CMD %x, Timeout, status = 0x%x", cmd,
@@ -246,13 +248,13 @@ int dwc3_init(__iomem base_addr)
     /* Reset USB2 PHY */
     pb_setbit32(1 << 31, base + DWC3_GUSB2PHYCFG);
 
-    plat_delay_ms(100);
+    pb_delay_ms(100);
 
     /* Release resets */
     pb_clrbit32(1 << 31, base + DWC3_GUSB3PIPECTL);
     pb_clrbit32(1 << 31, base + DWC3_GUSB2PHYCFG);
 
-    plat_delay_ms(100); /* TODO: Is this really needed? */
+    pb_delay_ms(100); /* TODO: Is this really needed? */
 
     pb_clrbit32(1<<11, base + DWC3_GCTL);
     pb_clrbit32(1<<6, base + DWC3_GUSB2PHYCFG);
@@ -410,7 +412,7 @@ int dwc3_process(void)
     if (dwc3_trb_hwo(act_trb[USB_EP0_OUT]))
     {
         arch_invalidate_cache_range((uintptr_t) &setup_pkt, sizeof(setup_pkt));
-        plat_delay_ms(1);
+        pb_delay_ms(1);
 
         usb_process_setup_pkt(&iface, &setup_pkt);
         dwc3_transfer_no_wait(USB_EP0_OUT, (uint8_t *)&setup_pkt,

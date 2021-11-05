@@ -18,7 +18,7 @@
 #include <pb/plat.h>
 #include <pb/atf.h>
 #include <pb/crc.h>
-#include <pb/timestamp.h>
+#include <pb/time.h>
 #include <libfdt.h>
 #include <uuid/uuid.h>
 #include <bpak/bpak.h>
