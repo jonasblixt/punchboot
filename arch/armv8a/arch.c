@@ -14,20 +14,6 @@ extern char _code_start, _code_end,
 
 void arch_init(void)
 {
-/* Timer stuff is already enabled for imx8x */
-#ifndef CONFIG_PLAT_IMX8X
-    /* Enable generic timers */
-    pb_write32(1, SCTR_BASE_ADDRESS + TIMER_CNTCR);
-#endif
-
-    /* Reset systick counter */
-    write_cntp_tval_el0(0);
-}
-
-unsigned int arch_get_us_tick(void)
-{
-    uint32_t tick = (0xFFFFFFFF - read_cntp_tval_el0());
-    return (tick >> COUNTER_US_SHIFT);
 }
 
 /* Generic exception handler */

@@ -49,6 +49,7 @@ int plat_command(uint32_t command,
 
 int plat_status(void *response_bfr,
                     size_t *response_size);
+
 /* Console API */
 int plat_console_init(void);
 int plat_console_putchar(char c);

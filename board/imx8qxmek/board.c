@@ -28,7 +28,9 @@
 #include <uuid/uuid.h>
 #include <libfdt.h>
 
+#ifdef CONFIG_AUTH_METHOD_PASSWORD
 static struct pb_hash_context hash;
+#endif
 
 struct fuse fuses[] =
 {

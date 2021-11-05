@@ -8,7 +8,7 @@
  */
 
 #include <pb/pb.h>
-#include <pb/arch.h>
+#include <pb/plat.h>
 #include <pb/timestamp.h>
 
 static struct pb_timestamp *first = NULL;

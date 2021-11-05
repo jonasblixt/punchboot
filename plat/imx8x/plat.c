@@ -63,8 +63,6 @@ static struct fuse rom_key_revoke_fuse = IMX8X_FUSE_ROW(11, "Revoke");
 static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
-static struct pb_timestamp ts_mmu_init = TIMESTAMP("MMU init");
-
 static const mmap_region_t imx_mmap[] = {
     /* Map UART */
     MAP_REGION_FLAT(CONFIG_LPUART_BASE, (64 * 1024), MT_DEVICE | MT_RW),
@@ -201,9 +199,6 @@ int plat_early_init(void)
                       ((uintptr_t) &_big_buffer_start);
 */
 
-
-//    timestamp_begin(&ts_mmu_init);
-
     reset_xlat_tables();
     mmap_add_region(code_start, code_start, code_size,
                             MT_RO | MT_MEMORY | MT_EXECUTE);
@@ -232,9 +227,6 @@ int plat_early_init(void)
     init_xlat_tables();
 
     enable_mmu_el3(0);
-//    timestamp_end(&ts_mmu_init);
-
-    //printf("MMU init: %u us", timestamp_read_us(&ts_mmu_init));
 
     /* Setup GPT0 */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
