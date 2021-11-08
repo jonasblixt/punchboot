@@ -40,6 +40,7 @@ int pb_boot(struct pb_timestamp *ts_total,
             bool manual);
 
 int pb_boot_activate(uint8_t *uu);
+void pb_boot_status(char *status_msg, size_t len);
 
 /* Boot driver API */
 int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit);
@@ -47,5 +48,7 @@ uint8_t *pb_boot_driver_get_part_uu(void);
 int pb_boot_driver_boot(int *dtb, int offset);
 int pb_boot_driver_activate(struct pb_boot_state *state, uint8_t *uu);
 int pb_boot_driver_set_part_uu(uint8_t *uu);
+void pb_boot_driver_status(struct pb_boot_state *state,
+                           char *status_msg, size_t len);
 
 #endif  // INCLUDE_PB_BOOT_H_

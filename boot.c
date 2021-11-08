@@ -599,3 +599,10 @@ int pb_boot_activate(uint8_t *uu)
 
     return pb_boot_state_commit();
 }
+
+void pb_boot_status(char *status_msg, size_t len)
+{
+    struct pb_boot_state *state = (struct pb_boot_state *) boot_state;
+
+    pb_boot_driver_status(state, status_msg, len);
+}

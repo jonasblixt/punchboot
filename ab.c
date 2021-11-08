@@ -72,9 +72,10 @@ int pb_boot_driver_activate(struct pb_boot_state *state, uint8_t *uu)
         return -PB_ERR;
     }
 
+    memcpy(active_uu, uu, 16);
+
     return PB_OK;
 }
-
 
 int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit)
 {
@@ -231,3 +232,14 @@ int pb_boot_driver_boot(int *dtb, int offset)
     return PB_OK;
 }
 
+void pb_boot_driver_status(struct pb_boot_state *state,
+                            char *status_msg, size_t len)
+{
+    struct pb_ab_boot_state *abstate = PB_BOOT_AB_STATE(state);
+
+    LOG_DBG("A/B boot load state %u %u %u", abstate->enable,
+                                            abstate->verified,
+                                            abstate->error);
+    snprintf(status_msg, len, "e:%u v:%u e:%u",
+            abstate->enable, abstate->verified, abstate->error);
+}

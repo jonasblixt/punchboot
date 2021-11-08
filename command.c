@@ -1042,6 +1042,17 @@ static int pb_command_parse(void)
             pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
+        case PB_CMD_BOOT_STATUS:
+        {
+            struct pb_result_boot_status boot_result;
+
+            memcpy(boot_result.uuid, pb_boot_driver_get_part_uu(), 16);
+            pb_boot_status(boot_result.status, sizeof(boot_result.status));
+            pb_wire_init_result2(&result, error_to_wire(rc), &boot_result,
+                                    sizeof(boot_result));
+            rc = PB_RESULT_OK;
+        }
+        break;
         default:
         {
             LOG_ERR("Got unknown command: %u", cmd.command);
