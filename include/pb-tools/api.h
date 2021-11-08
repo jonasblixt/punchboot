@@ -170,4 +170,9 @@ int pb_api_board_status(struct pb_context *ctx,
                         char *status,
                         size_t size);
 
+int pb_api_boot_status(struct pb_context *ctx,
+                       uint8_t *uuid,
+                       char *status_message,
+                       size_t len);
+
 #endif  // INCLUDE_PB_API_H_

@@ -91,6 +91,7 @@ enum pb_commands
     PB_CMD_BOARD_STATUS_READ,
     PB_CMD_STREAM_READ_BUFFER,
     PB_CMD_PART_RESIZE,
+    PB_CMD_BOOT_STATUS,
     PB_CMD_END,                     /* Sentinel, must be the last entry */
 };
 
@@ -271,7 +272,7 @@ struct pb_command_activate_part
 {
     uint8_t uuid[16];   /*!< UUID of partition to activate */
     uint8_t rz[16];     /*!< Reserved */
-};
+} __attribute__((packed));
 
 /**
  * Read BPAK header command
@@ -283,7 +284,7 @@ struct pb_command_read_bpak
 {
     uint8_t uuid[16];   /*!< Partition UUID */
     uint8_t rz[16];     /*!< Reserved */
-};
+} __attribute__((packed));
 
 /**
  * Erase partition command
@@ -292,7 +293,7 @@ struct pb_command_erase_part
 {
     uint8_t uuid[16];   /*!< UUID of partition to erase */
     uint8_t rz[16];     /*!< Reserved */
-};
+} __attribute__((packed));
 
 /**
  * Resize partition command
@@ -302,7 +303,7 @@ struct pb_command_resize_part
     uint8_t uuid[16];   /*!< UUID of partition to erase */
     size_t blocks;      /*!< Size in 512byte blocks */
     uint8_t rz[8];      /*!< Reserved */
-};
+} __attribute__((packed));
 
 /**
  * Read device identifier
@@ -394,6 +395,16 @@ struct pb_result_board_status
 {
     uint32_t size;  /*!< Bytes to read after the result structure */
     uint8_t rz[28]; /*!< Reserved */
+} __attribute__((packed));
+
+/**
+ * Boot status result
+ **/
+
+struct pb_result_boot_status
+{
+    uint8_t uuid[16]; /*!< Active boot partition */
+    char status[16];  /*!< Optional, textual status message */
 } __attribute__((packed));
 
 /**

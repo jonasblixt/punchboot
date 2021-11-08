@@ -209,3 +209,45 @@ int pb_api_boot_ram(struct pb_context *ctx,
 
     return result.result_code;
 }
+
+int pb_api_boot_status(struct pb_context *ctx,
+                       uint8_t *uuid,
+                       char *status_message,
+                       size_t len)
+{
+    int rc;
+    struct pb_command cmd;
+    struct pb_result result;
+    struct pb_result_boot_status *boot_status;
+
+    ctx->d(ctx, 2, "%s: call\n", __func__);
+
+    pb_wire_init_command(&cmd, PB_CMD_BOOT_STATUS);
+
+    rc = ctx->write(ctx, &cmd, sizeof(cmd));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    rc = ctx->read(ctx, &result, sizeof(result));
+
+    if (rc != PB_RESULT_OK)
+        return rc;
+
+    if (!pb_wire_valid_result(&result))
+        return -PB_RESULT_ERROR;
+
+    boot_status = (struct pb_result_boot_status *) result.response;
+
+    if (len > sizeof(boot_status->status))
+        memcpy(status_message, boot_status->status, sizeof(boot_status->status));
+    else
+        memcpy(status_message, boot_status->status, len);
+
+    memcpy(uuid, boot_status->uuid, 16);
+
+    ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
+                                        pb_error_string(result.result_code));
+
+    return result.result_code;
+}

@@ -71,6 +71,7 @@ void help_boot(void)
     printf("    -l, --load <filename> [--part <uuid>]  Load image into ram and boot\n");
     printf("    -b, --boot <uuid>                      Boot partition with <uuid>\n");
     printf("    -a, --activate <uuid>                  Activate boot partition\n");
+    printf("    -s, --status                           Display boot status\n");
     printf("\nCommon boot options:\n");
     printf("    --verbose-boot                         Verbose output\n");
     help_common_footer();

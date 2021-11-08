@@ -30,6 +30,24 @@ static int part_activate(struct pb_context *ctx, const char *part_uuid)
     return rc;
 }
 
+static int boot_status(struct pb_context *ctx)
+{
+    int rc;
+    uuid_t uu;
+    char status_message[32];
+    char boot_part_uuid[37];
+
+    rc = pb_api_boot_status(ctx, uu, status_message, sizeof(status_message));
+
+    if (rc == PB_RESULT_OK) {
+        uuid_unparse(uu, boot_part_uuid);
+        printf("Boot partition: %s\n", boot_part_uuid);
+        printf("Boot status:    %s\n", status_message);
+    }
+
+    return rc;
+}
+
 int action_boot(int argc, char **argv)
 {
     int opt;
@@ -44,6 +62,7 @@ int action_boot(int argc, char **argv)
     bool flag_boot = false;
     bool flag_activate = false;
     bool flag_part = false;
+    bool flag_boot_status = false;
     const char *device_uuid = NULL;
 
     struct option long_options[] =
@@ -57,10 +76,11 @@ int action_boot(int argc, char **argv)
         {"part",        required_argument, 0,  'p' },
         {"activate",    required_argument, 0,  'a' },
         {"verbose-boot", no_argument,      0,  'W' },
+        {"status",      no_argument,       0,  's' },
         {0,             0,                 0,   0  }
     };
 
-    while ((opt = getopt_long(argc, argv, "hvt:d:l:a:b:Wp:",
+    while ((opt = getopt_long(argc, argv, "hvt:d:l:a:b:Wp:s",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -70,6 +90,9 @@ int action_boot(int argc, char **argv)
                 return 0;
             case 'v':
                 pb_inc_verbosity();
+            break;
+            case 's':
+                flag_boot_status = true;
             break;
             case 'p':
                 flag_part = true;
@@ -191,9 +214,7 @@ int action_boot(int argc, char **argv)
 
         rc = pb_api_boot_ram(ctx, image_buffer, (uint8_t *) &uu,
                                     flag_verbose_boot);
-    }
-    else if (flag_boot)
-    {
+    } else if (flag_boot) {
         uuid_t uu;
         if (uuid_parse(part_uuid, uu) != 0) {
             fprintf(stderr, "Error: Invalid UUID\n");
@@ -202,11 +223,11 @@ int action_boot(int argc, char **argv)
         }
 
         rc = pb_api_boot_part(ctx, uu, flag_verbose_boot);
-    }
-    else if (flag_activate)
+    } else if (flag_activate) {
         rc = part_activate(ctx, part_uuid);
-    else
-    {
+    } else if (flag_boot_status) {
+        rc = boot_status(ctx);
+    } else {
         fprintf(stderr, "Error: Unknown command\n");
         rc = -PB_RESULT_ERROR;
     }
