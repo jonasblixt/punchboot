@@ -40,7 +40,7 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
     struct pb_timeout to;
     int rc = PB_OK;
 
-    pb_timeout_init_us(&to, 300000);
+    pb_timeout_init_us(&to, 1000000);
 
     while (1)
     {
@@ -73,7 +73,7 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 
     /* Clear all pending interrupts */
 
-    pb_timeout_init_us(&to, 300000);
+    pb_timeout_init_us(&to, 5000000);
 
     while (1)
     {
