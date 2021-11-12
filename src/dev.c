@@ -116,33 +116,30 @@ int action_dev(int argc, char **argv)
 
     rc = transport_init_helper(&ctx, transport, device_uuid);
 
-    if (rc != PB_RESULT_OK)
-    {
+    if (rc != PB_RESULT_OK) {
         fprintf(stderr, "Error: Could not initialize context\n");
         return rc;
     }
 
-    if (flag_wait)
-    {
-        if (pb_get_verbosity() > 1)
-        {
+    if (flag_wait) {
+        if (pb_get_verbosity() > 1) {
             printf("Waiting for device (timeout %li seconds)\n",
                                     wait_timeout_seconds);
         }
 
-        for (int i = 0; i < wait_timeout_seconds; i++)
-        {
+        for (int i = 0; i < wait_timeout_seconds; i++) {
             rc = ctx->connect(ctx);
 
-            if (rc == PB_RESULT_OK)
-            {
-                if (pb_get_verbosity())
-                {
+            if (rc == PB_RESULT_OK) {
+                if (pb_get_verbosity()) {
                     printf("Found device\n");
                 }
+                char version[64];
+                rc = pb_api_bootloader_version(ctx, version, sizeof(version));
 
-                rc = 0;
-                goto err_free_ctx_out;
+                if (rc == PB_RESULT_OK) {
+                    goto err_free_ctx_out;
+                }
             }
 
             sleep(1);
@@ -155,8 +152,7 @@ int action_dev(int argc, char **argv)
 
     rc = ctx->connect(ctx);
 
-    if (rc != PB_RESULT_OK)
-    {
+    if (rc != PB_RESULT_OK) {
         fprintf(stderr, "Error: Could not connect to device\n");
         goto err_free_ctx_out;
     }
