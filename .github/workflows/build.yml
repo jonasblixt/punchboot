@@ -40,7 +40,7 @@ jobs:
             sudo make install
             sudo ldconfig
             popd
-    - name: Build punchboot
+    - name: Build punchboot and run tests
       run: |
           cp configs/test_defconfig .config
           make CROSS_COMPILE=arm-none-eabi- BOARD=board/test check
