@@ -11,6 +11,7 @@
 *.gcov
 *.pbi
 *.gz
+*.patch
 build-*
 cov-int
 cov.xml

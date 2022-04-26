@@ -1,0 +1,48 @@
+name: Punchboot build
+
+on: [push]
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install deps
+      run: |
+          sudo apt-get update
+          sudo apt-get install autoconf-archive qemu-system-arm libusb-1.0-0 libusb-1.0-0-dev uuid-dev gcc-arm-none-eabi
+    - name: Build BPAK
+      run: |
+            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.5.11
+            pushd bpak
+            autoreconf -fi
+            ./configure
+            make
+            sudo make install
+            sudo ldconfig
+            popd
+    - name: Build punchboot-tools
+      run: |
+            git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v0.2.5
+            pushd punchboot-tools
+            autoreconf -fi
+            ./configure
+            make
+            sudo make install
+            sudo ldconfig
+            popd
+    - name: Build pbstate
+      run: |
+            pushd tools/pbstate
+            autoreconf -fi
+            ./configure
+            make
+            sudo make install
+            sudo ldconfig
+            popd
+    - name: Build punchboot
+      run: |
+          cp configs/test_defconfig .config
+          make CROSS_COMPILE=arm-none-eabi- BOARD=board/test check
+    - name: codecov
+      run: cd build-test && bash <(curl -s https://codecov.io/bash)
