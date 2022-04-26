@@ -139,7 +139,7 @@ static int pb_usb_free(struct pb_context *ctx)
     struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
 
     pb_usb_close_handle(priv->h);
-    libusb_exit(NULL);
+    libusb_exit(priv->usb_ctx);
     free(ctx->transport);
     return PB_RESULT_OK;
 }
