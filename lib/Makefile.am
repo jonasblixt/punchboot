@@ -31,4 +31,5 @@ libpunchboot_la_LIBS = $(CODE_COVERAGE_LIBS) $(LIBUSB_LIBS) $(BPAK_LIBS)
 
 pkginclude_HEADERS = $(top_srcdir)/include/pb-tools/api.h \
                      $(top_srcdir)/include/pb-tools/error.h \
+                     $(top_srcdir)/include/pb-tools/usb.h \
                      $(top_srcdir)/include/pb-tools/wire.h
