@@ -29,6 +29,15 @@ struct pb_usb_private
 #define PB_USB_VID 0x1209
 #define PB_USB_PID 0x2019
 
+static void pb_usb_close_handle(struct pb_usb_private* p)
+{
+    if (p->h == NULL)
+        return;
+
+    libusb_close(p->h);
+    p->h = NULL;
+}
+
 static int pb_usb_init(struct pb_context *ctx)
 {
     int rc;
@@ -72,7 +81,7 @@ static int pb_usb_connect(struct pb_context *ctx)
                 libusb_get_string_descriptor_ascii(priv->h, desc.iSerialNumber,
                          device_serial, sizeof(device_serial));
 
-                libusb_close(priv->h);
+                pb_usb_close_handle(priv->h);
 
                 if (strcmp(device_serial, priv->device_uuid) != 0)
                     continue;
@@ -119,7 +128,7 @@ static int pb_usb_connect(struct pb_context *ctx)
     return rc;
 
 err_close_dev_out:
-    libusb_close(priv->h);
+    pb_usb_close_handle(priv->h);
 err_free_devs_out:
     libusb_free_device_list(devs, 1);
     return rc;
@@ -127,6 +136,9 @@ err_free_devs_out:
 
 static int pb_usb_free(struct pb_context *ctx)
 {
+    struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
+
+    pb_usb_close_handle(priv->h);
     libusb_exit(NULL);
     free(ctx->transport);
     return PB_RESULT_OK;
