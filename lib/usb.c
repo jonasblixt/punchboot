@@ -22,6 +22,7 @@ struct pb_usb_private
     libusb_device *dev;
     libusb_context *usb_ctx;
     libusb_device_handle *h;
+    bool interface_claimed;
     const char *device_uuid;
 };
 
@@ -116,6 +117,7 @@ static int pb_usb_connect(struct pb_context *ctx)
         rc = -PB_RESULT_ERROR;
         goto err_close_dev_out;
     }
+    priv->interface_claimed = true;
 
     if (priv->h == NULL)
         rc = -PB_RESULT_ERROR;
@@ -137,6 +139,9 @@ err_free_devs_out:
 static int pb_usb_free(struct pb_context *ctx)
 {
     struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
+
+    if (priv->interface_claimed)
+        libusb_release_interface(priv->h, 0);
 
     pb_usb_close_handle(priv->h);
     libusb_exit(priv->usb_ctx);
