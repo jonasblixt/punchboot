@@ -42,6 +42,9 @@ SECTIONS
         *(.rodata .rodata.*)
         . = ALIGN(4096);
         _edata = .;
+        *(.keystore_header)
+        *(.keystore_key)
+        . = ALIGN(4096);
         PROVIDE (_ro_data_region_end = .);
     } > pbram
 

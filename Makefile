@@ -120,7 +120,7 @@ all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 
 $(BUILD_DIR)/keystore.o:
 	@echo GEN $(BUILD_DIR)/keystore.c
-	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) > $(BUILD_DIR)/keystore.c
+	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) --decorate > $(BUILD_DIR)/keystore.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)

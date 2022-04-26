@@ -22,7 +22,7 @@ addons:
 
 script:
     # Build BPAK library and tools
-    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.4.0
+    - git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.5.11
     - pushd bpak
     - autoreconf -fi
     - ./configure
@@ -32,7 +32,7 @@ script:
     - popd
 
     # Build punchboot library and tools
-    - git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v0.2.3
+    - git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v0.2.5
     - pushd punchboot-tools
     - autoreconf -fi
     - ./configure
