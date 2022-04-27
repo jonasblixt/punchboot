@@ -1,7 +1,7 @@
 dnl Punchboot tools
 
 AC_PREREQ(2.59)
-AC_INIT([punchboot], [0.2.5], [Jonas Blixt, <jonpe960@gmail.com>])
+AC_INIT([punchboot], [0.2.6], [Jonas Blixt, <jonpe960@gmail.com>])
 
 m4_pattern_forbid([^AX_(CHECK_ENABLE_DEBUG|CODE_COVERAGE|COMPILER_FLAGS|COMPILER_FLAGS_(CFLAGS|CXXFLAGS|LDFLAGS))\b],
   [Unexpanded AX_ macro found. Please install GNU autoconf-archive])
