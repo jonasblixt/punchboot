@@ -31,9 +31,10 @@ int pb_api_bootloader_version(struct pb_context *ctx,
 
     p = (char *) result.response;
 
-    if (strlen(p) > size)
+    if ((strlen(p)+1) > size)
         return -PB_RESULT_NO_MEMORY;
 
+    memset(version, 0, size);
     memcpy(version, p, strlen(p));
 
     ctx->d(ctx, 2, "%s: return %i (%s)\n", __func__, result.result_code,
