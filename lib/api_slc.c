@@ -47,8 +47,13 @@ int pb_api_slc_read(struct pb_context *ctx,
     if (rc != PB_RESULT_OK)
         return rc;
 
-    memcpy(active_keys, key_status.active, sizeof(key_status.active));
-    memcpy(revoked_keys, key_status.revoked, sizeof(key_status.revoked));
+    if (active_keys != NULL) {
+        memcpy(active_keys, key_status.active, sizeof(key_status.active));
+    }
+
+    if (revoked_keys != NULL) {
+        memcpy(revoked_keys, key_status.revoked, sizeof(key_status.revoked));
+    }
 
     rc = ctx->read(ctx, &result, sizeof(result));
 
