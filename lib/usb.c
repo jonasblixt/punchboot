@@ -82,7 +82,7 @@ static int pb_usb_connect(struct pb_context *ctx)
                 libusb_get_string_descriptor_ascii(priv->h, desc.iSerialNumber,
                          device_serial, sizeof(device_serial));
 
-                pb_usb_close_handle(priv->h);
+                pb_usb_close_handle(priv);
 
                 if (strcmp(device_serial, priv->device_uuid) != 0)
                     continue;
@@ -130,7 +130,7 @@ static int pb_usb_connect(struct pb_context *ctx)
     return rc;
 
 err_close_dev_out:
-    pb_usb_close_handle(priv->h);
+    pb_usb_close_handle(priv);
 err_free_devs_out:
     libusb_free_device_list(devs, 1);
     return rc;
@@ -143,7 +143,7 @@ static int pb_usb_free(struct pb_context *ctx)
     if (priv->interface_claimed)
         libusb_release_interface(priv->h, 0);
 
-    pb_usb_close_handle(priv->h);
+    pb_usb_close_handle(priv);
     libusb_exit(priv->usb_ctx);
     free(ctx->transport);
     return PB_RESULT_OK;
