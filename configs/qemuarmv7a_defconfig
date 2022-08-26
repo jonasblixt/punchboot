@@ -67,6 +67,7 @@ CONFIG_BOOT_AB_B_UUID="c046ccd8-0f2e-4036-984d-76c14dc73992"
 # Library
 #
 CONFIG_BEARSSL=y
+CONFIG_LIB_UUID3=y
 # end of Library
 
 #

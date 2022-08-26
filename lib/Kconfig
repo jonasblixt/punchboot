@@ -2,4 +2,6 @@ menu "Library"
 
 source "lib/bearssl/Kconfig"
 
+config LIB_UUID3
+    bool "Enable UUID3 function"
 endmenu

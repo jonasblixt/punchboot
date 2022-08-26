@@ -8,7 +8,7 @@ src-y  += lib/uuid/unparse.c
 src-y  += lib/uuid/parse.c
 src-y  += lib/uuid/clear.c
 src-y  += lib/uuid/conv.c
-src-y  += lib/uuid/uuid3.c
+src-$(CONFIG_LIB_UUID3)  += lib/uuid/uuid3.c
 
 # C library
 src-y  += lib/string.c
