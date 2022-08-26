@@ -19,41 +19,35 @@ typedef union
 } uuid3_t;
 
 static __a4k __no_bss uint8_t _uuid_aligned_buf[64];
-static __a4k __no_bss uint8_t _uuid_aligned_buf2[64];
 static struct pb_hash_context hash_ctx;
 
 int uuid_gen_uuid3(const char *namespace_uu,
                        const char *unique, size_t size, char *out)
 {
     int err;
+    size_t total_length = 16 + size; /* 16 bytes of 'namespace_uu' */
 
     err = plat_hash_init(&hash_ctx, PB_HASH_MD5);
 
     if (err != PB_OK)
         return err;
 
-    if (size > sizeof(_uuid_aligned_buf2))
+    /* Ensure that the buffer can hold the 16 byte namespace_uu +
+     *  'size' bytes of unique data */
+    if (total_length > sizeof(_uuid_aligned_buf))
         return PB_ERR;
 
     memset(_uuid_aligned_buf, 0, sizeof(_uuid_aligned_buf));
     memcpy(_uuid_aligned_buf, namespace_uu, 16);
+    memcpy(&_uuid_aligned_buf[16], unique, size);
 
-    err = plat_hash_update(&hash_ctx, _uuid_aligned_buf,
-                                        sizeof(_uuid_aligned_buf));
-
-    if (err != PB_OK)
-        return err;
-
-    memset(_uuid_aligned_buf2, 0, sizeof(_uuid_aligned_buf2));
-    memcpy(_uuid_aligned_buf2, unique, size);
-
-    err = plat_hash_update(&hash_ctx, _uuid_aligned_buf2,
-                            sizeof(_uuid_aligned_buf2));
+    /* Calling update without any data just initalizes the alg */
+    err = plat_hash_update(&hash_ctx, NULL, 0);
 
     if (err != PB_OK)
         return err;
 
-    err = plat_hash_finalize(&hash_ctx, NULL, 0);
+    err = plat_hash_finalize(&hash_ctx, _uuid_aligned_buf, total_length);
 
     if (err != PB_OK)
         return err;
@@ -65,7 +59,7 @@ int uuid_gen_uuid3(const char *namespace_uu,
     u->uuid.time_hi_and_version &= 0xFF0F;
     u->uuid.time_hi_and_version |= 0x0030; /* Version 3*/
 
-    u->uuid.clock_seq_hi_and_res &= 0x1F;
+    u->uuid.clock_seq_hi_and_res &= 0x3F;
     u->uuid.clock_seq_hi_and_res |= 0x80; /* RFC4122 variant*/
     return PB_OK;
 }
