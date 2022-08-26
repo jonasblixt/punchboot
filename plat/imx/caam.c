@@ -260,6 +260,10 @@ int caam_hash_init(struct pb_hash_context *ctx, enum pb_hash_algs pb_alg)
             alg = CAAM_ALG_TYPE_MD5;
             block_size = 32;
         break;
+        case PB_HASH_MD5_BROKEN:
+            alg = CAAM_ALG_TYPE_MD5;
+            block_size = 16;
+        break;
         default:
             LOG_ERR("Unknown pb_alg value 0x%x", pb_alg);
             return -PB_ERR;

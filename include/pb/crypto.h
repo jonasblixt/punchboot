@@ -23,6 +23,7 @@ enum pb_hash_algs
     PB_HASH_SHA256,
     PB_HASH_SHA384,
     PB_HASH_SHA512,
+    PB_HASH_MD5_BROKEN,
 };
 
 enum pb_key_types
