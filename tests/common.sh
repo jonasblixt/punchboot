@@ -49,7 +49,7 @@ force_recovery_mode_off()
 
 auth()
 {
-    $PB auth --token 2456a34c-d17a-3b6d-9157-bbe585b48e7b.token --key-id 0xa90f9680 --transport socket
+    $PB auth --token 02e49231-756e-35ee-a982-378e5ba866a9.token --key-id 0xa90f9680 --transport socket
 }
 
 wait_for_qemu_start()

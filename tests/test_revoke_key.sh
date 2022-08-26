@@ -14,7 +14,7 @@ start_qemu
 wait_for_qemu_start
 
 $PB slc --show --transport socket
-$PB auth --token tests/2456a34c-d17a-3b6d-9157-bbe585b48e7b.token \
+$PB auth --token tests/02e49231-756e-35ee-a982-378e5ba866a9.token  \
          --key-id 0xa90f9680 --transport socket
 result_code=$?
 
@@ -47,7 +47,7 @@ fi
 $PB slc --show --transport socket
 
 # Auth should now fail
-$PB auth --token tests/2456a34c-d17a-3b6d-9157-bbe585b48e7b.token \
+$PB auth --token tests/02e49231-756e-35ee-a982-378e5ba866a9.token \
          --key-id 0xa90f9680 --transport socket
 result_code=$?
 
