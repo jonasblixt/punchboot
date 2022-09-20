@@ -10,10 +10,10 @@ jobs:
     - name: Install deps
       run: |
           sudo apt-get update
-          sudo apt-get install autoconf-archive libusb-1.0-0 libusb-1.0-0-dev uuid-dev lcov
+          sudo apt-get install autoconf-archive libusb-1.0-0 libusb-1.0-0-dev uuid-runtime uuid-dev lcov libmbedtls-dev liblzma-dev
     - name: Build BPAK
       run: |
-            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.5.11
+            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.6.2
             pushd bpak
             autoreconf -fi
             ./configure

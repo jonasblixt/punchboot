@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <bpak/bpak.h>
 #include <bpak/utils.h>
+#include <bpak/id.h>
 #include "tool.h"
 #include "uuid/uuid.h"
 #include "sha256.h"
@@ -366,7 +367,7 @@ static int print_bpak_header(struct bpak_header *h,
         {
             bpak_meta_to_string(h, m, string_output, sizeof(string_output));
             printf("    %8.8x   %-3u    %-20s ", m->id, m->size,
-                         bpak_known_id(m->id));
+                         bpak_id_to_string(m->id));
 
             if (m->part_id_ref)
                 printf("%8.8x", m->part_id_ref);
