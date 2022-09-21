@@ -56,7 +56,8 @@ static int slc_show(struct pb_context *ctx)
         }
     }
 
-};
+    return 0;
+}
 
 int action_slc(int argc, char **argv)
 {

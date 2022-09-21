@@ -123,19 +123,29 @@ static int part_write(struct pb_context *ctx, const char *filename,
         return -PB_RESULT_ERROR;
     }
 
-    fseek(fp, -1, SEEK_END);
+    if (fseek(fp, -1, SEEK_END) != 0) {
+        rc = -PB_RESULT_IO_ERROR;
+        goto err_close_fp_out;
+    }
+
     file_size_bytes = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
+
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        rc = -PB_RESULT_IO_ERROR;
+        goto err_close_fp_out;
+    }
 
     /* Read device capabilities */
     rc = pb_api_device_read_caps(ctx, &caps);
 
-    if (rc != PB_RESULT_OK)
-        return rc;
+    if (rc != PB_RESULT_OK) {
+        goto err_close_fp_out;
+    }
 
     if (uuid_parse(part_uuid, uu_part) != 0) {
         fprintf(stderr, "Error: Invalid UUID\n");
-        return -PB_RESULT_INVALID_ARGUMENT;
+        rc = -PB_RESULT_INVALID_ARGUMENT;
+        goto err_close_fp_out;
     }
     chunk_size = caps.chunk_transfer_max_bytes;
 
@@ -158,13 +168,14 @@ static int part_write(struct pb_context *ctx, const char *filename,
 
     chunk_buffer = malloc(chunk_size + 1);
 
-    if (!chunk_buffer)
-        return -PB_RESULT_NO_MEMORY;
+    if (!chunk_buffer) {
+        rc = -PB_RESULT_NO_MEMORY;
+        goto err_free_entries;
+    }
 
     rc = pb_api_stream_init(ctx, uu_part);
 
-    if (rc != PB_RESULT_OK)
-    {
+    if (rc != PB_RESULT_OK) {
         fprintf(stderr, "Error: Stream initialization failed (%i)\n", rc);
         goto err_out;
     }
@@ -272,11 +283,12 @@ static int part_write(struct pb_context *ctx, const char *filename,
             (float) (file_size_bytes/1024/1024) / time_us*1E6);
     }
 
+err_out:
+    free(chunk_buffer);
 err_free_entries:
     free(tbl);
-err_out:
+err_close_fp_out:
     fclose(fp);
-    free(chunk_buffer);
     return rc;
 }
 
@@ -410,6 +422,7 @@ static int print_bpak_header(struct bpak_header *h,
     }
 
     printf("\n\n");
+    return 0;
 }
 
 static int part_show(struct pb_context *ctx, const char *part_uuid)
@@ -467,10 +480,13 @@ static int part_dump(struct pb_context *ctx, const char* filename, const char* p
     FILE* fp;
     bool part_is_bpak = false;
 
+    if (part_uuid == 0) {
+        return -PB_RESULT_INVALID_ARGUMENT;
+    }
+
     fp = fopen(filename, "wb");
 
-    if (!fp)
-    {
+    if (!fp) {
         fprintf(stderr, "Error: Could not open '%s'\n", filename);
         return -PB_RESULT_ERROR;
     }
@@ -489,15 +505,13 @@ static int part_dump(struct pb_context *ctx, const char* filename, const char* p
     chunk_size = caps.chunk_transfer_max_bytes;
 
     buffer = malloc(chunk_size);
-    if (!buffer)
-    {
+    if (!buffer) {
         rc = -PB_RESULT_NO_MEMORY;
         goto err_close_fp;
     }
 
     tbl = malloc(sizeof(struct pb_partition_table_entry) * entries);
-    if (!tbl)
-    {
+    if (!tbl) {
         rc = -PB_RESULT_NO_MEMORY;
         goto err_free_buf;
     }
@@ -510,14 +524,12 @@ static int part_dump(struct pb_context *ctx, const char* filename, const char* p
     if (!entries)
         goto err_free_tbl;
 
-    for (int i = 0; i < entries; i++)
-    {
+    for (int i = 0; i < entries; i++) {
         struct bpak_header header;
         uuid_unparse(tbl[i].uuid, uuid_str);
 
-        if (part_uuid)
-            if (strcmp(uuid_str, part_uuid) != 0)
-                continue;
+        if (strcmp(uuid_str, part_uuid) != 0)
+            continue;
 
         rc = pb_api_partition_read_bpak(ctx, tbl[i].uuid, &header);
 

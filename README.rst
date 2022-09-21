@@ -8,6 +8,8 @@
     :target: https://app.travis-ci.com/github/jonasblixt/punchboot-tools
 .. image:: https://codecov.io/gh/jonasblixt/punchboot-tools/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/jonasblixt/punchboot-tools
+.. image:: https://scan.coverity.com/projects/24907/badge.svg
+  :target: https://scan.coverity.com/projects/jonasblixt-punchboot-tools
 
 Punchboot is a secure and fast bootloader for embedded systems. It is designed to:
  - Boot as fast as possible

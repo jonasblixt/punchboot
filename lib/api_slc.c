@@ -166,6 +166,7 @@ int pb_api_slc_revoke_key(struct pb_context *ctx, uint32_t key_id)
 
     ctx->d(ctx, 2, "%s: call\n", __func__);
 
+    memset(&revoke, 0, sizeof(revoke));
     revoke.key_id = key_id;
 
     pb_wire_init_command2(&cmd, PB_CMD_SLC_REVOKE_KEY, &revoke, sizeof(revoke));

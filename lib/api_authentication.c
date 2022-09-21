@@ -17,6 +17,7 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
 
     ctx->d(ctx, 2, "%s: call, method: %i, size: %i\n", __func__, method, size);
 
+    memset(&auth, 0, sizeof(auth));
     auth.method = method;
     auth.key_id = key_id;
     auth.size = size;
