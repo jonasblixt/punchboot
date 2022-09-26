@@ -14,7 +14,7 @@ matrix:
 
 install:
   # bitpacker
-  - git clone https://github.com/jonasblixt/bpak.git "C:\bpak" --depth 1 --branch v0.6.3
+  - git clone https://github.com/jonasblixt/bpak.git "C:\bpak" --depth 1 --branch switch-to-cmake
   # libwdi, specific commit checked out in build step
   - git clone https://github.com/pbatard/libwdi.git "C:\libwdi"
   # install innosetup for creating installers
@@ -34,7 +34,7 @@ build_script:
 
   # Build bpak
   - ps: pushd "C:\bpak"
-  - C:\msys64\usr\bin\bash -lc "cd C:/bpak && autoreconf -fi && ./configure --disable-tool --disable-lzma --disable-transport-encode --disable-pkg-create --disable-pkg-sign --disable-merkle --disable-bspatch --disable-bsdiff --disable-transport-decode --disable-pkg-verify --disable-pkg&& make && make install"
+  - C:\msys64\usr\bin\bash -lc "cmake -B build/ -DBPAK_BUILD_MINIMAL=1 -G \"MinGW Makefiles\" && make -C build/ && make -C build/ install"
   - ps: popd
   # Build libwdi
   - ps: pushd "C:\libwdi"
