@@ -22,6 +22,7 @@
   #include <sys/un.h>
 #endif
 
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 #include <pb-tools/error.h>
@@ -60,7 +61,7 @@ static int pb_socket_read(struct pb_context *ctx, void *bfr, size_t sz)
 
     ssize_t bytes = read(priv->fd, bfr, sz);
 
-    if (bytes == sz)
+    if (bytes == (ssize_t) sz)
         return PB_RESULT_OK;
 
     return -PB_RESULT_ERROR;
@@ -72,7 +73,7 @@ static int pb_socket_write(struct pb_context *ctx, const void *bfr, size_t sz)
 
     ssize_t bytes = write(priv->fd, bfr, sz);
 
-    if (bytes == sz)
+    if (bytes == (ssize_t) sz)
         return PB_RESULT_OK;
 
     return -PB_RESULT_ERROR;
@@ -117,7 +118,7 @@ static int pb_socket_free(struct pb_context *ctx)
     return PB_RESULT_OK;
 }
 
-int pb_socket_transport_init(struct pb_context *ctx,
+PB_EXPORT int pb_socket_transport_init(struct pb_context *ctx,
                              const char socket_path[])
 {
     ctx->transport = malloc(sizeof(struct pb_socket_private));

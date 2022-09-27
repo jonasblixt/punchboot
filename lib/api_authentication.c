@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 
@@ -67,7 +68,7 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_authenticate_password(struct pb_context *ctx,
+PB_EXPORT int pb_api_authenticate_password(struct pb_context *ctx,
                                     uint8_t *data,
                                     size_t size)
 {
@@ -77,7 +78,7 @@ int pb_api_authenticate_password(struct pb_context *ctx,
                                         0, data, size);
 }
 
-int pb_api_authenticate_key(struct pb_context *ctx,
+PB_EXPORT int pb_api_authenticate_key(struct pb_context *ctx,
                             uint32_t key_id,
                             uint8_t *data,
                             size_t size)
@@ -90,7 +91,7 @@ int pb_api_authenticate_key(struct pb_context *ctx,
 
 
 
-int pb_api_auth_set_otp_password(struct pb_context *ctx,
+PB_EXPORT int pb_api_auth_set_otp_password(struct pb_context *ctx,
                                  const char *password,
                                  size_t size)
 {

@@ -21,14 +21,12 @@ int main(int argc, char **argv)
     int opt;
     int long_index = 0;
     const char *action = NULL;
-    const char *transport = NULL;
 
     struct option long_options[] =
     {
         {"help",      no_argument,       0,  'h' },
         {"version",   no_argument,       0,  'V' },
         {"verbose",   no_argument,       0,  'v' },
-        {"transport", required_argument, 0,  't' },
         {0,           0,                 0,   0  }
     };
 
@@ -40,7 +38,7 @@ int main(int argc, char **argv)
 
     srand(time(NULL));
 
-    while ((opt = getopt_long(2, argv, "hVvt:",
+    while ((opt = getopt_long(2, argv, "hVv",
                    long_options, &long_index )) != -1)
     {
         switch (opt)
@@ -55,9 +53,6 @@ int main(int argc, char **argv)
             break;
             case 'v':
                 pb_inc_verbosity();
-            break;
-            case 't':
-                transport = optarg;
             break;
             case ':':
                 fprintf(stderr, "Missing arg for %c\n", optopt);

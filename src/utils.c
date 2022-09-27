@@ -9,6 +9,7 @@
 
 int pb_debug(struct pb_context *ctx, int level, const char *fmt, ...)
 {
+    (void) ctx;
     va_list args;
 
     if (pb_get_verbosity() >= level)
@@ -50,13 +51,12 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name,
     }
     else if (strcmp(t, "socket") == 0)
     {
-#ifdef WINDOWS
-        printf("Error: The socket transport is not supported on windows\n");
-        rc = -PB_RESULT_ERROR;
-#else
+#if PB_TOOLS_BUILD_SOCKET == 1
         if (pb_get_verbosity() > 2)
             printf("Connecting to /tmp/pb.sock\n");
         rc = pb_socket_transport_init(ctx, "/tmp/pb.sock");
+#else
+        fprintf(stderr, "Error: Socket support not built-in\n");
 #endif
     }
 
@@ -76,4 +76,4 @@ int bytes_to_string(size_t bytes, char *out, size_t size)
         snprintf(out, size, "%-4li B ", bytes);
 
     return PB_RESULT_OK;
-};
+}

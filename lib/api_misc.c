@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 
-int pb_api_bootloader_version(struct pb_context *ctx,
+PB_EXPORT int pb_api_bootloader_version(struct pb_context *ctx,
                               char *version,
                               size_t size)
 {

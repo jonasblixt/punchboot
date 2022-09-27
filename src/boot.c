@@ -189,7 +189,7 @@ int action_boot(int argc, char **argv)
             goto err_free_ctx_out;
         }
 
-        size_t read_bytes = fread(image_buffer, 1, stat_buffer.st_size, fp);
+        ssize_t read_bytes = fread(image_buffer, 1, stat_buffer.st_size, fp);
 
         if (read_bytes != stat_buffer.st_size)
         {

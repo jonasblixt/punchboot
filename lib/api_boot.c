@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 #include <bpak/bpak.h>
 
-int pb_api_boot_activate(struct pb_context *ctx, uint8_t *uuid)
+PB_EXPORT int pb_api_boot_activate(struct pb_context *ctx, uint8_t *uuid)
 {
     int rc;
     struct pb_command cmd;
@@ -37,7 +38,7 @@ int pb_api_boot_activate(struct pb_context *ctx, uint8_t *uuid)
     return result.result_code;
 }
 
-int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose)
+PB_EXPORT int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose)
 {
     int rc;
     struct pb_command_boot_part boot_part_command;
@@ -77,7 +78,7 @@ int pb_api_boot_part(struct pb_context *ctx, uint8_t *uuid, bool verbose)
     return result.result_code;
 }
 
-int pb_api_boot_ram(struct pb_context *ctx,
+PB_EXPORT int pb_api_boot_ram(struct pb_context *ctx,
                     const void *bpak_image,
                     uint8_t *uuid,
                     bool verbose)
@@ -210,7 +211,7 @@ int pb_api_boot_ram(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_boot_status(struct pb_context *ctx,
+PB_EXPORT int pb_api_boot_status(struct pb_context *ctx,
                        uint8_t *uuid,
                        char *status_message,
                        size_t len)

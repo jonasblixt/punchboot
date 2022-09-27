@@ -55,14 +55,12 @@ err_out:
 
 static int auth_password(struct pb_context *ctx, const char *password)
 {
-    return pb_api_authenticate_password(ctx, (uint8_t *)password,
-                                strlen(password));
+    return pb_api_authenticate_password(ctx, (uint8_t *) password, strlen(password));
 }
 
 static int auth_set_password(struct pb_context *ctx, const char *password)
 {
-    return pb_api_auth_set_otp_password(ctx, (uint8_t *)password,
-                                strlen(password));
+    return pb_api_auth_set_otp_password(ctx, password, strlen(password));
 }
 
 int action_auth(int argc, char **argv)

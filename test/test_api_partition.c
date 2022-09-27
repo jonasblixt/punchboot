@@ -78,10 +78,9 @@ TEST(part_verify)
 {
     int rc;
     struct pb_context *ctx;
-    struct pb_result_part_table_entry tbl[128];
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    unsigned char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe0";
-    char sha256[] = "hejhopp123";
+    uint8_t sha256[] = "hejhopp123";
 
     test_command_loop_set_authenticated(true);
 
@@ -121,10 +120,9 @@ TEST(part_verify_fail)
 {
     int rc;
     struct pb_context *ctx;
-    struct pb_result_part_table_entry tbl[128];
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    unsigned char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe0";
-    char sha256[] = "hejhopp124";
+    uint8_t sha256[] = "hejhopp124";
 
     test_command_loop_set_authenticated(true);
 
@@ -163,10 +161,9 @@ TEST(part_verify_invalid_part)
 {
     int rc;
     struct pb_context *ctx;
-    struct pb_result_part_table_entry tbl[128];
-    char partuuid[] = "\xff\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    unsigned char partuuid[] = "\xff\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe0";
-    char sha256[] = "hejhopp123";
+    uint8_t sha256[] = "hejhopp123";
 
     test_command_loop_set_authenticated(true);
 
@@ -208,7 +205,7 @@ TEST(read_bpak)
     int rc;
     struct pb_context *ctx;
     struct bpak_header b;
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    unsigned char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe1";
 
     test_command_loop_set_authenticated(true);

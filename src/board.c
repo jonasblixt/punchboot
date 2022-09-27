@@ -94,7 +94,7 @@ int action_board(int argc, char **argv)
             break;
             case 'b':
                 flag_command = true;
-                command = crc32(0, optarg, strlen(optarg));
+                command = crc32(0, (uint8_t *)optarg, strlen(optarg));
             break;
             case 'A':
                 command_args = (const char *) optarg;

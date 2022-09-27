@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 
-int pb_api_board_command(struct pb_context *ctx,
+PB_EXPORT int pb_api_board_command(struct pb_context *ctx,
                          uint32_t board_command_id,
                          const void *request,
                          size_t request_size,
@@ -95,7 +96,7 @@ int pb_api_board_command(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_board_status(struct pb_context *ctx,
+PB_EXPORT int pb_api_board_status(struct pb_context *ctx,
                         char *status,
                         size_t size)
 {

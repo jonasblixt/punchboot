@@ -15,7 +15,7 @@ TEST(stream_init)
     int rc;
     struct pb_context *ctx;
 
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    uint8_t partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe1";
 
     test_command_loop_set_authenticated(true);
@@ -53,7 +53,7 @@ TEST(stream_write)
     int rc;
     struct pb_context *ctx;
     uint8_t chunk[4096];
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    uint8_t partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe1";
 
     test_command_loop_set_authenticated(true);

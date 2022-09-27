@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 
-int pb_api_device_reset(struct pb_context *ctx)
+PB_EXPORT int pb_api_device_reset(struct pb_context *ctx)
 {
     int rc;
     struct pb_command cmd;
@@ -37,7 +38,7 @@ int pb_api_device_reset(struct pb_context *ctx)
     return result.result_code;
 }
 
-int pb_api_device_read_identifier(struct pb_context *ctx,
+PB_EXPORT int pb_api_device_read_identifier(struct pb_context *ctx,
                                   uint8_t *device_uuid,
                                   size_t device_uuid_size,
                                   char *board_id,
@@ -80,7 +81,7 @@ int pb_api_device_read_identifier(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_device_read_caps(struct pb_context *ctx,
+PB_EXPORT int pb_api_device_read_caps(struct pb_context *ctx,
                             struct pb_device_capabilities *caps)
 {
     int rc;

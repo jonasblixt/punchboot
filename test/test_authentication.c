@@ -66,7 +66,7 @@ TEST(api_auth_fail2)
 
     /* Authenticate, should fail, incorrect password */
     rc = pb_api_authenticate_password(ctx,
-                             "pelle", 5);
+                             (uint8_t *) "pelle", 5);
     ASSERT_EQ(rc, -PB_RESULT_AUTHENTICATION_FAILED);
 
 
@@ -102,7 +102,7 @@ TEST(api_auth_set_otp_pass)
 
     /* Authenticate, should fail since no password is set yet  */
     rc = pb_api_authenticate_password(ctx,
-                             (char *) password, strlen(password));
+                             (uint8_t *) password, strlen(password));
     ASSERT_EQ(rc, -PB_RESULT_AUTHENTICATION_FAILED);
 
 
@@ -140,7 +140,7 @@ TEST(api_auth_set_otp_pass_again)
 
     /* Authenticate, should fail since no password is set yet  */
     rc = pb_api_authenticate_password(ctx,
-                             (char *) password, strlen(password));
+                             (uint8_t *) password, strlen(password));
     ASSERT_EQ(rc, -PB_RESULT_AUTHENTICATION_FAILED);
 
 
@@ -184,7 +184,7 @@ TEST(api_auth_ok)
 
     /* Authenticate */
     rc = pb_api_authenticate_password(ctx,
-                             (char *) password, strlen(password));
+                             (uint8_t *) password, strlen(password));
     ASSERT_EQ(rc, PB_RESULT_OK);
 
     /* Send device reset command */

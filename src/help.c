@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <pb-tools/pb-tools.h>
 #include "tool.h"
 
 static int verbosity;
@@ -15,7 +16,7 @@ int pb_get_verbosity(void)
 
 void print_version(void)
 {
-    printf("Punchboot-tools v%s\n", PACKAGE_VERSION);
+    printf("Punchboot-tools v%s\n", PB_TOOLS_VERSION_STRING);
 }
 
 static void help_common_header(const char *action)

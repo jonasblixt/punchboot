@@ -27,7 +27,6 @@ static struct pb_result_slc_key_status key_status =
         .revoked = {0x01010101},
     };
 static struct pb_result_part_table_entry tbl[128];
-static int no_of_stream_buffers = 2;
 static uint8_t stream_buffer[2][8192];
 static const uint32_t chunk_size = 256;
 
@@ -76,7 +75,6 @@ static int pb_command_read_slc(struct pb_command_ctx *ctx,
                                const struct pb_command *command,
                                struct pb_result *result)
 {
-    int rc;
     struct pb_result_slc slc;
     struct pb_result slc_result;
 
@@ -138,6 +136,11 @@ static int pb_authenticate(struct pb_command_ctx *ctx,
     pb_wire_init_result(result, -PB_RESULT_ERROR);
 
     ssize_t bytes = read(client_fd, auth_data, sizeof(auth_data));
+
+    if (bytes < 0) {
+        printf("%s: Error reading %li\n", __func__, bytes);
+        return -PB_RESULT_ERROR;
+    }
 /*
     if (bytes != auth->size)
     {
@@ -232,9 +235,6 @@ static int pb_board_cmd(struct pb_command_ctx *ctx,
     uint8_t buf[1024];
     char *response = "Hello";
 
-    struct pb_command_board *board_cmd = \
-           (struct pb_command_board *) command->request;
-
     struct pb_result_board board_result;
 
     printf("Board command\n");
@@ -324,10 +324,6 @@ static int pb_boot_ram(struct pb_command_ctx *ctx,
     int rc = -PB_RESULT_ERROR;
     struct bpak_header header;
     uint8_t buf[1024];
-
-    struct pb_command_boot_ram *boot_command = \
-       (struct pb_command_boot_ram *) command->request;
-
 
     printf("Boot ram req\n");
 
@@ -421,10 +417,6 @@ static int pb_stream_init(struct pb_command_ctx *ctx,
                              struct pb_result *result)
 {
     int rc = -PB_RESULT_ERROR;
-    struct pb_command_stream_initialize *init_command = \
-       (struct pb_command_stream_initialize *) command->request;
-
-
 
     printf("stream init\n");
     stream_configured = true;
@@ -524,7 +516,7 @@ static int pb_read_bpak(struct pb_command_ctx *ctx,
     ctx->send_result(ctx, &cmd_result);
 
     bpak_init_header(&h);
-    ssize_t bytes = write(client_fd, &h, sizeof(h));
+    (void) write(client_fd, &h, sizeof(h));
 
     return pb_wire_init_result(result, PB_RESULT_OK);
 }
@@ -715,10 +707,8 @@ static int pb_command_config_lock(struct pb_command_ctx *ctx,
 
 static void * test_command_loop(void *arg)
 {
-    int rc;
     struct pb_command command;
     struct sockaddr_un addr;
-    struct sockaddr_un from;
     ssize_t len;
 
 
@@ -759,6 +749,7 @@ static void * test_command_loop(void *arg)
     }
 
     printf("Command loop stopped\n");
+    return 0;
 }
 
 static bool force_auth = false;

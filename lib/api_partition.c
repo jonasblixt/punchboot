@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 #include <bpak/bpak.h>
 
-int pb_api_partition_read_table(struct pb_context *ctx,
+PB_EXPORT int pb_api_partition_read_table(struct pb_context *ctx,
                                 struct pb_partition_table_entry *out,
                                 int *entries)
 {
@@ -91,10 +92,9 @@ int pb_api_partition_read_table(struct pb_context *ctx,
                                         pb_error_string(result.result_code));
 
     return result.result_code;
-};
+}
 
-
-int pb_api_partition_install_table(struct pb_context *ctx)
+PB_EXPORT int pb_api_partition_install_table(struct pb_context *ctx)
 {
     int rc;
     struct pb_command cmd;
@@ -122,7 +122,7 @@ int pb_api_partition_install_table(struct pb_context *ctx)
     return result.result_code;
 }
 
-int pb_api_partition_verify(struct pb_context *ctx,
+PB_EXPORT int pb_api_partition_verify(struct pb_context *ctx,
                             uint8_t *uuid,
                             uint8_t *sha256,
                             uint32_t size,
@@ -166,7 +166,7 @@ int pb_api_partition_verify(struct pb_context *ctx,
 }
 
 
-int pb_api_partition_read_bpak(struct pb_context *ctx,
+PB_EXPORT int pb_api_partition_read_bpak(struct pb_context *ctx,
                               uint8_t *uuid,
                               struct bpak_header *header)
 {
@@ -217,7 +217,7 @@ int pb_api_partition_read_bpak(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_partition_erase(struct pb_context *ctx, uint8_t *uuid)
+PB_EXPORT int pb_api_partition_erase(struct pb_context *ctx, uint8_t *uuid)
 {
     int rc;
     struct pb_command cmd;
@@ -250,7 +250,7 @@ int pb_api_partition_erase(struct pb_context *ctx, uint8_t *uuid)
     return result.result_code;
 }
 
-int pb_api_partition_resize(struct pb_context *ctx, uint8_t *uuid,
+PB_EXPORT int pb_api_partition_resize(struct pb_context *ctx, uint8_t *uuid,
                                 size_t blocks)
 {
     int rc;

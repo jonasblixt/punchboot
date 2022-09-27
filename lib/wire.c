@@ -8,10 +8,11 @@
  */
 
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/wire.h>
 #include <pb-tools/error.h>
 
-bool pb_wire_valid_result(struct pb_result *result)
+PB_EXPORT bool pb_wire_valid_result(struct pb_result *result)
 {
     if (result->magic != PB_WIRE_MAGIC)
         return false;
@@ -19,7 +20,7 @@ bool pb_wire_valid_result(struct pb_result *result)
     return true;
 }
 
-int pb_wire_init_command(struct pb_command *command,
+PB_EXPORT int pb_wire_init_command(struct pb_command *command,
                                 enum pb_commands command_code)
 {
     memset(command, 0, sizeof(*command));
@@ -29,7 +30,7 @@ int pb_wire_init_command(struct pb_command *command,
     return PB_RESULT_OK;
 }
 
-int pb_wire_init_command2(struct pb_command *command,
+PB_EXPORT int pb_wire_init_command2(struct pb_command *command,
                               enum pb_commands command_code,
                               void *data,
                               size_t size)
@@ -44,7 +45,7 @@ int pb_wire_init_command2(struct pb_command *command,
     return PB_RESULT_OK;
 }
 
-int pb_wire_init_result(struct pb_result *result,
+PB_EXPORT int pb_wire_init_result(struct pb_result *result,
                                 enum pb_results result_code)
 {
     memset(result, 0, sizeof(*result));
@@ -54,7 +55,7 @@ int pb_wire_init_result(struct pb_result *result,
     return PB_RESULT_OK;
 }
 
-int pb_wire_init_result2(struct pb_result *result,
+PB_EXPORT int pb_wire_init_result2(struct pb_result *result,
                              enum pb_results result_code,
                              void *data,
                              size_t size)
@@ -69,17 +70,19 @@ int pb_wire_init_result2(struct pb_result *result,
     return PB_RESULT_OK;
 }
 
-const char *pb_wire_command_string(enum pb_commands cmd)
+PB_EXPORT const char *pb_wire_command_string(enum pb_commands cmd)
 {
+    (void) cmd;
     return "";
 }
 
-const char *pb_wire_slc_string(enum pb_slc slc)
+PB_EXPORT const char *pb_wire_slc_string(enum pb_slc slc)
 {
+    (void) slc;
     return "";
 }
 
-bool pb_wire_requires_auth(struct pb_command *command)
+PB_EXPORT bool pb_wire_requires_auth(struct pb_command *command)
 {
     bool result = true;
 
@@ -103,7 +106,7 @@ bool pb_wire_requires_auth(struct pb_command *command)
 }
 
 
-bool pb_wire_valid_command(struct pb_command *command)
+PB_EXPORT bool pb_wire_valid_command(struct pb_command *command)
 {
     if (command->magic != PB_WIRE_MAGIC)
         return false;

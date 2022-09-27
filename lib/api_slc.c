@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 
-int pb_api_slc_read(struct pb_context *ctx,
+PB_EXPORT int pb_api_slc_read(struct pb_context *ctx,
                        uint8_t  *slc,
                        uint8_t *active_keys,
                        uint8_t *revoked_keys)
@@ -70,7 +71,7 @@ int pb_api_slc_read(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_slc_set_configuration(struct pb_context *ctx)
+PB_EXPORT int pb_api_slc_set_configuration(struct pb_context *ctx)
 {
     int rc;
     struct pb_command cmd;
@@ -101,7 +102,7 @@ int pb_api_slc_set_configuration(struct pb_context *ctx)
 }
 
 
-int pb_api_slc_set_configuration_lock(struct pb_context *ctx)
+PB_EXPORT int pb_api_slc_set_configuration_lock(struct pb_context *ctx)
 {
     int rc;
     struct pb_command cmd;
@@ -129,7 +130,7 @@ int pb_api_slc_set_configuration_lock(struct pb_context *ctx)
     return result.result_code;
 }
 
-int pb_api_slc_set_end_of_life(struct pb_context *ctx)
+PB_EXPORT int pb_api_slc_set_end_of_life(struct pb_context *ctx)
 {
     int rc;
     struct pb_command cmd;
@@ -157,7 +158,7 @@ int pb_api_slc_set_end_of_life(struct pb_context *ctx)
     return result.result_code;
 }
 
-int pb_api_slc_revoke_key(struct pb_context *ctx, uint32_t key_id)
+PB_EXPORT int pb_api_slc_revoke_key(struct pb_context *ctx, uint32_t key_id)
 {
     int rc;
     struct pb_command cmd;

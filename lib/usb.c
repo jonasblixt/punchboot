@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <libusb.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 #include <pb-tools/error.h>
@@ -57,7 +58,7 @@ static int pb_usb_connect(struct pb_context *ctx)
     int rc = PB_RESULT_OK;
     int i = 0;
     bool found_device = false;
-    char device_serial[128];
+    unsigned char device_serial[128];
     struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
     libusb_device *dev;
     libusb_device **devs;
@@ -84,7 +85,7 @@ static int pb_usb_connect(struct pb_context *ctx)
 
                 pb_usb_close_handle(priv);
 
-                if (strcmp(device_serial, priv->device_uuid) != 0)
+                if (strcmp((char *) device_serial, priv->device_uuid) != 0)
                     continue;
             }
             priv->dev = dev;
@@ -180,7 +181,7 @@ static int pb_usb_write(struct pb_context *ctx, const void *bfr, size_t sz)
     return PB_RESULT_OK;
 }
 
-int pb_usb_transport_init(struct pb_context *ctx, const char *device_uuid)
+PB_EXPORT int pb_usb_transport_init(struct pb_context *ctx, const char *device_uuid)
 {
     ctx->transport = malloc(sizeof(struct pb_usb_private));
 
@@ -188,7 +189,7 @@ int pb_usb_transport_init(struct pb_context *ctx, const char *device_uuid)
         return -PB_RESULT_NO_MEMORY;
 
     memset(ctx->transport, 0, sizeof(struct pb_usb_private));
-  
+
     struct pb_usb_private *priv = PB_USB_PRIVATE(ctx);
     priv->device_uuid = device_uuid;
     ctx->free = pb_usb_free;

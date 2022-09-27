@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 #include <bpak/bpak.h>
@@ -7,11 +8,14 @@
 static int pb_api_debug_stub(struct pb_context *ctx, int level,
                                     const char *fmt, ...)
 {
+    (void) ctx;
+    (void) level;
+    (void) fmt;
     return PB_RESULT_OK;
 }
 
 
-int pb_api_create_context(struct pb_context **ctxp, pb_debug_t debug)
+PB_EXPORT int pb_api_create_context(struct pb_context **ctxp, pb_debug_t debug)
 {
     struct pb_context *ctx = malloc(sizeof(struct pb_context));
 
@@ -31,7 +35,7 @@ int pb_api_create_context(struct pb_context **ctxp, pb_debug_t debug)
     return PB_RESULT_OK;
 }
 
-int pb_api_free_context(struct pb_context *ctx)
+PB_EXPORT int pb_api_free_context(struct pb_context *ctx)
 {
     ctx->d(ctx, 2, "%s: free\n", __func__);
 

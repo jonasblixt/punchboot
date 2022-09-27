@@ -1,10 +1,10 @@
 #include <stdio.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/error.h>
 
-const char *pb_error_string(enum pb_results result)
+PB_EXPORT const char *pb_error_string(int result)
 {
-    switch(result)
-    {
+    switch(result) {
         case PB_RESULT_OK:
             return "OK";
         case -PB_RESULT_ERROR:

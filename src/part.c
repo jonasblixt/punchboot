@@ -15,7 +15,6 @@
 static int part_verify(struct pb_context *ctx, const char *filename,
                         const char *part_uuid, size_t offset)
 {
-    struct pb_device_capabilities caps;
     struct bpak_header header;
     bool bpak_file = false;
     uuid_t uu_part;
@@ -24,6 +23,8 @@ static int part_verify(struct pb_context *ctx, const char *filename,
     FILE *fp = fopen(filename, "rb");
     mbedtls_sha256_context sha256;
     size_t file_size = 0;
+
+    (void) offset;
 
     mbedtls_sha256_init(&sha256);
     mbedtls_sha256_starts_ret(&sha256, 0);
@@ -51,7 +52,7 @@ static int part_verify(struct pb_context *ctx, const char *filename,
 
         bpak_file = true;
 
-        rc = mbedtls_sha256_update_ret(&sha256, (char *) &header,
+        rc = mbedtls_sha256_update_ret(&sha256, (unsigned char *) &header,
                                                 sizeof(header));
 
         if (rc != 0)
@@ -67,7 +68,7 @@ static int part_verify(struct pb_context *ctx, const char *filename,
         fseek(fp, 0, SEEK_SET);
     }
 
-    char *chunk_buffer = malloc(1024*1024);
+    unsigned char *chunk_buffer = malloc(1024*1024);
 
     if (!chunk_buffer)
     {

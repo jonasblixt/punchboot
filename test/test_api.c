@@ -152,11 +152,6 @@ TEST(api_read_caps)
     int rc;
     struct pb_context *ctx;
 
-    uint8_t stream_no_of_buffers;
-    uint32_t stream_buffer_size;
-    uint16_t operation_timeout_ms;
-    uint16_t part_erase_timeout_ms;
-
     test_command_loop_set_authenticated(true);
 
     /* Start command loop */

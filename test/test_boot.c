@@ -15,7 +15,7 @@ TEST(boot)
     int rc;
     struct pb_context *ctx;
 
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    uint8_t partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe1";
 
     test_command_loop_set_authenticated(true);
@@ -56,7 +56,7 @@ TEST(boot_non_bootable)
     int rc;
     struct pb_context *ctx;
 
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    uint8_t partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe0";
 
     test_command_loop_set_authenticated(true);
@@ -97,7 +97,7 @@ TEST(boot_invalid_uuid)
     int rc;
     struct pb_context *ctx;
 
-    char partuuid[] = "\xFF\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    uint8_t partuuid[] = "\xFF\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe0";
 
     test_command_loop_set_authenticated(true);
@@ -142,14 +142,12 @@ TEST(boot_ram)
 
     printf("Reading bpak file...\n");
 
+    ASSERT(system(TEST_SRC_DIR "/prepare_bpak_file.sh") == 0);
+
+
     FILE *fp = fopen("test.bpak", "rb");
 
-    if (!fp)
-    {
-        printf("Could not open file\n");
-    }
-
-    ASSERT(fp != NULL);
+    ASSERT(fp != NULL)
 
     fread(data, 1, 1024*1024, fp);
     fclose(fp);
@@ -195,8 +193,7 @@ TEST(activate_part_not_bootable)
 {
     int rc;
     struct pb_context *ctx;
-    struct pb_result_part_table_entry tbl[128];
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    uint8_t partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe0";
 
     test_command_loop_set_authenticated(true);
@@ -237,8 +234,7 @@ TEST(activate_part)
 {
     int rc;
     struct pb_context *ctx;
-    struct pb_result_part_table_entry tbl[128];
-    char partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
+    uint8_t partuuid[] = "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62" \
                                 "\x01\x4c\xfa\x73\x5c\xe1";
 
     test_command_loop_set_authenticated(true);

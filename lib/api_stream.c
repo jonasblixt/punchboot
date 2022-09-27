@@ -1,13 +1,14 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pb-tools/pb-tools.h>
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 
-int pb_api_stream_init(struct pb_context *ctx, uint8_t *uuid)
+PB_EXPORT int pb_api_stream_init(struct pb_context *ctx, uint8_t *uuid)
 {
     int rc;
     struct pb_command_stream_initialize stream_init_command;
-    struct pb_device_capabilities caps;
+//    struct pb_device_capabilities caps;
     struct pb_command cmd;
     struct pb_result result;
 /*
@@ -47,7 +48,7 @@ int pb_api_stream_init(struct pb_context *ctx, uint8_t *uuid)
     return result.result_code;
 }
 
-int pb_api_stream_prepare_buffer(struct pb_context *ctx,
+PB_EXPORT int pb_api_stream_prepare_buffer(struct pb_context *ctx,
                                  uint8_t buffer_id,
                                  void *data,
                                  uint32_t size)
@@ -108,7 +109,7 @@ int pb_api_stream_prepare_buffer(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_stream_write_buffer(struct pb_context *ctx,
+PB_EXPORT int pb_api_stream_write_buffer(struct pb_context *ctx,
                                uint8_t buffer_id,
                                uint64_t offset,
                                uint32_t size)
@@ -149,7 +150,7 @@ int pb_api_stream_write_buffer(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_stream_read_buffer(struct pb_context *ctx,
+PB_EXPORT int pb_api_stream_read_buffer(struct pb_context *ctx,
                               uint8_t buffer_id,
                               uint64_t offset,
                               uint32_t size,
@@ -229,7 +230,7 @@ int pb_api_stream_read_buffer(struct pb_context *ctx,
     return result.result_code;
 }
 
-int pb_api_stream_finalize(struct pb_context *ctx)
+PB_EXPORT int pb_api_stream_finalize(struct pb_context *ctx)
 {
     int rc;
     struct pb_command cmd;
