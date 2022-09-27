@@ -10,21 +10,19 @@ jobs:
     - name: Install deps
       run: |
           sudo apt-get update
-          sudo apt-get install autoconf-archive libusb-1.0-0 libusb-1.0-0-dev uuid-dev lcov libmbedtls-dev liblzma-dev
+          sudo apt-get install cmake libusb-1.0-0 libusb-1.0-0-dev uuid-dev lcov libmbedtls-dev liblzma-dev
     - name: Build BPAK
       run: |
-            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.6.3
+            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.7.0
             pushd bpak
-            autoreconf -fi
-            ./configure
-            make
-            sudo make install
+            cmake -B build/ -DBPAK_BUILD_MINIMAL=1
+            make -C build/ -j$(nproc)
+            sudo make -C build/ install
             sudo ldconfig
             popd
     - name: Configure punchboot-tools
       run: |
-            autoreconf -fi
-            ./configure --enable-code-coverage
+            cmake -B build/ -DPB_TOOLS_BUILD_TOOL=1 -DPB_TOOLS_BUILD_SOCKET=1 -DPB_TOOLS_BUILD_TESTS=0 -DPB_TOOLS_BUILD_PYTHON_WRAPPER=1
     - name: Download Coverity Build Tool
       run: |
         wget -q https://scan.coverity.com/download/cxx/linux64 --post-data "token=$TOKEN&project=jonasblixt%2Fpunchboot-tools" -O cov-analysis-linux64.tar.gz
@@ -35,9 +33,9 @@ jobs:
     - name: Build with cov-build
       run: |
         export PATH=`pwd`/cov-analysis-linux64/bin:$PATH
-        make clean
+        make -C build/ clean
         cov-configure --template --compiler gcc --comptype gcc
-        cov-build --dir cov-int make
+        cov-build --dir cov-int make -C build/
     - name: Submit the result to Coverity Scan
       run: |
         tar czvf pb.tgz cov-int

@@ -10,21 +10,21 @@ jobs:
     - name: Install deps
       run: |
           sudo apt-get update
-          sudo apt-get install autoconf-archive libusb-1.0-0 libusb-1.0-0-dev uuid-runtime uuid-dev lcov libmbedtls-dev liblzma-dev
+          sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev uuid-runtime uuid-dev lcov libmbedtls-dev liblzma-dev
     - name: Build BPAK
       run: |
-            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.6.3
+            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.7.0
             pushd bpak
-            autoreconf -fi
-            ./configure
-            make
-            sudo make install
+            cmake -B build/
+            make -C build/ -j$(nproc)
+            sudo make -C build/ install
             sudo ldconfig
             popd
     - name: Build punchboot-tools
       run: |
-            autoreconf -fi
-            ./configure --enable-code-coverage
-            make check-code-coverage
+            cmake -B build/ -DPB_TOOLS_BUILD_TOOL=1 -DPB_TOOLS_BUILD_SOCKET=1 -DPB_TOOLS_BUILD_TESTS=1 -DPB_TOOLS_BUILD_PYTHON_WRAPPER=1
+            make -C build/ -j$(nproc)
+            ctest -j$(nproc) --output-on-failure --test-dir build
+            lcov --directory build --capture --output-file coverage.info
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
