@@ -28,3 +28,36 @@ jobs:
             lcov --directory build --capture --output-file coverage.info
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
+  build-windows:
+    runs-on: windows-latest
+    name: windows-build
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - name: 'Checkout'
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: 'Setup MSYS2'
+      uses: msys2/setup-msys2@v2
+      with:
+        install: gcc make cmake libutil-linux-devel libutil-linux mingw-w64-x86_64-libusb
+    - name: 'Clone repos'
+      shell: pwsh
+      run: |
+        git clone https://github.com/jonasblixt/bpak --depth 1 --branch 0.8.2-work
+    - name: 'Build BPAK'
+      run: |
+        pushd bpak
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DBPAK_BUILD_MINIMAL=1
+        make -C build
+        make -C build install
+        popd
+    - name: Build punchboot-tools
+      run: |
+        export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/share/pkgconfig
+        set
+        ls /usr/local/lib
+        cmake -B build/ -DPB_TOOLS_BUILD_TOOL=1 -DPB_TOOLS_BUILD_SOCKET=0 -DPB_TOOLS_BUILD_TESTS=0 -DPB_TOOLS_BUILD_PYTHON_WRAPPER=0
+        make -C build/ -j$(nproc)
