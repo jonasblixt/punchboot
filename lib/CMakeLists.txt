@@ -66,7 +66,7 @@ target_link_libraries(${PROJECT_NAME}-static ${LIB_LDFLAGS})
 
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
 install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-static

@@ -17,16 +17,35 @@ add_executable(${PROJECT_NAME}-tool ${TOOL_SRC_FILES})
 set_target_properties(${PROJECT_NAME}-tool
     PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
-target_compile_options(${PROJECT_NAME}-tool
-    PRIVATE -Wextra -pedantic ${UUID_CFLAGS} ${BPAK_CFLAGS} ${UUID_CFLAGS}
+set(TOOL_CFLAGS
+    -Wextra -pedantic
+    ${UUID_CFLAGS}
+    ${BPAK_CFLAGS}
+    ${LIBUSB_CFLAGS}
 )
 
-target_link_libraries(${PROJECT_NAME}-tool
+target_compile_options(${PROJECT_NAME}-tool PRIVATE ${TOOL_CFLAGS})
+
+set(TOOL_LDFLAGS
     ${UUID_LDFLAGS}
     ${BPAK_LDFLAGS}
-    ${UUID_LDFLAGS}
-    ${PROJECT_NAME}
+    ${LIBUSB_LDFLAGS}
 )
+
+if (PB_TOOLS_BUILD_STATIC)
+    set(TOOL_LDFLAGS
+        --static
+        ${PROJECT_NAME}-static
+        ${TOOL_LDFLAGS}
+    )
+else()
+    set(TOOL_LDFLAGS
+        ${PROJECT_NAME}
+        ${TOOL_LDFLAGS}
+    )
+endif()
+
+target_link_libraries(${PROJECT_NAME}-tool ${TOOL_LDFLAGS})
 
 install(TARGETS ${PROJECT_NAME}-tool
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

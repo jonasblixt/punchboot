@@ -31,11 +31,16 @@ option(PB_TOOLS_BUILD_TOOL "Build the tool" ON)
 option(PB_TOOLS_BUILD_PYTHON_WRAPPER "Build the python wrapper" OFF)
 option(PB_TOOLS_BUILD_SOCKET "Support testing targets through domain sockets" OFF)
 option(PB_TOOLS_BUILD_TESTS "Build test cases" OFF)
+option(PB_TOOLS_BUILD_STATIC "Build a static versoin of the tool" OFF)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
 pkg_check_modules(UUID REQUIRED uuid)
 pkg_check_modules(BPAK REQUIRED bpak)
+
+if (PB_TOOLS_BUILD_STATIC)
+    add_compile_options(-static)
+endif()
 
 if (PB_TOOLS_BUILD_TESTS)
     add_subdirectory("test")
