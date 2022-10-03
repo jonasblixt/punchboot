@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <uuid.h>
+#include "../src/uuid/uuid.h"
 #include <pb-tools/api.h>
 #include <pb-tools/wire.h>
 #include <pb-tools/error.h>

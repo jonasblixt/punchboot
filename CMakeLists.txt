@@ -35,7 +35,6 @@ option(PB_TOOLS_BUILD_STATIC "Build a static versoin of the tool" OFF)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
-pkg_check_modules(UUID REQUIRED uuid)
 pkg_check_modules(BPAK REQUIRED bpak)
 
 if (PB_TOOLS_BUILD_STATIC)

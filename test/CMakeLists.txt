@@ -12,6 +12,14 @@ set(C_TESTS_COMMON
     nala.c
     test_command_loop.c
     test_command_parser.c
+    ../src/uuid/clear.c
+    ../src/uuid/compare.c
+    ../src/uuid/copy.c
+    ../src/uuid/isnull.c
+    ../src/uuid/pack.c
+    ../src/uuid/parse.c
+    ../src/uuid/unpack.c
+    ../src/uuid/unparse.c
 )
 
 set(C_TESTS

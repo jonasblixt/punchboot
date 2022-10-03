@@ -11,6 +11,14 @@ SET(TOOL_SRC_FILES
     sha256.c
     slc.c
     utils.c
+    uuid/clear.c
+    uuid/compare.c
+    uuid/copy.c
+    uuid/isnull.c
+    uuid/pack.c
+    uuid/parse.c
+    uuid/unpack.c
+    uuid/unparse.c
 )
 
 add_executable(${PROJECT_NAME}-tool ${TOOL_SRC_FILES})
@@ -19,7 +27,6 @@ set_target_properties(${PROJECT_NAME}-tool
 
 set(TOOL_CFLAGS
     -Wextra -pedantic
-    ${UUID_CFLAGS}
     ${BPAK_CFLAGS}
     ${LIBUSB_CFLAGS}
 )
@@ -27,7 +34,6 @@ set(TOOL_CFLAGS
 target_compile_options(${PROJECT_NAME}-tool PRIVATE ${TOOL_CFLAGS})
 
 set(TOOL_LDFLAGS
-    ${UUID_LDFLAGS}
     ${BPAK_LDFLAGS}
     ${LIBUSB_LDFLAGS}
 )

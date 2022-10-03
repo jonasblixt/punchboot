@@ -1,5 +1,5 @@
 #include "nala.h"
-#include <uuid.h>
+#include "../src/uuid/uuid.h"
 #include <pb-tools/api.h>
 #include <pb-tools/error.h>
 #include <pb-tools/socket.h>
