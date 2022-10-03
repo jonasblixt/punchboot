@@ -1,15 +1,15 @@
 [Setup]
 AppId={{4AC360D3-3BA0-4030-B4AA-F6FE9DFF93BD}
-AppName="punchboot-tools-@VERSION@ (x64)"
-AppVersion="@VERSION@"
+AppName="punchboot-tools-@PROJECT_VERSION@ (x64)"
+AppVersion="@PROJECT_VERSION@"
 AppPublisher="Jonas Blixt"
 AppPublisherURL="https://github.com/jonasblixt"
 AppSupportURL="https://github.com/jonasblixt/punchboot-tools"
 AppUpdatesURL="https://github.com/jonasblixt/punchboot-tools"
-LicenseFile="C:\projects\punchboot-tools\LICENSE"
-OutputBaseFilename=punchboot-tools-setup-x64-@VERSION@
-OutputDir="C:\"
-DefaultDirName="{pf64}\punchboot-tools\"
+LicenseFile="D:\a\punchboot-tools\punchboot-tools\LICENSE"
+OutputBaseFilename=punchboot-tools-setup-x64-@PROJECT_VERSION@
+OutputDir="D:\a"
+DefaultDirName="{pf64}\punchboot-tools\punchboot-tools\"
 Compression=lzma
 SolidCompression=yes
 ChangesEnvironment=yes
@@ -19,8 +19,8 @@ ArchitecturesInstallIn64BitMode=x64
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "C:\projects\punchboot-tools\src\punchboot.exe"; DestDir: "{app}"
-Source: "C:\libwdi\examples\wdi-simple.exe"; DestDir: "{app}"; Flags: replacesameversion promptifolder;
+Source: "D:\a\punchboot-tools\punchboot-tools\build\src\punchboot.exe"; DestDir: "{app}"
+Source: "D:\a\punchboot-tools\punchboot-tools\libwdi\examples\wdi-simple.exe"; DestDir: "{app}"; Flags: replacesameversion promptifolder;
 
 [Tasks]
 Name: modifypath; Description: Add application directory to your environmental path
@@ -59,4 +59,4 @@ begin
 	setArrayLength(Result, 1)
 	Result[0] := ExpandConstant('{app}');
 end;
-#include "modpath.iss"
+#include "D:\a\punchboot-tools\punchboot-tools\dist\modpath.iss"

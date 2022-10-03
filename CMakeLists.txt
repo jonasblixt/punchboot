@@ -37,6 +37,9 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
 pkg_check_modules(BPAK REQUIRED bpak)
 
+# @ONLY "Restrict variable replacement to references of the form @VAR@"
+configure_file(dist/punchboot-tools-x64.iss.in punchboot-tools-x64.iss @ONLY)
+
 if (PB_TOOLS_BUILD_STATIC)
     add_compile_options(-static)
 endif()

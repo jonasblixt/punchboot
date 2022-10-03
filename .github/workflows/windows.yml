@@ -2,6 +2,13 @@ name: Punchboot-tools build (Windows)
 
 on: [push]
 
+env:
+  WDK_URL: https://go.microsoft.com/fwlink/p/?LinkID=253170
+  LIBUSB0_URL: https://sourceforge.net/projects/libusb-win32/files/libusb-win32-releases/1.2.6.0/libusb-win32-bin-1.2.6.0.zip/download
+  LIBUSBK_URL: https://github.com/mcuee/libusbk/releases/download/V3.1.0.0/libusbK-3.1.0.0-bin.7z
+  BUILD_OPTIONS: '--enable-toggable-debug --enable-examples-build --disable-debug --disable-shared'
+  DRIVERS_PATHS: '--with-wdkdir="../wdk/Windows Kits/8.0" --with-wdfver=1011 --with-libusb0="../libusb0" --with-libusbk="../libusbk/bin"'
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -24,19 +31,58 @@ jobs:
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-pkg-config
           mingw-w64-x86_64-libusb
+          autotools
+          git
+          base-devel
+    - name: Choco helper
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install innosetup --no-progress
     - name: 'Clone repos'
       shell: pwsh
       run: |
-        git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.8.2
+        git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.8.4
+        git clone https://github.com/pbatard/libwdi.git --depth 1 --branch v1.4.1
     - name: 'Build BPAK'
       run: |
         pushd bpak
         cmake -B build -DCMAKE_BUILD_TYPE=Release -DBPAK_BUILD_MINIMAL=1
-        make -C build
         make -C build install
+        popd
+    - name: Download support files
+      shell: cmd
+      run: |
+        curl -L ${{ env.WDK_URL }} -o wdk-redist.msi
+        curl -L ${{ env.LIBUSB0_URL }} -o libusb0-redist.zip
+        curl -L ${{ env.LIBUSBK_URL }} -o libusbk-redist.7z
+        msiexec /a wdk-redist.msi /qn TARGETDIR=%CD%\wdk
+        7z x libusb0-redist.zip
+        7z x libusbk-redist.7z
+        del *.zip
+        del *.7z
+        move libusb-win32* libusb0
+        move libusbK* libusbk
+    - name: 'Build libwdi'
+      run: |
+        pushd libwdi
+        ./bootstrap.sh
+        echo "Bootstrap done"
+        ./configure --disable-32bit ${{ env.BUILD_OPTIONS }} ${{ env.DRIVERS_PATHS }}
+        make
+        make -C examples
         popd
     - name: Build punchboot-tools
       run: |
         export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
         cmake -B build/ -DPB_TOOLS_BUILD_TOOL=1 -DPB_TOOLS_BUILD_SOCKET=0 -DPB_TOOLS_BUILD_TESTS=0 -DPB_TOOLS_BUILD_PYTHON_WRAPPER=0 -DPB_TOOLS_BUILD_STATIC=1
         make -C build/ -j$(nproc)
+    - name: 'Create installer'
+      shell: pwsh
+      run: |
+        iscc D:\a\punchboot-tools\punchboot-tools\build\punchboot-tools-x64.iss
+    - name: Upload release
+      uses: actions/upload-artifact@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        name: Punchboot tools
+        path: D:\a\punchboot-tools-setup-x64-*.exe

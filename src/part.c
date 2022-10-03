@@ -5,9 +5,12 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <stdbool.h>
+#include <sys/time.h>
+#include <time.h>
 #include <bpak/bpak.h>
 #include <bpak/utils.h>
 #include <bpak/id.h>
+#include <inttypes.h>
 #include "tool.h"
 #include "uuid/uuid.h"
 #include "sha256.h"
@@ -215,25 +218,21 @@ static int part_write(struct pb_context *ctx, const char *filename,
             goto err_out;
         }
 
-        for (int i = 0; i < entries; i++)
-        {
-            if (uuid_compare(tbl[i].uuid, uu_part) == 0)
-            {
+        for (int i = 0; i < entries; i++) {
+            if (uuid_compare(tbl[i].uuid, uu_part) == 0) {
                 offset = tbl[i].block_size * \
                          (tbl[i].last_block - tbl[i].first_block + 1) - \
                          sizeof(header);
             }
         }
 
-        if (pb_get_verbosity() > 1)
-        {
-            printf("Writing header at 0x%lx\n", offset);
+        if (pb_get_verbosity() > 1) {
+            printf("Writing header at %zu\n", offset);
         }
 
         rc = pb_api_stream_write_buffer(ctx, buffer_id, offset, sizeof(header));
 
-        if (rc != PB_RESULT_OK)
-        {
+        if (rc != PB_RESULT_OK) {
             fprintf(stderr, "Error: Could not write header");
             goto err_out;
         }
@@ -410,13 +409,13 @@ static int print_bpak_header(struct bpak_header *h,
             else
                 flags_str[1] = '-';
 
-            printf("    %8.8x   %-12lu %-3u    %s",p->id, p->size, p->pad_bytes,
-                                                flags_str);
+            printf("    %8.8x   %-12" PRIu64 " %-3u    %s",
+                                    p->id, p->size, p->pad_bytes, flags_str);
 
             if (p->flags & BPAK_FLAG_TRANSPORT)
-                printf("       %-12lu", p->transport_size);
+                printf("       %-12" PRIu64, p->transport_size);
             else
-                printf("       %-12lu", p->size);
+                printf("       %-12" PRIu64, p->size);
 
             printf("\n");
         }
