@@ -31,6 +31,13 @@ set(TOOL_CFLAGS
     ${LIBUSB_CFLAGS}
 )
 
+if (PB_TOOLS_BUILD_SOCKET)
+set(TOOL_CFLAGS
+    ${TOOL_CFLAGS}
+    -DPB_TOOLS_BUILD_SOCKET=1
+)
+endif()
+
 target_compile_options(${PROJECT_NAME}-tool PRIVATE ${TOOL_CFLAGS})
 
 set(TOOL_LDFLAGS

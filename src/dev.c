@@ -113,7 +113,6 @@ int action_dev(int argc, char **argv)
         help_dev();
         return 0;
     }
-
     rc = transport_init_helper(&ctx, transport, device_uuid);
 
     if (rc != PB_RESULT_OK) {

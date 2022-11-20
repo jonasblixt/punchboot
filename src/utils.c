@@ -57,6 +57,7 @@ int transport_init_helper(struct pb_context **ctxp, const char *transport_name,
         rc = pb_socket_transport_init(ctx, "/tmp/pb.sock");
 #else
         fprintf(stderr, "Error: Socket support not built-in\n");
+        rc = -PB_RESULT_NOT_SUPPORTED;
 #endif
     }
 

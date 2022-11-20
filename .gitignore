@@ -48,3 +48,4 @@ python/dist/
 python/punchboot.egg-info/
 docs/_build
 docs/latex
+tags
