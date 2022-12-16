@@ -76,35 +76,4 @@ fi
 
 
 wait_for_qemu2
-start_qemu
-
-wait_for_qemu_start
-# rsa4096
-
-set -e
-$BPAK create $IMG -Y --hash-kind sha256 --signature-kind rsa4096 $V
-
-$BPAK add $IMG --meta bpak-package --from-string $PKG_UUID --encoder uuid $V
-$BPAK add $IMG --meta bpak-package-uid --from-string $PKG_UNIQUE_ID --encoder uuid $V
-
-
-$BPAK add $IMG --meta pb-load-addr --from-string 0x49000000 --part-ref kernel \
-                      --encoder integer $V
-
-$BPAK add $IMG --part kernel \
-               --from-file /tmp/random_data $V
-
-$BPAK set $IMG --key-id pb-development4 \
-               --keystore-id pb $V
-
-$BPAK sign $IMG --key pki/dev_rsa_private.pem
-
-set +e
-$PB boot --load /tmp/img.bpak --transport socket
-result_code=$?
-
-if [ $result_code -ne 0 ];
-then
-    test_end_error
-fi
 test_end_ok
