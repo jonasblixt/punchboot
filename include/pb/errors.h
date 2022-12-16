@@ -21,6 +21,7 @@ enum {
     PB_ERR_MEM,
     PB_ERR_IO,
     PB_ERR_FILE_NOT_FOUND,
+    PB_ERR_NOT_IMPLEMENTED,
 };
 
 #endif  // INCLUDE_PB_ERRORS_H_

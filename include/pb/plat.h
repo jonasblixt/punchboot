@@ -29,6 +29,15 @@ void plat_wdog_init(void);
 void plat_wdog_kick(void);
 
 int plat_early_init(void);
+
+/**
+ * Returns a platform specific boot reason as an integer.
+ *
+ * @return >= 0 for valid boot reasons or a negative number on error
+ *
+ **/
+int plat_boot_reason(void);
+
 int plat_late_init(void);
 void plat_preboot_cleanup(void);
 bool plat_force_command_mode(void);

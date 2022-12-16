@@ -69,6 +69,11 @@ static const mmap_region_t imx_mmap[] =
     {0}
 };
 
+int plat_boot_reason(void)
+{
+    return -PB_ERR_NOT_IMPLEMENTED;
+}
+
 bool plat_force_command_mode(void)
 {
     return board_force_command_mode(&private);

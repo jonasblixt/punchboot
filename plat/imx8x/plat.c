@@ -81,6 +81,8 @@ static const mmap_region_t imx_mmap[] = {
     {0}
 };
 
+static int boot_reason;
+
 int plat_get_uuid(char *out)
 {
     uint32_t uid[2];
@@ -166,9 +168,35 @@ void plat_wdog_kick(void)
 int plat_early_init(void)
 {
     int rc = PB_OK;
+    sc_pm_reset_reason_t sc_reset_reason; /* sc_pm_reset_reason_t is defined as uint8_t */
     sc_pm_clock_rate_t rate;
 
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
+
+    /* Read boot reason.
+     *
+     * Possible results:
+     * SC_PM_RESET_REASON_POR         0U
+     * SC_PM_RESET_REASON_JTAG        1U
+     * SC_PM_RESET_REASON_SW          2U
+     * SC_PM_RESET_REASON_WDOG        3U
+     * SC_PM_RESET_REASON_LOCKUP      4U
+     * SC_PM_RESET_REASON_SNVS        5U
+     * SC_PM_RESET_REASON_TEMP        6U
+     * SC_PM_RESET_REASON_MSI         7U
+     * SC_PM_RESET_REASON_UECC        8U
+     * SC_PM_RESET_REASON_SCFW_WDOG   9U
+     * SC_PM_RESET_REASON_ROM_WDOG    10U
+     * SC_PM_RESET_REASON_SECO        11U
+     * SC_PM_RESET_REASON_SCFW_FAULT  12U
+     */
+
+    if ((rc = sc_pm_reset_reason(private.ipc, &sc_reset_reason)) == 0) {
+        boot_reason = (int) sc_reset_reason;
+    } else {
+        boot_reason = -rc;
+    }
+
     plat_console_init();
 
     /* Configure MMU */
@@ -261,6 +289,11 @@ int plat_early_init(void)
         return rc;
 
     return rc;
+}
+
+int plat_boot_reason(void)
+{
+    return boot_reason;
 }
 
 /* FUSE Interface */

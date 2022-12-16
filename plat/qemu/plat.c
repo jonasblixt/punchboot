@@ -61,6 +61,11 @@ static const mmap_region_t qemu_mmap[] =
     {0}
 };
 
+int plat_boot_reason(void)
+{
+    return 0;
+}
+
 int plat_get_uuid(char *out)
 {
     int rc;

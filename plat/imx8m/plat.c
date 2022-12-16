@@ -75,6 +75,11 @@ static const mmap_region_t imx_mmap[] =
     {0}
 };
 
+int plat_boot_reason(void)
+{
+    return -PB_ERR_NOT_IMPLEMENTED;
+}
+
 int plat_get_uuid(char *out)
 {
     plat_fuse_read(&fuse_uid0);
