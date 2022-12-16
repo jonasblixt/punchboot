@@ -1,14 +1,6 @@
 menu "imx8x configuration"
     depends on PLAT_IMX8X
-    comment "Console configuration"
-
-config LPUART_BASE
-    hex "Console port base address"
-    default 0x5A060000
-
-config LPUART_BAUDRATE
-    hex "Baudrate setting"
-    default 0x402008b
+    comment "imx8x configuration"
 
 comment "USB Transport"
 config EHCI_BASE
@@ -38,6 +30,15 @@ config IMX_GPT_BASE
 config IMX_GPT_PR
     int "IMX timer divisor"
     default 24
+choice CONSOLE_UART
+	bool "Select console UART"
+config CONSOLE_UART0
+	bool "UART0"
+config CONSOLE_UART1
+	bool "UART1"
+config CONSOLE_UART2
+	bool "UART2"
+endchoice
 endmenu
 
 menu "Output image"
@@ -51,3 +52,5 @@ config IMX8X_SIGN_IMAGE
     default n
     depends on IMX8X_CREATE_IMX_IMAGE
 endmenu
+
+

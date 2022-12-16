@@ -12,10 +12,8 @@ CONFIG_IMX_GPT_PR=24
 #
 
 #
-# Console configuration
+# imx8x configuration
 #
-CONFIG_LPUART_BASE=0x5A060000
-CONFIG_LPUART_BAUDRATE=0x402008b
 
 #
 # USB Transport
@@ -38,6 +36,9 @@ CONFIG_IMX_USBDCD_BASE=0x5b100800
 #
 # Generic timer
 #
+CONFIG_CONSOLE_UART0=y
+# CONFIG_CONSOLE_UART1 is not set
+# CONFIG_CONSOLE_UART2 is not set
 # end of imx8x configuration
 
 #
@@ -78,6 +79,7 @@ CONFIG_STACK_SIZE_KB=16
 #
 CONFIG_AUTH=y
 CONFIG_AUTH_METHOD_TOKEN=y
+# CONFIG_AUTH_METHOD_PASSWORD is not set
 # end of Authentication
 
 #

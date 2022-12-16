@@ -59,6 +59,18 @@
 #define MAX_XLAT_TABLES			32
 #define MAX_MMAP_REGIONS		32
 
+
+#define IMX_LPUART_BAUDRATE 0x402008b
+
+#ifdef CONFIG_CONSOLE_UART0
+#   define IMX_LPUART_BASE 0x5A060000
+#elif CONFIG_CONSOLE_UART1
+#   define IMX_LPUART_BASE 0x5A070000
+#elif CONFIG_CONSOLE_UART2
+#   define IMX_LPUART_BASE 0x5A080000
+#else
+#   error "Invalid console uart setting"
+#endif
 #endif  // __ASSEMBLY__
 
 #define COUNTER_FREQUENCY (8000000)

@@ -65,7 +65,7 @@ static const char platform_namespace_uuid[] =
 
 static const mmap_region_t imx_mmap[] = {
     /* Map UART */
-    MAP_REGION_FLAT(CONFIG_LPUART_BASE, (64 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(IMX_LPUART_BASE, (64 * 1024), MT_DEVICE | MT_RW),
     /* Connecivity */
     MAP_REGION_FLAT(0x5b270000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 2*/
     MAP_REGION_FLAT(0x5b280000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 3*/
@@ -341,13 +341,13 @@ int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
 
 int plat_console_init(void)
 {
-    sc_pm_clock_rate_t rate;
+    sc_pm_clock_rate_t rate = 80000000;
 
+#ifdef CONFIG_CONSOLE_UART0
     /* Power up UART0 */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
 
     /* Set UART0 clock root to 80 MHz */
-    rate = 80000000;
     sc_pm_set_clock_rate(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
 
     /* Enable UART0 clock root */
@@ -356,7 +356,35 @@ int plat_console_init(void)
     /* Configure UART pads */
     sc_pad_set(private.ipc, SC_P_UART0_RX, UART_PAD_CTRL);
     sc_pad_set(private.ipc, SC_P_UART0_TX, UART_PAD_CTRL);
+#elif CONFIG_CONSOLE_UART1
+    /* Power up UART1 */
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_1, SC_PM_PW_MODE_ON);
 
+    /* Set UART1 clock root to 80 MHz */
+    sc_pm_set_clock_rate(private.ipc, SC_R_UART_1, SC_PM_CLK_PER, &rate);
+
+    /* Enable UART1 clock root */
+    sc_pm_clock_enable(private.ipc, SC_R_UART_1, SC_PM_CLK_PER, true, false);
+
+    /* Configure UART pads */
+    sc_pad_set(private.ipc, SC_P_UART1_RX, UART_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_UART1_TX, UART_PAD_CTRL);
+#elif CONFIG_CONSOLE_UART2
+    /* Power up UART2 */
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_2, SC_PM_PW_MODE_ON);
+
+    /* Set UART2 clock root to 80 MHz */
+    sc_pm_set_clock_rate(private.ipc, SC_R_UART_2, SC_PM_CLK_PER, &rate);
+
+    /* Enable UART2 clock root */
+    sc_pm_clock_enable(private.ipc, SC_R_UART_2, SC_PM_CLK_PER, true, false);
+
+    /* Configure UART pads */
+    sc_pad_set(private.ipc, SC_P_UART2_RX, UART_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_UART2_TX, UART_PAD_CTRL);
+#else
+    #error "No console uart selected"
+#endif
     return imx_lpuart_init();
 }
 
