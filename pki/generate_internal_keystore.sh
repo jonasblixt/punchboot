@@ -17,6 +17,3 @@ $BPAK add $IMG --part pb-development2 \
 
 $BPAK add $IMG --part pb-development3 \
                --from-file secp521r1-pub-key.der --encoder key$V
-
-$BPAK add $IMG --part pb-development4 \
-               --from-file dev_rsa_public.der --encoder key $V
