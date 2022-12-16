@@ -10,13 +10,13 @@ $BPAK add $IMG --meta bpak-package --from-string $PKG_UUID --encoder uuid $V
 $BPAK add $IMG --meta keystore-provider-id --from-string pb --encoder id $V
 
 $BPAK add $IMG --part pb-development \
-               --from-file secp256r1-pub-key.der $V
+               --from-file secp256r1-pub-key.der --encoder key $V
 
 $BPAK add $IMG --part pb-development2 \
-               --from-file secp384r1-pub-key.der $V
+               --from-file secp384r1-pub-key.der --encoder key $V
 
 $BPAK add $IMG --part pb-development3 \
-               --from-file secp521r1-pub-key.der $V
+               --from-file secp521r1-pub-key.der --encoder key$V
 
 $BPAK add $IMG --part pb-development4 \
-               --from-file dev_rsa_public.der $V
+               --from-file dev_rsa_public.der --encoder key $V
