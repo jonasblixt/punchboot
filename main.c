@@ -8,6 +8,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <pb/pb.h>
 #include <pb/arch.h>
 #include <pb/plat.h>
@@ -47,9 +48,7 @@ void pb_main(void)
 
     plat_console_init();
 
-#if LOGLEVEL > 1
-    printf("\n\r\n\rPB " PB_VERSION " starting\n\r");
-#endif
+    printf("\n\rPB " PB_VERSION ", %i\n\r", plat_boot_reason());
 
 #ifdef CONFIG_ENABLE_WATCHDOG
     plat_wdog_init();
