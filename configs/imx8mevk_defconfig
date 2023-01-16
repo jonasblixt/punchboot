@@ -44,10 +44,10 @@ CONFIG_DWC3_BASE=0x38100000
 #
 # Fusebox
 #
-CONFIG_IMX8M_UMCTL_TRAIN_1D_D="blobs/lpddr4_pmu_train_1d_dmem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_1D_I="blobs/lpddr4_pmu_train_1d_imem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_2D_D="blobs/lpddr4_pmu_train_2d_dmem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_2D_I="blobs/lpddr4_pmu_train_2d_imem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_1D_D="lpddr4_pmu_train_1d_dmem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_1D_I="lpddr4_pmu_train_1d_imem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_2D_D="lpddr4_pmu_train_2d_dmem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_2D_I="lpddr4_pmu_train_2d_imem.bin"
 # end of imx8m configuration
 
 #
