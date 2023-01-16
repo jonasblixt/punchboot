@@ -124,7 +124,7 @@ static int usb_send_ep0(struct pb_usb_interface *iface,
     /* Hack, so far it's unclear why the DWC3 does not like to queue an out
      * transfer directly after an IN transfer. A small delay get's the work done. */
 #if CONFIG_PLAT_IMX8M
-    plat_delay_us(250);
+    pb_delay_us(250);
 #endif
 
     return iface->read(USB_EP0_OUT, NULL, 0);
