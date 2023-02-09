@@ -1,7 +1,7 @@
 include(GNUInstallDirs)
 
 find_package(Python 3.6 REQUIRED
-    COMPONENTS Interpreter Development.Module
+    COMPONENTS Interpreter Development
 )
 
 add_library(
