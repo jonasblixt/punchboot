@@ -121,7 +121,7 @@ static int PbSession_init(struct pb_session *self, PyObject *args, PyObject *kwd
     int ret;
 
     /* If 'uuid' is not provided (== None), this will pick any valid device */
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "z", kwlist, &uuid)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|z", kwlist, &uuid)) {
         return -1;
     }
 
