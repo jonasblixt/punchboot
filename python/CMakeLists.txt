@@ -1,7 +1,7 @@
 include(GNUInstallDirs)
 
 find_package(Python 3.6 REQUIRED
-    COMPONENTS Interpreter Development.Module
+    COMPONENTS Interpreter Development
 )
 
 add_library(
@@ -9,18 +9,24 @@ add_library(
         python_wrapper.c
         ${CMAKE_SOURCE_DIR}/src/crc.c
         ${CMAKE_SOURCE_DIR}/src/sha256.c
+        ${CMAKE_SOURCE_DIR}/src/uuid/clear.c
+        ${CMAKE_SOURCE_DIR}/src/uuid/compare.c
+        ${CMAKE_SOURCE_DIR}/src/uuid/copy.c
+        ${CMAKE_SOURCE_DIR}/src/uuid/isnull.c
+        ${CMAKE_SOURCE_DIR}/src/uuid/pack.c
+        ${CMAKE_SOURCE_DIR}/src/uuid/parse.c
+        ${CMAKE_SOURCE_DIR}/src/uuid/unpack.c
+        ${CMAKE_SOURCE_DIR}/src/uuid/unparse.c
 )
 
 target_include_directories(${PROJECT_NAME}-python-wrapper PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
     ${Python_INCLUDE_DIRS}
-    ${UUID_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}-python-wrapper
     ${Python_LIBRARIES}
-    ${UUID_LIBRARY}
     ${PROJECT_NAME}
 )
 
