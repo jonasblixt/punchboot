@@ -476,9 +476,20 @@ static PyObject* part_list_partitions(PyObject* self, PyObject* Py_UNUSED(args))
 
     for (i = 0; i < entries; i++) {
         char uuid_str[37];
+        char entryname[10];
+        bool use_description = tbl[i].description &&
+                               strlen(tbl[i].description) > 0;
+
         memset(uuid_str, 0, sizeof(uuid_str));
         uuid_unparse(tbl[i].uuid, uuid_str);
-        ret = PyDict_SetItemString(part_dict, tbl[i].description,
+
+        if (!use_description) {
+            snprintf(entryname, sizeof(entryname), "Part%d", i);
+        }
+
+        ret = PyDict_SetItemString(part_dict,
+                                   use_description ? tbl[i].description :
+                                                     entryname,
                                    PyUnicode_FromFormat("%s", uuid_str));
         if (ret != 0) {
             goto err_free_dict;
