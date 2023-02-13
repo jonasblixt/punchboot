@@ -886,7 +886,7 @@ static PyObject* wait_for_device(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    do {
+    while (true) {
         ret = init_transport(NULL, &ctx);
         if (ret != PB_RESULT_OK) {
             return PbErr_FromErrorCode(ret, "Failed to init transport");
@@ -895,17 +895,17 @@ static PyObject* wait_for_device(PyObject* self, PyObject* args, PyObject* kwds)
         ret = get_uuid(ctx, &uuid);
         pb_api_free_context(ctx);
         if (ret != PB_RESULT_OK) {
-            sleep(1);
-            if (timeout > 0) timeout--;
+            if (timeout > 0) {
+                sleep(1);
+                timeout--;
+            } else {
+                PyErr_SetString(PyExc_TimeoutError, "No device found");
+                return NULL;
+            }
         } else {
             break;
         }
-    } while (timeout != 0);
-
-    if (timeout == 0) {
-        PyErr_SetString(PyExc_TimeoutError, "No device found");
-        return NULL;
-    }
+    };
 
     Py_RETURN_NONE;
 }
