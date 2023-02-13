@@ -136,11 +136,12 @@ static int PbSession_init(struct pb_session *self, PyObject *args, PyObject *kwd
     return 0;
 }
 
-static void PbSession_exit(struct pb_session *self)
+static void PbSession_dealloc(struct pb_session *self)
 {
     if (self->ctx) {
         pb_api_free_context(self->ctx);
     }
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject* authenticate(PyObject* self, PyObject* args, PyObject* kwds)
@@ -864,10 +865,10 @@ static PyTypeObject PbSession = {
     .tp_doc = PyDoc_STR("Punchboot session object towards one board"),
     .tp_basicsize = sizeof(struct pb_session),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_FINALIZE,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = PyType_GenericNew,
     .tp_init = (initproc) PbSession_init,
-    .tp_finalize = (destructor) PbSession_exit,
+    .tp_dealloc = (destructor) PbSession_dealloc,
     .tp_methods = PbSession_methods,
 };
 
