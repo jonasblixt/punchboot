@@ -931,7 +931,7 @@ PyMODINIT_FUNC PyInit_punchboot(void)
         return NULL;
     }
 
-    pb_base_exception = PyErr_NewException("punchboot.Exception", NULL, NULL);
+    pb_base_exception = PyErr_NewException("punchboot.Error", NULL, NULL);
     if (pb_base_exception == NULL) {
         return NULL;
     }
@@ -943,6 +943,13 @@ PyMODINIT_FUNC PyInit_punchboot(void)
 
     Py_INCREF(&PbSession);
     if (PyModule_AddObject(mod, "Session", (PyObject*) &PbSession) < 0) {
+        Py_DECREF(&PbSession);
+        Py_DECREF(mod);
+        return NULL;
+    }
+
+
+    if (PyModule_AddObject(mod, "Error", (PyObject*) pb_base_exception) < 0) {
         Py_DECREF(&PbSession);
         Py_DECREF(mod);
         return NULL;
