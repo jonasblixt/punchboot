@@ -771,7 +771,15 @@ static PyObject* boot_set_boot_part(PyObject* self, PyObject* args, PyObject *kw
         return NULL;
     }
 
-    uuid_parse(uuid, uuid_boot);
+    if (strcmp(uuid, "none") == 0) {
+        memset(uuid_boot, 0, sizeof(uuid_boot));
+    } else {
+        if (uuid_parse(uuid, uuid_boot) != 0) {
+            PyErr_SetString(PyExc_TypeError, "Failed to parse UUID");
+            return NULL;
+        }
+    }
+
     ret = pb_api_boot_activate(session->ctx, uuid_boot);
     if (ret != PB_RESULT_OK) {
         return PbErr_FromErrorCode(ret, "Could not set active boot partition");
@@ -795,7 +803,11 @@ static PyObject* boot_partition(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    uuid_parse(uuid, uuid_boot);
+    if (uuid_parse(uuid, uuid_boot) != 0) {
+        PyErr_SetString(PyExc_TypeError, "Failed to parse UUID");
+        return NULL;
+    }
+
     ret = pb_api_boot_part(session->ctx, uuid_boot, true);
     if (ret != PB_RESULT_OK) {
         return PbErr_FromErrorCode(ret, "Could not boot partition");
