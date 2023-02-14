@@ -52,7 +52,6 @@ static uint8_t caam_ecdsa_key[256] __a4k __no_bss;
 static uint8_t caam_ecdsa_r[66] __a4k __no_bss;
 static uint8_t caam_ecdsa_s[66] __a4k __no_bss;
 static uint8_t caam_ecdsa_hash[128] __a4k __no_bss;
-static char output_data[1024] __a4k __no_bss;
 static uint32_t input_ring[JOB_RING_ENTRIES] __a4k __no_bss;
 static uint32_t output_ring[JOB_RING_ENTRIES*2] __a4k __no_bss;
 static uint32_t alg;
@@ -119,27 +118,6 @@ static int caam_wait_for_job(uint32_t *job)
     }
 
     return PB_OK;
-}
-
-static int caam_rsa_enc(uint8_t *signature, size_t input_sz,
-                            uint8_t *output, struct bpak_key *k)
-{
-/*
-    struct pb_rsa4096_key *rsa_key =
-        (struct pb_rsa4096_key *) k->data;
-
-    desc[0] = CAAM_CMD_HEADER | (7 << 16) | 8;
-    desc[1] = (3 << 12)|512;
-    desc[2] = (uint32_t)(uintptr_t) input;
-    desc[3] = (uint32_t)(uintptr_t) output;
-    desc[4] = (uint32_t)(uintptr_t) rsa_key->mod;
-    desc[5] = (uint32_t)(uintptr_t) rsa_key->exp;
-    desc[6] = input_sz;
-    desc[7] = CAAM_CMD_OP | (0x18 << 16);
-
-    return caam_shedule_job_sync(dev, desc);
- */
-    return PB_ERR;
 }
 
 static int caam_ecdsa_verify(struct pb_hash_context *hash,
@@ -365,45 +343,8 @@ int caam_pk_verify(struct pb_hash_context *hash,
                     void *signature, size_t size)
 {
     int err = PB_ERR;
-    int hash_length;
-
-    switch (hash->alg) {
-        case PB_HASH_SHA256:
-            hash_length = 32;
-        break;
-        case PB_HASH_SHA384:
-            hash_length = 48;
-        break;
-        case PB_HASH_SHA512:
-            hash_length = 64;
-        break;
-        default:
-        {
-            LOG_ERR("Invalid hash: %i", hash->alg);
-            return PB_ERR;
-        }
-    }
 
     switch (key->kind) {
-        case BPAK_KEY_PUB_RSA4096:
-        {
-            LOG_DBG("Checking RSA4096 signature...");
-            err = caam_rsa_enc(signature, 512,
-                        (uint8_t *) output_data, key);
-
-
-            if (err != PB_OK)
-                break;
-
-            if (memcmp(&output_data[512-hash_length],
-                            hash->buf, hash_length) == 0)
-                err = PB_OK;
-            else
-                err = PB_ERR;
-
-            LOG_DBG("Signature %s", (err == PB_OK)?"OK":"Fail");
-        }
-        break;
         case BPAK_KEY_PUB_PRIME256v1:
         case BPAK_KEY_PUB_SECP384r1:
         case BPAK_KEY_PUB_SECP521r1:
