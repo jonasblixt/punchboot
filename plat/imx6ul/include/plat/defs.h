@@ -5,6 +5,8 @@
 #define COUNTER_US_SHIFT (3)
 
 #define SCTR_BASE_ADDRESS 0x21dc000
+#define IMX_CAAM_BASE 0x31430000
+
 #define CACHE_LINE 32
 
 #define PLAT_VIRT_ADDR_SPACE_SIZE	(1ull << 32)
