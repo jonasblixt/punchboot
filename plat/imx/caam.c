@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -18,6 +18,7 @@
 #include <plat/imx/caam.h>
 #include <plat/imx/desc_defines.h>
 #include <plat/imx/desc_helper.h>
+#include <plat/defs.h>
 
 /* Commands  */
 #define CAAM_CMD_HEADER  0xB0800000
@@ -60,7 +61,7 @@ static int caam_shedule_job_async(uint32_t *job)
 {
     input_ring[0] = (uint32_t)(uintptr_t) job;
     arch_clean_cache_range((uintptr_t) input_ring, sizeof(input_ring[0]));
-    pb_write32(1, CONFIG_IMX_CAAM_BASE + CAAM_IRJAR);
+    pb_write32(1, IMX_CAAM_BASE + CAAM_IRJAR);
 
     return PB_OK;
 }
@@ -74,7 +75,7 @@ static int caam_shedule_job_sync(uint32_t *job)
     if (err != PB_OK)
         return err;
 
-    while ((pb_read32(CONFIG_IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
+    while ((pb_read32(IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
     arch_invalidate_cache_range((uintptr_t) output_ring, sizeof(output_ring[0]));
@@ -84,9 +85,9 @@ static int caam_shedule_job_sync(uint32_t *job)
         return -PB_ERR;
     }
 
-    pb_write32(1, CONFIG_IMX_CAAM_BASE + CAAM_ORJRR);
+    pb_write32(1, IMX_CAAM_BASE + CAAM_ORJRR);
 
-    uint32_t caam_status = pb_read32(CONFIG_IMX_CAAM_BASE + CAAM_JRSTAR);
+    uint32_t caam_status = pb_read32(IMX_CAAM_BASE + CAAM_JRSTAR);
 
     if (caam_status)
     {
@@ -100,7 +101,7 @@ static int caam_shedule_job_sync(uint32_t *job)
 static int caam_wait_for_job(uint32_t *job)
 {
 
-    while ((pb_read32(CONFIG_IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
+    while ((pb_read32(IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
     arch_invalidate_cache_range((uintptr_t) output_ring, sizeof(output_ring[0]));
@@ -111,9 +112,9 @@ static int caam_wait_for_job(uint32_t *job)
         return -PB_ERR;
     }
 
-    pb_write32(1, CONFIG_IMX_CAAM_BASE + CAAM_ORJRR);
+    pb_write32(1, IMX_CAAM_BASE + CAAM_ORJRR);
 
-    uint32_t caam_status = pb_read32(CONFIG_IMX_CAAM_BASE + CAAM_JRSTAR);
+    uint32_t caam_status = pb_read32(IMX_CAAM_BASE + CAAM_JRSTAR);
 
     if (caam_status)
     {
@@ -442,7 +443,7 @@ int caam_pk_verify(struct pb_hash_context *hash,
 
 int imx_caam_init(void)
 {
-    LOG_INFO("CAAM init %p", (void *) CONFIG_IMX_CAAM_BASE);
+    LOG_INFO("CAAM init %p", (void *) IMX_CAAM_BASE);
 
     memset(input_ring, 0, sizeof(input_ring[0]) * JOB_RING_ENTRIES);
     memset(output_ring, 0, sizeof(output_ring[0]) * JOB_RING_ENTRIES * 2);
@@ -454,11 +455,11 @@ int imx_caam_init(void)
                 sizeof(output_ring[0]) * JOB_RING_ENTRIES * 2);
 
     /* Initialize job rings */
-    pb_write32((uint32_t)(uintptr_t) input_ring,  CONFIG_IMX_CAAM_BASE + CAAM_IRBAR);
-    pb_write32((uint32_t)(uintptr_t) output_ring, CONFIG_IMX_CAAM_BASE + CAAM_ORBAR);
+    pb_write32((uint32_t)(uintptr_t) input_ring,  IMX_CAAM_BASE + CAAM_IRBAR);
+    pb_write32((uint32_t)(uintptr_t) output_ring, IMX_CAAM_BASE + CAAM_ORBAR);
 
-    pb_write32(JOB_RING_ENTRIES, CONFIG_IMX_CAAM_BASE + CAAM_IRSR);
-    pb_write32(JOB_RING_ENTRIES, CONFIG_IMX_CAAM_BASE + CAAM_ORSR);
+    pb_write32(JOB_RING_ENTRIES, IMX_CAAM_BASE + CAAM_IRSR);
+    pb_write32(JOB_RING_ENTRIES, IMX_CAAM_BASE + CAAM_ORSR);
 
     return PB_OK;
 }

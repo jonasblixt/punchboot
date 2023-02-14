@@ -7,11 +7,6 @@ config EHCI_BASE
     hex "EHCI base address"
     default 0x5b0d0000
 
-comment "CAAM"
-config IMX_CAAM_BASE
-    hex "CAAM base address"
-    default 0x31430000
-
 comment "GPIO"
 config IMX_GPIO_BASE
     hex "IMX GPIO base address"
