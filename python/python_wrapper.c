@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <Python.h>
 #include <bpak/bpak.h>
 #include <bpak/utils.h>
@@ -568,8 +569,9 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
     struct pb_partition_table_entry *tbl;
     int tbl_entries;
     struct pb_device_capabilities caps;
+    size_t chunk_size = 0;
     uint8_t *chunk_buffer = NULL;
-    uint8_t buffer_id = 1;
+    uint8_t buffer_id = 0;
     struct bpak_header header;
     size_t part_size = 0;
     uuid_t uuid_part;
@@ -586,6 +588,12 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
     file_fd = PyObject_AsFileDescriptor(file);
     if (file_fd == -1) {
+        PyErr_SetString(PyExc_TypeError, "Invalid file descriptor");
+        return NULL;
+    }
+
+    if (uuid_parse(uuid, uuid_part) != 0) {
+        PyErr_SetString(PyExc_TypeError, "Failed to parse UUID");
         return NULL;
     }
 
@@ -594,7 +602,8 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
         return PbErr_FromErrorCode(ret, "Failed to read device caps");
     }
 
-    chunk_buffer = malloc(caps.chunk_transfer_max_bytes);
+    chunk_size = caps.chunk_transfer_max_bytes;
+    chunk_buffer = malloc(chunk_size + 1);
     if (!chunk_buffer) {
         return PyErr_NoMemory();
     }
@@ -605,10 +614,9 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
         goto err_free_buf;
     }
 
-    uuid_parse(uuid, uuid_part);
     for (int i = 0; i < tbl_entries; i++) {
-        if (memcmp(&uuid, &(tbl[i].uuid), sizeof(uuid)) == 0) {
-            part_size = (tbl[i].last_block - tbl[i].first_block) * tbl[i].block_size;
+        if (uuid_compare(tbl[i].uuid, uuid_part) == 0) {
+            part_size = (tbl[i].last_block - tbl[i].first_block + 1) * tbl[i].block_size;
         }
     }
     free(tbl);
@@ -619,32 +627,39 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
     ret = pb_api_stream_init(session->ctx, uuid_part);
     if (ret != PB_RESULT_OK) {
-        PbErr_FromErrorCode(ret, "Failed to write partition");
+        PbErr_FromErrorCode(ret, "Failed to initialize stream");
         goto err_free_buf;
     }
 
-
+    size_t offset = 0;
     ssize_t read_bytes = 0;
+    bool bpak_file = false;
+
     read_bytes = read(file_fd, &header, sizeof(header));
-    if (read_bytes == sizeof(header) && (bpak_valid_header(&header) == BPAK_OK)) {
-        ret = stream_data(session->ctx, 0, &header, sizeof(header), part_size - sizeof(header));
-        if (ret != PB_RESULT_OK) {
-            PbErr_FromErrorCode(ret, "Failed to write partition");
-            goto err_free_buf;
-        }
+
+    if (read_bytes < 0) {
+        return PyErr_SetFromErrno(PyExc_IOError);
+    } else if (read_bytes == sizeof(header) &&
+               bpak_valid_header(&header) == BPAK_OK) {
+        bpak_file = true;
     } else {
         lseek(file_fd, 0, SEEK_SET);
     }
 
-    size_t offset = 0;
-    do {
-        read_bytes = read(file_fd, chunk_buffer, caps.chunk_transfer_max_bytes);
-        if (read_bytes < 0) {
-            PyErr_SetString(PyExc_IOError, "Failed reading file");
+    if (bpak_file) {
+        offset = part_size  - sizeof(header);
+        ret = stream_data(session->ctx, buffer_id, &header, sizeof(header), offset);
+
+        if (ret != PB_RESULT_OK) {
+            PbErr_FromErrorCode(ret, "Failed to write header");
             goto err_free_buf;
-        } else if (read_bytes == 0) {
-            break;  /* Done */
         }
+
+        buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers;
+        offset = 0;
+    }
+
+    while ((read_bytes = read(file_fd, chunk_buffer, chunk_size)) > 0) {
         ret = stream_data(session->ctx, buffer_id, chunk_buffer, read_bytes, offset);
         if (ret != PB_RESULT_OK) {
             PbErr_FromErrorCode(ret, "Failed to write partition");
@@ -653,7 +668,10 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
         buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers;
         offset += read_bytes;
-    } while (read_bytes > 0);
+    }
+    if (read_bytes < 0) {
+        return PyErr_SetFromErrno(PyExc_IOError);
+    }
 
     Py_RETURN_NONE;
 
