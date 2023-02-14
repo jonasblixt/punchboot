@@ -651,7 +651,7 @@ bool plat_transport_ready(void)
 
 int imx_ehci_set_address(uint32_t addr)
 {
-    pb_write32((addr << 25) | (1 <<24), CONFIG_EHCI_BASE+EHCI_DEVICEADDR);
+    pb_write32((addr << 25) | (1 <<24), IMX_EHCI_BASE + EHCI_DEVICEADDR);
     return PB_OK;
 }
 
