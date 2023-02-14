@@ -8,15 +8,6 @@ config IMX_WATCHDOG_BASE
     default 0x020BC000
     depends on ENABLE_WATCHDOG
 
-comment "Generic timer"
-config IMX_GPT_BASE
-    hex "IMX timer base"
-    default 0x02098000
-
-config IMX_GPT_PR
-    int "IMX timer divisor"
-    default 24
-
 comment "Debug serial port"
 
 config IMX_UART_BASE

@@ -2,14 +2,6 @@ menu "imx8x configuration"
     depends on PLAT_IMX8X
     comment "imx8x configuration"
 
-comment "Generic timer"
-config IMX_GPT_BASE
-    hex "IMX timer base"
-    default 0x5D140000
-
-config IMX_GPT_PR
-    int "IMX timer divisor"
-    default 24
 choice CONSOLE_UART
 	bool "Select console UART"
 config CONSOLE_UART0

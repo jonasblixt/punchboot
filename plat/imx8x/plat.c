@@ -283,7 +283,7 @@ int plat_early_init(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = gp_timer_init(CONFIG_IMX_GPT_BASE, CONFIG_IMX_GPT_PR);
+    rc = gp_timer_init();
 
     if (rc != PB_OK)
         return rc;

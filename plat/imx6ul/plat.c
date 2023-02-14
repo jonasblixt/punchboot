@@ -511,7 +511,7 @@ int plat_early_init(void)
     /* Unmask wdog in SRC control reg */
     pb_write32(0, 0x020D8000);
     plat_wdog_init();
-    gp_timer_init(CONFIG_IMX_GPT_BASE, CONFIG_IMX_GPT_PR);
+    gp_timer_init();
 
     /**
      * TODO: Some imx6ul can run at 696 MHz and some others at 528 MHz

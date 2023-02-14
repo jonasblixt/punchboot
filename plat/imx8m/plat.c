@@ -188,7 +188,7 @@ int plat_early_init(void)
     /* PLL1 div10 */
     imx8m_clock_cfg(GPT1_CLK_ROOT | (5 << 24), CLK_ROOT_ON);
 
-    gp_timer_init(CONFIG_IMX_GPT_BASE, CONFIG_IMX_GPT_PR);
+    gp_timer_init();
 
     /* Enable and ungate WDOG clocks */
     pb_write32((1 << 28), 0x30388004 + 0x80*114);

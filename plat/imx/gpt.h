@@ -19,7 +19,7 @@
 #define GP_TIMER_SR  0x0008
 #define GP_TIMER_CNT 0x0024
 
-int gp_timer_init(__iomem base_addr, unsigned int pr);
+int gp_timer_init(void);
 unsigned int gp_timer_get_tick(void);
 
 #endif  // PLAT_IMX_GPT_H_
