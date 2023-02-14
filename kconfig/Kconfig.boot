@@ -58,4 +58,8 @@ config BOOT_ROLLBACK_MODE_SPECULATIVE
         and B paritions until runtime software can either perform an update
         or set the verified bit on either A or B.
 
+config CALL_EARLY_PLAT_BOOT
+    bool "Call early/late plat/board boot callbacks"
+    default n
+
 endmenu
