@@ -9,6 +9,7 @@
 
 #include <pb/io.h>
 #include <plat/imx/gpio.h>
+#include <plat/defs.h>
 
 #define DR         (0x0)
 #define GDIR       (0x4)
@@ -23,7 +24,7 @@
 #define DR_TOGGLE  (0x8C)
 
 #define GPIO_REG_BANK_SIZE (0x10000)
-#define GPIO_BANK_BASE(bank) (CONFIG_IMX_GPIO_BASE + GPIO_REG_BANK_SIZE * bank)
+#define GPIO_BANK_BASE(bank) (IMX_GPIO_BASE + GPIO_REG_BANK_SIZE * bank)
 #define GPIO_PIN(pin) (1 << (pin))
 
 void gpio_set_pin(uint8_t bank, uint8_t pin, uint8_t value)

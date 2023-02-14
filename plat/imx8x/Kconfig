@@ -2,11 +2,6 @@ menu "imx8x configuration"
     depends on PLAT_IMX8X
     comment "imx8x configuration"
 
-comment "GPIO"
-config IMX_GPIO_BASE
-    hex "IMX GPIO base address"
-    default 0x5D080000
-
 comment "USBDCD"
 config IMX_USBDCD_BASE
     hex "USB DCD base address"
