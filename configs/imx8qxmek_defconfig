@@ -2,8 +2,6 @@ CONFIG_ARCH_ARMV8=y
 # CONFIG_ARCH_ARMV7 is not set
 CONFIG_PLAT_IMX8X=y
 # CONFIG_PLAT_IMX8M is not set
-CONFIG_IMX_GPT_BASE=0x5D140000
-CONFIG_IMX_GPT_PR=24
 
 #
 # imx8x configuration
@@ -11,10 +9,6 @@ CONFIG_IMX_GPT_PR=24
 
 #
 # imx8x configuration
-#
-
-#
-# Generic timer
 #
 CONFIG_CONSOLE_UART0=y
 # CONFIG_CONSOLE_UART1 is not set
