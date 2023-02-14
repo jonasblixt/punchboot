@@ -79,8 +79,8 @@ static int caam_shedule_job_sync(uint32_t *job)
         __asm__("nop");
 
     arch_invalidate_cache_range((uintptr_t) output_ring, sizeof(output_ring[0]));
-    if (output_ring[0] != (uint32_t)(uintptr_t) job)
-    {
+
+    if (output_ring[0] != (uint32_t)(uintptr_t) job) {
         LOG_ERR("Job failed");
         return -PB_ERR;
     }
@@ -89,8 +89,7 @@ static int caam_shedule_job_sync(uint32_t *job)
 
     uint32_t caam_status = pb_read32(IMX_CAAM_BASE + CAAM_JRSTAR);
 
-    if (caam_status)
-    {
+    if (caam_status) {
         LOG_ERR("Job error %08x", caam_status);
         return -PB_ERR;
     }
@@ -100,14 +99,12 @@ static int caam_shedule_job_sync(uint32_t *job)
 
 static int caam_wait_for_job(uint32_t *job)
 {
-
     while ((pb_read32(IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
     arch_invalidate_cache_range((uintptr_t) output_ring, sizeof(output_ring[0]));
 
-    if (output_ring[0] != (uint32_t)(uintptr_t) job)
-    {
+    if (output_ring[0] != (uint32_t)(uintptr_t) job) {
         LOG_ERR("Job failed\n\r");
         return -PB_ERR;
     }
@@ -116,8 +113,7 @@ static int caam_wait_for_job(uint32_t *job)
 
     uint32_t caam_status = pb_read32(IMX_CAAM_BASE + CAAM_JRSTAR);
 
-    if (caam_status)
-    {
+    if (caam_status) {
         LOG_ERR("Job error %08x %p", caam_status, job);
         return -PB_ERR;
     }
@@ -158,14 +154,12 @@ static int caam_ecdsa_verify(struct pb_hash_context *hash,
     uint8_t *r = NULL;
     uint8_t *s = NULL;
 
-    if (pb_asn1_eckey_data(key, &key_data, &key_sz, false) != PB_OK)
-    {
+    if (pb_asn1_eckey_data(key, &key_data, &key_sz, false) != PB_OK) {
         LOG_ERR("Could not extract key data");
         return -PB_ERR;
     }
 
-    if (pb_asn1_ecsig_to_rs(signature, key->kind, &r, &s) != PB_OK)
-    {
+    if (pb_asn1_ecsig_to_rs(signature, key->kind, &r, &s) != PB_OK) {
         LOG_ERR("Could not get r/s values");
         return -PB_ERR;
     }
@@ -176,8 +170,7 @@ static int caam_ecdsa_verify(struct pb_hash_context *hash,
     memcpy(caam_ecdsa_r, r, sizeof(caam_ecdsa_r));
     memcpy(caam_ecdsa_s, s, sizeof(caam_ecdsa_s));
 
-    switch (hash->alg)
-    {
+    switch (hash->alg) {
         case PB_HASH_SHA256:
             hash_len = 32;
         break;
@@ -194,8 +187,7 @@ static int caam_ecdsa_verify(struct pb_hash_context *hash,
 
     memcpy(caam_ecdsa_hash, hash->buf, hash_len);
 
-    switch (key->kind)
-    {
+    switch (key->kind) {
         case BPAK_KEY_PUB_PRIME256v1:
             caam_sig_type = 2;
         break;
@@ -235,16 +227,13 @@ static int caam_ecdsa_verify(struct pb_hash_context *hash,
     return caam_shedule_job_sync(desc);
 }
 
-
-
 /* Crypto Interface */
 int caam_hash_init(struct pb_hash_context *ctx, enum pb_hash_algs pb_alg)
 {
     ctx->init = true;
     ctx->alg = pb_alg;
 
-    switch (pb_alg)
-    {
+    switch (pb_alg) {
         case PB_HASH_SHA256:
             alg = CAAM_ALG_TYPE_SHA256;
             block_size = 64;
@@ -281,13 +270,11 @@ int caam_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
     uint8_t dc = 0;
     int err = PB_OK;
 
-    if (size)
-    {
+    if (size) {
         arch_clean_cache_range((uintptr_t) buf, size);
     }
 
-    if (!ctx->init)
-    {
+    if (!ctx->init) {
         err = caam_wait_for_job(desc);
 
         if (err != PB_OK)
@@ -299,13 +286,10 @@ int caam_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
         CAAM_ALG_AAI(0);
 
 
-    if (ctx->init)
-    {
+    if (ctx->init) {
         desc[1] |= CAAM_ALG_STATE_INIT;
         LOG_DBG("Init %p, %zu", buf, size);
-    }
-    else
-    {
+    } else {
         desc[1] |= CAAM_ALG_STATE_UPDATE;
         desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX, block_size);
         desc[dc++]  = (uint32_t) (uintptr_t) ctx->buf;
@@ -334,8 +318,7 @@ int caam_hash_finalize(struct pb_hash_context *ctx,
 
     LOG_DBG("Buf <%p> %zu", buf, size);
 
-    if (buf && size)
-    {
+    if (buf && size) {
         arch_clean_cache_range((uintptr_t) buf, size);
     }
 
@@ -377,17 +360,14 @@ int caam_hash_finalize(struct pb_hash_context *ctx,
     return err;
 }
 
-
 int caam_pk_verify(struct pb_hash_context *hash,
                     struct bpak_key *key,
                     void *signature, size_t size)
 {
-
     int err = PB_ERR;
     int hash_length;
 
-    switch (hash->alg)
-    {
+    switch (hash->alg) {
         case PB_HASH_SHA256:
             hash_length = 32;
         break;
@@ -404,9 +384,7 @@ int caam_pk_verify(struct pb_hash_context *hash,
         }
     }
 
-
-    switch (key->kind)
-    {
+    switch (key->kind) {
         case BPAK_KEY_PUB_RSA4096:
         {
             LOG_DBG("Checking RSA4096 signature...");
