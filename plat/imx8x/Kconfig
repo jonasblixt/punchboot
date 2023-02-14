@@ -2,11 +2,6 @@ menu "imx8x configuration"
     depends on PLAT_IMX8X
     comment "imx8x configuration"
 
-comment "USBDCD"
-config IMX_USBDCD_BASE
-    hex "USB DCD base address"
-    default 0x5b100800
-
 comment "Generic timer"
 config IMX_GPT_BASE
     hex "IMX timer base"
