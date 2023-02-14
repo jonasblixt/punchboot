@@ -15,6 +15,7 @@
 #include <pb/io.h>
 #include <pb/usb.h>
 #include <plat/imx/ehci.h>
+#include <plat/defs.h>
 #include <pb-tools/wire.h>
 
 static struct ehci_transfer_head __no_bss __a4k dtds[EHCI_NO_OF_EPS*2][512];
@@ -40,20 +41,20 @@ static void ehci_reset_queues(void)
 static void ehci_reset(void)
 {
 
-    pb_write32(0xFFFFFFFF, CONFIG_EHCI_BASE+EHCI_USBSTS);
+    pb_write32(0xFFFFFFFF, IMX_EHCI_BASE+EHCI_USBSTS);
 
-    pb_write32(0xFFFF, CONFIG_EHCI_BASE+EHCI_ENDPTSETUPSTAT);
-    pb_write32((0xff << 16)  | 0xff, CONFIG_EHCI_BASE+EHCI_ENDPTCOMPLETE);
+    pb_write32(0xFFFF, IMX_EHCI_BASE+EHCI_ENDPTSETUPSTAT);
+    pb_write32((0xff << 16)  | 0xff, IMX_EHCI_BASE+EHCI_ENDPTCOMPLETE);
 
     LOG_DBG("Waiting for EP Prime");
-    while (pb_read32(CONFIG_EHCI_BASE+EHCI_ENDPTPRIME))
+    while (pb_read32(IMX_EHCI_BASE+EHCI_ENDPTPRIME))
         __asm__("nop");
 
-    pb_write32(0xFFFFFFFF, CONFIG_EHCI_BASE+EHCI_ENDPTFLUSH);
+    pb_write32(0xFFFFFFFF, IMX_EHCI_BASE+EHCI_ENDPTFLUSH);
 
     LOG_DBG("Wait for port reset");
     /* Wait for port to come out of reset */
-    while ((pb_read32(CONFIG_EHCI_BASE+EHCI_PORTSC1) & (1<<8)) == (1 <<8))
+    while ((pb_read32(IMX_EHCI_BASE+EHCI_PORTSC1) & (1<<8)) == (1 <<8))
         __asm__("nop");
 }
 
@@ -92,9 +93,9 @@ static int ehci_prime_ep(int ep)
         epreg = (1 << (ep/2));
     }
 
-    pb_write32(epreg, CONFIG_EHCI_BASE + EHCI_ENDPTPRIME);
+    pb_write32(epreg, IMX_EHCI_BASE + EHCI_ENDPTPRIME);
 
-    while ((pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTPRIME) & epreg) == epreg)
+    while ((pb_read32(IMX_EHCI_BASE + EHCI_ENDPTPRIME) & epreg) == epreg)
         __asm__("nop");
 
     return PB_OK;
@@ -205,52 +206,52 @@ static int imx_ehci_usb_set_configuration(void)
 
     /* Configure EP 1 as bulk IN */
     pb_write32((1 << 23) | (2 << 18) | (1 << 6),
-                (CONFIG_EHCI_BASE+EHCI_ENDPTCTRL1));
+                (IMX_EHCI_BASE+EHCI_ENDPTCTRL1));
     /* Configure EP 2 as bulk OUT */
     pb_write32((1 << 7) | (2 << 2) | (1 << 6),
-                (CONFIG_EHCI_BASE+EHCI_ENDPTCTRL2));
+                (IMX_EHCI_BASE+EHCI_ENDPTCTRL2));
 
     return PB_OK;
 }
 
 int imx_ehci_usb_process(void)
 {
-    uint32_t sts = pb_read32(CONFIG_EHCI_BASE+EHCI_USBSTS);
-    uint32_t epc = pb_read32(CONFIG_EHCI_BASE+EHCI_ENDPTCOMPLETE);
+    uint32_t sts = pb_read32(IMX_EHCI_BASE+EHCI_USBSTS);
+    uint32_t epc = pb_read32(IMX_EHCI_BASE+EHCI_ENDPTCOMPLETE);
     struct usb_setup_packet setup_pkt;
     uint32_t tmp;
 
-    pb_write32(0xFFFFFFFF, CONFIG_EHCI_BASE+EHCI_USBSTS);
+    pb_write32(0xFFFFFFFF, IMX_EHCI_BASE+EHCI_USBSTS);
 
     /* EP0 Process setup packets */
-    if  (pb_read32(CONFIG_EHCI_BASE+EHCI_ENDPTSETUPSTAT) & 1)
+    if  (pb_read32(IMX_EHCI_BASE+EHCI_ENDPTSETUPSTAT) & 1)
     {
-        uint32_t cmd_reg = pb_read32(CONFIG_EHCI_BASE+EHCI_CMD);
+        uint32_t cmd_reg = pb_read32(IMX_EHCI_BASE+EHCI_CMD);
         struct ehci_queue_head *qh = ehci_get_queue(USB_EP0_OUT);
 
         do
         {
-            pb_write32(cmd_reg | (1 << 13), CONFIG_EHCI_BASE + EHCI_CMD);
+            pb_write32(cmd_reg | (1 << 13), IMX_EHCI_BASE + EHCI_CMD);
 
             arch_invalidate_cache_range((uintptr_t) qh->setup,
                                                     sizeof(*qh->setup));
             memcpy(&setup_pkt, qh->setup, sizeof(struct usb_setup_packet));
-        } while (!(pb_read32(CONFIG_EHCI_BASE + EHCI_CMD) & (1<<13)));
+        } while (!(pb_read32(IMX_EHCI_BASE + EHCI_CMD) & (1<<13)));
 
-        pb_write32(1, CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
+        pb_write32(1, IMX_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
 
-        cmd_reg = pb_read32(CONFIG_EHCI_BASE + EHCI_CMD);
-        pb_write32(cmd_reg & ~(1 << 13), CONFIG_EHCI_BASE + EHCI_CMD);
+        cmd_reg = pb_read32(IMX_EHCI_BASE + EHCI_CMD);
+        pb_write32(cmd_reg & ~(1 << 13), IMX_EHCI_BASE + EHCI_CMD);
 
-        pb_write32((1<< 16) | 1, CONFIG_EHCI_BASE + EHCI_ENDPTFLUSH);
+        pb_write32((1<< 16) | 1, IMX_EHCI_BASE + EHCI_ENDPTFLUSH);
 
-        while (pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT) & 1)
+        while (pb_read32(IMX_EHCI_BASE + EHCI_ENDPTSETUPSTAT) & 1)
             __asm__("nop");
 
         usb_process_setup_pkt(&iface, &setup_pkt);
     }
 
-    pb_write32(epc, CONFIG_EHCI_BASE + EHCI_ENDPTCOMPLETE);
+    pb_write32(epc, IMX_EHCI_BASE + EHCI_ENDPTCOMPLETE);
 
     if (sts & (1 << 6))
     {
@@ -266,23 +267,23 @@ int imx_ehci_usb_process(void)
             arch_clean_cache_range((uintptr_t) &dqhs[i], sizeof(dqhs[0]));
         }
 
-        tmp = pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
-        pb_write32(tmp, CONFIG_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
+        tmp = pb_read32(IMX_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
+        pb_write32(tmp, IMX_EHCI_BASE + EHCI_ENDPTSETUPSTAT);
 
-        tmp = pb_read32(CONFIG_EHCI_BASE + EHCI_ENDPTCOMPLETE);
-        pb_write32(tmp, CONFIG_EHCI_BASE + EHCI_ENDPTCOMPLETE);
+        tmp = pb_read32(IMX_EHCI_BASE + EHCI_ENDPTCOMPLETE);
+        pb_write32(tmp, IMX_EHCI_BASE + EHCI_ENDPTCOMPLETE);
 
-        pb_write32(0, CONFIG_EHCI_BASE+EHCI_DEVICEADDR);
+        pb_write32(0, IMX_EHCI_BASE+EHCI_DEVICEADDR);
 
-        while (pb_read32(CONFIG_EHCI_BASE+EHCI_ENDPTPRIME))
+        while (pb_read32(IMX_EHCI_BASE+EHCI_ENDPTPRIME))
             __asm__("nop");
 
-        pb_write32(0x00FF00FF, CONFIG_EHCI_BASE+EHCI_ENDPTFLUSH);
+        pb_write32(0x00FF00FF, IMX_EHCI_BASE+EHCI_ENDPTFLUSH);
     }
 
     if (sts & 2)
     {
-        pb_write32(2, CONFIG_EHCI_BASE+EHCI_USBSTS);
+        pb_write32(2, IMX_EHCI_BASE+EHCI_USBSTS);
         LOG_ERR("EHCI: Error %x", sts);
     }
 
@@ -303,11 +304,11 @@ int imx_ehci_usb_init(void)
 {
     LOG_DBG("Init");
 
-    pb_setbit32(1<<1, CONFIG_EHCI_BASE + EHCI_CMD);
+    pb_setbit32(1<<1, IMX_EHCI_BASE + EHCI_CMD);
 
     LOG_DBG("Waiting for reset");
 
-    while ((pb_read32(CONFIG_EHCI_BASE+EHCI_CMD) & (1<<1)) == (1 << 1))
+    while ((pb_read32(IMX_EHCI_BASE+EHCI_CMD) & (1<<1)) == (1 << 1))
         __asm__("nop");
 
     LOG_DBG("Reset complete");
@@ -324,13 +325,13 @@ int imx_ehci_usb_init(void)
 
     /* Program QH top */
 
-    pb_write32((uint32_t)(uintptr_t) dqhs, CONFIG_EHCI_BASE + EHCI_ENDPTLISTADDR);
+    pb_write32((uint32_t)(uintptr_t) dqhs, IMX_EHCI_BASE + EHCI_ENDPTLISTADDR);
 
     LOG_DBG("QH loaded");
 
     /* Enable USB */
-    pb_write32(0x0A | (1 << 4), CONFIG_EHCI_BASE + EHCI_USBMODE);
-    pb_write32((0x40 << 16) |0x01, CONFIG_EHCI_BASE + EHCI_CMD);
+    pb_write32(0x0A | (1 << 4), IMX_EHCI_BASE + EHCI_USBMODE);
+    pb_write32((0x40 << 16) |0x01, IMX_EHCI_BASE + EHCI_CMD);
 
     LOG_DBG("USB Enable");
 
@@ -338,8 +339,8 @@ int imx_ehci_usb_init(void)
 
     LOG_DBG("USB Reset complete");
 
-    pb_write32(7, CONFIG_EHCI_BASE+EHCI_SBUSCFG);
-    pb_write32(0x0000FFFF, CONFIG_EHCI_BASE+EHCI_BURSTSIZE);
+    pb_write32(7, IMX_EHCI_BASE+EHCI_SBUSCFG);
+    pb_write32(0x0000FFFF, IMX_EHCI_BASE+EHCI_BURSTSIZE);
 
     LOG_INFO("Init completed");
 
