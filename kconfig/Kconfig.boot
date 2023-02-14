@@ -2,9 +2,9 @@ menu "Boot configuration"
 comment "Boot configuration"
 
 choice BOOT
-	bool "Select boot method"
+    bool "Select boot method"
 config BOOT_AB
-	bool "A/B boot"
+    bool "A/B boot"
 endchoice
 
 config BOOT_IMAGE_ID
@@ -50,5 +50,12 @@ config BOOT_POP_TIMING
     depends on BOOT_DT
     default n
 
+config BOOT_ROLLBACK_MODE_SPECULATIVE
+    bool "Speculative rollback mode"
+    depends on BOOT_AB
+    help
+        In speculative rollback mode the bootloader will alternate between A
+        and B paritions until runtime software can either perform an update
+        or set the verified bit on either A or B.
 
 endmenu
