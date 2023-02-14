@@ -1068,6 +1068,9 @@ err_out:
 void pb_command_run(void)
 {
     int rc;
+#ifdef CONFIG_TRANSPORT_ENTER_BOARD_CB
+    board_command_mode_enter();
+#endif
 
     LOG_DBG("Initializing command mode");
 #ifdef CONFIG_AUTH

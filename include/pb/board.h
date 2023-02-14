@@ -45,5 +45,6 @@ int board_slc_set_configuration(void *plat);
 int board_slc_set_configuration_lock(void *plat);
 int board_command_mode_auth(char *password, size_t length);
 const char *board_name(void);
+void board_command_mode_enter(void);
 
 #endif  // INCLUDE_PB_BOARD_H_

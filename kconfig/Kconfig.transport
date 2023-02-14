@@ -15,4 +15,9 @@ config LOAD_FS_MAX_CHUNK_KB
 config TRANSPORT_READY_TIMEOUT
     int "Timeout in seconds before transport must become ready"
     default 10
+
+config TRANSPORT_ENTER_BOARD_CB
+    bool "Call board level callback when entering command mode"
+    default n
+
 endmenu
