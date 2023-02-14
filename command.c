@@ -1068,7 +1068,7 @@ err_out:
 void pb_command_run(void)
 {
     int rc;
-#ifdef TRANSPORT_ENTER_BOARD_CB
+#ifdef CONFIG_TRANSPORT_ENTER_BOARD_CB
     board_command_mode_enter();
 #endif
 
