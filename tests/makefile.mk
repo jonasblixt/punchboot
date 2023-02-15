@@ -55,48 +55,48 @@ INTEGRATION_TESTS += test_gpt_resize2
 INTEGRATION_TESTS += test_gpt_resize3
 
 
-TEST_ASM_SRCS += arch/armv7a/entry_armv7a.S
-TEST_ASM_SRCS += arch/armv7a/arm32_aeabi_divmod_a32.S
-TEST_ASM_SRCS += arch/armv7a/uldivmod.S
-TEST_ASM_SRCS += arch/armv7a/boot.S
-TEST_ASM_SRCS += arch/armv7a/timer.S
-TEST_ASM_SRCS += arch/armv7a/cp15.S
-TEST_ASM_SRCS += arch/armv7a/misc_helpers.S
+TEST_ASM_SRCS += src/arch/armv7a/entry_armv7a.S
+TEST_ASM_SRCS += src/arch/armv7a/arm32_aeabi_divmod_a32.S
+TEST_ASM_SRCS += src/arch/armv7a/uldivmod.S
+TEST_ASM_SRCS += src/arch/armv7a/boot.S
+TEST_ASM_SRCS += src/arch/armv7a/timer.S
+TEST_ASM_SRCS += src/arch/armv7a/cp15.S
+TEST_ASM_SRCS += src/arch/armv7a/misc_helpers.S
 
-TEST_C_SRCS += arch/armv7a/arm32_aeabi_divmod.c
-TEST_C_SRCS += arch/armv7a/arch.c
+TEST_C_SRCS += src/arch/armv7a/arm32_aeabi_divmod.c
+TEST_C_SRCS += src/arch/armv7a/arch.c
 
 
 TEST_C_SRCS += tests/common.c
-TEST_C_SRCS += plat/qemu/gcov.c
-TEST_C_SRCS += plat/qemu/reset.c
-TEST_C_SRCS += usb.c
-TEST_C_SRCS += lib/asn1.c
-TEST_C_SRCS += plat/qemu/semihosting.c
-TEST_C_SRCS += plat/qemu/uart.c
-TEST_C_SRCS += lib/printf.c
-TEST_C_SRCS += lib/memcmp.c
-TEST_C_SRCS += lib/strlen.c
-TEST_C_SRCS += lib/memcpy.c
-TEST_C_SRCS += lib/memset.c
-TEST_C_SRCS += lib/strtoul.c
-TEST_C_SRCS += lib/strcmp.c
-TEST_C_SRCS += lib/snprintf.c
-TEST_C_SRCS += lib/putchar.c
-TEST_C_SRCS += lib/fletcher.c
-TEST_C_SRCS += lib/assert.c
+TEST_C_SRCS += src/plat/qemu/gcov.c
+TEST_C_SRCS += src/plat/qemu/reset.c
+TEST_C_SRCS += src/usb.c
+TEST_C_SRCS += src/lib/asn1.c
+TEST_C_SRCS += src/plat/qemu/semihosting.c
+TEST_C_SRCS += src/plat/qemu/uart.c
+TEST_C_SRCS += src/lib/printf.c
+TEST_C_SRCS += src/lib/memcmp.c
+TEST_C_SRCS += src/lib/strlen.c
+TEST_C_SRCS += src/lib/memcpy.c
+TEST_C_SRCS += src/lib/memset.c
+TEST_C_SRCS += src/lib/strtoul.c
+TEST_C_SRCS += src/lib/strcmp.c
+TEST_C_SRCS += src/lib/snprintf.c
+TEST_C_SRCS += src/lib/putchar.c
+TEST_C_SRCS += src/lib/fletcher.c
+TEST_C_SRCS += src/lib/assert.c
 
 # UUID lib
-TEST_C_SRCS  += lib/uuid/pack.c
-TEST_C_SRCS  += lib/uuid/unpack.c
-TEST_C_SRCS  += lib/uuid/compare.c
-TEST_C_SRCS  += lib/uuid/copy.c
-TEST_C_SRCS  += lib/uuid/unparse.c
-TEST_C_SRCS  += lib/uuid/parse.c
-TEST_C_SRCS  += lib/uuid/clear.c
-TEST_C_SRCS  += lib/uuid/conv.c
+TEST_C_SRCS  += src/lib/uuid/pack.c
+TEST_C_SRCS  += src/lib/uuid/unpack.c
+TEST_C_SRCS  += src/lib/uuid/compare.c
+TEST_C_SRCS  += src/lib/uuid/copy.c
+TEST_C_SRCS  += src/lib/uuid/unparse.c
+TEST_C_SRCS  += src/lib/uuid/parse.c
+TEST_C_SRCS  += src/lib/uuid/clear.c
+TEST_C_SRCS  += src/lib/uuid/conv.c
 
-TEST_ASM_SRCS += plat/qemu/semihosting_call.S
+TEST_ASM_SRCS += src/plat/qemu/semihosting_call.S
 
 TEST_OBJS    = $(patsubst %.S, $(BUILD_DIR)/%.o, $(TEST_ASM_SRCS))
 TEST_OBJS   += $(patsubst %.c, $(BUILD_DIR)/%.o, $(TEST_C_SRCS))

@@ -19,7 +19,10 @@ SIZE=$(CROSS_COMPILE)size
 STRIP=$(CROSS_COMPILE)strip
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
-$(shell BOARD=$(BOARD) $(PYTHON) scripts/genconfig.py)
+BUILD_DIR ?= build-$(lastword $(subst /, ,$(BOARD)))
+$(shell mkdir -p $(BUILD_DIR))
+$(shell BOARD=$(BOARD) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h src/Kconfig)
+
 include .config
 
 ifdef TIMING_REPORT
@@ -45,12 +48,13 @@ cflags-y  += -fstack-usage
 cflags-y  += -MMD -MP
 
 # Include path
-cflags-y  += -I lib/fdt/include
-cflags-y  += -I lib/uuid/
-cflags-y  += -I. -I include/ -I lib/
-cflags-y  += -I include
-cflags-y  += -I include/pb/libc
+cflags-y  += -I src/lib/fdt/include
+cflags-y  += -I src/lib/uuid/
+cflags-y  += -I src/ -I src/include/ -I src/lib/
+cflags-y  += -I src/include
+cflags-y  += -I src/include/pb/libc
 cflags-y  += -I $(BOARD)/include
+cflags-y  += -I $(BUILD_DIR)
 
 # Warnings
 cflags-y += -Wall
@@ -71,32 +75,27 @@ cflags-y += -Wredundant-decls
 cflags-y += -Waggregate-return
 
 # Bootloader
-src-y   = main.c
-src-y  += boot.c
-src-$(CONFIG_BOOT_AB)  += ab.c
+src-y   = src/main.c
+src-y  += src/boot.c
+src-$(CONFIG_BOOT_AB)  += src/ab.c
 src-y  += keystore.c
-src-y  += keystore_helpers.c
-src-y  += time.c
-src-y  += usb.c
-src-y  += image.c
-src-y  += storage.c
-src-y  += wire.c
-src-y  += command.c
+src-y  += src/keystore_helpers.c
+src-y  += src/time.c
+src-y  += src/usb.c
+src-y  += src/image.c
+src-y  += src/storage.c
+src-y  += src/wire.c
+src-y  += src/command.c
 
-
-BUILD_DIR ?= build-$(lastword $(subst /, ,$(BOARD)))
-
-include lib/makefile.mk
+include src/lib/makefile.mk
 include $(BOARD)/makefile.mk
-include arch/*/makefile.mk
-include plat/*/makefile.mk
-
-$(shell mkdir -p $(BUILD_DIR))
+include src/arch/*/makefile.mk
+include src/plat/*/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map 
 ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)
 ldflags-y += --defsym=PB_STACK_SIZE_KB=$(CONFIG_STACK_SIZE_KB)
-ldflags-y += -Tlink.lds  --build-id=none
+ldflags-y += -Tsrc/link.lds  --build-id=none
 
 OBJS =
 OBJS += $(patsubst %.c, $(BUILD_DIR)/%.o, $(src-y))
@@ -112,7 +111,7 @@ FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).bin
 .PHONY: keystore menuconfig
 
 menuconfig:
-	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/menuconfig.py 
+	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/menuconfig.py src/Kconfig
 
 all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
@@ -162,11 +161,11 @@ install: all
 	@cp $(FINAL_OUTPUT) $(INSTALL_DIR)
 
 gcovr:
-	@gcovr 	--gcov-exclude plat \
+	@gcovr 	--gcov-exclude src/plat \
 			--gcov-exclude uuid \
-			--gcov-exclude fdt \
+			--gcov-exclude src/fdt \
 			--gcov-exclude tests \
-			--gcov-exclude lib \
+			--gcov-exclude src/lib \
 			--gcov-exclude bearssl
 
 .DEFAULT_GOAL := all
