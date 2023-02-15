@@ -102,15 +102,26 @@ int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit)
             LOG_ERR("Rollback to B system");
             if (!(abstate->verified & PB_STATE_B_VERIFIED))
             {
+#ifdef CONFIG_BOOT_ROLLBACK_MODE_SPECULATIVE
+                // Enable B
+                // Reset boot counter to one
+                *commit = true;
+                abstate->enable = PB_STATE_B_ENABLED;
+                abstate->remaining_boot_attempts = 1;
+                abstate->error = PB_STATE_ERROR_A_ROLLBACK;
+                active_uu_str = b_part_uu_str;
+                dt_part_name = 'B';
+#else
                 LOG_ERR("B system not verified, failing");
                 return -PB_ERR;
+#endif
+            } else {
+                *commit = true;
+                abstate->enable = PB_STATE_B_ENABLED;
+                abstate->error = PB_STATE_ERROR_A_ROLLBACK;
+                active_uu_str = b_part_uu_str;
+                dt_part_name = 'B';
             }
-
-            *commit = true;
-            abstate->enable = PB_STATE_B_ENABLED;
-            abstate->error = PB_STATE_ERROR_A_ROLLBACK;
-            active_uu_str = b_part_uu_str;
-            dt_part_name = 'B';
         }
         else
         {
@@ -133,8 +144,19 @@ int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit)
             LOG_ERR("Rollback to A system");
             if (!(abstate->verified & PB_STATE_A_VERIFIED))
             {
+#ifdef CONFIG_BOOT_ROLLBACK_MODE_SPECULATIVE
+                // Enable A
+                // Reset boot counter to one
+                *commit = true;
+                abstate->enable = PB_STATE_A_ENABLED;
+                abstate->remaining_boot_attempts = 1;
+                abstate->error = PB_STATE_ERROR_B_ROLLBACK;
+                active_uu_str = a_part_uu_str;
+                dt_part_name = 'A';
+#else
                 LOG_ERR("A system not verified, failing");
                 return -PB_ERR;
+#endif
             }
 
             *commit = true;

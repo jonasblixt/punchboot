@@ -12,25 +12,9 @@ CONFIG_PLAT_IMX6UL=y
 #
 
 #
-# USB Transport
-#
-CONFIG_EHCI_BASE=0x02184000
-
-#
-# CAAM
-#
-CONFIG_IMX_CAAM_BASE=0x02141000
-
-#
 # Watchdog
 #
 CONFIG_IMX_WATCHDOG_BASE=0x020BC000
-
-#
-# Generic timer
-#
-CONFIG_IMX_GPT_BASE=0x02098000
-CONFIG_IMX_GPT_PR=24
 
 #
 # Debug serial port

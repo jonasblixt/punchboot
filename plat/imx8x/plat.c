@@ -283,7 +283,7 @@ int plat_early_init(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = gp_timer_init(CONFIG_IMX_GPT_BASE, CONFIG_IMX_GPT_PR);
+    rc = gp_timer_init();
 
     if (rc != PB_OK)
         return rc;
@@ -712,7 +712,7 @@ int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 
 int imx_ehci_set_address(uint32_t addr)
 {
-    pb_write32((addr << 25) | (1 <<24), CONFIG_EHCI_BASE+EHCI_DEVICEADDR);
+    pb_write32((addr << 25) | (1 <<24), IMX_EHCI_BASE + EHCI_DEVICEADDR);
     return PB_OK;
 }
 

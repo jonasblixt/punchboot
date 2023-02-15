@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2021 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -10,36 +10,34 @@
 #include <pb/io.h>
 #include <pb/pb.h>
 #include <plat/imx/gpt.h>
+#include <plat/defs.h>
 
-static __iomem base;
-
-int gp_timer_init(__iomem base_addr, unsigned int pr)
+int gp_timer_init(void)
 {
     uint32_t cr = 0;
-    base = base_addr;
 
-    pb_write32(1<<15, base + GP_TIMER_CR);
+    pb_write32(1<<15, IMX_GPT_BASE + GP_TIMER_CR);
 
-    while (pb_read32(base + GP_TIMER_CR) & (1<<15)) {
+    while (pb_read32(IMX_GPT_BASE + GP_TIMER_CR) & (1<<15)) {
         __asm__("nop");
     }
 
-    pb_write32(pr, base + GP_TIMER_PR);
+    pb_write32(IMX_GPT_PR, IMX_GPT_BASE + GP_TIMER_PR);
 
     cr = (2 << 6) | (1 << 9) | (1 << 10);
-    pb_write32(cr, base + GP_TIMER_CR);
+    pb_write32(cr, IMX_GPT_BASE + GP_TIMER_CR);
 
     /* Enable timer */
     cr |= 1;
 
-    pb_write32(cr, base + GP_TIMER_CR);
+    pb_write32(cr, IMX_GPT_BASE + GP_TIMER_CR);
 
     return PB_OK;
 }
 
 unsigned int gp_timer_get_tick(void)
 {
-    return (pb_read32(base + GP_TIMER_CNT));
+    return (pb_read32(IMX_GPT_BASE + GP_TIMER_CNT));
 }
 
 

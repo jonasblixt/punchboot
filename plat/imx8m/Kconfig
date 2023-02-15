@@ -8,25 +8,11 @@ config DWC3_BASE
     hex "DWC3 base address"
     default 0x38100000
 
-comment "CAAM"
-config IMX_CAAM_BASE
-    hex "CAAM base address"
-    default 0x30901000
-
 comment "Watchdog"
 config IMX_WATCHDOG_BASE
     hex "Watchdog base"
     default 0x30280000
     depends on ENABLE_WATCHDOG
-
-comment "Generic timer"
-config IMX_GPT_BASE
-    hex "IMX timer base"
-    default 0x302D0000
-
-config IMX_GPT_PR
-    int "IMX timer divisor"
-    default 40
 
 comment "Debug serial port"
 

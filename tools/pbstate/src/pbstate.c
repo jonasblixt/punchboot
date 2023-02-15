@@ -17,7 +17,6 @@
 
 #include "pbstate.h"
 #include "crc.h"
-#include "gpt.h"
 
 #define PB_STATE_MAGIC 0x026d4a65
 
@@ -213,12 +212,12 @@ int pbstate_load(const char *p_device,
 
     close(fd);
 
-    if (config_validate(&config) == GPT_OK)
+    if (config_validate(&config) == 0)
         primary_ok = true;
     else
         primary_ok = false;
 
-    if (config_validate(&config_backup) == GPT_OK)
+    if (config_validate(&config_backup) == 0)
         backup_ok = true;
     else
         backup_ok = false;

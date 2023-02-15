@@ -2,34 +2,6 @@ menu "imx8x configuration"
     depends on PLAT_IMX8X
     comment "imx8x configuration"
 
-comment "USB Transport"
-config EHCI_BASE
-    hex "EHCI base address"
-    default 0x5b0d0000
-
-comment "CAAM"
-config IMX_CAAM_BASE
-    hex "CAAM base address"
-    default 0x31430000
-
-comment "GPIO"
-config IMX_GPIO_BASE
-    hex "IMX GPIO base address"
-    default 0x5D080000
-
-comment "USBDCD"
-config IMX_USBDCD_BASE
-    hex "USB DCD base address"
-    default 0x5b100800
-
-comment "Generic timer"
-config IMX_GPT_BASE
-    hex "IMX timer base"
-    default 0x5D140000
-
-config IMX_GPT_PR
-    int "IMX timer divisor"
-    default 24
 choice CONSOLE_UART
 	bool "Select console UART"
 config CONSOLE_UART0
