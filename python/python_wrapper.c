@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <Python.h>
 #include <bpak/bpak.h>
 #include <bpak/utils.h>
@@ -136,11 +137,12 @@ static int PbSession_init(struct pb_session *self, PyObject *args, PyObject *kwd
     return 0;
 }
 
-static void PbSession_exit(struct pb_session *self)
+static void PbSession_dealloc(struct pb_session *self)
 {
     if (self->ctx) {
         pb_api_free_context(self->ctx);
     }
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject* authenticate(PyObject* self, PyObject* args, PyObject* kwds)
@@ -567,8 +569,9 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
     struct pb_partition_table_entry *tbl;
     int tbl_entries;
     struct pb_device_capabilities caps;
+    size_t chunk_size = 0;
     uint8_t *chunk_buffer = NULL;
-    uint8_t buffer_id = 1;
+    uint8_t buffer_id = 0;
     struct bpak_header header;
     size_t part_size = 0;
     uuid_t uuid_part;
@@ -585,6 +588,12 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
     file_fd = PyObject_AsFileDescriptor(file);
     if (file_fd == -1) {
+        PyErr_SetString(PyExc_TypeError, "Invalid file descriptor");
+        return NULL;
+    }
+
+    if (uuid_parse(uuid, uuid_part) != 0) {
+        PyErr_SetString(PyExc_TypeError, "Failed to parse UUID");
         return NULL;
     }
 
@@ -593,7 +602,8 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
         return PbErr_FromErrorCode(ret, "Failed to read device caps");
     }
 
-    chunk_buffer = malloc(caps.chunk_transfer_max_bytes);
+    chunk_size = caps.chunk_transfer_max_bytes;
+    chunk_buffer = malloc(chunk_size + 1);
     if (!chunk_buffer) {
         return PyErr_NoMemory();
     }
@@ -604,10 +614,9 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
         goto err_free_buf;
     }
 
-    uuid_parse(uuid, uuid_part);
     for (int i = 0; i < tbl_entries; i++) {
-        if (memcmp(&uuid, &(tbl[i].uuid), sizeof(uuid)) == 0) {
-            part_size = (tbl[i].last_block - tbl[i].first_block) * tbl[i].block_size;
+        if (uuid_compare(tbl[i].uuid, uuid_part) == 0) {
+            part_size = (tbl[i].last_block - tbl[i].first_block + 1) * tbl[i].block_size;
         }
     }
     free(tbl);
@@ -618,32 +627,39 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
     ret = pb_api_stream_init(session->ctx, uuid_part);
     if (ret != PB_RESULT_OK) {
-        PbErr_FromErrorCode(ret, "Failed to write partition");
+        PbErr_FromErrorCode(ret, "Failed to initialize stream");
         goto err_free_buf;
     }
 
-
+    size_t offset = 0;
     ssize_t read_bytes = 0;
+    bool bpak_file = false;
+
     read_bytes = read(file_fd, &header, sizeof(header));
-    if (read_bytes == sizeof(header) && (bpak_valid_header(&header) == BPAK_OK)) {
-        ret = stream_data(session->ctx, 0, &header, sizeof(header), part_size - sizeof(header));
-        if (ret != PB_RESULT_OK) {
-            PbErr_FromErrorCode(ret, "Failed to write partition");
-            goto err_free_buf;
-        }
+
+    if (read_bytes < 0) {
+        return PyErr_SetFromErrno(PyExc_IOError);
+    } else if (read_bytes == sizeof(header) &&
+               bpak_valid_header(&header) == BPAK_OK) {
+        bpak_file = true;
     } else {
         lseek(file_fd, 0, SEEK_SET);
     }
 
-    size_t offset = 0;
-    do {
-        read_bytes = read(file_fd, chunk_buffer, caps.chunk_transfer_max_bytes);
-        if (read_bytes < 0) {
-            PyErr_SetString(PyExc_IOError, "Failed reading file");
+    if (bpak_file) {
+        offset = part_size  - sizeof(header);
+        ret = stream_data(session->ctx, buffer_id, &header, sizeof(header), offset);
+
+        if (ret != PB_RESULT_OK) {
+            PbErr_FromErrorCode(ret, "Failed to write header");
             goto err_free_buf;
-        } else if (read_bytes == 0) {
-            break;  /* Done */
         }
+
+        buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers;
+        offset = 0;
+    }
+
+    while ((read_bytes = read(file_fd, chunk_buffer, chunk_size)) > 0) {
         ret = stream_data(session->ctx, buffer_id, chunk_buffer, read_bytes, offset);
         if (ret != PB_RESULT_OK) {
             PbErr_FromErrorCode(ret, "Failed to write partition");
@@ -652,7 +668,10 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
         buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers;
         offset += read_bytes;
-    } while (read_bytes > 0);
+    }
+    if (read_bytes < 0) {
+        return PyErr_SetFromErrno(PyExc_IOError);
+    }
 
     Py_RETURN_NONE;
 
@@ -752,7 +771,15 @@ static PyObject* boot_set_boot_part(PyObject* self, PyObject* args, PyObject *kw
         return NULL;
     }
 
-    uuid_parse(uuid, uuid_boot);
+    if (strcmp(uuid, "none") == 0) {
+        memset(uuid_boot, 0, sizeof(uuid_boot));
+    } else {
+        if (uuid_parse(uuid, uuid_boot) != 0) {
+            PyErr_SetString(PyExc_TypeError, "Failed to parse UUID");
+            return NULL;
+        }
+    }
+
     ret = pb_api_boot_activate(session->ctx, uuid_boot);
     if (ret != PB_RESULT_OK) {
         return PbErr_FromErrorCode(ret, "Could not set active boot partition");
@@ -776,7 +803,11 @@ static PyObject* boot_partition(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    uuid_parse(uuid, uuid_boot);
+    if (uuid_parse(uuid, uuid_boot) != 0) {
+        PyErr_SetString(PyExc_TypeError, "Failed to parse UUID");
+        return NULL;
+    }
+
     ret = pb_api_boot_part(session->ctx, uuid_boot, true);
     if (ret != PB_RESULT_OK) {
         return PbErr_FromErrorCode(ret, "Could not boot partition");
@@ -864,10 +895,10 @@ static PyTypeObject PbSession = {
     .tp_doc = PyDoc_STR("Punchboot session object towards one board"),
     .tp_basicsize = sizeof(struct pb_session),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_FINALIZE,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = PyType_GenericNew,
     .tp_init = (initproc) PbSession_init,
-    .tp_finalize = (destructor) PbSession_exit,
+    .tp_dealloc = (destructor) PbSession_dealloc,
     .tp_methods = PbSession_methods,
 };
 
@@ -885,7 +916,7 @@ static PyObject* wait_for_device(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    do {
+    while (true) {
         ret = init_transport(NULL, &ctx);
         if (ret != PB_RESULT_OK) {
             return PbErr_FromErrorCode(ret, "Failed to init transport");
@@ -894,17 +925,17 @@ static PyObject* wait_for_device(PyObject* self, PyObject* args, PyObject* kwds)
         ret = get_uuid(ctx, &uuid);
         pb_api_free_context(ctx);
         if (ret != PB_RESULT_OK) {
-            sleep(1);
-            if (timeout > 0) timeout--;
+            if (timeout > 0) {
+                sleep(1);
+                timeout--;
+            } else {
+                PyErr_SetString(PyExc_TimeoutError, "No device found");
+                return NULL;
+            }
         } else {
             break;
         }
-    } while (timeout != 0);
-
-    if (timeout == 0) {
-        PyErr_SetString(PyExc_TimeoutError, "No device found");
-        return NULL;
-    }
+    };
 
     Py_RETURN_NONE;
 }
@@ -930,7 +961,7 @@ PyMODINIT_FUNC PyInit_punchboot(void)
         return NULL;
     }
 
-    pb_base_exception = PyErr_NewException("punchboot.Exception", NULL, NULL);
+    pb_base_exception = PyErr_NewException("punchboot.Error", NULL, NULL);
     if (pb_base_exception == NULL) {
         return NULL;
     }
@@ -942,6 +973,13 @@ PyMODINIT_FUNC PyInit_punchboot(void)
 
     Py_INCREF(&PbSession);
     if (PyModule_AddObject(mod, "Session", (PyObject*) &PbSession) < 0) {
+        Py_DECREF(&PbSession);
+        Py_DECREF(mod);
+        return NULL;
+    }
+
+
+    if (PyModule_AddObject(mod, "Error", (PyObject*) pb_base_exception) < 0) {
         Py_DECREF(&PbSession);
         Py_DECREF(mod);
         return NULL;
