@@ -1,0 +1,15 @@
+mainmenu "Punchboot configuration"
+
+source "src/arch/Kconfig"
+source "src/plat/Kconfig"
+source "src/arch/*/Kconfig"
+source "src/plat/*/Kconfig"
+
+source "src/kconfig/Kconfig.board"
+source "src/kconfig/Kconfig.generic"
+source "src/kconfig/Kconfig.build"
+source "src/kconfig/Kconfig.auth"
+source "src/kconfig/Kconfig.boot"
+source "src/lib/Kconfig"
+source "src/kconfig/Kconfig.transport"
+
