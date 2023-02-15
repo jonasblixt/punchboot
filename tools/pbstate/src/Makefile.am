@@ -1,7 +1,6 @@
 lib_LTLIBRARIES = libpbstate.la
 
 libpbstate_la_SOURCES = crc.c \
-                        gpt.c \
                         pbstate.c
 
 libpbstate_la_CFLAGS = -DPRIMARY_STATE_UUID=\"$(PRIMARY_STATE_UUID)\" \
