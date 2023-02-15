@@ -59,8 +59,8 @@ author = u'Jonas Blixt'
 #
 # The name of the branch/tag on github
 import re
-with open("../configure.ac") as f:
-    r = re.compile(".+\[([0-9\.]+)\]", re.DOTALL)
+with open("../include/pb-tools/pb-tools.h") as f:
+    r = re.compile(".+\"([0-9\.]+)\"", re.DOTALL)
     configure_ac_text = f.read()
     m = r.match(configure_ac_text)
     version = m.group(1)
