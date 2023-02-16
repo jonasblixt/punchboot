@@ -17,7 +17,6 @@
 #include <pb/board.h>
 #include <pb/gpt.h>
 #include <pb/boot.h>
-#include <pb/keystore.h>
 #include <pb/crypto.h>
 #include <pb/command.h>
 #include <bpak/bpak.h>
@@ -25,6 +24,7 @@
 #include <pb-tools/wire.h>
 #include <uuid.h>
 
+extern struct bpak_keystore keystore_pb;
 static struct pb_command cmd __a4k __no_bss;
 static struct pb_result result __a4k __no_bss;
 static bool authenticated = false;
@@ -40,7 +40,6 @@ static int auth_token(uint8_t *device_uu,
                       uint32_t key_id, uint8_t *sig, size_t size)
 {
     int rc = -PB_ERR;
-    struct bpak_keystore *keystore = pb_keystore();
     struct bpak_key *k = NULL;
     bool active = false;
     char device_uu_str[37];
@@ -60,11 +59,11 @@ static int auth_token(uint8_t *device_uu,
     LOG_DBG("uuid: %p %p", device_uu, device_uu_str);
     uuid_unparse(device_uu, device_uu_str);
 
-    for (int i = 0; i < keystore->no_of_keys; i++)
+    for (int i = 0; i < keystore_pb.no_of_keys; i++)
     {
-        if (keystore->keys[i]->id == key_id)
+        if (keystore_pb.keys[i]->id == key_id)
         {
-            k = keystore->keys[i];
+            k = keystore_pb.keys[i];
             break;
         }
     }
