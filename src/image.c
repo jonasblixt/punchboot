@@ -14,7 +14,6 @@
 #include <pb/image.h>
 #include <pb/plat.h>
 #include <pb/io.h>
-#include <pb/keystore.h>
 #include <pb/time.h>
 #include <pb/gpt.h>
 #include <pb/crypto.h>
@@ -24,6 +23,8 @@ extern char _code_start, _code_end,
             _data_region_start, _data_region_end,
             _zero_region_start, _zero_region_end,
             _stack_start, _stack_end, _big_buffer_start, _big_buffer_end;
+
+extern struct bpak_keystore keystore_pb;
 
 static struct bpak_header header __a4k __no_bss;
 static uint8_t signature[512] __a4k __no_bss;
@@ -115,7 +116,6 @@ int pb_image_load(pb_image_read_t read_f,
     struct bpak_header *h = &header;
     struct bpak_key *k = NULL;
     int hash_kind;
-    struct bpak_keystore *keystore = pb_keystore();
 
     timestamp_begin(&ts_load);
 
@@ -130,17 +130,17 @@ int pb_image_load(pb_image_read_t read_f,
     LOG_DBG("Key-store: %x", h->keystore_id);
     LOG_DBG("Key-ID: %x", h->key_id);
 
-    if (h->keystore_id != keystore->id)
+    if (h->keystore_id != keystore_pb.id)
     {
         LOG_ERR("Invalid key-store");
         return -PB_ERR;
     }
 
-    for (int i = 0; i < keystore->no_of_keys; i++)
+    for (int i = 0; i < keystore_pb.no_of_keys; i++)
     {
-        if (keystore->keys[i]->id == h->key_id)
+        if (keystore_pb.keys[i]->id == h->key_id)
         {
-            k = keystore->keys[i];
+            k = keystore_pb.keys[i];
             break;
         }
     }

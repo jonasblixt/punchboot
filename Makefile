@@ -77,7 +77,6 @@ src-y   = src/main.c
 src-y  += src/boot.c
 src-$(CONFIG_BOOT_AB)  += src/ab.c
 src-y  += keystore.c
-src-y  += src/keystore_helpers.c
 src-y  += src/time.c
 src-y  += src/usb.c
 src-y  += src/image.c
