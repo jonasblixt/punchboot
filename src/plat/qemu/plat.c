@@ -27,6 +27,7 @@
 #include <plat/qemu/uart.h>
 #include <bearssl/bearssl_hash.h>
 #include <plat/qemu/semihosting.h>
+#include <board/config.h>
 #include <bpak/bpak.h>
 
 extern char _code_start, _code_end,
@@ -404,7 +405,7 @@ int plat_early_init(void)
     /* Add ram */
 
     mmap_add_region(bb_start + bb_size, bb_start + bb_size,
-                            (1024*1024*1024),
+                            RAM_SIZE,
                             MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add(qemu_mmap);

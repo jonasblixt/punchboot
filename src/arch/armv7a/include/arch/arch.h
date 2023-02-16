@@ -686,6 +686,8 @@
 #define AMEVTYPER1E    p15, 0, c13, c15, 6
 #define AMEVTYPER1F    p15, 0, c13, c15, 7
 
+#define func(__func) .global __func; .type __func, STT_FUNC; __func:
+
 #ifndef __ASSEMBLY__
 
 #include <stdint.h>
