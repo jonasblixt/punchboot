@@ -1,7 +1,9 @@
 menu "Library"
 
-source "src/lib/bearssl/Kconfig"
-
 config LIB_UUID3
     bool "Enable UUID3 function"
+
+config BEARSSL
+    bool "Enable bearssl crypto library"
+
 endmenu
