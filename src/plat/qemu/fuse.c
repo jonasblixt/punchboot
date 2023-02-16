@@ -14,7 +14,7 @@
 #include <plat/qemu/fuse.h>
 #include <plat/qemu/virtio.h>
 #include <plat/qemu/virtio_block.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 
 #define QEMU_FUSE_MAX 128
 

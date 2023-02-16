@@ -2,7 +2,7 @@
 #include <pb/crypto.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 
 typedef union
 {

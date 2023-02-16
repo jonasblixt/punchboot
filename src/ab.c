@@ -2,6 +2,7 @@
 #include <pb/boot.h>
 #include <pb/board.h>
 #include <libfdt.h>
+#include <uuid.h>
 
 #define PB_BOOT_AB_STATE(state) ((struct pb_ab_boot_state *) state->private)
 

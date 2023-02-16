@@ -20,7 +20,7 @@
 #include <pb/crc.h>
 #include <pb/time.h>
 #include <libfdt.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 #include <bpak/bpak.h>
 
 static uint8_t boot_state[512] __no_bss __a4k;

@@ -13,6 +13,7 @@
 #include <pb/plat.h>
 #include <pb/board.h>
 #include <pb-tools/wire.h>
+#include <uuid.h>
 
 #define USB_DEBUG
 

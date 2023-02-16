@@ -25,7 +25,7 @@
 #include <plat/sci/sci.h>
 #include <plat/sci/svc/seco/sci_seco_api.h>
 #include <plat/imx8x/plat.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 #include <libfdt.h>
 
 #ifdef CONFIG_AUTH_METHOD_PASSWORD

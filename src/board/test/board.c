@@ -22,6 +22,7 @@
 #include <plat/qemu/virtio_block.h>
 #include <plat/qemu/virtio_serial.h>
 #include <libfdt.h>
+#include <uuid.h>
 
 struct fuse fuses[] =
 {

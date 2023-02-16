@@ -172,5 +172,8 @@ config TRANSPORT_ENTER_BOARD_CB
 
 endmenu
 
-source "src/lib/Kconfig"
+config LIB_UUID3
+    bool "Enable UUID3 function"
 
+config BEARSSL
+    bool "Enable bearssl crypto library"

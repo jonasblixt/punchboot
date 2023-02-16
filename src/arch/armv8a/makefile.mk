@@ -6,7 +6,7 @@ ARCH = aarch64
 cflags-y += -march=armv8-a -DAARCH64
 cflags-y += -mstrict-align -mgeneral-regs-only
 cflags-y += -I src/arch/armv8a/include
-cflags-y += -I src/lib/include/aarch64
+cflags-y += -I src/libc/include/aarch64
 
 ldflags-y += -Tsrc/arch/armv8a/link.lds
 

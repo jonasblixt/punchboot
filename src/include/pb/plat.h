@@ -19,7 +19,6 @@
 #include <pb/board.h>
 #include <pb/fuse.h>
 #include <bpak/keystore.h>
-#include <uuid/uuid.h>
 #include <pb-tools/wire.h>
 
 /* Platform API Calls */

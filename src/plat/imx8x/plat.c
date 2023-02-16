@@ -15,7 +15,7 @@
 #include <pb/plat.h>
 #include <pb/board.h>
 #include <xlat_tables.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 #include <plat/imx8x/plat.h>
 #include <plat/imx/lpuart.h>
 #include <plat/imx/usdhc.h>
