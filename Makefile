@@ -52,7 +52,7 @@ cflags-y  += -I src/lib/fdt/include
 cflags-y  += -I src/lib/uuid/
 cflags-y  += -I src/ -I src/include/ -I src/lib/
 cflags-y  += -I src/include
-cflags-y  += -I src/include/pb/libc
+cflags-y  += -I src/lib/include
 cflags-y  += -I $(BOARD)/include
 cflags-y  += -I $(BUILD_DIR)
 

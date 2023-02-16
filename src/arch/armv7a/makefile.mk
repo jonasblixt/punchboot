@@ -7,7 +7,7 @@ cflags-y += -march=armv7-a
 cflags-y += -mfloat-abi=soft
 cflags-y += -DAARCH32
 cflags-y += -I src/arch/armv7a/include
-cflags-y += -I src/include/pb/libc/aarch32
+cflags-y += -I src/lib/include/aarch32
 cflags-y += -mno-unaligned-access
 cflags-y += -DARM_ARCH_MAJOR=7
 cflags-y += -DARMV7_SUPPORTS_LARGE_PAGE_ADDRESSING
