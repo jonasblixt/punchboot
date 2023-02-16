@@ -1,4 +1,4 @@
-#include <pb/asm.h>
+#include <arch/arch.h>
 #include <plat/defs.h>
 
 .text

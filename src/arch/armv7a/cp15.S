@@ -1,7 +1,5 @@
-#include <pb/asm.h>
+#include <arch/arch.h>
 #include <plat/defs.h>
-#define CTR_DMINLINE_SHIFT	(16)
-#define CTR_DMINLINE_WIDTH	(4)
 #define WORD_SIZE   4
 #define DCCMVAC		p15, 0, c7, c10, 1
 #define DCIMVAC		p15, 0, c7, c6, 1
