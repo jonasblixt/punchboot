@@ -15,7 +15,6 @@
 #include <pb/storage.h>
 #include <pb/time.h>
 #include <bpak/bpak.h>
-#include <uuid/uuid.h>
 
 #define PB_STATE_MAGIC 0x026d4a65
 

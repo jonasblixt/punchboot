@@ -23,7 +23,7 @@
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 
 static struct pb_command cmd __a4k __no_bss;
 static struct pb_result result __a4k __no_bss;

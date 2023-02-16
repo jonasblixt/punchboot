@@ -3,7 +3,7 @@
 #include <pb/pb.h>
 #include <pb/boot.h>
 #include <pb/storage.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 
 static struct pb_storage_driver *drivers = NULL;
 

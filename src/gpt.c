@@ -12,7 +12,7 @@
 #include <pb/gpt.h>
 #include <pb/plat.h>
 #include <pb/crc.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 #define GPT_HEADER_RSZ 420
 
 struct gpt_header
