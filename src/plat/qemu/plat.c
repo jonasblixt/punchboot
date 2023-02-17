@@ -66,6 +66,11 @@ int plat_boot_reason(void)
     return 0;
 }
 
+const char * plat_boot_reason_str(void)
+{
+    return "";
+}
+
 int plat_get_uuid(char *out)
 {
     int rc;
