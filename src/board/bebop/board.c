@@ -170,12 +170,6 @@ bool board_force_command_mode(void *plat)
     return force_recovery;
 }
 
-int board_late_init(void *plat)
-{
-    UNUSED(plat);
-    return PB_OK;
-}
-
 const char *board_name(void)
 {
     return "Bebop";
