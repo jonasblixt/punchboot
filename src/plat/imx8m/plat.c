@@ -482,25 +482,26 @@ int plat_crypto_init(void)
     return imx_caam_init();
 }
 
-int plat_hash_init(struct pb_hash_context *ctx, enum pb_hash_algs alg)
+int plat_hash_init(enum pb_hash_algs alg)
 {
-    return caam_hash_init(ctx, alg);
+    return caam_hash_init(alg);
 }
 
-int plat_hash_update(struct pb_hash_context *ctx, void *buf, size_t size)
+int plat_hash_update(uint8_t *buf, size_t size)
 {
-    return caam_hash_update(ctx, buf, size);
+    return caam_hash_update(buf, size);
 }
 
-int plat_hash_finalize(struct pb_hash_context *ctx, void *buf, size_t size)
+int plat_hash_output(uint8_t *buf, size_t size)
 {
-    return caam_hash_finalize(ctx, buf, size);
+    return caam_hash_output(buf, size);
 }
 
-int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
-                        struct bpak_key *key)
+int plat_pk_verify(uint8_t *signature, size_t signature_len,
+                   uint8_t *hash, enum pb_hash_algs alg,
+                   struct bpak_key *key)
 {
-    return caam_pk_verify(hash, key, signature, size);
+    return caam_pk_verify(signature, signature_len, hash, alg, key);
 }
 
 int plat_status(void *response_bfr,

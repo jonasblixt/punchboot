@@ -25,6 +25,23 @@ enum
     PB_SECURITY_STATE_SECURE,
 };
 
+#define PB_HASH_MAX_LENGTH 64
+
+enum pb_hash_algs
+{
+    PB_HASH_INVALID,
+    PB_HASH_MD5,
+    PB_HASH_SHA256,
+    PB_HASH_SHA384,
+    PB_HASH_SHA512,
+    PB_HASH_MD5_BROKEN,
+};
+
+#define PB_HASH_MD5_LEN 16
+#define PB_HASH_SHA256_LEN 32
+#define PB_HASH_SHA384_LEN 48
+#define PB_HASH_SHA512_LEN 64
+
 #define UUID_STRING_SIZE 37
 #define UUID_SIZE 16
 

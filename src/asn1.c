@@ -11,7 +11,6 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/asn1.h>
-#include <pb/crypto.h>
 #include <bpak/keystore.h>
 
 static const char ec_identifier[] = "\x2a\x86\x48\xce\x3d\x02\x01";

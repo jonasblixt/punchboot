@@ -12,7 +12,6 @@
 #include <pb/board.h>
 #include <pb/io.h>
 #include <pb/plat.h>
-#include <pb/crypto.h>
 #include <uuid.h>
 #include <pb/fuse.h>
 #include <pb/board.h>

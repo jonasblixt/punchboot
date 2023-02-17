@@ -11,7 +11,6 @@
 #define INCLUDE_PB_IMAGE_H_
 
 #include <stdint.h>
-#include <pb/crypto.h>
 #include <bpak/bpak.h>
 #include <pb-tools/wire.h>
 

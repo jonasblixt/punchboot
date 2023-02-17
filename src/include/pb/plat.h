@@ -13,7 +13,6 @@
 #include <pb/pb.h>
 #include <pb/usb.h>
 #include <pb/fuse.h>
-#include <pb/crypto.h>
 #include <pb/storage.h>
 #include <pb/boot.h>
 #include <pb/board.h>
@@ -76,12 +75,48 @@ int plat_slc_revoke_key(uint32_t id);
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status);
 
 /* Crypto API */
+
+/**
+ * Optional platform initialization call for crypto hardware.
+ *
+ * @return PB_OK on success or a negative number
+ *
+ **/
 int plat_crypto_init(void);
-int plat_hash_init(struct pb_hash_context *ctx, enum pb_hash_algs alg);
-int plat_hash_update(struct pb_hash_context *ctx, void *buf, size_t size);
-int plat_hash_finalize(struct pb_hash_context *ctx, void *buf, size_t size);
-int plat_pk_verify(void *signature, size_t size, struct pb_hash_context *hash,
-                        struct bpak_key *key);
+
+/**
+ * Initialize the hashing context
+ *
+ * @param[in] alg Hashing algorithm to run
+ *
+ * @return PB_OK on success or a negative number
+ *
+ **/
+int plat_hash_init(enum pb_hash_algs alg);
+
+/**
+ * Update the hashing context with data
+ *
+ * @param[in] buf Input byte buffer
+ * @param[in] len Length of byte buffer
+ *
+ * @return PB_OK on success or a negative number
+ **/
+int plat_hash_update(uint8_t *buf, size_t len);
+
+/**
+ * Output hash
+ *
+ * @param[in] output Output byte buffer
+ * @param[in] len Length of byte buffer
+ *
+ * @return PB_OK on success or a negative number
+ **/
+int plat_hash_output(uint8_t *output, size_t len);
+
+int plat_pk_verify(uint8_t *signature, size_t signature_len,
+                   uint8_t *hash, enum pb_hash_algs alg,
+                   struct bpak_key *key);
 
 /* Transport API */
 int plat_transport_init(void);
