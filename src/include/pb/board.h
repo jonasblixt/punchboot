@@ -23,7 +23,6 @@
  */
 
 int board_early_init(void *plat);
-int board_late_init(void *plat);
 bool board_force_command_mode(void *plat);
 int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot);
 

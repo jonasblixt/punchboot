@@ -15,10 +15,9 @@
 #include <pb/time.h>
 #include <pb/storage.h>
 #include <pb/command.h>
-#include <pb/crypto.h>
 #include <pb/boot.h>
 
-static struct pb_timestamp ts_plat_early = TIMESTAMP("Platform early");
+static struct pb_timestamp ts_mmu = TIMESTAMP("MMU");
 static struct pb_timestamp ts_crypto = TIMESTAMP("Crypto");
 static struct pb_timestamp ts_storage = TIMESTAMP("Storage");
 static struct pb_timestamp ts_slc = TIMESTAMP("SLC");
@@ -32,23 +31,25 @@ void pb_main(void)
     arch_init();
     timestamp_init();
 
-    /*
-     * Perform really early stuff, like setup RAM and other
-     * arch/platform specific tasks
-     */
-    timestamp_begin(&ts_total);
-    timestamp_begin(&ts_plat_early);
     pb_storage_early_init();
     rc = plat_early_init();
 
     if (rc != PB_OK)
         plat_reset();
 
-    timestamp_end(&ts_plat_early);
+    timestamp_begin(&ts_total);
+    timestamp_begin(&ts_mmu);
+    rc = plat_mmu_init();
+
+    if (rc != PB_OK)
+        plat_reset();
+
+    timestamp_end(&ts_mmu);
 
     plat_console_init();
 
-    printf("\n\rPB " PB_VERSION ", %i\n\r", plat_boot_reason());
+    printf("\n\rPB " PB_VERSION ", %s (%i)\n\r", plat_boot_reason_str(),
+                                                 plat_boot_reason());
 
 #ifdef CONFIG_ENABLE_WATCHDOG
     plat_wdog_init();

@@ -54,9 +54,6 @@ static struct fuse rom_key_revoke_fuse =
 static struct imx6ul_private private;
 static struct pb_result_slc_key_status key_status;
 
-
-//static struct pb_timestamp ts_mmu_init = TIMESTAMP("MMU init");
-
 static const mmap_region_t imx_mmap[] =
 {
     /* Boot ROM API*/
@@ -562,9 +559,17 @@ int plat_early_init(void)
         *((uint32_t *)csu + i) = 0xffffffff;
     }
 
+    ocotp_init(CONFIG_IMX_OCOTP_BASE,
+               CONFIG_IMX_OCOTP_WORDS_PER_BANK);
 
-    /* Configure MMU */
 
+    imx_wdog_kick();
+
+    return board_early_init(&private);
+}
+
+int plat_mmu_init(void)
+{
     uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
     size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
                       ((uintptr_t) &_ro_data_region_start);
@@ -592,7 +597,6 @@ int plat_early_init(void)
 
 
     plat_console_init();
-    //timestamp_begin(&ts_mmu_init);
 
     reset_xlat_tables();
 
@@ -618,14 +622,8 @@ int plat_early_init(void)
 
     init_xlat_tables();
     enable_mmu_svc_mon(0);
-    //timestamp_end(&ts_mmu_init);
-    ocotp_init(CONFIG_IMX_OCOTP_BASE,
-               CONFIG_IMX_OCOTP_WORDS_PER_BANK);
 
-
-    imx_wdog_kick();
-
-    return board_early_init(&private);
+    return PB_OK;
 }
 
 /* Transport API */
