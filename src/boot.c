@@ -15,7 +15,6 @@
 #include <pb/arch.h>
 #include <pb/board.h>
 #include <pb/plat.h>
-#include <pb/atf.h>
 #include <pb/crc.h>
 #include <pb/time.h>
 #include <libfdt.h>
