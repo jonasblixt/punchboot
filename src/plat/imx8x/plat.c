@@ -25,6 +25,7 @@
 #include <plat/sci/sci.h>
 #include <plat/sci/sci_ipc.h>
 #include <plat/sci/svc/seco/sci_seco_api.h>
+#include <plat/sci/svc/pm/sci_pm_api.h>
 #include <plat/imx8qx_pads.h>
 #include <plat/imx8_iomux.h>
 #include <plat/defs.h>
@@ -294,6 +295,41 @@ int plat_early_init(void)
 int plat_boot_reason(void)
 {
     return boot_reason;
+}
+
+const char * plat_boot_reason_str(void)
+{
+    switch (boot_reason) {
+        case SC_PM_RESET_REASON_POR:
+        return "POR";
+        case SC_PM_RESET_REASON_JTAG:
+        return "JTAG";
+        case SC_PM_RESET_REASON_SW:
+        return "SW";
+        case SC_PM_RESET_REASON_WDOG:
+        return "WDOG";
+        case SC_PM_RESET_REASON_LOCKUP:
+        return "LOCKUP";
+        case SC_PM_RESET_REASON_SNVS:
+        return "SNVS";
+        case SC_PM_RESET_REASON_TEMP:
+        return "TEMP";
+        case SC_PM_RESET_REASON_MSI:
+        return "MSI";
+        case SC_PM_RESET_REASON_UECC:
+        return "UECC";
+        case SC_PM_RESET_REASON_SCFW_WDOG:
+        return "SCFW WDOG";
+        case SC_PM_RESET_REASON_ROM_WDOG:
+        return "ROM WDOG";
+        case SC_PM_RESET_REASON_SECO:
+        return "SECO";
+        case SC_PM_RESET_REASON_SCFW_FAULT:
+        return "SCFW Fault";
+        default:
+        return "Unknown";
+    }
+
 }
 
 /* FUSE Interface */
