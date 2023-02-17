@@ -36,7 +36,14 @@ int plat_early_init(void);
  **/
 int plat_boot_reason(void);
 
-int plat_late_init(void);
+/**
+ * Returns a platform specific boot reason as an string
+ *
+ * @return Boot reason string or ""
+ *
+ **/
+const char* plat_boot_reason_str(void);
+
 void plat_preboot_cleanup(void);
 bool plat_force_command_mode(void);
 int plat_get_uuid(char *out);
