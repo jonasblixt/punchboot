@@ -340,8 +340,19 @@ int plat_early_init(void)
     int rc;
     memset(&key_status, 0, sizeof(key_status));
 
-    /* Configure MMU */
+    rc = board_early_init(NULL);
 
+#ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
+    LOG_DBG("Initializing GCOV");
+    gcov_init();
+    LOG_DBG("Done");
+#endif
+
+    return rc;
+}
+
+int plat_mmu_init(void)
+{
     uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
     size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
                       ((uintptr_t) &_ro_data_region_start);
@@ -414,17 +425,7 @@ int plat_early_init(void)
     enable_mmu_svc_mon(0);
     LOG_DBG("MMU Enabled");
 
-
-
-    rc = board_early_init(NULL);
-
-#ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
-    LOG_DBG("Initializing GCOV");
-    gcov_init();
-    LOG_DBG("Done");
-#endif
-
-    return rc;
+    return PB_OK;
 }
 
 uint32_t plat_get_us_tick(void)

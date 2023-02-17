@@ -11,7 +11,7 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/io.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 #include <pb/plat.h>
 #include <pb/board.h>
 #include <pb/fuse.h>
@@ -256,8 +256,15 @@ int plat_early_init(void)
     pb_write32(0x03030303, 0x30384004 + 0x10*48);
     pb_write32(0x03030303, 0x30384004 + 0x10*81);
 
-    /* Configure MMU */
+    ocotp_init(CONFIG_IMX_OCOTP_BASE,
+               CONFIG_IMX_OCOTP_WORDS_PER_BANK);
 
+    LOG_DBG("Board early");
+    return board_early_init(&private);
+}
+
+int plat_mmu_init(void)
+{
     uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
     size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
                       ((uintptr_t) &_ro_data_region_start);
@@ -311,16 +318,8 @@ int plat_early_init(void)
 
     enable_mmu_el3(0);
 
-    /* MMU Config end */
-
-
-    ocotp_init(CONFIG_IMX_OCOTP_BASE,
-               CONFIG_IMX_OCOTP_WORDS_PER_BANK);
-
-    LOG_DBG("Board early");
-    return board_early_init(&private);
+    return PB_OK;
 }
-
 
 int imx_usdhc_plat_init(struct usdhc_device *dev)
 {

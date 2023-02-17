@@ -174,88 +174,11 @@ int plat_early_init(void)
 
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
 
-    /* Read boot reason.
-     *
-     * Possible results:
-     * SC_PM_RESET_REASON_POR         0U
-     * SC_PM_RESET_REASON_JTAG        1U
-     * SC_PM_RESET_REASON_SW          2U
-     * SC_PM_RESET_REASON_WDOG        3U
-     * SC_PM_RESET_REASON_LOCKUP      4U
-     * SC_PM_RESET_REASON_SNVS        5U
-     * SC_PM_RESET_REASON_TEMP        6U
-     * SC_PM_RESET_REASON_MSI         7U
-     * SC_PM_RESET_REASON_UECC        8U
-     * SC_PM_RESET_REASON_SCFW_WDOG   9U
-     * SC_PM_RESET_REASON_ROM_WDOG    10U
-     * SC_PM_RESET_REASON_SECO        11U
-     * SC_PM_RESET_REASON_SCFW_FAULT  12U
-     */
-
     if ((rc = sc_pm_reset_reason(private.ipc, &sc_reset_reason)) == 0) {
         boot_reason = (int) sc_reset_reason;
     } else {
         boot_reason = -rc;
     }
-
-    plat_console_init();
-
-    /* Configure MMU */
-
-    uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
-    size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
-                      ((uintptr_t) &_ro_data_region_start);
-
-    uintptr_t code_start = (uintptr_t) &_code_start;
-    size_t code_size = ((uintptr_t) &_code_end) -
-                      ((uintptr_t) &_code_start);
-
-    uintptr_t stack_start = (uintptr_t) &_stack_start;
-    size_t stack_size = ((uintptr_t) &_stack_end) -
-                      ((uintptr_t) &_stack_start);
-
-    uintptr_t rw_start = (uintptr_t) &_data_region_start;
-/*
-    size_t rw_size = ((uintptr_t) &_data_region_end) -
-                      ((uintptr_t) &_data_region_start);
-
-    uintptr_t bss_start = (uintptr_t) &_zero_region_start;
-    size_t bss_size = ((uintptr_t) &_zero_region_end) -
-                      ((uintptr_t) &_zero_region_start);
-
-    uintptr_t bb_start = (uintptr_t) &_big_buffer_start;
-    size_t bb_size = ((uintptr_t) &_big_buffer_end) -
-                      ((uintptr_t) &_big_buffer_start);
-*/
-
-    reset_xlat_tables();
-    mmap_add_region(code_start, code_start, code_size,
-                            MT_RO | MT_MEMORY | MT_EXECUTE);
-    mmap_add_region(stack_start, stack_start, stack_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(ro_start, ro_start, ro_size,
-                            MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
-    /*mmap_add_region(rw_start, rw_start, rw_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(bss_start, bss_start, bss_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(bb_start, bb_start, bb_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-                            */
-    /* Add ram */
-
-    /* Map ATF hole */
-    mmap_add_region(0x80000000, 0x80000000,
-                            (0x20000),
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(rw_start, rw_start,
-                            (RAM_SIZE),
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add(imx_mmap);
-
-    init_xlat_tables();
-
-    enable_mmu_el3(0);
 
     /* Setup GPT0 */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
@@ -290,6 +213,50 @@ int plat_early_init(void)
         return rc;
 
     return rc;
+}
+
+int plat_mmu_init(void)
+{
+    /* Configure MMU */
+
+    uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
+    size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
+                      ((uintptr_t) &_ro_data_region_start);
+
+    uintptr_t code_start = (uintptr_t) &_code_start;
+    size_t code_size = ((uintptr_t) &_code_end) -
+                      ((uintptr_t) &_code_start);
+
+    uintptr_t stack_start = (uintptr_t) &_stack_start;
+    size_t stack_size = ((uintptr_t) &_stack_end) -
+                      ((uintptr_t) &_stack_start);
+
+    uintptr_t rw_start = (uintptr_t) &_data_region_start;
+
+    reset_xlat_tables();
+    mmap_add_region(code_start, code_start, code_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(stack_start, stack_start, stack_size,
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(ro_start, ro_start, ro_size,
+                            MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    /* Map ATF hole */
+    mmap_add_region(0x80000000, 0x80000000,
+                            (0x20000),
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    /* Add ram */
+    mmap_add_region(rw_start, rw_start,
+                            (RAM_SIZE),
+                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add(imx_mmap);
+
+    init_xlat_tables();
+
+    enable_mmu_el3(0);
+
+    return PB_OK;
 }
 
 int plat_boot_reason(void)
@@ -738,12 +705,6 @@ int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 
     return PB_OK;
 }
-
-/*
- .text.imx_ehci_set_address
-                0x0000000080036d1c       0x30 build-imx8qxmek/plat/imx8x/plat.o
-                0x0000000080036d1c                imx_ehci_set_address
-*/
 
 /* Transport API */
 

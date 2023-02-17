@@ -21,12 +21,42 @@
 #include <pb-tools/wire.h>
 
 /* Platform API Calls */
-void plat_reset(void);
-unsigned int plat_get_us_tick(void);
-void plat_wdog_init(void);
-void plat_wdog_kick(void);
 
+/**
+ * Initialize the platform
+ *
+ * @return PB_OK on success or a negative number
+ **/
 int plat_early_init(void);
+
+/**
+ * Initialize VM and MMU
+ *
+ * @return PB_OK on success or a negative number
+ **/
+int plat_mmu_init(void);
+
+/**
+ * Platform specific reset function
+ **/
+void plat_reset(void);
+
+/**
+ * Read platform/system tick
+ *
+ * @return current micro second tick
+ **/
+unsigned int plat_get_us_tick(void);
+
+/**
+ * Initialize watchdog
+ */
+void plat_wdog_init(void);
+
+/**
+ * Kick watchdog
+ */
+void plat_wdog_kick(void);
 
 /**
  * Returns a platform specific boot reason as an integer.
