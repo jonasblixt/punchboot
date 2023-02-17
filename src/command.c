@@ -17,7 +17,6 @@
 #include <pb/board.h>
 #include <pb/gpt.h>
 #include <pb/boot.h>
-#include <pb/crypto.h>
 #include <pb/command.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
@@ -32,7 +31,7 @@ static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] __no_bss __a4k;
 static enum pb_slc slc;
 static struct pb_storage_map *stream_map;
 static struct pb_storage_driver *stream_drv;
-static struct pb_hash_context hash_ctx __no_bss __a4k;
+static uint8_t hash[PB_HASH_MAX_LENGTH];
 static uint8_t device_uuid[16];
 
 #ifdef CONFIG_AUTH_METHOD_TOKEN
@@ -98,23 +97,23 @@ static int auth_token(uint8_t *device_uu,
     }
 
     LOG_DBG("Hash init (%s)", device_uu_str);
-    rc = plat_hash_init(&hash_ctx, hash_kind);
+    rc = plat_hash_init(hash_kind);
 
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_hash_update(&hash_ctx, NULL, 0);
+    rc = plat_hash_update((uint8_t *) device_uu_str, 36);
 
     if (rc != PB_OK)
         return rc;
 
     LOG_DBG("Hash final");
-    rc = plat_hash_finalize(&hash_ctx, device_uu_str, 36);
+    rc = plat_hash_output(hash, sizeof(hash));
 
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_pk_verify(sig, size, &hash_ctx ,k);
+    rc = plat_pk_verify(sig, size, hash, hash_kind, k);
 
     if (rc != PB_OK)
     {
@@ -499,7 +498,7 @@ static int cmd_part_verify(void)
         }
     }
 
-    rc = plat_hash_init(&hash_ctx, PB_HASH_SHA256);
+    rc = plat_hash_init(PB_HASH_SHA256);
 
     if (rc != PB_OK)
     {
@@ -520,8 +519,7 @@ static int cmd_part_verify(void)
             return rc;
         }
 
-        rc = plat_hash_update(&hash_ctx, buffer,
-                                sizeof(struct bpak_header));
+        rc = plat_hash_update((uint8_t *) buffer, sizeof(struct bpak_header));
 
         if (rc != PB_OK)
         {
@@ -555,8 +553,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = plat_hash_update(&hash_ctx, buffer[buffer_id],
-                                    (blocks*sdrv->block_size));
+        rc = plat_hash_update(buffer[buffer_id], (blocks*sdrv->block_size));
 
         if (rc != PB_OK)
         {
@@ -572,7 +569,7 @@ static int cmd_part_verify(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_hash_finalize(&hash_ctx, NULL, 0);
+    rc = plat_hash_output(hash, sizeof(hash));
 
     if (rc != PB_OK)
     {
@@ -581,7 +578,7 @@ static int cmd_part_verify(void)
     }
 
 
-    if (memcmp(hash_ctx.buf, verify_cmd->sha256, 32) == 0)
+    if (memcmp(hash, verify_cmd->sha256, 32) == 0)
         rc = PB_RESULT_OK;
     else
     {

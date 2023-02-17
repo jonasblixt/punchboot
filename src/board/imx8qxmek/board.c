@@ -28,10 +28,6 @@
 #include <uuid.h>
 #include <libfdt.h>
 
-#ifdef CONFIG_AUTH_METHOD_PASSWORD
-static struct pb_hash_context hash;
-#endif
-
 struct fuse fuses[] =
 {
     IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
@@ -283,6 +279,7 @@ int board_command_mode_auth(char *password, size_t length)
     struct pb_storage_map *rpmb_map;
     struct pb_storage_driver *rpmb_drv;
     uint8_t secret[512];
+    uint8_t hash[PB_HASH_MAX_LENGTH];
     uuid_t rpmb_uu;
 
     uuid_parse("8d75d8b9-b169-4de6-bee0-48abdc95c408", rpmb_uu);
@@ -316,25 +313,25 @@ int board_command_mode_auth(char *password, size_t length)
     }
     printf("\n\r");
 
-    rc = plat_hash_init(&hash, PB_HASH_SHA256);
+    rc = plat_hash_init(PB_HASH_SHA256);
 
     if (rc != PB_OK) {
         goto err_release_out;
     }
 
-    rc = plat_hash_update(&hash, NULL, 0);
+    rc = plat_hash_update(password, length);
 
     if (rc != PB_OK) {
         goto err_release_out;
     }
 
-    rc = plat_hash_finalize(&hash, password, length);
+    rc = plat_hash_out(hash, sizeof(hash));
 
     if (rc != PB_OK) {
         goto err_release_out;
     }
 
-    if (memcmp(secret, hash.buf, length) == 0) {
+    if (memcmp(secret, hash, length) == 0) {
         LOG_DBG("Password auth: Success");
         authenticated = true;
     } else {

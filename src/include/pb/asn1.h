@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <pb/crypto.h>
 #include <bpak/keystore.h>
 
 int pb_asn1_eckey_data(struct bpak_key *k, uint8_t **data, size_t *key_sz,

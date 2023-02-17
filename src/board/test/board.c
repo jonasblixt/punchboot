@@ -13,7 +13,6 @@
 #include <pb/fuse.h>
 #include <pb/plat.h>
 #include <pb/storage.h>
-#include <pb/crypto.h>
 #include <pb/gpt.h>
 #include <pb/boot.h>
 #include <plat/qemu/plat.h>

@@ -16,7 +16,6 @@
 #include <pb/io.h>
 #include <pb/time.h>
 #include <pb/gpt.h>
-#include <pb/crypto.h>
 #include <bpak/bpak.h>
 
 extern char _code_start, _code_end,
@@ -29,9 +28,9 @@ extern struct bpak_keystore keystore_pb;
 static struct bpak_header header __a4k __no_bss;
 static uint8_t signature[512] __a4k __no_bss;
 static size_t signature_sz;
-static struct pb_hash_context hash;
 static struct pb_timestamp ts_load = TIMESTAMP("Image load and hash");
 static struct pb_timestamp ts_signature = TIMESTAMP("Verify signature");
+static uint8_t hash[PB_HASH_MAX_LENGTH];
 
 int pb_image_check_header(void)
 {
@@ -188,7 +187,7 @@ int pb_image_load(pb_image_read_t read_f,
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_hash_init(&hash, hash_kind);
+    rc = plat_hash_init(hash_kind);
 
     if (rc != PB_OK)
         return rc;
@@ -202,19 +201,19 @@ int pb_image_load(pb_image_read_t read_f,
         return rc;
     }
 
-    rc = plat_hash_update(&hash, h, sizeof(*h));
+    rc = plat_hash_update((uint8_t *) h, sizeof(*h));
 
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_hash_finalize(&hash, NULL, 0);
+    rc = plat_hash_output(hash, sizeof(hash));
 
     if (rc != PB_OK)
         return rc;
 
     timestamp_begin(&ts_signature);
 
-    rc = plat_pk_verify(signature, signature_sz, &hash, k);
+    rc = plat_pk_verify(signature, signature_sz, hash, hash_kind, k);
 
     if (rc == PB_OK)
     {
@@ -243,7 +242,7 @@ int pb_image_load(pb_image_read_t read_f,
 
     /* Compute payload hash */
 
-    rc = plat_hash_init(&hash, hash_kind);
+    rc = plat_hash_init(hash_kind);
 
     if (rc != PB_OK)
         return rc;
@@ -287,7 +286,7 @@ int pb_image_load(pb_image_read_t read_f,
             if (rc != PB_OK)
                 break;
 
-            rc = plat_hash_update(&hash, (void *) addr, chunk_size);
+            rc = plat_hash_update((uint8_t *) addr, chunk_size);
 
             if (rc != PB_OK)
                 break;
@@ -311,12 +310,12 @@ int pb_image_load(pb_image_read_t read_f,
         return rc;
     }
 
-    rc = plat_hash_finalize(&hash, NULL, 0);
+    rc = plat_hash_output(hash, sizeof(hash));
 
     if (rc != PB_OK)
         return rc;
 
-    if (memcmp(h->payload_hash, hash.buf, hash_sz) != 0)
+    if (memcmp(h->payload_hash, hash, hash_sz) != 0)
     {
         LOG_ERR("Payload hash incorrect");
         return -1;
