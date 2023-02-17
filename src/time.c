@@ -88,16 +88,9 @@ int pb_timeout_init_us(struct pb_timeout *timeout, uint32_t timeout_us)
     if ((0xffffffff - timeout->ts_start) <= timeout_us) {
         timeout->rollover = true;
         timeout->ts_end = timeout_us - (0xffffffff - timeout->ts_start);
-        /* LOG_DBG("Rollover trig!"); */
     } else {
         timeout->ts_end = timeout->ts_start + timeout_us;
     }
-
-/*
-    LOG_DBG("new to: %u, %u, %u", timeout->ts_start,
-                                    timeout->ts_end,
-                                    timeout->rollover);
-*/
 
     return PB_OK;
 }
