@@ -87,9 +87,6 @@ Supported platforms:
 | NXP imx6ul      | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
 | NXP imx8m       | Yes                  | Yes | Yes  | Yes       | No          | Yes     |
 | NXP imx8x       | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
-| Rockchip RK3399 | Planned              |     |      |           |             |         |
-| Allwinner H3    | Planned              |     |      |           |             |         |
-| Allwinner H5    | Planned              |     |      |           |             |         |
 
 
 Supportd boards:
@@ -99,9 +96,6 @@ Supportd boards:
 | Jiffy                | Fully supported         | https://github.com/jonasblixt/jiffy       |
 | Bebop                | Fully supported         | https://github.com/jonasblixt/bebop       |
 | Technexion PICO-IMX8M| Partial support         | https://www.technexion.com/products/system-on-modules/pico/pico-compute-modules/detail/PICO-IMX8M |
-| Rockpro64            | Planned                 | https://www.pine64.org/?page_id=61454 |
-| NanoPi-NEO-core      | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core_Feature.html |
-| NanoPi-NEO-core2     | Planned                 | http://www.nanopi.org/NanoPi-NEO-Core2_Feature.html |
 | NXP IMX8QXP MEK      | Fully supported         | https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/i.mx-applications-processors/i.mx-8-processors/i.mx-8-multisensory-enablement-kit:i.MX8-MEK |
 
 Hardware accelerated signature verification
