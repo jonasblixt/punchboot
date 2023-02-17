@@ -80,6 +80,11 @@ int plat_boot_reason(void)
     return -PB_ERR_NOT_IMPLEMENTED;
 }
 
+const char * plat_boot_reason_str(void)
+{
+    return "";
+}
+
 int plat_get_uuid(char *out)
 {
     plat_fuse_read(&fuse_uid0);

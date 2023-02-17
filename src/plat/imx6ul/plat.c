@@ -13,7 +13,6 @@
 #include <pb/plat.h>
 #include <pb/io.h>
 #include <xlat_tables.h>
-#include <uuid/uuid.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/caam.h>
 #include <plat/imx/ocotp.h>
@@ -25,7 +24,7 @@
 #include <pb/fuse.h>
 #include <plat/imx6ul/plat.h>
 #include <plat/defs.h>
-
+#include <uuid.h>
 
 extern char _code_start, _code_end,
             _data_region_start, _data_region_end,
@@ -70,6 +69,11 @@ static const mmap_region_t imx_mmap[] =
 int plat_boot_reason(void)
 {
     return -PB_ERR_NOT_IMPLEMENTED;
+}
+
+const char *plat_boot_reason_str(void)
+{
+    return "";
 }
 
 bool plat_force_command_mode(void)
