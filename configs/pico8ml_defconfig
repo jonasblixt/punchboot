@@ -33,10 +33,10 @@ CONFIG_DWC3_BASE=0x38100000
 #
 # Fusebox
 #
-CONFIG_IMX8M_UMCTL_TRAIN_1D_D="blobs/lpddr4_pmu_train_1d_dmem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_1D_I="blobs/lpddr4_pmu_train_1d_imem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_2D_D="blobs/lpddr4_pmu_train_2d_dmem.bin"
-CONFIG_IMX8M_UMCTL_TRAIN_2D_I="blobs/lpddr4_pmu_train_2d_imem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_1D_D="lpddr4_pmu_train_1d_dmem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_1D_I="lpddr4_pmu_train_1d_imem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_2D_D="lpddr4_pmu_train_2d_dmem.bin"
+CONFIG_IMX8M_UMCTL_TRAIN_2D_I="lpddr4_pmu_train_2d_imem.bin"
 # end of imx8m configuration
 
 #
@@ -49,10 +49,6 @@ CONFIG_IMX8M_KEY_INDEX=0
 CONFIG_IMX8M_SIGN_CERT="pki/imx6ul_hab_testkeys/CSF1_1_sha256_4096_65537_v3_usr_crt.pem"
 CONFIG_IMX8M_IMAGE_SIGN_CERT="pki/imx6ul_hab_testkeys/IMG1_1_sha256_4096_65537_v3_usr_crt.pem"
 # end of Output image
-
-#
-# Board configuration
-#
 
 #
 # Generic options
@@ -107,13 +103,6 @@ CONFIG_BOOT_AB_B_UUID="c046ccd8-0f2e-4036-984d-76c14dc73992"
 # end of Boot configuration
 
 #
-# Library
-#
-# CONFIG_BEARSSL is not set
-CONFIG_LIB_UUID3=y
-# end of Library
-
-#
 # Command mode transport configuration
 #
 CONFIG_CMD_BUF_SIZE_KB=4096
@@ -122,3 +111,6 @@ CONFIG_LOAD_FS_MAX_CHUNK_KB=4096
 CONFIG_TRANSPORT_READY_TIMEOUT=10
 # CONFIG_TRANSPORT_ENTER_BOARD_CB is not set
 # end of Command mode transport configuration
+
+CONFIG_LIB_UUID3=y
+# CONFIG_BEARSSL is not set
