@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef INCLUDE_PB_TIME_H_
-#define INCLUDE_PB_TIME_H_
+#ifndef INCLUDE_PB_TIMESTAMP_H_
+#define INCLUDE_PB_TIMESTAMP_H_
 
 #include <stdint.h>
 
@@ -30,23 +30,11 @@ struct pb_timestamp
     struct pb_timestamp *next;
 };
 
-struct pb_timeout {
-    uint32_t ts_start;
-    uint32_t ts_end;
-    bool rollover;
-};
-
 void timestamp_init(void);
 int timestamp_begin(struct pb_timestamp *ts);
 int timestamp_end(struct pb_timestamp *ts);
 const char *timestamp_description(struct pb_timestamp *ts);
 int timestamp_read_us(struct pb_timestamp *ts);
 struct pb_timestamp * timestamp_get_first(void);
-
-void pb_delay_ms(uint32_t delay);
-void pb_delay_us(uint32_t delay);
-
-int pb_timeout_init_us(struct pb_timeout *timeout, uint32_t timeout_us);
-bool pb_timeout_has_expired(struct pb_timeout *timeout);
 
 #endif  // INCLUDE_PB_TIMESTAMP_H_

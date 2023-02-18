@@ -13,7 +13,8 @@
 #include <stdint.h>
 #include <pb/image.h>
 #include <pb/storage.h>
-#include <pb/time.h>
+#include <pb/delay.h>
+#include <pb/timestamp.h>
 #include <bpak/bpak.h>
 
 #define PB_STATE_MAGIC 0x026d4a65

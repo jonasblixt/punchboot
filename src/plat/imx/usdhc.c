@@ -11,7 +11,7 @@
 #include <string.h>
 #include <pb/plat.h>
 #include <pb/arch.h>
-#include <pb/time.h>
+#include <pb/delay.h>
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <plat/imx/usdhc.h>
