@@ -16,7 +16,7 @@
 #include <pb/board.h>
 #include <pb/plat.h>
 #include <pb/crc.h>
-#include <pb/time.h>
+#include <pb/timestamp.h>
 #include <libfdt.h>
 #include <uuid.h>
 #include <bpak/bpak.h>

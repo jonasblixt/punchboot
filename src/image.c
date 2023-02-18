@@ -14,7 +14,7 @@
 #include <pb/image.h>
 #include <pb/plat.h>
 #include <pb/io.h>
-#include <pb/time.h>
+#include <pb/timestamp.h>
 #include <pb/gpt.h>
 #include <bpak/bpak.h>
 
