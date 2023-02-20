@@ -233,7 +233,7 @@ int caam_pk_verify(uint8_t *signature, size_t signature_len,
             hash_len = 64;
         break;
         default:
-            LOG_ERR("Unknown hash");
+            LOG_ERR("Unknown hash %i", hash_alg);
             return -PB_ERR;
     };
 
@@ -477,6 +477,7 @@ int caam_hash_output(uint8_t *output, size_t size)
     err = caam_shedule_job_sync();
 
     arch_invalidate_cache_range((uintptr_t) output, caam.digest_size);
+
     caam.hash_align_buf_len = 0;
 
 #if LOGLEVEL > 2

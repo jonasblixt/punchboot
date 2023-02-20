@@ -30,10 +30,6 @@ static struct pb_storage_driver *sdrv;
 static struct pb_result result __no_bss __a4k;
 static uintptr_t jump_addr;
 
-#ifdef CONFIG_BOOT_DT
-static struct pb_timestamp ts_dtb_patch = TIMESTAMP("DT Patch");
-#endif
-
 static int ram_load_read(void *buf, size_t size, void *private)
 {
     LOG_DBG("Read %zu bytes", size);
@@ -315,7 +311,7 @@ int pb_boot_load_transport(void)
                          NULL);
 }
 
-int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
+int pb_boot(bool verbose, bool manual)
 {
     int rc;
     uintptr_t *entry = 0;
@@ -356,7 +352,7 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 
     struct bpak_part_header *pdtb = NULL;
 
-    timestamp_begin(&ts_dtb_patch);
+    pb_timestamp_begin("DT Patch");
 
     rc = bpak_get_part(h,
                        CONFIG_BOOT_DT_ID,
@@ -491,7 +487,7 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
 
     LOG_DBG("Ramdisk %lx -> %lx", *ramdisk, *ramdisk + ramdisk_bytes);
 #endif  // CONFIG_BOOT_RAMDISK
-    timestamp_end(&ts_dtb_patch);
+    pb_timestamp_end();
 #endif  // CONFIG_BOOT_DT
 
     LOG_INFO("Calling boot driver");
@@ -509,34 +505,20 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
     }
 
     LOG_DBG("Ready to jump");
-
-    if (ts_total)
-    {
-        timestamp_end(ts_total);
+    pb_timestamp_end();
 
 #if (CONFIG_BOOT_DT && CONFIG_BOOT_POP_TIMING)
-        rc = fdt_setprop_u32((void *) fdt, offset, "pb,boot-time",
-                                                 timestamp_read_us(ts_total));
+    rc = fdt_setprop_u32((void *) fdt, offset, "pb,boot-time",
+                                             pb_timestamp_total());
 
-        if (rc)
-        {
-            LOG_ERR("Could not pb,boot-time");
-            return -PB_ERR;
-        }
-#endif
+    if (rc) {
+        LOG_ERR("Could not set pb,boot-time");
+        return -PB_ERR;
     }
+#endif
 
 #ifdef CONFIG_DUMP_TIMING_ANALYSIS
-    struct pb_timestamp *first_ts = timestamp_get_first();
-
-    printf("--- Timing report begin ---\n\r");
-    timestamp_foreach(first_ts, ts)
-    {
-        printf("%s %u us\n\r", timestamp_description(ts),
-                                timestamp_read_us(ts));
-    }
-
-    printf("--- Timing report end ---\n\r");
+    pb_timestamp_print();
 #endif
 
 #ifdef CONFIG_BOOT_DT
@@ -558,7 +540,6 @@ int pb_boot(struct pb_timestamp *ts_total, bool verbose, bool manual)
         return PB_OK;
     }
 #endif
-
 
     arch_clean_cache_range((uintptr_t) &jump_addr, sizeof(jump_addr));
     arch_disable_mmu();
