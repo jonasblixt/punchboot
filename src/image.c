@@ -28,8 +28,6 @@ extern struct bpak_keystore keystore_pb;
 static struct bpak_header header __a4k __no_bss;
 static uint8_t signature[512] __a4k __no_bss;
 static size_t signature_sz;
-static struct pb_timestamp ts_load = TIMESTAMP("Image load and hash");
-static struct pb_timestamp ts_signature = TIMESTAMP("Verify signature");
 static uint8_t hash[PB_HASH_MAX_LENGTH];
 
 int pb_image_check_header(void)
@@ -116,7 +114,7 @@ int pb_image_load(pb_image_read_t read_f,
     struct bpak_key *k = NULL;
     int hash_kind;
 
-    timestamp_begin(&ts_load);
+    pb_timestamp_begin("Image load");
 
     rc = bpak_valid_header(h);
 
@@ -211,7 +209,7 @@ int pb_image_load(pb_image_read_t read_f,
     if (rc != PB_OK)
         return rc;
 
-    timestamp_begin(&ts_signature);
+    pb_timestamp_begin("Verify signature");
 
     rc = plat_pk_verify(signature, signature_sz, hash, hash_kind, k);
 
@@ -225,7 +223,7 @@ int pb_image_load(pb_image_read_t read_f,
         return rc;
     }
 
-    timestamp_end(&ts_signature);
+    pb_timestamp_end();
 
     rc = pb_image_check_header();
 
@@ -321,7 +319,7 @@ int pb_image_load(pb_image_read_t read_f,
         return -1;
     }
 
-    timestamp_end(&ts_load);
+    pb_timestamp_end();
 
     return rc;
 }

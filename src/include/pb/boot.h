@@ -14,7 +14,6 @@
 #include <pb/image.h>
 #include <pb/storage.h>
 #include <pb/delay.h>
-#include <pb/timestamp.h>
 #include <bpak/bpak.h>
 
 #define PB_STATE_MAGIC 0x026d4a65
@@ -35,9 +34,7 @@ int pb_boot_load_transport(void);
 
 int pb_boot_load_fs(uint8_t *boot_part_uu);
 
-int pb_boot(struct pb_timestamp *ts_total,
-            bool verbose,
-            bool manual);
+int pb_boot(bool verbose, bool manual);
 
 int pb_boot_activate(uint8_t *uu);
 void pb_boot_status(char *status_msg, size_t len);

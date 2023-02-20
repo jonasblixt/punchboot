@@ -17,34 +17,26 @@
 #include <pb/command.h>
 #include <pb/boot.h>
 
-static struct pb_timestamp ts_mmu = TIMESTAMP("MMU");
-static struct pb_timestamp ts_crypto = TIMESTAMP("Crypto");
-static struct pb_timestamp ts_storage = TIMESTAMP("Storage");
-static struct pb_timestamp ts_slc = TIMESTAMP("SLC");
-static struct pb_timestamp ts_boot_init = TIMESTAMP("Boot init");
-static struct pb_timestamp ts_total = TIMESTAMP("Total");
-
 void pb_main(void)
 {
     int rc;
 
     arch_init();
-    timestamp_init();
-
     pb_storage_early_init();
     rc = plat_early_init();
 
     if (rc != PB_OK)
         plat_reset();
 
-    timestamp_begin(&ts_total);
-    timestamp_begin(&ts_mmu);
+    pb_timestamp_begin("Total");
+    pb_timestamp_begin("MMU");
     rc = plat_mmu_init();
 
     if (rc != PB_OK)
         plat_reset();
 
-    timestamp_end(&ts_mmu);
+    pb_timestamp_end();
+    pb_timestamp_begin("Misc init");
 
     plat_console_init();
 
@@ -55,8 +47,6 @@ void pb_main(void)
     plat_wdog_init();
 #endif
 
-    timestamp_begin(&ts_crypto);
-
     rc = plat_crypto_init();
 
     if (rc != PB_OK)
@@ -65,9 +55,8 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-
-    timestamp_end(&ts_crypto);
-    timestamp_begin(&ts_storage);
+    pb_timestamp_end();
+    pb_timestamp_begin("storage");
 
     rc = pb_storage_init();
 
@@ -77,9 +66,9 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-    timestamp_end(&ts_storage);
+    pb_timestamp_end();
+    pb_timestamp_begin("SLC");
 
-    timestamp_begin(&ts_slc);
     rc = plat_slc_init();
 
     if (rc != PB_OK)
@@ -88,9 +77,9 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-    timestamp_end(&ts_slc);
+    pb_timestamp_end();
+    pb_timestamp_begin("Boot init");
 
-    timestamp_begin(&ts_boot_init);
     rc = pb_boot_init();
 
     if (rc != PB_OK)
@@ -99,7 +88,8 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-    timestamp_end(&ts_boot_init);
+    pb_timestamp_end();
+
     if (plat_force_command_mode())
     {
         LOG_INFO("Forced command mode");
@@ -114,7 +104,7 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-    pb_boot(&ts_total, false, false);
+    pb_boot(false, false);
 
     LOG_INFO("Boot stopped, entering command mode");
 
