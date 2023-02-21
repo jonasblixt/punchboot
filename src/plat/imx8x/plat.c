@@ -27,7 +27,6 @@
 #include <plat/sci/svc/seco/sci_seco_api.h>
 #include <plat/sci/svc/pm/sci_pm_api.h>
 #include <plat/imx8qx_pads.h>
-#include <plat/imx8_iomux.h>
 #include <plat/defs.h>
 #include <board/config.h>
 
