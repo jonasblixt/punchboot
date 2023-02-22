@@ -16,6 +16,7 @@
 #include <pb/board.h>
 #include <pb/plat.h>
 #include <pb/crc.h>
+#include <pb/image.h>
 #include <pb/timestamp.h>
 #include <libfdt.h>
 #include <uuid.h>
@@ -145,12 +146,9 @@ static int pb_boot_state_init(void)
 
     rc = pb_boot_state_validate(state);
 
-    if (rc == PB_OK)
-    {
+    if (rc == PB_OK) {
         primary_state_ok = true;
-    }
-    else
-    {
+    } else {
         LOG_ERR("Primary boot state data corrupt");
         primary_state_ok = false;
     }
@@ -161,37 +159,27 @@ static int pb_boot_state_init(void)
 
     rc = pb_boot_state_validate(state_backup);
 
-    if (rc == PB_OK)
-    {
+    if (rc == PB_OK) {
         backup_state_ok = true;
-    }
-    else
-    {
+    } else {
         LOG_ERR("Backup boot state data corrupt");
         backup_state_ok = false;
     }
 
-    if (!primary_state_ok && !backup_state_ok)
-    {
+    if (!primary_state_ok && !backup_state_ok) {
         LOG_ERR("No valid state found, installing default");
         pb_boot_state_defaults(state);
         pb_boot_state_defaults(state_backup);
         rc = pb_boot_state_commit();
-    }
-    else if (!backup_state_ok && primary_state_ok)
-    {
+    } else if (!backup_state_ok && primary_state_ok) {
         LOG_ERR("Backup state corrupt, repairing");
         pb_boot_state_defaults(state_backup);
         rc = pb_boot_state_commit();
-    }
-    else if (backup_state_ok && !primary_state_ok)
-    {
+    } else if (backup_state_ok && !primary_state_ok) {
         LOG_ERR("Primary state corrupt, reparing");
         memcpy(state, state_backup, sizeof(struct pb_boot_state));
         rc = pb_boot_state_commit();
-    }
-    else
-    {
+    } else {
         LOG_INFO("Boot state loaded");
         rc = PB_OK;
     }
@@ -202,29 +190,31 @@ static int pb_boot_state_init(void)
 int pb_boot_init(void)
 {
     int rc;
+    const struct pb_boot_config *boot_config = board_boot_config();
 
-#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
     rc = plat_early_boot();
 
-    if (rc != PB_OK)
+    if (rc == -PB_ERR_ABORT) {
+        LOG_INFO("Early boot, Aborting boot process");
+        return PB_OK;
+    } else if (rc < 0) {
+        LOG_ERR("Boot early cb error (%i)", rc);
         return rc;
-#endif
+    }
 
-    uuid_parse(CONFIG_BOOT_STATE_PRIMARY_UU, primary_uu);
-    uuid_parse(CONFIG_BOOT_STATE_BACKUP_UU, backup_uu);
+    uuid_parse(boot_config->primary_state_part_uuid, primary_uu);
+    uuid_parse(boot_config->backup_state_part_uuid, backup_uu);
 
     rc = pb_storage_get_part(primary_uu, &primary_map, &sdrv);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Could not find primary state partition");
         return rc;
     }
 
     rc = pb_storage_get_part(backup_uu, &backup_map, &sdrv);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Could not find backup state partition");
         return rc;
     }
@@ -238,14 +228,12 @@ int pb_boot_init(void)
 
     pb_boot_driver_load_state((struct pb_boot_state *) boot_state, &commit);
 
-    if (commit)
-    {
+    if (commit) {
         rc = pb_boot_state_commit();
 
         if (rc != PB_OK)
             return rc;
     }
-
 
     return rc;
 }
@@ -267,15 +255,13 @@ int pb_boot_load_fs(uint8_t *boot_part_uu)
                              &stream_map,
                              &stream_drv);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         uuid_unparse(part_uu, part_uu_str);
         LOG_ERR("Could not find partition (%s)", part_uu_str);
         return rc;
     }
 
-    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_BOOTABLE))
-    {
+    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_BOOTABLE)) {
         uuid_unparse(part_uu, part_uu_str);
         LOG_ERR("Partition not bootable (%s)", part_uu_str);
         return -PB_RESULT_PART_NOT_BOOTABLE;
@@ -311,257 +297,216 @@ int pb_boot_load_transport(void)
                          NULL);
 }
 
-int pb_boot(bool verbose, bool manual)
+int pb_boot(bool verbose, enum pb_boot_mode boot_mode)
 {
     int rc;
+    const struct pb_boot_config *boot_config = board_boot_config();
+    uuid_t device_uuid;
     uintptr_t *entry = 0;
-
-    uint8_t device_uuid[16];
-
+    uintptr_t *ramdisk = 0;
+    uintptr_t *dtb = 0;
+    struct bpak_part_header *pdtb = NULL;
     struct bpak_header *h = pb_image_header();
-                                       /* pb-load-addr*/
-    rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
-                                CONFIG_BOOT_IMAGE_ID, (void **) &entry);
 
-    if (rc != BPAK_OK)
-    {
-        LOG_ERR("Could not read boot meta data");
+    rc = bpak_get_meta_with_ref(h,
+                                BPAK_ID_PB_LOAD_ADDR,
+                                boot_config->image_bpak_id,
+                                (void **) &entry);
+
+    if (rc != BPAK_OK) {
+        LOG_ERR("Could not read boot image meta data (%i)", rc);
         return -PB_ERR;
     }
 
     LOG_INFO("Boot entry: 0x%lx", *entry);
 
     jump_addr = *entry;
-
     plat_get_uuid((char *) device_uuid);
 
-#ifdef CONFIG_BOOT_RAMDISK
-    uintptr_t *ramdisk = 0;
+    if (boot_config->ramdisk_bpak_id) {
+        rc = bpak_get_meta_with_ref(h,
+                                    BPAK_ID_PB_LOAD_ADDR,
+                                    boot_config->ramdisk_bpak_id,
+                                    (void **) &ramdisk);
 
-    rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
-                            CONFIG_BOOT_RAMDISK_ID, (void **) &ramdisk);
-
-    if (rc == PB_OK)
-    {
-        LOG_INFO("Ramdisk: 0x%lx", *ramdisk);
-    }
-#endif
-
-#ifdef CONFIG_BOOT_DT
-    uintptr_t *dtb = 0;
-
-    struct bpak_part_header *pdtb = NULL;
-
-    pb_timestamp_begin("DT Patch");
-
-    rc = bpak_get_part(h,
-                       CONFIG_BOOT_DT_ID,
-                       &pdtb);
-
-    if (rc != BPAK_OK)
-        return -PB_ERR;
-
-    rc = bpak_get_meta_with_ref(h, 0xd1e64a4b,
-                                CONFIG_BOOT_DT_ID, (void **) &dtb);
-
-    if (rc != BPAK_OK)
-        return -PB_ERR;
-
-    LOG_INFO("DTB: 0x%lx (%x)", *dtb, CONFIG_BOOT_DT_ID);
-
-    /* Locate the chosen node */
-    void *fdt = (void *)(uintptr_t) *dtb;
-    rc = fdt_check_header(fdt);
-
-    if (rc < 0)
-    {
-        LOG_ERR("Invalid device tree");
-        return -PB_ERR;
-    }
-
-    int depth = 0;
-    int offset = 0;
-    bool found_chosen_node = false;
-
-    for (;;)
-    {
-        offset = fdt_next_node(fdt, offset, &depth);
-
-        if (offset < 0)
-            break;
-
-        const char *name = fdt_get_name(fdt, offset, NULL);
-
-        if (!name)
-            continue;
-
-        if (strcmp(name, "chosen") == 0)
-        {
-            found_chosen_node = true;
-            break;
-        }
-
-    }
-
-    if (!found_chosen_node)
-    {
-        LOG_ERR("Could not locate chosen node");
-        return -PB_ERR;
-    }
-
-    char device_uuid_str[37];
-    uuid_unparse(device_uuid, device_uuid_str);
-
-    LOG_DBG("Device UUID: %s", device_uuid_str);
-    fdt_setprop_string((void *) fdt, offset, "pb,device-uuid",
-                (const char *) device_uuid_str);
-
-    LOG_DBG("Updating bootargs");
-    rc = plat_patch_bootargs(fdt, offset, verbose);
-
-    if (rc != 0)
-        return -PB_ERR;
-
-    /* Update SLC related parameters in DT */
-    enum pb_slc slc;
-
-    rc = plat_slc_read(&slc);
-
-    if (rc != PB_OK)
-        return rc;
-
-    /* SLC state */
-    fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
-
-    /* Current key ID we're using for boot image */
-    fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", h->key_id);
-
-    struct pb_result_slc_key_status *key_status;
-
-    rc = plat_slc_get_key_status(&key_status);
-
-    if (rc != PB_OK)
-        return rc;
-
-    for (unsigned int i = 0; i < membersof(key_status->active); i++)
-    {
-        if (key_status->active[i])
-        {
-            fdt_appendprop_u32((void *) fdt, offset, "pb,slc-available-keys",
-                                    key_status->active[i]);
+        if (rc == PB_OK) {
+            LOG_INFO("Ramdisk: 0x%lx", *ramdisk);
         }
     }
 
-#ifdef CONFIG_BOOT_RAMDISK
-    struct bpak_part_header *pramdisk = NULL;
+    if (boot_config->dtb_bpak_id) {
+        pb_timestamp_begin("DT Patch");
+        rc = bpak_get_part(h, boot_config->dtb_bpak_id, &pdtb);
 
-    rc = bpak_get_part(h,
-                       CONFIG_BOOT_RAMDISK_ID,
-                       &pramdisk);
+        if (rc != BPAK_OK) {
+            LOG_ERR("Could not read dtb bpak part meta");
+            return -PB_ERR;
+        }
 
-    if (rc != BPAK_OK)
-    {
-        LOG_ERR("Could not read ramdisk metadata");
-        return -PB_ERR;
-    }
+        rc = bpak_get_meta_with_ref(h,
+                                    BPAK_ID_PB_LOAD_ADDR,
+                                    boot_config->dtb_bpak_id,
+                                    (void **) &dtb);
 
-    size_t ramdisk_bytes = bpak_part_size(pramdisk);
+        if (rc != BPAK_OK) {
+            LOG_ERR("Could not read dtb load addr meta");
+            return -PB_ERR;
+        }
 
-    rc = fdt_setprop_u32((void *) fdt, offset, "linux,initrd-start",
-                        *ramdisk);
+        LOG_INFO("DTB: 0x%lx (%x)", *dtb, boot_config->dtb_bpak_id);
 
-    if (rc)
-    {
-        LOG_ERR("Could not patch initrd");
-        return -PB_ERR;
-    }
+        /* Locate the chosen node */
+        void *fdt = (void *)(uintptr_t) *dtb;
+        rc = fdt_check_header(fdt);
 
-    rc = fdt_setprop_u32((void *) fdt, offset, "linux,initrd-end",
-                                             *ramdisk + ramdisk_bytes);
+        if (rc < 0) {
+            LOG_ERR("Invalid device tree");
+            return -PB_ERR;
+        }
 
-    if (rc)
-    {
-        LOG_ERR("Could not patch initrd");
-        return -PB_ERR;
-    }
+        int depth = 0;
+        int offset = 0;
+        bool found_chosen_node = false;
 
-    LOG_DBG("Ramdisk %lx -> %lx", *ramdisk, *ramdisk + ramdisk_bytes);
-#endif  // CONFIG_BOOT_RAMDISK
-    pb_timestamp_end();
-#endif  // CONFIG_BOOT_DT
+        for (;;) {
+            offset = fdt_next_node(fdt, offset, &depth);
 
-    LOG_INFO("Calling boot driver");
+            if (offset < 0)
+                break;
 
-#ifdef CONFIG_BOOT_DT
-    rc = pb_boot_driver_boot(fdt, offset);
-#else
-    rc = pb_boot_driver_boot(NULL, 0);
-#endif  // CONFIG_BOOT_DT
+            const char *name = fdt_get_name(fdt, offset, NULL);
 
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Boot driver failed");
-        return rc;
+            if (!name)
+                continue;
+
+            if (strcmp(name, "chosen") == 0) {
+                found_chosen_node = true;
+                break;
+            }
+
+        }
+
+        if (!found_chosen_node) {
+            LOG_ERR("Could not locate chosen node");
+            return -PB_ERR;
+        }
+
+        char device_uuid_str[37];
+        uuid_unparse(device_uuid, device_uuid_str);
+
+        LOG_DBG("Device UUID: %s", device_uuid_str);
+        fdt_setprop_string((void *) fdt, offset, "pb,device-uuid",
+                    (const char *) device_uuid_str);
+
+        LOG_DBG("Updating bootargs");
+        rc = plat_patch_bootargs(fdt, offset, verbose);
+
+        if (rc != 0)
+            return -PB_ERR;
+
+        /* Update SLC related parameters in DT */
+        enum pb_slc slc;
+
+        rc = plat_slc_read(&slc);
+
+        if (rc != PB_OK)
+            return rc;
+
+        /* SLC state */
+        fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
+
+        /* Current key ID we're using for boot image */
+        fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", h->key_id);
+
+        struct pb_result_slc_key_status *key_status;
+
+        rc = plat_slc_get_key_status(&key_status);
+
+        if (rc != PB_OK)
+            return rc;
+
+        for (unsigned int i = 0; i < membersof(key_status->active); i++) {
+            if (key_status->active[i]) {
+                fdt_appendprop_u32((void *) fdt, offset,
+                            "pb,slc-available-keys", key_status->active[i]);
+            }
+        }
+
+        if (boot_config->ramdisk_bpak_id) {
+            struct bpak_part_header *pramdisk = NULL;
+
+            rc = bpak_get_part(h,
+                               boot_config->ramdisk_bpak_id,
+                               &pramdisk);
+
+            if (rc != BPAK_OK) {
+                LOG_ERR("Could not read ramdisk metadata");
+                return -PB_ERR;
+            }
+
+            size_t ramdisk_bytes = bpak_part_size(pramdisk);
+
+            rc = fdt_setprop_u32((void *) fdt, offset, "linux,initrd-start",
+                                *ramdisk);
+
+            if (rc) {
+                LOG_ERR("Could not patch initrd");
+                return -PB_ERR;
+            }
+
+            rc = fdt_setprop_u32((void *) fdt, offset, "linux,initrd-end",
+                                                     *ramdisk + ramdisk_bytes);
+
+            if (rc) {
+                LOG_ERR("Could not patch initrd");
+                return -PB_ERR;
+            }
+
+            LOG_DBG("Ramdisk %lx -> %lx", *ramdisk, *ramdisk + ramdisk_bytes);
+        }
+
+        LOG_INFO("Calling boot driver");
+
+        rc = pb_boot_driver_boot(fdt, offset);
+
+        if (rc != PB_OK) {
+            LOG_ERR("Boot driver failed");
+            return rc;
+        }
+
+        pb_timestamp_end();
     }
 
     LOG_DBG("Ready to jump");
     pb_timestamp_end();
 
-#if (CONFIG_BOOT_DT && CONFIG_BOOT_POP_TIMING)
-    rc = fdt_setprop_u32((void *) fdt, offset, "pb,boot-time",
-                                             pb_timestamp_total());
-
-    if (rc) {
-        LOG_ERR("Could not set pb,boot-time");
-        return -PB_ERR;
+    if (boot_config->print_time_measurements) {
+        pb_timestamp_print();
     }
-#endif
 
-#ifdef CONFIG_DUMP_TIMING_ANALYSIS
-    pb_timestamp_print();
-#endif
+    if (boot_config->dtb_bpak_id) {
+        size_t dtb_size = bpak_part_size(pdtb);
+        arch_clean_cache_range(*dtb, dtb_size);
+    }
 
-#ifdef CONFIG_BOOT_DT
-    size_t dtb_size = bpak_part_size(pdtb);
-    arch_clean_cache_range(*dtb, dtb_size);
-#endif
+    rc = plat_late_boot(pb_boot_driver_get_part_uu(), boot_mode);
 
-#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
-    bool abort_boot = false;
-
-    rc = plat_late_boot(&abort_boot, manual);
-
-    if (rc != PB_OK)
-        return rc;
-
-    if (abort_boot)
-    {
-        LOG_INFO("Aborting boot process");
+    if (rc == -PB_ERR_ABORT) {
+        LOG_INFO("Late boot, Aborting boot process");
         return PB_OK;
+    } else if (rc < 0) {
+        LOG_ERR("Boot late cb error (%i)", rc);
+        return rc;
     }
-#endif
 
     arch_clean_cache_range((uintptr_t) &jump_addr, sizeof(jump_addr));
     arch_disable_mmu();
 
-#ifdef CONFIG_OVERRIDE_ARCH_JUMP
-    uint8_t *part_uu = pb_boot_driver_get_part_uu();
-    plat_boot_override(part_uu);
-#else
-#ifdef CONFIG_BOOT_ENABLE_DTB_BOOTARG
-    LOG_DBG("Jumping to %p, %p",
-                (void *) jump_addr,
-                (void *) (*dtb));
-    arch_jump((void *) jump_addr,
-                NULL,
-                (void *) 0xffffffff,
-                (void *) (*dtb),
-                NULL);
-#else
     LOG_DBG("Jumping to %p", (void *) jump_addr);
-    arch_jump((void *) jump_addr, NULL, NULL, NULL, NULL);
-#endif  // CONFIG_BOOT_ENABLE_DTB_BOOTARG
-#endif  // CONFIG_OVERRIDE_ARCH_JUMP
+    if (boot_config->set_dtb_boot_arg)
+        arch_jump((void *) jump_addr, (void *) (*dtb), NULL, NULL, NULL);
+    else
+        arch_jump((void *) jump_addr, NULL, NULL, NULL, NULL);
 
     LOG_ERR("Jump returned %p", (void *) jump_addr);
     return -PB_ERR;

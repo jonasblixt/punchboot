@@ -18,6 +18,7 @@
 #include <pb/board.h>
 #include <pb/storage.h>
 #include <pb/boot.h>
+#include <pb/delay.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/usdhc.h>
 #include <plat/defs.h>
@@ -155,7 +156,7 @@ static struct pb_storage_driver usdhc0_driver =
 
 /* END of USDHC0 */
 
-int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
+static int patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
 {
     const char *bootargs = NULL;
 
@@ -354,4 +355,24 @@ err_out:
         return -PB_ERR;
     }
 }
-#endif
+#endif  // CONFIG_AUTH_METHOD_PASSWORD
+
+const struct pb_boot_config * board_boot_config(void)
+{
+    static const struct pb_boot_config config = {
+        .a_boot_part_uuid  = "2af755d8-8de5-45d5-a862-014cfa735ce0",
+        .b_boot_part_uuid  = "c046ccd8-0f2e-4036-984d-76c14dc73992",
+        .primary_state_part_uuid = "f5f8c9ae-efb5-4071-9ba9-d313b082281e",
+        .backup_state_part_uuid  = "656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
+        .image_bpak_id     = 0xa697d988,    /* bpak_id("atf") */
+        .dtb_bpak_id       = 0x56f91b86,    /* bpak_id("dt")  */
+        .ramdisk_bpak_id   = 0xf4cdac1f,    /* bpak_id("ramdisk") */
+        .rollback_mode     = PB_ROLLBACK_MODE_NORMAL,
+        .early_boot_cb     = NULL,
+        .late_boot_cb      = NULL,
+        .dtb_patch_cb      = patch_bootargs,
+        .print_time_measurements = true,
+    };
+
+    return &config;
+}

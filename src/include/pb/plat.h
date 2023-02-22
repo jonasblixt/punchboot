@@ -11,6 +11,7 @@
 #define INCLUDE_PB_PLAT_H_
 
 #include <pb/pb.h>
+#include <pb/boot.h>
 #include <pb/usb.h>
 #include <pb/fuse.h>
 #include <pb/storage.h>
@@ -80,8 +81,32 @@ int plat_get_uuid(char *out);
 int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot);
 int plat_boot_override(uint8_t *uuid);
 
+/**
+ * Early boot process call back.
+ *
+ * This will optionally call a board level callback if it's defined in
+ * the boards boot config struct
+ *
+ * @return PB_OK on success or a negative number, -PB_ERR_ABORT is a special
+ * case that can be used by the board code to intentionally stop the boot
+ * process.
+ */
 int plat_early_boot(void);
-int plat_late_boot(bool *abort_boot, bool manual);
+
+/**
+ * Late boot process call back.
+ *
+ * This will optionally call a board level callback if it's defined in
+ * the boards boot config struct
+ *
+ * @param[in] boot_mode Indicates if we're booting normally or if the boot
+ *                      was initiated by the command mode interface.
+ *
+ * @return PB_OK on success or a negative number, -PB_ERR_ABORT is a special
+ * case that can be used by the board code to intentionally stop the boot
+ * process.
+ */
+int plat_late_boot(uuid_t boot_part_uu, enum pb_boot_mode boot_mode);
 
 int plat_command(uint32_t command,
                      void *bfr,

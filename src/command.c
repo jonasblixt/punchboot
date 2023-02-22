@@ -18,6 +18,7 @@
 #include <pb/gpt.h>
 #include <pb/boot.h>
 #include <pb/command.h>
+#include <pb/delay.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
@@ -705,7 +706,7 @@ static int cmd_boot_ram(void)
 
     plat_transport_write(&result, sizeof(result));
     pb_boot_driver_set_part_uu(ram_boot_cmd->uuid);
-    pb_boot(ram_boot_cmd->verbose, true);
+    pb_boot(ram_boot_cmd->verbose, PB_BOOT_MODE_CMD);
     return -PB_ERR;
 }
 
@@ -938,7 +939,7 @@ static int pb_command_parse(void)
 
             if (rc == PB_OK) {
                 pb_boot_driver_set_part_uu(boot_cmd->uuid);
-                pb_boot(boot_cmd->verbose, true);
+                pb_boot(boot_cmd->verbose, PB_BOOT_MODE_CMD);
             }
             /* Should not return */
             return -PB_ERR;
