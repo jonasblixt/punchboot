@@ -75,12 +75,10 @@ cflags-y += -Waggregate-return
 # Bootloader
 src-y   = src/main.c
 src-y  += src/boot.c
-src-y  += src/ab.c
 src-y  += keystore.c
 src-y  += src/delay.c
 src-y  += src/timestamp.c
 src-y  += src/usb.c
-src-y  += src/image.c
 src-y  += src/storage.c
 src-y  += src/wire.c
 src-y  += src/command.c

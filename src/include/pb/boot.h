@@ -15,12 +15,22 @@
 
 #define PB_STATE_MAGIC 0x026d4a65
 
+#define PB_STATE_A_ENABLED (1 << 0)
+#define PB_STATE_B_ENABLED (1 << 1)
+#define PB_STATE_A_VERIFIED (1 << 0)
+#define PB_STATE_B_VERIFIED (1 << 1)
+#define PB_STATE_ERROR_A_ROLLBACK (1 << 0)
+#define PB_STATE_ERROR_B_ROLLBACK (1 << 1)
+
 struct pb_boot_state /* 512 bytes */
 {
-    uint32_t magic;
-    uint8_t private[468];
-    uint8_t rz[36];
-    uint32_t crc;
+    uint32_t magic;                     /*!< PB boot state magic number */
+    uint32_t enable;                    /*!< Boot partition enable bits */
+    uint32_t verified;                  /*!< Boot partition verified bits */
+    uint32_t remaining_boot_attempts;   /*!< Rollback boot counter */
+    uint32_t error;                     /*!< Rollback error bits */
+    uint8_t rz[488];                    /*!< Reserved, set to zero */
+    uint32_t crc;                       /*!< State checksum */
 } __attribute__((packed));
 
 /** Boot modes */
@@ -30,13 +40,14 @@ enum pb_boot_mode {
     PB_BOOT_MODE_CMD,          /*!< Boot was initiated through the command mode interface */
 };
 
+enum pb_boot_source {
+    PB_BOOT_SOURCE_INVALID = 0,
+    PB_BOOT_SOURCE_BLOCK_DEV,
+    PB_BOOT_SOURCE_TRANSPORT,
+};
+
 typedef int (*pb_board_early_boot_cb_t) (void *plat);
-
-/** The board late boot callback should return 0 under normal circumstances
- * or a negative number, and the special case '-PB_ERR_ABORT' */
 typedef int (*pb_board_late_boot_cb_t) (void *plat, uuid_t boot_part_uu, enum pb_boot_mode mode);
-
-
 typedef int (*pb_board_patch_dtb_cb_t) (void *plat, void *fdt, int offset, bool verbose_boot);
 
 /** Rollback modes */
@@ -71,26 +82,60 @@ struct pb_boot_config
                                                  just before jumping to the boot image */
 };
 
+/**
+ * Initializes the boot module
+ *
+ * @return PB_OK on success or a negative number
+ */
 int pb_boot_init(void);
 
-int pb_boot_load_state(void);
+/**
+ * Loads a bootable BPAK image into ram
+ *
+ * Boot sources:
+ *   PB_BOOT_SOURCE_BLOCK_DEV: The boot process tries to load an image
+ *   from an active boot partition
+ *
+ *   PB_BOOT_SOURCE_TRANSPORT: The boot process tries to load an image into
+ *   ram using the command mode transport
+ *
+ * @param[in] boot_source Reads from block device in block dev mode or
+ *                      over command mode transport in transport mode.
+ * @param[in] boot_part_uu Optional partition UUID, if this is not NULL
+ *                          it will override the boot state. This is only
+ *                          relevant in normal mode
+ *
+ * @return PB_OK on success or a negative number
+ */
+int pb_boot_load(enum pb_boot_source boot_source, uuid_t boot_part_uu);
 
-int pb_boot_load_transport(void);
+/**
+ * Boot the system. This function will also update the device tree
+ * with, for example, ramdisk size, active boot partition etc.
+ *
+ * @param[in] verbose Sets verbose boot mode
+ * @param[in] boot_mode Boot mode
+ *
+ * @return PB_OK on success or a negative number
+ */
+int pb_boot(enum pb_boot_mode boot_mode, bool verbose);
 
-int pb_boot_load_fs(uint8_t *boot_part_uu);
+/**
+ * Activate a boot partition
+ *
+ * @param[in] uu UUID of partition to activate
+ *
+ * @return PB_OK on success or a negative number
+ */
+int pb_boot_activate(uuid_t uu);
 
-int pb_boot(bool verbose, enum pb_boot_mode boot_mode);
-
-int pb_boot_activate(uint8_t *uu);
-void pb_boot_status(char *status_msg, size_t len);
-
-/* Boot driver API */
-int pb_boot_driver_load_state(struct pb_boot_state *state, bool *commit);
-uint8_t *pb_boot_driver_get_part_uu(void);
-int pb_boot_driver_boot(int *dtb, int offset);
-int pb_boot_driver_activate(struct pb_boot_state *state, uint8_t *uu);
-int pb_boot_driver_set_part_uu(uint8_t *uu);
-void pb_boot_driver_status(struct pb_boot_state *state,
-                           char *status_msg, size_t len);
+/**
+ * Read active boot partition
+ *
+ * @param[out] out UUID of active boot partition
+ *
+ * @return PB_OK on success or a negative number
+ */
+int pb_boot_read_active_part(uuid_t out);
 
 #endif  // INCLUDE_PB_BOOT_H

@@ -10,23 +10,21 @@ jobs:
     - name: Install deps
       run: |
           sudo apt-get update
-          sudo apt-get install autoconf-archive qemu-system-arm libusb-1.0-0 libusb-1.0-0-dev uuid-dev gcc-arm-none-eabi
+          sudo apt-get install autoconf-archive qemu-system-arm libusb-1.0-0 libusb-1.0-0-dev uuid-dev gcc-arm-none-eabi cmake
     - name: Build BPAK
       run: |
-            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.5.11
+            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.8.6
             pushd bpak
-            autoreconf -fi
-            ./configure
+            cmake .
             make
             sudo make install
             sudo ldconfig
             popd
     - name: Build punchboot-tools
       run: |
-            git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v0.2.5
+            git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v0.3.1
             pushd punchboot-tools
-            autoreconf -fi
-            ./configure
+            cmake .
             make
             sudo make install
             sudo ldconfig
@@ -56,9 +54,9 @@ jobs:
     - name: Build with cov-build
       run: |
         export PATH=`pwd`/cov-analysis-linux64/bin:$PATH
-        make CROSS_COMPILE=arm-none-eabi- BOARD=board/test clean
+        make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test clean
         cov-configure --template --compiler arm-none-eabi-gcc --comptype gcc
-        cov-build --dir cov-int make CROSS_COMPILE=arm-none-eabi- BOARD=board/test
+        cov-build --dir cov-int make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test
     - name: Submit the result to Coverity Scan
       run: |
         tar czvf pb.tgz cov-int

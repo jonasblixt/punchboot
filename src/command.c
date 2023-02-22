@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/pb.h>
-#include <pb/image.h>
 #include <pb/plat.h>
 #include <pb/usb.h>
 #include <pb/io.h>
@@ -656,9 +655,7 @@ static int cmd_boot_ram(void)
     struct pb_command_ram_boot *ram_boot_cmd = \
                        (struct pb_command_ram_boot *) &cmd.request;
 
-    struct bpak_header *h = pb_image_header();
-    if (ram_boot_cmd->verbose)
-    {
+    if (ram_boot_cmd->verbose) {
         LOG_INFO("Verbose boot enabled");
     }
 
@@ -668,45 +665,16 @@ static int cmd_boot_ram(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_transport_read(h,
-                    sizeof(struct bpak_header));
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = bpak_valid_header(h);
-
-    if (rc != BPAK_OK)
-    {
-        LOG_ERR("Invalid BPAK header");
-        pb_wire_init_result(&result, -PB_RESULT_ERROR);
-        return rc;
-    }
-
-    rc = pb_image_check_header();
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Bad header");
-        pb_wire_init_result(&result, -PB_RESULT_ERROR);
-        return rc;
-    }
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = pb_boot_load_transport();
+    rc = pb_boot_load(PB_BOOT_SOURCE_TRANSPORT, ram_boot_cmd->uuid);
 
     pb_wire_init_result(&result, error_to_wire(rc));
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         return rc;
     }
 
     plat_transport_write(&result, sizeof(result));
-    pb_boot_driver_set_part_uu(ram_boot_cmd->uuid);
-    pb_boot(ram_boot_cmd->verbose, PB_BOOT_MODE_CMD);
+    pb_boot(PB_BOOT_MODE_CMD, ram_boot_cmd->verbose);
     return -PB_ERR;
 }
 
@@ -932,14 +900,13 @@ static int pb_command_parse(void)
         {
             struct pb_command_boot_part *boot_cmd = \
                 (struct pb_command_boot_part *) cmd.request;
-            rc = pb_boot_load_fs(boot_cmd->uuid);
+            rc = pb_boot_load(PB_BOOT_SOURCE_BLOCK_DEV, boot_cmd->uuid);
             pb_wire_init_result(&result, error_to_wire(rc));
 
             plat_transport_write(&result, sizeof(result));
 
             if (rc == PB_OK) {
-                pb_boot_driver_set_part_uu(boot_cmd->uuid);
-                pb_boot(boot_cmd->verbose, PB_BOOT_MODE_CMD);
+                pb_boot(PB_BOOT_MODE_CMD, boot_cmd->verbose);
             }
             /* Should not return */
             return -PB_ERR;
@@ -1042,9 +1009,8 @@ static int pb_command_parse(void)
         case PB_CMD_BOOT_STATUS:
         {
             struct pb_result_boot_status boot_result;
+            (void) pb_boot_read_active_part(boot_result.uuid);
 
-            memcpy(boot_result.uuid, pb_boot_driver_get_part_uu(), 16);
-            pb_boot_status(boot_result.status, sizeof(boot_result.status));
             pb_wire_init_result2(&result, error_to_wire(rc), &boot_result,
                                     sizeof(boot_result));
             rc = PB_RESULT_OK;
