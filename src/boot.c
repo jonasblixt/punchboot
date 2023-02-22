@@ -16,20 +16,290 @@
 #include <pb/board.h>
 #include <pb/plat.h>
 #include <pb/crc.h>
-#include <pb/image.h>
 #include <pb/timestamp.h>
 #include <libfdt.h>
 #include <uuid.h>
 #include <bpak/bpak.h>
 
-static uint8_t boot_state[512] __no_bss __a4k;
-static uint8_t boot_state_backup[512] __no_bss __a4k;
-static uuid_t primary_uu;
-static uuid_t backup_uu;
+extern char _code_start, _code_end,
+            _data_region_start, _data_region_end,
+            _zero_region_start, _zero_region_end,
+            _stack_start, _stack_end, _big_buffer_start, _big_buffer_end;
+
+extern struct bpak_keystore keystore_pb;
+
+static struct bpak_header header __a4k __no_bss;
+static uint8_t signature[512] __a4k __no_bss;
+static size_t signature_sz;
+static uint8_t hash[PB_HASH_MAX_LENGTH];
+static struct pb_boot_state boot_state, boot_state_backup;
 static struct pb_storage_map *primary_map, *backup_map;
 static struct pb_storage_driver *sdrv;
-static struct pb_result result __no_bss __a4k;
-static uintptr_t jump_addr;
+static struct pb_result result;
+static uuid_t active_uu;
+
+typedef int (*pb_image_read_t) (void *buf, size_t size, void *private);
+typedef int (*pb_image_result_t) (int rc, void *private);
+
+static int check_header(void)
+{
+    int err = PB_OK;
+    struct bpak_header *h = &header;
+    err = bpak_valid_header(h);
+
+    if (err != BPAK_OK) {
+        LOG_ERR("Invalid header");
+        return -PB_ERR;
+    }
+
+    bpak_foreach_part(h, p) {
+        if (!p->id)
+            break;
+
+        size_t sz = bpak_part_size(p);
+        uint64_t *load_addr = NULL;
+
+        err = bpak_get_meta_with_ref(h, BPAK_ID_PB_LOAD_ADDR,
+                                        p->id, (void **) &load_addr);
+
+
+        if (err != BPAK_OK) {
+            LOG_ERR("Could not read pb-entry for part %x", p->id);
+            break;
+        }
+
+        uint64_t la = *load_addr;
+
+        if (PB_CHECK_OVERLAP(la, sz, &_stack_start, &_stack_end)) {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB stack");
+        }
+
+        if (PB_CHECK_OVERLAP(la, sz, &_data_region_start, &_data_region_end)) {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB data");
+        }
+
+        if (PB_CHECK_OVERLAP(la, sz, &_zero_region_start, &_zero_region_end)) {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB bss");
+        }
+
+        if (PB_CHECK_OVERLAP(la, sz, &_code_start, &_code_end)) {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB code");
+        }
+
+        if (PB_CHECK_OVERLAP(la, sz, &_big_buffer_start, &_big_buffer_end)) {
+            err = -PB_ERR;
+            LOG_ERR("image overlapping with PB buffer");
+        }
+    }
+
+    return err;
+}
+
+static int image_load(pb_image_read_t read_f,
+                  pb_image_result_t result_f,
+                  size_t load_chunk_size,
+                  void *priv)
+{
+    int rc;
+    struct bpak_header *h = &header;
+    struct bpak_key *k = NULL;
+    int hash_kind;
+
+    pb_timestamp_begin("Image load");
+
+    rc = bpak_valid_header(h);
+
+    if (rc != BPAK_OK) {
+        LOG_ERR("Invalid BPAK header");
+        return PB_ERR;
+    }
+
+    LOG_DBG("Key-store: %x", h->keystore_id);
+    LOG_DBG("Key-ID: %x", h->key_id);
+
+    if (h->keystore_id != keystore_pb.id) {
+        LOG_ERR("Invalid key-store");
+        return -PB_ERR;
+    }
+
+    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
+        if (keystore_pb.keys[i]->id == h->key_id) {
+            k = keystore_pb.keys[i];
+            break;
+        }
+    }
+
+    if (!k) {
+        LOG_ERR("Key not found");
+        return -PB_ERR;
+    }
+
+    bool active = false;
+
+    rc = plat_slc_key_active(h->key_id, &active);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (!active) {
+        LOG_ERR("Invalid or revoked key (%x)", h->key_id);
+        return -PB_ERR;
+    }
+
+    size_t hash_sz = 0;
+
+    switch (h->hash_kind) {
+        case BPAK_HASH_SHA256:
+            hash_kind = PB_HASH_SHA256;
+            hash_sz = 32;
+        break;
+        case BPAK_HASH_SHA384:
+            hash_kind = PB_HASH_SHA384;
+            hash_sz = 48;
+        break;
+        case BPAK_HASH_SHA512:
+            hash_kind = PB_HASH_SHA512;
+            hash_sz = 64;
+        break;
+        default:
+            LOG_ERR("Unknown hash_kind value 0x%x", h->hash_kind);
+            rc = -PB_ERR;
+    }
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = plat_hash_init(hash_kind);
+
+    if (rc != PB_OK)
+        return rc;
+
+    signature_sz = sizeof(signature);
+
+    rc = bpak_copyz_signature(h, signature, &signature_sz);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Invalid signature area: size=%d", h->signature_sz);
+        return rc;
+    }
+
+    rc = plat_hash_update((uint8_t *) h, sizeof(*h));
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = plat_hash_output(hash, sizeof(hash));
+
+    if (rc != PB_OK)
+        return rc;
+
+    pb_timestamp_begin("Verify signature");
+
+    rc = plat_pk_verify(signature, signature_sz, hash, hash_kind, k);
+
+    if (rc == PB_OK) {
+        LOG_INFO("Signature Valid");
+    } else {
+        LOG_ERR("Signature Invalid");
+        return rc;
+    }
+
+    pb_timestamp_end();
+
+    rc = check_header();
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (result_f) {
+        rc = result_f(rc, priv);
+
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    /* Compute payload hash */
+
+    rc = plat_hash_init(hash_kind);
+
+    if (rc != PB_OK)
+        return rc;
+
+    uint64_t *load_addr = NULL;
+
+    bpak_foreach_part(h, p) {
+        if (!p->id)
+            break;
+
+        load_addr = NULL;
+        rc = bpak_get_meta_with_ref(h, BPAK_ID_PB_LOAD_ADDR, p->id, (void **) &load_addr);
+
+        if (rc != BPAK_OK) {
+            LOG_ERR("Could not read pb-entry for part %x", p->id);
+            break;
+        }
+
+
+        LOG_DBG("Loading part %x --> %p, %llu bytes", p->id,
+                                (void *)(uintptr_t) (*load_addr),
+                                bpak_part_size(p));
+        LOG_DBG("Part offset: %llu", p->offset);
+
+        size_t bytes_to_read = bpak_part_size(p);
+        size_t chunk_size = 0;
+        size_t offset = 0;
+
+        while (bytes_to_read) {
+            chunk_size = (bytes_to_read>load_chunk_size)? \
+                            load_chunk_size:bytes_to_read;
+
+            uintptr_t addr = ((*load_addr) + offset);
+
+            rc = read_f((void *) addr, chunk_size, priv);
+
+            if (rc != PB_OK)
+                break;
+
+            rc = plat_hash_update((uint8_t *) addr, chunk_size);
+
+            if (rc != PB_OK)
+                break;
+
+            bytes_to_read -= chunk_size;
+            offset += chunk_size;
+        }
+
+        if (result_f) {
+            rc = result_f(rc, priv);
+
+            if (rc != PB_OK)
+                return rc;
+        }
+    }
+
+    if (rc != PB_OK) {
+        LOG_ERR("Loading failed");
+        return rc;
+    }
+
+    rc = plat_hash_output(hash, sizeof(hash));
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (memcmp(h->payload_hash, hash, hash_sz) != 0) {
+        LOG_ERR("Payload hash incorrect");
+        return -1;
+    }
+
+    pb_timestamp_end();
+
+    return rc;
+}
 
 static int ram_load_read(void *buf, size_t size, void *private)
 {
@@ -72,15 +342,13 @@ static int pb_boot_state_validate(struct pb_boot_state *state)
 
     state->crc = 0;
 
-    if (state->magic != PB_STATE_MAGIC)
-    {
+    if (state->magic != PB_STATE_MAGIC) {
         LOG_ERR("Incorrect magic");
         err = -PB_ERR;
         goto config_err_out;
     }
 
-    if (crc != crc32(0, (uint8_t *) state, sizeof(struct pb_boot_state)))
-    {
+    if (crc != crc32(0, (uint8_t *) state, sizeof(struct pb_boot_state))) {
         LOG_ERR("CRC failed");
         err =- PB_ERR;
         goto config_err_out;
@@ -100,32 +368,25 @@ static int pb_boot_state_defaults(struct pb_boot_state *state)
 static int pb_boot_state_commit(void)
 {
     int rc;
-    struct pb_boot_state *state = (struct pb_boot_state *) boot_state;
 
-    state->crc = 0;
-    uint32_t crc = crc32(0, (const uint8_t *) boot_state,
+    boot_state.crc = 0;
+    uint32_t crc = crc32(0, (const uint8_t *) &boot_state,
                                 sizeof(struct pb_boot_state));
-    state->crc = crc;
+    boot_state.crc = crc;
 
-    memcpy(boot_state_backup, boot_state, sizeof(struct pb_boot_state));
-
-    rc = pb_storage_write(sdrv, primary_map, boot_state,
+    rc = pb_storage_write(sdrv, primary_map, &boot_state,
                        (sizeof(struct pb_boot_state) / sdrv->block_size), 0);
 
     if (rc != PB_OK)
         goto config_commit_err;
 
-    rc = pb_storage_write(sdrv, backup_map, boot_state_backup,
+    rc = pb_storage_write(sdrv, backup_map, &boot_state,
                        (sizeof(struct pb_boot_state) / sdrv->block_size), 0);
 
 config_commit_err:
-
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Could not write boot state");
-    }
-    else
-    {
+    } else {
         LOG_INFO("Boot state written");
     }
 
@@ -137,14 +398,11 @@ static int pb_boot_state_init(void)
     int rc;
     bool primary_state_ok = false;
     bool backup_state_ok = false;
-    struct pb_boot_state *state = (struct pb_boot_state *) boot_state;
-    struct pb_boot_state *state_backup = (struct pb_boot_state *) boot_state_backup;
 
-    rc = pb_storage_read(sdrv, primary_map, state,
+    rc = pb_storage_read(sdrv, primary_map, &boot_state,
                        (sizeof(struct pb_boot_state) / sdrv->block_size), 0);
 
-
-    rc = pb_boot_state_validate(state);
+    rc = pb_boot_state_validate(&boot_state);
 
     if (rc == PB_OK) {
         primary_state_ok = true;
@@ -153,11 +411,10 @@ static int pb_boot_state_init(void)
         primary_state_ok = false;
     }
 
-    rc = pb_storage_read(sdrv, backup_map, state_backup,
+    (void) pb_storage_read(sdrv, backup_map, &boot_state_backup,
                        (sizeof(struct pb_boot_state) / sdrv->block_size), 0);
 
-
-    rc = pb_boot_state_validate(state_backup);
+    rc = pb_boot_state_validate(&boot_state_backup);
 
     if (rc == PB_OK) {
         backup_state_ok = true;
@@ -168,16 +425,16 @@ static int pb_boot_state_init(void)
 
     if (!primary_state_ok && !backup_state_ok) {
         LOG_ERR("No valid state found, installing default");
-        pb_boot_state_defaults(state);
-        pb_boot_state_defaults(state_backup);
+        pb_boot_state_defaults(&boot_state);
+        pb_boot_state_defaults(&boot_state_backup);
         rc = pb_boot_state_commit();
     } else if (!backup_state_ok && primary_state_ok) {
         LOG_ERR("Backup state corrupt, repairing");
-        pb_boot_state_defaults(state_backup);
+        pb_boot_state_defaults(&boot_state_backup);
         rc = pb_boot_state_commit();
     } else if (backup_state_ok && !primary_state_ok) {
         LOG_ERR("Primary state corrupt, reparing");
-        memcpy(state, state_backup, sizeof(struct pb_boot_state));
+        memcpy(&boot_state, &boot_state_backup, sizeof(struct pb_boot_state));
         rc = pb_boot_state_commit();
     } else {
         LOG_INFO("Boot state loaded");
@@ -190,6 +447,9 @@ static int pb_boot_state_init(void)
 int pb_boot_init(void)
 {
     int rc;
+    const char *active_uu_str;
+    uuid_t primary_uu;
+    uuid_t backup_uu;
     const struct pb_boot_config *boot_config = board_boot_config();
 
     rc = plat_early_boot();
@@ -226,7 +486,81 @@ int pb_boot_init(void)
 
     bool commit = false;
 
-    pb_boot_driver_load_state((struct pb_boot_state *) boot_state, &commit);
+    LOG_DBG("A/B boot load state %u %u %u", boot_state.enable,
+                                            boot_state.verified,
+                                            boot_state.error);
+
+    if (boot_state.enable & PB_STATE_A_ENABLED) {
+        if (!(boot_state.verified & PB_STATE_A_VERIFIED) &&
+             boot_state.remaining_boot_attempts > 0) {
+            boot_state.remaining_boot_attempts--;
+            commit = true; /* Update state data */
+            active_uu_str = boot_config->a_boot_part_uuid;
+        } else if (!(boot_state.verified & PB_STATE_A_VERIFIED)) {
+            LOG_ERR("Rollback to B system");
+            if (!(boot_state.verified & PB_STATE_B_VERIFIED)) {
+                if (boot_config->rollback_mode == PB_ROLLBACK_MODE_SPECULATIVE) {
+                    // Enable B
+                    // Reset boot counter to one
+                    commit = true;
+                    boot_state.enable = PB_STATE_B_ENABLED;
+                    boot_state.remaining_boot_attempts = 1;
+                    boot_state.error = PB_STATE_ERROR_A_ROLLBACK;
+                    active_uu_str = boot_config->b_boot_part_uuid;
+                } else {
+                    LOG_ERR("B system not verified, failing");
+                    return -PB_ERR;
+                }
+            } else {
+                commit = true;
+                boot_state.enable = PB_STATE_B_ENABLED;
+                boot_state.error = PB_STATE_ERROR_A_ROLLBACK;
+                active_uu_str = boot_config->b_boot_part_uuid;
+            }
+        } else {
+            active_uu_str = boot_config->a_boot_part_uuid;
+        }
+    } else if (boot_state.enable & PB_STATE_B_ENABLED) {
+        if (!(boot_state.verified & PB_STATE_B_VERIFIED) &&
+             boot_state.remaining_boot_attempts > 0) {
+            boot_state.remaining_boot_attempts--;
+            commit = true; /* Update state data */
+            active_uu_str = boot_config->b_boot_part_uuid;
+        } else if (!(boot_state.verified & PB_STATE_B_VERIFIED)) {
+            LOG_ERR("Rollback to A system");
+            if (!(boot_state.verified & PB_STATE_A_VERIFIED)) {
+                if (boot_config->rollback_mode == PB_ROLLBACK_MODE_SPECULATIVE) {
+                    // Enable A
+                    // Reset boot counter to one
+                    commit = true;
+                    boot_state.enable = PB_STATE_A_ENABLED;
+                    boot_state.remaining_boot_attempts = 1;
+                    boot_state.error = PB_STATE_ERROR_B_ROLLBACK;
+                    active_uu_str = boot_config->a_boot_part_uuid;
+                } else {
+                    LOG_ERR("A system not verified, failing");
+                    return -PB_ERR;
+                }
+            }
+
+            commit = true;
+            boot_state.enable = PB_STATE_A_ENABLED;
+            boot_state.error = PB_STATE_ERROR_B_ROLLBACK;
+            active_uu_str = boot_config->a_boot_part_uuid;
+        } else {
+            active_uu_str = boot_config->b_boot_part_uuid;
+        }
+    } else {
+        active_uu_str = NULL;
+    }
+
+    if (!active_uu_str) {
+        LOG_INFO("No active system");
+        active_uu_str = NULL;
+        memset(active_uu, 0, 16);
+    } else {
+        uuid_parse(active_uu_str, active_uu);
+    }
 
     if (commit) {
         rc = pb_boot_state_commit();
@@ -238,31 +572,25 @@ int pb_boot_init(void)
     return rc;
 }
 
-int pb_boot_load_fs(uint8_t *boot_part_uu)
+static int load_boot_image_from_part(void)
 {
     int rc;
     struct pb_storage_driver *stream_drv;
     struct pb_storage_map *stream_map;
-    uint8_t *part_uu = NULL;
     char part_uu_str[37];
 
-    if (!boot_part_uu)
-        part_uu = pb_boot_driver_get_part_uu();
-    else
-        part_uu = boot_part_uu;
-
-    rc = pb_storage_get_part(part_uu,
+    rc = pb_storage_get_part(active_uu,
                              &stream_map,
                              &stream_drv);
 
     if (rc != PB_OK) {
-        uuid_unparse(part_uu, part_uu_str);
+        uuid_unparse(active_uu, part_uu_str);
         LOG_ERR("Could not find partition (%s)", part_uu_str);
         return rc;
     }
 
     if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_BOOTABLE)) {
-        uuid_unparse(part_uu, part_uu_str);
+        uuid_unparse(active_uu, part_uu_str);
         LOG_ERR("Partition not bootable (%s)", part_uu_str);
         return -PB_RESULT_PART_NOT_BOOTABLE;
     }
@@ -273,7 +601,7 @@ int pb_boot_load_fs(uint8_t *boot_part_uu)
     size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
     size_t block_offset = map->no_of_blocks - blocks;
 
-    rc = pb_storage_read(sdrv, map, pb_image_header(),
+    rc = pb_storage_read(sdrv, map, &header,
                             blocks, block_offset);
 
     if (rc != PB_OK)
@@ -285,19 +613,50 @@ int pb_boot_load_fs(uint8_t *boot_part_uu)
     fs_priv.map = map;
     fs_priv.block_offset = 0;
 
-    return pb_image_load(fs_load_read, NULL,
+    return image_load(fs_load_read, NULL,
                          CONFIG_LOAD_FS_MAX_CHUNK_KB*1024,
                          &fs_priv);
 }
 
-int pb_boot_load_transport(void)
+static int load_boot_image_over_transport(void)
 {
-    return pb_image_load(ram_load_read, ram_load_result,
+    int rc;
+
+    rc = plat_transport_read(&header, sizeof(struct bpak_header));
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = bpak_valid_header(&header);
+
+    if (rc != BPAK_OK) {
+        LOG_ERR("Invalid BPAK header");
+        return rc;
+    }
+
+    return image_load(ram_load_read, ram_load_result,
                          CONFIG_TRANSPORT_MAX_CHUNK_KB*1024,
                          NULL);
 }
 
-int pb_boot(bool verbose, enum pb_boot_mode boot_mode)
+int pb_boot_load(enum pb_boot_source boot_source, uuid_t boot_part_uu)
+{
+    if (boot_part_uu) {
+        memcpy(active_uu, boot_part_uu, sizeof(uuid_t));
+    }
+
+    switch (boot_source) {
+    case PB_BOOT_SOURCE_BLOCK_DEV:
+        return load_boot_image_from_part();
+    case PB_BOOT_SOURCE_TRANSPORT:
+        return load_boot_image_over_transport();
+    default:
+        LOG_ERR("Unknown boot source (%i)", boot_source);
+        return -PB_ERR;
+    }
+}
+
+int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
 {
     int rc;
     const struct pb_boot_config *boot_config = board_boot_config();
@@ -306,7 +665,8 @@ int pb_boot(bool verbose, enum pb_boot_mode boot_mode)
     uintptr_t *ramdisk = 0;
     uintptr_t *dtb = 0;
     struct bpak_part_header *pdtb = NULL;
-    struct bpak_header *h = pb_image_header();
+    struct bpak_header *h = &header;
+    static uintptr_t jump_addr;
 
     rc = bpak_get_meta_with_ref(h,
                                 BPAK_ID_PB_LOAD_ADDR,
@@ -383,7 +743,6 @@ int pb_boot(bool verbose, enum pb_boot_mode boot_mode)
                 found_chosen_node = true;
                 break;
             }
-
         }
 
         if (!found_chosen_node) {
@@ -465,20 +824,27 @@ int pb_boot(bool verbose, enum pb_boot_mode boot_mode)
             LOG_DBG("Ramdisk %lx -> %lx", *ramdisk, *ramdisk + ramdisk_bytes);
         }
 
-        LOG_INFO("Calling boot driver");
+        char uu_str[37];
+        uuid_unparse(active_uu, uu_str);
 
-        rc = pb_boot_driver_boot(fdt, offset);
+        if (strcmp(uu_str, boot_config->a_boot_part_uuid) == 0) {
+            rc = fdt_setprop_string(fdt, offset, "pb,active-system", "A");
+        } else if (strcmp(uu_str, boot_config->b_boot_part_uuid) == 0) {
+            rc = fdt_setprop_string(fdt, offset, "pb,active-system", "B");
+        } else {
+            rc = fdt_setprop_string(fdt, offset, "pb,active-system", "?");
+        }
 
         if (rc != PB_OK) {
-            LOG_ERR("Boot driver failed");
+            LOG_ERR("Patch dt");
             return rc;
         }
 
-        pb_timestamp_end();
+        pb_timestamp_end();  // DT Patch
     }
 
     LOG_DBG("Ready to jump");
-    pb_timestamp_end();
+    pb_timestamp_end(); // Total
 
     if (boot_config->print_time_measurements) {
         pb_timestamp_print();
@@ -489,7 +855,7 @@ int pb_boot(bool verbose, enum pb_boot_mode boot_mode)
         arch_clean_cache_range(*dtb, dtb_size);
     }
 
-    rc = plat_late_boot(pb_boot_driver_get_part_uu(), boot_mode);
+    rc = plat_late_boot(active_uu, boot_mode);
 
     if (rc == -PB_ERR_ABORT) {
         LOG_INFO("Late boot, Aborting boot process");
@@ -512,21 +878,42 @@ int pb_boot(bool verbose, enum pb_boot_mode boot_mode)
     return -PB_ERR;
 }
 
-int pb_boot_activate(uint8_t *uu)
+int pb_boot_activate(uuid_t uu)
 {
-    int rc;
+    const struct pb_boot_config *boot_config = board_boot_config();
+    char uu_str[37];
 
-    rc = pb_boot_driver_activate((struct pb_boot_state *)boot_state, uu);
+    uuid_unparse(uu, uu_str);
 
-    if (rc != PB_OK)
-        return rc;
+    LOG_DBG("Activating: %s", uu_str);
 
+    if (strcmp(uu_str, boot_config->a_boot_part_uuid) == 0) {
+        boot_state.enable = PB_STATE_A_ENABLED;
+        boot_state.verified = PB_STATE_A_VERIFIED;
+        boot_state.error = 0;
+    } else if (strcmp(uu_str, boot_config->b_boot_part_uuid) == 0) {
+        boot_state.enable = PB_STATE_B_ENABLED;
+        boot_state.verified = PB_STATE_B_VERIFIED;
+        boot_state.error = 0;
+    } else if (strcmp(uu_str, "00000000-0000-0000-0000-000000000000") == 0) {
+        LOG_INFO("Disable boot partition");
+        boot_state.enable = 0;
+        boot_state.verified = 0;
+        boot_state.error = 0;
+    } else {
+        LOG_ERR("Invalid boot partition");
+        boot_state.enable = 0;
+        boot_state.verified = 0;
+        boot_state.error = 0;
+        return -PB_ERR;
+    }
+
+    memcpy(active_uu, uu, 16);
     return pb_boot_state_commit();
 }
 
-void pb_boot_status(char *status_msg, size_t len)
+int pb_boot_read_active_part(uuid_t out)
 {
-    struct pb_boot_state *state = (struct pb_boot_state *) boot_state;
-
-    pb_boot_driver_status(state, status_msg, len);
+    memcpy(out, active_uu, sizeof(uuid_t));
+    return PB_OK;
 }
