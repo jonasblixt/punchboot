@@ -13,6 +13,7 @@
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <pb/usb.h>
+#include <pb/delay.h>
 #include <plat/imx/dwc3.h>
 #include <pb/plat.h>
 

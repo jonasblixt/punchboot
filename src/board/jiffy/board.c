@@ -136,24 +136,6 @@ static struct pb_storage_driver usdhc0_driver =
 
 /* END of USDHC0 */
 
-int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
-{
-    const char *bootargs = NULL;
-
-    if (verbose_boot)
-    {
-        bootargs = "console=ttymxc1,115200 " \
-                         "earlyprintk ";
-    }
-    else
-    {
-        bootargs = "console=ttymxc1,115200 " \
-                         "quiet ";
-    }
-    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
-
-}
-
 int board_early_init(void *plat)
 {
     int rc;
@@ -219,3 +201,36 @@ int board_status(void *plat,
     return PB_OK;
 }
 
+static int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
+{
+    const char *bootargs = NULL;
+
+    if (verbose_boot) {
+        bootargs = "console=ttymxc1,115200 earlyprintk ";
+    } else {
+        bootargs = "console=ttymxc1,115200 quiet ";
+    }
+
+    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
+}
+
+const struct pb_boot_config * board_boot_config(void)
+{
+    static const struct pb_boot_config config = {
+        .a_boot_part_uuid  = "2af755d8-8de5-45d5-a862-014cfa735ce0",
+        .b_boot_part_uuid  = "c046ccd8-0f2e-4036-984d-76c14dc73992",
+        .primary_state_part_uuid = "f5f8c9ae-efb5-4071-9ba9-d313b082281e",
+        .backup_state_part_uuid  = "656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
+        .image_bpak_id     = 0xec103b08,    /* bpak_id("kernel") */
+        .dtb_bpak_id       = 0x56f91b86,    /* bpak_id("dt") */
+        .ramdisk_bpak_id   = 0xf4cdac1f,    /* bpak_id("ramdisk") */
+        .rollback_mode     = PB_ROLLBACK_MODE_NORMAL,
+        .early_boot_cb     = NULL,
+        .late_boot_cb      = NULL,
+        .dtb_patch_cb      = board_patch_bootargs,
+        .set_dtb_boot_arg  = true,
+        .print_time_measurements = false,
+    };
+
+    return &config;
+}

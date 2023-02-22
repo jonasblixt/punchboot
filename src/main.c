@@ -104,7 +104,7 @@ void pb_main(void)
         goto run_command_mode;
     }
 
-    pb_boot(false, false);
+    pb_boot(false, PB_BOOT_MODE_NORMAL);
 
     LOG_INFO("Boot stopped, entering command mode");
 

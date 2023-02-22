@@ -10,9 +10,8 @@
 #ifndef INCLUDE_PB_ERRORS_H_
 #define INCLUDE_PB_ERRORS_H_
 
-
-enum {
-    PB_OK,
+enum pb_errors {
+    PB_OK = 0,
     PB_ERR,
     PB_TIMEOUT,
     PB_KEY_REVOKED_ERROR,
@@ -23,6 +22,7 @@ enum {
     PB_ERR_FILE_NOT_FOUND,
     PB_ERR_NOT_IMPLEMENTED,
     PB_ERR_BUF_TOO_SMALL,
+    PB_ERR_ABORT,
 };
 
 #endif  // INCLUDE_PB_ERRORS_H_

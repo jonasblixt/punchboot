@@ -12,6 +12,7 @@
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <pb/plat.h>
+#include <pb/delay.h>
 #include <plat/umctl2.h>
 #include <plat/regs.h>
 #include <plat/imx8m/clock.h>

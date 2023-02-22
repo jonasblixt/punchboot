@@ -456,15 +456,6 @@ bool plat_force_command_mode(void)
     return board_force_command_mode(NULL);
 }
 
-int plat_boot_override(uint8_t *uuid)
-{
-#ifdef CONFIG_OVERRIDE_ARCH_JUMP
-    return board_boot_override(NULL, uuid);
-#else
-    return PB_OK;
-#endif
-}
-
 int plat_status(void *response_bfr,
                     size_t *response_size)
 {
@@ -481,14 +472,30 @@ int plat_command(uint32_t command,
                             response_bfr, response_size);
 }
 
-#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
-int plat_early_boot(void)
+int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
 {
-    return board_early_boot(NULL);
+    const struct pb_boot_config *boot_config = board_boot_config();
+    if (boot_config->dtb_patch_cb) {
+        return boot_config->dtb_patch_cb(NULL, fdt, offset, verbose_boot);
+    }
+
+    return PB_OK;
 }
 
-int plat_late_boot(bool *abort_boot, bool manual)
+int plat_early_boot(void)
 {
-    return board_late_boot(NULL, abort_boot, manual);
+    const struct pb_boot_config *boot_config = board_boot_config();
+    if (boot_config->early_boot_cb)
+        return boot_config->early_boot_cb(NULL);
+    else
+        return PB_OK;
 }
-#endif
+
+int plat_late_boot(uuid_t boot_part_uu, enum pb_boot_mode boot_mode)
+{
+    const struct pb_boot_config *boot_config = board_boot_config();
+    if (boot_config->late_boot_cb)
+        return boot_config->late_boot_cb(NULL, boot_part_uu, boot_mode);
+    else
+        return PB_OK;
+}

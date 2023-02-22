@@ -12,6 +12,7 @@
 #include <pb/usb.h>
 #include <pb/plat.h>
 #include <pb/board.h>
+#include <pb/delay.h>
 #include <pb-tools/wire.h>
 #include <uuid.h>
 

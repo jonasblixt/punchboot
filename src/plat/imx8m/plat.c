@@ -742,7 +742,12 @@ bool plat_force_command_mode(void)
 
 int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
 {
-    return board_patch_bootargs(&private, fdt, offset, verbose_boot);
+    const struct pb_boot_config *boot_config = board_boot_config();
+    if (boot_config->dtb_patch_cb) {
+        return boot_config->dtb_patch_cb(&private, fdt, offset, verbose_boot);
+    }
+
+    return PB_OK;
 }
 
 int plat_command(uint32_t command,
@@ -755,14 +760,20 @@ int plat_command(uint32_t command,
                             response_bfr, response_size);
 }
 
-#ifdef CONFIG_CALL_EARLY_PLAT_BOOT
 int plat_early_boot(void)
 {
-    return board_early_boot(&private);
+    const struct pb_boot_config *boot_config = board_boot_config();
+    if (boot_config->early_boot_cb)
+        return boot_config->early_boot_cb(&private);
+    else
+        return PB_OK;
 }
 
-int plat_late_boot(bool *abort_boot, bool manual)
+int plat_late_boot(uuid_t boot_part_uu, enum pb_boot_mode boot_mode)
 {
-    return board_late_boot(&private, abort_boot, manual);
+    const struct pb_boot_config *boot_config = board_boot_config();
+    if (boot_config->late_boot_cb)
+        return boot_config->late_boot_cb(&private, boot_part_uu, boot_mode);
+    else
+        return PB_OK;
 }
-#endif

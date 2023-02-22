@@ -112,36 +112,6 @@ static struct pb_storage_driver virtio_driver =
 
 /* END of storage */
 
-int board_boot_override(void *plat, uint8_t *boot_part_uu)
-{
-    LOG_DBG("Boot!");
-    char boot_part_uu_str[37];
-
-    uuid_unparse(boot_part_uu, boot_part_uu_str);
-
-    long fd = semihosting_file_open("/tmp/pb_boot_status", 6);
-
-    if (fd < 0)
-        return PB_ERR;
-
-    size_t bytes_to_write = 1;
-    char name = '?';
-
-    if (strcmp(boot_part_uu_str, CONFIG_BOOT_AB_A_UUID) == 0)
-        name = 'A';
-    else if (strcmp(boot_part_uu_str, CONFIG_BOOT_AB_B_UUID) == 0)
-        name = 'B';
-    else
-        name = '?';
-
-    semihosting_file_write(fd, &bytes_to_write,
-                            (const uintptr_t) &name);
-
-    semihosting_file_close(fd);
-    plat_reset();
-    return -PB_ERR; /* Should not be reached */
-}
-
 /* Board specific */
 
 
@@ -225,11 +195,6 @@ int board_early_init(void *plat)
     return PB_OK;
 }
 
-int board_late_init(void *plat)
-{
-    return PB_OK;
-}
-
 int pb_qemu_console_init(struct qemu_uart_device *dev)
 {
     dev->base = 0x09000000;
@@ -241,15 +206,58 @@ const char *board_name(void)
     return "qemuarmv7";
 }
 
-int board_early_boot(void *plat)
+static int board_early_boot(void *plat)
 {
     LOG_DBG("call");
     return PB_OK;
 }
 
-int board_late_boot(void *plat, bool *abort_boot, bool manual)
+static int board_late_boot(void *plat, uuid_t boot_part_uu, enum pb_boot_mode mode)
 {
-    LOG_DBG("manual = %i", manual);
-    (*abort_boot) = false;
-    return PB_OK;
+    LOG_DBG("Boot! (%i)", mode);
+    char boot_part_uu_str[37];
+
+    uuid_unparse(boot_part_uu, boot_part_uu_str);
+
+    long fd = semihosting_file_open("/tmp/pb_boot_status", 6);
+
+    if (fd < 0)
+        return PB_ERR;
+
+    size_t bytes_to_write = 1;
+    char name = '?';
+
+    if (strcmp(boot_part_uu_str, "2af755d8-8de5-45d5-a862-014cfa735ce0") == 0)
+        name = 'A';
+    else if (strcmp(boot_part_uu_str, "c046ccd8-0f2e-4036-984d-76c14dc73992") == 0)
+        name = 'B';
+    else
+        name = '?';
+
+    semihosting_file_write(fd, &bytes_to_write,
+                            (const uintptr_t) &name);
+
+    semihosting_file_close(fd);
+    plat_reset();
+    return -PB_ERR; /* Should not be reached */
+}
+
+const struct pb_boot_config * board_boot_config(void)
+{
+    static const struct pb_boot_config config = {
+        .a_boot_part_uuid  = "2af755d8-8de5-45d5-a862-014cfa735ce0",
+        .b_boot_part_uuid  = "c046ccd8-0f2e-4036-984d-76c14dc73992",
+        .primary_state_part_uuid = "f5f8c9ae-efb5-4071-9ba9-d313b082281e",
+        .backup_state_part_uuid  = "656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
+        .image_bpak_id     = 0xec103b08,    /* bpak_id("kernel") */
+        .dtb_bpak_id       = 0,
+        .ramdisk_bpak_id   = 0,
+        .rollback_mode     = PB_ROLLBACK_MODE_NORMAL,
+        .early_boot_cb     = board_early_boot,
+        .late_boot_cb      = board_late_boot,
+        .dtb_patch_cb      = NULL,
+        .print_time_measurements = false,
+    };
+
+    return &config;
 }
