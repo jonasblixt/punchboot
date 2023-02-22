@@ -19,6 +19,7 @@ blobs/
 *.token
 .config
 .config.old
+/config.h
 
 tools/pbstate/Makefile.in
 tools/pbstate/aclocal.m4
@@ -30,7 +31,6 @@ tools/pbstate/src/Makefile.in
 tools/pbstate/test/Makefile.in
 
 update.sh
-config.h
 __pycache__
 
 doc/build/
