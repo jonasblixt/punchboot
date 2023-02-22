@@ -41,7 +41,7 @@ jobs:
     - name: Build punchboot and run tests
       run: |
           cp configs/test_defconfig .config
-          make CROSS_COMPILE=arm-none-eabi- BOARD=board/test check
+          make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test Q= check
     - name: codecov
       run: bash <(curl -s https://codecov.io/bash)
     - name: Download Coverity Build Tool
