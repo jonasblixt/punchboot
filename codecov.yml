@@ -1,11 +1,11 @@
 ignore:
-  - lib/bearssl
-  - lib/fdt
-  - lib/xlat_tables
+  - src/lib/bearssl
+  - src/lib/fdt
+  - src/libc/vm
   - tests
-  - plat
-  - uuid
-  - board/test
-  - crc.c
+  - src/plat
+  - src/uuid
+  - src/board/test
+  - src/crc.c
 fixes:
   - "/home/runner/work/punchboot/punchboot/build-test/::/"
