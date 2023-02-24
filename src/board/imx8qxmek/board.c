@@ -26,6 +26,9 @@
 #include <plat/sci/sci.h>
 #include <plat/sci/svc/seco/sci_seco_api.h>
 #include <plat/imx8x/plat.h>
+#include <arch/armv8a/timer.h>
+#include <arch/arch_helpers.h>
+#include <plat/defs.h>
 #include <uuid.h>
 #include <libfdt.h>
 
@@ -222,10 +225,6 @@ const char * board_name(void)
     return "imx8qxmek";
 }
 
-#include <arch/armv8a/timer.h>
-#include <arch/arch_helpers.h>
-#include <plat/defs.h>
-
 int board_command(void *plat,
                      uint32_t command,
                      void *bfr,
@@ -260,11 +259,14 @@ int board_status(void *plat,
                         &tenths);
 
     (*response_size) = snprintf(response, resp_buf_size,
-                            "SCFW: %u, %x\n" \
-                            "SECO: %u, %x\n" \
-                            "CPU Temperature: %i.%i deg C\n",
+                            "SCFW:    %u, %x\n" \
+                            "SECO:    %u, %x\n" \
+                            "SOC ID:  %u\n" \
+                            "SOC REV: %u\n" \
+                            "CPU Temperature: %i.%i deg C",
                             scu_version, scu_commit,
                             seco_version, seco_commit,
+                            priv->soc_id, priv->soc_rev,
                             celsius, tenths);
 
     response[(*response_size)++] = 0;

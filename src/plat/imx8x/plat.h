@@ -28,6 +28,8 @@
 struct imx8x_private
 {
     sc_ipc_t ipc;
+    uint32_t soc_id;
+    uint32_t soc_rev;
 };
 
 #endif  // PLAT_IMX8X_PLAT_H_
