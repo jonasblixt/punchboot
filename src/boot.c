@@ -45,6 +45,7 @@ static int check_header(void)
 {
     int err = PB_OK;
     struct bpak_header *h = &header;
+    struct bpak_meta_header *mh;
     err = bpak_valid_header(h);
 
     if (err != BPAK_OK) {
@@ -59,14 +60,14 @@ static int check_header(void)
         size_t sz = bpak_part_size(p);
         uint64_t *load_addr = NULL;
 
-        err = bpak_get_meta_with_ref(h, BPAK_ID_PB_LOAD_ADDR,
-                                        p->id, (void **) &load_addr);
-
+        err = bpak_get_meta(h, BPAK_ID_PB_LOAD_ADDR, p->id, &mh);
 
         if (err != BPAK_OK) {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
             break;
         }
+
+        load_addr = bpak_get_meta_ptr(h, mh, uint64_t);
 
         uint64_t la = *load_addr;
 
@@ -106,6 +107,7 @@ static int image_load(pb_image_read_t read_f,
 {
     int rc;
     struct bpak_header *h = &header;
+    struct bpak_meta_header *mh;
     struct bpak_key *k = NULL;
     int hash_kind;
 
@@ -236,15 +238,16 @@ static int image_load(pb_image_read_t read_f,
             break;
 
         load_addr = NULL;
-        rc = bpak_get_meta_with_ref(h, BPAK_ID_PB_LOAD_ADDR, p->id, (void **) &load_addr);
+        rc = bpak_get_meta(h, BPAK_ID_PB_LOAD_ADDR, p->id, &mh);
 
         if (rc != BPAK_OK) {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
             break;
         }
 
+        load_addr = bpak_get_meta_ptr(h, mh, uint64_t);
 
-        LOG_DBG("Loading part %x --> %p, %llu bytes", p->id,
+        LOG_DBG("Loading part %x --> %p, %zu bytes", p->id,
                                 (void *)(uintptr_t) (*load_addr),
                                 bpak_part_size(p));
         LOG_DBG("Part offset: %llu", p->offset);
@@ -666,17 +669,20 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
     uintptr_t *dtb = 0;
     struct bpak_part_header *pdtb = NULL;
     struct bpak_header *h = &header;
+    struct bpak_meta_header *mh;
     static uintptr_t jump_addr;
 
-    rc = bpak_get_meta_with_ref(h,
-                                BPAK_ID_PB_LOAD_ADDR,
-                                boot_config->image_bpak_id,
-                                (void **) &entry);
+    rc = bpak_get_meta(h,
+                        BPAK_ID_PB_LOAD_ADDR,
+                        boot_config->image_bpak_id,
+                        &mh);
 
     if (rc != BPAK_OK) {
         LOG_ERR("Could not read boot image meta data (%i)", rc);
         return -PB_ERR;
     }
+
+    entry = bpak_get_meta_ptr(h, mh, uintptr_t);
 
     LOG_INFO("Boot entry: 0x%lx", *entry);
 
@@ -684,14 +690,16 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
     plat_get_uuid((char *) device_uuid);
 
     if (boot_config->ramdisk_bpak_id) {
-        rc = bpak_get_meta_with_ref(h,
-                                    BPAK_ID_PB_LOAD_ADDR,
-                                    boot_config->ramdisk_bpak_id,
-                                    (void **) &ramdisk);
+        rc = bpak_get_meta(h,
+                            BPAK_ID_PB_LOAD_ADDR,
+                            boot_config->ramdisk_bpak_id,
+                            &mh);
 
         if (rc == PB_OK) {
             LOG_INFO("Ramdisk: 0x%lx", *ramdisk);
         }
+
+        ramdisk = bpak_get_meta_ptr(h, mh, uintptr_t);
     }
 
     if (boot_config->dtb_bpak_id) {
@@ -703,16 +711,17 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
             return -PB_ERR;
         }
 
-        rc = bpak_get_meta_with_ref(h,
-                                    BPAK_ID_PB_LOAD_ADDR,
-                                    boot_config->dtb_bpak_id,
-                                    (void **) &dtb);
+        rc = bpak_get_meta(h,
+                            BPAK_ID_PB_LOAD_ADDR,
+                            boot_config->dtb_bpak_id,
+                            &mh);
 
         if (rc != BPAK_OK) {
             LOG_ERR("Could not read dtb load addr meta");
             return -PB_ERR;
         }
 
+        dtb = bpak_get_meta_ptr(h, mh, uintptr_t);
         LOG_INFO("DTB: 0x%lx (%x)", *dtb, boot_config->dtb_bpak_id);
 
         /* Locate the chosen node */

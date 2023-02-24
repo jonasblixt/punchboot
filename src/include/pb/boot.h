@@ -12,6 +12,7 @@
 
 #include <stdint.h>
 #include <uuid.h>
+#include <bpak/id.h>
 
 #define PB_STATE_MAGIC 0x026d4a65
 
@@ -70,9 +71,9 @@ struct pb_boot_config
     const char * b_boot_part_uuid;          /*!< Boot partition B UUID */
     const char * primary_state_part_uuid;   /*!< Boot partition A UUID */
     const char * backup_state_part_uuid;    /*!< Boot partition B UUID */
-    uint32_t image_bpak_id;                 /*!< BPAK id of bootable part */
-    uint32_t dtb_bpak_id;                   /*!< Optional BPAK id of a device tree part */
-    uint32_t ramdisk_bpak_id;               /*!< Optional BPAK id of a ramdisk part */
+    bpak_id_t image_bpak_id;                 /*!< BPAK id of bootable part */
+    bpak_id_t dtb_bpak_id;                   /*!< Optional BPAK id of a device tree part */
+    bpak_id_t ramdisk_bpak_id;               /*!< Optional BPAK id of a ramdisk part */
     enum pb_rollback_mode rollback_mode;    /*!< Rollback mode configuration */
     pb_board_early_boot_cb_t early_boot_cb; /*!< Optional early boot callback */
     pb_board_late_boot_cb_t late_boot_cb;   /*!< Optional late boot callback */
