@@ -93,6 +93,24 @@ int plat_get_uuid(char *out)
                           (const char *) uid, 8, out);
 }
 
+static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
+{
+    uint32_t id;
+    sc_err_t err;
+
+    if (!soc_id || !soc_rev)
+        return -1;
+
+    err = sc_misc_get_control(private.ipc, SC_R_SYSTEM, SC_C_ID, &id);
+    if (err != SC_ERR_NONE)
+        return err;
+
+    *soc_rev = (id >> 5)  & 0xf;
+    *soc_id = id & 0x1f;
+
+    return 0;
+}
+
 /* Platform API Calls */
 
 bool plat_force_command_mode(void)
@@ -177,6 +195,13 @@ int plat_early_init(void)
         boot_reason = (int) sc_reset_reason;
     } else {
         boot_reason = -rc;
+    }
+
+    rc = get_soc_rev(&private.soc_id, &private.soc_rev);
+
+    if (rc != 0) {
+        private.soc_id = 0;
+        private.soc_rev = 0;
     }
 
     /* Setup GPT0 */
@@ -833,3 +858,4 @@ int plat_late_boot(uuid_t boot_part_uu, enum pb_boot_mode boot_mode)
     else
         return PB_OK;
 }
+
