@@ -592,6 +592,10 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
+    if (lseek(file_fd, 0, SEEK_SET) == (off_t) -1) {
+        return PyErr_SetFromErrno(PyExc_IOError);
+    }
+
     if (uuid_parse(uuid, uuid_part) != 0) {
         PyErr_SetString(PyExc_TypeError, "Failed to parse UUID");
         return NULL;
@@ -705,7 +709,12 @@ static PyObject* part_verify(PyObject*self, PyObject* args, PyObject *kwds)
 
     file_fd = PyObject_AsFileDescriptor(file);
     if (file_fd == -1) {
+        PyErr_SetString(PyExc_TypeError, "Invalid file descriptor");
         return NULL;
+    }
+
+    if (lseek(file_fd, 0, SEEK_SET) == (off_t) -1) {
+        return PyErr_SetFromErrno(PyExc_IOError);
     }
 
     uuid_parse(uuid, uuid_part);
