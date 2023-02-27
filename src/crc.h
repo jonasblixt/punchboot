@@ -12,6 +12,6 @@
 
 #include <stdint.h>
 
-uint32_t crc32(uint32_t crc, const uint8_t *buf, uint32_t size);
+uint32_t pb_crc32(uint32_t crc, const uint8_t *buf, uint32_t size);
 
 #endif  // INCLUDE_PB_CRC_H_

@@ -855,7 +855,8 @@ static PyObject* board_run_command(PyObject *self, PyObject* args, PyObject* kwd
         cmd_args_len = strlen(cmd_args);
     }
 
-    cmd_enc = crc32(0, (unsigned char*)cmd, strlen(cmd));
+    cmd_enc = pb_crc32(0, (unsigned char*)cmd, strlen(cmd));
+
     // TODO: What to do with log afterwards?
     ret = pb_api_board_command(session->ctx, cmd_enc, cmd_args, cmd_args_len, log, sizeof(log));
     if (ret != PB_RESULT_OK) {
