@@ -839,7 +839,7 @@ static PyObject* board_run_command(PyObject *self, PyObject* args, PyObject* kwd
     bool invalidates_ctx = false;
     size_t cmd_args_len = 0;
     int cmd_enc;
-    char log[4096];
+    char response[4096];
     int ret;
 
     /* Allow passing None for args */
@@ -857,8 +857,8 @@ static PyObject* board_run_command(PyObject *self, PyObject* args, PyObject* kwd
 
     cmd_enc = pb_crc32(0, (unsigned char*)cmd, strlen(cmd));
 
-    // TODO: What to do with log afterwards?
-    ret = pb_api_board_command(session->ctx, cmd_enc, cmd_args, cmd_args_len, log, sizeof(log));
+    ret = pb_api_board_command(session->ctx, cmd_enc, cmd_args, cmd_args_len,
+                                response, sizeof(response));
     if (ret != PB_RESULT_OK) {
         return PbErr_FromErrorCode(ret, "Failed to run board command");
     }
@@ -867,7 +867,7 @@ static PyObject* board_run_command(PyObject *self, PyObject* args, PyObject* kwd
         session->ctx = NULL;
     }
 
-    Py_RETURN_NONE;
+    return Py_BuildValue("s", response);
 }
 
 static PyMethodDef PbSession_methods[] = {
