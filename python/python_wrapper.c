@@ -705,6 +705,7 @@ static PyObject* part_verify(PyObject*self, PyObject* args, PyObject *kwds)
 
     file_fd = PyObject_AsFileDescriptor(file);
     if (file_fd == -1) {
+        PyErr_SetString(PyExc_TypeError, "Invalid file descriptor");
         return NULL;
     }
 
