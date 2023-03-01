@@ -695,11 +695,14 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
                             boot_config->ramdisk_bpak_id,
                             &mh);
 
-        if (rc == PB_OK) {
-            LOG_INFO("Ramdisk: 0x%lx", *ramdisk);
-        }
-
         ramdisk = bpak_get_meta_ptr(h, mh, uintptr_t);
+
+        if (rc == PB_OK) {
+            LOG_INFO("Ramdisk: %p", ramdisk);
+        } else {
+            LOG_ERR("Could not read ramdisk load addr (%i)", rc);
+            return -1;
+        }
     }
 
     if (boot_config->dtb_bpak_id) {
@@ -722,7 +725,7 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
         }
 
         dtb = bpak_get_meta_ptr(h, mh, uintptr_t);
-        LOG_INFO("DTB: 0x%lx (%x)", *dtb, boot_config->dtb_bpak_id);
+        LOG_INFO("DTB: %p (%x)", dtb, boot_config->dtb_bpak_id);
 
         /* Locate the chosen node */
         void *fdt = (void *)(uintptr_t) *dtb;
@@ -763,14 +766,21 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
         uuid_unparse(device_uuid, device_uuid_str);
 
         LOG_DBG("Device UUID: %s", device_uuid_str);
-        fdt_setprop_string((void *) fdt, offset, "pb,device-uuid",
+        rc = fdt_setprop_string((void *) fdt, offset, "pb,device-uuid",
                     (const char *) device_uuid_str);
+
+        if (rc != 0) {
+            LOG_ERR("fdt error: device-uuid (%i)", rc);
+            return -1;
+        }
 
         LOG_DBG("Updating bootargs");
         rc = plat_patch_bootargs(fdt, offset, verbose);
 
-        if (rc != 0)
-            return -PB_ERR;
+        if (rc != 0) {
+            LOG_ERR("Patch bootargs error (%i)", rc);
+            return -1;
+        }
 
         /* Update SLC related parameters in DT */
         enum pb_slc slc;
@@ -781,10 +791,20 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
             return rc;
 
         /* SLC state */
-        fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
+        rc = fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
+
+        if (rc != 0) {
+            LOG_ERR("fdt error: slc (%i)", rc);
+            return -1;
+        }
 
         /* Current key ID we're using for boot image */
-        fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", h->key_id);
+        rc = fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", h->key_id);
+
+        if (rc != 0) {
+            LOG_ERR("fdt error: active-key (%i)", rc);
+            return -1;
+        }
 
         struct pb_result_slc_key_status *key_status;
 
@@ -795,8 +815,13 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
 
         for (unsigned int i = 0; i < membersof(key_status->active); i++) {
             if (key_status->active[i]) {
-                fdt_appendprop_u32((void *) fdt, offset,
+                rc = fdt_appendprop_u32((void *) fdt, offset,
                             "pb,slc-available-keys", key_status->active[i]);
+
+                if (rc != 0) {
+                    LOG_ERR("fdt error: available keys (%i)", rc);
+                    return -1;
+                }
             }
         }
 
@@ -817,9 +842,9 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
             rc = fdt_setprop_u32((void *) fdt, offset, "linux,initrd-start",
                                 *ramdisk);
 
-            if (rc) {
-                LOG_ERR("Could not patch initrd");
-                return -PB_ERR;
+            if (rc != 0) {
+                LOG_ERR("fdt error: ramdisk (%i)", rc);
+                return -1;
             }
 
             rc = fdt_setprop_u32((void *) fdt, offset, "linux,initrd-end",
@@ -845,8 +870,8 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
         }
 
         if (rc != PB_OK) {
-            LOG_ERR("Patch dt");
-            return rc;
+            LOG_ERR("fdt error: active-system (%i)", rc);
+            return -1;
         }
 
         pb_timestamp_end();  // DT Patch
