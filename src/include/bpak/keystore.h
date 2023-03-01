@@ -2,49 +2,48 @@
 #define INCLUDE_BPAK_KEYSTORE_H_
 
 #include <bpak/bpak.h>
+#include <bpak/key.h>
 
-#define BPAK_KEYSTORE_UUID "5df103ef-e774-450b-95c5-1fef51ceec28"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-enum bpak_key_kind
-{
-    BPAK_KEY_INVALID,
-    BPAK_KEY_PUB_RSA4096,
-    BPAK_KEY_PUB_PRIME256v1,
-    BPAK_KEY_PUB_SECP384r1,
-    BPAK_KEY_PUB_SECP521r1,
-    BPAK_KEY_PRI_RSA4096,
-    BPAK_KEY_PRI_PRIME256v1,
-    BPAK_KEY_PRI_SECP384r1,
-    BPAK_KEY_PRI_SECP521r1,
-};
+typedef int (*bpak_check_header_t)(struct bpak_header *header, void *user);
 
-struct bpak_key
-{
-    enum bpak_key_kind kind;
-    uint16_t size;
-    uint32_t id;
-    uint32_t key_mask;
-    uint8_t data[];
-};
-struct bpak_keystore
-{
+struct bpak_keystore {
     uint32_t id;
     uint8_t no_of_keys;
     bool verified;
     struct bpak_key *keys[];
 };
 
-int bpak_keystore_empty(struct bpak_keystore *ks, uint32_t id);
+int bpak_keystore_get(struct bpak_keystore *ks, uint32_t id,
+                      struct bpak_key **k);
+/**
+ * Load key from a keystore archive
+ *
+ *  `filename`     Path to a bpak keystore archive
+ *  `keystore_id`  The keystore archive should have a matching
+ *                          'keystore-provider-id' meta data.
+ *  `key_id`       Key within the keystore to extract
+ *  `check_header` Optional callback to verify other meta data in the
+ *                      keystore header.
+ *  `user`         Optional context pointer passed to 'check_header'
+ *  `output`       Key output
+ *
+ * NOTE: bpak_keystore_load_from_file allocates a key struct and
+ *  the user must free this memory.
+ *
+ * Returns BPAK_OK on success or a negative number.
+ */
+int bpak_keystore_load_key_from_file(const char *filename,
+                                     uint32_t keystore_id,
+                                     uint32_t key_id,
+                                     bpak_check_header_t check_header,
+                                     void *user,
+                                     struct bpak_key **output);
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
-int bpak_keystore_verify(struct bpak_keystore *ks,
-                         struct bpak_keystore *internal_ks,
-                         uint8_t key_id);
-
-int bpak_keystore_add(struct bpak_keystore *ks, struct bpak_key *k);
-int bpak_keystore_get(struct bpak_keystore *ks, uint8_t id,
-                        struct bpak_key **k);
-
-int bpak_keystore_add_pem(struct bpak_keystore *ks, const char *filename);
-int bpak_keystore_add_der(struct bpak_keystore *ks, const char *filename);
-
-#endif  // INCLUDE_BPAK_KEYSTORE_H_
+#endif // INCLUDE_BPAK_KEYSTORE_H_

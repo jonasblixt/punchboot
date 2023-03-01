@@ -17,8 +17,6 @@
 #include <pb/errors.h>
 #include <config.h>
 
-#define BPAK_ID_PB_LOAD_ADDR (0xd1e64a4b)
-
 enum pb_slc_state
 {
     PB_SECURITY_STATE_NOT_SECURE,

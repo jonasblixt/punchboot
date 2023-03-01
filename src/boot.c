@@ -45,6 +45,7 @@ static int check_header(void)
 {
     int err = PB_OK;
     struct bpak_header *h = &header;
+    struct bpak_meta_header *mh;
     err = bpak_valid_header(h);
 
     if (err != BPAK_OK) {
@@ -59,14 +60,14 @@ static int check_header(void)
         size_t sz = bpak_part_size(p);
         uint64_t *load_addr = NULL;
 
-        err = bpak_get_meta_with_ref(h, BPAK_ID_PB_LOAD_ADDR,
-                                        p->id, (void **) &load_addr);
-
+        err = bpak_get_meta(h, BPAK_ID_PB_LOAD_ADDR, p->id, &mh);
 
         if (err != BPAK_OK) {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
             break;
         }
+
+        load_addr = bpak_get_meta_ptr(h, mh, uint64_t);
 
         uint64_t la = *load_addr;
 
@@ -106,6 +107,7 @@ static int image_load(pb_image_read_t read_f,
 {
     int rc;
     struct bpak_header *h = &header;
+    struct bpak_meta_header *mh;
     struct bpak_key *k = NULL;
     int hash_kind;
 
@@ -236,15 +238,16 @@ static int image_load(pb_image_read_t read_f,
             break;
 
         load_addr = NULL;
-        rc = bpak_get_meta_with_ref(h, BPAK_ID_PB_LOAD_ADDR, p->id, (void **) &load_addr);
+        rc = bpak_get_meta(h, BPAK_ID_PB_LOAD_ADDR, p->id, &mh);
 
         if (rc != BPAK_OK) {
             LOG_ERR("Could not read pb-entry for part %x", p->id);
             break;
         }
 
+        load_addr = bpak_get_meta_ptr(h, mh, uint64_t);
 
-        LOG_DBG("Loading part %x --> %p, %llu bytes", p->id,
+        LOG_DBG("Loading part %x --> %p, %zu bytes", p->id,
                                 (void *)(uintptr_t) (*load_addr),
                                 bpak_part_size(p));
         LOG_DBG("Part offset: %llu", p->offset);
@@ -666,17 +669,20 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
     uintptr_t *dtb = 0;
     struct bpak_part_header *pdtb = NULL;
     struct bpak_header *h = &header;
+    struct bpak_meta_header *mh;
     static uintptr_t jump_addr;
 
-    rc = bpak_get_meta_with_ref(h,
-                                BPAK_ID_PB_LOAD_ADDR,
-                                boot_config->image_bpak_id,
-                                (void **) &entry);
+    rc = bpak_get_meta(h,
+                        BPAK_ID_PB_LOAD_ADDR,
+                        boot_config->image_bpak_id,
+                        &mh);
 
     if (rc != BPAK_OK) {
         LOG_ERR("Could not read boot image meta data (%i)", rc);
         return -PB_ERR;
     }
+
+    entry = bpak_get_meta_ptr(h, mh, uintptr_t);
 
     LOG_INFO("Boot entry: 0x%lx", *entry);
 
@@ -684,13 +690,18 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
     plat_get_uuid((char *) device_uuid);
 
     if (boot_config->ramdisk_bpak_id) {
-        rc = bpak_get_meta_with_ref(h,
-                                    BPAK_ID_PB_LOAD_ADDR,
-                                    boot_config->ramdisk_bpak_id,
-                                    (void **) &ramdisk);
+        rc = bpak_get_meta(h,
+                            BPAK_ID_PB_LOAD_ADDR,
+                            boot_config->ramdisk_bpak_id,
+                            &mh);
+
+        ramdisk = bpak_get_meta_ptr(h, mh, uintptr_t);
 
         if (rc == PB_OK) {
-            LOG_INFO("Ramdisk: 0x%lx", *ramdisk);
+            LOG_INFO("Ramdisk: %p", ramdisk);
+        } else {
+            LOG_ERR("Could not read ramdisk load addr (%i)", rc);
+            return -1;
         }
     }
 
@@ -703,17 +714,18 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
             return -PB_ERR;
         }
 
-        rc = bpak_get_meta_with_ref(h,
-                                    BPAK_ID_PB_LOAD_ADDR,
-                                    boot_config->dtb_bpak_id,
-                                    (void **) &dtb);
+        rc = bpak_get_meta(h,
+                            BPAK_ID_PB_LOAD_ADDR,
+                            boot_config->dtb_bpak_id,
+                            &mh);
 
         if (rc != BPAK_OK) {
             LOG_ERR("Could not read dtb load addr meta");
             return -PB_ERR;
         }
 
-        LOG_INFO("DTB: 0x%lx (%x)", *dtb, boot_config->dtb_bpak_id);
+        dtb = bpak_get_meta_ptr(h, mh, uintptr_t);
+        LOG_INFO("DTB: %p (%x)", dtb, boot_config->dtb_bpak_id);
 
         /* Locate the chosen node */
         void *fdt = (void *)(uintptr_t) *dtb;
@@ -754,14 +766,21 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
         uuid_unparse(device_uuid, device_uuid_str);
 
         LOG_DBG("Device UUID: %s", device_uuid_str);
-        fdt_setprop_string((void *) fdt, offset, "pb,device-uuid",
+        rc = fdt_setprop_string((void *) fdt, offset, "pb,device-uuid",
                     (const char *) device_uuid_str);
+
+        if (rc != 0) {
+            LOG_ERR("fdt error: device-uuid (%i)", rc);
+            return -1;
+        }
 
         LOG_DBG("Updating bootargs");
         rc = plat_patch_bootargs(fdt, offset, verbose);
 
-        if (rc != 0)
-            return -PB_ERR;
+        if (rc != 0) {
+            LOG_ERR("Patch bootargs error (%i)", rc);
+            return -1;
+        }
 
         /* Update SLC related parameters in DT */
         enum pb_slc slc;
@@ -772,10 +791,20 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
             return rc;
 
         /* SLC state */
-        fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
+        rc = fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
+
+        if (rc != 0) {
+            LOG_ERR("fdt error: slc (%i)", rc);
+            return -1;
+        }
 
         /* Current key ID we're using for boot image */
-        fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", h->key_id);
+        rc = fdt_setprop_u32((void *) fdt, offset, "pb,slc-active-key", h->key_id);
+
+        if (rc != 0) {
+            LOG_ERR("fdt error: active-key (%i)", rc);
+            return -1;
+        }
 
         struct pb_result_slc_key_status *key_status;
 
@@ -784,10 +813,22 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
         if (rc != PB_OK)
             return rc;
 
+        rc = fdt_delprop((void *) fdt, offset, "pb,slc-available-keys");
+
+        if (rc != 0) {
+            LOG_ERR("fdt error: del available keys (%i)", rc);
+            return -1;
+        }
+
         for (unsigned int i = 0; i < membersof(key_status->active); i++) {
             if (key_status->active[i]) {
-                fdt_appendprop_u32((void *) fdt, offset,
+                rc = fdt_appendprop_u32((void *) fdt, offset,
                             "pb,slc-available-keys", key_status->active[i]);
+
+                if (rc != 0) {
+                    LOG_ERR("fdt error: available keys (%i)", rc);
+                    return -1;
+                }
             }
         }
 
@@ -808,9 +849,9 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
             rc = fdt_setprop_u32((void *) fdt, offset, "linux,initrd-start",
                                 *ramdisk);
 
-            if (rc) {
-                LOG_ERR("Could not patch initrd");
-                return -PB_ERR;
+            if (rc != 0) {
+                LOG_ERR("fdt error: ramdisk (%i)", rc);
+                return -1;
             }
 
             rc = fdt_setprop_u32((void *) fdt, offset, "linux,initrd-end",
@@ -836,8 +877,8 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
         }
 
         if (rc != PB_OK) {
-            LOG_ERR("Patch dt");
-            return rc;
+            LOG_ERR("fdt error: active-system (%i)", rc);
+            return -1;
         }
 
         pb_timestamp_end();  // DT Patch
