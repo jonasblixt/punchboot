@@ -813,6 +813,13 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
         if (rc != PB_OK)
             return rc;
 
+        rc = fdt_delprop((void *) fdt, offset, "pb,slc-available-keys");
+
+        if (rc != 0) {
+            LOG_ERR("fdt error: del available keys (%i)", rc);
+            return -1;
+        }
+
         for (unsigned int i = 0; i < membersof(key_status->active); i++) {
             if (key_status->active[i]) {
                 rc = fdt_appendprop_u32((void *) fdt, offset,
