@@ -600,7 +600,7 @@ static int cmd_part_tbl_read(void)
 {
 
     LOG_DBG("TBL read");
-    struct pb_result_part_table_read tbl_read_result;
+    struct pb_result_part_table_read tbl_read_result = {0};
 
     struct pb_result_part_table_entry *result_tbl = \
         (struct pb_result_part_table_entry *) buffer;
@@ -681,7 +681,7 @@ static int cmd_boot_ram(void)
 static int cmd_slc_read(void)
 {
     int rc;
-    struct pb_result_slc slc_status;
+    struct pb_result_slc slc_status = {0};
     rc = plat_slc_read((enum pb_slc *) &slc_status.slc);
     pb_wire_init_result2(&result, error_to_wire(rc), &slc_status,
                         sizeof(slc_status));
@@ -858,7 +858,7 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_DEVICE_READ_CAPS:
         {
-            struct pb_result_device_caps caps;
+            struct pb_result_device_caps caps = {0};
             caps.stream_no_of_buffers = 2;
             caps.stream_buffer_size = CONFIG_CMD_BUF_SIZE_KB*1024;
             caps.chunk_transfer_max_bytes = CONFIG_TRANSPORT_MAX_CHUNK_KB*1024;
@@ -944,7 +944,7 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_BOARD_STATUS_READ:
         {
-            struct pb_result_board_status status_result;
+            struct pb_result_board_status status_result = {0};
 
             uint8_t *bfr_response = buffer[0];
 
