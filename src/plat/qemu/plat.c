@@ -142,13 +142,11 @@ int plat_slc_set_configuration(void)
 #endif
 
     /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses)
-    {
+    foreach_fuse(f, (struct fuse *) fuses) {
         err = plat_fuse_read(f);
 
         LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
-        if (err != PB_OK)
-        {
+        if (err != PB_OK) {
             LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
         }
@@ -158,8 +156,7 @@ int plat_slc_set_configuration(void)
 
     LOG_INFO("Writing fuses");
 
-    foreach_fuse(f, fuses)
-    {
+    foreach_fuse(f, fuses) {
         f->value = f->default_value;
         err = plat_fuse_write(f);
 
@@ -188,8 +185,7 @@ int plat_slc_set_configuration_lock(void)
     if (rc != PB_OK)
         return rc;
 
-    if (security_fuse.value & (1 << 0))
-    {
+    if (security_fuse.value & (1 << 0)) {
         LOG_ERR("Already locked");
         return -PB_ERR;
     }
@@ -228,18 +224,13 @@ int plat_slc_read(enum pb_slc *slc)
     if (rc != PB_OK)
         return rc;
 
-    if (security_fuse.value & (1 << 0))
-    {
+    if (security_fuse.value & (1 << 0)) {
         LOG_INFO("SLC: Configuration locked");
         *slc = PB_SLC_CONFIGURATION_LOCKED;
-    }
-    else if (security_fuse.value & (1 << 1))
-    {
+    } else if (security_fuse.value & (1 << 1)) {
         LOG_INFO("SLC: End of life");
         *slc = PB_SLC_EOL;
-    }
-    else
-    {
+    } else {
         LOG_INFO("SLC: Configuration");
         *slc = PB_SLC_CONFIGURATION;
     }
@@ -256,12 +247,10 @@ int plat_slc_key_active(uint32_t id, bool *active)
     if (rc != PB_OK)
         return rc;
 
-    for (int i = 0; i < 16; i++)
-    {
+    for (int i = 0; i < 16; i++) {
         if (!key_status.active[i])
             continue;
-        if (key_status.active[i] == id)
-        {
+        if (key_status.active[i] == id) {
             *active = true;
             break;
         }
@@ -285,15 +274,13 @@ int plat_slc_revoke_key(uint32_t id)
     if (rc != PB_OK)
         return rc;
 
-    for (int i = 0; i < 16; i++)
-    {
+    for (int i = 0; i < 16; i++) {
         if (!rom_key_map[i])
             break;
         if (rom_key_map[i] != id)
             continue;
 
-        if (!(rom_key_revoke_fuse.value & (1 << i)))
-        {
+        if (!(rom_key_revoke_fuse.value & (1 << i))) {
             rom_key_revoke_fuse.value |= (1 << i);
             return plat_fuse_write(&rom_key_revoke_fuse);
         }
@@ -320,18 +307,14 @@ int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
     if (rc != PB_OK)
         return rc;
 
-    for (int i = 0; i < 16; i++)
-    {
+    for (int i = 0; i < 16; i++) {
         if (!rom_key_map[i])
             break;
 
-        if (rom_key_revoke_fuse.value & (1 << i))
-        {
+        if (rom_key_revoke_fuse.value & (1 << i)) {
             key_status.active[i] = 0;
             key_status.revoked[i] = rom_key_map[i];
-        }
-        else
-        {
+        } else {
             key_status.revoked[i] = 0;
             key_status.active[i] = rom_key_map[i];
         }

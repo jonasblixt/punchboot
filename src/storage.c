@@ -187,11 +187,10 @@ out:
 
 int pb_storage_install_default(void)
 {
-    int rc;
+    int rc = 0;
     LOG_INFO("Installing default");
 
-    for (struct pb_storage_driver *drv = drivers; drv; drv = drv->next)
-    {
+    for (struct pb_storage_driver *drv = drivers; drv; drv = drv->next) {
         if (!drv->map_install)
             continue;
 
