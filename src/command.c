@@ -49,8 +49,7 @@ static int auth_token(uint8_t *device_uu,
     if (rc != PB_OK)
         return rc;
 
-    if (!active)
-    {
+    if (!active) {
         LOG_ERR("Invalid or revoked key (%x)", key_id);
         return -PB_ERR;
     }
@@ -58,17 +57,14 @@ static int auth_token(uint8_t *device_uu,
     LOG_DBG("uuid: %p %p", device_uu, device_uu_str);
     uuid_unparse(device_uu, device_uu_str);
 
-    for (int i = 0; i < keystore_pb.no_of_keys; i++)
-    {
-        if (keystore_pb.keys[i]->id == key_id)
-        {
+    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
+        if (keystore_pb.keys[i]->id == key_id) {
             k = keystore_pb.keys[i];
             break;
         }
     }
 
-    if (!k)
-    {
+    if (!k) {
         LOG_ERR("Key not found");
         return -PB_ERR;
     }
@@ -115,8 +111,7 @@ static int auth_token(uint8_t *device_uu,
 
     rc = plat_pk_verify(sig, size, hash, hash_kind, k);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Authentication failed");
         return rc;
     }
@@ -170,13 +165,11 @@ static int cmd_board(void)
     pb_wire_init_result(&result, PB_RESULT_OK);
     plat_transport_write(&result, sizeof(result));
 
-    if (board_cmd->request_size)
-    {
+    if (board_cmd->request_size) {
         LOG_DBG("Reading request data");
         rc = plat_transport_read(bfr, 1024);
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
@@ -197,8 +190,7 @@ static int cmd_board(void)
 
     LOG_DBG("Response: %zu bytes", response_size);
 
-    if (response_size)
-    {
+    if (response_size) {
         LOG_DBG("Sending response");
         plat_transport_write(&result, sizeof(result));
         plat_transport_write(bfr_response, response_size);
@@ -219,8 +211,7 @@ static int cmd_bpak_read(void)
                              &stream_map,
                              &stream_drv);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Could not find partition");
         pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
@@ -229,23 +220,19 @@ static int cmd_bpak_read(void)
     struct pb_storage_driver *sdrv = stream_drv;
     struct pb_storage_map *map = stream_map;
 
-
     size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
 
-    if (blocks > map->no_of_blocks)
-    {
+    if (blocks > map->no_of_blocks) {
         pb_wire_init_result(&result, -PB_RESULT_ERROR);
         return rc;
     }
 
     size_t block_offset = map->no_of_blocks - blocks;
 
-    if (sdrv->map_request)
-    {
+    if (sdrv->map_request) {
         rc = sdrv->map_request(sdrv, stream_map);
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
@@ -256,19 +243,16 @@ static int cmd_bpak_read(void)
     rc = pb_storage_read(sdrv, map, buffer,
                             blocks, block_offset);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
         sdrv->map_release(sdrv, stream_map);
         return rc;
     }
 
-    if (sdrv->map_release)
-    {
+    if (sdrv->map_release) {
         rc = sdrv->map_release(sdrv, stream_map);
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
@@ -276,8 +260,7 @@ static int cmd_bpak_read(void)
 
     rc = bpak_valid_header((struct bpak_header *) buffer);
 
-    if (rc != BPAK_OK)
-    {
+    if (rc != BPAK_OK) {
         LOG_ERR("Invalid bpak header");
         pb_wire_init_result(&result, -PB_RESULT_NOT_FOUND);
         return rc;
@@ -303,8 +286,7 @@ static int cmd_auth(void)
     pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
 #ifdef CONFIG_AUTH_METHOD_TOKEN
-    if (auth_cmd->method == PB_AUTH_ASYM_TOKEN)
-    {
+    if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
         pb_wire_init_result(&result, PB_RESULT_OK);
         plat_transport_write(&result, sizeof(result));
 
@@ -321,8 +303,7 @@ static int cmd_auth(void)
         pb_wire_init_result(&result, error_to_wire(rc));
     }
 #elif CONFIG_AUTH_METHOD_PASSWORD
-    if (auth_cmd->method == PB_AUTH_PASSWORD)
-    {
+    if (auth_cmd->method == PB_AUTH_PASSWORD) {
         pb_wire_init_result(&result, PB_RESULT_OK);
         plat_transport_write(&result, sizeof(result));
 
@@ -355,8 +336,7 @@ static int cmd_stream_read(void)
                                         stream_read->size);
 
     /* Partition must be marked as dumpable, don't dump partitions that may contain sensitive data */
-    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_DUMPABLE))
-    {
+    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_DUMPABLE)) {
         LOG_ERR("Partition may not be dumped");
         rc = -PB_RESULT_ERROR;
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -366,8 +346,7 @@ static int cmd_stream_read(void)
     size_t part_size = stream_map->no_of_blocks *
                          stream_drv->block_size;
 
-    if ((stream_read->offset + stream_read->size) > part_size)
-    {
+    if ((stream_read->offset + stream_read->size) > part_size) {
         LOG_ERR("Trying to read outside of partition");
         LOG_ERR("%llu > %zu", (stream_read->offset + \
                         stream_read->size), part_size);
@@ -393,8 +372,7 @@ static int cmd_stream_read(void)
 
     pb_wire_init_result(&result, error_to_wire(rc));
 
-    if (rc == PB_OK)
-    {
+    if (rc == PB_OK) {
         plat_transport_write(&result, sizeof(result));
         rc = plat_transport_write(bfr, stream_read->size);
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -415,8 +393,7 @@ static int cmd_stream_write(void)
                                         stream_write->offset,
                                         stream_write->size);
 
-    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_WRITABLE))
-    {
+    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_WRITABLE)) {
         LOG_ERR("Partition may not be written");
         rc = -PB_ERR;
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -426,8 +403,7 @@ static int cmd_stream_write(void)
     size_t part_size = stream_map->no_of_blocks *
                          stream_drv->block_size;
 
-    if ((stream_write->offset + stream_write->size) > part_size)
-    {
+    if ((stream_write->offset + stream_write->size) > part_size) {
         LOG_ERR("Trying to write outside of partition");
         LOG_ERR("%llu > %zu", (stream_write->offset + \
                         stream_write->size), part_size);
@@ -469,8 +445,7 @@ static int cmd_part_verify(void)
                              &stream_map,
                              &stream_drv);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Could not find partition");
         pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
@@ -487,12 +462,10 @@ static int cmd_part_verify(void)
     size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
     size_t block_offset = map->no_of_blocks - blocks;
 
-    if (sdrv->map_request)
-    {
+    if (sdrv->map_request) {
         rc = sdrv->map_request(sdrv, stream_map);
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
@@ -500,20 +473,17 @@ static int cmd_part_verify(void)
 
     rc = plat_hash_init(PB_HASH_SHA256);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
-    if (verify_cmd->bpak)
-    {
+    if (verify_cmd->bpak) {
         LOG_DBG("Bpak header");
         rc = pb_storage_read(sdrv, map, buffer,
                                 blocks, block_offset);
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             sdrv->map_request(sdrv, stream_map);
             return rc;
@@ -521,8 +491,7 @@ static int cmd_part_verify(void)
 
         rc = plat_hash_update((uint8_t *) buffer, sizeof(struct bpak_header));
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
             return rc;
         }
@@ -533,8 +502,7 @@ static int cmd_part_verify(void)
     LOG_DBG("Reading %zu blocks", blocks_to_check);
     block_offset = 0;
 
-    while (blocks_to_check)
-    {
+    while (blocks_to_check) {
         blocks = blocks_to_check>(CONFIG_CMD_BUF_SIZE_KB/2)? \
                    (CONFIG_CMD_BUF_SIZE_KB/2):blocks_to_check;
 
@@ -543,8 +511,7 @@ static int cmd_part_verify(void)
         rc = pb_storage_read(sdrv, map, buffer[buffer_id],
                                 blocks, block_offset);
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             LOG_ERR("read error");
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
 
@@ -555,8 +522,7 @@ static int cmd_part_verify(void)
 
         rc = plat_hash_update(buffer[buffer_id], (blocks*sdrv->block_size));
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             LOG_ERR("Hash update error");
             pb_wire_init_result(&result, error_to_wire(rc));
             break;
@@ -571,17 +537,15 @@ static int cmd_part_verify(void)
 
     rc = plat_hash_output(hash, sizeof(hash));
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
 
-    if (memcmp(hash, verify_cmd->sha256, 32) == 0)
+    if (memcmp(hash, verify_cmd->sha256, 32) == 0) {
         rc = PB_RESULT_OK;
-    else
-    {
+    } else {
 #if LOGLEVEL > 2
         printf("Expected hash:");
         for (int i = 0; i < 32; i++)
@@ -608,10 +572,8 @@ static int cmd_part_tbl_read(void)
     int entries = 0;
 
     for (struct pb_storage_driver *sdrv = pb_storage_get_drivers();
-            sdrv; sdrv = sdrv->next)
-    {
-        pb_storage_foreach_part(sdrv->map_data, part)
-        {
+            sdrv; sdrv = sdrv->next) {
+        pb_storage_foreach_part(sdrv->map_data, part) {
             if (!part->valid_entry)
                 break;
 
@@ -637,8 +599,7 @@ static int cmd_part_tbl_read(void)
 
     plat_transport_write(&result, sizeof(result));
 
-    if (entries)
-    {
+    if (entries) {
         size_t bytes = sizeof(struct pb_result_part_table_entry)*(entries);
         LOG_DBG("Bytes %zu", bytes);
         plat_transport_write(result_tbl, bytes);
@@ -728,14 +689,12 @@ static int cmd_stream_prep_buffer(void)
     LOG_DBG("%p", stream_prep);
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-    if (stream_prep->size > (CONFIG_CMD_BUF_SIZE_KB*1024))
-    {
+    if (stream_prep->size > (CONFIG_CMD_BUF_SIZE_KB*1024)) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_RESULT_NO_MEMORY;
     }
 
-    if (stream_prep->id > 1)
-    {
+    if (stream_prep->id > 1) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_RESULT_NO_MEMORY;
     }
@@ -807,8 +766,7 @@ static int pb_command_parse(void)
 {
     int rc = PB_OK;
 
-    if (!pb_wire_valid_command(&cmd))
-    {
+    if (!pb_wire_valid_command(&cmd)) {
         LOG_ERR("Invalid command: %i\n", cmd.command);
         pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
         goto err_out;
@@ -816,8 +774,7 @@ static int pb_command_parse(void)
 
     if (pb_wire_requires_auth(&cmd) &&
              (!authenticated) &&
-        (slc == PB_SLC_CONFIGURATION_LOCKED))
-    {
+        (slc == PB_SLC_CONFIGURATION_LOCKED)) {
         LOG_ERR("Not authenticated");
         pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
         goto err_out;
@@ -1047,8 +1004,7 @@ void pb_command_run(void)
 restart_command_mode:
     rc = plat_transport_init();
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Transport init err");
         plat_reset();
     }
@@ -1059,8 +1015,7 @@ restart_command_mode:
 
     pb_timeout_init_us(&to, CONFIG_TRANSPORT_READY_TIMEOUT * 1000000L);
 
-    while (!plat_transport_ready())
-    {
+    while (!plat_transport_ready()) {
         plat_transport_process();
         plat_wdog_kick();
 
@@ -1070,20 +1025,17 @@ restart_command_mode:
         }
     }
 
-    while (true)
-    {
+    while (true) {
         rc = plat_transport_read(&cmd, sizeof(cmd));
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             LOG_ERR("Read error %i", rc);
             goto restart_command_mode;
         }
 
         rc = pb_command_parse();
 
-        if (rc != PB_OK)
-        {
+        if (rc != PB_OK) {
             LOG_ERR("Command error %i", rc);
         }
     }
