@@ -52,6 +52,6 @@ struct gcov_info {
 };
 
 void gcov_init(void);
-uint32_t gcov_final(void);
+int gcov_store_output(void);
 
 #endif  // PLAT_TEST_GCOV_H_

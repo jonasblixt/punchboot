@@ -17,9 +17,14 @@
 
 void plat_reset(void)
 {
+    int rc = 0;
 #ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
-    gcov_final();
+    rc = gcov_store_output();
+
+    if (rc < 0) {
+        LOG_ERR("GCOV error (%i)", rc);
+    }
 #endif
-    semihosting_sys_exit(0);
+    semihosting_sys_exit(rc);
 }
 

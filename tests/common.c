@@ -46,9 +46,13 @@ int plat_get_uuid(char *out)
 
 void pb_main(void)
 {
+    int rc;
     qemu_uart_init(&console_uart);
     gcov_init();
     test_main();
-    gcov_final();
-    semihosting_sys_exit(0);
+    rc = gcov_store_output();
+    if (rc < 0) {
+        LOG_ERR("GCOV error %i", rc);
+    }
+    semihosting_sys_exit(rc);
 }
