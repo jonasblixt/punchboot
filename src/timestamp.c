@@ -54,7 +54,7 @@ int pb_timestamp_end(void)
     ts_active_count--;
     unsigned int index = ts_active[ts_active_count];
 
-    if (index > PB_TIMESTAMP_NO_OF_TS)
+    if (index >= PB_TIMESTAMP_NO_OF_TS)
         return -PB_ERR;
 
     ts[index].ts_end_us = plat_get_us_tick();
