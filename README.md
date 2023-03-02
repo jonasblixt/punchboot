@@ -1,6 +1,6 @@
 ![PB Logo](doc/pb_logo.png)
 
-[![Coverity](https://scan.coverity.com/projects/16584/badge.svg)](https://scan.coverity.com/projects/jonasblixt-punchboot)
+[![Coverity](https://scan.coverity.com/projects/16584/badge.svg)](https://scan.coverity.com/projects/jonpe960-punchboot)
 [![Build Status](https://github.com/jonasblixt/punchboot/actions/workflows/build.yml/badge.svg)](https://github.com/jonasblixt/punchboot/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/jonasblixt/punchboot/branch/master/graph/badge.svg)](https://codecov.io/gh/jonasblixt/punchboot)
 [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4XMK2G3TPN3BQ)
