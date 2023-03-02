@@ -1008,7 +1008,7 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_BOOT_STATUS:
         {
-            struct pb_result_boot_status boot_result;
+            struct pb_result_boot_status boot_result = {0};
             (void) pb_boot_read_active_part(boot_result.uuid);
 
             pb_wire_init_result2(&result, error_to_wire(rc), &boot_result,
