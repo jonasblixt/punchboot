@@ -91,7 +91,7 @@ static int check_header(void)
             LOG_ERR("image overlapping with PB code");
         }
 
-        if (PB_CHECK_OVERLAP(la, sz, &_big_buffer_start, &_big_buffer_end)) {
+        if (PB_CHECK_OVERLAP(la, sz, &_no_init_start, &_no_init_end)) {
             err = -PB_ERR;
             LOG_ERR("image overlapping with PB buffer");
         }

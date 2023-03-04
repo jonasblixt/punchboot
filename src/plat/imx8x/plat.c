@@ -46,8 +46,7 @@ extern char _code_start, _code_end,
             _data_region_start, _data_region_end,
             _ro_data_region_start, _ro_data_region_end,
             _zero_region_start, _zero_region_end,
-            _stack_start, _stack_end,
-            _big_buffer_start, _big_buffer_end, end;
+            _stack_start, _stack_end, end;
 
 extern struct fuse fuses[];
 extern const uint32_t rom_key_map[];

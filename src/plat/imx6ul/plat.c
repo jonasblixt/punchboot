@@ -31,7 +31,7 @@ extern char _code_start, _code_end,
             _ro_data_region_start, _ro_data_region_end,
             _zero_region_start, _zero_region_end,
             _stack_start, _stack_end,
-            _big_buffer_start, _big_buffer_end, end;
+            _no_init_start, _no_init_end, end;
 
 extern const struct fuse fuses[];
 extern const uint32_t rom_key_map[];
@@ -600,9 +600,9 @@ int plat_mmu_init(void)
     size_t bss_size = ((uintptr_t) &_zero_region_end) -
                       ((uintptr_t) &_zero_region_start);
 
-    uintptr_t bb_start = (uintptr_t) &_big_buffer_start;
-    size_t bb_size = ((uintptr_t) &_big_buffer_end) -
-                      ((uintptr_t) &_big_buffer_start);
+    uintptr_t bb_start = (uintptr_t) &_no_init_start;
+    size_t bb_size = ((uintptr_t) &_no_init_end) -
+                      ((uintptr_t) &_no_init_start);
 
 
     plat_console_init();

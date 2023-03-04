@@ -34,7 +34,7 @@ extern char _code_start, _code_end,
             _ro_data_region_start, _ro_data_region_end,
             _zero_region_start, _zero_region_end,
             _stack_start, _stack_end,
-            _big_buffer_start, _big_buffer_end, end,
+            _no_init_start, _no_init_end, end,
             __init_array_start, __init_array_end2,
             __fini_array_start, __fini_array_end2;
 static struct qemu_uart_device console_uart;
@@ -362,9 +362,9 @@ int plat_mmu_init(void)
     size_t bss_size = ((uintptr_t) &_zero_region_end) -
                       ((uintptr_t) &_zero_region_start);
 
-    uintptr_t bb_start = (uintptr_t) &_big_buffer_start;
-    size_t bb_size = ((uintptr_t) &_big_buffer_end) -
-                      ((uintptr_t) &_big_buffer_start);
+    uintptr_t bb_start = (uintptr_t) &_no_init_start;
+    size_t bb_size = ((uintptr_t) &_no_init_end) -
+                      ((uintptr_t) &_no_init_start);
 
     uintptr_t init_array_start = (uintptr_t) &__init_array_start;
     size_t init_array_size = ((uintptr_t) &__init_array_end2) -

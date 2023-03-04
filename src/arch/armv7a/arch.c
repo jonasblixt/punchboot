@@ -10,7 +10,7 @@ extern char _code_start, _code_end,
             _ro_data_region_start, _ro_data_region_end,
             _zero_region_start, _zero_region_end,
             _stack_start, _stack_end,
-            _big_buffer_start, _big_buffer_end, end;
+            _no_init_start, _no_init_end, end;
 
 const char *exception_strings[] =
 {

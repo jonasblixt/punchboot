@@ -67,15 +67,15 @@ SECTIONS
         PROVIDE(_stack_end = .);
     } > pbram
 
-    .bigbuffer (NOLOAD):
+    .no_init (NOLOAD):
     {
         . = ALIGN(4096);
-        PROVIDE(_big_buffer_start = .);
-        *(.bigbuffer .bigbuffer*)
+        PROVIDE(_no_init_start = .);
+        *(.no_init .no_init*)
         . = ALIGN(4096);
         *(xlat_table)
         . = ALIGN(4096);
-        PROVIDE(_big_buffer_end = .);
+        PROVIDE(_no_init_end = .);
     } > dram
 
     PROVIDE(end = .);

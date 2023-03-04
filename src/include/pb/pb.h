@@ -89,11 +89,9 @@ enum pb_hash_algs
     (((__a) <= ((uintptr_t) (__region_end))) &&                 \
      ((__a) + (__sz) >= ((uintptr_t) (__region_start))))
 
-#define __no_bss __attribute__((section (".bigbuffer")))
-#define __translation_table __attribute__((section (".translation_table")))
-#define __a4k  __attribute__ ((aligned(4096)))
-#define __a16b  __attribute__ ((aligned(16)))
-#define __a16k  __attribute__ ((aligned(16384)))
+#define PB_SECTION_NO_INIT __attribute__((section (".no_init")))
+#define PB_ALIGN_4k  __attribute__ ((aligned(4096)))
+#define PB_ALIGN(x)  __attribute__ ((aligned(x)))
 
 #define membersof(array) (sizeof(array) / sizeof((array)[0]))
 #define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
