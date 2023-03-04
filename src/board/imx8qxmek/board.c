@@ -152,7 +152,7 @@ static struct pb_storage_driver usdhc0_driver =
     .map_install = gpt_install_map,
     .map_resize = gpt_resize_map,
     .map_private = usdhc0_gpt_map_data,
-    .map_private_size = sizeof(usdhc0_map_data),
+    .map_private_size = sizeof(usdhc0_gpt_map_data),
     .map_data = usdhc0_map_data,
     .map_data_size = sizeof(usdhc0_map_data),
 };
