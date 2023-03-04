@@ -15,8 +15,8 @@
 
 static const char ec_identifier[] = "\x2a\x86\x48\xce\x3d\x02\x01";
 static const char rsa_identifier[] = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01";
-static uint8_t sig_ec_r[128] __no_bss;
-static uint8_t sig_ec_s[128] __no_bss;
+static uint8_t sig_ec_r[128] PB_SECTION_NO_INIT;
+static uint8_t sig_ec_s[128] PB_SECTION_NO_INIT;
 
 /* Copied from mbedtls */
 int pb_asn1_size(unsigned char **p, size_t *len)

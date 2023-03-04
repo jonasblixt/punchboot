@@ -125,9 +125,9 @@ const uint32_t rom_key_map[] =
 
 /* USDHC0 driver configuration */
 
-static uint8_t usdhc0_dev_private_data[4096*4] __no_bss __a4k;
-static uint8_t usdhc0_gpt_map_data[4096*10] __no_bss __a4k;
-static uint8_t usdhc0_map_data[4096*4] __no_bss __a4k;
+static uint8_t usdhc0_dev_private_data[4096*4] PB_SECTION_NO_INIT PB_ALIGN_4k;
+static uint8_t usdhc0_gpt_map_data[4096*10] PB_SECTION_NO_INIT PB_ALIGN_4k;
+static uint8_t usdhc0_map_data[4096*4] PB_SECTION_NO_INIT PB_ALIGN_4k;
 
 static struct usdhc_device usdhc0 =
 {

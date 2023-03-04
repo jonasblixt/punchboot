@@ -40,12 +40,10 @@ struct virtio_serial_control
 
 struct virtio_serial_device
 {
-    __a4k uint8_t _rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
-    __a4k uint8_t _tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
-    __a4k uint8_t _ctrl_rx_data[
-                            VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
-    __a4k uint8_t _ctrl_tx_data[
-                            VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)];
+    uint8_t _rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)] PB_ALIGN_4k;
+    uint8_t _tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)] PB_ALIGN_4k;
+    uint8_t _ctrl_rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)] PB_ALIGN_4k;
+    uint8_t _ctrl_tx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)] PB_ALIGN_4k;
     struct virtio_device dev;
     struct virtio_serial_config *config;
     struct virtq rx;

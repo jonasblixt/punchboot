@@ -25,8 +25,8 @@
 
 struct imx_usdhc_private
 {
-    struct  usdhc_adma2_desc tbl[1024] __a4k;
-    uint8_t raw_extcsd[512] __a4k;
+    struct  usdhc_adma2_desc tbl[1024] PB_ALIGN_4k;
+    uint8_t raw_extcsd[512] PB_ALIGN_4k;
     uint32_t raw_cid[4];
     uint32_t raw_csd[4];
 };

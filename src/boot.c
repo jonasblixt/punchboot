@@ -24,12 +24,12 @@
 extern char _code_start, _code_end,
             _data_region_start, _data_region_end,
             _zero_region_start, _zero_region_end,
-            _stack_start, _stack_end, _big_buffer_start, _big_buffer_end;
+            _stack_start, _stack_end, _no_init_start, _no_init_end;
 
 extern struct bpak_keystore keystore_pb;
 
-static struct bpak_header header __a4k __no_bss;
-static uint8_t signature[512] __a4k __no_bss;
+static struct bpak_header header PB_SECTION_NO_INIT PB_ALIGN_4k;
+static uint8_t signature[512] PB_SECTION_NO_INIT PB_ALIGN_4k;
 static size_t signature_sz;
 static uint8_t hash[PB_HASH_MAX_LENGTH];
 static struct pb_boot_state boot_state, boot_state_backup;

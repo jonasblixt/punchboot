@@ -18,8 +18,8 @@
 #include <plat/defs.h>
 #include <pb-tools/wire.h>
 
-static struct ehci_transfer_head __no_bss __a4k dtds[EHCI_NO_OF_EPS*2][512];
-static struct ehci_queue_head    __no_bss __a4k dqhs[EHCI_NO_OF_EPS*2];
+static struct ehci_transfer_head dtds[EHCI_NO_OF_EPS*2][512] PB_SECTION_NO_INIT PB_ALIGN_4k;
+static struct ehci_queue_head    dqhs[EHCI_NO_OF_EPS*2] PB_SECTION_NO_INIT PB_ALIGN_4k;
 static struct ehci_transfer_head *current_xfers[EHCI_NO_OF_EPS*2];
 
 static struct pb_usb_interface iface;

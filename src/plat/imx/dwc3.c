@@ -34,11 +34,11 @@
 #define DWC3_PHY_CTRL2_TXENABLEN0    BIT(8)
 
 
-static volatile __a4k __no_bss uint32_t _ev_buffer[DWC3_EV_BUFFER_SIZE];
+static volatile uint32_t _ev_buffer[DWC3_EV_BUFFER_SIZE] PB_SECTION_NO_INIT;
 static uint32_t _ev_index;
-static __a4k __no_bss struct usb_setup_packet setup_pkt;
-static __a4k __no_bss struct dwc3_trb trbs[DWC3_NO_TRBS];
-static __no_bss struct dwc3_trb *act_trb[8];
+static struct usb_setup_packet setup_pkt;
+static struct dwc3_trb trbs[DWC3_NO_TRBS] PB_SECTION_NO_INIT;
+static struct dwc3_trb *act_trb[8] PB_SECTION_NO_INIT;
 static __iomem base;
 static uint32_t version;
 static uint32_t caps;

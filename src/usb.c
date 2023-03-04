@@ -18,7 +18,7 @@
 
 #define USB_DEBUG
 
-static char usb_device_uuid[37*2+2] __no_bss;
+static char usb_device_uuid[37*2+2];
 
 static const uint8_t qf_descriptor[] =
 {

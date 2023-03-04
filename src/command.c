@@ -24,10 +24,10 @@
 #include <uuid.h>
 
 extern struct bpak_keystore keystore_pb;
-static struct pb_command cmd __a4k __no_bss;
-static struct pb_result result __a4k __no_bss;
+static struct pb_command cmd PB_SECTION_NO_INIT PB_ALIGN_4k;
+static struct pb_result result PB_SECTION_NO_INIT PB_ALIGN_4k;
 static bool authenticated = false;
-static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] __no_bss __a4k;
+static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] PB_SECTION_NO_INIT PB_ALIGN_4k;
 static enum pb_slc slc;
 static struct pb_storage_map *stream_map;
 static struct pb_storage_driver *stream_drv;

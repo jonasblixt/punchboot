@@ -14,7 +14,7 @@
 #include <plat/qemu/virtio_block.h>
 #include <plat/qemu/virtio_queue.h>
 
-static volatile __a16b uint8_t status;
+static volatile uint8_t status PB_ALIGN(16);
 
 static int virtio_map_request(struct pb_storage_driver *drv,
                                  struct pb_storage_map *map)

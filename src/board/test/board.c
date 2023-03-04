@@ -77,10 +77,10 @@ struct pb_storage_map map[] =
 
 /* storage driver configuration */
 
-static uint8_t gpt_private_data[4096*9] __no_bss __a4k;
-static uint8_t map_data[4096*4] __no_bss __a4k;
+static uint8_t gpt_private_data[4096*9] PB_SECTION_NO_INIT PB_ALIGN_4k;
+static uint8_t map_data[4096*4] PB_SECTION_NO_INIT PB_ALIGN_4k;
 
-static struct virtio_block_device virtio_block __a4k =
+static struct virtio_block_device virtio_block PB_ALIGN_4k =
 {
     .dev =
     {

@@ -398,10 +398,10 @@ void plat_preboot_cleanup(void)
 }
 */
 
-static __a16b const char platform_namespace_uuid[] =
+static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
-static __a16b uint8_t out_tmp[16];
+static uint8_t out_tmp[16];
 
 int plat_get_uuid(char *out)
 {
