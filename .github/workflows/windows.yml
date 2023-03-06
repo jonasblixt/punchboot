@@ -74,7 +74,7 @@ jobs:
     - name: Build punchboot-tools
       run: |
         export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
-        cmake -B build/ -DPB_TOOLS_BUILD_TOOL=1 -DPB_TOOLS_BUILD_SOCKET=0 -DPB_TOOLS_BUILD_TESTS=0 -DPB_TOOLS_BUILD_PYTHON_WRAPPER=0 -DPB_TOOLS_BUILD_STATIC=1
+        cmake -B build/ -DPB_TOOLS_BUILD_TOOL=1 -DPB_TOOLS_BUILD_SOCKET=0 -DPB_TOOLS_BUILD_TESTS=0 -DPB_TOOLS_BUILD_STATIC=1
         make -C build/ -j$(nproc)
     - name: 'Create installer'
       shell: pwsh
