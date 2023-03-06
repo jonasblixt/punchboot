@@ -41,7 +41,7 @@ jobs:
     - name: 'Clone repos'
       shell: pwsh
       run: |
-        git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.9.1
+        git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.9.2
         git clone https://github.com/pbatard/libwdi.git --depth 1 --branch v1.4.1
     - name: 'Build BPAK'
       run: |
