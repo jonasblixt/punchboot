@@ -21,8 +21,6 @@
 #define PLAT_EMMC_PART_RPMB 3
 #define PLAT_EMMC_PART_USER  0
 
-//static struct pb_timestamp ts_usdhc = TIMESTAMP("USDHC");
-
 struct imx_usdhc_private
 {
     struct  usdhc_adma2_desc tbl[1024] PB_ALIGN_4k;
@@ -42,8 +40,7 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
 
     pb_timeout_init_us(&to, 1000000);
 
-    while (1)
-    {
+    while (1) {
         irq_status = pb_read32(dev->base + USDHC_INT_STATUS);
 
         if (!!(irq_status & flags))
@@ -75,8 +72,7 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
 
     pb_timeout_init_us(&to, 5000000);
 
-    while (1)
-    {
+    while (1) {
         irq_status = pb_read32(dev->base + USDHC_INT_STATUS);
 
         if (!!(irq_status & USDHC_INT_DATA_END))
@@ -105,18 +101,15 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
 
     pb_timeout_init_us(&to, 300000);
 
-    while (1)
-    {
+    while (1) {
         pres_state = pb_read32(dev->base+ USDHC_PRES_STATE);
 
-        if ((pres_state & 0x03) == 0x00)
-        {
+        if ((pres_state & 0x03) == 0x00) {
             break;
         }
 
-        if (pb_timeout_has_expired(&to))
-        {
-            err = -PB_ERR_TIMEOUT;
+        if (pb_timeout_has_expired(&to)) {
+            err = -PB_TIMEOUT;
             goto usdhc_cmd_fail;
         }
     }
@@ -124,24 +117,24 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
     pb_write32(arg, dev->base+ USDHC_CMD_ARG);
     pb_write32(command, dev->base+USDHC_CMD_XFR_TYP);
 
-    if (cmd == MMC_CMD_SEND_TUNING_BLOCK_HS200)
-    {
+    if (cmd == MMC_CMD_SEND_TUNING_BLOCK_HS200) {
         err = usdhc_emmc_wait_for_cc(dev, (1<<5));
-    }
-    else
-    {
+    } else {
         err = usdhc_emmc_wait_for_cc(dev, USDHC_INT_RESPONSE);
     }
 
 usdhc_cmd_fail:
+<<<<<<< HEAD
 
     if (err == -PB_ERR_TIMEOUT)
     {
+=======
+    if (err == -PB_TIMEOUT) {
+>>>>>>> e700e82 (imx/usdhc: Cleanup/formatting)
         LOG_ERR("cmd %x timeout", cmd);
     }
 
-    if (err != PB_OK)
-    {
+    if (err != PB_OK) {
         LOG_ERR("%i", err);
     }
 
@@ -160,12 +153,9 @@ int usdhc_emmc_check_status(struct usdhc_device *dev)
     uint32_t result = pb_read32(dev->base+USDHC_CMD_RSP0);
 
     if ((result & MMC_STATUS_RDY_FOR_DATA) &&
-        (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG)
-    {
+        (result & MMC_STATUS_CURR_STATE) != MMC_STATE_PRG) {
         return PB_OK;
-    }
-    else if (result & MMC_STATUS_MASK)
-    {
+    } else if (result & MMC_STATUS_MASK) {
         LOG_ERR("Status Error: 0x%x", result);
         return PB_ERR;
     }
@@ -201,8 +191,7 @@ int usdhc_emmc_read_extcsd(struct usdhc_device *dev, uint8_t **output)
     dev->transfer_in_progress = true;
     err = usdhc_emmc_wait_for_de(dev);
 
-    if (err != PB_OK)
-    {
+    if (err != PB_OK) {
         LOG_ERR("PRESENT_STATE = 0x%x",
                     pb_read32(dev->base + USDHC_PRES_STATE));
         LOG_ERR("ADMA_ERR_STATUS = 0x%x",
@@ -235,8 +224,7 @@ static int usdhc_emmc_switch_part(struct usdhc_device *dev, uint8_t part_no)
     int err;
     uint8_t value = 0;
 
-    switch (part_no)
-    {
+    switch (part_no) {
         case PLAT_EMMC_PART_BOOT0:
             /* Set boot0 R/W, boot1 as bootable */
             value = (2 << 3) | 0x01;
@@ -301,8 +289,7 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
 
     dev->transfer_in_progress = true;
 
-    do
-    {
+    do {
         transfer_sz = remaining_sz > 0xFE00?0xFE00:remaining_sz;
         remaining_sz -= transfer_sz;
 
@@ -331,14 +318,12 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
 
     cmd = MMC_CMD_WRITE_SINGLE_BLOCK;
 
-    if (!wr)
-    {
+    if (!wr) {
         flags |= (1 << 4);
         cmd = MMC_CMD_READ_SINGLE_BLOCK;
     }
 
-    if (nblocks > 1)
-    {
+    if (nblocks > 1) {
         flags |= (1<<5) | (1<<2) | (1<<1);
         cmd = MMC_CMD_WRITE_MULTIPLE_BLOCK;
         if (!wr)
@@ -352,8 +337,7 @@ static int imx_usdhc_xfer_blocks(struct pb_storage_driver *drv,
     if (err != PB_OK)
         return err;
 
-    if (!async)
-    {
+    if (!async) {
         err = usdhc_emmc_wait_for_de(dev);
 
         if (err != PB_OK) {
@@ -399,15 +383,13 @@ static int usdhc_setup_hs200(struct usdhc_device *dev)
                 (0x02) << 8,
                 0x1B);  // R1b
 
-    if (err != PB_OK)
-    {
+    if (err != PB_OK) {
         LOG_ERR("Could not switch to high speed timing");
         return err;
     }
 
     /* Switch to 8-bit/4-bit bus */
-    switch (dev->bus_width)
-    {
+    switch (dev->bus_width) {
         case USDHC_BUS_8BIT:
         {
             err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH,
@@ -440,14 +422,14 @@ static int usdhc_setup_hs200(struct usdhc_device *dev)
     pb_write32(dev->clk | (0xF << 16)|(1 << 28), dev->base+USDHC_SYS_CTRL);
 
     LOG_DBG("Waiting for clock switch");
-    while (1)
-    {
+    while (1) {
         uint32_t pres_state = pb_read32(dev->base+USDHC_PRES_STATE);
         if (pres_state & (1 << 3))
             break;
     }
 
     return PB_OK;
+<<<<<<< HEAD
 
     /* We are now in HS200 mode, Execute tuning */
 /*
@@ -541,6 +523,8 @@ static int usdhc_setup_hs200(struct usdhc_device *dev)
 
     return err;
 */
+=======
+>>>>>>> e700e82 (imx/usdhc: Cleanup/formatting)
 }
 
 static int usdhc_setup_hs(struct usdhc_device *dev)
@@ -555,16 +539,14 @@ static int usdhc_setup_hs(struct usdhc_device *dev)
                 (1) << 8,
                 0x1B);  // R1b
 
-    if (err != PB_OK)
-    {
+    if (err != PB_OK) {
         LOG_ERR("Could not switch to high speed timing");
         return err;
     }
 
 
     /* Switch to 8-bit/4-bit bus */
-    switch (dev->bus_width)
-    {
+    switch (dev->bus_width) {
         case USDHC_BUS_8BIT:
         {
             err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH,
@@ -586,8 +568,7 @@ static int usdhc_setup_hs(struct usdhc_device *dev)
         break;
     }
 
-    if (err != PB_OK)
-    {
+    if (err != PB_OK) {
         LOG_ERR("Could not switch bus width");
         return err;
     }
@@ -597,8 +578,7 @@ static int usdhc_setup_hs(struct usdhc_device *dev)
     pb_write32(dev->clk | (0x0e << 16), dev->base+USDHC_SYS_CTRL);
 
     LOG_DBG("Waiting for clock switch");
-    while (1)
-    {
+    while (1) {
         uint32_t pres_state = pb_read32(dev->base+USDHC_PRES_STATE);
         if (pres_state & (1 << 3))
             break;
@@ -615,20 +595,13 @@ static int imx_usdhc_map_request(struct pb_storage_driver *drv,
     struct usdhc_device *dev = (struct usdhc_device *) drv->driver_private;
     int rc;
 
-    if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT0)
-    {
+    if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT0) {
         rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_BOOT0);
-    }
-    else if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT1)
-    {
+    } else if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_BOOT1) {
         rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_BOOT1);
-    }
-    else if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_RPMB)
-    {
+    } else if (map->flags & PB_STORAGE_MAP_FLAG_EMMC_RPMB) {
         rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_RPMB);
-    }
-    else
-    {
+    } else {
         rc = usdhc_emmc_switch_part(dev, PLAT_EMMC_PART_USER);
     }
 
@@ -703,8 +676,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
 
     pb_write32(PROCTL_INIT | (1<<23) | (1<<27), dev->base + USDHC_PROT_CTRL);
 
-    while (1)
-    {
+    while (1) {
         volatile uint32_t pres_state = pb_read32(dev->base + USDHC_PRES_STATE);
 
         if ((pres_state & (1 << 3)) == (1 << 3))
@@ -720,8 +692,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     if (err != PB_OK)
         return err;
 
-    while (1)
-    {
+    while (1) {
         volatile uint32_t pres_state = pb_read32(dev->base + USDHC_PRES_STATE);
 
         if ((pres_state & (1 << 3)) == (1 << 3))
@@ -730,27 +701,20 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
 
     LOG_DBG("Waiting for eMMC to power up");
 
-    //timestamp_begin(&ts_usdhc);
-    while (1)
-    {
+    while (1) {
         err = usdhc_emmc_send_cmd(dev, MMC_CMD_SEND_OP_COND, 0x40ff8080, 2);
 
         if (err != PB_OK)
             return err;
 
         /* Wait for eMMC to power up */
-        if (pb_read32(dev->base+USDHC_CMD_RSP0) & (1 << 31))
-        {
+        if (pb_read32(dev->base+USDHC_CMD_RSP0) & (1 << 31)) {
             break;
-        }
-        else
-        {
+        } else {
             pb_delay_ms(1);
         }
     }
 
-    //timestamp_end(&ts_usdhc);
-    //printf("\n\rusdhc ts: %u ms\n\r", timestamp_read_us(&ts_usdhc)/1000);
     LOG_DBG("Card reset complete");
     LOG_DBG("SEND CID");
 
@@ -795,8 +759,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     /* Select Card */
     err = usdhc_emmc_send_cmd(dev, MMC_CMD_SELECT_CARD, 10<<16, 0x1A);
 
-    if (err != PB_OK)
-    {
+    if (err != PB_OK) {
         LOG_ERR("Could not select card");
         return err;
     }
@@ -806,8 +769,7 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     if (err != PB_OK)
         return err;
 
-    switch (dev->bus_mode)
-    {
+    switch (dev->bus_mode) {
         case USDHC_BUS_HS200:
             err = usdhc_setup_hs200(dev);
         break;
@@ -823,16 +785,14 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
         return err;
 
     err = usdhc_emmc_read_extcsd(dev, NULL);
-    if (err != PB_OK)
-    {
+    if (err != PB_OK) {
         LOG_ERR("Could not read ext CSD");
         return err;
     }
 
     LOG_DBG("boot bus cond: %x", priv->raw_extcsd[EXT_CSD_BOOT_BUS_CONDITIONS]);
 
-    if ( (priv->raw_extcsd[EXT_CSD_BOOT_BUS_CONDITIONS] != dev->boot_bus_cond) )
-    {
+    if ((priv->raw_extcsd[EXT_CSD_BOOT_BUS_CONDITIONS] != dev->boot_bus_cond)) {
         err = usdhc_emmc_send_cmd(dev, MMC_CMD_SWITCH,
                     (MMC_SWITCH_MODE_WRITE_BYTE << 24) |
                     (EXT_CSD_BOOT_BUS_CONDITIONS) << 16 |
@@ -868,7 +828,6 @@ int imx_usdhc_init(struct pb_storage_driver *drv)
     LOG_INFO("%s: %llx sectors, %llu kBytes", mmc_drive_str,
         dev->sectors, (dev->sectors)>>1);
     LOG_INFO("Partconfig: %x", priv->raw_extcsd[EXT_CSD_PART_CONFIG]);
-
 
     return PB_OK;
 }
