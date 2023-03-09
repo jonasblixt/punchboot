@@ -486,7 +486,7 @@ static PyObject* part_list_partitions(PyObject* self, PyObject* Py_UNUSED(args))
         uuid_unparse(tbl[i].uuid, uuid_str);
 
         if (!use_description) {
-            snprintf(entryname, sizeof(entryname), "Part%d", i );
+            snprintf(entryname, sizeof(entryname), "Part%d", i & 0xff);
         }
 
         ret = PyDict_SetItemString(part_dict,
