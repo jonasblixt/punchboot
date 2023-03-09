@@ -11,69 +11,12 @@
 #include <uuid/uuid.h>
 #include "crc.h"
 #include "sha256.h"
+#include "python_wrapper.h"
 
 #if PY_MAJOR_VERSION < 3
 #error "Only python3 supported"
 #endif
 
-static PyObject* pb_base_exception = NULL;
-
-static const char *pb_error_to_python_exception_name(int result)
-{
-#define PRE "punchboot."
-    switch(result)
-    {
-        case -PB_RESULT_ERROR:
-            return PRE"Error";
-        case -PB_RESULT_AUTHENTICATION_FAILED:
-            return PRE"AuthenticationFailed";
-        case -PB_RESULT_NOT_AUTHENTICATED:
-            return PRE"NotAuthenticated";
-        case -PB_RESULT_NOT_SUPPORTED:
-            return PRE"NotSupported";
-        case -PB_RESULT_INVALID_ARGUMENT:
-            return PRE"InvalidArgument";
-        case -PB_RESULT_INVALID_COMMAND:
-            return PRE"InvalidCommand";
-        case -PB_RESULT_PART_VERIFY_FAILED:
-            return PRE"PartitionVerifyFailed";
-        case -PB_RESULT_PART_NOT_BOOTABLE:
-            return PRE"PartitionNotBootable";
-        case -PB_RESULT_NO_MEMORY:
-            return PRE"NoMemory";
-        case -PB_RESULT_TRANSFER_ERROR:
-            return PRE"TransferError";
-        case -PB_RESULT_NOT_FOUND:
-            return PRE"NotFound";
-        case -PB_RESULT_STREAM_NOT_INITIALIZED:
-            return PRE"StreamNotInitialized";
-        case -PB_RESULT_TIMEOUT:
-            return PRE"TimeoutError";
-        case -PB_RESULT_KEY_REVOKED:
-            return PRE"KeyRevoked";
-        case -PB_RESULT_SIGNATURE_ERROR:
-            return PRE"SignatureError";
-        case -PB_RESULT_MEM_ERROR:
-            return PRE"MemoryError";
-        case -PB_RESULT_IO_ERROR:
-            return PRE"IOError";
-        default:
-            return "";
-    }
-#undef PRE
-}
-
-static PyObject* PbErr_FromErrorCode(int err, const char* msg)
-{
-    PyObject* exc =
-        PyErr_NewException(pb_error_to_python_exception_name(err), pb_base_exception, NULL);
-    if (msg) {
-        PyErr_SetString(exc, msg);
-    } else {
-        PyErr_SetString(exc, "");
-    }
-    return NULL;
-}
 
 static int init_transport(const char* uuid, struct pb_context** ctx)
 {
@@ -130,7 +73,7 @@ static int PbSession_init(struct pb_session *self, PyObject *args, PyObject *kwd
 
     ret = init_transport(uuid, &self->ctx);
     if (ret != PB_RESULT_OK) {
-        PbErr_FromErrorCode(ret, "Failed to connect to device");
+        pb_exception_from_rc(ret);
         return -1;
     }
 
@@ -162,7 +105,7 @@ static PyObject* authenticate(PyObject* self, PyObject* args, PyObject* kwds)
 
     ret = pb_api_authenticate_password(session->ctx, (uint8_t*)password, strlen(password));
     if (ret != 0) {
-        return PbErr_FromErrorCode(ret, "Authentication failed");
+        return pb_exception_from_rc(ret);
     }
     Py_RETURN_NONE;
 }
@@ -178,7 +121,7 @@ static PyObject* device_reset(PyObject* self, PyObject* Py_UNUSED(args))
 
     ret = pb_api_device_reset(session->ctx);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Could not reset device");
+        return pb_exception_from_rc(ret);
     }
     pb_api_free_context(session->ctx);
     session->ctx = NULL;
@@ -200,7 +143,7 @@ static PyObject* device_get_punchboot_version(PyObject* self, PyObject* Py_UNUSE
 
     ret = pb_api_bootloader_version(session->ctx, version, sizeof(version));
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to read punchboot version");
+        return pb_exception_from_rc(ret);
     }
 
     return Py_BuildValue("s", version);
@@ -238,7 +181,7 @@ static PyObject* device_get_uuid(PyObject* self, PyObject* Py_UNUSED(args))
     /* Arguments to this API are not optional */
     ret = get_uuid(session->ctx, &device_uu);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to read device UUID");
+        return pb_exception_from_rc(ret);
     }
 
     uuid_unparse(device_uu, uuid_str);
@@ -263,7 +206,7 @@ static PyObject* device_get_boardname(PyObject* self, PyObject* Py_UNUSED(args))
     ret = pb_api_device_read_identifier(session->ctx, device_uu, sizeof(device_uu),
                                            board_name, sizeof(board_name));
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to read boardname");
+        return pb_exception_from_rc(ret);
     }
 
     return Py_BuildValue("s", board_name);
@@ -280,7 +223,7 @@ static PyObject* slc_set_configuration(PyObject* self, PyObject* Py_UNUSED(args)
 
     ret = pb_api_slc_set_configuration(session->ctx);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Could not set SLC configuration");
+        return pb_exception_from_rc(ret);
     }
     Py_RETURN_NONE;
 }
@@ -296,7 +239,7 @@ static PyObject* slc_lock_device(PyObject* self, PyObject* Py_UNUSED(args))
 
     ret = pb_api_slc_set_configuration_lock(session->ctx);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Coult not lock SLC configuration");
+        return pb_exception_from_rc(ret);
     }
     Py_RETURN_NONE;
 }
@@ -328,7 +271,7 @@ static PyObject* slc_revoke_key(PyObject* self, PyObject* args, PyObject* kwds)
 
     ret = pb_api_slc_revoke_key(session->ctx, key_id);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to revoke key");
+        return pb_exception_from_rc(ret);
     }
     Py_RETURN_NONE;
 }
@@ -347,7 +290,7 @@ static PyObject* slc_get_lifecycle(PyObject* self, PyObject* Py_UNUSED(args))
 
     ret = pb_api_slc_read(session->ctx, &slc, NULL, NULL);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to read SLC");
+        return pb_exception_from_rc(ret);
     }
     return Py_BuildValue("i", (int)slc);
 }
@@ -368,7 +311,7 @@ static PyObject* slc_get_active_keys(PyObject* self, PyObject* Py_UNUSED(args))
 
     ret = pb_api_slc_read(session->ctx, &slc, (uint8_t *) active_keys, NULL);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to read active keys");
+        return pb_exception_from_rc(ret);
     }
 
     /* The API doesn't tell us how many keys there are, but we do know that 0 is not a valid ID */
@@ -404,7 +347,7 @@ static PyObject* slc_get_revoked_keys(PyObject* self, PyObject* Py_UNUSED(args))
 
     ret = pb_api_slc_read(session->ctx, &slc, NULL, (uint8_t *) revoked_keys);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to read revoked keys");
+        return pb_exception_from_rc(ret);
     }
 
     /* The API doesn't tell us how many keys there are, but we do know that 0 is not a valid ID */
@@ -467,7 +410,7 @@ static PyObject* part_list_partitions(PyObject* self, PyObject* Py_UNUSED(args))
 
     ret = read_part_table(session->ctx, &tbl, &entries);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to read partition table");
+        return pb_exception_from_rc(ret);
     }
 
     part_dict = PyDict_New();
@@ -519,7 +462,7 @@ static PyObject* part_table_install(PyObject* self, PyObject* Py_UNUSED(args))
 
     ret = pb_api_partition_install_table(session->ctx);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed installing parition table");
+        return pb_exception_from_rc(ret);
     }
     Py_RETURN_NONE;
 }
@@ -554,7 +497,7 @@ static PyObject* part_resize(PyObject* self, PyObject* args, PyObject* kwds)
     uuid_parse(uuid, uuid_part);
     ret = pb_api_partition_resize(session->ctx, uuid_part, block_count);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to resize partition");
+        return pb_exception_from_rc(ret);
     }
 
     Py_RETURN_NONE;
@@ -603,7 +546,7 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
     ret = pb_api_device_read_caps(session->ctx, &caps);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to read device caps");
+        return pb_exception_from_rc(ret);
     }
 
     chunk_size = caps.chunk_transfer_max_bytes;
@@ -614,7 +557,7 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
     ret = read_part_table(session->ctx, &tbl, &tbl_entries);
     if (ret != PB_RESULT_OK) {
-        PbErr_FromErrorCode(ret, "Failed to read partition table");
+        pb_exception_from_rc(ret);
         goto err_free_buf;
     }
 
@@ -631,7 +574,7 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
 
     ret = pb_api_stream_init(session->ctx, uuid_part);
     if (ret != PB_RESULT_OK) {
-        PbErr_FromErrorCode(ret, "Failed to initialize stream");
+        pb_exception_from_rc(ret);
         goto err_free_buf;
     }
 
@@ -655,7 +598,7 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
         ret = stream_data(session->ctx, buffer_id, &header, sizeof(header), offset);
 
         if (ret != PB_RESULT_OK) {
-            PbErr_FromErrorCode(ret, "Failed to write header");
+            pb_exception_from_rc(ret);
             goto err_free_buf;
         }
 
@@ -666,7 +609,7 @@ static PyObject* part_write(PyObject* self, PyObject* args, PyObject* kwds)
     while ((read_bytes = read(file_fd, chunk_buffer, chunk_size)) > 0) {
         ret = stream_data(session->ctx, buffer_id, chunk_buffer, read_bytes, offset);
         if (ret != PB_RESULT_OK) {
-            PbErr_FromErrorCode(ret, "Failed to write partition");
+            pb_exception_from_rc(ret);
             break;
         }
 
@@ -758,7 +701,7 @@ static PyObject* part_verify(PyObject*self, PyObject* args, PyObject *kwds)
 
     ret = pb_api_partition_verify(session->ctx, uuid_part, hash_data, total_read, bpak_valid_header(&header) == BPAK_OK);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Verification failed");
+        return pb_exception_from_rc(ret);
     }
 
     Py_RETURN_NONE;
@@ -791,7 +734,7 @@ static PyObject* boot_set_boot_part(PyObject* self, PyObject* args, PyObject *kw
 
     ret = pb_api_boot_activate(session->ctx, uuid_boot);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Could not set active boot partition");
+        return pb_exception_from_rc(ret);
     }
     Py_RETURN_NONE;
 }
@@ -819,7 +762,7 @@ static PyObject* boot_partition(PyObject* self, PyObject* args, PyObject* kwds)
 
     ret = pb_api_boot_part(session->ctx, uuid_boot, true);
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Could not boot partition");
+        return pb_exception_from_rc(ret);
     }
 
     pb_api_free_context(session->ctx);
@@ -860,7 +803,7 @@ static PyObject* board_run_command(PyObject *self, PyObject* args, PyObject* kwd
     ret = pb_api_board_command(session->ctx, cmd_enc, cmd_args, cmd_args_len,
                                 response, sizeof(response));
     if (ret != PB_RESULT_OK) {
-        return PbErr_FromErrorCode(ret, "Failed to run board command");
+        return pb_exception_from_rc(ret);
     }
     if (invalidates_ctx) {
         pb_api_free_context(session->ctx);
@@ -929,7 +872,7 @@ static PyObject* wait_for_device(PyObject* self, PyObject* args, PyObject* kwds)
     while (true) {
         ret = init_transport(NULL, &ctx);
         if (ret != PB_RESULT_OK) {
-            return PbErr_FromErrorCode(ret, "Failed to init transport");
+            return pb_exception_from_rc(ret);
         }
 
         ret = get_uuid(ctx, &uuid);
@@ -964,15 +907,9 @@ static struct PyModuleDef Punchboot = {
    .m_methods = Punchboot_methods,
 };
 
-
 PyMODINIT_FUNC PyInit_punchboot(void)
 {
     if (PyType_Ready(&PbSession) < 0) {
-        return NULL;
-    }
-
-    pb_base_exception = PyErr_NewException("punchboot.Error", NULL, NULL);
-    if (pb_base_exception == NULL) {
         return NULL;
     }
 
@@ -988,8 +925,7 @@ PyMODINIT_FUNC PyInit_punchboot(void)
         return NULL;
     }
 
-
-    if (PyModule_AddObject(mod, "Error", (PyObject*) pb_base_exception) < 0) {
+    if (pb_exceptions_init(mod) != 0) {
         Py_DECREF(&PbSession);
         Py_DECREF(mod);
         return NULL;

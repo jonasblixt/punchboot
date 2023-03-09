@@ -21,6 +21,7 @@ setup(name='punchboot',
           Extension(name="punchboot",
                         sources=[
                             "python_wrapper.c",
+                            "exceptions.c",
                             "../src/sha256.c",
                             "../src/crc.c",
                             "../src/uuid/parse.c",
