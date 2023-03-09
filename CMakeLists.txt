@@ -44,6 +44,7 @@ if (PB_TOOLS_BUILD_STATIC)
 endif()
 
 if (PB_TOOLS_BUILD_TESTS)
+    set(PB_TOOLS_BUILD_SOCKET ON)
     add_subdirectory("python")
     add_subdirectory("test")
     add_compile_options(-g -fprofile-arcs -ftest-coverage)
