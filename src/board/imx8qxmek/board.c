@@ -57,7 +57,7 @@ struct fuse fuses[] =
 
 #define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
                    PB_STORAGE_MAP_FLAG_VISIBLE)
-
+#ifdef __NOPE
 static struct pb_storage_map map[] =
 {
     PB_STORAGE_MAP("9eef7544-bf68-4bf7-8678-da117cbccba8",
@@ -113,6 +113,7 @@ static struct pb_storage_map map[] =
                         0x200000, DEF_FLAGS),
     PB_STORAGE_MAP_END
 };
+#endif
 
 const uint32_t rom_key_map[] =
 {
@@ -122,42 +123,6 @@ const uint32_t rom_key_map[] =
     0xcca57803,
     0x00000000,
 };
-
-/* USDHC0 driver configuration */
-
-static uint8_t usdhc0_dev_private_data[4096*4] PB_SECTION_NO_INIT;
-static uint8_t usdhc0_gpt_map_data[4096*10] PB_SECTION_NO_INIT;
-static uint8_t usdhc0_map_data[4096*4] PB_SECTION_NO_INIT;
-
-static struct usdhc_device usdhc0 =
-{
-    .base = 0x5B010000,
-    .clk_ident = 0x08EF,
-    .clk = 0x000F,
-    .bus_mode = USDHC_BUS_HS200,
-    .bus_width = USDHC_BUS_8BIT,
-    .boot_bus_cond = 0x12, /* Enable fastboot 8-bit DDR */
-    .private = usdhc0_dev_private_data,
-    .size = sizeof(usdhc0_dev_private_data),
-};
-
-static struct pb_storage_driver usdhc0_driver =
-{
-    .name = "eMMC0",
-    .block_size = 512,
-    .driver_private = &usdhc0,
-    .init = imx_usdhc_init,
-    .map_default = map,
-    .map_init = gpt_init,
-    .map_install = gpt_install_map,
-    .map_resize = gpt_resize_map,
-    .map_private = usdhc0_gpt_map_data,
-    .map_private_size = sizeof(usdhc0_gpt_map_data),
-    .map_data = usdhc0_map_data,
-    .map_data_size = sizeof(usdhc0_map_data),
-};
-
-/* END of USDHC0 */
 
 static int patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
 {
@@ -179,12 +144,66 @@ static int patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
 
 int board_early_init(void *plat)
 {
-    int rc = PB_OK;
+    int rc;
+    unsigned int rate;
+    struct imx8x_private *priv = IMX8X_PRIV(plat);
 
-    rc = pb_storage_add(&usdhc0_driver);
+    sc_pm_set_resource_power_mode(priv->ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
+    sc_pm_clock_enable(priv->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
 
-    if (rc != PB_OK)
+    rc = sc_pm_set_clock_parent(priv->ipc, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
+
+    if (rc != SC_ERR_NONE) {
+        LOG_ERR("usdhc set clock parent failed");
+        return -PB_ERR;
+    }
+
+    rate = 200000000;
+    sc_pm_set_clock_rate(priv->ipc, SC_R_SDHC_0, 2, &rate);
+
+    if (rate != 200000000) {
+        LOG_INFO("USDHC input clock %u Hz", rate);
+    }
+
+    rc = sc_pm_clock_enable(priv->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
+
+    if (rc != SC_ERR_NONE) {
+        LOG_ERR("SDHC_0 per clk enable failed!");
+        return -PB_ERR;
+    }
+
+    sc_pad_set(priv->ipc, SC_P_EMMC0_CLK, ESDHC_CLK_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_CMD, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA0, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA1, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA2, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA3, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA4, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA5, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA6, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA7, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_STROBE, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_RESET_B, ESDHC_PAD_CTRL);
+
+    static const struct imx_usdhc_config cfg = {
+        .base = 0x5B010000,
+        .clock_freq_hz = 200000000, // 200 MHz input clock
+        .mmc_config = {
+            .mode = MMC_BUS_MODE_HS200,
+            .width = MMC_BUS_WIDTH_8BIT,
+            .card_type = MMC_CARD_TYPE_EMMC,
+            .flags = 0,
+        }
+    };
+
+    rc = imx_usdhc_init(&cfg);
+
+    if (rc != PB_OK) {
+        LOG_DBG("usdhc init failed (%i)", rc);
         return rc;
+    }
+
+    LOG_DBG("usdhc init complete");
 
     return PB_OK;
 }
