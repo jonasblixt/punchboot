@@ -3,8 +3,8 @@
 
 #define PB_TOOLS_VERSION_MAJOR 0
 #define PB_TOOLS_VERSION_MINOR 3
-#define PB_TOOLS_VERSION_PATCH 3
-#define PB_TOOLS_VERSION_STRING "0.3.3"
+#define PB_TOOLS_VERSION_PATCH 4
+#define PB_TOOLS_VERSION_STRING "0.3.4"
 
 #define PB_EXPORT __attribute__((visibility("default")))
 
