@@ -22,7 +22,6 @@ void pb_main(void)
     int rc;
 
     arch_init();
-    pb_storage_early_init();
     rc = plat_early_init();
 
     if (rc != PB_OK)
@@ -38,15 +37,13 @@ void pb_main(void)
     pb_timestamp_end();
     pb_timestamp_begin("Misc init");
 
-    plat_console_init();
-
     printf("\n\rPB " PB_VERSION ", %s (%i)\n\r", plat_boot_reason_str(),
                                                  plat_boot_reason());
 
 #ifdef CONFIG_ENABLE_WATCHDOG
     plat_wdog_init();
 #endif
-
+#ifdef __NOPE
     rc = plat_crypto_init();
 
     if (rc != PB_OK)
@@ -110,5 +107,6 @@ void pb_main(void)
 
 run_command_mode:
     pb_command_run();
+#endif
     plat_reset();
 }

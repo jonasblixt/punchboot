@@ -29,6 +29,7 @@ enum pb_errors {
     PB_ERR_INVALID_COMMAND,
     PB_ERR_PART_NOT_FOUND,
     PB_ERR_PART_NOT_BOOTABLE,
+    PB_ERR_PARAM,
 };
 
 #endif  // INCLUDE_PB_ERRORS_H_
