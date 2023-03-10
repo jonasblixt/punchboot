@@ -129,14 +129,14 @@ static int error_to_wire(int error_code)
             return PB_RESULT_OK;
         case -PB_ERR:
             return -PB_RESULT_ERROR;
-        case -PB_TIMEOUT:
+        case -PB_ERR_TIMEOUT:
             return -PB_RESULT_TIMEOUT;
-        case -PB_KEY_REVOKED_ERROR:
+        case -PB_ERR_KEY_REVOKED:
             return -PB_RESULT_KEY_REVOKED;
-        case -PB_SIGNATURE_ERROR:
+        case -PB_ERR_SIGNATURE:
             return -PB_RESULT_SIGNATURE_ERROR;
-        case -PB_CHECKSUM_ERROR:
-            return -PB_CHECKSUM_ERROR;
+        case -PB_ERR_CHECKSUM:
+            return -PB_RESULT_ERROR;
         case -PB_ERR_MEM:
             return -PB_RESULT_MEM_ERROR;
         case -PB_ERR_IO:

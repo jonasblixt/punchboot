@@ -83,7 +83,7 @@ static int dwc3_command(uint8_t ep,
             uint32_t ev_status = pb_read32(base + DWC3_DEPCMD_0 + 0x10*ep);
             LOG_ERR("CMD %x, Timeout, status = 0x%x", cmd,
                                         (ev_status >> 12) & 0xF);
-            return PB_TIMEOUT;
+            return PB_ERR_TIMEOUT;
         }
     } while (status & DWC3_DEPCMD_ACT);
 

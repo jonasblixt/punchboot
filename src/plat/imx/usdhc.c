@@ -50,7 +50,7 @@ static int usdhc_emmc_wait_for_cc(struct usdhc_device *dev,
             break;
 
         if (pb_timeout_has_expired(&to)) {
-            rc = -PB_TIMEOUT;
+            rc = -PB_ERR_TIMEOUT;
             goto err_out;
         }
     }
@@ -83,7 +83,7 @@ static int usdhc_emmc_wait_for_de(struct usdhc_device *dev)
             break;
 
         if (pb_timeout_has_expired(&to)) {
-            rc = -PB_TIMEOUT;
+            rc = -PB_ERR_TIMEOUT;
             goto err_out;
         }
     }
@@ -116,7 +116,7 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
 
         if (pb_timeout_has_expired(&to))
         {
-            err = -PB_TIMEOUT;
+            err = -PB_ERR_TIMEOUT;
             goto usdhc_cmd_fail;
         }
     }
@@ -135,7 +135,7 @@ int usdhc_emmc_send_cmd(struct usdhc_device *dev,
 
 usdhc_cmd_fail:
 
-    if (err == -PB_TIMEOUT)
+    if (err == -PB_ERR_TIMEOUT)
     {
         LOG_ERR("cmd %x timeout", cmd);
     }
@@ -479,7 +479,7 @@ static int usdhc_setup_hs200(struct usdhc_device *dev)
     pb_write32(0x00010080, dev->base+ USDHC_BLK_ATT);
 
     memset(_raw_extcsd,0,512);
-    err = PB_TIMEOUT;
+    err = PB_ERR_TIMEOUT;
 
     for (uint32_t n = 0; n < 40; n++)
     {
