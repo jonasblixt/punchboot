@@ -143,6 +143,14 @@ static int error_to_wire(int error_code)
             return -PB_RESULT_IO_ERROR;
         case -PB_ERR_FILE_NOT_FOUND:
             return -PB_RESULT_NOT_FOUND;
+        case -PB_ERR_NOT_AUTHENTICATED:
+            return -PB_RESULT_NOT_AUTHENTICATED;
+        case -PB_ERR_AUTHENTICATION_FAILED:
+            return -PB_RESULT_AUTHENTICATION_FAILED;
+        case -PB_ERR_INVALID_ARGUMENT:
+            return -PB_RESULT_INVALID_ARGUMENT;
+        case -PB_ERR_INVALID_COMMAND:
+            return -PB_RESULT_INVALID_COMMAND;
         default:
             return -PB_RESULT_ERROR;
     }
