@@ -346,8 +346,7 @@ static int cmd_stream_read(void)
     /* Partition must be marked as dumpable, don't dump partitions that may contain sensitive data */
     if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_DUMPABLE)) {
         LOG_ERR("Partition may not be dumped");
-        rc = -PB_RESULT_ERROR;
-        pb_wire_init_result(&result, error_to_wire(rc));
+        pb_wire_init_result(&result, -PB_RESULT_ERROR);
         return rc;
     }
 
@@ -358,8 +357,7 @@ static int cmd_stream_read(void)
         LOG_ERR("Trying to read outside of partition");
         LOG_ERR("%llu > %zu", (stream_read->offset + \
                         stream_read->size), part_size);
-        rc = -PB_RESULT_NO_MEMORY;
-        pb_wire_init_result(&result, error_to_wire(rc));
+        pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return rc;
     }
 
@@ -552,7 +550,8 @@ static int cmd_part_verify(void)
 
 
     if (memcmp(hash, verify_cmd->sha256, 32) == 0) {
-        rc = PB_RESULT_OK;
+        rc = PB_OK;
+        pb_wire_init_result(&result, error_to_wire(rc));
     } else {
 #if LOGLEVEL > 2
         printf("Expected hash:");
@@ -561,10 +560,10 @@ static int cmd_part_verify(void)
         printf("\n\r");
 #endif
         LOG_ERR("Verification failed");
-        rc = -PB_RESULT_PART_VERIFY_FAILED;
+        rc = -PB_ERR;
+        pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
     }
 
-    pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
 }
 
@@ -699,12 +698,12 @@ static int cmd_stream_prep_buffer(void)
 
     if (stream_prep->size > (CONFIG_CMD_BUF_SIZE_KB*1024)) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
-        return -PB_RESULT_NO_MEMORY;
+        return -PB_ERR_MEM;
     }
 
     if (stream_prep->id > 1) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
-        return -PB_RESULT_NO_MEMORY;
+        return -PB_ERR_MEM;
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
@@ -726,7 +725,7 @@ static int cmd_stream_final(void)
     if (sdrv->map_release)
         rc = sdrv->map_release(sdrv, stream_map);
     else
-        rc = PB_RESULT_OK;
+        rc = PB_OK;
 
     pb_wire_init_result(&result, error_to_wire(rc));
 
@@ -749,7 +748,7 @@ static int part_resize(uint8_t *part_uu, size_t blocks)
     }
 
     if (stream_drv->map_resize == NULL) {
-        rc = -PB_RESULT_NOT_SUPPORTED;
+        rc = -PB_ERR_NOT_IMPLEMENTED;
         goto err_out;
     }
 
@@ -761,7 +760,7 @@ static int part_resize(uint8_t *part_uu, size_t blocks)
     }
 
     if (pb_storage_resize(stream_drv, stream_map, blocks) != 0) {
-        rc = -PB_RESULT_INVALID_ARGUMENT;
+        rc = -PB_ERR_INVALID_ARGUMENT;
     }
 
 err_release_out:
