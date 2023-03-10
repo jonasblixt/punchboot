@@ -161,11 +161,11 @@ int pb_storage_get_part(uint8_t *uuid,
                         struct pb_storage_map **part_out,
                         struct pb_storage_driver **drv_out)
 {
-    int rc = -PB_ERR;
+    int rc = -PB_ERR_PART_NOT_FOUND;
 
     for (struct pb_storage_driver *drv = drivers; drv; drv = drv->next)
     {
-        rc = -PB_ERR;
+        rc = -PB_ERR_PART_NOT_FOUND;
 
         struct pb_storage_map *entries = (struct pb_storage_map *) drv->map_data;
 

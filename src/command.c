@@ -151,6 +151,10 @@ static int error_to_wire(int error_code)
             return -PB_RESULT_INVALID_ARGUMENT;
         case -PB_ERR_INVALID_COMMAND:
             return -PB_RESULT_INVALID_COMMAND;
+        case -PB_ERR_PART_NOT_FOUND:
+            return -PB_RESULT_NOT_FOUND;
+        case -PB_ERR_PART_NOT_BOOTABLE:
+            return -PB_RESULT_PART_NOT_BOOTABLE;
         default:
             return -PB_RESULT_ERROR;
     }
@@ -285,7 +289,7 @@ static int cmd_bpak_read(void)
 
 static int cmd_auth(void)
 {
-    int rc;
+    int rc = -PB_ERR_NOT_IMPLEMENTED;
 
     struct pb_command_authenticate *auth_cmd = \
         (struct pb_command_authenticate *) cmd.request;
@@ -330,12 +334,12 @@ static int cmd_auth(void)
     UNUSED(rc);
 #endif
 
-    return PB_OK;
+    return rc;
 }
 
 static int cmd_stream_read(void)
 {
-    int rc;
+    int rc = -PB_ERR;
     struct pb_command_stream_read_buffer *stream_read = \
         (struct pb_command_stream_read_buffer *) cmd.request;
 
@@ -346,7 +350,8 @@ static int cmd_stream_read(void)
     /* Partition must be marked as dumpable, don't dump partitions that may contain sensitive data */
     if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_DUMPABLE)) {
         LOG_ERR("Partition may not be dumped");
-        pb_wire_init_result(&result, -PB_RESULT_ERROR);
+        rc = -PB_ERR_IO;
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -357,7 +362,8 @@ static int cmd_stream_read(void)
         LOG_ERR("Trying to read outside of partition");
         LOG_ERR("%llu > %zu", (stream_read->offset + \
                         stream_read->size), part_size);
-        pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
+        rc = -PB_ERR_IO;
+        pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
@@ -401,7 +407,7 @@ static int cmd_stream_write(void)
 
     if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_WRITABLE)) {
         LOG_ERR("Partition may not be written");
-        rc = -PB_ERR;
+        rc = -PB_ERR_IO;
         pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }

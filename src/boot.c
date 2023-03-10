@@ -595,7 +595,7 @@ static int load_boot_image_from_part(void)
     if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_BOOTABLE)) {
         uuid_unparse(active_uu, part_uu_str);
         LOG_ERR("Partition not bootable (%s)", part_uu_str);
-        return -PB_RESULT_PART_NOT_BOOTABLE;
+        return -PB_ERR_PART_NOT_BOOTABLE;
     }
 
     sdrv = stream_drv;
