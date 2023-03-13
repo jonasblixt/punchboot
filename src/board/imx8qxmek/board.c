@@ -32,6 +32,17 @@
 #include <uuid.h>
 #include <libfdt.h>
 
+#define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
+                         (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
+                         (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
+                         (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
+                         (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
+
+#define USDHC_CLK_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
+                             (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
+                             (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
+                             (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
+                             (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 struct fuse fuses[] =
 {
     IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
@@ -128,25 +139,20 @@ static int patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
 {
     const char *bootargs = NULL;
 
-    if (verbose_boot)
-    {
+    if (verbose_boot) {
         bootargs = "console=ttyLP0,115200  " \
                    "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ";
-    }
-    else
-    {
-        bootargs = "console=ttyLP0,115200  " \
-                   "quiet ";
+    } else {
+        bootargs = "console=ttyLP0,115200 quiet ";
     }
     return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 
 }
 
-int board_early_init(void *plat)
+static int usdhc_emmc_setup(struct imx8x_private *priv)
 {
     int rc;
     unsigned int rate;
-    struct imx8x_private *priv = IMX8X_PRIV(plat);
 
     sc_pm_set_resource_power_mode(priv->ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
     sc_pm_clock_enable(priv->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
@@ -161,10 +167,6 @@ int board_early_init(void *plat)
     rate = 200000000;
     sc_pm_set_clock_rate(priv->ipc, SC_R_SDHC_0, 2, &rate);
 
-    if (rate != 200000000) {
-        LOG_INFO("USDHC input clock %u Hz", rate);
-    }
-
     rc = sc_pm_clock_enable(priv->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
 
     if (rc != SC_ERR_NONE) {
@@ -172,22 +174,21 @@ int board_early_init(void *plat)
         return -PB_ERR;
     }
 
-    sc_pad_set(priv->ipc, SC_P_EMMC0_CLK, ESDHC_CLK_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_CMD, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA0, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA1, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA2, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA3, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA4, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA5, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA6, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA7, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_STROBE, ESDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_RESET_B, ESDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_CMD, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA0, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA1, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA2, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA3, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA4, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA5, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA6, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA7, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_STROBE, USDHC_PAD_CTRL);
+    sc_pad_set(priv->ipc, SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL);
 
     static const struct imx_usdhc_config cfg = {
         .base = 0x5B010000,
-        .clock_freq_hz = 200000000, // 200 MHz input clock
         .mmc_config = {
             .mode = MMC_BUS_MODE_HS200,
             .width = MMC_BUS_WIDTH_8BIT,
@@ -196,14 +197,20 @@ int board_early_init(void *plat)
         }
     };
 
-    rc = imx_usdhc_init(&cfg);
+    return imx_usdhc_init(&cfg, rate);
+}
+
+int board_early_init(void *plat)
+{
+    struct imx8x_private *priv = IMX8X_PRIV(plat);
+    int rc;
+
+    rc = usdhc_emmc_setup(priv);
 
     if (rc != PB_OK) {
-        LOG_DBG("usdhc init failed (%i)", rc);
+        LOG_ERR("usdhc init failed (%i)", rc);
         return rc;
     }
-
-    LOG_DBG("usdhc init complete");
 
     return PB_OK;
 }
@@ -230,8 +237,7 @@ bool board_force_command_mode(void *plat)
         usb_charger_detected = true;
     pb_clrbit32(1 << 2, 0x5b100000+0xe0);
 
-    if (usb_charger_detected)
-    {
+    if (usb_charger_detected) {
         LOG_INFO("USB Charger condition, entering bootloader");
     }
 

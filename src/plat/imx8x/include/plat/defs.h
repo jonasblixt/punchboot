@@ -37,18 +37,6 @@
 #define PADRING_DSE_SHIFT		0
 #define PADRING_DSE_MASK		(0x7U << PADRING_DSE_SHIFT)
 
-#define ESDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
-                         (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
-                         (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-                         (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
-                         (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
-
-#define ESDHC_CLK_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
-                             (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
-                             (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-                             (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) | \
-                             (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
-
 #define UART_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
             (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
             (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \

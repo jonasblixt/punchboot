@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/pb.h>
+#include <arch/arch.h>
 #include <pb/delay.h>
 #include <pb/mmio.h>
 #include <pb/mmc.h>
@@ -18,43 +19,55 @@
 #include "usdhc_private.h"
 
 static const struct imx_usdhc_config *usdhc;
+static unsigned int input_clock_hz;
 static struct  usdhc_adma2_desc tbl[1024] PB_ALIGN_4k;
+static bool bus_ddr_enable = false;
 
-static int usdhc_set_clk(unsigned int clk_hz)
+static int usdhc_set_bus_clock(unsigned int clk_hz)
 {
     int div = 1;
     int pre_div = 1;
+    unsigned int actual_clk_hz;
 
     LOG_DBG("Trying to set bus clock to %u kHz", clk_hz / 1000);
 
     if (clk_hz <= 0)
         return -PB_ERR_PARAM;
 
-    while (usdhc->clock_freq_hz / (16 * pre_div) > clk_hz && pre_div < 256)
+    while (input_clock_hz / (16 * pre_div) > clk_hz && pre_div < 256)
         pre_div *= 2;
 
-    while (usdhc->clock_freq_hz / div > clk_hz && div < 16)
+    while (input_clock_hz / div > clk_hz && div < 16)
         div++;
 
+    actual_clk_hz = input_clock_hz / (pre_div * div);
     pre_div >>= 1;
     div -= 1;
-    clk_hz = (pre_div << 8) | (div << 4);
+    uint16_t clk_reg = (pre_div << 8) | (div << 4);
 
     mmio_clrbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_CARD_CLKEN);
-    mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_CLOCK_MASK, clk_hz);
-    pb_delay_ms(10);
+    mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL,
+                       USDHC_SYSCTRL_CLOCK_MASK, clk_reg);
+
+    while (1) {
+        uint32_t pres_state = mmio_read_32(usdhc->base + USDHC_PRES_STATE);
+        if (pres_state & (1 << 3))
+            break;
+    }
+
     mmio_setbits_32(usdhc->base + USDHC_VEND_SPEC,
                    VENDSPEC_PER_CLKEN | VENDSPEC_CARD_CLKEN);
 
     pb_delay_us(100);
-
+    LOG_DBG("Actual bus rate = %d kHz", actual_clk_hz / 1000);
     return PB_OK;
 }
 
 static int usdhc_init(void)
 {
     unsigned int timeout = 10000;
-    LOG_DBG("base = %p", (void *) usdhc->base);
+    LOG_DBG("Base = %p, input clock = %u kHz", (void *) usdhc->base,
+                                               input_clock_hz / 1000);
     /* reset the controller */
     mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_RSTA);
 
@@ -74,15 +87,13 @@ static int usdhc_init(void)
     mmio_write_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_INIT);
     mmio_write_32(usdhc->base + USDHC_DLL_CTRL, 0);
 
-    /* Set the initial boot clock rate */
-    usdhc_set_clk(MMC_BOOT_CLK_RATE);
-    pb_delay_us(100);
-
     /* Enable interrupt status for all interrupts */
     mmio_write_32(usdhc->base + USDHC_INT_STATUS_EN, EMMC_INTSTATEN_BITS);
 
     /* configure as little endian */
-    mmio_write_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_LE);
+    mmio_write_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_LE |
+                                (2 << 8) |  /* ADMA 2, TODO: Defines */
+                                (1 << 27)); /* Burst length enabled for INCR */
 
     /* Set timeout to the maximum value */
     mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_TIMEOUT_MASK,
@@ -125,6 +136,7 @@ static int usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
         multiple = 1;
         /* for read op */
         /* fallthrough */
+    case MMC_CMD_SEND_TUNING_BLOCK_HS200:
     case MMC_CMD_READ_SINGLE_BLOCK:
     case MMC_CMD_SEND_EXT_CSD:
         mixctl |= MIXCTRL_DTDSEL;
@@ -141,7 +153,6 @@ static int usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
         break;
     }
 
-
     if (multiple) {
         mixctl |= MIXCTRL_MSBSEL;
         mixctl |= MIXCTRL_BCEN;
@@ -151,6 +162,9 @@ static int usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
     if (data) {
         xfertype |= XFERTYPE_DPSEL;
         mixctl |= MIXCTRL_DMAEN;
+        if (bus_ddr_enable) {
+            mixctl |= MIXCTRL_DDREN;
+        }
     }
 
     if (cmd->resp_type & MMC_RSP_PRESENT && cmd->resp_type != MMC_RSP_R2)
@@ -172,6 +186,12 @@ static int usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
     mmio_write_32(usdhc->base + USDHC_CMD_ARG, cmd->arg);
     mmio_clrsetbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DATMASK, mixctl);
     mmio_write_32(usdhc->base + XFERTYPE, xfertype);
+    /*
+     * TODO: Maybe have CONFIG_USDHC_EXTRA_DEBUG ? 
+    LOG_DBG("PROT_CTL = 0x%08x", mmio_read_32(usdhc->base + USDHC_PROT_CTRL));
+    LOG_DBG("MIXCTRL  = 0x%08x", mmio_read_32(usdhc->base + USDHC_MIX_CTRL));
+    LOG_DBG("XFERTYPE = 0x%08x", mmio_read_32(usdhc->base + XFERTYPE));
+    */
 
     /* Wait for the command done */
     do {
@@ -208,7 +228,10 @@ static int usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
 
     /* Wait until all of the blocks are transferred */
     if (data) {
-        flags = DATA_COMPLETE;
+        /* TODO: WAS 'DATA_COMPLETE', But 'DINT' is never set.
+         *  Investigate what's needed when using ADMA2, what's the
+         *  differance between 'TC' and 'DINT' */
+        flags = INTSTATEN_TC;
         do {
             state = mmio_read_32(usdhc->base + USDHC_INT_STATUS);
 
@@ -240,7 +263,7 @@ out:
     return err;
 }
 
-static int usdhc_set_ios(unsigned int clk_hz, enum mmc_bus_width width)
+static int usdhc_set_bus_width(enum mmc_bus_width width)
 {
     const char *bus_widths[] = {
         "1-Bit",
@@ -250,16 +273,23 @@ static int usdhc_set_ios(unsigned int clk_hz, enum mmc_bus_width width)
         "8-Bit DDR",
     };
 
-    LOG_DBG("Freq %i kHz, Width = %s", clk_hz/1000, bus_widths[width]);
-    usdhc_set_clk(clk_hz);
+    LOG_DBG("Width = %s", bus_widths[width]);
+    bus_ddr_enable = false;
 
-    if (width == MMC_BUS_WIDTH_4BIT)
+    if (width == MMC_BUS_WIDTH_4BIT) {
         mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK,
                   PROTCTRL_WIDTH_4);
-    else if (width == MMC_BUS_WIDTH_8BIT)
+    } else if (width == MMC_BUS_WIDTH_8BIT) {
         mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK,
                   PROTCTRL_WIDTH_8);
-
+    } else if (width == MMC_BUS_WIDTH_8BIT_DDR) {
+        mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK,
+                  PROTCTRL_WIDTH_8);
+        bus_ddr_enable = true;
+    } else {
+        LOG_ERR("Unsupported bus width");
+        return -1;
+    }
     return 0;
 }
 
@@ -272,8 +302,13 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     size_t n_descriptors = 0;
     uint32_t n_blocks = length / 512;
 
+/* TODO: KConfig debug option
     LOG_DBG("lba = %d, length = %zu, buf = %p",
             lba, length, (void *) buf);
+*/
+    if (buf && length) {
+        arch_clean_cache_range(buf, length);
+    }
 
     do {
         if (bytes_to_transfer > ADMA2_MAX_BYTES_PER_DESC)
@@ -299,37 +334,46 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
                            sizeof(struct  usdhc_adma2_desc) * n_descriptors);
 
     mmio_write_32(usdhc->base + USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t) tbl);
-
-    /* Set ADMA 2 transfer */
-    /* TODO: FIX Bit fields */
-    mmio_write_32(usdhc->base + USDHC_PROT_CTRL, 0x08800224);
-    mmio_write_32(usdhc->base + USDHC_BLK_ATT, 0x00000200 | (n_blocks << 16));
+    if (n_blocks > 0) {
+        mmio_write_32(usdhc->base + USDHC_BLK_ATT,
+                      0x00000200 | (uint16_t) (n_blocks << 16));
+    } else {
+        mmio_write_32(usdhc->base + USDHC_BLK_ATT, (1 << 16) | (uint16_t) length);
+    }
 
     return 0;
 }
 
 static int usdhc_read(unsigned int lba, size_t length, uintptr_t buf)
 {
+    /* All transfers are performed with ADMA2 */
+    if (length && buf) {
+        arch_invalidate_cache_range(buf, length);
+    }
     return 0;
 }
 
 static int usdhc_write(unsigned int lba, size_t length, uintptr_t buf)
 {
+    /* All transfers are performed with ADMA2, this function is not used */
     return 0;
 }
 
-int imx_usdhc_init(const struct imx_usdhc_config *cfg)
+int imx_usdhc_init(const struct imx_usdhc_config *cfg,
+                   unsigned int clk_hz)
 {
     static const struct mmc_hal hal = {
         .init = usdhc_init,
         .send_cmd = usdhc_send_cmd,
-        .set_ios = usdhc_set_ios,
+        .set_bus_clock = usdhc_set_bus_clock,
+        .set_bus_width = usdhc_set_bus_width,
         .prepare = usdhc_prepare,
         .read = usdhc_read,
         .write = usdhc_write,
     };
 
     usdhc = cfg;
+    input_clock_hz = clk_hz;
 
     return mmc_init(&hal, &cfg->mmc_config);
 }

@@ -28,6 +28,7 @@
 #define MMC_CMD_SET_BLOCKLEN            16
 #define MMC_CMD_READ_SINGLE_BLOCK       17
 #define MMC_CMD_READ_MULTIPLE_BLOCK     18
+#define MMC_CMD_SEND_TUNING_BLOCK_HS200 21
 #define MMC_CMD_SET_BLOCK_COUNT         23
 #define MMC_CMD_WRITE_SINGLE_BLOCK      24
 #define MMC_CMD_WRITE_MULTIPLE_BLOCK    25
@@ -37,7 +38,6 @@
 #define MMC_CMD_APP_CMD                 55
 #define MMC_CMD_SPI_READ_OCR            58
 #define MMC_CMD_SPI_CRC_ON_OFF          59
-#define MMC_CMD_SEND_TUNING_BLOCK_HS200    21
 #define SD_CMD_SEND_OP_COND                 41
 #define SD_CMD_SEND_SCR                 51
 #define SD_CMD_SET_BUS_WIDTH            6
@@ -179,8 +179,8 @@
 #define EXT_CSD_BUS_WIDTH_1    0    /* Card is in 1 bit mode */
 #define EXT_CSD_BUS_WIDTH_4    1    /* Card is in 4 bit mode */
 #define EXT_CSD_BUS_WIDTH_8    2    /* Card is in 8 bit mode */
-#define EXT_CSD_DDR_BUS_WIDTH_4    5    /* Card is in 4 bit DDR mode */
-#define EXT_CSD_DDR_BUS_WIDTH_8    6    /* Card is in 8 bit DDR mode */
+#define EXT_CSD_BUS_WIDTH_4_DDR    5    /* Card is in 4 bit DDR mode */
+#define EXT_CSD_BUS_WIDTH_8_DDR    6    /* Card is in 8 bit DDR mode */
 #define EXT_CSD_BUS_WIDTH_STROBE BIT(7)    /* Enhanced strobe mode */
 
 #define EXT_CSD_TIMING_BC    0    /* Backwards compatility */
@@ -347,8 +347,8 @@ enum mmc_bus_width
     MMC_BUS_WIDTH_1BIT = 0,
     MMC_BUS_WIDTH_4BIT = 1,
     MMC_BUS_WIDTH_8BIT = 2,
-    MMC_BUS_WIDTH_4BIT_DDR = 3,
-    MMC_BUS_WIDTH_8BIT_DDR = 4,
+    MMC_BUS_WIDTH_4BIT_DDR = 5,
+    MMC_BUS_WIDTH_8BIT_DDR = 6,
 };
 
 enum mmc_card_type
@@ -475,15 +475,16 @@ typedef uint32_t mmc_cmd_resp_t[4];
 typedef int (*mmc_init_t)(void);
 typedef int (*mmc_io_t)(unsigned int lba, size_t length, uintptr_t buf);
 
-typedef int (*mmc_set_ios_t)(unsigned int clk_hz,
-                             enum mmc_bus_width width);
+typedef int (*mmc_set_bus_clock_t)(unsigned int clk_hz);
+typedef int (*mmc_set_bus_width_t)(enum mmc_bus_width width);
 
 typedef int (*mmc_send_cmd_t)(const struct mmc_cmd *cmd,
                               mmc_cmd_resp_t result);
 struct mmc_hal {
     mmc_init_t init;
     mmc_send_cmd_t send_cmd;
-    mmc_set_ios_t set_ios;
+    mmc_set_bus_clock_t set_bus_clock;
+    mmc_set_bus_width_t set_bus_width;
     mmc_io_t prepare;
     mmc_io_t read;
     mmc_io_t write;
