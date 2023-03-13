@@ -31,6 +31,37 @@ static struct mmc_csd_emmc mmc_csd;
 static uint32_t scr[2] PB_ALIGN(16);
 static uint8_t mmc_ext_csd[512] PB_ALIGN(16);
 static struct sd_switch_status sd_switch_func_status;
+static uint8_t mmc_tuning_rsp[128] PB_ALIGN(16);
+
+static const uint8_t tuning_blk_pattern_4bit[] = {
+    0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
+    0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
+    0xff, 0xdf, 0xff, 0xdd, 0xff, 0xfb, 0xff, 0xfb,
+    0xbf, 0xff, 0x7f, 0xff, 0x77, 0xf7, 0xbd, 0xef,
+    0xff, 0xf0, 0xff, 0xf0, 0x0f, 0xfc, 0xcc, 0x3c,
+    0xcc, 0x33, 0xcc, 0xcf, 0xff, 0xef, 0xff, 0xee,
+    0xff, 0xfd, 0xff, 0xfd, 0xdf, 0xff, 0xbf, 0xff,
+    0xbb, 0xff, 0xf7, 0xff, 0xf7, 0x7f, 0x7b, 0xde,
+};
+
+static const uint8_t tuning_blk_pattern_8bit[] = {
+    0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00,
+    0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc, 0xcc,
+    0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff, 0xff,
+    0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee, 0xff,
+    0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd, 0xdd,
+    0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff, 0xbb,
+    0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff,
+    0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee, 0xff,
+    0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
+    0x00, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc,
+    0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff,
+    0xff, 0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee,
+    0xff, 0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd,
+    0xdd, 0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff,
+    0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff,
+    0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee,
+};
 
 static const unsigned char tran_speed_base[16] = {
     0, 10, 12, 13, 15, 20, 26, 30, 35, 40, 45, 52, 55, 60, 70, 80
@@ -56,7 +87,9 @@ static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type,
     struct mmc_cmd cmd;
     mmc_cmd_resp_t rsp;
 
+#ifdef CONFIG_MMC_DEBUG_CMDS
     LOG_DBG("idx %u, arg 0x%08x, 0x%x", cmd_idx, arg, resp_type);
+#endif
     memset(&cmd, 0, sizeof(cmd));
 
     cmd.idx = cmd_idx;
@@ -211,7 +244,7 @@ static int mmc_fill_device_info(void)
         mmc_dev_info.block_size = MMC_BLOCK_SIZE;
 
         ret = mmc_hal->prepare(0, sizeof(mmc_ext_csd),
-                                (uintptr_t)&mmc_ext_csd);
+                                (uintptr_t)mmc_ext_csd);
         if (ret != 0) {
             return ret;
         }
@@ -221,7 +254,7 @@ static int mmc_fill_device_info(void)
             return ret;
         }
 
-        ret = mmc_hal->read(0, sizeof(mmc_ext_csd), (uintptr_t)&mmc_ext_csd);
+        ret = mmc_hal->read(0, sizeof(mmc_ext_csd), (uintptr_t)mmc_ext_csd);
         if (ret != 0) {
             return ret;
         }
@@ -297,7 +330,10 @@ static int mmc_fill_device_info(void)
     }
 
     mmc_dev_info.max_bus_freq_hz *= 10000U;
-
+    /* TODO: emmc: This is only valid for backwards compatible mode,
+     *  This is not used for HS, HS200, HS400 etc. Probably remove
+     *  this for eMMC at least. Investigate how it's used for 
+     *  SD -cards */
     LOG_DBG("max_bus_freq_hz = %u", mmc_dev_info.max_bus_freq_hz);
     return 0;
 }
@@ -387,12 +423,15 @@ static int mmc_set_ext_csd(unsigned int ext_cmd, unsigned int value)
     return 0;
 }
 
-static int mmc_set_ios(unsigned int clk, enum mmc_bus_width bus_width)
+static int mmc_set_bus_clock(unsigned int clk_hz)
+{
+    return mmc_hal->set_bus_clock(clk_hz);
+}
+
+static int mmc_set_bus_width(enum mmc_bus_width bus_width)
 {
     int ret;
     enum mmc_bus_width width = bus_width;
-
-    LOG_DBG("mmc_card_type = %i", mmc_dev_info.mmc_card_type);
 
     if (mmc_dev_info.mmc_card_type != MMC_CARD_TYPE_EMMC) {
         if (width == MMC_BUS_WIDTH_8BIT) {
@@ -410,9 +449,10 @@ static int mmc_set_ios(unsigned int clk, enum mmc_bus_width bus_width)
         }
     } else {
         LOG_ERR("Wrong MMC type or spec version\n");
+        return -1;
     }
 
-    return mmc_hal->set_ios(clk, width);
+    return mmc_hal->set_bus_width(bus_width);
 }
 
 static int sd_switch(unsigned int mode, unsigned char group,
@@ -451,6 +491,11 @@ static int mmc_enumerate(void)
 
     if (rc != PB_OK)
         return rc;
+
+    rc = mmc_set_bus_clock(400*1000);
+    if (rc != 0) {
+        return rc;
+    }
 
     rc = mmc_reset_to_idle();
     if (rc != PB_OK) {
@@ -525,25 +570,55 @@ static int mmc_enumerate(void)
         }
     } while (rc != MMC_STATE_TRAN);
 
-/* TODO: Here we need to look at the requested bus mode */
+    switch (mmc_cfg->mode) {
+        case MMC_BUS_MODE_HS200:
+        {
+            LOG_DBG("Switching to HS200");
+            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT);
+            if (rc != 0) {
+                return rc;
+            }
 
-    /* Switch to hs timing */
+            /* Switch to HS200, 200 MHz */
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS200);
+            if (rc != PB_OK) {
+                LOG_ERR("Could not switch to HS200 timing");
+                return rc;
+            }
 
-    rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, 0x01);
-    if (rc != PB_OK) {
-        LOG_ERR("Could not switch to high speed timing");
-        return rc;
-    }
-
-    rc = mmc_set_ios(25*1000*1000, MMC_BUS_WIDTH_8BIT);
-    if (rc != 0) {
-        return rc;
+            rc = mmc_set_bus_clock(200*1000*1000);
+            if (rc != 0) {
+                return rc;
+            }
+        }
+        break;
+        default:
+            LOG_ERR("Unsupported mmc bus mode (%i)", mmc_cfg->mode);
+            return -PB_ERR_NOT_IMPLEMENTED;
     }
 
     rc = mmc_fill_device_info();
     if (rc != 0) {
         return rc;
     }
+
+    LOG_DBG("Got ext csd!");
+
+    size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 |
+            mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
+            mmc_ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
+            mmc_ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
+
+    LOG_INFO("%zu sectors, %zu kBytes",
+        sectors, sectors >> 1);
+    LOG_INFO("Partconfig: %x", mmc_ext_csd[EXT_CSD_PART_CONFIG]);
+    LOG_INFO("Boot partition size %u kB", mmc_ext_csd[EXT_CSD_BOOT_MULT] * 128);
+    LOG_INFO("RPMB partition size %u kB", mmc_ext_csd[EXT_CSD_RPMB_MULT] * 128);
+    LOG_INFO("HS timing: %u", mmc_ext_csd[EXT_CSD_HS_TIMING]);
+    LOG_INFO("Device type: 0x%08x", mmc_ext_csd[EXT_CSD_CARD_TYPE]);
+    LOG_INFO("Life time A (MLC) %x", mmc_ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A]);
+    LOG_INFO("Life time B (SLC) %x", mmc_ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B]);
+    LOG_INFO("Pre EOL %x", mmc_ext_csd[EXT_CSD_PRE_EOL_INFO]);
 
     if (is_sd_cmd6_enabled() &&
         (mmc_cfg->card_type == MMC_CARD_TYPE_SD_HC)) {
@@ -602,6 +677,7 @@ ssize_t mmc_part_size(enum mmc_part part)
 
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)
 {
+    int rc;
     if (!(cfg->mode > MMC_BUS_MODE_INVALID && cfg->mode < MMC_BUS_MODE_END) ||
         !(cfg->card_type > MMC_CARD_TYPE_INVALID && cfg->card_type < MMC_CARD_TYPE_END) ||
         (hal == NULL) ||
@@ -613,5 +689,13 @@ int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)
     mmc_cfg = cfg;
     mmc_dev_info.mmc_card_type = cfg->card_type;
 
-    return mmc_enumerate();
+    rc = mmc_enumerate();
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (mmc_cfg->card_type == MMC_CARD_TYPE_EMMC) {
+    }
+
+    return PB_OK;
 }
