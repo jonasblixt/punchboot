@@ -20,7 +20,7 @@
 
 static const struct imx_usdhc_config *usdhc;
 static unsigned int input_clock_hz;
-static struct  usdhc_adma2_desc tbl[1024] PB_ALIGN_4k;
+static struct  usdhc_adma2_desc tbl[512] PB_ALIGN_4k;
 static bool bus_ddr_enable = false;
 
 static int usdhc_set_bus_clock(unsigned int clk_hz)
@@ -183,16 +183,15 @@ static int usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
     xfertype |= XFERTYPE_CMD(cmd->idx);
 
     /* Send the command */
-    mmio_write_32(usdhc->base + USDHC_CMD_ARG, cmd->arg);
     mmio_clrsetbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DATMASK, mixctl);
+    mmio_write_32(usdhc->base + USDHC_CMD_ARG, cmd->arg);
     mmio_write_32(usdhc->base + XFERTYPE, xfertype);
     /*
-     * TODO: Maybe have CONFIG_USDHC_EXTRA_DEBUG ? 
+     * TODO: Maybe have CONFIG_USDHC_EXTRA_DEBUG ?  */
+    /*
     LOG_DBG("PROT_CTL = 0x%08x", mmio_read_32(usdhc->base + USDHC_PROT_CTRL));
     LOG_DBG("MIXCTRL  = 0x%08x", mmio_read_32(usdhc->base + USDHC_MIX_CTRL));
-    LOG_DBG("XFERTYPE = 0x%08x", mmio_read_32(usdhc->base + XFERTYPE));
-    */
-
+    LOG_DBG("XFERTYPE = 0x%08x", mmio_read_32(usdhc->base + XFERTYPE));*/
     /* Wait for the command done */
     do {
         state = mmio_read_32(usdhc->base + USDHC_INT_STATUS);
@@ -235,7 +234,7 @@ static int usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
         do {
             state = mmio_read_32(usdhc->base + USDHC_INT_STATUS);
 
-            if (state & DATA_ERR) {
+            if (state & (INTSTATEN_DTOE | DATA_ERR)) {
                 err = -PB_ERR_IO;
                 LOG_ERR("imx_usdhc mmc data state 0x%x", state);
                 goto out;
@@ -300,12 +299,24 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     size_t bytes_to_transfer = length;
     size_t chunk_length;
     size_t n_descriptors = 0;
-    uint32_t n_blocks = length / 512;
+    uint32_t n_blocks = 0;
 
-/* TODO: KConfig debug option
+    /* For now we don't support transfers of more than 512*0xffff bytes.
+     * This is because we set block size 512 in BLK_ATT which limits the block
+     * count portion of the register to 0xffff.
+     *
+     * Another hard limitation on transfer size is the number of allocated
+     * adma2 descriptors, which is now 512, which translates to ~32 MByte.
+     *
+     * */
+    if ((length / 512) > 0xffff) {
+        return -PB_ERR_IO;
+    }
+
+/* TODO: KConfig debug option */
     LOG_DBG("lba = %d, length = %zu, buf = %p",
             lba, length, (void *) buf);
-*/
+
     if (buf && length) {
         arch_clean_cache_range(buf, length);
     }
@@ -333,10 +344,13 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     arch_clean_cache_range((uintptr_t) tbl,
                            sizeof(struct  usdhc_adma2_desc) * n_descriptors);
 
+    LOG_DBG("Configured %u adma2 descriptors", n_descriptors);
+
     mmio_write_32(usdhc->base + USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t) tbl);
-    if (n_blocks > 0) {
+
+    if (length > 512) {
         mmio_write_32(usdhc->base + USDHC_BLK_ATT,
-                      0x00000200 | (uint16_t) (n_blocks << 16));
+                      0x00000200 | ((length / 512) << 16));
     } else {
         mmio_write_32(usdhc->base + USDHC_BLK_ATT, (1 << 16) | (uint16_t) length);
     }

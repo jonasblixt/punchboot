@@ -24,6 +24,7 @@ enum pb_errors {
     PB_ERR_BUF_TOO_SMALL,
     PB_ERR_ABORT,
     PB_ERR_PARAM,
+    PB_ERR_NOT_SUPPORTED,
 };
 
 #endif  // INCLUDE_PB_ERRORS_H_

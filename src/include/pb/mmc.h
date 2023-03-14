@@ -566,4 +566,7 @@ int mmc_part_switch(enum mmc_part part);
  */
 ssize_t mmc_part_size(enum mmc_part part);
 
+ssize_t mmc_user_part_size(void);
+int mmc_select_user(void);
+
 #endif
