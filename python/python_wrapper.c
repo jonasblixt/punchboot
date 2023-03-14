@@ -687,7 +687,7 @@ static PyObject* part_verify(PyObject*self, PyObject* args, PyObject *kwds)
         read_bytes = read(file_fd, chunk_buffer, 128 * 1024);
         if (read_bytes > 0) {
             mbedtls_sha256_update_ret(&sha256, chunk_buffer, read_bytes);
-            total_read = read_bytes;
+            total_read += read_bytes;
         }
     } while (read_bytes > 0 || (read_bytes == -1 && errno == EINTR));
     free(chunk_buffer);
