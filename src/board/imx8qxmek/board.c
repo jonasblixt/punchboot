@@ -14,11 +14,12 @@
 #include <pb/plat.h>
 #include <pb/usb.h>
 #include <pb/fuse.h>
-#include <pb/gpt.h>
+#include <pb/gpt_ptbl.h>
 #include <pb/board.h>
 #include <pb/storage.h>
 #include <pb/boot.h>
 #include <pb/delay.h>
+#include <pb/mmc.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/usdhc.h>
 #include <plat/defs.h>
@@ -200,6 +201,12 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
     return imx_usdhc_init(&cfg, rate);
 }
 
+/*
+ * TODO:
+ *  struct platform *plat;
+ *
+ *  struct imx8x_platform = container_of(plat, struct imx8x_platform, plat);
+ */
 int board_early_init(void *plat)
 {
     struct imx8x_private *priv = IMX8X_PRIV(plat);
@@ -210,6 +217,41 @@ int board_early_init(void *plat)
     if (rc != PB_OK) {
         LOG_ERR("usdhc init failed (%i)", rc);
         return rc;
+    }
+
+    rc = gpt_ptbl_init(bio_part_get_by_uu(UUID_1aad85a9_75cd_426d_8dc4_e9bdfeeb6875));
+
+    if (rc != PB_OK) {
+        LOG_ERR("GPT ptbl init failed (%i)", rc);
+        return rc;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        unsigned int ts_start = plat_get_us_tick();
+        const size_t bytes_to_read = 1024*1024*30;
+        rc = mmc_read(0, bytes_to_read, 0x95000000);
+        if (rc == 0) {
+            unsigned int ts_end = plat_get_us_tick();
+            printf("~%li MB/s\n\r", bytes_to_read / (ts_end-ts_start));
+        } else {
+            printf("Read failed (%i)\n\r", rc);
+        }
+    }
+
+    bio_dev_t root_a = bio_part_get_by_uu_str("c046ccd8-0f2e-4036-984d-76c14dc73992");
+
+    if (root_a < 0)
+        LOG_ERR("Could not get root a part");
+    else {
+        struct bpak_header hdr;
+        int lba = (bio_size(root_a) - sizeof(struct bpak_header)) / bio_block_size(root_a) - 1;
+        bio_read(root_a, lba, sizeof(struct bpak_header), (uintptr_t) &hdr);
+
+        if (bpak_valid_header(&hdr) == BPAK_OK) {
+            LOG_DBG("Read valid BPAK header!");
+        } else {
+            LOG_ERR("Bad magic: 0x%08x", hdr.magic);
+        }
     }
 
     return PB_OK;

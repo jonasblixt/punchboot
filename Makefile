@@ -82,11 +82,12 @@ src-y  += src/usb.c
 src-y  += src/mmc.c
 src-y  += src/wire.c
 #src-y  += src/command.c
-#src-y  += src/gpt.c
+src-y  += src/gpt_ptbl.c
 src-y  += src/fletcher.c
 src-y  += src/bpak.c
 src-y  += src/crc.c
 src-y  += src/asn1.c
+src-y  += src/bio.c
 
 # UUID lib
 src-y  += src/uuid/pack.c
