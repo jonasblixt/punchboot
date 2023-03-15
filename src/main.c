@@ -43,23 +43,12 @@ void pb_main(void)
 #ifdef CONFIG_ENABLE_WATCHDOG
     plat_wdog_init();
 #endif
-#ifdef __NOPE
+
     rc = plat_crypto_init();
 
     if (rc != PB_OK)
     {
         LOG_ERR("Could not initialize crypto");
-        goto run_command_mode;
-    }
-
-    pb_timestamp_end();
-    pb_timestamp_begin("storage");
-
-    rc = pb_storage_init();
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not initialize storage");
         goto run_command_mode;
     }
 
@@ -107,6 +96,5 @@ void pb_main(void)
 
 run_command_mode:
     pb_command_run();
-#endif
     plat_reset();
 }

@@ -1,16 +1,16 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#ifndef PLAT_IMX_USDHC_H
-#define PLAT_IMX_USDHC_H
+#ifndef DRIVERS_MMC_IMX_USDHC
+#define DRIVERS_MMC_IMX_USDHC
 
-#include <pb/mmc.h>
+#include <drivers/mmc/mmc_core.h>
 
 struct imx_usdhc_config {
     uintptr_t base;             /*!< Base address of USDHC controller */
@@ -28,4 +28,4 @@ struct imx_usdhc_config {
 int imx_usdhc_init(const struct imx_usdhc_config *cfg,
                    unsigned int input_clock_hz);
 
-#endif  // PLAT_IMX_USDHC_H
+#endif

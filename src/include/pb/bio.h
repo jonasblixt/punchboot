@@ -13,30 +13,91 @@
 #include <stdint.h>
 #include <uuid.h>
 
-/* Some well known UUID's */
+/**
+ * Block IO device flags
+ *
+ * These flags generally apply for the command mode interface, i.e. internally
+ * there is always full access to the device. BIO_FLAG_BOOTABLE begin the
+ * only exception.
+ *
+ * \def BIO_FLAG_BOOTABLE
+ * This is an acceptable boot device
+ *
+ * \dev BIO_FLAG_RFU0
+ * Reserved for future use
+ *
+ * \dev BIO_FLAG_WRITEABLE
+ * Write access
+ *
+ * \dev BIO_FLAG_RFU1
+ * Reserved for future use
+ *
+ * \dev BIO_FLAG_RFU2
+ * Reserved for future use
+ *
+ * \dev BIO_FLAG_VISIBLE
+ * Block device is visible
+ *
+ * \dev BIO_FLAG_READABLE
+ * Read access
+ */
 
-/* eMMC BOOT0 */
-#define UUID_9eef7544_bf68_4bf7_8678_da117cbccba8 (const unsigned char *) "\x9e\xef\x75\x44\xbf\x68\x4b\xf7\x86\x78\xda\x11\x7c\xbc\xcb\xa8"
-/* eMMC BOOT1 */
-#define UUID_4ee31690_0c9b_4d56_a6a6_e6d6ecfd4d54 (const unsigned char *) "\x4e\xe3\x16\x90\x0c\x9b\x4d\x56\xa6\xa6\xe6\xd6\xec\xfd\x4d\x54"
-/* eMMC USER */
-#define UUID_1aad85a9_75cd_426d_8dc4_e9bdfeeb6875 (const unsigned char *) "\x1a\xad\x85\xa9\x75\xcd\x42\x6d\x8d\xc4\xe9\xbd\xfe\xeb\x68\x75"
-/* eMMC RPMB */
-#define UUID_8d75d8b9_b169_4de6_bee0_48abdc95c408 (const unsigned char *) "\x8d\x75\xd8\xb9\xb1\x69\x4d\xe6\xbe\xe0\x48\xab\xdc\x95\xc4\x08"
+#define BIO_FLAG_BOOTABLE           BIT(0)
+#define BIO_FLAG_RFU1               BIT(1)
+#define BIO_FLAG_WRITABLE           BIT(2)
+#define BIO_FLAG_RFU3               BIT(3)
+#define BIO_FLAG_RFU4               BIT(4)
+#define BIO_FLAG_VISIBLE            BIT(5)
+#define BIO_FLAG_READABLE           BIT(6)
+#define BIO_FLAG_RFU7               BIT(7)
+#define BIO_FLAG_RFU8               BIT(8)
+#define BIO_FLAG_RFU9               BIT(9)
+#define BIO_FLAG_RFU10              BIT(10)
+#define BIO_FLAG_RFU11              BIT(11)
+#define BIO_FLAG_RFU12              BIT(12)
+#define BIO_FLAG_RFU13              BIT(13)
+#define BIO_FLAG_RFU14              BIT(14)
+#define BIO_FLAG_RFU15              BIT(15)
 
 typedef int bio_dev_t;
 typedef int (*bio_read_t)(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
 typedef int (*bio_write_t)(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
 typedef int (*bio_call_t)(bio_dev_t dev);
+typedef int (*bio_resize_call_t)(bio_dev_t dev, size_t length);
 
 /**
- * Allocate a new block device structure
+ * Allocate a new block device
  *
- * @return A pointer to a new block device struct or NULL on errors
+ * @param[in] first_lba First LBA
+ * @param[in] last_lba Last LBA
+ * @param[in] block_size Block size in bytes
+ * @param[in] uu Device UUID
+ * @param[in] description String description of device
+ *
+ * @return A new block device handle on success
+ *         -PB_ERR_MEM, When the block device pool is full
+ *         -PB_ERR_PARAM, On invalid lba's or block_size
  */
 bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
                        const uuid_t uu, const char *description);
 
+/**
+ * Allocate a new block device from a parent device
+ *
+ * This will inherit I/O callbacks and flags from the parent device
+ *
+ * @param[in] parent Parent block device
+ * @param[in] first_lba First LBA
+ * @param[in] last_lba Last LBA
+ * @param[in] block_size Block size in bytes
+ * @param[in] uu Device UUID
+ * @param[in] description String description of device
+ *
+ * @return A new block device handle on success
+ *         -PB_ERR_IO, On invalid parent device
+ *         -PB_ERR_MEM, When the block device pool is full
+ *         -PB_ERR_PARAM, On invalid lba's or block_size
+ */
 bio_dev_t bio_allocate_parent(bio_dev_t parent,
                               int first_lba,
                               int last_lba,
@@ -44,25 +105,278 @@ bio_dev_t bio_allocate_parent(bio_dev_t parent,
                               const uuid_t uu,
                               const char *description);
 
-bio_dev_t bio_part_get_by_uu(const uuid_t uu);
-bio_dev_t bio_part_get_by_uu_str(const char *uu_str);
+/**
+ * Check if a device handle is valid
+ *
+ * @return true if valid otherwise false
+ */
+bool bio_valid(bio_dev_t dev);
 
+/**
+ * Find block device by uuid
+ *
+ * @param[in] uu Block device UUID
+ *
+ * @return Block device handle on success
+ *         -PB_ERR_NOT_FOUND, If not device was found
+ */
+bio_dev_t bio_get_part_by_uu(const uuid_t uu);
+
+/**
+ * Find block device by uuid string
+ *
+ * @param[in] uu_str Block device UUID string
+ *
+ * @return Block device handle on success
+ *         -PB_ERR_NOT_FOUND, If not device was found
+ *         -PB_ERR_PARAM, Bad UUID string
+ */
+bio_dev_t bio_get_part_by_uu_str(const char *uu_str);
+
+/**
+ * Set I/O ops for device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] read Read callback function
+ * @param[in] write Write callback function
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM on invalid device handle
+ */
 int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
+
+/**
+ * Set asynchronous I/O ops for device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] read Read callback function
+ * @param[in] write Write callback function
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM on invalid device handle
+ */
 int bio_set_async_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
+
+/**
+ * Block device size in bytes
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return Size in bytes, on success
+ *        -PB_ERR_PARAM on invalid device handle
+ */
 ssize_t bio_size(bio_dev_t dev);
+
+/**
+ * Block device, block size in bytes
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return Block size in bytes, on success
+ *        -PB_ERR_PARAM on invalid device handle
+ */
 ssize_t bio_block_size(bio_dev_t dev);
 
+/**
+ * Get block device description string
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return Pointer to description string, on success
+ *         NULL, on errors
+ */
+const char * bio_get_description(bio_dev_t dev);
+
+/**
+ * Get HAL flags for device. The HAL flags are indended to be used
+ * by the underlying hardware for the block device. Normally the get/set
+ * function is only called by the low-level drivers.
+ *
+ * @param[in] dev Device handle
+ *
+ * @return Bit flags, on success,
+ *         -PB_ERR_PARAM, on bad device handle
+ */
 int bio_get_hal_flags(bio_dev_t dev);
+
+/**
+ * Set HAL flags for device.
+ *
+ * @param[in] dev Block device handle
+ * @param[in] flags Bit flags to set
+ *
+ * @return PB_OK, on success
+ *        -PB_ERR_PARAM, on bad device handle
+ */
 int bio_set_hal_flags(bio_dev_t dev, uint8_t flags);
 
+/**
+ * Get flags from block device
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return Flag bits, on success
+ *        -PB_ERR_PARAM, on bad device handle
+ */
 int bio_get_flags(bio_dev_t dev);
+
+/**
+ * Set flags on block device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] flags Flags to set
+ *
+ * @return PB_OK, on success
+ *        -PB_ERR_PARAM, on bad device handle
+ */
 int bio_set_flags(bio_dev_t dev, uint16_t flags);
 
+/**
+ * Get UUID of block device
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return UUID, on success
+ *         NULL, on errors
+ */
+const unsigned char * bio_get_uu(bio_dev_t dev);
+
+/**
+ * Get UUID of block device
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return First lba, on success
+ *         -PB_ERR_PARAM, on bad device handle
+ */
+int bio_get_first_block(bio_dev_t dev);
+
+/**
+ * Get UUID of block device
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return First lba, on success
+ *         -PB_ERR_PARAM, on bad device handle
+ */
+int bio_get_last_block(bio_dev_t dev);
+
+/**
+ * Read data from block device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] lba Start block to read from
+ * @param[in] length Length in bytes
+ * @param[out] buf Output buffer
+ *
+ * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying read function
+ *         -PB_ERR_PARAM, lba and/or length is out of range
+ *         -PB_ERR_IO, Driver I/O errors
+ *         -PB_TIMEOUT, Driver timeouts
+ */
 int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
+
+/**
+ * Write data to block device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] lba Start block to write to
+ * @param[in] length Length in bytes
+ * @param[in] buf Input buffer
+ *
+ * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying write function
+ *         -PB_ERR_PARAM, lba and/or length is out of range
+ *         -PB_ERR_IO, Driver I/O errors
+ *         -PB_TIMEOUT, Driverr timeouts
+ */
 int bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
 
+/**
+ * Starts an asynchronous read from block device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] lba Start block to read from
+ * @param[in] length Length in bytes
+ * @param[out] buf Output buffer
+ *
+ * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying read function
+ *         -PB_ERR_PARAM, lba and/or length is out of range
+ *         -PB_ERR_IO, Driver I/O errors
+ *         -PB_TIMEOUT, Driver timeouts
+ */
 int bio_async_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
+
+/**
+ * Starts an asynchronous write to a block device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] lba Start block to write to
+ * @param[in] length Length in bytes
+ * @param[in] buf Input buffer
+ *
+ * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying write function
+ *         -PB_ERR_PARAM, lba and/or length is out of range
+ *         -PB_ERR_IO, Driver I/O errors
+ *         -PB_TIMEOUT, Driver timeouts
+ */
 int bio_async_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
+
+/**
+ * Wait for asynchronous I/O to complete
+ *
+ * @param[in] dev Block device handle
+ * @param[in] lba Start block to write to
+ * @param[in] length Length in bytes
+ * @param[in] buf Input buffer
+ *
+ * @return -PB_ERR_IO, Driver I/O errors
+ *         -PB_TIMEOUT, Driver timeouts
+ */
 int bio_async_wait(bio_dev_t dev);
+
+/**
+ * This will run a callback on block devices
+ * that have a populated 'install_partition_table' callback.
+ *
+ * @return PB_OK, on success
+ *         -PB_ERR_IO, Driver I/O errors
+ *         -PB_TIMEOUT, Driver timeouts
+ */
+int bio_install_partition_tables(void);
+
+/**
+ * Resize partition
+ *
+ * @param[in] dev Block device handle
+ * @param[in] length New partition length in bytes
+ *
+ * @return PB_OK, on success
+ *        -PB_ERR_PARAM, on bad device device handle
+ *        -PB_ERR_IO, Driver I/O errors
+ *        -PB_TIMEOUT, Driver timeouts
+ *        -PB_ERR_NOT_SUPPORTED, if the underlaying device does not support this op
+ */
+int bio_resize_part(bio_dev_t dev, size_t length);
+
+/**
+ * Sets the partition install callback for 'dev'
+ *
+ * @param[in] dev Block device handle
+ * @param[in] cb Callback function
+ *
+ * @return PB_OK, on success
+ *        -PB_ERR_PARAM, on bad device device handle
+ */
+int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb);
+
+/**
+ * Set the partition resize callback for 'dev'
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return PB_OK, on success
+ *        -PB_ERR_PARAM, on bad device device handle
+ */
+int bio_set_resize_cb(bio_dev_t dev, bio_resize_call_t cb);
 
 #endif

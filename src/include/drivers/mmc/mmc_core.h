@@ -12,6 +12,15 @@
 
 #include <pb/utils.h>
 
+/* eMMC BOOT0 */
+#define UUID_9eef7544_bf68_4bf7_8678_da117cbccba8 (const unsigned char *) "\x9e\xef\x75\x44\xbf\x68\x4b\xf7\x86\x78\xda\x11\x7c\xbc\xcb\xa8"
+/* eMMC BOOT1 */
+#define UUID_4ee31690_0c9b_4d56_a6a6_e6d6ecfd4d54 (const unsigned char *) "\x4e\xe3\x16\x90\x0c\x9b\x4d\x56\xa6\xa6\xe6\xd6\xec\xfd\x4d\x54"
+/* eMMC USER */
+#define UUID_1aad85a9_75cd_426d_8dc4_e9bdfeeb6875 (const unsigned char *) "\x1a\xad\x85\xa9\x75\xcd\x42\x6d\x8d\xc4\xe9\xbd\xfe\xeb\x68\x75"
+/* eMMC RPMB */
+#define UUID_8d75d8b9_b169_4de6_bee0_48abdc95c408 (const unsigned char *) "\x8d\x75\xd8\xb9\xb1\x69\x4d\xe6\xbe\xe0\x48\xab\xdc\x95\xc4\x08"
+
 /* MMC Commands */
 #define MMC_CMD_GO_IDLE_STATE           0
 #define MMC_CMD_SEND_OP_COND            1
@@ -565,8 +574,5 @@ int mmc_part_switch(enum mmc_part part);
  * @return Partition size in bytes or a negative number on error
  */
 ssize_t mmc_part_size(enum mmc_part part);
-
-ssize_t mmc_user_part_size(void);
-int mmc_select_user(void);
 
 #endif

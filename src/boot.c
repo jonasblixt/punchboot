@@ -1,8 +1,7 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,6 +16,7 @@
 #include <pb/plat.h>
 #include <pb/crc.h>
 #include <pb/timestamp.h>
+#include <pb/bio.h>
 #include <libfdt.h>
 #include <uuid.h>
 #include <bpak/bpak.h>
@@ -33,12 +33,11 @@ static uint8_t signature[512] PB_SECTION_NO_INIT PB_ALIGN_4k;
 static size_t signature_sz;
 static uint8_t hash[PB_HASH_MAX_LENGTH];
 static struct pb_boot_state boot_state, boot_state_backup;
-static struct pb_storage_map *primary_map, *backup_map;
-static struct pb_storage_driver *sdrv;
 static struct pb_result result;
 static uuid_t active_uu;
+static bio_dev_t primary_part, backup_part;
 
-typedef int (*pb_image_read_t) (void *buf, size_t size, void *private);
+typedef int (*pb_image_read_t) (size_t size, void *private, uintptr_t buf);
 typedef int (*pb_image_result_t) (int rc, void *private);
 
 static int check_header(void)
@@ -262,7 +261,7 @@ static int image_load(pb_image_read_t read_f,
 
             uintptr_t addr = ((*load_addr) + offset);
 
-            rc = read_f((void *) addr, chunk_size, priv);
+            rc = read_f(chunk_size, priv, addr);
 
             if (rc != PB_OK)
                 break;
@@ -304,10 +303,9 @@ static int image_load(pb_image_read_t read_f,
     return rc;
 }
 
-static int ram_load_read(void *buf, size_t size, void *private)
+static int ram_load_read(size_t length, void *private, uintptr_t buf)
 {
-    LOG_DBG("Read %zu bytes", size);
-    return plat_transport_read(buf, size);
+    return plat_transport_read((void *) buf, length);
 }
 
 static int ram_load_result(int rc, void *private)
@@ -318,24 +316,15 @@ static int ram_load_result(int rc, void *private)
 
 struct fs_load_private
 {
-    struct pb_storage_driver *sdrv;
-    struct pb_storage_map *map;
-    size_t block_offset;
+    bio_dev_t dev;
+    size_t lba_offset;
 };
 
-static int fs_load_read(void *buf, size_t size, void *private)
+static int fs_load_read(size_t length, void *private, uintptr_t buf)
 {
     struct fs_load_private *priv = (struct fs_load_private *) private;
-    int rc;
-    size_t blocks = size / priv->sdrv->block_size;
-
-    LOG_DBG("Read %zu blocks", blocks);
-
-    rc = pb_storage_read(priv->sdrv, priv->map, buf,
-                            blocks, priv->block_offset);
-
-    priv->block_offset += blocks;
-    return rc;
+    priv->lba_offset += length / 512; // TODO: Consider different block-sizes and non-aligned length
+    return bio_read(priv->dev, priv->lba_offset, length, buf);
 }
 
 static int pb_boot_state_validate(struct pb_boot_state *state)
@@ -377,14 +366,13 @@ static int pb_boot_state_commit(void)
                                 sizeof(struct pb_boot_state));
     boot_state.crc = crc;
 
-    rc = pb_storage_write(sdrv, primary_map, &boot_state,
-                       (sizeof(struct pb_boot_state) / sdrv->block_size), 0);
-
+    rc = bio_write(primary_part, 0, sizeof(struct pb_boot_state),
+                    (uintptr_t) &boot_state);
     if (rc != PB_OK)
         goto config_commit_err;
 
-    rc = pb_storage_write(sdrv, backup_map, &boot_state,
-                       (sizeof(struct pb_boot_state) / sdrv->block_size), 0);
+    rc = bio_write(backup_part, 0, sizeof(struct pb_boot_state),
+                    (uintptr_t) &boot_state);
 
 config_commit_err:
     if (rc != PB_OK) {
@@ -402,8 +390,20 @@ static int pb_boot_state_init(void)
     bool primary_state_ok = false;
     bool backup_state_ok = false;
 
-    rc = pb_storage_read(sdrv, primary_map, &boot_state,
-                       (sizeof(struct pb_boot_state) / sdrv->block_size), 0);
+    primary_part = bio_get_part_by_uu(UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e);
+
+    if (primary_part < 0) {
+        LOG_ERR("Primary boot state partition not found");
+    }
+
+    backup_part = bio_get_part_by_uu(UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee);
+
+    if (backup_part < 0) {
+        LOG_ERR("Backup boot state partition not found");
+    }
+
+    (void) bio_read(primary_part, 0, sizeof(struct pb_boot_state),
+                    (uintptr_t) &boot_state);
 
     rc = pb_boot_state_validate(&boot_state);
 
@@ -414,8 +414,8 @@ static int pb_boot_state_init(void)
         primary_state_ok = false;
     }
 
-    (void) pb_storage_read(sdrv, backup_map, &boot_state_backup,
-                       (sizeof(struct pb_boot_state) / sdrv->block_size), 0);
+    (void) bio_read(backup_part, 0, sizeof(struct pb_boot_state),
+                    (uintptr_t) &boot_state_backup);
 
     rc = pb_boot_state_validate(&boot_state_backup);
 
@@ -451,8 +451,6 @@ int pb_boot_init(void)
 {
     int rc;
     const char *active_uu_str;
-    uuid_t primary_uu;
-    uuid_t backup_uu;
     const struct pb_boot_config *boot_config = board_boot_config();
 
     rc = plat_early_boot();
@@ -462,23 +460,6 @@ int pb_boot_init(void)
         return PB_OK;
     } else if (rc < 0) {
         LOG_ERR("Boot early cb error (%i)", rc);
-        return rc;
-    }
-
-    uuid_parse(boot_config->primary_state_part_uuid, primary_uu);
-    uuid_parse(boot_config->backup_state_part_uuid, backup_uu);
-
-    rc = pb_storage_get_part(primary_uu, &primary_map, &sdrv);
-
-    if (rc != PB_OK) {
-        LOG_ERR("Could not find primary state partition");
-        return rc;
-    }
-
-    rc = pb_storage_get_part(backup_uu, &backup_map, &sdrv);
-
-    if (rc != PB_OK) {
-        LOG_ERR("Could not find backup state partition");
         return rc;
     }
 
@@ -578,43 +559,36 @@ int pb_boot_init(void)
 static int load_boot_image_from_part(void)
 {
     int rc;
-    struct pb_storage_driver *stream_drv;
-    struct pb_storage_map *stream_map;
+    bio_dev_t boot_device;
+    struct fs_load_private fs_priv;
+    uint16_t boot_device_flags;
     char part_uu_str[37];
 
-    rc = pb_storage_get_part(active_uu,
-                             &stream_map,
-                             &stream_drv);
+    boot_device = bio_get_part_by_uu(active_uu);
 
-    if (rc != PB_OK) {
-        uuid_unparse(active_uu, part_uu_str);
-        LOG_ERR("Could not find partition (%s)", part_uu_str);
-        return rc;
+    if (boot_device < 0) {
+        LOG_ERR("Could not find boot partition (%i)", boot_device);
+        return boot_device;
     }
 
-    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_BOOTABLE)) {
+    boot_device_flags = bio_get_flags(boot_device);
+
+    fs_priv.dev = boot_device;
+    fs_priv.lba_offset = 0;
+
+    if (!(boot_device_flags & BIO_FLAG_BOOTABLE)) {
         uuid_unparse(active_uu, part_uu_str);
         LOG_ERR("Partition not bootable (%s)", part_uu_str);
         return -PB_ERR_PART_NOT_BOOTABLE;
     }
 
-    sdrv = stream_drv;
-    struct pb_storage_map *map = stream_map;
+    int header_lba = (bio_size(boot_device) - sizeof(struct bpak_header)) / bio_block_size(boot_device) - 1;
 
-    size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
-    size_t block_offset = map->no_of_blocks - blocks;
-
-    rc = pb_storage_read(sdrv, map, &header,
-                            blocks, block_offset);
+    rc = bio_read(boot_device, header_lba, sizeof(struct bpak_header),
+                  (uintptr_t) &header);
 
     if (rc != PB_OK)
         return rc;
-
-    struct fs_load_private fs_priv;
-
-    fs_priv.sdrv = sdrv;
-    fs_priv.map = map;
-    fs_priv.block_offset = 0;
 
     return image_load(fs_load_read, NULL,
                          CONFIG_LOAD_FS_MAX_CHUNK_KB*1024,

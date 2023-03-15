@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,10 +14,10 @@
 #include <pb/usb.h>
 #include <pb/io.h>
 #include <pb/board.h>
-#include <pb/gpt.h>
 #include <pb/boot.h>
 #include <pb/command.h>
 #include <pb/delay.h>
+#include <pb/bio.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
@@ -29,10 +29,9 @@ static struct pb_result result PB_SECTION_NO_INIT PB_ALIGN_4k;
 static bool authenticated = false;
 static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] PB_SECTION_NO_INIT PB_ALIGN_4k;
 static enum pb_slc slc;
-static struct pb_storage_map *stream_map;
-static struct pb_storage_driver *stream_drv;
 static uint8_t hash[PB_HASH_MAX_LENGTH];
 static uint8_t device_uuid[16];
+static bio_dev_t block_dev;
 
 #ifdef CONFIG_AUTH_METHOD_TOKEN
 static int auth_token(uint8_t *device_uu,
@@ -141,7 +140,7 @@ static int error_to_wire(int error_code)
             return -PB_RESULT_MEM_ERROR;
         case -PB_ERR_IO:
             return -PB_RESULT_IO_ERROR;
-        case -PB_ERR_FILE_NOT_FOUND:
+        case -PB_ERR_NOT_FOUND:
             return -PB_RESULT_NOT_FOUND;
         case -PB_ERR_NOT_AUTHENTICATED:
             return -PB_RESULT_NOT_AUTHENTICATED;
@@ -219,55 +218,23 @@ static int cmd_bpak_read(void)
 
     LOG_DBG("Read bpak");
 
-    rc = pb_storage_get_part(read_cmd->uuid,
-                             &stream_map,
-                             &stream_drv);
+    bio_dev_t dev = bio_get_part_by_uu(read_cmd->uuid);
 
-    if (rc != PB_OK) {
+    if (dev < 0) {
         LOG_ERR("Could not find partition");
-        pb_wire_init_result(&result, error_to_wire(rc));
-        return rc;
+        pb_wire_init_result(&result, error_to_wire(dev));
+        return dev;
     }
 
-    struct pb_storage_driver *sdrv = stream_drv;
-    struct pb_storage_map *map = stream_map;
+    int header_lba = (bio_size(dev) - sizeof(struct bpak_header)) / bio_block_size(dev);
 
-    size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
+    LOG_DBG("Reading bpak header at lba %i", header_lba);
 
-    if (blocks > map->no_of_blocks) {
-        pb_wire_init_result(&result, -PB_RESULT_ERROR);
-        return rc;
-    }
-
-    size_t block_offset = map->no_of_blocks - blocks;
-
-    if (sdrv->map_request) {
-        rc = sdrv->map_request(sdrv, stream_map);
-
-        if (rc != PB_OK) {
-            pb_wire_init_result(&result, error_to_wire(rc));
-            return rc;
-        }
-    }
-
-    LOG_DBG("Reading, block offset: %zu", block_offset);
-
-    rc = pb_storage_read(sdrv, map, buffer,
-                            blocks, block_offset);
+    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), (uintptr_t) &buffer);
 
     if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
-        sdrv->map_release(sdrv, stream_map);
         return rc;
-    }
-
-    if (sdrv->map_release) {
-        rc = sdrv->map_release(sdrv, stream_map);
-
-        if (rc != PB_OK) {
-            pb_wire_init_result(&result, error_to_wire(rc));
-            return rc;
-        }
     }
 
     rc = bpak_valid_header((struct bpak_header *) buffer);
@@ -347,46 +314,25 @@ static int cmd_stream_read(void)
                                         stream_read->offset,
                                         stream_read->size);
 
-    /* Partition must be marked as dumpable, don't dump partitions that may contain sensitive data */
-    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_DUMPABLE)) {
-        LOG_ERR("Partition may not be dumped");
-        rc = -PB_ERR_IO;
-        pb_wire_init_result(&result, error_to_wire(rc));
-        return rc;
+    if (!(bio_get_flags(block_dev) & BIO_FLAG_READABLE)) {
+        LOG_ERR("Partition may not be read");
+        pb_wire_init_result(&result, -PB_RESULT_IO_ERROR);
+        return -1;
     }
 
-    size_t part_size = stream_map->no_of_blocks *
-                         stream_drv->block_size;
+    size_t start_lba = (stream_read->offset / bio_block_size(block_dev));
 
-    if ((stream_read->offset + stream_read->size) > part_size) {
-        LOG_ERR("Trying to read outside of partition");
-        LOG_ERR("%llu > %zu", (stream_read->offset + \
-                        stream_read->size), part_size);
-        rc = -PB_ERR_IO;
-        pb_wire_init_result(&result, error_to_wire(rc));
-        return rc;
-    }
+    LOG_DBG("Reading %u bytes at lba offset %zu", stream_read->size,
+                                                   start_lba);
 
-    size_t blocks = (stream_read->size / stream_drv->block_size);
-    size_t block_offset = (stream_read->offset / stream_drv->block_size);
-
-    if (stream_read->size % stream_drv->block_size)
-        blocks++;
-
-    LOG_DBG("Reading %zu blocks at offset %zu", blocks, block_offset);
-
-    uint8_t *bfr = ((uint8_t *) buffer) +
+    uintptr_t bfr = ((uintptr_t) buffer) +
               ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_read->buffer_id);
 
-    LOG_DBG("Buffer: %p", bfr);
-    rc = pb_storage_read(stream_drv, stream_map, bfr, blocks,
-                            block_offset);
-
-    pb_wire_init_result(&result, error_to_wire(rc));
+    rc = bio_read(block_dev, start_lba, stream_read->size, bfr);
 
     if (rc == PB_OK) {
         plat_transport_write(&result, sizeof(result));
-        rc = plat_transport_write(bfr, stream_read->size);
+        rc = plat_transport_write((void *) bfr, stream_read->size);
         pb_wire_init_result(&result, error_to_wire(rc));
     }
 
@@ -399,45 +345,25 @@ static int cmd_stream_write(void)
     struct pb_command_stream_write_buffer *stream_write = \
         (struct pb_command_stream_write_buffer *) cmd.request;
 
-    struct pb_storage_driver *sdrv = stream_drv;
-
     LOG_DBG("Stream write %u, %llu, %i", stream_write->buffer_id,
                                         stream_write->offset,
                                         stream_write->size);
 
-    if (!(stream_map->flags & PB_STORAGE_MAP_FLAG_WRITABLE)) {
+    if (!(bio_get_flags(block_dev) & BIO_FLAG_WRITABLE)) {
         LOG_ERR("Partition may not be written");
         rc = -PB_ERR_IO;
         pb_wire_init_result(&result, error_to_wire(rc));
         return rc;
     }
 
-    size_t part_size = stream_map->no_of_blocks *
-                         stream_drv->block_size;
+    size_t start_lba = (stream_write->offset / bio_block_size(block_dev));
 
-    if ((stream_write->offset + stream_write->size) > part_size) {
-        LOG_ERR("Trying to write outside of partition");
-        LOG_ERR("%llu > %zu", (stream_write->offset + \
-                        stream_write->size), part_size);
-        rc = -PB_ERR_IO;
-        pb_wire_init_result(&result, error_to_wire(rc));
-        return rc;
-    }
+    LOG_DBG("Writing %u bytes to lba offset %zu", stream_write->size, start_lba);
 
-    size_t blocks = (stream_write->size / sdrv->block_size);
-    size_t block_offset = (stream_write->offset / sdrv->block_size);
-
-    if (stream_write->size % sdrv->block_size)
-        blocks++;
-
-    LOG_DBG("Writing %zu blocks to offset %zu", blocks, block_offset);
-
-    uint8_t *bfr = ((uint8_t *) buffer) +
+    uintptr_t bfr = ((uintptr_t) buffer) +
               ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_write->buffer_id);
 
-    LOG_DBG("Buffer: %p", bfr);
-    rc = pb_storage_write(sdrv, stream_map, bfr, blocks,
-                            block_offset);
+    rc = bio_write(block_dev, start_lba, stream_write->size, bfr);
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
@@ -447,40 +373,20 @@ static int cmd_part_verify(void)
 {
     int rc;
     int buffer_id = 0;
-
+    size_t chunk_len;
     struct pb_command_verify_part *verify_cmd = \
         (struct pb_command_verify_part *) cmd.request;
+    size_t bytes_to_verify = verify_cmd->size;
+    int lba_offset = 0;
 
     LOG_DBG("Verify part");
 
-    rc = pb_storage_get_part(verify_cmd->uuid,
-                             &stream_map,
-                             &stream_drv);
+    block_dev = bio_get_part_by_uu(verify_cmd->uuid);
 
-    if (rc != PB_OK) {
+    if (block_dev < 0) {
         LOG_ERR("Could not find partition");
-        pb_wire_init_result(&result, error_to_wire(rc));
-        return rc;
-    }
-
-    struct pb_storage_driver *sdrv = stream_drv;
-    struct pb_storage_map *map = stream_map;
-
-    size_t blocks_to_check = verify_cmd->size / sdrv->block_size;
-
-    if (verify_cmd->size % sdrv->block_size)
-        blocks_to_check++;
-
-    size_t blocks = sizeof(struct bpak_header) / sdrv->block_size;
-    size_t block_offset = map->no_of_blocks - blocks;
-
-    if (sdrv->map_request) {
-        rc = sdrv->map_request(sdrv, stream_map);
-
-        if (rc != PB_OK) {
-            pb_wire_init_result(&result, error_to_wire(rc));
-            return rc;
-        }
+        pb_wire_init_result(&result, error_to_wire(block_dev));
+        return block_dev;
     }
 
     rc = plat_hash_init(PB_HASH_SHA256);
@@ -492,12 +398,14 @@ static int cmd_part_verify(void)
 
     if (verify_cmd->bpak) {
         LOG_DBG("Bpak header");
-        rc = pb_storage_read(sdrv, map, buffer,
-                                blocks, block_offset);
+
+        int header_lba = (bio_size(block_dev) - sizeof(struct bpak_header)) / bio_block_size(block_dev);
+
+        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header),
+                        (uintptr_t) buffer);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
-            sdrv->map_request(sdrv, stream_map);
             return rc;
         }
 
@@ -508,31 +416,27 @@ static int cmd_part_verify(void)
             return rc;
         }
 
-        blocks_to_check -= blocks;
+        bytes_to_verify -= sizeof(struct bpak_header);
     }
 
-    LOG_DBG("Reading %zu blocks", blocks_to_check);
-    block_offset = 0;
+    LOG_DBG("Reading %zu bytes", bytes_to_verify);
 
-    while (blocks_to_check) {
-        blocks = blocks_to_check>(CONFIG_CMD_BUF_SIZE_KB/2)? \
-                   (CONFIG_CMD_BUF_SIZE_KB/2):blocks_to_check;
+    while (bytes_to_verify) {
+        chunk_len = bytes_to_verify>(CONFIG_CMD_BUF_SIZE_KB*1024)? \
+                   (CONFIG_CMD_BUF_SIZE_KB*1024):bytes_to_verify;
 
         buffer_id = !buffer_id;
 
-        rc = pb_storage_read(sdrv, map, buffer[buffer_id],
-                                blocks, block_offset);
+        rc = bio_read(block_dev, lba_offset, chunk_len,
+                                    (uintptr_t) buffer[buffer_id]);
 
         if (rc != PB_OK) {
             LOG_ERR("read error");
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
-
-            if (sdrv->map_release)
-                sdrv->map_release(sdrv, stream_map);
             break;
         }
 
-        rc = plat_hash_update(buffer[buffer_id], (blocks*sdrv->block_size));
+        rc = plat_hash_update(buffer[buffer_id], chunk_len);
 
         if (rc != PB_OK) {
             LOG_ERR("Hash update error");
@@ -540,8 +444,8 @@ static int cmd_part_verify(void)
             break;
         }
 
-        blocks_to_check -= blocks;
-        block_offset += blocks;
+        bytes_to_verify -= chunk_len;
+        lba_offset += chunk_len / bio_block_size(block_dev);
     }
 
     if (rc != PB_OK)
@@ -584,25 +488,19 @@ static int cmd_part_tbl_read(void)
 
     int entries = 0;
 
-    for (struct pb_storage_driver *sdrv = pb_storage_get_drivers();
-            sdrv; sdrv = sdrv->next) {
-        pb_storage_foreach_part(sdrv->map_data, part) {
-            if (!part->valid_entry)
-                break;
+    for (bio_dev_t dev = 0; bio_valid(dev); dev++) {
+        if (!(bio_get_flags(dev) & BIO_FLAG_VISIBLE))
+            continue;
 
-            if (!(part->flags & PB_STORAGE_MAP_FLAG_VISIBLE))
-                continue;
+        uuid_copy(result_tbl[entries].uuid, bio_get_uu(dev));
+        strncpy(result_tbl[entries].description, bio_get_description(dev),
+                    sizeof(result_tbl[entries].description) - 1);
+        result_tbl[entries].first_block = bio_get_first_block(dev);
+        result_tbl[entries].last_block = bio_get_last_block(dev);
+        result_tbl[entries].block_size = bio_block_size(dev);
+        result_tbl[entries].flags = (bio_get_flags(dev) & 0xFF);
 
-            memcpy(result_tbl[entries].uuid, part->uuid, 16);
-            memcpy(result_tbl[entries].description, part->description,
-                            sizeof(part->description));
-            result_tbl[entries].first_block = part->first_block;
-            result_tbl[entries].last_block = part->last_block;
-            result_tbl[entries].block_size = sdrv->block_size;
-            result_tbl[entries].flags = (part->flags & 0xFF);
-
-            entries++;
-        }
+        entries++;
     }
 
     tbl_read_result.no_of_entries = entries;
@@ -673,24 +571,17 @@ static int cmd_slc_read(void)
 
 static int cmd_stream_init(void)
 {
-    int rc;
-
     struct pb_command_stream_initialize *stream_init = \
             (struct pb_command_stream_initialize *) cmd.request;
-    char uuid[37];
-    uuid_unparse(stream_init->part_uuid, uuid);
-    LOG_DBG("Stream init %s", uuid);
 
-    rc = pb_storage_get_part(stream_init->part_uuid,
-                             &stream_map,
-                             &stream_drv);
+    block_dev = bio_get_part_by_uu(stream_init->part_uuid);
 
-    if (rc == PB_OK && stream_drv->map_request)
-        rc = stream_drv->map_request(stream_drv, stream_map);
+    if (block_dev < 0)
+        pb_wire_init_result(&result, error_to_wire(block_dev));
+    else
+        pb_wire_init_result(&result, 0);
 
-    pb_wire_init_result(&result, error_to_wire(rc));
-
-    return rc;
+    return block_dev;
 }
 
 static int cmd_stream_prep_buffer(void)
@@ -724,55 +615,18 @@ static int cmd_stream_prep_buffer(void)
 
 static int cmd_stream_final(void)
 {
-    int rc;
-    LOG_DBG("Stream final");
-    struct pb_storage_driver *sdrv = stream_drv;
-
-    if (sdrv->map_release)
-        rc = sdrv->map_release(sdrv, stream_map);
-    else
-        rc = PB_OK;
-
-    pb_wire_init_result(&result, error_to_wire(rc));
-
-    return rc;
+    pb_wire_init_result(&result, PB_RESULT_OK);
+    return PB_OK;
 }
 
-static int part_resize(uint8_t *part_uu, size_t blocks)
+static int part_resize(const uuid_t uu, size_t blocks)
 {
-    int rc;
-    char part_uu_str[37];
+    bio_dev_t dev = bio_get_part_by_uu(uu);
 
-    rc = pb_storage_get_part(part_uu,
-                             &stream_map,
-                             &stream_drv);
+    if (dev < 0)
+        return dev;
 
-    if (rc != PB_OK) {
-        uuid_unparse(part_uu, part_uu_str);
-        LOG_ERR("Could not find partition (%s)", part_uu_str);
-        return rc;
-    }
-
-    if (stream_drv->map_resize == NULL) {
-        rc = -PB_ERR_NOT_IMPLEMENTED;
-        goto err_out;
-    }
-
-    rc = stream_drv->map_request(stream_drv, stream_map);
-
-    if (rc != PB_OK) {
-        LOG_ERR("map_request failed");
-        goto err_release_out;
-    }
-
-    if (pb_storage_resize(stream_drv, stream_map, blocks) != 0) {
-        rc = -PB_ERR_INVALID_ARGUMENT;
-    }
-
-err_release_out:
-    stream_drv->map_release(stream_drv, stream_map);
-err_out:
-    return rc;
+    return bio_resize_part(dev, blocks * bio_block_size(dev));
 }
 
 static int pb_command_parse(void)
@@ -841,7 +695,7 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_PART_TBL_INSTALL:
         {
-            rc = pb_storage_install_default();
+            rc = bio_install_partition_tables();
             pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;

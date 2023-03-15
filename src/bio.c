@@ -17,6 +17,8 @@ struct bio_device {
     bio_read_t async_read;
     bio_write_t async_write;
     bio_call_t async_wait;
+    bio_call_t install_partition_table;
+    bio_resize_call_t resize_partition;
     bool valid;
 };
 
@@ -30,7 +32,7 @@ static int check_dev(bio_dev_t dev)
     if (dev < 0 || dev > CONFIG_BIO_POOL_SIZE)
         return -PB_ERR_PARAM;
     if (bio_pool[dev].valid == false)
-        return -PB_ERR_IO;
+        return -PB_ERR_PARAM;
 
     return PB_OK;
 }
@@ -92,6 +94,13 @@ bio_dev_t bio_allocate_parent(bio_dev_t parent,
     return new;
 }
 
+bool bio_valid(bio_dev_t dev)
+{
+    if (check_dev(dev) != 0)
+        return false;
+    return bio_pool[dev].valid;
+}
+
 int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write)
 {
     int rc;
@@ -127,15 +136,39 @@ ssize_t bio_block_size(bio_dev_t dev)
     return bio_pool[dev].block_sz;
 }
 
+static int check_lba_range(bio_dev_t dev, int lba, size_t length)
+{
+    if (lba < 0)
+        return -1;
+
+    size_t n_blocks = length / bio_pool[dev].block_sz;
+    if (length % bio_pool[dev].block_sz)
+        n_blocks++;
+
+    if ((bio_pool[dev].first_lba + lba + n_blocks - 1) > bio_pool[dev].last_lba) {
+        return -1;
+    }
+
+    if (lba < 0)
+        return -1;
+
+    return PB_OK;
+}
+
 int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
 {
     int rc;
+
+    LOG_DBG("%i, %i %zu %p", dev, lba, length, (void *) buf);
 
     rc = check_dev(dev);
     if (rc != PB_OK)
         return rc;
     if (bio_pool[dev].read == NULL)
         return -PB_ERR_NOT_SUPPORTED;
+    if (check_lba_range(dev, lba, length) != 0)
+        return -PB_ERR_PARAM;
+
     return bio_pool[dev].read(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
 
@@ -148,6 +181,9 @@ int bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf)
         return rc;
     if (bio_pool[dev].write == NULL)
         return -PB_ERR_NOT_SUPPORTED;
+    if (check_lba_range(dev, lba, length) != 0)
+        return -PB_ERR_IO;
+
     return bio_pool[dev].write(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
 
@@ -173,7 +209,58 @@ int bio_set_hal_flags(bio_dev_t dev, uint8_t flags)
     return PB_OK;
 }
 
-bio_dev_t bio_part_get_by_uu(const uuid_t uu)
+int bio_get_flags(bio_dev_t dev)
+{
+    int rc;
+
+    rc = check_dev(dev);
+    if (rc != PB_OK)
+        return rc;
+    return (bio_pool[dev].flags & 0xffff);
+}
+
+int bio_set_flags(bio_dev_t dev, uint16_t flags)
+{
+    int rc;
+
+    rc = check_dev(dev);
+    if (rc != PB_OK)
+        return rc;
+    bio_pool[dev].flags &= ~(0x0000FFFF);
+    bio_pool[dev].flags |= (flags & 0xFFFF);
+    return PB_OK;
+}
+
+
+const char * bio_get_description(bio_dev_t dev)
+{
+    if (check_dev(dev) != PB_OK)
+        return NULL;
+    return bio_pool[dev].description;
+}
+
+const unsigned char * bio_get_uu(bio_dev_t dev)
+{
+    if (check_dev(dev) != PB_OK)
+        return NULL;
+    return bio_pool[dev].uu;
+}
+
+int bio_get_last_block(bio_dev_t dev)
+{
+    if (check_dev(dev) != PB_OK)
+        return -PB_ERR_PARAM;
+    return bio_pool[dev].last_lba;
+}
+
+int bio_get_first_block(bio_dev_t dev)
+{
+    if (check_dev(dev) != PB_OK)
+        return -PB_ERR_PARAM;
+    return bio_pool[dev].first_lba;
+}
+
+bio_dev_t bio_get_part_by_uu(const uuid_t uu)
 {
     for (unsigned int i = 0; i < CONFIG_BIO_POOL_SIZE; i++) {
         if (!bio_pool[i].valid)
@@ -183,13 +270,55 @@ bio_dev_t bio_part_get_by_uu(const uuid_t uu)
         }
     }
 
-    return -PB_ERR_PARAM;
+    return -PB_ERR_NOT_FOUND;
 }
 
-bio_dev_t bio_part_get_by_uu_str(const char *uu_str)
+bio_dev_t bio_get_part_by_uu_str(const char *uu_str)
 {
     uuid_t uu;
     if (uuid_parse(uu_str, uu) != 0)
         return -PB_ERR_PARAM;
-    return bio_part_get_by_uu(uu);
+    return bio_get_part_by_uu(uu);
+}
+
+int bio_install_partition_tables(void)
+{
+    int rc;
+
+    for (bio_dev_t dev = 0; bio_valid(dev); dev++) {
+        if (bio_pool[dev].install_partition_table) {
+            rc = bio_pool[dev].install_partition_table(dev);
+
+            if (rc < 0)
+                return rc;
+        }
+    }
+
+    return PB_OK;
+}
+
+int bio_resize_part(bio_dev_t dev, size_t length)
+{
+    if (check_dev(dev) != PB_OK)
+        return -PB_ERR_PARAM;
+    if (bio_pool[dev].resize_partition)
+        return bio_pool[dev].resize_partition(dev, length);
+    else
+        return -PB_ERR_NOT_SUPPORTED;
+}
+
+int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb)
+{
+    if (check_dev(dev) != PB_OK)
+        return -PB_ERR_PARAM;
+    bio_pool[dev].install_partition_table = cb;
+    return PB_OK;
+}
+
+int bio_set_resize_cb(bio_dev_t dev, bio_resize_call_t cb)
+{
+    if (check_dev(dev) != PB_OK)
+        return -PB_ERR_PARAM;
+    bio_pool[dev].resize_partition = cb;
+    return PB_OK;
 }

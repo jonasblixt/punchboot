@@ -13,10 +13,10 @@
 #include <arch/arch.h>
 #include <pb/delay.h>
 #include <pb/mmio.h>
-#include <pb/mmc.h>
 
-#include "usdhc.h"
-#include "usdhc_private.h"
+#include <drivers/mmc/mmc_core.h>
+#include <drivers/mmc/imx_usdhc.h>
+#include "imx_usdhc_private.h"
 
 static const struct imx_usdhc_config *usdhc;
 static unsigned int input_clock_hz;
@@ -299,7 +299,6 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     size_t bytes_to_transfer = length;
     size_t chunk_length;
     size_t n_descriptors = 0;
-    uint32_t n_blocks = 0;
 
     /* For now we don't support transfers of more than 512*0xffff bytes.
      * This is because we set block size 512 in BLK_ATT which limits the block
@@ -344,7 +343,7 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     arch_clean_cache_range((uintptr_t) tbl,
                            sizeof(struct  usdhc_adma2_desc) * n_descriptors);
 
-    LOG_DBG("Configured %u adma2 descriptors", n_descriptors);
+    LOG_DBG("Configured %zu adma2 descriptors", n_descriptors);
 
     mmio_write_32(usdhc->base + USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t) tbl);
 
