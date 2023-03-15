@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -17,16 +16,18 @@
 #include <xlat_tables.h>
 #include <uuid.h>
 #include <plat/imx8x/plat.h>
-#include <plat/imx/lpuart.h>
 #include <plat/imx/gpt.h>
-#include <plat/imx/ehci.h>
-#include <plat/imx/caam.h>
 #include <plat/sci/sci.h>
 #include <plat/sci/sci_ipc.h>
 #include <plat/sci/svc/seco/sci_seco_api.h>
 #include <plat/sci/svc/pm/sci_pm_api.h>
 #include <plat/imx8qx_pads.h>
 #include <plat/defs.h>
+
+#include <drivers/usb/imx_ehci.h>
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/uart/imx_lpuart.h>
+
 #include <board/config.h>
 
 #define LPCG_CLOCK_MASK         0x3U

@@ -16,11 +16,10 @@
 #include <pb/plat.h>
 #include <pb/crc.h>
 #include <pb/timestamp.h>
-#include <pb/bio.h>
 #include <libfdt.h>
 #include <uuid.h>
 #include <bpak/bpak.h>
-
+#include <drivers/block/bio.h>
 extern char _code_start, _code_end,
             _data_region_start, _data_region_end,
             _zero_region_start, _zero_region_end,
@@ -323,8 +322,9 @@ struct fs_load_private
 static int fs_load_read(size_t length, void *private, uintptr_t buf)
 {
     struct fs_load_private *priv = (struct fs_load_private *) private;
-    priv->lba_offset += length / 512; // TODO: Consider different block-sizes and non-aligned length
-    return bio_read(priv->dev, priv->lba_offset, length, buf);
+    int rc =  bio_read(priv->dev, priv->lba_offset, length, buf);
+    priv->lba_offset += length / bio_block_size(priv->dev); // TODO: Consider non-aligned length
+    return rc;
 }
 
 static int pb_boot_state_validate(struct pb_boot_state *state)
@@ -582,7 +582,7 @@ static int load_boot_image_from_part(void)
         return -PB_ERR_NOT_FOUND;
     }
 
-    int header_lba = (bio_size(boot_device) - sizeof(struct bpak_header)) / bio_block_size(boot_device) - 1;
+    int header_lba = (bio_size(boot_device) - sizeof(struct bpak_header)) / bio_block_size(boot_device);
 
     rc = bio_read(boot_device, header_lba, sizeof(struct bpak_header),
                   (uintptr_t) &header);

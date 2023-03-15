@@ -13,7 +13,6 @@
 #include <pb/arch.h>
 #include <pb/plat.h>
 #include <pb/timestamp.h>
-#include <pb/storage.h>
 #include <pb/command.h>
 #include <pb/boot.h>
 

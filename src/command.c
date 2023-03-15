@@ -11,17 +11,17 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/usb.h>
 #include <pb/io.h>
 #include <pb/board.h>
 #include <pb/boot.h>
 #include <pb/command.h>
 #include <pb/delay.h>
-#include <pb/bio.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
 #include <uuid.h>
+#include <drivers/usb/usb_core.h>
+#include <drivers/block/bio.h>
 
 extern struct bpak_keystore keystore_pb;
 static struct pb_command cmd PB_SECTION_NO_INIT PB_ALIGN_4k;
@@ -135,7 +135,7 @@ static int error_to_wire(int error_code)
         case -PB_SIGNATURE_ERROR:
             return -PB_RESULT_SIGNATURE_ERROR;
         case -PB_CHECKSUM_ERROR:
-            return -PB_CHECKSUM_ERROR;
+            return -PB_RESULT_ERROR;
         case -PB_ERR_MEM:
             return -PB_RESULT_MEM_ERROR;
         case -PB_ERR_IO:
@@ -447,7 +447,8 @@ static int cmd_part_verify(void)
 
 
     if (memcmp(hash, verify_cmd->sha256, 32) == 0) {
-        rc = PB_RESULT_OK;
+        rc = PB_OK;
+        pb_wire_init_result(&result, PB_RESULT_OK);
     } else {
 #if LOGLEVEL > 2
         printf("Expected hash:");
@@ -456,10 +457,10 @@ static int cmd_part_verify(void)
         printf("\n\r");
 #endif
         LOG_ERR("Verification failed");
-        rc = -PB_RESULT_PART_VERIFY_FAILED;
+        rc = PB_CHECKSUM_ERROR;
+        pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
     }
 
-    pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
 }
 

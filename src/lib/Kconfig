@@ -1,0 +1,52 @@
+menu "Library"
+
+config LIB_ZLIB_CRC
+    bool "Enable zlib CRC32 function"
+    default y
+
+config LIB_FLETCHER8
+    bool "Enable fletcher8 function"
+    default n
+
+config LIB_BPAK
+    bool "Enable BPAK library support"
+    default y
+
+config LIB_ASN1_HELPERS
+    bool "ASN.1 Helpers"
+    default y
+
+config LIB_FDT
+    bool "Device tree support"
+    default y
+
+config LIB_UUID
+    bool "UUID library"
+    default y
+
+config LIB_UUID3
+    depends on LIB_UUID
+    bool "Enable UUID3 function"
+    default y
+
+config LIB_BEARSSL
+    bool "Enable bearssl crypto library"
+    default n
+
+config LIB_XLAT_TBLS
+    bool "Enable MMU support library"
+    default y
+
+config LIB_XLAT_TBLS_ARMV7
+    bool "MMU armv7a"
+    depends on ARCH_ARMV7
+    select LIB_XLAT_TBLS
+    default y
+
+config LIB_XLAT_TBLS_ARMV8
+    bool "MMU armv8a"
+    depends on ARCH_ARMV8
+    select LIB_XLAT_TBLS
+    default y
+
+endmenu

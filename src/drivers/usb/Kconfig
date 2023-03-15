@@ -1,0 +1,12 @@
+menu "USB"
+
+config DRIVER_USB_DEVICE
+    bool "Enable core USB device support"
+    default y
+
+config DRIVER_IMX_EHCI
+    bool "i.MX EHCI USB controller"
+    depends on SOC_FAMILY_IMX
+    default y
+
+endmenu

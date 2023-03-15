@@ -12,13 +12,10 @@
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <pb/plat.h>
-#include <pb/usb.h>
 #include <pb/fuse.h>
 #include <pb/board.h>
-#include <pb/storage.h>
 #include <pb/boot.h>
 #include <pb/delay.h>
-#include <plat/imx/ehci.h>
 #include <plat/defs.h>
 #include <plat/sci/sci_ipc.h>
 #include <plat/sci/sci.h>
@@ -29,6 +26,8 @@
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/mmc/imx_usdhc.h>
+#include <drivers/usb/usb_core.h>
+#include <drivers/usb/imx_ehci.h>
 #include <plat/defs.h>
 #include <uuid.h>
 #include <libfdt.h>
@@ -235,6 +234,7 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
             .mode = MMC_BUS_MODE_HS200,
             .width = MMC_BUS_WIDTH_8BIT,
             .card_type = MMC_CARD_TYPE_EMMC,
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
             .flags = 0,
         }
     };
@@ -282,11 +282,24 @@ int board_early_init(void *plat)
         return rc;
     }
 
-    /* Clear all flags on user partition, since we don't want to expose this
-     * over the command mode interface
+    /* Clear all flags on user partition, since we don't want to expose the user
+     * partition over the command mode interface
      */
     bio_set_flags(user_part, 0);
-#ifdef __TEST
+
+    bio_dev_t boot0 = bio_get_part_by_uu(UUID_9eef7544_bf68_4bf7_8678_da117cbccba8);
+    bio_dev_t boot1 = bio_get_part_by_uu(UUID_4ee31690_0c9b_4d56_a6a6_e6d6ecfd4d54);
+
+    if (boot0 >= 0)
+        bio_set_flags(boot0, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
+    if (boot1 > 0)
+        bio_set_flags(boot1, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
+    bio_dev_t sys_a = bio_get_part_by_uu(UUID_2af755d8_8de5_45d5_a862_014cfa735ce0);
+    bio_set_flags(sys_a, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE);
+
+    bio_dev_t sys_b = bio_get_part_by_uu(UUID_c046ccd8_0f2e_4036_984d_76c14dc73992);
+    bio_set_flags(sys_b, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE);
+#ifdef __NOPE
     bio_dev_t root_a = bio_get_part_by_uu_str("c284387a-3377-4c0f-b5db-1bcbcff1ba1a");
 
     if (root_a < 0) {
@@ -295,21 +308,22 @@ int board_early_init(void *plat)
     }
 
     printf("\n\r--- Read test ---\n\r");
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 15; i++) {
         unsigned int ts_start = plat_get_us_tick();
-        const size_t bytes_to_read = 1024*1024*30;
-        bio_read(root_a, 0, bytes_to_read, 0x95000000);
+        const size_t bytes_to_read = SZ_MB(256);
+        rc = bio_read(root_a, 0, bytes_to_read, 0xa5000000);
         if (rc == 0) {
             unsigned int ts_end = plat_get_us_tick();
             printf("~%li MB/s\n\r", bytes_to_read / (ts_end-ts_start));
         } else {
             printf("Read failed (%i)\n\r", rc);
+            break;
         }
     }
 
     printf("\n\r--- Bpak Header test ---\n\r");
     struct bpak_header hdr;
-    int lba = (bio_size(root_a) - sizeof(struct bpak_header)) / bio_block_size(root_a) - 1;
+    int lba = (bio_size(root_a) - sizeof(struct bpak_header)) / bio_block_size(root_a);
     bio_read(root_a, lba, sizeof(struct bpak_header), (uintptr_t) &hdr);
 
     if (bpak_valid_header(&hdr) == BPAK_OK) {
