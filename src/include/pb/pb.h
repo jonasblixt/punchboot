@@ -96,6 +96,10 @@ enum pb_hash_algs
 #define membersof(array) (sizeof(array) / sizeof((array)[0]))
 #define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
 
+#define SZ_kB(x) ((size_t) (x) << 10)
+#define SZ_MB(x) ((size_t) (x) << 20)
+#define SZ_GB(x) ((size_t) (x) << 30)
+
 void pb_main(void);
 
 #endif  // INCLUDE_PB_PB_H_

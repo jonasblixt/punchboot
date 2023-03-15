@@ -15,6 +15,13 @@
 
 #define GPT_PART_NAME_MAX_SIZE 36
 
-int gpt_ptbl_init(bio_dev_t dev);
+struct gpt_part_table {
+    const unsigned char * uu;
+    const char * description;
+    size_t size;
+    bool valid;
+};
+
+int gpt_ptbl_init(bio_dev_t dev, const struct gpt_part_table *default_tbl);
 
 #endif  // INCLUDE_PB_GPT_H_

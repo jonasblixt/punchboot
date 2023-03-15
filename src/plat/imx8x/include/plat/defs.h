@@ -13,7 +13,6 @@
 #ifndef __ASSEMBLY__
 #include <pb/pb.h>
 #include <pb/io.h>
-#include <plat/imx/usdhc.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/lpuart.h>
 #include <plat/imx/caam.h>

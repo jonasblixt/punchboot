@@ -3,7 +3,6 @@ mainmenu "Punchboot configuration"
 source "src/arch/Kconfig"
 source "src/plat/Kconfig"
 source "src/arch/*/Kconfig"
-source "src/plat/*/Kconfig"
 
 menu "Generic options"
 
@@ -63,6 +62,10 @@ config STACK_SIZE_KB
 
 endmenu
 
+menu "Drivers"
+source "src/drivers/*/Kconfig"
+endmenu
+
 menu "Authentication"
 config AUTH
     bool "Enable command mode authentication"
@@ -106,8 +109,12 @@ config TRANSPORT_ENTER_BOARD_CB
 
 endmenu
 
+menu "Library functions"
+
 config LIB_UUID3
     bool "Enable UUID3 function"
 
 config BEARSSL
     bool "Enable bearssl crypto library"
+
+endmenu

@@ -16,8 +16,8 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/delay.h>
-#include <pb/mmc.h>
 #include <pb/bio.h>
+#include <drivers/mmc/mmc_core.h>
 
 #define MMC_BIO_FLAG_BOOT0 BIT(0)
 #define MMC_BIO_FLAG_BOOT1 BIT(1)
@@ -864,6 +864,12 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
 int mmc_part_switch(enum mmc_part part)
 {
     uint8_t value = 0;
+    const char *part_names[] = {
+       "User",
+       "Boot0",
+       "Boot1",
+       "RPMB",
+    };
 
     if (mmc_cfg->card_type != MMC_CARD_TYPE_EMMC)
         return -PB_ERR_NOT_SUPPORTED;
@@ -872,30 +878,27 @@ int mmc_part_switch(enum mmc_part part)
         case MMC_PART_BOOT0:
             /* Set boot0 R/W, boot1 as bootable */
             value = (2 << 3) | 0x01;
-            LOG_DBG("Switching to boot0");
         break;
         case MMC_PART_BOOT1:
             /* Set boot1 R/W, boot0 as bootable */
             value = (1 << 3) | 0x02;
-            LOG_DBG("Switching to boot1");
         break;
         case MMC_PART_RPMB:
             /* Enable RPMB access, set boot0 as bootable */
             value = (1 << 3) | 0x03;
-            LOG_DBG("Switching to RPMB");
         break;
         case MMC_PART_USER:
             /* Boot 0/1 RO, Boot0 bootable */
             value = (1 << 3);
-            LOG_DBG("Switching to user");
         break;
         default:
-            return PB_ERR;
+            return -PB_ERR_IO;
     }
 
     /* Switch active partition */
     if (value != mmc_current_part) {
         mmc_current_part = value;
+        LOG_DBG("Switching to %s", part_names[part]);
         return mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value);
     } else {
         return PB_OK;
@@ -928,16 +931,6 @@ ssize_t mmc_part_size(enum mmc_part part)
     }
 
     return 0;
-}
-
-ssize_t mmc_user_part_size(void)
-{
-    return mmc_part_size(MMC_PART_USER);
-}
-
-int mmc_select_user(void)
-{
-    return mmc_part_switch(MMC_PART_USER);
 }
 
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)

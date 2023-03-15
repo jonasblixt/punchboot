@@ -14,14 +14,11 @@
 #include <pb/plat.h>
 #include <pb/usb.h>
 #include <pb/fuse.h>
-#include <pb/gpt_ptbl.h>
 #include <pb/board.h>
 #include <pb/storage.h>
 #include <pb/boot.h>
 #include <pb/delay.h>
-#include <pb/mmc.h>
 #include <plat/imx/ehci.h>
-#include <plat/imx/usdhc.h>
 #include <plat/defs.h>
 #include <plat/sci/sci_ipc.h>
 #include <plat/sci/sci.h>
@@ -29,6 +26,9 @@
 #include <plat/imx8x/plat.h>
 #include <arch/armv8a/timer.h>
 #include <arch/arch_helpers.h>
+#include <drivers/mmc/mmc_core.h>
+#include <drivers/partition/gpt.h>
+#include <drivers/mmc/imx_usdhc.h>
 #include <plat/defs.h>
 #include <uuid.h>
 #include <libfdt.h>
@@ -67,65 +67,106 @@ struct fuse fuses[] =
     IMX8X_FUSE_END,
 };
 
-#define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
-                   PB_STORAGE_MAP_FLAG_VISIBLE)
-#ifdef __NOPE
-static struct pb_storage_map map[] =
+#define UUID_2af755d8_8de5_45d5_a862_014cfa735ce0 (const unsigned char *) "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62\x01\x4c\xfa\x73\x5c\xe0"
+#define UUID_c046ccd8_0f2e_4036_984d_76c14dc73992 (const unsigned char *) "\xc0\x46\xcc\xd8\x0f\x2e\x40\x36\x98\x4d\x76\xc1\x4d\xc7\x39\x92"
+#define UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a (const unsigned char *) "\xc2\x84\x38\x7a\x33\x77\x4c\x0f\xb5\xdb\x1b\xcb\xcf\xf1\xba\x1a"
+#define UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb (const unsigned char *) "\xac\x6a\x1b\x62\x7b\xd0\x46\x0b\x9e\x6a\x9a\x78\x31\xcc\xbf\xbb"
+#define UUID_4581af22_99e6_4a94_b821_b60c42d74758 (const unsigned char *) "\x45\x81\xaf\x22\x99\xe6\x4a\x94\xb8\x21\xb6\x0c\x42\xd7\x47\x58"
+#define UUID_da2ca04f_a693_4284_b897_3906cfa1eb13 (const unsigned char *) "\xda\x2c\xa0\x4f\xa6\x93\x42\x84\xb8\x97\x39\x06\xcf\xa1\xeb\x13"
+#define UUID_23477731_7e33_403b_b836_899a0b1d55db (const unsigned char *) "\x23\x47\x77\x31\x7e\x33\x40\x3b\xb8\x36\x89\x9a\x0b\x1d\x55\xdb"
+#define UUID_6ffd077c_32df_49e7_b11e_845449bd8edd (const unsigned char *) "\x6f\xfd\x07\x7c\x32\xdf\x49\xe7\xb1\x1e\x84\x54\x49\xbd\x8e\xdd"
+#define UUID_9697399d_e2da_47d9_8eb5_88daea46da1b (const unsigned char *) "\x96\x97\x39\x9d\xe2\xda\x47\xd9\x8e\xb5\x88\xda\xea\x46\xda\x1b"
+#define UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa (const unsigned char *) "\xc5\xb8\xb4\x1c\x0f\xb5\x49\x4d\x8b\x0e\xeb\xa4\x00\xe0\x75\xfa"
+#define UUID_39792364_d3e3_4013_ac51_caaea65e4334 (const unsigned char *) "\x39\x79\x23\x64\xd3\xe3\x40\x13\xac\x51\xca\xae\xa6\x5e\x43\x34"
+
+static const struct gpt_part_table gpt_tbl[]=
 {
-    PB_STORAGE_MAP("9eef7544-bf68-4bf7-8678-da117cbccba8",
-        "eMMC boot0", 2048, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | \
-                        PB_STORAGE_MAP_FLAG_STATIC_MAP),
-
-    PB_STORAGE_MAP("4ee31690-0c9b-4d56-a6a6-e6d6ecfd4d54",
-        "eMMC boot1", 2048, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT1 | \
-                        PB_STORAGE_MAP_FLAG_STATIC_MAP),
-
-    PB_STORAGE_MAP("8d75d8b9-b169-4de6-bee0-48abdc95c408",
-        "eMMC RPMB", 2048, PB_STORAGE_MAP_FLAG_VISIBLE | \
-                            PB_STORAGE_MAP_FLAG_EMMC_RPMB | \
-                            PB_STORAGE_MAP_FLAG_STATIC_MAP),
-
-    PB_STORAGE_MAP("2af755d8-8de5-45d5-a862-014cfa735ce0", "System A", 0xf000,
-            DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
-
-    PB_STORAGE_MAP("c046ccd8-0f2e-4036-984d-76c14dc73992", "System B", 0xf000,
-            DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
-
-    PB_STORAGE_MAP("c284387a-3377-4c0f-b5db-1bcbcff1ba1a", "Root A", 0x40000,
-            DEF_FLAGS),
-
-    PB_STORAGE_MAP("ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb", "Root B", 0x40000,
-            DEF_FLAGS),
-
-    PB_STORAGE_MAP("f5f8c9ae-efb5-4071-9ba9-d313b082281e", "PB State Primary",
-            1, PB_STORAGE_MAP_FLAG_VISIBLE),
-
-    PB_STORAGE_MAP("656ab3fc-5856-4a5e-a2ae-5a018313b3ee", "PB State Backup",
-            1, PB_STORAGE_MAP_FLAG_VISIBLE),
-
-    PB_STORAGE_MAP("4581af22-99e6-4a94-b821-b60c42d74758", "Root overlay A",
-                        0xf000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("da2ca04f-a693-4284-b897-3906cfa1eb13", "Root overlay B",
-                        0xf000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("23477731-7e33-403b-b836-899a0b1d55db", "RoT extension A",
-                        0x100, DEF_FLAGS),
-
-    PB_STORAGE_MAP("6ffd077c-32df-49e7-b11e-845449bd8edd", "RoT extension B",
-                        0x100, DEF_FLAGS),
-
-    PB_STORAGE_MAP("9697399d-e2da-47d9-8eb5-88daea46da1b", "System storage A",
-                        0x40000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "System storage B",
-                        0x40000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("39792364-d3e3-4013-ac51-caaea65e4334", "Mass storage",
-                        0x200000, DEF_FLAGS),
-    PB_STORAGE_MAP_END
+    {
+        .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
+        .description = "System A",
+        .size = SZ_MB(30),
+        .valid = true,
+    },
+    {
+        .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
+        .description = "System B",
+        .size = SZ_MB(30),
+        .valid = true,
+    },
+    {
+        .uu = UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a,
+        .description = "Root A",
+        .size = SZ_MB(128),
+        .valid = true,
+    },
+    {
+        .uu = UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb,
+        .description = "Root B",
+        .size = SZ_MB(128),
+        .valid = true,
+    },
+    {
+        .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
+        .description = "PB State Primary",
+        .size = 512,
+        .valid = true,
+    },
+    {
+        .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
+        .description = "PB State Backup",
+        .size = 512,
+        .valid = true,
+    },
+    {
+        .uu = UUID_4581af22_99e6_4a94_b821_b60c42d74758,
+        .description = "Root overlay A",
+        .size = SZ_MB(30),
+        .valid = true,
+    },
+    {
+        .uu = UUID_da2ca04f_a693_4284_b897_3906cfa1eb13,
+        .description = "Root overlay B",
+        .size = SZ_MB(30),
+        .valid = true,
+    },
+    {
+        .uu = UUID_23477731_7e33_403b_b836_899a0b1d55db,
+        .description = "RoT extension A",
+        .size = SZ_kB(128),
+        .valid = true,
+    },
+    {
+        .uu = UUID_6ffd077c_32df_49e7_b11e_845449bd8edd,
+        .description = "RoT extension B",
+        .size = SZ_kB(128),
+        .valid = true,
+    },
+    {
+        .uu = UUID_9697399d_e2da_47d9_8eb5_88daea46da1b,
+        .description = "System storage A",
+        .size = SZ_MB(128),
+        .valid = true,
+    },
+    {
+        .uu = UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa,
+        .description = "System storage B",
+        .size = SZ_MB(128),
+        .valid = true,
+    },
+    {
+        .uu = UUID_39792364_d3e3_4013_ac51_caaea65e4334,
+        .description = "Mass storage",
+        .size = SZ_GB(1),
+        .valid = true,
+    },
+    {
+        .uu = NULL,
+        .description = NULL,
+        .size = 0,
+        .valid = false,
+    },
 };
-#endif
+
 
 const uint32_t rom_key_map[] =
 {
@@ -212,6 +253,11 @@ int board_early_init(void *plat)
     struct imx8x_private *priv = IMX8X_PRIV(plat);
     int rc;
 
+    /* TODO: Rework and move the 'usdhc_emmc_setup' to imx8x platform,
+     * And make it optional through KConfig. This way the upstream platform
+     * code will cover most use cases and the special ones can still quite
+     * easily be imlemented on board level.
+     */
     rc = usdhc_emmc_setup(priv);
 
     if (rc != PB_OK) {
@@ -219,17 +265,40 @@ int board_early_init(void *plat)
         return rc;
     }
 
-    rc = gpt_ptbl_init(bio_part_get_by_uu(UUID_1aad85a9_75cd_426d_8dc4_e9bdfeeb6875));
+    bio_dev_t user_part = bio_get_part_by_uu(UUID_1aad85a9_75cd_426d_8dc4_e9bdfeeb6875);
+
+    if (user_part < 0)
+        return user_part;
+
+    /* Default flags for user eMMC user partition, these  will
+     * be inherited when/if a valid GPT partition table is found
+     */
+    bio_set_flags(user_part, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
+
+    rc = gpt_ptbl_init(user_part, gpt_tbl);
 
     if (rc != PB_OK) {
         LOG_ERR("GPT ptbl init failed (%i)", rc);
         return rc;
     }
 
+    /* Clear all flags on user partition, since we don't want to expose this
+     * over the command mode interface
+     */
+    bio_set_flags(user_part, 0);
+#ifdef __TEST
+    bio_dev_t root_a = bio_get_part_by_uu_str("c284387a-3377-4c0f-b5db-1bcbcff1ba1a");
+
+    if (root_a < 0) {
+        LOG_ERR("Could not get root a part (%i)", root_a);
+        return root_a;
+    }
+
+    printf("\n\r--- Read test ---\n\r");
     for (int i = 0; i < 3; i++) {
         unsigned int ts_start = plat_get_us_tick();
         const size_t bytes_to_read = 1024*1024*30;
-        rc = mmc_read(0, bytes_to_read, 0x95000000);
+        bio_read(root_a, 0, bytes_to_read, 0x95000000);
         if (rc == 0) {
             unsigned int ts_end = plat_get_us_tick();
             printf("~%li MB/s\n\r", bytes_to_read / (ts_end-ts_start));
@@ -238,22 +307,23 @@ int board_early_init(void *plat)
         }
     }
 
-    bio_dev_t root_a = bio_part_get_by_uu_str("c046ccd8-0f2e-4036-984d-76c14dc73992");
+    printf("\n\r--- Bpak Header test ---\n\r");
+    struct bpak_header hdr;
+    int lba = (bio_size(root_a) - sizeof(struct bpak_header)) / bio_block_size(root_a) - 1;
+    bio_read(root_a, lba, sizeof(struct bpak_header), (uintptr_t) &hdr);
 
-    if (root_a < 0)
-        LOG_ERR("Could not get root a part");
-    else {
-        struct bpak_header hdr;
-        int lba = (bio_size(root_a) - sizeof(struct bpak_header)) / bio_block_size(root_a) - 1;
-        bio_read(root_a, lba, sizeof(struct bpak_header), (uintptr_t) &hdr);
-
-        if (bpak_valid_header(&hdr) == BPAK_OK) {
-            LOG_DBG("Read valid BPAK header!");
-        } else {
-            LOG_ERR("Bad magic: 0x%08x", hdr.magic);
-        }
+    if (bpak_valid_header(&hdr) == BPAK_OK) {
+        LOG_DBG("Read valid BPAK header from block device %i (%s)",
+                    root_a, bio_get_description(root_a));
+    } else {
+        LOG_ERR("Bad magic: 0x%08x on %i (%s)", hdr.magic, root_a, bio_get_description(root_a));
     }
 
+    printf("\n\rTrying to read beyond the end of the partition\n\r");
+
+    rc = bio_read(root_a, bio_size(root_a) / 512 - 1, 513, (uintptr_t) &hdr);
+    LOG_DBG("%i", rc);
+#endif
     return PB_OK;
 }
 

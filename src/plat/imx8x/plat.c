@@ -18,7 +18,6 @@
 #include <uuid.h>
 #include <plat/imx8x/plat.h>
 #include <plat/imx/lpuart.h>
-#include <plat/imx/usdhc.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/caam.h>
@@ -232,13 +231,7 @@ int plat_early_init(void)
     /* Power up USB */
     pb_write32(0x00, 0x5B100000);
 
-    rc = board_early_init(&private);
-
-    if (rc != PB_OK)
-        return rc;
-
-
-    return rc;
+    return board_early_init(&private);
 }
 
 int plat_mmu_init(void)

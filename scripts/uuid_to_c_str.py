@@ -9,4 +9,4 @@ if __name__ == "__main__":
         sys.exit(1)
     uu = uuid.UUID(sys.argv[1])
     byte_string = "".join(f"\\x{b:02x}" for b in uu.bytes)
-    print("#define UUID_" + str(uu).replace("-", "_") + f" \"{byte_string}\"")
+    print("#define UUID_" + str(uu).replace("-", "_") + f" (const unsigned char *) \"{byte_string}\"")
