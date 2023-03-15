@@ -1,0 +1,8 @@
+menu "Crypto"
+
+config DRIVERS_IMX_CAAM
+    bool "i.MX CAAM driver"
+    depends on SOC_FAMILY_IMX
+    default y
+
+endmenu

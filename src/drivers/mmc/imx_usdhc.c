@@ -312,9 +312,10 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
         return -PB_ERR_IO;
     }
 
-/* TODO: KConfig debug option */
+#ifdef CONFIG_IMX_USDHC_XTRA_DEBUG
     LOG_DBG("lba = %d, length = %zu, buf = %p",
             lba, length, (void *) buf);
+#endif
 
     if (buf && length) {
         arch_clean_cache_range(buf, length);
@@ -343,8 +344,9 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     arch_clean_cache_range((uintptr_t) tbl,
                            sizeof(struct  usdhc_adma2_desc) * n_descriptors);
 
+#ifdef CONFIG_IMX_USDHC_XTRA_DEBUG
     LOG_DBG("Configured %zu adma2 descriptors", n_descriptors);
-
+#endif
     mmio_write_32(usdhc->base + USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t) tbl);
 
     if (length > 512) {
@@ -383,6 +385,7 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg,
         .prepare = usdhc_prepare,
         .read = usdhc_read,
         .write = usdhc_write,
+        .max_chunk_bytes = SZ_MB(30),
     };
 
     usdhc = cfg;

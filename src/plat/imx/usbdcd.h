@@ -11,7 +11,7 @@
 #define PLAT_IMX_USBDCD_H_
 
 #include <stdint.h>
-#include <pb/usb.h>
+#include <drivers/usb/usb_core.h>
 
 #define IMX_USBDCD_CONTROL (0x00)
 #define IMX_USBDCD_CLOCK   (0x04)
