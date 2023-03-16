@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,7 +12,6 @@
 #include <pb/pb.h>
 #include <pb/arch.h>
 #include <pb/plat.h>
-#include <pb/timestamp.h>
 #include <pb/command.h>
 #include <pb/boot.h>
 
@@ -21,70 +20,27 @@ void pb_main(void)
     int rc;
 
     arch_init();
-    rc = plat_early_init();
 
-    if (rc != PB_OK)
-        plat_reset();
+    rc = platform_init();
 
-    pb_timestamp_begin("Total");
-    pb_timestamp_begin("MMU");
-    rc = plat_mmu_init();
-
-    if (rc != PB_OK)
-        plat_reset();
-
-    pb_timestamp_end();
-    pb_timestamp_begin("Misc init");
-
-    printf("\n\rPB " PB_VERSION ", %s (%i)\n\r", plat_boot_reason_str(),
-                                                 plat_boot_reason());
-
-#ifdef CONFIG_ENABLE_WATCHDOG
-    plat_wdog_init();
-#endif
-
-    rc = plat_crypto_init();
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not initialize crypto");
+    if (rc != 0)
         goto run_command_mode;
-    }
-
-    pb_timestamp_end();
-    pb_timestamp_begin("SLC");
-
-    rc = plat_slc_init();
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not initialize SLC");
-        goto run_command_mode;
-    }
-
-    pb_timestamp_end();
-    pb_timestamp_begin("Boot init");
 
     rc = pb_boot_init();
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Could not load boot state");
         goto run_command_mode;
     }
 
-    pb_timestamp_end();
-
-    if (plat_force_command_mode())
-    {
+    if (plat_force_command_mode()) {
         LOG_INFO("Forced command mode");
         goto run_command_mode;
     }
 
     rc = pb_boot_load(PB_BOOT_SOURCE_BLOCK_DEV, NULL);
 
-    if (rc != PB_OK)
-    {
+    if (rc != PB_OK) {
         LOG_ERR("Could not boot");
         goto run_command_mode;
     }

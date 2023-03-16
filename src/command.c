@@ -627,16 +627,6 @@ static int cmd_stream_final(void)
     return PB_OK;
 }
 
-static int part_resize(const uuid_t uu, size_t blocks)
-{
-    bio_dev_t dev = bio_get_part_by_uu(uu);
-
-    if (dev < 0)
-        return dev;
-
-    return bio_resize_part(dev, blocks * bio_block_size(dev));
-}
-
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
@@ -701,9 +691,12 @@ static int pb_command_parse(void)
         case PB_CMD_BOOT_RAM:
             rc = cmd_boot_ram();
         break;
-        case PB_CMD_PART_TBL_INSTALL:
+        case PB_CMD_PART_TBL_INSTALL: /* Deprecated */
         {
-            rc = bio_install_partition_tables();
+            struct pb_command_install_part_table *install_cmd = \
+                (struct pb_command_install_part_table *) cmd.request;
+            rc = bio_install_partition_table(install_cmd->uu,
+                                             install_cmd->variant);
             pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
@@ -831,11 +824,9 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_PART_RESIZE:
         {
-            struct pb_command_resize_part *resize_cmd = \
-                (struct pb_command_resize_part *) cmd.request;
-            LOG_DBG("Resize partition");
-            rc = part_resize(resize_cmd->uuid, resize_cmd->blocks);;
-            pb_wire_init_result(&result, error_to_wire(rc));
+            /* Deprecated and no longer supported,
+             * Use partition table configration index instead. */
+            pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
         }
         break;
         case PB_CMD_BOOT_STATUS:

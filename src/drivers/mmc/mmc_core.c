@@ -712,13 +712,17 @@ static int mmc_enumerate(void)
     bio_dev_t d = bio_allocate(0,
                                mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1,
                                512,
-                               UUID_9eef7544_bf68_4bf7_8678_da117cbccba8,
+                               mmc_cfg->boot0_uu,
                                "eMMC BOOT0");
 
     if (d < 0)
         return d;
 
     rc = bio_set_hal_flags(d, MMC_BIO_FLAG_BOOT0);
+    if (rc < 0)
+        return rc;
+
+    rc = bio_set_flags(d, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
     if (rc < 0)
         return rc;
 
@@ -730,13 +734,17 @@ static int mmc_enumerate(void)
     d = bio_allocate(0,
                        mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1,
                        512,
-                       UUID_4ee31690_0c9b_4d56_a6a6_e6d6ecfd4d54,
+                       mmc_cfg->boot1_uu,
                        "eMMC BOOT1");
 
     if (d < 0)
         return d;
 
     rc = bio_set_hal_flags(d, MMC_BIO_FLAG_BOOT1);
+    if (rc < 0)
+        return rc;
+
+    rc = bio_set_flags(d, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
     if (rc < 0)
         return rc;
 
@@ -748,13 +756,18 @@ static int mmc_enumerate(void)
     d = bio_allocate(0,
                        sectors - 1,
                        512,
-                       UUID_1aad85a9_75cd_426d_8dc4_e9bdfeeb6875,
+                       mmc_cfg->user_uu,
                        "eMMC USER");
 
     if (d < 0)
         return d;
 
     rc = bio_set_hal_flags(d, MMC_BIO_FLAG_USER);
+    if (rc < 0)
+        return rc;
+
+    rc = bio_set_flags(d, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
+
     if (rc < 0)
         return rc;
 

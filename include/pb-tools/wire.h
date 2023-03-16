@@ -296,13 +296,12 @@ struct pb_command_erase_part
 } __attribute__((packed));
 
 /**
- * Resize partition command
+ * Install default partition table
  */
-struct pb_command_resize_part
+struct pb_command_install_part_table
 {
-    uint8_t uuid[16];   /*!< UUID of partition to erase */
-    size_t blocks;      /*!< Size in 512byte blocks */
-    uint8_t rz[8];      /*!< Reserved */
+    uint8_t uu[16];
+    uint8_t variant;
 } __attribute__((packed));
 
 /**

@@ -286,7 +286,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     return bio_write(dev, backup.hdr.entries_start_lba, sizeof(backup), (uintptr_t) &backup);
 }
 
-static int gpt_install_partition_table(bio_dev_t dev)
+static int gpt_install_partition_table(bio_dev_t dev, int variant)
 {
     int rc;
     int part_count = 0;
@@ -298,6 +298,8 @@ static int gpt_install_partition_table(bio_dev_t dev)
         return rc;
 
     for (const struct gpt_part_table *ent = gpt_default_tbl; ent->valid; ent++) {
+        if (ent->variant != variant)
+            continue;
         LOG_DBG("Add: %s", ent->description);
         uuid_to_guid(ent->uu, part_guid);
 
@@ -311,37 +313,6 @@ static int gpt_install_partition_table(bio_dev_t dev)
     }
 
     return gpt_write_tbl(dev);
-}
-
-static int gpt_resize_part(bio_dev_t dev, size_t length)
-{
-    uuid_t uu;
-    ssize_t new_offset = 0;
-    size_t old_size = 0;
-    bool found_part = false;
-
-    if (!bio_valid(dev))
-        return -PB_ERR_PARAM;
-
-    for (struct gpt_part_hdr *p = primary.part; p->first_lba; p++) {
-        uuid_to_guid(p->uuid, uu);
-
-        if (uuid_compare(uu, bio_get_uu(dev)) == 0) {
-            found_part = true;
-            old_size = p->last_lba - p->first_lba + 1;
-            new_offset = (length / bio_block_size(dev)) - old_size;
-            p->last_lba += new_offset;
-        } else if (found_part) {
-            p->first_lba += new_offset;
-            p->last_lba += new_offset;
-        }
-    }
-
-    if (!found_part) {
-        return -PB_ERR;
-    }
-
-    return gpt_write_tbl(gpt_dev);
 }
 
 int gpt_ptbl_init(bio_dev_t dev, const struct gpt_part_table *default_tbl)
@@ -451,8 +422,6 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_part_table *default_tbl)
             LOG_ERR("bio alloc failed (%i)", new_dev);
             return new_dev;
         }
-
-        bio_set_resize_cb(new_dev, gpt_resize_part);
     }
 
     bio_set_install_partition_cb(dev, gpt_install_partition_table);
