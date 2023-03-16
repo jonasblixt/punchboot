@@ -62,8 +62,7 @@
 typedef int bio_dev_t;
 typedef int (*bio_read_t)(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
 typedef int (*bio_write_t)(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
-typedef int (*bio_call_t)(bio_dev_t dev);
-typedef int (*bio_resize_call_t)(bio_dev_t dev, size_t length);
+typedef int (*bio_call_t)(bio_dev_t dev, int param);
 
 /**
  * Allocate a new block device
@@ -146,18 +145,6 @@ bio_dev_t bio_get_part_by_uu_str(const char *uu_str);
 int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
 
 /**
- * Set asynchronous I/O ops for device
- *
- * @param[in] dev Block device handle
- * @param[in] read Read callback function
- * @param[in] write Write callback function
- *
- * @return PB_OK on success,
- *        -PB_ERR_PARAM on invalid device handle
- */
-int bio_set_async_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
-
-/**
  * Block device size in bytes
  *
  * @param[in] dev Block device handle
@@ -232,6 +219,18 @@ int bio_get_flags(bio_dev_t dev);
 int bio_set_flags(bio_dev_t dev, uint16_t flags);
 
 /**
+ * Set and clear flags on block device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] clear_flags Flags to clear
+ * @param[in] set_flags Flags to set
+ *
+ * @return PB_OK, on success
+ *        -PB_ERR_PARAM, on bad device handle
+ */
+int bio_clear_set_flags(bio_dev_t dev, uint16_t clear_flags, uint16_t set_flags);
+
+/**
  * Get UUID of block device
  *
  * @param[in] dev Block device handle
@@ -292,71 +291,18 @@ int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
 int bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
 
 /**
- * Starts an asynchronous read from block device
+ * Install partition table on a device
  *
- * @param[in] dev Block device handle
- * @param[in] lba Start block to read from
- * @param[in] length Length in bytes
- * @param[out] buf Output buffer
- *
- * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying read function
- *         -PB_ERR_PARAM, lba and/or length is out of range
- *         -PB_ERR_IO, Driver I/O errors
- *         -PB_TIMEOUT, Driver timeouts
- */
-int bio_async_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
-
-/**
- * Starts an asynchronous write to a block device
- *
- * @param[in] dev Block device handle
- * @param[in] lba Start block to write to
- * @param[in] length Length in bytes
- * @param[in] buf Input buffer
- *
- * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying write function
- *         -PB_ERR_PARAM, lba and/or length is out of range
- *         -PB_ERR_IO, Driver I/O errors
- *         -PB_TIMEOUT, Driver timeouts
- */
-int bio_async_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
-
-/**
- * Wait for asynchronous I/O to complete
- *
- * @param[in] dev Block device handle
- * @param[in] lba Start block to write to
- * @param[in] length Length in bytes
- * @param[in] buf Input buffer
- *
- * @return -PB_ERR_IO, Driver I/O errors
- *         -PB_TIMEOUT, Driver timeouts
- */
-int bio_async_wait(bio_dev_t dev);
-
-/**
- * This will run a callback on block devices
- * that have a populated 'install_partition_table' callback.
+ * @param[in] part_uu Destination part uuid
+ * @param[in] configuration_index Optional configuration/variant
  *
  * @return PB_OK, on success
+ *         -PB_ERR_PARAM, on bad device handle / uuid
+ *         -PB_ERR_NOT_SUPPORTED, if there is no callback
  *         -PB_ERR_IO, Driver I/O errors
  *         -PB_TIMEOUT, Driver timeouts
  */
-int bio_install_partition_tables(void);
-
-/**
- * Resize partition
- *
- * @param[in] dev Block device handle
- * @param[in] length New partition length in bytes
- *
- * @return PB_OK, on success
- *        -PB_ERR_PARAM, on bad device device handle
- *        -PB_ERR_IO, Driver I/O errors
- *        -PB_TIMEOUT, Driver timeouts
- *        -PB_ERR_NOT_SUPPORTED, if the underlaying device does not support this op
- */
-int bio_resize_part(bio_dev_t dev, size_t length);
+int bio_install_partition_table(uuid_t part_uu, int variant);
 
 /**
  * Sets the partition install callback for 'dev'
@@ -369,14 +315,5 @@ int bio_resize_part(bio_dev_t dev, size_t length);
  */
 int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb);
 
-/**
- * Set the partition resize callback for 'dev'
- *
- * @param[in] dev Block device handle
- *
- * @return PB_OK, on success
- *        -PB_ERR_PARAM, on bad device device handle
- */
-int bio_set_resize_cb(bio_dev_t dev, bio_resize_call_t cb);
 
 #endif

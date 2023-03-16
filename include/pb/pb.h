@@ -42,9 +42,6 @@ enum pb_hash_algs
 #define PB_HASH_SHA384_LEN 48
 #define PB_HASH_SHA512_LEN 64
 
-#define UUID_STRING_SIZE 37
-#define UUID_SIZE 16
-
 #if LOGLEVEL >= 2
     #define LOG_INFO(...) \
         do { printf("I %s: " , __func__);\

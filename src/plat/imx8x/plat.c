@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -24,6 +24,7 @@
 #include <plat/imx8qx_pads.h>
 #include <plat/defs.h>
 
+#include <console.h>
 #include <drivers/usb/imx_ehci.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/uart/imx_lpuart.h>
@@ -63,8 +64,11 @@ static const char platform_namespace_uuid[] =
     "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
 static const mmap_region_t imx_mmap[] = {
-    /* Map UART */
-    MAP_REGION_FLAT(IMX_LPUART_BASE, (64 * 1024), MT_DEVICE | MT_RW),
+    /* Map UART 0, 1, 2 and 3*/
+    MAP_REGION_FLAT(0x5A060000, (64 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(0x5A070000, (64 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(0x5A080000, (64 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(0x5A090000, (64 * 1024), MT_DEVICE | MT_RW),
     /* Connecivity */
     MAP_REGION_FLAT(0x5b270000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 2*/
     MAP_REGION_FLAT(0x5b280000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 3*/
@@ -127,31 +131,28 @@ unsigned int plat_get_us_tick(void)
     return gp_timer_get_tick();
 }
 
-void plat_wdog_init(void)
+static void imx8x_wdog_init(void)
 {
 #ifdef CONFIG_ENABLE_WATCHDOG
     sc_rm_pt_t partition;
     sc_err_t err;
 
     err = sc_rm_get_partition(private.ipc, &partition);
-    if (err)
-    {
+    if (err) {
         LOG_ERR("Could not get partition for setting watchdog: %u", err);
         goto log_err;
     }
 
     err = sc_timer_set_wdog_action(private.ipc, partition,
             SC_TIMER_WDOG_ACTION_BOARD);
-    if (err)
-    {
+    if (err) {
         LOG_ERR("Could not set watchdog action: %u", err);
         goto log_err;
     }
 
     err = sc_timer_set_wdog_timeout(private.ipc,
                 CONFIG_WATCHDOG_TIMEOUT*1000);
-    if (err)
-    {
+    if (err) {
         LOG_ERR("Could not set watchdog timeout: %u", err);
         goto log_err;
     }
@@ -161,8 +162,7 @@ void plat_wdog_init(void)
      * it should be possible to reconfigure the watchdog from Linux. */
 
     err = sc_timer_start_wdog(private.ipc, false);
-    if (err)
-    {
+    if (err) {
         LOG_ERR("Could not enable watchdog: %u", err);
         goto log_err;
     }
@@ -182,13 +182,35 @@ void plat_wdog_kick(void)
     sc_timer_ping_wdog(private.ipc);
 }
 
-int plat_early_init(void)
+static void imx8x_systick_setup(void)
 {
-    int rc = PB_OK;
-    sc_pm_reset_reason_t sc_reset_reason; /* sc_pm_reset_reason_t is defined as uint8_t */
+    int rc;
     sc_pm_clock_rate_t rate;
 
-    sc_ipc_open(&private.ipc, SC_IPC_BASE);
+    /* Setup GPT0 */
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
+    rate = 24000000;
+    sc_pm_set_clock_rate(private.ipc, SC_R_GPT_0, 2, &rate);
+
+    rc = sc_pm_clock_enable(private.ipc, SC_R_GPT_0, 2, true, false);
+
+    if (rc != SC_ERR_NONE)
+        goto systick_fatal;
+
+    //rc = imx_gp_timer_init(rate, 1000000);
+    rc = gp_timer_init();
+    if (rc == 0)
+        return;
+
+systick_fatal:
+    LOG_ERR("Fatal: systick not available");
+    plat_reset();
+}
+
+static void imx8x_load_boot_reason(void)
+{
+    int rc;
+    sc_pm_reset_reason_t sc_reset_reason;
 
     if ((rc = sc_pm_reset_reason(private.ipc, &sc_reset_reason)) == 0) {
         boot_reason = (int) sc_reset_reason;
@@ -202,40 +224,69 @@ int plat_early_init(void)
         private.soc_id = 0;
         private.soc_rev = 0;
     }
-
-    /* Setup GPT0 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
-    rate = 24000000;
-    sc_pm_set_clock_rate(private.ipc, SC_R_GPT_0, 2, &rate);
-
-    rc = sc_pm_clock_enable(private.ipc, SC_R_GPT_0, 2, true, false);
-
-    if (rc != SC_ERR_NONE)
-        return -PB_ERR;
-
-    rc = gp_timer_init();
-
-    if (rc != PB_OK)
-        return rc;
-
-    plat_console_init();
-
-    /* Enable usb stuff */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
-
-    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
-
-    /* Enable USB PLL */
-    pb_write32(0x00E03040, 0x5B100000+0xa0);
-
-    /* Power up USB */
-    pb_write32(0x00, 0x5B100000);
-
-    return board_early_init(&private);
 }
 
-int plat_mmu_init(void)
+static void imx8x_console_init(void)
+{
+    sc_pm_clock_rate_t rate = 80000000;
+    uintptr_t uart_base = 0;
+
+#ifdef CONFIG_IMX8X_CONSOLE_UART0
+    uart_base = 0x5A060000;
+    /* Power up UART0 */
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
+
+    /* Set UART0 clock root to 80 MHz */
+    sc_pm_set_clock_rate(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
+
+    /* Enable UART0 clock root */
+    sc_pm_clock_enable(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
+
+    /* Configure UART pads */
+    sc_pad_set(private.ipc, SC_P_UART0_RX, UART_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_UART0_TX, UART_PAD_CTRL);
+#elif CONFIG_IMX8X_CONSOLE_UART1
+    uart_base = 0x5A070000;
+    /* Power up UART1 */
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_1, SC_PM_PW_MODE_ON);
+
+    /* Set UART1 clock root to 80 MHz */
+    sc_pm_set_clock_rate(private.ipc, SC_R_UART_1, SC_PM_CLK_PER, &rate);
+
+    /* Enable UART1 clock root */
+    sc_pm_clock_enable(private.ipc, SC_R_UART_1, SC_PM_CLK_PER, true, false);
+
+    /* Configure UART pads */
+    sc_pad_set(private.ipc, SC_P_UART1_RX, UART_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_UART1_TX, UART_PAD_CTRL);
+#elif CONFIG_IMX8X_CONSOLE_UART2
+    uart_base = 0x5A080000;
+    /* Power up UART2 */
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_2, SC_PM_PW_MODE_ON);
+
+    /* Set UART2 clock root to 80 MHz */
+    sc_pm_set_clock_rate(private.ipc, SC_R_UART_2, SC_PM_CLK_PER, &rate);
+
+    /* Enable UART2 clock root */
+    sc_pm_clock_enable(private.ipc, SC_R_UART_2, SC_PM_CLK_PER, true, false);
+
+    /* Configure UART pads */
+    sc_pad_set(private.ipc, SC_P_UART2_RX, UART_PAD_CTRL);
+    sc_pad_set(private.ipc, SC_P_UART2_TX, UART_PAD_CTRL);
+#else
+    #error "No console uart selected"
+#endif
+
+    (void) imx_lpuart_init(uart_base, rate, CONFIG_IMX8X_CONSOLE_BAUDRATE);
+
+    static const struct console_ops ops = {
+        .putc = imx_lpuart_putc,
+    };
+
+    console_init(uart_base, &ops);
+}
+
+static void imx8x_mmu_init(void)
 {
     /* Configure MMU */
 
@@ -275,9 +326,50 @@ int plat_mmu_init(void)
     init_xlat_tables();
 
     enable_mmu_el3(0);
-
-    return PB_OK;
 }
+
+int plat_init(void)
+{
+    int rc = PB_OK;
+
+    sc_ipc_open(&private.ipc, SC_IPC_BASE);
+
+    imx8x_systick_setup();
+    imx8x_console_init();
+    imx8x_wdog_init();
+    imx8x_load_boot_reason();
+    imx8x_mmu_init();
+
+    /* Enable usb stuff */
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
+
+    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
+
+    /* Enable USB PLL */
+    pb_write32(0x00E03040, 0x5B100000+0xa0);
+
+    /* Power up USB */
+    pb_write32(0x00, 0x5B100000);
+
+    rc = plat_crypto_init();
+
+    if (rc != PB_OK) {
+        LOG_ERR("Could not initialize crypto");
+        return rc;
+    }
+
+    rc = plat_slc_init();
+
+    if (rc != PB_OK) {
+        LOG_ERR("Could not initialize SLC");
+        return rc;
+    }
+
+
+    return board_early_init(&private);
+}
+
 
 int plat_boot_reason(void)
 {
@@ -358,63 +450,6 @@ int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
             "   FUSE<%u> %s = 0x%08x",
                 f->bank,
                 f->description, f->value);
-}
-
-/* Console API */
-
-int plat_console_init(void)
-{
-    sc_pm_clock_rate_t rate = 80000000;
-
-#ifdef CONFIG_CONSOLE_UART0
-    /* Power up UART0 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
-
-    /* Set UART0 clock root to 80 MHz */
-    sc_pm_set_clock_rate(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
-
-    /* Enable UART0 clock root */
-    sc_pm_clock_enable(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
-
-    /* Configure UART pads */
-    sc_pad_set(private.ipc, SC_P_UART0_RX, UART_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_UART0_TX, UART_PAD_CTRL);
-#elif CONFIG_CONSOLE_UART1
-    /* Power up UART1 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_1, SC_PM_PW_MODE_ON);
-
-    /* Set UART1 clock root to 80 MHz */
-    sc_pm_set_clock_rate(private.ipc, SC_R_UART_1, SC_PM_CLK_PER, &rate);
-
-    /* Enable UART1 clock root */
-    sc_pm_clock_enable(private.ipc, SC_R_UART_1, SC_PM_CLK_PER, true, false);
-
-    /* Configure UART pads */
-    sc_pad_set(private.ipc, SC_P_UART1_RX, UART_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_UART1_TX, UART_PAD_CTRL);
-#elif CONFIG_CONSOLE_UART2
-    /* Power up UART2 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_2, SC_PM_PW_MODE_ON);
-
-    /* Set UART2 clock root to 80 MHz */
-    sc_pm_set_clock_rate(private.ipc, SC_R_UART_2, SC_PM_CLK_PER, &rate);
-
-    /* Enable UART2 clock root */
-    sc_pm_clock_enable(private.ipc, SC_R_UART_2, SC_PM_CLK_PER, true, false);
-
-    /* Configure UART pads */
-    sc_pad_set(private.ipc, SC_P_UART2_RX, UART_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_UART2_TX, UART_PAD_CTRL);
-#else
-    #error "No console uart selected"
-#endif
-    return imx_lpuart_init();
-}
-
-int plat_console_putchar(char c)
-{
-    imx_lpuart_write((char *) &c, 1);
-    return PB_OK;
 }
 
 /* Crypto API */
@@ -561,14 +596,12 @@ int plat_slc_read(enum pb_slc *slc)
     {
         err = plat_fuse_read(f);
 
-        if (f->value)
-        {
+        if (f->value) {
             (*slc) = PB_SLC_CONFIGURATION;
             break;
         }
 
-        if (err != PB_OK)
-        {
+        if (err != PB_OK) {
             LOG_ERR("Could not access fuse '%s'", f->description);
             return err;
         }
@@ -581,8 +614,7 @@ int plat_slc_read(enum pb_slc *slc)
 
     sc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
 
-    if (lc == 128)
-    {
+    if (lc == 128) {
         (*slc) = PB_SLC_CONFIGURATION_LOCKED;
     }
 

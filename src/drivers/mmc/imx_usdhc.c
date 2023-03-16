@@ -12,7 +12,7 @@
 #include <pb/pb.h>
 #include <arch/arch.h>
 #include <pb/delay.h>
-#include <pb/mmio.h>
+#include <mmio.h>
 
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/mmc/imx_usdhc.h>
@@ -23,7 +23,7 @@ static unsigned int input_clock_hz;
 static struct  usdhc_adma2_desc tbl[512] PB_ALIGN_4k;
 static bool bus_ddr_enable = false;
 
-static int usdhc_set_bus_clock(unsigned int clk_hz)
+static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 {
     int div = 1;
     int pre_div = 1;
@@ -63,7 +63,7 @@ static int usdhc_set_bus_clock(unsigned int clk_hz)
     return PB_OK;
 }
 
-static int usdhc_init(void)
+static int imx_usdhc_setup(void)
 {
     unsigned int timeout = 10000;
     LOG_DBG("Base = %p, input clock = %u kHz", (void *) usdhc->base,
@@ -108,7 +108,7 @@ static int usdhc_init(void)
 
 #define USDHC_CMD_RETRIES    1000
 
-static int usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
+static int imx_usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
 {
     unsigned int xfertype = 0, mixctl = 0, multiple = 0, data = 0, err = 0;
     unsigned int state, flags = INTSTATEN_CC | INTSTATEN_CTOE;
@@ -262,7 +262,7 @@ out:
     return err;
 }
 
-static int usdhc_set_bus_width(enum mmc_bus_width width)
+static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
 {
     const char *bus_widths[] = {
         "1-Bit",
@@ -292,7 +292,7 @@ static int usdhc_set_bus_width(enum mmc_bus_width width)
     return 0;
 }
 
-static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
+static int imx_usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
 {
     struct usdhc_adma2_desc *tbl_ptr = tbl;
     uintptr_t buf_ptr = buf;
@@ -359,7 +359,7 @@ static int usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     return 0;
 }
 
-static int usdhc_read(unsigned int lba, size_t length, uintptr_t buf)
+static int imx_usdhc_read(unsigned int lba, size_t length, uintptr_t buf)
 {
     /* All transfers are performed with ADMA2 */
     if (length && buf) {
@@ -368,7 +368,7 @@ static int usdhc_read(unsigned int lba, size_t length, uintptr_t buf)
     return 0;
 }
 
-static int usdhc_write(unsigned int lba, size_t length, uintptr_t buf)
+static int imx_usdhc_write(unsigned int lba, size_t length, uintptr_t buf)
 {
     /* All transfers are performed with ADMA2, this function is not used */
     return 0;
@@ -378,13 +378,13 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg,
                    unsigned int clk_hz)
 {
     static const struct mmc_hal hal = {
-        .init = usdhc_init,
-        .send_cmd = usdhc_send_cmd,
-        .set_bus_clock = usdhc_set_bus_clock,
-        .set_bus_width = usdhc_set_bus_width,
-        .prepare = usdhc_prepare,
-        .read = usdhc_read,
-        .write = usdhc_write,
+        .init = imx_usdhc_setup,
+        .send_cmd = imx_usdhc_send_cmd,
+        .set_bus_clock = imx_usdhc_set_bus_clock,
+        .set_bus_width = imx_usdhc_set_bus_width,
+        .prepare = imx_usdhc_prepare,
+        .read = imx_usdhc_read,
+        .write = imx_usdhc_write,
         .max_chunk_bytes = SZ_MB(30),
     };
 

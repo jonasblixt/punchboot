@@ -17,6 +17,7 @@
 
 struct gpt_part_table {
     const unsigned char * uu;
+    int variant;
     const char * description;
     size_t size;
     bool valid;

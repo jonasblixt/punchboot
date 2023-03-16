@@ -80,6 +80,7 @@ src-y  += src/delay.c
 src-y  += src/timestamp.c
 src-y  += src/wire.c
 src-y  += src/command.c
+src-y  += src/console.c
 
 include src/drivers/*/makefile.mk
 include src/lib/bearssl/makefile.mk

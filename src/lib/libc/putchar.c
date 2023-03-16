@@ -1,8 +1,8 @@
-#include <pb/pb.h>
-#include <pb/plat.h>
+#include <stdio.h>
+#include <console.h>
 
 int putchar(int c)
 {
-    plat_console_putchar(c);
+    console_putc(c);
     return c;
 }

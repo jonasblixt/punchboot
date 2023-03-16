@@ -1,68 +1,21 @@
-/*
- * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
+ *
  */
 
-#ifndef PLAT_IMX_LPUART_H_
-#define PLAT_IMX_LPUART_H_
+#ifndef DRIVERS_IMX_LPUART_H
+#define DRIVERS_IMX_LPUART_H
 
-#include <stdint.h>
-#include <pb/pb.h>
-#include <pb/io.h>
+#include <inttypes.h>
 
-#define VERID    0x0
-#define LPPARAM    0x4
-#define GLOBAL    0x8
-#define PINCFG    0xC
-#define BAUD    0x10
-#define STAT    0x14
-#define CTRL    0x18
-#define DATA    0x1C
-#define MATCH    0x20
-#define MODIR    0x24
-#define FIFO    0x28
-#define WATER    0x2c
+int imx_lpuart_init(uintptr_t base,
+                    unsigned int input_clock_Hz,
+                    unsigned int baudrate);
 
-#define US1_TDRE    (1 << 23)
-#define US1_RDRF    (1 << 21)
+void imx_lpuart_putc(uintptr_t base, char c);
 
-#define CTRL_TE        (1 << 19)
-#define CTRL_RE        (1 << 18)
-
-#define FIFO_TXFE    0x80
-#define FIFO_RXFE    0x40
-
-#define WATER_TXWATER_OFF    1
-#define WATER_RXWATER_OFF    16
-
-#define LPUART_CTRL_PT_MASK    0x1
-#define LPUART_CTRL_PE_MASK    0x2
-#define LPUART_CTRL_M_MASK    0x10
-
-#define LPUART_BAUD_OSR_MASK  (0x1F000000U)
-#define LPUART_BAUD_OSR_SHIFT  (24U)
-#define LPUART_BAUD_OSR(x) \
-    (((uint32_t)(((uint32_t)(x)) << LPUART_BAUD_OSR_SHIFT)) & \
-    LPUART_BAUD_OSR_MASK)
-
-#define LPUART_BAUD_SBR_MASK                     (0x1FFFU)
-#define LPUART_BAUD_SBR_SHIFT                    (0U)
-#define LPUART_BAUD_SBR(x) \
-    (((uint32_t)(((uint32_t)(x)) << LPUART_BAUD_SBR_SHIFT)) & \
-    LPUART_BAUD_SBR_MASK)
-
-#define LPUART_BAUD_SBNS_MASK                    (0x2000U)
-#define LPUART_BAUD_BOTHEDGE_MASK                (0x20000U)
-#define LPUART_BAUD_M10_MASK                     (0x20000000U)
-
-struct imx_lpuart_device
-{
-    __iomem base;
-    uint32_t baudrate;
-};
-
-int imx_lpuart_init(void);
-int imx_lpuart_write(char *buf, size_t size);
-
-#endif  // PLAT_IMX_LPUART_H_
+#endif
