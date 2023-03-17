@@ -75,7 +75,7 @@ static int imx_usdhc_setup(void)
     while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTA)) {
         if (!timeout) {
             LOG_ERR("Reset timeout");
-            return -PB_TIMEOUT;
+            return -PB_ERR_TIMEOUT;
         }
         timeout--;
     }
@@ -201,7 +201,7 @@ static int imx_usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
 
     if ((state & (INTSTATEN_CTOE | CMD_ERR)) || cmd_retries == USDHC_CMD_RETRIES) {
         if (cmd_retries == USDHC_CMD_RETRIES)
-            err = -PB_TIMEOUT;
+            err = -PB_ERR_TIMEOUT;
         else
             err = -PB_ERR_IO;
         LOG_ERR("imx_usdhc mmc cmd %d state 0x%x errno=%d",

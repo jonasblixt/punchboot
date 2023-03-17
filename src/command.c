@@ -461,11 +461,7 @@ static int cmd_part_verify(void)
 
     if (memcmp(hash, verify_cmd->sha256, 32) == 0) {
         rc = PB_OK;
-<<<<<<< HEAD
         pb_wire_init_result(&result, error_to_wire(rc));
-=======
-        pb_wire_init_result(&result, PB_RESULT_OK);
->>>>>>> 0549a7f (Rework driver structure)
     } else {
 #if LOGLEVEL > 2
         printf("Expected hash:");
@@ -474,11 +470,7 @@ static int cmd_part_verify(void)
         printf("\n\r");
 #endif
         LOG_ERR("Verification failed");
-<<<<<<< HEAD
-        rc = -PB_ERR;
-=======
-        rc = PB_CHECKSUM_ERROR;
->>>>>>> 0549a7f (Rework driver structure)
+        rc = PB_ERR_CHECKSUM;
         pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
     }
 

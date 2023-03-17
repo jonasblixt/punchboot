@@ -21,7 +21,7 @@ void pb_main(void)
 
     arch_init();
 
-    rc = platform_init();
+    rc = plat_init();
 
     if (rc != 0)
         goto run_command_mode;
