@@ -495,6 +495,7 @@ struct mmc_hal {
     mmc_io_t prepare;
     mmc_io_t read;
     mmc_io_t write;
+    int (*set_delay_tap)(unsigned int tap);
     size_t max_chunk_bytes;
 };
 

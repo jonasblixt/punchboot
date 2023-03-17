@@ -558,6 +558,51 @@ static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t 
     return rc;
 }
 
+static void hs200_tune(void)
+{
+    int rc;
+    uint8_t result[127];
+
+    for (int i = 0; i < 127; i++) {
+        mmc_hal->set_delay_tap(i);
+        pb_delay_ms(10);
+        rc = mmc_hal->prepare(0, sizeof(mmc_tuning_rsp), (uintptr_t)mmc_tuning_rsp);
+        if (rc != 0) {
+            goto tune_fail;
+        }
+
+        rc = mmc_send_cmd(MMC_CMD_SEND_TUNING_BLOCK_HS200, 0, MMC_RSP_R1, NULL);
+
+        if (rc != 0) {
+            goto tune_fail;
+        }
+
+        rc = mmc_hal->read(0, sizeof(mmc_tuning_rsp), (uintptr_t)mmc_tuning_rsp);
+        if (rc != 0) {
+            goto tune_fail;
+        }
+
+        do {
+            rc = mmc_device_state();
+            if (rc < 0) {
+                goto tune_fail;
+            }
+        } while (rc != MMC_STATE_TRAN);
+
+        if (memcmp(tuning_blk_pattern_8bit, mmc_tuning_rsp, 128) == 0) {
+            result[i] = 1;
+        } else {
+            goto tune_fail;
+        }
+        continue;
+tune_fail:
+        result[i] = 0;
+    }
+
+    for (int i = 0; i < 127; i++) 
+        printf("tap %03i %s\n\r",i, result[i]?"":"X");
+}
+
 static int mmc_enumerate(void)
 {
     int rc;
@@ -662,7 +707,39 @@ static int mmc_enumerate(void)
                 return rc;
             }
 
-            rc = mmc_set_bus_clock(200*1000*1000);
+            rc = mmc_set_bus_clock(MHz(200));
+            if (rc != 0) {
+                return rc;
+            }
+
+            //hs200_tune();
+        }
+        break;
+        case MMC_BUS_MODE_HS400:
+        {
+            /* TODO: This is not complete and not usable yet */
+            LOG_DBG("Switching to HS400");
+            /* Before we can switch the bus to 8-bit DDR the device must
+             * be in HS mode */
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS);
+            if (rc != PB_OK) {
+                LOG_ERR("Could not switch to HS timing");
+                return rc;
+            }
+
+            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT_DDR);
+            if (rc != 0) {
+                return rc;
+            }
+
+            /* Switch to HS400, 200 MHz (DDR) */
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS400);
+            if (rc != PB_OK) {
+                LOG_ERR("Could not switch to HS400 timing");
+                return rc;
+            }
+
+            rc = mmc_set_bus_clock(MHz(200));
             if (rc != 0) {
                 return rc;
             }

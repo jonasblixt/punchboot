@@ -60,25 +60,26 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 
     pb_delay_us(100);
     LOG_DBG("Actual bus rate = %d kHz", actual_clk_hz / 1000);
+
     return PB_OK;
 }
 
 static int imx_usdhc_setup(void)
 {
-    unsigned int timeout = 10000;
     LOG_DBG("Base = %p, input clock = %u kHz", (void *) usdhc->base,
                                                input_clock_hz / 1000);
     /* reset the controller */
-    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_RSTA);
+    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL,
+                        USDHC_SYSCTRL_RSTA | USDHC_SYSCTRL_RSTT);
 
     /* wait for reset done */
-    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTA)) {
-        if (!timeout) {
-            LOG_ERR("Reset timeout");
-            return -PB_ERR_TIMEOUT;
-        }
-        timeout--;
-    }
+    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTA))
+            ;
+
+    /* Send reset */
+    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_INITA);
+    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_INITA))
+            ;
 
     mmio_write_32(usdhc->base + USDHC_MMC_BOOT, 0);
     mmio_write_32(usdhc->base + USDHC_MIX_CTRL, 0);
@@ -103,10 +104,19 @@ static int imx_usdhc_setup(void)
     mmio_clrsetbits_32(usdhc->base + USDHC_WTMK_LVL,
                        WMKLV_MASK, 16 | (16 << 16));
 
+    /* Force manual delay tuning */
+    mmio_write_32(usdhc->base + USDHC_DLL_CTRL,
+                     ((usdhc->delay_tap & 0x7f) << 9) | BIT(8));
     return PB_OK;
 }
 
 #define USDHC_CMD_RETRIES    1000
+
+static int imx_usdhc_set_delay_tap(unsigned int tap)
+{
+    mmio_write_32(usdhc->base + USDHC_DLL_CTRL, ((tap & 0x7f) << 9) | BIT(8));
+    return PB_OK;
+}
 
 static int imx_usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
 {
@@ -385,6 +395,7 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg,
         .prepare = imx_usdhc_prepare,
         .read = imx_usdhc_read,
         .write = imx_usdhc_write,
+        .set_delay_tap = imx_usdhc_set_delay_tap,
         .max_chunk_bytes = SZ_MB(30),
     };
 

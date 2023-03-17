@@ -317,7 +317,7 @@ static int cmd_stream_read(void)
     if (!(bio_get_flags(block_dev) & BIO_FLAG_READABLE)) {
         LOG_ERR("Partition may not be read");
         pb_wire_init_result(&result, -PB_RESULT_IO_ERROR);
-        return -1;
+        return -PB_ERR_IO;
     }
 
     size_t start_lba = (stream_read->offset / bio_block_size(block_dev));
@@ -329,13 +329,13 @@ static int cmd_stream_read(void)
               ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_read->buffer_id);
 
     rc = bio_read(block_dev, start_lba, stream_read->size, bfr);
+    pb_wire_init_result(&result, error_to_wire(rc));
+    plat_transport_write(&result, sizeof(result));
 
     if (rc == PB_OK) {
-        plat_transport_write(&result, sizeof(result));
         rc = plat_transport_write((void *) bfr, stream_read->size);
         pb_wire_init_result(&result, error_to_wire(rc));
     }
-
     return rc;
 }
 

@@ -218,6 +218,7 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
 
     static const struct imx_usdhc_config cfg = {
         .base = 0x5B010000,
+        .delay_tap = 18,
         .mmc_config = {
             .mode = MMC_BUS_MODE_HS200,
             .width = MMC_BUS_WIDTH_8BIT,
@@ -261,7 +262,6 @@ int board_early_init(void *plat)
     if (rc != PB_OK) {
         LOG_ERR("GPT ptbl init failed (%i)", rc);
     }
-
     /* eMMC User partition now only has the visible flag to report capacity */
     bio_set_flags(user_part, BIO_FLAG_VISIBLE);
 
@@ -270,6 +270,29 @@ int board_early_init(void *plat)
 
     bio_dev_t sys_b = bio_get_part_by_uu(UUID_c046ccd8_0f2e_4036_984d_76c14dc73992);
     bio_clear_set_flags(sys_b, 0, BIO_FLAG_BOOTABLE);
+
+    bio_dev_t root_a = bio_get_part_by_uu_str("c284387a-3377-4c0f-b5db-1bcbcff1ba1a");
+
+    bio_clear_set_flags(root_a, 0, BIO_FLAG_READABLE);
+    if (root_a < 0) {
+        LOG_ERR("Could not get root a part (%i)", root_a);
+        return root_a;
+    }
+
+    printf("\n\r--- Read test ---\n\r");
+    for (int i = 0; i < 16; i++) {
+        unsigned int ts_start = plat_get_us_tick();
+        const size_t bytes_to_read = SZ_MB(128);
+        rc = bio_read(root_a, 0, bytes_to_read, 0xa5000000);
+        if (rc == 0) {
+            unsigned int ts_end = plat_get_us_tick();
+            printf("%04i ~%li MB/s\n\r", i, bytes_to_read / (ts_end-ts_start));
+        } else {
+            printf("Read failed (%i)\n\r", rc);
+            break;
+        }
+        plat_wdog_kick();
+    }
 
     return PB_OK;
 }
