@@ -11,33 +11,18 @@
  *
  */
 
-#ifndef INCLUDE_PB_TIMESTAMP_H_
-#define INCLUDE_PB_TIMESTAMP_H_
+#ifndef INCLUDE_PB_TIMESTAMP_H
+#define INCLUDE_PB_TIMESTAMP_H
 
 #include <stdint.h>
+#include <config.h>
 
-#define PB_TIMESTAMP_NO_OF_TS 16
-
-/**
- * Start a time measurement
- *
- * @param description[in] Description of the timestamp
- *
- * @return PB_OK on success or a negative nummber
- */
-int pb_timestamp_begin(const char *description);
-
-/**
- * Stop current measurement
- *
- * @return PB_OK on success or a negative nummber
- */
-int pb_timestamp_end(void);
-
+#ifdef CONFIG_ENABLE_TIMESTAMPING
+void ts(const char *description);
 /**
  * List all timestamps
  */
-void pb_timestamp_print(void);
+void ts_print(void);
 
 /**
  * Get the total boot time, this function will take te start ts from
@@ -46,6 +31,11 @@ void pb_timestamp_print(void);
  *
  * @return Total boot time in us
  **/
-int pb_timestamp_total(void);
+unsigned int ts_total(void);
+#else
+#define ts(...)
+#define ts_print(...)
+#define ts_total(...)
+#endif
 
 #endif  // INCLUDE_PB_TIMESTAMP_H_

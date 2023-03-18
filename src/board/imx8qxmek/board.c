@@ -16,6 +16,7 @@
 #include <pb/board.h>
 #include <pb/boot.h>
 #include <pb/delay.h>
+#include <pb/timestamp.h>
 #include <plat/defs.h>
 #include <plat/sci/sci_ipc.h>
 #include <plat/sci/sci.h>
@@ -193,7 +194,7 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
         return -PB_ERR;
     }
 
-    rate = 200000000;
+    rate = MHz(200);
     sc_pm_set_clock_rate(priv->ipc, SC_R_SDHC_0, 2, &rate);
 
     rc = sc_pm_clock_enable(priv->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
@@ -222,7 +223,6 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
         .mmc_config = {
             .mode = MMC_BUS_MODE_HS200,
             .width = MMC_BUS_WIDTH_8BIT,
-            .card_type = MMC_CARD_TYPE_EMMC,
             .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
             .boot0_uu = PART_boot0,
             .boot1_uu = PART_boot1,
@@ -245,8 +245,10 @@ int board_early_init(void *plat)
      * code will cover most use cases and the special ones can still quite
      * easily be imlemented on board level.
      */
+    ts("usdhc start");
     rc = usdhc_emmc_setup(priv);
 
+    ts("usdhc end");
     if (rc != PB_OK) {
         LOG_ERR("usdhc init failed (%i)", rc);
         return rc;
@@ -257,8 +259,9 @@ int board_early_init(void *plat)
     if (user_part < 0)
         return user_part;
 
+    ts("gpt start");
     rc = gpt_ptbl_init(user_part, gpt_tbl);
-
+    ts("gpt end");
     if (rc != PB_OK) {
         LOG_ERR("GPT ptbl init failed (%i)", rc);
     }
@@ -271,9 +274,10 @@ int board_early_init(void *plat)
     bio_dev_t sys_b = bio_get_part_by_uu(UUID_c046ccd8_0f2e_4036_984d_76c14dc73992);
     bio_clear_set_flags(sys_b, 0, BIO_FLAG_BOOTABLE);
 
-    bio_dev_t root_a = bio_get_part_by_uu_str("c284387a-3377-4c0f-b5db-1bcbcff1ba1a");
+    ts_print();
+#ifdef __NOPE
+    bio_dev_t root_a = bio_get_part_by_uu_str("c5b8b41c-0fb5-494d-8b0e-eba400e075fa");
 
-    bio_clear_set_flags(root_a, 0, BIO_FLAG_READABLE);
     if (root_a < 0) {
         LOG_ERR("Could not get root a part (%i)", root_a);
         return root_a;
@@ -293,7 +297,7 @@ int board_early_init(void *plat)
         }
         plat_wdog_kick();
     }
-
+#endif
     return PB_OK;
 }
 
@@ -381,12 +385,23 @@ int board_status(void *plat,
     return PB_OK;
 }
 
-#ifdef CONFIG_AUTH_METHOD_PASSWORD
+#ifdef CONFIG_AUTH_PASSWORD
 int board_command_mode_auth(char *password, size_t length)
 {
-    return -PB_ERR_NOT_SUPPORTED;
+    /* This is just a simplistic example of password authentication.
+     *
+     * A real implementation should use some kind of OTP storage for a 
+     * device unique password that's not easily accesible.
+     * For example RPMB if there is an eMMC present.
+     */
+    LOG_DBG("Got password '%s', length = %zu", password, length);
+
+    if (strncmp("imx8qxpmek", password, length) == 0 && length > 0)
+        return PB_OK;
+    else
+        return -PB_ERR_AUTHENTICATION_FAILED;
 }
-#endif  // CONFIG_AUTH_METHOD_PASSWORD
+#endif  // CONFIG_AUTH_PASSWORD
 
 const struct pb_boot_config * board_boot_config(void)
 {
@@ -401,9 +416,9 @@ const struct pb_boot_config * board_boot_config(void)
         .rollback_mode     = PB_ROLLBACK_MODE_NORMAL,
         .early_boot_cb     = NULL,
         .late_boot_cb      = NULL,
-        .dtb_patch_cb      = patch_bootargs,
-        .print_time_measurements = true,
+        .dtb_patch_cb      = patch_bootargs
     };
 
     return &config;
 }
+

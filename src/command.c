@@ -33,7 +33,7 @@ static uint8_t hash[PB_HASH_MAX_LENGTH];
 static uint8_t device_uuid[16];
 static bio_dev_t block_dev;
 
-#ifdef CONFIG_AUTH_METHOD_TOKEN
+#ifdef CONFIG_AUTH_TOKEN
 static int auth_token(uint8_t *device_uu,
                       uint32_t key_id, uint8_t *sig, size_t size)
 {
@@ -50,7 +50,7 @@ static int auth_token(uint8_t *device_uu,
 
     if (!active) {
         LOG_ERR("Invalid or revoked key (%x)", key_id);
-        return -PB_ERR;
+        return -PB_ERR_KEY_REVOKED;
     }
 
     LOG_DBG("uuid: %p %p", device_uu, device_uu_str);
@@ -65,7 +65,7 @@ static int auth_token(uint8_t *device_uu,
 
     if (!k) {
         LOG_ERR("Key not found");
-        return -PB_ERR;
+        return -PB_ERR_NOT_FOUND;
     }
 
     LOG_DBG("Found key %x", k->id);
@@ -112,7 +112,7 @@ static int auth_token(uint8_t *device_uu,
 
     if (rc != PB_OK) {
         LOG_ERR("Authentication failed");
-        return rc;
+        return -PB_ERR_AUTHENTICATION_FAILED;
     }
 
     LOG_INFO("Authentication successful");
@@ -261,10 +261,9 @@ static int cmd_auth(void)
     struct pb_command_authenticate *auth_cmd = \
         (struct pb_command_authenticate *) cmd.request;
 
-    LOG_DBG("cmd.request = %p", cmd.request);
     pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
-#ifdef CONFIG_AUTH_METHOD_TOKEN
+#ifdef CONFIG_AUTH_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
         pb_wire_init_result(&result, PB_RESULT_OK);
         plat_transport_write(&result, sizeof(result));
@@ -281,7 +280,9 @@ static int cmd_auth(void)
 
         pb_wire_init_result(&result, error_to_wire(rc));
     }
-#elif CONFIG_AUTH_METHOD_PASSWORD
+#endif
+
+#if CONFIG_AUTH_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD) {
         pb_wire_init_result(&result, PB_RESULT_OK);
         plat_transport_write(&result, sizeof(result));
@@ -296,9 +297,6 @@ static int cmd_auth(void)
 
         pb_wire_init_result(&result, error_to_wire(rc));
     }
-#else
-    UNUSED(auth_cmd);
-    UNUSED(rc);
 #endif
 
     return rc;

@@ -31,6 +31,9 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 
     LOG_DBG("Trying to set bus clock to %u kHz", clk_hz / 1000);
 
+    if (bus_ddr_enable)
+        clk_hz *= 2;
+
     if (clk_hz <= 0)
         return -PB_ERR_PARAM;
 
@@ -60,7 +63,6 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 
     pb_delay_us(100);
     LOG_DBG("Actual bus rate = %d kHz", actual_clk_hz / 1000);
-
     return PB_OK;
 }
 
@@ -275,11 +277,13 @@ out:
 static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
 {
     const char *bus_widths[] = {
+        "Invalid",
         "1-Bit",
         "4-Bit",
         "8-Bit",
         "4-Bit DDR",
         "8-Bit DDR",
+        "8-Bit DDR + Strobe",
     };
 
     LOG_DBG("Width = %s", bus_widths[width]);
