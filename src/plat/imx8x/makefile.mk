@@ -22,9 +22,6 @@ PB_CSF_TEMPLATE = src/plat/imx8x/pb.csf.template
 SED = $(shell which sed)
 
 src-y  += src/plat/imx/gpt.c
-src-y  += src/plat/imx/lpuart.c
-src-y  += src/plat/imx/ehci.c
-src-y  += src/plat/imx/caam.c
 src-y  += src/plat/imx/gpio.c
 src-y  += src/plat/imx8x/plat.c
 src-y  += src/plat/imx/wdog.c
