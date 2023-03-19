@@ -194,7 +194,7 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
         return -PB_ERR;
     }
 
-    rate = 200000000;
+    rate = MHz(200);
     sc_pm_set_clock_rate(priv->ipc, SC_R_SDHC_0, 2, &rate);
 
     rc = sc_pm_clock_enable(priv->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
@@ -223,7 +223,6 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
         .mmc_config = {
             .mode = MMC_BUS_MODE_HS200,
             .width = MMC_BUS_WIDTH_8BIT,
-            .card_type = MMC_CARD_TYPE_EMMC,
             .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
             .boot0_uu = PART_boot0,
             .boot1_uu = PART_boot1,
@@ -386,12 +385,23 @@ int board_status(void *plat,
     return PB_OK;
 }
 
-#ifdef CONFIG_AUTH_METHOD_PASSWORD
+#ifdef CONFIG_AUTH_PASSWORD
 int board_command_mode_auth(char *password, size_t length)
 {
-    return -PB_ERR_NOT_SUPPORTED;
+    /* This is just a simplistic example of password authentication.
+     *
+     * A real implementation should use some kind of OTP storage for a 
+     * device unique password that's not easily accesible.
+     * For example RPMB if there is an eMMC present.
+     */
+    LOG_DBG("Got password '%s', length = %zu", password, length);
+
+    if (strncmp("imx8qxpmek", password, length) == 0 && length > 0)
+        return PB_OK;
+    else
+        return -PB_ERR_AUTHENTICATION_FAILED;
 }
-#endif  // CONFIG_AUTH_METHOD_PASSWORD
+#endif  // CONFIG_AUTH_PASSWORD
 
 const struct pb_boot_config * board_boot_config(void)
 {
@@ -406,9 +416,9 @@ const struct pb_boot_config * board_boot_config(void)
         .rollback_mode     = PB_ROLLBACK_MODE_NORMAL,
         .early_boot_cb     = NULL,
         .late_boot_cb      = NULL,
-        .dtb_patch_cb      = patch_bootargs,
-        .print_time_measurements = true,
+        .dtb_patch_cb      = patch_bootargs
     };
 
     return &config;
 }
+

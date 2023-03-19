@@ -81,19 +81,20 @@ menu "Authentication"
 config AUTH
     bool "Enable command mode authentication"
     default y
+    help
+        This will enable authentication when the security life cycle is >= LOCKED
 
-choice AUTH_METHOD
-    prompt "Authentication method"
-    depends on AUTH
-
-config AUTH_METHOD_TOKEN
+config AUTH_TOKEN
     bool "Token based authentication"
+    depends on AUTH
+    help
+        Authenticate using the signature of the hash, of the device UUID
 
-config AUTH_METHOD_PASSWORD
+config AUTH_PASSWORD
     bool "Password based authentication"
-
-endchoice
-
+    depends on AUTH
+    help
+        Authenticate using a password. This requires a board level implementation.
 endmenu
 
 menu "Command mode transport configuration"
