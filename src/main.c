@@ -22,7 +22,6 @@ void pb_main(void)
     int rc;
 
     arch_init();
-    pb_storage_early_init();
     rc = plat_early_init();
 
     if (rc != PB_OK)
@@ -52,17 +51,6 @@ void pb_main(void)
     if (rc != PB_OK)
     {
         LOG_ERR("Could not initialize crypto");
-        goto run_command_mode;
-    }
-
-    pb_timestamp_end();
-    pb_timestamp_begin("storage");
-
-    rc = pb_storage_init();
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not initialize storage");
         goto run_command_mode;
     }
 
