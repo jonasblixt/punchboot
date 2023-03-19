@@ -139,55 +139,7 @@
 #define EXT_CSD_TIMING_HS400    3    /* HS400 */
 #define EXT_CSD_DRV_STR_SHIFT    4    /* Driver Strength shift */
 
-#define EXT_CSD_SEC_ER_EN    BIT(0)
-#define EXT_CSD_SEC_BD_BLK_EN    BIT(2)
-#define EXT_CSD_SEC_GB_CL_EN    BIT(4)
-#define EXT_CSD_SEC_SANITIZE    BIT(6)  /* v4.5 only */
-
-#define EXT_CSD_RST_N_EN_MASK    0x3
-#define EXT_CSD_RST_N_ENABLED    1    /* RST_n is enabled on card */
-
-#define EXT_CSD_NO_POWER_NOTIFICATION    0
-#define EXT_CSD_POWER_ON        1
-#define EXT_CSD_POWER_OFF_SHORT        2
-#define EXT_CSD_POWER_OFF_LONG        3
-
-#define EXT_CSD_PWR_CL_8BIT_MASK    0xF0    /* 8 bit PWR CLS */
-#define EXT_CSD_PWR_CL_4BIT_MASK    0x0F    /* 8 bit PWR CLS */
-#define EXT_CSD_PWR_CL_8BIT_SHIFT    4
-#define EXT_CSD_PWR_CL_4BIT_SHIFT    0
-
-#define EXT_CSD_PACKED_EVENT_EN    BIT(3)
-
-/*
- * EXCEPTION_EVENT_STATUS field
- */
-#define EXT_CSD_URGENT_BKOPS        BIT(0)
-#define EXT_CSD_DYNCAP_NEEDED        BIT(1)
-#define EXT_CSD_SYSPOOL_EXHAUSTED    BIT(2)
-#define EXT_CSD_PACKED_FAILURE        BIT(3)
-
-#define EXT_CSD_PACKED_GENERIC_ERROR    BIT(0)
-#define EXT_CSD_PACKED_INDEXED_ERROR    BIT(1)
-
-/*
- * BKOPS status level
- */
-#define EXT_CSD_BKOPS_LEVEL_2        0x2
-
-/*
- * BKOPS modes
- */
-#define EXT_CSD_MANUAL_BKOPS_MASK    0x01
-#define EXT_CSD_AUTO_BKOPS_MASK        0x02
-
-/*
- * Command Queue
- */
-#define EXT_CSD_CMDQ_MODE_ENABLED    BIT(0)
-#define EXT_CSD_CMDQ_DEPTH_MASK        GENMASK(4, 0)
-#define EXT_CSD_CMDQ_SUPPORTED        BIT(0)
-
+/* Responses */
 #define MMC_RSP_PRESENT (1 << 0)
 #define MMC_RSP_136    (1 << 1)        /* 136 bit response */
 #define MMC_RSP_CRC    (1 << 2)        /* expect valid crc */
@@ -213,13 +165,6 @@
  * Flags
  */
 
-#define MMC_FLAG_CMD23          (1 << 0)
-#define MMC_FLAG_SD_CMD6        (1 << 1)
-
-#define CMD8_CHECK_PATTERN        U(0xAA)
-#define VHS_2_7_3_6_V          BIT(8)
-#define SD_SCR_BUS_WIDTH_1        BIT(8)
-#define SD_SCR_BUS_WIDTH_4        BIT(10)
 
 #define OCR_POWERUP            BIT(31)
 #define OCR_HCS                BIT(30)
@@ -266,14 +211,6 @@
 #define MMC_BLOCK_SIZE            U(512)
 #define MMC_BLOCK_MASK            (MMC_BLOCK_SIZE - U(1))
 #define MMC_BOOT_CLK_RATE        (400 * 1000)
-
-#define CSD_TRAN_SPEED_UNIT_MASK    GENMASK(2, 0)
-#define CSD_TRAN_SPEED_MULT_MASK    GENMASK(6, 3)
-#define CSD_TRAN_SPEED_MULT_SHIFT    3
-
-#define SD_SWITCH_FUNC_CHECK		0U
-#define SD_SWITCH_FUNC_SWITCH		BIT(31)
-#define SD_SWITCH_ALL_GROUPS_MASK	GENMASK(23, 0)
 
 /* EXT_CSD_BOOT_BUS_CONDITIONS */
 #define EXT_CSD_BOOT_SDR_HS      BIT(3)
@@ -412,10 +349,12 @@ struct mmc_device_config {
  * Initialize the mmc module
  *
  * @param[in] hal Pointer to ops structure of hardware layer
- * @param[in] mode MMC bus mode
- * @param[in] card_type Type of MMC card (eMMC or SD)
+ * @param[in] cfg Pointer to MMC config struct
  *
  * @return PB_OK on success
+ *        -PB_ERR_PARAM, on invalid bus mode or NULL parameters
+ *        -PB_ERR_NOT_IMPLEMENTED, on invalid bus mode
+ *        -PB_ERR_IO, on read errors
  */
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg);
 
@@ -434,6 +373,7 @@ struct mmc_device_info * mmc_device_info(void);
  * @param[out] buf Output buffer
  *
  * @return PB_OK on success
+ *        -PB_ERR_IO, on read request to large
  */
 int mmc_read(unsigned int lba, size_t length, uintptr_t buf);
 
@@ -445,6 +385,7 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf);
  * @param[in] buf Buffer to write
  *
  * @return PB_OK on success
+ *        -PB_ERR_IO, on write request to large
  */
 int mmc_write(unsigned int lba, size_t length, const uintptr_t buf);
 
