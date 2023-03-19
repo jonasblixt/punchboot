@@ -18,6 +18,10 @@ config ENABLE_WATCHDOG
 	bool "Enable watchdog"
     default y
 
+config PRINT_BOOT_BANNER
+    bool "Print boot banner"
+    default y
+
 config WATCHDOG_TIMEOUT
     int "Watchdog timeout (s)"
     default 5
