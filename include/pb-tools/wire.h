@@ -106,9 +106,8 @@ enum pb_slc
 };
 
 /**
- * Punchboot command structure (64 bytes)
+ * Punchboot command structure (512 bytes)
  *
- * Alignment: 64 bytes
  */
 struct pb_command
 {
@@ -120,9 +119,8 @@ struct pb_command
 } __attribute__((packed));
 
 /**
- * Punchboot command result (64 bytes)
+ * Punchboot command result (512 bytes)
  *
- * Alignment: 64 Bytes
  */
 struct pb_result
 {
@@ -296,13 +294,12 @@ struct pb_command_erase_part
 } __attribute__((packed));
 
 /**
- * Resize partition command
+ * Install default partition table
  */
-struct pb_command_resize_part
+struct pb_command_install_part_table
 {
-    uint8_t uuid[16];   /*!< UUID of partition to erase */
-    size_t blocks;      /*!< Size in 512byte blocks */
-    uint8_t rz[8];      /*!< Reserved */
+    uint8_t uu[16];
+    uint8_t variant;
 } __attribute__((packed));
 
 /**

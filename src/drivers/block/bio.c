@@ -14,11 +14,7 @@ struct bio_device {
     size_t block_sz;
     bio_read_t read;
     bio_write_t write;
-    bio_read_t async_read;
-    bio_write_t async_write;
-    bio_call_t async_wait;
     bio_call_t install_partition_table;
-    bio_resize_call_t resize_partition;
     bool valid;
 };
 
@@ -85,9 +81,6 @@ bio_dev_t bio_allocate_parent(bio_dev_t parent,
 
     bio_pool[new].read = bio_pool[parent].read;
     bio_pool[new].write = bio_pool[parent].write;
-    bio_pool[new].async_read = bio_pool[parent].async_read;
-    bio_pool[new].async_write = bio_pool[parent].async_write;
-    bio_pool[new].async_wait = bio_pool[parent].async_wait;
 
     return new;
 }
@@ -227,6 +220,15 @@ int bio_set_flags(bio_dev_t dev, uint16_t flags)
     return PB_OK;
 }
 
+int bio_clear_set_flags(bio_dev_t dev, uint16_t clear_flags, uint16_t set_flags)
+{
+    int flags = bio_get_flags(dev);
+
+    if (flags < 0)
+        return flags;
+
+    return bio_set_flags(dev, ((uint16_t) flags & ~clear_flags) | set_flags);
+}
 
 const char * bio_get_description(bio_dev_t dev)
 {
@@ -277,28 +279,18 @@ bio_dev_t bio_get_part_by_uu_str(const char *uu_str)
     return bio_get_part_by_uu(uu);
 }
 
-int bio_install_partition_tables(void)
+int bio_install_partition_table(uuid_t part_uu, int variant)
 {
-    int rc;
+    bio_dev_t dev = bio_get_part_by_uu(part_uu);
 
-    for (bio_dev_t dev = 0; bio_valid(dev); dev++) {
-        if (bio_pool[dev].install_partition_table) {
-            rc = bio_pool[dev].install_partition_table(dev);
-
-            if (rc < 0)
-                return rc;
-        }
+    if (dev < 0) {
+        return dev;
     }
 
-    return PB_OK;
-}
+    LOG_DBG("Installing part tbl variant %i", variant);
 
-int bio_resize_part(bio_dev_t dev, size_t length)
-{
-    if (check_dev(dev) != PB_OK)
-        return -PB_ERR_PARAM;
-    if (bio_pool[dev].resize_partition)
-        return bio_pool[dev].resize_partition(dev, length);
+    if (bio_pool[dev].install_partition_table)
+        return bio_pool[dev].install_partition_table(dev, variant);
     else
         return -PB_ERR_NOT_SUPPORTED;
 }
@@ -308,13 +300,5 @@ int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb)
     if (check_dev(dev) != PB_OK)
         return -PB_ERR_PARAM;
     bio_pool[dev].install_partition_table = cb;
-    return PB_OK;
-}
-
-int bio_set_resize_cb(bio_dev_t dev, bio_resize_call_t cb)
-{
-    if (check_dev(dev) != PB_OK)
-        return -PB_ERR_PARAM;
-    bio_pool[dev].resize_partition = cb;
     return PB_OK;
 }
