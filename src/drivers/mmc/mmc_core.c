@@ -16,7 +16,7 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/delay.h>
-#include <pb/bio.h>
+#include <drivers/block/bio.h>
 #include <drivers/mmc/mmc_core.h>
 
 #define MMC_BIO_FLAG_BOOT0 BIT(0)
@@ -491,6 +491,11 @@ static int sd_switch(unsigned int mode, unsigned char group,
 
 static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
 {
+    int rc = -1;
+    uintptr_t buf_ptr = buf;
+    size_t bytes_to_read = length;
+    int lba_offset = lba;
+
     int flags = bio_get_hal_flags(dev);
 
     if (flags & MMC_BIO_FLAG_USER)
@@ -502,11 +507,29 @@ static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
     else if (flags & MMC_BIO_FLAG_RPMB)
         mmc_part_switch(MMC_PART_RPMB);
 
-    return mmc_read(lba, length, buf);
+    size_t max_len = mmc_hal->max_chunk_bytes;
+    while (bytes_to_read) {
+        size_t chunk_len = (bytes_to_read > max_len)?max_len:bytes_to_read;
+        rc =  mmc_read(lba_offset, chunk_len, buf_ptr);
+
+        if (rc < 0)
+            break;
+
+        bytes_to_read -= chunk_len;
+        buf_ptr += chunk_len;
+        lba_offset += chunk_len / bio_block_size(dev);
+    }
+
+    mmc_part_switch(MMC_PART_USER);
+    return rc;
 }
 
 static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf)
 {
+    int rc = -1;
+    uintptr_t buf_ptr = buf;
+    size_t bytes_to_write = length;
+    int lba_offset = lba;
     int flags = bio_get_hal_flags(dev);
 
     if (flags & MMC_BIO_FLAG_USER)
@@ -518,7 +541,21 @@ static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t 
     else if (flags & MMC_BIO_FLAG_RPMB)
         mmc_part_switch(MMC_PART_RPMB);
 
-    return mmc_write(lba, length, buf);
+    size_t max_len = mmc_hal->max_chunk_bytes;
+    while (bytes_to_write) {
+        size_t chunk_len = (bytes_to_write > max_len)?max_len:bytes_to_write;
+        rc =  mmc_write(lba_offset, chunk_len, buf_ptr);
+
+        if (rc < 0)
+            break;
+
+        bytes_to_write -= chunk_len;
+        buf_ptr += chunk_len;
+        lba_offset += chunk_len / bio_block_size(dev);
+    }
+
+    mmc_part_switch(MMC_PART_USER);
+    return rc;
 }
 
 static int mmc_enumerate(void)
