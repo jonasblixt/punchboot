@@ -96,6 +96,7 @@ enum pb_hash_algs
 #define SZ_kB(x) ((size_t) (x) << 10)
 #define SZ_MB(x) ((size_t) (x) << 20)
 #define SZ_GB(x) ((size_t) (x) << 30)
+#define MHz(x) (x * 1000000UL)
 
 void pb_main(void);
 
