@@ -18,7 +18,6 @@
 #include <uuid.h>
 #include <plat/imx8x/plat.h>
 #include <plat/imx/lpuart.h>
-#include <plat/imx/usdhc.h>
 #include <plat/imx/gpt.h>
 #include <plat/imx/ehci.h>
 #include <plat/imx/caam.h>
@@ -213,6 +212,13 @@ int plat_early_init(void)
     if (rc != SC_ERR_NONE)
         return -PB_ERR;
 
+    rc = gp_timer_init();
+
+    if (rc != PB_OK)
+        return rc;
+
+    plat_console_init();
+
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
@@ -225,17 +231,7 @@ int plat_early_init(void)
     /* Power up USB */
     pb_write32(0x00, 0x5B100000);
 
-    rc = board_early_init(&private);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = gp_timer_init();
-
-    if (rc != PB_OK)
-        return rc;
-
-    return rc;
+    return board_early_init(&private);
 }
 
 int plat_mmu_init(void)
@@ -768,58 +764,6 @@ int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
     if (boot_config->dtb_patch_cb) {
         return boot_config->dtb_patch_cb(&private, fdt, offset, verbose_boot);
     }
-
-    return PB_OK;
-}
-
-int imx_usdhc_plat_init(struct usdhc_device *dev)
-{
-    int rc;
-    unsigned int rate;
-
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
-
-
-    sc_pm_clock_enable(private.ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
-
-    rc = sc_pm_set_clock_parent(private.ipc, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
-
-    if (rc != SC_ERR_NONE)
-    {
-        LOG_ERR("usdhc set clock parent failed");
-        return -PB_ERR;
-    }
-
-    rate = 200000000;
-    sc_pm_set_clock_rate(private.ipc, SC_R_SDHC_0, 2, &rate);
-
-    if (rate != 200000000)
-    {
-        LOG_INFO("USDHC rate %u Hz", rate);
-    }
-
-    rc = sc_pm_clock_enable(private.ipc, SC_R_SDHC_0, SC_PM_CLK_PER,
-                                true, false);
-
-    if (rc != SC_ERR_NONE)
-    {
-        LOG_ERR("SDHC_0 per clk enable failed!");
-        return -PB_ERR;
-    }
-
-
-    sc_pad_set(private.ipc, SC_P_EMMC0_CLK, ESDHC_CLK_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_CMD, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_DATA0, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_DATA1, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_DATA2, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_DATA3, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_DATA4, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_DATA5, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_DATA6, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_DATA7, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_STROBE, ESDHC_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_EMMC0_RESET_B, ESDHC_PAD_CTRL);
 
     return PB_OK;
 }
