@@ -649,8 +649,9 @@ static int mmc_enumerate(void)
 {
     int rc;
     mmc_cmd_resp_t resp_data;
-
+    ts("mmc enum start");
     rc = mmc_hal->init();
+    ts("mmc hal done");
 
     if (rc != PB_OK)
         return rc;
@@ -659,6 +660,7 @@ static int mmc_enumerate(void)
     if (rc != 0) {
         return rc;
     }
+    ts("mmc clk");
 
     rc = mmc_reset_to_idle();
     if (rc != PB_OK) {
@@ -678,6 +680,7 @@ static int mmc_enumerate(void)
         }
     }
 
+    ts("mmc op cond");
     if (rc != 0) {
         return rc;
     }
@@ -687,6 +690,7 @@ static int mmc_enumerate(void)
     if (rc != 0) {
         return rc;
     }
+    ts("mmc send cid");
 
     /* CMD3: Set Relative Address */
     if (mmc_cfg->card_type == MMC_CARD_TYPE_EMMC) {
@@ -704,6 +708,7 @@ static int mmc_enumerate(void)
 
         rca = (resp_data[0] & 0xFFFF0000U) >> 16;
     }
+    ts("mmc set rela");
 
     /* CMD9: CSD Register */
     rc = mmc_send_cmd(MMC_CMD_SEND_CSD, rca << RCA_SHIFT_OFFSET,
@@ -713,12 +718,12 @@ static int mmc_enumerate(void)
     }
 
     memcpy(&mmc_csd, &resp_data, sizeof(resp_data));
-
     LOG_DBG("csd0: %x", resp_data[0]);
     LOG_DBG("csd1: %x", resp_data[1]);
     LOG_DBG("csd2: %x", resp_data[2]);
     LOG_DBG("csd3: %x", resp_data[3]);
 
+    ts("mmc send csd");
     /* CMD7: Select Card */
     rc = mmc_send_cmd(MMC_CMD_SELECT_CARD, rca << RCA_SHIFT_OFFSET,
                MMC_RSP_R1, NULL);
@@ -726,6 +731,7 @@ static int mmc_enumerate(void)
         return rc;
     }
 
+    ts("mmc select");
     do {
         rc = mmc_device_state();
         if (rc < 0) {
@@ -733,6 +739,7 @@ static int mmc_enumerate(void)
         }
     } while (rc != MMC_STATE_TRAN);
 
+    ts("mmc switch");
     switch (mmc_cfg->mode) {
         case MMC_BUS_MODE_HS200:
         {
@@ -798,7 +805,7 @@ static int mmc_enumerate(void)
             LOG_ERR("Unsupported mmc bus mode (%i)", mmc_cfg->mode);
             return -PB_ERR_NOT_IMPLEMENTED;
     }
-
+    ts("mmc switch done");
     rc = mmc_fill_device_info();
     if (rc != 0) {
         return rc;
@@ -902,33 +909,7 @@ static int mmc_enumerate(void)
     if (rc < 0)
         return rc;
 
-    if (is_sd_cmd6_enabled() &&
-        (mmc_cfg->card_type == MMC_CARD_TYPE_SD_HC)) {
-        /* Try to switch to High Speed Mode */
-        rc = sd_switch(SD_SWITCH_FUNC_CHECK, 1U, 1U);
-        if (rc != 0) {
-            return rc;
-        }
-
-        if ((sd_switch_func_status.support_g1 & BIT(9)) == 0U) {
-            /* High speed not supported, keep default speed */
-            return 0;
-        }
-
-        rc = sd_switch(SD_SWITCH_FUNC_SWITCH, 1U, 1U);
-        if (rc != 0) {
-            return rc;
-        }
-
-        if ((sd_switch_func_status.sel_g2_g1 & 0x1U) == 0U) {
-            /* Cannot switch to high speed, keep default speed */
-            return 0;
-        }
-
-        mmc_dev_info.max_bus_freq_hz = 50000000U;
-        //rc = mmc_hal->set_ios(clk, bus_width);
-    }
-
+    ts("mmc enum done");
     return rc;
 }
 

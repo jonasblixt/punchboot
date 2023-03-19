@@ -13,6 +13,7 @@
 #include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/board.h>
+#include <pb/timestamp.h>
 #include <xlat_tables.h>
 #include <uuid.h>
 #include <plat/imx8x/plat.h>
@@ -330,16 +331,17 @@ static void imx8x_mmu_init(void)
 
 int plat_init(void)
 {
-    int rc = PB_OK;
+    int rc;
 
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
-
     imx8x_systick_setup();
+    ts("Init");
     imx8x_console_init();
     imx8x_wdog_init();
     imx8x_load_boot_reason();
+    ts("MMU start");
     imx8x_mmu_init();
-
+    ts("MMU end");
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);

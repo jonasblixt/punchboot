@@ -109,7 +109,7 @@ static int image_load(pb_image_read_t read_f,
     struct bpak_key *k = NULL;
     int hash_kind;
 
-    pb_timestamp_begin("Image load");
+    ts("Image load begin");
 
     rc = bpak_valid_header(h);
 
@@ -197,7 +197,7 @@ static int image_load(pb_image_read_t read_f,
     if (rc != PB_OK)
         return rc;
 
-    pb_timestamp_begin("Verify signature");
+    ts("Verify signature");
 
     rc = plat_pk_verify(signature, signature_sz, hash, hash_kind, k);
 
@@ -207,8 +207,6 @@ static int image_load(pb_image_read_t read_f,
         LOG_ERR("Signature Invalid");
         return rc;
     }
-
-    pb_timestamp_end();
 
     rc = check_header();
 
@@ -222,6 +220,7 @@ static int image_load(pb_image_read_t read_f,
             return rc;
     }
 
+    ts("Payload hash");
     /* Compute payload hash */
 
     rc = plat_hash_init(hash_kind);
@@ -297,8 +296,7 @@ static int image_load(pb_image_read_t read_f,
         return -1;
     }
 
-    pb_timestamp_end();
-
+    ts("Image load end");
     return rc;
 }
 
@@ -680,7 +678,7 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
     }
 
     if (boot_config->dtb_bpak_id) {
-        pb_timestamp_begin("DT Patch");
+        ts("DT Patch");
         rc = bpak_get_part(h, boot_config->dtb_bpak_id, &pdtb);
 
         if (rc != BPAK_OK) {
@@ -854,16 +852,13 @@ int pb_boot(enum pb_boot_mode boot_mode, bool verbose)
             LOG_ERR("fdt error: active-system (%i)", rc);
             return -1;
         }
-
-        pb_timestamp_end();  // DT Patch
     }
 
     LOG_DBG("Ready to jump");
-    pb_timestamp_end(); // Total
-
-    if (boot_config->print_time_measurements) {
-        pb_timestamp_print();
-    }
+    ts("boot");
+#ifdef CONFIG_PRINT_TIMESTAMPS
+    ts_print();
+#endif
 
     if (boot_config->dtb_bpak_id) {
         size_t dtb_size = bpak_part_size(pdtb);

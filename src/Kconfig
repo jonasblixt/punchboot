@@ -27,12 +27,19 @@ config WATCHDOG_TIMEOUT
     default 5
     depends on ENABLE_WATCHDOG
 
-config DUMP_TIMING_ANALYSIS
-    bool "Dump timing analysis"
+config ENABLE_TIMESTAMPING
+    bool "Enable timestamping"
     default n
-    help
-        Print internal timestamps just before jump.
-        This is mostly meaningful if loglevel is 0.
+
+config PRINT_TIMESTAMPS
+    bool "Print timestamps before boot"
+    depends on ENABLE_TIMESTAMPING
+    default n
+
+config NO_OF_TIMESTAMPS
+    int "Maximum number of timestamps"
+    depends on ENABLE_TIMESTAMPING
+    default 64
 
 config CALL_BOARD_SLC_SET_CONFIGURATION
     bool "Call board_slc_set_configuration"

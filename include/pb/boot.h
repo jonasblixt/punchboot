@@ -84,8 +84,6 @@ struct pb_boot_config
     pb_board_late_boot_cb_t late_boot_cb;   /*!< Optional late boot callback */
     pb_board_patch_dtb_cb_t dtb_patch_cb;   /*!< Optional DTB patch callback */
     bool set_dtb_boot_arg;                  /*!< Pass dtb address as first argument */
-    bool print_time_measurements;           /*!< Print internal time measurements
-                                                 just before jumping to the boot image */
 };
 
 /**
