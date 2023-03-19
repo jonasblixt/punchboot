@@ -14,6 +14,11 @@
 #include <uuid.h>
 #include <bpak/id.h>
 
+/* PB Primary boot state partition */
+#define UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e (const unsigned char *) "\xf5\xf8\xc9\xae\xef\xb5\x40\x71\x9b\xa9\xd3\x13\xb0\x82\x28\x1e"
+/* PB Backup boot state partition */
+#define UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee (const unsigned char *) "\x65\x6a\xb3\xfc\x58\x56\x4a\x5e\xa2\xae\x5a\x01\x83\x13\xb3\xee"
+
 #define PB_STATE_MAGIC 0x026d4a65
 
 #define PB_STATE_A_ENABLED (1 << 0)
