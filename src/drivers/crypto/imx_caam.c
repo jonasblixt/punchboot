@@ -48,10 +48,10 @@
 #include <pb/io.h>
 #include <pb/asn1.h>
 #include <bpak/keystore.h>
-#include <plat/imx/caam.h>
-#include <plat/imx/desc_defines.h>
-#include <plat/imx/desc_helper.h>
 #include <plat/defs.h>
+#include <drivers/crypto/imx_caam.h>
+#include "desc_defines.h"
+#include "desc_helper.h"
 
 /* Commands  */
 #define CAAM_CMD_HEADER  0xB0800000

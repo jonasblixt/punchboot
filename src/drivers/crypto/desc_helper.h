@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 /* Local includes */
-#include <plat/imx/desc_defines.h>
+#include "desc_defines.h"
 
 /**
  * @brief   Descriptor Entry type
