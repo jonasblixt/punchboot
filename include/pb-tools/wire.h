@@ -106,9 +106,8 @@ enum pb_slc
 };
 
 /**
- * Punchboot command structure (64 bytes)
+ * Punchboot command structure (512 bytes)
  *
- * Alignment: 64 bytes
  */
 struct pb_command
 {
@@ -120,9 +119,8 @@ struct pb_command
 } __attribute__((packed));
 
 /**
- * Punchboot command result (64 bytes)
+ * Punchboot command result (512 bytes)
  *
- * Alignment: 64 Bytes
  */
 struct pb_result
 {

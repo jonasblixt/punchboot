@@ -331,10 +331,9 @@ static void imx8x_mmu_init(void)
 
 int plat_init(void)
 {
-    int rc = PB_OK;
+    int rc;
 
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
-
     imx8x_systick_setup();
     ts("Init");
     imx8x_console_init();
