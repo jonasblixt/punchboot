@@ -1,13 +1,28 @@
 menu "MMC Host drivers"
 
 config MMC_CORE
-    bool "Enalbe support for MMC"
+    bool "Enable support for MMC"
+    default n
+
+config MMC_CORE_DEBUG_CMDS
+    bool "MMC debug commands"
+    depends on MMC_CORE
+    default n
+
+config MMC_CORE_DEBUG_IOS
+    bool "MMC debug R/W ops"
+    depends on MMC_CORE
     default n
 
 config IMX_USDHC
     depends on SOC_FAMILY_IMX
-    depends on MMC_CORE
+    select MMC_CORE
 	bool "Enable support i.MX USDHC"
+    default n
+
+config IMX_USDHC_XTRA_DEBUG
+    depends on IMX_USDHC
+    bool "Extra debug output"
     default n
 
 endmenu

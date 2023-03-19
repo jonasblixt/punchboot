@@ -94,9 +94,9 @@ static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type,
     struct mmc_cmd cmd;
     mmc_cmd_resp_t rsp;
 
-// #ifdef CONFIG_MMC_DEBUG_CMDS
+#ifdef CONFIG_MMC_CORE_DEBUG_CMDS
     LOG_DBG("idx %u, arg 0x%08x, 0x%x", cmd_idx, arg, resp_type);
-
+#endif
     memset(&cmd, 0, sizeof(cmd));
 
     cmd.idx = cmd_idx;
@@ -755,7 +755,12 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
     int ret;
     unsigned int cmd_idx, cmd_arg;
 
+#ifdef MMC_CORE_DEBUG_IOS
     LOG_DBG("%u, %zu, %p", lba, length, (void *) buf);
+#endif
+
+    if (mmc_hal->max_chunk_bytes > 0 && length > mmc_hal->max_chunk_bytes)
+        return -PB_ERR_IO;
 
     ret = mmc_hal->prepare(lba, length, buf);
     if (ret != 0) {
@@ -811,6 +816,13 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
 {
     int ret;
     unsigned int cmd_idx, cmd_arg;
+
+#ifdef MMC_CORE_DEBUG_IOS
+    LOG_DBG("%u, %zu, %p", lba, length, (void *) buf);
+#endif
+
+    if (mmc_hal->max_chunk_bytes > 0 && length > mmc_hal->max_chunk_bytes)
+        return -PB_ERR_IO;
 
     ret = mmc_hal->prepare(lba, length, buf);
     if (ret != 0) {
