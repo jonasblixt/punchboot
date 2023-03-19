@@ -13,7 +13,6 @@
 #include <pb/arch.h>
 #include <pb/plat.h>
 #include <pb/timestamp.h>
-#include <pb/storage.h>
 #include <pb/command.h>
 #include <pb/boot.h>
 
@@ -36,8 +35,6 @@ void pb_main(void)
 
     pb_timestamp_end();
     pb_timestamp_begin("Misc init");
-
-    plat_console_init();
 
     printf("\n\rPB " PB_VERSION ", %s (%i)\n\r", plat_boot_reason_str(),
                                                  plat_boot_reason());
