@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -11,9 +10,8 @@
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <pb/plat.h>
-#include <plat/imx/lpuart.h>
 #include <plat/defs.h>
-
+#include <drivers/uart/imx_lpuart.h>
 int imx_lpuart_write(char *buf, size_t size)
 {
     for (unsigned int i = 0; i < size; i++)
