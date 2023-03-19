@@ -2,8 +2,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <pb/pb.h>
-#include <pb/bio.h>
 #include <pb/errors.h>
+#include <drivers/block/bio.h>
 
 struct bio_device {
     uuid_t uu;
@@ -22,14 +22,12 @@ struct bio_device {
     bool valid;
 };
 
-/* TODO: Put this in KConfig */
-#define CONFIG_BIO_POOL_SIZE 32
-static struct bio_device bio_pool[CONFIG_BIO_POOL_SIZE];
+static struct bio_device bio_pool[CONFIG_DRIVERS_BIO_MAX_DEVS];
 static unsigned int n_bios = 0;
 
 static int check_dev(bio_dev_t dev)
 {
-    if (dev < 0 || dev > CONFIG_BIO_POOL_SIZE)
+    if (dev < 0 || dev > CONFIG_DRIVERS_BIO_MAX_DEVS)
         return -PB_ERR_PARAM;
     if (bio_pool[dev].valid == false)
         return -PB_ERR_PARAM;
@@ -40,7 +38,7 @@ static int check_dev(bio_dev_t dev)
 bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
                        const uuid_t uu, const char *description)
 {
-    if (n_bios == CONFIG_BIO_POOL_SIZE)
+    if (n_bios == CONFIG_DRIVERS_BIO_MAX_DEVS)
         return -PB_ERR_MEM;
     if (first_lba < 0 || last_lba < 0 || block_size == 0)
         return -PB_ERR_PARAM;
@@ -159,8 +157,6 @@ int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
 {
     int rc;
 
-    LOG_DBG("%i, %i %zu %p", dev, lba, length, (void *) buf);
-
     rc = check_dev(dev);
     if (rc != PB_OK)
         return rc;
@@ -262,7 +258,7 @@ int bio_get_first_block(bio_dev_t dev)
 
 bio_dev_t bio_get_part_by_uu(const uuid_t uu)
 {
-    for (unsigned int i = 0; i < CONFIG_BIO_POOL_SIZE; i++) {
+    for (unsigned int i = 0; i < CONFIG_DRIVERS_BIO_MAX_DEVS; i++) {
         if (!bio_pool[i].valid)
             break;
         if (uuid_compare(uu, bio_pool[i].uu) == 0) {
