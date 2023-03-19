@@ -334,6 +334,12 @@
 #define SD_SWITCH_FUNC_SWITCH		BIT(31)
 #define SD_SWITCH_ALL_GROUPS_MASK	GENMASK(23, 0)
 
+/* EXT_CSD_BOOT_BUS_CONDITIONS */
+#define EXT_CSD_BOOT_SDR_HS      BIT(3)
+#define EXT_CSD_BOOT_DDR         BIT(4)
+#define EXT_CSD_BOOT_BUS_WIDTH_4 BIT(0)
+#define EXT_CSD_BOOT_BUS_WIDTH_8 BIT(1)
+
 enum mmc_part {
     MMC_PART_USER  = 0,
     MMC_PART_BOOT0 = 1,
@@ -497,6 +503,7 @@ struct mmc_hal {
     mmc_io_t prepare;
     mmc_io_t read;
     mmc_io_t write;
+    size_t max_chunk_bytes;
 };
 
 struct mmc_device_info {
@@ -515,6 +522,7 @@ struct mmc_device_config {
     enum mmc_bus_width width;       /*!< Requested bus width */
     enum mmc_card_type card_type;   /*!< Requested card type */
     uint32_t flags;
+    uint8_t boot_mode;
 };
 
 /**
