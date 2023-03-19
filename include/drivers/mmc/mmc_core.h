@@ -126,57 +126,6 @@
  * EXT_CSD field definitions
  */
 
-#define EXT_CSD_WR_REL_PARAM_EN        (1<<2)
-
-#define EXT_CSD_BOOT_WP_B_PWR_WP_DIS    (0x40)
-#define EXT_CSD_BOOT_WP_B_PERM_WP_DIS    (0x10)
-#define EXT_CSD_BOOT_WP_B_PERM_WP_EN    (0x04)
-#define EXT_CSD_BOOT_WP_B_PWR_WP_EN    (0x01)
-
-#define EXT_CSD_PART_CONFIG_ACC_MASK    (0x7)
-#define EXT_CSD_PART_CONFIG_ACC_BOOT0    (0x1)
-#define EXT_CSD_PART_CONFIG_ACC_RPMB    (0x3)
-#define EXT_CSD_PART_CONFIG_ACC_GP0    (0x4)
-
-#define EXT_CSD_PART_SETTING_COMPLETED    (0x1)
-#define EXT_CSD_PART_SUPPORT_PART_EN    (0x1)
-
-#define EXT_CSD_ENH_4         (1<<4)
-#define EXT_CSD_ENH_3         (1<<3)
-#define EXT_CSD_ENH_2         (1<<2)
-#define EXT_CSD_ENH_1         (1<<1)
-#define EXT_CSD_ENH_USR       (1<<0)
-
-#define EXT_CSD_CMD_SET_NORMAL        (1<<0)
-#define EXT_CSD_CMD_SET_SECURE        (1<<1)
-#define EXT_CSD_CMD_SET_CPSECURE    (1<<2)
-
-#define EXT_CSD_CARD_TYPE_HS_26    (1<<0)    /* Card can run at 26MHz */
-#define EXT_CSD_CARD_TYPE_HS_52    (1<<1)    /* Card can run at 52MHz */
-#define EXT_CSD_CARD_TYPE_HS    (EXT_CSD_CARD_TYPE_HS_26 | \
-                 EXT_CSD_CARD_TYPE_HS_52)
-#define EXT_CSD_CARD_TYPE_DDR_1_8V  (1<<2)   /* Card can run at 52MHz */
-                         /* DDR mode @1.8V or 3V I/O */
-#define EXT_CSD_CARD_TYPE_DDR_1_2V  (1<<3)   /* Card can run at 52MHz */
-                         /* DDR mode @1.2V I/O */
-#define EXT_CSD_CARD_TYPE_DDR_52       (EXT_CSD_CARD_TYPE_DDR_1_8V  \
-                    | EXT_CSD_CARD_TYPE_DDR_1_2V)
-#define EXT_CSD_CARD_TYPE_HS200_1_8V    (1<<4)    /* Card can run at 200MHz */
-#define EXT_CSD_CARD_TYPE_HS200_1_2V    (1<<5)    /* Card can run at 200MHz */
-                        /* SDR mode @1.2V I/O */
-#define EXT_CSD_CARD_TYPE_HS200        (EXT_CSD_CARD_TYPE_HS200_1_8V | \
-                     EXT_CSD_CARD_TYPE_HS200_1_2V)
-
-/* Card can run at 200MHz DDR, 1.8V */
-#define EXT_CSD_CARD_TYPE_HS400_1_8V    (1<<6)
-
-/* Card can run at 200MHz DDR, 1.2V */
-#define EXT_CSD_CARD_TYPE_HS400_1_2V    (1<<7)
-
-#define EXT_CSD_CARD_TYPE_HS400        (EXT_CSD_CARD_TYPE_HS400_1_8V | \
-                     EXT_CSD_CARD_TYPE_HS400_1_2V)
-#define EXT_CSD_CARD_TYPE_HS400ES    (1<<8)    /* Card can run at HS400ES */
-
 #define EXT_CSD_BUS_WIDTH_1    0    /* Card is in 1 bit mode */
 #define EXT_CSD_BUS_WIDTH_4    1    /* Card is in 4 bit mode */
 #define EXT_CSD_BUS_WIDTH_8    2    /* Card is in 8 bit mode */
@@ -351,11 +300,13 @@ enum mmc_bus_mode
 
 enum mmc_bus_width
 {
-    MMC_BUS_WIDTH_1BIT = 0,
-    MMC_BUS_WIDTH_4BIT = 1,
-    MMC_BUS_WIDTH_8BIT = 2,
-    MMC_BUS_WIDTH_4BIT_DDR = 5,
-    MMC_BUS_WIDTH_8BIT_DDR = 6,
+    MMC_BUS_WIDTH_INVALID = 0,
+    MMC_BUS_WIDTH_1BIT,
+    MMC_BUS_WIDTH_4BIT,
+    MMC_BUS_WIDTH_8BIT,
+    MMC_BUS_WIDTH_4BIT_DDR,
+    MMC_BUS_WIDTH_8BIT_DDR,
+    MMC_BUS_WIDTH_8BIT_DDR_STROBE,
 };
 
 enum mmc_card_type
@@ -411,66 +362,6 @@ struct mmc_csd_emmc {
     unsigned int        csd_structure:          2;
 };
 
-struct mmc_csd_sd_v2 {
-    unsigned int        not_used:               1;
-    unsigned int        crc:                    7;
-    unsigned int        reserved_1:             2;
-    unsigned int        file_format:            2;
-    unsigned int        tmp_write_protect:      1;
-    unsigned int        perm_write_protect:     1;
-    unsigned int        copy:                   1;
-    unsigned int        file_format_grp:        1;
-
-    unsigned int        reserved_2:             5;
-    unsigned int        write_bl_partial:       1;
-    unsigned int        write_bl_len:           4;
-    unsigned int        r2w_factor:             3;
-    unsigned int        reserved_3:             2;
-    unsigned int        wp_grp_enable:          1;
-
-    unsigned int        wp_grp_size:            7;
-    unsigned int        sector_size:            7;
-    unsigned int        erase_block_en:         1;
-    unsigned int        reserved_4:             1;
-    unsigned int        c_size_low:             16;
-
-    unsigned int        c_size_high:            6;
-    unsigned int        reserved_5:             6;
-    unsigned int        dsr_imp:                1;
-    unsigned int        read_blk_misalign:      1;
-    unsigned int        write_blk_misalign:     1;
-    unsigned int        read_bl_partial:        1;
-    unsigned int        read_bl_len:            4;
-    unsigned int        ccc:                    12;
-
-    unsigned int        tran_speed:             8;
-    unsigned int        nsac:                   8;
-    unsigned int        taac:                   8;
-    unsigned int        reserved_6:             6;
-    unsigned int        csd_structure:          2;
-};
-
-struct sd_switch_status {
-    unsigned short        max_current;
-    unsigned short        support_g6;
-    unsigned short        support_g5;
-    unsigned short        support_g4;
-    unsigned short        support_g3;
-    unsigned short        support_g2;
-    unsigned short        support_g1;
-    unsigned char        sel_g6_g5;
-    unsigned char        sel_g4_g3;
-    unsigned char        sel_g2_g1;
-    unsigned char        data_struct_ver;
-    unsigned short        busy_g6;
-    unsigned short        busy_g5;
-    unsigned short        busy_g4;
-    unsigned short        busy_g3;
-    unsigned short        busy_g2;
-    unsigned short        busy_g1;
-    unsigned short        reserved[17];
-};
-
 struct mmc_cmd {
     uint32_t arg;           /*!< MMC command argument */
     uint16_t resp_type;     /*!< Type of response to expect */
@@ -500,12 +391,8 @@ struct mmc_hal {
 };
 
 struct mmc_device_info {
-    // TODO: Add mfg id, mfg identifer, emmc version?
-    size_t device_capacity;           /* !< Size of device in bytes */
     size_t block_size;                /* !< Block size in bytes */
-    unsigned int max_bus_freq_hz;     /* !< Max bus freq in Hz */
     unsigned int ocr_voltage;         /* !< OCR voltage */
-    enum mmc_card_type mmc_card_type; /* !< Detected card type */
     enum mmc_bus_mode mode;           /* !< MMC bus mode */
     enum mmc_bus_width width;         /* !< MMC bus width */
 };
@@ -513,7 +400,6 @@ struct mmc_device_info {
 struct mmc_device_config {
     enum mmc_bus_mode mode;         /*!< Requested bus mode */
     enum mmc_bus_width width;       /*!< Requested bus width */
-    enum mmc_card_type card_type;   /*!< Requested card type */
     const unsigned char *boot0_uu;
     const unsigned char *boot1_uu;
     const unsigned char *rpmb_uu;
