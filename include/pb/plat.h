@@ -26,14 +26,7 @@
  *
  * @return PB_OK on success or a negative number
  **/
-int plat_early_init(void);
-
-/**
- * Initialize VM and MMU
- *
- * @return PB_OK on success or a negative number
- **/
-int plat_mmu_init(void);
+int plat_init(void);
 
 /**
  * Platform specific reset function
@@ -46,11 +39,6 @@ void plat_reset(void);
  * @return current micro second tick
  **/
 unsigned int plat_get_us_tick(void);
-
-/**
- * Initialize watchdog
- */
-void plat_wdog_init(void);
 
 /**
  * Kick watchdog
@@ -73,7 +61,6 @@ int plat_boot_reason(void);
  **/
 const char* plat_boot_reason_str(void);
 
-void plat_preboot_cleanup(void);
 bool plat_force_command_mode(void);
 int plat_get_uuid(char *out);
 int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot);
@@ -114,10 +101,6 @@ int plat_command(uint32_t command,
 
 int plat_status(void *response_bfr,
                     size_t *response_size);
-
-/* Console API */
-int plat_console_init(void);
-int plat_console_putchar(char c);
 
 /* Fusebox API */
 int plat_fuse_read(struct fuse *f);
