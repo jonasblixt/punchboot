@@ -13,10 +13,10 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/io.h>
-#include <pb/usb.h>
-#include <plat/imx/ehci.h>
 #include <plat/defs.h>
 #include <pb-tools/wire.h>
+#include <drivers/usb/usb_core.h>
+#include <drivers/usb/imx_ehci.h>
 
 static struct ehci_transfer_head dtds[EHCI_NO_OF_EPS*2][512] PB_SECTION_NO_INIT PB_ALIGN_4k;
 static struct ehci_queue_head    dqhs[EHCI_NO_OF_EPS*2] PB_SECTION_NO_INIT PB_ALIGN_4k;

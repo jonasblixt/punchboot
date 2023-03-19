@@ -11,7 +11,7 @@
 #define PLAT_IMX_EHCI_H_
 
 #include <pb/pb.h>
-#include <pb/usb.h>
+#include <drivers/usb/usb_core.h>
 
 #define EHCI_DCIVERSION 0x120
 #define EHCI_USBSTS 0x144
