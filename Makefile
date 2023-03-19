@@ -79,14 +79,13 @@ src-y  += keystore.c
 src-y  += src/delay.c
 src-y  += src/timestamp.c
 src-y  += src/usb.c
-src-y  += src/storage.c
 src-y  += src/wire.c
 src-y  += src/command.c
-src-y  += src/gpt.c
 src-y  += src/fletcher.c
 src-y  += src/bpak.c
 src-y  += src/crc.c
 src-y  += src/asn1.c
+src-y  += src/bio.c
 
 # UUID lib
 src-y  += src/uuid/pack.c
@@ -117,6 +116,7 @@ src-$(CONFIG_ARCH_ARMV8) += src/vm/aarch64/xlat_tables.c
 cflags-$(CONFIG_ARCH_ARMV7) += -I src/vm/include/vm/aarch32
 cflags-$(CONFIG_ARCH_ARMV8) += -I src/vm/include/vm/aarch64
 
+include src/drivers/*/makefile.mk
 include src/bearssl/makefile.mk
 include src/libc/makefile.mk
 include $(BOARD)/makefile.mk
