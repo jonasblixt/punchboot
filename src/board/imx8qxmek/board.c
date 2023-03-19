@@ -32,6 +32,7 @@
 #include <uuid.h>
 #include <libfdt.h>
 
+#include "partitions.h"
 #define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
                          (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
                          (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
@@ -65,18 +66,6 @@ struct fuse fuses[] =
     IMX8X_FUSE_ROW_VAL(19, "Bootconfig2" , 0x00000025),
     IMX8X_FUSE_END,
 };
-
-#define UUID_2af755d8_8de5_45d5_a862_014cfa735ce0 (const unsigned char *) "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62\x01\x4c\xfa\x73\x5c\xe0"
-#define UUID_c046ccd8_0f2e_4036_984d_76c14dc73992 (const unsigned char *) "\xc0\x46\xcc\xd8\x0f\x2e\x40\x36\x98\x4d\x76\xc1\x4d\xc7\x39\x92"
-#define UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a (const unsigned char *) "\xc2\x84\x38\x7a\x33\x77\x4c\x0f\xb5\xdb\x1b\xcb\xcf\xf1\xba\x1a"
-#define UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb (const unsigned char *) "\xac\x6a\x1b\x62\x7b\xd0\x46\x0b\x9e\x6a\x9a\x78\x31\xcc\xbf\xbb"
-#define UUID_4581af22_99e6_4a94_b821_b60c42d74758 (const unsigned char *) "\x45\x81\xaf\x22\x99\xe6\x4a\x94\xb8\x21\xb6\x0c\x42\xd7\x47\x58"
-#define UUID_da2ca04f_a693_4284_b897_3906cfa1eb13 (const unsigned char *) "\xda\x2c\xa0\x4f\xa6\x93\x42\x84\xb8\x97\x39\x06\xcf\xa1\xeb\x13"
-#define UUID_23477731_7e33_403b_b836_899a0b1d55db (const unsigned char *) "\x23\x47\x77\x31\x7e\x33\x40\x3b\xb8\x36\x89\x9a\x0b\x1d\x55\xdb"
-#define UUID_6ffd077c_32df_49e7_b11e_845449bd8edd (const unsigned char *) "\x6f\xfd\x07\x7c\x32\xdf\x49\xe7\xb1\x1e\x84\x54\x49\xbd\x8e\xdd"
-#define UUID_9697399d_e2da_47d9_8eb5_88daea46da1b (const unsigned char *) "\x96\x97\x39\x9d\xe2\xda\x47\xd9\x8e\xb5\x88\xda\xea\x46\xda\x1b"
-#define UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa (const unsigned char *) "\xc5\xb8\xb4\x1c\x0f\xb5\x49\x4d\x8b\x0e\xeb\xa4\x00\xe0\x75\xfa"
-#define UUID_39792364_d3e3_4013_ac51_caaea65e4334 (const unsigned char *) "\x39\x79\x23\x64\xd3\xe3\x40\x13\xac\x51\xca\xae\xa6\x5e\x43\x34"
 
 static const struct gpt_part_table gpt_tbl[]=
 {
@@ -166,7 +155,6 @@ static const struct gpt_part_table gpt_tbl[]=
     },
 };
 
-
 const uint32_t rom_key_map[] =
 {
     0xa90f9680,
@@ -186,8 +174,8 @@ static int patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     } else {
         bootargs = "console=ttyLP0,115200 quiet ";
     }
-    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 
+    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 }
 
 static int usdhc_emmc_setup(struct imx8x_private *priv)
@@ -235,6 +223,10 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
             .width = MMC_BUS_WIDTH_8BIT,
             .card_type = MMC_CARD_TYPE_EMMC,
             .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
+            .boot0_uu = PART_boot0,
+            .boot1_uu = PART_boot1,
+            .user_uu = PART_user,
+            .rpmb_uu = PART_rpmb,
             .flags = 0,
         }
     };
@@ -242,12 +234,6 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
     return imx_usdhc_init(&cfg, rate);
 }
 
-/*
- * TODO:
- *  struct platform *plat;
- *
- *  struct imx8x_platform = container_of(plat, struct imx8x_platform, plat);
- */
 int board_early_init(void *plat)
 {
     struct imx8x_private *priv = IMX8X_PRIV(plat);
@@ -270,74 +256,21 @@ int board_early_init(void *plat)
     if (user_part < 0)
         return user_part;
 
-    /* Default flags for user eMMC user partition, these  will
-     * be inherited when/if a valid GPT partition table is found
-     */
-    bio_set_flags(user_part, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
-
     rc = gpt_ptbl_init(user_part, gpt_tbl);
 
     if (rc != PB_OK) {
         LOG_ERR("GPT ptbl init failed (%i)", rc);
-        return rc;
     }
 
-    /* Clear all flags on user partition, since we don't want to expose the user
-     * partition over the command mode interface
-     */
-    bio_set_flags(user_part, 0);
+    /* eMMC User partition now only has the visible flag to report capacity */
+    bio_set_flags(user_part, BIO_FLAG_VISIBLE);
 
-    bio_dev_t boot0 = bio_get_part_by_uu(UUID_9eef7544_bf68_4bf7_8678_da117cbccba8);
-    bio_dev_t boot1 = bio_get_part_by_uu(UUID_4ee31690_0c9b_4d56_a6a6_e6d6ecfd4d54);
-
-    if (boot0 >= 0)
-        bio_set_flags(boot0, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
-    if (boot1 > 0)
-        bio_set_flags(boot1, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
     bio_dev_t sys_a = bio_get_part_by_uu(UUID_2af755d8_8de5_45d5_a862_014cfa735ce0);
-    bio_set_flags(sys_a, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE);
+    bio_clear_set_flags(sys_a, 0, BIO_FLAG_BOOTABLE);
 
     bio_dev_t sys_b = bio_get_part_by_uu(UUID_c046ccd8_0f2e_4036_984d_76c14dc73992);
-    bio_set_flags(sys_b, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE);
-#ifdef __NOPE
-    bio_dev_t root_a = bio_get_part_by_uu_str("c284387a-3377-4c0f-b5db-1bcbcff1ba1a");
+    bio_clear_set_flags(sys_b, 0, BIO_FLAG_BOOTABLE);
 
-    if (root_a < 0) {
-        LOG_ERR("Could not get root a part (%i)", root_a);
-        return root_a;
-    }
-
-    printf("\n\r--- Read test ---\n\r");
-    for (int i = 0; i < 15; i++) {
-        unsigned int ts_start = plat_get_us_tick();
-        const size_t bytes_to_read = SZ_MB(256);
-        rc = bio_read(root_a, 0, bytes_to_read, 0xa5000000);
-        if (rc == 0) {
-            unsigned int ts_end = plat_get_us_tick();
-            printf("~%li MB/s\n\r", bytes_to_read / (ts_end-ts_start));
-        } else {
-            printf("Read failed (%i)\n\r", rc);
-            break;
-        }
-    }
-
-    printf("\n\r--- Bpak Header test ---\n\r");
-    struct bpak_header hdr;
-    int lba = (bio_size(root_a) - sizeof(struct bpak_header)) / bio_block_size(root_a);
-    bio_read(root_a, lba, sizeof(struct bpak_header), (uintptr_t) &hdr);
-
-    if (bpak_valid_header(&hdr) == BPAK_OK) {
-        LOG_DBG("Read valid BPAK header from block device %i (%s)",
-                    root_a, bio_get_description(root_a));
-    } else {
-        LOG_ERR("Bad magic: 0x%08x on %i (%s)", hdr.magic, root_a, bio_get_description(root_a));
-    }
-
-    printf("\n\rTrying to read beyond the end of the partition\n\r");
-
-    rc = bio_read(root_a, bio_size(root_a) / 512 - 1, 513, (uintptr_t) &hdr);
-    LOG_DBG("%i", rc);
-#endif
     return PB_OK;
 }
 
@@ -428,85 +361,7 @@ int board_status(void *plat,
 #ifdef CONFIG_AUTH_METHOD_PASSWORD
 int board_command_mode_auth(char *password, size_t length)
 {
-    int rc;
-    bool authenticated = false;
-    struct pb_storage_map *rpmb_map;
-    struct pb_storage_driver *rpmb_drv;
-    uint8_t secret[512];
-    uint8_t hash[PB_HASH_MAX_LENGTH];
-    uuid_t rpmb_uu;
-
-    uuid_parse("8d75d8b9-b169-4de6-bee0-48abdc95c408", rpmb_uu);
-
-    rc = pb_storage_get_part(rpmb_uu, &rpmb_map, &rpmb_drv);
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not find partition");
-        goto err_out;
-    }
-
-    rc = rpmb_drv->map_request(rpmb_drv, rpmb_map);
-
-    if (rc != PB_OK) {
-        LOG_ERR("map_request failed");
-        goto err_out;
-    }
-
-    rc = pb_storage_read(rpmb_drv, rpmb_map, secret, 1, 0);
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("RPMB Read failed");
-        goto err_release_out;
-    }
-
-    printf("RPMB sha256: ");
-    for (int i = 0; i < 32; i++) {
-        printf("%02x", secret[i] & 0xFF);
-    }
-    printf("\n\r");
-
-    rc = plat_hash_init(PB_HASH_SHA256);
-
-    if (rc != PB_OK) {
-        goto err_release_out;
-    }
-
-    rc = plat_hash_update(password, length);
-
-    if (rc != PB_OK) {
-        goto err_release_out;
-    }
-
-    rc = plat_hash_out(hash, sizeof(hash));
-
-    if (rc != PB_OK) {
-        goto err_release_out;
-    }
-
-    if (memcmp(secret, hash, length) == 0) {
-        LOG_DBG("Password auth: Success");
-        authenticated = true;
-    } else {
-        LOG_DBG("Password auth: Failed");
-        authenticated = false;
-    }
-
-err_release_out:
-    rc = rpmb_drv->map_release(rpmb_drv, rpmb_map);
-
-    if (rc != PB_OK) {
-        LOG_ERR("map_release failed");
-        return rc;
-    }
-
-err_out:
-    if ((rc == PB_OK) && (authenticated == true)) {
-        return PB_OK;
-    } else {
-        return -PB_ERR;
-    }
+    return -PB_ERR_NOT_SUPPORTED;
 }
 #endif  // CONFIG_AUTH_METHOD_PASSWORD
 
