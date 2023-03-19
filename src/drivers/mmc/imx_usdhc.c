@@ -31,6 +31,9 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 
     LOG_DBG("Trying to set bus clock to %u kHz", clk_hz / 1000);
 
+    if (bus_ddr_enable)
+        clk_hz *= 2;
+
     if (clk_hz <= 0)
         return -PB_ERR_PARAM;
 
@@ -65,20 +68,20 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 
 static int imx_usdhc_setup(void)
 {
-    unsigned int timeout = 10000;
     LOG_DBG("Base = %p, input clock = %u kHz", (void *) usdhc->base,
                                                input_clock_hz / 1000);
     /* reset the controller */
-    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_RSTA);
+    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL,
+                        USDHC_SYSCTRL_RSTA | USDHC_SYSCTRL_RSTT);
 
     /* wait for reset done */
-    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTA)) {
-        if (!timeout) {
-            LOG_ERR("Reset timeout");
-            return -PB_ERR_TIMEOUT;
-        }
-        timeout--;
-    }
+    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTA))
+            ;
+
+    /* Send reset */
+    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_INITA);
+    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_INITA))
+            ;
 
     mmio_write_32(usdhc->base + USDHC_MMC_BOOT, 0);
     mmio_write_32(usdhc->base + USDHC_MIX_CTRL, 0);
@@ -103,10 +106,19 @@ static int imx_usdhc_setup(void)
     mmio_clrsetbits_32(usdhc->base + USDHC_WTMK_LVL,
                        WMKLV_MASK, 16 | (16 << 16));
 
+    /* Force manual delay tuning */
+    mmio_write_32(usdhc->base + USDHC_DLL_CTRL,
+                     ((usdhc->delay_tap & 0x7f) << 9) | BIT(8));
     return PB_OK;
 }
 
 #define USDHC_CMD_RETRIES    1000
+
+static int imx_usdhc_set_delay_tap(unsigned int tap)
+{
+    mmio_write_32(usdhc->base + USDHC_DLL_CTRL, ((tap & 0x7f) << 9) | BIT(8));
+    return PB_OK;
+}
 
 static int imx_usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
 {
@@ -265,11 +277,13 @@ out:
 static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
 {
     const char *bus_widths[] = {
+        "Invalid",
         "1-Bit",
         "4-Bit",
         "8-Bit",
         "4-Bit DDR",
         "8-Bit DDR",
+        "8-Bit DDR + Strobe",
     };
 
     LOG_DBG("Width = %s", bus_widths[width]);
@@ -385,6 +399,7 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg,
         .prepare = imx_usdhc_prepare,
         .read = imx_usdhc_read,
         .write = imx_usdhc_write,
+        .set_delay_tap = imx_usdhc_set_delay_tap,
         .max_chunk_bytes = SZ_MB(30),
     };
 

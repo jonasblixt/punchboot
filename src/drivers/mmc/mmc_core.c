@@ -558,6 +558,93 @@ static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t 
     return rc;
 }
 
+#ifdef CONFIG_MMC_CORE_HS200_TUNE
+static int hs200_tune(void)
+{
+    int rc;
+    uint8_t result[127];
+
+    LOG_INFO("Starting, this will produce I/O errors for bad delay taps...");
+    for (int i = 0; i < 127; i++) {
+        mmc_hal->set_delay_tap(i);
+        pb_delay_ms(10);
+        rc = mmc_hal->prepare(0, sizeof(mmc_tuning_rsp), (uintptr_t)mmc_tuning_rsp);
+        if (rc != 0) {
+            goto tune_fail;
+        }
+
+        rc = mmc_send_cmd(MMC_CMD_SEND_TUNING_BLOCK_HS200, 0, MMC_RSP_R1, NULL);
+
+        if (rc != 0) {
+            goto tune_fail;
+        }
+
+        rc = mmc_hal->read(0, sizeof(mmc_tuning_rsp), (uintptr_t)mmc_tuning_rsp);
+        if (rc != 0) {
+            goto tune_fail;
+        }
+
+        do {
+            rc = mmc_device_state();
+            if (rc < 0) {
+                goto tune_tap_fail;
+            }
+        } while (rc != MMC_STATE_TRAN);
+
+        if (memcmp(tuning_blk_pattern_8bit, mmc_tuning_rsp, 128) == 0) {
+            result[i] = 1;
+        } else {
+            goto tune_tap_fail;
+        }
+        continue;
+tune_tap_fail:
+        result[i] = 0;
+    }
+
+    LOG_INFO("Done");
+
+    unsigned int start_tap = 0;
+    bool found_start = false;
+    unsigned int high_score = 0;
+    unsigned int selected_tap;
+    size_t good_count = 0;
+
+    for (int i = 0; i < 127; i++)  {
+        good_count += result[i];
+
+        if (!found_start) {
+            if (result[i]) {
+                found_start = true;
+                start_tap = i;
+            }
+        } else {
+            if (!result[i] || (i == 127)) {
+                unsigned int pass_count = i - start_tap;
+                unsigned int center_tap = start_tap + pass_count/2;
+                LOG_DBG("Pass count = %i, center tap = %i", pass_count, center_tap);
+
+                if (pass_count > high_score) {
+                    high_score = pass_count;
+                    selected_tap = center_tap;
+                }
+                found_start = false;
+                start_tap = 0;
+            }
+        }
+    }
+
+    if (good_count == 0) {
+        LOG_ERR("Failed");
+        return -PB_ERR;
+    }
+
+    LOG_INFO("Optimal delay tap = %i", selected_tap);
+    mmc_hal->set_delay_tap(selected_tap);
+
+    return PB_OK;
+}
+#endif  // CONFIG_MMC_CORE_HS200_TUNE
+
 static int mmc_enumerate(void)
 {
     int rc;
@@ -662,7 +749,46 @@ static int mmc_enumerate(void)
                 return rc;
             }
 
-            rc = mmc_set_bus_clock(200*1000*1000);
+            rc = mmc_set_bus_clock(MHz(200));
+            if (rc != 0) {
+                return rc;
+            }
+#ifdef CONFIG_MMC_CORE_HS200_TUNE
+            ts("hs200 tune begin");
+            rc = hs200_tune();
+            ts("hs200 tune end");
+            if (rc != 0)
+                return rc;
+#endif
+        }
+        break;
+        case MMC_BUS_MODE_HS400:
+        {
+            /* TODO: This is not complete and not usable yet,
+             * Strobe DLL configuration is missing. It seems to work
+             * on the imx8qxpmek evk */
+            LOG_DBG("Switching to HS400");
+            /* Before we can switch the bus to 8-bit DDR the device must
+             * be in HS mode */
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS);
+            if (rc != PB_OK) {
+                LOG_ERR("Could not switch to HS timing");
+                return rc;
+            }
+
+            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT_DDR);
+            if (rc != 0) {
+                return rc;
+            }
+
+            /* Switch to HS400, 200 MHz (DDR) */
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS400);
+            if (rc != PB_OK) {
+                LOG_ERR("Could not switch to HS400 timing");
+                return rc;
+            }
+
+            rc = mmc_set_bus_clock(MHz(200));
             if (rc != 0) {
                 return rc;
             }

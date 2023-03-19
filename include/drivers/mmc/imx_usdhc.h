@@ -14,6 +14,7 @@
 
 struct imx_usdhc_config {
     uintptr_t base;             /*!< Base address of USDHC controller */
+    unsigned int delay_tap;
     const struct mmc_device_config mmc_config; /*!< MMC layer configuration */
 };
 

@@ -14,6 +14,16 @@ config MMC_CORE_DEBUG_IOS
     depends on MMC_CORE
     default n
 
+config MMC_CORE_HS200_TUNE
+    bool "Enable HS200 tuning algorithm"
+    depends on MMC_CORE
+    default n
+    help
+        Warning: This will significantly increase boot time. The suggested
+        use for this is to enable it for testing under varying temperature
+        and other conditions that might affect timing to get good tap delay
+        value.
+
 config IMX_USDHC
     depends on SOC_FAMILY_IMX
     select MMC_CORE
