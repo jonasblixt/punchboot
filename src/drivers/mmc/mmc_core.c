@@ -680,6 +680,17 @@ static int mmc_enumerate(void)
 
     LOG_DBG("Got ext csd!");
 
+    if (mmc_ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != mmc_cfg->boot_mode) {
+        LOG_INFO("Updating boot bus conditions to 0x%02x", mmc_cfg->boot_mode);
+
+        rc = mmc_set_ext_csd(EXT_CSD_BOOT_BUS_CONDITIONS,
+                             mmc_cfg->boot_mode);
+        if (rc != PB_OK) {
+            LOG_ERR("Could not update boot bus conditions");
+            return rc;
+        }
+    }
+
     mmc_current_part = mmc_ext_csd[EXT_CSD_PART_CONFIG];
 
     size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 |
