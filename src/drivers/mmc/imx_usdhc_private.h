@@ -39,6 +39,8 @@
 #define USDHC_SYSCTRL_RSTD            BIT(26)
 #define USDHC_SYSCTRL_RSTC            BIT(25)
 #define USDHC_SYSCTRL_RSTA            BIT(24)
+#define USDHC_SYSCTRL_INITA           BIT(27)
+#define USDHC_SYSCTRL_RSTT            BIT(28)
 #define USDHC_SYSCTRL_CLOCK_MASK      0x0000fff0
 #define USDHC_SYSCTRL_TIMEOUT_MASK    0x000f0000
 #define USDHC_SYSCTRL_TIMEOUT(x)      ((0xf & (x)) << 16)

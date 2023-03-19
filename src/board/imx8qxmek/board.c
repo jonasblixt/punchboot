@@ -218,6 +218,7 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
 
     static const struct imx_usdhc_config cfg = {
         .base = 0x5B010000,
+        .delay_tap = 18,
         .mmc_config = {
             .mode = MMC_BUS_MODE_HS200,
             .width = MMC_BUS_WIDTH_8BIT,
