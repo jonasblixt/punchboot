@@ -26,7 +26,6 @@
 
 #define MMC_DEFAULT_MAX_RETRIES    5
 #define SEND_OP_COND_MAX_RETRIES   100
-#define MULT_BY_512K_SHIFT         19
 
 static const struct mmc_hal *mmc_hal;
 static const struct mmc_device_config *mmc_cfg;
@@ -35,9 +34,10 @@ static struct mmc_device_info mmc_dev_info;
 static uint32_t rca;
 static struct mmc_csd_emmc mmc_csd;
 static uint8_t mmc_ext_csd[512] PB_ALIGN(16);
-static uint8_t mmc_tuning_rsp[128] PB_ALIGN(16);
 static uint8_t mmc_current_part;
 
+#ifdef CONFIG_MMC_CORE_HS200_TUNE
+static uint8_t mmc_tuning_rsp[128] PB_ALIGN(16);
 static const uint8_t tuning_blk_pattern_4bit[] = {
     0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
     0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
@@ -67,6 +67,7 @@ static const uint8_t tuning_blk_pattern_8bit[] = {
     0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff,
     0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee,
 };
+#endif
 
 static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type,
                         mmc_cmd_resp_t result)
@@ -240,7 +241,6 @@ static int mmc_set_bus_clock(unsigned int clk_hz)
 static int mmc_set_bus_width(enum mmc_bus_width bus_width)
 {
     int ret;
-    enum mmc_bus_width width = bus_width;
     uint8_t value = EXT_CSD_BUS_WIDTH_1;
 
     switch (bus_width) {
@@ -349,24 +349,36 @@ static int hs200_tune(void)
     int rc;
     uint8_t result[127];
 
+    /*
+     * TODO: Currently hardcoded tap start = 0 and tap end = 127.
+     * This should be passed as configuration from the mmc layer.
+     *
+     * We probably want:
+     *  - delay_tap_start
+     *  - delay_tap_end
+     *  - delay_tap_step
+     *
+     *  This also assumes 8-bit bus width.
+     */
+
     LOG_INFO("Starting, this will produce I/O errors for bad delay taps...");
     for (int i = 0; i < 127; i++) {
         mmc_hal->set_delay_tap(i);
         pb_delay_ms(10);
         rc = mmc_hal->prepare(0, sizeof(mmc_tuning_rsp), (uintptr_t)mmc_tuning_rsp);
         if (rc != 0) {
-            goto tune_fail;
+            goto tune_tap_fail;
         }
 
         rc = mmc_send_cmd(MMC_CMD_SEND_TUNING_BLOCK_HS200, 0, MMC_RSP_R1, NULL);
 
         if (rc != 0) {
-            goto tune_fail;
+            goto tune_tap_fail;
         }
 
         rc = mmc_hal->read(0, sizeof(mmc_tuning_rsp), (uintptr_t)mmc_tuning_rsp);
         if (rc != 0) {
-            goto tune_fail;
+            goto tune_tap_fail;
         }
 
         do {
@@ -389,7 +401,7 @@ tune_tap_fail:
     LOG_INFO("Done");
 
     unsigned int start_tap = 0;
-    bool found_start = false;
+    bool find_next_good = true;
     unsigned int high_score = 0;
     unsigned int selected_tap;
     size_t good_count = 0;
@@ -397,22 +409,24 @@ tune_tap_fail:
     for (int i = 0; i < 127; i++)  {
         good_count += result[i];
 
-        if (!found_start) {
+        if (find_next_good) {
             if (result[i]) {
-                found_start = true;
+                find_next_good = false;
                 start_tap = i;
             }
         } else {
             if (!result[i] || (i == 127)) {
-                unsigned int pass_count = i - start_tap;
+                unsigned int end_tap = i - 1;
+                unsigned int pass_count = end_tap - start_tap;
                 unsigned int center_tap = start_tap + pass_count/2;
-                LOG_DBG("Pass count = %i, center tap = %i", pass_count, center_tap);
+                LOG_DBG("Pass count = %i, [%03i - %03i] center tap = %i",
+                           pass_count, start_tap, end_tap, center_tap);
 
                 if (pass_count > high_score) {
                     high_score = pass_count;
                     selected_tap = center_tap;
                 }
-                found_start = false;
+                find_next_good = true;
                 start_tap = 0;
             }
         }
@@ -430,7 +444,7 @@ tune_tap_fail:
 }
 #endif  // CONFIG_MMC_CORE_HS200_TUNE
 
-static int mmc_enumerate(void)
+static int mmc_setup(void)
 {
     int rc;
     mmc_cmd_resp_t resp_data;
@@ -847,13 +861,10 @@ ssize_t mmc_part_size(enum mmc_part part)
         default:
             return -PB_ERR_PARAM;
     }
-
-    return 0;
 }
 
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)
 {
-    int rc;
     if (!(cfg->mode > MMC_BUS_MODE_INVALID && cfg->mode < MMC_BUS_MODE_END) ||
         (hal == NULL) ||
         (cfg == NULL)) {
@@ -863,10 +874,5 @@ int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)
     mmc_hal = hal;
     mmc_cfg = cfg;
 
-    rc = mmc_enumerate();
-
-    if (rc != PB_OK)
-        return rc;
-
-    return PB_OK;
+    return mmc_setup();
 }
