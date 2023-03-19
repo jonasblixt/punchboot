@@ -1,17 +1,28 @@
+menu "Platform support"
+
+config SOC_FAMILY_IMX
+	bool "NXP i.MX SoC's"
+    default n
 
 choice PLAT
     bool "Platform"
 config PLAT_IMX8X
     bool "NXP IMX8X"
+    depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
 config PLAT_IMX8M
     bool "NXP IMX8M"
+    depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
 config PLAT_IMX6UL
     bool "NXP IMX6UL"
+    depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7
 config PLAT_QEMU
     bool "QEMU aarch32"
     depends on ARCH_ARMV7
-
 endchoice
+
+source "src/plat/*/Kconfig"
+
+endmenu
