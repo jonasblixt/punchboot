@@ -16,6 +16,7 @@
 #include <pb/board.h>
 #include <pb/boot.h>
 #include <pb/delay.h>
+#include <pb/timestamp.h>
 #include <plat/defs.h>
 #include <plat/sci/sci_ipc.h>
 #include <plat/sci/sci.h>
@@ -245,8 +246,10 @@ int board_early_init(void *plat)
      * code will cover most use cases and the special ones can still quite
      * easily be imlemented on board level.
      */
+    ts("usdhc start");
     rc = usdhc_emmc_setup(priv);
 
+    ts("usdhc end");
     if (rc != PB_OK) {
         LOG_ERR("usdhc init failed (%i)", rc);
         return rc;
@@ -257,8 +260,9 @@ int board_early_init(void *plat)
     if (user_part < 0)
         return user_part;
 
+    ts("gpt start");
     rc = gpt_ptbl_init(user_part, gpt_tbl);
-
+    ts("gpt end");
     if (rc != PB_OK) {
         LOG_ERR("GPT ptbl init failed (%i)", rc);
     }
@@ -271,9 +275,10 @@ int board_early_init(void *plat)
     bio_dev_t sys_b = bio_get_part_by_uu(UUID_c046ccd8_0f2e_4036_984d_76c14dc73992);
     bio_clear_set_flags(sys_b, 0, BIO_FLAG_BOOTABLE);
 
-    bio_dev_t root_a = bio_get_part_by_uu_str("c284387a-3377-4c0f-b5db-1bcbcff1ba1a");
+    ts_print();
+#ifdef __NOPE
+    bio_dev_t root_a = bio_get_part_by_uu_str("c5b8b41c-0fb5-494d-8b0e-eba400e075fa");
 
-    bio_clear_set_flags(root_a, 0, BIO_FLAG_READABLE);
     if (root_a < 0) {
         LOG_ERR("Could not get root a part (%i)", root_a);
         return root_a;
@@ -293,7 +298,7 @@ int board_early_init(void *plat)
         }
         plat_wdog_kick();
     }
-
+#endif
     return PB_OK;
 }
 
