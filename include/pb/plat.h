@@ -12,9 +12,7 @@
 
 #include <pb/pb.h>
 #include <pb/boot.h>
-#include <pb/usb.h>
 #include <pb/fuse.h>
-#include <pb/storage.h>
 #include <pb/boot.h>
 #include <pb/board.h>
 #include <pb/fuse.h>
