@@ -1,0 +1,5 @@
+config AB_BOOT_DRIVER
+    bool "Enable A/B boot driver"
+    default n
+    depends on DRIVERS_BIO_CORE
+    depends on LIB_ZLIB_CRC
