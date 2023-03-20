@@ -73,6 +73,10 @@ config STACK_SIZE_KB
 
 endmenu
 
+menu "Boot"
+source "src/boot/Kconfig"
+endmenu
+
 menu "Drivers"
 source "src/drivers/*/Kconfig"
 endmenu
