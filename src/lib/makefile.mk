@@ -38,6 +38,7 @@ src-$(CONFIG_LIB_UUID)  += src/lib/uuid/unparse.c
 src-$(CONFIG_LIB_UUID)  += src/lib/uuid/parse.c
 src-$(CONFIG_LIB_UUID)  += src/lib/uuid/clear.c
 src-$(CONFIG_LIB_UUID)  += src/lib/uuid/conv.c
+src-$(CONFIG_LIB_UUID)  += src/lib/uuid/isnull.c
 src-$(CONFIG_LIB_UUID3)  += src/lib/uuid/uuid3.c
 
 # VM/MMU helpers

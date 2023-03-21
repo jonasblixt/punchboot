@@ -117,11 +117,6 @@ static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
 
 /* Platform API Calls */
 
-bool plat_force_command_mode(void)
-{
-    return board_force_command_mode(&private);
-}
-
 void plat_reset(void)
 {
     sc_pm_reset(private.ipc, SC_PM_RESET_TYPE_BOARD);
@@ -793,16 +788,6 @@ bool plat_transport_ready(void)
     return imx_ehci_usb_ready();
 }
 
-int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
-{
-    const struct pb_boot_config *boot_config = board_boot_config();
-    if (boot_config->dtb_patch_cb) {
-        return boot_config->dtb_patch_cb(&private, fdt, offset, verbose_boot);
-    }
-
-    return PB_OK;
-}
-
 int plat_status(void *response_bfr,
                     size_t *response_size)
 {
@@ -818,22 +803,3 @@ int plat_command(uint32_t command,
     return board_command(&private, command, bfr, size,
                             response_bfr, response_size);
 }
-
-int plat_early_boot(void)
-{
-    const struct pb_boot_config *boot_config = board_boot_config();
-    if (boot_config->early_boot_cb)
-        return boot_config->early_boot_cb(&private);
-    else
-        return PB_OK;
-}
-
-int plat_late_boot(uuid_t boot_part_uu, enum pb_boot_mode boot_mode)
-{
-    const struct pb_boot_config *boot_config = board_boot_config();
-    if (boot_config->late_boot_cb)
-        return boot_config->late_boot_cb(&private, boot_part_uu, boot_mode);
-    else
-        return PB_OK;
-}
-
