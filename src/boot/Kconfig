@@ -1,5 +1,27 @@
-config AB_BOOT_DRIVER
-    bool "Enable A/B boot driver"
-    default n
+config BOOT_CORE
+    bool "Core boot logic"
+    depends on DRIVERS_BIO_CORE
+    depends on BOOT_BPAK_IMAGE_HELPERS
+    default y
+
+config BOOT_BPAK_IMAGE_HELPERS
+    bool "BPAK boot image helpers"
+    depends on LIB_BPAK
+    default y
+
+config BOOT_AB_DRIVER
+    bool "A/B boot driver"
     depends on DRIVERS_BIO_CORE
     depends on LIB_ZLIB_CRC
+    help
+        This is the default boot driver. It uses two block devices to store
+        primary an backup configuration. It has support for rollback and
+        error reporting.
+
+config BOOT_LINUX
+    bool "Linux boot support"
+    depends on BOOT_CORE
+
+config BOOT_LOAD_CHUNK_kB
+    int "Copy/Hash load chunk size (kB)"
+    default 4096

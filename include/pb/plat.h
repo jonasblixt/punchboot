@@ -11,9 +11,7 @@
 #define INCLUDE_PB_PLAT_H_
 
 #include <pb/pb.h>
-#include <pb/boot.h>
 #include <pb/fuse.h>
-#include <pb/boot.h>
 #include <pb/board.h>
 #include <pb/fuse.h>
 #include <bpak/keystore.h>
@@ -60,38 +58,7 @@ int plat_boot_reason(void);
  *
  **/
 const char* plat_boot_reason_str(void);
-
-bool plat_force_command_mode(void);
 int plat_get_uuid(char *out);
-int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot);
-int plat_boot_override(uint8_t *uuid);
-
-/**
- * Early boot process call back.
- *
- * This will optionally call a board level callback if it's defined in
- * the boards boot config struct
- *
- * @return PB_OK on success or a negative number, -PB_ERR_ABORT is a special
- * case that can be used by the board code to intentionally stop the boot
- * process.
- */
-int plat_early_boot(void);
-
-/**
- * Late boot process call back.
- *
- * This will optionally call a board level callback if it's defined in
- * the boards boot config struct
- *
- * @param[in] boot_mode Indicates if we're booting normally or if the boot
- *                      was initiated by the command mode interface.
- *
- * @return PB_OK on success or a negative number, -PB_ERR_ABORT is a special
- * case that can be used by the board code to intentionally stop the boot
- * process.
- */
-int plat_late_boot(uuid_t boot_part_uu, enum pb_boot_mode boot_mode);
 
 int plat_command(uint32_t command,
                      void *bfr,

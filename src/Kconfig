@@ -111,10 +111,6 @@ config TRANSPORT_MAX_CHUNK_KB
     int "Transport maximum chunk size in kB"
     default 4096
 
-config LOAD_FS_MAX_CHUNK_KB
-    int "File system maximum load chunk size (kB)"
-    default 4096
-
 config TRANSPORT_READY_TIMEOUT
     int "Timeout in seconds before transport must become ready"
     default 10

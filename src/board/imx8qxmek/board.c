@@ -9,12 +9,13 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <uuid.h>
+#include <libfdt.h>
 #include <pb/pb.h>
 #include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/fuse.h>
 #include <pb/board.h>
-#include <pb/boot.h>
 #include <pb/delay.h>
 #include <pb/timestamp.h>
 #include <plat/defs.h>
@@ -29,9 +30,10 @@
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/usb/usb_core.h>
 #include <drivers/usb/imx_ehci.h>
+#include <boot/boot.h>
+#include <boot/ab_state.h>
+#include <boot/linux.h>
 #include <plat/defs.h>
-#include <uuid.h>
-#include <libfdt.h>
 
 #include "partitions.h"
 #define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
@@ -45,6 +47,9 @@
                              (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
                              (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
                              (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
+
+static struct imx8x_private *plat;
+
 struct fuse fuses[] =
 {
     IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
@@ -165,29 +170,35 @@ const uint32_t rom_key_map[] =
     0x00000000,
 };
 
-static int patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
+static int patch_bootargs(void *fdt, int offset)
 {
     const char *bootargs = NULL;
 
-    if (verbose_boot) {
+    if (boot_get_flags() & BOOT_FLAG_VERBOSE) {
         bootargs = "console=ttyLP0,115200  " \
                    "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ";
     } else {
         bootargs = "console=ttyLP0,115200 quiet ";
     }
 
-    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
+    int rc = fdt_setprop_string(fdt, offset, "bootargs", bootargs);
+
+    if (rc != 0) {
+        LOG_ERR("Board DTB patch failed (%i)", rc);
+        return -PB_ERR;
+    }
+    return PB_OK;
 }
 
-static int usdhc_emmc_setup(struct imx8x_private *priv)
+static int usdhc_emmc_setup(void)
 {
     int rc;
     unsigned int rate;
 
-    sc_pm_set_resource_power_mode(priv->ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
-    sc_pm_clock_enable(priv->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
+    sc_pm_clock_enable(plat->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
 
-    rc = sc_pm_set_clock_parent(priv->ipc, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
+    rc = sc_pm_set_clock_parent(plat->ipc, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
 
     if (rc != SC_ERR_NONE) {
         LOG_ERR("usdhc set clock parent failed");
@@ -195,27 +206,27 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
     }
 
     rate = MHz(200);
-    sc_pm_set_clock_rate(priv->ipc, SC_R_SDHC_0, 2, &rate);
+    sc_pm_set_clock_rate(plat->ipc, SC_R_SDHC_0, 2, &rate);
 
-    rc = sc_pm_clock_enable(priv->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
+    rc = sc_pm_clock_enable(plat->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
 
     if (rc != SC_ERR_NONE) {
         LOG_ERR("SDHC_0 per clk enable failed!");
         return -PB_ERR;
     }
 
-    sc_pad_set(priv->ipc, SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_CMD, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA0, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA1, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA2, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA3, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA4, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA5, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA6, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_DATA7, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_STROBE, USDHC_PAD_CTRL);
-    sc_pad_set(priv->ipc, SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_CMD, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA0, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA1, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA2, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA3, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA4, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA5, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA6, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA7, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_STROBE, USDHC_PAD_CTRL);
+    sc_pad_set(plat->ipc, SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL);
 
     static const struct imx_usdhc_config cfg = {
         .base = 0x5B010000,
@@ -235,84 +246,16 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
     return imx_usdhc_init(&cfg, rate);
 }
 
-int board_early_init(void *plat)
+static int early_boot(void)
 {
-    struct imx8x_private *priv = IMX8X_PRIV(plat);
-    int rc;
-
-    /* TODO: Rework and move the 'usdhc_emmc_setup' to imx8x platform,
-     * And make it optional through KConfig. This way the upstream platform
-     * code will cover most use cases and the special ones can still quite
-     * easily be imlemented on board level.
-     */
-    ts("usdhc start");
-    rc = usdhc_emmc_setup(priv);
-
-    ts("usdhc end");
-    if (rc != PB_OK) {
-        LOG_ERR("usdhc init failed (%i)", rc);
-        return rc;
-    }
-
-    bio_dev_t user_part = bio_get_part_by_uu(UUID_1aad85a9_75cd_426d_8dc4_e9bdfeeb6875);
-
-    if (user_part < 0)
-        return user_part;
-
-    ts("gpt start");
-    rc = gpt_ptbl_init(user_part, gpt_tbl);
-    ts("gpt end");
-    if (rc != PB_OK) {
-        LOG_ERR("GPT ptbl init failed (%i)", rc);
-    }
-    /* eMMC User partition now only has the visible flag to report capacity */
-    bio_set_flags(user_part, BIO_FLAG_VISIBLE);
-
-    bio_dev_t sys_a = bio_get_part_by_uu(UUID_2af755d8_8de5_45d5_a862_014cfa735ce0);
-    bio_clear_set_flags(sys_a, 0, BIO_FLAG_BOOTABLE);
-
-    bio_dev_t sys_b = bio_get_part_by_uu(UUID_c046ccd8_0f2e_4036_984d_76c14dc73992);
-    bio_clear_set_flags(sys_b, 0, BIO_FLAG_BOOTABLE);
-
-    ts_print();
-#ifdef __NOPE
-    bio_dev_t root_a = bio_get_part_by_uu_str("c5b8b41c-0fb5-494d-8b0e-eba400e075fa");
-
-    if (root_a < 0) {
-        LOG_ERR("Could not get root a part (%i)", root_a);
-        return root_a;
-    }
-
-    printf("\n\r--- Read test ---\n\r");
-    for (int i = 0; i < 16; i++) {
-        unsigned int ts_start = plat_get_us_tick();
-        const size_t bytes_to_read = SZ_MB(128);
-        rc = bio_read(root_a, 0, bytes_to_read, 0xa5000000);
-        if (rc == 0) {
-            unsigned int ts_end = plat_get_us_tick();
-            printf("%04i ~%li MB/s\n\r", i, bytes_to_read / (ts_end-ts_start));
-        } else {
-            printf("Read failed (%i)\n\r", rc);
-            break;
-        }
-        plat_wdog_kick();
-    }
-#endif
-    return PB_OK;
-}
-
-bool board_force_command_mode(void *plat)
-{
-    struct imx8x_private *priv = IMX8X_PRIV(plat);
-
     sc_bool_t btn_status;
     sc_misc_bt_t boot_type;
     bool usb_charger_detected = false;
 
-    sc_misc_get_button_status(priv->ipc, &btn_status);
-    sc_misc_get_boot_type(priv->ipc, &boot_type);
+    sc_misc_get_button_status(plat->ipc, &btn_status);
+    sc_misc_get_boot_type(plat->ipc, &boot_type);
 
-    LOG_INFO("Boot type: %u %i %p", boot_type, btn_status, priv);
+    LOG_INFO("Boot type: %u %i", boot_type, btn_status);
 
     /* Pull up DP for usb charger detection */
 
@@ -327,8 +270,20 @@ bool board_force_command_mode(void *plat)
         LOG_INFO("USB Charger condition, entering bootloader");
     }
 
-    return (btn_status == 1) || (boot_type == SC_MISC_BT_SERIAL) ||
-            (usb_charger_detected);
+    /* Always stop when button is pressed */
+    if (btn_status == 1) {
+        return -PB_ERR_ABORT;
+    }
+
+    if (boot_get_flags() & BOOT_FLAG_CMD) {
+        /* Don't stop boot flow when command mode requested the boot */
+
+        if ((boot_type == SC_MISC_BT_SERIAL) || (usb_charger_detected)) {
+            return -PB_ERR_ABORT;
+        }
+    }
+
+    return PB_OK;
 }
 
 const char * board_name(void)
@@ -336,7 +291,7 @@ const char * board_name(void)
     return "imx8qxmek";
 }
 
-int board_command(void *plat,
+int board_command(void *plat_ptr,
                      uint32_t command,
                      void *bfr,
                      size_t size,
@@ -349,11 +304,10 @@ int board_command(void *plat,
     return PB_OK;
 }
 
-int board_status(void *plat,
+int board_status(void *plat_ptr,
                     void *response_bfr,
                     size_t *response_size)
 {
-    struct imx8x_private *priv = IMX8X_PRIV(plat);
     uint32_t scu_version;
     uint32_t scu_commit;
     uint32_t seco_version;
@@ -364,9 +318,9 @@ int board_status(void *plat,
     char *response = (char *) response_bfr;
     size_t resp_buf_size = *response_size;
 
-    sc_misc_build_info(priv->ipc, &scu_version, &scu_commit);
-    sc_seco_build_info(priv->ipc, &seco_version, &seco_commit);
-    sc_misc_get_temp(priv->ipc, SC_R_SYSTEM, SC_MISC_TEMP, &celsius,
+    sc_misc_build_info(plat->ipc, &scu_version, &scu_commit);
+    sc_seco_build_info(plat->ipc, &seco_version, &seco_commit);
+    sc_misc_get_temp(plat->ipc, SC_R_SYSTEM, SC_MISC_TEMP, &celsius,
                         &tenths);
 
     (*response_size) = snprintf(response, resp_buf_size,
@@ -377,7 +331,7 @@ int board_status(void *plat,
                             "CPU Temperature: %i.%i deg C",
                             scu_version, scu_commit,
                             seco_version, seco_commit,
-                            priv->soc_id, priv->soc_rev,
+                            plat->soc_id, plat->soc_rev,
                             celsius, tenths);
 
     response[(*response_size)++] = 0;
@@ -390,7 +344,7 @@ int board_command_mode_auth(char *password, size_t length)
 {
     /* This is just a simplistic example of password authentication.
      *
-     * A real implementation should use some kind of OTP storage for a 
+     * A real implementation should use some kind of OTP storage for a
      * device unique password that's not easily accesible.
      * For example RPMB if there is an eMMC present.
      */
@@ -403,22 +357,88 @@ int board_command_mode_auth(char *password, size_t length)
 }
 #endif  // CONFIG_AUTH_PASSWORD
 
-const struct pb_boot_config * board_boot_config(void)
+int board_early_init(void *plat_ptr)
 {
-    static const struct pb_boot_config config = {
-        .a_boot_part_uuid  = "2af755d8-8de5-45d5-a862-014cfa735ce0",
-        .b_boot_part_uuid  = "c046ccd8-0f2e-4036-984d-76c14dc73992",
-        .primary_state_part_uuid = "f5f8c9ae-efb5-4071-9ba9-d313b082281e",
-        .backup_state_part_uuid  = "656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
+    plat = IMX8X_PRIV(plat_ptr);
+    int rc;
+
+    /* TODO: Rework and move the 'usdhc_emmc_setup' to imx8x platform,
+     * And make it optional through KConfig. This way the upstream platform
+     * code will cover most use cases and the special ones can still quite
+     * easily be imlemented on board level.
+     */
+    ts("usdhc start");
+    rc = usdhc_emmc_setup();
+
+    ts("usdhc end");
+    if (rc != PB_OK) {
+        LOG_ERR("usdhc init failed (%i)", rc);
+        goto err_out;
+    }
+
+    bio_dev_t user_part = bio_get_part_by_uu(PART_user);
+
+    if (user_part < 0) {
+        goto err_out;
+    }
+
+    ts("gpt start");
+    rc = gpt_ptbl_init(user_part, gpt_tbl);
+    /* eMMC User partition now only has the visible flag to report capacity */
+    (void) bio_set_flags(user_part, BIO_FLAG_VISIBLE);
+    ts("gpt end");
+
+    if (rc != PB_OK) {
+        LOG_ERR("GPT ptbl init failed (%i)", rc);
+        goto err_out;
+    }
+
+    static const struct boot_ab_state_config boot_state_cfg = {
+        .primary_state_part_uu = PART_primary_state,
+        .backup_state_part_uu = PART_primary_state,
+        .sys_a_uu = PART_sys_b,
+        .sys_b_uu = PART_sys_a,
+        .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+    };
+
+    rc = boot_ab_state_init(&boot_state_cfg);
+
+    if (rc != PB_OK) {
+        goto err_out;
+    }
+
+    static const struct boot_driver_linux_config linux_boot_cfg = {
         .image_bpak_id     = 0xa697d988,    /* bpak_id("atf") */
         .dtb_bpak_id       = 0x56f91b86,    /* bpak_id("dt")  */
         .ramdisk_bpak_id   = 0xf4cdac1f,    /* bpak_id("ramdisk") */
-        .rollback_mode     = PB_ROLLBACK_MODE_NORMAL,
-        .early_boot_cb     = NULL,
-        .late_boot_cb      = NULL,
-        .dtb_patch_cb      = patch_bootargs
+        .dtb_patch_cb      = patch_bootargs,
+        .resolve_part_name = boot_ab_part_uu_to_name,
+        .set_dtb_boot_arg  = false,
     };
 
-    return &config;
-}
+    rc = boot_driver_linux_init(&linux_boot_cfg);
 
+    if (rc != PB_OK) {
+        goto err_out;
+    }
+
+    static const struct boot_driver boot_driver = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .early_boot_cb       = early_boot,
+        .get_boot_bio_device = boot_ab_state_get,
+        .set_boot_partition  = boot_ab_state_set_boot_partition,
+        .get_boot_partition  = boot_ab_state_get_boot_partition,
+        .prepare             = boot_driver_linux_prepare,
+        .late_boot_cb        = NULL,
+        .jump                = boot_driver_linux_jump,
+    };
+
+    rc = boot_init(&boot_driver);
+
+    if (rc != PB_OK) {
+        goto err_out;
+    }
+
+err_out:
+    return rc;
+}

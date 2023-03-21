@@ -260,6 +260,9 @@ int bio_get_first_block(bio_dev_t dev)
 
 bio_dev_t bio_get_part_by_uu(const uuid_t uu)
 {
+    if (uu == NULL)
+        return -PB_ERR_NOT_FOUND;
+
     for (unsigned int i = 0; i < CONFIG_DRIVERS_BIO_MAX_DEVS; i++) {
         if (!bio_pool[i].valid)
             break;

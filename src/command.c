@@ -9,17 +9,18 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/io.h>
 #include <pb/board.h>
-#include <pb/boot.h>
 #include <pb/command.h>
 #include <pb/delay.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
 #include <uuid.h>
+#include <boot/boot.h>
 #include <drivers/usb/usb_core.h>
 #include <drivers/block/bio.h>
 
@@ -518,15 +519,29 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
+static int ram_boot_read_f(int block_offset, size_t length, uintptr_t buf)
+{
+    (void) block_offset;
+    LOG_DBG("%zu %"PRIxPTR, length, buf);
+    return plat_transport_read((void *) buf, length);
+}
+
+static int ram_boot_result_f(int rc)
+{
+    LOG_DBG("%i", rc);
+    pb_wire_init_result(&result, error_to_wire(rc));
+    return plat_transport_write(&result, sizeof(result));
+}
+
 static int cmd_boot_ram(void)
 {
     int rc;
-    LOG_DBG("RAM boot");
     struct pb_command_ram_boot *ram_boot_cmd = \
                        (struct pb_command_ram_boot *) &cmd.request;
 
     if (ram_boot_cmd->verbose) {
         LOG_INFO("Verbose boot enabled");
+        boot_clear_set_flags(0, BOOT_FLAG_VERBOSE);
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
@@ -535,17 +550,12 @@ static int cmd_boot_ram(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = pb_boot_load(PB_BOOT_SOURCE_TRANSPORT, ram_boot_cmd->uuid);
+    boot_set_source(BOOT_SOURCE_CB);
+    boot_configure_load_cb(ram_boot_read_f,
+                           ram_boot_result_f);
 
-    pb_wire_init_result(&result, error_to_wire(rc));
 
-    if (rc != PB_OK) {
-        return rc;
-    }
-
-    plat_transport_write(&result, sizeof(result));
-    pb_boot(PB_BOOT_MODE_CMD, ram_boot_cmd->verbose);
-    return -PB_ERR;
+    return boot(ram_boot_cmd->uuid);
 }
 
 static int cmd_slc_read(void)
@@ -715,16 +725,17 @@ static int pb_command_parse(void)
         {
             struct pb_command_boot_part *boot_cmd = \
                 (struct pb_command_boot_part *) cmd.request;
-            rc = pb_boot_load(PB_BOOT_SOURCE_BLOCK_DEV, boot_cmd->uuid);
             pb_wire_init_result(&result, error_to_wire(rc));
 
             plat_transport_write(&result, sizeof(result));
+            boot_set_source(BOOT_SOURCE_BIO);
+            boot_clear_set_flags(0,
+                    BOOT_FLAG_CMD |
+                    boot_cmd->verbose?BOOT_FLAG_VERBOSE:0);
+            rc = boot(boot_cmd->uuid);
 
-            if (rc == PB_OK) {
-                pb_boot(PB_BOOT_MODE_CMD, boot_cmd->verbose);
-            }
             /* Should not return */
-            return -PB_ERR;
+            return rc;
         }
         break;
         case PB_CMD_DEVICE_IDENTIFIER_READ:
@@ -742,7 +753,7 @@ static int pb_command_parse(void)
         {
             struct pb_command_activate_part *activate_cmd = \
                 (struct pb_command_activate_part *) cmd.request;
-            rc = pb_boot_activate(activate_cmd->uuid);
+            rc = boot_set_boot_partition(activate_cmd->uuid);
             pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
@@ -822,7 +833,7 @@ static int pb_command_parse(void)
         case PB_CMD_BOOT_STATUS:
         {
             struct pb_result_boot_status boot_result = {0};
-            (void) pb_boot_read_active_part(boot_result.uuid);
+            boot_get_boot_partition(boot_result.uuid);
 
             pb_wire_init_result2(&result, error_to_wire(rc), &boot_result,
                                     sizeof(boot_result));

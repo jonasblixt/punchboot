@@ -74,7 +74,6 @@ cflags-y += -Waggregate-return
 
 # Bootloader
 src-y   = src/main.c
-src-y  += src/boot.c
 src-y  += keystore.c
 src-y  += src/delay.c
 src-$(CONFIG_ENABLE_TIMESTAMPING)  += src/timestamp.c
