@@ -26,23 +26,6 @@ enum pb_slc_state
     PB_SECURITY_STATE_SECURE,
 };
 
-#define PB_HASH_MAX_LENGTH 64
-
-enum pb_hash_algs
-{
-    PB_HASH_INVALID,
-    PB_HASH_MD5,
-    PB_HASH_SHA256,
-    PB_HASH_SHA384,
-    PB_HASH_SHA512,
-    PB_HASH_MD5_BROKEN,
-};
-
-#define PB_HASH_MD5_LEN 16
-#define PB_HASH_SHA256_LEN 32
-#define PB_HASH_SHA384_LEN 48
-#define PB_HASH_SHA512_LEN 64
-
 #if LOGLEVEL >= 2
     #define LOG_INFO(...) \
         do { printf("I %s: " , __func__);\
@@ -93,6 +76,10 @@ enum pb_hash_algs
 
 #define membersof(array) (sizeof(array) / sizeof((array)[0]))
 #define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
+
+#define IMPORT_SYM(type, sym, name) \
+    extern char sym[];\
+    static const __attribute__((unused)) type name = (type) sym;
 
 #define SZ_kB(x) ((size_t) (x) << 10)
 #define SZ_MB(x) ((size_t) (x) << 20)

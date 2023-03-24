@@ -16,6 +16,7 @@
 #include <pb/timestamp.h>
 #include <xlat_tables.h>
 #include <uuid.h>
+#include <crypto.h>
 #include <plat/imx8x/plat.h>
 #include <plat/imx/gpt.h>
 #include <plat/sci/sci.h>
@@ -27,7 +28,6 @@
 
 #include <console.h>
 #include <drivers/usb/imx_ehci.h>
-#include <drivers/crypto/imx_caam.h>
 #include <drivers/uart/imx_lpuart.h>
 
 #include <board/config.h>
@@ -328,15 +328,22 @@ int plat_init(void)
 {
     int rc;
 
+    // plat_init_early
     sc_ipc_open(&private.ipc, SC_IPC_BASE);
+    // plat_init_systick
     imx8x_systick_setup();
     ts("Init");
-    imx8x_console_init();
-    imx8x_wdog_init();
+    // plat_init_load_boot_reason
     imx8x_load_boot_reason();
+    // plat_init_console
+    imx8x_console_init();
+    // plat_init_wdog (maybe before console?)
+    imx8x_wdog_init();
     ts("MMU start");
+    // plat_init_mmu
     imx8x_mmu_init();
     ts("MMU end");
+
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
@@ -349,13 +356,6 @@ int plat_init(void)
     /* Power up USB */
     pb_write32(0x00, 0x5B100000);
 
-    rc = plat_crypto_init();
-
-    if (rc != PB_OK) {
-        LOG_ERR("Could not initialize crypto");
-        return rc;
-    }
-
     rc = plat_slc_init();
 
     if (rc != PB_OK) {
@@ -363,10 +363,8 @@ int plat_init(void)
         return rc;
     }
 
-
     return board_early_init(&private);
 }
-
 
 int plat_boot_reason(void)
 {
@@ -447,44 +445,6 @@ int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
             "   FUSE<%u> %s = 0x%08x",
                 f->bank,
                 f->description, f->value);
-}
-
-/* Crypto API */
-
-int plat_crypto_init(void)
-{
-
-    sc_pm_set_resource_power_mode(private.ipc,
-                                SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(private.ipc,
-                                SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(private.ipc,
-                                SC_R_CAAM_JR3, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(private.ipc,
-                                SC_R_CAAM_JR3_OUT, SC_PM_PW_MODE_ON);
-    return imx_caam_init();
-}
-
-int plat_hash_init(enum pb_hash_algs alg)
-{
-    return caam_hash_init(alg);
-}
-
-int plat_hash_update(uint8_t *buf, size_t len)
-{
-    return caam_hash_update(buf, len);
-}
-
-int plat_hash_output(uint8_t *buf, size_t len)
-{
-    return caam_hash_output(buf, len);
-}
-
-int plat_pk_verify(uint8_t *signature, size_t signature_len,
-                   uint8_t *hash, enum pb_hash_algs alg,
-                   struct bpak_key *key)
-{
-    return caam_pk_verify(signature, signature_len, hash, alg, key);
 }
 
 /* SLC API */

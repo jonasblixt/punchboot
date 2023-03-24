@@ -1,7 +1,7 @@
 #include <string.h>
 #include <pb/pb.h>
-#include <pb/plat.h>
 #include <uuid.h>
+#include <crypto.h>
 
 typedef union
 {
@@ -22,22 +22,22 @@ int uuid_gen_uuid3(const char *namespace_uu,
 {
     int err;
 
-    err = plat_hash_init(PB_HASH_MD5);
+    err = hash_init(HASH_MD5);
 
     if (err != PB_OK)
         return err;
 
-    err = plat_hash_update((uint8_t *) namespace_uu, 16);
+    err = hash_update((uintptr_t) namespace_uu, 16);
 
     if (err != PB_OK)
         return err;
 
-    err = plat_hash_update((uint8_t *) unique, size);
+    err = hash_update((uintptr_t) unique, size);
 
     if (err != PB_OK)
         return err;
 
-    err = plat_hash_output((uint8_t *) out, 16);
+    err = hash_final((uint8_t *) out, 16);
 
     if (err != PB_OK)
         return err;

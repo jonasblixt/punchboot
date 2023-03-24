@@ -43,12 +43,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
+#include <mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/io.h>
-#include <pb/asn1.h>
 #include <bpak/keystore.h>
 #include <plat/defs.h>
+#include <crypto.h>
+#include <der_helpers.h>
 #include <drivers/crypto/imx_caam.h>
 #include "desc_defines.h"
 #include "desc_helper.h"
@@ -96,6 +98,8 @@
 #define CAAM_JRCR           0x006c
 #define CAAM_SMCJR          0x00f4
 #define CAAM_SMCSJR         0x00fc
+#define CAAM_VID_MS         0x0ff8
+#define CAAM_VID_LS         0x0ffc
 
 #define CAAM_KEY_MAX_LENGTH 256
 #define CAAM_SIG_MAX_LENGTH 136
@@ -130,7 +134,12 @@ struct caam {
     uint32_t alg;                   /* Hash alg that being used */
     uint8_t digest_size;            /* Hash digest output size */
     uint8_t block_size;             /* Hash block size */
+    uint16_t id;
+    uint8_t ver_maj;
+    uint8_t ver_min;
+    uintptr_t base;
     bool init;                      /* Hash init state variable */
+    bool caam_initialized;
 };
 
 static struct caam caam;
@@ -141,14 +150,14 @@ static void caam_shedule_job_async(void)
     arch_clean_cache_range((uintptr_t) &caam.input, sizeof(caam.input));
     arch_clean_cache_range((uintptr_t) caam.desc,
                            sizeof(caam.desc[0]) * membersof(caam.desc));
-    pb_write32(1, IMX_CAAM_BASE + CAAM_IRJAR);
+    mmio_write_32(caam.base + CAAM_IRJAR, 1);
 }
 
 static int caam_shedule_job_sync(void)
 {
     caam_shedule_job_async();
 
-    while ((pb_read32(IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
+    while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
     arch_invalidate_cache_range((uintptr_t) &caam.output[0], sizeof(caam.output)*2);
@@ -158,9 +167,9 @@ static int caam_shedule_job_sync(void)
         return -PB_ERR;
     }
 
-    pb_write32(1, IMX_CAAM_BASE + CAAM_ORJRR);
+    mmio_write_32(caam.base + CAAM_ORJRR, 1);
 
-    uint32_t caam_status = pb_read32(IMX_CAAM_BASE + CAAM_JRSTAR);
+    uint32_t caam_status = mmio_read_32(caam.base + CAAM_JRSTAR);
 
     if (caam_status) {
         LOG_ERR("Job error %08x", caam_status);
@@ -172,7 +181,7 @@ static int caam_shedule_job_sync(void)
 
 static int caam_wait_for_job(void)
 {
-    while ((pb_read32(IMX_CAAM_BASE + CAAM_ORSFR) & 1) == 0)
+    while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
     arch_invalidate_cache_range((uintptr_t) &caam.output[0], sizeof(caam.output)*2);
@@ -182,9 +191,9 @@ static int caam_wait_for_job(void)
         return -PB_ERR;
     }
 
-    pb_write32(1, IMX_CAAM_BASE + CAAM_ORJRR);
+    mmio_write_32(caam.base + CAAM_ORJRR, 1);
 
-    uint32_t caam_status = pb_read32(IMX_CAAM_BASE + CAAM_JRSTAR);
+    uint32_t caam_status = mmio_read_32(caam.base + CAAM_JRSTAR);
 
     if (caam_status) {
         LOG_ERR("JR status = %08x", caam_status);
@@ -194,64 +203,49 @@ static int caam_wait_for_job(void)
     return PB_OK;
 }
 
-int caam_pk_verify(uint8_t *signature, size_t signature_len,
-                   uint8_t *hash, enum pb_hash_algs hash_alg,
-                   struct bpak_key *key)
+static int caam_ecda_verify(uint8_t *der_signature,
+                            uint8_t *der_key,
+                            uint8_t *md, size_t md_length,
+                            bool *verified)
 {
+    int rc;
     int dc = 0;
-    int hash_len = 0;
     int caam_sig_type = 0;
-    uint8_t *key_data = NULL;
-    size_t key_sz = 0;
-    uint8_t *r = NULL;
-    uint8_t *s = NULL;
+    dsa_t key_kind;
 
-    if (pb_asn1_eckey_data(key, &key_data, &key_sz, false) != PB_OK) {
-        LOG_ERR("Could not extract key data");
-        return -PB_ERR;
-    }
+    *verified = false;
 
-    if (pb_asn1_ecsig_to_rs(signature, key->kind, &r, &s) != PB_OK) {
-        LOG_ERR("Could not get r/s values");
-        return -PB_ERR;
-    }
+    if (!caam.caam_initialized)
+        return -PB_ERR_STATE;
+
+    rc = der_ec_public_key_data(der_key,
+                                caam.ecdsa_key, sizeof(caam.ecdsa_key),
+                                &key_kind);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = der_ecsig_to_rs(der_signature,
+                         caam.ecdsa_r, caam.ecdsa_s, CAAM_SIG_MAX_LENGTH/2,
+                         true);
+
+    if (rc != PB_OK)
+        return rc;
 
     memset(caam.ecdsa_tmp_buf, 0, sizeof(caam.ecdsa_tmp_buf));
-    memset(caam.ecdsa_key, 0, sizeof(caam.ecdsa_key));
-    memcpy(caam.ecdsa_key, key_data, key_sz);
-    memcpy(caam.ecdsa_r, r, sizeof(caam.ecdsa_r));
-    memcpy(caam.ecdsa_s, s, sizeof(caam.ecdsa_s));
 
-    switch (hash_alg) {
-        case PB_HASH_SHA256:
-            hash_len = 32;
-        break;
-        case PB_HASH_SHA384:
-            hash_len = 48;
-        break;
-        case PB_HASH_SHA512:
-            hash_len = 64;
-        break;
-        default:
-            LOG_ERR("Unknown hash %i", hash_alg);
-            return -PB_ERR;
-    };
-
-    switch (key->kind) {
-        case BPAK_KEY_PUB_PRIME256v1:
+    switch (key_kind) {
+        case DSA_EC_SECP256r1:
             caam_sig_type = 2;
         break;
-#if CONFIG_PLAT_IMX8X
-        case BPAK_KEY_PUB_SECP384r1:
+        case DSA_EC_SECP384r1:
             caam_sig_type = 3;
         break;
-        case BPAK_KEY_PUB_SECP521r1:
+        case DSA_EC_SECP521r1:
             caam_sig_type = 4;
         break;
-#endif
         default:
-            LOG_ERR("Unknown signature format");
-            return -PB_ERR;
+            return -PB_ERR_NOT_SUPPORTED;
     };
 
     arch_clean_cache_range((uintptr_t) caam.ecdsa_tmp_buf,
@@ -259,55 +253,62 @@ int caam_pk_verify(uint8_t *signature, size_t signature_len,
     arch_clean_cache_range((uintptr_t) caam.ecdsa_key, sizeof(caam.ecdsa_key));
     arch_clean_cache_range((uintptr_t) caam.ecdsa_r, sizeof(caam.ecdsa_r));
     arch_clean_cache_range((uintptr_t) caam.ecdsa_s, sizeof(caam.ecdsa_s));
-    arch_clean_cache_range((uintptr_t) hash, hash_len);
+    arch_clean_cache_range((uintptr_t) md, md_length);
 
     caam.desc[dc++] = CAAM_CMD_HEADER;
     caam.desc[dc++] = (1 << 22) | (caam_sig_type << 7);
     caam.desc[dc++] = (uint32_t)(uintptr_t) caam.ecdsa_key;
-    caam.desc[dc++] = (uint32_t)(uintptr_t) hash;
+    caam.desc[dc++] = (uint32_t)(uintptr_t) md;
     caam.desc[dc++] = (uint32_t)(uintptr_t) caam.ecdsa_r;
     caam.desc[dc++] = (uint32_t)(uintptr_t) caam.ecdsa_s;
     caam.desc[dc++] = (uint32_t)(uintptr_t) caam.ecdsa_tmp_buf;
-    caam.desc[dc++] = hash_len;
+    caam.desc[dc++] = md_length;
     caam.desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (2 << 10) | (1 << 1);
 
     caam.desc[0] |= ((dc-1) << 16) | dc;
 
-    return caam_shedule_job_sync();
+    rc = caam_shedule_job_sync();
+
+    if (rc == 0)
+        *verified = true;
+
+    return rc;
 }
 
-int caam_hash_init(enum pb_hash_algs pb_alg)
+static int caam_hash_init(hash_t pb_alg)
 {
-    LOG_DBG("%u", pb_alg);
+    if (!caam.caam_initialized)
+        return -PB_ERR_STATE;
+
     caam.init = true;
     caam.hash_align_buf_len = 0;
 
     switch (pb_alg) {
-        case PB_HASH_SHA256:
+        case HASH_SHA256:
             caam.alg = CAAM_ALG_TYPE_SHA256;
             caam.digest_size = 32;
             caam.block_size = 64;
             caam.run_ctx_len = 32 + sizeof(uint64_t);
         break;
-        case PB_HASH_SHA384:
+        case HASH_SHA384:
             caam.alg = CAAM_ALG_TYPE_SHA384;
             caam.digest_size = 48;
             caam.block_size = 128;
             caam.run_ctx_len = 64 + sizeof(uint64_t);
         break;
-        case PB_HASH_SHA512:
+        case HASH_SHA512:
             caam.alg = CAAM_ALG_TYPE_SHA512;
             caam.digest_size = 64;
             caam.block_size = 128;
             caam.run_ctx_len = 64 + sizeof(uint64_t);
         break;
-        case PB_HASH_MD5:
+        case HASH_MD5:
             caam.alg = CAAM_ALG_TYPE_MD5;
             caam.digest_size = 16;
             caam.block_size = 64;
             caam.run_ctx_len = 16 + sizeof(uint64_t);
         break;
-        case PB_HASH_MD5_BROKEN:
+        case HASH_MD5_BROKEN:
             caam.alg = CAAM_ALG_TYPE_MD5;
             /* Setting 'run_ctx_len' to 16 here is on purpouse, because
              * of being compatible with some versions already in the filed
@@ -318,7 +319,7 @@ int caam_hash_init(enum pb_hash_algs pb_alg)
         break;
         default:
             LOG_ERR("Unknown pb_alg value 0x%x", pb_alg);
-            return -PB_ERR;
+            return -PB_ERR_PARAM;
     }
 
     memset(caam.run_ctx, 0, caam.run_ctx_len);
@@ -327,7 +328,7 @@ int caam_hash_init(enum pb_hash_algs pb_alg)
     return PB_OK;
 }
 
-static int hash_update(uint8_t *buf, size_t length)
+static int _hash_update(uint8_t * buf, size_t length)
 {
     uint8_t dc = 0;
     int err = PB_OK;
@@ -349,12 +350,10 @@ static int hash_update(uint8_t *buf, size_t length)
 
     if (caam.init) {
         caam.desc[1] |= CAAM_ALG_STATE_INIT;
-        LOG_DBG("Init %p, %zu", buf, length);
     } else {
         caam.desc[1] |= CAAM_ALG_STATE_UPDATE;
         caam.desc[dc++]  = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
         caam.desc[dc++]  = (uint32_t) (uintptr_t) caam.run_ctx;
-        LOG_DBG("Update %p, %zu", buf, length);
     }
 
     caam.init = false;
@@ -371,15 +370,13 @@ static int hash_update(uint8_t *buf, size_t length)
     return PB_OK;
 }
 
-int caam_hash_update(uint8_t *buf, size_t length)
+static int caam_hash_update(uintptr_t buf, size_t length)
 {
     size_t bytes_to_process = length;
-    uint8_t *buf_p = buf;
+    uint8_t *buf_p = (uint8_t *) buf;
     size_t bytes_to_copy;
     size_t no_of_blocks;
     int rc = PB_OK;
-
-    LOG_DBG("%p %zu %zu", buf, length, caam.hash_align_buf_len);
 
     /* We have less then 'block_size' bytes available, fill the buffer */
     if (caam.hash_align_buf_len + bytes_to_process < caam.block_size) {
@@ -404,7 +401,7 @@ int caam_hash_update(uint8_t *buf, size_t length)
             buf_p += bytes_to_copy;
             bytes_to_process -= bytes_to_copy;
 
-            rc = hash_update(caam.hash_align_buf,
+            rc = _hash_update(caam.hash_align_buf,
                              caam.hash_align_buf_len);
 
             if (rc != 0)
@@ -420,7 +417,7 @@ int caam_hash_update(uint8_t *buf, size_t length)
             /* Check if we have at least one 'block_size' worth of data
              *  in the input buffer */
             if (no_of_blocks > 0) {
-                rc = hash_update(buf_p, no_of_blocks * caam.block_size);
+                rc = _hash_update(buf_p, no_of_blocks * caam.block_size);
 
                 if (rc != 0)
                     return rc;
@@ -443,16 +440,14 @@ int caam_hash_update(uint8_t *buf, size_t length)
     return rc;
 }
 
-int caam_hash_output(uint8_t *output, size_t size)
+static int caam_hash_final(uint8_t *output, size_t size)
 {
     int err;
     int dc = 0;
 
     if (caam.init) {
-        hash_update(NULL, 0);
+        _hash_update(NULL, 0);
     }
-
-    LOG_DBG("Buf <%p> %zu, %zu", output, size, caam.hash_align_buf_len);
 
     arch_clean_cache_range((uintptr_t) output, size);
     arch_clean_cache_range((uintptr_t) caam.hash_align_buf,
@@ -480,34 +475,67 @@ int caam_hash_output(uint8_t *output, size_t size)
 
     caam.hash_align_buf_len = 0;
 
-#if LOGLEVEL > 2
-    if (err == PB_OK) {
-        printf("%s: Hash: ", __func__);
-        for (int i = 0; i < caam.digest_size; i++)
-            printf("%02x", output[i]);
-        printf("\n\r");
-    }
-#endif
-
     return err;
 }
 
-int imx_caam_init(void)
+int imx_caam_init(uintptr_t base)
 {
-    LOG_INFO("CAAM init %p", (void *) IMX_CAAM_BASE);
+    int rc;
 
     memset(&caam, 0, sizeof(caam));
+    caam.base = base;
+
+    uint32_t caam_version = mmio_read_32(caam.base + CAAM_VID_MS);
+    caam.id = (caam_version >> 16) & 0xfff;
+    caam.ver_maj = (caam_version >> 8) & 0xff;
+    caam.ver_min = caam_version & 0xff;
+
+    LOG_INFO("Base 0x%"PRIxPTR" ID: 0x%04x, ver %i.%i", caam.base,
+                                                      caam.id,
+                                                      caam.ver_maj,
+                                                      caam.ver_min);
 
     arch_clean_cache_range((uintptr_t) &caam.input, sizeof(caam.input));
     arch_clean_cache_range((uintptr_t) caam.output, sizeof(caam.output)*2);
 
     /* Initialize job rings */
-    pb_write32((uint32_t)(uintptr_t) &caam.input,  IMX_CAAM_BASE + CAAM_IRBAR);
-    pb_write32((uint32_t)(uintptr_t) caam.output, IMX_CAAM_BASE + CAAM_ORBAR);
+    mmio_write_32(caam.base + CAAM_IRBAR, (uint32_t)(uintptr_t) &caam.input);
+    mmio_write_32(caam.base + CAAM_ORBAR, (uint32_t)(uintptr_t) caam.output);
 
     /* Program number of input/output job entries */
-    pb_write32(1, IMX_CAAM_BASE + CAAM_IRSR);
-    pb_write32(1, IMX_CAAM_BASE + CAAM_ORSR);
+    mmio_write_32(caam.base + CAAM_IRSR, 1);
+    mmio_write_32(caam.base + CAAM_ORSR, 1);
 
+    static const struct hash_ops caam_ops = {
+        .name = "caam-hash",
+        .alg_bits = HASH_MD5 |
+                    HASH_MD5_BROKEN |
+                    HASH_SHA256 |
+                    HASH_SHA384 |
+                    HASH_SHA512,
+        .init = caam_hash_init,
+        .update = caam_hash_update,
+        .final = caam_hash_final,
+    };
+
+    rc = hash_add_ops(&caam_ops);
+
+    if (rc != PB_OK)
+        return rc;
+
+    static const struct dsa_ops caam_dsa_ops = {
+        .name = "caam-dsa",
+        .alg_bits = DSA_EC_SECP256r1 |
+                    DSA_EC_SECP384r1 |
+                    DSA_EC_SECP521r1,
+        .verify = caam_ecda_verify,
+    };
+
+    rc = dsa_add_ops(&caam_dsa_ops);
+
+    if (rc != PB_OK)
+        return rc;
+
+    caam.caam_initialized = true;
     return PB_OK;
 }

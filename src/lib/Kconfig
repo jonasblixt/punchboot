@@ -12,8 +12,8 @@ config LIB_BPAK
     bool "Enable BPAK library support"
     default y
 
-config LIB_ASN1_HELPERS
-    bool "ASN.1 Helpers"
+config LIB_DER_HELPERS
+    bool "(ASN.1) DER Helpers"
     default y
 
 config LIB_FDT

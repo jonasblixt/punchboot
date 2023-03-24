@@ -20,6 +20,7 @@
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
 #include <uuid.h>
+#include <crypto.h>
 #include <boot/boot.h>
 #include <drivers/usb/usb_core.h>
 #include <drivers/block/bio.h>
@@ -30,7 +31,7 @@ static struct pb_result result PB_SECTION_NO_INIT PB_ALIGN_4k;
 static bool authenticated = false;
 static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] PB_SECTION_NO_INIT PB_ALIGN_4k;
 static enum pb_slc slc;
-static uint8_t hash[PB_HASH_MAX_LENGTH];
+static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uint8_t device_uuid[16];
 static bio_dev_t block_dev;
 
@@ -40,6 +41,7 @@ static int auth_token(uint8_t *device_uu,
 {
     int rc = -PB_ERR;
     struct bpak_key *k = NULL;
+    bool verified = false;
     bool active = false;
     char device_uu_str[37];
 
@@ -71,54 +73,54 @@ static int auth_token(uint8_t *device_uu,
 
     LOG_DBG("Found key %x", k->id);
 
-    int hash_kind = PB_HASH_INVALID;
+    hash_t hash_kind = 0;
+    dsa_t dsa_kind = 0;
 
-    switch (k->kind)
-    {
+    switch (k->kind) {
         case BPAK_KEY_PUB_PRIME256v1:
-            hash_kind = PB_HASH_SHA256;
+            hash_kind = HASH_SHA256;
+            dsa_kind = DSA_EC_SECP256r1;
         break;
         case BPAK_KEY_PUB_SECP384r1:
-            hash_kind = PB_HASH_SHA384;
+            hash_kind = HASH_SHA384;
+            dsa_kind = DSA_EC_SECP384r1;
         break;
         case BPAK_KEY_PUB_SECP521r1:
-            hash_kind = PB_HASH_SHA512;
-        break;
-        case BPAK_KEY_PUB_RSA4096:
-            hash_kind = PB_HASH_SHA256;
+            hash_kind = HASH_SHA512;
+            dsa_kind = DSA_EC_SECP521r1;
         break;
         default:
-            LOG_ERR("Unkown key kind");
-            return -PB_ERR;
+            return -PB_ERR_NOT_SUPPORTED;
     }
 
     LOG_DBG("Hash init (%s)", device_uu_str);
-    rc = plat_hash_init(hash_kind);
+    rc = hash_init(hash_kind);
 
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_hash_update((uint8_t *) device_uu_str, 36);
+    rc = hash_update((uintptr_t) device_uu_str, 36);
 
     if (rc != PB_OK)
         return rc;
 
     LOG_DBG("Hash final");
-    rc = plat_hash_output(hash, sizeof(hash));
+    rc = hash_final(hash, sizeof(hash));
 
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_pk_verify(sig, size, hash, hash_kind, k);
+    rc = dsa_verify(dsa_kind, sig, (uint8_t *) k->data, hash, sizeof(hash),
+                        &verified);
 
-    if (rc != PB_OK) {
-        LOG_ERR("Authentication failed");
+    if (rc == 0 && verified) {
+        LOG_INFO("Authentication successful");
+    } else {
+        LOG_ERR("Authentication failed (%i) %i", rc, verified);
         return -PB_ERR_AUTHENTICATION_FAILED;
     }
 
-    LOG_INFO("Authentication successful");
-
-    return PB_OK;
+    return rc;
 }
 #endif
 
@@ -388,7 +390,7 @@ static int cmd_part_verify(void)
         return block_dev;
     }
 
-    rc = plat_hash_init(PB_HASH_SHA256);
+    rc = hash_init(HASH_SHA256);
 
     if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -408,7 +410,7 @@ static int cmd_part_verify(void)
             return rc;
         }
 
-        rc = plat_hash_update((uint8_t *) buffer, sizeof(struct bpak_header));
+        rc = hash_update((uintptr_t) buffer, sizeof(struct bpak_header));
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
@@ -435,7 +437,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = plat_hash_update(buffer[buffer_id], chunk_len);
+        rc = hash_update((uintptr_t) buffer[buffer_id], chunk_len);
 
         if (rc != PB_OK) {
             LOG_ERR("Hash update error");
@@ -450,7 +452,7 @@ static int cmd_part_verify(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_hash_output(hash, sizeof(hash));
+    rc = hash_final(hash, sizeof(hash));
 
     if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));

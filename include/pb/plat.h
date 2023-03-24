@@ -14,6 +14,7 @@
 #include <pb/fuse.h>
 #include <pb/board.h>
 #include <pb/fuse.h>
+#include <crypto.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
 
@@ -84,56 +85,11 @@ int plat_slc_key_active(uint32_t id, bool *active);
 int plat_slc_revoke_key(uint32_t id);
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status);
 
-/* Crypto API */
-
-/**
- * Optional platform initialization call for crypto hardware.
- *
- * @return PB_OK on success or a negative number
- *
- **/
-int plat_crypto_init(void);
-
-/**
- * Initialize the hashing context
- *
- * @param[in] alg Hashing algorithm to run
- *
- * @return PB_OK on success or a negative number
- *
- **/
-int plat_hash_init(enum pb_hash_algs alg);
-
-/**
- * Update the hashing context with data
- *
- * @param[in] buf Input byte buffer
- * @param[in] len Length of byte buffer
- *
- * @return PB_OK on success or a negative number
- **/
-int plat_hash_update(uint8_t *buf, size_t len);
-
-/**
- * Output hash
- *
- * @param[in] output Output byte buffer
- * @param[in] len Length of byte buffer
- *
- * @return PB_OK on success or a negative number
- **/
-int plat_hash_output(uint8_t *output, size_t len);
-
-int plat_pk_verify(uint8_t *signature, size_t signature_len,
-                   uint8_t *hash, enum pb_hash_algs alg,
-                   struct bpak_key *key);
-
 /* Transport API */
 int plat_transport_init(void);
 int plat_transport_process(void);
 bool plat_transport_ready(void);
 int plat_transport_write(void *buf, size_t size);
 int plat_transport_read(void *buf, size_t size);
-
 
 #endif  // INCLUDE_PB_PLAT_H_
