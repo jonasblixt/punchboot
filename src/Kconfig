@@ -54,6 +54,21 @@ config CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
     help
         When the SLC configuration lock command is invoked the platform code also
         calls board_slc_set_configuration_lock.
+
+config CRYPTO
+    bool "Cryptographic API"
+    default y
+
+config CRYPTO_MAX_HASH_OPS
+    int "Maximum number of hash drivers"
+    default 1
+    depends on CRYPTO
+
+config CRYPTO_MAX_DSA_OPS
+    int "Maximum number of dsa drivers"
+    default 1
+    depends on CRYPTO
+
 endmenu
 
 menu "Build configuration"

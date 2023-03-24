@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include <inttypes.h>
+#include <crypto.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/plat.h>
@@ -22,9 +23,11 @@ int boot_image_auth_header(struct bpak_header *hdr)
 {
     int rc;
     bool key_active = false;
-    int hash_kind;
+    hash_t hash_kind = 0;
+    dsa_t dsa_kind = 0;
     struct bpak_key *k = NULL;
     size_t signature_length;
+    bool verified = false;
     uint8_t header_digest[64];
 
     rc = bpak_valid_header(hdr);
@@ -63,19 +66,33 @@ int boot_image_auth_header(struct bpak_header *hdr)
 
     switch (hdr->hash_kind) {
         case BPAK_HASH_SHA256:
-            hash_kind = PB_HASH_SHA256;
+            hash_kind = HASH_SHA256;
         break;
         case BPAK_HASH_SHA384:
-            hash_kind = PB_HASH_SHA384;
+            hash_kind = HASH_SHA384;
         break;
         case BPAK_HASH_SHA512:
-            hash_kind = PB_HASH_SHA512;
+            hash_kind = HASH_SHA512;
         break;
         default:
             return -PB_ERR_UNKNOWN_HASH;
     }
 
-    rc = plat_hash_init(hash_kind);
+    switch (k->kind) {
+        case BPAK_KEY_PUB_PRIME256v1:
+            dsa_kind = DSA_EC_SECP256r1;
+        break;
+        case BPAK_KEY_PUB_SECP384r1:
+            dsa_kind = DSA_EC_SECP384r1;
+        break;
+        case BPAK_KEY_PUB_SECP521r1:
+            dsa_kind = DSA_EC_SECP521r1;
+        break;
+        default:
+            return -PB_ERR_NOT_SUPPORTED;
+    }
+
+    rc = hash_init(hash_kind);
 
     if (rc != PB_OK)
         return rc;
@@ -87,27 +104,25 @@ int boot_image_auth_header(struct bpak_header *hdr)
     if (rc != BPAK_OK)
         return -PB_ERR_MEM;
 
-    rc = plat_hash_update((uint8_t *) hdr, sizeof(*hdr));
+    rc = hash_update((uintptr_t) hdr, sizeof(*hdr));
 
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_hash_output(header_digest, sizeof(header_digest));
+    rc = hash_final(header_digest, sizeof(header_digest));
 
     if (rc != PB_OK)
         return rc;
 
-    rc = plat_pk_verify(signature,
-                        signature_length,
-                        header_digest,
-                        hash_kind,
-                        k);
+    rc = dsa_verify(dsa_kind, signature, (uint8_t *) k->data,
+                    header_digest, sizeof(header_digest),
+                    &verified);
 
-    if (rc == PB_OK) {
-        LOG_INFO("Signature valid");
+    if (rc == 0 && verified) {
+        LOG_INFO("Authentication successful");
     } else {
-        LOG_ERR("Signature invalid");
-        return rc;
+        LOG_ERR("Authentication failed");
+        return -PB_ERR_AUTHENTICATION_FAILED;
     }
 
     return rc;
@@ -134,15 +149,15 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
 
     switch (hdr->hash_kind) {
         case BPAK_HASH_SHA256:
-            hash_kind = PB_HASH_SHA256;
+            hash_kind = HASH_SHA256;
             hash_length = 32;
         break;
         case BPAK_HASH_SHA384:
-            hash_kind = PB_HASH_SHA384;
+            hash_kind = HASH_SHA384;
             hash_length = 48;
         break;
         case BPAK_HASH_SHA512:
-            hash_kind = PB_HASH_SHA512;
+            hash_kind = HASH_SHA512;
             hash_length = 64;
         break;
         default:
@@ -152,7 +167,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
     if (payload_digest_size < hash_length)
         return -PB_ERR_PARAM;
 
-    rc = plat_hash_init(hash_kind);
+    rc = hash_init(hash_kind);
 
     if (rc != PB_OK)
         return rc;
@@ -196,7 +211,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
                     break;
             }
 
-            rc = plat_hash_update((uint8_t *) addr, chunk_size);
+            rc = hash_update(addr, chunk_size);
 
             if (rc != PB_OK)
                 break;
@@ -213,7 +228,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             return rc;
     }
 
-    return plat_hash_output(payload_digest, payload_digest_size);
+    return hash_final(payload_digest, payload_digest_size);
 }
 
 int boot_image_verify_payload(struct bpak_header *hdr,

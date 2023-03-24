@@ -30,10 +30,12 @@
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/usb/usb_core.h>
 #include <drivers/usb/imx_ehci.h>
+#include <drivers/crypto/imx_caam.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
 #include <boot/linux.h>
 #include <plat/defs.h>
+#include <crypto.h>
 
 #include "partitions.h"
 #define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
@@ -362,6 +364,20 @@ int board_early_init(void *plat_ptr)
     plat = IMX8X_PRIV(plat_ptr);
     int rc;
 
+    /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
+    ts("CAAM init start");
+    sc_pm_set_resource_power_mode(plat->ipc,
+                                SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat->ipc,
+                                SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
+
+    rc = imx_caam_init(0x31430000);
+    ts("CAAM init end");
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+        return rc;
+    }
+
     /* TODO: Rework and move the 'usdhc_emmc_setup' to imx8x platform,
      * And make it optional through KConfig. This way the upstream platform
      * code will cover most use cases and the special ones can still quite
@@ -395,9 +411,9 @@ int board_early_init(void *plat_ptr)
 
     static const struct boot_ab_state_config boot_state_cfg = {
         .primary_state_part_uu = PART_primary_state,
-        .backup_state_part_uu = PART_primary_state,
-        .sys_a_uu = PART_sys_b,
-        .sys_b_uu = PART_sys_a,
+        .backup_state_part_uu = PART_backup_state,
+        .sys_a_uu = PART_sys_a,
+        .sys_b_uu = PART_sys_b,
         .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
     };
 
