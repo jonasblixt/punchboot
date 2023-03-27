@@ -33,7 +33,7 @@ static uint32_t mmc_ocr_value;
 static struct mmc_device_info mmc_dev_info;
 static uint32_t rca;
 static struct mmc_csd_emmc mmc_csd;
-static uint8_t mmc_ext_csd[512] PB_ALIGN(16);
+static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
@@ -450,7 +450,6 @@ static int mmc_setup(void)
     mmc_cmd_resp_t resp_data;
     ts("mmc enum start");
     rc = mmc_hal->init();
-    ts("mmc hal done");
 
     if (rc != PB_OK)
         return rc;
@@ -459,11 +458,11 @@ static int mmc_setup(void)
     if (rc != 0) {
         return rc;
     }
-    ts("mmc clk");
 
+    ts("mmc opcond start");
     rc = mmc_send_op_cond();
+    ts("mmc opcond end");
 
-    ts("mmc op cond");
     if (rc != 0) {
         return rc;
     }
@@ -473,7 +472,6 @@ static int mmc_setup(void)
     if (rc != 0) {
         return rc;
     }
-    ts("mmc send cid");
 
     /* CMD3: Set Relative Address */
     rca = MMC_FIX_RCA;
@@ -482,7 +480,6 @@ static int mmc_setup(void)
     if (rc != 0) {
         return rc;
     }
-    ts("mmc set rela");
 
     /* CMD9: CSD Register */
     rc = mmc_send_cmd(MMC_CMD_SEND_CSD, rca << RCA_SHIFT_OFFSET,
@@ -492,12 +489,13 @@ static int mmc_setup(void)
     }
 
     memcpy(&mmc_csd, &resp_data, sizeof(resp_data));
+
+/*
     LOG_DBG("csd0: %x", resp_data[0]);
     LOG_DBG("csd1: %x", resp_data[1]);
     LOG_DBG("csd2: %x", resp_data[2]);
     LOG_DBG("csd3: %x", resp_data[3]);
-
-    ts("mmc send csd");
+*/
     /* CMD7: Select Card */
     rc = mmc_send_cmd(MMC_CMD_SELECT_CARD, rca << RCA_SHIFT_OFFSET,
                MMC_RSP_R1, NULL);
@@ -505,7 +503,6 @@ static int mmc_setup(void)
         return rc;
     }
 
-    ts("mmc select");
     do {
         rc = mmc_device_state();
         if (rc < 0) {
@@ -513,7 +510,6 @@ static int mmc_setup(void)
         }
     } while (rc != MMC_STATE_TRAN);
 
-    ts("mmc switch");
     switch (mmc_cfg->mode) {
         case MMC_BUS_MODE_DDR52:
         {
@@ -600,13 +596,11 @@ static int mmc_setup(void)
             LOG_ERR("Unsupported mmc bus mode (%i)", mmc_cfg->mode);
             return -PB_ERR_NOT_IMPLEMENTED;
     }
-    ts("mmc switch done");
+
     rc = mmc_fill_device_info();
     if (rc != 0) {
         return rc;
     }
-
-    LOG_DBG("Got ext csd!");
 
     if (mmc_ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != mmc_cfg->boot_mode) {
         LOG_INFO("Updating boot bus conditions to 0x%02x", mmc_cfg->boot_mode);
@@ -626,6 +620,7 @@ static int mmc_setup(void)
             mmc_ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
             mmc_ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
 
+/*
     LOG_INFO("%zu sectors, %zu kBytes",
         sectors, sectors >> 1);
     LOG_INFO("Partconfig: %x", mmc_ext_csd[EXT_CSD_PART_CONFIG]);
@@ -636,6 +631,7 @@ static int mmc_setup(void)
     LOG_INFO("Life time A (MLC) %x", mmc_ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A]);
     LOG_INFO("Life time B (SLC) %x", mmc_ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B]);
     LOG_INFO("Pre EOL %x", mmc_ext_csd[EXT_CSD_PRE_EOL_INFO]);
+*/
 
     bio_dev_t d = bio_allocate(0,
                                mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1,

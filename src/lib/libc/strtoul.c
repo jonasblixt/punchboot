@@ -40,6 +40,7 @@
 #include <string.h>
 #include <arch/arch.h>
 
+#define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
 /*
  * Convert a string to an unsigned long integer.
  *

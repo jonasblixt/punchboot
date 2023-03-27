@@ -15,7 +15,7 @@
 /* Includes */
 
 #include <stdbool.h>
-#include <plat/sci/sci_scfw.h>
+#include <plat/imx8x/sci/sci_scfw.h>
 
 /* Defines */
 

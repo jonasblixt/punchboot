@@ -10,7 +10,7 @@
 #include <arch/arch.h>
 #include <arch/arch_helpers.h>
 #include <arch/arch_features.h>
-#include <plat/defs.h>
+#include <platform_defs.h>
 #include <xlat_tables.h>
 #include <xlat_tables_arch.h>
 

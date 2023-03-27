@@ -8,7 +8,7 @@
 #define XLAT_TABLES_ARCH_H
 
 #include <pb/pb.h>
-#include <pb/utils.h>
+#include <utils_def.h>
 
 #ifdef CONFIG_ARCH_ARMV8
 #include "aarch64/xlat_tables_aarch64.h"

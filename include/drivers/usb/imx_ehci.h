@@ -56,7 +56,10 @@ struct ehci_transfer_head
     uint32_t next;
     uint32_t token;
     uint32_t page[5];
-} __attribute__((aligned(32))) __attribute__((packed));
+    uint32_t pad;
+} __attribute__((packed));
+
+_Static_assert(sizeof(struct ehci_transfer_head) == 32);
 
 struct ehci_queue_head
 {
@@ -68,7 +71,9 @@ struct ehci_queue_head
     uint32_t __reserved;
     uint32_t setup[2];
     uint32_t padding[4];
-} __attribute__((aligned(32))) __attribute__((packed));
+} __attribute__((packed));
+
+_Static_assert(sizeof(struct ehci_queue_head) == 64);
 
 struct imx_ehci_device
 {
@@ -78,7 +83,7 @@ struct imx_ehci_device
     size_t size;
 };
 
-int imx_ehci_usb_init(void);
+int imx_ehci_usb_init(uintptr_t base);
 int imx_ehci_set_address(uint32_t addr);
 int imx_ehci_usb_process(void);
 int imx_ehci_usb_read(void *buf, size_t size);

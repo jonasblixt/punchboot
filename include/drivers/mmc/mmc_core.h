@@ -10,7 +10,7 @@
 #ifndef INCLUDE_PB_MMC_H
 #define INCLUDE_PB_MMC_H
 
-#include <pb/utils.h>
+#include <utils_def.h>
 #include <uuid.h>
 
 /* MMC Commands */

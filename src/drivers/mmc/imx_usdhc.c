@@ -20,7 +20,7 @@
 
 static const struct imx_usdhc_config *usdhc;
 static unsigned int input_clock_hz;
-static struct  usdhc_adma2_desc tbl[512] PB_ALIGN_4k;
+static struct  usdhc_adma2_desc tbl[512] __section(".no_init") __aligned(64);
 static bool bus_ddr_enable = false;
 
 static int imx_usdhc_set_bus_clock(unsigned int clk_hz)

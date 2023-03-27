@@ -1,5 +1,5 @@
 #include <arch/arch.h>
-#include <plat/defs.h>
+#include <platform_defs.h>
 
 .text
 

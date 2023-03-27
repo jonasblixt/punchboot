@@ -17,84 +17,54 @@
 #include <xlat_tables.h>
 #include <uuid.h>
 #include <crypto.h>
-#include <plat/imx8x/plat.h>
-#include <plat/imx/gpt.h>
-#include <plat/sci/sci.h>
-#include <plat/sci/sci_ipc.h>
-#include <plat/sci/svc/seco/sci_seco_api.h>
-#include <plat/sci/svc/pm/sci_pm_api.h>
-#include <plat/imx8qx_pads.h>
-#include <plat/defs.h>
-
 #include <console.h>
+#include <utils_def.h>
+#include <plat/imx8x/imx8x.h>
+#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
+#include <plat/imx8x/imx8qx_pads.h>
 #include <drivers/usb/imx_ehci.h>
 #include <drivers/uart/imx_lpuart.h>
+#include <drivers/timer/imx_gpt.h>
+#include <board_defs.h>
 
-#include <board/config.h>
-
-#define LPCG_CLOCK_MASK         0x3U
-#define LPCG_CLOCK_OFF          0x0U
-#define LPCG_CLOCK_ON           0x2U
-#define LPCG_CLOCK_AUTO         0x3U
-#define LPCG_CLOCK_STOP         0x8U
-
-#define LPCG_ALL_CLOCK_OFF      0x00000000U
-#define LPCG_ALL_CLOCK_ON       0x22222222U
-#define LPCG_ALL_CLOCK_AUTO     0x33333333U
-#define LPCG_ALL_CLOCK_STOP     0x88888888U
-
-
-extern char _code_start, _code_end,
-            _data_region_start, _data_region_end,
-            _ro_data_region_start, _ro_data_region_end,
-            _zero_region_start, _zero_region_end,
-            _stack_start, _stack_end, end;
+IMPORT_SYM(uintptr_t, _code_start, code_start);
+IMPORT_SYM(uintptr_t, _code_end, code_end);
+IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_nox_start);
+IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_nox_end);
+IMPORT_SYM(uintptr_t, _stack_start, rw_nox_start);
+IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 
 extern struct fuse fuses[];
 extern const uint32_t rom_key_map[];
-
-static struct imx8x_private private;
-
+static struct imx8x_platform plat;
+static int boot_reason;
 static struct pb_result_slc_key_status key_status;
-
 static enum pb_slc slc_status;
-
 static struct fuse rom_key_revoke_fuse = IMX8X_FUSE_ROW(11, "Revoke");
 
-static const char platform_namespace_uuid[] =
-    "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
-
 static const mmap_region_t imx_mmap[] = {
-    /* Map UART 0, 1, 2 and 3*/
-    MAP_REGION_FLAT(0x5A060000, (64 * 1024), MT_DEVICE | MT_RW),
-    MAP_REGION_FLAT(0x5A070000, (64 * 1024), MT_DEVICE | MT_RW),
-    MAP_REGION_FLAT(0x5A080000, (64 * 1024), MT_DEVICE | MT_RW),
-    MAP_REGION_FLAT(0x5A090000, (64 * 1024), MT_DEVICE | MT_RW),
-    /* Connecivity */
-    MAP_REGION_FLAT(0x5b270000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 2*/
-    MAP_REGION_FLAT(0x5b280000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USB 3*/
-    MAP_REGION_FLAT(0x5b200000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USDHC0*/
-    MAP_REGION_FLAT(0x5b210000, (64*1024), MT_DEVICE | MT_RW), /* LPCG USDHC0*/
-    MAP_REGION_FLAT(0x5b0d0000, (832*1024), MT_DEVICE | MT_RW), /* USB stuff*/
-    MAP_REGION_FLAT(0x5b010000, (128*1024), MT_DEVICE | MT_RW), /* USDHC*/
-
-    /* Low speed I/O */
-    MAP_REGION_FLAT(0x5d000000, (8*1024*1024), MT_DEVICE | MT_RW),
-    /* CAAM block*/
+    /* Map all of the normal I/O space */
+    MAP_REGION_FLAT(IMX_REG_BASE, IMX_REG_SIZE, MT_DEVICE | MT_RW),
+    /* CAAM JR2 */
     MAP_REGION_FLAT(0x31430000, (64 * 1024), MT_DEVICE | MT_RW),
     {0}
 };
 
-static int boot_reason;
-
-int plat_get_uuid(char *out)
+int plat_get_unique_id(uint8_t *output, size_t *length)
 {
-    uint32_t uid[2];
+    union {
+        uint32_t uid[2];
+        uint8_t uid_bytes[8];
+    } plat_unique;
 
-    sc_misc_unique_id(private.ipc, &uid[0], &uid[1]);
+    if (*length < sizeof(plat_unique.uid_bytes))
+        return -PB_ERR_BUF_TOO_SMALL;
+    *length = sizeof(plat_unique.uid_bytes);
 
-    return uuid_gen_uuid3(platform_namespace_uuid,
-                          (const char *) uid, 8, out);
+    sc_misc_unique_id(plat.ipc, &plat_unique.uid[0], &plat_unique.uid[1]);
+    memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
+    return PB_OK;
 }
 
 static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
@@ -105,7 +75,7 @@ static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
     if (!soc_id || !soc_rev)
         return -1;
 
-    err = sc_misc_get_control(private.ipc, SC_R_SYSTEM, SC_C_ID, &id);
+    err = sc_misc_get_control(plat.ipc, SC_R_SYSTEM, SC_C_ID, &id);
     if (err != SC_ERR_NONE)
         return err;
 
@@ -119,63 +89,53 @@ static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
 
 void plat_reset(void)
 {
-    sc_pm_reset(private.ipc, SC_PM_RESET_TYPE_BOARD);
+    sc_pm_reset(plat.ipc, SC_PM_RESET_TYPE_BOARD);
 }
 
 unsigned int plat_get_us_tick(void)
 {
-    return gp_timer_get_tick();
+    return imx_gpt_get_tick();
 }
 
-static void imx8x_wdog_init(void)
+static sc_err_t imx8x_wdog_init(void)
 {
 #ifdef CONFIG_ENABLE_WATCHDOG
     sc_rm_pt_t partition;
     sc_err_t err;
 
-    err = sc_rm_get_partition(private.ipc, &partition);
+    err = sc_rm_get_partition(plat.ipc, &partition);
     if (err) {
-        LOG_ERR("Could not get partition for setting watchdog: %u", err);
-        goto log_err;
+        return err;
     }
 
-    err = sc_timer_set_wdog_action(private.ipc, partition,
+    err = sc_timer_set_wdog_action(plat.ipc, partition,
             SC_TIMER_WDOG_ACTION_BOARD);
     if (err) {
-        LOG_ERR("Could not set watchdog action: %u", err);
-        goto log_err;
+        return err;
     }
 
-    err = sc_timer_set_wdog_timeout(private.ipc,
+    err = sc_timer_set_wdog_timeout(plat.ipc,
                 CONFIG_WATCHDOG_TIMEOUT*1000);
     if (err) {
-        LOG_ERR("Could not set watchdog timeout: %u", err);
-        goto log_err;
+        return err;
     }
 
     /* If the last argument to sc_timer_start_wdog is set to true, the
      * watchdog will be locked and cannot be reconfigured. Currently,
      * it should be possible to reconfigure the watchdog from Linux. */
 
-    err = sc_timer_start_wdog(private.ipc, false);
+    err = sc_timer_start_wdog(plat.ipc, false);
     if (err) {
-        LOG_ERR("Could not enable watchdog: %u", err);
-        goto log_err;
+        return err;
     }
 
-    LOG_INFO("Watchdog enabled with a %u ms timeout!",
-                        CONFIG_WATCHDOG_TIMEOUT*1000);
-
-    return;
-
-log_err:
-    LOG_ERR("Watchdog NOT enabled!");
+    return 0;
 #endif
 }
 
 void plat_wdog_kick(void)
 {
-    sc_timer_ping_wdog(private.ipc);
+    sc_timer_ping_wdog(plat.ipc);
 }
 
 static void imx8x_systick_setup(void)
@@ -184,22 +144,20 @@ static void imx8x_systick_setup(void)
     sc_pm_clock_rate_t rate;
 
     /* Setup GPT0 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_GPT_0, SC_PM_PW_MODE_ON);
     rate = 24000000;
-    sc_pm_set_clock_rate(private.ipc, SC_R_GPT_0, 2, &rate);
+    sc_pm_set_clock_rate(plat.ipc, SC_R_GPT_0, 2, &rate);
 
-    rc = sc_pm_clock_enable(private.ipc, SC_R_GPT_0, 2, true, false);
+    rc = sc_pm_clock_enable(plat.ipc, SC_R_GPT_0, 2, true, false);
 
     if (rc != SC_ERR_NONE)
         goto systick_fatal;
 
-    //rc = imx_gp_timer_init(rate, 1000000);
-    rc = gp_timer_init();
+    rc = imx_gpt_init(IMX_GPT_BASE, rate);
     if (rc == 0)
         return;
 
 systick_fatal:
-    LOG_ERR("Fatal: systick not available");
     plat_reset();
 }
 
@@ -208,17 +166,17 @@ static void imx8x_load_boot_reason(void)
     int rc;
     sc_pm_reset_reason_t sc_reset_reason;
 
-    if ((rc = sc_pm_reset_reason(private.ipc, &sc_reset_reason)) == 0) {
+    if ((rc = sc_pm_reset_reason(plat.ipc, &sc_reset_reason)) == 0) {
         boot_reason = (int) sc_reset_reason;
     } else {
         boot_reason = -rc;
     }
 
-    rc = get_soc_rev(&private.soc_id, &private.soc_rev);
+    rc = get_soc_rev(&plat.soc_id, &plat.soc_rev);
 
     if (rc != 0) {
-        private.soc_id = 0;
-        private.soc_rev = 0;
+        plat.soc_id = 0;
+        plat.soc_rev = 0;
     }
 }
 
@@ -230,45 +188,45 @@ static void imx8x_console_init(void)
 #ifdef CONFIG_IMX8X_CONSOLE_UART0
     uart_base = 0x5A060000;
     /* Power up UART0 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
 
     /* Set UART0 clock root to 80 MHz */
-    sc_pm_set_clock_rate(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
+    sc_pm_set_clock_rate(plat.ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
 
     /* Enable UART0 clock root */
-    sc_pm_clock_enable(private.ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
+    sc_pm_clock_enable(plat.ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
 
     /* Configure UART pads */
-    sc_pad_set(private.ipc, SC_P_UART0_RX, UART_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_UART0_TX, UART_PAD_CTRL);
+    sc_pad_set(plat.ipc, SC_P_UART0_RX, UART_PAD_CTRL);
+    sc_pad_set(plat.ipc, SC_P_UART0_TX, UART_PAD_CTRL);
 #elif CONFIG_IMX8X_CONSOLE_UART1
     uart_base = 0x5A070000;
     /* Power up UART1 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_1, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_UART_1, SC_PM_PW_MODE_ON);
 
     /* Set UART1 clock root to 80 MHz */
-    sc_pm_set_clock_rate(private.ipc, SC_R_UART_1, SC_PM_CLK_PER, &rate);
+    sc_pm_set_clock_rate(plat.ipc, SC_R_UART_1, SC_PM_CLK_PER, &rate);
 
     /* Enable UART1 clock root */
-    sc_pm_clock_enable(private.ipc, SC_R_UART_1, SC_PM_CLK_PER, true, false);
+    sc_pm_clock_enable(plat.ipc, SC_R_UART_1, SC_PM_CLK_PER, true, false);
 
     /* Configure UART pads */
-    sc_pad_set(private.ipc, SC_P_UART1_RX, UART_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_UART1_TX, UART_PAD_CTRL);
+    sc_pad_set(plat.ipc, SC_P_UART1_RX, UART_PAD_CTRL);
+    sc_pad_set(plat.ipc, SC_P_UART1_TX, UART_PAD_CTRL);
 #elif CONFIG_IMX8X_CONSOLE_UART2
     uart_base = 0x5A080000;
     /* Power up UART2 */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_UART_2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_UART_2, SC_PM_PW_MODE_ON);
 
     /* Set UART2 clock root to 80 MHz */
-    sc_pm_set_clock_rate(private.ipc, SC_R_UART_2, SC_PM_CLK_PER, &rate);
+    sc_pm_set_clock_rate(plat.ipc, SC_R_UART_2, SC_PM_CLK_PER, &rate);
 
     /* Enable UART2 clock root */
-    sc_pm_clock_enable(private.ipc, SC_R_UART_2, SC_PM_CLK_PER, true, false);
+    sc_pm_clock_enable(plat.ipc, SC_R_UART_2, SC_PM_CLK_PER, true, false);
 
     /* Configure UART pads */
-    sc_pad_set(private.ipc, SC_P_UART2_RX, UART_PAD_CTRL);
-    sc_pad_set(private.ipc, SC_P_UART2_TX, UART_PAD_CTRL);
+    sc_pad_set(plat.ipc, SC_P_UART2_RX, UART_PAD_CTRL);
+    sc_pad_set(plat.ipc, SC_P_UART2_TX, UART_PAD_CTRL);
 #else
     #error "No console uart selected"
 #endif
@@ -285,38 +243,25 @@ static void imx8x_console_init(void)
 static void imx8x_mmu_init(void)
 {
     /* Configure MMU */
-
-    uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
-    size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
-                      ((uintptr_t) &_ro_data_region_start);
-
-    uintptr_t code_start = (uintptr_t) &_code_start;
-    size_t code_size = ((uintptr_t) &_code_end) -
-                      ((uintptr_t) &_code_start);
-
-    uintptr_t stack_start = (uintptr_t) &_stack_start;
-    size_t stack_size = ((uintptr_t) &_stack_end) -
-                      ((uintptr_t) &_stack_start);
-
-    uintptr_t rw_start = (uintptr_t) &_data_region_start;
-
     reset_xlat_tables();
-    mmap_add_region(code_start, code_start, code_size,
-                            MT_RO | MT_MEMORY | MT_EXECUTE);
-    mmap_add_region(stack_start, stack_start, stack_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(ro_start, ro_start, ro_size,
-                            MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    /* Map ATF hole */
-    mmap_add_region(0x80000000, 0x80000000,
-                            (0x20000),
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(code_start, code_start,
+                    code_end - code_start,
+                    MT_RO | MT_MEMORY | MT_EXECUTE);
 
-    /* Add ram */
-    mmap_add_region(rw_start, rw_start,
-                            (RAM_SIZE),
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(ro_nox_start, ro_nox_start,
+                    ro_nox_end - ro_nox_start,
+                    MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(rw_nox_start, rw_nox_start,
+                    rw_nox_end - rw_nox_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    /* Add the rest of the RAM */
+    mmap_add_region(rw_nox_end, rw_nox_end,
+                    BOARD_RAM_END - rw_nox_end,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
     mmap_add(imx_mmap);
 
     init_xlat_tables();
@@ -328,25 +273,24 @@ int plat_init(void)
 {
     int rc;
 
-    // plat_init_early
-    sc_ipc_open(&private.ipc, SC_IPC_BASE);
-    // plat_init_systick
+    sc_ipc_open(&plat.ipc, SC_IPC_BASE);
+
+    sc_err_t wdog_rc = imx8x_wdog_init();
     imx8x_systick_setup();
     ts("Init");
-    // plat_init_load_boot_reason
     imx8x_load_boot_reason();
-    // plat_init_console
     imx8x_console_init();
-    // plat_init_wdog (maybe before console?)
-    imx8x_wdog_init();
+    if (wdog_rc != 0) {
+        LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
+    }
+
     ts("MMU start");
-    // plat_init_mmu
     imx8x_mmu_init();
     ts("MMU end");
 
     /* Enable usb stuff */
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(private.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
 
     pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
 
@@ -363,7 +307,12 @@ int plat_init(void)
         return rc;
     }
 
-    return board_early_init(&private);
+    return rc;
+}
+
+int plat_board_init(void)
+{
+    return board_init(&plat);
 }
 
 int plat_boot_reason(void)
@@ -419,7 +368,7 @@ int plat_fuse_read(struct fuse *f)
         f->addr = f->bank;
     }
 
-    err = sc_misc_otp_fuse_read(private.ipc, f->addr,
+    err = sc_misc_otp_fuse_read(plat.ipc, f->addr,
                                 (uint32_t *) &(f->value));
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
@@ -434,7 +383,7 @@ int plat_fuse_write(struct fuse *f)
 
     LOG_INFO("Fusing %s", s);
 
-    err = sc_misc_otp_fuse_write(private.ipc, f->addr, f->value);
+    err = sc_misc_otp_fuse_write(plat.ipc, f->addr, f->value);
 
     return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
 }
@@ -459,7 +408,7 @@ int plat_slc_set_configuration(void)
     int err;
 
 #ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
-    err = board_slc_set_configuration(&private);
+    err = board_slc_set_configuration(&plat);
 
     if (err != PB_OK) {
         LOG_ERR("board_slc_set_configuration failed");
@@ -512,7 +461,7 @@ int plat_slc_set_configuration_lock(void)
     uint32_t uid_h;
 
 #ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
-    err = board_slc_set_configuration_lock(&private);
+    err = board_slc_set_configuration_lock(&plat);
 
     if (err != PB_OK) {
         LOG_ERR("board_slc_set_configuration failed");
@@ -520,7 +469,7 @@ int plat_slc_set_configuration_lock(void)
     }
 #endif
 
-    sc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
+    sc_seco_chip_info(plat.ipc, &lc, &monotonic, &uid_l, &uid_h);
 
     if (lc == 128)
     {
@@ -530,7 +479,7 @@ int plat_slc_set_configuration_lock(void)
 
     LOG_INFO("About to change security state to locked");
 
-    err = sc_seco_forward_lifecycle(private.ipc, 16);
+    err = sc_seco_forward_lifecycle(plat.ipc, 16);
 
     if (err != SC_ERR_NONE)
         return -PB_ERR;
@@ -569,7 +518,7 @@ int plat_slc_read(enum pb_slc *slc)
     uint32_t uid_l;
     uint32_t uid_h;
 
-    sc_seco_chip_info(private.ipc, &lc, &monotonic, &uid_l, &uid_h);
+    sc_seco_chip_info(plat.ipc, &lc, &monotonic, &uid_l, &uid_h);
 
     if (lc == 128) {
         (*slc) = PB_SLC_CONFIGURATION_LOCKED;
@@ -627,7 +576,6 @@ int plat_slc_revoke_key(uint32_t id)
 {
     int rc;
     uint32_t info, fuse_before;
-    UNUSED(id);
 
     LOG_INFO("Revoking keys as specified in image header");
 
@@ -647,7 +595,7 @@ int plat_slc_revoke_key(uint32_t id)
     /* sc_seco_commit returns which resource was revoked in info. In
      * our case, info should be 0x10 for OEM key after the revocation
      * is done. */
-    rc = sc_seco_commit(private.ipc, &info);
+    rc = sc_seco_commit(plat.ipc, &info);
     if (rc != SC_ERR_NONE)
     {
         LOG_ERR("sc_seco_commit failed: %i", rc);
@@ -725,7 +673,7 @@ int imx_ehci_set_address(uint32_t addr)
 
 int plat_transport_init(void)
 {
-    return imx_ehci_usb_init();
+    return imx_ehci_usb_init(IMX_EHCI_BASE);
 }
 
 int plat_transport_process(void)
@@ -751,7 +699,7 @@ bool plat_transport_ready(void)
 int plat_status(void *response_bfr,
                     size_t *response_size)
 {
-    return board_status(&private, response_bfr, response_size);
+    return board_status(&plat, response_bfr, response_size);
 }
 
 int plat_command(uint32_t command,
@@ -760,6 +708,6 @@ int plat_command(uint32_t command,
                      void *response_bfr,
                      size_t *response_size)
 {
-    return board_command(&private, command, bfr, size,
+    return board_command(&plat, command, bfr, size,
                             response_bfr, response_size);
 }

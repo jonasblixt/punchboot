@@ -27,6 +27,8 @@
  **/
 int plat_init(void);
 
+int plat_board_init(void);
+
 /**
  * Platform specific reset function
  **/
@@ -59,7 +61,8 @@ int plat_boot_reason(void);
  *
  **/
 const char* plat_boot_reason_str(void);
-int plat_get_uuid(char *out);
+
+int plat_get_unique_id(uint8_t *output, size_t *length);
 
 int plat_command(uint32_t command,
                      void *bfr,

@@ -5,7 +5,7 @@
  */
 
 #include <pb/assert.h>
-#include <plat/defs.h>
+#include <platform_defs.h>
 #include <arch/arch.h>
 #include <arch/arch_helpers.h>
 #include <pb/utils.h>

@@ -18,11 +18,8 @@
 #include <pb/board.h>
 #include <pb/delay.h>
 #include <pb/timestamp.h>
-#include <plat/defs.h>
-#include <plat/sci/sci_ipc.h>
-#include <plat/sci/sci.h>
-#include <plat/sci/svc/seco/sci_seco_api.h>
-#include <plat/imx8x/plat.h>
+#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <plat/imx8x/imx8x.h>
 #include <arch/armv8a/timer.h>
 #include <arch/arch_helpers.h>
 #include <drivers/mmc/mmc_core.h>
@@ -34,7 +31,6 @@
 #include <boot/boot.h>
 #include <boot/ab_state.h>
 #include <boot/linux.h>
-#include <plat/defs.h>
 #include <crypto.h>
 
 #include "partitions.h"
@@ -50,7 +46,7 @@
                              (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
                              (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
-static struct imx8x_private *plat;
+static struct imx8x_platform *plat;
 
 struct fuse fuses[] =
 {
@@ -359,10 +355,10 @@ int board_command_mode_auth(char *password, size_t length)
 }
 #endif  // CONFIG_AUTH_PASSWORD
 
-int board_early_init(void *plat_ptr)
+int board_init(struct imx8x_platform *plat_ptr)
 {
-    plat = IMX8X_PRIV(plat_ptr);
     int rc;
+    plat = plat_ptr;
 
     /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
     ts("CAAM init start");
