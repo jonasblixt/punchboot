@@ -7,16 +7,22 @@
  *
  */
 
-#ifndef PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_
-#define PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_
+#ifndef PLAT_INCLUDE_IMX8X_IMX8X_H
+#define PLAT_INCLUDE_IMX8X_IMX8X_H
 
-#ifndef __ASSEMBLY__
-#include <pb/pb.h>
-#include <pb/io.h>
-#include <plat/imx/gpio.h>
-#include <plat/imx8qx_pads.h>
+#include <plat/imx8x/sci/sci_ipc.h>
+#include <plat/imx8x/sci/sci.h>
+#include <plat/imx8x/imx8qx_pads.h>
+#include <platform_defs.h>
 
-#define PB_BOOTPART_OFFSET 0
+#define IMX8X_FUSE_ROW(__r, __d) \
+        {.bank = __r , .word = 0, .description = __d, .status = FUSE_VALID}
+
+#define IMX8X_FUSE_ROW_VAL(__r, __d, __v) \
+        {.bank = __r, .word = 0, .description = __d, \
+         .default_value = __v, .status = FUSE_VALID}
+
+#define IMX8X_FUSE_END { .status = FUSE_INVALID }
 
 #define PADRING_IFMUX_EN_SHIFT		31
 #define PADRING_IFMUX_EN_MASK		(1U << PADRING_IFMUX_EN_SHIFT)
@@ -47,24 +53,21 @@
 
 #define IMX8X_PAD_MUX(val) ((val << PADRING_IFMUX_SHIFT) & PADRING_IFMUX_MASK)
 
-#define PLAT_VIRT_ADDR_SPACE_SIZE    (2ull << 32)
-#define PLAT_PHY_ADDR_SPACE_SIZE    (2ull << 32)
-
-#define MAX_XLAT_TABLES            32
-#define MAX_MMAP_REGIONS        32
 
 #define IMX_CAAM_BASE 0x31430000
 #define IMX_EHCI_BASE 0x5b0d0000
-#define IMX_GPIO_BASE 0x5D080000
 #define IMX_USBDCD_BASE 0x5b100800
 #define IMX_GPT_BASE 0x5D140000
 #define SC_IPC_BASE  0x5d1b0000
 #define IMX_GPT_PR 24
 
-#endif  // __ASSEMBLY__
+struct imx8x_platform
+{
+    sc_ipc_t ipc;
+    uint32_t soc_id;
+    uint32_t soc_rev;
+};
 
-#define COUNTER_FREQUENCY (8000000)
-#define COUNTER_US_SHIFT (3)
-#define CACHE_LINE 64
+int board_init(struct imx8x_platform *plat);
 
-#endif  // PLAT_IMX8X_INCLUDE_PLAT_DEFS_H_
+#endif  // PLAT_INCLUDE_IMX8X_IMX8X_H

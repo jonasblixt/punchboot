@@ -15,6 +15,7 @@
 #include <pb-tools/wire.h>
 #include <drivers/usb/usb_core.h>
 #include <uuid.h>
+#include <device_uuid.h>
 
 #define USB_DEBUG
 
@@ -190,18 +191,17 @@ int usb_process_setup_pkt(struct pb_usb_interface *iface,
             {
                 usb_device_uuid[0] = 0x4a;
                 usb_device_uuid[1] = 3;
-                char uuid[37];
-                uint8_t device_uuid[16];
-                plat_get_uuid((char *) device_uuid);
-                uuid_unparse(device_uuid, uuid);
+                char uu_str[37];
+                uuid_t device_uu;
+                device_uuid(device_uu);
+                uuid_unparse(device_uu, uu_str);
 
                 sz = setup->wLength > sizeof(usb_device_uuid)?
                             sizeof(usb_device_uuid): setup->wLength;
 
                 int n = 2;
-                for (int i = 0; i < 36; i++)
-                {
-                   usb_device_uuid[n] = uuid[i];
+                for (int i = 0; i < 36; i++) {
+                   usb_device_uuid[n] = uu_str[i];
                    usb_device_uuid[n+1] = 0;
                    n += 2;
                 }

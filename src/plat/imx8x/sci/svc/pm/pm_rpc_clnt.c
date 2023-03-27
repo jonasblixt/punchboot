@@ -15,10 +15,10 @@
 
 /* Includes */
 
-#include <plat/sci/sci_types.h>
-#include <plat/sci/svc/rm/sci_rm_api.h>
-#include <plat/sci/svc/pm/sci_pm_api.h>
-#include <plat/sci/sci_rpc.h>
+#include <plat/imx8x/sci/sci_types.h>
+#include <plat/imx8x/sci/svc/rm/sci_rm_api.h>
+#include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
+#include <plat/imx8x/sci/sci_rpc.h>
 #include "sci_pm_rpc.h"
 #include <stdlib.h>
 

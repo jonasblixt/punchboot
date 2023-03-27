@@ -17,8 +17,10 @@ typedef union
     } uuid __packed;
 } uuid3_t;
 
-int uuid_gen_uuid3(const char *namespace_uu,
-                       const char *unique, size_t size, char *out)
+int uuid_gen_uuid3(const uuid_t namespace_uu,
+                   const char *unique,
+                   size_t unique_length,
+                   uuid_t output_uu)
 {
     int err;
 
@@ -32,17 +34,17 @@ int uuid_gen_uuid3(const char *namespace_uu,
     if (err != PB_OK)
         return err;
 
-    err = hash_update((uintptr_t) unique, size);
+    err = hash_update((uintptr_t) unique, unique_length);
 
     if (err != PB_OK)
         return err;
 
-    err = hash_final((uint8_t *) out, 16);
+    err = hash_final((uint8_t *) output_uu, 16);
 
     if (err != PB_OK)
         return err;
 
-    uuid3_t *u = (uuid3_t *) out;
+    uuid3_t *u = (uuid3_t *) output_uu;
 
     u->uuid.time_hi_and_version &= 0xFF0F;
     u->uuid.time_hi_and_version |= 0x0030; /* Version 3*/

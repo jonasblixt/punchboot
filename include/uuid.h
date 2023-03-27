@@ -50,15 +50,6 @@ typedef unsigned char uuid_t[16];
 #define UUID_TYPE_DCE_TIME   1
 #define UUID_TYPE_DCE_RANDOM 4
 
-/* Allow UUID constants to be defined */
-#ifdef __GNUC__
-#define UUID_DEFINE(name,u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15) \
-	static const uuid_t name __attribute__ ((unused)) = {u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15}
-#else
-#define UUID_DEFINE(name,u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15) \
-	static const uuid_t name = {u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15}
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -91,8 +82,10 @@ void uuid_unparse_upper(const uuid_t uu, char *out);
 /* conv.c */
 int uuid_to_guid(const uuid_t uu, uuid_t guid);
 
-int uuid_gen_uuid3(const char *namespace_uu,
-                       const char *unique, size_t size, char *out);
+int uuid_gen_uuid3(const uuid_t namespace_uu,
+                   const char *unique,
+                   size_t unique_length,
+                   uuid_t output_uu);
 
 #ifdef __cplusplus
 }

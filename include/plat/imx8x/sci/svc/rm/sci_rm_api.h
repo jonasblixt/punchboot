@@ -24,7 +24,7 @@
 
 /* Includes */
 
-#include <plat/sci/sci_types.h>
+#include <plat/imx8x/sci/sci_types.h>
 
 /* Defines */
 

@@ -16,6 +16,7 @@
 #include <bpak/id.h>
 #include <boot/linux.h>
 #include <libfdt.h>
+#include <device_uuid.h>
 
 static const struct boot_driver_linux_config *cfg;
 static uintptr_t jump_addr;
@@ -35,9 +36,9 @@ int boot_driver_linux_init(const struct boot_driver_linux_config *cfg_in)
 int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 {
     int rc;
-    uuid_t device_uuid;
+    uuid_t device_uu;
     enum pb_slc slc;
-    char device_uuid_str[37];
+    char device_uu_str[37];
     int depth;
     int offset;
     bool found_chosen_node;
@@ -62,8 +63,8 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 
     LOG_INFO("Boot entry: 0x%" PRIxPTR, jump_addr);
 
-    plat_get_uuid((char *) device_uuid);
-    uuid_unparse(device_uuid, device_uuid_str);
+    device_uuid(device_uu);
+    uuid_unparse(device_uu, device_uu_str);
 
     if (cfg->ramdisk_bpak_id) {
         rc = bpak_get_meta(hdr,
@@ -139,7 +140,7 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         }
 
         rc = fdt_setprop_string((void *) fdt, offset, "pb,device-uuid",
-                    (const char *) device_uuid_str);
+                    (const char *) device_uu_str);
 
         if (rc != 0) {
             LOG_ERR("fdt error: device-uuid (%i)", rc);

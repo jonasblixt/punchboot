@@ -9,10 +9,10 @@
 #include <string.h>
 
 #include <pb/assert.h>
-#include <plat/defs.h>
+#include <platform_defs.h>
 
 #include <arch/arch.h>
-#include <pb/utils.h>
+#include <utils_def.h>
 #include <xlat_tables.h>
 
 #include "xlat_tables_private.h"

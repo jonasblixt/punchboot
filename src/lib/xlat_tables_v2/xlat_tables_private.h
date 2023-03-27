@@ -7,7 +7,7 @@
 #ifndef XLAT_TABLES_PRIVATE_H
 #define XLAT_TABLES_PRIVATE_H
 
-#include <plat/defs.h>
+#include <platform_defs.h>
 
 #include <xlat_tables_arch.h>
 

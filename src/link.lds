@@ -20,17 +20,7 @@ SECTIONS
         . = ALIGN(4096);
         _etext = .;
         PROVIDE (_code_end = .);
-    } > pbram
-
-    .data :
-    {
-        . = ALIGN(4096);
-        PROVIDE (_data_region_start = .);
-        *(.data .data.*)
-        . = ALIGN(4096);
-        _edata = .;
-        PROVIDE (_data_region_end = .);
-    } > pbram
+    } > ram
 
     .ro_data :
     {
@@ -46,7 +36,26 @@ SECTIONS
         *(.keystore_key)
         . = ALIGN(4096);
         PROVIDE (_ro_data_region_end = .);
-    } > pbram
+    } > ram
+
+     .stack (NOLOAD):
+    {
+        . = ALIGN(4096);
+        PROVIDE(_stack_start = .);
+        . = . + PB_STACK_SIZE_KB*1024 ;
+        . = ALIGN(4096);
+        PROVIDE(_stack_end = .);
+    } > ram
+
+    .data :
+    {
+        . = ALIGN(4096);
+        PROVIDE (_data_region_start = .);
+        *(.data .data.*)
+        . = ALIGN(4096);
+        _edata = .;
+        PROVIDE (_data_region_end = .);
+    } > ram
 
     .bss (NOLOAD):
     {
@@ -56,16 +65,7 @@ SECTIONS
         *(.bss .bss.*)
         . = ALIGN(4096);
         PROVIDE (_zero_region_end = .);
-    } > pbram
-
-     .stack (NOLOAD):
-    {
-        . = ALIGN(4096);
-        PROVIDE(_stack_start = .);
-        . = . + PB_STACK_SIZE_KB*1024 ;
-        . = ALIGN(4096);
-        PROVIDE(_stack_end = .);
-    } > pbram
+    } > ram
 
     .no_init (NOLOAD):
     {
@@ -76,7 +76,7 @@ SECTIONS
         *(xlat_table)
         . = ALIGN(4096);
         PROVIDE(_no_init_end = .);
-    } > dram
+    } > ram
 
     PROVIDE(end = .);
 }

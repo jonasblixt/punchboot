@@ -78,6 +78,7 @@ src-y  += keystore.c
 src-y  += src/delay.c
 src-$(CONFIG_ENABLE_TIMESTAMPING)  += src/timestamp.c
 src-$(CONFIG_CRYPTO) += src/crypto.c
+src-$(CONFIG_DEVICE_UUID) += src/device_uuid.c
 src-y  += src/wire.c
 src-y  += src/command.c
 src-y  += src/console.c

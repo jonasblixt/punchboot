@@ -1,11 +1,19 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
 /*
  * Copyright (c) 2016-2018, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef INCLUDE_PB_UTILS_H_
-#define INCLUDE_PB_UTILS_H_
+#ifndef INCLUDE_PB_UTILS_DEF_H
+#define INCLUDE_PB_UTILS_DEF_H
 
 /* Compute the number of elements in the given array */
 #define ARRAY_SIZE(a)                \
@@ -128,21 +136,6 @@
 # define  LL(_x)    (_x##LL)
 #endif
 
-/* Register size of the current architecture. */
-#ifdef AARCH32
-#define REGSZ        U(4)
-#else
-#define REGSZ        U(8)
-#endif
-
-/*
- * Test for the current architecture version to be at least the version
- * expected.
- */
-#define ARM_ARCH_AT_LEAST(_maj, _min) \
-    ((ARM_ARCH_MAJOR > (_maj)) || \
-     ((ARM_ARCH_MAJOR == (_maj)) && (ARM_ARCH_MINOR >= (_min))))
-
 /*
  * Import an assembly or linker symbol as a C expression with the specified
  * type
@@ -162,11 +155,16 @@
 
 #define COMPILER_BARRIER() __asm__ volatile ("" ::: "memory")
 
-/* Compiler builtin of GCC >= 9 and planned in llvm */
-#ifdef __HAVE_SPECULATION_SAFE_VALUE
-# define SPECULATION_SAFE_VALUE(var) __builtin_speculation_safe_value(var)
-#else
-# define SPECULATION_SAFE_VALUE(var) var
-#endif
+#define PB_CHECK_OVERLAP(__a, __sz, __region_start, __region_end) \
+    (((__a) <= ((uintptr_t) (__region_end))) &&                 \
+     ((__a) + (__sz) >= ((uintptr_t) (__region_start))))
 
-#endif  // INCLUDE_PB_UTILS_H_
+#define membersof(array) (sizeof(array) / sizeof((array)[0]))
+
+
+#define SZ_kB(x) ((size_t) (x) << 10)
+#define SZ_MB(x) ((size_t) (x) << 20)
+#define SZ_GB(x) ((size_t) (x) << 30)
+#define MHz(x) (x * 1000000UL)
+
+#endif  // INCLUDE_UTILS_DEF_H

@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <plat/sci/sci_scfw.h>
-#include <plat/sci/sci_ipc.h>
-#include <plat/sci/sci_rpc.h>
+#include <plat/imx8x/sci/sci_scfw.h>
+#include <plat/imx8x/sci/sci_ipc.h>
+#include <plat/imx8x/sci/sci_rpc.h>
 #include <stdlib.h>
 
 #include "imx8_mu.h"

@@ -3,7 +3,7 @@
 #include <pb/io.h>
 #include <arch/armv8a/timer.h>
 #include <arch/arch_helpers.h>
-#include <plat/defs.h>
+#include <platform_defs.h>
 
 extern char _code_start, _code_end,
             _data_region_start, _data_region_end,

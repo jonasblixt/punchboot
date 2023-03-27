@@ -12,7 +12,7 @@ ifdef CONFIG_PLAT_IMX8X
 CST_TOOL ?= cst
 MKIMAGE ?= mkimage_imx8x
 IMX8X_AHAB_IMAGE ?= mx8qx-ahab-container.img
-IMX8X_SCFW_IMAGE ?= scfw_tcm.bin
+IMX8X_SCFW_IMAGE ?= mx8qx-mek-scfw-tcm.bin
 IMX8X_SRK_TABLE ?= pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin
 IMX8X_SIGN_CERT ?= pki/imx8x_ahab/crts/SRK1_sha384_secp384r1_v3_usr_crt.pem
 IMX8X_KEY_INDEX ?= 0
@@ -21,11 +21,8 @@ PB_CSF_TEMPLATE = src/plat/imx8x/pb.csf.template
 
 SED = $(shell which sed)
 
-src-y  += src/plat/imx/gpt.c
 src-y  += src/plat/imx/gpio.c
 src-y  += src/plat/imx8x/plat.c
-src-y  += src/plat/imx/wdog.c
-src-y  += src/plat/imx/usbdcd.c
 src-y  += src/plat/imx8x/sci/ipc.c
 src-y  += src/plat/imx8x/sci/imx8_mu.c
 src-y  += src/plat/imx8x/sci/svc/pad/pad_rpc_clnt.c
@@ -35,9 +32,8 @@ src-y  += src/plat/imx8x/sci/svc/misc/misc_rpc_clnt.c
 src-y  += src/plat/imx8x/sci/svc/seco/seco_rpc_clnt.c
 src-y  += src/plat/imx8x/sci/svc/rm/rm_rpc_clnt.c
 
-asm-y += src/plat/imx8x/reset_vector.S
-
 cflags-y += -I src/plat/imx8x/include
+
 cflags-y += -mtune=cortex-a35
 
 ldflags-y += -Tsrc/plat/imx8x/link.lds
@@ -51,7 +47,7 @@ imx8x_image: $(BUILD_DIR)/$(TARGET).bin
 	@echo Using signing cert: $(shell readlink -f $(IMX8X_SIGN_CERT))
 	@$(MKIMAGE) -commit > $(BUILD_DIR)/head.hash
 	@cat $(BUILD_DIR)/pb.bin $(BUILD_DIR)/head.hash > $(BUILD_DIR)/pb_hash.bin
-	@$(MKIMAGE) -soc QX -rev B0 \
+	$(Q)$(MKIMAGE) -soc QX -rev B0 \
 				  -e emmc_fast \
 				  -append $(IMX8X_AHAB_IMAGE) \
 				  -c -scfw $(IMX8X_SCFW_IMAGE) \

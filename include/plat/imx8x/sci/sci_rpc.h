@@ -14,8 +14,8 @@
 
 /* Includes */
 
-#include <plat/sci/sci_types.h>
-#include <plat/sci/sci_ipc.h>
+#include <plat/imx8x/sci/sci_types.h>
+#include <plat/imx8x/sci/sci_ipc.h>
 #include <stdbool.h>
 
 /* Defines */

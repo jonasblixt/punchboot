@@ -44,7 +44,7 @@ int plat_get_uuid(char *out)
     return PB_OK;
 }
 
-void pb_main(void)
+void main(void)
 {
     int rc;
     qemu_uart_init(&console_uart);

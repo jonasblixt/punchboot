@@ -65,8 +65,8 @@ struct gpt_backup_tbl
 static const uint64_t __gpt_header_signature = 0x5452415020494645ULL;
 static int prng_state;
 
-static struct gpt_primary_tbl primary PB_ALIGN(16);
-static struct gpt_backup_tbl backup PB_ALIGN(16);
+static struct gpt_primary_tbl primary __aligned(64);
+static struct gpt_backup_tbl backup __aligned(64);
 static uint8_t gpt_pmbr[512];
 static bio_dev_t gpt_dev;
 static const struct gpt_part_table *gpt_default_tbl;

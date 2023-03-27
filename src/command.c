@@ -24,27 +24,26 @@
 #include <boot/boot.h>
 #include <drivers/usb/usb_core.h>
 #include <drivers/block/bio.h>
+#include <device_uuid.h>
 
 extern struct bpak_keystore keystore_pb;
-static struct pb_command cmd PB_SECTION_NO_INIT PB_ALIGN_4k;
-static struct pb_result result PB_SECTION_NO_INIT PB_ALIGN_4k;
+static struct pb_command cmd __section(".no_init") __aligned(4096);
+static struct pb_result result __section(".no_init") __aligned(4096);
 static bool authenticated = false;
-static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] PB_SECTION_NO_INIT PB_ALIGN_4k;
+static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] __section(".no_init") __aligned(4096);
 static enum pb_slc slc;
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
-static uint8_t device_uuid[16];
+static uuid_t device_uu;
 static bio_dev_t block_dev;
 
 #ifdef CONFIG_AUTH_TOKEN
-static int auth_token(uint8_t *device_uu,
-                      uint32_t key_id, uint8_t *sig, size_t size)
+static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
 {
     int rc = -PB_ERR;
     struct bpak_key *k = NULL;
     bool verified = false;
     bool active = false;
     char device_uu_str[37];
-
 
     rc = plat_slc_key_active(key_id, &active);
 
@@ -273,8 +272,7 @@ static int cmd_auth(void)
 
         plat_transport_read(buffer[0], 1024);
 
-        rc = auth_token(device_uuid,
-                auth_cmd->key_id, buffer[0], auth_cmd->size);
+        rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
             authenticated = true;
@@ -746,7 +744,7 @@ static int pb_command_parse(void)
                 (struct pb_result_device_identifier *) buffer;
             memset(ident->board_id, 0, sizeof(ident->board_id));
             memcpy(ident->board_id, board_name(), strlen(board_name()));
-            memcpy(ident->device_uuid, device_uuid, 16);
+            memcpy(ident->device_uuid, device_uu, 16);
             pb_wire_init_result2(&result, error_to_wire(rc),
                                     ident, sizeof(*ident));
         }
@@ -868,7 +866,7 @@ void pb_command_run(void)
     authenticated = true;
 #endif
     plat_slc_read(&slc);
-    plat_get_uuid((char *) device_uuid);
+    device_uuid(device_uu);
 
 restart_command_mode:
     rc = plat_transport_init();

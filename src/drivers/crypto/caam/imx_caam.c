@@ -45,10 +45,9 @@
 #include <string.h>
 #include <inttypes.h>
 #include <mmio.h>
+#include <arch/arch.h>
 #include <pb/pb.h>
-#include <pb/plat.h>
 #include <bpak/keystore.h>
-#include <plat/defs.h>
 #include <crypto.h>
 #include <der_helpers.h>
 #include <drivers/crypto/imx_caam.h>

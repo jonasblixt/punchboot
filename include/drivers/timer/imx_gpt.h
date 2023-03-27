@@ -14,12 +14,7 @@
 #include <pb/pb.h>
 #include <pb/io.h>
 
-#define GP_TIMER_CR  0x0000
-#define GP_TIMER_PR  0x0004
-#define GP_TIMER_SR  0x0008
-#define GP_TIMER_CNT 0x0024
-
-int gp_timer_init(void);
-unsigned int gp_timer_get_tick(void);
+int imx_gpt_init(uintptr_t base, unsigned int input_clock_Hz);
+unsigned int imx_gpt_get_tick(void);
 
 #endif  // PLAT_IMX_GPT_H_

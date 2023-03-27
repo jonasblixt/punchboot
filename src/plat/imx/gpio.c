@@ -9,7 +9,7 @@
 
 #include <pb/io.h>
 #include <plat/imx/gpio.h>
-#include <plat/defs.h>
+#include <platform_defs.h>
 
 #define DR         (0x0)
 #define GDIR       (0x4)
