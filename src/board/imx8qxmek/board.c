@@ -27,6 +27,7 @@
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/usb/usb_core.h>
 #include <drivers/usb/imx_ehci.h>
+#include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/crypto/imx_caam.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
@@ -248,37 +249,19 @@ static int early_boot(void)
 {
     sc_bool_t btn_status;
     sc_misc_bt_t boot_type;
-    bool usb_charger_detected = false;
 
     sc_misc_get_button_status(plat->ipc, &btn_status);
-    sc_misc_get_boot_type(plat->ipc, &boot_type);
-
-    LOG_INFO("Boot type: %u %i", boot_type, btn_status);
-
-    /* Pull up DP for usb charger detection */
-
-    pb_setbit32(1 << 2, 0x5b100000+0xe0);
-    LOG_DBG ("USB CHRG detect: 0x%08x",pb_read32(0x5B100000+0xf0));
-    pb_delay_ms(1);
-    if ((pb_read32(0x5b100000+0xf0) & 0x0C) == 0x0C)
-        usb_charger_detected = true;
-    pb_clrbit32(1 << 2, 0x5b100000+0xe0);
-
-    if (usb_charger_detected) {
-        LOG_INFO("USB Charger condition, entering bootloader");
-    }
 
     /* Always stop when button is pressed */
     if (btn_status == 1) {
         return -PB_ERR_ABORT;
     }
 
-    if (boot_get_flags() & BOOT_FLAG_CMD) {
-        /* Don't stop boot flow when command mode requested the boot */
+    sc_misc_get_boot_type(plat->ipc, &boot_type);
 
-        if ((boot_type == SC_MISC_BT_SERIAL) || (usb_charger_detected)) {
-            return -PB_ERR_ABORT;
-        }
+    /* Don't stop boot flow when command mode requested the boot */
+    if (!(boot_get_flags() & BOOT_FLAG_CMD) && (boot_type == SC_MISC_BT_SERIAL)) {
+        return -PB_ERR_ABORT;
     }
 
     return PB_OK;
@@ -450,6 +433,12 @@ int board_init(struct imx8x_platform *plat_ptr)
     if (rc != PB_OK) {
         goto err_out;
     }
+
+    /* Enable usb stuff */
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
+
+    imx_usb2_phy_init(0x5B100000);
 
 err_out:
     return rc;

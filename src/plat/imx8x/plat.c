@@ -280,6 +280,7 @@ int plat_init(void)
     ts("Init");
     imx8x_load_boot_reason();
     imx8x_console_init();
+
     if (wdog_rc != 0) {
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
     }
@@ -287,18 +288,6 @@ int plat_init(void)
     ts("MMU start");
     imx8x_mmu_init();
     ts("MMU end");
-
-    /* Enable usb stuff */
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
-
-    pb_clrbit32((1 << 31) | (1 << 30), 0x5B100030);
-
-    /* Enable USB PLL */
-    pb_write32(0x00E03040, 0x5B100000+0xa0);
-
-    /* Power up USB */
-    pb_write32(0x00, 0x5B100000);
 
     rc = plat_slc_init();
 
