@@ -1,6 +1,5 @@
-#include <stdio.h>
-#include <console.h>
-#include <config.h>
+#include <pb/pb.h>
+#include <pb/console.h>
 #include <pb/plat.h>
 
 static const struct console_ops *ops;

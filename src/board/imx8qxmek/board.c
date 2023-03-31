@@ -12,7 +12,6 @@
 #include <uuid.h>
 #include <libfdt.h>
 #include <pb/pb.h>
-#include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/fuse.h>
 #include <pb/board.h>
@@ -25,14 +24,16 @@
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/mmc/imx_usdhc.h>
-#include <drivers/usb/usb_core.h>
+#include <drivers/usb/usbd.h>
 #include <drivers/usb/imx_ehci.h>
 #include <drivers/usb/imx_usb2_phy.h>
+#include <drivers/usb/pb_dev_cls.h>
+#include <pb/cm.h>
 #include <drivers/crypto/imx_caam.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
 #include <boot/linux.h>
-#include <crypto.h>
+#include <pb/crypto.h>
 
 #include "partitions.h"
 #define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
@@ -78,85 +79,66 @@ static const struct gpt_part_table gpt_tbl[]=
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
         .size = SZ_MB(30),
-        .valid = true,
     },
     {
         .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
         .description = "System B",
         .size = SZ_MB(30),
-        .valid = true,
     },
     {
         .uu = UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a,
         .description = "Root A",
         .size = SZ_MB(128),
-        .valid = true,
     },
     {
         .uu = UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb,
         .description = "Root B",
         .size = SZ_MB(128),
-        .valid = true,
     },
     {
         .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
         .description = "PB State Primary",
         .size = 512,
-        .valid = true,
     },
     {
         .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
         .description = "PB State Backup",
         .size = 512,
-        .valid = true,
     },
     {
         .uu = UUID_4581af22_99e6_4a94_b821_b60c42d74758,
         .description = "Root overlay A",
         .size = SZ_MB(30),
-        .valid = true,
     },
     {
         .uu = UUID_da2ca04f_a693_4284_b897_3906cfa1eb13,
         .description = "Root overlay B",
         .size = SZ_MB(30),
-        .valid = true,
     },
     {
         .uu = UUID_23477731_7e33_403b_b836_899a0b1d55db,
         .description = "RoT extension A",
         .size = SZ_kB(128),
-        .valid = true,
     },
     {
         .uu = UUID_6ffd077c_32df_49e7_b11e_845449bd8edd,
         .description = "RoT extension B",
         .size = SZ_kB(128),
-        .valid = true,
     },
     {
         .uu = UUID_9697399d_e2da_47d9_8eb5_88daea46da1b,
         .description = "System storage A",
         .size = SZ_MB(128),
-        .valid = true,
     },
     {
         .uu = UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa,
         .description = "System storage B",
         .size = SZ_MB(128),
-        .valid = true,
     },
     {
         .uu = UUID_39792364_d3e3_4013_ac51_caaea65e4334,
         .description = "Mass storage",
         .size = SZ_GB(1),
-        .valid = true,
-    },
-    {
-        .uu = NULL,
-        .description = NULL,
-        .size = 0,
-        .valid = false,
     },
 };
 
@@ -267,17 +249,9 @@ static int early_boot(void)
     return PB_OK;
 }
 
-const char * board_name(void)
-{
-    return "imx8qxmek";
-}
-
-int board_command(void *plat_ptr,
-                     uint32_t command,
-                     void *bfr,
-                     size_t size,
-                     void *response_bfr,
-                     size_t *response_size)
+static int board_command(uint32_t command,
+                     uint8_t *bfr, size_t size,
+                     uint8_t *response_bfr, size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
     *response_size = 0;
@@ -285,9 +259,7 @@ int board_command(void *plat_ptr,
     return PB_OK;
 }
 
-int board_status(void *plat_ptr,
-                    void *response_bfr,
-                    size_t *response_size)
+static int board_status(uint8_t *response_bfr, size_t *response_size)
 {
     uint32_t scu_version;
     uint32_t scu_commit;
@@ -320,8 +292,7 @@ int board_status(void *plat_ptr,
     return PB_OK;
 }
 
-#ifdef CONFIG_AUTH_PASSWORD
-int board_command_mode_auth(char *password, size_t length)
+static int board_password_auth(const char *password, size_t length)
 {
     /* This is just a simplistic example of password authentication.
      *
@@ -336,7 +307,6 @@ int board_command_mode_auth(char *password, size_t length)
     else
         return -PB_ERR_AUTHENTICATION_FAILED;
 }
-#endif  // CONFIG_AUTH_PASSWORD
 
 int board_init(struct imx8x_platform *plat_ptr)
 {
@@ -344,28 +314,20 @@ int board_init(struct imx8x_platform *plat_ptr)
     plat = plat_ptr;
 
     /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
-    ts("CAAM init start");
     sc_pm_set_resource_power_mode(plat->ipc,
                                 SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(plat->ipc,
                                 SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
 
     rc = imx_caam_init(0x31430000);
-    ts("CAAM init end");
+
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
         return rc;
     }
 
-    /* TODO: Rework and move the 'usdhc_emmc_setup' to imx8x platform,
-     * And make it optional through KConfig. This way the upstream platform
-     * code will cover most use cases and the special ones can still quite
-     * easily be imlemented on board level.
-     */
-    ts("usdhc start");
     rc = usdhc_emmc_setup();
 
-    ts("usdhc end");
     if (rc != PB_OK) {
         LOG_ERR("usdhc init failed (%i)", rc);
         goto err_out;
@@ -377,29 +339,26 @@ int board_init(struct imx8x_platform *plat_ptr)
         goto err_out;
     }
 
-    ts("gpt start");
-    rc = gpt_ptbl_init(user_part, gpt_tbl);
+    rc = gpt_ptbl_init(user_part, gpt_tbl, ARRAY_SIZE(gpt_tbl));
     /* eMMC User partition now only has the visible flag to report capacity */
     (void) bio_set_flags(user_part, BIO_FLAG_VISIBLE);
-    ts("gpt end");
 
-    if (rc != PB_OK) {
-        LOG_ERR("GPT ptbl init failed (%i)", rc);
-        goto err_out;
-    }
+    if (rc == PB_OK) {
+        static const struct boot_ab_state_config boot_state_cfg = {
+            .primary_state_part_uu = PART_primary_state,
+            .backup_state_part_uu = PART_backup_state,
+            .sys_a_uu = PART_sys_a,
+            .sys_b_uu = PART_sys_b,
+            .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+        };
 
-    static const struct boot_ab_state_config boot_state_cfg = {
-        .primary_state_part_uu = PART_primary_state,
-        .backup_state_part_uu = PART_backup_state,
-        .sys_a_uu = PART_sys_a,
-        .sys_b_uu = PART_sys_b,
-        .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
-    };
+        rc = boot_ab_state_init(&boot_state_cfg);
 
-    rc = boot_ab_state_init(&boot_state_cfg);
-
-    if (rc != PB_OK) {
-        goto err_out;
+        if (rc != PB_OK) {
+            goto err_out;
+        }
+    } else {
+        LOG_WARN("GPT ptbl init failed (%i)", rc);
     }
 
     static const struct boot_driver_linux_config linux_boot_cfg = {
@@ -434,12 +393,44 @@ int board_init(struct imx8x_platform *plat_ptr)
         goto err_out;
     }
 
+err_out:
+    return rc;
+}
+
+const struct cm_config * cm_board_init(void)
+{
+    int rc;
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
 
     imx_usb2_phy_init(0x5B100000);
 
-err_out:
-    return rc;
+    rc = imx_ehci_init(IMX_EHCI_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("imx_ehci_init failed (%i)", rc);
+        return NULL;
+    }
+
+    rc = pb_dev_cls_init();
+
+    if (rc != PB_OK)
+        return NULL;
+
+    static const struct cm_config cfg = {
+        .name = "imx8qxpmek",
+        .status = board_status,
+        .password_auth = board_password_auth,
+        .command = board_command,
+        .tops = {
+            .init = usbd_init,
+            .connect = usbd_connect,
+            .disconnect = usbd_disconnect,
+            .read = pb_dev_cls_read,
+            .write = pb_dev_cls_write,
+        },
+    };
+
+    return &cfg;
 }

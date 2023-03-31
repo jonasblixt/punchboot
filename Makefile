@@ -79,8 +79,8 @@ src-y  += src/delay.c
 src-$(CONFIG_ENABLE_TIMESTAMPING)  += src/timestamp.c
 src-$(CONFIG_CRYPTO) += src/crypto.c
 src-$(CONFIG_DEVICE_UUID) += src/device_uuid.c
+src-$(CONFIG_SELF_TEST) += src/self_test.c
 src-y  += src/wire.c
-src-y  += src/command.c
 src-y  += src/console.c
 
 include src/drivers/*/makefile.mk
@@ -90,6 +90,7 @@ include src/lib/makefile.mk
 include $(BOARD)/makefile.mk
 include src/arch/*/makefile.mk
 include src/plat/*/makefile.mk
+include src/cm/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
 ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)

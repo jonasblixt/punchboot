@@ -7,30 +7,13 @@
  *
  */
 
-#ifndef INCLUDE_DRIVERS_USB_CORE_H
-#define INCLUDE_DRIVERS_USB_CORE_H
+#ifndef INCLUDE_DRIVERS_USB_USBD_H
+#define INCLUDE_DRIVERS_USB_USBD_H
 
 #include <stdint.h>
-#include <stdbool.h>
+#include <stddef.h>
 
-/* Defines for commands in setup packets */
-#define USB_GET_DESCRIPTOR     0x8006
-#define USB_SET_CONFIGURATION  0x0009
-#define USB_SET_IDLE           0x210A
-#define USB_SET_FEATURE        0x0003
-#define USB_SET_ADDRESS        0x0005
-#define USB_GET_STATUS         0x8000
-
-#ifndef PB_USB_VID
-    #define PB_USB_VID 0x1209
-#endif
-
-#ifndef PB_USB_PID
-    #define PB_USB_PID 0x2019
-#endif
-
-enum pb_usb_eps
-{
+typedef enum {
     USB_EP0_OUT,
     USB_EP0_IN,
     USB_EP1_OUT,
@@ -47,6 +30,16 @@ enum pb_usb_eps
     USB_EP6_IN,
     USB_EP7_OUT,
     USB_EP7_IN,
+    USB_EP_END,
+} usb_ep_t;
+
+enum usb_charger_type
+{
+    USB_CHARGER_INVALID,
+    USB_CHARGER_CDP,
+    USB_CHARGER_DCP,
+    USB_CHARGER_SDP,
+    USB_CHARGER_END,
 };
 
 struct usb_setup_packet
@@ -58,6 +51,33 @@ struct usb_setup_packet
     uint16_t wIndex;            /*!< Index */
     uint16_t wLength;           /*!< Number of bytes to transfer */
 }  __attribute__((packed));
+
+struct usb_language_descriptor
+{
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint16_t wLang;
+} __attribute__((packed));
+
+struct usb_string_descriptor
+{
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint16_t unicode[127];
+} __attribute__((packed));
+
+struct usb_qualifier_descriptor
+{
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint16_t bcdUSB;
+    uint8_t bDeviceClass;
+    uint8_t bDeviceSubClass;
+    uint8_t bDeviceProtocol;
+    uint8_t bMaxPacketSize0;
+    uint8_t bNumConfigurations;
+    uint8_t bReserved;
+} __attribute__((packed));
 
 struct usb_device_descriptor
 {
@@ -121,42 +141,39 @@ struct usb_endpoint_descriptor
     uint8_t bInterval;      // Interval for polling endpoint for data transfers
 }  __attribute__((packed));
 
-
-struct usb_descriptors
+struct usbd_descriptors
 {
+    const struct usb_language_descriptor language;
+    const struct usb_qualifier_descriptor qualifier;
     const struct usb_device_descriptor device;
     const struct usb_configuration_descriptor config;
     const struct usb_interface_descriptor interface;
-    const struct usb_endpoint_descriptor endpoint_bulk_in;
-    const struct usb_endpoint_descriptor endpoint_bulk_out;
+    const struct usb_endpoint_descriptor eps[];
 } __attribute__((packed));
 
-enum usb_charger_type
+struct usbd_cls_config
 {
-    USB_CHARGER_UNKNOWN,
-    USB_CHARGER_CDP,
-    USB_CHARGER_DCP,
-    USB_CHARGER_SDP,
+    const struct usbd_descriptors *desc;
+    struct usb_string_descriptor * (*get_string_descriptor)(uint8_t index);
 };
 
-typedef int (*pb_usb_io_t) (int ep, void *buf, size_t size);
-
-typedef int (*pb_usb_call_t) (void);
-
-typedef bool (*pb_usb_status_t) (void);
-
-typedef int (*pb_usb_set_addr_t) (uint32_t addr);
-
-struct pb_usb_interface
+struct usbd_hal_ops
 {
-    pb_usb_io_t read;
-    pb_usb_io_t write;
-    pb_usb_call_t set_configuration;
-    pb_usb_set_addr_t set_address;
-    bool enumerated;
+    int (*init)(const struct usbd_descriptors *desc);
+    int (*stop)(void);
+    int (*xfer_start)(usb_ep_t ep, uintptr_t buf, size_t length);
+    int (*xfer_complete)(usb_ep_t ep);
+    void (*xfer_cancel)(usb_ep_t ep);
+    int (*poll_setup_pkt)(struct usb_setup_packet *pkt);
+    int (*set_configuration)(void);
+    int (*set_address)(uint16_t addr);
 };
 
-int usb_process_setup_pkt(struct pb_usb_interface *iface,
-                          struct usb_setup_packet *setup);
+int usbd_init_hal_ops(const struct usbd_hal_ops *ops);
+int usbd_init_cls(const struct usbd_cls_config *cfg);
+int usbd_init(void);
+int usbd_connect(void);
+int usbd_disconnect(void);
+int usbd_xfer(usb_ep_t ep, uintptr_t buf, size_t length);
 
-#endif
+#endif  // INCLUDE_DRIVERS_USB_USBD_H

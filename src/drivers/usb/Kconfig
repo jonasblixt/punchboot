@@ -12,6 +12,18 @@ config DRIVER_IMX_USB2_PHY
 config DRIVER_IMX_EHCI
     bool "i.MX EHCI USB controller"
     depends on SOC_FAMILY_IMX
+    depends on DRIVER_USB_DEVICE
     default y
+
+config DRIVER_IMX_USBDCD
+    bool "i.MX USB charger detection"
+    depends on SOC_FAMILY_IMX
+    depends on DRIVER_USB_DEVICE
+    default n
+
+config DRIVER_USB_PB_CLS
+    bool "Punchboot device class"
+    default y
+    depends on DRIVER_USB_DEVICE
 
 endmenu

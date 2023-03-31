@@ -12,31 +12,41 @@
 #include <inttypes.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/io.h>
 #include <pb/board.h>
-#include <pb/command.h>
+#include <pb/cm.h>
 #include <pb/delay.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <pb-tools/wire.h>
 #include <uuid.h>
-#include <crypto.h>
+#include <pb/crypto.h>
 #include <boot/boot.h>
-#include <drivers/usb/usb_core.h>
 #include <drivers/block/bio.h>
-#include <device_uuid.h>
+#include <pb/device_uuid.h>
+
+/**
+ * Alignment notes:
+ *
+ * At least some USB controllers requires 4k buffer alignment (for example imx_ehci)
+ * Currently we just ensure that memory that is read/written to/from has 4k alignment.
+ *
+ * We should probably allocate 'CONFIG_CM_BUF_SIZE_KB' + worst case alignment and
+ * offset the buffer pointers as needed by hal
+ *
+ */
 
 extern struct bpak_keystore keystore_pb;
 static struct pb_command cmd __section(".no_init") __aligned(4096);
 static struct pb_result result __section(".no_init") __aligned(4096);
 static bool authenticated = false;
-static uint8_t buffer[2][CONFIG_CMD_BUF_SIZE_KB*1024] __section(".no_init") __aligned(4096);
+static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KB*1024] __section(".no_init") __aligned(4096);
 static enum pb_slc slc;
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uuid_t device_uu;
 static bio_dev_t block_dev;
+static const struct cm_config *cfg;
 
-#ifdef CONFIG_AUTH_TOKEN
+#ifdef CONFIG_CM_AUTH_TOKEN
 static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
 {
     int rc = -PB_ERR;
@@ -114,12 +124,13 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
 
     if (rc == 0 && verified) {
         LOG_INFO("Authentication successful");
+        return PB_OK;
     } else {
         LOG_ERR("Authentication failed (%i) %i", rc, verified);
         return -PB_ERR_AUTHENTICATION_FAILED;
     }
 
-    return rc;
+    return -PB_ERR_AUTHENTICATION_FAILED;
 }
 #endif
 
@@ -176,11 +187,11 @@ static int cmd_board(void)
     uint8_t *bfr = buffer[0];
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    plat_transport_write(&result, sizeof(result));
+    cfg->tops.write((uintptr_t) &result, sizeof(result));
 
     if (board_cmd->request_size) {
         LOG_DBG("Reading request data");
-        rc = plat_transport_read(bfr, 1024);
+        rc = cfg->tops.read((uintptr_t) bfr, 1024);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
@@ -190,9 +201,9 @@ static int cmd_board(void)
 
     uint8_t *bfr_response = buffer[1];
 
-    size_t response_size = CONFIG_CMD_BUF_SIZE_KB*1024;
+    size_t response_size = CONFIG_CM_BUF_SIZE_KB*1024;
 
-    rc = plat_command(board_cmd->command,
+    rc = cfg->command(board_cmd->command,
                         bfr, board_cmd->request_size,
                         bfr_response, &response_size);
 
@@ -200,13 +211,12 @@ static int cmd_board(void)
     pb_wire_init_result2(&result, error_to_wire(rc),
                     &board_result, sizeof(board_result));
 
-
     LOG_DBG("Response: %zu bytes", response_size);
 
     if (response_size) {
         LOG_DBG("Sending response");
-        plat_transport_write(&result, sizeof(result));
-        plat_transport_write(bfr_response, response_size);
+        cfg->tops.write((uintptr_t) &result, sizeof(result));
+        cfg->tops.write((uintptr_t) bfr_response, response_size);
     }
 
     return rc;
@@ -248,9 +258,9 @@ static int cmd_bpak_read(void)
     }
 
     pb_wire_init_result(&result, error_to_wire(rc));
-    plat_transport_write(&result, sizeof(result));
+    cfg->tops.write((uintptr_t) &result, sizeof(result));
 
-    rc = plat_transport_write(buffer, sizeof(struct bpak_header));
+    rc = cfg->tops.write((uintptr_t) buffer, sizeof(struct bpak_header));
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
@@ -265,12 +275,12 @@ static int cmd_auth(void)
 
     pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
-#ifdef CONFIG_AUTH_TOKEN
+#ifdef CONFIG_CM_AUTH_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
         pb_wire_init_result(&result, PB_RESULT_OK);
-        plat_transport_write(&result, sizeof(result));
+        cfg->tops.write((uintptr_t) &result, sizeof(result));
 
-        plat_transport_read(buffer[0], 1024);
+        cfg->tops.read((uintptr_t) buffer[0], 1024);
 
         rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
 
@@ -283,13 +293,12 @@ static int cmd_auth(void)
     }
 #endif
 
-#if CONFIG_AUTH_PASSWORD
-    if (auth_cmd->method == PB_AUTH_PASSWORD) {
+#if CONFIG_CM_AUTH_PASSWORD
+    if (auth_cmd->method == PB_AUTH_PASSWORD && cfg->password_auth) {
         pb_wire_init_result(&result, PB_RESULT_OK);
-        plat_transport_write(&result, sizeof(result));
-
-        plat_transport_read(buffer[0], 1024);
-        rc = board_command_mode_auth((char *) buffer[0], auth_cmd->size);
+        cfg->tops.write((uintptr_t) &result, sizeof(result));
+        cfg->tops.read((uintptr_t) buffer[0], 1024);
+        rc = cfg->password_auth((char *) buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
             authenticated = true;
@@ -325,14 +334,14 @@ static int cmd_stream_read(void)
                                                    start_lba);
 
     uintptr_t bfr = ((uintptr_t) buffer) +
-              ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_read->buffer_id);
+              ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_read->buffer_id);
 
     rc = bio_read(block_dev, start_lba, stream_read->size, bfr);
     pb_wire_init_result(&result, error_to_wire(rc));
-    plat_transport_write(&result, sizeof(result));
+    cfg->tops.write((uintptr_t) &result, sizeof(result));
 
     if (rc == PB_OK) {
-        rc = plat_transport_write((void *) bfr, stream_read->size);
+        rc = cfg->tops.write((uintptr_t) bfr, stream_read->size);
         pb_wire_init_result(&result, error_to_wire(rc));
     }
     return rc;
@@ -360,7 +369,7 @@ static int cmd_stream_write(void)
     LOG_DBG("Writing %u bytes to lba offset %zu", stream_write->size, start_lba);
 
     uintptr_t bfr = ((uintptr_t) buffer) +
-              ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_write->buffer_id);
+              ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_write->buffer_id);
 
     rc = bio_write(block_dev, start_lba, stream_write->size, bfr);
 
@@ -421,8 +430,8 @@ static int cmd_part_verify(void)
     LOG_DBG("Reading %zu bytes", bytes_to_verify);
 
     while (bytes_to_verify) {
-        chunk_len = bytes_to_verify>(CONFIG_CMD_BUF_SIZE_KB*1024)? \
-                   (CONFIG_CMD_BUF_SIZE_KB*1024):bytes_to_verify;
+        chunk_len = bytes_to_verify>(CONFIG_CM_BUF_SIZE_KB*1024)? \
+                   (CONFIG_CM_BUF_SIZE_KB*1024):bytes_to_verify;
 
         buffer_id = !buffer_id;
 
@@ -507,12 +516,12 @@ static int cmd_part_tbl_read(void)
     pb_wire_init_result2(&result, PB_RESULT_OK, &tbl_read_result,
                                              sizeof(tbl_read_result));
 
-    plat_transport_write(&result, sizeof(result));
+    cfg->tops.write((uintptr_t) &result, sizeof(result));
 
     if (entries) {
         size_t bytes = sizeof(struct pb_result_part_table_entry)*(entries);
         LOG_DBG("Bytes %zu", bytes);
-        plat_transport_write(result_tbl, bytes);
+        cfg->tops.write((uintptr_t) result_tbl, bytes);
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
@@ -523,14 +532,14 @@ static int ram_boot_read_f(int block_offset, size_t length, uintptr_t buf)
 {
     (void) block_offset;
     LOG_DBG("%zu %"PRIxPTR, length, buf);
-    return plat_transport_read((void *) buf, length);
+    return cfg->tops.read((uintptr_t) buf, length);
 }
 
 static int ram_boot_result_f(int rc)
 {
     LOG_DBG("%i", rc);
     pb_wire_init_result(&result, error_to_wire(rc));
-    return plat_transport_write(&result, sizeof(result));
+    return cfg->tops.write((uintptr_t) &result, sizeof(result));
 }
 
 static int cmd_boot_ram(void)
@@ -545,7 +554,7 @@ static int cmd_boot_ram(void)
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    rc = plat_transport_write(&result, sizeof(result));
+    rc = cfg->tops.write((uintptr_t) &result, sizeof(result));
 
     if (rc != PB_OK)
         return rc;
@@ -566,12 +575,12 @@ static int cmd_slc_read(void)
     pb_wire_init_result2(&result, error_to_wire(rc), &slc_status,
                         sizeof(slc_status));
 
-    plat_transport_write(&result, sizeof(result));
+    cfg->tops.write((uintptr_t) &result, sizeof(result));
 
     struct pb_result_slc_key_status *key_status;
 
     rc = plat_slc_get_key_status(&key_status);
-    plat_transport_write(key_status, sizeof(*key_status));
+    cfg->tops.write((uintptr_t) key_status, sizeof(*key_status));
     pb_wire_init_result(&result, error_to_wire(rc));
 
     return rc;
@@ -594,14 +603,13 @@ static int cmd_stream_init(void)
 
 static int cmd_stream_prep_buffer(void)
 {
-    int rc;
     struct pb_command_stream_prepare_buffer *stream_prep = \
         (struct pb_command_stream_prepare_buffer *) cmd.request;
 
     LOG_DBG("%p", stream_prep);
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-    if (stream_prep->size > (CONFIG_CMD_BUF_SIZE_KB*1024)) {
+    if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KB*1024)) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_ERR_MEM;
     }
@@ -612,13 +620,12 @@ static int cmd_stream_prep_buffer(void)
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    plat_transport_write(&result, sizeof(result));
+    cfg->tops.write((uintptr_t) &result, sizeof(result));
 
     uint8_t *bfr = ((uint8_t *) buffer) +
-                    ((CONFIG_CMD_BUF_SIZE_KB*1024)*stream_prep->id);
+                    ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_prep->id);
 
-    rc = plat_transport_read(bfr, stream_prep->size);
-    return rc;
+    return cfg->tops.read((uintptr_t) bfr, stream_prep->size);
 }
 
 static int cmd_stream_final(void)
@@ -666,13 +673,8 @@ static int pb_command_parse(void)
         {
             LOG_INFO("Board reset");
             pb_wire_init_result(&result, PB_RESULT_OK);
-            plat_transport_write(&result, sizeof(result));
-            plat_reset();
-
-            while (1)
-            {
-                __asm__ volatile("wfi");
-            }
+            cfg->tops.write((uintptr_t) &result, sizeof(result));
+            return -PB_ERR_ABORT;
         }
         break;
         case PB_CMD_PART_TBL_READ:
@@ -682,14 +684,15 @@ static int pb_command_parse(void)
         {
             struct pb_result_device_caps caps = {0};
             caps.stream_no_of_buffers = 2;
-            caps.stream_buffer_size = CONFIG_CMD_BUF_SIZE_KB*1024;
-            caps.chunk_transfer_max_bytes = CONFIG_TRANSPORT_MAX_CHUNK_KB*1024;
+            caps.stream_buffer_size = CONFIG_CM_BUF_SIZE_KB*1024;
+            caps.chunk_transfer_max_bytes = CONFIG_CM_BUF_SIZE_KB*1024;
 
             pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
         }
         break;
         case PB_CMD_BOOT_RAM:
             rc = cmd_boot_ram();
+            return rc; /* Should not return, we should not try to send a result */
         break;
         case PB_CMD_PART_TBL_INSTALL: /* Deprecated */
         {
@@ -727,7 +730,7 @@ static int pb_command_parse(void)
                 (struct pb_command_boot_part *) cmd.request;
             pb_wire_init_result(&result, error_to_wire(rc));
 
-            plat_transport_write(&result, sizeof(result));
+            cfg->tops.write((uintptr_t) &result, sizeof(result));
             boot_set_source(BOOT_SOURCE_BIO);
             boot_clear_set_flags(0,
                     BOOT_FLAG_CMD |
@@ -743,7 +746,7 @@ static int pb_command_parse(void)
             struct pb_result_device_identifier *ident = \
                 (struct pb_result_device_identifier *) buffer;
             memset(ident->board_id, 0, sizeof(ident->board_id));
-            memcpy(ident->board_id, board_name(), strlen(board_name()));
+            memcpy(ident->board_id, cfg->name, strlen(cfg->name));
             memcpy(ident->device_uuid, device_uu, 16);
             pb_wire_init_result2(&result, error_to_wire(rc),
                                     ident, sizeof(*ident));
@@ -774,15 +777,15 @@ static int pb_command_parse(void)
 
             uint8_t *bfr_response = buffer[0];
 
-            size_t response_size = CONFIG_CMD_BUF_SIZE_KB*1024;
-            rc = plat_status(bfr_response, &response_size);
+            size_t response_size = CONFIG_CM_BUF_SIZE_KB*1024;
+            rc = cfg->status(bfr_response, &response_size);
 
             status_result.size = response_size;
             pb_wire_init_result2(&result, error_to_wire(rc),
                             &status_result, sizeof(status_result));
 
-            plat_transport_write(&result, sizeof(result));
-            plat_transport_write(bfr_response, response_size);
+            cfg->tops.write((uintptr_t) &result, sizeof(result));
+            cfg->tops.write((uintptr_t) bfr_response, response_size);
         }
         break;
         case PB_CMD_SLC_SET_CONFIGURATION:
@@ -848,19 +851,23 @@ static int pb_command_parse(void)
     }
 
 err_out:
-    plat_transport_write(&result, sizeof(result));
+    cfg->tops.write((uintptr_t) &result, sizeof(result));
     return rc;
 }
 
-void pb_command_run(void)
+int cm_run(void)
 {
     int rc;
-#ifdef CONFIG_TRANSPORT_ENTER_BOARD_CB
-    board_command_mode_enter();
-#endif
+    LOG_INFO("Initializing command mode");
 
-    LOG_DBG("Initializing command mode");
-#ifdef CONFIG_AUTH
+    cfg = cm_board_init();
+
+    if (cfg == NULL) {
+        LOG_ERR("Board init failed");
+        return -PB_ERR_IO;
+    }
+
+#ifdef CONFIG_CM_AUTH
     authenticated = false;
 #else
     authenticated = true;
@@ -869,41 +876,56 @@ void pb_command_run(void)
     device_uuid(device_uu);
 
 restart_command_mode:
-    rc = plat_transport_init();
+    rc = cfg->tops.init();
 
     if (rc != PB_OK) {
-        LOG_ERR("Transport init err");
-        plat_reset();
+        LOG_ERR("Transport init failed (%i)", rc);
+        return -PB_ERR_IO;
     }
-
-    struct pb_timeout to;
 
     LOG_INFO("Waiting for transport to become ready...");
 
-    pb_timeout_init_us(&to, CONFIG_TRANSPORT_READY_TIMEOUT * 1000000L);
+    struct pb_timeout to;
+    pb_timeout_init_us(&to, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
 
-    while (!plat_transport_ready()) {
-        plat_transport_process();
+    do {
         plat_wdog_kick();
-
+        rc = cfg->tops.connect();
         if (pb_timeout_has_expired(&to)) {
-            LOG_ERR("Timeout, rebooting");
-            plat_reset();
+            rc = -PB_ERR_TIMEOUT;
+            break;
         }
+    } while (rc == -PB_ERR_AGAIN);
+
+    if (rc != PB_OK) {
+        goto err_out;
     }
 
     while (true) {
-        rc = plat_transport_read(&cmd, sizeof(cmd));
+        plat_wdog_kick();
+        rc = cfg->tops.read((uintptr_t) &cmd, sizeof(cmd));
 
-        if (rc != PB_OK) {
+        if (rc == PB_OK) {
+            rc = pb_command_parse();
+
+            if (rc == -PB_ERR_ABORT) {
+                break;
+            } else if (rc != PB_OK) {
+                LOG_ERR("Command error %i", rc);
+            }
+        } else if (rc == -PB_ERR_TIMEOUT) {
+            continue;
+        } else if (rc == -PB_ERR_AGAIN) {
+            continue;
+        } else {
             LOG_ERR("Read error %i", rc);
             goto restart_command_mode;
         }
-
-        rc = pb_command_parse();
-
-        if (rc != PB_OK) {
-            LOG_ERR("Command error %i", rc);
-        }
     }
+
+err_out:
+    if (cfg->tops.disconnect) {
+        cfg->tops.disconnect();
+    }
+    return rc;
 }

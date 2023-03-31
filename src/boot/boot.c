@@ -10,12 +10,13 @@
 #include <string.h>
 #include <inttypes.h>
 #include <pb/pb.h>
+#include <pb/timestamp.h>
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
 #include <drivers/block/bio.h>
 
 static const struct boot_driver *boot_cfg;
-static struct bpak_header header;
+static struct bpak_header header __section(".no_init") __aligned(4096);
 static uint32_t boot_flags;
 static bio_dev_t boot_device;
 static enum boot_source boot_source;

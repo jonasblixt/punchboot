@@ -12,7 +12,6 @@
 #define PLAT_IMX_GPT_H_
 
 #include <pb/pb.h>
-#include <pb/io.h>
 
 int imx_gpt_init(uintptr_t base, unsigned int input_clock_Hz);
 unsigned int imx_gpt_get_tick(void);

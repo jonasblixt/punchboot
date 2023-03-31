@@ -6,3 +6,10 @@ config ARCH_ARMV8
 config ARCH_ARMV7
 	bool "ARMv7"
 endchoice
+
+choice ARMV8_EL
+    bool "Run in EL"
+    depends on ARCH_ARMV8
+config ARMV8_EL3
+    bool "EL3"
+endchoice

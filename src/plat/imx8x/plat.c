@@ -10,15 +10,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/pb.h>
-#include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/board.h>
 #include <pb/timestamp.h>
 #include <xlat_tables.h>
 #include <uuid.h>
-#include <crypto.h>
-#include <console.h>
-#include <utils_def.h>
+#include <pb/crypto.h>
+#include <pb/console.h>
+#include <pb/utils_def.h>
 #include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
 #include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
@@ -30,9 +29,13 @@
 
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
-IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_nox_start);
-IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_nox_end);
-IMPORT_SYM(uintptr_t, _stack_start, rw_nox_start);
+IMPORT_SYM(uintptr_t, _data_region_start, data_start);
+IMPORT_SYM(uintptr_t, _data_region_end, data_end);
+IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
+IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
+IMPORT_SYM(uintptr_t, _stack_start, stack_start);
+IMPORT_SYM(uintptr_t, _stack_end, stack_end);
+IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
 IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 
 extern struct fuse fuses[];
@@ -245,13 +248,26 @@ static void imx8x_mmu_init(void)
     /* Configure MMU */
     reset_xlat_tables();
 
+    /* Map ATF hole */
+    mmap_add_region(BOARD_RAM_BASE, BOARD_RAM_BASE,
+                    (0x20000),
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
     mmap_add_region(code_start, code_start,
                     code_end - code_start,
                     MT_RO | MT_MEMORY | MT_EXECUTE);
 
-    mmap_add_region(ro_nox_start, ro_nox_start,
-                    ro_nox_end - ro_nox_start,
+    mmap_add_region(data_start, data_start,
+                    data_end - data_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(ro_data_start, ro_data_start,
+                    ro_data_end - ro_data_start,
                     MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(stack_start, stack_start,
+                    stack_end - stack_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add_region(rw_nox_start, rw_nox_start,
                     rw_nox_end - rw_nox_start,
@@ -277,11 +293,12 @@ int plat_init(void)
 
     sc_err_t wdog_rc = imx8x_wdog_init();
     imx8x_systick_setup();
-    ts("Init");
+    ts("Init"); /* This is the earliest TS we can have since it needs systick */
     imx8x_load_boot_reason();
     imx8x_console_init();
 
     if (wdog_rc != 0) {
+        /* We'll continue anyway, best effort */
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
     }
 
@@ -650,53 +667,4 @@ int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
     }
 
     return PB_OK;
-}
-
-/* Transport API */
-
-int imx_ehci_set_address(uint32_t addr)
-{
-    pb_write32((addr << 25) | (1 <<24), IMX_EHCI_BASE + EHCI_DEVICEADDR);
-    return PB_OK;
-}
-
-int plat_transport_init(void)
-{
-    return imx_ehci_usb_init(IMX_EHCI_BASE);
-}
-
-int plat_transport_process(void)
-{
-    return imx_ehci_usb_process();
-}
-
-int plat_transport_write(void *buf, size_t size)
-{
-    return imx_ehci_usb_write(buf, size);
-}
-
-int plat_transport_read(void *buf, size_t size)
-{
-    return imx_ehci_usb_read(buf, size);
-}
-
-bool plat_transport_ready(void)
-{
-    return imx_ehci_usb_ready();
-}
-
-int plat_status(void *response_bfr,
-                    size_t *response_size)
-{
-    return board_status(&plat, response_bfr, response_size);
-}
-
-int plat_command(uint32_t command,
-                     void *bfr,
-                     size_t size,
-                     void *response_bfr,
-                     size_t *response_size)
-{
-    return board_command(&plat, command, bfr, size,
-                            response_bfr, response_size);
 }

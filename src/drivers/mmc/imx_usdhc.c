@@ -12,7 +12,7 @@
 #include <pb/pb.h>
 #include <arch/arch.h>
 #include <pb/delay.h>
-#include <mmio.h>
+#include <pb/mmio.h>
 
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/mmc/imx_usdhc.h>

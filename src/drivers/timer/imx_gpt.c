@@ -12,7 +12,7 @@
  * d before the console drivers.
  */
 
-#include <mmio.h>
+#include <pb/mmio.h>
 #include <pb/errors.h>
 #include <drivers/timer/imx_gpt.h>
 

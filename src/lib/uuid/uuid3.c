@@ -1,7 +1,7 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <uuid.h>
-#include <crypto.h>
+#include <pb/crypto.h>
 
 typedef union
 {

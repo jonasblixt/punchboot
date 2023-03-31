@@ -21,7 +21,6 @@ PB_CSF_TEMPLATE = src/plat/imx8x/pb.csf.template
 
 SED = $(shell which sed)
 
-src-y  += src/plat/imx/gpio.c
 src-y  += src/plat/imx8x/plat.c
 src-y  += src/plat/imx8x/sci/ipc.c
 src-y  += src/plat/imx8x/sci/imx8_mu.c
@@ -31,6 +30,8 @@ src-y  += src/plat/imx8x/sci/svc/timer/timer_rpc_clnt.c
 src-y  += src/plat/imx8x/sci/svc/misc/misc_rpc_clnt.c
 src-y  += src/plat/imx8x/sci/svc/seco/seco_rpc_clnt.c
 src-y  += src/plat/imx8x/sci/svc/rm/rm_rpc_clnt.c
+
+asm-y += src/plat/imx8x/reset_vector.S
 
 cflags-y += -I src/plat/imx8x/include
 

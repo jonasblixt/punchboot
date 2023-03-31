@@ -12,7 +12,7 @@
 #include <platform_defs.h>
 
 #include <arch/arch.h>
-#include <utils_def.h>
+#include <pb/utils_def.h>
 #include <xlat_tables.h>
 
 #include "xlat_tables_private.h"
