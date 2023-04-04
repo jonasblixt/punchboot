@@ -14,17 +14,10 @@ cflags-y += -mtune=cortex-a15 -I src/plat/qemu/include
 
 src-y  += src/plat/qemu/uart.c
 src-y  += src/plat/qemu/reset.c
-src-y  += src/plat/qemu/pl061.c
 src-y  += src/plat/qemu/semihosting.c
 src-y  += src/plat/qemu/wdog.c
 src-y  += src/plat/qemu/plat.c
-src-y  += src/plat/qemu/virtio.c
-src-y  += src/plat/qemu/virtio_serial.c
-src-y  += src/plat/qemu/virtio_block.c
-src-y  += src/plat/qemu/fuse.c
-src-y  += src/plat/qemu/root_hash.c
-src-y  += src/plat/qemu/transport.c
-src-y  += src/plat/qemu/crypto.c
+#src-y  += src/plat/qemu/transport.c
 
 asm-y += src/plat/qemu/semihosting_call.S
 

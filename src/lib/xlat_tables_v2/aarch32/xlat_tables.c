@@ -8,7 +8,7 @@
 #include <platform_defs.h>
 #include <arch/arch.h>
 #include <arch/arch_helpers.h>
-#include <pb/utils.h>
+#include <pb/utils_def.h>
 #include <xlat_tables_arch.h>
 #include <xlat_tables.h>
 

@@ -245,8 +245,8 @@ void __gcov_init(struct gcov_info *p)
 void __gcov_merge_add(gcov_type *counters, unsigned n_counters);
 void __gcov_merge_add(gcov_type *counters, unsigned n_counters)
 {
-    UNUSED(counters);
-    UNUSED(n_counters);
+    (void) counters;
+    (void) n_counters;
 
     /* Not Used */
 }

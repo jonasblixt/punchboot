@@ -1,5 +1,6 @@
 CONFIG_ARCH_ARMV8=y
 # CONFIG_ARCH_ARMV7 is not set
+CONFIG_ARMV8_EL3=y
 
 #
 # Platform support
@@ -46,6 +47,7 @@ CONFIG_DEVICE_UUID=y
 CONFIG_CRYPTO=y
 CONFIG_CRYPTO_MAX_HASH_OPS=1
 CONFIG_CRYPTO_MAX_DSA_OPS=1
+CONFIG_SELF_TEST=y
 # end of Generic options
 
 #
@@ -89,6 +91,18 @@ CONFIG_DRIVERS_CRYPTO_MBEDTLS_URL="https://"
 # end of Crypto
 
 #
+# Fusebox
+#
+CONFIG_DRIVERS_FUSE_TEST=y
+# end of Fusebox
+
+#
+# GPIO
+#
+CONFIG_DRIVERS_IMX_GPIO=y
+# end of GPIO
+
+#
 # MMC Host drivers
 #
 CONFIG_MMC_CORE=y
@@ -123,8 +137,15 @@ CONFIG_DRIVERS_IMX_LPUART=y
 CONFIG_DRIVER_USB_DEVICE=y
 CONFIG_DRIVER_IMX_USB2_PHY=y
 CONFIG_DRIVER_IMX_EHCI=y
+# CONFIG_DRIVER_IMX_USBDCD is not set
 CONFIG_DRIVER_USB_PB_CLS=y
 # end of USB
+
+#
+# Virtio
+#
+# CONFIG_DRIVER_VIRTIO_CORE is not set
+# end of Virtio
 # end of Drivers
 
 #

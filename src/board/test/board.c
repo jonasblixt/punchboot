@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,16 +12,14 @@
 #include <pb/board.h>
 #include <pb/fuse.h>
 #include <pb/plat.h>
-#include <pb/storage.h>
-#include <pb/gpt.h>
-#include <pb/boot.h>
-#include <plat/qemu/plat.h>
+#include <boot/boot.h>
 #include <plat/qemu/uart.h>
 #include <plat/qemu/semihosting.h>
-#include <plat/qemu/virtio_block.h>
-#include <plat/qemu/virtio_serial.h>
+#include <drivers/virtio/virtio_block.h>
 #include <libfdt.h>
 #include <uuid.h>
+#include <platform_defs.h>
+#include <plat/qemu/qemu.h>
 
 struct fuse fuses[] =
 {
@@ -48,6 +46,7 @@ const uint32_t rom_key_map[] =
     0x00000000,
 };
 
+#ifdef __NOPE
 #define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
                    PB_STORAGE_MAP_FLAG_VISIBLE)
 
@@ -75,44 +74,9 @@ struct pb_storage_map map[] =
     PB_STORAGE_MAP_END
 };
 
-/* storage driver configuration */
-
-static uint8_t gpt_private_data[4096*9] PB_SECTION_NO_INIT;
-static uint8_t map_data[4096*4] PB_SECTION_NO_INIT;
-
-static struct virtio_block_device virtio_block =
-{
-    .dev =
-    {
-        .device_id = 2,
-        .vendor_id = 0x554D4551,
-        .base = 0x0A003C00,
-    },
-};
-
-static struct pb_storage_driver virtio_driver =
-{
-    .name = "virtio0",
-    .block_size = 512,
-    .driver_private = &virtio_block,
-    .last_block = (CONFIG_QEMU_VIRTIO_DISK_SIZE_MB*2048-1),
-    .init = virtio_block_init,
-    .read = virtio_block_read,
-    .write = virtio_block_write,
-
-    .map_default = map,
-    .map_init = gpt_init,
-    .map_install = gpt_install_map,
-    .map_resize = gpt_resize_map,
-    .map_data = map_data,
-    .map_data_size = sizeof(map_data),
-    .map_private = gpt_private_data,
-    .map_private_size = sizeof(gpt_private_data),
-};
-
-/* END of storage */
 
 /* Board specific */
+
 
 
 bool board_force_command_mode(void *plat)
@@ -183,33 +147,18 @@ int board_status(void *plat,
     return PB_OK;
 }
 
-int board_early_init(void *plat)
+#endif
+
+int board_init(void)
 {
-    int rc;
-
-    rc = pb_storage_add(&virtio_driver);
-
-    if (rc != PB_OK)
-        return rc;
-
+    LOG_INFO("Board init");
     return PB_OK;
 }
 
-int pb_qemu_console_init(struct qemu_uart_device *dev)
-{
-    dev->base = 0x09000000;
-    return PB_OK;
-}
-
+#ifdef __NOPE
 const char *board_name(void)
 {
     return "qemuarmv7";
-}
-
-static int board_early_boot(void *plat)
-{
-    LOG_DBG("call");
-    return PB_OK;
 }
 
 static int board_late_boot(void *plat, uuid_t boot_part_uu, enum pb_boot_mode mode)
@@ -261,3 +210,4 @@ const struct pb_boot_config * board_boot_config(void)
 
     return &config;
 }
+#endif

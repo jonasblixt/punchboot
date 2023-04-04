@@ -36,8 +36,6 @@ struct virtio_serial_control
     uint16_t value; /* Extra information for the event */
 };
 
-
-
 struct virtio_serial_device
 {
     uint8_t _rx_data[VIRTIO_QUEUE_SZ_WITH_PADDING(VIRTIO_SERIAL_QSZ+1)] PB_ALIGN_4k;

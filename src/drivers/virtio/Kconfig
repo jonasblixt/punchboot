@@ -1,0 +1,12 @@
+menu "Virtio"
+
+config DRIVER_VIRTIO_BLOCK
+    bool "Virtio block device"
+    default n
+    depends on DRIVERS_BIO_CORE
+
+config DRIVER_VIRTIO_SERIAL
+    bool "Virtio serial device"
+    default n
+
+endmenu

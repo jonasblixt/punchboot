@@ -59,7 +59,6 @@ int virtio_serial_init(struct virtio_serial_device *d)
     virtio_mmio_write_one(&d->dev, &d->ctrl_tx, (uint8_t *) &ctrlm,
                         sizeof(struct virtio_serial_control));
 
-
     return PB_OK;
 }
 

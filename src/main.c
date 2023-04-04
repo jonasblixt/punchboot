@@ -47,6 +47,8 @@ void main(void)
 enter_command_mode:
     printf("Boot aborted (%i), entering command mode\n\r", rc);
     ts_print();
+#ifdef CONFIG_CM
     cm_run();
+#endif
     plat_reset();
 }

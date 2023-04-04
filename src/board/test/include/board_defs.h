@@ -1,0 +1,8 @@
+#ifndef BOARD_TEST_H
+#define BOARD_TEST_H
+
+#define BOARD_RAM_SIZE (1*1024*1024*1024ul)
+#define BOARD_RAM_BASE (0x40000000)
+#define BOARD_RAM_END  (BOARD_RAM_BASE + BOARD_RAM_SIZE)
+
+#endif
