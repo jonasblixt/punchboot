@@ -8,6 +8,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <pb/pb.h>
 #include <pb/arch.h>
 #include <pb/plat.h>
@@ -52,3 +53,10 @@ enter_command_mode:
 #endif
     plat_reset();
 }
+
+void exit(int reason)
+{
+    LOG_ERR("reason = %i", reason);
+    plat_reset();
+}
+

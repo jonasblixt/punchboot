@@ -32,7 +32,7 @@ QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m $(CONFIG_QEMU_RAM_MB)
 QEMU_FLAGS += -nographic -semihosting
 # Virtio serial port
 QEMU_FLAGS += -device virtio-serial-device
-QEMU_FLAGS += -chardev socket,path=/tmp/pb.sock,server,nowait,id=pb_serial
+QEMU_FLAGS += -chardev socket,path=/tmp/pb.sock,server=on,wait=off,id=pb_serial
 QEMU_FLAGS += -device virtserialport,chardev=pb_serial
 # Virtio Main disk
 QEMU_FLAGS += -device virtio-blk-device,drive=disk
@@ -41,7 +41,6 @@ QEMU_FLAGS += -drive id=disk,file=$(CONFIG_QEMU_VIRTIO_DISK),cache=none,if=none,
 QEMU_FLAGS += -net none
 
 qemu: $(BUILD_DIR)/$(TARGET)
-	@echo $(QEMU_FLAGS)
-	@$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(BUILD_DIR)/$(TARGET)
+	$(Q)$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(BUILD_DIR)/$(TARGET)
 
 endif

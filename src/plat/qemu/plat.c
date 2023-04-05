@@ -53,7 +53,7 @@ static struct fuse security_fuse =
 
 static struct pb_result_slc_key_status key_status;
 
-static const char *device_unique_id =
+static const uint8_t device_unique_id[] =
     "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
 static const mmap_region_t qemu_mmap[] =
@@ -284,13 +284,6 @@ int plat_slc_revoke_key(uint32_t id)
     return PB_OK;
 }
 
-int plat_slc_init(void)
-{
-    int rc = 0;
-    //rc = test_fuse_init();
-    return rc;
-}
-
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
 {
     int rc;
@@ -371,7 +364,6 @@ static void mmu_init(void)
 
 int plat_init(void)
 {
-    int rc;
     memset(&key_status, 0, sizeof(key_status));
 
     static const struct console_ops ops = {
@@ -388,7 +380,7 @@ int plat_init(void)
     LOG_DBG("Done");
 #endif
 
-    return rc;
+    return PB_OK;
 }
 
 int plat_board_init(void)

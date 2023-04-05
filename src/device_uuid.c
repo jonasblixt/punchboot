@@ -22,8 +22,10 @@ int device_uuid(uuid_t uu)
                             (const char *) plat_unique, plat_unique_len,
                             device_uu);
 
-        if (rc != 0)
+        if (rc != 0) {
+            uuid_clear(device_uu);
             return rc;
+        }
     }
 
     uuid_copy(uu, device_uu);

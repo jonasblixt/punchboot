@@ -231,6 +231,9 @@ int boot(uuid_t boot_part_override_uu)
 {
     int rc;
 
+    if (!boot_cfg)
+        return -PB_ERR_PARAM;
+
     if (boot_cfg->jump == NULL) {
         rc = -PB_ERR_NOT_SUPPORTED;
         goto err_out;

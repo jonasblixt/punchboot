@@ -876,29 +876,33 @@ int cm_run(void)
     device_uuid(device_uu);
 
 restart_command_mode:
-    rc = cfg->tops.init();
+    if (cfg->tops.init) {
+        rc = cfg->tops.init();
 
-    if (rc != PB_OK) {
-        LOG_ERR("Transport init failed (%i)", rc);
-        return -PB_ERR_IO;
+        if (rc != PB_OK) {
+            LOG_ERR("Transport init failed (%i)", rc);
+            return -PB_ERR_IO;
+        }
     }
 
-    LOG_INFO("Waiting for transport to become ready...");
+    if (cfg->tops.connect) {
+        LOG_INFO("Waiting for transport to become ready...");
 
-    struct pb_timeout to;
-    pb_timeout_init_us(&to, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
+        struct pb_timeout to;
+        pb_timeout_init_us(&to, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
 
-    do {
-        plat_wdog_kick();
-        rc = cfg->tops.connect();
-        if (pb_timeout_has_expired(&to)) {
-            rc = -PB_ERR_TIMEOUT;
-            break;
+        do {
+            plat_wdog_kick();
+            rc = cfg->tops.connect();
+            if (pb_timeout_has_expired(&to)) {
+                rc = -PB_ERR_TIMEOUT;
+                break;
+            }
+        } while (rc == -PB_ERR_AGAIN);
+
+        if (rc != PB_OK) {
+            goto err_out;
         }
-    } while (rc == -PB_ERR_AGAIN);
-
-    if (rc != PB_OK) {
-        goto err_out;
     }
 
     while (true) {
