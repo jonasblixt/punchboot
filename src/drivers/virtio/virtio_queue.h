@@ -48,13 +48,13 @@ struct virtq_desc {
         uint16_t flags;
         /* We chain unused descriptors via this, too */
         uint16_t next;
-} __attribute__((packed));
+} __packed;
 
 struct virtq_avail {
         uint16_t flags;
         uint16_t idx;
         uint16_t ring[];
-} __attribute__((packed));
+} __packed;
 
 /* uint32_t is used here for ids for padding reasons. */
 struct virtq_used_elem {
@@ -62,13 +62,13 @@ struct virtq_used_elem {
         uint32_t id;
         /* Total length of the descriptor chain which was written to. */
         uint32_t len;
-} __attribute__((packed));
+} __packed;
 
 struct virtq_used {
         uint16_t flags;
         uint16_t idx;
         struct virtq_used_elem ring[];
-} __attribute__((packed));
+} __packed;
 
 struct virtq {
     unsigned int num;
@@ -76,6 +76,11 @@ struct virtq {
     struct virtq_avail *avail;
     struct virtq_used *used;
 };
+
+#define VIRTIO_QUEUE_SZ(n) (16*n + 4 + 2*n + 4 + 8*n)
+#define VIRTIO_QUEUE_SZ2(n) (16*n + 4 + 2*n)
+#define VIRTIO_QUEUE_USED_OFFSET(n, a) (((VIRTIO_QUEUE_SZ2(n) + a - 1) & ~(a - 1)))
+#define VIRTIO_QUEUE_AVAIL_OFFSET(n) (16*n)
 
 static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
 {
@@ -92,7 +97,7 @@ static inline uint16_t *virtq_used_event(struct virtq *vq)
 static inline uint16_t *virtq_avail_event(struct virtq *vq)
 {
         /* For backwards compat, avail event index is at *end* of used ring. */
-        return (le16 *)&vq->used->ring[vq->num];
+        return (uint16_t *)&vq->used->ring[vq->num];
 }
 
 #endif  // DRIVERS_VIRTIO_QUEUE_H

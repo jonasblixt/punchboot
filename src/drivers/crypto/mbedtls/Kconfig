@@ -1,14 +1,6 @@
+
 config DRIVERS_CRYPTO_MBEDTLS_PATH
     string "Library path"
     depends on DRIVERS_CRYPTO_MBEDTLS
-    default "download/mbedtls"
+    default "download/mbedtls-3.4.0"
 
-config DRIVERS_CRYPTO_MBEDTLS_VERSION
-    string "Version"
-    depends on DRIVERS_CRYPTO_MBEDTLS
-    default "x.y.z"
-
-config DRIVERS_CRYPTO_MBEDTLS_URL
-    string "Download URL"
-    depends on DRIVERS_CRYPTO_MBEDTLS
-    default "https://"

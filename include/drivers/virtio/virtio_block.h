@@ -14,6 +14,6 @@
 #include <uuid.h>
 #include <drivers/block/bio.h>
 
-bio_dev_t virtio_block_init(uintptr_t base, uuid_t uu);
+bio_dev_t virtio_block_init(uintptr_t base, const uuid_t uu);
 
 #endif  // INCLUDE_DRIVERS_VIRTIO_BLOCK_H

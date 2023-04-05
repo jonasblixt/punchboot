@@ -29,10 +29,6 @@ config LIB_UUID3
     bool "Enable UUID3 function"
     default y
 
-config LIB_BEARSSL
-    bool "Enable bearssl crypto library"
-    default n
-
 config LIB_XLAT_TBLS
     bool "Enable MMU support library"
     default y

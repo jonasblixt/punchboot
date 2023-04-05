@@ -10,6 +10,7 @@
  *
  */
 
+#include <pb/pb.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <pb/errors.h>
 
@@ -23,6 +24,8 @@ int test_fuse_init(bio_dev_t dev_)
 {
     int rc;
     dev = dev_;
+
+    LOG_INFO("Using block device %i", dev);
 
     rc = bio_read(dev, 0, TEST_FUSE_ADDR_MAX * sizeof(uint32_t),
                   (uintptr_t) fuse_box);
