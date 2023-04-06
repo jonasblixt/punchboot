@@ -16,6 +16,7 @@
 #include <mbedtls/sha512.h>
 #include <mbedtls/md5.h>
 #include <mbedtls/md.h>
+#include <mbedtls/pk.h>
 #include <mbedtls/memory_buffer_alloc.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/version.h>
@@ -42,8 +43,8 @@ static int mbedtls_hash_init(hash_t pb_alg)
         mbedtls_sha512_starts(&mbed_hash.sha512, 1);
         break;
     case HASH_SHA256:
-        mbedtls_sha256_init(&mbed_hash.sha512);
-        mbedtls_sha256_starts(&mbed_hash.sha512, 0);
+        mbedtls_sha256_init(&mbed_hash.sha256);
+        mbedtls_sha256_starts(&mbed_hash.sha256, 0);
         break;
     case HASH_MD5:
         mbedtls_md5_init(&mbed_hash.md5);
@@ -75,6 +76,8 @@ static int mbedtls_hash_update(uintptr_t buf, size_t length)
     default:
         return -PB_ERR_PARAM;
     }
+
+    return PB_OK;
 }
 
 static int mbedtls_hash_final(uint8_t *output, size_t size)
@@ -108,6 +111,49 @@ static int mbedtls_hash_final(uint8_t *output, size_t size)
     return PB_OK;
 }
 
+static int mbed_ecda_verify(uint8_t *der_signature, size_t signature_length,
+                            uint8_t *der_key, size_t key_length,
+                            hash_t md_alg, uint8_t *md, size_t md_length,
+                            bool *verified)
+{
+    int rc;
+    mbedtls_pk_context ctx;
+    mbedtls_md_type_t md_type;
+
+    switch (md_alg) {
+    case HASH_SHA512:
+        md_type = MBEDTLS_MD_SHA512;
+        break;
+    case HASH_SHA384:
+        md_type = MBEDTLS_MD_SHA384;
+        break;
+    case HASH_SHA256:
+        md_type = MBEDTLS_MD_SHA256;
+        break;
+    default:
+        return -PB_ERR_PARAM;
+    }
+
+    mbedtls_pk_init(&ctx);
+    rc = mbedtls_pk_parse_public_key(&ctx, der_key, key_length);
+
+    if (rc != 0) {
+        LOG_ERR("Verify failed (%i)", rc);
+        return -PB_ERR_SIGNATURE;
+    }
+
+    rc = mbedtls_pk_verify(&ctx,
+                           md_type, md, md_length,
+                           der_signature, signature_length);
+
+    mbedtls_pk_free(&ctx);
+
+    if (rc == 0)
+        return PB_OK;
+    else
+        return -PB_ERR_SIGNATURE;
+}
+
 int mbedtls_pb_init(void)
 {
     int rc;
@@ -129,4 +175,19 @@ int mbedtls_pb_init(void)
 
     if (rc != PB_OK)
         return rc;
+
+    static const struct dsa_ops mbed_dsa_ops = {
+        .name = "mbedtls-dsa",
+        .alg_bits = DSA_EC_SECP256r1 |
+                    DSA_EC_SECP384r1 |
+                    DSA_EC_SECP521r1,
+        .verify = mbed_ecda_verify,
+    };
+
+    rc = dsa_add_ops(&mbed_dsa_ops);
+
+    if (rc != PB_OK)
+        return rc;
+
+    return PB_OK;
 }

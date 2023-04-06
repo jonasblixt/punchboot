@@ -75,9 +75,9 @@ int hash_add_ops(const struct hash_ops *ops)
 }
 
 int dsa_verify(dsa_t alg,
-               uint8_t *der_signature,
-               uint8_t *der_key,
-               uint8_t *md, size_t md_length,
+               uint8_t *der_signature, size_t signature_length,
+               uint8_t *der_key, size_t key_length,
+               hash_t md_alg, uint8_t *md, size_t md_length,
                bool *verified)
 {
     const struct dsa_ops *ops = NULL;
@@ -92,9 +92,9 @@ int dsa_verify(dsa_t alg,
     if (ops == NULL)
         return -PB_ERR_NOT_SUPPORTED;
 
-    return ops->verify(der_signature,
-                        der_key,
-                        md, md_length,
+    return ops->verify(der_signature, signature_length,
+                        der_key, key_length,
+                        md_alg, md, md_length,
                         verified);
 }
 

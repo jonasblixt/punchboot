@@ -53,7 +53,7 @@ static struct fuse security_fuse =
 
 static struct pb_result_slc_key_status key_status;
 
-static const uint8_t device_unique_id[] =
+static const uint8_t device_unique_id[8] =
     "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
 static const mmap_region_t qemu_mmap[] =

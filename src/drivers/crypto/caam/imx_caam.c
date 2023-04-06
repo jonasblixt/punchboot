@@ -202,9 +202,9 @@ static int caam_wait_for_job(void)
     return PB_OK;
 }
 
-static int caam_ecda_verify(uint8_t *der_signature,
-                            uint8_t *der_key,
-                            uint8_t *md, size_t md_length,
+static int caam_ecda_verify(uint8_t *der_signature, size_t sig_length,
+                            uint8_t *der_key, size_t key_length,
+                            hash_t md_alg, uint8_t *md, size_t md_length,
                             bool *verified)
 {
     int rc;

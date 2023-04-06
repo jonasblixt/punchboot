@@ -119,8 +119,11 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
     if (rc != PB_OK)
         return rc;
 
-    rc = dsa_verify(dsa_kind, sig, (uint8_t *) k->data, hash, sizeof(hash),
-                        &verified);
+    rc = dsa_verify(dsa_kind,
+                    sig, size,
+                    (uint8_t *) k->data, k->size,
+                    hash_kind, hash, sizeof(hash),
+                    &verified);
 
     if (rc == 0 && verified) {
         LOG_INFO("Authentication successful");
@@ -338,12 +341,15 @@ static int cmd_stream_read(void)
 
     rc = bio_read(block_dev, start_lba, stream_read->size, bfr);
     pb_wire_init_result(&result, error_to_wire(rc));
+    LOG_DBG("Result = %i", rc);
+
     cfg->tops.write((uintptr_t) &result, sizeof(result));
 
     if (rc == PB_OK) {
         rc = cfg->tops.write((uintptr_t) bfr, stream_read->size);
         pb_wire_init_result(&result, error_to_wire(rc));
     }
+    LOG_DBG("Data sent");
     return rc;
 }
 
@@ -598,7 +604,10 @@ static int cmd_stream_init(void)
     else
         pb_wire_init_result(&result, 0);
 
-    return block_dev;
+    if (block_dev < 0)
+        return block_dev;
+    else
+        return PB_OK;
 }
 
 static int cmd_stream_prep_buffer(void)
@@ -606,7 +615,6 @@ static int cmd_stream_prep_buffer(void)
     struct pb_command_stream_prepare_buffer *stream_prep = \
         (struct pb_command_stream_prepare_buffer *) cmd.request;
 
-    LOG_DBG("%p", stream_prep);
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
     if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KB*1024)) {

@@ -100,6 +100,10 @@ int board_init(void)
         LOG_WARN("GPT Init failed (%i)", rc);
     }
 
+    bio_dev_t readable_part = bio_get_part_by_uu(UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5);
+    if (readable_part)
+        (void) bio_clear_set_flags(readable_part, 0, BIO_FLAG_READABLE);
+
     rc = virtio_serial_init(0x0A003E00);
 
     if (rc != PB_OK) {

@@ -42,9 +42,9 @@ struct hash_ops {
 struct dsa_ops {
     const char *name;
     uint32_t alg_bits;
-    int (*verify)(uint8_t *der_signature,
-                  uint8_t *der_key,
-                  uint8_t *md, size_t md_length,
+    int (*verify)(uint8_t *der_signature, size_t signature_length,
+                  uint8_t *der_key, size_t key_length,
+                  hash_t md_alg, uint8_t *md, size_t md_length,
                   bool *verified);
 };
 
@@ -57,9 +57,9 @@ int hash_add_ops(const struct hash_ops *ops);
 
 /* DSA interface */
 int dsa_verify(dsa_t alg,
-               uint8_t *der_signature,
-               uint8_t *der_key,
-               uint8_t *md, size_t md_length,
+               uint8_t *der_signature, size_t signature_length,
+               uint8_t *der_key, size_t key_length,
+               hash_t md_alg, uint8_t *md, size_t md_length,
                bool *verified);
 
 int dsa_add_ops(const struct dsa_ops *ops);

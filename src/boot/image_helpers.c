@@ -129,8 +129,9 @@ int boot_image_auth_header(struct bpak_header *hdr)
     if (rc != PB_OK)
         return rc;
 
-    rc = dsa_verify(dsa_kind, signature, (uint8_t *) k->data,
-                    header_digest, sizeof(header_digest),
+    rc = dsa_verify(dsa_kind, signature, signature_length,
+                    (uint8_t *) k->data, k->size,
+                    hash_kind, header_digest, sizeof(header_digest),
                     &verified);
 
     if (rc == 0 && verified) {
