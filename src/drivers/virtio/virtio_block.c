@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <pb/pb.h>
 #include <pb/mmio.h>
+#include <arch/arch.h>
 #include <drivers/virtio/virtio_block.h>
 #include "virtio_mmio.h"
 #include "virtio_queue.h"
@@ -49,8 +50,10 @@ struct virtio_blk_req
     uint32_t sector_hi;
 };
 
-static volatile uint8_t status __aligned(64);
-static uint8_t queue_data[VIRTIO_QUEUE_SZ(1024)] __aligned(4096);
+#define VIRTIO_BLK_QUEUE_SZ 256
+
+static uint8_t status __aligned(64);
+static uint8_t queue_data[VIRTIO_QUEUE_SZ(VIRTIO_BLK_QUEUE_SZ, 4096)] __aligned(4096);
 static struct virtq queue;
 static struct virtio_blk_req request __aligned(64);
 static uintptr_t base;
@@ -62,45 +65,32 @@ static int virtio_xfer(bio_dev_t dev,
                        uintptr_t buf)
 {
     uint16_t idx = (queue.avail->idx % queue.num);
-    uint16_t idx_start = idx;
     status = VIRTIO_BLK_S_UNSUPP;
 
-    if (read)
-        request.type = VIRTIO_BLK_T_IN;
-    else
-        request.type = VIRTIO_BLK_T_OUT;
-
+    request.type = read?VIRTIO_BLK_T_IN:VIRTIO_BLK_T_OUT;
     request.reserved = 0;
     request.sector_low = lba;
     request.sector_hi = 0;
 
     arch_clean_cache_range((uintptr_t) &request, sizeof(request));
 
-    queue.desc[idx].addr = (uint32_t)((uintptr_t) &request);
-    queue.desc[idx].len = sizeof(struct virtio_blk_req);
-    queue.desc[idx].flags = VIRTQ_DESC_F_NEXT;
-    queue.desc[idx].next = ((idx + 1) % queue.num);
-    arch_clean_cache_range((uintptr_t) &queue.desc[idx], sizeof(queue.desc[idx]));
-    idx = ((idx + 1) % queue.num);
+    queue.desc[0].addr = (uint32_t)((uintptr_t) &request);
+    queue.desc[0].len = sizeof(struct virtio_blk_req);
+    queue.desc[0].flags = VIRTQ_DESC_F_NEXT;
+    queue.desc[0].next = 1;
 
-    queue.desc[idx].addr = (uint32_t) buf;
-    queue.desc[idx].len = length;
-    queue.desc[idx].flags = VIRTQ_DESC_F_NEXT;
-    if (read) {
-        queue.desc[idx].flags |= VIRTQ_DESC_F_WRITE;
-    }
-    queue.desc[idx].next = ((idx + 1) % queue.num);
-    arch_clean_cache_range((uintptr_t) &queue.desc[idx], sizeof(queue.desc[idx]));
-    idx = ((idx + 1) % queue.num);
+    queue.desc[1].addr = (uint32_t) buf;
+    queue.desc[1].len = length;
+    queue.desc[1].flags = VIRTQ_DESC_F_NEXT | (read?VIRTQ_DESC_F_WRITE:0);
+    queue.desc[1].next = 2;
 
-    queue.desc[idx].addr = (uint32_t)((uintptr_t) &status);
-    queue.desc[idx].len = 1;
-    queue.desc[idx].flags = VIRTQ_DESC_F_WRITE;
-    queue.desc[idx].next = 0;
-    arch_clean_cache_range((uintptr_t) &queue.desc[idx], sizeof(queue.desc[idx]));
-    idx = ((idx + 1) % queue.num);
+    queue.desc[2].addr = (uint32_t)((uintptr_t) &status);
+    queue.desc[2].len = 1;
+    queue.desc[2].flags = VIRTQ_DESC_F_WRITE;
+    queue.desc[2].next = 0;
 
-    queue.avail->ring[idx_start] = idx_start;
+    arch_clean_cache_range((uintptr_t) &queue.desc[0], sizeof(queue.desc[0]) * 3);
+    queue.avail->ring[idx] = 0;
     queue.avail->idx++;
 
     arch_clean_cache_range((uintptr_t) queue.avail, sizeof(*queue.avail));
@@ -108,14 +98,17 @@ static int virtio_xfer(bio_dev_t dev,
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_NOTIFY, 0);
 
     while (queue.avail->idx != queue.used->idx) {
-        arch_invalidate_cache_range((uintptr_t) queue.avail, sizeof(*queue.avail));
+        arch_invalidate_cache_range((uintptr_t) queue.used, sizeof(*queue.used));
     }
 
     arch_invalidate_cache_range((uintptr_t) &status, sizeof(status));
-    if (status == VIRTIO_BLK_S_OK)
-        return PB_OK;
 
-    return -PB_ERR_IO;
+    if (status != VIRTIO_BLK_S_OK) {
+        LOG_ERR("I/O ERROR idx=%u status=0x%x", idx, status);
+        return -PB_ERR_IO;
+    }
+
+    return PB_OK;
 }
 
 static int virtio_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
@@ -151,12 +144,15 @@ bio_dev_t virtio_block_init(uintptr_t base_, const uuid_t uu)
 
     mmio_write_32(base + VIRTIO_MMIO_GUEST_PAGE_SIZE, 4096);
 
+    LOG_DBG("Maximum queue length = %u", mmio_read_32(base + VIRTIO_MMIO_QUEUE_NUM_MAX));
     /* Initiailze queue */
-    queue.num = 1024;
+    queue.num = VIRTIO_BLK_QUEUE_SZ;
     queue.desc  = (struct virtq_desc *)  queue_data;
-    queue.avail = (struct virtq_avail *) (queue_data + VIRTIO_QUEUE_AVAIL_OFFSET(queue.num));
+    queue.avail = (struct virtq_avail *) (queue_data + VIRTIO_QUEUE_AVAIL_OFFSET(queue.num, 4096));
     queue.used  = (struct virtq_used *)  (queue_data + VIRTIO_QUEUE_USED_OFFSET(queue.num, 4096));
 
+    LOG_DBG("Q: avail=%lu, used=%lu", (uintptr_t) (queue.avail) - (uintptr_t) queue_data,
+                                    (uintptr_t) (queue.used) - (uintptr_t) queue_data);
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_SEL, 0);
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_NUM, queue.num);
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_ALIGN, 4096);

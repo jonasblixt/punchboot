@@ -77,27 +77,17 @@ struct virtq {
     struct virtq_used *used;
 };
 
-#define VIRTIO_QUEUE_SZ(n) (16*n + 4 + 2*n + 4 + 8*n)
-#define VIRTIO_QUEUE_SZ2(n) (16*n + 4 + 2*n)
-#define VIRTIO_QUEUE_USED_OFFSET(n, a) (((VIRTIO_QUEUE_SZ2(n) + a - 1) & ~(a - 1)))
-#define VIRTIO_QUEUE_AVAIL_OFFSET(n) (16*n)
+/**
+ * NOTE:
+ *
+ * For the packed virtq, desc, avail and used must be on separate pages.
+ * This means that at a minimum we must occupy three 4k pages, which further
+ * means that there is no point in allocating fewer than 256 entries as 256 entries
+ * for the descriptor table will fill a 4k page.
+ */
 
-static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
-{
-         return (uint16_t)(new_idx - event_idx - 1) < (uint16_t)(new_idx - old_idx);
-}
-
-/* Get location of event indices (only with VIRTIO_F_EVENT_IDX) */
-static inline uint16_t *virtq_used_event(struct virtq *vq)
-{
-        /* For backwards compat, used event index is at *end* of avail ring. */
-        return &vq->avail->ring[vq->num];
-}
-
-static inline uint16_t *virtq_avail_event(struct virtq *vq)
-{
-        /* For backwards compat, avail event index is at *end* of used ring. */
-        return (uint16_t *)&vq->used->ring[vq->num];
-}
+#define VIRTIO_QUEUE_AVAIL_OFFSET(n, a) (((16*n + a - 1) & ~(a - 1)))
+#define VIRTIO_QUEUE_USED_OFFSET(n, a) (((16*n + 4 + 2*n + a - 1) & ~(a - 1)))
+#define VIRTIO_QUEUE_SZ(n, a) (VIRTIO_QUEUE_USED_OFFSET(n, a) + 4 + 8*n)
 
 #endif  // DRIVERS_VIRTIO_QUEUE_H
