@@ -16,7 +16,7 @@
 #include "virtio_mmio.h"
 #include "virtio_queue.h"
 
-#define VIRTIO_SERIAL_QSZ 256
+#define VIRTIO_SERIAL_QSZ 1024
 
 #define VIRTIO_CONSOLE_F_SIZE (1 << 0)
 #define VIRTIO_CONSOLE_F_MULTIPORT (1 << 1)
@@ -39,10 +39,10 @@ struct virtio_serial_control
 
 #define VIRTIO_CONSOLE_PORT_OPEN (6)
 
-static uint8_t rx_data[VIRTIO_QUEUE_SZ(VIRTIO_SERIAL_QSZ, 4096)] __aligned(4096);
-static uint8_t tx_data[VIRTIO_QUEUE_SZ(VIRTIO_SERIAL_QSZ, 4096)] __aligned(4096);
-static uint8_t ctrl_rx_data[VIRTIO_QUEUE_SZ(VIRTIO_SERIAL_QSZ, 4096)] __aligned(4096);
-static uint8_t ctrl_tx_data[VIRTIO_QUEUE_SZ(VIRTIO_SERIAL_QSZ, 4096)] __aligned(4096);
+static uint8_t rx_data[VIRTIO_QUEUE_SZ(VIRTIO_SERIAL_QSZ, 64)] __aligned(4096);
+static uint8_t tx_data[VIRTIO_QUEUE_SZ(VIRTIO_SERIAL_QSZ, 64)] __aligned(4096);
+static uint8_t ctrl_rx_data[VIRTIO_QUEUE_SZ(VIRTIO_SERIAL_QSZ, 64)] __aligned(4096);
+static uint8_t ctrl_tx_data[VIRTIO_QUEUE_SZ(VIRTIO_SERIAL_QSZ, 64)] __aligned(4096);
 static struct virtq rx;
 static struct virtq tx;
 static struct virtq ctrl_rx;
@@ -53,11 +53,14 @@ static uintptr_t base;
 
 static int virtio_xfer(struct virtq *q, bool read, uint32_t queue_index, uintptr_t buf, size_t length)
 {
-    uint16_t idx = (q->avail->idx % q->num);
     size_t bytes_to_transfer = length;
     uintptr_t buf_p = buf;
+    uint16_t idx;
     size_t chunk;
     size_t desc_count = 0;
+
+    if (length > (VIRTIO_SERIAL_QSZ * 4096))
+        return -PB_ERR_IO;
 
     //LOG_DBG("%s %u <%p> %zu", read?"R":"W", queue_index, (void *) buf, length);
 
@@ -67,67 +70,36 @@ static int virtio_xfer(struct virtq *q, bool read, uint32_t queue_index, uintptr
      *
      * Tested various chunk sizes and the total length in the used ring
      * always cap's at 4k.
+     *
+     * There also seems to be a 4k limit per descriptor as well
+     *
+     * So instead of chaining descriptors we create as many 4k descriptors
+     * as we need without chaining them together.
      */
 
     while (bytes_to_transfer) {
+        idx = (q->avail->idx % q->num);
         chunk = (bytes_to_transfer > 4096)?4096:bytes_to_transfer;
-
         bytes_to_transfer -= chunk;
 
         q->desc[desc_count].addr = (uint32_t) buf_p;
         q->desc[desc_count].len = chunk;
-        q->desc[desc_count].flags = BIT(7);
+        q->desc[desc_count].flags = (read?VIRTQ_DESC_F_WRITE:0) | BIT(7);
 
-        if (bytes_to_transfer) {
-            q->desc[desc_count].flags = VIRTQ_DESC_F_NEXT;
-            q->desc[desc_count].next = (desc_count + 1) % q->num;
-        } else {
-            q->desc[desc_count].next = 0;
-        }
-
-        if (read) {
-            q->desc[desc_count].flags |= VIRTQ_DESC_F_WRITE;
-        }
-/*
-        uint16_t f = q->desc[desc_count].flags;
-        LOG_DBG("desc %i, sz=%zu, p=%p nxt=%i (%s%s) %s",
-                    desc_count,
-                    chunk,
-                    (void *) buf_p,
-                    q->desc[desc_count].next,
-                    (f & VIRTQ_DESC_F_NEXT)?"N":"",
-                    (f & VIRTQ_DESC_F_WRITE)?"W":"R",
-                    (bytes_to_transfer == 0)?"LAST":"");
-*/
         arch_clean_cache_range((uintptr_t) &q->desc[desc_count], sizeof(q->desc[0]));
+        q->avail->ring[idx] = desc_count;
+        q->avail->idx++;
         desc_count++;
-        memset(&q->desc[desc_count], 0, sizeof(q->desc[0]));
         buf_p += chunk;
     }
 
-    q->avail->flags = VIRTQ_AVAIL_F_NO_INTERRUPT;
-    q->avail->ring[idx] = 0;
-    q->avail->idx++;
-    LOG_DBG("avail->ring[%u] = 0, q->avail->idx=%u", idx, q->avail->idx);
-
-    //LOG_DBG("Submitting %u descriptors", last_idx - first_idx + 1);
     arch_clean_cache_range((uintptr_t) q->avail, sizeof(*q->avail));
-
-    //printf("q[%u]->avail: idx=%u, flgs=0x%x\n\r", queue_index, q->avail->idx, q->avail->flags);
-
-    // TODO: memory barrier?
-
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_NOTIFY, queue_index);
 
-    while ((q->avail->idx != q->used->idx) ) {
+    while (q->avail->idx != q->used->idx) {
         arch_invalidate_cache_range((uintptr_t) q->used, sizeof(*q->used));
     }
 
-    printf("q[%u]->used: idx=%u, flgs=0x%x\n\r", queue_index, q->used->idx, q->used->flags);
-/*    for (int n = 0; n < q->used->idx + 1; n++)
-        printf("ring[%i] = <%u, %u>\n\r", n, q->used->ring[n].id,
-                                            q->used->ring[n].len);
-*/
     return PB_OK;
 }
 
@@ -145,13 +117,12 @@ static void queue_init(struct virtq *q, uint8_t *buf, uint32_t queue_id)
 {
     q->num = VIRTIO_SERIAL_QSZ;
     q->desc  = (struct virtq_desc *)  buf;
-    q->avail = (struct virtq_avail *) (buf + VIRTIO_QUEUE_AVAIL_OFFSET(q->num, 4096));
-    q->used  = (struct virtq_used *)  (buf + VIRTIO_QUEUE_USED_OFFSET(q->num, 4096));
+    q->avail = (struct virtq_avail *) (buf + VIRTIO_QUEUE_AVAIL_OFFSET(q->num, 64));
+    q->used  = (struct virtq_used *)  (buf + VIRTIO_QUEUE_USED_OFFSET(q->num, 64));
 
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_SEL, queue_id);
-    LOG_DBG("Queue %u sz=%u", queue_id, mmio_read_32(base + VIRTIO_MMIO_QUEUE_NUM_MAX));
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_NUM, q->num);
-    mmio_write_32(base + VIRTIO_MMIO_QUEUE_ALIGN, 4096);
+    mmio_write_32(base + VIRTIO_MMIO_QUEUE_ALIGN, 64);
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_PFN, (uint32_t) ((uintptr_t) q->desc >> 12));
 }
 
@@ -177,13 +148,6 @@ int virtio_serial_init(uintptr_t base_)
     mmio_clrsetbits_32(base + VIRTIO_MMIO_STATUS, 0,
                         VIRTIO_STATUS_ACKNOWLEDGE | VIRTIO_STATUS_DRIVER);
 
-    // TODO: Why do we need this feature?
-#ifdef __NOPE
-    if (features & VIRTIO_CONSOLE_F_EMERG_WRITE) {
-        mmio_write_32(base + VIRTIO_MMIO_DEVICE_FEATURES_SEL, VIRTIO_CONSOLE_F_EMERG_WRITE);
-        mmio_clrsetbits_32(base + VIRTIO_MMIO_STATUS, 0, VIRTIO_STATUS_FEATURES_OK);
-    }
-#endif
     mmio_write_32(base + VIRTIO_MMIO_DEVICE_FEATURES_SEL, VIRTIO_F_EVENT_IDX);
     mmio_write_32(base + VIRTIO_MMIO_DEVICE_FEATURES_SEL, 0);
     mmio_write_32(base + VIRTIO_MMIO_GUEST_PAGE_SIZE, 4096);
@@ -205,10 +169,7 @@ int virtio_serial_init(uintptr_t base_)
     queue_init(&ctrl_tx, ctrl_tx_data, 3);
 
     mmio_clrsetbits_32(base + VIRTIO_MMIO_STATUS, 0, VIRTIO_STATUS_DRIVER_OK);
-/*
-    virtio_xfer(&ctrl_rx, true, 2, (uintptr_t) &ctrlm, sizeof(ctrlm));
-    LOG_DBG("Ctrlm %i %i", ctrlm.id, ctrlm.value);
-*/
+
     ctrlm.id = 1;
     ctrlm.event = VIRTIO_CONSOLE_PORT_OPEN;
     ctrlm.value = 1;

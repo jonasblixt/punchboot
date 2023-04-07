@@ -80,10 +80,9 @@ struct virtq {
 /**
  * NOTE:
  *
- * For the packed virtq, desc, avail and used must be on separate pages.
- * This means that at a minimum we must occupy three 4k pages, which further
- * means that there is no point in allocating fewer than 256 entries as 256 entries
- * for the descriptor table will fill a 4k page.
+ * For the packed virtq, desc, avail and used must be aligned to what
+ * VIRTIO_MMIO_QUEUE_ALIGN is set to.
+ *
  */
 
 #define VIRTIO_QUEUE_AVAIL_OFFSET(n, a) (((16*n + a - 1) & ~(a - 1)))

@@ -50,10 +50,10 @@ struct virtio_blk_req
     uint32_t sector_hi;
 };
 
-#define VIRTIO_BLK_QUEUE_SZ 256
+#define VIRTIO_BLK_QUEUE_SZ 4
 
 static uint8_t status __aligned(64);
-static uint8_t queue_data[VIRTIO_QUEUE_SZ(VIRTIO_BLK_QUEUE_SZ, 4096)] __aligned(4096);
+static uint8_t queue_data[VIRTIO_QUEUE_SZ(VIRTIO_BLK_QUEUE_SZ, 64)] __aligned(4096);
 static struct virtq queue;
 static struct virtio_blk_req request __aligned(64);
 static uintptr_t base;
@@ -148,14 +148,14 @@ bio_dev_t virtio_block_init(uintptr_t base_, const uuid_t uu)
     /* Initiailze queue */
     queue.num = VIRTIO_BLK_QUEUE_SZ;
     queue.desc  = (struct virtq_desc *)  queue_data;
-    queue.avail = (struct virtq_avail *) (queue_data + VIRTIO_QUEUE_AVAIL_OFFSET(queue.num, 4096));
-    queue.used  = (struct virtq_used *)  (queue_data + VIRTIO_QUEUE_USED_OFFSET(queue.num, 4096));
+    queue.avail = (struct virtq_avail *) (queue_data + VIRTIO_QUEUE_AVAIL_OFFSET(queue.num, 64));
+    queue.used  = (struct virtq_used *)  (queue_data + VIRTIO_QUEUE_USED_OFFSET(queue.num, 64));
 
     LOG_DBG("Q: avail=%lu, used=%lu", (uintptr_t) (queue.avail) - (uintptr_t) queue_data,
                                     (uintptr_t) (queue.used) - (uintptr_t) queue_data);
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_SEL, 0);
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_NUM, queue.num);
-    mmio_write_32(base + VIRTIO_MMIO_QUEUE_ALIGN, 4096);
+    mmio_write_32(base + VIRTIO_MMIO_QUEUE_ALIGN, 64);
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_PFN, (uint32_t) ((uintptr_t)queue_data >> 12));
 
     mmio_clrsetbits_32(base + VIRTIO_MMIO_STATUS, 0, VIRTIO_STATUS_DRIVER_OK);
