@@ -53,17 +53,17 @@ echo Booting system A
 $PB boot --boot $BOOT_A --transport socket
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 240 ];
 then
     test_end_error
 fi
 
 echo Loading from RAM
 # Loading image to ram and execute should fail because it overlaps with bootloader
-$PB boot --load /tmp/img.pbi --transport socket
+$PB boot --load /tmp/img.bpak --transport socket
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 240 ];
 then
     test_end_error
 fi

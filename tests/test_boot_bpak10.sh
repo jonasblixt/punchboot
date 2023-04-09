@@ -43,8 +43,9 @@ fi
 $PB boot --boot 2af755d8-8de5-45d5-a862-014cfa735ce0 --transport socket
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 254 ];
 then
+    echo "Result code: $result_code"
     test_end_error
 fi
 test_end_ok

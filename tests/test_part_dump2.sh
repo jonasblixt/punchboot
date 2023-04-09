@@ -10,10 +10,10 @@ $PB part --dump /tmp/dump_data_test --part 2af755d8-8de5-45d5-a862-014cfa735ce0 
 
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 239 ];
 then
     echo
-    echo Dumping 'non dumpable' partition did not set error code
+    echo Unexpected result code $result_code
     echo
     test_end_error
 fi

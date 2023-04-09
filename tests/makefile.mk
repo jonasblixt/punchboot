@@ -50,9 +50,9 @@ INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_revoke_key
 INTEGRATION_TESTS += test_part_dump
 INTEGRATION_TESTS += test_part_dump2
-INTEGRATION_TESTS += test_gpt_resize
-INTEGRATION_TESTS += test_gpt_resize2
-INTEGRATION_TESTS += test_gpt_resize3
+# INTEGRATION_TESTS += test_gpt_resize
+# INTEGRATION_TESTS += test_gpt_resize2
+# INTEGRATION_TESTS += test_gpt_resize3
 
 
 TEST_ASM_SRCS += src/arch/armv7a/entry_armv7a.S

@@ -20,6 +20,7 @@
 #include <mbedtls/memory_buffer_alloc.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/version.h>
+#include <mbedtls/error.h>
 
 static union {
     mbedtls_sha256_context sha256;
@@ -117,9 +118,11 @@ static int mbed_ecda_verify(uint8_t *der_signature, size_t signature_length,
                             bool *verified)
 {
     int rc;
+    char mbedtls_errorstr[256];
     mbedtls_pk_context ctx;
     mbedtls_md_type_t md_type;
 
+    *verified = false;
     switch (md_alg) {
     case HASH_SHA512:
         md_type = MBEDTLS_MD_SHA512;
@@ -138,7 +141,8 @@ static int mbed_ecda_verify(uint8_t *der_signature, size_t signature_length,
     rc = mbedtls_pk_parse_public_key(&ctx, der_key, key_length);
 
     if (rc != 0) {
-        LOG_ERR("Verify failed (%i)", rc);
+        mbedtls_strerror(rc, mbedtls_errorstr, sizeof(mbedtls_errorstr));
+        LOG_ERR("Verify failed %s (%i)", mbedtls_errorstr, rc);
         return -PB_ERR_SIGNATURE;
     }
 
@@ -148,10 +152,12 @@ static int mbed_ecda_verify(uint8_t *der_signature, size_t signature_length,
 
     mbedtls_pk_free(&ctx);
 
-    if (rc == 0)
+    if (rc == 0) {
+        *verified = true;
         return PB_OK;
-    else
+    } else {
         return -PB_ERR_SIGNATURE;
+    }
 }
 
 int mbedtls_pb_init(void)

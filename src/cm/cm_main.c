@@ -554,10 +554,9 @@ static int cmd_boot_ram(void)
     struct pb_command_ram_boot *ram_boot_cmd = \
                        (struct pb_command_ram_boot *) &cmd.request;
 
-    if (ram_boot_cmd->verbose) {
-        LOG_INFO("Verbose boot enabled");
-        boot_clear_set_flags(0, BOOT_FLAG_VERBOSE);
-    }
+    boot_clear_set_flags(0,
+            BOOT_FLAG_CMD |
+            (ram_boot_cmd->verbose?BOOT_FLAG_VERBOSE:0));
 
     pb_wire_init_result(&result, PB_RESULT_OK);
     rc = cfg->tops.write((uintptr_t) &result, sizeof(result));
@@ -568,7 +567,6 @@ static int cmd_boot_ram(void)
     boot_set_source(BOOT_SOURCE_CB);
     boot_configure_load_cb(ram_boot_read_f,
                            ram_boot_result_f);
-
 
     return boot(ram_boot_cmd->uuid);
 }
@@ -736,16 +734,21 @@ static int pb_command_parse(void)
         {
             struct pb_command_boot_part *boot_cmd = \
                 (struct pb_command_boot_part *) cmd.request;
-            pb_wire_init_result(&result, error_to_wire(rc));
 
-            cfg->tops.write((uintptr_t) &result, sizeof(result));
+
             boot_set_source(BOOT_SOURCE_BIO);
             boot_clear_set_flags(0,
                     BOOT_FLAG_CMD |
-                    boot_cmd->verbose?BOOT_FLAG_VERBOSE:0);
-            rc = boot(boot_cmd->uuid);
+                    (boot_cmd->verbose?BOOT_FLAG_VERBOSE:0));
+            rc = boot_load(boot_cmd->uuid);
 
-            /* Should not return */
+            pb_wire_init_result(&result, error_to_wire(rc));
+            cfg->tops.write((uintptr_t) &result, sizeof(result));
+
+            if (rc == PB_OK) {
+                rc = boot_jump();
+                /* Should not return */
+            }
             return rc;
         }
         break;
