@@ -27,6 +27,46 @@ static bool enumerated;
 
 static int usbd_enumerate(struct usb_setup_packet *setup);
 
+static const char *ep_to_str(usb_ep_t ep)
+{
+    switch (ep) {
+    case USB_EP0_IN:
+        return "EP0_IN";
+    case USB_EP0_OUT:
+        return "EP0_OUT";
+    case USB_EP1_IN:
+        return "EP1_IN";
+    case USB_EP1_OUT:
+        return "EP1_OUT";
+    case USB_EP2_IN:
+        return "EP2_IN";
+    case USB_EP2_OUT:
+        return "EP2_OUT";
+    case USB_EP3_IN:
+        return "EP3_IN";
+    case USB_EP3_OUT:
+        return "EP3_OUT";
+    case USB_EP4_IN:
+        return "EP4_IN";
+    case USB_EP4_OUT:
+        return "EP4_OUT";
+    case USB_EP5_IN:
+        return "EP5_IN";
+    case USB_EP5_OUT:
+        return "EP5_OUT";
+    case USB_EP6_IN:
+        return "EP6_IN";
+    case USB_EP6_OUT:
+        return "EP6_OUT";
+    case USB_EP7_IN:
+        return "EP7_IN";
+    case USB_EP7_OUT:
+        return "EP7_OUT";
+        default:
+            return "Unknown";
+    };
+}
+
 static int wait_for_completion(usb_ep_t ep)
 {
     int rc;
@@ -137,8 +177,8 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
                 enum usb_ep_type ep_type = cls_config->desc->eps[n].bmAttributes + 1;
                 uint16_t max_pkt_sz = cls_config->desc->eps[n].wMaxPacketSize;
 
-                LOG_DBG("Configuring EP %i (0x%x), sz=%u, type=%u",
-                                ep,
+                LOG_DBG("Configuring %s (0x%x), sz=%u, type=%u",
+                                ep_to_str(ep),
                                 cls_config->desc->eps[n].bEndpointAddress,
                                 max_pkt_sz,
                                 cls_config->desc->eps[n].bmAttributes);
