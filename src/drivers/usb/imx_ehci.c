@@ -117,6 +117,7 @@ struct ehci_queue_head
 /* No data structure seen by the controller should span a 4k page boundary */
 static struct ehci_transfer_head dtds[EHCI_NO_OF_DESCRIPTORS] __section(".no_init") __aligned(4096);
 static struct ehci_queue_head    dqhs[EHCI_NO_OF_EPS*2] __section(".no_init") __aligned(4096);
+static uint8_t align_buffer[4096] __aligned(4096);
 static uintptr_t xfer_bfr;
 static size_t xfer_length;
 static struct ehci_transfer_head *xfer_head;
@@ -201,12 +202,17 @@ static int ehci_irq_process(void)
     return PB_OK;
 }
 
+/**
+ * Note: This function will accept buffers of any alignment but for optimal
+ * performace all buffers should be 4k aligned.
+ */
 static int ehci_xfer_start(usb_ep_t ep, uintptr_t bfr, size_t length)
 {
     struct ehci_queue_head *qh = &dqhs[ep];
     struct ehci_transfer_head *dtd = dtds;
     uint32_t epreg = 0;
     size_t bytes_to_tx = length;
+    size_t align_length = 0;
     uintptr_t buf_ptr = bfr;
 
     if (ep >= USB_EP_END)
@@ -217,6 +223,18 @@ static int ehci_xfer_start(usb_ep_t ep, uintptr_t bfr, size_t length)
         dtd->token = 0x80 | (1 << 15);
     } else if (bfr) {
         arch_clean_cache_range(bfr, length);
+    }
+
+    /* Check and align input buffer if needed */
+    if ((length > 0) && (bfr & 0xfff)) {
+        align_length = (4096 - (bfr & 0xfff)) & 0xfff;
+        align_length = (length > 4096)?align_length:length;
+        /* LOG_DBG("Aligning buffer <%p> (%zu bytes)", (void *) bfr, align_length); */
+        /* If this is an IN transfer we need to fill the align buffer */
+        if ((ep & 1) == 1) {
+            memcpy(align_buffer, (void *) bfr, align_length);
+        }
+        arch_clean_cache_range((uintptr_t) align_buffer, align_length);
     }
 
     while (bytes_to_tx) {
@@ -232,13 +250,22 @@ static int ehci_xfer_start(usb_ep_t ep, uintptr_t bfr, size_t length)
         for (int n = 0; n < 5; n++) {
             dtd->page[n] = (uint32_t) buf_ptr;
 
-            if (bytes_to_tx >= EHCI_PAGE_SZ) {
+            if (align_length) {
+                /* If we need to align the input buffer, it will be at most
+                 * one 4k page */
+                dtd->page[n] = (uint32_t)(uintptr_t) align_buffer;
+                bytes_to_tx -= align_length;
+                buf_ptr += align_length;
+            } else if (bytes_to_tx >= EHCI_PAGE_SZ) {
                 buf_ptr += EHCI_PAGE_SZ;
                 bytes_to_tx -= EHCI_PAGE_SZ;
             } else {
                 buf_ptr += bytes_to_tx;
                 bytes_to_tx = 0;
             }
+
+            if (dtd->page[n] & 0xfff)
+                return -PB_ERR_ALIGN;
 
             if (bytes_to_tx == 0) {
                 buf_ptr = 0;
@@ -303,6 +330,21 @@ static int ehci_xfer_complete(usb_ep_t ep)
 
     if (xfer_head->token & 0x80)
         return -PB_ERR_AGAIN;
+
+   /* Check for un-aligned buffers */
+   if (xfer_length && (xfer_bfr & 0xfff)) {
+        size_t align_length = (4096 - (xfer_bfr & 0xfff)) & 0xfff;
+        align_length = (xfer_length > 4096)?align_length:xfer_length;
+
+        /* If this was an out transfer we should copy data from the
+         * alignment buffer */
+        if ((ep & 1) == 0) {
+            /* LOG_DBG("Align: copying %zu bytes to %p", align_length,
+                    (void *) xfer_bfr); */
+            arch_invalidate_cache_range((uintptr_t) align_buffer, align_length);
+            memcpy((void *) xfer_bfr, align_buffer, align_length);
+        }
+   }
 
     if (!(ep & 1) && xfer_bfr && xfer_length) {
         /* Output from host, invalidate cache*/
