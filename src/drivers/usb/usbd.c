@@ -129,9 +129,29 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
             if (rc != PB_OK)
                 break;
 
-            rc = hal_ops->set_configuration();
+            for (int n = 0; n < cls_config->desc->interface.bNumEndpoints; n++) {
+                usb_ep_t ep = (cls_config->desc->eps[n].bEndpointAddress & 0x7f) * 2;
+                if (cls_config->desc->eps[n].bEndpointAddress & 0x80)
+                    ep++;
 
-            enumerated = (rc == PB_OK)?true:false;
+                enum usb_ep_type ep_type = cls_config->desc->eps[n].bmAttributes + 1;
+                uint16_t max_pkt_sz = cls_config->desc->eps[n].wMaxPacketSize;
+
+                LOG_DBG("Configuring EP %i (0x%x), sz=%u, type=%u",
+                                ep,
+                                cls_config->desc->eps[n].bEndpointAddress,
+                                max_pkt_sz,
+                                cls_config->desc->eps[n].bmAttributes);
+
+                rc = hal_ops->configure_ep(ep, ep_type, max_pkt_sz);
+
+                if (rc != PB_OK) {
+                    LOG_ERR("Configuration failed (%i)", rc);
+                    break;
+                }
+            }
+
+            enumerated = true;
         }
         break;
         case USB_SET_IDLE:
@@ -168,7 +188,7 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
     if (!hal_ops->xfer_start ||
         !hal_ops->xfer_complete ||
         !hal_ops->init ||
-        !hal_ops->set_configuration ||
+        !hal_ops->configure_ep ||
         !hal_ops->set_address) {
         return -PB_ERR_PARAM;
     }
@@ -188,7 +208,7 @@ int usbd_init_cls(const struct usbd_cls_config *cfg)
 
 int usbd_init(void)
 {
-    return hal_ops->init(cls_config->desc);
+    return hal_ops->init();
 }
 
 int usbd_connect(void)
