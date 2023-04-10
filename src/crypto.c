@@ -41,6 +41,17 @@ int hash_update(uintptr_t buf, size_t length)
     return current_hash_ops->update(buf, length);
 }
 
+int hash_update_async(uintptr_t buf, size_t length)
+{
+    if (current_hash_ops == NULL)
+        return -PB_ERR_STATE;
+
+    if (current_hash_ops->update_async)
+        return current_hash_ops->update_async(buf, length);
+    else
+        return current_hash_ops->update(buf, length);
+}
+
 int hash_copy_update(uintptr_t src, uintptr_t dest, size_t length)
 {
     if (current_hash_ops == NULL)

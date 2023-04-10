@@ -326,6 +326,7 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
 
 const struct cm_config * cm_board_init(void)
 {
+    // TODO: Move virtio serial init here.
     static const struct cm_config cfg = {
         .name = "qemu test",
         .status = board_status,
