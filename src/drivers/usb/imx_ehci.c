@@ -66,6 +66,11 @@
 #define EHCI_ENDPTCTRL1 0x1c4
 #define EHCI_ENDPTCTRL2 0x1c8
 #define EHCI_ENDPTCTRL3 0x1cc
+#define EHCI_ENDPTCTRL4 0x1d0
+#define EHCI_ENDPTCTRL5 0x1d4
+#define EHCI_ENDPTCTRL6 0x1d8
+#define EHCI_ENDPTCTRL7 0x1dc
+
 #define EHCI_BURSTSIZE 0x160
 #define EHCI_SBUSCFG 0x90
 #define EHCI_ENDPTSTAT 0x1b8
@@ -403,17 +408,88 @@ static void ehci_flush_ep(usb_ep_t ep)
         {};
 }
 
-// TODO: Replace this call back with
-// hal_ops->configure_ep
-static int ehci_set_configuration(void)
+static int ehci_configure_ep(usb_ep_t ep,
+                             enum usb_ep_type ep_type,
+                             size_t pkt_sz)
 {
+    bool ep_in = false;
+    uintptr_t epctrl = 0;
+    uint8_t ep_type_val;
+    uint32_t ep_reg = 0;
 
-    // TODO: Bits
-    // TODO: Use eps from descriptor for this
-    /* Configure EP 1 as bulk IN */
-    mmio_write_32(ehci_base + EHCI_ENDPTCTRL1, (1 << 23) | (2 << 18) | (1 << 6));
-    /* Configure EP 2 as bulk OUT */
-    mmio_write_32(ehci_base + EHCI_ENDPTCTRL2, (1 << 7) | (2 << 2) | (1 << 6));
+    switch (ep_type) {
+        case USB_EP_TYPE_CONTROL:
+            ep_type_val = 0;
+        break;
+        case USB_EP_TYPE_ISO:
+            ep_type_val = 1;
+        break;
+        case USB_EP_TYPE_BULK:
+            ep_type_val = 2;
+        break;
+        case USB_EP_TYPE_INTR:
+            ep_type_val = 3;
+        break;
+        default:
+            return -PB_ERR_PARAM;
+    };
+
+    switch (ep) {
+    case USB_EP1_IN:
+        ep_in = true;
+        /* Fallthrough */
+    case USB_EP1_OUT:
+        epctrl = EHCI_ENDPTCTRL1;
+    break;
+    case USB_EP2_IN:
+        ep_in = true;
+        /* Fallthrough */
+    case USB_EP2_OUT:
+        epctrl = EHCI_ENDPTCTRL2;
+    break;
+    case USB_EP3_IN:
+        ep_in = true;
+        /* Fallthrough */
+    case USB_EP3_OUT:
+        epctrl = EHCI_ENDPTCTRL3;
+    break;
+    case USB_EP4_IN:
+        ep_in = true;
+        /* Fallthrough */
+    case USB_EP4_OUT:
+        epctrl = EHCI_ENDPTCTRL4;
+    break;
+    case USB_EP5_IN:
+        ep_in = true;
+        /* Fallthrough */
+    case USB_EP5_OUT:
+        epctrl = EHCI_ENDPTCTRL5;
+    break;
+    case USB_EP6_IN:
+        ep_in = true;
+        /* Fallthrough */
+    case USB_EP6_OUT:
+        epctrl = EHCI_ENDPTCTRL6;
+    break;
+    case USB_EP7_IN:
+        ep_in = true;
+        /* Fallthrough */
+    case USB_EP7_OUT:
+        epctrl = EHCI_ENDPTCTRL7;
+    break;
+        default:
+            return -PB_ERR_PARAM;
+    };
+
+    if (ep_in) {
+        ep_reg = (1 << 23) | (ep_type_val << 18) | (1 << 6);
+    } else {
+        ep_reg = (1 << 7) | (ep_type_val << 2) | (1 << 6);
+    }
+
+    LOG_DBG("EP config: reg=0x%lx, val=0x%x", epctrl, ep_reg);
+    mmio_write_32(ehci_base + epctrl, ep_reg);
+    ehci_config_ep(ep, pkt_sz, 0);
 
     return PB_OK;
 }
@@ -450,7 +526,7 @@ static int ehci_poll_setup_pkt(struct usb_setup_packet *pkt)
     return -PB_ERR_AGAIN;
 }
 
-static int ehci_init(const struct usbd_descriptors *desc)
+static int ehci_init(void)
 {
     LOG_DBG("Init base: 0x%"PRIxPTR, ehci_base);
 
@@ -461,12 +537,10 @@ static int ehci_init(const struct usbd_descriptors *desc)
 
     ehci_reset_queues();
 
+    mmio_write_32(ehci_base + EHCI_DEVICEADDR, 0);
+
     ehci_config_ep(USB_EP0_IN,  EHCI_SZ_64B,  0);
     ehci_config_ep(USB_EP0_OUT, EHCI_SZ_64B,  EPQH_CAP_IOS);
-
-    /* TODO: Use usb descriptor for this */
-    ehci_config_ep(USB_EP1_IN,  EHCI_SZ_512B, 0);
-    ehci_config_ep(USB_EP2_OUT, EHCI_SZ_512B, 0);
 
     /* Program QH top */
     mmio_write_32(ehci_base + EHCI_ENDPTLISTADDR, (uint32_t)(uintptr_t) dqhs);
@@ -514,7 +588,7 @@ int imx_ehci_init(uintptr_t base)
         .xfer_complete = ehci_xfer_complete,
         .xfer_cancel = ehci_flush_ep,
         .poll_setup_pkt = ehci_poll_setup_pkt,
-        .set_configuration = ehci_set_configuration,
+        .configure_ep = ehci_configure_ep,
         .set_address = ehci_set_address,
     };
 

@@ -33,6 +33,16 @@ typedef enum {
     USB_EP_END,
 } usb_ep_t;
 
+enum usb_ep_type
+{
+    USB_EP_TYPE_INVALID,
+    USB_EP_TYPE_CONTROL,
+    USB_EP_TYPE_ISO,
+    USB_EP_TYPE_BULK,
+    USB_EP_TYPE_INTR,
+    USB_EP_TYPE_END,
+};
+
 enum usb_charger_type
 {
     USB_CHARGER_INVALID,
@@ -159,13 +169,13 @@ struct usbd_cls_config
 
 struct usbd_hal_ops
 {
-    int (*init)(const struct usbd_descriptors *desc);
+    int (*init)(void);
     int (*stop)(void);
     int (*xfer_start)(usb_ep_t ep, uintptr_t buf, size_t length);
     int (*xfer_complete)(usb_ep_t ep);
     void (*xfer_cancel)(usb_ep_t ep);
     int (*poll_setup_pkt)(struct usb_setup_packet *pkt);
-    int (*set_configuration)(void);
+    int (*configure_ep)(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_sz);
     int (*set_address)(uint16_t addr);
 };
 
