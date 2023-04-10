@@ -53,6 +53,7 @@ const uint32_t rom_key_map[] =
 
 static const struct gpt_part_table gpt_tbl[]=
 {
+    /* Default, variant 0 */
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
@@ -82,6 +83,59 @@ static const struct gpt_part_table gpt_tbl[]=
         .uu = UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5,
         .description = "Readable",
         .size = SZ_MB(1),
+    },
+    /* Variant 1 */
+    {
+        .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
+        .variant = 1,
+        .description = "System A",
+        .size = SZ_kB(512),
+    },
+    {
+        .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
+        .variant = 1,
+        .description = "System B",
+        .size = SZ_kB(512),
+    },
+    {
+        .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
+        .variant = 1,
+        .description = "PB State Primary",
+        .size = 512,
+    },
+    {
+        .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
+        .variant = 1,
+        .description = "PB State Backup",
+        .size = 512,
+    },
+    {
+        .uu = UUID_44acdcbe_dcb0_4d89_b0ad_8f96967f8c95,
+        .variant = 1,
+        .description = "Fuse array",
+        .size = 512,
+    },
+    {
+        .uu = UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5,
+        .variant = 1,
+        .description = "Readable",
+        .size = SZ_MB(8),
+    },
+    /* Variant 2, the disk is 32M, the largest partition
+     * is 32MB - 2 * 34 512b blocks for the GPT table,
+     * == 32734 kB */
+    {
+        .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
+        .variant = 2,
+        .description = "Large",
+        .size = SZ_kB(32734),
+    },
+    /* Variant 3, too large partition */
+    {
+        .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
+        .variant = 3,
+        .description = "Too large",
+        .size = SZ_kB(32735),
     },
 };
 
@@ -142,6 +196,18 @@ int board_init(void)
     if (disk < 0)
         return disk;
 
+    rc = virtio_serial_init(0x0A003E00);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Virtio serial failed (%i)", rc);
+        return rc;
+    }
+
+    rc = mbedtls_pb_init();
+
+    if (rc != PB_OK)
+        return rc;
+
     rc = gpt_ptbl_init(disk, gpt_tbl, ARRAY_SIZE(gpt_tbl));
 
     if (rc != PB_OK) {
@@ -200,13 +266,6 @@ int board_init(void)
         goto err_out;
     }
 
-    rc = virtio_serial_init(0x0A003E00);
-
-    if (rc != PB_OK) {
-        LOG_ERR("Virtio serial failed (%i)", rc);
-        return rc;
-    }
-
     bio_dev_t fusebox_dev = bio_get_part_by_uu(UUID_44acdcbe_dcb0_4d89_b0ad_8f96967f8c95);
 
     if (fusebox_dev < 0)
@@ -218,11 +277,6 @@ int board_init(void)
         LOG_ERR("Fusebox init failed");
         return rc;
     }
-
-    rc = mbedtls_pb_init();
-
-    if (rc != PB_OK)
-        return rc;
 
 err_out:
     return rc;
