@@ -3,6 +3,7 @@
 
 /* virtio disk */
 #define UUID_1eacedf3_3790_48c7_8ed8_9188ff49672b (const unsigned char *) "\x1e\xac\xed\xf3\x37\x90\x48\xc7\x8e\xd8\x91\x88\xff\x49\x67\x2b"
+#define PART_virtio_disk UUID_1eacedf3_3790_48c7_8ed8_9188ff49672b
 
 #define UUID_2af755d8_8de5_45d5_a862_014cfa735ce0 (const unsigned char *) "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62\x01\x4c\xfa\x73\x5c\xe0"
 #define PART_sys_a UUID_2af755d8_8de5_45d5_a862_014cfa735ce0
@@ -20,5 +21,8 @@
 #define PART_backup_state UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee
 
 #define UUID_44acdcbe_dcb0_4d89_b0ad_8f96967f8c95 (const unsigned char *) "\x44\xac\xdc\xbe\xdc\xb0\x4d\x89\xb0\xad\x8f\x96\x96\x7f\x8c\x95"
+#define PART_fusebox UUID_44acdcbe_dcb0_4d89_b0ad_8f96967f8c95
+
 #define UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5 (const unsigned char *) "\xff\x4d\xdc\x6c\xad\x7a\x47\xe8\x87\x73\x67\x29\x39\x2d\xd1\xb5"
+#define PART_readable UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5
 #endif
