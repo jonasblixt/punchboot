@@ -273,7 +273,10 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
                     break;
             }
 
-            rc = hash_update(addr, chunk_size);
+            /* Since we load chunks at an offset we can use the
+             * async hash API (if the underlying driver supports it)
+             */
+            rc = hash_update_async(addr, chunk_size);
 
             if (rc != PB_OK)
                 break;

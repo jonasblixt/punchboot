@@ -139,6 +139,7 @@ struct caam {
     uintptr_t base;
     bool init;                      /* Hash init state variable */
     bool caam_initialized;
+    bool async_hashing;
 };
 
 static struct caam caam;
@@ -332,7 +333,7 @@ static int _hash_update(uint8_t * buf, size_t length)
     uint8_t dc = 0;
     int err = PB_OK;
 
-    if (!caam.init) {
+    if (!caam.init && caam.async_hashing) {
         /* Block if there is an operation in progress */
         err = caam_wait_for_job();
 
@@ -366,10 +367,17 @@ static int _hash_update(uint8_t * buf, size_t length)
     caam.desc[0] |= dc;
     caam_shedule_job_async();
 
+    if (!caam.async_hashing) {
+        err = caam_wait_for_job();
+
+        if (err != PB_OK)
+            return err;
+    }
+
     return PB_OK;
 }
 
-static int caam_hash_update(uintptr_t buf, size_t length)
+static int caam_hash_input(uintptr_t buf, size_t length)
 {
     size_t bytes_to_process = length;
     uint8_t *buf_p = (uint8_t *) buf;
@@ -402,7 +410,7 @@ static int caam_hash_update(uintptr_t buf, size_t length)
             bytes_to_process -= bytes_to_copy;
 
             rc = _hash_update(caam.hash_align_buf,
-                             caam.hash_align_buf_len);
+                              caam.hash_align_buf_len);
 
             if (rc != 0)
                 return rc;
@@ -441,20 +449,39 @@ static int caam_hash_update(uintptr_t buf, size_t length)
     return rc;
 }
 
+static int caam_hash_update(uintptr_t buf, size_t length)
+{
+    caam.async_hashing = false;
+    return caam_hash_input(buf, length);
+}
+
+static int caam_hash_update_async(uintptr_t buf, size_t length)
+{
+    caam.async_hashing = true;
+    return caam_hash_input(buf, length);
+}
+
 static int caam_hash_final(uint8_t *output, size_t size)
 {
     int err;
     int dc = 0;
 
+    /* If there was no update we must still call the update function
+     * once to initialize the hash block */
     if (caam.init) {
         _hash_update(NULL, 0);
+    }
+
+    if (caam.async_hashing) {
+        err = caam_wait_for_job();
+
+        if (err != PB_OK)
+            return err;
     }
 
     arch_clean_cache_range((uintptr_t) output, size);
     arch_clean_cache_range((uintptr_t) caam.hash_align_buf,
                                        caam.hash_align_buf_len);
-
-    caam_wait_for_job();
 
     caam.desc[dc++] = CAAM_CMD_HEADER;
     caam.desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | caam.alg |
@@ -516,6 +543,7 @@ int imx_caam_init(uintptr_t base)
                     HASH_SHA512,
         .init = caam_hash_init,
         .update = caam_hash_update,
+        .update_async = caam_hash_update_async,
         .final = caam_hash_final,
     };
 

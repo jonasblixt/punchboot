@@ -35,6 +35,7 @@ struct hash_ops {
     uint32_t alg_bits;
     int (*init)(hash_t alg);
     int (*update)(uintptr_t buf, size_t length);
+    int (*update_async)(uintptr_t buf, size_t length);
     int (*copy_update)(uintptr_t src, uintptr_t dest, size_t length);
     int (*final)(uint8_t *digest_out, size_t length);
 };
@@ -48,11 +49,74 @@ struct dsa_ops {
                   bool *verified);
 };
 
-/* Hash interface */
+/**
+ * param[in] alg Hashing algorithm to use
+ *
+ * @return PB_OK on success
+ *        -PB_ERR_PARAM, on invalid hash alg
+ */
 int hash_init(hash_t alg);
+
+/**
+ * Update currently running hash context with data
+ *
+ * @param[in] buf Input buffer to hash
+ * @param[in] lenght Length of buffer
+ *
+ * @return PB_OK on sucess
+ */
 int hash_update(uintptr_t buf, size_t length);
+
+/**
+ * Update current running hash context with data.
+ * This fuction might be implemented by drivers for hardware accelerated
+ * hashing functions. Typically it will enqueue DMA descriptors and not wait
+ * for completion.
+ *
+ * The underlying driver should check if there is a job in progress and block
+ * before enqueueing additional descriptors.
+ *
+ * @param[in] buf Input buffer to hash
+ * @param[in] length Length of buffer
+ *
+ * @return PB_OK on success
+ */
+int hash_update_async(uintptr_t buf, size_t length);
+
+/**
+ * Some hardware/drivers support both updating the hash context and
+ * copy the input buffer to another memory destination.
+ *
+ * If the underlying driver does not implement the copy_update API the crypto
+ * module will use memcpy.
+ *
+ * @param[in] src Input/Source buffer to hash/copy
+ * @param[in] dest Destination address
+ * @param[in] length Length of input buffer
+ *
+ * @return PB_OK on sucess
+ */
 int hash_copy_update(uintptr_t src, uintptr_t dest, size_t length);
+
+/**
+ * Finalize hashing context
+ *
+ * @param[out] digest_output Message digest output buffer
+ * @param[in] lenght Length of output buffer
+ *
+ * @return PB_OK on success
+ */
 int hash_final(uint8_t *digest_output, size_t length);
+
+/**
+ * Register hash op's
+ *
+ * Used by drivers to expose hashing functions.
+ *
+ * @param[in] ops Hashing op's structure
+ *
+ * @return PB_OK on success
+ */
 int hash_add_ops(const struct hash_ops *ops);
 
 /* DSA interface */
