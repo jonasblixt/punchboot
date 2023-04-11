@@ -17,7 +17,8 @@ src-y  += src/plat/qemu/reset.c
 src-y  += src/plat/qemu/semihosting.c
 src-y  += src/plat/qemu/wdog.c
 src-y  += src/plat/qemu/plat.c
-#src-y  += src/plat/qemu/transport.c
+src-y  += src/plat/qemu/rot_helpers.c
+src-y  += src/plat/qemu/slc_helpers.c
 
 asm-y += src/plat/qemu/semihosting_call.S
 

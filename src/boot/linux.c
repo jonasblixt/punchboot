@@ -18,6 +18,8 @@
 #include <boot/linux.h>
 #include <libfdt.h>
 #include <pb/device_uuid.h>
+#include <pb/slc.h>
+#include <pb/rot.h>
 
 static const struct boot_driver_linux_config *cfg;
 static uintptr_t jump_addr;
@@ -38,7 +40,7 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 {
     int rc;
     uuid_t device_uu;
-    enum pb_slc slc;
+    slc_t slc;
     char device_uu_str[37];
     int depth;
     int offset;
@@ -46,7 +48,6 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
     void *fdt;
     size_t dtb_length;
     size_t ramdisk_length;
-    struct pb_result_slc_key_status *key_status;
     struct bpak_part_header *ph;
     struct bpak_meta_header *mh;
 
@@ -158,10 +159,10 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         }
 
         /* Update SLC related parameters in DT */
-        rc = plat_slc_read(&slc);
+        slc = slc_read_status();
 
-        if (rc != PB_OK)
-            return rc;
+        if (slc < 0)
+            return slc;
 
         /* SLC state */
         rc = fdt_setprop_u32((void *) fdt, offset, "pb,slc", slc);
@@ -180,11 +181,6 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
             return -PB_ERR;
         }
 
-        rc = plat_slc_get_key_status(&key_status);
-
-        if (rc != PB_OK)
-            return rc;
-
         rc = fdt_delprop((void *) fdt, offset, "pb,slc-available-keys");
 
         if (rc != 0) {
@@ -192,10 +188,10 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
             return -1;
         }
 
-        for (size_t i = 0; i < membersof(key_status->active); i++) {
-            if (key_status->active[i]) {
+        for (size_t i = 0; i < rot_no_of_keys(); i++) {
+            if (rot_read_key_status_by_idx(i) == PB_OK) {
                 rc = fdt_appendprop_u32((void *) fdt, offset,
-                            "pb,slc-available-keys", key_status->active[i]);
+                            "pb,slc-available-keys", rot_key_idx_to_id(i));
 
                 if (rc != 0) {
                     LOG_ERR("fdt error: available keys (%i)", rc);

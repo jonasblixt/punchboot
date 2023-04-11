@@ -12,6 +12,7 @@
 #include <stdlib.h>
 
 #include <pb/crypto.h>
+#include <drivers/crypto/mbedtls.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
 #include <mbedtls/md5.h>
@@ -112,8 +113,8 @@ static int mbedtls_hash_final(uint8_t *output, size_t size)
     return PB_OK;
 }
 
-static int mbed_ecda_verify(uint8_t *der_signature, size_t signature_length,
-                            uint8_t *der_key, size_t key_length,
+static int mbed_ecda_verify(const uint8_t *der_signature, size_t signature_length,
+                            const uint8_t *der_key, size_t key_length,
                             hash_t md_alg, uint8_t *md, size_t md_length,
                             bool *verified)
 {

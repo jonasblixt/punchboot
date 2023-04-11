@@ -12,7 +12,8 @@
 #include <pb/crypto.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/plat.h>
+#include <pb/slc.h>
+#include <pb/rot.h>
 #include <bpak/id.h>
 #include <bpak/keystore.h>
 #include <boot/image_helpers.h>
@@ -30,19 +31,18 @@ IMPORT_SYM(uintptr_t, _zero_region_end, bss_end);
 IMPORT_SYM(uintptr_t, _no_init_start, no_init_start);
 IMPORT_SYM(uintptr_t, _no_init_end, no_init_end);
 
-extern struct bpak_keystore keystore_pb;
 static uint8_t signature[512];
 
 int boot_image_auth_header(struct bpak_header *hdr)
 {
     int rc;
-    bool key_active = false;
     hash_t hash_kind = 0;
     dsa_t dsa_kind = 0;
-    struct bpak_key *k = NULL;
     size_t signature_length;
     bool verified = false;
     uint8_t header_digest[64];
+    const uint8_t *key_der_data;
+    size_t key_der_data_length;
     struct bpak_meta_header *mh;
 
     rc = bpak_valid_header(hdr);
@@ -54,29 +54,18 @@ int boot_image_auth_header(struct bpak_header *hdr)
     LOG_DBG("Key-store: %x", hdr->keystore_id);
     LOG_DBG("Key-ID: %x", hdr->key_id);
 
-    if (hdr->keystore_id != keystore_pb.id) {
-        return -PB_ERR_BAD_KEYSTORE;
-    }
-
-    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
-        if (keystore_pb.keys[i]->id == hdr->key_id) {
-            k = keystore_pb.keys[i];
-            break;
-        }
-    }
-
-    if (!k) {
-        return -PB_ERR_KEY_NOT_FOUND;
-    }
-
-    rc = plat_slc_key_active(hdr->key_id, &key_active);
+    rc = rot_read_key_status(hdr->key_id);
 
     if (rc != PB_OK) {
+        LOG_ERR("Read key status failed (%i)", rc);
         return rc;
     }
 
-    if (!key_active) {
-        return -PB_ERR_KEY_REVOKED;
+    rc = rot_get_dsa_key(hdr->key_id, &dsa_kind, &key_der_data, &key_der_data_length);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Get DSA key failed (%i)", rc);
+        return rc;
     }
 
     switch (hdr->hash_kind) {
@@ -91,20 +80,6 @@ int boot_image_auth_header(struct bpak_header *hdr)
         break;
         default:
             return -PB_ERR_UNKNOWN_HASH;
-    }
-
-    switch (k->kind) {
-        case BPAK_KEY_PUB_PRIME256v1:
-            dsa_kind = DSA_EC_SECP256r1;
-        break;
-        case BPAK_KEY_PUB_SECP384r1:
-            dsa_kind = DSA_EC_SECP384r1;
-        break;
-        case BPAK_KEY_PUB_SECP521r1:
-            dsa_kind = DSA_EC_SECP521r1;
-        break;
-        default:
-            return -PB_ERR_NOT_SUPPORTED;
     }
 
     rc = hash_init(hash_kind);
@@ -130,7 +105,7 @@ int boot_image_auth_header(struct bpak_header *hdr)
         return rc;
 
     rc = dsa_verify(dsa_kind, signature, signature_length,
-                    (uint8_t *) k->data, k->size,
+                    key_der_data, key_der_data_length,
                     hash_kind, header_digest, sizeof(header_digest),
                     &verified);
 

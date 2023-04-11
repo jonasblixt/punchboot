@@ -305,6 +305,7 @@ int boot_jump(void)
 
     ts("Boot jump");
     boot_cfg->jump();
+    return -PB_ERR;
 }
 
 int boot(uuid_t boot_part_override_uu)

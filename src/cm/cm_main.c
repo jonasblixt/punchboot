@@ -23,13 +23,15 @@
 #include <boot/boot.h>
 #include <drivers/block/bio.h>
 #include <pb/device_uuid.h>
+#include <pb/slc.h>
+#include <pb/rot.h>
 
 extern struct bpak_keystore keystore_pb;
 static struct pb_command cmd __section(".no_init") __aligned(64);
 static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
 static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KB*1024] __section(".no_init") __aligned(4096);
-static enum pb_slc slc;
+static slc_t slc;
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uuid_t device_uu;
 static bio_dev_t block_dev;
@@ -39,53 +41,35 @@ static const struct cm_config *cfg;
 static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
 {
     int rc = -PB_ERR;
-    struct bpak_key *k = NULL;
     bool verified = false;
-    bool active = false;
     char device_uu_str[37];
+    const uint8_t *key_der_data = NULL;
+    size_t key_der_data_length = 0;
+    hash_t hash_kind = 0;
+    dsa_t dsa_kind = 0;
 
-    rc = plat_slc_key_active(key_id, &active);
+    rc = rot_read_key_status(key_id);
 
     if (rc != PB_OK)
         return rc;
 
-    if (!active) {
-        LOG_ERR("Invalid or revoked key (%x)", key_id);
-        return -PB_ERR_KEY_REVOKED;
-    }
+    rc = rot_get_dsa_key(key_id, &dsa_kind, &key_der_data, &key_der_data_length);
+
+    if (rc != PB_OK)
+        return rc;
 
     LOG_DBG("uuid: %p %p", device_uu, device_uu_str);
     uuid_unparse(device_uu, device_uu_str);
 
-    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
-        if (keystore_pb.keys[i]->id == key_id) {
-            k = keystore_pb.keys[i];
-            break;
-        }
-    }
-
-    if (!k) {
-        LOG_ERR("Key not found");
-        return -PB_ERR_NOT_FOUND;
-    }
-
-    LOG_DBG("Found key %x", k->id);
-
-    hash_t hash_kind = 0;
-    dsa_t dsa_kind = 0;
-
-    switch (k->kind) {
-        case BPAK_KEY_PUB_PRIME256v1:
+    switch (dsa_kind) {
+        case DSA_EC_SECP256r1:
             hash_kind = HASH_SHA256;
-            dsa_kind = DSA_EC_SECP256r1;
         break;
-        case BPAK_KEY_PUB_SECP384r1:
+        case DSA_EC_SECP384r1:
             hash_kind = HASH_SHA384;
-            dsa_kind = DSA_EC_SECP384r1;
         break;
-        case BPAK_KEY_PUB_SECP521r1:
+        case DSA_EC_SECP521r1:
             hash_kind = HASH_SHA512;
-            dsa_kind = DSA_EC_SECP521r1;
         break;
         default:
             return -PB_ERR_NOT_SUPPORTED;
@@ -110,7 +94,7 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
 
     rc = dsa_verify(dsa_kind,
                     sig, size,
-                    (uint8_t *) k->data, k->size,
+                    key_der_data, key_der_data_length,
                     hash_kind, hash, sizeof(hash),
                     &verified);
 
@@ -507,7 +491,6 @@ static int cmd_part_tbl_read(void)
     }
 
     tbl_read_result.no_of_entries = entries;
-    LOG_DBG("%i entries", entries);
     pb_wire_init_result2(&result, PB_RESULT_OK, &tbl_read_result,
                                              sizeof(tbl_read_result));
 
@@ -515,7 +498,6 @@ static int cmd_part_tbl_read(void)
 
     if (entries) {
         size_t bytes = sizeof(struct pb_result_part_table_entry)*(entries);
-        LOG_DBG("Bytes %zu", bytes);
         cfg->tops.write((uintptr_t) result_tbl, bytes);
     }
 
@@ -564,17 +546,32 @@ static int cmd_slc_read(void)
 {
     int rc;
     struct pb_result_slc slc_status = {0};
-    rc = plat_slc_read((enum pb_slc *) &slc_status.slc);
+    struct pb_result_slc_key_status key_status = {0};
+    slc = slc_read_status();
+
+    if (slc < 0) {
+        rc = slc;
+    } else {
+        slc_status.slc = slc;
+        rc = PB_OK;
+    }
     pb_wire_init_result2(&result, error_to_wire(rc), &slc_status,
                         sizeof(slc_status));
 
     cfg->tops.write((uintptr_t) &result, sizeof(result));
 
-    struct pb_result_slc_key_status *key_status;
+    for (size_t i = 0; i < rot_no_of_keys(); i++) {
+        rc = rot_read_key_status_by_idx(i);
+        key_id_t key_id = rot_key_idx_to_id(i);
 
-    rc = plat_slc_get_key_status(&key_status);
-    cfg->tops.write((uintptr_t) key_status, sizeof(*key_status));
-    pb_wire_init_result(&result, error_to_wire(rc));
+        if (rc == PB_OK)
+            key_status.active[i] = key_id;
+        else if (rc == -PB_ERR_KEY_REVOKED)
+            key_status.revoked[i] = key_id;
+    }
+
+    cfg->tops.write((uintptr_t) &key_status, sizeof(key_status));
+    pb_wire_init_result(&result, error_to_wire(PB_OK));
 
     return rc;
 }
@@ -791,25 +788,25 @@ static int pb_command_parse(void)
         case PB_CMD_SLC_SET_CONFIGURATION:
         {
             LOG_DBG("Set configuration");
-            rc = plat_slc_set_configuration();
+            rc = slc_set_configuration();
             pb_wire_init_result(&result, error_to_wire(rc));
-            plat_slc_read(&slc);
+            slc = slc_read_status();
         }
         break;
         case PB_CMD_SLC_SET_CONFIGURATION_LOCK:
         {
             LOG_DBG("Set configuration lock");
-            rc = plat_slc_set_configuration_lock();
+            rc = slc_set_configuration_locked();
             pb_wire_init_result(&result, error_to_wire(rc));
-            plat_slc_read(&slc);
+            slc = slc_read_status();
         }
         break;
         case PB_CMD_SLC_SET_EOL:
         {
             LOG_DBG("Set EOL");
-            rc = plat_slc_set_end_of_life();
+            rc = slc_set_eol();
             pb_wire_init_result(&result, error_to_wire(rc));
-            plat_slc_read(&slc);
+            slc = slc_read_status();
         }
         break;
         case PB_CMD_SLC_REVOKE_KEY:
@@ -819,7 +816,7 @@ static int pb_command_parse(void)
 
             LOG_DBG("Revoke key %x", revoke_cmd->key_id);
 
-            rc = plat_slc_revoke_key(revoke_cmd->key_id);
+            rc = rot_revoke_key(revoke_cmd->key_id);
             pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
@@ -855,16 +852,22 @@ err_out:
     return rc;
 }
 
+int cm_init(const struct cm_config *cfg_)
+{
+    cfg = cfg_;
+    return PB_OK;
+}
+
 int cm_run(void)
 {
     int rc;
     LOG_INFO("Initializing command mode");
 
-    cfg = cm_board_init();
+    rc = cm_board_init();
 
-    if (cfg == NULL) {
-        LOG_ERR("Board init failed");
-        return -PB_ERR_IO;
+    if (rc != PB_OK) {
+        LOG_ERR("Board init failed (%i)", rc);
+        return rc;
     }
 
 #ifdef CONFIG_CM_AUTH
@@ -872,7 +875,7 @@ int cm_run(void)
 #else
     authenticated = true;
 #endif
-    plat_slc_read(&slc);
+    slc = slc_read_status();
     device_uuid(device_uu);
 
 restart_command_mode:

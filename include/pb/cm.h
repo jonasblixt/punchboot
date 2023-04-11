@@ -31,7 +31,34 @@ struct cm_config {
     const struct cm_transport_ops tops;
 };
 
-const struct cm_config * cm_board_init(void);
+/**
+ * Start command mode
+ *
+ * This function will call 'cm_board_init' which should be provided by platform
+ * or board level code.
+ *
+ * The board init should initialize any required hardware and memory that
+ * cm needs.
+ *
+ * The board init function must provide a configuration struct by calling
+ * 'cm_init'
+ *
+ * @return This function does not return normally
+ */
 int cm_run(void);
+
+/**
+ * Perform platform/board specific hardware inititalization
+ *
+ * @return PB_OK, on success
+ */
+int cm_board_init(void);
+
+/**
+ * Populate cm configuration struct
+ *
+ * @return PB_OK, on success
+ */
+int cm_init(const struct cm_config *cfg);
 
 #endif  // INCLUDE_CM_H

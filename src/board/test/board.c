@@ -13,6 +13,7 @@
 #include <pb/fuse.h>
 #include <pb/plat.h>
 #include <pb/cm.h>
+#include <pb/rot.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
 #include <boot/linux.h>
@@ -23,33 +24,12 @@
 #include <drivers/virtio/virtio_serial.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/fuse/test_fuse_bio.h>
-#include <libfdt.h>
+#include <drivers/crypto/mbedtls.h>
 #include <uuid.h>
 #include <platform_defs.h>
 #include <plat/qemu/qemu.h>
 
 #include "partitions.h"
-
-struct fuse fuses[] =
-{
-    TEST_FUSE_BANK_WORD_VAL(0,  "SRK0",  0x5020C7D7),
-    TEST_FUSE_BANK_WORD_VAL(1,  "SRK1",  0xBB62B945),
-    TEST_FUSE_BANK_WORD_VAL(2,  "SRK2",  0xDD97C8BE),
-    TEST_FUSE_BANK_WORD_VAL(3,  "SRK3",  0xDC6710DD),
-    TEST_FUSE_BANK_WORD_VAL(4,  "SRK4",  0x2756B777),
-    TEST_FUSE_BANK_WORD_VAL(5, "BOOT0", 0x12341234),
-    TEST_FUSE_BANK_WORD_VAL(6, "BOOT1", 0xCAFEEFEE),
-    TEST_FUSE_END,
-};
-
-const uint32_t rom_key_map[] =
-{
-    0xa90f9680,
-    0x25c6dd36,
-    0x52c1eda0,
-    0xcca57803,
-    0x00000000,
-};
 
 static const struct gpt_part_table gpt_tbl[]=
 {
@@ -185,6 +165,41 @@ static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
     return -PB_ERR; /* Should not be reached */
 }
 
+static int board_set_slc_configuration(void)
+{
+    int rc;
+
+    rc = test_fuse_write(FUSE_SRK0, 0x5020C7D7);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = test_fuse_write(FUSE_SRK1, 0xBB62B945);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = test_fuse_write(FUSE_SRK2, 0xDD97C8BE);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = test_fuse_write(FUSE_SRK3, 0xDC6710DD);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = test_fuse_write(FUSE_SRK4, 0x2756B777);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = test_fuse_write(FUSE_BOOT0, 0x12341234);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = test_fuse_write(FUSE_BOOT1, 0xCAFEEFEE);
+    if (rc != PB_OK)
+        return rc;
+
+    return PB_OK;
+}
+
 int board_init(void)
 {
     int rc;
@@ -194,13 +209,6 @@ int board_init(void)
 
     if (disk < 0)
         return disk;
-
-    rc = virtio_serial_init(0x0A003E00);
-
-    if (rc != PB_OK) {
-        LOG_ERR("Virtio serial failed (%i)", rc);
-        return rc;
-    }
 
     rc = mbedtls_pb_init();
 
@@ -277,6 +285,49 @@ int board_init(void)
         return rc;
     }
 
+    static const struct rot_config rot_config = {
+        .revoke_key = qemu_revoke_key,
+        .read_key_status = qemu_read_key_status,
+        .key_map_length = 3,
+        .key_map = {
+            {
+                .name = "pb-development",
+                .id = 0xa90f9680,
+                .param1 = 0,
+            },
+            {
+                .name = "pb-development2",
+                .id = 0x25c6dd36,
+                .param1 = 1,
+            },
+            {
+                .name = "pb-development3",
+                .id = 0x52c1eda0,
+                .param1 = 2,
+            },
+        },
+    };
+
+    rc = rot_init(&rot_config);
+
+    if (rc != PB_OK) {
+        LOG_ERR("RoT init failed (%i)", rc);
+        return rc;
+    }
+
+    static const struct slc_config slc_config = {
+        .read_status = qemu_slc_read_status,
+        .set_configuration = board_set_slc_configuration,
+        .set_configuration_locked = qemu_slc_set_configuration_locked,
+        .set_eol = qemu_slc_set_eol,
+    };
+
+    rc = slc_init(&slc_config);
+
+    if (rc != PB_OK) {
+        LOG_ERR("SLC init failed (%i)", rc);
+        return rc;
+    }
 err_out:
     return rc;
 }
@@ -324,9 +375,17 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
     return PB_OK;
 }
 
-const struct cm_config * cm_board_init(void)
+int cm_board_init(void)
 {
-    // TODO: Move virtio serial init here.
+    int rc;
+
+    rc = virtio_serial_init(0x0A003E00);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Virtio serial failed (%i)", rc);
+        return rc;
+    }
+
     static const struct cm_config cfg = {
         .name = "qemu test",
         .status = board_status,
@@ -341,5 +400,5 @@ const struct cm_config * cm_board_init(void)
         },
     };
 
-    return &cfg;
+    return cm_init(&cfg);
 }

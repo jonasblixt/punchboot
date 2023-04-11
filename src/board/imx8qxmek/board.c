@@ -397,7 +397,7 @@ err_out:
     return rc;
 }
 
-const struct cm_config * cm_board_init(void)
+int cm_board_init(void)
 {
     int rc;
     /* Enable usb stuff */
@@ -410,13 +410,13 @@ const struct cm_config * cm_board_init(void)
 
     if (rc != PB_OK) {
         LOG_ERR("imx_ehci_init failed (%i)", rc);
-        return NULL;
+        return rc;
     }
 
     rc = pb_dev_cls_init();
 
     if (rc != PB_OK)
-        return NULL;
+        return rc;
 
     static const struct cm_config cfg = {
         .name = "imx8qxpmek",
@@ -432,5 +432,5 @@ const struct cm_config * cm_board_init(void)
         },
     };
 
-    return &cfg;
+    return cm_init(&cfg);
 }

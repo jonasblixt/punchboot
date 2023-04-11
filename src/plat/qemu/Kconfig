@@ -1,10 +1,6 @@
 menu "QEMU platform configuration"
 depends on PLAT_QEMU
 
-config OVERRIDE_ARCH_JUMP
-    bool "Call board specific jump function"
-    default n
-
 config QEMU_RAM_MB
     int "Memory in mb"
     default 1024

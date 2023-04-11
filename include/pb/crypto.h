@@ -19,6 +19,7 @@
 
 typedef uint32_t hash_t;
 typedef uint32_t dsa_t;
+typedef uint32_t key_id_t;
 
 #define HASH_MD5        BIT(0)
 #define HASH_MD5_BROKEN BIT(1)
@@ -43,8 +44,8 @@ struct hash_ops {
 struct dsa_ops {
     const char *name;
     uint32_t alg_bits;
-    int (*verify)(uint8_t *der_signature, size_t signature_length,
-                  uint8_t *der_key, size_t key_length,
+    int (*verify)(const uint8_t *der_signature, size_t signature_length,
+                  const uint8_t *der_key, size_t key_length,
                   hash_t md_alg, uint8_t *md, size_t md_length,
                   bool *verified);
 };
@@ -121,8 +122,8 @@ int hash_add_ops(const struct hash_ops *ops);
 
 /* DSA interface */
 int dsa_verify(dsa_t alg,
-               uint8_t *der_signature, size_t signature_length,
-               uint8_t *der_key, size_t key_length,
+               const uint8_t *der_signature, size_t signature_length,
+               const uint8_t *der_key, size_t key_length,
                hash_t md_alg, uint8_t *md, size_t md_length,
                bool *verified);
 
