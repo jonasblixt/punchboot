@@ -12,7 +12,6 @@
 #include <inttypes.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/delay.h>
 #include <bpak/bpak.h>

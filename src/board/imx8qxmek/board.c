@@ -14,7 +14,6 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/fuse.h>
-#include <pb/board.h>
 #include <pb/delay.h>
 #include <pb/timestamp.h>
 #include <plat/imx8x/sci/svc/seco/sci_seco_api.h>

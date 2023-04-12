@@ -8,7 +8,6 @@
  */
 
 #include <stdio.h>
-#include <pb/board.h>
 #include <pb/plat.h>
 #include <plat/qemu/gcov.h>
 #include <plat/qemu/semihosting.h>

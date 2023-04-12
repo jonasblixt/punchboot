@@ -4,10 +4,6 @@ config LIB_ZLIB_CRC
     bool "Enable zlib CRC32 function"
     default y
 
-config LIB_FLETCHER8
-    bool "Enable fletcher8 function"
-    default n
-
 config LIB_BPAK
     bool "Enable BPAK library support"
     default y

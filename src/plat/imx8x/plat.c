@@ -11,7 +11,6 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/board.h>
 #include <pb/timestamp.h>
 #include <xlat_tables.h>
 #include <uuid.h>

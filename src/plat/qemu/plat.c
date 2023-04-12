@@ -9,11 +9,9 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pb/board.h>
 #include <pb/plat.h>
 #include <uuid.h>
 #include <pb/fuse.h>
-#include <pb/board.h>
 #include <xlat_tables.h>
 #include <plat/qemu/semihosting.h>
 #include <board/config.h>

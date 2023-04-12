@@ -12,7 +12,6 @@
 
 #include <pb/pb.h>
 #include <pb/fuse.h>
-#include <pb/board.h>
 #include <pb/fuse.h>
 #include <pb-tools/wire.h>
 

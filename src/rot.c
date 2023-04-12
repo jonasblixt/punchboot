@@ -80,7 +80,8 @@ int rot_revoke_key(key_id_t id)
     if (!cfg || !cfg->revoke_key)
         return -PB_ERR_NOT_SUPPORTED;
 
-    // TODO: This should only be allowed when slc == CONFIGURATION_LOCKED
+    if (!imx8x_is_srk_fused())
+        return -PB_ERR_MEM;
 
     for (unsigned int i = 0; i < cfg->key_map_length; i++) {
         if (cfg->key_map[i].id == id) {

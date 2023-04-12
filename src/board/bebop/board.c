@@ -8,7 +8,6 @@
  */
 
 #include <stdio.h>
-#include <pb/board.h>
 #include <pb/plat.h>
 #include <pb/arch.h>
 #include <pb/io.h>
