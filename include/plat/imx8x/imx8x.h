@@ -13,16 +13,9 @@
 #include <plat/imx8x/sci/sci_ipc.h>
 #include <plat/imx8x/sci/sci.h>
 #include <plat/imx8x/imx8qx_pads.h>
+#include <pb/slc.h>
+#include <pb/rot.h>
 #include <platform_defs.h>
-
-#define IMX8X_FUSE_ROW(__r, __d) \
-        {.bank = __r , .word = 0, .description = __d, .status = FUSE_VALID}
-
-#define IMX8X_FUSE_ROW_VAL(__r, __d, __v) \
-        {.bank = __r, .word = 0, .description = __d, \
-         .default_value = __v, .status = FUSE_VALID}
-
-#define IMX8X_FUSE_END { .status = FUSE_INVALID }
 
 #define PADRING_IFMUX_EN_SHIFT		31
 #define PADRING_IFMUX_EN_MASK		(1U << PADRING_IFMUX_EN_SHIFT)
@@ -69,5 +62,11 @@ struct imx8x_platform
 };
 
 int board_init(struct imx8x_platform *plat);
+int imx8x_revoke_key(const struct rot_key *key);
+int imx8x_read_key_status(const struct rot_key *key);
+slc_t imx8x_slc_read_status(void);
+int imx8x_slc_set_configuration_locked(void);
+void imx8x_rot_helpers_init(sc_ipc_t ipc_);
+void imx8x_slc_helpers_init(sc_ipc_t ipc_);
 
 #endif  // PLAT_INCLUDE_IMX8X_IMX8X_H

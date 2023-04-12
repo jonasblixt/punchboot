@@ -19,6 +19,7 @@
 #include <pb/console.h>
 #include <pb/utils_def.h>
 #include <plat/imx8x/imx8x.h>
+#include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
 #include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
 #include <plat/imx8x/imx8qx_pads.h>
@@ -38,13 +39,8 @@ IMPORT_SYM(uintptr_t, _stack_end, stack_end);
 IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
 IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 
-extern struct fuse fuses[];
-extern const uint32_t rom_key_map[];
 static struct imx8x_platform plat;
 static int boot_reason;
-static struct pb_result_slc_key_status key_status;
-static enum pb_slc slc_status;
-static struct fuse rom_key_revoke_fuse = IMX8X_FUSE_ROW(11, "Revoke");
 
 static const mmap_region_t imx_mmap[] = {
     /* Map all of the normal I/O space */
@@ -287,8 +283,6 @@ static void imx8x_mmu_init(void)
 
 int plat_init(void)
 {
-    int rc;
-
     sc_ipc_open(&plat.ipc, SC_IPC_BASE);
 
     sc_err_t wdog_rc = imx8x_wdog_init();
@@ -306,14 +300,11 @@ int plat_init(void)
     imx8x_mmu_init();
     ts("MMU end");
 
-    rc = plat_slc_init();
+    imx8x_fuse_init(plat.ipc);
+    imx8x_rot_helpers_init(plat.ipc);
+    imx8x_slc_helpers_init(plat.ipc);
 
-    if (rc != PB_OK) {
-        LOG_ERR("Could not initialize SLC");
-        return rc;
-    }
-
-    return rc;
+    return PB_OK;
 }
 
 int plat_board_init(void)
@@ -358,313 +349,4 @@ const char * plat_boot_reason_str(void)
         default:
         return "Unknown";
     }
-
-}
-
-/* FUSE Interface */
-int plat_fuse_read(struct fuse *f)
-{
-    sc_err_t err;
-
-    if (!(f->status & FUSE_VALID))
-        return PB_ERR;
-
-    if (!f->addr)
-    {
-        f->addr = f->bank;
-    }
-
-    err = sc_misc_otp_fuse_read(plat.ipc, f->addr,
-                                (uint32_t *) &(f->value));
-
-    return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
-}
-
-int plat_fuse_write(struct fuse *f)
-{
-    char s[64];
-    uint32_t err;
-
-    plat_fuse_to_string(f, s, 64);
-
-    LOG_INFO("Fusing %s", s);
-
-    err = sc_misc_otp_fuse_write(plat.ipc, f->addr, f->value);
-
-    return (err == SC_ERR_NONE)?PB_OK:PB_ERR;
-}
-
-int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
-{
-    return snprintf(s, n,
-            "   FUSE<%u> %s = 0x%08x",
-                f->bank,
-                f->description, f->value);
-}
-
-/* SLC API */
-
-int plat_slc_init(void)
-{
-    return plat_slc_read(&slc_status);
-}
-
-int plat_slc_set_configuration(void)
-{
-    int err;
-
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
-    err = board_slc_set_configuration(&plat);
-
-    if (err != PB_OK) {
-        LOG_ERR("board_slc_set_configuration failed");
-        return err;
-    }
-#endif
-
-    /* Read fuses */
-    foreach_fuse(f, fuses)
-    {
-        err = plat_fuse_read(f);
-
-        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
-        if (err != PB_OK)
-        {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-    /* Perform the actual fuse programming */
-
-    LOG_INFO("Writing fuses");
-
-    foreach_fuse(f, fuses)
-    {
-        if ((f->value & f->default_value) != f->default_value)
-        {
-            f->value = f->default_value;
-            err = plat_fuse_write(f);
-
-            if (err != PB_OK)
-                return err;
-        }
-        else
-        {
-            LOG_DBG("Fuse %s already programmed", f->description);
-        }
-    }
-
-    return PB_OK;
-}
-
-int plat_slc_set_configuration_lock(void)
-{
-    int err;
-    uint16_t lc;
-    uint16_t monotonic;
-    uint32_t uid_l;
-    uint32_t uid_h;
-
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
-    err = board_slc_set_configuration_lock(&plat);
-
-    if (err != PB_OK) {
-        LOG_ERR("board_slc_set_configuration failed");
-        return err;
-    }
-#endif
-
-    sc_seco_chip_info(plat.ipc, &lc, &monotonic, &uid_l, &uid_h);
-
-    if (lc == 128)
-    {
-        LOG_INFO("Configuration already locked");
-        return PB_OK;
-    }
-
-    LOG_INFO("About to change security state to locked");
-
-    err = sc_seco_forward_lifecycle(plat.ipc, 16);
-
-    if (err != SC_ERR_NONE)
-        return -PB_ERR;
-
-    return PB_OK;
-}
-
-int plat_slc_set_end_of_life(void)
-{
-    return -PB_ERR;
-}
-
-int plat_slc_read(enum pb_slc *slc)
-{
-    int err;
-    (*slc) = PB_SLC_NOT_CONFIGURED;
-
-    /* Read fuses */
-    foreach_fuse(f, fuses)
-    {
-        err = plat_fuse_read(f);
-
-        if (f->value) {
-            (*slc) = PB_SLC_CONFIGURATION;
-            break;
-        }
-
-        if (err != PB_OK) {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-    uint16_t lc;
-    uint16_t monotonic;
-    uint32_t uid_l;
-    uint32_t uid_h;
-
-    sc_seco_chip_info(plat.ipc, &lc, &monotonic, &uid_l, &uid_h);
-
-    if (lc == 128) {
-        (*slc) = PB_SLC_CONFIGURATION_LOCKED;
-    }
-
-    return PB_OK;
-}
-
-int plat_slc_key_active(uint32_t id, bool *active)
-{
-    int rc;
-    unsigned int rom_index = 0;
-    bool found_key = false;
-
-    *active = false;
-
-    for (int i = 0; i < 16; i++)
-    {
-        if (!rom_key_map[i])
-            break;
-
-        if (rom_key_map[i] == id)
-        {
-            rom_index = i;
-            found_key = true;
-        }
-    }
-
-    if (!found_key)
-    {
-        LOG_ERR("Could not find key");
-        return -PB_ERR;
-    }
-
-    rc =  plat_fuse_read(&rom_key_revoke_fuse);
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not read revoke fuse");
-        return rc;
-    }
-
-    uint32_t revoke_value = (1 << rom_index);
-    uint8_t rom_key_mask = (rom_key_revoke_fuse.value >> 8) & 0x0f;
-
-    if ((rom_key_mask & revoke_value) == revoke_value)
-        (*active) = false;
-    else
-        (*active) = true;
-
-    return PB_OK;
-}
-
-int plat_slc_revoke_key(uint32_t id)
-{
-    int rc;
-    uint32_t info, fuse_before;
-
-    LOG_INFO("Revoking keys as specified in image header");
-
-    rc =  plat_fuse_read(&rom_key_revoke_fuse);
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not read revoke fuse");
-        return rc;
-    }
-    LOG_INFO("Revocation fuse before revocation = %x",
-            rom_key_revoke_fuse.value);
-    fuse_before = rom_key_revoke_fuse.value;
-
-    /* Commit OEM revocations = 0x10 */
-    info = 0x10;
-
-    /* sc_seco_commit returns which resource was revoked in info. In
-     * our case, info should be 0x10 for OEM key after the revocation
-     * is done. */
-    rc = sc_seco_commit(plat.ipc, &info);
-    if (rc != SC_ERR_NONE)
-    {
-        LOG_ERR("sc_seco_commit failed: %i", rc);
-        return PB_ERR;
-    }
-    LOG_INFO("Commit reply: %x", info);
-
-    rc =  plat_fuse_read(&rom_key_revoke_fuse);
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not read revoke fuse");
-        return rc;
-    }
-    LOG_INFO("Revocation fuse after revocation = %x",
-             rom_key_revoke_fuse.value);
-
-    if (fuse_before == rom_key_revoke_fuse.value)
-    {
-        LOG_ERR("The revocation fuse had the same value before "
-                "and after revocation!");
-        return PB_ERR;
-    }
-
-    LOG_INFO("Revocation fuse changed bits: %x",
-             fuse_before ^ rom_key_revoke_fuse.value);
-
-    return PB_OK;
-}
-
-int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
-{
-    int rc;
-
-    memset(&key_status, 0, sizeof(key_status));
-
-    if (status)
-        (*status) = &key_status;
-
-    rc = plat_fuse_read(&rom_key_revoke_fuse);
-
-    if (rc != PB_OK)
-        return rc;
-
-    LOG_DBG("ROM revoke mask: %08x", rom_key_revoke_fuse.value);
-
-    uint8_t rom_key_mask = (rom_key_revoke_fuse.value >> 8) & 0x0f;
-
-    for (int i = 0; i < 16; i++)
-    {
-        if (!rom_key_map[i])
-            break;
-
-        if (rom_key_mask & (1 << i))
-        {
-            key_status.active[i] = 0;
-            key_status.revoked[i] = rom_key_map[i];
-        }
-        else
-        {
-            key_status.revoked[i] = 0;
-            key_status.active[i] = rom_key_map[i];
-        }
-    }
-
-    return PB_OK;
 }

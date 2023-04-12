@@ -26,7 +26,6 @@
 #include <pb/slc.h>
 #include <pb/rot.h>
 
-extern struct bpak_keystore keystore_pb;
 static struct pb_command cmd __section(".no_init") __aligned(64);
 static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
@@ -58,7 +57,6 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
     if (rc != PB_OK)
         return rc;
 
-    LOG_DBG("uuid: %p %p", device_uu, device_uu_str);
     uuid_unparse(device_uu, device_uu_str);
 
     switch (dsa_kind) {
@@ -75,7 +73,6 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
             return -PB_ERR_NOT_SUPPORTED;
     }
 
-    LOG_DBG("Hash init (%s)", device_uu_str);
     rc = hash_init(hash_kind);
 
     if (rc != PB_OK)
@@ -86,7 +83,6 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
     if (rc != PB_OK)
         return rc;
 
-    LOG_DBG("Hash final");
     rc = hash_final(hash, sizeof(hash));
 
     if (rc != PB_OK)
@@ -568,6 +564,7 @@ static int cmd_slc_read(void)
             key_status.active[i] = key_id;
         else if (rc == -PB_ERR_KEY_REVOKED)
             key_status.revoked[i] = key_id;
+        LOG_INFO("Key 0x%x status=%i", key_id, rc);
     }
 
     cfg->tops.write((uintptr_t) &key_status, sizeof(key_status));
