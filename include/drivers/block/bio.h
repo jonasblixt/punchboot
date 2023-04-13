@@ -10,6 +10,8 @@
 #ifndef INCLUDE_PB_BIO_H
 #define INCLUDE_PB_BIO_H
 
+#include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <uuid.h>
 
