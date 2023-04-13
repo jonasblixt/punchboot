@@ -10,6 +10,6 @@
 #ifndef INCLUDE_DRIVERS_CRYPTO_MBEDTLS_H
 #define INCLUDE_DRIVERS_CRYPTO_MBEDTLS_H
 
-void mbedtls_init(void);
+int mbedtls_pb_init(void);
 
 #endif  // INCLUDE_DRIVERS_CRYPTO_MBEDTLS_H
