@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,11 +14,11 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/fuse.h>
-#include <pb/board.h>
 #include <pb/delay.h>
 #include <pb/timestamp.h>
 #include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
 #include <plat/imx8x/imx8x.h>
+#include <plat/imx8x/fusebox.h>
 #include <arch/armv8a/timer.h>
 #include <arch/arch_helpers.h>
 #include <drivers/mmc/mmc_core.h>
@@ -34,6 +34,8 @@
 #include <boot/ab_state.h>
 #include <boot/linux.h>
 #include <pb/crypto.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 
 #include "partitions.h"
 #define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
@@ -49,29 +51,6 @@
                              (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
 static struct imx8x_platform *plat;
-
-struct fuse fuses[] =
-{
-    IMX8X_FUSE_ROW_VAL(730, "SRK0", 0x6147e2e6),
-    IMX8X_FUSE_ROW_VAL(731, "SRK1", 0xfc4dc849),
-    IMX8X_FUSE_ROW_VAL(732, "SRK2", 0xb410b214),
-    IMX8X_FUSE_ROW_VAL(733, "SRK3", 0x0f8d6212),
-    IMX8X_FUSE_ROW_VAL(734, "SRK4", 0xad38b486),
-    IMX8X_FUSE_ROW_VAL(735, "SRK5", 0x9b806149),
-    IMX8X_FUSE_ROW_VAL(736, "SRK6", 0xdd6d397a),
-    IMX8X_FUSE_ROW_VAL(737, "SRK7", 0x4c19d87b),
-    IMX8X_FUSE_ROW_VAL(738, "SRK8", 0x24ac2acd),
-    IMX8X_FUSE_ROW_VAL(739, "SRK9", 0xb6222a62),
-    IMX8X_FUSE_ROW_VAL(740, "SRK10", 0xf36d6bd1),
-    IMX8X_FUSE_ROW_VAL(741, "SRK11", 0x14cc8e16),
-    IMX8X_FUSE_ROW_VAL(742, "SRK12", 0xd749170e),
-    IMX8X_FUSE_ROW_VAL(743, "SRK13", 0x22fb187e),
-    IMX8X_FUSE_ROW_VAL(744, "SRK14", 0x158f740c),
-    IMX8X_FUSE_ROW_VAL(745, "SRK15", 0x8966b0f6),
-    IMX8X_FUSE_ROW_VAL(18, "BOOT Config",  0x00000002),
-    IMX8X_FUSE_ROW_VAL(19, "Bootconfig2" , 0x00000025),
-    IMX8X_FUSE_END,
-};
 
 static const struct gpt_part_table gpt_tbl[]=
 {
@@ -140,15 +119,6 @@ static const struct gpt_part_table gpt_tbl[]=
         .description = "Mass storage",
         .size = SZ_GB(1),
     },
-};
-
-const uint32_t rom_key_map[] =
-{
-    0xa90f9680,
-    0x25c6dd36,
-    0x52c1eda0,
-    0xcca57803,
-    0x00000000,
 };
 
 static int patch_bootargs(void *fdt, int offset)
@@ -308,6 +278,62 @@ static int board_password_auth(const char *password, size_t length)
         return -PB_ERR_AUTHENTICATION_FAILED;
 }
 
+static int board_set_slc_configuration(void)
+{
+    int rc;
+    /**
+     * Warning: This is an example configuration. Be carful with the slc
+     * commands.
+     *
+     * Setting SLC Configuration will fuse SRK values matching the public keys
+     * that can be found in the 'pki' directory.
+     *
+     * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
+     */
+
+    static const struct imx8x_srk_fuses srk_fuses = {
+        .srk[0] = 0x6147e2e6,
+        .srk[1] = 0xfc4dc849,
+        .srk[2] = 0xb410b214,
+        .srk[3] = 0x0f8d6212,
+        .srk[4] = 0xad38b486,
+        .srk[5] = 0x9b806149,
+        .srk[6] = 0xdd6d397a,
+        .srk[7] = 0x4c19d87b,
+        .srk[8] = 0x24ac2acd,
+        .srk[9] = 0xb6222a62,
+        .srk[10] = 0xf36d6bd1,
+        .srk[11] = 0x14cc8e16,
+        .srk[12] = 0xd749170e,
+        .srk[13] = 0x22fb187e,
+        .srk[14] = 0x158f740c,
+        .srk[15] = 0x8966b0f6,
+    };
+
+    rc = imx8x_fuse_write_srk(&srk_fuses);
+
+    if (rc != PB_OK) {
+        LOG_ERR("SRK fusing failed (%i)", rc);
+        return rc;
+    }
+
+    rc = imx8x_fuse_write(IMX8X_FUSE_BOOT0, 0x00000002);
+
+    if (rc != PB_OK) {
+        LOG_ERR("BOOT0 fusing failed (%i)", rc);
+        return rc;
+    }
+
+    rc = imx8x_fuse_write(IMX8X_FUSE_BOOT1, 0x00000025);
+
+    if (rc != PB_OK) {
+        LOG_ERR("BOOT1 fusing failed (%i)", rc);
+        return rc;
+    }
+
+    return PB_OK;
+}
+
 int board_init(struct imx8x_platform *plat_ptr)
 {
     int rc;
@@ -393,11 +419,54 @@ int board_init(struct imx8x_platform *plat_ptr)
         goto err_out;
     }
 
+    static const struct rot_config rot_config = {
+        .revoke_key = imx8x_revoke_key,
+        .read_key_status = imx8x_read_key_status,
+        .key_map_length = 3,
+        .key_map = {
+            {
+                .name = "pb-development",
+                .id = 0xa90f9680,
+                .param1 = 0,
+            },
+            {
+                .name = "pb-development2",
+                .id = 0x25c6dd36,
+                .param1 = 1,
+            },
+            {
+                .name = "pb-development3",
+                .id = 0x52c1eda0,
+                .param1 = 2,
+            },
+        },
+    };
+
+    rc = rot_init(&rot_config);
+
+    if (rc != PB_OK) {
+        LOG_ERR("RoT init failed (%i)", rc);
+        return rc;
+    }
+
+    static const struct slc_config slc_config = {
+        .read_status = imx8x_slc_read_status,
+        .set_configuration = board_set_slc_configuration,
+        .set_configuration_locked = imx8x_slc_set_configuration_locked,
+        .set_eol = NULL,
+    };
+
+    rc = slc_init(&slc_config);
+
+    if (rc != PB_OK) {
+        LOG_ERR("SLC init failed (%i)", rc);
+        return rc;
+    }
 err_out:
     return rc;
 }
 
-const struct cm_config * cm_board_init(void)
+int cm_board_init(void)
 {
     int rc;
     /* Enable usb stuff */
@@ -410,13 +479,13 @@ const struct cm_config * cm_board_init(void)
 
     if (rc != PB_OK) {
         LOG_ERR("imx_ehci_init failed (%i)", rc);
-        return NULL;
+        return rc;
     }
 
     rc = pb_dev_cls_init();
 
     if (rc != PB_OK)
-        return NULL;
+        return rc;
 
     static const struct cm_config cfg = {
         .name = "imx8qxpmek",
@@ -432,5 +501,5 @@ const struct cm_config * cm_board_init(void)
         },
     };
 
-    return &cfg;
+    return cm_init(&cfg);
 }

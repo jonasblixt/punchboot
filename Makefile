@@ -82,6 +82,8 @@ src-$(CONFIG_DEVICE_UUID) += src/device_uuid.c
 src-$(CONFIG_SELF_TEST) += src/self_test.c
 src-y  += src/wire.c
 src-y  += src/console.c
+src-y  += src/rot.c
+src-y  += src/slc.c
 
 include src/drivers/*/makefile.mk
 include src/boot/makefile.mk

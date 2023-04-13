@@ -12,7 +12,6 @@
 
 #include <pb/pb.h>
 #include <pb/fuse.h>
-#include <pb/board.h>
 #include <pb/fuse.h>
 #include <pb-tools/wire.h>
 
@@ -61,20 +60,5 @@ int plat_boot_reason(void);
 const char* plat_boot_reason_str(void);
 
 int plat_get_unique_id(uint8_t *output, size_t *length);
-
-/* Fusebox API */
-int plat_fuse_read(struct fuse *f);
-int plat_fuse_write(struct fuse *f);
-int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n);
-
-/* Security Life Cycle (SLC) API */
-int plat_slc_init(void);
-int plat_slc_set_configuration(void);
-int plat_slc_set_configuration_lock(void);
-int plat_slc_set_end_of_life(void);
-int plat_slc_read(enum pb_slc *slc);
-int plat_slc_key_active(uint32_t id, bool *active);
-int plat_slc_revoke_key(uint32_t id);
-int plat_slc_get_key_status(struct pb_result_slc_key_status **status);
 
 #endif  // INCLUDE_PB_PLAT_H_
