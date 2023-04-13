@@ -26,37 +26,6 @@ Punchboot could be useful if you care about the following:
  - Secure boot
  - Downloading software quickly in production
 
-## Building
-
-The easiest way is using docker.
-
-Building the docker image:
-
-```
-$ docker build -f pb.Dockerfile -t pb_docker_env .
-```
-
-Building the jiffy-board target:
-
-```
-$ ./run_docker.sh
-$ cp configs/jiffy_defconfig .config
-$ make
-```
-
-## Run test suite
-
-Run the built in tests:
-
-```
-$ ./run_docker.sh
-$ cp configs/test_defconfig .config
-$ make
-$ make check
-```
-
-The dockerfile in the top directory details the dependencies on ubuntu xenial
-
 ## Design
 
 Punchboot is written in C and some assembler. Currently armv7a and armv8 is supported.
