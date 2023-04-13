@@ -85,7 +85,6 @@ src-y  += src/console.c
 
 include src/drivers/*/makefile.mk
 include src/boot/makefile.mk
-include src/lib/bearssl/makefile.mk
 include src/lib/makefile.mk
 include $(BOARD)/makefile.mk
 include src/arch/*/makefile.mk

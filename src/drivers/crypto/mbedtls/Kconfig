@@ -1,14 +1,26 @@
-config DRIVERS_CRYPTO_MBEDTLS_PATH
-    string "Library path"
-    depends on DRIVERS_CRYPTO_MBEDTLS
-    default "download/mbedtls"
 
-config DRIVERS_CRYPTO_MBEDTLS_VERSION
-    string "Version"
+config MBEDTLS_MD_SHA256
+    bool "SHA256"
+    default y
     depends on DRIVERS_CRYPTO_MBEDTLS
-    default "x.y.z"
 
-config DRIVERS_CRYPTO_MBEDTLS_URL
-    string "Download URL"
+config MBEDTLS_MD_SHA384
+    bool "SHA384"
+    default y
     depends on DRIVERS_CRYPTO_MBEDTLS
-    default "https://"
+
+config MBEDTLS_MD_SHA512
+    bool "SHA512"
+    default y
+    depends on DRIVERS_CRYPTO_MBEDTLS
+    select MBEDTLS_MD_SHA384
+
+config MBEDTLS_MD_MD5
+    bool "MD5"
+    default y
+    depends on DRIVERS_CRYPTO_MBEDTLS
+
+config MBEDTLS_ECDSA
+    bool "ECDSA"
+    default y
+    depends on DRIVERS_CRYPTO_MBEDTLS
