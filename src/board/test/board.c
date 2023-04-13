@@ -190,8 +190,7 @@ int board_init(void)
     int rc;
     LOG_INFO("Board init");
 
-    bio_dev_t disk = virtio_block_init(0x0A003C00,
-                                  UUID_1eacedf3_3790_48c7_8ed8_9188ff49672b);
+    bio_dev_t disk = virtio_block_init(0x0A003C00, PART_virtio_disk);
 
     if (disk < 0)
         return disk;
@@ -214,7 +213,7 @@ int board_init(void)
         LOG_WARN("GPT Init failed (%i)", rc);
     }
 
-    bio_dev_t readable_part = bio_get_part_by_uu(UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5);
+    bio_dev_t readable_part = bio_get_part_by_uu(PART_readable);
     if (readable_part)
         (void) bio_clear_set_flags(readable_part, 0, BIO_FLAG_READABLE);
 
@@ -266,7 +265,7 @@ int board_init(void)
         goto err_out;
     }
 
-    bio_dev_t fusebox_dev = bio_get_part_by_uu(UUID_44acdcbe_dcb0_4d89_b0ad_8f96967f8c95);
+    bio_dev_t fusebox_dev = bio_get_part_by_uu(PART_fusebox);
 
     if (fusebox_dev < 0)
         return fusebox_dev;
@@ -283,10 +282,10 @@ err_out:
 }
 
 static int board_command(uint32_t command,
-                  uint8_t *bfr,
-                  size_t size,
-                  uint8_t *response_bfr,
-                  size_t *response_size)
+                          uint8_t *bfr,
+                          size_t size,
+                          uint8_t *response_bfr,
+                          size_t *response_size)
 {
     size_t resp_buf_size = *response_size;
     char *response = (char *) response_bfr;
@@ -316,14 +315,12 @@ static int board_command(uint32_t command,
     return -PB_ERR;
 }
 
-static int board_status(uint8_t *response_bfr,
-                    size_t *response_size)
+static int board_status(uint8_t *response_bfr, size_t *response_size)
 {
     char *response = (char *) response_bfr;
     size_t resp_buf_size = *response_size;
 
-    (*response_size) = snprintf(response, resp_buf_size,
-                            "Board status OK!\n");
+    (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");
     return PB_OK;
 }
 
