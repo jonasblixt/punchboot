@@ -62,15 +62,6 @@ const char* plat_boot_reason_str(void);
 
 int plat_get_unique_id(uint8_t *output, size_t *length);
 
-int plat_command(uint32_t command,
-                     void *bfr,
-                     size_t size,
-                     void *response_bfr,
-                     size_t *response_size);
-
-int plat_status(void *response_bfr,
-                    size_t *response_size);
-
 /* Fusebox API */
 int plat_fuse_read(struct fuse *f);
 int plat_fuse_write(struct fuse *f);
@@ -85,12 +76,5 @@ int plat_slc_read(enum pb_slc *slc);
 int plat_slc_key_active(uint32_t id, bool *active);
 int plat_slc_revoke_key(uint32_t id);
 int plat_slc_get_key_status(struct pb_result_slc_key_status **status);
-
-/* Transport API */
-int plat_transport_init(void);
-int plat_transport_process(void);
-bool plat_transport_ready(void);
-int plat_transport_write(void *buf, size_t size);
-int plat_transport_read(void *buf, size_t size);
 
 #endif  // INCLUDE_PB_PLAT_H_

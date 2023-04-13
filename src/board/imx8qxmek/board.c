@@ -24,14 +24,16 @@
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/mmc/imx_usdhc.h>
-#include <drivers/usb/usb_core.h>
+#include <drivers/usb/usbd.h>
 #include <drivers/usb/imx_ehci.h>
 #include <drivers/usb/imx_usb2_phy.h>
+#include <drivers/usb/pb_dev_cls.h>
+#include <pb/cm.h>
 #include <drivers/crypto/imx_caam.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
 #include <boot/linux.h>
-#include <crypto.h>
+#include <pb/crypto.h>
 
 #include "partitions.h"
 #define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
@@ -266,17 +268,9 @@ static int early_boot(void)
     return PB_OK;
 }
 
-const char * board_name(void)
-{
-    return "imx8qxmek";
-}
-
-int board_command(void *plat_ptr,
-                     uint32_t command,
-                     void *bfr,
-                     size_t size,
-                     void *response_bfr,
-                     size_t *response_size)
+static int board_command(uint32_t command,
+                     uint8_t *bfr, size_t size,
+                     uint8_t *response_bfr, size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
     *response_size = 0;
@@ -284,9 +278,7 @@ int board_command(void *plat_ptr,
     return PB_OK;
 }
 
-int board_status(void *plat_ptr,
-                    void *response_bfr,
-                    size_t *response_size)
+static int board_status(uint8_t *response_bfr, size_t *response_size)
 {
     uint32_t scu_version;
     uint32_t scu_commit;
@@ -319,8 +311,7 @@ int board_status(void *plat_ptr,
     return PB_OK;
 }
 
-#ifdef CONFIG_AUTH_PASSWORD
-int board_command_mode_auth(char *password, size_t length)
+static int board_password_auth(const char *password, size_t length)
 {
     /* This is just a simplistic example of password authentication.
      *
@@ -335,7 +326,6 @@ int board_command_mode_auth(char *password, size_t length)
     else
         return -PB_ERR_AUTHENTICATION_FAILED;
 }
-#endif  // CONFIG_AUTH_PASSWORD
 
 int board_init(struct imx8x_platform *plat_ptr)
 {
@@ -343,28 +333,20 @@ int board_init(struct imx8x_platform *plat_ptr)
     plat = plat_ptr;
 
     /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
-    ts("CAAM init start");
     sc_pm_set_resource_power_mode(plat->ipc,
                                 SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(plat->ipc,
                                 SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
 
     rc = imx_caam_init(0x31430000);
-    ts("CAAM init end");
+
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
         return rc;
     }
 
-    /* TODO: Rework and move the 'usdhc_emmc_setup' to imx8x platform,
-     * And make it optional through KConfig. This way the upstream platform
-     * code will cover most use cases and the special ones can still quite
-     * easily be imlemented on board level.
-     */
-    ts("usdhc start");
     rc = usdhc_emmc_setup();
 
-    ts("usdhc end");
     if (rc != PB_OK) {
         LOG_ERR("usdhc init failed (%i)", rc);
         goto err_out;
@@ -433,12 +415,44 @@ int board_init(struct imx8x_platform *plat_ptr)
         goto err_out;
     }
 
+err_out:
+    return rc;
+}
+
+const struct cm_config * cm_board_init(void)
+{
+    int rc;
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
 
     imx_usb2_phy_init(0x5B100000);
 
-err_out:
-    return rc;
+    rc = imx_ehci_init(IMX_EHCI_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("imx_ehci_init failed (%i)", rc);
+        return NULL;
+    }
+
+    rc = pb_dev_cls_init();
+
+    if (rc != PB_OK)
+        return NULL;
+
+    static const struct cm_config cfg = {
+        .name = "imx8qxpmek",
+        .status = board_status,
+        .password_auth = board_password_auth,
+        .command = board_command,
+        .tops = {
+            .init = usbd_init,
+            .connect = usbd_connect,
+            .disconnect = usbd_disconnect,
+            .read = pb_dev_cls_read,
+            .write = pb_dev_cls_write,
+        },
+    };
+
+    return &cfg;
 }

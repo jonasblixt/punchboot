@@ -11,8 +11,10 @@
 #include <pb/pb.h>
 #include <pb/arch.h>
 #include <pb/plat.h>
-#include <pb/command.h>
+#include <pb/timestamp.h>
+#include <pb/cm.h>
 #include <boot/boot.h>
+#include <pb/self_test.h>
 
 void main(void)
 {
@@ -29,18 +31,22 @@ void main(void)
         // 3. Systick is not working
         //
         // plat_reset?
-        goto run_command_mode;
+        goto enter_command_mode;
 
     rc = plat_board_init();
 
     if (rc != PB_OK)
-        goto run_command_mode;
+        goto enter_command_mode;
+
+#ifdef CONFIG_SELF_TEST
+    self_test();
+#endif
 
     rc = boot(NULL);  /* Normally we would not return from this function */
 
-run_command_mode:
+enter_command_mode:
     printf("Boot aborted (%i), entering command mode\n\r", rc);
     ts_print();
-    pb_command_run();
+    cm_run();
     plat_reset();
 }

@@ -103,44 +103,8 @@ menu "Drivers"
 source "src/drivers/*/Kconfig"
 endmenu
 
-menu "Authentication"
-config AUTH
-    bool "Enable command mode authentication"
-    default y
-    help
-        This will enable authentication when the security life cycle is >= LOCKED
-
-config AUTH_TOKEN
-    bool "Token based authentication"
-    depends on AUTH
-    help
-        Authenticate using the signature of the hash, of the device UUID
-
-config AUTH_PASSWORD
-    bool "Password based authentication"
-    depends on AUTH
-    help
-        Authenticate using a password. This requires a board level implementation.
-endmenu
-
-menu "Command mode transport configuration"
-
-config CMD_BUF_SIZE_KB
-    int "Command buffer size in kB"
-    default 4096
-
-config TRANSPORT_MAX_CHUNK_KB
-    int "Transport maximum chunk size in kB"
-    default 4096
-
-config TRANSPORT_READY_TIMEOUT
-    int "Timeout in seconds before transport must become ready"
-    default 10
-
-config TRANSPORT_ENTER_BOARD_CB
-    bool "Call board level callback when entering command mode"
-    default n
-
+menu "Command mode"
+source "src/cm/Kconfig"
 endmenu
 
 source "src/lib/Kconfig"
