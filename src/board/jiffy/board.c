@@ -120,6 +120,11 @@ static int usdhc_emmc_setup(void)
     mmio_write_32(0x020E0000+0x1A4, 1); /* RESET MUX */
 
     // TODO: What's our input clock rate?
+    // usdhc_clk_root == ipg_clk_perclk?
+    //
+    // Either PFD0 (352 MHz) or PFD2 (400 MHz)
+    // PFD2 is better, ensure that CSCMR1[USDHC1_CLK_SEL] selects PFD2
+    // Check that CSCDR1[USDHC1_PODF] is set, then input clock should be 200MHz
     rate = MHz(200);
 
     static const struct imx_usdhc_config cfg = {

@@ -10,7 +10,14 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
+
+import sys
+import os
+import shlex
+import sphinx_rtd_theme
+import alabaster
+import subprocess
+
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -22,15 +29,40 @@ copyright = '2023, Jonas Blixt'
 author = 'Jonas Blixt'
 
 # The full version, including alpha/beta/rc tags
-release = '0.7.0'
+
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+
+#if read_the_docs_build:
+subprocess.call('doxygen ../doxygen.cfg', shell=True)
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+#sys.path.insert(0, os.path.abspath('.'))
+
+# -- General configuration ------------------------------------------------
+
+# If your documentation needs a minimal Sphinx version, state it here.
+#needs_sphinx = '1.0'
+breathe_projects = {
+    "pb":"xml/",
+}
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "alabaster",
+    "breathe",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
+    "sphinxcontrib.plantuml",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -53,3 +85,15 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# extlins
+extlinks = {
+    'github-blob':
+    ('https://github.com/jonasblixt/punchboot/blob/' + release + '/%s', ''),
+    'github-tree':
+    ('https://github.com/jonasblixt/punchboot/tree/' + release + '/%s', ''),
+    'codecov':
+    ('https://codecov.io/gh/jonasblixt/punchboot/src/' + release + '/%s', ''),
+    'codecov-tree':
+    ('https://codecov.io/gh/jonasblixt/punchboot/tree/' + release + '/%s', '')
+}
