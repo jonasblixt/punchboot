@@ -119,8 +119,11 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
     if (rc != PB_OK)
         return rc;
 
-    rc = dsa_verify(dsa_kind, sig, (uint8_t *) k->data, hash, sizeof(hash),
-                        &verified);
+    rc = dsa_verify(dsa_kind,
+                    sig, size,
+                    (uint8_t *) k->data, k->size,
+                    hash_kind, hash, sizeof(hash),
+                    &verified);
 
     if (rc == 0 && verified) {
         LOG_INFO("Authentication successful");
@@ -338,12 +341,15 @@ static int cmd_stream_read(void)
 
     rc = bio_read(block_dev, start_lba, stream_read->size, bfr);
     pb_wire_init_result(&result, error_to_wire(rc));
+    LOG_DBG("Result = %i", rc);
+
     cfg->tops.write((uintptr_t) &result, sizeof(result));
 
     if (rc == PB_OK) {
         rc = cfg->tops.write((uintptr_t) bfr, stream_read->size);
         pb_wire_init_result(&result, error_to_wire(rc));
     }
+    LOG_DBG("Data sent");
     return rc;
 }
 
@@ -548,10 +554,9 @@ static int cmd_boot_ram(void)
     struct pb_command_ram_boot *ram_boot_cmd = \
                        (struct pb_command_ram_boot *) &cmd.request;
 
-    if (ram_boot_cmd->verbose) {
-        LOG_INFO("Verbose boot enabled");
-        boot_clear_set_flags(0, BOOT_FLAG_VERBOSE);
-    }
+    boot_clear_set_flags(0,
+            BOOT_FLAG_CMD |
+            (ram_boot_cmd->verbose?BOOT_FLAG_VERBOSE:0));
 
     pb_wire_init_result(&result, PB_RESULT_OK);
     rc = cfg->tops.write((uintptr_t) &result, sizeof(result));
@@ -562,7 +567,6 @@ static int cmd_boot_ram(void)
     boot_set_source(BOOT_SOURCE_CB);
     boot_configure_load_cb(ram_boot_read_f,
                            ram_boot_result_f);
-
 
     return boot(ram_boot_cmd->uuid);
 }
@@ -598,7 +602,10 @@ static int cmd_stream_init(void)
     else
         pb_wire_init_result(&result, 0);
 
-    return block_dev;
+    if (block_dev < 0)
+        return block_dev;
+    else
+        return PB_OK;
 }
 
 static int cmd_stream_prep_buffer(void)
@@ -606,7 +613,6 @@ static int cmd_stream_prep_buffer(void)
     struct pb_command_stream_prepare_buffer *stream_prep = \
         (struct pb_command_stream_prepare_buffer *) cmd.request;
 
-    LOG_DBG("%p", stream_prep);
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
     if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KB*1024)) {
@@ -728,16 +734,21 @@ static int pb_command_parse(void)
         {
             struct pb_command_boot_part *boot_cmd = \
                 (struct pb_command_boot_part *) cmd.request;
-            pb_wire_init_result(&result, error_to_wire(rc));
 
-            cfg->tops.write((uintptr_t) &result, sizeof(result));
+
             boot_set_source(BOOT_SOURCE_BIO);
             boot_clear_set_flags(0,
                     BOOT_FLAG_CMD |
-                    boot_cmd->verbose?BOOT_FLAG_VERBOSE:0);
-            rc = boot(boot_cmd->uuid);
+                    (boot_cmd->verbose?BOOT_FLAG_VERBOSE:0));
+            rc = boot_load(boot_cmd->uuid);
 
-            /* Should not return */
+            pb_wire_init_result(&result, error_to_wire(rc));
+            cfg->tops.write((uintptr_t) &result, sizeof(result));
+
+            if (rc == PB_OK) {
+                rc = boot_jump();
+                /* Should not return */
+            }
             return rc;
         }
         break;
@@ -876,29 +887,33 @@ int cm_run(void)
     device_uuid(device_uu);
 
 restart_command_mode:
-    rc = cfg->tops.init();
+    if (cfg->tops.init) {
+        rc = cfg->tops.init();
 
-    if (rc != PB_OK) {
-        LOG_ERR("Transport init failed (%i)", rc);
-        return -PB_ERR_IO;
+        if (rc != PB_OK) {
+            LOG_ERR("Transport init failed (%i)", rc);
+            return -PB_ERR_IO;
+        }
     }
 
-    LOG_INFO("Waiting for transport to become ready...");
+    if (cfg->tops.connect) {
+        LOG_INFO("Waiting for transport to become ready...");
 
-    struct pb_timeout to;
-    pb_timeout_init_us(&to, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
+        struct pb_timeout to;
+        pb_timeout_init_us(&to, CONFIG_CM_TRANSPORT_READY_TIMEOUT * 1000000L);
 
-    do {
-        plat_wdog_kick();
-        rc = cfg->tops.connect();
-        if (pb_timeout_has_expired(&to)) {
-            rc = -PB_ERR_TIMEOUT;
-            break;
+        do {
+            plat_wdog_kick();
+            rc = cfg->tops.connect();
+            if (pb_timeout_has_expired(&to)) {
+                rc = -PB_ERR_TIMEOUT;
+                break;
+            }
+        } while (rc == -PB_ERR_AGAIN);
+
+        if (rc != PB_OK) {
+            goto err_out;
         }
-    } while (rc == -PB_ERR_AGAIN);
-
-    if (rc != PB_OK) {
-        goto err_out;
     }
 
     while (true) {

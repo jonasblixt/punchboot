@@ -69,7 +69,7 @@ int boot_set_boot_partition(uuid_t part_uu)
 {
     if (part_uu == NULL)
         return -PB_ERR_PARAM;
-    if (boot_cfg->set_boot_partition == NULL)
+    if (!boot_cfg || boot_cfg->set_boot_partition == NULL)
         return -PB_ERR_NOT_SUPPORTED;
 
     return boot_cfg->set_boot_partition(part_uu);
@@ -79,7 +79,7 @@ void boot_get_boot_partition(uuid_t part_uu)
 {
     if (part_uu == NULL)
         uuid_clear(part_uu);
-    if (boot_cfg->get_boot_partition == NULL)
+    if (!boot_cfg || boot_cfg->get_boot_partition == NULL)
         uuid_clear(part_uu);
 
     boot_cfg->get_boot_partition(part_uu);
@@ -227,9 +227,12 @@ static int load_auth_verify_from_cb(void)
     return rc;
 }
 
-int boot(uuid_t boot_part_override_uu)
+int boot_load(uuid_t boot_part_override_uu)
 {
     int rc;
+
+    if (!boot_cfg)
+        return -PB_ERR_PARAM;
 
     if (boot_cfg->jump == NULL) {
         rc = -PB_ERR_NOT_SUPPORTED;
@@ -283,19 +286,33 @@ int boot(uuid_t boot_part_override_uu)
         }
     }
 
+err_out:
+    boot_flags = 0;
+    return rc;
+}
+
+int boot_jump(void)
+{
+    int rc;
+
     ts("Boot late");
     if (boot_cfg->late_boot_cb) {
         rc = boot_cfg->late_boot_cb(&header, boot_part_uu);
         if (rc != PB_OK) {
-            goto err_out;
+            return rc;
         }
     }
 
     ts("Boot jump");
-
     boot_cfg->jump();
+}
 
-err_out:
-    boot_flags = 0;
-    return rc;
+int boot(uuid_t boot_part_override_uu)
+{
+    int rc;
+    rc = boot_load(boot_part_override_uu);
+    if (rc != PB_OK)
+        return rc;
+
+    return boot_jump();
 }

@@ -142,13 +142,17 @@ int boot_set_boot_partition(uuid_t part_uu);
 void boot_get_boot_partition(uuid_t part_uu);
 
 /**
- * Boot the system
+ * Boot the system. This fuction tries to load/auth and execute a boot image
  *
  * @param[in] boot_part_override_uu Optional partition UUID to boot.
  *  Set this to NULL for default behaviour.
  *
- * @return This function will not return if successful
+ * @return This function will not return on sucess
  */
 int boot(uuid_t boot_part_override_uu);
+
+
+int boot_load(uuid_t boot_part_override_uu);
+int boot_jump(void);
 
 #endif
