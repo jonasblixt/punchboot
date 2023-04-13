@@ -32,6 +32,7 @@
 #include <uuid.h>
 #include <libfdt.h>
 
+#include "partitions.h"
 #define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
                          (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
                          (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
@@ -65,18 +66,6 @@ struct fuse fuses[] =
     IMX8X_FUSE_ROW_VAL(19, "Bootconfig2" , 0x00000025),
     IMX8X_FUSE_END,
 };
-
-#define UUID_2af755d8_8de5_45d5_a862_014cfa735ce0 (const unsigned char *) "\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62\x01\x4c\xfa\x73\x5c\xe0"
-#define UUID_c046ccd8_0f2e_4036_984d_76c14dc73992 (const unsigned char *) "\xc0\x46\xcc\xd8\x0f\x2e\x40\x36\x98\x4d\x76\xc1\x4d\xc7\x39\x92"
-#define UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a (const unsigned char *) "\xc2\x84\x38\x7a\x33\x77\x4c\x0f\xb5\xdb\x1b\xcb\xcf\xf1\xba\x1a"
-#define UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb (const unsigned char *) "\xac\x6a\x1b\x62\x7b\xd0\x46\x0b\x9e\x6a\x9a\x78\x31\xcc\xbf\xbb"
-#define UUID_4581af22_99e6_4a94_b821_b60c42d74758 (const unsigned char *) "\x45\x81\xaf\x22\x99\xe6\x4a\x94\xb8\x21\xb6\x0c\x42\xd7\x47\x58"
-#define UUID_da2ca04f_a693_4284_b897_3906cfa1eb13 (const unsigned char *) "\xda\x2c\xa0\x4f\xa6\x93\x42\x84\xb8\x97\x39\x06\xcf\xa1\xeb\x13"
-#define UUID_23477731_7e33_403b_b836_899a0b1d55db (const unsigned char *) "\x23\x47\x77\x31\x7e\x33\x40\x3b\xb8\x36\x89\x9a\x0b\x1d\x55\xdb"
-#define UUID_6ffd077c_32df_49e7_b11e_845449bd8edd (const unsigned char *) "\x6f\xfd\x07\x7c\x32\xdf\x49\xe7\xb1\x1e\x84\x54\x49\xbd\x8e\xdd"
-#define UUID_9697399d_e2da_47d9_8eb5_88daea46da1b (const unsigned char *) "\x96\x97\x39\x9d\xe2\xda\x47\xd9\x8e\xb5\x88\xda\xea\x46\xda\x1b"
-#define UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa (const unsigned char *) "\xc5\xb8\xb4\x1c\x0f\xb5\x49\x4d\x8b\x0e\xeb\xa4\x00\xe0\x75\xfa"
-#define UUID_39792364_d3e3_4013_ac51_caaea65e4334 (const unsigned char *) "\x39\x79\x23\x64\xd3\xe3\x40\x13\xac\x51\xca\xae\xa6\x5e\x43\x34"
 
 static const struct gpt_part_table gpt_tbl[]=
 {
@@ -166,7 +155,6 @@ static const struct gpt_part_table gpt_tbl[]=
     },
 };
 
-
 const uint32_t rom_key_map[] =
 {
     0xa90f9680,
@@ -186,8 +174,8 @@ static int patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     } else {
         bootargs = "console=ttyLP0,115200 quiet ";
     }
-    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 
+    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 }
 
 static int usdhc_emmc_setup(struct imx8x_private *priv)
@@ -235,6 +223,10 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
             .width = MMC_BUS_WIDTH_8BIT,
             .card_type = MMC_CARD_TYPE_EMMC,
             .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
+            .boot0_uu = PART_boot0,
+            .boot1_uu = PART_boot1,
+            .user_uu = PART_user,
+            .rpmb_uu = PART_rpmb,
             .flags = 0,
         }
     };
@@ -242,12 +234,6 @@ static int usdhc_emmc_setup(struct imx8x_private *priv)
     return imx_usdhc_init(&cfg, rate);
 }
 
-/*
- * TODO:
- *  struct platform *plat;
- *
- *  struct imx8x_platform = container_of(plat, struct imx8x_platform, plat);
- */
 int board_early_init(void *plat)
 {
     struct imx8x_private *priv = IMX8X_PRIV(plat);
