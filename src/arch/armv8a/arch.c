@@ -1,6 +1,5 @@
-#include <stdio.h>
+#include <pb/pb.h>
 #include <pb/arch.h>
-#include <pb/io.h>
 #include <arch/armv8a/timer.h>
 #include <arch/arch_helpers.h>
 #include <platform_defs.h>

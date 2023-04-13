@@ -12,7 +12,6 @@
 #include <uuid.h>
 #include <libfdt.h>
 #include <pb/pb.h>
-#include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/fuse.h>
 #include <pb/board.h>

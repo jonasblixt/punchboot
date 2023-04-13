@@ -8,8 +8,7 @@
  */
 
 #include <pb/pb.h>
-#include <mmio.h>
-#include <utils_def.h>
+#include <pb/mmio.h>
 #include <drivers/usb/imx_usb2_phy.h>
 
 /* USBPHY_PWDn */

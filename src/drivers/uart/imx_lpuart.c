@@ -9,7 +9,7 @@
  *
  */
 
-#include <mmio.h>
+#include <pb/mmio.h>
 #include <drivers/uart/imx_lpuart.h>
 
 #define VERID    0x0
