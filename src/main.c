@@ -8,6 +8,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <pb/pb.h>
 #include <pb/arch.h>
 #include <pb/plat.h>
@@ -47,6 +48,15 @@ void main(void)
 enter_command_mode:
     printf("Boot aborted (%i), entering command mode\n\r", rc);
     ts_print();
+#ifdef CONFIG_CM
     cm_run();
+#endif
     plat_reset();
 }
+
+void exit(int reason)
+{
+    LOG_ERR("reason = %i", reason);
+    plat_reset();
+}
+
