@@ -1,6 +1,5 @@
 src-$(CONFIG_LIB_BPAK) += src/lib/bpak.c
 src-$(CONFIG_LIB_ZLIB_CRC) += src/lib/crc.c
-src-$(CONFIG_LIB_FLETCHER8) += src/lib/fletcher.c
 src-$(CONFIG_LIB_DER_HELPERS) += src/lib/der_helpers.c
 
 # C standard library functions
