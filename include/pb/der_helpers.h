@@ -21,7 +21,7 @@
  *        -PB_ERR_ASN1 Decoding errors
  *        -PB_ERR_BUFFER_TOO_SMALL, if output buffers are too small
  */
-int der_ecsig_to_rs(uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
+int der_ecsig_to_rs(const uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
                     bool suppress_leading_zero);
 
 /**
@@ -37,7 +37,7 @@ int der_ecsig_to_rs(uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
  *        -PB_ERR_BUFFER_TOO_SMALL on output buffer too small
  *        -PB_ERR_NOT_SUPPORTED, on un-supported key types
  */
-int der_ec_public_key_data(uint8_t *pub_key_der,
+int der_ec_public_key_data(const uint8_t *pub_key_der,
                            uint8_t *output,
                            size_t output_length,
                            dsa_t *key_kind);

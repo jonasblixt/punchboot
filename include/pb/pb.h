@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <inttypes.h>
 #include <config.h>
 #include <pb/errors.h>
 #include <pb/utils_def.h>

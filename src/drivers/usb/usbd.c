@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/utils_def.h>
 #include <drivers/usb/usbd.h>
 

@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pb/fuse.h>
 #include <pb/plat.h>
 #include <pb/cm.h>
 #include <pb/rot.h>

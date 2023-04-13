@@ -1,8 +1,13 @@
 menu "Uart"
 
 config DRIVERS_IMX_LPUART
-    bool "lpuart"
+    bool "i.MX lpuart"
     depends on SOC_FAMILY_IMX
-    default y
+    default n
+
+config DRIVERS_IMX_UART
+    bool "i.MX uart"
+    depends on SOC_FAMILY_IMX
+    default n
 
 endmenu

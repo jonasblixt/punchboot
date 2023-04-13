@@ -14,7 +14,6 @@
 #include <pb/gpt.h>
 #include <pb/image.h>
 #include <pb/boot.h>
-#include <pb/fuse.h>
 #include <plat/imx6ul/plat.h>
 #include <plat/defs.h>
 #include <plat/regs.h>

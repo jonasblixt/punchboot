@@ -1,18 +1,18 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#ifndef PLAT_IMX_HAB_H_
-#define PLAT_IMX_HAB_H_
+#ifndef INCLUDE_PLAT_IMX6UL_HAB_H
+#define INCLUDE_PLAT_IMX6UL_HAB_H
 
-#include <pb/pb.h>
 #include <stdint.h>
-#include <plat/regs.h>
+#include <pb/pb.h>
+
 /*
  * IVT header definitions
  * Security Reference Manual for i.MX 7Dual and 7Solo Applications Processors,
@@ -178,9 +178,7 @@ typedef void hapi_clock_init_t(void);
 #define IVT_SIZE            0x20
 #define CSF_PAD_SIZE            0x2000
 
-
-
 int hab_secureboot_active(bool *result);
 int hab_has_no_errors(void);
 
-#endif  // PLAT_IMX_HAB_H_
+#endif

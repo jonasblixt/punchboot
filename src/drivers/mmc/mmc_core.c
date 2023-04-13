@@ -38,7 +38,7 @@ static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
-static uint8_t mmc_tuning_rsp[128] PB_ALIGN(16);
+static uint8_t mmc_tuning_rsp[128] __aligned(16);
 static const uint8_t tuning_blk_pattern_4bit[] = {
     0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
     0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
@@ -491,12 +491,12 @@ static int mmc_setup(void)
 
     memcpy(&mmc_csd, &resp_data, sizeof(resp_data));
 
-/*
+
     LOG_DBG("csd0: %x", resp_data[0]);
     LOG_DBG("csd1: %x", resp_data[1]);
     LOG_DBG("csd2: %x", resp_data[2]);
     LOG_DBG("csd3: %x", resp_data[3]);
-*/
+
     /* CMD7: Select Card */
     rc = mmc_send_cmd(MMC_CMD_SELECT_CARD, rca << RCA_SHIFT_OFFSET,
                MMC_RSP_R1, NULL);

@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -11,15 +10,12 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <pb/pb.h>
-#include <pb/io.h>
-#include <plat/imx/hab.h>
-#include <plat/imx/ocotp.h>
+#include <plat/imx6ul/hab.h>
+#include <drivers/fuse/imx_ocotp.h>
+#include <platform_defs.h>
 
 #define IS_HAB_ENABLED_BIT 0x02
 static uint8_t _event_data[128];
-
-
-
 
 #define MAX_RECORD_BYTES     (8*1024) /* 4 kbytes */
 
@@ -53,16 +49,14 @@ int hab_secureboot_active(bool *result)
 
     (*result) = false;
 
-    ret = ocotp_read(0, 6, &reg);
+    ret = imx_ocotp_read(0, 6, &reg);
 
-    if (ret != PB_OK)
-    {
+    if (ret != PB_OK) {
         LOG_ERR("Secure boot fuse read error");
-        return -PB_ERR;
+        return -PB_ERR_IO;
     }
 
-    if ((reg & IS_HAB_ENABLED_BIT) == IS_HAB_ENABLED_BIT)
-    {
+    if ((reg & IS_HAB_ENABLED_BIT) == IS_HAB_ENABLED_BIT) {
         (*result) = true;
     }
 
@@ -118,6 +112,6 @@ int hab_has_no_errors(void)
         index++;
     }
 
-    return (result == HAB_SUCCESS)?PB_OK:PB_ERR;
+    return (result == HAB_SUCCESS)?PB_OK:-PB_ERR;
 }
 
