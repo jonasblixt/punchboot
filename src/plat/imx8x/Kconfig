@@ -15,6 +15,15 @@ endchoice
 config IMX8X_CONSOLE_BAUDRATE
     int "Baudrate"
     default 115200
+
+config IMX8X_FUSE_DRY_RUN
+    bool "Fusebox dry run"
+    default n
+    depends on PLAT_IMX8X
+    help
+    Enabling this option will inhibit fuse programming and instead writing
+    the fuse bank and value to the console.
+
 endmenu
 
 menu "Output image"
@@ -27,6 +36,5 @@ config IMX8X_SIGN_IMAGE
     bool "Sign image"
     default n
     depends on IMX8X_CREATE_IMX_IMAGE
+
 endmenu
-
-
