@@ -289,6 +289,7 @@ static int gpt_write_tbl(bio_dev_t dev)
 static int gpt_install_partition_table(bio_dev_t dev, int variant)
 {
     int rc;
+    int part_idx = 0;
     uuid_t part_guid;
 
     rc = gpt_init_tbl(dev);
@@ -305,7 +306,7 @@ static int gpt_install_partition_table(bio_dev_t dev, int variant)
         LOG_DBG("Add: %s", ent->description);
         uuid_to_guid(ent->uu, part_guid);
 
-        rc = gpt_add_part(n,
+        rc = gpt_add_part(part_idx++,
                           ent->size / bio_block_size(dev),
                           part_guid,
                           ent->description);
