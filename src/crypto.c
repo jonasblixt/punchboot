@@ -110,8 +110,100 @@ int dsa_add_ops(const struct dsa_ops *ops)
 
 void hash_print(const char *prefix, uint8_t *digest, size_t length)
 {
-    printf("%s", prefix);
+    printf("%s ", prefix);
     for (size_t i = 0; i < length; i++)
         printf("%02x", digest[i]);
     printf("\n\r");
 }
+
+#ifdef CONFIG_SELF_TEST
+static const char abcdpq[] = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
+
+static const uint8_t sha256_empty[] = "\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9\x24\x27\xae\x41\xe4\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55";
+static const uint8_t sha256_abc[]   = "\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23\xb0\x03\x61\xa3\x96\x17\x7a\x9c\xb4\x10\xff\x61\xf2\x00\x15\xad";
+static const uint8_t sha256_abcdpq[] = "\x24\x8d\x6a\x61\xd2\x06\x38\xb8\xe5\xc0\x26\x93\x0c\x3e\x60\x39\xa3\x3c\xe4\x59\x64\xff\x21\x67\xf6\xec\xed\xd4\x19\xdb\x06\xc1";
+static const uint8_t sha256_1Ma[] = "\xcd\xc7\x6e\x5c\x99\x14\xfb\x92\x81\xa1\xc7\xe2\x84\xd7\x3e\x67\xf1\x80\x9a\x48\xa4\x97\x20\x0e\x04\x6d\x39\xcc\xc7\x11\x2c\xd0";
+
+DECLARE_SELF_TEST(crypto_test_sha256)
+{
+    uint8_t hash_output[32];
+    hash_init(HASH_SHA256);
+    hash_final(hash_output, sizeof(hash_output));
+
+    if (memcmp(hash_output, sha256_empty, 32) != 0) {
+        LOG_ERR("Failed");
+        hash_print("Expected", (uint8_t *) sha256_empty, 32);
+        hash_print("Output", hash_output, 32);
+        return -1;
+    }
+
+    return 0;
+}
+
+DECLARE_SELF_TEST(crypto_test_sha256_abc)
+{
+    uint8_t hash_output[32];
+    hash_init(HASH_SHA256);
+    hash_update((uintptr_t) "abc", 3);
+    hash_final(hash_output, sizeof(hash_output));
+
+    if (memcmp(hash_output, sha256_abc, 32) != 0) {
+        LOG_ERR("Failed");
+        hash_print("Expected", (uint8_t *) sha256_abc, 32);
+        hash_print("Output", hash_output, 32);
+        return -1;
+    }
+
+    return 0;
+}
+
+DECLARE_SELF_TEST(crypto_test_sha256_abcdpq)
+{
+    uint8_t hash_output[32];
+    hash_init(HASH_SHA256);
+    hash_update((uintptr_t) abcdpq, strlen(abcdpq));
+    hash_final(hash_output, sizeof(hash_output));
+
+    if (memcmp(hash_output, sha256_abcdpq, 32) != 0) {
+        LOG_ERR("Failed");
+        hash_print("Expected", (uint8_t *) sha256_abcdpq, 32);
+        hash_print("Output", hash_output, 32);
+        return -1;
+    }
+
+    return 0;
+}
+
+// TODO: Currently imx_caam expects input buffers to be aligned for
+// update function. In normal usage it's a good idea to have at least
+// cache block size aligned buffers, but it should work anyway.
+static uint8_t hash_test_buf[1000] __aligned(64);
+
+DECLARE_SELF_TEST(crypto_test_sha256_1Ma)
+{
+    int rc;
+    uint8_t hash_output[32];
+
+    /* Test 1M 'a' */
+    memset(hash_test_buf, 'a', 1000);
+    hash_init(HASH_SHA256);
+
+    for (int n = 0; n < 1000; n++) {
+        rc = hash_update((uintptr_t) hash_test_buf, 1000);
+        if (rc != 0) {
+            return rc;
+        }
+    }
+    hash_final(hash_output, sizeof(hash_output));
+
+    if (memcmp(hash_output, sha256_1Ma, 32) != 0) {
+        LOG_ERR("Failed");
+        hash_print("Expected", (uint8_t *) sha256_1Ma, 32);
+        hash_print("Output", hash_output, 32);
+        return -1;
+    }
+
+    return 0;
+}
+
+#endif
