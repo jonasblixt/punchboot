@@ -256,74 +256,21 @@ int board_early_init(void *plat)
     if (user_part < 0)
         return user_part;
 
-    /* Default flags for user eMMC user partition, these  will
-     * be inherited when/if a valid GPT partition table is found
-     */
-    bio_set_flags(user_part, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
-
     rc = gpt_ptbl_init(user_part, gpt_tbl);
 
     if (rc != PB_OK) {
         LOG_ERR("GPT ptbl init failed (%i)", rc);
-        return rc;
     }
 
-    /* Clear all flags on user partition, since we don't want to expose the user
-     * partition over the command mode interface
-     */
-    bio_set_flags(user_part, 0);
+    /* eMMC User partition now only has the visible flag to report capacity */
+    bio_set_flags(user_part, BIO_FLAG_VISIBLE);
 
-    bio_dev_t boot0 = bio_get_part_by_uu(UUID_9eef7544_bf68_4bf7_8678_da117cbccba8);
-    bio_dev_t boot1 = bio_get_part_by_uu(UUID_4ee31690_0c9b_4d56_a6a6_e6d6ecfd4d54);
-
-    if (boot0 >= 0)
-        bio_set_flags(boot0, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
-    if (boot1 > 0)
-        bio_set_flags(boot1, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE);
     bio_dev_t sys_a = bio_get_part_by_uu(UUID_2af755d8_8de5_45d5_a862_014cfa735ce0);
-    bio_set_flags(sys_a, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE);
+    bio_clear_set_flags(sys_a, 0, BIO_FLAG_BOOTABLE);
 
     bio_dev_t sys_b = bio_get_part_by_uu(UUID_c046ccd8_0f2e_4036_984d_76c14dc73992);
-    bio_set_flags(sys_b, BIO_FLAG_VISIBLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE);
-#ifdef __NOPE
-    bio_dev_t root_a = bio_get_part_by_uu_str("c284387a-3377-4c0f-b5db-1bcbcff1ba1a");
+    bio_clear_set_flags(sys_b, 0, BIO_FLAG_BOOTABLE);
 
-    if (root_a < 0) {
-        LOG_ERR("Could not get root a part (%i)", root_a);
-        return root_a;
-    }
-
-    printf("\n\r--- Read test ---\n\r");
-    for (int i = 0; i < 15; i++) {
-        unsigned int ts_start = plat_get_us_tick();
-        const size_t bytes_to_read = SZ_MB(256);
-        rc = bio_read(root_a, 0, bytes_to_read, 0xa5000000);
-        if (rc == 0) {
-            unsigned int ts_end = plat_get_us_tick();
-            printf("~%li MB/s\n\r", bytes_to_read / (ts_end-ts_start));
-        } else {
-            printf("Read failed (%i)\n\r", rc);
-            break;
-        }
-    }
-
-    printf("\n\r--- Bpak Header test ---\n\r");
-    struct bpak_header hdr;
-    int lba = (bio_size(root_a) - sizeof(struct bpak_header)) / bio_block_size(root_a);
-    bio_read(root_a, lba, sizeof(struct bpak_header), (uintptr_t) &hdr);
-
-    if (bpak_valid_header(&hdr) == BPAK_OK) {
-        LOG_DBG("Read valid BPAK header from block device %i (%s)",
-                    root_a, bio_get_description(root_a));
-    } else {
-        LOG_ERR("Bad magic: 0x%08x on %i (%s)", hdr.magic, root_a, bio_get_description(root_a));
-    }
-
-    printf("\n\rTrying to read beyond the end of the partition\n\r");
-
-    rc = bio_read(root_a, bio_size(root_a) / 512 - 1, 513, (uintptr_t) &hdr);
-    LOG_DBG("%i", rc);
-#endif
     return PB_OK;
 }
 
@@ -414,85 +361,7 @@ int board_status(void *plat,
 #ifdef CONFIG_AUTH_METHOD_PASSWORD
 int board_command_mode_auth(char *password, size_t length)
 {
-    int rc;
-    bool authenticated = false;
-    struct pb_storage_map *rpmb_map;
-    struct pb_storage_driver *rpmb_drv;
-    uint8_t secret[512];
-    uint8_t hash[PB_HASH_MAX_LENGTH];
-    uuid_t rpmb_uu;
-
-    uuid_parse("8d75d8b9-b169-4de6-bee0-48abdc95c408", rpmb_uu);
-
-    rc = pb_storage_get_part(rpmb_uu, &rpmb_map, &rpmb_drv);
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("Could not find partition");
-        goto err_out;
-    }
-
-    rc = rpmb_drv->map_request(rpmb_drv, rpmb_map);
-
-    if (rc != PB_OK) {
-        LOG_ERR("map_request failed");
-        goto err_out;
-    }
-
-    rc = pb_storage_read(rpmb_drv, rpmb_map, secret, 1, 0);
-
-    if (rc != PB_OK)
-    {
-        LOG_ERR("RPMB Read failed");
-        goto err_release_out;
-    }
-
-    printf("RPMB sha256: ");
-    for (int i = 0; i < 32; i++) {
-        printf("%02x", secret[i] & 0xFF);
-    }
-    printf("\n\r");
-
-    rc = plat_hash_init(PB_HASH_SHA256);
-
-    if (rc != PB_OK) {
-        goto err_release_out;
-    }
-
-    rc = plat_hash_update(password, length);
-
-    if (rc != PB_OK) {
-        goto err_release_out;
-    }
-
-    rc = plat_hash_out(hash, sizeof(hash));
-
-    if (rc != PB_OK) {
-        goto err_release_out;
-    }
-
-    if (memcmp(secret, hash, length) == 0) {
-        LOG_DBG("Password auth: Success");
-        authenticated = true;
-    } else {
-        LOG_DBG("Password auth: Failed");
-        authenticated = false;
-    }
-
-err_release_out:
-    rc = rpmb_drv->map_release(rpmb_drv, rpmb_map);
-
-    if (rc != PB_OK) {
-        LOG_ERR("map_release failed");
-        return rc;
-    }
-
-err_out:
-    if ((rc == PB_OK) && (authenticated == true)) {
-        return PB_OK;
-    } else {
-        return -PB_ERR;
-    }
+    return -PB_ERR_NOT_SUPPORTED;
 }
 #endif  // CONFIG_AUTH_METHOD_PASSWORD
 
