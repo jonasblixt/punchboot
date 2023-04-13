@@ -25,22 +25,22 @@
  * \def BIO_FLAG_BOOTABLE
  * This is an acceptable boot device
  *
- * \dev BIO_FLAG_RFU0
+ * \def BIO_FLAG_RFU0
  * Reserved for future use
  *
- * \dev BIO_FLAG_WRITEABLE
+ * \def BIO_FLAG_WRITEABLE
  * Write access
  *
- * \dev BIO_FLAG_RFU1
+ * \def BIO_FLAG_RFU1
  * Reserved for future use
  *
- * \dev BIO_FLAG_RFU2
+ * \def BIO_FLAG_RFU2
  * Reserved for future use
  *
- * \dev BIO_FLAG_VISIBLE
+ * \def BIO_FLAG_VISIBLE
  * Block device is visible
  *
- * \dev BIO_FLAG_READABLE
+ * \def BIO_FLAG_READABLE
  * Read access
  */
 
@@ -75,8 +75,8 @@ typedef int (*bio_call_t)(bio_dev_t dev, int param);
  * @param[in] uu Device UUID
  * @param[in] description String description of device
  *
- * @return A new block device handle on success
- *         -PB_ERR_MEM, When the block device pool is full
+ * @return A new block device handle on success,
+ *         -PB_ERR_MEM, When the block device pool is full,
  *         -PB_ERR_PARAM, On invalid lba's or block_size
  */
 bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
@@ -94,9 +94,9 @@ bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
  * @param[in] uu Device UUID
  * @param[in] description String description of device
  *
- * @return A new block device handle on success
- *         -PB_ERR_IO, On invalid parent device
- *         -PB_ERR_MEM, When the block device pool is full
+ * @return A new block device handle on success,
+ *         -PB_ERR_IO, On invalid parent device,
+ *         -PB_ERR_MEM, When the block device pool is full,
  *         -PB_ERR_PARAM, On invalid lba's or block_size
  */
 bio_dev_t bio_allocate_parent(bio_dev_t parent,
@@ -118,7 +118,7 @@ bool bio_valid(bio_dev_t dev);
  *
  * @param[in] uu Block device UUID
  *
- * @return Block device handle on success
+ * @return Block device handle on success,
  *         -PB_ERR_NOT_FOUND, If not device was found
  */
 bio_dev_t bio_get_part_by_uu(const uuid_t uu);
@@ -128,8 +128,8 @@ bio_dev_t bio_get_part_by_uu(const uuid_t uu);
  *
  * @param[in] uu_str Block device UUID string
  *
- * @return Block device handle on success
- *         -PB_ERR_NOT_FOUND, If not device was found
+ * @return Block device handle on success,
+ *         -PB_ERR_NOT_FOUND, If not device was found,
  *         -PB_ERR_PARAM, Bad UUID string
  */
 bio_dev_t bio_get_part_by_uu_str(const char *uu_str);
@@ -194,7 +194,7 @@ int bio_get_hal_flags(bio_dev_t dev);
  * @param[in] dev Block device handle
  * @param[in] flags Bit flags to set
  *
- * @return PB_OK, on success
+ * @return PB_OK, on success,
  *        -PB_ERR_PARAM, on bad device handle
  */
 int bio_set_hal_flags(bio_dev_t dev, uint8_t flags);
@@ -215,7 +215,7 @@ int bio_get_flags(bio_dev_t dev);
  * @param[in] dev Block device handle
  * @param[in] flags Flags to set
  *
- * @return PB_OK, on success
+ * @return PB_OK, on success,
  *        -PB_ERR_PARAM, on bad device handle
  */
 int bio_set_flags(bio_dev_t dev, uint16_t flags);
@@ -227,7 +227,7 @@ int bio_set_flags(bio_dev_t dev, uint16_t flags);
  * @param[in] clear_flags Flags to clear
  * @param[in] set_flags Flags to set
  *
- * @return PB_OK, on success
+ * @return PB_OK, on success,
  *        -PB_ERR_PARAM, on bad device handle
  */
 int bio_clear_set_flags(bio_dev_t dev, uint16_t clear_flags, uint16_t set_flags);
@@ -247,7 +247,7 @@ const unsigned char * bio_get_uu(bio_dev_t dev);
  *
  * @param[in] dev Block device handle
  *
- * @return First lba, on success
+ * @return First lba, on success,
  *         -PB_ERR_PARAM, on bad device handle
  */
 int bio_get_first_block(bio_dev_t dev);
@@ -270,9 +270,9 @@ int bio_get_last_block(bio_dev_t dev);
  * @param[in] length Length in bytes
  * @param[out] buf Output buffer
  *
- * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying read function
- *         -PB_ERR_PARAM, lba and/or length is out of range
- *         -PB_ERR_IO, Driver I/O errors
+ * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying read function,
+ *         -PB_ERR_PARAM, lba and/or length is out of range,
+ *         -PB_ERR_IO, Driver I/O errors,
  *         -PB_TIMEOUT, Driver timeouts
  */
 int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
@@ -299,9 +299,9 @@ int bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
  * @param[in] configuration_index Optional configuration/variant
  *
  * @return PB_OK, on success
- *         -PB_ERR_PARAM, on bad device handle / uuid
- *         -PB_ERR_NOT_SUPPORTED, if there is no callback
- *         -PB_ERR_IO, Driver I/O errors
+ *         -PB_ERR_PARAM, on bad device handle / uuid,
+ *         -PB_ERR_NOT_SUPPORTED, if there is no callback,
+ *         -PB_ERR_IO, Driver I/O errors,
  *         -PB_TIMEOUT, Driver timeouts
  */
 int bio_install_partition_table(uuid_t part_uu, int variant);
@@ -312,7 +312,7 @@ int bio_install_partition_table(uuid_t part_uu, int variant);
  * @param[in] dev Block device handle
  * @param[in] cb Callback function
  *
- * @return PB_OK, on success
+ * @return PB_OK, on success,
  *        -PB_ERR_PARAM, on bad device device handle
  */
 int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb);

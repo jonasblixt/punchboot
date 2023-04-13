@@ -1,4 +1,6 @@
 /**
+ * \file crypto.h
+ *
  * Punch BOOT
  *
  * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
@@ -15,6 +17,10 @@
 #include <stddef.h>
 #include <pb/utils_def.h>
 
+/**
+ * \def CRYPTO_MD_MAX_SZ
+ * Largest message digest in bytes
+ */
 #define CRYPTO_MD_MAX_SZ 64
 
 typedef uint32_t hash_t;
@@ -32,13 +38,21 @@ typedef uint32_t key_id_t;
 #define DSA_EC_SECP521r1 BIT(2)
 
 struct hash_ops {
-    const char *name;
-    uint32_t alg_bits;
-    int (*init)(hash_t alg);
-    int (*update)(uintptr_t buf, size_t length);
+    const char *name; /*!< Name of hash op's provider */
+    uint32_t alg_bits; /*!< Bit field that indicates supported algs */
+    int (*init)(hash_t alg); /*!< Hash init call back */
+    int (*update)(uintptr_t buf, size_t length); /*!< Hash update callback */
     int (*update_async)(uintptr_t buf, size_t length);
-    int (*copy_update)(uintptr_t src, uintptr_t dest, size_t length);
+    /*!< Optional asynchronous update callback. The implementation is expected
+     * to queue/prepare an hash update and block if it's called again, until
+     * the current operation is completed */
+    int (*copy_update)(uintptr_t src,
+                       uintptr_t dest,
+                       size_t length);
+    /*!< Optional copy and update. This function will simultaiously copy and
+     * hash data */
     int (*final)(uint8_t *digest_out, size_t length);
+    /*!< Finialize and output message digest */
 };
 
 struct dsa_ops {
@@ -53,7 +67,7 @@ struct dsa_ops {
 /**
  * param[in] alg Hashing algorithm to use
  *
- * @return PB_OK on success
+ * @return PB_OK on success,
  *        -PB_ERR_PARAM, on invalid hash alg
  */
 int hash_init(hash_t alg);
