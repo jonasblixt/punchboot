@@ -379,6 +379,7 @@ static int caam_hash_update(uintptr_t buf, size_t length)
 
     /* We have less then 'block_size' bytes available, fill the buffer */
     if (caam.hash_align_buf_len + bytes_to_process < caam.block_size) {
+        //LOG_DBG("Fill1 %zu, %zu", caam.hash_align_buf_len, bytes_to_process);
         memcpy(&caam.hash_align_buf[caam.hash_align_buf_len],
                buf_p,
                bytes_to_process);
@@ -390,8 +391,8 @@ static int caam_hash_update(uintptr_t buf, size_t length)
         /* If there already is data in the buffer we need to append
          * the input data to fill the buffer up to 'block_size' */
         if (caam.hash_align_buf_len > 0) {
-            bytes_to_copy = caam.hash_align_buf_len - caam.block_size;
-
+            bytes_to_copy = caam.block_size - caam.hash_align_buf_len;
+            //LOG_DBG("Fill2 %zu, %zu", caam.hash_align_buf_len, bytes_to_copy);
             memcpy(&caam.hash_align_buf[caam.hash_align_buf_len],
                    buf_p,
                    bytes_to_copy);
@@ -428,6 +429,7 @@ static int caam_hash_update(uintptr_t buf, size_t length)
             /* Any remaining data is not block aligned and will fit
              *  in the alignment buffer */
             if (bytes_to_process > 0) {
+                //LOG_DBG("Fill3 %zu, %zu", caam.hash_align_buf_len, bytes_to_process);
                 memcpy(&caam.hash_align_buf[caam.hash_align_buf_len],
                        buf_p,
                        bytes_to_process);
