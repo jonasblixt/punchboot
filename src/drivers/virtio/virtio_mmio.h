@@ -32,8 +32,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PLAT_TEST_VIRTIO_MMIO_H_
-#define PLAT_TEST_VIRTIO_MMIO_H_
+#ifndef DRIVERS_VIRTIO_MMIO_H
+#define DRIVERS_VIRTIO_MMIO_H
 
 /*
  * Control registers
@@ -65,14 +65,12 @@
 /* Activated features set selector - Write Only */
 #define VIRTIO_MMIO_DRIVER_FEATURES_SEL    0x024
 
-
 #ifndef VIRTIO_MMIO_NO_LEGACY /* LEGACY DEVICES ONLY! */
 
 /* Guest's memory page size in bytes - Write Only */
 #define VIRTIO_MMIO_GUEST_PAGE_SIZE    0x028
 
 #endif
-
 
 /* Queue selector - Write Only */
 #define VIRTIO_MMIO_QUEUE_SEL        0x030
@@ -83,7 +81,6 @@
 /* Queue size for the currently selected queue - Write Only */
 #define VIRTIO_MMIO_QUEUE_NUM        0x038
 
-
 #ifndef VIRTIO_MMIO_NO_LEGACY /* LEGACY DEVICES ONLY! */
 
 /* Used Ring alignment for the currently selected queue - Write Only */
@@ -93,7 +90,6 @@
 #define VIRTIO_MMIO_QUEUE_PFN        0x040
 
 #endif
-
 
 /* Ready bit for the currently selected queue - Read Write */
 #define VIRTIO_MMIO_QUEUE_READY        0x044
@@ -138,4 +134,10 @@
 #define VIRTIO_MMIO_INT_VRING        (1 << 0)
 #define VIRTIO_MMIO_INT_CONFIG        (1 << 1)
 
-#endif  // PLAT_TEST_VIRTIO_MMIO_H_
+#define VIRTIO_STATUS_ACKNOWLEDGE 1
+#define VIRTIO_STATUS_DRIVER      2
+#define VIRTIO_STATUS_FEATURES_OK 8
+#define VIRTIO_STATUS_DRIVER_OK   4
+#define VIRTIO_STATUS_FAILED      128
+
+#endif  // DRIVERS_VIRTIO_MMIO_H

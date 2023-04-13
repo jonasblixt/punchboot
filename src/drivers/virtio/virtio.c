@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -9,42 +9,65 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/board.h>
-#include <pb/io.h>
-#include "virtio.h"
+#include <pb/mmio.h>
+#include <drivers/virtio/virtio.h>
 #include "virtio_mmio.h"
 #include "virtio_queue.h"
 
-uint32_t virtio_mmio_init(struct virtio_device *d)
+#define VIRTIO_STATUS_ACKNOWLEDGE 1
+#define VIRTIO_STATUS_DRIVER      2
+#define VIRTIO_STATUS_FEATURES_OK 8
+#define VIRTIO_STATUS_DRIVER_OK   4
+#define VIRTIO_STATUS_FAILED      128
+
+struct virtio_device {
+    uint32_t base;
+    uint32_t device_id;
+    uint32_t vendor_id;
+    uint32_t version;
+    uint32_t status;
+};
+
+static struct virtio_device devs[CONFIG_DRIVER_VIRTIO_MAX_DEVICES];
+static size_t no_of_devices;
+
+virtio_dev_t virtio_mmio_alloc(uintptr_t base)
 {
-    if ((pb_read32(d->base + VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976))
-    {
-        LOG_ERR("Magic error %x", d->base);
-        return PB_ERR;
+    virtio_dev_t new_dev = -1;
+    struct virtio_device *d;
+    uint32_t magic;
+
+    if (no_of_devices >= CONFIG_DRIVER_VIRTIO_MAX_DEVICES)
+        return -PB_ERR_MEM;
+
+    magic = mmio_read_32(base + VIRTIO_MMIO_MAGIC_VALUE);
+    if (magic != 0x74726976) {
+        LOG_ERR("Bad magic (%x) base: %"PRIxPTR, magic, base);
+        return -PB_ERR_IO;
     }
 
-    if ((pb_read32(d->base + VIRTIO_MMIO_DEVICE_ID) != d->device_id))
-        return PB_ERR;
+    new_dev = no_of_devices++;
+    d = &devs[new_dev];
+    d->base = base;
 
-    if ((pb_read32(d->base + VIRTIO_MMIO_VENDOR_ID) != d->vendor_id))
-        return PB_ERR;
+    d->device_id = mmio_read_32(d->base + VIRTIO_MMIO_DEVICE_ID);
+    d->vendor_id = mmio_read_32(d->base + VIRTIO_MMIO_DEVICE_ID);
+    d->version = mmio_read_32(d->base + VIRTIO_MMIO_VERSION);
 
     LOG_INFO("Found VIRTIO @ 0x%08x, type: 0x%02x, vendor: 0x%08x, version: %u",
                 d->base,
-                pb_read32(d->base + VIRTIO_MMIO_DEVICE_ID),
-                pb_read32(d->base + VIRTIO_MMIO_VENDOR_ID),
-                pb_read32(d->base + VIRTIO_MMIO_VERSION));
-
+                d->device_id,
+                d->vendor_id,
+                d->version);
 
     d->status = 0;
-    pb_write32(d->status , (d->base + VIRTIO_MMIO_STATUS));
+    mmio_write_32(d->base + VIRTIO_MMIO_STATUS, d->status);
     d->status |= (VIRTIO_STATUS_ACKNOWLEDGE | VIRTIO_STATUS_DRIVER);
-    pb_write32(d->status , (d->base + VIRTIO_MMIO_STATUS));
+    mmio_write_32(d->base + VIRTIO_MMIO_STATUS, d->status);
+    mmio_write_32(d->base + VIRTIO_MMIO_GUEST_PAGE_SIZE, 4096);
 
-    pb_write32(4096, d->base + VIRTIO_MMIO_GUEST_PAGE_SIZE);
-
-    return PB_OK;
+    return new_dev;
 }
-
 
 uint32_t virtio_mmio_get_features(struct virtio_device *d)
 {
@@ -89,7 +112,6 @@ uint32_t virtio_mmio_init_queue(struct virtio_device *d,
         return PB_ERR;
 
     pb_write32(queue_sz, d->base + VIRTIO_MMIO_QUEUE_NUM);
-    pb_write32(4096, d->base + VIRTIO_MMIO_QUEUE_ALIGN);
     pb_write32((((uint32_t) q->desc) >> 12),
                     d->base + VIRTIO_MMIO_QUEUE_PFN);
 

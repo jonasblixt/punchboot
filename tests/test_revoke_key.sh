@@ -4,7 +4,7 @@ sync
 touch /tmp/pb_force_command_mode
 source tests/common.sh
 wait_for_qemu_start
-$PB part --install --transport socket
+$PB part --install --part 1eacedf3-3790-48c7-8ed8-9188ff49672b --transport socket
 $PB dev --reset --transport socket
 echo "Waiting for reset"
 wait_for_qemu
@@ -51,7 +51,7 @@ $PB auth --token tests/02e49231-756e-35ee-a982-378e5ba866a9.token \
          --key-id 0xa90f9680 --transport socket
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 242 ];
 then
     echo "Auth step2 failed $result_code"
     test_end_error

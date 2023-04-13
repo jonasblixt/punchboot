@@ -11,10 +11,7 @@
 
 MEMORY
 {
-    ocram (rx)  : ORIGIN = 0x908000, LENGTH = 64K
-    pbram (rx)  : ORIGIN = 0x40000000, LENGTH = 1M
-    pbram2 (rx) : ORIGIN = 0x40100000, LENGTH = 16M
-    dram (rx)   : ORIGIN = 0x41100000, LENGTH = 200M
+    ram (rx)  : ORIGIN = 0x40000000, LENGTH = 32M
 }
 
 
@@ -29,7 +26,7 @@ SECTIONS
         PROVIDE(__init_array_end = .);
         . = ALIGN(4096);
         PROVIDE(__init_array_end2 = .); /* Align to page, for mmu mapping */
-    } > dram
+    } > ram
 
 	. = ALIGN(8);
 
@@ -42,5 +39,5 @@ SECTIONS
         PROVIDE(__fini_array_end = .);
         . = ALIGN(4096);
         PROVIDE(__fini_array_end2 = .);
-    } > dram
+    } > ram
 }

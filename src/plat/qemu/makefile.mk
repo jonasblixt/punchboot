@@ -14,17 +14,10 @@ cflags-y += -mtune=cortex-a15 -I src/plat/qemu/include
 
 src-y  += src/plat/qemu/uart.c
 src-y  += src/plat/qemu/reset.c
-src-y  += src/plat/qemu/pl061.c
 src-y  += src/plat/qemu/semihosting.c
 src-y  += src/plat/qemu/wdog.c
 src-y  += src/plat/qemu/plat.c
-src-y  += src/plat/qemu/virtio.c
-src-y  += src/plat/qemu/virtio_serial.c
-src-y  += src/plat/qemu/virtio_block.c
-src-y  += src/plat/qemu/fuse.c
-src-y  += src/plat/qemu/root_hash.c
-src-y  += src/plat/qemu/transport.c
-src-y  += src/plat/qemu/crypto.c
+#src-y  += src/plat/qemu/transport.c
 
 asm-y += src/plat/qemu/semihosting_call.S
 
@@ -39,7 +32,7 @@ QEMU_FLAGS  = -machine virt -cpu cortex-a15 -m $(CONFIG_QEMU_RAM_MB)
 QEMU_FLAGS += -nographic -semihosting
 # Virtio serial port
 QEMU_FLAGS += -device virtio-serial-device
-QEMU_FLAGS += -chardev socket,path=/tmp/pb.sock,server,nowait,id=pb_serial
+QEMU_FLAGS += -chardev socket,path=/tmp/pb.sock,server=on,wait=off,id=pb_serial
 QEMU_FLAGS += -device virtserialport,chardev=pb_serial
 # Virtio Main disk
 QEMU_FLAGS += -device virtio-blk-device,drive=disk
@@ -48,7 +41,6 @@ QEMU_FLAGS += -drive id=disk,file=$(CONFIG_QEMU_VIRTIO_DISK),cache=none,if=none,
 QEMU_FLAGS += -net none
 
 qemu: $(BUILD_DIR)/$(TARGET)
-	@echo $(QEMU_FLAGS)
-	@$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(BUILD_DIR)/$(TARGET)
+	$(Q)$(QEMU) $(QEMU_FLAGS) $(QEMU_AUX_FLAGS) -kernel $(BUILD_DIR)/$(TARGET)
 
 endif

@@ -1,0 +1,7 @@
+menu "Fusebox"
+
+config DRIVERS_FUSE_TEST
+    bool "Enable block device backed test fusebox"
+    default n
+
+endmenu

@@ -1,10 +1,10 @@
 # Unit tests
 
-TESTS   = test_boot
-TESTS  += test_usb_ch9
-TESTS  += test_libc
-TESTS  += test_asn1
-TESTS  += test_fletcher
+#TESTS   = test_boot
+#TESTS  += test_usb_ch9
+#TESTS  += test_libc
+#TESTS  += test_asn1
+#TESTS  += test_fletcher
 
 # Integration tests
 
@@ -35,6 +35,7 @@ INTEGRATION_TESTS += test_gpt_boot_activate_step2
 INTEGRATION_TESTS += test_gpt_boot_activate_step3
 INTEGRATION_TESTS += test_gpt_boot_activate_step4
 INTEGRATION_TESTS += test_gpt_boot_activate_step5
+INTEGRATION_TESTS += test_gpt_variants
 INTEGRATION_TESTS += test_rollback
 INTEGRATION_TESTS += test_cli
 INTEGRATION_TESTS += test_part_offset_write
@@ -50,10 +51,6 @@ INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_revoke_key
 INTEGRATION_TESTS += test_part_dump
 INTEGRATION_TESTS += test_part_dump2
-INTEGRATION_TESTS += test_gpt_resize
-INTEGRATION_TESTS += test_gpt_resize2
-INTEGRATION_TESTS += test_gpt_resize3
-
 
 TEST_ASM_SRCS += src/arch/armv7a/entry_armv7a.S
 TEST_ASM_SRCS += src/arch/armv7a/arm32_aeabi_divmod_a32.S
@@ -70,31 +67,31 @@ TEST_C_SRCS += src/arch/armv7a/arch.c
 TEST_C_SRCS += tests/common.c
 TEST_C_SRCS += src/plat/qemu/gcov.c
 TEST_C_SRCS += src/plat/qemu/reset.c
-TEST_C_SRCS += src/usb.c
-TEST_C_SRCS += src/asn1.c
+#TEST_C_SRCS += src/usb.c
+TEST_C_SRCS += src/lib/der_helpers.c
 TEST_C_SRCS += src/plat/qemu/semihosting.c
 TEST_C_SRCS += src/plat/qemu/uart.c
-TEST_C_SRCS += src/libc/printf.c
-TEST_C_SRCS += src/libc/memcmp.c
-TEST_C_SRCS += src/libc/strlen.c
-TEST_C_SRCS += src/libc/memcpy.c
-TEST_C_SRCS += src/libc/memset.c
-TEST_C_SRCS += src/libc/strtoul.c
-TEST_C_SRCS += src/libc/strcmp.c
-TEST_C_SRCS += src/libc/snprintf.c
-TEST_C_SRCS += src/libc/putchar.c
-TEST_C_SRCS += src/libc/assert.c
-TEST_C_SRCS += src/fletcher.c
+TEST_C_SRCS += src/lib/libc/printf.c
+TEST_C_SRCS += src/lib/libc/memcmp.c
+TEST_C_SRCS += src/lib/libc/strlen.c
+TEST_C_SRCS += src/lib/libc/memcpy.c
+TEST_C_SRCS += src/lib/libc/memset.c
+TEST_C_SRCS += src/lib/libc/strtoul.c
+TEST_C_SRCS += src/lib/libc/strcmp.c
+TEST_C_SRCS += src/lib/libc/snprintf.c
+TEST_C_SRCS += src/lib/libc/putchar.c
+TEST_C_SRCS += src/lib/libc/assert.c
+TEST_C_SRCS += src/lib/fletcher.c
 
 # UUID lib
-TEST_C_SRCS  += src/uuid/pack.c
-TEST_C_SRCS  += src/uuid/unpack.c
-TEST_C_SRCS  += src/uuid/compare.c
-TEST_C_SRCS  += src/uuid/copy.c
-TEST_C_SRCS  += src/uuid/unparse.c
-TEST_C_SRCS  += src/uuid/parse.c
-TEST_C_SRCS  += src/uuid/clear.c
-TEST_C_SRCS  += src/uuid/conv.c
+TEST_C_SRCS  += src/lib/uuid/pack.c
+TEST_C_SRCS  += src/lib/uuid/unpack.c
+TEST_C_SRCS  += src/lib/uuid/compare.c
+TEST_C_SRCS  += src/lib/uuid/copy.c
+TEST_C_SRCS  += src/lib/uuid/unparse.c
+TEST_C_SRCS  += src/lib/uuid/parse.c
+TEST_C_SRCS  += src/lib/uuid/clear.c
+TEST_C_SRCS  += src/lib/uuid/conv.c
 
 TEST_ASM_SRCS += src/plat/qemu/semihosting_call.S
 

@@ -45,7 +45,7 @@ fi
 $PB boot --load /tmp/img.bpak --transport socket
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 240 ];
 then
     echo "result_code = $result_code"
     test_end_error

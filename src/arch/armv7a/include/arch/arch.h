@@ -7,7 +7,7 @@
 #ifndef ARCH_ARMV7A_INCLUDE_ARCH_ARCH_H_
 #define ARCH_ARMV7A_INCLUDE_ARCH_ARCH_H_
 
-#include <pb/utils.h>
+#include <pb/utils_def.h>
 
 #define ULONG_MAX 0xFFFFFFFFUL
 
@@ -692,7 +692,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <pb/utils.h>
 
 typedef volatile uint32_t __iomem;
 

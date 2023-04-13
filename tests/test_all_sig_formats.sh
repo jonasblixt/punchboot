@@ -37,6 +37,7 @@ result_code=$?
 
 if [ $result_code -ne 0 ];
 then
+    echo "secp521r1 failed: $result_code"
     test_end_error
 fi
 
@@ -71,6 +72,7 @@ result_code=$?
 
 if [ $result_code -ne 0 ];
 then
+    echo "secp384r1 failed: $result_code"
     test_end_error
 fi
 
