@@ -22,6 +22,16 @@ SECTIONS
         PROVIDE (_code_end = .);
     } > ram
 
+    .data :
+    {
+        . = ALIGN(4096);
+        PROVIDE (_data_region_start = .);
+        *(.data .data.*)
+        . = ALIGN(4096);
+        _edata = .;
+        PROVIDE (_data_region_end = .);
+    } > ram
+
     .ro_data :
     {
         . = ALIGN(4096);
@@ -30,6 +40,10 @@ SECTIONS
         *(.igot.plt)
         *(.got .got.*)
         *(.rodata .rodata.*)
+        . = ALIGN(8);
+        PROVIDE (_self_test_fn_start = .);
+        *(.self_test_fn .self_test_fn.*)
+        PROVIDE (_self_test_fn_end = .);
         . = ALIGN(4096);
         _edata = .;
         *(.keystore_header)
@@ -45,16 +59,6 @@ SECTIONS
         . = . + PB_STACK_SIZE_KB*1024 ;
         . = ALIGN(4096);
         PROVIDE(_stack_end = .);
-    } > ram
-
-    .data :
-    {
-        . = ALIGN(4096);
-        PROVIDE (_data_region_start = .);
-        *(.data .data.*)
-        . = ALIGN(4096);
-        _edata = .;
-        PROVIDE (_data_region_end = .);
     } > ram
 
     .bss (NOLOAD):

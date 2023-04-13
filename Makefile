@@ -79,6 +79,7 @@ src-y  += src/delay.c
 src-$(CONFIG_ENABLE_TIMESTAMPING)  += src/timestamp.c
 src-$(CONFIG_CRYPTO) += src/crypto.c
 src-$(CONFIG_DEVICE_UUID) += src/device_uuid.c
+src-$(CONFIG_SELF_TEST) += src/self_test.c
 src-y  += src/wire.c
 src-y  += src/console.c
 

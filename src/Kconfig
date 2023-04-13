@@ -76,6 +76,13 @@ config CRYPTO_MAX_DSA_OPS
     default 1
     depends on CRYPTO
 
+config SELF_TEST
+    bool "Run build in self tests on boot"
+    default n
+    help
+        Warning: This will add significant boot time and is only for testing
+        purposes.
+
 endmenu
 
 menu "Build configuration"
