@@ -79,85 +79,66 @@ static const struct gpt_part_table gpt_tbl[]=
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
         .size = SZ_MB(30),
-        .valid = true,
     },
     {
         .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
         .description = "System B",
         .size = SZ_MB(30),
-        .valid = true,
     },
     {
         .uu = UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a,
         .description = "Root A",
         .size = SZ_MB(128),
-        .valid = true,
     },
     {
         .uu = UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb,
         .description = "Root B",
         .size = SZ_MB(128),
-        .valid = true,
     },
     {
         .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
         .description = "PB State Primary",
         .size = 512,
-        .valid = true,
     },
     {
         .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
         .description = "PB State Backup",
         .size = 512,
-        .valid = true,
     },
     {
         .uu = UUID_4581af22_99e6_4a94_b821_b60c42d74758,
         .description = "Root overlay A",
         .size = SZ_MB(30),
-        .valid = true,
     },
     {
         .uu = UUID_da2ca04f_a693_4284_b897_3906cfa1eb13,
         .description = "Root overlay B",
         .size = SZ_MB(30),
-        .valid = true,
     },
     {
         .uu = UUID_23477731_7e33_403b_b836_899a0b1d55db,
         .description = "RoT extension A",
         .size = SZ_kB(128),
-        .valid = true,
     },
     {
         .uu = UUID_6ffd077c_32df_49e7_b11e_845449bd8edd,
         .description = "RoT extension B",
         .size = SZ_kB(128),
-        .valid = true,
     },
     {
         .uu = UUID_9697399d_e2da_47d9_8eb5_88daea46da1b,
         .description = "System storage A",
         .size = SZ_MB(128),
-        .valid = true,
     },
     {
         .uu = UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa,
         .description = "System storage B",
         .size = SZ_MB(128),
-        .valid = true,
     },
     {
         .uu = UUID_39792364_d3e3_4013_ac51_caaea65e4334,
         .description = "Mass storage",
         .size = SZ_GB(1),
-        .valid = true,
-    },
-    {
-        .uu = NULL,
-        .description = NULL,
-        .size = 0,
-        .valid = false,
     },
 };
 
@@ -358,29 +339,26 @@ int board_init(struct imx8x_platform *plat_ptr)
         goto err_out;
     }
 
-    ts("gpt start");
-    rc = gpt_ptbl_init(user_part, gpt_tbl);
+    rc = gpt_ptbl_init(user_part, gpt_tbl, ARRAY_SIZE(gpt_tbl));
     /* eMMC User partition now only has the visible flag to report capacity */
     (void) bio_set_flags(user_part, BIO_FLAG_VISIBLE);
-    ts("gpt end");
 
-    if (rc != PB_OK) {
-        LOG_ERR("GPT ptbl init failed (%i)", rc);
-        goto err_out;
-    }
+    if (rc == PB_OK) {
+        static const struct boot_ab_state_config boot_state_cfg = {
+            .primary_state_part_uu = PART_primary_state,
+            .backup_state_part_uu = PART_backup_state,
+            .sys_a_uu = PART_sys_a,
+            .sys_b_uu = PART_sys_b,
+            .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+        };
 
-    static const struct boot_ab_state_config boot_state_cfg = {
-        .primary_state_part_uu = PART_primary_state,
-        .backup_state_part_uu = PART_backup_state,
-        .sys_a_uu = PART_sys_a,
-        .sys_b_uu = PART_sys_b,
-        .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
-    };
+        rc = boot_ab_state_init(&boot_state_cfg);
 
-    rc = boot_ab_state_init(&boot_state_cfg);
-
-    if (rc != PB_OK) {
-        goto err_out;
+        if (rc != PB_OK) {
+            goto err_out;
+        }
+    } else {
+        LOG_WARN("GPT ptbl init failed (%i)", rc);
     }
 
     static const struct boot_driver_linux_config linux_boot_cfg = {
