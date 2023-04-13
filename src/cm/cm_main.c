@@ -24,20 +24,9 @@
 #include <drivers/block/bio.h>
 #include <pb/device_uuid.h>
 
-/**
- * Alignment notes:
- *
- * At least some USB controllers requires 4k buffer alignment (for example imx_ehci)
- * Currently we just ensure that memory that is read/written to/from has 4k alignment.
- *
- * We should probably allocate 'CONFIG_CM_BUF_SIZE_KB' + worst case alignment and
- * offset the buffer pointers as needed by hal
- *
- */
-
 extern struct bpak_keystore keystore_pb;
-static struct pb_command cmd __section(".no_init") __aligned(4096);
-static struct pb_result result __section(".no_init") __aligned(4096);
+static struct pb_command cmd __section(".no_init") __aligned(64);
+static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
 static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KB*1024] __section(".no_init") __aligned(4096);
 static enum pb_slc slc;
