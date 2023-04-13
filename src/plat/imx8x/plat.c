@@ -29,9 +29,13 @@
 
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
-IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_nox_start);
-IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_nox_end);
-IMPORT_SYM(uintptr_t, _stack_start, rw_nox_start);
+IMPORT_SYM(uintptr_t, _data_region_start, data_start);
+IMPORT_SYM(uintptr_t, _data_region_end, data_end);
+IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
+IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
+IMPORT_SYM(uintptr_t, _stack_start, stack_start);
+IMPORT_SYM(uintptr_t, _stack_end, stack_end);
+IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
 IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 
 extern struct fuse fuses[];
@@ -244,13 +248,26 @@ static void imx8x_mmu_init(void)
     /* Configure MMU */
     reset_xlat_tables();
 
+    /* Map ATF hole */
+    mmap_add_region(BOARD_RAM_BASE, BOARD_RAM_BASE,
+                    (0x20000),
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
     mmap_add_region(code_start, code_start,
                     code_end - code_start,
                     MT_RO | MT_MEMORY | MT_EXECUTE);
 
-    mmap_add_region(ro_nox_start, ro_nox_start,
-                    ro_nox_end - ro_nox_start,
+    mmap_add_region(data_start, data_start,
+                    data_end - data_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(ro_data_start, ro_data_start,
+                    ro_data_end - ro_data_start,
                     MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(stack_start, stack_start,
+                    stack_end - stack_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add_region(rw_nox_start, rw_nox_start,
                     rw_nox_end - rw_nox_start,
@@ -276,11 +293,12 @@ int plat_init(void)
 
     sc_err_t wdog_rc = imx8x_wdog_init();
     imx8x_systick_setup();
-    ts("Init");
+    ts("Init"); /* This is the earliest TS we can have since it needs systick */
     imx8x_load_boot_reason();
     imx8x_console_init();
 
     if (wdog_rc != 0) {
+        /* We'll continue anyway, best effort */
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
     }
 
