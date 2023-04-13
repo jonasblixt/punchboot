@@ -14,8 +14,6 @@
 #include <pb/fuse.h>
 #include <pb/board.h>
 #include <pb/fuse.h>
-#include <crypto.h>
-#include <bpak/keystore.h>
 #include <pb-tools/wire.h>
 
 /* Platform API Calls */

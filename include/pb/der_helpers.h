@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <crypto.h>
+#include <pb/crypto.h>
 
 /**
  * Extract r and s values from a DER encoded signature

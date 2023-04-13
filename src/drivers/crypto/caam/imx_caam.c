@@ -44,12 +44,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include <mmio.h>
+#include <pb/mmio.h>
 #include <arch/arch.h>
 #include <pb/pb.h>
 #include <bpak/keystore.h>
-#include <crypto.h>
-#include <der_helpers.h>
+#include <pb/crypto.h>
+#include <pb/der_helpers.h>
 #include <drivers/crypto/imx_caam.h>
 #include "desc_defines.h"
 #include "desc_helper.h"

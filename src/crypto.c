@@ -8,9 +8,10 @@
  */
 
 #include <string.h>
-#include <pb/pb.h>
 #include <inttypes.h>
-#include <crypto.h>
+#include <pb/pb.h>
+#include <pb/crypto.h>
+#include <pb/self_test.h>
 
 static const struct dsa_ops *dsa_ops[CONFIG_CRYPTO_MAX_DSA_OPS];
 static size_t no_of_dsa_ops;

@@ -12,11 +12,12 @@
 #include <arch/arch.h>
 #include <pb/arch.h>
 #include <pb/plat.h>
+#include <pb/timestamp.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <boot/linux.h>
 #include <libfdt.h>
-#include <device_uuid.h>
+#include <pb/device_uuid.h>
 
 static const struct boot_driver_linux_config *cfg;
 static uintptr_t jump_addr;

@@ -9,7 +9,7 @@
 
 #include <string.h>
 #include <inttypes.h>
-#include <crypto.h>
+#include <pb/crypto.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/plat.h>

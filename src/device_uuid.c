@@ -1,6 +1,6 @@
 #include <pb/errors.h>
 #include <pb/plat.h>
-#include <device_uuid.h>
+#include <pb/device_uuid.h>
 #include <uuid.h>
 #include <platform_defs.h>
 

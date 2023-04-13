@@ -155,9 +155,8 @@
 
 #define COMPILER_BARRIER() __asm__ volatile ("" ::: "memory")
 
-#define PB_CHECK_OVERLAP(__a, __sz, __region_start, __region_end) \
-    (((__a) <= ((uintptr_t) (__region_end))) &&                 \
-     ((__a) + (__sz) >= ((uintptr_t) (__region_start))))
+#define CHECK_OVERLAP(addr, len, start, end) \
+    (((addr) <= (end)) && ((addr) + (len) >= (start)))
 
 #define membersof(array) (sizeof(array) / sizeof((array)[0]))
 

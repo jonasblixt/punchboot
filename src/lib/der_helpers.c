@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb/errors.h>
-#include <der_helpers.h>
-#include <crypto.h>
+#include <pb/der_helpers.h>
+#include <pb/crypto.h>
 
 static const char ec_identifier[] = "\x2a\x86\x48\xce\x3d\x02\x01";
 static const uint8_t secp256r1_oid[] = "\x2a\x86\x48\xce\x3d\x03\x01\x07";
