@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef INCLUDE_PB_GPT_PTBL_H
-#define INCLUDE_PB_GPT_PTBL_H
+#ifndef INCLUDE_DRIVERS_PARTITION_GPT_H
+#define INCLUDE_DRIVERS_PARTITION_GPT_H
 
 #include <stdint.h>
 #include <drivers/block/bio.h>
@@ -20,9 +20,10 @@ struct gpt_part_table {
     int variant;
     const char * description;
     size_t size;
-    bool valid;
 };
 
-int gpt_ptbl_init(bio_dev_t dev, const struct gpt_part_table *default_tbl);
+int gpt_ptbl_init(bio_dev_t dev,
+                  const struct gpt_part_table *default_tbl,
+                  size_t length);
 
-#endif  // INCLUDE_PB_GPT_H_
+#endif  // INCLUDE_DRIVERS_PARTITION_GPT_H
