@@ -41,6 +41,7 @@ enum pb_errors {
     PB_ERR_BAD_PAYLOAD,
     PB_ERR_NO_ACTIVE_BOOT_PARTITION,
     PB_ERR_ASN1,
+    PB_ERR_ALIGN,
 };
 
 #endif  // INCLUDE_PB_ERRORS_H_
