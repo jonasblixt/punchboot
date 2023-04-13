@@ -4,4 +4,9 @@ config DRIVERS_FUSE_TEST
     bool "Enable block device backed test fusebox"
     default n
 
+config DRIVERS_FUSE_IMX_OCOTP
+    bool "i.MX OCOTP"
+    depends on SOC_FAMILY_IMX
+    default n
+
 endmenu

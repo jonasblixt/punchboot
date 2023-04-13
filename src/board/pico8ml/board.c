@@ -15,7 +15,6 @@
 #include <pb/io.h>
 #include <pb/plat.h>
 #include <pb/usb.h>
-#include <pb/fuse.h>
 #include <pb/gpt.h>
 #include <plat/imx/dwc3.h>
 #include <plat/imx/usdhc.h>

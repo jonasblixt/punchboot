@@ -25,6 +25,10 @@ int imx8x_revoke_key(const struct rot_key *key)
     uint32_t info;
 
     (void) key;
+
+    if (!imx8x_is_srk_fused())
+        return -PB_ERR_MEM;
+
     LOG_INFO("Revoking keys as specified in image header");
 
     rc = imx8x_fuse_read(IMX8X_FUSE_REVOKE, &before_revoke_bits);

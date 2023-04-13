@@ -1,14 +1,18 @@
-/**
- * Punch BOOT
- *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
- *
- * SPDX-License-Identifier: BSD-3-Clause
- *
- */
+#ifndef PLAT_IMX6UL_INCLUDE_DEFS_H
+#define PLAT_IMX6UL_INCLUDE_DEFS_H
 
-#ifndef PLAT_IMX6UL_INCLUDE_PLAT_REGS_H_
-#define PLAT_IMX6UL_INCLUDE_PLAT_REGS_H_
+#define COUNTER_FREQUENCY (8000000)
+#define COUNTER_US_SHIFT (3)
+
+#define SCTR_BASE_ADDRESS 0x21dc000
+
+#define CACHE_LINE 32
+
+#define PLAT_VIRT_ADDR_SPACE_SIZE    (1ull << 32)
+#define PLAT_PHY_ADDR_SPACE_SIZE    (1ull << 32)
+
+#define MAX_XLAT_TABLES            32
+#define MAX_MMAP_REGIONS        32
 
 #define HAB_RVT_BASE            0x00000100
 
@@ -44,8 +48,6 @@
         PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED |               \
         PAD_CTL_DSE_40ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
-
-
 #define AIPS1_ARB_BASE_ADDR             0x02000000
 #define AIPS2_ARB_BASE_ADDR             0x02100000
 #define ATZ1_BASE_ADDR              AIPS1_ARB_BASE_ADDR
@@ -53,8 +55,8 @@
 #define AIPS1_OFF_BASE_ADDR         (ATZ1_BASE_ADDR + 0x80000)
 #define ANATOP_BASE_ADDR            (AIPS1_OFF_BASE_ADDR + 0x48000)
 
-
 #define UART2_BASE  (ATZ2_BASE_ADDR + 0xE8000)
 
+#define PLATFORM_NS_UUID (const unsigned char *) "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02"
 
-#endif  // PLAT_IMX6UL_INCLUDE_PLAT_REGS_H_
+#endif  // PLAT_IMX6UL_INCLUDE_DEFS_H

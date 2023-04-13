@@ -11,8 +11,6 @@
 #define INCLUDE_PB_PLAT_H_
 
 #include <pb/pb.h>
-#include <pb/fuse.h>
-#include <pb/fuse.h>
 #include <pb-tools/wire.h>
 
 /* Platform API Calls */

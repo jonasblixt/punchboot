@@ -1,4 +1,3 @@
-
 /**
  * Punch BOOT
  *
@@ -11,15 +10,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <pb/pb.h>
-#include <pb/io.h>
-#include <plat/imx/hab.h>
+#include <drivers/soc/imx_hab.h>
 #include <plat/imx/ocotp.h>
 
 #define IS_HAB_ENABLED_BIT 0x02
 static uint8_t _event_data[128];
-
-
-
 
 #define MAX_RECORD_BYTES     (8*1024) /* 4 kbytes */
 
@@ -46,6 +41,7 @@ static inline uint8_t get_idx(uint8_t *list, uint8_t tgt)
     return -1;
 }
 
+// TODO: Move this to plat level
 int hab_secureboot_active(bool *result)
 {
     uint32_t reg;

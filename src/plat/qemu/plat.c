@@ -11,7 +11,6 @@
 #include <string.h>
 #include <pb/plat.h>
 #include <uuid.h>
-#include <pb/fuse.h>
 #include <xlat_tables.h>
 #include <plat/qemu/semihosting.h>
 #include <board/config.h>

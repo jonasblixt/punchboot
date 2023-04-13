@@ -8,7 +8,7 @@
  */
 
 #include <pb/pb.h>
-#include <mmio.h>
+#include <pb/mmio.h>
 #include <drivers/usb/imx_usbdcd.h>
 
 /* Registers */

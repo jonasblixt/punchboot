@@ -1,17 +1,14 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#ifndef PLAT_IMX_IMX_UART_H_
-#define PLAT_IMX_IMX_UART_H_
-
-#include <pb/pb.h>
-
+#ifndef INCLUDE_DRIVERS_UART_IMX_UART_H
+#define INCLUDE_DRIVERS_UART_IMX_UART_H
 
 /* Register definitions */
 #define URXD  0x0  /* Receiver Register */
@@ -29,7 +26,6 @@
 #define UBMR  0xa8 /* BRM Modulator Register */
 #define UBRC  0xac /* Baud Rate Count Register */
 #define UTS   0xb4 /* UART Test Register (mx31) */
-
 
 #define  UCR2_ESCI     (1<<15) /* Escape seq interrupt enable */
 #define  UCR2_IRTS     (1<<14) /* Ignore RTS pin */
@@ -49,7 +45,7 @@
 #define  USR1_TRDY       (1<<13) /* TX Buffer ready */
 #define  USR2_TXFE (1<<14)
 
-int imx_uart_init(__iomem base_addr, unsigned int baudrate);
+int imx_uart_init(uintptr_t base, unsigned int input_clock_Hz, unsigned int baudrate);
 void imx_uart_putc(char c);
 
-#endif  // PLAT_IMX_IMX_UART_H_
+#endif  // INCLUDE_DRIVERS_UART_IMX_UART_H

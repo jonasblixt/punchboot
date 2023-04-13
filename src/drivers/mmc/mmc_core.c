@@ -38,7 +38,7 @@ static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
-static uint8_t mmc_tuning_rsp[128] PB_ALIGN(16);
+static uint8_t mmc_tuning_rsp[128] __aligned(16);
 static const uint8_t tuning_blk_pattern_4bit[] = {
     0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
     0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,

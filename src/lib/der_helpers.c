@@ -19,7 +19,7 @@ static const uint8_t secp384r1_oid[] = "\x2b\x81\x04\x00\x22";
 static const uint8_t secp521r1_oid[] = "\x2b\x81\x04\x00\x23";
 
 /* Copied from mbedtls */
-static int asn1_size(unsigned char **p, size_t *len)
+static int asn1_size(const unsigned char **p, size_t *len)
 {
 
     if (( **p & 0x80) == 0) {
@@ -52,12 +52,12 @@ static int asn1_size(unsigned char **p, size_t *len)
     return PB_OK;
 }
 
-int der_ecsig_to_rs(uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
+int der_ecsig_to_rs(const uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
                     bool suppress_leading_zero)
 {
     size_t sz;
     int rc;
-    uint8_t *p = sig;
+    const uint8_t *p = sig;
 
     if (*p++ != 0x30) {
         return -PB_ERR_ASN1;
@@ -113,14 +113,14 @@ int der_ecsig_to_rs(uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
     return PB_OK;
 }
 
-int der_ec_public_key_data(uint8_t *pub_key_der,
+int der_ec_public_key_data(const uint8_t *pub_key_der,
                            uint8_t *output,
                            size_t output_length,
                            dsa_t *key_kind)
 {
     size_t s;
     int rc;
-    uint8_t *p = pub_key_der;
+    const uint8_t *p = pub_key_der;
 
     if (*p++ != 0x30)
         return -PB_ERR_ASN1;
