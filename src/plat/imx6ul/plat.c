@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pb/board.h>
 #include <pb/plat.h>
 #include <pb/io.h>
 #include <xlat_tables.h>

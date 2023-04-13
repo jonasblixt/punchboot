@@ -8,7 +8,6 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include <pb/board.h>
 #include <pb/mmio.h>
 #include <drivers/virtio/virtio.h>
 #include "virtio_mmio.h"

@@ -8,7 +8,6 @@
  *
  */
 
-#include <pb/board.h>
 #include <pb/plat.h>
 
 void plat_wdog_init(void)

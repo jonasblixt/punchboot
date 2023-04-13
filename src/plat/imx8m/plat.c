@@ -13,7 +13,6 @@
 #include <pb/io.h>
 #include <uuid.h>
 #include <pb/plat.h>
-#include <pb/board.h>
 #include <pb/fuse.h>
 #include <xlat_tables.h>
 #include <plat/regs.h>
