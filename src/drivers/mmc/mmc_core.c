@@ -16,6 +16,7 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/delay.h>
+#include <pb/timestamp.h>
 #include <drivers/block/bio.h>
 #include <drivers/mmc/mmc_core.h>
 
@@ -140,7 +141,7 @@ static int mmc_send_op_cond(void)
             return 0;
         }
 
-        pb_delay_ms(1);
+        pb_delay_ms(10);
     }
 
     LOG_ERR("CMD1 failed after %d retries", SEND_OP_COND_MAX_RETRIES);
@@ -288,7 +289,7 @@ static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
     else if (flags & MMC_BIO_FLAG_BOOT0)
         mmc_part_switch(MMC_PART_BOOT0);
     else if (flags & MMC_BIO_FLAG_BOOT1)
-        mmc_part_switch(MMC_PART_BOOT0);
+        mmc_part_switch(MMC_PART_BOOT1);
     else if (flags & MMC_BIO_FLAG_RPMB)
         mmc_part_switch(MMC_PART_RPMB);
 
@@ -322,7 +323,7 @@ static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t 
     else if (flags & MMC_BIO_FLAG_BOOT0)
         mmc_part_switch(MMC_PART_BOOT0);
     else if (flags & MMC_BIO_FLAG_BOOT1)
-        mmc_part_switch(MMC_PART_BOOT0);
+        mmc_part_switch(MMC_PART_BOOT1);
     else if (flags & MMC_BIO_FLAG_RPMB)
         mmc_part_switch(MMC_PART_RPMB);
 
