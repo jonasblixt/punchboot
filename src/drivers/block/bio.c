@@ -155,9 +155,10 @@ int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
         return rc;
     if (bio_pool[dev].read == NULL)
         return -PB_ERR_NOT_SUPPORTED;
-    if (check_lba_range(dev, lba, length) != 0)
+    if (check_lba_range(dev, lba, length) != 0) {
+        LOG_ERR("Range error, lba=%i, length=%zu", lba, length);
         return -PB_ERR_PARAM;
-
+    }
     return bio_pool[dev].read(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
 
