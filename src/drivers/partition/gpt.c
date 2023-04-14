@@ -140,7 +140,7 @@ static int gpt_is_valid(struct gpt_header *hdr, struct gpt_part_hdr *part)
 static int gpt_init_tbl(bio_dev_t dev)
 {
     struct gpt_header *hdr = &primary.hdr;
-    unsigned int last_lba = bio_size(dev) / bio_block_size(dev) - 1;
+    unsigned int last_lba = bio_get_last_block(dev);
     prng_state = plat_get_us_tick();
 
     LOG_INFO("Initializing table at lba 1, last lba: %u", last_lba);
@@ -339,8 +339,8 @@ int gpt_ptbl_init(bio_dev_t dev,
 
     bio_set_install_partition_cb(dev, gpt_install_partition_table);
 
-    size_t backup_lba = (bio_size(dev) / 512) - \
-            ((128*sizeof(struct gpt_part_hdr)) / 512) - 1;
+    size_t backup_lba = bio_get_last_block(dev) - \
+            ((128*sizeof(struct gpt_part_hdr)) / 512);
 
     rc = bio_read(dev, backup_lba, sizeof(backup), (uintptr_t) &backup);
 
@@ -367,7 +367,7 @@ int gpt_ptbl_init(bio_dev_t dev,
         memcpy(primary.part, backup.part, (sizeof(struct gpt_part_hdr)
                     * backup.hdr.no_of_parts));
 
-        primary.hdr.backup_lba = bio_size(dev) / 512 - 1;
+        primary.hdr.backup_lba = bio_get_last_block(dev);
         primary.hdr.current_lba = 1;
         primary.hdr.entries_start_lba = primary.hdr.current_lba + 1;
 
@@ -400,7 +400,7 @@ int gpt_ptbl_init(bio_dev_t dev,
                             * primary.hdr.no_of_parts));
 
         backup.hdr.backup_lba = 1;
-        backup.hdr.current_lba = bio_size(dev) / 512 - 1;
+        backup.hdr.current_lba = bio_get_last_block(dev);
         backup.hdr.entries_start_lba = (backup.hdr.current_lba -
             ((backup.hdr.no_of_parts*sizeof(struct gpt_part_hdr)) / 512));
 
