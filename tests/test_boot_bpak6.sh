@@ -20,7 +20,7 @@ $BPAK add $IMG --meta bpak-package --from-string $PKG_UUID --encoder uuid $V
 $BPAK add $IMG --meta bpak-package-uid --from-string $PKG_UNIQUE_ID --encoder uuid $V
 
 
-$BPAK add $IMG --meta pb-load-addr --from-string 0x40100000 --part-ref kernel \
+$BPAK add $IMG --meta pb-load-addr --from-string 0x40050000 --part-ref kernel \
                       --encoder integer $V
 
 $BPAK add $IMG --part kernel \
