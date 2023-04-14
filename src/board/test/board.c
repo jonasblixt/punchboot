@@ -29,9 +29,8 @@
 
 #include "partitions.h"
 
-static const struct gpt_part_table gpt_tbl[]=
+static const struct gpt_part_table gpt_tbl_default[]=
 {
-    /* Default, variant 0 */
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
@@ -62,58 +61,89 @@ static const struct gpt_part_table gpt_tbl[]=
         .description = "Readable",
         .size = SZ_MB(1),
     },
-    /* Variant 1 */
+};
+
+static const struct gpt_part_table gpt_tbl_var1[]=
+{
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
-        .variant = 1,
         .description = "System A",
         .size = SZ_kB(512),
     },
     {
         .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
-        .variant = 1,
         .description = "System B",
         .size = SZ_kB(512),
     },
     {
         .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
-        .variant = 1,
         .description = "PB State Primary",
         .size = 512,
     },
     {
         .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
-        .variant = 1,
         .description = "PB State Backup",
         .size = 512,
     },
     {
         .uu = UUID_44acdcbe_dcb0_4d89_b0ad_8f96967f8c95,
-        .variant = 1,
         .description = "Fuse array",
         .size = 512,
     },
     {
         .uu = UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5,
-        .variant = 1,
         .description = "Readable",
         .size = SZ_MB(8),
     },
-    /* Variant 2, the disk is 32M, the largest partition
-     * is 32MB - 2 * 34 512b blocks for the GPT table,
-     * == 32734 kB */
+};
+
+/* Variant 2, the disk is 32M, the largest partition
+ * is 32MB - 2 * 34 512b blocks for the GPT table,
+ * == 32734 kB */
+static const struct gpt_part_table gpt_tbl_var2[]=
+{
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
-        .variant = 2,
         .description = "Large",
         .size = SZ_kB(32734),
     },
-    /* Variant 3, too large partition */
+};
+
+/* Variant 3, too large partition */
+static const struct gpt_part_table gpt_tbl_var3[]=
+{
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
-        .variant = 3,
         .description = "Too large",
         .size = SZ_kB(32735),
+    },
+};
+
+static const struct gpt_table_list gpt_tables[] =
+{
+    {
+        .name = "Default",
+        .variant = 0,
+        .table = gpt_tbl_default,
+        .table_length = ARRAY_SIZE(gpt_tbl_default),
+    },
+    {
+        .name = "Variant 1",
+        .variant = 1,
+        .table = gpt_tbl_var1,
+        .table_length = ARRAY_SIZE(gpt_tbl_var1),
+    },
+    {
+        .name = "Variant 2",
+        .variant = 2,
+        .table = gpt_tbl_var2,
+        .table_length = ARRAY_SIZE(gpt_tbl_var2),
+    },
+    {
+        .name = "Variant 3",
+        .variant = 3,
+        .table = gpt_tbl_var3,
+        .table_length = ARRAY_SIZE(gpt_tbl_var3),
     },
 };
 
@@ -213,7 +243,7 @@ int board_init(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = gpt_ptbl_init(disk, gpt_tbl, ARRAY_SIZE(gpt_tbl));
+    rc = gpt_ptbl_init(disk, gpt_tables, ARRAY_SIZE(gpt_tables));
 
     if (rc != PB_OK) {
         LOG_WARN("GPT Init failed (%i)", rc);

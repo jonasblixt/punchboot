@@ -17,13 +17,19 @@
 
 struct gpt_part_table {
     const unsigned char * uu;
-    int variant;
     const char * description;
     size_t size;
 };
 
+struct gpt_table_list {
+    const char *name;
+    int variant;
+    const struct gpt_part_table *table;
+    size_t table_length;
+};
+
 int gpt_ptbl_init(bio_dev_t dev,
-                  const struct gpt_part_table *default_tbl,
+                  const struct gpt_table_list *tables,
                   size_t length);
 
 #endif  // INCLUDE_DRIVERS_PARTITION_GPT_H

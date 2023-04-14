@@ -69,8 +69,8 @@ static struct gpt_primary_tbl primary __aligned(64);
 static struct gpt_backup_tbl backup __aligned(64);
 static uint8_t gpt_pmbr[512];
 static bio_dev_t gpt_dev;
-static const struct gpt_part_table *gpt_default_tbl;
-static size_t gpt_default_tbl_length;
+static const struct gpt_table_list *tables;
+static size_t tables_length;
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 {
@@ -291,17 +291,22 @@ static int gpt_install_partition_table(bio_dev_t dev, int variant)
     int rc;
     int part_idx = 0;
     uuid_t part_guid;
+    const struct gpt_table_list *tbl;
+
+    if (variant < 0 || (size_t) variant >= tables_length)
+        return -PB_ERR_PARAM;
+
+    tbl = &tables[variant];
 
     rc = gpt_init_tbl(dev);
 
     if (rc != PB_OK)
         return rc;
 
-    for (size_t n = 0; n < gpt_default_tbl_length; n++) {
-        const struct gpt_part_table *ent = &gpt_default_tbl[n];
+    LOG_INFO("Installing partition table: %s", tbl->name);
 
-        if (ent->variant != variant)
-            continue;
+    for (size_t n = 0; n < tbl->table_length; n++) {
+        const struct gpt_part_table *ent = &tbl->table[n];
 
         LOG_DBG("Add: %s", ent->description);
         uuid_to_guid(ent->uu, part_guid);
@@ -319,7 +324,7 @@ static int gpt_install_partition_table(bio_dev_t dev, int variant)
 }
 
 int gpt_ptbl_init(bio_dev_t dev,
-                  const struct gpt_part_table *default_tbl,
+                  const struct gpt_table_list *default_tables,
                   size_t length)
 {
     int rc;
@@ -328,8 +333,8 @@ int gpt_ptbl_init(bio_dev_t dev,
 
     LOG_DBG("GPT MAP init");
     gpt_dev = dev;
-    gpt_default_tbl = default_tbl;
-    gpt_default_tbl_length = length;
+    tables = default_tables;
+    tables_length = length;
 
     /* Read primary and backup GPT headers and parition tables */
     rc = bio_read(dev, 1, sizeof(primary), (uintptr_t) &primary);
