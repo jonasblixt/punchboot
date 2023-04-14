@@ -138,6 +138,10 @@ static int error_to_wire(int error_code)
             return -PB_RESULT_NOT_FOUND;
         case -PB_ERR_PART_NOT_BOOTABLE:
             return -PB_RESULT_PART_NOT_BOOTABLE;
+        case -PB_ERR_PARAM:
+            return -PB_RESULT_INVALID_ARGUMENT;
+        case -PB_ERR_NOT_SUPPORTED:
+            return -PB_RESULT_NOT_SUPPORTED;
         default:
             return -PB_RESULT_ERROR;
     }
