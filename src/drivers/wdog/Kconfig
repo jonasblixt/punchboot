@@ -1,0 +1,8 @@
+menu "Watchdog"
+
+config DRIVERS_IMX_WDOG
+    bool "i.MX WDOG"
+    default n
+    depends on SOC_FAMILY_IMX
+
+endmenu

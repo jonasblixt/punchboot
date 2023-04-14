@@ -2,7 +2,7 @@
 source tests/common.sh
 wait_for_qemu_start
 
-$PB part --install --transport socket
+$PB part --install --part 1eacedf3-3790-48c7-8ed8-9188ff49672b --transport socket
 # Reset
 $PB dev --reset --transport socket
 result_code=$?

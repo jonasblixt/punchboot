@@ -1,0 +1,8 @@
+menu "Timers"
+
+config DRIVERS_IMX_GPT
+    bool "GPT"
+    depends on SOC_FAMILY_IMX
+    default y
+
+endmenu

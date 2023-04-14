@@ -48,9 +48,9 @@ cflags-y  += -fstack-usage
 cflags-y  += -MMD -MP
 
 # Include path
-cflags-y  += -I src/ -I src/include/
-cflags-y  += -I src/include
-cflags-y  += -I src/libc/include
+cflags-y  += -I src/
+cflags-y  += -I include/
+cflags-y  += -I include/libc
 cflags-y  += -I $(BOARD)/include
 cflags-y  += -I $(BUILD_DIR)
 
@@ -74,54 +74,24 @@ cflags-y += -Waggregate-return
 
 # Bootloader
 src-y   = src/main.c
-src-y  += src/boot.c
 src-y  += keystore.c
 src-y  += src/delay.c
-src-y  += src/timestamp.c
-src-y  += src/usb.c
-src-y  += src/storage.c
+src-$(CONFIG_ENABLE_TIMESTAMPING)  += src/timestamp.c
+src-$(CONFIG_CRYPTO) += src/crypto.c
+src-$(CONFIG_DEVICE_UUID) += src/device_uuid.c
+src-$(CONFIG_SELF_TEST) += src/self_test.c
 src-y  += src/wire.c
-src-y  += src/command.c
-src-y  += src/gpt.c
-src-y  += src/fletcher.c
-src-y  += src/bpak.c
-src-y  += src/crc.c
-src-y  += src/asn1.c
+src-y  += src/console.c
+src-y  += src/rot.c
+src-y  += src/slc.c
 
-# UUID lib
-src-y  += src/uuid/pack.c
-src-y  += src/uuid/unpack.c
-src-y  += src/uuid/compare.c
-src-y  += src/uuid/copy.c
-src-y  += src/uuid/unparse.c
-src-y  += src/uuid/parse.c
-src-y  += src/uuid/clear.c
-src-y  += src/uuid/conv.c
-src-$(CONFIG_LIB_UUID3)  += src/uuid/uuid3.c
-cflags-y  += -I src/uuid/include
-
-# Device tree lib
-src-y  += src/fdt/fdt.c
-src-y  += src/fdt/fdt_addresses.c
-src-y  += src/fdt/fdt_ro.c
-src-y  += src/fdt/fdt_rw.c
-src-y  += src/fdt/fdt_sw.c
-src-y  += src/fdt/fdt_wip.c
-cflags-y  += -I src/fdt/include
-
-# VM/MMU helpers
-src-y += src/vm/xlat_tables_common.c
-cflags-y += -I src/vm/include
-src-$(CONFIG_ARCH_ARMV7) += src/vm/aarch32/xlat_tables.c
-src-$(CONFIG_ARCH_ARMV8) += src/vm/aarch64/xlat_tables.c
-cflags-$(CONFIG_ARCH_ARMV7) += -I src/vm/include/vm/aarch32
-cflags-$(CONFIG_ARCH_ARMV8) += -I src/vm/include/vm/aarch64
-
-include src/bearssl/makefile.mk
-include src/libc/makefile.mk
+include src/drivers/*/makefile.mk
+include src/boot/makefile.mk
+include src/lib/makefile.mk
 include $(BOARD)/makefile.mk
 include src/arch/*/makefile.mk
 include src/plat/*/makefile.mk
+include src/cm/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
 ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)

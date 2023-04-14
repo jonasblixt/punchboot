@@ -12,7 +12,6 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <plat/qemu/semihosting.h>
-#include "pl061.h"
 #include "gcov.h"
 
 void plat_reset(void)

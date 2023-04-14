@@ -63,7 +63,7 @@ master_cpu:
 
     mov x0, #0
 
-    bl pb_main
+    bl main
     b .
 
 __zero_region_start:

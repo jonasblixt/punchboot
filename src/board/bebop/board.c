@@ -8,14 +8,12 @@
  */
 
 #include <stdio.h>
-#include <pb/board.h>
 #include <pb/plat.h>
 #include <pb/arch.h>
 #include <pb/io.h>
 #include <pb/gpt.h>
 #include <pb/image.h>
 #include <pb/boot.h>
-#include <pb/fuse.h>
 #include <plat/imx6ul/plat.h>
 #include <plat/defs.h>
 #include <plat/regs.h>

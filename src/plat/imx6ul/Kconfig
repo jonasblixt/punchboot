@@ -1,38 +1,3 @@
-menu "imx6ul configuration"
-    depends on PLAT_IMX6UL
-    comment "Console configuration"
-
-comment "Watchdog"
-config IMX_WATCHDOG_BASE
-    hex "Watchdog base"
-    default 0x020BC000
-    depends on ENABLE_WATCHDOG
-
-comment "Debug serial port"
-
-config IMX_UART_BASE
-    hex "IMX uart base"
-    default 0x021E8000
-
-config IMX_UART_BAUDRATE
-    int "IMX uart baudrate"
-    default 115200
-
-comment "Fusebox"
-
-config IMX_OCOTP_BASE
-    hex "IMX OCOTP base"
-    default 0x021BC000
-
-config IMX_OCOTP_WORDS_PER_BANK
-    int "Words per bank"
-    default 8
-
-config IMX_OCOTP_DEBUG
-    bool "Enable OCOTP debug printouts"
-    default n
-endmenu
-
 menu "Output image"
     depends on PLAT_IMX6UL
 

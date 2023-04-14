@@ -20,7 +20,7 @@ $BPAK add $IMG --meta bpak-package --from-string $PKG_UUID --encoder uuid $V
 $BPAK add $IMG --meta bpak-package-uid --from-string $PKG_UNIQUE_ID --encoder uuid $V
 
 
-$BPAK add $IMG --meta pb-load-addr --from-string 0x40100000 --part-ref kernel \
+$BPAK add $IMG --meta pb-load-addr --from-string 0x40050000 --part-ref kernel \
                       --encoder integer $V
 
 $BPAK add $IMG --part kernel \
@@ -55,7 +55,7 @@ echo "Booting part B"
 $PB boot --boot $BOOT_A --transport socket
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 240 ];
 then
     test_end_error
 fi
@@ -64,10 +64,10 @@ fi
 
 echo "Ramloading image"
 
-$PB boot --load /tmp/img.pbi --transport socket
+$PB boot --load /tmp/img.bpak --transport socket
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 240 ];
 then
     test_end_error
 fi

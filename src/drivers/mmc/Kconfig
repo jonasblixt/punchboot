@@ -1,0 +1,38 @@
+menu "MMC Host drivers"
+
+config MMC_CORE
+    bool "Enable support for MMC"
+    default n
+
+config MMC_CORE_DEBUG_CMDS
+    bool "MMC debug commands"
+    depends on MMC_CORE
+    default n
+
+config MMC_CORE_DEBUG_IOS
+    bool "MMC debug R/W ops"
+    depends on MMC_CORE
+    default n
+
+config MMC_CORE_HS200_TUNE
+    bool "Enable HS200 tuning algorithm"
+    depends on MMC_CORE
+    default n
+    help
+        Warning: This will significantly increase boot time. The suggested
+        use for this is to enable it for testing under varying temperature
+        and other conditions that might affect timing to get good tap delay
+        value.
+
+config IMX_USDHC
+    depends on SOC_FAMILY_IMX
+    select MMC_CORE
+	bool "Enable support i.MX USDHC"
+    default n
+
+config IMX_USDHC_XTRA_DEBUG
+    depends on IMX_USDHC
+    bool "Extra debug output"
+    default n
+
+endmenu

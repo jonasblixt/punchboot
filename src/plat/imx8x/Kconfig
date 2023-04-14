@@ -2,15 +2,28 @@ menu "imx8x configuration"
     depends on PLAT_IMX8X
     comment "imx8x configuration"
 
-choice CONSOLE_UART
+choice IMX8X_CONSOLE_UART
 	bool "Select console UART"
-config CONSOLE_UART0
+config IMX8X_CONSOLE_UART0
 	bool "UART0"
-config CONSOLE_UART1
+config IMX8X_CONSOLE_UART1
 	bool "UART1"
-config CONSOLE_UART2
+config IMX8X_CONSOLE_UART2
 	bool "UART2"
 endchoice
+
+config IMX8X_CONSOLE_BAUDRATE
+    int "Baudrate"
+    default 115200
+
+config IMX8X_FUSE_DRY_RUN
+    bool "Fusebox dry run"
+    default n
+    depends on PLAT_IMX8X
+    help
+    Enabling this option will inhibit fuse programming and instead writing
+    the fuse bank and value to the console.
+
 endmenu
 
 menu "Output image"
@@ -23,6 +36,5 @@ config IMX8X_SIGN_IMAGE
     bool "Sign image"
     default n
     depends on IMX8X_CREATE_IMX_IMAGE
+
 endmenu
-
-

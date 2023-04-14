@@ -1,0 +1,7 @@
+menu "Partition table drivers"
+
+config PARTITION_GPT
+	bool "Enable support for GPT partitions"
+    default n
+
+endmenu

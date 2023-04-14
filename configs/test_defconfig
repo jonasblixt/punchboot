@@ -1,17 +1,21 @@
 # CONFIG_ARCH_ARMV8 is not set
 CONFIG_ARCH_ARMV7=y
-# CONFIG_PLAT_IMX6UL is not set
+
+#
+# Platform support
+#
+# CONFIG_SOC_FAMILY_IMX is not set
 CONFIG_PLAT_QEMU=y
 
 #
 # QEMU platform configuration
 #
-CONFIG_OVERRIDE_ARCH_JUMP=y
 CONFIG_QEMU_RAM_MB=1024
 CONFIG_QEMU_VIRTIO_DISK="/tmp/disk"
 CONFIG_QEMU_VIRTIO_DISK_SIZE_MB=32
 CONFIG_QEMU_ENABLE_TEST_COVERAGE=y
 # end of QEMU platform configuration
+# end of Platform support
 
 #
 # Generic options
@@ -19,10 +23,14 @@ CONFIG_QEMU_ENABLE_TEST_COVERAGE=y
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
 CONFIG_LOGLEVEL=3
 CONFIG_ENABLE_WATCHDOG=y
+CONFIG_PRINT_BOOT_BANNER=y
 CONFIG_WATCHDOG_TIMEOUT=5
-CONFIG_DUMP_TIMING_ANALYSIS=y
-# CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION is not set
-# CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK is not set
+# CONFIG_ENABLE_TIMESTAMPING is not set
+CONFIG_DEVICE_UUID=y
+CONFIG_CRYPTO=y
+CONFIG_CRYPTO_MAX_HASH_OPS=1
+CONFIG_CRYPTO_MAX_DSA_OPS=1
+CONFIG_SELF_TEST=y
 # end of Generic options
 
 #
@@ -35,22 +43,109 @@ CONFIG_STACK_SIZE_KB=16
 # end of Build configuration
 
 #
-# Authentication
+# Boot
 #
-CONFIG_AUTH=y
-CONFIG_AUTH_METHOD_TOKEN=y
-# CONFIG_AUTH_METHOD_PASSWORD is not set
-# end of Authentication
+CONFIG_BOOT_CORE=y
+CONFIG_BOOT_BPAK_IMAGE_HELPERS=y
+CONFIG_BOOT_AB_DRIVER=y
+CONFIG_BOOT_LINUX=y
+CONFIG_BOOT_LOAD_CHUNK_kB=4096
+# end of Boot
 
 #
-# Command mode transport configuration
+# Drivers
 #
-CONFIG_CMD_BUF_SIZE_KB=4096
-CONFIG_TRANSPORT_MAX_CHUNK_KB=4
-CONFIG_LOAD_FS_MAX_CHUNK_KB=4096
-CONFIG_TRANSPORT_READY_TIMEOUT=10
-# CONFIG_TRANSPORT_ENTER_BOARD_CB is not set
-# end of Command mode transport configuration
 
+#
+# Block drivers
+#
+CONFIG_DRIVERS_BIO_CORE=y
+CONFIG_DRIVERS_BIO_MAX_DEVS=32
+# end of Block drivers
+
+#
+# Crypto
+#
+CONFIG_DRIVERS_CRYPTO_MBEDTLS=y
+CONFIG_MBEDTLS_MD_SHA256=y
+CONFIG_MBEDTLS_MD_SHA384=y
+CONFIG_MBEDTLS_MD_SHA512=y
+CONFIG_MBEDTLS_MD_MD5=y
+CONFIG_MBEDTLS_ECDSA=y
+# end of Crypto
+
+#
+# Fusebox
+#
+CONFIG_DRIVERS_FUSE_TEST=y
+# end of Fusebox
+
+#
+# GPIO
+#
+# end of GPIO
+
+#
+# MMC Host drivers
+#
+# CONFIG_MMC_CORE is not set
+# end of MMC Host drivers
+
+#
+# Partition table drivers
+#
+CONFIG_PARTITION_GPT=y
+# end of Partition table drivers
+
+#
+# Timers
+#
+# end of Timers
+
+#
+# Uart
+#
+# end of Uart
+
+#
+# USB
+#
+# CONFIG_DRIVER_USB_DEVICE is not set
+# end of USB
+
+#
+# Virtio
+#
+CONFIG_DRIVER_VIRTIO_BLOCK=y
+CONFIG_DRIVER_VIRTIO_SERIAL=y
+# end of Virtio
+
+#
+# Watchdog
+#
+# end of Watchdog
+# end of Drivers
+
+#
+# Command mode
+#
+CONFIG_CM=y
+CONFIG_CM_BUF_SIZE_KB=4
+CONFIG_CM_TRANSPORT_READY_TIMEOUT=10
+CONFIG_CM_AUTH=y
+CONFIG_CM_AUTH_TOKEN=y
+CONFIG_CM_AUTH_PASSWORD=y
+# end of Command mode
+
+#
+# Library
+#
+CONFIG_LIB_ZLIB_CRC=y
+CONFIG_LIB_BPAK=y
+CONFIG_LIB_DER_HELPERS=y
+CONFIG_LIB_FDT=y
+CONFIG_LIB_UUID=y
 CONFIG_LIB_UUID3=y
-CONFIG_BEARSSL=y
+CONFIG_LIB_XLAT_TBLS=y
+CONFIG_LIB_XLAT_TBLS_ARMV7=y
+# end of Library

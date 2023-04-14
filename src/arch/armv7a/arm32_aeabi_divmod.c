@@ -125,8 +125,6 @@ unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
     return ret_uidivmod_values(qr.q, qr.r);
 }
 
-#ifdef __PB_IGNORE
-
 signed int __aeabi_idiv(signed int numerator, signed int denominator)
 {
     struct qr qr = { .q_n = 0, .r_n = 0 };
@@ -205,4 +203,3 @@ signed int __aeabi_idivmod(signed int numerator, signed int denominator)
     return ret_idivmod_values(qr.q, qr.r);
 }
 
-#endif

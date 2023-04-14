@@ -76,7 +76,7 @@ _zeroing_done:
     cpsid   i,#0x13       /* supervisor */
     mov     sp, r1
 
-    bl pb_main
+    bl main
     b .
 
 

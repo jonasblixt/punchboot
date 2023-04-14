@@ -6,7 +6,7 @@ wait_for_qemu_start
 
 echo Installing GPT
 # Install GPT partitions
-$PB part --install --transport socket
+$PB part --install --part 1eacedf3-3790-48c7-8ed8-9188ff49672b --transport socket
 result_code=$?
 
 if [ $result_code -ne 0 ];

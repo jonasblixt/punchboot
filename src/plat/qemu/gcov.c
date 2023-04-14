@@ -8,7 +8,6 @@
  */
 
 #include <stdio.h>
-#include <pb/board.h>
 #include <pb/plat.h>
 #include <plat/qemu/gcov.h>
 #include <plat/qemu/semihosting.h>
@@ -245,8 +244,8 @@ void __gcov_init(struct gcov_info *p)
 void __gcov_merge_add(gcov_type *counters, unsigned n_counters);
 void __gcov_merge_add(gcov_type *counters, unsigned n_counters)
 {
-    UNUSED(counters);
-    UNUSED(n_counters);
+    (void) counters;
+    (void) n_counters;
 
     /* Not Used */
 }

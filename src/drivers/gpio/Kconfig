@@ -1,0 +1,8 @@
+menu "GPIO"
+
+config DRIVERS_IMX_GPIO
+    bool "i.MX GPIO"
+    depends on SOC_FAMILY_IMX
+    default y
+
+endmenu

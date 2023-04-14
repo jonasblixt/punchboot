@@ -1,8 +1,7 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -10,11 +9,8 @@
 
 MEMORY
 {
-    reset(rx)   : ORIGIN = 0x80000000, LENGTH = 128K
-    pbram (rx)  : ORIGIN = 0x80020000, LENGTH = 256K
-    pbram2 (rx) : ORIGIN = 0x80060000, LENGTH = 256K
-    dram (rx)   : ORIGIN = 0x85000000, LENGTH = 16M
-
+    reset(rx) : ORIGIN = 0x80000000, LENGTH = 128K
+    ram (rx)  : ORIGIN = 0x80020000, LENGTH = 16M
 }
 
 /**
@@ -24,17 +20,16 @@ MEMORY
  * is loaded at that particular address.
  */
 
-
-
 SECTIONS
 {
-	. = 0x80000000;
+    . = 0x80000000;
 
-	.imx8x_reset :
- 	{
+    .imx8x_reset :
+    {
         PROVIDE (_imx8x_start = .);
-		*(.text.imx8x_reset)
+        *(.text.imx8x_reset)
         . = ALIGN(8);
         PROVIDE (_imx8x_end = .);
     } > reset
+
 }

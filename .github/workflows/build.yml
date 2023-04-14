@@ -11,9 +11,11 @@ jobs:
       run: |
           sudo apt-get update
           sudo apt-get install autoconf-archive qemu-system-arm libusb-1.0-0 libusb-1.0-0-dev uuid-dev gcc-arm-none-eabi cmake uuid-runtime python3-dev libmbedtls-dev liblzma-dev uuid-dev
+          wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v3.4.0.zip
+          unzip v3.4.0.zip
     - name: Build BPAK
       run: |
-            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.8.6
+            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.9.3
             pushd bpak
             cmake .
             make
@@ -22,7 +24,7 @@ jobs:
             popd
     - name: Build punchboot-tools
       run: |
-            git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v0.3.1
+            git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v1.0.0
             pushd punchboot-tools
             cmake -DPB_TOOLS_BUILD_SOCKET=1 .
             make
@@ -40,6 +42,7 @@ jobs:
             popd
     - name: Build punchboot and run tests
       run: |
+          export MBEDTLS_DIR=$(readlink -f mbedtls-3.4.0)
           cp configs/test_defconfig .config
           make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test Q= check
     - name: codecov
@@ -53,6 +56,7 @@ jobs:
         TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
     - name: Build with cov-build
       run: |
+        export MBEDTLS_DIR=$(readlink -f mbedtls-3.4.0)
         export PATH=`pwd`/cov-analysis-linux64/bin:$PATH
         make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test clean
         cov-configure --template --compiler arm-none-eabi-gcc --comptype gcc

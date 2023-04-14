@@ -9,50 +9,36 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pb/board.h>
-#include <pb/io.h>
 #include <pb/plat.h>
 #include <uuid.h>
-#include <pb/fuse.h>
-#include <pb/board.h>
-#include <pb/boot.h>
 #include <xlat_tables.h>
-#include <plat/qemu/plat.h>
-#include <plat/qemu/virtio.h>
-#include <plat/qemu/virtio_block.h>
-#include <plat/qemu/virtio_serial.h>
-#include <plat/qemu/fuse.h>
-#include <plat/qemu/gcov.h>
-#include <plat/qemu/uart.h>
-#include <bearssl/bearssl_hash.h>
 #include <plat/qemu/semihosting.h>
 #include <board/config.h>
 #include <bpak/bpak.h>
+#include <platform_defs.h>
+#include <board_defs.h>
+#include <pb/console.h>
+#include <plat/qemu/qemu.h>
+#include <drivers/fuse/test_fuse_bio.h>
+#include "uart.h"
+#include "gcov.h"
 
-extern char _code_start, _code_end,
-            _data_region_start, _data_region_end,
-            _ro_data_region_start, _ro_data_region_end,
-            _zero_region_start, _zero_region_end,
-            _stack_start, _stack_end,
-            _no_init_start, _no_init_end, end,
-            __init_array_start, __init_array_end2,
-            __fini_array_start, __fini_array_end2;
-static struct qemu_uart_device console_uart;
-extern const struct fuse fuses[];
-extern const uint32_t rom_key_map[];
+IMPORT_SYM(uintptr_t, _code_start, code_start);
+IMPORT_SYM(uintptr_t, _code_end, code_end);
+IMPORT_SYM(uintptr_t, _data_region_start, data_start);
+IMPORT_SYM(uintptr_t, _data_region_end, data_end);
+IMPORT_SYM(uintptr_t, _ro_data_region_start, ro_data_start);
+IMPORT_SYM(uintptr_t, _ro_data_region_end, ro_data_end);
+IMPORT_SYM(uintptr_t, _stack_start, stack_start);
+IMPORT_SYM(uintptr_t, _stack_end, stack_end);
+IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
+IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
+IMPORT_SYM(uintptr_t, __init_array_start, init_array_start);
+IMPORT_SYM(uintptr_t, __init_array_end2, init_array_end);
+IMPORT_SYM(uintptr_t, __fini_array_start, fini_array_start);
+IMPORT_SYM(uintptr_t, __fini_array_end2, fini_array_end);
 
-static struct fuse rom_key_revoke_fuse =
-        TEST_FUSE_BANK_WORD(8, "Revoke");
-
-static struct fuse security_fuse =
-        TEST_FUSE_BANK_WORD(9, "Security fuse");
-
-static struct pb_result_slc_key_status key_status;
-
-static const char *platform_namespace_uuid =
-    "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
-
-static const char *device_unique_id =
+static const uint8_t device_unique_id[8] =
     "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
 static const mmap_region_t qemu_mmap[] =
@@ -71,340 +57,57 @@ const char * plat_boot_reason_str(void)
     return "";
 }
 
-int plat_get_uuid(char *out)
+int plat_get_unique_id(uint8_t *output, size_t *length)
 {
-    int rc;
-    char device_uu_str[37];
+    if (sizeof(device_unique_id) > *length)
+        return -PB_ERR_BUF_TOO_SMALL;
 
-    rc = uuid_gen_uuid3(platform_namespace_uuid,
-                          (const char *) device_unique_id, 8, out);
-
-    uuid_unparse((const unsigned char *) out, device_uu_str);
-    LOG_DBG("Get UUID %s", device_uu_str);
-
-    return rc;
-}
-
-int plat_fuse_read(struct fuse *f)
-{
-    uint32_t tmp_val = 0;
-    int err;
-
-    if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return -PB_ERR;
-
-    err = qemu_fuse_read(f->bank, &tmp_val);
-
-    if (err != PB_OK)
-        LOG_ERR("Could not read fuse");
-
-    f->value = tmp_val;
-
-    return err;
-}
-
-int plat_fuse_write(struct fuse *f)
-{
-    int err;
-
-    if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return -PB_ERR;
-    LOG_DBG("Writing fuse %s", f->description);
-
-    err = qemu_fuse_write(f->bank, f->value);
-
-    if (err != PB_OK)
-        LOG_ERR("Could not write fuse");
-    return err;
-}
-
-int plat_fuse_to_string(struct fuse *f, char *s, uint32_t n)
-{
-    if ( (f->status & FUSE_VALID) != FUSE_VALID)
-        return -PB_ERR;
-
-    return snprintf(s, n, "FUSE <%u> %s = 0x%08x\n", f->bank,
-                f->description, f->value);
-}
-
-/* QEMU SLC Interface */
-int plat_slc_set_configuration(void)
-{
-    int err;
-
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION
-    err = board_slc_set_configuration(&private);
-
-    if (err != PB_OK) {
-        LOG_ERR("board_slc_set_configuration failed");
-        return err;
-    }
-#endif
-
-    /* Read fuses */
-    foreach_fuse(f, (struct fuse *) fuses) {
-        err = plat_fuse_read(f);
-
-        LOG_DBG("Fuse %s: 0x%08x", f->description, f->value);
-        if (err != PB_OK) {
-            LOG_ERR("Could not access fuse '%s'", f->description);
-            return err;
-        }
-    }
-
-    /* Perform the actual fuse programming */
-
-    LOG_INFO("Writing fuses");
-
-    foreach_fuse(f, fuses) {
-        f->value = f->default_value;
-        err = plat_fuse_write(f);
-
-        if (err != PB_OK)
-            return err;
-    }
-
+    memcpy(output, device_unique_id, sizeof(device_unique_id));
+    *length = sizeof(device_unique_id);
     return PB_OK;
 }
 
-int plat_slc_set_configuration_lock(void)
+static void mmu_init(void)
 {
-    int rc;
-
-#ifdef CONFIG_CALL_BOARD_SLC_SET_CONFIGURATION_LOCK
-    rc = board_slc_set_configuration_lock(&private);
-
-    if (rc != PB_OK) {
-        LOG_ERR("board_slc_set_configuration failed");
-        return rc;
-    }
-#endif
-
-    rc = plat_fuse_read(&security_fuse);
-
-    if (rc != PB_OK)
-        return rc;
-
-    if (security_fuse.value & (1 << 0)) {
-        LOG_ERR("Already locked");
-        return -PB_ERR;
-    }
-
-    security_fuse.value |= (1 << 0);
-
-    rc = plat_fuse_write(&security_fuse);
-
-    return rc;
-}
-
-int plat_slc_set_end_of_life(void)
-{
-
-    int rc;
-
-    rc = plat_fuse_read(&security_fuse);
-
-    if (rc != PB_OK)
-        return rc;
-
-    security_fuse.value |= (1 << 1);
-
-    rc = plat_fuse_write(&security_fuse);
-
-    return rc;
-}
-
-int plat_slc_read(enum pb_slc *slc)
-{
-
-    int rc;
-
-    rc = plat_fuse_read(&security_fuse);
-
-    if (rc != PB_OK)
-        return rc;
-
-    if (security_fuse.value & (1 << 0)) {
-        LOG_INFO("SLC: Configuration locked");
-        *slc = PB_SLC_CONFIGURATION_LOCKED;
-    } else if (security_fuse.value & (1 << 1)) {
-        LOG_INFO("SLC: End of life");
-        *slc = PB_SLC_EOL;
-    } else {
-        LOG_INFO("SLC: Configuration");
-        *slc = PB_SLC_CONFIGURATION;
-    }
-
-    return PB_OK;
-}
-
-int plat_slc_key_active(uint32_t id, bool *active)
-{
-    int rc;
-    *active = false;
-    rc = plat_slc_get_key_status(NULL);
-
-    if (rc != PB_OK)
-        return rc;
-
-    for (int i = 0; i < 16; i++) {
-        if (!key_status.active[i])
-            continue;
-        if (key_status.active[i] == id) {
-            *active = true;
-            break;
-        }
-    }
-
-    return PB_OK;
-}
-
-int plat_slc_revoke_key(uint32_t id)
-{
-    int rc;
-    LOG_INFO("Revoking key 0x%x", id);
-
-    rc = plat_slc_get_key_status(NULL);
-
-    if (rc != PB_OK)
-        return rc;
-
-    rc = plat_fuse_read(&rom_key_revoke_fuse);
-
-    if (rc != PB_OK)
-        return rc;
-
-    for (int i = 0; i < 16; i++) {
-        if (!rom_key_map[i])
-            break;
-        if (rom_key_map[i] != id)
-            continue;
-
-        if (!(rom_key_revoke_fuse.value & (1 << i))) {
-            rom_key_revoke_fuse.value |= (1 << i);
-            return plat_fuse_write(&rom_key_revoke_fuse);
-        }
-    }
-    return PB_OK;
-}
-
-int plat_slc_init(void)
-{
-    int rc;
-    rc = qemu_fuse_init();
-    return rc;
-}
-
-int plat_slc_get_key_status(struct pb_result_slc_key_status **status)
-{
-    int rc;
-
-    if (status)
-        (*status) = &key_status;
-
-    rc = plat_fuse_read(&rom_key_revoke_fuse);
-
-    if (rc != PB_OK)
-        return rc;
-
-    for (int i = 0; i < 16; i++) {
-        if (!rom_key_map[i])
-            break;
-
-        if (rom_key_revoke_fuse.value & (1 << i)) {
-            key_status.active[i] = 0;
-            key_status.revoked[i] = rom_key_map[i];
-        } else {
-            key_status.revoked[i] = 0;
-            key_status.active[i] = rom_key_map[i];
-        }
-    }
-
-    return PB_OK;
-}
-
-int plat_early_init(void)
-{
-    int rc;
-    memset(&key_status, 0, sizeof(key_status));
-
-    rc = board_early_init(NULL);
-
-#ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
-    LOG_DBG("Initializing GCOV");
-    gcov_init();
-    LOG_DBG("Done");
-#endif
-
-    return rc;
-}
-
-int plat_mmu_init(void)
-{
-    uintptr_t ro_start = (uintptr_t) &_ro_data_region_start;
-    size_t ro_size = ((uintptr_t) &_ro_data_region_end) -
-                      ((uintptr_t) &_ro_data_region_start);
-
-    uintptr_t code_start = (uintptr_t) &_code_start;
-    size_t code_size = ((uintptr_t) &_code_end) -
-                      ((uintptr_t) &_code_start);
-
-    uintptr_t stack_start = (uintptr_t) &_stack_start;
-    size_t stack_size = ((uintptr_t) &_stack_end) -
-                      ((uintptr_t) &_stack_start);
-
-    uintptr_t rw_start = (uintptr_t) &_data_region_start;
-
-    size_t rw_size = ((uintptr_t) &_data_region_end) -
-                      ((uintptr_t) &_data_region_start);
-
-    uintptr_t bss_start = (uintptr_t) &_zero_region_start;
-    size_t bss_size = ((uintptr_t) &_zero_region_end) -
-                      ((uintptr_t) &_zero_region_start);
-
-    uintptr_t bb_start = (uintptr_t) &_no_init_start;
-    size_t bb_size = ((uintptr_t) &_no_init_end) -
-                      ((uintptr_t) &_no_init_start);
-
-    uintptr_t init_array_start = (uintptr_t) &__init_array_start;
-    size_t init_array_size = ((uintptr_t) &__init_array_end2) -
-                             ((uintptr_t) &__init_array_start);
-
-    uintptr_t fini_array_start = (uintptr_t) &__fini_array_start;
-    size_t fini_array_size = ((uintptr_t) &__fini_array_end2) -
-                             ((uintptr_t) &__fini_array_start);
-
-    plat_console_init();
-
     reset_xlat_tables();
 
-    mmap_add_region(code_start, code_start, code_size,
-                            MT_RO | MT_MEMORY | MT_EXECUTE);
-    mmap_add_region(stack_start, stack_start, stack_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(ro_start, ro_start, ro_size,
-                            MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(code_start, code_start,
+                    code_end - code_start,
+                    MT_RO | MT_MEMORY | MT_EXECUTE);
+
+    mmap_add_region(data_start, data_start,
+                    data_end - data_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(ro_data_start, ro_data_start,
+                    ro_data_end - ro_data_start,
+                    MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(stack_start, stack_start,
+                    stack_end - stack_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+
+    mmap_add_region(rw_nox_start, rw_nox_start,
+                    rw_nox_end - rw_nox_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
 #ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
-    mmap_add_region(init_array_start, init_array_start, init_array_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(init_array_start, init_array_start,
+                    init_array_end - init_array_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE);
 
-    mmap_add_region(fini_array_start, fini_array_start, fini_array_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(fini_array_start, fini_array_start,
+                    fini_array_end - fini_array_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE);
 #endif
 
-    mmap_add_region(rw_start, rw_start, rw_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(bss_start, bss_start, bss_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(bb_start, bb_start, bb_size,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-
-    /* Add ram */
-
-    mmap_add_region(bb_start + bb_size, bb_start + bb_size,
-                            RAM_SIZE,
-                            MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    /* Add the rest of the RAM */
+    mmap_add_region(rw_nox_end, rw_nox_end,
+                    BOARD_RAM_END - rw_nox_end,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(data_start, data_start,
+                    data_end - data_start,
+                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add(qemu_mmap);
 
@@ -412,73 +115,31 @@ int plat_mmu_init(void)
     LOG_DBG("About to enable MMU");
     enable_mmu_svc_mon(0);
     LOG_DBG("MMU Enabled");
+}
+
+int plat_init(void)
+{
+    static const struct console_ops ops = {
+        .putc = qemu_uart_putc,
+    };
+
+    console_init(0x09000000, &ops);
+
+    mmu_init();
+
+#ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
+    gcov_init();
+#endif
 
     return PB_OK;
+}
+
+int plat_board_init(void)
+{
+    return board_init();
 }
 
 uint32_t plat_get_us_tick(void)
 {
     return 0;
-}
-
-/* Console API */
-
-int plat_console_init(void)
-{
-    return pb_qemu_console_init(&console_uart);
-}
-
-int plat_console_putchar(char c)
-{
-    qemu_uart_write(&console_uart, (char *) &c, 1);
-    return PB_OK;
-}
-
-bool plat_force_command_mode(void)
-{
-    return board_force_command_mode(NULL);
-}
-
-int plat_status(void *response_bfr,
-                    size_t *response_size)
-{
-    return board_status(NULL, response_bfr, response_size);
-}
-
-int plat_command(uint32_t command,
-                     void *bfr,
-                     size_t size,
-                     void *response_bfr,
-                     size_t *response_size)
-{
-    return board_command(NULL, command, bfr, size,
-                            response_bfr, response_size);
-}
-
-int plat_patch_bootargs(void *fdt, int offset, bool verbose_boot)
-{
-    const struct pb_boot_config *boot_config = board_boot_config();
-    if (boot_config->dtb_patch_cb) {
-        return boot_config->dtb_patch_cb(NULL, fdt, offset, verbose_boot);
-    }
-
-    return PB_OK;
-}
-
-int plat_early_boot(void)
-{
-    const struct pb_boot_config *boot_config = board_boot_config();
-    if (boot_config->early_boot_cb)
-        return boot_config->early_boot_cb(NULL);
-    else
-        return PB_OK;
-}
-
-int plat_late_boot(uuid_t boot_part_uu, enum pb_boot_mode boot_mode)
-{
-    const struct pb_boot_config *boot_config = board_boot_config();
-    if (boot_config->late_boot_cb)
-        return boot_config->late_boot_cb(NULL, boot_part_uu, boot_mode);
-    else
-        return PB_OK;
 }

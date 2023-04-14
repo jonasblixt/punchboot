@@ -11,15 +11,8 @@
 #ifndef PLAT_TEST_UART_H_
 #define PLAT_TEST_UART_H_
 
-#include <pb/pb.h>
-#include <pb/io.h>
+#include <stdint.h>
 
-struct qemu_uart_device
-{
-    __iomem base;
-};
-
-int qemu_uart_write(struct qemu_uart_device *dev, char *buf, size_t size);
-int qemu_uart_init(struct qemu_uart_device *dev);
+void qemu_uart_putc(uintptr_t base, char c);
 
 #endif  // PLAT_TEST_UART_H_
