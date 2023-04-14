@@ -21,6 +21,17 @@
 #include <platform_defs.h>
 #include <board_defs.h>
 
+#define SRC_SRSR (0x020D8008)
+#define SRSR_WARM BIT(16)
+#define SRSR_TEMP BIT(8)
+#define SRSR_WDOG3 BIT(7)
+#define SRSR_JTAG_SW BIT(6)
+#define SRSR_JTAG_RST BIT(5)
+#define SRSR_WDOG BIT(4)
+#define SRSR_USER BIT(3)
+#define SRSR_CSU BIT(2)
+#define SRSR_POR BIT(0)
+
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
 IMPORT_SYM(uintptr_t, _data_region_start, data_start);
@@ -33,7 +44,34 @@ IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
 IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 
 static struct imx6ul_platform plat;
-static int boot_reason;
+
+enum imx6ul_boot_reason {
+    BR_UNKNOWN,
+    BR_POR,
+    BR_CSU,
+    BR_USER,
+    BR_WDOG,
+    BR_JTAG_RST,
+    BR_JTAG_SW,
+    BR_WDOG3,
+    BR_TEMP,
+    BR_WARM,
+    BR_END,
+};
+
+static const char *br_str[BR_END] =
+{
+    "Unknown",
+    "POR",
+    "CSU",
+    "User",
+    "wdog",
+    "jtag_rst",
+    "jtag_sw",
+    "wdog3",
+    "temp",
+    "warm",
+};
 
 static const mmap_region_t imx_mmap[] =
 {
@@ -50,12 +88,34 @@ static const mmap_region_t imx_mmap[] =
 
 int plat_boot_reason(void)
 {
-    return -PB_ERR_NOT_IMPLEMENTED;
+    /* Read the SRC reset status register */
+    uint32_t srsr = mmio_read_32(SRC_SRSR);
+
+    if (srsr & SRSR_WARM)
+        return BR_WARM;
+    else if (srsr & SRSR_TEMP)
+        return BR_TEMP;
+    else if (srsr & SRSR_WDOG3)
+        return BR_WDOG3;
+    else if (srsr & SRSR_JTAG_SW)
+        return BR_JTAG_SW;
+    else if (srsr & SRSR_JTAG_RST)
+        return BR_JTAG_RST;
+    else if (srsr & SRSR_WDOG)
+        return BR_WDOG;
+    else if (srsr & SRSR_USER)
+        return BR_USER;
+    else if (srsr & SRSR_CSU)
+        return BR_CSU;
+    else if (srsr & SRSR_POR)
+        return BR_POR;
+    else
+        return BR_UNKNOWN;
 }
 
 const char *plat_boot_reason_str(void)
 {
-    return "";
+    return br_str[plat_boot_reason()];
 }
 
 int plat_get_unique_id(uint8_t *output, size_t *length)
