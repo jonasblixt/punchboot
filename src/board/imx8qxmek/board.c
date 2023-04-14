@@ -51,7 +51,7 @@
 
 static struct imx8x_platform *plat;
 
-static const struct gpt_part_table gpt_tbl[]=
+static const struct gpt_part_table gpt_tbl_default[]=
 {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
@@ -117,6 +117,16 @@ static const struct gpt_part_table gpt_tbl[]=
         .uu = UUID_39792364_d3e3_4013_ac51_caaea65e4334,
         .description = "Mass storage",
         .size = SZ_GB(1),
+    },
+};
+
+static const struct gpt_table_list gpt_tables[] =
+{
+    {
+        .name = "Default",
+        .variant = 0,
+        .table = gpt_tbl_default,
+        .table_length = ARRAY_SIZE(gpt_tbl_default),
     },
 };
 
@@ -364,7 +374,7 @@ int board_init(struct imx8x_platform *plat_ptr)
         goto err_out;
     }
 
-    rc = gpt_ptbl_init(user_part, gpt_tbl, ARRAY_SIZE(gpt_tbl));
+    rc = gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
     /* eMMC User partition now only has the visible flag to report capacity */
     (void) bio_set_flags(user_part, BIO_FLAG_VISIBLE);
 
