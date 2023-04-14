@@ -56,6 +56,7 @@ jobs:
         TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
     - name: Build with cov-build
       run: |
+        export MBEDTLS_DIR=$(readlink -f mbedtls-3.4.0)
         export PATH=`pwd`/cov-analysis-linux64/bin:$PATH
         make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test clean
         cov-configure --template --compiler arm-none-eabi-gcc --comptype gcc
