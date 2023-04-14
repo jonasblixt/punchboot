@@ -13,7 +13,7 @@ jobs:
           sudo apt-get install autoconf-archive qemu-system-arm libusb-1.0-0 libusb-1.0-0-dev uuid-dev gcc-arm-none-eabi cmake uuid-runtime python3-dev libmbedtls-dev liblzma-dev uuid-dev
     - name: Build BPAK
       run: |
-            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.8.6
+            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.9.3
             pushd bpak
             cmake .
             make
@@ -22,7 +22,7 @@ jobs:
             popd
     - name: Build punchboot-tools
       run: |
-            git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v0.3.1
+            git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v1.0.0
             pushd punchboot-tools
             cmake -DPB_TOOLS_BUILD_SOCKET=1 .
             make
