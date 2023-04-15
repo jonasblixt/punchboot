@@ -23,7 +23,7 @@ static unsigned int n_bios = 0;
 
 static int check_dev(bio_dev_t dev)
 {
-    if (dev < 0 || dev > CONFIG_DRIVERS_BIO_MAX_DEVS)
+    if (dev < 0 || dev >= CONFIG_DRIVERS_BIO_MAX_DEVS)
         return -PB_ERR_PARAM;
     if (bio_pool[dev].valid == false)
         return -PB_ERR_PARAM;
