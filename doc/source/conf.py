@@ -29,16 +29,12 @@ copyright = '2023, Jonas Blixt'
 author = 'Jonas Blixt'
 
 # The full version, including alpha/beta/rc tags
-
-release = '1.0.0'
-
+version = "1.0.0"
+release = version
 
 # -- General configuration ---------------------------------------------------
-
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
-
-#if read_the_docs_build:
-subprocess.call('doxygen ../doxygen.cfg', shell=True)
+subprocess.call('set', shell=True)
+subprocess.call('doxygen doxygen.cfg', shell=True)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -89,11 +85,11 @@ html_static_path = ['_static']
 # extlins
 extlinks = {
     'github-blob':
-    ('https://github.com/jonasblixt/punchboot/blob/' + release + '/%s', ''),
+    ('https://github.com/jonasblixt/punchboot/blob/' + version + '/%s', '%s'),
     'github-tree':
-    ('https://github.com/jonasblixt/punchboot/tree/' + release + '/%s', ''),
+    ('https://github.com/jonasblixt/punchboot/tree/' + version + '/%s', ''),
     'codecov':
-    ('https://codecov.io/gh/jonasblixt/punchboot/src/' + release + '/%s', ''),
+    ('https://codecov.io/gh/jonasblixt/punchboot/src/' + version + '/%s', ''),
     'codecov-tree':
-    ('https://codecov.io/gh/jonasblixt/punchboot/tree/' + release + '/%s', '')
+    ('https://codecov.io/gh/jonasblixt/punchboot/tree/' + version + '/%s', '')
 }
