@@ -35,9 +35,6 @@ release = '1.0.0'
 
 # -- General configuration ---------------------------------------------------
 
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
-
-#if read_the_docs_build:
 subprocess.call('doxygen ../doxygen.cfg', shell=True)
 
 # If extensions (or modules to document with autodoc) are in another directory,
