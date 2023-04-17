@@ -31,6 +31,9 @@ enum boot_source {
 /**
  * Boot flags
  *
+ * Bits 15 - 0 are reserved for punchboot
+ * Bits 31 - 16 are intended for board/user
+ *
  * \def BOOT_FLAG_CMD
  * Set when boot was initiated through the command mode interface.
  *
