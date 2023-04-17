@@ -1,7 +1,9 @@
 cat <<EOF > tmp_dockerfile
 FROM sphinxdoc/sphinx
-RUN apt-get update -y
-RUN apt-get install -y doxygen
+RUN apt-get update -y && \
+ mkdir -p /usr/share/man/man1/ && \
+ apt-get install -y default-jre && \
+ apt-get install -y doxygen plantuml
 COPY doc/requirements.txt /requirements.txt
 RUN pip3 install -r /requirements.txt
 EOF
