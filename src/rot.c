@@ -21,11 +21,11 @@ int rot_init(const struct rot_config *cfg_)
     /* Check that the number of keys and key ID's match
      * between bundeled bpak keystore and what the board config claims */
     if (keystore_pb.no_of_keys != cfg_->key_map_length)
-        return -PB_ERR_MEM;
+        return -PB_ERR_PARAM;
 
     for (int i = 0; i < keystore_pb.no_of_keys; i++) {
         if (keystore_pb.keys[i]->id != cfg_->key_map[i].id) {
-            return -PB_ERR_MEM;
+            return -PB_ERR_PARAM;
         }
     }
 

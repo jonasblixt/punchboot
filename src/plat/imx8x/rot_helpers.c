@@ -27,7 +27,7 @@ int imx8x_revoke_key(const struct rot_key *key)
     (void) key;
 
     if (!imx8x_is_srk_fused())
-        return -PB_ERR_MEM;
+        return -PB_ERR;
 
     LOG_INFO("Revoking keys as specified in image header");
 
