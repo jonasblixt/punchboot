@@ -86,9 +86,8 @@ static int mbedtls_hash_final(uint8_t *output, size_t size)
 {
     switch (current_hash) {
     case HASH_SHA512:
-        if (size < 64) {
+        if (size < 64)
             return -PB_ERR_BUF_TOO_SMALL;
-        }
         mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *) output);
         break;
     case HASH_SHA384:
