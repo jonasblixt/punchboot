@@ -80,7 +80,7 @@ SECTIONS
         *(xlat_table)
         . = ALIGN(4096);
         PROVIDE(_no_init_end = .);
-    } > ram
+    } > buffers
 
     PROVIDE(end = .);
 }

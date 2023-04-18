@@ -11,6 +11,7 @@ MEMORY
 {
     reset(rx) : ORIGIN = 0x80000000, LENGTH = 128K
     ram (rx)  : ORIGIN = 0x80020000, LENGTH = 16M
+    buffers (rx)  : ORIGIN = 0x85000000, LENGTH = 16M
 }
 
 /**

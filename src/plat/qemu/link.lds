@@ -12,6 +12,7 @@
 MEMORY
 {
     ram (rx)  : ORIGIN = 0x40000000, LENGTH = 32M
+    buffers (rx)  : ORIGIN = 0x41100000, LENGTH = 16M
 }
 
 
