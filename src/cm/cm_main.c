@@ -77,7 +77,7 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
     if (rc != PB_OK)
         return rc;
 
-    rc = hash_update((uintptr_t) device_uu_str, 36);
+    rc = hash_update(device_uu_str, 36);
 
     if (rc != PB_OK)
         return rc;
@@ -395,7 +395,7 @@ static int cmd_part_verify(void)
             return rc;
         }
 
-        rc = hash_update((uintptr_t) buffer, sizeof(struct bpak_header));
+        rc = hash_update(buffer, sizeof(struct bpak_header));
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
@@ -422,7 +422,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = hash_update((uintptr_t) buffer[buffer_id], chunk_len);
+        rc = hash_update(buffer[buffer_id], chunk_len);
 
         if (rc != PB_OK) {
             LOG_ERR("Hash update error");

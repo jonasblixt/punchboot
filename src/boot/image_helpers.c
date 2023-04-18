@@ -94,7 +94,7 @@ int boot_image_auth_header(struct bpak_header *hdr)
     if (rc != BPAK_OK)
         return -PB_ERR_MEM;
 
-    rc = hash_update((uintptr_t) hdr, sizeof(*hdr));
+    rc = hash_update(hdr, sizeof(*hdr));
 
     if (rc != PB_OK)
         return rc;
@@ -251,7 +251,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             /* Since we load chunks at an offset we can use the
              * async hash API (if the underlying driver supports it)
              */
-            rc = hash_update_async(addr, chunk_size);
+            rc = hash_update_async((void *) addr, chunk_size);
 
             if (rc != PB_OK)
                 break;

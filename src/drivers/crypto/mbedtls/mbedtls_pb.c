@@ -60,7 +60,7 @@ static int mbedtls_hash_init(hash_t pb_alg)
     return PB_OK;
 }
 
-static int mbedtls_hash_update(uintptr_t buf, size_t length)
+static int mbedtls_hash_update(const void *buf, size_t length)
 {
     switch (current_hash) {
     case HASH_SHA512:

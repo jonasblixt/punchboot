@@ -33,7 +33,7 @@ int hash_init(hash_t alg)
     return PB_ERR_NOT_SUPPORTED;
 }
 
-int hash_update(uintptr_t buf, size_t length)
+int hash_update(const void *buf, size_t length)
 {
     if (current_hash_ops == NULL)
         return -PB_ERR_STATE;
@@ -41,7 +41,7 @@ int hash_update(uintptr_t buf, size_t length)
     return current_hash_ops->update(buf, length);
 }
 
-int hash_update_async(uintptr_t buf, size_t length)
+int hash_update_async(const void *buf, size_t length)
 {
     if (current_hash_ops == NULL)
         return -PB_ERR_STATE;
@@ -52,7 +52,7 @@ int hash_update_async(uintptr_t buf, size_t length)
         return current_hash_ops->update(buf, length);
 }
 
-int hash_copy_update(uintptr_t src, uintptr_t dest, size_t length)
+int hash_copy_update(const void *src, void *dest, size_t length)
 {
     if (current_hash_ops == NULL)
         return -PB_ERR_STATE;
@@ -60,7 +60,7 @@ int hash_copy_update(uintptr_t src, uintptr_t dest, size_t length)
     if (current_hash_ops->copy_update != NULL) {
         return current_hash_ops->copy_update(src, dest, length);
     } else {
-        memcpy((void*) dest, (void*) src, length);
+        memcpy(dest, src, length);
         return current_hash_ops->update(dest, length);
     }
 }
@@ -155,7 +155,7 @@ DECLARE_SELF_TEST(crypto_test_sha256_abc)
 {
     uint8_t hash_output[32];
     hash_init(HASH_SHA256);
-    hash_update((uintptr_t) "abc", 3);
+    hash_update("abc", 3);
     hash_final(hash_output, sizeof(hash_output));
 
     if (memcmp(hash_output, sha256_abc, 32) != 0) {
@@ -172,7 +172,7 @@ DECLARE_SELF_TEST(crypto_test_sha256_abcdpq)
 {
     uint8_t hash_output[32];
     hash_init(HASH_SHA256);
-    hash_update((uintptr_t) abcdpq, strlen(abcdpq));
+    hash_update(abcdpq, strlen(abcdpq));
     hash_final(hash_output, sizeof(hash_output));
 
     if (memcmp(hash_output, sha256_abcdpq, 32) != 0) {
@@ -197,7 +197,7 @@ DECLARE_SELF_TEST(crypto_test_sha256_1Ma)
     hash_init(HASH_SHA256);
 
     for (int n = 0; n < 1000; n++) {
-        rc = hash_update((uintptr_t) hash_test_buf, 1000);
+        rc = hash_update(hash_test_buf, 1000);
         if (rc != 0) {
             return rc;
         }

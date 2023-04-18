@@ -377,7 +377,7 @@ static int _hash_update(uint8_t * buf, size_t length)
     return PB_OK;
 }
 
-static int caam_hash_input(uintptr_t buf, size_t length)
+static int caam_hash_input(const void *buf, size_t length)
 {
     size_t bytes_to_process = length;
     uint8_t *buf_p = (uint8_t *) buf;
@@ -449,13 +449,13 @@ static int caam_hash_input(uintptr_t buf, size_t length)
     return rc;
 }
 
-static int caam_hash_update(uintptr_t buf, size_t length)
+static int caam_hash_update(const void *buf, size_t length)
 {
     caam.async_hashing = false;
     return caam_hash_input(buf, length);
 }
 
-static int caam_hash_update_async(uintptr_t buf, size_t length)
+static int caam_hash_update_async(const void *buf, size_t length)
 {
     caam.async_hashing = true;
     return caam_hash_input(buf, length);
