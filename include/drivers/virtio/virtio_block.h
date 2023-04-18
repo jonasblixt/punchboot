@@ -12,7 +12,7 @@
 
 #include <stdint.h>
 #include <uuid.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 
 bio_dev_t virtio_block_init(uintptr_t base, const uuid_t uu);
 

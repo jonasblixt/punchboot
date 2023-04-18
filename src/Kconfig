@@ -62,6 +62,15 @@ config CRYPTO_MAX_DSA_OPS
     default 1
     depends on CRYPTO
 
+config BIO_CORE
+    bool "Enable support for block devices"
+    default y
+
+config BIO_MAX_DEVS
+    int "Maxmum number of block devices"
+    default 32
+    depends on BIO_CORE
+
 config SELF_TEST
     bool "Run build in self tests on boot"
     default n

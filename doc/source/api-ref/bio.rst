@@ -8,7 +8,7 @@ Block device layer
 
 ----------------------------------------------
 
-Source code: :github-blob:`include/drivers/block/bio.h`, :github-blob:`src/drivers/block/bio.c`
+Source code: :github-blob:`include/pb/bio.h`, :github-blob:`src/bio.c`
 
 ----------------------------------------------
 

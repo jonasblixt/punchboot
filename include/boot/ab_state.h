@@ -12,7 +12,7 @@
  */
 
 #include <uuid.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 
 enum ab_rollback_mode
 {

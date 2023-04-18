@@ -10,7 +10,7 @@
 #ifndef INCLUDE_DRIVERS_FUSE_TEST_BIO_H
 #define INCLUDE_DRIVERS_FUSE_TEST_BIO_H
 
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 
 int test_fuse_init(bio_dev_t dev);
 int test_fuse_write(uint16_t addr, uint32_t value);

@@ -12,12 +12,12 @@
 #include <pb/plat.h>
 #include <pb/cm.h>
 #include <pb/rot.h>
+#include <pb/bio.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
 #include <boot/linux.h>
 #include <plat/qemu/uart.h>
 #include <plat/qemu/semihosting.h>
-#include <drivers/block/bio.h>
 #include <drivers/virtio/virtio_block.h>
 #include <drivers/virtio/virtio_serial.h>
 #include <drivers/partition/gpt.h>

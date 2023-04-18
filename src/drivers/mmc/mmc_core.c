@@ -17,7 +17,7 @@
 #include <pb/pb.h>
 #include <pb/delay.h>
 #include <pb/timestamp.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 #include <drivers/mmc/mmc_core.h>
 
 #define MMC_BIO_FLAG_BOOT0 BIT(0)

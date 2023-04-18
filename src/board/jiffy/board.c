@@ -12,10 +12,10 @@
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <pb/cm.h>
+#include <pb/bio.h>
 #include <boot/boot.h>
 #include <boot/linux.h>
 #include <boot/ab_state.h>
-#include <drivers/block/bio.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/partition/gpt.h>

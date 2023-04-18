@@ -20,7 +20,7 @@
 #include <uuid.h>
 #include <pb/crypto.h>
 #include <boot/boot.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 #include <pb/device_uuid.h>
 #include <pb/slc.h>
 #include <pb/rot.h>

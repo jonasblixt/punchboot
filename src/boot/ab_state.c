@@ -12,7 +12,7 @@
 #include <uuid.h>
 #include <pb/pb.h>
 #include <pb/crc.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
 

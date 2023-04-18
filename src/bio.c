@@ -3,7 +3,7 @@
 #include <string.h>
 #include <pb/pb.h>
 #include <pb/errors.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 
 struct bio_device {
     uuid_t uu;
@@ -18,12 +18,12 @@ struct bio_device {
     bool valid;
 };
 
-static struct bio_device bio_pool[CONFIG_DRIVERS_BIO_MAX_DEVS];
+static struct bio_device bio_pool[CONFIG_BIO_MAX_DEVS];
 static unsigned int n_bios = 0;
 
 static int check_dev(bio_dev_t dev)
 {
-    if (dev < 0 || dev >= CONFIG_DRIVERS_BIO_MAX_DEVS)
+    if (dev < 0 || dev >= CONFIG_BIO_MAX_DEVS)
         return -PB_ERR_PARAM;
     if (bio_pool[dev].valid == false)
         return -PB_ERR_PARAM;
@@ -34,7 +34,7 @@ static int check_dev(bio_dev_t dev)
 bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
                        const uuid_t uu, const char *description)
 {
-    if (n_bios == CONFIG_DRIVERS_BIO_MAX_DEVS)
+    if (n_bios == CONFIG_BIO_MAX_DEVS)
         return -PB_ERR_MEM;
     if (first_lba < 0 || last_lba < 0 || block_size == 0)
         return -PB_ERR_PARAM;
@@ -264,7 +264,7 @@ bio_dev_t bio_get_part_by_uu(const uuid_t uu)
     if (uu == NULL)
         return -PB_ERR_NOT_FOUND;
 
-    for (unsigned int i = 0; i < CONFIG_DRIVERS_BIO_MAX_DEVS; i++) {
+    for (unsigned int i = 0; i < CONFIG_BIO_MAX_DEVS; i++) {
         if (!bio_pool[i].valid)
             break;
         if (uuid_compare(uu, bio_pool[i].uu) == 0) {
