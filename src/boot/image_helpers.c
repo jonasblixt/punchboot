@@ -133,31 +133,31 @@ int boot_image_auth_header(struct bpak_header *hdr)
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, stack_start, stack_end)) {
             rc = -PB_ERR_MEM;
-            LOG_ERR("image overlapping with stack segment");
+            LOG_ERR("Part 0x%x overlapping with stack segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, data_start, data_end)) {
             rc = -PB_ERR_MEM;
-            LOG_ERR("image overlapping with data segment");
+            LOG_ERR("Part 0x%x overlapping with data segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, bss_start, bss_end)) {
             rc = -PB_ERR_MEM;
-            LOG_ERR("image overlapping with bss");
+            LOG_ERR("Part 0x%x overlapping with bss", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, code_start, code_end)) {
             rc = -PB_ERR_MEM;
-            LOG_ERR("image overlapping with code segment");
+            LOG_ERR("Part 0x%x overlapping with code segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, no_init_start, no_init_end)) {
             rc = -PB_ERR_MEM;
-            LOG_ERR("image overlapping with no_init segment");
+            LOG_ERR("Part 0x%x overlapping with no_init segment", p->id);
             break;
         }
     }
