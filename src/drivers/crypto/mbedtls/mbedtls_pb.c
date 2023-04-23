@@ -118,7 +118,6 @@ static int mbed_ecda_verify(const uint8_t *der_signature, size_t signature_lengt
                             bool *verified)
 {
     int rc;
-    char mbedtls_errorstr[256];
     mbedtls_pk_context ctx;
     mbedtls_md_type_t md_type;
 
@@ -141,8 +140,13 @@ static int mbed_ecda_verify(const uint8_t *der_signature, size_t signature_lengt
     rc = mbedtls_pk_parse_public_key(&ctx, der_key, key_length);
 
     if (rc != 0) {
-        mbedtls_strerror(rc, mbedtls_errorstr, sizeof(mbedtls_errorstr));
-        LOG_ERR("Verify failed %s (%i)", mbedtls_errorstr, rc);
+#if CONFIG_MBEDTLS_STRERROR
+        char mbedtls_error_str[256];
+        mbedtls_strerror(rc, mbedtls_error_str, sizeof(mbedtls_error_str));
+#else
+        const char *mbedtls_error_str = "";
+#endif
+        LOG_ERR("Verify failed %s (%i)", mbedtls_error_str, rc);
         return -PB_ERR_SIGNATURE;
     }
 
