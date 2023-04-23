@@ -253,6 +253,13 @@ int bio_get_first_block(bio_dev_t dev)
     return bio_pool[dev].first_lba;
 }
 
+int bio_get_no_of_blocks(bio_dev_t dev)
+{
+    if (check_dev(dev) != PB_OK)
+        return -PB_ERR_PARAM;
+    return bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1;
+}
+
 bio_dev_t bio_get_part_by_uu(const uuid_t uu)
 {
     if (uu == NULL)

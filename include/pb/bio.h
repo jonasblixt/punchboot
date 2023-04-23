@@ -245,24 +245,36 @@ int bio_clear_set_flags(bio_dev_t dev, uint16_t clear_flags, uint16_t set_flags)
 const unsigned char * bio_get_uu(bio_dev_t dev);
 
 /**
- * Get UUID of block device
+ * Get the last block particular device. This returns the physical block
+ * offset of the underlying block device.
  *
  * @param[in] dev Block device handle
  *
- * @return First lba, on success,
+ * @return Last LBA, on success
+ *         -PB_ERR_PARAM, on bad device handle
+ */
+int bio_get_last_block(bio_dev_t dev);
+
+/**
+ * Get the first block particular device. This returns the physical block
+ * offset of the underlying block device.
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return First LBA, on success
  *         -PB_ERR_PARAM, on bad device handle
  */
 int bio_get_first_block(bio_dev_t dev);
 
 /**
- * Get UUID of block device
+ * Get the number of blocks of particular device.
  *
  * @param[in] dev Block device handle
  *
- * @return Last lba, on success
+ * @return Number of blocks, on success
  *         -PB_ERR_PARAM, on bad device handle
  */
-int bio_get_last_block(bio_dev_t dev);
+int bio_get_no_of_blocks(bio_dev_t dev);
 
 /**
  * Read data from block device
