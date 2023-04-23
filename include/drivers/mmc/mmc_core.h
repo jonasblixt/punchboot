@@ -316,15 +316,15 @@ typedef int (*mmc_set_bus_width_t)(enum mmc_bus_width width);
 typedef int (*mmc_send_cmd_t)(const struct mmc_cmd *cmd,
                               mmc_cmd_resp_t result);
 struct mmc_hal {
-    mmc_init_t init;
-    mmc_send_cmd_t send_cmd;
-    mmc_set_bus_clock_t set_bus_clock;
-    mmc_set_bus_width_t set_bus_width;
-    mmc_io_t prepare;
-    mmc_io_t read;
-    mmc_io_t write;
-    int (*set_delay_tap)(unsigned int tap);
-    size_t max_chunk_bytes;
+    mmc_init_t init;                /*!< Initilize HAL */
+    mmc_send_cmd_t send_cmd;        /*!< Send MMC command */
+    mmc_set_bus_clock_t set_bus_clock; /*!< Set bus clock rate */
+    mmc_set_bus_width_t set_bus_width; /*!< Set bus with */
+    mmc_io_t prepare;  /*!< Prepare DMA and start xfer, this is optional */
+    mmc_io_t read;     /*!< Perform read op */
+    mmc_io_t write;    /*!< Perform write op */
+    int (*set_delay_tap)(unsigned int tap); /*!< Select bus delay tap */
+    size_t max_chunk_bytes; /*!< Maximum bytes per iop */
 };
 
 struct mmc_device_info {
@@ -337,12 +337,13 @@ struct mmc_device_info {
 struct mmc_device_config {
     enum mmc_bus_mode mode;         /*!< Requested bus mode */
     enum mmc_bus_width width;       /*!< Requested bus width */
-    const unsigned char *boot0_uu;
-    const unsigned char *boot1_uu;
-    const unsigned char *rpmb_uu;
-    const unsigned char *user_uu;
+    const unsigned char *boot0_uu;  /*!< UUID to assign to boot 0 partition */
+    const unsigned char *boot1_uu;  /*!< UUID to assign to boot 1 partition */
+    const unsigned char *rpmb_uu;   /*!< UUID to assign to RPMB partition */
+    const unsigned char *user_uu;   /*!< UUID to assign to user partition */
     uint32_t flags;
-    uint8_t boot_mode;
+    uint8_t boot_mode;              /*!< Optional, used to update the boot
+                                      mode in extcsd, for example, for fast boot */
 };
 
 /**
