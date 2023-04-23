@@ -114,7 +114,9 @@ int hash_update_async(const void *buf, size_t length);
 int hash_copy_update(const void *src, void *dest, size_t length);
 
 /**
- * Finalize hashing context
+ * Finalize hashing context.
+ *
+ * This function will block if there is an async job queued.
  *
  * @param[out] digest_output Message digest output buffer
  * @param[in] lenght Length of output buffer
