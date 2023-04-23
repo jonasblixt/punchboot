@@ -74,7 +74,7 @@ static size_t tables_length;
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 {
-    return (crc32(~0L, buf, sz) ^ ~0L);
+    return (crc32(~0L, buf, sz) ^ ~0UL);
 }
 
 /* Low entropy source for setting up UUID's */
@@ -330,18 +330,22 @@ int gpt_ptbl_init(bio_dev_t dev,
     uuid_t uu;
     char name[37];
 
-    LOG_DBG("GPT MAP init");
+    LOG_INFO("Init");
+
     gpt_dev = dev;
     tables = default_tables;
     tables_length = length;
+
+    rc = bio_set_install_partition_cb(dev, gpt_install_partition_table);
+
+    if (rc != PB_OK)
+        return rc;
 
     /* Read primary and backup GPT headers and parition tables */
     rc = bio_read(dev, 1, sizeof(primary), &primary);
 
     if (rc != PB_OK)
         return rc;
-
-    bio_set_install_partition_cb(dev, gpt_install_partition_table);
 
     size_t backup_lba = bio_get_last_block(dev) - \
             ((128*sizeof(struct gpt_part_hdr)) / 512);
@@ -413,6 +417,17 @@ int gpt_ptbl_init(bio_dev_t dev,
             return -PB_ERR;
         }
     }
+
+    /* Note/TODO: We check that both primary and backup tables are OK,
+     * but we don't compare them. It's possible that we could have two
+     * tables with correct checksum's but they disagree with each other
+     * regarding partition layout.
+     *
+     * We here asume that if both checksum's are OK the primary table contains
+     * the thruth
+     *
+     * It's likely not worth the extra boot up time to compare the tables.
+     */
 
     for (struct gpt_part_hdr *p = primary.part; p->first_lba; p++) {
         int n = 0;
