@@ -299,12 +299,6 @@ struct mmc_csd_emmc {
     unsigned int        csd_structure:          2;
 };
 
-struct mmc_cmd {
-    uint32_t arg;           /*!< MMC command argument */
-    uint16_t resp_type;     /*!< Type of response to expect */
-    uint16_t idx;           /*!< Index of command to execute */
-};
-
 typedef uint32_t mmc_cmd_resp_t[4];
 
 typedef int (*mmc_init_t)(void);
@@ -313,7 +307,7 @@ typedef int (*mmc_io_t)(unsigned int lba, size_t length, uintptr_t buf);
 typedef int (*mmc_set_bus_clock_t)(unsigned int clk_hz);
 typedef int (*mmc_set_bus_width_t)(enum mmc_bus_width width);
 
-typedef int (*mmc_send_cmd_t)(const struct mmc_cmd *cmd,
+typedef int (*mmc_send_cmd_t)(uint16_t idx, uint32_t arg, uint16_t resp_type,
                               mmc_cmd_resp_t result);
 struct mmc_hal {
     mmc_init_t init;                /*!< Initilize HAL */

@@ -74,30 +74,15 @@ static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type,
                         mmc_cmd_resp_t result)
 {
     int rc;
-    struct mmc_cmd cmd;
-    mmc_cmd_resp_t rsp;
 
 #ifdef CONFIG_MMC_CORE_DEBUG_CMDS
     LOG_DBG("idx %u, arg 0x%08x, 0x%x", cmd_idx, arg, resp_type);
 #endif
-    memset(&cmd, 0, sizeof(cmd));
 
-    cmd.idx = cmd_idx;
-    cmd.arg = arg;
-    cmd.resp_type = resp_type;
-
-    if (result != NULL) {
-        memset(result, 0, sizeof(mmc_cmd_resp_t));
-    }
-
-    rc = mmc_hal->send_cmd(&cmd, rsp);
+    rc = mmc_hal->send_cmd(cmd_idx, arg, resp_type, result);
 
     if (rc != PB_OK) {
         LOG_ERR("Send command %u error: %i", cmd_idx, rc);
-    }
-
-    if (result != NULL) {
-        memcpy(result, rsp, sizeof(mmc_cmd_resp_t));
     }
 
     return rc;
