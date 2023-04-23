@@ -35,7 +35,7 @@ static struct mmc_device_info mmc_dev_info;
 static uint32_t rca;
 static struct mmc_csd_emmc mmc_csd;
 static uint8_t mmc_ext_csd[512] __aligned(64);
-static uint8_t mmc_current_part;
+static uint8_t mmc_current_part_config;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
 static uint8_t mmc_tuning_rsp[128] __aligned(16);
@@ -275,13 +275,8 @@ static int mmc_set_bus_width(enum mmc_bus_width bus_width)
     return mmc_hal->set_bus_width(bus_width);
 }
 
-static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
+static void select_part(bio_dev_t dev)
 {
-    int rc = -1;
-    uintptr_t buf_ptr = (uintptr_t) buf;
-    size_t bytes_to_read = length;
-    lba_t lba_offset = lba;
-
     int flags = bio_get_hal_flags(dev);
 
     if (flags & MMC_BIO_FLAG_USER)
@@ -292,6 +287,20 @@ static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
         mmc_part_switch(MMC_PART_BOOT1);
     else if (flags & MMC_BIO_FLAG_RPMB)
         mmc_part_switch(MMC_PART_RPMB);
+}
+
+static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
+{
+    int rc = -1;
+    uintptr_t buf_ptr = (uintptr_t) buf;
+    size_t bytes_to_read = length;
+    ssize_t block_sz = bio_block_size(dev);
+    lba_t lba_offset = lba;
+
+    if (block_sz < 0)
+        return block_sz;
+
+    select_part(dev);
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_read) {
@@ -303,10 +312,11 @@ static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 
         bytes_to_read -= chunk_len;
         buf_ptr += chunk_len;
-        lba_offset += chunk_len / bio_block_size(dev);
+        lba_offset += chunk_len / block_sz;
     }
 
     mmc_part_switch(MMC_PART_USER);
+
     return rc;
 }
 
@@ -315,17 +325,13 @@ static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
     int rc = -1;
     uintptr_t buf_ptr = (uintptr_t) buf;
     size_t bytes_to_write = length;
+    ssize_t block_sz = bio_block_size(dev);
     lba_t lba_offset = lba;
-    int flags = bio_get_hal_flags(dev);
 
-    if (flags & MMC_BIO_FLAG_USER)
-        mmc_part_switch(MMC_PART_USER);
-    else if (flags & MMC_BIO_FLAG_BOOT0)
-        mmc_part_switch(MMC_PART_BOOT0);
-    else if (flags & MMC_BIO_FLAG_BOOT1)
-        mmc_part_switch(MMC_PART_BOOT1);
-    else if (flags & MMC_BIO_FLAG_RPMB)
-        mmc_part_switch(MMC_PART_RPMB);
+    if (block_sz < 0)
+        return block_sz;
+
+    select_part(dev);
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_write) {
@@ -337,10 +343,11 @@ static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
 
         bytes_to_write -= chunk_len;
         buf_ptr += chunk_len;
-        lba_offset += chunk_len / bio_block_size(dev);
+        lba_offset += chunk_len / block_sz;
     }
 
     mmc_part_switch(MMC_PART_USER);
+
     return rc;
 }
 
@@ -614,7 +621,7 @@ static int mmc_setup(void)
         }
     }
 
-    mmc_current_part = mmc_ext_csd[EXT_CSD_PART_CONFIG];
+    mmc_current_part_config = mmc_ext_csd[EXT_CSD_PART_CONFIG];
 
     size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 |
             mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
@@ -830,8 +837,8 @@ int mmc_part_switch(enum mmc_part part)
     }
 
     /* Switch active partition */
-    if (value != mmc_current_part) {
-        mmc_current_part = value;
+    if (value != mmc_current_part_config) {
+        mmc_current_part_config = value;
         LOG_DBG("Switching to %s", part_names[part]);
         return mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value);
     } else {
