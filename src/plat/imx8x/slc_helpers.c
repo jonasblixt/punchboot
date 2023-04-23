@@ -46,7 +46,7 @@ int imx8x_slc_set_configuration_locked(void)
 
     if (!imx8x_is_srk_fused()) {
         LOG_ERR("SRK is empty, refusing to advance life cycle");
-        return -PB_ERR_MEM;
+        return -PB_ERR_STATE;
     }
 
     sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h);
