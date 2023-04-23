@@ -300,6 +300,27 @@ static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
         lba_offset += chunk_len / block_sz;
     }
 
+    /**
+     * TODO: We switch back to the user partition here because the way
+     * boot partitions are selected.
+     *
+     * When we write to boot0 the select function makes boot0 writable and
+     * sets boot1 as the boot source. Similarly when boot1 is selected boot0
+     * is selected as the boot source. To make sure that we're always in a
+     * bootable state, given that we normaly write the same image to boot0 and
+     * boot 1.
+     *
+     * Problem 1: If we omitt this we will have a behaviour where the the
+     * active boot partition will depend on the last access to boot0/1. Which
+     * is a problem if only one of the boot partitions are updated.
+     *
+     * Problem 2: If we have have to perform multiple writes to program a
+     * boot image we might end up in a non bootable state.
+     *
+     * Problem 3: We probably wan't to ensure that both boot partitions are
+     * set to R/O.
+     *
+     */
     mmc_part_switch(MMC_PART_USER);
 
     return rc;
@@ -331,6 +352,7 @@ static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
         lba_offset += chunk_len / block_sz;
     }
 
+    /* Note: See comment in read function on the same call */
     mmc_part_switch(MMC_PART_USER);
 
     return rc;
