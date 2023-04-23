@@ -65,6 +65,9 @@ struct dsa_ops {
 };
 
 /**
+ * Initialize the hashing context. The crypto API only supports one running
+ * context, calling this function will reset the context.
+ *
  * param[in] alg Hashing algorithm to use
  *
  * @return PB_OK on success,
