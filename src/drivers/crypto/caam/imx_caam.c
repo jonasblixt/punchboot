@@ -153,41 +153,15 @@ static void caam_shedule_job_async(void)
     mmio_write_32(caam.base + CAAM_IRJAR, 1);
 }
 
-static int caam_shedule_job_sync(void)
-{
-    caam_shedule_job_async();
-
-    while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0)
-        __asm__("nop");
-
-    arch_invalidate_cache_range((uintptr_t) &caam.output[0], sizeof(caam.output)*2);
-
-    if (caam.output[0] != (uint32_t)(uintptr_t) &caam.desc[0]) {
-        LOG_ERR("Job failed");
-        return -PB_ERR;
-    }
-
-    mmio_write_32(caam.base + CAAM_ORJRR, 1);
-
-    uint32_t caam_status = mmio_read_32(caam.base + CAAM_JRSTAR);
-
-    if (caam_status) {
-        LOG_ERR("Job error %08x", caam_status);
-        return -PB_ERR;
-    }
-
-    return PB_OK;
-}
-
 static int caam_wait_for_job(void)
 {
     while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0)
         __asm__("nop");
 
-    arch_invalidate_cache_range((uintptr_t) &caam.output[0], sizeof(caam.output)*2);
+    arch_invalidate_cache_range((uintptr_t) &caam.output[0], sizeof(caam.output[0])*2);
 
     if (caam.output[0] != (uint32_t)(uintptr_t) &caam.desc[0]) {
-        LOG_ERR("Job failed");
+        LOG_ERR("Job failed, status = 0x%x", caam.output[1]);
         return -PB_ERR;
     }
 
@@ -201,6 +175,12 @@ static int caam_wait_for_job(void)
     }
 
     return PB_OK;
+}
+
+static int caam_shedule_job_sync(void)
+{
+    caam_shedule_job_async();
+    return caam_wait_for_job();
 }
 
 static int caam_ecda_verify(const uint8_t *der_signature, size_t sig_length,
