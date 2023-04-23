@@ -212,7 +212,8 @@ int bio_set_hal_flags(bio_dev_t dev, uint8_t flags);
 int bio_get_flags(bio_dev_t dev);
 
 /**
- * Set flags on block device
+ * Set flags on block device. This will overwrite the flag bits and clear
+ * out any flags set previously.
  *
  * @param[in] dev Block device handle
  * @param[in] flags Flags to set
