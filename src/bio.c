@@ -146,7 +146,7 @@ static int check_lba_range(bio_dev_t dev, int lba, size_t length)
     return PB_OK;
 }
 
-int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
+int bio_read(bio_dev_t dev, int lba, size_t length, void *buf)
 {
     int rc;
 
@@ -162,7 +162,7 @@ int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
     return bio_pool[dev].read(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
 
-int bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf)
+int bio_write(bio_dev_t dev, int lba, size_t length, const void *buf)
 {
     int rc;
 

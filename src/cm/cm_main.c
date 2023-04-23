@@ -217,7 +217,7 @@ static int cmd_bpak_read(void)
 
     LOG_DBG("Reading bpak header at lba %i", header_lba);
 
-    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), (uintptr_t) &buffer);
+    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), &buffer);
 
     if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -311,7 +311,7 @@ static int cmd_stream_read(void)
     uintptr_t bfr = ((uintptr_t) buffer) +
               ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_read->buffer_id);
 
-    rc = bio_read(block_dev, start_lba, stream_read->size, bfr);
+    rc = bio_read(block_dev, start_lba, stream_read->size, (void *) bfr);
     pb_wire_init_result(&result, error_to_wire(rc));
     LOG_DBG("Result = %i", rc);
 
@@ -349,7 +349,7 @@ static int cmd_stream_write(void)
     uintptr_t bfr = ((uintptr_t) buffer) +
               ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_write->buffer_id);
 
-    rc = bio_write(block_dev, start_lba, stream_write->size, bfr);
+    rc = bio_write(block_dev, start_lba, stream_write->size, (void *) bfr);
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
@@ -387,8 +387,7 @@ static int cmd_part_verify(void)
 
         int header_lba = (bio_size(block_dev) - sizeof(struct bpak_header)) / bio_block_size(block_dev);
 
-        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header),
-                        (uintptr_t) buffer);
+        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header), buffer);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
@@ -413,8 +412,7 @@ static int cmd_part_verify(void)
 
         buffer_id = !buffer_id;
 
-        rc = bio_read(block_dev, lba_offset, chunk_len,
-                                    (uintptr_t) buffer[buffer_id]);
+        rc = bio_read(block_dev, lba_offset, chunk_len, buffer[buffer_id]);
 
         if (rc != PB_OK) {
             LOG_ERR("read error");
@@ -504,10 +502,9 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
-static int ram_boot_read_f(int block_offset, size_t length, uintptr_t buf)
+static int ram_boot_read_f(int block_offset, size_t length, void *buf)
 {
     (void) block_offset;
-    LOG_DBG("%zu %"PRIxPTR, length, buf);
     return cfg->tops.read((uintptr_t) buf, length);
 }
 

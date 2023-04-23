@@ -85,7 +85,7 @@ void boot_get_boot_partition(uuid_t part_uu)
     boot_cfg->get_boot_partition(part_uu);
 }
 
-static int boot_bio_read(int block_offset, size_t length, uintptr_t buf)
+static int boot_bio_read(int block_offset, size_t length, void *buf)
 {
     return bio_read(boot_device, block_offset, length, buf);
 }
@@ -126,8 +126,7 @@ static int load_auth_verify_from_bio(void)
     header_lba = (bio_size(boot_device) -
         sizeof(struct bpak_header)) / bio_block_size(boot_device);
 
-    rc = bio_read(boot_device, header_lba, sizeof(struct bpak_header),
-                  (uintptr_t) &header);
+    rc = bio_read(boot_device, header_lba, sizeof(struct bpak_header), &header);
 
     if (rc != PB_OK)
         return rc;
@@ -192,7 +191,7 @@ static int load_auth_verify_from_cb(void)
 
     rc = read_cb(-(int)sizeof(struct bpak_header) / 512,
                  sizeof(struct bpak_header),
-                 (uintptr_t) &header);
+                 &header);
     if (rc != PB_OK)
         return rc;
 

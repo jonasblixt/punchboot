@@ -111,14 +111,14 @@ static int virtio_xfer(bio_dev_t dev,
     return PB_OK;
 }
 
-static int virtio_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
+static int virtio_bio_read(bio_dev_t dev, int lba, size_t length, void *buf)
 {
-    return virtio_xfer(dev, true, lba, length, buf);
+    return virtio_xfer(dev, true, lba, length, (uintptr_t) buf);
 }
 
-static int virtio_bio_write(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
+static int virtio_bio_write(bio_dev_t dev, int lba, size_t length, const void *buf)
 {
-    return virtio_xfer(dev, false, lba, length, buf);
+    return virtio_xfer(dev, false, lba, length, (uintptr_t) buf);
 }
 
 bio_dev_t virtio_block_init(uintptr_t base_, const uuid_t uu)

@@ -80,13 +80,11 @@ static int pb_boot_state_commit(void)
                                 sizeof(struct pb_boot_state));
     boot_state.crc = crc;
 
-    rc = bio_write(primary_part, 0, sizeof(struct pb_boot_state),
-                    (uintptr_t) &boot_state);
+    rc = bio_write(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
     if (rc != PB_OK)
         goto config_commit_err;
 
-    rc = bio_write(backup_part, 0, sizeof(struct pb_boot_state),
-                    (uintptr_t) &boot_state);
+    rc = bio_write(backup_part, 0, sizeof(struct pb_boot_state), &boot_state);
 
 config_commit_err:
     if (rc != PB_OK) {
@@ -133,8 +131,7 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
         LOG_ERR("Backup boot state partition not found");
     }
 
-    (void) bio_read(primary_part, 0, sizeof(struct pb_boot_state),
-                    (uintptr_t) &boot_state);
+    (void) bio_read(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
 
     rc = validate(&boot_state);
 
@@ -145,8 +142,7 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
         primary_state_ok = false;
     }
 
-    (void) bio_read(backup_part, 0, sizeof(struct pb_boot_state),
-                    (uintptr_t) &boot_state_backup);
+    (void) bio_read(backup_part, 0, sizeof(struct pb_boot_state), &boot_state_backup);
 
     rc = validate(&boot_state_backup);
 

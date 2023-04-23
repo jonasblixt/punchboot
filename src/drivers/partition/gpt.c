@@ -238,7 +238,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     gpt_pmbr[510] = 0x55;
     gpt_pmbr[511] = 0xAA;
 
-    err = bio_write(dev, 0, sizeof(gpt_pmbr), (uintptr_t) gpt_pmbr);
+    err = bio_write(dev, 0, sizeof(gpt_pmbr), gpt_pmbr);
 
     if (err != PB_OK) {
         LOG_ERR("Writing protective MBR failed");
@@ -249,8 +249,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     LOG_DBG("writing primary gpt tbl to lba %llu",
                            primary.hdr.current_lba);
 
-    err = bio_write(dev, primary.hdr.current_lba, sizeof(primary),
-                        (uintptr_t) &primary);
+    err = bio_write(dev, primary.hdr.current_lba, sizeof(primary), &primary);
 
     if (err != PB_OK) {
         LOG_ERR("error writing primary gpt table (%i)", err);
@@ -283,7 +282,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     LOG_INFO("Writing backup GPT tbl to LBA %llu",
                         backup.hdr.entries_start_lba);
 
-    return bio_write(dev, backup.hdr.entries_start_lba, sizeof(backup), (uintptr_t) &backup);
+    return bio_write(dev, backup.hdr.entries_start_lba, sizeof(backup), &backup);
 }
 
 static int gpt_install_partition_table(bio_dev_t dev, int variant)
@@ -337,7 +336,7 @@ int gpt_ptbl_init(bio_dev_t dev,
     tables_length = length;
 
     /* Read primary and backup GPT headers and parition tables */
-    rc = bio_read(dev, 1, sizeof(primary), (uintptr_t) &primary);
+    rc = bio_read(dev, 1, sizeof(primary), &primary);
 
     if (rc != PB_OK)
         return rc;
@@ -347,7 +346,7 @@ int gpt_ptbl_init(bio_dev_t dev,
     size_t backup_lba = bio_get_last_block(dev) - \
             ((128*sizeof(struct gpt_part_hdr)) / 512);
 
-    rc = bio_read(dev, backup_lba, sizeof(backup), (uintptr_t) &backup);
+    rc = bio_read(dev, backup_lba, sizeof(backup), &backup);
 
     if (rc != PB_OK)
         return rc;

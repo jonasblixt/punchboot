@@ -242,7 +242,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
                                    bpak_part_offset(hdr, p) -
                                    sizeof(struct bpak_header)) / 512;
 
-                rc = read_f(read_lba, chunk_size, addr);
+                rc = read_f(read_lba, chunk_size, (void *) addr);
 
                 if (rc != PB_OK)
                     break;

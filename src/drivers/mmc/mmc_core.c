@@ -275,10 +275,10 @@ static int mmc_set_bus_width(enum mmc_bus_width bus_width)
     return mmc_hal->set_bus_width(bus_width);
 }
 
-static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
+static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, void *buf)
 {
     int rc = -1;
-    uintptr_t buf_ptr = buf;
+    uintptr_t buf_ptr = (uintptr_t) buf;
     size_t bytes_to_read = length;
     int lba_offset = lba;
 
@@ -310,10 +310,10 @@ static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
     return rc;
 }
 
-static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf)
+static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const void *buf)
 {
     int rc = -1;
-    uintptr_t buf_ptr = buf;
+    uintptr_t buf_ptr = (uintptr_t) buf;
     size_t bytes_to_write = length;
     int lba_offset = lba;
     int flags = bio_get_hal_flags(dev);
