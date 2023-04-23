@@ -93,7 +93,7 @@ static int boot_bio_read(int block_offset, size_t length, void *buf)
 static int load_auth_verify_from_bio(void)
 {
     int rc;
-    int header_lba;
+    lba_t header_lba;
 
     if (boot_cfg->get_boot_bio_device == NULL)
         return -PB_ERR_NOT_SUPPORTED;
@@ -121,10 +121,9 @@ static int load_auth_verify_from_bio(void)
         return -PB_ERR_PART_NOT_BOOTABLE;
     }
 
-
     /* Load header located at the end of the partition */
-    header_lba = (bio_size(boot_device) -
-        sizeof(struct bpak_header)) / bio_block_size(boot_device);
+    header_lba = bio_get_no_of_blocks(boot_device) -
+        (sizeof(struct bpak_header) / bio_block_size(boot_device));
 
     rc = bio_read(boot_device, header_lba, sizeof(struct bpak_header), &header);
 

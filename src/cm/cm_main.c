@@ -213,7 +213,8 @@ static int cmd_bpak_read(void)
         return dev;
     }
 
-    int header_lba = (bio_size(dev) - sizeof(struct bpak_header)) / bio_block_size(dev);
+    lba_t header_lba = bio_get_no_of_blocks(dev) -
+                        (sizeof(struct bpak_header) / bio_block_size(dev));
 
     LOG_DBG("Reading bpak header at lba %i", header_lba);
 
@@ -385,7 +386,8 @@ static int cmd_part_verify(void)
     if (verify_cmd->bpak) {
         LOG_DBG("Bpak header");
 
-        int header_lba = (bio_size(block_dev) - sizeof(struct bpak_header)) / bio_block_size(block_dev);
+        lba_t header_lba = bio_get_no_of_blocks(block_dev) -
+                   (sizeof(struct bpak_header) / bio_block_size(block_dev));
 
         rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header), buffer);
 
