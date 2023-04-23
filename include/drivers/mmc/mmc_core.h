@@ -398,13 +398,4 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf);
  */
 int mmc_part_switch(enum mmc_part part);
 
-/**
- * Read partition size in bytes
- *
- * @param[in] part Hardware partition
- *
- * @return Partition size in bytes or a negative number on error
- */
-ssize_t mmc_part_size(enum mmc_part part);
-
 #endif

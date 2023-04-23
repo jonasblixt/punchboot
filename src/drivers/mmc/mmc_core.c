@@ -846,27 +846,6 @@ int mmc_part_switch(enum mmc_part part)
     }
 }
 
-ssize_t mmc_part_size(enum mmc_part part)
-{
-    switch (part) {
-        case MMC_PART_BOOT0:
-        case MMC_PART_BOOT1:
-            return (ssize_t) mmc_ext_csd[EXT_CSD_BOOT_MULT] * 128 * 1024;
-        case MMC_PART_RPMB:
-            return (ssize_t) mmc_ext_csd[EXT_CSD_RPMB_MULT] * 128 * 1024;
-        case MMC_PART_USER:
-        {
-            size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 |
-                    mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
-                    mmc_ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
-                    mmc_ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
-            return sectors * 512;
-        }
-        default:
-            return -PB_ERR_PARAM;
-    }
-}
-
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)
 {
     if (!(cfg->mode > MMC_BUS_MODE_INVALID && cfg->mode < MMC_BUS_MODE_END) ||
