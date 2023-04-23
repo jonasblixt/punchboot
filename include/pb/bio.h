@@ -156,7 +156,7 @@ int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
  * @return Size in bytes, on success
  *        -PB_ERR_PARAM on invalid device handle
  */
-ssize_t bio_size(bio_dev_t dev);
+int64_t bio_size(bio_dev_t dev);
 
 /**
  * Block device, block size in bytes

@@ -106,7 +106,7 @@ int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write)
     return PB_OK;
 }
 
-ssize_t bio_size(bio_dev_t dev)
+int64_t bio_size(bio_dev_t dev)
 {
     int rc;
 
