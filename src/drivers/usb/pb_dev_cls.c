@@ -145,12 +145,12 @@ int pb_dev_cls_init(void)
     return usbd_init_cls(&cls_config);
 }
 
-int pb_dev_cls_write(uintptr_t buf, size_t length)
+int pb_dev_cls_write(const void *buf, size_t length)
 {
-    return usbd_xfer(USB_EP1_IN, buf, length);
+    return usbd_xfer(USB_EP1_IN, (uintptr_t) buf, length);
 }
 
-int pb_dev_cls_read(uintptr_t buf, size_t length)
+int pb_dev_cls_read(void *buf, size_t length)
 {
-    return usbd_xfer(USB_EP2_OUT, buf, length);
+    return usbd_xfer(USB_EP2_OUT, (uintptr_t) buf, length);
 }

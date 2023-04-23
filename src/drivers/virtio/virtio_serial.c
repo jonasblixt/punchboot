@@ -103,14 +103,14 @@ static int virtio_xfer(struct virtq *q, bool read, uint32_t queue_index, uintptr
     return PB_OK;
 }
 
-int virtio_serial_write(uintptr_t buf, size_t length)
+int virtio_serial_write(const void *buf, size_t length)
 {
-    return virtio_xfer(&tx, false, 5, buf, length);
+    return virtio_xfer(&tx, false, 5, (uintptr_t) buf, length);
 }
 
-int virtio_serial_read(uintptr_t buf, size_t length)
+int virtio_serial_read(void *buf, size_t length)
 {
-    return virtio_xfer(&rx, true, 4, buf, length);
+    return virtio_xfer(&rx, true, 4, (uintptr_t) buf, length);
 }
 
 static void queue_init(struct virtq *q, uint8_t *buf, uint32_t queue_id)

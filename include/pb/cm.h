@@ -17,8 +17,8 @@ struct cm_transport_ops {
     int (*init)(void);
     int (*connect)(void);
     int (*disconnect)(void);
-    int (*read)(uintptr_t bfr, size_t length);
-    int (*write)(uintptr_t bfr, size_t length);
+    int (*read)(void *bfr, size_t length);
+    int (*write)(const void *bfr, size_t length);
 };
 
 struct cm_config {
