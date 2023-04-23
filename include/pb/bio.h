@@ -62,8 +62,10 @@
 #define BIO_FLAG_RFU15              BIT(15)
 
 typedef int bio_dev_t;
-typedef int (*bio_read_t)(bio_dev_t dev, int lba, size_t length, void *buf);
-typedef int (*bio_write_t)(bio_dev_t dev, int lba, size_t length, const void *buf);
+typedef unsigned int lba_t;
+
+typedef int (*bio_read_t)(bio_dev_t dev, lba_t lba, size_t length, void *buf);
+typedef int (*bio_write_t)(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
 typedef int (*bio_call_t)(bio_dev_t dev, int param);
 
 /**
@@ -79,7 +81,7 @@ typedef int (*bio_call_t)(bio_dev_t dev, int param);
  *         -PB_ERR_MEM, When the block device pool is full,
  *         -PB_ERR_PARAM, On invalid lba's or block_size
  */
-bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
+bio_dev_t bio_allocate(lba_t first_lba, lba_t last_lba, size_t block_size,
                        const uuid_t uu, const char *description);
 
 /**
@@ -100,8 +102,8 @@ bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
  *         -PB_ERR_PARAM, On invalid lba's or block_size
  */
 bio_dev_t bio_allocate_parent(bio_dev_t parent,
-                              int first_lba,
-                              int last_lba,
+                              lba_t first_lba,
+                              lba_t last_lba,
                               size_t block_size,
                               const uuid_t uu,
                               const char *description);
@@ -257,7 +259,7 @@ int bio_get_first_block(bio_dev_t dev);
  *
  * @param[in] dev Block device handle
  *
- * @return First lba, on success
+ * @return Last lba, on success
  *         -PB_ERR_PARAM, on bad device handle
  */
 int bio_get_last_block(bio_dev_t dev);
@@ -275,7 +277,7 @@ int bio_get_last_block(bio_dev_t dev);
  *         -PB_ERR_IO, Driver I/O errors,
  *         -PB_TIMEOUT, Driver timeouts
  */
-int bio_read(bio_dev_t dev, int lba, size_t length, void *buf);
+int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf);
 
 /**
  * Write data to block device
@@ -290,7 +292,7 @@ int bio_read(bio_dev_t dev, int lba, size_t length, void *buf);
  *         -PB_ERR_IO, Driver I/O errors
  *         -PB_TIMEOUT, Driverr timeouts
  */
-int bio_write(bio_dev_t dev, int lba, size_t length, const void *buf);
+int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
 
 /**
  * Install partition table on a device

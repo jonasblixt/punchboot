@@ -8,8 +8,8 @@
 struct bio_device {
     uuid_t uu;
     char description[37];
-    uint64_t first_lba;
-    uint64_t last_lba;
+    lba_t first_lba;
+    lba_t last_lba;
     uint32_t flags;
     size_t block_sz;
     bio_read_t read;
@@ -31,12 +31,12 @@ static int check_dev(bio_dev_t dev)
     return PB_OK;
 }
 
-bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
+bio_dev_t bio_allocate(lba_t first_lba, lba_t last_lba, size_t block_size,
                        const uuid_t uu, const char *description)
 {
     if (n_bios == CONFIG_BIO_MAX_DEVS)
         return -PB_ERR_MEM;
-    if (first_lba < 0 || last_lba < 0 || block_size == 0)
+    if (block_size == 0)
         return -PB_ERR_PARAM;
     if (first_lba > last_lba)
         return -PB_ERR_PARAM;
@@ -59,8 +59,8 @@ bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
 }
 
 bio_dev_t bio_allocate_parent(bio_dev_t parent,
-                              int first_lba,
-                              int last_lba,
+                              lba_t first_lba,
+                              lba_t last_lba,
                               size_t block_size,
                               const uuid_t uu,
                               const char *description)
@@ -127,11 +127,8 @@ ssize_t bio_block_size(bio_dev_t dev)
     return bio_pool[dev].block_sz;
 }
 
-static int check_lba_range(bio_dev_t dev, int lba, size_t length)
+static int check_lba_range(bio_dev_t dev, lba_t lba, size_t length)
 {
-    if (lba < 0)
-        return -1;
-
     size_t n_blocks = length / bio_pool[dev].block_sz;
     if (length % bio_pool[dev].block_sz)
         n_blocks++;
@@ -140,13 +137,10 @@ static int check_lba_range(bio_dev_t dev, int lba, size_t length)
         return -1;
     }
 
-    if (lba < 0)
-        return -1;
-
     return PB_OK;
 }
 
-int bio_read(bio_dev_t dev, int lba, size_t length, void *buf)
+int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 {
     int rc;
 
@@ -162,7 +156,7 @@ int bio_read(bio_dev_t dev, int lba, size_t length, void *buf)
     return bio_pool[dev].read(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
 
-int bio_write(bio_dev_t dev, int lba, size_t length, const void *buf)
+int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
 {
     int rc;
 

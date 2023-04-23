@@ -60,7 +60,7 @@ static uintptr_t base;
 
 static int virtio_xfer(bio_dev_t dev,
                        bool read,
-                       int lba,
+                       lba_t lba,
                        size_t length,
                        uintptr_t buf)
 {
@@ -69,8 +69,8 @@ static int virtio_xfer(bio_dev_t dev,
 
     request.type = read?VIRTIO_BLK_T_IN:VIRTIO_BLK_T_OUT;
     request.reserved = 0;
-    request.sector_low = lba;
-    request.sector_hi = 0;
+    request.sector_low = lba & 0xffffffff;
+    request.sector_hi = 0; // TODO: Handle really large disks on 64-bit platforms
 
     arch_clean_cache_range((uintptr_t) &request, sizeof(request));
 
@@ -111,12 +111,12 @@ static int virtio_xfer(bio_dev_t dev,
     return PB_OK;
 }
 
-static int virtio_bio_read(bio_dev_t dev, int lba, size_t length, void *buf)
+static int virtio_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 {
     return virtio_xfer(dev, true, lba, length, (uintptr_t) buf);
 }
 
-static int virtio_bio_write(bio_dev_t dev, int lba, size_t length, const void *buf)
+static int virtio_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
 {
     return virtio_xfer(dev, false, lba, length, (uintptr_t) buf);
 }
