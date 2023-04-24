@@ -648,8 +648,16 @@ static int mmc_setup(void)
     LOG_INFO("Pre EOL %x", mmc_ext_csd[EXT_CSD_PRE_EOL_INFO]);
 */
 
+    lba_t boot_part_last_lba = 0;
+
+#ifdef CONFIG_MMC_CORE_OVERRIDE_BOOT_PART_SZ
+    boot_part_last_lba = CONFIG_MMC_CORE_BOOT_PART_SZ_KiB * 2 - 1;
+#else
+    boot_part_last_lba = mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1;
+#endif
+
     bio_dev_t d = bio_allocate(0,
-                               mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1,
+                               boot_part_last_lba,
                                512,
                                mmc_cfg->boot0_uu,
                                "eMMC BOOT0");
@@ -671,7 +679,7 @@ static int mmc_setup(void)
         return rc;
 
     d = bio_allocate(0,
-                       mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1,
+                       boot_part_last_lba,
                        512,
                        mmc_cfg->boot1_uu,
                        "eMMC BOOT1");

@@ -24,6 +24,20 @@ config MMC_CORE_HS200_TUNE
         and other conditions that might affect timing to get good tap delay
         value.
 
+config MMC_CORE_OVERRIDE_BOOT_PART_SZ
+    bool "Override boot partition size"
+    default n
+    depends on MMC_CORE
+    help
+        Most user want to set this to 'n'. Under some circumstances it can
+        be useful to ignore what extcsd report and forcibly set the boot partition
+        size to something else.
+
+config MMC_CORE_BOOT_PART_SZ_KiB
+    int "Override boot partition size (KiB)"
+    depends on MMC_CORE_OVERRIDE_BOOT_PART_SZ
+    default 0
+
 config IMX_USDHC
     depends on SOC_FAMILY_IMX
     select MMC_CORE
