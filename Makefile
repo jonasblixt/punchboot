@@ -96,7 +96,7 @@ include src/cm/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
 ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)
-ldflags-y += --defsym=PB_STACK_SIZE_KB=$(CONFIG_STACK_SIZE_KB)
+ldflags-y += --defsym=PB_STACK_SIZE_KiB=$(CONFIG_STACK_SIZE_KiB)
 ldflags-y += -Tsrc/link.lds  --build-id=none
 
 OBJS =

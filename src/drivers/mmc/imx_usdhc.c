@@ -405,7 +405,7 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg,
         .read = imx_usdhc_read,
         .write = imx_usdhc_write,
         .set_delay_tap = imx_usdhc_set_delay_tap,
-        .max_chunk_bytes = SZ_MB(30),
+        .max_chunk_bytes = SZ_MiB(30),
     };
 
     usdhc = cfg;

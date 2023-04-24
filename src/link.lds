@@ -56,7 +56,7 @@ SECTIONS
     {
         . = ALIGN(4096);
         PROVIDE(_stack_start = .);
-        . = . + PB_STACK_SIZE_KB*1024 ;
+        . = . + PB_STACK_SIZE_KiB*1024 ;
         . = ALIGN(4096);
         PROVIDE(_stack_end = .);
     } > ram

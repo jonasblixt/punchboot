@@ -14,8 +14,8 @@
  *
  * - The amount of transfer descriptors (dtds) set's an upper limit to xfer
  *   chunk size. One descriptor can address 5 * 4kByte. For now the config
- *   'CONFIG_CM_BUF_SIZE_KB' is used both at driver level and in the cm
- *   code. The 'CONFIG_CM_BUF_SIZE_KB' is exposed to the host through
+ *   'CONFIG_CM_BUF_SIZE_KiB' is used both at driver level and in the cm
+ *   code. The 'CONFIG_CM_BUF_SIZE_KiB' is exposed to the host through
  *   cm 'caps' structure and is used by the tooling to send properly sized
  *   chunks of data.
  *
@@ -87,7 +87,7 @@
 
 /* Misc defines */
 #define EHCI_NO_OF_EPS 8
-#define EHCI_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KB / 20))
+#define EHCI_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KiB / 20))
 #define EHCI_SZ_512B 0x200
 #define EHCI_SZ_64B 0x40
 #define EHCI_PAGE_SZ 4096

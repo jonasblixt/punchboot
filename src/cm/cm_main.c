@@ -28,7 +28,7 @@
 static struct pb_command cmd __section(".no_init") __aligned(64);
 static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
-static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KB*1024] __section(".no_init") __aligned(4096);
+static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KiB*1024] __section(".no_init") __aligned(4096);
 static slc_t slc;
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uuid_t device_uu;
@@ -176,7 +176,7 @@ static int cmd_board(void)
 
     uint8_t *bfr_response = buffer[1];
 
-    size_t response_size = CONFIG_CM_BUF_SIZE_KB*1024;
+    size_t response_size = CONFIG_CM_BUF_SIZE_KiB*1024;
 
     rc = cfg->command(board_cmd->command,
                         bfr, board_cmd->request_size,
@@ -310,7 +310,7 @@ static int cmd_stream_read(void)
                                                    start_lba);
 
     uintptr_t bfr = ((uintptr_t) buffer) +
-              ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_read->buffer_id);
+              ((CONFIG_CM_BUF_SIZE_KiB*1024)*stream_read->buffer_id);
 
     rc = bio_read(block_dev, start_lba, stream_read->size, (void *) bfr);
     pb_wire_init_result(&result, error_to_wire(rc));
@@ -348,7 +348,7 @@ static int cmd_stream_write(void)
     LOG_DBG("Writing %u bytes to lba offset %zu", stream_write->size, start_lba);
 
     uintptr_t bfr = ((uintptr_t) buffer) +
-              ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_write->buffer_id);
+              ((CONFIG_CM_BUF_SIZE_KiB*1024)*stream_write->buffer_id);
 
     rc = bio_write(block_dev, start_lba, stream_write->size, (void *) bfr);
 
@@ -409,8 +409,8 @@ static int cmd_part_verify(void)
     LOG_DBG("Reading %zu bytes", bytes_to_verify);
 
     while (bytes_to_verify) {
-        chunk_len = bytes_to_verify>(CONFIG_CM_BUF_SIZE_KB*1024)? \
-                   (CONFIG_CM_BUF_SIZE_KB*1024):bytes_to_verify;
+        chunk_len = bytes_to_verify>(CONFIG_CM_BUF_SIZE_KiB*1024)? \
+                   (CONFIG_CM_BUF_SIZE_KiB*1024):bytes_to_verify;
 
         buffer_id = !buffer_id;
 
@@ -600,7 +600,7 @@ static int cmd_stream_prep_buffer(void)
 
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-    if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KB*1024)) {
+    if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KiB*1024)) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_ERR_MEM;
     }
@@ -614,7 +614,7 @@ static int cmd_stream_prep_buffer(void)
     cfg->tops.write(&result, sizeof(result));
 
     uint8_t *bfr = ((uint8_t *) buffer) +
-                    ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_prep->id);
+                    ((CONFIG_CM_BUF_SIZE_KiB*1024)*stream_prep->id);
 
     return cfg->tops.read(bfr, stream_prep->size);
 }
@@ -675,8 +675,8 @@ static int pb_command_parse(void)
         {
             struct pb_result_device_caps caps = {0};
             caps.stream_no_of_buffers = 2;
-            caps.stream_buffer_size = CONFIG_CM_BUF_SIZE_KB*1024;
-            caps.chunk_transfer_max_bytes = CONFIG_CM_BUF_SIZE_KB*1024;
+            caps.stream_buffer_size = CONFIG_CM_BUF_SIZE_KiB*1024;
+            caps.chunk_transfer_max_bytes = CONFIG_CM_BUF_SIZE_KiB*1024;
 
             pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
         }
@@ -773,7 +773,7 @@ static int pb_command_parse(void)
 
             uint8_t *bfr_response = buffer[0];
 
-            size_t response_size = CONFIG_CM_BUF_SIZE_KB*1024;
+            size_t response_size = CONFIG_CM_BUF_SIZE_KiB*1024;
             rc = cfg->status(bfr_response, &response_size);
 
             status_result.size = response_size;
