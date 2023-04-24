@@ -17,7 +17,7 @@
 #include <pb/pb.h>
 #include <pb/delay.h>
 #include <pb/timestamp.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 #include <drivers/mmc/mmc_core.h>
 
 #define MMC_BIO_FLAG_BOOT0 BIT(0)
@@ -35,7 +35,7 @@ static struct mmc_device_info mmc_dev_info;
 static uint32_t rca;
 static struct mmc_csd_emmc mmc_csd;
 static uint8_t mmc_ext_csd[512] __aligned(64);
-static uint8_t mmc_current_part;
+static uint8_t mmc_current_part_config;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
 static uint8_t mmc_tuning_rsp[128] __aligned(16);
@@ -74,30 +74,15 @@ static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type,
                         mmc_cmd_resp_t result)
 {
     int rc;
-    struct mmc_cmd cmd;
-    mmc_cmd_resp_t rsp;
 
 #ifdef CONFIG_MMC_CORE_DEBUG_CMDS
     LOG_DBG("idx %u, arg 0x%08x, 0x%x", cmd_idx, arg, resp_type);
 #endif
-    memset(&cmd, 0, sizeof(cmd));
 
-    cmd.idx = cmd_idx;
-    cmd.arg = arg;
-    cmd.resp_type = resp_type;
-
-    if (result != NULL) {
-        memset(result, 0, sizeof(mmc_cmd_resp_t));
-    }
-
-    rc = mmc_hal->send_cmd(&cmd, rsp);
+    rc = mmc_hal->send_cmd(cmd_idx, arg, resp_type, result);
 
     if (rc != PB_OK) {
         LOG_ERR("Send command %u error: %i", cmd_idx, rc);
-    }
-
-    if (result != NULL) {
-        memcpy(result, rsp, sizeof(mmc_cmd_resp_t));
     }
 
     return rc;
@@ -275,13 +260,8 @@ static int mmc_set_bus_width(enum mmc_bus_width bus_width)
     return mmc_hal->set_bus_width(bus_width);
 }
 
-static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
+static void select_part(bio_dev_t dev)
 {
-    int rc = -1;
-    uintptr_t buf_ptr = buf;
-    size_t bytes_to_read = length;
-    int lba_offset = lba;
-
     int flags = bio_get_hal_flags(dev);
 
     if (flags & MMC_BIO_FLAG_USER)
@@ -292,6 +272,20 @@ static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
         mmc_part_switch(MMC_PART_BOOT1);
     else if (flags & MMC_BIO_FLAG_RPMB)
         mmc_part_switch(MMC_PART_RPMB);
+}
+
+static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
+{
+    int rc = -1;
+    uintptr_t buf_ptr = (uintptr_t) buf;
+    size_t bytes_to_read = length;
+    ssize_t block_sz = bio_block_size(dev);
+    lba_t lba_offset = lba;
+
+    if (block_sz < 0)
+        return block_sz;
+
+    select_part(dev);
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_read) {
@@ -303,29 +297,47 @@ static int mmc_bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf)
 
         bytes_to_read -= chunk_len;
         buf_ptr += chunk_len;
-        lba_offset += chunk_len / bio_block_size(dev);
+        lba_offset += chunk_len / block_sz;
     }
 
+    /**
+     * TODO: We switch back to the user partition here because the way
+     * boot partitions are selected.
+     *
+     * When we write to boot0 the select function makes boot0 writable and
+     * sets boot1 as the boot source. Similarly when boot1 is selected boot0
+     * is selected as the boot source. To make sure that we're always in a
+     * bootable state, given that we normaly write the same image to boot0 and
+     * boot 1.
+     *
+     * Problem 1: If we omitt this we will have a behaviour where the the
+     * active boot partition will depend on the last access to boot0/1. Which
+     * is a problem if only one of the boot partitions are updated.
+     *
+     * Problem 2: If we have have to perform multiple writes to program a
+     * boot image we might end up in a non bootable state.
+     *
+     * Problem 3: We probably wan't to ensure that both boot partitions are
+     * set to R/O.
+     *
+     */
     mmc_part_switch(MMC_PART_USER);
+
     return rc;
 }
 
-static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf)
+static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
 {
     int rc = -1;
-    uintptr_t buf_ptr = buf;
+    uintptr_t buf_ptr = (uintptr_t) buf;
     size_t bytes_to_write = length;
-    int lba_offset = lba;
-    int flags = bio_get_hal_flags(dev);
+    ssize_t block_sz = bio_block_size(dev);
+    lba_t lba_offset = lba;
 
-    if (flags & MMC_BIO_FLAG_USER)
-        mmc_part_switch(MMC_PART_USER);
-    else if (flags & MMC_BIO_FLAG_BOOT0)
-        mmc_part_switch(MMC_PART_BOOT0);
-    else if (flags & MMC_BIO_FLAG_BOOT1)
-        mmc_part_switch(MMC_PART_BOOT1);
-    else if (flags & MMC_BIO_FLAG_RPMB)
-        mmc_part_switch(MMC_PART_RPMB);
+    if (block_sz < 0)
+        return block_sz;
+
+    select_part(dev);
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_write) {
@@ -337,10 +349,12 @@ static int mmc_bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t 
 
         bytes_to_write -= chunk_len;
         buf_ptr += chunk_len;
-        lba_offset += chunk_len / bio_block_size(dev);
+        lba_offset += chunk_len / block_sz;
     }
 
+    /* Note: See comment in read function on the same call */
     mmc_part_switch(MMC_PART_USER);
+
     return rc;
 }
 
@@ -614,7 +628,7 @@ static int mmc_setup(void)
         }
     }
 
-    mmc_current_part = mmc_ext_csd[EXT_CSD_PART_CONFIG];
+    mmc_current_part_config = mmc_ext_csd[EXT_CSD_PART_CONFIG];
 
     size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 |
             mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
@@ -634,8 +648,16 @@ static int mmc_setup(void)
     LOG_INFO("Pre EOL %x", mmc_ext_csd[EXT_CSD_PRE_EOL_INFO]);
 */
 
+    lba_t boot_part_last_lba = 0;
+
+#ifdef CONFIG_MMC_CORE_OVERRIDE_BOOT_PART_SZ
+    boot_part_last_lba = CONFIG_MMC_CORE_BOOT_PART_SZ_KiB * 2 - 1;
+#else
+    boot_part_last_lba = mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1;
+#endif
+
     bio_dev_t d = bio_allocate(0,
-                               mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1,
+                               boot_part_last_lba,
                                512,
                                mmc_cfg->boot0_uu,
                                "eMMC BOOT0");
@@ -657,7 +679,7 @@ static int mmc_setup(void)
         return rc;
 
     d = bio_allocate(0,
-                       mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1,
+                       boot_part_last_lba,
                        512,
                        mmc_cfg->boot1_uu,
                        "eMMC BOOT1");
@@ -830,33 +852,12 @@ int mmc_part_switch(enum mmc_part part)
     }
 
     /* Switch active partition */
-    if (value != mmc_current_part) {
-        mmc_current_part = value;
+    if (value != mmc_current_part_config) {
+        mmc_current_part_config = value;
         LOG_DBG("Switching to %s", part_names[part]);
         return mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value);
     } else {
         return PB_OK;
-    }
-}
-
-ssize_t mmc_part_size(enum mmc_part part)
-{
-    switch (part) {
-        case MMC_PART_BOOT0:
-        case MMC_PART_BOOT1:
-            return (ssize_t) mmc_ext_csd[EXT_CSD_BOOT_MULT] * 128 * 1024;
-        case MMC_PART_RPMB:
-            return (ssize_t) mmc_ext_csd[EXT_CSD_RPMB_MULT] * 128 * 1024;
-        case MMC_PART_USER:
-        {
-            size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 |
-                    mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
-                    mmc_ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
-                    mmc_ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
-            return sectors * 512;
-        }
-        default:
-            return -PB_ERR_PARAM;
     }
 }
 

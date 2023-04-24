@@ -92,9 +92,9 @@ int boot_image_auth_header(struct bpak_header *hdr)
     rc = bpak_copyz_signature(hdr, signature, &signature_length);
 
     if (rc != BPAK_OK)
-        return -PB_ERR_MEM;
+        return -PB_ERR_BUF_TOO_SMALL;
 
-    rc = hash_update((uintptr_t) hdr, sizeof(*hdr));
+    rc = hash_update(hdr, sizeof(*hdr));
 
     if (rc != PB_OK)
         return rc;
@@ -132,31 +132,31 @@ int boot_image_auth_header(struct bpak_header *hdr)
         size_t bytes_to_read = bpak_part_size(p);
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, stack_start, stack_end)) {
-            rc = -PB_ERR_MEM;
+            rc = -PB_ERR;
             LOG_ERR("Part 0x%x overlapping with stack segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, data_start, data_end)) {
-            rc = -PB_ERR_MEM;
+            rc = -PB_ERR;
             LOG_ERR("Part 0x%x overlapping with data segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, bss_start, bss_end)) {
-            rc = -PB_ERR_MEM;
+            rc = -PB_ERR;
             LOG_ERR("Part 0x%x overlapping with bss", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, code_start, code_end)) {
-            rc = -PB_ERR_MEM;
+            rc = -PB_ERR;
             LOG_ERR("Part 0x%x overlapping with code segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, no_init_start, no_init_end)) {
-            rc = -PB_ERR_MEM;
+            rc = -PB_ERR;
             LOG_ERR("Part 0x%x overlapping with no_init segment", p->id);
             break;
         }
@@ -242,7 +242,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
                                    bpak_part_offset(hdr, p) -
                                    sizeof(struct bpak_header)) / 512;
 
-                rc = read_f(read_lba, chunk_size, addr);
+                rc = read_f(read_lba, chunk_size, (void *) addr);
 
                 if (rc != PB_OK)
                     break;
@@ -251,7 +251,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             /* Since we load chunks at an offset we can use the
              * async hash API (if the underlying driver supports it)
              */
-            rc = hash_update_async(addr, chunk_size);
+            rc = hash_update_async((void *) addr, chunk_size);
 
             if (rc != PB_OK)
                 break;

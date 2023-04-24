@@ -29,12 +29,12 @@ int uuid_gen_uuid3(const uuid_t namespace_uu,
     if (err != PB_OK)
         return err;
 
-    err = hash_update((uintptr_t) namespace_uu, 16);
+    err = hash_update(namespace_uu, 16);
 
     if (err != PB_OK)
         return err;
 
-    err = hash_update((uintptr_t) unique, unique_length);
+    err = hash_update(unique, unique_length);
 
     if (err != PB_OK)
         return err;

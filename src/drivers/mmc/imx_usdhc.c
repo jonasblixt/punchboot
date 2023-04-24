@@ -120,9 +120,12 @@ static int imx_usdhc_set_delay_tap(unsigned int tap)
     return PB_OK;
 }
 
-static int imx_usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
+static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type,
+                              mmc_cmd_resp_t result)
 {
-    unsigned int xfertype = 0, mixctl = 0, multiple = 0, data = 0, err = 0;
+    unsigned int xfertype = 0, mixctl = 0, err = 0;
+    bool multiple = false;
+    bool data = false;
     unsigned int state, flags = INTSTATEN_CC | INTSTATEN_CTOE;
     unsigned int cmd_retries = 0;
 
@@ -140,26 +143,26 @@ static int imx_usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
     mmio_write_32(usdhc->base + INTSIGEN, 0);
     pb_delay_us(1000);
 
-    switch (cmd->idx) {
+    switch (idx) {
     case MMC_CMD_STOP_TRANSMISSION:
         xfertype |= XFERTYPE_CMDTYP_ABORT;
         break;
     case MMC_CMD_READ_MULTIPLE_BLOCK:
-        multiple = 1;
+        multiple = true;
         /* for read op */
         /* fallthrough */
     case MMC_CMD_SEND_TUNING_BLOCK_HS200:
     case MMC_CMD_READ_SINGLE_BLOCK:
     case MMC_CMD_SEND_EXT_CSD:
         mixctl |= MIXCTRL_DTDSEL;
-        data = 1;
+        data = true;
         break;
     case MMC_CMD_WRITE_MULTIPLE_BLOCK:
-        multiple = 1;
+        multiple = true;
         /* for data op flag */
         /* fallthrough */
     case MMC_CMD_WRITE_SINGLE_BLOCK:
-        data = 1;
+        data = true;
         break;
     default:
         break;
@@ -179,24 +182,24 @@ static int imx_usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
         }
     }
 
-    if (cmd->resp_type & MMC_RSP_PRESENT && cmd->resp_type != MMC_RSP_R2)
+    if (resp_type & MMC_RSP_PRESENT && resp_type != MMC_RSP_R2)
         xfertype |= XFERTYPE_RSPTYP_48;
-    else if (cmd->resp_type & MMC_RSP_136)
+    else if (resp_type & MMC_RSP_136)
         xfertype |= XFERTYPE_RSPTYP_136;
-    else if (cmd->resp_type & MMC_RSP_BUSY)
+    else if (resp_type & MMC_RSP_BUSY)
         xfertype |= XFERTYPE_RSPTYP_48_BUSY;
 
-    if (cmd->resp_type & MMC_RSP_BUSY)
+    if (resp_type & MMC_RSP_BUSY)
         xfertype |= XFERTYPE_CICEN;
 
-    if (cmd->resp_type & MMC_RSP_CRC)
+    if (resp_type & MMC_RSP_CRC)
         xfertype |= XFERTYPE_CCCEN;
 
-    xfertype |= XFERTYPE_CMD(cmd->idx);
+    xfertype |= XFERTYPE_CMD(idx);
 
     /* Send the command */
     mmio_clrsetbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DATMASK, mixctl);
-    mmio_write_32(usdhc->base + USDHC_CMD_ARG, cmd->arg);
+    mmio_write_32(usdhc->base + USDHC_CMD_ARG, arg);
     mmio_write_32(usdhc->base + XFERTYPE, xfertype);
     /*
      * TODO: Maybe have CONFIG_USDHC_EXTRA_DEBUG ?  */
@@ -217,24 +220,26 @@ static int imx_usdhc_send_cmd(const struct mmc_cmd *cmd, mmc_cmd_resp_t result)
         else
             err = -PB_ERR_IO;
         LOG_ERR("imx_usdhc mmc cmd %d state 0x%x errno=%d",
-              cmd->idx, state, err);
+              idx, state, err);
         goto out;
     }
 
     /* Copy the response to the response buffer */
-    if (cmd->resp_type & MMC_RSP_136) {
-        unsigned int cmdrsp3, cmdrsp2, cmdrsp1, cmdrsp0;
+    if (result) {
+        if (resp_type & MMC_RSP_136) {
+            unsigned int cmdrsp3, cmdrsp2, cmdrsp1, cmdrsp0;
 
-        cmdrsp3 = mmio_read_32(usdhc->base + USDHC_CMD_RSP3);
-        cmdrsp2 = mmio_read_32(usdhc->base + USDHC_CMD_RSP2);
-        cmdrsp1 = mmio_read_32(usdhc->base + USDHC_CMD_RSP1);
-        cmdrsp0 = mmio_read_32(usdhc->base + USDHC_CMD_RSP0);
-        result[3] = (cmdrsp3 << 8) | (cmdrsp2 >> 24);
-        result[2] = (cmdrsp2 << 8) | (cmdrsp1 >> 24);
-        result[1] = (cmdrsp1 << 8) | (cmdrsp0 >> 24);
-        result[0] = (cmdrsp0 << 8);
-    } else {
-        result[0] = mmio_read_32(usdhc->base + USDHC_CMD_RSP0);
+            cmdrsp3 = mmio_read_32(usdhc->base + USDHC_CMD_RSP3);
+            cmdrsp2 = mmio_read_32(usdhc->base + USDHC_CMD_RSP2);
+            cmdrsp1 = mmio_read_32(usdhc->base + USDHC_CMD_RSP1);
+            cmdrsp0 = mmio_read_32(usdhc->base + USDHC_CMD_RSP0);
+            result[3] = (cmdrsp3 << 8) | (cmdrsp2 >> 24);
+            result[2] = (cmdrsp2 << 8) | (cmdrsp1 >> 24);
+            result[1] = (cmdrsp1 << 8) | (cmdrsp0 >> 24);
+            result[0] = (cmdrsp0 << 8);
+        } else {
+            result[0] = mmio_read_32(usdhc->base + USDHC_CMD_RSP0);
+        }
     }
 
     /* Wait until all of the blocks are transferred */
@@ -400,7 +405,7 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg,
         .read = imx_usdhc_read,
         .write = imx_usdhc_write,
         .set_delay_tap = imx_usdhc_set_delay_tap,
-        .max_chunk_bytes = SZ_MB(30),
+        .max_chunk_bytes = SZ_MiB(30),
     };
 
     usdhc = cfg;

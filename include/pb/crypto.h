@@ -41,13 +41,13 @@ struct hash_ops {
     const char *name; /*!< Name of hash op's provider */
     uint32_t alg_bits; /*!< Bit field that indicates supported algs */
     int (*init)(hash_t alg); /*!< Hash init call back */
-    int (*update)(uintptr_t buf, size_t length); /*!< Hash update callback */
-    int (*update_async)(uintptr_t buf, size_t length);
+    int (*update)(const void *buf, size_t length); /*!< Hash update callback */
+    int (*update_async)(const void *buf, size_t length);
     /*!< Optional asynchronous update callback. The implementation is expected
      * to queue/prepare an hash update and block if it's called again, until
      * the current operation is completed */
-    int (*copy_update)(uintptr_t src,
-                       uintptr_t dest,
+    int (*copy_update)(const void *src,
+                       void *dest,
                        size_t length);
     /*!< Optional copy and update. This function will simultaiously copy and
      * hash data */
@@ -65,6 +65,9 @@ struct dsa_ops {
 };
 
 /**
+ * Initialize the hashing context. The crypto API only supports one running
+ * context, calling this function will reset the context.
+ *
  * param[in] alg Hashing algorithm to use
  *
  * @return PB_OK on success,
@@ -80,7 +83,7 @@ int hash_init(hash_t alg);
  *
  * @return PB_OK on sucess
  */
-int hash_update(uintptr_t buf, size_t length);
+int hash_update(const void *buf, size_t length);
 
 /**
  * Update current running hash context with data.
@@ -96,7 +99,7 @@ int hash_update(uintptr_t buf, size_t length);
  *
  * @return PB_OK on success
  */
-int hash_update_async(uintptr_t buf, size_t length);
+int hash_update_async(const void *buf, size_t length);
 
 /**
  * Some hardware/drivers support both updating the hash context and
@@ -111,10 +114,12 @@ int hash_update_async(uintptr_t buf, size_t length);
  *
  * @return PB_OK on sucess
  */
-int hash_copy_update(uintptr_t src, uintptr_t dest, size_t length);
+int hash_copy_update(const void *src, void *dest, size_t length);
 
 /**
- * Finalize hashing context
+ * Finalize hashing context.
+ *
+ * This function will block if there is an async job queued.
  *
  * @param[out] digest_output Message digest output buffer
  * @param[in] lenght Length of output buffer

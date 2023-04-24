@@ -55,7 +55,7 @@ echo "Booting part B"
 $PB boot --boot $BOOT_A --transport socket
 result_code=$?
 
-if [ $result_code -ne 240 ];
+if [ $result_code -ne 255 ];
 then
     test_end_error
 fi
@@ -67,7 +67,7 @@ echo "Ramloading image"
 $PB boot --load /tmp/img.bpak --transport socket
 result_code=$?
 
-if [ $result_code -ne 240 ];
+if [ $result_code -ne 255 ];
 then
     test_end_error
 fi

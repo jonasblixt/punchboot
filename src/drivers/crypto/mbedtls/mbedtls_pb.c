@@ -60,7 +60,7 @@ static int mbedtls_hash_init(hash_t pb_alg)
     return PB_OK;
 }
 
-static int mbedtls_hash_update(uintptr_t buf, size_t length)
+static int mbedtls_hash_update(const void *buf, size_t length)
 {
     switch (current_hash) {
     case HASH_SHA512:
@@ -86,9 +86,8 @@ static int mbedtls_hash_final(uint8_t *output, size_t size)
 {
     switch (current_hash) {
     case HASH_SHA512:
-        if (size < 64) {
+        if (size < 64)
             return -PB_ERR_BUF_TOO_SMALL;
-        }
         mbedtls_sha512_finish(&mbed_hash.sha512, (unsigned char *) output);
         break;
     case HASH_SHA384:
@@ -119,7 +118,6 @@ static int mbed_ecda_verify(const uint8_t *der_signature, size_t signature_lengt
                             bool *verified)
 {
     int rc;
-    char mbedtls_errorstr[256];
     mbedtls_pk_context ctx;
     mbedtls_md_type_t md_type;
 
@@ -142,8 +140,13 @@ static int mbed_ecda_verify(const uint8_t *der_signature, size_t signature_lengt
     rc = mbedtls_pk_parse_public_key(&ctx, der_key, key_length);
 
     if (rc != 0) {
-        mbedtls_strerror(rc, mbedtls_errorstr, sizeof(mbedtls_errorstr));
-        LOG_ERR("Verify failed %s (%i)", mbedtls_errorstr, rc);
+#if CONFIG_MBEDTLS_STRERROR
+        char mbedtls_error_str[256];
+        mbedtls_strerror(rc, mbedtls_error_str, sizeof(mbedtls_error_str));
+#else
+        const char *mbedtls_error_str = "";
+#endif
+        LOG_ERR("Verify failed %s (%i)", mbedtls_error_str, rc);
         return -PB_ERR_SIGNATURE;
     }
 

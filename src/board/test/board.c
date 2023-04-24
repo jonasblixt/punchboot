@@ -12,12 +12,12 @@
 #include <pb/plat.h>
 #include <pb/cm.h>
 #include <pb/rot.h>
+#include <pb/bio.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
 #include <boot/linux.h>
 #include <plat/qemu/uart.h>
 #include <plat/qemu/semihosting.h>
-#include <drivers/block/bio.h>
 #include <drivers/virtio/virtio_block.h>
 #include <drivers/virtio/virtio_serial.h>
 #include <drivers/partition/gpt.h>
@@ -34,12 +34,12 @@ static const struct gpt_part_table gpt_tbl_default[]=
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
-        .size = SZ_kB(512),
+        .size = SZ_KiB(512),
     },
     {
         .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
         .description = "System B",
-        .size = SZ_kB(512),
+        .size = SZ_KiB(512),
     },
     {
         .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
@@ -59,7 +59,7 @@ static const struct gpt_part_table gpt_tbl_default[]=
     {
         .uu = UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5,
         .description = "Readable",
-        .size = SZ_MB(1),
+        .size = SZ_MiB(1),
     },
 };
 
@@ -68,12 +68,12 @@ static const struct gpt_part_table gpt_tbl_var1[]=
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
-        .size = SZ_kB(512),
+        .size = SZ_KiB(512),
     },
     {
         .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
         .description = "System B",
-        .size = SZ_kB(512),
+        .size = SZ_KiB(512),
     },
     {
         .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
@@ -93,7 +93,7 @@ static const struct gpt_part_table gpt_tbl_var1[]=
     {
         .uu = UUID_ff4ddc6c_ad7a_47e8_8773_6729392dd1b5,
         .description = "Readable",
-        .size = SZ_MB(8),
+        .size = SZ_MiB(8),
     },
 };
 
@@ -105,7 +105,7 @@ static const struct gpt_part_table gpt_tbl_var2[]=
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "Large",
-        .size = SZ_kB(32734),
+        .size = SZ_KiB(32734),
     },
 };
 
@@ -115,7 +115,7 @@ static const struct gpt_part_table gpt_tbl_var3[]=
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "Too large",
-        .size = SZ_kB(32735),
+        .size = SZ_KiB(32735),
     },
 };
 

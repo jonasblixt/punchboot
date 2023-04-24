@@ -2,8 +2,8 @@ config CM
     bool "Command mode support"
     default y
 
-config CM_BUF_SIZE_KB
-    int "Command buffer size in kB"
+config CM_BUF_SIZE_KiB
+    int "Command buffer size in KiB"
     default 4096
     depends on CM
 

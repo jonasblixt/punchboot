@@ -11,7 +11,7 @@
 #define INCLUDE_DRIVERS_PARTITION_GPT_H
 
 #include <stdint.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 
 #define GPT_PART_NAME_MAX_SIZE 36
 

@@ -14,7 +14,7 @@ int imx6ul_revoke_key(const struct rot_key *key)
 
     if (rc != PB_OK) {
         LOG_ERR("HAB is reporting errors, aborting");
-        return -PB_ERR_MEM;
+        return -PB_ERR_STATE;
     }
 
     rc = imx_ocotp_read(IMX6UL_FUSE_REVOKE_BANK,

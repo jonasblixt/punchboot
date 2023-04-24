@@ -11,9 +11,9 @@
 #include <inttypes.h>
 #include <pb/pb.h>
 #include <pb/timestamp.h>
+#include <pb/bio.h>
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
-#include <drivers/block/bio.h>
 
 static const struct boot_driver *boot_cfg;
 static struct bpak_header header __section(".no_init") __aligned(4096);
@@ -85,7 +85,7 @@ void boot_get_boot_partition(uuid_t part_uu)
     boot_cfg->get_boot_partition(part_uu);
 }
 
-static int boot_bio_read(int block_offset, size_t length, uintptr_t buf)
+static int boot_bio_read(int block_offset, size_t length, void *buf)
 {
     return bio_read(boot_device, block_offset, length, buf);
 }
@@ -93,7 +93,7 @@ static int boot_bio_read(int block_offset, size_t length, uintptr_t buf)
 static int load_auth_verify_from_bio(void)
 {
     int rc;
-    int header_lba;
+    lba_t header_lba;
 
     if (boot_cfg->get_boot_bio_device == NULL)
         return -PB_ERR_NOT_SUPPORTED;
@@ -121,13 +121,11 @@ static int load_auth_verify_from_bio(void)
         return -PB_ERR_PART_NOT_BOOTABLE;
     }
 
-
     /* Load header located at the end of the partition */
-    header_lba = (bio_size(boot_device) -
-        sizeof(struct bpak_header)) / bio_block_size(boot_device);
+    header_lba = bio_get_no_of_blocks(boot_device) -
+        (sizeof(struct bpak_header) / bio_block_size(boot_device));
 
-    rc = bio_read(boot_device, header_lba, sizeof(struct bpak_header),
-                  (uintptr_t) &header);
+    rc = bio_read(boot_device, header_lba, sizeof(struct bpak_header), &header);
 
     if (rc != PB_OK)
         return rc;
@@ -192,7 +190,7 @@ static int load_auth_verify_from_cb(void)
 
     rc = read_cb(-(int)sizeof(struct bpak_header) / 512,
                  sizeof(struct bpak_header),
-                 (uintptr_t) &header);
+                 &header);
     if (rc != PB_OK)
         return rc;
 

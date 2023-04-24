@@ -74,7 +74,7 @@ static size_t tables_length;
 
 static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 {
-    return (crc32(~0L, buf, sz) ^ ~0L);
+    return (crc32(~0L, buf, sz) ^ ~0UL);
 }
 
 /* Low entropy source for setting up UUID's */
@@ -238,7 +238,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     gpt_pmbr[510] = 0x55;
     gpt_pmbr[511] = 0xAA;
 
-    err = bio_write(dev, 0, sizeof(gpt_pmbr), (uintptr_t) gpt_pmbr);
+    err = bio_write(dev, 0, sizeof(gpt_pmbr), gpt_pmbr);
 
     if (err != PB_OK) {
         LOG_ERR("Writing protective MBR failed");
@@ -249,8 +249,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     LOG_DBG("writing primary gpt tbl to lba %llu",
                            primary.hdr.current_lba);
 
-    err = bio_write(dev, primary.hdr.current_lba, sizeof(primary),
-                        (uintptr_t) &primary);
+    err = bio_write(dev, primary.hdr.current_lba, sizeof(primary), &primary);
 
     if (err != PB_OK) {
         LOG_ERR("error writing primary gpt table (%i)", err);
@@ -283,7 +282,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     LOG_INFO("Writing backup GPT tbl to LBA %llu",
                         backup.hdr.entries_start_lba);
 
-    return bio_write(dev, backup.hdr.entries_start_lba, sizeof(backup), (uintptr_t) &backup);
+    return bio_write(dev, backup.hdr.entries_start_lba, sizeof(backup), &backup);
 }
 
 static int gpt_install_partition_table(bio_dev_t dev, int variant)
@@ -331,23 +330,27 @@ int gpt_ptbl_init(bio_dev_t dev,
     uuid_t uu;
     char name[37];
 
-    LOG_DBG("GPT MAP init");
+    LOG_INFO("Init");
+
     gpt_dev = dev;
     tables = default_tables;
     tables_length = length;
 
-    /* Read primary and backup GPT headers and parition tables */
-    rc = bio_read(dev, 1, sizeof(primary), (uintptr_t) &primary);
+    rc = bio_set_install_partition_cb(dev, gpt_install_partition_table);
 
     if (rc != PB_OK)
         return rc;
 
-    bio_set_install_partition_cb(dev, gpt_install_partition_table);
+    /* Read primary and backup GPT headers and parition tables */
+    rc = bio_read(dev, 1, sizeof(primary), &primary);
+
+    if (rc != PB_OK)
+        return rc;
 
     size_t backup_lba = bio_get_last_block(dev) - \
             ((128*sizeof(struct gpt_part_hdr)) / 512);
 
-    rc = bio_read(dev, backup_lba, sizeof(backup), (uintptr_t) &backup);
+    rc = bio_read(dev, backup_lba, sizeof(backup), &backup);
 
     if (rc != PB_OK)
         return rc;
@@ -414,6 +417,17 @@ int gpt_ptbl_init(bio_dev_t dev,
             return -PB_ERR;
         }
     }
+
+    /* Note/TODO: We check that both primary and backup tables are OK,
+     * but we don't compare them. It's possible that we could have two
+     * tables with correct checksum's but they disagree with each other
+     * regarding partition layout.
+     *
+     * We here asume that if both checksum's are OK the primary table contains
+     * the thruth
+     *
+     * It's likely not worth the extra boot up time to compare the tables.
+     */
 
     for (struct gpt_part_hdr *p = primary.part; p->first_lba; p++) {
         int n = 0;

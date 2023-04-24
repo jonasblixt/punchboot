@@ -161,9 +161,9 @@
 #define membersof(array) (sizeof(array) / sizeof((array)[0]))
 
 
-#define SZ_kB(x) ((size_t) (x) << 10)
-#define SZ_MB(x) ((size_t) (x) << 20)
-#define SZ_GB(x) ((size_t) (x) << 30)
+#define SZ_KiB(x) ((size_t) (x) << 10)
+#define SZ_MiB(x) ((size_t) (x) << 20)
+#define SZ_GiB(x) ((size_t) (x) << 30)
 #define MHz(x) (x * 1000000UL)
 
 #endif  // INCLUDE_UTILS_DEF_H

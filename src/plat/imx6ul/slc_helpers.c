@@ -36,7 +36,7 @@ int imx6ul_slc_set_configuration_locked(void)
 
     if (!imx6ul_is_srk_fused()) {
         LOG_ERR("SRK is empty, refusing to advance life cycle");
-        return -PB_ERR_MEM;
+        return -PB_ERR_STATE;
     }
 
     slc = imx6ul_slc_read_status();

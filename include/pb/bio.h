@@ -62,8 +62,10 @@
 #define BIO_FLAG_RFU15              BIT(15)
 
 typedef int bio_dev_t;
-typedef int (*bio_read_t)(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
-typedef int (*bio_write_t)(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
+typedef unsigned int lba_t;
+
+typedef int (*bio_read_t)(bio_dev_t dev, lba_t lba, size_t length, void *buf);
+typedef int (*bio_write_t)(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
 typedef int (*bio_call_t)(bio_dev_t dev, int param);
 
 /**
@@ -79,7 +81,7 @@ typedef int (*bio_call_t)(bio_dev_t dev, int param);
  *         -PB_ERR_MEM, When the block device pool is full,
  *         -PB_ERR_PARAM, On invalid lba's or block_size
  */
-bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
+bio_dev_t bio_allocate(lba_t first_lba, lba_t last_lba, size_t block_size,
                        const uuid_t uu, const char *description);
 
 /**
@@ -100,8 +102,8 @@ bio_dev_t bio_allocate(int first_lba, int last_lba, size_t block_size,
  *         -PB_ERR_PARAM, On invalid lba's or block_size
  */
 bio_dev_t bio_allocate_parent(bio_dev_t parent,
-                              int first_lba,
-                              int last_lba,
+                              lba_t first_lba,
+                              lba_t last_lba,
                               size_t block_size,
                               const uuid_t uu,
                               const char *description);
@@ -154,7 +156,7 @@ int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
  * @return Size in bytes, on success
  *        -PB_ERR_PARAM on invalid device handle
  */
-ssize_t bio_size(bio_dev_t dev);
+int64_t bio_size(bio_dev_t dev);
 
 /**
  * Block device, block size in bytes
@@ -210,7 +212,8 @@ int bio_set_hal_flags(bio_dev_t dev, uint8_t flags);
 int bio_get_flags(bio_dev_t dev);
 
 /**
- * Set flags on block device
+ * Set flags on block device. This will overwrite the flag bits and clear
+ * out any flags set previously.
  *
  * @param[in] dev Block device handle
  * @param[in] flags Flags to set
@@ -243,24 +246,36 @@ int bio_clear_set_flags(bio_dev_t dev, uint16_t clear_flags, uint16_t set_flags)
 const unsigned char * bio_get_uu(bio_dev_t dev);
 
 /**
- * Get UUID of block device
+ * Get the last block particular device. This returns the physical block
+ * offset of the underlying block device.
  *
  * @param[in] dev Block device handle
  *
- * @return First lba, on success,
+ * @return Last LBA, on success
+ *         -PB_ERR_PARAM, on bad device handle
+ */
+int bio_get_last_block(bio_dev_t dev);
+
+/**
+ * Get the first block particular device. This returns the physical block
+ * offset of the underlying block device.
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return First LBA, on success
  *         -PB_ERR_PARAM, on bad device handle
  */
 int bio_get_first_block(bio_dev_t dev);
 
 /**
- * Get UUID of block device
+ * Get the number of blocks of particular device.
  *
  * @param[in] dev Block device handle
  *
- * @return First lba, on success
+ * @return Number of blocks, on success
  *         -PB_ERR_PARAM, on bad device handle
  */
-int bio_get_last_block(bio_dev_t dev);
+int bio_get_no_of_blocks(bio_dev_t dev);
 
 /**
  * Read data from block device
@@ -275,7 +290,7 @@ int bio_get_last_block(bio_dev_t dev);
  *         -PB_ERR_IO, Driver I/O errors,
  *         -PB_TIMEOUT, Driver timeouts
  */
-int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
+int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf);
 
 /**
  * Write data to block device
@@ -290,7 +305,7 @@ int bio_read(bio_dev_t dev, int lba, size_t length, uintptr_t buf);
  *         -PB_ERR_IO, Driver I/O errors
  *         -PB_TIMEOUT, Driverr timeouts
  */
-int bio_write(bio_dev_t dev, int lba, size_t length, const uintptr_t buf);
+int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
 
 /**
  * Install partition table on a device

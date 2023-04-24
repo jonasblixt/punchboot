@@ -8,7 +8,10 @@ src-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += $(addprefix ${MBEDTLS_DIR}/library/, \
                     memory_buffer_alloc.c \
                     platform.c            \
                     platform_util.c       \
-                    error.c               \
+                    )
+
+src-$(CONFIG_MBEDTLS_STRERROR) += $(addprefix ${MBEDTLS_DIR}/library/, \
+                    error.c \
                     )
 
 src-$(CONFIG_MBEDTLS_ECDSA) += $(addprefix ${MBEDTLS_DIR}/library/, \

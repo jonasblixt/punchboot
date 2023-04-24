@@ -13,10 +13,10 @@
 #include <pb/utils_def.h>
 #include <uuid.h>
 #include <bpak/bpak.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 
 /* TODO: Write a note about the bpak block size of 512 bytes */
-typedef int (*boot_read_cb_t)(int block_offset, size_t length, uintptr_t buf);
+typedef int (*boot_read_cb_t)(int block_offset, size_t length, void *buf);
 typedef int (*boot_result_cb_t)(int result);
 
 /** Boot sources */

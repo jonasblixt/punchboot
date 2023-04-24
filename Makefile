@@ -78,6 +78,7 @@ src-y  += keystore.c
 src-y  += src/delay.c
 src-$(CONFIG_ENABLE_TIMESTAMPING)  += src/timestamp.c
 src-$(CONFIG_CRYPTO) += src/crypto.c
+src-$(CONFIG_BIO_CORE) += src/bio.c
 src-$(CONFIG_DEVICE_UUID) += src/device_uuid.c
 src-$(CONFIG_SELF_TEST) += src/self_test.c
 src-y  += src/wire.c
@@ -95,7 +96,7 @@ include src/cm/makefile.mk
 
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
 ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)
-ldflags-y += --defsym=PB_STACK_SIZE_KB=$(CONFIG_STACK_SIZE_KB)
+ldflags-y += --defsym=PB_STACK_SIZE_KiB=$(CONFIG_STACK_SIZE_KiB)
 ldflags-y += -Tsrc/link.lds  --build-id=none
 
 OBJS =

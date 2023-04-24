@@ -27,8 +27,7 @@ int test_fuse_init(bio_dev_t dev_)
 
     LOG_INFO("Using block device %i", dev);
 
-    rc = bio_read(dev, 0, TEST_FUSE_ADDR_MAX * sizeof(uint32_t),
-                  (uintptr_t) fuse_box);
+    rc = bio_read(dev, 0, TEST_FUSE_ADDR_MAX * sizeof(uint32_t), fuse_box);
 
     if (rc < 0)
         return rc;
@@ -43,8 +42,7 @@ int test_fuse_write(uint16_t addr, uint32_t value)
 
     fuse_box[addr] |= value;
 
-    return bio_write(dev, 0, TEST_FUSE_ADDR_MAX * sizeof(uint32_t),
-                  (uintptr_t) fuse_box);
+    return bio_write(dev, 0, TEST_FUSE_ADDR_MAX * sizeof(uint32_t), fuse_box);
 }
 
 int test_fuse_read(uint16_t addr)

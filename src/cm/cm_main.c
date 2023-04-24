@@ -20,7 +20,7 @@
 #include <uuid.h>
 #include <pb/crypto.h>
 #include <boot/boot.h>
-#include <drivers/block/bio.h>
+#include <pb/bio.h>
 #include <pb/device_uuid.h>
 #include <pb/slc.h>
 #include <pb/rot.h>
@@ -28,7 +28,7 @@
 static struct pb_command cmd __section(".no_init") __aligned(64);
 static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
-static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KB*1024] __section(".no_init") __aligned(4096);
+static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KiB*1024] __section(".no_init") __aligned(4096);
 static slc_t slc;
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uuid_t device_uu;
@@ -77,7 +77,7 @@ static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
     if (rc != PB_OK)
         return rc;
 
-    rc = hash_update((uintptr_t) device_uu_str, 36);
+    rc = hash_update(device_uu_str, 36);
 
     if (rc != PB_OK)
         return rc;
@@ -162,11 +162,11 @@ static int cmd_board(void)
     uint8_t *bfr = buffer[0];
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    cfg->tops.write((uintptr_t) &result, sizeof(result));
+    cfg->tops.write(&result, sizeof(result));
 
     if (board_cmd->request_size) {
         LOG_DBG("Reading request data");
-        rc = cfg->tops.read((uintptr_t) bfr, 1024);
+        rc = cfg->tops.read(bfr, 1024);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
@@ -176,7 +176,7 @@ static int cmd_board(void)
 
     uint8_t *bfr_response = buffer[1];
 
-    size_t response_size = CONFIG_CM_BUF_SIZE_KB*1024;
+    size_t response_size = CONFIG_CM_BUF_SIZE_KiB*1024;
 
     rc = cfg->command(board_cmd->command,
                         bfr, board_cmd->request_size,
@@ -190,8 +190,8 @@ static int cmd_board(void)
 
     if (response_size) {
         LOG_DBG("Sending response");
-        cfg->tops.write((uintptr_t) &result, sizeof(result));
-        cfg->tops.write((uintptr_t) bfr_response, response_size);
+        cfg->tops.write(&result, sizeof(result));
+        cfg->tops.write(bfr_response, response_size);
     }
 
     return rc;
@@ -213,11 +213,12 @@ static int cmd_bpak_read(void)
         return dev;
     }
 
-    int header_lba = (bio_size(dev) - sizeof(struct bpak_header)) / bio_block_size(dev);
+    lba_t header_lba = bio_get_no_of_blocks(dev) -
+                        (sizeof(struct bpak_header) / bio_block_size(dev));
 
     LOG_DBG("Reading bpak header at lba %i", header_lba);
 
-    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), (uintptr_t) &buffer);
+    rc = bio_read(dev, header_lba, sizeof(struct bpak_header), &buffer);
 
     if (rc != PB_OK) {
         pb_wire_init_result(&result, error_to_wire(rc));
@@ -233,9 +234,9 @@ static int cmd_bpak_read(void)
     }
 
     pb_wire_init_result(&result, error_to_wire(rc));
-    cfg->tops.write((uintptr_t) &result, sizeof(result));
+    cfg->tops.write(&result, sizeof(result));
 
-    rc = cfg->tops.write((uintptr_t) buffer, sizeof(struct bpak_header));
+    rc = cfg->tops.write(buffer, sizeof(struct bpak_header));
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
@@ -253,9 +254,9 @@ static int cmd_auth(void)
 #ifdef CONFIG_CM_AUTH_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
         pb_wire_init_result(&result, PB_RESULT_OK);
-        cfg->tops.write((uintptr_t) &result, sizeof(result));
+        cfg->tops.write(&result, sizeof(result));
 
-        cfg->tops.read((uintptr_t) buffer[0], 1024);
+        cfg->tops.read(buffer[0], 1024);
 
         rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
 
@@ -271,8 +272,8 @@ static int cmd_auth(void)
 #if CONFIG_CM_AUTH_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD && cfg->password_auth) {
         pb_wire_init_result(&result, PB_RESULT_OK);
-        cfg->tops.write((uintptr_t) &result, sizeof(result));
-        cfg->tops.read((uintptr_t) buffer[0], 1024);
+        cfg->tops.write(&result, sizeof(result));
+        cfg->tops.read(buffer[0], 1024);
         rc = cfg->password_auth((char *) buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
@@ -309,16 +310,16 @@ static int cmd_stream_read(void)
                                                    start_lba);
 
     uintptr_t bfr = ((uintptr_t) buffer) +
-              ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_read->buffer_id);
+              ((CONFIG_CM_BUF_SIZE_KiB*1024)*stream_read->buffer_id);
 
-    rc = bio_read(block_dev, start_lba, stream_read->size, bfr);
+    rc = bio_read(block_dev, start_lba, stream_read->size, (void *) bfr);
     pb_wire_init_result(&result, error_to_wire(rc));
     LOG_DBG("Result = %i", rc);
 
-    cfg->tops.write((uintptr_t) &result, sizeof(result));
+    cfg->tops.write(&result, sizeof(result));
 
     if (rc == PB_OK) {
-        rc = cfg->tops.write((uintptr_t) bfr, stream_read->size);
+        rc = cfg->tops.write((const void *) bfr, stream_read->size);
         pb_wire_init_result(&result, error_to_wire(rc));
     }
     LOG_DBG("Data sent");
@@ -347,9 +348,9 @@ static int cmd_stream_write(void)
     LOG_DBG("Writing %u bytes to lba offset %zu", stream_write->size, start_lba);
 
     uintptr_t bfr = ((uintptr_t) buffer) +
-              ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_write->buffer_id);
+              ((CONFIG_CM_BUF_SIZE_KiB*1024)*stream_write->buffer_id);
 
-    rc = bio_write(block_dev, start_lba, stream_write->size, bfr);
+    rc = bio_write(block_dev, start_lba, stream_write->size, (void *) bfr);
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
@@ -385,17 +386,17 @@ static int cmd_part_verify(void)
     if (verify_cmd->bpak) {
         LOG_DBG("Bpak header");
 
-        int header_lba = (bio_size(block_dev) - sizeof(struct bpak_header)) / bio_block_size(block_dev);
+        lba_t header_lba = bio_get_no_of_blocks(block_dev) -
+                   (sizeof(struct bpak_header) / bio_block_size(block_dev));
 
-        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header),
-                        (uintptr_t) buffer);
+        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header), buffer);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
 
-        rc = hash_update((uintptr_t) buffer, sizeof(struct bpak_header));
+        rc = hash_update(buffer, sizeof(struct bpak_header));
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
@@ -408,13 +409,12 @@ static int cmd_part_verify(void)
     LOG_DBG("Reading %zu bytes", bytes_to_verify);
 
     while (bytes_to_verify) {
-        chunk_len = bytes_to_verify>(CONFIG_CM_BUF_SIZE_KB*1024)? \
-                   (CONFIG_CM_BUF_SIZE_KB*1024):bytes_to_verify;
+        chunk_len = bytes_to_verify>(CONFIG_CM_BUF_SIZE_KiB*1024)? \
+                   (CONFIG_CM_BUF_SIZE_KiB*1024):bytes_to_verify;
 
         buffer_id = !buffer_id;
 
-        rc = bio_read(block_dev, lba_offset, chunk_len,
-                                    (uintptr_t) buffer[buffer_id]);
+        rc = bio_read(block_dev, lba_offset, chunk_len, buffer[buffer_id]);
 
         if (rc != PB_OK) {
             LOG_ERR("read error");
@@ -422,7 +422,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = hash_update((uintptr_t) buffer[buffer_id], chunk_len);
+        rc = hash_update(buffer[buffer_id], chunk_len);
 
         if (rc != PB_OK) {
             LOG_ERR("Hash update error");
@@ -493,29 +493,28 @@ static int cmd_part_tbl_read(void)
     pb_wire_init_result2(&result, PB_RESULT_OK, &tbl_read_result,
                                              sizeof(tbl_read_result));
 
-    cfg->tops.write((uintptr_t) &result, sizeof(result));
+    cfg->tops.write(&result, sizeof(result));
 
     if (entries) {
         size_t bytes = sizeof(struct pb_result_part_table_entry)*(entries);
-        cfg->tops.write((uintptr_t) result_tbl, bytes);
+        cfg->tops.write(result_tbl, bytes);
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
     return PB_RESULT_OK;
 }
 
-static int ram_boot_read_f(int block_offset, size_t length, uintptr_t buf)
+static int ram_boot_read_f(int block_offset, size_t length, void *buf)
 {
     (void) block_offset;
-    LOG_DBG("%zu %"PRIxPTR, length, buf);
-    return cfg->tops.read((uintptr_t) buf, length);
+    return cfg->tops.read(buf, length);
 }
 
 static int ram_boot_result_f(int rc)
 {
     LOG_DBG("%i", rc);
     pb_wire_init_result(&result, error_to_wire(rc));
-    return cfg->tops.write((uintptr_t) &result, sizeof(result));
+    return cfg->tops.write(&result, sizeof(result));
 }
 
 static int cmd_boot_ram(void)
@@ -529,7 +528,7 @@ static int cmd_boot_ram(void)
             (ram_boot_cmd->verbose?BOOT_FLAG_VERBOSE:0));
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    rc = cfg->tops.write((uintptr_t) &result, sizeof(result));
+    rc = cfg->tops.write(&result, sizeof(result));
 
     if (rc != PB_OK)
         return rc;
@@ -557,7 +556,7 @@ static int cmd_slc_read(void)
     pb_wire_init_result2(&result, error_to_wire(rc), &slc_status,
                         sizeof(slc_status));
 
-    cfg->tops.write((uintptr_t) &result, sizeof(result));
+    cfg->tops.write(&result, sizeof(result));
 
     for (size_t i = 0; i < rot_no_of_keys(); i++) {
         rc = rot_read_key_status_by_idx(i);
@@ -570,7 +569,7 @@ static int cmd_slc_read(void)
         LOG_INFO("Key 0x%x status=%i", key_id, rc);
     }
 
-    cfg->tops.write((uintptr_t) &key_status, sizeof(key_status));
+    cfg->tops.write(&key_status, sizeof(key_status));
     pb_wire_init_result(&result, error_to_wire(PB_OK));
 
     return rc;
@@ -601,7 +600,7 @@ static int cmd_stream_prep_buffer(void)
 
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-    if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KB*1024)) {
+    if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KiB*1024)) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_ERR_MEM;
     }
@@ -612,12 +611,12 @@ static int cmd_stream_prep_buffer(void)
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    cfg->tops.write((uintptr_t) &result, sizeof(result));
+    cfg->tops.write(&result, sizeof(result));
 
     uint8_t *bfr = ((uint8_t *) buffer) +
-                    ((CONFIG_CM_BUF_SIZE_KB*1024)*stream_prep->id);
+                    ((CONFIG_CM_BUF_SIZE_KiB*1024)*stream_prep->id);
 
-    return cfg->tops.read((uintptr_t) bfr, stream_prep->size);
+    return cfg->tops.read(bfr, stream_prep->size);
 }
 
 static int cmd_stream_final(void)
@@ -665,7 +664,7 @@ static int pb_command_parse(void)
         {
             LOG_INFO("Board reset");
             pb_wire_init_result(&result, PB_RESULT_OK);
-            cfg->tops.write((uintptr_t) &result, sizeof(result));
+            cfg->tops.write(&result, sizeof(result));
             return -PB_ERR_ABORT;
         }
         break;
@@ -676,8 +675,8 @@ static int pb_command_parse(void)
         {
             struct pb_result_device_caps caps = {0};
             caps.stream_no_of_buffers = 2;
-            caps.stream_buffer_size = CONFIG_CM_BUF_SIZE_KB*1024;
-            caps.chunk_transfer_max_bytes = CONFIG_CM_BUF_SIZE_KB*1024;
+            caps.stream_buffer_size = CONFIG_CM_BUF_SIZE_KiB*1024;
+            caps.chunk_transfer_max_bytes = CONFIG_CM_BUF_SIZE_KiB*1024;
 
             pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
         }
@@ -729,7 +728,7 @@ static int pb_command_parse(void)
             rc = boot_load(boot_cmd->uuid);
 
             pb_wire_init_result(&result, error_to_wire(rc));
-            cfg->tops.write((uintptr_t) &result, sizeof(result));
+            cfg->tops.write(&result, sizeof(result));
 
             if (rc == PB_OK) {
                 rc = boot_jump();
@@ -774,15 +773,15 @@ static int pb_command_parse(void)
 
             uint8_t *bfr_response = buffer[0];
 
-            size_t response_size = CONFIG_CM_BUF_SIZE_KB*1024;
+            size_t response_size = CONFIG_CM_BUF_SIZE_KiB*1024;
             rc = cfg->status(bfr_response, &response_size);
 
             status_result.size = response_size;
             pb_wire_init_result2(&result, error_to_wire(rc),
                             &status_result, sizeof(status_result));
 
-            cfg->tops.write((uintptr_t) &result, sizeof(result));
-            cfg->tops.write((uintptr_t) bfr_response, response_size);
+            cfg->tops.write(&result, sizeof(result));
+            cfg->tops.write(bfr_response, response_size);
         }
         break;
         case PB_CMD_SLC_SET_CONFIGURATION:
@@ -848,7 +847,7 @@ static int pb_command_parse(void)
     }
 
 err_out:
-    cfg->tops.write((uintptr_t) &result, sizeof(result));
+    cfg->tops.write(&result, sizeof(result));
     return rc;
 }
 
@@ -910,7 +909,7 @@ restart_command_mode:
 
     while (true) {
         plat_wdog_kick();
-        rc = cfg->tops.read((uintptr_t) &cmd, sizeof(cmd));
+        rc = cfg->tops.read(&cmd, sizeof(cmd));
 
         if (rc == PB_OK) {
             rc = pb_command_parse();

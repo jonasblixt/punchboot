@@ -1,6 +1,6 @@
 config BOOT_CORE
     bool "Core boot logic"
-    depends on DRIVERS_BIO_CORE
+    depends on BIO_CORE
     depends on BOOT_BPAK_IMAGE_HELPERS
     default y
 
@@ -11,7 +11,7 @@ config BOOT_BPAK_IMAGE_HELPERS
 
 config BOOT_AB_DRIVER
     bool "A/B boot driver"
-    depends on DRIVERS_BIO_CORE
+    depends on BIO_CORE
     depends on LIB_ZLIB_CRC
     help
         This is the default boot driver. It uses two block devices to store
