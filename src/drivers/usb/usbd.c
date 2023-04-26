@@ -28,7 +28,7 @@ static bool enumerated;
 
 static int usbd_enumerate(struct usb_setup_packet *setup);
 
-static const char *ep_to_str(usb_ep_t ep)
+const char *ep_to_str(usb_ep_t ep)
 {
     switch (ep) {
     case USB_EP0_IN:
@@ -79,11 +79,11 @@ static int wait_for_completion(usb_ep_t ep)
     return rc;
 }
 
-static int ep0_tx(uintptr_t bfr, size_t length)
+static int ep0_tx(const void *bfr, size_t length)
 {
     int rc;
 
-    rc = hal_ops->xfer_start(USB_EP0_IN, bfr, length);
+    rc = hal_ops->xfer_start(USB_EP0_IN, (void *) bfr, length);
 
     if (rc != PB_OK)
         return rc;
@@ -93,14 +93,12 @@ static int ep0_tx(uintptr_t bfr, size_t length)
     if (rc != PB_OK)
         return rc;
 
-    rc = hal_ops->xfer_start(USB_EP0_OUT, 0, 0);
-
-    return wait_for_completion(USB_EP0_OUT);
+    return hal_ops->ep0_xfer_zlp(USB_EP0_OUT);
 }
 
 static int usbd_enumerate(struct usb_setup_packet *setup)
 {
-    int rc;
+    int rc = -PB_ERR;
     uint16_t length = 0;
     uint16_t device_status = 0;
     uint16_t request;
@@ -114,26 +112,26 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         {
             if (setup->wValue == 0x0600) {
                 length = MIN(setup->wLength, (uint16_t) sizeof(cls_config->desc->qualifier));
-                rc = ep0_tx((uintptr_t) &cls_config->desc->qualifier, length);
+                rc = ep0_tx(&cls_config->desc->qualifier, length);
             } else if (setup->wValue == 0x0100) {
                 length = MIN(setup->wLength, (uint16_t) sizeof(cls_config->desc->device));
-                rc = ep0_tx((uintptr_t) &cls_config->desc->device, length);
+                rc = ep0_tx(&cls_config->desc->device, length);
             } else if (setup->wValue == 0x0200) {
                 length = MIN(setup->wLength, cls_config->desc->config.wTotalLength);
-                rc = ep0_tx((uintptr_t) &cls_config->desc->config, length);
+                rc = ep0_tx(&cls_config->desc->config, length);
             } else if (setup->wValue == 0x0A00) {
                 length = MIN(setup->wLength, (uint16_t) cls_config->desc->interface.bLength);
-                rc = ep0_tx((uintptr_t) &cls_config->desc->interface, length);
+                rc = ep0_tx(&cls_config->desc->interface, length);
             } else if ((setup->wValue & 0xFF00) == 0x0300) {
                 uint8_t str_desc_idx = (uint8_t) (setup->wValue & 0xFF);
                 if (str_desc_idx == 0) {
                     length = MIN(setup->wLength, (uint16_t) sizeof(cls_config->desc->language));
-                    rc = ep0_tx((uintptr_t) &cls_config->desc->language, length);
+                    rc = ep0_tx(&cls_config->desc->language, length);
                 } else {
                     struct usb_string_descriptor *str_desc = \
                                cls_config->get_string_descriptor(str_desc_idx);
                     length = MIN(setup->wLength, (uint16_t) str_desc->bLength);
-                    rc = ep0_tx((uintptr_t) str_desc, length);
+                    rc = ep0_tx(str_desc, length);
                 }
             } else {
                 LOG_ERR("Unhandled descriptor 0x%x", setup->wValue);
@@ -143,32 +141,19 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         break;
         case USB_SET_ADDRESS:
         {
-            LOG_DBG("Set address 0x%02x", setup->wValue);
+            //LOG_DBG("Set address 0x%02x", setup->wValue);
             rc = hal_ops->set_address(setup->wValue);
 
             if (rc != PB_OK)
                 break;
 
-            rc = hal_ops->xfer_start(USB_EP0_IN, 0, 0);
-
-            if (rc != PB_OK)
-                break;
-
-            rc = wait_for_completion(USB_EP0_IN);
+            hal_ops->ep0_xfer_zlp(USB_EP0_IN);
         }
         break;
         case USB_SET_CONFIGURATION:
         {
             LOG_DBG("Set configuration");
-            rc = hal_ops->xfer_start(USB_EP0_IN, 0, 0);
-
-            if (rc != PB_OK)
-                break;
-
-            rc = wait_for_completion(USB_EP0_IN);
-
-            if (rc != PB_OK)
-                break;
+            hal_ops->ep0_xfer_zlp(USB_EP0_IN);
 
             for (int n = 0; n < cls_config->desc->interface.bNumEndpoints; n++) {
                 usb_ep_t ep = (cls_config->desc->eps[n].bEndpointAddress & 0x7f) * 2;
@@ -188,6 +173,7 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
 
                 if (rc != PB_OK) {
                     LOG_ERR("Configuration failed (%i)", rc);
+                    // Here we should stall the endpoint
                     break;
                 }
             }
@@ -198,13 +184,14 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         case USB_SET_IDLE:
         {
             LOG_DBG("Set idle");
-            rc = ep0_tx(0, 0);
+            hal_ops->ep0_xfer_zlp(USB_EP0_IN);
+            hal_ops->ep0_xfer_zlp(USB_EP0_OUT);
         }
         break;
         case USB_GET_STATUS:
         {
             LOG_DBG("Get status");
-            rc = ep0_tx((uintptr_t) &device_status, sizeof(device_status));
+            rc = ep0_tx(&device_status, sizeof(device_status));
         }
         break;
         default:
@@ -249,6 +236,9 @@ int usbd_init_cls(const struct usbd_cls_config *cfg)
 
 int usbd_init(void)
 {
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
+
     return hal_ops->init();
 }
 
@@ -256,6 +246,9 @@ int usbd_connect(void)
 {
     int rc;
     struct usb_setup_packet pkt;
+
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
 
     /**
      * 'poll_setup_pkt' returns -PB_ERR_AGAIN when there was no
@@ -283,16 +276,22 @@ int usbd_connect(void)
 
 int usbd_disconnect(void)
 {
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
+
     if (hal_ops->stop)
         return hal_ops->stop();
     else
         return PB_OK;
 }
 
-int usbd_xfer(usb_ep_t ep, uintptr_t buf, size_t length)
+int usbd_xfer(usb_ep_t ep, void *buf, size_t length)
 {
     int rc;
     struct usb_setup_packet pkt;
+
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
 
 restart_xfer:
     rc = hal_ops->xfer_start(ep, buf, length);

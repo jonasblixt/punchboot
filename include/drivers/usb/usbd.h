@@ -171,19 +171,23 @@ struct usbd_hal_ops
 {
     int (*init)(void);
     int (*stop)(void);
-    int (*xfer_start)(usb_ep_t ep, uintptr_t buf, size_t length);
+    int (*xfer_start)(usb_ep_t ep, void *buf, size_t length);
     int (*xfer_complete)(usb_ep_t ep);
     void (*xfer_cancel)(usb_ep_t ep);
     int (*poll_setup_pkt)(struct usb_setup_packet *pkt);
     int (*configure_ep)(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_sz);
     int (*set_address)(uint16_t addr);
+    int (*ep0_xfer_zlp)(usb_ep_t ep);
 };
 
+/* USB Device interface */
+const char *ep_to_str(usb_ep_t ep);
 int usbd_init_hal_ops(const struct usbd_hal_ops *ops);
 int usbd_init_cls(const struct usbd_cls_config *cfg);
 int usbd_init(void);
 int usbd_connect(void);
 int usbd_disconnect(void);
-int usbd_xfer(usb_ep_t ep, uintptr_t buf, size_t length);
+int usbd_xfer(usb_ep_t ep, void *buf, size_t length);
+
 
 #endif  // INCLUDE_DRIVERS_USB_USBD_H

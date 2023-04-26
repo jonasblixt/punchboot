@@ -673,6 +673,7 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_DEVICE_READ_CAPS:
         {
+            LOG_INFO("Read caps");
             struct pb_result_device_caps caps = {0};
             caps.stream_no_of_buffers = 2;
             caps.stream_buffer_size = CONFIG_CM_BUF_SIZE_KiB*1024;
@@ -739,6 +740,7 @@ static int pb_command_parse(void)
         break;
         case PB_CMD_DEVICE_IDENTIFIER_READ:
         {
+            LOG_INFO("Read identifier");
             struct pb_result_device_identifier *ident = \
                 (struct pb_result_device_identifier *) buffer;
             memset(ident->board_id, 0, sizeof(ident->board_id));

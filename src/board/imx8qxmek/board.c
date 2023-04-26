@@ -26,6 +26,7 @@
 #include <drivers/usb/usbd.h>
 #include <drivers/usb/imx_ehci.h>
 #include <drivers/usb/imx_usb2_phy.h>
+#include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <pb/cm.h>
 #include <drivers/crypto/imx_caam.h>
@@ -478,16 +479,43 @@ err_out:
 int cm_board_init(void)
 {
     int rc;
-    /* Enable usb stuff */
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_0, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_0_PHY, SC_PM_PW_MODE_ON);
 
-    imx_usb2_phy_init(0x5B100000);
+    /* Request power domains */
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_2_PHY, SC_PM_PW_MODE_ON);
 
-    rc = imx_ehci_init(IMX_EHCI_BASE);
+    /* Request clocks */
+    rc = sc_pm_clock_enable(plat->ipc, SC_R_USB_2, SC_PM_CLK_PER, true, false);
+
+    if (rc != SC_ERR_NONE) {
+        LOG_ERR("USB_2 per clk enable failed!");
+        return -PB_ERR;
+    }
+
+    rc = sc_pm_clock_enable(plat->ipc, SC_R_USB_2, SC_PM_CLK_MISC, true, false);
+
+    if (rc != SC_ERR_NONE) {
+        LOG_ERR("USB_2 misc clk enable failed!");
+        return -PB_ERR;
+    }
+
+    rc = sc_pm_clock_enable(plat->ipc, SC_R_USB_2, SC_PM_CLK_MST_BUS, true, false);
+
+    if (rc != SC_ERR_NONE) {
+        LOG_ERR("USB_2 mst bus clk enable failed!");
+        return -PB_ERR;
+    }
+
+    static const struct imx_cdns3_udc_config usb_cfg = {
+        .base = 0x5B120000,
+        .non_core_base = 0x5B110000,
+        .phy_base = 0x5B160000,
+    };
+
+    rc = imx_cdns3_udc_init(&usb_cfg);
 
     if (rc != PB_OK) {
-        LOG_ERR("imx_ehci_init failed (%i)", rc);
+        LOG_ERR("cdns_usb_init failed (%i)", rc);
         return rc;
     }
 

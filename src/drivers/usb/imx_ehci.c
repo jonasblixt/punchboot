@@ -211,13 +211,14 @@ static int ehci_irq_process(void)
  * Note: This function will accept buffers of any alignment but for optimal
  * performace all buffers should be 4k aligned.
  */
-static int ehci_xfer_start(usb_ep_t ep, uintptr_t bfr, size_t length)
+static int ehci_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
 {
     struct ehci_queue_head *qh = &dqhs[ep];
     struct ehci_transfer_head *dtd = dtds;
     uint32_t epreg = 0;
     size_t bytes_to_tx = length;
     size_t align_length = 0;
+    uintptr_t bfr = (uintptr_t) bfr_;
     uintptr_t buf_ptr = bfr;
 
     if (ep >= USB_EP_END)
@@ -305,7 +306,7 @@ static int ehci_xfer_start(usb_ep_t ep, uintptr_t bfr, size_t length)
     while (mmio_read_32(ehci_base + EHCI_ENDPTPRIME) & epreg)
         {};
 
-    xfer_bfr = bfr;
+    xfer_bfr = (uintptr_t) bfr;
     xfer_length = length;
     xfer_head = dtd;
     xfer_ep = ep;
@@ -577,6 +578,22 @@ static int ehci_stop(void)
     return PB_OK;
 }
 
+static int ehci_xfer_zlp(usb_ep_t ep)
+{
+    int rc;
+
+    rc = ehci_xfer_start(ep, 0, 0);
+
+    if (rc != PB_OK)
+        return rc;
+
+    do {
+        rc = ehci_xfer_complete(ep);
+    } while (rc == -PB_ERR_AGAIN);
+
+    return rc;
+}
+
 int imx_ehci_init(uintptr_t base)
 {
     ehci_base = base;
@@ -590,6 +607,7 @@ int imx_ehci_init(uintptr_t base)
         .poll_setup_pkt = ehci_poll_setup_pkt,
         .configure_ep = ehci_configure_ep,
         .set_address = ehci_set_address,
+        .ep0_xfer_zlp = ehci_xfer_zlp,
     };
 
     return usbd_init_hal_ops(&ops);
