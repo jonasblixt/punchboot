@@ -114,7 +114,8 @@ int64_t bio_size(bio_dev_t dev)
     if (rc != PB_OK)
         return rc;
 
-    return (bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1) * bio_pool[dev].block_sz;
+    return (bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1) * \
+                (int64_t) bio_pool[dev].block_sz;
 }
 
 ssize_t bio_block_size(bio_dev_t dev)
