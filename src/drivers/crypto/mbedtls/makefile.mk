@@ -1,3 +1,4 @@
+ifeq (${CONFIG_DRIVERS_CRYPTO_MBEDTLS}, y)
 
 ifeq (${MBEDTLS_DIR},)
   $(error Error: MBEDTLS_DIR not set)
@@ -40,3 +41,5 @@ src-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += src/drivers/crypto/mbedtls/mbedtls_pb.c
 
 cflags-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += -DMBEDTLS_CONFIG_FILE=\"$(shell readlink -f src/drivers/crypto/mbedtls/mbedtls_config.h)\"
 cflags-$(CONFIG_DRIVERS_CRYPTO_MBEDTLS) += -I${MBEDTLS_DIR}/include
+
+endif
