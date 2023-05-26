@@ -25,7 +25,7 @@
 #define MMC_BIO_FLAG_RPMB BIT(2)
 #define MMC_BIO_FLAG_USER BIT(3)
 
-#define MMC_DEFAULT_MAX_RETRIES    5
+#define MMC_DEFAULT_MAX_RETRIES    15
 #define SEND_OP_COND_MAX_RETRIES   100
 
 static const struct mmc_hal *mmc_hal;
@@ -139,7 +139,7 @@ static int mmc_device_state(void)
     int retries = MMC_DEFAULT_MAX_RETRIES;
     mmc_cmd_resp_t resp_data;
 
-    do {
+    while (true) {
         int ret;
 
         if (retries == 0) {
@@ -149,18 +149,20 @@ static int mmc_device_state(void)
 
         ret = mmc_send_cmd(MMC_CMD_SEND_STATUS, rca << RCA_SHIFT_OFFSET,
                            MMC_RSP_R1, resp_data);
-        if (ret != 0) {
-            retries--;
-            continue;
-        }
 
-        if ((resp_data[0] & STATUS_SWITCH_ERROR) != 0U) {
-            LOG_ERR("resp_data[0] = 0x%08x", resp_data[0]);
-            return -PB_ERR_IO;
+        if (ret == PB_OK) {
+            if ((resp_data[0] & STATUS_SWITCH_ERROR) != 0U) {
+                LOG_ERR("resp_data[0] = 0x%08x", resp_data[0]);
+                return -PB_ERR_IO;
+            }
+
+            if ((resp_data[0] & STATUS_READY_FOR_DATA) != 0U)
+                break;
         }
 
         retries--;
-    } while ((resp_data[0] & STATUS_READY_FOR_DATA) == 0U);
+        pb_delay_ms(1);
+    }
 
     return MMC_GET_STATE(resp_data[0]);
 }
