@@ -47,6 +47,7 @@
 #include <pb/mmio.h>
 #include <arch/arch.h>
 #include <pb/pb.h>
+#include <pb/utils_def.h>
 #include <bpak/keystore.h>
 #include <pb/crypto.h>
 #include <pb/der_helpers.h>
@@ -183,6 +184,45 @@ static int caam_shedule_job_sync(void)
     return caam_wait_for_job();
 }
 
+static int caam_der_ecsig_to_rs(const uint8_t *sig, size_t rs_length, uint8_t *r, uint8_t *s)
+{
+    size_t sz;
+    int rc;
+    const uint8_t *p = sig;
+
+    if (*p++ != 0x30) {
+        return -PB_ERR_ASN1;
+    }
+
+    rc = asn1_size(&p, &sz);
+
+    if (rc != 0)
+        return rc;
+
+    if (*p++ != 0x02)
+        return -PB_ERR_ASN1;
+
+    rc = asn1_size(&p, &sz);
+
+    if (rc != 0)
+        return rc;
+
+    memcpy(&r[MAX((int) (rs_length - sz), 0)], &p[MAX((int) (sz - rs_length), 0)], sz);
+    p += sz;
+
+    if (*p++ != 0x02)
+        return -PB_ERR_ASN1;
+
+    rc = asn1_size(&p, &sz);
+
+    if (rc != 0)
+        return rc;
+
+    memcpy(&s[MAX((int) (rs_length - sz), 0)], &p[MAX((int) (sz - rs_length), 0)], sz);
+
+    return PB_OK;
+}
+
 static int caam_ecda_verify(const uint8_t *der_signature, size_t sig_length,
                             const uint8_t *der_key, size_t key_length,
                             hash_t md_alg, uint8_t *md, size_t md_length,
@@ -191,6 +231,7 @@ static int caam_ecda_verify(const uint8_t *der_signature, size_t sig_length,
     int rc;
     int dc = 0;
     int caam_sig_type = 0;
+    size_t rs_length = 0;
     dsa_t key_kind;
 
     *verified = false;
@@ -205,28 +246,29 @@ static int caam_ecda_verify(const uint8_t *der_signature, size_t sig_length,
     if (rc != PB_OK)
         return rc;
 
-    rc = der_ecsig_to_rs(der_signature,
-                         caam.ecdsa_r, caam.ecdsa_s, CAAM_SIG_MAX_LENGTH/2,
-                         true);
-
-    if (rc != PB_OK)
-        return rc;
-
     memset(caam.ecdsa_tmp_buf, 0, sizeof(caam.ecdsa_tmp_buf));
 
     switch (key_kind) {
         case DSA_EC_SECP256r1:
             caam_sig_type = 2;
+            rs_length = 32;
         break;
         case DSA_EC_SECP384r1:
             caam_sig_type = 3;
+            rs_length = 48;
         break;
         case DSA_EC_SECP521r1:
             caam_sig_type = 4;
+            rs_length = 66;
         break;
         default:
             return -PB_ERR_NOT_SUPPORTED;
     };
+
+    rc = caam_der_ecsig_to_rs(der_signature, rs_length, caam.ecdsa_r, caam.ecdsa_s);
+
+    if (rc != PB_OK)
+        return rc;
 
     arch_clean_cache_range((uintptr_t) caam.ecdsa_tmp_buf,
                             sizeof(caam.ecdsa_tmp_buf));
