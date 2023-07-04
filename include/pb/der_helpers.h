@@ -42,4 +42,6 @@ int der_ec_public_key_data(const uint8_t *pub_key_der,
                            size_t output_length,
                            dsa_t *key_kind);
 
+int asn1_size(const unsigned char **p, size_t *len);
+
 #endif  // PB_INCLUDE_DER_HELPERS_H

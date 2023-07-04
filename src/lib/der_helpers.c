@@ -19,7 +19,7 @@ static const uint8_t secp384r1_oid[] = "\x2b\x81\x04\x00\x22";
 static const uint8_t secp521r1_oid[] = "\x2b\x81\x04\x00\x23";
 
 /* Copied from mbedtls */
-static int asn1_size(const unsigned char **p, size_t *len)
+int asn1_size(const unsigned char **p, size_t *len)
 {
 
     if (( **p & 0x80) == 0) {
