@@ -9,6 +9,8 @@
  * and rollback logic.
  *
  */
+#ifndef BOOT_AB_STATE_H
+#define BOOT_AB_STATE_H
 
 #include <uuid.h>
 #include <pb/bio.h>
@@ -101,3 +103,5 @@ int boot_ab_state_read_board_reg(unsigned int index, uint32_t *value);
  * @return 0 on success
  */
 int boot_ab_state_write_board_reg(unsigned int index, uint32_t value);
+
+#endif
