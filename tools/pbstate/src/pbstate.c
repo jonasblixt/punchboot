@@ -38,13 +38,13 @@ static int config_validate(struct pb_boot_state *c)
 
     if (c->magic != PB_STATE_MAGIC) {
         LOG("Error: Incorrect magic\n");
-        err = -1;
+        err = -EIO;
         goto config_err_out;
     }
 
     if (crc != crc32(0, (uint8_t *) c, sizeof(struct pb_boot_state))) {
         LOG("Error: CRC failed\n");
-        err = -1;
+        err = -EIO;
         goto config_err_out;
     }
 
@@ -64,7 +64,7 @@ static int write_config(int fd, const struct pb_boot_state* config)
     do {
         ssize_t write_now = write(fd, buffer + write_sz, buffer_len - write_sz);
         if (write_now == -1) {
-            return -1;
+            return -errno;
         }
         write_sz += write_now;
     } while (write_sz < buffer_len);
@@ -78,11 +78,11 @@ static int pbstate_commit(void)
     uint32_t crc = 0;
     int fd = open(primary_device, O_WRONLY | O_DSYNC);
 
-    LOG("Writing configuration...\n");
+    LOG("Writing state...\n");
 
     if (fd == -1) {
-        LOG("Error: Could not open '%s'\n", primary_device);
-        err = -1;
+        err = -errno;
+        LOG("Error: Could not open '%s' (%i)\n", primary_device, err);
         goto commit_err_out1;
     }
 
@@ -90,9 +90,10 @@ static int pbstate_commit(void)
     crc = crc32(0, (const uint8_t *) &config, sizeof(struct pb_boot_state));
     config.crc = crc;
 
-    if (write_config(fd, &config) == -1) {
-        LOG("Could not write primary config data\n");
-        err = -1;
+    err = write_config(fd, &config);
+
+    if (err != 0) {
+        LOG("Could not write primary config data (%i)\n", err);
         goto commit_err_out;
     }
 
@@ -100,15 +101,16 @@ static int pbstate_commit(void)
     fd = open(backup_device, O_WRONLY | O_DSYNC);
 
     if (fd == -1) {
-        LOG("Error: Could not open '%s'\n", backup_device);
-        err = -1;
+        err = -errno;
+        LOG("Error: Could not open '%s' (%i)\n", backup_device, err);
         goto commit_err_out1;
     }
 
     /* Synchronize backup partition with primary partition */
-    if (write_config(fd, &config) == -1) {
-        LOG("Could not write backup config data\n");
-        err = -1;
+    err = write_config(fd, &config);
+
+    if (err != 0) {
+        LOG("Could not write backup config data (%i)\n", err);
         goto commit_err_out;
     }
 
@@ -155,28 +157,29 @@ int pbstate_load(const char *p_device,
 
     fd = open(primary_device, O_RDONLY);
 
-    if (fd == -1) {
-        LOG("Error: Could not open '%s'\n", primary_device);
-        return -1;
+    if (fd != -1) {
+        if (read_config(fd, &config) != 0) {
+            LOG("Could not read primary config data\n");
+        }
+        close(fd);
+    } else {
+        err = -errno;
+        LOG("Error: Could not open '%s' (%i)\n", primary_device, err);
+        return err;
     }
 
-    if (read_config(fd, &config) != 0) {
-        LOG("Could not read primary config data\n");
-    }
-
-    close(fd);
     fd = open(backup_device, O_RDONLY);
 
-    if (fd == -1) {
-        LOG("Error: Could not open '%s'\n", primary_device);
-        return -1;
+    if (fd != -1) {
+        if (read_config(fd, &config_backup) != 0) {
+            LOG("Could not read backup config data\n");
+        }
+        close(fd);
+    } else {
+        err = -errno;
+        LOG("Error: Could not open '%s' (%i)\n", backup_device, err);
+        return err;
     }
-
-    if (read_config(fd, &config_backup) != 0) {
-        LOG("Could not read backup config data\n");
-    }
-
-    close(fd);
 
     if (config_validate(&config) == 0)
         primary_ok = true;
@@ -189,11 +192,10 @@ int pbstate_load(const char *p_device,
         backup_ok = false;
 
     if (!primary_ok && backup_ok) {
-        LOG("Primary configuration corrupt, using backup\n");
+        LOG("Primary state corrupt, using backup\n");
         memcpy(&config, &config_backup, sizeof(config));
     } else if (!primary_ok) {
-        LOG("Primary configuration corrupt\n");
-        LOG("Backup configuration corrupt\n");
+        LOG("Both primary and backup state corrupt\n");
         err = -1;
     }
 
