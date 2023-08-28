@@ -18,25 +18,6 @@
 #include "pbstate.h"
 #include "crc.h"
 
-#define PB_STATE_MAGIC 0x026d4a65
-
-struct pb_boot_state /* 512 bytes */
-{
-    uint32_t magic;
-    uint32_t enable;
-    uint32_t verified;
-    uint32_t remaining_boot_attempts;
-    uint32_t error;
-    uint8_t private[452];
-    uint8_t rz[36];
-    uint32_t crc;
-} __attribute__((packed));
-
-#define PB_STATE_A_ENABLED (1 << 0)
-#define PB_STATE_B_ENABLED (1 << 1)
-#define PB_STATE_A_VERIFIED (1 << 0)
-#define PB_STATE_B_VERIFIED (1 << 1)
-
 static struct pb_boot_state config;
 static struct pb_boot_state config_backup;
 static const char *primary_device;

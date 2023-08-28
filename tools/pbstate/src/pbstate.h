@@ -24,6 +24,25 @@ typedef enum pbstate_system {
   PBSTATE_SYSTEM_B = 2,
 } pbstate_system_t;
 
+#define PB_STATE_MAGIC 0x026d4a65
+
+struct pb_boot_state /* 512 bytes */
+{
+    uint32_t magic;                    /*!< PB boot state magic number */
+    uint32_t enable;                   /*!< Boot partition enable bits */
+    uint32_t verified;                 /*!< Boot partition verified bits */
+    uint32_t remaining_boot_attempts;  /*!< Rollback boot counter */
+    uint32_t error;                    /*!< Rollback error bits */
+    uint8_t rz[472];                   /*!< Reserved, set to zero */
+    uint32_t board_regs[4];            /*!< Board specific registers */
+    uint32_t crc;                      /*!< State checksum */
+} __attribute__((packed));
+
+#define PB_STATE_A_ENABLED (1 << 0)
+#define PB_STATE_B_ENABLED (1 << 1)
+#define PB_STATE_A_VERIFIED (1 << 0)
+#define PB_STATE_B_VERIFIED (1 << 1)
+
 #define PB_STATE_ERROR_A_ROLLBACK (1 << 0)
 #define PB_STATE_ERROR_B_ROLLBACK (1 << 1)
 
