@@ -1,4 +1,5 @@
 breathe
+sphinx<7
 sphinx_rtd_theme
 semver
 sphinxcontrib-plantuml
