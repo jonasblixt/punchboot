@@ -14,7 +14,8 @@
 #include <stdbool.h>
 #include <getopt.h>
 #include <stdlib.h>
-
+#include <errno.h>
+#include <boot/pb_state_blob.h>
 #include "pbstate.h"
 
 static void print_version(void)
@@ -36,6 +37,7 @@ static void print_help(void)
     printf("    -s, --switch <System ID>   Switch active system\n");
     printf("    -v, --verified <System ID> Set system to verified state\n");
     printf("    -i, --info                 Print current state\n");
+    printf("    -w, --write-board-reg <0-3> <0x12341234> Write a 32-bit board register\n");
     printf("    -h, --help                 Display this help\n");
     printf("    -V, --version              Display version\n");
     printf("\n");
@@ -59,6 +61,20 @@ static void print_configuration(void)
 
     printf("Errors : 0x%08x\n", pbstate_get_errors());
     printf("Remaining boot attempts: %u\n", pbstate_get_boot_attempts());
+    printf("\n");
+    printf("Board registers:\n");
+    for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++) {
+        uint32_t reg;
+        int rc;
+
+        rc = pbstate_read_board_reg(i, &reg);
+
+        if (rc == 0) {
+            printf("    %i: %08X\n", i, reg);
+        } else {
+            fprintf(stderr, "Could not read board register %i (%i)", i, rc);
+        }
+    }
 }
 
 int main(int argc, char * const argv[])
@@ -73,7 +89,10 @@ int main(int argc, char * const argv[])
     bool flag_switch = false;
     bool flag_show = false;
     bool flag_verify = false;
+    bool flag_write_board_reg = false;
     uint8_t counter = 0;
+    unsigned int board_reg_index = 0;
+    uint32_t board_reg_value = 0;
 
     struct option long_options[] =
     {
@@ -83,6 +102,7 @@ int main(int argc, char * const argv[])
         {"count",     required_argument,   0,  'c' },
         {"verified",  required_argument,   0,  'v' },
         {"info",      no_argument,         0,  'i' },
+        {"write-board-reg", required_argument, 0, 'w' },
         {"help",      no_argument,         0,  'h' },
         {"version",   no_argument,         0,  'V' },
         {0,           0,                   0,   0  }
@@ -120,6 +140,48 @@ int main(int argc, char * const argv[])
             break;
             case 'i':
                 flag_show = true;
+            break;
+            case 'w':
+            {
+                long long tmp;
+                char *end;
+
+                flag_write_board_reg = true;
+                errno = 0;
+                board_reg_index = strtol(optarg, &end, 0);
+
+                if (optarg == end) {
+                    return EINVAL;
+                }
+
+                if (errno != 0) {
+                    return errno;
+                }
+
+                if (optind < argc && *argv[optind] != '-') {
+                    errno = 0;
+                    tmp = strtol(argv[optind], &end, 0);
+
+                    if (optarg == end) {
+                        return EINVAL;
+                    }
+
+                    if (errno != 0) {
+                        return errno;
+                    }
+
+                    if (tmp < 0 || tmp > UINT32_MAX) {
+                        return ERANGE;
+                    }
+
+                    board_reg_value = (uint32_t) tmp;
+
+                    optind++;
+                } else {
+                    fprintf(stderr, "\nError: -w requires two paramters: <index> <value>\n");
+                    return EINVAL;
+                }
+            }
             break;
             case 's':
                 system = optarg;
@@ -172,6 +234,8 @@ int main(int argc, char * const argv[])
             err = pbstate_set_system_verified(PBSTATE_SYSTEM_B);
         else
             err = -1;
+    } else if (flag_write_board_reg) {
+        err = pbstate_write_board_reg(board_reg_index, board_reg_value);
     }
 
     if (err != 0)
