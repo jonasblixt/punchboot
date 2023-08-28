@@ -291,3 +291,19 @@ const char *boot_ab_part_uu_to_name(uuid_t part_uu)
         return "?";
     }
 }
+
+int boot_ab_state_read_board_reg(unsigned int index, uint32_t *value)
+{
+    if (index > (NO_OF_BOARD_REGS - 1))
+        return -PB_ERR_PARAM;
+    (*value) = boot_state.board_regs[index];
+    return 0;
+}
+
+int boot_ab_state_write_board_reg(unsigned int index, uint32_t value)
+{
+    if (index > (NO_OF_BOARD_REGS - 1))
+        return -PB_ERR_PARAM;
+    boot_state.board_regs[index] = value;
+    return pb_boot_state_commit();
+}
