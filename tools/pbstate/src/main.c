@@ -136,7 +136,27 @@ int main(int argc, char * const argv[])
                 backup_device_path = optarg;
             break;
             case 'c':
-                counter = strtol(optarg, NULL, 0);
+            {
+                long long tmp;
+                char *end;
+
+                errno = 0;
+                tmp = strtol(optarg, &end, 0);
+
+                if (optarg == end) {
+                    return EINVAL;
+                }
+
+                if (errno != 0) {
+                    return errno;
+                }
+
+                if (tmp < 0 || tmp > UINT32_MAX) {
+                    return ERANGE;
+                }
+
+                counter = (uint32_t) tmp;
+            }
             break;
             case 'i':
                 flag_show = true;
@@ -193,7 +213,7 @@ int main(int argc, char * const argv[])
             break;
             case ':':
                 fprintf(stderr, "Missing arg for %c\n", optopt);
-                return -1;
+                return EINVAL;
             break;
              default:
                 print_help();
@@ -234,7 +254,7 @@ int main(int argc, char * const argv[])
     }
 
     if (err != 0)
-        printf("Error: operation failed\n");
+        printf("Error: operation failed (%i)\n", err);
 
-    return err;
+    return -err;
 }
