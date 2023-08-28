@@ -37,15 +37,13 @@ static int config_validate(struct pb_boot_state *c)
 
     c->crc = 0;
 
-    if (c->magic != PB_STATE_MAGIC)
-    {
+    if (c->magic != PB_STATE_MAGIC) {
         LOG("Error: Incorrect magic\n");
         err = -1;
         goto config_err_out;
     }
 
-    if (crc != crc32(0, (uint8_t *) c, sizeof(struct pb_boot_state)))
-    {
+    if (crc != crc32(0, (uint8_t *) c, sizeof(struct pb_boot_state))) {
         LOG("Error: CRC failed\n");
         err = -1;
         goto config_err_out;
@@ -83,8 +81,7 @@ static int pbstate_commit(void)
 
     LOG("Writing configuration...\n");
 
-    if (fd == -1)
-    {
+    if (fd == -1) {
         LOG("Error: Could not open '%s'\n", primary_device);
         err = -1;
         goto commit_err_out1;
@@ -94,8 +91,7 @@ static int pbstate_commit(void)
     crc = crc32(0, (const uint8_t *) &config, sizeof(struct pb_boot_state));
     config.crc = crc;
 
-    if (write_config(fd, &config) == -1)
-    {
+    if (write_config(fd, &config) == -1) {
         LOG("Could not write primary config data\n");
         err = -1;
         goto commit_err_out;
@@ -104,16 +100,14 @@ static int pbstate_commit(void)
     close(fd);
     fd = open(backup_device, O_WRONLY | O_DSYNC);
 
-    if (fd == -1)
-    {
+    if (fd == -1) {
         LOG("Error: Could not open '%s'\n", backup_device);
         err = -1;
         goto commit_err_out1;
     }
 
     /* Synchronize backup partition with primary partition */
-    if (write_config(fd, &config) == -1)
-    {
+    if (write_config(fd, &config) == -1) {
         LOG("Could not write backup config data\n");
         err = -1;
         goto commit_err_out;
@@ -135,13 +129,10 @@ static int read_config(int fd, struct pb_boot_state* config)
 
     do {
         ssize_t read_now = read(fd, buffer + read_sz, buffer_len - read_sz);
-        if (read_now == 0)
-        {
+        if (read_now == 0) {
             errno = EIO;
             return -1;
-        }
-        else if (read_now == -1)
-        {
+        } else if (read_now == -1) {
             return -1;
         }
         read_sz += read_now;
@@ -165,28 +156,24 @@ int pbstate_load(const char *p_device,
 
     fd = open(primary_device, O_RDONLY);
 
-    if (fd == -1)
-    {
+    if (fd == -1) {
         LOG("Error: Could not open '%s'\n", primary_device);
         return -1;
     }
 
-    if (read_config(fd, &config) != 0)
-    {
+    if (read_config(fd, &config) != 0) {
         LOG("Could not read primary config data\n");
     }
 
     close(fd);
     fd = open(backup_device, O_RDONLY);
 
-    if (fd == -1)
-    {
+    if (fd == -1) {
         LOG("Error: Could not open '%s'\n", primary_device);
         return -1;
     }
 
-    if (read_config(fd, &config_backup) != 0)
-    {
+    if (read_config(fd, &config_backup) != 0) {
         LOG("Could not read backup config data\n");
     }
 
@@ -202,13 +189,10 @@ int pbstate_load(const char *p_device,
     else
         backup_ok = false;
 
-    if (!primary_ok && backup_ok)
-    {
+    if (!primary_ok && backup_ok) {
         LOG("Primary configuration corrupt, using backup\n");
         memcpy(&config, &config_backup, sizeof(config));
-    }
-    else if (!primary_ok)
-    {
+    } else if (!primary_ok) {
         LOG("Primary configuration corrupt\n");
         LOG("Backup configuration corrupt\n");
         err = -1;
@@ -219,8 +203,7 @@ int pbstate_load(const char *p_device,
 
 bool pbstate_is_system_active(pbstate_system_t system)
 {
-    switch (system)
-    {
+    switch (system) {
         case PBSTATE_SYSTEM_A:
             return config.enable == PB_STATE_A_ENABLED;
         case PBSTATE_SYSTEM_B:
@@ -234,8 +217,7 @@ bool pbstate_is_system_active(pbstate_system_t system)
 
 bool pbstate_is_system_verified(pbstate_system_t system)
 {
-    switch (system)
-    {
+    switch (system) {
         case PBSTATE_SYSTEM_A:
             return !!(config.verified & PB_STATE_A_VERIFIED);
         case PBSTATE_SYSTEM_B:
@@ -258,14 +240,13 @@ int pbstate_force_rollback(void)
 {
     /* Rolling back a verified system is not allowed */
     if (pbstate_is_system_active(PBSTATE_SYSTEM_A)
-        && pbstate_is_system_verified(PBSTATE_SYSTEM_A))
-    {
+        && pbstate_is_system_verified(PBSTATE_SYSTEM_A)) {
         errno = EPERM;
         return -1;
     }
+
     if (pbstate_is_system_active(PBSTATE_SYSTEM_B)
-        && pbstate_is_system_verified(PBSTATE_SYSTEM_B))
-    {
+        && pbstate_is_system_verified(PBSTATE_SYSTEM_B)) {
         errno = EPERM;
         return -1;
     }
@@ -294,14 +275,11 @@ int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts)
         case PBSTATE_SYSTEM_A:
             config.enable = PB_STATE_A_ENABLED;
 
-            if (boot_attempts > 0)
-            {
+            if (boot_attempts > 0) {
                 config.remaining_boot_attempts = boot_attempts;
                 config.verified &= ~PB_STATE_A_VERIFIED;
                 config.error = 0;
-            }
-            else
-            {
+            } else {
                 config.verified |= PB_STATE_A_VERIFIED;
                 config.remaining_boot_attempts = 0;
                 config.error = 0;
@@ -310,14 +288,11 @@ int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts)
         case PBSTATE_SYSTEM_B:
             config.enable = PB_STATE_B_ENABLED;
 
-            if (boot_attempts > 0)
-            {
+            if (boot_attempts > 0) {
                 config.remaining_boot_attempts = boot_attempts;
                 config.verified &= ~PB_STATE_B_VERIFIED;
                 config.error = 0;
-            }
-            else
-            {
+            } else {
                 config.verified |= PB_STATE_B_VERIFIED;
                 config.remaining_boot_attempts = 0;
                 config.error = 0;

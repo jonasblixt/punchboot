@@ -213,21 +213,16 @@ int main(int argc, char * const argv[])
     if (err != 0)
         return -1;
 
-    if (flag_show)
-    {
+    if (flag_show) {
         print_configuration();
-    }
-    else if (flag_switch)
-    {
+    } else if (flag_switch) {
         if (strncasecmp(system, "a", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_A, counter);
         else if (strncasecmp(system, "b", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_B, counter);
         else
             err = pbstate_switch_system(PBSTATE_SYSTEM_NONE, 0);
-    }
-    else if (flag_verify)
-    {
+    } else if (flag_verify) {
         if (strncasecmp(system_verified, "a", 1) == 0)
             err = pbstate_set_system_verified(PBSTATE_SYSTEM_A);
         else if (strncasecmp(system_verified, "b", 1) == 0)
