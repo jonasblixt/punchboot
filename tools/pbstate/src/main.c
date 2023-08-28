@@ -19,7 +19,7 @@
 
 static void print_version(void)
 {
-    printf("pbstate v%s\n", PACKAGE_VERSION);
+    printf("pbstate v%s\n", PROJECT_VERSION);
 }
 
 static void print_help(void)
@@ -66,17 +66,13 @@ int main(int argc, char * const argv[])
     int opt;
     int long_index = 0;
     int err;
-    char c;
     const char *primary_device_path = NULL;
     const char *backup_device_path = NULL;
     const char *system = NULL;
     const char *system_verified = NULL;
-    bool flag_help = false;
     bool flag_switch = false;
     bool flag_show = false;
     bool flag_verify = false;
-    uint64_t offset_primary = 0;
-    uint64_t offset_backup = 0;
     uint8_t counter = 0;
 
     struct option long_options[] =

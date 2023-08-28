@@ -2,7 +2,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -39,7 +39,6 @@ struct pb_boot_state /* 512 bytes */
 
 static struct pb_boot_state config;
 static struct pb_boot_state config_backup;
-static uint64_t primary_offset, backup_offset;
 static const char *primary_device;
 static const char *backup_device;
 
@@ -98,7 +97,6 @@ static int pbstate_commit(void)
 {
     int err = 0;
     uint32_t crc = 0;
-    int write_sz;
     int fd = open(primary_device, O_WRONLY | O_DSYNC);
 
     LOG("Writing configuration...\n");
@@ -245,9 +243,11 @@ bool pbstate_is_system_active(pbstate_system_t system)
             return config.enable == PB_STATE_A_ENABLED;
         case PBSTATE_SYSTEM_B:
             return config.enable == PB_STATE_B_ENABLED;
+        case PBSTATE_SYSTEM_NONE:
+            return config.enable == 0;
+        default:
+            return false;
     }
-
-    return false;
 }
 
 bool pbstate_is_system_verified(pbstate_system_t system)
@@ -258,6 +258,10 @@ bool pbstate_is_system_verified(pbstate_system_t system)
             return !!(config.verified & PB_STATE_A_VERIFIED);
         case PBSTATE_SYSTEM_B:
             return !!(config.verified & PB_STATE_B_VERIFIED);
+        case PBSTATE_SYSTEM_NONE:
+            return config.enable == 0;
+        default:
+            return false;
     }
 
     return false;
