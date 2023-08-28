@@ -10,7 +10,7 @@ jobs:
     - name: Install deps
       run: |
           sudo apt-get update
-          sudo apt-get install autoconf-archive qemu-system-arm libusb-1.0-0 libusb-1.0-0-dev uuid-dev gcc-arm-none-eabi cmake uuid-runtime python3-dev libmbedtls-dev liblzma-dev uuid-dev
+          sudo apt-get install qemu-system-arm libusb-1.0-0 libusb-1.0-0-dev uuid-dev gcc-arm-none-eabi cmake uuid-runtime python3-dev libmbedtls-dev liblzma-dev uuid-dev
           wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v3.4.0.zip
           unzip v3.4.0.zip
     - name: Build BPAK
@@ -34,8 +34,7 @@ jobs:
     - name: Build pbstate
       run: |
             pushd tools/pbstate
-            autoreconf -fi
-            ./configure
+            cmake .
             make
             sudo make install
             sudo ldconfig
