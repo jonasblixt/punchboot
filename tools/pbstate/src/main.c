@@ -26,11 +26,11 @@ static void print_help(void)
 {
     print_version();
     printf("\n");
-    printf("Usage: pbstate -p <primary device> -b <backup device> Command\n");
+    printf("Usage: pbstate [-p <primary device> -b <backup device>] Command\n");
     printf("\n");
-    printf("Required parameters:\n");
-    printf("    -p, --primary              Primary state partition\n");
-    printf("    -b, --backup               Backup state partition\n");
+    printf("Optional parameters:\n");
+    printf("    -p, --primary <Path>       Primary state partition\n");
+    printf("    -b, --backup  <Path>       Backup state partition\n");
     printf("\n");
     printf("Commands:\n");
     printf("    -s, --switch <System ID>   Switch active system\n");
@@ -134,10 +134,15 @@ int main(int argc, char * const argv[])
         }
     }
 
+#if !defined(PRIMARY_PART) && !defined(BACKUP_PART)
     if ((primary_device_path == NULL) || (backup_device_path == NULL)) {
         fprintf(stderr, "Error: Missing required -p and -b parameters\n");
         exit(EXIT_FAILURE);
     }
+#else
+    primary_device_path = PRIMARY_PART;
+    backup_device_path = BACKUP_PART;
+#endif
 
     err = pbstate_load(primary_device_path, backup_device_path, printf);
 

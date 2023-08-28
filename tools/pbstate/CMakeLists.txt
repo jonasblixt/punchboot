@@ -14,6 +14,10 @@ add_compile_options(-Wall -Werror -Wextra -pedantic)
 
 include(GNUInstallDirs)
 
+
+set(PB_STATE_PRIMARY_PART "DEFAULT" CACHE STRING "Default primary partition")
+set(PB_STATE_BACKUP_PART "DEFAULT" CACHE STRING "Default backup partition")
+
 # @ONLY "Restrict variable replacement to references of the form @VAR@"
 configure_file(src/pbstate.pc.in pbstate.pc @ONLY)
 
@@ -33,6 +37,15 @@ SET(TOOL_SRC_FILES
 set(TOOL_CFLAGS
     -DPROJECT_VERSION="${PROJECT_VERSION}"
 )
+
+if ((NOT PB_STATE_PRIMARY_PART STREQUAL "DEFAULT") AND
+    (NOT PB_STATE_BACKUP_PART STREQUAL "DEFAULT"))
+    set(TOOL_CFLAGS
+        -DPRIMARY_PART="${PB_STATE_PRIMARY_PART}"
+        -DBACKUP_PART="${PB_STATE_PRIMARY_PART}"
+        ${TOOL_CFLAGS}
+    )
+endif()
 
 set(TOOL_LDFLAGS
     ${PROJECT_NAME}
