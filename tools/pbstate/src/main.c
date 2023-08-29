@@ -19,7 +19,7 @@
 
 static void print_version(void)
 {
-    printf("pbstate v%s\n", PACKAGE_VERSION);
+    printf("pbstate v%s\n", PROJECT_VERSION);
 }
 
 static void print_help(void)
