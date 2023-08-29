@@ -36,6 +36,9 @@ static uint32_t rca;
 static struct mmc_csd_emmc mmc_csd;
 static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part_config;
+static unsigned int power_off_long_time_ms;
+static unsigned int generic_cmd6_time_ms;
+static unsigned int partition_switch_time_ms;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
 static uint8_t mmc_tuning_rsp[128] __aligned(16);
@@ -618,6 +621,9 @@ static int mmc_setup(void)
     if (rc != 0) {
         return rc;
     }
+
+    generic_cmd6_time_ms = mmc_ext_cds[EXT_CSD_GENERIC_CMD6_TIME] * 10;
+    power_off_long_time_ms = mmc_ext_csd[POWER_OFF_LONG_TIME] * 10;
 
     if (mmc_ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != mmc_cfg->boot_mode) {
         LOG_INFO("Updating boot bus conditions to 0x%02x", mmc_cfg->boot_mode);

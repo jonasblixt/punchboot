@@ -393,4 +393,13 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf);
  */
 int mmc_part_switch(enum mmc_part part);
 
+/**
+ * Power off the card. This function must be called before it is safe
+ * to turn off Vcc and Vccq. After the card has been powered down the
+ * 'mmc_init' function can be called to re-initialize.
+ *
+ * @return PB_OK on success
+ */
+int mmc_power_off(void);
+
 #endif
