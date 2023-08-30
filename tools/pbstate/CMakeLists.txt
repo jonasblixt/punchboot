@@ -53,6 +53,7 @@ set(TOOL_LDFLAGS
 
 add_executable(${PROJECT_NAME}-tool ${TOOL_SRC_FILES})
 target_compile_options(${PROJECT_NAME}-tool PRIVATE ${TOOL_CFLAGS})
+target_include_directories(${PROJECT_NAME}-tool PRIVATE ../../include)
 target_link_libraries(${PROJECT_NAME}-tool ${TOOL_LDFLAGS})
 
 set_target_properties(${PROJECT_NAME}-tool
@@ -61,6 +62,8 @@ set_target_properties(${PROJECT_NAME}-tool
 add_library(
     ${PROJECT_NAME} SHARED ${LIB_SRC_FILES}
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE ../../include)
 
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
