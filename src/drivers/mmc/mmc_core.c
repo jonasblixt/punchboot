@@ -877,6 +877,36 @@ int mmc_part_switch(enum mmc_part part)
     }
 }
 
+int mmc_power_off(void)
+{
+    int rc;
+
+    /**
+     * Power off notification register:
+     *
+     * 0 - Host does not support power off notifications (default and reset at POR)
+     * 1 - Host must notify card before cutting power
+     * 2 - Power off short, timeout is the generic cmd6 timeout
+     * 3 - Power off long, timeout is defined by 'power_off_long_time_ms'
+     * 4 - Sleep notification
+     */
+
+    /**
+     * From POR the power off notification register is set to zero, indicating
+     * that the host is will not send any heads up to the card when power is about
+     * to be cut.
+     *
+     * We must first tell the card that the host is going to send the power off
+     * notification message by changing this register to '1'
+     */
+    rc = mmc_set_ext_csd(EXT_CSD_POWER_OFF_NOTIFICATION, 0x01, 0);
+
+    if (rc != 0)
+        return rc;
+
+    return mmc_set_ext_csd(EXT_CSD_POWER_OFF_NOTIFICATION, 0x03, power_off_long_time_ms);
+}
+
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)
 {
     if (!(cfg->mode > MMC_BUS_MODE_INVALID && cfg->mode < MMC_BUS_MODE_END) ||
