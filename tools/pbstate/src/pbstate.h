@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -24,9 +24,6 @@ typedef enum pbstate_system {
   PBSTATE_SYSTEM_B = 2,
 } pbstate_system_t;
 
-#define PB_STATE_ERROR_A_ROLLBACK (1 << 0)
-#define PB_STATE_ERROR_B_ROLLBACK (1 << 1)
-
 int pbstate_load(const char *p_device,
                  const char *b_device,
                  pbstate_printfunc_t _printfunc);
@@ -46,6 +43,10 @@ int pbstate_clear_error(uint32_t error_flag);
 int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts);
 
 int pbstate_set_system_verified(pbstate_system_t system);
+
+int pbstate_read_board_reg(unsigned int index, uint32_t *value);
+
+int pbstate_write_board_reg(unsigned int index, uint32_t value);
 
 #ifdef __cplusplus
 }

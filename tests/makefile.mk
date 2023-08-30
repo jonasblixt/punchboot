@@ -44,6 +44,7 @@ INTEGRATION_TESTS += test_authentication
 INTEGRATION_TESTS += test_revoke_key
 INTEGRATION_TESTS += test_part_dump
 INTEGRATION_TESTS += test_part_dump2
+INTEGRATION_TESTS += test_board_regs
 
 check: all
 	@mkdir -p $(BUILD_DIR)/tests

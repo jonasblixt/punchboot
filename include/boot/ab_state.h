@@ -8,8 +8,9 @@
  * This module provides a block io backed state for A/B partition selection
  * and rollback logic.
  *
- *
  */
+#ifndef BOOT_AB_STATE_H
+#define BOOT_AB_STATE_H
 
 #include <uuid.h>
 #include <pb/bio.h>
@@ -82,3 +83,25 @@ void boot_ab_state_get_boot_partition(uuid_t part_uu);
  *         "?", All other states
  */
 const char *boot_ab_part_uu_to_name(uuid_t part_uu);
+
+/**
+ * Read a board specific register
+ *
+ * @param[in] index Index of register to read
+ * @param[out] value Pointer to output value
+ *
+ * @return 0 on success
+ */
+int boot_ab_state_read_board_reg(unsigned int index, uint32_t *value);
+
+/**
+ * Write a board specific register
+ *
+ * @param[in] index Index of register to write
+ * @param[out] value Value to write
+ *
+ * @return 0 on success
+ */
+int boot_ab_state_write_board_reg(unsigned int index, uint32_t value);
+
+#endif
