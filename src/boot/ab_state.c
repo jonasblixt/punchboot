@@ -15,27 +15,7 @@
 #include <pb/bio.h>
 #include <boot/boot.h>
 #include <boot/ab_state.h>
-
-#define PB_STATE_MAGIC 0x026d4a65
-
-#define PB_STATE_A_ENABLED (1 << 0)
-#define PB_STATE_B_ENABLED (1 << 1)
-#define PB_STATE_A_VERIFIED (1 << 0)
-#define PB_STATE_B_VERIFIED (1 << 1)
-#define PB_STATE_ERROR_A_ROLLBACK (1 << 0)
-#define PB_STATE_ERROR_B_ROLLBACK (1 << 1)
-
-struct pb_boot_state /* 512 bytes */
-{
-    uint32_t magic;                     /*!< PB boot state magic number */
-    uint32_t enable;                    /*!< Boot partition enable bits */
-    uint32_t verified;                  /*!< Boot partition verified bits */
-    uint32_t remaining_boot_attempts;   /*!< Rollback boot counter */
-    uint32_t error;                     /*!< Rollback error bits */
-    uint8_t rz[488];                    /*!< Reserved, set to zero */
-    uint32_t crc;                       /*!< State checksum */
-} __attribute__((packed));
-
+#include <boot/pb_state_blob.h>
 
 static bio_dev_t primary_part, backup_part;
 static struct pb_boot_state boot_state, boot_state_backup;
@@ -308,4 +288,20 @@ const char *boot_ab_part_uu_to_name(uuid_t part_uu)
     } else {
         return "?";
     }
+}
+
+int boot_ab_state_read_board_reg(unsigned int index, uint32_t *value)
+{
+    if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
+        return -PB_ERR_PARAM;
+    (*value) = boot_state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1];
+    return 0;
+}
+
+int boot_ab_state_write_board_reg(unsigned int index, uint32_t value)
+{
+    if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
+        return -PB_ERR_PARAM;
+    boot_state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] = value;
+    return pb_boot_state_commit();
 }
