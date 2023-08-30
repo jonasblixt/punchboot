@@ -14,10 +14,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pb/crc.h>
 #include <boot/pb_state_blob.h>
 
 #include "pbstate.h"
-#include "crc.h"
 
 static struct pb_boot_state config;
 static struct pb_boot_state config_backup;

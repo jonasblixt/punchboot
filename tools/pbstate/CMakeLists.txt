@@ -22,7 +22,7 @@ set(PB_STATE_BACKUP_PART "DEFAULT" CACHE STRING "Default backup partition")
 configure_file(src/pbstate.pc.in pbstate.pc @ONLY)
 
 set(LIB_SRC_FILES
-    src/crc.c
+    ../../src/lib/crc.c
     src/pbstate.c
 )
 
