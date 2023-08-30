@@ -356,6 +356,24 @@ int board_init(void)
         LOG_ERR("SLC init failed (%i)", rc);
         return rc;
     }
+
+    // For 'test_board_regs'
+    // If bit 0 in register 0 is set, we should set bit 0 in register 3
+    uint32_t board_reg;
+    rc = boot_ab_state_read_board_reg(0, &board_reg);
+
+    if (rc != PB_OK) {
+        return rc;
+    }
+
+    if (board_reg & 1) {
+        rc = boot_ab_state_write_board_reg(3, 1);
+
+        if (rc != PB_OK) {
+            return rc;
+        }
+    }
+
 err_out:
     return rc;
 }
