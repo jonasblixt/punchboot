@@ -355,3 +355,19 @@ int pbstate_set_system_verified(pbstate_system_t system)
     }
     return pbstate_commit();
 }
+
+int pbstate_read_board_reg(unsigned int index, uint32_t *value)
+{
+    if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
+        return -EINVAL;
+    *value = config.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1];
+    return 0;
+}
+
+int pbstate_write_board_reg(unsigned int index, uint32_t value)
+{
+    if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
+        return -EINVAL;
+    config.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] = value;
+    return pbstate_commit();
+}

@@ -44,6 +44,10 @@ int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts);
 
 int pbstate_set_system_verified(pbstate_system_t system);
 
+int pbstate_read_board_reg(unsigned int index, uint32_t *value);
+
+int pbstate_write_board_reg(unsigned int index, uint32_t value);
+
 #ifdef __cplusplus
 }
 #endif
