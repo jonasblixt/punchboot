@@ -132,10 +132,9 @@ static int read_config(int fd, struct pb_boot_state* config)
     do {
         ssize_t read_now = read(fd, buffer + read_sz, buffer_len - read_sz);
         if (read_now == 0) {
-            errno = EIO;
-            return -1;
+            return -EIO
         } else if (read_now == -1) {
-            return -1;
+            return -errno;
         }
         read_sz += read_now;
     } while (read_sz < buffer_len);
@@ -246,14 +245,12 @@ int pbstate_force_rollback(void)
     /* Rolling back a verified system is not allowed */
     if (pbstate_is_system_active(PBSTATE_SYSTEM_A)
         && pbstate_is_system_verified(PBSTATE_SYSTEM_A)) {
-        errno = EPERM;
-        return -1;
+        return -EPERM;
     }
 
     if (pbstate_is_system_active(PBSTATE_SYSTEM_B)
         && pbstate_is_system_verified(PBSTATE_SYSTEM_B)) {
-        errno = EPERM;
-        return -1;
+        return -EPERM;
     }
 
     config.remaining_boot_attempts = 0;
@@ -308,7 +305,7 @@ int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts)
             config.remaining_boot_attempts = 0;
         break;
         default:
-            return -1;
+            return -EINVAL;
         break;
     }
 
@@ -330,7 +327,7 @@ int pbstate_set_system_verified(pbstate_system_t system)
         case PBSTATE_SYSTEM_NONE:
         break;
         default:
-            return -1;
+            return -EINVAL;
         break;
     }
     return pbstate_commit();
