@@ -45,22 +45,31 @@ static void print_help(void)
     printf("    -c, --count <n>            Set the system to not verified and boot retry counter to <n>\n");
 }
 
-static void print_configuration(void)
+static int print_configuration(void)
 {
+    int rc;
+    uint32_t errors = 0;
+    uint32_t boot_attempts = 0;
     printf("Punchboot status:\n\n");
-    printf("System A is %s and %s\n", pbstate_is_system_active(PBSTATE_SYSTEM_A)?
-                                    "enabled":"disabled",
-                                    pbstate_is_system_verified(PBSTATE_SYSTEM_A)?
-                                    "verified":"not verified");
+    printf("System A is %s and %s\n", pbstate_is_system_active(PBSTATE_SYSTEM_A) > 0 ? "enabled":"disabled",
+                                    pbstate_is_system_verified(PBSTATE_SYSTEM_A) > 0 ? "verified":"not verified");
 
-    printf("System B is %s and %s\n", pbstate_is_system_active(PBSTATE_SYSTEM_B)?
-                                    "enabled":"disabled",
-                                    pbstate_is_system_verified(PBSTATE_SYSTEM_B)?
-                                    "verified":"not verified");
+    printf("System B is %s and %s\n", pbstate_is_system_active(PBSTATE_SYSTEM_B) > 0 ? "enabled":"disabled",
+                                    pbstate_is_system_verified(PBSTATE_SYSTEM_B) > 0 ? "verified":"not verified");
 
+    rc = pbstate_get_errors(&errors);
 
-    printf("Errors : 0x%08x\n", pbstate_get_errors());
-    printf("Remaining boot attempts: %u\n", pbstate_get_boot_attempts());
+    if (rc < 0)
+        return rc;
+
+    printf("Errors : 0x%08x\n", errors);
+
+    rc = pbstate_get_remaining_boot_attempts(&boot_attempts);
+
+    if (rc < 0)
+        return rc;
+
+    printf("Remaining boot attempts: %u\n", boot_attempts);
     printf("\n");
     printf("Board registers:\n");
     for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++) {
@@ -69,12 +78,13 @@ static void print_configuration(void)
 
         rc = pbstate_read_board_reg(i, &reg);
 
-        if (rc == 0) {
-            printf("    %i: %08X\n", i, reg);
-        } else {
-            fprintf(stderr, "Could not read board register %i (%i)", i, rc);
-        }
+        if (rc < 0)
+            return rc;
+
+        printf("    %i: %08X\n", i, reg);
     }
+
+    return 0;
 }
 
 int main(int argc, char * const argv[])
@@ -228,13 +238,13 @@ int main(int argc, char * const argv[])
     }
 #endif
 
-    err = pbstate_load(primary_device_path, backup_device_path, printf);
+    err = pbstate_init(primary_device_path, backup_device_path, printf);
 
     if (err != 0)
         return -1;
 
     if (flag_show) {
-        print_configuration();
+        err = print_configuration();
     } else if (flag_switch) {
         if (strncasecmp(system, "a", 1) == 0)
             err = pbstate_switch_system(PBSTATE_SYSTEM_A, counter);
