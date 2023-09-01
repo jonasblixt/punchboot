@@ -25,7 +25,7 @@
 #define MMC_BIO_FLAG_RPMB BIT(2)
 #define MMC_BIO_FLAG_USER BIT(3)
 
-#define MMC_DEFAULT_MAX_RETRIES    15
+#define MMC_DEFAULT_TIMEOUT_ms    15
 #define SEND_OP_COND_MAX_RETRIES   100
 
 static const struct mmc_hal *mmc_hal;
@@ -36,6 +36,9 @@ static uint32_t rca;
 static struct mmc_csd_emmc mmc_csd;
 static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part_config;
+static unsigned int power_off_long_time_ms = 2550;
+static unsigned int generic_cmd6_time_ms = 2550;
+static unsigned int partition_switch_time_ms = 2550;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
 static uint8_t mmc_tuning_rsp[128] __aligned(16);
@@ -134,16 +137,15 @@ static int mmc_send_op_cond(void)
     return -PB_ERR_IO;
 }
 
-static int mmc_device_state(void)
+static int mmc_device_state(unsigned int timeout)
 {
-    int retries = MMC_DEFAULT_MAX_RETRIES;
     mmc_cmd_resp_t resp_data;
 
     while (true) {
         int ret;
 
-        if (retries == 0) {
-            LOG_ERR("CMD13 failed after %d retries", MMC_DEFAULT_MAX_RETRIES);
+        if (timeout == 0) {
+            LOG_ERR("CMD13 timeout");
             return -PB_ERR_IO;
         }
 
@@ -160,7 +162,7 @@ static int mmc_device_state(void)
                 break;
         }
 
-        retries--;
+        timeout--;
         pb_delay_ms(1);
     }
 
@@ -190,7 +192,7 @@ static int mmc_fill_device_info(void)
     }
 
     do {
-        ret = mmc_device_state();
+        ret = mmc_device_state(MMC_DEFAULT_TIMEOUT_ms);
         if (ret < 0) {
             return ret;
         }
@@ -199,9 +201,13 @@ static int mmc_fill_device_info(void)
     return PB_OK;
 }
 
-static int mmc_set_ext_csd(unsigned int ext_cmd, unsigned int value)
+static int mmc_set_ext_csd(unsigned int ext_cmd, unsigned int value, unsigned int timeout)
 {
     int ret;
+
+    if (timeout == 0) {
+        timeout = generic_cmd6_time_ms;
+    }
 
     ret = mmc_send_cmd(MMC_CMD_SWITCH,
                EXTCSD_WRITE_BYTES | EXTCSD_CMD(ext_cmd) |
@@ -212,7 +218,7 @@ static int mmc_set_ext_csd(unsigned int ext_cmd, unsigned int value)
     }
 
     do {
-        ret = mmc_device_state();
+        ret = mmc_device_state(timeout);
         if (ret < 0) {
             return ret;
         }
@@ -254,7 +260,7 @@ static int mmc_set_bus_width(enum mmc_bus_width bus_width)
             return -PB_ERR_PARAM;
     }
 
-    ret = mmc_set_ext_csd(EXT_CSD_BUS_WIDTH, value);
+    ret = mmc_set_ext_csd(EXT_CSD_BUS_WIDTH, value, 0);
     if (ret != 0) {
         return ret;
     }
@@ -399,7 +405,7 @@ static int hs200_tune(void)
         }
 
         do {
-            rc = mmc_device_state();
+            rc = mmc_device_state(MMC_DEFAULT_TIMEOUT_ms);
             if (rc < 0) {
                 goto tune_tap_fail;
             }
@@ -521,7 +527,7 @@ static int mmc_setup(void)
     }
 
     do {
-        rc = mmc_device_state();
+        rc = mmc_device_state(MMC_DEFAULT_TIMEOUT_ms);
         if (rc < 0) {
             return rc;
         }
@@ -532,7 +538,7 @@ static int mmc_setup(void)
         {
             LOG_DBG("Switching to HS DDR52");
             /* Switch to HS, 52MHz DDR MHz */
-            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS);
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
             if (rc != PB_OK) {
                 LOG_ERR("Could not switch to HS timing");
                 return rc;
@@ -558,7 +564,7 @@ static int mmc_setup(void)
             }
 
             /* Switch to HS200, 200 MHz */
-            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS200);
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS200, 0);
             if (rc != PB_OK) {
                 LOG_ERR("Could not switch to HS200 timing");
                 return rc;
@@ -585,7 +591,7 @@ static int mmc_setup(void)
             LOG_DBG("Switching to HS400");
             /* Before we can switch the bus to 8-bit DDR the device must
              * be in HS mode */
-            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS);
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
             if (rc != PB_OK) {
                 LOG_ERR("Could not switch to HS timing");
                 return rc;
@@ -597,7 +603,7 @@ static int mmc_setup(void)
             }
 
             /* Switch to HS400, 200 MHz (DDR) */
-            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS400);
+            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS400, 0);
             if (rc != PB_OK) {
                 LOG_ERR("Could not switch to HS400 timing");
                 return rc;
@@ -619,11 +625,19 @@ static int mmc_setup(void)
         return rc;
     }
 
+    generic_cmd6_time_ms = mmc_ext_csd[EXT_CSD_GENERIC_CMD6_TIME] * 10;
+    power_off_long_time_ms = mmc_ext_csd[EXT_CSD_POWER_OFF_LONG_TIME] * 10;
+    partition_switch_time_ms = mmc_ext_csd[EXT_CSD_PART_SWITCH_TIME] * 10;
+
+    LOG_DBG("Generic CMD6 timeout: %ums", generic_cmd6_time_ms);
+    LOG_DBG("Power off long time: %ums", power_off_long_time_ms);
+    LOG_DBG("Partition switch time: %ums", partition_switch_time_ms);
+
     if (mmc_ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != mmc_cfg->boot_mode) {
         LOG_INFO("Updating boot bus conditions to 0x%02x", mmc_cfg->boot_mode);
 
         rc = mmc_set_ext_csd(EXT_CSD_BOOT_BUS_CONDITIONS,
-                             mmc_cfg->boot_mode);
+                             mmc_cfg->boot_mode, 0);
         if (rc != PB_OK) {
             LOG_ERR("Could not update boot bus conditions");
             return rc;
@@ -769,7 +783,7 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
 
     /* Wait buffer empty */
     do {
-        ret = mmc_device_state();
+        ret = mmc_device_state(MMC_DEFAULT_TIMEOUT_ms);
         if (ret < 0) {
             return ret;
         }
@@ -813,7 +827,7 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
 
     /* Wait buffer empty */
     do {
-        ret = mmc_device_state();
+        ret = mmc_device_state(MMC_DEFAULT_TIMEOUT_ms);
         if (ret < 0) {
             return ret;
         }
@@ -857,10 +871,40 @@ int mmc_part_switch(enum mmc_part part)
     if (value != mmc_current_part_config) {
         mmc_current_part_config = value;
         LOG_DBG("Switching to %s", part_names[part]);
-        return mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value);
+        return mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value, partition_switch_time_ms);
     } else {
         return PB_OK;
     }
+}
+
+int mmc_power_off(void)
+{
+    int rc;
+
+    /**
+     * Power off notification register:
+     *
+     * 0 - Host does not support power off notifications (default and reset at POR)
+     * 1 - Host must notify card before cutting power
+     * 2 - Power off short, timeout is the generic cmd6 timeout
+     * 3 - Power off long, timeout is defined by 'power_off_long_time_ms'
+     * 4 - Sleep notification
+     */
+
+    /**
+     * From POR the power off notification register is set to zero, indicating
+     * that the host is will not send any heads up to the card when power is about
+     * to be cut.
+     *
+     * We must first tell the card that the host is going to send the power off
+     * notification message by changing this register to '1'
+     */
+    rc = mmc_set_ext_csd(EXT_CSD_POWER_OFF_NOTIFICATION, 0x01, 0);
+
+    if (rc != 0)
+        return rc;
+
+    return mmc_set_ext_csd(EXT_CSD_POWER_OFF_NOTIFICATION, 0x03, power_off_long_time_ms);
 }
 
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)

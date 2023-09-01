@@ -17,18 +17,20 @@ jobs:
       run: |
             git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.9.3
             pushd bpak
-            cmake .
-            make
-            sudo make install
+            mkdir build/
+            cmake -B build/
+            make -C build/
+            sudo make -C build/ install
             sudo ldconfig
             popd
     - name: Build punchboot-tools
       run: |
             git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v1.0.0
             pushd punchboot-tools
-            cmake -DPB_TOOLS_BUILD_SOCKET=1 .
-            make
-            sudo make install
+            mkdir build/
+            cmake -DPB_TOOLS_BUILD_SOCKET=1 -B build/
+            make -C build/
+            sudo make -C build/ install
             sudo ldconfig
             popd
     - name: Build pbstate
