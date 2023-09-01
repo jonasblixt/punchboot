@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(pbstate
-    VERSION 0.3.2
+    VERSION 0.3.3
     DESCRIPTION "pbstate"
     HOMEPAGE_URL https://github.com/jonasblixt/punchboot
 )
