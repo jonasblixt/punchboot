@@ -132,6 +132,18 @@ int pbstate_read_board_reg(unsigned int index, uint32_t *value);
  */
 int pbstate_write_board_reg(unsigned int index, uint32_t value);
 
+/**
+ * Clear/set board register bits
+ *
+ * @param[in] index Board register index
+ * @param[in] clear Bits to clear
+ * @param[in] set Bits to set
+ *
+ * @return 0 on success
+ *    -EINVAL on invalid index
+ */
+int pbstate_clear_set_board_reg(unsigned int index, uint32_t clear, uint32_t set);
+
 #ifdef __cplusplus
 }
 #endif

@@ -490,3 +490,19 @@ int pbstate_write_board_reg(unsigned int index, uint32_t value)
 
     return close_and_save_state(fd, true);
 }
+
+int pbstate_clear_set_board_reg(unsigned int index, uint32_t clear, uint32_t set)
+{
+    if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
+        return -EINVAL;
+
+    int fd = open_and_load_state(true);
+
+    if (fd < 0)
+        return fd;
+
+    state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] &= ~clear;
+    state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] |= set;
+
+    return close_and_save_state(fd, true);
+}
