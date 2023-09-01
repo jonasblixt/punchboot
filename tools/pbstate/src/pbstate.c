@@ -13,14 +13,14 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <unistd.h>
 #include <pb/crc.h>
 #include <boot/pb_state_blob.h>
 
 #include "pbstate.h"
 
-static struct pb_boot_state config;
-static struct pb_boot_state config_backup;
+static struct pb_boot_state state;
 static const char *primary_device;
 static const char *backup_device;
 
@@ -30,20 +30,20 @@ static pbstate_printfunc_t printfunc;
     if (printfunc) \
         printfunc(fmt, ##__VA_ARGS__)
 
-static int config_validate(struct pb_boot_state *c)
+static int verify_state(void)
 {
-    uint32_t crc = c->crc;
+    uint32_t crc = state.crc;
     int err = 0;
 
-    c->crc = 0;
+    state.crc = 0;
 
-    if (c->magic != PB_STATE_MAGIC) {
+    if (state.magic != PB_STATE_MAGIC) {
         LOG("Error: Incorrect magic\n");
         err = -EIO;
         goto config_err_out;
     }
 
-    if (crc != crc32(0, (uint8_t *) c, sizeof(struct pb_boot_state))) {
+    if (crc != crc32(0, (uint8_t *) &state, sizeof(struct pb_boot_state))) {
         LOG("Error: CRC failed\n");
         err = -EIO;
         goto config_err_out;
@@ -56,11 +56,11 @@ config_err_out:
     return err;
 }
 
-static int write_config(int fd, const struct pb_boot_state* config)
+static int write_state(int fd)
 {
     size_t write_sz = 0;
-    const char* buffer = (const char*) config;
-    size_t buffer_len = sizeof(*config);
+    const char* buffer = (const char*) &state;
+    size_t buffer_len = sizeof(state);
 
     do {
         ssize_t write_now = write(fd, buffer + write_sz, buffer_len - write_sz);
@@ -73,69 +73,18 @@ static int write_config(int fd, const struct pb_boot_state* config)
     return 0;
 }
 
-static int pbstate_commit(void)
-{
-    int err = 0;
-    uint32_t crc = 0;
-    int fd = open(primary_device, O_WRONLY | O_DSYNC);
-
-    LOG("Writing state...\n");
-
-    if (fd == -1) {
-        err = -errno;
-        LOG("Error: Could not open '%s' (%i)\n", primary_device, err);
-        goto commit_err_out1;
-    }
-
-    config.crc = 0;
-    crc = crc32(0, (const uint8_t *) &config, sizeof(struct pb_boot_state));
-    config.crc = crc;
-
-    err = write_config(fd, &config);
-
-    if (err != 0) {
-        LOG("Could not write primary config data (%i)\n", err);
-        goto commit_err_out;
-    }
-
-    close(fd);
-    fd = open(backup_device, O_WRONLY | O_DSYNC);
-
-    if (fd == -1) {
-        err = -errno;
-        LOG("Error: Could not open '%s' (%i)\n", backup_device, err);
-        goto commit_err_out1;
-    }
-
-    /* Synchronize backup partition with primary partition */
-    err = write_config(fd, &config);
-
-    if (err != 0) {
-        LOG("Could not write backup config data (%i)\n", err);
-        goto commit_err_out;
-    }
-
-    sync(); /* Ensure that data is written to disk */
-
-commit_err_out:
-    close(fd);
-commit_err_out1:
-    return err;
-}
-
-static int read_config(int fd, struct pb_boot_state* config)
+static int read_state(int fd)
 {
     size_t read_sz = 0;
-    char* buffer = (char*) config;
-    size_t buffer_len = sizeof(*config);
+    char* buffer = (char*) &state;
+    size_t buffer_len = sizeof(state);
 
     do {
         ssize_t read_now = read(fd, buffer + read_sz, buffer_len - read_sz);
         if (read_now == 0) {
-            errno = EIO;
-            return -1;
+            return -EIO;
         } else if (read_now == -1) {
-            return -1;
+            return -errno;
         }
         read_sz += read_now;
     } while (read_sz < buffer_len);
@@ -143,211 +92,417 @@ static int read_config(int fd, struct pb_boot_state* config)
     return 0;
 }
 
-int pbstate_load(const char *p_device,
+static int open_and_load_state(bool wr)
+{
+    int rc;
+    int fd, backup_fd;
+
+    fd = open(primary_device, wr ? (O_RDWR | O_DSYNC) : O_RDONLY);
+
+    if (fd == -1)
+        return -errno;
+
+    // We only take a lock on the primary device fd. The library shall ensure
+    // that we don't interact with the backup device if we can't get a lock
+    // on the primary device.
+    do {
+        rc = flock(fd, wr ? LOCK_EX : LOCK_SH);
+    } while (rc == -1 && errno == EINTR);
+
+    if (rc != 0) {
+        rc = -errno;
+        goto err_close_out;
+    }
+
+    rc = read_state(fd);
+
+    if (rc != 0) {
+        goto err_close_and_release_out;
+    }
+
+    rc = verify_state();
+
+    // If the primary state is okay, we just return the fd and won't check
+    // the backup state since it will be overwritten anyway.
+    if (rc == 0)
+        return fd;
+
+    // If the primary state is corruptet we should try to load the
+    // backup.
+    backup_fd = open(backup_device, wr ? O_RDWR : O_RDONLY);
+
+    if (backup_fd == -1) {
+        rc = -errno;
+        goto err_close_and_release_out;
+    }
+
+    rc = read_state(backup_fd);
+
+    if (rc != 0) {
+        goto err_close_backup_out;
+    }
+
+    rc = verify_state();
+
+    if (rc != 0) {
+        goto err_close_backup_out;
+    }
+
+    close(backup_fd);
+    return fd;
+err_close_backup_out:
+    close(backup_fd);
+err_close_and_release_out:
+    flock(fd, LOCK_UN);
+err_close_out:
+    close(fd);
+    return rc;
+}
+
+static int close_and_save_state(int fd, bool wr)
+{
+    int rc = 0;
+    int backup_fd;
+    uint32_t crc;
+
+    if (!wr) {
+        goto err_close_and_release_out;
+    }
+
+    if (lseek(fd, 0, SEEK_SET) == (off_t) -1) {
+        rc = -errno;
+        goto err_close_and_release_out;
+    }
+
+    state.crc = 0;
+    crc = crc32(0, (const uint8_t *) &state, sizeof(struct pb_boot_state));
+    state.crc = crc;
+
+    rc = write_state(fd);
+
+    if (rc != 0) {
+        LOG("Could not write primary config data (%i)\n", rc);
+        goto err_close_and_release_out;
+    }
+
+    backup_fd = open(backup_device, O_WRONLY | O_DSYNC);
+
+    if (backup_fd == -1) {
+        rc = -errno;
+        LOG("Error: Could not open '%s' (%i)\n", backup_device, rc);
+        goto err_close_and_release_out;
+    }
+
+    /* Synchronize backup partition with primary partition */
+    rc = write_state(backup_fd);
+
+    if (rc != 0) {
+        LOG("Could not write backup config data (%i)\n", rc);
+        goto err_close_backup_out;
+    }
+
+err_close_backup_out:
+    close(backup_fd);
+err_close_and_release_out:
+    flock(fd, LOCK_UN);
+    close(fd);
+    sync(); /* Ensure that data is written to disk */
+    return rc;
+}
+
+int pbstate_init(const char *p_device,
                  const char *b_device,
                  pbstate_printfunc_t _printfunc)
 {
-    int err = 0;
-    int fd = 0;
-    bool primary_ok;
-    bool backup_ok;
-
     primary_device = p_device;
     backup_device = b_device;
     printfunc = _printfunc;
 
-    fd = open(primary_device, O_RDONLY);
-
-    if (fd != -1) {
-        if (read_config(fd, &config) != 0) {
-            LOG("Could not read primary config data\n");
-        }
-        close(fd);
-    } else {
-        err = -errno;
-        LOG("Error: Could not open '%s' (%i)\n", primary_device, err);
-        return err;
-    }
-
-    fd = open(backup_device, O_RDONLY);
-
-    if (fd != -1) {
-        if (read_config(fd, &config_backup) != 0) {
-            LOG("Could not read backup config data\n");
-        }
-        close(fd);
-    } else {
-        err = -errno;
-        LOG("Error: Could not open '%s' (%i)\n", backup_device, err);
-        return err;
-    }
-
-    err = config_validate(&config);
-
-    if (err == 0)
-        primary_ok = true;
-    else
-        primary_ok = false;
-
-    err = config_validate(&config_backup);
-
-    if (err == 0)
-        backup_ok = true;
-    else
-        backup_ok = false;
-
-    if (!primary_ok && backup_ok) {
-        LOG("Primary state corrupt, using backup\n");
-        memcpy(&config, &config_backup, sizeof(config));
-    } else if (!primary_ok) {
-        LOG("Both primary and backup state corrupt\n");
-    }
-
-    return err;
+    return 0;
 }
 
-bool pbstate_is_system_active(pbstate_system_t system)
+int pbstate_is_system_active(pbstate_system_t system)
 {
+    int rc;
+    int result = 0;
+    int fd = open_and_load_state(false);
+
+    if (fd < 0)
+        return fd;
+
     switch (system) {
         case PBSTATE_SYSTEM_A:
-            return config.enable == PB_STATE_A_ENABLED;
+            result = !!(state.enable & PB_STATE_A_ENABLED);
+        break;
         case PBSTATE_SYSTEM_B:
-            return config.enable == PB_STATE_B_ENABLED;
+            result = !!(state.enable & PB_STATE_B_ENABLED);
+        break;
         case PBSTATE_SYSTEM_NONE:
-            return config.enable == 0;
+            result = !!(state.enable);
+        break;
         default:
-            return false;
+        break;
     }
+
+    rc = close_and_save_state(fd, false);
+
+    if (rc < 0)
+        return rc;
+
+    return result;
 }
 
-bool pbstate_is_system_verified(pbstate_system_t system)
+int pbstate_is_system_verified(pbstate_system_t system)
 {
+    int rc;
+    int result = 0;
+    int fd = open_and_load_state(false);
+
+    if (fd < 0)
+        return fd;
+
     switch (system) {
         case PBSTATE_SYSTEM_A:
-            return !!(config.verified & PB_STATE_A_VERIFIED);
+            result = !!(state.verified & PB_STATE_A_VERIFIED);
+        break;
         case PBSTATE_SYSTEM_B:
-            return !!(config.verified & PB_STATE_B_VERIFIED);
+            result = !!(state.verified & PB_STATE_B_VERIFIED);
+        break;
         case PBSTATE_SYSTEM_NONE:
-            return config.enable == 0;
+            result = !!(state.enable);
+        break;
         default:
-            return false;
+        break;
     }
 
-    return false;
+    rc = close_and_save_state(fd, false);
+
+    if (rc < 0)
+        return rc;
+
+    return result;
 }
 
-uint32_t pbstate_get_boot_attempts(void)
+int pbstate_get_remaining_boot_attempts(unsigned int *boot_attempts)
 {
-    return config.remaining_boot_attempts;
+    if (boot_attempts == NULL)
+        return -EINVAL;
+
+    int fd = open_and_load_state(false);
+
+    if (fd < 0)
+        return fd;
+
+    (*boot_attempts) = state.remaining_boot_attempts;
+
+    return close_and_save_state(fd, false);
 }
 
 int pbstate_force_rollback(void)
 {
+    int rc;
+    int preserved_rc = 0;
+    int fd = open_and_load_state(true);
+
+    if (fd < 0)
+        return fd;
+
     /* Rolling back a verified system is not allowed */
-    if (pbstate_is_system_active(PBSTATE_SYSTEM_A)
-        && pbstate_is_system_verified(PBSTATE_SYSTEM_A)) {
-        errno = EPERM;
-        return -1;
+    if ((state.enable & PB_STATE_A_ENABLED) && (state.verified & PB_STATE_A_VERIFIED)) {
+        rc = -EPERM;
+        goto err_close_release_no_save_out;
     }
 
-    if (pbstate_is_system_active(PBSTATE_SYSTEM_B)
-        && pbstate_is_system_verified(PBSTATE_SYSTEM_B)) {
-        errno = EPERM;
-        return -1;
+    if ((state.enable & PB_STATE_B_ENABLED) && (state.verified & PB_STATE_B_VERIFIED)) {
+        rc = -EPERM;
+        goto err_close_release_no_save_out;
     }
 
-    config.remaining_boot_attempts = 0;
+    state.remaining_boot_attempts = 0;
 
-    return pbstate_commit();
+    rc = close_and_save_state(fd, true);
+
+    if (rc < 0)
+        return rc;
+
+    return 0;
+
+err_close_release_no_save_out:
+    preserved_rc = rc;
+    rc = close_and_save_state(fd, false);
+
+    if (rc < 0)
+        return rc;
+
+    return preserved_rc;
 }
 
-uint32_t pbstate_get_errors(void)
+int pbstate_get_errors(uint32_t *error)
 {
-    return config.error;
+    int fd = open_and_load_state(false);
+
+    if (fd < 0)
+        return fd;
+
+    (*error) = state.error;
+
+    return close_and_save_state(fd, false);
 }
 
-int pbstate_clear_error(uint32_t error_flag)
+int pbstate_clear_error(uint32_t mask)
 {
-    config.error &= ~error_flag;
+    int fd = open_and_load_state(true);
 
-    return pbstate_commit();
+    if (fd < 0)
+        return fd;
+
+    state.error &= ~mask;
+
+    return close_and_save_state(fd, true);
 }
 
 int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts)
 {
+    int rc;
+    int preserved_rc;
+    int fd = open_and_load_state(true);
+
+    if (fd < 0)
+        return fd;
+
     switch (system)
     {
         case PBSTATE_SYSTEM_A:
-            config.enable = PB_STATE_A_ENABLED;
+            state.enable = PB_STATE_A_ENABLED;
 
             if (boot_attempts > 0) {
-                config.remaining_boot_attempts = boot_attempts;
-                config.verified &= ~PB_STATE_A_VERIFIED;
-                config.error = 0;
+                state.remaining_boot_attempts = boot_attempts;
+                state.verified &= ~PB_STATE_A_VERIFIED;
+                state.error = 0;
             } else {
-                config.verified |= PB_STATE_A_VERIFIED;
-                config.remaining_boot_attempts = 0;
-                config.error = 0;
+                state.verified |= PB_STATE_A_VERIFIED;
+                state.remaining_boot_attempts = 0;
+                state.error = 0;
             }
         break;
         case PBSTATE_SYSTEM_B:
-            config.enable = PB_STATE_B_ENABLED;
+            state.enable = PB_STATE_B_ENABLED;
 
             if (boot_attempts > 0) {
-                config.remaining_boot_attempts = boot_attempts;
-                config.verified &= ~PB_STATE_B_VERIFIED;
-                config.error = 0;
+                state.remaining_boot_attempts = boot_attempts;
+                state.verified &= ~PB_STATE_B_VERIFIED;
+                state.error = 0;
             } else {
-                config.verified |= PB_STATE_B_VERIFIED;
-                config.remaining_boot_attempts = 0;
-                config.error = 0;
+                state.verified |= PB_STATE_B_VERIFIED;
+                state.remaining_boot_attempts = 0;
+                state.error = 0;
             }
         break;
         case PBSTATE_SYSTEM_NONE:
-            config.enable = 0;
-            config.remaining_boot_attempts = 0;
+            state.enable = 0;
+            state.remaining_boot_attempts = 0;
         break;
         default:
-            return -1;
+            rc = -EINVAL;
+            goto err_close_release_no_save_out;
         break;
     }
 
-    return pbstate_commit();
+    return close_and_save_state(fd, true);
+
+err_close_release_no_save_out:
+    preserved_rc = rc;
+
+    rc = close_and_save_state(fd, false);
+
+    if (rc < 0)
+        return rc;
+
+    return preserved_rc;
 }
 
 int pbstate_set_system_verified(pbstate_system_t system)
 {
+    int rc;
+    int preserved_rc;
+    int fd = open_and_load_state(true);
+
+    if (fd < 0)
+        return fd;
+
     switch (system)
     {
         case PBSTATE_SYSTEM_A:
-            config.verified |= PB_STATE_A_VERIFIED;
-            config.remaining_boot_attempts = 0;
+            state.verified |= PB_STATE_A_VERIFIED;
+            state.remaining_boot_attempts = 0;
         break;
         case PBSTATE_SYSTEM_B:
-            config.verified |= PB_STATE_B_VERIFIED;
-            config.remaining_boot_attempts = 0;
+            state.verified |= PB_STATE_B_VERIFIED;
+            state.remaining_boot_attempts = 0;
         break;
         case PBSTATE_SYSTEM_NONE:
         break;
         default:
-            return -1;
+            rc = -EINVAL;
+            goto err_close_release_no_save_out;
         break;
     }
-    return pbstate_commit();
+
+    return close_and_save_state(fd, true);
+
+err_close_release_no_save_out:
+    preserved_rc = rc;
+
+    rc = close_and_save_state(fd, false);
+
+    if (rc < 0)
+        return rc;
+
+    return preserved_rc;
 }
 
 int pbstate_read_board_reg(unsigned int index, uint32_t *value)
 {
     if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
         return -EINVAL;
-    *value = config.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1];
-    return 0;
+
+    int fd = open_and_load_state(false);
+
+    if (fd < 0)
+        return fd;
+
+    *value = state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1];
+
+    return close_and_save_state(fd, false);
 }
 
 int pbstate_write_board_reg(unsigned int index, uint32_t value)
 {
     if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
         return -EINVAL;
-    config.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] = value;
-    return pbstate_commit();
+
+    int fd = open_and_load_state(true);
+
+    if (fd < 0)
+        return fd;
+
+    state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] = value;
+
+    return close_and_save_state(fd, true);
+}
+
+int pbstate_clear_set_board_reg(unsigned int index, uint32_t clear, uint32_t set)
+{
+    if (index > (PB_STATE_NO_OF_BOARD_REGS - 1))
+        return -EINVAL;
+
+    int fd = open_and_load_state(true);
+
+    if (fd < 0)
+        return fd;
+
+    state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] &= ~clear;
+    state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] |= set;
+
+    return close_and_save_state(fd, true);
 }
