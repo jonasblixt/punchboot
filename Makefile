@@ -7,7 +7,7 @@ endif
 Q ?= @
 
 TARGET  = pb
-GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
+PB_VERSION = 1.1.1
 BPAK ?= $(shell which bpak)
 KEYSTORE_BPAK ?= pki/internal_keystore.bpak
 PYTHON ?= $(shell which python3)
@@ -39,12 +39,13 @@ cflags-y  += -nostdlib -nostartfiles -nostdinc
 cflags-y  += -ffunction-sections
 cflags-y  += -fdata-sections
 cflags-y  += -fno-omit-frame-pointer
-cflags-y  += -DPB_VERSION=\"$(GIT_VERSION)\"
+cflags-y  += -DPB_VERSION=\"$(PB_VERSION)\"
 cflags-y  += -DLOGLEVEL=$(CONFIG_LOGLEVEL)
 cflags-y  += -DTIMING_REPORT=$(TIMING_REPORT)
 cflags-y  += -fno-common -fno-builtin
 cflags-y  += -ffreestanding -fno-exceptions
 cflags-y  += -fstack-usage
+cflags-y  += -fno-stack-protector
 cflags-y  += -MMD -MP
 
 # Include path
