@@ -45,6 +45,7 @@ cflags-y  += -DTIMING_REPORT=$(TIMING_REPORT)
 cflags-y  += -fno-common -fno-builtin
 cflags-y  += -ffreestanding -fno-exceptions
 cflags-y  += -fstack-usage
+cflags-y  += -fno-stack-protector
 cflags-y  += -MMD -MP
 
 # Include path
