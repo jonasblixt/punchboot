@@ -6,6 +6,7 @@ endif
 
 Q ?= @
 
+# Default settings and apps
 TARGET  = pb
 PB_VERSION = 1.1.1
 BPAK ?= $(shell which bpak)
@@ -18,6 +19,9 @@ AR=$(CROSS_COMPILE)ar
 SIZE=$(CROSS_COMPILE)size
 STRIP=$(CROSS_COMPILE)strip
 OBJCOPY=$(CROSS_COMPILE)objcopy
+
+# Helper macros
+unquote = $(subst $\",,$(1))
 
 BUILD_DIR ?= build-$(lastword $(subst /, ,$(BOARD)))
 $(shell mkdir -p $(BUILD_DIR))
@@ -33,7 +37,7 @@ else
 endif
 
 cflags-y   = -std=c99
-cflags-y  += -O$(CONFIG_OPTIMIZE)
+cflags-y  += -O$(call unquote,$(CONFIG_OPTIMIZE))
 cflags-$(CONFIG_DEBUG_SYMBOLS) += -g
 cflags-y  += -nostdlib -nostartfiles -nostdinc
 cflags-y  += -ffunction-sections
