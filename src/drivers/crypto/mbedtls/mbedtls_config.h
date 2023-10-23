@@ -41,10 +41,14 @@
 
 /* MPI / BIGNUM options */
 #define MBEDTLS_MPI_WINDOW_SIZE            2
-#define MBEDTLS_MPI_MAX_SIZE            256
+#define MBEDTLS_MPI_MAX_SIZE             256
 
 /* Memory buffer allocator options */
-#define MBEDTLS_MEMORY_ALIGN_MULTIPLE        8
+#define MBEDTLS_MEMORY_ALIGN_MULTIPLE      8
+
+/* Optimizations */
+#define MBEDTLS_HAVE_ASM
+#define MBEDTLS_ECP_NIST_OPTIM
 
 /*
  * Prevent the use of 128-bit division which
