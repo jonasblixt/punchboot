@@ -79,9 +79,12 @@ int boot_set_boot_partition(uuid_t part_uu)
 void boot_get_boot_partition(uuid_t part_uu)
 {
     if (part_uu == NULL)
+        return;
+
+    if (!boot_cfg || boot_cfg->get_boot_partition == NULL) {
         uuid_clear(part_uu);
-    if (!boot_cfg || boot_cfg->get_boot_partition == NULL)
-        uuid_clear(part_uu);
+        return;
+    }
 
     boot_cfg->get_boot_partition(part_uu);
 }
