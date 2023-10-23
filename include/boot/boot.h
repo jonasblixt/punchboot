@@ -126,7 +126,7 @@ uint32_t boot_get_flags(void);
  * Proxy function to set/activate a boot partition. This function will
  * call the 'set_boot_partition' callback in the config struct if it's
  * populated.
- * 
+ *
  * @param[in] part_uu UUID of partition to set as active
  *
  * @return PB_OK on success all other codes are errors
@@ -137,7 +137,7 @@ int boot_set_boot_partition(uuid_t part_uu);
  * Proxy function to get active boot partition. This function will
  * call the 'get_boot_partition' callback in the config struct if it's
  * populated.
- * 
+ *
  * @param[out] part_uu UUID of active partition
  *
  * @return PB_OK on success all other codes are errors
