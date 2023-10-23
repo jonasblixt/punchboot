@@ -17,6 +17,7 @@
 
 static const struct boot_driver *boot_cfg;
 static struct bpak_header header __section(".no_init") __aligned(4096);
+static struct bpak_header *header_ptr = &header;
 static uint32_t boot_flags;
 static bio_dev_t boot_device;
 static enum boot_source boot_source;
@@ -78,9 +79,12 @@ int boot_set_boot_partition(uuid_t part_uu)
 void boot_get_boot_partition(uuid_t part_uu)
 {
     if (part_uu == NULL)
+        return;
+
+    if (!boot_cfg || boot_cfg->get_boot_partition == NULL) {
         uuid_clear(part_uu);
-    if (!boot_cfg || boot_cfg->get_boot_partition == NULL)
-        uuid_clear(part_uu);
+        return;
+    }
 
     boot_cfg->get_boot_partition(part_uu);
 }
@@ -135,6 +139,11 @@ static int load_auth_verify_from_bio(void)
     if (rc != PB_OK)
         return rc;
 
+    rc = boot_image_verify_parts(&header);
+
+    if (rc != PB_OK)
+        return rc;
+
     rc = boot_image_load_and_hash(&header,
                                    CONFIG_BOOT_LOAD_CHUNK_kB*1024,
                                    boot_bio_read,
@@ -151,24 +160,26 @@ static int load_auth_verify_from_bio(void)
 static int auth_verify_in_mem(void)
 {
     int rc;
-    struct bpak_header *hdr_ptr;
 
     if (boot_cfg->get_in_mem_image == NULL)
         return -PB_ERR_NOT_SUPPORTED;
 
-    rc = boot_cfg->get_in_mem_image(&hdr_ptr);
+    rc = boot_cfg->get_in_mem_image(&header_ptr);
 
     if (rc != PB_OK)
         return rc;
 
-    memcpy(&header, hdr_ptr, sizeof(header));
-
-    rc = boot_image_auth_header(&header);
+    rc = boot_image_auth_header(header_ptr);
 
     if (rc != PB_OK)
         return rc;
 
-    rc = boot_image_load_and_hash(&header,
+    rc = boot_image_verify_parts(header_ptr);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = boot_image_load_and_hash(header_ptr,
                                    CONFIG_BOOT_LOAD_CHUNK_kB*1024,
                                    NULL,
                                    NULL,
@@ -178,7 +189,7 @@ static int auth_verify_in_mem(void)
     if (rc != PB_OK)
         return rc;
 
-    return boot_image_verify_payload(hdr_ptr, payload_digest);
+    return boot_image_verify_payload(header_ptr, payload_digest);
 }
 
 static int load_auth_verify_from_cb(void)
@@ -195,6 +206,16 @@ static int load_auth_verify_from_cb(void)
         return rc;
 
     rc = boot_image_auth_header(&header);
+
+    if (rc != PB_OK) {
+        if (result_cb) {
+            result_cb(rc);
+        }
+
+        return rc;
+    }
+
+    rc = boot_image_verify_parts(&header);
 
     if (result_cb) {
         result_cb(rc);
@@ -263,6 +284,12 @@ int boot_load(uuid_t boot_part_override_uu)
         case BOOT_SOURCE_CB:
             rc = load_auth_verify_from_cb();
         break;
+        case BOOT_SOURCE_CUSTOM:
+            if (boot_cfg->authenticate_image)
+                rc = boot_cfg->authenticate_image(&header_ptr);
+            else
+                rc = -PB_ERR_NOT_SUPPORTED;
+        break;
         default:
             rc = -PB_ERR_PARAM;
             goto err_out;
@@ -278,7 +305,7 @@ int boot_load(uuid_t boot_part_override_uu)
 
     ts("Boot prepare");
     if (boot_cfg->prepare) {
-        rc = boot_cfg->prepare(&header, boot_part_uu);
+        rc = boot_cfg->prepare(header_ptr, boot_part_uu);
         if (rc != PB_OK) {
             goto err_out;
         }
@@ -295,7 +322,7 @@ int boot_jump(void)
 
     ts("Boot late");
     if (boot_cfg->late_boot_cb) {
-        rc = boot_cfg->late_boot_cb(&header, boot_part_uu);
+        rc = boot_cfg->late_boot_cb(header_ptr, boot_part_uu);
         if (rc != PB_OK) {
             return rc;
         }

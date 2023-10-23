@@ -6,6 +6,7 @@ endif
 
 Q ?= @
 
+# Default settings and apps
 TARGET  = pb
 PB_VERSION = 1.1.1
 BPAK ?= $(shell which bpak)
@@ -19,11 +20,19 @@ SIZE=$(CROSS_COMPILE)size
 STRIP=$(CROSS_COMPILE)strip
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
-BUILD_DIR ?= build-$(lastword $(subst /, ,$(BOARD)))
-$(shell mkdir -p $(BUILD_DIR))
-$(shell BOARD=$(BOARD) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h src/Kconfig)
+# Helper macros
+unquote = $(subst $\",,$(1))
 
-include .config
+BUILD_DIR ?= build-$(lastword $(subst /, ,$(BOARD)))
+
+KCONFIG_CONFIG ?= .config
+
+BUILD_CONFIG ?= $(BUILD_DIR)/.config
+
+$(shell mkdir -p $(BUILD_DIR))
+$(shell BOARD=$(BOARD) KCONFIG_CONFIG=$(KCONFIG_CONFIG) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h --config-out $(BUILD_CONFIG) src/Kconfig)
+
+include $(BUILD_CONFIG)
 
 ifdef TIMING_REPORT
 	LOGLEVEL = 0
@@ -33,7 +42,7 @@ else
 endif
 
 cflags-y   = -std=c99
-cflags-y  += -O$(CONFIG_OPTIMIZE)
+cflags-y  += -O$(call unquote,$(CONFIG_OPTIMIZE))
 cflags-$(CONFIG_DEBUG_SYMBOLS) += -g
 cflags-y  += -nostdlib -nostartfiles -nostdinc
 cflags-y  += -ffunction-sections
@@ -98,7 +107,8 @@ include src/cm/makefile.mk
 ldflags-y += -Map=$(BUILD_DIR)/pb.map
 ldflags-y += --defsym=PB_ENTRY=$(PB_ENTRY)
 ldflags-y += --defsym=PB_STACK_SIZE_KiB=$(CONFIG_STACK_SIZE_KiB)
-ldflags-y += -Tsrc/link.lds  --build-id=none
+ldflags-y += -T$(CONFIG_LINK_FILE) --build-id=none
+ldflags-y += --gc-sections
 
 OBJS =
 OBJS += $(patsubst %.c, $(BUILD_DIR)/%.o, $(src-y))
@@ -174,4 +184,3 @@ gcovr:
 .DEFAULT_GOAL := all
 
 -include $(DEPS)
-

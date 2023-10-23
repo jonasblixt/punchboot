@@ -5,6 +5,8 @@ config ARCH_ARMV8
 	bool "ARMv8"
 config ARCH_ARMV7
 	bool "ARMv7"
+config ARCH_ARMV7M
+	bool "ARMv7m"
 endchoice
 
 choice ARMV8_EL

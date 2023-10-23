@@ -55,4 +55,3 @@ void exit(int reason)
     LOG_ERR("reason = %i", reason);
     plat_reset();
 }
-

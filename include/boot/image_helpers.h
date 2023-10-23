@@ -31,10 +31,20 @@
  */
 int boot_image_auth_header(struct bpak_header *hdr);
 
+int boot_image_verify_parts(struct bpak_header *hdr);
+
 int boot_image_load_and_hash(struct bpak_header *hdr,
                              size_t load_chunk_size,
                              boot_read_cb_t read_f,
                              boot_result_cb_t result_f,
+                             uint8_t *payload_digest,
+                             size_t payload_digest_size);
+
+int boot_image_copy_and_hash(struct bpak_header *source_hdr,
+                             uintptr_t source_address,
+                             size_t source_size,
+                             uintptr_t destination_address,
+                             size_t destination_size,
                              uint8_t *payload_digest,
                              size_t payload_digest_size);
 
