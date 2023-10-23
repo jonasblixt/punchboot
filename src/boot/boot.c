@@ -284,6 +284,12 @@ int boot_load(uuid_t boot_part_override_uu)
         case BOOT_SOURCE_CB:
             rc = load_auth_verify_from_cb();
         break;
+        case BOOT_SOURCE_CUSTOM:
+            if (boot_cfg->authenticate_image)
+                rc = boot_cfg->authenticate_image(&header_ptr);
+            else
+                rc = -PB_ERR_NOT_SUPPORTED;
+        break;
         default:
             rc = -PB_ERR_PARAM;
             goto err_out;
