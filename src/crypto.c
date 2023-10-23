@@ -24,7 +24,7 @@ int hash_init(hash_t alg)
     current_hash_ops = NULL;
 
     for (int i = 0; i < CONFIG_CRYPTO_MAX_HASH_OPS; i++) {
-        if (hash_ops[i]->alg_bits & alg) {
+        if (hash_ops[i] && (hash_ops[i]->alg_bits & alg)) {
             current_hash_ops = hash_ops[i];
             return current_hash_ops->init(alg);
         }
@@ -94,7 +94,7 @@ int dsa_verify(dsa_t alg,
     const struct dsa_ops *ops = NULL;
 
     for (size_t i = 0; i < CONFIG_CRYPTO_MAX_DSA_OPS; i++) {
-        if (dsa_ops[i]->alg_bits & alg) {
+        if (dsa_ops[i] && (dsa_ops[i]->alg_bits & alg)) {
             ops = dsa_ops[i];
             break;
         }
