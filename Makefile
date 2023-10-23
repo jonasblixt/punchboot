@@ -24,10 +24,15 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 unquote = $(subst $\",,$(1))
 
 BUILD_DIR ?= build-$(lastword $(subst /, ,$(BOARD)))
-$(shell mkdir -p $(BUILD_DIR))
-$(shell BOARD=$(BOARD) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h src/Kconfig)
 
-include .config
+KCONFIG_CONFIG ?= .config
+
+BUILD_CONFIG ?= $(BUILD_DIR)/.config
+
+$(shell mkdir -p $(BUILD_DIR))
+$(shell BOARD=$(BOARD) KCONFIG_CONFIG=$(KCONFIG_CONFIG) $(PYTHON) scripts/genconfig.py --header-path $(BUILD_DIR)/config.h --config-out $(BUILD_CONFIG) src/Kconfig)
+
+include $(BUILD_CONFIG)
 
 ifdef TIMING_REPORT
 	LOGLEVEL = 0
