@@ -31,6 +31,8 @@
  */
 int boot_image_auth_header(struct bpak_header *hdr);
 
+int boot_image_verify_parts(struct bpak_header *hdr);
+
 int boot_image_load_and_hash(struct bpak_header *hdr,
                              size_t load_chunk_size,
                              boot_read_cb_t read_f,

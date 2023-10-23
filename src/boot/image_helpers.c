@@ -43,7 +43,6 @@ int boot_image_auth_header(struct bpak_header *hdr)
     uint8_t header_digest[64];
     const uint8_t *key_der_data;
     size_t key_der_data_length;
-    struct bpak_meta_header *mh;
 
     rc = bpak_valid_header(hdr);
 
@@ -116,6 +115,20 @@ int boot_image_auth_header(struct bpak_header *hdr)
         return -PB_ERR_AUTHENTICATION_FAILED;
     }
 
+    return rc;
+}
+
+int boot_image_verify_parts(struct bpak_header *hdr)
+{
+    struct bpak_meta_header *mh;
+    int rc = PB_OK;
+
+    rc = bpak_valid_header(hdr);
+
+    if (rc != BPAK_OK) {
+        return -PB_ERR_BAD_HEADER;
+    }
+
     bpak_foreach_part(hdr, p) {
         if (!p->id)
             break;
@@ -164,6 +177,7 @@ int boot_image_auth_header(struct bpak_header *hdr)
 
     return rc;
 }
+
 
 int boot_image_load_and_hash(struct bpak_header *hdr,
                              size_t load_chunk_size,
