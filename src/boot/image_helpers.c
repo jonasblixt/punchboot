@@ -287,6 +287,77 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
     return rc;
 }
 
+int boot_image_copy_and_hash(struct bpak_header *hdr,
+                             uintptr_t source_address,
+                             size_t source_size,
+                             uintptr_t destination_address,
+                             size_t destination_size,
+                             uint8_t *payload_digest,
+                             size_t payload_digest_size)
+{
+    int rc;
+    int hash_kind;
+    size_t hash_length;
+
+    rc = bpak_valid_header(hdr);
+
+    if (rc != BPAK_OK) {
+        return -PB_ERR_BAD_HEADER;
+    }
+
+    switch (hdr->hash_kind) {
+        case BPAK_HASH_SHA256:
+            hash_kind = HASH_SHA256;
+            hash_length = 32;
+        break;
+        case BPAK_HASH_SHA384:
+            hash_kind = HASH_SHA384;
+            hash_length = 48;
+        break;
+        case BPAK_HASH_SHA512:
+            hash_kind = HASH_SHA512;
+            hash_length = 64;
+        break;
+        default:
+            return -PB_ERR_UNKNOWN_HASH;
+    }
+
+    if (payload_digest_size < hash_length)
+        return -PB_ERR_PARAM;
+
+    rc = hash_init(hash_kind);
+
+    if (rc != PB_OK)
+        return rc;
+
+
+    bpak_foreach_part(hdr, p) {
+        if (!p->id)
+            break;
+
+        size_t bytes_to_copy = bpak_part_size(p);
+        size_t part_offset = bpak_part_offset(hdr, p) -
+                        sizeof(struct bpak_header);
+
+        uintptr_t src_addr = source_address + part_offset;
+        uintptr_t dst_addr = destination_address + part_offset;
+
+        /* This could be optimized by a generic copy+hash
+         * accelerator in the hash API
+         */
+        memcpy((void *)dst_addr, (const void *) src_addr, bytes_to_copy);
+
+        rc = hash_update_async((void *) dst_addr, bytes_to_copy);
+
+        if (rc != PB_OK)
+            break;
+    }
+
+    if (rc == PB_OK)
+        return hash_final(payload_digest, payload_digest_size);
+    return rc;
+}
+
 int boot_image_verify_payload(struct bpak_header *hdr,
                               uint8_t *payload_digest)
 {

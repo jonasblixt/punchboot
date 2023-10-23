@@ -40,6 +40,14 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
                              uint8_t *payload_digest,
                              size_t payload_digest_size);
 
+int boot_image_copy_and_hash(struct bpak_header *source_hdr,
+                             uintptr_t source_address,
+                             size_t source_size,
+                             uintptr_t destination_address,
+                             size_t destination_size,
+                             uint8_t *payload_digest,
+                             size_t payload_digest_size);
+
 int boot_image_verify_payload(struct bpak_header *hdr,
                               uint8_t *payload_digest);
 
