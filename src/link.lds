@@ -15,7 +15,7 @@ SECTIONS
      {
         . = ALIGN(4096);
         PROVIDE (_code_start = .);
-        *(.vectors .vectors.*)
+        KEEP(*(.vectors .vectors.*))
         *(.text .text.*)
         . = ALIGN(4096);
         _etext = .;

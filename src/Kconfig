@@ -78,6 +78,14 @@ config SELF_TEST
         Warning: This will add significant boot time and is only for testing
         purposes.
 
+choice EXECUTE
+    bool "Execute from"
+config EXECUTE_IN_RAM
+    bool "RAM"
+config EXECUTE_IN_FLASH
+    bool "FLASH (XIP)"
+endchoice
+
 endmenu
 
 menu "Build configuration"
@@ -94,6 +102,11 @@ config STACK_USAGE
 config STACK_SIZE_KiB
     int "Stack size in KiB"
     default 2
+
+config LINK_FILE
+    string "Main linker file"
+    default "src/link.lds" if EXECUTE_IN_RAM
+    default "src/link_flash.lds" if EXECUTE_IN_FLASH
 
 endmenu
 
