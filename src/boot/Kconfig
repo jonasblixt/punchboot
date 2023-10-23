@@ -22,6 +22,10 @@ config BOOT_LINUX
     bool "Linux boot support"
     depends on BOOT_CORE
 
+config BOOT_ARMV7M_BAREMETAL
+    bool "ARMv7m bare metal boot support"
+    depends on BOOT_CORE
+
 config BOOT_LOAD_CHUNK_kB
     int "Copy/Hash load chunk size (kB)"
     default 4096
