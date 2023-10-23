@@ -18,6 +18,11 @@ config PLAT_IMX6UL
     bool "NXP IMX6UL"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7
+config PLAT_IMXRT
+    bool "NXP IMXRT"
+    depends on SOC_FAMILY_IMX
+    depends on ARCH_ARMV7M
+
 config PLAT_QEMU
     bool "QEMU aarch32"
     depends on ARCH_ARMV7
