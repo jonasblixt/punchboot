@@ -24,10 +24,19 @@ int imx_wdog_init(uintptr_t base_, unsigned int delay_s)
     base = base_;
 
     /* Timeout value = 9 * 0.5 + 0.5 = 5 s */
-    mmio_write_16(base + WDOG_WCR, ((delay_s * 2) << 8) | (1 << 2) |
-                                    (1 << 3) |
-                                    (1 << 4) |
-                                    (1 << 5));
+    uint16_t regval = ((delay_s * 2) << 8) |
+                            (1 << 2) |
+                            (1 << 3) |
+                            (1 << 4) |
+                            (1 << 5);
+
+#ifdef CONFIG_DRIVERS_IMX_WDOG_DEBUG
+    regval |= (1 << 1);
+#endif
+#ifdef CONFIG_DRIVERS_IMX_WDOG_WAIT
+    regval |= (1 << 7);
+#endif
+    mmio_write_16(base + WDOG_WCR, regval);
 
     mmio_write_16(base + WDOG_WMCR, 0);
 

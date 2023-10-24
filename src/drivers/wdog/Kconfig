@@ -5,4 +5,14 @@ config DRIVERS_IMX_WDOG
     default n
     depends on SOC_FAMILY_IMX
 
+config DRIVERS_IMX_WDOG_DEBUG
+    bool "Disable watchdog in debug"
+    default n
+    depends on DRIVERS_IMX_WDOG
+
+config DRIVERS_IMX_WDOG_WAIT
+    bool "Disable watchdog in wait mode"
+    default n
+    depends on DRIVERS_IMX_WDOG
+
 endmenu
