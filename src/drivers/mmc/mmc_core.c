@@ -544,7 +544,7 @@ static int mmc_setup(void)
                 return rc;
             }
 
-            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT_DDR);
+            rc = mmc_set_bus_width(mmc_cfg->width);
             if (rc != 0) {
                 return rc;
             }
@@ -558,7 +558,7 @@ static int mmc_setup(void)
         case MMC_BUS_MODE_HS200:
         {
             LOG_DBG("Switching to HS200");
-            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT);
+            rc = mmc_set_bus_width(mmc_cfg->width);
             if (rc != 0) {
                 return rc;
             }
@@ -597,7 +597,7 @@ static int mmc_setup(void)
                 return rc;
             }
 
-            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT_DDR);
+            rc = mmc_set_bus_width(mmc_cfg->width);
             if (rc != 0) {
                 return rc;
             }
