@@ -1,0 +1,7 @@
+menu "Filesystem"
+
+config LITTLE_FS
+	bool "Enable support for littlefs"
+    default n
+
+endmenu
