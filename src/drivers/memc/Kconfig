@@ -1,0 +1,13 @@
+menu "Memory Controller Drivers"
+
+config IMX_FLEXSPI
+    depends on SOC_FAMILY_IMX
+	bool "Enable support i.MX FlexSPI"
+    default n
+
+config I25W_NOR
+    depends on IMX_FLEXSPI
+    bool "I25Wx NOR Flash memory"
+    default n
+
+endmenu
