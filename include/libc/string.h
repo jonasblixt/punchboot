@@ -31,5 +31,8 @@ char *strrchr(const char *p, int ch);
 size_t strlcpy(char * dst, const char * src, size_t dsize);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 char * strncpy(char *dest, const char *src, size_t n);
+size_t strspn(const char *s, const char *accept);
+char *strcpy(char *dest, const char *src);
+size_t strcspn(const char *s, const char *reject);
 
 #endif  // INCLUDE_PB_LIBC_STRING_H_

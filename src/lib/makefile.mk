@@ -13,6 +13,10 @@ src-y  += src/lib/libc/strlen.c
 src-y  += src/lib/libc/printf.c
 src-y  += src/lib/libc/snprintf.c
 src-y  += src/lib/libc/strtoul.c
+src-y  += src/lib/libc/strchr.c
+src-y  += src/lib/libc/strcspn.c
+src-y  += src/lib/libc/strspn.c
+src-y  += src/lib/libc/strcpy.c
 src-y  += src/lib/libc/putchar.c
 src-y  += src/lib/libc/assert.c
 
