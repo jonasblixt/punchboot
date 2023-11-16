@@ -49,7 +49,10 @@ int plat_init(void)
     LOG_DBG("i.MX RT Hello!");
 
     imx_gpt_init(0x401EC000, MHz(72));
+
+#if CONFIG_ENABLE_WATCHDOG
     imx_wdog_init(0x400B8000, CONFIG_WATCHDOG_TIMEOUT);
+#endif
 
     imx_ocotp_init(0x401F4000, 8);
 
