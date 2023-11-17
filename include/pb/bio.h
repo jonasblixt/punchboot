@@ -47,7 +47,7 @@
 #define BIO_FLAG_BOOTABLE           BIT(0)
 #define BIO_FLAG_RFU1               BIT(1)
 #define BIO_FLAG_WRITABLE           BIT(2)
-#define BIO_FLAG_RFU3               BIT(3)
+#define BIO_FLAG_ERASE_BEFORE_WRITE BIT(3)
 #define BIO_FLAG_RFU4               BIT(4)
 #define BIO_FLAG_VISIBLE            BIT(5)
 #define BIO_FLAG_READABLE           BIT(6)
