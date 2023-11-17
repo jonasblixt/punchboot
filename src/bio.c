@@ -14,6 +14,7 @@ struct bio_device {
     size_t block_sz;
     bio_read_t read;
     bio_write_t write;
+    bio_erase_t erase;
     bio_call_t install_partition_table;
     bool valid;
 };
@@ -83,6 +84,7 @@ bio_dev_t bio_allocate_parent(bio_dev_t parent,
 
     bio_pool[new].read = bio_pool[parent].read;
     bio_pool[new].write = bio_pool[parent].write;
+    bio_pool[new].erase = bio_pool[parent].erase;
 
     return new;
 }
@@ -104,6 +106,19 @@ int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write)
 
     bio_pool[dev].read = read;
     bio_pool[dev].write = write;
+
+    return PB_OK;
+}
+
+int bio_set_ios_erase(bio_dev_t dev, bio_erase_t erase)
+{
+    int rc;
+
+    rc = check_dev(dev);
+    if (rc != PB_OK)
+        return rc;
+
+    bio_pool[dev].erase = erase;
 
     return PB_OK;
 }
@@ -171,6 +186,19 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
         return -PB_ERR_IO;
 
     return bio_pool[dev].write(dev, bio_pool[dev].first_lba + lba, length, buf);
+}
+
+int bio_erase(bio_dev_t dev)
+{
+    int rc;
+
+    rc = check_dev(dev);
+    if (rc != PB_OK)
+        return rc;
+    if (bio_pool[dev].erase == NULL)
+        return -PB_ERR_NOT_SUPPORTED;
+
+    return bio_pool[dev].erase(dev);
 }
 
 int bio_get_hal_flags(bio_dev_t dev)

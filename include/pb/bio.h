@@ -66,6 +66,7 @@ typedef unsigned int lba_t;
 
 typedef int (*bio_read_t)(bio_dev_t dev, lba_t lba, size_t length, void *buf);
 typedef int (*bio_write_t)(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
+typedef int (*bio_erase_t)(bio_dev_t dev);
 typedef int (*bio_call_t)(bio_dev_t dev, int param);
 
 /**
@@ -150,6 +151,17 @@ bio_dev_t bio_get_part_by_uu_str(const char *uu_str);
  *        -PB_ERR_PARAM on invalid device handle
  */
 int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
+
+/**
+ * Set erase I/O ops for device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] erase Erase callback function
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM on invalid device handle
+ */
+int bio_set_ios_erase(bio_dev_t dev, bio_erase_t erase);
 
 /**
  * Block device size in bytes
@@ -309,6 +321,17 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf);
  *         -PB_TIMEOUT, Driverr timeouts
  */
 int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
+
+/**
+ * Erase block device
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying write function
+ *         -PB_ERR_IO, Driver I/O errors
+ *         -PB_TIMEOUT, Driverr timeouts
+ */
+int bio_erase(bio_dev_t dev);
 
 /**
  * Install partition table on a device
