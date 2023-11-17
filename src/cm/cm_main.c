@@ -460,6 +460,17 @@ static int cmd_part_verify(void)
     return rc;
 }
 
+static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
+{
+    LOG_DBG("Erase part");
+    bio_dev_t dev = bio_get_part_by_uu(erase_cmd->uuid);
+
+    if (dev < 0)
+        return dev;
+
+    return bio_erase(dev);
+}
+
 static int cmd_part_tbl_read(void)
 {
     LOG_DBG("TBL read");
@@ -786,6 +797,13 @@ static int pb_command_parse(void)
 
         pb_wire_init_result2(&result, error_to_wire(rc), &boot_result, sizeof(boot_result));
         rc = PB_RESULT_OK;
+    } break;
+
+    case PB_CMD_PART_ERASE: {
+        struct pb_command_erase_part *erase_cmd = (struct pb_command_erase_part *)cmd.request;
+
+        rc = cmd_part_erase(erase_cmd);
+        pb_wire_init_result(&result, error_to_wire(rc));
     } break;
     default: {
         LOG_ERR("Got unknown command: %u", cmd.command);
