@@ -44,22 +44,22 @@
  * Read access
  */
 
-#define BIO_FLAG_BOOTABLE BIT(0)
-#define BIO_FLAG_RFU1     BIT(1)
-#define BIO_FLAG_WRITABLE BIT(2)
-#define BIO_FLAG_RFU3     BIT(3)
-#define BIO_FLAG_RFU4     BIT(4)
-#define BIO_FLAG_VISIBLE  BIT(5)
-#define BIO_FLAG_READABLE BIT(6)
-#define BIO_FLAG_RFU7     BIT(7)
-#define BIO_FLAG_RFU8     BIT(8)
-#define BIO_FLAG_RFU9     BIT(9)
-#define BIO_FLAG_RFU10    BIT(10)
-#define BIO_FLAG_RFU11    BIT(11)
-#define BIO_FLAG_RFU12    BIT(12)
-#define BIO_FLAG_RFU13    BIT(13)
-#define BIO_FLAG_RFU14    BIT(14)
-#define BIO_FLAG_RFU15    BIT(15)
+#define BIO_FLAG_BOOTABLE           BIT(0)
+#define BIO_FLAG_RFU1               BIT(1)
+#define BIO_FLAG_WRITABLE           BIT(2)
+#define BIO_FLAG_ERASE_BEFORE_WRITE BIT(3)
+#define BIO_FLAG_RFU4               BIT(4)
+#define BIO_FLAG_VISIBLE            BIT(5)
+#define BIO_FLAG_READABLE           BIT(6)
+#define BIO_FLAG_RFU7               BIT(7)
+#define BIO_FLAG_RFU8               BIT(8)
+#define BIO_FLAG_RFU9               BIT(9)
+#define BIO_FLAG_RFU10              BIT(10)
+#define BIO_FLAG_RFU11              BIT(11)
+#define BIO_FLAG_RFU12              BIT(12)
+#define BIO_FLAG_RFU13              BIT(13)
+#define BIO_FLAG_RFU14              BIT(14)
+#define BIO_FLAG_RFU15              BIT(15)
 
 typedef int bio_dev_t;
 typedef unsigned int lba_t;
