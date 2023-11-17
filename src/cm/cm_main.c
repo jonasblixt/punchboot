@@ -463,6 +463,18 @@ static int cmd_part_verify(void)
     return rc;
 }
 
+static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
+{
+
+    LOG_DBG("Erase part");
+    bio_dev_t dev = bio_get_part_by_uu(erase_cmd->uuid);
+
+    if (dev < 0)
+        return dev;
+
+    return bio_erase(dev);
+}
+
 static int cmd_part_tbl_read(void)
 {
 
@@ -829,6 +841,15 @@ static int pb_command_parse(void)
             /* Deprecated and no longer supported,
              * Use partition table configration index instead. */
             pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
+        }
+        break;
+        case PB_CMD_PART_ERASE:
+        {
+            struct pb_command_erase_part *erase_cmd = \
+               (struct pb_command_erase_part *) cmd.request;
+
+            rc = cmd_part_erase(erase_cmd);
+            pb_wire_init_result(&result, error_to_wire(rc));
         }
         break;
         case PB_CMD_BOOT_STATUS:
