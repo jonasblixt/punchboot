@@ -40,7 +40,7 @@ fi
 
 # Flashing image 
 echo "Flashing A"
-$PB part --write /tmp/img.bpak --part $BOOT_A --transport socket
+$PB -t socket part write /tmp/img.bpak $BOOT_A
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -52,10 +52,10 @@ fi
 
 echo "Booting part B"
 
-$PB boot --boot $BOOT_A --transport socket
+$PB -t socket boot partition $BOOT_A
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 1 ];
 then
     test_end_error
 fi
@@ -64,10 +64,10 @@ fi
 
 echo "Ramloading image"
 
-$PB boot --load /tmp/img.bpak --transport socket
+$PB -t socket boot bpak /tmp/img.bpak
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 1 ];
 then
     test_end_error
 fi

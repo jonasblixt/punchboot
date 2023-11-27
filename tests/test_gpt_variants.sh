@@ -2,7 +2,7 @@
 source tests/common.sh
 wait_for_qemu_start
 
-$PB part --install --part 1eacedf3-3790-48c7-8ed8-9188ff49672b --variant 1 --transport socket
+$PB -t socket part install 1eacedf3-3790-48c7-8ed8-9188ff49672b --variant 1
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -12,7 +12,7 @@ fi
 
 # Reset
 echo "Reset"
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -37,7 +37,7 @@ wait_for_qemu_start
 
 echo "Installing table variant 2"
 
-$PB part --install --part 1eacedf3-3790-48c7-8ed8-9188ff49672b --variant 2 --transport socket
+$PB -t socket part install 1eacedf3-3790-48c7-8ed8-9188ff49672b --variant 2
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -47,7 +47,7 @@ fi
 
 # Reset
 echo "Reset"
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -72,17 +72,17 @@ wait_for_qemu_start
 
 echo "Installing table variant 3"
 
-$PB part --install --part 1eacedf3-3790-48c7-8ed8-9188ff49672b --variant 3 --transport socket
+$PB -t socket part install 1eacedf3-3790-48c7-8ed8-9188ff49672b --variant 3
 result_code=$?
 
-if [ $result_code -ne 240 ];
+if [ $result_code -ne 1 ];
 then
     echo "Unexpected error code ($result_code)"
     test_end_error
 fi
 
 echo "Reset"
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -98,7 +98,7 @@ wait_for_qemu_start
 
 echo "Installing table variant 0"
 
-$PB part --install --part 1eacedf3-3790-48c7-8ed8-9188ff49672b --variant 0 --transport socket
+$PB -t socket part install 1eacedf3-3790-48c7-8ed8-9188ff49672b --variant 0
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -108,7 +108,7 @@ fi
 
 # Reset
 echo "Reset"
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];

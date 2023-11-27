@@ -42,10 +42,10 @@ fi
 # Loading image to ram and execute should fail because it
 # overlaps with bootloader .text region
 
-$PB boot --load /tmp/img.bpak --transport socket
+$PB -t socket boot bpak /tmp/img.bpak
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 1 ];
 then
     echo "result_code = $result_code"
     test_end_error

@@ -25,8 +25,7 @@ part_b_sha256=$(sha256sum /tmp/part_data_b | cut -d ' ' -f 1)
 echo About to write data
 # Flash data
 echo Writing part 0
-$PB part --write /tmp/part_data_a --part 2af755d8-8de5-45d5-a862-014cfa735ce0 \
-            --transport socket
+$PB -t socket part write /tmp/part_data_a 2af755d8-8de5-45d5-a862-014cfa735ce0
 
 result_code=$?
 
@@ -38,8 +37,7 @@ then
     test_end_error
 fi
 echo Writing part 1
-$PB part --write /tmp/part_data_b --part c046ccd8-0f2e-4036-984d-76c14dc73992 \
-            --transport socket
+$PB -t socket part write /tmp/part_data_b c046ccd8-0f2e-4036-984d-76c14dc73992
 
 result_code=$?
 

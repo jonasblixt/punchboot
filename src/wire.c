@@ -11,6 +11,14 @@
 #include <pb-tools/wire.h>
 #include <pb-tools/error.h>
 
+bool pb_wire_valid_result(struct pb_result *result)
+{
+    if (result->magic != PB_WIRE_MAGIC)
+        return false;
+
+    return true;
+}
+
 int pb_wire_init_result(struct pb_result *result,
                                 enum pb_results result_code)
 {
@@ -36,6 +44,29 @@ int pb_wire_init_result2(struct pb_result *result,
     return PB_RESULT_OK;
 }
 
+int pb_wire_init_command(struct pb_command *command, enum pb_commands command_code)
+{
+    memset(command, 0, sizeof(*command));
+    command->magic = PB_WIRE_MAGIC;
+    command->command = (uint8_t)command_code;
+
+    return PB_RESULT_OK;
+}
+
+int pb_wire_init_command2(struct pb_command *command,
+                          enum pb_commands command_code,
+                          void *data,
+                          size_t size)
+{
+    pb_wire_init_command(command, command_code);
+
+    if (size > PB_COMMAND_REQUEST_MAX_SIZE)
+        return -PB_RESULT_NO_MEMORY;
+
+    memcpy(command->request, data, size);
+
+    return PB_RESULT_OK;
+}
 const char *pb_wire_command_string(enum pb_commands cmd)
 {
     return "";

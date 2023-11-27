@@ -26,6 +26,6 @@ enum pb_results
     PB_RESULT_END,              /* Sentinel */
 };
 
-const char *pb_error_string(enum pb_results result);
+const char *pb_error_string(int result);
 
 #endif  // INCLUDE_PB_ERROR_H_

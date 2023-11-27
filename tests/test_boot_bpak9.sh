@@ -39,10 +39,10 @@ fi
 
 # Flashing image, should fail since image is larger then partition
 echo Booting system A
-$PB boot --boot $BOOT_A --transport socket
+$PB -t socket boot partition $BOOT_A
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 1 ];
 then
     test_end_error
 fi

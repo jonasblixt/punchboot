@@ -30,8 +30,7 @@ $BPAK set $IMG --key-id pb-development \
 $BPAK sign $IMG --key pki/secp256r1-key-pair2.pem
 set +e
 
-$PB part --write /tmp/img.bpak --part 2af755d8-8de5-45d5-a862-014cfa735ce0 \
-            --transport socket
+$PB -t socket part write /tmp/img.bpak 2af755d8-8de5-45d5-a862-014cfa735ce0
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -40,10 +39,10 @@ then
 fi
 
 # This should fail since we signed with an incorrect key
-$PB boot --boot 2af755d8-8de5-45d5-a862-014cfa735ce0 --transport socket
+$PB -t socket boot partition 2af755d8-8de5-45d5-a862-014cfa735ce0
 result_code=$?
 
-if [ $result_code -ne 254 ];
+if [ $result_code -ne 1 ];
 then
     echo "Result code: $result_code"
     test_end_error
