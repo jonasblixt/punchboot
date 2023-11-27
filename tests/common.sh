@@ -49,7 +49,7 @@ force_recovery_mode_off()
 
 auth()
 {
-    $PB auth --token 02e49231-756e-35ee-a982-378e5ba866a9.token --key-id 0xa90f9680 --transport socket
+    $PB -t socket auth token 02e49231-756e-35ee-a982-378e5ba866a9.token pb-development
 }
 
 wait_for_qemu_start()
@@ -57,7 +57,7 @@ wait_for_qemu_start()
     while true;
     do
         sleep 0.1
-        $PB dev --transport socket --show > /dev/null 2>&1
+        $PB -t socket dev show > /dev/null 2>&1
         if [ $? -eq 0 ];
         then
             break;
@@ -80,7 +80,7 @@ wait_for_qemu()
 test_end_error()
 {
     echo ------- ITEST END ERROR: $TEST_NAME ------------------------
-    $PB dev --transport socket --reset
+    $PB -t socket dev reset
     wait_for_qemu
     exit -1
 }
@@ -89,7 +89,7 @@ test_end_ok()
 {
 
     echo ------- ITEST END OK: $TEST_NAME ---------------------------
-    $PB dev --transport socket --reset
+    $PB -t socket dev reset
     wait_for_qemu
 }
 

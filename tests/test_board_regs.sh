@@ -15,7 +15,7 @@ dd if=/tmp/pb_config_backup of=$CONFIG_QEMU_VIRTIO_DISK bs=512 count=1 seek=2083
 
 # Reset
 sync
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -32,7 +32,7 @@ dd if=$CONFIG_QEMU_VIRTIO_DISK of=/tmp/pb_config_primary bs=512 count=1 skip=208
 dd if=$CONFIG_QEMU_VIRTIO_DISK of=/tmp/pb_config_backup bs=512 count=1 skip=2083
 
 echo "Sending reset"
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 wait_for_qemu
 
 $PBSTATE -p /tmp/pb_config_primary -b /tmp/pb_config_backup --info

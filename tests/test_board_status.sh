@@ -2,9 +2,7 @@
 source tests/common.sh
 wait_for_qemu_start
 
-$PB board --show \
-          --transport socket
-
+$PB -t socket board status
 result_code=$?
 
 if [ $result_code -ne 0 ];

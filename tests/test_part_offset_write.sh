@@ -6,7 +6,7 @@ wait_for_qemu_start
 dd if=/dev/urandom of=/tmp/random_data bs=512 count=1
 first_sha256=$(sha256sum /tmp/random_data | cut -d ' ' -f 1)
 
-$PB part --write /tmp/random_data --part $BOOT_A --offset 1000 --transport socket
+$PB -t socket part write --offset 1000 /tmp/random_data $BOOT_A
 result_code=$? 
 
 if [ $result_code -ne 0 ];

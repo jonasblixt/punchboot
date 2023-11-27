@@ -5,12 +5,10 @@ V=-vvvvv
 
 echo Dumping data
 
-$PB part --dump /tmp/dump_data_test --part 2af755d8-8de5-45d5-a862-014cfa735ce0 \
-            --transport socket $V
-
+$PB -t socket part read 2af755d8-8de5-45d5-a862-014cfa735ce0 /tmp/dump_data_test
 result_code=$?
 
-if [ $result_code -ne 239 ];
+if [ $result_code -ne 1 ];
 then
     echo
     echo Unexpected result code $result_code

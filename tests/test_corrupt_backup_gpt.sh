@@ -2,9 +2,9 @@
 source tests/common.sh
 wait_for_qemu_start
 
-$PB part -i --transport socket
+$PB -t socket part install
 # Reset
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];

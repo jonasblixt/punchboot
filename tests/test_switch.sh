@@ -37,7 +37,7 @@ then
 fi
 echo Flashing sys A
 
-$PB part --write /tmp/img.bpak --part $BOOT_A --transport socket
+$PB -t socket part write /tmp/img.bpak $BOOT_A
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -46,7 +46,7 @@ then
 fi
 
 echo Flashing sys B
-$PB part --write /tmp/img.bpak --part $BOOT_B --transport socket
+$PB -t socket part write /tmp/img.bpak $BOOT_B
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -74,7 +74,7 @@ dd if=/tmp/pb_config_backup of=$CONFIG_QEMU_VIRTIO_DISK bs=512 count=1 seek=2083
 # Reset
 force_recovery_mode_off
 sync
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];

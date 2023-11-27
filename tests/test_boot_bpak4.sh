@@ -29,7 +29,7 @@ $BPAK set $IMG --key-id pb-development \
 $BPAK sign $IMG --key pki/secp256r1-key-pair.pem
 set +e
 
-$PB part --write /tmp/img.bpak --part $BOOT_B --transport socket
+$PB -t socket part write /tmp/img.bpak $BOOT_B
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -76,10 +76,10 @@ fi
 
 # Flashing image should fail since it is to big
 echo "Flashing A"
-$PB part --write /tmp/img.bpak --part $BOOT_A --transport socket
+$PB -t socket part write /tmp/img.bpak $BOOT_A
 result_code=$?
 
-if [ $result_code -ne 239 ];
+if [ $result_code -ne 1 ];
 then
     echo "Result code $result_code"
     test_end_error
@@ -87,7 +87,7 @@ fi
 
 # System B partition should still be intact
 echo "Booting B"
-$PB boot --boot $BOOT_B --transport socket
+$PB -t socket boot partition $BOOT_B
 result_code=$?
 
 if [ $result_code -ne 0 ];

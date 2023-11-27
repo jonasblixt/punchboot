@@ -17,7 +17,7 @@ fi
 dd if=/dev/urandom of=$CONFIG_QEMU_VIRTIO_DISK bs=128 skip=2 conv=notrunc count=1
 
 # Reset
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];

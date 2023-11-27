@@ -37,10 +37,10 @@ then
     test_end_error
 fi
 
-$PB boot --load /tmp/img.bpak --transport socket
+$PB -t socket boot bpak /tmp/img.bpak
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 1 ];
 then
     test_end_error
 fi

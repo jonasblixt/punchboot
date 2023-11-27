@@ -1,0 +1,8 @@
+#ifndef INCLUDE_PB_USB_TRANSPORT_H_
+#define INCLUDE_PB_USB_TRANSPORT_H_
+
+#include "api.h"
+
+int pb_usb_transport_init(struct pb_context *ctx, const char *device_uuid);
+
+#endif // INCLUDE_PB_USB_TRANSPORT_H_

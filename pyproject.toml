@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100
+extend-exclude = [
+    "src",
+    "doc",
+    "include",
+    "lib",
+]
+
+[tool.ruff.lint]
+select = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.mypy]
+warn_return_any = true
+exclude = [
+    "^build.*",
+]
