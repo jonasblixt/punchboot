@@ -86,7 +86,7 @@ enum pb_commands
     PB_CMD_STREAM_WRITE_BUFFER,
     PB_CMD_STREAM_FINALIZE,
     PB_CMD_BOOT_PART,
-    PB_CMD_BOOT_RAM,
+    PB_CMD_BOOT_BPAK,
     PB_CMD_BOARD_COMMAND,
     PB_CMD_BOARD_STATUS_READ,
     PB_CMD_STREAM_READ_BUFFER,
@@ -354,7 +354,7 @@ struct pb_command_boot_part
  *
  * A bpak image is transfered to ram and executed
  */
-struct pb_command_ram_boot
+struct pb_command_bpak_boot
 {
     uint8_t verbose;    /*!< Verbose boot output */
     uint8_t uuid[16];   /*!< Make it look like we are booting this part */
