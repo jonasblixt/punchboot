@@ -504,28 +504,28 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
-static int ram_boot_read_f(int block_offset, size_t length, void *buf)
+static int bpak_boot_read_f(int block_offset, size_t length, void *buf)
 {
     (void) block_offset;
     return cfg->tops.read(buf, length);
 }
 
-static int ram_boot_result_f(int rc)
+static int bpak_boot_result_f(int rc)
 {
     LOG_DBG("%i", rc);
     pb_wire_init_result(&result, error_to_wire(rc));
     return cfg->tops.write(&result, sizeof(result));
 }
 
-static int cmd_boot_ram(void)
+static int cmd_boot_bpak(void)
 {
     int rc;
-    struct pb_command_ram_boot *ram_boot_cmd = \
-                       (struct pb_command_ram_boot *) &cmd.request;
+    struct pb_command_bpak_boot *bpak_boot_cmd = \
+                       (struct pb_command_bpak_boot *) &cmd.request;
 
     boot_clear_set_flags(0,
             BOOT_FLAG_CMD |
-            (ram_boot_cmd->verbose?BOOT_FLAG_VERBOSE:0));
+            (bpak_boot_cmd->verbose?BOOT_FLAG_VERBOSE:0));
 
     pb_wire_init_result(&result, PB_RESULT_OK);
     rc = cfg->tops.write(&result, sizeof(result));
@@ -534,10 +534,10 @@ static int cmd_boot_ram(void)
         return rc;
 
     boot_set_source(BOOT_SOURCE_CB);
-    boot_configure_load_cb(ram_boot_read_f,
-                           ram_boot_result_f);
+    boot_configure_load_cb(bpak_boot_read_f,
+                           bpak_boot_result_f);
 
-    return boot(ram_boot_cmd->uuid);
+    return boot(bpak_boot_cmd->uuid);
 }
 
 static int cmd_slc_read(void)
@@ -682,8 +682,8 @@ static int pb_command_parse(void)
             pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
         }
         break;
-        case PB_CMD_BOOT_RAM:
-            rc = cmd_boot_ram();
+        case PB_CMD_BOOT_BPAK:
+            rc = cmd_boot_bpak();
             return rc; /* Should not return, we should not try to send a result */
         break;
         case PB_CMD_PART_TBL_INSTALL: /* Deprecated */
