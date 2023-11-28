@@ -26,3 +26,8 @@ exclude = [
     "^doc.*",
     "^scripts/menuconfig\\.py$"
 ]
+
+[tool.cibuildwheel.linux]
+before-all = "yum install -y libusbx-devel"
+skip = "*-manylinux_i686 pp* *-musllinux*"
+archs = ["auto"]
