@@ -8,7 +8,7 @@ Q ?= @
 
 # Default settings and apps
 TARGET  = pb
-PB_VERSION = 1.1.1
+PB_VERSION = $(shell cat version.txt)
 BPAK ?= $(shell which bpak)
 KEYSTORE_BPAK ?= pki/internal_keystore.bpak
 PYTHON ?= $(shell which python3)
