@@ -10,10 +10,10 @@
 #ifndef INCLUDE_BOOT_H
 #define INCLUDE_BOOT_H
 
-#include <pb/utils_def.h>
-#include <uuid.h>
 #include <bpak/bpak.h>
 #include <pb/bio.h>
+#include <pb/utils_def.h>
+#include <uuid.h>
 
 /* TODO: Write a note about the bpak block size of 512 bytes */
 typedef int (*boot_read_cb_t)(int block_offset, size_t length, void *buf);
@@ -21,11 +21,11 @@ typedef int (*boot_result_cb_t)(int result);
 
 /** Boot sources */
 enum boot_source {
-    BOOT_SOURCE_INVALID = 0,  /*!< Invalid boot mode */
-    BOOT_SOURCE_BIO,          /*!< Load from block device */
-    BOOT_SOURCE_IN_MEM,       /*!< Authenticate and verify a pre-loaded image */
-    BOOT_SOURCE_CB,           /*!< Load through callback functions */
-    BOOT_SOURCE_CUSTOM,       /*!< Authenticate using a custom callback */
+    BOOT_SOURCE_INVALID = 0, /*!< Invalid boot mode */
+    BOOT_SOURCE_BIO, /*!< Load from block device */
+    BOOT_SOURCE_IN_MEM, /*!< Authenticate and verify a pre-loaded image */
+    BOOT_SOURCE_CB, /*!< Load through callback functions */
+    BOOT_SOURCE_CUSTOM, /*!< Authenticate using a custom callback */
     BOOT_SOURCE_END,
 };
 
@@ -45,8 +45,7 @@ enum boot_source {
 #define BOOT_FLAG_CMD     BIT(0)
 #define BOOT_FLAG_VERBOSE BIT(1)
 
-struct boot_driver
-{
+struct boot_driver {
     enum boot_source default_boot_source;
     int (*early_boot_cb)(void);
     bio_dev_t (*get_boot_bio_device)(void);
@@ -99,8 +98,7 @@ int boot_set_source(enum boot_source source);
  * @param[in] result_f Optional result function callback
  *
  */
-void boot_configure_load_cb(boot_read_cb_t read_f,
-                           boot_result_cb_t result_f);
+void boot_configure_load_cb(boot_read_cb_t read_f, boot_result_cb_t result_f);
 
 /**
  * Clear and/or Set flags
@@ -155,7 +153,6 @@ void boot_get_boot_partition(uuid_t part_uu);
  * @return This function will not return on sucess
  */
 int boot(uuid_t boot_part_override_uu);
-
 
 int boot_load(uuid_t boot_part_override_uu);
 int boot_jump(void);

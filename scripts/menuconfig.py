@@ -195,7 +195,8 @@ try:
 except ImportError as e:
     if not _IS_WINDOWS:
         raise
-    sys.exit("""\
+    sys.exit(
+        """\
 menuconfig failed to import the standard Python 'curses' library. Try
 installing a package like windows-curses
 (https://github.com/zephyrproject-rtos/windows-curses) by running this command
@@ -208,20 +209,38 @@ installed when installing Kconfiglib via pip on Windows (because it breaks
 installation on MSYS2).
 
 Exception:
-{}: {}""".format(type(e).__name__, e))
+{}: {}""".format(
+            type(e).__name__, e
+        )
+    )
 
 import errno
 import locale
 import re
 import textwrap
 
-from kconfiglib import Symbol, Choice, MENU, COMMENT, MenuNode, \
-                       BOOL, TRISTATE, STRING, INT, HEX, \
-                       AND, OR, \
-                       expr_str, expr_value, split_expr, \
-                       standard_sc_expr_str, \
-                       TRI_TO_STR, TYPE_TO_STR, \
-                       standard_kconfig, standard_config_filename
+from kconfiglib import (
+    Symbol,
+    Choice,
+    MENU,
+    COMMENT,
+    MenuNode,
+    BOOL,
+    TRISTATE,
+    STRING,
+    INT,
+    HEX,
+    AND,
+    OR,
+    expr_str,
+    expr_value,
+    split_expr,
+    standard_sc_expr_str,
+    TRI_TO_STR,
+    TYPE_TO_STR,
+    standard_kconfig,
+    standard_config_filename,
+)
 
 
 #
@@ -263,12 +282,20 @@ _MAIN_HELP_LINES = """
 [O] Load                    [?] Symbol info            [/] Jump to symbol
 [F] Toggle show-help mode   [C] Toggle show-name mode  [A] Toggle show-all mode
 [Q] Quit (prompts for save) [D] Save minimal config (advanced)
-"""[1:-1].split("\n")
+"""[
+    1:-1
+].split(
+    "\n"
+)
 
 # Lines of help text shown at the bottom of the information dialog
 _INFO_HELP_LINES = """
 [ESC/q] Return to menu      [/] Jump to symbol
-"""[1:-1].split("\n")
+"""[
+    1:-1
+].split(
+    "\n"
+)
 
 # Lines of help text shown at the bottom of the search dialog
 _JUMP_TO_HELP_LINES = """
@@ -277,7 +304,11 @@ module). The up/down cursor keys step in the list. [Enter] jumps to the
 selected symbol. [ESC] aborts the search. Type multiple space-separated
 strings/regexes to find entries that match all of them. Type Ctrl-F to
 view the help of the selected item without leaving the dialog.
-"""[1:-1].split("\n")
+"""[
+    1:-1
+].split(
+    "\n"
+)
 
 #
 # Styling
@@ -299,7 +330,6 @@ _STYLES = {
     jump-edit=edit
     text=list
     """,
-
     # This style is forced on terminals that do no support colors
     "monochrome": """
     path=bold
@@ -316,7 +346,6 @@ _STYLES = {
     jump-edit=
     text=
     """,
-
     # Blue-tinted style loosely resembling lxdialog
     "aquatic": """
     path=fg:white,bg:blue
@@ -325,33 +354,31 @@ _STYLES = {
     frame=fg:white,bg:cyan
     body=fg:white,bg:blue
     edit=fg:black,bg:white
-    """
+    """,
 }
 
 _NAMED_COLORS = {
     # Basic colors
-    "black":         curses.COLOR_BLACK,
-    "red":           curses.COLOR_RED,
-    "green":         curses.COLOR_GREEN,
-    "yellow":        curses.COLOR_YELLOW,
-    "blue":          curses.COLOR_BLUE,
-    "magenta":       curses.COLOR_MAGENTA,
-    "cyan":          curses.COLOR_CYAN,
-    "white":         curses.COLOR_WHITE,
-
+    "black": curses.COLOR_BLACK,
+    "red": curses.COLOR_RED,
+    "green": curses.COLOR_GREEN,
+    "yellow": curses.COLOR_YELLOW,
+    "blue": curses.COLOR_BLUE,
+    "magenta": curses.COLOR_MAGENTA,
+    "cyan": curses.COLOR_CYAN,
+    "white": curses.COLOR_WHITE,
     # Bright versions
-    "brightblack":   curses.COLOR_BLACK + 8,
-    "brightred":     curses.COLOR_RED + 8,
-    "brightgreen":   curses.COLOR_GREEN + 8,
-    "brightyellow":  curses.COLOR_YELLOW + 8,
-    "brightblue":    curses.COLOR_BLUE + 8,
+    "brightblack": curses.COLOR_BLACK + 8,
+    "brightred": curses.COLOR_RED + 8,
+    "brightgreen": curses.COLOR_GREEN + 8,
+    "brightyellow": curses.COLOR_YELLOW + 8,
+    "brightblue": curses.COLOR_BLUE + 8,
     "brightmagenta": curses.COLOR_MAGENTA + 8,
-    "brightcyan":    curses.COLOR_CYAN + 8,
-    "brightwhite":   curses.COLOR_WHITE + 8,
-
+    "brightcyan": curses.COLOR_CYAN + 8,
+    "brightwhite": curses.COLOR_WHITE + 8,
     # Aliases
-    "purple":        curses.COLOR_MAGENTA,
-    "brightpurple":  curses.COLOR_MAGENTA + 8,
+    "purple": curses.COLOR_MAGENTA,
+    "brightpurple": curses.COLOR_MAGENTA + 8,
 }
 
 
@@ -368,13 +395,13 @@ def _rgb_to_6cube(rgb):
     #   https://github.com/tmux/tmux/blob/master/colour.c
 
     # 48 is the middle ground between 0 and 95.
-    return tuple(0 if x < 48 else int(round(max(1, (x - 55)/40))) for x in rgb)
+    return tuple(0 if x < 48 else int(round(max(1, (x - 55) / 40))) for x in rgb)
 
 
 def _6cube_to_rgb(r6g6b6):
     # Returns the 888 RGB color for a 666 xterm color cube index
 
-    return tuple(0 if x == 0 else 40*x + 55 for x in r6g6b6)
+    return tuple(0 if x == 0 else 40 * x + 55 for x in r6g6b6)
 
 
 def _rgb_to_gray(rgb):
@@ -385,11 +412,11 @@ def _rgb_to_gray(rgb):
     #   https://stackoverflow.com/questions/596216/formula-to-determine-brightness-of-rgb-color
     # and
     #   https://www.w3.org/TR/AERT/#color-contrast
-    luma = 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]
+    luma = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
 
     # Closest index in the grayscale palette, which starts at RGB 0x080808,
     # with stepping 0x0A0A0A
-    index = int(round((luma - 8)/10))
+    index = int(round((luma - 8) / 10))
 
     # Clamp the index to 0-23, corresponding to 232-255
     return max(0, min(index, 23))
@@ -398,7 +425,7 @@ def _rgb_to_gray(rgb):
 def _gray_to_rgb(index):
     # Convert a grayscale index to its closet single RGB component
 
-    return 3*(10*index + 8,)  # Returns a 3-tuple
+    return 3 * (10 * index + 8,)  # Returns a 3-tuple
 
 
 # Obscure Python: We never pass a value for rgb2index, and it keeps pointing to
@@ -423,13 +450,12 @@ def _alloc_rgb(rgb, rgb2index={}):
     # changing their values.
     color_index = 16 + len(rgb2index)
     if color_index >= 256:
-        _warn("Unable to allocate new RGB color ", rgb, ". Too many colors "
-              "allocated.")
+        _warn("Unable to allocate new RGB color ", rgb, ". Too many colors " "allocated.")
         return 0
 
     # Map each RGB component from the range 0-255 to the range 0-1000, which is
     # what curses uses
-    curses.init_color(color_index, *(int(round(1000*x/255)) for x in rgb))
+    curses.init_color(color_index, *(int(round(1000 * x / 255)) for x in rgb))
     rgb2index[rgb] = color_index
 
     return color_index
@@ -446,8 +472,7 @@ def _color_from_num(num):
     # - If the terminal doesn't support changing color definitions, or if
     #   curses.COLORS < 256, _alloc_rgb() won't touch any color, and all colors
     #   can be returned as-is
-    if num < 16 or num > 255 or not curses.can_change_color() or \
-       curses.COLORS < 256:
+    if num < 16 or num > 255 or not curses.can_change_color() or curses.COLORS < 256:
         return num
 
     # _alloc_rgb() might redefine colors, so emulate the xterm 256-color
@@ -456,7 +481,7 @@ def _color_from_num(num):
 
     if num < 232:
         num -= 16
-        return _alloc_rgb(_6cube_to_rgb(((num//36)%6, (num//6)%6, num%6)))
+        return _alloc_rgb(_6cube_to_rgb(((num // 36) % 6, (num // 6) % 6, num % 6)))
 
     return _alloc_rgb(_gray_to_rgb(num - 232))
 
@@ -467,7 +492,8 @@ def _color_from_rgb(rgb):
     # terminal capabilities.
 
     # Calculates the Euclidean distance between two RGB colors
-    def dist(r1, r2): return sum((x - y)**2 for x, y in zip(r1, r2))
+    def dist(r1, r2):
+        return sum((x - y) ** 2 for x, y in zip(r1, r2))
 
     if curses.COLORS >= 256:
         # Assume we're dealing with xterm's 256-color extension
@@ -488,19 +514,18 @@ def _color_from_rgb(rgb):
         if dist(rgb, _6cube_to_rgb(c6)) < dist(rgb, _gray_to_rgb(gray)):
             # Use the "color" color from the 6x6x6 color palette. Calculate the
             # color number from the 6-cube index triplet.
-            return 16 + 36*c6[0] + 6*c6[1] + c6[2]
+            return 16 + 36 * c6[0] + 6 * c6[1] + c6[2]
 
         # Use the color from the gray palette
         return 232 + gray
 
     # Terminal not in xterm 256-color mode. This is probably the best we can
     # do, or is it? Submit patches. :)
-    min_dist = float('inf')
+    min_dist = float("inf")
     best = -1
     for color in range(curses.COLORS):
         # ncurses uses the range 0..1000. Scale that down to 0..255.
-        d = dist(rgb, tuple(int(round(255*c/1000))
-                            for c in curses.color_content(color)))
+        d = dist(rgb, tuple(int(round(255 * c / 1000)) for c in curses.color_content(color)))
         if d < min_dist:
             min_dist = d
             best = color
@@ -542,6 +567,7 @@ def _parse_style(style_str, parsing_default):
         else:
             _warn("Ignoring non-existent style template", sline)
 
+
 # Dictionary mapping element types to the curses attributes used to display
 # them
 _style = {}
@@ -556,10 +582,9 @@ def _style_to_curses(style_def):
 
         # HTML format, #RRGGBB
         if re.match("#[A-Fa-f0-9]{6}", color_def):
-            return _color_from_rgb((
-                int(color_def[1:3], 16),
-                int(color_def[3:5], 16),
-                int(color_def[5:7], 16)))
+            return _color_from_rgb(
+                (int(color_def[1:3], 16), int(color_def[3:5], 16), int(color_def[5:7], 16))
+            )
 
         if color_def in _NAMED_COLORS:
             color_num = _color_from_num(_NAMED_COLORS[color_def])
@@ -567,14 +592,14 @@ def _style_to_curses(style_def):
             try:
                 color_num = _color_from_num(int(color_def, 0))
             except ValueError:
-                _warn("Ignoring color", color_def, "that's neither "
-                      "predefined nor a number")
+                _warn("Ignoring color", color_def, "that's neither " "predefined nor a number")
                 return -1
 
         if not -1 <= color_num < curses.COLORS:
-            _warn("Ignoring color {}, which is outside the range "
-                  "-1..curses.COLORS-1 (-1..{})"
-                  .format(color_def, curses.COLORS - 1))
+            _warn(
+                "Ignoring color {}, which is outside the range "
+                "-1..curses.COLORS-1 (-1..{})".format(color_def, curses.COLORS - 1)
+            )
             return -1
 
         return color_num
@@ -648,8 +673,7 @@ def _style_attr(fg_color, bg_color, attribs, color_attribs={}):
         # Create new color pair. Color pair number 0 is hardcoded and cannot be
         # changed, hence the +1s.
         curses.init_pair(len(color_attribs) + 1, fg_color, bg_color)
-        color_attribs[(fg_color, bg_color)] = \
-            curses.color_pair(len(color_attribs) + 1)
+        color_attribs[(fg_color, bg_color)] = curses.color_pair(len(color_attribs) + 1)
 
     return color_attribs[(fg_color, bg_color)] | attribs
 
@@ -695,8 +719,10 @@ def menuconfig(kconf):
         if not _shown_nodes(kconf.top_node):
             # Give up. The implementation relies on always having a selected
             # node.
-            print("Empty configuration -- nothing to configure.\n"
-                  "Check that environment variables are set properly.")
+            print(
+                "Empty configuration -- nothing to configure.\n"
+                "Check that environment variables are set properly."
+            )
             return
 
     # Disable warnings. They get mangled in curses mode, and we deal with
@@ -831,7 +857,6 @@ def _menuconfig(stdscr):
         _draw_main()
         curses.doupdate()
 
-
         c = _getch_compat(_menu_win)
 
         if c == curses.KEY_RESIZE:
@@ -880,9 +905,14 @@ def _menuconfig(stdscr):
         elif c in ("y", "Y"):
             _set_sel_node_tri_val(2)
 
-        elif c in (curses.KEY_LEFT, curses.KEY_BACKSPACE, _ERASE_CHAR,
-                   "\x1B", "h", "H"):  # \x1B = ESC
-
+        elif c in (
+            curses.KEY_LEFT,
+            curses.KEY_BACKSPACE,
+            _ERASE_CHAR,
+            "\x1B",
+            "h",
+            "H",
+        ):  # \x1B = ESC
             if c == "\x1B" and _cur_menu is _kconf.top_node:
                 res = _quit_dialog()
                 if res:
@@ -894,15 +924,15 @@ def _menuconfig(stdscr):
             _load_dialog()
 
         elif c in ("s", "S"):
-            filename = _save_dialog(_kconf.write_config, _conf_filename,
-                                    "configuration")
+            filename = _save_dialog(_kconf.write_config, _conf_filename, "configuration")
             if filename:
                 _conf_filename = filename
                 _conf_changed = False
 
         elif c in ("d", "D"):
-            filename = _save_dialog(_kconf.write_min_config, _minconf_filename,
-                                    "minimal configuration")
+            filename = _save_dialog(
+                _kconf.write_min_config, _minconf_filename, "minimal configuration"
+            )
             if filename:
                 _minconf_filename = filename
 
@@ -940,12 +970,7 @@ def _quit_dialog():
         return "No changes to save (for '{}')".format(_conf_filename)
 
     while True:
-        c = _key_dialog(
-            "Quit",
-            " Save configuration?\n"
-            "\n"
-            "(Y)es  (N)o  (C)ancel",
-            "ync")
+        c = _key_dialog("Quit", " Save configuration?\n" "\n" "(Y)es  (N)o  (C)ancel", "ync")
 
         if c is None or c == "c":
             return None
@@ -1043,8 +1068,7 @@ def _resize_main():
     _top_sep_win.resize(1, screen_width)
     _bot_sep_win.resize(1, screen_width)
 
-    help_win_height = _SHOW_HELP_HEIGHT if _show_help else \
-        len(_MAIN_HELP_LINES)
+    help_win_height = _SHOW_HELP_HEIGHT if _show_help else len(_MAIN_HELP_LINES)
 
     menu_win_height = screen_height - help_win_height - 3
 
@@ -1153,8 +1177,7 @@ def _jump_to(node):
     _parent_screen_rows = []
 
     old_show_all = _show_all
-    jump_into = (isinstance(node.item, Choice) or node.item == MENU) and \
-                node.list
+    jump_into = (isinstance(node.item, Choice) or node.item == MENU) and node.list
 
     # If we're jumping to a non-empty choice or menu, jump to the first entry
     # in it instead of jumping to its menu node
@@ -1233,9 +1256,9 @@ def _select_next_menu_entry():
         # (as determined by _SCROLL_OFFSET), increase the scroll by one. This
         # gives nice and non-jumpy behavior even when
         # _SCROLL_OFFSET >= _height(_menu_win).
-        if _sel_node_i >= _menu_scroll + _height(_menu_win) - _SCROLL_OFFSET \
-           and _menu_scroll < _max_scroll(_shown, _menu_win):
-
+        if _sel_node_i >= _menu_scroll + _height(
+            _menu_win
+        ) - _SCROLL_OFFSET and _menu_scroll < _max_scroll(_shown, _menu_win):
             _menu_scroll += 1
 
 
@@ -1303,7 +1326,7 @@ def _toggle_show_all():
     else:
         # No visible nodes before the previously selected node. Select the
         # closest visible node after it instead.
-        for node in _shown[_sel_node_i + 1:]:
+        for node in _shown[_sel_node_i + 1 :]:
             if node in new_shown:
                 _sel_node_i = new_shown.index(node)
                 break
@@ -1326,8 +1349,9 @@ def _center_vertically():
 
     global _menu_scroll
 
-    _menu_scroll = min(max(_sel_node_i - _height(_menu_win)//2, 0),
-                       _max_scroll(_shown, _menu_win))
+    _menu_scroll = min(
+        max(_sel_node_i - _height(_menu_win) // 2, 0), _max_scroll(_shown, _menu_win)
+    )
 
 
 def _draw_main():
@@ -1351,9 +1375,9 @@ def _draw_main():
         _safe_hline(_top_sep_win, 0, 4, curses.ACS_UARROW, _N_SCROLL_ARROWS)
 
     # Add the 'mainmenu' text as the title, centered at the top
-    _safe_addstr(_top_sep_win,
-                 0, max((term_width - len(_kconf.mainmenu_text))//2, 0),
-                 _kconf.mainmenu_text)
+    _safe_addstr(
+        _top_sep_win, 0, max((term_width - len(_kconf.mainmenu_text)) // 2, 0), _kconf.mainmenu_text
+    )
 
     _top_sep_win.noutrefresh()
 
@@ -1367,9 +1391,7 @@ def _draw_main():
 
     # Draw the _shown nodes starting from index _menu_scroll up to either as
     # many as fit in the window, or to the end of _shown
-    for i in range(_menu_scroll,
-                   min(_menu_scroll + _height(_menu_win), len(_shown))):
-
+    for i in range(_menu_scroll, min(_menu_scroll + _height(_menu_win), len(_shown))):
         node = _shown[i]
 
         # The 'not _show_all' test avoids showing invisible items in red
@@ -1449,8 +1471,7 @@ def _draw_main():
         # Promptless choices can be entered in show-all mode. Use
         # standard_sc_expr_str() for them, so they show up as
         # '<choice (name if any)>'.
-        menu_prompts.append(menu.prompt[0] if menu.prompt else
-                            standard_sc_expr_str(menu.item))
+        menu_prompts.append(menu.prompt[0] if menu.prompt else standard_sc_expr_str(menu.item))
         menu = menu.parent
     menu_prompts.append("(Top)")
     menu_prompts.reverse()
@@ -1462,7 +1483,7 @@ def _draw_main():
     # Scroll the menu path to the right if needed to make the current menu's
     # title visible
     if len(menu_path_str) > term_width:
-        menu_path_str = menu_path_str[len(menu_path_str) - term_width:]
+        menu_path_str = menu_path_str[len(menu_path_str) - term_width :]
 
     # Print the path with the arrows reinserted
     split_path = menu_path_str.split("\0")
@@ -1540,8 +1561,7 @@ def _shown_nodes(menu):
         # or part of the choice is copied in multiple locations (e.g. by
         # including some Kconfig file multiple times). We give the prompts at
         # the current location precedence.
-        seen_syms = {node.item for node in rec(menu.list)
-                     if isinstance(node.item, Symbol)}
+        seen_syms = {node.item for node in rec(menu.list) if isinstance(node.item, Symbol)}
         res = []
         for choice_node in menu.item.nodes:
             for node in rec(choice_node.list):
@@ -1560,8 +1580,11 @@ def _visible(node):
     # Returns True if the node should appear in the menu (outside show-all
     # mode)
 
-    return node.prompt and expr_value(node.prompt[1]) and not \
-        (node.item == MENU and not expr_value(node.visibility))
+    return (
+        node.prompt
+        and expr_value(node.prompt[1])
+        and not (node.item == MENU and not expr_value(node.visibility))
+    )
 
 
 def _change_node(node):
@@ -1582,8 +1605,8 @@ def _change_node(node):
 
         while True:
             s = _input_dialog(
-                "{} ({})".format(node.prompt[0], TYPE_TO_STR[sc.orig_type]),
-                s, _range_info(sc))
+                "{} ({})".format(node.prompt[0], TYPE_TO_STR[sc.orig_type]), s, _range_info(sc)
+            )
 
             if s is None:
                 break
@@ -1611,14 +1634,12 @@ def _change_node(node):
         val_index = sc.assignable.index(sc.tri_value)
         _set_val(sc, sc.assignable[(val_index + 1) % len(sc.assignable)])
 
-
     if _is_y_mode_choice_sym(sc) and not node.list:
         # Immediately jump to the parent menu after making a choice selection,
         # like 'make menuconfig' does, except if the menu node has children
         # (which can happen if a symbol 'depends on' a choice symbol that
         # immediately precedes it).
         _leave_menu()
-
 
     return True
 
@@ -1637,8 +1658,7 @@ def _changeable(node):
     if not (node.prompt and expr_value(node.prompt[1])):
         return False
 
-    return sc.orig_type in (STRING, INT, HEX) or len(sc.assignable) > 1 \
-        or _is_y_mode_choice_sym(sc)
+    return sc.orig_type in (STRING, INT, HEX) or len(sc.assignable) > 1 or _is_y_mode_choice_sym(sc)
 
 
 def _set_sel_node_tri_val(tri_val):
@@ -1741,7 +1761,6 @@ def _input_dialog(title, initial_text, info_text=None):
         _draw_input_dialog(win, title, info_lines, s, i, hscroll)
         curses.doupdate()
 
-
         c = _getch_compat(win)
 
         if c == curses.KEY_RESIZE:
@@ -1771,14 +1790,13 @@ def _resize_input_dialog(win, title, info_lines):
         win_height += len(info_lines) + 1
     win_height = min(win_height, screen_height)
 
-    win_width = max(_INPUT_DIALOG_MIN_WIDTH,
-                    len(title) + 4,
-                    *(len(line) + 4 for line in info_lines))
+    win_width = max(
+        _INPUT_DIALOG_MIN_WIDTH, len(title) + 4, *(len(line) + 4 for line in info_lines)
+    )
     win_width = min(win_width, screen_width)
 
     win.resize(win_height, win_width)
-    win.mvwin((screen_height - win_height)//2,
-              (screen_width - win_width)//2)
+    win.mvwin((screen_height - win_height) // 2, (screen_width - win_width) // 2)
 
 
 def _draw_input_dialog(win, title, info_lines, s, i, hscroll):
@@ -1787,9 +1805,8 @@ def _draw_input_dialog(win, title, info_lines, s, i, hscroll):
     win.erase()
 
     # Note: Perhaps having a separate window for the input field would be nicer
-    visible_s = s[hscroll:hscroll + edit_width]
-    _safe_addstr(win, 2, 2, visible_s + " "*(edit_width - len(visible_s)),
-                 _style["edit"])
+    visible_s = s[hscroll : hscroll + edit_width]
+    _safe_addstr(win, 2, 2, visible_s + " " * (edit_width - len(visible_s)), _style["edit"])
 
     for linenr, line in enumerate(info_lines):
         _safe_addstr(win, 4 + linenr, 2, line)
@@ -1816,7 +1833,8 @@ def _load_dialog():
             "configuration anyway?\n"
             "\n"
             "         (O)K  (C)ancel",
-            "oc")
+            "oc",
+        )
 
         if c is None or c == "c":
             return
@@ -1857,8 +1875,11 @@ def _try_load(filename):
         _kconf.load_config(filename)
         return True
     except EnvironmentError as e:
-        _error("Error loading '{}'\n\n{} (errno: {})"
-               .format(filename, e.strerror, errno.errorcode[e.errno]))
+        _error(
+            "Error loading '{}'\n\n{} (errno: {})".format(
+                filename, e.strerror, errno.errorcode[e.errno]
+            )
+        )
         return False
 
 
@@ -1879,8 +1900,9 @@ def _save_dialog(save_fn, default_filename, description):
 
     filename = default_filename
     while True:
-        filename = _input_dialog("Filename to save {} to".format(description),
-                                 filename, _load_save_info())
+        filename = _input_dialog(
+            "Filename to save {} to".format(description), filename, _load_save_info()
+        )
         if filename is None:
             return None
 
@@ -1909,9 +1931,11 @@ def _try_save(save_fn, filename, description):
         # save_fn() returns a message to print
         return save_fn(filename)
     except EnvironmentError as e:
-        _error("Error saving {} to '{}'\n\n{} (errno: {})"
-               .format(description, e.filename, e.strerror,
-                       errno.errorcode[e.errno]))
+        _error(
+            "Error saving {} to '{}'\n\n{} (errno: {})".format(
+                description, e.filename, e.strerror, errno.errorcode[e.errno]
+            )
+        )
         return None
 
 
@@ -1945,7 +1969,6 @@ def _key_dialog(title, text, keys):
         _draw_key_dialog(win, title, text)
         curses.doupdate()
 
-
         c = _getch_compat(win)
 
         if c == curses.KEY_RESIZE:
@@ -1973,8 +1996,7 @@ def _resize_key_dialog(win, text):
     win_width = min(max(len(line) for line in lines) + 4, screen_width)
 
     win.resize(win_height, win_width)
-    win.mvwin((screen_height - win_height)//2,
-              (screen_width - win_width)//2)
+    win.mvwin((screen_height - win_height) // 2, (screen_width - win_width) // 2)
 
 
 def _draw_key_dialog(win, title, text):
@@ -1997,15 +2019,15 @@ def _draw_frame(win, title):
     win.attron(_style["frame"])
 
     # Draw top/bottom edge
-    _safe_hline(win,              0, 0, " ", win_width)
+    _safe_hline(win, 0, 0, " ", win_width)
     _safe_hline(win, win_height - 1, 0, " ", win_width)
 
     # Draw left/right edge
-    _safe_vline(win, 0,             0, " ", win_height)
+    _safe_vline(win, 0, 0, " ", win_height)
     _safe_vline(win, 0, win_width - 1, " ", win_height)
 
     # Draw title
-    _safe_addstr(win, 0, max((win_width - len(title))//2, 0), title)
+    _safe_addstr(win, 0, max((win_width - len(title)) // 2, 0), title)
 
     win.attroff(_style["frame"])
 
@@ -2039,8 +2061,7 @@ def _jump_to_dialog():
     help_win = _styled_win("help")
 
     # Give windows their initial size
-    _resize_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
-                           sel_node_i, scroll)
+    _resize_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win, sel_node_i, scroll)
 
     _safe_curs_set(2)
 
@@ -2052,9 +2073,9 @@ def _jump_to_dialog():
         if sel_node_i == len(matches) - 1:
             return sel_node_i, scroll
 
-        if sel_node_i + 1 >= scroll + _height(matches_win) - _SCROLL_OFFSET \
-           and scroll < _max_scroll(matches, matches_win):
-
+        if sel_node_i + 1 >= scroll + _height(
+            matches_win
+        ) - _SCROLL_OFFSET and scroll < _max_scroll(matches, matches_win):
             return sel_node_i + 1, scroll + 1
 
         return sel_node_i + 1, scroll
@@ -2082,8 +2103,7 @@ def _jump_to_dialog():
                 # matches anywhere in the string.
                 #
                 # It's not horrible either way. Just a bit smoother.
-                regex_searches = [re.compile(regex).search
-                                  for regex in s.lower().split()]
+                regex_searches = [re.compile(regex).search for regex in s.lower().split()]
 
                 # No exception thrown, so the regexes are okay
                 bad_re = None
@@ -2104,9 +2124,12 @@ def _jump_to_dialog():
 
                         # Does the regex match either the symbol name or the
                         # prompt (if any)?
-                        if not (sc.name and search(sc.name.lower()) or
-                                node.prompt and search(node.prompt[0].lower())):
-
+                        if not (
+                            sc.name
+                            and search(sc.name.lower())
+                            or node.prompt
+                            and search(node.prompt[0].lower())
+                        ):
                             # Give up on the first regex that doesn't match, to
                             # speed things up a bit when multiple regexes are
                             # entered
@@ -2136,11 +2159,20 @@ def _jump_to_dialog():
             # Reset scroll and jump to the top of the list of matches
             sel_node_i = scroll = 0
 
-        _draw_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
-                             s, s_i, hscroll,
-                             bad_re, matches, sel_node_i, scroll)
+        _draw_jump_to_dialog(
+            edit_box,
+            matches_win,
+            bot_sep_win,
+            help_win,
+            s,
+            s_i,
+            hscroll,
+            bad_re,
+            matches,
+            sel_node_i,
+            scroll,
+        )
         curses.doupdate()
-
 
         c = _getch_compat(edit_box)
 
@@ -2159,8 +2191,8 @@ def _jump_to_dialog():
             # the list when the terminal is resized, hence the 'scroll'
             # assignment
             scroll = _resize_jump_to_dialog(
-                edit_box, matches_win, bot_sep_win, help_win,
-                sel_node_i, scroll)
+                edit_box, matches_win, bot_sep_win, help_win, sel_node_i, scroll
+            )
 
         elif c == "\x06":  # \x06 = Ctrl-F
             if matches:
@@ -2169,8 +2201,8 @@ def _jump_to_dialog():
                 _safe_curs_set(2)
 
                 scroll = _resize_jump_to_dialog(
-                    edit_box, matches_win, bot_sep_win, help_win,
-                    sel_node_i, scroll)
+                    edit_box, matches_win, bot_sep_win, help_win, sel_node_i, scroll
+                )
 
         elif c == curses.KEY_DOWN:
             sel_node_i, scroll = select_next_match()
@@ -2197,8 +2229,7 @@ def _jump_to_dialog():
             sel_node_i = scroll = 0
 
         else:
-            s, s_i, hscroll = _edit_text(c, s, s_i, hscroll,
-                                         _width(edit_box) - 2)
+            s, s_i, hscroll = _edit_text(c, s, s_i, hscroll, _width(edit_box) - 2)
 
 
 # Obscure Python: We never pass a value for cached_nodes, and it keeps pointing
@@ -2210,19 +2241,18 @@ def _sorted_sc_nodes(cached_nodes=[]):
 
     if not cached_nodes:
         # Add symbol nodes
-        for sym in sorted(_kconf.unique_defined_syms,
-                          key=lambda sym: sym.name):
+        for sym in sorted(_kconf.unique_defined_syms, key=lambda sym: sym.name):
             # += is in-place for lists
             cached_nodes += sym.nodes
 
         # Add choice nodes
 
-        choices = sorted(_kconf.unique_choices,
-                         key=lambda choice: choice.name or "")
+        choices = sorted(_kconf.unique_choices, key=lambda choice: choice.name or "")
 
         cached_nodes += sorted(
             [node for choice in choices for node in choice.nodes],
-            key=lambda node: node.prompt[0] if node.prompt else "")
+            key=lambda node: node.prompt[0] if node.prompt else "",
+        )
 
     return cached_nodes
 
@@ -2232,6 +2262,7 @@ def _sorted_menu_comment_nodes(cached_nodes=[]):
     # with the menus first
 
     if not cached_nodes:
+
         def prompt_text(mc):
             return mc.prompt[0]
 
@@ -2241,8 +2272,7 @@ def _sorted_menu_comment_nodes(cached_nodes=[]):
     return cached_nodes
 
 
-def _resize_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
-                           sel_node_i, scroll):
+def _resize_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win, sel_node_i, scroll):
     # Resizes the jump-to dialog to fill the terminal.
     #
     # Returns the new scroll index. We adjust the scroll if needed so that the
@@ -2282,10 +2312,19 @@ def _resize_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
     return scroll
 
 
-def _draw_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
-                         s, s_i, hscroll,
-                         bad_re, matches, sel_node_i, scroll):
-
+def _draw_jump_to_dialog(
+    edit_box,
+    matches_win,
+    bot_sep_win,
+    help_win,
+    s,
+    s_i,
+    hscroll,
+    bad_re,
+    matches,
+    sel_node_i,
+    scroll,
+):
     edit_width = _width(edit_box) - 2
 
     #
@@ -2295,9 +2334,7 @@ def _draw_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
     matches_win.erase()
 
     if matches:
-        for i in range(scroll,
-                       min(scroll + _height(matches_win), len(matches))):
-
+        for i in range(scroll, min(scroll + _height(matches_win), len(matches))):
             node = matches[i]
 
             if isinstance(node.item, (Symbol, Choice)):
@@ -2309,8 +2346,13 @@ def _draw_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
             else:  # node.item == COMMENT
                 node_str = 'comment "{}"'.format(node.prompt[0])
 
-            _safe_addstr(matches_win, i - scroll, 0, node_str,
-                         _style["selection" if i == sel_node_i else "list"])
+            _safe_addstr(
+                matches_win,
+                i - scroll,
+                0,
+                node_str,
+                _style["selection" if i == sel_node_i else "list"],
+            )
 
     else:
         # bad_re holds the error message from the re.error exception on errors
@@ -2353,10 +2395,9 @@ def _draw_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
     # Draw arrows pointing up if the symbol list is scrolled down
     if scroll > 0:
         # TODO: Bit ugly that _style["frame"] is repeated here
-        _safe_hline(edit_box, 2, 4, curses.ACS_UARROW, _N_SCROLL_ARROWS,
-                    _style["frame"])
+        _safe_hline(edit_box, 2, 4, curses.ACS_UARROW, _N_SCROLL_ARROWS, _style["frame"])
 
-    visible_s = s[hscroll:hscroll + edit_width]
+    visible_s = s[hscroll : hscroll + edit_width]
     _safe_addstr(edit_box, 1, 1, visible_s)
 
     _safe_move(edit_box, 1, 1 + s_i - hscroll)
@@ -2388,7 +2429,6 @@ def _info_dialog(node, from_jump_to_dialog):
     # Give windows their initial size
     _resize_info_dialog(top_line_win, text_win, bot_sep_win, help_win)
 
-
     # Get lines of help text
     lines = _info_str(node).split("\n")
 
@@ -2396,10 +2436,8 @@ def _info_dialog(node, from_jump_to_dialog):
     scroll = 0
 
     while True:
-        _draw_info_dialog(node, lines, scroll, top_line_win, text_win,
-                          bot_sep_win, help_win)
+        _draw_info_dialog(node, lines, scroll, top_line_win, text_win, bot_sep_win, help_win)
         curses.doupdate()
-
 
         c = _getch_compat(text_win)
 
@@ -2440,10 +2478,16 @@ def _info_dialog(node, from_jump_to_dialog):
             # fullscreen jump-to dialog was open.
             _resize_info_dialog(top_line_win, text_win, bot_sep_win, help_win)
 
-        elif c in (curses.KEY_LEFT, curses.KEY_BACKSPACE, _ERASE_CHAR,
-                   "\x1B",  # \x1B = ESC
-                   "q", "Q", "h", "H"):
-
+        elif c in (
+            curses.KEY_LEFT,
+            curses.KEY_BACKSPACE,
+            _ERASE_CHAR,
+            "\x1B",  # \x1B = ESC
+            "q",
+            "Q",
+            "h",
+            "H",
+        ):
             return
 
 
@@ -2475,9 +2519,7 @@ def _resize_info_dialog(top_line_win, text_win, bot_sep_win, help_win):
             win.mvwin(0, 0)
 
 
-def _draw_info_dialog(node, lines, scroll, top_line_win, text_win,
-                      bot_sep_win, help_win):
-
+def _draw_info_dialog(node, lines, scroll, top_line_win, text_win, bot_sep_win, help_win):
     text_win_height, text_win_width = text_win.getmaxyx()
 
     # Note: The top row is deliberately updated last. See _draw_main().
@@ -2488,7 +2530,7 @@ def _draw_info_dialog(node, lines, scroll, top_line_win, text_win,
 
     text_win.erase()
 
-    for i, line in enumerate(lines[scroll:scroll + text_win_height]):
+    for i, line in enumerate(lines[scroll : scroll + text_win_height]):
         _safe_addstr(text_win, i, 0, line)
 
     text_win.noutrefresh()
@@ -2528,12 +2570,16 @@ def _draw_info_dialog(node, lines, scroll, top_line_win, text_win,
     if scroll > 0:
         _safe_hline(top_line_win, 0, 4, curses.ACS_UARROW, _N_SCROLL_ARROWS)
 
-    title = ("Symbol" if isinstance(node.item, Symbol) else
-             "Choice" if isinstance(node.item, Choice) else
-             "Menu"   if node.item == MENU else
-             "Comment") + " information"
-    _safe_addstr(top_line_win, 0, max((text_win_width - len(title))//2, 0),
-                 title)
+    title = (
+        "Symbol"
+        if isinstance(node.item, Symbol)
+        else "Choice"
+        if isinstance(node.item, Choice)
+        else "Menu"
+        if node.item == MENU
+        else "Comment"
+    ) + " information"
+    _safe_addstr(top_line_win, 0, max((text_win_width - len(title)) // 2, 0), title)
 
     top_line_win.noutrefresh()
 
@@ -2548,30 +2594,30 @@ def _info_str(node):
         sym = node.item
 
         return (
-            _name_info(sym) +
-            _prompt_info(sym) +
-            "Type: {}\n".format(TYPE_TO_STR[sym.type]) +
-            _value_info(sym) +
-            _help_info(sym) +
-            _direct_dep_info(sym) +
-            _defaults_info(sym) +
-            _select_imply_info(sym) +
-            _kconfig_def_info(sym)
+            _name_info(sym)
+            + _prompt_info(sym)
+            + "Type: {}\n".format(TYPE_TO_STR[sym.type])
+            + _value_info(sym)
+            + _help_info(sym)
+            + _direct_dep_info(sym)
+            + _defaults_info(sym)
+            + _select_imply_info(sym)
+            + _kconfig_def_info(sym)
         )
 
     if isinstance(node.item, Choice):
         choice = node.item
 
         return (
-            _name_info(choice) +
-            _prompt_info(choice) +
-            "Type: {}\n".format(TYPE_TO_STR[choice.type]) +
-            'Mode: {}\n'.format(choice.str_value) +
-            _help_info(choice) +
-            _choice_syms_info(choice) +
-            _direct_dep_info(choice) +
-            _defaults_info(choice) +
-            _kconfig_def_info(choice)
+            _name_info(choice)
+            + _prompt_info(choice)
+            + "Type: {}\n".format(TYPE_TO_STR[choice.type])
+            + "Mode: {}\n".format(choice.str_value)
+            + _help_info(choice)
+            + _choice_syms_info(choice)
+            + _direct_dep_info(choice)
+            + _defaults_info(choice)
+            + _kconfig_def_info(choice)
         )
 
     return _kconfig_def_info(node)  # node.item in (MENU, COMMENT)
@@ -2601,9 +2647,8 @@ def _value_info(sym):
 
     # Only put quotes around the value for string symbols
     return "Value: {}\n".format(
-        '"{}"'.format(sym.str_value)
-        if sym.orig_type == STRING
-        else sym.str_value)
+        '"{}"'.format(sym.str_value) if sym.orig_type == STRING else sym.str_value
+    )
 
 
 def _choice_syms_info(choice):
@@ -2641,10 +2686,13 @@ def _direct_dep_info(sc):
     # definition location. The dependencies at each definition location come
     # from 'depends on' and dependencies inherited from parent items.
 
-    return "" if sc.direct_dep is _kconf.y else \
-        'Direct dependencies (={}):\n{}\n' \
-        .format(TRI_TO_STR[expr_value(sc.direct_dep)],
-                _split_expr_info(sc.direct_dep, 2))
+    return (
+        ""
+        if sc.direct_dep is _kconf.y
+        else "Direct dependencies (={}):\n{}\n".format(
+            TRI_TO_STR[expr_value(sc.direct_dep)], _split_expr_info(sc.direct_dep, 2)
+        )
+    )
 
 
 def _defaults_info(sc):
@@ -2669,7 +2717,7 @@ def _defaults_info(sc):
             # This also avoids showing the tristate value for string/int/hex
             # defaults, which wouldn't make any sense.
             if isinstance(val, tuple):
-                s += '  (={})'.format(TRI_TO_STR[expr_value(val)])
+                s += "  (={})".format(TRI_TO_STR[expr_value(val)])
         else:
             # Don't print the value next to the symbol name for choice
             # defaults, as it looks a bit confusing
@@ -2677,9 +2725,9 @@ def _defaults_info(sc):
         s += "\n"
 
         if cond is not _kconf.y:
-            s += "    Condition (={}):\n{}" \
-                 .format(TRI_TO_STR[expr_value(cond)],
-                         _split_expr_info(cond, 4))
+            s += "    Condition (={}):\n{}".format(
+                TRI_TO_STR[expr_value(cond)], _split_expr_info(cond, 4)
+            )
 
     return s + "\n"
 
@@ -2702,9 +2750,7 @@ def _split_expr_info(expr, indent):
 
     s = ""
     for i, term in enumerate(split_expr(expr, split_op)):
-        s += "{}{} {}".format(indent*" ",
-                              "  " if i == 0 else op_str,
-                              _expr_str(term))
+        s += "{}{} {}".format(indent * " ", "  " if i == 0 else op_str, _expr_str(term))
 
         # Don't bother showing the value hint if the expression is just a
         # single symbol. _expr_str() already shows its value.
@@ -2735,20 +2781,14 @@ def _select_imply_info(sym):
     s = ""
 
     if sym.rev_dep is not _kconf.n:
-        s += sis(sym.rev_dep, 2,
-                 "Symbols currently y-selecting this symbol:\n")
-        s += sis(sym.rev_dep, 1,
-                 "Symbols currently m-selecting this symbol:\n")
-        s += sis(sym.rev_dep, 0,
-                 "Symbols currently n-selecting this symbol (no effect):\n")
+        s += sis(sym.rev_dep, 2, "Symbols currently y-selecting this symbol:\n")
+        s += sis(sym.rev_dep, 1, "Symbols currently m-selecting this symbol:\n")
+        s += sis(sym.rev_dep, 0, "Symbols currently n-selecting this symbol (no effect):\n")
 
     if sym.weak_rev_dep is not _kconf.n:
-        s += sis(sym.weak_rev_dep, 2,
-                 "Symbols currently y-implying this symbol:\n")
-        s += sis(sym.weak_rev_dep, 1,
-                 "Symbols currently m-implying this symbol:\n")
-        s += sis(sym.weak_rev_dep, 0,
-                 "Symbols currently n-implying this symbol (no effect):\n")
+        s += sis(sym.weak_rev_dep, 2, "Symbols currently y-implying this symbol:\n")
+        s += sis(sym.weak_rev_dep, 1, "Symbols currently m-implying this symbol:\n")
+        s += sis(sym.weak_rev_dep, 0, "Symbols currently n-implying this symbol (no effect):\n")
 
     return s
 
@@ -2759,20 +2799,25 @@ def _kconfig_def_info(item):
 
     nodes = [item] if isinstance(item, MenuNode) else item.nodes
 
-    s = "Kconfig definition{}, with parent deps. propagated to 'depends on'\n" \
-        .format("s" if len(nodes) > 1 else "")
-    s += (len(s) - 1)*"="
+    s = "Kconfig definition{}, with parent deps. propagated to 'depends on'\n".format(
+        "s" if len(nodes) > 1 else ""
+    )
+    s += (len(s) - 1) * "="
 
     for node in nodes:
-        s += "\n\n" \
-             "At {}:{}\n" \
-             "{}" \
-             "Menu path: {}\n\n" \
-             "{}" \
-             .format(node.filename, node.linenr,
-                     _include_path_info(node),
-                     _menu_path_info(node),
-                     _indent(node.custom_str(_name_and_val_str), 2))
+        s += (
+            "\n\n"
+            "At {}:{}\n"
+            "{}"
+            "Menu path: {}\n\n"
+            "{}".format(
+                node.filename,
+                node.linenr,
+                _include_path_info(node),
+                _menu_path_info(node),
+                _indent(node.custom_str(_name_and_val_str), 2),
+            )
+        )
 
     return s
 
@@ -2783,8 +2828,8 @@ def _include_path_info(node):
         return ""
 
     return "Included via {}\n".format(
-        " -> ".join("{}:{}".format(filename, linenr)
-                    for filename, linenr in node.include_path))
+        " -> ".join("{}:{}".format(filename, linenr) for filename, linenr in node.include_path)
+    )
 
 
 def _menu_path_info(node):
@@ -2798,8 +2843,7 @@ def _menu_path_info(node):
         # Promptless choices might appear among the parents. Use
         # standard_sc_expr_str() for them, so that they show up as
         # '<choice (name if any)>'.
-        path = " -> " + (node.prompt[0] if node.prompt else
-                         standard_sc_expr_str(node.item)) + path
+        path = " -> " + (node.prompt[0] if node.prompt else standard_sc_expr_str(node.item)) + path
 
     return "(Top)" + path
 
@@ -2808,7 +2852,7 @@ def _indent(s, n):
     # Returns 's' with each line indented 'n' spaces. textwrap.indent() is not
     # available in Python 2 (it's 3.3+).
 
-    return "\n".join(n*" " + line for line in s.split("\n"))
+    return "\n".join(n * " " + line for line in s.split("\n"))
 
 
 def _name_and_val_str(sc):
@@ -2823,7 +2867,7 @@ def _name_and_val_str(sc):
             # Undefined symbol reference
             return "{}(undefined/n)".format(sc.name)
 
-        return '{}(={})'.format(sc.name, sc.str_value)
+        return "{}(={})".format(sc.name, sc.str_value)
 
     # For other items, use the standard format
     return standard_sc_expr_str(sc)
@@ -2898,11 +2942,11 @@ def _edit_text(c, s, i, hscroll, width):
 
     elif c in (curses.KEY_BACKSPACE, _ERASE_CHAR):
         if i > 0:
-            s = s[:i-1] + s[i:]
+            s = s[: i - 1] + s[i:]
             i -= 1
 
     elif c == curses.KEY_DC:
-        s = s[:i] + s[i+1:]
+        s = s[:i] + s[i + 1 :]
 
     elif c == "\x17":  # \x17 = CTRL-W
         # The \W removes characters like ',' one at a time
@@ -2937,8 +2981,9 @@ def _edit_text(c, s, i, hscroll, width):
 def _load_save_info():
     # Returns an information string for load/save dialog boxes
 
-    return "(Relative to {})\n\nRefer to your home directory with ~" \
-           .format(os.path.join(os.getcwd(), ""))
+    return "(Relative to {})\n\nRefer to your home directory with ~".format(
+        os.path.join(os.getcwd(), "")
+    )
 
 
 def _msg(title, text):
@@ -2990,9 +3035,11 @@ def _node_str(node):
             # Print "(NEW)" next to symbols without a user value (from e.g. a
             # .config), but skip it for choice symbols in choices in y mode,
             # and for symbols of UNKNOWN type (which generate a warning though)
-            if sym.user_value is None and sym.orig_type and \
-               not (sym.choice and sym.choice.tri_value == 2):
-
+            if (
+                sym.user_value is None
+                and sym.orig_type
+                and not (sym.choice and sym.choice.tri_value == 2)
+            ):
                 s += " (NEW)"
 
     if isinstance(node.item, Choice) and node.item.tri_value == 2:
@@ -3029,8 +3076,7 @@ def _should_show_name(node):
 
     # The 'not node.prompt' case only hits in show-all mode, for promptless
     # symbols and choices
-    return not node.prompt or \
-           (_show_name and isinstance(node.item, (Symbol, Choice)))
+    return not node.prompt or (_show_name and isinstance(node.item, (Symbol, Choice)))
 
 
 def _value_str(node):
@@ -3086,8 +3132,7 @@ def _check_valid(sym, s):
     try:
         int(s, base)
     except ValueError:
-        _error("'{}' is a malformed {} value"
-               .format(s, TYPE_TO_STR[sym.orig_type]))
+        _error("'{}' is a malformed {} value".format(s, TYPE_TO_STR[sym.orig_type]))
         return False
 
     for low_sym, high_sym, cond in sym.ranges:
@@ -3096,8 +3141,7 @@ def _check_valid(sym, s):
             high_s = high_sym.str_value
 
             if not int(low_s, base) <= int(s, base) <= int(high_s, base):
-                _error("{} is outside the range {}-{}"
-                       .format(s, low_s, high_s))
+                _error("{} is outside the range {}-{}".format(s, low_s, high_s))
                 return False
 
             break

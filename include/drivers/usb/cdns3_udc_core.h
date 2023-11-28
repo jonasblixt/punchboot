@@ -1,8 +1,8 @@
 #ifndef INCLUDE_DRIVERS_USB_CDNS3_UDC_CORE_H
 #define INCLUDE_DRIVERS_USB_CDNS3_UDC_CORE_H
 
-#include <stdint.h>
 #include <drivers/usb/usbd.h>
+#include <stdint.h>
 
 int cdns3_udc_core_init(void);
 int cdns3_udc_core_stop(void);

@@ -59,7 +59,9 @@ class PBPartType(click.ParamType):
     _filt_read: bool = False
     _filt_boot: bool = False
 
-    def __init__(self, filt_write: bool = False, filt_read: bool = False, filt_boot: bool = False): # noqa: D107
+    def __init__(  # noqa: D107
+        self, filt_write: bool = False, filt_read: bool = False, filt_boot: bool = False
+    ):
         self._filt_write = filt_write
         self._filt_read = filt_read
         self._filt_boot = filt_boot
@@ -81,6 +83,7 @@ class PBPartType(click.ParamType):
         except Exception as e:
             return []  # Intentionally suppress all exceptions
 
+
 def _print_version(ctx: click.Context, param: click.Option, value: bool):
     if value:
         click.echo(f"Punchboot tool {version('punchboot')}")
@@ -98,6 +101,7 @@ def _dev_completion_helper(ctx: click.Context, param: click.Option, incomplete):
 
 def pb_session(f):
     """Punchboot Session setup decorator."""
+
     @click.pass_context
     def new_func(ctx: click.Context, *args, **kwargs):
         device_uuid: uuid.UUID = ctx.obj["device-uuid"]

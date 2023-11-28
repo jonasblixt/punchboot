@@ -12,14 +12,14 @@
 #define INCLUDE_PB_LIBC_STDIO_H_
 
 #include <cdefs.h>
-#include <stdio_.h>
 #include <stdarg.h>
+#include <stdio_.h>
 
 #ifndef NULL
-#define NULL ((void *)(uintptr_t) 0)
+#define NULL ((void *)(uintptr_t)0)
 #endif
 
-#define EOF            -1
+#define EOF -1
 
 int printf(const char *fmt, ...) __printflike(1, 2);
 int snprintf(char *s, size_t n, const char *fmt, ...) __printflike(3, 4);
@@ -29,4 +29,4 @@ int vprintf(const char *fmt, va_list args);
 int putchar(int c);
 int puts(const char *s);
 
-#endif  // INCLUDE_PB_LIBC_STDIO_H_
+#endif // INCLUDE_PB_LIBC_STDIO_H_

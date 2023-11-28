@@ -19,14 +19,12 @@ extern "C" {
 typedef int (*pbstate_printfunc_t)(const char *fmt, ...);
 
 typedef enum pbstate_system {
-  PBSTATE_SYSTEM_NONE = 0,
-  PBSTATE_SYSTEM_A = 1,
-  PBSTATE_SYSTEM_B = 2,
+    PBSTATE_SYSTEM_NONE = 0,
+    PBSTATE_SYSTEM_A = 1,
+    PBSTATE_SYSTEM_B = 2,
 } pbstate_system_t;
 
-int pbstate_init(const char *p_device,
-                 const char *b_device,
-                 pbstate_printfunc_t _printfunc);
+int pbstate_init(const char *p_device, const char *b_device, pbstate_printfunc_t _printfunc);
 
 /**
  * Check's if system 'system' is active
@@ -61,7 +59,7 @@ int pbstate_get_remaining_boot_attempts(unsigned int *boot_attempts);
 
 /**
  * Force a rollback. This function will set the boot attempt counter
- * to zero and when the system reboots the bootloader will trigger a 
+ * to zero and when the system reboots the bootloader will trigger a
  * rollback.
  *
  * If the currently active system has the verify bit set this function
@@ -148,4 +146,4 @@ int pbstate_clear_set_board_reg(unsigned int index, uint32_t clear, uint32_t set
 }
 #endif
 
-#endif  // TOOLS_pbstate_pbstate_H_
+#endif // TOOLS_pbstate_pbstate_H_

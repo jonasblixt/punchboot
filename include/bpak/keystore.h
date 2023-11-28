@@ -17,8 +17,7 @@ struct bpak_keystore {
     struct bpak_key *keys[];
 };
 
-int bpak_keystore_get(struct bpak_keystore *ks, uint32_t id,
-                      struct bpak_key **k);
+int bpak_keystore_get(struct bpak_keystore *ks, uint32_t id, struct bpak_key **k);
 /**
  * Load key from a keystore archive
  *

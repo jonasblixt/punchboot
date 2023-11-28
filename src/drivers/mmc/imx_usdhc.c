@@ -7,20 +7,20 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <pb/pb.h>
 #include <arch/arch.h>
 #include <pb/delay.h>
 #include <pb/mmio.h>
+#include <pb/pb.h>
+#include <stdio.h>
+#include <string.h>
 
-#include <drivers/mmc/mmc_core.h>
-#include <drivers/mmc/imx_usdhc.h>
 #include "imx_usdhc_private.h"
+#include <drivers/mmc/imx_usdhc.h>
+#include <drivers/mmc/mmc_core.h>
 
 static const struct imx_usdhc_config *usdhc;
 static unsigned int input_clock_hz;
-static struct  usdhc_adma2_desc tbl[512] __section(".no_init") __aligned(64);
+static struct usdhc_adma2_desc tbl[512] __section(".no_init") __aligned(64);
 static bool bus_ddr_enable = false;
 
 static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
@@ -49,8 +49,7 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
     uint16_t clk_reg = (pre_div << 8) | (div << 4);
 
     mmio_clrbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_CARD_CLKEN);
-    mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL,
-                       USDHC_SYSCTRL_CLOCK_MASK, clk_reg);
+    mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_CLOCK_MASK, clk_reg);
 
     while (1) {
         uint32_t pres_state = mmio_read_32(usdhc->base + USDHC_PRES_STATE);
@@ -58,8 +57,7 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
             break;
     }
 
-    mmio_setbits_32(usdhc->base + USDHC_VEND_SPEC,
-                   VENDSPEC_PER_CLKEN | VENDSPEC_CARD_CLKEN);
+    mmio_setbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_PER_CLKEN | VENDSPEC_CARD_CLKEN);
 
     pb_delay_us(100);
     LOG_DBG("Actual bus rate = %d kHz", actual_clk_hz / 1000);
@@ -68,20 +66,18 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 
 static int imx_usdhc_setup(void)
 {
-    LOG_DBG("Base = %p, input clock = %u kHz", (void *) usdhc->base,
-                                               input_clock_hz / 1000);
+    LOG_DBG("Base = %p, input clock = %u kHz", (void *)usdhc->base, input_clock_hz / 1000);
     /* reset the controller */
-    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL,
-                        USDHC_SYSCTRL_RSTA | USDHC_SYSCTRL_RSTT);
+    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_RSTA | USDHC_SYSCTRL_RSTT);
 
     /* wait for reset done */
     while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTA))
-            ;
+        ;
 
     /* Send reset */
     mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_INITA);
     while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_INITA))
-            ;
+        ;
 
     mmio_write_32(usdhc->base + USDHC_MMC_BOOT, 0);
     mmio_write_32(usdhc->base + USDHC_MIX_CTRL, 0);
@@ -94,25 +90,23 @@ static int imx_usdhc_setup(void)
     mmio_write_32(usdhc->base + USDHC_INT_STATUS_EN, EMMC_INTSTATEN_BITS);
 
     /* configure as little endian */
-    mmio_write_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_LE |
-                                (2 << 8) |  /* ADMA 2, TODO: Defines */
-                                (1 << 27)); /* Burst length enabled for INCR */
+    mmio_write_32(usdhc->base + USDHC_PROT_CTRL,
+                  PROTCTRL_LE | (2 << 8) | /* ADMA 2, TODO: Defines */
+                      (1 << 27)); /* Burst length enabled for INCR */
 
     /* Set timeout to the maximum value */
-    mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_TIMEOUT_MASK,
-              USDHC_SYSCTRL_TIMEOUT(15));
+    mmio_clrsetbits_32(
+        usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_TIMEOUT_MASK, USDHC_SYSCTRL_TIMEOUT(15));
 
     /* set wartermark level as 16 for safe for MMC */
-    mmio_clrsetbits_32(usdhc->base + USDHC_WTMK_LVL,
-                       WMKLV_MASK, 16 | (16 << 16));
+    mmio_clrsetbits_32(usdhc->base + USDHC_WTMK_LVL, WMKLV_MASK, 16 | (16 << 16));
 
     /* Force manual delay tuning */
-    mmio_write_32(usdhc->base + USDHC_DLL_CTRL,
-                     ((usdhc->delay_tap & 0x7f) << 9) | BIT(8));
+    mmio_write_32(usdhc->base + USDHC_DLL_CTRL, ((usdhc->delay_tap & 0x7f) << 9) | BIT(8));
     return PB_OK;
 }
 
-#define USDHC_CMD_RETRIES    1000
+#define USDHC_CMD_RETRIES 1000
 
 static int imx_usdhc_set_delay_tap(unsigned int tap)
 {
@@ -120,8 +114,7 @@ static int imx_usdhc_set_delay_tap(unsigned int tap)
     return PB_OK;
 }
 
-static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type,
-                              mmc_cmd_resp_t result)
+static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result)
 {
     unsigned int xfertype = 0, mixctl = 0, err = 0;
     bool multiple = false;
@@ -219,8 +212,7 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type,
             err = -PB_ERR_TIMEOUT;
         else
             err = -PB_ERR_IO;
-        LOG_ERR("imx_usdhc mmc cmd %d state 0x%x errno=%d",
-              idx, state, err);
+        LOG_ERR("imx_usdhc mmc cmd %d state 0x%x errno=%d", idx, state, err);
         goto out;
     }
 
@@ -282,27 +274,18 @@ out:
 static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
 {
     const char *bus_widths[] = {
-        "Invalid",
-        "1-Bit",
-        "4-Bit",
-        "8-Bit",
-        "4-Bit DDR",
-        "8-Bit DDR",
-        "8-Bit DDR + Strobe",
+        "Invalid", "1-Bit", "4-Bit", "8-Bit", "4-Bit DDR", "8-Bit DDR", "8-Bit DDR + Strobe",
     };
 
     LOG_DBG("Width = %s", bus_widths[width]);
     bus_ddr_enable = false;
 
     if (width == MMC_BUS_WIDTH_4BIT) {
-        mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK,
-                  PROTCTRL_WIDTH_4);
+        mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK, PROTCTRL_WIDTH_4);
     } else if (width == MMC_BUS_WIDTH_8BIT) {
-        mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK,
-                  PROTCTRL_WIDTH_8);
+        mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK, PROTCTRL_WIDTH_8);
     } else if (width == MMC_BUS_WIDTH_8BIT_DDR) {
-        mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK,
-                  PROTCTRL_WIDTH_8);
+        mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK, PROTCTRL_WIDTH_8);
         bus_ddr_enable = true;
     } else {
         LOG_ERR("Unsupported bus width");
@@ -332,8 +315,7 @@ static int imx_usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     }
 
 #ifdef CONFIG_IMX_USDHC_XTRA_DEBUG
-    LOG_DBG("lba = %d, length = %zu, buf = %p",
-            lba, length, (void *) buf);
+    LOG_DBG("lba = %d, length = %zu, buf = %p", lba, length, (void *)buf);
 #endif
 
     if (buf && length) {
@@ -350,7 +332,7 @@ static int imx_usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
 
         tbl_ptr->len = chunk_length;
         tbl_ptr->cmd = ADMA2_TRAN_VALID;
-        tbl_ptr->addr = (uint32_t) buf_ptr;
+        tbl_ptr->addr = (uint32_t)buf_ptr;
 
         if (!bytes_to_transfer)
             tbl_ptr->cmd |= ADMA2_END;
@@ -360,19 +342,17 @@ static int imx_usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
         n_descriptors++;
     } while (bytes_to_transfer);
 
-    arch_clean_cache_range((uintptr_t) tbl,
-                           sizeof(struct  usdhc_adma2_desc) * n_descriptors);
+    arch_clean_cache_range((uintptr_t)tbl, sizeof(struct usdhc_adma2_desc) * n_descriptors);
 
 #ifdef CONFIG_IMX_USDHC_XTRA_DEBUG
     LOG_DBG("Configured %zu adma2 descriptors", n_descriptors);
 #endif
-    mmio_write_32(usdhc->base + USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t) tbl);
+    mmio_write_32(usdhc->base + USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t)tbl);
 
     if (length > 512) {
-        mmio_write_32(usdhc->base + USDHC_BLK_ATT,
-                      0x00000200 | ((length / 512) << 16));
+        mmio_write_32(usdhc->base + USDHC_BLK_ATT, 0x00000200 | ((length / 512) << 16));
     } else {
-        mmio_write_32(usdhc->base + USDHC_BLK_ATT, (1 << 16) | (uint16_t) length);
+        mmio_write_32(usdhc->base + USDHC_BLK_ATT, (1 << 16) | (uint16_t)length);
     }
 
     return 0;
@@ -393,8 +373,7 @@ static int imx_usdhc_write(unsigned int lba, size_t length, uintptr_t buf)
     return 0;
 }
 
-int imx_usdhc_init(const struct imx_usdhc_config *cfg,
-                   unsigned int clk_hz)
+int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
 {
     static const struct mmc_hal hal = {
         .init = imx_usdhc_setup,
@@ -413,4 +392,3 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg,
 
     return mmc_init(&hal, &cfg->mmc_config);
 }
-

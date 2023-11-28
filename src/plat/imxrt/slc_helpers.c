@@ -1,6 +1,6 @@
+#include <drivers/fuse/imx_ocotp.h>
 #include <pb/pb.h>
 #include <pb/slc.h>
-#include <drivers/fuse/imx_ocotp.h>
 #include <plat/imxrt/imxrt.h>
 
 static bool imxrt_is_srk_fused(void)
@@ -51,5 +51,5 @@ slc_t imxrt_slc_read_status(void)
 
 int imxrt_slc_set_configuration_locked(void)
 {
-        return -PB_ERR_STATE;
+    return -PB_ERR_STATE;
 }

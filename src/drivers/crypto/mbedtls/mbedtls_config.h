@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include <mbedtls/check_config.h>
+#include <stdlib.h>
 
 #define MBEDTLS_PLATFORM_MEMORY
 #define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
@@ -40,11 +40,11 @@
 #define MBEDTLS_VERSION_C
 
 /* MPI / BIGNUM options */
-#define MBEDTLS_MPI_WINDOW_SIZE            2
-#define MBEDTLS_MPI_MAX_SIZE             256
+#define MBEDTLS_MPI_WINDOW_SIZE       2
+#define MBEDTLS_MPI_MAX_SIZE          256
 
 /* Memory buffer allocator options */
-#define MBEDTLS_MEMORY_ALIGN_MULTIPLE      8
+#define MBEDTLS_MEMORY_ALIGN_MULTIPLE 8
 
 /* Optimizations */
 #define MBEDTLS_HAVE_ASM

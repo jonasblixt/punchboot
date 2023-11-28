@@ -19,76 +19,73 @@
  * registers
  *********************************************************************/
 
-#define _DEFINE_SYSREG_READ_FUNC(_name, _reg_name)		\
-static inline u_register_t read_ ## _name(void)			\
-{								\
-	u_register_t v;						\
-	__asm__ volatile ("mrs %0, " #_reg_name : "=r" (v));	\
-	return v;						\
-}
+#define _DEFINE_SYSREG_READ_FUNC(_name, _reg_name)         \
+    static inline u_register_t read_##_name(void)          \
+    {                                                      \
+        u_register_t v;                                    \
+        __asm__ volatile("mrs %0, " #_reg_name : "=r"(v)); \
+        return v;                                          \
+    }
 
-#define _DEFINE_SYSREG_WRITE_FUNC(_name, _reg_name)			\
-static inline void write_ ## _name(u_register_t v)			\
-{									\
-	__asm__ volatile ("msr " #_reg_name ", %0" : : "r" (v));	\
-}
+#define _DEFINE_SYSREG_WRITE_FUNC(_name, _reg_name)            \
+    static inline void write_##_name(u_register_t v)           \
+    {                                                          \
+        __asm__ volatile("msr " #_reg_name ", %0" : : "r"(v)); \
+    }
 
-#define SYSREG_WRITE_CONST(reg_name, v)				\
-	__asm__ volatile ("msr " #reg_name ", %0" : : "i" (v))
+#define SYSREG_WRITE_CONST(reg_name, v) __asm__ volatile("msr " #reg_name ", %0" : : "i"(v))
 
 /* Define read function for system register */
-#define DEFINE_SYSREG_READ_FUNC(_name) 			\
-	_DEFINE_SYSREG_READ_FUNC(_name, _name)
+#define DEFINE_SYSREG_READ_FUNC(_name)  _DEFINE_SYSREG_READ_FUNC(_name, _name)
 
 /* Define read & write function for system register */
-#define DEFINE_SYSREG_RW_FUNCS(_name)			\
-	_DEFINE_SYSREG_READ_FUNC(_name, _name)		\
-	_DEFINE_SYSREG_WRITE_FUNC(_name, _name)
+#define DEFINE_SYSREG_RW_FUNCS(_name)      \
+    _DEFINE_SYSREG_READ_FUNC(_name, _name) \
+    _DEFINE_SYSREG_WRITE_FUNC(_name, _name)
 
 /* Define read & write function for renamed system register */
-#define DEFINE_RENAME_SYSREG_RW_FUNCS(_name, _reg_name)	\
-	_DEFINE_SYSREG_READ_FUNC(_name, _reg_name)	\
-	_DEFINE_SYSREG_WRITE_FUNC(_name, _reg_name)
+#define DEFINE_RENAME_SYSREG_RW_FUNCS(_name, _reg_name) \
+    _DEFINE_SYSREG_READ_FUNC(_name, _reg_name)          \
+    _DEFINE_SYSREG_WRITE_FUNC(_name, _reg_name)
 
 /* Define read function for renamed system register */
-#define DEFINE_RENAME_SYSREG_READ_FUNC(_name, _reg_name)	\
-	_DEFINE_SYSREG_READ_FUNC(_name, _reg_name)
+#define DEFINE_RENAME_SYSREG_READ_FUNC(_name, _reg_name) _DEFINE_SYSREG_READ_FUNC(_name, _reg_name)
 
 /* Define write function for renamed system register */
-#define DEFINE_RENAME_SYSREG_WRITE_FUNC(_name, _reg_name)	\
-	_DEFINE_SYSREG_WRITE_FUNC(_name, _reg_name)
+#define DEFINE_RENAME_SYSREG_WRITE_FUNC(_name, _reg_name) \
+    _DEFINE_SYSREG_WRITE_FUNC(_name, _reg_name)
 
 /**********************************************************************
  * Macros to create inline functions for system instructions
  *********************************************************************/
 
 /* Define function for simple system instruction */
-#define DEFINE_SYSOP_FUNC(_op)				\
-static inline void _op(void)				\
-{							\
-	__asm__ (#_op);					\
-}
+#define DEFINE_SYSOP_FUNC(_op)   \
+    static inline void _op(void) \
+    {                            \
+        __asm__(#_op);           \
+    }
 
 /* Define function for system instruction with register parameter */
-#define DEFINE_SYSOP_PARAM_FUNC(_op)			\
-static inline void _op(uint64_t v)			\
-{							\
-	 __asm__ (#_op "  %0" : : "r" (v));		\
-}
+#define DEFINE_SYSOP_PARAM_FUNC(_op)     \
+    static inline void _op(uint64_t v)   \
+    {                                    \
+        __asm__(#_op "  %0" : : "r"(v)); \
+    }
 
 /* Define function for system instruction with type specifier */
-#define DEFINE_SYSOP_TYPE_FUNC(_op, _type)		\
-static inline void _op ## _type(void)			\
-{							\
-	__asm__ (#_op " " #_type);			\
-}
+#define DEFINE_SYSOP_TYPE_FUNC(_op, _type) \
+    static inline void _op##_type(void)    \
+    {                                      \
+        __asm__(#_op " " #_type);          \
+    }
 
 /* Define function for system instruction with register parameter */
-#define DEFINE_SYSOP_TYPE_PARAM_FUNC(_op, _type)	\
-static inline void _op ## _type(uint64_t v)		\
-{							\
-	 __asm__ (#_op " " #_type ", %0" : : "r" (v));	\
-}
+#define DEFINE_SYSOP_TYPE_PARAM_FUNC(_op, _type)    \
+    static inline void _op##_type(uint64_t v)       \
+    {                                               \
+        __asm__(#_op " " #_type ", %0" : : "r"(v)); \
+    }
 
 /*******************************************************************************
  * TLB maintenance accessor prototypes
@@ -100,26 +97,28 @@ static inline void _op ## _type(uint64_t v)		\
  * the workaround for errata 813419 of Cortex-A57 or errata 1286807 of
  * Cortex-A76.
  */
-#define DEFINE_TLBIOP_ERRATA_TYPE_FUNC(_type)\
-static inline void tlbi ## _type(void)			\
-{							\
-	__asm__("tlbi " #_type "\n"			\
-		"dsb ish\n"				\
-		"tlbi " #_type);			\
-}
+#define DEFINE_TLBIOP_ERRATA_TYPE_FUNC(_type) \
+    static inline void tlbi##_type(void)      \
+    {                                         \
+        __asm__("tlbi " #_type "\n"           \
+                "dsb ish\n"                   \
+                "tlbi " #_type);              \
+    }
 
 /*
  * Define function for TLBI instruction with register parameter that implements
  * the workaround for errata 813419 of Cortex-A57 or errata 1286807 of
  * Cortex-A76.
  */
-#define DEFINE_TLBIOP_ERRATA_TYPE_PARAM_FUNC(_type)	\
-static inline void tlbi ## _type(uint64_t v)			\
-{								\
-	__asm__("tlbi " #_type ", %0\n"				\
-		"dsb ish\n"					\
-		"tlbi " #_type ", %0" : : "r" (v));		\
-}
+#define DEFINE_TLBIOP_ERRATA_TYPE_PARAM_FUNC(_type) \
+    static inline void tlbi##_type(uint64_t v)      \
+    {                                               \
+        __asm__("tlbi " #_type ", %0\n"             \
+                "dsb ish\n"                         \
+                "tlbi " #_type ", %0"               \
+                :                                   \
+                : "r"(v));                          \
+    }
 #endif /* ERRATA_A57_813419 */
 
 #if ERRATA_A53_819472 || ERRATA_A53_824069 || ERRATA_A53_827319
@@ -127,11 +126,11 @@ static inline void tlbi ## _type(uint64_t v)			\
  * Define function for DC instruction with register parameter that enables
  * the workaround for errata 819472, 824069 and 827319 of Cortex-A53.
  */
-#define DEFINE_DCOP_ERRATA_A53_TYPE_PARAM_FUNC(_name, _type)	\
-static inline void dc ## _name(uint64_t v)			\
-{								\
-	__asm__("dc " #_type ", %0" : : "r" (v));		\
-}
+#define DEFINE_DCOP_ERRATA_A53_TYPE_PARAM_FUNC(_name, _type) \
+    static inline void dc##_name(uint64_t v)                 \
+    {                                                        \
+        __asm__("dc " #_type ", %0" : : "r"(v));             \
+    }
 #endif /* ERRATA_A53_819472 || ERRATA_A53_824069 || ERRATA_A53_827319 */
 
 #if ERRATA_A57_813419
@@ -283,74 +282,80 @@ DEFINE_SYSOP_FUNC(isb)
 
 static inline void enable_irq(void)
 {
-	/*
-	 * The compiler memory barrier will prevent the compiler from
-	 * scheduling non-volatile memory access after the write to the
-	 * register.
-	 *
-	 * This could happen if some initialization code issues non-volatile
-	 * accesses to an area used by an interrupt handler, in the assumption
-	 * that it is safe as the interrupts are disabled at the time it does
-	 * that (according to program order). However, non-volatile accesses
-	 * are not necessarily in program order relatively with volatile inline
-	 * assembly statements (and volatile accesses).
-	 */
-	COMPILER_BARRIER();
-	write_daifclr(DAIF_IRQ_BIT);
-	isb();
+    /*
+     * The compiler memory barrier will prevent the compiler from
+     * scheduling non-volatile memory access after the write to the
+     * register.
+     *
+     * This could happen if some initialization code issues non-volatile
+     * accesses to an area used by an interrupt handler, in the assumption
+     * that it is safe as the interrupts are disabled at the time it does
+     * that (according to program order). However, non-volatile accesses
+     * are not necessarily in program order relatively with volatile inline
+     * assembly statements (and volatile accesses).
+     */
+    COMPILER_BARRIER();
+    write_daifclr(DAIF_IRQ_BIT);
+    isb();
 }
 
 static inline void enable_fiq(void)
 {
-	COMPILER_BARRIER();
-	write_daifclr(DAIF_FIQ_BIT);
-	isb();
+    COMPILER_BARRIER();
+    write_daifclr(DAIF_FIQ_BIT);
+    isb();
 }
 
 static inline void enable_serror(void)
 {
-	COMPILER_BARRIER();
-	write_daifclr(DAIF_ABT_BIT);
-	isb();
+    COMPILER_BARRIER();
+    write_daifclr(DAIF_ABT_BIT);
+    isb();
 }
 
 static inline void enable_debug_exceptions(void)
 {
-	COMPILER_BARRIER();
-	write_daifclr(DAIF_DBG_BIT);
-	isb();
+    COMPILER_BARRIER();
+    write_daifclr(DAIF_DBG_BIT);
+    isb();
 }
 
 static inline void disable_irq(void)
 {
-	COMPILER_BARRIER();
-	write_daifset(DAIF_IRQ_BIT);
-	isb();
+    COMPILER_BARRIER();
+    write_daifset(DAIF_IRQ_BIT);
+    isb();
 }
 
 static inline void disable_fiq(void)
 {
-	COMPILER_BARRIER();
-	write_daifset(DAIF_FIQ_BIT);
-	isb();
+    COMPILER_BARRIER();
+    write_daifset(DAIF_FIQ_BIT);
+    isb();
 }
 
 static inline void disable_serror(void)
 {
-	COMPILER_BARRIER();
-	write_daifset(DAIF_ABT_BIT);
-	isb();
+    COMPILER_BARRIER();
+    write_daifset(DAIF_ABT_BIT);
+    isb();
 }
 
 static inline void disable_debug_exceptions(void)
 {
-	COMPILER_BARRIER();
-	write_daifset(DAIF_DBG_BIT);
-	isb();
+    COMPILER_BARRIER();
+    write_daifset(DAIF_DBG_BIT);
+    isb();
 }
 
-void __dead2 smc(uint64_t x0, uint64_t x1, uint64_t x2, uint64_t x3,
-		 uint64_t x4, uint64_t x5, uint64_t x6, uint64_t x7);
+void __dead2 smc(uint64_t x0,
+                 uint64_t x1,
+                 uint64_t x2,
+                 uint64_t x3,
+                 uint64_t x4,
+                 uint64_t x5,
+                 uint64_t x6,
+                 uint64_t x7);
 
 /*******************************************************************************
  * System register accessor prototypes
@@ -435,12 +440,9 @@ DEFINE_SYSREG_RW_FUNCS(cntp_cval_el0)
 DEFINE_SYSREG_READ_FUNC(cntpct_el0)
 DEFINE_SYSREG_RW_FUNCS(cnthctl_el2)
 
-#define get_cntp_ctl_enable(x)  (((x) >> CNTP_CTL_ENABLE_SHIFT) & \
-					CNTP_CTL_ENABLE_MASK)
-#define get_cntp_ctl_imask(x)   (((x) >> CNTP_CTL_IMASK_SHIFT) & \
-					CNTP_CTL_IMASK_MASK)
-#define get_cntp_ctl_istatus(x) (((x) >> CNTP_CTL_ISTATUS_SHIFT) & \
-					CNTP_CTL_ISTATUS_MASK)
+#define get_cntp_ctl_enable(x)  (((x) >> CNTP_CTL_ENABLE_SHIFT) & CNTP_CTL_ENABLE_MASK)
+#define get_cntp_ctl_imask(x)   (((x) >> CNTP_CTL_IMASK_SHIFT) & CNTP_CTL_IMASK_MASK)
+#define get_cntp_ctl_istatus(x) (((x) >> CNTP_CTL_ISTATUS_SHIFT) & CNTP_CTL_ISTATUS_MASK)
 
 #define set_cntp_ctl_enable(x)  ((x) |= (U(1) << CNTP_CTL_ENABLE_SHIFT))
 #define set_cntp_ctl_imask(x)   ((x) |= (U(1) << CNTP_CTL_IMASK_SHIFT))
@@ -523,8 +525,7 @@ DEFINE_RENAME_SYSREG_RW_FUNCS(gcr_el1, GCR_EL1)
 /* DynamIQ Shared Unit power management */
 DEFINE_RENAME_SYSREG_RW_FUNCS(clusterpwrdn_el1, CLUSTERPWRDN_EL1)
 
-#define IS_IN_EL(x) \
-	(GET_EL(read_CurrentEl()) == MODE_EL##x)
+#define IS_IN_EL(x) (GET_EL(read_CurrentEl()) == MODE_EL##x)
 
 #define IS_IN_EL1() IS_IN_EL(1)
 #define IS_IN_EL2() IS_IN_EL(2)
@@ -532,23 +533,23 @@ DEFINE_RENAME_SYSREG_RW_FUNCS(clusterpwrdn_el1, CLUSTERPWRDN_EL1)
 
 static inline unsigned int get_current_el(void)
 {
-	return GET_EL(read_CurrentEl());
+    return GET_EL(read_CurrentEl());
 }
 
 static inline unsigned int get_current_el_maybe_constant(void)
 {
 #if defined(IMAGE_AT_EL1)
-	return 1;
+    return 1;
 #elif defined(IMAGE_AT_EL2)
-	return 2;	/* no use-case in TF-A */
+    return 2; /* no use-case in TF-A */
 #elif defined(IMAGE_AT_EL3)
-	return 3;
+    return 3;
 #else
-	/*
-	 * If we do not know which exception level this is being built for
-	 * (e.g. built for library), fall back to run-time detection.
-	 */
-	return get_current_el();
+    /*
+     * If we do not know which exception level this is being built for
+     * (e.g. built for library), fall back to run-time detection.
+     */
+    return get_current_el();
 #endif
 }
 
@@ -557,35 +558,35 @@ static inline unsigned int get_current_el_maybe_constant(void)
  */
 static inline uint64_t el_implemented(unsigned int el)
 {
-	if (el > 3U) {
-		return EL_IMPL_NONE;
-	} else {
-		unsigned int shift = ID_AA64PFR0_EL1_SHIFT * el;
+    if (el > 3U) {
+        return EL_IMPL_NONE;
+    } else {
+        unsigned int shift = ID_AA64PFR0_EL1_SHIFT * el;
 
-		return (read_id_aa64pfr0_el1() >> shift) & ID_AA64PFR0_ELX_MASK;
-	}
+        return (read_id_aa64pfr0_el1() >> shift) & ID_AA64PFR0_ELX_MASK;
+    }
 }
 
 /* Previously defined accesor functions with incomplete register names  */
 
-#define read_current_el()	read_CurrentEl()
+#define read_current_el()      read_CurrentEl()
 
-#define dsb()			dsbsy()
+#define dsb()                  dsbsy()
 
-#define read_midr()		read_midr_el1()
+#define read_midr()            read_midr_el1()
 
-#define read_mpidr()		read_mpidr_el1()
+#define read_mpidr()           read_mpidr_el1()
 
-#define read_scr()		read_scr_el3()
-#define write_scr(_v)		write_scr_el3(_v)
+#define read_scr()             read_scr_el3()
+#define write_scr(_v)          write_scr_el3(_v)
 
-#define read_hcr()		read_hcr_el2()
-#define write_hcr(_v)		write_hcr_el2(_v)
+#define read_hcr()             read_hcr_el2()
+#define write_hcr(_v)          write_hcr_el2(_v)
 
-#define read_cpacr()		read_cpacr_el1()
-#define write_cpacr(_v)		write_cpacr_el1(_v)
+#define read_cpacr()           read_cpacr_el1()
+#define write_cpacr(_v)        write_cpacr_el1(_v)
 
-#define read_clusterpwrdn()	read_clusterpwrdn_el1()
-#define write_clusterpwrdn(_v)	write_clusterpwrdn_el1(_v)
+#define read_clusterpwrdn()    read_clusterpwrdn_el1()
+#define write_clusterpwrdn(_v) write_clusterpwrdn_el1(_v)
 
 #endif /* ARCH_HELPERS_H */

@@ -14,8 +14,7 @@
 
 typedef int slc_t;
 
-enum slc
-{
+enum slc {
     SLC_INVALID,
     SLC_NOT_CONFIGURED,
     SLC_CONFIGURATION,
@@ -24,8 +23,7 @@ enum slc
     SLC_END,
 };
 
-struct slc_config
-{
+struct slc_config {
     slc_t (*read_status)(void);
     int (*set_configuration)(void);
     int (*set_configuration_locked)(void);
@@ -38,4 +36,4 @@ int slc_set_configuration(void);
 int slc_set_configuration_locked(void);
 int slc_set_eol(void);
 
-#endif  // INCLUDE_PB_SLC_H
+#endif // INCLUDE_PB_SLC_H

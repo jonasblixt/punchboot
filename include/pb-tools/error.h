@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 
-enum pb_results
-{
+enum pb_results {
     PB_RESULT_OK,
     PB_RESULT_ERROR,
     PB_RESULT_AUTHENTICATION_FAILED,
@@ -23,9 +22,9 @@ enum pb_results
     PB_RESULT_SIGNATURE_ERROR,
     PB_RESULT_MEM_ERROR,
     PB_RESULT_IO_ERROR,
-    PB_RESULT_END,              /* Sentinel */
+    PB_RESULT_END, /* Sentinel */
 };
 
 const char *pb_error_string(int result);
 
-#endif  // INCLUDE_PB_ERROR_H_
+#endif // INCLUDE_PB_ERROR_H_

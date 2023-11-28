@@ -8,10 +8,10 @@
  */
 
 #include <pb/pb.h>
-#include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/fusebox.h>
-#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
+#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
 
 static sc_ipc_t ipc;
 
@@ -28,7 +28,7 @@ int imx8x_fuse_write(uint32_t addr, uint32_t value)
         return -PB_ERR;
 
 #ifdef CONFIG_IMX8X_FUSE_DRY_RUN
-    (void) err;
+    (void)err;
     LOG_INFO("Fuse dry run: Would write 0x%x to %i", value, addr);
     return PB_OK;
 #else
@@ -89,7 +89,7 @@ bool imx8x_is_srk_fused(void)
     uint32_t val;
 
     for (unsigned int n = 0; n < 16; n++) {
-        (void) imx8x_fuse_read(730 + n, &val);
+        (void)imx8x_fuse_read(730 + n, &val);
 
         if (val != 0)
             return true;
@@ -97,4 +97,3 @@ bool imx8x_is_srk_fused(void)
 
     return false;
 }
-

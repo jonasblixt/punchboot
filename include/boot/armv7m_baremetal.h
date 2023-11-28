@@ -10,8 +10,7 @@
 #include <bpak/bpak.h>
 #include <uuid.h>
 
-struct boot_driver_armv7m_baremetal_config
-{
+struct boot_driver_armv7m_baremetal_config {
     uintptr_t image_base_address;
     size_t image_size;
     bpak_id_t boot_partition_id;

@@ -7,11 +7,11 @@
  *
  */
 
+#include <pb/crypto.h>
+#include <pb/der_helpers.h>
+#include <pb/errors.h>
 #include <stdio.h>
 #include <string.h>
-#include <pb/errors.h>
-#include <pb/der_helpers.h>
-#include <pb/crypto.h>
 
 static const char ec_identifier[] = "\x2a\x86\x48\xce\x3d\x02\x01";
 static const uint8_t secp256r1_oid[] = "\x2a\x86\x48\xce\x3d\x03\x01\x07";
@@ -21,27 +21,25 @@ static const uint8_t secp521r1_oid[] = "\x2b\x81\x04\x00\x23";
 /* Copied from mbedtls */
 int asn1_size(const unsigned char **p, size_t *len)
 {
-
-    if (( **p & 0x80) == 0) {
+    if ((**p & 0x80) == 0) {
         *len = *(*p)++;
     } else {
-        switch( **p & 0x7F ) {
+        switch (**p & 0x7F) {
         case 1:
             *len = (*p)[1];
             (*p) += 2;
             break;
         case 2:
-            *len = ( (size_t)(*p)[1] << 8 ) | (*p)[2];
+            *len = ((size_t)(*p)[1] << 8) | (*p)[2];
             (*p) += 3;
             break;
         case 3:
-            *len = ( (size_t)(*p)[1] << 16 ) |
-                   ( (size_t)(*p)[2] << 8  ) | (*p)[3];
+            *len = ((size_t)(*p)[1] << 16) | ((size_t)(*p)[2] << 8) | (*p)[3];
             (*p) += 4;
             break;
         case 4:
-            *len = ( (size_t)(*p)[1] << 24 ) | ( (size_t)(*p)[2] << 16 ) |
-                   ( (size_t)(*p)[3] << 8  ) |           (*p)[4];
+            *len = ((size_t)(*p)[1] << 24) | ((size_t)(*p)[2] << 16) | ((size_t)(*p)[3] << 8) |
+                   (*p)[4];
             (*p) += 5;
             break;
         default:
@@ -52,7 +50,10 @@ int asn1_size(const unsigned char **p, size_t *len)
     return PB_OK;
 }
 
-int der_ecsig_to_rs(const uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
+int der_ecsig_to_rs(const uint8_t *sig,
+                    uint8_t *r,
+                    uint8_t *s,
+                    size_t length,
                     bool suppress_leading_zero)
 {
     size_t sz;
@@ -87,7 +88,7 @@ int der_ecsig_to_rs(const uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
         sz--;
     }
 
-    if (sz > length) 
+    if (sz > length)
         return -PB_ERR_BUF_TOO_SMALL;
 
     memcpy(r, p, sz);
@@ -106,7 +107,7 @@ int der_ecsig_to_rs(const uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
         sz--;
     }
 
-    if (sz > length) 
+    if (sz > length)
         return -PB_ERR_BUF_TOO_SMALL;
 
     memcpy(s, p, sz);

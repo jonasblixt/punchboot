@@ -7,9 +7,9 @@
  *
  */
 
-#include <pb/pb.h>
-#include <pb/mmio.h>
 #include <drivers/wdog/imx_wdog.h>
+#include <pb/mmio.h>
+#include <pb/pb.h>
 
 #define WDOG_WCR  0x0000
 #define WDOG_WSR  0x0002
@@ -24,11 +24,7 @@ int imx_wdog_init(uintptr_t base_, unsigned int delay_s)
     base = base_;
 
     /* Timeout value = 9 * 0.5 + 0.5 = 5 s */
-    uint16_t regval = ((delay_s * 2) << 8) |
-                            (1 << 2) |
-                            (1 << 3) |
-                            (1 << 4) |
-                            (1 << 5);
+    uint16_t regval = ((delay_s * 2) << 8) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5);
 
 #ifdef CONFIG_DRIVERS_IMX_WDOG_DEBUG
     regval |= (1 << 1);
@@ -55,8 +51,8 @@ int imx_wdog_reset_now(void)
 {
     mmio_write_16(base + WDOG_WCR, ((1 << 6) | (1 << 2)));
 
-    while (true)
-        {};
+    while (true) {
+    };
 
     return -PB_ERR;
 }

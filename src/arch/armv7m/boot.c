@@ -3,8 +3,7 @@
 #define VECTOR_STACK_ADDRESS_OFFSET 0
 #define VECTOR_RESET_ADDRESS_OFFSET 4
 
-
-void arch_jump(void* addr, void* p0, void* p1, void *p2, void *p3)
+void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
 {
     uintptr_t base_addr = (uintptr_t)addr;
 
@@ -18,10 +17,10 @@ void arch_jump(void* addr, void* p0, void* p1, void *p2, void *p3)
 
     /* Move the stack pointer and branch to the starting address */
     __asm__ volatile("dmb 15       \n\t"
-                 "msr msp, %0  \n\t"
-                 "msr psp, %0  \n\t"
-                 "bx %1        \n\t"
-                 :
-                 : "r"(stack_address), "r"(reset_handler_address)
-                 : "memory");
+                     "msr msp, %0  \n\t"
+                     "msr psp, %0  \n\t"
+                     "bx %1        \n\t"
+                     :
+                     : "r"(stack_address), "r"(reset_handler_address)
+                     : "memory");
 }

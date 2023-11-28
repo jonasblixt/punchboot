@@ -7,10 +7,10 @@
  *
  */
 
-#include <stdint.h>
-#include <pb/pb.h>
-#include <pb/mmio.h>
 #include "uart.h"
+#include <pb/mmio.h>
+#include <pb/pb.h>
+#include <stdint.h>
 
 void qemu_uart_putc(uintptr_t base, char c)
 {

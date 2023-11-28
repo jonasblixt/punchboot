@@ -12,17 +12,15 @@
 #ifndef BOOT_AB_STATE_H
 #define BOOT_AB_STATE_H
 
-#include <uuid.h>
 #include <pb/bio.h>
+#include <uuid.h>
 
-enum ab_rollback_mode
-{
+enum ab_rollback_mode {
     AB_ROLLBACK_MODE_NORMAL,
     AB_ROLLBACK_MODE_SPECULATIVE,
 };
 
-struct boot_ab_state_config
-{
+struct boot_ab_state_config {
     const unsigned char *primary_state_part_uu;
     const unsigned char *backup_state_part_uu;
     const unsigned char *sys_a_uu;

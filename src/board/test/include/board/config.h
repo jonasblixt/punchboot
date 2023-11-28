@@ -10,12 +10,12 @@
 #ifndef BOARD_TEST_INCLUDE_BOARD_CONFIG_H_
 #define BOARD_TEST_INCLUDE_BOARD_CONFIG_H_
 
+#define BOARD_BOOT_ARGS       \
+    "console=ttyLP0,115200  " \
+    "quiet "                  \
+    "root=PARTUUID=%s "       \
+    "ro rootfstype=ext4 gpt rootwait"
 
-#define BOARD_BOOT_ARGS "console=ttyLP0,115200  " \
-                        "quiet " \
-                        "root=PARTUUID=%s " \
-                        "ro rootfstype=ext4 gpt rootwait"
+#define RAM_SIZE (1024 * 1024 * 1024)
 
-#define RAM_SIZE (1024*1024*1024)
-
-#endif  // BOARD_TEST_INCLUDE_BOARD_CONFIG_H_
+#endif // BOARD_TEST_INCLUDE_BOARD_CONFIG_H_

@@ -1,29 +1,17 @@
-#include <pb/arch.h>
-#include <pb/plat.h>
 #include <arch/arch_helpers.h>
 #include <arch/armv7a/timer.h>
+#include <pb/arch.h>
+#include <pb/plat.h>
 #include <platform_defs.h>
 
-extern char _code_start, _code_end,
-            _data_region_start, _data_region_end,
-            _ro_data_region_start, _ro_data_region_end,
-            _zero_region_start, _zero_region_end,
-            _stack_start, _stack_end,
-            _no_init_start, _no_init_end, end;
+extern char _code_start, _code_end, _data_region_start, _data_region_end, _ro_data_region_start,
+    _ro_data_region_end, _zero_region_start, _zero_region_end, _stack_start, _stack_end,
+    _no_init_start, _no_init_end, end;
 
-const char *exception_strings[] =
-{
-    "Undefined",
-    "SVC",
-    "Prefetch",
-    "Abort",
-    "IRQ",
-    "FIQ"
-};
+const char *exception_strings[] = { "Undefined", "SVC", "Prefetch", "Abort", "IRQ", "FIQ" };
 
 void arch_init(void)
 {
-
 }
 
 void exception(int id)
@@ -37,10 +25,8 @@ void exception(int id)
 
 void arch_disable_mmu(void)
 {
-
-    uintptr_t stack_start = (uintptr_t) &_stack_start;
-    size_t stack_size = ((uintptr_t) &_stack_end) -
-                      ((uintptr_t) &_stack_start);
+    uintptr_t stack_start = (uintptr_t)&_stack_start;
+    size_t stack_size = ((uintptr_t)&_stack_end) - ((uintptr_t)&_stack_start);
 
     arch_clean_cache_range(stack_start, stack_size);
     arch_invalidate_cache_range(stack_start, stack_size);

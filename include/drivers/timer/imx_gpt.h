@@ -7,7 +7,6 @@
  *
  */
 
-
 #ifndef PLAT_IMX_GPT_H_
 #define PLAT_IMX_GPT_H_
 
@@ -16,4 +15,4 @@
 int imx_gpt_init(uintptr_t base, unsigned int input_clock_Hz);
 unsigned int imx_gpt_get_tick(void);
 
-#endif  // PLAT_IMX_GPT_H_
+#endif // PLAT_IMX_GPT_H_

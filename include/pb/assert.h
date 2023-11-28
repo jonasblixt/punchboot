@@ -11,4 +11,4 @@
 
 void __assert(const char *file, unsigned int line);
 
-#endif  // INCLUDE_PB_ASSERT_H_
+#endif // INCLUDE_PB_ASSERT_H_

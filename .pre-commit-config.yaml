@@ -5,9 +5,14 @@ repos:
       - id: black
         language_version: python3
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.0
+    rev: v1.7.1
     hooks:
-      - id: mypy
+    - id: mypy
+      additional_dependencies:
+        - "semver>=3,<4"
+        - "click>=8,<9"
+      pass_filenames: false # This and the args, argument are needed to make mypy read pyproject.toml
+      args: ["."]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.6
     hooks:

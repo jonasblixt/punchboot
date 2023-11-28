@@ -7,28 +7,26 @@
  *
  */
 
-#include <stdio.h>
 #include <pb/plat.h>
 #include <plat/qemu/gcov.h>
 #include <plat/qemu/semihosting.h>
+#include <stdio.h>
 
 static struct gcov_info *head;
 
 #define GCOV_TAG_FUNCTION_LENGTH    3
 
-#define GCOV_DATA_MAGIC     ((uint32_t) 0x67636461)
-#define GCOV_TAG_FUNCTION   ((uint32_t) 0x01000000)
-#define GCOV_TAG_COUNTER_BASE   ((uint32_t) 0x01a10000)
-#define GCOV_TAG_FOR_COUNTER(count)                 \
-        (GCOV_TAG_COUNTER_BASE + ((uint32_t) (count) << 17))
-
+#define GCOV_DATA_MAGIC             ((uint32_t)0x67636461)
+#define GCOV_TAG_FUNCTION           ((uint32_t)0x01000000)
+#define GCOV_TAG_COUNTER_BASE       ((uint32_t)0x01a10000)
+#define GCOV_TAG_FOR_COUNTER(count) (GCOV_TAG_COUNTER_BASE + ((uint32_t)(count) << 17))
 
 static int gcov_write_u32(long fd, uint32_t val)
 {
     int rc;
     size_t bytes_to_write = sizeof(uint32_t);
 
-    rc = semihosting_file_write(fd, &bytes_to_write, (const uintptr_t) &val);
+    rc = semihosting_file_write(fd, &bytes_to_write, (const uintptr_t)&val);
 
     if (rc != 0 || bytes_to_write != 0)
         return -1;
@@ -41,7 +39,7 @@ static int gcov_write_u64(long fd, uint64_t val)
     int rc;
     size_t bytes_to_write = sizeof(uint64_t);
 
-    rc = semihosting_file_write(fd, &bytes_to_write, (const uintptr_t) &val);
+    rc = semihosting_file_write(fd, &bytes_to_write, (const uintptr_t)&val);
 
     if (rc != 0 || bytes_to_write != 0)
         return -1;
@@ -49,13 +47,12 @@ static int gcov_write_u64(long fd, uint64_t val)
         return 0;
 }
 
-
 static int gcov_read_u32(long fd, uint32_t *output)
 {
     int rc;
     size_t bytes_to_read = sizeof(uint32_t);
 
-    rc = semihosting_file_read(fd, &bytes_to_read, (const uintptr_t) output);
+    rc = semihosting_file_read(fd, &bytes_to_read, (const uintptr_t)output);
 
     if (rc != 0 || bytes_to_read != sizeof(uint32_t))
         return -1;
@@ -68,14 +65,13 @@ static int gcov_read_u64(long fd, uint64_t *output)
     int rc;
     size_t bytes_to_read = sizeof(uint64_t);
 
-    rc = semihosting_file_read(fd, &bytes_to_read, (const uintptr_t) output);
+    rc = semihosting_file_read(fd, &bytes_to_read, (const uintptr_t)output);
 
     if (rc != 0 || bytes_to_read != sizeof(uint64_t))
         return -1;
     else
         return 0;
 }
-
 
 static int counter_active(struct gcov_info *info, unsigned int type)
 {
@@ -235,6 +231,7 @@ gcov_init_err:
 }
 
 void __gcov_init(struct gcov_info *p); /* Suppress build warning */
+
 void __gcov_init(struct gcov_info *p)
 {
     p->next = head;
@@ -242,21 +239,24 @@ void __gcov_init(struct gcov_info *p)
 }
 
 void __gcov_merge_add(gcov_type *counters, unsigned n_counters);
+
 void __gcov_merge_add(gcov_type *counters, unsigned n_counters)
 {
-    (void) counters;
-    (void) n_counters;
+    (void)counters;
+    (void)n_counters;
 
     /* Not Used */
 }
 
 void __gcov_flush(void);
+
 void __gcov_flush(void)
 {
     /* Not used */
 }
 
 void __gcov_exit(void);
+
 void __gcov_exit(void)
 {
     /* Not used */
@@ -266,8 +266,8 @@ void gcov_init(void)
 {
     /* Call gcov initalizers */
     extern uint32_t __init_array_start, __init_array_end;
-    void (**pctor)(void) = (void (**)(void)) &__init_array_start;
-    void (**pctor_last)(void) = (void (**)(void)) &__init_array_end;
+    void (**pctor)(void) = (void (**)(void)) & __init_array_start;
+    void (**pctor_last)(void) = (void (**)(void)) & __init_array_end;
 
     for (; pctor < pctor_last; pctor++) {
         (*pctor)();

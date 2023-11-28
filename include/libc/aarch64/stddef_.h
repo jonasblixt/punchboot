@@ -17,4 +17,4 @@ typedef long ptrdiff_t;
 #define _PTRDIFF_T
 #endif
 
-#endif  // INCLUDE_PB_LIBC_AARCH64_STDDEF__H_
+#endif // INCLUDE_PB_LIBC_AARCH64_STDDEF__H_

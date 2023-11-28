@@ -14,4 +14,4 @@
 
 int imx_caam_init(uintptr_t base);
 
-#endif  // DRIVERS_CRYPTO_IMX_CAAM_H
+#endif // DRIVERS_CRYPTO_IMX_CAAM_H

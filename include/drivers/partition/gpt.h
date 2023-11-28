@@ -10,14 +10,14 @@
 #ifndef INCLUDE_DRIVERS_PARTITION_GPT_H
 #define INCLUDE_DRIVERS_PARTITION_GPT_H
 
-#include <stdint.h>
 #include <pb/bio.h>
+#include <stdint.h>
 
 #define GPT_PART_NAME_MAX_SIZE 36
 
 struct gpt_part_table {
-    const unsigned char * uu;
-    const char * description;
+    const unsigned char *uu;
+    const char *description;
     size_t size;
 };
 
@@ -28,8 +28,6 @@ struct gpt_table_list {
     size_t table_length;
 };
 
-int gpt_ptbl_init(bio_dev_t dev,
-                  const struct gpt_table_list *tables,
-                  size_t length);
+int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *tables, size_t length);
 
-#endif  // INCLUDE_DRIVERS_PARTITION_GPT_H
+#endif // INCLUDE_DRIVERS_PARTITION_GPT_H

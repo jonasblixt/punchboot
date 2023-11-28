@@ -15,4 +15,4 @@ typedef unsigned int size_t;
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
-#endif  // INCLUDE_PB_LIBC_AARCH32_STDLIB__H_
+#endif // INCLUDE_PB_LIBC_AARCH32_STDLIB__H_

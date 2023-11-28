@@ -17,4 +17,4 @@ typedef int ssize_t;
 #define SSIZET_
 #endif
 
-#endif  // INCLUDE_PB_LIBC_AARCH32_STDIO__H_
+#endif // INCLUDE_PB_LIBC_AARCH32_STDIO__H_
