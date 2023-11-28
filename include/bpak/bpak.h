@@ -15,13 +15,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <sys/types.h>
 
 #define BPAK_VERSION_MAJOR  0
 #define BPAK_VERSION_MINOR  9
 #define BPAK_VERSION_PATCH  0
 #define BPAK_VERSION_STRING "0.9.0"
-
-typedef uint64_t off_t;
 
 #define BPAK_EXPORT __attribute__((visibility("default")))
 
