@@ -90,9 +90,6 @@ bool pb_wire_requires_auth(struct pb_command *command)
         case PB_CMD_AUTHENTICATE:
             result = false;
         break;
-        case PB_CMD_AUTH_SET_OTP_PASSWORD:
-            result = false;
-        break;
         default:
         break;
     }
