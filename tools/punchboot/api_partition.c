@@ -1,12 +1,18 @@
 #include "api.h"
 #include <bpak/bpak.h>
 #include <errno.h>
+#include <pb-tools/compat.h>
 #include <pb-tools/wire.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+
+#ifdef _MSC_VER
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 
 int pb_api_partition_read_table(struct pb_context *ctx,
                                 struct pb_partition_table_entry *out,

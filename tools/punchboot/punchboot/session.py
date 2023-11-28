@@ -9,7 +9,7 @@ import pathlib
 import semver
 import uuid
 import io
-from typing import Iterable, Any, Optional, Tuple
+from typing import Iterable, Any, Optional, Tuple, Union
 from .partition import Partition, PartitionFlags
 from .helpers import pb_id, valid_bpak_magic
 from .slc import SLC
@@ -25,8 +25,8 @@ class Session(object):
 
     def __init__(
         self,
-        device_uuid: Optional[uuid.UUID | str | None] = None,
-        socket_path: Optional[pathlib.Path | str | None] = None,
+        device_uuid: Optional[Union[uuid.UUID, str, None]] = None,
+        socket_path: Optional[Union[pathlib.Path, str, None]] = None,
     ):
         """Initialize the punchboot session.
 
@@ -62,7 +62,7 @@ class Session(object):
         """
         self._s.auth_set_password(password)
 
-    def authenticate_dsa_token(self, token: pathlib.Path | bytes, key_id: str | int):
+    def authenticate_dsa_token(self, token: Union[pathlib.Path, bytes], key_id: Union[str, int]):
         """Authenticate session using a DSA token.
 
         Keyword arguments:
@@ -98,7 +98,9 @@ class Session(object):
             for p in self._s.part_get_partitions()
         ]
 
-    def part_verify(self, file: pathlib.Path | io.BufferedReader | bytes, part: uuid.UUID | str):
+    def part_verify(
+        self, file: Union[pathlib.Path, io.BufferedReader, bytes], part: Union[uuid.UUID, str]
+    ):
         """Verify the contents of a partition.
 
         Keyword arguments:
@@ -148,7 +150,7 @@ class Session(object):
 
         self._s.part_verify(_uu.bytes, _hash_ctx.digest(), _data_length, _bpak_header_valid)
 
-    def part_write(self, file: pathlib.Path | io.BufferedReader, part: uuid.UUID | str):
+    def part_write(self, file: Union[pathlib.Path, io.BufferedReader], part: Union[uuid.UUID, str]):
         """Write data to a partition.
 
         Keyword arguments:
@@ -164,7 +166,7 @@ class Session(object):
         else:
             raise ValueError("Unacceptable input")
 
-    def part_read(self, file: pathlib.Path | io.BufferedReader, part: uuid.UUID | str):
+    def part_read(self, file: Union[pathlib.Path, io.BufferedReader], part: Union[uuid.UUID, str]):
         """Read data from a partition to a file.
 
         Keyword arguments:
@@ -180,7 +182,7 @@ class Session(object):
         else:
             raise ValueError("Unacceptable input")
 
-    def part_erase(self, part: uuid.UUID | str):
+    def part_erase(self, part: Union[uuid.UUID, str]):
         """Erase partition.
 
         Keyword arguments:
@@ -194,7 +196,7 @@ class Session(object):
         _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
         self._s.part_erase(_uu.bytes)
 
-    def part_table_install(self, part: uuid.UUID | str, variant: Optional[int] = 0):
+    def part_table_install(self, part: Union[uuid.UUID, str], variant: Optional[int] = 0):
         """Install partition table.
 
         Punchboot supports partition table variants to, for example, support
@@ -214,7 +216,7 @@ class Session(object):
         _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
         self._s.part_table_install(_uu.bytes, variant)
 
-    def boot_set_boot_part(self, part: uuid.UUID | str | None):
+    def boot_set_boot_part(self, part: Union[uuid.UUID, str, None]):
         """Set active boot partition.
 
         Keyword arguments:
@@ -248,7 +250,7 @@ class Session(object):
         uu_bytes, status_msg = self._s.boot_status()
         return (uuid.UUID(bytes=uu_bytes), status_msg)
 
-    def boot_partition(self, part: uuid.UUID | str, verbose: Optional[bool] = False):
+    def boot_partition(self, part: Union[uuid.UUID, str], verbose: Optional[bool] = False):
         """Boot partition.
 
         Keyword arguments:
@@ -264,7 +266,10 @@ class Session(object):
         self._s.boot_partition(_uu.bytes, verbose)
 
     def boot_bpak(
-        self, file: pathlib.Path, pretend_part: uuid.UUID | str, verbose: Optional[bool] = False
+        self,
+        file: pathlib.Path,
+        pretend_part: Union[uuid.UUID, str],
+        verbose: Optional[bool] = False,
     ):
         """Load a bpak file into ram and run it.
 
@@ -304,7 +309,7 @@ class Session(object):
         """Read the device's board name."""
         return str(self._s.device_get_boardname())
 
-    def board_run_command(self, cmd: str | int, args: Optional[bytes] = b"") -> bytes:
+    def board_run_command(self, cmd: Union[str, int], args: Optional[bytes] = b"") -> bytes:
         """Execute a board specific command.
 
         Keyword arguments:
@@ -368,7 +373,7 @@ class Session(object):
         """Read Security Life Cycle (SLC)."""
         return SLC(self._s.slc_get_lifecycle())
 
-    def slc_revoke_key(self, key_id: int | str):
+    def slc_revoke_key(self, key_id: Union[int, str]):
         """Revokey key.
 
         Keyword arguments:

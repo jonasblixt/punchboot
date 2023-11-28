@@ -215,6 +215,8 @@ static int pb_usb_list(struct pb_context *ctx,
         }
     }
 
+    libusb_free_device_list(devs, 1);
+
     return 0;
 }
 

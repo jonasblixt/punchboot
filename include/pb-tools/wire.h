@@ -25,6 +25,7 @@
 #ifndef INCLUDE_PB_WIRE_H_
 #define INCLUDE_PB_WIRE_H_
 
+#include <pb-tools/compat.h>
 #include <pb-tools/error.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -105,29 +106,29 @@ enum pb_slc {
  * Punchboot command structure (512 bytes)
  *
  */
-struct pb_command {
+PACK(struct pb_command {
     uint32_t magic; /*!< PB wire format magic, set to 'PBL0' and changed
                         for breaking changes in the protocol */
     uint8_t command; /*!< Command to be executed, from enum pb_commands */
     uint8_t rz[3]; /*!< Reserved */
     uint8_t request[PB_COMMAND_REQUEST_MAX_SIZE]; /*<! Optional request data */
-} __attribute__((packed));
+});
 
 /**
  * Punchboot command result (512 bytes)
  *
  */
-struct pb_result {
+PACK(struct pb_result {
     uint32_t magic; /*!< PB wire format magic */
     int8_t result_code; /*!< Command result code */
     uint8_t rz[3]; /*!< Reserved */
     uint8_t response[PB_RESULT_RESPONSE_MAX_SIZE]; /*!< Response data */
-} __attribute__((packed));
+});
 
 /**
  * Device capabilities
  */
-struct pb_result_device_caps {
+PACK(struct pb_result_device_caps {
     uint8_t stream_no_of_buffers; /*!< Number of stream buffers */
     uint32_t stream_buffer_size; /*!< Size of stream buffers in bytes */
     uint16_t operation_timeout_ms; /*!< Generic operation timeout */
@@ -138,15 +139,15 @@ struct pb_result_device_caps {
     uint32_t chunk_transfer_max_bytes; /*!< Maximum number of bytes in one
                                                                    transfer */
     uint8_t rz[18]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Read partition table response
  */
-struct pb_result_part_table_read {
+PACK(struct pb_result_part_table_read {
     uint8_t no_of_entries; /*!< Number of partitions in the following data */
     uint8_t rz[31]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * \def PB_WIRE_PART_FLAG_BOOTABLE
@@ -167,7 +168,7 @@ struct pb_result_part_table_read {
 #define PB_WIRE_PART_FLAG_WRITABLE           (1 << 2)
 #define PB_WIRE_PART_FLAG_ERASE_BEFORE_WRITE (1 << 3)
 
-struct pb_result_part_table_entry {
+PACK(struct pb_result_part_table_entry {
     uint8_t uuid[16]; /*!< Partition UUID */
     char description[37]; /*!< Textual description of partition */
     uint64_t first_block; /*!< Partition start block */
@@ -175,16 +176,16 @@ struct pb_result_part_table_entry {
     uint16_t block_size; /*!< Block size */
     uint8_t flags; /*!< Flags */
     uint8_t rz[56]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Initialize streaming to or from a partition
  *
  */
-struct pb_command_stream_initialize {
+PACK(struct pb_command_stream_initialize {
     uint8_t part_uuid[16]; /*!< Partition UUID */
     uint8_t rz[16]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Prepare buffer to receive data
@@ -192,33 +193,33 @@ struct pb_command_stream_initialize {
  * This command must always be followd by a data transfer corresponding the
  *  size field.
  */
-struct pb_command_stream_prepare_buffer {
+PACK(struct pb_command_stream_prepare_buffer {
     uint32_t size; /*!< Bytes to transfer into buffer */
     uint8_t id; /*!< Buffer ID */
     uint8_t rz[27]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Write data from an internal buffer to a partition
  */
-struct pb_command_stream_write_buffer {
+PACK(struct pb_command_stream_write_buffer {
     uint32_t size; /*!< Bytes to transfer from buffer to partition */
     uint64_t offset; /*!< Offset in bytes into the partition */
     uint8_t buffer_id; /*!< Source buffer id */
     uint8_t rz[19]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Read data from a partition to an internal buffer
  *
  * This command does not need a prepare_buffer CMD before it.
  */
-struct pb_command_stream_read_buffer {
+PACK(struct pb_command_stream_read_buffer {
     uint32_t size; /*!< Bytes to transfer from partition to buffer */
     uint64_t offset; /*!< Offset in bytes into the partition */
     uint8_t buffer_id; /*!< Source buffer id */
     uint8_t rz[19]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Authentication command
@@ -226,34 +227,34 @@ struct pb_command_stream_read_buffer {
  * The authentication command must be followed by a write opertion by the host
  * that contains the authentication data.
  */
-struct pb_command_authenticate {
+PACK(struct pb_command_authenticate {
     uint8_t method; /*!< Method to use for authenticaton see enum pb_auth_method */
     uint16_t size; /*!< Authentication data size in bytes */
     uint32_t key_id; /*!< Optional key id for token based auth */
     uint8_t rz[25]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Verify partition
  *
  * The device computes a sha256 hash and compares with the input hash
  */
-struct pb_command_verify_part {
+PACK(struct pb_command_verify_part {
     uint8_t uuid[16]; /*!< UUID of partition to verify */
     uint8_t sha256[32]; /*!< Expected sha256 hash */
     uint32_t size; /*!< Size in bytes */
     uint8_t bpak; /*!< Parse bpak header */
     uint8_t rz[2]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Activate bootable partition command
  *
  */
-struct pb_command_activate_part {
+PACK(struct pb_command_activate_part {
     uint8_t uuid[16]; /*!< UUID of partition to activate */
     uint8_t rz[16]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Read BPAK header command
@@ -261,79 +262,79 @@ struct pb_command_activate_part {
  * If the last 4kByte of the partition contains a valid bpak header the
  * header is sent to the host using this command.
  */
-struct pb_command_read_bpak {
+PACK(struct pb_command_read_bpak {
     uint8_t uuid[16]; /*!< Partition UUID */
     uint8_t rz[16]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Erase partition command
  */
-struct pb_command_erase_part {
+PACK(struct pb_command_erase_part {
     uint8_t uuid[16]; /*!< UUID of partition to erase */
     uint8_t rz[16]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Install default partition table
  */
-struct pb_command_install_part_table {
+PACK(struct pb_command_install_part_table {
     uint8_t uu[16];
     uint8_t variant;
-} __attribute__((packed));
+});
 
 /**
  * Read device identifier
  */
-struct pb_result_device_identifier {
+PACK(struct pb_result_device_identifier {
     uint8_t device_uuid[16]; /*!< Device UUID */
     char board_id[16]; /*!< Board id string */
     uint8_t rz[23]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Security Life Cycle (SLC) result
  */
-struct pb_result_slc {
+PACK(struct pb_result_slc {
     uint8_t slc; /*!< SLC state */
     uint8_t rz[31]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Active/Revoked keys result
  */
-struct pb_result_slc_key_status {
+PACK(struct pb_result_slc_key_status {
     uint32_t active[16]; /*!< ID's of keys that are active */
     uint32_t revoked[16]; /*!< ID's of keys that are revoked */
-} __attribute__((packed));
+});
 
 /**
  * Revoke key command
  */
-struct pb_command_revoke_key {
+PACK(struct pb_command_revoke_key {
     uint32_t key_id; /*!< ID of key to revoke */
     uint8_t rz[28]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Boot from partition command
  */
-struct pb_command_boot_part {
+PACK(struct pb_command_boot_part {
     uint8_t uuid[16]; /*!< UUID of bootable partition */
     uint8_t verbose; /*!< Verbose boot output */
     uint8_t rz[15]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Ram boot command
  *
  * A bpak image is transfered to ram and executed
  */
-struct pb_command_bpak_boot {
+PACK(struct pb_command_bpak_boot {
     uint8_t verbose; /*!< Verbose boot output */
     uint8_t uuid[16]; /*!< Make it look like we are booting this part */
     uint8_t rz[15]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Board specific command
@@ -341,38 +342,38 @@ struct pb_command_bpak_boot {
  * This optional command, when called will run a function in the board module
  * that can be unique for a board.
  */
-struct pb_command_board {
+PACK(struct pb_command_board {
     uint32_t command; /*!< Board command to run */
     uint32_t request_size; /*!< Request size in bytes */
     uint32_t response_buffer_size; /*!< Maximum amount of data that can be
                                        included in the response */
     uint8_t rz[20]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * The result structure for the board command
  */
-struct pb_result_board {
+PACK(struct pb_result_board {
     uint32_t size; /*!< Bytes to read after the result structure */
     uint8_t rz[28]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Board status result
  */
-struct pb_result_board_status {
+PACK(struct pb_result_board_status {
     uint32_t size; /*!< Bytes to read after the result structure */
     uint8_t rz[28]; /*!< Reserved */
-} __attribute__((packed));
+});
 
 /**
  * Boot status result
  **/
 
-struct pb_result_boot_status {
+PACK(struct pb_result_boot_status {
     uint8_t uuid[16]; /*!< Active boot partition */
     char status[16]; /*!< Optional, textual status message */
-} __attribute__((packed));
+});
 
 /**
  * Initializes and resets a command structure. The magic value is populated and

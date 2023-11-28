@@ -5,12 +5,18 @@
 #include "api.h"
 #include "socket.h"
 #include "usb.h"
+#include <pb-tools/compat.h>
 #include <pb-tools/error.h>
 #include <pb-tools/wire.h>
 #include <Python.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _MSC_VER
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 
 #if PY_MAJOR_VERSION < 3
 #error "Only python3 supported"
@@ -60,10 +66,15 @@ static int init_transport(const char *uuid, const char *socket_path, struct pb_c
         return rc;
     }
 
-    if (socket_path)
+    if (socket_path) {
+#ifdef __linux__
         rc = pb_socket_transport_init(local_ctx, socket_path);
-    else
+#else
+        rc = -PB_RESULT_NOT_SUPPORTED;
+#endif
+    } else {
         rc = pb_usb_transport_init(local_ctx, uuid);
+    }
     if (rc != PB_RESULT_OK) {
         goto err_free_ctx;
     }

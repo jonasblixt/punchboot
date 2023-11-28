@@ -13,14 +13,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifdef WINDOWS
-#include <winsock2.h>
-#include <Ws2tcpip.h>
-#else
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#endif
 
 #include "api.h"
 #include "socket.h"

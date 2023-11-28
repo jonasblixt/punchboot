@@ -1,0 +1,113 @@
+name: Build punchboot-tools
+# push
+on: [pull_request]
+
+# REMEMBER: If the libusb versions for macos are updated the 'macos deps',
+#  setup.py and pyproject.toml must also be updated since they have hard coded
+#  version information in path's.
+env:
+  PYTHON_VERSION: "3.12"
+  LIBUSB_MACOS_ARM64_URL: "https://ghcr.io/v2/homebrew/core/libusb/blobs/sha256:ab90516396d8dc99f96d31615bcbddfcfd2082fcc7494dabb9d22b275628e800"
+  LIBUSB_MACOS_X86_64_URL: "https://ghcr.io/v2/homebrew/core/libusb/blobs/sha256:e79be7d4c611f0017567172771761b1df62d140e79ffa6d2538577eb24a48e44"
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - if: startsWith(matrix.os, 'windows') == true
+        name: Windows deps
+        shell: cmd
+        run: |
+          vcpkg install
+
+      - if: startsWith(matrix.os, 'macos') == true
+        name: macos deps
+        run: |
+          # Here we download specfic version of libusb for both x86_64 and arm64.
+          # It's not possible to have multiple installations with different architectures installed
+          # through homebrew, so we do it like this instead to support cross compiling arm64
+          # wheels on an x86_64 host.
+          curl -L -H "Authorization: Bearer QQ==" -o libusb_arm64.tar.gz ${LIBUSB_MACOS_ARM64_URL}
+          curl -L -H "Authorization: Bearer QQ==" -o libusb_x86_64.tar.gz ${LIBUSB_MACOS_X86_64_URL}
+          mkdir libusb_x86_64 && tar xf libusb_x86_64.tar.gz -C libusb_x86_64 --strip-components 1
+          mkdir libusb_arm64 && tar xf libusb_arm64.tar.gz -C libusb_arm64 --strip-components 1
+          # The libusb binaries from homebrew comes with an id that starts with "@@HOMEBREW..."
+          # This confuses the 'delocate-wheel' tool used by 'cibuildwheel' to bundle dependencies
+          # in binary wheels.
+          #
+          # If we prefix it with "@rpath" it works better.
+          install_name_tool -id @rpath/libusb-1.0.0.dylib libusb_x86_64/1.0.26/lib/libusb-1.0.0.dylib
+          install_name_tool -id @rpath/libusb-1.0.0.dylib libusb_arm64/1.0.26/lib/libusb-1.0.0.dylib
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.16.2
+        with:
+           package-dir: .
+           output-dir: wheelhouse
+           config-file: "pyproject.toml"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi_test:
+    name: Upload to PyPi (Test)
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    if: github.repository == 'jonasblixt/punchboot' && github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@v1.5.0
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+          skip_existing: true
+
+  upload_pypi:
+    name: Upload to PyPi
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    if: github.repository == 'jonasblixt/punchboot' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@v1.5.0
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip_existing: true

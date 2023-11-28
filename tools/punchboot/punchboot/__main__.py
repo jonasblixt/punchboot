@@ -10,7 +10,7 @@ import subprocess
 import punchboot
 from importlib.metadata import version
 from functools import update_wrapper
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Union
 from click.shell_completion import CompletionItem
 from . import Session, Partition, SLC, list_usb_devices
 
@@ -31,8 +31,8 @@ def _completion_helper_init_session() -> Session:
     """
     cmd_line = os.environ["COMP_WORDS"].split()[1:]
     opts, args = getopt.getopt(cmd_line, "t:u:s:", ["transport=", "device-uuid=", "socket="])
-    _skt_path: str | None = None
-    _dev_uuid: uuid.UUID | None = None
+    _skt_path: Union[str, None] = None
+    _dev_uuid: Union[uuid.UUID, None] = None
     for o, a in opts:
         if (o == "-t" or o == "--transport") and a == "socket" and _skt_path is None:
             _skt_path = "/tmp/pb.sock"
@@ -276,7 +276,7 @@ def auth_password(ctx: click.Context, s: Session, set_flag: bool, force: bool, p
 @click.pass_context
 def auth_token(ctx: click.Context, s: Session, token: pathlib.Path, key_id: str):
     """DSA token  authentication."""
-    _key_id: int | str = 0
+    _key_id: Union[int, str] = 0
 
     try:
         _key_id = int(key_id, 0)
@@ -441,7 +441,7 @@ def board_command(
     args_from_file: Optional[pathlib.Path],
 ):
     """Execute a board specific command."""
-    _command: int | str = 0
+    _command: Union[int, str] = 0
     _args: bytes = b""
 
     try:
@@ -621,7 +621,7 @@ def slc_eol(ctx: click.Context, s: Session, force: bool):
 @click.pass_context
 def slc_revoke_key(ctx: click.Context, s: Session, key_id: str, force: bool):
     """Revoke a key."""
-    _key_id: int | str = 0
+    _key_id: Union[int, str] = 0
     try:
         _key_id = int(key_id, 0)
     except ValueError:
