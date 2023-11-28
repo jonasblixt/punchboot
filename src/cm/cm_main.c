@@ -761,7 +761,7 @@ static int pb_command_parse(void)
         case PB_CMD_AUTHENTICATE:
             rc = cmd_auth();
         break;
-        case PB_CMD_AUTH_SET_OTP_PASSWORD:
+        case PB_CMD_AUTH_SET_PASSWORD:
         {
             pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
         }
