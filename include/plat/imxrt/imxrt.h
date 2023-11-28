@@ -1,13 +1,11 @@
 #ifndef INCLUDE_PLAT_IMXRT_IMXRT_H
 #define INCLUDE_PLAT_IMXRT_IMXRT_H
 
-#include <stdint.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <stdint.h>
 
-struct imxrt_platform
-{
-};
+struct imxrt_platform {};
 
 int board_init(struct imxrt_platform *plat);
 

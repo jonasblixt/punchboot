@@ -12,9 +12,9 @@
 #ifndef INCLUDE_BPAK_BPAK_H_
 #define INCLUDE_BPAK_BPAK_H_
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #define BPAK_VERSION_MAJOR  0
@@ -22,7 +22,7 @@
 #define BPAK_VERSION_PATCH  0
 #define BPAK_VERSION_STRING "0.9.0"
 
-#define BPAK_EXPORT __attribute__((visibility("default")))
+#define BPAK_EXPORT         __attribute__((visibility("default")))
 
 #ifdef __cplusplus
 extern "C" {
@@ -164,7 +164,7 @@ enum bpak_key_kind {
  * bpak-transport (struct bpak_transport_meta)
  *
  */
-#define BPAK_FLAG_TRANSPORT (1 << 1)
+#define BPAK_FLAG_TRANSPORT         (1 << 1)
 
 /* Bits 2 - 7 are reserved */
 
@@ -183,7 +183,7 @@ typedef uint32_t bpak_id_t;
 struct bpak_transport_meta {
     uint32_t alg_id_encode; /*!< Algorithm encoder ID */
     uint32_t alg_id_decode; /*!< Algorithm decoder ID */
-    uint8_t data[24];       /*!< Algorithm specific data */
+    uint8_t data[24]; /*!< Algorithm specific data */
 } __attribute__((packed));
 
 /**
@@ -192,15 +192,15 @@ struct bpak_transport_meta {
  * Size:32 byte
  **/
 struct bpak_part_header {
-    bpak_id_t id;            /*!< Part identifier */
-    uint64_t size;           /*!< Data block size*/
-    uint64_t offset;         /*!< Offset in data stream */
+    bpak_id_t id; /*!< Part identifier */
+    uint64_t size; /*!< Data block size*/
+    uint64_t offset; /*!< Offset in data stream */
     uint64_t transport_size; /*!< Should be populated when part data is
                                 prepared for transport. With the encoded
                                 size */
     uint16_t pad_bytes; /*!< Part padding up to the next 128 byte boundary*/
-    uint8_t flags;      /*!< Flags */
-    uint8_t pad;        /*!< Pad to 32 bytes, set to zero */
+    uint8_t flags; /*!< Flags */
+    uint8_t pad; /*!< Pad to 32 bytes, set to zero */
 } __attribute__((packed));
 
 /**
@@ -209,11 +209,11 @@ struct bpak_part_header {
  * Size: 16 byte
  **/
 struct bpak_meta_header {
-    bpak_id_t id;          /*!< Metadata identifier */
-    uint16_t size;         /*!< Size of metadata */
-    uint16_t offset;       /*!< Offset in 'metadata' byte array */
+    bpak_id_t id; /*!< Metadata identifier */
+    uint16_t size; /*!< Size of metadata */
+    uint16_t offset; /*!< Offset in 'metadata' byte array */
     bpak_id_t part_id_ref; /*!< Optional reference to a part id */
-    uint8_t pad[4];        /*!< Pad to 16 bytes */
+    uint8_t pad[4]; /*!< Pad to 16 bytes */
 } __attribute__((packed));
 
 /**
@@ -223,20 +223,20 @@ struct bpak_meta_header {
  * Size: 4 kBytes
  **/
 struct bpak_header {
-    uint32_t magic;                              /*!< BPAK Magic number*/
-    uint8_t pad0[4];                             /*!< Pad 1*/
+    uint32_t magic; /*!< BPAK Magic number*/
+    uint8_t pad0[4]; /*!< Pad 1*/
     struct bpak_meta_header meta[BPAK_MAX_META]; /*!< Meta data header array */
     struct bpak_part_header parts[BPAK_MAX_PARTS]; /*!< Part header array */
-    uint8_t metadata[BPAK_METADATA_BYTES];         /*!< Meta data byte array */
-    uint8_t hash_kind;        /*!< Hash kind used in package */
-    uint8_t signature_kind;   /*!< Signature kind used in package */
-    uint16_t alignment;       /*!< Alignment */
+    uint8_t metadata[BPAK_METADATA_BYTES]; /*!< Meta data byte array */
+    uint8_t hash_kind; /*!< Hash kind used in package */
+    uint8_t signature_kind; /*!< Signature kind used in package */
+    uint16_t alignment; /*!< Alignment */
     uint8_t payload_hash[64]; /*!< Payload hash */
-    uint32_t key_id;          /*!< Signing key identifier */
-    uint32_t keystore_id;     /*!< Keystore identifier */
-    uint8_t pad1[42];         /*!< Pad 2 */
+    uint32_t key_id; /*!< Signing key identifier */
+    uint32_t keystore_id; /*!< Keystore identifier */
+    uint8_t pad1[42]; /*!< Pad 2 */
     uint8_t signature[BPAK_SIGNATURE_MAX_BYTES]; /*!< Signature data */
-    uint16_t signature_sz;                       /*!< Signature size */
+    uint16_t signature_sz; /*!< Signature size */
 } __attribute__((packed));
 
 /**
@@ -251,9 +251,8 @@ struct bpak_header {
  *
  * Helper macro to iterate over all parts in a package
  */
-#define bpak_foreach_part(_hdr, _var)                                        \
-    for (struct bpak_part_header *_var = (_hdr)->parts;                      \
-         _var != &((_hdr)->parts[BPAK_MAX_PARTS]);                           \
+#define bpak_foreach_part(_hdr, _var)                                                             \
+    for (struct bpak_part_header *_var = (_hdr)->parts; _var != &((_hdr)->parts[BPAK_MAX_PARTS]); \
          _var++)
 
 /**
@@ -261,9 +260,8 @@ struct bpak_header {
  *
  * Helper macro to iterate over all metadata in a package
  */
-#define bpak_foreach_meta(_hdr, _var)                                        \
-    for (struct bpak_meta_header *_var = (_hdr)->meta;                       \
-         _var != &((_hdr)->meta[BPAK_MAX_META]);                             \
+#define bpak_foreach_meta(_hdr, _var)                                                          \
+    for (struct bpak_meta_header *_var = (_hdr)->meta; _var != &((_hdr)->meta[BPAK_MAX_META]); \
          _var++)
 
 /**
@@ -271,9 +269,7 @@ struct bpak_header {
  *
  * Helper macro to get the metadata pointer from a metadata header with a specific type
  */
-#define bpak_get_meta_ptr(_hdr, __meta, _T)                                   \
-    ((_T*)&(_hdr)->metadata[(__meta)->offset])
-
+#define bpak_get_meta_ptr(_hdr, __meta, _T) ((_T *)&(_hdr)->metadata[(__meta)->offset])
 
 /**
  * Get pointer to metadata header with 'id' and a part reference id 'part_id_ref'.
@@ -286,9 +282,10 @@ struct bpak_header {
  * @return BPAK_OK on success -BPAK_NOT_FOUND if the metadata is missing
  *
  **/
-int bpak_get_meta(struct bpak_header *hdr, bpak_id_t id, bpak_id_t part_id_ref,
+int bpak_get_meta(struct bpak_header *hdr,
+                  bpak_id_t id,
+                  bpak_id_t part_id_ref,
                   struct bpak_meta_header **meta);
-
 
 /**
  * Get pointer to metadata header with 'id' and any part reference id
@@ -300,9 +297,7 @@ int bpak_get_meta(struct bpak_header *hdr, bpak_id_t id, bpak_id_t part_id_ref,
  * @return BPAK_OK on success -BPAK_NOT_FOUND if the metadata is missing
  *
  **/
-int bpak_get_meta_anyref(struct bpak_header *hdr, bpak_id_t id,
-                         struct bpak_meta_header **meta);
-
+int bpak_get_meta_anyref(struct bpak_header *hdr, bpak_id_t id, struct bpak_meta_header **meta);
 
 /**
  * Add new metadata with id 'id' of size 'size'. *meta is assigned
@@ -319,8 +314,11 @@ int bpak_get_meta_anyref(struct bpak_header *hdr, bpak_id_t id,
  *         -BPAK_EXISTS if a metadata with the same 'id' and 'part_ref_id'
  *         already exists
  **/
-int bpak_add_meta(struct bpak_header *hdr, bpak_id_t id, bpak_id_t part_ref_id,
-                  uint16_t size, struct bpak_meta_header **meta);
+int bpak_add_meta(struct bpak_header *hdr,
+                  bpak_id_t id,
+                  bpak_id_t part_ref_id,
+                  uint16_t size,
+                  struct bpak_meta_header **meta);
 
 /**
  * Remove metadata pointed to by 'meta'.
@@ -329,8 +327,7 @@ int bpak_add_meta(struct bpak_header *hdr, bpak_id_t id, bpak_id_t part_ref_id,
  * @param[in] meta Pointer to metadata header. Assumed to be within hdr->meta array
  *
  **/
-void bpak_del_meta(struct bpak_header *hdr,
-                   struct bpak_meta_header *meta);
+void bpak_del_meta(struct bpak_header *hdr, struct bpak_meta_header *meta);
 
 /**
  * Retrieve pointer to part with id 'id'.
@@ -346,8 +343,7 @@ void bpak_del_meta(struct bpak_header *hdr,
  *
  **/
 
-int bpak_get_part(struct bpak_header *hdr, bpak_id_t id,
-                  struct bpak_part_header **part);
+int bpak_get_part(struct bpak_header *hdr, bpak_id_t id, struct bpak_part_header **part);
 
 /**
  * Add new part with 'id'. *ptr is assigned to a pointer within
@@ -363,8 +359,7 @@ int bpak_get_part(struct bpak_header *hdr, bpak_id_t id,
  *
  **/
 
-int bpak_add_part(struct bpak_header *hdr, bpak_id_t id,
-                  struct bpak_part_header **part);
+int bpak_add_part(struct bpak_header *hdr, bpak_id_t id, struct bpak_part_header **part);
 
 /**
  * Remove part pointed to by 'part'.
@@ -373,8 +368,7 @@ int bpak_add_part(struct bpak_header *hdr, bpak_id_t id,
  * @param[in] part Pointer to part header. Assumed to be within hdr->parts array
  *
  **/
-void bpak_del_part(struct bpak_header *hdr,
-                   struct bpak_part_header *part);
+void bpak_del_part(struct bpak_header *hdr, struct bpak_part_header *part);
 
 /**
  * Check magic numbers in the header and check that all parts have the correct
@@ -400,8 +394,7 @@ int bpak_valid_header(struct bpak_header *hdr);
  * @return BPAK_OK On success
  **/
 
-int bpak_copyz_signature(struct bpak_header *hdr, uint8_t *signature,
-                         size_t *size);
+int bpak_copyz_signature(struct bpak_header *hdr, uint8_t *signature, size_t *size);
 
 /**
  * Initialize empty header structure
@@ -512,8 +505,10 @@ int bpak_set_keystore_id(struct bpak_header *hdr, uint32_t keystore_id);
  *
  * @return BPAK_OK on success
  */
-int bpak_add_transport_meta(struct bpak_header *header, bpak_id_t part_id,
-                            uint32_t encoder_id, uint32_t decoder_id);
+int bpak_add_transport_meta(struct bpak_header *header,
+                            bpak_id_t part_id,
+                            uint32_t encoder_id,
+                            uint32_t decoder_id);
 /**
  * Library version
  *

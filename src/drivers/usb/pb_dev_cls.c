@@ -7,20 +7,20 @@
  *
  */
 
-#include <string.h>
-#include <stdint.h>
-#include <pb/pb.h>
-#include <uuid.h>
-#include <pb/device_uuid.h>
-#include <drivers/usb/usbd.h>
 #include <drivers/usb/pb_dev_cls.h>
+#include <drivers/usb/usbd.h>
+#include <pb/device_uuid.h>
+#include <pb/pb.h>
+#include <stdint.h>
+#include <string.h>
+#include <uuid.h>
 
 #ifndef PB_USB_VID
-    #define PB_USB_VID 0x1209
+#define PB_USB_VID 0x1209
 #endif
 
 #ifndef PB_USB_PID
-    #define PB_USB_PID 0x2019
+#define PB_USB_PID 0x2019
 #endif
 
 /**
@@ -109,14 +109,14 @@ static const struct usbd_descriptors descriptors =
 static void usb_string(struct usb_string_descriptor *desc, const char *str)
 {
     memset(desc, 0, sizeof(*desc));
-    desc->bLength = strlen(str)*2 + 2;
+    desc->bLength = strlen(str) * 2 + 2;
     desc->bDescriptorType = 0x03;
 
     for (unsigned int i = 0; i < strlen(str); i++)
         desc->unicode[i] = str[i];
 }
 
-static struct usb_string_descriptor * get_string_descriptor(uint8_t idx)
+static struct usb_string_descriptor *get_string_descriptor(uint8_t idx)
 {
     static struct usb_string_descriptor usb_str_desc;
     uuid_t device_uu;
@@ -147,7 +147,7 @@ int pb_dev_cls_init(void)
 
 int pb_dev_cls_write(const void *buf, size_t length)
 {
-    return usbd_xfer(USB_EP1_IN, (void *) buf, length);
+    return usbd_xfer(USB_EP1_IN, (void *)buf, length);
 }
 
 int pb_dev_cls_read(void *buf, size_t length)

@@ -11,9 +11,9 @@
 #ifndef INCLUDE_BPAK_ID_H_
 #define INCLUDE_BPAK_ID_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <bpak/bpak.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /* Meta data ID's */
 #define BPAK_ID_BPAK_TRANSPORT       (0x2d44bbfb)
@@ -27,14 +27,14 @@
 #define BPAK_ID_BPAK_KEY_STORE       (0x106c13a7)
 
 /* Algorithm ID's */
-#define BPAK_ID_BSDIFF          (0x9f7aacf9)
-#define BPAK_ID_BSDIFF_LZMA     (0x1607e56e)
-#define BPAK_ID_BSDIFF_NO_COMP  (0x0a878e3e)
-#define BPAK_ID_BSPATCH         (0xb5964388)
-#define BPAK_ID_BSPATCH_LZMA    (0x933a9893)
-#define BPAK_ID_BSPATCH_NO_COMP (0x75622592)
-#define BPAK_ID_MERKLE_GENERATE (0xb5bcc58f)
-#define BPAK_ID_REMOVE_DATA     (0x57004cd0)
+#define BPAK_ID_BSDIFF               (0x9f7aacf9)
+#define BPAK_ID_BSDIFF_LZMA          (0x1607e56e)
+#define BPAK_ID_BSDIFF_NO_COMP       (0x0a878e3e)
+#define BPAK_ID_BSPATCH              (0xb5964388)
+#define BPAK_ID_BSPATCH_LZMA         (0x933a9893)
+#define BPAK_ID_BSPATCH_NO_COMP      (0x75622592)
+#define BPAK_ID_MERKLE_GENERATE      (0xb5bcc58f)
+#define BPAK_ID_REMOVE_DATA          (0x57004cd0)
 
 #ifdef __cplusplus
 extern "C" {

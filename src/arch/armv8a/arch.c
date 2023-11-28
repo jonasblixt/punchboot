@@ -1,14 +1,11 @@
-#include <pb/pb.h>
-#include <pb/arch.h>
-#include <arch/armv8a/timer.h>
 #include <arch/arch_helpers.h>
+#include <arch/armv8a/timer.h>
+#include <pb/arch.h>
+#include <pb/pb.h>
 #include <platform_defs.h>
 
-extern char _code_start, _code_end,
-            _data_region_start, _data_region_end,
-            _ro_data_region_start, _ro_data_region_end,
-            _zero_region_start, _zero_region_end,
-            _stack_start, _stack_end, end;
+extern char _code_start, _code_end, _data_region_start, _data_region_end, _ro_data_region_start,
+    _ro_data_region_end, _zero_region_start, _zero_region_end, _stack_start, _stack_end, end;
 
 void arch_init(void)
 {
@@ -32,9 +29,8 @@ void exception_sync(void)
 
 void arch_disable_mmu(void)
 {
-    uintptr_t stack_start = (uintptr_t) &_stack_start;
-    size_t stack_size = ((uintptr_t) &_stack_end) -
-                      ((uintptr_t) &_stack_start);
+    uintptr_t stack_start = (uintptr_t)&_stack_start;
+    size_t stack_size = ((uintptr_t)&_stack_end) - ((uintptr_t)&_stack_start);
 
     arch_clean_cache_range(stack_start, stack_size);
     arch_invalidate_cache_range(stack_start, stack_size);

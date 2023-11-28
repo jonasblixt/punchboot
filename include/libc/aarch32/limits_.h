@@ -28,4 +28,4 @@
 #define __LONG_BIT 32
 #define __WORD_BIT 32
 
-#endif  // INCLUDE_PB_LIBC_AARCH32_LIMITS__H_
+#endif // INCLUDE_PB_LIBC_AARCH32_LIMITS__H_

@@ -12,9 +12,9 @@
  * d before the console drivers.
  */
 
-#include <pb/mmio.h>
-#include <pb/errors.h>
 #include <drivers/timer/imx_gpt.h>
+#include <pb/errors.h>
+#include <pb/mmio.h>
 
 #define GP_TIMER_CR  0x0000
 #define GP_TIMER_PR  0x0004
@@ -30,7 +30,7 @@ int imx_gpt_init(uintptr_t base, unsigned int input_clock_Hz)
 
     mmio_write_32(gpt_base + GP_TIMER_CR, (1 << 15));
 
-    while (mmio_read_32(gpt_base + GP_TIMER_CR) & (1<<15)) {
+    while (mmio_read_32(gpt_base + GP_TIMER_CR) & (1 << 15)) {
         __asm__("nop");
     }
 
@@ -51,5 +51,3 @@ unsigned int imx_gpt_get_tick(void)
 {
     return mmio_read_32(gpt_base + GP_TIMER_CNT);
 }
-
-

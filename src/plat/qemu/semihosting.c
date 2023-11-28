@@ -8,11 +8,10 @@
 #include <string.h>
 
 #ifndef SEMIHOSTING_SUPPORTED
-#define SEMIHOSTING_SUPPORTED  1
+#define SEMIHOSTING_SUPPORTED 1
 #endif
 
-long semihosting_call(unsigned long operation,
-            void *system_block_address);
+long semihosting_call(unsigned long operation, void *system_block_address);
 
 typedef struct {
     const char *file_name;
@@ -49,8 +48,7 @@ long semihosting_file_open(const char *file_name, size_t mode)
     open_block.mode = mode;
     open_block.name_length = strlen(file_name);
 
-    return semihosting_call(SEMIHOSTING_SYS_OPEN,
-                (void *) &open_block);
+    return semihosting_call(SEMIHOSTING_SYS_OPEN, (void *)&open_block);
 }
 
 long semihosting_file_seek(long file_handle, long offset)
@@ -61,8 +59,7 @@ long semihosting_file_seek(long file_handle, long offset)
     seek_block.handle = file_handle;
     seek_block.location = offset;
 
-    result = semihosting_call(SEMIHOSTING_SYS_SEEK,
-                  (void *) &seek_block);
+    result = semihosting_call(SEMIHOSTING_SYS_SEEK, (void *)&seek_block);
 
     if (result)
         result = semihosting_call(SEMIHOSTING_SYS_ERRNO, 0);
@@ -82,12 +79,11 @@ long semihosting_file_read(long file_handle, size_t *length, uintptr_t buffer)
     read_block.buffer = buffer;
     read_block.length = *length;
 
-    result = semihosting_call(SEMIHOSTING_SYS_READ,
-                  (void *) &read_block);
+    result = semihosting_call(SEMIHOSTING_SYS_READ, (void *)&read_block);
 
-    if (result == (long) *length) {
+    if (result == (long)*length) {
         return -1;
-    } else if (result < (long) *length) {
+    } else if (result < (long)*length) {
         *length -= result;
         return 0;
     } else {
@@ -95,9 +91,7 @@ long semihosting_file_read(long file_handle, size_t *length, uintptr_t buffer)
     }
 }
 
-long semihosting_file_write(long file_handle,
-                size_t *length,
-                const uintptr_t buffer)
+long semihosting_file_write(long file_handle, size_t *length, const uintptr_t buffer)
 {
     smh_file_read_write_block_t write_block;
     long result = -1;
@@ -109,8 +103,7 @@ long semihosting_file_write(long file_handle,
     write_block.buffer = (uintptr_t)buffer; /* cast away const */
     write_block.length = *length;
 
-    result = semihosting_call(SEMIHOSTING_SYS_WRITE,
-                   (void *) &write_block);
+    result = semihosting_call(SEMIHOSTING_SYS_WRITE, (void *)&write_block);
 
     *length = result;
 
@@ -119,14 +112,12 @@ long semihosting_file_write(long file_handle,
 
 long semihosting_file_close(long file_handle)
 {
-    return semihosting_call(SEMIHOSTING_SYS_CLOSE,
-                (void *) &file_handle);
+    return semihosting_call(SEMIHOSTING_SYS_CLOSE, (void *)&file_handle);
 }
 
 long semihosting_file_length(long file_handle)
 {
-    return semihosting_call(SEMIHOSTING_SYS_FLEN,
-                (void *) &file_handle);
+    return semihosting_call(SEMIHOSTING_SYS_FLEN, (void *)&file_handle);
 }
 
 char semihosting_read_char(void)
@@ -136,12 +127,12 @@ char semihosting_read_char(void)
 
 void semihosting_write_char(char character)
 {
-    semihosting_call(SEMIHOSTING_SYS_WRITEC, (void *) &character);
+    semihosting_call(SEMIHOSTING_SYS_WRITEC, (void *)&character);
 }
 
 void semihosting_write_string(char *string)
 {
-    semihosting_call(SEMIHOSTING_SYS_WRITE0, (void *) string);
+    semihosting_call(SEMIHOSTING_SYS_WRITE0, (void *)string);
 }
 
 long semihosting_system(char *command_line)
@@ -151,15 +142,13 @@ long semihosting_system(char *command_line)
     system_block.command_line = command_line;
     system_block.command_length = strlen(command_line);
 
-    return semihosting_call(SEMIHOSTING_SYS_SYSTEM,
-                (void *) &system_block);
+    return semihosting_call(SEMIHOSTING_SYS_SYSTEM, (void *)&system_block);
 }
 
 long semihosting_get_flen(const char *file_name)
 {
     long file_handle;
     long length;
-
 
     file_handle = semihosting_file_open(file_name, FOPEN_MODE_RB);
     if (file_handle == -1)
@@ -174,14 +163,12 @@ long semihosting_get_flen(const char *file_name)
 void semihosting_sys_exit(uint8_t error)
 {
     if (error == 0)
-        semihosting_call(SEMIHOSTING_SYS_EXIT, (void *) 0x00020026);
+        semihosting_call(SEMIHOSTING_SYS_EXIT, (void *)0x00020026);
     else
         semihosting_call(SEMIHOSTING_SYS_EXIT, 0);
 }
 
-long semihosting_download_file(const char *file_name,
-                  size_t buf_size,
-                  uintptr_t buf)
+long semihosting_download_file(const char *file_name, size_t buf_size, uintptr_t buf)
 {
     long ret = -1;
     size_t length;
@@ -190,7 +177,6 @@ long semihosting_download_file(const char *file_name,
     /* Null pointer check */
     if (!buf)
         return ret;
-
 
     file_handle = semihosting_file_open(file_name, FOPEN_MODE_RB);
     if (file_handle == -1)
@@ -202,7 +188,7 @@ long semihosting_download_file(const char *file_name,
     if (status == -1)
         goto semihosting_fail;
 
-    length = (size_t) status;
+    length = (size_t)status;
     /* Signal error if we do not have enough space for the file */
     if (length > buf_size)
         goto semihosting_fail;

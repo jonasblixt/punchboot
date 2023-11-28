@@ -10,8 +10,8 @@
 #ifndef INCLUDE_CM_H
 #define INCLUDE_CM_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 struct cm_transport_ops {
     int (*init)(void);
@@ -25,9 +25,7 @@ struct cm_config {
     const char *name;
     int (*status)(uint8_t *buf, size_t *length);
     int (*password_auth)(const char *password, size_t length);
-    int (*command)(uint32_t cmd,
-                   uint8_t *bfr, size_t bfr_length,
-                   uint8_t *rsp, size_t *rsp_size);
+    int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
     const struct cm_transport_ops tops;
 };
 
@@ -61,4 +59,4 @@ int cm_board_init(void);
  */
 int cm_init(const struct cm_config *cfg);
 
-#endif  // INCLUDE_CM_H
+#endif // INCLUDE_CM_H

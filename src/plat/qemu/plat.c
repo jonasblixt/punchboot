@@ -7,21 +7,21 @@
  *
  */
 
+#include "gcov.h"
+#include "uart.h"
+#include <board/config.h>
+#include <board_defs.h>
+#include <bpak/bpak.h>
+#include <drivers/fuse/test_fuse_bio.h>
+#include <pb/console.h>
+#include <pb/plat.h>
+#include <plat/qemu/qemu.h>
+#include <plat/qemu/semihosting.h>
+#include <platform_defs.h>
 #include <stdio.h>
 #include <string.h>
-#include <pb/plat.h>
 #include <uuid.h>
 #include <xlat_tables.h>
-#include <plat/qemu/semihosting.h>
-#include <board/config.h>
-#include <bpak/bpak.h>
-#include <platform_defs.h>
-#include <board_defs.h>
-#include <pb/console.h>
-#include <plat/qemu/qemu.h>
-#include <drivers/fuse/test_fuse_bio.h>
-#include "uart.h"
-#include "gcov.h"
 
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
@@ -38,13 +38,11 @@ IMPORT_SYM(uintptr_t, __init_array_end2, init_array_end);
 IMPORT_SYM(uintptr_t, __fini_array_start, fini_array_start);
 IMPORT_SYM(uintptr_t, __fini_array_end2, fini_array_end);
 
-static const uint8_t device_unique_id[8] =
-    "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
+static const uint8_t device_unique_id[8] = "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 
-static const mmap_region_t qemu_mmap[] =
-{
+static const mmap_region_t qemu_mmap[] = {
     MAP_REGION_FLAT(0x00000000, (1024 * 1024 * 1024), MT_DEVICE | MT_RW),
-    {0}
+    { 0 }
 };
 
 int plat_boot_reason(void)
@@ -52,7 +50,7 @@ int plat_boot_reason(void)
     return 0;
 }
 
-const char * plat_boot_reason_str(void)
+const char *plat_boot_reason_str(void)
 {
     return "";
 }
@@ -71,43 +69,41 @@ static void mmu_init(void)
 {
     reset_xlat_tables();
 
-    mmap_add_region(code_start, code_start,
-                    code_end - code_start,
-                    MT_RO | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(code_start, code_start, code_end - code_start, MT_RO | MT_MEMORY | MT_EXECUTE);
 
-    mmap_add_region(data_start, data_start,
-                    data_end - data_start,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(
+        data_start, data_start, data_end - data_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(ro_data_start, ro_data_start,
+    mmap_add_region(ro_data_start,
+                    ro_data_start,
                     ro_data_end - ro_data_start,
                     MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(stack_start, stack_start,
-                    stack_end - stack_start,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(
+        stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(rw_nox_start, rw_nox_start,
+    mmap_add_region(rw_nox_start,
+                    rw_nox_start,
                     rw_nox_end - rw_nox_start,
                     MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
 #ifdef CONFIG_QEMU_ENABLE_TEST_COVERAGE
-    mmap_add_region(init_array_start, init_array_start,
+    mmap_add_region(init_array_start,
+                    init_array_start,
                     init_array_end - init_array_start,
                     MT_RW | MT_MEMORY | MT_EXECUTE);
 
-    mmap_add_region(fini_array_start, fini_array_start,
+    mmap_add_region(fini_array_start,
+                    fini_array_start,
                     fini_array_end - fini_array_start,
                     MT_RW | MT_MEMORY | MT_EXECUTE);
 #endif
 
     /* Add the rest of the RAM */
-    mmap_add_region(rw_nox_end, rw_nox_end,
-                    BOARD_RAM_END - rw_nox_end,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
-    mmap_add_region(data_start, data_start,
-                    data_end - data_start,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(
+        rw_nox_end, rw_nox_end, BOARD_RAM_END - rw_nox_end, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(
+        data_start, data_start, data_end - data_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add(qemu_mmap);
 

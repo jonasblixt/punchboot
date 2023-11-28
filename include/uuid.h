@@ -41,14 +41,14 @@
 typedef unsigned char uuid_t[16];
 
 /* UUID Variant definitions */
-#define UUID_VARIANT_NCS	0
-#define UUID_VARIANT_DCE	1
-#define UUID_VARIANT_MICROSOFT	2
-#define UUID_VARIANT_OTHER	3
+#define UUID_VARIANT_NCS       0
+#define UUID_VARIANT_DCE       1
+#define UUID_VARIANT_MICROSOFT 2
+#define UUID_VARIANT_OTHER     3
 
 /* UUID Type definitions */
-#define UUID_TYPE_DCE_TIME   1
-#define UUID_TYPE_DCE_RANDOM 4
+#define UUID_TYPE_DCE_TIME     1
+#define UUID_TYPE_DCE_RANDOM   4
 
 #ifdef __cplusplus
 extern "C" {

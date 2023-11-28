@@ -44,4 +44,4 @@ enum pb_errors {
     PB_ERR_ALIGN,
 };
 
-#endif  // INCLUDE_PB_ERRORS_H_
+#endif // INCLUDE_PB_ERRORS_H_

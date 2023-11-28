@@ -13,7 +13,7 @@
 #include <drivers/mmc/mmc_core.h>
 
 struct imx_usdhc_config {
-    uintptr_t base;             /*!< Base address of USDHC controller */
+    uintptr_t base; /*!< Base address of USDHC controller */
     unsigned int delay_tap;
     const struct mmc_device_config mmc_config; /*!< MMC layer configuration */
 };
@@ -26,7 +26,6 @@ struct imx_usdhc_config {
  *
  * @return PB_OK on success
  */
-int imx_usdhc_init(const struct imx_usdhc_config *cfg,
-                   unsigned int input_clock_hz);
+int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int input_clock_hz);
 
 #endif

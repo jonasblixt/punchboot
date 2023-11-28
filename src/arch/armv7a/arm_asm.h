@@ -27,58 +27,59 @@
  */
 #ifndef ARCH_ARMV7A_ARM_ASM_H_
 #define ARCH_ARMV7A_ARM_ASM_H_
-#if __ARM_ARCH >= 7 && defined (__ARM_ARCH_ISA_ARM)
-# define _ISA_ARM_7
+#if __ARM_ARCH >= 7 && defined(__ARM_ARCH_ISA_ARM)
+#define _ISA_ARM_7
 #endif
-#if __ARM_ARCH >= 6 && defined (__ARM_ARCH_ISA_ARM)
-# define _ISA_ARM_6
+#if __ARM_ARCH >= 6 && defined(__ARM_ARCH_ISA_ARM)
+#define _ISA_ARM_6
 #endif
 #if __ARM_ARCH >= 5
-# define _ISA_ARM_5
+#define _ISA_ARM_5
 #endif
 #if __ARM_ARCH >= 4 && __ARM_ARCH_ISA_THUMB >= 1
-# define _ISA_ARM_4T
+#define _ISA_ARM_4T
 #endif
 #if __ARM_ARCH >= 4 && __ARM_ARCH_ISA_THUMB == 0
-# define _ISA_ARM_4
+#define _ISA_ARM_4
 #endif
 #if __ARM_ARCH_ISA_THUMB >= 2
-# define _ISA_THUMB_2
+#define _ISA_THUMB_2
 #endif
 #if __ARM_ARCH_ISA_THUMB >= 1
-# define _ISA_THUMB_1
+#define _ISA_THUMB_1
 #endif
-#if defined (__native_client__)
-# ifdef __ASSEMBLER__
-#  define SFI_BREG(reg)    sfi_breg reg,
-#  define SFI_SP sfi_sp
-# else
-#  define SFI_BREG(reg)    "sfi_breg " #reg ","
-#  define SFI_SP "sfi_sp "
-# endif
+#if defined(__native_client__)
+#ifdef __ASSEMBLER__
+#define SFI_BREG(reg) sfi_breg reg,
+#define SFI_SP        sfi_sp
+#else
+#define SFI_BREG(reg) "sfi_breg " #reg ","
+#define SFI_SP        "sfi_sp "
+#endif
 #else
 #define SFI_BREG(reg)
 #define SFI_SP
 #endif
 /* Now some macros for common instruction sequences.  */
 #ifdef __ASSEMBLER__
-.macro  RETURN     cond =
-#if defined (__native_client__)
-    sfi_bx\cond    lr
+.macro RETURN cond =
+#if defined(__native_client__)
+    sfi_bx\cond lr
 #elif defined(_ISA_ARM_4T) || defined(_ISA_THUMB_1)
-    bx\cond    lr
+    bx\cond lr
 #else
-    mov\cond pc, lr
+    mov\cond pc,
+              lr
 #endif
-.endm
-.macro optpld    base, offset = #0
-#if defined (_ISA_ARM_7)
-    SFI_BREG(\base) pld    [\base, \offset]
+        .endm.macro optpld base,
+              offset = #0
+#if defined(_ISA_ARM_7)
+                       SFI_BREG(\base) pld[\base, \offset]
 #endif
-.endm
+                           .endm
 #else
 asm(".macro  RETURN    cond=\n\t"
-#if defined (__native_client__)
+#if defined(__native_client__)
     "sfi_bx\\cond    lr\n\t"
 #elif defined(_ISA_ARM_4T) || defined(_ISA_THUMB_1)
     "bx\\cond    lr\n\t"
@@ -87,9 +88,9 @@ asm(".macro  RETURN    cond=\n\t"
 #endif
     ".endm");
 asm(".macro optpld    base, offset=#0\n\t"
-#if defined (_ISA_ARM_7)
+#if defined(_ISA_ARM_7)
     SFI_BREG(\\base) "pld    [\\base, \\offset]\n\t"
 #endif
-    ".endm");
+                     ".endm");
 #endif
-#endif  // ARCH_ARMV7A_ARM_ASM_H_
+#endif // ARCH_ARMV7A_ARM_ASM_H_

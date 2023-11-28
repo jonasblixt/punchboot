@@ -14,4 +14,4 @@
 
 uint32_t crc32(uint32_t crc, const uint8_t *buf, uint32_t size);
 
-#endif  // INCLUDE_PB_CRC_H_
+#endif // INCLUDE_PB_CRC_H_

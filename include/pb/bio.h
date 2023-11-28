@@ -10,9 +10,9 @@
 #ifndef INCLUDE_PB_BIO_H
 #define INCLUDE_PB_BIO_H
 
-#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <uuid.h>
 
 /**
@@ -44,22 +44,22 @@
  * Read access
  */
 
-#define BIO_FLAG_BOOTABLE           BIT(0)
-#define BIO_FLAG_RFU1               BIT(1)
-#define BIO_FLAG_WRITABLE           BIT(2)
-#define BIO_FLAG_RFU3               BIT(3)
-#define BIO_FLAG_RFU4               BIT(4)
-#define BIO_FLAG_VISIBLE            BIT(5)
-#define BIO_FLAG_READABLE           BIT(6)
-#define BIO_FLAG_RFU7               BIT(7)
-#define BIO_FLAG_RFU8               BIT(8)
-#define BIO_FLAG_RFU9               BIT(9)
-#define BIO_FLAG_RFU10              BIT(10)
-#define BIO_FLAG_RFU11              BIT(11)
-#define BIO_FLAG_RFU12              BIT(12)
-#define BIO_FLAG_RFU13              BIT(13)
-#define BIO_FLAG_RFU14              BIT(14)
-#define BIO_FLAG_RFU15              BIT(15)
+#define BIO_FLAG_BOOTABLE BIT(0)
+#define BIO_FLAG_RFU1     BIT(1)
+#define BIO_FLAG_WRITABLE BIT(2)
+#define BIO_FLAG_RFU3     BIT(3)
+#define BIO_FLAG_RFU4     BIT(4)
+#define BIO_FLAG_VISIBLE  BIT(5)
+#define BIO_FLAG_READABLE BIT(6)
+#define BIO_FLAG_RFU7     BIT(7)
+#define BIO_FLAG_RFU8     BIT(8)
+#define BIO_FLAG_RFU9     BIT(9)
+#define BIO_FLAG_RFU10    BIT(10)
+#define BIO_FLAG_RFU11    BIT(11)
+#define BIO_FLAG_RFU12    BIT(12)
+#define BIO_FLAG_RFU13    BIT(13)
+#define BIO_FLAG_RFU14    BIT(14)
+#define BIO_FLAG_RFU15    BIT(15)
 
 typedef int bio_dev_t;
 typedef unsigned int lba_t;
@@ -81,8 +81,11 @@ typedef int (*bio_call_t)(bio_dev_t dev, int param);
  *         -PB_ERR_MEM, When the block device pool is full,
  *         -PB_ERR_PARAM, On invalid lba's or block_size
  */
-bio_dev_t bio_allocate(lba_t first_lba, lba_t last_lba, size_t block_size,
-                       const uuid_t uu, const char *description);
+bio_dev_t bio_allocate(lba_t first_lba,
+                       lba_t last_lba,
+                       size_t block_size,
+                       const uuid_t uu,
+                       const char *description);
 
 /**
  * Allocate a new block device from a parent device
@@ -176,7 +179,7 @@ ssize_t bio_block_size(bio_dev_t dev);
  * @return Pointer to description string, on success
  *         NULL, on errors
  */
-const char * bio_get_description(bio_dev_t dev);
+const char *bio_get_description(bio_dev_t dev);
 
 /**
  * Get HAL flags for device. The HAL flags are indended to be used
@@ -243,7 +246,7 @@ int bio_clear_set_flags(bio_dev_t dev, uint16_t clear_flags, uint16_t set_flags)
  * @return UUID, on success
  *         NULL, on errors
  */
-const unsigned char * bio_get_uu(bio_dev_t dev);
+const unsigned char *bio_get_uu(bio_dev_t dev);
 
 /**
  * Get the last block particular device. This returns the physical block
@@ -331,6 +334,5 @@ int bio_install_partition_table(uuid_t part_uu, int variant);
  *        -PB_ERR_PARAM, on bad device device handle
  */
 int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb);
-
 
 #endif

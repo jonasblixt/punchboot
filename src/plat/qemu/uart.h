@@ -15,4 +15,4 @@
 
 void qemu_uart_putc(uintptr_t base, char c);
 
-#endif  // PLAT_TEST_UART_H_
+#endif // PLAT_TEST_UART_H_

@@ -8,6 +8,9 @@ extend-exclude = [
     "doc",
     "include",
     "lib",
+    "scripts/menuconfig.py",
+    "scripts/kconfiglib.py",
+    "scripts/genconfig.py"
 ]
 
 [tool.ruff.lint]
@@ -20,4 +23,6 @@ convention = "pep257"
 warn_return_any = true
 exclude = [
     "^build.*",
+    "^doc.*",
+    "^scripts/menuconfig\\.py$"
 ]

@@ -4,10 +4,10 @@
 
 int imxrt_revoke_key(const struct rot_key *key)
 {
-        return -PB_ERR_STATE;
+    return -PB_ERR_STATE;
 }
 
 int imxrt_read_key_status(const struct rot_key *key)
 {
-        return PB_OK;
+    return PB_OK;
 }

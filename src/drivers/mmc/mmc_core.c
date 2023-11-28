@@ -13,20 +13,20 @@
  *
  */
 
-#include <string.h>
-#include <pb/pb.h>
-#include <pb/delay.h>
-#include <pb/timestamp.h>
-#include <pb/bio.h>
 #include <drivers/mmc/mmc_core.h>
+#include <pb/bio.h>
+#include <pb/delay.h>
+#include <pb/pb.h>
+#include <pb/timestamp.h>
+#include <string.h>
 
-#define MMC_BIO_FLAG_BOOT0 BIT(0)
-#define MMC_BIO_FLAG_BOOT1 BIT(1)
-#define MMC_BIO_FLAG_RPMB BIT(2)
-#define MMC_BIO_FLAG_USER BIT(3)
+#define MMC_BIO_FLAG_BOOT0       BIT(0)
+#define MMC_BIO_FLAG_BOOT1       BIT(1)
+#define MMC_BIO_FLAG_RPMB        BIT(2)
+#define MMC_BIO_FLAG_USER        BIT(3)
 
-#define MMC_DEFAULT_TIMEOUT_ms    15
-#define SEND_OP_COND_MAX_RETRIES   100
+#define MMC_DEFAULT_TIMEOUT_ms   15
+#define SEND_OP_COND_MAX_RETRIES 100
 
 static const struct mmc_hal *mmc_hal;
 static const struct mmc_device_config *mmc_cfg;
@@ -43,38 +43,25 @@ static unsigned int partition_switch_time_ms = 2550;
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
 static uint8_t mmc_tuning_rsp[128] __aligned(16);
 static const uint8_t tuning_blk_pattern_4bit[] = {
-    0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
-    0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
-    0xff, 0xdf, 0xff, 0xdd, 0xff, 0xfb, 0xff, 0xfb,
-    0xbf, 0xff, 0x7f, 0xff, 0x77, 0xf7, 0xbd, 0xef,
-    0xff, 0xf0, 0xff, 0xf0, 0x0f, 0xfc, 0xcc, 0x3c,
-    0xcc, 0x33, 0xcc, 0xcf, 0xff, 0xef, 0xff, 0xee,
-    0xff, 0xfd, 0xff, 0xfd, 0xdf, 0xff, 0xbf, 0xff,
-    0xbb, 0xff, 0xf7, 0xff, 0xf7, 0x7f, 0x7b, 0xde,
+    0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc, 0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
+    0xff, 0xdf, 0xff, 0xdd, 0xff, 0xfb, 0xff, 0xfb, 0xbf, 0xff, 0x7f, 0xff, 0x77, 0xf7, 0xbd, 0xef,
+    0xff, 0xf0, 0xff, 0xf0, 0x0f, 0xfc, 0xcc, 0x3c, 0xcc, 0x33, 0xcc, 0xcf, 0xff, 0xef, 0xff, 0xee,
+    0xff, 0xfd, 0xff, 0xfd, 0xdf, 0xff, 0xbf, 0xff, 0xbb, 0xff, 0xf7, 0xff, 0xf7, 0x7f, 0x7b, 0xde,
 };
 
 static const uint8_t tuning_blk_pattern_8bit[] = {
-    0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00,
-    0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc, 0xcc,
-    0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff, 0xff,
-    0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee, 0xff,
-    0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd, 0xdd,
-    0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff, 0xbb,
-    0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff,
-    0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee, 0xff,
-    0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
-    0x00, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc,
-    0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff,
-    0xff, 0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee,
-    0xff, 0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd,
-    0xdd, 0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff,
-    0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff,
-    0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee,
+    0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc, 0xcc,
+    0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff, 0xff, 0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee, 0xff,
+    0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd, 0xdd, 0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff, 0xbb,
+    0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee, 0xff,
+    0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc,
+    0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff, 0xff, 0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee,
+    0xff, 0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd, 0xdd, 0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff,
+    0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee,
 };
 #endif
 
-static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type,
-                        mmc_cmd_resp_t result)
+static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result)
 {
     int rc;
 
@@ -118,8 +105,9 @@ static int mmc_send_op_cond(void)
 
     for (n = 0; n < SEND_OP_COND_MAX_RETRIES; n++) {
         rc = mmc_send_cmd(MMC_CMD_SEND_OP_COND,
-                    OCR_SECTOR_MODE | OCR_VDD_MIN_2V7 | OCR_VDD_MIN_1V7,
-                    MMC_RSP_R3, &resp_data[0]);
+                          OCR_SECTOR_MODE | OCR_VDD_MIN_2V7 | OCR_VDD_MIN_1V7,
+                          MMC_RSP_R3,
+                          &resp_data[0]);
         if (rc != 0) {
             return rc;
         }
@@ -149,8 +137,7 @@ static int mmc_device_state(unsigned int timeout)
             return -PB_ERR_IO;
         }
 
-        ret = mmc_send_cmd(MMC_CMD_SEND_STATUS, rca << RCA_SHIFT_OFFSET,
-                           MMC_RSP_R1, resp_data);
+        ret = mmc_send_cmd(MMC_CMD_SEND_STATUS, rca << RCA_SHIFT_OFFSET, MMC_RSP_R1, resp_data);
 
         if (ret == PB_OK) {
             if ((resp_data[0] & STATUS_SWITCH_ERROR) != 0U) {
@@ -175,8 +162,7 @@ static int mmc_fill_device_info(void)
 
     mmc_dev_info.block_size = MMC_BLOCK_SIZE;
 
-    ret = mmc_hal->prepare(0, sizeof(mmc_ext_csd),
-                            (uintptr_t)mmc_ext_csd);
+    ret = mmc_hal->prepare(0, sizeof(mmc_ext_csd), (uintptr_t)mmc_ext_csd);
     if (ret != 0) {
         return ret;
     }
@@ -210,9 +196,10 @@ static int mmc_set_ext_csd(unsigned int ext_cmd, unsigned int value, unsigned in
     }
 
     ret = mmc_send_cmd(MMC_CMD_SWITCH,
-               EXTCSD_WRITE_BYTES | EXTCSD_CMD(ext_cmd) |
-               EXTCSD_VALUE(value) | EXTCSD_CMD_SET_NORMAL,
-               MMC_RSP_R1b, NULL);
+                       EXTCSD_WRITE_BYTES | EXTCSD_CMD(ext_cmd) | EXTCSD_VALUE(value) |
+                           EXTCSD_CMD_SET_NORMAL,
+                       MMC_RSP_R1b,
+                       NULL);
     if (ret != 0) {
         return ret;
     }
@@ -238,26 +225,26 @@ static int mmc_set_bus_width(enum mmc_bus_width bus_width)
     uint8_t value = EXT_CSD_BUS_WIDTH_1;
 
     switch (bus_width) {
-        case MMC_BUS_WIDTH_1BIT:
-            value = EXT_CSD_BUS_WIDTH_1;
+    case MMC_BUS_WIDTH_1BIT:
+        value = EXT_CSD_BUS_WIDTH_1;
         break;
-        case MMC_BUS_WIDTH_4BIT:
-            value = EXT_CSD_BUS_WIDTH_4;
+    case MMC_BUS_WIDTH_4BIT:
+        value = EXT_CSD_BUS_WIDTH_4;
         break;
-        case MMC_BUS_WIDTH_8BIT:
-            value = EXT_CSD_BUS_WIDTH_8;
+    case MMC_BUS_WIDTH_8BIT:
+        value = EXT_CSD_BUS_WIDTH_8;
         break;
-        case MMC_BUS_WIDTH_4BIT_DDR:
-            value = EXT_CSD_BUS_WIDTH_4_DDR;
+    case MMC_BUS_WIDTH_4BIT_DDR:
+        value = EXT_CSD_BUS_WIDTH_4_DDR;
         break;
-        case MMC_BUS_WIDTH_8BIT_DDR:
-            value = EXT_CSD_BUS_WIDTH_8_DDR;
+    case MMC_BUS_WIDTH_8BIT_DDR:
+        value = EXT_CSD_BUS_WIDTH_8_DDR;
         break;
-        case MMC_BUS_WIDTH_8BIT_DDR_STROBE:
-            value = EXT_CSD_BUS_WIDTH_8_DDR | EXT_CSD_BUS_WIDTH_STROBE;
+    case MMC_BUS_WIDTH_8BIT_DDR_STROBE:
+        value = EXT_CSD_BUS_WIDTH_8_DDR | EXT_CSD_BUS_WIDTH_STROBE;
         break;
-        default:
-            return -PB_ERR_PARAM;
+    default:
+        return -PB_ERR_PARAM;
     }
 
     ret = mmc_set_ext_csd(EXT_CSD_BUS_WIDTH, value, 0);
@@ -285,7 +272,7 @@ static void select_part(bio_dev_t dev)
 static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 {
     int rc = -1;
-    uintptr_t buf_ptr = (uintptr_t) buf;
+    uintptr_t buf_ptr = (uintptr_t)buf;
     size_t bytes_to_read = length;
     ssize_t block_sz = bio_block_size(dev);
     lba_t lba_offset = lba;
@@ -297,8 +284,8 @@ static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_read) {
-        size_t chunk_len = (bytes_to_read > max_len)?max_len:bytes_to_read;
-        rc =  mmc_read(lba_offset, chunk_len, buf_ptr);
+        size_t chunk_len = (bytes_to_read > max_len) ? max_len : bytes_to_read;
+        rc = mmc_read(lba_offset, chunk_len, buf_ptr);
 
         if (rc < 0)
             break;
@@ -337,7 +324,7 @@ static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
 {
     int rc = -1;
-    uintptr_t buf_ptr = (uintptr_t) buf;
+    uintptr_t buf_ptr = (uintptr_t)buf;
     size_t bytes_to_write = length;
     ssize_t block_sz = bio_block_size(dev);
     lba_t lba_offset = lba;
@@ -349,8 +336,8 @@ static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_write) {
-        size_t chunk_len = (bytes_to_write > max_len)?max_len:bytes_to_write;
-        rc =  mmc_write(lba_offset, chunk_len, buf_ptr);
+        size_t chunk_len = (bytes_to_write > max_len) ? max_len : bytes_to_write;
+        rc = mmc_write(lba_offset, chunk_len, buf_ptr);
 
         if (rc < 0)
             break;
@@ -429,7 +416,7 @@ tune_tap_fail:
     unsigned int selected_tap;
     size_t good_count = 0;
 
-    for (int i = 0; i < 127; i++)  {
+    for (int i = 0; i < 127; i++) {
         good_count += result[i];
 
         if (find_next_good) {
@@ -441,9 +428,12 @@ tune_tap_fail:
             if (!result[i] || (i == 127)) {
                 unsigned int end_tap = i - 1;
                 unsigned int pass_count = end_tap - start_tap;
-                unsigned int center_tap = start_tap + pass_count/2;
+                unsigned int center_tap = start_tap + pass_count / 2;
                 LOG_DBG("Pass count = %i, [%03i - %03i] center tap = %i",
-                           pass_count, start_tap, end_tap, center_tap);
+                        pass_count,
+                        start_tap,
+                        end_tap,
+                        center_tap);
 
                 if (pass_count > high_score) {
                     high_score = pass_count;
@@ -465,7 +455,7 @@ tune_tap_fail:
 
     return PB_OK;
 }
-#endif  // CONFIG_MMC_CORE_HS200_TUNE
+#endif // CONFIG_MMC_CORE_HS200_TUNE
 
 static int mmc_setup(void)
 {
@@ -477,7 +467,7 @@ static int mmc_setup(void)
     if (rc != PB_OK)
         return rc;
 
-    rc = mmc_set_bus_clock(400*1000);
+    rc = mmc_set_bus_clock(400 * 1000);
     if (rc != 0) {
         return rc;
     }
@@ -498,21 +488,18 @@ static int mmc_setup(void)
 
     /* CMD3: Set Relative Address */
     rca = MMC_FIX_RCA;
-    rc = mmc_send_cmd(MMC_CMD_SET_RELATIVE_ADDR, rca << RCA_SHIFT_OFFSET,
-               MMC_RSP_R1, NULL);
+    rc = mmc_send_cmd(MMC_CMD_SET_RELATIVE_ADDR, rca << RCA_SHIFT_OFFSET, MMC_RSP_R1, NULL);
     if (rc != 0) {
         return rc;
     }
 
     /* CMD9: CSD Register */
-    rc = mmc_send_cmd(MMC_CMD_SEND_CSD, rca << RCA_SHIFT_OFFSET,
-               MMC_RSP_R2, resp_data);
+    rc = mmc_send_cmd(MMC_CMD_SEND_CSD, rca << RCA_SHIFT_OFFSET, MMC_RSP_R2, resp_data);
     if (rc != 0) {
         return rc;
     }
 
     memcpy(&mmc_csd, &resp_data, sizeof(resp_data));
-
 
     LOG_DBG("csd0: %x", resp_data[0]);
     LOG_DBG("csd1: %x", resp_data[1]);
@@ -520,8 +507,7 @@ static int mmc_setup(void)
     LOG_DBG("csd3: %x", resp_data[3]);
 
     /* CMD7: Select Card */
-    rc = mmc_send_cmd(MMC_CMD_SELECT_CARD, rca << RCA_SHIFT_OFFSET,
-               MMC_RSP_R1, NULL);
+    rc = mmc_send_cmd(MMC_CMD_SELECT_CARD, rca << RCA_SHIFT_OFFSET, MMC_RSP_R1, NULL);
     if (rc != 0) {
         return rc;
     }
@@ -534,90 +520,84 @@ static int mmc_setup(void)
     } while (rc != MMC_STATE_TRAN);
 
     switch (mmc_cfg->mode) {
-        case MMC_BUS_MODE_DDR52:
-        {
-            LOG_DBG("Switching to HS DDR52");
-            /* Switch to HS, 52MHz DDR MHz */
-            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
-            if (rc != PB_OK) {
-                LOG_ERR("Could not switch to HS timing");
-                return rc;
-            }
-
-            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT_DDR);
-            if (rc != 0) {
-                return rc;
-            }
-
-            rc = mmc_set_bus_clock(MHz(52));
-            if (rc != 0) {
-                return rc;
-            }
+    case MMC_BUS_MODE_DDR52: {
+        LOG_DBG("Switching to HS DDR52");
+        /* Switch to HS, 52MHz DDR MHz */
+        rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
+        if (rc != PB_OK) {
+            LOG_ERR("Could not switch to HS timing");
+            return rc;
         }
-        break;
-        case MMC_BUS_MODE_HS200:
-        {
-            LOG_DBG("Switching to HS200");
-            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT);
-            if (rc != 0) {
-                return rc;
-            }
 
-            /* Switch to HS200, 200 MHz */
-            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS200, 0);
-            if (rc != PB_OK) {
-                LOG_ERR("Could not switch to HS200 timing");
-                return rc;
-            }
+        rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT_DDR);
+        if (rc != 0) {
+            return rc;
+        }
 
-            rc = mmc_set_bus_clock(MHz(200));
-            if (rc != 0) {
-                return rc;
-            }
+        rc = mmc_set_bus_clock(MHz(52));
+        if (rc != 0) {
+            return rc;
+        }
+    } break;
+    case MMC_BUS_MODE_HS200: {
+        LOG_DBG("Switching to HS200");
+        rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT);
+        if (rc != 0) {
+            return rc;
+        }
+
+        /* Switch to HS200, 200 MHz */
+        rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS200, 0);
+        if (rc != PB_OK) {
+            LOG_ERR("Could not switch to HS200 timing");
+            return rc;
+        }
+
+        rc = mmc_set_bus_clock(MHz(200));
+        if (rc != 0) {
+            return rc;
+        }
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
-            ts("hs200 tune begin");
-            rc = hs200_tune();
-            ts("hs200 tune end");
-            if (rc != 0)
-                return rc;
+        ts("hs200 tune begin");
+        rc = hs200_tune();
+        ts("hs200 tune end");
+        if (rc != 0)
+            return rc;
 #endif
+    } break;
+    case MMC_BUS_MODE_HS400: {
+        /* TODO: This is not complete and not usable yet,
+         * Strobe DLL configuration is missing. It seems to work
+         * on the imx8qxpmek evk */
+        LOG_DBG("Switching to HS400");
+        /* Before we can switch the bus to 8-bit DDR the device must
+         * be in HS mode */
+        rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
+        if (rc != PB_OK) {
+            LOG_ERR("Could not switch to HS timing");
+            return rc;
         }
-        break;
-        case MMC_BUS_MODE_HS400:
-        {
-            /* TODO: This is not complete and not usable yet,
-             * Strobe DLL configuration is missing. It seems to work
-             * on the imx8qxpmek evk */
-            LOG_DBG("Switching to HS400");
-            /* Before we can switch the bus to 8-bit DDR the device must
-             * be in HS mode */
-            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, 0);
-            if (rc != PB_OK) {
-                LOG_ERR("Could not switch to HS timing");
-                return rc;
-            }
 
-            rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT_DDR);
-            if (rc != 0) {
-                return rc;
-            }
-
-            /* Switch to HS400, 200 MHz (DDR) */
-            rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS400, 0);
-            if (rc != PB_OK) {
-                LOG_ERR("Could not switch to HS400 timing");
-                return rc;
-            }
-
-            rc = mmc_set_bus_clock(MHz(200));
-            if (rc != 0) {
-                return rc;
-            }
+        rc = mmc_set_bus_width(MMC_BUS_WIDTH_8BIT_DDR);
+        if (rc != 0) {
+            return rc;
         }
-        break;
-        default:
-            LOG_ERR("Unsupported mmc bus mode (%i)", mmc_cfg->mode);
-            return -PB_ERR_NOT_IMPLEMENTED;
+
+        /* Switch to HS400, 200 MHz (DDR) */
+        rc = mmc_set_ext_csd(EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS400, 0);
+        if (rc != PB_OK) {
+            LOG_ERR("Could not switch to HS400 timing");
+            return rc;
+        }
+
+        rc = mmc_set_bus_clock(MHz(200));
+        if (rc != 0) {
+            return rc;
+        }
+    } break;
+    default:
+        LOG_ERR("Unsupported mmc bus mode (%i)", mmc_cfg->mode);
+        return -PB_ERR_NOT_IMPLEMENTED;
     }
 
     rc = mmc_fill_device_info();
@@ -636,8 +616,7 @@ static int mmc_setup(void)
     if (mmc_ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != mmc_cfg->boot_mode) {
         LOG_INFO("Updating boot bus conditions to 0x%02x", mmc_cfg->boot_mode);
 
-        rc = mmc_set_ext_csd(EXT_CSD_BOOT_BUS_CONDITIONS,
-                             mmc_cfg->boot_mode, 0);
+        rc = mmc_set_ext_csd(EXT_CSD_BOOT_BUS_CONDITIONS, mmc_cfg->boot_mode, 0);
         if (rc != PB_OK) {
             LOG_ERR("Could not update boot bus conditions");
             return rc;
@@ -646,23 +625,22 @@ static int mmc_setup(void)
 
     mmc_current_part_config = mmc_ext_csd[EXT_CSD_PART_CONFIG];
 
-    size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 |
-            mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
-            mmc_ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
-            mmc_ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
+    size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 | mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
+                     mmc_ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
+                     mmc_ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
 
-/*
-    LOG_INFO("%zu sectors, %zu kBytes",
-        sectors, sectors >> 1);
-    LOG_INFO("Partconfig: %x", mmc_ext_csd[EXT_CSD_PART_CONFIG]);
-    LOG_INFO("Boot partition size %u kB", mmc_ext_csd[EXT_CSD_BOOT_MULT] * 128);
-    LOG_INFO("RPMB partition size %u kB", mmc_ext_csd[EXT_CSD_RPMB_MULT] * 128);
-    LOG_INFO("HS timing: %u", mmc_ext_csd[EXT_CSD_HS_TIMING]);
-    LOG_INFO("Device type: 0x%08x", mmc_ext_csd[EXT_CSD_CARD_TYPE]);
-    LOG_INFO("Life time A (MLC) %x", mmc_ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A]);
-    LOG_INFO("Life time B (SLC) %x", mmc_ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B]);
-    LOG_INFO("Pre EOL %x", mmc_ext_csd[EXT_CSD_PRE_EOL_INFO]);
-*/
+    /*
+        LOG_INFO("%zu sectors, %zu kBytes",
+            sectors, sectors >> 1);
+        LOG_INFO("Partconfig: %x", mmc_ext_csd[EXT_CSD_PART_CONFIG]);
+        LOG_INFO("Boot partition size %u kB", mmc_ext_csd[EXT_CSD_BOOT_MULT] * 128);
+        LOG_INFO("RPMB partition size %u kB", mmc_ext_csd[EXT_CSD_RPMB_MULT] * 128);
+        LOG_INFO("HS timing: %u", mmc_ext_csd[EXT_CSD_HS_TIMING]);
+        LOG_INFO("Device type: 0x%08x", mmc_ext_csd[EXT_CSD_CARD_TYPE]);
+        LOG_INFO("Life time A (MLC) %x", mmc_ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A]);
+        LOG_INFO("Life time B (SLC) %x", mmc_ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B]);
+        LOG_INFO("Pre EOL %x", mmc_ext_csd[EXT_CSD_PRE_EOL_INFO]);
+    */
 
     lba_t boot_part_last_lba = 0;
 
@@ -672,11 +650,7 @@ static int mmc_setup(void)
     boot_part_last_lba = mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1;
 #endif
 
-    bio_dev_t d = bio_allocate(0,
-                               boot_part_last_lba,
-                               512,
-                               mmc_cfg->boot0_uu,
-                               "eMMC BOOT0");
+    bio_dev_t d = bio_allocate(0, boot_part_last_lba, 512, mmc_cfg->boot0_uu, "eMMC BOOT0");
 
     if (d < 0)
         return d;
@@ -694,11 +668,7 @@ static int mmc_setup(void)
     if (rc < 0)
         return rc;
 
-    d = bio_allocate(0,
-                       boot_part_last_lba,
-                       512,
-                       mmc_cfg->boot1_uu,
-                       "eMMC BOOT1");
+    d = bio_allocate(0, boot_part_last_lba, 512, mmc_cfg->boot1_uu, "eMMC BOOT1");
 
     if (d < 0)
         return d;
@@ -716,11 +686,7 @@ static int mmc_setup(void)
     if (rc < 0)
         return rc;
 
-    d = bio_allocate(0,
-                       sectors - 1,
-                       512,
-                       mmc_cfg->user_uu,
-                       "eMMC USER");
+    d = bio_allocate(0, sectors - 1, 512, mmc_cfg->user_uu, "eMMC USER");
 
     if (d < 0)
         return d;
@@ -743,7 +709,7 @@ static int mmc_setup(void)
     return rc;
 }
 
-struct mmc_device_info * mmc_device_info(void)
+struct mmc_device_info *mmc_device_info(void)
 {
     return &mmc_dev_info;
 }
@@ -754,7 +720,7 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
     unsigned int cmd_idx;
 
 #ifdef MMC_CORE_DEBUG_IOS
-    LOG_DBG("%u, %zu, %p", lba, length, (void *) buf);
+    LOG_DBG("%u, %zu, %p", lba, length, (void *)buf);
 #endif
 
     if (mmc_hal->max_chunk_bytes > 0 && length > mmc_hal->max_chunk_bytes)
@@ -798,7 +764,7 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
     unsigned int cmd_idx;
 
 #ifdef MMC_CORE_DEBUG_IOS
-    LOG_DBG("%u, %zu, %p", lba, length, (void *) buf);
+    LOG_DBG("%u, %zu, %p", lba, length, (void *)buf);
 #endif
 
     if (mmc_hal->max_chunk_bytes > 0 && length > mmc_hal->max_chunk_bytes)
@@ -840,31 +806,31 @@ int mmc_part_switch(enum mmc_part part)
 {
     uint8_t value = 0;
     const char *part_names[] = {
-       "User",
-       "Boot0",
-       "Boot1",
-       "RPMB",
+        "User",
+        "Boot0",
+        "Boot1",
+        "RPMB",
     };
 
     switch (part) {
-        case MMC_PART_BOOT0:
-            /* Set boot0 R/W, boot1 as bootable */
-            value = (2 << 3) | 0x01;
+    case MMC_PART_BOOT0:
+        /* Set boot0 R/W, boot1 as bootable */
+        value = (2 << 3) | 0x01;
         break;
-        case MMC_PART_BOOT1:
-            /* Set boot1 R/W, boot0 as bootable */
-            value = (1 << 3) | 0x02;
+    case MMC_PART_BOOT1:
+        /* Set boot1 R/W, boot0 as bootable */
+        value = (1 << 3) | 0x02;
         break;
-        case MMC_PART_RPMB:
-            /* Enable RPMB access, set boot0 as bootable */
-            value = (1 << 3) | 0x03;
+    case MMC_PART_RPMB:
+        /* Enable RPMB access, set boot0 as bootable */
+        value = (1 << 3) | 0x03;
         break;
-        case MMC_PART_USER:
-            /* Boot 0/1 RO, Boot0 bootable */
-            value = (1 << 3);
+    case MMC_PART_USER:
+        /* Boot 0/1 RO, Boot0 bootable */
+        value = (1 << 3);
         break;
-        default:
-            return -PB_ERR_IO;
+    default:
+        return -PB_ERR_IO;
     }
 
     /* Switch active partition */
@@ -909,8 +875,7 @@ int mmc_power_off(void)
 
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)
 {
-    if (!(cfg->mode > MMC_BUS_MODE_INVALID && cfg->mode < MMC_BUS_MODE_END) ||
-        (hal == NULL) ||
+    if (!(cfg->mode > MMC_BUS_MODE_INVALID && cfg->mode < MMC_BUS_MODE_END) || (hal == NULL) ||
         (cfg == NULL)) {
         return -PB_ERR_PARAM;
     }

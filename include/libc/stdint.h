@@ -13,4 +13,4 @@
 
 #include <stdint_.h>
 
-#endif  // INCLUDE_PB_LIBC_STDINT_H_
+#endif // INCLUDE_PB_LIBC_STDINT_H_

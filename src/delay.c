@@ -7,9 +7,9 @@
  *
  */
 
+#include <pb/delay.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/delay.h>
 #include <string.h>
 
 int pb_timeout_init_us(struct pb_timeout *timeout, uint32_t timeout_us)
@@ -53,7 +53,7 @@ void pb_delay_us(unsigned int us)
 
     if (pb_timeout_init_us(&to, us) == PB_OK) {
         while (pb_timeout_has_expired(&to) == false) {
-            __asm__ volatile ("nop");
+            __asm__ volatile("nop");
         }
     }
 }
@@ -62,4 +62,3 @@ void pb_delay_ms(uint32_t delay)
 {
     pb_delay_us(delay * 1000);
 }
-

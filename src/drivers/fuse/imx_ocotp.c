@@ -7,9 +7,9 @@
  *
  */
 
-#include <pb/pb.h>
-#include <pb/mmio.h>
 #include <drivers/fuse/imx_ocotp.h>
+#include <pb/mmio.h>
+#include <pb/pb.h>
 
 static uintptr_t base;
 static uint32_t wpb;
@@ -30,7 +30,7 @@ int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank)
     base = base_;
     wpb = words_per_bank;
 
-    LOG_DBG("Initializing ocotp at 0x%"PRIxPTR, base);
+    LOG_DBG("Initializing ocotp at 0x%" PRIxPTR, base);
 
     if (words_per_bank < 4) {
         LOG_ERR("Invalid words_per_bank setting");
@@ -57,11 +57,11 @@ int imx_ocotp_init(uintptr_t base_, unsigned int words_per_bank)
 
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
 {
-     uint32_t tmp = 0;
+    uint32_t tmp = 0;
 
     /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        {};
+    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
+    };
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
@@ -73,8 +73,8 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     mmio_write_32(base + OCOTP_TIMING, (5 << 22) | (0x06 << 16) | (1 << 12) | 0x299);
 
     /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        {};
+    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
+    };
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
@@ -90,8 +90,8 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     mmio_write_32(base + OCOTP_DATA, value);
 
     /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        {};
+    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
+    };
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
     if (tmp & OCOTP_CTRL_ERROR) {
@@ -102,13 +102,13 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
     return PB_OK;
 }
 
-int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t * value)
+int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 {
     uint32_t tmp = 0;
 
     /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        {};
+    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
+    };
 
     tmp = mmio_read_32(base + OCOTP_CTRL);
 
@@ -124,8 +124,8 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t * value)
     mmio_write_32(base + OCOTP_READ_CTRL, 1);
 
     /* Wait for busy flag */
-    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY)
-        {};
+    while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
+    };
 
     *value = mmio_read_32(base + OCOTP_READ_FUSE_DATA);
 

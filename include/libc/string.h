@@ -14,7 +14,7 @@
 #include <string_.h>
 
 #ifndef NULL
-#define NULL ((void *) 0)
+#define NULL ((void *)0)
 #endif
 
 void *memcpy(void *dst, const void *src, size_t len);
@@ -28,8 +28,8 @@ void *memset(void *dst, int val, size_t count);
 size_t strlen(const char *s);
 size_t strnlen(const char *s, size_t maxlen);
 char *strrchr(const char *p, int ch);
-size_t strlcpy(char * dst, const char * src, size_t dsize);
+size_t strlcpy(char *dst, const char *src, size_t dsize);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
-char * strncpy(char *dest, const char *src, size_t n);
+char *strncpy(char *dest, const char *src, size_t n);
 
-#endif  // INCLUDE_PB_LIBC_STRING_H_
+#endif // INCLUDE_PB_LIBC_STRING_H_

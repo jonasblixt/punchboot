@@ -14,7 +14,7 @@
 #include <time_.h>
 
 #ifndef NULL
-#define NULL ((void *) 0)
+#define NULL ((void *)0)
 #endif
 
-#endif  // INCLUDE_PB_LIBC_TIME_H_
+#endif // INCLUDE_PB_LIBC_TIME_H_

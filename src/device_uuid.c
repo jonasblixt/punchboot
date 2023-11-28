@@ -1,8 +1,8 @@
+#include <pb/device_uuid.h>
 #include <pb/errors.h>
 #include <pb/plat.h>
-#include <pb/device_uuid.h>
-#include <uuid.h>
 #include <platform_defs.h>
+#include <uuid.h>
 
 static uuid_t device_uu;
 
@@ -18,9 +18,8 @@ int device_uuid(uuid_t uu)
         if (rc != PB_OK)
             return rc;
 
-        rc = uuid_gen_uuid3(PLATFORM_NS_UUID,
-                            (const char *) plat_unique, plat_unique_len,
-                            device_uu);
+        rc =
+            uuid_gen_uuid3(PLATFORM_NS_UUID, (const char *)plat_unique, plat_unique_len, device_uu);
 
         if (rc != 0) {
             uuid_clear(device_uu);

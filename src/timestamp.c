@@ -7,16 +7,15 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/timestamp.h>
+#include <stdio.h>
+#include <string.h>
 
-struct timestamp
-{
-    const char *description;     /* String representation of the timestamp*/
-    unsigned int ts;             /* Timestamp in us ticks */
+struct timestamp {
+    const char *description; /* String representation of the timestamp*/
+    unsigned int ts; /* Timestamp in us ticks */
 };
 
 static struct timestamp timestamps[CONFIG_NO_OF_TIMESTAMPS];

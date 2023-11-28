@@ -789,7 +789,7 @@ static PyObject *board_read_status(PyObject *self, PyObject *Py_UNUSED(args))
 {
     struct pb_session *session = (struct pb_session *)self;
     int rc;
-    char status_bfr[1024] = {0};
+    char status_bfr[1024] = { 0 };
 
     if (validate_pb_session(session) != 0) {
         return NULL;

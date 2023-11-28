@@ -10,8 +10,8 @@
 #include <inttypes.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/timestamp.h>
 #include <pb/self_test.h>
+#include <pb/timestamp.h>
 
 IMPORT_SYM(const struct self_test *, _self_test_fn_start, self_test_fn_start);
 IMPORT_SYM(const struct self_test *, _self_test_fn_end, self_test_fn_end);

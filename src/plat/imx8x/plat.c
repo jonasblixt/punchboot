@@ -7,25 +7,25 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
+#include <board_defs.h>
+#include <drivers/timer/imx_gpt.h>
+#include <drivers/uart/imx_lpuart.h>
+#include <drivers/usb/imx_ehci.h>
+#include <pb/console.h>
+#include <pb/crypto.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/timestamp.h>
-#include <xlat_tables.h>
-#include <uuid.h>
-#include <pb/crypto.h>
-#include <pb/console.h>
 #include <pb/utils_def.h>
-#include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/fusebox.h>
-#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
-#include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
 #include <plat/imx8x/imx8qx_pads.h>
-#include <drivers/usb/imx_ehci.h>
-#include <drivers/uart/imx_lpuart.h>
-#include <drivers/timer/imx_gpt.h>
-#include <board_defs.h>
+#include <plat/imx8x/imx8x.h>
+#include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
+#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <stdio.h>
+#include <string.h>
+#include <uuid.h>
+#include <xlat_tables.h>
 
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
@@ -46,7 +46,7 @@ static const mmap_region_t imx_mmap[] = {
     MAP_REGION_FLAT(IMX_REG_BASE, IMX_REG_SIZE, MT_DEVICE | MT_RW),
     /* CAAM JR2 */
     MAP_REGION_FLAT(0x31430000, (64 * 1024), MT_DEVICE | MT_RW),
-    {0}
+    { 0 }
 };
 
 int plat_get_unique_id(uint8_t *output, size_t *length)
@@ -77,7 +77,7 @@ static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
     if (err != SC_ERR_NONE)
         return err;
 
-    *soc_rev = (id >> 5)  & 0xf;
+    *soc_rev = (id >> 5) & 0xf;
     *soc_id = id & 0x1f;
 
     return 0;
@@ -106,14 +106,12 @@ static sc_err_t imx8x_wdog_init(void)
         return err;
     }
 
-    err = sc_timer_set_wdog_action(plat.ipc, partition,
-            SC_TIMER_WDOG_ACTION_BOARD);
+    err = sc_timer_set_wdog_action(plat.ipc, partition, SC_TIMER_WDOG_ACTION_BOARD);
     if (err) {
         return err;
     }
 
-    err = sc_timer_set_wdog_timeout(plat.ipc,
-                CONFIG_WATCHDOG_TIMEOUT*1000);
+    err = sc_timer_set_wdog_timeout(plat.ipc, CONFIG_WATCHDOG_TIMEOUT * 1000);
     if (err) {
         return err;
     }
@@ -165,7 +163,7 @@ static void imx8x_load_boot_reason(void)
     sc_pm_reset_reason_t sc_reset_reason;
 
     if ((rc = sc_pm_reset_reason(plat.ipc, &sc_reset_reason)) == 0) {
-        boot_reason = (int) sc_reset_reason;
+        boot_reason = (int)sc_reset_reason;
     } else {
         boot_reason = -rc;
     }
@@ -226,10 +224,10 @@ static void imx8x_console_init(void)
     sc_pad_set(plat.ipc, SC_P_UART2_RX, UART_PAD_CTRL);
     sc_pad_set(plat.ipc, SC_P_UART2_TX, UART_PAD_CTRL);
 #else
-    #error "No console uart selected"
+#error "No console uart selected"
 #endif
 
-    (void) imx_lpuart_init(uart_base, rate, CONFIG_IMX8X_CONSOLE_BAUDRATE);
+    (void)imx_lpuart_init(uart_base, rate, CONFIG_IMX8X_CONSOLE_BAUDRATE);
 
     static const struct console_ops ops = {
         .putc = imx_lpuart_putc,
@@ -244,34 +242,30 @@ static void imx8x_mmu_init(void)
     reset_xlat_tables();
 
     /* Map ATF hole */
-    mmap_add_region(BOARD_RAM_BASE, BOARD_RAM_BASE,
-                    (0x20000),
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(
+        BOARD_RAM_BASE, BOARD_RAM_BASE, (0x20000), MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(code_start, code_start,
-                    code_end - code_start,
-                    MT_RO | MT_MEMORY | MT_EXECUTE);
+    mmap_add_region(code_start, code_start, code_end - code_start, MT_RO | MT_MEMORY | MT_EXECUTE);
 
-    mmap_add_region(data_start, data_start,
-                    data_end - data_start,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(
+        data_start, data_start, data_end - data_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(ro_data_start, ro_data_start,
+    mmap_add_region(ro_data_start,
+                    ro_data_start,
                     ro_data_end - ro_data_start,
                     MT_RO | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(stack_start, stack_start,
-                    stack_end - stack_start,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(
+        stack_start, stack_start, stack_end - stack_start, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(rw_nox_start, rw_nox_start,
+    mmap_add_region(rw_nox_start,
+                    rw_nox_start,
                     rw_nox_end - rw_nox_start,
                     MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     /* Add the rest of the RAM */
-    mmap_add_region(rw_nox_end, rw_nox_end,
-                    BOARD_RAM_END - rw_nox_end,
-                    MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+    mmap_add_region(
+        rw_nox_end, rw_nox_end, BOARD_RAM_END - rw_nox_end, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add(imx_mmap);
 
@@ -316,36 +310,36 @@ int plat_boot_reason(void)
     return boot_reason;
 }
 
-const char * plat_boot_reason_str(void)
+const char *plat_boot_reason_str(void)
 {
     switch (boot_reason) {
-        case SC_PM_RESET_REASON_POR:
+    case SC_PM_RESET_REASON_POR:
         return "POR";
-        case SC_PM_RESET_REASON_JTAG:
+    case SC_PM_RESET_REASON_JTAG:
         return "JTAG";
-        case SC_PM_RESET_REASON_SW:
+    case SC_PM_RESET_REASON_SW:
         return "SW";
-        case SC_PM_RESET_REASON_WDOG:
+    case SC_PM_RESET_REASON_WDOG:
         return "WDOG";
-        case SC_PM_RESET_REASON_LOCKUP:
+    case SC_PM_RESET_REASON_LOCKUP:
         return "LOCKUP";
-        case SC_PM_RESET_REASON_SNVS:
+    case SC_PM_RESET_REASON_SNVS:
         return "SNVS";
-        case SC_PM_RESET_REASON_TEMP:
+    case SC_PM_RESET_REASON_TEMP:
         return "TEMP";
-        case SC_PM_RESET_REASON_MSI:
+    case SC_PM_RESET_REASON_MSI:
         return "MSI";
-        case SC_PM_RESET_REASON_UECC:
+    case SC_PM_RESET_REASON_UECC:
         return "UECC";
-        case SC_PM_RESET_REASON_SCFW_WDOG:
+    case SC_PM_RESET_REASON_SCFW_WDOG:
         return "SCFW WDOG";
-        case SC_PM_RESET_REASON_ROM_WDOG:
+    case SC_PM_RESET_REASON_ROM_WDOG:
         return "ROM WDOG";
-        case SC_PM_RESET_REASON_SECO:
+    case SC_PM_RESET_REASON_SECO:
         return "SECO";
-        case SC_PM_RESET_REASON_SCFW_FAULT:
+    case SC_PM_RESET_REASON_SCFW_FAULT:
         return "SCFW Fault";
-        default:
+    default:
         return "Unknown";
     }
 }

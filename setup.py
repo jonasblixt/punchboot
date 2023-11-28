@@ -1,6 +1,6 @@
 """Punchboot setuptools configuration."""
 
-from setuptools import setup, Extension
+from setuptools import setup, Extension  # type: ignore
 
 pb_base_path: str = "tools/punchboot"
 

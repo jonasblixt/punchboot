@@ -7,10 +7,9 @@
  *
  */
 
-
-#include <pb/pb.h>
-#include <pb/mmio.h>
 #include <drivers/uart/imx_uart.h>
+#include <pb/mmio.h>
+#include <pb/pb.h>
 
 void imx_uart_putc(uintptr_t base, char c)
 {
@@ -19,7 +18,7 @@ void imx_uart_putc(uintptr_t base, char c)
     for (;;) {
         usr2 = mmio_read_32(base + USR2);
 
-        if (usr2 & (1<<3))
+        if (usr2 & (1 << 3))
             break;
     }
 

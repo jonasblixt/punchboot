@@ -14,4 +14,4 @@
 
 int imx_ehci_init(uintptr_t base);
 
-#endif  // INCLUDE_DRIVERS_USB_IMX_EHCI_H
+#endif // INCLUDE_DRIVERS_USB_IMX_EHCI_H

@@ -1,9 +1,9 @@
+#include <drivers/fuse/test_fuse_bio.h>
 #include <pb/pb.h>
 #include <plat/qemu/qemu.h>
-#include <drivers/fuse/test_fuse_bio.h>
 
 #define SEC_CONF_LOCKED BIT(0)
-#define SEC_CONF_EOL BIT(1)
+#define SEC_CONF_EOL    BIT(1)
 
 slc_t qemu_slc_read_status(void)
 {

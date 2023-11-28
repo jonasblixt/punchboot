@@ -7,24 +7,24 @@
  *
  */
 
-#include <pb/mmio.h>
 #include <drivers/gpio/imx_gpio.h>
+#include <pb/mmio.h>
 
-#define DR         (0x0)
-#define GDIR       (0x4)
-#define PSR        (0x8)
-#define ICR1       (0xC)
-#define ICR2       (0x10)
-#define IMR        (0x14)
-#define ISR        (0x18)
-#define EDGE_SEL   (0x1C)
-#define DR_SET     (0x84)
-#define DR_CLEAR   (0x88)
-#define DR_TOGGLE  (0x8C)
+#define DR                   (0x0)
+#define GDIR                 (0x4)
+#define PSR                  (0x8)
+#define ICR1                 (0xC)
+#define ICR2                 (0x10)
+#define IMR                  (0x14)
+#define ISR                  (0x18)
+#define EDGE_SEL             (0x1C)
+#define DR_SET               (0x84)
+#define DR_CLEAR             (0x88)
+#define DR_TOGGLE            (0x8C)
 
-#define GPIO_REG_BANK_SIZE (0x10000)
+#define GPIO_REG_BANK_SIZE   (0x10000)
 #define GPIO_BANK_BASE(bank) (base + GPIO_REG_BANK_SIZE * bank)
-#define GPIO_PIN(pin) (1 << (pin))
+#define GPIO_PIN(pin)        (1 << (pin))
 
 static uintptr_t base;
 

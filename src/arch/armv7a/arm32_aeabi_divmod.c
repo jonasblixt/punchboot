@@ -20,14 +20,13 @@
 
 /* struct qr - stores qutient/remainder to handle divmod EABI interfaces. */
 struct qr {
-    unsigned int q;        /* computed quotient */
-    unsigned int r;        /* computed remainder */
-    unsigned int q_n;    /* specficies if quotient shall be negative */
-    unsigned int r_n;    /* specficies if remainder shall be negative */
+    unsigned int q; /* computed quotient */
+    unsigned int r; /* computed remainder */
+    unsigned int q_n; /* specficies if quotient shall be negative */
+    unsigned int r_n; /* specficies if remainder shall be negative */
 };
 
-static void uint_div_qr(unsigned int numerator, unsigned int denominator,
-            struct qr *qr);
+static void uint_div_qr(unsigned int numerator, unsigned int denominator, struct qr *qr);
 
 /* returns in R0 and R1 by tail calling an asm function */
 unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator);
@@ -63,30 +62,29 @@ static void division_qr(unsigned int n, unsigned int p, struct qr *qr)
     unsigned int i = 1, q = 0;
 
     if (p == 0) {
-        qr->r = 0xFFFFFFFF;    /* division by 0 */
+        qr->r = 0xFFFFFFFF; /* division by 0 */
         return;
     }
 
     while ((p >> 31) == 0) {
-        i = i << 1;    /* count the max division steps */
-        p = p << 1;     /* increase p until it has maximum size*/
+        i = i << 1; /* count the max division steps */
+        p = p << 1; /* increase p until it has maximum size*/
     }
 
     while (i > 0) {
-        q = q << 1;    /* write bit in q at index (size-1) */
+        q = q << 1; /* write bit in q at index (size-1) */
         if (n >= p) {
             n -= p;
             q++;
         }
-        p = p >> 1;    /* decrease p */
-        i = i >> 1;    /* decrease remaining size in q */
+        p = p >> 1; /* decrease p */
+        i = i >> 1; /* decrease remaining size in q */
     }
     qr->r = n;
     qr->q = q;
 }
 
-static void uint_div_qr(unsigned int numerator, unsigned int denominator,
-            struct qr *qr)
+static void uint_div_qr(unsigned int numerator, unsigned int denominator, struct qr *qr)
 {
     division_qr(numerator, denominator, qr);
 
@@ -115,7 +113,6 @@ unsigned int __aeabi_uimod(unsigned int numerator, unsigned int denominator)
     return qr.r;
 }
 
-
 unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
 {
     struct qr qr = { .q_n = 0, .r_n = 0 };
@@ -129,13 +126,12 @@ signed int __aeabi_idiv(signed int numerator, signed int denominator)
 {
     struct qr qr = { .q_n = 0, .r_n = 0 };
 
-    if (((numerator < 0) && (denominator > 0)) ||
-        ((numerator > 0) && (denominator < 0)))
-        qr.q_n = 1;    /* quotient shall be negate */
+    if (((numerator < 0) && (denominator > 0)) || ((numerator > 0) && (denominator < 0)))
+        qr.q_n = 1; /* quotient shall be negate */
 
     if (numerator < 0) {
         numerator = -numerator;
-        qr.r_n = 1;    /* remainder shall be negate */
+        qr.r_n = 1; /* remainder shall be negate */
     }
 
     if (denominator < 0)
@@ -165,13 +161,12 @@ signed int __aeabi_imod(signed int numerator, signed int denominator)
     if (h == 1)
         return numerator >> j;
 
-    if (((numerator < 0) && (denominator > 0)) ||
-        ((numerator > 0) && (denominator < 0)))
-        qr.q_n = 1;    /* quotient shall be negate */
+    if (((numerator < 0) && (denominator > 0)) || ((numerator > 0) && (denominator < 0)))
+        qr.q_n = 1; /* quotient shall be negate */
 
     if (numerator < 0) {
         numerator = -numerator;
-        qr.r_n = 1;    /* remainder shall be negate */
+        qr.r_n = 1; /* remainder shall be negate */
     }
 
     if (denominator < 0)
@@ -186,13 +181,12 @@ signed int __aeabi_idivmod(signed int numerator, signed int denominator)
 {
     struct qr qr = { .q_n = 0, .r_n = 0 };
 
-    if (((numerator < 0) && (denominator > 0)) ||
-        ((numerator > 0) && (denominator < 0)))
-        qr.q_n = 1;    /* quotient shall be negate */
+    if (((numerator < 0) && (denominator > 0)) || ((numerator > 0) && (denominator < 0)))
+        qr.q_n = 1; /* quotient shall be negate */
 
     if (numerator < 0) {
         numerator = -numerator;
-        qr.r_n = 1;    /* remainder shall be negate */
+        qr.r_n = 1; /* remainder shall be negate */
     }
 
     if (denominator < 0)
@@ -202,4 +196,3 @@ signed int __aeabi_idivmod(signed int numerator, signed int denominator)
 
     return ret_idivmod_values(qr.q, qr.r);
 }
-

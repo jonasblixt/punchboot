@@ -14,9 +14,9 @@
 #include <stddef_.h>
 
 #ifndef NULL
-#define NULL ((void *) 0)
+#define NULL ((void *)0)
 #endif
 
 #define offsetof(st, m) __builtin_offsetof(st, m)
 
-#endif  // INCLUDE_PB_LIBC_STDDEF_H_
+#endif // INCLUDE_PB_LIBC_STDDEF_H_

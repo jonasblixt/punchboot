@@ -12,9 +12,7 @@
 
 #include <inttypes.h>
 
-int imx_lpuart_init(uintptr_t base,
-                    unsigned int input_clock_Hz,
-                    unsigned int baudrate);
+int imx_lpuart_init(uintptr_t base, unsigned int input_clock_Hz, unsigned int baudrate);
 
 void imx_lpuart_putc(uintptr_t base, char c);
 

@@ -7,11 +7,11 @@
  *
  */
 
-#include <pb/pb.h>
-#include <pb/rot.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <bpak/keystore.h>
+#include <pb/pb.h>
+#include <pb/rot.h>
 
 extern const struct bpak_keystore keystore_pb;
 static const struct rot_config *cfg;
@@ -82,8 +82,7 @@ int rot_revoke_key(key_id_t id)
 
     for (unsigned int i = 0; i < cfg->key_map_length; i++) {
         if (cfg->key_map[i].id == id) {
-            LOG_INFO("Revoking key: %s (0x%x)", cfg->key_map[i].name,
-                                                cfg->key_map[i].id);
+            LOG_INFO("Revoking key: %s (0x%x)", cfg->key_map[i].name, cfg->key_map[i].id);
             return cfg->revoke_key(&cfg->key_map[i]);
         }
     }
@@ -91,10 +90,7 @@ int rot_revoke_key(key_id_t id)
     return -PB_ERR_KEY_NOT_FOUND;
 }
 
-int rot_get_dsa_key(key_id_t id,
-                    dsa_t *dsa_kind,
-                    const uint8_t **der_data, 
-                    size_t *der_data_length)
+int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size_t *der_data_length)
 {
     const struct bpak_key *key = NULL;
     int rc;
@@ -118,17 +114,17 @@ int rot_get_dsa_key(key_id_t id,
         return -PB_ERR_KEY_NOT_FOUND;
 
     switch (key->kind) {
-        case BPAK_KEY_PUB_PRIME256v1:
-            *dsa_kind = DSA_EC_SECP256r1;
+    case BPAK_KEY_PUB_PRIME256v1:
+        *dsa_kind = DSA_EC_SECP256r1;
         break;
-        case BPAK_KEY_PUB_SECP384r1:
-            *dsa_kind = DSA_EC_SECP384r1;
+    case BPAK_KEY_PUB_SECP384r1:
+        *dsa_kind = DSA_EC_SECP384r1;
         break;
-        case BPAK_KEY_PUB_SECP521r1:
-            *dsa_kind = DSA_EC_SECP521r1;
+    case BPAK_KEY_PUB_SECP521r1:
+        *dsa_kind = DSA_EC_SECP521r1;
         break;
-        default:
-            return -PB_ERR_NOT_SUPPORTED;
+    default:
+        return -PB_ERR_NOT_SUPPORTED;
     }
 
     *der_data = key->data;

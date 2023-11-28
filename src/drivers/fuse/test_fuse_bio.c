@@ -10,9 +10,9 @@
  *
  */
 
-#include <pb/pb.h>
 #include <drivers/fuse/test_fuse_bio.h>
 #include <pb/errors.h>
+#include <pb/pb.h>
 
 #define TEST_FUSE_ADDR_MAX 128
 
