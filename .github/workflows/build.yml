@@ -25,14 +25,7 @@ jobs:
             popd
     - name: Build punchboot-tools
       run: |
-            git clone https://github.com/jonasblixt/punchboot-tools --depth 1 --branch v1.0.0
-            pushd punchboot-tools
-            mkdir build/
-            cmake -DPB_TOOLS_BUILD_SOCKET=1 -B build/
-            make -C build/
-            sudo make -C build/ install
-            sudo ldconfig
-            popd
+            pip install .
     - name: Build pbstate
       run: |
             pushd tools/pbstate
