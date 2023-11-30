@@ -22,7 +22,8 @@
 #define BPAK_VERSION_PATCH  0
 #define BPAK_VERSION_STRING "0.9.0"
 
-#define BPAK_EXPORT         __attribute__((visibility("default")))
+//#define BPAK_EXPORT         __attribute__((visibility("default")))
+#define BPAK_EXPORT
 
 #ifdef __cplusplus
 extern "C" {
@@ -168,6 +169,14 @@ enum bpak_key_kind {
 
 /* Bits 2 - 7 are reserved */
 
+#ifdef __GNUC__
+#define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
+#endif
+
+#ifdef _MSC_VER
+#define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
+#endif
+
 /**
  * Numerical ID representing different types of objects
  *
@@ -180,18 +189,18 @@ typedef uint32_t bpak_id_t;
  *
  * Size: 32 bytes
  **/
-struct bpak_transport_meta {
+PACK(struct bpak_transport_meta {
     uint32_t alg_id_encode; /*!< Algorithm encoder ID */
     uint32_t alg_id_decode; /*!< Algorithm decoder ID */
     uint8_t data[24]; /*!< Algorithm specific data */
-} __attribute__((packed));
+});
 
 /**
  * BPAK part header
  *
  * Size:32 byte
  **/
-struct bpak_part_header {
+PACK(struct bpak_part_header {
     bpak_id_t id; /*!< Part identifier */
     uint64_t size; /*!< Data block size*/
     uint64_t offset; /*!< Offset in data stream */
@@ -201,20 +210,20 @@ struct bpak_part_header {
     uint16_t pad_bytes; /*!< Part padding up to the next 128 byte boundary*/
     uint8_t flags; /*!< Flags */
     uint8_t pad; /*!< Pad to 32 bytes, set to zero */
-} __attribute__((packed));
+});
 
 /**
  * BPAK Meta data header
  *
  * Size: 16 byte
  **/
-struct bpak_meta_header {
+PACK(struct bpak_meta_header {
     bpak_id_t id; /*!< Metadata identifier */
     uint16_t size; /*!< Size of metadata */
     uint16_t offset; /*!< Offset in 'metadata' byte array */
     bpak_id_t part_id_ref; /*!< Optional reference to a part id */
     uint8_t pad[4]; /*!< Pad to 16 bytes */
-} __attribute__((packed));
+});
 
 /**
  * BPAK Header
@@ -222,7 +231,7 @@ struct bpak_meta_header {
  *
  * Size: 4 kBytes
  **/
-struct bpak_header {
+PACK(struct bpak_header {
     uint32_t magic; /*!< BPAK Magic number*/
     uint8_t pad0[4]; /*!< Pad 1*/
     struct bpak_meta_header meta[BPAK_MAX_META]; /*!< Meta data header array */
@@ -237,7 +246,7 @@ struct bpak_header {
     uint8_t pad1[42]; /*!< Pad 2 */
     uint8_t signature[BPAK_SIGNATURE_MAX_BYTES]; /*!< Signature data */
     uint16_t signature_sz; /*!< Signature size */
-} __attribute__((packed));
+});
 
 /**
  * \def BPAK_MIN
@@ -515,6 +524,8 @@ int bpak_add_transport_meta(struct bpak_header *header,
  * @return Library version as a text string
  **/
 const char *bpak_version(void);
+
+#undef PACK
 
 #ifdef __cplusplus
 } // extern "C"

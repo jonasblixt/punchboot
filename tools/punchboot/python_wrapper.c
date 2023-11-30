@@ -10,7 +10,16 @@
 #include <Python.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef __linux__
 #include <unistd.h>
+#endif
+
+#ifdef _MSC_VER
+#include <windows.h>
+#define ssize_t int64_t
+#define sleep(x) Sleep(x*1000)
+#endif
 
 #if PY_MAJOR_VERSION < 3
 #error "Only python3 supported"
@@ -61,7 +70,7 @@ static int init_transport(const char *uuid, const char *socket_path, struct pb_c
     }
 
     if (socket_path)
-        rc = pb_socket_transport_init(local_ctx, socket_path);
+        rc = -PB_RESULT_NOT_SUPPORTED; //pb_socket_transport_init(local_ctx, socket_path);
     else
         rc = pb_usb_transport_init(local_ctx, uuid);
     if (rc != PB_RESULT_OK) {

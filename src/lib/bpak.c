@@ -323,7 +323,7 @@ BPAK_EXPORT const char *bpak_hash_kind(uint8_t hash_kind)
     }
 }
 
-BPAK_EXPORT __attribute__((weak)) int bpak_printf(int verbosity, const char *fmt, ...)
+BPAK_EXPORT int bpak_printf(int verbosity, const char *fmt, ...)
 {
     (void)verbosity;
     (void)fmt;

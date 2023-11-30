@@ -26,8 +26,10 @@ static const char *pb_exc_names[] = {
     "IOError",
 };
 
+#ifdef __GNUC__
 _Static_assert(sizeof(pb_exc_names) / sizeof(pb_exc_names[0]) == PB_RESULT_END,
                "Number of exception strings do not match error enum.");
+#endif
 
 void *pb_exception_from_rc(int err)
 {

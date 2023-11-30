@@ -6,7 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#ifdef __linux__
 #include <unistd.h>
+#endif
+
+#ifdef _MSC_VER
+#include <windows.h>
+#define ssize_t int64_t
+#endif
 
 int pb_api_partition_read_table(struct pb_context *ctx,
                                 struct pb_partition_table_entry *out,
