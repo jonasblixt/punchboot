@@ -32,8 +32,7 @@
 #include <stddef.h>
 #include <string.h>
 
-char *
-strrchr(const char *p, int ch)
+char *strrchr(const char *p, int ch)
 {
     char *save;
     char c;

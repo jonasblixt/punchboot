@@ -7,21 +7,19 @@
  *
  */
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdbool.h>
-#include <pb/pb.h>
+#include <libfdt.h>
+#include <pb/gpt.h>
 #include <pb/io.h>
+#include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/usb.h>
-#include <pb/gpt.h>
 #include <plat/imx/dwc3.h>
 #include <plat/imx/usdhc.h>
 #include <plat/imx8m/plat.h>
-#include <libfdt.h>
+#include <stdbool.h>
+#include <stdio.h>
 
-const struct fuse fuses[] =
-{
+const struct fuse fuses[] = {
     IMX8M_FUSE_BANK_WORD_VAL(6, 0, "SRK0", 0x5020C7D7),
     IMX8M_FUSE_BANK_WORD_VAL(6, 1, "SRK1", 0xBB62B945),
     IMX8M_FUSE_BANK_WORD_VAL(6, 2, "SRK2", 0xDD97C8BE),
@@ -30,81 +28,76 @@ const struct fuse fuses[] =
     IMX8M_FUSE_BANK_WORD_VAL(7, 1, "SRK5", 0xEF43BC0A),
     IMX8M_FUSE_BANK_WORD_VAL(7, 2, "SRK6", 0x7185604B),
     IMX8M_FUSE_BANK_WORD_VAL(7, 3, "SRK7", 0x3F335991),
-    IMX8M_FUSE_BANK_WORD_VAL(1, 3, "BOOT Config",  0x00002060),
+    IMX8M_FUSE_BANK_WORD_VAL(1, 3, "BOOT Config", 0x00002060),
     IMX8M_FUSE_END,
 };
 
-#define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | \
-                   PB_STORAGE_MAP_FLAG_VISIBLE)
+#define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | PB_STORAGE_MAP_FLAG_VISIBLE)
 
-const uint32_t rom_key_map[] =
-{
-    0xa90f9680,
-    0x25c6dd36,
-    0x52c1eda0,
-    0xcca57803,
-    0x00000000,
+const uint32_t rom_key_map[] = {
+    0xa90f9680, 0x25c6dd36, 0x52c1eda0, 0xcca57803, 0x00000000,
 };
 
-const struct pb_storage_map map[] =
-{
+const struct pb_storage_map map[] = {
     PB_STORAGE_MAP3("9eef7544-bf68-4bf7-8678-da117cbccba8",
-        "eMMC boot0", 66, 4162, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | \
-                        PB_STORAGE_MAP_FLAG_STATIC_MAP),
+                    "eMMC boot0",
+                    66,
+                    4162,
+                    DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | PB_STORAGE_MAP_FLAG_STATIC_MAP),
 
     PB_STORAGE_MAP3("4ee31690-0c9b-4d56-a6a6-e6d6ecfd4d54",
-        "eMMC boot1", 66, 4162, DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT1 | \
-                        PB_STORAGE_MAP_FLAG_STATIC_MAP),
+                    "eMMC boot1",
+                    66,
+                    4162,
+                    DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT1 | PB_STORAGE_MAP_FLAG_STATIC_MAP),
 
-    PB_STORAGE_MAP("2af755d8-8de5-45d5-a862-014cfa735ce0", "System A", 0xf000,
-            DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
+    PB_STORAGE_MAP("2af755d8-8de5-45d5-a862-014cfa735ce0",
+                   "System A",
+                   0xf000,
+                   DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
 
-    PB_STORAGE_MAP("c046ccd8-0f2e-4036-984d-76c14dc73992", "System B", 0xf000,
-            DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
+    PB_STORAGE_MAP("c046ccd8-0f2e-4036-984d-76c14dc73992",
+                   "System B",
+                   0xf000,
+                   DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
 
-    PB_STORAGE_MAP("c284387a-3377-4c0f-b5db-1bcbcff1ba1a", "Root A", 0x40000,
-            DEF_FLAGS),
+    PB_STORAGE_MAP("c284387a-3377-4c0f-b5db-1bcbcff1ba1a", "Root A", 0x40000, DEF_FLAGS),
 
-    PB_STORAGE_MAP("ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb", "Root B", 0x40000,
-            DEF_FLAGS),
+    PB_STORAGE_MAP("ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb", "Root B", 0x40000, DEF_FLAGS),
 
-    PB_STORAGE_MAP("f5f8c9ae-efb5-4071-9ba9-d313b082281e", "PB State Primary",
-            1, PB_STORAGE_MAP_FLAG_VISIBLE),
+    PB_STORAGE_MAP("f5f8c9ae-efb5-4071-9ba9-d313b082281e",
+                   "PB State Primary",
+                   1,
+                   PB_STORAGE_MAP_FLAG_VISIBLE),
 
-    PB_STORAGE_MAP("656ab3fc-5856-4a5e-a2ae-5a018313b3ee", "PB State Backup",
-            1, PB_STORAGE_MAP_FLAG_VISIBLE),
+    PB_STORAGE_MAP("656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
+                   "PB State Backup",
+                   1,
+                   PB_STORAGE_MAP_FLAG_VISIBLE),
 
-    PB_STORAGE_MAP("4581af22-99e6-4a94-b821-b60c42d74758", "Root overlay A",
-                        0xf000, DEF_FLAGS),
+    PB_STORAGE_MAP("4581af22-99e6-4a94-b821-b60c42d74758", "Root overlay A", 0xf000, DEF_FLAGS),
 
-    PB_STORAGE_MAP("da2ca04f-a693-4284-b897-3906cfa1eb13", "Root overlay B",
-                        0xf000, DEF_FLAGS),
+    PB_STORAGE_MAP("da2ca04f-a693-4284-b897-3906cfa1eb13", "Root overlay B", 0xf000, DEF_FLAGS),
 
-    PB_STORAGE_MAP("23477731-7e33-403b-b836-899a0b1d55db", "RoT extension A",
-                        0x100, DEF_FLAGS),
+    PB_STORAGE_MAP("23477731-7e33-403b-b836-899a0b1d55db", "RoT extension A", 0x100, DEF_FLAGS),
 
-    PB_STORAGE_MAP("6ffd077c-32df-49e7-b11e-845449bd8edd", "RoT extension B",
-                        0x100, DEF_FLAGS),
+    PB_STORAGE_MAP("6ffd077c-32df-49e7-b11e-845449bd8edd", "RoT extension B", 0x100, DEF_FLAGS),
 
-    PB_STORAGE_MAP("9697399d-e2da-47d9-8eb5-88daea46da1b", "System storage A",
-                        0x40000, DEF_FLAGS),
+    PB_STORAGE_MAP("9697399d-e2da-47d9-8eb5-88daea46da1b", "System storage A", 0x40000, DEF_FLAGS),
 
-    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "System storage B",
-                        0x40000, DEF_FLAGS),
+    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "System storage B", 0x40000, DEF_FLAGS),
 
-    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "Mass storage",
-                        0x200000, DEF_FLAGS),
+    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "Mass storage", 0x200000, DEF_FLAGS),
     PB_STORAGE_MAP_END
 };
 
 /* USDHC0 driver configuration */
 
-static uint8_t usdhc0_dev_private_data[4096*4] PB_SECTION_NO_INIT PB_ALIGN_4k;
-static uint8_t usdhc0_gpt_map_data[4096*10] PB_SECTION_NO_INIT PB_ALIGN_4k;
-static uint8_t usdhc0_map_data[4096*4] PB_SECTION_NO_INIT PB_ALIGN_4k;
+static uint8_t usdhc0_dev_private_data[4096 * 4] PB_SECTION_NO_INIT PB_ALIGN_4k;
+static uint8_t usdhc0_gpt_map_data[4096 * 10] PB_SECTION_NO_INIT PB_ALIGN_4k;
+static uint8_t usdhc0_map_data[4096 * 4] PB_SECTION_NO_INIT PB_ALIGN_4k;
 
-static const struct usdhc_device usdhc0 =
-{
+static const struct usdhc_device usdhc0 = {
     .base = 0x30B40000,
     .clk_ident = 0x20EF,
     .clk = 0x000F,
@@ -115,8 +108,7 @@ static const struct usdhc_device usdhc0 =
     .size = sizeof(usdhc0_dev_private_data),
 };
 
-static struct pb_storage_driver usdhc0_driver =
-{
+static struct pb_storage_driver usdhc0_driver = {
     .name = "eMMC0",
     .block_size = 512,
     .driver_private = &usdhc0,
@@ -151,40 +143,34 @@ const char *board_name(void)
 }
 
 int board_command(void *plat,
-                     uint32_t command,
-                     void *bfr,
-                     size_t size,
-                     void *response_bfr,
-                     size_t *response_size)
+                  uint32_t command,
+                  void *bfr,
+                  size_t size,
+                  void *response_bfr,
+                  size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
 
-    if (command == 0xf93ba110)
-    {
+    if (command == 0xf93ba110) {
         LOG_DBG("Got test command");
-        char *response = (char *) response_bfr;
+        char *response = (char *)response_bfr;
         size_t resp_buf_size = *response_size;
 
-        (*response_size) = snprintf(response, resp_buf_size,
-                                    "Test command hello 0x%x\n", command);
+        (*response_size) = snprintf(response, resp_buf_size, "Test command hello 0x%x\n", command);
 
         response[(*response_size)++] = 0;
-    }
-    else
-    {
+    } else {
         *response_size = 0;
     }
 
     return PB_OK;
 }
 
-int board_status(void *plat,
-                    void *response_bfr,
-                    size_t *response_size)
+int board_status(void *plat, void *response_bfr, size_t *response_size)
 {
     struct imx8m_private *priv = IMX8M_PRIV(plat);
 
-    char *response = (char *) response_bfr;
+    char *response = (char *)response_bfr;
     size_t resp_buf_size = *response_size;
     const char *soc_major_var = "?";
     const char *soc_minor_var = "?";
@@ -192,50 +178,47 @@ int board_status(void *plat,
     unsigned int base_ver = 0;
     unsigned int metal_ver = 0;
 
-    switch ((priv->soc_ver_var >> 16) & 0x0f)
-    {
-        case 0x02:
-            soc_major_var = "M";
+    switch ((priv->soc_ver_var >> 16) & 0x0f) {
+    case 0x02:
+        soc_major_var = "M";
         break;
-        default:
-            soc_major_var = "?";
-        break;
-    }
-
-    switch((priv->soc_ver_var >> 12) & 0x0f)
-    {
-        case 0x04:
-            soc_no_of_cores = "quad";
-        break;
-        case 0x02:
-            soc_no_of_cores = "dual";
-        break;
-        default:
-            soc_no_of_cores = "?";
+    default:
+        soc_major_var = "?";
         break;
     }
 
-    switch((priv->soc_ver_var >> 8) & 0x0f)
-    {
-        case 0x00:
-            soc_minor_var = "lite";
+    switch ((priv->soc_ver_var >> 12) & 0x0f) {
+    case 0x04:
+        soc_no_of_cores = "quad";
         break;
-        default:
-            soc_minor_var = "?";
+    case 0x02:
+        soc_no_of_cores = "dual";
+        break;
+    default:
+        soc_no_of_cores = "?";
+        break;
+    }
+
+    switch ((priv->soc_ver_var >> 8) & 0x0f) {
+    case 0x00:
+        soc_minor_var = "lite";
+        break;
+    default:
+        soc_minor_var = "?";
         break;
     }
 
     base_ver = (priv->soc_ver_var >> 4) & 0x0f;
     metal_ver = (priv->soc_ver_var) & 0x0f;
 
-
-    (*response_size) = snprintf(response, resp_buf_size,
-                            "SOC: IMX8%s %s-%s, %i.%i\n",
-                            soc_major_var,
-                            soc_no_of_cores,
-                            soc_minor_var,
-                            base_ver,
-                            metal_ver);
+    (*response_size) = snprintf(response,
+                                resp_buf_size,
+                                "SOC: IMX8%s %s-%s, %i.%i\n",
+                                soc_major_var,
+                                soc_no_of_cores,
+                                soc_minor_var,
+                                base_ver,
+                                metal_ver);
 
     response[(*response_size)++] = 0;
 
@@ -260,21 +243,21 @@ int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
     return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
 }
 
-const struct pb_boot_config * board_boot_config(void)
+const struct pb_boot_config *board_boot_config(void)
 {
     static const struct pb_boot_config config = {
-        .a_boot_part_uuid  = "2af755d8-8de5-45d5-a862-014cfa735ce0",
-        .b_boot_part_uuid  = "c046ccd8-0f2e-4036-984d-76c14dc73992",
+        .a_boot_part_uuid = "2af755d8-8de5-45d5-a862-014cfa735ce0",
+        .b_boot_part_uuid = "c046ccd8-0f2e-4036-984d-76c14dc73992",
         .primary_state_part_uuid = "f5f8c9ae-efb5-4071-9ba9-d313b082281e",
-        .backup_state_part_uuid  = "656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
-        .image_bpak_id     = 0xa697d988,    /* bpak_id("atf") */
-        .dtb_bpak_id       = 0x56f91b86,    /* bpak_id("dt") */
-        .ramdisk_bpak_id   = 0xf4cdac1f,    /* bpak_id("ramdisk") */
-        .rollback_mode     = PB_ROLLBACK_MODE_NORMAL,
-        .early_boot_cb     = NULL,
-        .late_boot_cb      = NULL,
-        .dtb_patch_cb      = board_patch_bootargs,
-        .set_dtb_boot_arg  = false,
+        .backup_state_part_uuid = "656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
+        .image_bpak_id = 0xa697d988, /* bpak_id("atf") */
+        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
+        .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+        .rollback_mode = PB_ROLLBACK_MODE_NORMAL,
+        .early_boot_cb = NULL,
+        .late_boot_cb = NULL,
+        .dtb_patch_cb = board_patch_bootargs,
+        .set_dtb_boot_arg = false,
         .print_time_measurements = false,
     };
 

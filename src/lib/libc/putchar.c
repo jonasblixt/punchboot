@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <pb/console.h>
+#include <stdio.h>
 
 int putchar(int c)
 {

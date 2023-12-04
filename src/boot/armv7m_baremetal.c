@@ -7,10 +7,10 @@
  *
  */
 
-#include <pb/pb.h>
 #include <arch/arch.h>
-#include <pb/arch.h>
 #include <boot/armv7m_baremetal.h>
+#include <pb/arch.h>
+#include <pb/pb.h>
 
 static const struct boot_driver_armv7m_baremetal_config *cfg;
 static uintptr_t jump_part_offset = 0;
@@ -19,8 +19,7 @@ int boot_driver_armv7m_baremetal_init(const struct boot_driver_armv7m_baremetal_
 {
     cfg = cfg_in;
 
-    if (cfg->image_base_address == 0 ||
-        cfg->image_size < sizeof(struct bpak_header) ||
+    if (cfg->image_base_address == 0 || cfg->image_size < sizeof(struct bpak_header) ||
         cfg->boot_partition_id == 0)
         return -PB_ERR_PARAM;
 
@@ -65,7 +64,7 @@ void boot_driver_armv7m_baremetal_jump(void)
     arch_disable_mmu();
 
     LOG_DBG("Jumping to %" PRIxPTR, jump_addr);
-    arch_jump((void *) jump_addr, NULL, NULL, NULL, NULL);
+    arch_jump((void *)jump_addr, NULL, NULL, NULL, NULL);
 
     LOG_ERR("Jump returned %" PRIxPTR, jump_addr);
 }

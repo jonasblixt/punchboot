@@ -3,13 +3,11 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include <stdio.h>
 #include <pb/pb.h>
 #include <stdarg.h>
+#include <stdio.h>
 
-
-static void string_print(char **s, size_t n, size_t *chars_printed,
-             const char *str)
+static void string_print(char **s, size_t n, size_t *chars_printed, const char *str)
 {
     while (*str != '\0') {
         if (*chars_printed < n) {
@@ -22,8 +20,7 @@ static void string_print(char **s, size_t n, size_t *chars_printed,
     }
 }
 
-static void unsigned_dec_print(char **s, size_t n, size_t *chars_printed,
-                   unsigned int unum)
+static void unsigned_dec_print(char **s, size_t n, size_t *chars_printed, unsigned int unum)
 {
     /* Enough for a 32-bit unsigned decimal integer (4294967295). */
     char num_buf[10];
@@ -87,6 +84,7 @@ static int unsigned_num_print(char **s,
 
     return count;
 }
+
 /*******************************************************************
  * Reduced snprintf to be used for Trusted firmware.
  * The following type specifiers are supported:
@@ -159,7 +157,7 @@ snprintf_loop:
             case 'x':
                 unum = va_arg(args, unsigned int);
                 unsigned_num_print(&s, unum, &chars_printed, 16, padc, padn);
-            break;
+                break;
             case '0':
                 padc = '0';
                 padn = 0;
@@ -177,10 +175,11 @@ snprintf_loop:
                     __asm__("nop");
             default:
                 /* Panic on any other format specifier. */
-                LOG_ERR("snprintf: specifier with ASCII" \
+                LOG_ERR("snprintf: specifier with ASCII"
                         " code '%d' not supported.",
-                      *fmt);
-                while (1) {}  // TODO(jb): add plat_panic
+                        *fmt);
+                while (1) {
+                } // TODO(jb): add plat_panic
             }
             fmt++;
             continue;

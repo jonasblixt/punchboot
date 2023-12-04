@@ -3,10 +3,7 @@ touch /tmp/pb_force_command_mode
 source tests/common.sh
 wait_for_qemu_start
 
-$PB board --command test-command \
-          --args 0x11223344 \
-          --transport socket
-
+$PB -t socket board command test-command 0x11223344
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -15,25 +12,19 @@ then
 fi
 
 # Test unknown command
-$PB board --command test-unknown \
-          --args 0x00112233 \
-          --transport socket
-
+$PB -t socket board command test-unknown 0x00112233
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 1 ];
 then
     test_end_error
 fi
 
 # Test failing command 'test-command2'
-$PB board --command test-command2 \
-          --args 0x00112233 \
-          --transport socket
-
+$PB -t socket board command test-command2 0x00112233
 result_code=$?
 
-if [ $result_code -ne 255 ];
+if [ $result_code -ne 1 ];
 then
     echo "$$result_code = $result_code"
     test_end_error

@@ -7,30 +7,29 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <pb/plat.h>
-#include <pb/cm.h>
-#include <pb/rot.h>
-#include <pb/bio.h>
-#include <boot/boot.h>
 #include <boot/ab_state.h>
+#include <boot/boot.h>
 #include <boot/linux.h>
-#include <plat/qemu/uart.h>
-#include <plat/qemu/semihosting.h>
+#include <drivers/crypto/mbedtls.h>
+#include <drivers/fuse/test_fuse_bio.h>
+#include <drivers/partition/gpt.h>
 #include <drivers/virtio/virtio_block.h>
 #include <drivers/virtio/virtio_serial.h>
-#include <drivers/partition/gpt.h>
-#include <drivers/fuse/test_fuse_bio.h>
-#include <drivers/crypto/mbedtls.h>
-#include <uuid.h>
-#include <platform_defs.h>
+#include <pb/bio.h>
+#include <pb/cm.h>
+#include <pb/plat.h>
+#include <pb/rot.h>
 #include <plat/qemu/qemu.h>
+#include <plat/qemu/semihosting.h>
+#include <plat/qemu/uart.h>
+#include <platform_defs.h>
+#include <stdio.h>
+#include <string.h>
+#include <uuid.h>
 
 #include "partitions.h"
 
-static const struct gpt_part_table gpt_tbl_default[]=
-{
+static const struct gpt_part_table gpt_tbl_default[] = {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
@@ -63,8 +62,7 @@ static const struct gpt_part_table gpt_tbl_default[]=
     },
 };
 
-static const struct gpt_part_table gpt_tbl_var1[]=
-{
+static const struct gpt_part_table gpt_tbl_var1[] = {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
@@ -100,8 +98,7 @@ static const struct gpt_part_table gpt_tbl_var1[]=
 /* Variant 2, the disk is 32M, the largest partition
  * is 32MB - 2 * 34 512b blocks for the GPT table,
  * == 32734 kB */
-static const struct gpt_part_table gpt_tbl_var2[]=
-{
+static const struct gpt_part_table gpt_tbl_var2[] = {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "Large",
@@ -110,8 +107,7 @@ static const struct gpt_part_table gpt_tbl_var2[]=
 };
 
 /* Variant 3, too large partition */
-static const struct gpt_part_table gpt_tbl_var3[]=
-{
+static const struct gpt_part_table gpt_tbl_var3[] = {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "Too large",
@@ -119,8 +115,7 @@ static const struct gpt_part_table gpt_tbl_var3[]=
     },
 };
 
-static const struct gpt_table_list gpt_tables[] =
-{
+static const struct gpt_table_list gpt_tables[] = {
     {
         .name = "Default",
         .variant = 0,
@@ -185,8 +180,7 @@ static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
     else
         name = '?';
 
-    semihosting_file_write(fd, &bytes_to_write,
-                            (const uintptr_t) &name);
+    semihosting_file_write(fd, &bytes_to_write, (const uintptr_t)&name);
 
     semihosting_file_close(fd);
     plat_reset();
@@ -251,7 +245,7 @@ int board_init(void)
 
     bio_dev_t readable_part = bio_get_part_by_uu(PART_readable);
     if (readable_part)
-        (void) bio_clear_set_flags(readable_part, 0, BIO_FLAG_READABLE);
+        (void)bio_clear_set_flags(readable_part, 0, BIO_FLAG_READABLE);
 
     if (rc == PB_OK) {
         static const struct boot_ab_state_config boot_state_cfg = {
@@ -270,12 +264,12 @@ int board_init(void)
     }
 
     static const struct boot_driver_linux_config linux_boot_cfg = {
-        .image_bpak_id     = 0xec103b08,    /* bpak_id("kernel") */
-        .dtb_bpak_id       = 0,
-        .ramdisk_bpak_id   = 0,
-        .dtb_patch_cb      = NULL,
+        .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+        .dtb_bpak_id = 0,
+        .ramdisk_bpak_id = 0,
+        .dtb_patch_cb = NULL,
         .resolve_part_name = boot_ab_part_uu_to_name,
-        .set_dtb_boot_arg  = false,
+        .set_dtb_boot_arg = false,
     };
 
     rc = boot_driver_linux_init(&linux_boot_cfg);
@@ -286,13 +280,13 @@ int board_init(void)
 
     static const struct boot_driver boot_driver = {
         .default_boot_source = BOOT_SOURCE_BIO,
-        .early_boot_cb       = early_boot,
+        .early_boot_cb = early_boot,
         .get_boot_bio_device = boot_ab_state_get,
-        .set_boot_partition  = boot_ab_state_set_boot_partition,
-        .get_boot_partition  = boot_ab_state_get_boot_partition,
-        .prepare             = boot_driver_linux_prepare,
-        .late_boot_cb        = late_boot,
-        .jump                = boot_driver_linux_jump,
+        .set_boot_partition = boot_ab_state_set_boot_partition,
+        .get_boot_partition = boot_ab_state_get_boot_partition,
+        .prepare = boot_driver_linux_prepare,
+        .late_boot_cb = late_boot,
+        .jump = boot_driver_linux_jump,
     };
 
     rc = boot_init(&boot_driver);
@@ -379,30 +373,27 @@ err_out:
 }
 
 static int board_command(uint32_t command,
-                          uint8_t *bfr,
-                          size_t size,
-                          uint8_t *response_bfr,
-                          size_t *response_size)
+                         uint8_t *bfr,
+                         size_t size,
+                         uint8_t *response_bfr,
+                         size_t *response_size)
 {
     size_t resp_buf_size = *response_size;
-    char *response = (char *) response_bfr;
+    char *response = (char *)response_bfr;
 
     LOG_DBG("%x, %p, %zu", command, bfr, size);
 
     if (command == 0xc72b6e9e) { /* test-command */
-        char *arg = (char *) bfr;
+        char *arg = (char *)bfr;
         arg[size] = 0;
 
         LOG_DBG("test-command (%s)", arg);
 
-        (*response_size) = snprintf(response, resp_buf_size,
-                                "Hello test-command: %s\n", arg);
+        (*response_size) = snprintf(response, resp_buf_size, "Hello test-command: %s\n", arg);
 
         return PB_OK;
     } else if (command == 0xdfa7c4ad) {
-
-        (*response_size) = snprintf(response, resp_buf_size,
-                                "Should return error code -128\n");
+        (*response_size) = snprintf(response, resp_buf_size, "Should return error code -128\n");
         return -128;
     } else {
         LOG_ERR("Unknown command %x", command);
@@ -414,7 +405,7 @@ static int board_command(uint32_t command,
 
 static int board_status(uint8_t *response_bfr, size_t *response_size)
 {
-    char *response = (char *) response_bfr;
+    char *response = (char *)response_bfr;
     size_t resp_buf_size = *response_size;
 
     (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");

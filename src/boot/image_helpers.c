@@ -7,16 +7,16 @@
  *
  */
 
-#include <string.h>
+#include <boot/image_helpers.h>
+#include <bpak/id.h>
+#include <bpak/keystore.h>
 #include <inttypes.h>
 #include <pb/crypto.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/slc.h>
 #include <pb/rot.h>
-#include <bpak/id.h>
-#include <bpak/keystore.h>
-#include <boot/image_helpers.h>
+#include <pb/slc.h>
+#include <string.h>
 
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
@@ -68,17 +68,17 @@ int boot_image_auth_header(struct bpak_header *hdr)
     }
 
     switch (hdr->hash_kind) {
-        case BPAK_HASH_SHA256:
-            hash_kind = HASH_SHA256;
+    case BPAK_HASH_SHA256:
+        hash_kind = HASH_SHA256;
         break;
-        case BPAK_HASH_SHA384:
-            hash_kind = HASH_SHA384;
+    case BPAK_HASH_SHA384:
+        hash_kind = HASH_SHA384;
         break;
-        case BPAK_HASH_SHA512:
-            hash_kind = HASH_SHA512;
+    case BPAK_HASH_SHA512:
+        hash_kind = HASH_SHA512;
         break;
-        default:
-            return -PB_ERR_UNKNOWN_HASH;
+    default:
+        return -PB_ERR_UNKNOWN_HASH;
     }
 
     rc = hash_init(hash_kind);
@@ -103,9 +103,14 @@ int boot_image_auth_header(struct bpak_header *hdr)
     if (rc != PB_OK)
         return rc;
 
-    rc = dsa_verify(dsa_kind, signature, signature_length,
-                    key_der_data, key_der_data_length,
-                    hash_kind, header_digest, sizeof(header_digest),
+    rc = dsa_verify(dsa_kind,
+                    signature,
+                    signature_length,
+                    key_der_data,
+                    key_der_data_length,
+                    hash_kind,
+                    header_digest,
+                    sizeof(header_digest),
                     &verified);
 
     if (rc == 0 && verified) {
@@ -141,35 +146,35 @@ int boot_image_verify_parts(struct bpak_header *hdr)
             break;
         }
 
-        uintptr_t load_addr = (uintptr_t) *bpak_get_meta_ptr(hdr, mh, uint64_t);
+        uintptr_t load_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
         size_t bytes_to_read = bpak_part_size(p);
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, stack_start, stack_end)) {
-            rc = -PB_ERR;
+            rc = -PB_ERR_MEM;
             LOG_ERR("Part 0x%x overlapping with stack segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, data_start, data_end)) {
-            rc = -PB_ERR;
+            rc = -PB_ERR_MEM;
             LOG_ERR("Part 0x%x overlapping with data segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, bss_start, bss_end)) {
-            rc = -PB_ERR;
+            rc = -PB_ERR_MEM;
             LOG_ERR("Part 0x%x overlapping with bss", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, code_start, code_end)) {
-            rc = -PB_ERR;
+            rc = -PB_ERR_MEM;
             LOG_ERR("Part 0x%x overlapping with code segment", p->id);
             break;
         }
 
         if (CHECK_OVERLAP(load_addr, bytes_to_read, no_init_start, no_init_end)) {
-            rc = -PB_ERR;
+            rc = -PB_ERR_MEM;
             LOG_ERR("Part 0x%x overlapping with no_init segment", p->id);
             break;
         }
@@ -177,7 +182,6 @@ int boot_image_verify_parts(struct bpak_header *hdr)
 
     return rc;
 }
-
 
 int boot_image_load_and_hash(struct bpak_header *hdr,
                              size_t load_chunk_size,
@@ -199,20 +203,20 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
     }
 
     switch (hdr->hash_kind) {
-        case BPAK_HASH_SHA256:
-            hash_kind = HASH_SHA256;
-            hash_length = 32;
+    case BPAK_HASH_SHA256:
+        hash_kind = HASH_SHA256;
+        hash_length = 32;
         break;
-        case BPAK_HASH_SHA384:
-            hash_kind = HASH_SHA384;
-            hash_length = 48;
+    case BPAK_HASH_SHA384:
+        hash_kind = HASH_SHA384;
+        hash_length = 48;
         break;
-        case BPAK_HASH_SHA512:
-            hash_kind = HASH_SHA512;
-            hash_length = 64;
+    case BPAK_HASH_SHA512:
+        hash_kind = HASH_SHA512;
+        hash_length = 64;
         break;
-        default:
-            return -PB_ERR_UNKNOWN_HASH;
+    default:
+        return -PB_ERR_UNKNOWN_HASH;
     }
 
     if (payload_digest_size < hash_length)
@@ -236,27 +240,24 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             break;
         }
 
-        load_addr = (uintptr_t) *bpak_get_meta_ptr(hdr, mh, uint64_t);
+        load_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
 
-        LOG_DBG("Loading part %x --> %"PRIxPTR", %zu bytes",
-                 p->id, load_addr, bpak_part_size(p));
+        LOG_DBG("Loading part %x --> %" PRIxPTR ", %zu bytes", p->id, load_addr, bpak_part_size(p));
 
         size_t bytes_to_read = bpak_part_size(p);
         size_t chunk_size = 0;
         size_t offset = 0;
 
         while (bytes_to_read) {
-            chunk_size = (bytes_to_read>load_chunk_size)? \
-                            load_chunk_size:bytes_to_read;
+            chunk_size = (bytes_to_read > load_chunk_size) ? load_chunk_size : bytes_to_read;
 
             uintptr_t addr = load_addr + offset;
 
             if (read_f) {
-                size_t read_lba = (offset +
-                                   bpak_part_offset(hdr, p) -
-                                   sizeof(struct bpak_header)) / 512;
+                size_t read_lba =
+                    (offset + bpak_part_offset(hdr, p) - sizeof(struct bpak_header)) / 512;
 
-                rc = read_f(read_lba, chunk_size, (void *) addr);
+                rc = read_f(read_lba, chunk_size, (void *)addr);
 
                 if (rc != PB_OK)
                     break;
@@ -265,7 +266,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             /* Since we load chunks at an offset we can use the
              * async hash API (if the underlying driver supports it)
              */
-            rc = hash_update_async((void *) addr, chunk_size);
+            rc = hash_update_async((void *)addr, chunk_size);
 
             if (rc != PB_OK)
                 break;
@@ -306,20 +307,20 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
     }
 
     switch (hdr->hash_kind) {
-        case BPAK_HASH_SHA256:
-            hash_kind = HASH_SHA256;
-            hash_length = 32;
+    case BPAK_HASH_SHA256:
+        hash_kind = HASH_SHA256;
+        hash_length = 32;
         break;
-        case BPAK_HASH_SHA384:
-            hash_kind = HASH_SHA384;
-            hash_length = 48;
+    case BPAK_HASH_SHA384:
+        hash_kind = HASH_SHA384;
+        hash_length = 48;
         break;
-        case BPAK_HASH_SHA512:
-            hash_kind = HASH_SHA512;
-            hash_length = 64;
+    case BPAK_HASH_SHA512:
+        hash_kind = HASH_SHA512;
+        hash_length = 64;
         break;
-        default:
-            return -PB_ERR_UNKNOWN_HASH;
+    default:
+        return -PB_ERR_UNKNOWN_HASH;
     }
 
     if (payload_digest_size < hash_length)
@@ -330,14 +331,12 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
     if (rc != PB_OK)
         return rc;
 
-
     bpak_foreach_part(hdr, p) {
         if (!p->id)
             break;
 
         size_t bytes_to_copy = bpak_part_size(p);
-        size_t part_offset = bpak_part_offset(hdr, p) -
-                        sizeof(struct bpak_header);
+        size_t part_offset = bpak_part_offset(hdr, p) - sizeof(struct bpak_header);
 
         uintptr_t src_addr = source_address + part_offset;
         uintptr_t dst_addr = destination_address + part_offset;
@@ -345,9 +344,9 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
         /* This could be optimized by a generic copy+hash
          * accelerator in the hash API
          */
-        memcpy((void *)dst_addr, (const void *) src_addr, bytes_to_copy);
+        memcpy((void *)dst_addr, (const void *)src_addr, bytes_to_copy);
 
-        rc = hash_update_async((void *) dst_addr, bytes_to_copy);
+        rc = hash_update_async((void *)dst_addr, bytes_to_copy);
 
         if (rc != PB_OK)
             break;
@@ -358,8 +357,7 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
     return rc;
 }
 
-int boot_image_verify_payload(struct bpak_header *hdr,
-                              uint8_t *payload_digest)
+int boot_image_verify_payload(struct bpak_header *hdr, uint8_t *payload_digest)
 {
     int rc;
     size_t digest_length;
@@ -371,17 +369,17 @@ int boot_image_verify_payload(struct bpak_header *hdr,
     }
 
     switch (hdr->hash_kind) {
-        case BPAK_HASH_SHA256:
-            digest_length = 32;
+    case BPAK_HASH_SHA256:
+        digest_length = 32;
         break;
-        case BPAK_HASH_SHA384:
-            digest_length = 48;
+    case BPAK_HASH_SHA384:
+        digest_length = 48;
         break;
-        case BPAK_HASH_SHA512:
-            digest_length = 64;
+    case BPAK_HASH_SHA512:
+        digest_length = 64;
         break;
-        default:
-            return -PB_ERR_UNKNOWN_HASH;
+    default:
+        return -PB_ERR_UNKNOWN_HASH;
     }
 
     if (memcmp(hdr->payload_hash, payload_digest, digest_length) != 0) {

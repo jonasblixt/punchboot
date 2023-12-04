@@ -27,6 +27,8 @@ src-$(CONFIG_LIB_FDT)  += src/lib/fdt/fdt_rw.c
 src-$(CONFIG_LIB_FDT)  += src/lib/fdt/fdt_sw.c
 src-$(CONFIG_LIB_FDT)  += src/lib/fdt/fdt_wip.c
 
+cflags-$(CONFIG_LIB_FDT) += -I include/fdt
+
 # UUID lib
 src-$(CONFIG_LIB_UUID)  += src/lib/uuid/pack.c
 src-$(CONFIG_LIB_UUID)  += src/lib/uuid/unpack.c

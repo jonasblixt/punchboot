@@ -7,16 +7,16 @@
  *
  */
 
-#include <strings.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdbool.h>
-#include <getopt.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <boot/pb_state_blob.h>
 #include "pbstate.h"
+#include <boot/pb_state_blob.h>
+#include <errno.h>
+#include <getopt.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 
 static void print_version(void)
 {
@@ -42,7 +42,8 @@ static void print_help(void)
     printf("    -V, --version              Display version\n");
     printf("\n");
     printf("Optional parameter for switch command:\n");
-    printf("    -c, --count <n>            Set the system to not verified and boot retry counter to <n>\n");
+    printf("    -c, --count <n>            Set the system to not verified and boot retry counter "
+           "to <n>\n");
 }
 
 static int print_configuration(void)
@@ -51,11 +52,13 @@ static int print_configuration(void)
     uint32_t errors = 0;
     uint32_t boot_attempts = 0;
     printf("Punchboot status:\n\n");
-    printf("System A is %s and %s\n", pbstate_is_system_active(PBSTATE_SYSTEM_A) > 0 ? "enabled":"disabled",
-                                    pbstate_is_system_verified(PBSTATE_SYSTEM_A) > 0 ? "verified":"not verified");
+    printf("System A is %s and %s\n",
+           pbstate_is_system_active(PBSTATE_SYSTEM_A) > 0 ? "enabled" : "disabled",
+           pbstate_is_system_verified(PBSTATE_SYSTEM_A) > 0 ? "verified" : "not verified");
 
-    printf("System B is %s and %s\n", pbstate_is_system_active(PBSTATE_SYSTEM_B) > 0 ? "enabled":"disabled",
-                                    pbstate_is_system_verified(PBSTATE_SYSTEM_B) > 0 ? "verified":"not verified");
+    printf("System B is %s and %s\n",
+           pbstate_is_system_active(PBSTATE_SYSTEM_B) > 0 ? "enabled" : "disabled",
+           pbstate_is_system_verified(PBSTATE_SYSTEM_B) > 0 ? "verified" : "not verified");
 
     rc = pbstate_get_errors(&errors);
 
@@ -87,7 +90,7 @@ static int print_configuration(void)
     return 0;
 }
 
-int main(int argc, char * const argv[])
+int main(int argc, char *const argv[])
 {
     int opt;
     int long_index = 0;
@@ -104,19 +107,16 @@ int main(int argc, char * const argv[])
     unsigned int board_reg_index = 0;
     uint32_t board_reg_value = 0;
 
-    struct option long_options[] =
-    {
-        {"primary",   required_argument,   0,  'p' },
-        {"backup",    required_argument,   0,  'b' },
-        {"switch",    required_argument,   0,  's' },
-        {"count",     required_argument,   0,  'c' },
-        {"verified",  required_argument,   0,  'v' },
-        {"info",      no_argument,         0,  'i' },
-        {"write-board-reg", required_argument, 0, 'w' },
-        {"help",      no_argument,         0,  'h' },
-        {"version",   no_argument,         0,  'V' },
-        {0,           0,                   0,   0  }
-    };
+    struct option long_options[] = { { "primary", required_argument, 0, 'p' },
+                                     { "backup", required_argument, 0, 'b' },
+                                     { "switch", required_argument, 0, 's' },
+                                     { "count", required_argument, 0, 'c' },
+                                     { "verified", required_argument, 0, 'v' },
+                                     { "info", no_argument, 0, 'i' },
+                                     { "write-board-reg", required_argument, 0, 'w' },
+                                     { "help", no_argument, 0, 'h' },
+                                     { "version", no_argument, 0, 'V' },
+                                     { 0, 0, 0, 0 } };
 
     if (argc < 2) {
         print_help();
@@ -128,30 +128,65 @@ int main(int argc, char * const argv[])
     backup_device_path = BACKUP_PART;
 #endif
 
-    while ((opt = getopt_long(argc, argv, "p:b:s:c:v:ihVw:",
-                   long_options, &long_index )) != -1) {
+    while ((opt = getopt_long(argc, argv, "p:b:s:c:v:ihVw:", long_options, &long_index)) != -1) {
         switch (opt) {
-            case 'h':
-                print_help();
-                return 0;
+        case 'h':
+            print_help();
+            return 0;
             break;
-            case 'V':
-                print_version();
-                return 0;
+        case 'V':
+            print_version();
+            return 0;
             break;
-            case 'p':
-                primary_device_path = optarg;
+        case 'p':
+            primary_device_path = optarg;
             break;
-            case 'b':
-                backup_device_path = optarg;
+        case 'b':
+            backup_device_path = optarg;
             break;
-            case 'c':
-            {
-                long long tmp;
-                char *end;
+        case 'c': {
+            long long tmp;
+            char *end;
 
+            errno = 0;
+            tmp = strtol(optarg, &end, 0);
+
+            if (optarg == end) {
+                return EINVAL;
+            }
+
+            if (errno != 0) {
+                return errno;
+            }
+
+            if (tmp < 0 || tmp > UINT32_MAX) {
+                return ERANGE;
+            }
+
+            counter = (uint32_t)tmp;
+        } break;
+        case 'i':
+            flag_show = true;
+            break;
+        case 'w': {
+            long long tmp;
+            char *end;
+
+            flag_write_board_reg = true;
+            errno = 0;
+            board_reg_index = strtol(optarg, &end, 0);
+
+            if (optarg == end) {
+                return EINVAL;
+            }
+
+            if (errno != 0) {
+                return errno;
+            }
+
+            if (optind < argc && *argv[optind] != '-') {
                 errno = 0;
-                tmp = strtol(optarg, &end, 0);
+                tmp = strtol(argv[optind], &end, 0);
 
                 if (optarg == end) {
                     return EINVAL;
@@ -165,69 +200,29 @@ int main(int argc, char * const argv[])
                     return ERANGE;
                 }
 
-                counter = (uint32_t) tmp;
-            }
-            break;
-            case 'i':
-                flag_show = true;
-            break;
-            case 'w':
-            {
-                long long tmp;
-                char *end;
+                board_reg_value = (uint32_t)tmp;
 
-                flag_write_board_reg = true;
-                errno = 0;
-                board_reg_index = strtol(optarg, &end, 0);
-
-                if (optarg == end) {
-                    return EINVAL;
-                }
-
-                if (errno != 0) {
-                    return errno;
-                }
-
-                if (optind < argc && *argv[optind] != '-') {
-                    errno = 0;
-                    tmp = strtol(argv[optind], &end, 0);
-
-                    if (optarg == end) {
-                        return EINVAL;
-                    }
-
-                    if (errno != 0) {
-                        return errno;
-                    }
-
-                    if (tmp < 0 || tmp > UINT32_MAX) {
-                        return ERANGE;
-                    }
-
-                    board_reg_value = (uint32_t) tmp;
-
-                    optind++;
-                } else {
-                    fprintf(stderr, "\nError: -w requires two paramters: <index> <value>\n");
-                    return EINVAL;
-                }
-            }
-            break;
-            case 's':
-                system = optarg;
-                flag_switch = true;
-            break;
-            case 'v':
-                system_verified = optarg;
-                flag_verify = true;
-            break;
-            case ':':
-                fprintf(stderr, "Missing arg for %c\n", optopt);
+                optind++;
+            } else {
+                fprintf(stderr, "\nError: -w requires two paramters: <index> <value>\n");
                 return EINVAL;
+            }
+        } break;
+        case 's':
+            system = optarg;
+            flag_switch = true;
             break;
-             default:
-                print_help();
-                exit(EXIT_FAILURE);
+        case 'v':
+            system_verified = optarg;
+            flag_verify = true;
+            break;
+        case ':':
+            fprintf(stderr, "Missing arg for %c\n", optopt);
+            return EINVAL;
+            break;
+        default:
+            print_help();
+            exit(EXIT_FAILURE);
         }
     }
 

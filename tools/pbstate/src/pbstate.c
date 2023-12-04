@@ -8,15 +8,15 @@
  *
  */
 
+#include <boot/pb_state_blob.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <unistd.h>
 #include <pb/crc.h>
-#include <boot/pb_state_blob.h>
+#include <string.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "pbstate.h"
 
@@ -27,8 +27,8 @@ static const char *backup_device;
 static pbstate_printfunc_t printfunc;
 
 #define LOG(fmt, ...) \
-    if (printfunc) \
-        printfunc(fmt, ##__VA_ARGS__)
+    if (printfunc)    \
+    printfunc(fmt, ##__VA_ARGS__)
 
 static int verify_state(void)
 {
@@ -43,7 +43,7 @@ static int verify_state(void)
         goto config_err_out;
     }
 
-    if (crc != crc32(0, (uint8_t *) &state, sizeof(struct pb_boot_state))) {
+    if (crc != crc32(0, (uint8_t *)&state, sizeof(struct pb_boot_state))) {
         LOG("Error: CRC failed\n");
         err = -EIO;
         goto config_err_out;
@@ -59,7 +59,7 @@ config_err_out:
 static int write_state(int fd)
 {
     size_t write_sz = 0;
-    const char* buffer = (const char*) &state;
+    const char *buffer = (const char *)&state;
     size_t buffer_len = sizeof(state);
 
     do {
@@ -76,7 +76,7 @@ static int write_state(int fd)
 static int read_state(int fd)
 {
     size_t read_sz = 0;
-    char* buffer = (char*) &state;
+    char *buffer = (char *)&state;
     size_t buffer_len = sizeof(state);
 
     do {
@@ -169,13 +169,13 @@ static int close_and_save_state(int fd, bool wr)
         goto err_close_and_release_out;
     }
 
-    if (lseek(fd, 0, SEEK_SET) == (off_t) -1) {
+    if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
         rc = -errno;
         goto err_close_and_release_out;
     }
 
     state.crc = 0;
-    crc = crc32(0, (const uint8_t *) &state, sizeof(struct pb_boot_state));
+    crc = crc32(0, (const uint8_t *)&state, sizeof(struct pb_boot_state));
     state.crc = crc;
 
     rc = write_state(fd);
@@ -210,9 +210,7 @@ err_close_and_release_out:
     return rc;
 }
 
-int pbstate_init(const char *p_device,
-                 const char *b_device,
-                 pbstate_printfunc_t _printfunc)
+int pbstate_init(const char *p_device, const char *b_device, pbstate_printfunc_t _printfunc)
 {
     primary_device = p_device;
     backup_device = b_device;
@@ -231,16 +229,16 @@ int pbstate_is_system_active(pbstate_system_t system)
         return fd;
 
     switch (system) {
-        case PBSTATE_SYSTEM_A:
-            result = !!(state.enable & PB_STATE_A_ENABLED);
+    case PBSTATE_SYSTEM_A:
+        result = !!(state.enable & PB_STATE_A_ENABLED);
         break;
-        case PBSTATE_SYSTEM_B:
-            result = !!(state.enable & PB_STATE_B_ENABLED);
+    case PBSTATE_SYSTEM_B:
+        result = !!(state.enable & PB_STATE_B_ENABLED);
         break;
-        case PBSTATE_SYSTEM_NONE:
-            result = !!(state.enable);
+    case PBSTATE_SYSTEM_NONE:
+        result = !!(state.enable);
         break;
-        default:
+    default:
         break;
     }
 
@@ -262,16 +260,16 @@ int pbstate_is_system_verified(pbstate_system_t system)
         return fd;
 
     switch (system) {
-        case PBSTATE_SYSTEM_A:
-            result = !!(state.verified & PB_STATE_A_VERIFIED);
+    case PBSTATE_SYSTEM_A:
+        result = !!(state.verified & PB_STATE_A_VERIFIED);
         break;
-        case PBSTATE_SYSTEM_B:
-            result = !!(state.verified & PB_STATE_B_VERIFIED);
+    case PBSTATE_SYSTEM_B:
+        result = !!(state.verified & PB_STATE_B_VERIFIED);
         break;
-        case PBSTATE_SYSTEM_NONE:
-            result = !!(state.enable);
+    case PBSTATE_SYSTEM_NONE:
+        result = !!(state.enable);
         break;
-        default:
+    default:
         break;
     }
 
@@ -370,41 +368,40 @@ int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts)
     if (fd < 0)
         return fd;
 
-    switch (system)
-    {
-        case PBSTATE_SYSTEM_A:
-            state.enable = PB_STATE_A_ENABLED;
+    switch (system) {
+    case PBSTATE_SYSTEM_A:
+        state.enable = PB_STATE_A_ENABLED;
 
-            if (boot_attempts > 0) {
-                state.remaining_boot_attempts = boot_attempts;
-                state.verified &= ~PB_STATE_A_VERIFIED;
-                state.error = 0;
-            } else {
-                state.verified |= PB_STATE_A_VERIFIED;
-                state.remaining_boot_attempts = 0;
-                state.error = 0;
-            }
-        break;
-        case PBSTATE_SYSTEM_B:
-            state.enable = PB_STATE_B_ENABLED;
-
-            if (boot_attempts > 0) {
-                state.remaining_boot_attempts = boot_attempts;
-                state.verified &= ~PB_STATE_B_VERIFIED;
-                state.error = 0;
-            } else {
-                state.verified |= PB_STATE_B_VERIFIED;
-                state.remaining_boot_attempts = 0;
-                state.error = 0;
-            }
-        break;
-        case PBSTATE_SYSTEM_NONE:
-            state.enable = 0;
+        if (boot_attempts > 0) {
+            state.remaining_boot_attempts = boot_attempts;
+            state.verified &= ~PB_STATE_A_VERIFIED;
+            state.error = 0;
+        } else {
+            state.verified |= PB_STATE_A_VERIFIED;
             state.remaining_boot_attempts = 0;
+            state.error = 0;
+        }
         break;
-        default:
-            rc = -EINVAL;
-            goto err_close_release_no_save_out;
+    case PBSTATE_SYSTEM_B:
+        state.enable = PB_STATE_B_ENABLED;
+
+        if (boot_attempts > 0) {
+            state.remaining_boot_attempts = boot_attempts;
+            state.verified &= ~PB_STATE_B_VERIFIED;
+            state.error = 0;
+        } else {
+            state.verified |= PB_STATE_B_VERIFIED;
+            state.remaining_boot_attempts = 0;
+            state.error = 0;
+        }
+        break;
+    case PBSTATE_SYSTEM_NONE:
+        state.enable = 0;
+        state.remaining_boot_attempts = 0;
+        break;
+    default:
+        rc = -EINVAL;
+        goto err_close_release_no_save_out;
         break;
     }
 
@@ -430,21 +427,20 @@ int pbstate_set_system_verified(pbstate_system_t system)
     if (fd < 0)
         return fd;
 
-    switch (system)
-    {
-        case PBSTATE_SYSTEM_A:
-            state.verified |= PB_STATE_A_VERIFIED;
-            state.remaining_boot_attempts = 0;
+    switch (system) {
+    case PBSTATE_SYSTEM_A:
+        state.verified |= PB_STATE_A_VERIFIED;
+        state.remaining_boot_attempts = 0;
         break;
-        case PBSTATE_SYSTEM_B:
-            state.verified |= PB_STATE_B_VERIFIED;
-            state.remaining_boot_attempts = 0;
+    case PBSTATE_SYSTEM_B:
+        state.verified |= PB_STATE_B_VERIFIED;
+        state.remaining_boot_attempts = 0;
         break;
-        case PBSTATE_SYSTEM_NONE:
+    case PBSTATE_SYSTEM_NONE:
         break;
-        default:
-            rc = -EINVAL;
-            goto err_close_release_no_save_out;
+    default:
+        rc = -EINVAL;
+        goto err_close_release_no_save_out;
         break;
     }
 

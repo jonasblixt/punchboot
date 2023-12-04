@@ -6,4 +6,4 @@
 void arch_init(void);
 void arch_disable_mmu(void);
 
-#endif  // INCLUDE_PB_ARCH_H_
+#endif // INCLUDE_PB_ARCH_H_

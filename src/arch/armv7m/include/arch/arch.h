@@ -6,9 +6,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define arm_isb(n) __asm__ __volatile__ ("isb " #n : : : "memory")
-#define arm_dsb(n) __asm__ __volatile__ ("dsb " #n : : : "memory")
-#define arm_dmb(n) __asm__ __volatile__ ("dmb " #n : : : "memory")
+#define arm_isb(n) __asm__ __volatile__("isb " #n : : : "memory")
+#define arm_dsb(n) __asm__ __volatile__("dsb " #n : : : "memory")
+#define arm_dmb(n) __asm__ __volatile__("dmb " #n : : : "memory")
 
 #define ARM_DSB()  arm_dsb(15)
 #define ARM_ISB()  arm_isb(15)

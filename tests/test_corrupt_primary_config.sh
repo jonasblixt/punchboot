@@ -2,9 +2,14 @@
 source tests/common.sh
 wait_for_qemu_start
 
-$PB part --install --part 1eacedf3-3790-48c7-8ed8-9188ff49672b --transport socket
+$PB -t socket part install 1eacedf3-3790-48c7-8ed8-9188ff49672b
+if [ $result_code -ne 0 ];
+then
+    test_end_error
+fi
+
 # Reset
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];

@@ -8,11 +8,11 @@
  *
  */
 
-#include <stdio.h>
+#include "gcov.h"
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <plat/qemu/semihosting.h>
-#include "gcov.h"
+#include <stdio.h>
 
 void plat_reset(void)
 {
@@ -26,4 +26,3 @@ void plat_reset(void)
 #endif
     semihosting_sys_exit(rc);
 }
-

@@ -10,6 +10,7 @@
 #ifndef INCLUDE_PB_DELAY_H_
 #define INCLUDE_PB_DELAY_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 struct pb_timeout {
@@ -23,4 +24,4 @@ bool pb_timeout_has_expired(struct pb_timeout *timeout);
 void pb_delay_ms(uint32_t delay);
 void pb_delay_us(uint32_t delay);
 
-#endif  // INCLUDE_PB_DELAY_H_
+#endif // INCLUDE_PB_DELAY_H_

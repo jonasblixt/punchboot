@@ -10,16 +10,16 @@
 #ifndef INCLUDE_PB_PB_H
 #define INCLUDE_PB_PB_H
 
-#include <stdio.h>
-#include <stdint.h>
+#include <config.h>
+#include <inttypes.h>
+#include <pb/errors.h>
+#include <pb/log_def.h>
+#include <pb/utils_def.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <inttypes.h>
-#include <config.h>
-#include <pb/errors.h>
-#include <pb/utils_def.h>
-#include <pb/log_def.h>
+#include <stdint.h>
+#include <stdio.h>
 
 void main(void);
 
-#endif  // INCLUDE_PB_PB_H
+#endif // INCLUDE_PB_PB_H

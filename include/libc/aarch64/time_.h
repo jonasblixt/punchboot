@@ -14,4 +14,4 @@ typedef unsigned long size_t;
 
 typedef long int time_t;
 
-#endif  // INCLUDE_PB_LIBC_AARCH64_TIME__H_
+#endif // INCLUDE_PB_LIBC_AARCH64_TIME__H_

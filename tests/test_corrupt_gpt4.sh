@@ -18,7 +18,7 @@ fi
 dd if=/dev/urandom of=/tmp/disk bs=512 skip=2 conv=notrunc count=3
 sync
 # Reset
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 echo "result_code=$result_code"
 

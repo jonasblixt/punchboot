@@ -10,10 +10,10 @@
 #ifndef INCLUDE_DRIVERS_VIRTIO_BLOCK_H
 #define INCLUDE_DRIVERS_VIRTIO_BLOCK_H
 
+#include <pb/bio.h>
 #include <stdint.h>
 #include <uuid.h>
-#include <pb/bio.h>
 
 bio_dev_t virtio_block_init(uintptr_t base, const uuid_t uu);
 
-#endif  // INCLUDE_DRIVERS_VIRTIO_BLOCK_H
+#endif // INCLUDE_DRIVERS_VIRTIO_BLOCK_H

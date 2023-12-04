@@ -32,7 +32,7 @@ $BPAK set $IMG --key-id pb-development3 \
 $BPAK sign $IMG --key pki/secp521r1-key-pair.pem
 set +e
 
-$PB boot --load /tmp/img.bpak --transport socket
+$PB -t socket boot bpak /tmp/img.bpak
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -67,7 +67,7 @@ $BPAK set $IMG --key-id pb-development2 \
 $BPAK sign $IMG --key pki/secp384r1-key-pair.pem
 
 set +e
-$PB boot --load /tmp/img.bpak --transport socket
+$PB -t socket boot bpak /tmp/img.bpak
 result_code=$?
 
 if [ $result_code -ne 0 ];

@@ -4,7 +4,7 @@ wait_for_qemu_start
 
 
 # Reset
-$PB dev --reset --transport socket
+$PB -t socket dev reset
 result_code=$?
 
 if [ $result_code -ne 0 ];

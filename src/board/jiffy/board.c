@@ -7,34 +7,33 @@
  *
  */
 
-#include <pb/pb.h>
-#include <pb/mmio.h>
-#include <pb/rot.h>
-#include <pb/slc.h>
-#include <pb/cm.h>
-#include <pb/bio.h>
+#include <boot/ab_state.h>
 #include <boot/boot.h>
 #include <boot/linux.h>
-#include <boot/ab_state.h>
-#include <drivers/mmc/mmc_core.h>
-#include <drivers/mmc/imx_usdhc.h>
-#include <drivers/partition/gpt.h>
-#include <drivers/usb/usbd.h>
-#include <drivers/usb/imx_usb2_phy.h>
-#include <drivers/usb/imx_ehci.h>
-#include <drivers/usb/pb_dev_cls.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/fuse/imx_ocotp.h>
-#include <plat/imx6ul/imx6ul.h>
-#include <plat/imx6ul/fusebox.h>
+#include <drivers/mmc/imx_usdhc.h>
+#include <drivers/mmc/mmc_core.h>
+#include <drivers/partition/gpt.h>
+#include <drivers/usb/imx_ehci.h>
+#include <drivers/usb/imx_usb2_phy.h>
+#include <drivers/usb/pb_dev_cls.h>
+#include <drivers/usb/usbd.h>
 #include <libfdt.h>
+#include <pb/bio.h>
+#include <pb/cm.h>
+#include <pb/mmio.h>
+#include <pb/pb.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
+#include <plat/imx6ul/fusebox.h>
+#include <plat/imx6ul/imx6ul.h>
 
 #include "partitions.h"
 
 static struct imx6ul_platform *plat;
 
-static const struct gpt_part_table default_gpt_tbl[]=
-{
+static const struct gpt_part_table default_gpt_tbl[] = {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
@@ -102,8 +101,7 @@ static const struct gpt_part_table default_gpt_tbl[]=
     },
 };
 
-static const struct gpt_table_list gpt_tables[] =
-{
+static const struct gpt_table_list gpt_tables[] = {
     {
         .name = "Default",
         .variant = 0,
@@ -117,17 +115,17 @@ static int usdhc_emmc_setup(void)
     unsigned int rate;
 
     /* Configure pinmux for usdhc1 */
-    mmio_write_32(0x020E0000+0x1C0, 0); /* CLK MUX */
-    mmio_write_32(0x020E0000+0x1BC, 0); /* CMD MUX */
-    mmio_write_32(0x020E0000+0x1C4, 0); /* DATA0 MUX */
-    mmio_write_32(0x020E0000+0x1C8, 0); /* DATA1 MUX */
-    mmio_write_32(0x020E0000+0x1CC, 0); /* DATA2 MUX */
-    mmio_write_32(0x020E0000+0x1D0, 0); /* DATA3 MUX */
-    mmio_write_32(0x020E0000+0x1A8, 1); /* DATA4 MUX */
-    mmio_write_32(0x020E0000+0x1AC, 1); /* DATA5 MUX */
-    mmio_write_32(0x020E0000+0x1B0, 1); /* DATA6 MUX */
-    mmio_write_32(0x020E0000+0x1B4, 1); /* DATA7 MUX */
-    mmio_write_32(0x020E0000+0x1A4, 1); /* RESET MUX */
+    mmio_write_32(0x020E0000 + 0x1C0, 0); /* CLK MUX */
+    mmio_write_32(0x020E0000 + 0x1BC, 0); /* CMD MUX */
+    mmio_write_32(0x020E0000 + 0x1C4, 0); /* DATA0 MUX */
+    mmio_write_32(0x020E0000 + 0x1C8, 0); /* DATA1 MUX */
+    mmio_write_32(0x020E0000 + 0x1CC, 0); /* DATA2 MUX */
+    mmio_write_32(0x020E0000 + 0x1D0, 0); /* DATA3 MUX */
+    mmio_write_32(0x020E0000 + 0x1A8, 1); /* DATA4 MUX */
+    mmio_write_32(0x020E0000 + 0x1AC, 1); /* DATA5 MUX */
+    mmio_write_32(0x020E0000 + 0x1B0, 1); /* DATA6 MUX */
+    mmio_write_32(0x020E0000 + 0x1B4, 1); /* DATA7 MUX */
+    mmio_write_32(0x020E0000 + 0x1A4, 1); /* RESET MUX */
 
     // TODO: What's our input clock rate?
     // usdhc_clk_root == ipg_clk_perclk?
@@ -137,20 +135,19 @@ static int usdhc_emmc_setup(void)
     // Check that CSCDR1[USDHC1_PODF] is set, then input clock should be 200MHz
     rate = MHz(200);
 
-    static const struct imx_usdhc_config cfg = {
-        .base = 0x02190000,
-        .delay_tap = 0,
-        .mmc_config = {
-            .mode = MMC_BUS_MODE_DDR52,
-            .width = MMC_BUS_WIDTH_8BIT_DDR,
-            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
-            .boot0_uu = PART_boot0,
-            .boot1_uu = PART_boot1,
-            .user_uu = PART_user,
-            .rpmb_uu = PART_rpmb,
-            .flags = 0,
-        }
-    };
+    static const struct imx_usdhc_config cfg = { .base = 0x02190000,
+                                                 .delay_tap = 0,
+                                                 .mmc_config = {
+                                                     .mode = MMC_BUS_MODE_DDR52,
+                                                     .width = MMC_BUS_WIDTH_8BIT_DDR,
+                                                     .boot_mode = EXT_CSD_BOOT_DDR |
+                                                                  EXT_CSD_BOOT_BUS_WIDTH_8,
+                                                     .boot0_uu = PART_boot0,
+                                                     .boot1_uu = PART_boot1,
+                                                     .user_uu = PART_user,
+                                                     .rpmb_uu = PART_rpmb,
+                                                     .flags = 0,
+                                                 } };
 
     return imx_usdhc_init(&cfg, rate);
 }
@@ -158,7 +155,7 @@ static int usdhc_emmc_setup(void)
 static int early_boot(void)
 {
     /* Check force recovery input switch */
-    if ( (mmio_read_32(0x020A8008) & (1 << 4)) == 0)
+    if ((mmio_read_32(0x020A8008) & (1 << 4)) == 0)
         return -PB_ERR_ABORT;
 
     return PB_OK;
@@ -175,14 +172,12 @@ static int board_command(uint32_t command,
     return PB_OK;
 }
 
-static int board_status(uint8_t *response_bfr,
-                        size_t *response_size)
+static int board_status(uint8_t *response_bfr, size_t *response_size)
 {
-    char *response = (char *) response_bfr;
+    char *response = (char *)response_bfr;
     size_t resp_buf_size = *response_size;
 
-    (*response_size) = snprintf(response, resp_buf_size,
-                            "Board status OK!\n");
+    (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");
     response[(*response_size)++] = 0;
 
     return PB_OK;
@@ -250,11 +245,11 @@ int board_init(struct imx6ul_platform *plat_)
     int rc;
 
     plat = plat_;
-   /* Configure NAND_DATA2 as GPIO4 4 Input with PU,
-    *
-    * This is used to force recovery mode
-    *
-    **/
+    /* Configure NAND_DATA2 as GPIO4 4 Input with PU,
+     *
+     * This is used to force recovery mode
+     *
+     **/
 
     mmio_write_32(0x020E0188, 6);
     mmio_write_32(0x020E0414, 0x2000 | (1 << 14) | (1 << 12));
@@ -281,7 +276,7 @@ int board_init(struct imx6ul_platform *plat_)
 
     rc = gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
     /* eMMC User partition now only has the visible flag to report capacity */
-    (void) bio_set_flags(user_part, BIO_FLAG_VISIBLE);
+    (void)bio_set_flags(user_part, BIO_FLAG_VISIBLE);
 
     if (rc == PB_OK) {
         static const struct boot_ab_state_config boot_state_cfg = {
@@ -302,12 +297,12 @@ int board_init(struct imx6ul_platform *plat_)
     }
 
     static const struct boot_driver_linux_config linux_boot_cfg = {
-        .image_bpak_id     = 0xec103b08,    /* bpak_id("kernel") */
-        .dtb_bpak_id       = 0x56f91b86,    /* bpak_id("dt")  */
-        .ramdisk_bpak_id   = 0xf4cdac1f,    /* bpak_id("ramdisk") */
-        .dtb_patch_cb      = board_patch_bootargs,
+        .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
+        .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+        .dtb_patch_cb = board_patch_bootargs,
         .resolve_part_name = boot_ab_part_uu_to_name,
-        .set_dtb_boot_arg  = true,
+        .set_dtb_boot_arg = true,
     };
 
     rc = boot_driver_linux_init(&linux_boot_cfg);
@@ -318,13 +313,13 @@ int board_init(struct imx6ul_platform *plat_)
 
     static const struct boot_driver boot_driver = {
         .default_boot_source = BOOT_SOURCE_BIO,
-        .early_boot_cb       = early_boot,
+        .early_boot_cb = early_boot,
         .get_boot_bio_device = boot_ab_state_get,
-        .set_boot_partition  = boot_ab_state_set_boot_partition,
-        .get_boot_partition  = boot_ab_state_get_boot_partition,
-        .prepare             = boot_driver_linux_prepare,
-        .late_boot_cb        = NULL,
-        .jump                = boot_driver_linux_jump,
+        .set_boot_partition = boot_ab_state_set_boot_partition,
+        .get_boot_partition = boot_ab_state_get_boot_partition,
+        .prepare = boot_driver_linux_prepare,
+        .late_boot_cb = NULL,
+        .jump = boot_driver_linux_jump,
     };
 
     rc = boot_init(&boot_driver);
@@ -387,7 +382,6 @@ int cm_board_init(void)
     int rc;
     /* Enable USB PLL */
     mmio_clrsetbits_32(0x020C8010, 0, 1 << 6);
-
 
     /* Power up USB */
     mmio_write_32(0x020C9038, (1 << 31) | (1 << 30));

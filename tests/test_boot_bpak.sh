@@ -37,7 +37,7 @@ then
     test_end_error
 fi
 
-$PB boot --activate none --transport socket
+$PB -t socket boot disable
 
 result_code=$?
 
@@ -45,7 +45,7 @@ if [ $result_code -ne 0 ];
 then
     test_end_error
 fi
-$PB boot --load /tmp/img.bpak --transport socket
+$PB -t socket boot bpak /tmp/img.bpak
 result_code=$?
 
 if [ $result_code -ne 0 ];

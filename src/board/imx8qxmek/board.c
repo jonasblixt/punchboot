@@ -7,53 +7,52 @@
  *
  */
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <uuid.h>
-#include <libfdt.h>
-#include <pb/pb.h>
-#include <pb/plat.h>
-#include <pb/delay.h>
-#include <pb/timestamp.h>
-#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
-#include <plat/imx8x/imx8x.h>
-#include <plat/imx8x/fusebox.h>
-#include <arch/armv8a/timer.h>
 #include <arch/arch_helpers.h>
+#include <arch/armv8a/timer.h>
+#include <boot/ab_state.h>
+#include <boot/boot.h>
+#include <boot/linux.h>
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
-#include <drivers/mmc/imx_usdhc.h>
-#include <drivers/usb/usbd.h>
+#include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/imx_ehci.h>
 #include <drivers/usb/imx_usb2_phy.h>
-#include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/pb_dev_cls.h>
+#include <drivers/usb/usbd.h>
+#include <libfdt.h>
 #include <pb/cm.h>
-#include <drivers/crypto/imx_caam.h>
-#include <boot/boot.h>
-#include <boot/ab_state.h>
-#include <boot/linux.h>
 #include <pb/crypto.h>
+#include <pb/delay.h>
+#include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <pb/timestamp.h>
+#include <plat/imx8x/fusebox.h>
+#include <plat/imx8x/imx8x.h>
+#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <uuid.h>
 
 #include "partitions.h"
-#define USDHC_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
-                         (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
-                         (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-                         (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
-                         (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
+#define USDHC_PAD_CTRL                                                                             \
+    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
+     (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) |                                                  \
+     (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) |                                            \
+     (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
-#define USDHC_CLK_PAD_CTRL    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | \
-                             (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
-                             (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) | \
-                             (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) | \
-                             (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
+#define USDHC_CLK_PAD_CTRL                                                                         \
+    (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
+     (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) |                                                  \
+     (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) |                                            \
+     (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
 static struct imx8x_platform *plat;
 
-static const struct gpt_part_table gpt_tbl_default[]=
-{
+static const struct gpt_part_table gpt_tbl_default[] = {
     {
         .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
         .description = "System A",
@@ -121,8 +120,7 @@ static const struct gpt_part_table gpt_tbl_default[]=
     },
 };
 
-static const struct gpt_table_list gpt_tables[] =
-{
+static const struct gpt_table_list gpt_tables[] = {
     {
         .name = "Default",
         .variant = 0,
@@ -136,7 +134,7 @@ static int patch_bootargs(void *fdt, int offset)
     const char *bootargs = NULL;
 
     if (boot_get_flags() & BOOT_FLAG_VERBOSE) {
-        bootargs = "console=ttyLP0,115200  " \
+        bootargs = "console=ttyLP0,115200  "
                    "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ";
     } else {
         bootargs = "console=ttyLP0,115200 quiet ";
@@ -189,20 +187,19 @@ static int usdhc_emmc_setup(void)
     sc_pad_set(plat->ipc, SC_P_EMMC0_STROBE, USDHC_PAD_CTRL);
     sc_pad_set(plat->ipc, SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL);
 
-    static const struct imx_usdhc_config cfg = {
-        .base = 0x5B010000,
-        .delay_tap = 18,
-        .mmc_config = {
-            .mode = MMC_BUS_MODE_HS200,
-            .width = MMC_BUS_WIDTH_8BIT,
-            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
-            .boot0_uu = PART_boot0,
-            .boot1_uu = PART_boot1,
-            .user_uu = PART_user,
-            .rpmb_uu = PART_rpmb,
-            .flags = 0,
-        }
-    };
+    static const struct imx_usdhc_config cfg = { .base = 0x5B010000,
+                                                 .delay_tap = 18,
+                                                 .mmc_config = {
+                                                     .mode = MMC_BUS_MODE_HS200,
+                                                     .width = MMC_BUS_WIDTH_8BIT,
+                                                     .boot_mode = EXT_CSD_BOOT_DDR |
+                                                                  EXT_CSD_BOOT_BUS_WIDTH_8,
+                                                     .boot0_uu = PART_boot0,
+                                                     .boot1_uu = PART_boot1,
+                                                     .user_uu = PART_user,
+                                                     .rpmb_uu = PART_rpmb,
+                                                     .flags = 0,
+                                                 } };
 
     return imx_usdhc_init(&cfg, rate);
 }
@@ -230,8 +227,10 @@ static int early_boot(void)
 }
 
 static int board_command(uint32_t command,
-                     uint8_t *bfr, size_t size,
-                     uint8_t *response_bfr, size_t *response_size)
+                         uint8_t *bfr,
+                         size_t size,
+                         uint8_t *response_bfr,
+                         size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
     *response_size = 0;
@@ -248,24 +247,28 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
     int16_t celsius;
     int8_t tenths;
 
-    char *response = (char *) response_bfr;
+    char *response = (char *)response_bfr;
     size_t resp_buf_size = *response_size;
 
     sc_misc_build_info(plat->ipc, &scu_version, &scu_commit);
     sc_seco_build_info(plat->ipc, &seco_version, &seco_commit);
-    sc_misc_get_temp(plat->ipc, SC_R_SYSTEM, SC_MISC_TEMP, &celsius,
-                        &tenths);
+    sc_misc_get_temp(plat->ipc, SC_R_SYSTEM, SC_MISC_TEMP, &celsius, &tenths);
 
-    (*response_size) = snprintf(response, resp_buf_size,
-                            "SCFW:    %u, %x\n" \
-                            "SECO:    %u, %x\n" \
-                            "SOC ID:  %u\n" \
-                            "SOC REV: %u\n" \
-                            "CPU Temperature: %i.%i deg C",
-                            scu_version, scu_commit,
-                            seco_version, seco_commit,
-                            plat->soc_id, plat->soc_rev,
-                            celsius, tenths);
+    (*response_size) = snprintf(response,
+                                resp_buf_size,
+                                "SCFW:    %u, %x\n"
+                                "SECO:    %u, %x\n"
+                                "SOC ID:  %u\n"
+                                "SOC REV: %u\n"
+                                "CPU Temperature: %i.%i deg C",
+                                scu_version,
+                                scu_commit,
+                                seco_version,
+                                seco_commit,
+                                plat->soc_id,
+                                plat->soc_rev,
+                                celsius,
+                                tenths);
 
     response[(*response_size)++] = 0;
 
@@ -350,10 +353,8 @@ int board_init(struct imx8x_platform *plat_ptr)
     plat = plat_ptr;
 
     /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
-    sc_pm_set_resource_power_mode(plat->ipc,
-                                SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat->ipc,
-                                SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
 
     rc = imx_caam_init(0x31430000);
 
@@ -377,7 +378,7 @@ int board_init(struct imx8x_platform *plat_ptr)
 
     rc = gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
     /* eMMC User partition now only has the visible flag to report capacity */
-    (void) bio_set_flags(user_part, BIO_FLAG_VISIBLE);
+    (void)bio_set_flags(user_part, BIO_FLAG_VISIBLE);
 
     if (rc == PB_OK) {
         static const struct boot_ab_state_config boot_state_cfg = {
@@ -398,12 +399,12 @@ int board_init(struct imx8x_platform *plat_ptr)
     }
 
     static const struct boot_driver_linux_config linux_boot_cfg = {
-        .image_bpak_id     = 0xa697d988,    /* bpak_id("atf") */
-        .dtb_bpak_id       = 0x56f91b86,    /* bpak_id("dt")  */
-        .ramdisk_bpak_id   = 0xf4cdac1f,    /* bpak_id("ramdisk") */
-        .dtb_patch_cb      = patch_bootargs,
+        .image_bpak_id = 0xa697d988, /* bpak_id("atf") */
+        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
+        .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+        .dtb_patch_cb = patch_bootargs,
         .resolve_part_name = boot_ab_part_uu_to_name,
-        .set_dtb_boot_arg  = false,
+        .set_dtb_boot_arg = false,
     };
 
     rc = boot_driver_linux_init(&linux_boot_cfg);
@@ -414,13 +415,13 @@ int board_init(struct imx8x_platform *plat_ptr)
 
     static const struct boot_driver boot_driver = {
         .default_boot_source = BOOT_SOURCE_BIO,
-        .early_boot_cb       = early_boot,
+        .early_boot_cb = early_boot,
         .get_boot_bio_device = boot_ab_state_get,
-        .set_boot_partition  = boot_ab_state_set_boot_partition,
-        .get_boot_partition  = boot_ab_state_get_boot_partition,
-        .prepare             = boot_driver_linux_prepare,
-        .late_boot_cb        = NULL,
-        .jump                = boot_driver_linux_jump,
+        .set_boot_partition = boot_ab_state_set_boot_partition,
+        .get_boot_partition = boot_ab_state_get_boot_partition,
+        .prepare = boot_driver_linux_prepare,
+        .late_boot_cb = NULL,
+        .jump = boot_driver_linux_jump,
     };
 
     rc = boot_init(&boot_driver);

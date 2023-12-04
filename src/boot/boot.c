@@ -7,13 +7,13 @@
  *
  */
 
-#include <string.h>
-#include <inttypes.h>
-#include <pb/pb.h>
-#include <pb/timestamp.h>
-#include <pb/bio.h>
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
+#include <inttypes.h>
+#include <pb/bio.h>
+#include <pb/pb.h>
+#include <pb/timestamp.h>
+#include <string.h>
 
 static const struct boot_driver *boot_cfg;
 static struct bpak_header header __section(".no_init") __aligned(4096);
@@ -49,8 +49,7 @@ int boot_set_source(enum boot_source source)
     return PB_OK;
 }
 
-void boot_configure_load_cb(boot_read_cb_t read_f,
-                            boot_result_cb_t result_f)
+void boot_configure_load_cb(boot_read_cb_t read_f, boot_result_cb_t result_f)
 {
     read_cb = read_f;
     result_cb = result_f;
@@ -63,7 +62,7 @@ uint32_t boot_get_flags(void)
 
 void boot_clear_set_flags(uint32_t clear_flags, uint32_t set_flags)
 {
-    boot_flags = ((uint32_t) boot_flags & ~clear_flags) | set_flags;
+    boot_flags = ((uint32_t)boot_flags & ~clear_flags) | set_flags;
 }
 
 int boot_set_boot_partition(uuid_t part_uu)
@@ -127,7 +126,7 @@ static int load_auth_verify_from_bio(void)
 
     /* Load header located at the end of the partition */
     header_lba = bio_get_no_of_blocks(boot_device) -
-        (sizeof(struct bpak_header) / bio_block_size(boot_device));
+                 (sizeof(struct bpak_header) / bio_block_size(boot_device));
 
     rc = bio_read(boot_device, header_lba, sizeof(struct bpak_header), &header);
 
@@ -145,11 +144,11 @@ static int load_auth_verify_from_bio(void)
         return rc;
 
     rc = boot_image_load_and_hash(&header,
-                                   CONFIG_BOOT_LOAD_CHUNK_kB*1024,
-                                   boot_bio_read,
-                                   NULL,   /* No result function */
-                                   payload_digest,
-                                   sizeof(payload_digest));
+                                  CONFIG_BOOT_LOAD_CHUNK_kB * 1024,
+                                  boot_bio_read,
+                                  NULL, /* No result function */
+                                  payload_digest,
+                                  sizeof(payload_digest));
 
     if (rc != PB_OK)
         return rc;
@@ -180,11 +179,11 @@ static int auth_verify_in_mem(void)
         return rc;
 
     rc = boot_image_load_and_hash(header_ptr,
-                                   CONFIG_BOOT_LOAD_CHUNK_kB*1024,
-                                   NULL,
-                                   NULL,
-                                   payload_digest,
-                                   sizeof(payload_digest));
+                                  CONFIG_BOOT_LOAD_CHUNK_kB * 1024,
+                                  NULL,
+                                  NULL,
+                                  payload_digest,
+                                  sizeof(payload_digest));
 
     if (rc != PB_OK)
         return rc;
@@ -199,9 +198,7 @@ static int load_auth_verify_from_cb(void)
     if (read_cb == NULL)
         return -PB_ERR_NOT_SUPPORTED;
 
-    rc = read_cb(-(int)sizeof(struct bpak_header) / 512,
-                 sizeof(struct bpak_header),
-                 &header);
+    rc = read_cb(-(int)sizeof(struct bpak_header) / 512, sizeof(struct bpak_header), &header);
     if (rc != PB_OK)
         return rc;
 
@@ -225,11 +222,11 @@ static int load_auth_verify_from_cb(void)
         return rc;
 
     rc = boot_image_load_and_hash(&header,
-                                   CONFIG_BOOT_LOAD_CHUNK_kB*1024,
-                                   read_cb,
-                                   result_cb,
-                                   payload_digest,
-                                   sizeof(payload_digest));
+                                  CONFIG_BOOT_LOAD_CHUNK_kB * 1024,
+                                  read_cb,
+                                  result_cb,
+                                  payload_digest,
+                                  sizeof(payload_digest));
 
     if (rc != PB_OK)
         return rc;
@@ -275,24 +272,24 @@ int boot_load(uuid_t boot_part_override_uu)
 
     ts("Boot load");
     switch (boot_source) {
-        case BOOT_SOURCE_BIO:
-            rc = load_auth_verify_from_bio();
+    case BOOT_SOURCE_BIO:
+        rc = load_auth_verify_from_bio();
         break;
-        case BOOT_SOURCE_IN_MEM:
-            rc = auth_verify_in_mem();
+    case BOOT_SOURCE_IN_MEM:
+        rc = auth_verify_in_mem();
         break;
-        case BOOT_SOURCE_CB:
-            rc = load_auth_verify_from_cb();
+    case BOOT_SOURCE_CB:
+        rc = load_auth_verify_from_cb();
         break;
-        case BOOT_SOURCE_CUSTOM:
-            if (boot_cfg->authenticate_image)
-                rc = boot_cfg->authenticate_image(&header_ptr);
-            else
-                rc = -PB_ERR_NOT_SUPPORTED;
+    case BOOT_SOURCE_CUSTOM:
+        if (boot_cfg->authenticate_image)
+            rc = boot_cfg->authenticate_image(&header_ptr);
+        else
+            rc = -PB_ERR_NOT_SUPPORTED;
         break;
-        default:
-            rc = -PB_ERR_PARAM;
-            goto err_out;
+    default:
+        rc = -PB_ERR_PARAM;
+        goto err_out;
     }
 
     if (rc == -PB_ERR_NO_ACTIVE_BOOT_PARTITION) {

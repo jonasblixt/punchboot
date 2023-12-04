@@ -38,3 +38,5 @@ doc/html/
 doc/latex/
 tags
 download
+*.egg-info
+*.so

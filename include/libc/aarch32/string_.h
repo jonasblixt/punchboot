@@ -12,4 +12,4 @@ typedef unsigned int size_t;
 #define SIZET_
 #endif
 
-#endif  // INCLUDE_PB_LIBC_AARCH32_STRING__H_
+#endif // INCLUDE_PB_LIBC_AARCH32_STRING__H_

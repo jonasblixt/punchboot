@@ -14,7 +14,7 @@
 #include <stdlib_.h>
 
 #ifndef NULL
-#define NULL ((void *) 0)
+#define NULL ((void *)0)
 #endif
 
 #define _ATEXIT_MAX 1
@@ -23,4 +23,4 @@ extern void abort(void);
 extern int atexit(void (*func)(void));
 extern void exit(int status);
 
-#endif  // INCLUDE_PB_LIBC_STDLIB_H_
+#endif // INCLUDE_PB_LIBC_STDLIB_H_

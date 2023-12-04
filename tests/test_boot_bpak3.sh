@@ -38,7 +38,7 @@ then
     test_end_error
 fi
 
-$PB part --write /tmp/img.bpak --part $BOOT_B --transport socket
+$PB -t socket part write /tmp/img.bpak $BOOT_B
 
 result_code=$?
 
@@ -47,7 +47,7 @@ then
     test_end_error
 fi
 
-$PB boot --boot $BOOT_B --transport socket
+$PB -t socket boot partition $BOOT_B
 result_code=$?
 
 if [ $result_code -ne 0 ];

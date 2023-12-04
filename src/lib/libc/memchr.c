@@ -13,7 +13,7 @@ void *memchr(const void *src, int c, size_t len)
 
     while (len--) {
         if (*s == c)
-            return (void *) s;
+            return (void *)s;
         s++;
     }
 

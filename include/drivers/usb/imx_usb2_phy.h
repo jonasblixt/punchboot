@@ -14,4 +14,4 @@
 
 int imx_usb2_phy_init(uintptr_t phy_base);
 
-#endif  // INCLUDE_DRIVERS_USB_IMX_USB2_PHY_H
+#endif // INCLUDE_DRIVERS_USB_IMX_USB2_PHY_H

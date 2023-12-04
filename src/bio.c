@@ -1,9 +1,9 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include <pb/pb.h>
-#include <pb/errors.h>
 #include <pb/bio.h>
+#include <pb/errors.h>
+#include <pb/pb.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 
 struct bio_device {
     uuid_t uu;
@@ -31,8 +31,11 @@ static int check_dev(bio_dev_t dev)
     return PB_OK;
 }
 
-bio_dev_t bio_allocate(lba_t first_lba, lba_t last_lba, size_t block_size,
-                       const uuid_t uu, const char *description)
+bio_dev_t bio_allocate(lba_t first_lba,
+                       lba_t last_lba,
+                       size_t block_size,
+                       const uuid_t uu,
+                       const char *description)
 {
     if (n_bios == CONFIG_BIO_MAX_DEVS)
         return -PB_ERR_MEM;
@@ -46,8 +49,7 @@ bio_dev_t bio_allocate(lba_t first_lba, lba_t last_lba, size_t block_size,
     bio_pool[n_bios].last_lba = last_lba;
     bio_pool[n_bios].block_sz = block_size;
     uuid_copy(bio_pool[n_bios].uu, uu);
-    strncpy(bio_pool[n_bios].description, description,
-               sizeof(bio_pool[n_bios].description) - 1);
+    strncpy(bio_pool[n_bios].description, description, sizeof(bio_pool[n_bios].description) - 1);
     bio_pool[n_bios].valid = true;
 
 #if (LOGLEVEL > 1)
@@ -114,8 +116,7 @@ int64_t bio_size(bio_dev_t dev)
     if (rc != PB_OK)
         return rc;
 
-    return (bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1) * \
-                (int64_t) bio_pool[dev].block_sz;
+    return (bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1) * (int64_t)bio_pool[dev].block_sz;
 }
 
 ssize_t bio_block_size(bio_dev_t dev)
@@ -223,17 +224,17 @@ int bio_clear_set_flags(bio_dev_t dev, uint16_t clear_flags, uint16_t set_flags)
     if (flags < 0)
         return flags;
 
-    return bio_set_flags(dev, ((uint16_t) flags & ~clear_flags) | set_flags);
+    return bio_set_flags(dev, ((uint16_t)flags & ~clear_flags) | set_flags);
 }
 
-const char * bio_get_description(bio_dev_t dev)
+const char *bio_get_description(bio_dev_t dev)
 {
     if (check_dev(dev) != PB_OK)
         return NULL;
     return bio_pool[dev].description;
 }
 
-const unsigned char * bio_get_uu(bio_dev_t dev)
+const unsigned char *bio_get_uu(bio_dev_t dev)
 {
     if (check_dev(dev) != PB_OK)
         return NULL;

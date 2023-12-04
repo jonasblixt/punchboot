@@ -1,9 +1,9 @@
 #include <pb/pb.h>
 #include <pb/rot.h>
-#include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/fusebox.h>
-#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
+#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
 
 static sc_ipc_t ipc;
 
@@ -24,7 +24,7 @@ int imx8x_revoke_key(const struct rot_key *key)
     uint32_t after_revoke_bits = 0xffffffff;
     uint32_t info;
 
-    (void) key;
+    (void)key;
 
     if (!imx8x_is_srk_fused())
         return -PB_ERR;
@@ -67,8 +67,7 @@ int imx8x_revoke_key(const struct rot_key *key)
         return PB_OK;
     }
 
-    LOG_INFO("Revocation fuse changed bits: %x",
-                before_revoke_bits ^ after_revoke_bits);
+    LOG_INFO("Revocation fuse changed bits: %x", before_revoke_bits ^ after_revoke_bits);
 
     return PB_OK;
 }

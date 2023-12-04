@@ -14,8 +14,8 @@
 #ifndef INCLUDE_PB_TIMESTAMP_H
 #define INCLUDE_PB_TIMESTAMP_H
 
-#include <stdint.h>
 #include <config.h>
+#include <stdint.h>
 
 #ifdef CONFIG_ENABLE_TIMESTAMPING
 void ts(const char *description);
@@ -38,4 +38,4 @@ unsigned int ts_total(void);
 #define ts_total(...)
 #endif
 
-#endif  // INCLUDE_PB_TIMESTAMP_H_
+#endif // INCLUDE_PB_TIMESTAMP_H_

@@ -1,10 +1,10 @@
 #ifndef PB_INCLUDE_DER_HELPERS_H
 #define PB_INCLUDE_DER_HELPERS_H
 
-#include <stdint.h>
+#include <pb/crypto.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <pb/crypto.h>
+#include <stdint.h>
 
 /**
  * Extract r and s values from a DER encoded signature
@@ -21,7 +21,10 @@
  *        -PB_ERR_ASN1 Decoding errors
  *        -PB_ERR_BUFFER_TOO_SMALL, if output buffers are too small
  */
-int der_ecsig_to_rs(const uint8_t *sig, uint8_t *r, uint8_t *s, size_t length,
+int der_ecsig_to_rs(const uint8_t *sig,
+                    uint8_t *r,
+                    uint8_t *s,
+                    size_t length,
                     bool suppress_leading_zero);
 
 /**
@@ -44,4 +47,4 @@ int der_ec_public_key_data(const uint8_t *pub_key_der,
 
 int asn1_size(const unsigned char **p, size_t *len);
 
-#endif  // PB_INCLUDE_DER_HELPERS_H
+#endif // PB_INCLUDE_DER_HELPERS_H

@@ -2,9 +2,8 @@
 
 #include <inttypes.h>
 
-struct console_ops
-{
-    void(*putc)(uintptr_t base, char c);
+struct console_ops {
+    void (*putc)(uintptr_t base, char c);
 };
 
 void console_putc(char c);

@@ -4,28 +4,26 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
-#define get_num_va_args(_args, _lcount)                \
-    (((_lcount) > 1)  ? va_arg(_args, long long int) :    \
-    (((_lcount) == 1) ? va_arg(_args, long int) :        \
-                va_arg(_args, int)))
+#define get_num_va_args(_args, _lcount)             \
+    (((_lcount) > 1) ? va_arg(_args, long long int) \
+                     : (((_lcount) == 1) ? va_arg(_args, long int) : va_arg(_args, int)))
 
-#define get_unum_va_args(_args, _lcount)                \
-    (((_lcount) > 1)  ? va_arg(_args, unsigned long long int) :    \
-    (((_lcount) == 1) ? va_arg(_args, unsigned long int) :        \
-                va_arg(_args, unsigned int)))
+#define get_unum_va_args(_args, _lcount)         \
+    (((_lcount) > 1)                             \
+         ? va_arg(_args, unsigned long long int) \
+         : (((_lcount) == 1) ? va_arg(_args, unsigned long int) : va_arg(_args, unsigned int)))
 
 static int string_print(const char *str)
 {
     int count = 0;
 
-
-    for ( ; *str != '\0'; str++) {
+    for (; *str != '\0'; str++) {
         (void)putchar(*str);
         count++;
     }
@@ -33,8 +31,7 @@ static int string_print(const char *str)
     return count;
 }
 
-static int unsigned_num_print(unsigned long long int unum, unsigned int radix,
-                  char padc, int padn)
+static int unsigned_num_print(unsigned long long int unum, unsigned int radix, char padc, int padn)
 {
     /* Just need enough space to store 64 bit decimal integer */
     char num_buf[20];
@@ -97,89 +94,83 @@ int vprintf(const char *fmt, va_list args)
     int padn; /* Number of characters to pad */
     int count = 0; /* Number of printed characters */
 
-    while (*fmt != '\0')
-    {
+    while (*fmt != '\0') {
         l_count = 0;
         padn = 0;
 
-        if (*fmt == '%')
-        {
+        if (*fmt == '%') {
             fmt++;
             /* Check the format specifier */
 printf_loop:
 
-            switch (*fmt)
-            {
-                case 'i': /* Fall through to next one */
-                case 'd':
-                    num = get_num_va_args(args, l_count);
-                    if (num < 0) {
-                        (void)putchar('-');
-                        unum = (unsigned long long int)-num;
-                        padn--;
-                    } else {
-                        unum = (unsigned long long int)num;
-                    }
-                    count += unsigned_num_print(unum, 10,
-                                    padc, padn);
-                    break;
-                case 's':
-                    str = va_arg(args, char *);
-                    count += string_print(str);
-                    break;
-                case 'p':
-                    unum = (uintptr_t)va_arg(args, void *);
-                    if (unum > 0U) {
-                        count += string_print("0x");
-                        padn -= 2;
-                    }
+            switch (*fmt) {
+            case 'i': /* Fall through to next one */
+            case 'd':
+                num = get_num_va_args(args, l_count);
+                if (num < 0) {
+                    (void)putchar('-');
+                    unum = (unsigned long long int)-num;
+                    padn--;
+                } else {
+                    unum = (unsigned long long int)num;
+                }
+                count += unsigned_num_print(unum, 10, padc, padn);
+                break;
+            case 's':
+                str = va_arg(args, char *);
+                count += string_print(str);
+                break;
+            case 'p':
+                unum = (uintptr_t)va_arg(args, void *);
+                if (unum > 0U) {
+                    count += string_print("0x");
+                    padn -= 2;
+                }
 
-                    count += unsigned_num_print(unum, 16,
-                                    padc, padn);
-                    break;
-                case 'x':
-                    unum = get_unum_va_args(args, l_count);
-                    count += unsigned_num_print(unum, 16,
-                                    padc, padn);
-                    break;
-                case 'z':
-                    if (sizeof(size_t) == 8U)
-                        l_count = 2;
+                count += unsigned_num_print(unum, 16, padc, padn);
+                break;
+            case 'x':
+                unum = get_unum_va_args(args, l_count);
+                count += unsigned_num_print(unum, 16, padc, padn);
+                break;
+            case 'z':
+                if (sizeof(size_t) == 8U)
+                    l_count = 2;
 
-                    fmt++;
-                    goto printf_loop;
-                case 'l':
-                    l_count++;
-                    fmt++;
-                    goto printf_loop;
-                case 'u':
-                    unum = get_unum_va_args(args, l_count);
-                    count += unsigned_num_print(unum, 10,
-                                    padc, padn);
-                    break;
-                case '0':
-                    padc = '0';
-                    padn = 0;
-                    fmt++;
+                fmt++;
+                goto printf_loop;
+            case 'l':
+                l_count++;
+                fmt++;
+                goto printf_loop;
+            case 'u':
+                unum = get_unum_va_args(args, l_count);
+                count += unsigned_num_print(unum, 10, padc, padn);
+                break;
+            case '0':
+                padc = '0';
+                padn = 0;
+                fmt++;
 
-                    for (;;) {
-                        char ch = *fmt;
-                        if ((ch < '0') || (ch > '9')) {
-                            goto printf_loop;
-                        }
-                        padn = (padn * 10) + (ch - '0');
-                        fmt++;
+                for (;;) {
+                    char ch = *fmt;
+                    if ((ch < '0') || (ch > '9')) {
+                        goto printf_loop;
                     }
-                    while (1) {}
-                default:
-                    /* Exit on any other format specifier */
-                    return -1;
+                    padn = (padn * 10) + (ch - '0');
+                    fmt++;
+                }
+                while (1) {
+                }
+            default:
+                /* Exit on any other format specifier */
+                return -1;
             }
             fmt++;
             continue;
         }
 
-        (void) putchar(*fmt);
+        (void)putchar(*fmt);
         fmt++;
         count++;
     }

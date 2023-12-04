@@ -7,15 +7,15 @@
  *
  */
 
+#include <boot/ab_state.h>
+#include <boot/boot.h>
+#include <boot/pb_state_blob.h>
+#include <pb/bio.h>
+#include <pb/crc.h>
+#include <pb/pb.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
-#include <pb/pb.h>
-#include <pb/crc.h>
-#include <pb/bio.h>
-#include <boot/boot.h>
-#include <boot/ab_state.h>
-#include <boot/pb_state_blob.h>
 
 static bio_dev_t primary_part, backup_part;
 static struct pb_boot_state boot_state, boot_state_backup;
@@ -34,9 +34,9 @@ static int validate(struct pb_boot_state *state)
         goto config_err_out;
     }
 
-    if (crc != crc32(0, (uint8_t *) state, sizeof(struct pb_boot_state))) {
+    if (crc != crc32(0, (uint8_t *)state, sizeof(struct pb_boot_state))) {
         LOG_ERR("CRC failed");
-        err =- PB_ERR;
+        err = -PB_ERR;
         goto config_err_out;
     }
 
@@ -56,8 +56,7 @@ static int pb_boot_state_commit(void)
     int rc;
 
     boot_state.crc = 0;
-    uint32_t crc = crc32(0, (const uint8_t *) &boot_state,
-                                sizeof(struct pb_boot_state));
+    uint32_t crc = crc32(0, (const uint8_t *)&boot_state, sizeof(struct pb_boot_state));
     boot_state.crc = crc;
 
     rc = bio_write(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
@@ -111,7 +110,7 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
         LOG_ERR("Backup boot state partition not found");
     }
 
-    (void) bio_read(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
+    (void)bio_read(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
 
     rc = validate(&boot_state);
 
@@ -122,7 +121,7 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
         primary_state_ok = false;
     }
 
-    (void) bio_read(backup_part, 0, sizeof(struct pb_boot_state), &boot_state_backup);
+    (void)bio_read(backup_part, 0, sizeof(struct pb_boot_state), &boot_state_backup);
 
     rc = validate(&boot_state_backup);
 
@@ -160,13 +159,12 @@ bio_dev_t boot_ab_state_get(void)
     const unsigned char *boot_part_uu = NULL;
     bool commit = false;
 
-    LOG_DBG("A/B boot load state %u %u %u", boot_state.enable,
-                                            boot_state.verified,
-                                            boot_state.error);
+    LOG_DBG(
+        "A/B boot load state %u %u %u", boot_state.enable, boot_state.verified, boot_state.error);
 
     if (boot_state.enable & PB_STATE_A_ENABLED) {
         if (!(boot_state.verified & PB_STATE_A_VERIFIED) &&
-             boot_state.remaining_boot_attempts > 0) {
+            boot_state.remaining_boot_attempts > 0) {
             boot_state.remaining_boot_attempts--;
             commit = true; /* Update state data */
             boot_part_uu = cfg->sys_a_uu;
@@ -196,7 +194,7 @@ bio_dev_t boot_ab_state_get(void)
         }
     } else if (boot_state.enable & PB_STATE_B_ENABLED) {
         if (!(boot_state.verified & PB_STATE_B_VERIFIED) &&
-             boot_state.remaining_boot_attempts > 0) {
+            boot_state.remaining_boot_attempts > 0) {
             boot_state.remaining_boot_attempts--;
             commit = true; /* Update state data */
             boot_part_uu = cfg->sys_b_uu;
@@ -268,14 +266,14 @@ int boot_ab_state_set_boot_partition(uuid_t part_uu)
 void boot_ab_state_get_boot_partition(uuid_t part_uu)
 {
     switch (boot_state.enable) {
-        case PB_STATE_A_ENABLED:
-            uuid_copy(part_uu, cfg->sys_a_uu);
+    case PB_STATE_A_ENABLED:
+        uuid_copy(part_uu, cfg->sys_a_uu);
         break;
-        case PB_STATE_B_ENABLED:
-            uuid_copy(part_uu, cfg->sys_b_uu);
+    case PB_STATE_B_ENABLED:
+        uuid_copy(part_uu, cfg->sys_b_uu);
         break;
-        default:
-            uuid_clear(part_uu);
+    default:
+        uuid_clear(part_uu);
     }
 }
 

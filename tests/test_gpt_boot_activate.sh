@@ -39,7 +39,7 @@ fi
 
 # Flashing image 
 echo "Flashing A"
-$PB part --write /tmp/img.bpak --part $BOOT_A --transport socket
+$PB -t socket part write /tmp/img.bpak $BOOT_A
 result_code=$?
 
 if [ $result_code -ne 0 ];
@@ -48,8 +48,7 @@ then
 fi
 
 echo "Activating $BOOT_A"
-$PB boot --activate $BOOT_A --transport socket
-
+$PB -t socket boot enable $BOOT_A
 result_code=$?
 
 if [ $result_code -ne 0 ];

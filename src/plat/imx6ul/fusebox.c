@@ -1,7 +1,7 @@
-#include <pb/pb.h>
-#include <plat/imx6ul/imx6ul.h>
-#include <plat/imx6ul/fusebox.h>
 #include <drivers/fuse/imx_ocotp.h>
+#include <pb/pb.h>
+#include <plat/imx6ul/fusebox.h>
+#include <plat/imx6ul/imx6ul.h>
 
 #define IMX6UL_FUSE_SRK_BANK (3)
 
@@ -32,8 +32,8 @@ int imx6ul_fuse_write_srk(const struct imx6ul_srk_fuses *fuses)
 
         /* Check if we're trying to change an already fused SRK */
         if (val != 0 && val != fuses->srk[n]) {
-            LOG_ERR("Trying to change already fused srk[%u] from 0x%x to 0x%x",
-                    n, val, fuses->srk[n]);
+            LOG_ERR(
+                "Trying to change already fused srk[%u] from 0x%x to 0x%x", n, val, fuses->srk[n]);
             return -PB_ERR_MEM;
         } else if (val != 0 && val == fuses->srk[n]) {
             LOG_INFO("srk[%u] already fused to 0x%x", n, val);

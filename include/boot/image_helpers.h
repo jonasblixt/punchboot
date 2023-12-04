@@ -10,8 +10,8 @@
 #ifndef INCLUDE_BOOT_IMAGE_H
 #define INCLUDE_BOOT_IMAGE_H
 
-#include <bpak/bpak.h>
 #include <boot/boot.h>
+#include <bpak/bpak.h>
 
 /**
  * Authenticate a BPAK header
@@ -48,7 +48,6 @@ int boot_image_copy_and_hash(struct bpak_header *source_hdr,
                              uint8_t *payload_digest,
                              size_t payload_digest_size);
 
-int boot_image_verify_payload(struct bpak_header *hdr,
-                              uint8_t *payload_digest);
+int boot_image_verify_payload(struct bpak_header *hdr, uint8_t *payload_digest);
 
 #endif

@@ -12,8 +12,8 @@
 #ifndef INCLUDE_PB_PLAT_H_
 #define INCLUDE_PB_PLAT_H_
 
-#include <pb/pb.h>
 #include <pb-tools/wire.h>
+#include <pb/pb.h>
 
 /**
  * Initialize the platform
@@ -58,7 +58,7 @@ int plat_boot_reason(void);
  *
  * @return Boot reason string or ""
  */
-const char* plat_boot_reason_str(void);
+const char *plat_boot_reason_str(void);
 
 /**
  * Platform / SoC Unique data. This function is called by the
@@ -71,4 +71,4 @@ const char* plat_boot_reason_str(void);
  */
 int plat_get_unique_id(uint8_t *output, size_t *length);
 
-#endif  // INCLUDE_PB_PLAT_H_
+#endif // INCLUDE_PB_PLAT_H_
