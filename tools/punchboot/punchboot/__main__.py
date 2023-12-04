@@ -631,5 +631,27 @@ def slc_revoke_key(ctx: click.Context, s: Session, key_id: str, force: bool):
         s.slc_revoke_key(_key_id)
 
 
+@cli.command("completion")
+@click.pass_context
+def shell_completion_helper(ctx: click.Context):
+    """Shell completion helpers."""
+    _help_text = """
+    Punchboot supports shell completions for bash, zsh and fish.
+    Put one of the following lines in the appropriate .rc -file to enable
+    shell completions.
+
+    bash:
+        eval "$(_PUNCHBOOT_COMPLETE=bash_source punchboot)"
+
+    zsh:
+        eval "$(_PUNCHBOOT_COMPLETE=zsh_source punchboot)"
+
+    fish:
+        _PUNCHBOOT_COMPLETE=fish_source punchboot | source
+    """
+
+    click.echo(_help_text)
+
+
 if __name__ == "__main__":
     cli()
