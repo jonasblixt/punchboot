@@ -21,10 +21,48 @@
 #define USB_SET_FEATURE       0x0003
 #define USB_SET_ADDRESS       0x0005
 #define USB_GET_STATUS        0x8000
+#define USB_GET_VENDOR        0xc001
 
 static const struct usbd_hal_ops *hal_ops;
 static const struct usbd_cls_config *cls_config;
 static bool enumerated;
+
+/* Microsoft OS Descriptor
+ *
+ * When a new USB device enumerates on Windows the system will ask for string
+ * descriptor 0xEE, Which is Windows specific, if the string descriptor contains
+ * 'MSFT100' it will issue a vendor specific request for a 'Microsoft Compatible ID Feature
+ * Descriptor'.
+ *
+ * With these two in place Windows will automatically bind the device to WinUSB and
+ * in turn we can use libusb directly.
+ *
+ * Historically this was handled by the windows binary installer that bundeled
+ * libwdi.
+ *
+ * It's explained in greater detail here:
+ *     https://github.com/pbatard/libwdi/wiki/WCID-Devices
+ */
+static const struct usb_msft_os_descriptor msft_os_descriptor = {
+    .bLength = 18,
+    .bDescriptorType = 3,
+    .signature = { 0x4D, 0x00, 0x53, 0x00, 0x46, 0x00, 0x54, 0x00, 0x31, 0x00, 0x30, 0x00, 0x30, 0x00, },
+    .bVendorCode = 1,
+    .bPad = 0,
+};
+
+static const struct usb_msft_comp_id_feature msft_comp_id_feature = {
+    .length = 40,
+    .bcdVersion = { 0x00, 0x01 },
+    .wCompIDidx = 4,
+    .bNumSel = 1,
+    .rz1 = { 0 },
+    .bIfaceNo = 0,
+    .rz2 = 0,
+    .compatibleId = { 0x57, 0x49, 0x4E, 0x55, 0x53, 0x42, 0x00, 0x00, },
+    .subCompatibleId = { 0 },
+    .rz3 = { 0 },
+};
 
 static int usbd_enumerate(struct usb_setup_packet *setup);
 
@@ -126,6 +164,10 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
             if (str_desc_idx == 0) {
                 length = MIN(setup->wLength, (uint16_t)sizeof(cls_config->desc->language));
                 rc = ep0_tx(&cls_config->desc->language, length);
+            } else if (str_desc_idx == 0xee) {
+                /* Microsoft OS Descriptor */
+                length = MIN(setup->wLength, (uint16_t)sizeof(msft_os_descriptor));
+                rc = ep0_tx(&msft_os_descriptor, length);
             } else {
                 struct usb_string_descriptor *str_desc =
                     cls_config->get_string_descriptor(str_desc_idx);
@@ -183,6 +225,13 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
     case USB_GET_STATUS: {
         LOG_DBG("Get status");
         rc = ep0_tx(&device_status, sizeof(device_status));
+    } break;
+    case USB_GET_VENDOR: {
+        LOG_DBG("Get vendor specific descriptor");
+        if (setup->wIndex == 0x04) {
+            length = MIN(setup->wLength, (uint16_t)sizeof(msft_comp_id_feature));
+            rc = ep0_tx(&msft_comp_id_feature, length);
+        }
     } break;
     default: {
         LOG_ERR("EP0 Unhandled request %x", request);

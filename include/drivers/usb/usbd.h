@@ -140,6 +140,27 @@ struct usb_endpoint_descriptor {
     uint8_t bInterval; // Interval for polling endpoint for data transfers
 } __attribute__((packed));
 
+struct usb_msft_os_descriptor {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint8_t signature[14];
+    uint8_t bVendorCode;
+    uint8_t bPad;
+} __attribute__((packed));
+
+struct usb_msft_comp_id_feature {
+    uint32_t length;
+    uint8_t bcdVersion[2];
+    uint16_t wCompIDidx;
+    uint8_t bNumSel;
+    uint8_t rz1[7];
+    uint8_t bIfaceNo;
+    uint8_t rz2;
+    uint8_t compatibleId[8];
+    uint8_t subCompatibleId[8];
+    uint8_t rz3[6];
+} __attribute__((packed));
+
 struct usbd_descriptors {
     const struct usb_language_descriptor language;
     const struct usb_qualifier_descriptor qualifier;
