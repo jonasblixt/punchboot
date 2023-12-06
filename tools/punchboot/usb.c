@@ -83,7 +83,7 @@ static int pb_usb_connect(struct pb_context *ctx)
 
                 pb_usb_close_handle(priv);
 
-                if (rc != 0)
+                if (rc < 0)
                     continue;
 
                 if (strcmp((char *)device_serial, priv->device_uuid) != 0)
@@ -206,7 +206,7 @@ static int pb_usb_list(struct pb_context *ctx,
             rc = libusb_get_string_descriptor_ascii(
                 priv->h, desc.iSerialNumber, device_serial, sizeof(device_serial));
 
-            if (rc != 0)
+            if (rc < 0)
                 continue;
 
             pb_usb_close_handle(priv);
