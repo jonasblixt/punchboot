@@ -16,6 +16,7 @@ struct bio_device {
     bio_write_t write;
     bio_erase_t erase;
     bio_call_t install_partition_table;
+    uintptr_t private;
     bool valid;
 };
 
@@ -85,6 +86,7 @@ bio_dev_t bio_allocate_parent(bio_dev_t parent,
     bio_pool[new].read = bio_pool[parent].read;
     bio_pool[new].write = bio_pool[parent].write;
     bio_pool[new].erase = bio_pool[parent].erase;
+    bio_pool[new].private = bio_pool[parent].private;
 
     return new;
 }
@@ -121,6 +123,26 @@ int bio_set_ios_erase(bio_dev_t dev, bio_erase_t erase)
     bio_pool[dev].erase = erase;
 
     return PB_OK;
+}
+
+int bio_set_private(bio_dev_t dev, uintptr_t priv)
+{
+    int rc;
+
+    rc = check_dev(dev);
+    if (rc != PB_OK)
+        return rc;
+
+    bio_pool[dev].private = priv;
+
+    return PB_OK;
+}
+
+uintptr_t bio_get_private(bio_dev_t dev)
+{
+    if (check_dev(dev) != PB_OK)
+        return 0;
+    return bio_pool[dev].private;
 }
 
 int64_t bio_size(bio_dev_t dev)

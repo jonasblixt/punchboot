@@ -163,6 +163,9 @@ int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
  */
 int bio_set_ios_erase(bio_dev_t dev, bio_erase_t erase);
 
+int bio_set_private(bio_dev_t dev, uintptr_t priv);
+uintptr_t bio_get_private(bio_dev_t dev);
+
 /**
  * Block device size in bytes
  *
