@@ -282,6 +282,9 @@ static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
 
     if (width == MMC_BUS_WIDTH_4BIT) {
         mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK, PROTCTRL_WIDTH_4);
+    } else if (width == MMC_BUS_WIDTH_4BIT_DDR) {
+        mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK, PROTCTRL_WIDTH_4);
+        bus_ddr_enable = true;
     } else if (width == MMC_BUS_WIDTH_8BIT) {
         mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROTCTRL_WIDTH_MASK, PROTCTRL_WIDTH_8);
     } else if (width == MMC_BUS_WIDTH_8BIT_DDR) {

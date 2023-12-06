@@ -49,7 +49,10 @@ int plat_init(void)
     LOG_DBG("i.MX RT Hello!");
 
     imx_gpt_init(0x401EC000, MHz(72));
+
+#if CONFIG_ENABLE_WATCHDOG
     imx_wdog_init(0x400B8000, CONFIG_WATCHDOG_TIMEOUT);
+#endif
 
     imx_ocotp_init(0x401F4000, 8);
 
@@ -93,11 +96,23 @@ int plat_board_init(void)
 
 int plat_boot_reason(void)
 {
-    return 0;
+    uint16_t wrsr = mmio_read_16(0x400b8000 + 0x4);
+    return wrsr;
 }
 
 const char *plat_boot_reason_str(void)
 {
+    int reason = plat_boot_reason();
+    switch (reason) {
+    case (1 << 4):
+        return "POR";
+    case (1 << 1):
+        return "WDOG";
+    case (1 << 0):
+        return "SW";
+    default:
+        break;
+    }
     return "?";
 }
 

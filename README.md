@@ -4,6 +4,7 @@
 [![Build Status](https://github.com/jonasblixt/punchboot/actions/workflows/build.yml/badge.svg)](https://github.com/jonasblixt/punchboot/actions/workflows/build.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/jonasblixt/punchboot/master.svg)](https://results.pre-commit.ci/latest/github/jonasblixt/punchboot/master)
 [![codecov](https://codecov.io/gh/jonasblixt/punchboot/branch/master/graph/badge.svg)](https://codecov.io/gh/jonasblixt/punchboot)
+[![Documentation Status](https://readthedocs.org/projects/punchboot/badge/?version=latest)](https://punchboot.readthedocs.io/en/latest/?badge=latest)
 [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4XMK2G3TPN3BQ)
 
 # Introduction
@@ -38,9 +39,10 @@ The directory layout is as follows:
 | /doc         | Documentation           |
 | /pki         | Crypto keys for testing |
 | /            | Bootloader source       |
-| /board       | Board support           |
-| /arch        | Architecture support    |
-| /plat        | Platform support        |
+| /src/board   | Board support           |
+| /src/arch    | Architecture support    |
+| /src/plat    | Platform support        |
+| /src/drivers | Drivers                 |
 | /tools       | Tools                   |
 
 Supported architectures:
@@ -49,6 +51,7 @@ Supported architectures:
 | ------------ | ----------------------- |
 | armv7a       | Yes                     |
 | armv8a       | Yes                     |
+| armv7m       | Yes                     |
 
 Supported platforms:
 
@@ -74,7 +77,8 @@ Hardware accelerated signature verification
 | --------------- | ------- | ------------ | ------------ | ---------- |
 | NXP imx6ul      | Yes     | Yes          | No           | No         |
 | NXP imx8m       | Yes     | Yes          | No           | No         |
-| NXP imx8x       | Yes     | Yes          | Yes          | Yes        |
+| nxp imx8x       | yes     | yes          | yes          | yes        |
+| nxp imx RT      | no      | no           | no           | no         |
 
 Hardware accelerated hash algorithms
 
@@ -83,6 +87,7 @@ Hardware accelerated hash algorithms
 | NXP imx6ul      | Yes | Yes    | No     | No     |
 | NXP imx8m       | Yes | Yes    | No     | No     |
 | NXP imx8x       | Yes | Yes    | Yes    | Yes    |
+| NXP imx RT      | No  | No     | No     | No     |
 
 ## Secure Boot
 
@@ -127,42 +132,6 @@ $ cp configs/test_defconfig .config
 $ make
 $ make check
 ```
-## A/B paritions and atomic upgrades
-To support a robust way of upgrading the system the simplest way is to have two copies
-of the system software; System A and System B. When system A is active System B can be
-reprogrammed and activated only when it is verified. This is known as "Atomic Upgrade"
-
-Punchboot uses a special config partition to store the current state. The state
-includes information about which system is active, boot count tries and error bits.
-
-### Automatic rollback
-
-Sometimes upgrades fail. Punchboot supports a mechanism for so called automatic 
-rollbacks. 
-
-![PB Rollback](doc/rollback.png)
-
-The left most column describes a simplified way a linux system could initiate 
-an upgrade. In this case System A is active and System B is to be prepared and 
-eventually activated.
-
-The new software is written to System B and verified then system A verified flag,
-error bits must be reset and boot try counter is programmed to a desired try-count. 
-A cleared OK bit but set counter constitutes and upgrade state and punchboot 
-will try to start this system and decrement the counter unless the counter has reched zero.
-
-If the counter reaches zero the error bit is set and System A is automatically 
-activated again (Rollback event)
-
-At this point the upgrade is staged, and the OK bit of System A can be cleared 
-and finally the system is reset.
-
-Punchboot recognizes that none of the System partitions has the OK bit set but 
-System B has a non-zero counter. System B is started.
-
-When returning back to the upgrade application in linux final checks can be 
-performed, for example checking connectivity and such before finally setting 
-the OK bit of system B and thus permanently activate System B
 
 ## Device identity
 
@@ -176,16 +145,6 @@ data from the SoC and an allocated, random, namspace UUID per platform.
 When booting a linux system this information is relayed to linux through 
 in-line patching of the device-tree.
 The device identity can be found in '/proc/device-tree/chosen/device-uuid'
-
-## Allocated UUID's
-
-Platform namespace UUID's
-
-| Platform        | UUID                                 |
-| --------------- | ------------------------------------ |
-| NXP imx6ul      | aeda39be-792b-4de5-858a-4c357b9b6302 |
-| NXP imx8m       | 3292d7d2-2825-4100-90c3-968f2960c9f2 |
-| NXP imx8x       | aeda39be-792b-4de5-858a-4c357b9b6302 |
 
 ## Command mode
 
@@ -210,9 +169,19 @@ The punchboot CLI is used for interacting with the command mode. A summary of th
 - Load image to ram and execute it
 - Display basic device info
 - Configure fuses and GPT parition tables
+- Call board specific functions
 
-The tools and CLI are from version 0.7.0 separated into another repository:
-https://github.com/jonasblixt/punchboot-tools
+The tool is written in Python and some parts in C to allow bindings for other
+languages. The tool is built on top of a library to make it possible to integrate
+with other tooling and environments.
+
+The tool is distributed through PyPi. Binary wheels are available for Windows,
+Linux and macos (x86_64 and arm64).
+
+Install using pypi:
+```
+$ pip install punchboot
+```
 
 ## Image format
 Punchboot uses the bitpacker file format (https://github.com/jonasblixt/bpak)
@@ -220,10 +189,9 @@ Punchboot uses the bitpacker file format (https://github.com/jonasblixt/bpak)
 
 ## Authentication token
 
-Punchboot enforces authentication when a device is enforcing secure boot. 
-It is still possible to access the USB recovert mode after authentication. 
-When the device enters command mode it is still possible to issue the "dev show"
-command to get the device UUID.
+Punchboot enforces authentication when the SLC (Security Life Cycle) is locked.
+To interact with Punchboot the session must be authenticated by using a password
+or a signed token.
 
 The authentication token is generated by hashing the device UUID and signing
 it with one of the active key pairs.
@@ -236,7 +204,7 @@ Device UUID:        0b177094-6b62-3572-902e-c1de339ecb01
 Board name:         pico8ml
 ```
 
-Creating the authentication token using the 'createtoken.sh' script located 
+Creating the authentication token using the 'createtoken.sh' script located
 in the tools folder. In this example the private key is stored on a yubikey 5 HSM.
 
 ```
@@ -244,14 +212,18 @@ $ ./createtoken.sh 0B177094-6B62-3572-902E-C1DE339ECB01 pkcs11 -sha256 "pkcs11:i
 engine "pkcs11" set.
 Enter PKCS#11 token PIN for PIV Card Holder pin (PIV_II):
 Enter PKCS#11 key PIN for SIGN key:
-$ punchboot auth token ./0B177094-6B62-3572-902E-C1DE339ECB01.token 0xa90f9680
+```
+
+Authenticating the session:
+```
+$ punchboot auth token ./0B177094-6B62-3572-902E-C1DE339ECB01.token <name of a key>
 Signature format: secp256r1
 Hash: sha256
 Authenticating using key index 0 and './0B177094-6B62-3572-902E-C1DE339ECB01.token'
 Read 103 bytes
 Authentication successful
 ```
-Now the command mode is fully unlocked. The token is ofcourse only valid for 
+Now the command mode is fully unlocked. The token is of course only valid for 
 the individual unit with that perticular UUID.
 
 ## Metrics

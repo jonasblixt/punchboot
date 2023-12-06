@@ -140,7 +140,7 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         }
 
         if (cfg->dtb_patch_cb) {
-            cfg->dtb_patch_cb(fdt, offset);
+            rc = cfg->dtb_patch_cb(fdt, offset);
 
             if (rc != PB_OK) {
                 LOG_ERR("Patch bootargs error (%i)", rc);

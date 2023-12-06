@@ -44,28 +44,29 @@
  * Read access
  */
 
-#define BIO_FLAG_BOOTABLE BIT(0)
-#define BIO_FLAG_RFU1     BIT(1)
-#define BIO_FLAG_WRITABLE BIT(2)
-#define BIO_FLAG_RFU3     BIT(3)
-#define BIO_FLAG_RFU4     BIT(4)
-#define BIO_FLAG_VISIBLE  BIT(5)
-#define BIO_FLAG_READABLE BIT(6)
-#define BIO_FLAG_RFU7     BIT(7)
-#define BIO_FLAG_RFU8     BIT(8)
-#define BIO_FLAG_RFU9     BIT(9)
-#define BIO_FLAG_RFU10    BIT(10)
-#define BIO_FLAG_RFU11    BIT(11)
-#define BIO_FLAG_RFU12    BIT(12)
-#define BIO_FLAG_RFU13    BIT(13)
-#define BIO_FLAG_RFU14    BIT(14)
-#define BIO_FLAG_RFU15    BIT(15)
+#define BIO_FLAG_BOOTABLE           BIT(0)
+#define BIO_FLAG_RFU1               BIT(1)
+#define BIO_FLAG_WRITABLE           BIT(2)
+#define BIO_FLAG_ERASE_BEFORE_WRITE BIT(3)
+#define BIO_FLAG_RFU4               BIT(4)
+#define BIO_FLAG_VISIBLE            BIT(5)
+#define BIO_FLAG_READABLE           BIT(6)
+#define BIO_FLAG_RFU7               BIT(7)
+#define BIO_FLAG_RFU8               BIT(8)
+#define BIO_FLAG_RFU9               BIT(9)
+#define BIO_FLAG_RFU10              BIT(10)
+#define BIO_FLAG_RFU11              BIT(11)
+#define BIO_FLAG_RFU12              BIT(12)
+#define BIO_FLAG_RFU13              BIT(13)
+#define BIO_FLAG_RFU14              BIT(14)
+#define BIO_FLAG_RFU15              BIT(15)
 
 typedef int bio_dev_t;
 typedef unsigned int lba_t;
 
 typedef int (*bio_read_t)(bio_dev_t dev, lba_t lba, size_t length, void *buf);
 typedef int (*bio_write_t)(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
+typedef int (*bio_erase_t)(bio_dev_t dev);
 typedef int (*bio_call_t)(bio_dev_t dev, int param);
 
 /**
@@ -150,6 +151,20 @@ bio_dev_t bio_get_part_by_uu_str(const char *uu_str);
  *        -PB_ERR_PARAM on invalid device handle
  */
 int bio_set_ios(bio_dev_t dev, bio_read_t read, bio_write_t write);
+
+/**
+ * Set erase I/O ops for device
+ *
+ * @param[in] dev Block device handle
+ * @param[in] erase Erase callback function
+ *
+ * @return PB_OK on success,
+ *        -PB_ERR_PARAM on invalid device handle
+ */
+int bio_set_ios_erase(bio_dev_t dev, bio_erase_t erase);
+
+int bio_set_private(bio_dev_t dev, uintptr_t priv);
+uintptr_t bio_get_private(bio_dev_t dev);
 
 /**
  * Block device size in bytes
@@ -309,6 +324,17 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf);
  *         -PB_TIMEOUT, Driverr timeouts
  */
 int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
+
+/**
+ * Erase block device
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying write function
+ *         -PB_ERR_IO, Driver I/O errors
+ *         -PB_TIMEOUT, Driverr timeouts
+ */
+int bio_erase(bio_dev_t dev);
 
 /**
  * Install partition table on a device

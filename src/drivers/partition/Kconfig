@@ -4,4 +4,8 @@ config PARTITION_GPT
 	bool "Enable support for GPT partitions"
     default n
 
+config PARTITION_STATIC
+	bool "Enable support for static partition tables"
+    default n
+
 endmenu
