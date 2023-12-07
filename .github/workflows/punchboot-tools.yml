@@ -1,6 +1,5 @@
 name: Build punchboot-tools
-# push
-on: [pull_request]
+on: [pull_request, push, workflow_dispatch]
 
 # REMEMBER: If the libusb versions for macos are updated the 'macos deps',
 #  setup.py and pyproject.toml must also be updated since they have hard coded
