@@ -182,7 +182,7 @@ def pb_session(f):
     "-u",
     "--device-uuid",
     type=uuid.UUID,
-    default=None,
+    default=lambda: os.environ.get("PB_DEVICE_UUID"),
     expose_value=True,
     shell_complete=_dev_completion_helper,
     help="Select device by UUID (Can be used together with USB transport)",
