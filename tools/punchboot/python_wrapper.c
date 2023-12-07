@@ -415,7 +415,7 @@ static PyObject *slc_get_active_keys(PyObject *self, PyObject *Py_UNUSED(args))
 
     for (int i = 0; i < PB_MAX_KEYS; i++) {
         if (active_keys[i]) {
-            PyList_Append(keylist, PyLong_FromLong(active_keys[i]));
+            PyList_Append(keylist, PyLong_FromUnsignedLong(active_keys[i]));
         }
     }
 
@@ -446,7 +446,7 @@ static PyObject *slc_get_revoked_keys(PyObject *self, PyObject *Py_UNUSED(args))
 
     for (int i = 0; i < PB_MAX_KEYS; i++) {
         if (revoked_keys[i]) {
-            PyList_Append(keylist, PyLong_FromLong(revoked_keys[i]));
+            PyList_Append(keylist, PyLong_FromUnsignedLong(revoked_keys[i]));
         }
     }
 
