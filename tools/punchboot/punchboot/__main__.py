@@ -83,12 +83,12 @@ def _print_version(ctx: click.Context, param: click.Option, value: bool):
         exit(0)
 
 
+def _get_board_name(uu: uuid.UUID) -> str:
+    return Session(device_uuid=uu).device_get_boardname()
+
+
 def _dev_completion_helper(ctx: click.Context, param: click.Option, incomplete):
     """Completion handler for USB attached devices."""
-
-    def _get_board_name(uu: uuid.UUID) -> str:
-        return Session(device_uuid=uu).device_get_boardname()
-
     return [CompletionItem(str(_uu), help=_get_board_name(_uu)) for _uu in list_usb_devices()]
 
 
