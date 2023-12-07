@@ -653,5 +653,12 @@ def shell_completion_helper(ctx: click.Context):
     click.echo(_help_text)
 
 
+@cli.command("list")
+def list_devices():
+    """List Punchboot devices attached over USB."""
+    for _uu in list_usb_devices():
+        click.echo(f"{_uu} -- {_get_board_name(_uu)}")
+
+
 if __name__ == "__main__":
     cli()
