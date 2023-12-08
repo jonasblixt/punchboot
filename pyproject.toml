@@ -11,7 +11,7 @@ target-version = "py38"
 
 [tool.ruff.lint]
 # See: https://docs.astral.sh/ruff/rules/ for details
-select = ["D", "N", "F", "W", "E", "I"]
+select = ["D", "N", "F", "W", "E", "I", "SIM", "PTH", "PERF"]
 
 [tool.ruff.format]
 quote-style = "double"

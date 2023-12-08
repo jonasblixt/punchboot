@@ -1,4 +1,5 @@
 """Punchboot CLI."""
+import contextlib
 import getopt
 import logging
 import os
@@ -32,7 +33,7 @@ def _completion_helper_init_session() -> Session:
     initialize the Punchboot Session object.
     """
     cmd_line = os.environ["COMP_WORDS"].split()[1:]
-    opts, args = getopt.getopt(cmd_line, "t:u:s:", ["transport=", "device-uuid=", "socket="])
+    opts, _ = getopt.getopt(cmd_line, "t:u:s:", ["transport=", "device-uuid=", "socket="])
     _skt_path: Union[str, None] = None
     _dev_uuid: Union[uuid.UUID, None] = None
     for o, a in opts:
@@ -230,10 +231,8 @@ def dev_reset(ctx: click.Context, s: Session):
 @click.pass_context
 def dev_show(ctx: click.Context, s: Session):
     """Show device info."""
-    try:
+    with contextlib.suppress(punchboot.NotAuthenticatedError):
         click.echo(f"{'Bootloader version:':<20}{s.device_get_punchboot_version()}")
-    except punchboot.NotAuthenticatedError:
-        pass
     click.echo(f"{'Device UUID:':<20}{s.device_get_uuid()}")
     click.echo(f"{'Board name:':<20}{s.device_get_boardname()}")
 
@@ -327,7 +326,7 @@ def part_list(ctx: click.Context, s: Session):
     click.echo(f"{'--------------':<37}   {'-----':<8}   {'----':<7}   {'----':<16}")
     for part in s.part_get_partitions():
         click.echo(
-                f"{str(part.uuid):<37}   {_flag_helper(part):<8}   {_size_helper(part):<7}   {part.description:<16}" # noqa: E501
+                f"{str(part.uuid):<37}   {_flag_helper(part):<8}   {_size_helper(part):<7}   {part.description:<16}"  # noqa: E501
         )
 
 
@@ -559,7 +558,7 @@ def boot_disable(ctx: click.Context, s: Session):
 
 _slc_warning: str = """WARNING: This is a permanent change, writing fuses can not be reverted. This could brick your device.
 
-Are you sure?""" # noqa: E501
+Are you sure?"""  # noqa: E501
 
 
 @cli.group()
@@ -574,8 +573,8 @@ def slc(ctx: click.Context):
 def slc_show(ctx: click.Context, s: Session):
     """Show SLC."""
     click.echo(f"Status: {s.slc_get_lifecycle().name}")
-    click.echo(f"Active keys: {', '.join(hex(k) for k in  s.slc_get_active_keys())}")
-    click.echo(f"Revoked keys: {', '.join(hex(k) for k in  s.slc_get_revoked_keys())}")
+    click.echo(f"Active keys: {', '.join(hex(k) for k in s.slc_get_active_keys())}")
+    click.echo(f"Revoked keys: {', '.join(hex(k) for k in s.slc_get_revoked_keys())}")
 
 
 @slc.command("configure")

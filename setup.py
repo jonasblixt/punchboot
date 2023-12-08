@@ -2,6 +2,7 @@
 
 import os
 import platform
+from pathlib import Path
 
 from setuptools import Extension, setup  # type: ignore
 
@@ -53,9 +54,9 @@ if plat == "Linux":
 
 setup(
     name="punchboot",
-    version=open("version.txt").read().strip(),
+    version=Path("version.txt").read_text().strip(),
     description="Punchboot tools",
-    long_description=open("README.md").read(),
+    long_description=Path("README.md").read_text(),
     long_description_content_type="text/markdown",
     author="Jonas Blixt",
     author_email="jonpe960@gmail.com",

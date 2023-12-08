@@ -161,7 +161,7 @@ class Session(object):
         """
         _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
         if isinstance(file, pathlib.Path):
-            with open(file, "rb") as f:
+            with file.open("rb") as f:
                 self._s.part_write(f, _uu.bytes)
         elif isinstance(file, io.BufferedReader):
             self._s.part_write(file, _uu.bytes)
@@ -177,7 +177,7 @@ class Session(object):
         """
         _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
         if isinstance(file, pathlib.Path):
-            with open(file, "wb") as f:
+            with file.open("wb") as f:
                 self._s.part_read(f, _uu.bytes)
         elif isinstance(file, io.BufferedReader):
             self._s.part_read(file, _uu.bytes)
