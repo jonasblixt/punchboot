@@ -5,6 +5,8 @@
 #include <pb/slc.h>
 #include <stdint.h>
 
+#include "mm.h"
+
 struct imxrt_platform {};
 
 int board_init(struct imxrt_platform *plat);

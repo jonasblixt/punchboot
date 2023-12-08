@@ -28,33 +28,33 @@ int plat_init(void)
      */
 
     // Clock config
-    mmio_write_32(0x400fc024, 0x06490b03); /* CCM CSCDR1 */
+    mmio_write_32(IMXRT_CCM_BASE + 0x24, 0x06490b03); /* CCM CSCDR1 */
 
     // Ungate a bunch of clocks
-    mmio_write_32(0x400FC07C, 0xffffffff);
+    mmio_write_32(IMXRT_CCM_BASE + 0x7c, 0xffffffff);
 
     // Hard-coded to lpuart1 for now
     // PAD mux: lpuart1 RX = alt2
-    mmio_write_32(0x401F8000 + 0xf0, 2);
+    mmio_write_32(IMXRT_IOMUXC_BASE + 0xf0, 2);
     // PAD mux: lpuart1 TX = alt2
-    mmio_write_32(0x401F8000 + 0xec, 2);
+    mmio_write_32(IMXRT_IOMUXC_BASE + 0xec, 2);
 
-    imx_lpuart_init(0x40184000, MHz(20), 115200);
+    imx_lpuart_init(IMXRT_LPUART1_BASE, MHz(20), 115200);
 
     static const struct console_ops ops = {
         .putc = imx_lpuart_putc,
     };
 
-    console_init(0x40184000, &ops);
+    console_init(IMXRT_LPUART1_BASE, &ops);
     LOG_DBG("i.MX RT Hello!");
 
-    imx_gpt_init(0x401EC000, MHz(72));
+    imx_gpt_init(IMXRT_GPT1_BASE, MHz(72));
 
 #if CONFIG_ENABLE_WATCHDOG
-    imx_wdog_init(0x400B8000, CONFIG_WATCHDOG_TIMEOUT);
+    imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
 
-    imx_ocotp_init(0x401F4000, 8);
+    imx_ocotp_init(IMXRT_OCOTP_BASE, 8);
 
     rc = mbedtls_pb_init();
 
@@ -96,7 +96,7 @@ int plat_board_init(void)
 
 int plat_boot_reason(void)
 {
-    uint16_t wrsr = mmio_read_16(0x400b8000 + 0x4);
+    uint16_t wrsr = mmio_read_16(IMXRT_WDOG1_BASE + 0x4);
     return wrsr;
 }
 
