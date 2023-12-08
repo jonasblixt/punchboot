@@ -21,7 +21,7 @@ MEMORY
 
 SECTIONS
 {
-    .umctl (NOLOAD): 
+    .umctl (NOLOAD):
     {
         PROVIDE(_umctl2_start = .);
         *(.umctl2 .umctl2*)

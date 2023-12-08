@@ -6,4 +6,3 @@ API reference
    :glob:
 
    api-ref/*
-

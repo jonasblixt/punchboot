@@ -129,4 +129,3 @@ void enable_mmu_direct_svc_mon(unsigned int flags)
 {
     enable_mmu_svc_mon(flags);
 }
-

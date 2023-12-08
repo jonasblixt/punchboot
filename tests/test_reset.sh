@@ -6,5 +6,3 @@ wait_for_qemu_start
 echo "Sending reset"
 $PB -t socket dev reset
 wait_for_qemu
-
-

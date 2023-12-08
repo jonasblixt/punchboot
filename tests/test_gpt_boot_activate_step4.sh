@@ -37,7 +37,7 @@ then
     test_end_error
 fi
 
-# Flashing image 
+# Flashing image
 echo "Flashing B"
 $PB -t socket part write /tmp/img.bpak $BOOT_B
 result_code=$?

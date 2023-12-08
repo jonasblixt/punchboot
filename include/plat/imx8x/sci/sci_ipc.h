@@ -64,4 +64,3 @@ void sc_ipc_read(sc_ipc_t ipc, void *data);
 void sc_ipc_write(sc_ipc_t ipc, const void *data);
 
 #endif  /* SC_IPC_H */
-

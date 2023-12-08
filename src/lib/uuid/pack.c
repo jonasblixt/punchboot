@@ -66,4 +66,3 @@ void uuid_pack(const struct uuid *uu, uuid_t ptr)
 
 	memcpy(out+10, uu->node, 6);
 }
-

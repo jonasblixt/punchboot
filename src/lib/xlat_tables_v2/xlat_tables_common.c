@@ -390,7 +390,7 @@ static mmap_region_t *init_xlation_table_inner(mmap_region_t *mm,
 
 void reset_xlat_tables(void)
 {
-    memset(xlat_tables, 0, sizeof(uint64_t) * MAX_XLAT_TABLES * 
+    memset(xlat_tables, 0, sizeof(uint64_t) * MAX_XLAT_TABLES *
                                               XLAT_TABLE_ENTRIES);
 }
 

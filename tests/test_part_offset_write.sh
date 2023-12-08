@@ -7,7 +7,7 @@ dd if=/dev/urandom of=/tmp/random_data bs=512 count=1
 first_sha256=$(sha256sum /tmp/random_data | cut -d ' ' -f 1)
 
 $PB -t socket part write --offset 1000 /tmp/random_data $BOOT_A
-result_code=$? 
+result_code=$?
 
 if [ $result_code -ne 0 ];
 then

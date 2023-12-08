@@ -34,7 +34,7 @@ cflags-y += -Isrc/plat/imx8m/include
 ldflags-y += -Tsrc/plat/imx8m/link.lds
 
 MKIMAGE_OPTS =
-#MKIMAGE_OPTS += -dev emmc_fastboot 
+#MKIMAGE_OPTS += -dev emmc_fastboot
 #MKIMAGE_OPTS += -version v1
 #MKIMAGE_OPTS += -fit
 #MKIMAGE_OPTS += -signed_hdmi blobs/signed_hdmi_imx8m.bin

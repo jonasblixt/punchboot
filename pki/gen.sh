@@ -15,5 +15,3 @@ openssl rsa -in field1_rsa_private.pem -out field1_rsa_public.der -outform der -
 openssl genrsa -out field2_rsa_private.pem 4096
 openssl rsa -in field2_rsa_private.pem -out field2_rsa_private.der -outform der
 openssl rsa -in field2_rsa_private.pem -out field2_rsa_public.der -outform der -pubout
-
-

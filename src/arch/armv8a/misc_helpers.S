@@ -468,4 +468,3 @@ func enable_vfp
 	ret
 endfunc enable_vfp
 #endif
-

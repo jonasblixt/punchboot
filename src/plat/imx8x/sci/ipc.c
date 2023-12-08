@@ -106,4 +106,3 @@ void sc_ipc_write(sc_ipc_t ipc, const void *data)
 		count++;
 	}
 }
-

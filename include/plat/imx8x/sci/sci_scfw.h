@@ -34,4 +34,3 @@ typedef uint64_t sc_ipc_id_t;
 
 
 #endif /* _SC_SCFW_H */
-

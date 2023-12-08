@@ -19,8 +19,8 @@ Punchboot is a secure and fast bootloader for embedded systems. It is designed t
  - Minimize software download time in production
  - Be useful for day-to-day development
 
-Punchboot is designed for embedded systems and therefore it has a minimalistic 
-apporach. There is no run-time configuration, everything is configured in 
+Punchboot is designed for embedded systems and therefore it has a minimalistic
+apporach. There is no run-time configuration, everything is configured in
 the board files.
 
 Punchboot could be useful if you care about the following:
@@ -108,9 +108,9 @@ this way many different public keys can be stored in a flash memory and every
 time the device boots it will compute a sha256 checksum and compare it to the
 fused checksum.
 
-Punchboot is designed to be a part of a secure boot chain. This means that 
-the bootloader is cryptographically signed, the ROM code of the SoC must 
-support a mechanism to validate this signature, otherwise there is no 
+Punchboot is designed to be a part of a secure boot chain. This means that
+the bootloader is cryptographically signed, the ROM code of the SoC must
+support a mechanism to validate this signature, otherwise there is no
 root of trust.
 
 When punchboot has been verified it, in turn, will load and verify the next
@@ -118,12 +118,12 @@ software component in the boot chain. The bootloader _only_ supports signed
 binaries.
 
 ## Testing and integration tests
-Punchboot uses QEMU for all module and integration tests. The 'test' platform 
-and board target relies on virtio serial ports and block devices. The punchboot 
-cli can be built with a domain socket transport instead of USB for communicating 
+Punchboot uses QEMU for all module and integration tests. The 'test' platform
+and board target relies on virtio serial ports and block devices. The punchboot
+cli can be built with a domain socket transport instead of USB for communicating
 with an QEMU environment.
 
-The test platform code includes gcov code that calls the QEMU semihosting API 
+The test platform code includes gcov code that calls the QEMU semihosting API
 for storing test coverage data on the host.
 
 Building and running tests:
@@ -135,30 +135,30 @@ $ make check
 
 ## Device identity
 
-Most modern SoC's provide some kind of unique identity, that is guaranteed to 
-be unique for that particular type of SoC / Vendor etc but can not be guarateed 
+Most modern SoC's provide some kind of unique identity, that is guaranteed to
+be unique for that particular type of SoC / Vendor etc but can not be guarateed
 to be globally unique.
 
-Punchboot provides a UUID3 device identity based on a combination of the unique 
+Punchboot provides a UUID3 device identity based on a combination of the unique
 data from the SoC and an allocated, random, namspace UUID per platform.
 
-When booting a linux system this information is relayed to linux through 
+When booting a linux system this information is relayed to linux through
 in-line patching of the device-tree.
 The device identity can be found in '/proc/device-tree/chosen/device-uuid'
 
 ## Command mode
 
-Command mode is entered when the system can't boot or if the bootloader is 
+Command mode is entered when the system can't boot or if the bootloader is
 forced by a configurable, external event to do so.
 
-In the command mode it is possible to update the bootloader, write data to 
-partitions and install default settings. From v0.3 and forward 
-an 'authentication cookie' must be used to interact with the bootloader to 
-prevent malicious activity. The only command that can be executed without 
+In the command mode it is possible to update the bootloader, write data to
+partitions and install default settings. From v0.3 and forward
+an 'authentication cookie' must be used to interact with the bootloader to
+prevent malicious activity. The only command that can be executed without
 authentication is listing the device information (including the device UUID)
 
-The authentication cookie consists of the device UUID encrypted with one of 
-the active key pair's private key. 
+The authentication cookie consists of the device UUID encrypted with one of
+the active key pair's private key.
 
 ## punchboot tool
 The punchboot CLI is used for interacting with the command mode. A summary of the features available:
@@ -223,7 +223,7 @@ Authenticating using key index 0 and './0B177094-6B62-3572-902E-C1DE339ECB01.tok
 Read 103 bytes
 Authentication successful
 ```
-Now the command mode is fully unlocked. The token is of course only valid for 
+Now the command mode is fully unlocked. The token is of course only valid for
 the individual unit with that perticular UUID.
 
 ## Metrics
@@ -279,4 +279,3 @@ The POR time is off due to some unidentified problem with the SCU firmware.
 3. Implement test case(s) to ensure that future changes do not break legacy
 4. Run checks: cp configs/test_defconfig .config && make check
 5. Create pull request
-
