@@ -1,9 +1,9 @@
 """Punchboot setuptools configuration."""
 
-import platform
 import os
-import sys
-from setuptools import setup, Extension  # type: ignore
+import platform
+
+from setuptools import Extension, setup  # type: ignore
 
 pb_base_path: str = "tools/punchboot"
 plat: str = platform.system()
@@ -28,8 +28,8 @@ else:
 
 
 _srcs = [
-    f"src/wire.c",
-    f"src/lib/bpak.c",
+    "src/wire.c",
+    "src/lib/bpak.c",
     f"{pb_base_path}/error.c",
     f"{pb_base_path}/api.c",
     f"{pb_base_path}/api_authentication.c",

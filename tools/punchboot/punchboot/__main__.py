@@ -1,18 +1,20 @@
 """Punchboot CLI."""
-import click
+import getopt
 import logging
+import os
+import pathlib
 import sys
 import uuid
-import pathlib
-import os
-import getopt
-import subprocess
-import punchboot
-from importlib.metadata import version
 from functools import update_wrapper
+from importlib.metadata import version
 from typing import Iterable, Optional, Union
+
+import click
 from click.shell_completion import CompletionItem
-from . import Session, Partition, SLC, list_usb_devices
+
+import punchboot
+
+from . import Partition, Session, list_usb_devices
 
 logger = logging.getLogger("pb")
 
@@ -73,7 +75,7 @@ class PBPartType(click.ParamType):
                 _parts = [_p for _p in _parts if _p.bootable]
 
             return [CompletionItem(str(_p.uuid), help=_p.description) for _p in _parts]
-        except Exception as e:
+        except Exception:
             return []  # Intentionally suppress all exceptions
 
 
@@ -325,7 +327,7 @@ def part_list(ctx: click.Context, s: Session):
     click.echo(f"{'--------------':<37}   {'-----':<8}   {'----':<7}   {'----':<16}")
     for part in s.part_get_partitions():
         click.echo(
-            f"{str(part.uuid):<37}   {_flag_helper(part):<8}   {_size_helper(part):<7}   {part.description:<16}"
+                f"{str(part.uuid):<37}   {_flag_helper(part):<8}   {_size_helper(part):<7}   {part.description:<16}" # noqa: E501
         )
 
 
@@ -557,7 +559,7 @@ def boot_disable(ctx: click.Context, s: Session):
 
 _slc_warning: str = """WARNING: This is a permanent change, writing fuses can not be reverted. This could brick your device.
 
-Are you sure?"""
+Are you sure?""" # noqa: E501
 
 
 @cli.group()

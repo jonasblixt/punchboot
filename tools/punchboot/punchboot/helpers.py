@@ -1,11 +1,10 @@
 """Various punchboot helper functions."""
 
+import uuid
+from typing import Iterable
+
 import _punchboot  # type: ignore
 import semver
-import uuid
-import getopt
-import os
-from typing import Iterable
 
 
 def library_version() -> semver.Version:

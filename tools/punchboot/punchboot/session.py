@@ -3,15 +3,17 @@
 This is the main interface to the punchboot library.
 """
 
-import _punchboot  # type: ignore
 import hashlib
-import pathlib
-import semver
-import uuid
 import io
-from typing import Iterable, Any, Optional, Tuple, Union
-from .partition import Partition, PartitionFlags
+import pathlib
+import uuid
+from typing import Any, Iterable, Optional, Tuple, Union
+
+import _punchboot  # type: ignore
+import semver
+
 from .helpers import pb_id, valid_bpak_magic
+from .partition import Partition, PartitionFlags
 from .slc import SLC
 
 
