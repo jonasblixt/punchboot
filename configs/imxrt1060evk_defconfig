@@ -1,0 +1,172 @@
+# CONFIG_ARCH_ARMV8 is not set
+# CONFIG_ARCH_ARMV7 is not set
+CONFIG_ARCH_ARMV7M=y
+
+#
+# Platform support
+#
+CONFIG_SOC_FAMILY_IMX=y
+CONFIG_PLAT_IMXRT=y
+# end of Platform support
+
+#
+# Generic options
+#
+CONFIG_KEYSTORE="pki/internal_keystore.bpak"
+CONFIG_LOGLEVEL=2
+CONFIG_ENABLE_WATCHDOG=y
+CONFIG_PRINT_BOOT_BANNER=y
+CONFIG_WATCHDOG_TIMEOUT=30
+CONFIG_ENABLE_TIMESTAMPING=y
+CONFIG_PRINT_TIMESTAMPS=y
+CONFIG_NO_OF_TIMESTAMPS=64
+CONFIG_DEVICE_UUID=y
+CONFIG_CRYPTO=y
+CONFIG_CRYPTO_MAX_HASH_OPS=3
+CONFIG_CRYPTO_MAX_DSA_OPS=3
+CONFIG_BIO_CORE=y
+CONFIG_BIO_MAX_DEVS=16
+# CONFIG_SELF_TEST is not set
+CONFIG_EXECUTE_IN_RAM=y
+# CONFIG_EXECUTE_IN_FLASH is not set
+# end of Generic options
+
+#
+# Build configuration
+#
+CONFIG_OPTIMIZE="s"
+# CONFIG_DEBUG_SYMBOLS is not set
+# CONFIG_STACK_USAGE is not set
+CONFIG_STACK_SIZE_KiB=4
+CONFIG_LINK_FILE="src/link.lds"
+# end of Build configuration
+
+#
+# Boot
+#
+CONFIG_BOOT_CORE=y
+CONFIG_BOOT_BPAK_IMAGE_HELPERS=y
+# CONFIG_BOOT_AB_DRIVER is not set
+# CONFIG_BOOT_LINUX is not set
+CONFIG_BOOT_ARMV7M_BAREMETAL=y
+CONFIG_BOOT_LOAD_CHUNK_kB=4
+# end of Boot
+
+#
+# Drivers
+#
+
+#
+# Crypto
+#
+# CONFIG_DRIVERS_IMX_CAAM is not set
+CONFIG_DRIVERS_CRYPTO_MBEDTLS=y
+CONFIG_MBEDTLS_MD_SHA256=y
+# CONFIG_MBEDTLS_MD_SHA384 is not set
+# CONFIG_MBEDTLS_MD_SHA512 is not set
+CONFIG_MBEDTLS_MD_MD5=y
+CONFIG_MBEDTLS_ECDSA=y
+# CONFIG_MBEDTLS_STRERROR is not set
+# end of Crypto
+
+#
+# Filesystem
+#
+# CONFIG_LITTLE_FS is not set
+# end of Filesystem
+
+#
+# Fusebox
+#
+# CONFIG_DRIVERS_FUSE_TEST is not set
+CONFIG_DRIVERS_FUSE_IMX_OCOTP=y
+# end of Fusebox
+
+#
+# GPIO
+#
+CONFIG_DRIVERS_IMX_GPIO=y
+# end of GPIO
+
+#
+# Memory Controller Drivers
+#
+CONFIG_IMX_FLEXSPI=y
+# end of Memory Controller Drivers
+
+#
+# MMC Host drivers
+#
+# CONFIG_MMC_CORE is not set
+# CONFIG_IMX_USDHC is not set
+# end of MMC Host drivers
+
+#
+# Partition table drivers
+#
+# CONFIG_PARTITION_GPT is not set
+CONFIG_PARTITION_STATIC=y
+# end of Partition table drivers
+
+#
+# Timers
+#
+CONFIG_DRIVERS_IMX_GPT=y
+# end of Timers
+
+#
+# Uart
+#
+CONFIG_DRIVERS_IMX_LPUART=y
+# CONFIG_DRIVERS_IMX_UART is not set
+# end of Uart
+
+#
+# USB
+#
+CONFIG_DRIVER_USB_DEVICE=y
+CONFIG_DRIVER_IMX_USB2_PHY=y
+CONFIG_DRIVER_IMX_CI_UDC=y
+# CONFIG_DRIVER_IMX_USBDCD is not set
+# CONFIG_DRIVER_IMX_CDNS3_UDC is not set
+CONFIG_DRIVER_USB_PB_CLS=y
+# end of USB
+
+#
+# Virtio
+#
+# CONFIG_DRIVER_VIRTIO_BLOCK is not set
+# CONFIG_DRIVER_VIRTIO_SERIAL is not set
+# end of Virtio
+
+#
+# Watchdog
+#
+CONFIG_DRIVERS_IMX_WDOG=y
+# CONFIG_DRIVERS_IMX_WDOG_DEBUG is not set
+# CONFIG_DRIVERS_IMX_WDOG_WAIT is not set
+# end of Watchdog
+# end of Drivers
+
+#
+# Command mode
+#
+CONFIG_CM=y
+CONFIG_CM_BUF_SIZE_KiB=32
+CONFIG_CM_TRANSPORT_READY_TIMEOUT=10
+CONFIG_CM_AUTH=y
+CONFIG_CM_AUTH_TOKEN=y
+CONFIG_CM_AUTH_PASSWORD=y
+# end of Command mode
+
+#
+# Library
+#
+CONFIG_LIB_ZLIB_CRC=y
+CONFIG_LIB_BPAK=y
+CONFIG_LIB_DER_HELPERS=y
+# CONFIG_LIB_FDT is not set
+CONFIG_LIB_UUID=y
+CONFIG_LIB_UUID3=y
+# CONFIG_LIB_XLAT_TBLS is not set
+# end of Library

@@ -8,7 +8,6 @@
 #
 ifdef CONFIG_PLAT_IMXRT
 
-cflags-y += -I src/plat/imxrt/include
 cflags-y += -mtune=cortex-m7
 
 src-y  += src/plat/imxrt/plat.c

@@ -1,0 +1,2 @@
+config IMXRT_FLASH
+    bool "Run from flash"

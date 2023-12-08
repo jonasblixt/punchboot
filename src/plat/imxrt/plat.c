@@ -10,6 +10,8 @@
 #include <string.h>
 #include <uuid.h>
 
+const char *platform_ns_uuid = "\x48\xf8\xc6\xcb\x8d\x07\x40\x66\xb9\x21\x0c\x1d\x8f\xd0\x54\x71";
+
 static struct imxrt_platform plat;
 
 static uint32_t fuse_read_helper(uint8_t row, uint8_t shift, uint32_t mask, uint32_t default_value)
