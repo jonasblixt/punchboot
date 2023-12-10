@@ -121,7 +121,6 @@ struct flexspi_nor_config {
     enum flexspi_port port;
     size_t capacity;
     size_t block_size;
-    size_t sector_size;
     size_t page_size;
     uint8_t mfg_id;
     uint8_t mfg_device_type;
