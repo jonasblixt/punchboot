@@ -440,8 +440,8 @@ static int imx_flexspi_mem_probe(const struct flexspi_nor_config *nor_config)
     }
 
     bio_dev_t d = bio_allocate(0,
-                               nor_config->capacity / 512,
-                               512, // Sector size is hard coded to 512 bytes for now
+                               nor_config->capacity / nor_config->block_size,
+                               nor_config->block_size,
                                nor_config->uuid,
                                nor_config->name);
 
