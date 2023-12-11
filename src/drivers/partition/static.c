@@ -16,6 +16,10 @@ int static_ptbl_init(bio_dev_t dev, const struct static_part_table *table)
             next_start_lba = entry->first_lba;
         }
 
+        if (entry->size % block_sz != 0) {
+            return -PB_ERR_ALIGN;
+        }
+
         lba_t last_lba = next_start_lba + (entry->size / block_sz) - 1;
         bio_dev_t new_dev = bio_allocate_parent(
             dev, next_start_lba, last_lba, block_sz, entry->uu, entry->description);
