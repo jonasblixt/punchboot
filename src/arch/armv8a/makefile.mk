@@ -9,6 +9,7 @@ cflags-y += -I src/arch/armv8a/include
 cflags-y += -I src/libc/include/aarch64
 
 ldflags-y += -Tsrc/arch/armv8a/link.lds
+ldflags-y += --defsym=PB_SECTION_ALIGNMENT=4096
 
 asm-y += src/arch/armv8a/entry.S
 asm-y += src/arch/armv8a/boot.S
