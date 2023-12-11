@@ -47,7 +47,7 @@
 #define IMX8X_PAD_MUX(val) ((val << PADRING_IFMUX_SHIFT) & PADRING_IFMUX_MASK)
 
 #define IMX_CAAM_BASE      0x31430000
-#define IMX_EHCI_BASE      0x5b0d0000
+#define IMX_CI_UDC_BASE    0x5b0d0000
 #define IMX_USBDCD_BASE    0x5b100800
 #define IMX_GPT_BASE       0x5D140000
 #define SC_IPC_BASE        0x5d1b0000

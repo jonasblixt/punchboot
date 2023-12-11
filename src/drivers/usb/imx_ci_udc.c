@@ -22,7 +22,7 @@
  */
 
 #include <arch/arch.h>
-#include <drivers/usb/imx_ehci.h>
+#include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/usbd.h>
 #include <inttypes.h>
 #include <pb/mmio.h>
@@ -31,82 +31,82 @@
 #include <string.h>
 
 /* Registers */
-#define EHCI_DCIVERSION        0x120
+#define IMX_CI_UDC_DCIVERSION        0x120
 
-#define EHCI_USBSTS            0x144
-#define USBSTS_URI             BIT(6)
+#define IMX_CI_UDC_USBSTS            0x144
+#define USBSTS_URI                   BIT(6)
 
-#define EHCI_ENDPTCOMPLETE     0x1bc
+#define IMX_CI_UDC_ENDPTCOMPLETE     0x1bc
 
-#define EHCI_USB_MODE          0x1a8
-#define USB_MODE_SDIS          BIT(4)
-#define USB_MODE_SLOM          BIT(3)
-#define USB_MODE_ES            BIT(2)
-#define USB_MODE_CM_DEVICE     (2)
+#define IMX_CI_UDC_USB_MODE          0x1a8
+#define USB_MODE_SDIS                BIT(4)
+#define USB_MODE_SLOM                BIT(3)
+#define USB_MODE_ES                  BIT(2)
+#define USB_MODE_CM_DEVICE           (2)
 
-#define EHCI_ENDPTLISTADDR     0x158
+#define IMX_CI_UDC_ENDPTLISTADDR     0x158
 
-#define EHCI_ENDPTSETUPSTAT    0x1ac
+#define IMX_CI_UDC_ENDPTSETUPSTAT    0x1ac
 
-#define EHCI_CMD               0x140
-#define CMD_RS                 BIT(0)
-#define CMD_RST                BIT(1)
-#define CMD_SUTW               BIT(13)
-#define CMD_ITC(x)             ((uint16_t)(x << 16) & 0xFFFF)
+#define IMX_CI_UDC_CMD               0x140
+#define CMD_RS                       BIT(0)
+#define CMD_RST                      BIT(1)
+#define CMD_SUTW                     BIT(13)
+#define CMD_ITC(x)                   ((uint16_t)(x << 16) & 0xFFFF)
 
-#define EHCI_ENDPTPRIME        0x1b0
-#define EHCI_PORTSC1           0x184
-#define EHCI_ENDPTFLUSH        0x1b4
-#define EHCI_ENDPTNAK          0x178
+#define IMX_CI_UDC_ENDPTPRIME        0x1b0
+#define IMX_CI_UDC_PORTSC1           0x184
+#define IMX_CI_UDC_ENDPTFLUSH        0x1b4
+#define IMX_CI_UDC_ENDPTNAK          0x178
 
-#define EHCI_DEVICEADDR        0x154
-#define DEVICEADDR_ADDR(x)     ((x & 0x7f) << 25)
-#define DEVICEADDR_USBADRA     BIT(24)
+#define IMX_CI_UDC_DEVICEADDR        0x154
+#define DEVICEADDR_ADDR(x)           ((x & 0x7f) << 25)
+#define DEVICEADDR_USBADRA           BIT(24)
 
-#define EHCI_ENDPTCTRL1        0x1c4
-#define EHCI_ENDPTCTRL2        0x1c8
-#define EHCI_ENDPTCTRL3        0x1cc
-#define EHCI_ENDPTCTRL4        0x1d0
-#define EHCI_ENDPTCTRL5        0x1d4
-#define EHCI_ENDPTCTRL6        0x1d8
-#define EHCI_ENDPTCTRL7        0x1dc
+#define IMX_CI_UDC_ENDPTCTRL1        0x1c4
+#define IMX_CI_UDC_ENDPTCTRL2        0x1c8
+#define IMX_CI_UDC_ENDPTCTRL3        0x1cc
+#define IMX_CI_UDC_ENDPTCTRL4        0x1d0
+#define IMX_CI_UDC_ENDPTCTRL5        0x1d4
+#define IMX_CI_UDC_ENDPTCTRL6        0x1d8
+#define IMX_CI_UDC_ENDPTCTRL7        0x1dc
 
-#define EHCI_BURSTSIZE         0x160
-#define EHCI_SBUSCFG           0x90
-#define EHCI_ENDPTSTAT         0x1b8
-#define EHCI_ENDPTNAKEN        0x17C
+#define IMX_CI_UDC_BURSTSIZE         0x160
+#define IMX_CI_UDC_SBUSCFG           0x90
+#define IMX_CI_UDC_ENDPTSTAT         0x1b8
+#define IMX_CI_UDC_ENDPTNAKEN        0x17C
 
-#define EHCI_EP0_OUT           (1 << 0)
-#define EHCI_EP0_IN            (1 << 16)
-#define EHCI_EP1_OUT           (1 << 1)
-#define EHCI_EP1_IN            (1 << 17)
-#define EHCI_EP2_OUT           (1 << 2)
-#define EHCI_EP2_IN            (1 << 18)
-#define EHCI_EP3_OUT           (1 << 3)
-#define EHCI_EP3_IN            (1 << 19)
+#define IMX_CI_UDC_EP0_OUT           (1 << 0)
+#define IMX_CI_UDC_EP0_IN            (1 << 16)
+#define IMX_CI_UDC_EP1_OUT           (1 << 1)
+#define IMX_CI_UDC_EP1_IN            (1 << 17)
+#define IMX_CI_UDC_EP2_OUT           (1 << 2)
+#define IMX_CI_UDC_EP2_IN            (1 << 18)
+#define IMX_CI_UDC_EP3_OUT           (1 << 3)
+#define IMX_CI_UDC_EP3_IN            (1 << 19)
 
 /* Misc defines */
-#define EHCI_NO_OF_EPS         8
-#define EHCI_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KiB / 20))
-#define EHCI_SZ_512B           0x200
-#define EHCI_SZ_64B            0x40
-#define EHCI_PAGE_SZ           4096
+#define IMX_CI_UDC_NO_OF_EPS         8
+#define IMX_CI_UDC_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KiB / 20))
+#define IMX_CI_UDC_SZ_512B           0x200
+#define IMX_CI_UDC_SZ_64B            0x40
+#define IMX_CI_UDC_PAGE_SZ           4096
 
 /* Transfer structures and bits */
 
-#define EPQH_CAP_MULT(x)       ((x & 0x03) << 30)
-#define EPQH_CAP_ZLT           BIT(29)
-#define EPQH_CAP_MAXLEN(x)     ((x & 0x7ff) << 16)
-#define EPQH_CAP_IOS           BIT(15)
+#define EPQH_CAP_MULT(x)             ((x & 0x03) << 30)
+#define EPQH_CAP_ZLT                 BIT(29)
+#define EPQH_CAP_MAXLEN(x)           ((x & 0x7ff) << 16)
+#define EPQH_CAP_IOS                 BIT(15)
 
-struct ehci_transfer_head {
+struct imx_ci_udc_transfer_head {
     uint32_t next;
     uint32_t token;
     uint32_t page[5];
     uint32_t pad;
 } __attribute__((packed));
 
-struct ehci_queue_head {
+struct imx_ci_udc_queue_head {
     uint32_t caps;
     uint32_t current_dtd;
     uint32_t next;
@@ -118,18 +118,20 @@ struct ehci_queue_head {
 } __attribute__((packed));
 
 /* No data structure seen by the controller should span a 4k page boundary */
-static struct ehci_transfer_head dtds[EHCI_NO_OF_DESCRIPTORS] __section(".no_init") __aligned(4096);
-static struct ehci_queue_head dqhs[EHCI_NO_OF_EPS * 2] __section(".no_init") __aligned(4096);
+static struct imx_ci_udc_transfer_head dtds[IMX_CI_UDC_NO_OF_DESCRIPTORS] __section(".no_init")
+    __aligned(4096);
+static struct imx_ci_udc_queue_head dqhs[IMX_CI_UDC_NO_OF_EPS * 2] __section(".no_init")
+    __aligned(4096);
 static uint8_t align_buffer[4096] __aligned(4096);
 static uintptr_t xfer_bfr;
 static size_t xfer_length;
-static struct ehci_transfer_head *xfer_head;
+static struct imx_ci_udc_transfer_head *xfer_head;
 static usb_ep_t xfer_ep;
-static uintptr_t ehci_base;
+static uintptr_t imx_ci_udc_base;
 
-static void ehci_reset_queues(void)
+static void imx_ci_udc_reset_queues(void)
 {
-    for (int i = 0; i < EHCI_NO_OF_EPS * 2; i++) {
+    for (int i = 0; i < IMX_CI_UDC_NO_OF_EPS * 2; i++) {
         dqhs[i].caps = 0;
         dqhs[i].next = 0xDEAD0001;
         dqhs[i].token = 0;
@@ -142,25 +144,25 @@ static void ehci_reset_queues(void)
     xfer_head = NULL;
 }
 
-static void ehci_reset(void)
+static void imx_ci_udc_reset(void)
 {
-    mmio_write_32(ehci_base + EHCI_USBSTS, 0xFFFFFFFF);
-    mmio_write_32(ehci_base + EHCI_ENDPTSETUPSTAT, 0xFFFF);
-    mmio_write_32(ehci_base + EHCI_ENDPTCOMPLETE, (0xff << 16) | 0xff);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_USBSTS, 0xFFFFFFFF);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT, 0xFFFF);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE, (0xff << 16) | 0xff);
 
-    while (mmio_read_32(ehci_base + EHCI_ENDPTPRIME)) {
+    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTPRIME)) {
     };
 
-    mmio_write_32(ehci_base + EHCI_ENDPTFLUSH, 0xFFFFFFFF);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH, 0xFFFFFFFF);
 
     /* Wait for port to come out of reset */
-    while (mmio_read_32(ehci_base + EHCI_PORTSC1) & (1 << 8)) {
+    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_PORTSC1) & (1 << 8)) {
     };
 }
 
-static int ehci_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
+static int imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
 {
-    struct ehci_queue_head *qh = &dqhs[ep];
+    struct imx_ci_udc_queue_head *qh = &dqhs[ep];
 
     // TODO: Define bits
     qh->caps = (1 << 29) | (size << 16) | flags;
@@ -170,36 +172,36 @@ static int ehci_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
     return PB_OK;
 }
 
-static int ehci_irq_process(void)
+static int imx_ci_udc_irq_process(void)
 {
     uint32_t tmp;
-    uint32_t sts = mmio_read_32(ehci_base + EHCI_USBSTS);
-    uint32_t epc = mmio_read_32(ehci_base + EHCI_ENDPTCOMPLETE);
+    uint32_t sts = mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_USBSTS);
+    uint32_t epc = mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE);
 
-    mmio_write_32(ehci_base + EHCI_USBSTS, 0xFFFFFFFF);
-    mmio_write_32(ehci_base + EHCI_ENDPTCOMPLETE, epc);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_USBSTS, 0xFFFFFFFF);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE, epc);
 
     /* Check for USB reset */
     if (sts & USBSTS_URI) {
-        mmio_write_32(ehci_base + EHCI_ENDPTFLUSH, 0x00FF00FF);
+        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH, 0x00FF00FF);
 
-        while (mmio_read_32(ehci_base + EHCI_ENDPTFLUSH) == 0x00FF00FF) {
+        while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH) == 0x00FF00FF) {
         };
 
-        tmp = mmio_read_32(ehci_base + EHCI_ENDPTSETUPSTAT);
-        mmio_write_32(ehci_base + EHCI_ENDPTSETUPSTAT, tmp);
+        tmp = mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT);
+        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT, tmp);
 
-        tmp = mmio_read_32(ehci_base + EHCI_ENDPTCOMPLETE);
-        mmio_write_32(ehci_base + EHCI_ENDPTCOMPLETE, tmp);
+        tmp = mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE);
+        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE, tmp);
 
-        mmio_write_32(ehci_base + EHCI_DEVICEADDR, 0);
+        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR, 0);
 
         LOG_DBG("Bus reset");
     }
 
     if (sts & BIT(1)) {
-        mmio_write_32(ehci_base + EHCI_USBSTS, 2);
-        LOG_ERR("EHCI: Error %x", sts);
+        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_USBSTS, 2);
+        LOG_ERR("IMX_CI_UDC: Error %x", sts);
     }
 
     return PB_OK;
@@ -209,10 +211,10 @@ static int ehci_irq_process(void)
  * Note: This function will accept buffers of any alignment but for optimal
  * performace all buffers should be 4k aligned.
  */
-static int ehci_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
+static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
 {
-    struct ehci_queue_head *qh = &dqhs[ep];
-    struct ehci_transfer_head *dtd = dtds;
+    struct imx_ci_udc_queue_head *qh = &dqhs[ep];
+    struct imx_ci_udc_transfer_head *dtd = dtds;
     uint32_t epreg = 0;
     size_t bytes_to_tx = length;
     size_t align_length = 0;
@@ -245,8 +247,8 @@ static int ehci_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         dtd->next = 0xDEAD0001;
         dtd->token = 0x80;
 
-        if (bytes_to_tx > (5 * EHCI_PAGE_SZ)) {
-            dtd->token |= ((5 * EHCI_PAGE_SZ) << 16);
+        if (bytes_to_tx > (5 * IMX_CI_UDC_PAGE_SZ)) {
+            dtd->token |= ((5 * IMX_CI_UDC_PAGE_SZ) << 16);
         } else {
             dtd->token |= (bytes_to_tx << 16);
         }
@@ -260,9 +262,9 @@ static int ehci_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
                 dtd->page[n] = (uint32_t)(uintptr_t)align_buffer;
                 bytes_to_tx -= align_length;
                 buf_ptr += align_length;
-            } else if (bytes_to_tx >= EHCI_PAGE_SZ) {
-                buf_ptr += EHCI_PAGE_SZ;
-                bytes_to_tx -= EHCI_PAGE_SZ;
+            } else if (bytes_to_tx >= IMX_CI_UDC_PAGE_SZ) {
+                buf_ptr += IMX_CI_UDC_PAGE_SZ;
+                bytes_to_tx -= IMX_CI_UDC_PAGE_SZ;
             } else {
                 buf_ptr += bytes_to_tx;
                 bytes_to_tx = 0;
@@ -279,9 +281,9 @@ static int ehci_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         }
 
         if (bytes_to_tx) {
-            struct ehci_transfer_head *dtd_prev = dtd;
+            struct imx_ci_udc_transfer_head *dtd_prev = dtd;
             dtd++;
-            if (dtd == &dtds[EHCI_NO_OF_DESCRIPTORS])
+            if (dtd == &dtds[IMX_CI_UDC_NO_OF_DESCRIPTORS])
                 return -PB_ERR_MEM;
             dtd_prev->next = (uint32_t)(uintptr_t)dtd;
         }
@@ -290,7 +292,7 @@ static int ehci_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     qh->next = (uint32_t)(uintptr_t)dtds;
 
     arch_clean_cache_range((uintptr_t)qh, sizeof(*qh));
-    arch_clean_cache_range((uintptr_t)dtds, sizeof(dtds[0]) * EHCI_NO_OF_DESCRIPTORS);
+    arch_clean_cache_range((uintptr_t)dtds, sizeof(dtds[0]) * IMX_CI_UDC_NO_OF_DESCRIPTORS);
 
     if (ep & 1) {
         epreg = (1 << ((ep - 1) / 2 + 16));
@@ -298,9 +300,9 @@ static int ehci_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         epreg = (1 << (ep / 2));
     }
 
-    mmio_write_32(ehci_base + EHCI_ENDPTPRIME, epreg);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTPRIME, epreg);
 
-    while (mmio_read_32(ehci_base + EHCI_ENDPTPRIME) & epreg) {
+    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTPRIME) & epreg) {
     };
 
     xfer_bfr = (uintptr_t)bfr;
@@ -311,14 +313,14 @@ static int ehci_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     return PB_OK;
 }
 
-static int ehci_xfer_complete(usb_ep_t ep)
+static int imx_ci_udc_xfer_complete(usb_ep_t ep)
 {
     int rc;
 
     if (ep >= USB_EP_END)
         return -PB_ERR_PARAM;
 
-    rc = ehci_irq_process();
+    rc = imx_ci_udc_irq_process();
 
     if (rc != PB_OK)
         return rc;
@@ -357,7 +359,7 @@ static int ehci_xfer_complete(usb_ep_t ep)
     return PB_OK;
 }
 
-static void ehci_flush_ep(usb_ep_t ep)
+static void imx_ci_udc_flush_ep(usb_ep_t ep)
 {
     uint8_t idx;
 
@@ -400,13 +402,13 @@ static void ehci_flush_ep(usb_ep_t ep)
 
     uint32_t flush_cmd = (1 << (16 + idx)) | (1 << idx);
 
-    mmio_write_32(ehci_base + EHCI_ENDPTFLUSH, flush_cmd);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH, flush_cmd);
 
-    while ((mmio_read_32(ehci_base + EHCI_ENDPTFLUSH) & flush_cmd) != 0) {
+    while ((mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH) & flush_cmd) != 0) {
     };
 }
 
-static int ehci_configure_ep(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_sz)
+static int imx_ci_udc_configure_ep(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_sz)
 {
     bool ep_in = false;
     uintptr_t epctrl = 0;
@@ -435,43 +437,43 @@ static int ehci_configure_ep(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_s
         ep_in = true;
         /* Fallthrough */
     case USB_EP1_OUT:
-        epctrl = EHCI_ENDPTCTRL1;
+        epctrl = IMX_CI_UDC_ENDPTCTRL1;
         break;
     case USB_EP2_IN:
         ep_in = true;
         /* Fallthrough */
     case USB_EP2_OUT:
-        epctrl = EHCI_ENDPTCTRL2;
+        epctrl = IMX_CI_UDC_ENDPTCTRL2;
         break;
     case USB_EP3_IN:
         ep_in = true;
         /* Fallthrough */
     case USB_EP3_OUT:
-        epctrl = EHCI_ENDPTCTRL3;
+        epctrl = IMX_CI_UDC_ENDPTCTRL3;
         break;
     case USB_EP4_IN:
         ep_in = true;
         /* Fallthrough */
     case USB_EP4_OUT:
-        epctrl = EHCI_ENDPTCTRL4;
+        epctrl = IMX_CI_UDC_ENDPTCTRL4;
         break;
     case USB_EP5_IN:
         ep_in = true;
         /* Fallthrough */
     case USB_EP5_OUT:
-        epctrl = EHCI_ENDPTCTRL5;
+        epctrl = IMX_CI_UDC_ENDPTCTRL5;
         break;
     case USB_EP6_IN:
         ep_in = true;
         /* Fallthrough */
     case USB_EP6_OUT:
-        epctrl = EHCI_ENDPTCTRL6;
+        epctrl = IMX_CI_UDC_ENDPTCTRL6;
         break;
     case USB_EP7_IN:
         ep_in = true;
         /* Fallthrough */
     case USB_EP7_OUT:
-        epctrl = EHCI_ENDPTCTRL7;
+        epctrl = IMX_CI_UDC_ENDPTCTRL7;
         break;
     default:
         return -PB_ERR_PARAM;
@@ -484,121 +486,123 @@ static int ehci_configure_ep(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_s
     }
 
     LOG_DBG("EP config: reg=0x%lx, val=0x%x", epctrl, ep_reg);
-    mmio_write_32(ehci_base + epctrl, ep_reg);
-    ehci_config_ep(ep, pkt_sz, 0);
+    mmio_write_32(imx_ci_udc_base + epctrl, ep_reg);
+    imx_ci_udc_config_ep(ep, pkt_sz, 0);
 
     return PB_OK;
 }
 
-static int ehci_poll_setup_pkt(struct usb_setup_packet *pkt)
+static int imx_ci_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
 {
     /* EP0 Process setup packets */
-    if (mmio_read_32(ehci_base + EHCI_ENDPTSETUPSTAT) & 1) {
-        struct ehci_queue_head *qh = &dqhs[USB_EP0_OUT];
+    if (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT) & 1) {
+        struct imx_ci_udc_queue_head *qh = &dqhs[USB_EP0_OUT];
 
         do {
-            mmio_clrsetbits_32(ehci_base + EHCI_CMD, 0, CMD_SUTW);
+            mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, 0, CMD_SUTW);
             arch_invalidate_cache_range((uintptr_t)qh->setup, sizeof(*qh->setup));
             memcpy(pkt, qh->setup, sizeof(struct usb_setup_packet));
-        } while (!(mmio_read_32(ehci_base + EHCI_CMD) & CMD_SUTW));
+        } while (!(mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_CMD) & CMD_SUTW));
 
-        mmio_write_32(ehci_base + EHCI_ENDPTSETUPSTAT, 1);
-        mmio_clrsetbits_32(ehci_base + EHCI_CMD, CMD_SUTW, 0);
+        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT, 1);
+        mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, CMD_SUTW, 0);
 
         /* Do we really need to flush transmitt buffer here? */
         // TODO: Bits
-        mmio_write_32(ehci_base + EHCI_ENDPTFLUSH, (1 << 16) | 1);
+        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH, (1 << 16) | 1);
 
-        while (mmio_read_32(ehci_base + EHCI_ENDPTSETUPSTAT) & 1) {
+        while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT) & 1) {
         };
 
         return PB_OK;
     }
 
-    ehci_irq_process();
+    imx_ci_udc_irq_process();
 
     return -PB_ERR_AGAIN;
 }
 
-static int ehci_init(void)
+static int imx_ci_udc_init_internal(void)
 {
-    LOG_DBG("Init base: 0x%" PRIxPTR, ehci_base);
+    LOG_DBG("Init base: 0x%" PRIxPTR, imx_ci_udc_base);
 
-    mmio_clrsetbits_32(ehci_base + EHCI_CMD, 0, CMD_RST);
+    mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, 0, CMD_RST);
 
-    while (mmio_read_32(ehci_base + EHCI_CMD) & CMD_RST) {
+    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_CMD) & CMD_RST) {
     };
 
-    ehci_reset_queues();
+    imx_ci_udc_reset_queues();
 
-    mmio_write_32(ehci_base + EHCI_DEVICEADDR, 0);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR, 0);
 
-    ehci_config_ep(USB_EP0_IN, EHCI_SZ_64B, 0);
-    ehci_config_ep(USB_EP0_OUT, EHCI_SZ_64B, EPQH_CAP_IOS);
+    imx_ci_udc_config_ep(USB_EP0_IN, IMX_CI_UDC_SZ_64B, 0);
+    imx_ci_udc_config_ep(USB_EP0_OUT, IMX_CI_UDC_SZ_64B, EPQH_CAP_IOS);
 
     /* Program QH top */
-    mmio_write_32(ehci_base + EHCI_ENDPTLISTADDR, (uint32_t)(uintptr_t)dqhs);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTLISTADDR, (uint32_t)(uintptr_t)dqhs);
 
     /* Enable USB */
-    mmio_write_32(ehci_base + EHCI_USB_MODE, USB_MODE_SDIS | USB_MODE_SLOM | USB_MODE_CM_DEVICE);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_USB_MODE,
+                  USB_MODE_SDIS | USB_MODE_SLOM | USB_MODE_CM_DEVICE);
 
-    mmio_write_32(ehci_base + EHCI_CMD, CMD_ITC(0x40) | CMD_RS);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_CMD, CMD_ITC(0x40) | CMD_RS);
 
-    ehci_reset();
+    imx_ci_udc_reset();
 
     return PB_OK;
 }
 
-static int ehci_set_address(uint16_t addr)
+static int imx_ci_udc_set_address(uint16_t addr)
 {
-    mmio_write_32(ehci_base + EHCI_DEVICEADDR, DEVICEADDR_ADDR(addr) | DEVICEADDR_USBADRA);
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR,
+                  DEVICEADDR_ADDR(addr) | DEVICEADDR_USBADRA);
     return PB_OK;
 }
 
-static int ehci_stop(void)
+static int imx_ci_udc_stop(void)
 {
-    ehci_reset_queues();
-    ehci_reset();
-    mmio_write_32(ehci_base + EHCI_DEVICEADDR, 0);
+    imx_ci_udc_reset_queues();
+    imx_ci_udc_reset();
+    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR, 0);
 
-    mmio_clrsetbits_32(ehci_base + EHCI_CMD, 0, CMD_RST);
+    mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, 0, CMD_RST);
 
-    while (mmio_read_32(ehci_base + EHCI_CMD) & CMD_RST) {
+    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_CMD) & CMD_RST) {
     };
 
     return PB_OK;
 }
 
-static int ehci_xfer_zlp(usb_ep_t ep)
+static int imx_ci_udc_xfer_zlp(usb_ep_t ep)
 {
     int rc;
 
-    rc = ehci_xfer_start(ep, 0, 0);
+    rc = imx_ci_udc_xfer_start(ep, 0, 0);
 
     if (rc != PB_OK)
         return rc;
 
     do {
-        rc = ehci_xfer_complete(ep);
+        rc = imx_ci_udc_xfer_complete(ep);
     } while (rc == -PB_ERR_AGAIN);
 
     return rc;
 }
 
-int imx_ehci_init(uintptr_t base)
+int imx_ci_udc_init(uintptr_t base)
 {
-    ehci_base = base;
+    imx_ci_udc_base = base;
 
     static const struct usbd_hal_ops ops = {
-        .init = ehci_init,
-        .stop = ehci_stop,
-        .xfer_start = ehci_xfer_start,
-        .xfer_complete = ehci_xfer_complete,
-        .xfer_cancel = ehci_flush_ep,
-        .poll_setup_pkt = ehci_poll_setup_pkt,
-        .configure_ep = ehci_configure_ep,
-        .set_address = ehci_set_address,
-        .ep0_xfer_zlp = ehci_xfer_zlp,
+        .init = imx_ci_udc_init_internal,
+        .stop = imx_ci_udc_stop,
+        .xfer_start = imx_ci_udc_xfer_start,
+        .xfer_complete = imx_ci_udc_xfer_complete,
+        .xfer_cancel = imx_ci_udc_flush_ep,
+        .poll_setup_pkt = imx_ci_udc_poll_setup_pkt,
+        .configure_ep = imx_ci_udc_configure_ep,
+        .set_address = imx_ci_udc_set_address,
+        .ep0_xfer_zlp = imx_ci_udc_xfer_zlp,
     };
 
     return usbd_init_hal_ops(&ops);

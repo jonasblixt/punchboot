@@ -9,8 +9,8 @@ config DRIVER_IMX_USB2_PHY
     depends on SOC_FAMILY_IMX
     default y
 
-config DRIVER_IMX_EHCI
-    bool "i.MX EHCI USB controller"
+config DRIVER_IMX_CI_UDC
+    bool "i.MX ChipIdea UDC controller"
     depends on SOC_FAMILY_IMX
     depends on DRIVER_USB_DEVICE
     default y

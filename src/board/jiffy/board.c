@@ -15,7 +15,7 @@
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
-#include <drivers/usb/imx_ehci.h>
+#include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <drivers/usb/usbd.h>
@@ -388,10 +388,10 @@ int cm_board_init(void)
     mmio_write_32(0x020C9008, 0xFFFFFFFF);
 
     imx_usb2_phy_init(0x020C9000);
-    rc = imx_ehci_init(0x02184000);
+    rc = imx_ci_udc_init(0x02184000);
 
     if (rc != PB_OK) {
-        LOG_ERR("imx_ehci_init failed (%i)", rc);
+        LOG_ERR("imx_ci_udc_init failed (%i)", rc);
         return rc;
     }
 
