@@ -7,7 +7,7 @@ import hashlib
 import io
 import pathlib
 import uuid
-from typing import Any, Iterable, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, Optional, Tuple, Union
 
 import _punchboot  # type: ignore
 import semver
@@ -184,20 +184,49 @@ class Session(object):
         else:
             raise ValueError("Unacceptable input")
 
-    def part_erase(self, part: Union[uuid.UUID, str]):
+    def part_erase(
+            self, part_uu: Union[uuid.UUID, str],
+            progress_cb: Optional[Callable[[int, int], None]] = None
+    ):
         """Erase partition.
 
         Keyword arguments:
-        part -- UUID of partition to erase
+        part_uu -- UUID of partition to erase
 
         Exceptions:
         NotFoundError         -- Partition was not found
         NotSupportedError     -- If not supported
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
-        self._s.part_erase(_uu.bytes)
+        _uu: uuid.UUID = uuid.UUID(part_uu) if isinstance(part_uu, str) else part_uu
+        try:
+            part: Partition = [p for p in self.part_get_partitions() if p.uuid == _uu][0]
+        except IndexError:
+            raise _punchboot.NotFoundError()
 
+        blocks_remaining: int = part.last_block - part.first_block + 1
+        block_offset: int = part.first_block
+        # TODO: 64 is not a magical number. On large NOR flashes the largest
+        # erase block is typically 256kByte and sectors size is normally 4k.
+        #
+        # So we chunk up the erase in 256kByte calls because erasing NOR is slow
+        # which means we can't erase everyting in one go. This will trip transport
+        # timeouts and/or WDT.
+        #
+        # This is a bit of a hack for now and the board / block device should
+        # probably provide information about maximum number of blocks that can
+        # be erased per erase call.
+        while count := min(64, blocks_remaining):
+            if progress_cb:
+                progress_cb(part.last_block - part.first_block + 1, blocks_remaining)
+            self._s.part_erase(_uu.bytes, block_offset, count)
+            block_offset += count
+            blocks_remaining -= count
+
+        if progress_cb:
+            progress_cb(part.last_block - part.first_block + 1, 0)
+
+        # self._s.part_erase(_uu.bytes)
     def part_table_install(self, part: Union[uuid.UUID, str], variant: Optional[int] = 0):
         """Install partition table.
 

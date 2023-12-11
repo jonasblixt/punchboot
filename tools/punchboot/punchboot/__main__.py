@@ -349,7 +349,6 @@ def part_install(ctx: click.Context, s: Session, partition: uuid.UUID, variant: 
     """Install partition table."""
     s.part_table_install(partition, variant)
 
-
 @part.command("erase")
 @click.argument(
     "part_uuid",
@@ -361,7 +360,10 @@ def part_install(ctx: click.Context, s: Session, partition: uuid.UUID, variant: 
 def part_erase(ctx: click.Context, s: Session, part_uuid: uuid.UUID):
     """Erase partition."""
     logger.debug(f"Erasing partition {part_uuid}...")
-    s.part_erase(part_uuid)
+    def _update_pgbar(total: int, remaining: int):
+        click.echo(f"\rErasing {total-remaining}/{total}", nl=False)
+    s.part_erase(part_uuid, _update_pgbar)
+    click.echo("")
 
 
 @part.command("write")

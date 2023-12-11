@@ -210,7 +210,7 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
     return bio_pool[dev].write(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
 
-int bio_erase(bio_dev_t dev)
+int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count)
 {
     int rc;
 
@@ -220,7 +220,7 @@ int bio_erase(bio_dev_t dev)
     if (bio_pool[dev].erase == NULL)
         return -PB_ERR_NOT_SUPPORTED;
 
-    return bio_pool[dev].erase(dev);
+    return bio_pool[dev].erase(dev, first_lba, count);
 }
 
 int bio_get_hal_flags(bio_dev_t dev)

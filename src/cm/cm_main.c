@@ -462,13 +462,13 @@ static int cmd_part_verify(void)
 
 static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
 {
-    LOG_DBG("Erase part");
+    LOG_DBG("Erase: lba=%" PRIu32 " count=%" PRIu32, erase_cmd->start_lba, erase_cmd->block_count);
     bio_dev_t dev = bio_get_part_by_uu(erase_cmd->uuid);
 
     if (dev < 0)
         return dev;
 
-    return bio_erase(dev);
+    return bio_erase(dev, erase_cmd->start_lba, erase_cmd->block_count);
 }
 
 static int cmd_part_tbl_read(void)
