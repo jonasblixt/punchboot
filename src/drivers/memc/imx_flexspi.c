@@ -355,29 +355,54 @@ static int imx_flexspi_write(bio_dev_t dev, lba_t lba, size_t length, const void
     return rc;
 }
 
-static int imx_flexspi_erase_part(bio_dev_t dev)
+static int imx_flexspi_erase_part(bio_dev_t dev, lba_t first_lba, size_t count)
 {
     int rc;
     struct flexspi_nor_config *cfg_nor = (struct flexspi_nor_config *)bio_get_private(dev);
     uint32_t addr;
-    uint32_t part_start_addr = (uint32_t)bio_get_first_block(dev) * bio_block_size(dev);
-    uint32_t part_end_addr = (uint32_t)bio_get_last_block(dev) * bio_block_size(dev);
+    uint32_t part_start_addr = (uint32_t)first_lba * bio_block_size(dev);
+    size_t bytes_to_erase = count * bio_block_size(dev);
+    size_t bytes_erased = 0;
+    /* We select the largest erase block to begin with */
+    uint8_t lut_id = cfg_nor->erase_cmds[0].lut_id;
+    size_t erase_block_sz = cfg_nor->erase_cmds[0].block_size;
+    unsigned int erase_time_ms = cfg_nor->erase_cmds[0].erase_time_ms;
 
-    for (addr = part_start_addr; addr < part_end_addr; addr += cfg_nor->block_size) {
-        LOG_DBG("Erasing 0x%08x...", addr);
+    if (!erase_block_sz) {
+        return -PB_ERR_IO;
+    }
+
+    while (bytes_to_erase) {
+        /* The current erase block size is larger than the remaining bytes
+         * we want to erase, search for a smaller erase block
+         */
+        if (bytes_to_erase < erase_block_sz) {
+            LOG_DBG("Switching to smaller erase block");
+            for (unsigned int i = 0; cfg_nor->erase_cmds[i].lut_id; i++) {
+                if (bytes_to_erase >= cfg_nor->erase_cmds[i].block_size) {
+                    lut_id = cfg_nor->erase_cmds[i].lut_id;
+                    erase_block_sz = cfg_nor->erase_cmds[i].block_size;
+                    erase_time_ms = cfg_nor->erase_cmds[i].erase_time_ms;
+                    break;
+                }
+            }
+        }
+
+        addr = part_start_addr + bytes_erased;
+        LOG_DBG("Erasing addr=0x%08x, block_sz=%u, lut_id=%u", addr, erase_block_sz, lut_id);
 
         /* Write enable */
         imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_enable, 0, FLEXSPI_COMMAND, NULL, 0);
 
-        rc = imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_erase, addr, FLEXSPI_COMMAND, NULL, 0);
+        rc = imx_flexspi_xfer(cfg_nor->port, lut_id, addr, FLEXSPI_COMMAND, NULL, 0);
 
         if (rc != 0)
             return rc;
 
-        // TODO: Here we assume that we won't be busy after max timeout,
-        // should have rc and break
-        imx_flexspi_busy_wait(cfg_nor, cfg_nor->time_block_erase_ms);
-        // TODO: Maybe kick WDT
+        imx_flexspi_busy_wait(cfg_nor, erase_time_ms);
+
+        bytes_erased += erase_block_sz;
+        bytes_to_erase -= (erase_block_sz > bytes_to_erase) ? bytes_to_erase : erase_block_sz;
     }
 
     return imx_flexspi_xfer(cfg_nor->port, cfg_nor->lut_id_wr_disable, 0, FLEXSPI_COMMAND, NULL, 0);
@@ -440,7 +465,7 @@ static int imx_flexspi_mem_probe(const struct flexspi_nor_config *nor_config)
     }
 
     bio_dev_t d = bio_allocate(0,
-                               nor_config->capacity / nor_config->block_size,
+                               nor_config->capacity / nor_config->block_size - 1,
                                nor_config->block_size,
                                nor_config->uuid,
                                nor_config->name);
@@ -541,6 +566,8 @@ int imx_flexspi_init(const struct flexspi_core_config *config)
 
     /* Configure memories */
     for (unsigned int i = 0; i < cfg->mem_length; i++) {
+        if (cfg->mem[i]->capacity % cfg->mem[i]->block_size != 0)
+            return -PB_ERR_ALIGN;
         rc = imx_flexspi_mem_config(cfg->mem[i]);
 
         if (rc != 0)

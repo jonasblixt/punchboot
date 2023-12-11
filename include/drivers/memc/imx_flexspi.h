@@ -115,6 +115,12 @@ enum flexspi_command {
                                          * the instruction start pointer for next sequence */
 };
 
+struct flexspi_nor_erase_cmds {
+    size_t block_size;
+    uint32_t erase_time_ms;
+    uint8_t lut_id;
+};
+
 struct flexspi_nor_config {
     const char *name;
     const uint8_t *uuid;
@@ -125,13 +131,12 @@ struct flexspi_nor_config {
     uint8_t mfg_id;
     uint8_t mfg_device_type;
     uint8_t mfg_capacity;
-    uint32_t time_block_erase_ms;
     uint32_t time_page_program_ms;
     uint32_t cr1;
     uint32_t cr2;
+    struct flexspi_nor_erase_cmds erase_cmds[4];
     uint8_t lut_id_read_status;
     uint8_t lut_id_read_id;
-    uint8_t lut_id_erase;
     uint8_t lut_id_read;
     uint8_t lut_id_write;
     uint8_t lut_id_wr_enable;
