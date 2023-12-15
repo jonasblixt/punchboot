@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+"""Helper script for generating C register defines."""
+
+import click
+
+
+@click.command()
+@click.argument("name", type=str)
+@click.argument("shift", type=int)
+@click.argument("width", type=int)
+def reggen(name: str, shift: int, width: int):
+    """Generate a set of defines for a bit field."""
+    click.echo(f"#define {name}_SHIFT ({shift})")
+    click.echo(f"#define {name}_MASK ({hex(int('1'*width, 2))} << {name}_SHIFT)")
+    click.echo(f"#define {name}(x) ((x << {name}_SHIFT) & {name}_MASK)")
+
+if __name__ == "__main__":
+    reggen()
