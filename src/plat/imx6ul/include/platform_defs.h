@@ -56,7 +56,8 @@
 
 #define UART2_BASE          (ATZ2_BASE_ADDR + 0xE8000)
 
+/* b36693cd-d32e-4cd5-b2bb-91406ed68840 */
 #define PLATFORM_NS_UUID \
-    (const unsigned char *)"\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02"
+    (const unsigned char *)"\xb3\x66\x93\xcd\xd3\x2e\x4c\xd5\xb2\xbb\x91\x40\x6e\xd6\x88\x40"
 
 #endif // PLAT_IMX6UL_INCLUDE_DEFS_H
