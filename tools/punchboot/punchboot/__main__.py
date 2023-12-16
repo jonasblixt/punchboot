@@ -396,15 +396,15 @@ def part_read(ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uui
 
 
 @part.command("verify")
+@click.argument("file", type=click.Path(path_type=pathlib.Path), required=True)
 @click.argument(
     "part_uuid",
     type=PBPartType(),
     required=True,
 )
-@click.argument("file", type=click.Path(path_type=pathlib.Path), required=True)
 @pb_session
 @click.pass_context
-def part_verify(ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uuid.UUID):
+def part_verify(ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathlib.Path):
     """Verify the contents of a partition."""
     logger.debug(f"Verifying {file} against contents of partition {part_uuid}...")
     s.part_verify(file, part_uuid)

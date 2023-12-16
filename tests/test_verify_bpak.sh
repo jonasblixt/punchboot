@@ -39,7 +39,7 @@ fi
 
 sync
 
-$PB -t socket part verify 2af755d8-8de5-45d5-a862-014cfa735ce0 /tmp/img.bpak
+$PB -t socket part verify /tmp/img.bpak 2af755d8-8de5-45d5-a862-014cfa735ce0
 result_code=$?
 
 if [ $result_code -ne 0 ];
