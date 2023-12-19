@@ -7,21 +7,16 @@
  *
  */
 
-#include <board_defs.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/timer/imx_gpt.h>
-#include <drivers/uart/imx_uart.h>
 #include <drivers/wdog/imx_wdog.h>
-#include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <plat/imx6ul/imx6ul.h>
-#include <platform_defs.h>
 #include <uuid.h>
 #include <xlat_tables.h>
 
-#define SRC_SRSR      (0x020D8008)
 #define SRSR_WARM     BIT(16)
 #define SRSR_TEMP     BIT(8)
 #define SRSR_WDOG3    BIT(7)
@@ -42,6 +37,9 @@ IMPORT_SYM(uintptr_t, _stack_start, stack_start);
 IMPORT_SYM(uintptr_t, _stack_end, stack_end);
 IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
 IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
+
+/* b36693cd-d32e-4cd5-b2bb-91406ed68840 */
+const char *platform_ns_uuid = "\xb3\x66\x93\xcd\xd3\x2e\x4c\xd5\xb2\xbb\x91\x40\x6e\xd6\x88\x40";
 
 static struct imx6ul_platform plat;
 
@@ -75,10 +73,27 @@ static const mmap_region_t imx_mmap[] = {
     { 0 }
 };
 
+static uint32_t
+fuse_read_helper(uint8_t bank, uint8_t row, uint8_t shift, uint32_t mask, uint32_t default_value)
+{
+    int rc;
+    uint32_t fuse_data;
+
+    rc = imx_ocotp_read(bank, row, &fuse_data);
+
+    if (rc != 0) {
+        LOG_ERR("Could not read fuse %i (%i)", row, rc);
+        return default_value;
+    }
+
+    fuse_data >>= shift;
+    return (fuse_data & mask);
+}
+
 int plat_boot_reason(void)
 {
     /* Read the SRC reset status register */
-    uint32_t srsr = mmio_read_32(SRC_SRSR);
+    uint32_t srsr = mmio_read_32(IMX6UL_SRC_SRSR);
 
     if (srsr & SRSR_WARM)
         return BR_WARM;
@@ -118,8 +133,8 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
         return -PB_ERR_BUF_TOO_SMALL;
     *length = sizeof(plat_unique.uid_bytes);
 
-    imx_ocotp_read(0, 1, &plat_unique.uid[0]);
-    imx_ocotp_read(0, 2, &plat_unique.uid[1]);
+    imx_ocotp_read(IMX6UL_FUSE_UNIQUE_BANK, IMX6UL_FUSE_UNIQUE1_WORD, &plat_unique.uid[0]);
+    imx_ocotp_read(IMX6UL_FUSE_UNIQUE_BANK, IMX6UL_FUSE_UNIQUE2_WORD, &plat_unique.uid[1]);
     memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
     return PB_OK;
 }
@@ -137,27 +152,6 @@ uint32_t plat_get_us_tick(void)
 void plat_wdog_kick(void)
 {
     imx_wdog_kick();
-}
-
-/* UART Interface */
-
-static int plat_console_init(void)
-{
-    /* Configure UART */
-    mmio_write_32(0x020E0094, 0);
-    mmio_write_32(0x020E0098, 0);
-    mmio_write_32(0x020E0320, UART_PAD_CTRL);
-    mmio_write_32(0x020E0324, UART_PAD_CTRL);
-
-    imx_uart_init(0x021E8000, MHz(80), 115200);
-
-    static const struct console_ops ops = {
-        .putc = imx_uart_putc,
-    };
-
-    console_init(0x021E8000, &ops);
-
-    return PB_OK;
 }
 
 static int plat_mmu_init(void)
@@ -199,53 +193,88 @@ static int plat_mmu_init(void)
 int plat_init(void)
 {
     /* Unmask wdog in SRC control reg */
-    mmio_write_32(0x020D8000, 0);
-    imx_wdog_init(0x020BC000, CONFIG_WATCHDOG_TIMEOUT);
-    imx_gpt_init(0x02098000, MHz(24));
+    mmio_clrsetbits_32(IMX6UL_SRC_SCR,
+                       SRC_SCR_MASK_WDOG_RST_MASK | SRC_SCR_WARM_RESET_ENABLE,
+                       SRC_SCR_MASK_WDOG_RST(10));
 
-    /**
-     * TODO: Some imx6ul can run at 696 MHz and some others at 528 MHz
-     *   implement handeling of that.
+#if CONFIG_ENABLE_WATCHDOG
+    /* Enable WDT */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR3, 0, CCM_CCGR3_WDOG1);
+    imx_wdog_init(IMX6UL_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
+#endif
+
+    /* Configure systick */
+    imx_gpt_init(IMX6UL_GPT1_BASE, MHz(24));
+
+    board_console_init(&plat);
+
+    /* Init fusebox */
+    imx_ocotp_init(IMX6UL_OCOTP_CTRL_BASE, 8);
+
+    plat.si_rev = fuse_read_helper(0, 3, 16, 0x0f, 0);
+    plat.speed_grade = fuse_read_helper(0, 4, 16, 0x03, 1);
+
+    LOG_INFO("IMX6UL: si_rev=%u, speed_grade=%u", plat.si_rev, plat.speed_grade);
+
+    /* Configure ARM core clock
      *
+     * Speed grade:
+     * 1 - 528 MHz
+     * 2 - 696 MHz
      */
 
-    /*** Configure ARM Clock ***/
     /* Select step clock, so we can change arm PLL */
-    mmio_clrsetbits_32(0x020C400C, 0, 1 << 2);
+    mmio_clrsetbits_32(IMX6UL_CCM_CCSR, 0, CCM_CCSR_PLL1_SW_CLK_SEL);
 
-    /* Power down */
-    mmio_write_32(0x020C8000, (1 << 12));
+    /* Power down main PLL */
+    mmio_write_32(IMX6UL_CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_POWERDOWN);
 
-    /* Configure divider and enable */
-    /* f_CPU = 24 MHz * 88 / 4 = 528 MHz */
-    mmio_write_32(0x020C8000, (1 << 13) | 88);
+    /* Configure divider and enable:
+     * Speedgrade 1: f_CPU = 24 MHz * 88 / 4  = 528 MHz
+     * Speedgrade 2: f_CPU = 24 MHz * 116 / 4 = 696 MHz
+     */
 
-    /* Wait for PLL to lock */
-    while (!(mmio_read_32(0x020C8000) & (1 << 31))) {
-    };
-
-    /* Select re-connect ARM PLL */
-    mmio_clrsetbits_32(0x020C400C, 1 << 2, 0);
-
-    /*** End of ARM Clock config ***/
-
-    /* Ungate all clocks */
-    mmio_write_32(0x020C4000 + 0x68, 0xFFFFFFFF); /* Ungate usdhc clk*/
-    mmio_write_32(0x020C4000 + 0x6C, 0xFFFFFFFF); /* Ungate usdhc clk*/
-    mmio_write_32(0x020C4000 + 0x70, 0xFFFFFFFF); /* Ungate usdhc clk*/
-    mmio_write_32(0x020C4000 + 0x74, 0xFFFFFFFF); /* Ungate usdhc clk*/
-    mmio_write_32(0x020C4000 + 0x78, 0xFFFFFFFF); /* Ungate usdhc clk*/
-    mmio_write_32(0x020C4000 + 0x7C, 0xFFFFFFFF); /* Ungate usdhc clk*/
-    mmio_write_32(0x020C4000 + 0x80, 0xFFFFFFFF); /* Ungate usdhc clk*/
-
-    uint32_t csu = 0x21c0000;
-    /* Allow everything */
-    for (int i = 0; i < 40; i++) {
-        *((uint32_t *)csu + i) = 0xffffffff;
+    if (plat.speed_grade == 1) {
+        mmio_write_32(IMX6UL_CCM_ANALOG_PLL_ARM,
+                      CCM_ANALOG_PLL_ENABLE | CCM_ANALOG_PLL_ARM_DIV_SELECT(88));
+    } else if (plat.speed_grade == 2) {
+        mmio_write_32(IMX6UL_CCM_ANALOG_PLL_ARM,
+                      CCM_ANALOG_PLL_ENABLE | CCM_ANALOG_PLL_ARM_DIV_SELECT(116));
+    } else {
+        LOG_WARN("Unknown speed grade (%u), setting core to 528 MHz", plat.speed_grade);
+        mmio_write_32(IMX6UL_CCM_ANALOG_PLL_ARM,
+                      CCM_ANALOG_PLL_ENABLE | CCM_ANALOG_PLL_ARM_DIV_SELECT(88));
     }
 
-    plat_console_init();
-    imx_ocotp_init(0x021BC000, 8);
+    /* Wait for PLL to lock */
+    while (!(mmio_read_32(IMX6UL_CCM_ANALOG_PLL_ARM) & CCM_ANALOG_PLL_ARM_LOCK))
+        ;
+
+    /* Select re-connect ARM PLL */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCSR, CCM_CCSR_PLL1_SW_CLK_SEL, 0);
+
+    /* Compute some of the core clocks */
+    uint32_t cacrr = mmio_read_32(IMX6UL_CCM_CACRR);
+    uint32_t cscmr1 = mmio_read_32(IMX6UL_CCM_CSCMR1);
+    uint32_t cscdr1 = mmio_read_32(IMX6UL_CCM_CSCDR1);
+
+    /* Core clock */
+    unsigned int arm_podf = (cacrr & CCM_CACRR_AR_PODF_MASK) + 1;
+    uint32_t pll1_reg = mmio_read_32(IMX6UL_CCM_ANALOG_PLL_ARM);
+    plat.core_clk_MHz = (24 * (pll1_reg & CCM_ANALOG_PLL_ARM_DIV_SELECT_MASK) / arm_podf) / 2;
+
+    /* USDHC clocks */
+    unsigned int usdhc1_podf =
+        ((cscdr1 & CCM_CSCDR1_USDHC1_PODF_MASK) >> CCM_CSCDR1_USDHC1_PODF_SHIFT) + 1;
+    unsigned int usdhc2_podf =
+        ((cscdr1 & CCM_CSCDR1_USDHC2_PODF_MASK) >> CCM_CSCDR1_USDHC2_PODF_SHIFT) + 1;
+    plat.usdhc1_clk_MHz = ((cscmr1 & CCM_CSCMR1_USDHC1_CLK_SEL) ? 352 : 400) / usdhc1_podf;
+    plat.usdhc2_clk_MHz = ((cscmr1 & CCM_CSCMR1_USDHC2_CLK_SEL) ? 352 : 400) / usdhc2_podf;
+
+    LOG_INFO("CPU clk: %u MHz", plat.core_clk_MHz);
+    LOG_INFO("uSDHC1 clk: %u MHz", plat.usdhc1_clk_MHz);
+    LOG_INFO("uSDHC2 clk: %u MHz", plat.usdhc2_clk_MHz);
+
     imx_wdog_kick();
     plat_mmu_init();
 

@@ -15,6 +15,7 @@
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
+#include <drivers/uart/imx_uart.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
@@ -22,6 +23,7 @@
 #include <libfdt.h>
 #include <pb/bio.h>
 #include <pb/cm.h>
+#include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/rot.h>
@@ -112,52 +114,43 @@ static const struct gpt_table_list gpt_tables[] = {
 
 static int usdhc_emmc_setup(void)
 {
-    unsigned int rate;
+    /* Ungate USDHC1 clock */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR6, 0, CCM_CCGR6_USDHC1);
 
     /* Configure pinmux for usdhc1 */
-    mmio_write_32(0x020E0000 + 0x1C0, 0); /* CLK MUX */
-    mmio_write_32(0x020E0000 + 0x1BC, 0); /* CMD MUX */
-    mmio_write_32(0x020E0000 + 0x1C4, 0); /* DATA0 MUX */
-    mmio_write_32(0x020E0000 + 0x1C8, 0); /* DATA1 MUX */
-    mmio_write_32(0x020E0000 + 0x1CC, 0); /* DATA2 MUX */
-    mmio_write_32(0x020E0000 + 0x1D0, 0); /* DATA3 MUX */
-    mmio_write_32(0x020E0000 + 0x1A8, 1); /* DATA4 MUX */
-    mmio_write_32(0x020E0000 + 0x1AC, 1); /* DATA5 MUX */
-    mmio_write_32(0x020E0000 + 0x1B0, 1); /* DATA6 MUX */
-    mmio_write_32(0x020E0000 + 0x1B4, 1); /* DATA7 MUX */
-    mmio_write_32(0x020E0000 + 0x1A4, 1); /* RESET MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_CLK, MUX_ALT(0)); /* CLK MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_CMD, MUX_ALT(0)); /* CMD MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA0, MUX_ALT(0)); /* DATA0 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA1, MUX_ALT(0)); /* DATA1 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA2, MUX_ALT(0)); /* DATA2 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA3, MUX_ALT(0)); /* DATA3 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_READY_B, MUX_ALT(1)); /* DATA4 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_CE0_B, MUX_ALT(1)); /* DATA5 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_CE1_B, MUX_ALT(1)); /* DATA6 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_CLE, MUX_ALT(1)); /* DATA7 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_DQS, MUX_ALT(1)); /* RESET MUX */
 
-    // TODO: What's our input clock rate?
-    // usdhc_clk_root == ipg_clk_perclk?
-    //
-    // Either PFD0 (352 MHz) or PFD2 (400 MHz)
-    // PFD2 is better, ensure that CSCMR1[USDHC1_CLK_SEL] selects PFD2
-    // Check that CSCDR1[USDHC1_PODF] is set, then input clock should be 200MHz
-    rate = MHz(200);
+    static const struct imx_usdhc_config cfg = {
+        .base = IMX6UL_USDHC1_BASE,
+        .delay_tap = 0,
+        .mmc_config = {
+            .mode = MMC_BUS_MODE_DDR52,
+            .width = MMC_BUS_WIDTH_8BIT_DDR,
+            .boot_mode = EXT_CSD_BOOT_DDR |
+                      EXT_CSD_BOOT_BUS_WIDTH_8,
+            .boot0_uu = PART_boot0,
+            .boot1_uu = PART_boot1,
+            .user_uu = PART_user,
+            .rpmb_uu = PART_rpmb,
+            .flags = 0,
+        },
+    };
 
-    static const struct imx_usdhc_config cfg = { .base = 0x02190000,
-                                                 .delay_tap = 0,
-                                                 .mmc_config = {
-                                                     .mode = MMC_BUS_MODE_DDR52,
-                                                     .width = MMC_BUS_WIDTH_8BIT_DDR,
-                                                     .boot_mode = EXT_CSD_BOOT_DDR |
-                                                                  EXT_CSD_BOOT_BUS_WIDTH_8,
-                                                     .boot0_uu = PART_boot0,
-                                                     .boot1_uu = PART_boot1,
-                                                     .user_uu = PART_user,
-                                                     .rpmb_uu = PART_rpmb,
-                                                     .flags = 0,
-                                                 } };
-
-    return imx_usdhc_init(&cfg, rate);
+    return imx_usdhc_init(&cfg, MHz(plat->usdhc1_clk_MHz));
 }
 
 static int early_boot(void)
 {
-    /* Check force recovery input switch */
-    if ((mmio_read_32(0x020A8008) & (1 << 4)) == 0)
-        return -PB_ERR_ABORT;
-
     return PB_OK;
 }
 
@@ -240,21 +233,37 @@ static int board_set_slc_configuration(void)
     return PB_OK;
 }
 
+void board_console_init(struct imx6ul_platform *plat_)
+{
+#define UART_PAD_CTRL                                                                          \
+    (PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | \
+     PAD_CTL_SRE_FAST | PAD_CTL_HYS)
+
+    /* Ungate uart clock */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR0, 0, CCM_CCGR0_UART2);
+
+    /* Configure console UART mux and pads*/
+    mmio_write_32(SW_MUX_CTL_PAD_UART2_TX_DATA, MUX_ALT(0));
+    mmio_write_32(SW_MUX_CTL_PAD_UART2_RX_DATA, MUX_ALT(0));
+    mmio_write_32(SW_PAD_CTL_PAD_UART2_TX_DATA, UART_PAD_CTRL);
+    mmio_write_32(SW_PAD_CTL_PAD_UART2_RX_DATA, UART_PAD_CTRL);
+
+    imx_uart_init(IMX6UL_UART2_BASE, MHz(80), 115200);
+
+    static const struct console_ops ops = {
+        .putc = imx_uart_putc,
+    };
+
+    console_init(IMX6UL_UART2_BASE, &ops);
+}
+
 int board_init(struct imx6ul_platform *plat_)
 {
     int rc;
 
     plat = plat_;
-    /* Configure NAND_DATA2 as GPIO4 4 Input with PU,
-     *
-     * This is used to force recovery mode
-     *
-     **/
 
-    mmio_write_32(0x020E0188, 6);
-    mmio_write_32(0x020E0414, 0x2000 | (1 << 14) | (1 << 12));
-
-    rc = imx_caam_init(0x02141000);
+    rc = imx_caam_init(IMX6UL_CAAM_JR1_BASE);
 
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
@@ -381,14 +390,10 @@ int cm_board_init(void)
 {
     int rc;
     /* Enable USB PLL */
-    mmio_clrsetbits_32(0x020C8010, 0, 1 << 6);
+    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
 
-    /* Power up USB */
-    mmio_write_32(0x020C9038, (1 << 31) | (1 << 30));
-    mmio_write_32(0x020C9008, 0xFFFFFFFF);
-
-    imx_usb2_phy_init(0x020C9000);
-    rc = imx_ci_udc_init(0x02184000);
+    imx_usb2_phy_init(IMX6UL_USBPHY1_BASE);
+    rc = imx_ci_udc_init(IMX6UL_USB1_BASE);
 
     if (rc != PB_OK) {
         LOG_ERR("imx_ci_udc_init failed (%i)", rc);
