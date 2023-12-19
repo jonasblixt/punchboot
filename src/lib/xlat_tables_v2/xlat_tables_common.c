@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include <pb/assert.h>
-#include <platform_defs.h>
 
 #include <arch/arch.h>
 #include <pb/utils_def.h>
