@@ -2,7 +2,6 @@
 #include <arch/armv7a/timer.h>
 #include <pb/arch.h>
 #include <pb/plat.h>
-#include <platform_defs.h>
 
 extern char _code_start, _code_end, _data_region_start, _data_region_end, _ro_data_region_start,
     _ro_data_region_end, _zero_region_start, _zero_region_end, _stack_start, _stack_end,

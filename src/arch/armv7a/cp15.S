@@ -1,5 +1,4 @@
 #include <arch/arch.h>
-#include <platform_defs.h>
 #define WORD_SIZE   4
 #define DCCMVAC		p15, 0, c7, c10, 1
 #define DCIMVAC		p15, 0, c7, c6, 1
