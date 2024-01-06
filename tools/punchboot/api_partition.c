@@ -62,12 +62,18 @@ int pb_api_partition_read_table(struct pb_context *ctx,
 
     struct pb_result_part_table_entry *tbl = malloc(bytes_to_read + 1);
 
+    if (!tbl_read_result.no_of_entries) {
+        goto skip_tbl_read;
+    }
+
     rc = ctx->read(ctx, tbl, bytes_to_read);
 
     if (rc != PB_RESULT_OK) {
         free(tbl);
         return rc;
     }
+
+skip_tbl_read:
 
     *entries = tbl_read_result.no_of_entries;
 
