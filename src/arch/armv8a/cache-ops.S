@@ -1,5 +1,4 @@
 #include <arch/arch.h>
-#include <platform_defs.h>
 
 .text
 
