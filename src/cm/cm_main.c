@@ -551,7 +551,7 @@ static int cmd_slc_read(void)
     slc = slc_read_status();
 
     if (slc < 0) {
-        rc = slc;
+        return slc;
     } else {
         slc_status.slc = slc;
         rc = PB_OK;
@@ -559,6 +559,9 @@ static int cmd_slc_read(void)
     pb_wire_init_result2(&result, error_to_wire(rc), &slc_status, sizeof(slc_status));
 
     cfg->tops.write(&result, sizeof(result));
+
+    if (rc < 0)
+        return rc;
 
     for (size_t i = 0; i < rot_no_of_keys(); i++) {
         rc = rot_read_key_status_by_idx(i);
@@ -786,6 +789,7 @@ static int pb_command_parse(void)
     } break;
     case PB_CMD_SLC_READ:
         rc = cmd_slc_read();
+        pb_wire_init_result(&result, error_to_wire(rc));
         break;
     case PB_CMD_PART_RESIZE: {
         /* Deprecated and no longer supported,
