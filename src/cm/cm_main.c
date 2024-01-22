@@ -246,8 +246,9 @@ static int cmd_auth(void)
 {
     int rc = -PB_ERR_NOT_IMPLEMENTED;
 
+#if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
     struct pb_command_authenticate *auth_cmd = (struct pb_command_authenticate *)cmd.request;
-
+#endif
     pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
 #ifdef CONFIG_CM_AUTH_TOKEN
