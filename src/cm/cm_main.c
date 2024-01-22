@@ -421,7 +421,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = hash_update(buffer[buffer_id], chunk_len);
+        rc = hash_update_async(buffer[buffer_id], chunk_len);
 
         if (rc != PB_OK) {
             LOG_ERR("Hash update error");
