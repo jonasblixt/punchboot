@@ -180,7 +180,6 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         }
     } break;
     case USB_SET_ADDRESS: {
-        // LOG_DBG("Set address 0x%02x", setup->wValue);
         rc = hal_ops->set_address(setup->wValue);
 
         if (rc != PB_OK)

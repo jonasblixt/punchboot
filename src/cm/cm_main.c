@@ -868,8 +868,11 @@ restart_command_mode:
         } while (rc == -PB_ERR_AGAIN);
 
         if (rc != PB_OK) {
+            LOG_ERR("Transport init error (%i)", rc);
             goto err_out;
         }
+
+        LOG_INFO("Transport ready");
     }
 
     while (true) {
