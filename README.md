@@ -62,7 +62,7 @@ Supported platforms:
 | NXP imx8x       | Yes                  | Yes | Yes  | Yes       | Yes         | Yes     |
 
 
-Supportd boards:
+Supported boards:
 
 | Board                | Supported               | More info |
 | -------------------- | ----------------------- | --------- |
