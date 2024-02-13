@@ -2095,9 +2095,11 @@ class Kconfig(object):
                 (
                     "configuration with {} symbols".format(len(self.syms)),
                     'main menu prompt "{}"'.format(self.mainmenu_text),
-                    "srctree is current directory"
-                    if not self.srctree
-                    else 'srctree "{}"'.format(self.srctree),
+                    (
+                        "srctree is current directory"
+                        if not self.srctree
+                        else 'srctree "{}"'.format(self.srctree)
+                    ),
                     'config symbol prefix "{}"'.format(self.config_prefix),
                     "warnings " + status(self.warn),
                     "printing of warnings to stderr " + status(self.warn_to_stderr),
@@ -3003,9 +3005,11 @@ class Kconfig(object):
                             self.linenr,
                             pattern,
                             self._line.strip(),
-                            "set to '{}'".format(self.srctree)
-                            if self.srctree
-                            else "unset or blank",
+                            (
+                                "set to '{}'".format(self.srctree)
+                                if self.srctree
+                                else "unset or blank"
+                            ),
                         )
                     )
 
@@ -3116,11 +3120,15 @@ class Kconfig(object):
                 self._parse_error(
                     "no corresponding 'choice'"
                     if t0 is _T_ENDCHOICE
-                    else "no corresponding 'if'"
-                    if t0 is _T_ENDIF
-                    else "no corresponding 'menu'"
-                    if t0 is _T_ENDMENU
-                    else "unrecognized construct"
+                    else (
+                        "no corresponding 'if'"
+                        if t0 is _T_ENDIF
+                        else (
+                            "no corresponding 'menu'"
+                            if t0 is _T_ENDMENU
+                            else "unrecognized construct"
+                        )
+                    )
                 )
 
         # End of file reached. Return the last node.
@@ -3128,11 +3136,11 @@ class Kconfig(object):
         if end_token:
             raise KconfigError(
                 "error: expected '{}' at end of '{}'".format(
-                    "endchoice"
-                    if end_token is _T_ENDCHOICE
-                    else "endif"
-                    if end_token is _T_ENDIF
-                    else "endmenu",
+                    (
+                        "endchoice"
+                        if end_token is _T_ENDCHOICE
+                        else "endif" if end_token is _T_ENDIF else "endmenu"
+                    ),
                     self.filename,
                 )
             )
@@ -4891,13 +4899,9 @@ class Symbol(object):
         self.implies = []
         self.ranges = []
 
-        self.user_value = (
-            self.choice
-        ) = (
-            self.env_var
-        ) = (
-            self._cached_str_val
-        ) = self._cached_tri_val = self._cached_vis = self._cached_assignable = None
+        self.user_value = self.choice = self.env_var = self._cached_str_val = (
+            self._cached_tri_val
+        ) = self._cached_vis = self._cached_assignable = None
 
         # _write_to_conf is calculated along with the value. If True, the
         # Symbol gets a .config entry.
@@ -4956,9 +4960,9 @@ class Symbol(object):
     def _invalidate(self):
         # Marks the symbol as needing to be recalculated
 
-        self._cached_str_val = (
-            self._cached_tri_val
-        ) = self._cached_vis = self._cached_assignable = None
+        self._cached_str_val = self._cached_tri_val = self._cached_vis = self._cached_assignable = (
+            None
+        )
 
     def _rec_invalidate(self):
         # Invalidates the symbol and all items that (possibly) depend on it
@@ -5493,9 +5497,9 @@ class Choice(object):
         self.syms = []
         self.defaults = []
 
-        self.name = (
-            self.user_value
-        ) = self.user_selection = self._cached_vis = self._cached_assignable = None
+        self.name = self.user_value = self.user_selection = self._cached_vis = (
+            self._cached_assignable
+        ) = None
 
         self._cached_selection = _NO_CACHED_SELECTION
 
@@ -6136,15 +6140,15 @@ def expr_value(expr):
     return 2 * (
         comp == 0
         if rel is EQUAL
-        else comp != 0
-        if rel is UNEQUAL
-        else comp < 0
-        if rel is LESS
-        else comp <= 0
-        if rel is LESS_EQUAL
-        else comp > 0
-        if rel is GREATER
-        else comp >= 0
+        else (
+            comp != 0
+            if rel is UNEQUAL
+            else (
+                comp < 0
+                if rel is LESS
+                else comp <= 0 if rel is LESS_EQUAL else comp > 0 if rel is GREATER else comp >= 0
+            )
+        )
     )
 
 
@@ -6841,9 +6845,11 @@ def _decoding_error(e, filename, macro_linenr=None):
         "Problematic data: {}\n"
         "Reason: {}".format(
             e.encoding,
-            "'{}'".format(filename)
-            if macro_linenr is None
-            else "output from macro at {}:{}".format(filename, macro_linenr),
+            (
+                "'{}'".format(filename)
+                if macro_linenr is None
+                else "output from macro at {}:{}".format(filename, macro_linenr)
+            ),
             e.object[max(e.start - 40, 0) : e.end + 40],
             e.object[e.start : e.end],
             e.reason,

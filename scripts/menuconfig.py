@@ -2573,11 +2573,11 @@ def _draw_info_dialog(node, lines, scroll, top_line_win, text_win, bot_sep_win, 
     title = (
         "Symbol"
         if isinstance(node.item, Symbol)
-        else "Choice"
-        if isinstance(node.item, Choice)
-        else "Menu"
-        if node.item == MENU
-        else "Comment"
+        else (
+            "Choice"
+            if isinstance(node.item, Choice)
+            else "Menu" if node.item == MENU else "Comment"
+        )
     ) + " information"
     _safe_addstr(top_line_win, 0, max((text_win_width - len(title)) // 2, 0), title)
 

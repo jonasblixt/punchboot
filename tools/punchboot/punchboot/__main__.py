@@ -1,4 +1,5 @@
 """Punchboot CLI."""
+
 import click
 import logging
 import sys
