@@ -26,6 +26,16 @@ config DRIVER_IMX_CDNS3_UDC
     depends on SOC_FAMILY_IMX
     default n
 
+config DRIVER_IMX_DWC3_UDC
+    bool "i.MX DWC3 UDC Driver"
+    depends on SOC_FAMILY_IMX
+    default n
+
+config DRIVER_IMX8M_PHY
+    bool "i.MX8M USB PHY"
+    depends on SOC_FAMILY_IMX
+    default n
+
 config DRIVER_USB_PB_CLS
     bool "Punchboot device class"
     default y

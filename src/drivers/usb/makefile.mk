@@ -6,3 +6,5 @@ src-$(CONFIG_DRIVER_IMX_USB2_PHY) += src/drivers/usb/imx_usb2_phy.c
 src-$(CONFIG_DRIVER_IMX_CDNS3_UDC) += src/drivers/usb/cdns3_udc_core.c
 src-$(CONFIG_DRIVER_IMX_CDNS3_UDC) += src/drivers/usb/imx_cdns3_udc.c
 src-$(CONFIG_DRIVER_IMX_CDNS3_UDC) += src/drivers/usb/imx_salvo_phy.c
+src-$(CONFIG_DRIVER_IMX_DWC3_UDC) += src/drivers/usb/dwc3_udc.c
+src-$(CONFIG_DRIVER_IMX8M_PHY) += src/drivers/usb/imx8m_phy.c
