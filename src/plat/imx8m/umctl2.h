@@ -577,8 +577,9 @@
 #define LPDDR4_MR22_RANK1              ((0 << 5) | (1 << 4) | (0 << 3) | (LPDDR4_RTT40))
 #define LPDDR4_MR3_PU_CAL              1 /* MR3[0] */
 
-#define dwc_ddrphy_apb_wr(addr, data)  pb_write32(data, IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * (addr))
-#define dwc_ddrphy_apb_rd(addr)        pb_read32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * (addr))
+#define dwc_ddrphy_apb_wr(addr, data) \
+    mmio_write_32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * (addr), data)
+#define dwc_ddrphy_apb_rd(addr) mmio_read_32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * (addr))
 
 enum fw_type {
     FW_1D_IMAGE,
@@ -617,6 +618,6 @@ struct dram_fsp_msg {
     unsigned int fsp_cfg_num;
 };
 
-uint32_t umctl2_init(void);
+int umctl2_init(void);
 
 #endif // PLAT_IMX8M_INCLUDE_PLAT_UMCTL2_H_
