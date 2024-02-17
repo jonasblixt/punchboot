@@ -160,7 +160,7 @@ static void imx_ci_udc_reset(void)
     };
 }
 
-static int imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
+static void imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
 {
     struct imx_ci_udc_queue_head *qh = &dqhs[ep];
 
@@ -168,8 +168,6 @@ static int imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
     qh->caps = (1 << 29) | (size << 16) | flags;
 
     arch_clean_cache_range((uintptr_t)qh, sizeof(*qh));
-
-    return PB_OK;
 }
 
 static int imx_ci_udc_irq_process(void)
@@ -408,86 +406,98 @@ static void imx_ci_udc_flush_ep(usb_ep_t ep)
     };
 }
 
-static int imx_ci_udc_configure_ep(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_sz)
+static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_t no_of_eps)
 {
-    bool ep_in = false;
-    uintptr_t epctrl = 0;
+    enum usb_ep_type ep_type;
+    usb_ep_t ep;
+    uint16_t max_pkt_sz;
+    bool ep_in;
+    uintptr_t epctrl;
     uint8_t ep_type_val;
-    uint32_t ep_reg = 0;
+    uint32_t ep_reg;
 
-    switch (ep_type) {
-    case USB_EP_TYPE_CONTROL:
-        ep_type_val = 0;
-        break;
-    case USB_EP_TYPE_ISO:
-        ep_type_val = 1;
-        break;
-    case USB_EP_TYPE_BULK:
-        ep_type_val = 2;
-        break;
-    case USB_EP_TYPE_INTR:
-        ep_type_val = 3;
-        break;
-    default:
-        return -PB_ERR_PARAM;
-    };
+    for (size_t n = 0; n < no_of_eps; n++) {
+        ep = (eps[n].bEndpointAddress & 0x7f) * 2;
+        ep_in = false;
+        if (eps[n].bEndpointAddress & 0x80)
+            ep++;
 
-    switch (ep) {
-    case USB_EP1_IN:
-        ep_in = true;
-        /* Fallthrough */
-    case USB_EP1_OUT:
-        epctrl = IMX_CI_UDC_ENDPTCTRL1;
-        break;
-    case USB_EP2_IN:
-        ep_in = true;
-        /* Fallthrough */
-    case USB_EP2_OUT:
-        epctrl = IMX_CI_UDC_ENDPTCTRL2;
-        break;
-    case USB_EP3_IN:
-        ep_in = true;
-        /* Fallthrough */
-    case USB_EP3_OUT:
-        epctrl = IMX_CI_UDC_ENDPTCTRL3;
-        break;
-    case USB_EP4_IN:
-        ep_in = true;
-        /* Fallthrough */
-    case USB_EP4_OUT:
-        epctrl = IMX_CI_UDC_ENDPTCTRL4;
-        break;
-    case USB_EP5_IN:
-        ep_in = true;
-        /* Fallthrough */
-    case USB_EP5_OUT:
-        epctrl = IMX_CI_UDC_ENDPTCTRL5;
-        break;
-    case USB_EP6_IN:
-        ep_in = true;
-        /* Fallthrough */
-    case USB_EP6_OUT:
-        epctrl = IMX_CI_UDC_ENDPTCTRL6;
-        break;
-    case USB_EP7_IN:
-        ep_in = true;
-        /* Fallthrough */
-    case USB_EP7_OUT:
-        epctrl = IMX_CI_UDC_ENDPTCTRL7;
-        break;
-    default:
-        return -PB_ERR_PARAM;
-    };
+        ep_type = eps[n].bmAttributes + 1;
+        max_pkt_sz = eps[n].wMaxPacketSize;
+        switch (ep_type) {
+        case USB_EP_TYPE_CONTROL:
+            ep_type_val = 0;
+            break;
+        case USB_EP_TYPE_ISO:
+            ep_type_val = 1;
+            break;
+        case USB_EP_TYPE_BULK:
+            ep_type_val = 2;
+            break;
+        case USB_EP_TYPE_INTR:
+            ep_type_val = 3;
+            break;
+        default:
+            return -PB_ERR_PARAM;
+        };
 
-    if (ep_in) {
-        ep_reg = (1 << 23) | (ep_type_val << 18) | (1 << 6);
-    } else {
-        ep_reg = (1 << 7) | (ep_type_val << 2) | (1 << 6);
+        switch (ep) {
+        case USB_EP1_IN:
+            ep_in = true;
+            /* Fallthrough */
+        case USB_EP1_OUT:
+            epctrl = IMX_CI_UDC_ENDPTCTRL1;
+            break;
+        case USB_EP2_IN:
+            ep_in = true;
+            /* Fallthrough */
+        case USB_EP2_OUT:
+            epctrl = IMX_CI_UDC_ENDPTCTRL2;
+            break;
+        case USB_EP3_IN:
+            ep_in = true;
+            /* Fallthrough */
+        case USB_EP3_OUT:
+            epctrl = IMX_CI_UDC_ENDPTCTRL3;
+            break;
+        case USB_EP4_IN:
+            ep_in = true;
+            /* Fallthrough */
+        case USB_EP4_OUT:
+            epctrl = IMX_CI_UDC_ENDPTCTRL4;
+            break;
+        case USB_EP5_IN:
+            ep_in = true;
+            /* Fallthrough */
+        case USB_EP5_OUT:
+            epctrl = IMX_CI_UDC_ENDPTCTRL5;
+            break;
+        case USB_EP6_IN:
+            ep_in = true;
+            /* Fallthrough */
+        case USB_EP6_OUT:
+            epctrl = IMX_CI_UDC_ENDPTCTRL6;
+            break;
+        case USB_EP7_IN:
+            ep_in = true;
+            /* Fallthrough */
+        case USB_EP7_OUT:
+            epctrl = IMX_CI_UDC_ENDPTCTRL7;
+            break;
+        default:
+            return -PB_ERR_PARAM;
+        };
+
+        if (ep_in) {
+            ep_reg = (1 << 23) | (ep_type_val << 18) | (1 << 6);
+        } else {
+            ep_reg = (1 << 7) | (ep_type_val << 2) | (1 << 6);
+        }
+
+        LOG_DBG("EP config: reg=0x%lx, val=0x%x", epctrl, ep_reg);
+        mmio_write_32(imx_ci_udc_base + epctrl, ep_reg);
+        imx_ci_udc_config_ep(ep, max_pkt_sz, 0);
     }
-
-    LOG_DBG("EP config: reg=0x%lx, val=0x%x", epctrl, ep_reg);
-    mmio_write_32(imx_ci_udc_base + epctrl, ep_reg);
-    imx_ci_udc_config_ep(ep, pkt_sz, 0);
 
     return PB_OK;
 }
@@ -600,7 +610,7 @@ int imx_ci_udc_init(uintptr_t base)
         .xfer_complete = imx_ci_udc_xfer_complete,
         .xfer_cancel = imx_ci_udc_flush_ep,
         .poll_setup_pkt = imx_ci_udc_poll_setup_pkt,
-        .configure_ep = imx_ci_udc_configure_ep,
+        .set_configuration = imx_ci_udc_set_configuration,
         .set_address = imx_ci_udc_set_address,
         .ep0_xfer_zlp = imx_ci_udc_xfer_zlp,
     };
