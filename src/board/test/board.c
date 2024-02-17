@@ -22,7 +22,6 @@
 #include <plat/qemu/qemu.h>
 #include <plat/qemu/semihosting.h>
 #include <plat/qemu/uart.h>
-#include <platform_defs.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
