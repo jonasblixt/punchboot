@@ -16,6 +16,23 @@
 
 /* Defines */
 
+#define PADRING_IFMUX_EN_SHIFT             31
+#define PADRING_IFMUX_EN_MASK              (1U << PADRING_IFMUX_EN_SHIFT)
+#define PADRING_GP_EN_SHIFT                30
+#define PADRING_GP_EN_MASK                 (1U << PADRING_GP_EN_SHIFT)
+#define PADRING_IFMUX_SHIFT                27
+#define PADRING_IFMUX_MASK                 (0x7U << PADRING_IFMUX_SHIFT)
+#define PADRING_CONFIG_SHIFT               25
+#define PADRING_CONFIG_MASK                (0x3U << PADRING_CONFIG_SHIFT)
+#define PADRING_LPCONFIG_SHIFT             23
+#define PADRING_LPCONFIG_MASK              (0x3U << PADRING_LPCONFIG_SHIFT)
+#define PADRING_PULL_SHIFT                 5
+#define PADRING_PULL_MASK                  (0x3U << PADRING_PULL_SHIFT)
+#define PADRING_DSE_SHIFT                  0
+#define PADRING_DSE_MASK                   (0x7U << PADRING_DSE_SHIFT)
+
+#define IMX8X_PAD_MUX(val)                 ((val << PADRING_IFMUX_SHIFT) & PADRING_IFMUX_MASK)
+
 /*!
  * @name Pad Definitions
  */
