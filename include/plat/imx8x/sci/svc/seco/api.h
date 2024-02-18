@@ -558,4 +558,3 @@ sc_err_t sc_seco_start_rng(sc_ipc_t ipc, sc_seco_rng_stat_t *status);
 #endif /* SC_SECO_API_H */
 
 /**@}*/
-

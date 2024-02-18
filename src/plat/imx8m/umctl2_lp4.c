@@ -1,22 +1,22 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
-#include <board/lp4_timing.h>
 #include <pb/delay.h>
-#include <pb/io.h>
+#include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <plat/imx8m/clock.h>
-#include <plat/regs.h>
-#include <plat/umctl2.h>
+#include <plat/imx8m/imx8m.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "umctl2.h"
+#include <board/lp4_timing.h>
 
 #define IMEM_OFFSET_ADDR         0x00050000
 #define DMEM_OFFSET_ADDR         0x00054000
@@ -68,10 +68,10 @@ static uint32_t umctl2_load_training_firmware(enum fw_type type)
     pr_to32 = DDR_TRAIN_CODE_BASE_ADDR + 4 * IMEM_OFFSET_ADDR;
 
     for (i = 0x0; i < imem_sz;) {
-        tmp32 = pb_read32(pr_from32);
-        pb_write16(tmp32 & 0x0000ffff, pr_to32);
+        tmp32 = mmio_read_32(pr_from32);
+        mmio_write_16(pr_to32, tmp32 & 0x0000ffff);
         pr_to32 += 4;
-        pb_write16((tmp32 >> 16) & 0x0000ffff, pr_to32);
+        mmio_write_16(pr_to32, (tmp32 >> 16) & 0x0000ffff);
         pr_to32 += 4;
         pr_from32 += 4;
         i += 4;
@@ -81,10 +81,10 @@ static uint32_t umctl2_load_training_firmware(enum fw_type type)
     pr_to32 = DDR_TRAIN_CODE_BASE_ADDR + 4 * DMEM_OFFSET_ADDR;
 
     for (i = 0x0; i < dmem_sz;) {
-        tmp32 = pb_read32(pr_from32);
-        pb_write16(tmp32 & 0x0000ffff, pr_to32);
+        tmp32 = mmio_read_32(pr_from32);
+        mmio_write_16(pr_to32, tmp32 & 0x0000ffff);
         pr_to32 += 4;
-        pb_write16((tmp32 >> 16) & 0x0000ffff, pr_to32);
+        mmio_write_16(pr_to32, (tmp32 >> 16) & 0x0000ffff);
         pr_to32 += 4;
         pr_from32 += 4;
         i += 4;
@@ -94,11 +94,11 @@ static uint32_t umctl2_load_training_firmware(enum fw_type type)
     pr_to32 = DDR_TRAIN_CODE_BASE_ADDR + 4 * IMEM_OFFSET_ADDR;
 
     for (i = 0x0; i < imem_sz;) {
-        tmp32 = (pb_read16(pr_to32) & 0x0000ffff);
+        tmp32 = (mmio_read_16(pr_to32) & 0x0000ffff);
         pr_to32 += 4;
-        tmp32 += ((pb_read16(pr_to32) & 0x0000ffff) << 16);
+        tmp32 += ((mmio_read_16(pr_to32) & 0x0000ffff) << 16);
 
-        if (tmp32 != pb_read32(pr_from32))
+        if (tmp32 != mmio_read_32(pr_from32))
             return PB_ERR;
 
         pr_from32 += 4;
@@ -110,11 +110,11 @@ static uint32_t umctl2_load_training_firmware(enum fw_type type)
     pr_to32 = DDR_TRAIN_CODE_BASE_ADDR + 4 * DMEM_OFFSET_ADDR;
 
     for (i = 0x0; i < dmem_sz;) {
-        tmp32 = (pb_read16(pr_to32) & 0x0000ffff);
+        tmp32 = (mmio_read_16(pr_to32) & 0x0000ffff);
         pr_to32 += 4;
-        tmp32 += ((pb_read16(pr_to32) & 0x0000ffff) << 16);
+        tmp32 += ((mmio_read_16(pr_to32) & 0x0000ffff) << 16);
 
-        if (tmp32 != pb_read32(pr_from32))
+        if (tmp32 != mmio_read_32(pr_from32))
             return PB_ERR;
 
         pr_from32 += 4;
@@ -130,7 +130,7 @@ static void umctl2_poll_pmu_message_ready(void)
     volatile unsigned int reg;
 
     do {
-        reg = pb_read32((IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0004));
+        reg = mmio_read_32((IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0004));
     } while (reg & 0x1);
 }
 
@@ -138,13 +138,13 @@ static void umctl2_ack_pmu_message_recieve(void)
 {
     volatile unsigned int reg;
 
-    pb_write32(0x0, IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0031);
+    mmio_write_32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0031, 0x0);
 
     do {
-        reg = pb_read32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0004);
+        reg = mmio_read_32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0004);
     } while (!(reg & 0x1));
 
-    pb_write32(0x1, IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0031);
+    mmio_write_32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0031, 0x1);
 }
 
 static unsigned int umctl2_get_mail(void)
@@ -152,7 +152,7 @@ static unsigned int umctl2_get_mail(void)
     volatile unsigned int reg;
     umctl2_poll_pmu_message_ready();
 
-    reg = pb_read32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0032);
+    reg = mmio_read_32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0032);
 
     umctl2_ack_pmu_message_recieve();
 
@@ -165,9 +165,9 @@ static unsigned int umctl2_get_stream_message(void)
 
     umctl2_poll_pmu_message_ready();
 
-    reg = pb_read32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0032);
+    reg = mmio_read_32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0032);
 
-    reg2 = pb_read32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0034);
+    reg2 = mmio_read_32(IP2APB_DDRPHY_IPS_BASE_ADDR(0) + 4 * 0xd0034);
 
     reg2 = (reg2 << 16) | reg;
 
@@ -183,7 +183,6 @@ static void umctl2_decode_streaming_message(void)
 
     string_index = umctl2_get_stream_message();
 
-    UNUSED(arg);
     while (i < (string_index & 0xffff)) {
         arg = umctl2_get_stream_message();
         LOG_DBG("    arg[%d] = 0x%x", i, arg);
@@ -215,96 +214,95 @@ static void dram_pll_init(uint32_t data_rate)
     volatile uint32_t val;
 
     /* Bypass */
-    pb_setbit32(SSCG_PLL_BYPASS1_MASK, 0x30360060);
-    pb_setbit32(SSCG_PLL_BYPASS2_MASK, 0x30360060);
+    mmio_clrsetbits_32(0x30360060, 0, SSCG_PLL_BYPASS1_MASK);
+    mmio_clrsetbits_32(0x30360060, 0, SSCG_PLL_BYPASS2_MASK);
 
     switch (data_rate) {
     case 3200: {
-        val = pb_read32(0x30360068);
+        val = mmio_read_32(0x30360068);
         val &= ~(SSCG_PLL_OUTPUT_DIV_VAL_MASK | SSCG_PLL_FEEDBACK_DIV_F2_MASK |
                  SSCG_PLL_FEEDBACK_DIV_F1_MASK | SSCG_PLL_REF_DIVR2_MASK);
         val |= SSCG_PLL_OUTPUT_DIV_VAL(0);
         val |= SSCG_PLL_FEEDBACK_DIV_F2_VAL(11);
         val |= SSCG_PLL_FEEDBACK_DIV_F1_VAL(39);
         val |= SSCG_PLL_REF_DIVR2_VAL(29);
-        pb_write32(val, 0x30360068);
+        mmio_write_32(0x30360068, val);
     } break;
     case 667: {
-        val = pb_read32(0x30360068);
+        val = mmio_read_32(0x30360068);
         val &= ~(SSCG_PLL_OUTPUT_DIV_VAL_MASK | SSCG_PLL_FEEDBACK_DIV_F2_MASK |
                  SSCG_PLL_FEEDBACK_DIV_F1_MASK | SSCG_PLL_REF_DIVR2_MASK);
         val |= SSCG_PLL_OUTPUT_DIV_VAL(3);
         val |= SSCG_PLL_FEEDBACK_DIV_F2_VAL(8);
         val |= SSCG_PLL_FEEDBACK_DIV_F1_VAL(45);
         val |= SSCG_PLL_REF_DIVR2_VAL(30);
-        pb_write32(val, 0x30360068);
+        mmio_write_32(0x30360068, val);
     } break;
     default:
         break;
     }
 
     /* Clear power down bit */
-    pb_clrbit32(SSCG_PLL_PD_MASK, 0x30360060);
+    mmio_clrsetbits_32(0x30360060, SSCG_PLL_PD_MASK, 0);
     /* Eanble ARM_PLL/SYS_PLL  */
-    pb_setbit32(SSCG_PLL_DRAM_PLL_CLKE_MASK, 0x30360060);
+    mmio_clrsetbits_32(0x30360060, 0, SSCG_PLL_DRAM_PLL_CLKE_MASK);
 
     /* Clear bypass */
-    pb_clrbit32(SSCG_PLL_BYPASS1_MASK, 0x30360060);
+    mmio_clrsetbits_32(0x30360060, SSCG_PLL_BYPASS1_MASK, 0);
     pb_delay_ms(1);
-    pb_clrbit32(SSCG_PLL_BYPASS2_MASK, 0x30360060);
+    mmio_clrsetbits_32(0x30360060, SSCG_PLL_BYPASS2_MASK, 0);
 
     /* Wait lock */
-    while (!(pb_read32(0x30360060) & SSCG_PLL_LOCK_MASK)) {
-        __asm__("nop");
-    }
+    while (!(mmio_read_32(0x30360060) & SSCG_PLL_LOCK_MASK))
+        ;
 }
 
-uint32_t umctl2_init(void)
+int umctl2_init(void)
 {
     volatile uint32_t tmp;
 
-    pb_write32(0x8F00000F, SRC_DDRC_RCR_ADDR + 0x04);
-    pb_write32(0x8F00000F, SRC_DDRC_RCR_ADDR);
-    pb_write32(0x8F000000, SRC_DDRC_RCR_ADDR + 0x04);
+    mmio_write_32(SRC_DDRC_RCR_ADDR + 0x04, 0x8F00000F);
+    mmio_write_32(SRC_DDRC_RCR_ADDR, 0x8F00000F);
+    mmio_write_32(SRC_DDRC_RCR_ADDR + 0x04, 0x8F000000);
 
-    pb_write32(0x0000ffff, 0x303A00EC); /* PGC_CPU_MAPPING */
-    pb_setbit32((1 << 5), 0x303A00F8); /* PU_PGC_SW_PUP_REQ */
+    mmio_write_32(0x303A00EC, 0x0000ffff); /* PGC_CPU_MAPPING */
+    mmio_clrsetbits_32(0x303A00F8, 0, (1 << 5)); /* PU_PGC_SW_PUP_REQ */
 
     dram_pll_init(3200);
 
-    pb_write32(0x8F000006, SRC_DDRC_RCR_ADDR);
+    mmio_write_32(SRC_DDRC_RCR_ADDR, 0x8F000006);
 
     /* Load phy timing config */
 
     for (uint32_t n = 0; n < ARRAY_SIZE(umctl2_ddrc_cfg); n++) {
-        pb_write32(umctl2_ddrc_cfg[n].val, umctl2_ddrc_cfg[n].reg);
+        mmio_write_32(umctl2_ddrc_cfg[n].reg, umctl2_ddrc_cfg[n].val);
     }
 
-    pb_write32(0x8F000004, SRC_DDRC_RCR_ADDR);
-    pb_write32(0x8F000000, SRC_DDRC_RCR_ADDR);
+    mmio_write_32(SRC_DDRC_RCR_ADDR, 0x8F000004);
+    mmio_write_32(SRC_DDRC_RCR_ADDR, 0x8F000000);
 
-    pb_write32(0x00, DDRC_DBG1(0));
-    pb_write32(0x11, DDRC_RFSHCTL3(0));
-    pb_write32(0xa8, DDRC_PWRCTL(0));
+    mmio_write_32(DDRC_DBG1(0), 0x00);
+    mmio_write_32(DDRC_RFSHCTL3(0), 0x11);
+    mmio_write_32(DDRC_PWRCTL(0), 0xa8);
 
     do {
-        tmp = pb_read32(DDRC_STAT(0));
+        tmp = mmio_read_32(DDRC_STAT(0));
     } while ((tmp & 0x33f) != 0x223);
 
-    pb_write32(0x01, DDRC_DDR_SS_GPR0); /* LPDDR4 mode */
+    mmio_write_32(DDRC_DDR_SS_GPR0, 0x01); /* LPDDR4 mode */
 
-    pb_write32(0x00, DDRC_SWCTL(0));
+    mmio_write_32(DDRC_SWCTL(0), 0x00);
 
-    tmp = pb_read32(DDRC_MSTR2(0));
+    tmp = mmio_read_32(DDRC_MSTR2(0));
 
     if (tmp == 0x2)
-        pb_write32(0x210, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x210);
     else if (tmp == 0x1)
-        pb_write32(0x110, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x110);
     else
-        pb_write32(0x10, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x10);
 
-    pb_write32(0x01, DDRC_SWCTL(0));
+    mmio_write_32(DDRC_SWCTL(0), 0x01);
 
     for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_ddrphy_cfg); n++) {
         dwc_ddrphy_apb_wr(lpddr4_ddrphy_cfg[n].reg, lpddr4_ddrphy_cfg[n].val);
@@ -402,71 +400,71 @@ uint32_t umctl2_init(void)
      */
 
     do {
-        tmp = pb_read32(DDRPHY_CalBusy(0));
+        tmp = mmio_read_32(DDRPHY_CalBusy(0));
     } while ((tmp & 0x1));
 
     LOG_DBG("ddrphy calibration done");
 
-    pb_write32(0x00, DDRC_SWCTL(0));
+    mmio_write_32(DDRC_SWCTL(0), 0x00);
 
-    tmp = pb_read32(DDRC_MSTR2(0));
+    tmp = mmio_read_32(DDRC_MSTR2(0));
 
     if (tmp == 0x2)
-        pb_write32(0x230, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x230);
     else if (tmp == 0x1)
-        pb_write32(0x130, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x130);
     else
-        pb_write32(0x030, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x030);
 
-    pb_write32(0x01, DDRC_SWCTL(0));
+    mmio_write_32(DDRC_SWCTL(0), 0x01);
 
     /* step18 wait DFISTAT.dfi_init_complete to 1 */
     do {
-        tmp = pb_read32(DDRC_DFISTAT(0));
+        tmp = mmio_read_32(DDRC_DFISTAT(0));
     } while ((tmp & 0x1) == 0x0);
 
-    pb_write32(0x00, DDRC_SWCTL(0));
+    mmio_write_32(DDRC_SWCTL(0), 0x00);
 
-    tmp = pb_read32(DDRC_MSTR2(0));
+    tmp = mmio_read_32(DDRC_MSTR2(0));
 
     if (tmp == 0x2) {
-        pb_write32(0x210, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x210);
         /* set DFIMISC.dfi_init_complete_en again */
-        pb_write32(0x211, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x211);
     } else if (tmp == 0x1) {
-        pb_write32(0x110, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x110);
         /* set DFIMISC.dfi_init_complete_en again */
-        pb_write32(0x111, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x111);
     } else {
         /* clear DFIMISC.dfi_init_complete_en */
-        pb_write32(0x10, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x10);
         /* set DFIMISC.dfi_init_complete_en again */
-        pb_write32(0x11, DDRC_DFIMISC(0));
+        mmio_write_32(DDRC_DFIMISC(0), 0x11);
     }
 
     /* step23 [5]selfref_sw=0; */
-    pb_write32(0x08, DDRC_PWRCTL(0));
+    mmio_write_32(DDRC_PWRCTL(0), 0x08);
     /* step24 sw_done=1 */
-    pb_write32(0x01, DDRC_SWCTL(0));
+    mmio_write_32(DDRC_SWCTL(0), 0x01);
 
-    pb_write32(1, DDRC_DFIPHYMSTR(0));
+    mmio_write_32(DDRC_DFIPHYMSTR(0), 1);
     /* step25 wait SWSTAT.sw_done_ack to 1 */
     do {
-        tmp = pb_read32(DDRC_SWSTAT(0));
+        tmp = mmio_read_32(DDRC_SWSTAT(0));
     } while ((tmp & 0x1) == 0x0);
 
-    pb_write32(0x01, DDRC_DFIPHYMSTR(0));
+    mmio_write_32(DDRC_DFIPHYMSTR(0), 0x01);
 
     /* wait STAT.operating_mode([1:0] for ddr3) to normal state */
     do {
-        tmp = pb_read32(DDRC_STAT(0));
+        tmp = mmio_read_32(DDRC_STAT(0));
     } while ((tmp & 0x3) != 0x1);
 
     /* step26 */
-    pb_write32(0x10, DDRC_RFSHCTL3(0));
+    mmio_write_32(DDRC_RFSHCTL3(0), 0x10);
 
     /* enable port 0 */
-    pb_write32(0x01, DDRC_PCTRL_0(0));
+    mmio_write_32(DDRC_PCTRL_0(0), 0x01);
 
     /* Copy all settings and results to 0x40000000. This is needed for
      * ATF and run time changes of transfer speed / voltage */

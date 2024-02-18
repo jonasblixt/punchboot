@@ -180,7 +180,6 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         }
     } break;
     case USB_SET_ADDRESS: {
-        // LOG_DBG("Set address 0x%02x", setup->wValue);
         rc = hal_ops->set_address(setup->wValue);
 
         if (rc != PB_OK)
@@ -192,29 +191,14 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
         LOG_DBG("Set configuration");
         hal_ops->ep0_xfer_zlp(USB_EP0_IN);
 
-        for (int n = 0; n < cls_config->desc->interface.bNumEndpoints; n++) {
-            usb_ep_t ep = (cls_config->desc->eps[n].bEndpointAddress & 0x7f) * 2;
-            if (cls_config->desc->eps[n].bEndpointAddress & 0x80)
-                ep++;
+        rc = hal_ops->set_configuration(cls_config->desc->eps,
+                                        cls_config->desc->interface.bNumEndpoints);
 
-            enum usb_ep_type ep_type = cls_config->desc->eps[n].bmAttributes + 1;
-            uint16_t max_pkt_sz = cls_config->desc->eps[n].wMaxPacketSize;
-
-            LOG_DBG("Configuring %s (0x%x), sz=%u, type=%u",
-                    ep_to_str(ep),
-                    cls_config->desc->eps[n].bEndpointAddress,
-                    max_pkt_sz,
-                    cls_config->desc->eps[n].bmAttributes);
-
-            rc = hal_ops->configure_ep(ep, ep_type, max_pkt_sz);
-
-            if (rc != PB_OK) {
-                LOG_ERR("Configuration failed (%i)", rc);
-                // Here we should stall the endpoint
-                break;
-            }
+        if (rc != PB_OK) {
+            LOG_ERR("Configuration failed (%i)", rc);
+            // Here we should stall the endpoint
+            break;
         }
-
         enumerated = true;
     } break;
     case USB_SET_IDLE: {
@@ -252,7 +236,7 @@ int usbd_init_hal_ops(const struct usbd_hal_ops *ops)
     hal_ops = ops;
 
     if (!hal_ops->xfer_start || !hal_ops->xfer_complete || !hal_ops->init ||
-        !hal_ops->configure_ep || !hal_ops->set_address) {
+        !hal_ops->set_configuration || !hal_ops->set_address) {
         return -PB_ERR_PARAM;
     }
 

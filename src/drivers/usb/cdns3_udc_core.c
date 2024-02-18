@@ -76,6 +76,7 @@
 #define EP_CMD_ERDY                        BIT(3)
 #define EP_CMD_REQ_CMPL                    BIT(5)
 #define EP_CMD_DRDY                        BIT(6)
+#define EP_CMD_DFLUSH                      BIT(7)
 
 #define CDNS_USB_EP_STS_EN                 (0x20034)
 #define EP_STS_EN_SETUP                    BIT(0)
@@ -269,8 +270,8 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
         struct cdns_trb *trb_p =
             (struct cdns_trb *)(uintptr_t)mmio_read_32(base + CDNS_USB_EP_TRADDR);
         arch_invalidate_cache_range((uintptr_t)trb_p, sizeof(struct cdns_trb));
-        LOG_DBG("  addr=%x, len=%zu, flags=%x", trb_p->addr, trb_p->length & 0xffff, trb_p->flags);
-        LOG_DBG("  trb_base=%p, trb_p=0x%x", (void *)trb, trb_p);
+        LOG_DBG("  addr=%x, len=%u, flags=%x", trb_p->addr, trb_p->length & 0xffff, trb_p->flags);
+        LOG_DBG("  trb_base=%p, trb_p=0x%p", (void *)trb, trb_p);
 
         // Re-start DMA
         mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);
@@ -300,10 +301,12 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
 
 void cdns3_udc_core_xfer_cancel(usb_ep_t ep)
 {
-    (void)ep;
+    select_ep(ep);
 
-    // Not needed in this driver since we have dedicated descriptors
-    // for ep0
+    mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DFLUSH);
+
+    while (mmio_read_32(base + CDNS_USB_EP_CMD) & EP_CMD_DFLUSH)
+        ;
 }
 
 static void cdns_process_irq(void)
@@ -361,23 +364,39 @@ int cdns3_udc_core_poll_setup_pkt(struct usb_setup_packet *pkt)
         return -PB_ERR_AGAIN;
 }
 
-int cdns3_udc_core_configure_ep(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_sz)
+int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_t no_of_eps)
 {
-    uint32_t ep_num = ep / 2;
-    LOG_INFO("ep=%u, type=%i, pkt_sz=%zu", ep, ep_type, pkt_sz);
+    usb_ep_t ep;
+    uint16_t max_pkt_sz;
+    enum usb_ep_type ep_type;
+    uint32_t ep_num;
 
     // TODO's
     //  o Hard coded bulk EP type
     //  o Enable both IN/OUT INT
-    //
-    select_ep(ep);
-    mmio_write_32(base + CDNS_USB_EP_CFG,
-                  EP_CFG_ENABLE | EP_CFG_TYPE(2) | EP_CFG_MAX_PKT_SZ(pkt_sz));
 
-    mmio_write_32(base + CDNS_USB_EP_STS_EN, EP_STS_EN_DESCMISEN | EP_STS_EN_TRBERREN);
+    for (size_t n = 0; n < no_of_eps; n++) {
+        ep_num = (eps[n].bEndpointAddress & 0x7f);
 
-    /* Enable interrupt for EP0 in/out */
-    mmio_write_32(base + CDNS_USB_EP_IEN, (1 << (16 + ep_num)) | (1 << ep_num));
+        ep = (eps[n].bEndpointAddress & 0x7f) * 2;
+        if (eps[n].bEndpointAddress & 0x80)
+            ep++;
+
+        ep_type = eps[n].bmAttributes;
+        max_pkt_sz = eps[n].wMaxPacketSize;
+
+        LOG_INFO("ep=%u, type=%i, pkt_sz=%u", ep, ep_type, max_pkt_sz);
+
+        select_ep(ep);
+        mmio_write_32(base + CDNS_USB_EP_CFG,
+                      EP_CFG_ENABLE | EP_CFG_TYPE(2) | EP_CFG_MAX_PKT_SZ(max_pkt_sz));
+
+        mmio_write_32(base + CDNS_USB_EP_STS_EN, EP_STS_EN_DESCMISEN | EP_STS_EN_TRBERREN);
+
+        /* Enable interrupt for EP0 in/out */
+        mmio_write_32(base + CDNS_USB_EP_IEN, (1 << (16 + ep_num)) | (1 << ep_num));
+    }
+
     return PB_OK;
 }
 

@@ -1,8 +1,7 @@
-
 /**
  * Punch BOOT
  *
- * Copyright (C) 2018 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -10,10 +9,9 @@
 
 MEMORY
 {
+    ram (rx)  : ORIGIN = 0x7E1000, LENGTH = 224k
     umctl2 (rx) : ORIGIN = 0x40000000, LENGTH = 128K
-    pbram (rx)  : ORIGIN = 0x7E1000, LENGTH = 256k
-    pbram2 (rx) : ORIGIN = 0x180000, LENGTH = 32K
-    dram (rx)   : ORIGIN = 0x40060000, LENGTH = 16M
+    buffers (rx)   : ORIGIN = 0x40060000, LENGTH = 16M
 }
 
 /* Used to store run-time training data for the dram -controller
@@ -21,7 +19,7 @@ MEMORY
 
 SECTIONS
 {
-    .umctl (NOLOAD): 
+    .umctl (NOLOAD):
     {
         PROVIDE(_umctl2_start = .);
         *(.umctl2 .umctl2*)

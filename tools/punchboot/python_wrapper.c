@@ -415,7 +415,7 @@ static PyObject *slc_get_active_keys(PyObject *self, PyObject *Py_UNUSED(args))
 
     for (int i = 0; i < PB_MAX_KEYS; i++) {
         if (active_keys[i]) {
-            PyList_Append(keylist, PyLong_FromLong(active_keys[i]));
+            PyList_Append(keylist, PyLong_FromUnsignedLong(active_keys[i]));
         }
     }
 
@@ -446,7 +446,7 @@ static PyObject *slc_get_revoked_keys(PyObject *self, PyObject *Py_UNUSED(args))
 
     for (int i = 0; i < PB_MAX_KEYS; i++) {
         if (revoked_keys[i]) {
-            PyList_Append(keylist, PyLong_FromLong(revoked_keys[i]));
+            PyList_Append(keylist, PyLong_FromUnsignedLong(revoked_keys[i]));
         }
     }
 
@@ -624,12 +624,15 @@ static PyObject *part_read(PyObject *self, PyObject *args, PyObject *kwds)
 static PyObject *part_erase(PyObject *self, PyObject *args, PyObject *kwds)
 {
     struct pb_session *session = (struct pb_session *)self;
-    static char *kwlist[] = { "uuid", NULL };
+    static char *kwlist[] = { "uuid", "start_lba", "count", NULL };
     uint8_t *part_uu = NULL;
     size_t part_uu_len = 0;
+    unsigned int start_lba = 0;
+    unsigned int block_count = 0;
     int rc;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "y#", kwlist, &part_uu, &part_uu_len)) {
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwds, "y#II", kwlist, &part_uu, &part_uu_len, &start_lba, &block_count)) {
         return NULL;
     }
 
@@ -637,7 +640,7 @@ static PyObject *part_erase(PyObject *self, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    rc = pb_api_partition_erase(session->ctx, part_uu);
+    rc = pb_api_partition_erase(session->ctx, part_uu, start_lba, block_count);
 
     if (rc != PB_RESULT_OK) {
         return pb_exception_from_rc(rc);

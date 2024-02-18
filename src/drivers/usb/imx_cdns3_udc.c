@@ -100,7 +100,7 @@ int imx_cdns3_udc_init(const struct imx_cdns3_udc_config *cfg_)
         .xfer_complete = cdns3_udc_core_xfer_complete,
         .xfer_cancel = cdns3_udc_core_xfer_cancel,
         .poll_setup_pkt = cdns3_udc_core_poll_setup_pkt,
-        .configure_ep = cdns3_udc_core_configure_ep,
+        .set_configuration = cdns3_udc_set_configuration,
         .set_address = cdns3_udc_core_set_address,
         .ep0_xfer_zlp = cdns3_udc_core_xfer_zlp,
     };

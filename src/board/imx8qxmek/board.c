@@ -17,7 +17,7 @@
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/usb/imx_cdns3_udc.h>
-#include <drivers/usb/imx_ehci.h>
+#include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <drivers/usb/usbd.h>

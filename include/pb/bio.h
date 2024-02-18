@@ -66,7 +66,7 @@ typedef unsigned int lba_t;
 
 typedef int (*bio_read_t)(bio_dev_t dev, lba_t lba, size_t length, void *buf);
 typedef int (*bio_write_t)(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
-typedef int (*bio_erase_t)(bio_dev_t dev);
+typedef int (*bio_erase_t)(bio_dev_t dev, lba_t first_lba, size_t count);
 typedef int (*bio_call_t)(bio_dev_t dev, int param);
 
 /**
@@ -329,12 +329,14 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf);
  * Erase block device
  *
  * @param[in] dev Block device handle
+ * @param[in] first_lba First block to erase
+ * @param[in] count Number of blocks to erase
  *
  * @return -PB_ERR_NOT_SUPPORTED, when there is no underlying write function
  *         -PB_ERR_IO, Driver I/O errors
  *         -PB_TIMEOUT, Driverr timeouts
  */
-int bio_erase(bio_dev_t dev);
+int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count);
 
 /**
  * Install partition table on a device

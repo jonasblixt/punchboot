@@ -8,11 +8,14 @@ SED = $(shell which sed)
 
 PB_ENTRY     = 0x80001000
 
+cflags-y += -DBOARD_RAM_BASE=0x80000000
+cflags-y += -DBOARD_RAM_END=0xc0000000
+
 src-y += $(BOARD)/board.c
 
 imx6ul_image: $(BUILD_DIR)/$(TARGET).bin
 	@$(MKIMAGE) -n $(BOARD)/imximage.cfg -T imximage -e $(PB_ENTRY) \
-				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx 
+				-d $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).imx
 
 	$(eval FINAL_OUTPUT := $(BUILD_DIR)/$(TARGET).imx)
 ##
@@ -56,4 +59,3 @@ imx6ul_sign_image: imx6ul_image
 
 plat-$(CONFIG_IMX6UL_CREATE_IMX_IMAGE) += imx6ul_image
 plat-$(CONFIG_IMX6UL_SIGN_IMAGE) += imx6ul_sign_image
-

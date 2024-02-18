@@ -7,8 +7,6 @@
 #ifndef XLAT_TABLES_PRIVATE_H
 #define XLAT_TABLES_PRIVATE_H
 
-#include <platform_defs.h>
-
 #include <xlat_tables_arch.h>
 
 /* Alias to retain compatibility with the old #define name */

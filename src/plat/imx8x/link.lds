@@ -28,7 +28,7 @@ SECTIONS
     .imx8x_reset :
     {
         PROVIDE (_imx8x_start = .);
-        *(.text.imx8x_reset)
+        KEEP(*(.text.imx8x_reset))
         . = ALIGN(8);
         PROVIDE (_imx8x_end = .);
     } > reset

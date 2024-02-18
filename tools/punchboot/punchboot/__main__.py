@@ -1,18 +1,21 @@
 """Punchboot CLI."""
-import click
+import contextlib
+import getopt
 import logging
+import os
+import pathlib
 import sys
 import uuid
-import pathlib
-import os
-import getopt
-import subprocess
-import punchboot
-from importlib.metadata import version
 from functools import update_wrapper
+from importlib.metadata import version
 from typing import Iterable, Optional, Union
+
+import click
 from click.shell_completion import CompletionItem
-from . import Session, Partition, SLC, list_usb_devices
+
+import punchboot
+
+from . import Partition, Session, list_usb_devices
 
 logger = logging.getLogger("pb")
 
@@ -30,7 +33,7 @@ def _completion_helper_init_session() -> Session:
     initialize the Punchboot Session object.
     """
     cmd_line = os.environ["COMP_WORDS"].split()[1:]
-    opts, args = getopt.getopt(cmd_line, "t:u:s:", ["transport=", "device-uuid=", "socket="])
+    opts, _ = getopt.getopt(cmd_line, "t:u:s:", ["transport=", "device-uuid=", "socket="])
     _skt_path: Union[str, None] = None
     _dev_uuid: Union[uuid.UUID, None] = None
     for o, a in opts:
@@ -73,7 +76,7 @@ class PBPartType(click.ParamType):
                 _parts = [_p for _p in _parts if _p.bootable]
 
             return [CompletionItem(str(_p.uuid), help=_p.description) for _p in _parts]
-        except Exception as e:
+        except Exception:
             return []  # Intentionally suppress all exceptions
 
 
@@ -83,12 +86,12 @@ def _print_version(ctx: click.Context, param: click.Option, value: bool):
         exit(0)
 
 
+def _get_board_name(uu: uuid.UUID) -> str:
+    return Session(device_uuid=uu).device_get_boardname()
+
+
 def _dev_completion_helper(ctx: click.Context, param: click.Option, incomplete):
     """Completion handler for USB attached devices."""
-
-    def _get_board_name(uu: uuid.UUID) -> str:
-        return Session(device_uuid=uu).device_get_boardname()
-
     return [CompletionItem(str(_uu), help=_get_board_name(_uu)) for _uu in list_usb_devices()]
 
 
@@ -182,7 +185,7 @@ def pb_session(f):
     "-u",
     "--device-uuid",
     type=uuid.UUID,
-    default=None,
+    default=lambda: os.environ.get("PB_DEVICE_UUID"),
     expose_value=True,
     shell_complete=_dev_completion_helper,
     help="Select device by UUID (Can be used together with USB transport)",
@@ -228,10 +231,8 @@ def dev_reset(ctx: click.Context, s: Session):
 @click.pass_context
 def dev_show(ctx: click.Context, s: Session):
     """Show device info."""
-    try:
+    with contextlib.suppress(punchboot.NotAuthenticatedError):
         click.echo(f"{'Bootloader version:':<20}{s.device_get_punchboot_version()}")
-    except punchboot.NotAuthenticatedError:
-        pass
     click.echo(f"{'Device UUID:':<20}{s.device_get_uuid()}")
     click.echo(f"{'Board name:':<20}{s.device_get_boardname()}")
 
@@ -325,7 +326,7 @@ def part_list(ctx: click.Context, s: Session):
     click.echo(f"{'--------------':<37}   {'-----':<8}   {'----':<7}   {'----':<16}")
     for part in s.part_get_partitions():
         click.echo(
-            f"{str(part.uuid):<37}   {_flag_helper(part):<8}   {_size_helper(part):<7}   {part.description:<16}"
+                f"{str(part.uuid):<37}   {_flag_helper(part):<8}   {_size_helper(part):<7}   {part.description:<16}"  # noqa: E501
         )
 
 
@@ -348,7 +349,6 @@ def part_install(ctx: click.Context, s: Session, partition: uuid.UUID, variant: 
     """Install partition table."""
     s.part_table_install(partition, variant)
 
-
 @part.command("erase")
 @click.argument(
     "part_uuid",
@@ -360,7 +360,10 @@ def part_install(ctx: click.Context, s: Session, partition: uuid.UUID, variant: 
 def part_erase(ctx: click.Context, s: Session, part_uuid: uuid.UUID):
     """Erase partition."""
     logger.debug(f"Erasing partition {part_uuid}...")
-    s.part_erase(part_uuid)
+    def _update_pgbar(total: int, remaining: int):
+        click.echo(f"\rErasing {total-remaining}/{total}", nl=False)
+    s.part_erase(part_uuid, _update_pgbar)
+    click.echo("")
 
 
 @part.command("write")
@@ -393,15 +396,15 @@ def part_read(ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uui
 
 
 @part.command("verify")
+@click.argument("file", type=click.Path(path_type=pathlib.Path), required=True)
 @click.argument(
     "part_uuid",
     type=PBPartType(),
     required=True,
 )
-@click.argument("file", type=click.Path(path_type=pathlib.Path), required=True)
 @pb_session
 @click.pass_context
-def part_verify(ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uuid.UUID):
+def part_verify(ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathlib.Path):
     """Verify the contents of a partition."""
     logger.debug(f"Verifying {file} against contents of partition {part_uuid}...")
     s.part_verify(file, part_uuid)
@@ -557,7 +560,7 @@ def boot_disable(ctx: click.Context, s: Session):
 
 _slc_warning: str = """WARNING: This is a permanent change, writing fuses can not be reverted. This could brick your device.
 
-Are you sure?"""
+Are you sure?"""  # noqa: E501
 
 
 @cli.group()
@@ -572,8 +575,8 @@ def slc(ctx: click.Context):
 def slc_show(ctx: click.Context, s: Session):
     """Show SLC."""
     click.echo(f"Status: {s.slc_get_lifecycle().name}")
-    click.echo(f"Active keys: {', '.join(hex(k) for k in  s.slc_get_active_keys())}")
-    click.echo(f"Revoked keys: {', '.join(hex(k) for k in  s.slc_get_revoked_keys())}")
+    click.echo(f"Active keys: {', '.join(hex(k) for k in s.slc_get_active_keys())}")
+    click.echo(f"Revoked keys: {', '.join(hex(k) for k in s.slc_get_revoked_keys())}")
 
 
 @slc.command("configure")
@@ -651,6 +654,13 @@ def shell_completion_helper(ctx: click.Context):
     """
 
     click.echo(_help_text)
+
+
+@cli.command("list")
+def list_devices():
+    """List Punchboot devices attached over USB."""
+    for _uu in list_usb_devices():
+        click.echo(f"{_uu} -- {_get_board_name(_uu)}")
 
 
 if __name__ == "__main__":

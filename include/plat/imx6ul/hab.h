@@ -13,16 +13,26 @@
 #include <pb/pb.h>
 #include <stdint.h>
 
+#define HAB_RVT_BASE               0x00000100
+
+#define HAB_RVT_ENTRY              (*(uint32_t *)(HAB_RVT_BASE + 0x04))
+#define HAB_RVT_EXIT               (*(uint32_t *)(HAB_RVT_BASE + 0x08))
+#define HAB_RVT_CHECK_TARGET       (*(uint32_t *)(HAB_RVT_BASE + 0x0C))
+#define HAB_RVT_AUTHENTICATE_IMAGE (*(uint32_t *)(HAB_RVT_BASE + 0x10))
+#define HAB_RVT_REPORT_EVENT       (*(uint32_t *)(HAB_RVT_BASE + 0x20))
+#define HAB_RVT_REPORT_STATUS      (*(uint32_t *)(HAB_RVT_BASE + 0x24))
+#define HAB_RVT_FAILSAFE           (*(uint32_t *)(HAB_RVT_BASE + 0x28))
+
 /*
  * IVT header definitions
  * Security Reference Manual for i.MX 7Dual and 7Solo Applications Processors,
  * Rev. 0, 03/2017
  * Section : 6.7.1.1
  */
-#define IVT_HEADER_MAGIC 0xD1
-#define IVT_TOTAL_LENGTH 0x20
-#define IVT_HEADER_V1    0x40
-#define IVT_HEADER_V2    0x41
+#define IVT_HEADER_MAGIC           0xD1
+#define IVT_TOTAL_LENGTH           0x20
+#define IVT_HEADER_V1              0x40
+#define IVT_HEADER_V2              0x41
 
 struct __packed ivt_header {
     uint8_t magic;

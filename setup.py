@@ -1,9 +1,10 @@
 """Punchboot setuptools configuration."""
 
-import platform
 import os
-import sys
-from setuptools import setup, Extension  # type: ignore
+import platform
+from pathlib import Path
+
+from setuptools import Extension, setup  # type: ignore
 
 pb_base_path: str = "tools/punchboot"
 plat: str = platform.system()
@@ -28,8 +29,8 @@ else:
 
 
 _srcs = [
-    f"src/wire.c",
-    f"src/lib/bpak.c",
+    "src/wire.c",
+    "src/lib/bpak.c",
     f"{pb_base_path}/error.c",
     f"{pb_base_path}/api.c",
     f"{pb_base_path}/api_authentication.c",
@@ -53,9 +54,9 @@ if plat == "Linux":
 
 setup(
     name="punchboot",
-    version=open("version.txt").read().strip(),
+    version=Path("version.txt").read_text().strip(),
     description="Punchboot tools",
-    long_description=open("README.md").read(),
+    long_description=Path("README.md").read_text(),
     long_description_content_type="text/markdown",
     author="Jonas Blixt",
     author_email="jonpe960@gmail.com",

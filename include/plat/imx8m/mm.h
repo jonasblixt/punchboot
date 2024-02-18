@@ -1,0 +1,39 @@
+#ifndef INCLUDE_PLAT_IMX8M_MM_H
+#define INCLUDE_PLAT_IMX8M_MM_H
+
+#define IMX8M_GPT1_BASE         (0x302D0000)
+#define IMX8M_WDOG1_BASE        (0x30280000)
+#define IMX8M_UART1_BASE        (0x30860000)
+#define IMX8M_UART2_BASE        (0x30890000)
+#define IMX8M_UART3_BASE        (0x30880000)
+#define IMX8M_USB1_BASE         (0x38100000)
+#define IMX8M_USB1_PHY_BASE     (0x381F0040)
+#define IMX8M_CAAM_JR1_BASE     (0x30901000)
+#define IMX8M_USDHC1_BASE       (0x30B40000)
+#define IMX8M_USDHC2_BASE       (0x30B50000)
+#define IMX8M_OCOTP_BASE        (0x30350000)
+
+#define IMX8M_SRC_BASE          (0x30390000)
+#define IMX8M_SRC_SRSR          (0x3039005c)
+#define SRC_SRSR_TEMP_RST_B     BIT(9)
+#define SRC_SRSR_WDOG4_RST_B    BIT(8)
+#define SRC_SRSR_WDOG3_RST_B    BIT(7)
+#define SRC_SRSR_JTAG_SW_RST    BIT(6)
+#define SRC_SRSR_JTAG_RST_B     BIT(5)
+#define SRC_SRSR_WDOG1_RST_B    BIT(4)
+#define SRC_SRSR_IPP_USER_RST_B BIT(3)
+#define SRC_SRSR_CSU_RST_B      BIT(2)
+
+#define SRC_DDRC_RCR_ADDR       0x30391000
+#define SRC_DDRC2_RCR_ADDR      0x30391004
+
+#define DDRC_DDR_SS_GPR0        0x3d000000
+#define DDR_CSD1_BASE_ADDR      0x40000000
+#define DDRPHY_CalBusy(X)       (IP2APB_DDRPHY_IPS_BASE_ADDR(X) + 4 * 0x020097)
+
+#define CCM_ANALOG_DIGPROG      0x3036006C
+
+#define HAB_RVT_BASE            0x00000880
+#define IMX_CSU_BASE            (0x303e0000)
+
+#endif

@@ -1,5 +1,6 @@
 CONFIG_ARCH_ARMV8=y
 # CONFIG_ARCH_ARMV7 is not set
+# CONFIG_ARCH_ARMV7M is not set
 CONFIG_ARMV8_EL3=y
 
 #
@@ -35,7 +36,7 @@ CONFIG_IMX8X_SIGN_IMAGE=y
 # Generic options
 #
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
-CONFIG_LOGLEVEL=2
+CONFIG_LOGLEVEL=3
 CONFIG_ENABLE_WATCHDOG=y
 CONFIG_PRINT_BOOT_BANNER=y
 CONFIG_WATCHDOG_TIMEOUT=5
@@ -47,6 +48,8 @@ CONFIG_CRYPTO_MAX_DSA_OPS=1
 CONFIG_BIO_CORE=y
 CONFIG_BIO_MAX_DEVS=32
 # CONFIG_SELF_TEST is not set
+CONFIG_EXECUTE_IN_RAM=y
+# CONFIG_EXECUTE_IN_FLASH is not set
 # end of Generic options
 
 #
@@ -56,6 +59,7 @@ CONFIG_OPTIMIZE="2"
 # CONFIG_DEBUG_SYMBOLS is not set
 # CONFIG_STACK_USAGE is not set
 CONFIG_STACK_SIZE_KiB=16
+CONFIG_LINK_FILE="src/link.lds"
 # end of Build configuration
 
 #
@@ -65,6 +69,7 @@ CONFIG_BOOT_CORE=y
 CONFIG_BOOT_BPAK_IMAGE_HELPERS=y
 CONFIG_BOOT_AB_DRIVER=y
 CONFIG_BOOT_LINUX=y
+# CONFIG_BOOT_ARMV7M_BAREMETAL is not set
 CONFIG_BOOT_LOAD_CHUNK_kB=4096
 # end of Boot
 
@@ -80,6 +85,12 @@ CONFIG_DRIVERS_IMX_CAAM=y
 # end of Crypto
 
 #
+# Filesystem
+#
+# CONFIG_LITTLE_FS is not set
+# end of Filesystem
+
+#
 # Fusebox
 #
 CONFIG_DRIVERS_FUSE_TEST=y
@@ -91,6 +102,12 @@ CONFIG_DRIVERS_FUSE_TEST=y
 #
 CONFIG_DRIVERS_IMX_GPIO=y
 # end of GPIO
+
+#
+# Memory Controller Drivers
+#
+# CONFIG_IMX_FLEXSPI is not set
+# end of Memory Controller Drivers
 
 #
 # MMC Host drivers
@@ -108,6 +125,7 @@ CONFIG_IMX_USDHC=y
 # Partition table drivers
 #
 CONFIG_PARTITION_GPT=y
+# CONFIG_PARTITION_STATIC is not set
 # end of Partition table drivers
 
 #
@@ -128,9 +146,11 @@ CONFIG_DRIVERS_IMX_LPUART=y
 #
 CONFIG_DRIVER_USB_DEVICE=y
 # CONFIG_DRIVER_IMX_USB2_PHY is not set
-# CONFIG_DRIVER_IMX_EHCI is not set
+# CONFIG_DRIVER_IMX_CI_UDC is not set
 # CONFIG_DRIVER_IMX_USBDCD is not set
 CONFIG_DRIVER_IMX_CDNS3_UDC=y
+# CONFIG_DRIVER_IMX_DWC3_UDC is not set
+# CONFIG_DRIVER_IMX8M_PHY is not set
 CONFIG_DRIVER_USB_PB_CLS=y
 # end of USB
 

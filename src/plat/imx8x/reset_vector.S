@@ -17,4 +17,3 @@
 _imx8x_reset:
     b _reset
     b .
-

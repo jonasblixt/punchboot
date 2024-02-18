@@ -246,8 +246,9 @@ static int cmd_auth(void)
 {
     int rc = -PB_ERR_NOT_IMPLEMENTED;
 
+#if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
     struct pb_command_authenticate *auth_cmd = (struct pb_command_authenticate *)cmd.request;
-
+#endif
     pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
 
 #ifdef CONFIG_CM_AUTH_TOKEN
@@ -420,7 +421,7 @@ static int cmd_part_verify(void)
             break;
         }
 
-        rc = hash_update(buffer[buffer_id], chunk_len);
+        rc = hash_update_async(buffer[buffer_id], chunk_len);
 
         if (rc != PB_OK) {
             LOG_ERR("Hash update error");
@@ -462,13 +463,13 @@ static int cmd_part_verify(void)
 
 static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
 {
-    LOG_DBG("Erase part");
+    LOG_DBG("Erase: lba=%" PRIu32 " count=%" PRIu32, erase_cmd->start_lba, erase_cmd->block_count);
     bio_dev_t dev = bio_get_part_by_uu(erase_cmd->uuid);
 
     if (dev < 0)
         return dev;
 
-    return bio_erase(dev);
+    return bio_erase(dev, erase_cmd->start_lba, erase_cmd->block_count);
 }
 
 static int cmd_part_tbl_read(void)
@@ -550,7 +551,7 @@ static int cmd_slc_read(void)
     slc = slc_read_status();
 
     if (slc < 0) {
-        rc = slc;
+        return slc;
     } else {
         slc_status.slc = slc;
         rc = PB_OK;
@@ -558,6 +559,9 @@ static int cmd_slc_read(void)
     pb_wire_init_result2(&result, error_to_wire(rc), &slc_status, sizeof(slc_status));
 
     cfg->tops.write(&result, sizeof(result));
+
+    if (rc < 0)
+        return rc;
 
     for (size_t i = 0; i < rot_no_of_keys(); i++) {
         rc = rot_read_key_status_by_idx(i);
@@ -785,6 +789,7 @@ static int pb_command_parse(void)
     } break;
     case PB_CMD_SLC_READ:
         rc = cmd_slc_read();
+        pb_wire_init_result(&result, error_to_wire(rc));
         break;
     case PB_CMD_PART_RESIZE: {
         /* Deprecated and no longer supported,
@@ -868,8 +873,11 @@ restart_command_mode:
         } while (rc == -PB_ERR_AGAIN);
 
         if (rc != PB_OK) {
+            LOG_ERR("Transport init error (%i)", rc);
             goto err_out;
         }
+
+        LOG_INFO("Transport ready");
     }
 
     while (true) {

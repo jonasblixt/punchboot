@@ -272,7 +272,9 @@ PACK(struct pb_command_read_bpak {
  */
 PACK(struct pb_command_erase_part {
     uint8_t uuid[16]; /*!< UUID of partition to erase */
-    uint8_t rz[16]; /*!< Reserved */
+    uint32_t start_lba; /*!< First lba to erase */
+    uint32_t block_count; /*!< Number of blocks to erase */
+    uint8_t rz[8]; /*!< Reserved */
 });
 
 /**

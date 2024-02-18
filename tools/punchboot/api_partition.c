@@ -62,12 +62,18 @@ int pb_api_partition_read_table(struct pb_context *ctx,
 
     struct pb_result_part_table_entry *tbl = malloc(bytes_to_read + 1);
 
+    if (!tbl_read_result.no_of_entries) {
+        goto skip_tbl_read;
+    }
+
     rc = ctx->read(ctx, tbl, bytes_to_read);
 
     if (rc != PB_RESULT_OK) {
         free(tbl);
         return rc;
     }
+
+skip_tbl_read:
 
     *entries = tbl_read_result.no_of_entries;
 
@@ -242,7 +248,10 @@ int pb_api_partition_read_bpak(struct pb_context *ctx, uint8_t *uuid, struct bpa
     return result.result_code;
 }
 
-int pb_api_partition_erase(struct pb_context *ctx, uint8_t *uuid)
+int pb_api_partition_erase(struct pb_context *ctx,
+                           uint8_t *uuid,
+                           uint32_t start_lba,
+                           uint32_t block_count)
 {
     int rc;
     struct pb_command cmd;
@@ -253,6 +262,8 @@ int pb_api_partition_erase(struct pb_context *ctx, uint8_t *uuid)
 
     memset(&erase_command, 0, sizeof(erase_command));
     memcpy(erase_command.uuid, uuid, 16);
+    erase_command.start_lba = start_lba;
+    erase_command.block_count = block_count;
 
     pb_wire_init_command2(&cmd, PB_CMD_PART_ERASE, &erase_command, sizeof(erase_command));
 

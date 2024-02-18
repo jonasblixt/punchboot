@@ -1,0 +1,54 @@
+#ifndef INCLUDE_PLAT_IMX6UL_MM_H
+#define INCLUDE_PLAT_IMX6UL_MM_H
+
+#include <pb/utils_def.h>
+
+#define AIPS1_ARB_BASE_ADDR         0x02000000
+#define AIPS2_ARB_BASE_ADDR         0x02100000
+#define ATZ1_BASE_ADDR              AIPS1_ARB_BASE_ADDR
+#define ATZ2_BASE_ADDR              AIPS2_ARB_BASE_ADDR
+#define AIPS1_OFF_BASE_ADDR         (ATZ1_BASE_ADDR + 0x80000)
+#define ANATOP_BASE_ADDR            (AIPS1_OFF_BASE_ADDR + 0x48000)
+
+#define IMX6UL_SRC_BASE             (0x020D8000)
+
+#define IMX6UL_SRC_SCR              (0x020D8000)
+#define SRC_SCR_MASK_WDOG_RST_SHIFT (7)
+#define SRC_SCR_MASK_WDOG_RST_MASK  (0xf << SRC_SCR_MASK_WDOG_RST_SHIFT)
+#define SRC_SCR_MASK_WDOG_RST(x)    ((x << SRC_SCR_MASK_WDOG_RST_SHIFT) & SRC_SCR_MASK_WDOG_RST_MASK)
+#define SRC_SCR_WARM_RESET_ENABLE   BIT(0)
+
+#define IMX6UL_WDOG1_BASE           (0x020BC000)
+#define IMX6UL_GPT1_BASE            (0x02098000)
+
+#define IMX6UL_SRC_SRSR             (0x020D8008)
+#define IMX6UL_OCOTP_CTRL_BASE      (0x021BC000)
+
+#define IMX6UL_UART8_BASE           (0x02024000)
+#define IMX6UL_UART7_BASE           (0x02018000)
+#define IMX6UL_UART6_BASE           (0x021FC000)
+#define IMX6UL_UART5_BASE           (0x021F4000)
+#define IMX6UL_UART4_BASE           (0x021F0000)
+#define IMX6UL_UART3_BASE           (0x021EC000)
+#define IMX6UL_UART2_BASE           (0x021E8000)
+#define IMX6UL_UART1_BASE           (0x02020000)
+
+#define IMX6UL_USDHC2_BASE          (0x02194000)
+#define IMX6UL_USDHC1_BASE          (0x02190000)
+
+#define IMX6UL_GPIO5_BASE           (0x020AC000)
+#define IMX6UL_GPIO4_BASE           (0x020A8000)
+#define IMX6UL_GPIO3_BASE           (0x020A4000)
+#define IMX6UL_GPIO2_BASE           (0x020A0000)
+#define IMX6UL_GPIO1_BASE           (0x0209C000)
+
+#define IMX6UL_CAAM_BASE            (0x02140000)
+#define IMX6UL_CAAM_JR1_BASE        (0x02141000)
+
+#define IMX6UL_USBPHY1_BASE         (0x020C9000)
+#define IMX6UL_USBPHY2_BASE         (0x020CA000)
+
+#define IMX6UL_USB1_BASE            (0x02184000)
+#define IMX6UL_USB2_BASE            (0x02184200)
+
+#endif

@@ -52,12 +52,12 @@ echo    +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 echo    This script is a part of the Code signing tools for NXP's
 echo    Advanced High Assurance Boot.  It generates a basic PKI tree. The
 echo    PKI tree consists of one or more Super Root Keys (SRK), with each
-echo    SRK having one subordinate keys: 
-echo        + a Signing key (SGK) 
-echo    Additional keys can be added to the PKI tree but a separate 
+echo    SRK having one subordinate keys:
+echo        + a Signing key (SGK)
+echo    Additional keys can be added to the PKI tree but a separate
 echo    script is available for this.  This this script assumes openssl
-echo    is installed on your system and is included in your search 
-echo    path.  Finally, the private keys generated are password 
+echo    is installed on your system and is included in your search
+echo    path.  Finally, the private keys generated are password
 echo    protectedwith the password provided by the file key_pass.txt.
 echo    The format of the file is the password repeated twice:
 echo        my_password

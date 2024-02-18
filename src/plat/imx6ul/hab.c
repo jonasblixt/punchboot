@@ -10,7 +10,6 @@
 #include <drivers/fuse/imx_ocotp.h>
 #include <pb/pb.h>
 #include <plat/imx6ul/hab.h>
-#include <platform_defs.h>
 #include <stdbool.h>
 #include <stdio.h>
 

@@ -151,5 +151,3 @@ lower_el_aarch32_serror:
 mov x0, #15
 bl exception
 b .
-
-

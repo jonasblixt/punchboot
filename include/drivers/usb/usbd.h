@@ -182,7 +182,7 @@ struct usbd_hal_ops {
     int (*xfer_complete)(usb_ep_t ep);
     void (*xfer_cancel)(usb_ep_t ep);
     int (*poll_setup_pkt)(struct usb_setup_packet *pkt);
-    int (*configure_ep)(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_sz);
+    int (*set_configuration)(const struct usb_endpoint_descriptor *eps, size_t no_of_eps);
     int (*set_address)(uint16_t addr);
     int (*ep0_xfer_zlp)(usb_ep_t ep);
 };

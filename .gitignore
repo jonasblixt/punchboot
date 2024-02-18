@@ -40,3 +40,5 @@ tags
 download
 *.egg-info
 *.so
+build
+dist

@@ -30,4 +30,3 @@ config CM_AUTH_PASSWORD
     depends on CM_AUTH
     help
         Authenticate using a password. This requires a board level implementation.
-

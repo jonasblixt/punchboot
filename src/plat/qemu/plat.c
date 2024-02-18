@@ -17,7 +17,6 @@
 #include <pb/plat.h>
 #include <plat/qemu/qemu.h>
 #include <plat/qemu/semihosting.h>
-#include <platform_defs.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
@@ -39,6 +38,7 @@ IMPORT_SYM(uintptr_t, __fini_array_start, fini_array_start);
 IMPORT_SYM(uintptr_t, __fini_array_end2, fini_array_end);
 
 static const uint8_t device_unique_id[8] = "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
+const char *platform_ns_uuid = "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
 
 static const mmap_region_t qemu_mmap[] = {
     MAP_REGION_FLAT(0x00000000, (1024 * 1024 * 1024), MT_DEVICE | MT_RW),

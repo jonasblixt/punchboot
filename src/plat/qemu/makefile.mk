@@ -11,6 +11,11 @@ ifdef CONFIG_PLAT_QEMU
 PB_ARCH_NAME = armv7a
 
 cflags-y += -mtune=cortex-a15 -I src/plat/qemu/include
+cflags-y += -DCACHE_LINE=32
+cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
+cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000
+cflags-y += -DMAX_XLAT_TABLES=32
+cflags-y += -DMAX_MMAP_REGIONS=32
 
 src-y  += src/plat/qemu/uart.c
 src-y  += src/plat/qemu/reset.c

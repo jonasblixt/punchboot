@@ -100,6 +100,3 @@ PBSTATE=pbstate
 BOOT_A=2af755d8-8de5-45d5-a862-014cfa735ce0
 BOOT_B=c046ccd8-0f2e-4036-984d-76c14dc73992
 echo QEMU running, PID=$qemu_pid
-
-
-

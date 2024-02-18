@@ -13,6 +13,7 @@ cflags-y += -DARM_ARCH_MAJOR=7
 cflags-y += -DARMV7_SUPPORTS_LARGE_PAGE_ADDRESSING
 
 ldflags-y += -Tsrc/arch/armv7a/link.lds
+ldflags-y += --defsym=PB_SECTION_ALIGNMENT=4096
 
 asm-y += src/arch/armv7a/entry_armv7a.S
 asm-y += src/arch/armv7a/arm32_aeabi_divmod_a32.S

@@ -5,7 +5,6 @@
  */
 
 #include <pb/assert.h>
-#include <platform_defs.h>
 #include <arch/arch.h>
 #include <arch/arch_helpers.h>
 #include <pb/utils_def.h>
@@ -129,4 +128,3 @@ void enable_mmu_direct_svc_mon(unsigned int flags)
 {
     enable_mmu_svc_mon(flags);
 }
-

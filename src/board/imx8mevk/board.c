@@ -1,153 +1,116 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2020 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
+#include <drivers/crypto/imx_caam.h>
+#include <drivers/mmc/imx_usdhc.h>
+#include <drivers/partition/gpt.h>
+#include <drivers/uart/imx_uart.h>
+#include <drivers/usb/dwc3_udc.h>
+#include <drivers/usb/imx8m_phy.h>
+#include <drivers/usb/pb_dev_cls.h>
+#include <drivers/usb/usbd.h>
 #include <libfdt.h>
-#include <pb/gpt.h>
-#include <pb/io.h>
+#include <pb/cm.h>
+#include <pb/console.h>
+#include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/usb.h>
-#include <plat/imx/dwc3.h>
-#include <plat/imx/usdhc.h>
-#include <plat/imx8m/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
+#include <plat/imx8m/imx8m.h>
 #include <stdbool.h>
 #include <stdio.h>
 
-const struct fuse fuses[] = {
-    IMX8M_FUSE_BANK_WORD_VAL(6, 0, "SRK0", 0x5020C7D7),
-    IMX8M_FUSE_BANK_WORD_VAL(6, 1, "SRK1", 0xBB62B945),
-    IMX8M_FUSE_BANK_WORD_VAL(6, 2, "SRK2", 0xDD97C8BE),
-    IMX8M_FUSE_BANK_WORD_VAL(6, 3, "SRK3", 0xDC6710DD),
-    IMX8M_FUSE_BANK_WORD_VAL(7, 0, "SRK4", 0x2756B777),
-    IMX8M_FUSE_BANK_WORD_VAL(7, 1, "SRK5", 0xEF43BC0A),
-    IMX8M_FUSE_BANK_WORD_VAL(7, 2, "SRK6", 0x7185604B),
-    IMX8M_FUSE_BANK_WORD_VAL(7, 3, "SRK7", 0x3F335991),
-    IMX8M_FUSE_BANK_WORD_VAL(1, 3, "BOOT Config", 0x00002060),
-    IMX8M_FUSE_END,
+#include "partitions.h"
+
+static const struct gpt_part_table gpt_tbl_default[] = {
+    {
+        .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
+        .description = "System A",
+        .size = SZ_MiB(30),
+    },
+    {
+        .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
+        .description = "System B",
+        .size = SZ_MiB(30),
+    },
+    {
+        .uu = UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a,
+        .description = "Root A",
+        .size = SZ_MiB(128),
+    },
+    {
+        .uu = UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb,
+        .description = "Root B",
+        .size = SZ_MiB(128),
+    },
+    {
+        .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
+        .description = "PB State Primary",
+        .size = 512,
+    },
+    {
+        .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
+        .description = "PB State Backup",
+        .size = 512,
+    },
+    {
+        .uu = UUID_4581af22_99e6_4a94_b821_b60c42d74758,
+        .description = "Root overlay A",
+        .size = SZ_MiB(30),
+    },
+    {
+        .uu = UUID_da2ca04f_a693_4284_b897_3906cfa1eb13,
+        .description = "Root overlay B",
+        .size = SZ_MiB(30),
+    },
+    {
+        .uu = UUID_23477731_7e33_403b_b836_899a0b1d55db,
+        .description = "RoT extension A",
+        .size = SZ_KiB(128),
+    },
+    {
+        .uu = UUID_6ffd077c_32df_49e7_b11e_845449bd8edd,
+        .description = "RoT extension B",
+        .size = SZ_KiB(128),
+    },
+    {
+        .uu = UUID_9697399d_e2da_47d9_8eb5_88daea46da1b,
+        .description = "System storage A",
+        .size = SZ_MiB(128),
+    },
+    {
+        .uu = UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa,
+        .description = "System storage B",
+        .size = SZ_MiB(128),
+    },
+    {
+        .uu = UUID_39792364_d3e3_4013_ac51_caaea65e4334,
+        .description = "Mass storage",
+        .size = SZ_GiB(1),
+    },
 };
 
-#define DEF_FLAGS (PB_STORAGE_MAP_FLAG_WRITABLE | PB_STORAGE_MAP_FLAG_VISIBLE)
-
-const uint32_t rom_key_map[] = {
-    0xa90f9680, 0x25c6dd36, 0x52c1eda0, 0xcca57803, 0x00000000,
+static const struct gpt_table_list gpt_tables[] = {
+    {
+        .name = "Default",
+        .variant = 0,
+        .table = gpt_tbl_default,
+        .table_length = ARRAY_SIZE(gpt_tbl_default),
+    },
 };
 
-const struct pb_storage_map map[] = {
-    PB_STORAGE_MAP3("9eef7544-bf68-4bf7-8678-da117cbccba8",
-                    "eMMC boot0",
-                    66,
-                    4162,
-                    DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT0 | PB_STORAGE_MAP_FLAG_STATIC_MAP),
-
-    PB_STORAGE_MAP3("4ee31690-0c9b-4d56-a6a6-e6d6ecfd4d54",
-                    "eMMC boot1",
-                    66,
-                    4162,
-                    DEF_FLAGS | PB_STORAGE_MAP_FLAG_EMMC_BOOT1 | PB_STORAGE_MAP_FLAG_STATIC_MAP),
-
-    PB_STORAGE_MAP("2af755d8-8de5-45d5-a862-014cfa735ce0",
-                   "System A",
-                   0xf000,
-                   DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
-
-    PB_STORAGE_MAP("c046ccd8-0f2e-4036-984d-76c14dc73992",
-                   "System B",
-                   0xf000,
-                   DEF_FLAGS | PB_STORAGE_MAP_FLAG_BOOTABLE),
-
-    PB_STORAGE_MAP("c284387a-3377-4c0f-b5db-1bcbcff1ba1a", "Root A", 0x40000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("ac6a1b62-7bd0-460b-9e6a-9a7831ccbfbb", "Root B", 0x40000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("f5f8c9ae-efb5-4071-9ba9-d313b082281e",
-                   "PB State Primary",
-                   1,
-                   PB_STORAGE_MAP_FLAG_VISIBLE),
-
-    PB_STORAGE_MAP("656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
-                   "PB State Backup",
-                   1,
-                   PB_STORAGE_MAP_FLAG_VISIBLE),
-
-    PB_STORAGE_MAP("4581af22-99e6-4a94-b821-b60c42d74758", "Root overlay A", 0xf000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("da2ca04f-a693-4284-b897-3906cfa1eb13", "Root overlay B", 0xf000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("23477731-7e33-403b-b836-899a0b1d55db", "RoT extension A", 0x100, DEF_FLAGS),
-
-    PB_STORAGE_MAP("6ffd077c-32df-49e7-b11e-845449bd8edd", "RoT extension B", 0x100, DEF_FLAGS),
-
-    PB_STORAGE_MAP("9697399d-e2da-47d9-8eb5-88daea46da1b", "System storage A", 0x40000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "System storage B", 0x40000, DEF_FLAGS),
-
-    PB_STORAGE_MAP("c5b8b41c-0fb5-494d-8b0e-eba400e075fa", "Mass storage", 0x200000, DEF_FLAGS),
-    PB_STORAGE_MAP_END
-};
-
-/* USDHC0 driver configuration */
-
-static uint8_t usdhc0_dev_private_data[4096 * 4] PB_SECTION_NO_INIT PB_ALIGN_4k;
-static uint8_t usdhc0_gpt_map_data[4096 * 10] PB_SECTION_NO_INIT PB_ALIGN_4k;
-static uint8_t usdhc0_map_data[4096 * 4] PB_SECTION_NO_INIT PB_ALIGN_4k;
-
-static const struct usdhc_device usdhc0 = {
-    .base = 0x30B40000,
-    .clk_ident = 0x20EF,
-    .clk = 0x000F,
-    .bus_mode = USDHC_BUS_HS200,
-    .bus_width = USDHC_BUS_8BIT,
-    .boot_bus_cond = 0x0,
-    .private = usdhc0_dev_private_data,
-    .size = sizeof(usdhc0_dev_private_data),
-};
-
-static struct pb_storage_driver usdhc0_driver = {
-    .name = "eMMC0",
-    .block_size = 512,
-    .driver_private = &usdhc0,
-    .init = imx_usdhc_init,
-    .map_default = map,
-    .map_init = gpt_init,
-    .map_install = gpt_install_map,
-    .map_private = usdhc0_gpt_map_data,
-    .map_private_size = sizeof(usdhc0_map_data),
-    .map_data = usdhc0_map_data,
-    .map_data_size = sizeof(usdhc0_map_data),
-};
-
-int board_early_init(void *plat)
-{
-    int rc;
-
-    LOG_DBG("Hello %p %zu", &usdhc0_driver, usdhc0_driver.block_size);
-    rc = pb_storage_add(&usdhc0_driver);
-    LOG_DBG("rc = %i", rc);
-
-    if (rc != PB_OK)
-        return rc;
-
-    LOG_DBG("Board init done");
-    return PB_OK;
-}
-
-const char *board_name(void)
-{
-    return "NXP imx8m evk";
-}
-
-int board_command(void *plat,
-                  uint32_t command,
-                  void *bfr,
-                  size_t size,
-                  void *response_bfr,
-                  size_t *response_size)
+static int board_command(uint32_t command,
+                         uint8_t *bfr,
+                         size_t size,
+                         uint8_t *response_bfr,
+                         size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
 
@@ -166,100 +129,209 @@ int board_command(void *plat,
     return PB_OK;
 }
 
-int board_status(void *plat, void *response_bfr, size_t *response_size)
+void board_console_init(struct imx8m_platform *plat_)
 {
-    struct imx8m_private *priv = IMX8M_PRIV(plat);
+    /* Enable UART1 clock */
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(UART1_CLK_ROOT), CLK_ROOT_ON);
+    /* Ungate UART1 clock */
+    mmio_write_32(CCM_CCGR_SET(CCGR_UART1), CCGR_CLK_ON_MASK);
 
+    /* UART1 pad mux */
+    mmio_write_32(IOMUXC_MUX_UART1_RXD, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_UART1_TXD, MUX_ALT(0));
+
+    /* UART1 PAD settings */
+    mmio_write_32(IOMUXC_PAD_UART1_RXD, PAD_CTL_DSE_40_OHM);
+    mmio_write_32(IOMUXC_PAD_UART1_TXD, PAD_CTL_DSE_40_OHM);
+
+    imx_uart_init(IMX8M_UART1_BASE, MHz(25), 115200);
+
+    static const struct console_ops ops = {
+        .putc = imx_uart_putc,
+    };
+
+    console_init(IMX8M_UART1_BASE, &ops);
+}
+
+static int usdhc_emmc_setup(void)
+{
+    unsigned int rate;
+    /* Enable and ungate USDHC1 clock */
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USDHC1_CLK_ROOT), CLK_ROOT_ON);
+    mmio_write_32(CCM_CCGR_SET(CCGR_USDHC1), CCGR_CLK_ON_MASK);
+
+    /* USDHC1 mux */
+    mmio_write_32(IOMUXC_MUX_SD1_CLK, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_CMD, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_DATA0, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_DATA1, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_DATA2, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_DATA3, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_DATA4, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_DATA5, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_DATA6, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_DATA7, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_RESET_B, MUX_ALT(0));
+    mmio_write_32(IOMUXC_MUX_SD1_STROBE, MUX_ALT(0));
+
+    /* Setup USDHC1 pins */
+#define USDHC1_PAD_CONF (PAD_CTL_HYS | PAD_CTL_PUE | PAD_CTL_SRE_FAST | PAD_CTL_DSE_45_OHM)
+    mmio_write_32(IOMUXC_PAD_SD1_CLK, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_CMD, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_DATA0, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_DATA1, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_DATA2, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_DATA3, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_DATA4, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_DATA5, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_DATA6, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_DATA7, USDHC1_PAD_CONF);
+    mmio_write_32(IOMUXC_PAD_SD1_STROBE, USDHC1_PAD_CONF);
+
+    rate = MHz(200);
+
+    static const struct imx_usdhc_config cfg = {
+        .base = IMX8M_USDHC1_BASE,
+        .delay_tap = 35,
+        .mmc_config = {
+            .mode = MMC_BUS_MODE_HS200,
+            .width = MMC_BUS_WIDTH_8BIT,
+            .boot_mode = EXT_CSD_BOOT_DDR | EXT_CSD_BOOT_BUS_WIDTH_8,
+            .boot0_uu = PART_boot0,
+            .boot1_uu = PART_boot1,
+            .user_uu = PART_user,
+            .rpmb_uu = PART_rpmb,
+            .flags = 0,
+        },
+    };
+
+    return imx_usdhc_init(&cfg, rate);
+}
+
+int board_init(struct imx8m_platform *plat_)
+{
+    int rc;
+
+    rc = imx_caam_init(IMX8M_CAAM_JR1_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+        return rc;
+    }
+
+    usdhc_emmc_setup();
+
+    bio_dev_t user_part = bio_get_part_by_uu(PART_user);
+
+    if (user_part < 0) {
+        LOG_ERR("Can't find partition (%i)", user_part);
+    }
+
+    (void)gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
+    /* eMMC User partition now only has the visible flag to report capacity */
+    (void)bio_set_flags(user_part, BIO_FLAG_VISIBLE);
+
+    static const struct rot_config rot_config = {
+        .revoke_key = NULL,
+        .read_key_status = NULL,
+        .key_map_length = 3,
+        .key_map = {
+            {
+                .name = "pb-development",
+                .id = 0xa90f9680,
+                .param1 = 0,
+            },
+            {
+                .name = "pb-development2",
+                .id = 0x25c6dd36,
+                .param1 = 1,
+            },
+            {
+                .name = "pb-development3",
+                .id = 0x52c1eda0,
+                .param1 = 2,
+            },
+        },
+    };
+
+    rc = rot_init(&rot_config);
+
+    if (rc != PB_OK) {
+        LOG_ERR("RoT init failed (%i)", rc);
+        return rc;
+    }
+
+    static const struct slc_config slc_config = {
+        .read_status = NULL,
+        .set_configuration = NULL,
+        .set_configuration_locked = NULL,
+        .set_eol = NULL,
+    };
+
+    rc = slc_init(&slc_config);
+
+    if (rc != PB_OK) {
+        LOG_ERR("SLC init failed (%i)", rc);
+        return rc;
+    }
+
+    return -PB_ERR;
+}
+
+static int board_status(uint8_t *response_bfr, size_t *response_size)
+{
     char *response = (char *)response_bfr;
     size_t resp_buf_size = *response_size;
-    const char *soc_major_var = "?";
-    const char *soc_minor_var = "?";
-    const char *soc_no_of_cores = "?";
-    unsigned int base_ver = 0;
-    unsigned int metal_ver = 0;
 
-    switch ((priv->soc_ver_var >> 16) & 0x0f) {
-    case 0x02:
-        soc_major_var = "M";
-        break;
-    default:
-        soc_major_var = "?";
-        break;
-    }
-
-    switch ((priv->soc_ver_var >> 12) & 0x0f) {
-    case 0x04:
-        soc_no_of_cores = "quad";
-        break;
-    case 0x02:
-        soc_no_of_cores = "dual";
-        break;
-    default:
-        soc_no_of_cores = "?";
-        break;
-    }
-
-    switch ((priv->soc_ver_var >> 8) & 0x0f) {
-    case 0x00:
-        soc_minor_var = "lite";
-        break;
-    default:
-        soc_minor_var = "?";
-        break;
-    }
-
-    base_ver = (priv->soc_ver_var >> 4) & 0x0f;
-    metal_ver = (priv->soc_ver_var) & 0x0f;
-
-    (*response_size) = snprintf(response,
-                                resp_buf_size,
-                                "SOC: IMX8%s %s-%s, %i.%i\n",
-                                soc_major_var,
-                                soc_no_of_cores,
-                                soc_minor_var,
-                                base_ver,
-                                metal_ver);
-
+    (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");
     response[(*response_size)++] = 0;
 
     return PB_OK;
 }
 
-bool board_force_command_mode(void *plat)
+int cm_board_init(void)
 {
-    return true;
-}
+    int rc;
 
-int board_patch_bootargs(void *plat, void *fdt, int offset, bool verbose_boot)
-{
-    const char *bootargs = NULL;
+    /* Enable and ungate USB clocks */
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USB_BUS_CLK_ROOT), CLK_ROOT_ON);
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USB_CORE_REF_CLK_ROOT), CLK_ROOT_ON);
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USB_PHY_REF_CLK_ROOT), CLK_ROOT_ON);
+    mmio_write_32(CCM_CCGR_SET(CCGR_USB_CTRL1), CCGR_CLK_ON_MASK);
+    mmio_write_32(CCM_CCGR_SET(CCGR_USB_PHY1), CCGR_CLK_ON_MASK);
 
-    if (verbose_boot) {
-        bootargs = "console=ttymxc0,115200 earlyprintk ";
-    } else {
-        bootargs = "console=ttymxc0,115200 quiet ";
+    rc = imx8m_usb_phy_init(IMX8M_USB1_PHY_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("imx8m usb phy failed (%i)", rc);
+        return rc;
     }
 
-    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
-}
+    rc = imx_dwc3_udc_init(IMX8M_USB1_BASE);
 
-const struct pb_boot_config *board_boot_config(void)
-{
-    static const struct pb_boot_config config = {
-        .a_boot_part_uuid = "2af755d8-8de5-45d5-a862-014cfa735ce0",
-        .b_boot_part_uuid = "c046ccd8-0f2e-4036-984d-76c14dc73992",
-        .primary_state_part_uuid = "f5f8c9ae-efb5-4071-9ba9-d313b082281e",
-        .backup_state_part_uuid = "656ab3fc-5856-4a5e-a2ae-5a018313b3ee",
-        .image_bpak_id = 0xa697d988, /* bpak_id("atf") */
-        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
-        .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
-        .rollback_mode = PB_ROLLBACK_MODE_NORMAL,
-        .early_boot_cb = NULL,
-        .late_boot_cb = NULL,
-        .dtb_patch_cb = board_patch_bootargs,
-        .set_dtb_boot_arg = false,
-        .print_time_measurements = false,
+    if (rc != PB_OK) {
+        LOG_ERR("dwc3 failed (%i)", rc);
+        return rc;
+    }
+
+    rc = pb_dev_cls_init();
+
+    if (rc != PB_OK)
+        return rc;
+
+    static const struct cm_config cfg = {
+        .name = "imx8mevk",
+        .status = board_status,
+        .password_auth = NULL,
+        .command = board_command,
+        .tops = {
+            .init = usbd_init,
+            .connect = usbd_connect,
+            .disconnect = usbd_disconnect,
+            .read = pb_dev_cls_read,
+            .write = pb_dev_cls_write,
+        },
     };
 
-    return &config;
+    return cm_init(&cfg);
 }

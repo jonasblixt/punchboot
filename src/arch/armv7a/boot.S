@@ -26,4 +26,3 @@ arch_jump:
     cpsid if
     mov pc, r5
     b .
-
