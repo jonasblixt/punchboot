@@ -15,7 +15,6 @@
 #include <plat/imx8x/imx8qx_pads.h>
 #include <plat/imx8x/sci/sci.h>
 #include <plat/imx8x/sci/sci_ipc.h>
-#include <platform_defs.h>
 
 #define PADRING_IFMUX_EN_SHIFT 31
 #define PADRING_IFMUX_EN_MASK  (1U << PADRING_IFMUX_EN_SHIFT)

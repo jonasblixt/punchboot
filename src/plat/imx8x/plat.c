@@ -38,6 +38,8 @@ IMPORT_SYM(uintptr_t, _stack_end, stack_end);
 IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
 IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 
+const char *platform_ns_uuid = "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
+
 static struct imx8x_platform plat;
 static int boot_reason;
 
