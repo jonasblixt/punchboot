@@ -361,23 +361,39 @@ int cdns3_udc_core_poll_setup_pkt(struct usb_setup_packet *pkt)
         return -PB_ERR_AGAIN;
 }
 
-int cdns3_udc_core_configure_ep(usb_ep_t ep, enum usb_ep_type ep_type, size_t pkt_sz)
+int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_t no_of_eps)
 {
-    uint32_t ep_num = ep / 2;
-    LOG_INFO("ep=%u, type=%i, pkt_sz=%zu", ep, ep_type, pkt_sz);
+    usb_ep_t ep;
+    uint16_t max_pkt_sz;
+    enum usb_ep_type ep_type;
+    uint32_t ep_num;
 
     // TODO's
     //  o Hard coded bulk EP type
     //  o Enable both IN/OUT INT
-    //
-    select_ep(ep);
-    mmio_write_32(base + CDNS_USB_EP_CFG,
-                  EP_CFG_ENABLE | EP_CFG_TYPE(2) | EP_CFG_MAX_PKT_SZ(pkt_sz));
 
-    mmio_write_32(base + CDNS_USB_EP_STS_EN, EP_STS_EN_DESCMISEN | EP_STS_EN_TRBERREN);
+    for (size_t n = 0; n < no_of_eps; n++) {
+        ep_num = (eps[n].bEndpointAddress & 0x7f);
 
-    /* Enable interrupt for EP0 in/out */
-    mmio_write_32(base + CDNS_USB_EP_IEN, (1 << (16 + ep_num)) | (1 << ep_num));
+        ep = (eps[n].bEndpointAddress & 0x7f) * 2;
+        if (eps[n].bEndpointAddress & 0x80)
+            ep++;
+
+        ep_type = eps[n].bmAttributes;
+        max_pkt_sz = eps[n].wMaxPacketSize;
+
+        LOG_INFO("ep=%u, type=%i, pkt_sz=%u", ep, ep_type, max_pkt_sz);
+
+        select_ep(ep);
+        mmio_write_32(base + CDNS_USB_EP_CFG,
+                      EP_CFG_ENABLE | EP_CFG_TYPE(2) | EP_CFG_MAX_PKT_SZ(max_pkt_sz));
+
+        mmio_write_32(base + CDNS_USB_EP_STS_EN, EP_STS_EN_DESCMISEN | EP_STS_EN_TRBERREN);
+
+        /* Enable interrupt for EP0 in/out */
+        mmio_write_32(base + CDNS_USB_EP_IEN, (1 << (16 + ep_num)) | (1 << ep_num));
+    }
+
     return PB_OK;
 }
 
