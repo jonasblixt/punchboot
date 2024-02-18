@@ -12,8 +12,8 @@
 
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <plat/imx8x/imx8qx_pads.h>
 #include <plat/imx8x/mm.h>
+#include <plat/imx8x/pins.h>
 #include <plat/imx8x/sci/sci.h>
 #include <plat/imx8x/sci/sci_ipc.h>
 
