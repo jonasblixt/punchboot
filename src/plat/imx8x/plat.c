@@ -7,7 +7,6 @@
  *
  */
 
-#include <board_defs.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/uart/imx_lpuart.h>
 #include <drivers/usb/imx_ci_udc.h>
