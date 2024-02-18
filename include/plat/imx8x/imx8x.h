@@ -13,6 +13,7 @@
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx8x/imx8qx_pads.h>
+#include <plat/imx8x/mm.h>
 #include <plat/imx8x/sci/sci.h>
 #include <plat/imx8x/sci/sci_ipc.h>
 
@@ -31,6 +32,8 @@
 #define PADRING_DSE_SHIFT      0
 #define PADRING_DSE_MASK       (0x7U << PADRING_DSE_SHIFT)
 
+#define IMX8X_PAD_MUX(val)     ((val << PADRING_IFMUX_SHIFT) & PADRING_IFMUX_MASK)
+
 #define UART_PAD_CTRL                                                                              \
     (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | (SC_PAD_CONFIG_OUT_IN << PADRING_CONFIG_SHIFT) | \
      (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) |                                                  \
@@ -42,15 +45,6 @@
      (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) |                                                  \
      (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) |                                           \
      (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
-
-#define IMX8X_PAD_MUX(val) ((val << PADRING_IFMUX_SHIFT) & PADRING_IFMUX_MASK)
-
-#define IMX_CAAM_BASE      0x31430000
-#define IMX_CI_UDC_BASE    0x5b0d0000
-#define IMX_USBDCD_BASE    0x5b100800
-#define IMX_GPT_BASE       0x5D140000
-#define SC_IPC_BASE        0x5d1b0000
-#define IMX_GPT_PR         24
 
 struct imx8x_platform {
     sc_ipc_t ipc;
