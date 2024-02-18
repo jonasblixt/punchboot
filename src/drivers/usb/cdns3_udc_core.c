@@ -76,6 +76,7 @@
 #define EP_CMD_ERDY                        BIT(3)
 #define EP_CMD_REQ_CMPL                    BIT(5)
 #define EP_CMD_DRDY                        BIT(6)
+#define EP_CMD_DFLUSH                      BIT(7)
 
 #define CDNS_USB_EP_STS_EN                 (0x20034)
 #define EP_STS_EN_SETUP                    BIT(0)
@@ -269,8 +270,8 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
         struct cdns_trb *trb_p =
             (struct cdns_trb *)(uintptr_t)mmio_read_32(base + CDNS_USB_EP_TRADDR);
         arch_invalidate_cache_range((uintptr_t)trb_p, sizeof(struct cdns_trb));
-        LOG_DBG("  addr=%x, len=%zu, flags=%x", trb_p->addr, trb_p->length & 0xffff, trb_p->flags);
-        LOG_DBG("  trb_base=%p, trb_p=0x%x", (void *)trb, trb_p);
+        LOG_DBG("  addr=%x, len=%u, flags=%x", trb_p->addr, trb_p->length & 0xffff, trb_p->flags);
+        LOG_DBG("  trb_base=%p, trb_p=0x%p", (void *)trb, trb_p);
 
         // Re-start DMA
         mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);
@@ -300,10 +301,12 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
 
 void cdns3_udc_core_xfer_cancel(usb_ep_t ep)
 {
-    (void)ep;
+    select_ep(ep);
 
-    // Not needed in this driver since we have dedicated descriptors
-    // for ep0
+    mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DFLUSH);
+
+    while (mmio_read_32(base + CDNS_USB_EP_CMD) & EP_CMD_DFLUSH)
+        ;
 }
 
 static void cdns_process_irq(void)
