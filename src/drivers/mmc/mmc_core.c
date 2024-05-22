@@ -156,7 +156,7 @@ static int mmc_device_state(unsigned int timeout)
     return MMC_GET_STATE(resp_data[0]);
 }
 
-static int mmc_fill_device_info(void)
+int mmc_extcsd_reload(void)
 {
     int ret = 0;
 
@@ -211,6 +211,25 @@ static int mmc_set_ext_csd(unsigned int ext_cmd, unsigned int value, unsigned in
         }
     } while (ret == MMC_STATE_PRG);
 
+    return 0;
+}
+
+int mmc_extcsd_write(uint16_t field_id, uint8_t value)
+{
+    if (field_id >= sizeof(mmc_ext_csd))
+        return -PB_ERR_PARAM;
+
+    return mmc_set_ext_csd(field_id, value, 0);
+}
+
+int mmc_extcsd_read(uint16_t field_id, uint8_t *value)
+{
+    if (value == NULL)
+        return -PB_ERR_PARAM;
+    if (field_id >= sizeof(mmc_ext_csd))
+        return -PB_ERR_PARAM;
+
+    *value = mmc_ext_csd[field_id];
     return 0;
 }
 
@@ -600,7 +619,7 @@ static int mmc_setup(void)
         return -PB_ERR_NOT_IMPLEMENTED;
     }
 
-    rc = mmc_fill_device_info();
+    rc = mmc_extcsd_reload();
     if (rc != 0) {
         return rc;
     }
