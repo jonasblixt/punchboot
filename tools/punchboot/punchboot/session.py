@@ -330,7 +330,7 @@ class Session(object):
         _ver_str: str = self._s.device_get_punchboot_version()
         if _ver_str.startswith("v"):
             _ver_str = _ver_str[1:]
-        return semver.VersionInfo.parse(_ver_str)
+        return semver.Version.parse(_ver_str)
 
     def device_get_uuid(self) -> uuid.UUID:
         """Read the device UUID."""
