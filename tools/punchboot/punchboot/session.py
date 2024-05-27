@@ -57,6 +57,13 @@ class Session(object):
         )
         self._s = _punchboot.Session(_device_uuid, _socket_path)
 
+    def close(self):
+        """Close the current session.
+
+        This will invalidate the session object.
+        """
+        self._s.close()
+
     def authenticate(self, password: str):
         """Authenticate session using a password.
 
