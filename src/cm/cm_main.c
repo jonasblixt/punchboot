@@ -387,14 +387,14 @@ static int cmd_part_verify(void)
         lba_t header_lba = bio_get_no_of_blocks(block_dev) -
                            (sizeof(struct bpak_header) / bio_block_size(block_dev));
 
-        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header), buffer);
+        rc = bio_read(block_dev, header_lba, sizeof(struct bpak_header), buffer[buffer_id]);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
             return rc;
         }
 
-        rc = hash_update(buffer, sizeof(struct bpak_header));
+        rc = hash_update_async(buffer[buffer_id], sizeof(struct bpak_header));
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
