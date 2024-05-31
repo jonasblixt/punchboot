@@ -389,6 +389,34 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf);
 int mmc_part_switch(enum mmc_part part);
 
 /**
+ * Re-reads the extended CSD structure and updates the internal cache.
+ *
+ * @return PB_OK on success or a negative number
+ */
+
+int mmc_extcsd_reload(void);
+
+/**
+ * Read extended CSD
+ *
+ * @param[in] field_id Field identifier to read from
+ * @param[out] value Data output
+ *
+ * @return PB_OK on success or a negative number
+ */
+int mmc_extcsd_read(uint16_t field_id, uint8_t *value);
+
+/**
+ * Set field in the extended CSD structure
+ *
+ * @param[in] field_id Field identifier within the extcsd structure
+ * @param[in] value Value to write
+ *
+ * @return PB_OK on success or a negative number
+ */
+int mmc_extcsd_write(uint16_t field_id, uint8_t value);
+
+/**
  * Power off the card. This function must be called before it is safe
  * to turn off Vcc and Vccq. After the card has been powered down the
  * 'mmc_init' function can be called to re-initialize.

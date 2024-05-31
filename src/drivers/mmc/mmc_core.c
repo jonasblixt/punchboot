@@ -156,7 +156,7 @@ static int mmc_device_state(unsigned int timeout)
     return MMC_GET_STATE(resp_data[0]);
 }
 
-static int mmc_fill_device_info(void)
+int mmc_extcsd_reload(void)
 {
     int ret = 0;
 
@@ -211,6 +211,25 @@ static int mmc_set_ext_csd(unsigned int ext_cmd, unsigned int value, unsigned in
         }
     } while (ret == MMC_STATE_PRG);
 
+    return 0;
+}
+
+int mmc_extcsd_write(uint16_t field_id, uint8_t value)
+{
+    if (field_id >= sizeof(mmc_ext_csd))
+        return -PB_ERR_PARAM;
+
+    return mmc_set_ext_csd(field_id, value, 0);
+}
+
+int mmc_extcsd_read(uint16_t field_id, uint8_t *value)
+{
+    if (value == NULL)
+        return -PB_ERR_PARAM;
+    if (field_id >= sizeof(mmc_ext_csd))
+        return -PB_ERR_PARAM;
+
+    *value = mmc_ext_csd[field_id];
     return 0;
 }
 
@@ -600,7 +619,7 @@ static int mmc_setup(void)
         return -PB_ERR_NOT_IMPLEMENTED;
     }
 
-    rc = mmc_fill_device_info();
+    rc = mmc_extcsd_reload();
     if (rc != 0) {
         return rc;
     }
@@ -643,12 +662,15 @@ static int mmc_setup(void)
     */
 
     lba_t boot_part_last_lba = 0;
+    lba_t rpmb_part_last_lba = 0;
 
 #ifdef CONFIG_MMC_CORE_OVERRIDE_BOOT_PART_SZ
     boot_part_last_lba = CONFIG_MMC_CORE_BOOT_PART_SZ_KiB * 2 - 1;
 #else
     boot_part_last_lba = mmc_ext_csd[EXT_CSD_BOOT_MULT] * 256 - 1;
 #endif
+
+    rpmb_part_last_lba = mmc_ext_csd[EXT_CSD_RPMB_MULT] * 256 - 1;
 
     bio_dev_t d = bio_allocate(0, boot_part_last_lba, 512, mmc_cfg->boot0_uu, "eMMC BOOT0");
 
@@ -682,6 +704,21 @@ static int mmc_setup(void)
         return rc;
 
     rc = bio_set_ios(d, mmc_bio_read, mmc_bio_write);
+
+    if (rc < 0)
+        return rc;
+
+    /* RPMB is currently R/O and only accessible from within punchboot */
+    d = bio_allocate(0, rpmb_part_last_lba, 512, mmc_cfg->rpmb_uu, "eMMC RPMB");
+
+    if (d < 0)
+        return d;
+
+    rc = bio_set_hal_flags(d, MMC_BIO_FLAG_RPMB);
+    if (rc < 0)
+        return rc;
+
+    rc = bio_set_ios(d, mmc_bio_read, NULL);
 
     if (rc < 0)
         return rc;

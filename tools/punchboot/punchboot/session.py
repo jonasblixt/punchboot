@@ -7,7 +7,7 @@ import hashlib
 import io
 import pathlib
 import uuid
-from typing import Any, Callable, Iterable, Optional, Tuple, Union
+from typing import IO, Any, Callable, Iterable, Optional, Tuple, Union
 
 import _punchboot  # type: ignore
 import semver
@@ -15,6 +15,18 @@ import semver
 from .helpers import pb_id, valid_bpak_magic
 from .partition import Partition, PartitionFlags
 from .slc import SLC
+
+
+def _has_fileno(file: IO[bytes]) -> bool:
+    if not hasattr(file, "fileno"):
+        return False
+
+    try:
+        file.fileno()
+    except io.UnsupportedOperation:
+        return False
+
+    return True
 
 
 class Session(object):
@@ -44,6 +56,13 @@ class Session(object):
             str(socket_path.resolve()) if isinstance(socket_path, pathlib.Path) else socket_path
         )
         self._s = _punchboot.Session(_device_uuid, _socket_path)
+
+    def close(self):
+        """Close the current session.
+
+        This will invalidate the session object.
+        """
+        self._s.close()
 
     def authenticate(self, password: str):
         """Authenticate session using a password.
@@ -101,7 +120,7 @@ class Session(object):
         ]
 
     def part_verify(
-        self, file: Union[pathlib.Path, io.BufferedReader, bytes], part: Union[uuid.UUID, str]
+        self, file: Union[pathlib.Path, IO[bytes], bytes], part: Union[uuid.UUID, str]
     ):
         """Verify the contents of a partition.
 
@@ -123,7 +142,7 @@ class Session(object):
         _bpak_header_valid: bool = False
         _hash_ctx = hashlib.sha256()
 
-        def _chunk_reader(fh: io.BufferedReader) -> int:
+        def _chunk_reader(fh: IO[bytes]) -> int:
             _length: int = 0
             nonlocal _bpak_header_valid
             # Check if the first 4k contains a valid BPAK header
@@ -141,18 +160,18 @@ class Session(object):
         if isinstance(file, pathlib.Path):
             with file.open("rb") as f:
                 _data_length = _chunk_reader(f)
-        elif isinstance(file, io.BufferedReader):
-            _data_length = _chunk_reader(file)
         elif isinstance(file, bytes):
             _hash_ctx.update(file)
             _bpak_header_valid = valid_bpak_magic(file)
             _data_length = len(file)
+        elif _has_fileno(file):
+            _data_length = _chunk_reader(file)
         else:
             raise ValueError("Unacceptable input")
 
         self._s.part_verify(_uu.bytes, _hash_ctx.digest(), _data_length, _bpak_header_valid)
 
-    def part_write(self, file: Union[pathlib.Path, io.BufferedReader], part: Union[uuid.UUID, str]):
+    def part_write(self, file: Union[pathlib.Path, IO[bytes]], part: Union[uuid.UUID, str]):
         """Write data to a partition.
 
         Keyword arguments:
@@ -163,12 +182,12 @@ class Session(object):
         if isinstance(file, pathlib.Path):
             with file.open("rb") as f:
                 self._s.part_write(f, _uu.bytes)
-        elif isinstance(file, io.BufferedReader):
+        elif _has_fileno(file):
             self._s.part_write(file, _uu.bytes)
         else:
             raise ValueError("Unacceptable input")
 
-    def part_read(self, file: Union[pathlib.Path, io.BufferedReader], part: Union[uuid.UUID, str]):
+    def part_read(self, file: Union[pathlib.Path, IO[bytes]], part: Union[uuid.UUID, str]):
         """Read data from a partition to a file.
 
         Keyword arguments:
@@ -179,7 +198,7 @@ class Session(object):
         if isinstance(file, pathlib.Path):
             with file.open("wb") as f:
                 self._s.part_read(f, _uu.bytes)
-        elif isinstance(file, io.BufferedReader):
+        elif _has_fileno(file):
             self._s.part_read(file, _uu.bytes)
         else:
             raise ValueError("Unacceptable input")
@@ -330,7 +349,7 @@ class Session(object):
         _ver_str: str = self._s.device_get_punchboot_version()
         if _ver_str.startswith("v"):
             _ver_str = _ver_str[1:]
-        return semver.VersionInfo.parse(_ver_str)
+        return semver.Version.parse(_ver_str)
 
     def device_get_uuid(self) -> uuid.UUID:
         """Read the device UUID."""

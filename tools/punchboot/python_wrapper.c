@@ -124,12 +124,25 @@ static int PbSession_init(struct pb_session *self, PyObject *args, PyObject *kwd
     return 0;
 }
 
-static void PbSession_dealloc(struct pb_session *self)
+static void close_pb_session(struct pb_session *self)
 {
     if (self->ctx) {
         pb_api_free_context(self->ctx);
     }
+    self->ctx = NULL;
+}
+
+static void PbSession_dealloc(struct pb_session *self)
+{
+    close_pb_session(self);
     Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+static PyObject *session_close(PyObject *self, PyObject *Py_UNUSED(args))
+{
+    struct pb_session *session = (struct pb_session *)self;
+    close_pb_session(session);
+    Py_RETURN_NONE;
 }
 
 static PyObject *authenticate(PyObject *self, PyObject *args, PyObject *kwds)
@@ -849,6 +862,10 @@ static PyObject *board_run_command(PyObject *self, PyObject *args, PyObject *kwd
 }
 
 static PyMethodDef PbSession_methods[] = {
+    { "close",
+      session_close,
+      METH_NOARGS,
+      "Close the current session (invalidates the session object)" },
     /* Password API */
     {
         "authenticate",

@@ -9,7 +9,7 @@ import semver
 
 def library_version() -> semver.Version:
     """Return the version string of the C library."""
-    return semver.VersionInfo.parse(_punchboot.version())
+    return semver.Version.parse(_punchboot.version())
 
 
 def pb_id(cmd: str) -> int:

@@ -4,6 +4,7 @@ from _punchboot import (  # type: ignore # noqa: F401
     ArgumentError,
     AuthenticationError,
     CommandError,
+    Error,
     GenericError,
     IOError,
     KeyRevokedError,
@@ -26,6 +27,7 @@ from .session import Session
 from .slc import SLC
 
 _pb_exceptions = [
+    "Error",
     "GenericError",
     "AuthenticationError",
     "NotAuthenticatedError",
