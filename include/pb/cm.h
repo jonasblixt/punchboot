@@ -53,6 +53,16 @@ int cm_run(void);
 int cm_board_init(void);
 
 /**
+ * Request a reboot from a board command.
+ *
+ * This function can be called by a board command to request a system reboot
+ * after the result of the command has been send to the host.
+ *
+ * The reboot is only requested if the board command returns zero (PB_OK).
+ */
+void cm_board_cmd_request_reboot_on_success(void);
+
+/**
  * Populate cm configuration struct
  *
  * @return PB_OK, on success

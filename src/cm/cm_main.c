@@ -33,6 +33,7 @@ static slc_t slc;
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uuid_t device_uu;
 static bio_dev_t block_dev;
+static bool reboot_requested = false;
 static const struct cm_config *cfg;
 
 #ifdef CONFIG_CM_AUTH_TOKEN
@@ -149,6 +150,11 @@ static int error_to_wire(int error_code)
     default:
         return -PB_RESULT_ERROR;
     }
+}
+
+void cm_board_cmd_request_reboot_on_success(void)
+{
+    reboot_requested = true;
 }
 
 static int cmd_board(void)
@@ -818,6 +824,13 @@ static int pb_command_parse(void)
 
 err_out:
     cfg->tops.write(&result, sizeof(result));
+
+    if (reboot_requested && (rc == 0)) {
+        LOG_INFO("Requesting reboot...");
+        reboot_requested = false;
+        rc = -PB_ERR_ABORT;
+    }
+
     return rc;
 }
 
