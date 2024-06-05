@@ -27,6 +27,7 @@ struct cm_config {
     int (*status)(uint8_t *buf, size_t *length);
     int (*password_auth)(const char *password, size_t length);
     int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
+    void (*process)(void);
     const struct cm_transport_ops tops;
 };
 

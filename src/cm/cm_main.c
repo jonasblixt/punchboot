@@ -933,6 +933,10 @@ restart_command_mode:
 
         while (true) {
             plat_wdog_kick();
+
+            if (cfg->process)
+                cfg->process();
+
             rc = cfg->tops.complete();
 
             if (rc == PB_OK) {
