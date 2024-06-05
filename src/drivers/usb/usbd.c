@@ -26,6 +26,9 @@
 static const struct usbd_hal_ops *hal_ops;
 static const struct usbd_cls_config *cls_config;
 static bool enumerated;
+static usb_ep_t cur_xfer_ep;
+static void *cur_xfer_buf;
+static size_t cur_xfer_length;
 
 /* Microsoft OS Descriptor
  *
@@ -304,7 +307,28 @@ int usbd_disconnect(void)
         return PB_OK;
 }
 
-int usbd_xfer(usb_ep_t ep, void *buf, size_t length)
+int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length)
+{
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
+
+    cur_xfer_ep = ep;
+    cur_xfer_buf = buf;
+    cur_xfer_length = length;
+
+    return hal_ops->xfer_start(ep, buf, length);
+}
+
+int usbd_xfer_cancel(void)
+{
+    if (hal_ops == NULL)
+        return -PB_ERR_IO;
+
+    hal_ops->xfer_cancel(cur_xfer_ep);
+    return PB_OK;
+}
+
+int usbd_xfer_complete(void)
 {
     int rc;
     struct usb_setup_packet pkt;
@@ -312,27 +336,20 @@ int usbd_xfer(usb_ep_t ep, void *buf, size_t length)
     if (hal_ops == NULL)
         return -PB_ERR_IO;
 
-restart_xfer:
-    rc = hal_ops->xfer_start(ep, buf, length);
+    if (hal_ops->poll_setup_pkt(&pkt) == PB_OK) {
+        hal_ops->xfer_cancel(cur_xfer_ep);
 
-    if (rc != PB_OK)
-        return rc;
+        rc = usbd_enumerate(&pkt);
 
-    /* Here we can block for a long time so we need to service WDT and
-     * check if there are any new control transfers on EP0 */
-    do {
-        if (hal_ops->poll_setup_pkt(&pkt) == PB_OK) {
-            hal_ops->xfer_cancel(ep);
+        if (rc != PB_OK)
+            return rc;
 
-            rc = usbd_enumerate(&pkt);
+        /* Restart current xfer */
+        rc = hal_ops->xfer_start(cur_xfer_ep, cur_xfer_buf, cur_xfer_length);
 
-            if (rc != PB_OK)
-                return rc;
-            goto restart_xfer;
-        }
-        rc = hal_ops->xfer_complete(ep);
-        plat_wdog_kick();
-    } while (rc == -PB_ERR_AGAIN);
+        if (rc != PB_OK)
+            return rc;
+    }
 
-    return rc;
+    return hal_ops->xfer_complete(cur_xfer_ep);
 }
