@@ -15,5 +15,6 @@
 int pb_dev_cls_init(void);
 int pb_dev_cls_write(const void *buf, size_t length);
 int pb_dev_cls_read(void *buf, size_t length);
+int pb_dev_cls_xfer_complete(void);
 
 #endif // INCLUDE_DRIVERS_USB_PB_DEV_CLS_H
