@@ -416,6 +416,7 @@ int cm_board_init(void)
             .disconnect = usbd_disconnect,
             .read = pb_dev_cls_read,
             .write = pb_dev_cls_write,
+            .complete = pb_dev_cls_xfer_complete,
         },
     };
 

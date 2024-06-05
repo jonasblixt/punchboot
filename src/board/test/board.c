@@ -431,8 +431,9 @@ int cm_board_init(void)
             .init = NULL,
             .connect = NULL,
             .disconnect = NULL,
-            .read = virtio_serial_read,
-            .write = virtio_serial_write,
+            .read = virtio_serial_async_read,
+            .write = virtio_serial_async_write,
+            .complete = virtio_serial_async_complete,
         },
     };
 

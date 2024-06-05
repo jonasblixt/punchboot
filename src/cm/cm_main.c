@@ -157,6 +157,38 @@ void cm_board_cmd_request_reboot_on_success(void)
     reboot_requested = true;
 }
 
+static int cm_write(const void *buf, size_t length)
+{
+    int rc;
+
+    rc = cfg->tops.write(buf, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    do {
+        rc = cfg->tops.complete();
+    } while (rc == -PB_ERR_AGAIN);
+
+    return rc;
+}
+
+static int cm_read(void *buf, size_t length)
+{
+    int rc;
+
+    rc = cfg->tops.read(buf, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    do {
+        rc = cfg->tops.complete();
+    } while (rc == -PB_ERR_AGAIN);
+
+    return rc;
+}
+
 static int cmd_board(void)
 {
     int rc;
@@ -171,11 +203,11 @@ static int cmd_board(void)
     uint8_t *bfr = buffer[0];
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    cfg->tops.write(&result, sizeof(result));
+    cm_write(&result, sizeof(result));
 
     if (board_cmd->request_size) {
         LOG_DBG("Reading request data");
-        rc = cfg->tops.read(bfr, 1024);
+        rc = cm_read(bfr, 1024);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
@@ -197,8 +229,8 @@ static int cmd_board(void)
 
     if (response_size) {
         LOG_DBG("Sending response");
-        cfg->tops.write(&result, sizeof(result));
-        cfg->tops.write(bfr_response, response_size);
+        cm_write(&result, sizeof(result));
+        cm_write(bfr_response, response_size);
     }
 
     return rc;
@@ -240,9 +272,9 @@ static int cmd_bpak_read(void)
     }
 
     pb_wire_init_result(&result, error_to_wire(rc));
-    cfg->tops.write(&result, sizeof(result));
+    cm_write(&result, sizeof(result));
 
-    rc = cfg->tops.write(buffer, sizeof(struct bpak_header));
+    rc = cm_write(buffer, sizeof(struct bpak_header));
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
@@ -260,9 +292,9 @@ static int cmd_auth(void)
 #ifdef CONFIG_CM_AUTH_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
         pb_wire_init_result(&result, PB_RESULT_OK);
-        cfg->tops.write(&result, sizeof(result));
+        cm_write(&result, sizeof(result));
 
-        cfg->tops.read(buffer[0], 1024);
+        cm_read(buffer[0], 1024);
 
         rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
 
@@ -278,8 +310,8 @@ static int cmd_auth(void)
 #if CONFIG_CM_AUTH_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD && cfg->password_auth) {
         pb_wire_init_result(&result, PB_RESULT_OK);
-        cfg->tops.write(&result, sizeof(result));
-        cfg->tops.read(buffer[0], 1024);
+        cm_write(&result, sizeof(result));
+        cm_read(buffer[0], 1024);
         rc = cfg->password_auth((char *)buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
@@ -320,10 +352,10 @@ static int cmd_stream_read(void)
     pb_wire_init_result(&result, error_to_wire(rc));
     LOG_DBG("Result = %i", rc);
 
-    cfg->tops.write(&result, sizeof(result));
+    cm_write(&result, sizeof(result));
 
     if (rc == PB_OK) {
-        rc = cfg->tops.write((const void *)bfr, stream_read->size);
+        rc = cm_write((const void *)bfr, stream_read->size);
         pb_wire_init_result(&result, error_to_wire(rc));
     }
     LOG_DBG("Data sent");
@@ -506,11 +538,11 @@ static int cmd_part_tbl_read(void)
     tbl_read_result.no_of_entries = entries;
     pb_wire_init_result2(&result, PB_RESULT_OK, &tbl_read_result, sizeof(tbl_read_result));
 
-    cfg->tops.write(&result, sizeof(result));
+    cm_write(&result, sizeof(result));
 
     if (entries) {
         size_t bytes = sizeof(struct pb_result_part_table_entry) * (entries);
-        cfg->tops.write(result_tbl, bytes);
+        cm_write(result_tbl, bytes);
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
@@ -520,14 +552,14 @@ static int cmd_part_tbl_read(void)
 static int bpak_boot_read_f(int block_offset, size_t length, void *buf)
 {
     (void)block_offset;
-    return cfg->tops.read(buf, length);
+    return cm_read(buf, length);
 }
 
 static int bpak_boot_result_f(int rc)
 {
     LOG_DBG("%i", rc);
     pb_wire_init_result(&result, error_to_wire(rc));
-    return cfg->tops.write(&result, sizeof(result));
+    return cm_write(&result, sizeof(result));
 }
 
 static int cmd_boot_bpak(void)
@@ -538,7 +570,7 @@ static int cmd_boot_bpak(void)
     boot_clear_set_flags(0, BOOT_FLAG_CMD | (bpak_boot_cmd->verbose ? BOOT_FLAG_VERBOSE : 0));
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    rc = cfg->tops.write(&result, sizeof(result));
+    rc = cm_write(&result, sizeof(result));
 
     if (rc != PB_OK)
         return rc;
@@ -564,7 +596,7 @@ static int cmd_slc_read(void)
     }
     pb_wire_init_result2(&result, error_to_wire(rc), &slc_status, sizeof(slc_status));
 
-    cfg->tops.write(&result, sizeof(result));
+    cm_write(&result, sizeof(result));
 
     if (rc < 0)
         return rc;
@@ -580,7 +612,7 @@ static int cmd_slc_read(void)
         LOG_INFO("Key 0x%x status=%i", key_id, rc);
     }
 
-    cfg->tops.write(&key_status, sizeof(key_status));
+    cm_write(&key_status, sizeof(key_status));
     pb_wire_init_result(&result, error_to_wire(PB_OK));
 
     return rc;
@@ -622,11 +654,11 @@ static int cmd_stream_prep_buffer(void)
     }
 
     pb_wire_init_result(&result, PB_RESULT_OK);
-    cfg->tops.write(&result, sizeof(result));
+    cm_write(&result, sizeof(result));
 
     uint8_t *bfr = ((uint8_t *)buffer) + ((CONFIG_CM_BUF_SIZE_KiB * 1024) * stream_prep->id);
 
-    return cfg->tops.read(bfr, stream_prep->size);
+    return cm_read(bfr, stream_prep->size);
 }
 
 static int cmd_stream_final(void)
@@ -667,7 +699,7 @@ static int pb_command_parse(void)
     case PB_CMD_DEVICE_RESET: {
         LOG_INFO("Board reset");
         pb_wire_init_result(&result, PB_RESULT_OK);
-        cfg->tops.write(&result, sizeof(result));
+        cm_write(&result, sizeof(result));
         return -PB_ERR_ABORT;
     } break;
     case PB_CMD_PART_TBL_READ:
@@ -722,7 +754,7 @@ static int pb_command_parse(void)
         rc = boot_load(boot_cmd->uuid);
 
         pb_wire_init_result(&result, error_to_wire(rc));
-        cfg->tops.write(&result, sizeof(result));
+        cm_write(&result, sizeof(result));
 
         if (rc == PB_OK) {
             rc = boot_jump();
@@ -764,8 +796,8 @@ static int pb_command_parse(void)
         status_result.size = response_size;
         pb_wire_init_result2(&result, error_to_wire(rc), &status_result, sizeof(status_result));
 
-        cfg->tops.write(&result, sizeof(result));
-        cfg->tops.write(bfr_response, response_size);
+        cm_write(&result, sizeof(result));
+        cm_write(bfr_response, response_size);
     } break;
     case PB_CMD_SLC_SET_CONFIGURATION: {
         LOG_DBG("Set configuration");
@@ -823,7 +855,7 @@ static int pb_command_parse(void)
     }
 
 err_out:
-    cfg->tops.write(&result, sizeof(result));
+    cm_write(&result, sizeof(result));
 
     if (reboot_requested && (rc == 0)) {
         LOG_INFO("Requesting reboot...");
@@ -894,24 +926,34 @@ restart_command_mode:
     }
 
     while (true) {
-        plat_wdog_kick();
         rc = cfg->tops.read(&cmd, sizeof(cmd));
 
-        if (rc == PB_OK) {
-            rc = pb_command_parse();
+        if (rc != PB_OK)
+            break;
 
-            if (rc == -PB_ERR_ABORT) {
-                break;
-            } else if (rc != PB_OK) {
-                LOG_ERR("Command error %i", rc);
+        while (true) {
+            plat_wdog_kick();
+            rc = cfg->tops.complete();
+
+            if (rc == PB_OK) {
+                rc = pb_command_parse();
+
+                if (rc == -PB_ERR_ABORT) {
+                    goto err_out;
+                } else if (rc != PB_OK) {
+                    LOG_ERR("Command error %i", rc);
+                    break;
+                } else {
+                    break; /* OK, Read next command */
+                }
+            } else if (rc == -PB_ERR_TIMEOUT) {
+                continue;
+            } else if (rc == -PB_ERR_AGAIN) {
+                continue;
+            } else {
+                LOG_ERR("Read error %i", rc);
+                goto restart_command_mode;
             }
-        } else if (rc == -PB_ERR_TIMEOUT) {
-            continue;
-        } else if (rc == -PB_ERR_AGAIN) {
-            continue;
-        } else {
-            LOG_ERR("Read error %i", rc);
-            goto restart_command_mode;
         }
     }
 
