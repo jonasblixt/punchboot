@@ -1067,13 +1067,12 @@ static PyObject *wait_for_device(PyObject *self, PyObject *args, PyObject *kwds)
 
     while (true) {
         rc = init_transport(NULL, NULL, &ctx);
-        if (rc != PB_RESULT_OK) {
-            PyErr_SetString(PyExc_TimeoutError, "No device found");
-            return NULL;
+
+        if (rc == PB_RESULT_OK) {
+            rc = get_uuid(ctx, uuid);
+            pb_api_free_context(ctx);
         }
 
-        rc = get_uuid(ctx, uuid);
-        pb_api_free_context(ctx);
         if (rc != PB_RESULT_OK) {
             if (timeout > 0) {
                 sleep(1);
