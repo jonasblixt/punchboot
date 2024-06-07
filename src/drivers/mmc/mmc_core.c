@@ -36,6 +36,7 @@ static uint32_t rca;
 static struct mmc_csd_emmc mmc_csd;
 static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part_config;
+static enum mmc_part mmc_current_part;
 static unsigned int power_off_long_time_ms = 2550;
 static unsigned int generic_cmd6_time_ms = 2550;
 static unsigned int partition_switch_time_ms = 2550;
@@ -742,10 +743,20 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
         return ret;
     }
 
-    if (length > MMC_BLOCK_SIZE) {
+    /* See comment in 'mmc_write' */
+    if (mmc_current_part == MMC_PART_RPMB) {
+        ret = mmc_send_cmd(MMC_CMD_SET_BLOCK_COUNT, length / 512, MMC_RSP_R1, NULL);
+        if (ret != 0) {
+            return ret;
+        }
+
         cmd_idx = MMC_CMD_READ_MULTIPLE_BLOCK;
     } else {
-        cmd_idx = MMC_CMD_READ_SINGLE_BLOCK;
+        if (length > MMC_BLOCK_SIZE) {
+            cmd_idx = MMC_CMD_READ_MULTIPLE_BLOCK;
+        } else {
+            cmd_idx = MMC_CMD_READ_SINGLE_BLOCK;
+        }
     }
 
     ret = mmc_send_cmd(cmd_idx, lba, MMC_RSP_R1, NULL);
@@ -786,10 +797,28 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
         return ret;
     }
 
-    if (length > MMC_BLOCK_SIZE) {
+    /* Access to RPMB always uses the multiple blocks command even if there's
+     * just one block to be handled. RPMB access also requires us to set
+     * the block count. Because the standard says so.
+     *
+     * This seems to be different between manufacturers, at least some Micron
+     * memories seem fine without this and just works when reading blocks.
+     * Other memories refuse to do read accesses without this and the standard
+     * also says that it should be done in this way.
+     */
+    if (mmc_current_part == MMC_PART_RPMB) {
+        ret = mmc_send_cmd(MMC_CMD_SET_BLOCK_COUNT, length / 512, MMC_RSP_R1, NULL);
+        if (ret != 0) {
+            return ret;
+        }
+
         cmd_idx = MMC_CMD_WRITE_MULTIPLE_BLOCK;
     } else {
-        cmd_idx = MMC_CMD_WRITE_SINGLE_BLOCK;
+        if (length > MMC_BLOCK_SIZE) {
+            cmd_idx = MMC_CMD_WRITE_MULTIPLE_BLOCK;
+        } else {
+            cmd_idx = MMC_CMD_WRITE_SINGLE_BLOCK;
+        }
     }
 
     ret = mmc_send_cmd(cmd_idx, lba, MMC_RSP_R1, NULL);
@@ -843,6 +872,8 @@ int mmc_part_switch(enum mmc_part part)
     default:
         return -PB_ERR_IO;
     }
+
+    mmc_current_part = part;
 
     /* Switch active partition */
     if (value != mmc_current_part_config) {
