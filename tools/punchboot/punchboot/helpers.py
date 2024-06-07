@@ -1,6 +1,7 @@
 """Various punchboot helper functions."""
 
 import uuid
+from importlib.metadata import version
 from typing import Iterable
 
 import _punchboot  # type: ignore
@@ -9,7 +10,7 @@ import semver
 
 def library_version() -> semver.Version:
     """Return the version string of the C library."""
-    return semver.Version.parse(_punchboot.version())
+    return semver.Version.parse(version('punchboot'))
 
 
 def pb_id(cmd: str) -> int:

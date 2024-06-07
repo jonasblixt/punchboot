@@ -19,6 +19,7 @@ struct cm_transport_ops {
     int (*disconnect)(void);
     int (*read)(void *bfr, size_t length);
     int (*write)(const void *bfr, size_t length);
+    int (*complete)(void);
 };
 
 struct cm_config {
@@ -26,6 +27,7 @@ struct cm_config {
     int (*status)(uint8_t *buf, size_t *length);
     int (*password_auth)(const char *password, size_t length);
     int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
+    void (*process)(void);
     const struct cm_transport_ops tops;
 };
 
@@ -51,6 +53,16 @@ int cm_run(void);
  * @return PB_OK, on success
  */
 int cm_board_init(void);
+
+/**
+ * Request a reboot from a board command.
+ *
+ * This function can be called by a board command to request a system reboot
+ * after the result of the command has been send to the host.
+ *
+ * The reboot is only requested if the board command returns zero (PB_OK).
+ */
+void cm_board_cmd_request_reboot_on_success(void);
 
 /**
  * Populate cm configuration struct

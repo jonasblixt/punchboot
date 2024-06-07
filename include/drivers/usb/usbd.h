@@ -194,6 +194,8 @@ int usbd_init_cls(const struct usbd_cls_config *cfg);
 int usbd_init(void);
 int usbd_connect(void);
 int usbd_disconnect(void);
-int usbd_xfer(usb_ep_t ep, void *buf, size_t length);
+int usbd_xfer_start(usb_ep_t ep, void *buf, size_t length);
+int usbd_xfer_cancel(void);
+int usbd_xfer_complete(void);
 
 #endif // INCLUDE_DRIVERS_USB_USBD_H

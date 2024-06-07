@@ -24,17 +24,25 @@
 
 static int log_cb(struct pb_context *ctx, int level, const char *fmt, ...)
 {
-    static PyObject *logging = NULL;
+    static PyObject *logger = NULL;
     static PyObject *log_msg = NULL;
     char msg_buf[1024];
     int rc;
     (void)ctx;
     (void)level;
 
-    if (logging == NULL) {
-        logging = PyImport_ImportModuleNoBlock("logging");
+    if (logger == NULL) {
+        PyObject *logging = PyImport_ImportModuleNoBlock("logging");
         if (logging == NULL) {
             PyErr_SetString(PyExc_ImportError, "Could not import module 'logging'");
+            return -1;
+        }
+
+        logger = PyObject_CallMethod(logging, "getLogger", "s", "pb");
+
+        if (logger == NULL) {
+            PyErr_SetString(PyExc_RuntimeError, "Can't configure logger");
+            return -1;
         }
     }
 
@@ -48,7 +56,7 @@ static int log_cb(struct pb_context *ctx, int level, const char *fmt, ...)
             msg_buf[rc - 1] = 0;
 
         log_msg = Py_BuildValue("s", msg_buf);
-        PyObject_CallMethod(logging, "debug", "O", log_msg);
+        PyObject_CallMethod(logger, "debug", "O", log_msg);
         Py_DECREF(log_msg);
     }
     va_end(args);
@@ -1059,13 +1067,12 @@ static PyObject *wait_for_device(PyObject *self, PyObject *args, PyObject *kwds)
 
     while (true) {
         rc = init_transport(NULL, NULL, &ctx);
-        if (rc != PB_RESULT_OK) {
-            PyErr_SetString(PyExc_TimeoutError, "No device found");
-            return NULL;
+
+        if (rc == PB_RESULT_OK) {
+            rc = get_uuid(ctx, uuid);
+            pb_api_free_context(ctx);
         }
 
-        rc = get_uuid(ctx, uuid);
-        pb_api_free_context(ctx);
         if (rc != PB_RESULT_OK) {
             if (timeout > 0) {
                 sleep(1);

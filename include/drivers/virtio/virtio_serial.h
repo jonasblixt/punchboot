@@ -15,5 +15,8 @@
 int virtio_serial_init(uintptr_t base);
 int virtio_serial_write(const void *buf, size_t length);
 int virtio_serial_read(void *buf, size_t length);
+int virtio_serial_async_write(const void *buf, size_t length);
+int virtio_serial_async_read(void *buf, size_t length);
+int virtio_serial_async_complete(void);
 
 #endif // DRIVERS_VIRTIO_SERIAL_H

@@ -45,7 +45,7 @@ static struct virtq rx;
 static struct virtq tx;
 static struct virtq ctrl_rx;
 static struct virtq ctrl_tx;
-
+static struct virtq *cur_xfer_q;
 static struct virtio_serial_control ctrlm __aligned(64);
 static uintptr_t base;
 
@@ -95,21 +95,61 @@ virtio_xfer(struct virtq *q, bool read, uint32_t queue_index, uintptr_t buf, siz
     arch_clean_cache_range((uintptr_t)q->avail, sizeof(*q->avail));
     mmio_write_32(base + VIRTIO_MMIO_QUEUE_NOTIFY, queue_index);
 
-    while (q->avail->idx != q->used->idx) {
-        arch_invalidate_cache_range((uintptr_t)q->used, sizeof(*q->used));
-    }
-
     return PB_OK;
+}
+
+static int virtio_xfer_complete(struct virtq *q)
+{
+    arch_invalidate_cache_range((uintptr_t)q->used, sizeof(*q->used));
+    return (q->avail->idx == q->used->idx) ? PB_OK : -PB_ERR_AGAIN;
 }
 
 int virtio_serial_write(const void *buf, size_t length)
 {
-    return virtio_xfer(&tx, false, 5, (uintptr_t)buf, length);
+    int rc;
+    rc = virtio_xfer(&tx, false, 5, (uintptr_t)buf, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    do {
+        rc = virtio_xfer_complete(&tx);
+    } while (rc == -PB_ERR_AGAIN);
+
+    return rc;
 }
 
 int virtio_serial_read(void *buf, size_t length)
 {
+    int rc;
+
+    rc = virtio_xfer(&rx, true, 4, (uintptr_t)buf, length);
+
+    if (rc != PB_OK)
+        return rc;
+
+    do {
+        rc = virtio_xfer_complete(&rx);
+    } while (rc == -PB_ERR_AGAIN);
+
+    return rc;
+}
+
+int virtio_serial_async_write(const void *buf, size_t length)
+{
+    cur_xfer_q = &tx;
+    return virtio_xfer(&tx, false, 5, (uintptr_t)buf, length);
+}
+
+int virtio_serial_async_read(void *buf, size_t length)
+{
+    cur_xfer_q = &rx;
     return virtio_xfer(&rx, true, 4, (uintptr_t)buf, length);
+}
+
+int virtio_serial_async_complete(void)
+{
+    return virtio_xfer_complete(cur_xfer_q);
 }
 
 static void queue_init(struct virtq *q, uint8_t *buf, uint32_t queue_id)
