@@ -692,7 +692,7 @@ static int mmc_setup(void)
     if (rc < 0)
         return rc;
 
-    rc = bio_set_ios(d, mmc_bio_read, NULL);
+    rc = bio_set_ios(d, mmc_bio_read, mmc_bio_write);
 
     if (rc < 0)
         return rc;
