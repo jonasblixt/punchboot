@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import uuid  # noqa: TCH003
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import Enum
 
 
-class PartitionFlags(IntEnum):
+class PartitionFlags(Enum):
     """Partition flags.
 
     Flags:
@@ -18,11 +18,11 @@ class PartitionFlags(IntEnum):
     FLAG_ERASE_BEFORE_WRITE: Partition must be erased before it can be written to
     """
 
-    FLAG_BOOTABLE = (0,)
-    FLAG_OTP = (1,)
-    FLAG_WRITABLE = (2,)
-    FLAG_ERASE_BEFORE_WRITE = (3,)
-    FLAG_READABLE = (6,)
+    FLAG_BOOTABLE = 0
+    FLAG_OTP = 1
+    FLAG_WRITABLE = 2
+    FLAG_ERASE_BEFORE_WRITE = 3
+    FLAG_READABLE = 6
 
 
 @dataclass(frozen=True)
