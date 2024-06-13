@@ -37,6 +37,13 @@ def _has_fileno(file: IO[bytes]) -> bool:
 PartUUIDType = Union[uuid.UUID, str]
 
 
+def _partuuid_to_uuid(uu: PartUUIDType) -> uuid.UUID:
+    if isinstance(uu, str):
+        return uuid.UUID(uu)
+
+    return uu
+
+
 class Session:
     """Punchboot session class.
 
@@ -139,7 +146,7 @@ class Session:
 
         On success this function returns nothing.
         """
-        _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
+        _uu: uuid.UUID = _partuuid_to_uuid(part)
         _data_length: int
         _chunk_len: int = 1024 * 1024
         _bpak_header_len: int = 4096
@@ -182,7 +189,7 @@ class Session:
             file  -- Path or BufferedReader to write
             part  -- UUID of target partition
         """
-        _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
+        _uu: uuid.UUID = _partuuid_to_uuid(part)
         if isinstance(file, pathlib.Path):
             with file.open("rb") as f:
                 self._s.part_write(f, _uu.bytes)
@@ -198,7 +205,7 @@ class Session:
             file  -- Path or BufferedReader to write to
             part  -- UUID of partition to read from
         """
-        _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
+        _uu: uuid.UUID = _partuuid_to_uuid(part)
         if isinstance(file, pathlib.Path):
             with file.open("wb") as f:
                 self._s.part_read(f, _uu.bytes)
@@ -222,7 +229,7 @@ class Session:
         NotSupportedError     -- If not supported
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = uuid.UUID(part_uu) if isinstance(part_uu, str) else part_uu
+        _uu: uuid.UUID = _partuuid_to_uuid(part_uu)
         try:
             part: Partition = [p for p in self.part_get_partitions() if p.uuid == _uu][0]
         except IndexError:
@@ -268,7 +275,7 @@ class Session:
         NotFoundError         -- Partition was not found
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
+        _uu: uuid.UUID = _partuuid_to_uuid(part)
         self._s.part_table_install(_uu.bytes, variant)
 
     def boot_set_boot_part(self, part: Optional[PartUUIDType]) -> None:
@@ -317,7 +324,7 @@ class Session:
         NotFoundError         -- Partition was not found
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
+        _uu: uuid.UUID = _partuuid_to_uuid(part)
         self._s.boot_partition(_uu.bytes, verbose)
 
     def boot_bpak(
@@ -338,7 +345,7 @@ class Session:
         NotFoundError         -- Partition was not found
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = uuid.UUID(pretend_part) if isinstance(pretend_part, str) else pretend_part
+        _uu: uuid.UUID = _partuuid_to_uuid(pretend_part)
         self._s.boot_bpak(file.read_bytes(), _uu.bytes, verbose)
 
     def device_reset(self) -> None:
