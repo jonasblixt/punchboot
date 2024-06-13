@@ -41,7 +41,7 @@ def _completion_helper_init_session() -> Session:
     _dev_uuid: Union[uuid.UUID, None] = None
     for o, a in opts:
         if o in ("-t", "--transport") and a == "socket" and _skt_path is None:
-            _skt_path = "/tmp/pb.sock" # noqa: S108
+            _skt_path = "/tmp/pb.sock"  # noqa: S108
         if o in ("-s", "--socket"):
             _skt_path = a
         if o in ("-u", "--device-uuid"):
@@ -53,7 +53,7 @@ def _completion_helper_init_session() -> Session:
 def _print_version(_ctx: click.Context, _param: click.Option, value: bool) -> None:
     if value:
         click.echo(f"Punchboot tool {version('punchboot')}")
-        exit(0)
+        sys.exit(0)
 
 
 def _get_board_name(uu: uuid.UUID) -> str:
@@ -116,45 +116,33 @@ def pb_session(f: TFunc) -> TFunc:
                             f"Warning: More than one device is attached, using: {_attached[0]}"
                         )
                 return ctx.invoke(f, Session(device_uuid=device_uuid), *args, **kwargs)
-            elif transport == "socket":
+            if transport == "socket":
                 if device_uuid is not None:
-                    raise click.BadParameter(
-                        "It's not possible to address different devices over sockets"
-                    )
+                    msg = "It's not possible to address different devices over sockets"
+                    raise click.BadParameter(msg)
                 logger.debug("Using socket transport")
                 return ctx.invoke(f, Session(socket_path=socket), *args, **kwargs)
-        except punchboot.GenericError:
-            raise click.ClickException("Generic error")
-        except punchboot.AuthenticationError:
-            raise click.ClickException("Authentication failed")
-        except punchboot.NotAuthenticatedError:
-            raise click.ClickException("Session requires authentication")
-        except punchboot.CommandError:
-            raise click.ClickException("Command failed")
-        except punchboot.PartVerifyError:
-            raise click.ClickException("Partition verification failed")
-        except punchboot.PartNotBootableError:
-            raise click.ClickException("Partition is not bootable")
-        except punchboot.NoMemoryError:
-            raise click.ClickException("Out of memory")
-        except punchboot.TransferError:
-            raise click.ClickException("Transfer")
-        except punchboot.TimeoutError:
-            raise click.ClickException("Timeout")
-        except punchboot.SignatureError:
-            raise click.ClickException("Signature verifcation failed")
-        except punchboot.MemError:
-            raise click.ClickException("Memory")
-        except punchboot.ArgumentError:
-            raise click.ClickException("Bad argument")
-        except punchboot.NotFoundError:
-            raise click.ClickException("Could not connect to device")
-        except punchboot.NotSupportedError:
-            raise click.ClickException("Command not supported")
-        except punchboot.KeyRevokedError:
-            raise click.ClickException("Key is revoked")
-        except punchboot.IOError:
-            raise click.ClickException("I/O error")
+        except punchboot.Error as e:
+            error_descriptions = {
+                punchboot.GenericError: "Generic error",
+                punchboot.AuthenticationError: "Authentication failed",
+                punchboot.NotAuthenticatedError: "Session requires authentication",
+                punchboot.CommandError: "Command failed",
+                punchboot.PartVerifyError: "Partition verification failed",
+                punchboot.PartNotBootableError: "Partition is not bootable",
+                punchboot.NoMemoryError: "Out of memory",
+                punchboot.TransferError: "Transfer",
+                punchboot.TimeoutError: "Timeout",
+                punchboot.SignatureError: "Signature verifcation failed",
+                punchboot.MemError: "Memory",
+                punchboot.ArgumentError: "Bad argument",
+                punchboot.NotFoundError: "Could not connect to device",
+                punchboot.NotSupportedError: "Command not supported",
+                punchboot.KeyRevokedError: "Key is revoked",
+                punchboot.IOError: "I/O error",
+            }
+
+            raise click.ClickException(error_descriptions.get(type(e), "Generic error")) from e
 
     return update_wrapper(new_func, f)
 
@@ -197,7 +185,7 @@ def pb_session(f: TFunc) -> TFunc:
     "-s",
     "--socket",
     type=click.Path(path_type=pathlib.Path),
-    default=pathlib.Path("/tmp/pb.sock"),
+    default=pathlib.Path("/tmp/pb.sock"),  # noqa: S108
     expose_value=True,
     help="Socket path",
 )
@@ -298,6 +286,10 @@ def part(_ctx: click.Context) -> None:
     """Partition management."""
 
 
+B_TO_KB = 1024
+B_TO_MB = 1024 * 1024
+
+
 @part.command("list")
 @pb_session
 @click.pass_context
@@ -316,22 +308,22 @@ def part_list(_ctx: click.Context, s: Session) -> None:
             False,
             False,
         )
-        return "".join([_flag if _set else "-" for _flag, _set in zip(_flags, _part_param)])
+        return "".join(_flag if _set else "-" for _flag, _set in zip(_flags, _part_param))
 
     def _size_helper(part: Partition) -> str:
-        _part_bytes: int = (part.last_block - part.first_block + 1) * part.block_size
-        if _part_bytes > 1024 * 1024:
-            return f"{int(_part_bytes / (1024 * 1024)):<4} MB"
-        elif _part_bytes > 1024:
-            return f"{int(_part_bytes / 1024):<4} kB"
-        else:
-            return f"{_part_bytes:<4} B"
+        _part_bytes = (part.last_block - part.first_block + 1) * part.block_size
+        if _part_bytes > B_TO_MB:
+            return f"{(_part_bytes // B_TO_MB):<5} MB"
+        if _part_bytes > B_TO_KB:
+            return f"{(_part_bytes // B_TO_KB):<5} kB"
 
-    click.echo(f"{'Partition UUID':<37}   {'Flags':<8}   {'Size':<7}   {'Name':<16}")
-    click.echo(f"{'--------------':<37}   {'-----':<8}   {'----':<7}   {'----':<16}")
+        return f"{_part_bytes:<4} B"
+
+    click.echo(f"{'Partition UUID':<37}   {'Flags':<8}   {'Size':<8}   {'Name':<16}")
+    click.echo(f"{'--------------':<37}   {'-----':<8}   {'----':<8}   {'----':<16}")
     for part in s.part_get_partitions():
         click.echo(
-                f"{str(part.uuid):<37}   {_flag_helper(part):<8}   {_size_helper(part):<7}   {part.description:<16}"  # noqa: E501
+            f"{part.uuid!s:<37}   {_flag_helper(part):<8}   {_size_helper(part):<7}   {part.description:<16}"  # noqa: E501
         )
 
 
@@ -367,9 +359,11 @@ def part_install(_ctx: click.Context, s: Session, partition: uuid.UUID, variant:
 @click.pass_context
 def part_erase(_ctx: click.Context, s: Session, part_uuid: uuid.UUID) -> None:
     """Erase partition."""
-    logger.debug(f"Erasing partition {part_uuid}...")
+    logger.debug("Erasing partition %s...", part_uuid)
+
     def _update_pgbar(total: int, remaining: int) -> None:
         click.echo(f"\rErasing {total-remaining}/{total}", nl=False)
+
     s.part_erase(part_uuid, _update_pgbar)
     click.echo("")
 
@@ -386,7 +380,7 @@ def part_erase(_ctx: click.Context, s: Session, part_uuid: uuid.UUID) -> None:
 @click.pass_context
 def part_write(_ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathlib.Path) -> None:
     """Write data to a partiton."""
-    logger.debug(f"Writing {file} to partition {part_uuid}...")
+    logger.debug("Writing %s to partition %s...", file, part_uuid)
     s.part_write(file, part_uuid)
 
 
@@ -417,7 +411,7 @@ def part_read(_ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uu
 @click.pass_context
 def part_verify(_ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathlib.Path) -> None:
     """Verify the contents of a partition."""
-    logger.debug(f"Verifying {file} against contents of partition {part_uuid}...")
+    logger.debug("Verifying %s against contents of partition %s...", file, part_uuid)
     s.part_verify(file, part_uuid)
 
 
@@ -464,8 +458,10 @@ def board_command(
         _command = command
 
     if args and args_from_file:
-        raise click.BadParameter("Use either --args or --args-from-file")
-    elif args:
+        msg = "Use either --args or --args-from-file"
+        raise click.BadParameter(msg)
+
+    if args:
         _args = args.encode("utf-8") if args is not None else b""
     elif args_from_file:
         _args = args_from_file.read_bytes()

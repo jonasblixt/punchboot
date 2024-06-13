@@ -178,7 +178,8 @@ class Session:
         elif _has_fileno(file):
             _data_length = _chunk_reader(file)
         else:
-            raise ValueError("Unacceptable input")
+            msg = "File is not a supported type"
+            raise TypeError(msg)
 
         self._s.part_verify(_uu.bytes, _hash_ctx.digest(), _data_length, _bpak_header_valid)
 
@@ -196,7 +197,8 @@ class Session:
         elif _has_fileno(file):
             self._s.part_write(file, _uu.bytes)
         else:
-            raise ValueError("Unacceptable input")
+            msg = "File is not a supported type"
+            raise TypeError(msg)
 
     def part_read(self, file: Union[pathlib.Path, IO[bytes]], part: PartUUIDType) -> None:
         """Read data from a partition to a file.
@@ -212,7 +214,8 @@ class Session:
         elif _has_fileno(file):
             self._s.part_read(file, _uu.bytes)
         else:
-            raise ValueError("Unacceptable input")
+            msg = "File is not a supported type"
+            raise TypeError(msg)
 
     def part_erase(
         self,
@@ -231,13 +234,13 @@ class Session:
         """
         _uu: uuid.UUID = _partuuid_to_uuid(part_uu)
         try:
-            part: Partition = [p for p in self.part_get_partitions() if p.uuid == _uu][0]
-        except IndexError:
-            raise _punchboot.NotFoundError()
+            part: Partition = next(p for p in self.part_get_partitions() if p.uuid == _uu)
+        except StopIteration:
+            raise _punchboot.NotFoundError from None
 
         blocks_remaining: int = part.last_block - part.first_block + 1
         block_offset: int = part.first_block
-        # TODO: 64 is not a magical number. On large NOR flashes the largest
+        # Note: 64 is not a magical number. On large NOR flashes the largest
         # erase block is typically 256kByte and sectors size is normally 4k.
         #
         # So we chunk up the erase in 256kByte calls because erasing NOR is slow
@@ -257,7 +260,6 @@ class Session:
         if progress_cb:
             progress_cb(part.last_block - part.first_block + 1, 0)
 
-        # self._s.part_erase(_uu.bytes)
     def part_table_install(self, part: PartUUIDType, variant: int = 0) -> None:
         """Install partition table.
 
@@ -299,7 +301,8 @@ class Session:
             elif isinstance(part, uuid.UUID):
                 self._s.boot_set_boot_part(part.bytes)
             else:
-                raise ValueError("Unacceptable input")
+                msg = "Invalid partition specification"
+                raise ValueError(msg)
         else:
             self._s.boot_set_boot_part(None)
 
