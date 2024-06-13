@@ -317,4 +317,5 @@ def list_usb_devices() -> Sequence[uuid.UUID]:
 
 def valid_bpak_magic(data: bytes) -> bool:
     """Check for a valid BPAK magic."""
-    return bool(data[0:4] == b"2APB")
+    punchboot_magic_len = 4
+    return len(data) >= punchboot_magic_len and data[0:4] == b"2APB"
