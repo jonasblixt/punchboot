@@ -120,11 +120,7 @@ class Session:
                 p[2],
                 p[3],
                 p[4],
-                bool(p[5] & (1 << PartitionFlags.FLAG_BOOTABLE.value)),
-                bool(p[5] & (1 << PartitionFlags.FLAG_OTP.value)),
-                bool(p[5] & (1 << PartitionFlags.FLAG_WRITABLE.value)),
-                bool(p[5] & (1 << PartitionFlags.FLAG_READABLE.value)),
-                bool(p[5] & (1 << PartitionFlags.FLAG_ERASE_BEFORE_WRITE.value)),
+                PartitionFlags(p[5]),
             )
             for p in self._s.part_get_partitions()
         ]
