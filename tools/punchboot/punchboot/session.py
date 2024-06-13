@@ -50,7 +50,7 @@ class Session:
     This encapsulates all of functions available over the communications interface.
     """
 
-    _s: _punchboot.Session
+    pb_s: _punchboot.Session
 
     def __init__(
         self,
@@ -66,18 +66,20 @@ class Session:
         socket_path -- Optional path to a domain socket, mainly used for
                 testing the punchboot bootloader.
         """
-        _device_uuid = str(device_uuid) if isinstance(device_uuid, uuid.UUID) else device_uuid
-        _socket_path = (
-            str(socket_path.resolve()) if isinstance(socket_path, pathlib.Path) else socket_path
+        pb_device_uuid = str(device_uuid) if isinstance(device_uuid, uuid.UUID) else device_uuid
+        pb_socket_path = (
+            socket_path.resolve().as_posix()
+            if isinstance(socket_path, pathlib.Path)
+            else socket_path
         )
-        self._s = _punchboot.Session(_device_uuid, _socket_path)
+        self.pb_s = _punchboot.Session(pb_device_uuid, pb_socket_path)
 
     def close(self) -> None:
         """Close the current session.
 
         This will invalidate the session object.
         """
-        self._s.close()
+        self.pb_s.close()
 
     def authenticate(self, password: str) -> None:
         """Authenticate session using a password.
@@ -88,7 +90,7 @@ class Session:
         Exceptions:
         AuthenticationError -- Authentication failed
         """
-        self._s.authenticate(password)
+        self.pb_s.authenticate(password)
 
     def auth_set_password(self, password: str) -> None:
         """Set password.
@@ -96,7 +98,7 @@ class Session:
         Keyword arguments:
         password -- Password string
         """
-        self._s.auth_set_password(password)
+        self.pb_s.auth_set_password(password)
 
     def authenticate_dsa_token(
         self, token: Union[pathlib.Path, bytes], key_id: Union[str, int]
@@ -110,9 +112,9 @@ class Session:
         Exceptions:
         AuthenticationError -- Authentication failed
         """
-        _token = token if isinstance(token, bytes) else token.read_bytes()
-        _key_id = key_id if isinstance(key_id, int) else pb_id(key_id)
-        self._s.authenticate_dsa_token(_token, _key_id)
+        pb_token = token if isinstance(token, bytes) else token.read_bytes()
+        pb_key_id = key_id if isinstance(key_id, int) else pb_id(key_id)
+        self.pb_s.authenticate_dsa_token(pb_token, pb_key_id)
 
     def part_get_partitions(self) -> Sequence[Partition]:
         """Get a list of 'Partition' objects.
@@ -129,7 +131,7 @@ class Session:
                 p[4],
                 PartitionFlags(p[5]),
             )
-            for p in self._s.part_get_partitions()
+            for p in self.pb_s.part_get_partitions()
         ]
 
     def part_verify(self, file: Union[pathlib.Path, IO[bytes], bytes], part: PartUUIDType) -> None:
@@ -146,42 +148,42 @@ class Session:
 
         On success this function returns nothing.
         """
-        _uu: uuid.UUID = _partuuid_to_uuid(part)
-        _data_length: int
-        _chunk_len: int = 1024 * 1024
-        _bpak_header_len: int = 4096
-        _bpak_header_valid: bool = False
-        _hash_ctx = hashlib.sha256()
+        uu: uuid.UUID = _partuuid_to_uuid(part)
+        data_length: int
+        chunk_len: int = 1024 * 1024
+        bpak_header_len: int = 4096
+        bpak_header_valid: bool = False
+        hash_ctx = hashlib.sha256()
 
         def _chunk_reader(fh: IO[bytes]) -> int:
-            _length: int = 0
-            nonlocal _bpak_header_valid
+            length: int = 0
+            nonlocal bpak_header_valid
             # Check if the first 4k contains a valid BPAK header
-            if _chunk := fh.read(_bpak_header_len):
-                _hash_ctx.update(_chunk)
-                _length += len(_chunk)
-                _bpak_header_valid = valid_bpak_magic(_chunk)
+            if chunk := fh.read(bpak_header_len):
+                hash_ctx.update(chunk)
+                length += len(chunk)
+                bpak_header_valid = valid_bpak_magic(chunk)
             # Read the rest
-            while _chunk := fh.read(_chunk_len):
-                _hash_ctx.update(_chunk)
-                _length += len(_chunk)
+            while chunk := fh.read(chunk_len):
+                hash_ctx.update(chunk)
+                length += len(chunk)
 
-            return _length
+            return length
 
         if isinstance(file, pathlib.Path):
             with file.open("rb") as f:
-                _data_length = _chunk_reader(f)
+                data_length = _chunk_reader(f)
         elif isinstance(file, bytes):
-            _hash_ctx.update(file)
-            _bpak_header_valid = valid_bpak_magic(file)
-            _data_length = len(file)
+            hash_ctx.update(file)
+            bpak_header_valid = valid_bpak_magic(file)
+            data_length = len(file)
         elif _has_fileno(file):
-            _data_length = _chunk_reader(file)
+            data_length = _chunk_reader(file)
         else:
             msg = "File is not a supported type"
             raise TypeError(msg)
 
-        self._s.part_verify(_uu.bytes, _hash_ctx.digest(), _data_length, _bpak_header_valid)
+        self.pb_s.part_verify(uu.bytes, hash_ctx.digest(), data_length, bpak_header_valid)
 
     def part_write(self, file: Union[pathlib.Path, IO[bytes]], part: PartUUIDType) -> None:
         """Write data to a partition.
@@ -190,12 +192,12 @@ class Session:
             file  -- Path or BufferedReader to write
             part  -- UUID of target partition
         """
-        _uu: uuid.UUID = _partuuid_to_uuid(part)
+        uu: uuid.UUID = _partuuid_to_uuid(part)
         if isinstance(file, pathlib.Path):
             with file.open("rb") as f:
-                self._s.part_write(f, _uu.bytes)
+                self.pb_s.part_write(f, uu.bytes)
         elif _has_fileno(file):
-            self._s.part_write(file, _uu.bytes)
+            self.pb_s.part_write(file, uu.bytes)
         else:
             msg = "File is not a supported type"
             raise TypeError(msg)
@@ -207,12 +209,12 @@ class Session:
             file  -- Path or BufferedReader to write to
             part  -- UUID of partition to read from
         """
-        _uu: uuid.UUID = _partuuid_to_uuid(part)
+        uu: uuid.UUID = _partuuid_to_uuid(part)
         if isinstance(file, pathlib.Path):
             with file.open("wb") as f:
-                self._s.part_read(f, _uu.bytes)
+                self.pb_s.part_read(f, uu.bytes)
         elif _has_fileno(file):
-            self._s.part_read(file, _uu.bytes)
+            self.pb_s.part_read(file, uu.bytes)
         else:
             msg = "File is not a supported type"
             raise TypeError(msg)
@@ -232,9 +234,9 @@ class Session:
         NotSupportedError     -- If not supported
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = _partuuid_to_uuid(part_uu)
+        uu: uuid.UUID = _partuuid_to_uuid(part_uu)
         try:
-            part: Partition = next(p for p in self.part_get_partitions() if p.uuid == _uu)
+            part: Partition = next(p for p in self.part_get_partitions() if p.uuid == uu)
         except StopIteration:
             raise _punchboot.NotFoundError from None
 
@@ -253,7 +255,7 @@ class Session:
         while count := min(64, blocks_remaining):
             if progress_cb:
                 progress_cb(part.last_block - part.first_block + 1, blocks_remaining)
-            self._s.part_erase(_uu.bytes, block_offset, count)
+            self.pb_s.part_erase(uu.bytes, block_offset, count)
             block_offset += count
             blocks_remaining -= count
 
@@ -277,8 +279,8 @@ class Session:
         NotFoundError         -- Partition was not found
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = _partuuid_to_uuid(part)
-        self._s.part_table_install(_uu.bytes, variant)
+        uu: uuid.UUID = _partuuid_to_uuid(part)
+        self.pb_s.part_table_install(uu.bytes, variant)
 
     def boot_set_boot_part(self, part: Optional[PartUUIDType]) -> None:
         """Set active boot partition.
@@ -295,16 +297,16 @@ class Session:
             # If it's a string we must compare to "none" to not break compability.
             if isinstance(part, str):
                 if part.casefold() == "none".casefold():
-                    self._s.boot_set_boot_part(None)
+                    self.pb_s.boot_set_boot_part(None)
                 else:
-                    self._s.boot_set_boot_part(uuid.UUID(part).bytes)
+                    self.pb_s.boot_set_boot_part(uuid.UUID(part).bytes)
             elif isinstance(part, uuid.UUID):
-                self._s.boot_set_boot_part(part.bytes)
+                self.pb_s.boot_set_boot_part(part.bytes)
             else:
                 msg = "Invalid partition specification"
                 raise ValueError(msg)
         else:
-            self._s.boot_set_boot_part(None)
+            self.pb_s.boot_set_boot_part(None)
 
     def boot_status(self) -> Tuple[uuid.UUID, str]:
         """Boot status.
@@ -312,7 +314,7 @@ class Session:
         Reads the currently active boot partition.
         And may optionally return a status message.
         """
-        uu_bytes, status_msg = self._s.boot_status()
+        uu_bytes, status_msg = self.pb_s.boot_status()
         return (uuid.UUID(bytes=uu_bytes), status_msg)
 
     def boot_partition(self, part: PartUUIDType, verbose: bool = False) -> None:
@@ -327,8 +329,8 @@ class Session:
         NotFoundError         -- Partition was not found
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = _partuuid_to_uuid(part)
-        self._s.boot_partition(_uu.bytes, verbose)
+        uu: uuid.UUID = _partuuid_to_uuid(part)
+        self.pb_s.boot_partition(uu.bytes, verbose)
 
     def boot_bpak(
         self,
@@ -348,8 +350,8 @@ class Session:
         NotFoundError         -- Partition was not found
         NotAuthenticatedError -- Authentication required
         """
-        _uu: uuid.UUID = _partuuid_to_uuid(pretend_part)
-        self._s.boot_bpak(file.read_bytes(), _uu.bytes, verbose)
+        uu: uuid.UUID = _partuuid_to_uuid(pretend_part)
+        self.pb_s.boot_bpak(file.read_bytes(), uu.bytes, verbose)
 
     def device_reset(self) -> None:
         """Reset the device.
@@ -357,22 +359,22 @@ class Session:
         Exceptions:
         NotAuthenticatedError -- Authentication required
         """
-        self._s.device_reset()
+        self.pb_s.device_reset()
 
     def device_get_punchboot_version(self) -> semver.Version:
         """Read the punchboot version."""
-        _ver_str: str = self._s.device_get_punchboot_version()
-        if _ver_str.startswith("v"):
-            _ver_str = _ver_str[1:]
-        return semver.Version.parse(_ver_str)
+        ver_str: str = self.pb_s.device_get_punchboot_version()
+        if ver_str.startswith("v"):
+            ver_str = ver_str[1:]
+        return semver.Version.parse(ver_str)
 
     def device_get_uuid(self) -> uuid.UUID:
         """Read the device UUID."""
-        return uuid.UUID(bytes=self._s.device_get_uuid())
+        return uuid.UUID(bytes=self.pb_s.device_get_uuid())
 
     def device_get_boardname(self) -> str:
         """Read the device's board name."""
-        return str(self._s.device_get_boardname())
+        return str(self.pb_s.device_get_boardname())
 
     def board_run_command(self, cmd: Union[str, int], args: bytes = b"") -> bytes:
         """Execute a board specific command.
@@ -387,13 +389,12 @@ class Session:
         NotAuthenticatedError -- Authentication required
         NotSupportedError     -- On unknown commands
         """
-        _cmd_id: int = pb_id(cmd) if isinstance(cmd, str) else cmd
-        return bytes(self._s.board_run_command(_cmd_id, args))
+        cmd_id: int = pb_id(cmd) if isinstance(cmd, str) else cmd
+        return bytes(self.pb_s.board_run_command(cmd_id, args))
 
     def board_read_status(self) -> str:
         """Read board status."""
-        result: str = self._s.board_read_status().strip()
-        return result
+        return self.pb_s.board_read_status().strip()
 
     def slc_set_configuration(self) -> None:
         """Set SLC to configuration.
@@ -401,7 +402,7 @@ class Session:
         Warning: This ususally means writing fuses, this operation might
         brick your device.
         """
-        self._s.slc_set_configuration()
+        self.pb_s.slc_set_configuration()
 
     def slc_set_configuration_lock(self) -> None:
         """Set SLC to configuration locked.
@@ -409,7 +410,7 @@ class Session:
         Warning: This ususally means writing fuses, this operation might
         brick your device.
         """
-        self._s.slc_set_configuration_lock()
+        self.pb_s.slc_set_configuration_lock()
 
     def slc_set_end_of_life(self) -> None:
         """Set SLC to end of life.
@@ -417,7 +418,7 @@ class Session:
         Warning: This ususally means writing fuses, this operation might
         brick your device.
         """
-        self._s.slc_set_end_of_life()
+        self.pb_s.slc_set_end_of_life()
 
     def slc_get_active_keys(self) -> Sequence[int]:
         """Read active keys.
@@ -425,18 +426,18 @@ class Session:
         Returns a list of id's of key's that can be used to authenticate boot
         images.
         """
-        return tuple(self._s.slc_get_active_keys())
+        return tuple(self.pb_s.slc_get_active_keys())
 
     def slc_get_revoked_keys(self) -> Sequence[int]:
         """Read revoked keys.
 
         Returns a list of id's of key's that have been revoked.
         """
-        return tuple(self._s.slc_get_revoked_keys())
+        return tuple(self.pb_s.slc_get_revoked_keys())
 
     def slc_get_lifecycle(self) -> SLC:
         """Read Security Life Cycle (SLC)."""
-        return SLC(self._s.slc_get_lifecycle())
+        return SLC(self.pb_s.slc_get_lifecycle())
 
     def slc_revoke_key(self, key_id: Union[int, str]) -> None:
         """Revokey key.
@@ -444,5 +445,5 @@ class Session:
         Keyword arguments:
         key_id  -- Key id or pb_id string
         """
-        _key_id = pb_id(key_id) if isinstance(key_id, str) else key_id
-        self._s.slc_revoke_key(_key_id)
+        pb_key_id = pb_id(key_id) if isinstance(key_id, str) else key_id
+        self.pb_s.slc_revoke_key(pb_key_id)
