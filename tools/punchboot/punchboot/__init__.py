@@ -1,6 +1,6 @@
 """Punchboot."""
 
-from _punchboot import (  # type: ignore # noqa: F401
+from _punchboot import (  # type: ignore[import-not-found] # noqa: F401
     ArgumentError,
     AuthenticationError,
     CommandError,

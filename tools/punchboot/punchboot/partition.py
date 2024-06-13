@@ -1,6 +1,8 @@
 """Punchboot Partition class."""
 
-import uuid
+from __future__ import annotations
+
+import uuid  # noqa: TCH003
 from dataclasses import dataclass
 from enum import IntEnum
 

@@ -1,4 +1,7 @@
 """Punchboot CLI."""
+
+from __future__ import annotations
+
 import contextlib
 import getopt
 import logging
@@ -8,7 +11,7 @@ import sys
 import uuid
 from functools import update_wrapper
 from importlib.metadata import version
-from typing import Iterable, Optional, Union
+from typing import Any, Callable, Iterable, List, Optional, TypeVar, Union
 
 import click
 from click.shell_completion import CompletionItem
@@ -37,11 +40,11 @@ def _completion_helper_init_session() -> Session:
     _skt_path: Union[str, None] = None
     _dev_uuid: Union[uuid.UUID, None] = None
     for o, a in opts:
-        if (o == "-t" or o == "--transport") and a == "socket" and _skt_path is None:
-            _skt_path = "/tmp/pb.sock"
-        if o == "-s" or o == "--socket":
+        if o in ("-t", "--transport") and a == "socket" and _skt_path is None:
+            _skt_path = "/tmp/pb.sock" # noqa: S108
+        if o in ("-s", "--socket"):
             _skt_path = a
-        if o == "-u" or o == "--device-uuid":
+        if o in ("-u", "--device-uuid"):
             _dev_uuid = uuid.UUID(a)
 
     return Session(socket_path=_skt_path, device_uuid=_dev_uuid)
@@ -56,13 +59,15 @@ class PBPartType(click.ParamType):
     _filt_boot: bool = False
 
     def __init__(  # noqa: D107
-        self, filt_write: bool = False, filt_read: bool = False, filt_boot: bool = False
-    ):
+        self, *, filt_write: bool = False, filt_read: bool = False, filt_boot: bool = False
+    ) -> None:
         self._filt_write = filt_write
         self._filt_read = filt_read
         self._filt_boot = filt_boot
 
-    def shell_complete(self, ctx: click.Context, param: click.Parameter, incomplete):
+    def shell_complete(
+        self, _ctx: click.Context, _param: click.Parameter, _incomplete: str
+    ) -> List[CompletionItem]:
         """Completion handler for partitions."""
         try:
             s: Session = _completion_helper_init_session()
@@ -80,7 +85,7 @@ class PBPartType(click.ParamType):
             return []  # Intentionally suppress all exceptions
 
 
-def _print_version(ctx: click.Context, param: click.Option, value: bool):
+def _print_version(_ctx: click.Context, _param: click.Option, value: bool) -> None:
     if value:
         click.echo(f"Punchboot tool {version('punchboot')}")
         exit(0)
@@ -90,24 +95,30 @@ def _get_board_name(uu: uuid.UUID) -> str:
     return Session(device_uuid=uu).device_get_boardname()
 
 
-def _dev_completion_helper(ctx: click.Context, param: click.Option, incomplete):
+def _dev_completion_helper(
+    _ctx: click.Context, _param: click.Option, _incomplete: str
+) -> List[CompletionItem]:
     """Completion handler for USB attached devices."""
     return [CompletionItem(str(_uu), help=_get_board_name(_uu)) for _uu in list_usb_devices()]
 
 
-def pb_session(f):
+RT = TypeVar("RT")
+TFunc = Callable[..., RT]
+
+
+def pb_session(f: TFunc) -> TFunc:
     """Punchboot Session setup decorator."""
 
     @click.pass_context
-    def new_func(ctx: click.Context, *args, **kwargs):
-        device_uuid: uuid.UUID = ctx.obj["device-uuid"]
+    def new_func(ctx: click.Context, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        device_uuid: Optional[uuid.UUID] = ctx.obj["device-uuid"]
         socket: str = ctx.obj["socket"]
         transport: str = ctx.obj["transport"]
         try:
             if transport == "usb":
                 logger.debug("Using USB transport")
                 if device_uuid is None:
-                    _attached: Iterable[uuid.UUID] = list_usb_devices()
+                    _attached = list_usb_devices()
                     if len(_attached) > 1:
                         click.echo(
                             f"Warning: More than one device is attached, using: {_attached[0]}"
@@ -201,12 +212,12 @@ def pb_session(f):
 @click.pass_context
 def cli(
     ctx: click.Context,
-    version: bool,
+    version: bool,  # noqa: ARG001
     verbose: bool,
     transport: str,
     device_uuid: uuid.UUID,
     socket: str,
-):
+) -> None:
     """Punchboot."""
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
     ctx.obj = {"transport": transport, "device-uuid": device_uuid, "socket": socket}
@@ -214,14 +225,14 @@ def cli(
 
 @cli.group()
 @click.pass_context
-def dev(ctx: click.Context):
+def dev(_ctx: click.Context) -> None:
     """Device management."""
 
 
 @dev.command("reset")
 @pb_session
 @click.pass_context
-def dev_reset(ctx: click.Context, s: Session):
+def dev_reset(_ctx: click.Context, s: Session) -> None:
     """Reset the device."""
     s.device_reset()
 
@@ -229,7 +240,7 @@ def dev_reset(ctx: click.Context, s: Session):
 @dev.command("show")
 @pb_session
 @click.pass_context
-def dev_show(ctx: click.Context, s: Session):
+def dev_show(_ctx: click.Context, s: Session) -> None:
     """Show device info."""
     with contextlib.suppress(punchboot.NotAuthenticatedError):
         click.echo(f"{'Bootloader version:':<20}{s.device_get_punchboot_version()}")
@@ -239,7 +250,7 @@ def dev_show(ctx: click.Context, s: Session):
 
 @cli.group()
 @click.pass_context
-def auth(ctx: click.Context):
+def auth(_ctx: click.Context) -> None:
     """Session authentication."""
 
 
@@ -255,7 +266,9 @@ def auth(ctx: click.Context):
 )
 @pb_session
 @click.pass_context
-def auth_password(ctx: click.Context, s: Session, set_flag: bool, force: bool, password: str):
+def auth_password(
+    _ctx: click.Context, s: Session, set_flag: bool, force: bool, password: str
+) -> None:
     """Password authentication."""
     if set_flag and (force or click.confirm("Are you sure?")):
         s.auth_set_password(password)
@@ -275,7 +288,7 @@ def auth_password(ctx: click.Context, s: Session, set_flag: bool, force: bool, p
 )
 @pb_session
 @click.pass_context
-def auth_token(ctx: click.Context, s: Session, token: pathlib.Path, key_id: str):
+def auth_token(_ctx: click.Context, s: Session, token: pathlib.Path, key_id: str) -> None:
     """DSA token  authentication."""
     _key_id: Union[int, str] = 0
 
@@ -289,14 +302,14 @@ def auth_token(ctx: click.Context, s: Session, token: pathlib.Path, key_id: str)
 
 @cli.group()
 @click.pass_context
-def part(ctx: click.Context):
+def part(_ctx: click.Context) -> None:
     """Partition management."""
 
 
 @part.command("list")
 @pb_session
 @click.pass_context
-def part_list(ctx: click.Context, s: Session):
+def part_list(_ctx: click.Context, s: Session) -> None:
     """List partitions."""
 
     def _flag_helper(part: Partition) -> str:
@@ -345,9 +358,10 @@ def part_list(ctx: click.Context, s: Session):
 )
 @pb_session
 @click.pass_context
-def part_install(ctx: click.Context, s: Session, partition: uuid.UUID, variant: int):
+def part_install(_ctx: click.Context, s: Session, partition: uuid.UUID, variant: int) -> None:
     """Install partition table."""
     s.part_table_install(partition, variant)
+
 
 @part.command("erase")
 @click.argument(
@@ -357,10 +371,10 @@ def part_install(ctx: click.Context, s: Session, partition: uuid.UUID, variant: 
 )
 @pb_session
 @click.pass_context
-def part_erase(ctx: click.Context, s: Session, part_uuid: uuid.UUID):
+def part_erase(_ctx: click.Context, s: Session, part_uuid: uuid.UUID) -> None:
     """Erase partition."""
     logger.debug(f"Erasing partition {part_uuid}...")
-    def _update_pgbar(total: int, remaining: int):
+    def _update_pgbar(total: int, remaining: int) -> None:
         click.echo(f"\rErasing {total-remaining}/{total}", nl=False)
     s.part_erase(part_uuid, _update_pgbar)
     click.echo("")
@@ -375,7 +389,7 @@ def part_erase(ctx: click.Context, s: Session, part_uuid: uuid.UUID):
 )
 @pb_session
 @click.pass_context
-def part_write(ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathlib.Path):
+def part_write(_ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathlib.Path) -> None:
     """Write data to a partiton."""
     logger.debug(f"Writing {file} to partition {part_uuid}...")
     s.part_write(file, part_uuid)
@@ -390,7 +404,7 @@ def part_write(ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathl
 @click.argument("file", type=click.Path(path_type=pathlib.Path), required=True)
 @pb_session
 @click.pass_context
-def part_read(ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uuid.UUID):
+def part_read(_ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uuid.UUID) -> None:
     """Read data from a partition."""
     s.part_read(file, part_uuid)
 
@@ -404,7 +418,7 @@ def part_read(ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uui
 )
 @pb_session
 @click.pass_context
-def part_verify(ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathlib.Path):
+def part_verify(_ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: pathlib.Path) -> None:
     """Verify the contents of a partition."""
     logger.debug(f"Verifying {file} against contents of partition {part_uuid}...")
     s.part_verify(file, part_uuid)
@@ -412,7 +426,7 @@ def part_verify(ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: path
 
 @cli.group()
 @click.pass_context
-def board(ctx: click.Context):
+def board(_ctx: click.Context) -> None:
     """Board specific commands."""
 
 
@@ -436,13 +450,13 @@ def board(ctx: click.Context):
 @pb_session
 @click.pass_context
 def board_command(
-    ctx: click.Context,
+    _ctx: click.Context,
     s: Session,
     command: str,
     args: Optional[str],
     out_fmt: str,
     args_from_file: Optional[pathlib.Path],
-):
+) -> None:
     """Execute a board specific command."""
     _command: Union[int, str] = 0
     _args: bytes = b""
@@ -470,14 +484,14 @@ def board_command(
 @board.command("status")
 @pb_session
 @click.pass_context
-def board_status(ctx: click.Context, s: Session):
+def board_status(_ctx: click.Context, s: Session) -> None:
     """Read board status."""
     click.echo(s.board_read_status())
 
 
 @cli.group()
 @click.pass_context
-def boot(ctx: click.Context):
+def boot(_ctx: click.Context) -> None:
     """Boot commands."""
 
 
@@ -492,7 +506,7 @@ def boot(ctx: click.Context):
 )
 @pb_session
 @click.pass_context
-def boot_partition(ctx: click.Context, s: Session, partition: uuid.UUID, verbose: bool):
+def boot_partition(_ctx: click.Context, s: Session, partition: uuid.UUID, verbose: bool) -> None:
     """Boot from a partition."""
     s.boot_partition(partition, verbose)
 
@@ -515,8 +529,8 @@ def boot_partition(ctx: click.Context, s: Session, partition: uuid.UUID, verbose
 @pb_session
 @click.pass_context
 def boot_bpak(
-    ctx: click.Context, s: Session, file: pathlib.Path, pretend_part: uuid.UUID, verbose: bool
-):
+    _ctx: click.Context, s: Session, file: pathlib.Path, pretend_part: uuid.UUID, verbose: bool
+) -> None:
     """Load a bpak file into ram and run it."""
     _uu = pretend_part if pretend_part is not None else uuid.UUID(bytes=b"\x00" * 16)
     s.boot_bpak(file, _uu, verbose)
@@ -525,7 +539,7 @@ def boot_bpak(
 @boot.command("status")
 @pb_session
 @click.pass_context
-def boot_status(ctx: click.Context, s: Session):
+def boot_status(_ctx: click.Context, s: Session) -> None:
     """Display boot status."""
     boot_uu, msg = s.boot_status()
     if boot_uu == uuid.UUID(bytes=b"\x00" * 16):
@@ -545,7 +559,7 @@ def boot_status(ctx: click.Context, s: Session):
 )
 @pb_session
 @click.pass_context
-def boot_set_boot_part(ctx: click.Context, s: Session, part_uuid: uuid.UUID):
+def boot_set_boot_part(_ctx: click.Context, s: Session, part_uuid: uuid.UUID) -> None:
     """Configure active boot partition."""
     s.boot_set_boot_part(part_uuid)
 
@@ -553,7 +567,7 @@ def boot_set_boot_part(ctx: click.Context, s: Session, part_uuid: uuid.UUID):
 @boot.command("disable")
 @pb_session
 @click.pass_context
-def boot_disable(ctx: click.Context, s: Session):
+def boot_disable(_ctx: click.Context, s: Session) -> None:
     """Disable boot."""
     s.boot_set_boot_part(uuid.UUID(bytes=b"\x00" * 16))
 
@@ -565,14 +579,14 @@ Are you sure?"""  # noqa: E501
 
 @cli.group()
 @click.pass_context
-def slc(ctx: click.Context):
+def slc(_ctx: click.Context) -> None:
     """Security Life Cycle."""
 
 
 @slc.command("show")
 @pb_session
 @click.pass_context
-def slc_show(ctx: click.Context, s: Session):
+def slc_show(_ctx: click.Context, s: Session) -> None:
     """Show SLC."""
     click.echo(f"Status: {s.slc_get_lifecycle().name}")
     click.echo(f"Active keys: {', '.join(hex(k) for k in s.slc_get_active_keys())}")
@@ -585,7 +599,7 @@ def slc_show(ctx: click.Context, s: Session):
 )
 @pb_session
 @click.pass_context
-def slc_configure(ctx: click.Context, s: Session, force: bool):
+def slc_configure(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC configure."""
     if force or click.confirm(_slc_warning):
         s.slc_set_configuration()
@@ -597,7 +611,7 @@ def slc_configure(ctx: click.Context, s: Session, force: bool):
 )
 @pb_session
 @click.pass_context
-def slc_lock(ctx: click.Context, s: Session, force: bool):
+def slc_lock(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC configuration lock."""
     if force or click.confirm(_slc_warning):
         s.slc_set_configuration_lock()
@@ -609,7 +623,7 @@ def slc_lock(ctx: click.Context, s: Session, force: bool):
 )
 @pb_session
 @click.pass_context
-def slc_eol(ctx: click.Context, s: Session, force: bool):
+def slc_eol(_ctx: click.Context, s: Session, force: bool) -> None:
     """Set SLC end of life."""
     if force or click.confirm(_slc_warning):
         s.slc_set_end_of_life()
@@ -622,7 +636,7 @@ def slc_eol(ctx: click.Context, s: Session, force: bool):
 )
 @pb_session
 @click.pass_context
-def slc_revoke_key(ctx: click.Context, s: Session, key_id: str, force: bool):
+def slc_revoke_key(_ctx: click.Context, s: Session, key_id: str, force: bool) -> None:
     """Revoke a key."""
     _key_id: Union[int, str] = 0
     try:
@@ -636,7 +650,7 @@ def slc_revoke_key(ctx: click.Context, s: Session, key_id: str, force: bool):
 
 @cli.command("completion")
 @click.pass_context
-def shell_completion_helper(ctx: click.Context):
+def shell_completion_helper(_ctx: click.Context) -> None:
     """Shell completion helpers."""
     _help_text = """
     Punchboot supports shell completions for bash, zsh and fish.
@@ -657,7 +671,7 @@ def shell_completion_helper(ctx: click.Context):
 
 
 @cli.command("list")
-def list_devices():
+def list_devices() -> None:
     """List Punchboot devices attached over USB."""
     for _uu in list_usb_devices():
         click.echo(f"{_uu} -- {_get_board_name(_uu)}")

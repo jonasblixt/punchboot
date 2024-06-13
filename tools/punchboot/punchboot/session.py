@@ -3,18 +3,23 @@
 This is the main interface to the punchboot library.
 """
 
+from __future__ import annotations
+
 import hashlib
 import io
 import pathlib
 import uuid
-from typing import IO, Any, Callable, Iterable, Optional, Tuple, Union
+from typing import IO, TYPE_CHECKING, Callable, Optional, Tuple, Union
 
-import _punchboot  # type: ignore
-import semver
+import _punchboot  # type: ignore[import-not-found]
+import semver  # type: ignore[import-not-found]
 
 from .helpers import pb_id, valid_bpak_magic
 from .partition import Partition, PartitionFlags
 from .slc import SLC
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def _has_fileno(file: IO[bytes]) -> bool:
@@ -29,19 +34,22 @@ def _has_fileno(file: IO[bytes]) -> bool:
     return True
 
 
-class Session(object):
+PartUUIDType = Union[uuid.UUID, str]
+
+
+class Session:
     """Punchboot session class.
 
     This encapsulates all of functions available over the communications interface.
     """
 
-    _s: Any
+    _s: _punchboot.Session
 
     def __init__(
         self,
-        device_uuid: Optional[Union[uuid.UUID, str, None]] = None,
-        socket_path: Optional[Union[pathlib.Path, str, None]] = None,
-    ):
+        device_uuid: Optional[Union[uuid.UUID, str]] = None,
+        socket_path: Optional[Union[pathlib.Path, str]] = None,
+    ) -> None:
         """Initialize the punchboot session.
 
         Keyword arguments:
@@ -57,14 +65,14 @@ class Session(object):
         )
         self._s = _punchboot.Session(_device_uuid, _socket_path)
 
-    def close(self):
+    def close(self) -> None:
         """Close the current session.
 
         This will invalidate the session object.
         """
         self._s.close()
 
-    def authenticate(self, password: str):
+    def authenticate(self, password: str) -> None:
         """Authenticate session using a password.
 
         Keyword arguments:
@@ -75,7 +83,7 @@ class Session(object):
         """
         self._s.authenticate(password)
 
-    def auth_set_password(self, password: str):
+    def auth_set_password(self, password: str) -> None:
         """Set password.
 
         Keyword arguments:
@@ -83,7 +91,9 @@ class Session(object):
         """
         self._s.auth_set_password(password)
 
-    def authenticate_dsa_token(self, token: Union[pathlib.Path, bytes], key_id: Union[str, int]):
+    def authenticate_dsa_token(
+        self, token: Union[pathlib.Path, bytes], key_id: Union[str, int]
+    ) -> None:
         """Authenticate session using a DSA token.
 
         Keyword arguments:
@@ -97,7 +107,7 @@ class Session(object):
         _key_id = key_id if isinstance(key_id, int) else pb_id(key_id)
         self._s.authenticate_dsa_token(_token, _key_id)
 
-    def part_get_partitions(self) -> Iterable[Partition]:
+    def part_get_partitions(self) -> Sequence[Partition]:
         """Get a list of 'Partition' objects.
 
         Exceptions:
@@ -119,9 +129,7 @@ class Session(object):
             for p in self._s.part_get_partitions()
         ]
 
-    def part_verify(
-        self, file: Union[pathlib.Path, IO[bytes], bytes], part: Union[uuid.UUID, str]
-    ):
+    def part_verify(self, file: Union[pathlib.Path, IO[bytes], bytes], part: PartUUIDType) -> None:
         """Verify the contents of a partition.
 
         Keyword arguments:
@@ -171,7 +179,7 @@ class Session(object):
 
         self._s.part_verify(_uu.bytes, _hash_ctx.digest(), _data_length, _bpak_header_valid)
 
-    def part_write(self, file: Union[pathlib.Path, IO[bytes]], part: Union[uuid.UUID, str]):
+    def part_write(self, file: Union[pathlib.Path, IO[bytes]], part: PartUUIDType) -> None:
         """Write data to a partition.
 
         Keyword arguments:
@@ -187,7 +195,7 @@ class Session(object):
         else:
             raise ValueError("Unacceptable input")
 
-    def part_read(self, file: Union[pathlib.Path, IO[bytes]], part: Union[uuid.UUID, str]):
+    def part_read(self, file: Union[pathlib.Path, IO[bytes]], part: PartUUIDType) -> None:
         """Read data from a partition to a file.
 
         Keyword arguments:
@@ -204,9 +212,10 @@ class Session(object):
             raise ValueError("Unacceptable input")
 
     def part_erase(
-            self, part_uu: Union[uuid.UUID, str],
-            progress_cb: Optional[Callable[[int, int], None]] = None
-    ):
+        self,
+        part_uu: PartUUIDType,
+        progress_cb: Optional[Callable[[int, int], None]] = None,
+    ) -> None:
         """Erase partition.
 
         Keyword arguments:
@@ -246,7 +255,7 @@ class Session(object):
             progress_cb(part.last_block - part.first_block + 1, 0)
 
         # self._s.part_erase(_uu.bytes)
-    def part_table_install(self, part: Union[uuid.UUID, str], variant: Optional[int] = 0):
+    def part_table_install(self, part: PartUUIDType, variant: int = 0) -> None:
         """Install partition table.
 
         Punchboot supports partition table variants to, for example, support
@@ -257,7 +266,7 @@ class Session(object):
 
         Keyword arguments:
         part -- UUID of target device
-        variant -- Optional variant (Default: 0)
+        variant -- Variant (Default: 0)
 
         Exceptions:
         NotFoundError         -- Partition was not found
@@ -266,7 +275,7 @@ class Session(object):
         _uu: uuid.UUID = uuid.UUID(part) if isinstance(part, str) else part
         self._s.part_table_install(_uu.bytes, variant)
 
-    def boot_set_boot_part(self, part: Union[uuid.UUID, str, None]):
+    def boot_set_boot_part(self, part: Optional[PartUUIDType]) -> None:
         """Set active boot partition.
 
         Keyword arguments:
@@ -300,7 +309,7 @@ class Session(object):
         uu_bytes, status_msg = self._s.boot_status()
         return (uuid.UUID(bytes=uu_bytes), status_msg)
 
-    def boot_partition(self, part: Union[uuid.UUID, str], verbose: Optional[bool] = False):
+    def boot_partition(self, part: PartUUIDType, verbose: bool = False) -> None:
         """Boot partition.
 
         Keyword arguments:
@@ -318,9 +327,9 @@ class Session(object):
     def boot_bpak(
         self,
         file: pathlib.Path,
-        pretend_part: Union[uuid.UUID, str],
-        verbose: Optional[bool] = False,
-    ):
+        pretend_part: PartUUIDType,
+        verbose: bool = False,
+    ) -> None:
         """Load a bpak file into ram and run it.
 
         Keyword arguments:
@@ -336,7 +345,7 @@ class Session(object):
         _uu: uuid.UUID = uuid.UUID(pretend_part) if isinstance(pretend_part, str) else pretend_part
         self._s.boot_bpak(file.read_bytes(), _uu.bytes, verbose)
 
-    def device_reset(self):
+    def device_reset(self) -> None:
         """Reset the device.
 
         Exceptions:
@@ -359,12 +368,12 @@ class Session(object):
         """Read the device's board name."""
         return str(self._s.device_get_boardname())
 
-    def board_run_command(self, cmd: Union[str, int], args: Optional[bytes] = b"") -> bytes:
+    def board_run_command(self, cmd: Union[str, int], args: bytes = b"") -> bytes:
         """Execute a board specific command.
 
         Keyword arguments:
         cmd  -- The command to execute either in string form or a 'pb_id' integer
-        args -- Optional arguments as a byte array
+        args -- Arguments as a byte array
 
         Returns a byte array
 
@@ -380,7 +389,7 @@ class Session(object):
         result: str = self._s.board_read_status().strip()
         return result
 
-    def slc_set_configuration(self):
+    def slc_set_configuration(self) -> None:
         """Set SLC to configuration.
 
         Warning: This ususally means writing fuses, this operation might
@@ -388,7 +397,7 @@ class Session(object):
         """
         self._s.slc_set_configuration()
 
-    def slc_set_configuration_lock(self):
+    def slc_set_configuration_lock(self) -> None:
         """Set SLC to configuration locked.
 
         Warning: This ususally means writing fuses, this operation might
@@ -396,7 +405,7 @@ class Session(object):
         """
         self._s.slc_set_configuration_lock()
 
-    def slc_set_end_of_life(self):
+    def slc_set_end_of_life(self) -> None:
         """Set SLC to end of life.
 
         Warning: This ususally means writing fuses, this operation might
@@ -404,7 +413,7 @@ class Session(object):
         """
         self._s.slc_set_end_of_life()
 
-    def slc_get_active_keys(self) -> Iterable[int]:
+    def slc_get_active_keys(self) -> Sequence[int]:
         """Read active keys.
 
         Returns a list of id's of key's that can be used to authenticate boot
@@ -412,7 +421,7 @@ class Session(object):
         """
         return tuple(self._s.slc_get_active_keys())
 
-    def slc_get_revoked_keys(self) -> Iterable[int]:
+    def slc_get_revoked_keys(self) -> Sequence[int]:
         """Read revoked keys.
 
         Returns a list of id's of key's that have been revoked.
@@ -423,7 +432,7 @@ class Session(object):
         """Read Security Life Cycle (SLC)."""
         return SLC(self._s.slc_get_lifecycle())
 
-    def slc_revoke_key(self, key_id: Union[int, str]):
+    def slc_revoke_key(self, key_id: Union[int, str]) -> None:
         """Revokey key.
 
         Keyword arguments:
