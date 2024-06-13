@@ -50,41 +50,6 @@ def _completion_helper_init_session() -> Session:
     return Session(socket_path=_skt_path, device_uuid=_dev_uuid)
 
 
-class PBPartType(click.ParamType):
-    """Helper class for partition UUID shell completion."""
-
-    name = "pbpart"
-    _filt_write: bool = False
-    _filt_read: bool = False
-    _filt_boot: bool = False
-
-    def __init__(  # noqa: D107
-        self, *, filt_write: bool = False, filt_read: bool = False, filt_boot: bool = False
-    ) -> None:
-        self._filt_write = filt_write
-        self._filt_read = filt_read
-        self._filt_boot = filt_boot
-
-    def shell_complete(
-        self, _ctx: click.Context, _param: click.Parameter, _incomplete: str
-    ) -> List[CompletionItem]:
-        """Completion handler for partitions."""
-        try:
-            s: Session = _completion_helper_init_session()
-            _parts: Iterable[Partition] = s.part_get_partitions()
-
-            if self._filt_write:
-                _parts = [_p for _p in _parts if _p.writable]
-            if self._filt_read:
-                _parts = [_p for _p in _parts if _p.readable]
-            if self._filt_boot:
-                _parts = [_p for _p in _parts if _p.bootable]
-
-            return [CompletionItem(str(_p.uuid), help=_p.description) for _p in _parts]
-        except Exception:
-            return []  # Intentionally suppress all exceptions
-
-
 def _print_version(_ctx: click.Context, _param: click.Option, value: bool) -> None:
     if value:
         click.echo(f"Punchboot tool {version('punchboot')}")
@@ -100,6 +65,33 @@ def _dev_completion_helper(
 ) -> List[CompletionItem]:
     """Completion handler for USB attached devices."""
     return [CompletionItem(str(_uu), help=_get_board_name(_uu)) for _uu in list_usb_devices()]
+
+
+def _get_part_completion_helper(
+    *, filt_write: bool = False, filt_read: bool = False, filt_boot: bool = False
+) -> Callable[[click.Context, click.Parameter, str], List[CompletionItem]]:
+    """Construct a completion handler for partitions with given filtering."""
+
+    def _part_completion_helper(
+        _ctx: click.Context, _param: click.Parameter, _incomplete: str
+    ) -> List[CompletionItem]:
+        """Completion handler for partitions."""
+        with contextlib.suppress(Exception):
+            s: Session = _completion_helper_init_session()
+            _parts: Iterable[Partition] = s.part_get_partitions()
+
+            if filt_write:
+                _parts = [_p for _p in _parts if _p.writable]
+            if filt_read:
+                _parts = [_p for _p in _parts if _p.readable]
+            if filt_boot:
+                _parts = [_p for _p in _parts if _p.bootable]
+
+            return [CompletionItem(str(_p.uuid), help=_p.description) for _p in _parts]
+
+        return []  # Intentionally suppress all exceptions
+
+    return _part_completion_helper
 
 
 RT = TypeVar("RT")
@@ -346,7 +338,8 @@ def part_list(_ctx: click.Context, s: Session) -> None:
 @part.command("install")
 @click.argument(
     "partition",
-    type=PBPartType(),
+    type=click.UUID,
+    shell_complete=_get_part_completion_helper(),
     required=True,
 )
 @click.option(
@@ -366,7 +359,8 @@ def part_install(_ctx: click.Context, s: Session, partition: uuid.UUID, variant:
 @part.command("erase")
 @click.argument(
     "part_uuid",
-    type=PBPartType(),
+    type=click.UUID,
+    shell_complete=_get_part_completion_helper(),
     required=True,
 )
 @pb_session
@@ -384,7 +378,8 @@ def part_erase(_ctx: click.Context, s: Session, part_uuid: uuid.UUID) -> None:
 @click.argument("file", type=click.Path(path_type=pathlib.Path), required=True)
 @click.argument(
     "part_uuid",
-    type=PBPartType(filt_write=True),
+    type=click.UUID,
+    shell_complete=_get_part_completion_helper(filt_write=True),
     required=True,
 )
 @pb_session
@@ -398,7 +393,8 @@ def part_write(_ctx: click.Context, s: Session, part_uuid: uuid.UUID, file: path
 @part.command("read")
 @click.argument(
     "part_uuid",
-    type=PBPartType(filt_read=True),
+    type=click.UUID,
+    shell_complete=_get_part_completion_helper(filt_read=True),
     required=True,
 )
 @click.argument("file", type=click.Path(path_type=pathlib.Path), required=True)
@@ -413,7 +409,8 @@ def part_read(_ctx: click.Context, s: Session, file: pathlib.Path, part_uuid: uu
 @click.argument("file", type=click.Path(path_type=pathlib.Path), required=True)
 @click.argument(
     "part_uuid",
-    type=PBPartType(),
+    type=click.UUID,
+    shell_complete=_get_part_completion_helper(),
     required=True,
 )
 @pb_session
@@ -498,7 +495,8 @@ def boot(_ctx: click.Context) -> None:
 @boot.command("partition")
 @click.argument(
     "partition",
-    type=PBPartType(filt_boot=True),
+    type=click.UUID,
+    shell_complete=_get_part_completion_helper(filt_boot=True),
     required=True,
 )
 @click.option(
@@ -520,7 +518,8 @@ def boot_partition(_ctx: click.Context, s: Session, partition: uuid.UUID, verbos
 @click.option(
     "pretend_part",
     "--pretend-part",
-    type=PBPartType(filt_boot=True),
+    type=click.UUID,
+    shell_complete=_get_part_completion_helper(filt_boot=True),
     help="Pretend like we're booting from this block device",
 )
 @click.option(
@@ -554,7 +553,8 @@ def boot_status(_ctx: click.Context, s: Session) -> None:
 @boot.command("enable")
 @click.argument(
     "part_uuid",
-    type=PBPartType(filt_boot=True),
+    type=click.UUID,
+    shell_complete=_get_part_completion_helper(filt_boot=True),
     required=False,
 )
 @pb_session
