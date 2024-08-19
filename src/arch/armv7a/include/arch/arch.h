@@ -447,7 +447,7 @@
 
 /* MAIR macros */
 #define MAIR0_ATTR_SET(attr, index)           ((attr) << ((index) << U(3)))
-#define MAIR1_ATTR_SET(attr, index)           ((attr) << (((index)-U(3)) << U(3)))
+#define MAIR1_ATTR_SET(attr, index)           ((attr) << (((index) - U(3)) << U(3)))
 
 /* System register defines The format is: coproc, opt1, CRn, CRm, opt2 */
 #define IFSR                                  p15, 0, c5, c0, 1
