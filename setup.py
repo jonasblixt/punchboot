@@ -4,7 +4,7 @@ import os
 import platform
 from pathlib import Path
 
-from setuptools import Extension, setup  # type: ignore
+from setuptools import Extension, setup  # type: ignore # noqa: PGH003
 
 pb_base_path: str = "tools/punchboot"
 plat: str = platform.system()
@@ -20,8 +20,8 @@ elif plat == "Darwin":
     # get target arch here when cross compiling wheels.
     _target_arch = os.environ["PB_MACOS_ARCH"]
     _libraries = ["usb-1.0"]
-    _library_dirs = [f"libusb_{_target_arch}/1.0.26/lib"]
-    _include_dirs = ["include", f"libusb_{_target_arch}/1.0.26/include"]
+    _library_dirs = [f"libusb_{_target_arch}/1.0.27/lib"]
+    _include_dirs = ["include", f"libusb_{_target_arch}/1.0.27/include"]
 else:
     _libraries = ["usb-1.0"]
     _library_dirs = []

@@ -6,8 +6,8 @@ on: [pull_request, push, workflow_dispatch]
 #  version information in path's.
 env:
   PYTHON_VERSION: "3.12"
-  LIBUSB_MACOS_ARM64_URL: "https://ghcr.io/v2/homebrew/core/libusb/blobs/sha256:ab90516396d8dc99f96d31615bcbddfcfd2082fcc7494dabb9d22b275628e800"
-  LIBUSB_MACOS_X86_64_URL: "https://ghcr.io/v2/homebrew/core/libusb/blobs/sha256:e79be7d4c611f0017567172771761b1df62d140e79ffa6d2538577eb24a48e44"
+  LIBUSB_MACOS_ARM64_URL: "https://ghcr.io/v2/homebrew/core/libusb/blobs/sha256:05c5363ff9f8a4aeaf65eb3f95fba3a4fc7f665d35a627a2d212c43fb7ad5838"
+  LIBUSB_MACOS_X86_64_URL: "https://ghcr.io/v2/homebrew/core/libusb/blobs/sha256:e02e54902348f1918adf758a6b2f4c5d113570f4c98e9f0a38b8d3b24c50c942"
 
 jobs:
   build_wheels:
@@ -45,11 +45,11 @@ jobs:
           # in binary wheels.
           #
           # If we prefix it with "@rpath" it works better.
-          install_name_tool -id @rpath/libusb-1.0.0.dylib libusb_x86_64/1.0.26/lib/libusb-1.0.0.dylib
-          install_name_tool -id @rpath/libusb-1.0.0.dylib libusb_arm64/1.0.26/lib/libusb-1.0.0.dylib
+          install_name_tool -id @rpath/libusb-1.0.0.dylib libusb_x86_64/1.0.27/lib/libusb-1.0.0.dylib
+          install_name_tool -id @rpath/libusb-1.0.0.dylib libusb_arm64/1.0.27/lib/libusb-1.0.0.dylib
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.20.0
         with:
            package-dir: .
            output-dir: wheelhouse

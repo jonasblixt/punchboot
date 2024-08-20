@@ -394,7 +394,7 @@ class Session:
 
     def board_read_status(self) -> str:
         """Read board status."""
-        return self.pb_s.board_read_status().strip()
+        return str(self.pb_s.board_read_status().strip())
 
     def slc_set_configuration(self) -> None:
         """Set SLC to configuration.
