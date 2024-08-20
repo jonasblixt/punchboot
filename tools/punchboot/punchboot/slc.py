@@ -1,9 +1,9 @@
 """Security Life Cycle."""
 
-from enum import IntEnum
+from enum import Enum
 
 
-class SLC(IntEnum):
+class SLC(Enum):
     """Security Life Cycle.
 
     Fields:
@@ -14,8 +14,8 @@ class SLC(IntEnum):
     SLC_EOL -- Device is in EOL, End of Life state.
     """
 
-    SLC_INVALID = (0,)
-    SLC_NOT_CONFIGURED = (1,)
-    SLC_CONFIGURATION = (2,)
-    SLC_CONFIGURATION_LOCKED = (3,)
-    SLC_EOL = (4,)
+    SLC_INVALID = 0
+    SLC_NOT_CONFIGURED = 1
+    SLC_CONFIGURATION = 2
+    SLC_CONFIGURATION_LOCKED = 3
+    SLC_EOL = 4

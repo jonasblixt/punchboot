@@ -1,16 +1,21 @@
 """Various punchboot helper functions."""
 
+from __future__ import annotations
+
 import uuid
 from importlib.metadata import version
-from typing import Iterable
+from typing import TYPE_CHECKING
 
-import _punchboot  # type: ignore
-import semver
+import _punchboot  # type: ignore[import-not-found]
+import semver  # type: ignore[import-not-found]
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def library_version() -> semver.Version:
     """Return the version string of the C library."""
-    return semver.Version.parse(version('punchboot'))
+    return semver.Version.parse(version("punchboot"))
 
 
 def pb_id(cmd: str) -> int:
@@ -293,7 +298,7 @@ def pb_id(cmd: str) -> int:
     return value
 
 
-def wait_for_device(timeout: int = -1):
+def wait_for_device(timeout: int = -1) -> None:
     """Wait for a punchboot device to enumerate.
 
     Keyword arguments:
@@ -302,7 +307,7 @@ def wait_for_device(timeout: int = -1):
     _punchboot.wait_for_device(timeout)
 
 
-def list_usb_devices() -> Iterable[uuid.UUID]:
+def list_usb_devices() -> Sequence[uuid.UUID]:
     """Find all punchboot USB devices.
 
     Returns a list of device UUID's
@@ -312,4 +317,5 @@ def list_usb_devices() -> Iterable[uuid.UUID]:
 
 def valid_bpak_magic(data: bytes) -> bool:
     """Check for a valid BPAK magic."""
-    return bool(data[0:4] == b"2APB")
+    punchboot_magic_len = 4
+    return len(data) >= punchboot_magic_len and data[0:4] == b"2APB"
