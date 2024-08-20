@@ -3,9 +3,7 @@ line-length = 100
 extend-exclude = [
     "pki",
     "doc",
-    "scripts/genconfig.py",
-    "scripts/kconfiglib.py",
-    "scripts/menuconfig.py",
+    "scripts/**",
 ]
 target-version = "py38"
 

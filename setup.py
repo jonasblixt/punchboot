@@ -4,7 +4,7 @@ import os
 import platform
 from pathlib import Path
 
-from setuptools import Extension, setup  # type: ignore
+from setuptools import Extension, setup  # type: ignore # noqa: PGH003
 
 pb_base_path: str = "tools/punchboot"
 plat: str = platform.system()
