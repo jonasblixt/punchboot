@@ -65,4 +65,4 @@ environment = "PB_MACOS_ARCH=x86_64"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-repair-wheel-command = "DYLD_LIBRARY_PATH=libusb_{delocate_archs}/1.0.27/lib delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
+repair-wheel-command = "DYLD_LIBRARY_PATH=libusb_{delocate_archs}/1.0.27/lib delocate-wheel --require-target-macos-version 12.0 --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
