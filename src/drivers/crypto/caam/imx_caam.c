@@ -248,6 +248,8 @@ static int caam_ecda_verify(const uint8_t *der_signature,
         return rc;
 
     memset(caam.ecdsa_tmp_buf, 0, sizeof(caam.ecdsa_tmp_buf));
+    memset(caam.ecdsa_r, 0, CAAM_SIG_MAX_LENGTH / 2);
+    memset(caam.ecdsa_s, 0, CAAM_SIG_MAX_LENGTH / 2);
 
     switch (key_kind) {
     case DSA_EC_SECP256r1:
