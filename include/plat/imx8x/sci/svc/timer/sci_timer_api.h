@@ -78,6 +78,8 @@ typedef uint32_t sc_timer_wdog_time_t;
  */
 sc_err_t sc_timer_set_wdog_timeout(sc_ipc_t ipc, sc_timer_wdog_time_t timeout);
 
+sc_err_t sc_timer_set_wdog_window(sc_ipc_t ipc, sc_timer_wdog_time_t window);
+
 /*!
  * This function sets the watchdog pre-timeout in milliseconds. If not
  * set then the pre-timeout defaults to the max. Once locked this value
