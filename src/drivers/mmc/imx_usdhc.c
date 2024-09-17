@@ -27,7 +27,6 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 {
     int div = 1;
     int pre_div = 1;
-    unsigned int actual_clk_hz;
 
     LOG_DBG("Trying to set bus clock to %u kHz", clk_hz / 1000);
 
@@ -43,7 +42,6 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
     while (input_clock_hz / div > clk_hz && div < 16)
         div++;
 
-    actual_clk_hz = input_clock_hz / (pre_div * div);
     pre_div >>= 1;
     div -= 1;
     uint16_t clk_reg = (pre_div << 8) | (div << 4);
@@ -60,7 +58,7 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
     mmio_setbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_PER_CLKEN | VENDSPEC_CARD_CLKEN);
 
     pb_delay_us(100);
-    LOG_DBG("Actual bus rate = %d kHz", actual_clk_hz / 1000);
+    LOG_DBG("Actual bus rate = %d kHz", (input_clock_hz / (pre_div * div)) / 1000);
     return PB_OK;
 }
 
@@ -273,9 +271,11 @@ out:
 
 static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
 {
+#if LOGLEVEL >= 3
     const char *bus_widths[] = {
         "Invalid", "1-Bit", "4-Bit", "8-Bit", "4-Bit DDR", "8-Bit DDR", "8-Bit DDR + Strobe",
     };
+#endif
 
     LOG_DBG("Width = %s", bus_widths[width]);
     bus_ddr_enable = false;
