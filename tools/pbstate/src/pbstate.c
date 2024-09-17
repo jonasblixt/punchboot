@@ -418,6 +418,43 @@ err_close_release_no_save_out:
     return preserved_rc;
 }
 
+int pbstate_invalidate_system(pbstate_system_t system)
+{
+    int rc;
+    int preserved_rc;
+    int fd = open_and_load_state(true);
+
+    if (fd < 0)
+        return fd;
+
+    switch (system) {
+    case PBSTATE_SYSTEM_A:
+        state.enable &= ~PB_STATE_A_ENABLED;
+        state.verified &= ~PB_STATE_A_VERIFIED;
+        break;
+    case PBSTATE_SYSTEM_B:
+        state.enable &= ~PB_STATE_B_ENABLED;
+        state.verified &= ~PB_STATE_B_VERIFIED;
+        break;
+    default:
+        rc = -EINVAL;
+        goto err_close_release_no_save_out;
+        break;
+    }
+
+    return close_and_save_state(fd, true);
+
+err_close_release_no_save_out:
+    preserved_rc = rc;
+
+    rc = close_and_save_state(fd, false);
+
+    if (rc < 0)
+        return rc;
+
+    return preserved_rc;
+}
+
 int pbstate_set_system_verified(pbstate_system_t system)
 {
     int rc;
