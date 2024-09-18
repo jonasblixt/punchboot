@@ -221,7 +221,6 @@ int pbstate_init(const char *p_device, const char *b_device, pbstate_printfunc_t
 
 int pbstate_is_system_active(pbstate_system_t system)
 {
-    int rc;
     int result = 0;
     int fd = open_and_load_state(false);
 
@@ -242,17 +241,12 @@ int pbstate_is_system_active(pbstate_system_t system)
         break;
     }
 
-    rc = close_and_save_state(fd, false);
-
-    if (rc < 0)
-        return rc;
-
+    close_and_save_state(fd, false);
     return result;
 }
 
 int pbstate_is_system_verified(pbstate_system_t system)
 {
-    int rc;
     int result = 0;
     int fd = open_and_load_state(false);
 
@@ -273,11 +267,7 @@ int pbstate_is_system_verified(pbstate_system_t system)
         break;
     }
 
-    rc = close_and_save_state(fd, false);
-
-    if (rc < 0)
-        return rc;
-
+    close_and_save_state(fd, false);
     return result;
 }
 
@@ -293,13 +283,13 @@ int pbstate_get_remaining_boot_attempts(unsigned int *boot_attempts)
 
     (*boot_attempts) = state.remaining_boot_attempts;
 
-    return close_and_save_state(fd, false);
+    close_and_save_state(fd, false);
+    return 0;
 }
 
 int pbstate_force_rollback(void)
 {
     int rc;
-    int preserved_rc = 0;
     int fd = open_and_load_state(true);
 
     if (fd < 0)
@@ -326,13 +316,9 @@ int pbstate_force_rollback(void)
     return 0;
 
 err_close_release_no_save_out:
-    preserved_rc = rc;
-    rc = close_and_save_state(fd, false);
+    close_and_save_state(fd, false);
 
-    if (rc < 0)
-        return rc;
-
-    return preserved_rc;
+    return rc;
 }
 
 int pbstate_get_errors(uint32_t *error)
@@ -344,7 +330,8 @@ int pbstate_get_errors(uint32_t *error)
 
     (*error) = state.error;
 
-    return close_and_save_state(fd, false);
+    close_and_save_state(fd, false);
+    return 0;
 }
 
 int pbstate_clear_error(uint32_t mask)
@@ -362,7 +349,6 @@ int pbstate_clear_error(uint32_t mask)
 int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts)
 {
     int rc;
-    int preserved_rc;
     int fd = open_and_load_state(true);
 
     if (fd < 0)
@@ -408,20 +394,13 @@ int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts)
     return close_and_save_state(fd, true);
 
 err_close_release_no_save_out:
-    preserved_rc = rc;
-
-    rc = close_and_save_state(fd, false);
-
-    if (rc < 0)
-        return rc;
-
-    return preserved_rc;
+    close_and_save_state(fd, false);
+    return rc;
 }
 
 int pbstate_invalidate_system(pbstate_system_t system)
 {
     int rc;
-    int preserved_rc;
     int fd = open_and_load_state(true);
 
     if (fd < 0)
@@ -445,20 +424,14 @@ int pbstate_invalidate_system(pbstate_system_t system)
     return close_and_save_state(fd, true);
 
 err_close_release_no_save_out:
-    preserved_rc = rc;
+    close_and_save_state(fd, false);
 
-    rc = close_and_save_state(fd, false);
-
-    if (rc < 0)
-        return rc;
-
-    return preserved_rc;
+    return rc;
 }
 
 int pbstate_set_system_verified(pbstate_system_t system)
 {
     int rc;
-    int preserved_rc;
     int fd = open_and_load_state(true);
 
     if (fd < 0)
@@ -484,14 +457,9 @@ int pbstate_set_system_verified(pbstate_system_t system)
     return close_and_save_state(fd, true);
 
 err_close_release_no_save_out:
-    preserved_rc = rc;
+    close_and_save_state(fd, false);
 
-    rc = close_and_save_state(fd, false);
-
-    if (rc < 0)
-        return rc;
-
-    return preserved_rc;
+    return rc;
 }
 
 int pbstate_read_board_reg(unsigned int index, uint32_t *value)
@@ -506,7 +474,9 @@ int pbstate_read_board_reg(unsigned int index, uint32_t *value)
 
     *value = state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1];
 
-    return close_and_save_state(fd, false);
+    close_and_save_state(fd, false);
+
+    return 0;
 }
 
 int pbstate_write_board_reg(unsigned int index, uint32_t value)
