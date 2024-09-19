@@ -571,6 +571,7 @@ static int imx_ci_udc_set_address(uint16_t addr)
 
 static int imx_ci_udc_stop(void)
 {
+    mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, CMD_RS, 0);
     imx_ci_udc_reset_queues();
     imx_ci_udc_reset();
     mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR, 0);

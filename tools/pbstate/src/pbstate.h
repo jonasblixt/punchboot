@@ -100,6 +100,16 @@ int pbstate_clear_error(uint32_t mask);
 int pbstate_switch_system(pbstate_system_t system, uint32_t boot_attempts);
 
 /**
+ * Invalidate and disable a system. This will clear the verified bit and
+ * enabled bit.
+ *
+ * @param[in] system System to invalidate
+ *
+ * @return 0 on success or -EINVAL on bad parameter
+ */
+int pbstate_invalidate_system(pbstate_system_t system);
+
+/**
  * Set system verified bit
  *
  * @param[in] system System to set verified bit on

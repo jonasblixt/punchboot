@@ -845,12 +845,14 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
 int mmc_part_switch(enum mmc_part part)
 {
     uint8_t value = 0;
+#if LOGLEVEL >= 3
     const char *part_names[] = {
         "User",
         "Boot0",
         "Boot1",
         "RPMB",
     };
+#endif
 
     switch (part) {
     case MMC_PART_BOOT0:

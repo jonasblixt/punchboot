@@ -578,7 +578,15 @@ static int cmd_boot_bpak(void)
     boot_set_source(BOOT_SOURCE_CB);
     boot_configure_load_cb(bpak_boot_read_f, bpak_boot_result_f);
 
-    return boot(bpak_boot_cmd->uuid);
+    rc = boot_load(bpak_boot_cmd->uuid);
+    if (rc != PB_OK)
+        return rc;
+
+    if (cfg->tops.disconnect) {
+        cfg->tops.disconnect();
+    }
+
+    return boot_jump();
 }
 
 static int cmd_slc_read(void)
@@ -755,6 +763,10 @@ static int pb_command_parse(void)
 
         pb_wire_init_result(&result, error_to_wire(rc));
         cm_write(&result, sizeof(result));
+
+        if (cfg->tops.disconnect) {
+            cfg->tops.disconnect();
+        }
 
         if (rc == PB_OK) {
             rc = boot_jump();
