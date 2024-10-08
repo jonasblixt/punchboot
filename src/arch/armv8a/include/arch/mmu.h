@@ -66,7 +66,7 @@
     ((((page_size_shift == 12) & 1) << 1) | ((page_size_shift == 14) & 1) | \
      ((page_size_shift == 16) & 1) | (((page_size_shift == 16) & 1) << 1))
 
-#define MMU_LX_X(page_shift, level) ((4 - (level)) * ((page_shift)-3) + 3)
+#define MMU_LX_X(page_shift, level) ((4 - (level)) * ((page_shift) - 3) + 3)
 
 #if MMU_USER_SIZE_SHIFT > MMU_LX_X(MMU_USER_PAGE_SIZE_SHIFT, 0)
 #define MMU_USER_TOP_SHIFT MMU_LX_X(MMU_USER_PAGE_SIZE_SHIFT, 0)
