@@ -31,16 +31,16 @@ _reset:
 master_cpu:
 
     /* Enable caches */
-    mrs     x9, sctlr_el3
+    mrs     x9, sctlr_el1
     orr     x9, x9, #(1<<12) /* Enable icache */
     orr     x9, x9, #(1<<2)  /* Enable dcache/ucache */
     orr     x9, x9, #(1<<3)  /* Enable Stack Alignment Check EL3 */
     bic     x9, x9, #(1<<1)  /* Disable Alignment Checking for EL3 */
-    msr     sctlr_el3, x9
+    msr     sctlr_el1, x9
 
     mov_imm    x0, (SCTLR_RESET_VAL & ~(SCTLR_EE_BIT | SCTLR_WXN_BIT \
             | SCTLR_SA_BIT | SCTLR_A_BIT | SCTLR_DSSBS_BIT))
-    msr    sctlr_el3, x0
+    msr    sctlr_el1, x0
     isb
 
 .L__do_bss:
@@ -58,8 +58,8 @@ master_cpu:
     ldr x0, =_stack_end
     mov sp, x0
 
-    ldr x0, = Vector_table_el3
-    msr VBAR_EL3, x0
+    ldr x0, = Vector_table_el1
+    msr VBAR_EL1, x0
 
     mov x0, #0
 
@@ -72,7 +72,7 @@ __zero_region_end:
     .word _zero_region_end
 
 .balign 0x800
-Vector_table_el3:
+Vector_table_el1:
 curr_el_sp0_sync:
 mov x0, #0
 bl exception

@@ -22,10 +22,12 @@ config PLAT_IMXRT
     bool "NXP IMXRT"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7M
-
 config PLAT_QEMU
     bool "QEMU aarch32"
     depends on ARCH_ARMV7
+config PLAT_VIRT_ARM64
+    bool "VIRT arm64"
+    depends on ARCH_ARMV8
 endchoice
 
 source "src/plat/*/Kconfig"
