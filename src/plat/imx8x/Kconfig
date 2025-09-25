@@ -1,11 +1,11 @@
 menu "imx8x configuration"
-    depends on PLAT_IMX8X
+    depends on PLAT_IMX8X_COMMON
     comment "imx8x configuration"
 
 config IMX8X_FUSE_DRY_RUN
     bool "Fusebox dry run"
     default n
-    depends on PLAT_IMX8X
+    depends on PLAT_IMX8X_COMMON
     help
     Enabling this option will inhibit fuse programming and instead writing
     the fuse bank and value to the console.
@@ -13,7 +13,7 @@ config IMX8X_FUSE_DRY_RUN
 endmenu
 
 menu "Output image"
-    depends on PLAT_IMX8X
+    depends on PLAT_IMX8X_COMMON
 config IMX8X_CREATE_IMX_IMAGE
     bool "Create imx-image"
     default n

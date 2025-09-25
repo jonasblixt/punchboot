@@ -7,7 +7,7 @@
 #
 #
 
-ifdef CONFIG_PLAT_IMX8X
+ifdef CONFIG_PLAT_IMX8X_COMMON
 
 src-y  += src/plat/imx8x/plat.c
 src-y  += src/plat/imx8x/fusebox.c
@@ -30,6 +30,7 @@ cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x200000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x200000000
 cflags-y += -DMAX_XLAT_TABLES=32
 cflags-y += -DMAX_MMAP_REGIONS=32
+cflags-y += -Iinclude/plat/imx8x/
 
 ldflags-y += -Tsrc/plat/imx8x/link.lds
 
