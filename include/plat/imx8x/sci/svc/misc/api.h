@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2019 NXP
+ * Copyright 2017-2022 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,7 +11,7 @@
  *
  * @addtogroup MISC_SVC MISC: Miscellaneous Service
  *
- * Module for the Miscellaneous (MISC) service.
+ * @brief Module for the Miscellaneous (MISC) service.
  *
  * @{
  */
@@ -21,17 +21,17 @@
 
 /* Includes */
 
-#include <plat/imx8x/sci/sci_types.h>
-#include <plat/imx8x/sci/svc/rm/sci_rm_api.h>
+#include <sci/types.h>
+#include <sci/svc/rm/api.h>
 
 /* Defines */
 
 /*!
  * @name Defines for type widths
  */
-/*@{*/
-#define SC_MISC_DMA_GRP_W       5U	/* Width of sc_misc_dma_group_t */
-/*@}*/
+/** @{ */
+#define SC_MISC_DMA_GRP_W       5U      /* Width of sc_misc_dma_group_t */
+/** @} */
 
 /*! Max DMA channel priority group */
 #define SC_MISC_DMA_GRP_MAX     31U
@@ -39,30 +39,30 @@
 /*!
  * @name Defines for sc_misc_boot_status_t
  */
-/*@{*/
-#define SC_MISC_BOOT_STATUS_SUCCESS     0U	/* Success */
-#define SC_MISC_BOOT_STATUS_SECURITY    1U	/* Security violation */
-/*@}*/
+/** @{ */
+#define SC_MISC_BOOT_STATUS_SUCCESS     0U   /* Success */
+#define SC_MISC_BOOT_STATUS_SECURITY    1U   /* Security violation */
+/** @} */
 
 /*!
  * @name Defines for sc_misc_temp_t
  */
-/*@{*/
-#define SC_MISC_TEMP                    0U	/* Temp sensor */
-#define SC_MISC_TEMP_HIGH               1U	/* Temp high alarm */
-#define SC_MISC_TEMP_LOW                2U	/* Temp low alarm */
-/*@}*/
+/** @{ */
+#define SC_MISC_TEMP                    0U   /* Temp sensor */
+#define SC_MISC_TEMP_HIGH               1U   /* Temp high alarm */
+#define SC_MISC_TEMP_LOW                2U   /* Temp low alarm */
+/** @} */
 
 /*!
  * @name Defines for sc_misc_bt_t
  */
-/*@{*/
-#define SC_MISC_BT_PRIMARY              0U	/* Primary boot */
-#define SC_MISC_BT_SECONDARY            1U	/* Secondary boot */
-#define SC_MISC_BT_RECOVERY             2U	/* Recovery boot */
-#define SC_MISC_BT_MANUFACTURE          3U	/* Manufacture boot */
-#define SC_MISC_BT_SERIAL               4U	/* Serial boot */
-/*@}*/
+/** @{ */
+#define SC_MISC_BT_PRIMARY              0U   /* Primary boot */
+#define SC_MISC_BT_SECONDARY            1U   /* Secondary boot */
+#define SC_MISC_BT_RECOVERY             2U   /* Recovery boot */
+#define SC_MISC_BT_MANUFACTURE          3U   /* Manufacture boot */
+#define SC_MISC_BT_SERIAL               4U   /* Serial boot */
+/** @} */
 
 /* Types */
 
@@ -111,7 +111,7 @@ typedef uint8_t sc_misc_bt_t;
  * Refer to the [Control List](@ref CONTROLS) for valid control values.
  */
 sc_err_t sc_misc_set_control(sc_ipc_t ipc, sc_rsrc_t resource,
-			     sc_ctrl_t ctrl, uint32_t val);
+    sc_ctrl_t ctrl, uint32_t val);
 
 /*!
  * This function gets a miscellaneous control value.
@@ -131,9 +131,9 @@ sc_err_t sc_misc_set_control(sc_ipc_t ipc, sc_rsrc_t resource,
  * Refer to the [Control List](@ref CONTROLS) for valid control values.
  */
 sc_err_t sc_misc_get_control(sc_ipc_t ipc, sc_rsrc_t resource,
-			     sc_ctrl_t ctrl, uint32_t *val);
+    sc_ctrl_t ctrl, uint32_t *val);
 
-/* @} */
+/** @} */
 
 /*!
  * @name DMA Functions
@@ -159,7 +159,7 @@ sc_err_t sc_misc_get_control(sc_ipc_t ipc, sc_rsrc_t resource,
  * Default is the max priority group for the parent partition of \a pt.
  */
 sc_err_t sc_misc_set_max_dma_group(sc_ipc_t ipc, sc_rm_pt_t pt,
-				   sc_misc_dma_group_t max);
+    sc_misc_dma_group_t max);
 
 /*!
  * This function configures the priority group for a DMA channel.
@@ -180,9 +180,9 @@ sc_err_t sc_misc_set_max_dma_group(sc_ipc_t ipc, sc_rm_pt_t pt,
  * sc_misc_set_max_dma_group().
  */
 sc_err_t sc_misc_set_dma_group(sc_ipc_t ipc, sc_rsrc_t resource,
-			       sc_misc_dma_group_t group);
+    sc_misc_dma_group_t group);
 
-/* @} */
+/** @} */
 
 /*!
  * @name Debug Functions
@@ -217,7 +217,8 @@ sc_err_t sc_misc_waveform_capture(sc_ipc_t ipc, sc_bool_t enable);
  * @param[out]    build       pointer to return build number
  * @param[out]    commit      pointer to return commit ID (git SHA-1)
  */
-void sc_misc_build_info(sc_ipc_t ipc, uint32_t *build, uint32_t *commit);
+void sc_misc_build_info(sc_ipc_t ipc, uint32_t *build,
+    uint32_t *commit);
 
 /*!
  * This function is used to return the SCFW API versions.
@@ -234,7 +235,7 @@ void sc_misc_build_info(sc_ipc_t ipc, uint32_t *build, uint32_t *commit);
  * Note a major version difference indicates a break in compatibility.
  */
 void sc_misc_api_ver(sc_ipc_t ipc, uint16_t *cl_maj,
-		     uint16_t *cl_min, uint16_t *sv_maj, uint16_t *sv_min);
+    uint16_t *cl_min, uint16_t *sv_maj, uint16_t *sv_min);
 
 /*!
  * This function is used to return the device's unique ID.
@@ -243,9 +244,10 @@ void sc_misc_api_ver(sc_ipc_t ipc, uint16_t *cl_maj,
  * @param[out]    id_l        pointer to return lower 32-bit of ID [31:0]
  * @param[out]    id_h        pointer to return upper 32-bits of ID [63:32]
  */
-void sc_misc_unique_id(sc_ipc_t ipc, uint32_t *id_l, uint32_t *id_h);
+void sc_misc_unique_id(sc_ipc_t ipc, uint32_t *id_l,
+    uint32_t *id_h);
 
-/* @} */
+/** @} */
 
 /*!
  * @name Other Functions
@@ -255,11 +257,11 @@ void sc_misc_unique_id(sc_ipc_t ipc, uint32_t *id_l, uint32_t *id_h);
 /*!
  * This function configures the ARI match value for PCIe/SATA resources.
  *
- * @param[in]     ipc          IPC handle
- * @param[in]     resource     match resource
- * @param[in]     resource_mst PCIe/SATA master to match
- * @param[in]     ari          ARI to match
- * @param[in]     enable       enable match or not
+ * @param[in]     ipc           IPC handle
+ * @param[in]     resource      match resource
+ * @param[in]     resource_mst  PCIe/SATA master to match
+ * @param[in]     ari           ARI to match
+ * @param[in]     enable        enable match or not
  *
  * @return Returns an error code (SC_ERR_NONE = success).
  *
@@ -273,8 +275,7 @@ void sc_misc_unique_id(sc_ipc_t ipc, uint32_t *id_l, uint32_t *id_h);
  * FISType and PM_Port.
  */
 sc_err_t sc_misc_set_ari(sc_ipc_t ipc, sc_rsrc_t resource,
-			 sc_rsrc_t resource_mst, uint16_t ari,
-			 sc_bool_t enable);
+    sc_rsrc_t resource_mst, uint16_t ari, sc_bool_t enable);
 
 /*!
  * This function reports boot status.
@@ -367,7 +368,7 @@ sc_err_t sc_misc_otp_fuse_write(sc_ipc_t ipc, uint32_t word, uint32_t val);
  * - SC_ERR_NOPOWER if power domain of resource not powered
  */
 sc_err_t sc_misc_set_temp(sc_ipc_t ipc, sc_rsrc_t resource,
-			  sc_misc_temp_t temp, int16_t celsius, int8_t tenths);
+    sc_misc_temp_t temp, int16_t celsius, int8_t tenths);
 
 /*!
  * This function gets a temp sensor value.
@@ -386,8 +387,7 @@ sc_err_t sc_misc_set_temp(sc_ipc_t ipc, sc_rsrc_t resource,
  * - SC_ERR_NOPOWER if power domain of resource not powered
  */
 sc_err_t sc_misc_get_temp(sc_ipc_t ipc, sc_rsrc_t resource,
-			  sc_misc_temp_t temp, int16_t * celsius,
-			  int8_t * tenths);
+    sc_misc_temp_t temp, int16_t *celsius, int8_t *tenths);
 
 /*!
  * This function returns the boot device.
@@ -395,7 +395,7 @@ sc_err_t sc_misc_get_temp(sc_ipc_t ipc, sc_rsrc_t resource,
  * @param[in]     ipc         IPC handle
  * @param[out]    dev         pointer to return boot device
  */
-void sc_misc_get_boot_dev(sc_ipc_t ipc, sc_rsrc_t * dev);
+void sc_misc_get_boot_dev(sc_ipc_t ipc, sc_rsrc_t *dev);
 
 /*!
  * This function returns the boot type.
@@ -408,7 +408,7 @@ void sc_misc_get_boot_dev(sc_ipc_t ipc, sc_rsrc_t * dev);
  * Return errors code:
  * - SC_ERR_UNAVAILABLE if type not passed by ROM
  */
-sc_err_t sc_misc_get_boot_type(sc_ipc_t ipc, sc_misc_bt_t * type);
+sc_err_t sc_misc_get_boot_type(sc_ipc_t ipc, sc_misc_bt_t *type);
 
 /*!
  * This function returns the boot container index.
@@ -446,18 +446,19 @@ sc_err_t sc_misc_rompatch_checksum(sc_ipc_t ipc, uint32_t *checksum);
 /*!
  * This function calls the board IOCTL function.
  *
- * @param[in]     ipc         IPC handle
- * @param[in,out] parm1       pointer to pass parameter 1
- * @param[in,out] parm2       pointer to pass parameter 2
- * @param[in,out] parm3       pointer to pass parameter 3
+ * @param[in]      ipc         IPC handle
+ * @param[in,out]  parm1       pointer to pass parameter 1
+ * @param[in,out]  parm2       pointer to pass parameter 2
+ * @param[in,out]  parm3       pointer to pass parameter 3
  *
  * @return Returns and error code (SC_ERR_NONE = success).
  */
 sc_err_t sc_misc_board_ioctl(sc_ipc_t ipc, uint32_t *parm1,
-			     uint32_t *parm2, uint32_t *parm3);
+    uint32_t *parm2, uint32_t *parm3);
 
-/* @} */
+/** @} */
 
-#endif				/* SC_MISC_API_H */
+#endif /* SC_MISC_API_H */
 
-/**@}*/
+/** @} */
+

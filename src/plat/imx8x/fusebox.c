@@ -10,8 +10,9 @@
 #include <pb/pb.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
-#include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
-#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <plat/imx8x/sci/svc/misc/api.h>
+#include <plat/imx8x/sci/svc/pm/api.h>
+#include <plat/imx8x/sci/svc/seco/api.h>
 
 static sc_ipc_t ipc;
 
