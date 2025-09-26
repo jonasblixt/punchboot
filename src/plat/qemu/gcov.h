@@ -25,6 +25,12 @@ typedef uint64_t gcov_type;
 
 #define GCOV_TAG_FUNCTION_LENGTH 3
 
+#if (__GNUC__ >= 12)
+#define GCOV_UNIT_SIZE 4
+#else
+#define GCOV_UNIT_SIZE 1
+#endif
+
 struct gcov_ctr_info {
     unsigned int num;
     gcov_type *values;
@@ -42,6 +48,9 @@ struct gcov_info {
     unsigned int version;
     struct gcov_info *next;
     unsigned int stamp;
+#if (__GNUC__ >= 12)
+    unsigned int checksum;
+#endif
     const char *filename;
     void (*merge[GCOV_COUNTERS])(gcov_type *, unsigned int);
     unsigned int n_functions;
