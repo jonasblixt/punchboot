@@ -67,11 +67,10 @@ setup(
         "Topic :: Software Development :: Embedded Systems",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     url="https://github.com/jonasblixt/punchboot",
     packages=["punchboot"],
@@ -81,7 +80,7 @@ setup(
     package_data={
         "punchboot": ["py.typed"],
     },
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     entry_points={"console_scripts": ["punchboot=punchboot.__main__:cli"]},
     ext_modules=[
         Extension(
