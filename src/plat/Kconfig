@@ -4,12 +4,22 @@ config SOC_FAMILY_IMX
 	bool "NXP i.MX SoC's"
     default n
 
+config PLAT_IMX8X_COMMON
+    bool
+    default n
+
 choice PLAT
     bool "Platform"
 config PLAT_IMX8X
     bool "NXP IMX8X"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
+    select PLAT_IMX8X_COMMON
+config PLAT_IMX8XL
+    bool "NXP IMX8X Light"
+    depends on SOC_FAMILY_IMX
+    depends on ARCH_ARMV8
+    select PLAT_IMX8X_COMMON
 config PLAT_IMX8M
     bool "NXP IMX8M"
     depends on SOC_FAMILY_IMX

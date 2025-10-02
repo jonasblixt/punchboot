@@ -5,7 +5,7 @@ extend-exclude = [
     "doc",
     "scripts/**",
 ]
-target-version = "py38"
+target-version = "py310"
 
 [tool.ruff.lint]
 # See: https://docs.astral.sh/ruff/rules/ for details

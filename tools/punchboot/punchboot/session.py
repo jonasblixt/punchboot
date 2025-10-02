@@ -9,7 +9,8 @@ import hashlib
 import io
 import pathlib
 import uuid
-from typing import IO, TYPE_CHECKING, Callable, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import IO, TYPE_CHECKING, Union
 
 import _punchboot  # type: ignore[import-not-found]
 import semver  # type: ignore[import-not-found]
@@ -54,8 +55,8 @@ class Session:
 
     def __init__(
         self,
-        device_uuid: Optional[Union[uuid.UUID, str]] = None,
-        socket_path: Optional[Union[pathlib.Path, str]] = None,
+        device_uuid: uuid.UUID | str | None = None,
+        socket_path: pathlib.Path | str | None = None,
     ) -> None:
         """Initialize the punchboot session.
 
@@ -101,7 +102,7 @@ class Session:
         self.pb_s.auth_set_password(password)
 
     def authenticate_dsa_token(
-        self, token: Union[pathlib.Path, bytes], key_id: Union[str, int]
+        self, token: pathlib.Path | bytes, key_id: str | int
     ) -> None:
         """Authenticate session using a DSA token.
 
@@ -134,7 +135,7 @@ class Session:
             for p in self.pb_s.part_get_partitions()
         ]
 
-    def part_verify(self, file: Union[pathlib.Path, IO[bytes], bytes], part: PartUUIDType) -> None:
+    def part_verify(self, file: pathlib.Path | IO[bytes] | bytes, part: PartUUIDType) -> None:
         """Verify the contents of a partition.
 
         Keyword arguments:
@@ -185,7 +186,7 @@ class Session:
 
         self.pb_s.part_verify(uu.bytes, hash_ctx.digest(), data_length, bpak_header_valid)
 
-    def part_write(self, file: Union[pathlib.Path, IO[bytes]], part: PartUUIDType) -> None:
+    def part_write(self, file: pathlib.Path | IO[bytes], part: PartUUIDType) -> None:
         """Write data to a partition.
 
         Keyword arguments:
@@ -202,7 +203,7 @@ class Session:
             msg = "File is not a supported type"
             raise TypeError(msg)
 
-    def part_read(self, file: Union[pathlib.Path, IO[bytes]], part: PartUUIDType) -> None:
+    def part_read(self, file: pathlib.Path | IO[bytes], part: PartUUIDType) -> None:
         """Read data from a partition to a file.
 
         Keyword arguments:
@@ -222,7 +223,7 @@ class Session:
     def part_erase(
         self,
         part_uu: PartUUIDType,
-        progress_cb: Optional[Callable[[int, int], None]] = None,
+        progress_cb: Callable[[int, int], None] | None = None,
     ) -> None:
         """Erase partition.
 
@@ -282,7 +283,7 @@ class Session:
         uu: uuid.UUID = _partuuid_to_uuid(part)
         self.pb_s.part_table_install(uu.bytes, variant)
 
-    def boot_set_boot_part(self, part: Optional[PartUUIDType]) -> None:
+    def boot_set_boot_part(self, part: PartUUIDType | None) -> None:
         """Set active boot partition.
 
         Keyword arguments:
@@ -308,7 +309,7 @@ class Session:
         else:
             self.pb_s.boot_set_boot_part(None)
 
-    def boot_status(self) -> Tuple[uuid.UUID, str]:
+    def boot_status(self) -> tuple[uuid.UUID, str]:
         """Boot status.
 
         Reads the currently active boot partition.
@@ -376,7 +377,7 @@ class Session:
         """Read the device's board name."""
         return str(self.pb_s.device_get_boardname())
 
-    def board_run_command(self, cmd: Union[str, int], args: bytes = b"") -> bytes:
+    def board_run_command(self, cmd: str | int, args: bytes = b"") -> bytes:
         """Execute a board specific command.
 
         Keyword arguments:
@@ -439,7 +440,7 @@ class Session:
         """Read Security Life Cycle (SLC)."""
         return SLC(self.pb_s.slc_get_lifecycle())
 
-    def slc_revoke_key(self, key_id: Union[int, str]) -> None:
+    def slc_revoke_key(self, key_id: int | str) -> None:
         """Revokey key.
 
         Keyword arguments:

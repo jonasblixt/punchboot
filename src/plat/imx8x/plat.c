@@ -18,8 +18,10 @@
 #include <pb/utils_def.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
-#include <plat/imx8x/sci/svc/pm/sci_pm_api.h>
-#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <plat/imx8x/sci/svc/misc/api.h>
+#include <plat/imx8x/sci/svc/pm/api.h>
+#include <plat/imx8x/sci/svc/seco/api.h>
+#include <plat/imx8x/sci/svc/timer/api.h>
 #include <stdio.h>
 #include <string.h>
 #include <uuid.h>
@@ -176,66 +178,6 @@ static void imx8x_load_boot_reason(void)
     }
 }
 
-static void imx8x_console_init(void)
-{
-    sc_pm_clock_rate_t rate = 80000000;
-    uintptr_t uart_base = 0;
-
-#ifdef CONFIG_IMX8X_CONSOLE_UART0
-    uart_base = 0x5A060000;
-    /* Power up UART0 */
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
-
-    /* Set UART0 clock root to 80 MHz */
-    sc_pm_set_clock_rate(plat.ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
-
-    /* Enable UART0 clock root */
-    sc_pm_clock_enable(plat.ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
-
-    /* Configure UART pads */
-    sc_pad_set(plat.ipc, SC_P_UART0_RX, UART_PAD_CTRL);
-    sc_pad_set(plat.ipc, SC_P_UART0_TX, UART_PAD_CTRL);
-#elif CONFIG_IMX8X_CONSOLE_UART1
-    uart_base = 0x5A070000;
-    /* Power up UART1 */
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_UART_1, SC_PM_PW_MODE_ON);
-
-    /* Set UART1 clock root to 80 MHz */
-    sc_pm_set_clock_rate(plat.ipc, SC_R_UART_1, SC_PM_CLK_PER, &rate);
-
-    /* Enable UART1 clock root */
-    sc_pm_clock_enable(plat.ipc, SC_R_UART_1, SC_PM_CLK_PER, true, false);
-
-    /* Configure UART pads */
-    sc_pad_set(plat.ipc, SC_P_UART1_RX, UART_PAD_CTRL);
-    sc_pad_set(plat.ipc, SC_P_UART1_TX, UART_PAD_CTRL);
-#elif CONFIG_IMX8X_CONSOLE_UART2
-    uart_base = 0x5A080000;
-    /* Power up UART2 */
-    sc_pm_set_resource_power_mode(plat.ipc, SC_R_UART_2, SC_PM_PW_MODE_ON);
-
-    /* Set UART2 clock root to 80 MHz */
-    sc_pm_set_clock_rate(plat.ipc, SC_R_UART_2, SC_PM_CLK_PER, &rate);
-
-    /* Enable UART2 clock root */
-    sc_pm_clock_enable(plat.ipc, SC_R_UART_2, SC_PM_CLK_PER, true, false);
-
-    /* Configure UART pads */
-    sc_pad_set(plat.ipc, SC_P_UART2_RX, UART_PAD_CTRL);
-    sc_pad_set(plat.ipc, SC_P_UART2_TX, UART_PAD_CTRL);
-#else
-#error "No console uart selected"
-#endif
-
-    (void)imx_lpuart_init(uart_base, rate, CONFIG_IMX8X_CONSOLE_BAUDRATE);
-
-    static const struct console_ops ops = {
-        .putc = imx_lpuart_putc,
-    };
-
-    console_init(uart_base, &ops);
-}
-
 static void imx8x_mmu_init(void)
 {
     /* Configure MMU */
@@ -282,7 +224,8 @@ int plat_init(void)
     imx8x_systick_setup();
     ts("Init"); /* This is the earliest TS we can have since it needs systick */
     imx8x_load_boot_reason();
-    imx8x_console_init();
+
+    board_console_init(&plat);
 
     if (wdog_rc != 0) {
         /* We'll continue anyway, best effort */

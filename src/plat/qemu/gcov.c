@@ -147,6 +147,14 @@ static int gcov_load_data(struct gcov_info *info)
         goto gcov_init_err;
     }
 
+    rc = gcov_read_u32(fd, &val); // Ignore 'checksum'
+
+    if (rc != 0) {
+        LOG_ERR("Could not read checksum field (%i)", rc);
+        rc = -4;
+        goto gcov_init_err;
+    }
+
     for (unsigned int i = 0; i < info->n_functions; i++) {
         rc = gcov_read_u32(fd, &val);
 
@@ -158,7 +166,7 @@ static int gcov_load_data(struct gcov_info *info)
 
         rc = gcov_read_u32(fd, &val);
 
-        if (val != GCOV_TAG_FUNCTION_LENGTH || rc != 0) {
+        if (val != GCOV_TAG_FUNCTION_LENGTH * GCOV_UNIT_SIZE || rc != 0) {
             LOG_ERR("Invalid function length tag %x, %i", val, rc);
             rc = -6;
             goto gcov_init_err;
@@ -312,12 +320,18 @@ int gcov_store_output(void)
         if (rc != 0)
             return rc;
 
+#if (__GNUC__ >= 12)
+        /* Checksum */
+        rc = gcov_write_u32(fd, 0);
+        if (rc != 0)
+            return rc;
+#endif
         for (fi_idx = 0; fi_idx < info->n_functions; fi_idx++) {
             fi_ptr = info->functions[fi_idx];
             rc = gcov_write_u32(fd, GCOV_TAG_FUNCTION);
             if (rc != 0)
                 return rc;
-            rc = gcov_write_u32(fd, GCOV_TAG_FUNCTION_LENGTH);
+            rc = gcov_write_u32(fd, GCOV_TAG_FUNCTION_LENGTH * GCOV_UNIT_SIZE);
             if (rc != 0)
                 return rc;
             rc = gcov_write_u32(fd, fi_ptr->ident);

@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2019 NXP
+ * Copyright 2017-2022 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,203 +14,222 @@
 
 /* Includes */
 
-#include <stdbool.h>
-#include <plat/imx8x/sci/sci_scfw.h>
+#include <sci/scfw.h>
 
 /* Defines */
 
 /*!
+ * @name Defines for chip IDs
+ */
+/** @{ */
+#define CHIP_ID_QM      0x1U   /* i.MX8QM */
+#define CHIP_ID_QX      0x2U   /* i.MX8QX*/
+#define CHIP_ID_DXL     0xEU   /* i.MX8DXL */
+/** @} */
+
+/*!
  * @name Defines for common frequencies
  */
-/*@{*/
-#define SC_32KHZ            32768U	/* 32KHz */
-#define SC_10MHZ         10000000U	/* 10MHz */
-#define SC_16MHZ         16000000U	/* 16MHz */
-#define SC_20MHZ         20000000U	/* 20MHz */
-#define SC_25MHZ         25000000U	/* 25MHz */
-#define SC_27MHZ         27000000U	/* 27MHz */
-#define SC_40MHZ         40000000U	/* 40MHz */
-#define SC_45MHZ         45000000U	/* 45MHz */
-#define SC_50MHZ         50000000U	/* 50MHz */
-#define SC_60MHZ         60000000U	/* 60MHz */
-#define SC_66MHZ         66666666U	/* 66MHz */
-#define SC_74MHZ         74250000U	/* 74.25MHz */
-#define SC_80MHZ         80000000U	/* 80MHz */
-#define SC_83MHZ         83333333U	/* 83MHz */
-#define SC_84MHZ         84375000U	/* 84.37MHz */
-#define SC_100MHZ       100000000U	/* 100MHz */
-#define SC_114MHZ       114000000U	/* 114MHz */
-#define SC_125MHZ       125000000U	/* 125MHz */
-#define SC_133MHZ       133333333U	/* 133MHz */
-#define SC_135MHZ       135000000U	/* 135MHz */
-#define SC_150MHZ       150000000U	/* 150MHz */
-#define SC_160MHZ       160000000U	/* 160MHz */
-#define SC_166MHZ       166666666U	/* 166MHz */
-#define SC_175MHZ       175000000U	/* 175MHz */
-#define SC_180MHZ       180000000U	/* 180MHz */
-#define SC_200MHZ       200000000U	/* 200MHz */
-#define SC_250MHZ       250000000U	/* 250MHz */
-#define SC_266MHZ       266666666U	/* 266MHz */
-#define SC_300MHZ       300000000U	/* 300MHz */
-#define SC_312MHZ       312500000U	/* 312.5MHZ */
-#define SC_320MHZ       320000000U	/* 320MHz */
-#define SC_325MHZ       325000000U	/* 325MHz */
-#define SC_333MHZ       333333333U	/* 333MHz */
-#define SC_350MHZ       350000000U	/* 350MHz */
-#define SC_372MHZ       372000000U	/* 372MHz */
-#define SC_375MHZ       375000000U	/* 375MHz */
-#define SC_400MHZ       400000000U	/* 400MHz */
-#define SC_465MHZ       465000000U	/* 465MHz */
-#define SC_500MHZ       500000000U	/* 500MHz */
-#define SC_594MHZ       594000000U	/* 594MHz */
-#define SC_625MHZ       625000000U	/* 625MHz */
-#define SC_640MHZ       640000000U	/* 640MHz */
-#define SC_648MHZ       648000000U	/* 648MHz */
-#define SC_650MHZ       650000000U	/* 650MHz */
-#define SC_667MHZ       666666667U	/* 667MHz */
-#define SC_675MHZ       675000000U	/* 675MHz */
-#define SC_700MHZ       700000000U	/* 700MHz */
-#define SC_720MHZ       720000000U	/* 720MHz */
-#define SC_750MHZ       750000000U	/* 750MHz */
-#define SC_753MHZ       753000000U	/* 753MHz */
-#define SC_793MHZ       793000000U	/* 793MHz */
-#define SC_800MHZ       800000000U	/* 800MHz */
-#define SC_850MHZ       850000000U	/* 850MHz */
-#define SC_858MHZ       858000000U	/* 858MHz */
-#define SC_900MHZ       900000000U	/* 900MHz */
-#define SC_953MHZ       953000000U	/* 953MHz */
-#define SC_963MHZ       963000000U	/* 963MHz */
-#define SC_1000MHZ     1000000000U	/* 1GHz */
-#define SC_1060MHZ     1060000000U	/* 1.06GHz */
-#define SC_1068MHZ     1068000000U	/* 1.068GHz */
-#define SC_1121MHZ     1121000000U	/* 1.121GHz */
-#define SC_1173MHZ     1173000000U	/* 1.173GHz */
-#define SC_1188MHZ     1188000000U	/* 1.188GHz */
-#define SC_1260MHZ     1260000000U	/* 1.26GHz */
-#define SC_1278MHZ     1278000000U	/* 1.278GHz */
-#define SC_1280MHZ     1280000000U	/* 1.28GHz */
-#define SC_1300MHZ     1300000000U	/* 1.3GHz */
-#define SC_1313MHZ     1313000000U	/* 1.313GHz */
-#define SC_1345MHZ     1345000000U	/* 1.345GHz */
-#define SC_1400MHZ     1400000000U	/* 1.4GHz */
-#define SC_1500MHZ     1500000000U	/* 1.5GHz */
-#define SC_1600MHZ     1600000000U	/* 1.6GHz */
-#define SC_1800MHZ     1800000000U	/* 1.8GHz */
-#define SC_1860MHZ     1860000000U	/* 1.86GHz */
-#define SC_2000MHZ     2000000000U	/* 2.0GHz */
-#define SC_2112MHZ     2112000000U	/* 2.12GHz */
-/*@}*/
+/** @{ */
+#define SC_32KHZ            32768U   /* 32KHz */
+#define SC_1MHZ           1000000U   /* 1MHz  */
+#define SC_10MHZ         10000000U   /* 10MHz */
+#define SC_16MHZ         16000000U   /* 16MHz */
+#define SC_20MHZ         20000000U   /* 20MHz */
+#define SC_25MHZ         25000000U   /* 25MHz */
+#define SC_27MHZ         27000000U   /* 27MHz */
+#define SC_40MHZ         40000000U   /* 40MHz */
+#define SC_45MHZ         45000000U   /* 45MHz */
+#define SC_50MHZ         50000000U   /* 50MHz */
+#define SC_60MHZ         60000000U   /* 60MHz */
+#define SC_66MHZ         66666666U   /* 66MHz */
+#define SC_74MHZ         74250000U   /* 74.25MHz */
+#define SC_80MHZ         80000000U   /* 80MHz */
+#define SC_83MHZ         83333333U   /* 83MHz */
+#define SC_84MHZ         84375000U   /* 84.37MHz */
+#define SC_100MHZ       100000000U   /* 100MHz */
+#define SC_106MHZ       106250000U   /* 106.25MHz */
+#define SC_114MHZ       114000000U   /* 114MHz */
+#define SC_125MHZ       125000000U   /* 125MHz */
+#define SC_128MHZ       128000000U   /* 128MHz */
+#define SC_133MHZ       133333333U   /* 133MHz */
+#define SC_135MHZ       135000000U   /* 135MHz */
+#define SC_150MHZ       150000000U   /* 150MHz */
+#define SC_160MHZ       160000000U   /* 160MHz */
+#define SC_166MHZ       166666666U   /* 166MHz */
+#define SC_175MHZ       175000000U   /* 175MHz */
+#define SC_180MHZ       180000000U   /* 180MHz */
+#define SC_200MHZ       200000000U   /* 200MHz */
+#define SC_212MHZ       212500000U   /* 212.5MHz */
+#define SC_217MHZ       216666666U   /* 217MHz */
+#define SC_250MHZ       250000000U   /* 250MHz */
+#define SC_266MHZ       266666666U   /* 266MHz */
+#define SC_300MHZ       300000000U   /* 300MHz */
+#define SC_312MHZ       312500000U   /* 312.5MHZ */
+#define SC_320MHZ       320000000U   /* 320MHz */
+#define SC_325MHZ       325000000U   /* 325MHz */
+#define SC_333MHZ       333333333U   /* 333MHz */
+#define SC_350MHZ       350000000U   /* 350MHz */
+#define SC_368MHZ       368500000U   /* 368.5MHZ */
+#define SC_372MHZ       372000000U   /* 372MHz */
+#define SC_375MHZ       375000000U   /* 375MHz */
+#define SC_400MHZ       400000000U   /* 400MHz */
+#define SC_425MHZ       425000000U   /* 425MHz */
+#define SC_465MHZ       465000000U   /* 465MHz */
+#define SC_500MHZ       500000000U   /* 500MHz */
+#define SC_594MHZ       594000000U   /* 594MHz */
+#define SC_625MHZ       625000000U   /* 625MHz */
+#define SC_640MHZ       640000000U   /* 640MHz */
+#define SC_648MHZ       648000000U   /* 648MHz */
+#define SC_650MHZ       650000000U   /* 650MHz */
+#define SC_667MHZ       666666667U   /* 667MHz */
+#define SC_675MHZ       675000000U   /* 675MHz */
+#define SC_700MHZ       700000000U   /* 700MHz */
+#define SC_720MHZ       720000000U   /* 720MHz */
+#define SC_750MHZ       750000000U   /* 750MHz */
+#define SC_753MHZ       753000000U   /* 753MHz */
+#define SC_793MHZ       793000000U   /* 793MHz */
+#define SC_800MHZ       800000000U   /* 800MHz */
+#define SC_850MHZ       850000000U   /* 850MHz */
+#define SC_858MHZ       858000000U   /* 858MHz */
+#define SC_900MHZ       900000000U   /* 900MHz */
+#define SC_953MHZ       953000000U   /* 953MHz */
+#define SC_963MHZ       963000000U   /* 963MHz */
+#define SC_1000MHZ     1000000000U   /* 1GHz */
+#define SC_1060MHZ     1060000000U   /* 1.06GHz */
+#define SC_1068MHZ     1068000000U   /* 1.068GHz */
+#define SC_1121MHZ     1121000000U   /* 1.121GHz */
+#define SC_1173MHZ     1173000000U   /* 1.173GHz */
+#define SC_1188MHZ     1188000000U   /* 1.188GHz */
+#define SC_1260MHZ     1260000000U   /* 1.26GHz */
+#define SC_1278MHZ     1278000000U   /* 1.278GHz */
+#define SC_1280MHZ     1280000000U   /* 1.28GHz */
+#define SC_1300MHZ     1300000000U   /* 1.3GHz */
+#define SC_1313MHZ     1313000000U   /* 1.313GHz */
+#define SC_1345MHZ     1345000000U   /* 1.345GHz */
+#define SC_1400MHZ     1400000000U   /* 1.4GHz */
+#define SC_1500MHZ     1500000000U   /* 1.5GHz */
+#define SC_1600MHZ     1600000000U   /* 1.6GHz */
+#define SC_1800MHZ     1800000000U   /* 1.8GHz */
+#define SC_1860MHZ     1860000000U   /* 1.86GHz */
+#define SC_2000MHZ     2000000000U   /* 2.0GHz */
+#define SC_2112MHZ     2112000000U   /* 2.12GHz */
+/** @} */
 
 /*!
  * @name Defines for 24M related frequencies
  */
-/*@{*/
-#define SC_8MHZ           8000000U	/* 8MHz */
-#define SC_12MHZ         12000000U	/* 12MHz */
-#define SC_19MHZ         19800000U	/* 19.8MHz */
-#define SC_24MHZ         24000000U	/* 24MHz */
-#define SC_48MHZ         48000000U	/* 48MHz */
-#define SC_120MHZ       120000000U	/* 120MHz */
-#define SC_132MHZ       132000000U	/* 132MHz */
-#define SC_144MHZ       144000000U	/* 144MHz */
-#define SC_192MHZ       192000000U	/* 192MHz */
-#define SC_211MHZ       211200000U	/* 211.2MHz */
-#define SC_228MHZ       228000000U	/* 233MHz */
-#define SC_240MHZ       240000000U	/* 240MHz */
-#define SC_264MHZ       264000000U	/* 264MHz */
-#define SC_352MHZ       352000000U	/* 352MHz */
-#define SC_360MHZ       360000000U	/* 360MHz */
-#define SC_384MHZ       384000000U	/* 384MHz */
-#define SC_396MHZ       396000000U	/* 396MHz */
-#define SC_432MHZ       432000000U	/* 432MHz */
-#define SC_456MHZ       456000000U	/* 466MHz */
-#define SC_480MHZ       480000000U	/* 480MHz */
-#define SC_600MHZ       600000000U	/* 600MHz */
-#define SC_744MHZ       744000000U	/* 744MHz */
-#define SC_792MHZ       792000000U	/* 792MHz */
-#define SC_864MHZ       864000000U	/* 864MHz */
-#define SC_912MHZ       912000000U	/* 912MHz */
-#define SC_960MHZ       960000000U	/* 960MHz */
-#define SC_1056MHZ     1056000000U	/* 1056MHz */
-#define SC_1104MHZ     1104000000U	/* 1104MHz */
-#define SC_1200MHZ     1200000000U	/* 1.2GHz */
-#define SC_1464MHZ     1464000000U	/* 1.464GHz */
-#define SC_2400MHZ     2400000000U	/* 2.4GHz */
-/*@}*/
+/** @{ */
+#define SC_8MHZ           8000000U   /* 8MHz */
+#define SC_12MHZ         12000000U   /* 12MHz */
+#define SC_19MHZ         19800000U   /* 19.8MHz */
+#define SC_24MHZ         24000000U   /* 24MHz */
+#define SC_48MHZ         48000000U   /* 48MHz */
+#define SC_120MHZ       120000000U   /* 120MHz */
+#define SC_132MHZ       132000000U   /* 132MHz */
+#define SC_144MHZ       144000000U   /* 144MHz */
+#define SC_192MHZ       192000000U   /* 192MHz */
+#define SC_210MHZ       210000000U   /* 210MHz */
+#define SC_211MHZ       211200000U   /* 211.2MHz */
+#define SC_228MHZ       228000000U   /* 233MHz */
+#define SC_240MHZ       240000000U   /* 240MHz */
+#define SC_264MHZ       264000000U   /* 264MHz */
+#define SC_352MHZ       352000000U   /* 352MHz */
+#define SC_360MHZ       360000000U   /* 360MHz */
+#define SC_384MHZ       384000000U   /* 384MHz */
+#define SC_396MHZ       396000000U   /* 396MHz */
+#define SC_432MHZ       432000000U   /* 432MHz */
+#define SC_456MHZ       456000000U   /* 466MHz */
+#define SC_480MHZ       480000000U   /* 480MHz */
+#define SC_600MHZ       600000000U   /* 600MHz */
+#define SC_744MHZ       744000000U   /* 744MHz */
+#define SC_792MHZ       792000000U   /* 792MHz */
+#define SC_840MHZ       840000000U   /* 840MHz */
+#define SC_864MHZ       864000000U   /* 864MHz */
+#define SC_912MHZ       912000000U   /* 912MHz */
+#define SC_960MHZ       960000000U   /* 960MHz */
+#define SC_1056MHZ     1056000000U   /* 1056MHz */
+#define SC_1104MHZ     1104000000U   /* 1104MHz */
+#define SC_1200MHZ     1200000000U   /* 1.2GHz */
+#define SC_1464MHZ     1464000000U   /* 1.464GHz */
+#define SC_2400MHZ     2400000000U   /* 2.4GHz */
+#define SC_3000MHZ     3000000000U   /* 2.4GHz */
+
+/** @} */
 
 /*!
  * @name Defines for A/V related frequencies
  */
-/*@{*/
-#define SC_62MHZ         62937500U	/* 62.9375MHz */
-#define SC_755MHZ       755250000U	/* 755.25MHz */
-/*@}*/
+/** @{ */
+#define SC_62MHZ         62937500U   /* 62.9375MHz */
+#define SC_755MHZ       755250000U   /* 755.25MHz */
+/** @} */
 
 /*!
  * @name Defines for type widths
  */
-/*@{*/
-#define SC_BOOL_W       1U	/* Width of sc_bool_t */
-#define SC_ERR_W        4U	/* Width of sc_err_t */
-#define SC_RSRC_W       10U	/* Width of sc_rsrc_t */
-#define SC_CTRL_W       6U	/* Width of sc_ctrl_t */
-/*@}*/
+/** @{ */
+#define SC_BOOL_W       1U           /* Width of sc_bool_t */
+#define SC_ERR_W        4U           /* Width of sc_err_t */
+#define SC_RSRC_W       10U          /* Width of sc_rsrc_t */
+#define SC_CTRL_W       7U           /* Width of sc_ctrl_t */
+/** @} */
 
 /*!
  * @name Defines for sc_bool_t
  */
-/*@{*/
-#define SC_FALSE        ((sc_bool_t) 0U)	/* False */
-#define SC_TRUE         ((sc_bool_t) 1U)	/* True */
-/*@}*/
+/** @{ */
+#define SC_FALSE        ((sc_bool_t) 0U)    /* False */
+#define SC_TRUE         ((sc_bool_t) 1U)    /* True */
+/** @} */
 
 /*!
- * @name Defines for sc_err_t.
+ * @name Defines for sc_err_t
  */
-/*@{*/
-#define SC_ERR_NONE         0U	/* Success */
-#define SC_ERR_VERSION      1U	/* Incompatible API version */
-#define SC_ERR_CONFIG       2U	/* Configuration error */
-#define SC_ERR_PARM         3U	/* Bad parameter */
-#define SC_ERR_NOACCESS     4U	/* Permission error (no access) */
-#define SC_ERR_LOCKED       5U	/* Permission error (locked) */
-#define SC_ERR_UNAVAILABLE  6U	/* Unavailable (out of resources) */
-#define SC_ERR_NOTFOUND     7U	/* Not found */
-#define SC_ERR_NOPOWER      8U	/* No power */
-#define SC_ERR_IPC          9U	/* Generic IPC error */
-#define SC_ERR_BUSY         10U	/* Resource is currently busy/active */
-#define SC_ERR_FAIL         11U	/* General I/O failure */
+/** @{ */
+#define SC_ERR_NONE         0U      /* Success */
+#define SC_ERR_VERSION      1U      /* Incompatible API version */
+#define SC_ERR_CONFIG       2U      /* Configuration error */
+#define SC_ERR_PARM         3U      /* Bad parameter */
+#define SC_ERR_NOACCESS     4U      /* Permission error (no access) */
+#define SC_ERR_LOCKED       5U      /* Permission error (locked) */
+#define SC_ERR_UNAVAILABLE  6U      /* Unavailable (out of resources) */
+#define SC_ERR_NOTFOUND     7U      /* Not found */
+#define SC_ERR_NOPOWER      8U      /* No power */
+#define SC_ERR_IPC          9U      /* Generic IPC error */
+#define SC_ERR_BUSY         10U     /* Resource is currently busy/active */
+#define SC_ERR_FAIL         11U     /* General I/O failure */
 #define SC_ERR_LAST         12U
-/*@}*/
+/** @} */
 
 /*!
- * @name Defines for sc_rsrc_t.
+ * @name Defines for sc_rsrc_t
  */
-/*@{*/
-#define SC_R_A53                  0U
-#define SC_R_A53_0                1U
-#define SC_R_A53_1                2U
-#define SC_R_A53_2                3U
-#define SC_R_A53_3                4U
-#define SC_R_A72                  5U
-#define SC_R_A72_0                6U
-#define SC_R_A72_1                7U
-#define SC_R_A72_2                8U
-#define SC_R_A72_3                9U
+/** @{ */
+#define SC_R_AP_0                 0U
+#define SC_R_AP_0_0               1U
+#define SC_R_AP_0_1               2U
+#define SC_R_AP_0_2               3U
+#define SC_R_AP_0_3               4U
+#define SC_R_AP_1                 5U
+#define SC_R_AP_1_0               6U
+#define SC_R_AP_1_1               7U
+#define SC_R_AP_1_2               8U
+#define SC_R_AP_1_3               9U
 #define SC_R_CCI                  10U
 #define SC_R_DB                   11U
 #define SC_R_DRC_0                12U
 #define SC_R_DRC_1                13U
 #define SC_R_GIC_SMMU             14U
-#define SC_R_IRQSTR_M4_0          15U
-#define SC_R_IRQSTR_M4_1          16U
-#define SC_R_SMMU                 17U
-#define SC_R_GIC                  18U
+#define SC_R_IRQSTR_MCU_0         15U
+#define SC_R_IRQSTR_MCU_1         16U
+#define SC_R_SMMU_0               17U
+#define SC_R_GIC_0                18U
 #define SC_R_DC_0_BLIT0           19U
 #define SC_R_DC_0_BLIT1           20U
 #define SC_R_DC_0_BLIT2           21U
 #define SC_R_DC_0_BLIT_OUT        22U
-#define SC_R_PERF                 23U
+#define SC_R_PERF_0               23U
 #define SC_R_USB_1_PHY            24U
 #define SC_R_DC_0_WARP            25U
 #define SC_R_V2X_MU_0             26U
@@ -230,12 +249,12 @@
 #define SC_R_V2X_MU_3             40U
 #define SC_R_V2X_MU_4             41U
 #define SC_R_DC_1_WARP            42U
-#define SC_R_TBU_CTL              43U
+#define SC_R_STM                  43U
 #define SC_R_SECVIO               44U
 #define SC_R_DC_1_VIDEO0          45U
 #define SC_R_DC_1_VIDEO1          46U
 #define SC_R_DC_1_FRAC0           47U
-#define SC_R_UNUSED13             48U
+#define SC_R_V2X                  48U
 #define SC_R_DC_1                 49U
 #define SC_R_UNUSED14             50U
 #define SC_R_DC_1_PLL_0           51U
@@ -359,7 +378,7 @@
 #define SC_R_PCIE_B               169U
 #define SC_R_SATA_0               170U
 #define SC_R_SERDES_1             171U
-#define SC_R_HSIO_GPIO            172U
+#define SC_R_HSIO_GPIO_0          172U
 #define SC_R_MATCH_15             173U
 #define SC_R_MATCH_16             174U
 #define SC_R_MATCH_17             175U
@@ -426,15 +445,15 @@
 #define SC_R_ROM_0                236U
 #define SC_R_FSPI_0               237U
 #define SC_R_FSPI_1               238U
-#define SC_R_IEE                  239U
-#define SC_R_IEE_R0               240U
-#define SC_R_IEE_R1               241U
-#define SC_R_IEE_R2               242U
-#define SC_R_IEE_R3               243U
-#define SC_R_IEE_R4               244U
-#define SC_R_IEE_R5               245U
-#define SC_R_IEE_R6               246U
-#define SC_R_IEE_R7               247U
+#define SC_R_IEE_0                239U
+#define SC_R_IEE_0_R0             240U
+#define SC_R_IEE_0_R1             241U
+#define SC_R_IEE_0_R2             242U
+#define SC_R_IEE_0_R3             243U
+#define SC_R_IEE_0_R4             244U
+#define SC_R_IEE_0_R5             245U
+#define SC_R_IEE_0_R6             246U
+#define SC_R_IEE_0_R7             247U
 #define SC_R_SDHC_0               248U
 #define SC_R_SDHC_1               249U
 #define SC_R_SDHC_2               250U
@@ -465,50 +484,50 @@
 #define SC_R_LVDS_2_PWM_0         275U
 #define SC_R_LVDS_2_I2C_0         276U
 #define SC_R_LVDS_2_I2C_1         277U
-#define SC_R_M4_0_PID0            278U
-#define SC_R_M4_0_PID1            279U
-#define SC_R_M4_0_PID2            280U
-#define SC_R_M4_0_PID3            281U
-#define SC_R_M4_0_PID4            282U
-#define SC_R_M4_0_RGPIO           283U
-#define SC_R_M4_0_SEMA42          284U
-#define SC_R_M4_0_TPM             285U
-#define SC_R_M4_0_PIT             286U
-#define SC_R_M4_0_UART            287U
-#define SC_R_M4_0_I2C             288U
-#define SC_R_M4_0_INTMUX          289U
+#define SC_R_MCU_0_PID0           278U
+#define SC_R_MCU_0_PID1           279U
+#define SC_R_MCU_0_PID2           280U
+#define SC_R_MCU_0_PID3           281U
+#define SC_R_MCU_0_PID4           282U
+#define SC_R_MCU_0_RGPIO          283U
+#define SC_R_MCU_0_SEMA42         284U
+#define SC_R_MCU_0_TPM            285U
+#define SC_R_MCU_0_PIT            286U
+#define SC_R_MCU_0_UART           287U
+#define SC_R_MCU_0_I2C            288U
+#define SC_R_MCU_0_INTMUX         289U
 #define SC_R_ENET_0_A0            290U
 #define SC_R_ENET_0_A1            291U
-#define SC_R_M4_0_MU_0B           292U
-#define SC_R_M4_0_MU_0A0          293U
-#define SC_R_M4_0_MU_0A1          294U
-#define SC_R_M4_0_MU_0A2          295U
-#define SC_R_M4_0_MU_0A3          296U
-#define SC_R_M4_0_MU_1A           297U
-#define SC_R_M4_1_PID0            298U
-#define SC_R_M4_1_PID1            299U
-#define SC_R_M4_1_PID2            300U
-#define SC_R_M4_1_PID3            301U
-#define SC_R_M4_1_PID4            302U
-#define SC_R_M4_1_RGPIO           303U
-#define SC_R_M4_1_SEMA42          304U
-#define SC_R_M4_1_TPM             305U
-#define SC_R_M4_1_PIT             306U
-#define SC_R_M4_1_UART            307U
-#define SC_R_M4_1_I2C             308U
-#define SC_R_M4_1_INTMUX          309U
+#define SC_R_MCU_0_MU_0B          292U
+#define SC_R_MCU_0_MU_0A0         293U
+#define SC_R_MCU_0_MU_0A1         294U
+#define SC_R_MCU_0_MU_0A2         295U
+#define SC_R_MCU_0_MU_0A3         296U
+#define SC_R_MCU_0_MU_1A          297U
+#define SC_R_MCU_1_PID0           298U
+#define SC_R_MCU_1_PID1           299U
+#define SC_R_MCU_1_PID2           300U
+#define SC_R_MCU_1_PID3           301U
+#define SC_R_MCU_1_PID4           302U
+#define SC_R_MCU_1_RGPIO          303U
+#define SC_R_MCU_1_SEMA42         304U
+#define SC_R_MCU_1_TPM            305U
+#define SC_R_MCU_1_PIT            306U
+#define SC_R_MCU_1_UART           307U
+#define SC_R_MCU_1_I2C            308U
+#define SC_R_MCU_1_INTMUX         309U
 #define SC_R_UNUSED17             310U
 #define SC_R_UNUSED18             311U
-#define SC_R_M4_1_MU_0B           312U
-#define SC_R_M4_1_MU_0A0          313U
-#define SC_R_M4_1_MU_0A1          314U
-#define SC_R_M4_1_MU_0A2          315U
-#define SC_R_M4_1_MU_0A3          316U
-#define SC_R_M4_1_MU_1A           317U
+#define SC_R_MCU_1_MU_0B          312U
+#define SC_R_MCU_1_MU_0A0         313U
+#define SC_R_MCU_1_MU_0A1         314U
+#define SC_R_MCU_1_MU_0A2         315U
+#define SC_R_MCU_1_MU_0A3         316U
+#define SC_R_MCU_1_MU_1A          317U
 #define SC_R_SAI_0                318U
 #define SC_R_SAI_1                319U
 #define SC_R_SAI_2                320U
-#define SC_R_IRQSTR_SCU2          321U
+#define SC_R_IRQSTR_AP_0          321U
 #define SC_R_IRQSTR_DSP           322U
 #define SC_R_ELCDIF_PLL           323U
 #define SC_R_OCRAM                324U
@@ -564,22 +583,22 @@
 #define SC_R_DMA_4_CH2            374U
 #define SC_R_DMA_4_CH3            375U
 #define SC_R_DMA_4_CH4            376U
-#define SC_R_ISI_CH0              377U
-#define SC_R_ISI_CH1              378U
-#define SC_R_ISI_CH2              379U
-#define SC_R_ISI_CH3              380U
-#define SC_R_ISI_CH4              381U
-#define SC_R_ISI_CH5              382U
-#define SC_R_ISI_CH6              383U
-#define SC_R_ISI_CH7              384U
-#define SC_R_MJPEG_DEC_S0         385U
-#define SC_R_MJPEG_DEC_S1         386U
-#define SC_R_MJPEG_DEC_S2         387U
-#define SC_R_MJPEG_DEC_S3         388U
-#define SC_R_MJPEG_ENC_S0         389U
-#define SC_R_MJPEG_ENC_S1         390U
-#define SC_R_MJPEG_ENC_S2         391U
-#define SC_R_MJPEG_ENC_S3         392U
+#define SC_R_ISI_0_CH0            377U
+#define SC_R_ISI_0_CH1            378U
+#define SC_R_ISI_0_CH2            379U
+#define SC_R_ISI_0_CH3            380U
+#define SC_R_ISI_0_CH4            381U
+#define SC_R_ISI_0_CH5            382U
+#define SC_R_ISI_0_CH6            383U
+#define SC_R_ISI_0_CH7            384U
+#define SC_R_MJPEG_0_DEC_S0       385U
+#define SC_R_MJPEG_0_DEC_S1       386U
+#define SC_R_MJPEG_0_DEC_S2       387U
+#define SC_R_MJPEG_0_DEC_S3       388U
+#define SC_R_MJPEG_0_ENC_S0       389U
+#define SC_R_MJPEG_0_ENC_S1       390U
+#define SC_R_MJPEG_0_ENC_S2       391U
+#define SC_R_MJPEG_0_ENC_S3       392U
 #define SC_R_MIPI_0               393U
 #define SC_R_MIPI_0_PWM_0         394U
 #define SC_R_MIPI_0_I2C_0         395U
@@ -694,11 +713,11 @@
 #define SC_R_SECO_MU_3            504U
 #define SC_R_SECO_MU_4            505U
 #define SC_R_HDMI_RX_PWM_0        506U
-#define SC_R_A35                  507U
-#define SC_R_A35_0                508U
-#define SC_R_A35_1                509U
-#define SC_R_A35_2                510U
-#define SC_R_A35_3                511U
+#define SC_R_AP_2                 507U
+#define SC_R_AP_2_0               508U
+#define SC_R_AP_2_1               509U
+#define SC_R_AP_2_2               510U
+#define SC_R_AP_2_3               511U
 #define SC_R_DSP                  512U
 #define SC_R_DSP_RAM              513U
 #define SC_R_CAAM_JR1_OUT         514U
@@ -719,8 +738,8 @@
 #define SC_R_BOARD_R5             529U
 #define SC_R_BOARD_R6             530U
 #define SC_R_BOARD_R7             531U
-#define SC_R_MJPEG_DEC_MP         532U
-#define SC_R_MJPEG_ENC_MP         533U
+#define SC_R_MJPEG_0_DEC_MP       532U
+#define SC_R_MJPEG_0_ENC_MP       533U
 #define SC_R_VPU_TS_0             534U
 #define SC_R_VPU_MU_0             535U
 #define SC_R_VPU_MU_1             536U
@@ -734,8 +753,99 @@
 #define SC_R_DMA_5_CH3            544U
 #define SC_R_ATTESTATION          545U
 #define SC_R_LAST                 546U
-#define SC_R_ALL                  ((sc_rsrc_t) UINT16_MAX)	/* All resources */
-/*@}*/
+#define SC_R_ALL                  ((sc_rsrc_t) UINT16_MAX)  /* All resources */
+/** @} */
+
+/*!
+ * @name Compatibility defines for sc_rsrc_t
+ */
+/** @{ */
+#define SC_R_A35                  SC_R_AP_2
+#define SC_R_A35_0                SC_R_AP_2_0
+#define SC_R_A35_1                SC_R_AP_2_1
+#define SC_R_A35_2                SC_R_AP_2_2
+#define SC_R_A35_3                SC_R_AP_2_3
+#define SC_R_A53                  SC_R_AP_0
+#define SC_R_A53_0                SC_R_AP_0_0
+#define SC_R_A53_1                SC_R_AP_0_1
+#define SC_R_A53_2                SC_R_AP_0_2
+#define SC_R_A53_3                SC_R_AP_0_3
+#define SC_R_A72                  SC_R_AP_1
+#define SC_R_A72_0                SC_R_AP_1_0
+#define SC_R_A72_1                SC_R_AP_1_1
+#define SC_R_A72_2                SC_R_AP_1_2
+#define SC_R_A72_3                SC_R_AP_1_3
+#define SC_R_GIC                  SC_R_GIC_0
+#define SC_R_HSIO_GPIO            SC_R_HSIO_GPIO_0
+#define SC_R_IEE                  SC_R_IEE_0
+#define SC_R_IEE_R0               SC_R_IEE_0_R0
+#define SC_R_IEE_R1               SC_R_IEE_0_R1
+#define SC_R_IEE_R2               SC_R_IEE_0_R2
+#define SC_R_IEE_R3               SC_R_IEE_0_R3
+#define SC_R_IEE_R4               SC_R_IEE_0_R4
+#define SC_R_IEE_R5               SC_R_IEE_0_R5
+#define SC_R_IEE_R6               SC_R_IEE_0_R6
+#define SC_R_IEE_R7               SC_R_IEE_0_R7
+#define SC_R_IRQSTR_M4_0          SC_R_IRQSTR_MCU_0
+#define SC_R_IRQSTR_M4_1          SC_R_IRQSTR_MCU_1
+#define SC_R_IRQSTR_SCU2          SC_R_IRQSTR_AP_0
+#define SC_R_ISI_CH0              SC_R_ISI_0_CH0
+#define SC_R_ISI_CH1              SC_R_ISI_0_CH1
+#define SC_R_ISI_CH2              SC_R_ISI_0_CH2
+#define SC_R_ISI_CH3              SC_R_ISI_0_CH3
+#define SC_R_ISI_CH4              SC_R_ISI_0_CH4
+#define SC_R_ISI_CH5              SC_R_ISI_0_CH5
+#define SC_R_ISI_CH6              SC_R_ISI_0_CH6
+#define SC_R_ISI_CH7              SC_R_ISI_0_CH7
+#define SC_R_M4_0_I2C             SC_R_MCU_0_I2C
+#define SC_R_M4_0_INTMUX          SC_R_MCU_0_INTMUX
+#define SC_R_M4_0_MU_0A0          SC_R_MCU_0_MU_0A0
+#define SC_R_M4_0_MU_0A1          SC_R_MCU_0_MU_0A1
+#define SC_R_M4_0_MU_0A2          SC_R_MCU_0_MU_0A2
+#define SC_R_M4_0_MU_0A3          SC_R_MCU_0_MU_0A3
+#define SC_R_M4_0_MU_0B           SC_R_MCU_0_MU_0B
+#define SC_R_M4_0_MU_1A           SC_R_MCU_0_MU_1A
+#define SC_R_M4_0_PID0            SC_R_MCU_0_PID0
+#define SC_R_M4_0_PID1            SC_R_MCU_0_PID1
+#define SC_R_M4_0_PID2            SC_R_MCU_0_PID2
+#define SC_R_M4_0_PID3            SC_R_MCU_0_PID3
+#define SC_R_M4_0_PID4            SC_R_MCU_0_PID4
+#define SC_R_M4_0_PIT             SC_R_MCU_0_PIT
+#define SC_R_M4_0_RGPIO           SC_R_MCU_0_RGPIO
+#define SC_R_M4_0_SEMA42          SC_R_MCU_0_SEMA42
+#define SC_R_M4_0_TPM             SC_R_MCU_0_TPM
+#define SC_R_M4_0_UART            SC_R_MCU_0_UART
+#define SC_R_M4_1_I2C             SC_R_MCU_1_I2C
+#define SC_R_M4_1_INTMUX          SC_R_MCU_1_INTMUX
+#define SC_R_M4_1_MU_0A0          SC_R_MCU_1_MU_0A0
+#define SC_R_M4_1_MU_0A1          SC_R_MCU_1_MU_0A1
+#define SC_R_M4_1_MU_0A2          SC_R_MCU_1_MU_0A2
+#define SC_R_M4_1_MU_0A3          SC_R_MCU_1_MU_0A3
+#define SC_R_M4_1_MU_0B           SC_R_MCU_1_MU_0B
+#define SC_R_M4_1_MU_1A           SC_R_MCU_1_MU_1A
+#define SC_R_M4_1_PID0            SC_R_MCU_1_PID0
+#define SC_R_M4_1_PID1            SC_R_MCU_1_PID1
+#define SC_R_M4_1_PID2            SC_R_MCU_1_PID2
+#define SC_R_M4_1_PID3            SC_R_MCU_1_PID3
+#define SC_R_M4_1_PID4            SC_R_MCU_1_PID4
+#define SC_R_M4_1_PIT             SC_R_MCU_1_PIT
+#define SC_R_M4_1_RGPIO           SC_R_MCU_1_RGPIO
+#define SC_R_M4_1_SEMA42          SC_R_MCU_1_SEMA42
+#define SC_R_M4_1_TPM             SC_R_MCU_1_TPM
+#define SC_R_M4_1_UART            SC_R_MCU_1_UART
+#define SC_R_MJPEG_DEC_MP         SC_R_MJPEG_0_DEC_MP
+#define SC_R_MJPEG_DEC_S0         SC_R_MJPEG_0_DEC_S0
+#define SC_R_MJPEG_DEC_S1         SC_R_MJPEG_0_DEC_S1
+#define SC_R_MJPEG_DEC_S2         SC_R_MJPEG_0_DEC_S2
+#define SC_R_MJPEG_DEC_S3         SC_R_MJPEG_0_DEC_S3
+#define SC_R_MJPEG_ENC_MP         SC_R_MJPEG_0_ENC_MP
+#define SC_R_MJPEG_ENC_S0         SC_R_MJPEG_0_ENC_S0
+#define SC_R_MJPEG_ENC_S1         SC_R_MJPEG_0_ENC_S1
+#define SC_R_MJPEG_ENC_S2         SC_R_MJPEG_0_ENC_S2
+#define SC_R_MJPEG_ENC_S3         SC_R_MJPEG_0_ENC_S3
+#define SC_R_PERF                 SC_R_PERF_0
+#define SC_R_SMMU                 SC_R_SMMU_0
+/** @} */
 
 /*!
  * Define for ATF/Linux. Not used by SCFW. Not a valid parameter
@@ -746,7 +856,7 @@
 /* NOTE - please add by replacing some of the UNUSED from above! */
 
 /*!
- * Defines for sc_ctrl_t.
+ * Defines for sc_ctrl_t
  */
 #define SC_C_TEMP                       0U
 #define SC_C_TEMP_HI                    1U
@@ -806,14 +916,25 @@
 #define SC_C_SYNC_CTRL                  55U
 #define SC_C_OFS_AUDIO_ALT              56U
 #define SC_C_DSP_BYP                    57U
-#define SC_C_LAST                       58U
+#define SC_C_CLK_GEN_EN	                58U
+#define SC_C_INTF_SEL                   59U
+#define SC_C_RXC_DLY                    60U
+#define SC_C_TIMER_SEL                  61U
+#define SC_C_MISC0                      62U
+#define SC_C_MISC1                      63U
+#define SC_C_MISC2                      64U
+#define SC_C_MISC3                      65U
+#define SC_C_LAST                       66U
 
-#define SC_P_ALL        ((sc_pad_t) UINT16_MAX)	/* All pads */
+/*!
+ * Define for used to specify all pads
+ */
+#define SC_P_ALL        ((sc_pad_t) UINT16_MAX)   /* All pads */
 
 /* Types */
 
 /*!
- * This type is used to store a boolean
+ * This type is used to store a boolean.
  */
 typedef uint8_t sc_bool_t;
 
@@ -846,48 +967,49 @@ typedef uint32_t sc_ctrl_t;
  */
 typedef uint16_t sc_pad_t;
 
-/* Extra documentation of standard types */
-
 #ifdef DOXYGEN
+    /* Extra documentation of standard types */
+
     /*!
      * Type used to declare an 8-bit integer.
      */
-typedef __INT8_TYPE__ int8_t;
+    typedef __INT8_TYPE__ int8_t;
 
     /*!
      * Type used to declare a 16-bit integer.
      */
-typedef __INT16_TYPE__ int16_t;
+    typedef __INT16_TYPE__ int16_t;
 
     /*!
      * Type used to declare a 32-bit integer.
      */
-typedef __INT32_TYPE__ int32_t;
+    typedef __INT32_TYPE__ int32_t;
 
     /*!
      * Type used to declare a 64-bit integer.
      */
-typedef __INT64_TYPE__ int64_t;
+    typedef __INT64_TYPE__ int64_t;
 
     /*!
      * Type used to declare an 8-bit unsigned integer.
      */
-typedef __UINT8_TYPE__ uint8_t;
+    typedef __UINT8_TYPE__ uint8_t;
 
     /*!
      * Type used to declare a 16-bit unsigned integer.
      */
-typedef __UINT16_TYPE__ uint16_t;
+    typedef __UINT16_TYPE__ uint16_t;
 
     /*!
      * Type used to declare a 32-bit unsigned integer.
      */
-typedef __UINT32_TYPE__ uint32_t;
+    typedef __UINT32_TYPE__ uint32_t;
 
     /*!
      * Type used to declare a 64-bit unsigned integer.
      */
-typedef __UINT64_TYPE__ uint64_t;
+    typedef __UINT64_TYPE__ uint64_t;
 #endif
 
-#endif				/* SC_TYPES_H */
+#endif /* SC_TYPES_H */
+

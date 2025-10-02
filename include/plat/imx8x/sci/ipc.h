@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2019 NXP
+ * Copyright 2017-2022 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,7 +14,7 @@
 
 /* Includes */
 
-#include <plat/imx8x/sci/sci_types.h>
+#include <sci/types.h>
 
 /* Defines */
 
@@ -63,4 +63,5 @@ void sc_ipc_read(sc_ipc_t ipc, void *data);
  */
 void sc_ipc_write(sc_ipc_t ipc, const void *data);
 
-#endif  /* SC_IPC_H */
+#endif /* SC_IPC_H */
+

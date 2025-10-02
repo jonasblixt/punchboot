@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2025 Jonas Blixt <jonpe960@gmail.com>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -16,6 +16,7 @@
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
+#include <drivers/uart/imx_lpuart.h>
 #include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
@@ -23,6 +24,7 @@
 #include <drivers/usb/usbd.h>
 #include <libfdt.h>
 #include <pb/cm.h>
+#include <pb/console.h>
 #include <pb/crypto.h>
 #include <pb/delay.h>
 #include <pb/pb.h>
@@ -32,7 +34,10 @@
 #include <pb/timestamp.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
-#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <sci/svc/misc/api.h>
+#include <sci/svc/pad/api.h>
+#include <sci/svc/pm/api.h>
+#include <sci/svc/seco/api.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <uuid.h>
@@ -509,42 +514,16 @@ int cm_board_init(void)
 {
     int rc;
 
-    /* Request power domains */
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_2_PHY, SC_PM_PW_MODE_ON);
+    /* Enable usb stuff */
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_1, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_1_PHY, SC_PM_PW_MODE_ON);
 
-    /* Request clocks */
-    rc = sc_pm_clock_enable(plat->ipc, SC_R_USB_2, SC_PM_CLK_PER, true, false);
+    imx_usb2_phy_init(0x5B110000);
 
-    if (rc != SC_ERR_NONE) {
-        LOG_ERR("USB_2 per clk enable failed!");
-        return -PB_ERR;
-    }
-
-    rc = sc_pm_clock_enable(plat->ipc, SC_R_USB_2, SC_PM_CLK_MISC, true, false);
-
-    if (rc != SC_ERR_NONE) {
-        LOG_ERR("USB_2 misc clk enable failed!");
-        return -PB_ERR;
-    }
-
-    rc = sc_pm_clock_enable(plat->ipc, SC_R_USB_2, SC_PM_CLK_MST_BUS, true, false);
-
-    if (rc != SC_ERR_NONE) {
-        LOG_ERR("USB_2 mst bus clk enable failed!");
-        return -PB_ERR;
-    }
-
-    static const struct imx_cdns3_udc_config usb_cfg = {
-        .base = 0x5B120000,
-        .non_core_base = 0x5B110000,
-        .phy_base = 0x5B160000,
-    };
-
-    rc = imx_cdns3_udc_init(&usb_cfg);
+    rc = imx_ci_udc_init(0x5b0e0000 /*IMX_CI_UDC_BASE*/);
 
     if (rc != PB_OK) {
-        LOG_ERR("cdns_usb_init failed (%i)", rc);
+        LOG_ERR("imx_ci_udc_init failed (%i)", rc);
         return rc;
     }
 
@@ -554,7 +533,7 @@ int cm_board_init(void)
         return rc;
 
     static const struct cm_config cfg = {
-        .name = "imx8qxpmek",
+        .name = "imx8dxlevk",
         .status = board_status,
         .password_auth = board_password_auth,
         .command = board_command,

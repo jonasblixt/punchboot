@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2019 NXP
+ * Copyright 2017-2022 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,7 +11,9 @@
  *
  * @addtogroup PAD_SVC PAD: Pad Service
  *
- * Module for the Pad Control (PAD) service.
+ * @brief Module for the Pad Control (PAD) service.
+ *
+ * @anchor pad_det
  *
  * @details
  *
@@ -61,89 +63,89 @@
 
 /* Includes */
 
-#include <plat/imx8x/sci/sci_types.h>
-#include <plat/imx8x/sci/svc/rm/sci_rm_api.h>
+#include <sci/types.h>
+#include <sci/svc/rm/api.h>
 
 /* Defines */
 
 /*!
  * @name Defines for type widths
  */
-/*@{*/
-#define SC_PAD_MUX_W            3U	/* Width of mux parameter */
-/*@}*/
+/** @{ */
+#define SC_PAD_MUX_W            3U    /* Width of mux parameter */
+/** @} */
 
 /*!
  * @name Defines for sc_pad_config_t
  */
-/*@{*/
-#define SC_PAD_CONFIG_NORMAL    0U	/* Normal */
-#define SC_PAD_CONFIG_OD        1U	/* Open Drain */
-#define SC_PAD_CONFIG_OD_IN     2U	/* Open Drain and input */
-#define SC_PAD_CONFIG_OUT_IN    3U	/* Output and input */
-/*@}*/
+/** @{ */
+#define SC_PAD_CONFIG_NORMAL    0U    /* Normal */
+#define SC_PAD_CONFIG_OD        1U    /* Open Drain */
+#define SC_PAD_CONFIG_OD_IN     2U    /* Open Drain and input */
+#define SC_PAD_CONFIG_OUT_IN    3U    /* Output and input */
+/** @} */
 
 /*!
  * @name Defines for sc_pad_iso_t
  */
-/*@{*/
-#define SC_PAD_ISO_OFF          0U	/* ISO latch is transparent */
-#define SC_PAD_ISO_EARLY        1U	/* Follow EARLY_ISO */
-#define SC_PAD_ISO_LATE         2U	/* Follow LATE_ISO */
-#define SC_PAD_ISO_ON           3U	/* ISO latched data is held */
-/*@}*/
-
-/*!
- * @name Defines for sc_pad_28fdsoi_dse_t
- */
-/*@{*/
-#define SC_PAD_28FDSOI_DSE_18V_1MA   0U	/* Drive strength of 1mA for 1.8v */
-#define SC_PAD_28FDSOI_DSE_18V_2MA   1U	/* Drive strength of 2mA for 1.8v */
-#define SC_PAD_28FDSOI_DSE_18V_4MA   2U	/* Drive strength of 4mA for 1.8v */
-#define SC_PAD_28FDSOI_DSE_18V_6MA   3U	/* Drive strength of 6mA for 1.8v */
-#define SC_PAD_28FDSOI_DSE_18V_8MA   4U	/* Drive strength of 8mA for 1.8v */
-#define SC_PAD_28FDSOI_DSE_18V_10MA  5U	/* Drive strength of 10mA for 1.8v */
-#define SC_PAD_28FDSOI_DSE_18V_12MA  6U	/* Drive strength of 12mA for 1.8v */
-#define SC_PAD_28FDSOI_DSE_18V_HS    7U	/* High-speed drive strength for 1.8v */
-#define SC_PAD_28FDSOI_DSE_33V_2MA   0U	/* Drive strength of 2mA for 3.3v */
-#define SC_PAD_28FDSOI_DSE_33V_4MA   1U	/* Drive strength of 4mA for 3.3v */
-#define SC_PAD_28FDSOI_DSE_33V_8MA   2U	/* Drive strength of 8mA for 3.3v */
-#define SC_PAD_28FDSOI_DSE_33V_12MA  3U	/* Drive strength of 12mA for 3.3v */
-#define SC_PAD_28FDSOI_DSE_DV_HIGH   0U	/* High drive strength for dual volt */
-#define SC_PAD_28FDSOI_DSE_DV_LOW    1U	/* Low drive strength for dual volt */
-/*@}*/
-
-/*!
- * @name Defines for sc_pad_28fdsoi_ps_t
- */
-/*@{*/
-#define SC_PAD_28FDSOI_PS_KEEPER 0U	/* Bus-keeper (only valid for 1.8v) */
-#define SC_PAD_28FDSOI_PS_PU     1U	/* Pull-up */
-#define SC_PAD_28FDSOI_PS_PD     2U	/* Pull-down */
-#define SC_PAD_28FDSOI_PS_NONE   3U	/* No pull (disabled) */
-/*@}*/
-
-/*!
- * @name Defines for sc_pad_28fdsoi_pus_t
- */
-/*@{*/
-#define SC_PAD_28FDSOI_PUS_30K_PD  0U	/* 30K pull-down */
-#define SC_PAD_28FDSOI_PUS_100K_PU 1U	/* 100K pull-up */
-#define SC_PAD_28FDSOI_PUS_3K_PU   2U	/* 3K pull-up */
-#define SC_PAD_28FDSOI_PUS_30K_PU  3U	/* 30K pull-up */
-/*@}*/
+/** @{ */
+#define SC_PAD_ISO_OFF          0U    /* ISO latch is transparent */
+#define SC_PAD_ISO_EARLY        1U    /* Follow EARLY_ISO */
+#define SC_PAD_ISO_LATE         2U    /* Follow LATE_ISO */
+#define SC_PAD_ISO_ON           3U    /* ISO latched data is held */
+/** @} */
 
 /*!
  * @name Defines for sc_pad_wakeup_t
  */
-/*@{*/
-#define SC_PAD_WAKEUP_OFF       0U	/* Off */
-#define SC_PAD_WAKEUP_CLEAR     1U	/* Clears pending flag */
-#define SC_PAD_WAKEUP_LOW_LVL   4U	/* Low level */
-#define SC_PAD_WAKEUP_FALL_EDGE 5U	/* Falling edge */
-#define SC_PAD_WAKEUP_RISE_EDGE 6U	/* Rising edge */
-#define SC_PAD_WAKEUP_HIGH_LVL  7U	/* High-level */
-/*@}*/
+/** @{ */
+#define SC_PAD_WAKEUP_OFF       0U    /* Off */
+#define SC_PAD_WAKEUP_CLEAR     1U    /* Clears pending flag */
+#define SC_PAD_WAKEUP_LOW_LVL   4U    /* Low level */
+#define SC_PAD_WAKEUP_FALL_EDGE 5U    /* Falling edge */
+#define SC_PAD_WAKEUP_RISE_EDGE 6U    /* Rising edge */
+#define SC_PAD_WAKEUP_HIGH_LVL  7U    /* High-level */
+/** @} */
+
+/*!
+ * @name Defines for sc_pad_28fdsoi_dse_t
+ */
+/** @{ */
+#define SC_PAD_28FDSOI_DSE_18V_1MA   0U    /* Drive strength of 1mA for 1.8v */
+#define SC_PAD_28FDSOI_DSE_18V_2MA   1U    /* Drive strength of 2mA for 1.8v */
+#define SC_PAD_28FDSOI_DSE_18V_4MA   2U    /* Drive strength of 4mA for 1.8v */
+#define SC_PAD_28FDSOI_DSE_18V_6MA   3U    /* Drive strength of 6mA for 1.8v */
+#define SC_PAD_28FDSOI_DSE_18V_8MA   4U    /* Drive strength of 8mA for 1.8v */
+#define SC_PAD_28FDSOI_DSE_18V_10MA  5U    /* Drive strength of 10mA for 1.8v */
+#define SC_PAD_28FDSOI_DSE_18V_12MA  6U    /* Drive strength of 12mA for 1.8v */
+#define SC_PAD_28FDSOI_DSE_18V_HS    7U    /* High-speed drive strength for 1.8v */
+#define SC_PAD_28FDSOI_DSE_33V_2MA   0U    /* Drive strength of 2mA for 3.3v */
+#define SC_PAD_28FDSOI_DSE_33V_4MA   1U    /* Drive strength of 4mA for 3.3v */
+#define SC_PAD_28FDSOI_DSE_33V_8MA   2U    /* Drive strength of 8mA for 3.3v */
+#define SC_PAD_28FDSOI_DSE_33V_12MA  3U    /* Drive strength of 12mA for 3.3v */
+#define SC_PAD_28FDSOI_DSE_DV_HIGH   0U    /* High drive strength for dual volt */
+#define SC_PAD_28FDSOI_DSE_DV_LOW    1U    /* Low drive strength for dual volt */
+/** @} */
+
+/*!
+ * @name Defines for sc_pad_28fdsoi_ps_t
+ */
+/** @{ */
+#define SC_PAD_28FDSOI_PS_KEEPER 0U    /* Bus-keeper (only valid for 1.8v) */
+#define SC_PAD_28FDSOI_PS_PU     1U    /* Pull-up */
+#define SC_PAD_28FDSOI_PS_PD     2U    /* Pull-down */
+#define SC_PAD_28FDSOI_PS_NONE   3U    /* No pull (disabled) */
+/** @} */
+
+/*!
+ * @name Defines for sc_pad_28fdsoi_pus_t
+ */
+/** @{ */
+#define SC_PAD_28FDSOI_PUS_30K_PD  0U    /* 30K pull-down */
+#define SC_PAD_28FDSOI_PUS_100K_PU 1U    /* 100K pull-up */
+#define SC_PAD_28FDSOI_PUS_3K_PU   2U    /* 3K pull-up */
+#define SC_PAD_28FDSOI_PUS_30K_PU  3U    /* 30K pull-up */
+/** @} */
 
 /* Types */
 
@@ -165,6 +167,11 @@ typedef uint8_t sc_pad_config_t;
 typedef uint8_t sc_pad_iso_t;
 
 /*!
+ * This type is used to declare a wakeup mode of a pad.
+ */
+typedef uint8_t sc_pad_wakeup_t;
+
+/*!
  * This type is used to declare a drive strength. Note it is specific
  * to 28FDSOI. Also note that valid values depend on the pad type.
  */
@@ -181,11 +188,6 @@ typedef uint8_t sc_pad_28fdsoi_ps_t;
  * to 28FDSOI HSIC pads.
  */
 typedef uint8_t sc_pad_28fdsoi_pus_t;
-
-/*!
- * This type is used to declare a wakeup mode of a pad.
- */
-typedef uint8_t sc_pad_wakeup_t;
 
 /* Functions */
 
@@ -213,10 +215,12 @@ typedef uint8_t sc_pad_wakeup_t;
  * Note muxing two input pads to the same IP functional signal will
  * result in undefined behavior.
  *
- * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values. See
+ * the [Pad Service Detailed Description](\ref pad_det) for more on
+ * parameter definitions.
  */
 sc_err_t sc_pad_set_mux(sc_ipc_t ipc, sc_pad_t pad,
-			uint8_t mux, sc_pad_config_t config, sc_pad_iso_t iso);
+    uint8_t mux, sc_pad_config_t config, sc_pad_iso_t iso);
 
 /*!
  * This function gets the mux settings for a pad. This includes
@@ -234,11 +238,12 @@ sc_err_t sc_pad_set_mux(sc_ipc_t ipc, sc_pad_t pad,
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner
  *
- * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values. See
+ * the [Pad Service Detailed Description](\ref pad_det) for more on
+ * parameter definitions.
  */
 sc_err_t sc_pad_get_mux(sc_ipc_t ipc, sc_pad_t pad,
-			uint8_t *mux, sc_pad_config_t *config,
-			sc_pad_iso_t *iso);
+    uint8_t *mux, sc_pad_config_t *config, sc_pad_iso_t *iso);
 
 /*!
  * This function configures the general purpose pad control. This
@@ -256,7 +261,9 @@ sc_err_t sc_pad_get_mux(sc_ipc_t ipc, sc_pad_t pad,
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner
  *
- * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values. See
+ * the [Pad Service Detailed Description](\ref pad_det) for more on
+ * parameter definitions.
  */
 sc_err_t sc_pad_set_gp(sc_ipc_t ipc, sc_pad_t pad, uint32_t ctrl);
 
@@ -276,7 +283,9 @@ sc_err_t sc_pad_set_gp(sc_ipc_t ipc, sc_pad_t pad, uint32_t ctrl);
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner
  *
- * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values. See
+ * the [Pad Service Detailed Description](\ref pad_det) for more on
+ * parameter definitions.
  */
 sc_err_t sc_pad_get_gp(sc_ipc_t ipc, sc_pad_t pad, uint32_t *ctrl);
 
@@ -293,9 +302,12 @@ sc_err_t sc_pad_get_gp(sc_ipc_t ipc, sc_pad_t pad, uint32_t *ctrl);
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner
  *
- * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values. See
+ * the [Pad Service Detailed Description](\ref pad_det) for more on
+ * parameter definitions.
  */
-sc_err_t sc_pad_set_wakeup(sc_ipc_t ipc, sc_pad_t pad, sc_pad_wakeup_t wakeup);
+sc_err_t sc_pad_set_wakeup(sc_ipc_t ipc, sc_pad_t pad,
+    sc_pad_wakeup_t wakeup);
 
 /*!
  * This function gets the wakeup mode of a pad.
@@ -310,9 +322,12 @@ sc_err_t sc_pad_set_wakeup(sc_ipc_t ipc, sc_pad_t pad, sc_pad_wakeup_t wakeup);
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner
  *
- * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values. See
+ * the [Pad Service Detailed Description](\ref pad_det) for more on
+ * parameter definitions.
  */
-sc_err_t sc_pad_get_wakeup(sc_ipc_t ipc, sc_pad_t pad, sc_pad_wakeup_t *wakeup);
+sc_err_t sc_pad_get_wakeup(sc_ipc_t ipc, sc_pad_t pad,
+    sc_pad_wakeup_t *wakeup);
 
 /*!
  * This function configures a pad.
@@ -337,11 +352,13 @@ sc_err_t sc_pad_get_wakeup(sc_ipc_t ipc, sc_pad_t pad, sc_pad_wakeup_t *wakeup);
  * Note muxing two input pads to the same IP functional signal will
  * result in undefined behavior.
  *
- * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values. See
+ * the [Pad Service Detailed Description](\ref pad_det) for more on
+ * parameter definitions.
  */
 sc_err_t sc_pad_set_all(sc_ipc_t ipc, sc_pad_t pad, uint8_t mux,
-			sc_pad_config_t config, sc_pad_iso_t iso, uint32_t ctrl,
-			sc_pad_wakeup_t wakeup);
+    sc_pad_config_t config, sc_pad_iso_t iso, uint32_t ctrl,
+    sc_pad_wakeup_t wakeup);
 
 /*!
  * This function gets a pad's config.
@@ -363,13 +380,15 @@ sc_err_t sc_pad_set_all(sc_ipc_t ipc, sc_pad_t pad, uint8_t mux,
  *
  * @return Returns an error code (SC_ERR_NONE = success).
  *
- * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values. See
+ * the [Pad Service Detailed Description](\ref pad_det) for more on
+ * parameter definitions.
  */
 sc_err_t sc_pad_get_all(sc_ipc_t ipc, sc_pad_t pad, uint8_t *mux,
-			sc_pad_config_t *config, sc_pad_iso_t *iso,
-			uint32_t *ctrl, sc_pad_wakeup_t *wakeup);
+    sc_pad_config_t *config, sc_pad_iso_t *iso, uint32_t *ctrl,
+    sc_pad_wakeup_t *wakeup);
 
-/* @} */
+/** @} */
 
 /*!
  * @name SoC Specific Functions
@@ -412,10 +431,30 @@ sc_err_t sc_pad_set(sc_ipc_t ipc, sc_pad_t pad, uint32_t val);
  */
 sc_err_t sc_pad_get(sc_ipc_t ipc, sc_pad_t pad, uint32_t *val);
 
-/* @} */
+/*!
+ * This function writes a configuration register. This setting is SoC
+ * specific.
+ *
+ * @param[in]     ipc         IPC handle
+ * @param[in]     pad         pad to configure
+ * @param[in]     val         value to set
+ *
+ * Use to configure various HSIC and NAND congiruation settings.
+ *
+ * @return Returns an error code (SC_ERR_NONE = success).
+ *
+ * Return errors:
+ * - SC_PARM if arguments out of range or invalid,
+ * - SC_ERR_NOACCESS if caller's partition is not the pad owner
+ *
+ * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
+ */
+sc_err_t sc_pad_config(sc_ipc_t ipc, sc_pad_t pad, uint32_t val);
+
+/** @} */
 
 /*!
- * @name Technology Specific Functions
+ * @name 28FDSIO Technology Specific Functions
  * @{
  */
 
@@ -432,13 +471,12 @@ sc_err_t sc_pad_get(sc_ipc_t ipc, sc_pad_t pad, uint32_t *val);
  * Return errors:
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner,
- * - SC_ERR_UNAVAILABLE if process not applicable
+ * - SC_ERR_NOTFOUND if process not applicable
  *
  * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
  */
 sc_err_t sc_pad_set_gp_28fdsoi(sc_ipc_t ipc, sc_pad_t pad,
-			       sc_pad_28fdsoi_dse_t dse,
-			       sc_pad_28fdsoi_ps_t ps);
+    sc_pad_28fdsoi_dse_t dse, sc_pad_28fdsoi_ps_t ps);
 
 /*!
  * This function gets the pad control specific to 28FDSOI.
@@ -453,13 +491,12 @@ sc_err_t sc_pad_set_gp_28fdsoi(sc_ipc_t ipc, sc_pad_t pad,
  * Return errors:
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner,
- * - SC_ERR_UNAVAILABLE if process not applicable
+ * - SC_ERR_NOTFOUND if process not applicable
  *
  * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
  */
 sc_err_t sc_pad_get_gp_28fdsoi(sc_ipc_t ipc, sc_pad_t pad,
-			       sc_pad_28fdsoi_dse_t *dse,
-			       sc_pad_28fdsoi_ps_t *ps);
+    sc_pad_28fdsoi_dse_t *dse, sc_pad_28fdsoi_ps_t *ps);
 
 /*!
  * This function configures the pad control specific to 28FDSOI.
@@ -477,14 +514,13 @@ sc_err_t sc_pad_get_gp_28fdsoi(sc_ipc_t ipc, sc_pad_t pad,
  * Return errors:
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner,
- * - SC_ERR_UNAVAILABLE if process not applicable
+ * - SC_ERR_NOTFOUND if process not applicable
  *
  * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
  */
 sc_err_t sc_pad_set_gp_28fdsoi_hsic(sc_ipc_t ipc, sc_pad_t pad,
-				    sc_pad_28fdsoi_dse_t dse, sc_bool_t hys,
-				    sc_pad_28fdsoi_pus_t pus, sc_bool_t pke,
-				    sc_bool_t pue);
+    sc_pad_28fdsoi_dse_t dse, sc_bool_t hys, sc_pad_28fdsoi_pus_t pus,
+    sc_bool_t pke, sc_bool_t pue);
 
 /*!
  * This function gets the pad control specific to 28FDSOI.
@@ -502,14 +538,13 @@ sc_err_t sc_pad_set_gp_28fdsoi_hsic(sc_ipc_t ipc, sc_pad_t pad,
  * Return errors:
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner,
- * - SC_ERR_UNAVAILABLE if process not applicable
+ * - SC_ERR_NOTFOUND if process not applicable
  *
  * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
  */
 sc_err_t sc_pad_get_gp_28fdsoi_hsic(sc_ipc_t ipc, sc_pad_t pad,
-				    sc_pad_28fdsoi_dse_t *dse, sc_bool_t *hys,
-				    sc_pad_28fdsoi_pus_t * pus, sc_bool_t *pke,
-				    sc_bool_t *pue);
+    sc_pad_28fdsoi_dse_t *dse, sc_bool_t *hys, sc_pad_28fdsoi_pus_t *pus,
+    sc_bool_t *pke, sc_bool_t *pue);
 
 /*!
  * This function configures the compensation control specific to 28FDSOI.
@@ -528,7 +563,7 @@ sc_err_t sc_pad_get_gp_28fdsoi_hsic(sc_ipc_t ipc, sc_pad_t pad,
  * Return errors:
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner,
- * - SC_ERR_UNAVAILABLE if process not applicable
+ * - SC_ERR_NOTFOUND if process not applicable
  *
  * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
  *
@@ -536,9 +571,8 @@ sc_err_t sc_pad_get_gp_28fdsoi_hsic(sc_ipc_t ipc, sc_pad_t pad,
  * operation (e.g. some Ethernet pads).
  */
 sc_err_t sc_pad_set_gp_28fdsoi_comp(sc_ipc_t ipc, sc_pad_t pad,
-				    uint8_t compen, sc_bool_t fastfrz,
-				    uint8_t rasrcp, uint8_t rasrcn,
-				    sc_bool_t nasrc_sel, sc_bool_t psw_ovr);
+    uint8_t compen, sc_bool_t fastfrz, uint8_t rasrcp, uint8_t rasrcn,
+    sc_bool_t nasrc_sel, sc_bool_t psw_ovr);
 
 /*!
  * This function gets the compensation control specific to 28FDSOI.
@@ -559,18 +593,17 @@ sc_err_t sc_pad_set_gp_28fdsoi_comp(sc_ipc_t ipc, sc_pad_t pad,
  * Return errors:
  * - SC_PARM if arguments out of range or invalid,
  * - SC_ERR_NOACCESS if caller's partition is not the pad owner,
- * - SC_ERR_UNAVAILABLE if process not applicable
+ * - SC_ERR_NOTFOUND if process not applicable
  *
  * Refer to the SoC [Pad List](@ref PADS) for valid pad values.
  */
 sc_err_t sc_pad_get_gp_28fdsoi_comp(sc_ipc_t ipc, sc_pad_t pad,
-				    uint8_t *compen, sc_bool_t *fastfrz,
-				    uint8_t *rasrcp, uint8_t *rasrcn,
-				    sc_bool_t *nasrc_sel, sc_bool_t *compok,
-				    uint8_t *nasrc, sc_bool_t *psw_ovr);
+    uint8_t *compen, sc_bool_t *fastfrz, uint8_t *rasrcp, uint8_t *rasrcn,
+    sc_bool_t *nasrc_sel, sc_bool_t *compok, uint8_t *nasrc, sc_bool_t *psw_ovr);
 
-/* @} */
+/** @} */
 
-#endif				/* SC_PAD_API_H */
+#endif /* SC_PAD_API_H */
 
-/**@}*/
+/** @} */
+
