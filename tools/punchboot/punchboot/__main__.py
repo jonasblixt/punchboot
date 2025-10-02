@@ -9,9 +9,10 @@ import os
 import pathlib
 import sys
 import uuid
+from collections.abc import Callable, Iterable
 from functools import update_wrapper
 from importlib.metadata import version
-from typing import Any, Callable, Iterable, List, Optional, TypeVar, Union
+from typing import Any, TypeVar
 
 import click
 from click.shell_completion import CompletionItem
@@ -37,8 +38,8 @@ def _completion_helper_init_session() -> Session:
     """
     cmd_line = os.environ["COMP_WORDS"].split()[1:]
     opts, _ = getopt.getopt(cmd_line, "t:u:s:", ["transport=", "device-uuid=", "socket="])
-    skt_path: Optional[str] = None
-    dev_uuid: Optional[uuid.UUID] = None
+    skt_path: str | None = None
+    dev_uuid: uuid.UUID | None = None
     for o, a in opts:
         if o in ("-s", "--socket"):
             skt_path = a
@@ -62,19 +63,19 @@ def _get_board_name(uu: uuid.UUID) -> str:
 
 def _dev_completion_helper(
     _ctx: click.Context, _param: click.Option, _incomplete: str
-) -> List[CompletionItem]:
+) -> list[CompletionItem]:
     """Completion handler for USB attached devices."""
     return [CompletionItem(str(uu), help=_get_board_name(uu)) for uu in list_usb_devices()]
 
 
 def _get_part_completion_helper(
     *, filt_write: bool = False, filt_read: bool = False, filt_boot: bool = False
-) -> Callable[[click.Context, click.Parameter, str], List[CompletionItem]]:
+) -> Callable[[click.Context, click.Parameter, str], list[CompletionItem]]:
     """Construct a completion handler for partitions with given filtering."""
 
     def _part_completion_helper(
         _ctx: click.Context, _param: click.Parameter, _incomplete: str
-    ) -> List[CompletionItem]:
+    ) -> list[CompletionItem]:
         """Completion handler for partitions."""
         with contextlib.suppress(Exception):
             s: Session = _completion_helper_init_session()
@@ -103,7 +104,7 @@ def pb_session(f: TFunc) -> TFunc:
 
     @click.pass_context
     def new_func(ctx: click.Context, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
-        device_uuid: Optional[uuid.UUID] = ctx.obj["device-uuid"]
+        device_uuid: uuid.UUID | None = ctx.obj["device-uuid"]
         socket: str = ctx.obj["socket"]
         transport: str = ctx.obj["transport"]
         try:
@@ -270,7 +271,7 @@ def auth_password(
 @click.pass_context
 def auth_token(_ctx: click.Context, s: Session, token: pathlib.Path, key_id: str) -> None:
     """DSA token  authentication."""
-    key_id_p: Union[int, str] = 0
+    key_id_p: int | str = 0
 
     try:
         key_id_p = int(key_id, 0)
@@ -308,7 +309,7 @@ def part_list(_ctx: click.Context, s: Session) -> None:
             False,
             False,
         )
-        return "".join(flag if is_set else "-" for flag, is_set in zip(flags, part_param))
+        return "".join(flag if is_set else "-" for flag, is_set in zip(flags, part_param, strict=False))
 
     def _size_helper(part: Partition) -> str:
         part_bytes = (part.last_block - part.first_block + 1) * part.block_size
@@ -444,12 +445,12 @@ def board_command(
     _ctx: click.Context,
     s: Session,
     command: str,
-    args: Optional[str],
+    args: str | None,
     out_fmt: str,
-    args_from_file: Optional[pathlib.Path],
+    args_from_file: pathlib.Path | None,
 ) -> None:
     """Execute a board specific command."""
-    board_command: Union[int, str] = 0
+    board_command: int | str = 0
     board_args: bytes = b""
 
     try:
@@ -527,7 +528,7 @@ def boot_bpak(
     _ctx: click.Context,
     s: Session,
     file: pathlib.Path,
-    pretend_part: Optional[uuid.UUID],
+    pretend_part: uuid.UUID | None,
     verbose: bool,
 ) -> None:
     """Load a bpak file into ram and run it."""
@@ -638,7 +639,7 @@ def slc_eol(_ctx: click.Context, s: Session, force: bool) -> None:
 @click.pass_context
 def slc_revoke_key(_ctx: click.Context, s: Session, key_id: str, force: bool) -> None:
     """Revoke a key."""
-    revoke_key_id: Union[int, str] = 0
+    revoke_key_id: int | str = 0
     try:
         revoke_key_id = int(key_id, 0)
     except ValueError:
