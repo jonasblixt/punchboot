@@ -48,13 +48,13 @@ _pb_exceptions = [
 ]
 
 __all__ = [
-    "Session",
+    "SLC",
     "Partition",
     "PartitionFlags",
-    "SLC",
+    "Session",
     "library_version",
+    "list_usb_devices",
     "pb_id",
     "wait_for_device",
-    "list_usb_devices",
 ]
 __all__ += _pb_exceptions
