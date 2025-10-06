@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import uuid  # noqa: TCH003
+import uuid  # noqa: TC003
 from dataclasses import dataclass
 from enum import Flag
 
