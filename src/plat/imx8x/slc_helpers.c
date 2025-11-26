@@ -5,6 +5,9 @@
 #include <plat/imx8x/sci/svc/pm/api.h>
 #include <plat/imx8x/sci/svc/seco/api.h>
 
+// Start of secure RAM as mapped to the SCU
+#define SCU_SECURE_RAM  0x20800000
+
 static sc_ipc_t ipc;
 
 void imx8x_slc_helpers_init(sc_ipc_t ipc_)
@@ -23,6 +26,10 @@ slc_t imx8x_slc_read_status(void)
 
     if (lc == 128) {
         return SLC_CONFIGURATION_LOCKED;
+    }
+
+    if (lc == 256) {
+        return SLC_EOL;
     }
 
     /**
@@ -62,6 +69,43 @@ int imx8x_slc_set_configuration_locked(void)
 
     if (err != SC_ERR_NONE)
         return -PB_ERR_IO;
+
+    return PB_OK;
+}
+
+int imx8x_slc_set_eol(uint8_t *arg, size_t len)
+{
+    int err;
+    uint32_t event;
+
+    if (len == 0) {
+        LOG_ERR("No signed message provided");
+        return -PB_ERR_PARAM;
+    }
+
+    if (len > A35_SECURE_RAM_SIZE) {
+        LOG_ERR("Signed message length exceeds secure RAM size");
+        return -PB_ERR_PARAM;
+    }
+
+    if (imx8x_slc_read_status() != SLC_CONFIGURATION_LOCKED) {
+        LOG_ERR("Not in OEM closed lifecycle, cannot advance to return lifecycle");
+        return -PB_ERR_STATE;
+    }
+
+    // Prepare message within SCU address space
+    memcpy((void*)A35_SECURE_RAM, arg, len);
+
+    err = sc_seco_return_lifecycle(ipc, (sc_faddr_t)SCU_SECURE_RAM);
+
+    if (err != SC_ERR_NONE) {
+        if (imx8x_get_last_seco_event(&event) == PB_OK) {
+            LOG_ERR("Failed to advance to return life cycle (%i), event: %08x", err, event);
+        } else {
+            LOG_ERR("Failed to advance to return life cycle (%i), no event found", err);
+        }
+        return -PB_ERR_IO;
+    }
 
     return PB_OK;
 }
