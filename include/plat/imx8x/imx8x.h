@@ -49,6 +49,10 @@
      (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) |                                           \
      (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
+// Start of secure RAM as mapped in the A35 cores
+#define A35_SECURE_RAM      0x31800000
+#define A35_SECURE_RAM_SIZE 0x10000
+
 struct imx8x_platform {
     sc_ipc_t ipc;
     uint32_t soc_id;

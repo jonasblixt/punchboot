@@ -209,6 +209,9 @@ static void imx8x_mmu_init(void)
     mmap_add_region(
         rw_nox_end, rw_nox_end, BOARD_RAM_END - rw_nox_end, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
+    mmap_add_region(A35_SECURE_RAM, A35_SECURE_RAM, A35_SECURE_RAM_SIZE,
+                    MT_RW | MT_NON_CACHEABLE | MT_EXECUTE_NEVER);
+
     mmap_add(imx_mmap);
 
     init_xlat_tables();
