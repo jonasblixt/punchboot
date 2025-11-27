@@ -63,5 +63,6 @@ int imx8x_slc_set_configuration_locked(void);
 void imx8x_rot_helpers_init(sc_ipc_t ipc_);
 void imx8x_slc_helpers_init(sc_ipc_t ipc_);
 void board_console_init(struct imx8x_platform *plat);
+int imx8x_get_last_seco_event(uint32_t *event);
 
 #endif // PLAT_INCLUDE_IMX8X_IMX8X_H

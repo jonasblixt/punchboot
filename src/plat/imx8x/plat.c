@@ -253,6 +253,33 @@ int plat_boot_reason(void)
     return boot_reason;
 }
 
+int imx8x_get_last_seco_event(uint32_t *event)
+{
+    sc_err_t ret;
+    uint8_t idx = 0;
+    uint32_t tmp_event;
+
+    while ((ret = sc_seco_get_event(plat.ipc, idx++, &tmp_event)) == SC_ERR_NONE) {
+      // The SECO will zero the event parameter when it is being called
+      // with an index which is not populated. Store the last good event
+      *event = tmp_event;
+    }
+
+    if (idx > 1) {
+        // At least one event found
+        return PB_OK;
+    }
+
+    if (ret == SC_ERR_PARM) {
+        // If the SECO returns SC_ERR_PARM, on idx 0
+        // there are no events
+        return -PB_ERR_NOT_FOUND;
+    }
+
+    LOG_ERR("Unable to get seco events (%i)", ret);
+    return -PB_ERR_IO;
+}
+
 const char *plat_boot_reason_str(void)
 {
     switch (boot_reason) {
