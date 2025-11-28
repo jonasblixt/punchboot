@@ -22,7 +22,12 @@ slc_t imx8x_slc_read_status(void)
     uint32_t uid_l;
     uint32_t uid_h;
 
-    sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h);
+    sc_err_t err = sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h);
+    if (err != SC_ERR_NONE) {
+        LOG_ERR("Failed to read life cycle (%i), resetting...", err);
+        plat_reset();
+        while(1);
+    }
 
     if (lc == 128) {
         return SLC_CONFIGURATION_LOCKED;
