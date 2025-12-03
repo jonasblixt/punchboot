@@ -209,7 +209,9 @@ static void imx8x_mmu_init(void)
     mmap_add_region(
         rw_nox_end, rw_nox_end, BOARD_RAM_END - rw_nox_end, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
-    mmap_add_region(A35_SECURE_RAM, A35_SECURE_RAM, A35_SECURE_RAM_SIZE,
+    mmap_add_region(A35_SECURE_RAM,
+                    A35_SECURE_RAM,
+                    A35_SECURE_RAM_SIZE,
                     MT_RW | MT_NON_CACHEABLE | MT_EXECUTE_NEVER);
 
     mmap_add(imx_mmap);
@@ -263,9 +265,9 @@ int imx8x_get_last_seco_event(uint32_t *event)
     uint32_t tmp_event;
 
     while ((ret = sc_seco_get_event(plat.ipc, idx++, &tmp_event)) == SC_ERR_NONE) {
-      // The SECO will zero the event parameter when it is being called
-      // with an index which is not populated. Store the last good event
-      *event = tmp_event;
+        // The SECO will zero the event parameter when it is being called
+        // with an index which is not populated. Store the last good event
+        *event = tmp_event;
     }
 
     if (idx > 1) {

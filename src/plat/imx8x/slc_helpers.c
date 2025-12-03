@@ -6,7 +6,7 @@
 #include <plat/imx8x/sci/svc/seco/api.h>
 
 // Start of secure RAM as mapped to the SCU
-#define SCU_SECURE_RAM  0x20800000
+#define SCU_SECURE_RAM 0x20800000
 
 static sc_ipc_t ipc;
 
@@ -26,7 +26,8 @@ slc_t imx8x_slc_read_status(void)
     if (err != SC_ERR_NONE) {
         LOG_ERR("Failed to read life cycle (%i), resetting...", err);
         plat_reset();
-        while(1);
+        while (1)
+            ;
     }
 
     if (lc == 128) {
@@ -99,7 +100,7 @@ int imx8x_slc_set_eol(uint8_t *arg, size_t len)
     }
 
     // Prepare message within SCU address space
-    memcpy((void*)A35_SECURE_RAM, arg, len);
+    memcpy((void *)A35_SECURE_RAM, arg, len);
 
     err = sc_seco_return_lifecycle(ipc, (sc_faddr_t)SCU_SECURE_RAM);
 

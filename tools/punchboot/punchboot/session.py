@@ -419,7 +419,6 @@ class Session:
         Warning: This ususally means writing fuses, this operation might
         brick your device.
         """
-
         if file:
             with file.open("rb") as f:
                 self.pb_s.slc_set_end_of_life(f)

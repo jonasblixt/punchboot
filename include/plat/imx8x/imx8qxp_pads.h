@@ -26,9 +26,10 @@
 #define SC_P_COMP_CTL_GPIO_1V8_3V3_PCIESEP 3U /*  */
 #define SC_P_USB_SS3_TC0 \
     4U /* ADMA.I2C1.SCL, CONN.USB_OTG1.PWR, CONN.USB_OTG2.PWR, LSIO.GPIO4.IO03 */
-#define SC_P_USB_SS3_TC1                   5U /* ADMA.I2C1.SCL, CONN.USB_OTG2.PWR, LSIO.GPIO4.IO04 */
-#define SC_P_USB_SS3_TC2                   6U /* ADMA.I2C1.SDA, CONN.USB_OTG1.OC, CONN.USB_OTG2.OC, LSIO.GPIO4.IO05 \
-                                               */
+#define SC_P_USB_SS3_TC1 5U /* ADMA.I2C1.SCL, CONN.USB_OTG2.PWR, LSIO.GPIO4.IO04 */
+#define SC_P_USB_SS3_TC2                                                     \
+    6U /* ADMA.I2C1.SDA, CONN.USB_OTG1.OC, CONN.USB_OTG2.OC, LSIO.GPIO4.IO05 \
+        */
 #define SC_P_USB_SS3_TC3                   7U /* ADMA.I2C1.SDA, CONN.USB_OTG2.OC, LSIO.GPIO4.IO06 */
 #define SC_P_COMP_CTL_GPIO_3V3_USB3IO      8U /*  */
 #define SC_P_EMMC0_CLK                     9U /* CONN.EMMC0.CLK, CONN.NAND.READY_B, LSIO.GPIO4.IO07 */
@@ -42,12 +43,15 @@
     16U /* CONN.EMMC0.DATA4, CONN.NAND.DATA04, CONN.EMMC0.WP, LSIO.GPIO4.IO13 */
 #define SC_P_EMMC0_DATA5 \
     17U /* CONN.EMMC0.DATA5, CONN.NAND.DATA05, CONN.EMMC0.VSELECT, LSIO.GPIO4.IO14 */
-#define SC_P_EMMC0_DATA6                   18U /* CONN.EMMC0.DATA6, CONN.NAND.DATA06, CONN.MLB.CLK, LSIO.GPIO4.IO15 \
-                                                */
-#define SC_P_EMMC0_DATA7                   19U /* CONN.EMMC0.DATA7, CONN.NAND.DATA07, CONN.MLB.SIG, LSIO.GPIO4.IO16 \
-                                                */
-#define SC_P_EMMC0_STROBE                  20U /* CONN.EMMC0.STROBE, CONN.NAND.CLE, CONN.MLB.DATA, LSIO.GPIO4.IO17 \
-                                                */
+#define SC_P_EMMC0_DATA6                                                     \
+    18U /* CONN.EMMC0.DATA6, CONN.NAND.DATA06, CONN.MLB.CLK, LSIO.GPIO4.IO15 \
+         */
+#define SC_P_EMMC0_DATA7                                                     \
+    19U /* CONN.EMMC0.DATA7, CONN.NAND.DATA07, CONN.MLB.SIG, LSIO.GPIO4.IO16 \
+         */
+#define SC_P_EMMC0_STROBE                                                   \
+    20U /* CONN.EMMC0.STROBE, CONN.NAND.CLE, CONN.MLB.DATA, LSIO.GPIO4.IO17 \
+         */
 #define SC_P_EMMC0_RESET_B                 21U /* CONN.EMMC0.RESET_B, CONN.NAND.WP_B, LSIO.GPIO4.IO18 */
 #define SC_P_COMP_CTL_GPIO_1V8_3V3_SD1FIX1 22U /*  */
 #define SC_P_USDHC1_RESET_B \
@@ -62,8 +66,9 @@
 #define SC_P_COMP_CTL_GPIO_1V8_3V3_VSELSEP 29U /*  */
 #define SC_P_USDHC1_CLK                    30U /* CONN.USDHC1.CLK, ADMA.UART3.RX, LSIO.GPIO4.IO23 */
 #define SC_P_USDHC1_CMD                    31U /* CONN.USDHC1.CMD, CONN.NAND.CE0_B, ADMA.MQS.R, LSIO.GPIO4.IO24 */
-#define SC_P_USDHC1_DATA0                  32U /* CONN.USDHC1.DATA0, CONN.NAND.CE1_B, ADMA.MQS.L, LSIO.GPIO4.IO25 \
-                                                */
+#define SC_P_USDHC1_DATA0                                                  \
+    32U /* CONN.USDHC1.DATA0, CONN.NAND.CE1_B, ADMA.MQS.L, LSIO.GPIO4.IO25 \
+         */
 #define SC_P_USDHC1_DATA1 \
     33U /* CONN.USDHC1.DATA1, CONN.NAND.RE_B, ADMA.UART3.TX, LSIO.GPIO4.IO26 */
 #define SC_P_USDHC1_DATA2 \
@@ -76,8 +81,9 @@
            LSIO.GPIO4.IO29 */
 #define SC_P_ENET0_RGMII_TX_CTL \
     38U /* CONN.ENET0.RGMII_TX_CTL, CONN.USDHC1.RESET_B, LSIO.GPIO4.IO30 */
-#define SC_P_ENET0_RGMII_TXD0 39U /* CONN.ENET0.RGMII_TXD0, CONN.USDHC1.VSELECT, LSIO.GPIO4.IO31 \
-                                   */
+#define SC_P_ENET0_RGMII_TXD0                                          \
+    39U /* CONN.ENET0.RGMII_TXD0, CONN.USDHC1.VSELECT, LSIO.GPIO4.IO31 \
+         */
 #define SC_P_ENET0_RGMII_TXD1 40U /* CONN.ENET0.RGMII_TXD1, CONN.USDHC1.WP, LSIO.GPIO5.IO00 */
 #define SC_P_ENET0_RGMII_TXD2                                                                      \
     41U /* CONN.ENET0.RGMII_TXD2, CONN.MLB.CLK, CONN.NAND.CE0_B, CONN.USDHC1.CD_B, LSIO.GPIO5.IO01 \
@@ -88,10 +94,11 @@
 #define SC_P_ENET0_RGMII_RXC                                                                     \
     44U /* CONN.ENET0.RGMII_RXC, CONN.MLB.DATA, CONN.NAND.WE_B, CONN.USDHC1.CLK, LSIO.GPIO5.IO03 \
          */
-#define SC_P_ENET0_RGMII_RX_CTL 45U /* CONN.ENET0.RGMII_RX_CTL, CONN.USDHC1.CMD, LSIO.GPIO5.IO04 \
-                                     */
-#define SC_P_ENET0_RGMII_RXD0   46U /* CONN.ENET0.RGMII_RXD0, CONN.USDHC1.DATA0, LSIO.GPIO5.IO05 */
-#define SC_P_ENET0_RGMII_RXD1   47U /* CONN.ENET0.RGMII_RXD1, CONN.USDHC1.DATA1, LSIO.GPIO5.IO06 */
+#define SC_P_ENET0_RGMII_RX_CTL                                      \
+    45U /* CONN.ENET0.RGMII_RX_CTL, CONN.USDHC1.CMD, LSIO.GPIO5.IO04 \
+         */
+#define SC_P_ENET0_RGMII_RXD0 46U /* CONN.ENET0.RGMII_RXD0, CONN.USDHC1.DATA0, LSIO.GPIO5.IO05 */
+#define SC_P_ENET0_RGMII_RXD1 47U /* CONN.ENET0.RGMII_RXD1, CONN.USDHC1.DATA1, LSIO.GPIO5.IO06 */
 #define SC_P_ENET0_RGMII_RXD2 \
     48U /* CONN.ENET0.RGMII_RXD2, CONN.ENET0.RMII_RX_ER, CONN.USDHC1.DATA2, LSIO.GPIO5.IO07 */
 #define SC_P_ENET0_RGMII_RXD3 \
@@ -135,8 +142,9 @@
 #define SC_P_SPI3_SCK                      69U /* ADMA.SPI3.SCK, ADMA.LCDIF.D13, LSIO.GPIO0.IO13 */
 #define SC_P_SPI3_SDO                      70U /* ADMA.SPI3.SDO, ADMA.LCDIF.D14, LSIO.GPIO0.IO14 */
 #define SC_P_SPI3_SDI                      71U /* ADMA.SPI3.SDI, ADMA.LCDIF.D15, LSIO.GPIO0.IO15 */
-#define SC_P_SPI3_CS0                      72U /* ADMA.SPI3.CS0, ADMA.ACM.MCLK_OUT1, ADMA.LCDIF.HSYNC, LSIO.GPIO0.IO16 \
-                                                */
+#define SC_P_SPI3_CS0                                                           \
+    72U /* ADMA.SPI3.CS0, ADMA.ACM.MCLK_OUT1, ADMA.LCDIF.HSYNC, LSIO.GPIO0.IO16 \
+         */
 #define SC_P_SPI3_CS1 \
     73U /* ADMA.SPI3.CS1, ADMA.I2C3.SCL, ADMA.LCDIF.RESET, ADMA.SPI2.CS0, ADMA.LCDIF.D16 */
 #define SC_P_MCLK_IN1 \
@@ -208,17 +216,21 @@
 #define SC_P_UART2_TX                     113U /* ADMA.UART2.TX, ADMA.FTM.CH1, ADMA.FLEXCAN1.TX, LSIO.GPIO1.IO23 */
 #define SC_P_UART2_RX                     114U /* ADMA.UART2.RX, ADMA.FTM.CH0, ADMA.FLEXCAN1.RX, LSIO.GPIO1.IO24 */
 #define SC_P_COMP_CTL_GPIO_1V8_3V3_GPIOLH 115U /*  */
-#define SC_P_MIPI_DSI0_I2C0_SCL           116U /* MIPI_DSI0.I2C0.SCL, MIPI_DSI1.GPIO0.IO02, LSIO.GPIO1.IO25 \
-                                                */
-#define SC_P_MIPI_DSI0_I2C0_SDA           117U /* MIPI_DSI0.I2C0.SDA, MIPI_DSI1.GPIO0.IO03, LSIO.GPIO1.IO26 \
-                                                */
+#define SC_P_MIPI_DSI0_I2C0_SCL                                       \
+    116U /* MIPI_DSI0.I2C0.SCL, MIPI_DSI1.GPIO0.IO02, LSIO.GPIO1.IO25 \
+          */
+#define SC_P_MIPI_DSI0_I2C0_SDA                                       \
+    117U /* MIPI_DSI0.I2C0.SDA, MIPI_DSI1.GPIO0.IO03, LSIO.GPIO1.IO26 \
+          */
 #define SC_P_MIPI_DSI0_GPIO0_00 \
     118U /* MIPI_DSI0.GPIO0.IO00, ADMA.I2C1.SCL, MIPI_DSI0.PWM0.OUT, LSIO.GPIO1.IO27 */
 #define SC_P_MIPI_DSI0_GPIO0_01 119U /* MIPI_DSI0.GPIO0.IO01, ADMA.I2C1.SDA, LSIO.GPIO1.IO28 */
-#define SC_P_MIPI_DSI1_I2C0_SCL 120U /* MIPI_DSI1.I2C0.SCL, MIPI_DSI0.GPIO0.IO02, LSIO.GPIO1.IO29 \
-                                      */
-#define SC_P_MIPI_DSI1_I2C0_SDA 121U /* MIPI_DSI1.I2C0.SDA, MIPI_DSI0.GPIO0.IO03, LSIO.GPIO1.IO30 \
-                                      */
+#define SC_P_MIPI_DSI1_I2C0_SCL                                       \
+    120U /* MIPI_DSI1.I2C0.SCL, MIPI_DSI0.GPIO0.IO02, LSIO.GPIO1.IO29 \
+          */
+#define SC_P_MIPI_DSI1_I2C0_SDA                                       \
+    121U /* MIPI_DSI1.I2C0.SDA, MIPI_DSI0.GPIO0.IO03, LSIO.GPIO1.IO30 \
+          */
 #define SC_P_MIPI_DSI1_GPIO0_00 \
     122U /* MIPI_DSI1.GPIO0.IO00, ADMA.I2C2.SCL, MIPI_DSI1.PWM0.OUT, LSIO.GPIO1.IO31 */
 #define SC_P_MIPI_DSI1_GPIO0_01                123U /* MIPI_DSI1.GPIO0.IO01, ADMA.I2C2.SDA, LSIO.GPIO2.IO00 */
@@ -255,21 +267,23 @@
     149U /* CI_PI.RESET, CI_PI.I2C.SDA, ADMA.I2C3.SDA, ADMA.SPI1.CS0, LSIO.GPIO3.IO03 */
 #define SC_P_COMP_CTL_GPIO_1V8_3V3_GPIORHD 150U /*  */
 #define SC_P_MIPI_CSI0_MCLK_OUT            151U /* MIPI_CSI0.ACM.MCLK_OUT, LSIO.GPIO3.IO04 */
-#define SC_P_MIPI_CSI0_I2C0_SCL            152U /* MIPI_CSI0.I2C0.SCL, MIPI_CSI0.GPIO0.IO02, LSIO.GPIO3.IO05 \
-                                                 */
-#define SC_P_MIPI_CSI0_I2C0_SDA            153U /* MIPI_CSI0.I2C0.SDA, MIPI_CSI0.GPIO0.IO03, LSIO.GPIO3.IO06 \
-                                                 */
-#define SC_P_MIPI_CSI0_GPIO0_01            154U /* MIPI_CSI0.GPIO0.IO01, ADMA.I2C0.SDA, LSIO.GPIO3.IO07 */
-#define SC_P_MIPI_CSI0_GPIO0_00            155U /* MIPI_CSI0.GPIO0.IO00, ADMA.I2C0.SCL, LSIO.GPIO3.IO08 */
-#define SC_P_QSPI0A_DATA0                  156U /* LSIO.QSPI0A.DATA0, LSIO.GPIO3.IO09 */
-#define SC_P_QSPI0A_DATA1                  157U /* LSIO.QSPI0A.DATA1, LSIO.GPIO3.IO10 */
-#define SC_P_QSPI0A_DATA2                  158U /* LSIO.QSPI0A.DATA2, LSIO.GPIO3.IO11 */
-#define SC_P_QSPI0A_DATA3                  159U /* LSIO.QSPI0A.DATA3, LSIO.GPIO3.IO12 */
-#define SC_P_QSPI0A_DQS                    160U /* LSIO.QSPI0A.DQS, LSIO.GPIO3.IO13 */
-#define SC_P_QSPI0A_SS0_B                  161U /* LSIO.QSPI0A.SS0_B, LSIO.GPIO3.IO14 */
-#define SC_P_QSPI0A_SS1_B                  162U /* LSIO.QSPI0A.SS1_B, LSIO.GPIO3.IO15 */
-#define SC_P_QSPI0A_SCLK                   163U /* LSIO.QSPI0A.SCLK, LSIO.GPIO3.IO16 */
-#define SC_P_COMP_CTL_GPIO_1V8_3V3_QSPI0A  164U /*  */
+#define SC_P_MIPI_CSI0_I2C0_SCL                                       \
+    152U /* MIPI_CSI0.I2C0.SCL, MIPI_CSI0.GPIO0.IO02, LSIO.GPIO3.IO05 \
+          */
+#define SC_P_MIPI_CSI0_I2C0_SDA                                       \
+    153U /* MIPI_CSI0.I2C0.SDA, MIPI_CSI0.GPIO0.IO03, LSIO.GPIO3.IO06 \
+          */
+#define SC_P_MIPI_CSI0_GPIO0_01           154U /* MIPI_CSI0.GPIO0.IO01, ADMA.I2C0.SDA, LSIO.GPIO3.IO07 */
+#define SC_P_MIPI_CSI0_GPIO0_00           155U /* MIPI_CSI0.GPIO0.IO00, ADMA.I2C0.SCL, LSIO.GPIO3.IO08 */
+#define SC_P_QSPI0A_DATA0                 156U /* LSIO.QSPI0A.DATA0, LSIO.GPIO3.IO09 */
+#define SC_P_QSPI0A_DATA1                 157U /* LSIO.QSPI0A.DATA1, LSIO.GPIO3.IO10 */
+#define SC_P_QSPI0A_DATA2                 158U /* LSIO.QSPI0A.DATA2, LSIO.GPIO3.IO11 */
+#define SC_P_QSPI0A_DATA3                 159U /* LSIO.QSPI0A.DATA3, LSIO.GPIO3.IO12 */
+#define SC_P_QSPI0A_DQS                   160U /* LSIO.QSPI0A.DQS, LSIO.GPIO3.IO13 */
+#define SC_P_QSPI0A_SS0_B                 161U /* LSIO.QSPI0A.SS0_B, LSIO.GPIO3.IO14 */
+#define SC_P_QSPI0A_SS1_B                 162U /* LSIO.QSPI0A.SS1_B, LSIO.GPIO3.IO15 */
+#define SC_P_QSPI0A_SCLK                  163U /* LSIO.QSPI0A.SCLK, LSIO.GPIO3.IO16 */
+#define SC_P_COMP_CTL_GPIO_1V8_3V3_QSPI0A 164U /*  */
 #define SC_P_QSPI0B_SCLK \
     165U /* LSIO.QSPI0B.SCLK, LSIO.QSPI1A.SCLK, LSIO.KPP0.COL0, LSIO.GPIO3.IO17 */
 #define SC_P_QSPI0B_DATA0 \
@@ -280,8 +294,9 @@
     168U /* LSIO.QSPI0B.DATA2, LSIO.QSPI1A.DATA2, LSIO.KPP0.COL3, LSIO.GPIO3.IO20 */
 #define SC_P_QSPI0B_DATA3 \
     169U /* LSIO.QSPI0B.DATA3, LSIO.QSPI1A.DATA3, LSIO.KPP0.ROW0, LSIO.GPIO3.IO21 */
-#define SC_P_QSPI0B_DQS 170U /* LSIO.QSPI0B.DQS, LSIO.QSPI1A.DQS, LSIO.KPP0.ROW1, LSIO.GPIO3.IO22 \
-                              */
+#define SC_P_QSPI0B_DQS                                                       \
+    170U /* LSIO.QSPI0B.DQS, LSIO.QSPI1A.DQS, LSIO.KPP0.ROW1, LSIO.GPIO3.IO22 \
+          */
 #define SC_P_QSPI0B_SS0_B \
     171U /* LSIO.QSPI0B.SS0_B, LSIO.QSPI1A.SS0_B, LSIO.KPP0.ROW2, LSIO.GPIO3.IO23 */
 #define SC_P_QSPI0B_SS1_B \
