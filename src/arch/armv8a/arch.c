@@ -23,14 +23,5 @@ void exception_sync(void)
     printf("SCTLR: 0x%08lx\n\r", read_sctlr_el3());
 }
 
-void arch_disable_mmu(void)
-{
-    LOG_DBG("Disabling MMU");
-    disable_mmu_el3();
-    dcsw_op_all(DCCISW);
-    tlbialle3();
-    dsb();
-    isb();
-    dcsw_op_all(DCISW);
-    LOG_DBG("Done");
-}
+/* arch_disable_mmu() is implemented in cache-ops.S. It has to be assembly: the
+ * ordering it depends on cannot be expressed in C, see the comment there. */

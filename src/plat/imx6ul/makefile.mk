@@ -10,7 +10,6 @@ ifdef CONFIG_PLAT_IMX6UL
 
 cflags-y += -I src/plat/imx6ul/include
 cflags-y += -mtune=cortex-a7
-cflags-y += -DCACHE_LINE=32
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DMAX_XLAT_TABLES=32
