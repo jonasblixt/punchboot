@@ -11,7 +11,7 @@
 #include <string.h>
 
 /* BPAK_META_ALIGN is a power-of-2 */
-#define BPAK_META_ALIGN_SIZE(_x) (((_x) + ((BPAK_META_ALIGN)-1)) & ~((BPAK_META_ALIGN)-1))
+#define BPAK_META_ALIGN_SIZE(_x) (((_x) + ((BPAK_META_ALIGN) - 1)) & ~((BPAK_META_ALIGN) - 1))
 
 static int bpak_get_meta_int(struct bpak_header *hdr,
                              bpak_id_t id,
