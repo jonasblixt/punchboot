@@ -42,10 +42,10 @@ int slc_set_configuration_locked(void)
     return cfg->set_configuration_locked();
 }
 
-int slc_set_eol(void)
+int slc_set_eol(uint8_t *arg, size_t len)
 {
     if (!cfg || !cfg->set_configuration_locked)
         return -PB_ERR_NOT_SUPPORTED;
 
-    return cfg->set_eol();
+    return cfg->set_eol(arg, len);
 }

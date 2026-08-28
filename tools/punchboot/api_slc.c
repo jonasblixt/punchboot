@@ -2,6 +2,7 @@
 #include <pb-tools/wire.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 int pb_api_slc_read(struct pb_context *ctx,
                     uint8_t *slc,
@@ -137,15 +138,37 @@ int pb_api_slc_set_configuration_lock(struct pb_context *ctx)
     return result.result_code;
 }
 
-int pb_api_slc_set_end_of_life(struct pb_context *ctx)
+int pb_api_slc_set_end_of_life(struct pb_context *ctx, int file_fd)
 {
     int rc;
+    struct pb_command_slc_eol slc_eol_command;
     struct pb_command cmd;
     struct pb_result result;
+    off_t size;
+    uint8_t arg_buf[1024];
 
     ctx->d(ctx, 2, "%s: call\n", __func__);
 
-    pb_wire_init_command(&cmd, PB_CMD_SLC_SET_EOL);
+    if (file_fd != -1) {
+        size = lseek(file_fd, 0, SEEK_END);
+        if (size == -1)
+            return -PB_RESULT_IO_ERROR;
+
+        if (lseek(file_fd, 0, SEEK_SET) == (off_t)-1)
+            return -PB_RESULT_IO_ERROR;
+
+        if ((size_t)size > sizeof(arg_buf))
+            return -PB_RESULT_INVALID_ARGUMENT;
+
+        if (read(file_fd, arg_buf, size) != size)
+            return -PB_RESULT_IO_ERROR;
+
+        slc_eol_command.size = size;
+    } else {
+        slc_eol_command.size = 0;
+    }
+
+    pb_wire_init_command2(&cmd, PB_CMD_SLC_SET_EOL, &slc_eol_command, sizeof(slc_eol_command));
 
     rc = ctx->write(ctx, &cmd, sizeof(cmd));
 
@@ -159,6 +182,24 @@ int pb_api_slc_set_end_of_life(struct pb_context *ctx)
 
     if (!pb_wire_valid_result(&result))
         return -PB_RESULT_ERROR;
+
+    if (result.result_code != PB_RESULT_OK)
+        return result.result_code;
+
+    if (slc_eol_command.size) {
+        rc = ctx->write(ctx, arg_buf, slc_eol_command.size);
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        rc = ctx->read(ctx, &result, sizeof(result));
+
+        if (rc != PB_RESULT_OK)
+            return rc;
+
+        if (!pb_wire_valid_result(&result))
+            return -PB_RESULT_ERROR;
+    }
 
     ctx->d(ctx,
            2,

@@ -27,13 +27,13 @@ struct slc_config {
     slc_t (*read_status)(void);
     int (*set_configuration)(void);
     int (*set_configuration_locked)(void);
-    int (*set_eol)(void);
+    int (*set_eol)(uint8_t *arg, size_t len);
 };
 
 int slc_init(const struct slc_config *cfg);
 slc_t slc_read_status(void);
 int slc_set_configuration(void);
 int slc_set_configuration_locked(void);
-int slc_set_eol(void);
+int slc_set_eol(uint8_t *arg, size_t len);
 
 #endif // INCLUDE_PB_SLC_H

@@ -675,6 +675,28 @@ static int cmd_stream_final(void)
     return PB_OK;
 }
 
+static int cmd_slc_set_eol(void)
+{
+    int rc = PB_OK;
+
+    struct pb_command_slc_eol *eol_cmd = (struct pb_command_slc_eol *)cmd.request;
+
+    if (eol_cmd->size) {
+        pb_wire_init_result(&result, error_to_wire(rc));
+        cm_write(&result, sizeof(result));
+
+        rc = cm_read(buffer[0], eol_cmd->size);
+        if (rc != PB_OK) {
+            pb_wire_init_result(&result, error_to_wire(rc));
+            return rc;
+        }
+    }
+
+    rc = slc_set_eol(buffer[0], eol_cmd->size);
+    pb_wire_init_result(&result, error_to_wire(rc));
+    return rc;
+}
+
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
@@ -825,8 +847,7 @@ static int pb_command_parse(void)
     } break;
     case PB_CMD_SLC_SET_EOL: {
         LOG_DBG("Set EOL");
-        rc = slc_set_eol();
-        pb_wire_init_result(&result, error_to_wire(rc));
+        rc = cmd_slc_set_eol();
         slc = slc_read_status();
     } break;
     case PB_CMD_SLC_REVOKE_KEY: {

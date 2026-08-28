@@ -89,7 +89,7 @@ int pb_api_slc_set_configuration(struct pb_context *ctx);
 
 int pb_api_slc_set_configuration_lock(struct pb_context *ctx);
 
-int pb_api_slc_set_end_of_life(struct pb_context *ctx);
+int pb_api_slc_set_end_of_life(struct pb_context *ctx, int file_fd);
 
 int pb_api_slc_revoke_key(struct pb_context *ctx, uint32_t key_id);
 

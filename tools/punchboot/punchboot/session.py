@@ -413,13 +413,17 @@ class Session:
         """
         self.pb_s.slc_set_configuration_lock()
 
-    def slc_set_end_of_life(self) -> None:
+    def slc_set_end_of_life(self, file: pathlib.Path) -> None:
         """Set SLC to end of life.
 
         Warning: This ususally means writing fuses, this operation might
         brick your device.
         """
-        self.pb_s.slc_set_end_of_life()
+        if file:
+            with file.open("rb") as f:
+                self.pb_s.slc_set_end_of_life(f)
+        else:
+            self.pb_s.slc_set_end_of_life()
 
     def slc_get_active_keys(self) -> Sequence[int]:
         """Read active keys.

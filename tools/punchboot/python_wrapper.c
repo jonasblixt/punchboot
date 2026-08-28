@@ -353,16 +353,31 @@ static PyObject *slc_set_configuration_locked(PyObject *self, PyObject *Py_UNUSE
     Py_RETURN_NONE;
 }
 
-static PyObject *slc_set_end_of_life(PyObject *self, PyObject *Py_UNUSED(args))
+static PyObject *slc_set_end_of_life(PyObject *self, PyObject *args, PyObject *kwds)
 {
     struct pb_session *session = (struct pb_session *)self;
+    static char *kwlist[] = { "file", NULL };
+    PyObject *file = NULL;
+    int file_fd = -1;
     int rc;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &file)) {
+        return NULL;
+    }
 
     if (validate_pb_session(session) != 0) {
         return NULL;
     }
 
-    rc = pb_api_slc_set_end_of_life(session->ctx);
+    if (file != NULL) {
+        file_fd = PyObject_AsFileDescriptor(file);
+        if (file_fd == -1) {
+            PyErr_SetString(PyExc_TypeError, "Invalid file descriptor");
+            return NULL;
+        }
+    }
+
+    rc = pb_api_slc_set_end_of_life(session->ctx, file_fd);
     if (rc != PB_RESULT_OK) {
         return pb_exception_from_rc(rc);
     }
@@ -939,8 +954,8 @@ static PyMethodDef PbSession_methods[] = {
     },
     {
         "slc_set_end_of_life",
-        slc_set_end_of_life,
-        METH_NOARGS,
+        (PyCFunction)(void (*)(void))slc_set_end_of_life,
+        METH_VARARGS | METH_KEYWORDS,
         "Set SLC to end of life",
     },
     {

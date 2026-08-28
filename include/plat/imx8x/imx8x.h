@@ -49,6 +49,10 @@
      (SC_PAD_28FDSOI_DSE_DV_HIGH << PADRING_DSE_SHIFT) |                                           \
      (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
+// Start of secure RAM as mapped in the A35 cores
+#define A35_SECURE_RAM      0x31800000
+#define A35_SECURE_RAM_SIZE 0x10000
+
 struct imx8x_platform {
     sc_ipc_t ipc;
     uint32_t soc_id;
@@ -60,8 +64,10 @@ int imx8x_revoke_key(const struct rot_key *key);
 int imx8x_read_key_status(const struct rot_key *key);
 slc_t imx8x_slc_read_status(void);
 int imx8x_slc_set_configuration_locked(void);
+int imx8x_slc_set_eol(uint8_t *arg, size_t len);
 void imx8x_rot_helpers_init(sc_ipc_t ipc_);
 void imx8x_slc_helpers_init(sc_ipc_t ipc_);
 void board_console_init(struct imx8x_platform *plat);
+int imx8x_get_last_seco_event(uint32_t *event);
 
 #endif // PLAT_INCLUDE_IMX8X_IMX8X_H
