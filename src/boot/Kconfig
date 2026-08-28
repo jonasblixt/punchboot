@@ -22,6 +22,16 @@ config BOOT_LINUX
     bool "Linux boot support"
     depends on BOOT_CORE
 
+config BOOT_ATF
+    bool "ATF boot support"
+    depends on BOOT_CORE
+    depends on ARCH_ARMV8
+    help
+        This boot driver uses the Arm Trusted Firmware bootloader interface
+        to boot the BL33 (and optional BL32) image.
+
+        NOTE: Currently only supported on armv8.
+
 config BOOT_ARMV7M_BAREMETAL
     bool "ARMv7m bare metal boot support"
     depends on BOOT_CORE
