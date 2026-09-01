@@ -55,7 +55,7 @@ jobs:
            output-dir: wheelhouse
            config-file: "pyproject.toml"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: punchboot-tools-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
@@ -69,7 +69,7 @@ jobs:
       - name: Build sdist
         run: pipx run build --sdist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: punchboot-tools-sdist
           path: dist/*.tar.gz
@@ -83,7 +83,7 @@ jobs:
       id-token: write
     if: github.repository == 'jonasblixt/punchboot' && github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: punchboot-tools-*
           merge-multiple: true
@@ -104,7 +104,7 @@ jobs:
       id-token: write
     if: github.repository == 'jonasblixt/punchboot' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: artifact
           path: dist
