@@ -153,9 +153,9 @@
 
 #define MMU_MEMORY_TTBR_RGN(x)                           (((x) & 0x3) << 3)
 /* IRGN[1:0] is encoded as: IRGN[0] in TTBRx[6], and IRGN[1] in TTBRx[0] */
-#define MMU_MEMORY_TTBR_IRGN(x)                          ((((x) & 0x1) << 6) | ((((x) >> 1) & 0x1) << 0))
-#define MMU_MEMORY_TTBR_S                                (1 << 1)
-#define MMU_MEMORY_TTBR_NOS                              (1 << 5)
+#define MMU_MEMORY_TTBR_IRGN(x)  ((((x) & 0x1) << 6) | ((((x) >> 1) & 0x1) << 0))
+#define MMU_MEMORY_TTBR_S        (1 << 1)
+#define MMU_MEMORY_TTBR_NOS      (1 << 5)
 
 /* Default configuration for main kernel page table:
  *    - section mappings for memory
@@ -166,7 +166,7 @@
  * inner/outer (IRGN/RGN): write-back + write-allocate
  * (select inner sharable on smp)
  */
-#define MMU_TTBRx_SHARABLE_FLAGS                         (MMU_MEMORY_TTBR_S | MMU_MEMORY_TTBR_NOS)
+#define MMU_TTBRx_SHARABLE_FLAGS (MMU_MEMORY_TTBR_S | MMU_MEMORY_TTBR_NOS)
 
 #define MMU_TTBRx_FLAGS                                    \
     (MMU_MEMORY_TTBR_RGN(MMU_MEMORY_WRITE_BACK_ALLOCATE) | \
