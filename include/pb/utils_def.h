@@ -18,7 +18,7 @@
 /* Compute the number of elements in the given array */
 #define ARRAY_SIZE(a)           (sizeof(a) / sizeof((a)[0]))
 
-#define IS_POWER_OF_TWO(x)      (((x) & ((x)-1)) == 0)
+#define IS_POWER_OF_TWO(x)      (((x) & ((x) - 1)) == 0)
 
 #define SIZE_FROM_LOG2_WORDS(n) (4 << (n))
 
@@ -56,7 +56,7 @@
  * This variant of div_round_up can be used in macro definition but should not
  * be used in C code as the `div` parameter is evaluated twice.
  */
-#define DIV_ROUND_UP_2EVAL(n, d) (((n) + (d)-1) / (d))
+#define DIV_ROUND_UP_2EVAL(n, d) (((n) + (d) - 1) / (d))
 
 #define div_round_up(val, div)                      \
     __extension__({                                 \
@@ -88,9 +88,9 @@
  *
  * round_down() is similar but rounds the value down instead.
  */
-#define round_boundary(value, boundary) ((__typeof__(value))((boundary)-1))
+#define round_boundary(value, boundary) ((__typeof__(value))((boundary) - 1))
 
-#define round_up(value, boundary)       ((((value)-1) | round_boundary(value, boundary)) + 1)
+#define round_up(value, boundary)       ((((value) - 1) | round_boundary(value, boundary)) + 1)
 
 #define round_down(value, boundary)     ((value) & ~round_boundary(value, boundary))
 
