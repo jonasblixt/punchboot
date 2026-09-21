@@ -252,7 +252,7 @@
 /* ID_PFR1_EL1 definitions */
 #define ID_PFR1_VIRTEXT_SHIFT                  U(12)
 #define ID_PFR1_VIRTEXT_MASK                   U(0xf)
-#define GET_VIRT_EXT(id)                       (((id) >> ID_PFR1_VIRTEXT_SHIFT) & ID_PFR1_VIRTEXT_MASK)
+#define GET_VIRT_EXT(id) (((id) >> ID_PFR1_VIRTEXT_SHIFT) & ID_PFR1_VIRTEXT_MASK)
 
 /* SCTLR definitions */
 #define SCTLR_EL2_RES1                                                                         \
