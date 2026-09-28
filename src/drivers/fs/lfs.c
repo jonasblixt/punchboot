@@ -9,8 +9,8 @@
 #include <pb/assert.h>
 #include <pb/pb.h>
 
-#define LFS_BLOCK_NULL   ((lfs_block_t)-1)
-#define LFS_BLOCK_INLINE ((lfs_block_t)-2)
+#define LFS_BLOCK_NULL   ((lfs_block_t) - 1)
+#define LFS_BLOCK_INLINE ((lfs_block_t) - 2)
 
 /// Caching block device operations ///
 static inline void lfs_cache_drop(lfs_t *lfs, lfs_cache_t *rcache)

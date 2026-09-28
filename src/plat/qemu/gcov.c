@@ -274,8 +274,8 @@ void gcov_init(void)
 {
     /* Call gcov initalizers */
     extern uint32_t __init_array_start, __init_array_end;
-    void (**pctor)(void) = (void (**)(void)) & __init_array_start;
-    void (**pctor_last)(void) = (void (**)(void)) & __init_array_end;
+    void (**pctor)(void) = (void (**)(void))&__init_array_start;
+    void (**pctor_last)(void) = (void (**)(void))&__init_array_end;
 
     for (; pctor < pctor_last; pctor++) {
         (*pctor)();
