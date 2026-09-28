@@ -148,73 +148,73 @@
 
 #define MMC_RSP_NONE                        (0)
 #define MMC_RSP_R1                          (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
-#define MMC_RSP_R1b                         (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY)
-#define MMC_RSP_R2                          (MMC_RSP_PRESENT | MMC_RSP_136 | MMC_RSP_CRC)
-#define MMC_RSP_R3                          (MMC_RSP_PRESENT)
-#define MMC_RSP_R4                          (MMC_RSP_PRESENT)
-#define MMC_RSP_R5                          (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
-#define MMC_RSP_R6                          (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
-#define MMC_RSP_R7                          (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
+#define MMC_RSP_R1b              (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY)
+#define MMC_RSP_R2               (MMC_RSP_PRESENT | MMC_RSP_136 | MMC_RSP_CRC)
+#define MMC_RSP_R3               (MMC_RSP_PRESENT)
+#define MMC_RSP_R4               (MMC_RSP_PRESENT)
+#define MMC_RSP_R5               (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
+#define MMC_RSP_R6               (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
+#define MMC_RSP_R7               (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
 
 /* Value randomly chosen for eMMC RCA, it should be > 1 */
-#define MMC_FIX_RCA                         10
-#define RCA_SHIFT_OFFSET                    16
+#define MMC_FIX_RCA              10
+#define RCA_SHIFT_OFFSET         16
 
 /*
  * Flags
  */
 
-#define OCR_POWERUP                         BIT(31)
-#define OCR_HCS                             BIT(30)
-#define OCR_BYTE_MODE                       (0 << 29)
-#define OCR_SECTOR_MODE                     (2 << 29)
-#define OCR_ACCESS_MODE_MASK                (3 << 29)
-#define OCR_3_5_3_6                         BIT(23)
-#define OCR_3_4_3_5                         BIT(22)
-#define OCR_3_3_3_4                         BIT(21)
-#define OCR_3_2_3_3                         BIT(20)
-#define OCR_3_1_3_2                         BIT(19)
-#define OCR_3_0_3_1                         BIT(18)
-#define OCR_2_9_3_0                         BIT(17)
-#define OCR_2_8_2_9                         BIT(16)
-#define OCR_2_7_2_8                         BIT(15)
-#define OCR_VDD_MIN_2V7                     GENMASK(23, 15)
-#define OCR_VDD_MIN_2V0                     GENMASK(14, 8)
-#define OCR_VDD_MIN_1V7                     BIT(7)
+#define OCR_POWERUP              BIT(31)
+#define OCR_HCS                  BIT(30)
+#define OCR_BYTE_MODE            (0 << 29)
+#define OCR_SECTOR_MODE          (2 << 29)
+#define OCR_ACCESS_MODE_MASK     (3 << 29)
+#define OCR_3_5_3_6              BIT(23)
+#define OCR_3_4_3_5              BIT(22)
+#define OCR_3_3_3_4              BIT(21)
+#define OCR_3_2_3_3              BIT(20)
+#define OCR_3_1_3_2              BIT(19)
+#define OCR_3_0_3_1              BIT(18)
+#define OCR_2_9_3_0              BIT(17)
+#define OCR_2_8_2_9              BIT(16)
+#define OCR_2_7_2_8              BIT(15)
+#define OCR_VDD_MIN_2V7          GENMASK(23, 15)
+#define OCR_VDD_MIN_2V0          GENMASK(14, 8)
+#define OCR_VDD_MIN_1V7          BIT(7)
 
-#define MMC_GET_STATE(x)                    (((x) >> 9) & 0xf)
-#define MMC_STATE_IDLE                      0
-#define MMC_STATE_READY                     1
-#define MMC_STATE_IDENT                     2
-#define MMC_STATE_STBY                      3
-#define MMC_STATE_TRAN                      4
-#define MMC_STATE_DATA                      5
-#define MMC_STATE_RCV                       6
-#define MMC_STATE_PRG                       7
-#define MMC_STATE_DIS                       8
-#define MMC_STATE_BTST                      9
-#define MMC_STATE_SLP                       10
+#define MMC_GET_STATE(x)         (((x) >> 9) & 0xf)
+#define MMC_STATE_IDLE           0
+#define MMC_STATE_READY          1
+#define MMC_STATE_IDENT          2
+#define MMC_STATE_STBY           3
+#define MMC_STATE_TRAN           4
+#define MMC_STATE_DATA           5
+#define MMC_STATE_RCV            6
+#define MMC_STATE_PRG            7
+#define MMC_STATE_DIS            8
+#define MMC_STATE_BTST           9
+#define MMC_STATE_SLP            10
 
-#define STATUS_READY_FOR_DATA               BIT(8)
-#define STATUS_SWITCH_ERROR                 BIT(7)
+#define STATUS_READY_FOR_DATA    BIT(8)
+#define STATUS_SWITCH_ERROR      BIT(7)
 
-#define EXTCSD_SET_CMD                      (U(0) << 24)
-#define EXTCSD_SET_BITS                     (U(1) << 24)
-#define EXTCSD_CLR_BITS                     (U(2) << 24)
-#define EXTCSD_WRITE_BYTES                  (U(3) << 24)
-#define EXTCSD_CMD(x)                       (((x) & 0xff) << 16)
-#define EXTCSD_VALUE(x)                     (((x) & 0xff) << 8)
-#define EXTCSD_CMD_SET_NORMAL               U(1)
+#define EXTCSD_SET_CMD           (U(0) << 24)
+#define EXTCSD_SET_BITS          (U(1) << 24)
+#define EXTCSD_CLR_BITS          (U(2) << 24)
+#define EXTCSD_WRITE_BYTES       (U(3) << 24)
+#define EXTCSD_CMD(x)            (((x) & 0xff) << 16)
+#define EXTCSD_VALUE(x)          (((x) & 0xff) << 8)
+#define EXTCSD_CMD_SET_NORMAL    U(1)
 
-#define MMC_BLOCK_SIZE                      U(512)
-#define MMC_BLOCK_MASK                      (MMC_BLOCK_SIZE - U(1))
-#define MMC_BOOT_CLK_RATE                   (400 * 1000)
+#define MMC_BLOCK_SIZE           U(512)
+#define MMC_BLOCK_MASK           (MMC_BLOCK_SIZE - U(1))
+#define MMC_BOOT_CLK_RATE        (400 * 1000)
 
 /* EXT_CSD_BOOT_BUS_CONDITIONS */
-#define EXT_CSD_BOOT_SDR_HS                 BIT(3)
-#define EXT_CSD_BOOT_DDR                    BIT(4)
-#define EXT_CSD_BOOT_BUS_WIDTH_4            BIT(0)
-#define EXT_CSD_BOOT_BUS_WIDTH_8            BIT(1)
+#define EXT_CSD_BOOT_SDR_HS      BIT(3)
+#define EXT_CSD_BOOT_DDR         BIT(4)
+#define EXT_CSD_BOOT_BUS_WIDTH_4 BIT(0)
+#define EXT_CSD_BOOT_BUS_WIDTH_8 BIT(1)
 
 enum mmc_part {
     MMC_PART_USER = 0,

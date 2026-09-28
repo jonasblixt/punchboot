@@ -365,8 +365,7 @@ class Session:
     def device_get_punchboot_version(self) -> semver.Version:
         """Read the punchboot version."""
         ver_str: str = self.pb_s.device_get_punchboot_version()
-        if ver_str.startswith("v"):
-            ver_str = ver_str[1:]
+        ver_str = ver_str.removeprefix("v")
         return semver.Version.parse(ver_str)
 
     def device_get_uuid(self) -> uuid.UUID:
