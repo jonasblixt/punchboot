@@ -39,7 +39,8 @@ warn_return_any = true
 exclude = [
     "^build.*",
     "^doc.*",
-    "^scripts/menuconfig\\.py$"
+    "^scripts/menuconfig\\.py$",
+    "^scripts/olddefconfig\\.py$"
 ]
 
 [tool.cibuildwheel]
