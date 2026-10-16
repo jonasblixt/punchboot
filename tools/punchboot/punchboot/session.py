@@ -179,6 +179,7 @@ class Session:
             bpak_header_valid = valid_bpak_magic(file)
             data_length = len(file)
         elif _has_fileno(file):
+            file.seek(0)
             data_length = _chunk_reader(file)
         else:
             msg = "File is not a supported type"
