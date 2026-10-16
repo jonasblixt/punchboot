@@ -619,15 +619,16 @@ def slc_lock(_ctx: click.Context, s: Session, force: bool) -> None:
 
 
 @slc.command("eol")
+@click.argument("file", type=click.Path(path_type=pathlib.Path), required=False)
 @click.option(
     "force", "--force", is_flag=True, default=False, help="Force operation without confirmation."
 )
 @pb_session
 @click.pass_context
-def slc_eol(_ctx: click.Context, s: Session, force: bool) -> None:
+def slc_eol(_ctx: click.Context, s: Session, file: pathlib.Path, force: bool) -> None:
     """Set SLC end of life."""
     if force or click.confirm(slc_warning):
-        s.slc_set_end_of_life()
+        s.slc_set_end_of_life(file)
 
 
 @slc.command("revoke-key")

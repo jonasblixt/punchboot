@@ -378,6 +378,13 @@ PACK(struct pb_result_boot_status {
 });
 
 /**
+ * SLC EOL arg
+ **/
+PACK(struct pb_command_slc_eol {
+    uint32_t size; /*!< EOL argument size */
+});
+
+/**
  * Initializes and resets a command structure. The magic value is populated and
  *  the command code is set.
  *

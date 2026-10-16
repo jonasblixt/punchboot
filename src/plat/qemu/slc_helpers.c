@@ -27,7 +27,10 @@ int qemu_slc_set_configuration_locked(void)
     return test_fuse_write(FUSE_SEC, SEC_CONF_LOCKED);
 }
 
-int qemu_slc_set_eol(void)
+int qemu_slc_set_eol(uint8_t *arg, size_t len)
 {
+    (void)arg;
+    (void)len;
+
     return test_fuse_write(FUSE_SEC, SEC_CONF_EOL);
 }

@@ -31,6 +31,6 @@ int qemu_read_key_status(const struct rot_key *key);
 
 slc_t qemu_slc_read_status(void);
 int qemu_slc_set_configuration_locked(void);
-int qemu_slc_set_eol(void);
+int qemu_slc_set_eol(uint8_t *arg, size_t len);
 
 #endif // INCLUDE_PLAT_QEMU_H
