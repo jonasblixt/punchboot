@@ -174,7 +174,8 @@ install: all
 	@cp $(FINAL_OUTPUT) $(INSTALL_DIR)
 
 gcovr:
-	@gcovr 	--gcov-exclude src/plat \
+	@gcovr 	--gcov-executable $(CROSS_COMPILE)gcov \
+			--gcov-exclude src/plat \
 			--gcov-exclude uuid \
 			--gcov-exclude src/fdt \
 			--gcov-exclude tests \

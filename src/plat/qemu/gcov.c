@@ -20,6 +20,8 @@ static struct gcov_info *head;
 #define GCOV_TAG_FUNCTION           ((uint32_t)0x01000000)
 #define GCOV_TAG_COUNTER_BASE       ((uint32_t)0x01a10000)
 #define GCOV_TAG_FOR_COUNTER(count) (GCOV_TAG_COUNTER_BASE + ((uint32_t)(count) << 17))
+/* Record length of 'n' 64-bit counters. GCC >= 12 counts bytes, older words */
+#define GCOV_COUNTER_LENGTH(n)      ((uint32_t)(n) * 2 * GCOV_UNIT_SIZE)
 
 static int gcov_write_u32(long fd, uint32_t val)
 {
@@ -97,6 +99,8 @@ static void gcov_update_counter(struct gcov_info *info,
         if (fi_ptr->ident != f_ident)
             continue;
         for (ct_idx = 0; ct_idx < GCOV_COUNTERS; ct_idx++) {
+            if (!counter_active(info, ct_idx))
+                continue;
             if (GCOV_TAG_FOR_COUNTER(ct_idx) == ctr_tag) {
                 ci_ptr->values[num] += val;
             }
@@ -147,6 +151,7 @@ static int gcov_load_data(struct gcov_info *info)
         goto gcov_init_err;
     }
 
+#if (__GNUC__ >= 12)
     rc = gcov_read_u32(fd, &val); // Ignore 'checksum'
 
     if (rc != 0) {
@@ -154,6 +159,7 @@ static int gcov_load_data(struct gcov_info *info)
         rc = -4;
         goto gcov_init_err;
     }
+#endif
 
     for (unsigned int i = 0; i < info->n_functions; i++) {
         rc = gcov_read_u32(fd, &val);
@@ -216,7 +222,7 @@ static int gcov_load_data(struct gcov_info *info)
                 goto gcov_init_err;
             }
 
-            for (unsigned int n = 0; n < (num / 2); n++) {
+            for (unsigned int n = 0; n < (num / GCOV_COUNTER_LENGTH(1)); n++) {
                 uint64_t counter_val;
                 rc = gcov_read_u64(fd, &counter_val);
 
@@ -353,7 +359,7 @@ int gcov_store_output(void)
                 rc = gcov_write_u32(fd, GCOV_TAG_FOR_COUNTER(ct_idx));
                 if (rc != 0)
                     return rc;
-                rc = gcov_write_u32(fd, ci_ptr->num * 2);
+                rc = gcov_write_u32(fd, GCOV_COUNTER_LENGTH(ci_ptr->num));
                 if (rc != 0)
                     return rc;
 

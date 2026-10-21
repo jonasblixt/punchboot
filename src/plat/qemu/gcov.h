@@ -15,7 +15,9 @@
 
 typedef uint64_t gcov_type;
 
-#if (__GNUC__ >= 10)
+#if (__GNUC__ >= 14)
+#define GCOV_COUNTERS 9
+#elif (__GNUC__ >= 10)
 #define GCOV_COUNTERS 8
 #elif (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9)
 #define GCOV_COUNTERS 9
