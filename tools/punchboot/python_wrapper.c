@@ -25,14 +25,14 @@
 static int log_cb(struct pb_context *ctx, int level, const char *fmt, ...)
 {
     static PyObject *logger = NULL;
-    static PyObject *log_msg = NULL;
+    PyObject *log_msg;
     char msg_buf[1024];
     int rc;
     (void)ctx;
     (void)level;
 
     if (logger == NULL) {
-        PyObject *logging = PyImport_ImportModuleNoBlock("logging");
+        PyObject *logging = PyImport_ImportModule("logging");
         if (logging == NULL) {
             PyErr_SetString(PyExc_ImportError, "Could not import module 'logging'");
             return -1;

@@ -309,7 +309,9 @@ def part_list(_ctx: click.Context, s: Session) -> None:
             False,
             False,
         )
-        return "".join(flag if is_set else "-" for flag, is_set in zip(flags, part_param, strict=False))
+        return "".join(
+            flag if is_set else "-" for flag, is_set in zip(flags, part_param, strict=False)
+        )
 
     def _size_helper(part: Partition) -> str:
         part_bytes = (part.last_block - part.first_block + 1) * part.block_size
