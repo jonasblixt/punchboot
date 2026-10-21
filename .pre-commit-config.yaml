@@ -21,6 +21,7 @@ repos:
     additional_dependencies:
       - "semver>=3,<4"
       - "click>=8.2,<9"
+      - "pytest"
       - "setuptools>=69,<70"
     pass_filenames: false # This and the args, argument are needed to make mypy read pyproject.toml
     args: ["."]

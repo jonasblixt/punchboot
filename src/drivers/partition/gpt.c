@@ -58,7 +58,7 @@ struct gpt_backup_tbl {
 #define PB_GPT_ATTR_OK (1 << 7) /*Bit 55*/
 
 static const uint64_t gpt_header_signature = 0x5452415020494645ULL;
-static int prng_state;
+static uint32_t prng_state;
 
 static struct gpt_primary_tbl primary __aligned(64);
 static struct gpt_backup_tbl backup __aligned(64);
@@ -73,9 +73,9 @@ static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 }
 
 /* Low entropy source for setting up UUID's */
-static int gpt_prng(void)
+static uint32_t gpt_prng(void)
 {
-    int x = prng_state;
+    uint32_t x = prng_state;
     x ^= x << 13;
     x ^= x >> 17;
     x ^= x << 5;
