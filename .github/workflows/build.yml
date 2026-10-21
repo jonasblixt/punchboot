@@ -2,70 +2,95 @@ name: Punchboot build
 
 on: [push, pull_request]
 
+# Everything runs in the dev container (docker/Dockerfile) through
+# scripts/pbdev, the same way as locally. See doc/dev/testing.md.
+
 jobs:
-  build-ubuntu:
+  host-tests:
+    name: Host tests (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            cmake_args: ""
+          - name: sanitizers
+            cmake_args: "-DPB_SANITIZE=ON"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unit and integration tests
+        run: scripts/pbdev test ${{ matrix.cmake_args }}
+
+  coverage:
+    name: Coverage
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Install deps
-      run: |
-          sudo apt-get update
-          sudo apt-get install qemu-system-arm libusb-1.0-0 libusb-1.0-0-dev uuid-dev gcc-arm-none-eabi cmake uuid-runtime python3-dev libmbedtls-dev liblzma-dev uuid-dev
-          wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v3.4.0.zip
-          unzip v3.4.0.zip
-    - name: Build BPAK
-      run: |
-            git clone https://github.com/jonasblixt/bpak --depth 1 --branch v0.9.3
-            pushd bpak
-            mkdir build/
-            cmake -B build/
-            make -C build/
-            sudo make -C build/ install
-            sudo ldconfig
-            popd
-    - name: Build punchboot-tools
-      run: |
-            pip install .
-    - name: Build pbstate
-      run: |
-            pushd tools/pbstate
-            mkdir build
-            cmake -B build/
-            make -C build/
-            sudo make -C build/ install
-            sudo ldconfig
-            popd
-    - name: Build punchboot and run tests
-      run: |
-          export MBEDTLS_DIR=$(readlink -f mbedtls-3.4.0)
-          cp configs/test_defconfig .config
-          make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test Q= check
-    - name: codecov
-      run: bash <(curl -s https://codecov.io/bash)
-    - name: Download Coverity Build Tool
-      run: |
-        wget -q https://scan.coverity.com/download/cxx/linux64 --post-data "token=$TOKEN&project=jonpe960%2Fpunchboot" -O cov-analysis-linux64.tar.gz
-        mkdir cov-analysis-linux64
-        tar xzf cov-analysis-linux64.tar.gz --strip 1 -C cov-analysis-linux64
-      env:
-        TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
-    - name: Build with cov-build
-      run: |
-        export MBEDTLS_DIR=$(readlink -f mbedtls-3.4.0)
-        export PATH=`pwd`/cov-analysis-linux64/bin:$PATH
-        make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test clean
-        cov-configure --template --compiler arm-none-eabi-gcc --comptype gcc
-        cov-build --dir cov-int make CROSS_COMPILE=arm-none-eabi- BOARD=src/board/test
-    - name: Submit the result to Coverity Scan
-      run: |
-        tar czvf pb.tgz cov-int
-        curl \
-          --form project=jonpe960%2Fpunchboot \
-          --form token=$TOKEN \
-          --form email=jonpe960@gmail.com \
-          --form file=@pb.tgz \
-          --form version=master \
-          --form description="punchboot" \
-          https://scan.coverity.com/builds?project=jonpe960%2Fpunchboot
-      env:
-        TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+      - uses: actions/checkout@v4
+
+      - name: Tests with coverage
+        run: BUILD_DIR=build-host-cov scripts/pbdev test -DPB_COVERAGE=ON
+
+      - name: Coverage report
+        run: |
+          scripts/pbdev run gcovr -r . build-host-cov --filter src/ \
+            --exclude src/lib/fdt --exclude src/lib/uuid \
+            --exclude src/arch/host --exclude src/plat/host --exclude src/board/host \
+            --xml coverage.xml --print-summary
+
+      - name: Upload to codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  firmware:
+    name: Firmware (${{ matrix.board }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [jiffy, imx8dxlevk]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: scripts/pbdev firmware ${{ matrix.board }}
+
+  coverity:
+    name: Coverity scan
+    # Needs the COVERITY_SCAN_TOKEN secret, which is not available on forks
+    if: github.repository == 'jonasblixt/punchboot' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Coverity Build Tool
+        run: |
+          wget -q https://scan.coverity.com/download/cxx/linux64 --post-data "token=$TOKEN&project=jonpe960%2Fpunchboot" -O cov-analysis-linux64.tar.gz
+          mkdir cov-analysis-linux64
+          tar xzf cov-analysis-linux64.tar.gz --strip 1 -C cov-analysis-linux64
+        env:
+          TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+
+      - name: Build with cov-build
+        run: |
+          scripts/pbdev run bash -c '
+            export PATH=$PWD/cov-analysis-linux64/bin:$PATH
+            cov-configure --template --compiler arm-none-eabi-gcc --comptype gcc
+            cov-build --dir cov-int scripts/ci/build-firmware.sh jiffy'
+
+      - name: Submit the result to Coverity Scan
+        run: |
+          tar czvf pb.tgz cov-int
+          curl \
+            --form project=jonpe960%2Fpunchboot \
+            --form token=$TOKEN \
+            --form email=jonpe960@gmail.com \
+            --form file=@pb.tgz \
+            --form version=master \
+            --form description="punchboot" \
+            https://scan.coverity.com/builds?project=jonpe960%2Fpunchboot
+        env:
+          TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}

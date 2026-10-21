@@ -33,10 +33,6 @@ config PLAT_IMXRT
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7M
 
-config PLAT_QEMU
-    bool "QEMU aarch32"
-    depends on ARCH_ARMV7
-
 config PLAT_HOST
     bool "Host (native Linux process, for testing)"
     depends on ARCH_HOST

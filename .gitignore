@@ -12,7 +12,7 @@
 *.pbi
 *.gz
 *.patch
-build-*
+/build-*
 cov-int
 cov.xml
 blobs/

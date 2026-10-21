@@ -4,28 +4,26 @@ _Last updated: 2026-10-22_
 
 ## Current focus
 
-**The host-native test setup is complete in function** (D-004, D-005; `testing.md`).
-- All 43 bash/QEMU tests are ported: 63 pytest plus 7 CMocka cases.
-- The full run takes about 9 s, versus about 15 min for QEMU.
-- It's ASan/UBSan clean, with 58% line coverage (QEMU suite: 54%).
-- `scripts/pbdev host-test` runs it all.
-
-The bash/QEMU suite still exists and is what `build.yml` runs. `build.yml` is deliberately
-unchanged for now (Jonas).
+Moving the tests to the host is done (D-004..D-006, `testing.md`).
+- **Tests:** all 43 bash tests are ported (63 pytest plus 7 CMocka cases, ~9 s, ASan/UBSan clean,
+  58% line coverage). `scripts/pbdev test` runs it all.
+- **CI (`build.yml`):** host tests (default and sanitizers), coverage, a firmware compile check
+  (jiffy, imx8dxlevk) and Coverity, all in the dev container. It hasn't run on GitHub yet.
+- **QEMU removed:** the bash/QEMU suite, `src/board/test`, `src/plat/qemu`,
+  `include/plat/qemu` and `configs/test_defconfig` are gone.
 
 ## Next steps
 
-1. Switch CI to the host tests (`scripts/pbdev host-test` in the container), then delete the
-   bash/QEMU suite, `src/board/test`, the semihosting gcov hack and `tests/makefile.mk`. Waiting
-   on Jonas's go-ahead for `build.yml`.
+1. Push, so the new `build.yml` runs on GitHub. The coverage upload and Coverity can only be
+   verified there.
 2. Unit tests for the low-coverage modules: `ab_state`, `image_helpers`, `bpak.c`, `der_helpers`,
    `wire`, `linux.c` (DTB patching).
-3. Fix F-049 (format strings), which the host build makes visible. Consider `-Werror` for the host build.
-4. Then Phase 1: security fixes F-001..F-005, each with a test.
+3. Fix F-049 (format strings). Consider `-Werror` for the host build.
+4. Phase 1: security fixes F-001, F-002, F-004, F-005, each with a test.
 
 ## Open questions (for Jonas)
 
-- OK to switch `build.yml` to the host tests now?
+- Which boards are still in use? Only jiffy and imx8dxlevk build (F-051, F-033).
+- Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Is open command mode in SLC EOL intended? (F-002)
-- Which boards are still in use? (F-033)
 - Mbed TLS: 3.6 LTS or 4.x?

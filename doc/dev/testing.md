@@ -1,8 +1,8 @@
 # Testing
 
-The host-native test setup replaces the QEMU/bash suite (D-004). It is being built up
-alongside the old suite, and the bash tests are ported one at a time. The QEMU suite is
-removed once everything is covered.
+All tests run on the host (D-004): punchboot is built as a native process, and there are CMocka
+unit tests and pytest integration tests. The old QEMU/bash suite has been ported and removed, and
+CI runs these tests (D-006).
 
 ## Layout
 
@@ -12,7 +12,7 @@ removed once everything is covered.
 | `configs/host_defconfig` | Kconfig for the host build (`ARCH_HOST`, `PLAT_HOST`) |
 | `src/arch/host/` | No-op cache/MMU. `arch_jump` exits. |
 | `src/plat/host/` | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode transport |
-| `src/board/host/` | Test board, mirroring `src/board/test` (same partitions, keys, board commands, fuses) |
+| `src/board/host/` | Test board (partitions, keys, board commands, fuses on disk) |
 | `tests/unit/` | CMocka unit tests and their fakes (`fakes/ramdisk.c`, `fakes/plat.c`) |
 | `tests/integration/` | pytest tests that drive `pb-host` through the `punchboot` Python package |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest |
@@ -20,11 +20,11 @@ removed once everything is covered.
 ## Running
 
 ```sh
-scripts/pbdev host-test                      # build + all tests (~1 min cold, seconds warm)
-scripts/pbdev host-test -DPB_SANITIZE=ON     # ASan + UBSan
-BUILD_DIR=build-host-cov scripts/pbdev host-test -DPB_COVERAGE=ON
+scripts/pbdev test                           # build + all tests (~1 min cold, ~10 s warm)
+scripts/pbdev test -DPB_SANITIZE=ON          # ASan + UBSan
+BUILD_DIR=build-host-cov scripts/pbdev test -DPB_COVERAGE=ON
 scripts/pbdev run gcovr -r . build-host-cov --filter src/
-CTEST_ARGS="-L unit" scripts/pbdev host-test # only unit tests
+CTEST_ARGS="-L unit" scripts/pbdev test      # only unit tests
 ```
 
 Coverage baseline (2026-10-22, all host tests): 58% of lines in `src/`, excluding vendored libs and
@@ -66,8 +66,9 @@ A single integration test, inside `scripts/pbdev shell`:
 
 ## Porting status
 
-All 43 bash tests in the QEMU run list are ported: 63 pytest cases plus 7 CMocka cases, about 9 s
-in total. The bash/QEMU suite stays until CI is switched over (`build.yml` is untouched for now).
+All 43 bash tests in the QEMU run list were ported (63 pytest cases plus 7 CMocka cases, about 9 s
+in total). The bash suite, `src/board/test`, `src/plat/qemu` (including the semihosting gcov hack)
+and `configs/test_defconfig` were then removed.
 
 | pytest module | Ported from |
 |---|---|
@@ -94,9 +95,9 @@ Where the ports differ from the bash tests:
   - The test_gpt_boot_activate steps always ran in command mode and never checked a boot.
 - **Python API instead of the CLI.** `test_cli.py` covers the CLI itself.
 
-Not ported, because they use tools and commands that no longer exist (`config`, `pbi`,
-`part show`, `--offset`, old `slc`/`auth` flags) and were not in the run list: test_config,
-test_invalid_key_index2, test_setup_lock, test_bpak_show, test_part_offset_write.
+Not ported, and removed with the suite, because they use tools and commands that no longer
+exist (`config`, `pbi`, `part show`, `--offset`, old `slc`/`auth` flags) and were not in the run
+list: test_config, test_invalid_key_index2, test_setup_lock, test_bpak_show, test_part_offset_write.
 
 ## Findings from the first runs
 

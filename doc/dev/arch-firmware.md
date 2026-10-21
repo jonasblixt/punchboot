@@ -41,8 +41,8 @@
 | | Status |
 |---|---|
 | Archs | armv7a, armv8a (2026); armv7m (2023) |
-| Plats | imx6ul, imx8m, qemu (2026); imx8x QXP/DXL (2026-08); imxrt (2023, stale) |
-| Boards | imx8dxlevk, imx8qxmek (2025, the only boards in the Kconfig `choice BOARD`); jiffy (imx6ul), test (QEMU), imxrt1060evk (2024); imx8mevk (unfinished, see F-033) |
+| Plats | imx6ul, imx8m (2026); imx8x QXP/DXL (2026-08); imxrt (2023, stale); host (test only, `testing.md`) |
+| Boards | imx8dxlevk, imx8qxmek (2025, the only boards in the Kconfig `choice BOARD`); jiffy (imx6ul), imxrt1060evk (2024); imx8mevk (unfinished, see F-033); host (test only). Only jiffy and imx8dxlevk build today (F-051) |
 
 ## Security model (short)
 
