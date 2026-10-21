@@ -42,7 +42,7 @@ exclude = [
 ]
 
 [tool.cibuildwheel]
-skip = ["*-musl*", "pp*", "*linux_i686", "*win32*"]
+skip = ["*-musl*", "pp*", "*linux_i686", "*win32*", "cp3??t-*"]
 
 [tool.cibuildwheel.linux]
 before-all = "yum install -y libusbx-devel"
