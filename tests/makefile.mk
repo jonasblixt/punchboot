@@ -10,6 +10,7 @@ INTEGRATION_TESTS += test_corrupt_gpt3
 INTEGRATION_TESTS += test_corrupt_gpt4
 INTEGRATION_TESTS += test_corrupt_gpt5
 INTEGRATION_TESTS += test_part_flash
+INTEGRATION_TESTS += test_part_verify_fh
 INTEGRATION_TESTS += test_boot_bpak
 INTEGRATION_TESTS += test_boot_bpak2
 INTEGRATION_TESTS += test_boot_bpak3
