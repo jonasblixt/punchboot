@@ -31,12 +31,17 @@ def blank_device(
 ) -> Iterator[Device]:
     """Start a device in command mode, with a blank disk."""
     dev = Device(pb_host_binary, tmp_path)
-    dev.start(command_mode=True)
-    yield dev
-    dev.stop()
+    try:
+        dev.start(command_mode=True)
+        yield dev
+    finally:
+        dev.close()
 
-    report = getattr(request.node, "rep_call", None)
-    if report is not None and report.failed and dev.log.exists():
+    failed = any(
+        getattr(getattr(request.node, f"rep_{when}", None), "failed", False)
+        for when in ("setup", "call")
+    )
+    if failed and dev.log.exists():
         print(f"\n--- pb-host log ({dev.log}) ---\n{dev.log.read_text()}")  # noqa: T201
 
 

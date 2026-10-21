@@ -11,6 +11,7 @@ import contextlib
 import pathlib
 import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 from typing import TYPE_CHECKING
@@ -53,7 +54,11 @@ class Device:
         self.binary = binary
         self.workdir = workdir
         self.disk = workdir / "disk.img"
-        self.socket = workdir / "pb.sock"
+        # Unix socket paths are limited to 107 bytes, which a deep working
+        # directory easily exceeds (e.g. on CI), so the socket gets its own
+        # short directory.
+        self._socket_dir = pathlib.Path(tempfile.mkdtemp(prefix="pb-"))
+        self.socket = self._socket_dir / "pb.sock"
         self.boot_status_file = workdir / "boot_status"
         self.log = workdir / "pb.log"
         self._proc: subprocess.Popen[bytes] | None = None
@@ -101,7 +106,10 @@ class Device:
             if self._proc.poll() is not None:
                 rc = self._proc.returncode
                 self._proc = None
-                msg = f"pb-host exited ({rc}) instead of entering command mode"
+                msg = (
+                    f"pb-host exited ({rc}) instead of entering command mode, "
+                    f"log tail:\n{self.log_tail()}"
+                )
                 raise RuntimeError(msg)
             if time.monotonic() > deadline:
                 msg = "Timeout waiting for command mode"
@@ -142,6 +150,17 @@ class Device:
             self._proc.kill()
             self._proc.wait()
             self._proc = None
+
+    def close(self) -> None:
+        """Shut down and remove the socket directory."""
+        self.stop()
+        shutil.rmtree(self._socket_dir, ignore_errors=True)
+
+    def log_tail(self, lines: int = 20) -> str:
+        """Last lines of the pb-host log."""
+        if not self.log.exists():
+            return ""
+        return "\n".join(self.log.read_text().splitlines()[-lines:])
 
     @contextlib.contextmanager
     def session(self) -> Iterator[punchboot.Session]:
