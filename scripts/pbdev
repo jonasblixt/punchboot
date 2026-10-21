@@ -2,8 +2,8 @@
 #
 # Run commands in the punchboot-dev container.
 #
-#   scripts/pbdev host-test [cmake args]  Host build, unit + integration tests
-#   scripts/pbdev test [make args]   Build host tools + firmware, run QEMU tests
+#   scripts/pbdev test [cmake args]  Host build, unit + integration tests
+#   scripts/pbdev firmware <board>   Build firmware for a board (see build-firmware.sh)
 #   scripts/pbdev shell              Interactive shell in the container
 #   scripts/pbdev run <cmd...>       Run a command in the container
 #   scripts/pbdev image              (Re)build the container image
@@ -61,11 +61,11 @@ case "$cmd" in
     run)
         run "$@"
         ;;
-    host-test)
+    test)
         run scripts/ci/host-test.sh "$@"
         ;;
-    test)
-        run scripts/ci/test.sh "$@"
+    firmware)
+        run scripts/ci/build-firmware.sh "$@"
         ;;
     *)
         sed -n '3,10p' "$0" | sed 's/^# \{0,1\}//'

@@ -1,11 +1,7 @@
 ignore:
-  - src/lib/bearssl
   - src/lib/fdt
-  - src/libc/vm
+  - src/lib/uuid
+  - src/arch/host
+  - src/plat/host
+  - src/board/host
   - tests
-  - src/plat
-  - src/uuid
-  - src/board/test
-  - src/crc.c
-fixes:
-  - "/home/runner/work/punchboot/punchboot/build-test/::/"

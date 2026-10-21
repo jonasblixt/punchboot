@@ -5,7 +5,7 @@
 - `api.h` / `api.c`: `struct pb_context` is a transport vtable (`init/free/write/read/list/connect/disconnect`, debug log `d`).
 - Transports:
   - `usb.c`: libusb, VID 0x1209 / PID 0x2019, device selected by UUID serial.
-  - `socket.c`: AF_UNIX, QEMU tests only, Linux only.
+  - `socket.c`: AF_UNIX, used by the host tests (`pb-host`), Linux only.
 - API modules: `api_{device,authentication,slc,partition,stream,boot,board,misc}.c`, `error.c`.
   Each call repeats the same boilerplate (init cmd, write, read result, check magic), about 40 times.
 - There is no standalone build: the lib is only compiled into the Python extension by `setup.py`,

@@ -1,7 +1,7 @@
 # Punchboot build and test environment.
 #
-# Contains the cross toolchains, QEMU, Mbed TLS sources and the bpak CLI that
-# the firmware build and the QEMU integration tests need. The punchboot
+# Contains the cross toolchains, Mbed TLS sources, the bpak CLI and the test
+# tools (CMocka, pytest, gcovr) for the firmware and host builds. The punchboot
 # sources are not part of the image; they are bind mounted at runtime.
 #
 # Use scripts/pbdev rather than building/running this directly.
@@ -23,7 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc-arm-none-eabi \
         gdisk \
         git \
-        iproute2 \
         libc6-dev-arm64-cross \
         libcmocka-dev \
         liblzma-dev \
@@ -33,9 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
         python3-dev \
         python3-venv \
-        qemu-system-arm \
         uuid-dev \
-        uuid-runtime \
         xxd \
     && rm -rf /var/lib/apt/lists/*
 

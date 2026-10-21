@@ -36,3 +36,11 @@ It also couldn't use sanitizers or a debugger.
 
 CMake + CTest, CMocka for C unit tests, and pytest driving the real `punchboot` Python package for
 integration tests (this also tests the host library and the Python bindings).
+
+## D-006: CI runs the host tests in the dev container; QEMU suite removed (2026-10-22)
+
+`build.yml` runs everything through `scripts/pbdev`, the same as locally: the host tests (default
+and sanitizers), coverage (codecov action), a compile check of the firmware for the boards that
+build (jiffy, imx8dxlevk), and Coverity on master. The bash/QEMU suite, `src/board/test`,
+`src/plat/qemu` and `configs/test_defconfig` were removed once all tests were ported. The virtio
+drivers are kept for now; they would be needed for a QEMU smoke tier.

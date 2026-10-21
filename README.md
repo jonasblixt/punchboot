@@ -118,20 +118,22 @@ software component in the boot chain. The bootloader _only_ supports signed
 binaries.
 
 ## Testing and integration tests
-Punchboot uses QEMU for all module and integration tests. The 'test' platform
-and board target relies on virtio serial ports and block devices. The punchboot
-cli can be built with a domain socket transport instead of USB for communicating
-with an QEMU environment.
+Punchboot is tested on the host. The 'host' platform and board build punchboot
+as a native Linux process, with a file backed disk and a unix domain socket
+for the command mode transport.
 
-The test platform code includes gcov code that calls the QEMU semihosting API
-for storing test coverage data on the host.
+- C unit tests (CMocka) in tests/unit
+- Integration tests (pytest) in tests/integration, which drive the host build
+  through the punchboot Python package, the same way the tools talk to a
+  device over USB
 
-Building and running tests:
+Everything runs in a docker container with the required toolchains and tools:
 ```
-$ cp configs/test_defconfig .config
-$ make
-$ make check
+$ scripts/pbdev test                    # build and run all tests
+$ scripts/pbdev test -DPB_SANITIZE=ON   # with AddressSanitizer and UBSan
 ```
+
+See doc/dev/testing.md for details.
 
 ## Device identity
 
@@ -277,5 +279,5 @@ The POR time is off due to some unidentified problem with the SCU firmware.
 1. Fork the repository
 2. Implement new feature or bugfix on a branch
 3. Implement test case(s) to ensure that future changes do not break legacy
-4. Run checks: cp configs/test_defconfig .config && make check
+4. Run checks: scripts/pbdev test && pre-commit run --all-files
 5. Create pull request
