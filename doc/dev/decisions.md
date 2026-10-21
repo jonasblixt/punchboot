@@ -21,3 +21,18 @@ notes and a dated log.
 Releases are made from master. Bump `version.txt` in a PR, then create a GitHub
 release with tag `vX.Y.Z` and generated notes. The tag triggers
 `punchboot-tools.yml`, which uploads to PyPI.
+
+## D-004: Host-native test setup replaces the QEMU suite (2026-10-22)
+
+Tests run on the host: CMocka unit tests, plus pytest integration tests against punchboot built
+as a native process (`plat/host`, `board/host`). They are built with CMake/CTest, while the
+firmware for targets stays on Make + Kconfig. The 43 bash/QEMU tests are ported one by one, and
+the QEMU suite is removed when everything is covered. A small QEMU smoke tier for
+arch-specific code may come back later.
+Why: the QEMU suite was slow (~15 min), serial, and broke with toolchain upgrades (the gcov hack).
+It also couldn't use sanitizers or a debugger.
+
+## D-005: Tooling for the host tests (2026-10-22)
+
+CMake + CTest, CMocka for C unit tests, and pytest driving the real `punchboot` Python package for
+integration tests (this also tests the host library and the Python bindings).

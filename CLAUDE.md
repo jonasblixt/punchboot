@@ -17,7 +17,8 @@ Do not read these up front. Open only what the task needs.
 | `doc/dev/decisions.md` | Before changing direction on something already decided |
 | `doc/dev/arch-firmware.md` | Working in `src/`, `include/` |
 | `doc/dev/arch-host-tools.md` | Working in `tools/`, wire protocol, Python package |
-| `doc/dev/build-and-test.md` | Building, running tests, CI, releasing |
+| `doc/dev/testing.md` | Writing or running tests (host unit/integration tests) |
+| `doc/dev/build-and-test.md` | Building firmware, the dev container, QEMU suite, CI, releasing |
 | `doc/dev/bpak.md` | Anything touching bpak or image signing/verification |
 | `doc/dev/log/` | Only the newest entry, and only if `status.md` is not enough |
 
@@ -30,7 +31,7 @@ Skip unless the task is about them: `pki/` (test keys), vendored code
 
 - Firmware: C99 freestanding, return `PB_OK` or `-PB_ERR_*`, log via `LOG_ERR/INFO/DBG`.
 - Format: clang-format (C), ruff (Python, `select = ["ALL"]`). `pre-commit run --all-files` before committing.
-- Build/test in the dev container: `scripts/pbdev test` (~10–15 min, log to a file). Details in `doc/dev/build-and-test.md`.
+- Tests: `scripts/pbdev host-test` (seconds). The legacy QEMU suite `scripts/pbdev test` takes 10–15 min, so send its output to a log file.
 - Release: bump `version.txt`, then tag `vX.Y.Z` on master. The tag publishes to PyPI.
 
 ## Keeping context current
