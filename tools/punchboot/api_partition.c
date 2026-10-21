@@ -371,6 +371,21 @@ int pb_api_partition_write(struct pb_context *ctx, int file_fd, uint8_t *uuid)
         goto err_free_buf;
     }
 
+    /* Reject files that don't fit before writing anything. For bpak files the
+     * payload is written from the start of the partition and the header to
+     * the end, so they must not overlap either. */
+    off_t file_size = lseek(file_fd, 0, SEEK_END);
+
+    if (file_size == (off_t)-1 || lseek(file_fd, 0, SEEK_SET) == (off_t)-1) {
+        rc = -PB_RESULT_IO_ERROR;
+        goto err_free_buf;
+    }
+
+    if ((size_t)file_size > part_size) {
+        rc = -PB_RESULT_INVALID_ARGUMENT;
+        goto err_free_buf;
+    }
+
     rc = pb_api_stream_init(ctx, uuid);
     if (rc != PB_RESULT_OK) {
         goto err_free_buf;
