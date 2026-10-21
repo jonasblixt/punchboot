@@ -9,8 +9,7 @@ import hashlib
 import io
 import pathlib
 import uuid
-from collections.abc import Callable
-from typing import IO, TYPE_CHECKING, Union
+from typing import IO, TYPE_CHECKING
 
 import _punchboot  # type: ignore[import-not-found]
 import semver  # type: ignore[import-not-found]
@@ -20,7 +19,7 @@ from .partition import Partition, PartitionFlags
 from .slc import SLC
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
 
 def _has_fileno(file: IO[bytes]) -> bool:
@@ -35,7 +34,7 @@ def _has_fileno(file: IO[bytes]) -> bool:
     return True
 
 
-PartUUIDType = Union[uuid.UUID, str]
+PartUUIDType = uuid.UUID | str
 
 
 def _partuuid_to_uuid(uu: PartUUIDType) -> uuid.UUID:

@@ -13,12 +13,10 @@ select = ["ALL"]
 ignore = [
     "COM812",   # Conflicts with the formatter
     "ISC001",   # Conflicts with the formatter
-    "ANN101",   # "missing-type-self"
     "PLE0605",  # ruff does not handle += in __all__
     "FBT",      # don't care for these at the moment
+    "CPY001",   # Copyright notices are not used in the python sources
     "PT001",    # https://github.com/astral-sh/ruff/issues/8796#issuecomment-1825907715
-    "PT004",    # https://github.com/astral-sh/ruff/issues/8796#issuecomment-1825907715
-    "PT005",    # https://github.com/astral-sh/ruff/issues/8796#issuecomment-1825907715
     "PT023",    # https://github.com/astral-sh/ruff/issues/8796#issuecomment-1825907715
 ]
 

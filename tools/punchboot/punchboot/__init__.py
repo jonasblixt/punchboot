@@ -6,7 +6,7 @@ from _punchboot import (  # type: ignore[import-not-found] # noqa: F401
     CommandError,
     Error,
     GenericError,
-    IOError,
+    IOError,  # noqa: A004
     KeyRevokedError,
     MemError,
     NoMemoryError,
@@ -17,7 +17,7 @@ from _punchboot import (  # type: ignore[import-not-found] # noqa: F401
     PartVerifyError,
     SignatureError,
     StreamNotInitializedError,
-    TimeoutError,
+    TimeoutError,  # noqa: A004
     TransferError,
 )
 
