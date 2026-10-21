@@ -1,0 +1,195 @@
+/**
+ * Punch BOOT
+ *
+ * Copyright (C) 2026 Jonas Blixt <jonpe960@gmail.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
+
+#include <setjmp.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include <cmocka.h>
+
+#include <drivers/partition/gpt.h>
+#include <pb/bio.h>
+#include <pb/pb.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "fakes/ramdisk.h"
+
+/* 32 MiB disk, same as the host and QEMU test boards */
+#define DISK_BLOCKS 65536
+
+#define UU_DISK \
+    (const unsigned char *)"\x1e\xac\xed\xf3\x37\x90\x48\xc7\x8e\xd8\x91\x88\xff\x49\x67\x2b"
+#define UU_SYS_A \
+    (const unsigned char *)"\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62\x01\x4c\xfa\x73\x5c\xe0"
+#define UU_SYS_B \
+    (const unsigned char *)"\xc0\x46\xcc\xd8\x0f\x2e\x40\x36\x98\x4d\x76\xc1\x4d\xc7\x39\x92"
+#define UU_STATE \
+    (const unsigned char *)"\xf5\xf8\xc9\xae\xef\xb5\x40\x71\x9b\xa9\xd3\x13\xb0\x82\x28\x1e"
+
+static const struct gpt_part_table tbl_default[] = {
+    { .uu = UU_SYS_A, .description = "System A", .size = SZ_KiB(512) },
+    { .uu = UU_SYS_B, .description = "System B", .size = SZ_KiB(512) },
+    { .uu = UU_STATE, .description = "State", .size = 512 },
+};
+
+/* The disk minus 2 * 34 blocks for the primary and backup GPT */
+static const struct gpt_part_table tbl_largest[] = {
+    { .uu = UU_SYS_A, .description = "Large", .size = SZ_KiB(32734) },
+};
+
+static const struct gpt_part_table tbl_too_large[] = {
+    { .uu = UU_SYS_A, .description = "Too large", .size = SZ_KiB(32735) },
+};
+
+static const struct gpt_table_list tables[] = {
+    { .name = "Default", .variant = 0, .table = tbl_default, .table_length = 3 },
+    { .name = "Largest", .variant = 1, .table = tbl_largest, .table_length = 1 },
+    { .name = "Too large", .variant = 2, .table = tbl_too_large, .table_length = 1 },
+};
+
+struct fixture {
+    struct ramdisk *disk;
+    bio_dev_t dev;
+};
+
+/* Simulate a boot: fresh block device pool, same disk contents */
+static int boot(struct fixture *f)
+{
+    bio_reset();
+    f->dev = ramdisk_attach(f->disk, UU_DISK);
+    assert_true(f->dev >= 0);
+    return gpt_ptbl_init(f->dev, tables, ARRAY_SIZE(tables));
+}
+
+static int setup(void **state)
+{
+    struct fixture *f = calloc(1, sizeof(*f));
+    assert_non_null(f);
+    f->disk = ramdisk_new(DISK_BLOCKS);
+    assert_non_null(f->disk);
+    *state = f;
+    return 0;
+}
+
+static int teardown(void **state)
+{
+    struct fixture *f = *state;
+    ramdisk_free(f->disk);
+    free(f);
+    return 0;
+}
+
+static void assert_part(const unsigned char *uu, int first, int last, const char *description)
+{
+    bio_dev_t part = bio_get_part_by_uu(uu);
+
+    assert_true(part >= 0);
+    assert_int_equal(bio_get_first_block(part), first);
+    assert_int_equal(bio_get_last_block(part), last);
+    assert_string_equal(bio_get_description(part), description);
+}
+
+static void install_and_reboot(struct fixture *f, int variant)
+{
+    (void)boot(f);
+    assert_int_equal(bio_install_partition_table(UU_DISK, variant), PB_OK);
+    assert_int_equal(boot(f), PB_OK);
+}
+
+static void test_blank_disk_has_no_partitions(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_int_not_equal(boot(f), PB_OK);
+    assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+}
+
+static void test_install_default_table(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+
+    /* Partitions start after the protective MBR, GPT header and 32 blocks
+     * of partition entries */
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_part(UU_SYS_B, 1058, 2081, "System B");
+    assert_part(UU_STATE, 2082, 2082, "State");
+}
+
+static void test_install_largest_partition(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 1);
+    assert_part(UU_SYS_A, 34, 34 + SZ_KiB(32734) / 512 - 1, "Large");
+}
+
+static void test_install_too_large_partition_fails(void **state)
+{
+    struct fixture *f = *state;
+
+    (void)boot(f);
+    assert_int_not_equal(bio_install_partition_table(UU_DISK, 2), PB_OK);
+}
+
+static void test_install_unknown_variant_fails(void **state)
+{
+    struct fixture *f = *state;
+
+    (void)boot(f);
+    assert_int_not_equal(bio_install_partition_table(UU_DISK, 42), PB_OK);
+}
+
+static void test_recover_from_backup(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+
+    /* Destroy the primary GPT header */
+    memset(ramdisk_block(f->disk, 1), 0, RAMDISK_BLOCK_SIZE);
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+
+    /* The primary header has been restored */
+    assert_memory_equal(ramdisk_block(f->disk, 1), "EFI PART", 8);
+    assert_int_equal(boot(f), PB_OK);
+}
+
+static void test_both_tables_corrupt_fails(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+
+    memset(ramdisk_block(f->disk, 1), 0, RAMDISK_BLOCK_SIZE);
+    memset(ramdisk_block(f->disk, DISK_BLOCKS - 1), 0, RAMDISK_BLOCK_SIZE);
+
+    assert_int_not_equal(boot(f), PB_OK);
+    assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+}
+
+int main(void)
+{
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_blank_disk_has_no_partitions, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_install_default_table, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_install_largest_partition, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_install_too_large_partition_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_install_unknown_variant_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_recover_from_backup, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_both_tables_corrupt_fails, setup, teardown),
+    };
+
+    return cmocka_run_group_tests(tests, NULL, NULL);
+}

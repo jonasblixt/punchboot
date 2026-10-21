@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         iproute2 \
         libc6-dev-arm64-cross \
+        libcmocka-dev \
         liblzma-dev \
         libmbedtls-dev \
         libusb-1.0-0-dev \
@@ -68,6 +69,7 @@ RUN python3 -m venv /opt/venv \
         "setuptools" \
         "wheel" \
         "gcovr==8.3" \
+        "pytest" \
     && mkdir -p /opt/pb \
     && chmod -R a+rwX /opt/venv /opt/pb
 

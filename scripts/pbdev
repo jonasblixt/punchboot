@@ -2,6 +2,7 @@
 #
 # Run commands in the punchboot-dev container.
 #
+#   scripts/pbdev host-test [cmake args]  Host build, unit + integration tests
 #   scripts/pbdev test [make args]   Build host tools + firmware, run QEMU tests
 #   scripts/pbdev shell              Interactive shell in the container
 #   scripts/pbdev run <cmd...>       Run a command in the container
@@ -41,6 +42,7 @@ run() {
     ensure_image
     docker run --rm "${tty_args[@]}" \
         --user "$(id -u):$(id -g)" \
+        -e BUILD_DIR -e CTEST_ARGS \
         -v "$REPO_ROOT:$REPO_ROOT" \
         -w "$REPO_ROOT" \
         "$IMAGE" "$@"
@@ -59,11 +61,14 @@ case "$cmd" in
     run)
         run "$@"
         ;;
+    host-test)
+        run scripts/ci/host-test.sh "$@"
+        ;;
     test)
         run scripts/ci/test.sh "$@"
         ;;
     *)
-        sed -n '3,9p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '3,10p' "$0" | sed 's/^# \{0,1\}//'
         exit 1
         ;;
 esac
