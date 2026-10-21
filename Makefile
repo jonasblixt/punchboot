@@ -121,10 +121,10 @@ DEPS      = $(OBJS:.o=.d)
 
 FINAL_OUTPUT = $(BUILD_DIR)/$(TARGET).bin
 
-.PHONY: keystore menuconfig
+.PHONY: keystore menuconfig olddefconfig
 
-menuconfig:
-	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/menuconfig.py src/Kconfig
+menuconfig oldconfig:
+	$(Q)BOARD=$(BOARD) $(PYTHON) scripts/$@.py src/Kconfig
 
 all: $(BUILD_DIR)/$(TARGET).bin $(plat-y)
 	$(Q)$(SIZE) -x -t -B $(BUILD_DIR)/$(TARGET)
