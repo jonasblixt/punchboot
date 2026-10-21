@@ -33,6 +33,12 @@ static int check_dev(bio_dev_t dev)
     return PB_OK;
 }
 
+void bio_reset(void)
+{
+    memset(bio_pool, 0, sizeof(bio_pool));
+    n_bios = 0;
+}
+
 bio_dev_t bio_allocate(lba_t first_lba,
                        lba_t last_lba,
                        size_t block_size,

@@ -89,6 +89,14 @@ bio_dev_t bio_allocate(lba_t first_lba,
                        const char *description);
 
 /**
+ * Release all block devices.
+ *
+ * Intended for unit tests, which need a clean block device pool between
+ * test cases.
+ */
+void bio_reset(void);
+
+/**
  * Allocate a new block device from a parent device
  *
  * This will inherit I/O callbacks and flags from the parent device
