@@ -21,6 +21,11 @@ mkdir -p "$HOME"
 echo "=== Installing punchboot host tools"
 pip install --quiet --no-build-isolation --no-deps .
 
+echo "=== Building pbstate"
+cmake -S tools/pbstate -B "$BUILD_DIR/pbstate" -DCMAKE_INSTALL_PREFIX=/opt/pb > /dev/null
+cmake --build "$BUILD_DIR/pbstate" -j"$(nproc)" > /dev/null
+cmake --install "$BUILD_DIR/pbstate" > /dev/null
+
 echo "=== Building"
 cmake -S . -B "$BUILD_DIR" "$@" > /dev/null
 cmake --build "$BUILD_DIR" -j"$(nproc)"
