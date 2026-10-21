@@ -20,6 +20,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifdef CONFIG_ARCH_HOST
+/* Host builds rename main (see CMakeLists.txt), the process entry point is
+ * provided by the host platform */
+void pb_main(void);
+#else
 void main(void);
+#endif
 
 #endif // INCLUDE_PB_PB_H

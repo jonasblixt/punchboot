@@ -50,8 +50,11 @@ enter_command_mode:
     plat_reset();
 }
 
+#ifndef CONFIG_ARCH_HOST
+/* The host build links against the system libc, which provides exit() */
 void exit(int reason)
 {
     LOG_ERR("reason = %i", reason);
     plat_reset();
 }
+#endif
