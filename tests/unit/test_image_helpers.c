@@ -56,6 +56,7 @@ static struct {
     int verify_rc;
     bool verify_ok;
     hash_t verify_md_alg;
+    size_t verify_md_length;
 } fake;
 
 int rot_read_key_status(key_id_t id)
@@ -131,8 +132,8 @@ static int fake_verify(const uint8_t *der_signature,
     (void)der_key;
     (void)key_length;
     (void)md;
-    (void)md_length;
     fake.verify_md_alg = md_alg;
+    fake.verify_md_length = md_length;
     *verified = fake.verify_ok && (signature_length == 2) && (der_signature[0] == FAKE_SIG_OK);
     return fake.verify_rc;
 }
@@ -207,10 +208,11 @@ static void test_auth_header(void **state)
     static const struct {
         uint8_t bpak;
         hash_t pb;
+        size_t digest_length;
     } kinds[] = {
-        { BPAK_HASH_SHA256, HASH_SHA256 },
-        { BPAK_HASH_SHA384, HASH_SHA384 },
-        { BPAK_HASH_SHA512, HASH_SHA512 },
+        { BPAK_HASH_SHA256, HASH_SHA256, 32 },
+        { BPAK_HASH_SHA384, HASH_SHA384, 48 },
+        { BPAK_HASH_SHA512, HASH_SHA512, 64 },
     };
 
     (void)state;
@@ -220,6 +222,8 @@ static void test_auth_header(void **state)
         assert_int_equal(boot_image_auth_header(hdr), PB_OK);
         assert_int_equal(fake.alg, kinds[i].pb);
         assert_int_equal(fake.verify_md_alg, kinds[i].pb);
+        /* Only the digest, not the whole buffer (F-058) */
+        assert_int_equal(fake.verify_md_length, kinds[i].digest_length);
         /* The whole header is hashed, with the signature zeroed */
         assert_int_equal(fake.hashed_bytes, sizeof(*hdr));
         assert_int_equal(hdr->signature_sz, 0);

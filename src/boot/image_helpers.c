@@ -38,6 +38,7 @@ int boot_image_auth_header(struct bpak_header *hdr)
     int rc;
     hash_t hash_kind = 0;
     dsa_t dsa_kind = 0;
+    size_t digest_length;
     size_t signature_length;
     bool verified = false;
     uint8_t header_digest[64];
@@ -70,12 +71,15 @@ int boot_image_auth_header(struct bpak_header *hdr)
     switch (hdr->hash_kind) {
     case BPAK_HASH_SHA256:
         hash_kind = HASH_SHA256;
+        digest_length = 32;
         break;
     case BPAK_HASH_SHA384:
         hash_kind = HASH_SHA384;
+        digest_length = 48;
         break;
     case BPAK_HASH_SHA512:
         hash_kind = HASH_SHA512;
+        digest_length = 64;
         break;
     default:
         return -PB_ERR_UNKNOWN_HASH;
@@ -110,7 +114,7 @@ int boot_image_auth_header(struct bpak_header *hdr)
                     key_der_data_length,
                     hash_kind,
                     header_digest,
-                    sizeof(header_digest),
+                    digest_length,
                     &verified);
 
     if (rc == 0 && verified) {
