@@ -87,8 +87,10 @@ int boot_image_auth_header(struct bpak_header *hdr)
 
     rc = hash_init(hash_kind);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+        LOG_ERR("Can't hash the image, hash kind 0x%x (%i)", hdr->hash_kind, rc);
         return rc;
+    }
 
     signature_length = sizeof(signature);
 
