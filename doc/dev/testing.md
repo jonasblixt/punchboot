@@ -15,6 +15,7 @@ CI runs these tests (D-006).
 | `src/board/host/` | Test board (partitions, keys, board commands, fuses on disk) |
 | `tests/unit/` | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`, `fakes/plat.c`) |
 | `tests/integration/` | pytest tests that drive `pb-host` through the `punchboot` Python package |
+| `tests/compat/` | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in `bpak/`. See `compatibility.md` |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest |
 
 ## Running
@@ -25,6 +26,7 @@ scripts/pbdev test -DPB_SANITIZE=ON          # ASan + UBSan
 BUILD_DIR=build-host-cov scripts/pbdev test -DPB_COVERAGE=ON
 scripts/pbdev run gcovr -r . build-host-cov --filter src/
 CTEST_ARGS="-L unit" scripts/pbdev test      # only unit tests
+CTEST_ARGS="-L compat" scripts/pbdev test    # only the frozen layout check (compatibility.md)
 ```
 
 Coverage (2026-10-22, all host tests): 99.2% of lines (2337/2356), 100% of functions and 96.3% of
@@ -111,6 +113,7 @@ and `configs/test_defconfig` were then removed.
 | `test_cli.py` | test_cli, test_reset |
 | `test_stream.py` | new: stream bounds (F-053, F-054) |
 | `test_commands.py` | new: boot status, erase, end of life, bpak read, F-072 (xfail) |
+| `test_compat.py` | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 (xfail) |
 
 Unit tests, by module under test:
 

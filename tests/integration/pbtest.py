@@ -225,9 +225,17 @@ class Device:
         """Power on without forcing command mode, and expect it to boot.
 
         Returns the name of the partition that was booted ('A', 'B' or '?').
+        Fails as soon as the device enters command mode instead, and leaves it
+        running there.
         """
         self.start(command_mode=False)
-        rc = self.wait_exit()
+        deadline = time.monotonic() + EXIT_TIMEOUT
+        while self.running and time.monotonic() < deadline:
+            if self.socket.exists():
+                msg = f"pb-host entered command mode instead of booting:\n{self.log_tail()}"
+                raise RuntimeError(msg)
+            time.sleep(0.01)
+        rc = self.wait_exit(timeout=max(deadline - time.monotonic(), 0.1))
         if rc != 0:
             msg = f"pb-host exited with {rc}"
             raise RuntimeError(msg)

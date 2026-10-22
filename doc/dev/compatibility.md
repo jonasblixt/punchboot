@@ -64,17 +64,30 @@ accepted must still be accepted. The one exception is rejecting images that were
 Extensions (new hash/sign kinds, new flags, new meta) are allowed if old images keep verifying
 the same way. New images that old firmware can't read are fine only if they are opt-in.
 
-## Guards today
+## Guards
 
-- `tests/integration/pbtest.py` hardcodes some command numbers and talks raw wire (`Wire`), so
-  renumbering those commands fails the stream tests. That is incidental, not a full table.
-- `test_wire.c` checks the helpers, not the layout or the values.
-- Every bpak image in the tests is made at test time by the pinned bpak CLI (`make_bpak`). That
-  checks today's CLI against today's firmware, never an old image.
-- Nothing asserts a struct size, a field offset or an enum value.
+- **Frozen layout file** (`tests/compat/`). `abi_dump` prints the size and field offsets of every
+  wire struct and the bpak header structs, every wire enum value, the bpak kinds, flags and ids,
+  and the internal values that go on the wire as they are (the low byte of `BIO_FLAG_*`, `slc_t`).
+  `rz`/`pad` fields and sentinels are left out, so carving a field out of `rz` only adds lines.
+  - `ctest -L compat` (`compat.abi`): `abi.txt` must match the code. A new value fails until it is
+    added with `check_abi.py check <abi_dump> tests/compat/abi.txt --update`, which never drops or
+    changes a line.
+  - The `compat` CI job and a pre-commit hook: every line of `abi.txt` at the base branch (or
+    `HEAD`) must still be there. So the file can only grow, and a change to a frozen value fails
+    even if `abi.txt` was edited to match.
+  - `_Static_assert`s on every wire and bpak struct size in `src/wire.c`, so each compiler that
+    builds the firmware or the host tools checks the layout. `cm_main.c` asserts that the bio flags
+    and `slc_t` match the wire values.
+- **Golden bpak images** (`tests/compat/bpak/`), made once per bpak CLI version by `generate.sh`,
+  never regenerated. `test_compat.py` boots each one from RAM and from a partition, checks
+  `SHA256SUMS`, pins `pb_id()` to the bpak ids, and checks the Python mirrors (`SLC`,
+  `PartitionFlags`, the `PB_CMD_*` in `pbtest.py`) against `abi.txt`. The CI `compat` job fails if
+  a committed image is changed or deleted.
+- Not covered yet: old hosts and recorded transcripts (roadmap Phase 1, items 3 and 4), and
+  behaviour, which only tests and review catch (F-075 changed what a zero means, not a layout).
 
-So today a break is only caught by review. The proposed guards are in the roadmap (Phase 1,
-"Compatibility guards").
+If a frozen value really has to change, that is a new decision entry first, never a quiet edit.
 
 ## Checklist for a change in this area
 

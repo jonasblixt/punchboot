@@ -16,16 +16,11 @@ frozen (D-001).
 
 - **Compatibility guards first (D-008, `compatibility.md`)**, before fixes that touch the wire or
   image handling (F-055, F-075, the bpak re-sync). In order of value per effort:
-  1. Frozen layout manifest: a test dumps `sizeof`/`offsetof` of every wire struct and of
-     `struct bpak_header`, and every value of the wire enums, bpak kinds/flags and the
-     `PB_WIRE_PART_FLAG_*`/`BPAK_FLAG_*` bits, then compares with a committed
-     `tests/compat/*.txt`. A checker allows only additions (old lines unchanged). Plus
-     `_Static_assert` on the frame sizes and `sizeof(struct bpak_header) == 4096` in the headers.
-  2. Golden bpak corpus: small signed images in `tests/compat/bpak/`, made once by the pinned CLI
-     (and by older CLIs if available), one per hash/sign kind, with an exclude-from-hash part and
-     two parts with load addresses. Never regenerated. A unit test verifies each with
-     `image_helpers.c`, an integration test installs and boots them, and `bpak_id()`/`pb_id()`
-     are pinned to known values.
+  1. Done: frozen layout file `tests/compat/abi.txt`, only-grows check in CI and pre-commit,
+     `_Static_assert`s on the struct sizes (`compatibility.md`, Guards).
+  2. Done for bpak 0.9.3: golden images in `tests/compat/bpak/`, booted from RAM and from a
+     partition by `test_compat.py`, plus pinned ids and the Python mirrors. Still open: images
+     from older bpak CLIs (0.5-0.8 need Mbed TLS 2.x to build).
   3. Old hosts against the current device: a CI job installs released `punchboot` wheels from PyPI
      (2.0.0 and up, as available) and runs a read-mostly subset of the integration tests against
      today's pb-host.
