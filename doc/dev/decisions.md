@@ -67,3 +67,17 @@ always invalid is the only exception, and needs its own decision entry. `compati
 what is frozen, how to extend, and the guards.
 Why: devices in the field are not updated in step with the tools, factory lines pin tool versions,
 and signed images outlive both.
+
+## D-009: The boot source is a kind plus a bio partition; only the platform decides it (2026-10-22)
+
+`plat_get_boot_source()` reports where pb was loaded from: `STORAGE` with the bio partition UUID of
+the boot slot, or `USB`, `UART`, `DEBUGGER`, `UNKNOWN`. Every boot slot is a bio partition,
+whatever the medium (eMMC boot partitions, NOR flash regions on the imxrt, the A/B offsets in the
+MCX N internal flash), so any number of slots (A/B, primary/backups/factory recovery) works without
+changing the API; the partition name says what the slot is. Drivers only report facts about their
+device (`mmc_get_boot_part_config()`: what BOOT_PARTITION_ENABLE was at init). The platform turns
+them into a boot source, because only it knows its ROM (fallbacks, serial download). Platforms that
+don't know return `-PB_ERR_NOT_SUPPORTED`, and `UNKNOWN` when they can't tell this boot. New kinds
+are appended. Not on the wire yet; exposing it to the host is a wire addition (D-008).
+Why: an eMMC-only "booted from BOOT0/BOOT1" call was wrong for USB boots, for other ROMs and for
+other media.

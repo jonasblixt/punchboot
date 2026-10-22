@@ -31,13 +31,13 @@ CTEST_ARGS="-L compat" scripts/pbdev test    # only the frozen layout check (com
 
 Coverage (2026-10-22, all host tests): 99.2% of lines (2337/2356), 100% of functions and 96.3% of
 branches in `src/`, excluding vendored libs and the host platform. It was 59% before the unit tests
-below. The 19 lines left are unreachable or behind a known bug:
+below. After `jiffy-fixes` 18 lines are left, unreachable or behind a known bug:
 
-- Unreachable: `gpt.c` 298 and 383-389 (after recovery the primary is valid), `cm_main.c` 653 and
-  the `default:` case (every command id is handled), `rot.c` 114 (`rot_init` checks the key ids) and
+- Unreachable: `gpt.c` 298 and 383-389 (after recovery the primary is valid), `cm_main.c` 663 and
+  the `default:` case (every command id is handled), `boot.c` 96 (the boot device is valid), `rot.c` 114 (`rot_init` checks the key ids) and
   126-127 (the keystore has only EC keys), `main.c` 51, `mbedtls_pb.c` 252 (needs a full DSA table
   with room for a hash provider; both tables hold one entry).
-- Behind a bug: `linux.c` 76-77 (F-059), 176-177 (F-071).
+- Behind a bug: `linux.c` 175-176 (F-071).
 - `main.c` 29: `plat_init()` failing on the host.
 
 The coverage counts only what the host build compiles: the drivers and platform code for the
@@ -112,7 +112,7 @@ and `configs/test_defconfig` were then removed.
 | `test_board.py` | test_board, test_board_status |
 | `test_cli.py` | test_cli, test_reset |
 | `test_stream.py` | new: stream bounds (F-053, F-054) |
-| `test_commands.py` | new: boot status, erase, end of life, bpak read, F-072 (xfail) |
+| `test_commands.py` | new: boot status, erase, end of life, bpak read, F-072 |
 | `test_compat.py` | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 (xfail) |
 
 Unit tests, by module under test:
