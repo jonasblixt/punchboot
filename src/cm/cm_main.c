@@ -326,6 +326,37 @@ static int cmd_auth(void)
     return rc;
 }
 
+/* Validates a stream read/write request and returns the buffer and the
+ * first block to transfer */
+static int
+stream_check(uint8_t buffer_id, uint32_t size, uint64_t offset, uint8_t **bfr, lba_t *start_lba)
+{
+    if (buffer_id >= ARRAY_SIZE(buffer) || size > sizeof(buffer[0])) {
+        LOG_ERR("Invalid buffer %u or size %u", buffer_id, size);
+        pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
+        return -PB_ERR_MEM;
+    }
+
+    ssize_t block_size = bio_block_size(block_dev);
+
+    if (block_size <= 0) {
+        pb_wire_init_result(&result, -PB_RESULT_STREAM_NOT_INITIALIZED);
+        return -PB_ERR_PARAM;
+    }
+
+    uint64_t lba = offset / (uint64_t)block_size;
+
+    if (lba > UINT32_MAX) {
+        LOG_ERR("Invalid offset");
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_ARGUMENT);
+        return -PB_ERR_PARAM;
+    }
+
+    *bfr = buffer[buffer_id];
+    *start_lba = (lba_t)lba;
+    return PB_OK;
+}
+
 static int cmd_stream_read(void)
 {
     int rc = -PB_ERR;
@@ -341,23 +372,31 @@ static int cmd_stream_read(void)
         return -PB_ERR_IO;
     }
 
-    size_t start_lba = (stream_read->offset / bio_block_size(block_dev));
+    uint8_t *bfr;
+    lba_t start_lba;
 
-    LOG_DBG("Reading %u bytes at lba offset %zu", stream_read->size, start_lba);
+    rc = stream_check(
+        stream_read->buffer_id, stream_read->size, stream_read->offset, &bfr, &start_lba);
 
-    uintptr_t bfr =
-        ((uintptr_t)buffer) + ((CONFIG_CM_BUF_SIZE_KiB * 1024) * stream_read->buffer_id);
+    if (rc != PB_OK)
+        return rc;
 
-    rc = bio_read(block_dev, start_lba, stream_read->size, (void *)bfr);
-    pb_wire_init_result(&result, error_to_wire(rc));
+    LOG_DBG("Reading %u bytes at lba offset %u", stream_read->size, start_lba);
+
+    rc = bio_read(block_dev, start_lba, stream_read->size, bfr);
     LOG_DBG("Result = %i", rc);
 
+    if (rc != PB_OK) {
+        /* The result is sent by pb_command_parse */
+        pb_wire_init_result(&result, error_to_wire(rc));
+        return rc;
+    }
+
+    pb_wire_init_result(&result, PB_RESULT_OK);
     cm_write(&result, sizeof(result));
 
-    if (rc == PB_OK) {
-        rc = cm_write((const void *)bfr, stream_read->size);
-        pb_wire_init_result(&result, error_to_wire(rc));
-    }
+    rc = cm_write(bfr, stream_read->size);
+    pb_wire_init_result(&result, error_to_wire(rc));
     LOG_DBG("Data sent");
     return rc;
 }
@@ -380,14 +419,18 @@ static int cmd_stream_write(void)
         return rc;
     }
 
-    size_t start_lba = (stream_write->offset / bio_block_size(block_dev));
+    uint8_t *bfr;
+    lba_t start_lba;
 
-    LOG_DBG("Writing %u bytes to lba offset %zu", stream_write->size, start_lba);
+    rc = stream_check(
+        stream_write->buffer_id, stream_write->size, stream_write->offset, &bfr, &start_lba);
 
-    uintptr_t bfr =
-        ((uintptr_t)buffer) + ((CONFIG_CM_BUF_SIZE_KiB * 1024) * stream_write->buffer_id);
+    if (rc != PB_OK)
+        return rc;
 
-    rc = bio_write(block_dev, start_lba, stream_write->size, (void *)bfr);
+    LOG_DBG("Writing %u bytes to lba offset %u", stream_write->size, start_lba);
+
+    rc = bio_write(block_dev, start_lba, stream_write->size, bfr);
 
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;

@@ -19,6 +19,10 @@ function(pb_unit_test name)
     set_tests_properties(unit.${name} PROPERTIES LABELS unit)
 endfunction()
 
+pb_unit_test(test_bio SOURCES
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+)
+
 pb_unit_test(test_gpt SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/partition/gpt.c
