@@ -16,6 +16,7 @@
 
 #include <drivers/partition/gpt.h>
 #include <pb/bio.h>
+#include <pb/crc.h>
 #include <pb/pb.h>
 #include <stdlib.h>
 #include <string.h>
@@ -179,6 +180,66 @@ static void test_both_tables_corrupt_fails(void **state)
     assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
 }
 
+/* Offsets in the on-disk GPT header */
+#define HDR_CRC           16
+#define HDR_NO_OF_PARTS   80
+#define HDR_PART_ENTRY_SZ 84
+#define HDR_SIZE          92
+
+/* Change a header field and update the header CRC, so that only the field is wrong */
+static void set_hdr_field(uint8_t *hdr, size_t offset, uint32_t value)
+{
+    uint32_t crc = 0;
+
+    memcpy(&hdr[offset], &value, sizeof(value));
+    memcpy(&hdr[HDR_CRC], &crc, sizeof(crc));
+    crc = crc32(~0L, hdr, HDR_SIZE) ^ ~0UL;
+    memcpy(&hdr[HDR_CRC], &crc, sizeof(crc));
+}
+
+static uint32_t get_hdr_field(const uint8_t *hdr, size_t offset)
+{
+    uint32_t value;
+    memcpy(&value, &hdr[offset], sizeof(value));
+    return value;
+}
+
+/* F-056: more than 128 entries would make the CRC check read, and the recovery
+ * write, past the in-memory table. Caught by ASan. */
+static void test_primary_with_too_many_entries_recovers(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+    set_hdr_field(ramdisk_block(f->disk, 1), HDR_NO_OF_PARTS, 129);
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_int_equal(get_hdr_field(ramdisk_block(f->disk, 1), HDR_NO_OF_PARTS), 128);
+}
+
+static void test_backup_with_too_many_entries_is_not_used(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+    memset(ramdisk_block(f->disk, 1), 0, RAMDISK_BLOCK_SIZE);
+    set_hdr_field(ramdisk_block(f->disk, DISK_BLOCKS - 1), HDR_NO_OF_PARTS, 132);
+
+    assert_int_not_equal(boot(f), PB_OK);
+}
+
+static void test_unsupported_entry_size_recovers(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+    set_hdr_field(ramdisk_block(f->disk, 1), HDR_PART_ENTRY_SZ, 256);
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(get_hdr_field(ramdisk_block(f->disk, 1), HDR_PART_ENTRY_SZ), 128);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -189,6 +250,11 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_install_unknown_variant_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_recover_from_backup, setup, teardown),
         cmocka_unit_test_setup_teardown(test_both_tables_corrupt_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_primary_with_too_many_entries_recovers, setup, teardown),
+        cmocka_unit_test_setup_teardown(
+            test_backup_with_too_many_entries_is_not_used, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_unsupported_entry_size_recovers, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
