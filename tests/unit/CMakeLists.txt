@@ -17,7 +17,8 @@ function(pb_unit_test name)
     target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(${name} PRIVATE ${ARG_LIBS} pb_unit_fakes PkgConfig::CMOCKA)
     add_test(NAME unit.${name} COMMAND ${name})
-    set_tests_properties(unit.${name} PROPERTIES LABELS unit)
+    # The unit tests take milliseconds, a hang should not block CI
+    set_tests_properties(unit.${name} PROPERTIES LABELS unit TIMEOUT 60)
 endfunction()
 
 pb_unit_test(test_bio SOURCES

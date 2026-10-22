@@ -18,6 +18,7 @@
 #include <pb/pb.h>
 #include <plat/host/host.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -33,17 +34,20 @@ static struct {
     size_t length;
 } xfer;
 
+/* Listens on a temporary path and then renames it to the socket path, so
+ * the socket path only exists once it accepts connections. Clients wait for
+ * the path to appear. */
 static int socket_listen(void)
 {
     struct sockaddr_un addr = { .sun_family = AF_UNIX };
 
-    if (strlen(host_opts.socket_path) >= sizeof(addr.sun_path)) {
+    if (strlen(host_opts.socket_path) + strlen(".tmp") >= sizeof(addr.sun_path)) {
         LOG_ERR("Socket path too long");
         return -PB_ERR_PARAM;
     }
 
-    strcpy(addr.sun_path, host_opts.socket_path);
-    unlink(host_opts.socket_path);
+    snprintf(addr.sun_path, sizeof(addr.sun_path), "%s.tmp", host_opts.socket_path);
+    unlink(addr.sun_path);
 
     listen_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -54,6 +58,13 @@ static int socket_listen(void)
 
     if (bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr)) != 0 || listen(listen_fd, 1) != 0) {
         LOG_ERR("Could not listen on '%s' (%s)", host_opts.socket_path, strerror(errno));
+        close(listen_fd);
+        listen_fd = -1;
+        return -PB_ERR_IO;
+    }
+
+    if (rename(addr.sun_path, host_opts.socket_path) != 0) {
+        LOG_ERR("Could not rename '%s' (%s)", addr.sun_path, strerror(errno));
         close(listen_fd);
         listen_fd = -1;
         return -PB_ERR_IO;

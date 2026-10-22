@@ -8,7 +8,10 @@ add_test(
             -p no:cacheprovider
             --basetemp=${CMAKE_CURRENT_BINARY_DIR}/tmp
 )
+# The suite takes ~10 s (longer with sanitizers or coverage); the timeout
+# stops a hung pb-host or test from blocking CI
 set_tests_properties(integration PROPERTIES
     LABELS integration
+    TIMEOUT 600
     ENVIRONMENT PB_HOST_BIN=$<TARGET_FILE:pb-host>
 )
