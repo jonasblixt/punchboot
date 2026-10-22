@@ -21,7 +21,7 @@ static int ramdisk_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 {
     struct ramdisk *disk = disk_from_dev(dev);
 
-    if ((lba * RAMDISK_BLOCK_SIZE + length) > disk->blocks * RAMDISK_BLOCK_SIZE)
+    if (((uint64_t)lba * RAMDISK_BLOCK_SIZE + length) > (uint64_t)disk->blocks * RAMDISK_BLOCK_SIZE)
         return -PB_ERR_IO;
 
     memcpy(buf, ramdisk_block(disk, lba), length);
@@ -33,7 +33,7 @@ static int ramdisk_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
 {
     struct ramdisk *disk = disk_from_dev(dev);
 
-    if ((lba * RAMDISK_BLOCK_SIZE + length) > disk->blocks * RAMDISK_BLOCK_SIZE)
+    if (((uint64_t)lba * RAMDISK_BLOCK_SIZE + length) > (uint64_t)disk->blocks * RAMDISK_BLOCK_SIZE)
         return -PB_ERR_IO;
 
     memcpy(ramdisk_block(disk, lba), buf, length);

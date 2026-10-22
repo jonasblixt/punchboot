@@ -41,8 +41,10 @@ def blank_device(
         getattr(getattr(request.node, f"rep_{when}", None), "failed", False)
         for when in ("setup", "call")
     )
-    if failed and dev.log.exists():
+    if (failed or dev.problems) and dev.log.exists():
         print(f"\n--- pb-host log ({dev.log}) ---\n{dev.log.read_text()}")  # noqa: T201
+    if dev.problems:
+        pytest.fail("\n".join(dev.problems))
 
 
 @pytest.fixture
