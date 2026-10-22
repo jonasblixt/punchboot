@@ -180,3 +180,9 @@ uint32_t plat_get_us_tick(void)
 {
     return imx_gpt_get_tick();
 }
+
+int plat_get_boot_source(struct pb_boot_source *src)
+{
+    (void)src;
+    return -PB_ERR_NOT_SUPPORTED;
+}
