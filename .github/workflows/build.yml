@@ -23,6 +23,23 @@ jobs:
       - name: Unit and integration tests
         run: scripts/pbdev test ${{ matrix.cmake_args }}
 
+  compat:
+    name: Compatibility (abi.txt only grows)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Every value frozen at the branch point must still be there (D-008).
+      # compat.abi in the host tests checks that abi.txt matches the code.
+      - name: Check abi.txt against the base branch
+        env:
+          BASE: ${{ github.base_ref || 'master' }}
+        run: |
+          python3 tests/compat/check_abi.py history tests/compat/abi.txt \
+            --against "$(git merge-base HEAD "origin/$BASE")"
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest

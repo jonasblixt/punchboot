@@ -7,9 +7,48 @@
  *
  */
 
+#include <bpak/bpak.h>
 #include <pb-tools/error.h>
 #include <pb-tools/wire.h>
 #include <string.h>
+
+/* The wire layout is frozen (D-008). This checks it with every compiler that
+ * builds the firmware or the host tools; tests/compat/abi.txt has every field. */
+_Static_assert(sizeof(struct pb_command) == 512, "pb_command size");
+_Static_assert(sizeof(struct pb_result) == 512, "pb_result size");
+_Static_assert(sizeof(struct pb_result_device_caps) == 32, "pb_result_device_caps size");
+_Static_assert(sizeof(struct pb_result_part_table_read) == 32, "pb_result_part_table_read size");
+_Static_assert(sizeof(struct pb_result_part_table_entry) == 128, "pb_result_part_table_entry size");
+_Static_assert(sizeof(struct pb_command_stream_initialize) == 32,
+               "pb_command_stream_initialize size");
+_Static_assert(sizeof(struct pb_command_stream_prepare_buffer) == 32,
+               "pb_command_stream_prepare_buffer size");
+_Static_assert(sizeof(struct pb_command_stream_write_buffer) == 32,
+               "pb_command_stream_write_buffer size");
+_Static_assert(sizeof(struct pb_command_stream_read_buffer) == 32,
+               "pb_command_stream_read_buffer size");
+_Static_assert(sizeof(struct pb_command_authenticate) == 32, "pb_command_authenticate size");
+_Static_assert(sizeof(struct pb_command_verify_part) == 55, "pb_command_verify_part size");
+_Static_assert(sizeof(struct pb_command_activate_part) == 32, "pb_command_activate_part size");
+_Static_assert(sizeof(struct pb_command_read_bpak) == 32, "pb_command_read_bpak size");
+_Static_assert(sizeof(struct pb_command_erase_part) == 32, "pb_command_erase_part size");
+_Static_assert(sizeof(struct pb_command_install_part_table) == 17,
+               "pb_command_install_part_table size");
+_Static_assert(sizeof(struct pb_result_device_identifier) == 55,
+               "pb_result_device_identifier size");
+_Static_assert(sizeof(struct pb_result_slc) == 32, "pb_result_slc size");
+_Static_assert(sizeof(struct pb_result_slc_key_status) == 128, "pb_result_slc_key_status size");
+_Static_assert(sizeof(struct pb_command_revoke_key) == 32, "pb_command_revoke_key size");
+_Static_assert(sizeof(struct pb_command_boot_part) == 32, "pb_command_boot_part size");
+_Static_assert(sizeof(struct pb_command_bpak_boot) == 32, "pb_command_bpak_boot size");
+_Static_assert(sizeof(struct pb_command_board) == 32, "pb_command_board size");
+_Static_assert(sizeof(struct pb_result_board) == 32, "pb_result_board size");
+_Static_assert(sizeof(struct pb_result_board_status) == 32, "pb_result_board_status size");
+_Static_assert(sizeof(struct pb_result_boot_status) == 32, "pb_result_boot_status size");
+_Static_assert(sizeof(struct bpak_transport_meta) == 32, "bpak_transport_meta size");
+_Static_assert(sizeof(struct bpak_part_header) == 32, "bpak_part_header size");
+_Static_assert(sizeof(struct bpak_meta_header) == 16, "bpak_meta_header size");
+_Static_assert(sizeof(struct bpak_header) == 4096, "bpak_header size");
 
 bool pb_wire_valid_result(struct pb_result *result)
 {
