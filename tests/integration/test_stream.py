@@ -7,7 +7,6 @@ these tests use the raw wire protocol (pbtest.Wire).
 from __future__ import annotations
 
 import struct
-import uuid
 from typing import TYPE_CHECKING
 
 import pytest
@@ -24,6 +23,7 @@ from .pbtest import (
 )
 
 if TYPE_CHECKING:
+    import uuid
     from collections.abc import Iterator
 
     from .pbtest import Device
@@ -66,7 +66,7 @@ def stream_read(wire: Wire, buffer_id: int, offset: int, size: int) -> tuple[int
 
 
 def assert_responsive(wire: Wire) -> None:
-    """The device is alive and the protocol is still in sync."""
+    """Check that the device is alive and the protocol is still in sync."""
     assert wire.command(PB_CMD_BOOTLOADER_VERSION_READ) == 0
 
 
