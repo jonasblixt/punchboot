@@ -1304,6 +1304,110 @@ static void test_stream_errors(void **state)
     expect_end();
 }
 
+static unsigned int write_done_calls;
+static bio_dev_t write_done_dev;
+static int write_done_rc;
+
+static int fake_write_done(bio_dev_t dev, int param)
+{
+    (void)param;
+    write_done_calls++;
+    write_done_dev = dev;
+    return write_done_rc;
+}
+
+/* Writes one block of 'buffer_id' in a new stream, without finalizing it */
+static void stream_write_block(uint8_t buffer_id)
+{
+    static const uint8_t data[RAMDISK_BLOCK_SIZE] = { 0xaa };
+
+    stream_init(UU_RW);
+    stream_prepare(buffer_id, sizeof(data), data);
+    stream_write(buffer_id, sizeof(data), 0);
+}
+
+/* Only a finalized stream where every write succeeded is a complete write (F-082) */
+static void test_stream_write_done(void **state)
+{
+    struct fixture *f = *state;
+
+    write_done_calls = 0;
+    write_done_dev = -1;
+    write_done_rc = PB_OK;
+    assert_int_equal(bio_set_write_done_cb(f->rw, fake_write_done), PB_OK);
+
+    /* A complete write, and a second finalize without a new stream */
+    stream_write_block(0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    /* A read only stream */
+    stream_init(UU_RW);
+    stream_read(0, RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    /* A stream with a failed buffer, then a good write */
+    stream_init(UU_RW);
+    stream_prepare(0, BUF_SIZE + 1, NULL);
+    stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
+    stream_write(1, RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* read */
+    expect_data(RAMDISK_BLOCK_SIZE);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(-PB_RESULT_NO_MEMORY); /* prepare */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_end();
+    assert_int_equal(write_done_calls, 1);
+    assert_int_equal(write_done_dev, f->rw);
+
+    /* A failed write, then a good one */
+    t.init_calls = 0;
+    write_done_calls = 0;
+    f->disk->fail_writes_after = 0;
+    stream_write_block(0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+
+    t.init_calls = 0;
+    f->disk->fail_writes_after = -1;
+    stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
+    stream_write(1, RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    /* The driver's error is the finalize result */
+    write_done_rc = -PB_ERR_IO;
+    stream_write_block(0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(-PB_RESULT_IO_ERROR); /* finalize */
+    expect_end();
+    assert_int_equal(write_done_calls, 1);
+}
+
 static void test_boot_part(void **state)
 {
     struct pb_command_boot_part req = { .verbose = 1 };
@@ -1499,6 +1603,7 @@ int main(void)
         CM_TEST(test_part_erase),
         CM_TEST(test_stream),
         CM_TEST(test_stream_errors),
+        CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
         CM_TEST(test_run_errors),

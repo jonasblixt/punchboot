@@ -43,6 +43,9 @@ _Static_assert((int)SLC_EOL == (int)PB_SLC_EOL, "slc value");
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uuid_t device_uu;
 static bio_dev_t block_dev;
+/* Whether a write in the current stream succeeded, and whether one failed */
+static bool stream_written;
+static bool stream_failed;
 static bool reboot_requested = false;
 static const struct cm_config *cfg;
 
@@ -690,6 +693,8 @@ static int cmd_stream_init(void)
         (struct pb_command_stream_initialize *)cmd.request;
 
     block_dev = bio_get_part_by_uu(stream_init->part_uuid);
+    stream_written = false;
+    stream_failed = false;
 
     if (block_dev < 0)
         pb_wire_init_result(&result, error_to_wire(block_dev));
@@ -729,8 +734,21 @@ static int cmd_stream_prep_buffer(void)
 
 static int cmd_stream_final(void)
 {
-    pb_wire_init_result(&result, PB_RESULT_OK);
-    return PB_OK;
+    int rc = PB_OK;
+
+    /*
+     * The host finalizes after a failed write too, so only a stream without
+     * errors is a complete write. On eMMC this makes a boot partition
+     * bootable (F-082).
+     */
+    if (stream_written && !stream_failed)
+        rc = bio_write_done(block_dev);
+
+    stream_written = false;
+    stream_failed = false;
+
+    pb_wire_init_result(&result, error_to_wire(rc));
+    return rc;
 }
 
 static int pb_command_parse(void)
@@ -796,12 +814,18 @@ static int pb_command_parse(void)
         break;
     case PB_CMD_STREAM_PREPARE_BUFFER:
         rc = cmd_stream_prep_buffer();
+        if (rc != PB_OK)
+            stream_failed = true;
         break;
     case PB_CMD_STREAM_READ_BUFFER:
         rc = cmd_stream_read();
         break;
     case PB_CMD_STREAM_WRITE_BUFFER:
         rc = cmd_stream_write();
+        if (rc == PB_OK)
+            stream_written = true;
+        else
+            stream_failed = true;
         break;
     case PB_CMD_STREAM_FINALIZE:
         rc = cmd_stream_final();
