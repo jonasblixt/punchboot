@@ -5,8 +5,8 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * DER helpers (src/lib/der_helpers.c). Inputs that hit the known problems in
- * F-066 (short r/s, a bit string shorter than two bytes) are not tested.
+ * DER helpers (src/lib/der_helpers.c). Inputs that hit the known problem in
+ * F-066 (a bit string shorter than two bytes) are not tested.
  */
 
 #include <setjmp.h>
@@ -18,6 +18,7 @@
 
 #include <pb/der_helpers.h>
 #include <pb/pb.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* SEQUENCE { INTEGER r, INTEGER s } with 32-byte values whose MSB is set, so
@@ -100,36 +101,99 @@ static void test_ecsig_to_rs(void **state)
     memset(expected_r, 0x81, sizeof(expected_r));
     memset(expected_s, 0x82, sizeof(expected_s));
 
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), true), PB_OK);
+    /* The leading zeros are dropped */
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), PB_OK);
     assert_memory_equal(r, expected_r, sizeof(r));
     assert_memory_equal(s, expected_s, sizeof(s));
 }
 
-static void test_ecsig_to_rs_keeps_leading_zero(void **state)
+static void test_ecsig_to_rs_wider_output(void **state)
 {
-    uint8_t r[33];
-    uint8_t s[33];
+    uint8_t r[34];
+    uint8_t s[34];
     (void)state;
 
-    /* Without suppression the 33-byte integers don't fit in 32 bytes */
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, 32, false), -PB_ERR_BUF_TOO_SMALL);
-
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), false), PB_OK);
+    memset(r, 0xff, sizeof(r));
+    memset(s, 0xff, sizeof(s));
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), PB_OK);
     assert_int_equal(r[0], 0x00);
-    assert_int_equal(r[1], 0x81);
-    assert_int_equal(s[0], 0x00);
-    assert_int_equal(s[1], 0x82);
+    assert_int_equal(r[1], 0x00);
+    assert_int_equal(r[2], 0x81);
+    assert_int_equal(r[33], 0x81);
+    assert_int_equal(s[1], 0x00);
+    assert_int_equal(s[2], 0x82);
 }
 
-static void test_ecsig_s_too_large(void **state)
+static void test_ecsig_to_rs_pads_short_values(void **state)
+{
+    /* r = 0x0102 and s = 0x7f, as an encoder without padding writes them */
+    static const uint8_t sig[] = { 0x30, 0x07, 0x02, 0x02, 0x01, 0x02, 0x02, 0x01, 0x7f };
+    uint8_t r[32];
+    uint8_t s[32];
+    uint8_t expected_r[32] = { 0 };
+    uint8_t expected_s[32] = { 0 };
+    (void)state;
+
+    expected_r[30] = 0x01;
+    expected_r[31] = 0x02;
+    expected_s[31] = 0x7f;
+    memset(r, 0xff, sizeof(r));
+    memset(s, 0xff, sizeof(s));
+
+    assert_int_equal(der_ecsig_to_rs(sig, sizeof(sig), r, s, sizeof(r)), PB_OK);
+    assert_memory_equal(r, expected_r, sizeof(r));
+    assert_memory_equal(s, expected_s, sizeof(s));
+}
+
+static void test_ecsig_too_large(void **state)
+{
+    struct {
+        uint8_t r[32];
+        uint8_t s[32];
+        uint8_t guard[8];
+    } out;
+
+    uint8_t guard[8];
+    (void)state;
+
+    memset(guard, 0xee, sizeof(guard));
+
+    /* A 33-byte s that has no leading zero to drop */
+    ecsig[39] = 0x01;
+    memcpy(out.guard, guard, sizeof(guard));
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), out.r, out.s, sizeof(out.r)),
+                     -PB_ERR_BUF_TOO_SMALL);
+    assert_memory_equal(out.guard, guard, sizeof(guard));
+    make_ecsig();
+
+    /* Same for r. The CAAM driver used to copy all 33 bytes (F-057). */
+    ecsig[4] = 0x01;
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), out.r, out.s, sizeof(out.r)),
+                     -PB_ERR_BUF_TOO_SMALL);
+}
+
+static void test_ecsig_truncated(void **state)
 {
     uint8_t r[32];
     uint8_t s[32];
     (void)state;
 
-    /* A 33-byte s that has no leading zero to drop */
-    ecsig[39] = 0x01;
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), true), -PB_ERR_BUF_TOO_SMALL);
+    /* Every prefix fails without reading past it (ASan) */
+    for (size_t len = 0; len < sizeof(ecsig); len++) {
+        uint8_t *sig = malloc(len ? len : 1);
+        assert_non_null(sig);
+        memcpy(sig, ecsig, len);
+        assert_int_not_equal(der_ecsig_to_rs(sig, len, r, s, sizeof(r)), PB_OK);
+        free(sig);
+    }
+
+    /* A long form length whose bytes are past the end */
+    static const uint8_t long_len[] = { 0x30, 0x46, 0x02, 0x84, 0x00 };
+    uint8_t *sig = malloc(sizeof(long_len));
+    assert_non_null(sig);
+    memcpy(sig, long_len, sizeof(long_len));
+    assert_int_equal(der_ecsig_to_rs(sig, sizeof(long_len), r, s, sizeof(r)), -PB_ERR_ASN1);
+    free(sig);
 }
 
 static void test_ecsig_bad_encoding(void **state)
@@ -139,27 +203,32 @@ static void test_ecsig_bad_encoding(void **state)
     (void)state;
 
     ecsig[0] = 0x31;
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), true), -PB_ERR_ASN1);
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
     make_ecsig();
 
     ecsig[1] = 0x85;
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), true), -PB_ERR_ASN1);
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
     make_ecsig();
 
     ecsig[2] = 0x03;
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), true), -PB_ERR_ASN1);
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
     make_ecsig();
 
     ecsig[3] = 0x85;
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), true), -PB_ERR_ASN1);
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
+    make_ecsig();
+
+    /* An r longer than the signature */
+    ecsig[3] = 0x7f;
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
     make_ecsig();
 
     ecsig[37] = 0x03;
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), true), -PB_ERR_ASN1);
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
     make_ecsig();
 
     ecsig[38] = 0x85;
-    assert_int_equal(der_ecsig_to_rs(ecsig, r, s, sizeof(r), true), -PB_ERR_ASN1);
+    assert_int_equal(der_ecsig_to_rs(ecsig, sizeof(ecsig), r, s, sizeof(r)), -PB_ERR_ASN1);
 }
 
 /* SubjectPublicKeyInfo for an EC key: the curve OID, then an uncompressed
@@ -297,8 +366,10 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_asn1_size_forms),
         cmocka_unit_test_setup(test_ecsig_to_rs, setup),
-        cmocka_unit_test_setup(test_ecsig_to_rs_keeps_leading_zero, setup),
-        cmocka_unit_test_setup(test_ecsig_s_too_large, setup),
+        cmocka_unit_test_setup(test_ecsig_to_rs_wider_output, setup),
+        cmocka_unit_test_setup(test_ecsig_to_rs_pads_short_values, setup),
+        cmocka_unit_test_setup(test_ecsig_too_large, setup),
+        cmocka_unit_test_setup(test_ecsig_truncated, setup),
         cmocka_unit_test_setup(test_ecsig_bad_encoding, setup),
         cmocka_unit_test(test_ec_public_key_data),
         cmocka_unit_test(test_ec_public_key_output_too_small),

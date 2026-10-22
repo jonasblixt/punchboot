@@ -204,45 +204,6 @@ static int caam_shedule_job_sync(void)
     return caam_wait_for_job();
 }
 
-static int caam_der_ecsig_to_rs(const uint8_t *sig, size_t rs_length, uint8_t *r, uint8_t *s)
-{
-    size_t sz;
-    int rc;
-    const uint8_t *p = sig;
-
-    if (*p++ != 0x30) {
-        return -PB_ERR_ASN1;
-    }
-
-    rc = asn1_size(&p, &sz);
-
-    if (rc != 0)
-        return rc;
-
-    if (*p++ != 0x02)
-        return -PB_ERR_ASN1;
-
-    rc = asn1_size(&p, &sz);
-
-    if (rc != 0)
-        return rc;
-
-    memcpy(&r[MAX((int)(rs_length - sz), 0)], &p[MAX((int)(sz - rs_length), 0)], sz);
-    p += sz;
-
-    if (*p++ != 0x02)
-        return -PB_ERR_ASN1;
-
-    rc = asn1_size(&p, &sz);
-
-    if (rc != 0)
-        return rc;
-
-    memcpy(&s[MAX((int)(rs_length - sz), 0)], &p[MAX((int)(sz - rs_length), 0)], sz);
-
-    return PB_OK;
-}
-
 static int caam_ecda_verify(const uint8_t *der_signature,
                             size_t sig_length,
                             const uint8_t *der_key,
@@ -289,7 +250,7 @@ static int caam_ecda_verify(const uint8_t *der_signature,
         return -PB_ERR_NOT_SUPPORTED;
     };
 
-    rc = caam_der_ecsig_to_rs(der_signature, rs_length, caam.ecdsa_r, caam.ecdsa_s);
+    rc = der_ecsig_to_rs(der_signature, sig_length, caam.ecdsa_r, caam.ecdsa_s, rs_length);
 
     if (rc != PB_OK)
         return rc;
