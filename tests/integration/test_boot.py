@@ -138,8 +138,20 @@ def test_image_with_unknown_key_id_is_rejected(device: Device, tmp_path: pathlib
         ("sha256", "prime256v1", "pb-development", "pki/secp256r1-key-pair.pem"),
         ("sha384", "secp384r1", "pb-development2", "pki/secp384r1-key-pair.pem"),
         ("sha512", "secp521r1", "pb-development3", "pki/secp521r1-key-pair.pem"),
+        # A digest shorter than the curve (F-058)
+        ("sha256", "secp384r1", "pb-development2", "pki/secp384r1-key-pair.pem"),
+        ("sha384", "secp521r1", "pb-development3", "pki/secp521r1-key-pair.pem"),
+        # A digest longer than the curve
+        ("sha512", "prime256v1", "pb-development", "pki/secp256r1-key-pair.pem"),
     ],
-    ids=["secp256r1", "secp384r1", "secp521r1"],
+    ids=[
+        "secp256r1",
+        "secp384r1",
+        "secp521r1",
+        "sha256-secp384r1",
+        "sha384-secp521r1",
+        "sha512-secp256r1",
+    ],
 )
 def test_signature_formats(
     device: Device,
