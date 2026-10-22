@@ -663,19 +663,22 @@ static int cmd_slc_read(void)
         return rc;
 
     for (size_t i = 0; i < rot_no_of_keys(); i++) {
-        rc = rot_read_key_status_by_idx(i);
+        int key_rc = rot_read_key_status_by_idx(i);
         key_id_t key_id = rot_key_idx_to_id(i);
 
-        if (rc == PB_OK)
+        if (key_rc == PB_OK)
             key_status.active[i] = key_id;
-        else if (rc == -PB_ERR_KEY_REVOKED)
+        else if (key_rc == -PB_ERR_KEY_REVOKED)
             key_status.revoked[i] = key_id;
-        LOG_INFO("Key 0x%x status=%i", key_id, rc);
+        else if (rc == PB_OK)
+            rc = key_rc;
+        LOG_INFO("Key 0x%x status=%i", key_id, key_rc);
     }
 
     cm_write(&key_status, sizeof(key_status));
-    pb_wire_init_result(&result, error_to_wire(PB_OK));
 
+    /* A revoked key is in the key status, the result is only for errors
+     * reading it. It used to be the last key's status (F-072). */
     return rc;
 }
 

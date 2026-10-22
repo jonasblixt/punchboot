@@ -62,11 +62,6 @@ def test_end_of_life(device: Device) -> None:
         assert s.slc_get_lifecycle() == punchboot.SLC.SLC_EOL
 
 
-@pytest.mark.xfail(
-    raises=punchboot.KeyRevokedError,
-    strict=True,
-    reason="F-072: SLC read reports the last key's status as its result",
-)
 def test_slc_read_with_last_key_revoked(device: Device) -> None:
     with device.session() as s:
         s.slc_revoke_key(LAST_KEY_ID)

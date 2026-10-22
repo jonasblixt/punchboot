@@ -290,6 +290,7 @@ static struct {
     int get_key_rc;
     dsa_t key_kind;
     uint32_t revoked; /* Bit per key index */
+    uint32_t key_io_error; /* Bit per key index */
     int revoke_rc;
     key_id_t revoked_id;
 } sec;
@@ -343,6 +344,8 @@ size_t rot_no_of_keys(void)
 
 int rot_read_key_status_by_idx(unsigned int index)
 {
+    if (sec.key_io_error & (1u << index))
+        return -PB_ERR_IO;
     return (sec.revoked & (1u << index)) ? -PB_ERR_KEY_REVOKED : PB_OK;
 }
 
@@ -965,7 +968,6 @@ static void test_slc_commands(void **state)
     struct pb_command_revoke_key revoke = { .key_id = 0x1001 };
     (void)state;
 
-    /* Not the last key: then the final result is KEY_REVOKED (F-072) */
     sec.revoked = 1u << 0;
     host_cmd(PB_CMD_SLC_READ, NULL, 0);
     host_cmd(PB_CMD_SLC_SET_CONFIGURATION, NULL, 0);
@@ -1011,6 +1013,38 @@ static void test_slc_errors(void **state)
     sec.slc = -PB_ERR_IO;
     host_cmd(PB_CMD_SLC_READ, NULL, 0);
     run();
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+}
+
+static void test_slc_read_key_status(void **state)
+{
+    (void)state;
+
+    /* A revoked last key is not an error (F-072) */
+    sec.revoked = 1u << 1;
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    const struct pb_result_slc_key_status *keys = (const void *)expect_data(sizeof(*keys));
+    assert_int_equal(keys->active[0], 0x1000);
+    assert_int_equal(keys->revoked[1], 0x1001);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    /* A key that can't be read is an error, but the others are still
+     * reported */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    sec.key_io_error = 1u << 0;
+    sec.revoked = 1u << 1;
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    keys = (const void *)expect_data(sizeof(*keys));
+    assert_int_equal(keys->active[0], 0);
+    assert_int_equal(keys->revoked[0], 0);
+    assert_int_equal(keys->revoked[1], 0x1001);
     expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
 }
@@ -1456,6 +1490,7 @@ int main(void)
         CM_TEST(test_auth_password),
         CM_TEST(test_slc_commands),
         CM_TEST(test_slc_errors),
+        CM_TEST(test_slc_read_key_status),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
         CM_TEST(test_part_verify),
