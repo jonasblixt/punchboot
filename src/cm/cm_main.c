@@ -30,6 +30,16 @@ static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
 static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KiB * 1024] __section(".no_init") __aligned(4096);
 static slc_t slc;
+
+/* The part table response sends the low byte of the bio flags and the SLC
+ * response sends slc_t, so both must match the wire values (D-008). */
+_Static_assert(BIO_FLAG_BOOTABLE == PB_WIRE_PART_FLAG_BOOTABLE, "bio flag");
+_Static_assert(BIO_FLAG_WRITABLE == PB_WIRE_PART_FLAG_WRITABLE, "bio flag");
+_Static_assert(BIO_FLAG_ERASE_BEFORE_WRITE == PB_WIRE_PART_FLAG_ERASE_BEFORE_WRITE, "bio flag");
+_Static_assert((int)SLC_NOT_CONFIGURED == (int)PB_SLC_NOT_CONFIGURED, "slc value");
+_Static_assert((int)SLC_CONFIGURATION == (int)PB_SLC_CONFIGURATION, "slc value");
+_Static_assert((int)SLC_CONFIGURATION_LOCKED == (int)PB_SLC_CONFIGURATION_LOCKED, "slc value");
+_Static_assert((int)SLC_EOL == (int)PB_SLC_EOL, "slc value");
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uuid_t device_uu;
 static bio_dev_t block_dev;

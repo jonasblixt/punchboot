@@ -14,6 +14,21 @@ frozen (D-001).
 
 ## Phase 1: Security and correctness fixes
 
+- **Compatibility guards first (D-008, `compatibility.md`)**, before fixes that touch the wire or
+  image handling (F-055, F-075, the bpak re-sync). In order of value per effort:
+  1. Done: frozen layout file `tests/compat/abi.txt`, only-grows check in CI and pre-commit,
+     `_Static_assert`s on the struct sizes (`compatibility.md`, Guards).
+  2. Done for bpak 0.9.3: golden images in `tests/compat/bpak/`, booted from RAM and from a
+     partition by `test_compat.py`, plus pinned ids and the Python mirrors. Still open: images
+     from older bpak CLIs (0.5-0.8 need Mbed TLS 2.x to build).
+  3. Old hosts against the current device: a CI job installs released `punchboot` wheels from PyPI
+     (2.0.0 and up, as available) and runs a read-mostly subset of the integration tests against
+     today's pb-host.
+  4. Recorded transcripts: raw command/response bytes for each command, captured once, replayed
+     against pb-host (old host → new device) and served by a fake socket device to the current
+     host library (new host → old device). From the first release after this branch, also keep
+     each release's pb-host to test the current wheel against it.
+  5. CODEOWNERS + a PR template checkbox for the files listed in `compatibility.md`.
 - F-001..F-008, each with a regression test in the QEMU suite where possible.
 - Decide the SLC EOL semantics (F-002).
 - Device tree without the pb properties (F-071, wanted by Jonas). Today the board DTBs must already
@@ -36,6 +51,7 @@ frozen (D-001).
 
 - Mbed TLS 3.4 → 3.6 LTS (F-020); trim `mbedtls_config.h`.
 - Re-sync vendored bpak to v0.9.3 without changing the format (F-011, F-021). Add a sync script and record the version.
+  Needs the golden bpak corpus and the layout manifest first (Phase 1).
 - Record the version of each vendored component in a manifest (F-022).
 
 ## Phase 3: Host tools
@@ -60,7 +76,12 @@ frozen (D-001).
 ## Later / to discuss
 
 - Build system: keep Make + Kconfiglib, or move to CMake/Meson?
-- Wire protocol version field and capability negotiation.
+- Wire protocol version field and capability negotiation. Only next to `PBL0` and the caps
+  command, never replacing them (D-008).
 - Anti-rollback version counter (fuse-backed).
 - PyPI trusted publishing. Linux aarch64 wheels.
-- bpak format changes (explicitly deferred).
+- bpak format extensions. Only backward compatible ones (D-008).
+- Low prio: move the whole repo to `jonas@blxt.se`. Simple part: the copyright headers that still
+  say `jonpe960@gmail.com` (one commit). Rewriting the history of the ~1000 old commits would
+  change every hash and tag (the PyPI releases point at tags), so decide that separately. The
+  Coverity upload in `build.yml` also uses the old email and the `jonpe960/punchboot` project.

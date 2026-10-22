@@ -13,6 +13,9 @@ if plat == "Windows":
     _libraries = ["libusb-1.0"]
     _library_dirs = ["vcpkg_installed\\x64-windows\\lib"]
     _include_dirs = ["include", "vcpkg_installed\\x64-windows\\include"]
+    # MSVC defaults to a C dialect without _Static_assert, which src/wire.c
+    # uses to check the frozen wire layout.
+    _extra_compile_args = ["/std:c11"]
 elif plat == "Darwin":
     # We have two different builds of libusb to build x86_64 and arm64 wheels
     # on an x86_64 runner.
@@ -22,10 +25,12 @@ elif plat == "Darwin":
     _libraries = ["usb-1.0"]
     _library_dirs = [f"libusb_{_target_arch}/1.0.27/lib"]
     _include_dirs = ["include", f"libusb_{_target_arch}/1.0.27/include"]
+    _extra_compile_args = []
 else:
     _libraries = ["usb-1.0"]
     _library_dirs = []
     _include_dirs = ["include"]
+    _extra_compile_args = []
 
 
 _srcs = [
@@ -91,6 +96,7 @@ setup(
             libraries=_libraries,
             library_dirs=_library_dirs,
             include_dirs=_include_dirs,
+            extra_compile_args=_extra_compile_args,
         )
     ],
     install_requires=["semver>=3,<4", "click>=8.2,<9"],

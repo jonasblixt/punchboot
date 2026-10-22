@@ -1,0 +1,234 @@
+# Wire protocol (include/pb-tools/wire.h, error.h)
+value PB_WIRE_MAGIC 0x50424c30
+value PB_COMMAND_REQUEST_MAX_SIZE 504
+value PB_RESULT_RESPONSE_MAX_SIZE 504
+value PB_AUTH_INVALID 0
+value PB_AUTH_ASYM_TOKEN 1
+value PB_AUTH_PASSWORD 2
+value PB_CMD_INVALID 0
+value PB_CMD_DEVICE_RESET 1
+value PB_CMD_DEVICE_IDENTIFIER_READ 2
+value PB_CMD_DEVICE_READ_CAPS 3
+value PB_CMD_SLC_SET_CONFIGURATION 4
+value PB_CMD_SLC_SET_CONFIGURATION_LOCK 5
+value PB_CMD_SLC_SET_EOL 6
+value PB_CMD_SLC_REVOKE_KEY 7
+value PB_CMD_SLC_READ 8
+value PB_CMD_BOOTLOADER_VERSION_READ 9
+value PB_CMD_PART_TBL_READ 10
+value PB_CMD_PART_TBL_INSTALL 11
+value PB_CMD_PART_VERIFY 12
+value PB_CMD_PART_ACTIVATE 13
+value PB_CMD_PART_BPAK_READ 14
+value PB_CMD_PART_ERASE 15
+value PB_CMD_AUTHENTICATE 16
+value PB_CMD_AUTH_SET_PASSWORD 17
+value PB_CMD_STREAM_INITIALIZE 18
+value PB_CMD_STREAM_PREPARE_BUFFER 19
+value PB_CMD_STREAM_WRITE_BUFFER 20
+value PB_CMD_STREAM_FINALIZE 21
+value PB_CMD_BOOT_PART 22
+value PB_CMD_BOOT_BPAK 23
+value PB_CMD_BOARD_COMMAND 24
+value PB_CMD_BOARD_STATUS_READ 25
+value PB_CMD_STREAM_READ_BUFFER 26
+value PB_CMD_PART_RESIZE 27
+value PB_CMD_BOOT_STATUS 28
+value PB_RESULT_OK 0
+value PB_RESULT_ERROR 1
+value PB_RESULT_AUTHENTICATION_FAILED 2
+value PB_RESULT_NOT_AUTHENTICATED 3
+value PB_RESULT_NOT_SUPPORTED 4
+value PB_RESULT_INVALID_ARGUMENT 5
+value PB_RESULT_INVALID_COMMAND 6
+value PB_RESULT_PART_VERIFY_FAILED 7
+value PB_RESULT_PART_NOT_BOOTABLE 8
+value PB_RESULT_NO_MEMORY 9
+value PB_RESULT_TRANSFER_ERROR 10
+value PB_RESULT_NOT_FOUND 11
+value PB_RESULT_STREAM_NOT_INITIALIZED 12
+value PB_RESULT_TIMEOUT 13
+value PB_RESULT_KEY_REVOKED 14
+value PB_RESULT_SIGNATURE_ERROR 15
+value PB_RESULT_MEM_ERROR 16
+value PB_RESULT_IO_ERROR 17
+value PB_SLC_INVALID 0
+value PB_SLC_NOT_CONFIGURED 1
+value PB_SLC_CONFIGURATION 2
+value PB_SLC_CONFIGURATION_LOCKED 3
+value PB_SLC_EOL 4
+value PB_WIRE_PART_FLAG_BOOTABLE 1
+value PB_WIRE_PART_FLAG_OTP 2
+value PB_WIRE_PART_FLAG_WRITABLE 4
+value PB_WIRE_PART_FLAG_ERASE_BEFORE_WRITE 8
+value BIO_FLAG_BOOTABLE 1
+value BIO_FLAG_WRITABLE 4
+value BIO_FLAG_ERASE_BEFORE_WRITE 8
+value BIO_FLAG_VISIBLE 32
+value BIO_FLAG_READABLE 64
+value SLC_INVALID 0
+value SLC_NOT_CONFIGURED 1
+value SLC_CONFIGURATION 2
+value SLC_CONFIGURATION_LOCKED 3
+value SLC_EOL 4
+struct pb_command 512
+field pb_command.magic 0 4
+field pb_command.command 4 1
+field pb_command.request 8 504
+struct pb_result 512
+field pb_result.magic 0 4
+field pb_result.result_code 4 1
+field pb_result.response 8 504
+struct pb_result_device_caps 32
+field pb_result_device_caps.stream_no_of_buffers 0 1
+field pb_result_device_caps.stream_buffer_size 1 4
+field pb_result_device_caps.operation_timeout_ms 5 2
+field pb_result_device_caps.part_erase_timeout_ms 7 2
+field pb_result_device_caps.bpak_stream_support 9 1
+field pb_result_device_caps.chunk_transfer_max_bytes 10 4
+struct pb_result_part_table_read 32
+field pb_result_part_table_read.no_of_entries 0 1
+struct pb_result_part_table_entry 128
+field pb_result_part_table_entry.uuid 0 16
+field pb_result_part_table_entry.description 16 37
+field pb_result_part_table_entry.first_block 53 8
+field pb_result_part_table_entry.last_block 61 8
+field pb_result_part_table_entry.block_size 69 2
+field pb_result_part_table_entry.flags 71 1
+struct pb_command_stream_initialize 32
+field pb_command_stream_initialize.part_uuid 0 16
+struct pb_command_stream_prepare_buffer 32
+field pb_command_stream_prepare_buffer.size 0 4
+field pb_command_stream_prepare_buffer.id 4 1
+struct pb_command_stream_write_buffer 32
+field pb_command_stream_write_buffer.size 0 4
+field pb_command_stream_write_buffer.offset 4 8
+field pb_command_stream_write_buffer.buffer_id 12 1
+struct pb_command_stream_read_buffer 32
+field pb_command_stream_read_buffer.size 0 4
+field pb_command_stream_read_buffer.offset 4 8
+field pb_command_stream_read_buffer.buffer_id 12 1
+struct pb_command_authenticate 32
+field pb_command_authenticate.method 0 1
+field pb_command_authenticate.size 1 2
+field pb_command_authenticate.key_id 3 4
+struct pb_command_verify_part 55
+field pb_command_verify_part.uuid 0 16
+field pb_command_verify_part.sha256 16 32
+field pb_command_verify_part.size 48 4
+field pb_command_verify_part.bpak 52 1
+struct pb_command_activate_part 32
+field pb_command_activate_part.uuid 0 16
+struct pb_command_read_bpak 32
+field pb_command_read_bpak.uuid 0 16
+struct pb_command_erase_part 32
+field pb_command_erase_part.uuid 0 16
+field pb_command_erase_part.start_lba 16 4
+field pb_command_erase_part.block_count 20 4
+struct pb_command_install_part_table 17
+field pb_command_install_part_table.uu 0 16
+field pb_command_install_part_table.variant 16 1
+struct pb_result_device_identifier 55
+field pb_result_device_identifier.device_uuid 0 16
+field pb_result_device_identifier.board_id 16 16
+struct pb_result_slc 32
+field pb_result_slc.slc 0 1
+struct pb_result_slc_key_status 128
+field pb_result_slc_key_status.active 0 64
+field pb_result_slc_key_status.revoked 64 64
+struct pb_command_revoke_key 32
+field pb_command_revoke_key.key_id 0 4
+struct pb_command_boot_part 32
+field pb_command_boot_part.uuid 0 16
+field pb_command_boot_part.verbose 16 1
+struct pb_command_bpak_boot 32
+field pb_command_bpak_boot.verbose 0 1
+field pb_command_bpak_boot.uuid 1 16
+struct pb_command_board 32
+field pb_command_board.command 0 4
+field pb_command_board.request_size 4 4
+field pb_command_board.response_buffer_size 8 4
+struct pb_result_board 32
+field pb_result_board.size 0 4
+struct pb_result_board_status 32
+field pb_result_board_status.size 0 4
+struct pb_result_boot_status 32
+field pb_result_boot_status.uuid 0 16
+field pb_result_boot_status.status 16 16
+# bpak format (include/bpak/bpak.h, id.h)
+value BPAK_HEADER_MAGIC 0x42504132
+value BPAK_MAX_PARTS 32
+value BPAK_MAX_META 32
+value BPAK_METADATA_BYTES 1920
+value BPAK_PART_ALIGN 512
+value BPAK_SIGNATURE_MAX_BYTES 512
+value BPAK_HASH_MAX_LENGTH 64
+value BPAK_HASH_INVALID 0
+value BPAK_HASH_SHA256 1
+value BPAK_HASH_SHA384 2
+value BPAK_HASH_SHA512 3
+value BPAK_SIGN_INVALID 0
+value BPAK_SIGN_RSA4096 1
+value BPAK_SIGN_PRIME256v1 2
+value BPAK_SIGN_SECP384r1 3
+value BPAK_SIGN_SECP521r1 4
+value BPAK_KEY_INVALID 0
+value BPAK_KEY_PUB_RSA4096 1
+value BPAK_KEY_PUB_PRIME256v1 2
+value BPAK_KEY_PUB_SECP384r1 3
+value BPAK_KEY_PUB_SECP521r1 4
+value BPAK_KEY_PRI_RSA4096 5
+value BPAK_KEY_PRI_PRIME256v1 6
+value BPAK_KEY_PRI_SECP384r1 7
+value BPAK_KEY_PRI_SECP521r1 8
+value BPAK_COMPRESSION_NONE 0
+value BPAK_COMPRESSION_HS 1
+value BPAK_COMPRESSION_LZMA 2
+value BPAK_FLAG_EXCLUDE_FROM_HASH 1
+value BPAK_FLAG_TRANSPORT 2
+id BPAK_ID_BPAK_TRANSPORT 0x2d44bbfb
+id BPAK_ID_MERKLE_SALT 0x7c9b2f93
+id BPAK_ID_MERKLE_ROOT_HASH 0xe68fc9be
+id BPAK_ID_KEYSTORE_PROVIDER_ID 0xfb367d9a
+id BPAK_ID_BPAK_VERSION 0x9a5bab69
+id BPAK_ID_PB_LOAD_ADDR 0xd1e64a4b
+id BPAK_ID_BPAK_PACKAGE 0xfb2f1f3f
+id BPAK_ID_BPAK_KEY_ID 0x7da19399
+id BPAK_ID_BPAK_KEY_STORE 0x106c13a7
+id BPAK_ID_BSDIFF 0x9f7aacf9
+id BPAK_ID_BSDIFF_LZMA 0x1607e56e
+id BPAK_ID_BSDIFF_NO_COMP 0x0a878e3e
+id BPAK_ID_BSPATCH 0xb5964388
+id BPAK_ID_BSPATCH_LZMA 0x933a9893
+id BPAK_ID_BSPATCH_NO_COMP 0x75622592
+id BPAK_ID_MERKLE_GENERATE 0xb5bcc58f
+id BPAK_ID_REMOVE_DATA 0x57004cd0
+struct bpak_transport_meta 32
+field bpak_transport_meta.alg_id_encode 0 4
+field bpak_transport_meta.alg_id_decode 4 4
+field bpak_transport_meta.data 8 24
+struct bpak_part_header 32
+field bpak_part_header.id 0 4
+field bpak_part_header.size 4 8
+field bpak_part_header.offset 12 8
+field bpak_part_header.transport_size 20 8
+field bpak_part_header.pad_bytes 28 2
+field bpak_part_header.flags 30 1
+struct bpak_meta_header 16
+field bpak_meta_header.id 0 4
+field bpak_meta_header.size 4 2
+field bpak_meta_header.offset 6 2
+field bpak_meta_header.part_id_ref 8 4
+struct bpak_header 4096
+field bpak_header.magic 0 4
+field bpak_header.meta 8 512
+field bpak_header.parts 520 1024
+field bpak_header.metadata 1544 1920
+field bpak_header.hash_kind 3464 1
+field bpak_header.signature_kind 3465 1
+field bpak_header.alignment 3466 2
+field bpak_header.payload_hash 3468 64
+field bpak_header.key_id 3532 4
+field bpak_header.keystore_id 3536 4
+field bpak_header.signature 3582 512
+field bpak_header.signature_sz 4094 2

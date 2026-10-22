@@ -37,3 +37,12 @@ repos:
   hooks:
   - id: clang-format
     exclude: (src/boot/atf-interface/)
+
+- repo: local
+  hooks:
+  - id: compat-abi-only-grows
+    name: tests/compat/abi.txt only grows (D-008)
+    entry: python tests/compat/check_abi.py history tests/compat/abi.txt --against HEAD
+    language: python
+    files: ^tests/compat/abi\.txt$
+    pass_filenames: false

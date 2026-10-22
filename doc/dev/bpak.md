@@ -1,7 +1,7 @@
 # bpak in punchboot
 
-Upstream: `../bpak` (github.com/jonasblixt/bpak), currently v0.9.3. The file format is
-frozen for now (D-001).
+Upstream: `../bpak` (github.com/jonasblixt/bpak), currently v0.9.3. The file format must
+stay backward compatible, permanently (D-008, supersedes D-001). What is frozen: `compatibility.md`.
 
 ## What is vendored
 
@@ -19,6 +19,7 @@ frozen for now (D-001).
 - Metadata: `bpak_get_meta*`, only for `pb-load-addr` (u64 per part). `src/boot/atf.c` also uses `optee-arch` (`0x99e5e80a`).
 - Board files hardcode part IDs (`atf`, `dt`, `ramdisk`, `kernel`) as hex constants.
 - **Signature and payload verification are punchboot's own** (`src/boot/image_helpers.c`). They do not go through bpak's verify code.
+  They differ from upstream on `BPAK_FLAG_EXCLUDE_FROM_HASH` (F-076).
 - Not used: merkle, transport/delta, the bpak crypto and pkg APIs.
 
 ## Coupling points

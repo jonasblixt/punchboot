@@ -25,7 +25,7 @@ File = "__IMG_PEM__"
 
 [Unlock]
     Engine = OCOTP
-    Features = SRK Revoke
+    Features = SRKREVOKE
 
 [Authenticate Data]
 Verification index = 2

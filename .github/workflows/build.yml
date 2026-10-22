@@ -23,6 +23,30 @@ jobs:
       - name: Unit and integration tests
         run: scripts/pbdev test ${{ matrix.cmake_args }}
 
+  compat:
+    name: Compatibility (frozen values and golden images)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Every value frozen at the branch point must still be there (D-008).
+      # compat.abi in the host tests checks that abi.txt matches the code.
+      - name: Check abi.txt and the golden bpak images against the base branch
+        env:
+          BASE: ${{ github.base_ref || 'master' }}
+        run: |
+          base="$(git merge-base HEAD "origin/$BASE")"
+          python3 tests/compat/check_abi.py history tests/compat/abi.txt --against "$base"
+          python3 tests/compat/check_abi.py history tests/compat/bpak/SHA256SUMS --against "$base"
+          changed="$(git diff --name-only --diff-filter=DMRT "$base" -- 'tests/compat/bpak/*.bpak')"
+          if [ -n "$changed" ]; then
+            echo "Golden bpak images are never changed or removed (D-008):"
+            echo "$changed"
+            exit 1
+          fi
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest

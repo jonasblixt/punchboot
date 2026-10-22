@@ -55,3 +55,15 @@ names the finding. In pytest, a known bug gets a `xfail(strict=True)` test that 
 so the fix shows up as an XPASS.
 Why: the integration tests can't reach most error paths, and a test that passes on buggy behaviour
 would have to be changed by the fix.
+
+## D-008: Never break backward compatibility of the wire protocol or the bpak format (2026-10-22)
+
+Supersedes D-001. This is permanent, not "for now". Released hosts must keep working with new
+devices, new hosts with released devices, and every image that a released bpak CLI produced and a
+released punchboot accepted must still be accepted. Extensions are allowed when they are additive
+and opt-in (append-only enums, fields taken from reserved bytes where zero keeps the old
+behaviour, new commands that old devices reject cleanly, capabilities). Rejecting images that were
+always invalid is the only exception, and needs its own decision entry. `compatibility.md` lists
+what is frozen, how to extend, and the guards.
+Why: devices in the field are not updated in step with the tools, factory lines pin tool versions,
+and signed images outlive both.
