@@ -817,11 +817,13 @@ static int pb_command_parse(void)
         pb_wire_init_result(&result, error_to_wire(rc));
         cm_write(&result, sizeof(result));
 
-        if (cfg->tops.disconnect) {
-            cfg->tops.disconnect();
-        }
-
         if (rc == PB_OK) {
+            /* Only disconnect when booting, cm_run reads the next command
+             * from the transport after an error */
+            if (cfg->tops.disconnect) {
+                cfg->tops.disconnect();
+            }
+
             rc = boot_jump();
             /* Should not return */
         }

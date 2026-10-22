@@ -1285,11 +1285,21 @@ static void test_boot_part(void **state)
     assert_memory_equal(fake_boot.load_uu, UU_RW, 16);
     assert_int_equal(fake_boot.jump_calls, 0);
 
+    /* A failed boot keeps the transport up for the next command */
+    t.init_calls = 0;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+    host_cmd(PB_CMD_BOOT_PART, &req, sizeof(req));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(-PB_RESULT_SIGNATURE_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
+
     /* The fake jump returns, which is a command error */
     t.init_calls = 0;
     fake_boot.load_rc = PB_OK;
-    board_cfg = &cfg_all_callbacks;
-    t.connect_ok_after = 0;
     host_cmd(PB_CMD_BOOT_PART, &req, sizeof(req));
     run();
     expect_result(PB_RESULT_OK);
