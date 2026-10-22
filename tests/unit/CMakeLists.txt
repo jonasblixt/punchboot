@@ -42,6 +42,10 @@ pb_unit_test(test_wire SOURCES
 
 pb_unit_test(test_der)
 
+pb_unit_test(test_rom_log SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/rom_log.c
+)
+
 pb_unit_test(test_crypto
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/crypto.c

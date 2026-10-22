@@ -14,6 +14,7 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <plat/imx6ul/imx6ul.h>
+#include <plat/imx6ul/rom_log.h>
 #include <uuid.h>
 #include <xlat_tables.h>
 
@@ -192,6 +193,8 @@ static int plat_mmu_init(void)
 
 int plat_init(void)
 {
+    imx6ul_rom_log_save();
+
     /* Unmask wdog in SRC control reg */
     mmio_clrsetbits_32(IMX6UL_SRC_SCR,
                        SRC_SCR_MASK_WDOG_RST_MASK | SRC_SCR_WARM_RESET_ENABLE,

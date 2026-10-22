@@ -30,6 +30,7 @@
 #include <pb/slc.h>
 #include <plat/imx6ul/fusebox.h>
 #include <plat/imx6ul/imx6ul.h>
+#include <plat/imx6ul/rom_log.h>
 
 #include "partitions.h"
 
@@ -161,6 +162,10 @@ static int board_command(uint32_t command,
                          size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
+
+    if (command == 0xd3399b11) /* dump-rom-log */
+        return imx6ul_rom_log_dump((char *)response_bfr, response_size);
+
     *response_size = 0;
     return PB_OK;
 }
