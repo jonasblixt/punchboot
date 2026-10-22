@@ -570,8 +570,20 @@ static void test_copy_and_hash_errors(void **state)
     fake.init_rc = PB_OK;
 
     fake.update_rc = -PB_ERR_IO;
-    assert_int_equal(boot_image_copy_and_hash(hdr, src, 0, dst, 0, digest, 64), -PB_ERR_IO);
+    assert_int_equal(
+        boot_image_copy_and_hash(hdr, src, sizeof(payload), dst, sizeof(load_area), digest, 64),
+        -PB_ERR_IO);
     fake.update_rc = PB_OK;
+
+    /* A part that doesn't fit in the source or the destination is not copied */
+    load_setup();
+    assert_int_equal(
+        boot_image_copy_and_hash(hdr, src, sizeof(payload) - 1, dst, sizeof(load_area), digest, 64),
+        -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(
+        boot_image_copy_and_hash(hdr, src, sizeof(payload), dst, sizeof(load_area) - 1, digest, 64),
+        -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(load_area[sizeof(load_area) - 1], 0);
 }
 
 static void test_verify_payload(void **state)
