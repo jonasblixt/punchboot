@@ -64,7 +64,7 @@ static struct {
 
     int read_cb_rc;
     int read_cb_calls;
-    int read_cb_offset;
+    int64_t read_cb_offset;
     int result_cb_calls;
     int last_result;
 } fake;
@@ -164,10 +164,10 @@ static void fake_jump(void)
     fake.jump_calls++;
 }
 
-static int fake_read_cb(int block_offset, size_t length, void *buf)
+static int fake_read_cb(int64_t offset, size_t length, void *buf)
 {
     fake.read_cb_calls++;
-    fake.read_cb_offset = block_offset;
+    fake.read_cb_offset = offset;
     memset(buf, 0, length);
     return fake.read_cb_rc;
 }
@@ -317,7 +317,15 @@ static void test_bio_boot(void **state)
     assert_int_equal(fake.jump_calls, 1);
     /* A failed boot clears the flags */
     assert_int_equal(boot_get_flags(), 0);
-    (void)f;
+
+    /* The payload is read at byte offsets, in the device's blocks (F-062) */
+    uint8_t buf[RAMDISK_BLOCK_SIZE];
+    memset(ramdisk_block(f->disk, 12), 0xa5, RAMDISK_BLOCK_SIZE);
+    assert_int_equal(fake.load_read_f(2 * RAMDISK_BLOCK_SIZE, sizeof(buf), buf), PB_OK);
+    assert_int_equal(buf[0], 0xa5);
+    assert_int_equal(buf[RAMDISK_BLOCK_SIZE - 1], 0xa5);
+    assert_int_equal(fake.load_read_f(100, sizeof(buf), buf), -PB_ERR_ALIGN);
+    assert_int_equal(fake.load_read_f(-RAMDISK_BLOCK_SIZE, sizeof(buf), buf), -PB_ERR_ALIGN);
 }
 
 static void test_bio_boot_override(void **state)
@@ -457,7 +465,7 @@ static void test_cb_boot(void **state)
     assert_int_equal(boot_load((unsigned char *)UU_SYS_B), PB_OK);
     /* The header comes first, at a negative offset */
     assert_int_equal(fake.read_cb_calls, 1);
-    assert_int_equal(fake.read_cb_offset, -(int)(sizeof(struct bpak_header) / 512));
+    assert_int_equal(fake.read_cb_offset, -(int64_t)sizeof(struct bpak_header));
     assert_ptr_equal(fake.load_read_f, fake_read_cb);
     assert_ptr_equal(fake.load_result_f, fake_result_cb);
     /* After the header check and after the payload check */

@@ -260,10 +260,11 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             uintptr_t addr = load_addr + offset;
 
             if (read_f) {
-                size_t read_lba =
-                    (offset + bpak_part_offset(hdr, p) - sizeof(struct bpak_header)) / 512;
+                /* The block size is up to read_f, it used to be 512 here (F-062) */
+                int64_t read_offset =
+                    (int64_t)(offset + bpak_part_offset(hdr, p) - sizeof(struct bpak_header));
 
-                rc = read_f(read_lba, chunk_size, (void *)addr);
+                rc = read_f(read_offset, chunk_size, (void *)addr);
 
                 if (rc != PB_OK)
                     break;

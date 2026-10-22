@@ -602,9 +602,9 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
-static int bpak_boot_read_f(int block_offset, size_t length, void *buf)
+static int bpak_boot_read_f(int64_t offset, size_t length, void *buf)
 {
-    (void)block_offset;
+    (void)offset;
     return cm_read(buf, length);
 }
 
