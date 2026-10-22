@@ -57,8 +57,9 @@ a ruff bump can break the check (it happened in 2.7.0).
 
 - `build.yml` (D-006). All jobs run through `scripts/pbdev`, so the image is built in every job:
   - **host-tests:** default and sanitizer builds.
-  - **coverage:** gcovr XML, uploaded with `codecov/codecov-action` (non-fatal; there is no
-    `CODECOV_TOKEN` secret, so it relies on tokenless upload for public repos).
+  - **coverage:** gcovr XML, uploaded with `codecov/codecov-action` using OIDC (`id-token: write`),
+    so no `CODECOV_TOKEN` secret is needed. The upload is non-fatal: check the job log if Codecov
+    looks stale.
   - **firmware:** jiffy and imx8dxlevk `pb.bin`.
   - **coverity:** cov-build of jiffy inside the container. Only on pushes to master in
     jonasblixt/punchboot, because it needs `COVERITY_SCAN_TOKEN`.
