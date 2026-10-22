@@ -330,12 +330,12 @@ static int fail_read_at;
 static int results;
 static int last_result;
 
-static int read_f(int block_offset, size_t length, void *buf)
+static int read_f(int64_t offset, size_t length, void *buf)
 {
     reads++;
     if (reads == fail_read_at)
         return read_rc;
-    memcpy(buf, &payload[block_offset * 512], length);
+    memcpy(buf, &payload[offset], length);
     return PB_OK;
 }
 
