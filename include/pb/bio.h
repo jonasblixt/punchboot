@@ -358,7 +358,7 @@ int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count);
  *         -PB_ERR_IO, Driver I/O errors,
  *         -PB_TIMEOUT, Driver timeouts
  */
-int bio_install_partition_table(uuid_t part_uu, int variant);
+int bio_install_partition_table(const uuid_t part_uu, int variant);
 
 /**
  * Sets the partition install callback for 'dev'
