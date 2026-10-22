@@ -228,10 +228,8 @@ static int load_auth_verify_from_cb(void)
                                   payload_digest,
                                   sizeof(payload_digest));
 
-    if (rc != PB_OK)
-        return rc;
-
-    rc = boot_image_verify_payload(&header, payload_digest);
+    if (rc == PB_OK)
+        rc = boot_image_verify_payload(&header, payload_digest);
 
     if (result_cb) {
         result_cb(rc);

@@ -231,6 +231,8 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
     if (rc != PB_OK)
         return rc;
 
+    int hash_rc = PB_OK;
+
     bpak_foreach_part(hdr, p) {
         if (!p->id)
             break;
@@ -270,26 +272,42 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             /* Since we load chunks at an offset we can use the
              * async hash API (if the underlying driver supports it)
              */
-            rc = hash_update_async((void *)addr, chunk_size);
+            if (hash_rc == PB_OK)
+                hash_rc = hash_update_async((void *)addr, chunk_size);
 
-            if (rc != PB_OK)
-                break;
+            /* A host streaming the image (result_f) sends all of it and
+             * reads a result for every part, so after a hash error the
+             * rest is still read to stay in step with it (D-008) */
+            if (hash_rc != PB_OK && result_f == NULL)
+                return hash_rc;
 
             bytes_to_read -= chunk_size;
             offset += chunk_size;
         }
 
+        int part_rc = (rc != PB_OK) ? rc : hash_rc;
+
+        /* result_f reports whether the result could be sent, so it must
+         * not replace the part's error (F-061) */
         if (result_f) {
-            rc = result_f(rc);
+            int result_rc = result_f(part_rc);
+
+            if (result_rc != PB_OK)
+                return result_rc;
         }
 
+        /* Nothing more can be read after a read error */
         if (rc != PB_OK)
             return rc;
     }
 
-    if (rc == PB_OK)
-        return hash_final(payload_digest, payload_digest_size);
-    return rc;
+    if (rc != PB_OK)
+        return rc;
+
+    if (hash_rc != PB_OK)
+        return hash_rc;
+
+    return hash_final(payload_digest, payload_digest_size);
 }
 
 int boot_image_copy_and_hash(struct bpak_header *hdr,

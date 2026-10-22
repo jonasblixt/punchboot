@@ -346,6 +346,14 @@ static int result_f(int rc)
     return rc;
 }
 
+/* Like command mode: the result is sent, whatever it is */
+static int result_sent_f(int rc)
+{
+    results++;
+    last_result = rc;
+    return PB_OK;
+}
+
 static void load_setup(void)
 {
     for (size_t i = 0; i < sizeof(payload); i++)
@@ -465,6 +473,27 @@ static void test_load_and_hash_errors(void **state)
     fail_read_at = 1;
     read_rc = -PB_ERR_IO;
     assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_f, digest, 64), -PB_ERR_IO);
+    assert_int_equal(results, 1);
+    assert_int_equal(last_result, -PB_ERR_IO);
+
+    /* A hash error while a host streams the image: the error is kept, and
+     * the rest is still read with a result for every part (F-061) */
+    load_setup();
+    fake.update_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_sent_f, digest, 64),
+                     -PB_ERR_IO);
+    assert_int_equal(reads, 3);
+    assert_int_equal(results, 2);
+    assert_int_equal(last_result, -PB_ERR_IO);
+    fake.update_rc = PB_OK;
+
+    /* A read error ends the load, after its result */
+    load_setup();
+    fail_read_at = 2;
+    read_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_sent_f, digest, 64),
+                     -PB_ERR_IO);
+    assert_int_equal(reads, 2);
     assert_int_equal(results, 1);
     assert_int_equal(last_result, -PB_ERR_IO);
 
