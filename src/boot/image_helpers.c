@@ -363,6 +363,12 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
         size_t bytes_to_copy = bpak_part_size(p);
         size_t part_offset = bpak_part_offset(hdr, p) - sizeof(struct bpak_header);
 
+        if (part_offset > source_size || bytes_to_copy > source_size - part_offset ||
+            part_offset > destination_size || bytes_to_copy > destination_size - part_offset) {
+            rc = -PB_ERR_BUF_TOO_SMALL;
+            break;
+        }
+
         uintptr_t src_addr = source_address + part_offset;
         uintptr_t dst_addr = destination_address + part_offset;
 
