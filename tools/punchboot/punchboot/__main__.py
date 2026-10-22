@@ -138,7 +138,8 @@ def pb_session(f: TFunc) -> TFunc:
                 punchboot.MemError: "Memory",
                 punchboot.ArgumentError: "Bad argument",
                 punchboot.NotFoundError: "Could not connect to device",
-                punchboot.NotSupportedError: "Command not supported",
+                # Also for image hashes, key types, boot sources and board features
+                punchboot.NotSupportedError: "Not supported",
                 punchboot.KeyRevokedError: "Key is revoked",
                 punchboot.IOError: "I/O error",
             }

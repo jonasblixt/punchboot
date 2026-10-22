@@ -57,6 +57,15 @@ def test_error_exit_code(device: Device) -> None:
     assert result.returncode == 1
 
 
+def test_not_supported_message(device: Device) -> None:
+    # The host board has no password auth. NOT_SUPPORTED is also returned for
+    # image hashes and key types, so the message doesn't blame the command.
+    result = punchboot_cli(device, "auth", "password", "secret")
+
+    assert result.returncode == 1
+    assert result.stderr.strip() == "Error: Not supported"
+
+
 def test_dev_reset(device: Device) -> None:
     result = punchboot_cli(device, "dev", "reset")
 
