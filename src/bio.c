@@ -174,11 +174,15 @@ ssize_t bio_block_size(bio_dev_t dev)
 
 static int check_lba_range(bio_dev_t dev, lba_t lba, size_t length)
 {
-    size_t n_blocks = length / bio_pool[dev].block_sz;
+    /* 64-bit arithmetic, so that neither 'first_lba + lba' nor the block
+     * count can wrap around to a range that looks valid */
+    uint64_t n_blocks = length / bio_pool[dev].block_sz;
+    uint64_t part_blocks = (uint64_t)bio_pool[dev].last_lba - bio_pool[dev].first_lba + 1;
+
     if (length % bio_pool[dev].block_sz)
         n_blocks++;
 
-    if ((bio_pool[dev].first_lba + lba + n_blocks - 1) > bio_pool[dev].last_lba) {
+    if (lba >= part_blocks || n_blocks > part_blocks - lba) {
         return -1;
     }
 
@@ -195,7 +199,7 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     if (bio_pool[dev].read == NULL)
         return -PB_ERR_NOT_SUPPORTED;
     if (check_lba_range(dev, lba, length) != 0) {
-        LOG_ERR("Range error, lba=%i, length=%zu", lba, length);
+        LOG_ERR("Range error, lba=%u, length=%zu", lba, length);
         return -PB_ERR_PARAM;
     }
     return bio_pool[dev].read(dev, bio_pool[dev].first_lba + lba, length, buf);
@@ -210,8 +214,10 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
         return rc;
     if (bio_pool[dev].write == NULL)
         return -PB_ERR_NOT_SUPPORTED;
-    if (check_lba_range(dev, lba, length) != 0)
-        return -PB_ERR_IO;
+    if (check_lba_range(dev, lba, length) != 0) {
+        LOG_ERR("Range error, lba=%u, length=%zu", lba, length);
+        return -PB_ERR_PARAM;
+    }
 
     return bio_pool[dev].write(dev, bio_pool[dev].first_lba + lba, length, buf);
 }

@@ -10,6 +10,8 @@ from __future__ import annotations
 import contextlib
 import pathlib
 import shutil
+import socket
+import struct
 import subprocess
 import tempfile
 import time
@@ -196,6 +198,15 @@ class Device:
         finally:
             s.close()
 
+    @contextlib.contextmanager
+    def wire(self) -> Iterator[Wire]:
+        """Open a raw command mode connection, see Wire."""
+        w = Wire(self.socket)
+        try:
+            yield w
+        finally:
+            w.close()
+
     def reset(self) -> None:
         """Reset the device over command mode and wait for it to go down."""
         with self.session() as s:
@@ -259,6 +270,70 @@ class Device:
         self.write_blocks(PRIMARY_STATE_LBA, primary.read_bytes())
         self.write_blocks(BACKUP_STATE_LBA, backup.read_bytes())
         return result.stdout
+
+
+# Wire protocol, include/pb-tools/wire.h
+PB_WIRE_MAGIC = 0x50424C30
+PB_CMD_BOOTLOADER_VERSION_READ = 9
+PB_CMD_STREAM_INITIALIZE = 18
+PB_CMD_STREAM_PREPARE_BUFFER = 19
+PB_CMD_STREAM_WRITE_BUFFER = 20
+PB_CMD_STREAM_READ_BUFFER = 26
+PB_COMMAND_SIZE = 512
+PB_REQUEST_SIZE = 504
+
+
+class Wire:
+    """Raw command mode connection, for requests the punchboot package can't make.
+
+    Open it with Device.wire(). Like sessions, only one connection at a time.
+    """
+
+    def __init__(self, socket_path: pathlib.Path) -> None:
+        """Connect to a device in command mode."""
+        self._sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self._sock.settimeout(EXIT_TIMEOUT)
+        self._sock.connect(str(socket_path))
+
+    def close(self) -> None:
+        """Close the connection."""
+        self._sock.close()
+
+    def send_command(self, command: int, request: bytes = b"") -> None:
+        """Send a 512-byte command."""
+        if len(request) > PB_REQUEST_SIZE:
+            msg = "Request too large"
+            raise ValueError(msg)
+        header = struct.pack("<IB3x", PB_WIRE_MAGIC, command)
+        self.send(header + request.ljust(PB_REQUEST_SIZE, b"\0"))
+
+    def send(self, data: bytes) -> None:
+        """Send a data transfer."""
+        self._sock.sendall(data)
+
+    def recv(self, size: int) -> bytes:
+        """Receive exactly 'size' bytes."""
+        data = b""
+        while len(data) < size:
+            chunk = self._sock.recv(size - len(data))
+            if not chunk:
+                msg = "Connection closed by pb-host"
+                raise ConnectionError(msg)
+            data += chunk
+        return data
+
+    def result(self) -> int:
+        """Receive a 512-byte result and return its result code (0 or -PB_RESULT_*)."""
+        magic, code = struct.unpack_from("<Ib", self.recv(PB_COMMAND_SIZE))
+        if magic != PB_WIRE_MAGIC:
+            msg = f"Bad result magic {magic:#x}"
+            raise ValueError(msg)
+        return int(code)
+
+    def command(self, command: int, request: bytes = b"") -> int:
+        """Send a command that has no data transfers, and return its result code."""
+        self.send_command(command, request)
+        return self.result()
 
 
 def pbstate_binary() -> str:
