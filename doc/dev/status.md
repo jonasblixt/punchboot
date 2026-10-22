@@ -5,7 +5,7 @@ _Last updated: 2026-10-22_
 ## Current focus
 
 Moving the tests to the host is done (D-004..D-006, `testing.md`).
-- **Tests:** all 43 bash tests are ported (63 pytest plus 7 CMocka cases, ~9 s, ASan/UBSan clean,
+- **Tests:** all 43 bash tests are ported (76 pytest plus 15 CMocka cases, ~9 s, ASan/UBSan clean,
   58% line coverage). `scripts/pbdev test` runs it all.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (Codecov via OIDC), a
   firmware compile check (jiffy, imx8dxlevk) and Coverity, all in the dev container. All green on
@@ -16,7 +16,9 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`).
 ## Next steps
 
 1. PR #60 (`claude-work` → master) is open. Check the Coverity job after the merge.
-2. Unit tests for the low-coverage modules: `ab_state`, `image_helpers`, `bpak.c`, `der_helpers`,
+2. Fixed F-053, F-054, F-056 with tests (76 pytest + 15 CMocka). Next from the review: F-057 (CAAM
+   DER overflow), F-055 (erase), F-063, the boot-path bugs F-058..F-062, the rest of F-067. Then unit
+   tests for the low-coverage modules: `ab_state`, `image_helpers`, `bpak.c`, `der_helpers`,
    `wire`, `linux.c` (DTB patching).
 3. Fix F-049 (format strings). Consider `-Werror` for the host build.
 4. Phase 1: security fixes F-001, F-002, F-004, F-005, each with a test.
