@@ -101,6 +101,15 @@ static int gpt_has_valid_header(struct gpt_header *hdr)
 
     hdr->hdr_crc = crc_tmp;
 
+    /* The partition array must fit in the in-memory tables */
+    if (hdr->no_of_parts > ARRAY_SIZE(primary.part) ||
+        hdr->part_entry_sz != sizeof(struct gpt_part_hdr)) {
+        LOG_ERR("Unsupported partition array, %u entries of %u bytes",
+                hdr->no_of_parts,
+                hdr->part_entry_sz);
+        return PB_ERR;
+    }
+
     return PB_OK;
 }
 
@@ -408,7 +417,9 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
      * It's likely not worth the extra boot up time to compare the tables.
      */
 
-    for (struct gpt_part_hdr *p = primary.part; p->first_lba; p++) {
+    for (struct gpt_part_hdr *p = primary.part;
+         p < &primary.part[primary.hdr.no_of_parts] && p->first_lba;
+         p++) {
         int n = 0;
         uuid_to_guid(p->uuid, uu);
 
