@@ -13,15 +13,27 @@
 #include <pb/pb.h>
 #include <stdint.h>
 
-#define HAB_RVT_BASE               0x00000100
+#define HAB_RVT_BASE 0x00000100
 
-#define HAB_RVT_ENTRY              (*(uint32_t *)(HAB_RVT_BASE + 0x04))
-#define HAB_RVT_EXIT               (*(uint32_t *)(HAB_RVT_BASE + 0x08))
-#define HAB_RVT_CHECK_TARGET       (*(uint32_t *)(HAB_RVT_BASE + 0x0C))
-#define HAB_RVT_AUTHENTICATE_IMAGE (*(uint32_t *)(HAB_RVT_BASE + 0x10))
-#define HAB_RVT_REPORT_EVENT       (*(uint32_t *)(HAB_RVT_BASE + 0x20))
-#define HAB_RVT_REPORT_STATUS      (*(uint32_t *)(HAB_RVT_BASE + 0x24))
-#define HAB_RVT_FAILSAFE           (*(uint32_t *)(HAB_RVT_BASE + 0x28))
+/*
+ * The RVT is in ROM at a low address, which GCC takes for a NULL dereference
+ * (-Warray-bounds). The empty asm hides the constant address from it.
+ */
+static inline uint32_t hab_rvt_read(uintptr_t offset)
+{
+    uintptr_t addr = HAB_RVT_BASE + offset;
+
+    __asm__("" : "+r"(addr));
+    return *(const uint32_t *)addr;
+}
+
+#define HAB_RVT_ENTRY              hab_rvt_read(0x04)
+#define HAB_RVT_EXIT               hab_rvt_read(0x08)
+#define HAB_RVT_CHECK_TARGET       hab_rvt_read(0x0C)
+#define HAB_RVT_AUTHENTICATE_IMAGE hab_rvt_read(0x10)
+#define HAB_RVT_REPORT_EVENT       hab_rvt_read(0x20)
+#define HAB_RVT_REPORT_STATUS      hab_rvt_read(0x24)
+#define HAB_RVT_FAILSAFE           hab_rvt_read(0x28)
 
 /*
  * IVT header definitions
