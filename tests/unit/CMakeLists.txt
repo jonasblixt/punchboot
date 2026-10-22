@@ -121,3 +121,8 @@ pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/crypto.c
     ${PROJECT_SOURCE_DIR}/src/delay.c
 )
+
+pb_unit_test(test_mmc_core SOURCES
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+)
