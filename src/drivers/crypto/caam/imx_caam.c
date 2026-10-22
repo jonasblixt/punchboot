@@ -99,6 +99,8 @@
 #define CAAM_JRCR                 0x006c
 #define CAAM_SMCJR                0x00f4
 #define CAAM_SMCSJR               0x00fc
+#define CAAM_CCBVID               0x0fe4
+#define CAAM_CHAVID_LS            0x0fec
 #define CAAM_VID_MS               0x0ff8
 #define CAAM_VID_LS               0x0ffc
 
@@ -108,6 +110,11 @@
 #define CAAM_HASH_RCTX_MAX_LENGTH 128
 #define CAAM_HASH_BLOCK_MAX_SIZE  128
 #define CAAM_JOB_TIMEOUT_ms       1000
+
+/* Version fields */
+#define CAAM_CCBVID_ERA(x)        (((x) >> 24) & 0xff)
+#define CAAM_CHAVID_LS_MD(x)      (((x) >> 12) & 0xf)
+#define CAAM_MD_VID_LP256         0
 
 struct caam {
     uint8_t hash_align_buf[CAAM_HASH_BLOCK_MAX_SIZE]; /* Hash input alignment buffer */
@@ -568,7 +575,7 @@ int imx_caam_init(uintptr_t base)
     mmio_write_32(caam.base + CAAM_IRSR, 1);
     mmio_write_32(caam.base + CAAM_ORSR, 1);
 
-    static const struct hash_ops caam_ops = {
+    static struct hash_ops caam_ops = {
         .name = "caam-hash",
         .alg_bits = HASH_MD5 | HASH_MD5_BROKEN | HASH_SHA256 | HASH_SHA384 | HASH_SHA512,
         .init = caam_hash_init,
@@ -576,6 +583,18 @@ int imx_caam_init(uintptr_t base)
         .update_async = caam_hash_update_async,
         .final = caam_hash_final,
     };
+
+    /* The low power MDHA (e.g. i.MX6UL) only does up to SHA-256, and fails
+     * SHA-384/512 jobs with a mode error. CHAVID_LS is only valid before era
+     * 10, and CCBVID reports the era from era 6, so other CAAMs keep all
+     * algorithms. */
+    uint32_t era = CAAM_CCBVID_ERA(mmio_read_32(caam.base + CAAM_CCBVID));
+    uint32_t md_vid = CAAM_CHAVID_LS_MD(mmio_read_32(caam.base + CAAM_CHAVID_LS));
+
+    if (era > 0 && era < 10 && md_vid == CAAM_MD_VID_LP256) {
+        LOG_INFO("Era %" PRIu32 ", MDHA LP256: no SHA-384/512", era);
+        caam_ops.alg_bits &= ~(HASH_SHA384 | HASH_SHA512);
+    }
 
     rc = hash_add_ops(&caam_ops);
 
