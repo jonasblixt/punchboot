@@ -14,6 +14,8 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`).
 - **QEMU removed:** the bash/QEMU suite, `src/board/test`, `src/plat/qemu`,
   `include/plat/qemu` and `configs/test_defconfig` are gone.
 
+**Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
+
 ## Next steps
 
 1. PR #60 (`claude-work` → master) is open. Check the Coverity job after the merge.
@@ -23,8 +25,10 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`).
    (SIGPIPE, orphaned pb-host, `-m32`).
    F-071 (pb adds missing DTB properties, with spare RAM, a performance note and a jiffy test) is
    planned in the roadmap, Phase 1.
-3. Fix F-049 (format strings). Consider `-Werror` for the host build.
-4. Phase 1: security fixes F-001, F-002, F-004, F-005, each with a test.
+3. Compatibility guards (roadmap Phase 1) before any fix that touches the wire or image handling.
+   Compat findings from the review: F-075 (erase), F-076 (exclude-from-hash), F-077 (caps 0).
+4. Fix F-049 (format strings). Consider `-Werror` for the host build.
+5. Phase 1: security fixes F-001, F-002, F-004, F-005, each with a test.
 
 ## Open questions (for Jonas)
 
@@ -32,3 +36,5 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Is open command mode in SLC EOL intended? (F-002)
 - Mbed TLS: 3.6 LTS or 4.x?
+- Compat floor: which oldest released host and firmware must the guards test against? F-075 shows
+  v2.0.0 already broke erase for 1.x hosts.

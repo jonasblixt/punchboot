@@ -3,7 +3,12 @@
 Secure bootloader for embedded ARM (i.MX6UL/8M/8X/RT) plus host tooling
 (C library + Python package/CLI `punchboot`, `pbstate`). Images use the bpak
 format; a vendored subset lives in `src/lib/bpak.c` + `include/bpak/`
-(upstream: `../bpak`). The bpak file format is out of scope for now.
+(upstream: `../bpak`).
+
+**Never break backward compatibility of the wire protocol or the bpak image
+format** (D-008). Old hosts must work with new devices, new hosts with old
+devices, and every image an old release accepted must still be accepted.
+Read `doc/dev/compatibility.md` before changing either.
 
 ## Context: load on demand
 
@@ -20,6 +25,7 @@ Do not read these up front. Open only what the task needs.
 | `doc/dev/testing.md` | Writing or running tests (host unit/integration tests) |
 | `doc/dev/build-and-test.md` | Building firmware, the dev container, CI, releasing |
 | `doc/dev/bpak.md` | Anything touching bpak or image signing/verification |
+| `doc/dev/compatibility.md` | **Any change to `wire.h`/`error.h`, command mode, the host API, bpak, or image handling** |
 | `doc/dev/log/` | Only the newest entry, and only if `status.md` is not enough |
 
 Skip unless the task is about them: `pki/` (test keys), vendored code

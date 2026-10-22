@@ -25,6 +25,7 @@
 - Fixed 512-byte packed `pb_command` (`magic 'PBL0'`, `command`, `request[504]`) and `pb_result`
   (`magic`, `int8 result_code`, `response[504]`). Larger payloads follow as separate transfers.
 - Commands are enum `pb_commands`. The numbering depends on declaration order, so **only append**.
+- **Backward compatibility is a hard rule (D-008).** What is frozen and how to extend it: `compatibility.md`.
 - The magic is the only version marker. `PB_CMD_DEVICE_READ_CAPS` is the only capability query.
 - Commands that don't need auth: `DEVICE_IDENTIFIER_READ`, `AUTHENTICATE`.
 - Raw `struct bpak_header` crosses the wire (`read_bpak`, `bpak_boot`, `verify.bpak`).
