@@ -55,6 +55,8 @@ A single integration test, inside `scripts/pbdev shell`:
 - **Transport.** A unix socket server. `complete()` does the blocking I/O. When a client disconnects,
   `complete()` fails, `cm_run` calls `init()` again, and `init()` accepts the next client, so each
   CLI or `Session` is one connection.
+  The socket is bound to `<path>.tmp` and renamed to `<path>` after `listen()`, so tests can treat
+  the path appearing as "command mode is ready".
 - **Disk.** A file. The fuses live in a partition on it (test fuse driver), so device state
   persists across reboots within a test.
 - **Reset and boot.** `plat_reset()` calls `exit(0)`, which also writes gcov data. On boot, the
