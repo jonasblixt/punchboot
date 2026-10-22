@@ -35,7 +35,7 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 5. Phase 1: security fixes F-001, F-002, F-004, F-005, each with a test.
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`) works on the board.
    F-080 fixed (CAAM timeout). On the closed board, JTAG blocks the CAAM until a power cycle.
-   Next: `pbdebug --load`, F-082 (BOOT0/BOOT1 flip), F-083, F-078/F-079, F-081, F-084.
+   `pbdebug --load` loads pb into RAM from the ROM. Next: F-082 (BOOT0/BOOT1 flip), F-083, F-078/F-079, F-081, F-084.
 
 ## Open questions (for Jonas)
 
