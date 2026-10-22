@@ -16,6 +16,21 @@ frozen (D-001).
 
 - F-001..F-008, each with a regression test in the QEMU suite where possible.
 - Decide the SLC EOL semantics (F-002).
+- Device tree without the pb properties (F-071, wanted by Jonas). Today the board DTBs must already
+  have `/chosen` and `pb,slc-available-keys`, and enough free space for the properties pb sets.
+  Instead, pb should add whatever is missing:
+  - Create `/chosen` and the `pb,*` properties if they don't exist, and treat a missing
+    `pb,slc-available-keys` as nothing to delete.
+  - Reserve spare RAM after the DTB and grow it there (`fdt_open_into` with the extra size) before
+    patching. The board config says how much. The grown DTB must not overlap the other parts or pb's
+    own memory, and `fdt_totalsize` must be checked against the part size (F-065).
+  - Cost: growing the DTB moves its structure and strings blocks, which adds boot time. Measure it on
+    jiffy and document it in the user docs (porting guide / Linux boot), including how to avoid it by
+    building the DTB with the properties and padding (`dtc -p`).
+  - Tests: unit tests in `test_linux.c` (no `/chosen`, no pb properties, no free space), and at
+    least one test on a jiffy board: boot a DTB without the pb properties and check
+    `/proc/device-tree/chosen/pb,*` from Linux. There is no hardware test setup in the repo yet, so
+    this one is manual unless we add one.
 
 ## Phase 2: Dependencies
 

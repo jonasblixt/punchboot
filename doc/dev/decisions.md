@@ -44,3 +44,14 @@ and sanitizers), coverage (codecov action), a compile check of the firmware for 
 build (jiffy, imx8dxlevk), and Coverity on master. The bash/QEMU suite, `src/board/test`,
 `src/plat/qemu` and `configs/test_defconfig` were removed once all tests were ported. The virtio
 drivers are kept for now; they would be needed for a QEMU smoke tier.
+
+## D-007: Unit tests fake the neighbouring modules; known bugs are not encoded as passing (2026-10-22)
+
+A unit test links one module (sometimes two) and fakes what it calls: the image helpers for
+`boot.c`, the boot flow, root of trust and SLC for `cm_main.c`, the crypto providers through the
+crypto API, and a scripted transport for command mode. The ramdisk fake injects I/O errors and the
+platform fake has a controllable clock. A path that hits a known open bug is not tested; a comment
+names the finding. In pytest, a known bug gets a `xfail(strict=True)` test that names the finding,
+so the fix shows up as an XPASS.
+Why: the integration tests can't reach most error paths, and a test that passes on buggy behaviour
+would have to be changed by the fix.

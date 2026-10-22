@@ -13,7 +13,7 @@ CI runs these tests (D-006).
 | `src/arch/host/` | No-op cache/MMU. `arch_jump` exits. |
 | `src/plat/host/` | Process entry (`main.c`, CLI options), RAM, file-backed disk, unix-socket command-mode transport |
 | `src/board/host/` | Test board (partitions, keys, board commands, fuses on disk) |
-| `tests/unit/` | CMocka unit tests and their fakes (`fakes/ramdisk.c`, `fakes/plat.c`) |
+| `tests/unit/` | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`, `fakes/plat.c`) |
 | `tests/integration/` | pytest tests that drive `pb-host` through the `punchboot` Python package |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest |
 
@@ -27,8 +27,19 @@ scripts/pbdev run gcovr -r . build-host-cov --filter src/
 CTEST_ARGS="-L unit" scripts/pbdev test      # only unit tests
 ```
 
-Coverage baseline (2026-10-22, all host tests): 58% of lines in `src/`, excluding vendored libs and
-the host platform. Lowest coverage: `linux.c` 13%, `bpak.c` 17%, `der_helpers.c` 0%, `delay.c` 0%.
+Coverage (2026-10-22, all host tests): 99.2% of lines (2337/2356), 100% of functions and 96.3% of
+branches in `src/`, excluding vendored libs and the host platform. It was 59% before the unit tests
+below. The 19 lines left are unreachable or behind a known bug:
+
+- Unreachable: `gpt.c` 298 and 383-389 (after recovery the primary is valid), `cm_main.c` 653 and
+  the `default:` case (every command id is handled), `rot.c` 114 (`rot_init` checks the key ids) and
+  126-127 (the keystore has only EC keys), `main.c` 51, `mbedtls_pb.c` 252 (needs a full DSA table
+  with room for a hash provider; both tables hold one entry).
+- Behind a bug: `linux.c` 76-77 (F-059), 176-177 (F-071).
+- `main.c` 29: `plat_init()` failing on the host.
+
+The coverage counts only what the host build compiles: the drivers and platform code for the
+targets are not in it.
 
 A single integration test, inside `scripts/pbdev shell`:
 `pip install --no-build-isolation --no-deps . && pytest tests/integration -k install`.
@@ -53,8 +64,20 @@ A single integration test, inside `scripts/pbdev shell`:
 
 ## Writing tests
 
-- **Unit tests.** Use `pb_unit_test(name SOURCES <modules under test>)` in `tests/unit/CMakeLists.txt`.
-  Link only the modules under test plus fakes. Call `bio_reset()` between cases (see `test_gpt.c`).
+- **Unit tests.** Use `pb_unit_test(name SOURCES <modules under test> LIBS <libraries>)` in
+  `tests/unit/CMakeLists.txt`. Link only the modules under test, and fake what they call in the
+  test file (D-007). Call `bio_reset()` between cases (see `test_gpt.c`).
+  - `fakes/ramdisk.h`: set `fail_reads_after`/`fail_writes_after` to n to let n operations succeed
+    and fail the rest with `-PB_ERR_IO`.
+  - `fakes/plat.h`: `fake_us_tick` and `fake_us_tick_step` drive `plat_get_us_tick()`. Reset them
+    in teardown; `test_gpt.c` depends on the default.
+  - Modules keep their config in statics that can't be reset (`rot`, `slc`, `crypto`, `ab_state`,
+    `boot`). Tests for the uninitialized state run first, and `cmocka_unit_test` order matters.
+  - The crypto API holds one hash and one DSA provider (`CONFIG_CRYPTO_MAX_*_OPS=1`), so fake and
+    Mbed TLS providers are in separate test programs.
+  - `test_cm.c` scripts the host side with `host_*()`, runs `cm_run()` until the input runs out, and
+    checks the device's output with `expect_*()`.
+  - A path that hits an open bug is left out, with a comment naming the finding.
 - **Integration tests.** Helpers live in `pbtest.py`: the `Device` class, `make_bpak()` (bpak CLI)
   and `sgdisk_verify()`. Fixtures:
   - `blank_device` starts in command mode on a blank disk.
@@ -85,6 +108,20 @@ and `configs/test_defconfig` were then removed.
 | `test_board.py` | test_board, test_board_status |
 | `test_cli.py` | test_cli, test_reset |
 | `test_stream.py` | new: stream bounds (F-053, F-054) |
+| `test_commands.py` | new: boot status, erase, end of life, bpak read, F-072 (xfail) |
+
+Unit tests, by module under test:
+
+| Test | Module | Fakes |
+|---|---|---|
+| `test_bio.c`, `test_gpt.c`, `test_fuse_bio.c` | `bio.c`, `gpt.c`, `test_fuse_bio.c` | ramdisk |
+| `test_bpak.c`, `test_der.c`, `test_wire.c`, `test_delay.c` | `bpak.c`, `der_helpers.c`, `wire.c`, `delay.c` | clock (`test_delay.c`) |
+| `test_crypto.c`, `test_mbedtls.c` | `crypto.c`, `mbedtls_pb.c` | providers / none (real keys and the auth token) |
+| `test_rot.c`, `test_device_uuid.c` | `rot.c`, `slc.c`, `device_uuid.c` | board callbacks, unique id |
+| `test_ab_state.c`, `test_boot.c` | `ab_state.c`, `boot.c` | ramdisk, image helpers, boot driver |
+| `test_image_helpers.c` | `image_helpers.c` | hash, DSA, root of trust (memory regions via `--defsym`) |
+| `test_linux.c` | `linux.c` | arch, SLC, root of trust, device UUID; builds DTBs with libfdt |
+| `test_cm.c` | `cm_main.c` | transport, boot, root of trust, SLC, crypto providers |
 
 Where the ports differ from the bash tests:
 - **Self-contained.** The bash tests depended on disk state and on the `/tmp/pb_force_command_mode`
