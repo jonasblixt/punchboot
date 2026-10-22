@@ -95,7 +95,7 @@ int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size
     const struct bpak_key *key = NULL;
     int rc;
 
-    if (!cfg || !cfg->key_map || !cfg->key_map_length)
+    if (!cfg || !cfg->key_map_length)
         return -PB_ERR_NOT_SUPPORTED;
 
     rc = rot_read_key_status(id);
