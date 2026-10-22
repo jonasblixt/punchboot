@@ -19,7 +19,8 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 
 ## Next steps
 
-1. PR #61 (`migrate-from-qemu-test-suite` → master) is open. Check the Coverity job after the merge.
+1. PR #61 is merged (2026-10-22): check its Coverity job. PR #62 (`compat-guards` → master) is open.
+   `jtag-debugging` (item 6) is based on it.
 2. Unit tests for every core module are done (D-007). They found F-068..F-074; fixed F-069
    (positive error codes) and F-073 (UB in `bio_set_hal_flags`). Next from the review: F-057 (CAAM DER
    overflow), F-055 (erase), F-063, the boot-path bugs F-058..F-062, F-070, F-072, the rest of F-067
@@ -32,6 +33,9 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
    `compat-guards` also carries the jiffy HAB signing commits, to be split onto their own branch.
 4. Fix F-049 (format strings). Consider `-Werror` for the host build.
 5. Phase 1: security fixes F-001, F-002, F-004, F-005, each with a test.
+6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`) works on the board.
+   F-080 fixed (CAAM timeout). On the closed board, JTAG blocks the CAAM until a power cycle.
+   `pbdebug --load` loads pb into RAM from the ROM. Next: F-082 (BOOT0/BOOT1 flip), F-083, F-078/F-079, F-081, F-084.
 
 ## Open questions (for Jonas)
 

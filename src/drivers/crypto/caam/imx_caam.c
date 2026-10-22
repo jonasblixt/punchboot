@@ -48,6 +48,7 @@
 #include <drivers/crypto/imx_caam.h>
 #include <inttypes.h>
 #include <pb/crypto.h>
+#include <pb/delay.h>
 #include <pb/der_helpers.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -106,6 +107,7 @@
 #define CAAM_NO_OF_DESC           16
 #define CAAM_HASH_RCTX_MAX_LENGTH 128
 #define CAAM_HASH_BLOCK_MAX_SIZE  128
+#define CAAM_JOB_TIMEOUT_ms       1000
 
 struct caam {
     uint8_t hash_align_buf[CAAM_HASH_BLOCK_MAX_SIZE]; /* Hash input alignment buffer */
@@ -155,8 +157,20 @@ static void caam_shedule_job_async(void)
 
 static int caam_wait_for_job(void)
 {
-    while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0)
-        __asm__("nop");
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, CAAM_JOB_TIMEOUT_ms * 1000);
+
+    /* On a HAB booted device the CAAM stops fetching jobs when the security
+     * state machine leaves 'Trusted', e.g. when JTAG is connected. */
+    while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Job timeout, IRSAR = %" PRIu32 ", JRSTAR = %08" PRIx32,
+                    mmio_read_32(caam.base + CAAM_IRSAR),
+                    mmio_read_32(caam.base + CAAM_JRSTAR));
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 
     arch_invalidate_cache_range((uintptr_t)&caam.output[0], sizeof(caam.output[0]) * 2);
 
@@ -486,7 +500,10 @@ static int caam_hash_final(uint8_t *output, size_t size)
     /* If there was no update we must still call the update function
      * once to initialize the hash block */
     if (caam.init) {
-        _hash_update(NULL, 0);
+        err = _hash_update(NULL, 0);
+
+        if (err != PB_OK)
+            return err;
     }
 
     if (caam.async_hashing) {

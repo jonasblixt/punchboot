@@ -54,6 +54,46 @@ scripts/pbdev run <cmd...>
 - If Docker says "permission denied", the shell predates being added to the `docker` group.
   Use `sg docker -c "scripts/pbdev ..."` or log in again.
 
+## JTAG debugging
+
+```sh
+scripts/pbdebug jiffy [elf]          # OpenOCD + gdb-multiarch, attached to the running target
+scripts/pbdebug --load jiffy [elf]   # load elf into RAM over JTAG, halted at its entry point
+```
+
+- Runs on the host (needs `openocd` and `gdb-multiarch`), since OpenOCD needs the USB adapter.
+  The adapter defaults to the Keil ULINK v1 (`interface/ulink.cfg`, OpenULINK firmware from the
+  Debian openocd package). Set `PB_OPENOCD_ADAPTER` for another one, `PB_GDB` for another GDB.
+- GDB halts the target on attach. Symbols come from `build-<board>/pb_unstripped` and are only
+  right if the board runs that build. Set `CONFIG_DEBUG_SYMBOLS=y` (and a lower `CONFIG_OPTIMIZE`)
+  for source level debugging. Quitting GDB resumes the target.
+- Configs: `src/plat/imx6ul/openocd.cfg` (chip: upstream `target/imx6ul.cfg` with DAP r5
+  `0x5ba00477`, the upstream default r4 doesn't match the silicon) and
+  `src/board/<board>/openocd.cfg` (board). The board config sources the platform one.
+- `--load` needs the core in the boot ROM with the MMU and D-cache off, e.g. the serial
+  downloader (boot mode buttons, or any reset after JTAG activity on a closed board, F-078).
+  `pb_load_prepare` (platform config) refuses otherwise, because pb doesn't invalidate the caches
+  before enabling them. It turns off the I-cache, sets ARM state and SVC mode, and calls the board's
+  `pb_board_load_prepare` (jiffy: DDR from the DCD). GDB `load` then takes about 27 s for pb at 3
+  KB/s. Nothing is flashed, and on a closed board the image isn't HAB authenticated, so the CAAM
+  keeps working with JTAG attached (unlike F-080).
+- Breakpoints are hardware breakpoints (`gdb_breakpoint_override hard`, 6 on the A7): pb maps
+  `.text` read-only with LPAE tables, so OpenOCD can't remove a software breakpoint once the MMU is
+  on. A breakpoint hit during a USB command can make the host time out (`Error: Transfer`).
+- `monitor jiffy_ddr_init` runs the DCD from `src/board/jiffy/imximage.cfg` over JTAG, e.g. when
+  halted in the boot ROM's serial downloader. Checked by writing and reading back DDR.
+- No `reset_config` on jiffy: an SRST reset from the adapter lands in the serial downloader (F-078).
+- The watchdog only pauses while the core is halted if pb sets WDBG
+  (`CONFIG_DRIVERS_IMX_WDOG_DEBUG`, on in `jiffy_defconfig`). Without it, a halt longer than the
+  5 s timeout resets the board, into the serial downloader (F-078). Checked on the board: an 8 s
+  halt with WDBG set (`WCR` reads `0x0a3e`) survives.
+- On a closed board (HAB booted), any JTAG connection, even OpenOCD `init`, sets SNVS SV1 and drops
+  the SSM to Non-Secure. Until the next power cycle the CAAM takes no jobs, so `auth token` and
+  image verification fail with a timeout (F-080), and warm resets probably fail HAB and land in the serial
+  downloader (F-078). Power cycle after debugging before trusting crypto again.
+- The first run after plugging in the ULINK loads its firmware, and OpenOCD exits before the
+  adapter re-enumerates. `pbdebug` retries.
+
 ## Lint
 
 `pre-commit run --all-files` runs pre-commit-hooks, mypy, ruff-check and clang-format.
