@@ -45,6 +45,9 @@ AUTH_TOKEN = REPO_ROOT / "tests" / "02e49231-756e-35ee-a982-378e5ba866a9.token"
 START_TIMEOUT = 10.0
 EXIT_TIMEOUT = 10.0
 
+# Lines that ASan, LeakSanitizer and UBSan print when they find something
+SANITIZER_MARKERS = ("ERROR: AddressSanitizer", "ERROR: LeakSanitizer", "runtime error:")
+
 
 class Device:
     """A punchboot instance running as a host process."""
@@ -62,6 +65,9 @@ class Device:
         self.boot_status_file = workdir / "boot_status"
         self.log = workdir / "pb.log"
         self._proc: subprocess.Popen[bytes] | None = None
+        # Problems found while shutting down, e.g. a sanitizer report. The
+        # fixture fails the test on these.
+        self.problems: list[str] = []
 
     def start(self, *, command_mode: bool = True) -> None:
         """Power on.
@@ -139,22 +145,41 @@ class Device:
         """Shut down, if running.
 
         Prefer a reset over killing the process, so that coverage data is
-        written when built with PB_COVERAGE.
+        written when built with PB_COVERAGE. A non-zero exit code (e.g. from
+        a sanitizer) is recorded in 'problems'.
         """
-        if self._proc is None:
+        proc = self._proc
+        if proc is None:
             return
-        if self._proc.poll() is None:
-            with contextlib.suppress(Exception):
-                self.reset()
-        if self._proc is not None:
-            self._proc.kill()
-            self._proc.wait()
-            self._proc = None
+        self._proc = None
+        if proc.poll() is None:
+            try:
+                with self.session() as s:
+                    s.device_reset()
+            except punchboot.Error:
+                # E.g. a locked device that isn't authenticated
+                proc.kill()
+                proc.wait()
+                return
+            try:
+                proc.wait(timeout=EXIT_TIMEOUT)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+                self.problems.append("pb-host did not exit on reset and was killed")
+                return
+        if proc.returncode != 0:
+            self.problems.append(f"pb-host exited with {proc.returncode}")
 
     def close(self) -> None:
-        """Shut down and remove the socket directory."""
+        """Shut down, remove the socket directory and check the log for sanitizer reports."""
         self.stop()
         shutil.rmtree(self._socket_dir, ignore_errors=True)
+        if self.log.exists():
+            log = self.log.read_text(errors="replace")
+            self.problems.extend(
+                f"sanitizer report in the pb-host log: {m}" for m in SANITIZER_MARKERS if m in log
+            )
 
     def log_tail(self, lines: int = 20) -> str:
         """Last lines of the pb-host log."""
