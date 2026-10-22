@@ -15,7 +15,7 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`).
 
 ## Next steps
 
-1. Open a PR for `claude-work`. Check the Coverity job after the merge.
+1. PR #60 (`claude-work` → master) is open. Check the Coverity job after the merge.
 2. Unit tests for the low-coverage modules: `ab_state`, `image_helpers`, `bpak.c`, `der_helpers`,
    `wire`, `linux.c` (DTB patching).
 3. Fix F-049 (format strings). Consider `-Werror` for the host build.
