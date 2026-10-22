@@ -2,13 +2,19 @@
 #
 # Debug a board over JTAG: start OpenOCD and attach GDB to the running target.
 #
-#   scripts/pbdebug <board> [elf]
+#   scripts/pbdebug [--load] <board> [elf]
 #
 # The board needs src/board/<board>/openocd.cfg. GDB halts the target on
 # attach and loads symbols from elf, build-<board>/pb_unstripped by default.
 # The symbols are only right if the board runs that same build. Build with
 # CONFIG_DEBUG_SYMBOLS=y for source level debugging. Quitting GDB resumes the
 # target and stops OpenOCD.
+#
+# --load writes elf to RAM and leaves GDB halted at its entry point, so that
+# breakpoints can be set before 'continue'. The target must be in the boot
+# ROM, e.g. the serial downloader (see pb_load_prepare in the platform's
+# openocd.cfg). Nothing is flashed, and on HAB devices the image isn't
+# authenticated, so the CAAM keeps working with JTAG attached.
 #
 # Environment:
 #   PB_OPENOCD_ADAPTER  OpenOCD adapter config (default interface/ulink.cfg)
@@ -22,7 +28,13 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GDB_PORT=3333
 
-board="${1:?Usage: $0 <board> [elf]}"
+load=false
+if [ "${1:-}" = "--load" ]; then
+    load=true
+    shift
+fi
+
+board="${1:?Usage: $0 [--load] <board> [elf]}"
 elf="${2:-$REPO_ROOT/build-$board/pb_unstripped}"
 board_cfg="src/board/$board/openocd.cfg"
 adapter="${PB_OPENOCD_ADAPTER:-interface/ulink.cfg}"
@@ -57,18 +69,26 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Returns 0 once the GDB server is up, 1 if OpenOCD exited. setsid keeps
-# OpenOCD out of the terminal's process group, so that Ctrl-C in GDB only
-# interrupts the target.
+openocd_cmds=(-c "gdb_port $GDB_PORT" -c "telnet_port disabled" -c "tcl_port disabled" -c init)
+gdb_cmds=(-ex "target extended-remote :$GDB_PORT")
+if $load; then
+    openocd_cmds+=(-c pb_load_prepare)
+    gdb_cmds+=(-ex load)
+fi
+# OpenOCD exits if one of the startup commands fails, before printing this
+openocd_cmds+=(-c "echo pbdebug-ready")
+
+# Returns 0 once OpenOCD is ready, 1 if it exited. setsid keeps OpenOCD out of
+# the terminal's process group, so that Ctrl-C in GDB only interrupts the
+# target.
 start_openocd() {
     : > "$log"
-    (cd "$REPO_ROOT" && exec setsid openocd -f "$adapter" -f "$board_cfg" \
-        -c "gdb_port $GDB_PORT" -c "telnet_port disabled" -c "tcl_port disabled" \
+    (cd "$REPO_ROOT" && exec setsid openocd -f "$adapter" -f "$board_cfg" "${openocd_cmds[@]}" \
         >> "$log" 2>&1) &
     openocd_pid=$!
 
     for _ in $(seq 100); do
-        if grep -q "Listening on port $GDB_PORT for gdb connections" "$log"; then
+        if grep -q "^pbdebug-ready" "$log"; then
             return 0
         fi
         if ! kill -0 "$openocd_pid" 2> /dev/null; then
@@ -92,8 +112,8 @@ until start_openocd; do
         continue
     fi
     echo "OpenOCD failed, see $log:" >&2
-    grep -E "^Error" "$log" >&2 || tail -n 5 "$log" >&2
+    grep "Error:" "$log" >&2 || tail -n 5 "$log" >&2
     exit 1
 done
 
-"$gdb" -q "$elf" -ex "target extended-remote :$GDB_PORT"
+"$gdb" -q "$elf" "${gdb_cmds[@]}"

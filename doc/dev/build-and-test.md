@@ -57,7 +57,8 @@ scripts/pbdev run <cmd...>
 ## JTAG debugging
 
 ```sh
-scripts/pbdebug jiffy [elf]   # OpenOCD + gdb-multiarch, attached to the running target
+scripts/pbdebug jiffy [elf]          # OpenOCD + gdb-multiarch, attached to the running target
+scripts/pbdebug --load jiffy [elf]   # load elf into RAM over JTAG, halted at its entry point
 ```
 
 - Runs on the host (needs `openocd` and `gdb-multiarch`), since OpenOCD needs the USB adapter.
@@ -69,6 +70,16 @@ scripts/pbdebug jiffy [elf]   # OpenOCD + gdb-multiarch, attached to the running
 - Configs: `src/plat/imx6ul/openocd.cfg` (chip: upstream `target/imx6ul.cfg` with DAP r5
   `0x5ba00477`, the upstream default r4 doesn't match the silicon) and
   `src/board/<board>/openocd.cfg` (board). The board config sources the platform one.
+- `--load` needs the core in the boot ROM with the MMU and D-cache off, e.g. the serial
+  downloader (boot mode buttons, or any reset after JTAG activity on a closed board, F-078).
+  `pb_load_prepare` (platform config) refuses otherwise, because pb doesn't invalidate the caches
+  before enabling them. It turns off the I-cache, sets ARM state and SVC mode, and calls the board's
+  `pb_board_load_prepare` (jiffy: DDR from the DCD). GDB `load` then takes about 27 s for pb at 3
+  KB/s. Nothing is flashed, and on a closed board the image isn't HAB authenticated, so the CAAM
+  keeps working with JTAG attached (unlike F-080).
+- Breakpoints are hardware breakpoints (`gdb_breakpoint_override hard`, 6 on the A7): pb maps
+  `.text` read-only with LPAE tables, so OpenOCD can't remove a software breakpoint once the MMU is
+  on. A breakpoint hit during a USB command can make the host time out (`Error: Transfer`).
 - `monitor jiffy_ddr_init` runs the DCD from `src/board/jiffy/imximage.cfg` over JTAG, e.g. when
   halted in the boot ROM's serial downloader. Checked by writing and reading back DDR.
 - No `reset_config` on jiffy: an SRST reset from the adapter lands in the serial downloader (F-078).
