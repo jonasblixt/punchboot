@@ -26,6 +26,9 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Codecov authentication via OIDC, no token secret needed
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +46,9 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
+          disable_search: true
+          plugins: noop
+          use_oidc: true
           fail_ci_if_error: false
 
   firmware:
