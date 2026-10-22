@@ -348,7 +348,7 @@ bio_dev_t bio_get_part_by_uu_str(const char *uu_str)
     return bio_get_part_by_uu(uu);
 }
 
-int bio_install_partition_table(uuid_t part_uu, int variant)
+int bio_install_partition_table(const uuid_t part_uu, int variant)
 {
     bio_dev_t dev = bio_get_part_by_uu(part_uu);
 

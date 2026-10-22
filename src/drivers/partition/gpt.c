@@ -245,7 +245,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     }
 
     /* Write primary GPT Table */
-    LOG_DBG("writing primary gpt tbl to lba %llu", primary.hdr.current_lba);
+    LOG_DBG("writing primary gpt tbl to lba %" PRIu64, primary.hdr.current_lba);
 
     err = bio_write(dev, primary.hdr.current_lba, sizeof(primary), &primary);
 
@@ -275,7 +275,7 @@ static int gpt_write_tbl(bio_dev_t dev)
     backup.hdr.hdr_crc = crc_tmp;
 
     /* Write backup GPT table */
-    LOG_INFO("Writing backup GPT tbl to LBA %llu", backup.hdr.entries_start_lba);
+    LOG_INFO("Writing backup GPT tbl to LBA %" PRIu64, backup.hdr.entries_start_lba);
 
     return bio_write(dev, backup.hdr.entries_start_lba, sizeof(backup), &backup);
 }

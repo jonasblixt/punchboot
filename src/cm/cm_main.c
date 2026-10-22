@@ -373,8 +373,10 @@ static int cmd_stream_read(void)
     struct pb_command_stream_read_buffer *stream_read =
         (struct pb_command_stream_read_buffer *)cmd.request;
 
-    LOG_DBG(
-        "Stream read %u, %llu, %i", stream_read->buffer_id, stream_read->offset, stream_read->size);
+    LOG_DBG("Stream read %u, %" PRIu64 ", %i",
+            stream_read->buffer_id,
+            stream_read->offset,
+            stream_read->size);
 
     if (!(bio_get_flags(block_dev) & BIO_FLAG_READABLE)) {
         LOG_ERR("Partition may not be read");
@@ -417,7 +419,7 @@ static int cmd_stream_write(void)
     struct pb_command_stream_write_buffer *stream_write =
         (struct pb_command_stream_write_buffer *)cmd.request;
 
-    LOG_DBG("Stream write %u, %llu, %i",
+    LOG_DBG("Stream write %u, %" PRIu64 ", %i",
             stream_write->buffer_id,
             stream_write->offset,
             stream_write->size);
