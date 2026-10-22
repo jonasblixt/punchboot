@@ -63,6 +63,11 @@ A single integration test, inside `scripts/pbdev shell`:
   Use `device.session()` (only one at a time) together with `reboot()`, `boot()` (power on without
   command mode, returns 'A'/'B'/'?'), `read_blocks()`/`write_blocks()` (on the disk image) and
   `pbstate()`. When a test fails, the pb-host log is printed.
+- **Raw wire protocol.** `device.wire()` gives a `Wire` connection for requests the punchboot
+  package never sends (bad buffer ids, sizes, offsets). See `test_stream.py`.
+- **Teardown checks.** The fixture fails the test if pb-host exits non-zero, doesn't exit on reset,
+  or its log contains an ASan/LeakSanitizer/UBSan report. A locked, unauthenticated device can't be
+  reset, so it is killed without a failure.
 
 ## Porting status
 
@@ -79,6 +84,7 @@ and `configs/test_defconfig` were then removed.
 | `test_security.py` | test_device_setup, test_authentication, test_revoke_key |
 | `test_board.py` | test_board, test_board_status |
 | `test_cli.py` | test_cli, test_reset |
+| `test_stream.py` | new: stream bounds (F-053, F-054) |
 
 Where the ports differ from the bash tests:
 - **Self-contained.** The bash tests depended on disk state and on the `/tmp/pb_force_command_mode`
