@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+#
+# Debug a board over JTAG: start OpenOCD and attach GDB to the running target.
+#
+#   scripts/pbdebug <board> [elf]
+#
+# The board needs src/board/<board>/openocd.cfg. GDB halts the target on
+# attach and loads symbols from elf, build-<board>/pb_unstripped by default.
+# The symbols are only right if the board runs that same build. Build with
+# CONFIG_DEBUG_SYMBOLS=y for source level debugging. Quitting GDB resumes the
+# target and stops OpenOCD.
+#
+# Environment:
+#   PB_OPENOCD_ADAPTER  OpenOCD adapter config (default interface/ulink.cfg)
+#   PB_GDB              GDB to run (default gdb-multiarch)
+#
+# This runs on the host, not in the punchboot-dev container, since OpenOCD
+# needs the USB adapter. The OpenOCD log is build-<board>/openocd.log.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+GDB_PORT=3333
+
+board="${1:?Usage: $0 <board> [elf]}"
+elf="${2:-$REPO_ROOT/build-$board/pb_unstripped}"
+board_cfg="src/board/$board/openocd.cfg"
+adapter="${PB_OPENOCD_ADAPTER:-interface/ulink.cfg}"
+gdb="${PB_GDB:-gdb-multiarch}"
+log="$REPO_ROOT/build-$board/openocd.log"
+
+if [ ! -f "$REPO_ROOT/$board_cfg" ]; then
+    echo "No OpenOCD config for '$board' ($board_cfg)" >&2
+    exit 1
+fi
+
+if [ ! -f "$elf" ]; then
+    echo "No ELF at $elf, build the firmware first (scripts/pbdev firmware $board)" >&2
+    exit 1
+fi
+
+for tool in openocd "$gdb"; do
+    if ! command -v "$tool" > /dev/null; then
+        echo "'$tool' not found" >&2
+        exit 1
+    fi
+done
+
+mkdir -p "$(dirname "$log")"
+
+openocd_pid=
+cleanup() {
+    if [ -n "$openocd_pid" ]; then
+        kill "$openocd_pid" 2> /dev/null || true
+        wait "$openocd_pid" 2> /dev/null || true
+    fi
+}
+trap cleanup EXIT
+
+# Returns 0 once the GDB server is up, 1 if OpenOCD exited. setsid keeps
+# OpenOCD out of the terminal's process group, so that Ctrl-C in GDB only
+# interrupts the target.
+start_openocd() {
+    : > "$log"
+    (cd "$REPO_ROOT" && exec setsid openocd -f "$adapter" -f "$board_cfg" \
+        -c "gdb_port $GDB_PORT" -c "telnet_port disabled" -c "tcl_port disabled" \
+        >> "$log" 2>&1) &
+    openocd_pid=$!
+
+    for _ in $(seq 100); do
+        if grep -q "Listening on port $GDB_PORT for gdb connections" "$log"; then
+            return 0
+        fi
+        if ! kill -0 "$openocd_pid" 2> /dev/null; then
+            openocd_pid=
+            return 1
+        fi
+        sleep 0.2
+    done
+
+    echo "Timeout waiting for OpenOCD, see $log" >&2
+    exit 1
+}
+
+# The first run after plugging in a ULINK loads the OpenULINK firmware, and
+# OpenOCD gives up before the adapter is back on the bus. Retry until it is.
+attempt=1
+until start_openocd; do
+    if [ "$attempt" -lt 3 ] && grep -q "re-numerate ULINK" "$log"; then
+        attempt=$((attempt + 1))
+        sleep 3
+        continue
+    fi
+    echo "OpenOCD failed, see $log:" >&2
+    grep -E "^Error" "$log" >&2 || tail -n 5 "$log" >&2
+    exit 1
+done
+
+"$gdb" -q "$elf" -ex "target extended-remote :$GDB_PORT"
