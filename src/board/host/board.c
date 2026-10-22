@@ -1,7 +1,7 @@
 /**
  * Punch BOOT
  *
- * Copyright (C) 2026 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
