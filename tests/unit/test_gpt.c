@@ -50,10 +50,16 @@ static const struct gpt_part_table tbl_too_large[] = {
     { .uu = UU_SYS_A, .description = "Too large", .size = SZ_KiB(32735) },
 };
 
+/* GPT partition names are at most 36 characters */
+static const struct gpt_part_table tbl_long_name[] = {
+    { .uu = UU_SYS_A, .description = "A name that is longer than 36 characters", .size = 512 },
+};
+
 static const struct gpt_table_list tables[] = {
     { .name = "Default", .variant = 0, .table = tbl_default, .table_length = 3 },
     { .name = "Largest", .variant = 1, .table = tbl_largest, .table_length = 1 },
     { .name = "Too large", .variant = 2, .table = tbl_too_large, .table_length = 1 },
+    { .name = "Long name", .variant = 3, .table = tbl_long_name, .table_length = 1 },
 };
 
 struct fixture {
@@ -240,6 +246,105 @@ static void test_unsupported_entry_size_recovers(void **state)
     assert_int_equal(get_hdr_field(ramdisk_block(f->disk, 1), HDR_PART_ENTRY_SZ), 128);
 }
 
+static void test_install_long_name_fails(void **state)
+{
+    struct fixture *f = *state;
+
+    (void)boot(f);
+    assert_int_equal(bio_install_partition_table((unsigned char *)UU_DISK, 3), -PB_ERR);
+    assert_int_equal(bio_install_partition_table((unsigned char *)UU_DISK, -1), -PB_ERR_PARAM);
+}
+
+static void test_init_invalid_device(void **state)
+{
+    (void)state;
+
+    bio_reset();
+    assert_int_equal(gpt_ptbl_init(-1, tables, ARRAY_SIZE(tables)), -PB_ERR_PARAM);
+}
+
+static void test_primary_header_crc_error_recovers(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+    /* A field changes, but the CRC isn't updated */
+    ramdisk_block(f->disk, 1)[HDR_NO_OF_PARTS] ^= 1;
+
+    assert_int_equal(boot(f), PB_OK);
+    assert_int_equal(get_hdr_field(ramdisk_block(f->disk, 1), HDR_NO_OF_PARTS), 128);
+}
+
+static void test_backup_part_array_corrupt_is_not_used(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+    memset(ramdisk_block(f->disk, 1), 0, RAMDISK_BLOCK_SIZE);
+    /* The first entry in the backup partition array */
+    ramdisk_block(f->disk, DISK_BLOCKS - 33)[0] ^= 1;
+
+    assert_int_equal(boot(f), -PB_ERR);
+}
+
+static void test_install_write_errors(void **state)
+{
+    struct fixture *f = *state;
+
+    /* Protective MBR, primary table, backup table */
+    for (int writes = 0; writes < 3; writes++) {
+        (void)boot(f);
+        f->disk->fail_writes_after = writes;
+        assert_int_equal(bio_install_partition_table((unsigned char *)UU_DISK, 0), -PB_ERR_IO);
+        f->disk->fail_writes_after = -1;
+    }
+}
+
+static void test_init_read_errors(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+
+    /* Primary, then backup */
+    for (int reads = 0; reads < 2; reads++) {
+        f->disk->fail_reads_after = reads;
+        assert_int_equal(boot(f), -PB_ERR_IO);
+    }
+}
+
+static void test_recovery_write_errors(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+    memset(ramdisk_block(f->disk, 1), 0, RAMDISK_BLOCK_SIZE);
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(boot(f), -PB_ERR);
+
+    f->disk->fail_writes_after = -1;
+    assert_int_equal(boot(f), PB_OK);
+    memset(ramdisk_block(f->disk, DISK_BLOCKS - 1), 0, RAMDISK_BLOCK_SIZE);
+    f->disk->fail_writes_after = 0;
+    assert_int_equal(boot(f), -PB_ERR);
+}
+
+static void test_too_many_block_devices(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+
+    /* Leave room for the disk and two of the three partitions */
+    bio_reset();
+    f->dev = ramdisk_attach(f->disk, UU_DISK);
+    assert_true(f->dev >= 0);
+    for (int i = 0; i < CONFIG_BIO_MAX_DEVS - 3; i++)
+        assert_true(bio_allocate(0, 1, RAMDISK_BLOCK_SIZE, UU_SYS_B, "Filler") >= 0);
+
+    assert_int_equal(gpt_ptbl_init(f->dev, tables, ARRAY_SIZE(tables)), -PB_ERR_MEM);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -255,6 +360,14 @@ int main(void)
         cmocka_unit_test_setup_teardown(
             test_backup_with_too_many_entries_is_not_used, setup, teardown),
         cmocka_unit_test_setup_teardown(test_unsupported_entry_size_recovers, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_install_long_name_fails, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_init_invalid_device, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_primary_header_crc_error_recovers, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_backup_part_array_corrupt_is_not_used, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_install_write_errors, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_init_read_errors, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_recovery_write_errors, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_too_many_block_devices, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

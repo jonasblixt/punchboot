@@ -127,6 +127,10 @@ add_custom_command(
     VERBATIM
 )
 
+# The keystore is its own library, so the unit tests can link it
+add_library(pb_keystore STATIC ${CMAKE_CURRENT_BINARY_DIR}/keystore.c)
+target_link_libraries(pb_keystore PUBLIC pb_host_flags)
+
 # The firmware core: everything that is not arch, platform or board specific
 add_library(pb_core STATIC
     src/main.c
@@ -145,9 +149,8 @@ add_library(pb_core STATIC
     src/drivers/crypto/mbedtls/mbedtls_pb.c
     src/drivers/fuse/test_fuse_bio.c
     src/drivers/partition/gpt.c
-    ${CMAKE_CURRENT_BINARY_DIR}/keystore.c
 )
-target_link_libraries(pb_core PUBLIC pb_lib pb_mbedtls)
+target_link_libraries(pb_core PUBLIC pb_lib pb_mbedtls pb_keystore)
 # The host platform provides the process entry point and calls pb_main
 set_source_files_properties(src/main.c PROPERTIES COMPILE_DEFINITIONS main=pb_main)
 

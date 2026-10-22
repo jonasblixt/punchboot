@@ -9,6 +9,7 @@
 
 #include "ramdisk.h"
 #include <pb/pb.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -17,9 +18,23 @@ static struct ramdisk *disk_from_dev(bio_dev_t dev)
     return (struct ramdisk *)bio_get_private(dev);
 }
 
+/* Fault injection: true when this operation should fail */
+static bool inject_fault(int *countdown)
+{
+    if (*countdown < 0)
+        return false;
+    if (*countdown == 0)
+        return true;
+    (*countdown)--;
+    return false;
+}
+
 static int ramdisk_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 {
     struct ramdisk *disk = disk_from_dev(dev);
+
+    if (inject_fault(&disk->fail_reads_after))
+        return -PB_ERR_IO;
 
     if (((uint64_t)lba * RAMDISK_BLOCK_SIZE + length) > (uint64_t)disk->blocks * RAMDISK_BLOCK_SIZE)
         return -PB_ERR_IO;
@@ -32,6 +47,9 @@ static int ramdisk_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
 static int ramdisk_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
 {
     struct ramdisk *disk = disk_from_dev(dev);
+
+    if (inject_fault(&disk->fail_writes_after))
+        return -PB_ERR_IO;
 
     if (((uint64_t)lba * RAMDISK_BLOCK_SIZE + length) > (uint64_t)disk->blocks * RAMDISK_BLOCK_SIZE)
         return -PB_ERR_IO;
@@ -56,6 +74,8 @@ struct ramdisk *ramdisk_new(size_t blocks)
     }
 
     disk->blocks = blocks;
+    disk->fail_reads_after = -1;
+    disk->fail_writes_after = -1;
     return disk;
 }
 

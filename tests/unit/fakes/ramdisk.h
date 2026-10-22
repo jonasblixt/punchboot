@@ -23,6 +23,10 @@ struct ramdisk {
     size_t blocks;
     unsigned int reads;
     unsigned int writes;
+    /* Fault injection: -1 never fails, n lets n more operations succeed and
+     * then fails every operation with -PB_ERR_IO */
+    int fail_reads_after;
+    int fail_writes_after;
 };
 
 /* Allocate 'blocks' zeroed blocks of backing memory */
