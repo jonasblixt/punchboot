@@ -166,8 +166,9 @@ static int board_command(uint32_t command,
     if (command == 0xd3399b11) /* dump-rom-log */
         return imx6ul_rom_log_dump((char *)response_bfr, response_size);
 
+    LOG_ERR("Unknown command %x", command);
     *response_size = 0;
-    return PB_OK;
+    return -PB_ERR_NOT_SUPPORTED;
 }
 
 static int board_status(uint8_t *response_bfr, size_t *response_size)
