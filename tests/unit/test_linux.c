@@ -9,8 +9,7 @@
  * jump. The host board has no device tree part, so the integration tests
  * only reach the kernel entry point.
  *
- * Not tested: a ramdisk part without a load address dereferences NULL
- * (F-059), and a /chosen node without pb,slc-available-keys fails the boot
+ * Not tested: a /chosen node without pb,slc-available-keys fails the boot
  * (F-071).
  */
 
@@ -353,6 +352,14 @@ static void test_dtb_errors(void **state)
     part->id = 0x12345678;
     assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
     part->id = ID_RAMDISK;
+
+    /* The ramdisk has no load address, which used to dereference NULL
+     * (F-059) */
+    make_dtb("chosen");
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_RAMDISK, &meta), BPAK_OK);
+    meta->part_id_ref = 0;
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_BAD_META);
+    meta->part_id_ref = ID_RAMDISK;
 
     make_dtb("chosen");
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);

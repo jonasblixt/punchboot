@@ -68,14 +68,13 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
     if (cfg->ramdisk_bpak_id) {
         rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, cfg->ramdisk_bpak_id, &mh);
 
-        ramdisk_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
-
-        if (rc == PB_OK) {
-            LOG_INFO("Ramdisk: %" PRIxPTR, ramdisk_addr);
-        } else {
+        if (rc != BPAK_OK) {
             LOG_ERR("Could not read ramdisk load addr (%i)", rc);
             return -PB_ERR_BAD_META;
         }
+
+        ramdisk_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+        LOG_INFO("Ramdisk: %" PRIxPTR, ramdisk_addr);
     }
 
     if (cfg->dtb_bpak_id) {
