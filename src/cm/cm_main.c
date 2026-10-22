@@ -535,7 +535,7 @@ static int cmd_part_verify(void)
         printf("\n\r");
 #endif
         LOG_ERR("Verification failed");
-        rc = PB_ERR_CHECKSUM;
+        rc = -PB_ERR_CHECKSUM;
         pb_wire_init_result(&result, -PB_RESULT_PART_VERIFY_FAILED);
     }
 

@@ -253,7 +253,7 @@ int bio_set_hal_flags(bio_dev_t dev, uint8_t flags)
     if (rc != PB_OK)
         return rc;
     bio_pool[dev].flags &= ~(0xff000000);
-    bio_pool[dev].flags |= (flags << 24);
+    bio_pool[dev].flags |= ((uint32_t)flags << 24);
     return PB_OK;
 }
 

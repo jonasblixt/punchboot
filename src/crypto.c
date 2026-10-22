@@ -30,7 +30,7 @@ int hash_init(hash_t alg)
         }
     }
 
-    return PB_ERR_NOT_SUPPORTED;
+    return -PB_ERR_NOT_SUPPORTED;
 }
 
 int hash_update(const void *buf, size_t length)
