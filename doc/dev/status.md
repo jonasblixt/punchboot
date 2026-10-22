@@ -19,8 +19,9 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 
 ## Next steps
 
-1. PR #61 is merged (2026-10-22): check its Coverity job. PR #62 (`compat-guards` → master) is open.
-   `jtag-debugging` (item 6) is based on it.
+1. PRs #61 and #62 are merged (2026-10-22): check the Coverity job on master. #63 (`jtag-debugging`)
+   was merged into `compat-guards` after #62 had landed, so it reaches master through PR #64
+   (`jiffy-fixes` → master, open).
 2. Unit tests for every core module are done (D-007). They found F-068..F-074; fixed F-069
    (positive error codes) and F-073 (UB in `bio_set_hal_flags`). Branch `jiffy-fixes` (on
    `jtag-debugging`) fixes F-057, F-058..F-062, F-072, F-085, F-086, F-049 (no compile warnings
