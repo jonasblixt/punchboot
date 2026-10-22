@@ -173,14 +173,6 @@ install: all
 	@echo Installing $(FINAL_OUTPUT) to '$(INSTALL_DIR)'
 	@cp $(FINAL_OUTPUT) $(INSTALL_DIR)
 
-gcovr:
-	@gcovr 	--gcov-exclude src/plat \
-			--gcov-exclude uuid \
-			--gcov-exclude src/fdt \
-			--gcov-exclude tests \
-			--gcov-exclude src/lib \
-			--gcov-exclude bearssl
-
 .DEFAULT_GOAL := all
 
 -include $(DEPS)

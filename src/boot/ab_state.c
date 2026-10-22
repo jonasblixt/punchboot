@@ -55,6 +55,9 @@ static int pb_boot_state_commit(void)
 {
     int rc;
 
+    if (cfg == NULL)
+        return -PB_ERR_STATE;
+
     boot_state.crc = 0;
     uint32_t crc = crc32(0, (const uint8_t *)&boot_state, sizeof(struct pb_boot_state));
     boot_state.crc = crc;
@@ -159,6 +162,9 @@ bio_dev_t boot_ab_state_get(void)
     const unsigned char *boot_part_uu = NULL;
     bool commit = false;
 
+    if (cfg == NULL)
+        return -PB_ERR_STATE;
+
     LOG_DBG(
         "A/B boot load state %u %u %u", boot_state.enable, boot_state.verified, boot_state.error);
 
@@ -241,6 +247,9 @@ bio_dev_t boot_ab_state_get(void)
 
 int boot_ab_state_set_boot_partition(uuid_t part_uu)
 {
+    if (cfg == NULL)
+        return -PB_ERR_STATE;
+
     if (uuid_compare(part_uu, cfg->sys_a_uu) == 0) {
         boot_state.enable = PB_STATE_A_ENABLED;
         boot_state.verified = PB_STATE_A_VERIFIED;
@@ -265,6 +274,11 @@ int boot_ab_state_set_boot_partition(uuid_t part_uu)
 
 void boot_ab_state_get_boot_partition(uuid_t part_uu)
 {
+    if (cfg == NULL) {
+        uuid_clear(part_uu);
+        return;
+    }
+
     switch (boot_state.enable) {
     case PB_STATE_A_ENABLED:
         uuid_copy(part_uu, cfg->sys_a_uu);
@@ -279,6 +293,9 @@ void boot_ab_state_get_boot_partition(uuid_t part_uu)
 
 const char *boot_ab_part_uu_to_name(uuid_t part_uu)
 {
+    if (cfg == NULL)
+        return "?";
+
     if (uuid_compare(part_uu, cfg->sys_a_uu) == 0) {
         return "A";
     } else if (uuid_compare(part_uu, cfg->sys_b_uu) == 0) {

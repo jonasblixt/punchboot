@@ -21,7 +21,16 @@ ignore = [
 ]
 
 pyupgrade.keep-runtime-typing = true
+
 pylint.max-args = 8
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",     # pytest uses plain asserts
+    "D103",     # test functions are documented by their names
+    "D104",
+    "PLR2004",  # expected values in tests are fine inline
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

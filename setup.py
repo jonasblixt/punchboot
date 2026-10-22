@@ -93,5 +93,5 @@ setup(
             include_dirs=_include_dirs,
         )
     ],
-    install_requires=["semver>=3,<4", "click>=8,<9"],
+    install_requires=["semver>=3,<4", "click>=8.2,<9"],
 )

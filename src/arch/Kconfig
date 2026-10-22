@@ -7,6 +7,8 @@ config ARCH_ARMV7
 	bool "ARMv7"
 config ARCH_ARMV7M
 	bool "ARMv7m"
+config ARCH_HOST
+	bool "Host (native build, for testing)"
 endchoice
 
 choice ARMV8_EL

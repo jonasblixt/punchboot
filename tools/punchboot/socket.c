@@ -51,8 +51,8 @@ static int pb_socket_read(struct pb_context *ctx, void *bfr, size_t sz)
     size_t bytes_to_xfer = sz;
 
     while (bytes_to_xfer > 0) {
-        ssize_t bytes = read(priv->fd, (void *)buf_p, sz);
-        if (bytes < 0)
+        ssize_t bytes = read(priv->fd, (void *)buf_p, bytes_to_xfer);
+        if (bytes <= 0) /* Error or EOF */
             return -PB_RESULT_ERROR;
         bytes_to_xfer -= bytes;
         buf_p += bytes;
@@ -68,9 +68,9 @@ static int pb_socket_write(struct pb_context *ctx, const void *bfr, size_t sz)
     size_t bytes_to_xfer = sz;
 
     while (bytes_to_xfer > 0) {
-        ssize_t bytes = write(priv->fd, bfr, sz);
+        ssize_t bytes = write(priv->fd, (const void *)buf_p, bytes_to_xfer);
 
-        if (bytes < 0)
+        if (bytes <= 0)
             return -PB_RESULT_ERROR;
         bytes_to_xfer -= bytes;
         buf_p += bytes;

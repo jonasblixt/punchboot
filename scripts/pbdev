@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#
+# Run commands in the punchboot-dev container.
+#
+#   scripts/pbdev test [cmake args]  Host build, unit + integration tests
+#   scripts/pbdev firmware <board>   Build firmware for a board (see build-firmware.sh)
+#   scripts/pbdev shell              Interactive shell in the container
+#   scripts/pbdev run <cmd...>       Run a command in the container
+#   scripts/pbdev image              (Re)build the container image
+#
+# The image tag is derived from the contents of docker/, so editing the
+# Dockerfile automatically results in a rebuild on the next invocation.
+# The repository is mounted at the same path as on the host, and commands run
+# as the invoking user, so build outputs are owned by you and paths in
+# coverage/map files match the host.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DOCKER_DIR="$REPO_ROOT/docker"
+IMAGE_NAME=punchboot-dev
+IMAGE_TAG="$(cat "$DOCKER_DIR"/* | sha256sum | cut -c1-12)"
+IMAGE="$IMAGE_NAME:$IMAGE_TAG"
+
+build_image() {
+    docker build -t "$IMAGE" -t "$IMAGE_NAME:latest" "$DOCKER_DIR"
+}
+
+ensure_image() {
+    if ! docker image inspect "$IMAGE" > /dev/null 2>&1; then
+        echo "Building $IMAGE"
+        build_image
+    fi
+}
+
+run() {
+    local tty_args=()
+    if [ -t 0 ] && [ -t 1 ]; then
+        tty_args=(-it)
+    fi
+
+    ensure_image
+    docker run --rm "${tty_args[@]}" \
+        --user "$(id -u):$(id -g)" \
+        -e BUILD_DIR -e CTEST_ARGS \
+        -v "$REPO_ROOT:$REPO_ROOT" \
+        -w "$REPO_ROOT" \
+        "$IMAGE" "$@"
+}
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+    image)
+        build_image
+        ;;
+    shell)
+        run bash
+        ;;
+    run)
+        run "$@"
+        ;;
+    test)
+        run scripts/ci/host-test.sh "$@"
+        ;;
+    firmware)
+        run scripts/ci/build-firmware.sh "$@"
+        ;;
+    *)
+        sed -n '3,10p' "$0" | sed 's/^# \{0,1\}//'
+        exit 1
+        ;;
+esac

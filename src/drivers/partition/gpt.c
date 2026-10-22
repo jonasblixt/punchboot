@@ -58,7 +58,7 @@ struct gpt_backup_tbl {
 #define PB_GPT_ATTR_OK (1 << 7) /*Bit 55*/
 
 static const uint64_t gpt_header_signature = 0x5452415020494645ULL;
-static int prng_state;
+static uint32_t prng_state;
 
 static struct gpt_primary_tbl primary __aligned(64);
 static struct gpt_backup_tbl backup __aligned(64);
@@ -73,9 +73,9 @@ static inline uint32_t efi_crc32(const void *buf, uint32_t sz)
 }
 
 /* Low entropy source for setting up UUID's */
-static int gpt_prng(void)
+static uint32_t gpt_prng(void)
 {
-    int x = prng_state;
+    uint32_t x = prng_state;
     x ^= x << 13;
     x ^= x >> 17;
     x ^= x << 5;
@@ -100,6 +100,15 @@ static int gpt_has_valid_header(struct gpt_header *hdr)
     }
 
     hdr->hdr_crc = crc_tmp;
+
+    /* The partition array must fit in the in-memory tables */
+    if (hdr->no_of_parts > ARRAY_SIZE(primary.part) ||
+        hdr->part_entry_sz != sizeof(struct gpt_part_hdr)) {
+        LOG_ERR("Unsupported partition array, %u entries of %u bytes",
+                hdr->no_of_parts,
+                hdr->part_entry_sz);
+        return PB_ERR;
+    }
 
     return PB_OK;
 }
@@ -408,7 +417,9 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
      * It's likely not worth the extra boot up time to compare the tables.
      */
 
-    for (struct gpt_part_hdr *p = primary.part; p->first_lba; p++) {
+    for (struct gpt_part_hdr *p = primary.part;
+         p < &primary.part[primary.hdr.no_of_parts] && p->first_lba;
+         p++) {
         int n = 0;
         uuid_to_guid(p->uuid, uu);
 

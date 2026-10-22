@@ -298,7 +298,7 @@ class Session:
             # If it's a string we must compare to "none" to not break compability.
             if isinstance(part, str):
                 if part.casefold() == "none".casefold():
-                    self.pb_s.boot_set_boot_part(None)
+                    self.pb_s.boot_set_boot_part(uuid.UUID(int=0).bytes)
                 else:
                     self.pb_s.boot_set_boot_part(uuid.UUID(part).bytes)
             elif isinstance(part, uuid.UUID):
@@ -307,7 +307,8 @@ class Session:
                 msg = "Invalid partition specification"
                 raise ValueError(msg)
         else:
-            self.pb_s.boot_set_boot_part(None)
+            # The null UUID disables boot
+            self.pb_s.boot_set_boot_part(uuid.UUID(int=0).bytes)
 
     def boot_status(self) -> tuple[uuid.UUID, str]:
         """Boot status.
