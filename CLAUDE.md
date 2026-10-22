@@ -39,6 +39,9 @@ Skip unless the task is about them: `pki/` (test keys), vendored code
 - Format: clang-format (C), ruff (Python, `select = ["ALL"]`). `pre-commit run --all-files` before committing.
 - Tests: `scripts/pbdev test` (~10 s once built). Firmware: `scripts/pbdev firmware jiffy`.
 - Release: bump `version.txt`, then tag `vX.Y.Z` on master. The tag publishes to PyPI.
+- Author email is `jonas@blxt.se`: commits and the copyright header of new files
+  (`Copyright (C) <year> Jonas Blixt <jonas@blxt.se>`). Don't copy the old `jonpe960@gmail.com`
+  from existing headers.
 
 ## Keeping context current
 
