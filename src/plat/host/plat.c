@@ -87,3 +87,9 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
     *length = sizeof(device_unique_id);
     return PB_OK;
 }
+
+int plat_get_boot_source(struct pb_boot_source *src)
+{
+    (void)src;
+    return -PB_ERR_NOT_SUPPORTED;
+}

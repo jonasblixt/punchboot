@@ -42,6 +42,7 @@ static struct mmc_csd_emmc mmc_csd;
 static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part_config;
 static enum mmc_part mmc_current_part;
+static int mmc_boot_part_config = -PB_ERR_STATE;
 static unsigned int power_off_long_time_ms = 2550;
 static unsigned int generic_cmd6_time_ms = 2550;
 static unsigned int partition_switch_time_ms = 2550;
@@ -680,6 +681,31 @@ static int mmc_setup(void)
 
     mmc_current_part_config = mmc_ext_csd[EXT_CSD_PART_CONFIG];
 
+    /*
+     * Record BOOT_PARTITION_ENABLE before we switch partitions, see
+     * mmc_get_boot_part_config().
+     */
+    if (mmc_boot_part_config == -PB_ERR_STATE) {
+        switch ((mmc_current_part_config & PART_CONFIG_BOOT_MASK) >> PART_CONFIG_BOOT_SHIFT) {
+        case 1:
+            mmc_boot_part_config = MMC_PART_BOOT0;
+            LOG_INFO("BOOT_PARTITION_ENABLE: BOOT0");
+            break;
+        case 2:
+            mmc_boot_part_config = MMC_PART_BOOT1;
+            LOG_INFO("BOOT_PARTITION_ENABLE: BOOT1");
+            break;
+        case 0:
+        case 7:
+            mmc_boot_part_config = MMC_PART_USER;
+            LOG_INFO("BOOT_PARTITION_ENABLE: User");
+            break;
+        default:
+            LOG_ERR("Bad PARTITION_CONFIG: 0x%x", mmc_current_part_config);
+            break;
+        }
+    }
+
     size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 | mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
                      mmc_ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
                      mmc_ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
@@ -944,6 +970,28 @@ int mmc_part_switch(enum mmc_part part)
         mmc_current_part_config = value;
 
     return rc;
+}
+
+int mmc_get_boot_part_config(uuid_t part_uu)
+{
+    const unsigned char *uu;
+
+    switch (mmc_boot_part_config) {
+    case MMC_PART_BOOT0:
+        uu = mmc_cfg->boot0_uu;
+        break;
+    case MMC_PART_BOOT1:
+        uu = mmc_cfg->boot1_uu;
+        break;
+    case MMC_PART_USER:
+        uu = mmc_cfg->user_uu;
+        break;
+    default:
+        return -PB_ERR_STATE;
+    }
+
+    memcpy(part_uu, uu, sizeof(uuid_t));
+    return PB_OK;
 }
 
 int mmc_power_off(void)

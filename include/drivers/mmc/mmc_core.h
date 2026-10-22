@@ -389,6 +389,20 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf);
 int mmc_part_switch(enum mmc_part part);
 
 /**
+ * Get the partition BOOT_PARTITION_ENABLE (EXT_CSD[179]) pointed to when the
+ * card was first initialized, before pb switched partitions
+ *
+ * This is what the card was set up to boot from. Whether the ROM actually
+ * loaded pb from it is platform knowledge, see plat_get_boot_source().
+ *
+ * @param[out] part_uu UUID of the BOOT0, BOOT1 or user area bio partition
+ *
+ * @return PB_OK on success,
+ *         -PB_ERR_STATE if the card isn't initialized or the value is reserved
+ */
+int mmc_get_boot_part_config(uuid_t part_uu);
+
+/**
  * Re-reads the extended CSD structure and updates the internal cache.
  *
  * @return PB_OK on success or a negative number
