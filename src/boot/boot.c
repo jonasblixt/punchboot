@@ -309,7 +309,9 @@ int boot_load(uuid_t boot_part_override_uu)
     }
 
 err_out:
-    boot_flags = 0;
+    /* The flags stay set for boot_jump, late_boot checks BOOT_FLAG_CMD */
+    if (rc != PB_OK)
+        boot_flags = 0;
     return rc;
 }
 
@@ -321,12 +323,14 @@ int boot_jump(void)
     if (boot_cfg->late_boot_cb) {
         rc = boot_cfg->late_boot_cb(header_ptr, boot_part_uu);
         if (rc != PB_OK) {
+            boot_flags = 0;
             return rc;
         }
     }
 
     ts("Boot jump");
     boot_cfg->jump();
+    boot_flags = 0;
     return -PB_ERR;
 }
 
