@@ -491,8 +491,12 @@ static void test_cb_boot_errors(void **state)
     assert_int_equal(fake.last_result, -PB_ERR_MEM);
     fake.verify_parts_rc = PB_OK;
 
+    /* The host still gets the final result (F-061) */
+    fake.result_cb_calls = 0;
     fake.load_rc = -PB_ERR_IO;
     assert_int_equal(boot_load(NULL), -PB_ERR_IO);
+    assert_int_equal(fake.result_cb_calls, 2);
+    assert_int_equal(fake.last_result, -PB_ERR_IO);
     fake.load_rc = PB_OK;
 
     fake.verify_payload_rc = -PB_ERR_BAD_PAYLOAD;
