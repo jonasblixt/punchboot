@@ -6,9 +6,9 @@
 #   scripts/ci/build-firmware.sh <board> [make args]
 #
 # Only the firmware binary (build-<board>/pb.bin) is built. Signed boot images
-# need vendor tools (mkimage, NXP cst) and keys that are not in the
-# container. Boards that use an external keystore are built against the
-# internal test keystore.
+# are built by the 'all' target, which needs mkimage and NXP cst (both in the
+# container) and, for most boards, vendor blobs that are not. Boards that use
+# an external keystore are built against the internal test keystore.
 
 set -euo pipefail
 

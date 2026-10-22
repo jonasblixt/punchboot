@@ -21,8 +21,15 @@ make BOARD=src/board/<x> KCONFIG_CONFIG=configs/<x>_defconfig CROSS_COMPILE=<arm
 - `keystore.c` is generated with the host `bpak` CLI (`$(BPAK) generate keystore`) from `CONFIG_KEYSTORE`,
   default `pki/internal_keystore.bpak`. It can be overridden on the make command line (`CONFIG_KEYSTORE=...`).
 - Outputs go to `build-<board>/`: `pb`, `pb.bin` and `pb.map`.
-- The default `all` target also builds the platform images (`.imx`, signed with NXP `cst`). Those
-  need `mkimage`/`cst` and vendor blobs, which aren't in the container.
+- The default `all` target also builds the platform images (`.imx`, signed with NXP `cst`).
+  `mkimage` (u-boot-tools) and `cst` (imx-code-signing-tool 3.4.1) are in the container. jiffy
+  builds and signs with the HAB test keys in `pki/`. The other boards also need vendor blobs that
+  aren't in the container.
+- Signed jiffy (HAB test keys): `scripts/pbdev run make BOARD=src/board/jiffy
+  KCONFIG_CONFIG=configs/jiffy_defconfig CROSS_COMPILE=arm-none-eabi- all` gives
+  `build-jiffy/pb_signed.imx` (boot media, 1 KiB zero pad) and `pb_signed_uuu.imx` (serial download).
+- NXP's Python SPSDK (`nxpimage`) is not a replacement for `cst` on i.MX6UL/8M: its HAB support is
+  i.MX RT only. It covers AHAB (i.MX8DXL/8QXP/8ULP/9).
 - MBEDTLS_DIR must point to Mbed TLS 3.4.0 sources (set in the container).
 
 ## Dev container
