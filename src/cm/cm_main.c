@@ -25,10 +25,15 @@
 #include <string.h>
 #include <uuid.h>
 
+#define CM_BUF_SIZE       (CONFIG_CM_BUF_SIZE_KiB * 1024)
+/* Hosts send authentication and board command data in one transfer of this
+ * size, whatever the data's size */
+#define CM_DATA_XFER_SIZE 1024
+
 static struct pb_command cmd __section(".no_init") __aligned(64);
 static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
-static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KiB * 1024] __section(".no_init") __aligned(4096);
+static uint8_t buffer[2][CM_BUF_SIZE] __section(".no_init") __aligned(4096);
 static slc_t slc;
 
 /* The part table response sends the low byte of the bio flags and the SLC
@@ -220,7 +225,7 @@ static int cmd_board(void)
 
     if (board_cmd->request_size) {
         LOG_DBG("Reading request data");
-        rc = cm_read(bfr, 1024);
+        rc = cm_read(bfr, CM_DATA_XFER_SIZE);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
@@ -228,9 +233,9 @@ static int cmd_board(void)
         }
     }
 
-    /* Hosts send the request in one 1024 byte transfer, also when it's
-     * refused here, since 2.x hosts don't check the first result */
-    if (board_cmd->request_size > 1024) {
+    /* The request transfer is read also when it's refused here, since 2.x
+     * hosts don't check the first result */
+    if (board_cmd->request_size > CM_DATA_XFER_SIZE) {
         LOG_ERR("Bad board command request size: %" PRIu32, board_cmd->request_size);
         pb_wire_init_result(&result, error_to_wire(-PB_ERR_PARAM));
         return -PB_ERR_PARAM;
@@ -238,7 +243,7 @@ static int cmd_board(void)
 
     uint8_t *bfr_response = buffer[1];
 
-    size_t response_size = CONFIG_CM_BUF_SIZE_KiB * 1024;
+    size_t response_size = CM_BUF_SIZE;
 
     rc = cfg->command(
         board_cmd->command, bfr, board_cmd->request_size, bfr_response, &response_size);
@@ -302,11 +307,11 @@ static int cmd_bpak_read(void)
 }
 
 #if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
-/* Hosts send the authentication data in one 1024 byte transfer after an OK
- * result, and check that result first. */
+/* Hosts send the authentication data after an OK result, and check that
+ * result first. */
 static int auth_read_data(const struct pb_command_authenticate *auth_cmd)
 {
-    if (auth_cmd->size == 0 || auth_cmd->size > 1024) {
+    if (auth_cmd->size == 0 || auth_cmd->size > CM_DATA_XFER_SIZE) {
         LOG_ERR("Bad authentication data size: %u", auth_cmd->size);
         return -PB_ERR_PARAM;
     }
@@ -314,7 +319,7 @@ static int auth_read_data(const struct pb_command_authenticate *auth_cmd)
     pb_wire_init_result(&result, PB_RESULT_OK);
     cm_write(&result, sizeof(result));
 
-    return cm_read(buffer[0], 1024);
+    return cm_read(buffer[0], CM_DATA_XFER_SIZE);
 }
 #endif
 
@@ -526,9 +531,7 @@ static int cmd_part_verify(void)
     LOG_DBG("Reading %zu bytes", bytes_to_verify);
 
     while (bytes_to_verify) {
-        chunk_len = bytes_to_verify > (CONFIG_CM_BUF_SIZE_KiB * 1024)
-                        ? (CONFIG_CM_BUF_SIZE_KiB * 1024)
-                        : bytes_to_verify;
+        chunk_len = bytes_to_verify > CM_BUF_SIZE ? CM_BUF_SIZE : bytes_to_verify;
 
         buffer_id = !buffer_id;
 
@@ -737,7 +740,7 @@ static int cmd_stream_prep_buffer(void)
 
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-    if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KiB * 1024)) {
+    if (stream_prep->size > CM_BUF_SIZE) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_ERR_MEM;
     }
@@ -750,7 +753,7 @@ static int cmd_stream_prep_buffer(void)
     pb_wire_init_result(&result, PB_RESULT_OK);
     cm_write(&result, sizeof(result));
 
-    uint8_t *bfr = ((uint8_t *)buffer) + ((CONFIG_CM_BUF_SIZE_KiB * 1024) * stream_prep->id);
+    uint8_t *bfr = ((uint8_t *)buffer) + (CM_BUF_SIZE * stream_prep->id);
 
     return cm_read(bfr, stream_prep->size);
 }
@@ -816,8 +819,8 @@ static int pb_command_parse(void)
         LOG_INFO("Read caps");
         struct pb_result_device_caps caps = { 0 };
         caps.stream_no_of_buffers = 2;
-        caps.stream_buffer_size = CONFIG_CM_BUF_SIZE_KiB * 1024;
-        caps.chunk_transfer_max_bytes = CONFIG_CM_BUF_SIZE_KiB * 1024;
+        caps.stream_buffer_size = CM_BUF_SIZE;
+        caps.chunk_transfer_max_bytes = CM_BUF_SIZE;
 
         pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
     } break;
@@ -909,7 +912,7 @@ static int pb_command_parse(void)
 
         uint8_t *bfr_response = buffer[0];
 
-        size_t response_size = CONFIG_CM_BUF_SIZE_KiB * 1024;
+        size_t response_size = CM_BUF_SIZE;
         rc = cfg->status(bfr_response, &response_size);
 
         status_result.size = response_size;
