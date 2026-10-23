@@ -16,10 +16,22 @@
 #include <pb/errors.h>
 #include <pb/mmio.h>
 
-#define GP_TIMER_CR  0x0000
-#define GP_TIMER_PR  0x0004
-#define GP_TIMER_SR  0x0008
-#define GP_TIMER_CNT 0x0024
+#define GPT_CR               0x0000
+#define GPT_PR               0x0004
+#define GPT_SR               0x0008
+#define GPT_CNT              0x0024
+
+/* Control register */
+#define GPT_CR_EN            BIT(0)
+#define GPT_CR_CLKSRC(x)     (((x) & 0x7) << 6)
+#define GPT_CR_FRR           BIT(9)
+#define GPT_CR_EN_24M        BIT(10)
+#define GPT_CR_SWR           BIT(15)
+
+/* CLKSRC values */
+#define GPT_CLKSRC_HIGH_FREQ 2 /* ipg_clk_highfreq, perclk_clk_root */
+
+#define GPT_TICK_Hz          MHz(1)
 
 static uintptr_t gpt_base;
 
@@ -28,27 +40,27 @@ int imx_gpt_init(uintptr_t base, unsigned int input_clock_Hz)
     uint32_t cr = 0;
     gpt_base = base;
 
-    mmio_write_32(gpt_base + GP_TIMER_CR, (1 << 15));
+    mmio_write_32(gpt_base + GPT_CR, GPT_CR_SWR);
 
-    while (mmio_read_32(gpt_base + GP_TIMER_CR) & (1 << 15)) {
+    while (mmio_read_32(gpt_base + GPT_CR) & GPT_CR_SWR) {
         __asm__("nop");
     }
 
     /* The counter clock is divided by PR + 1 */
-    mmio_write_32(gpt_base + GP_TIMER_PR, input_clock_Hz / MHz(1) - 1);
+    mmio_write_32(gpt_base + GPT_PR, input_clock_Hz / GPT_TICK_Hz - 1);
 
-    cr = (2 << 6) | (1 << 9) | (1 << 10);
-    mmio_write_32(gpt_base + GP_TIMER_CR, cr);
+    cr = GPT_CR_CLKSRC(GPT_CLKSRC_HIGH_FREQ) | GPT_CR_FRR | GPT_CR_EN_24M;
+    mmio_write_32(gpt_base + GPT_CR, cr);
 
     /* Enable timer */
-    cr |= 1;
+    cr |= GPT_CR_EN;
 
-    mmio_write_32(gpt_base + GP_TIMER_CR, cr);
+    mmio_write_32(gpt_base + GPT_CR, cr);
 
     return PB_OK;
 }
 
 unsigned int imx_gpt_get_tick(void)
 {
-    return mmio_read_32(gpt_base + GP_TIMER_CNT);
+    return mmio_read_32(gpt_base + GPT_CNT);
 }
