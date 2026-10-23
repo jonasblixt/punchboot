@@ -34,7 +34,8 @@ int imx_gpt_init(uintptr_t base, unsigned int input_clock_Hz)
         __asm__("nop");
     }
 
-    mmio_write_32(gpt_base + GP_TIMER_PR, input_clock_Hz / MHz(1));
+    /* The counter clock is divided by PR + 1 */
+    mmio_write_32(gpt_base + GP_TIMER_PR, input_clock_Hz / MHz(1) - 1);
 
     cr = (2 << 6) | (1 << 9) | (1 << 10);
     mmio_write_32(gpt_base + GP_TIMER_CR, cr);
