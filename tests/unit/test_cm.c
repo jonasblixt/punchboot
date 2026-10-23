@@ -963,6 +963,82 @@ static void test_auth_password(void **state)
     expect_end();
 }
 
+/* F-005: hosts send the data in one 1024 byte transfer, and none for size 0.
+ * A bad size is refused before the data, and leaves the device locked. */
+static void test_auth_data_size(void **state)
+{
+    static const uint8_t methods[] = { PB_AUTH_ASYM_TOKEN, PB_AUTH_PASSWORD };
+    static const uint16_t bad_sizes[] = { 0, 1025, 0xffff };
+    uint8_t token[1024] = { FAKE_SIG_OK };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+
+    /* The largest token */
+    host_auth(PB_AUTH_ASYM_TOKEN, token, sizeof(token), KEY_ID);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+
+    for (size_t m = 0; m < ARRAY_SIZE(methods); m++) {
+        for (size_t s = 0; s < ARRAY_SIZE(bad_sizes); s++) {
+            struct pb_command_authenticate auth = {
+                .method = methods[m],
+                .size = bad_sizes[s],
+                .key_id = KEY_ID,
+            };
+            host_cmd(PB_CMD_AUTHENTICATE, &auth, sizeof(auth));
+            host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+        }
+    }
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    for (size_t i = 0; i < ARRAY_SIZE(methods) * ARRAY_SIZE(bad_sizes); i++) {
+        expect_result(-PB_RESULT_INVALID_ARGUMENT);
+        expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    }
+    expect_end();
+}
+
+/* F-005: when the data doesn't arrive, the device must not check whatever the
+ * buffer held from the last authentication */
+static void test_auth_data_read_fails(void **state)
+{
+    struct pb_command_authenticate token = { .method = PB_AUTH_ASYM_TOKEN,
+                                             .size = 2,
+                                             .key_id = KEY_ID };
+    struct pb_command_authenticate password = { .method = PB_AUTH_PASSWORD, .size = 6 };
+    (void)state;
+
+    host_auth_token();
+    host_cmd(PB_CMD_AUTHENTICATE, &token, sizeof(token));
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+    host_auth(PB_AUTH_PASSWORD, "secret", 6, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &password, sizeof(password));
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+}
+
 static void test_slc_commands(void **state)
 {
     struct pb_command_revoke_key revoke = { .key_id = 0x1001 };
@@ -1592,6 +1668,8 @@ int main(void)
         CM_TEST(test_auth_token_key_kinds),
         CM_TEST(test_auth_token_errors),
         CM_TEST(test_auth_password),
+        CM_TEST(test_auth_data_size),
+        CM_TEST(test_auth_data_read_fails),
         CM_TEST(test_slc_commands),
         CM_TEST(test_slc_errors),
         CM_TEST(test_slc_read_key_status),

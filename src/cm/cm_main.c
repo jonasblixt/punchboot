@@ -293,6 +293,23 @@ static int cmd_bpak_read(void)
     return rc;
 }
 
+#if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
+/* Hosts send the authentication data in one 1024 byte transfer after an OK
+ * result, and check that result first. */
+static int auth_read_data(const struct pb_command_authenticate *auth_cmd)
+{
+    if (auth_cmd->size == 0 || auth_cmd->size > 1024) {
+        LOG_ERR("Bad authentication data size: %u", auth_cmd->size);
+        return -PB_ERR_PARAM;
+    }
+
+    pb_wire_init_result(&result, PB_RESULT_OK);
+    cm_write(&result, sizeof(result));
+
+    return cm_read(buffer[0], 1024);
+}
+#endif
+
 static int cmd_auth(void)
 {
     int rc = -PB_ERR_NOT_IMPLEMENTED;
@@ -304,12 +321,10 @@ static int cmd_auth(void)
 
 #ifdef CONFIG_CM_AUTH_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
-        pb_wire_init_result(&result, PB_RESULT_OK);
-        cm_write(&result, sizeof(result));
+        rc = auth_read_data(auth_cmd);
 
-        cm_read(buffer[0], 1024);
-
-        rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
+        if (rc == PB_OK)
+            rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
             authenticated = true;
@@ -322,10 +337,10 @@ static int cmd_auth(void)
 
 #if CONFIG_CM_AUTH_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD && cfg->password_auth) {
-        pb_wire_init_result(&result, PB_RESULT_OK);
-        cm_write(&result, sizeof(result));
-        cm_read(buffer[0], 1024);
-        rc = cfg->password_auth((char *)buffer[0], auth_cmd->size);
+        rc = auth_read_data(auth_cmd);
+
+        if (rc == PB_OK)
+            rc = cfg->password_auth((char *)buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
             authenticated = true;
