@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-10-22_
+_Last updated: 2026-10-23_
 
 ## Current focus
 
@@ -36,6 +36,8 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
    Then the compat fixes F-075 (erase), F-076 (dont-hash, has an xfail test), F-077 (caps 0).
    `compat-guards` also carries the jiffy HAB signing commits, to be split onto their own branch.
 4. F-049 is fixed: consider `-Werror` for the host build.
+   Branch `high-prio-fixes` (on `jiffy-fixes`, not pushed) works through `todo.md`. F-084 (GPT tick
+   2.64x fast on jiffy) is fixed there; measuring it on jiffy is next, then F-005.
 5. Phase 1: security fixes F-001, F-004, F-005, each with a test (F-002 is intended, D-011).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`) works on the board.
    F-080 fixed (CAAM timeout). On the closed board, JTAG blocks the CAAM until a power cycle.

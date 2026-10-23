@@ -21,7 +21,7 @@ Ordered by priority. "Reported" findings are unverified; check them before fixin
 17. Bug: F-068, `bpak_del_meta` writes past `meta[]` (fix upstream).
 18. Bug: F-011, `bpak_add_transport_meta` uses the wrong size (fixed upstream in bpak v0.9.2, latent).
 19. Board: F-083, `punchboot part read` fails with an I/O error on jiffy.
-20. Board: F-084, `plat_get_us_tick()` runs 2.64x fast on jiffy (measured over JTAG), so every delay and timeout is short.
+20. Board: F-084 is fixed on `high-prio-fixes`: measure the tick on jiffy (expect 1.000 ticks/us), and check imx8x/imx8m perclk.
 21. Board: F-079/F-078, eMMC reset is on the wrong pin on jiffy, and SRST falls back to the serial downloader.
 22. Board: F-090, imx8dxlevk RWX link warning.
 23. Compat: F-076, honour `dont-hash` (has an xfail test).
