@@ -17,6 +17,11 @@ static int internal_pb_api_authenticate(struct pb_context *ctx,
 
     ctx->d(ctx, 2, "%s: call, method: %i, size: %i\n", __func__, method, size);
 
+    /* The data goes in one 1024 byte transfer. Devices without the check
+     * answer OK to any size and wait for data that a size of 0 never sends. */
+    if (size == 0 || size > sizeof(auth_buf))
+        return -PB_RESULT_INVALID_ARGUMENT;
+
     memset(&auth, 0, sizeof(auth));
     auth.method = method;
     auth.key_id = key_id;
