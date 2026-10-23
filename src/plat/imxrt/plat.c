@@ -114,7 +114,7 @@ int plat_init(void)
     LOG_INFO("IPG root clock = %d MHz", plat.ipg_root_clk_MHz);
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
-    imx_gpt_init(IMXRT_GPT1_BASE, MHz(plat.ipg_root_clk_MHz));
+    imx_gpt_init(IMXRT_GPT1_BASE, MHz(plat.per_root_clk_MHz));
 
     rc = mbedtls_pb_init();
 
