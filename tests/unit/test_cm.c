@@ -744,6 +744,43 @@ static void test_board_command(void **state)
     expect_end();
 }
 
+/* F-063: the request comes in one 1024 byte transfer. A larger size is
+ * refused without calling the board, after the transfer, which 2.x hosts
+ * send without checking the first result. */
+static void test_board_command_request_size(void **state)
+{
+    static const uint32_t bad_sizes[] = { 1025, 0xffffffff };
+    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 1024 };
+    uint8_t arg[1024];
+    (void)state;
+
+    memset(arg, 'a', sizeof(arg));
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_send(arg, sizeof(arg));
+    for (size_t i = 0; i < ARRAY_SIZE(bad_sizes); i++) {
+        req.request_size = bad_sizes[i];
+        host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+        host_send(arg, sizeof(arg));
+    }
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_board *board = (const void *)r->response;
+    assert_int_equal(board->size, strlen(BOARD_PREFIX) + sizeof(arg));
+    expect_data(board->size);
+    expect_result(PB_RESULT_OK);
+    for (size_t i = 0; i < ARRAY_SIZE(bad_sizes); i++) {
+        expect_result(PB_RESULT_OK);
+        r = expect_result(-PB_RESULT_INVALID_ARGUMENT);
+        board = (const void *)r->response;
+        assert_int_equal(board->size, 0);
+    }
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 /* Every pb error code maps to a wire result */
 static void test_error_codes(void **state)
 {
@@ -1661,6 +1698,7 @@ int main(void)
         CM_TEST(test_boot_status),
         CM_TEST(test_board_status),
         CM_TEST(test_board_command),
+        CM_TEST(test_board_command_request_size),
         CM_TEST(test_error_codes),
         CM_TEST(test_board_command_requests_reboot),
         CM_TEST(test_device_reset),

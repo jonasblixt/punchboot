@@ -228,6 +228,14 @@ static int cmd_board(void)
         }
     }
 
+    /* Hosts send the request in one 1024 byte transfer, also when it's
+     * refused here, since 2.x hosts don't check the first result */
+    if (board_cmd->request_size > 1024) {
+        LOG_ERR("Bad board command request size: %" PRIu32, board_cmd->request_size);
+        pb_wire_init_result(&result, error_to_wire(-PB_ERR_PARAM));
+        return -PB_ERR_PARAM;
+    }
+
     uint8_t *bfr_response = buffer[1];
 
     size_t response_size = CONFIG_CM_BUF_SIZE_KiB * 1024;
