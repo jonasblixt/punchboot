@@ -36,7 +36,7 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
    Then the compat fixes F-075 (erase), F-076 (dont-hash, has an xfail test), F-077 (caps 0).
    `compat-guards` also carries the jiffy HAB signing commits, to be split onto their own branch.
 4. F-049 is fixed: consider `-Werror` for the host build.
-5. Phase 1: security fixes F-001, F-002, F-004, F-005, each with a test.
+5. Phase 1: security fixes F-001, F-004, F-005, each with a test (F-002 is intended, D-011).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`) works on the board.
    F-080 fixed (CAAM timeout). On the closed board, JTAG blocks the CAAM until a power cycle.
    `pbdebug --load` loads pb into RAM from the ROM. F-085 (hang after a failed `boot partition`) and
@@ -48,7 +48,6 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 
 - Which boards are still in use? Only jiffy and imx8dxlevk build (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
-- Is open command mode in SLC EOL intended? (F-002)
 - Mbed TLS: 3.6 LTS or 4.x?
 - Compat floor: which oldest released host and firmware must the guards test against? F-075 shows
   v2.0.0 already broke erase for 1.x hosts.

@@ -47,7 +47,7 @@
 ## Security model (short)
 
 - **Image auth.** Hash the 4 KiB bpak header with the signature zeroed, then `dsa_verify` it with the key from `rot_get_dsa_key(hdr->key_id)`. After that, the streamed payload hash must match `hdr->payload_hash`. Only ECDSA P-256/384/521 is supported.
-- **Command mode auth.** Either a token (a signature over the device-UUID string) or a board password callback. It is only enforced in the `CONFIGURATION_LOCKED` SLC (F-002).
+- **Command mode auth.** Either a token (a signature over the device-UUID string) or a board password callback. It is only enforced in the `CONFIGURATION_LOCKED` SLC; open in EOL is intended (D-011).
 - **No anti-rollback version counter.** Only key revocation.
 
 ## Conventions

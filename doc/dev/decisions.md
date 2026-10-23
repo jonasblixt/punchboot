@@ -81,3 +81,10 @@ don't know return `-PB_ERR_NOT_SUPPORTED`, and `UNKNOWN` when they can't tell th
 are appended. Not on the wire yet; exposing it to the host is a wire addition (D-008).
 Why: an eMMC-only "booted from BOOT0/BOOT1" call was wrong for USB boots, for other ROMs and for
 other media.
+
+## D-011: Command mode is open without authentication in SLC EOL (2026-10-23)
+
+Authentication is only enforced in `CONFIGURATION_LOCKED`. In `EOL` every command is open, as in
+`NOT_CONFIGURED` and `CONFIGURATION`. Closes F-002 as intended.
+Why: Jonas confirmed this is the intended EOL behaviour (2026-10-23). Note that it also opens
+`cmd_board` (F-063) and everything else in EOL, so bounds checks on host input matter there too.
