@@ -37,8 +37,9 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
    `compat-guards` also carries the jiffy HAB signing commits, to be split onto their own branch.
 4. F-049 is fixed: consider `-Werror` for the host build.
    Branch `high-prio-fixes` (not pushed) replaces PR #64 (closed): all of `jiffy-fixes` (bugfix
-   commits reworded `bugfix:`), F-084 (GPT tick, checked on jiffy), F-005, F-063, F-094. Next in
-   this PR: F-001, F-004, F-081, then open it. F-055/F-075 (erase) get their own PR.
+   commits reworded `bugfix:`), F-084 (GPT tick, checked on jiffy), F-005, F-063, F-094. Open as
+   PR #65; CI is green except Codecov (needs a `codecov.yml` policy). Next in this PR: F-001,
+   F-004, F-081. F-055/F-075 (erase) get their own PR.
 5. Phase 1: security fixes F-001, F-004, each with a test (F-002 is intended, D-011).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`) works on the board.
    F-080 fixed (CAAM timeout). On the closed board, JTAG blocks the CAAM until a power cycle.
