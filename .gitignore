@@ -42,3 +42,4 @@ download
 *.so
 build
 dist
+/coverage/

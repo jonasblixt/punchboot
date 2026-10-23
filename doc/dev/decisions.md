@@ -40,7 +40,7 @@ integration tests (this also tests the host library and the Python bindings).
 ## D-006: CI runs the host tests in the dev container; QEMU suite removed (2026-10-22)
 
 `build.yml` runs everything through `scripts/pbdev`, the same as locally: the host tests (default
-and sanitizers), coverage (codecov action), a compile check of the firmware for the boards that
+and sanitizers), coverage (gcovr, D-012), a compile check of the firmware for the boards that
 build (jiffy, imx8dxlevk), and Coverity on master. The bash/QEMU suite, `src/board/test`,
 `src/plat/qemu` and `configs/test_defconfig` were removed once all tests were ported. The virtio
 drivers are kept for now; they would be needed for a QEMU smoke tier.
@@ -88,3 +88,12 @@ Authentication is only enforced in `CONFIGURATION_LOCKED`. In `EOL` every comman
 `NOT_CONFIGURED` and `CONFIGURATION`. Closes F-002 as intended.
 Why: Jonas confirmed this is the intended EOL behaviour (2026-10-23). Note that it also opens
 `cmd_board` (F-063) and everything else in EOL, so bounds checks on host input matter there too.
+
+## D-012: No Codecov; coverage is a gcovr report in CI (2026-10-23)
+
+The coverage job prints the gcovr summary and uploads the HTML report as a workflow artifact.
+Nothing is uploaded to Codecov, and coverage is not a gate.
+Why: the number only covers what the host build compiles, so most driver and platform code is not
+in it. Codecov's default targets failed PR #65 because `mmc_core.c` and `rom_log.c` entered the
+report for the first time (-7.5% project), the upload was non-fatal and the statuses not required,
+and it needed `id-token: write`. What matters is that each fix has a test that fails without it.

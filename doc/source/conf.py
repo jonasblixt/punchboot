@@ -87,6 +87,4 @@ html_static_path = ["_static"]
 extlinks = {
     "github-blob": ("https://github.com/jonasblixt/punchboot/blob/" + version + "/%s", "%s"),
     "github-tree": ("https://github.com/jonasblixt/punchboot/tree/" + version + "/%s", ""),
-    "codecov": ("https://codecov.io/gh/jonasblixt/punchboot/src/" + version + "/%s", ""),
-    "codecov-tree": ("https://codecov.io/gh/jonasblixt/punchboot/tree/" + version + "/%s", ""),
 }

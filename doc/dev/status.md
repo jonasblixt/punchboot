@@ -9,7 +9,7 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 - **Tests:** 97 pytest (+2 xfail: F-076), 199 CMocka cases in 18 unit test programs and
   the `compat.abi` layout check, ~12 s, ASan/UBSan clean. Line coverage 99.2% (was 59%); what's left is in `testing.md`.
   `scripts/pbdev test` runs it all.
-- **CI (`build.yml`):** host tests (default and sanitizers), coverage (Codecov via OIDC), a
+- **CI (`build.yml`):** host tests (default and sanitizers), coverage (gcovr HTML artifact, D-012), a
   firmware compile check (jiffy, imx8dxlevk) and Coverity, all in the dev container. All green on
   `claude-work`. Coverity only runs on master, so it's unverified until merged.
 - **QEMU removed:** the bash/QEMU suite, `src/board/test`, `src/plat/qemu`,
@@ -36,10 +36,9 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
    Then the compat fixes F-075 (erase), F-076 (dont-hash, has an xfail test), F-077 (caps 0).
    `compat-guards` also carries the jiffy HAB signing commits, to be split onto their own branch.
 4. F-049 is fixed: consider `-Werror` for the host build.
-   Branch `high-prio-fixes` (not pushed) replaces PR #64 (closed): all of `jiffy-fixes` (bugfix
-   commits reworded `bugfix:`), F-084 (GPT tick, checked on jiffy), F-005, F-063, F-094. Open as
-   PR #65; CI is green except Codecov (needs a `codecov.yml` policy). Next in this PR: F-001,
-   F-004, F-081. F-055/F-075 (erase) get their own PR.
+   PR #65 (`high-prio-fixes`, replaces PR #64) is merged (2026-10-23): all of `jiffy-fixes`,
+   F-084, F-005, F-063, F-094. Next: F-001, F-004, F-081. F-055/F-075 (erase) get their own PR.
+   Branch `remove-codecov` removes Codecov (D-012); Jonas turns off the Codecov app.
 5. Phase 1: security fixes F-001, F-004, each with a test (F-002 is intended, D-011).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`) works on the board.
    F-080 fixed (CAAM timeout). On the closed board, JTAG blocks the CAAM until a power cycle.
