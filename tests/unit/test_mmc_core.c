@@ -19,6 +19,9 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <cmocka.h>
 
@@ -353,6 +356,89 @@ static void test_write_done_user(void **state)
     assert_int_equal(power_on(), MMC_PART_BOOT0);
 }
 
+/* Runs before any mmc_init() */
+static void test_boot_part_config_before_init(void **state)
+{
+    uuid_t uu;
+    (void)state;
+
+    assert_int_equal(mmc_get_boot_part_config(uu), -PB_ERR_STATE);
+}
+
+/* The partition pb was loaded from, recorded by the first mmc_init() */
+static void test_boot_part_config(void **state)
+{
+    uuid_t uu;
+    (void)state;
+
+    assert_int_equal(power_on(), MMC_PART_BOOT0);
+    pb_boot();
+    assert_int_equal(mmc_get_boot_part_config(uu), PB_OK);
+    assert_memory_equal(uu, UU_BOOT0, sizeof(uu));
+
+    /* The update enables BOOT1, but pb was still loaded from BOOT0 */
+    update(UU_BOOT0, new_image);
+    pb_boot();
+    assert_int_equal(mmc_get_boot_part_config(uu), PB_OK);
+    assert_memory_equal(uu, UU_BOOT0, sizeof(uu));
+}
+
+/*
+ * The first mmc_init() of a boot records BOOT_PARTITION_ENABLE, so each one
+ * runs in its own process, forked before this process calls mmc_init().
+ * Returns mmc_get_boot_part_config() and its UUID.
+ */
+static int first_boot_part_config(uint8_t boot_part_enable, uuid_t uu)
+{
+    int fds[2];
+    int status;
+
+    struct {
+        int rc;
+        uuid_t uu;
+    } result = { 0 };
+
+    assert_int_equal(pipe(fds), 0);
+    pid_t pid = fork();
+    assert_true(pid >= 0);
+
+    if (pid == 0) {
+        /* exit(), not _exit(): gcov writes the coverage at exit */
+        close(fds[0]);
+        card.ext_csd[EXT_CSD_PART_CONFIG] = boot_part_enable << 3;
+        power_on();
+        bio_reset();
+        if (mmc_init(&hal, &cfg) != PB_OK)
+            exit(1);
+        result.rc = mmc_get_boot_part_config(result.uu);
+        exit(write(fds[1], &result, sizeof(result)) == sizeof(result) ? 0 : 1);
+    }
+
+    close(fds[1]);
+    assert_int_equal(read(fds[0], &result, sizeof(result)), sizeof(result));
+    close(fds[0]);
+    assert_int_equal(waitpid(pid, &status, 0), pid);
+    assert_true(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+
+    memcpy(uu, result.uu, sizeof(uuid_t));
+    return result.rc;
+}
+
+/* Runs before any mmc_init() */
+static void test_boot_part_config_values(void **state)
+{
+    uuid_t uu;
+    (void)state;
+
+    assert_int_equal(first_boot_part_config(2, uu), PB_OK);
+    assert_memory_equal(uu, UU_BOOT1, sizeof(uu));
+    assert_int_equal(first_boot_part_config(0, uu), PB_OK);
+    assert_memory_equal(uu, UU_USER, sizeof(uu));
+    assert_int_equal(first_boot_part_config(7, uu), PB_OK);
+    assert_memory_equal(uu, UU_USER, sizeof(uu));
+    assert_int_equal(first_boot_part_config(3, uu), -PB_ERR_STATE); /* Reserved */
+}
+
 int main(void)
 {
     for (size_t n = 0; n < IMAGE_SIZE; n++) {
@@ -361,12 +447,16 @@ int main(void)
     }
 
     const struct CMUnitTest tests[] = {
+        /* Before any mmc_init() */
+        cmocka_unit_test(test_boot_part_config_before_init),
+        cmocka_unit_test_setup(test_boot_part_config_values, setup),
         cmocka_unit_test_setup(test_interrupted_boot0_write, setup),
         cmocka_unit_test_setup(test_update_both, setup),
         cmocka_unit_test_setup(test_write_not_finalized, setup),
         cmocka_unit_test_setup(test_update_other_part, setup),
         cmocka_unit_test_setup(test_access_keeps_boot_part, setup),
         cmocka_unit_test_setup(test_write_done_user, setup),
+        cmocka_unit_test_setup(test_boot_part_config, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

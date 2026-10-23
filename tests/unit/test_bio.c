@@ -149,6 +149,8 @@ static void test_invalid_handles(void **state)
         assert_int_equal(bio_get_first_block(dev), -PB_ERR_PARAM);
         assert_int_equal(bio_get_no_of_blocks(dev), -PB_ERR_PARAM);
         assert_int_equal(bio_set_install_partition_cb(dev, NULL), -PB_ERR_PARAM);
+        assert_int_equal(bio_set_write_done_cb(dev, NULL), -PB_ERR_PARAM);
+        assert_int_equal(bio_write_done(dev), -PB_ERR_PARAM);
         assert_int_equal(bio_allocate_parent(dev, 0, 1, RAMDISK_BLOCK_SIZE, UU_PART, "x"),
                          -PB_ERR_PARAM);
     }

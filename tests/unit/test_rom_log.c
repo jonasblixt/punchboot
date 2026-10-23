@@ -6,7 +6,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * i.MX6UL ROM log decoding (src/plat/imx6ul/rom_log.c). Saving the log reads
- * the ROM and OCRAM, so only the decoder is tested.
+ * the ROM and OCRAM, so only the decoder and the state before a save are
+ * tested.
  */
 
 #include <setjmp.h>
@@ -194,6 +195,17 @@ static void test_find_event(void **state)
     assert_false(imx6ul_rom_log_find(log, 0, 0x00010000));
 }
 
+/* Nothing saved: no imx6ul_rom_log_save(), or a bad log pointer */
+static void test_no_saved_log(void **state)
+{
+    size_t len = sizeof(out);
+    (void)state;
+
+    assert_int_equal(imx6ul_rom_log_dump(out, &len), -PB_ERR_NOT_FOUND);
+    assert_int_equal(len, 0);
+    assert_false(imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_PRIMARY_IMAGE));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -206,6 +218,7 @@ int main(void)
         cmocka_unit_test(test_empty_log),
         cmocka_unit_test(test_output_too_small),
         cmocka_unit_test(test_find_event),
+        cmocka_unit_test(test_no_saved_log),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
