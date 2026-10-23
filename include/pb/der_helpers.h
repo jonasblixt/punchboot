@@ -9,23 +9,20 @@
 /**
  * Extract r and s values from a DER encoded signature
  *
+ * Leading zero bytes are dropped and shorter values are zero padded, so that
+ * r and s are big-endian values of exactly 'length' bytes.
+ *
  * @param[in] sig DER bytes
- * @param[out] r r value output
- * @param[out] s s value output
- * @param[in] length Length of r and s buffers, they are expected to be
- *              the same length.
- * @param[in] suppress_leading_zero Suppresses any leading zero bytes if
- *              MSB is set in the next byte. See comment in the code.
+ * @param[in] sig_length Number of bytes in sig, nothing past it is read
+ * @param[out] r r value output, 'length' bytes
+ * @param[out] s s value output, 'length' bytes
+ * @param[in] length Length of r and s, the curve size in bytes
  *
  * @return PB_OK, on success
  *        -PB_ERR_ASN1 Decoding errors
- *        -PB_ERR_BUFFER_TOO_SMALL, if output buffers are too small
+ *        -PB_ERR_BUF_TOO_SMALL, if r or s doesn't fit in 'length' bytes
  */
-int der_ecsig_to_rs(const uint8_t *sig,
-                    uint8_t *r,
-                    uint8_t *s,
-                    size_t length,
-                    bool suppress_leading_zero);
+int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *s, size_t length);
 
 /**
  * Extract public key data from a DER encoded key

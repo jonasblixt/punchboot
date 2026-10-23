@@ -56,6 +56,7 @@ static struct {
     int verify_rc;
     bool verify_ok;
     hash_t verify_md_alg;
+    size_t verify_md_length;
 } fake;
 
 int rot_read_key_status(key_id_t id)
@@ -131,8 +132,8 @@ static int fake_verify(const uint8_t *der_signature,
     (void)der_key;
     (void)key_length;
     (void)md;
-    (void)md_length;
     fake.verify_md_alg = md_alg;
+    fake.verify_md_length = md_length;
     *verified = fake.verify_ok && (signature_length == 2) && (der_signature[0] == FAKE_SIG_OK);
     return fake.verify_rc;
 }
@@ -207,10 +208,11 @@ static void test_auth_header(void **state)
     static const struct {
         uint8_t bpak;
         hash_t pb;
+        size_t digest_length;
     } kinds[] = {
-        { BPAK_HASH_SHA256, HASH_SHA256 },
-        { BPAK_HASH_SHA384, HASH_SHA384 },
-        { BPAK_HASH_SHA512, HASH_SHA512 },
+        { BPAK_HASH_SHA256, HASH_SHA256, 32 },
+        { BPAK_HASH_SHA384, HASH_SHA384, 48 },
+        { BPAK_HASH_SHA512, HASH_SHA512, 64 },
     };
 
     (void)state;
@@ -220,6 +222,8 @@ static void test_auth_header(void **state)
         assert_int_equal(boot_image_auth_header(hdr), PB_OK);
         assert_int_equal(fake.alg, kinds[i].pb);
         assert_int_equal(fake.verify_md_alg, kinds[i].pb);
+        /* Only the digest, not the whole buffer (F-058) */
+        assert_int_equal(fake.verify_md_length, kinds[i].digest_length);
         /* The whole header is hashed, with the signature zeroed */
         assert_int_equal(fake.hashed_bytes, sizeof(*hdr));
         assert_int_equal(hdr->signature_sz, 0);
@@ -326,12 +330,12 @@ static int fail_read_at;
 static int results;
 static int last_result;
 
-static int read_f(int block_offset, size_t length, void *buf)
+static int read_f(int64_t offset, size_t length, void *buf)
 {
     reads++;
     if (reads == fail_read_at)
         return read_rc;
-    memcpy(buf, &payload[block_offset * 512], length);
+    memcpy(buf, &payload[offset], length);
     return PB_OK;
 }
 
@@ -340,6 +344,14 @@ static int result_f(int rc)
     results++;
     last_result = rc;
     return rc;
+}
+
+/* Like command mode: the result is sent, whatever it is */
+static int result_sent_f(int rc)
+{
+    results++;
+    last_result = rc;
+    return PB_OK;
 }
 
 static void load_setup(void)
@@ -464,6 +476,27 @@ static void test_load_and_hash_errors(void **state)
     assert_int_equal(results, 1);
     assert_int_equal(last_result, -PB_ERR_IO);
 
+    /* A hash error while a host streams the image: the error is kept, and
+     * the rest is still read with a result for every part (F-061) */
+    load_setup();
+    fake.update_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_sent_f, digest, 64),
+                     -PB_ERR_IO);
+    assert_int_equal(reads, 3);
+    assert_int_equal(results, 2);
+    assert_int_equal(last_result, -PB_ERR_IO);
+    fake.update_rc = PB_OK;
+
+    /* A read error ends the load, after its result */
+    load_setup();
+    fail_read_at = 2;
+    read_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_sent_f, digest, 64),
+                     -PB_ERR_IO);
+    assert_int_equal(reads, 2);
+    assert_int_equal(results, 1);
+    assert_int_equal(last_result, -PB_ERR_IO);
+
     /* The dtb has no load address */
     load_setup();
     assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
@@ -537,8 +570,20 @@ static void test_copy_and_hash_errors(void **state)
     fake.init_rc = PB_OK;
 
     fake.update_rc = -PB_ERR_IO;
-    assert_int_equal(boot_image_copy_and_hash(hdr, src, 0, dst, 0, digest, 64), -PB_ERR_IO);
+    assert_int_equal(
+        boot_image_copy_and_hash(hdr, src, sizeof(payload), dst, sizeof(load_area), digest, 64),
+        -PB_ERR_IO);
     fake.update_rc = PB_OK;
+
+    /* A part that doesn't fit in the source or the destination is not copied */
+    load_setup();
+    assert_int_equal(
+        boot_image_copy_and_hash(hdr, src, sizeof(payload) - 1, dst, sizeof(load_area), digest, 64),
+        -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(
+        boot_image_copy_and_hash(hdr, src, sizeof(payload), dst, sizeof(load_area) - 1, digest, 64),
+        -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(load_area[sizeof(load_area) - 1], 0);
 }
 
 static void test_verify_payload(void **state)

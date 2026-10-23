@@ -25,6 +25,11 @@
 #define MMC_BIO_FLAG_RPMB        BIT(2)
 #define MMC_BIO_FLAG_USER        BIT(3)
 
+/* EXT_CSD_PART_CONFIG */
+#define PART_CONFIG_ACCESS_MASK  0x07 /* Cleared at power on */
+#define PART_CONFIG_BOOT_SHIFT   3 /* Kept at power on */
+#define PART_CONFIG_BOOT_MASK    (0x07 << PART_CONFIG_BOOT_SHIFT)
+
 #define MMC_DEFAULT_TIMEOUT_ms   15
 #define SEND_OP_COND_MAX_RETRIES 100
 
@@ -37,6 +42,7 @@ static struct mmc_csd_emmc mmc_csd;
 static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part_config;
 static enum mmc_part mmc_current_part;
+static int mmc_boot_part_config = -PB_ERR_STATE;
 static unsigned int power_off_long_time_ms = 2550;
 static unsigned int generic_cmd6_time_ms = 2550;
 static unsigned int partition_switch_time_ms = 2550;
@@ -275,18 +281,56 @@ static int mmc_set_bus_width(enum mmc_bus_width bus_width)
     return mmc_hal->set_bus_width(bus_width);
 }
 
-static void select_part(bio_dev_t dev)
+static enum mmc_part bio_part(bio_dev_t dev)
 {
     int flags = bio_get_hal_flags(dev);
 
-    if (flags & MMC_BIO_FLAG_USER)
-        mmc_part_switch(MMC_PART_USER);
-    else if (flags & MMC_BIO_FLAG_BOOT0)
-        mmc_part_switch(MMC_PART_BOOT0);
+    if (flags & MMC_BIO_FLAG_BOOT0)
+        return MMC_PART_BOOT0;
     else if (flags & MMC_BIO_FLAG_BOOT1)
-        mmc_part_switch(MMC_PART_BOOT1);
+        return MMC_PART_BOOT1;
     else if (flags & MMC_BIO_FLAG_RPMB)
-        mmc_part_switch(MMC_PART_RPMB);
+        return MMC_PART_RPMB;
+    else
+        return MMC_PART_USER;
+}
+
+static void select_part(bio_dev_t dev)
+{
+    mmc_part_switch(bio_part(dev));
+}
+
+/*
+ * BOOT_PARTITION_ENABLE: the partition the ROM boots from. It is kept at
+ * power on, so it only changes when a boot partition is written (F-082).
+ */
+static int set_boot_part(enum mmc_part part)
+{
+    uint8_t value = (mmc_current_part_config & ~PART_CONFIG_BOOT_MASK) |
+                    (part << PART_CONFIG_BOOT_SHIFT);
+    int rc;
+
+    if (value == mmc_current_part_config)
+        return PB_OK;
+
+    LOG_INFO("Boot partition: %s", (part == MMC_PART_BOOT0) ? "BOOT0" : "BOOT1");
+
+    rc = mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value, partition_switch_time_ms);
+
+    if (rc == PB_OK)
+        mmc_current_part_config = value;
+
+    return rc;
+}
+
+/*
+ * A completed write makes the boot partition bootable. Until then, the ROM
+ * boots the other one, see mmc_bio_write().
+ */
+static int mmc_bio_write_done(bio_dev_t dev, int param)
+{
+    (void)param;
+    return set_boot_part(bio_part(dev));
 }
 
 static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
@@ -328,6 +372,24 @@ static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
 
     if (block_sz < 0)
         return block_sz;
+
+    /*
+     * Never write the boot partition the ROM boots from. If the write is
+     * interrupted, the ROM boots the other one until a write completes
+     * (mmc_bio_write_done()), and the ROM has no fallback of its own.
+     */
+    enum mmc_part part = bio_part(dev);
+    uint8_t boot_part = (mmc_current_part_config & PART_CONFIG_BOOT_MASK) >> PART_CONFIG_BOOT_SHIFT;
+
+    if (part == MMC_PART_BOOT0 && boot_part == MMC_PART_BOOT0)
+        rc = set_boot_part(MMC_PART_BOOT1);
+    else if (part == MMC_PART_BOOT1 && boot_part == MMC_PART_BOOT1)
+        rc = set_boot_part(MMC_PART_BOOT0);
+    else
+        rc = PB_OK;
+
+    if (rc != PB_OK)
+        return rc;
 
     select_part(dev);
 
@@ -619,6 +681,31 @@ static int mmc_setup(void)
 
     mmc_current_part_config = mmc_ext_csd[EXT_CSD_PART_CONFIG];
 
+    /*
+     * Record BOOT_PARTITION_ENABLE before we switch partitions, see
+     * mmc_get_boot_part_config().
+     */
+    if (mmc_boot_part_config == -PB_ERR_STATE) {
+        switch ((mmc_current_part_config & PART_CONFIG_BOOT_MASK) >> PART_CONFIG_BOOT_SHIFT) {
+        case 1:
+            mmc_boot_part_config = MMC_PART_BOOT0;
+            LOG_INFO("BOOT_PARTITION_ENABLE: BOOT0");
+            break;
+        case 2:
+            mmc_boot_part_config = MMC_PART_BOOT1;
+            LOG_INFO("BOOT_PARTITION_ENABLE: BOOT1");
+            break;
+        case 0:
+        case 7:
+            mmc_boot_part_config = MMC_PART_USER;
+            LOG_INFO("BOOT_PARTITION_ENABLE: User");
+            break;
+        default:
+            LOG_ERR("Bad PARTITION_CONFIG: 0x%x", mmc_current_part_config);
+            break;
+        }
+    }
+
     size_t sectors = mmc_ext_csd[EXT_CSD_SEC_CNT + 0] << 0 | mmc_ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
                      mmc_ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
                      mmc_ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
@@ -665,6 +752,11 @@ static int mmc_setup(void)
     if (rc < 0)
         return rc;
 
+    rc = bio_set_write_done_cb(d, mmc_bio_write_done);
+
+    if (rc < 0)
+        return rc;
+
     d = bio_allocate(0, boot_part_last_lba, 512, mmc_cfg->boot1_uu, "eMMC BOOT1");
 
     if (d < 0)
@@ -679,6 +771,11 @@ static int mmc_setup(void)
         return rc;
 
     rc = bio_set_ios(d, mmc_bio_read, mmc_bio_write);
+
+    if (rc < 0)
+        return rc;
+
+    rc = bio_set_write_done_cb(d, mmc_bio_write_done);
 
     if (rc < 0)
         return rc;
@@ -845,6 +942,7 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
 int mmc_part_switch(enum mmc_part part)
 {
     uint8_t value = 0;
+    int rc;
 #if LOGLEVEL >= 3
     const char *part_names[] = {
         "User",
@@ -854,37 +952,46 @@ int mmc_part_switch(enum mmc_part part)
     };
 #endif
 
-    switch (part) {
-    case MMC_PART_BOOT0:
-        /* Set boot0 R/W, boot1 as bootable */
-        value = (2 << 3) | 0x01;
-        break;
-    case MMC_PART_BOOT1:
-        /* Set boot1 R/W, boot0 as bootable */
-        value = (1 << 3) | 0x02;
-        break;
-    case MMC_PART_RPMB:
-        /* Enable RPMB access, set boot0 as bootable */
-        value = (1 << 3) | 0x03;
-        break;
-    case MMC_PART_USER:
-        /* Boot 0/1 RO, Boot0 bootable */
-        value = (1 << 3);
-        break;
-    default:
+    if ((unsigned int)part >= MMC_PART_END)
         return -PB_ERR_IO;
-    }
+
+    /* PARTITION_ACCESS only, the boot partition and BOOT_ACK stay */
+    value = (mmc_current_part_config & ~PART_CONFIG_ACCESS_MASK) | part;
 
     mmc_current_part = part;
 
-    /* Switch active partition */
-    if (value != mmc_current_part_config) {
-        mmc_current_part_config = value;
-        LOG_DBG("Switching to %s", part_names[part]);
-        return mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value, partition_switch_time_ms);
-    } else {
+    if (value == mmc_current_part_config)
         return PB_OK;
+
+    LOG_DBG("Switching to %s", part_names[part]);
+    rc = mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value, partition_switch_time_ms);
+
+    if (rc == PB_OK)
+        mmc_current_part_config = value;
+
+    return rc;
+}
+
+int mmc_get_boot_part_config(uuid_t part_uu)
+{
+    const unsigned char *uu;
+
+    switch (mmc_boot_part_config) {
+    case MMC_PART_BOOT0:
+        uu = mmc_cfg->boot0_uu;
+        break;
+    case MMC_PART_BOOT1:
+        uu = mmc_cfg->boot1_uu;
+        break;
+    case MMC_PART_USER:
+        uu = mmc_cfg->user_uu;
+        break;
+    default:
+        return -PB_ERR_STATE;
     }
+
+    memcpy(part_uu, uu, sizeof(uuid_t));
+    return PB_OK;
 }
 
 int mmc_power_off(void)

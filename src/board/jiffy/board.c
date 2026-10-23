@@ -26,10 +26,12 @@
 #include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx6ul/fusebox.h>
 #include <plat/imx6ul/imx6ul.h>
+#include <plat/imx6ul/rom_log.h>
 
 #include "partitions.h"
 
@@ -161,16 +163,60 @@ static int board_command(uint32_t command,
                          size_t *response_size)
 {
     LOG_DBG("%x, %p, %zu", command, bfr, size);
+
+    if (command == 0xd3399b11) /* dump-rom-log */
+        return imx6ul_rom_log_dump((char *)response_bfr, response_size);
+
+    LOG_ERR("Unknown command %x", command);
     *response_size = 0;
-    return PB_OK;
+    return -PB_ERR_NOT_SUPPORTED;
+}
+
+static void boot_source_str(char *out, size_t size)
+{
+    struct pb_boot_source src;
+    char uu_str[37];
+
+    if (plat_get_boot_source(&src) != PB_OK) {
+        snprintf(out, size, "Not supported");
+        return;
+    }
+
+    switch (src.kind) {
+    case PB_BOOT_SOURCE_STORAGE: {
+        bio_dev_t dev = bio_get_part_by_uu(src.part_uu);
+
+        uuid_unparse(src.part_uu, uu_str);
+        snprintf(out, size, "%s (%s)", (dev >= 0) ? bio_get_description(dev) : "?", uu_str);
+    } break;
+    case PB_BOOT_SOURCE_USB:
+        snprintf(out, size, "USB");
+        break;
+    case PB_BOOT_SOURCE_UART:
+        snprintf(out, size, "UART");
+        break;
+    case PB_BOOT_SOURCE_DEBUGGER:
+        snprintf(out, size, "Debugger");
+        break;
+    default:
+        snprintf(out, size, "Unknown");
+        break;
+    }
 }
 
 static int board_status(uint8_t *response_bfr, size_t *response_size)
 {
     char *response = (char *)response_bfr;
     size_t resp_buf_size = *response_size;
+    char boot_source[128];
 
-    (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");
+    boot_source_str(boot_source, sizeof(boot_source));
+
+    (*response_size) = snprintf(response,
+                                resp_buf_size,
+                                "Board status OK!\n"
+                                "Boot source: %s\n",
+                                boot_source);
     response[(*response_size)++] = 0;
 
     return PB_OK;

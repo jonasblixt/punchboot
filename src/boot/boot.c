@@ -88,9 +88,23 @@ void boot_get_boot_partition(uuid_t part_uu)
     boot_cfg->get_boot_partition(part_uu);
 }
 
-static int boot_bio_read(int block_offset, size_t length, void *buf)
+static int boot_bio_read(int64_t offset, size_t length, void *buf)
 {
-    return bio_read(boot_device, block_offset, length, buf);
+    ssize_t block_size = bio_block_size(boot_device);
+
+    if (block_size < 0)
+        return (int)block_size;
+
+    /* In size_t, there's no 64-bit division on 32-bit targets */
+    if (offset < 0 || (uint64_t)offset > SIZE_MAX)
+        return -PB_ERR_ALIGN;
+
+    size_t byte_offset = (size_t)offset;
+
+    if ((byte_offset % (size_t)block_size) != 0)
+        return -PB_ERR_ALIGN;
+
+    return bio_read(boot_device, (lba_t)(byte_offset / (size_t)block_size), length, buf);
 }
 
 static int load_auth_verify_from_bio(void)
@@ -198,7 +212,7 @@ static int load_auth_verify_from_cb(void)
     if (read_cb == NULL)
         return -PB_ERR_NOT_SUPPORTED;
 
-    rc = read_cb(-(int)sizeof(struct bpak_header) / 512, sizeof(struct bpak_header), &header);
+    rc = read_cb(-(int64_t)sizeof(struct bpak_header), sizeof(struct bpak_header), &header);
     if (rc != PB_OK)
         return rc;
 
@@ -228,10 +242,8 @@ static int load_auth_verify_from_cb(void)
                                   payload_digest,
                                   sizeof(payload_digest));
 
-    if (rc != PB_OK)
-        return rc;
-
-    rc = boot_image_verify_payload(&header, payload_digest);
+    if (rc == PB_OK)
+        rc = boot_image_verify_payload(&header, payload_digest);
 
     if (result_cb) {
         result_cb(rc);
@@ -309,7 +321,9 @@ int boot_load(uuid_t boot_part_override_uu)
     }
 
 err_out:
-    boot_flags = 0;
+    /* The flags stay set for boot_jump, late_boot checks BOOT_FLAG_CMD */
+    if (rc != PB_OK)
+        boot_flags = 0;
     return rc;
 }
 
@@ -321,12 +335,14 @@ int boot_jump(void)
     if (boot_cfg->late_boot_cb) {
         rc = boot_cfg->late_boot_cb(header_ptr, boot_part_uu);
         if (rc != PB_OK) {
+            boot_flags = 0;
             return rc;
         }
     }
 
     ts("Boot jump");
     boot_cfg->jump();
+    boot_flags = 0;
     return -PB_ERR;
 }
 

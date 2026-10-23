@@ -14,6 +14,8 @@ import pytest
 from .pbtest import SYSTEM_A_UUID
 
 if TYPE_CHECKING:
+    import pathlib
+
     from .pbtest import Device
 
 
@@ -55,6 +57,34 @@ def test_error_exit_code(device: Device) -> None:
     result = punchboot_cli(device, "board", "command", "test-unknown")
 
     assert result.returncode == 1
+
+
+def test_not_supported_message(device: Device) -> None:
+    # The host board has no password auth. NOT_SUPPORTED is also returned for
+    # image hashes and key types, so the message doesn't blame the command.
+    result = punchboot_cli(device, "auth", "password", "secret")
+
+    assert result.returncode == 1
+    assert result.stderr.strip() == "Error: Not supported"
+
+
+def test_not_found_messages(device: Device, tmp_path: pathlib.Path) -> None:
+    # NOT_FOUND from a command
+    result = punchboot_cli(device, "boot", "partition", "00000000-0000-0000-0000-000000000001")
+
+    assert result.returncode == 1
+    assert result.stderr.strip() == "Error: Not found"
+
+    # NOT_FOUND from the transport
+    result = subprocess.run(  # noqa: S603
+        ["punchboot", "-t", "socket", "-s", str(tmp_path / "no-such.sock"), "dev", "show"],  # noqa: S607
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert result.stderr.strip() == "Error: Could not connect to device"
 
 
 def test_dev_reset(device: Device) -> None:

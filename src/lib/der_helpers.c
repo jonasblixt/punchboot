@@ -50,68 +50,86 @@ int asn1_size(const unsigned char **p, size_t *len)
     return PB_OK;
 }
 
-int der_ecsig_to_rs(const uint8_t *sig,
-                    uint8_t *r,
-                    uint8_t *s,
-                    size_t length,
-                    bool suppress_leading_zero)
+/* Checks that the length bytes of a DER header at p fit before end */
+static int asn1_length_fits(const uint8_t *p, const uint8_t *end)
+{
+    if (p >= end)
+        return -PB_ERR_ASN1;
+
+    if ((*p & 0x80) && (size_t)(end - p) < 1u + (*p & 0x7f))
+        return -PB_ERR_ASN1;
+
+    return PB_OK;
+}
+
+/* Reads an INTEGER as a big-endian value of 'length' bytes, zero padded */
+static int der_integer_to_fixed(const uint8_t **p, const uint8_t *end, uint8_t *out, size_t length)
+{
+    size_t sz;
+    int rc;
+
+    if (*p >= end || *(*p)++ != 0x02)
+        return -PB_ERR_ASN1;
+
+    rc = asn1_length_fits(*p, end);
+
+    if (rc != PB_OK)
+        return rc;
+
+    rc = asn1_size(p, &sz);
+
+    if (rc != PB_OK)
+        return rc;
+
+    if (sz > (size_t)(end - *p))
+        return -PB_ERR_ASN1;
+
+    const uint8_t *value = *p;
+    *p += sz;
+
+    /* EC r/s values are positive, so DER adds a leading zero when the
+     * MSB is set */
+    while (sz > length && *value == 0) {
+        value++;
+        sz--;
+    }
+
+    if (sz > length)
+        return -PB_ERR_BUF_TOO_SMALL;
+
+    memset(out, 0, length - sz);
+    memcpy(&out[length - sz], value, sz);
+    return PB_OK;
+}
+
+int der_ecsig_to_rs(const uint8_t *sig, size_t sig_length, uint8_t *r, uint8_t *s, size_t length)
 {
     size_t sz;
     int rc;
     const uint8_t *p = sig;
+    const uint8_t *end = sig + sig_length;
 
-    if (*p++ != 0x30) {
-        return -PB_ERR_ASN1;
-    }
-
-    rc = asn1_size(&p, &sz);
-
-    if (rc != 0)
-        return rc;
-
-    if (*p++ != 0x02)
+    if (sig_length == 0 || *p++ != 0x30)
         return -PB_ERR_ASN1;
 
-    rc = asn1_size(&p, &sz);
+    rc = asn1_length_fits(p, end);
 
-    if (rc != 0)
+    if (rc != PB_OK)
         return rc;
 
-    /**
-     * Some libs and hardware accelerators do not expect a leading
-     * zero if the next byte has MSB set (indicating a negative number)
-     * and since EC r/s values are always positive there _should_ be
-     * a leading zero
-     */
-    if ((p[0] == 0x00) && (p[1] & 0x80) && suppress_leading_zero) {
-        p++;
-        sz--;
-    }
-
-    if (sz > length)
-        return -PB_ERR_BUF_TOO_SMALL;
-
-    memcpy(r, p, sz);
-    p += sz;
-
-    if (*p++ != 0x02)
-        return -PB_ERR_ASN1;
-
+    /* The SEQUENCE length isn't checked against the integers, because
+     * earlier releases ignored it (D-008). Both are bounded by sig_length. */
     rc = asn1_size(&p, &sz);
 
-    if (rc != 0)
+    if (rc != PB_OK)
         return rc;
 
-    if ((p[0] == 0x00) && (p[1] & 0x80) && suppress_leading_zero) {
-        p++;
-        sz--;
-    }
+    rc = der_integer_to_fixed(&p, end, r, length);
 
-    if (sz > length)
-        return -PB_ERR_BUF_TOO_SMALL;
+    if (rc != PB_OK)
+        return rc;
 
-    memcpy(s, p, sz);
-    return PB_OK;
+    return der_integer_to_fixed(&p, end, s, length);
 }
 
 int der_ec_public_key_data(const uint8_t *pub_key_der,

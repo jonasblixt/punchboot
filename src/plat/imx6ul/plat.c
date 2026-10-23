@@ -8,12 +8,15 @@
  */
 
 #include <drivers/fuse/imx_ocotp.h>
+#include <drivers/mmc/mmc_core.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <plat/imx6ul/imx6ul.h>
+#include <plat/imx6ul/rom_log.h>
+#include <string.h>
 #include <uuid.h>
 #include <xlat_tables.h>
 
@@ -37,6 +40,26 @@ IMPORT_SYM(uintptr_t, _stack_start, stack_start);
 IMPORT_SYM(uintptr_t, _stack_end, stack_end);
 IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
 IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
+
+/* USB OTG1 device address, see imx_ci_udc.c */
+#define USB_DEVICEADDR      0x154
+#define USB_DEVICEADDR_ADDR GENMASK_32(31, 25)
+
+/* The ROM's serial downloader was given an address by a USB host */
+static bool rom_usb_addressed;
+
+static void save_rom_usb_state(void)
+{
+    uint32_t addr;
+
+    /* Accessing a peripheral with its clock gated hangs the bus */
+    if ((mmio_read_32(IMX6UL_CCM_CCGR6) & CCM_CCGR6_USBOH3) == 0)
+        return;
+
+    addr = mmio_read_32(IMX6UL_USB1_BASE + USB_DEVICEADDR);
+
+    rom_usb_addressed = (addr & USB_DEVICEADDR_ADDR) != 0;
+}
 
 /* b36693cd-d32e-4cd5-b2bb-91406ed68840 */
 const char *platform_ns_uuid = "\xb3\x66\x93\xcd\xd3\x2e\x4c\xd5\xb2\xbb\x91\x40\x6e\xd6\x88\x40";
@@ -192,6 +215,11 @@ static int plat_mmu_init(void)
 
 int plat_init(void)
 {
+    imx6ul_rom_log_save();
+    /* Before the USB driver resets the controller */
+    if (imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_SERIAL_DOWNLOAD))
+        save_rom_usb_state();
+
     /* Unmask wdog in SRC control reg */
     mmio_clrsetbits_32(IMX6UL_SRC_SCR,
                        SRC_SCR_MASK_WDOG_RST_MASK | SRC_SCR_WARM_RESET_ENABLE,
@@ -203,8 +231,8 @@ int plat_init(void)
     imx_wdog_init(IMX6UL_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
 
-    /* Configure systick */
-    imx_gpt_init(IMX6UL_GPT1_BASE, MHz(24));
+    /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal */
+    imx_gpt_init_24m(IMX6UL_GPT1_BASE);
 
     board_console_init(&plat);
 
@@ -284,4 +312,44 @@ int plat_init(void)
 int plat_board_init(void)
 {
     return board_init(&plat);
+}
+
+int plat_get_boot_source(struct pb_boot_source *src)
+{
+    memset(src, 0, sizeof(*src));
+    src->kind = PB_BOOT_SOURCE_UNKNOWN;
+
+    /*
+     * The ROM logs which of its two jumps it took (NXP AN12853, Table 7).
+     * The serial downloader listens on both UART and USB OTG1, and the log
+     * doesn't say which one the image came over. The ROM leaves the USB
+     * device address set when a host enumerated it, as uuu does. A UART
+     * download with a USB host connected would also be reported as USB.
+     */
+    if (imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_JUMP_SDP)) {
+        if (rom_usb_addressed)
+            src->kind = PB_BOOT_SOURCE_USB;
+        return PB_OK;
+    }
+
+#ifdef CONFIG_MMC_CORE
+    /*
+     * The ROM loads the primary image from the partition in
+     * BOOT_PARTITION_ENABLE and has no fallback between the boot partitions
+     * (RM 8.5.3.2), so after an SD/eMMC boot that's the one we came from.
+     * This assumes the boot device is the eMMC that mmc_core drives. After a
+     * failed device init or read the ROM may have tried a recovery device,
+     * so that is reported as unknown.
+     */
+    if (imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_JUMP) &&
+        imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_PRIMARY_IMAGE) &&
+        imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_PRIMARY_SD_MMC) &&
+        !imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_DEVICE_INIT_FAIL) &&
+        !imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_DEVICE_READ_FAIL) &&
+        mmc_get_boot_part_config(src->part_uu) == PB_OK) {
+        src->kind = PB_BOOT_SOURCE_STORAGE;
+    }
+#endif
+
+    return PB_OK;
 }

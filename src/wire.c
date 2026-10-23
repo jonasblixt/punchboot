@@ -108,11 +108,13 @@ int pb_wire_init_command2(struct pb_command *command,
 
 const char *pb_wire_command_string(enum pb_commands cmd)
 {
+    (void)cmd;
     return "";
 }
 
 const char *pb_wire_slc_string(enum pb_slc slc)
 {
+    (void)slc;
     return "";
 }
 

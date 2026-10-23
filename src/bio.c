@@ -16,6 +16,7 @@ struct bio_device {
     bio_write_t write;
     bio_erase_t erase;
     bio_call_t install_partition_table;
+    bio_call_t write_done;
     uintptr_t private;
     bool valid;
 };
@@ -348,7 +349,7 @@ bio_dev_t bio_get_part_by_uu_str(const char *uu_str)
     return bio_get_part_by_uu(uu);
 }
 
-int bio_install_partition_table(uuid_t part_uu, int variant)
+int bio_install_partition_table(const uuid_t part_uu, int variant)
 {
     bio_dev_t dev = bio_get_part_by_uu(part_uu);
 
@@ -369,5 +370,24 @@ int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb)
     if (check_dev(dev) != PB_OK)
         return -PB_ERR_PARAM;
     bio_pool[dev].install_partition_table = cb;
+    return PB_OK;
+}
+
+int bio_write_done(bio_dev_t dev)
+{
+    if (check_dev(dev) != PB_OK)
+        return -PB_ERR_PARAM;
+
+    if (bio_pool[dev].write_done)
+        return bio_pool[dev].write_done(dev, 0);
+
+    return PB_OK;
+}
+
+int bio_set_write_done_cb(bio_dev_t dev, bio_call_t cb)
+{
+    if (check_dev(dev) != PB_OK)
+        return -PB_ERR_PARAM;
+    bio_pool[dev].write_done = cb;
     return PB_OK;
 }

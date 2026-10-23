@@ -42,6 +42,9 @@ Skip unless the task is about them: `pki/` (test keys), vendored code
 - Author email is `jonas@blxt.se`: commits and the copyright header of new files
   (`Copyright (C) <year> Jonas Blixt <jonas@blxt.se>`). Don't copy the old `jonpe960@gmail.com`
   from existing headers.
+- Commits that fix a bug start with `bugfix:` (`bugfix: drivers: timer: ...`). Keep the fix
+  minimal and in its own commit; refactoring, cosmetics and new functionality go in separate
+  commits after it, and each board or platform fix gets its own commit.
 
 ## Keeping context current
 

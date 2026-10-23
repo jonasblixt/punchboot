@@ -99,6 +99,16 @@ RT = TypeVar("RT")
 TFunc = Callable[..., RT]
 
 
+def _open_session(**kwargs: Any) -> Session:  # noqa: ANN401
+    # The transports report a missing device as NOT_FOUND, which commands also
+    # return, e.g. for an unknown partition
+    try:
+        return Session(**kwargs)
+    except punchboot.NotFoundError as e:
+        msg = "Could not connect to device"
+        raise click.ClickException(msg) from e
+
+
 def pb_session(f: TFunc) -> TFunc:
     """Punchboot Session setup decorator."""
 
@@ -116,13 +126,13 @@ def pb_session(f: TFunc) -> TFunc:
                         click.echo(
                             f"Warning: More than one device is attached, using: {attached[0]}"
                         )
-                return ctx.invoke(f, Session(device_uuid=device_uuid), *args, **kwargs)
+                return ctx.invoke(f, _open_session(device_uuid=device_uuid), *args, **kwargs)
             if transport == "socket":
                 if device_uuid is not None:
                     msg = "It's not possible to address different devices over sockets"
                     raise click.BadParameter(msg)
                 logger.debug("Using socket transport")
-                return ctx.invoke(f, Session(socket_path=socket), *args, **kwargs)
+                return ctx.invoke(f, _open_session(socket_path=socket), *args, **kwargs)
         except punchboot.Error as e:
             error_descriptions = {
                 punchboot.GenericError: "Generic error",
@@ -134,11 +144,12 @@ def pb_session(f: TFunc) -> TFunc:
                 punchboot.NoMemoryError: "Out of memory",
                 punchboot.TransferError: "Transfer",
                 punchboot.TimeoutError: "Timeout",
-                punchboot.SignatureError: "Signature verifcation failed",
+                punchboot.SignatureError: "Signature verification failed",
                 punchboot.MemError: "Memory",
                 punchboot.ArgumentError: "Bad argument",
-                punchboot.NotFoundError: "Could not connect to device",
-                punchboot.NotSupportedError: "Command not supported",
+                punchboot.NotFoundError: "Not found",
+                # Also for image hashes, key types, boot sources and board features
+                punchboot.NotSupportedError: "Not supported",
                 punchboot.KeyRevokedError: "Key is revoked",
                 punchboot.IOError: "I/O error",
             }

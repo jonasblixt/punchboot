@@ -290,6 +290,7 @@ static struct {
     int get_key_rc;
     dsa_t key_kind;
     uint32_t revoked; /* Bit per key index */
+    uint32_t key_io_error; /* Bit per key index */
     int revoke_rc;
     key_id_t revoked_id;
 } sec;
@@ -343,6 +344,8 @@ size_t rot_no_of_keys(void)
 
 int rot_read_key_status_by_idx(unsigned int index)
 {
+    if (sec.key_io_error & (1u << index))
+        return -PB_ERR_IO;
     return (sec.revoked & (1u << index)) ? -PB_ERR_KEY_REVOKED : PB_OK;
 }
 
@@ -741,6 +744,43 @@ static void test_board_command(void **state)
     expect_end();
 }
 
+/* F-063: the request comes in one 1024 byte transfer. A larger size is
+ * refused without calling the board, after the transfer, which 2.x hosts
+ * send without checking the first result. */
+static void test_board_command_request_size(void **state)
+{
+    static const uint32_t bad_sizes[] = { 1025, 0xffffffff };
+    struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 1024 };
+    uint8_t arg[1024];
+    (void)state;
+
+    memset(arg, 'a', sizeof(arg));
+    host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+    host_send(arg, sizeof(arg));
+    for (size_t i = 0; i < ARRAY_SIZE(bad_sizes); i++) {
+        req.request_size = bad_sizes[i];
+        host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
+        host_send(arg, sizeof(arg));
+    }
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    const struct pb_result *r = expect_result(PB_RESULT_OK);
+    const struct pb_result_board *board = (const void *)r->response;
+    assert_int_equal(board->size, strlen(BOARD_PREFIX) + sizeof(arg));
+    expect_data(board->size);
+    expect_result(PB_RESULT_OK);
+    for (size_t i = 0; i < ARRAY_SIZE(bad_sizes); i++) {
+        expect_result(PB_RESULT_OK);
+        r = expect_result(-PB_RESULT_INVALID_ARGUMENT);
+        board = (const void *)r->response;
+        assert_int_equal(board->size, 0);
+    }
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 /* Every pb error code maps to a wire result */
 static void test_error_codes(void **state)
 {
@@ -960,12 +1000,87 @@ static void test_auth_password(void **state)
     expect_end();
 }
 
+/* F-005: hosts send the data in one 1024 byte transfer, and none for size 0.
+ * A bad size is refused before the data, and leaves the device locked. */
+static void test_auth_data_size(void **state)
+{
+    static const uint8_t methods[] = { PB_AUTH_ASYM_TOKEN, PB_AUTH_PASSWORD };
+    static const uint16_t bad_sizes[] = { 0, 1025, 0xffff };
+    uint8_t token[1024] = { FAKE_SIG_OK };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+
+    /* The largest token */
+    host_auth(PB_AUTH_ASYM_TOKEN, token, sizeof(token), KEY_ID);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+
+    for (size_t m = 0; m < ARRAY_SIZE(methods); m++) {
+        for (size_t s = 0; s < ARRAY_SIZE(bad_sizes); s++) {
+            struct pb_command_authenticate auth = {
+                .method = methods[m],
+                .size = bad_sizes[s],
+                .key_id = KEY_ID,
+            };
+            host_cmd(PB_CMD_AUTHENTICATE, &auth, sizeof(auth));
+            host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+        }
+    }
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    for (size_t i = 0; i < ARRAY_SIZE(methods) * ARRAY_SIZE(bad_sizes); i++) {
+        expect_result(-PB_RESULT_INVALID_ARGUMENT);
+        expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    }
+    expect_end();
+}
+
+/* F-005: when the data doesn't arrive, the device must not check whatever the
+ * buffer held from the last authentication */
+static void test_auth_data_read_fails(void **state)
+{
+    struct pb_command_authenticate token = { .method = PB_AUTH_ASYM_TOKEN,
+                                             .size = 2,
+                                             .key_id = KEY_ID };
+    struct pb_command_authenticate password = { .method = PB_AUTH_PASSWORD, .size = 6 };
+    (void)state;
+
+    host_auth_token();
+    host_cmd(PB_CMD_AUTHENTICATE, &token, sizeof(token));
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+    host_auth(PB_AUTH_PASSWORD, "secret", 6, 0);
+    host_cmd(PB_CMD_AUTHENTICATE, &password, sizeof(password));
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+}
+
 static void test_slc_commands(void **state)
 {
     struct pb_command_revoke_key revoke = { .key_id = 0x1001 };
     (void)state;
 
-    /* Not the last key: then the final result is KEY_REVOKED (F-072) */
     sec.revoked = 1u << 0;
     host_cmd(PB_CMD_SLC_READ, NULL, 0);
     host_cmd(PB_CMD_SLC_SET_CONFIGURATION, NULL, 0);
@@ -1011,6 +1126,38 @@ static void test_slc_errors(void **state)
     sec.slc = -PB_ERR_IO;
     host_cmd(PB_CMD_SLC_READ, NULL, 0);
     run();
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+}
+
+static void test_slc_read_key_status(void **state)
+{
+    (void)state;
+
+    /* A revoked last key is not an error (F-072) */
+    sec.revoked = 1u << 1;
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    const struct pb_result_slc_key_status *keys = (const void *)expect_data(sizeof(*keys));
+    assert_int_equal(keys->active[0], 0x1000);
+    assert_int_equal(keys->revoked[1], 0x1001);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+
+    /* A key that can't be read is an error, but the others are still
+     * reported */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    sec.key_io_error = 1u << 0;
+    sec.revoked = 1u << 1;
+    host_cmd(PB_CMD_SLC_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    keys = (const void *)expect_data(sizeof(*keys));
+    assert_int_equal(keys->active[0], 0);
+    assert_int_equal(keys->revoked[0], 0);
+    assert_int_equal(keys->revoked[1], 0x1001);
     expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
 }
@@ -1270,6 +1417,110 @@ static void test_stream_errors(void **state)
     expect_end();
 }
 
+static unsigned int write_done_calls;
+static bio_dev_t write_done_dev;
+static int write_done_rc;
+
+static int fake_write_done(bio_dev_t dev, int param)
+{
+    (void)param;
+    write_done_calls++;
+    write_done_dev = dev;
+    return write_done_rc;
+}
+
+/* Writes one block of 'buffer_id' in a new stream, without finalizing it */
+static void stream_write_block(uint8_t buffer_id)
+{
+    static const uint8_t data[RAMDISK_BLOCK_SIZE] = { 0xaa };
+
+    stream_init(UU_RW);
+    stream_prepare(buffer_id, sizeof(data), data);
+    stream_write(buffer_id, sizeof(data), 0);
+}
+
+/* Only a finalized stream where every write succeeded is a complete write (F-082) */
+static void test_stream_write_done(void **state)
+{
+    struct fixture *f = *state;
+
+    write_done_calls = 0;
+    write_done_dev = -1;
+    write_done_rc = PB_OK;
+    assert_int_equal(bio_set_write_done_cb(f->rw, fake_write_done), PB_OK);
+
+    /* A complete write, and a second finalize without a new stream */
+    stream_write_block(0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    /* A read only stream */
+    stream_init(UU_RW);
+    stream_read(0, RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    /* A stream with a failed buffer, then a good write */
+    stream_init(UU_RW);
+    stream_prepare(0, BUF_SIZE + 1, NULL);
+    stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
+    stream_write(1, RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* read */
+    expect_data(RAMDISK_BLOCK_SIZE);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(-PB_RESULT_NO_MEMORY); /* prepare */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_end();
+    assert_int_equal(write_done_calls, 1);
+    assert_int_equal(write_done_dev, f->rw);
+
+    /* A failed write, then a good one */
+    t.init_calls = 0;
+    write_done_calls = 0;
+    f->disk->fail_writes_after = 0;
+    stream_write_block(0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_IO_ERROR);
+    expect_end();
+
+    t.init_calls = 0;
+    f->disk->fail_writes_after = -1;
+    stream_prepare(1, RAMDISK_BLOCK_SIZE, ramdisk_block(f->disk, 0));
+    stream_write(1, RAMDISK_BLOCK_SIZE, 0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    /* The driver's error is the finalize result */
+    write_done_rc = -PB_ERR_IO;
+    stream_write_block(0);
+    host_cmd(PB_CMD_STREAM_FINALIZE, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(PB_RESULT_OK); /* finalize */
+    expect_result(PB_RESULT_OK); /* init */
+    expect_result(PB_RESULT_OK); /* prepare */
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* write */
+    expect_result(-PB_RESULT_IO_ERROR); /* finalize */
+    expect_end();
+    assert_int_equal(write_done_calls, 1);
+}
+
 static void test_boot_part(void **state)
 {
     struct pb_command_boot_part req = { .verbose = 1 };
@@ -1285,11 +1536,21 @@ static void test_boot_part(void **state)
     assert_memory_equal(fake_boot.load_uu, UU_RW, 16);
     assert_int_equal(fake_boot.jump_calls, 0);
 
+    /* A failed boot keeps the transport up for the next command */
+    t.init_calls = 0;
+    board_cfg = &cfg_all_callbacks;
+    t.connect_ok_after = 0;
+    host_cmd(PB_CMD_BOOT_PART, &req, sizeof(req));
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(-PB_RESULT_SIGNATURE_ERROR);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.disconnect_calls, 0);
+
     /* The fake jump returns, which is a command error */
     t.init_calls = 0;
     fake_boot.load_rc = PB_OK;
-    board_cfg = &cfg_all_callbacks;
-    t.connect_ok_after = 0;
     host_cmd(PB_CMD_BOOT_PART, &req, sizeof(req));
     run();
     expect_result(PB_RESULT_OK);
@@ -1437,6 +1698,7 @@ int main(void)
         CM_TEST(test_boot_status),
         CM_TEST(test_board_status),
         CM_TEST(test_board_command),
+        CM_TEST(test_board_command_request_size),
         CM_TEST(test_error_codes),
         CM_TEST(test_board_command_requests_reboot),
         CM_TEST(test_device_reset),
@@ -1444,8 +1706,11 @@ int main(void)
         CM_TEST(test_auth_token_key_kinds),
         CM_TEST(test_auth_token_errors),
         CM_TEST(test_auth_password),
+        CM_TEST(test_auth_data_size),
+        CM_TEST(test_auth_data_read_fails),
         CM_TEST(test_slc_commands),
         CM_TEST(test_slc_errors),
+        CM_TEST(test_slc_read_key_status),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
         CM_TEST(test_part_verify),
@@ -1454,6 +1719,7 @@ int main(void)
         CM_TEST(test_part_erase),
         CM_TEST(test_stream),
         CM_TEST(test_stream_errors),
+        CM_TEST(test_stream_write_done),
         CM_TEST(test_boot_part),
         CM_TEST(test_boot_bpak),
         CM_TEST(test_run_errors),

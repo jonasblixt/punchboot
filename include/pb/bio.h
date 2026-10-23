@@ -358,7 +358,7 @@ int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count);
  *         -PB_ERR_IO, Driver I/O errors,
  *         -PB_TIMEOUT, Driver timeouts
  */
-int bio_install_partition_table(uuid_t part_uu, int variant);
+int bio_install_partition_table(const uuid_t part_uu, int variant);
 
 /**
  * Sets the partition install callback for 'dev'
@@ -370,5 +370,32 @@ int bio_install_partition_table(uuid_t part_uu, int variant);
  *        -PB_ERR_PARAM, on bad device device handle
  */
 int bio_set_install_partition_cb(bio_dev_t dev, bio_call_t cb);
+
+/**
+ * Tell the driver that a complete write to 'dev' ended without errors
+ *
+ * Command mode calls this when the host finalizes a stream that wrote to
+ * 'dev'. Devices without a callback need nothing.
+ *
+ * @param[in] dev Block device handle
+ *
+ * @return PB_OK, on success or when there is no callback,
+ *        -PB_ERR_PARAM, on bad device handle,
+ *         or the callback's error
+ */
+int bio_write_done(bio_dev_t dev);
+
+/**
+ * Sets the write done callback for 'dev', see bio_write_done()
+ *
+ * Partitions allocated with bio_allocate_parent() don't inherit it.
+ *
+ * @param[in] dev Block device handle
+ * @param[in] cb Callback function, 'param' is always 0
+ *
+ * @return PB_OK, on success,
+ *        -PB_ERR_PARAM, on bad device handle
+ */
+int bio_set_write_done_cb(bio_dev_t dev, bio_call_t cb);
 
 #endif

@@ -38,6 +38,7 @@ int boot_image_auth_header(struct bpak_header *hdr)
     int rc;
     hash_t hash_kind = 0;
     dsa_t dsa_kind = 0;
+    size_t digest_length;
     size_t signature_length;
     bool verified = false;
     uint8_t header_digest[64];
@@ -70,12 +71,15 @@ int boot_image_auth_header(struct bpak_header *hdr)
     switch (hdr->hash_kind) {
     case BPAK_HASH_SHA256:
         hash_kind = HASH_SHA256;
+        digest_length = 32;
         break;
     case BPAK_HASH_SHA384:
         hash_kind = HASH_SHA384;
+        digest_length = 48;
         break;
     case BPAK_HASH_SHA512:
         hash_kind = HASH_SHA512;
+        digest_length = 64;
         break;
     default:
         return -PB_ERR_UNKNOWN_HASH;
@@ -83,8 +87,10 @@ int boot_image_auth_header(struct bpak_header *hdr)
 
     rc = hash_init(hash_kind);
 
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+        LOG_ERR("Can't hash the image, hash kind 0x%x (%i)", hdr->hash_kind, rc);
         return rc;
+    }
 
     signature_length = sizeof(signature);
 
@@ -110,7 +116,7 @@ int boot_image_auth_header(struct bpak_header *hdr)
                     key_der_data_length,
                     hash_kind,
                     header_digest,
-                    sizeof(header_digest),
+                    digest_length,
                     &verified);
 
     if (rc == 0 && verified) {
@@ -227,6 +233,8 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
     if (rc != PB_OK)
         return rc;
 
+    int hash_rc = PB_OK;
+
     bpak_foreach_part(hdr, p) {
         if (!p->id)
             break;
@@ -254,10 +262,11 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             uintptr_t addr = load_addr + offset;
 
             if (read_f) {
-                size_t read_lba =
-                    (offset + bpak_part_offset(hdr, p) - sizeof(struct bpak_header)) / 512;
+                /* The block size is up to read_f, it used to be 512 here (F-062) */
+                int64_t read_offset =
+                    (int64_t)(offset + bpak_part_offset(hdr, p) - sizeof(struct bpak_header));
 
-                rc = read_f(read_lba, chunk_size, (void *)addr);
+                rc = read_f(read_offset, chunk_size, (void *)addr);
 
                 if (rc != PB_OK)
                     break;
@@ -266,26 +275,42 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             /* Since we load chunks at an offset we can use the
              * async hash API (if the underlying driver supports it)
              */
-            rc = hash_update_async((void *)addr, chunk_size);
+            if (hash_rc == PB_OK)
+                hash_rc = hash_update_async((void *)addr, chunk_size);
 
-            if (rc != PB_OK)
-                break;
+            /* A host streaming the image (result_f) sends all of it and
+             * reads a result for every part, so after a hash error the
+             * rest is still read to stay in step with it (D-008) */
+            if (hash_rc != PB_OK && result_f == NULL)
+                return hash_rc;
 
             bytes_to_read -= chunk_size;
             offset += chunk_size;
         }
 
+        int part_rc = (rc != PB_OK) ? rc : hash_rc;
+
+        /* result_f reports whether the result could be sent, so it must
+         * not replace the part's error (F-061) */
         if (result_f) {
-            rc = result_f(rc);
+            int result_rc = result_f(part_rc);
+
+            if (result_rc != PB_OK)
+                return result_rc;
         }
 
+        /* Nothing more can be read after a read error */
         if (rc != PB_OK)
             return rc;
     }
 
-    if (rc == PB_OK)
-        return hash_final(payload_digest, payload_digest_size);
-    return rc;
+    if (rc != PB_OK)
+        return rc;
+
+    if (hash_rc != PB_OK)
+        return hash_rc;
+
+    return hash_final(payload_digest, payload_digest_size);
 }
 
 int boot_image_copy_and_hash(struct bpak_header *hdr,
@@ -337,6 +362,12 @@ int boot_image_copy_and_hash(struct bpak_header *hdr,
 
         size_t bytes_to_copy = bpak_part_size(p);
         size_t part_offset = bpak_part_offset(hdr, p) - sizeof(struct bpak_header);
+
+        if (part_offset > source_size || bytes_to_copy > source_size - part_offset ||
+            part_offset > destination_size || bytes_to_copy > destination_size - part_offset) {
+            rc = -PB_ERR_BUF_TOO_SMALL;
+            break;
+        }
 
         uintptr_t src_addr = source_address + part_offset;
         uintptr_t dst_addr = destination_address + part_offset;

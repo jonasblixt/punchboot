@@ -48,6 +48,7 @@
 #include <drivers/crypto/imx_caam.h>
 #include <inttypes.h>
 #include <pb/crypto.h>
+#include <pb/delay.h>
 #include <pb/der_helpers.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -98,6 +99,8 @@
 #define CAAM_JRCR                 0x006c
 #define CAAM_SMCJR                0x00f4
 #define CAAM_SMCSJR               0x00fc
+#define CAAM_CCBVID               0x0fe4
+#define CAAM_CHAVID_LS            0x0fec
 #define CAAM_VID_MS               0x0ff8
 #define CAAM_VID_LS               0x0ffc
 
@@ -106,6 +109,12 @@
 #define CAAM_NO_OF_DESC           16
 #define CAAM_HASH_RCTX_MAX_LENGTH 128
 #define CAAM_HASH_BLOCK_MAX_SIZE  128
+#define CAAM_JOB_TIMEOUT_ms       1000
+
+/* Version fields */
+#define CAAM_CCBVID_ERA(x)        (((x) >> 24) & 0xff)
+#define CAAM_CHAVID_LS_MD(x)      (((x) >> 12) & 0xf)
+#define CAAM_MD_VID_LP256         0
 
 struct caam {
     uint8_t hash_align_buf[CAAM_HASH_BLOCK_MAX_SIZE]; /* Hash input alignment buffer */
@@ -155,8 +164,20 @@ static void caam_shedule_job_async(void)
 
 static int caam_wait_for_job(void)
 {
-    while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0)
-        __asm__("nop");
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, CAAM_JOB_TIMEOUT_ms * 1000);
+
+    /* On a HAB booted device the CAAM stops fetching jobs when the security
+     * state machine leaves 'Trusted', e.g. when JTAG is connected. */
+    while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Job timeout, IRSAR = %" PRIu32 ", JRSTAR = %08" PRIx32,
+                    mmio_read_32(caam.base + CAAM_IRSAR),
+                    mmio_read_32(caam.base + CAAM_JRSTAR));
+            return -PB_ERR_TIMEOUT;
+        }
+    }
 
     arch_invalidate_cache_range((uintptr_t)&caam.output[0], sizeof(caam.output[0]) * 2);
 
@@ -181,45 +202,6 @@ static int caam_shedule_job_sync(void)
 {
     caam_shedule_job_async();
     return caam_wait_for_job();
-}
-
-static int caam_der_ecsig_to_rs(const uint8_t *sig, size_t rs_length, uint8_t *r, uint8_t *s)
-{
-    size_t sz;
-    int rc;
-    const uint8_t *p = sig;
-
-    if (*p++ != 0x30) {
-        return -PB_ERR_ASN1;
-    }
-
-    rc = asn1_size(&p, &sz);
-
-    if (rc != 0)
-        return rc;
-
-    if (*p++ != 0x02)
-        return -PB_ERR_ASN1;
-
-    rc = asn1_size(&p, &sz);
-
-    if (rc != 0)
-        return rc;
-
-    memcpy(&r[MAX((int)(rs_length - sz), 0)], &p[MAX((int)(sz - rs_length), 0)], sz);
-    p += sz;
-
-    if (*p++ != 0x02)
-        return -PB_ERR_ASN1;
-
-    rc = asn1_size(&p, &sz);
-
-    if (rc != 0)
-        return rc;
-
-    memcpy(&s[MAX((int)(rs_length - sz), 0)], &p[MAX((int)(sz - rs_length), 0)], sz);
-
-    return PB_OK;
 }
 
 static int caam_ecda_verify(const uint8_t *der_signature,
@@ -268,7 +250,7 @@ static int caam_ecda_verify(const uint8_t *der_signature,
         return -PB_ERR_NOT_SUPPORTED;
     };
 
-    rc = caam_der_ecsig_to_rs(der_signature, rs_length, caam.ecdsa_r, caam.ecdsa_s);
+    rc = der_ecsig_to_rs(der_signature, sig_length, caam.ecdsa_r, caam.ecdsa_s, rs_length);
 
     if (rc != PB_OK)
         return rc;
@@ -486,7 +468,10 @@ static int caam_hash_final(uint8_t *output, size_t size)
     /* If there was no update we must still call the update function
      * once to initialize the hash block */
     if (caam.init) {
-        _hash_update(NULL, 0);
+        err = _hash_update(NULL, 0);
+
+        if (err != PB_OK)
+            return err;
     }
 
     if (caam.async_hashing) {
@@ -551,7 +536,7 @@ int imx_caam_init(uintptr_t base)
     mmio_write_32(caam.base + CAAM_IRSR, 1);
     mmio_write_32(caam.base + CAAM_ORSR, 1);
 
-    static const struct hash_ops caam_ops = {
+    static struct hash_ops caam_ops = {
         .name = "caam-hash",
         .alg_bits = HASH_MD5 | HASH_MD5_BROKEN | HASH_SHA256 | HASH_SHA384 | HASH_SHA512,
         .init = caam_hash_init,
@@ -559,6 +544,18 @@ int imx_caam_init(uintptr_t base)
         .update_async = caam_hash_update_async,
         .final = caam_hash_final,
     };
+
+    /* The low power MDHA (e.g. i.MX6UL) only does up to SHA-256, and fails
+     * SHA-384/512 jobs with a mode error. CHAVID_LS is only valid before era
+     * 10, and CCBVID reports the era from era 6, so other CAAMs keep all
+     * algorithms. */
+    uint32_t era = CAAM_CCBVID_ERA(mmio_read_32(caam.base + CAAM_CCBVID));
+    uint32_t md_vid = CAAM_CHAVID_LS_MD(mmio_read_32(caam.base + CAAM_CHAVID_LS));
+
+    if (era > 0 && era < 10 && md_vid == CAAM_MD_VID_LP256) {
+        LOG_INFO("Era %" PRIu32 ", MDHA LP256: no SHA-384/512", era);
+        caam_ops.alg_bits &= ~(HASH_SHA384 | HASH_SHA512);
+    }
 
     rc = hash_add_ops(&caam_ops);
 

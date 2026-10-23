@@ -114,7 +114,7 @@ int plat_init(void)
     LOG_INFO("IPG root clock = %d MHz", plat.ipg_root_clk_MHz);
     LOG_INFO("PER root clock = %d MHz", plat.per_root_clk_MHz);
 
-    imx_gpt_init(IMXRT_GPT1_BASE, MHz(plat.ipg_root_clk_MHz));
+    imx_gpt_init(IMXRT_GPT1_BASE, MHz(plat.per_root_clk_MHz));
 
     rc = mbedtls_pb_init();
 
@@ -179,4 +179,10 @@ const char *plat_boot_reason_str(void)
 uint32_t plat_get_us_tick(void)
 {
     return imx_gpt_get_tick();
+}
+
+int plat_get_boot_source(struct pb_boot_source *src)
+{
+    (void)src;
+    return -PB_ERR_NOT_SUPPORTED;
 }

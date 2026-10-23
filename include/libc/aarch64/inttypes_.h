@@ -11,12 +11,12 @@
 #ifndef INTTYPES__H
 #define INTTYPES__H
 
-#define PRId64  "ld" /* int64_t */
-#define PRIi64  "li" /* int64_t */
-#define PRIo64  "lo" /* int64_t */
-#define PRIu64  "lu" /* uint64_t */
-#define PRIx64  "lx" /* uint64_t */
-#define PRIX64  "lX" /* uint64_t */
+#define PRId64  "lld" /* int64_t */
+#define PRIi64  "lli" /* int64_t */
+#define PRIo64  "llo" /* int64_t */
+#define PRIu64  "llu" /* uint64_t */
+#define PRIx64  "llx" /* uint64_t */
+#define PRIX64  "llX" /* uint64_t */
 
 #define PRIdPTR "ld" /* intptr_t */
 #define PRIiPTR "li" /* intptr_t */

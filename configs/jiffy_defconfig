@@ -135,6 +135,7 @@ CONFIG_DRIVER_USB_PB_CLS=y
 # Watchdog
 #
 CONFIG_DRIVERS_IMX_WDOG=y
+CONFIG_DRIVERS_IMX_WDOG_DEBUG=y
 # end of Watchdog
 # end of Drivers
 

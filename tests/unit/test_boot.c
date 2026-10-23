@@ -55,6 +55,7 @@ static struct {
     struct bpak_header *prepare_hdr;
     int late_rc;
     int late_calls;
+    uint32_t late_flags;
     int jump_calls;
     int set_part_calls;
     int in_mem_rc;
@@ -63,7 +64,7 @@ static struct {
 
     int read_cb_rc;
     int read_cb_calls;
-    int read_cb_offset;
+    int64_t read_cb_offset;
     int result_cb_calls;
     int last_result;
 } fake;
@@ -154,6 +155,7 @@ static int fake_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
     (void)header;
     (void)boot_part_uu;
     fake.late_calls++;
+    fake.late_flags = boot_get_flags();
     return fake.late_rc;
 }
 
@@ -162,10 +164,10 @@ static void fake_jump(void)
     fake.jump_calls++;
 }
 
-static int fake_read_cb(int block_offset, size_t length, void *buf)
+static int fake_read_cb(int64_t offset, size_t length, void *buf)
 {
     fake.read_cb_calls++;
-    fake.read_cb_offset = block_offset;
+    fake.read_cb_offset = offset;
     memset(buf, 0, length);
     return fake.read_cb_rc;
 }
@@ -309,11 +311,21 @@ static void test_bio_boot(void **state)
     assert_int_equal(fake.prepare_calls, 1);
     assert_memory_equal(fake.prepare_uu, UU_SYS_A, 16);
     assert_int_equal(fake.late_calls, 1);
+    /* late_boot sees the flags (F-060) */
+    assert_int_equal(fake.late_flags, BOOT_FLAG_VERBOSE);
     /* The fake jump returns, which boot_jump() reports as an error */
     assert_int_equal(fake.jump_calls, 1);
-    /* boot_load() clears the flags, also on success (F-060) */
+    /* A failed boot clears the flags */
     assert_int_equal(boot_get_flags(), 0);
-    (void)f;
+
+    /* The payload is read at byte offsets, in the device's blocks (F-062) */
+    uint8_t buf[RAMDISK_BLOCK_SIZE];
+    memset(ramdisk_block(f->disk, 12), 0xa5, RAMDISK_BLOCK_SIZE);
+    assert_int_equal(fake.load_read_f(2 * RAMDISK_BLOCK_SIZE, sizeof(buf), buf), PB_OK);
+    assert_int_equal(buf[0], 0xa5);
+    assert_int_equal(buf[RAMDISK_BLOCK_SIZE - 1], 0xa5);
+    assert_int_equal(fake.load_read_f(100, sizeof(buf), buf), -PB_ERR_ALIGN);
+    assert_int_equal(fake.load_read_f(-RAMDISK_BLOCK_SIZE, sizeof(buf), buf), -PB_ERR_ALIGN);
 }
 
 static void test_bio_boot_override(void **state)
@@ -392,8 +404,11 @@ static void test_late_boot_error(void **state)
     (void)state;
 
     fake.late_rc = -PB_ERR_IO;
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
     assert_int_equal(boot(NULL), -PB_ERR_IO);
+    assert_int_equal(fake.late_flags, BOOT_FLAG_CMD);
     assert_int_equal(fake.jump_calls, 0);
+    assert_int_equal(boot_get_flags(), 0);
 }
 
 static void test_in_mem_boot(void **state)
@@ -450,7 +465,7 @@ static void test_cb_boot(void **state)
     assert_int_equal(boot_load((unsigned char *)UU_SYS_B), PB_OK);
     /* The header comes first, at a negative offset */
     assert_int_equal(fake.read_cb_calls, 1);
-    assert_int_equal(fake.read_cb_offset, -(int)(sizeof(struct bpak_header) / 512));
+    assert_int_equal(fake.read_cb_offset, -(int64_t)sizeof(struct bpak_header));
     assert_ptr_equal(fake.load_read_f, fake_read_cb);
     assert_ptr_equal(fake.load_result_f, fake_result_cb);
     /* After the header check and after the payload check */
@@ -484,8 +499,12 @@ static void test_cb_boot_errors(void **state)
     assert_int_equal(fake.last_result, -PB_ERR_MEM);
     fake.verify_parts_rc = PB_OK;
 
+    /* The host still gets the final result (F-061) */
+    fake.result_cb_calls = 0;
     fake.load_rc = -PB_ERR_IO;
     assert_int_equal(boot_load(NULL), -PB_ERR_IO);
+    assert_int_equal(fake.result_cb_calls, 2);
+    assert_int_equal(fake.last_result, -PB_ERR_IO);
     fake.load_rc = PB_OK;
 
     fake.verify_payload_rc = -PB_ERR_BAD_PAYLOAD;

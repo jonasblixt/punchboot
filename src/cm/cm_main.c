@@ -25,10 +25,15 @@
 #include <string.h>
 #include <uuid.h>
 
+#define CM_BUF_SIZE       (CONFIG_CM_BUF_SIZE_KiB * 1024)
+/* Hosts send authentication and board command data in one transfer of this
+ * size, whatever the data's size */
+#define CM_DATA_XFER_SIZE 1024
+
 static struct pb_command cmd __section(".no_init") __aligned(64);
 static struct pb_result result __section(".no_init") __aligned(64);
 static bool authenticated = false;
-static uint8_t buffer[2][CONFIG_CM_BUF_SIZE_KiB * 1024] __section(".no_init") __aligned(4096);
+static uint8_t buffer[2][CM_BUF_SIZE] __section(".no_init") __aligned(4096);
 static slc_t slc;
 
 /* The part table response sends the low byte of the bio flags and the SLC
@@ -43,6 +48,9 @@ _Static_assert((int)SLC_EOL == (int)PB_SLC_EOL, "slc value");
 static uint8_t hash[CRYPTO_MD_MAX_SZ];
 static uuid_t device_uu;
 static bio_dev_t block_dev;
+/* Whether a write in the current stream succeeded, and whether one failed */
+static bool stream_written;
+static bool stream_failed;
 static bool reboot_requested = false;
 static const struct cm_config *cfg;
 
@@ -217,7 +225,7 @@ static int cmd_board(void)
 
     if (board_cmd->request_size) {
         LOG_DBG("Reading request data");
-        rc = cm_read(bfr, 1024);
+        rc = cm_read(bfr, CM_DATA_XFER_SIZE);
 
         if (rc != PB_OK) {
             pb_wire_init_result(&result, error_to_wire(rc));
@@ -225,9 +233,17 @@ static int cmd_board(void)
         }
     }
 
+    /* The request transfer is read also when it's refused here, since 2.x
+     * hosts don't check the first result */
+    if (board_cmd->request_size > CM_DATA_XFER_SIZE) {
+        LOG_ERR("Bad board command request size: %" PRIu32, board_cmd->request_size);
+        pb_wire_init_result(&result, error_to_wire(-PB_ERR_PARAM));
+        return -PB_ERR_PARAM;
+    }
+
     uint8_t *bfr_response = buffer[1];
 
-    size_t response_size = CONFIG_CM_BUF_SIZE_KiB * 1024;
+    size_t response_size = CM_BUF_SIZE;
 
     rc = cfg->command(
         board_cmd->command, bfr, board_cmd->request_size, bfr_response, &response_size);
@@ -290,6 +306,23 @@ static int cmd_bpak_read(void)
     return rc;
 }
 
+#if CONFIG_CM_AUTH_PASSWORD || CONFIG_CM_AUTH_TOKEN
+/* Hosts send the authentication data after an OK result, and check that
+ * result first. */
+static int auth_read_data(const struct pb_command_authenticate *auth_cmd)
+{
+    if (auth_cmd->size == 0 || auth_cmd->size > CM_DATA_XFER_SIZE) {
+        LOG_ERR("Bad authentication data size: %u", auth_cmd->size);
+        return -PB_ERR_PARAM;
+    }
+
+    pb_wire_init_result(&result, PB_RESULT_OK);
+    cm_write(&result, sizeof(result));
+
+    return cm_read(buffer[0], CM_DATA_XFER_SIZE);
+}
+#endif
+
 static int cmd_auth(void)
 {
     int rc = -PB_ERR_NOT_IMPLEMENTED;
@@ -301,12 +334,10 @@ static int cmd_auth(void)
 
 #ifdef CONFIG_CM_AUTH_TOKEN
     if (auth_cmd->method == PB_AUTH_ASYM_TOKEN) {
-        pb_wire_init_result(&result, PB_RESULT_OK);
-        cm_write(&result, sizeof(result));
+        rc = auth_read_data(auth_cmd);
 
-        cm_read(buffer[0], 1024);
-
-        rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
+        if (rc == PB_OK)
+            rc = auth_token(auth_cmd->key_id, buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
             authenticated = true;
@@ -319,10 +350,10 @@ static int cmd_auth(void)
 
 #if CONFIG_CM_AUTH_PASSWORD
     if (auth_cmd->method == PB_AUTH_PASSWORD && cfg->password_auth) {
-        pb_wire_init_result(&result, PB_RESULT_OK);
-        cm_write(&result, sizeof(result));
-        cm_read(buffer[0], 1024);
-        rc = cfg->password_auth((char *)buffer[0], auth_cmd->size);
+        rc = auth_read_data(auth_cmd);
+
+        if (rc == PB_OK)
+            rc = cfg->password_auth((char *)buffer[0], auth_cmd->size);
 
         if (rc == PB_OK)
             authenticated = true;
@@ -373,8 +404,10 @@ static int cmd_stream_read(void)
     struct pb_command_stream_read_buffer *stream_read =
         (struct pb_command_stream_read_buffer *)cmd.request;
 
-    LOG_DBG(
-        "Stream read %u, %llu, %i", stream_read->buffer_id, stream_read->offset, stream_read->size);
+    LOG_DBG("Stream read %u, %" PRIu64 ", %i",
+            stream_read->buffer_id,
+            stream_read->offset,
+            stream_read->size);
 
     if (!(bio_get_flags(block_dev) & BIO_FLAG_READABLE)) {
         LOG_ERR("Partition may not be read");
@@ -417,7 +450,7 @@ static int cmd_stream_write(void)
     struct pb_command_stream_write_buffer *stream_write =
         (struct pb_command_stream_write_buffer *)cmd.request;
 
-    LOG_DBG("Stream write %u, %llu, %i",
+    LOG_DBG("Stream write %u, %" PRIu64 ", %i",
             stream_write->buffer_id,
             stream_write->offset,
             stream_write->size);
@@ -498,9 +531,7 @@ static int cmd_part_verify(void)
     LOG_DBG("Reading %zu bytes", bytes_to_verify);
 
     while (bytes_to_verify) {
-        chunk_len = bytes_to_verify > (CONFIG_CM_BUF_SIZE_KiB * 1024)
-                        ? (CONFIG_CM_BUF_SIZE_KiB * 1024)
-                        : bytes_to_verify;
+        chunk_len = bytes_to_verify > CM_BUF_SIZE ? CM_BUF_SIZE : bytes_to_verify;
 
         buffer_id = !buffer_id;
 
@@ -602,9 +633,9 @@ static int cmd_part_tbl_read(void)
     return PB_RESULT_OK;
 }
 
-static int bpak_boot_read_f(int block_offset, size_t length, void *buf)
+static int bpak_boot_read_f(int64_t offset, size_t length, void *buf)
 {
-    (void)block_offset;
+    (void)offset;
     return cm_read(buf, length);
 }
 
@@ -663,19 +694,22 @@ static int cmd_slc_read(void)
         return rc;
 
     for (size_t i = 0; i < rot_no_of_keys(); i++) {
-        rc = rot_read_key_status_by_idx(i);
+        int key_rc = rot_read_key_status_by_idx(i);
         key_id_t key_id = rot_key_idx_to_id(i);
 
-        if (rc == PB_OK)
+        if (key_rc == PB_OK)
             key_status.active[i] = key_id;
-        else if (rc == -PB_ERR_KEY_REVOKED)
+        else if (key_rc == -PB_ERR_KEY_REVOKED)
             key_status.revoked[i] = key_id;
-        LOG_INFO("Key 0x%x status=%i", key_id, rc);
+        else if (rc == PB_OK)
+            rc = key_rc;
+        LOG_INFO("Key 0x%x status=%i", key_id, key_rc);
     }
 
     cm_write(&key_status, sizeof(key_status));
-    pb_wire_init_result(&result, error_to_wire(PB_OK));
 
+    /* A revoked key is in the key status, the result is only for errors
+     * reading it. It used to be the last key's status (F-072). */
     return rc;
 }
 
@@ -685,6 +719,8 @@ static int cmd_stream_init(void)
         (struct pb_command_stream_initialize *)cmd.request;
 
     block_dev = bio_get_part_by_uu(stream_init->part_uuid);
+    stream_written = false;
+    stream_failed = false;
 
     if (block_dev < 0)
         pb_wire_init_result(&result, error_to_wire(block_dev));
@@ -704,7 +740,7 @@ static int cmd_stream_prep_buffer(void)
 
     LOG_DBG("Stream prep %u, %i", stream_prep->size, stream_prep->id);
 
-    if (stream_prep->size > (CONFIG_CM_BUF_SIZE_KiB * 1024)) {
+    if (stream_prep->size > CM_BUF_SIZE) {
         pb_wire_init_result(&result, -PB_RESULT_NO_MEMORY);
         return -PB_ERR_MEM;
     }
@@ -717,15 +753,28 @@ static int cmd_stream_prep_buffer(void)
     pb_wire_init_result(&result, PB_RESULT_OK);
     cm_write(&result, sizeof(result));
 
-    uint8_t *bfr = ((uint8_t *)buffer) + ((CONFIG_CM_BUF_SIZE_KiB * 1024) * stream_prep->id);
+    uint8_t *bfr = ((uint8_t *)buffer) + (CM_BUF_SIZE * stream_prep->id);
 
     return cm_read(bfr, stream_prep->size);
 }
 
 static int cmd_stream_final(void)
 {
-    pb_wire_init_result(&result, PB_RESULT_OK);
-    return PB_OK;
+    int rc = PB_OK;
+
+    /*
+     * The host finalizes after a failed write too, so only a stream without
+     * errors is a complete write. On eMMC this makes a boot partition
+     * bootable (F-082).
+     */
+    if (stream_written && !stream_failed)
+        rc = bio_write_done(block_dev);
+
+    stream_written = false;
+    stream_failed = false;
+
+    pb_wire_init_result(&result, error_to_wire(rc));
+    return rc;
 }
 
 static int pb_command_parse(void)
@@ -770,8 +819,8 @@ static int pb_command_parse(void)
         LOG_INFO("Read caps");
         struct pb_result_device_caps caps = { 0 };
         caps.stream_no_of_buffers = 2;
-        caps.stream_buffer_size = CONFIG_CM_BUF_SIZE_KiB * 1024;
-        caps.chunk_transfer_max_bytes = CONFIG_CM_BUF_SIZE_KiB * 1024;
+        caps.stream_buffer_size = CM_BUF_SIZE;
+        caps.chunk_transfer_max_bytes = CM_BUF_SIZE;
 
         pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
     } break;
@@ -791,12 +840,18 @@ static int pb_command_parse(void)
         break;
     case PB_CMD_STREAM_PREPARE_BUFFER:
         rc = cmd_stream_prep_buffer();
+        if (rc != PB_OK)
+            stream_failed = true;
         break;
     case PB_CMD_STREAM_READ_BUFFER:
         rc = cmd_stream_read();
         break;
     case PB_CMD_STREAM_WRITE_BUFFER:
         rc = cmd_stream_write();
+        if (rc == PB_OK)
+            stream_written = true;
+        else
+            stream_failed = true;
         break;
     case PB_CMD_STREAM_FINALIZE:
         rc = cmd_stream_final();
@@ -817,11 +872,13 @@ static int pb_command_parse(void)
         pb_wire_init_result(&result, error_to_wire(rc));
         cm_write(&result, sizeof(result));
 
-        if (cfg->tops.disconnect) {
-            cfg->tops.disconnect();
-        }
-
         if (rc == PB_OK) {
+            /* Only disconnect when booting, cm_run reads the next command
+             * from the transport after an error */
+            if (cfg->tops.disconnect) {
+                cfg->tops.disconnect();
+            }
+
             rc = boot_jump();
             /* Should not return */
         }
@@ -855,7 +912,7 @@ static int pb_command_parse(void)
 
         uint8_t *bfr_response = buffer[0];
 
-        size_t response_size = CONFIG_CM_BUF_SIZE_KiB * 1024;
+        size_t response_size = CM_BUF_SIZE;
         rc = cfg->status(bfr_response, &response_size);
 
         status_result.size = response_size;

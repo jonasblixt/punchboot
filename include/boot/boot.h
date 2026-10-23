@@ -15,8 +15,9 @@
 #include <pb/utils_def.h>
 #include <uuid.h>
 
-/* TODO: Write a note about the bpak block size of 512 bytes */
-typedef int (*boot_read_cb_t)(int block_offset, size_t length, void *buf);
+/* Reads 'length' bytes at 'offset' bytes from the start of the image's
+ * payload. The header is at -sizeof(struct bpak_header). */
+typedef int (*boot_read_cb_t)(int64_t offset, size_t length, void *buf);
 typedef int (*boot_result_cb_t)(int result);
 
 /** Boot sources */
