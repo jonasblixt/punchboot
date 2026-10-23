@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import contextlib
 import multiprocessing
+import pathlib
 import socket
 import struct
+import tempfile
 from typing import TYPE_CHECKING
 
 import punchboot
@@ -19,7 +21,6 @@ import pytest
 from .pbtest import PB_COMMAND_SIZE, PB_WIRE_MAGIC
 
 if TYPE_CHECKING:
-    import pathlib
     from collections.abc import Iterator
     from multiprocessing.connection import Connection
 
@@ -84,11 +85,14 @@ class OldDevice:
 
 
 @pytest.fixture
-def old_device(tmp_path: pathlib.Path) -> Iterator[tuple[OldDevice, pathlib.Path]]:
-    path = tmp_path / "old-device"
-    dev = OldDevice(path)
-    yield dev, path
-    dev.commands()
+def old_device() -> Iterator[tuple[OldDevice, pathlib.Path]]:
+    # Not in tmp_path: Unix socket paths are limited to 107 bytes, which the
+    # pytest temporary directory exceeds on CI.
+    with tempfile.TemporaryDirectory(prefix="pb-") as tmp:
+        path = pathlib.Path(tmp) / "old-device"
+        dev = OldDevice(path)
+        yield dev, path
+        dev.commands()
 
 
 @pytest.mark.parametrize("size", [0, AUTH_DATA_SIZE + 1, 0x10000])
