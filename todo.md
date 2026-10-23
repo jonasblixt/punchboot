@@ -21,25 +21,27 @@ Ordered by priority. "Reported" findings are unverified; check them before fixin
 17. Bug: F-068, `bpak_del_meta` writes past `meta[]` (fix upstream).
 18. Bug: F-011, `bpak_add_transport_meta` uses the wrong size (fixed upstream in bpak v0.9.2, latent).
 19. Board: F-083, `punchboot part read` fails with an I/O error on jiffy.
-20. Board: F-084 is fixed and checked on jiffy: check the GPT perclk on imx8x and imx8m.
-21. Board: F-079/F-078, eMMC reset is on the wrong pin on jiffy, and SRST falls back to the serial downloader.
-22. Board: F-090, imx8dxlevk RWX link warning.
-23. Compat: F-076, honour `dont-hash` (has an xfail test).
-24. Compat: F-087, a bad payload is a generic error on the wire.
-25. Compat: F-077, the host doesn't handle `chunk_transfer_max_bytes == 0` from old devices.
-26. Host: F-009, `log_cb` ignores `PyObject_CallMethod` failure, and the GIL is held during USB I/O (reported).
-27. Host: F-010, `pbstate` CMake sets `BACKUP_PART` from the primary part (reported).
-28. Tests: F-067, SIGPIPE, orphaned pb-host, `-m32`.
-29. CI: Check the Coverity job on master (PRs #61 and #62 are merged).
-30. CI: Merge PR #64 (`jiffy-fixes` → master), which also carries #63 (`jtag-debugging`).
-31. CI: Consider `-Werror` for the host build now that F-049 is fixed.
-32. Compat: Guard 3, old PyPI wheels against pb-host.
-33. Compat: Guard 4, recorded transcripts.
-34. Compat: Guard 5, CODEOWNERS.
-35. Compat: Golden images from older bpak CLI releases.
-36. Repo: Split the jiffy HAB signing commits off `compat-guards` onto their own branch.
-37. Ethernet: Evaluate the ethernet PoC (branch `enet-poc`).
-38. Decide: Which boards are still in use? Only jiffy and imx8dxlevk build (F-051, F-033).
-39. Decide: Keep the virtio drivers for a future QEMU smoke tier? (F-052)
-40. Decide: Mbed TLS 3.6 LTS or 4.x?
-41. Decide: The compat floor, the oldest released host and firmware the guards test against.
+20. Board: F-084, measure the GPT tick on the imx8x EVK (imx8dxlevk), expect 1.000 ticks/us.
+21. Board: F-084, measure the GPT tick on the imx8m EVK (imx8mevk doesn't build yet, F-033).
+22. Board: F-084, measure the GPT tick on the i.MX RT EVK (imxrt1060evk doesn't build yet, F-051), checks the perclk change in e93a767.
+23. Board: F-079/F-078, eMMC reset is on the wrong pin on jiffy, and SRST falls back to the serial downloader.
+24. Board: F-090, imx8dxlevk RWX link warning.
+25. Compat: F-076, honour `dont-hash` (has an xfail test).
+26. Compat: F-087, a bad payload is a generic error on the wire.
+27. Compat: F-077, the host doesn't handle `chunk_transfer_max_bytes == 0` from old devices.
+28. Host: F-009, `log_cb` ignores `PyObject_CallMethod` failure, and the GIL is held during USB I/O (reported).
+29. Host: F-010, `pbstate` CMake sets `BACKUP_PART` from the primary part (reported).
+30. Tests: F-067, SIGPIPE, orphaned pb-host, `-m32`.
+31. CI: Check the Coverity job on master (PRs #61 and #62 are merged).
+32. CI: Merge PR #64 (`jiffy-fixes` → master), which also carries #63 (`jtag-debugging`).
+33. CI: Consider `-Werror` for the host build now that F-049 is fixed.
+34. Compat: Guard 3, old PyPI wheels against pb-host.
+35. Compat: Guard 4, recorded transcripts.
+36. Compat: Guard 5, CODEOWNERS.
+37. Compat: Golden images from older bpak CLI releases.
+38. Repo: Split the jiffy HAB signing commits off `compat-guards` onto their own branch.
+39. Ethernet: Evaluate the ethernet PoC (branch `enet-poc`).
+40. Decide: Which boards are still in use? Only jiffy and imx8dxlevk build (F-051, F-033).
+41. Decide: Keep the virtio drivers for a future QEMU smoke tier? (F-052)
+42. Decide: Mbed TLS 3.6 LTS or 4.x?
+43. Decide: The compat floor, the oldest released host and firmware the guards test against.
