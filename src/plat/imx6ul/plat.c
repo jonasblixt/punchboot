@@ -231,8 +231,8 @@ int plat_init(void)
     imx_wdog_init(IMX6UL_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
 
-    /* Configure systick */
-    imx_gpt_init(IMX6UL_GPT1_BASE, MHz(24));
+    /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal */
+    imx_gpt_init_24m(IMX6UL_GPT1_BASE);
 
     board_console_init(&plat);
 
