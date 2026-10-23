@@ -1,7 +1,0 @@
-ignore:
-  - src/lib/fdt
-  - src/lib/uuid
-  - src/arch/host
-  - src/plat/host
-  - src/board/host
-  - tests

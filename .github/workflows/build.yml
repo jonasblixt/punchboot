@@ -52,7 +52,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # Codecov authentication via OIDC, no token secret needed
     steps:
       - uses: actions/checkout@v4
 
@@ -61,18 +60,16 @@ jobs:
 
       - name: Coverage report
         run: |
+          mkdir -p coverage
           scripts/pbdev run gcovr -r . build-host-cov --filter src/ \
             --exclude src/lib/fdt --exclude src/lib/uuid \
             --exclude src/arch/host --exclude src/plat/host --exclude src/board/host \
-            --xml coverage.xml --print-summary
+            --html-details coverage/index.html --print-summary
 
-      - name: Upload to codecov
-        uses: codecov/codecov-action@v5
+      - uses: actions/upload-artifact@v7
         with:
-          files: coverage.xml
-          disable_search: true
-          plugins: noop
-          use_oidc: true
+          name: coverage
+          path: coverage/
           fail_ci_if_error: false
 
   firmware:
