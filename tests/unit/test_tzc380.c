@@ -19,15 +19,15 @@
 #include <pb/pb.h>
 #include <string.h>
 
-#define REG(off)                 (regs[(off) / 4])
+#define REG(off)                (regs[(off) / 4])
 
-#define CONFIGURATION            0x000
-#define SETUP_LOW(n)             (0x100 + 0x10 * (n))
-#define SETUP_HIGH(n)            (0x104 + 0x10 * (n))
-#define ATTR(n)                  (0x108 + 0x10 * (n))
+#define CONFIGURATION           0x000
+#define SETUP_LOW(n)            (0x100 + 0x10 * (n))
+#define SETUP_HIGH(n)           (0x104 + 0x10 * (n))
+#define ATTR(n)                 (0x108 + 0x10 * (n))
 
-/* 16 regions, 32 bit addresses, as on the i.MX6UL */
-#define CONFIG_16_REGIONS_32_BIT 0x00001f0f
+/* 8 regions, 32 bit addresses, as on the i.MX6UL (jiffy) */
+#define CONFIG_8_REGIONS_32_BIT 0x00001f07
 
 static uint32_t regs[0x200 / 4];
 
@@ -58,7 +58,7 @@ static void test_no_configurable_region(void **state)
 static void test_configure_region(void **state)
 {
     (void)state;
-    init_regs(CONFIG_16_REGIONS_32_BIT);
+    init_regs(CONFIG_8_REGIONS_32_BIT);
     assert_int_equal(tzc380_init((uintptr_t)regs), PB_OK);
     assert_int_equal(tzc380_configure_region(1, 0x80000000, 0x40000000, TZC380_SP_ALL), PB_OK);
 
@@ -74,20 +74,20 @@ static void test_configure_region(void **state)
 static void test_last_region_min_size(void **state)
 {
     (void)state;
-    init_regs(CONFIG_16_REGIONS_32_BIT);
+    init_regs(CONFIG_8_REGIONS_32_BIT);
     assert_int_equal(tzc380_init((uintptr_t)regs), PB_OK);
-    assert_int_equal(tzc380_configure_region(15, 0xbe008000, 0x8000, TZC380_SP_S_R | TZC380_SP_S_W),
+    assert_int_equal(tzc380_configure_region(7, 0xbe008000, 0x8000, TZC380_SP_S_R | TZC380_SP_S_W),
                      PB_OK);
 
-    assert_int_equal(REG(SETUP_LOW(15)), 0xbe008000);
+    assert_int_equal(REG(SETUP_LOW(7)), 0xbe008000);
     /* sp 0xc, size 14 (32 KiB), enabled */
-    assert_int_equal(REG(ATTR(15)), 0xc000001d);
+    assert_int_equal(REG(ATTR(7)), 0xc000001d);
 }
 
 static void test_whole_address_space(void **state)
 {
     (void)state;
-    init_regs(CONFIG_16_REGIONS_32_BIT);
+    init_regs(CONFIG_8_REGIONS_32_BIT);
     assert_int_equal(tzc380_init((uintptr_t)regs), PB_OK);
     assert_int_equal(tzc380_configure_region(1, 0, UINT64_C(0x100000000), TZC380_SP_ALL), PB_OK);
     /* size 31 (4 GiB) */
@@ -113,13 +113,13 @@ static void test_high_address(void **state)
 static void test_bad_params(void **state)
 {
     (void)state;
-    init_regs(CONFIG_16_REGIONS_32_BIT);
+    init_regs(CONFIG_8_REGIONS_32_BIT);
     assert_int_equal(tzc380_init((uintptr_t)regs), PB_OK);
 
     /* Region 0 and past the last region */
     assert_int_equal(tzc380_configure_region(0, 0x80000000, 0x40000000, TZC380_SP_ALL),
                      -PB_ERR_PARAM);
-    assert_int_equal(tzc380_configure_region(16, 0x80000000, 0x40000000, TZC380_SP_ALL),
+    assert_int_equal(tzc380_configure_region(8, 0x80000000, 0x40000000, TZC380_SP_ALL),
                      -PB_ERR_PARAM);
     /* Not a power of two, too small, past the address width */
     assert_int_equal(tzc380_configure_region(1, 0x80000000, 0x30000000, TZC380_SP_ALL),
