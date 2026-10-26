@@ -10,6 +10,7 @@
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/timer/imx_gpt.h>
+#include <drivers/tzc/tzc380.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -213,8 +214,40 @@ static int plat_mmu_init(void)
     return PB_OK;
 }
 
+/**
+ * The TZASC checks no DDR access until TZASC1_BYP in GPR9 is set. The bit can
+ * only be set while no DDR access is in flight, so the board's DCD sets it
+ * after the MMDC setup.
+ *
+ * Out of bypass, region 0 only lets secure accesses through, but OP-TEE reads
+ * the DTB through a non-secure mapping before its TZASC driver has run. Open
+ * DDR to both worlds in region 1 until OP-TEE replaces it.
+ */
+static int tzasc_init(void)
+{
+    int rc;
+
+    /*
+     * Only a power-on reset clears the bit, so this misses a DCD without it
+     * after a warm reset from an image that set it.
+     */
+    if ((mmio_read_32(IMX6UL_IOMUXC_GPR9) & IOMUXC_GPR9_TZASC1_BYP) == 0) {
+        LOG_ERR("TZASC is bypassed, the DCD must set TZASC1_BYP in GPR9");
+        return -PB_ERR_STATE;
+    }
+
+    rc = tzc380_init(IMX6UL_TZASC1_BASE);
+
+    if (rc != PB_OK)
+        return rc;
+
+    return tzc380_configure_region(1, IMX6UL_DDR_BASE, IMX6UL_DDR_SIZE, TZC380_SP_ALL);
+}
+
 int plat_init(void)
 {
+    int rc;
+
     imx6ul_rom_log_save();
     /* Before the USB driver resets the controller */
     if (imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_SERIAL_DOWNLOAD))
@@ -305,6 +338,12 @@ int plat_init(void)
 
     imx_wdog_kick();
     plat_mmu_init();
+
+    /* Not fatal: without plat_board_init() command mode can't be used to recover */
+    rc = tzasc_init();
+
+    if (rc != PB_OK)
+        LOG_ERR("TZASC setup failed (%i)", rc);
 
     return PB_OK;
 }

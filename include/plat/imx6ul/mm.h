@@ -51,4 +51,14 @@
 #define IMX6UL_USB1_BASE          (0x02184000)
 #define IMX6UL_USB2_BASE          (0x02184200)
 
+/* Set: the TZASC checks DDR accesses. Cleared by a power-on reset */
+#define IMX6UL_IOMUXC_GPR9        (0x020E4024)
+#define IOMUXC_GPR9_TZASC1_BYP    BIT(0)
+
+#define IMX6UL_TZASC1_BASE        (0x021D0000)
+
+/* The MMDC address window */
+#define IMX6UL_DDR_BASE           (0x80000000)
+#define IMX6UL_DDR_SIZE           (0x80000000)
+
 #endif
