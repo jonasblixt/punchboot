@@ -30,7 +30,9 @@ void arch_disable_mmu(void)
     arch_clean_cache_range(stack_start, stack_size);
     arch_invalidate_cache_range(stack_start, stack_size);
 
-    arch_disable_cache();
+    /* Clean and disable the D-cache. What runs next reads with the cache
+     * off what was written with it on, the boot arguments among them. */
+    arch_disable_cache(ARCH_CACHE_FLAG_DCACHE);
     disable_mmu_secure();
 
     unsigned int sctlr;
