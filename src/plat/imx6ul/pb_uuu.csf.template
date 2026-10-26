@@ -27,6 +27,12 @@ File = "__IMG_PEM__"
     Engine = OCOTP
     Features = SRKREVOKE
 
+[Unlock]
+    # Leave the Job Ring and DECO master ID registers unlocked, so that
+    # the next stage (OP-TEE) can take a Job Ring
+    Engine = CAAM
+    Features = MID
+
 [Authenticate Data]
 Verification index = 2
 __UUU_BLOCKS__
