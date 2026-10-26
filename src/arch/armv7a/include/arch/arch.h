@@ -692,7 +692,11 @@ void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3) __attribute__
 void arch_invalidate_cache_range(uintptr_t start, size_t len);
 void arch_clean_cache_range(uintptr_t start, size_t len);
 void arch_clean_invalidate_cache_range(uintptr_t start, size_t len);
-void arch_disable_cache(void);
+/* arch_disable_cache() flags */
+#define ARCH_CACHE_FLAG_ICACHE (1 << 0)
+#define ARCH_CACHE_FLAG_DCACHE (1 << 1)
+
+void arch_disable_cache(unsigned int flags);
 #endif // __ASSEMBLY__
 
 #endif // ARCH_ARMV7A_INCLUDE_ARCH_ARCH_H_

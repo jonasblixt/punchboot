@@ -243,9 +243,15 @@ void boot_driver_linux_jump(void)
     arch_disable_mmu();
 
     LOG_DBG("Jumping to %" PRIxPTR, jump_addr);
-    if (cfg->set_dtb_boot_arg)
+    if (cfg->set_dtb_boot_arg) {
+#if defined(CONFIG_ARCH_ARMV7)
+        /* AArch32 Linux boot protocol: r0 = 0, r1 = ~0 (DT only), r2 = DTB */
+        arch_jump((void *)jump_addr, NULL, (void *)0xffffffff, (void *)dtb_addr, NULL);
+#else
+        /* AArch64 Linux boot protocol: x0 = DTB */
         arch_jump((void *)jump_addr, (void *)dtb_addr, NULL, NULL, NULL);
-    else
+#endif
+    } else
         arch_jump((void *)jump_addr, NULL, NULL, NULL, NULL);
 
     LOG_ERR("Jump returned %" PRIxPTR, jump_addr);
