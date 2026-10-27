@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         cmake \
         curl \
+        file \
         gcc-aarch64-linux-gnu \
         gcc-arm-none-eabi \
         gdisk \
