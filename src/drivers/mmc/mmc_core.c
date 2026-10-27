@@ -669,7 +669,8 @@ static int mmc_setup(void)
     LOG_DBG("Power off long time: %ums", power_off_long_time_ms);
     LOG_DBG("Partition switch time: %ums", partition_switch_time_ms);
 
-    if (mmc_ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != mmc_cfg->boot_mode) {
+    if (!(mmc_cfg->flags & MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS) &&
+        mmc_ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != mmc_cfg->boot_mode) {
         LOG_INFO("Updating boot bus conditions to 0x%02x", mmc_cfg->boot_mode);
 
         rc = mmc_set_ext_csd(EXT_CSD_BOOT_BUS_CONDITIONS, mmc_cfg->boot_mode, 0);
