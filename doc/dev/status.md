@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-10-23_
+_Last updated: 2026-10-27_
 
 ## Current focus
 
@@ -19,7 +19,8 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 
 ## Next steps
 
-1. PRs #61 and #62 are merged (2026-10-22): check the Coverity job on master. #63 (`jtag-debugging`)
+1. PRs #61 and #62 are merged (2026-10-22). The Coverity job on master never passed (F-097,
+   fixed in `ci-coverity-file`): check it after that merges. #63 (`jtag-debugging`)
    was merged into `compat-guards` after #62 had landed, so it reaches master through PR #64
    (`jiffy-fixes` → master, open).
 2. Unit tests for every core module are done (D-007). They found F-068..F-074; fixed F-069

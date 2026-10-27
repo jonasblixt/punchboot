@@ -39,6 +39,7 @@ make BOARD=src/board/<x> KCONFIG_CONFIG=configs/<x>_defconfig CROSS_COMPILE=<arm
 - Mbed TLS 3.4.0 sources (`MBEDTLS_DIR`)
 - the bpak v0.9.3 CLI
 - gdisk and CMocka
+- `file`, which Coverity's cov-build needs (F-097)
 - a Python venv with click >= 8.2, semver, pytest and gcovr 8.3 (pinned: 8.7 crashes)
 
 ```sh
