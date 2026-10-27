@@ -2,6 +2,7 @@
 #include <arch/armv8a/timer.h>
 #include <pb/arch.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 
 void arch_init(void)
 {
@@ -12,6 +13,9 @@ void exception(int index)
 {
     printf("*** UNHANDLED EXCEPTION ***\n\r");
     printf("Index %i\n\r", index);
+#ifdef CONFIG_ARMV8_RESET_ON_EXCEPTION
+    plat_reset();
+#endif
 }
 
 void exception_sync(void)
@@ -21,6 +25,9 @@ void exception_sync(void)
     printf("ELR: 0x%08lx\n\r", read_elr_el3());
     printf("FAR: 0x%08lx\n\r", read_far_el3());
     printf("SCTLR: 0x%08lx\n\r", read_sctlr_el3());
+#ifdef CONFIG_ARMV8_RESET_ON_EXCEPTION
+    plat_reset();
+#endif
 }
 
 /* arch_disable_mmu() is implemented in cache-ops.S. It has to be assembly: the
