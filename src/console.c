@@ -17,7 +17,7 @@ void console_init(uintptr_t base_, const struct console_ops *ops_)
 
 void console_putc(char c)
 {
-    if (ops->putc) {
+    if (ops != NULL && ops->putc != NULL) {
         ops->putc(base, c);
     }
 }
