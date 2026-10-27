@@ -638,7 +638,8 @@ int mmc_emmc_setup(struct mmc_device *dev)
     LOG_DBG("Power off long time: %ums", dev->power_off_long_time_ms);
     LOG_DBG("Partition switch time: %ums", dev->partition_switch_time_ms);
 
-    if (dev->ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != cfg->boot_mode) {
+    if (!(cfg->flags & MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS) &&
+        dev->ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] != cfg->boot_mode) {
         LOG_INFO("Updating boot bus conditions to 0x%02x", cfg->boot_mode);
 
         rc = mmc_set_ext_csd(dev, EXT_CSD_BOOT_BUS_CONDITIONS, cfg->boot_mode, 0);

@@ -427,6 +427,27 @@ static int first_boot_part_config(uint8_t boot_part_enable, uuid_t uu)
     return result.rc;
 }
 
+/* BOOT_BUS_CONDITIONS is non-volatile: it's updated from boot_mode, unless
+ * the board asks to keep it */
+static void test_boot_bus_conditions(void **state)
+{
+    struct mmc_device_config keep = cfg;
+    (void)state;
+
+    card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] = 0x12;
+    power_on();
+    bio_reset();
+    assert_int_equal(mmc_init(&hal, &cfg, NULL), PB_OK);
+    assert_int_equal(card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS], cfg.boot_mode);
+
+    keep.flags = MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS;
+    card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] = 0x12;
+    power_on();
+    bio_reset();
+    assert_int_equal(mmc_init(&hal, &keep, NULL), PB_OK);
+    assert_int_equal(card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS], 0x12);
+}
+
 /* Runs before any mmc_init() */
 static void test_boot_part_config_values(void **state)
 {
@@ -460,6 +481,7 @@ int main(void)
         cmocka_unit_test_setup(test_access_keeps_boot_part, setup),
         cmocka_unit_test_setup(test_write_done_user, setup),
         cmocka_unit_test_setup(test_boot_part_config, setup),
+        cmocka_unit_test_setup(test_boot_bus_conditions, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
