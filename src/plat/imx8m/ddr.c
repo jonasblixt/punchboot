@@ -69,7 +69,7 @@ static const struct dwc_ddrphy phy = {
     .fw = { [FW_1D_IMAGE] = &fw_1d, [FW_2D_IMAGE] = &fw_2d },
 };
 
-__umctl2 struct dram_timing_info dram_timing_info_copy;
+__umctl2 struct dram_timing_save dram_timing_info_copy;
 
 /* Append table 'src' at 'pos' and point 'table' to it */
 static void copy_cfg(struct dram_cfg_param **pos,
@@ -86,10 +86,17 @@ static void copy_cfg(struct dram_cfg_param **pos,
  * Read back the trained PHY CSRs, and copy all timing data to the start of
  * DRAM for TF-A (see struct dram_timing_info).
  */
-static void dram_save_timing(void)
+static int dram_save_timing(void)
 {
-    struct dram_timing_info *dt = &dram_timing_info_copy;
-    struct dram_cfg_param *pos = (struct dram_cfg_param *)(dt + 1);
+    struct dram_timing_info *dt = &dram_timing_info_copy.info;
+    struct dram_cfg_param *pos = dram_timing_info_copy.cfg;
+    size_t n = (size_t)dram_timing.ddrc_cfg_num + dram_timing.ddrphy_cfg_num +
+               dram_timing.ddrphy_trained_csr_num + dram_timing.ddrphy_pie_num;
+
+    if (n > ARRAY_SIZE(dram_timing_info_copy.cfg)) {
+        LOG_ERR("DRAM timing does not fit in the TF-A copy (%zu entries)", n);
+        return -PB_ERR_MEM;
+    }
 
     dwc_ddrphy_read_csrs(&phy, dram_timing.ddrphy_trained_csr, dram_timing.ddrphy_trained_csr_num);
 
@@ -106,6 +113,8 @@ static void dram_save_timing(void)
              dram_timing.ddrphy_trained_csr,
              dram_timing.ddrphy_trained_csr_num);
     copy_cfg(&pos, &dt->ddrphy_pie, dram_timing.ddrphy_pie, dram_timing.ddrphy_pie_num);
+
+    return PB_OK;
 }
 
 int imx8m_ddr_init(void)
@@ -172,7 +181,5 @@ int imx8m_ddr_init(void)
     umctl2_enable_port(ddrc, 0);
 
     /* 6. Save settings and training results for TF-A */
-    dram_save_timing();
-
-    return PB_OK;
+    return dram_save_timing();
 }
