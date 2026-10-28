@@ -31,32 +31,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../src/plat/imx8m/umctl2.h"
+#include "../../src/plat/imx8m/dram.h"
 
 /* Everything the init code touches lives in 0x3000_0000 - 0x3fff_ffff */
-#define DEV_START           0x30000000UL
-#define DEV_END             0x40000000UL
+#define DEV_START               0x30000000UL
+#define DEV_END                 0x40000000UL
 
-#define DDRC_BASE           0x3d400000UL
-#define DDRC_STAT_REG       (DDRC_BASE + 0x004)
-#define DDRC_PWRCTL_REG     (DDRC_BASE + 0x030)
-#define DDRC_DFISTAT_REG    (DDRC_BASE + 0x1bc)
-#define DDRC_SWSTAT_REG     (DDRC_BASE + 0x324)
-#define PWRCTL_SELFREF_SW   (1u << 5)
-#define DRAM_PLL_CFG0_REG   0x30360060UL
-#define PLL_LOCK            (1u << 31)
+#define DDRC_BASE               0x3d400000UL
+#define DDRC_STAT_REG           (DDRC_BASE + 0x004)
+#define DDRC_PWRCTL_REG         (DDRC_BASE + 0x030)
+#define DDRC_DFISTAT_REG        (DDRC_BASE + 0x1bc)
+#define DDRC_SWSTAT_REG         (DDRC_BASE + 0x324)
+#define MODEL_PWRCTL_SELFREF_SW (1u << 5)
+#define DRAM_PLL_CFG0_REG       0x30360060UL
+#define PLL_LOCK                (1u << 31)
 
-#define PHY_BASE            0x3c000000UL
-#define PHY_REG(csr)        (PHY_BASE + 4UL * (csr))
-#define PHY_UCT_SHADOW_REGS PHY_REG(0xd0004)
-#define PHY_DCT_WRITE_PROT  PHY_REG(0xd0031)
-#define PHY_UCT_WRITE_ONLY  PHY_REG(0xd0032)
-#define PHY_UCT_DAT_WRITE   PHY_REG(0xd0034)
-#define PHY_CAL_BUSY        PHY_REG(0x20097)
-#define PHY_IMEM            PHY_REG(0x50000)
+#define PHY_BASE                0x3c000000UL
+#define PHY_REG(csr)            (PHY_BASE + 4UL * (csr))
+#define PHY_UCT_SHADOW_REGS     PHY_REG(0xd0004)
+#define PHY_DCT_WRITE_PROT      PHY_REG(0xd0031)
+#define PHY_UCT_WRITE_ONLY      PHY_REG(0xd0032)
+#define PHY_UCT_DAT_WRITE       PHY_REG(0xd0034)
+#define PHY_CAL_BUSY            PHY_REG(0x20097)
+#define PHY_IMEM                PHY_REG(0x50000)
 
-#define TRACE_MAX           (512 * 1024)
-#define STORE_SIZE          (1 << 16)
+#define TRACE_MAX               (512 * 1024)
+#define STORE_SIZE              (1 << 16)
 
 /* Training firmware images, normally linked in with objcopy */
 #define FAKE_BLOB(name, a, b, c, d)                                                  \
@@ -152,7 +152,7 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
     switch (addr) {
     case DDRC_STAT_REG:
         /* Self refresh (by software) while selfref_sw is set, else normal */
-        return (reg_get(DDRC_PWRCTL_REG) & PWRCTL_SELFREF_SW) ? 0x223 : 0x001;
+        return (reg_get(DDRC_PWRCTL_REG) & MODEL_PWRCTL_SELFREF_SW) ? 0x223 : 0x001;
     case DDRC_DFISTAT_REG: /* dfi_init_complete */
     case DDRC_SWSTAT_REG: /* sw_done_ack */
         return 1;

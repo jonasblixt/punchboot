@@ -10,6 +10,31 @@
 #ifndef BOARD_IMX8MEVK_INCLUDE_BOARD_LP4_TIMING_H_
 #define BOARD_IMX8MEVK_INCLUDE_BOARD_LP4_TIMING_H_
 
+/* Training firmware message block settings (DMEM, see ddrphy.h) */
+#define LPDDR4_HDT_CTL_3200_1D     0xC8 /* Firmware log level: stage completion */
+#define LPDDR4_HDT_CTL_2D          0xC8 /* Firmware log level: stage completion */
+#define LPDDR4_2D_WEIGHT           0x1f7f
+#define LPDDR4_2D_SHARE            1
+#define LPDDR4_CATRAIN_3200_1d     0
+#define LPDDR4_CATRAIN_3200_2d     0
+
+/* PHY side of the read and write channels */
+#define LPDDR4_PHY_RTT             30 /* PHY read ODT, ohm */
+#define LPDDR4_PHY_VREF_VALUE      17
+#define LPDDR4_PHY_RON             30 /* PHY write drive strength, ohm */
+
+/* SDRAM side, see lpddr4.h */
+#define LPDDR4_RON                 LPDDR4_RON40 /* MR3[5:3] */
+#define LPDDR4_RTT_DQ              LPDDR4_RTT40 /* MR11[2:0] */
+#define LPDDR4_RTT_CA_BANK0        LPDDR4_RTT40 /* MR11[6:4] */
+#define LPDDR4_RTT_CA_BANK1        LPDDR4_RTT40 /* MR11[6:4] */
+#define LPDDR4_VREF_VALUE_CA       ((1 << 6) | (0xd)) /* MR12 */
+#define LPDDR4_VREF_VALUE_DQ_RANK0 ((1 << 6) | (0xd)) /* MR14 */
+#define LPDDR4_VREF_VALUE_DQ_RANK1 ((1 << 6) | (0xd)) /* MR14 */
+/* MR22: OP[5:3] ODTD-CA, CS, CK, OP[2:0] SoC ODT */
+#define LPDDR4_MR22_RANK0          ((0 << 5) | (1 << 4) | (0 << 3) | (LPDDR4_RTT40))
+#define LPDDR4_MR22_RANK1          ((0 << 5) | (1 << 4) | (0 << 3) | (LPDDR4_RTT40))
+
 const struct dram_cfg_param umctl2_ddrc_cfg[] = {
     /* Start to config, default 3200mbps */
     /* dis_dq=1, indicates no reads or writes are issued to SDRAM */
