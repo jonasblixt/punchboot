@@ -185,7 +185,6 @@ static void read_write(void)
 
 static void test_imx8mpevk_emmc(void **state)
 {
-    SKIP_OPEN("F-122, F-125");
     (void)state;
 
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
@@ -198,7 +197,6 @@ static void test_imx8mpevk_emmc(void **state)
 
 static void test_jiffy_emmc(void **state)
 {
-    SKIP_OPEN("F-122, F-123, F-125");
     (void)state;
 
     card_cfg.vccq_mv = 3300;
