@@ -63,6 +63,7 @@
 #define VENDSPEC_PER_CLKEN          BIT(13)
 #define VENDSPEC_AHB_CLKEN          BIT(12)
 #define VENDSPEC_IPG_CLKEN          BIT(11)
+#define VENDSPEC_FRC_SDCLK_ON       BIT(8)
 #define VENDSPEC_AC12_CHKBUSY       BIT(3)
 #define VENDSPEC_EXTDMA             BIT(0)
 #define VENDSPEC_INIT                                                                 \
@@ -115,6 +116,7 @@
 #define XFERTYPE_RSPTYP_48      BIT(17)
 #define XFERTYPE_RSPTYP_48_BUSY (BIT(16) | BIT(17))
 
+#define MIXCTRL_RSVD_31         BIT(31) /* Always written as 1 */
 #define MIXCTRL_MSBSEL          BIT(5)
 #define MIXCTRL_DTDSEL          BIT(4)
 #define MIXCTRL_DDREN           BIT(3)
@@ -125,6 +127,7 @@
 
 #define PSTATE                  0x024
 #define PSTATE_DAT0             BIT(24)
+#define PSTATE_SDSTB            BIT(3)
 #define PSTATE_DLA              BIT(2)
 #define PSTATE_CDIHB            BIT(1)
 #define PSTATE_CIHB             BIT(0)
@@ -133,6 +136,7 @@
 #define PROCTL_DTW_8            0x00000004
 
 /* Prot ctl register bits */
+#define PROTCTRL_RSVD_23_21     BIT(23) /* Always written as 100b */
 #define PROTCTRL_LE             BIT(5)
 #define PROTCTRL_WIDTH_4        BIT(1)
 #define PROTCTRL_WIDTH_8        BIT(2)
