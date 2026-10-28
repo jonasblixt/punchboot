@@ -42,9 +42,8 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
     while (input_clock_hz / div > clk_hz && div < 16)
         div++;
 
-    pre_div >>= 1;
-    div -= 1;
-    uint16_t clk_reg = (pre_div << 8) | (div << 4);
+    /* SDCLKFS: 0 is /1, 1 << n is /2^(n + 1). DVS: /(n + 1) */
+    uint16_t clk_reg = ((pre_div >> 1) << 8) | ((div - 1) << 4);
 
     mmio_clrbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_CARD_CLKEN);
     mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_CLOCK_MASK, clk_reg);
@@ -58,7 +57,7 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
     mmio_setbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_PER_CLKEN | VENDSPEC_CARD_CLKEN);
 
     pb_delay_us(100);
-    LOG_DBG("Actual bus rate = %d kHz", (input_clock_hz / (pre_div * div)) / 1000);
+    LOG_DBG("Actual bus rate = %u kHz", (input_clock_hz / (pre_div * div)) / 1000);
     return PB_OK;
 }
 
