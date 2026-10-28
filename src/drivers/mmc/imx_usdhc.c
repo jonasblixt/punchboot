@@ -137,7 +137,8 @@ static int imx_usdhc_set_bus_clock(void *priv, unsigned int clk_hz)
         return rc;
 
     pb_delay_us(100);
-    LOG_DBG("Actual bus rate = %u kHz", (u->input_clock_hz / (pre_div * div)) / 1000);
+    LOG_DBG("Actual bus rate = %u kHz",
+            (u->input_clock_hz / (pre_div * div * (u->bus_ddr_enable ? 2 : 1))) / 1000);
     return PB_OK;
 }
 
