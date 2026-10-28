@@ -166,3 +166,43 @@ target_compile_definitions(test_imx8mp_ddr PRIVATE
     CONFIG_PLAT_IMX8MP=1
     IMX8M_DDR_GOLDEN="${CMAKE_CURRENT_SOURCE_DIR}/data/imx8mp_ddr_init.trace"
 )
+
+# Device models for driver tests (see models/bench.h)
+add_library(pb_mmc_models STATIC
+    models/bench.c
+    models/emmc_model.c
+    models/hal_model.c
+    models/sd_model.c
+    models/usdhc_model.c
+)
+target_include_directories(pb_mmc_models PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(pb_mmc_models PUBLIC pb_lib PkgConfig::CMOCKA)
+
+# Self test of the card models
+pb_unit_test(test_mmc_models LIBS pb_mmc_models)
+
+# mmc_core against the e.MMC model, JESD84-B51
+pb_unit_test(test_mmc_emmc
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/bio.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+    LIBS pb_mmc_models
+)
+
+# The uSDHC driver and mmc_core against a uSDHC register model with the
+# e.MMC model on its bus. DMA addresses are 32 bits: -no-pie keeps the
+# buffers below 4 GiB.
+pb_unit_test(test_imx_usdhc
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/bio.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/imx_usdhc.c
+    LIBS pb_mmc_models
+)
+target_include_directories(test_imx_usdhc BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+target_compile_options(test_imx_usdhc PRIVATE -fno-pie)
+target_link_options(test_imx_usdhc PRIVATE -no-pie)
