@@ -8,7 +8,7 @@ CONFIG_ARMV8_EL3=y
 #
 CONFIG_SOC_FAMILY_IMX=y
 # CONFIG_PLAT_IMX8X is not set
-CONFIG_PLAT_IMX8M=y
+CONFIG_PLAT_IMX8MQ=y
 
 #
 # imx8m configuration

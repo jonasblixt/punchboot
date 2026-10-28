@@ -10,7 +10,7 @@ CONFIG_SOC_FAMILY_IMX=y
 CONFIG_PLAT_IMX8X_COMMON=y
 CONFIG_PLAT_IMX8X=y
 # CONFIG_PLAT_IMX8XL is not set
-# CONFIG_PLAT_IMX8M is not set
+# CONFIG_PLAT_IMX8MQ is not set
 
 #
 # imx8x configuration
