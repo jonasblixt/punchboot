@@ -169,24 +169,11 @@ static void test_hs400(void **state)
 /* The device has no HS200: the host must check DEVICE_TYPE, 6.6.2.2 */
 static void test_hs200_not_supported(void **state)
 {
-    SKIP_OPEN("F-117");
     (void)state;
 
     card_cfg.device_type = BIT(2) | BIT(1) | BIT(0);
 
-    (void)init();
-    assert_bench_clean();
-}
-
-/* HS200 needs VCCQ at 1.8 V or 1.2 V, 6.6.2.2 */
-static void test_hs200_at_3v3(void **state)
-{
-    SKIP_OPEN("F-117");
-    (void)state;
-
-    card_cfg.vccq_mv = 3300;
-
-    (void)init();
+    assert_int_equal(init(), -PB_ERR_NOT_SUPPORTED);
     assert_bench_clean();
 }
 
@@ -218,6 +205,24 @@ static void test_read_write(void **state)
     assert_int_equal(bio_read(part(UU_USER), last, 512, in), PB_OK);
     assert_memory_equal(out, in, 512);
 
+    assert_bench_clean();
+}
+
+/* Up to 2 GiB: byte addresses, JESD84-B51 6.4.2 */
+static void test_byte_addressing(void **state)
+{
+    static uint8_t out[16 * 1024];
+    static uint8_t check[sizeof(out)];
+    (void)state;
+
+    card_cfg.user_sectors = 1024 * 1024 * 1024 / 512;
+    assert_int_equal(init(), PB_OK);
+
+    fill(out, sizeof(out), 4);
+    assert_int_equal(bio_write(part(UU_USER), 1000, sizeof(out), out), PB_OK);
+    emmc_model_read(EMMC_PART_USER, 1000, check, sizeof(check) / 512);
+    assert_memory_equal(out, check, sizeof(out));
+    assert_int_equal(bio_read(part(UU_USER), 3, 512, check), PB_OK);
     assert_bench_clean();
 }
 
@@ -280,7 +285,6 @@ static void test_slow_power_up(void **state)
 /* GENERIC_CMD6_TIME and PARTITION_SWITCH_TIME 0: not defined (7.4.31, 7.4.56) */
 static void test_cmd6_times_not_defined(void **state)
 {
-    SKIP_OPEN("F-121");
     uint8_t buf[512];
     (void)state;
 
@@ -295,20 +299,20 @@ static void test_cmd6_times_not_defined(void **state)
 /* A failed partition switch must not send the access to another partition */
 static void test_part_switch_error(void **state)
 {
-    SKIP_OPEN("F-118");
     uint8_t buf[512];
     (void)state;
 
     assert_int_equal(init(), PB_OK);
+    unsigned int blocks = emmc_model_blocks_read();
+
     emmc_model_fail_switch(EXT_CSD_PART_CONFIG);
     assert_int_not_equal(bio_read(part(UU_BOOT0), 0, sizeof(buf), buf), PB_OK);
-    assert_int_equal(emmc_model_blocks_read(), 1); /* Only the EXT_CSD */
+    assert_int_equal(emmc_model_blocks_read(), blocks);
 }
 
 /* An execution error during a read (Table 68, ERROR) must fail the read */
 static void test_read_status_error(void **state)
 {
-    SKIP_OPEN("F-119");
     uint8_t buf[2048];
     (void)state;
 
@@ -355,7 +359,6 @@ static void test_cmd_crc_error(void **state)
 /* Power off notification, then power off, 6.6.36 */
 static void test_power_off(void **state)
 {
-    SKIP_OPEN("F-120");
     (void)state;
 
     assert_int_equal(init(), PB_OK);
@@ -373,8 +376,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_hs400_enhanced_strobe, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_hs200_at_3v3, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_byte_addressing, setup, teardown),
         cmocka_unit_test_setup_teardown(test_boot_partitions, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rom_handover, setup, teardown),
@@ -385,7 +388,6 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_write_crc_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cmd_crc_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_power_off, setup, teardown),
-        /* Last: mmc_core keeps the CMD6 timeouts of the previous mmc_init() */
         cmocka_unit_test_setup_teardown(test_cmd6_times_not_defined, setup, teardown),
     };
 

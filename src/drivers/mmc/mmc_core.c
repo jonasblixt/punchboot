@@ -43,9 +43,13 @@ static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part_config;
 static enum mmc_part mmc_current_part;
 static int mmc_boot_part_config = -PB_ERR_STATE;
-static unsigned int power_off_long_time_ms = 2550;
-static unsigned int generic_cmd6_time_ms = 2550;
-static unsigned int partition_switch_time_ms = 2550;
+/* The largest value of the EXT_CSD timeout fields, used until they are read and when they are
+ * 0, "not defined" (JESD84-B51 7.4.31, 7.4.32, 7.4.56) */
+#define MMC_CMD6_TIME_MAX_ms 2550
+
+static unsigned int power_off_long_time_ms;
+static unsigned int generic_cmd6_time_ms;
+static unsigned int partition_switch_time_ms;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
 static uint8_t mmc_tuning_rsp[128] __aligned(16);
@@ -83,6 +87,24 @@ static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type, mmc_
     }
 
     return rc;
+}
+
+/* A command with an R1 response, failing on the error bits it reports */
+static int mmc_send_cmd_r1(uint16_t cmd_idx, uint32_t arg)
+{
+    mmc_cmd_resp_t resp_data;
+    int rc;
+
+    rc = mmc_send_cmd(cmd_idx, arg, MMC_RSP_R1, resp_data);
+    if (rc != PB_OK)
+        return rc;
+
+    if (resp_data[0] & STATUS_ERROR_MASK) {
+        LOG_ERR("CMD%u card status 0x%08x", cmd_idx, resp_data[0]);
+        return -PB_ERR_IO;
+    }
+
+    return PB_OK;
 }
 
 static int mmc_reset_to_idle(void)
@@ -147,8 +169,8 @@ static int mmc_device_state(unsigned int timeout)
         ret = mmc_send_cmd(MMC_CMD_SEND_STATUS, rca << RCA_SHIFT_OFFSET, MMC_RSP_R1, resp_data);
 
         if (ret == PB_OK) {
-            if ((resp_data[0] & STATUS_SWITCH_ERROR) != 0U) {
-                LOG_ERR("resp_data[0] = 0x%08x", resp_data[0]);
+            if ((resp_data[0] & STATUS_ERROR_MASK) != 0U) {
+                LOG_ERR("Card status 0x%08x", resp_data[0]);
                 return -PB_ERR_IO;
             }
 
@@ -295,9 +317,9 @@ static enum mmc_part bio_part(bio_dev_t dev)
         return MMC_PART_USER;
 }
 
-static void select_part(bio_dev_t dev)
+static int select_part(bio_dev_t dev)
 {
-    mmc_part_switch(bio_part(dev));
+    return mmc_part_switch(bio_part(dev));
 }
 
 /*
@@ -344,7 +366,9 @@ static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     if (block_sz < 0)
         return block_sz;
 
-    select_part(dev);
+    rc = select_part(dev);
+    if (rc != PB_OK)
+        return rc;
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_read) {
@@ -391,7 +415,9 @@ static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
     if (rc != PB_OK)
         return rc;
 
-    select_part(dev);
+    rc = select_part(dev);
+    if (rc != PB_OK)
+        return rc;
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_write) {
@@ -513,11 +539,38 @@ tune_tap_fail:
 }
 #endif // CONFIG_MMC_CORE_HS200_TUNE
 
+/* The DEVICE_TYPE bits that allow a bus mode */
+static uint8_t mode_card_types(enum mmc_bus_mode mode)
+{
+    switch (mode) {
+    case MMC_BUS_MODE_DDR52:
+        return EXT_CSD_CARD_TYPE_DDR52_1V8 | EXT_CSD_CARD_TYPE_DDR52_1V2;
+    case MMC_BUS_MODE_HS200:
+        return EXT_CSD_CARD_TYPE_HS200_1V8 | EXT_CSD_CARD_TYPE_HS200_1V2;
+    case MMC_BUS_MODE_HS400:
+        return EXT_CSD_CARD_TYPE_HS400_1V8 | EXT_CSD_CARD_TYPE_HS400_1V2;
+    default:
+        return 0;
+    }
+}
+
+/* An EXT_CSD timeout field, in 10 ms units */
+static unsigned int ext_csd_time_ms(unsigned int index)
+{
+    if (mmc_ext_csd[index] == 0)
+        return MMC_CMD6_TIME_MAX_ms;
+    return mmc_ext_csd[index] * 10;
+}
+
 static int mmc_setup(void)
 {
     int rc;
     mmc_cmd_resp_t resp_data;
     ts("mmc enum start");
+    generic_cmd6_time_ms = MMC_CMD6_TIME_MAX_ms;
+    power_off_long_time_ms = MMC_CMD6_TIME_MAX_ms;
+    partition_switch_time_ms = MMC_CMD6_TIME_MAX_ms;
+
     rc = mmc_hal->init();
 
     if (rc != PB_OK)
@@ -574,6 +627,18 @@ static int mmc_setup(void)
             return rc;
         }
     } while (rc != MMC_STATE_TRAN);
+
+    /* The device must support the mode, JESD84-B51 6.6.2 */
+    rc = mmc_extcsd_reload();
+    if (rc != PB_OK)
+        return rc;
+
+    if (!(mmc_ext_csd[EXT_CSD_CARD_TYPE] & mode_card_types(mmc_cfg->mode))) {
+        LOG_ERR("Bus mode %i not supported, DEVICE_TYPE 0x%02x",
+                mmc_cfg->mode,
+                mmc_ext_csd[EXT_CSD_CARD_TYPE]);
+        return -PB_ERR_NOT_SUPPORTED;
+    }
 
     switch (mmc_cfg->mode) {
     case MMC_BUS_MODE_DDR52: {
@@ -661,9 +726,9 @@ static int mmc_setup(void)
         return rc;
     }
 
-    generic_cmd6_time_ms = mmc_ext_csd[EXT_CSD_GENERIC_CMD6_TIME] * 10;
-    power_off_long_time_ms = mmc_ext_csd[EXT_CSD_POWER_OFF_LONG_TIME] * 10;
-    partition_switch_time_ms = mmc_ext_csd[EXT_CSD_PART_SWITCH_TIME] * 10;
+    generic_cmd6_time_ms = ext_csd_time_ms(EXT_CSD_GENERIC_CMD6_TIME);
+    power_off_long_time_ms = ext_csd_time_ms(EXT_CSD_POWER_OFF_LONG_TIME);
+    partition_switch_time_ms = ext_csd_time_ms(EXT_CSD_PART_SWITCH_TIME);
 
     LOG_DBG("Generic CMD6 timeout: %ums", generic_cmd6_time_ms);
     LOG_DBG("Power off long time: %ums", power_off_long_time_ms);
@@ -824,6 +889,15 @@ struct mmc_device_info *mmc_device_info(void)
     return &mmc_dev_info;
 }
 
+/* Devices of up to 2 GiB use byte addresses, JESD84-B51 6.4.2 */
+static unsigned int mmc_data_address(unsigned int lba)
+{
+    if ((mmc_ocr_value & OCR_ACCESS_MODE_MASK) == OCR_SECTOR_MODE)
+        return lba;
+
+    return lba * MMC_BLOCK_SIZE;
+}
+
 int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
 {
     int ret;
@@ -843,7 +917,7 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
 
     /* See comment in 'mmc_write' */
     if (mmc_current_part == MMC_PART_RPMB) {
-        ret = mmc_send_cmd(MMC_CMD_SET_BLOCK_COUNT, length / 512, MMC_RSP_R1, NULL);
+        ret = mmc_send_cmd_r1(MMC_CMD_SET_BLOCK_COUNT, length / 512);
         if (ret != 0) {
             return ret;
         }
@@ -857,7 +931,7 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
         }
     }
 
-    ret = mmc_send_cmd(cmd_idx, lba, MMC_RSP_R1, NULL);
+    ret = mmc_send_cmd_r1(cmd_idx, mmc_data_address(lba));
     if (ret != 0) {
         return ret;
     }
@@ -905,7 +979,7 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
      * also says that it should be done in this way.
      */
     if (mmc_current_part == MMC_PART_RPMB) {
-        ret = mmc_send_cmd(MMC_CMD_SET_BLOCK_COUNT, length / 512, MMC_RSP_R1, NULL);
+        ret = mmc_send_cmd_r1(MMC_CMD_SET_BLOCK_COUNT, length / 512);
         if (ret != 0) {
             return ret;
         }
@@ -919,7 +993,7 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
         }
     }
 
-    ret = mmc_send_cmd(cmd_idx, lba, MMC_RSP_R1, NULL);
+    ret = mmc_send_cmd_r1(cmd_idx, mmc_data_address(lba));
     if (ret != 0) {
         return ret;
     }
@@ -959,16 +1033,18 @@ int mmc_part_switch(enum mmc_part part)
     /* PARTITION_ACCESS only, the boot partition and BOOT_ACK stay */
     value = (mmc_current_part_config & ~PART_CONFIG_ACCESS_MASK) | part;
 
-    mmc_current_part = part;
-
-    if (value == mmc_current_part_config)
+    if (value == mmc_current_part_config) {
+        mmc_current_part = part;
         return PB_OK;
+    }
 
     LOG_DBG("Switching to %s", part_names[part]);
     rc = mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value, partition_switch_time_ms);
 
-    if (rc == PB_OK)
+    if (rc == PB_OK) {
         mmc_current_part_config = value;
+        mmc_current_part = part;
+    }
 
     return rc;
 }
@@ -1022,7 +1098,16 @@ int mmc_power_off(void)
     if (rc != 0)
         return rc;
 
-    return mmc_set_ext_csd(EXT_CSD_POWER_OFF_NOTIFICATION, 0x03, power_off_long_time_ms);
+    /*
+     * Any command after POWER_OFF_LONG, CMD13 too, sets it back to
+     * POWERED_ON (JESD84-B51 6.6.36). The HAL waits for the end of busy
+     * on DAT0 (R1b), the card can then be powered off.
+     */
+    return mmc_send_cmd(MMC_CMD_SWITCH,
+                        EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_POWER_OFF_NOTIFICATION) |
+                            EXTCSD_VALUE(0x03) | EXTCSD_CMD_SET_NORMAL,
+                        MMC_RSP_R1b,
+                        NULL);
 }
 
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)

@@ -63,6 +63,7 @@
 #define VENDSPEC_PER_CLKEN          BIT(13)
 #define VENDSPEC_AHB_CLKEN          BIT(12)
 #define VENDSPEC_IPG_CLKEN          BIT(11)
+#define VENDSPEC_FRC_SDCLK_ON       BIT(8)
 #define VENDSPEC_AC12_CHKBUSY       BIT(3)
 #define VENDSPEC_EXTDMA             BIT(0)
 #define VENDSPEC_INIT                                                                 \
@@ -70,39 +71,42 @@
      VENDSPEC_IPG_CLKEN | VENDSPEC_AC12_CHKBUSY | VENDSPEC_EXTDMA)
 
 /* Interrupt status register */
-#define INTSTAT_DMAE   BIT(28)
-#define INTSTAT_DEBE   BIT(22)
-#define INTSTAT_DCE    BIT(21)
-#define INTSTAT_DTOE   BIT(20)
-#define INTSTAT_CIE    BIT(19)
-#define INTSTAT_CEBE   BIT(18)
-#define INTSTAT_CCE    BIT(17)
-#define INTSTAT_DINT   BIT(3)
-#define INTSTAT_BGE    BIT(2)
-#define INTSTAT_TC     BIT(1)
-#define INTSTAT_CC     BIT(0)
-#define CMD_ERR        (INTSTAT_CIE | INTSTAT_CEBE | INTSTAT_CCE)
-#define DATA_ERR       (INTSTAT_DMAE | INTSTAT_DEBE | INTSTAT_DCE | INTSTAT_DTOE)
-#define DATA_COMPLETE  (INTSTAT_DINT | INTSTAT_TC)
+#define INTSTAT_DMAE    BIT(28)
+#define INTSTAT_AC12E   BIT(24)
+#define INTSTAT_DEBE    BIT(22)
+#define INTSTAT_DCE     BIT(21)
+#define INTSTAT_DTOE    BIT(20)
+#define INTSTAT_CIE     BIT(19)
+#define INTSTAT_CEBE    BIT(18)
+#define INTSTAT_CCE     BIT(17)
+#define INTSTAT_DINT    BIT(3)
+#define INTSTAT_BGE     BIT(2)
+#define INTSTAT_TC      BIT(1)
+#define INTSTAT_CC      BIT(0)
+#define CMD_ERR         (INTSTAT_CIE | INTSTAT_CEBE | INTSTAT_CCE)
+#define DATA_ERR        (INTSTAT_DMAE | INTSTAT_AC12E | INTSTAT_DEBE | INTSTAT_DCE | INTSTAT_DTOE)
+#define DATA_COMPLETE   (INTSTAT_DINT | INTSTAT_TC)
 
 /* Interrupt status enable register */
-#define INTSTATEN_DEBE BIT(22)
-#define INTSTATEN_DCE  BIT(21)
-#define INTSTATEN_DTOE BIT(20)
-#define INTSTATEN_CIE  BIT(19)
-#define INTSTATEN_CEBE BIT(18)
-#define INTSTATEN_CCE  BIT(17)
-#define INTSTATEN_CTOE BIT(16)
-#define INTSTATEN_CINT BIT(8)
-#define INTSTATEN_BRR  BIT(5)
-#define INTSTATEN_BWR  BIT(4)
-#define INTSTATEN_DINT BIT(3)
-#define INTSTATEN_TC   BIT(1)
-#define INTSTATEN_CC   BIT(0)
+#define INTSTATEN_DMAE  BIT(28)
+#define INTSTATEN_AC12E BIT(24)
+#define INTSTATEN_DEBE  BIT(22)
+#define INTSTATEN_DCE   BIT(21)
+#define INTSTATEN_DTOE  BIT(20)
+#define INTSTATEN_CIE   BIT(19)
+#define INTSTATEN_CEBE  BIT(18)
+#define INTSTATEN_CCE   BIT(17)
+#define INTSTATEN_CTOE  BIT(16)
+#define INTSTATEN_CINT  BIT(8)
+#define INTSTATEN_BRR   BIT(5)
+#define INTSTATEN_BWR   BIT(4)
+#define INTSTATEN_DINT  BIT(3)
+#define INTSTATEN_TC    BIT(1)
+#define INTSTATEN_CC    BIT(0)
 #define EMMC_INTSTATEN_BITS                                                             \
     (INTSTATEN_CC | INTSTATEN_TC | INTSTATEN_DINT | INTSTATEN_BWR | INTSTATEN_BRR |     \
      INTSTATEN_CINT | INTSTATEN_CTOE | INTSTATEN_CCE | INTSTATEN_CEBE | INTSTATEN_CIE | \
-     INTSTATEN_DTOE | INTSTATEN_DCE | INTSTATEN_DEBE)
+     INTSTATEN_DTOE | INTSTATEN_DCE | INTSTATEN_DEBE | INTSTATEN_DMAE | INTSTATEN_AC12E)
 #define INTSIGEN                0x038
 
 #define XFERTYPE                0x00c
@@ -115,6 +119,7 @@
 #define XFERTYPE_RSPTYP_48      BIT(17)
 #define XFERTYPE_RSPTYP_48_BUSY (BIT(16) | BIT(17))
 
+#define MIXCTRL_RSVD_31         BIT(31) /* Always written as 1 */
 #define MIXCTRL_MSBSEL          BIT(5)
 #define MIXCTRL_DTDSEL          BIT(4)
 #define MIXCTRL_DDREN           BIT(3)
@@ -125,6 +130,7 @@
 
 #define PSTATE                  0x024
 #define PSTATE_DAT0             BIT(24)
+#define PSTATE_SDSTB            BIT(3)
 #define PSTATE_DLA              BIT(2)
 #define PSTATE_CDIHB            BIT(1)
 #define PSTATE_CIHB             BIT(0)
@@ -133,6 +139,7 @@
 #define PROCTL_DTW_8            0x00000004
 
 /* Prot ctl register bits */
+#define PROTCTRL_RSVD_23_21     BIT(23) /* Always written as 100b */
 #define PROTCTRL_LE             BIT(5)
 #define PROTCTRL_WIDTH_4        BIT(1)
 #define PROTCTRL_WIDTH_8        BIT(2)

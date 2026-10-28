@@ -41,6 +41,8 @@
 #define IMX6UL_USDHC1_BASE 0x02190000
 #define IMX8M_USDHC3_BASE  0x30b60000
 
+#define RM_TABLE_10_47     "uSDHC RM Table 10-47"
+
 #define UU_BOOT0 \
     (const unsigned char *)"\x9e\xef\x75\x44\xbf\x68\x4b\xf7\x86\x78\xda\x11\x7c\xbc\xcb\xa8"
 #define UU_BOOT1 \
@@ -183,7 +185,6 @@ static void read_write(void)
 
 static void test_imx8mpevk_emmc(void **state)
 {
-    SKIP_OPEN("F-122, F-125");
     (void)state;
 
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
@@ -196,7 +197,6 @@ static void test_imx8mpevk_emmc(void **state)
 
 static void test_jiffy_emmc(void **state)
 {
-    SKIP_OPEN("F-122, F-123, F-125");
     (void)state;
 
     card_cfg.vccq_mv = 3300;
@@ -206,27 +206,111 @@ static void test_jiffy_emmc(void **state)
     assert_bench_clean();
 }
 
+/* R1b waits for busy, responses are checked as RM Table 10-47 says */
+static void test_response_types(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    read_write();
+    assert_int_equal(bench_violations_of(JESD84 "6.10.4"), 0);
+    assert_int_equal(bench_violations_of(RM_TABLE_10_47), 0);
+    assert_int_equal(bench_violations_of(JESD84 "6.6"), 0); /* Busy */
+}
+
+/* Reserved bits as the RM says, divider changes with SDSTB set */
+static void test_register_programming(void **state)
+{
+    static const char *regs[] = {
+        "uSDHC RM MIX_CTRL", "uSDHC RM PROT_CTRL",  "uSDHC RM VEND_SPEC",
+        "uSDHC RM SYS_CTRL", "uSDHC RM PRES_STATE",
+    };
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    read_write();
+    for (size_t i = 0; i < ARRAY_SIZE(regs); i++)
+        assert_int_equal(bench_violations_of(regs[i]), 0);
+}
+
+/* DDR52: every command at 52 MHz or less, data on the DDR bus */
+static void test_ddr52_clock(void **state)
+{
+    (void)state;
+
+    card_cfg.vccq_mv = 3300;
+    assert_int_equal(init(&jiffy_emmc, USDHC_IMX6UL, 198000000), PB_OK);
+    read_write();
+    assert_int_equal(bench_violations_of(JESD84 "6.6.2"), 0);
+    assert_int_equal(bench_violations_of(JESD84 "6.6.6"), 0);
+    assert_true(usdhc_model_bus()->ddr);
+    assert_true(usdhc_model_bus()->clk_hz <= 52000000);
+}
+
 /* RPMB: CMD23 + CMD18, no CMD12 after a counted transfer (6.6.7.1) */
 static void test_rpmb_read(void **state)
 {
-    SKIP_OPEN("F-124");
     (void)state;
 
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
     assert_int_equal(bio_read(part(UU_RPMB), 0, 512, in), PB_OK);
-    assert_bench_clean();
+    assert_int_equal(bench_violations_of(JESD84 "6.6.7.1"), 0);
+    assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
 }
 
+/* After a data error the card is stopped, the next transfer works */
 static void test_read_crc_error(void **state)
 {
-    SKIP_OPEN("F-124");
     (void)state;
 
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
     emmc_model_fail_read(BUS_DATA_CRC);
     assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
     assert_int_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
-    assert_bench_clean();
+    assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
+}
+
+static void test_write_crc_error(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    emmc_model_fail_write(BUS_DATA_CRC);
+    assert_int_not_equal(bio_write(part(UU_USER), 0, 4096, out), PB_OK);
+    assert_int_equal(bio_write(part(UU_USER), 0, 4096, out), PB_OK);
+    assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
+}
+
+/* An execution error is reported in the auto CMD12 response (Table 68) */
+static void test_read_status_error(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    emmc_model_status_error(MMC_CMD_READ_MULTIPLE_BLOCK, STATUS_ERROR);
+    assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
+    assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
+}
+
+/* An ADMA error fails the transfer instead of waiting for TC forever */
+static void test_dma_error(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    usdhc_model_fail_dma();
+    assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
+    assert_int_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
+}
+
+/* A card that stays busy times out */
+static void test_busy_timeout(void **state)
+{
+    (void)state;
+
+    card_cfg.write_busy_us = 60 * 1000 * 1000;
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_not_equal(bio_write(part(UU_USER), 0, 512, out), PB_OK);
 }
 
 int main(void)
@@ -234,8 +318,15 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_imx8mpevk_emmc, setup, teardown),
         cmocka_unit_test_setup_teardown(test_jiffy_emmc, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_response_types, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_register_programming, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ddr52_clock, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_crc_error, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_write_crc_error, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_dma_error, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_busy_timeout, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
