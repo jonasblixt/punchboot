@@ -61,8 +61,9 @@ void pb_delay_ms(uint32_t delay)
     (void)delay;
 }
 
-static int fake_init(void)
+static int fake_init(void *priv)
 {
+    (void)priv;
     return PB_OK;
 }
 
@@ -128,9 +129,10 @@ static int fake_write(unsigned int lba, size_t length, uintptr_t buf)
     return PB_OK;
 }
 
-static int fake_request(struct mmc_cmd *cmd)
+static int fake_request(void *priv, struct mmc_cmd *cmd)
 {
     size_t length = cmd->block_size * cmd->blocks;
+    (void)priv;
     int rc = fake_send_cmd(cmd->idx, cmd->arg, cmd->resp);
 
     if (rc != PB_OK || length == 0)
@@ -140,14 +142,16 @@ static int fake_request(struct mmc_cmd *cmd)
     return fake_read(cmd->arg, length, (uintptr_t)cmd->buf);
 }
 
-static int fake_set_bus_clock(unsigned int clk_hz)
+static int fake_set_bus_clock(void *priv, unsigned int clk_hz)
 {
+    (void)priv;
     (void)clk_hz;
     return PB_OK;
 }
 
-static int fake_set_bus_width(enum mmc_bus_width width)
+static int fake_set_bus_width(void *priv, enum mmc_bus_width width)
 {
+    (void)priv;
     (void)width;
     return PB_OK;
 }
@@ -235,7 +239,7 @@ static void pb_boot(void)
     uint8_t gpt_header[512];
 
     bio_reset();
-    assert_int_equal(mmc_init(&hal, &cfg), PB_OK);
+    assert_int_equal(mmc_init(&hal, &cfg, NULL), PB_OK);
     assert_int_equal(bio_read(part(UU_USER), 1, sizeof(gpt_header), gpt_header), PB_OK);
 }
 
@@ -407,7 +411,7 @@ static int first_boot_part_config(uint8_t boot_part_enable, uuid_t uu)
         card.ext_csd[EXT_CSD_PART_CONFIG] = boot_part_enable << 3;
         power_on();
         bio_reset();
-        if (mmc_init(&hal, &cfg) != PB_OK)
+        if (mmc_init(&hal, &cfg, NULL) != PB_OK)
             exit(1);
         result.rc = mmc_get_boot_part_config(result.uu);
         exit(write(fds[1], &result, sizeof(result)) == sizeof(result) ? 0 : 1);

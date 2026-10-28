@@ -52,6 +52,7 @@
 static struct emmc_model_config card_cfg;
 static struct mmc_device_config dev_cfg;
 static struct bus_card *card;
+static struct mmc_device *mmc;
 
 static int setup(void **state)
 {
@@ -83,7 +84,7 @@ static int teardown(void **state)
 static int init(void)
 {
     card = emmc_model_init(&card_cfg);
-    return mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg);
+    return mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, &mmc);
 }
 
 static bio_dev_t part(const unsigned char *uu)
@@ -268,7 +269,7 @@ static void test_rom_handover(void **state)
 
     card = emmc_model_init(&card_cfg);
     emmc_model_rom_handover(1, 6);
-    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg), PB_OK);
+    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), PB_OK);
     assert_bench_clean();
 }
 
@@ -362,7 +363,7 @@ static void test_power_off(void **state)
     (void)state;
 
     assert_int_equal(init(), PB_OK);
-    assert_int_equal(mmc_power_off(), PB_OK);
+    assert_int_equal(mmc_power_off(mmc), PB_OK);
     emmc_model_power_cycle();
     assert_bench_clean();
 }

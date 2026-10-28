@@ -44,30 +44,46 @@
     (VEND_SPEC_RSVD_29 | VEND_SPEC_SOFT_EN_MASK | VEND_SPEC_AC12_WR_CHKBUSY_EN | \
      VEND_SPEC_EXT_DMA_EN)
 
-static const struct imx_usdhc_config *usdhc;
-static unsigned int input_clock_hz;
-static struct usdhc_adma2_desc tbl[ADMA2_DESCS] __section(".no_init") __aligned(64);
-static bool bus_ddr_enable = false;
+/* The host controllers on the board */
+#define USDHC_MAX_INSTANCES 2
 
-static uint32_t usdhc_read(unsigned int reg)
+struct imx_usdhc {
+    struct usdhc_adma2_desc *tbl;
+    const struct imx_usdhc_config *cfg;
+    uintptr_t base;
+    unsigned int input_clock_hz;
+    bool bus_ddr_enable;
+    struct mmc_hal hal;
+};
+
+static struct imx_usdhc instances[USDHC_MAX_INSTANCES];
+/* Not zeroed at boot */
+static struct usdhc_adma2_desc tbls[USDHC_MAX_INSTANCES][ADMA2_DESCS] __section(".no_init")
+    __aligned(64);
+
+static uint32_t usdhc_read(struct imx_usdhc *u, unsigned int reg)
 {
-    return mmio_read_32(usdhc->base + reg);
+    return mmio_read_32(u->base + reg);
 }
 
-static void usdhc_write(unsigned int reg, uint32_t value)
+static void usdhc_write(struct imx_usdhc *u, unsigned int reg, uint32_t value)
 {
-    mmio_write_32(usdhc->base + reg, value);
+    mmio_write_32(u->base + reg, value);
 }
 
 /* Waits until the bits in 'mask' of register 'reg' read as 'value' */
-static int usdhc_wait(unsigned int reg, uint32_t mask, uint32_t value, uint32_t timeout_us)
+static int usdhc_wait(struct imx_usdhc *u,
+                      unsigned int reg,
+                      uint32_t mask,
+                      uint32_t value,
+                      uint32_t timeout_us)
 {
     struct pb_timeout to;
 
     pb_timeout_init_us(&to, timeout_us);
-    while ((usdhc_read(reg) & mask) != value) {
+    while ((usdhc_read(u, reg) & mask) != value) {
         if (pb_timeout_has_expired(&to)) {
-            LOG_ERR("Timeout, reg 0x%03x = 0x%08x", reg, usdhc_read(reg));
+            LOG_ERR("Timeout, reg 0x%03x = 0x%08x", reg, usdhc_read(u, reg));
             return -PB_ERR_TIMEOUT;
         }
     }
@@ -75,14 +91,15 @@ static int usdhc_wait(unsigned int reg, uint32_t mask, uint32_t value, uint32_t 
 }
 
 /* A self clearing reset or INITA */
-static int usdhc_sys_ctrl_pulse(uint32_t bit)
+static int usdhc_sys_ctrl_pulse(struct imx_usdhc *u, uint32_t bit)
 {
-    mmio_setbits_32(usdhc->base + USDHC_SYS_CTRL, bit);
-    return usdhc_wait(USDHC_SYS_CTRL, bit, 0, USDHC_RESET_TIMEOUT_us);
+    mmio_setbits_32(u->base + USDHC_SYS_CTRL, bit);
+    return usdhc_wait(u, USDHC_SYS_CTRL, bit, 0, USDHC_RESET_TIMEOUT_us);
 }
 
-static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
+static int imx_usdhc_set_bus_clock(void *priv, unsigned int clk_hz)
 {
+    struct imx_usdhc *u = priv;
     unsigned int div = 1;
     unsigned int pre_div = 1;
     int rc;
@@ -93,13 +110,13 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
         return -PB_ERR_PARAM;
 
     /* The DDR prescaler table divides by two more */
-    if (bus_ddr_enable)
+    if (u->bus_ddr_enable)
         clk_hz *= 2;
 
-    while (input_clock_hz / (DVS_MAX_DIV * pre_div) > clk_hz && pre_div < SDCLKFS_MAX_DIV)
+    while (u->input_clock_hz / (DVS_MAX_DIV * pre_div) > clk_hz && pre_div < SDCLKFS_MAX_DIV)
         pre_div *= 2;
 
-    while (input_clock_hz / div > clk_hz && div < DVS_MAX_DIV)
+    while (u->input_clock_hz / div > clk_hz && div < DVS_MAX_DIV)
         div++;
 
     /*
@@ -107,81 +124,85 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
      * changed with SDSTB set and FRC_SDCLK_ON clear, then SDSTB is waited
      * for again.
      */
-    rc = usdhc_wait(USDHC_PRES_STATE, PRES_STATE_SDSTB, PRES_STATE_SDSTB, USDHC_CLK_TIMEOUT_us);
+    rc = usdhc_wait(u, USDHC_PRES_STATE, PRES_STATE_SDSTB, PRES_STATE_SDSTB, USDHC_CLK_TIMEOUT_us);
     if (rc != PB_OK)
         return rc;
 
-    mmio_clrbits_32(usdhc->base + USDHC_VEND_SPEC, VEND_SPEC_FRC_SDCLK_ON);
-    mmio_clrsetbits_32(usdhc->base + USDHC_SYS_CTRL,
+    mmio_clrbits_32(u->base + USDHC_VEND_SPEC, VEND_SPEC_FRC_SDCLK_ON);
+    mmio_clrsetbits_32(u->base + USDHC_SYS_CTRL,
                        SYS_CTRL_SDCLKFS_MASK | SYS_CTRL_DVS_MASK,
                        SYS_CTRL_SDCLKFS(pre_div >> 1) | SYS_CTRL_DVS(div - 1));
 
-    rc = usdhc_wait(USDHC_PRES_STATE, PRES_STATE_SDSTB, PRES_STATE_SDSTB, USDHC_CLK_TIMEOUT_us);
+    rc = usdhc_wait(u, USDHC_PRES_STATE, PRES_STATE_SDSTB, PRES_STATE_SDSTB, USDHC_CLK_TIMEOUT_us);
     if (rc != PB_OK)
         return rc;
 
     pb_delay_us(100);
-    LOG_DBG("Actual bus rate = %u kHz", (input_clock_hz / (pre_div * div)) / 1000);
+    LOG_DBG("Actual bus rate = %u kHz", (u->input_clock_hz / (pre_div * div)) / 1000);
     return PB_OK;
 }
 
-static int imx_usdhc_setup(void)
+static int imx_usdhc_setup(void *priv)
 {
+    struct imx_usdhc *u = priv;
     int rc;
 
-    LOG_DBG("Base = %p, input clock = %u kHz", (void *)usdhc->base, input_clock_hz / 1000);
+    LOG_DBG("Base = %p, input clock = %u kHz", (void *)u->base, u->input_clock_hz / 1000);
 
-    mmio_setbits_32(usdhc->base + USDHC_SYS_CTRL, SYS_CTRL_RSTA | SYS_CTRL_RSTT);
-    rc = usdhc_wait(USDHC_SYS_CTRL, SYS_CTRL_RSTA, 0, USDHC_RESET_TIMEOUT_us);
+    mmio_setbits_32(u->base + USDHC_SYS_CTRL, SYS_CTRL_RSTA | SYS_CTRL_RSTT);
+    rc = usdhc_wait(u, USDHC_SYS_CTRL, SYS_CTRL_RSTA, 0, USDHC_RESET_TIMEOUT_us);
     if (rc != PB_OK)
         return rc;
 
-    usdhc_write(USDHC_MMC_BOOT, 0);
-    usdhc_write(USDHC_MIX_CTRL, MIX_CTRL_RSVD_31);
-    bus_ddr_enable = false;
-    usdhc_write(USDHC_CLK_TUNE_CTRL_STATUS, 0);
-    usdhc_write(USDHC_VEND_SPEC, VEND_SPEC_INIT);
-    usdhc_write(USDHC_DLL_CTRL, 0);
-    usdhc_write(USDHC_INT_STATUS_EN, INT_STATUS_ENABLED);
+    usdhc_write(u, USDHC_MMC_BOOT, 0);
+    usdhc_write(u, USDHC_MIX_CTRL, MIX_CTRL_RSVD_31);
+    u->bus_ddr_enable = false;
+    usdhc_write(u, USDHC_CLK_TUNE_CTRL_STATUS, 0);
+    usdhc_write(u, USDHC_VEND_SPEC, VEND_SPEC_INIT);
+    usdhc_write(u, USDHC_DLL_CTRL, 0);
+    usdhc_write(u, USDHC_INT_STATUS_EN, INT_STATUS_ENABLED);
 
-    usdhc_write(USDHC_PROT_CTRL,
+    usdhc_write(u,
+                USDHC_PROT_CTRL,
                 PROT_CTRL_BURST_LEN_EN_INCR | PROT_CTRL_RSVD_23_21 |
                     PROT_CTRL_DMASEL(DMASEL_ADMA2) | PROT_CTRL_EMODE(EMODE_LITTLE_ENDIAN));
 
-    mmio_clrsetbits_32(
-        usdhc->base + USDHC_SYS_CTRL, SYS_CTRL_DTOCV_MASK, SYS_CTRL_DTOCV(DTOCV_MAX));
+    mmio_clrsetbits_32(u->base + USDHC_SYS_CTRL, SYS_CTRL_DTOCV_MASK, SYS_CTRL_DTOCV(DTOCV_MAX));
 
-    mmio_clrsetbits_32(usdhc->base + USDHC_WTMK_LVL,
+    mmio_clrsetbits_32(u->base + USDHC_WTMK_LVL,
                        WTMK_LVL_WR_WML_MASK | WTMK_LVL_RD_WML_MASK,
                        WTMK_LVL_WR_WML(WTMK_LVL_DMA) | WTMK_LVL_RD_WML(WTMK_LVL_DMA));
 
     /* The board's fixed delay line tap */
-    usdhc_write(USDHC_DLL_CTRL,
-                DLL_CTRL_SLV_OVERRIDE_VAL(usdhc->delay_tap) | DLL_CTRL_SLV_OVERRIDE);
+    usdhc_write(
+        u, USDHC_DLL_CTRL, DLL_CTRL_SLV_OVERRIDE_VAL(u->cfg->delay_tap) | DLL_CTRL_SLV_OVERRIDE);
 
     /*
      * RM, initialization: the 80 clocks (INITA) at about 400 kHz, once
      * CIHB and CDIHB are clear (INITA is ignored otherwise)
      */
-    rc = imx_usdhc_set_bus_clock(USDHC_INIT_CLK_HZ);
+    rc = imx_usdhc_set_bus_clock(u, USDHC_INIT_CLK_HZ);
     if (rc != PB_OK)
         return rc;
 
-    rc = usdhc_wait(USDHC_PRES_STATE, PRES_STATE_CDIHB | PRES_STATE_CIHB, 0, USDHC_BUSY_TIMEOUT_us);
+    rc = usdhc_wait(
+        u, USDHC_PRES_STATE, PRES_STATE_CDIHB | PRES_STATE_CIHB, 0, USDHC_BUSY_TIMEOUT_us);
     if (rc != PB_OK)
         return rc;
 
-    return usdhc_sys_ctrl_pulse(SYS_CTRL_INITA);
+    return usdhc_sys_ctrl_pulse(u, SYS_CTRL_INITA);
 }
 
-static int imx_usdhc_set_delay_tap(unsigned int tap)
+static int imx_usdhc_set_delay_tap(void *priv, unsigned int tap)
 {
-    usdhc_write(USDHC_DLL_CTRL, DLL_CTRL_SLV_OVERRIDE_VAL(tap) | DLL_CTRL_SLV_OVERRIDE);
+    struct imx_usdhc *u = priv;
+
+    usdhc_write(u, USDHC_DLL_CTRL, DLL_CTRL_SLV_OVERRIDE_VAL(tap) | DLL_CTRL_SLV_OVERRIDE);
     return PB_OK;
 }
 
 /* The ADMA2 descriptors and block attributes of a transfer */
-static int imx_usdhc_prepare(void *buf, size_t block_size, size_t blocks)
+static int imx_usdhc_prepare(struct imx_usdhc *u, void *buf, size_t block_size, size_t blocks)
 {
     uintptr_t buf_ptr = (uintptr_t)buf;
     size_t length = block_size * blocks;
@@ -196,17 +217,17 @@ static int imx_usdhc_prepare(void *buf, size_t block_size, size_t blocks)
         size_t chunk = (length > ADMA2_MAX_BYTES) ? ADMA2_MAX_BYTES : length;
 
         length -= chunk;
-        tbl[n].len = chunk;
-        tbl[n].attr = ADMA2_ATTR_ACT_TRAN | ADMA2_ATTR_VALID | (length ? 0 : ADMA2_ATTR_END);
-        tbl[n].addr = (uint32_t)buf_ptr;
+        u->tbl[n].len = chunk;
+        u->tbl[n].attr = ADMA2_ATTR_ACT_TRAN | ADMA2_ATTR_VALID | (length ? 0 : ADMA2_ATTR_END);
+        u->tbl[n].addr = (uint32_t)buf_ptr;
         buf_ptr += chunk;
         n++;
     }
 
-    arch_clean_cache_range((uintptr_t)tbl, sizeof(tbl[0]) * n);
+    arch_clean_cache_range((uintptr_t)u->tbl, sizeof(u->tbl[0]) * n);
 
-    usdhc_write(USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t)tbl);
-    usdhc_write(USDHC_BLK_ATT, BLK_ATT_BLKCNT(blocks) | BLK_ATT_BLKSIZE(block_size));
+    usdhc_write(u, USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t)u->tbl);
+    usdhc_write(u, USDHC_BLK_ATT, BLK_ATT_BLKCNT(blocks) | BLK_ATT_BLKSIZE(block_size));
     return PB_OK;
 }
 
@@ -232,25 +253,26 @@ static uint32_t xfr_typ_response(uint16_t resp_type)
     return xfr_typ;
 }
 
-static void read_response(struct mmc_cmd *cmd)
+static void read_response(struct imx_usdhc *u, struct mmc_cmd *cmd)
 {
     if (cmd->resp_type & MMC_RSP_136) {
-        uint32_t rsp3 = usdhc_read(USDHC_CMD_RSP3);
-        uint32_t rsp2 = usdhc_read(USDHC_CMD_RSP2);
-        uint32_t rsp1 = usdhc_read(USDHC_CMD_RSP1);
-        uint32_t rsp0 = usdhc_read(USDHC_CMD_RSP0);
+        uint32_t rsp3 = usdhc_read(u, USDHC_CMD_RSP3);
+        uint32_t rsp2 = usdhc_read(u, USDHC_CMD_RSP2);
+        uint32_t rsp1 = usdhc_read(u, USDHC_CMD_RSP1);
+        uint32_t rsp0 = usdhc_read(u, USDHC_CMD_RSP0);
 
         cmd->resp[3] = (rsp3 << 8) | (rsp2 >> 24);
         cmd->resp[2] = (rsp2 << 8) | (rsp1 >> 24);
         cmd->resp[1] = (rsp1 << 8) | (rsp0 >> 24);
         cmd->resp[0] = rsp0 << 8;
     } else {
-        cmd->resp[0] = usdhc_read(USDHC_CMD_RSP0);
+        cmd->resp[0] = usdhc_read(u, USDHC_CMD_RSP0);
     }
 }
 
-static int imx_usdhc_request(struct mmc_cmd *cmd)
+static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
 {
+    struct imx_usdhc *u = priv;
     bool data = cmd->blocks > 0;
     bool multiple = cmd->blocks > 1;
     bool stop = false; /* A data error left the card sending or receiving */
@@ -259,23 +281,24 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
     uint32_t state;
     int err;
 
-    usdhc_write(USDHC_INT_STATUS, INT_ALL);
+    usdhc_write(u, USDHC_INT_STATUS, INT_ALL);
 
     /* Wait for the bus to be idle */
-    err = usdhc_wait(USDHC_PRES_STATE,
+    err = usdhc_wait(u,
+                     USDHC_PRES_STATE,
                      PRES_STATE_CDIHB | PRES_STATE_CIHB | PRES_STATE_DLA,
                      0,
                      USDHC_BUSY_TIMEOUT_us);
     if (err != PB_OK)
         return err;
 
-    usdhc_write(USDHC_INT_SIGNAL_EN, 0);
+    usdhc_write(u, USDHC_INT_SIGNAL_EN, 0);
 
     if (cmd->idx == MMC_CMD_STOP_TRANSMISSION)
         xfr_typ |= CMD_XFR_TYP_CMDTYP(CMDTYP_ABORT);
 
     if (data) {
-        err = imx_usdhc_prepare(cmd->buf, cmd->block_size, cmd->blocks);
+        err = imx_usdhc_prepare(u, cmd->buf, cmd->block_size, cmd->blocks);
         if (err != PB_OK)
             return err;
 
@@ -295,9 +318,9 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
         mix |= MIX_CTRL_MSBSEL | MIX_CTRL_BCEN;
 
     /* DDR_EN stays as set_bus_width() set it */
-    mmio_clrsetbits_32(usdhc->base + USDHC_MIX_CTRL, MIX_CTRL_XFER_MASK, mix);
-    usdhc_write(USDHC_CMD_ARG, cmd->arg);
-    usdhc_write(USDHC_CMD_XFR_TYP, xfr_typ);
+    mmio_clrsetbits_32(u->base + USDHC_MIX_CTRL, MIX_CTRL_XFER_MASK, mix);
+    usdhc_write(u, USDHC_CMD_ARG, cmd->arg);
+    usdhc_write(u, USDHC_CMD_XFR_TYP, xfr_typ);
 
     /* Wait for the command done. The controller reports CTOE after 64 clocks
      * without a response, this only catches one that never finishes. */
@@ -305,7 +328,7 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
 
     pb_timeout_init_us(&cmd_to, USDHC_CMD_TIMEOUT_us);
     do {
-        state = usdhc_read(USDHC_INT_STATUS);
+        state = usdhc_read(u, USDHC_INT_STATUS);
         if (!(state & (INT_CC | INT_CTOE)) && pb_timeout_has_expired(&cmd_to)) {
             err = -PB_ERR_TIMEOUT;
             break;
@@ -319,7 +342,7 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
         goto out;
     }
 
-    read_response(cmd);
+    read_response(u, cmd);
 
     /*
      * Wait until all of the blocks are transferred, or for the end of busy.
@@ -332,7 +355,8 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
          * data ends (seen on the i.MX8M Plus, the RM says it does): watch
          * DAT0, which the card holds low while it is busy.
          */
-        err = usdhc_wait(USDHC_PRES_STATE, PRES_STATE_DAT0, PRES_STATE_DAT0, USDHC_BUSY_TIMEOUT_us);
+        err = usdhc_wait(
+            u, USDHC_PRES_STATE, PRES_STATE_DAT0, PRES_STATE_DAT0, USDHC_BUSY_TIMEOUT_us);
         if (err != PB_OK)
             goto out;
     } else if (data) {
@@ -340,7 +364,7 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
 
         pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + cmd->block_size * cmd->blocks);
         do {
-            state = usdhc_read(USDHC_INT_STATUS);
+            state = usdhc_read(u, USDHC_INT_STATUS);
 
             if (state & INT_DATA_ERRORS) {
                 err = -PB_ERR_IO;
@@ -365,7 +389,7 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
         };
         uint32_t errors = STATUS_ERROR_MASK;
 
-        err = imx_usdhc_request(&stop_cmd);
+        err = imx_usdhc_request(u, &stop_cmd);
         if (err != PB_OK)
             goto out;
 
@@ -382,12 +406,12 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
 out:
     /* Reset CMD and DATA on error */
     if (err) {
-        mmio_setbits_32(usdhc->base + USDHC_SYS_CTRL, SYS_CTRL_RSTC);
-        (void)usdhc_wait(USDHC_SYS_CTRL, SYS_CTRL_RSTC, 0, USDHC_RESET_TIMEOUT_us);
+        mmio_setbits_32(u->base + USDHC_SYS_CTRL, SYS_CTRL_RSTC);
+        (void)usdhc_wait(u, USDHC_SYS_CTRL, SYS_CTRL_RSTC, 0, USDHC_RESET_TIMEOUT_us);
 
         if (data) {
-            mmio_setbits_32(usdhc->base + USDHC_SYS_CTRL, SYS_CTRL_RSTD);
-            (void)usdhc_wait(USDHC_SYS_CTRL, SYS_CTRL_RSTD, 0, USDHC_RESET_TIMEOUT_us);
+            mmio_setbits_32(u->base + USDHC_SYS_CTRL, SYS_CTRL_RSTD);
+            (void)usdhc_wait(u, USDHC_SYS_CTRL, SYS_CTRL_RSTD, 0, USDHC_RESET_TIMEOUT_us);
         }
 
         /* After a data error the card is still sending or receiving: stop it */
@@ -397,11 +421,11 @@ out:
                 .resp_type = MMC_RSP_R1b,
             };
 
-            (void)imx_usdhc_request(&stop_cmd);
+            (void)imx_usdhc_request(u, &stop_cmd);
         }
     }
 
-    usdhc_write(USDHC_INT_STATUS, INT_ALL);
+    usdhc_write(u, USDHC_INT_STATUS, INT_ALL);
 
     if (data && !cmd->write)
         arch_invalidate_cache_range((uintptr_t)cmd->buf, cmd->block_size * cmd->blocks);
@@ -409,8 +433,9 @@ out:
     return err;
 }
 
-static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
+static int imx_usdhc_set_bus_width(void *priv, enum mmc_bus_width width)
 {
+    struct imx_usdhc *u = priv;
 #if LOGLEVEL >= 3
     const char *bus_widths[] = {
         "Invalid", "1-Bit", "4-Bit", "8-Bit", "4-Bit DDR", "8-Bit DDR", "8-Bit DDR + Strobe",
@@ -423,43 +448,63 @@ static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
     switch (width) {
     case MMC_BUS_WIDTH_4BIT:
         dtw = DTW_4BIT;
-        bus_ddr_enable = false;
+        u->bus_ddr_enable = false;
         break;
     case MMC_BUS_WIDTH_4BIT_DDR:
         dtw = DTW_4BIT;
-        bus_ddr_enable = true;
+        u->bus_ddr_enable = true;
         break;
     case MMC_BUS_WIDTH_8BIT:
         dtw = DTW_8BIT;
-        bus_ddr_enable = false;
+        u->bus_ddr_enable = false;
         break;
     case MMC_BUS_WIDTH_8BIT_DDR:
         dtw = DTW_8BIT;
-        bus_ddr_enable = true;
+        u->bus_ddr_enable = true;
         break;
     default:
         LOG_ERR("Unsupported bus width");
         return -PB_ERR_PARAM;
     }
 
-    mmio_clrsetbits_32(usdhc->base + USDHC_PROT_CTRL, PROT_CTRL_DTW_MASK, PROT_CTRL_DTW(dtw));
+    mmio_clrsetbits_32(u->base + USDHC_PROT_CTRL, PROT_CTRL_DTW_MASK, PROT_CTRL_DTW(dtw));
 
     /*
      * DDR_EN also selects the DDR prescaler table (RM, SYS_CTRL.SDCLKFS),
      * so it is set for all commands, not just data, and before the clock
      * is set for DDR.
      */
-    if (bus_ddr_enable)
-        mmio_setbits_32(usdhc->base + USDHC_MIX_CTRL, MIX_CTRL_DDR_EN);
+    if (u->bus_ddr_enable)
+        mmio_setbits_32(u->base + USDHC_MIX_CTRL, MIX_CTRL_DDR_EN);
     else
-        mmio_clrbits_32(usdhc->base + USDHC_MIX_CTRL, MIX_CTRL_DDR_EN);
+        mmio_clrbits_32(u->base + USDHC_MIX_CTRL, MIX_CTRL_DDR_EN);
 
     return PB_OK;
 }
 
 int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
 {
-    static const struct mmc_hal hal = {
+    struct imx_usdhc *u = NULL;
+
+    for (unsigned int i = 0; i < USDHC_MAX_INSTANCES && u == NULL; i++) {
+        if (instances[i].cfg != NULL && instances[i].base == cfg->base)
+            u = &instances[i];
+    }
+    for (unsigned int i = 0; i < USDHC_MAX_INSTANCES && u == NULL; i++) {
+        if (instances[i].cfg == NULL) {
+            u = &instances[i];
+            u->tbl = tbls[i];
+        }
+    }
+    if (u == NULL)
+        return -PB_ERR_MEM;
+
+    u->cfg = cfg;
+    u->base = cfg->base;
+    u->input_clock_hz = clk_hz;
+    u->bus_ddr_enable = false;
+    u->hal = (struct mmc_hal){
+        .priv = u,
         .init = imx_usdhc_setup,
         .request = imx_usdhc_request,
         .set_bus_clock = imx_usdhc_set_bus_clock,
@@ -468,8 +513,5 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
         .max_chunk_bytes = USDHC_MAX_CHUNK_BYTES,
     };
 
-    usdhc = cfg;
-    input_clock_hz = clk_hz;
-
-    return mmc_init(&hal, &cfg->mmc_config);
+    return mmc_init(&u->hal, &cfg->mmc_config, NULL);
 }

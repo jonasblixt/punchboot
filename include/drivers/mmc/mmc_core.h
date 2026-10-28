@@ -274,12 +274,10 @@ enum mmc_bus_width {
     MMC_BUS_WIDTH_8BIT_DDR_STROBE,
 };
 
+/* What the board has on the bus */
 enum mmc_card_type {
-    MMC_CARD_TYPE_INVALID = 0,
-    MMC_CARD_TYPE_EMMC,
+    MMC_CARD_TYPE_EMMC = 0,
     MMC_CARD_TYPE_SD,
-    MMC_CARD_TYPE_SD_HC,
-    MMC_CARD_TYPE_END,
 };
 
 struct mmc_csd_emmc {
@@ -352,18 +350,20 @@ struct mmc_cmd {
     bool stop; /*!< Send CMD12 after the data */
 };
 
-typedef int (*mmc_init_t)(void);
-typedef int (*mmc_request_t)(struct mmc_cmd *cmd);
+/* The HAL functions get the HAL's 'priv' */
+typedef int (*mmc_init_t)(void *priv);
+typedef int (*mmc_request_t)(void *priv, struct mmc_cmd *cmd);
 
-typedef int (*mmc_set_bus_clock_t)(unsigned int clk_hz);
-typedef int (*mmc_set_bus_width_t)(enum mmc_bus_width width);
+typedef int (*mmc_set_bus_clock_t)(void *priv, unsigned int clk_hz);
+typedef int (*mmc_set_bus_width_t)(void *priv, enum mmc_bus_width width);
 
 struct mmc_hal {
+    void *priv; /*!< The host controller instance */
     mmc_init_t init; /*!< Initilize HAL */
     mmc_request_t request; /*!< Send a command and move its data */
     mmc_set_bus_clock_t set_bus_clock; /*!< Set bus clock rate */
     mmc_set_bus_width_t set_bus_width; /*!< Set bus with */
-    int (*set_delay_tap)(unsigned int tap); /*!< Select bus delay tap */
+    int (*set_delay_tap)(void *priv, unsigned int tap); /*!< Select bus delay tap */
     size_t max_chunk_bytes; /*!< Maximum bytes per request */
 };
 
@@ -375,6 +375,7 @@ struct mmc_device_info {
 };
 
 struct mmc_device_config {
+    enum mmc_card_type card; /*!< e.MMC (default) or an SD card slot */
     enum mmc_bus_mode mode; /*!< Requested bus mode */
     enum mmc_bus_width width; /*!< Requested bus width */
     const unsigned char *boot0_uu; /*!< UUID to assign to boot 0 partition */
@@ -386,25 +387,34 @@ struct mmc_device_config {
                          mode in extcsd, for example, for fast boot */
 };
 
+/* A card, from mmc_init() */
+struct mmc_device;
+
 /**
- * Initialize the mmc module
+ * Initialize a card
+ *
+ * Several cards, on different host controllers, can be initialized.
  *
  * @param[in] hal Pointer to ops structure of hardware layer
  * @param[in] cfg Pointer to MMC config struct
+ * @param[out] dev The card, optional
  *
  * @return PB_OK on success
  *        -PB_ERR_PARAM, on invalid bus mode or NULL parameters
- *        -PB_ERR_NOT_IMPLEMENTED, on invalid bus mode
+ *        -PB_ERR_NOT_SUPPORTED, the card doesn't support the bus mode
+ *        -PB_ERR_MEM, too many cards
  *        -PB_ERR_IO, on read errors
  */
-int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg);
+int mmc_init(const struct mmc_hal *hal,
+             const struct mmc_device_config *cfg,
+             struct mmc_device **dev);
 
 /**
- * Get the card device info struct for the currently enumerated card.
+ * Get the card device info struct
  *
- * @return Pointer to device info struct or NULL on error
+ * @return Pointer to device info struct
  */
-struct mmc_device_info *mmc_device_info(void);
+struct mmc_device_info *mmc_device_info(struct mmc_device *dev);
 
 /**
  * Read bytes from current partition.
@@ -416,7 +426,7 @@ struct mmc_device_info *mmc_device_info(void);
  * @return PB_OK on success
  *        -PB_ERR_IO, on read request to large
  */
-int mmc_read(unsigned int lba, size_t length, uintptr_t buf);
+int mmc_read(struct mmc_device *dev, unsigned int lba, size_t length, uintptr_t buf);
 
 /**
  * Write bytes to current partition.
@@ -428,20 +438,20 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf);
  * @return PB_OK on success
  *        -PB_ERR_IO, on write request to large
  */
-int mmc_write(unsigned int lba, size_t length, const uintptr_t buf);
+int mmc_write(struct mmc_device *dev, unsigned int lba, size_t length, const uintptr_t buf);
 
 /**
- * Switch hardware partition
+ * Switch hardware partition (e.MMC)
  *
  * @param[in] part Hardware partition to switch to
  *
  * @return PB_OK on success
  */
-int mmc_part_switch(enum mmc_part part);
+int mmc_part_switch(struct mmc_device *dev, enum mmc_part part);
 
 /**
  * Get the partition BOOT_PARTITION_ENABLE (EXT_CSD[179]) pointed to when the
- * card was first initialized, before pb switched partitions
+ * first e.MMC was first initialized, before pb switched partitions
  *
  * This is what the card was set up to boot from. Whether the ROM actually
  * loaded pb from it is platform knowledge, see plat_get_boot_source().
@@ -449,45 +459,44 @@ int mmc_part_switch(enum mmc_part part);
  * @param[out] part_uu UUID of the BOOT0, BOOT1 or user area bio partition
  *
  * @return PB_OK on success,
- *         -PB_ERR_STATE if the card isn't initialized or the value is reserved
+ *         -PB_ERR_STATE if no e.MMC is initialized or the value is reserved
  */
 int mmc_get_boot_part_config(uuid_t part_uu);
 
 /**
- * Re-reads the extended CSD structure and updates the internal cache.
+ * Re-reads the extended CSD structure and updates the internal cache (e.MMC).
  *
  * @return PB_OK on success or a negative number
  */
-
-int mmc_extcsd_reload(void);
+int mmc_extcsd_reload(struct mmc_device *dev);
 
 /**
- * Read extended CSD
+ * Read extended CSD (e.MMC)
  *
  * @param[in] field_id Field identifier to read from
  * @param[out] value Data output
  *
  * @return PB_OK on success or a negative number
  */
-int mmc_extcsd_read(uint16_t field_id, uint8_t *value);
+int mmc_extcsd_read(struct mmc_device *dev, uint16_t field_id, uint8_t *value);
 
 /**
- * Set field in the extended CSD structure
+ * Set field in the extended CSD structure (e.MMC)
  *
  * @param[in] field_id Field identifier within the extcsd structure
  * @param[in] value Value to write
  *
  * @return PB_OK on success or a negative number
  */
-int mmc_extcsd_write(uint16_t field_id, uint8_t value);
+int mmc_extcsd_write(struct mmc_device *dev, uint16_t field_id, uint8_t value);
 
 /**
- * Power off the card. This function must be called before it is safe
+ * Power off the card (e.MMC). This function must be called before it is safe
  * to turn off Vcc and Vccq. After the card has been powered down the
  * 'mmc_init' function can be called to re-initialize.
  *
  * @return PB_OK on success
  */
-int mmc_power_off(void);
+int mmc_power_off(struct mmc_device *dev);
 
 #endif
