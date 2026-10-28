@@ -55,7 +55,7 @@
 #define PHY_CAL_BUSY            PHY_REG(0x20097)
 #define PHY_IMEM                PHY_REG(0x50000)
 
-#define TRACE_MAX               (512 * 1024)
+#define TRACE_MAX               (1024 * 1024)
 #define STORE_SIZE              (1 << 16)
 
 /* Training firmware images, normally linked in with objcopy */
@@ -199,12 +199,10 @@ void pb_delay_us(uint32_t delay)
     trace_add("delay_us %u\n", delay);
 }
 
-extern struct dram_timing_info dram_timing_info_copy;
-
 /* The copy for TF-A, with the pointers as offsets from the start of the copy */
 static void trace_timing_copy(void)
 {
-    const struct dram_timing_info *dt = &dram_timing_info_copy;
+    const struct dram_timing_info *dt = &dram_timing_info_copy.info;
     const uint8_t *base = (const uint8_t *)dt;
 
     const struct {
@@ -351,6 +349,27 @@ static void test_unsupported_data_rate(void **state)
     assert_int_equal(mail_pos, ARRAY_SIZE(mail_script));
 }
 
+/* Board tables that don't fit in the TF-A copy are refused, not copied past its end */
+static void test_timing_copy_too_large(void **state)
+{
+    (void)state;
+    static struct dram_cfg_param pie[ARRAY_SIZE(dram_timing_info_copy.cfg) + 1];
+    struct dram_cfg_param *saved_pie = dram_timing.ddrphy_pie;
+    unsigned int saved_pie_num = dram_timing.ddrphy_pie_num;
+    unsigned int others =
+        dram_timing.ddrc_cfg_num + dram_timing.ddrphy_cfg_num + dram_timing.ddrphy_trained_csr_num;
+
+    for (size_t i = 0; i < ARRAY_SIZE(pie); i++)
+        pie[i].reg = 0x90000;
+
+    /* One entry more than fits */
+    dram_timing.ddrphy_pie = pie;
+    dram_timing.ddrphy_pie_num = ARRAY_SIZE(dram_timing_info_copy.cfg) + 1 - others;
+    assert_int_equal(umctl2_init(), -PB_ERR_MEM);
+    dram_timing.ddrphy_pie = saved_pie;
+    dram_timing.ddrphy_pie_num = saved_pie_num;
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -358,6 +377,7 @@ int main(void)
         cmocka_unit_test_setup(test_training_failed, reset_model),
         cmocka_unit_test_setup(test_firmware_verify_failed, reset_model),
         cmocka_unit_test_setup(test_unsupported_data_rate, reset_model),
+        cmocka_unit_test_setup(test_timing_copy_too_large, reset_model),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
