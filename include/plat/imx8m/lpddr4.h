@@ -9,8 +9,8 @@
  * board timing tables.
  */
 
-#ifndef PLAT_IMX8M_LPDDR4_H_
-#define PLAT_IMX8M_LPDDR4_H_
+#ifndef INCLUDE_PLAT_IMX8M_LPDDR4_H_
+#define INCLUDE_PLAT_IMX8M_LPDDR4_H_
 
 /* ODT termination, MR11 OP[2:0] (DQ) and OP[6:4] (CA): RZQ (240 ohm) / n */
 #define LPDDR4_RTT40   6
@@ -28,4 +28,4 @@
 #define LPDDR4_RON60   4
 #define LPDDR4_RON80   3
 
-#endif // PLAT_IMX8M_LPDDR4_H_
+#endif // INCLUDE_PLAT_IMX8M_LPDDR4_H_

@@ -7,8 +7,10 @@
  *
  */
 
-#ifndef BOARD_IMX8MEVK_INCLUDE_BOARD_LP4_TIMING_H_
-#define BOARD_IMX8MEVK_INCLUDE_BOARD_LP4_TIMING_H_
+/* LPDDR4 timing for the i.MX8MQ EVK: 3200 MT/s (FSP0) and 667 MT/s (FSP1) */
+
+#include <pb/pb.h>
+#include <plat/imx8m/dram.h>
 
 /* Training firmware message block settings (DMEM, see ddrphy.h) */
 #define LPDDR4_HDT_CTL_3200_1D     0xC8 /* Firmware log level: stage completion */
@@ -35,7 +37,7 @@
 #define LPDDR4_MR22_RANK0          ((0 << 5) | (1 << 4) | (0 << 3) | (LPDDR4_RTT40))
 #define LPDDR4_MR22_RANK1          ((0 << 5) | (1 << 4) | (0 << 3) | (LPDDR4_RTT40))
 
-const struct dram_cfg_param umctl2_ddrc_cfg[] = {
+static const struct dram_cfg_param umctl2_ddrc_cfg[] = {
     /* Start to config, default 3200mbps */
     /* dis_dq=1, indicates no reads or writes are issued to SDRAM */
     { DDRC_DBG1(0), 0x00000001 },
@@ -153,7 +155,7 @@ const struct dram_cfg_param umctl2_ddrc_cfg[] = {
 };
 
 /* PHY Initialize Configuration */
-const struct dram_cfg_param lpddr4_ddrphy_cfg[] = {
+static const struct dram_cfg_param lpddr4_ddrphy_cfg[] = {
     { 0x20110, 0x02 }, /* MapCAB0toDFI */
     { 0x20111, 0x03 }, /* MapCAB1toDFI */
     { 0x20112, 0x04 }, /* MapCAB2toDFI */
@@ -338,7 +340,7 @@ const struct dram_cfg_param lpddr4_ddrphy_cfg[] = {
 };
 
 /* P0 message block paremeter for training firmware */
-const struct dram_cfg_param lpddr4_fsp0_cfg[] = {
+static const struct dram_cfg_param lpddr4_fsp0_cfg[] = {
     { 0xd0000, 0x0 },
     { 0x54000, 0x0 },
     { 0x54001, 0x0 },
@@ -414,7 +416,7 @@ const struct dram_cfg_param lpddr4_fsp0_cfg[] = {
 };
 
 /* P1 message block paremeter for training firmware */
-const struct dram_cfg_param lpddr4_fsp1_cfg[] = {
+static const struct dram_cfg_param lpddr4_fsp1_cfg[] = {
     { 0xd0000, 0x0 },
     { 0x54000, 0x0 },
     { 0x54001, 0x0 },
@@ -487,7 +489,7 @@ const struct dram_cfg_param lpddr4_fsp1_cfg[] = {
 };
 
 /* P0 2D message block paremeter for training firmware */
-const struct dram_cfg_param lpddr4_fsp0_2d_cfg[] = {
+static const struct dram_cfg_param lpddr4_fsp0_2d_cfg[] = {
     { 0xd0000, 0x0 },
     { 0x54000, 0x0 },
     { 0x54001, 0x0 },
@@ -563,7 +565,7 @@ const struct dram_cfg_param lpddr4_fsp0_2d_cfg[] = {
 };
 
 /* DRAM PHY init engine image */
-const struct dram_cfg_param lpddr4_phy_pie[] = {
+static const struct dram_cfg_param lpddr4_phy_pie[] = {
     { 0xd0000, 0x0 },    { 0x90000, 0x10 },   { 0x90001, 0x400 },  { 0x90002, 0x10e },
     { 0x90003, 0x0 },    { 0x90004, 0x0 },    { 0x90005, 0x8 },    { 0x90029, 0xb },
     { 0x9002a, 0x480 },  { 0x9002b, 0x109 },  { 0x9002c, 0x8 },    { 0x9002d, 0x448 },
@@ -716,7 +718,7 @@ const struct dram_cfg_param lpddr4_phy_pie[] = {
 };
 
 /* ddr phy trained csr */
-struct dram_cfg_param lpddr4_ddrphy_trained_csr[] = {
+static struct dram_cfg_param lpddr4_ddrphy_trained_csr[] = {
     { 0x200b2, 0x0 },  { 0x1200b2, 0x0 }, { 0x2200b2, 0x0 }, { 0x200cb, 0x0 },  { 0x10043, 0x0 },
     { 0x110043, 0x0 }, { 0x210043, 0x0 }, { 0x10143, 0x0 },  { 0x110143, 0x0 }, { 0x210143, 0x0 },
     { 0x11043, 0x0 },  { 0x111043, 0x0 }, { 0x211043, 0x0 }, { 0x11143, 0x0 },  { 0x111143, 0x0 },
@@ -863,7 +865,7 @@ struct dram_cfg_param lpddr4_ddrphy_trained_csr[] = {
     { 0x13530, 0x0 },  { 0x13630, 0x0 },  { 0x13730, 0x0 },  { 0x13830, 0x0 },
 };
 
-struct dram_fsp_msg umctl2_dram_fsp_msg[] = {
+static struct dram_fsp_msg umctl2_dram_fsp_msg[] = {
     {
         /* P0 3200mts 1D */
         .drate = 3200,
@@ -906,5 +908,3 @@ struct dram_timing_info dram_timing =
      */
     .fsp_table = { 3200, 667, },
 };
-
-#endif // BOARD_IMX8MEVK_INCLUDE_BOARD_LP4_TIMING_H_

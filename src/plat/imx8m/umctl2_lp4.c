@@ -33,8 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "dram.h"
-#include <board/lp4_timing.h>
+#include <plat/imx8m/dram.h>
 
 extern uint32_t _binary_blobs_lpddr4_pmu_train_1d_imem_bin_start;
 extern uint32_t _binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start;
