@@ -148,5 +148,6 @@ target_include_directories(test_imx8m_ddr BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
 )
 target_compile_definitions(test_imx8m_ddr PRIVATE
+    CONFIG_PLAT_IMX8MQ=1
     IMX8M_DDR_GOLDEN="${CMAKE_CURRENT_SOURCE_DIR}/data/imx8m_ddr_init.trace"
 )
