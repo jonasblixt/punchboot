@@ -40,6 +40,10 @@
 #define MMC_CMD_APP_CMD                     55
 #define MMC_CMD_SPI_READ_OCR                58
 #define MMC_CMD_SPI_CRC_ON_OFF              59
+#define SD_CMD_SEND_RELATIVE_ADDR           3 /* R6 */
+#define SD_CMD_SWITCH_FUNC                  6
+#define SD_CMD_SEND_IF_COND                 8 /* R7 */
+/* Application commands, after MMC_CMD_APP_CMD */
 #define SD_CMD_SEND_OP_COND                 41
 #define SD_CMD_SEND_SCR                     51
 #define SD_CMD_SET_BUS_WIDTH                6
@@ -223,12 +227,16 @@
 #define STATUS_WP_ERASE_SKIP        BIT(15)
 #define STATUS_READY_FOR_DATA       BIT(8)
 #define STATUS_SWITCH_ERROR         BIT(7)
-#define STATUS_ERROR_MASK                                                                   \
-    (STATUS_ADDRESS_OUT_OF_RANGE | STATUS_ADDRESS_MISALIGN | STATUS_BLOCK_LEN_ERROR |       \
-     STATUS_ERASE_SEQ_ERROR | STATUS_ERASE_PARAM | STATUS_WP_VIOLATION |                    \
-     STATUS_LOCK_UNLOCK_FAILED | STATUS_COM_CRC_ERROR | STATUS_ILLEGAL_COMMAND |            \
-     STATUS_DEVICE_ECC_FAILED | STATUS_CC_ERROR | STATUS_ERROR | STATUS_CID_CSD_OVERWRITE | \
-     STATUS_WP_ERASE_SKIP | STATUS_SWITCH_ERROR)
+/*
+ * The errors of the command a response belongs to. COM_CRC_ERROR and
+ * ILLEGAL_COMMAND are about an earlier command, which got no response
+ * (JESD84-B51 6.8.1): a 1.x SD card reports the CMD8 probe that way.
+ */
+#define STATUS_ERROR_MASK                                                                    \
+    (STATUS_ADDRESS_OUT_OF_RANGE | STATUS_ADDRESS_MISALIGN | STATUS_BLOCK_LEN_ERROR |        \
+     STATUS_ERASE_SEQ_ERROR | STATUS_ERASE_PARAM | STATUS_WP_VIOLATION |                     \
+     STATUS_LOCK_UNLOCK_FAILED | STATUS_DEVICE_ECC_FAILED | STATUS_CC_ERROR | STATUS_ERROR | \
+     STATUS_CID_CSD_OVERWRITE | STATUS_WP_ERASE_SKIP | STATUS_SWITCH_ERROR)
 
 #define EXTCSD_SET_CMD           (U(0) << 24)
 #define EXTCSD_SET_BITS          (U(1) << 24)
@@ -261,6 +269,9 @@ enum mmc_bus_mode {
     MMC_BUS_MODE_DDR52,
     MMC_BUS_MODE_HS200,
     MMC_BUS_MODE_HS400,
+    /* SD: the fastest mode the board allows, the card may only do less */
+    MMC_BUS_MODE_SD_DEFAULT, /* 25 MHz */
+    MMC_BUS_MODE_SD_HS, /* High speed, 50 MHz */
     MMC_BUS_MODE_END,
 };
 
@@ -364,6 +375,7 @@ struct mmc_hal {
     mmc_set_bus_clock_t set_bus_clock; /*!< Set bus clock rate */
     mmc_set_bus_width_t set_bus_width; /*!< Set bus with */
     int (*set_delay_tap)(void *priv, unsigned int tap); /*!< Select bus delay tap */
+    bool (*card_present)(void *priv); /*!< Card detect, optional (SD) */
     size_t max_chunk_bytes; /*!< Maximum bytes per request */
 };
 
