@@ -70,4 +70,7 @@ const struct bus_cfg *usdhc_model_bus(void);
 /* Commands sent on the bus, auto CMD12 included */
 unsigned int usdhc_model_cmds(void);
 
+/* The next data transfer fails with an ADMA error (DMAE) */
+void usdhc_model_fail_dma(void);
+
 #endif // TESTS_UNIT_MODELS_USDHC_MODEL_H
