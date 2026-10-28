@@ -220,6 +220,20 @@ static void test_response_types(void **state)
     assert_int_equal(bench_violations_of(JESD84 "6.6"), 0); /* Busy */
 }
 
+/* DDR52: every command at 52 MHz or less, data on the DDR bus */
+static void test_ddr52_clock(void **state)
+{
+    (void)state;
+
+    card_cfg.vccq_mv = 3300;
+    assert_int_equal(init(&jiffy_emmc, USDHC_IMX6UL, 198000000), PB_OK);
+    read_write();
+    assert_int_equal(bench_violations_of(JESD84 "6.6.2"), 0);
+    assert_int_equal(bench_violations_of(JESD84 "6.6.6"), 0);
+    assert_true(usdhc_model_bus()->ddr);
+    assert_true(usdhc_model_bus()->clk_hz <= 52000000);
+}
+
 /* RPMB: CMD23 + CMD18, no CMD12 after a counted transfer (6.6.7.1) */
 static void test_rpmb_read(void **state)
 {
@@ -249,6 +263,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_imx8mpevk_emmc, setup, teardown),
         cmocka_unit_test_setup_teardown(test_jiffy_emmc, setup, teardown),
         cmocka_unit_test_setup_teardown(test_response_types, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ddr52_clock, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_crc_error, setup, teardown),
     };
