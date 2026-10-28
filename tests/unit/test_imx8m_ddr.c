@@ -53,6 +53,7 @@
 #define PHY_UCT_WRITE_ONLY  PHY_REG(0xd0032)
 #define PHY_UCT_DAT_WRITE   PHY_REG(0xd0034)
 #define PHY_CAL_BUSY        PHY_REG(0x20097)
+#define PHY_IMEM            PHY_REG(0x50000)
 
 #define TRACE_MAX           (512 * 1024)
 #define STORE_SIZE          (1 << 16)
@@ -90,6 +91,11 @@ static const uint16_t mail_script[][2] = {
 };
 static size_t mail_pos;
 static uint16_t mail_hi;
+/* Mail that ends training run n (0-based) instead of 'complete', or 0 */
+static uint16_t fail_mail;
+static unsigned int fail_run;
+/* Firmware readback from the PHY IMEM is corrupted */
+static int corrupt_imem;
 
 static void trace_add(const char *fmt, ...)
 {
@@ -158,13 +164,18 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
         /* UctWriteProtShadow: 0 = message pending, 1 after the ack (DctWriteProt = 0) */
         return reg_get(PHY_DCT_WRITE_PROT) == 0 ? 1 : 0;
     case PHY_UCT_WRITE_ONLY: {
+        size_t run = mail_pos / ARRAY_SIZE(mail_script);
         const uint16_t *m = mail_script[mail_pos++ % ARRAY_SIZE(mail_script)];
         mail_hi = m[1];
+        if (m[0] == 0x0007 && fail_mail != 0 && run == fail_run)
+            return fail_mail;
         return m[0];
     }
     case PHY_UCT_DAT_WRITE:
         return mail_hi;
     default:
+        if (corrupt_imem && addr == PHY_IMEM)
+            return reg_get(addr) ^ 1;
         return width == 16 ? reg_get(addr) & 0xffff : reg_get(addr);
     }
 }
@@ -257,6 +268,19 @@ static void report_first_difference(const char *golden, const char *actual)
     print_error("  actual: %.60s\n", a);
 }
 
+static int reset_model(void **state)
+{
+    (void)state;
+    memset(store, 0, sizeof(store));
+    trace_len = 0;
+    trace[0] = 0;
+    mail_pos = 0;
+    fail_mail = 0;
+    fail_run = 0;
+    corrupt_imem = 0;
+    return 0;
+}
+
 static void test_init_trace(void **state)
 {
     (void)state;
@@ -288,10 +312,38 @@ static void test_init_trace(void **state)
     free(golden);
 }
 
+/* The firmware reports a failed training: stop there */
+static void test_training_failed(void **state)
+{
+    (void)state;
+
+    for (unsigned int run = 0; run < 3; run++) {
+        reset_model(NULL);
+        fail_mail = 0x00ff;
+        fail_run = run;
+        assert_int_equal(umctl2_init(), -PB_ERR_IO);
+        /* Training run n + 1 is never started */
+        assert_int_equal(mail_pos, (run + 1) * ARRAY_SIZE(mail_script));
+    }
+}
+
+/* The firmware image does not read back from the PHY as written */
+static void test_firmware_verify_failed(void **state)
+{
+    (void)state;
+
+    corrupt_imem = 1;
+    assert_int_equal(umctl2_init(), -PB_ERR_IO);
+    /* Training is never started */
+    assert_int_equal(mail_pos, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_init_trace),
+        cmocka_unit_test_setup(test_init_trace, reset_model),
+        cmocka_unit_test_setup(test_training_failed, reset_model),
+        cmocka_unit_test_setup(test_firmware_verify_failed, reset_model),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
