@@ -144,7 +144,8 @@ int plat_init(void)
     /* Init debug console */
     board_console_init(&plat);
 
-    /* Init fusebox */
+    /* Init fusebox (reading only), its clock gate may be closed */
+    mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);
     imx_ocotp_init(IMX8M_OCOTP_BASE, 4);
 
     /* Configure systick */
