@@ -62,7 +62,8 @@ How this was checked (2026-10-28):
 | Allwinner H6/H616 | uMCTL2 at the standard offsets (MSTR 0x000, DRAMTMG 0x100, SWCTL 0x320) | ZynqMP-like PUB PHY, different bit fields (U-Boot `dram_sun50i_h6.h`) | Controller only |
 
 U-Boot's DDR code (`drivers/ddr/imx`, `arch/arm/mach-sunxi/dram_*`) and NXP's timing files in it
-are GPL-2.0+: reference only, no copying into punchboot (BSD-3-Clause).
+are GPL-2.0+: reference only, no copying into punchboot (BSD-3-Clause). See "Licences and
+provenance".
 
 ## What can be taken from AMD's documentation
 
@@ -75,6 +76,40 @@ are GPL-2.0+: reference only, no copying into punchboot (BSD-3-Clause).
 - What would help with the PHY is Synopsys' PHY training firmware application note (message
   block layout per DRAM type). NXP ships its content in the DDR tool, not under a licence that
   allows copying it here.
+
+## Licences and provenance
+
+Punchboot is BSD-3-Clause. U-Boot, where NXP's i.MX8M DDR init and board timing files are
+published, is GPL-2.0+, so nothing may be copied from it. The DDR code was first added in 2019
+(`c84cb90e`) following NXP's U-Boot code; its comments, a few typos and most of the EVK timing
+values matched NXP's GPL-2.0+ files, under a BSD-3-Clause header without NXP's notice. Where each
+part stands now (2026-10-28):
+
+| Part | Basis | Status |
+|---|---|---|
+| Reset release, power up, `DDR_SS_GPR0`, order of the controller and DFI init steps (`ddr.c`, `umctl2.c`, `ddr_imx8mq.c`) | NXP's BSD-3-Clause TF-A DRAM code (`plat/imx/imx8m/ddr/dram_retention.c`, `dram.c`), which re-runs these steps after retention. NXP's copyright is in those files | OK. Some values differ from TF-A's (DFIMISC, PWRCTL, RFSHCTL3, the 8MQ `SRC_DDRC2_RCR` hold value), noted in the files |
+| Register map and fields (`umctl2.h`, `ddrc.h`) | Facts, checked against AMD's MIT licensed ZynqMP FSBL; no code copied | OK |
+| PHY CSRs, mailbox protocol, message codes (`dwc_ddrphy.h`) | Facts about the PHY and its firmware, written up in punchboot's words | OK |
+| Firmware load and training code (`dwc_ddrphy.c`) | Not in TF-A. Rewritten in this branch, but a refactor of the 2019 code, not a clean-room rewrite | Lower risk; for a clean slate, have someone who hasn't read U-Boot's version re-implement it from `dwc_ddrphy.h` |
+| DRAM PLL dividers (`ddr_imx8mq.c`) | Hardware settings for two data rates | OK |
+| `struct dram_timing_info` layout (`dram.h`) | Interface to TF-A (BSD-3-Clause); comments in punchboot's words | OK |
+| EVK timing (`src/board/imx8mevk/lpddr4_timing.c`) and its golden trace | Comments and 83% of the register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` (GPL-2.0+) | **Open (F-108)**: regenerate, see below |
+| Training firmware | NXP's binaries, not in the repository | Distributed images that contain it follow NXP's firmware licence |
+
+**Replacing the EVK timing.** Only NXP's DDR tool (Config Tools for i.MX / the i.MX8M DDR tool and
+its register programming aid) can produce the tables for a board: the controller values follow from
+the DRAM part and board, but the PHY configuration, message blocks and in particular the PIE image
+come from Synopsys' PHY init code inside the tool. Run it for the board, then:
+
+1. **Check the licence of the generated file.** NXP's generated timing files in U-Boot carry
+   GPL-2.0+ headers. If the tool writes one, the output can't go into punchboot as is; ask NXP, or
+   check whether the tool's terms let you choose the licence of output for your own board.
+2. Replace `src/board/imx8mevk/lpddr4_timing.c` with the output: it uses the same table and struct
+   names and layout. Replace its U-Boot includes with `<pb/pb.h>` and `<plat/imx8m/dram.h>`, make
+   the tables `static` and keep the one exported `struct dram_timing_info dram_timing`. Write any
+   comments in your own words.
+3. Regenerate the golden trace (`PB_UPDATE_GOLDEN=1`), and say in the commit that the timing
+   changed.
 
 ## Init sequence
 
@@ -123,8 +158,10 @@ filled placeholder training firmware. With `IMX8M_FW_DIR` set to a directory wit
 NXP's current i.MX8M DDR init is in U-Boot (`drivers/ddr/imx/imx8m/ddr_init.c`,
 `drivers/ddr/imx/phy/*.c`, GPL-2.0+). Running it on the host against the same device model and
 board timing as `imx8m_ddr_init()`, and diffing the two register traces, shows exactly where
-punchboot departs from it. Because of the licence the harness is never committed; it lives in the
-ignored `build-uboot-diff/` and is quick to recreate:
+punchboot departs from it. Because of the licence the harness is never committed or distributed: it
+lives in `build-uboot-diff/`, which `/build-*` in `.gitignore` covers (the dev container only
+mounts the repository). Never `git add -f` it, and don't ship archives of the working tree. It is
+quick to recreate:
 
 - Copy the four U-Boot files and `arch/arm/include/asm/arch-imx8m/ddr.h`, plus a host version of
   `dram_pll_init()`/`dram_disable_bypass()` from `clock_imx8mq.c` (or `clock_imx8mm.c` for 8MM/8MP).
@@ -176,7 +213,10 @@ need a remap hook in `struct dwc_ddrphy` instead of the stride.
    board makefile, or move the `struct dwc_ddrphy_fw` definitions to the board.
 4. Check where the TF-A on the 8MP expects the saved timing (punchboot: 0x40000000; U-Boot's
    default on the 8MM: OCRAM_S at 0x180000).
-5. A board timing file and a golden trace of its own (copy `test_imx8m_ddr`, with `ddr_imx8mp.c`).
+5. A board timing file from NXP's DDR tool, run for the board (see "Licences and provenance"),
+   and a golden trace of its own (copy `test_imx8m_ddr`, with `ddr_imx8mp.c`). **Not** U-Boot's
+   `board/nxp/imx8mp_evk/lpddr4_timing.c`: it is GPL-2.0+. Using it in the local U-Boot harness as a
+   reference is fine; committing it, or a trace generated from it, is not.
 6. Inline ECC and DDR4 are new code paths in `ddr.c`/the drivers.
 
 **A SoC with only the controller (ZynqMP, Allwinner H6/H616).** Select only `DRIVERS_DDR_UMCTL2`
