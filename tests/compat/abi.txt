@@ -34,6 +34,7 @@ value PB_CMD_BOARD_STATUS_READ 25
 value PB_CMD_STREAM_READ_BUFFER 26
 value PB_CMD_PART_RESIZE 27
 value PB_CMD_BOOT_STATUS 28
+value PB_CMD_LOG_READ 29
 value PB_RESULT_OK 0
 value PB_RESULT_ERROR 1
 value PB_RESULT_AUTHENTICATION_FAILED 2
@@ -155,6 +156,13 @@ field pb_result_board_status.size 0 4
 struct pb_result_boot_status 32
 field pb_result_boot_status.uuid 0 16
 field pb_result_boot_status.status 16 16
+struct pb_command_log_read 32
+field pb_command_log_read.position 0 4
+field pb_command_log_read.size 4 4
+struct pb_result_log_read 32
+field pb_result_log_read.position 0 4
+field pb_result_log_read.size 4 4
+field pb_result_log_read.head 8 4
 # bpak format (include/bpak/bpak.h, id.h)
 value BPAK_HEADER_MAGIC 0x42504132
 value BPAK_MAX_PARTS 32

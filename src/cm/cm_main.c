@@ -19,6 +19,7 @@
 #include <pb/device_uuid.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/ramlog.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <stdio.h>
@@ -569,11 +570,17 @@ static int cmd_part_verify(void)
         rc = PB_OK;
         pb_wire_init_result(&result, error_to_wire(rc));
     } else {
-#if LOGLEVEL > 2
-        printf("Expected hash:");
-        for (int i = 0; i < 32; i++)
-            printf("%x", verify_cmd->sha256[i] & 0xff);
-        printf("\n\r");
+#if LOG_MAX_LEVEL >= 3
+        static const char hex[] = "0123456789abcdef";
+        char hash_str[65];
+
+        /* Not snprintf(), F-089 */
+        for (int i = 0; i < 32; i++) {
+            hash_str[i * 2] = hex[verify_cmd->sha256[i] >> 4];
+            hash_str[i * 2 + 1] = hex[verify_cmd->sha256[i] & 0xf];
+        }
+        hash_str[64] = '\0';
+        LOG_DBG("Expected hash: %s", hash_str);
 #endif
         LOG_ERR("Verification failed");
         rc = -PB_ERR_CHECKSUM;
@@ -711,6 +718,44 @@ static int cmd_slc_read(void)
     /* A revoked key is in the key status, the result is only for errors
      * reading it. It used to be the last key's status (F-072). */
     return rc;
+}
+
+static int cmd_log_read(void)
+{
+#ifdef CONFIG_RAMLOG
+    struct pb_command_log_read *log_cmd = (struct pb_command_log_read *)cmd.request;
+    struct pb_result_log_read log_result = { 0 };
+    uint32_t head, oldest, position;
+    int rc;
+
+    LOG_DBG("Log read %" PRIu32 ", %" PRIu32, log_cmd->position, log_cmd->size);
+
+    /* Nothing may print between here and ramlog_read(): a new line in a
+     * full log moves the oldest byte */
+    head = ramlog_head();
+    oldest = head - ramlog_length();
+    position = MAX(log_cmd->position, oldest);
+    position = MIN(position, head);
+
+    log_result.position = position;
+    log_result.head = head;
+    log_result.size =
+        ramlog_read(position - oldest, buffer[0], MIN(log_cmd->size, (uint32_t)CM_BUF_SIZE));
+
+    pb_wire_init_result2(&result, PB_RESULT_OK, &log_result, sizeof(log_result));
+
+    /* With no data the result is the only one, pb_command_parse sends it */
+    if (log_result.size == 0)
+        return PB_OK;
+
+    cm_write(&result, sizeof(result));
+    rc = cm_write(buffer[0], log_result.size);
+    pb_wire_init_result(&result, error_to_wire(rc));
+    return rc;
+#else
+    pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
+    return -PB_ERR_NOT_SUPPORTED;
+#endif
 }
 
 static int cmd_stream_init(void)
@@ -970,6 +1015,9 @@ static int pb_command_parse(void)
         rc = cmd_part_erase(erase_cmd);
         pb_wire_init_result(&result, error_to_wire(rc));
     } break;
+    case PB_CMD_LOG_READ:
+        rc = cmd_log_read();
+        break;
     default: {
         LOG_ERR("Got unknown command: %u", cmd.command);
         pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);

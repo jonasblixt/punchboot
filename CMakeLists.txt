@@ -135,9 +135,11 @@ target_link_libraries(pb_keystore PUBLIC pb_host_flags)
 add_library(pb_core STATIC
     src/main.c
     src/bio.c
+    src/console.c
     src/crypto.c
     src/delay.c
     src/device_uuid.c
+    src/ramlog.c
     src/rot.c
     src/slc.c
     src/wire.c
@@ -164,6 +166,8 @@ add_executable(pb-host
     src/board/host/board.c
 )
 target_link_libraries(pb-host PRIVATE pb_core)
+# fopencookie(), for the console stream
+set_source_files_properties(src/plat/host/plat.c PROPERTIES COMPILE_DEFINITIONS _GNU_SOURCE)
 
 # The image loader refuses to overwrite punchboot itself, which it finds
 # through linker script symbols on target. Place a fake punchboot image at the

@@ -738,7 +738,7 @@ int mmc_part_switch(struct mmc_device *dev, enum mmc_part part)
 {
     uint8_t value = 0;
     int rc;
-#if LOGLEVEL >= 3
+#if LOG_MAX_LEVEL >= 3
     const char *part_names[] = {
         "User",
         "Boot0",

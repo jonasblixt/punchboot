@@ -36,6 +36,9 @@ def _has_fileno(file: IO[bytes]) -> bool:
 
 PartUUIDType = uuid.UUID | str
 
+# Bytes asked for per log read. Devices send at most their command buffer.
+LOG_READ_CHUNK_SIZE = 64 * 1024
+
 
 def _partuuid_to_uuid(uu: PartUUIDType) -> uuid.UUID:
     if isinstance(uu, str):
@@ -396,6 +399,31 @@ class Session:
     def board_read_status(self) -> str:
         """Read board status."""
         return str(self.pb_s.board_read_status().strip())
+
+    def log_read(self) -> bytes:
+        """Read the device's RAM log, oldest byte first.
+
+        The log is read up to where it was when the read started. Command
+        mode logs too, so it would otherwise never end.
+
+        Exceptions:
+        NotAuthenticatedError -- Authentication required
+        NotSupportedError     -- The device has no RAM log, or is too old
+        """
+        log = bytearray()
+        position = 0
+        end: int | None = None
+
+        while end is None or position < end:
+            start, data, head = self.pb_s.log_read(position, LOG_READ_CHUNK_SIZE)
+            if end is None:
+                end = head
+            if not data:
+                break
+            log += data[: max(0, end - start)]
+            position = start + len(data)
+
+        return bytes(log)
 
     def slc_set_configuration(self) -> None:
         """Set SLC to configuration.

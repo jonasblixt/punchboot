@@ -436,7 +436,7 @@ out:
 static int imx_usdhc_set_bus_width(void *priv, enum mmc_bus_width width)
 {
     struct imx_usdhc *u = priv;
-#if LOGLEVEL >= 3
+#if LOG_MAX_LEVEL >= 3
     const char *bus_widths[] = {
         "Invalid", "1-Bit", "4-Bit", "8-Bit", "4-Bit DDR", "8-Bit DDR", "8-Bit DDR + Strobe",
     };

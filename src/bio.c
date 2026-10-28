@@ -61,7 +61,7 @@ bio_dev_t bio_allocate(lba_t first_lba,
     strncpy(bio_pool[n_bios].description, description, sizeof(bio_pool[n_bios].description) - 1);
     bio_pool[n_bios].valid = true;
 
-#if (LOGLEVEL > 1)
+#if LOG_MAX_LEVEL >= 2
     char uu_str[37];
     uuid_unparse(uu, uu_str);
     LOG_INFO("%s: %i - %i, %s", uu_str, first_lba, last_lba, description);

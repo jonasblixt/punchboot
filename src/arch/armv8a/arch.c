@@ -1,6 +1,7 @@
 #include <arch/arch_helpers.h>
 #include <arch/armv8a/timer.h>
 #include <pb/arch.h>
+#include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
 
@@ -11,6 +12,8 @@ void arch_init(void)
 /* Generic exception handler */
 void exception(int index)
 {
+    /* The exception may have hit in the middle of a RAM log only message */
+    console_uart_mute(false);
     printf("*** UNHANDLED EXCEPTION ***\n\r");
     printf("Index %i\n\r", index);
 #ifdef CONFIG_ARMV8_RESET_ON_EXCEPTION
@@ -20,6 +23,7 @@ void exception(int index)
 
 void exception_sync(void)
 {
+    console_uart_mute(false);
     printf("*** SYNCHRONOUS EXCEPTION ***\n\r");
     printf("ESR: 0x%08lx\n\r", read_esr_el3());
     printf("ELR: 0x%08lx\n\r", read_elr_el3());

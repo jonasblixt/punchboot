@@ -12,6 +12,7 @@
 #include <pb/cm.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/ramlog.h>
 #include <pb/self_test.h>
 #include <pb/timestamp.h>
 #include <stdio.h>
@@ -21,6 +22,11 @@ void main(void)
 {
     int rc;
 
+#ifdef CONFIG_RAMLOG
+    /* First, so that prints from before console_init() are kept and written
+     * to the UART once it's set up */
+    ramlog_init();
+#endif
     arch_init();
 
     rc = plat_init();
