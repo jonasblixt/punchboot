@@ -22,6 +22,7 @@ static const struct imx_usdhc_config *usdhc;
 static unsigned int input_clock_hz;
 static struct usdhc_adma2_desc tbl[512] __section(".no_init") __aligned(64);
 static bool bus_ddr_enable = false;
+static bool block_count_set; /* The last command was CMD23 */
 
 static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 {
@@ -117,6 +118,7 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     unsigned int xfertype = 0, mixctl = 0, err = 0;
     bool multiple = false;
     bool data = false;
+    bool stop = false; /* A data error left the card sending or receiving */
     unsigned int state, flags = INTSTATEN_CC | INTSTATEN_CTOE;
     unsigned int cmd_retries = 0;
 
@@ -159,10 +161,19 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
         break;
     }
 
+    /*
+     * After CMD23 the transfer ends by itself, a CMD12 would be illegal
+     * (JESD84-B51 6.6.7.1)
+     */
+    bool counted = block_count_set;
+
+    block_count_set = false;
+
     if (multiple) {
         mixctl |= MIXCTRL_MSBSEL;
         mixctl |= MIXCTRL_BCEN;
-        mixctl |= MIXCTRL_AC12EN;
+        if (!counted)
+            mixctl |= MIXCTRL_AC12EN;
     }
 
     if (data) {
@@ -244,11 +255,30 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
 
             if (state & (INTSTATEN_DTOE | DATA_ERR)) {
                 err = -PB_ERR_IO;
+                stop = multiple;
                 LOG_ERR("imx_usdhc mmc data state 0x%x", state);
                 goto out;
             }
         } while ((state & flags) != flags);
     }
+
+    /* Errors during an open-ended transfer come with the auto CMD12 response */
+    if (mixctl & MIXCTRL_AC12EN) {
+        uint32_t ac12_status = mmio_read_32(usdhc->base + USDHC_CMD_RSP3);
+        uint32_t errors = STATUS_ERROR_MASK;
+
+        /* A read up to the last block may read ahead past it, JESD84-B51 6.8.3 */
+        if (mixctl & MIXCTRL_DTDSEL)
+            errors &= ~STATUS_ADDRESS_OUT_OF_RANGE;
+
+        if (ac12_status & errors) {
+            LOG_ERR("imx_usdhc CMD%u card status 0x%08x", idx, ac12_status);
+            err = -PB_ERR_IO;
+        }
+    }
+
+    if (idx == MMC_CMD_SET_BLOCK_COUNT)
+        block_count_set = true;
 
 out:
     /* Reset CMD and DATA on error */
@@ -262,6 +292,13 @@ out:
             while (mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTD)
                 ;
         }
+
+        /*
+         * No auto CMD12 after an error before the last block (RM), the
+         * card is still sending or receiving: stop it
+         */
+        if (stop)
+            (void)imx_usdhc_send_cmd(MMC_CMD_STOP_TRANSMISSION, 0, MMC_RSP_R1b, NULL);
     }
 
     /* clear all irq status */

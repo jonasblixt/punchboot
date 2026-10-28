@@ -237,24 +237,46 @@ static void test_ddr52_clock(void **state)
 /* RPMB: CMD23 + CMD18, no CMD12 after a counted transfer (6.6.7.1) */
 static void test_rpmb_read(void **state)
 {
-    SKIP_OPEN("F-124");
     (void)state;
 
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
     assert_int_equal(bio_read(part(UU_RPMB), 0, 512, in), PB_OK);
-    assert_bench_clean();
+    assert_int_equal(bench_violations_of(JESD84 "6.6.7.1"), 0);
+    assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
 }
 
+/* After a data error the card is stopped, the next transfer works */
 static void test_read_crc_error(void **state)
 {
-    SKIP_OPEN("F-124");
     (void)state;
 
     assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
     emmc_model_fail_read(BUS_DATA_CRC);
     assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
     assert_int_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
-    assert_bench_clean();
+    assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
+}
+
+static void test_write_crc_error(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    emmc_model_fail_write(BUS_DATA_CRC);
+    assert_int_not_equal(bio_write(part(UU_USER), 0, 4096, out), PB_OK);
+    assert_int_equal(bio_write(part(UU_USER), 0, 4096, out), PB_OK);
+    assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
+}
+
+/* An execution error is reported in the auto CMD12 response (Table 68) */
+static void test_read_status_error(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    emmc_model_status_error(MMC_CMD_READ_MULTIPLE_BLOCK, STATUS_ERROR);
+    assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
+    assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
 }
 
 int main(void)
@@ -266,6 +288,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_ddr52_clock, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_crc_error, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_write_crc_error, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
