@@ -539,6 +539,21 @@ tune_tap_fail:
 }
 #endif // CONFIG_MMC_CORE_HS200_TUNE
 
+/* The DEVICE_TYPE bits that allow a bus mode */
+static uint8_t mode_card_types(enum mmc_bus_mode mode)
+{
+    switch (mode) {
+    case MMC_BUS_MODE_DDR52:
+        return EXT_CSD_CARD_TYPE_DDR52_1V8 | EXT_CSD_CARD_TYPE_DDR52_1V2;
+    case MMC_BUS_MODE_HS200:
+        return EXT_CSD_CARD_TYPE_HS200_1V8 | EXT_CSD_CARD_TYPE_HS200_1V2;
+    case MMC_BUS_MODE_HS400:
+        return EXT_CSD_CARD_TYPE_HS400_1V8 | EXT_CSD_CARD_TYPE_HS400_1V2;
+    default:
+        return 0;
+    }
+}
+
 /* An EXT_CSD timeout field, in 10 ms units */
 static unsigned int ext_csd_time_ms(unsigned int index)
 {
@@ -612,6 +627,18 @@ static int mmc_setup(void)
             return rc;
         }
     } while (rc != MMC_STATE_TRAN);
+
+    /* The device must support the mode, JESD84-B51 6.6.2 */
+    rc = mmc_extcsd_reload();
+    if (rc != PB_OK)
+        return rc;
+
+    if (!(mmc_ext_csd[EXT_CSD_CARD_TYPE] & mode_card_types(mmc_cfg->mode))) {
+        LOG_ERR("Bus mode %i not supported, DEVICE_TYPE 0x%02x",
+                mmc_cfg->mode,
+                mmc_ext_csd[EXT_CSD_CARD_TYPE]);
+        return -PB_ERR_NOT_SUPPORTED;
+    }
 
     switch (mmc_cfg->mode) {
     case MMC_BUS_MODE_DDR52: {

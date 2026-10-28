@@ -195,6 +195,16 @@
 #define MMC_STATE_BTST              9
 #define MMC_STATE_SLP               10
 
+/* EXT_CSD_CARD_TYPE (DEVICE_TYPE) bits, JESD84-B51 7.4.59 */
+#define EXT_CSD_CARD_TYPE_HS26      BIT(0)
+#define EXT_CSD_CARD_TYPE_HS52      BIT(1)
+#define EXT_CSD_CARD_TYPE_DDR52_1V8 BIT(2) /* Or 3 V */
+#define EXT_CSD_CARD_TYPE_DDR52_1V2 BIT(3)
+#define EXT_CSD_CARD_TYPE_HS200_1V8 BIT(4)
+#define EXT_CSD_CARD_TYPE_HS200_1V2 BIT(5)
+#define EXT_CSD_CARD_TYPE_HS400_1V8 BIT(6)
+#define EXT_CSD_CARD_TYPE_HS400_1V2 BIT(7)
+
 /* Card status error bits (JESD84-B51 Table 68), cleared once reported */
 #define STATUS_ADDRESS_OUT_OF_RANGE BIT(31)
 #define STATUS_ADDRESS_MISALIGN     BIT(30)

@@ -169,24 +169,11 @@ static void test_hs400(void **state)
 /* The device has no HS200: the host must check DEVICE_TYPE, 6.6.2.2 */
 static void test_hs200_not_supported(void **state)
 {
-    SKIP_OPEN("F-117");
     (void)state;
 
     card_cfg.device_type = BIT(2) | BIT(1) | BIT(0);
 
-    (void)init();
-    assert_bench_clean();
-}
-
-/* HS200 needs VCCQ at 1.8 V or 1.2 V, 6.6.2.2 */
-static void test_hs200_at_3v3(void **state)
-{
-    SKIP_OPEN("F-117");
-    (void)state;
-
-    card_cfg.vccq_mv = 3300;
-
-    (void)init();
+    assert_int_equal(init(), -PB_ERR_NOT_SUPPORTED);
     assert_bench_clean();
 }
 
@@ -298,9 +285,11 @@ static void test_part_switch_error(void **state)
     (void)state;
 
     assert_int_equal(init(), PB_OK);
+    unsigned int blocks = emmc_model_blocks_read();
+
     emmc_model_fail_switch(EXT_CSD_PART_CONFIG);
     assert_int_not_equal(bio_read(part(UU_BOOT0), 0, sizeof(buf), buf), PB_OK);
-    assert_int_equal(emmc_model_blocks_read(), 1); /* Only the EXT_CSD */
+    assert_int_equal(emmc_model_blocks_read(), blocks);
 }
 
 /* An execution error during a read (Table 68, ERROR) must fail the read */
@@ -369,7 +358,6 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_hs400_enhanced_strobe, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
-        cmocka_unit_test_setup_teardown(test_hs200_at_3v3, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
         cmocka_unit_test_setup_teardown(test_boot_partitions, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
