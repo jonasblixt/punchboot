@@ -2,12 +2,22 @@
  * Punch BOOT
  *
  * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
+ * Copyright 2018-2023 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Synopsys DesignWare uMCTL2 DDR controller: the steps of the DRAM init
  * that only involve the controller. The SoC code calls them in order and
  * does the resets, clocks and the PHY in between (see plat/imx8m/ddr.c).
+ *
+ * The steps (self refresh by software and the STAT check for it, the
+ * SWCTL/DFIMISC handshake around dfi_init_start, leaving self refresh,
+ * port enable) are those of NXP's BSD-3-Clause i.MX8M DRAM code in TF-A
+ * (plat/imx/imx8m/ddr/dram_retention.c). Some values differ: TF-A writes
+ * DFIMISC without ctl_idle_en and dfi_frequency, PWRCTL 0xaa and 0x88
+ * where this writes 0xa8 and 0x08, and RFSHCTL3 0 at the end (F-106). The
+ * register layout is checked against AMD's MIT licensed ZynqMP FSBL (see
+ * drivers/ddr/umctl2.h); no code was taken from it.
  */
 
 #include <drivers/ddr/umctl2.h>
