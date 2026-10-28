@@ -16,13 +16,13 @@
 
 #define RAMLOG_SIZE (CONFIG_RAMLOG_SIZE_KiB * 1024)
 
-/* In .no_init, so that it isn't zeroed by the startup code and is found by
+/* In .ramlog, so that it isn't zeroed by the startup code and is found by
  * its symbol name. Cache line aligned, so that syncing the header and the
  * data never touches anything else. */
 static struct {
     struct pb_ramlog_hdr hdr;
     char data[RAMLOG_SIZE];
-} ramlog __section(".no_init") __aligned(64) __used;
+} ramlog __section(".ramlog") __aligned(64) __used;
 
 /* Set by ramlog_init(). In the SPL the log is in DRAM, which may not be
  * set up yet: nothing may touch it before ramlog_init(). */

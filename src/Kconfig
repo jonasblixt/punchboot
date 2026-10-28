@@ -46,9 +46,9 @@ config RAMLOG
     default n
     help
         Everything written to the console is also kept in a ring buffer in
-        RAM, the symbol 'ramlog' in the .no_init section. It can be read
-        without a UART: over JTAG, through a boot ROM USB loader (FEL) or
-        from a RAM dump. The layout is struct pb_ramlog_hdr in
+        RAM, the symbol 'ramlog' in the .ramlog section (not zeroed, in the
+        RAM pb runs from). It can be read without a UART: over JTAG,
+        through a boot ROM USB loader (FEL) or from a RAM dump. The layout is struct pb_ramlog_hdr in
         include/pb/ramlog.h.
 
         Output from before console_init() (early debug prints) goes only
