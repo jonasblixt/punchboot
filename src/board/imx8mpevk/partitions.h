@@ -17,6 +17,10 @@
 #define UUID_8d75d8b9_b169_4de6_bee0_48abdc95c408 \
     (const unsigned char *)"\x8d\x75\xd8\xb9\xb1\x69\x4d\xe6\xbe\xe0\x48\xab\xdc\x95\xc4\x08"
 #define PART_rpmb UUID_8d75d8b9_b169_4de6_bee0_48abdc95c408
+/* SD card (uSDHC2), the whole card */
+#define UUID_a73fd8a4_0279_4ae0_ad8d_0bba4be03468 \
+    (const unsigned char *)"\xa7\x3f\xd8\xa4\x02\x79\x4a\xe0\xad\x8d\x0b\xba\x4b\xe0\x34\x68"
+#define PART_sd UUID_a73fd8a4_0279_4ae0_ad8d_0bba4be03468
 
 #define UUID_2af755d8_8de5_45d5_a862_014cfa735ce0 \
     (const unsigned char *)"\x2a\xf7\x55\xd8\x8d\xe5\x45\xd5\xa8\x62\x01\x4c\xfa\x73\x5c\xe0"

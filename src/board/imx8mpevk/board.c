@@ -111,7 +111,6 @@ static const struct gpt_table_list gpt_tables[] = {
     },
 };
 
-
 void board_console_init(struct imx8m_platform *plat_)
 {
     (void)plat_;
@@ -142,10 +141,10 @@ static int usdhc_emmc_setup(void)
     mmio_write_32(CCM_CCGR_SET(IMX8MP_CCGR_USDHC3), CCGR_CLK_ON_MASK);
 
     static const uintptr_t mux[] = {
-        IOMUXC_MUX_NAND_WE_B,   IOMUXC_MUX_NAND_WP_B,  IOMUXC_MUX_NAND_DATA04,
+        IOMUXC_MUX_NAND_WE_B,   IOMUXC_MUX_NAND_WP_B,   IOMUXC_MUX_NAND_DATA04,
         IOMUXC_MUX_NAND_DATA05, IOMUXC_MUX_NAND_DATA06, IOMUXC_MUX_NAND_DATA07,
-        IOMUXC_MUX_NAND_RE_B,   IOMUXC_MUX_NAND_CE2_B, IOMUXC_MUX_NAND_CE3_B,
-        IOMUXC_MUX_NAND_CLE,    IOMUXC_MUX_NAND_CE1_B, IOMUXC_MUX_NAND_READY_B,
+        IOMUXC_MUX_NAND_RE_B,   IOMUXC_MUX_NAND_CE2_B,  IOMUXC_MUX_NAND_CE3_B,
+        IOMUXC_MUX_NAND_CLE,    IOMUXC_MUX_NAND_CE1_B,  IOMUXC_MUX_NAND_READY_B,
     };
 
     for (unsigned int i = 0; i < ARRAY_SIZE(mux); i++)
@@ -162,9 +161,9 @@ static int usdhc_emmc_setup(void)
 #define USDHC3_PAD_DATA   (PAD_CTL_PE | PAD_CTL_PUE | USDHC3_PAD_CLK)
 #define USDHC3_PAD_STROBE (PAD_CTL_PE | USDHC3_PAD_CLK) /* Pull down */
     static const uintptr_t data_pads[] = {
-        IOMUXC_PAD_NAND_WP_B,   IOMUXC_PAD_NAND_DATA04, IOMUXC_PAD_NAND_DATA05,
-        IOMUXC_PAD_NAND_DATA06, IOMUXC_PAD_NAND_DATA07, IOMUXC_PAD_NAND_RE_B,
-        IOMUXC_PAD_NAND_CE2_B,  IOMUXC_PAD_NAND_CE3_B,  IOMUXC_PAD_NAND_CLE,
+        IOMUXC_PAD_NAND_WP_B,    IOMUXC_PAD_NAND_DATA04, IOMUXC_PAD_NAND_DATA05,
+        IOMUXC_PAD_NAND_DATA06,  IOMUXC_PAD_NAND_DATA07, IOMUXC_PAD_NAND_RE_B,
+        IOMUXC_PAD_NAND_CE2_B,   IOMUXC_PAD_NAND_CE3_B,  IOMUXC_PAD_NAND_CLE,
         IOMUXC_PAD_NAND_READY_B,
     };
 
@@ -191,6 +190,57 @@ static int usdhc_emmc_setup(void)
     return imx_usdhc_init(&cfg, MHz(200));
 }
 
+static int usdhc_sd_setup(void)
+{
+    /* USDHC2_CLK_ROOT: SYSTEM_PLL1_DIV2 (400 MHz) / 2 = 200 MHz */
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_CLR(IMX8MP_USDHC2_CLK_ROOT),
+                  CLK_ROOT_SRC_MUX_MASK | CLK_ROOT_PRE_DIV_MASK);
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(IMX8MP_USDHC2_CLK_ROOT),
+                  CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV2));
+    mmio_write_32(CCM_CCGR_SET(IMX8MP_CCGR_USDHC2), CCGR_CLK_ON_MASK);
+
+    static const uintptr_t mux[] = {
+        IOMUXC_MUX_SD2_CD_B,  IOMUXC_MUX_SD2_CLK,   IOMUXC_MUX_SD2_CMD,   IOMUXC_MUX_SD2_DATA0,
+        IOMUXC_MUX_SD2_DATA1, IOMUXC_MUX_SD2_DATA2, IOMUXC_MUX_SD2_DATA3,
+    };
+
+    for (unsigned int i = 0; i < ARRAY_SIZE(mux); i++)
+        mmio_write_32(mux[i], MUX_ALT(0));
+
+    /*
+     * SD2_VSEL selects NVCC_SD2 (the PMIC's LDO5): VEND_SPEC.VSELECT 0,
+     * 3.3 V. SD2_RESET_B enables the card supply through a pull-up and is
+     * left as it is.
+     */
+    mmio_write_32(IOMUXC_MUX_GPIO1_IO04, MUX_ALT(1));
+    mmio_write_32(IOMUXC_PAD_GPIO1_IO04, PAD_CTL_DSE_X1);
+
+#define USDHC2_PAD_CLK  (PAD_CTL_HYS | PAD_CTL_FSEL_FAST | PAD_CTL_DSE_X4)
+#define USDHC2_PAD_DATA (PAD_CTL_PE | PAD_CTL_PUE | USDHC2_PAD_CLK)
+    static const uintptr_t data_pads[] = {
+        IOMUXC_PAD_SD2_CMD,   IOMUXC_PAD_SD2_DATA0, IOMUXC_PAD_SD2_DATA1,
+        IOMUXC_PAD_SD2_DATA2, IOMUXC_PAD_SD2_DATA3,
+    };
+
+    mmio_write_32(IOMUXC_PAD_SD2_CLK, USDHC2_PAD_CLK);
+    mmio_write_32(IOMUXC_PAD_SD2_CD_B, PAD_CTL_HYS | PAD_CTL_PE | PAD_CTL_PUE);
+    for (unsigned int i = 0; i < ARRAY_SIZE(data_pads); i++)
+        mmio_write_32(data_pads[i], USDHC2_PAD_DATA);
+
+    static const struct imx_usdhc_config cfg = {
+        .base = IMX8M_USDHC2_BASE,
+        .card_detect = true,
+        .mmc_config = {
+            .card = MMC_CARD_TYPE_SD,
+            .mode = MMC_BUS_MODE_SD_HS,
+            .width = MMC_BUS_WIDTH_4BIT,
+            .user_uu = PART_sd,
+        },
+    };
+
+    return imx_usdhc_init(&cfg, MHz(200));
+}
+
 int board_init(struct imx8m_platform *plat_)
 {
     int rc;
@@ -211,6 +261,11 @@ int board_init(struct imx8m_platform *plat_)
         LOG_ERR("eMMC init failed (%i)", rc);
         return rc;
     }
+
+    /* The microSD slot: no card, or one that fails, doesn't stop the boot */
+    rc = usdhc_sd_setup();
+    if (rc != PB_OK && rc != -PB_ERR_NOT_FOUND)
+        LOG_ERR("SD init failed (%i)", rc);
 
     bio_dev_t user_part = bio_get_part_by_uu(PART_user);
 
