@@ -370,6 +370,25 @@ static void test_timing_copy_too_large(void **state)
     dram_timing.ddrphy_pie_num = saved_pie_num;
 }
 
+/* The PHY driver refuses an invalid firmware type or a missing image before touching the PHY */
+static void test_phy_bad_firmware(void **state)
+{
+    (void)state;
+    static const uint32_t word = 0x12345678;
+    const struct dwc_ddrphy_fw fw = { &word, &word + 1, &word, &word + 1 };
+    const struct dwc_ddrphy no_2d = {
+        .base = PHY_BASE,
+        .csr_stride = 4,
+        .fw = { [FW_1D_IMAGE] = &fw, [FW_2D_IMAGE] = NULL },
+    };
+    struct dram_fsp_msg fsp = { .drate = 3200, .fw_type = FW_2D_IMAGE };
+
+    assert_int_equal(dwc_ddrphy_train(&no_2d, &fsp), -PB_ERR_PARAM);
+    fsp.fw_type = (enum fw_type)7;
+    assert_int_equal(dwc_ddrphy_train(&no_2d, &fsp), -PB_ERR_PARAM);
+    assert_int_equal(trace_len, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -378,6 +397,7 @@ int main(void)
         cmocka_unit_test_setup(test_firmware_verify_failed, reset_model),
         cmocka_unit_test_setup(test_unsupported_data_rate, reset_model),
         cmocka_unit_test_setup(test_timing_copy_too_large, reset_model),
+        cmocka_unit_test_setup(test_phy_bad_firmware, reset_model),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
