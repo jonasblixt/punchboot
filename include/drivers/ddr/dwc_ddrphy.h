@@ -96,16 +96,6 @@
 #define DDRPHY_MAIL_STREAMING_MSG        0x08
 #define DDRPHY_MAIL_TRAINING_FAILED      0xff
 
-/*
- * Address/command drive strength (ATxImpedance) in the PHY's own encoding,
- * as in NXP's reference code.
- */
-#define LPDDR4_PHY_ADDR_RON60            0x1
-#define LPDDR4_PHY_ADDR_RON40            0x3
-#define LPDDR4_PHY_ADDR_RON30            0x7
-#define LPDDR4_PHY_ADDR_RON24            0xf
-#define LPDDR4_PHY_ADDR_RON20            0x1f
-
 /* PMU: held in reset, stalled, running */
 #define MICRORESET_HOLD                  (MICRORESET_RESETTOMICRO | MICRORESET_STALLTOMICRO)
 #define MICRORESET_STALL                 MICRORESET_STALLTOMICRO
