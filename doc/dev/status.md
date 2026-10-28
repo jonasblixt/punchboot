@@ -17,7 +17,7 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 
 - **i.MX8M DDR (branch `imx8m-dram-cleanup`):** cleaned up behind a golden register trace (D-013),
   uMCTL2/DWC PHY drivers in `src/drivers/ddr` (D-014), `PLAT_IMX8MQ` + `PLAT_IMX8M_COMMON`. Next:
-  `PLAT_IMX8MP` ("Adding a SoC"). Fixed F-098/099; open F-100..F-108 (F-108: licence).
+  `PLAT_IMX8MP` ("Adding a SoC"). Fixed F-098/099; open F-100, F-102..F-104, F-106, F-107.
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
