@@ -168,6 +168,7 @@ static struct {
     bool data_pending; /* ... after a data transfer */
     uint64_t busy_deadline_us;
     unsigned int cmds;
+    bool fail_dma;
     struct adma_seg segs[ADMA2_MAX_DESCS];
 } m;
 
@@ -518,6 +519,8 @@ static void auto_cmd12(bool write)
     };
     struct bus_rsp rsp;
 
+    /* The status of the last auto CMD12 */
+    set_reg(AUTOCMD12_ERR_STATUS, 0);
     m.cmds++;
     m.cfg.card->ops->cmd(m.cfg.card, &cmd, &rsp);
     if (rsp.timeout) {
@@ -548,6 +551,13 @@ static void run_data(void)
 
     if (!(mix & MIX_DMAEN) || PROT_DMASEL(reg(PROT_CTRL)) != DMASEL_ADMA2) {
         bench_violation(RM "MIX_CTRL", "Data command without ADMA2, the model only does ADMA2");
+        return;
+    }
+
+    if (m.fail_dma) {
+        m.fail_dma = false;
+        set_reg(ADMA_ERR_STATUS, ADMA_DCE);
+        latch(INT_DMAE);
         return;
     }
 
@@ -594,7 +604,7 @@ static void run_data(void)
             latch(st == BUS_DATA_CRC ? INT_DCE : INT_DTOE);
             if (multi && (mix & MIX_AC12EN)) {
                 /* An error before the last block: no auto CMD12 */
-                set_reg(AUTOCMD12_ERR_STATUS, reg(AUTOCMD12_ERR_STATUS) | AC12_NE);
+                set_reg(AUTOCMD12_ERR_STATUS, AC12_NE);
                 latch(INT_AC12E);
             }
             return;
@@ -769,4 +779,9 @@ const struct bus_cfg *usdhc_model_bus(void)
 unsigned int usdhc_model_cmds(void)
 {
     return m.cmds;
+}
+
+void usdhc_model_fail_dma(void)
+{
+    m.fail_dma = true;
 }
