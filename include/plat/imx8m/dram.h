@@ -14,7 +14,6 @@
 
 #include <drivers/ddr/dram_cfg.h>
 #include <drivers/ddr/dwc_ddrphy.h>
-#include <drivers/ddr/lpddr4.h>
 #include <plat/imx8m/ddrc.h>
 
 #define IMX8M_DDRPHY_BASE       0x3c000000
