@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-10-27_
+_Last updated: 2026-10-28_
 
 ## Current focus
 
@@ -14,6 +14,10 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
   `claude-work`. Coverity only runs on master, so it's unverified until merged.
 - **QEMU removed:** the bash/QEMU suite, `src/board/test`, `src/plat/qemu`,
   `include/plat/qemu` and `configs/test_defconfig` are gone.
+
+- **i.MX8M DDR (branch `imx8m-dram-cleanup`, 2026-10-28):** the LPDDR4 init is cleaned up behind
+  a golden register trace (D-013, `imx8m-ddr.md`). Same Synopsys uMCTL2 controller as the ZynqMP
+  DDRC, but a different PHY (firmware trained, not PUB). Fixed F-098, F-099; new F-100..F-103.
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
