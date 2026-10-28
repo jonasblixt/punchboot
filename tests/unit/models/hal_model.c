@@ -31,8 +31,9 @@ static void wait_busy(const char *what)
     }
 }
 
-static int hal_init(void)
+static int hal_init(void *priv)
 {
+    (void)priv;
     memset(&bus, 0, sizeof(bus));
     bus.width = 1;
     bus.vccq_mv = 1800;
@@ -98,8 +99,9 @@ static int stop(const struct mmc_cmd *cmd)
     return rc;
 }
 
-static int hal_request(struct mmc_cmd *cmd)
+static int hal_request(void *priv, struct mmc_cmd *cmd)
 {
+    (void)priv;
     int rc = raw_cmd(cmd->idx, cmd->arg, cmd->resp_type, cmd->resp);
 
     if (rc != PB_OK || cmd->blocks == 0)
@@ -129,15 +131,17 @@ static int hal_request(struct mmc_cmd *cmd)
     return rc;
 }
 
-static int hal_set_bus_clock(unsigned int clk_hz)
+static int hal_set_bus_clock(void *priv, unsigned int clk_hz)
 {
+    (void)priv;
     bus.clk_hz = clk_hz;
     card->ops->set_bus(card, &bus);
     return PB_OK;
 }
 
-static int hal_set_bus_width(enum mmc_bus_width width)
+static int hal_set_bus_width(void *priv, enum mmc_bus_width width)
 {
+    (void)priv;
     switch (width) {
     case MMC_BUS_WIDTH_1BIT:
         bus.width = 1;
@@ -167,8 +171,9 @@ static int hal_set_bus_width(enum mmc_bus_width width)
     return PB_OK;
 }
 
-static int hal_set_delay_tap(unsigned int tap)
+static int hal_set_delay_tap(void *priv, unsigned int tap)
 {
+    (void)priv;
     (void)tap;
     return PB_OK;
 }
@@ -177,6 +182,7 @@ const struct mmc_hal *hal_model_init(struct bus_card *c, size_t max_chunk_bytes)
 {
     card = c;
     hal = (struct mmc_hal){
+        .priv = &hal,
         .init = hal_init,
         .request = hal_request,
         .set_bus_clock = hal_set_bus_clock,

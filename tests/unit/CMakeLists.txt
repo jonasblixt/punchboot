@@ -147,6 +147,7 @@ pb_unit_test(test_cm SOURCES
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
 )
 
 # The i.MX8M LPDDR4 init with the imx8mevk timing, against a device model
@@ -201,6 +202,7 @@ pb_unit_test(test_mmc_emmc
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
     LIBS pb_mmc_models
 )
 
@@ -212,6 +214,7 @@ pb_unit_test(test_imx_usdhc
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/imx_usdhc.c
     LIBS pb_mmc_models
 )
