@@ -97,3 +97,13 @@ Why: the number only covers what the host build compiles, so most driver and pla
 in it. Codecov's default targets failed PR #65 because `mmc_core.c` and `rom_log.c` entered the
 report for the first time (-7.5% project), the upload was non-fatal and the statuses not required,
 and it needed `id-token: write`. What matters is that each fix has a test that fails without it.
+
+## D-013: Hardware init without hardware is refactored behind a golden register trace (2026-10-28)
+
+Code that can only run on a board we don't have (first: the i.MX8M LPDDR4 init) gets a host unit
+test that runs it against a device model behind a fake `pb/mmio.h` and compares every register
+write to a checked-in trace. Cosmetic commits keep the trace identical. A commit that means to
+change what reaches the hardware regenerates the trace and says why in its message.
+Why: there is no imx8mevk in the lab, and a DRAM init that is wrong in one bit fails silently or
+not at all until it is on a board. The trace proves that a cleanup changed nothing; it does not
+prove the sequence is right.

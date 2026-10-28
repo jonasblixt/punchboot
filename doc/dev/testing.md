@@ -82,6 +82,10 @@ A single integration test, inside `scripts/pbdev shell`:
   - `test_cm.c` scripts the host side with `host_*()`, runs `cm_run()` until the input runs out, and
     checks the device's output with `expect_*()`.
   - A path that hits an open bug is left out, with a comment naming the finding.
+  - Drivers with fixed register addresses: put `fakes/mmio` first on the include path (see
+    `test_imx8m_ddr` in `CMakeLists.txt`); every `mmio_*` call then goes to `fake_mmio_read/write`
+    in the test. `test_imx8m_ddr.c` uses this for a golden register trace (D-013,
+    `imx8m-ddr.md`).
 - **Integration tests.** Helpers live in `pbtest.py`: the `Device` class, `make_bpak()` (bpak CLI)
   and `sgdisk_verify()`. Fixtures:
   - `blank_device` starts in command mode on a blank disk.
