@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        board: [jiffy, imx8dxlevk, imx8mevk]
+        board: [jiffy, imx8dxlevk, imx8mevk, imx8mpevk]
     steps:
       - uses: actions/checkout@v4
 

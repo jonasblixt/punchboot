@@ -10,10 +10,12 @@
 # container) and, for most boards, vendor blobs that are not. Boards that use
 # an external keystore are built against the internal test keystore.
 #
-# imx8mevk needs NXP's LPDDR4 training firmware, which is not in the
-# repository. Without IMX8M_FW_DIR (a directory with the four
-# lpddr4_pmu_train_*.bin files) it is built with zero filled placeholders:
-# a compile check only, that pb.bin cannot train the DRAM.
+# imx8mevk and imx8mpevk need NXP's LPDDR4 training firmware, which is not
+# in the repository. Without IMX8M_FW_DIR (a directory with the four
+# lpddr4_pmu_train_*.bin files, *_202006.bin for imx8mpevk) they are built
+# with zero filled placeholders: a compile check only, that pb.bin cannot
+# train the DRAM. Through scripts/pbdev the directory must be inside the
+# repository (e.g. under build-<board>/), the container only mounts that.
 
 set -euo pipefail
 
@@ -41,6 +43,28 @@ case "$board" in
             for fw in 1d_imem 1d_dmem 2d_imem 2d_dmem; do
                 head -c 1024 /dev/zero > "$fw_dir/lpddr4_pmu_train_$fw.bin"
             done
+        fi
+        set -- IMX8M_UMCTL_TRAIN_1D_I="$fw_dir/lpddr4_pmu_train_1d_imem.bin" \
+               IMX8M_UMCTL_TRAIN_1D_D="$fw_dir/lpddr4_pmu_train_1d_dmem.bin" \
+               IMX8M_UMCTL_TRAIN_2D_I="$fw_dir/lpddr4_pmu_train_2d_imem.bin" \
+               IMX8M_UMCTL_TRAIN_2D_D="$fw_dir/lpddr4_pmu_train_2d_dmem.bin" \
+               "$@"
+        ;;
+    imx8mpevk)
+        cross=aarch64-linux-gnu-
+        # NXP ships the i.MX8M Plus firmware as lpddr4_pmu_train_*_202006.bin;
+        # src/plat/imx8m/ddr.c wants the names without the version
+        fw_dir="build-$board/ddr-fw"
+        mkdir -p "$fw_dir"
+        for fw in 1d_imem 1d_dmem 2d_imem 2d_dmem; do
+            if [ -n "${IMX8M_FW_DIR:-}" ]; then
+                cp "$IMX8M_FW_DIR/lpddr4_pmu_train_${fw}_202006.bin" "$fw_dir/lpddr4_pmu_train_$fw.bin"
+            else
+                head -c 1024 /dev/zero > "$fw_dir/lpddr4_pmu_train_$fw.bin"
+            fi
+        done
+        if [ -z "${IMX8M_FW_DIR:-}" ]; then
+            echo "Using placeholder DDR training firmware: pb.bin is a compile check only" >&2
         fi
         set -- IMX8M_UMCTL_TRAIN_1D_I="$fw_dir/lpddr4_pmu_train_1d_imem.bin" \
                IMX8M_UMCTL_TRAIN_1D_D="$fw_dir/lpddr4_pmu_train_1d_dmem.bin" \
