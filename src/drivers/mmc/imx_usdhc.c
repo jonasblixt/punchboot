@@ -270,7 +270,6 @@ static int imx_usdhc_request(struct mmc_cmd *cmd)
         return err;
 
     usdhc_write(USDHC_INT_SIGNAL_EN, 0);
-    pb_delay_us(1000);
 
     if (cmd->idx == MMC_CMD_STOP_TRANSMISSION)
         xfr_typ |= CMD_XFR_TYP_CMDTYP(CMDTYP_ABORT);
