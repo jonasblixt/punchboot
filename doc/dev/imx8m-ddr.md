@@ -21,8 +21,7 @@ register trace on the host (D-013).
 | `tests/unit/test_imx8m_ddr.c` | Device model + golden trace (`tests/unit/data/imx8m_ddr_init.trace`) |
 
 The training firmware (`lpddr4_pmu_train_{1d,2d}_{imem,dmem}.bin`) comes from NXP under its own
-EULA and is not in the repository. The firmware build needs it (F-051), any placeholder files will
-do for a compile check (see "Testing").
+EULA and is not in the repository. The firmware build needs it (F-051); placeholder files do for a compile check (see "Testing").
 
 ## The IP, and how it compares to AMD/Xilinx
 
@@ -115,22 +114,9 @@ firmware readback and an unsupported data rate.
 - The model only answers polls the way the hardware should; it can't say whether the sequence is
   right. That needs an imx8mevk.
 
-Compile check of the firmware with placeholder blobs (inside `scripts/pbdev shell`):
-
-```sh
-mkdir -p build-imx8mevk/fakeblobs
-for f in 1d_imem 1d_dmem 2d_imem 2d_dmem; do
-    head -c 1024 /dev/zero > build-imx8mevk/fakeblobs/lpddr4_pmu_train_$f.bin
-done
-FB=build-imx8mevk/fakeblobs
-make BOARD=src/board/imx8mevk KCONFIG_CONFIG=configs/imx8mevk_defconfig \
-     CROSS_COMPILE=aarch64-linux-gnu- \
-     IMX8M_UMCTL_TRAIN_1D_I=$FB/lpddr4_pmu_train_1d_imem.bin \
-     IMX8M_UMCTL_TRAIN_1D_D=$FB/lpddr4_pmu_train_1d_dmem.bin \
-     IMX8M_UMCTL_TRAIN_2D_I=$FB/lpddr4_pmu_train_2d_imem.bin \
-     IMX8M_UMCTL_TRAIN_2D_D=$FB/lpddr4_pmu_train_2d_dmem.bin \
-     build-imx8mevk/pb.bin
-```
+Compile check of the firmware: `scripts/pbdev firmware imx8mevk` (also in CI) builds it with zero
+filled placeholder training firmware. With `IMX8M_FW_DIR` set to a directory with NXP's four
+`lpddr4_pmu_train_*.bin` files it uses those instead.
 
 ## Not verified
 
@@ -189,13 +175,11 @@ Next, roughly in order of value:
 4. **Name the message block.** The fsp tables are raw DMEM offsets (`0x54003` is the data rate,
    `0x54005` PHY RON/RTT, ...). Named offsets or a struct per firmware version would make the
    board file reviewable. Needs the layout from NXP's DDR tool.
-5. **Compile imx8mevk in CI with placeholder blobs (F-103).** Nothing builds it today; this branch
-   showed it compiles.
-6. **Rank-to-rank gap from training (F-104).** U-Boot reads the critical delay differences from
+5. **Rank-to-rank gap from training (F-104).** U-Boot reads the critical delay differences from
    each 1D run's message block and widens `DRAMTMG2` rd2wr/wr2rd and `RANKCTL` gaps for every
    P-state before the DFI init ("rank-to-rank workaround"), on all i.MX8M. Punchboot skips it; the
    EVK has two ranks.
-7. **Small cleanups once there is hardware:** the duplicate `DFIPHYMSTR` write; the normal-mode wait
+6. **Small cleanups once there is hardware:** the duplicate `DFIPHYMSTR` write; the normal-mode wait
    that masks STAT bits [1:0] while LPDDR4's operating_mode is [2:0]; `PCTRL_0`, `SWCTL` and
    `DBG1` in the board table that the code writes again; streaming messages logged with their
    string index, so they can be decoded with NXP's string file.
