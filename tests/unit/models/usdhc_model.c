@@ -149,6 +149,9 @@
 #define ACT_LINK              3
 #define ADMA2_MAX_DESCS       4096
 
+/* After TC, until the auto CMD12 response is in CMD_RSP3 */
+#define AC12_RSP3_DELAY_US    20
+
 /* The SDSTB low time after a divider change, in register reads */
 #define SDSTB_READS           3
 
@@ -169,6 +172,9 @@ static struct {
     uint64_t busy_deadline_us;
     unsigned int cmds;
     bool fail_dma;
+    bool rsp3_pending; /* The auto CMD12 response, in CMD_RSP3 at rsp3_at_us */
+    uint32_t rsp3;
+    uint64_t rsp3_at_us;
     struct adma_seg segs[ADMA2_MAX_DESCS];
 } m;
 
@@ -539,7 +545,10 @@ static void auto_cmd12(bool write)
         set_reg(AUTOCMD12_ERR_STATUS, reg(AUTOCMD12_ERR_STATUS) | AC12_IE);
     if (reg(AUTOCMD12_ERR_STATUS))
         latch(INT_AC12E);
-    set_reg(CMD_RSP3, rsp.r[0]);
+    /* As on the i.MX8M Plus: the response is not in CMD_RSP3 yet at TC */
+    m.rsp3_pending = true;
+    m.rsp3 = rsp.r[0];
+    m.rsp3_at_us = bench_now_us() + AC12_RSP3_DELAY_US;
 }
 
 static void run_data(void)
@@ -713,6 +722,11 @@ uint32_t usdhc_model_read(uintptr_t addr)
 
     bench_advance_us(1);
     bench_check_stuck("polling the uSDHC");
+
+    if (m.rsp3_pending && bench_now_us() >= m.rsp3_at_us) {
+        m.rsp3_pending = false;
+        set_reg(CMD_RSP3, m.rsp3);
+    }
 
     switch (off) {
     case PRES_STATE:

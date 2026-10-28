@@ -205,15 +205,19 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
      * After CMD23 the transfer ends by itself, a CMD12 would be illegal
      * (JESD84-B51 6.6.7.1)
      */
-    bool counted = block_count_set;
+    bool send_stop = multiple && !block_count_set;
 
     block_count_set = false;
 
+    /*
+     * No auto CMD12: when TC is set the auto CMD12 response may not be in
+     * CMD_RSP3 yet (seen on the i.MX8M Plus, there is no flag for it), and
+     * it carries the transfer's execution errors. CMD12 is sent after the
+     * data instead.
+     */
     if (multiple) {
         mixctl |= MIXCTRL_MSBSEL;
         mixctl |= MIXCTRL_BCEN;
-        if (!counted)
-            mixctl |= MIXCTRL_AC12EN;
     }
 
     if (data) {
@@ -324,17 +328,21 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
         } while ((state & flags) != flags);
     }
 
-    /* Errors during an open-ended transfer come with the auto CMD12 response */
-    if (mixctl & MIXCTRL_AC12EN) {
-        uint32_t ac12_status = mmio_read_32(usdhc->base + USDHC_CMD_RSP3);
+    /* An open-ended transfer: CMD12, its response has the execution errors */
+    if (send_stop) {
+        mmc_cmd_resp_t stop_resp;
         uint32_t errors = STATUS_ERROR_MASK;
+
+        err = imx_usdhc_send_cmd(MMC_CMD_STOP_TRANSMISSION, 0, MMC_RSP_R1b, stop_resp);
+        if (err != PB_OK)
+            goto out;
 
         /* A read up to the last block may read ahead past it, JESD84-B51 6.8.3 */
         if (mixctl & MIXCTRL_DTDSEL)
             errors &= ~STATUS_ADDRESS_OUT_OF_RANGE;
 
-        if (ac12_status & errors) {
-            LOG_ERR("imx_usdhc CMD%u card status 0x%08x", idx, ac12_status);
+        if (stop_resp[0] & errors) {
+            LOG_ERR("imx_usdhc CMD%u card status 0x%08x", idx, stop_resp[0]);
             err = -PB_ERR_IO;
         }
     }
@@ -353,10 +361,7 @@ out:
             (void)usdhc_wait(USDHC_SYSCTRL, USDHC_SYSCTRL_RSTD, 0, USDHC_RESET_TIMEOUT_us);
         }
 
-        /*
-         * No auto CMD12 after an error before the last block (RM), the
-         * card is still sending or receiving: stop it
-         */
+        /* After a data error the card is still sending or receiving: stop it */
         if (stop)
             (void)imx_usdhc_send_cmd(MMC_CMD_STOP_TRANSMISSION, 0, MMC_RSP_R1b, NULL);
     }
