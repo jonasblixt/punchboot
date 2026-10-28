@@ -16,6 +16,9 @@
  * trace in the same commit:
  *
  *   PB_UPDATE_GOLDEN=1 build-host/tests/unit/test_imx8m_ddr
+ *
+ * Built once per SoC: test_imx8m_ddr (i.MX8MQ, imx8mevk) and test_imx8mp_ddr
+ * (i.MX8M Plus, imx8mpevk), see CMakeLists.txt.
  */
 
 #include <setjmp.h>
@@ -43,20 +46,26 @@
 #define DDRC_DFISTAT_REG        (DDRC_BASE + 0x1bc)
 #define DDRC_SWSTAT_REG         (DDRC_BASE + 0x324)
 #define MODEL_PWRCTL_SELFREF_SW (1u << 5)
-#define DRAM_PLL_CFG0_REG       0x30360060UL
-#define PLL_LOCK                (1u << 31)
+/* The DRAM PLL's lock bit: DRAM_PLL_CFG0 (SSCG) on the 8MQ, DRAM_PLL_GNRL_CTL (PLL14xx) on the 8M
+ * Plus */
+#ifdef CONFIG_PLAT_IMX8MP
+#define DRAM_PLL_LOCK_REG 0x30360050UL
+#else
+#define DRAM_PLL_LOCK_REG 0x30360060UL
+#endif
+#define PLL_LOCK            (1u << 31)
 
-#define PHY_BASE                0x3c000000UL
-#define PHY_REG(csr)            (PHY_BASE + 4UL * (csr))
-#define PHY_UCT_SHADOW_REGS     PHY_REG(0xd0004)
-#define PHY_DCT_WRITE_PROT      PHY_REG(0xd0031)
-#define PHY_UCT_WRITE_ONLY      PHY_REG(0xd0032)
-#define PHY_UCT_DAT_WRITE       PHY_REG(0xd0034)
-#define PHY_CAL_BUSY            PHY_REG(0x20097)
-#define PHY_IMEM                PHY_REG(0x50000)
+#define PHY_BASE            0x3c000000UL
+#define PHY_REG(csr)        (PHY_BASE + 4UL * (csr))
+#define PHY_UCT_SHADOW_REGS PHY_REG(0xd0004)
+#define PHY_DCT_WRITE_PROT  PHY_REG(0xd0031)
+#define PHY_UCT_WRITE_ONLY  PHY_REG(0xd0032)
+#define PHY_UCT_DAT_WRITE   PHY_REG(0xd0034)
+#define PHY_CAL_BUSY        PHY_REG(0x20097)
+#define PHY_IMEM            PHY_REG(0x50000)
 
-#define TRACE_MAX               (1024 * 1024)
-#define STORE_SIZE              (1 << 16)
+#define TRACE_MAX           (1024 * 1024)
+#define STORE_SIZE          (1 << 16)
 
 /* Training firmware images, normally linked in with objcopy */
 #define FAKE_BLOB(name, a, b, c, d)                                                  \
@@ -158,7 +167,7 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
         return 1;
     case PHY_CAL_BUSY:
         return 0;
-    case DRAM_PLL_CFG0_REG:
+    case DRAM_PLL_LOCK_REG:
         return reg_get(addr) | PLL_LOCK;
     case PHY_UCT_SHADOW_REGS:
         /* UctWriteProtShadow: 0 = message pending, 1 after the ack (DctWriteProt = 0) */
