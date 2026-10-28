@@ -280,7 +280,6 @@ static void test_slow_power_up(void **state)
 /* GENERIC_CMD6_TIME and PARTITION_SWITCH_TIME 0: not defined (7.4.31, 7.4.56) */
 static void test_cmd6_times_not_defined(void **state)
 {
-    SKIP_OPEN("F-121");
     uint8_t buf[512];
     (void)state;
 
@@ -383,7 +382,6 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_write_crc_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cmd_crc_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_power_off, setup, teardown),
-        /* Last: mmc_core keeps the CMD6 timeouts of the previous mmc_init() */
         cmocka_unit_test_setup_teardown(test_cmd6_times_not_defined, setup, teardown),
     };
 

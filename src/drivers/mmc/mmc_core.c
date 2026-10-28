@@ -43,9 +43,13 @@ static uint8_t mmc_ext_csd[512] __aligned(64);
 static uint8_t mmc_current_part_config;
 static enum mmc_part mmc_current_part;
 static int mmc_boot_part_config = -PB_ERR_STATE;
-static unsigned int power_off_long_time_ms = 2550;
-static unsigned int generic_cmd6_time_ms = 2550;
-static unsigned int partition_switch_time_ms = 2550;
+/* The largest value of the EXT_CSD timeout fields, used until they are read and when they are
+ * 0, "not defined" (JESD84-B51 7.4.31, 7.4.32, 7.4.56) */
+#define MMC_CMD6_TIME_MAX_ms 2550
+
+static unsigned int power_off_long_time_ms;
+static unsigned int generic_cmd6_time_ms;
+static unsigned int partition_switch_time_ms;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
 static uint8_t mmc_tuning_rsp[128] __aligned(16);
@@ -535,11 +539,23 @@ tune_tap_fail:
 }
 #endif // CONFIG_MMC_CORE_HS200_TUNE
 
+/* An EXT_CSD timeout field, in 10 ms units */
+static unsigned int ext_csd_time_ms(unsigned int index)
+{
+    if (mmc_ext_csd[index] == 0)
+        return MMC_CMD6_TIME_MAX_ms;
+    return mmc_ext_csd[index] * 10;
+}
+
 static int mmc_setup(void)
 {
     int rc;
     mmc_cmd_resp_t resp_data;
     ts("mmc enum start");
+    generic_cmd6_time_ms = MMC_CMD6_TIME_MAX_ms;
+    power_off_long_time_ms = MMC_CMD6_TIME_MAX_ms;
+    partition_switch_time_ms = MMC_CMD6_TIME_MAX_ms;
+
     rc = mmc_hal->init();
 
     if (rc != PB_OK)
@@ -683,9 +699,9 @@ static int mmc_setup(void)
         return rc;
     }
 
-    generic_cmd6_time_ms = mmc_ext_csd[EXT_CSD_GENERIC_CMD6_TIME] * 10;
-    power_off_long_time_ms = mmc_ext_csd[EXT_CSD_POWER_OFF_LONG_TIME] * 10;
-    partition_switch_time_ms = mmc_ext_csd[EXT_CSD_PART_SWITCH_TIME] * 10;
+    generic_cmd6_time_ms = ext_csd_time_ms(EXT_CSD_GENERIC_CMD6_TIME);
+    power_off_long_time_ms = ext_csd_time_ms(EXT_CSD_POWER_OFF_LONG_TIME);
+    partition_switch_time_ms = ext_csd_time_ms(EXT_CSD_PART_SWITCH_TIME);
 
     LOG_DBG("Generic CMD6 timeout: %ums", generic_cmd6_time_ms);
     LOG_DBG("Power off long time: %ums", power_off_long_time_ms);
