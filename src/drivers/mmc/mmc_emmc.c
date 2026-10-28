@@ -20,6 +20,7 @@
 #include <pb/bio.h>
 #include <pb/delay.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <pb/timestamp.h>
 #include <string.h>
 
@@ -37,7 +38,10 @@ static int mmc_boot_part_config = -PB_ERR_STATE;
 static const struct mmc_device_config *mmc_boot_cfg;
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
-static uint8_t mmc_tuning_rsp[128] __aligned(16);
+/* Tuning: a window narrower than this means a marginal board */
+#define TUNE_MIN_WINDOW 8
+
+static uint8_t mmc_tuning_rsp[128] __aligned(64);
 static const uint8_t tuning_blk_pattern_4bit[] = {
     0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc, 0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
     0xff, 0xdf, 0xff, 0xdd, 0xff, 0xfb, 0xff, 0xfb, 0xbf, 0xff, 0x7f, 0xff, 0x77, 0xf7, 0xbd, 0xef,
@@ -290,102 +294,76 @@ static int mmc_bio_write(bio_dev_t bdev, lba_t lba, size_t length, const void *b
 }
 
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
+/* One CMD21 at a delay tap: does the tuning block arrive intact? */
+static bool tune_tap_ok(struct mmc_device *dev, unsigned int tap)
+{
+    bool bus8 = dev->cfg->width == MMC_BUS_WIDTH_8BIT;
+    const uint8_t *pattern = bus8 ? tuning_blk_pattern_8bit : tuning_blk_pattern_4bit;
+    size_t len = bus8 ? sizeof(tuning_blk_pattern_8bit) : sizeof(tuning_blk_pattern_4bit);
+    struct mmc_cmd cmd = {
+        .idx = MMC_CMD_SEND_TUNING_BLOCK_HS200,
+        .buf = mmc_tuning_rsp,
+        .block_size = len,
+        .blocks = 1,
+        .quiet = true,
+    };
+
+    dev->hal->set_delay_tap(dev->hal->priv, tap);
+    memset(mmc_tuning_rsp, 0, sizeof(mmc_tuning_rsp));
+    if (mmc_request_r1(dev, &cmd) != PB_OK)
+        return false;
+    return memcmp(mmc_tuning_rsp, pattern, len) == 0;
+}
+
+/*
+ * Tries every delay tap with a tuning block (CMD21, JESD84-B51 6.6.5.1) and
+ * uses the middle of the widest run that works, the most margin for drift.
+ * A CMD21 takes about 15 us at 200 MHz, so 128 taps are about 2 ms; a
+ * coarse sweep misses the narrow failing gaps (two taps on the imx8mpevk).
+ * Returns -PB_ERR_NOT_FOUND if no tap works.
+ */
 static int hs200_tune(struct mmc_device *dev)
 {
-    int rc;
-    uint8_t result[127];
+    unsigned int taps = dev->hal->delay_taps;
+    unsigned int start = plat_get_us_tick();
+    int best_lo = -1, best_hi = -1, run_lo = -1;
 
-    /*
-     * TODO: Currently hardcoded tap start = 0 and tap end = 127.
-     * This should be passed as configuration from the mmc layer.
-     *
-     * We probably want:
-     *  - delay_tap_start
-     *  - delay_tap_end
-     *  - delay_tap_step
-     *
-     *  This also assumes 8-bit bus width.
-     */
+    if (taps == 0 || dev->hal->set_delay_tap == NULL)
+        return PB_OK;
 
-    LOG_INFO("Starting, this will produce I/O errors for bad delay taps...");
-    for (int i = 0; i < 127; i++) {
-        dev->hal->set_delay_tap(dev->hal->priv, i);
-        pb_delay_ms(10);
-        struct mmc_cmd cmd = {
-            .idx = MMC_CMD_SEND_TUNING_BLOCK_HS200,
-            .buf = mmc_tuning_rsp,
-            .block_size = sizeof(mmc_tuning_rsp),
-            .blocks = 1,
-        };
+    for (unsigned int t = 0; t < taps; t++) {
+        bool ok = tune_tap_ok(dev, t);
 
-        rc = mmc_request_r1(dev, &cmd);
-        if (rc != 0) {
-            goto tune_tap_fail;
-        }
+        if (ok && run_lo < 0)
+            run_lo = t;
+        if (run_lo >= 0 && (!ok || t + 1 == taps)) {
+            int run_hi = ok ? (int)t : (int)t - 1;
 
-        do {
-            rc = mmc_device_state(dev, MMC_DEFAULT_TIMEOUT_ms);
-            if (rc < 0) {
-                goto tune_tap_fail;
+            if (best_lo < 0 || run_hi - run_lo > best_hi - best_lo) {
+                best_lo = run_lo;
+                best_hi = run_hi;
             }
-        } while (rc != MMC_STATE_TRAN);
-
-        if (memcmp(tuning_blk_pattern_8bit, mmc_tuning_rsp, 128) == 0) {
-            result[i] = 1;
-        } else {
-            goto tune_tap_fail;
-        }
-        continue;
-tune_tap_fail:
-        result[i] = 0;
-    }
-
-    LOG_INFO("Done");
-
-    unsigned int start_tap = 0;
-    bool find_next_good = true;
-    unsigned int high_score = 0;
-    unsigned int selected_tap;
-    size_t good_count = 0;
-
-    for (int i = 0; i < 127; i++) {
-        good_count += result[i];
-
-        if (find_next_good) {
-            if (result[i]) {
-                find_next_good = false;
-                start_tap = i;
-            }
-        } else {
-            if (!result[i] || (i == 127)) {
-                unsigned int end_tap = i - 1;
-                unsigned int pass_count = end_tap - start_tap;
-                unsigned int center_tap = start_tap + pass_count / 2;
-                LOG_DBG("Pass count = %i, [%03i - %03i] center tap = %i",
-                        pass_count,
-                        start_tap,
-                        end_tap,
-                        center_tap);
-
-                if (pass_count > high_score) {
-                    high_score = pass_count;
-                    selected_tap = center_tap;
-                }
-                find_next_good = true;
-                start_tap = 0;
-            }
+            run_lo = -1;
         }
     }
 
-    if (good_count == 0) {
-        LOG_ERR("Failed");
-        return -PB_ERR;
+    if (best_lo < 0) {
+        LOG_ERR("HS200 tuning: no delay tap works");
+        return -PB_ERR_NOT_FOUND;
     }
 
-    LOG_INFO("Optimal delay tap = %i", selected_tap);
-    dev->hal->set_delay_tap(dev->hal->priv, selected_tap);
+    unsigned int width = best_hi - best_lo + 1;
+    unsigned int tap = (best_lo + best_hi) / 2;
 
-    return PB_OK;
+    if (width < TUNE_MIN_WINDOW)
+        LOG_WARN("HS200 tuning: only taps %i-%i work", best_lo, best_hi);
+    LOG_INFO("HS200 tuning: taps %i-%i, using %u (%u us)",
+             best_lo,
+             best_hi,
+             tap,
+             plat_get_us_tick() - start);
+
+    return dev->hal->set_delay_tap(dev->hal->priv, tap);
 }
 #endif // CONFIG_MMC_CORE_HS200_TUNE
 
@@ -459,6 +437,22 @@ static int mmc_select_bus_mode(struct mmc_device *dev)
         ts("hs200 tune begin");
         rc = hs200_tune(dev);
         ts("hs200 tune end");
+        if (rc == -PB_ERR_NOT_FOUND) {
+            /* Boot slower rather than not at all: high speed needs no tuning */
+            LOG_WARN("HS200 tuning failed, using high speed (52 MHz)");
+            dev->hal->set_delay_tap(dev->hal->priv, dev->hal->delay_tap_default);
+            /* CMD6 in HS200, the clock down, then the status (JESD84-B51 6.6.2.3) */
+            rc = mmc_send_cmd(dev,
+                              MMC_CMD_SWITCH,
+                              EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_HS_TIMING) |
+                                  EXTCSD_VALUE(EXT_CSD_TIMING_HS) | EXTCSD_CMD_SET_NORMAL,
+                              MMC_RSP_R1b,
+                              NULL);
+            if (rc == PB_OK)
+                rc = mmc_set_bus_clock(dev, MHz(52));
+            if (rc == PB_OK)
+                rc = mmc_wait_state(dev, MMC_STATE_TRAN, dev->generic_cmd6_time_ms);
+        }
         if (rc != 0)
             return rc;
 #endif

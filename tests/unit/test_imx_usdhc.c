@@ -101,6 +101,12 @@ static const struct imx_usdhc_config jiffy_emmc = {
 
 static struct emmc_model_config card_cfg;
 
+/* The delay taps that sample correctly, for the uSDHC model */
+static struct {
+    bool on;
+    unsigned int lo, hi;
+} window;
+
 /* DMA buffers must be below 4 GiB (usdhc_model.h) */
 static uint8_t out[256 * 1024];
 static uint8_t in[sizeof(out)];
@@ -139,6 +145,7 @@ static int setup(void **state)
     bench_reset();
     bio_reset();
     emmc_model_default_config(&card_cfg);
+    window.on = false;
     return 0;
 }
 
@@ -173,6 +180,9 @@ static int init(const struct imx_usdhc_config *cfg, enum usdhc_soc soc, unsigned
         .soc = soc,
         .card = emmc_model_init(&card_cfg),
         .vccq_mv = card_cfg.vccq_mv,
+        .tap_window = window.on,
+        .tap_lo = window.lo,
+        .tap_hi = window.hi,
     };
 
     usdhc_model_init(&m);
@@ -381,6 +391,35 @@ static void test_imx8mpevk_no_sd(void **state)
     assert_bench_clean();
 }
 
+/* HS200 tuning sets the DLL override to the middle of the working taps */
+static void test_imx8mpevk_tuning(void **state)
+{
+    (void)state;
+
+    window.on = true;
+    window.lo = 16;
+    window.hi = 77;
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal((usdhc_model_read(IMX8M_USDHC3_BASE + 0x60) >> 9) & 0x7f, 46);
+    read_write();
+    assert_bench_clean();
+}
+
+/* Tuning fails: high speed with the board's tap */
+static void test_imx8mpevk_tuning_fails(void **state)
+{
+    (void)state;
+
+    window.on = true;
+    window.lo = 1;
+    window.hi = 0;
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
+    assert_int_equal((usdhc_model_read(IMX8M_USDHC3_BASE + 0x60) >> 9) & 0x7f, 35);
+    read_write();
+    assert_bench_clean();
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -395,6 +434,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_dma_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_busy_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_imx8mpevk_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_sd, setup, teardown),
         cmocka_unit_test_setup_teardown(test_imx8mpevk_no_sd, setup, teardown),
     };

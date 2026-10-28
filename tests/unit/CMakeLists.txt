@@ -224,6 +224,7 @@ pb_unit_test(test_mmc_emmc
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
     LIBS pb_mmc_models
 )
+target_compile_definitions(test_mmc_emmc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 
 # The uSDHC driver and mmc_core against a uSDHC register model with the
 # e.MMC model on its bus. DMA addresses are 32 bits: -no-pie keeps the
@@ -242,4 +243,5 @@ target_include_directories(test_imx_usdhc BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
 )
 target_compile_options(test_imx_usdhc PRIVATE -fno-pie)
+target_compile_definitions(test_imx_usdhc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 target_link_options(test_imx_usdhc PRIVATE -no-pie)

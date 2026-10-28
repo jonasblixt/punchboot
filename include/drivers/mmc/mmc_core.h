@@ -359,6 +359,7 @@ struct mmc_cmd {
     size_t blocks; /*!< 0: no data */
     bool write; /*!< Host to card */
     bool stop; /*!< Send CMD12 after the data */
+    bool quiet; /*!< Failing is expected (tuning): no error log */
 };
 
 /* The HAL functions get the HAL's 'priv' */
@@ -375,6 +376,8 @@ struct mmc_hal {
     mmc_set_bus_clock_t set_bus_clock; /*!< Set bus clock rate */
     mmc_set_bus_width_t set_bus_width; /*!< Set bus with */
     int (*set_delay_tap)(void *priv, unsigned int tap); /*!< Select bus delay tap */
+    unsigned int delay_taps; /*!< Taps set_delay_tap() takes, 0: no tuning */
+    unsigned int delay_tap_default; /*!< The board's tap, without tuning */
     bool (*card_present)(void *priv); /*!< Card detect, optional (SD) */
     size_t max_chunk_bytes; /*!< Maximum bytes per request */
 };

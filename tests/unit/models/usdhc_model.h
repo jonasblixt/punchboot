@@ -59,6 +59,12 @@ struct usdhc_model_config {
     /* VSELECT drives the signal voltage (SD slots). Otherwise it is fixed */
     bool vselect_wired;
     unsigned int vccq_mv; /* Signal voltage when VSELECT isn't wired */
+    /*
+     * The DLL override taps (DLL_CTRL.SLV_OVERRIDE_VAL) that sample read
+     * data above 52 MHz, others give data CRC errors. lo > hi: none.
+     */
+    bool tap_window;
+    unsigned int tap_lo, tap_hi;
 };
 
 void usdhc_model_init(const struct usdhc_model_config *cfg);

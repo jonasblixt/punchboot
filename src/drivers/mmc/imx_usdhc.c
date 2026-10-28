@@ -338,7 +338,10 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
     if (err || (state & INT_CMD_ERRORS)) {
         if (!err)
             err = -PB_ERR_IO;
-        LOG_ERR("imx_usdhc mmc cmd %d state 0x%x errno=%d", cmd->idx, state, err);
+        if (cmd->quiet)
+            LOG_DBG("imx_usdhc CMD%u state 0x%x errno=%d", cmd->idx, state, err);
+        else
+            LOG_ERR("imx_usdhc mmc cmd %d state 0x%x errno=%d", cmd->idx, state, err);
         goto out;
     }
 
@@ -369,7 +372,10 @@ static int imx_usdhc_request(void *priv, struct mmc_cmd *cmd)
             if (state & INT_DATA_ERRORS) {
                 err = -PB_ERR_IO;
                 stop = multiple;
-                LOG_ERR("imx_usdhc mmc data state 0x%x", state);
+                if (cmd->quiet)
+                    LOG_DBG("imx_usdhc CMD%u data state 0x%x", cmd->idx, state);
+                else
+                    LOG_ERR("imx_usdhc mmc data state 0x%x", state);
                 goto out;
             }
             if (pb_timeout_has_expired(&to)) {
@@ -522,6 +528,8 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
         .set_bus_clock = imx_usdhc_set_bus_clock,
         .set_bus_width = imx_usdhc_set_bus_width,
         .set_delay_tap = imx_usdhc_set_delay_tap,
+        .delay_taps = DLL_CTRL_SLV_OVERRIDE_TAPS,
+        .delay_tap_default = cfg->delay_tap,
         .card_present = cfg->card_detect ? imx_usdhc_card_present : NULL,
         .max_chunk_bytes = USDHC_MAX_CHUNK_BYTES,
     };
