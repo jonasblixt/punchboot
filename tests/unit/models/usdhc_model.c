@@ -289,9 +289,14 @@ static void update_busy(void)
         return;
 
     if (!card_busy()) {
+        /*
+         * The i.MX8M Plus sets no TC at the end of the busy of a command
+         * without data, although the RM says it does
+         */
+        if (m.data_pending)
+            latch(INT_TC);
         m.busy_pending = false;
         m.data_pending = false;
-        latch(INT_TC);
     } else if (bench_now_us() > m.busy_deadline_us) {
         m.busy_pending = false;
         m.data_pending = false;

@@ -286,7 +286,16 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     }
 
     /* Wait until all of the blocks are transferred, or for the end of busy */
-    if (data || (resp_type & MMC_RSP_BUSY)) {
+    if (!data && (resp_type & MMC_RSP_BUSY)) {
+        /*
+         * The controller sets no TC when the busy of a command without
+         * data ends (seen on the i.MX8M Plus, the RM says it does): watch
+         * DAT0, which the card holds low while it is busy.
+         */
+        err = usdhc_wait(USDHC_PRES_STATE, PSTATE_DAT0, PSTATE_DAT0, USDHC_BUSY_TIMEOUT_us);
+        if (err != PB_OK)
+            goto out;
+    } else if (data) {
         /* TODO: WAS 'DATA_COMPLETE', But 'DINT' is never set.
          *  Investigate what's needed when using ADMA2, what's the
          *  differance between 'TC' and 'DINT' */
