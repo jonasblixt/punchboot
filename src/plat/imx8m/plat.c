@@ -51,6 +51,8 @@ static const mmap_region_t imx_mmap[] = {
     MAP_REGION_FLAT(0x32000000, 0x20000, MT_DEVICE | MT_RW),
     /* USB */
     MAP_REGION_FLAT(0x38100000, (2 * 1024 * 1024), MT_DEVICE | MT_RW),
+    /* HSIO BLK_CTRL (i.MX8M Plus) */
+    MAP_REGION_FLAT(0x32F10000, 0x10000, MT_DEVICE | MT_RW),
     { 0 }
 };
 
