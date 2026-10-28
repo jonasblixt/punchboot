@@ -148,55 +148,76 @@
 
 #define MMC_RSP_NONE                        (0)
 #define MMC_RSP_R1                          (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
-#define MMC_RSP_R1b              (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY)
-#define MMC_RSP_R2               (MMC_RSP_PRESENT | MMC_RSP_136 | MMC_RSP_CRC)
-#define MMC_RSP_R3               (MMC_RSP_PRESENT)
-#define MMC_RSP_R4               (MMC_RSP_PRESENT)
-#define MMC_RSP_R5               (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
-#define MMC_RSP_R6               (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
-#define MMC_RSP_R7               (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
+#define MMC_RSP_R1b                 (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY)
+#define MMC_RSP_R2                  (MMC_RSP_PRESENT | MMC_RSP_136 | MMC_RSP_CRC)
+#define MMC_RSP_R3                  (MMC_RSP_PRESENT)
+#define MMC_RSP_R4                  (MMC_RSP_PRESENT)
+#define MMC_RSP_R5                  (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
+#define MMC_RSP_R6                  (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
+#define MMC_RSP_R7                  (MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE)
 
 /* Value randomly chosen for eMMC RCA, it should be > 1 */
-#define MMC_FIX_RCA              10
-#define RCA_SHIFT_OFFSET         16
+#define MMC_FIX_RCA                 10
+#define RCA_SHIFT_OFFSET            16
 
 /*
  * Flags
  */
 
-#define OCR_POWERUP              BIT(31)
-#define OCR_HCS                  BIT(30)
-#define OCR_BYTE_MODE            (0 << 29)
-#define OCR_SECTOR_MODE          (2 << 29)
-#define OCR_ACCESS_MODE_MASK     (3 << 29)
-#define OCR_3_5_3_6              BIT(23)
-#define OCR_3_4_3_5              BIT(22)
-#define OCR_3_3_3_4              BIT(21)
-#define OCR_3_2_3_3              BIT(20)
-#define OCR_3_1_3_2              BIT(19)
-#define OCR_3_0_3_1              BIT(18)
-#define OCR_2_9_3_0              BIT(17)
-#define OCR_2_8_2_9              BIT(16)
-#define OCR_2_7_2_8              BIT(15)
-#define OCR_VDD_MIN_2V7          GENMASK(23, 15)
-#define OCR_VDD_MIN_2V0          GENMASK(14, 8)
-#define OCR_VDD_MIN_1V7          BIT(7)
+#define OCR_POWERUP                 BIT(31)
+#define OCR_HCS                     BIT(30)
+#define OCR_BYTE_MODE               (0 << 29)
+#define OCR_SECTOR_MODE             (2 << 29)
+#define OCR_ACCESS_MODE_MASK        (3 << 29)
+#define OCR_3_5_3_6                 BIT(23)
+#define OCR_3_4_3_5                 BIT(22)
+#define OCR_3_3_3_4                 BIT(21)
+#define OCR_3_2_3_3                 BIT(20)
+#define OCR_3_1_3_2                 BIT(19)
+#define OCR_3_0_3_1                 BIT(18)
+#define OCR_2_9_3_0                 BIT(17)
+#define OCR_2_8_2_9                 BIT(16)
+#define OCR_2_7_2_8                 BIT(15)
+#define OCR_VDD_MIN_2V7             GENMASK(23, 15)
+#define OCR_VDD_MIN_2V0             GENMASK(14, 8)
+#define OCR_VDD_MIN_1V7             BIT(7)
 
-#define MMC_GET_STATE(x)         (((x) >> 9) & 0xf)
-#define MMC_STATE_IDLE           0
-#define MMC_STATE_READY          1
-#define MMC_STATE_IDENT          2
-#define MMC_STATE_STBY           3
-#define MMC_STATE_TRAN           4
-#define MMC_STATE_DATA           5
-#define MMC_STATE_RCV            6
-#define MMC_STATE_PRG            7
-#define MMC_STATE_DIS            8
-#define MMC_STATE_BTST           9
-#define MMC_STATE_SLP            10
+#define MMC_GET_STATE(x)            (((x) >> 9) & 0xf)
+#define MMC_STATE_IDLE              0
+#define MMC_STATE_READY             1
+#define MMC_STATE_IDENT             2
+#define MMC_STATE_STBY              3
+#define MMC_STATE_TRAN              4
+#define MMC_STATE_DATA              5
+#define MMC_STATE_RCV               6
+#define MMC_STATE_PRG               7
+#define MMC_STATE_DIS               8
+#define MMC_STATE_BTST              9
+#define MMC_STATE_SLP               10
 
-#define STATUS_READY_FOR_DATA    BIT(8)
-#define STATUS_SWITCH_ERROR      BIT(7)
+/* Card status error bits (JESD84-B51 Table 68), cleared once reported */
+#define STATUS_ADDRESS_OUT_OF_RANGE BIT(31)
+#define STATUS_ADDRESS_MISALIGN     BIT(30)
+#define STATUS_BLOCK_LEN_ERROR      BIT(29)
+#define STATUS_ERASE_SEQ_ERROR      BIT(28)
+#define STATUS_ERASE_PARAM          BIT(27)
+#define STATUS_WP_VIOLATION         BIT(26)
+#define STATUS_LOCK_UNLOCK_FAILED   BIT(24)
+#define STATUS_COM_CRC_ERROR        BIT(23)
+#define STATUS_ILLEGAL_COMMAND      BIT(22)
+#define STATUS_DEVICE_ECC_FAILED    BIT(21)
+#define STATUS_CC_ERROR             BIT(20)
+#define STATUS_ERROR                BIT(19)
+#define STATUS_CID_CSD_OVERWRITE    BIT(16)
+#define STATUS_WP_ERASE_SKIP        BIT(15)
+#define STATUS_READY_FOR_DATA       BIT(8)
+#define STATUS_SWITCH_ERROR         BIT(7)
+#define STATUS_ERROR_MASK                                                                   \
+    (STATUS_ADDRESS_OUT_OF_RANGE | STATUS_ADDRESS_MISALIGN | STATUS_BLOCK_LEN_ERROR |       \
+     STATUS_ERASE_SEQ_ERROR | STATUS_ERASE_PARAM | STATUS_WP_VIOLATION |                    \
+     STATUS_LOCK_UNLOCK_FAILED | STATUS_COM_CRC_ERROR | STATUS_ILLEGAL_COMMAND |            \
+     STATUS_DEVICE_ECC_FAILED | STATUS_CC_ERROR | STATUS_ERROR | STATUS_CID_CSD_OVERWRITE | \
+     STATUS_WP_ERASE_SKIP | STATUS_SWITCH_ERROR)
 
 #define EXTCSD_SET_CMD           (U(0) << 24)
 #define EXTCSD_SET_BITS          (U(1) << 24)
@@ -310,8 +331,10 @@ struct mmc_hal {
     mmc_set_bus_clock_t set_bus_clock; /*!< Set bus clock rate */
     mmc_set_bus_width_t set_bus_width; /*!< Set bus with */
     mmc_io_t prepare; /*!< Prepare DMA and start xfer, this is optional */
-    mmc_io_t read; /*!< Perform read op */
-    mmc_io_t write; /*!< Perform write op */
+    /*!< Perform read op. Fails if the response to a CMD12 the HAL sends
+     *   after the data has an error bit set (STATUS_ERROR_MASK) */
+    mmc_io_t read;
+    mmc_io_t write; /*!< Perform write op, the same for CMD12 */
     int (*set_delay_tap)(unsigned int tap); /*!< Select bus delay tap */
     size_t max_chunk_bytes; /*!< Maximum bytes per iop */
 };
