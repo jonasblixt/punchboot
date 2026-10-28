@@ -2,9 +2,27 @@
  * Punch BOOT
  *
  * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
+ * i.MX8M LPDDR4 init: uMCTL2 controller (umctl2.h) and DWC LPDDR4 PHY
+ * with firmware training (ddrphy.h). The sequence follows NXP's reference
+ * code:
+ *
+ *  1. Reset and power up the DDR subsystem, start the DRAM PLL.
+ *  2. Program the controller from the board table, release the resets
+ *     and put the (not yet initialized) SDRAM in self refresh.
+ *  3. Program the PHY from the board table.
+ *  4. For each training run (frequency set point, 1D/2D) in the board's
+ *     fsp_msg table: set the PLL, load the firmware and its message block,
+ *     run the PMU and wait for its result.
+ *  5. Load the PHY Init Engine (PIE) image, start the DFI init and leave
+ *     self refresh.
+ *  6. Save the timing data and the trained PHY CSRs for TF-A.
+ *
+ * The register trace of umctl2_init() is checked by
+ * tests/unit/test_imx8m_ddr.c.
  */
 
 #include <pb/delay.h>
@@ -18,7 +36,6 @@
 #include "dram.h"
 #include <board/lp4_timing.h>
 
-extern uint32_t _data_region_end;
 extern uint32_t _binary_blobs_lpddr4_pmu_train_1d_imem_bin_start;
 extern uint32_t _binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start;
 extern uint32_t _binary_blobs_lpddr4_pmu_train_2d_imem_bin_start;
@@ -44,174 +61,165 @@ extern uint32_t _binary_blobs_lpddr4_pmu_train_2d_dmem_bin_end;
 #define MICRORESET_STALL MICRORESET_STALLTOMICRO
 #define MICRORESET_RUN   0
 
-/* DFIMISC with dfi_frequency f and ctl_idle_en, as NXP's code uses it */
-#define DFIMISC_FREQ(f)  (UMCTL2_VAL(DFIMISC_DFI_FREQUENCY, f) | DFIMISC_CTL_IDLE_EN)
+/* Training firmware images, linked in from the board's blobs */
+struct fw_image {
+    const uint32_t *imem;
+    const uint32_t *imem_end;
+    const uint32_t *dmem;
+    const uint32_t *dmem_end;
+};
+
+static const struct fw_image fw_images[] = {
+    [FW_1D_IMAGE] = {
+        .imem = &_binary_blobs_lpddr4_pmu_train_1d_imem_bin_start,
+        .imem_end = &_binary_blobs_lpddr4_pmu_train_1d_imem_bin_end,
+        .dmem = &_binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start,
+        .dmem_end = &_binary_blobs_lpddr4_pmu_train_1d_dmem_bin_end,
+    },
+    [FW_2D_IMAGE] = {
+        .imem = &_binary_blobs_lpddr4_pmu_train_2d_imem_bin_start,
+        .imem_end = &_binary_blobs_lpddr4_pmu_train_2d_imem_bin_end,
+        .dmem = &_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_start,
+        .dmem_end = &_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_end,
+    },
+};
+
+/* DRAM PLL (SSCG, 25 MHz reference) settings per data rate */
+struct dram_pll_setting {
+    unsigned int drate; /* MT/s */
+    uint8_t ref_divr2;
+    uint8_t feedback_div_f1;
+    uint8_t feedback_div_f2;
+    uint8_t output_div;
+};
+
+static const struct dram_pll_setting dram_pll_settings[] = {
+    { .drate = 3200,
+      .ref_divr2 = 29,
+      .feedback_div_f1 = 39,
+      .feedback_div_f2 = 11,
+      .output_div = 0 },
+    { .drate = 667, .ref_divr2 = 30, .feedback_div_f1 = 45, .feedback_div_f2 = 8, .output_div = 3 },
+};
 
 __umctl2 struct dram_timing_info dram_timing_info_copy;
 
-static int umctl2_load_training_firmware(enum fw_type type)
+static void write_cfg(const struct dram_cfg_param *cfg, unsigned int n)
 {
-    uint32_t tmp32, i;
-    unsigned long pr_to32, pr_from32;
+    for (unsigned int i = 0; i < n; i++)
+        mmio_write_32(cfg[i].reg, cfg[i].val);
+}
 
-    unsigned long imem_start = 0;
-    unsigned long dmem_start = 0;
-    unsigned long imem_sz = 0;
-    unsigned long dmem_sz = 0;
+static void ddrphy_write_cfg(const struct dram_cfg_param *cfg, unsigned int n)
+{
+    for (unsigned int i = 0; i < n; i++)
+        dwc_ddrphy_apb_wr(cfg[i].reg, cfg[i].val);
+}
 
-    if (type == FW_1D_IMAGE) {
-        imem_start = (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_imem_bin_start;
-        dmem_start = (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start;
-        imem_sz = (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_imem_bin_end;
-        imem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_imem_bin_start;
-        dmem_sz = (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_dmem_bin_end;
-        dmem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_1d_dmem_bin_start;
-    } else {
-        imem_start = (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_imem_bin_start;
-        dmem_start = (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_start;
-        imem_sz = (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_imem_bin_end;
-        imem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_imem_bin_start;
-        dmem_sz = (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_end;
-        dmem_sz -= (unsigned long)&_binary_blobs_lpddr4_pmu_train_2d_dmem_bin_start;
+/* Write a firmware image to PMU memory at 'csr', two CSRs per word, and read it back */
+static int ddrphy_load_mem(uint32_t csr, const uint32_t *start, const uint32_t *end)
+{
+    uintptr_t to = DDRPHY_CSR_ADDR(csr);
+
+    for (const uint32_t *p = start; p < end; p++) {
+        mmio_write_16(to, *p & 0xffff);
+        mmio_write_16(to + 4, *p >> 16);
+        to += 8;
     }
 
-    LOG_INFO("Loading image from %lx, sz %lu bytes", imem_start, imem_sz);
+    to = DDRPHY_CSR_ADDR(csr);
 
-    pr_from32 = imem_start;
-    pr_to32 = DDRPHY_CSR_ADDR(DDRPHY_IMEM);
+    for (const uint32_t *p = start; p < end; p++) {
+        uint32_t word = mmio_read_16(to) | ((uint32_t)mmio_read_16(to + 4) << 16);
 
-    for (i = 0x0; i < imem_sz;) {
-        tmp32 = mmio_read_32(pr_from32);
-        mmio_write_16(pr_to32, tmp32 & 0x0000ffff);
-        pr_to32 += 4;
-        mmio_write_16(pr_to32, (tmp32 >> 16) & 0x0000ffff);
-        pr_to32 += 4;
-        pr_from32 += 4;
-        i += 4;
-    }
-
-    pr_from32 = dmem_start;
-    pr_to32 = DDRPHY_CSR_ADDR(DDRPHY_DMEM);
-
-    for (i = 0x0; i < dmem_sz;) {
-        tmp32 = mmio_read_32(pr_from32);
-        mmio_write_16(pr_to32, tmp32 & 0x0000ffff);
-        pr_to32 += 4;
-        mmio_write_16(pr_to32, (tmp32 >> 16) & 0x0000ffff);
-        pr_to32 += 4;
-        pr_from32 += 4;
-        i += 4;
-    }
-
-    pr_from32 = imem_start;
-    pr_to32 = DDRPHY_CSR_ADDR(DDRPHY_IMEM);
-
-    for (i = 0x0; i < imem_sz;) {
-        tmp32 = (mmio_read_16(pr_to32) & 0x0000ffff);
-        pr_to32 += 4;
-        tmp32 += ((mmio_read_16(pr_to32) & 0x0000ffff) << 16);
-
-        if (tmp32 != mmio_read_32(pr_from32))
+        if (word != *p)
             return -PB_ERR_IO;
-
-        pr_from32 += 4;
-        pr_to32 += 4;
-        i += 4;
-    }
-
-    pr_from32 = dmem_start;
-    pr_to32 = DDRPHY_CSR_ADDR(DDRPHY_DMEM);
-
-    for (i = 0x0; i < dmem_sz;) {
-        tmp32 = (mmio_read_16(pr_to32) & 0x0000ffff);
-        pr_to32 += 4;
-        tmp32 += ((mmio_read_16(pr_to32) & 0x0000ffff) << 16);
-
-        if (tmp32 != mmio_read_32(pr_from32))
-            return -PB_ERR_IO;
-
-        pr_from32 += 4;
-        pr_to32 += 4;
-        i += 4;
+        to += 8;
     }
 
     return PB_OK;
 }
 
-static void umctl2_poll_pmu_message_ready(void)
+static int ddrphy_load_training_firmware(enum fw_type type)
 {
-    volatile unsigned int reg;
+    const struct fw_image *fw = &fw_images[type];
+    int rc;
 
-    do {
-        reg = dwc_ddrphy_apb_rd(DDRPHY_UCTSHADOWREGS);
-    } while (reg & UCTSHADOWREGS_UCTWRITEPROTSHADOW);
+    LOG_INFO("Loading image from %p, sz %lu bytes",
+             (void *)fw->imem,
+             (unsigned long)((uintptr_t)fw->imem_end - (uintptr_t)fw->imem));
+
+    rc = ddrphy_load_mem(DDRPHY_IMEM, fw->imem, fw->imem_end);
+    if (rc == PB_OK)
+        rc = ddrphy_load_mem(DDRPHY_DMEM, fw->dmem, fw->dmem_end);
+
+    return rc;
 }
 
-static void umctl2_ack_pmu_message_recieve(void)
+/* Mailbox: wait for a message from the PMU, read it, then ack it */
+static void ddrphy_wait_mail(void)
 {
-    volatile unsigned int reg;
+    while (dwc_ddrphy_apb_rd(DDRPHY_UCTSHADOWREGS) & UCTSHADOWREGS_UCTWRITEPROTSHADOW)
+        ;
+}
 
+static void ddrphy_ack_mail(void)
+{
     dwc_ddrphy_apb_wr(DDRPHY_DCTWRITEPROT, DCTWRITEPROT_ACK);
 
-    do {
-        reg = dwc_ddrphy_apb_rd(DDRPHY_UCTSHADOWREGS);
-    } while (!(reg & UCTSHADOWREGS_UCTWRITEPROTSHADOW));
+    while (!(dwc_ddrphy_apb_rd(DDRPHY_UCTSHADOWREGS) & UCTSHADOWREGS_UCTWRITEPROTSHADOW))
+        ;
 
     dwc_ddrphy_apb_wr(DDRPHY_DCTWRITEPROT, DCTWRITEPROT_RELEASE);
 }
 
-static unsigned int umctl2_get_mail(void)
+/* A major message: 16 bits */
+static uint32_t ddrphy_get_mail(void)
 {
-    volatile unsigned int reg;
-    umctl2_poll_pmu_message_ready();
+    uint32_t mail;
 
-    reg = dwc_ddrphy_apb_rd(DDRPHY_UCTWRITEONLYSHADOW);
+    ddrphy_wait_mail();
+    mail = dwc_ddrphy_apb_rd(DDRPHY_UCTWRITEONLYSHADOW);
+    ddrphy_ack_mail();
 
-    umctl2_ack_pmu_message_recieve();
-
-    return reg;
+    return mail;
 }
 
-static unsigned int umctl2_get_stream_message(void)
+/* A word of a streaming message: 32 bits */
+static uint32_t ddrphy_get_stream_word(void)
 {
-    volatile unsigned int reg, reg2;
+    uint32_t lo, hi;
 
-    umctl2_poll_pmu_message_ready();
+    ddrphy_wait_mail();
+    lo = dwc_ddrphy_apb_rd(DDRPHY_UCTWRITEONLYSHADOW);
+    hi = dwc_ddrphy_apb_rd(DDRPHY_UCTDATWRITEONLYSHADOW);
+    ddrphy_ack_mail();
 
-    reg = dwc_ddrphy_apb_rd(DDRPHY_UCTWRITEONLYSHADOW);
-
-    reg2 = dwc_ddrphy_apb_rd(DDRPHY_UCTDATWRITEONLYSHADOW);
-
-    reg2 = (reg2 << 16) | reg;
-
-    umctl2_ack_pmu_message_recieve();
-
-    return reg2;
+    return (hi << 16) | lo;
 }
 
-static void umctl2_decode_streaming_message(void)
+/*
+ * A streaming message is a string index (into a string table that comes
+ * with the firmware) whose low 16 bits are the number of arguments that
+ * follow.
+ */
+static void ddrphy_decode_streaming_message(void)
 {
-    unsigned int string_index, arg;
-    unsigned int i = 0;
+    uint32_t string_index = ddrphy_get_stream_word();
 
-    string_index = umctl2_get_stream_message();
-
-    while (i < (string_index & 0xffff)) {
-        arg = umctl2_get_stream_message();
-        LOG_DBG("    arg[%d] = 0x%x", i, arg);
-        i++;
+    for (unsigned int i = 0; i < (string_index & 0xffff); i++) {
+        uint32_t arg = ddrphy_get_stream_word();
+        LOG_DBG("    arg[%u] = 0x%x", i, arg);
     }
 }
 
-static int umctl2_wait_ddrphy_training_complete(void)
+static int ddrphy_wait_training_complete(void)
 {
-    volatile unsigned int mail;
-
     while (1) {
-        mail = umctl2_get_mail();
+        uint32_t mail = ddrphy_get_mail();
 
         if (mail == DDRPHY_MAIL_STREAMING_MSG) {
-            umctl2_decode_streaming_message();
+            ddrphy_decode_streaming_message();
         } else if (mail == DDRPHY_MAIL_TRAINING_DONE) {
             LOG_INFO("Training PASS");
             return PB_OK;
@@ -222,38 +230,70 @@ static int umctl2_wait_ddrphy_training_complete(void)
     }
 }
 
-static void dram_pll_init(uint32_t data_rate)
+/* One training run: firmware, message block, run the PMU, wait for the result */
+static int ddrphy_train(const struct dram_fsp_msg *fsp)
 {
-    volatile uint32_t val;
+    int rc;
+
+    LOG_DBG("Training %u MT/s, %s", fsp->drate, fsp->fw_type == FW_2D_IMAGE ? "2D" : "1D");
+
+    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
+
+    rc = ddrphy_load_training_firmware(fsp->fw_type);
+    if (rc != PB_OK) {
+        LOG_ERR("Training firmware verify failed");
+        return rc;
+    }
+
+    /* Message block (DMEM) */
+    ddrphy_write_cfg(fsp->fsp_cfg, fsp->fsp_cfg_num);
+
+    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
+    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_HOLD);
+    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_STALL);
+    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_RUN);
+
+    rc = ddrphy_wait_training_complete();
+    if (rc != PB_OK)
+        return rc;
+
+    /* Halt the microcontroller */
+    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_STALL);
+
+    /* The message block results could be read here, with APB access */
+    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
+    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
+
+    return PB_OK;
+}
+
+static int dram_pll_init(unsigned int drate)
+{
+    const struct dram_pll_setting *pll = NULL;
+    uint32_t val;
+
+    for (unsigned int i = 0; i < ARRAY_SIZE(dram_pll_settings); i++) {
+        if (dram_pll_settings[i].drate == drate)
+            pll = &dram_pll_settings[i];
+    }
+
+    if (pll == NULL) {
+        LOG_ERR("No DRAM PLL setting for %u MT/s", drate);
+        return -PB_ERR_NOT_SUPPORTED;
+    }
 
     /* Bypass */
     mmio_clrsetbits_32(DRAM_PLL_CFG0, 0, SSCG_PLL_BYPASS1_MASK);
     mmio_clrsetbits_32(DRAM_PLL_CFG0, 0, SSCG_PLL_BYPASS2_MASK);
 
-    switch (data_rate) {
-    case 3200: {
-        val = mmio_read_32(DRAM_PLL_CFG2);
-        val &= ~(SSCG_PLL_OUTPUT_DIV_VAL_MASK | SSCG_PLL_FEEDBACK_DIV_F2_MASK |
-                 SSCG_PLL_FEEDBACK_DIV_F1_MASK | SSCG_PLL_REF_DIVR2_MASK);
-        val |= SSCG_PLL_OUTPUT_DIV_VAL(0);
-        val |= SSCG_PLL_FEEDBACK_DIV_F2_VAL(11);
-        val |= SSCG_PLL_FEEDBACK_DIV_F1_VAL(39);
-        val |= SSCG_PLL_REF_DIVR2_VAL(29);
-        mmio_write_32(DRAM_PLL_CFG2, val);
-    } break;
-    case 667: {
-        val = mmio_read_32(DRAM_PLL_CFG2);
-        val &= ~(SSCG_PLL_OUTPUT_DIV_VAL_MASK | SSCG_PLL_FEEDBACK_DIV_F2_MASK |
-                 SSCG_PLL_FEEDBACK_DIV_F1_MASK | SSCG_PLL_REF_DIVR2_MASK);
-        val |= SSCG_PLL_OUTPUT_DIV_VAL(3);
-        val |= SSCG_PLL_FEEDBACK_DIV_F2_VAL(8);
-        val |= SSCG_PLL_FEEDBACK_DIV_F1_VAL(45);
-        val |= SSCG_PLL_REF_DIVR2_VAL(30);
-        mmio_write_32(DRAM_PLL_CFG2, val);
-    } break;
-    default:
-        break;
-    }
+    val = mmio_read_32(DRAM_PLL_CFG2);
+    val &= ~(SSCG_PLL_OUTPUT_DIV_VAL_MASK | SSCG_PLL_FEEDBACK_DIV_F2_MASK |
+             SSCG_PLL_FEEDBACK_DIV_F1_MASK | SSCG_PLL_REF_DIVR2_MASK);
+    val |= SSCG_PLL_OUTPUT_DIV_VAL(pll->output_div);
+    val |= SSCG_PLL_FEEDBACK_DIV_F2_VAL(pll->feedback_div_f2);
+    val |= SSCG_PLL_FEEDBACK_DIV_F1_VAL(pll->feedback_div_f1);
+    val |= SSCG_PLL_REF_DIVR2_VAL(pll->ref_divr2);
+    mmio_write_32(DRAM_PLL_CFG2, val);
 
     /* Clear power down bit */
     mmio_clrsetbits_32(DRAM_PLL_CFG0, SSCG_PLL_PD_MASK, 0);
@@ -268,14 +308,79 @@ static void dram_pll_init(uint32_t data_rate)
     /* Wait lock */
     while (!(mmio_read_32(DRAM_PLL_CFG0) & SSCG_PLL_LOCK_MASK))
         ;
+
+    return PB_OK;
+}
+
+/* DFIMISC with dfi_frequency matching MSTR2.target_frequency, and ctl_idle_en */
+static uint32_t ddrc_dfimisc(void)
+{
+    uint32_t freq = UMCTL2_GET(MSTR2_TARGET_FREQUENCY, mmio_read_32(DDRC_MSTR2(0)));
+
+    return UMCTL2_VAL(DFIMISC_DFI_FREQUENCY, freq) | DFIMISC_CTL_IDLE_EN;
+}
+
+/* Write a quasi-dynamic register, see SWCTL in umctl2.h */
+static void ddrc_write_quasi_dynamic(uintptr_t reg, uint32_t val)
+{
+    mmio_write_32(DDRC_SWCTL(0), 0);
+    mmio_write_32(reg, val);
+    mmio_write_32(DDRC_SWCTL(0), SWCTL_SW_DONE);
+}
+
+/* Append table 'src' at 'pos' and point 'table' to it */
+static void copy_cfg(struct dram_cfg_param **pos,
+                     struct dram_cfg_param **table,
+                     const struct dram_cfg_param *src,
+                     unsigned int n)
+{
+    *table = *pos;
+    for (unsigned int i = 0; i < n; i++)
+        *(*pos)++ = src[i];
+}
+
+/*
+ * Read back the trained PHY CSRs, and copy all timing data to the start of
+ * DRAM for TF-A (see struct dram_timing_info).
+ */
+static void dram_save_timing(void)
+{
+    struct dram_timing_info *dt = &dram_timing_info_copy;
+    struct dram_cfg_param *pos = (struct dram_cfg_param *)(dt + 1);
+
+    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
+    dwc_ddrphy_apb_wr(DDRPHY_UCCLKHCLKENABLES, UCCLKHCLKENABLES_HCLKEN | UCCLKHCLKENABLES_UCCLKEN);
+
+    for (unsigned int n = 0; n < dram_timing.ddrphy_trained_csr_num; n++) {
+        dram_timing.ddrphy_trained_csr[n].val =
+            dwc_ddrphy_apb_rd(dram_timing.ddrphy_trained_csr[n].reg);
+    }
+
+    dwc_ddrphy_apb_wr(DDRPHY_UCCLKHCLKENABLES, UCCLKHCLKENABLES_HCLKEN);
+    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
+
+    dt->ddrc_cfg_num = dram_timing.ddrc_cfg_num;
+    dt->ddrphy_cfg_num = dram_timing.ddrphy_cfg_num;
+    dt->ddrphy_trained_csr_num = dram_timing.ddrphy_trained_csr_num;
+    dt->ddrphy_pie_num = dram_timing.ddrphy_pie_num;
+    memcpy(dt->fsp_table, dram_timing.fsp_table, sizeof(dt->fsp_table));
+
+    copy_cfg(&pos, &dt->ddrc_cfg, dram_timing.ddrc_cfg, dram_timing.ddrc_cfg_num);
+    copy_cfg(&pos, &dt->ddrphy_cfg, dram_timing.ddrphy_cfg, dram_timing.ddrphy_cfg_num);
+    copy_cfg(&pos,
+             &dt->ddrphy_trained_csr,
+             dram_timing.ddrphy_trained_csr,
+             dram_timing.ddrphy_trained_csr_num);
+    copy_cfg(&pos, &dt->ddrphy_pie, dram_timing.ddrphy_pie, dram_timing.ddrphy_pie_num);
 }
 
 int umctl2_init(void)
 {
-    volatile uint32_t tmp;
+    const struct dram_timing_info *t = &dram_timing;
+    unsigned int drate = t->fsp_msg[0].drate;
     int rc;
 
-    /* Hold the controller and PHY in reset */
+    /* 1. Hold the controller and PHY in reset */
     mmio_write_32(SRC_DDRC2_RCR_ADDR, RCR_DOMAINS | SRC_DDRC_RCR_ALL_RESETS);
     mmio_write_32(SRC_DDRC_RCR_ADDR, RCR_DOMAINS | SRC_DDRC_RCR_ALL_RESETS);
     mmio_write_32(SRC_DDRC2_RCR_ADDR, RCR_DOMAINS);
@@ -284,17 +389,15 @@ int umctl2_init(void)
     mmio_write_32(GPC_PGC_CPU_0_1_MAPPING, 0x0000ffff);
     mmio_clrsetbits_32(GPC_PU_PGC_SW_PUP_REQ, 0, GPC_PU_PGC_SW_PUP_REQ_DDR1);
 
-    dram_pll_init(3200);
+    rc = dram_pll_init(drate);
+    if (rc != PB_OK)
+        return rc;
 
-    /* Release the APB reset and PHY power ok, so the controller can be configured */
+    /* 2. Release the APB reset and PHY power ok, so the controller can be configured */
     mmio_write_32(SRC_DDRC_RCR_ADDR,
                   RCR_DOMAINS | SRC_DDRC_RCR_PHY_RESET | SRC_DDRC_RCR_CORE_RESET_N);
 
-    /* Load phy timing config */
-
-    for (uint32_t n = 0; n < ARRAY_SIZE(umctl2_ddrc_cfg); n++) {
-        mmio_write_32(umctl2_ddrc_cfg[n].reg, umctl2_ddrc_cfg[n].val);
-    }
+    write_cfg(t->ddrc_cfg, t->ddrc_cfg_num);
 
     /* Release the core reset, then the PHY reset */
     mmio_write_32(SRC_DDRC_RCR_ADDR, RCR_DOMAINS | SRC_DDRC_RCR_PHY_RESET);
@@ -308,264 +411,70 @@ int umctl2_init(void)
                   PWRCTL_DIS_CAM_DRAIN_SELFREF | PWRCTL_SELFREF_SW |
                       PWRCTL_EN_DFI_DRAM_CLK_DISABLE);
 
-    do {
-        tmp = mmio_read_32(DDRC_STAT(0));
-    } while ((tmp & STAT_SELFREF_MASK) != STAT_SELFREF_BY_SW);
+    while ((mmio_read_32(DDRC_STAT(0)) & STAT_SELFREF_MASK) != STAT_SELFREF_BY_SW)
+        ;
 
     mmio_write_32(DDRC_DDR_SS_GPR0, DDRC_DDR_SS_GPR0_LPDDR4);
 
-    mmio_write_32(DDRC_SWCTL(0), 0);
+    ddrc_write_quasi_dynamic(DDRC_DFIMISC(0), ddrc_dfimisc());
 
-    tmp = mmio_read_32(DDRC_MSTR2(0));
+    /* 3. PHY configuration */
+    ddrphy_write_cfg(t->ddrphy_cfg, t->ddrphy_cfg_num);
 
-    if (tmp == 0x2)
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(2));
-    else if (tmp == 0x1)
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(1));
-    else
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(0));
+    /* 4. Training runs */
+    for (unsigned int i = 0; i < t->fsp_msg_num; i++) {
+        const struct dram_fsp_msg *fsp = &t->fsp_msg[i];
 
-    mmio_write_32(DDRC_SWCTL(0), SWCTL_SW_DONE);
+        if (fsp->drate != drate) {
+            drate = fsp->drate;
+            rc = dram_pll_init(drate);
+            if (rc != PB_OK)
+                return rc;
+        }
 
-    for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_ddrphy_cfg); n++) {
-        dwc_ddrphy_apb_wr(lpddr4_ddrphy_cfg[n].reg, lpddr4_ddrphy_cfg[n].val);
+        rc = ddrphy_train(fsp);
+        if (rc != PB_OK)
+            return rc;
     }
 
-    /* load the dram training firmware image FSP 0 3200 Mt/s --------------- */
+    /* 5. PHY Init Engine, then wait for the impedance calibration */
+    ddrphy_write_cfg(t->ddrphy_pie, t->ddrphy_pie_num);
 
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
-
-    rc = umctl2_load_training_firmware(FW_1D_IMAGE);
-    if (rc != PB_OK) {
-        LOG_ERR("Training firmware verify failed");
-        return rc;
-    }
-
-    for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_fsp0_cfg); n++) {
-        dwc_ddrphy_apb_wr(lpddr4_fsp0_cfg[n].reg, lpddr4_fsp0_cfg[n].val);
-    }
-
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_HOLD);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_STALL);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_RUN);
-
-    /* Wait for the training firmware to complete */
-    rc = umctl2_wait_ddrphy_training_complete();
-    if (rc != PB_OK)
-        return rc;
-
-    /* Halt the microcontroller. */
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_STALL);
-
-    /* Read the Message Block results */
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
-
-    /* End of FSP 0 -------------------------------------------------------- */
-
-    /* load the dram training firmware image FSP 1 667 Mt/s ---------------- */
-    dram_pll_init(667);
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
-
-    rc = umctl2_load_training_firmware(FW_1D_IMAGE);
-    if (rc != PB_OK) {
-        LOG_ERR("Training firmware verify failed");
-        return rc;
-    }
-
-    for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_fsp1_cfg); n++) {
-        dwc_ddrphy_apb_wr(lpddr4_fsp1_cfg[n].reg, lpddr4_fsp1_cfg[n].val);
-    }
-
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_HOLD);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_STALL);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_RUN);
-
-    /* Wait for the training firmware to complete */
-    rc = umctl2_wait_ddrphy_training_complete();
-    if (rc != PB_OK)
-        return rc;
-
-    /* Halt the microcontroller. */
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_STALL);
-
-    /* Read the Message Block results */
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
-
-    /* End of FSP 1 -------------------------------------------------------- */
-
-    /* load the dram training firmware image FSP 0 2D 3200 Mt/s ------------ */
-    dram_pll_init(3200);
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
-
-    rc = umctl2_load_training_firmware(FW_2D_IMAGE);
-    if (rc != PB_OK) {
-        LOG_ERR("Training firmware verify failed");
-        return rc;
-    }
-
-    for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_fsp0_2d_cfg); n++) {
-        dwc_ddrphy_apb_wr(lpddr4_fsp0_2d_cfg[n].reg, lpddr4_fsp0_2d_cfg[n].val);
-    }
-
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_HOLD);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_STALL);
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_RUN);
-
-    /* Wait for the training firmware to complete */
-    rc = umctl2_wait_ddrphy_training_complete();
-    if (rc != PB_OK)
-        return rc;
-
-    /* Halt the microcontroller. */
-    dwc_ddrphy_apb_wr(DDRPHY_MICRORESET, MICRORESET_STALL);
-
-    /* Read the Message Block results */
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
-
-    /* End of FSP 0 2D ----------------------------------------------------- */
-
-    /* Load PHY Init Engine Image */
-    for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_phy_pie); n++) {
-        dwc_ddrphy_apb_wr(lpddr4_phy_pie[n].reg, lpddr4_phy_pie[n].val);
-    }
-
-    /*
-     * step14 CalBusy.0 =1, indicates the calibrator is actively
-     * calibrating. Wait Calibrating done.
-     */
-
-    do {
-        tmp = dwc_ddrphy_apb_rd(DDRPHY_CALBUSY);
-    } while (tmp & CALBUSY_BUSY);
+    while (dwc_ddrphy_apb_rd(DDRPHY_CALBUSY) & CALBUSY_BUSY)
+        ;
 
     LOG_DBG("ddrphy calibration done");
 
+    /* DFI init */
+    ddrc_write_quasi_dynamic(DDRC_DFIMISC(0), ddrc_dfimisc() | DFIMISC_DFI_INIT_START);
+
+    while (!(mmio_read_32(DDRC_DFISTAT(0)) & DFISTAT_DFI_INIT_COMPLETE))
+        ;
+
+    /* Stop the DFI init, set dfi_init_complete_en and leave self refresh */
     mmio_write_32(DDRC_SWCTL(0), 0);
-
-    tmp = mmio_read_32(DDRC_MSTR2(0));
-
-    if (tmp == 0x2)
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(2) | DFIMISC_DFI_INIT_START);
-    else if (tmp == 0x1)
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(1) | DFIMISC_DFI_INIT_START);
-    else
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(0) | DFIMISC_DFI_INIT_START);
-
-    mmio_write_32(DDRC_SWCTL(0), SWCTL_SW_DONE);
-
-    /* step18 wait DFISTAT.dfi_init_complete to 1 */
-    do {
-        tmp = mmio_read_32(DDRC_DFISTAT(0));
-    } while (!(tmp & DFISTAT_DFI_INIT_COMPLETE));
-
-    mmio_write_32(DDRC_SWCTL(0), 0);
-
-    tmp = mmio_read_32(DDRC_MSTR2(0));
-
-    if (tmp == 0x2) {
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(2));
-        /* set DFIMISC.dfi_init_complete_en again */
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(2) | DFIMISC_DFI_INIT_COMPLETE_EN);
-    } else if (tmp == 0x1) {
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(1));
-        /* set DFIMISC.dfi_init_complete_en again */
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(1) | DFIMISC_DFI_INIT_COMPLETE_EN);
-    } else {
-        /* clear DFIMISC.dfi_init_complete_en */
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(0));
-        /* set DFIMISC.dfi_init_complete_en again */
-        mmio_write_32(DDRC_DFIMISC(0), DFIMISC_FREQ(0) | DFIMISC_DFI_INIT_COMPLETE_EN);
-    }
-
-    /* step23 [5]selfref_sw=0; */
+    mmio_write_32(DDRC_DFIMISC(0), ddrc_dfimisc());
+    mmio_write_32(DDRC_DFIMISC(0), ddrc_dfimisc() | DFIMISC_DFI_INIT_COMPLETE_EN);
     mmio_write_32(DDRC_PWRCTL(0), PWRCTL_EN_DFI_DRAM_CLK_DISABLE);
-    /* step24 sw_done=1 */
     mmio_write_32(DDRC_SWCTL(0), SWCTL_SW_DONE);
 
     mmio_write_32(DDRC_DFIPHYMSTR(0), DFIPHYMSTR_DFI_PHYMSTR_EN);
-    /* step25 wait SWSTAT.sw_done_ack to 1 */
-    do {
-        tmp = mmio_read_32(DDRC_SWSTAT(0));
-    } while (!(tmp & SWSTAT_SW_DONE_ACK));
+
+    while (!(mmio_read_32(DDRC_SWSTAT(0)) & SWSTAT_SW_DONE_ACK))
+        ;
 
     mmio_write_32(DDRC_DFIPHYMSTR(0), DFIPHYMSTR_DFI_PHYMSTR_EN);
 
-    /* wait STAT.operating_mode to normal state (bits [1:0], as in NXP's code) */
-    do {
-        tmp = mmio_read_32(DDRC_STAT(0));
-    } while ((tmp & 0x3) != STAT_OPERATING_MODE_NORMAL);
+    /* Wait for STAT.operating_mode normal (bits [1:0], as in NXP's code) */
+    while ((mmio_read_32(DDRC_STAT(0)) & 0x3) != STAT_OPERATING_MODE_NORMAL)
+        ;
 
-    /* step26 */
+    /* Enable auto refresh and port 0 */
     mmio_write_32(DDRC_RFSHCTL3(0), UMCTL2_VAL(RFSHCTL3_REFRESH_MODE, 1));
-
-    /* enable port 0 */
     mmio_write_32(DDRC_PCTRL_0(0), PCTRL_PORT_EN);
 
-    /* Copy all settings and results to 0x40000000. This is needed for
-     * ATF and run time changes of transfer speed / voltage */
-
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
-    dwc_ddrphy_apb_wr(DDRPHY_UCCLKHCLKENABLES, UCCLKHCLKENABLES_HCLKEN | UCCLKHCLKENABLES_UCCLKEN);
-
-    for (uint32_t n = 0; n < dram_timing.ddrphy_trained_csr_num; n++) {
-        dram_timing.ddrphy_trained_csr[n].val =
-            dwc_ddrphy_apb_rd(dram_timing.ddrphy_trained_csr[n].reg);
-    }
-
-    dwc_ddrphy_apb_wr(DDRPHY_UCCLKHCLKENABLES, UCCLKHCLKENABLES_HCLKEN);
-    dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_PMU);
-
-    struct dram_timing_info *dt = (struct dram_timing_info *)&dram_timing_info_copy;
-
-    struct dram_cfg_param *c = (struct dram_cfg_param *)(((uint8_t *)&dram_timing_info_copy) +
-                                                         sizeof(struct dram_timing_info));
-
-    dt->ddrc_cfg_num = dram_timing.ddrc_cfg_num;
-    dt->ddrphy_cfg_num = dram_timing.ddrphy_cfg_num;
-    dt->ddrphy_trained_csr_num = dram_timing.ddrphy_trained_csr_num;
-    dt->ddrphy_pie_num = dram_timing.ddrphy_pie_num;
-
-    for (uint32_t n = 0; n < 4; n++) {
-        dt->fsp_table[n] = dram_timing.fsp_table[n];
-    }
-
-    dt->ddrc_cfg = c;
-
-    for (uint32_t n = 0; n < dram_timing.ddrc_cfg_num; n++) {
-        c->reg = dram_timing.ddrc_cfg[n].reg;
-        c->val = dram_timing.ddrc_cfg[n].val;
-        c++;
-    }
-
-    dt->ddrphy_cfg = c;
-
-    for (uint32_t n = 0; n < dram_timing.ddrphy_cfg_num; n++) {
-        c->reg = dram_timing.ddrphy_cfg[n].reg;
-        c->val = dram_timing.ddrphy_cfg[n].val;
-        c++;
-    }
-
-    dt->ddrphy_trained_csr = c;
-
-    for (uint32_t n = 0; n < dram_timing.ddrphy_trained_csr_num; n++) {
-        c->reg = dram_timing.ddrphy_trained_csr[n].reg;
-        c->val = dram_timing.ddrphy_trained_csr[n].val;
-        c++;
-    }
-
-    dt->ddrphy_pie = c;
-
-    for (uint32_t n = 0; n < dram_timing.ddrphy_pie_num; n++) {
-        c->reg = dram_timing.ddrphy_pie[n].reg;
-        c->val = dram_timing.ddrphy_pie[n].val;
-        c++;
-    }
+    /* 6. Save settings and training results for TF-A */
+    dram_save_timing();
 
     return PB_OK;
 }
