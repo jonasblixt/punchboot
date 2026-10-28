@@ -36,9 +36,11 @@
 
 #include "models/bench.h"
 #include "models/emmc_model.h"
+#include "models/sd_model.h"
 #include "models/usdhc_model.h"
 
 #define IMX6UL_USDHC1_BASE 0x02190000
+#define IMX8M_USDHC2_BASE  0x30b50000
 #define IMX8M_USDHC3_BASE  0x30b60000
 
 #define RM_TABLE_10_47     "uSDHC RM Table 10-47"
@@ -64,6 +66,21 @@ static const struct imx_usdhc_config imx8mpevk_emmc = {
         .boot1_uu = UU_BOOT1,
         .user_uu = UU_USER,
         .rpmb_uu = UU_RPMB,
+    },
+};
+
+#define UU_SD \
+    (const unsigned char *)"\x3b\x1a\x5e\x22\x8d\x10\x4c\x2a\x9e\x41\x6f\x80\x0d\x52\xc7\x19"
+
+/* src/board/imx8mpevk/board.c, the SD slot */
+static const struct imx_usdhc_config imx8mpevk_sd = {
+    .base = IMX8M_USDHC2_BASE,
+    .card_detect = true,
+    .mmc_config = {
+        .card = MMC_CARD_TYPE_SD,
+        .mode = MMC_BUS_MODE_SD_HS,
+        .width = MMC_BUS_WIDTH_4BIT,
+        .user_uu = UU_SD,
     },
 };
 
@@ -129,7 +146,23 @@ static int teardown(void **state)
 {
     (void)state;
     emmc_model_free();
+    sd_model_free();
     return 0;
+}
+
+static int init_sd(const struct sd_model_config *sd_cfg, bool inserted)
+{
+    struct usdhc_model_config m = {
+        .base = imx8mpevk_sd.base,
+        .base_clk_hz = 200000000,
+        .soc = USDHC_IMX8M,
+        .card = sd_model_init(sd_cfg),
+        .vselect_wired = true,
+    };
+
+    sd_model_insert(inserted);
+    usdhc_model_init(&m);
+    return imx_usdhc_init(&imx8mpevk_sd, m.base_clk_hz);
 }
 
 static int init(const struct imx_usdhc_config *cfg, enum usdhc_soc soc, unsigned int clk_hz)
@@ -313,6 +346,41 @@ static void test_busy_timeout(void **state)
     assert_int_not_equal(bio_write(part(UU_USER), 0, 512, out), PB_OK);
 }
 
+static void test_imx8mpevk_sd(void **state)
+{
+    struct sd_model_config sd_cfg;
+    bio_dev_t d;
+    (void)state;
+
+    sd_model_default_config(&sd_cfg);
+    assert_int_equal(init_sd(&sd_cfg, true), PB_OK);
+    assert_int_equal(sd_model_speed(), SD_HIGH_SPEED);
+    assert_int_equal(usdhc_model_bus()->width, 4);
+    assert_int_equal(usdhc_model_bus()->clk_hz, 50000000);
+
+    d = bio_get_part_by_uu(UU_SD);
+    assert_true(d >= 0);
+    fill(out, sizeof(out), 5);
+    assert_int_equal(bio_write(d, 12345, sizeof(out), out), PB_OK);
+    sd_model_read(12345, check, sizeof(check) / 512);
+    assert_memory_equal(out, check, sizeof(out));
+    assert_int_equal(bio_read(d, 12345, sizeof(in), in), PB_OK);
+    assert_memory_equal(out, in, sizeof(in));
+    assert_int_equal(bio_read(d, 7, 512, in), PB_OK);
+    assert_bench_clean();
+}
+
+/* CD_B says there is no card */
+static void test_imx8mpevk_no_sd(void **state)
+{
+    struct sd_model_config sd_cfg;
+    (void)state;
+
+    sd_model_default_config(&sd_cfg);
+    assert_int_equal(init_sd(&sd_cfg, false), -PB_ERR_NOT_FOUND);
+    assert_bench_clean();
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -327,6 +395,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_dma_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_busy_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_imx8mpevk_sd, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_imx8mpevk_no_sd, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

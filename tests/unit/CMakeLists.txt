@@ -136,6 +136,7 @@ pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
 )
+target_compile_definitions(test_mmc_core PRIVATE CONFIG_MMC_CORE_MAX_DEVICES=1)
 
 # The i.MX8M LPDDR4 init with the imx8mevk timing, against a device model
 # behind a fake pb/mmio.h (see the test)
@@ -178,6 +179,11 @@ add_library(pb_mmc_models STATIC
     models/usdhc_model.c
 )
 target_include_directories(pb_mmc_models PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# Boards with several cards and controllers
+target_compile_definitions(pb_mmc_models PUBLIC
+    CONFIG_MMC_CORE_MAX_DEVICES=4
+    CONFIG_IMX_USDHC_MAX_INSTANCES=4
+)
 target_link_libraries(pb_mmc_models PUBLIC pb_lib PkgConfig::CMOCKA)
 
 # Self test of the card models
