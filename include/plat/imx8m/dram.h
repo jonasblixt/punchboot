@@ -62,6 +62,20 @@ struct dram_timing_info {
     unsigned int fsp_table[4];
 };
 
+/*
+ * The copy for TF-A: struct dram_timing_info followed by the tables it
+ * points to, in the 128 KiB .umctl2 region at the start of DRAM (link.lds).
+ */
+#define IMX8M_DRAM_TIMING_SAVE_SIZE (128 * 1024)
+
+struct dram_timing_save {
+    struct dram_timing_info info;
+    struct dram_cfg_param cfg[(IMX8M_DRAM_TIMING_SAVE_SIZE - sizeof(struct dram_timing_info)) /
+                              sizeof(struct dram_cfg_param)];
+};
+
+extern struct dram_timing_save dram_timing_info_copy;
+
 /* The board's timing, see src/board/imx8mevk/lpddr4_timing.c */
 extern struct dram_timing_info dram_timing;
 

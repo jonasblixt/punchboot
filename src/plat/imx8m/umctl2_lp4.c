@@ -101,7 +101,7 @@ static const struct dram_pll_setting dram_pll_settings[] = {
     { .drate = 667, .ref_divr2 = 30, .feedback_div_f1 = 45, .feedback_div_f2 = 8, .output_div = 3 },
 };
 
-__umctl2 struct dram_timing_info dram_timing_info_copy;
+__umctl2 struct dram_timing_save dram_timing_info_copy;
 
 static void write_cfg(const struct dram_cfg_param *cfg, unsigned int n)
 {
@@ -342,10 +342,17 @@ static void copy_cfg(struct dram_cfg_param **pos,
  * Read back the trained PHY CSRs, and copy all timing data to the start of
  * DRAM for TF-A (see struct dram_timing_info).
  */
-static void dram_save_timing(void)
+static int dram_save_timing(void)
 {
-    struct dram_timing_info *dt = &dram_timing_info_copy;
-    struct dram_cfg_param *pos = (struct dram_cfg_param *)(dt + 1);
+    struct dram_timing_info *dt = &dram_timing_info_copy.info;
+    struct dram_cfg_param *pos = dram_timing_info_copy.cfg;
+    size_t entries = (size_t)dram_timing.ddrc_cfg_num + dram_timing.ddrphy_cfg_num +
+                     dram_timing.ddrphy_trained_csr_num + dram_timing.ddrphy_pie_num;
+
+    if (entries > ARRAY_SIZE(dram_timing_info_copy.cfg)) {
+        LOG_ERR("DRAM timing does not fit in the TF-A copy (%zu entries)", entries);
+        return -PB_ERR_MEM;
+    }
 
     dwc_ddrphy_apb_wr(DDRPHY_MICROCONTMUXSEL, MICROCONTMUXSEL_APB);
     dwc_ddrphy_apb_wr(DDRPHY_UCCLKHCLKENABLES, UCCLKHCLKENABLES_HCLKEN | UCCLKHCLKENABLES_UCCLKEN);
@@ -371,6 +378,8 @@ static void dram_save_timing(void)
              dram_timing.ddrphy_trained_csr,
              dram_timing.ddrphy_trained_csr_num);
     copy_cfg(&pos, &dt->ddrphy_pie, dram_timing.ddrphy_pie, dram_timing.ddrphy_pie_num);
+
+    return PB_OK;
 }
 
 int umctl2_init(void)
@@ -473,7 +482,5 @@ int umctl2_init(void)
     mmio_write_32(DDRC_PCTRL_0(0), PCTRL_PORT_EN);
 
     /* 6. Save settings and training results for TF-A */
-    dram_save_timing();
-
-    return PB_OK;
+    return dram_save_timing();
 }
