@@ -78,6 +78,7 @@ static int imx_usdhc_setup(void)
 
     mmio_write_32(usdhc->base + USDHC_MMC_BOOT, 0);
     mmio_write_32(usdhc->base + USDHC_MIX_CTRL, 0);
+    bus_ddr_enable = false;
     mmio_write_32(usdhc->base + USDHC_CLK_TUNE_CTRL_STATUS, 0);
 
     mmio_write_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_INIT);
@@ -167,9 +168,6 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     if (data) {
         xfertype |= XFERTYPE_DPSEL;
         mixctl |= MIXCTRL_DMAEN;
-        if (bus_ddr_enable) {
-            mixctl |= MIXCTRL_DDREN;
-        }
     }
 
     /* RM, CMD_XFR_TYP: response type and checks */
@@ -191,7 +189,8 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     xfertype |= XFERTYPE_CMD(idx);
 
     /* Send the command */
-    mmio_clrsetbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DATMASK, mixctl);
+    /* DDR_EN stays as set_bus_width() set it */
+    mmio_clrsetbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DATMASK & ~MIXCTRL_DDREN, mixctl);
     mmio_write_32(usdhc->base + USDHC_CMD_ARG, arg);
     mmio_write_32(usdhc->base + XFERTYPE, xfertype);
     /*
@@ -296,6 +295,17 @@ static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
         LOG_ERR("Unsupported bus width");
         return -1;
     }
+
+    /*
+     * DDR_EN also selects the DDR prescaler table (RM, SYS_CTRL.SDCLKFS),
+     * so it is set for all commands, not just data, and before the clock
+     * is set for DDR.
+     */
+    if (bus_ddr_enable)
+        mmio_setbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DDREN);
+    else
+        mmio_clrbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DDREN);
+
     return 0;
 }
 
