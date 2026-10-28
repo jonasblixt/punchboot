@@ -138,7 +138,10 @@ pb_unit_test(test_mmc_core SOURCES
 # The i.MX8M LPDDR4 init with the imx8mevk timing, against a device model
 # behind a fake pb/mmio.h (see the test)
 pb_unit_test(test_imx8m_ddr SOURCES
-    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/umctl2_lp4.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/ddr.c
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/ddr_imx8mq.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/ddr/umctl2.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/ddr/dwc_ddrphy.c
     ${PROJECT_SOURCE_DIR}/src/board/imx8mevk/lpddr4_timing.c
 )
 target_include_directories(test_imx8m_ddr BEFORE PRIVATE

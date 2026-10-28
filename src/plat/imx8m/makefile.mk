@@ -9,7 +9,8 @@
 ifdef CONFIG_PLAT_IMX8M
 
 src-y  += src/plat/imx8m/plat.c
-src-y  += src/plat/imx8m/umctl2_lp4.c
+src-y  += src/plat/imx8m/ddr.c
+src-y  += src/plat/imx8m/ddr_imx8mq.c
 
 cflags-y += -DPLAT_VIRT_ADDR_SPACE_SIZE=0x100000000
 cflags-y += -DPLAT_PHY_ADDR_SPACE_SIZE=0x100000000

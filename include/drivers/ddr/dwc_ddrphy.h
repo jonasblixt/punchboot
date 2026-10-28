@@ -5,24 +5,25 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * Synopsys DesignWare DDR4/LPDDR4 multiPHY on the i.MX8M.
+ * Synopsys DesignWare DDR4/LPDDR4 multiPHY with firmware training.
  *
- * This PHY is trained by firmware: an embedded microcontroller (the PMU)
- * runs a training image that NXP distributes as binaries (1D and 2D, IMEM
- * and DMEM). The host loads the image, writes a message block with the
- * DRAM parameters, starts the PMU and follows its progress through a
- * mailbox. Afterwards the PHY Init Engine (PIE) image is loaded, which
- * sequences the DFI init and frequency changes.
+ * Used on the NXP i.MX8M family (8MQ, 8MM, 8MN, 8MP). The PHY is trained by
+ * firmware: an embedded microcontroller (the PMU) runs a training image
+ * that the SoC vendor distributes as binaries (1D and 2D, IMEM and DMEM).
+ * The host loads the image, writes a message block with the DRAM
+ * parameters, starts the PMU and follows its progress through a mailbox.
+ * Afterwards the PHY Init Engine (PIE) image is loaded, which sequences the
+ * DFI init and frequency changes.
  *
- * The AMD/Xilinx Zynq UltraScale+ MPSoC uses the same uMCTL2 controller
- * (see umctl2.h), but an older PHY: the DWC DDR multiPHY with a PHY
- * Utility Block (PUB), which trains in hardware when started through PIR
- * and has PGCR/PGSR/DXnGCR registers at 0xFD080000. None of that applies
- * here, and neither does UG1087's DDR_PHY chapter.
+ * Not to be confused with the older DWC DDR multiPHY with a PHY Utility
+ * Block (PUB), which trains in hardware when started through PIR and has
+ * PGCR/PGSR/DXnGCR registers: that one is in the Zynq UltraScale+ MPSoC
+ * (0xFD080000, UG1087 DDR_PHY) and, with Allwinner's own register map, in
+ * the Allwinner H3/H5/A64/H6. None of that applies here.
  *
- * CSR addressing: the PHY has 16 bit CSRs, addressed by a CSR number. On
- * the i.MX8M CSR n is at DDRPHY_BASE_ADDR + 4 * n. CSR numbers are built
- * as
+ * CSR addressing: the PHY has 16 bit CSRs, addressed by a CSR number. The
+ * SoC maps CSR n at base + stride * n (stride 4 on the i.MX8M). CSR numbers
+ * are built as
  *
  *   [23:20] P-state (frequency set point) for per-P-state registers
  *   [19:12] block, see DDRPHY_BLK_* (bits [15:12] select the instance
@@ -34,15 +35,12 @@
  * databook as used in NXP's reference code and DDR tool output.
  */
 
-#ifndef INCLUDE_PLAT_IMX8M_DDRPHY_H_
-#define INCLUDE_PLAT_IMX8M_DDRPHY_H_
+#ifndef INCLUDE_DRIVERS_DDR_DWC_DDRPHY_H
+#define INCLUDE_DRIVERS_DDR_DWC_DDRPHY_H
 
-#include <pb/mmio.h>
+#include <drivers/ddr/dram_cfg.h>
 #include <pb/utils_def.h>
 #include <stdint.h>
-
-#define DDRPHY_BASE_ADDR                 0x3c000000
-#define DDRPHY_CSR_ADDR(csr)             (DDRPHY_BASE_ADDR + 4 * (csr))
 
 #define DDRPHY_CSR(pstate, blk, reg)     (((pstate) << 20) | ((blk) << 12) | (reg))
 
@@ -108,14 +106,49 @@
 #define LPDDR4_PHY_ADDR_RON24            0xf
 #define LPDDR4_PHY_ADDR_RON20            0x1f
 
-static inline void dwc_ddrphy_apb_wr(uint32_t csr, uint32_t val)
-{
-    mmio_write_32(DDRPHY_CSR_ADDR(csr), val);
-}
+/* PMU: held in reset, stalled, running */
+#define MICRORESET_HOLD                  (MICRORESET_RESETTOMICRO | MICRORESET_STALLTOMICRO)
+#define MICRORESET_STALL                 MICRORESET_STALLTOMICRO
+#define MICRORESET_RUN                   0
 
-static inline uint32_t dwc_ddrphy_apb_rd(uint32_t csr)
-{
-    return mmio_read_32(DDRPHY_CSR_ADDR(csr));
-}
+/* API ------------------------------------------------------------------- */
 
-#endif // INCLUDE_PLAT_IMX8M_DDRPHY_H_
+/* A training firmware image, IMEM and DMEM parts */
+struct dwc_ddrphy_fw {
+    const uint32_t *imem;
+    const uint32_t *imem_end;
+    const uint32_t *dmem;
+    const uint32_t *dmem_end;
+};
+
+struct dwc_ddrphy {
+    uintptr_t base;
+    unsigned int csr_stride; /* Bytes between CSR n and n + 1 */
+    const struct dwc_ddrphy_fw *fw[2]; /* Indexed by enum fw_type */
+};
+
+void dwc_ddrphy_write(const struct dwc_ddrphy *phy, uint32_t csr, uint32_t val);
+uint32_t dwc_ddrphy_read(const struct dwc_ddrphy *phy, uint32_t csr);
+
+/* Write a table of (CSR, value) pairs */
+void dwc_ddrphy_write_cfg(const struct dwc_ddrphy *phy,
+                          const struct dram_cfg_param *cfg,
+                          unsigned int n);
+
+/*
+ * One training run: load the firmware and the message block, run the PMU
+ * and wait for its result. The DRAM clock must already be set for
+ * fsp->drate. Returns -PB_ERR_IO if the firmware doesn't read back or the
+ * training fails.
+ */
+int dwc_ddrphy_train(const struct dwc_ddrphy *phy, const struct dram_fsp_msg *fsp);
+
+/* Wait for the impedance calibration (after loading the PIE image) */
+void dwc_ddrphy_wait_calibration(const struct dwc_ddrphy *phy);
+
+/* Read back CSRs, e.g. the trained ones, into csrs[].val */
+void dwc_ddrphy_read_csrs(const struct dwc_ddrphy *phy,
+                          struct dram_cfg_param *csrs,
+                          unsigned int n);
+
+#endif // INCLUDE_DRIVERS_DDR_DWC_DDRPHY_H
