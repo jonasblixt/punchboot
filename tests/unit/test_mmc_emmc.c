@@ -352,7 +352,6 @@ static void test_cmd_crc_error(void **state)
 /* Power off notification, then power off, 6.6.36 */
 static void test_power_off(void **state)
 {
-    SKIP_OPEN("F-120");
     (void)state;
 
     assert_int_equal(init(), PB_OK);

@@ -1061,7 +1061,16 @@ int mmc_power_off(void)
     if (rc != 0)
         return rc;
 
-    return mmc_set_ext_csd(EXT_CSD_POWER_OFF_NOTIFICATION, 0x03, power_off_long_time_ms);
+    /*
+     * Any command after POWER_OFF_LONG, CMD13 too, sets it back to
+     * POWERED_ON (JESD84-B51 6.6.36). The HAL waits for the end of busy
+     * on DAT0 (R1b), the card can then be powered off.
+     */
+    return mmc_send_cmd(MMC_CMD_SWITCH,
+                        EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_POWER_OFF_NOTIFICATION) |
+                            EXTCSD_VALUE(0x03) | EXTCSD_CMD_SET_NORMAL,
+                        MMC_RSP_R1b,
+                        NULL);
 }
 
 int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg)
