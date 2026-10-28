@@ -51,6 +51,17 @@ How this was checked (2026-10-28):
 - UG1087 (Zynq UltraScale+ Devices Register Reference) lists DDR_PHY registers such as PGSR1
   (0xFD080034), PTR2 and DXnBDLR, all PUB registers.
 
+## Other SoCs (checked 2026-10-28, against U-Boot master)
+
+| SoC | Controller | PHY | Shares code with this driver? |
+|---|---|---|---|
+| i.MX8M Plus (also 8MM/8MN) | uMCTL2 at 0x3d400000, same map (NXP's 8MP EVK table writes MSTR 0xa3080020 at 0x3d400000) | Same firmware-trained DWC PHY at 0x3c000000, same mailbox; firmware `*_202006`, 4000/400/100 MT/s | Yes. Differences: SRC reset sequence, DRAM PLL (PLL14xx instead of SSCG), PHY bypass mode for data rates <= 625 MT/s (DRAM clock from the CCM instead of the PLL), inline ECC, DDR4 option |
+| Allwinner H5 (also H3/A64/R40/V3s) | One register window with Synopsys-named controller *and* PHY registers at Allwinner offsets (PIR 0x00, PWRCTL 0x04, DRAMTMG 0x58, SCHED 0x1c0, DXn at 0x300); U-Boot `dram_sunxi_dw.c` | PUB-style, hardware training through PIR/PGSR, like the ZynqMP's; DDR3/LPDDR3/DDR2 | No. Different register map, different PHY generation, no firmware |
+| Allwinner H6/H616 | uMCTL2 at the standard offsets (MSTR 0x000, DRAMTMG 0x100, SWCTL 0x320) | ZynqMP-like PUB PHY, different bit fields (U-Boot `dram_sun50i_h6.h`) | Controller only |
+
+U-Boot's DDR code (`drivers/ddr/imx`, `arch/arm/mach-sunxi/dram_*`) and NXP's timing files in it
+are GPL-2.0+: reference only, no copying into punchboot (BSD-3-Clause).
+
 ## What can be taken from AMD's documentation
 
 - **Register offsets and field layouts** of the controller are facts, and the ZynqMP FSBL that
@@ -153,7 +164,11 @@ Next, roughly in order of value:
 6. **Make the PHY code SoC independent** when another i.MX8M variant (8MM/8MN/8MP, same controller
    and PHY) is added: move the uMCTL2/PHY parts to `src/drivers/ddr/`, keep SoC resets/PLL in the
    platform, as U-Boot does in `drivers/ddr/imx/imx8m`.
-7. **Small cleanups once there is hardware:** the duplicate `DFIPHYMSTR` write; the normal-mode wait
+7. **Rank-to-rank gap from training (F-104).** U-Boot reads the critical delay differences from
+   each 1D run's message block and widens `DRAMTMG2` rd2wr/wr2rd and `RANKCTL` gaps for every
+   P-state before the DFI init ("rank-to-rank workaround"), on all i.MX8M. Punchboot skips it; the
+   EVK has two ranks.
+8. **Small cleanups once there is hardware:** the duplicate `DFIPHYMSTR` write; the normal-mode wait
    that masks STAT bits [1:0] while LPDDR4's operating_mode is [2:0]; `PCTRL_0`, `SWCTL` and
    `DBG1` in the board table that the code writes again; streaming messages logged with their
    string index, so they can be decoded with NXP's string file.
