@@ -1,19 +1,22 @@
-# i.MX8M LPDDR4 init
+# i.MX8M DRAM init
 
-The DRAM init in `src/plat/imx8m/umctl2_lp4.c`, used by `imx8mevk` (i.MX8MQ EVK, LPDDR4,
-3200 and 667 MT/s). There is no imx8mevk in the lab, so the code is checked by a golden register
-trace on the host (D-013).
+The DRAM init of the i.MX8M platforms: `imx8m_ddr_init()` in `src/plat/imx8m/ddr.c`, on top of
+the uMCTL2 and DWC PHY drivers in `src/drivers/ddr/` (D-014). Used by `imx8mevk` (i.MX8MQ EVK,
+LPDDR4, 3200 and 667 MT/s). There is no imx8mevk in the lab, so the code is checked by a golden
+register trace on the host (D-013).
 
 ## Files
 
 | File | What |
 |---|---|
-| `include/plat/imx8m/umctl2.h` | Synopsys uMCTL2 controller (DDRC): register map, FREQ1..3 shadows, fields |
-| `include/plat/imx8m/ddrphy.h` | Synopsys DWC LPDDR4 PHY: CSR numbering, PMU mailbox/reset CSRs, message codes |
-| `include/plat/imx8m/lpddr4.h` | JEDEC MR3/MR11 encodings |
-| `include/plat/imx8m/dram.h` | `struct dram_timing_info` (TF-A ABI), `dram_timing`, `umctl2_init()` |
+| `include/drivers/ddr/umctl2.h`, `src/drivers/ddr/umctl2.c` | Synopsys uMCTL2 controller: offsets from the base, FREQ1..3 shadows, fields, controller-only init steps (`DRIVERS_DDR_UMCTL2`) |
+| `include/drivers/ddr/dwc_ddrphy.h`, `src/drivers/ddr/dwc_ddrphy.c` | Synopsys DWC DDR4/LPDDR4 PHY: CSR numbering, PMU mailbox/reset CSRs, message codes; firmware load, training run, calibration, CSR readback (`DRIVERS_DDR_DWC_PHY`) |
+| `include/drivers/ddr/dram_cfg.h`, `lpddr4.h` | Table types (`dram_cfg_param`, `dram_fsp_msg`); JEDEC MR3/MR11 encodings |
+| `include/plat/imx8m/ddrc.h` | Absolute `DDRC_*(n)` addresses on the i.MX8M, for the board tables |
+| `include/plat/imx8m/dram.h` | PHY base/stride, `struct dram_timing_info` (TF-A ABI), `dram_timing`, `imx8m_ddr_init()` |
 | `include/plat/imx8m/mm.h` | SRC DDRC resets, GPC power up, `DDRC_DDR_SS_GPR0` |
-| `src/plat/imx8m/umctl2_lp4.c` | The init sequence |
+| `src/plat/imx8m/ddr.c` | The init sequence, common to the i.MX8M SoCs, and the TF-A copy |
+| `src/plat/imx8m/ddr_soc.h`, `ddr_imx8mq.c` | Per-SoC hooks: reset hold, DRAM clock (8MQ: SSCG PLL) |
 | `src/board/imx8mevk/lpddr4_timing.c` | Board tables: controller, PHY, message blocks, PIE, trained CSR list, `fsp_msg` |
 | `tests/unit/test_imx8m_ddr.c` | Device model + golden trace (`tests/unit/data/imx8m_ddr_init.trace`) |
 
@@ -35,7 +38,7 @@ controller for the Zynq UltraScale+ MPSoC/RFSoC PS, but not the same PHY.
 | Versal | n/a | Versal uses AMD's own DDRMC (NoC) and XPHY, neither is Synopsys |
 
 So: **same controller, different PHY generation.** Everything in `umctl2.h` can be checked against
-AMD's material; nothing in `ddrphy.h` can. The ZynqMP DDR_PHY chapter of UG1087 describes the
+AMD's material; nothing in `dwc_ddrphy.h` can. The ZynqMP DDR_PHY chapter of UG1087 describes the
 PUB PHY and does not apply here.
 
 How this was checked (2026-10-28):
@@ -76,16 +79,17 @@ are GPL-2.0+: reference only, no copying into punchboot (BSD-3-Clause).
 
 ## Init sequence
 
-`umctl2_init()`, following NXP's reference code:
+`imx8m_ddr_init()`, following NXP's reference code (SoC hooks in parentheses):
 
-1. Hold the controller and PHY in reset (SRC DDRC_RCR), power up the DDR domain (GPC), start the
-   DRAM PLL for the first training run's data rate.
+1. Hold the controller and PHY in reset (`imx8m_ddr_soc_reset()`), power up the DDR domain (GPC),
+   set the DRAM clock for the first training run's data rate (`imx8m_ddr_soc_set_clock()`).
 2. Release the APB reset, write the board's controller table (`ddrc_cfg`), release the core and
    PHY resets. Put the SDRAM in self refresh by software (`PWRCTL.selfref_sw`) and wait for
-   `STAT`. Set `DFIMISC.dfi_frequency` (quasi-dynamic, through `SWCTL`).
+   `STAT`. Set `DDR_SS_GPR0` to LPDDR4 mode if `MSTR.lpddr4`. Set `DFIMISC.dfi_frequency`
+   (quasi-dynamic, through `SWCTL`).
 3. Write the board's PHY table (`ddrphy_cfg`).
-4. For each entry in `fsp_msg` (3200 1D, 667 1D, 3200 2D on the EVK): change the PLL if the data
-   rate changes, give the APB access (`MicroContMuxSel`), load IMEM and DMEM and read them back,
+4. For each entry in `fsp_msg` (3200 1D, 667 1D, 3200 2D on the EVK): change the clock if the
+   data rate changes, give the APB access (`MicroContMuxSel`), load IMEM and DMEM and read them back,
    write the message block, start the PMU (`MicroReset`), follow the mailbox until "training done"
    (0x07) or "failed" (0xff), stall the PMU.
 5. Load the PIE image, wait for `CalBusy`, start the DFI init (`DFIMISC.dfi_init_start`), wait for
@@ -93,12 +97,12 @@ are GPL-2.0+: reference only, no copying into punchboot (BSD-3-Clause).
    requests, wait for normal operating mode, enable auto refresh and AXI port 0.
 6. Read back the trained PHY CSRs and copy all tables to `.umctl2` (0x40000000) for TF-A.
 
-PHY CSR numbers are `[23:20]` P-state, `[19:12]` block, `[11:0]` register (`ddrphy.h`), so the
-trained CSR list in the board file reads as "MASTER0/DBYTEn register r, for P-states 0..2".
+PHY CSR numbers are `[23:20]` P-state, `[19:12]` block, `[11:0]` register, so the
+trained CSR list in the board file reads as "MASTER0/DBYTEn register r, for P-states 0..2" (`dwc_ddrphy.h`).
 
 ## Testing
 
-`test_imx8m_ddr` builds `umctl2_lp4.c` and the EVK timing for the host, with
+`test_imx8m_ddr` builds `ddr.c`, `ddr_imx8mq.c`, both drivers and the EVK timing for the host, with
 `tests/unit/fakes/mmio/pb/mmio.h` in front of the real one. Every register access goes to a model
 of the controller (STAT, SWSTAT, DFISTAT), the PHY (CalBusy, mailbox with a scripted training run)
 and the PLL (lock). Every write, and the timing copy for TF-A, is compared to
@@ -138,12 +142,38 @@ make BOARD=src/board/imx8mevk KCONFIG_CONFIG=configs/imx8mevk_defconfig \
 - The PHY block and CSR names follow NXP's reference code and DDR tool output. The message block
   (DMEM 0x54000..) fields are not named (see suggestions).
 
+## Adding a SoC
+
+**Another i.MX8M (8MP, 8MM, 8MN).** Same controller and PHY (see the table above).
+
+1. `src/plat/Kconfig`: `config PLAT_IMX8MP` (in `choice PLAT`) with `select PLAT_IMX8M_COMMON`.
+   That builds `src/plat/imx8m` and selects both DDR drivers.
+2. `src/plat/imx8m/ddr_imx8mp.c`, built for `CONFIG_PLAT_IMX8MP`, implements `ddr_soc.h`:
+   - `imx8m_ddr_soc_reset()`: the 8MM/8MN/8MP sequence (`DDRC_RCR` 0x8F00001F, then 0x8F00000F).
+   - `imx8m_ddr_soc_set_clock()`: the PLL14xx DRAM PLL above 625 MT/s, PHY bypass (DRAM clock from
+     the CCM) at or below it. Bypass also needs the PHY told about it in the board's PHY/message
+     block tables, as NXP's tool generates them.
+3. The firmware blobs: `ddr.c` uses the `lpddr4_pmu_train_*` symbol names, which come from the
+   file names. NXP's 8MP files are `*_202006.bin`; either copy them to the fixed names in the
+   board makefile, or move the `struct dwc_ddrphy_fw` definitions to the board.
+4. Check where the TF-A on the 8MP expects the saved timing (punchboot: 0x40000000; U-Boot's
+   default on the 8MM: OCRAM_S at 0x180000).
+5. A board timing file and a golden trace of its own (copy `test_imx8m_ddr`, with `ddr_imx8mp.c`).
+6. Inline ECC and DDR4 are new code paths in `ddr.c`/the drivers.
+
+**A SoC with only the controller (ZynqMP, Allwinner H6/H616).** Select only `DRIVERS_DDR_UMCTL2`
+and write the PHY part in the platform. The `umctl2_*` steps assume a DFI PHY that does its own
+init after `dfi_init_start`; check them against the SoC's reference sequence.
+
+**Allwinner H5.** Shares nothing; its DRAM code belongs in its platform.
+
 ## Suggestions
 
 Done on `imx8m-dram-cleanup` (2026-10-28): headers split by IP, named registers and fields, FREQ
 shadows derived instead of listed, training driven by the board's `fsp_msg` table, one firmware
 loader, PLL settings as a table, board timing as a `.c` file with static tables, errors propagated
-(F-098), golden trace test.
+(F-098), golden trace test, uMCTL2 and DWC PHY drivers in `src/drivers/ddr` with per-SoC hooks
+(D-014).
 
 Next, roughly in order of value:
 
@@ -161,14 +191,11 @@ Next, roughly in order of value:
    board file reviewable. Needs the layout from NXP's DDR tool.
 5. **Compile imx8mevk in CI with placeholder blobs (F-103).** Nothing builds it today; this branch
    showed it compiles.
-6. **Make the PHY code SoC independent** when another i.MX8M variant (8MM/8MN/8MP, same controller
-   and PHY) is added: move the uMCTL2/PHY parts to `src/drivers/ddr/`, keep SoC resets/PLL in the
-   platform, as U-Boot does in `drivers/ddr/imx/imx8m`.
-7. **Rank-to-rank gap from training (F-104).** U-Boot reads the critical delay differences from
+6. **Rank-to-rank gap from training (F-104).** U-Boot reads the critical delay differences from
    each 1D run's message block and widens `DRAMTMG2` rd2wr/wr2rd and `RANKCTL` gaps for every
    P-state before the DFI init ("rank-to-rank workaround"), on all i.MX8M. Punchboot skips it; the
    EVK has two ranks.
-8. **Small cleanups once there is hardware:** the duplicate `DFIPHYMSTR` write; the normal-mode wait
+7. **Small cleanups once there is hardware:** the duplicate `DFIPHYMSTR` write; the normal-mode wait
    that masks STAT bits [1:0] while LPDDR4's operating_mode is [2:0]; `PCTRL_0`, `SWCTL` and
    `DBG1` in the board table that the code writes again; streaming messages logged with their
    string index, so they can be decoded with NXP's string file.

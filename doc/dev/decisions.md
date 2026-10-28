@@ -107,3 +107,15 @@ change what reaches the hardware regenerates the trace and says why in its messa
 Why: there is no imx8mevk in the lab, and a DRAM init that is wrong in one bit fails silently or
 not at all until it is on a board. The trace proves that a cleanup changed nothing; it does not
 prove the sequence is right.
+
+## D-014: DDR IP code lives in `src/drivers/ddr`, selected by the platforms (2026-10-28)
+
+The Synopsys uMCTL2 controller and the firmware-trained DWC DDR PHY are drivers
+(`DRIVERS_DDR_UMCTL2`, `DRIVERS_DDR_DWC_PHY`, hidden Kconfig symbols). Platforms select what their
+SoC has; the i.MX8M SoCs do it through `PLAT_IMX8M_COMMON`, which `PLAT_IMX8MQ` (and later
+`PLAT_IMX8MP`) select. The drivers take the base address (and the PHY its CSR stride and firmware)
+from the caller and know nothing about the SoC. The init sequence, resets, clocks and the TF-A
+handover stay in the platform, with one `ddr_<soc>.c` per SoC behind `ddr_soc.h`.
+Why: the i.MX8M Plus has the same controller and PHY as the 8MQ, and the controller is also in the
+ZynqMP and Allwinner H6/H616. The Allwinner H5 has neither (Synopsys names at Allwinner offsets,
+a PUB-style PHY), so its DRAM code stays in its platform.
