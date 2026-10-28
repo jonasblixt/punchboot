@@ -33,4 +33,5 @@
 ## pbstate (`tools/pbstate/`)
 
 CMake C lib + CLI that reads and writes the A/B state blob from Linux. It uses the firmware headers
-`include/boot/pb_state_blob.h` and `src/lib/crc.c`. Has its own version (0.3.3).
+`include/boot/pb_state_blob.h` and `src/lib/crc.c`. Its version (`pbstate -V`, `pbstate.pc`) comes
+from `version.txt`; the SONAME is the ABI version and stays `libpbstate.so.0`.
