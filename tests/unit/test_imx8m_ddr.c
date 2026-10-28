@@ -200,6 +200,7 @@ void pb_delay_us(uint32_t delay)
 }
 
 extern struct dram_timing_info dram_timing_info_copy;
+extern struct dram_timing_info dram_timing;
 
 /* The copy for TF-A, with the pointers as offsets from the start of the copy */
 static void trace_timing_copy(void)
@@ -338,12 +339,26 @@ static void test_firmware_verify_failed(void **state)
     assert_int_equal(mail_pos, 0);
 }
 
+/* A training run at a data rate the DRAM PLL has no setting for */
+static void test_unsupported_data_rate(void **state)
+{
+    (void)state;
+    unsigned int drate = dram_timing.fsp_msg[1].drate;
+
+    dram_timing.fsp_msg[1].drate = 1234;
+    assert_int_equal(umctl2_init(), -PB_ERR_NOT_SUPPORTED);
+    dram_timing.fsp_msg[1].drate = drate;
+    /* Only the first training run happened */
+    assert_int_equal(mail_pos, ARRAY_SIZE(mail_script));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_init_trace, reset_model),
         cmocka_unit_test_setup(test_training_failed, reset_model),
         cmocka_unit_test_setup(test_firmware_verify_failed, reset_model),
+        cmocka_unit_test_setup(test_unsupported_data_rate, reset_model),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
