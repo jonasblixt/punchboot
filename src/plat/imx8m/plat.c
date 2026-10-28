@@ -132,6 +132,8 @@ static int plat_mmu_init(void)
 
 int plat_init(void)
 {
+    int rc;
+
 #if CONFIG_ENABLE_WATCHDOG
     /* Enable and ungate WDOG1 clock */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
@@ -203,7 +205,11 @@ int plat_init(void)
                            SSCG_PLL_DIV6_CLKE_MASK | SSCG_PLL_DIV8_CLKE_MASK |
                            SSCG_PLL_DIV10_CLKE_MASK | SSCG_PLL_DIV20_CLKE_MASK);
 
-    umctl2_init();
+    rc = umctl2_init();
+    if (rc != PB_OK) {
+        LOG_ERR("LPDDR4 init failed (%i)", rc);
+        return rc;
+    }
 
     LOG_DBG("LPDDR4 training complete");
 

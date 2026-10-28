@@ -36,7 +36,7 @@ extern uint32_t _binary_blobs_lpddr4_pmu_train_2d_dmem_bin_end;
 
 __umctl2 struct dram_timing_info dram_timing_info_copy;
 
-static uint32_t umctl2_load_training_firmware(enum fw_type type)
+static int umctl2_load_training_firmware(enum fw_type type)
 {
     uint32_t tmp32, i;
     unsigned long pr_to32, pr_from32;
@@ -99,7 +99,7 @@ static uint32_t umctl2_load_training_firmware(enum fw_type type)
         tmp32 += ((mmio_read_16(pr_to32) & 0x0000ffff) << 16);
 
         if (tmp32 != mmio_read_32(pr_from32))
-            return PB_ERR;
+            return -PB_ERR_IO;
 
         pr_from32 += 4;
         pr_to32 += 4;
@@ -115,7 +115,7 @@ static uint32_t umctl2_load_training_firmware(enum fw_type type)
         tmp32 += ((mmio_read_16(pr_to32) & 0x0000ffff) << 16);
 
         if (tmp32 != mmio_read_32(pr_from32))
-            return PB_ERR;
+            return -PB_ERR_IO;
 
         pr_from32 += 4;
         pr_to32 += 4;
@@ -190,7 +190,7 @@ static void umctl2_decode_streaming_message(void)
     }
 }
 
-static void umctl2_wait_ddrphy_training_complete(void)
+static int umctl2_wait_ddrphy_training_complete(void)
 {
     volatile unsigned int mail;
 
@@ -201,10 +201,10 @@ static void umctl2_wait_ddrphy_training_complete(void)
             umctl2_decode_streaming_message();
         } else if (mail == 0x07) {
             LOG_INFO("Training PASS");
-            break;
+            return PB_OK;
         } else if (mail == 0xff) {
             LOG_ERR("Training FAILED");
-            break;
+            return -PB_ERR_IO;
         }
     }
 }
@@ -260,6 +260,7 @@ static void dram_pll_init(uint32_t data_rate)
 int umctl2_init(void)
 {
     volatile uint32_t tmp;
+    int rc;
 
     mmio_write_32(SRC_DDRC_RCR_ADDR + 0x04, 0x8F00000F);
     mmio_write_32(SRC_DDRC_RCR_ADDR, 0x8F00000F);
@@ -312,7 +313,11 @@ int umctl2_init(void)
 
     dwc_ddrphy_apb_wr(0xd0000, 0x0);
 
-    umctl2_load_training_firmware(FW_1D_IMAGE);
+    rc = umctl2_load_training_firmware(FW_1D_IMAGE);
+    if (rc != PB_OK) {
+        LOG_ERR("Training firmware verify failed");
+        return rc;
+    }
 
     for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_fsp0_cfg); n++) {
         dwc_ddrphy_apb_wr(lpddr4_fsp0_cfg[n].reg, lpddr4_fsp0_cfg[n].val);
@@ -324,7 +329,9 @@ int umctl2_init(void)
     dwc_ddrphy_apb_wr(0xd0099, 0x0);
 
     /* Wait for the training firmware to complete */
-    umctl2_wait_ddrphy_training_complete();
+    rc = umctl2_wait_ddrphy_training_complete();
+    if (rc != PB_OK)
+        return rc;
 
     /* Halt the microcontroller. */
     dwc_ddrphy_apb_wr(0xd0099, 0x1);
@@ -339,7 +346,11 @@ int umctl2_init(void)
     dram_pll_init(667);
     dwc_ddrphy_apb_wr(0xd0000, 0x0);
 
-    umctl2_load_training_firmware(FW_1D_IMAGE);
+    rc = umctl2_load_training_firmware(FW_1D_IMAGE);
+    if (rc != PB_OK) {
+        LOG_ERR("Training firmware verify failed");
+        return rc;
+    }
 
     for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_fsp1_cfg); n++) {
         dwc_ddrphy_apb_wr(lpddr4_fsp1_cfg[n].reg, lpddr4_fsp1_cfg[n].val);
@@ -351,7 +362,9 @@ int umctl2_init(void)
     dwc_ddrphy_apb_wr(0xd0099, 0x0);
 
     /* Wait for the training firmware to complete */
-    umctl2_wait_ddrphy_training_complete();
+    rc = umctl2_wait_ddrphy_training_complete();
+    if (rc != PB_OK)
+        return rc;
 
     /* Halt the microcontroller. */
     dwc_ddrphy_apb_wr(0xd0099, 0x1);
@@ -366,7 +379,11 @@ int umctl2_init(void)
     dram_pll_init(3200);
     dwc_ddrphy_apb_wr(0xd0000, 0x0);
 
-    umctl2_load_training_firmware(FW_2D_IMAGE);
+    rc = umctl2_load_training_firmware(FW_2D_IMAGE);
+    if (rc != PB_OK) {
+        LOG_ERR("Training firmware verify failed");
+        return rc;
+    }
 
     for (uint32_t n = 0; n < ARRAY_SIZE(lpddr4_fsp0_2d_cfg); n++) {
         dwc_ddrphy_apb_wr(lpddr4_fsp0_2d_cfg[n].reg, lpddr4_fsp0_2d_cfg[n].val);
@@ -378,7 +395,9 @@ int umctl2_init(void)
     dwc_ddrphy_apb_wr(0xd0099, 0x0);
 
     /* Wait for the training firmware to complete */
-    umctl2_wait_ddrphy_training_complete();
+    rc = umctl2_wait_ddrphy_training_complete();
+    if (rc != PB_OK)
+        return rc;
 
     /* Halt the microcontroller. */
     dwc_ddrphy_apb_wr(0xd0099, 0x1);
