@@ -13,7 +13,7 @@ are done (`compatibility.md`, Guards).
   the `compat.abi` layout check, ~15 s, ASan/UBSan clean. Line coverage 99.2% (was 59%); what's left is in `testing.md`.
   `scripts/pbdev test` runs it all.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (gcovr HTML artifact, D-012), a
-  firmware compile check (jiffy, imx8dxlevk) and Coverity, all in the dev container. All green on
+  firmware compile check (jiffy, imx8dxlevk, imx8mevk) and Coverity, all in the dev container. All green on
   `claude-work`. Coverity only runs on master, so it's unverified until merged.
 - **QEMU removed:** the bash/QEMU suite, `src/board/test`, `src/plat/qemu`,
   `include/plat/qemu` and `configs/test_defconfig` are gone.
@@ -55,7 +55,7 @@ are done (`compatibility.md`, Guards).
 
 ## Open questions (for Jonas)
 
-- Which boards are still in use? Only jiffy and imx8dxlevk build (F-051, F-033).
+- Which boards are still in use? Only jiffy, imx8dxlevk and imx8mevk (placeholder DDR firmware) build (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Mbed TLS: 3.6 LTS or 4.x?
 - Compat floor: which oldest released host and firmware must the guards test against? F-075 shows
