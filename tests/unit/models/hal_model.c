@@ -22,10 +22,6 @@
 static struct bus_card *card;
 static struct bus_cfg bus;
 static struct mmc_hal hal;
-static uint8_t last_idx;
-static uint8_t data_idx;
-static bool data_pending;
-static bool counted; /* The data command came right after CMD23 */
 
 static void wait_busy(const char *what)
 {
@@ -42,7 +38,6 @@ static int hal_init(void)
     bus.vccq_mv = 1800;
     bus.vdd_mv = 3300;
     card->ops->set_bus(card, &bus);
-    data_pending = false;
     return PB_OK;
 }
 
@@ -86,36 +81,52 @@ static int raw_cmd(uint8_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t
     return PB_OK;
 }
 
-static int hal_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result)
+/* The CMD12 after an open-ended multiple block transfer */
+static int stop(const struct mmc_cmd *cmd)
 {
-    int rc = raw_cmd(idx, arg, resp_type, result);
+    uint16_t type = cmd->write ? MMC_RSP_R1b : MMC_RSP_R1;
+    uint32_t errors = STATUS_ERROR_MASK;
+    mmc_cmd_resp_t rsp;
+    int rc = raw_cmd(MMC_CMD_STOP_TRANSMISSION, 0, type, rsp);
 
-    counted = last_idx == MMC_CMD_SET_BLOCK_COUNT;
-    last_idx = idx;
-    data_idx = idx;
+    /* Execution errors of the transfer are reported here. A read up to
+     * the last block may read ahead past it, JESD84-B51 6.8.3 */
+    if (!cmd->write)
+        errors &= ~STATUS_ADDRESS_OUT_OF_RANGE;
+    if (rc == PB_OK && (rsp[0] & errors))
+        rc = -PB_ERR_IO;
     return rc;
 }
 
-/* The auto CMD12 after an open-ended multiple block transfer */
-static int stop(void)
+static int hal_request(struct mmc_cmd *cmd)
 {
-    if ((data_idx == MMC_CMD_READ_MULTIPLE_BLOCK || data_idx == MMC_CMD_WRITE_MULTIPLE_BLOCK) &&
-        !counted) {
-        uint16_t type = data_idx == MMC_CMD_WRITE_MULTIPLE_BLOCK ? MMC_RSP_R1b : MMC_RSP_R1;
-        mmc_cmd_resp_t rsp;
-        int rc = raw_cmd(MMC_CMD_STOP_TRANSMISSION, 0, type, rsp);
+    int rc = raw_cmd(cmd->idx, cmd->arg, cmd->resp_type, cmd->resp);
 
-        uint32_t errors = STATUS_ERROR_MASK;
-
-        /* Execution errors of the transfer are reported here. A read up to
-         * the last block may read ahead past it, JESD84-B51 6.8.3 */
-        if (data_idx == MMC_CMD_READ_MULTIPLE_BLOCK)
-            errors &= ~STATUS_ADDRESS_OUT_OF_RANGE;
-        if (rc == PB_OK && (rsp[0] & errors))
-            rc = -PB_ERR_IO;
+    if (rc != PB_OK || cmd->blocks == 0)
         return rc;
+
+    for (size_t n = 0; n < cmd->blocks && rc == PB_OK; n++) {
+        uint8_t *block = (uint8_t *)cmd->buf + n * cmd->block_size;
+
+        if (cmd->write) {
+            wait_busy("write busy");
+            if (card->ops->write(card, block, cmd->block_size) != BUS_DATA_OK)
+                rc = -PB_ERR_IO;
+        } else if (card->ops->read(card, block, cmd->block_size) != BUS_DATA_OK) {
+            rc = -PB_ERR_IO;
+        }
     }
-    return PB_OK;
+    if (cmd->write)
+        wait_busy("write busy");
+
+    /* After an error the card is stopped too */
+    if (cmd->stop || (rc != PB_OK && cmd->blocks > 1)) {
+        int stop_rc = stop(cmd);
+
+        if (rc == PB_OK)
+            rc = stop_rc;
+    }
+    return rc;
 }
 
 static int hal_set_bus_clock(unsigned int clk_hz)
@@ -156,59 +167,6 @@ static int hal_set_bus_width(enum mmc_bus_width width)
     return PB_OK;
 }
 
-static int hal_prepare(unsigned int lba, size_t length, uintptr_t buf)
-{
-    (void)lba;
-    (void)buf;
-    data_pending = length > 0;
-    return PB_OK;
-}
-
-static int hal_read(unsigned int lba, size_t length, uintptr_t buf)
-{
-    size_t block = length < 512 ? length : 512;
-    int rc = PB_OK;
-    (void)lba;
-
-    if (!data_pending)
-        fail_msg("read() without prepare()");
-    data_pending = false;
-
-    for (size_t off = 0; off < length; off += block) {
-        if (card->ops->read(card, (uint8_t *)buf + off, block) != BUS_DATA_OK) {
-            rc = -PB_ERR_IO;
-            break;
-        }
-    }
-
-    if (stop() != PB_OK)
-        rc = -PB_ERR_IO;
-    return rc;
-}
-
-static int hal_write(unsigned int lba, size_t length, uintptr_t buf)
-{
-    int rc = PB_OK;
-    (void)lba;
-
-    if (!data_pending)
-        fail_msg("write() without prepare()");
-    data_pending = false;
-
-    for (size_t off = 0; off < length; off += 512) {
-        wait_busy("write busy");
-        if (card->ops->write(card, (const uint8_t *)buf + off, 512) != BUS_DATA_OK) {
-            rc = -PB_ERR_IO;
-            break;
-        }
-    }
-
-    wait_busy("write busy");
-    if (stop() != PB_OK)
-        rc = -PB_ERR_IO;
-    return rc;
-}
-
 static int hal_set_delay_tap(unsigned int tap)
 {
     (void)tap;
@@ -218,15 +176,11 @@ static int hal_set_delay_tap(unsigned int tap)
 const struct mmc_hal *hal_model_init(struct bus_card *c, size_t max_chunk_bytes)
 {
     card = c;
-    last_idx = 0xff;
     hal = (struct mmc_hal){
         .init = hal_init,
-        .send_cmd = hal_send_cmd,
+        .request = hal_request,
         .set_bus_clock = hal_set_bus_clock,
         .set_bus_width = hal_set_bus_width,
-        .prepare = hal_prepare,
-        .read = hal_read,
-        .write = hal_write,
         .set_delay_tap = hal_set_delay_tap,
         .max_chunk_bytes = max_chunk_bytes,
     };

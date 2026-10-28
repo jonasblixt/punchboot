@@ -11,6 +11,7 @@
 #define INCLUDE_PB_MMC_H
 
 #include <pb/utils_def.h>
+#include <stdbool.h>
 #include <uuid.h>
 
 /* MMC Commands */
@@ -327,26 +328,43 @@ struct mmc_csd_emmc {
 
 typedef uint32_t mmc_cmd_resp_t[4];
 
+/**
+ * A command and the data that goes with it
+ *
+ * The HAL sends the command, moves the data, and waits for the end of
+ * busy after an R1b response and after written data. When 'stop' is set it
+ * sends CMD12 after the data (an open-ended multiple block transfer) and
+ * fails if the CMD12 response has an error bit set (STATUS_ERROR_MASK),
+ * except ADDRESS_OUT_OF_RANGE after a read (JESD84-B51 6.8.3). After a data
+ * error in a multiple block transfer the HAL stops the card with CMD12.
+ */
+struct mmc_cmd {
+    uint8_t idx; /*!< Command index */
+    uint32_t arg; /*!< Argument */
+    uint16_t resp_type; /*!< MMC_RSP_* */
+    /*!< Response. 48 bit: resp[0] = bits [39:8]. R2: resp[3..0] = bits
+     *   [127:8] of the register, bits [7:0] 0 */
+    mmc_cmd_resp_t resp;
+    void *buf; /*!< Data buffer */
+    size_t block_size; /*!< Bytes per block */
+    size_t blocks; /*!< 0: no data */
+    bool write; /*!< Host to card */
+    bool stop; /*!< Send CMD12 after the data */
+};
+
 typedef int (*mmc_init_t)(void);
-typedef int (*mmc_io_t)(unsigned int lba, size_t length, uintptr_t buf);
+typedef int (*mmc_request_t)(struct mmc_cmd *cmd);
 
 typedef int (*mmc_set_bus_clock_t)(unsigned int clk_hz);
 typedef int (*mmc_set_bus_width_t)(enum mmc_bus_width width);
 
-typedef int (*mmc_send_cmd_t)(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result);
-
 struct mmc_hal {
     mmc_init_t init; /*!< Initilize HAL */
-    mmc_send_cmd_t send_cmd; /*!< Send MMC command */
+    mmc_request_t request; /*!< Send a command and move its data */
     mmc_set_bus_clock_t set_bus_clock; /*!< Set bus clock rate */
     mmc_set_bus_width_t set_bus_width; /*!< Set bus with */
-    mmc_io_t prepare; /*!< Prepare DMA and start xfer, this is optional */
-    /*!< Perform read op. Fails if the response to a CMD12 the HAL sends
-     *   after the data has an error bit set (STATUS_ERROR_MASK) */
-    mmc_io_t read;
-    mmc_io_t write; /*!< Perform write op, the same for CMD12 */
     int (*set_delay_tap)(unsigned int tap); /*!< Select bus delay tap */
-    size_t max_chunk_bytes; /*!< Maximum bytes per iop */
+    size_t max_chunk_bytes; /*!< Maximum bytes per request */
 };
 
 struct mmc_device_info {

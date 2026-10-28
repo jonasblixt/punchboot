@@ -8,16 +8,15 @@
  * An mmc_hal that drives a card model the way a correct host controller
  * does, for testing mmc_core on its own:
  *
- *  - send_cmd() sends the command with the response type the core asks for,
+ *  - request() sends the command with the response type the core asks for,
  *    checks the response CRC and index like a controller with CCCEN and
- *    CICEN set, and waits for DAT0 busy to end after an R1b response
- *  - R2 responses are returned as register bits [127:8] in result[3..0] with
+ *    CICEN set, and waits for DAT0 busy to end after an R1b response and
+ *    after written data
+ *  - R2 responses are returned as register bits [127:8] in resp[3..0] with
  *    bits [7:0] cleared, as the uSDHC returns them
- *  - prepare() records the buffer, read() and write() move the data in
- *    blocks of min(length, 512) bytes
- *  - multiple block transfers not preceded by CMD23 get a CMD12 after the
- *    data, like the uSDHC's auto CMD12, and read() or write() fails if its
- *    response has an error bit set
+ *  - with 'stop', and after a data error in a multiple block transfer, it
+ *    sends CMD12 after the data and fails if the response has an error
+ *    bit set (not ADDRESS_OUT_OF_RANGE after a read, JESD84-B51 6.8.3)
  */
 
 #ifndef TESTS_UNIT_MODELS_HAL_MODEL_H

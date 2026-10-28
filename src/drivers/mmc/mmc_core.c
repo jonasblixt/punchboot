@@ -72,39 +72,63 @@ static const uint8_t tuning_blk_pattern_8bit[] = {
 };
 #endif
 
-static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result)
+static int mmc_request(struct mmc_cmd *cmd)
 {
     int rc;
 
 #ifdef CONFIG_MMC_CORE_DEBUG_CMDS
-    LOG_DBG("idx %u, arg 0x%08x, 0x%x", cmd_idx, arg, resp_type);
+    LOG_DBG("idx %u, arg 0x%08x, 0x%x", cmd->idx, cmd->arg, cmd->resp_type);
 #endif
 
-    rc = mmc_hal->send_cmd(cmd_idx, arg, resp_type, result);
+    rc = mmc_hal->request(cmd);
 
     if (rc != PB_OK) {
-        LOG_ERR("Send command %u error: %i", cmd_idx, rc);
+        LOG_ERR("Send command %u error: %i", cmd->idx, rc);
     }
 
     return rc;
 }
 
-/* A command with an R1 response, failing on the error bits it reports */
-static int mmc_send_cmd_r1(uint16_t cmd_idx, uint32_t arg)
+static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result)
 {
-    mmc_cmd_resp_t resp_data;
+    struct mmc_cmd cmd = {
+        .idx = cmd_idx,
+        .arg = arg,
+        .resp_type = resp_type,
+    };
+    int rc = mmc_request(&cmd);
+
+    if (rc == PB_OK && result != NULL)
+        memcpy(result, cmd.resp, sizeof(mmc_cmd_resp_t));
+    return rc;
+}
+
+/* A command with an R1 response, failing on the error bits it reports */
+static int mmc_request_r1(struct mmc_cmd *cmd)
+{
     int rc;
 
-    rc = mmc_send_cmd(cmd_idx, arg, MMC_RSP_R1, resp_data);
+    cmd->resp_type = MMC_RSP_R1;
+    rc = mmc_request(cmd);
     if (rc != PB_OK)
         return rc;
 
-    if (resp_data[0] & STATUS_ERROR_MASK) {
-        LOG_ERR("CMD%u card status 0x%08x", cmd_idx, resp_data[0]);
+    if (cmd->resp[0] & STATUS_ERROR_MASK) {
+        LOG_ERR("CMD%u card status 0x%08x", cmd->idx, cmd->resp[0]);
         return -PB_ERR_IO;
     }
 
     return PB_OK;
+}
+
+static int mmc_send_cmd_r1(uint16_t cmd_idx, uint32_t arg)
+{
+    struct mmc_cmd cmd = {
+        .idx = cmd_idx,
+        .arg = arg,
+    };
+
+    return mmc_request_r1(&cmd);
 }
 
 static int mmc_reset_to_idle(void)
@@ -191,17 +215,14 @@ int mmc_extcsd_reload(void)
 
     mmc_dev_info.block_size = MMC_BLOCK_SIZE;
 
-    ret = mmc_hal->prepare(0, sizeof(mmc_ext_csd), (uintptr_t)mmc_ext_csd);
-    if (ret != 0) {
-        return ret;
-    }
+    struct mmc_cmd cmd = {
+        .idx = MMC_CMD_SEND_EXT_CSD,
+        .buf = mmc_ext_csd,
+        .block_size = sizeof(mmc_ext_csd),
+        .blocks = 1,
+    };
 
-    ret = mmc_send_cmd(MMC_CMD_SEND_EXT_CSD, 0, MMC_RSP_R1, NULL);
-    if (ret != 0) {
-        return ret;
-    }
-
-    ret = mmc_hal->read(0, sizeof(mmc_ext_csd), (uintptr_t)mmc_ext_csd);
+    ret = mmc_request_r1(&cmd);
     if (ret != 0) {
         return ret;
     }
@@ -457,18 +478,14 @@ static int hs200_tune(void)
     for (int i = 0; i < 127; i++) {
         mmc_hal->set_delay_tap(i);
         pb_delay_ms(10);
-        rc = mmc_hal->prepare(0, sizeof(mmc_tuning_rsp), (uintptr_t)mmc_tuning_rsp);
-        if (rc != 0) {
-            goto tune_tap_fail;
-        }
+        struct mmc_cmd cmd = {
+            .idx = MMC_CMD_SEND_TUNING_BLOCK_HS200,
+            .buf = mmc_tuning_rsp,
+            .block_size = sizeof(mmc_tuning_rsp),
+            .blocks = 1,
+        };
 
-        rc = mmc_send_cmd(MMC_CMD_SEND_TUNING_BLOCK_HS200, 0, MMC_RSP_R1, NULL);
-
-        if (rc != 0) {
-            goto tune_tap_fail;
-        }
-
-        rc = mmc_hal->read(0, sizeof(mmc_tuning_rsp), (uintptr_t)mmc_tuning_rsp);
+        rc = mmc_request_r1(&cmd);
         if (rc != 0) {
             goto tune_tap_fail;
         }
@@ -897,76 +914,23 @@ static unsigned int mmc_data_address(unsigned int lba)
     return lba * MMC_BLOCK_SIZE;
 }
 
-int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
+static int mmc_rw(unsigned int lba, size_t length, uintptr_t buf, bool write)
 {
+    struct mmc_cmd cmd = {
+        .arg = mmc_data_address(lba),
+        .buf = (void *)buf,
+        .block_size = MMC_BLOCK_SIZE,
+        .blocks = length / MMC_BLOCK_SIZE,
+        .write = write,
+    };
     int ret;
-    unsigned int cmd_idx;
 
 #ifdef MMC_CORE_DEBUG_IOS
-    LOG_DBG("%u, %zu, %p", lba, length, (void *)buf);
+    LOG_DBG("%s %u, %zu, %p", write ? "write" : "read", lba, length, (void *)buf);
 #endif
 
     if (mmc_hal->max_chunk_bytes > 0 && length > mmc_hal->max_chunk_bytes)
         return -PB_ERR_IO;
-
-    ret = mmc_hal->prepare(lba, length, buf);
-    if (ret != 0) {
-        return ret;
-    }
-
-    /* See comment in 'mmc_write' */
-    if (mmc_current_part == MMC_PART_RPMB) {
-        ret = mmc_send_cmd_r1(MMC_CMD_SET_BLOCK_COUNT, length / 512);
-        if (ret != 0) {
-            return ret;
-        }
-
-        cmd_idx = MMC_CMD_READ_MULTIPLE_BLOCK;
-    } else {
-        if (length > MMC_BLOCK_SIZE) {
-            cmd_idx = MMC_CMD_READ_MULTIPLE_BLOCK;
-        } else {
-            cmd_idx = MMC_CMD_READ_SINGLE_BLOCK;
-        }
-    }
-
-    ret = mmc_send_cmd_r1(cmd_idx, mmc_data_address(lba));
-    if (ret != 0) {
-        return ret;
-    }
-
-    ret = mmc_hal->read(lba, length, buf);
-    if (ret != 0) {
-        return ret;
-    }
-
-    /* Wait buffer empty */
-    do {
-        ret = mmc_device_state(MMC_DEFAULT_TIMEOUT_ms);
-        if (ret < 0) {
-            return ret;
-        }
-    } while ((ret != MMC_STATE_TRAN) && (ret != MMC_STATE_DATA));
-
-    return PB_OK;
-}
-
-int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
-{
-    int ret;
-    unsigned int cmd_idx;
-
-#ifdef MMC_CORE_DEBUG_IOS
-    LOG_DBG("%u, %zu, %p", lba, length, (void *)buf);
-#endif
-
-    if (mmc_hal->max_chunk_bytes > 0 && length > mmc_hal->max_chunk_bytes)
-        return -PB_ERR_IO;
-
-    ret = mmc_hal->prepare(lba, length, buf);
-    if (ret != 0) {
-        return ret;
-    }
 
     /* Access to RPMB always uses the multiple blocks command even if there's
      * just one block to be handled. RPMB access also requires us to set
@@ -978,26 +942,20 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
      * also says that it should be done in this way.
      */
     if (mmc_current_part == MMC_PART_RPMB) {
-        ret = mmc_send_cmd_r1(MMC_CMD_SET_BLOCK_COUNT, length / 512);
+        ret = mmc_send_cmd_r1(MMC_CMD_SET_BLOCK_COUNT, cmd.blocks);
         if (ret != 0) {
             return ret;
         }
 
-        cmd_idx = MMC_CMD_WRITE_MULTIPLE_BLOCK;
+        cmd.idx = write ? MMC_CMD_WRITE_MULTIPLE_BLOCK : MMC_CMD_READ_MULTIPLE_BLOCK;
+    } else if (cmd.blocks > 1) {
+        cmd.idx = write ? MMC_CMD_WRITE_MULTIPLE_BLOCK : MMC_CMD_READ_MULTIPLE_BLOCK;
+        cmd.stop = true;
     } else {
-        if (length > MMC_BLOCK_SIZE) {
-            cmd_idx = MMC_CMD_WRITE_MULTIPLE_BLOCK;
-        } else {
-            cmd_idx = MMC_CMD_WRITE_SINGLE_BLOCK;
-        }
+        cmd.idx = write ? MMC_CMD_WRITE_SINGLE_BLOCK : MMC_CMD_READ_SINGLE_BLOCK;
     }
 
-    ret = mmc_send_cmd_r1(cmd_idx, mmc_data_address(lba));
-    if (ret != 0) {
-        return ret;
-    }
-
-    ret = mmc_hal->write(lba, length, buf);
+    ret = mmc_request_r1(&cmd);
     if (ret != 0) {
         return ret;
     }
@@ -1008,9 +966,19 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
         if (ret < 0) {
             return ret;
         }
-    } while ((ret != MMC_STATE_TRAN) && (ret != MMC_STATE_RCV));
+    } while ((ret != MMC_STATE_TRAN) && (ret != (write ? MMC_STATE_RCV : MMC_STATE_DATA)));
 
     return PB_OK;
+}
+
+int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
+{
+    return mmc_rw(lba, length, buf, false);
+}
+
+int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
+{
+    return mmc_rw(lba, length, buf, true);
 }
 
 int mmc_part_switch(enum mmc_part part)
