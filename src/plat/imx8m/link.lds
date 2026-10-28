@@ -9,7 +9,8 @@
 
 MEMORY
 {
-    ram (rx)  : ORIGIN = 0x7E1000, LENGTH = 224k
+    /* PB_ENTRY from the board's makefile.mk, PB_RAM_LENGTH from the SoC's in makefile.mk */
+    ram (rx)  : ORIGIN = PB_ENTRY, LENGTH = PB_RAM_LENGTH
     umctl2 (rx) : ORIGIN = 0x40000000, LENGTH = 128K
     buffers (rx)   : ORIGIN = 0x40060000, LENGTH = 16M
 }
