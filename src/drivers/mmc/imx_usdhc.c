@@ -22,8 +22,6 @@ static const struct imx_usdhc_config *usdhc;
 static unsigned int input_clock_hz;
 static struct usdhc_adma2_desc tbl[512] __section(".no_init") __aligned(64);
 static bool bus_ddr_enable = false;
-static bool block_count_set; /* The last command was CMD23 */
-static size_t xfer_bytes; /* Of the transfer prepare() set up */
 
 /* Polling timeouts, the data timeout grows with the transfer at 1 MB/s */
 #define USDHC_CLK_TIMEOUT_us   10000
@@ -157,11 +155,17 @@ static int imx_usdhc_set_delay_tap(unsigned int tap)
     return PB_OK;
 }
 
-static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result)
+static int imx_usdhc_prepare(void *buf, size_t block_size, size_t blocks);
+
+static int imx_usdhc_request(struct mmc_cmd *cmd)
 {
     unsigned int xfertype = 0, mixctl = 0, err = 0;
-    bool multiple = false;
-    bool data = false;
+    unsigned int idx = cmd->idx;
+    uint32_t arg = cmd->arg;
+    uint16_t resp_type = cmd->resp_type;
+    uint32_t *result = cmd->resp;
+    bool data = cmd->blocks > 0;
+    bool multiple = cmd->blocks > 1;
     bool stop = false; /* A data error left the card sending or receiving */
     unsigned int state, flags = INTSTATEN_CC | INTSTATEN_CTOE;
 
@@ -176,38 +180,16 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     mmio_write_32(usdhc->base + INTSIGEN, 0);
     pb_delay_us(1000);
 
-    switch (idx) {
-    case MMC_CMD_STOP_TRANSMISSION:
+    if (idx == MMC_CMD_STOP_TRANSMISSION)
         xfertype |= XFERTYPE_CMDTYP_ABORT;
-        break;
-    case MMC_CMD_READ_MULTIPLE_BLOCK:
-        multiple = true;
-        /* for read op */
-        /* fallthrough */
-    case MMC_CMD_SEND_TUNING_BLOCK_HS200:
-    case MMC_CMD_READ_SINGLE_BLOCK:
-    case MMC_CMD_SEND_EXT_CSD:
-        mixctl |= MIXCTRL_DTDSEL;
-        data = true;
-        break;
-    case MMC_CMD_WRITE_MULTIPLE_BLOCK:
-        multiple = true;
-        /* for data op flag */
-        /* fallthrough */
-    case MMC_CMD_WRITE_SINGLE_BLOCK:
-        data = true;
-        break;
-    default:
-        break;
+
+    if (data) {
+        err = imx_usdhc_prepare(cmd->buf, cmd->block_size, cmd->blocks);
+        if (err != PB_OK)
+            return err;
+        if (!cmd->write)
+            mixctl |= MIXCTRL_DTDSEL;
     }
-
-    /*
-     * After CMD23 the transfer ends by itself, a CMD12 would be illegal
-     * (JESD84-B51 6.6.7.1)
-     */
-    bool send_stop = multiple && !block_count_set;
-
-    block_count_set = false;
 
     /*
      * No auto CMD12: when TC is set the auto CMD12 response may not be in
@@ -308,7 +290,7 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
          *  differance between 'TC' and 'DINT' */
         struct pb_timeout to;
 
-        pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + (data ? xfer_bytes : 0));
+        pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + cmd->block_size * cmd->blocks);
         flags = INTSTATEN_TC;
         do {
             state = mmio_read_32(usdhc->base + USDHC_INT_STATUS);
@@ -329,26 +311,26 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     }
 
     /* An open-ended transfer: CMD12, its response has the execution errors */
-    if (send_stop) {
-        mmc_cmd_resp_t stop_resp;
+    if (cmd->stop) {
+        struct mmc_cmd stop_cmd = {
+            .idx = MMC_CMD_STOP_TRANSMISSION,
+            .resp_type = MMC_RSP_R1b,
+        };
         uint32_t errors = STATUS_ERROR_MASK;
 
-        err = imx_usdhc_send_cmd(MMC_CMD_STOP_TRANSMISSION, 0, MMC_RSP_R1b, stop_resp);
+        err = imx_usdhc_request(&stop_cmd);
         if (err != PB_OK)
             goto out;
 
         /* A read up to the last block may read ahead past it, JESD84-B51 6.8.3 */
-        if (mixctl & MIXCTRL_DTDSEL)
+        if (!cmd->write)
             errors &= ~STATUS_ADDRESS_OUT_OF_RANGE;
 
-        if (stop_resp[0] & errors) {
-            LOG_ERR("imx_usdhc CMD%u card status 0x%08x", idx, stop_resp[0]);
+        if (stop_cmd.resp[0] & errors) {
+            LOG_ERR("imx_usdhc CMD%u card status 0x%08x", idx, stop_cmd.resp[0]);
             err = -PB_ERR_IO;
         }
     }
-
-    if (idx == MMC_CMD_SET_BLOCK_COUNT)
-        block_count_set = true;
 
 out:
     /* Reset CMD and DATA on error */
@@ -362,12 +344,22 @@ out:
         }
 
         /* After a data error the card is still sending or receiving: stop it */
-        if (stop)
-            (void)imx_usdhc_send_cmd(MMC_CMD_STOP_TRANSMISSION, 0, MMC_RSP_R1b, NULL);
+        if (stop) {
+            struct mmc_cmd stop_cmd = {
+                .idx = MMC_CMD_STOP_TRANSMISSION,
+                .resp_type = MMC_RSP_R1b,
+            };
+
+            (void)imx_usdhc_request(&stop_cmd);
+        }
     }
 
     /* clear all irq status */
     mmio_write_32(usdhc->base + USDHC_INT_STATUS, 0xffffffff);
+
+    /* All transfers are performed with ADMA2 */
+    if (data && !cmd->write)
+        arch_invalidate_cache_range((uintptr_t)cmd->buf, cmd->block_size * cmd->blocks);
 
     return err;
 }
@@ -411,15 +403,15 @@ static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
     return 0;
 }
 
-static int imx_usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
+static int imx_usdhc_prepare(void *buf_p, size_t block_size, size_t blocks)
 {
+    uintptr_t buf = (uintptr_t)buf_p;
+    size_t length = block_size * blocks;
     struct usdhc_adma2_desc *tbl_ptr = tbl;
     uintptr_t buf_ptr = buf;
     size_t bytes_to_transfer = length;
     size_t chunk_length;
     size_t n_descriptors = 0;
-
-    xfer_bytes = length;
 
     /* For now we don't support transfers of more than 512*0xffff bytes.
      * This is because we set block size 512 in BLK_ATT which limits the block
@@ -429,12 +421,12 @@ static int imx_usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
      * adma2 descriptors, which is now 512, which translates to ~32 MByte.
      *
      * */
-    if ((length / 512) > 0xffff) {
+    if (blocks > 0xffff) {
         return -PB_ERR_IO;
     }
 
 #ifdef CONFIG_IMX_USDHC_XTRA_DEBUG
-    LOG_DBG("lba = %d, length = %zu, buf = %p", lba, length, (void *)buf);
+    LOG_DBG("length = %zu, buf = %p", length, (void *)buf);
 #endif
 
     if (buf && length) {
@@ -468,27 +460,8 @@ static int imx_usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
 #endif
     mmio_write_32(usdhc->base + USDHC_ADMA_SYS_ADDR, (uint32_t)(uintptr_t)tbl);
 
-    if (length > 512) {
-        mmio_write_32(usdhc->base + USDHC_BLK_ATT, 0x00000200 | ((length / 512) << 16));
-    } else {
-        mmio_write_32(usdhc->base + USDHC_BLK_ATT, (1 << 16) | (uint16_t)length);
-    }
+    mmio_write_32(usdhc->base + USDHC_BLK_ATT, (blocks << 16) | (uint16_t)block_size);
 
-    return 0;
-}
-
-static int imx_usdhc_read(unsigned int lba, size_t length, uintptr_t buf)
-{
-    /* All transfers are performed with ADMA2 */
-    if (length && buf) {
-        arch_invalidate_cache_range(buf, length);
-    }
-    return 0;
-}
-
-static int imx_usdhc_write(unsigned int lba, size_t length, uintptr_t buf)
-{
-    /* All transfers are performed with ADMA2, this function is not used */
     return 0;
 }
 
@@ -496,12 +469,9 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
 {
     static const struct mmc_hal hal = {
         .init = imx_usdhc_setup,
-        .send_cmd = imx_usdhc_send_cmd,
+        .request = imx_usdhc_request,
         .set_bus_clock = imx_usdhc_set_bus_clock,
         .set_bus_width = imx_usdhc_set_bus_width,
-        .prepare = imx_usdhc_prepare,
-        .read = imx_usdhc_read,
-        .write = imx_usdhc_write,
         .set_delay_tap = imx_usdhc_set_delay_tap,
         .max_chunk_bytes = SZ_MiB(30),
     };

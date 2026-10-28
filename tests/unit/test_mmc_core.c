@@ -66,15 +66,12 @@ static int fake_init(void)
     return PB_OK;
 }
 
-static int fake_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result)
+static int fake_send_cmd(uint16_t idx, uint32_t arg, mmc_cmd_resp_t result)
 {
-    (void)resp_type;
-
     if (!card.powered)
         return -PB_ERR_IO;
 
-    if (result != NULL)
-        memset(result, 0, sizeof(mmc_cmd_resp_t));
+    memset(result, 0, sizeof(mmc_cmd_resp_t));
 
     switch (idx) {
     case MMC_CMD_SEND_OP_COND:
@@ -100,14 +97,6 @@ static int fake_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd
 static uint8_t *card_part(void)
 {
     return card.part[card.ext_csd[EXT_CSD_PART_CONFIG] & 0x07];
-}
-
-static int fake_prepare(unsigned int lba, size_t length, uintptr_t buf)
-{
-    (void)lba;
-    (void)length;
-    (void)buf;
-    return card.powered ? PB_OK : -PB_ERR_IO;
 }
 
 static int fake_read(unsigned int lba, size_t length, uintptr_t buf)
@@ -139,6 +128,18 @@ static int fake_write(unsigned int lba, size_t length, uintptr_t buf)
     return PB_OK;
 }
 
+static int fake_request(struct mmc_cmd *cmd)
+{
+    size_t length = cmd->block_size * cmd->blocks;
+    int rc = fake_send_cmd(cmd->idx, cmd->arg, cmd->resp);
+
+    if (rc != PB_OK || length == 0)
+        return rc;
+    if (cmd->write)
+        return fake_write(cmd->arg, length, (uintptr_t)cmd->buf);
+    return fake_read(cmd->arg, length, (uintptr_t)cmd->buf);
+}
+
 static int fake_set_bus_clock(unsigned int clk_hz)
 {
     (void)clk_hz;
@@ -153,12 +154,9 @@ static int fake_set_bus_width(enum mmc_bus_width width)
 
 static const struct mmc_hal hal = {
     .init = fake_init,
-    .send_cmd = fake_send_cmd,
+    .request = fake_request,
     .set_bus_clock = fake_set_bus_clock,
     .set_bus_width = fake_set_bus_width,
-    .prepare = fake_prepare,
-    .read = fake_read,
-    .write = fake_write,
     .max_chunk_bytes = CHUNK_BYTES,
 };
 
