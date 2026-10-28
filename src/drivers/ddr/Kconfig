@@ -1,0 +1,11 @@
+# DDR controllers and PHYs, selected by the platforms that have them
+
+# Synopsys DesignWare uMCTL2 DDR controller
+config DRIVERS_DDR_UMCTL2
+    bool
+    default n
+
+# Synopsys DesignWare DDR4/LPDDR4 PHY with firmware training
+config DRIVERS_DDR_DWC_PHY
+    bool
+    default n

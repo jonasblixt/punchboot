@@ -5,10 +5,10 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * i.MX8M LPDDR4 init (src/plat/imx8m/umctl2_lp4.c) against a model of the
+ * i.MX8M LPDDR4 init (src/plat/imx8m/ddr.c) against a model of the
  * uMCTL2 controller, the DWC DDR PHY and its training firmware mailbox.
  *
- * umctl2_init() can only be tested on hardware, and the imx8mevk is not in
+ * imx8m_ddr_init() can only be tested on hardware, and the imx8mevk is not in
  * the lab. This test records every register write it makes, plus the timing
  * data it hands over to TF-A, and compares that to a golden trace. Changes
  * to the init code that are meant to be cosmetic must keep the trace
@@ -285,7 +285,7 @@ static void test_init_trace(void **state)
     size_t golden_len = 0;
     char *golden;
 
-    int rc = umctl2_init();
+    int rc = imx8m_ddr_init();
     trace_add("return %d\n", rc);
     trace_timing_copy();
 
@@ -319,7 +319,7 @@ static void test_training_failed(void **state)
         reset_model(NULL);
         fail_mail = 0x00ff;
         fail_run = run;
-        assert_int_equal(umctl2_init(), -PB_ERR_IO);
+        assert_int_equal(imx8m_ddr_init(), -PB_ERR_IO);
         /* Training run n + 1 is never started */
         assert_int_equal(mail_pos, (run + 1) * ARRAY_SIZE(mail_script));
     }
@@ -331,7 +331,7 @@ static void test_firmware_verify_failed(void **state)
     (void)state;
 
     corrupt_imem = 1;
-    assert_int_equal(umctl2_init(), -PB_ERR_IO);
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_IO);
     /* Training is never started */
     assert_int_equal(mail_pos, 0);
 }
@@ -343,7 +343,7 @@ static void test_unsupported_data_rate(void **state)
     unsigned int drate = dram_timing.fsp_msg[1].drate;
 
     dram_timing.fsp_msg[1].drate = 1234;
-    assert_int_equal(umctl2_init(), -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_NOT_SUPPORTED);
     dram_timing.fsp_msg[1].drate = drate;
     /* Only the first training run happened */
     assert_int_equal(mail_pos, ARRAY_SIZE(mail_script));
@@ -365,7 +365,7 @@ static void test_timing_copy_too_large(void **state)
     /* One entry more than fits */
     dram_timing.ddrphy_pie = pie;
     dram_timing.ddrphy_pie_num = ARRAY_SIZE(dram_timing_info_copy.cfg) + 1 - others;
-    assert_int_equal(umctl2_init(), -PB_ERR_MEM);
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_MEM);
     dram_timing.ddrphy_pie = saved_pie;
     dram_timing.ddrphy_pie_num = saved_pie_num;
 }
