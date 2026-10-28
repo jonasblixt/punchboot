@@ -22,11 +22,36 @@ static const struct imx_usdhc_config *usdhc;
 static unsigned int input_clock_hz;
 static struct usdhc_adma2_desc tbl[512] __section(".no_init") __aligned(64);
 static bool bus_ddr_enable = false;
+static bool block_count_set; /* The last command was CMD23 */
+static size_t xfer_bytes; /* Of the transfer prepare() set up */
+
+/* Polling timeouts, the data timeout grows with the transfer at 1 MB/s */
+#define USDHC_CLK_TIMEOUT_us   10000
+#define USDHC_RESET_TIMEOUT_us 100000
+#define USDHC_BUSY_TIMEOUT_us  5000000
+/* A command and its response: 48 + 64 + 136 clocks at 400 kHz is 0.6 ms */
+#define USDHC_CMD_TIMEOUT_us   10000
+
+/* Waits until the bits in 'mask' of register 'reg' read as 'value' */
+static int usdhc_wait(unsigned int reg, uint32_t mask, uint32_t value, uint32_t timeout_us)
+{
+    struct pb_timeout to;
+
+    pb_timeout_init_us(&to, timeout_us);
+    while ((mmio_read_32(usdhc->base + reg) & mask) != value) {
+        if (pb_timeout_has_expired(&to)) {
+            LOG_ERR("Timeout, reg 0x%03x = 0x%08x", reg, mmio_read_32(usdhc->base + reg));
+            return -PB_ERR_TIMEOUT;
+        }
+    }
+    return PB_OK;
+}
 
 static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 {
     int div = 1;
     int pre_div = 1;
+    int rc;
 
     LOG_DBG("Trying to set bus clock to %u kHz", clk_hz / 1000);
 
@@ -42,43 +67,47 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
     while (input_clock_hz / div > clk_hz && div < 16)
         div++;
 
-    pre_div >>= 1;
-    div -= 1;
-    uint16_t clk_reg = (pre_div << 8) | (div << 4);
+    /* SDCLKFS: 0 is /1, 1 << n is /2^(n + 1). DVS: /(n + 1) */
+    uint16_t clk_reg = ((pre_div >> 1) << 8) | ((div - 1) << 4);
 
-    mmio_clrbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_CARD_CLKEN);
+    /*
+     * RM: the card clock isn't gated during a divider change. The divider is
+     * changed with SDSTB set and FRC_SDCLK_ON clear, then SDSTB is waited
+     * for again. VEND_SPEC[14:11] (clock soft enables on the i.MX6UL) are
+     * reserved on the i.MX8M.
+     */
+    rc = usdhc_wait(USDHC_PRES_STATE, PSTATE_SDSTB, PSTATE_SDSTB, USDHC_CLK_TIMEOUT_us);
+    if (rc != PB_OK)
+        return rc;
+
+    mmio_clrbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_FRC_SDCLK_ON);
     mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_CLOCK_MASK, clk_reg);
 
-    while (1) {
-        uint32_t pres_state = mmio_read_32(usdhc->base + USDHC_PRES_STATE);
-        if (pres_state & (1 << 3))
-            break;
-    }
-
-    mmio_setbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_PER_CLKEN | VENDSPEC_CARD_CLKEN);
+    rc = usdhc_wait(USDHC_PRES_STATE, PSTATE_SDSTB, PSTATE_SDSTB, USDHC_CLK_TIMEOUT_us);
+    if (rc != PB_OK)
+        return rc;
 
     pb_delay_us(100);
-    LOG_DBG("Actual bus rate = %d kHz", (input_clock_hz / (pre_div * div)) / 1000);
+    LOG_DBG("Actual bus rate = %u kHz", (input_clock_hz / (pre_div * div)) / 1000);
     return PB_OK;
 }
 
 static int imx_usdhc_setup(void)
 {
+    int rc;
+
     LOG_DBG("Base = %p, input clock = %u kHz", (void *)usdhc->base, input_clock_hz / 1000);
     /* reset the controller */
     mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_RSTA | USDHC_SYSCTRL_RSTT);
 
     /* wait for reset done */
-    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTA))
-        ;
-
-    /* Send reset */
-    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_INITA);
-    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_INITA))
-        ;
+    rc = usdhc_wait(USDHC_SYSCTRL, USDHC_SYSCTRL_RSTA, 0, USDHC_RESET_TIMEOUT_us);
+    if (rc != PB_OK)
+        return rc;
 
     mmio_write_32(usdhc->base + USDHC_MMC_BOOT, 0);
-    mmio_write_32(usdhc->base + USDHC_MIX_CTRL, 0);
+    mmio_write_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_RSVD_31);
+    bus_ddr_enable = false;
     mmio_write_32(usdhc->base + USDHC_CLK_TUNE_CTRL_STATUS, 0);
 
     mmio_write_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_INIT);
@@ -89,7 +118,7 @@ static int imx_usdhc_setup(void)
 
     /* configure as little endian */
     mmio_write_32(usdhc->base + USDHC_PROT_CTRL,
-                  PROTCTRL_LE | (2 << 8) | /* ADMA 2, TODO: Defines */
+                  PROTCTRL_RSVD_23_21 | PROTCTRL_LE | (2 << 8) | /* ADMA 2, TODO: Defines */
                       (1 << 27)); /* Burst length enabled for INCR */
 
     /* Set timeout to the maximum value */
@@ -101,10 +130,26 @@ static int imx_usdhc_setup(void)
 
     /* Force manual delay tuning */
     mmio_write_32(usdhc->base + USDHC_DLL_CTRL, ((usdhc->delay_tap & 0x7f) << 9) | BIT(8));
+
+    /*
+     * RM, initialization: the 80 clocks (INITA) at about 400 kHz, once
+     * CIHB and CDIHB are clear (INITA is ignored otherwise)
+     */
+    rc = imx_usdhc_set_bus_clock(400 * 1000);
+    if (rc != PB_OK)
+        return rc;
+
+    rc = usdhc_wait(PSTATE, PSTATE_CDIHB | PSTATE_CIHB, 0, USDHC_BUSY_TIMEOUT_us);
+    if (rc != PB_OK)
+        return rc;
+
+    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_INITA);
+    rc = usdhc_wait(USDHC_SYSCTRL, USDHC_SYSCTRL_INITA, 0, USDHC_RESET_TIMEOUT_us);
+    if (rc != PB_OK)
+        return rc;
+
     return PB_OK;
 }
-
-#define USDHC_CMD_RETRIES 1000
 
 static int imx_usdhc_set_delay_tap(unsigned int tap)
 {
@@ -117,19 +162,16 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     unsigned int xfertype = 0, mixctl = 0, err = 0;
     bool multiple = false;
     bool data = false;
+    bool stop = false; /* A data error left the card sending or receiving */
     unsigned int state, flags = INTSTATEN_CC | INTSTATEN_CTOE;
-    unsigned int cmd_retries = 0;
 
     /* clear all irq status */
     mmio_write_32(usdhc->base + USDHC_INT_STATUS, 0xffffffff);
 
     /* Wait for the bus to be idle */
-    do {
-        state = mmio_read_32(usdhc->base + PSTATE);
-    } while (state & (PSTATE_CDIHB | PSTATE_CIHB));
-
-    while (mmio_read_32(usdhc->base + PSTATE) & PSTATE_DLA)
-        ;
+    err = usdhc_wait(PSTATE, PSTATE_CDIHB | PSTATE_CIHB | PSTATE_DLA, 0, USDHC_BUSY_TIMEOUT_us);
+    if (err != PB_OK)
+        return err;
 
     mmio_write_32(usdhc->base + INTSIGEN, 0);
     pb_delay_us(1000);
@@ -159,28 +201,41 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
         break;
     }
 
+    /*
+     * After CMD23 the transfer ends by itself, a CMD12 would be illegal
+     * (JESD84-B51 6.6.7.1)
+     */
+    bool send_stop = multiple && !block_count_set;
+
+    block_count_set = false;
+
+    /*
+     * No auto CMD12: when TC is set the auto CMD12 response may not be in
+     * CMD_RSP3 yet (seen on the i.MX8M Plus, there is no flag for it), and
+     * it carries the transfer's execution errors. CMD12 is sent after the
+     * data instead.
+     */
     if (multiple) {
         mixctl |= MIXCTRL_MSBSEL;
         mixctl |= MIXCTRL_BCEN;
-        mixctl |= MIXCTRL_AC12EN;
     }
 
     if (data) {
         xfertype |= XFERTYPE_DPSEL;
         mixctl |= MIXCTRL_DMAEN;
-        if (bus_ddr_enable) {
-            mixctl |= MIXCTRL_DDREN;
-        }
     }
 
-    if (resp_type & MMC_RSP_PRESENT && resp_type != MMC_RSP_R2)
-        xfertype |= XFERTYPE_RSPTYP_48;
+    /* RM, CMD_XFR_TYP: response type and checks */
+    if (!(resp_type & MMC_RSP_PRESENT))
+        ;
     else if (resp_type & MMC_RSP_136)
         xfertype |= XFERTYPE_RSPTYP_136;
     else if (resp_type & MMC_RSP_BUSY)
         xfertype |= XFERTYPE_RSPTYP_48_BUSY;
+    else
+        xfertype |= XFERTYPE_RSPTYP_48;
 
-    if (resp_type & MMC_RSP_BUSY)
+    if (resp_type & MMC_RSP_OPCODE)
         xfertype |= XFERTYPE_CICEN;
 
     if (resp_type & MMC_RSP_CRC)
@@ -189,7 +244,8 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     xfertype |= XFERTYPE_CMD(idx);
 
     /* Send the command */
-    mmio_clrsetbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DATMASK, mixctl);
+    /* DDR_EN stays as set_bus_width() set it */
+    mmio_clrsetbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DATMASK & ~MIXCTRL_DDREN, mixctl);
     mmio_write_32(usdhc->base + USDHC_CMD_ARG, arg);
     mmio_write_32(usdhc->base + XFERTYPE, xfertype);
     /*
@@ -198,17 +254,21 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     LOG_DBG("PROT_CTL = 0x%08x", mmio_read_32(usdhc->base + USDHC_PROT_CTRL));
     LOG_DBG("MIXCTRL  = 0x%08x", mmio_read_32(usdhc->base + USDHC_MIX_CTRL));
     LOG_DBG("XFERTYPE = 0x%08x", mmio_read_32(usdhc->base + XFERTYPE));*/
-    /* Wait for the command done */
+    /* Wait for the command done. The controller reports CTOE after 64 clocks
+     * without a response, this only catches one that never finishes. */
+    struct pb_timeout cmd_to;
+
+    pb_timeout_init_us(&cmd_to, USDHC_CMD_TIMEOUT_us);
     do {
         state = mmio_read_32(usdhc->base + USDHC_INT_STATUS);
-        if (cmd_retries)
-            pb_delay_us(1);
-    } while ((!(state & flags)) && ++cmd_retries < USDHC_CMD_RETRIES);
-
-    if ((state & (INTSTATEN_CTOE | CMD_ERR)) || cmd_retries == USDHC_CMD_RETRIES) {
-        if (cmd_retries == USDHC_CMD_RETRIES)
+        if (!(state & flags) && pb_timeout_has_expired(&cmd_to)) {
             err = -PB_ERR_TIMEOUT;
-        else
+            break;
+        }
+    } while (!(state & flags));
+
+    if (err || (state & (INTSTATEN_CTOE | CMD_ERR))) {
+        if (!err)
             err = -PB_ERR_IO;
         LOG_ERR("imx_usdhc mmc cmd %d state 0x%x errno=%d", idx, state, err);
         goto out;
@@ -232,35 +292,78 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
         }
     }
 
-    /* Wait until all of the blocks are transferred */
-    if (data) {
+    /* Wait until all of the blocks are transferred, or for the end of busy */
+    if (!data && (resp_type & MMC_RSP_BUSY)) {
+        /*
+         * The controller sets no TC when the busy of a command without
+         * data ends (seen on the i.MX8M Plus, the RM says it does): watch
+         * DAT0, which the card holds low while it is busy.
+         */
+        err = usdhc_wait(USDHC_PRES_STATE, PSTATE_DAT0, PSTATE_DAT0, USDHC_BUSY_TIMEOUT_us);
+        if (err != PB_OK)
+            goto out;
+    } else if (data) {
         /* TODO: WAS 'DATA_COMPLETE', But 'DINT' is never set.
          *  Investigate what's needed when using ADMA2, what's the
          *  differance between 'TC' and 'DINT' */
+        struct pb_timeout to;
+
+        pb_timeout_init_us(&to, USDHC_BUSY_TIMEOUT_us + (data ? xfer_bytes : 0));
         flags = INTSTATEN_TC;
         do {
             state = mmio_read_32(usdhc->base + USDHC_INT_STATUS);
 
             if (state & (INTSTATEN_DTOE | DATA_ERR)) {
                 err = -PB_ERR_IO;
+                stop = multiple;
                 LOG_ERR("imx_usdhc mmc data state 0x%x", state);
+                goto out;
+            }
+            if (pb_timeout_has_expired(&to)) {
+                err = -PB_ERR_TIMEOUT;
+                stop = multiple;
+                LOG_ERR("imx_usdhc CMD%u timeout, state 0x%x", idx, state);
                 goto out;
             }
         } while ((state & flags) != flags);
     }
 
+    /* An open-ended transfer: CMD12, its response has the execution errors */
+    if (send_stop) {
+        mmc_cmd_resp_t stop_resp;
+        uint32_t errors = STATUS_ERROR_MASK;
+
+        err = imx_usdhc_send_cmd(MMC_CMD_STOP_TRANSMISSION, 0, MMC_RSP_R1b, stop_resp);
+        if (err != PB_OK)
+            goto out;
+
+        /* A read up to the last block may read ahead past it, JESD84-B51 6.8.3 */
+        if (mixctl & MIXCTRL_DTDSEL)
+            errors &= ~STATUS_ADDRESS_OUT_OF_RANGE;
+
+        if (stop_resp[0] & errors) {
+            LOG_ERR("imx_usdhc CMD%u card status 0x%08x", idx, stop_resp[0]);
+            err = -PB_ERR_IO;
+        }
+    }
+
+    if (idx == MMC_CMD_SET_BLOCK_COUNT)
+        block_count_set = true;
+
 out:
     /* Reset CMD and DATA on error */
     if (err) {
         mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_RSTC);
-        while (mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTC)
-            ;
+        (void)usdhc_wait(USDHC_SYSCTRL, USDHC_SYSCTRL_RSTC, 0, USDHC_RESET_TIMEOUT_us);
 
         if (data) {
             mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_RSTD);
-            while (mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTD)
-                ;
+            (void)usdhc_wait(USDHC_SYSCTRL, USDHC_SYSCTRL_RSTD, 0, USDHC_RESET_TIMEOUT_us);
         }
+
+        /* After a data error the card is still sending or receiving: stop it */
+        if (stop)
+            (void)imx_usdhc_send_cmd(MMC_CMD_STOP_TRANSMISSION, 0, MMC_RSP_R1b, NULL);
     }
 
     /* clear all irq status */
@@ -294,6 +397,17 @@ static int imx_usdhc_set_bus_width(enum mmc_bus_width width)
         LOG_ERR("Unsupported bus width");
         return -1;
     }
+
+    /*
+     * DDR_EN also selects the DDR prescaler table (RM, SYS_CTRL.SDCLKFS),
+     * so it is set for all commands, not just data, and before the clock
+     * is set for DDR.
+     */
+    if (bus_ddr_enable)
+        mmio_setbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DDREN);
+    else
+        mmio_clrbits_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_DDREN);
+
     return 0;
 }
 
@@ -304,6 +418,8 @@ static int imx_usdhc_prepare(unsigned int lba, size_t length, uintptr_t buf)
     size_t bytes_to_transfer = length;
     size_t chunk_length;
     size_t n_descriptors = 0;
+
+    xfer_bytes = length;
 
     /* For now we don't support transfers of more than 512*0xffff bytes.
      * This is because we set block size 512 in BLK_ATT which limits the block

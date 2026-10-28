@@ -180,6 +180,7 @@ static void card_provision(void)
     card.ext_csd[EXT_CSD_SEC_CNT] = PART_BLOCKS & 0xff;
     card.ext_csd[EXT_CSD_SEC_CNT + 1] = PART_BLOCKS >> 8;
     card.ext_csd[EXT_CSD_BOOT_MULT] = 1;
+    card.ext_csd[EXT_CSD_CARD_TYPE] = EXT_CSD_CARD_TYPE_DDR52_1V8;
     card.ext_csd[EXT_CSD_RPMB_MULT] = 1;
     card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] = cfg.boot_mode;
     card.ext_csd[EXT_CSD_GENERIC_CMD6_TIME] = 1;

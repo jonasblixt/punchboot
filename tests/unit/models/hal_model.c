@@ -102,8 +102,18 @@ static int stop(void)
     if ((data_idx == MMC_CMD_READ_MULTIPLE_BLOCK || data_idx == MMC_CMD_WRITE_MULTIPLE_BLOCK) &&
         !counted) {
         uint16_t type = data_idx == MMC_CMD_WRITE_MULTIPLE_BLOCK ? MMC_RSP_R1b : MMC_RSP_R1;
+        mmc_cmd_resp_t rsp;
+        int rc = raw_cmd(MMC_CMD_STOP_TRANSMISSION, 0, type, rsp);
 
-        return raw_cmd(MMC_CMD_STOP_TRANSMISSION, 0, type, NULL);
+        uint32_t errors = STATUS_ERROR_MASK;
+
+        /* Execution errors of the transfer are reported here. A read up to
+         * the last block may read ahead past it, JESD84-B51 6.8.3 */
+        if (data_idx == MMC_CMD_READ_MULTIPLE_BLOCK)
+            errors &= ~STATUS_ADDRESS_OUT_OF_RANGE;
+        if (rc == PB_OK && (rsp[0] & errors))
+            rc = -PB_ERR_IO;
+        return rc;
     }
     return PB_OK;
 }

@@ -27,7 +27,10 @@
  *
  * Commands and data run when CMD_XFR_TYP is written, busy (R1b and after a
  * write) lasts as long as the card holds DAT0, and every register read
- * advances simulated time by 1 us.
+ * advances simulated time by 1 us. As on the i.MX8M Plus, and unlike the
+ * RM, the end of busy of a command without data sets no TC: a driver has to
+ * watch DAT0 (PRES_STATE.DLSL). Also as on that SoC, the auto CMD12
+ * response reaches CMD_RSP3 some microseconds after TC.
  *
  * DMA addresses are 32 bits: buffers must be below 4 GiB, so tests link
  * with -no-pie and use static buffers.
