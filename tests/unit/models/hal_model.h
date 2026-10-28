@@ -16,7 +16,8 @@
  *  - prepare() records the buffer, read() and write() move the data in
  *    blocks of min(length, 512) bytes
  *  - multiple block transfers not preceded by CMD23 get a CMD12 after the
- *    data, like the uSDHC's auto CMD12
+ *    data, like the uSDHC's auto CMD12, and read() or write() fails if its
+ *    response has an error bit set
  */
 
 #ifndef TESTS_UNIT_MODELS_HAL_MODEL_H

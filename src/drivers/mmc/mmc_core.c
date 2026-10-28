@@ -85,6 +85,24 @@ static int mmc_send_cmd(uint16_t cmd_idx, uint32_t arg, uint16_t resp_type, mmc_
     return rc;
 }
 
+/* A command with an R1 response, failing on the error bits it reports */
+static int mmc_send_cmd_r1(uint16_t cmd_idx, uint32_t arg)
+{
+    mmc_cmd_resp_t resp_data;
+    int rc;
+
+    rc = mmc_send_cmd(cmd_idx, arg, MMC_RSP_R1, resp_data);
+    if (rc != PB_OK)
+        return rc;
+
+    if (resp_data[0] & STATUS_ERROR_MASK) {
+        LOG_ERR("CMD%u card status 0x%08x", cmd_idx, resp_data[0]);
+        return -PB_ERR_IO;
+    }
+
+    return PB_OK;
+}
+
 static int mmc_reset_to_idle(void)
 {
     int rc;
@@ -147,8 +165,8 @@ static int mmc_device_state(unsigned int timeout)
         ret = mmc_send_cmd(MMC_CMD_SEND_STATUS, rca << RCA_SHIFT_OFFSET, MMC_RSP_R1, resp_data);
 
         if (ret == PB_OK) {
-            if ((resp_data[0] & STATUS_SWITCH_ERROR) != 0U) {
-                LOG_ERR("resp_data[0] = 0x%08x", resp_data[0]);
+            if ((resp_data[0] & STATUS_ERROR_MASK) != 0U) {
+                LOG_ERR("Card status 0x%08x", resp_data[0]);
                 return -PB_ERR_IO;
             }
 
@@ -846,7 +864,7 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
 
     /* See comment in 'mmc_write' */
     if (mmc_current_part == MMC_PART_RPMB) {
-        ret = mmc_send_cmd(MMC_CMD_SET_BLOCK_COUNT, length / 512, MMC_RSP_R1, NULL);
+        ret = mmc_send_cmd_r1(MMC_CMD_SET_BLOCK_COUNT, length / 512);
         if (ret != 0) {
             return ret;
         }
@@ -860,7 +878,7 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
         }
     }
 
-    ret = mmc_send_cmd(cmd_idx, lba, MMC_RSP_R1, NULL);
+    ret = mmc_send_cmd_r1(cmd_idx, lba);
     if (ret != 0) {
         return ret;
     }
@@ -908,7 +926,7 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
      * also says that it should be done in this way.
      */
     if (mmc_current_part == MMC_PART_RPMB) {
-        ret = mmc_send_cmd(MMC_CMD_SET_BLOCK_COUNT, length / 512, MMC_RSP_R1, NULL);
+        ret = mmc_send_cmd_r1(MMC_CMD_SET_BLOCK_COUNT, length / 512);
         if (ret != 0) {
             return ret;
         }
@@ -922,7 +940,7 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
         }
     }
 
-    ret = mmc_send_cmd(cmd_idx, lba, MMC_RSP_R1, NULL);
+    ret = mmc_send_cmd_r1(cmd_idx, lba);
     if (ret != 0) {
         return ret;
     }

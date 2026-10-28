@@ -102,8 +102,13 @@ static int stop(void)
     if ((data_idx == MMC_CMD_READ_MULTIPLE_BLOCK || data_idx == MMC_CMD_WRITE_MULTIPLE_BLOCK) &&
         !counted) {
         uint16_t type = data_idx == MMC_CMD_WRITE_MULTIPLE_BLOCK ? MMC_RSP_R1b : MMC_RSP_R1;
+        mmc_cmd_resp_t rsp;
+        int rc = raw_cmd(MMC_CMD_STOP_TRANSMISSION, 0, type, rsp);
 
-        return raw_cmd(MMC_CMD_STOP_TRANSMISSION, 0, type, NULL);
+        /* Execution errors of the transfer are reported here */
+        if (rc == PB_OK && (rsp[0] & STATUS_ERROR_MASK))
+            rc = -PB_ERR_IO;
+        return rc;
     }
     return PB_OK;
 }

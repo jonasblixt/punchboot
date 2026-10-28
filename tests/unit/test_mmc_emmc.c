@@ -307,7 +307,6 @@ static void test_part_switch_error(void **state)
 /* An execution error during a read (Table 68, ERROR) must fail the read */
 static void test_read_status_error(void **state)
 {
-    SKIP_OPEN("F-119");
     uint8_t buf[2048];
     (void)state;
 
