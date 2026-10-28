@@ -208,6 +208,24 @@ static void test_read_write(void **state)
     assert_bench_clean();
 }
 
+/* Up to 2 GiB: byte addresses, JESD84-B51 6.4.2 */
+static void test_byte_addressing(void **state)
+{
+    static uint8_t out[16 * 1024];
+    static uint8_t check[sizeof(out)];
+    (void)state;
+
+    card_cfg.user_sectors = 1024 * 1024 * 1024 / 512;
+    assert_int_equal(init(), PB_OK);
+
+    fill(out, sizeof(out), 4);
+    assert_int_equal(bio_write(part(UU_USER), 1000, sizeof(out), out), PB_OK);
+    emmc_model_read(EMMC_PART_USER, 1000, check, sizeof(check) / 512);
+    assert_memory_equal(out, check, sizeof(out));
+    assert_int_equal(bio_read(part(UU_USER), 3, 512, check), PB_OK);
+    assert_bench_clean();
+}
+
 static void test_boot_partitions(void **state)
 {
     static uint8_t out[8 * 1024];
@@ -359,6 +377,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_write, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_byte_addressing, setup, teardown),
         cmocka_unit_test_setup_teardown(test_boot_partitions, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rom_handover, setup, teardown),

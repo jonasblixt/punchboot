@@ -888,6 +888,15 @@ struct mmc_device_info *mmc_device_info(void)
     return &mmc_dev_info;
 }
 
+/* Devices of up to 2 GiB use byte addresses, JESD84-B51 6.4.2 */
+static unsigned int mmc_data_address(unsigned int lba)
+{
+    if ((mmc_ocr_value & OCR_ACCESS_MODE_MASK) == OCR_SECTOR_MODE)
+        return lba;
+
+    return lba * MMC_BLOCK_SIZE;
+}
+
 int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
 {
     int ret;
@@ -921,7 +930,7 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf)
         }
     }
 
-    ret = mmc_send_cmd_r1(cmd_idx, lba);
+    ret = mmc_send_cmd_r1(cmd_idx, mmc_data_address(lba));
     if (ret != 0) {
         return ret;
     }
@@ -983,7 +992,7 @@ int mmc_write(unsigned int lba, size_t length, const uintptr_t buf)
         }
     }
 
-    ret = mmc_send_cmd_r1(cmd_idx, lba);
+    ret = mmc_send_cmd_r1(cmd_idx, mmc_data_address(lba));
     if (ret != 0) {
         return ret;
     }
