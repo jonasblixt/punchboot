@@ -13,7 +13,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * The parts shared by the card types: devices, commands, block transfers.
- * e.MMC is in mmc_emmc.c.
+ * e.MMC is in mmc_emmc.c, SD in mmc_sd.c.
  */
 
 #include <drivers/mmc/mmc_core.h>
@@ -277,6 +277,9 @@ int mmc_init(const struct mmc_hal *hal,
     switch (cfg->card) {
     case MMC_CARD_TYPE_EMMC:
         rc = mmc_emmc_setup(dev);
+        break;
+    case MMC_CARD_TYPE_SD:
+        rc = mmc_sd_setup(dev);
         break;
     default:
         rc = -PB_ERR_PARAM;
