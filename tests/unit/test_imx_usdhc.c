@@ -220,6 +220,21 @@ static void test_response_types(void **state)
     assert_int_equal(bench_violations_of(JESD84 "6.6"), 0); /* Busy */
 }
 
+/* Reserved bits as the RM says, divider changes with SDSTB set */
+static void test_register_programming(void **state)
+{
+    static const char *regs[] = {
+        "uSDHC RM MIX_CTRL", "uSDHC RM PROT_CTRL",  "uSDHC RM VEND_SPEC",
+        "uSDHC RM SYS_CTRL", "uSDHC RM PRES_STATE",
+    };
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    read_write();
+    for (size_t i = 0; i < ARRAY_SIZE(regs); i++)
+        assert_int_equal(bench_violations_of(regs[i]), 0);
+}
+
 /* DDR52: every command at 52 MHz or less, data on the DDR bus */
 static void test_ddr52_clock(void **state)
 {
@@ -285,6 +300,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_imx8mpevk_emmc, setup, teardown),
         cmocka_unit_test_setup_teardown(test_jiffy_emmc, setup, teardown),
         cmocka_unit_test_setup_teardown(test_response_types, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_register_programming, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ddr52_clock, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_crc_error, setup, teardown),

@@ -46,16 +46,20 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
     /* SDCLKFS: 0 is /1, 1 << n is /2^(n + 1). DVS: /(n + 1) */
     uint16_t clk_reg = ((pre_div >> 1) << 8) | ((div - 1) << 4);
 
-    mmio_clrbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_CARD_CLKEN);
+    /*
+     * RM: the card clock isn't gated during a divider change. The divider is
+     * changed with SDSTB set and FRC_SDCLK_ON clear, then SDSTB is waited
+     * for again. VEND_SPEC[14:11] (clock soft enables on the i.MX6UL) are
+     * reserved on the i.MX8M.
+     */
+    while (!(mmio_read_32(usdhc->base + USDHC_PRES_STATE) & PSTATE_SDSTB))
+        ;
+
+    mmio_clrbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_FRC_SDCLK_ON);
     mmio_clrsetbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_CLOCK_MASK, clk_reg);
 
-    while (1) {
-        uint32_t pres_state = mmio_read_32(usdhc->base + USDHC_PRES_STATE);
-        if (pres_state & (1 << 3))
-            break;
-    }
-
-    mmio_setbits_32(usdhc->base + USDHC_VEND_SPEC, VENDSPEC_PER_CLKEN | VENDSPEC_CARD_CLKEN);
+    while (!(mmio_read_32(usdhc->base + USDHC_PRES_STATE) & PSTATE_SDSTB))
+        ;
 
     pb_delay_us(100);
     LOG_DBG("Actual bus rate = %u kHz", (input_clock_hz / (pre_div * div)) / 1000);
@@ -78,7 +82,7 @@ static int imx_usdhc_setup(void)
         ;
 
     mmio_write_32(usdhc->base + USDHC_MMC_BOOT, 0);
-    mmio_write_32(usdhc->base + USDHC_MIX_CTRL, 0);
+    mmio_write_32(usdhc->base + USDHC_MIX_CTRL, MIXCTRL_RSVD_31);
     bus_ddr_enable = false;
     mmio_write_32(usdhc->base + USDHC_CLK_TUNE_CTRL_STATUS, 0);
 
@@ -90,7 +94,7 @@ static int imx_usdhc_setup(void)
 
     /* configure as little endian */
     mmio_write_32(usdhc->base + USDHC_PROT_CTRL,
-                  PROTCTRL_LE | (2 << 8) | /* ADMA 2, TODO: Defines */
+                  PROTCTRL_RSVD_23_21 | PROTCTRL_LE | (2 << 8) | /* ADMA 2, TODO: Defines */
                       (1 << 27)); /* Burst length enabled for INCR */
 
     /* Set timeout to the maximum value */
