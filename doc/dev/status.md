@@ -16,8 +16,12 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
   `include/plat/qemu` and `configs/test_defconfig` are gone.
 
 - **i.MX8M DDR (branch `imx8m-dram-cleanup`):** cleaned up behind a golden register trace (D-013),
-  uMCTL2/DWC PHY drivers in `src/drivers/ddr` (D-014), `PLAT_IMX8MQ` + `PLAT_IMX8M_COMMON`. Next:
-  `PLAT_IMX8MP` ("Adding a SoC"). Fixed F-098/099; open F-100, F-102..F-104, F-106, F-107.
+  uMCTL2/DWC PHY drivers in `src/drivers/ddr` (D-014), `PLAT_IMX8MQ` + `PLAT_IMX8M_COMMON`.
+  `PLAT_IMX8MP` + board `imx8mpevk` (2026-10-28): pb runs from OCRAM over `uuu`, the DRAM trains and
+  passes a write/read test on the 8MP EVK (`imx8m-ddr.md`, "i.MX8M Plus EVK"). eMMC (HS200) and
+  USB command mode work, the DWC3 driver reworked from the RM (F-112). Next: power-up for an eMMC
+  boot (F-115), then booting pb from eMMC. Never write fuses on that EVK. Open F-100, F-102,
+  F-104, F-106, F-107, F-110, F-113, F-115.
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 

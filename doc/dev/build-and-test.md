@@ -107,8 +107,9 @@ a ruff bump can break the check (it happened in 2.7.0).
   - **host-tests:** default and sanitizer builds.
   - **coverage:** the gcovr summary in the job log, and the line by line HTML report as the
     `coverage` workflow artifact (D-012). Not a gate.
-  - **firmware:** jiffy, imx8dxlevk and imx8mevk `pb.bin`. imx8mevk is built with placeholder DDR
-    training firmware (`IMX8M_FW_DIR` points `build-firmware.sh` at the real one): a compile check only.
+  - **firmware:** jiffy, imx8dxlevk, imx8mevk and imx8mpevk `pb.bin`. The i.MX8M boards are built
+    with placeholder DDR training firmware (`IMX8M_FW_DIR` points `build-firmware.sh` at the real
+    one, inside the repository): a compile check only.
   - **coverity:** cov-build of jiffy inside the container. Only on pushes to master in
     jonasblixt/punchboot, because it needs `COVERITY_SCAN_TOKEN`.
 - `punchboot-tools.yml`: cibuildwheel v4.3.3 builds wheels for cp310–cp315 on Linux x86_64
