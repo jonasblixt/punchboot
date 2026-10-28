@@ -295,7 +295,6 @@ static void test_cmd6_times_not_defined(void **state)
 /* A failed partition switch must not send the access to another partition */
 static void test_part_switch_error(void **state)
 {
-    SKIP_OPEN("F-118");
     uint8_t buf[512];
     (void)state;
 
