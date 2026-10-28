@@ -7,6 +7,11 @@
  *
  * Synopsys DesignWare DDR4/LPDDR4 PHY with firmware training: firmware
  * load, PMU mailbox and training runs. See drivers/ddr/dwc_ddrphy.h.
+ *
+ * The CSR numbers, the mailbox handshake and the message codes are how the
+ * PHY and its training firmware work, documented in dwc_ddrphy.h. The
+ * CalBusy wait is also in NXP's BSD-3-Clause TF-A code
+ * (plat/imx/imx8m/ddr); the firmware load and the training are not.
  */
 
 #include <drivers/ddr/dwc_ddrphy.h>
