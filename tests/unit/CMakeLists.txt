@@ -134,3 +134,17 @@ pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
 )
+
+# The i.MX8M LPDDR4 init with the imx8mevk timing, against a device model
+# behind a fake pb/mmio.h (see the test). The board timing header is
+# included by the init code.
+pb_unit_test(test_imx8m_ddr SOURCES
+    ${PROJECT_SOURCE_DIR}/src/plat/imx8m/umctl2_lp4.c
+)
+target_include_directories(test_imx8m_ddr BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+    ${PROJECT_SOURCE_DIR}/src/board/imx8mevk/include
+)
+target_compile_definitions(test_imx8m_ddr PRIVATE
+    IMX8M_DDR_GOLDEN="${CMAKE_CURRENT_SOURCE_DIR}/data/imx8m_ddr_init.trace"
+)
