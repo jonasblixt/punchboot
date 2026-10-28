@@ -295,9 +295,9 @@ static enum mmc_part bio_part(bio_dev_t dev)
         return MMC_PART_USER;
 }
 
-static void select_part(bio_dev_t dev)
+static int select_part(bio_dev_t dev)
 {
-    mmc_part_switch(bio_part(dev));
+    return mmc_part_switch(bio_part(dev));
 }
 
 /*
@@ -344,7 +344,9 @@ static int mmc_bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
     if (block_sz < 0)
         return block_sz;
 
-    select_part(dev);
+    rc = select_part(dev);
+    if (rc != PB_OK)
+        return rc;
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_read) {
@@ -391,7 +393,9 @@ static int mmc_bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *bu
     if (rc != PB_OK)
         return rc;
 
-    select_part(dev);
+    rc = select_part(dev);
+    if (rc != PB_OK)
+        return rc;
 
     size_t max_len = mmc_hal->max_chunk_bytes;
     while (bytes_to_write) {
@@ -958,16 +962,18 @@ int mmc_part_switch(enum mmc_part part)
     /* PARTITION_ACCESS only, the boot partition and BOOT_ACK stay */
     value = (mmc_current_part_config & ~PART_CONFIG_ACCESS_MASK) | part;
 
-    mmc_current_part = part;
-
-    if (value == mmc_current_part_config)
+    if (value == mmc_current_part_config) {
+        mmc_current_part = part;
         return PB_OK;
+    }
 
     LOG_DBG("Switching to %s", part_names[part]);
     rc = mmc_set_ext_csd(EXT_CSD_PART_CONFIG, value, partition_switch_time_ms);
 
-    if (rc == PB_OK)
+    if (rc == PB_OK) {
         mmc_current_part_config = value;
+        mmc_current_part = part;
+    }
 
     return rc;
 }
