@@ -8,6 +8,13 @@ config PLAT_IMX8X_COMMON
     bool
     default n
 
+# Shared by the i.MX8M SoCs: platform code in src/plat/imx8m, DDR drivers
+config PLAT_IMX8M_COMMON
+    bool
+    default n
+    select DRIVERS_DDR_UMCTL2
+    select DRIVERS_DDR_DWC_PHY
+
 choice PLAT
     bool "Platform"
 config PLAT_IMX8X
@@ -20,12 +27,11 @@ config PLAT_IMX8XL
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
     select PLAT_IMX8X_COMMON
-config PLAT_IMX8M
-    bool "NXP IMX8M"
+config PLAT_IMX8MQ
+    bool "NXP i.MX8MQ"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
-    select DRIVERS_DDR_UMCTL2
-    select DRIVERS_DDR_DWC_PHY
+    select PLAT_IMX8M_COMMON
 config PLAT_IMX6UL
     bool "NXP IMX6UL"
     depends on SOC_FAMILY_IMX
