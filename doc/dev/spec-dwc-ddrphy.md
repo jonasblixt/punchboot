@@ -80,6 +80,8 @@ For `i = 0 .. n-1` in order: write `cfg[i].val` to CSR `cfg[i].reg` (32 bit).
 One training run with image `phy->fw[fsp->fw_type]` and message block `fsp->fsp_cfg[0 ..
 fsp->fsp_cfg_num-1]`. The caller has already set the DRAM clock for `fsp->drate`.
 
+0. If `fsp->fw_type` is neither `FW_1D_IMAGE` nor `FW_2D_IMAGE`, or `phy->fw[fsp->fw_type]` is
+   NULL: return `-PB_ERR_PARAM` without any register access.
 1. Write `MICROCONTMUXSEL_APB` to `DDRPHY_MICROCONTMUXSEL`.
 2. Load IMEM: write all IMEM words (16 bit writes, low half then high half of each word, words in
    order), then read all of them back (16 bit reads) and compare with the image. On any difference:
