@@ -29,6 +29,8 @@ static size_t xfer_bytes; /* Of the transfer prepare() set up */
 #define USDHC_CLK_TIMEOUT_us   10000
 #define USDHC_RESET_TIMEOUT_us 100000
 #define USDHC_BUSY_TIMEOUT_us  5000000
+/* A command and its response: 48 + 64 + 136 clocks at 400 kHz is 0.6 ms */
+#define USDHC_CMD_TIMEOUT_us   10000
 
 /* Waits until the bits in 'mask' of register 'reg' read as 'value' */
 static int usdhc_wait(unsigned int reg, uint32_t mask, uint32_t value, uint32_t timeout_us)
@@ -149,8 +151,6 @@ static int imx_usdhc_setup(void)
     return PB_OK;
 }
 
-#define USDHC_CMD_RETRIES 1000
-
 static int imx_usdhc_set_delay_tap(unsigned int tap)
 {
     mmio_write_32(usdhc->base + USDHC_DLL_CTRL, ((tap & 0x7f) << 9) | BIT(8));
@@ -164,7 +164,6 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     bool data = false;
     bool stop = false; /* A data error left the card sending or receiving */
     unsigned int state, flags = INTSTATEN_CC | INTSTATEN_CTOE;
-    unsigned int cmd_retries = 0;
 
     /* clear all irq status */
     mmio_write_32(usdhc->base + USDHC_INT_STATUS, 0xffffffff);
@@ -251,17 +250,21 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
     LOG_DBG("PROT_CTL = 0x%08x", mmio_read_32(usdhc->base + USDHC_PROT_CTRL));
     LOG_DBG("MIXCTRL  = 0x%08x", mmio_read_32(usdhc->base + USDHC_MIX_CTRL));
     LOG_DBG("XFERTYPE = 0x%08x", mmio_read_32(usdhc->base + XFERTYPE));*/
-    /* Wait for the command done */
+    /* Wait for the command done. The controller reports CTOE after 64 clocks
+     * without a response, this only catches one that never finishes. */
+    struct pb_timeout cmd_to;
+
+    pb_timeout_init_us(&cmd_to, USDHC_CMD_TIMEOUT_us);
     do {
         state = mmio_read_32(usdhc->base + USDHC_INT_STATUS);
-        if (cmd_retries)
-            pb_delay_us(1);
-    } while ((!(state & flags)) && ++cmd_retries < USDHC_CMD_RETRIES);
-
-    if ((state & (INTSTATEN_CTOE | CMD_ERR)) || cmd_retries == USDHC_CMD_RETRIES) {
-        if (cmd_retries == USDHC_CMD_RETRIES)
+        if (!(state & flags) && pb_timeout_has_expired(&cmd_to)) {
             err = -PB_ERR_TIMEOUT;
-        else
+            break;
+        }
+    } while (!(state & flags));
+
+    if (err || (state & (INTSTATEN_CTOE | CMD_ERR))) {
+        if (!err)
             err = -PB_ERR_IO;
         LOG_ERR("imx_usdhc mmc cmd %d state 0x%x errno=%d", idx, state, err);
         goto out;
