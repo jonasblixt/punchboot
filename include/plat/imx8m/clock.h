@@ -708,7 +708,7 @@ enum root_post_div {
 #define SSCG_PLLOUT_DIV_CFG                       (0x3036007c)
 
 /* AUDIO PLL1/2 VIDEO PLL1 GPU PLL VPU PLL ARM PLL*/
-#define FRAC_PLL_LOCK_MASK                        (1 << 31)
+#define FRAC_PLL_LOCK_MASK                        (1U << 31)
 #define FRAC_PLL_CLKE_MASK                        (1 << 21)
 #define FRAC_PLL_PD_MASK                          (1 << 19)
 #define FRAC_PLL_REFCLK_SEL_MASK                  (3 << 16)
@@ -734,7 +734,7 @@ enum root_post_div {
 #define FRAC_PLL_INT_DIV_CTL_VAL(n)               ((n) & 0x7f)
 
 /* SYS PLL1/2/3 VIDEO PLL2 DRAM PLL */
-#define SSCG_PLL_LOCK_MASK                        (1 << 31)
+#define SSCG_PLL_LOCK_MASK                        (1U << 31)
 #define SSCG_PLL_CLKE_MASK                        (1 << 25)
 #define SSCG_PLL_DIV2_CLKE_MASK                   (1 << 23)
 #define SSCG_PLL_DIV3_CLKE_MASK                   (1 << 21)
