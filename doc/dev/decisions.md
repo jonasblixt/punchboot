@@ -119,3 +119,16 @@ handover stay in the platform, with one `ddr_<soc>.c` per SoC behind `ddr_soc.h`
 Why: the i.MX8M Plus has the same controller and PHY as the 8MQ, and the controller is also in the
 ZynqMP and Allwinner H6/H616. The Allwinner H5 has neither (Synopsys names at Allwinner offsets,
 a PUB-style PHY), so its DRAM code stays in its platform.
+
+## D-017: MMC/SD drivers are tested against standard-based card models (2026-10-28)
+
+`mmc_core` and the host controller drivers are tested on the host against models of an e.MMC
+(JESD84-B51) and an SD card behind a bus interface, and the uSDHC against a register model from
+its RM (`tests/unit/models/`, `testing.md`). The models behave like the device and log every
+host action the standard or RM does not allow, with the section; tests fail on any. A bug the
+bench finds gets a finding, and its test is skipped (`SKIP_OPEN`) until the fix enables it.
+Why: the drivers are shared by five boards on four SoCs and only two boards are in the lab. The
+first run found bugs on every board that hardware testing hadn't shown (R1b without busy wait,
+commands above the clock limit in DDR52, ignored status errors). The models are a reading of the
+documents, not the documents: each rule cites its section so it can be checked, and electrical
+timing (sampling points, DLL taps) still needs a board.

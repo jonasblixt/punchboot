@@ -86,6 +86,26 @@ A single integration test, inside `scripts/pbdev shell`:
     `test_imx8m_ddr` in `CMakeLists.txt`); every `mmio_*` call then goes to `fake_mmio_read/write`
     in the test. `test_imx8m_ddr.c` uses this for a golden register trace (D-013,
     `imx8m-ddr.md`).
+- **MMC/SD test bench** (`tests/unit/models/`, D-017). Card models behind a bus interface
+  (`mmc_bus.h`): `emmc_model.c` from JESD84-B51 and `sd_model.c` from the SD Physical Layer
+  spec (written from memory, it wasn't at hand: violations name the command, not a section).
+  They act like the card and log every host action the standard doesn't allow, citing the
+  section (`bench.h`); `assert_bench_clean()` fails the test on any. Two ways in:
+  - `hal_model.c`: an `mmc_hal` that behaves like a correct controller, for `mmc_core` alone
+    (`test_mmc_emmc.c`).
+  - `usdhc_model.c`: a register model of the uSDHC (i.MX6UL and i.MX8M RMs) behind
+    `fakes/mmio`, for `imx_usdhc.c` + `mmc_core` with the boards' settings (`test_imx_usdhc.c`).
+    It runs commands, ADMA2 and auto CMD12, latches INT_STATUS and logs RM violations. DMA
+    addresses are 32 bits: `-no-pie` and static buffers.
+
+  Time is simulated: `plat_get_us_tick()` advances 1 us per call (the real `delay.c` runs),
+  every uSDHC register read costs 1 us, and polling for more than 10 s fails as stuck.
+  Faults: no response or bad CRC on a command, SWITCH_ERROR on a field, data CRC/timeout,
+  status error bits, power loss after n blocks; `emmc_model_rom_handover()` starts from where a
+  boot ROM leaves the card. `test_mmc_models.c` checks the models themselves: a scripted host
+  runs the standard sequences (DDR52, HS400 after tuning, SD high speed, SDR104 with CMD11)
+  clean, and known mistakes give the expected violation. Not modeled: signal timing (DLL taps,
+  sampling), boot operation, erase, write protection, RPMB authentication, CQE.
 - **Integration tests.** Helpers live in `pbtest.py`: the `Device` class, `make_bpak()` (bpak CLI)
   and `sgdisk_verify()`. Fixtures:
   - `blank_device` starts in command mode on a blank disk.
@@ -131,6 +151,10 @@ Unit tests, by module under test:
 | `test_image_helpers.c` | `image_helpers.c` | hash, DSA, root of trust (memory regions via `--defsym`) |
 | `test_linux.c` | `linux.c` | arch, SLC, root of trust, device UUID; builds DTBs with libfdt |
 | `test_cm.c` | `cm_main.c` | transport, boot, root of trust, SLC, crypto providers |
+| `test_mmc_core.c` | `mmc_core.c` (boot partition updates, power loss) | fake card |
+| `test_mmc_emmc.c` | `mmc_core.c` | e.MMC model, `hal_model` |
+| `test_imx_usdhc.c` | `imx_usdhc.c`, `mmc_core.c` | uSDHC model, e.MMC model |
+| `test_mmc_models.c` | the card models | scripted host |
 
 Where the ports differ from the bash tests:
 - **Self-contained.** The bash tests depended on disk state and on the `/tmp/pb_force_command_mode`
