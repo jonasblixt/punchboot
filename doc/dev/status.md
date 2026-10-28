@@ -12,9 +12,6 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (gcovr HTML artifact, D-012), a
   firmware compile check (jiffy, imx8dxlevk, imx8mevk) and Coverity, all in the dev container. All green on
   `claude-work`. Coverity only runs on master, so it's unverified until merged.
-- **QEMU removed:** the bash/QEMU suite, `src/board/test`, `src/plat/qemu`,
-  `include/plat/qemu` and `configs/test_defconfig` are gone.
-
 - **i.MX8M DDR (branch `imx8m-dram-cleanup`):** cleaned up behind a golden register trace (D-013),
   uMCTL2/DWC PHY drivers in `src/drivers/ddr` (D-014), `PLAT_IMX8MQ` + `PLAT_IMX8M_COMMON`.
   `PLAT_IMX8MP` + board `imx8mpevk` (2026-10-28): pb runs from OCRAM over `uuu`, the DRAM trains and
@@ -22,6 +19,12 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
   USB command mode work, the DWC3 driver reworked from the RM (F-112). Next: power-up for an eMMC
   boot (F-115), then booting pb from eMMC. Never write fuses on that EVK. Open F-100, F-102,
   F-104, F-106, F-107, F-110, F-113, F-115.
+- **MMC/SD (same branch, 2026-10-28):** a test bench of card models from JESD84-B51 and the SD
+  spec plus a uSDHC register model (D-017, `testing.md`) found F-116..F-125, all fixed but F-116
+  (HS400 tuning). New request-based HAL, one `mmc_device` per card (`mmc_emmc.c`, `mmc_sd.c`),
+  SD cards (default/high speed, 4 bit), the imx8mpevk microSD slot on uSDHC2: works on the EVK
+  with eMMC HS200. Hardware found F-126 (no TC after busy). Next: UHS-I (CMD11, tuning), DDR52
+  on the EVK (F-113). jiffy checked (DDR52).
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
@@ -49,12 +52,8 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
    F-084, F-005, F-063, F-094. Next: F-001, F-004, F-081. F-055/F-075 (erase) get their own PR.
    Branch `remove-codecov` removes Codecov (D-012); Jonas turns off the Codecov app.
 5. Phase 1: security fixes F-001, F-004, each with a test (F-002 is intended, D-011).
-6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`) works on the board.
-   F-080 fixed (CAAM timeout). On the closed board, JTAG blocks the CAAM until a power cycle.
-   `pbdebug --load` loads pb into RAM from the ROM. F-085 (hang after a failed `boot partition`) and
-   F-086 (no SHA-384/512 on the LP256 MDHA) are fixed on `jiffy-fixes`, and checked on jiffy with
-   F-058 (`c7a94e5` on BOOT0). New: F-087 (bad payload is a generic error on the wire).
-   Next: F-090 (imx8dxlevk RWX link warning), F-089 (libc snprintf), F-083, F-078/F-079, F-081, F-084.
+6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`); `--load` loads pb
+   into RAM. Next: F-090, F-089, F-083, F-078/F-079, F-081, F-084.
 
 ## Open questions (for Jonas)
 

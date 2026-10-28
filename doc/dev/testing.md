@@ -106,6 +106,8 @@ A single integration test, inside `scripts/pbdev shell`:
   runs the standard sequences (DDR52, HS400 after tuning, SD high speed, SDR104 with CMD11)
   clean, and known mistakes give the expected violation. Not modeled: signal timing (DLL taps,
   sampling), boot operation, erase, write protection, RPMB authentication, CQE.
+  Where the silicon differs from the RM, the model follows the silicon and says so (F-126: no
+  TC at the end of busy without data).
 - **Integration tests.** Helpers live in `pbtest.py`: the `Device` class, `make_bpak()` (bpak CLI)
   and `sgdisk_verify()`. Fixtures:
   - `blank_device` starts in command mode on a blank disk.
@@ -152,8 +154,9 @@ Unit tests, by module under test:
 | `test_linux.c` | `linux.c` | arch, SLC, root of trust, device UUID; builds DTBs with libfdt |
 | `test_cm.c` | `cm_main.c` | transport, boot, root of trust, SLC, crypto providers |
 | `test_mmc_core.c` | `mmc_core.c` (boot partition updates, power loss) | fake card |
-| `test_mmc_emmc.c` | `mmc_core.c` | e.MMC model, `hal_model` |
-| `test_imx_usdhc.c` | `imx_usdhc.c`, `mmc_core.c` | uSDHC model, e.MMC model |
+| `test_mmc_emmc.c` | `mmc_core.c`, `mmc_emmc.c` | e.MMC model, `hal_model` |
+| `test_mmc_sd.c` | `mmc_core.c`, `mmc_sd.c` | SD card model, `hal_model` |
+| `test_imx_usdhc.c` | `imx_usdhc.c`, `mmc_core.c` | uSDHC model, e.MMC and SD models |
 | `test_mmc_models.c` | the card models | scripted host |
 
 Where the ports differ from the bash tests:
