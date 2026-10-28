@@ -62,6 +62,7 @@
 /* Present state */
 #define USDHC_PRES_STATE         0x24
 #define PRES_STATE_DAT0          BIT_32(24) /* DAT0 level, low while the card is busy */
+#define PRES_STATE_CINST         BIT_32(16) /* Card inserted, debounced */
 #define PRES_STATE_SDSTB         BIT_32(3) /* Must be set before SDCLKFS/DVS change */
 #define PRES_STATE_DLA           BIT_32(2)
 #define PRES_STATE_CDIHB         BIT_32(1)

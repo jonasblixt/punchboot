@@ -17,7 +17,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MMC_CORE_MAX_DEVICES   2
+#define MMC_CORE_MAX_DEVICES   CONFIG_MMC_CORE_MAX_DEVICES
 #define MMC_DEFAULT_TIMEOUT_ms 15
 #define MMC_ID_CLK_HZ          400000 /* Identification clock */
 

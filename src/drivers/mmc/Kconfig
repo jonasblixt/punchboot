@@ -4,6 +4,13 @@ config MMC_CORE
     bool "Enable support for MMC"
     default n
 
+config MMC_CORE_MAX_DEVICES
+    int "Cards"
+    depends on MMC_CORE
+    default 1
+    help
+        How many cards (e.MMC, SD) the board initializes.
+
 config MMC_CORE_DEBUG_CMDS
     bool "MMC debug commands"
     depends on MMC_CORE
@@ -43,6 +50,14 @@ config IMX_USDHC
     select MMC_CORE
 	bool "Enable support i.MX USDHC"
     default n
+
+config IMX_USDHC_MAX_INSTANCES
+    int "uSDHC controllers"
+    depends on IMX_USDHC
+    default 1
+    help
+        How many uSDHC controllers the board uses. Each has a 4 KiB ADMA2
+        descriptor table.
 
 config IMX_USDHC_XTRA_DEBUG
     depends on IMX_USDHC

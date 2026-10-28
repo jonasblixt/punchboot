@@ -15,6 +15,7 @@
 struct imx_usdhc_config {
     uintptr_t base; /*!< Base address of USDHC controller */
     unsigned int delay_tap;
+    bool card_detect; /*!< CD_B is connected (SD slots) */
     const struct mmc_device_config mmc_config; /*!< MMC layer configuration */
 };
 

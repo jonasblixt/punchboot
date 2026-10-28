@@ -44,8 +44,7 @@
     (VEND_SPEC_RSVD_29 | VEND_SPEC_SOFT_EN_MASK | VEND_SPEC_AC12_WR_CHKBUSY_EN | \
      VEND_SPEC_EXT_DMA_EN)
 
-/* The host controllers on the board */
-#define USDHC_MAX_INSTANCES 2
+#define USDHC_MAX_INSTANCES CONFIG_IMX_USDHC_MAX_INSTANCES
 
 struct imx_usdhc {
     struct usdhc_adma2_desc *tbl;
@@ -446,6 +445,10 @@ static int imx_usdhc_set_bus_width(void *priv, enum mmc_bus_width width)
     LOG_DBG("Width = %s", bus_widths[width]);
 
     switch (width) {
+    case MMC_BUS_WIDTH_1BIT:
+        dtw = DTW_1BIT;
+        u->bus_ddr_enable = false;
+        break;
     case MMC_BUS_WIDTH_4BIT:
         dtw = DTW_4BIT;
         u->bus_ddr_enable = false;
@@ -482,6 +485,14 @@ static int imx_usdhc_set_bus_width(void *priv, enum mmc_bus_width width)
     return PB_OK;
 }
 
+/* CD_B, debounced */
+static bool imx_usdhc_card_present(void *priv)
+{
+    struct imx_usdhc *u = priv;
+
+    return usdhc_read(u, USDHC_PRES_STATE) & PRES_STATE_CINST;
+}
+
 int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
 {
     struct imx_usdhc *u = NULL;
@@ -510,6 +521,7 @@ int imx_usdhc_init(const struct imx_usdhc_config *cfg, unsigned int clk_hz)
         .set_bus_clock = imx_usdhc_set_bus_clock,
         .set_bus_width = imx_usdhc_set_bus_width,
         .set_delay_tap = imx_usdhc_set_delay_tap,
+        .card_present = cfg->card_detect ? imx_usdhc_card_present : NULL,
         .max_chunk_bytes = USDHC_MAX_CHUNK_BYTES,
     };
 
