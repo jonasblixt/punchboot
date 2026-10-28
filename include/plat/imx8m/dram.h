@@ -28,23 +28,17 @@
  * struct dram_timing_info, don't change it.
  */
 struct dram_timing_info {
-    /* umctl2 config */
-    struct dram_cfg_param *ddrc_cfg;
+    struct dram_cfg_param *ddrc_cfg; /* Controller registers, absolute addresses */
     unsigned int ddrc_cfg_num;
-    /* ddrphy config */
-    struct dram_cfg_param *ddrphy_cfg;
+    struct dram_cfg_param *ddrphy_cfg; /* PHY CSRs written before training */
     unsigned int ddrphy_cfg_num;
-    /* ddr fsp train info */
-    struct dram_fsp_msg *fsp_msg;
+    struct dram_fsp_msg *fsp_msg; /* Training runs, in order (not read by TF-A) */
     unsigned int fsp_msg_num;
-    /* ddr phy trained CSR */
-    struct dram_cfg_param *ddrphy_trained_csr;
+    struct dram_cfg_param *ddrphy_trained_csr; /* PHY CSRs to read back after training */
     unsigned int ddrphy_trained_csr_num;
-    /* ddr phy PIE */
-    struct dram_cfg_param *ddrphy_pie;
+    struct dram_cfg_param *ddrphy_pie; /* PHY Init Engine image */
     unsigned int ddrphy_pie_num;
-    /* initialized fsp table */
-    unsigned int fsp_table[4];
+    unsigned int fsp_table[4]; /* Data rate (MT/s) of each frequency set point, 0: unused */
 };
 
 /*

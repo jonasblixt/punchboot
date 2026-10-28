@@ -3,14 +3,21 @@
  *
  * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
  * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
+ * Copyright 2018-2023 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * i.MX8M DRAM init, common to the i.MX8M SoCs: the sequence around the
  * uMCTL2 controller (drivers/ddr/umctl2.c) and the DWC PHY with firmware
  * training (drivers/ddr/dwc_ddrphy.c). Resets and clocks that differ per
- * SoC are in ddr_<soc>.c (ddr_soc.h). The sequence follows NXP's
- * reference code:
+ * SoC are in ddr_<soc>.c (ddr_soc.h).
+ *
+ * The order of the steps outside the training (4) is that of NXP's
+ * BSD-3-Clause i.MX8M DRAM code in TF-A (plat/imx/imx8m/ddr/
+ * dram_retention.c, dram_exit_retention(), and dram.c), which re-runs this
+ * part of the init after retention, and so are the reset release values
+ * and the DDR_SS_GPR0 condition. Some register values differ from TF-A's,
+ * see drivers/ddr/umctl2.c. Sequence:
  *
  *  1. Reset and power up the DDR subsystem, set the DRAM clock.
  *  2. Program the controller from the board table, release the resets

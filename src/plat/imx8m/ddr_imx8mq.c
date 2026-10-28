@@ -2,10 +2,18 @@
  * Punch BOOT
  *
  * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
+ * Copyright 2018-2023 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * i.MX8MQ parts of the DRAM init: reset sequence and the SSCG DRAM PLL.
+ *
+ * The reset hold sequence is the i.MX8MQ one in NXP's BSD-3-Clause TF-A
+ * code (plat/imx/imx8m/ddr/dram_retention.c, dram_exit_retention()). Note
+ * that TF-A holds SRC_DDRC2_RCR with 0x8F000003 where this writes
+ * 0x8F00000F, as NXP's U-Boot does; not changed without hardware to test
+ * on. The PLL divider values (SSCG PLL settings for the two data rates)
+ * are not in TF-A.
  */
 
 #include <pb/delay.h>
