@@ -23,7 +23,7 @@ are done (`compatibility.md`, Guards).
 ## Next steps
 
 1. Check the Coverity job on master (F-097, fixed in #69). Rebase `nanopi-neo-core2` onto
-   master (its WIP is in a stash). F-010 (pbstate `BACKUP_PART`), F-098 (empty LOG bodies).
+   master (its WIP is in a stash). F-010 (pbstate `BACKUP_PART`), F-109 (empty LOG bodies).
 2. Unit tests for every core module are done (D-007). They found F-068..F-074; fixed F-069
    (positive error codes) and F-073 (UB in `bio_set_hal_flags`). Branch `jiffy-fixes` (on
    `jtag-debugging`) fixes F-057, F-058..F-062, F-072, F-085, F-086, F-049 (no compile warnings
