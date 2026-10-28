@@ -1,4 +1,5 @@
 #ifndef INCLUDE_CONSOLE_H
+#define INCLUDE_CONSOLE_H
 
 #include <inttypes.h>
 
