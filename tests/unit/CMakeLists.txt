@@ -134,6 +134,7 @@ pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
 )
 
 # The i.MX8M LPDDR4 init with the imx8mevk timing, against a device model
@@ -182,6 +183,17 @@ target_link_libraries(pb_mmc_models PUBLIC pb_lib PkgConfig::CMOCKA)
 # Self test of the card models
 pb_unit_test(test_mmc_models LIBS pb_mmc_models)
 
+# mmc_core against the SD card model
+pb_unit_test(test_mmc_sd
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/bio.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
+    LIBS pb_mmc_models
+)
+
 # mmc_core against the e.MMC model, JESD84-B51
 pb_unit_test(test_mmc_emmc
     SOURCES
@@ -189,6 +201,7 @@ pb_unit_test(test_mmc_emmc
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
     LIBS pb_mmc_models
 )
 
@@ -201,6 +214,7 @@ pb_unit_test(test_imx_usdhc
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/imx_usdhc.c
     LIBS pb_mmc_models
 )

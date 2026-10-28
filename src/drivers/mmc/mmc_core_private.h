@@ -48,6 +48,9 @@ struct mmc_device {
     unsigned int generic_cmd6_time_ms;
     unsigned int partition_switch_time_ms;
     unsigned int power_off_long_time_ms;
+    /* SD: SCR and the CMD6 status */
+    uint8_t sd_data[64] __aligned(64);
+    uint8_t scr[8];
 };
 
 int mmc_request(struct mmc_device *dev, struct mmc_cmd *cmd);
@@ -69,5 +72,6 @@ int mmc_set_bus_clock(struct mmc_device *dev, unsigned int clk_hz);
 int mmc_bio_xfer(struct mmc_device *dev, lba_t lba, size_t length, uintptr_t buf, bool write);
 
 int mmc_emmc_setup(struct mmc_device *dev);
+int mmc_sd_setup(struct mmc_device *dev);
 
 #endif // DRIVERS_MMC_MMC_CORE_PRIVATE_H
