@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * The SoC specific parts of the i.MX8M DRAM init (ddr.c). One
- * implementation per SoC: ddr_imx8mq.c.
+ * implementation per SoC: ddr_imx8mq.c, ddr_imx8mp.c.
  */
 
 #ifndef PLAT_IMX8M_DDR_SOC_H

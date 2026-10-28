@@ -11,6 +11,7 @@
 #define IMX8M_CAAM_JR1_BASE        (0x30901000)
 #define IMX8M_USDHC1_BASE          (0x30B40000)
 #define IMX8M_USDHC2_BASE          (0x30B50000)
+#define IMX8M_USDHC3_BASE          (0x30B60000)
 #define IMX8M_OCOTP_BASE           (0x30350000)
 
 #define IMX8M_SRC_BASE             (0x30390000)
@@ -29,6 +30,7 @@
 #define SRC_DDRC2_RCR_ADDR         0x30391004
 #define SRC_DDRC_RCR_DOM_EN        BIT_32(31)
 #define SRC_DDRC_RCR_DOMAIN_ALL    GENMASK_32(27, 24)
+#define SRC_DDRC_RCR_SYSTEM_RST    BIT_32(4) /* src_system_rst_b, i.MX8M Plus */
 #define SRC_DDRC_RCR_PHY_PWROKIN_N BIT_32(3)
 #define SRC_DDRC_RCR_PHY_RESET     BIT_32(2)
 #define SRC_DDRC_RCR_CORE_RESET_N  BIT_32(1)
