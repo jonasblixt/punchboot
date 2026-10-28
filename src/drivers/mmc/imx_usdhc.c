@@ -172,14 +172,17 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
         }
     }
 
-    if (resp_type & MMC_RSP_PRESENT && resp_type != MMC_RSP_R2)
-        xfertype |= XFERTYPE_RSPTYP_48;
+    /* RM, CMD_XFR_TYP: response type and checks */
+    if (!(resp_type & MMC_RSP_PRESENT))
+        ;
     else if (resp_type & MMC_RSP_136)
         xfertype |= XFERTYPE_RSPTYP_136;
     else if (resp_type & MMC_RSP_BUSY)
         xfertype |= XFERTYPE_RSPTYP_48_BUSY;
+    else
+        xfertype |= XFERTYPE_RSPTYP_48;
 
-    if (resp_type & MMC_RSP_BUSY)
+    if (resp_type & MMC_RSP_OPCODE)
         xfertype |= XFERTYPE_CICEN;
 
     if (resp_type & MMC_RSP_CRC)
@@ -231,8 +234,8 @@ static int imx_usdhc_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mm
         }
     }
 
-    /* Wait until all of the blocks are transferred */
-    if (data) {
+    /* Wait until all of the blocks are transferred, or for the end of busy */
+    if (data || (resp_type & MMC_RSP_BUSY)) {
         /* TODO: WAS 'DATA_COMPLETE', But 'DINT' is never set.
          *  Investigate what's needed when using ADMA2, what's the
          *  differance between 'TC' and 'DINT' */

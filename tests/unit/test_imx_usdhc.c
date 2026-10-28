@@ -41,6 +41,8 @@
 #define IMX6UL_USDHC1_BASE 0x02190000
 #define IMX8M_USDHC3_BASE  0x30b60000
 
+#define RM_TABLE_10_47     "uSDHC RM Table 10-47"
+
 #define UU_BOOT0 \
     (const unsigned char *)"\x9e\xef\x75\x44\xbf\x68\x4b\xf7\x86\x78\xda\x11\x7c\xbc\xcb\xa8"
 #define UU_BOOT1 \
@@ -206,6 +208,18 @@ static void test_jiffy_emmc(void **state)
     assert_bench_clean();
 }
 
+/* R1b waits for busy, responses are checked as RM Table 10-47 says */
+static void test_response_types(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    read_write();
+    assert_int_equal(bench_violations_of(JESD84 "6.10.4"), 0);
+    assert_int_equal(bench_violations_of(RM_TABLE_10_47), 0);
+    assert_int_equal(bench_violations_of(JESD84 "6.6"), 0); /* Busy */
+}
+
 /* RPMB: CMD23 + CMD18, no CMD12 after a counted transfer (6.6.7.1) */
 static void test_rpmb_read(void **state)
 {
@@ -234,6 +248,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_imx8mpevk_emmc, setup, teardown),
         cmocka_unit_test_setup_teardown(test_jiffy_emmc, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_response_types, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_crc_error, setup, teardown),
     };
