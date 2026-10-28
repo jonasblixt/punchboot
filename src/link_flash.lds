@@ -94,6 +94,14 @@ SECTIONS
         PROVIDE (_zero_region_end = .);
     } > ram
 
+    /* The RAM log, not zeroed */
+    .ramlog (NOLOAD):
+    {
+        . = ALIGN(16);
+        *(.ramlog)
+        . = ALIGN(16);
+    } > ram
+
     .no_init (NOLOAD):
     {
         . = ALIGN(16);
