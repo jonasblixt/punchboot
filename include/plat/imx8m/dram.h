@@ -6,38 +6,23 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * i.MX8M LPDDR4 init: board timing data and the copy handed to TF-A.
+ * i.MX8M DRAM init: board timing data and the copy handed to TF-A.
  */
 
 #ifndef INCLUDE_PLAT_IMX8M_DRAM_H_
 #define INCLUDE_PLAT_IMX8M_DRAM_H_
 
-#include "ddrphy.h"
-#include "lpddr4.h"
-#include "umctl2.h"
+#include <drivers/ddr/dram_cfg.h>
+#include <drivers/ddr/dwc_ddrphy.h>
+#include <drivers/ddr/lpddr4.h>
+#include <plat/imx8m/ddrc.h>
 
-enum fw_type {
-    FW_1D_IMAGE,
-    FW_2D_IMAGE,
-};
-
-/* A register (controller address or PHY CSR number) and its value */
-struct dram_cfg_param {
-    unsigned int reg;
-    unsigned int val;
-};
-
-/* One training run: data rate, firmware and message block */
-struct dram_fsp_msg {
-    unsigned int drate; /* MT/s */
-    enum fw_type fw_type;
-    struct dram_cfg_param *fsp_cfg;
-    unsigned int fsp_cfg_num;
-};
+#define IMX8M_DDRPHY_BASE       0x3c000000
+#define IMX8M_DDRPHY_CSR_STRIDE 4
 
 /*
  * Everything needed to bring up the DRAM, and after training also the
- * trained PHY CSRs. umctl2_init() copies this to the start of DRAM
+ * trained PHY CSRs. imx8m_ddr_init() copies this to the start of DRAM
  * (.umctl2), where TF-A's i.MX8M DRAM driver picks it up for low power
  * modes and frequency changes. The layout must match TF-A's
  * struct dram_timing_info, don't change it.
@@ -65,6 +50,6 @@ struct dram_timing_info {
 /* The board's timing, see src/board/imx8mevk/lpddr4_timing.c */
 extern struct dram_timing_info dram_timing;
 
-int umctl2_init(void);
+int imx8m_ddr_init(void);
 
 #endif // INCLUDE_PLAT_IMX8M_DRAM_H_
