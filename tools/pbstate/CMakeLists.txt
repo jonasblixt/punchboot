@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../../version.txt PB_VERSION)
+string(STRIP ${PB_VERSION} PB_VERSION)
+
 project(pbstate
-    VERSION 0.3.3
+    VERSION ${PB_VERSION}
     LANGUAGES C
     DESCRIPTION "pbstate"
     HOMEPAGE_URL https://github.com/jonasblixt/punchboot
@@ -72,7 +75,9 @@ set_target_properties(${PROJECT_NAME}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
-set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})
+# The ABI version, not the release: programs linked against libpbstate.so.0
+# keep working. Bump only when the ABI breaks.
+set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION 0)
 
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
