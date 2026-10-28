@@ -9,6 +9,7 @@
 
 #include <board_defs.h>
 #include <errno.h>
+#include <pb/console.h>
 #include <pb/plat.h>
 #include <plat/host/host.h>
 #include <stdio.h>
@@ -22,8 +23,38 @@ int board_init(void);
 static const uint8_t device_unique_id[8] = "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 const char *platform_ns_uuid = "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
 
+/* The process's real stdout, the "UART" */
+static FILE *host_stdout;
+
+static void host_console_putc(uintptr_t base, char c)
+{
+    (void)base;
+    fputc(c, host_stdout);
+}
+
+static const struct console_ops host_console_ops = {
+    .putc = host_console_putc,
+};
+
+/* stdout goes through console_putc(), like the UART output on target, so it
+ * also ends up in the RAM log */
+static ssize_t host_console_write(void *cookie, const char *buf, size_t size)
+{
+    (void)cookie;
+
+    for (size_t i = 0; i < size; i++)
+        console_putc(buf[i]);
+
+    return (ssize_t)size;
+}
+
 int plat_init(void)
 {
+    static const cookie_io_functions_t console_io = {
+        .write = host_console_write,
+    };
+    FILE *console;
+
     /* Unbuffered output, so the log interleaves correctly with the test
      * harness when the process exits on reset. */
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -41,6 +72,21 @@ int plat_init(void)
         LOG_ERR("Could not map RAM at 0x%lx (%s)", (unsigned long)BOARD_RAM_BASE, strerror(errno));
         return -PB_ERR_MEM;
     }
+
+    /* After the RAM: fopencookie() is the first malloc(), which sets up the
+     * brk heap. Its start is randomized over 1 GiB on x86-64, so a heap set
+     * up before could be where the RAM has to go. */
+    console = fopencookie(NULL, "w", console_io);
+
+    if (console == NULL) {
+        LOG_ERR("Could not open the console stream (%s)", strerror(errno));
+        return -PB_ERR_IO;
+    }
+
+    setvbuf(console, NULL, _IONBF, 0);
+    host_stdout = stdout;
+    stdout = console;
+    console_init(0, &host_console_ops);
 
     return PB_OK;
 }

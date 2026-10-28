@@ -72,6 +72,7 @@ static void wire(void)
     VALUE(PB_CMD_STREAM_READ_BUFFER);
     VALUE(PB_CMD_PART_RESIZE);
     VALUE(PB_CMD_BOOT_STATUS);
+    VALUE(PB_CMD_LOG_READ);
 
     VALUE(PB_RESULT_OK);
     VALUE(PB_RESULT_ERROR);
@@ -224,6 +225,15 @@ static void wire(void)
     STRUCT(pb_result_boot_status);
     FIELD(pb_result_boot_status, uuid);
     FIELD(pb_result_boot_status, status);
+
+    STRUCT(pb_command_log_read);
+    FIELD(pb_command_log_read, position);
+    FIELD(pb_command_log_read, size);
+
+    STRUCT(pb_result_log_read);
+    FIELD(pb_result_log_read, position);
+    FIELD(pb_result_log_read, size);
+    FIELD(pb_result_log_read, head);
 }
 
 static void bpak(void)

@@ -128,7 +128,7 @@ static int load_auth_verify_from_bio(void)
             return boot_device;
     }
 
-#if (LOGLEVEL > 1)
+#if LOG_MAX_LEVEL >= 3
     char boot_device_uu_str[37];
     uuid_unparse(bio_get_uu(boot_device), boot_device_uu_str);
     LOG_DBG("Loading image from partition %s", boot_device_uu_str);

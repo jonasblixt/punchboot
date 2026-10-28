@@ -33,6 +33,7 @@
 #include <pb/crypto.h>
 #include <pb/device_uuid.h>
 #include <pb/pb.h>
+#include <pb/ramlog.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <stdlib.h>
@@ -42,6 +43,7 @@
 #include "fakes/ramdisk.h"
 
 #define BUF_SIZE    (CONFIG_CM_BUF_SIZE_KiB * 1024)
+#define LOG_SIZE    (CONFIG_RAMLOG_SIZE_KiB * 1024)
 #define DISK_BLOCKS 64
 
 #define UU_DISK \
@@ -1684,6 +1686,107 @@ static void test_transport_errors_in_commands(void **state)
     expect_end();
 }
 
+/* The unit tests print with the system printf, so only what a test puts in
+ * the RAM log is there */
+static void ramlog_puts(const char *s)
+{
+    while (*s)
+        ramlog_putc(*s++);
+}
+
+static void host_log_read(uint32_t position, uint32_t size)
+{
+    struct pb_command_log_read log_cmd = { .position = position, .size = size };
+    host_cmd(PB_CMD_LOG_READ, &log_cmd, sizeof(log_cmd));
+}
+
+static const struct pb_result_log_read *expect_log_result(void)
+{
+    return (const struct pb_result_log_read *)expect_result(PB_RESULT_OK)->response;
+}
+
+static void test_log_read(void **state)
+{
+    const struct pb_result_log_read *lr;
+    (void)state;
+
+    ramlog_init();
+    ramlog_puts("hello world");
+    host_log_read(0, 100);
+    host_log_read(6, 3);
+    host_log_read(11, 100);
+    host_log_read(1000, 100);
+    host_log_read(0, 0);
+    run();
+
+    lr = expect_log_result();
+    assert_int_equal(lr->position, 0);
+    assert_int_equal(lr->size, 11);
+    assert_int_equal(lr->head, 11);
+    assert_memory_equal(expect_data(11), "hello world", 11);
+    expect_result(PB_RESULT_OK);
+
+    lr = expect_log_result();
+    assert_int_equal(lr->position, 6);
+    assert_int_equal(lr->size, 3);
+    assert_memory_equal(expect_data(3), "wor", 3);
+    expect_result(PB_RESULT_OK);
+
+    /* At or past the end: no data, and the result is the only one */
+    lr = expect_log_result();
+    assert_int_equal(lr->position, 11);
+    assert_int_equal(lr->size, 0);
+    assert_int_equal(lr->head, 11);
+    lr = expect_log_result();
+    assert_int_equal(lr->position, 11);
+    assert_int_equal(lr->size, 0);
+
+    /* Size 0 only asks for the head */
+    lr = expect_log_result();
+    assert_int_equal(lr->position, 0);
+    assert_int_equal(lr->size, 0);
+    assert_int_equal(lr->head, 11);
+    expect_end();
+}
+
+/* Positions that were overwritten start at the oldest byte, and a read is at
+ * most one command buffer */
+static void test_log_read_wrapped(void **state)
+{
+    const struct pb_result_log_read *lr;
+    const size_t total = LOG_SIZE + 100;
+    const uint8_t *data;
+    (void)state;
+
+    ramlog_init();
+    for (size_t i = 0; i < total; i++)
+        ramlog_putc((char)(i % 251));
+    host_log_read(0, 0xffffffff);
+    run();
+
+    lr = expect_log_result();
+    assert_int_equal(lr->position, 100);
+    assert_int_equal(lr->size, MIN(BUF_SIZE, LOG_SIZE));
+    assert_int_equal(lr->head, total);
+    data = expect_data(lr->size);
+    for (size_t i = 0; i < lr->size; i++)
+        assert_int_equal(data[i], (100 + i) % 251);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+static void test_log_read_requires_auth(void **state)
+{
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_log_read(0, 100);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+}
+
 #define CM_TEST(f) cmocka_unit_test_setup_teardown(f, setup, teardown)
 
 int main(void)
@@ -1726,6 +1829,9 @@ int main(void)
         CM_TEST(test_run_connect),
         CM_TEST(test_run_retries),
         CM_TEST(test_transport_errors_in_commands),
+        CM_TEST(test_log_read),
+        CM_TEST(test_log_read_wrapped),
+        CM_TEST(test_log_read_requires_auth),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

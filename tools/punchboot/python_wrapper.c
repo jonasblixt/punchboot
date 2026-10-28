@@ -869,6 +869,48 @@ static PyObject *board_run_command(PyObject *self, PyObject *args, PyObject *kwd
     return Py_BuildValue("y#", response, response_size);
 }
 
+static PyObject *log_read(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    struct pb_session *session = (struct pb_session *)self;
+    static char *kwlist[] = { "position", "size", NULL };
+    unsigned int position;
+    unsigned int size;
+    uint32_t log_position;
+    uint32_t head;
+    size_t read_size;
+    PyObject *ret;
+    char *bfr;
+    int rc;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "II", kwlist, &position, &size)) {
+        return NULL;
+    }
+
+    if (validate_pb_session(session) != 0) {
+        return NULL;
+    }
+
+    bfr = malloc(size ? size : 1);
+
+    if (bfr == NULL) {
+        return PyErr_NoMemory();
+    }
+
+    log_position = position;
+    read_size = size;
+
+    rc = pb_api_log_read(session->ctx, &log_position, bfr, &read_size, &head);
+
+    if (rc != PB_RESULT_OK) {
+        free(bfr);
+        return pb_exception_from_rc(rc);
+    }
+
+    ret = Py_BuildValue("Iy#I", log_position, bfr, (Py_ssize_t)read_size, head);
+    free(bfr);
+    return ret;
+}
+
 static PyMethodDef PbSession_methods[] = {
     { "close",
       session_close,
@@ -1035,6 +1077,13 @@ static PyMethodDef PbSession_methods[] = {
         board_read_status,
         METH_NOARGS,
         "Read board status",
+    },
+    /* Log API */
+    {
+        "log_read",
+        (PyCFunction)(void (*)(void))log_read,
+        METH_VARARGS | METH_KEYWORDS,
+        "Read part of the RAM log",
     },
     { NULL },
 };

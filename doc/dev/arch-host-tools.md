@@ -18,7 +18,7 @@
 - `session.py`: typed wrapper. `partition.py`, `slc.py`: enums/dataclasses mirroring C constants.
   `helpers.py`: `pb_id` (crc32 table), `valid_bpak_magic`.
 - `__main__.py`: click CLI `punchboot` with groups `dev`, `auth`, `part`, `board`, `boot`, `slc`,
-  plus `list` and `completion`. Transport is chosen with `-t usb|socket`, the device with `-u` / `PB_DEVICE_UUID`.
+  plus `log` (the RAM log, `PB_CMD_LOG_READ`), `list` and `completion`. Transport is chosen with `-t usb|socket`, the device with `-u` / `PB_DEVICE_UUID`.
 
 ## Wire protocol (`include/pb-tools/wire.h`)
 

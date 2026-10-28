@@ -91,6 +91,7 @@ enum pb_commands {
     PB_CMD_STREAM_READ_BUFFER,
     PB_CMD_PART_RESIZE,
     PB_CMD_BOOT_STATUS,
+    PB_CMD_LOG_READ,
     PB_CMD_END, /* Sentinel, must be the last entry */
 };
 
@@ -375,6 +376,36 @@ PACK(struct pb_result_board_status {
 PACK(struct pb_result_boot_status {
     uint8_t uuid[16]; /*!< Active boot partition */
     char status[16]; /*!< Optional, textual status message */
+});
+
+/**
+ * Read the RAM log
+ *
+ * Positions count the bytes written to the log since the device started, so
+ * they stay the same while the log grows or wraps. The device answers with a
+ * pb_result_log_read. When its size is not zero, that many bytes of log
+ * follow, then a final pb_result.
+ *
+ * Devices without a RAM log answer -PB_RESULT_NOT_SUPPORTED, and devices
+ * older than this command -PB_RESULT_INVALID_COMMAND.
+ */
+PACK(struct pb_command_log_read {
+    uint32_t position; /*!< Position of the first byte to read */
+    uint32_t size; /*!< Maximum number of bytes to read */
+    uint8_t rz[24]; /*!< Reserved */
+});
+
+/**
+ * Read RAM log result
+ */
+PACK(struct pb_result_log_read {
+    uint32_t position; /*!< Position of the first byte sent. Larger than the
+                            requested position if those bytes were
+                            overwritten */
+    uint32_t size; /*!< Bytes to read after the result structure */
+    uint32_t head; /*!< Bytes written to the log so far, the position after
+                        the newest byte */
+    uint8_t rz[20]; /*!< Reserved */
 });
 
 /**
