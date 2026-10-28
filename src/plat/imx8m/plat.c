@@ -17,7 +17,7 @@
 #include <uuid.h>
 #include <xlat_tables.h>
 
-#include "dram.h"
+#include <plat/imx8m/dram.h>
 
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);

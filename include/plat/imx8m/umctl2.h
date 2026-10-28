@@ -22,8 +22,8 @@
  * names, so they stay as they are.
  */
 
-#ifndef PLAT_IMX8M_UMCTL2_H_
-#define PLAT_IMX8M_UMCTL2_H_
+#ifndef INCLUDE_PLAT_IMX8M_UMCTL2_H_
+#define INCLUDE_PLAT_IMX8M_UMCTL2_H_
 
 #include <pb/utils_def.h>
 
@@ -603,4 +603,4 @@
 /* PCTRL_n */
 #define PCTRL_PORT_EN                          BIT_32(0)
 
-#endif // PLAT_IMX8M_UMCTL2_H_
+#endif // INCLUDE_PLAT_IMX8M_UMCTL2_H_

@@ -9,8 +9,8 @@
  * i.MX8M LPDDR4 init: board timing data and the copy handed to TF-A.
  */
 
-#ifndef PLAT_IMX8M_DRAM_H_
-#define PLAT_IMX8M_DRAM_H_
+#ifndef INCLUDE_PLAT_IMX8M_DRAM_H_
+#define INCLUDE_PLAT_IMX8M_DRAM_H_
 
 #include "ddrphy.h"
 #include "lpddr4.h"
@@ -62,6 +62,9 @@ struct dram_timing_info {
     unsigned int fsp_table[4];
 };
 
+/* The board's timing, see src/board/imx8mevk/lpddr4_timing.c */
+extern struct dram_timing_info dram_timing;
+
 int umctl2_init(void);
 
-#endif // PLAT_IMX8M_DRAM_H_
+#endif // INCLUDE_PLAT_IMX8M_DRAM_H_

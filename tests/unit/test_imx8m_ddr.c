@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../src/plat/imx8m/dram.h"
+#include <plat/imx8m/dram.h>
 
 /* Everything the init code touches lives in 0x3000_0000 - 0x3fff_ffff */
 #define DEV_START               0x30000000UL
@@ -200,7 +200,6 @@ void pb_delay_us(uint32_t delay)
 }
 
 extern struct dram_timing_info dram_timing_info_copy;
-extern struct dram_timing_info dram_timing;
 
 /* The copy for TF-A, with the pointers as offsets from the start of the copy */
 static void trace_timing_copy(void)

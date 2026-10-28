@@ -34,8 +34,8 @@
  * databook as used in NXP's reference code and DDR tool output.
  */
 
-#ifndef PLAT_IMX8M_DDRPHY_H_
-#define PLAT_IMX8M_DDRPHY_H_
+#ifndef INCLUDE_PLAT_IMX8M_DDRPHY_H_
+#define INCLUDE_PLAT_IMX8M_DDRPHY_H_
 
 #include <pb/mmio.h>
 #include <pb/utils_def.h>
@@ -118,4 +118,4 @@ static inline uint32_t dwc_ddrphy_apb_rd(uint32_t csr)
     return mmio_read_32(DDRPHY_CSR_ADDR(csr));
 }
 
-#endif // PLAT_IMX8M_DDRPHY_H_
+#endif // INCLUDE_PLAT_IMX8M_DDRPHY_H_
