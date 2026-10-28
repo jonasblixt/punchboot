@@ -36,7 +36,7 @@ int mmc_request(struct mmc_device *dev, struct mmc_cmd *cmd)
 
     rc = dev->hal->request(dev->hal->priv, cmd);
 
-    if (rc != PB_OK) {
+    if (rc != PB_OK && !cmd->quiet) {
         LOG_ERR("Send command %u error: %i", cmd->idx, rc);
     }
 
@@ -71,7 +71,8 @@ int mmc_request_r1(struct mmc_device *dev, struct mmc_cmd *cmd)
         return rc;
 
     if (cmd->resp[0] & STATUS_ERROR_MASK) {
-        LOG_ERR("CMD%u card status 0x%08x", cmd->idx, cmd->resp[0]);
+        if (!cmd->quiet)
+            LOG_ERR("CMD%u card status 0x%08x", cmd->idx, cmd->resp[0]);
         return -PB_ERR_IO;
     }
 

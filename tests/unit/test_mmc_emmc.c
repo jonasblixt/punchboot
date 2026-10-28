@@ -61,6 +61,8 @@ static int setup(void **state)
     bench_reset();
     bio_reset();
     emmc_model_default_config(&card_cfg);
+    hal_model_set_window(0, 127);
+    hal_model_set_gap(1, 0);
 
     dev_cfg = (struct mmc_device_config){
         .mode = MMC_BUS_MODE_HS200,
@@ -137,6 +139,71 @@ static void test_ddr52_4bit(void **state)
     assert_int_equal(init(), PB_OK);
     assert_bench_clean();
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 5);
+}
+
+/* HS200 tuning finds the middle of the taps that work, quickly */
+static void test_tuning(void **state)
+{
+    (void)state;
+
+    hal_model_set_window(16, 77);
+    uint64_t t0 = bench_now_us();
+
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(hal_model_tap(), 46);
+    assert_int_equal(emmc_model_cmd_count(MMC_CMD_SEND_TUNING_BLOCK_HS200), 128);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 2);
+    print_message("Init with tuning: %llu us simulated\n",
+                  (unsigned long long)(bench_now_us() - t0));
+    assert_bench_clean();
+}
+
+/* A narrow window, not on a coarse step */
+static void test_tuning_narrow(void **state)
+{
+    (void)state;
+
+    hal_model_set_window(41, 43);
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(hal_model_tap(), 42);
+    assert_bench_clean();
+}
+
+/* Narrow failing gaps, as on the imx8mpevk (taps 14-15 and 78-79) */
+static void test_tuning_gap(void **state)
+{
+    (void)state;
+
+    hal_model_set_window(16, 127);
+    hal_model_set_gap(78, 79);
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(hal_model_tap(), 46);
+    assert_bench_clean();
+}
+
+/* A window up to the last tap */
+static void test_tuning_window_at_end(void **state)
+{
+    (void)state;
+
+    hal_model_set_window(90, 127);
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(hal_model_tap(), 108);
+    assert_bench_clean();
+}
+
+/* No tap works: high speed, the boot goes on */
+static void test_tuning_fails(void **state)
+{
+    static uint8_t buf[4096];
+    (void)state;
+
+    hal_model_set_window(1, 0);
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
+    assert_int_equal(hal_model_bus()->clk_hz, 52000000);
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(buf), buf), PB_OK);
+    assert_bench_clean();
 }
 
 /* HS400 with Enhanced Strobe needs no tuning, 6.6.2.3 */
@@ -374,6 +441,11 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_hs200, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ddr52, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ddr52_4bit, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning_narrow, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning_gap, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning_window_at_end, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400_enhanced_strobe, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),

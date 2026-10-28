@@ -22,14 +22,15 @@ config MMC_CORE_DEBUG_IOS
     default n
 
 config MMC_CORE_HS200_TUNE
-    bool "Enable HS200 tuning algorithm"
+    bool "HS200 tuning"
     depends on MMC_CORE
     default n
     help
-        Warning: This will significantly increase boot time. The suggested
-        use for this is to enable it for testing under varying temperature
-        and other conditions that might affect timing to get good tap delay
-        value.
+        Pick the delay tap in HS200 with CMD21 tuning blocks instead of
+        using the board's: every tap is tried and the middle of the widest
+        working window is used. One CMD21 per tap, about 2 ms for 128 taps
+        at 200 MHz. If no tap works the card runs in high speed (52 MHz)
+        with the board's tap, so a marginal board still boots.
 
 config MMC_CORE_OVERRIDE_BOOT_PART_SZ
     bool "Override boot partition size"

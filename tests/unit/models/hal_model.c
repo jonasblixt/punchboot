@@ -22,6 +22,11 @@
 static struct bus_card *card;
 static struct bus_cfg bus;
 static struct mmc_hal hal;
+static unsigned int tap;
+#define HAL_TAPS 128
+
+static int win_lo = 0, win_hi = HAL_TAPS - 1;
+static int gap_lo = 1, gap_hi = 0;
 
 static void wait_busy(const char *what)
 {
@@ -116,6 +121,10 @@ static int hal_request(void *priv, struct mmc_cmd *cmd)
                 rc = -PB_ERR_IO;
         } else if (card->ops->read(card, block, cmd->block_size) != BUS_DATA_OK) {
             rc = -PB_ERR_IO;
+        } else if (bus.clk_hz > 52000000 && ((int)tap < win_lo || (int)tap > win_hi ||
+                                             ((int)tap >= gap_lo && (int)tap <= gap_hi))) {
+            /* Sampled outside the data eye */
+            rc = -PB_ERR_IO;
         }
     }
     if (cmd->write)
@@ -171,16 +180,19 @@ static int hal_set_bus_width(void *priv, enum mmc_bus_width width)
     return PB_OK;
 }
 
-static int hal_set_delay_tap(void *priv, unsigned int tap)
+static int hal_set_delay_tap(void *priv, unsigned int t)
 {
     (void)priv;
-    (void)tap;
+    if (t >= HAL_TAPS)
+        fail_msg("Delay tap %u, there are %u", t, HAL_TAPS);
+    tap = t;
     return PB_OK;
 }
 
 const struct mmc_hal *hal_model_init(struct bus_card *c, size_t max_chunk_bytes)
 {
     card = c;
+    tap = 0;
     hal = (struct mmc_hal){
         .priv = &hal,
         .init = hal_init,
@@ -188,6 +200,7 @@ const struct mmc_hal *hal_model_init(struct bus_card *c, size_t max_chunk_bytes)
         .set_bus_clock = hal_set_bus_clock,
         .set_bus_width = hal_set_bus_width,
         .set_delay_tap = hal_set_delay_tap,
+        .delay_taps = HAL_TAPS,
         .max_chunk_bytes = max_chunk_bytes,
     };
     return &hal;
@@ -196,4 +209,21 @@ const struct mmc_hal *hal_model_init(struct bus_card *c, size_t max_chunk_bytes)
 const struct bus_cfg *hal_model_bus(void)
 {
     return &bus;
+}
+
+void hal_model_set_window(int lo, int hi)
+{
+    win_lo = lo;
+    win_hi = hi;
+}
+
+unsigned int hal_model_tap(void)
+{
+    return tap;
+}
+
+void hal_model_set_gap(int lo, int hi)
+{
+    gap_lo = lo;
+    gap_hi = hi;
 }

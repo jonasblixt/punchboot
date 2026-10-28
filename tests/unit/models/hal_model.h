@@ -31,4 +31,14 @@ const struct mmc_hal *hal_model_init(struct bus_card *card, size_t max_chunk_byt
 /* The bus as the HAL drives it */
 const struct bus_cfg *hal_model_bus(void);
 
+/*
+ * The delay taps (128) that sample data correctly above 52 MHz, outside
+ * the window blocks arrive with CRC errors. Default: all; lo > hi: none.
+ * Kept across hal_model_init().
+ */
+void hal_model_set_window(int lo, int hi);
+/* Taps inside the window that fail too, lo > hi: none (default) */
+void hal_model_set_gap(int lo, int hi);
+unsigned int hal_model_tap(void);
+
 #endif // TESTS_UNIT_MODELS_HAL_MODEL_H
