@@ -292,6 +292,27 @@ static void test_read_status_error(void **state)
     assert_int_equal(bench_violations_of(JESD84 "6.11"), 0);
 }
 
+/* An ADMA error fails the transfer instead of waiting for TC forever */
+static void test_dma_error(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    usdhc_model_fail_dma();
+    assert_int_not_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
+    assert_int_equal(bio_read(part(UU_USER), 0, 4096, in), PB_OK);
+}
+
+/* A card that stays busy times out */
+static void test_busy_timeout(void **state)
+{
+    (void)state;
+
+    card_cfg.write_busy_us = 60 * 1000 * 1000;
+    assert_int_equal(init(&imx8mpevk_emmc, USDHC_IMX8M, 200000000), PB_OK);
+    assert_int_not_equal(bio_write(part(UU_USER), 0, 512, out), PB_OK);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -304,6 +325,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_read_crc_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_write_crc_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_dma_error, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_busy_timeout, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
