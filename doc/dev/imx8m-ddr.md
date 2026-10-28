@@ -90,7 +90,7 @@ part stands now (2026-10-28):
 | Reset release, power up, `DDR_SS_GPR0`, order of the controller and DFI init steps (`ddr.c`, `umctl2.c`, `ddr_imx8mq.c`) | NXP's BSD-3-Clause TF-A DRAM code (`plat/imx/imx8m/ddr/dram_retention.c`, `dram.c`), which re-runs these steps after retention. NXP's copyright is in those files | OK. Some values differ from TF-A's (DFIMISC, PWRCTL, RFSHCTL3, the 8MQ `SRC_DDRC2_RCR` hold value), noted in the files |
 | Register map and fields (`umctl2.h`, `ddrc.h`) | Facts, checked against AMD's MIT licensed ZynqMP FSBL; no code copied | OK |
 | PHY CSRs, mailbox protocol, message codes (`dwc_ddrphy.h`) | Facts about the PHY and its firmware, written up in punchboot's words | OK |
-| Firmware load and training code (`dwc_ddrphy.c`) | Not in TF-A. Rewritten in this branch, but a refactor of the 2019 code, not a clean-room rewrite | Lower risk; for a clean slate, have someone who hasn't read U-Boot's version re-implement it from `dwc_ddrphy.h` |
+| Firmware load and training code (`dwc_ddrphy.c`) | Clean-room implementation (2026-10-28) from `doc/dev/spec-dwc-ddrphy.md`, by an implementer that read only the spec and the public headers; record in the commit message (`ee093be7`) | OK. The implementer was a language model: the process was clean room, but its training data may include U-Boot |
 | DRAM PLL dividers (`ddr_imx8mq.c`) | Hardware settings for two data rates | OK |
 | `struct dram_timing_info` layout (`dram.h`) | Interface to TF-A (BSD-3-Clause); comments in punchboot's words | OK |
 | EVK timing (`src/board/imx8mevk/lpddr4_timing.c`) and its golden trace | Comments and 83% of the register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` (GPL-2.0+) | **Open (F-108)**: regenerate, see below |
