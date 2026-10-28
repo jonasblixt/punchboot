@@ -159,4 +159,25 @@ int pb_api_board_status(struct pb_context *ctx, char *status, size_t size);
 
 int pb_api_boot_status(struct pb_context *ctx, uint8_t *uuid, char *status_message, size_t len);
 
+/**
+ * Read part of the device's RAM log.
+ *
+ * Positions count the bytes written to the log since the device started.
+ * The device sends what it still has from *position on: when older bytes
+ * were overwritten, it starts at its oldest byte.
+ *
+ * @param[in,out] position Position to read from. Out: position of buf[0]
+ * @param[out] buf Output buffer
+ * @param[in,out] size Size of buf. Out: bytes read, 0 at the end of the log
+ * @param[out] head Bytes written to the log so far
+ *
+ * @return PB_RESULT_OK, -PB_RESULT_NOT_SUPPORTED if the device has no RAM
+ *         log or is older than the command, or another negative result
+ */
+int pb_api_log_read(struct pb_context *ctx,
+                    uint32_t *position,
+                    void *buf,
+                    size_t *size,
+                    uint32_t *head);
+
 #endif // INCLUDE_PB_API_H_

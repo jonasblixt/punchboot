@@ -18,7 +18,7 @@
 - `session.py`: typed wrapper. `partition.py`, `slc.py`: enums/dataclasses mirroring C constants.
   `helpers.py`: `pb_id` (crc32 table), `valid_bpak_magic`.
 - `__main__.py`: click CLI `punchboot` with groups `dev`, `auth`, `part`, `board`, `boot`, `slc`,
-  plus `list` and `completion`. Transport is chosen with `-t usb|socket`, the device with `-u` / `PB_DEVICE_UUID`.
+  plus `log` (the RAM log, `PB_CMD_LOG_READ`), `list` and `completion`. Transport is chosen with `-t usb|socket`, the device with `-u` / `PB_DEVICE_UUID`.
 
 ## Wire protocol (`include/pb-tools/wire.h`)
 
@@ -33,4 +33,5 @@
 ## pbstate (`tools/pbstate/`)
 
 CMake C lib + CLI that reads and writes the A/B state blob from Linux. It uses the firmware headers
-`include/boot/pb_state_blob.h` and `src/lib/crc.c`. Has its own version (0.3.3).
+`include/boot/pb_state_blob.h` and `src/lib/crc.c`. Its version (`pbstate -V`, `pbstate.pc`) comes
+from `version.txt`; the SONAME is the ABI version and stays `libpbstate.so.0`.

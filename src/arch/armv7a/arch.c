@@ -1,6 +1,7 @@
 #include <arch/arch_helpers.h>
 #include <arch/armv7a/timer.h>
 #include <pb/arch.h>
+#include <pb/console.h>
 #include <pb/plat.h>
 
 extern char _code_start, _code_end, _data_region_start, _data_region_end, _ro_data_region_start,
@@ -15,6 +16,8 @@ void arch_init(void)
 
 void exception(int id)
 {
+    /* The exception may have hit in the middle of a RAM log only message */
+    console_uart_mute(false);
     printf("*** %s (%i) EXCEPTION ***\n\r", exception_strings[id], id);
     printf("IFAR: 0x%08lx, DFAR 0x%08lx\n\r", read_ifar(), read_dfar());
     printf("IFSR: 0x%08lx, DFSR 0x%08lx\n\r", read_ifsr(), read_dfsr());

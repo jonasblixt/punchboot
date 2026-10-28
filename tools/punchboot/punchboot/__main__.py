@@ -662,6 +662,27 @@ def slc_revoke_key(_ctx: click.Context, s: Session, key_id: str, force: bool) ->
         s.slc_revoke_key(revoke_key_id)
 
 
+@cli.command("log")
+@click.option(
+    "output",
+    "-o",
+    "--output",
+    type=click.Path(path_type=pathlib.Path),
+    help="Write the log to a file, as it is on the device",
+)
+@pb_session
+@click.pass_context
+def log(_ctx: click.Context, s: Session, output: pathlib.Path | None) -> None:
+    """Print the device's RAM log (CONFIG_RAMLOG)."""
+    data = s.log_read()
+
+    if output is not None:
+        output.write_bytes(data)
+    else:
+        # pb ends its lines with "\n\r"
+        click.echo(data.decode(errors="replace").replace("\r", ""), nl=False)
+
+
 @cli.command("completion")
 @click.pass_context
 def shell_completion_helper(_ctx: click.Context) -> None:

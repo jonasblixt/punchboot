@@ -38,7 +38,7 @@ master_cpu:
     bic     x9, x9, #(1<<1)  /* Disable Alignment Checking for EL3 */
     msr     sctlr_el3, x9
 
-    mov_imm    x0, (SCTLR_RESET_VAL & ~(SCTLR_EE_BIT | SCTLR_WXN_BIT \
+    mov_imm    x0, ((SCTLR_RESET_VAL | SCTLR_I_BIT) & ~(SCTLR_EE_BIT | SCTLR_WXN_BIT \
             | SCTLR_SA_BIT | SCTLR_A_BIT | SCTLR_DSSBS_BIT))
     msr    sctlr_el3, x0
     isb

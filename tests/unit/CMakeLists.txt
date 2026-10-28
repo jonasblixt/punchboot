@@ -46,6 +46,19 @@ pb_unit_test(test_tzc380 SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/tzc/tzc380.c
 )
 
+pb_unit_test(test_ramlog SOURCES
+    ${PROJECT_SOURCE_DIR}/src/ramlog.c
+)
+# CONFIG_RAMLOG and the log size come from configs/host_defconfig
+target_compile_definitions(test_ramlog PRIVATE CONFIG_RAMLOG_SYNC=1)
+
+pb_unit_test(test_console SOURCES
+    ${PROJECT_SOURCE_DIR}/src/console.c
+    ${PROJECT_SOURCE_DIR}/src/ramlog.c
+)
+# fopencookie(), to send printf() through the console
+target_compile_definitions(test_console PRIVATE _GNU_SOURCE)
+
 pb_unit_test(test_rom_log SOURCES
     ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/rom_log.c
 )
@@ -124,6 +137,7 @@ pb_unit_test(test_linux SOURCES
 
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
+    ${PROJECT_SOURCE_DIR}/src/ramlog.c
     ${PROJECT_SOURCE_DIR}/src/wire.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/crypto.c

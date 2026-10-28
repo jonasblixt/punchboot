@@ -323,6 +323,10 @@ struct mmc_device_info {
     enum mmc_bus_width width; /* !< MMC bus width */
 };
 
+/** mmc_device_config flags */
+#define MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS \
+    BIT(0) /*!< Leave EXT_CSD BOOT_BUS_CONDITIONS (non-volatile) as it is, ignore boot_mode */
+
 struct mmc_device_config {
     enum mmc_bus_mode mode; /*!< Requested bus mode */
     enum mmc_bus_width width; /*!< Requested bus width */
@@ -330,7 +334,7 @@ struct mmc_device_config {
     const unsigned char *boot1_uu; /*!< UUID to assign to boot 1 partition */
     const unsigned char *rpmb_uu; /*!< UUID to assign to RPMB partition */
     const unsigned char *user_uu; /*!< UUID to assign to user partition */
-    uint32_t flags;
+    uint32_t flags; /*!< MMC_CFG_FLAG_* */
     uint8_t boot_mode; /*!< Optional, used to update the boot
                          mode in extcsd, for example, for fast boot */
 };

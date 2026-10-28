@@ -41,6 +41,52 @@ config NO_OF_TIMESTAMPS
     depends on ENABLE_TIMESTAMPING
     default 64
 
+config RAMLOG
+    bool "Keep a copy of the console output in RAM"
+    default n
+    help
+        Everything written to the console is also kept in a ring buffer in
+        RAM, the symbol 'ramlog' in the .no_init section. It can be read
+        without a UART: over JTAG, through a boot ROM USB loader (FEL) or
+        from a RAM dump. The layout is struct pb_ramlog_hdr in
+        include/pb/ramlog.h.
+
+        Output from before console_init() (early debug prints) goes only
+        to the RAM log, and is written to the UART when console_init()
+        sets it up. If there was more early output than the log holds,
+        only the newest RAMLOG_SIZE_KiB is written out.
+
+config RAMLOG_SIZE_KiB
+    int "RAM log size (KiB)"
+    default 16
+    depends on RAMLOG
+
+config RAMLOG_LOGLEVEL
+    int "RAM log level"
+    default 3
+    range 0 3
+    depends on RAMLOG
+    help
+        Log messages up to this level go to the RAM log, also the ones
+        above LOGLEVEL, which the console doesn't print (3: debug, 2: info,
+        1: warnings and errors). So the UART can stay quiet and fast while
+        the RAM log has the whole story. A level at or below LOGLEVEL
+        changes nothing.
+
+        The messages up to this level are compiled in, so a level above
+        LOGLEVEL makes pb larger: debug adds about 8 KiB over info on
+        jiffy.
+
+config RAMLOG_SYNC
+    bool "Synchronized RAM log (for debugging)"
+    default n
+    depends on RAMLOG
+    help
+        Clean the data cache after every character, so that the log in RAM
+        is always current, also when pb hangs or crashes and the log is read
+        from outside (JTAG, FEL, a RAM dump after a warm reset). This costs
+        two cache line cleans per character.
+
 config DEVICE_UUID
     bool "Enable device UUID"
     default y

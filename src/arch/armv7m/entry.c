@@ -41,6 +41,8 @@ const uintptr_t init_vector[] __section(".vectors") = {
 
 static __section(".vector_handlers") void armv7m_default_handler(void)
 {
+    /* The exception may have hit in the middle of a RAM log only message */
+    console_uart_mute(false);
     printf("%s", __func__);
     while (1)
         ;

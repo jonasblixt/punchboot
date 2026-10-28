@@ -1,13 +1,16 @@
 # Status
 
-_Last updated: 2026-10-27_
+_Last updated: 2026-10-28_
 
 ## Current focus
 
-Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Branch
-`compat-guards`: compatibility guards 1 and 2 are done (`compatibility.md`, Guards).
-- **Tests:** 97 pytest (+2 xfail: F-076), 199 CMocka cases in 18 unit test programs and
-  the `compat.abi` layout check, ~12 s, ASan/UBSan clean. Line coverage 99.2% (was 59%); what's left is in `testing.md`.
+v2.8.0 (branch `ramlog`): the RAM log (`CONFIG_RAMLOG`, `arch-firmware.md`): early prints before
+the UART, `CONFIG_RAMLOG_LOGLEVEL` (debug in RAM, the UART at its own level), `PB_CMD_LOG_READ`
+and `punchboot log`. Checked on jiffy over JTAG and USB. Also pbstate reports `version.txt`.
+Moving the tests to the host is done (D-004..D-006, `testing.md`). Compatibility guards 1 and 2
+are done (`compatibility.md`, Guards).
+- **Tests:** 108 pytest (+2 xfail: F-076), 21 unit test programs and
+  the `compat.abi` layout check, ~15 s, ASan/UBSan clean. Line coverage 99.2% (was 59%); what's left is in `testing.md`.
   `scripts/pbdev test` runs it all.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (gcovr HTML artifact, D-012), a
   firmware compile check (jiffy, imx8dxlevk) and Coverity, all in the dev container. All green on
@@ -19,10 +22,8 @@ Moving the tests to the host is done (D-004..D-006, `testing.md`), in PR #61. Br
 
 ## Next steps
 
-1. PRs #61 and #62 are merged (2026-10-22). The Coverity job on master never passed (F-097,
-   fixed in `ci-coverity-file`): check it after that merges. #63 (`jtag-debugging`)
-   was merged into `compat-guards` after #62 had landed, so it reaches master through PR #64
-   (`jiffy-fixes` → master, open).
+1. Check the Coverity job on master (F-097, fixed in #69). Rebase `nanopi-neo-core2` onto
+   master (its WIP is in a stash). F-010 (pbstate `BACKUP_PART`), F-109 (empty LOG bodies).
 2. Unit tests for every core module are done (D-007). They found F-068..F-074; fixed F-069
    (positive error codes) and F-073 (UB in `bio_set_hal_flags`). Branch `jiffy-fixes` (on
    `jtag-debugging`) fixes F-057, F-058..F-062, F-072, F-085, F-086, F-049 (no compile warnings
