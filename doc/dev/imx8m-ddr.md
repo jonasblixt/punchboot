@@ -118,6 +118,38 @@ Compile check of the firmware: `scripts/pbdev firmware imx8mevk` (also in CI) bu
 filled placeholder training firmware. With `IMX8M_FW_DIR` set to a directory with NXP's four
 `lpddr4_pmu_train_*.bin` files it uses those instead.
 
+## Comparing with U-Boot
+
+NXP's current i.MX8M DDR init is in U-Boot (`drivers/ddr/imx/imx8m/ddr_init.c`,
+`drivers/ddr/imx/phy/*.c`, GPL-2.0+). Running it on the host against the same device model and
+board timing as `imx8m_ddr_init()`, and diffing the two register traces, shows exactly where
+punchboot departs from it. Because of the licence the harness is never committed; it lives in the
+ignored `build-uboot-diff/` and is quick to recreate:
+
+- Copy the four U-Boot files and `arch/arm/include/asm/arch-imx8m/ddr.h`, plus a host version of
+  `dram_pll_init()`/`dram_disable_bypass()` from `clock_imx8mq.c` (or `clock_imx8mm.c` for 8MM/8MP).
+- A force-included compat header maps `readl`/`writel`/`setbits_le32`... to `fake_mmio_read/write`,
+  stubs `binman_sym*`, `debug`, `is_imx8m*()`, logs `clock_set_target_val()`, and points `_end`
+  (the firmware location) at a buffer. Empty stub headers for the rest of U-Boot's includes.
+- `struct dram_timing_info` has the same layout in both, so `src/board/imx8mevk/lpddr4_timing.c`
+  (compiled with punchboot's headers) feeds U-Boot's `ddr_init(&dram_timing)` directly.
+- Both runners link the same model as `test_imx8m_ddr` and the same firmware contents (32 KiB IMEM,
+  16 KiB DMEM per image, U-Boot's fixed lengths); runs of 16 bit writes (firmware loads) are
+  collapsed to one line with a checksum before diffing.
+
+Result for the imx8mevk (2026-10-28): reset sequence, controller/PHY tables, message blocks, PIE,
+`DDR_SS_GPR0` and the TF-A copy are identical. Differences: F-104 (rank-to-rank gaps), F-105 (CCM
+DRAM clock roots), F-106 (PWRCTL/RFSHCTL3 values, `selfref_en`, duplicate `DFIPHYMSTR`), F-107 (when
+the trained CSRs are saved). Harmless: U-Boot reprograms the PLL before every run (punchboot only
+when the rate changes), skips reloading an identical firmware image, waits 100 us instead of 1 ms
+in the PLL sequence, and doesn't wait for STAT after entering self refresh. The harness also found
+the overrun of the TF-A copy (F-100). For the 8MP, the same harness with NXP's 8MP EVK timing gives
+a reference trace before `ddr_imx8mp.c` exists.
+
+On the i.MX8M the PHY's APB address is `4 * csr` (U-Boot `ddrphy_addr_remap()`), which is what
+`csr_stride` models. The i.MX9 version of that function is a real remap; a PHY on an i.MX9 would
+need a remap hook in `struct dwc_ddrphy` instead of the stride.
+
 ## Not verified
 
 - Fields marked `[i.MX8M]` in `umctl2.h` (STAT, DFIMISC dfi_frequency/dfi_init_start/
@@ -163,23 +195,26 @@ loader, PLL settings as a table, board timing as a `.c` file with static tables,
 
 Next, roughly in order of value:
 
-1. **Fix the board controller table (F-101).** FREQ1 derate/refresh values are overwritten and the
+1. **Align with NXP's current sequence (F-104..F-107)**, one finding per commit with an updated
+   golden trace, once an imx8mevk (or an 8MP board, where the same code runs) can confirm it.
+
+2. **Fix the board controller table (F-101).** FREQ1 derate/refresh values are overwritten and the
    FREQ0 ones are never set. Regenerate the table with NXP's DDR tool, or check against NXP's
    imx8mq-evk timing, then update the golden trace.
-2. **Timeouts on every poll (F-102).** STAT, the mailbox, CalBusy, DFISTAT, SWSTAT and the PLL lock
+3. **Timeouts on every poll (F-102).** STAT, the mailbox, CalBusy, DFISTAT, SWSTAT and the PLL lock
    spin forever. A hang here is a dead board with no log. Use `plat_get_us_tick()`; the training
    runs take a while each, so the timeouts need a measurement on hardware.
-3. **TF-A handover (F-100).** `fsp_msg`/`fsp_msg_num` in the copy are never written (`.umctl2` is
-   NOLOAD, so they are whatever DRAM holds), and the copy's size is not checked against the
-   128 KiB region. Pin the struct layout with `_Static_assert`s on the aarch64 offsets.
-4. **Name the message block.** The fsp tables are raw DMEM offsets (`0x54003` is the data rate,
+4. **TF-A handover (F-100).** `fsp_msg`/`fsp_msg_num` in the copy are never written (`.umctl2` is
+   NOLOAD, so they are whatever DRAM holds). Pin the struct layout with `_Static_assert`s on the
+   aarch64 offsets. (The size is checked now.)
+5. **Name the message block.** The fsp tables are raw DMEM offsets (`0x54003` is the data rate,
    `0x54005` PHY RON/RTT, ...). Named offsets or a struct per firmware version would make the
    board file reviewable. Needs the layout from NXP's DDR tool.
-5. **Rank-to-rank gap from training (F-104).** U-Boot reads the critical delay differences from
+6. **Rank-to-rank gap from training (F-104).** U-Boot reads the critical delay differences from
    each 1D run's message block and widens `DRAMTMG2` rd2wr/wr2rd and `RANKCTL` gaps for every
    P-state before the DFI init ("rank-to-rank workaround"), on all i.MX8M. Punchboot skips it; the
    EVK has two ranks.
-6. **Small cleanups once there is hardware:** the duplicate `DFIPHYMSTR` write; the normal-mode wait
+7. **Small cleanups once there is hardware:** the duplicate `DFIPHYMSTR` write; the normal-mode wait
    that masks STAT bits [1:0] while LPDDR4's operating_mode is [2:0]; `PCTRL_0`, `SWCTL` and
    `DBG1` in the board table that the code writes again; streaming messages logged with their
    string index, so they can be decoded with NXP's string file.
