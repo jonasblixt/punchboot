@@ -68,17 +68,14 @@ static int imx_usdhc_set_bus_clock(unsigned int clk_hz)
 
 static int imx_usdhc_setup(void)
 {
+    int rc;
+
     LOG_DBG("Base = %p, input clock = %u kHz", (void *)usdhc->base, input_clock_hz / 1000);
     /* reset the controller */
     mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_RSTA | USDHC_SYSCTRL_RSTT);
 
     /* wait for reset done */
     while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_RSTA))
-        ;
-
-    /* Send reset */
-    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_INITA);
-    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_INITA))
         ;
 
     mmio_write_32(usdhc->base + USDHC_MMC_BOOT, 0);
@@ -106,6 +103,22 @@ static int imx_usdhc_setup(void)
 
     /* Force manual delay tuning */
     mmio_write_32(usdhc->base + USDHC_DLL_CTRL, ((usdhc->delay_tap & 0x7f) << 9) | BIT(8));
+
+    /*
+     * RM, initialization: the 80 clocks (INITA) at about 400 kHz, once
+     * CIHB and CDIHB are clear (INITA is ignored otherwise)
+     */
+    rc = imx_usdhc_set_bus_clock(400 * 1000);
+    if (rc != PB_OK)
+        return rc;
+
+    while (mmio_read_32(usdhc->base + PSTATE) & (PSTATE_CDIHB | PSTATE_CIHB))
+        ;
+
+    mmio_setbits_32(usdhc->base + USDHC_SYSCTRL, USDHC_SYSCTRL_INITA);
+    while ((mmio_read_32(usdhc->base + USDHC_SYSCTRL) & USDHC_SYSCTRL_INITA))
+        ;
+
     return PB_OK;
 }
 
