@@ -391,6 +391,18 @@ static void test_dtb_errors(void **state)
     part->id = ID_DTB;
 }
 
+/* A board without an SLC boots, without pb,slc */
+static void test_dtb_without_slc(void **state)
+{
+    (void)state;
+
+    slc_status = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_null(fdt_getprop(dtb, chosen(), "pb,slc", NULL));
+    assert_int_equal(chosen_u32("pb,slc-active-key"), KEY_ID_1);
+}
+
 /* No /chosen: it is added (F-071) */
 static void test_dtb_without_chosen(void **state)
 {
@@ -470,6 +482,7 @@ int main(void)
         LINUX_TEST(test_dtb_without_key_list),
         LINUX_TEST(test_dtb_without_options),
         LINUX_TEST(test_dtb_errors),
+        LINUX_TEST(test_dtb_without_slc),
         LINUX_TEST(test_dtb_without_chosen),
         LINUX_TEST(test_dtb_grown),
         LINUX_TEST(test_dtb_headroom_overlap),
