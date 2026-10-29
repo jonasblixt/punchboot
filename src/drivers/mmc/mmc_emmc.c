@@ -31,6 +31,7 @@
 #define PART_CONFIG_BOOT_MASK    (0x07 << PART_CONFIG_BOOT_SHIFT)
 
 #define SEND_OP_COND_MAX_RETRIES 100
+#define COMPAT_CLK_MAX_HZ        MHz(26) /* Backward compatible timing, JESD84-B51 6.6.2 */
 
 /* BOOT_PARTITION_ENABLE of the first e.MMC, see mmc_get_boot_part_config() */
 static int mmc_boot_part_config = -PB_ERR_STATE;
@@ -59,6 +60,26 @@ static const uint8_t tuning_blk_pattern_8bit[] = {
     0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee,
 };
 #endif
+
+/*
+ * The CSD TRAN_SPEED (bits 103:96, JESD84-B51 7.3.10), the clock limit of the
+ * backward compatible timing. 0 if the field holds a reserved value.
+ */
+static unsigned int csd_tran_speed_hz(const uint32_t csd[4])
+{
+    /* Bits 6:3, the multiplier times 10 */
+    static const uint8_t mult_x10[16] = { 0,  10, 12, 13, 15, 20, 26, 30,
+                                          35, 40, 45, 52, 55, 60, 70, 80 };
+    /* Bits 2:0, the unit in Hz divided by 10 */
+    static const uint32_t unit_div10[4] = { 10000, 100000, 1000000, 10000000 };
+    uint8_t tran_speed = csd[3] & 0xff;
+    unsigned int unit = tran_speed & 0x07;
+
+    if (unit >= ARRAY_SIZE(unit_div10))
+        return 0;
+
+    return unit_div10[unit] * mult_x10[(tran_speed >> 3) & 0x0f];
+}
 
 static int mmc_send_op_cond(struct mmc_device *dev)
 {
@@ -587,6 +608,19 @@ int mmc_emmc_setup(struct mmc_device *dev)
     LOG_DBG("csd1: %x", resp_data[1]);
     LOG_DBG("csd2: %x", resp_data[2]);
     LOG_DBG("csd3: %x", resp_data[3]);
+
+    /* Out of identification mode and the CSD read: the clock can go up to
+     * TRAN_SPEED, JESD84-B51 6.6. Everything up to the bus mode switch,
+     * EXT_CSD included, runs at it instead of 400 kHz. */
+    unsigned int clk_hz = csd_tran_speed_hz(dev->csd);
+
+    if (clk_hz == 0 || clk_hz > COMPAT_CLK_MAX_HZ)
+        clk_hz = COMPAT_CLK_MAX_HZ;
+
+    rc = mmc_set_bus_clock(dev, clk_hz);
+    if (rc != 0) {
+        return rc;
+    }
 
     /* CMD7: Select Card */
     rc = mmc_send_cmd(dev, MMC_CMD_SELECT_CARD, dev->rca << RCA_SHIFT_OFFSET, MMC_RSP_R1, NULL);

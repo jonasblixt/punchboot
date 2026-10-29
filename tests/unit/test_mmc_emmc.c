@@ -350,6 +350,27 @@ static void test_slow_power_up(void **state)
     assert_bench_clean();
 }
 
+/* Out of identification mode the EXT_CSD is read at TRAN_SPEED, not 400 kHz (6.6) */
+static void test_ext_csd_at_tran_speed(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    assert_bench_clean();
+    assert_int_equal(emmc_model_cmd_first_clk_hz(8), 26000000);
+}
+
+/* A device with a 20 MHz TRAN_SPEED is not clocked faster before the bus mode switch */
+static void test_tran_speed_20mhz(void **state)
+{
+    (void)state;
+
+    card_cfg.tran_speed = TRAN_SPEED_20MHZ;
+    assert_int_equal(init(), PB_OK);
+    assert_bench_clean();
+    assert_int_equal(emmc_model_cmd_first_clk_hz(8), 20000000);
+}
+
 /* GENERIC_CMD6_TIME and PARTITION_SWITCH_TIME 0: not defined (7.4.31, 7.4.56) */
 static void test_cmd6_times_not_defined(void **state)
 {
@@ -462,6 +483,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_cmd_crc_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_power_off, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cmd6_times_not_defined, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ext_csd_at_tran_speed, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tran_speed_20mhz, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
