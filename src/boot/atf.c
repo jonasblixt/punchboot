@@ -253,15 +253,18 @@ int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         /* Update SLC related parameters in DT */
         slc = slc_read_status();
 
-        if (slc < 0)
+        /* A board without an SLC (no fuses) gets no pb,slc */
+        if (slc < 0 && slc != -PB_ERR_NOT_SUPPORTED)
             return slc;
 
         /* SLC state */
-        rc = fdt_setprop_u32((void *)fdt, offset, "pb,slc", slc);
+        if (slc >= 0) {
+            rc = fdt_setprop_u32((void *)fdt, offset, "pb,slc", slc);
 
-        if (rc != 0) {
-            LOG_ERR("fdt error: slc (%i)", rc);
-            return -PB_ERR;
+            if (rc != 0) {
+                LOG_ERR("fdt error: slc (%i)", rc);
+                return -PB_ERR;
+            }
         }
 
         /* Current key ID we're using for boot image */
