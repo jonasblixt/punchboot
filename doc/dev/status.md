@@ -39,6 +39,11 @@ are done (`compatibility.md`, Guards).
   F-132 (IN toggle reset) and F-133 (unused direction left control type), register/field names
   from the RM (`imx_ci_udc_private.h`). F-130 fixed (`3746bc6c`, stale cached dQH overlay, found
   with usbmon and a controller dump), on jiffy BOOT0. Next: F-134 before any cache work, F-136.
+- **Slimming (2026-10-29, D-019, D-020):** self tests, littlefs, the Sphinx/RTD tree, `doc/`
+  binaries, TF-A asm helpers, headers, always-on Kconfig options and dead scripts removed: about
+  11,000 lines and 7 MB. Until the incoming boards are in, code without an in-tree user stays
+  (D-020, temporary). Bugs found on the way: F-143, F-144, F-147 (open). Left: de-duplication
+  F-145 (porting API part on hold), ATF F-146, boards F-033/F-051.
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
@@ -71,6 +76,7 @@ are done (`compatibility.md`, Guards).
 
 - Which boards are still in use? Only jiffy, imx8dxlevk and imx8mevk (placeholder DDR firmware) build (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
+- Keep the never-compiled ATF boot driver for an 8MP TF-A handover? (F-146)
 - Mbed TLS: 3.6 LTS or 4.x?
 - Compat floor: which oldest released host and firmware must the guards test against? F-075 shows
   v2.0.0 already broke erase for 1.x hosts.
