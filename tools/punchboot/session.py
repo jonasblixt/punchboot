@@ -164,6 +164,18 @@ class Session:
         response = self._command(Command.PB_CMD_DEVICE_READ_CAPS)
         return wire.pb_result_device_caps.unpack(response)
 
+    def _transfer_caps(self) -> tuple[int, int]:
+        """Return the chunk size and the number of stream buffers to use.
+
+        Devices that predate a caps field report 0 for it (F-077).
+        """
+        caps = self._read_caps()
+        chunk_size = caps.chunk_transfer_max_bytes or caps.stream_buffer_size
+        if not chunk_size:
+            msg = "The device reports no transfer size"
+            raise NotSupportedError(msg)
+        return chunk_size, caps.stream_no_of_buffers or 1
+
     def _read_identifier(self) -> wire.pb_result_device_identifier:
         response = self._command(Command.PB_CMD_DEVICE_IDENTIFIER_READ)
         return wire.pb_result_device_identifier.unpack(response)
@@ -235,8 +247,7 @@ class Session:
 
     def _part_write(self, f: IO[bytes], part: uuid.UUID) -> None:
         f.seek(0)
-        caps = self._read_caps()
-        chunk_size = caps.chunk_transfer_max_bytes
+        chunk_size, buffers = self._transfer_caps()
         try:
             part_size = self._part_size(part, PART_TABLE_ENTRIES_WRITE)
             # Reject files that don't fit before writing anything. For bpak files the
@@ -256,22 +267,21 @@ class Session:
             ):
                 self._stream_prepare_buffer(buffer_id, data)
                 self._stream_write_buffer(buffer_id, part_size - len(data), len(data))
-                buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers
+                buffer_id = (buffer_id + 1) % buffers
             else:
                 f.seek(0)
 
             while data := f.read(chunk_size):
                 self._stream_prepare_buffer(buffer_id, data)
                 self._stream_write_buffer(buffer_id, offset, len(data))
-                buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers
+                buffer_id = (buffer_id + 1) % buffers
                 offset += len(data)
         finally:
             self._stream_finalize()
 
     def _part_read(self, f: IO[bytes], part: uuid.UUID) -> None:
         f.seek(0)
-        caps = self._read_caps()
-        chunk_size = caps.chunk_transfer_max_bytes
+        chunk_size, buffers = self._transfer_caps()
         bytes_left = self._part_size(part, PART_TABLE_ENTRIES)
         self._stream_init(part)
 
@@ -281,7 +291,7 @@ class Session:
             while True:
                 size = min(bytes_left, chunk_size)
                 data = self._stream_read_buffer(buffer_id, offset, size)
-                buffer_id = (buffer_id + 1) % caps.stream_no_of_buffers
+                buffer_id = (buffer_id + 1) % buffers
                 if f.write(data) != size:
                     raise IOError
                 offset += size
@@ -292,7 +302,7 @@ class Session:
             self._stream_finalize()
 
     def _boot_bpak(self, data: bytes, pretend_part: uuid.UUID, verbose: bool) -> None:
-        caps = self._read_caps()
+        chunk_size, _ = self._transfer_caps()
         if len(data) < bpak.BPAK_HEADER_SIZE:
             msg = "Invalid BPAK header"
             raise GenericError(msg)
@@ -313,7 +323,6 @@ class Session:
         code, _ = self._result()
         check(code)
 
-        chunk_size = caps.chunk_transfer_max_bytes
         for p in parts:
             offset = bpak.part_offset(header, p)
             end = offset + bpak.part_size(p)
