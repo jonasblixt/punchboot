@@ -268,9 +268,10 @@ int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
             return -PB_ERR;
         }
 
+        /* Not there is fine, the list is appended below */
         rc = fdt_delprop((void *)fdt, offset, "pb,slc-available-keys");
 
-        if (rc != 0) {
+        if (rc != 0 && rc != -FDT_ERR_NOTFOUND) {
             LOG_ERR("fdt error: del available keys (%i)", rc);
             return -1;
         }
