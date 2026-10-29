@@ -39,6 +39,22 @@ Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/c
 - The device side must keep accepting what released hosts send, and the host side must keep
   understanding what released devices send. Both directions count.
 
+### Example: selecting a log (`PB_CMD_LOG_READ`, 3.0.0)
+
+`pb_command_log_read.log` and `pb_result_log_read.log` come from `rz`. The command's field
+selects a log by `pb_id()` of its name: 0 and `PB_LOG_ID_PB` are pb's RAM log, `PB_LOG_ID_LIST`
+lists the logs, others (e.g. `rom`) depend on the board. The result's field echoes the log the
+device read, so it needs no capability bit:
+
+- Old host, new device: the old host sends 0 and gets pb's log, as before.
+- New host, old device: the old device ignores `rz` and reads pb's log, with a `log` of 0 in
+  the result. A host that asked for another log reads and drops the data, and reports that the
+  device doesn't have it. The host sends 0, not `PB_LOG_ID_PB`, for pb's log, so its bytes are
+  the ones released hosts send (the transcripts check it).
+- Devices older than the command answer `-PB_RESULT_INVALID_COMMAND`, and a device without the
+  log answers `-PB_RESULT_NOT_FOUND`. pb's log on a device without `CONFIG_RAMLOG` stays
+  `-PB_RESULT_NOT_SUPPORTED`, the old answer.
+
 ## bpak format: what is frozen
 
 - `struct bpak_header`: 4096 bytes, every field offset, `BPAK_HEADER_MAGIC`, the `BPAK_MAX_*`
