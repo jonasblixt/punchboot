@@ -132,3 +132,17 @@ first run found bugs on every board that hardware testing hadn't shown (R1b with
 commands above the clock limit in DDR52, ignored status errors). The models are a reading of the
 documents, not the documents: each rule cites its section so it can be checked, and electrical
 timing (sampling points, DLL taps) still needs a board.
+
+## D-018: The next release is 3.0.0, for the porting API, not the wire (2026-10-29)
+
+The release after v2.7.1 (2.8.0 was never tagged) is 3.0.0, built up on branch `work-3.0.0`.
+The major bump is for the board and driver porting API, which breaks out-of-tree boards: the
+request-based MMC HAL with one `mmc_device` per card, the `imx_usdhc` setup, `PLAT_IMX8M_COMMON`
+and the DDR drivers in `src/drivers/ddr` (D-014), the DWC3 and ChipIdea UDC rework, Kconfig and
+defconfig changes. The wire protocol and bpak stay compatible (D-008): 3.0 hosts work with 2.x
+devices and the other way round, and every image 2.x accepted is still accepted. The release
+notes say both first.
+Why: Jonas wants a major release for the size of the change (new SoC and EVK, MMC/SD, DWC3,
+CAAM, RAM log, many fixes). A major version normally reads as "incompatible", so without the
+note users could think 2.x and 3.x tools and devices must not be mixed, and `punchboot~=2.7` or
+`<3` pins on PyPI won't pick up the fixes.
