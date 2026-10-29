@@ -48,7 +48,8 @@ the host half of 4 are done (`compatibility.md`, Guards).
 - **Logs by name (2026-10-29):** `PB_CMD_LOG_READ` selects a log by `pb_id()` of its name from
   `rz` (`compatibility.md`, example): `pb` (RAM log, also 0), `list`, `rom` (i.MX ROM event log,
   `drivers/rom_log`, i.MX6UL and i.MX8M, checked on jiffy and the 8MP EVK, both now run this
-  branch from eMMC) and `linux` (ramoops console, `CONFIG_BOOT_LINUX_RAMOOPS`, off; DRAM retention
+  branch from eMMC), `hab` (HABv4 status and events, i.MX6UL, i.MX8M, RT1060, checked on all
+  three) and `linux` (ramoops console, `CONFIG_BOOT_LINUX_RAMOOPS`, off; DRAM retention
   measured on the EVK, Linux itself not tried). `punchboot log [NAME] [--list]`.
 - **i.MX RT1060 EVK (2026-10-29):** pb runs from OCRAM, loaded over the EVK's J-Link
   (`scripts/pbdebug --load imxrt1060evk`, `build-and-test.md`): 600 MHz, the IS25WP064D NOR,
