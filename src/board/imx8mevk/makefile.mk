@@ -10,6 +10,7 @@ cflags-y += -DBOARD_RAM_BASE=0x40000000
 cflags-y += -DBOARD_RAM_END=0xc0000000
 
 src-y += $(BOARD)/board.c
+src-y += $(BOARD)/lpddr4_timing.c
 
 IMX8M_UMCTL_TRAIN_1D_D ?= lpddr4_pmu_train_1d_dmem.bin
 IMX8M_UMCTL_TRAIN_1D_I ?= lpddr4_pmu_train_1d_imem.bin

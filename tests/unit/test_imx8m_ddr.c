@@ -5,10 +5,10 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * i.MX8M LPDDR4 init (src/plat/imx8m/umctl2_lp4.c) against a model of the
+ * i.MX8M LPDDR4 init (src/plat/imx8m/ddr.c) against a model of the
  * uMCTL2 controller, the DWC DDR PHY and its training firmware mailbox.
  *
- * umctl2_init() can only be tested on hardware, and the imx8mevk is not in
+ * imx8m_ddr_init() can only be tested on hardware, and the imx8mevk is not in
  * the lab. This test records every register write it makes, plus the timing
  * data it hands over to TF-A, and compares that to a golden trace. Changes
  * to the init code that are meant to be cosmetic must keep the trace
@@ -31,32 +31,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../src/plat/imx8m/umctl2.h"
+#include <plat/imx8m/dram.h>
 
 /* Everything the init code touches lives in 0x3000_0000 - 0x3fff_ffff */
-#define DEV_START           0x30000000UL
-#define DEV_END             0x40000000UL
+#define DEV_START               0x30000000UL
+#define DEV_END                 0x40000000UL
 
-#define DDRC_BASE           0x3d400000UL
-#define DDRC_STAT_REG       (DDRC_BASE + 0x004)
-#define DDRC_PWRCTL_REG     (DDRC_BASE + 0x030)
-#define DDRC_DFISTAT_REG    (DDRC_BASE + 0x1bc)
-#define DDRC_SWSTAT_REG     (DDRC_BASE + 0x324)
-#define PWRCTL_SELFREF_SW   (1u << 5)
-#define DRAM_PLL_CFG0_REG   0x30360060UL
-#define PLL_LOCK            (1u << 31)
+#define DDRC_BASE               0x3d400000UL
+#define DDRC_STAT_REG           (DDRC_BASE + 0x004)
+#define DDRC_PWRCTL_REG         (DDRC_BASE + 0x030)
+#define DDRC_DFISTAT_REG        (DDRC_BASE + 0x1bc)
+#define DDRC_SWSTAT_REG         (DDRC_BASE + 0x324)
+#define MODEL_PWRCTL_SELFREF_SW (1u << 5)
+#define DRAM_PLL_CFG0_REG       0x30360060UL
+#define PLL_LOCK                (1u << 31)
 
-#define PHY_BASE            0x3c000000UL
-#define PHY_REG(csr)        (PHY_BASE + 4UL * (csr))
-#define PHY_UCT_SHADOW_REGS PHY_REG(0xd0004)
-#define PHY_DCT_WRITE_PROT  PHY_REG(0xd0031)
-#define PHY_UCT_WRITE_ONLY  PHY_REG(0xd0032)
-#define PHY_UCT_DAT_WRITE   PHY_REG(0xd0034)
-#define PHY_CAL_BUSY        PHY_REG(0x20097)
-#define PHY_IMEM            PHY_REG(0x50000)
+#define PHY_BASE                0x3c000000UL
+#define PHY_REG(csr)            (PHY_BASE + 4UL * (csr))
+#define PHY_UCT_SHADOW_REGS     PHY_REG(0xd0004)
+#define PHY_DCT_WRITE_PROT      PHY_REG(0xd0031)
+#define PHY_UCT_WRITE_ONLY      PHY_REG(0xd0032)
+#define PHY_UCT_DAT_WRITE       PHY_REG(0xd0034)
+#define PHY_CAL_BUSY            PHY_REG(0x20097)
+#define PHY_IMEM                PHY_REG(0x50000)
 
-#define TRACE_MAX           (512 * 1024)
-#define STORE_SIZE          (1 << 16)
+#define TRACE_MAX               (1024 * 1024)
+#define STORE_SIZE              (1 << 16)
 
 /* Training firmware images, normally linked in with objcopy */
 #define FAKE_BLOB(name, a, b, c, d)                                                  \
@@ -152,7 +152,7 @@ uint64_t fake_mmio_read(uintptr_t addr, unsigned int width)
     switch (addr) {
     case DDRC_STAT_REG:
         /* Self refresh (by software) while selfref_sw is set, else normal */
-        return (reg_get(DDRC_PWRCTL_REG) & PWRCTL_SELFREF_SW) ? 0x223 : 0x001;
+        return (reg_get(DDRC_PWRCTL_REG) & MODEL_PWRCTL_SELFREF_SW) ? 0x223 : 0x001;
     case DDRC_DFISTAT_REG: /* dfi_init_complete */
     case DDRC_SWSTAT_REG: /* sw_done_ack */
         return 1;
@@ -199,12 +199,10 @@ void pb_delay_us(uint32_t delay)
     trace_add("delay_us %u\n", delay);
 }
 
-extern struct dram_timing_info dram_timing_info_copy;
-
 /* The copy for TF-A, with the pointers as offsets from the start of the copy */
 static void trace_timing_copy(void)
 {
-    const struct dram_timing_info *dt = &dram_timing_info_copy;
+    const struct dram_timing_info *dt = &dram_timing_info_copy.info;
     const uint8_t *base = (const uint8_t *)dt;
 
     const struct {
@@ -268,9 +266,22 @@ static void report_first_difference(const char *golden, const char *actual)
     print_error("  actual: %.60s\n", a);
 }
 
+/* The board's rates, normally from board.c: all set points of the timing */
+struct dram_rates dram_rates;
+
+static void all_rates(void)
+{
+    dram_rates.mts = dram_timing.fsp_table;
+    dram_rates.num = 0;
+    while (dram_rates.num < ARRAY_SIZE(dram_timing.fsp_table) &&
+           dram_timing.fsp_table[dram_rates.num] != 0)
+        dram_rates.num++;
+}
+
 static int reset_model(void **state)
 {
     (void)state;
+    all_rates();
     memset(store, 0, sizeof(store));
     trace_len = 0;
     trace[0] = 0;
@@ -287,7 +298,7 @@ static void test_init_trace(void **state)
     size_t golden_len = 0;
     char *golden;
 
-    int rc = umctl2_init();
+    int rc = imx8m_ddr_init();
     trace_add("return %d\n", rc);
     trace_timing_copy();
 
@@ -312,6 +323,39 @@ static void test_init_trace(void **state)
     free(golden);
 }
 
+/* Only the boot rate: its 1D and 2D runs, TF-A gets no other set point */
+static void test_boot_rate_only(void **state)
+{
+    const struct dram_timing_info *dt = &dram_timing_info_copy.info;
+    unsigned int runs = 0;
+    (void)state;
+
+    for (unsigned int i = 0; i < dram_timing.fsp_msg_num; i++)
+        runs += dram_timing.fsp_msg[i].drate == dram_timing.fsp_table[0];
+
+    dram_rates.num = 1;
+    assert_int_equal(imx8m_ddr_init(), PB_OK);
+    assert_int_equal(mail_pos, runs * ARRAY_SIZE(mail_script));
+    assert_int_equal(dt->fsp_table[0], dram_timing.fsp_table[0]);
+    assert_int_equal(dt->fsp_table[1], 0);
+    assert_int_equal(dt->fsp_table[2], 0);
+    assert_int_equal(dt->fsp_table[3], 0);
+}
+
+/* The rates must be the first set points of the timing, in order */
+static void test_rates_not_a_prefix(void **state)
+{
+    unsigned int mts[2] = { dram_timing.fsp_table[0], dram_timing.fsp_table[2] };
+    (void)state;
+
+    dram_rates.mts = mts;
+    dram_rates.num = 2;
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_PARAM);
+    dram_rates.num = 0;
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_PARAM);
+    assert_int_equal(mail_pos, 0);
+}
+
 /* The firmware reports a failed training: stop there */
 static void test_training_failed(void **state)
 {
@@ -321,7 +365,7 @@ static void test_training_failed(void **state)
         reset_model(NULL);
         fail_mail = 0x00ff;
         fail_run = run;
-        assert_int_equal(umctl2_init(), -PB_ERR_IO);
+        assert_int_equal(imx8m_ddr_init(), -PB_ERR_IO);
         /* Training run n + 1 is never started */
         assert_int_equal(mail_pos, (run + 1) * ARRAY_SIZE(mail_script));
     }
@@ -333,17 +377,78 @@ static void test_firmware_verify_failed(void **state)
     (void)state;
 
     corrupt_imem = 1;
-    assert_int_equal(umctl2_init(), -PB_ERR_IO);
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_IO);
     /* Training is never started */
     assert_int_equal(mail_pos, 0);
+}
+
+/* A training run at a data rate the DRAM PLL has no setting for */
+static void test_unsupported_data_rate(void **state)
+{
+    (void)state;
+    unsigned int drate = dram_timing.fsp_msg[1].drate;
+
+    /* The set point too, so that the board's rates still match */
+    dram_timing.fsp_msg[1].drate = 1234;
+    dram_timing.fsp_table[1] = 1234;
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_NOT_SUPPORTED);
+    dram_timing.fsp_msg[1].drate = drate;
+    dram_timing.fsp_table[1] = drate;
+    /* Only the first training run happened */
+    assert_int_equal(mail_pos, ARRAY_SIZE(mail_script));
+}
+
+/* Board tables that don't fit in the TF-A copy are refused, not copied past its end */
+static void test_timing_copy_too_large(void **state)
+{
+    (void)state;
+    static struct dram_cfg_param pie[ARRAY_SIZE(dram_timing_info_copy.cfg) + 1];
+    struct dram_cfg_param *saved_pie = dram_timing.ddrphy_pie;
+    unsigned int saved_pie_num = dram_timing.ddrphy_pie_num;
+    unsigned int others =
+        dram_timing.ddrc_cfg_num + dram_timing.ddrphy_cfg_num + dram_timing.ddrphy_trained_csr_num;
+
+    for (size_t i = 0; i < ARRAY_SIZE(pie); i++)
+        pie[i].reg = 0x90000;
+
+    /* One entry more than fits */
+    dram_timing.ddrphy_pie = pie;
+    dram_timing.ddrphy_pie_num = ARRAY_SIZE(dram_timing_info_copy.cfg) + 1 - others;
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_MEM);
+    dram_timing.ddrphy_pie = saved_pie;
+    dram_timing.ddrphy_pie_num = saved_pie_num;
+}
+
+/* The PHY driver refuses an invalid firmware type or a missing image before touching the PHY */
+static void test_phy_bad_firmware(void **state)
+{
+    (void)state;
+    static const uint32_t word = 0x12345678;
+    const struct dwc_ddrphy_fw fw = { &word, &word + 1, &word, &word + 1 };
+    const struct dwc_ddrphy no_2d = {
+        .base = PHY_BASE,
+        .csr_stride = 4,
+        .fw = { [FW_1D_IMAGE] = &fw, [FW_2D_IMAGE] = NULL },
+    };
+    struct dram_fsp_msg fsp = { .drate = 3200, .fw_type = FW_2D_IMAGE };
+
+    assert_int_equal(dwc_ddrphy_train(&no_2d, &fsp), -PB_ERR_PARAM);
+    fsp.fw_type = (enum fw_type)7;
+    assert_int_equal(dwc_ddrphy_train(&no_2d, &fsp), -PB_ERR_PARAM);
+    assert_int_equal(trace_len, 0);
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_init_trace, reset_model),
+        cmocka_unit_test_setup(test_boot_rate_only, reset_model),
+        cmocka_unit_test_setup(test_rates_not_a_prefix, reset_model),
         cmocka_unit_test_setup(test_training_failed, reset_model),
         cmocka_unit_test_setup(test_firmware_verify_failed, reset_model),
+        cmocka_unit_test_setup(test_unsupported_data_rate, reset_model),
+        cmocka_unit_test_setup(test_timing_copy_too_large, reset_model),
+        cmocka_unit_test_setup(test_phy_bad_firmware, reset_model),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

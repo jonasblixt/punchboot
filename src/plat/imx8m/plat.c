@@ -17,7 +17,7 @@
 #include <uuid.h>
 #include <xlat_tables.h>
 
-#include "umctl2.h"
+#include <plat/imx8m/dram.h>
 
 IMPORT_SYM(uintptr_t, _code_start, code_start);
 IMPORT_SYM(uintptr_t, _code_end, code_end);
@@ -205,7 +205,7 @@ int plat_init(void)
                            SSCG_PLL_DIV6_CLKE_MASK | SSCG_PLL_DIV8_CLKE_MASK |
                            SSCG_PLL_DIV10_CLKE_MASK | SSCG_PLL_DIV20_CLKE_MASK);
 
-    rc = umctl2_init();
+    rc = imx8m_ddr_init();
     if (rc != PB_OK) {
         LOG_ERR("LPDDR4 init failed (%i)", rc);
         return rc;
