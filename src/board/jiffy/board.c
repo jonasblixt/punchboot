@@ -309,7 +309,7 @@ int board_init(struct imx6ul_platform *plat_)
 
     plat = plat_;
 
-    rc = imx_caam_init(IMX6UL_CAAM_JR1_BASE);
+    rc = imx_caam_init(IMX6UL_CAAM_JR0_BASE);
 
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);

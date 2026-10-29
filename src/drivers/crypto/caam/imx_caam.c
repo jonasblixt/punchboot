@@ -56,65 +56,45 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Commands  */
-#define CAAM_CMD_HEADER           0xB0800000
-#define CAAM_CMD_OP               0x80000000
-#define CAAM_CMD_LOAD             0x10000000
-#define CAAM_CMD_STORE            0x50000000
-#define CAAM_CMD_SEQIN            0xF0000000
-#define CAAM_CMD_SEQOUT           0xF8000000
-#define CAAM_CMD_FIFOL            0x20000000
+/* Job ring registers, offsets from the job ring's page (4 KiB, 64 KiB on the
+ * i.MX8X). The 64-bit base address registers have their two words transposed
+ * on a little endian SoC (MCFGR[DWT] = 0): the least-significant word is at +4. */
+#define CAAM_IRBAR_JR_LS           0x0004 /* Input ring base address */
+#define CAAM_IRSR_JR               0x000c /* Input ring size */
+#define CAAM_IRSAR_JR              0x0014 /* Input ring slots available */
+#define CAAM_IRJAR_JR              0x001c /* Input ring jobs added */
+#define CAAM_ORBAR_JR_LS           0x0024 /* Output ring base address */
+#define CAAM_ORSR_JR               0x002c /* Output ring size */
+#define CAAM_ORJRR_JR              0x0034 /* Output ring jobs removed */
+#define CAAM_ORSFR_JR              0x003c /* Output ring slots full */
+#define CAAM_JRSTAR_JR             0x0044 /* Job ring output status */
 
-/* Operations */
-#define CAAM_OP_ALG_CLASS1        (0x02 << 24)
-#define CAAM_OP_ALG_CLASS2        (0x04 << 24)
+/* Version registers, aliased in every job ring page */
+#define CAAM_CCBVID                0x0fe4
+#define CAAM_CHAVID_LS             0x0fec
+#define CAAM_CAAMVID_MS            0x0ff8
 
-/* Alg operation defines */
+#define CAAM_ORSFR_ORSF_MASK       0x3ff
+#define CAAM_CCBVID_CAAM_ERA(x)    (((x) >> 24) & 0xff)
+#define CAAM_CHAVID_LS_MDVID(x)    (((x) >> 12) & 0xf)
+#define CAAM_MDVID_LP256           0
+#define CAAM_CAAMVID_MS_IP_ID(x)   (((x) >> 16) & 0xffff)
+#define CAAM_CAAMVID_MS_MAJ_REV(x) (((x) >> 8) & 0xff)
+#define CAAM_CAAMVID_MS_MIN_REV(x) ((x) & 0xff)
 
-#define CAAM_ALG_TYPE_SHA512      (0x45 << 16)
-#define CAAM_ALG_TYPE_SHA384      (0x44 << 16)
-#define CAAM_ALG_TYPE_SHA256      (0x43 << 16)
-#define CAAM_ALG_TYPE_MD5         (0x40 << 16)
-#define CAAM_ALG_STATE_UPDATE     (0x00 << 2)
-#define CAAM_ALG_STATE_INIT       (0x01 << 2)
-#define CAAM_ALG_STATE_FIN        (0x02 << 2)
-#define CAAM_ALG_STATE_INIT_FIN   (0x03 << 2)
-#define CAAM_ALG_AAI(x)           (x << 4)
+#define CAAM_KEY_MAX_LENGTH        256
+#define CAAM_SIG_MAX_LENGTH        136
+#define CAAM_NO_OF_DESC            16
+#define CAAM_HASH_RCTX_MAX_LENGTH  128
+#define CAAM_HASH_BLOCK_MAX_SIZE   128
+#define CAAM_JOB_TIMEOUT_ms        1000
 
-/* Registers */
-#define CAAM_IRBAR                0x0004
-#define CAAM_IRSR                 0x000c
-#define CAAM_IRSAR                0x0014
-#define CAAM_IRJAR                0x001c
-#define CAAM_ORBAR                0x0024
-#define CAAM_ORSR                 0x002c
-#define CAAM_ORJRR                0x0034
-#define CAAM_ORSFR                0x003c
-#define CAAM_JRSTAR               0x0044
-#define CAAM_JRINTR               0x004c
-#define CAAM_JRCFGR_MS            0x0050
-#define CAAM_JRCFGR_LS            0x0054
-#define CAAM_IRRIR                0x005c
-#define CAAM_ORWIR                0x0064
-#define CAAM_JRCR                 0x006c
-#define CAAM_SMCJR                0x00f4
-#define CAAM_SMCSJR               0x00fc
-#define CAAM_CCBVID               0x0fe4
-#define CAAM_CHAVID_LS            0x0fec
-#define CAAM_VID_MS               0x0ff8
-#define CAAM_VID_LS               0x0ffc
-
-#define CAAM_KEY_MAX_LENGTH       256
-#define CAAM_SIG_MAX_LENGTH       136
-#define CAAM_NO_OF_DESC           16
-#define CAAM_HASH_RCTX_MAX_LENGTH 128
-#define CAAM_HASH_BLOCK_MAX_SIZE  128
-#define CAAM_JOB_TIMEOUT_ms       1000
-
-/* Version fields */
-#define CAAM_CCBVID_ERA(x)        (((x) >> 24) & 0xff)
-#define CAAM_CHAVID_LS_MD(x)      (((x) >> 12) & 0xf)
-#define CAAM_MD_VID_LP256         0
+/* An output ring entry: the address of the job descriptor and its status,
+ * in the JRSTAR format. */
+struct caam_out_entry {
+    uint32_t desc;
+    uint32_t status;
+};
 
 struct caam {
     uint8_t hash_align_buf[CAAM_HASH_BLOCK_MAX_SIZE]; /* Hash input alignment buffer */
@@ -132,12 +112,9 @@ struct caam {
      *
      * The input holds a pointer to the head of the job descriptor that should
      * be executed.
-     *
-     * The output ring holds two 32-bit words, the first is the pointer to
-     * the executed job and the second word is status information
      */
     uint32_t input; /* Input job */
-    uint32_t output[2]; /* Output job */
+    struct caam_out_entry output; /* Output job */
     size_t run_ctx_len; /* Length of hash running ctx */
     size_t hash_align_buf_len; /* Bytes available in alignment buffer */
     uint32_t alg; /* Hash alg that being used */
@@ -159,7 +136,7 @@ static void caam_shedule_job_async(void)
     caam.input = (uint32_t)(uintptr_t)caam.desc;
     arch_clean_cache_range((uintptr_t)&caam.input, sizeof(caam.input));
     arch_clean_cache_range((uintptr_t)caam.desc, sizeof(caam.desc[0]) * membersof(caam.desc));
-    mmio_write_32(caam.base + CAAM_IRJAR, 1);
+    mmio_write_32(caam.base + CAAM_IRJAR_JR, 1);
 }
 
 static int caam_wait_for_job(void)
@@ -170,25 +147,25 @@ static int caam_wait_for_job(void)
 
     /* On a HAB booted device the CAAM stops fetching jobs when the security
      * state machine leaves 'Trusted', e.g. when JTAG is connected. */
-    while ((mmio_read_32(caam.base + CAAM_ORSFR) & 1) == 0) {
+    while ((mmio_read_32(caam.base + CAAM_ORSFR_JR) & CAAM_ORSFR_ORSF_MASK) == 0) {
         if (pb_timeout_has_expired(&to)) {
             LOG_ERR("Job timeout, IRSAR = %" PRIu32 ", JRSTAR = %08" PRIx32,
-                    mmio_read_32(caam.base + CAAM_IRSAR),
-                    mmio_read_32(caam.base + CAAM_JRSTAR));
+                    mmio_read_32(caam.base + CAAM_IRSAR_JR),
+                    mmio_read_32(caam.base + CAAM_JRSTAR_JR));
             return -PB_ERR_TIMEOUT;
         }
     }
 
-    arch_invalidate_cache_range((uintptr_t)&caam.output[0], sizeof(caam.output[0]) * 2);
+    arch_invalidate_cache_range((uintptr_t)&caam.output, sizeof(caam.output));
 
-    if (caam.output[0] != (uint32_t)(uintptr_t)&caam.desc[0]) {
-        LOG_ERR("Job failed, status = 0x%x", caam.output[1]);
+    if (caam.output.desc != (uint32_t)(uintptr_t)&caam.desc[0]) {
+        LOG_ERR("Job failed, status = 0x%x", caam.output.status);
         return -PB_ERR;
     }
 
-    mmio_write_32(caam.base + CAAM_ORJRR, 1);
+    mmio_write_32(caam.base + CAAM_ORJRR_JR, 1);
 
-    uint32_t caam_status = mmio_read_32(caam.base + CAAM_JRSTAR);
+    uint32_t caam_status = mmio_read_32(caam.base + CAAM_JRSTAR_JR);
 
     if (caam_status) {
         LOG_ERR("JR status = %08x", caam_status);
@@ -215,7 +192,7 @@ static int caam_ecda_verify(const uint8_t *der_signature,
 {
     int rc;
     int dc = 0;
-    int caam_sig_type = 0;
+    uint32_t ecdsel = 0;
     size_t rs_length = 0;
     dsa_t key_kind;
 
@@ -235,15 +212,15 @@ static int caam_ecda_verify(const uint8_t *der_signature,
 
     switch (key_kind) {
     case DSA_EC_SECP256r1:
-        caam_sig_type = 2;
+        ecdsel = PDB_ECDSEL_P256;
         rs_length = 32;
         break;
     case DSA_EC_SECP384r1:
-        caam_sig_type = 3;
+        ecdsel = PDB_ECDSEL_P384;
         rs_length = 48;
         break;
     case DSA_EC_SECP521r1:
-        caam_sig_type = 4;
+        ecdsel = PDB_ECDSEL_P521;
         rs_length = 66;
         break;
     default:
@@ -261,17 +238,20 @@ static int caam_ecda_verify(const uint8_t *der_signature,
     arch_clean_cache_range((uintptr_t)caam.ecdsa_s, sizeof(caam.ecdsa_s));
     arch_clean_cache_range((uintptr_t)md, md_length);
 
-    caam.desc[dc++] = CAAM_CMD_HEADER;
-    caam.desc[dc++] = (1 << 22) | (caam_sig_type << 7);
+    caam.desc[dc++] = DESC_HDR(0);
+    /* The PDB, the curve is one of the built-in domains */
+    caam.desc[dc++] = PDB_DSA_PD | PDB_DSA_ECDSEL(ecdsel);
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_key;
     caam.desc[dc++] = (uint32_t)(uintptr_t)md;
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_r;
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_s;
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.ecdsa_tmp_buf;
     caam.desc[dc++] = md_length;
-    caam.desc[dc++] = CAAM_CMD_OP | (0x16 << 16) | (2 << 10) | (1 << 1);
+    caam.desc[dc++] = CMD_OP_TYPE | OP_TYPE(UNI) | PROTID(DSAVERIFY) | PROT_PK_MES_REP(HASHED) |
+                      PROT_PK_ECC;
 
-    caam.desc[0] |= ((dc - 1) << 16) | dc;
+    /* Start at the OPERATION command, after the PDB */
+    caam.desc[0] = DESC_HEADER_IDX(dc, dc - 1);
 
     rc = caam_shedule_job_sync();
 
@@ -291,31 +271,31 @@ static int caam_hash_init(hash_t pb_alg)
 
     switch (pb_alg) {
     case HASH_SHA256:
-        caam.alg = CAAM_ALG_TYPE_SHA256;
+        caam.alg = OP_ALGO(SHA256);
         caam.digest_size = 32;
         caam.block_size = 64;
         caam.run_ctx_len = 32 + sizeof(uint64_t);
         break;
     case HASH_SHA384:
-        caam.alg = CAAM_ALG_TYPE_SHA384;
+        caam.alg = OP_ALGO(SHA384);
         caam.digest_size = 48;
         caam.block_size = 128;
         caam.run_ctx_len = 64 + sizeof(uint64_t);
         break;
     case HASH_SHA512:
-        caam.alg = CAAM_ALG_TYPE_SHA512;
+        caam.alg = OP_ALGO(SHA512);
         caam.digest_size = 64;
         caam.block_size = 128;
         caam.run_ctx_len = 64 + sizeof(uint64_t);
         break;
     case HASH_MD5:
-        caam.alg = CAAM_ALG_TYPE_MD5;
+        caam.alg = OP_ALGO(MD5);
         caam.digest_size = 16;
         caam.block_size = 64;
         caam.run_ctx_len = 16 + sizeof(uint64_t);
         break;
     case HASH_MD5_BROKEN:
-        caam.alg = CAAM_ALG_TYPE_MD5;
+        caam.alg = OP_ALGO(MD5);
         /* Setting 'run_ctx_len' to 16 here is on purpouse, because
          * of being compatible with some versions already in the filed
          * the 'BROKEN' version of MD5 has been added with this quirk */
@@ -351,13 +331,13 @@ static int _hash_update(uint8_t *buf, size_t length)
         arch_clean_cache_range((uintptr_t)buf, length);
     }
 
-    caam.desc[dc++] = CAAM_CMD_HEADER;
-    caam.desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | caam.alg | CAAM_ALG_AAI(0);
+    caam.desc[dc++] = DESC_HDR(0);
+    caam.desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH);
 
     if (caam.init) {
-        caam.desc[1] |= CAAM_ALG_STATE_INIT;
+        caam.desc[1] |= ALGO_AS(INIT);
     } else {
-        caam.desc[1] |= CAAM_ALG_STATE_UPDATE;
+        caam.desc[1] |= ALGO_AS(UPDATE);
         caam.desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
         caam.desc[dc++] = (uint32_t)(uintptr_t)caam.run_ctx;
     }
@@ -370,7 +350,7 @@ static int _hash_update(uint8_t *buf, size_t length)
     caam.desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.run_ctx;
 
-    caam.desc[0] |= dc;
+    caam.desc[0] |= HDR_JD_DESCLEN(dc);
     caam_shedule_job_async();
 
     if (!caam.async_hashing) {
@@ -484,9 +464,9 @@ static int caam_hash_final(uint8_t *output, size_t size)
     arch_clean_cache_range((uintptr_t)output, size);
     arch_clean_cache_range((uintptr_t)caam.hash_align_buf, caam.hash_align_buf_len);
 
-    caam.desc[dc++] = CAAM_CMD_HEADER;
-    caam.desc[dc++] = CAAM_CMD_OP | CAAM_OP_ALG_CLASS2 | caam.alg | CAAM_ALG_AAI(0) |
-                      CAAM_ALG_STATE_FIN;
+    caam.desc[dc++] = DESC_HDR(0);
+    caam.desc[dc++] = CMD_OP_TYPE | OP_TYPE(CLASS2) | caam.alg | ALGO_AAI(DIGEST_HASH) |
+                      ALGO_AS(FINAL);
 
     caam.desc[dc++] = LD_NOIMM(CLASS_2, REG_CTX, caam.run_ctx_len);
     caam.desc[dc++] = (uint32_t)(uintptr_t)caam.run_ctx;
@@ -496,7 +476,7 @@ static int caam_hash_final(uint8_t *output, size_t size)
     caam.desc[dc++] = ST_NOIMM(CLASS_2, REG_CTX, caam.digest_size);
     caam.desc[dc++] = (uint32_t)(uintptr_t)output;
 
-    caam.desc[0] |= dc;
+    caam.desc[0] |= HDR_JD_DESCLEN(dc);
 
     err = caam_shedule_job_sync();
 
@@ -514,10 +494,10 @@ int imx_caam_init(uintptr_t base)
     memset(&caam, 0, sizeof(caam));
     caam.base = base;
 
-    uint32_t caam_version = mmio_read_32(caam.base + CAAM_VID_MS);
-    caam.id = (caam_version >> 16) & 0xfff;
-    caam.ver_maj = (caam_version >> 8) & 0xff;
-    caam.ver_min = caam_version & 0xff;
+    uint32_t caam_version = mmio_read_32(caam.base + CAAM_CAAMVID_MS);
+    caam.id = CAAM_CAAMVID_MS_IP_ID(caam_version);
+    caam.ver_maj = CAAM_CAAMVID_MS_MAJ_REV(caam_version);
+    caam.ver_min = CAAM_CAAMVID_MS_MIN_REV(caam_version);
 
     LOG_INFO("Base 0x%" PRIxPTR " ID: 0x%04x, ver %i.%i",
              caam.base,
@@ -526,15 +506,13 @@ int imx_caam_init(uintptr_t base)
              caam.ver_min);
 
     arch_clean_cache_range((uintptr_t)&caam.input, sizeof(caam.input));
-    arch_clean_cache_range((uintptr_t)caam.output, sizeof(caam.output) * 2);
+    arch_clean_cache_range((uintptr_t)&caam.output, sizeof(caam.output));
 
-    /* Initialize job rings */
-    mmio_write_32(caam.base + CAAM_IRBAR, (uint32_t)(uintptr_t)&caam.input);
-    mmio_write_32(caam.base + CAAM_ORBAR, (uint32_t)(uintptr_t)caam.output);
-
-    /* Program number of input/output job entries */
-    mmio_write_32(caam.base + CAAM_IRSR, 1);
-    mmio_write_32(caam.base + CAAM_ORSR, 1);
+    /* Initialize job rings, one entry each */
+    mmio_write_32(caam.base + CAAM_IRBAR_JR_LS, (uint32_t)(uintptr_t)&caam.input);
+    mmio_write_32(caam.base + CAAM_ORBAR_JR_LS, (uint32_t)(uintptr_t)&caam.output);
+    mmio_write_32(caam.base + CAAM_IRSR_JR, 1);
+    mmio_write_32(caam.base + CAAM_ORSR_JR, 1);
 
     static struct hash_ops caam_ops = {
         .name = "caam-hash",
@@ -549,10 +527,10 @@ int imx_caam_init(uintptr_t base)
      * SHA-384/512 jobs with a mode error. CHAVID_LS is only valid before era
      * 10, and CCBVID reports the era from era 6, so other CAAMs keep all
      * algorithms. */
-    uint32_t era = CAAM_CCBVID_ERA(mmio_read_32(caam.base + CAAM_CCBVID));
-    uint32_t md_vid = CAAM_CHAVID_LS_MD(mmio_read_32(caam.base + CAAM_CHAVID_LS));
+    uint32_t era = CAAM_CCBVID_CAAM_ERA(mmio_read_32(caam.base + CAAM_CCBVID));
+    uint32_t md_vid = CAAM_CHAVID_LS_MDVID(mmio_read_32(caam.base + CAAM_CHAVID_LS));
 
-    if (era > 0 && era < 10 && md_vid == CAAM_MD_VID_LP256) {
+    if (era > 0 && era < 10 && md_vid == CAAM_MDVID_LP256) {
         LOG_INFO("Era %" PRIu32 ", MDHA LP256: no SHA-384/512", era);
         caam_ops.alg_bits &= ~(HASH_SHA384 | HASH_SHA512);
     }
