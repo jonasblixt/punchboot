@@ -15,7 +15,7 @@ CI runs these tests (D-006).
 | `src/board/host/` | Test board (partitions, keys, board commands, fuses on disk) |
 | `tests/unit/` | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`, `fakes/plat.c`) |
 | `tests/integration/` | pytest tests that drive `pb-host` through the `punchboot` Python package |
-| `tests/compat/` | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in `bpak/`. See `compatibility.md` |
+| `tests/compat/` | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in `bpak/`, wire transcripts in `transcripts/`. See `compatibility.md` |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest |
 
 ## Running
@@ -144,6 +144,7 @@ and `configs/test_defconfig` were then removed.
 | `test_commands.py` | new: boot status, erase, end of life, bpak read, F-072 |
 | `test_log.py` | new: `PB_CMD_LOG_READ` and `punchboot log` (in chunks, wrapped) |
 | `test_compat.py` | new: golden bpak images, bpak ids, Python mirrors of wire values (D-008), F-076 (xfail) |
+| `test_transcripts.py` | new: recorded wire transcripts served to the current host (D-008, guard 4) |
 
 Unit tests, by module under test:
 
