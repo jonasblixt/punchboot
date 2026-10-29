@@ -34,7 +34,7 @@ are done (`compatibility.md`, Guards).
   starting the eMMC power-up early (~3-7 ms). jiffy's ROM costs 0.41 ms per KiB of pb.
 - **CAAM (2026-10-29):** register/descriptor names and fields from the SRMs, JR0 (not JR1) at
   +0x1000; descriptors bit-identical. Checked on jiffy (flashed) and the 8MP EVK: hashing, ECDSA
-  P-256 accept/reject. F-127, F-128, F-129 open.
+  P-256 accept/reject. F-127, F-128 open; the self tests are removed (D-019, closes F-129).
 - **jiffy USB (ChipIdea UDC, 2026-10-29):** reviewed against the 6UL RM: F-132..F-140. Fixed
   F-132 (IN toggle reset) and F-133 (unused direction left control type), register/field names
   from the RM (`imx_ci_udc_private.h`). F-130 fixed (`3746bc6c`, stale cached dQH overlay, found
