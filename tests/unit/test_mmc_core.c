@@ -61,6 +61,24 @@ void pb_delay_ms(uint32_t delay)
     (void)delay;
 }
 
+void pb_delay_us(uint32_t delay)
+{
+    (void)delay;
+}
+
+/* No clock here: a timeout expires after 1000 polls */
+int pb_timeout_init_us(struct pb_timeout *timeout, uint32_t timeout_us)
+{
+    (void)timeout_us;
+    timeout->ts_start = 0;
+    return PB_OK;
+}
+
+bool pb_timeout_has_expired(struct pb_timeout *timeout)
+{
+    return ++timeout->ts_start > 1000;
+}
+
 static int fake_init(void *priv)
 {
     (void)priv;

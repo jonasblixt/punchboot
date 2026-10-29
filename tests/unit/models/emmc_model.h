@@ -83,7 +83,7 @@ struct emmc_model_config {
     uint8_t boot_bus_conditions;
     uint8_t boot_config_prot;
     unsigned int vccq_mv; /* 1800 or 3300, HS200 and HS400 need 1.8 V */
-    unsigned int op_cond_busy; /* CMD1s answered busy after power on */
+    unsigned int op_cond_busy_us; /* CMD1 answers busy for this long after the first one */
     unsigned int switch_busy_us; /* DAT0 busy after CMD6 */
     unsigned int write_busy_us; /* DAT0 busy after each written block */
     /*

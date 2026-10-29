@@ -26,12 +26,13 @@
 #include "mmc_core_private.h"
 
 /* EXT_CSD_PART_CONFIG */
-#define PART_CONFIG_ACCESS_MASK  0x07 /* Cleared at power on */
-#define PART_CONFIG_BOOT_SHIFT   3 /* Kept at power on */
-#define PART_CONFIG_BOOT_MASK    (0x07 << PART_CONFIG_BOOT_SHIFT)
+#define PART_CONFIG_ACCESS_MASK 0x07 /* Cleared at power on */
+#define PART_CONFIG_BOOT_SHIFT  3 /* Kept at power on */
+#define PART_CONFIG_BOOT_MASK   (0x07 << PART_CONFIG_BOOT_SHIFT)
 
-#define SEND_OP_COND_MAX_RETRIES 100
-#define COMPAT_CLK_MAX_HZ        MHz(26) /* Backward compatible timing, JESD84-B51 6.6.2 */
+#define SEND_OP_COND_TIMEOUT_us 1000000 /* Power up takes at most 1 s */
+#define SEND_OP_COND_POLL_us    1000
+#define COMPAT_CLK_MAX_HZ       MHz(26) /* Backward compatible timing, JESD84-B51 6.6.2 */
 
 /* BOOT_PARTITION_ENABLE of the first e.MMC, see mmc_get_boot_part_config() */
 static int mmc_boot_part_config = -PB_ERR_STATE;
@@ -83,15 +84,19 @@ static unsigned int csd_tran_speed_hz(const uint32_t csd[4])
 
 static int mmc_send_op_cond(struct mmc_device *dev)
 {
-    int rc, n;
+    int rc;
     mmc_cmd_resp_t resp_data;
+    struct pb_timeout to;
 
     rc = mmc_reset_to_idle(dev);
     if (rc != 0) {
         return rc;
     }
 
-    for (n = 0; n < SEND_OP_COND_MAX_RETRIES; n++) {
+    /* Polled often: the init goes on as soon as the device is up */
+    pb_timeout_init_us(&to, SEND_OP_COND_TIMEOUT_us);
+
+    do {
         rc = mmc_send_cmd(dev,
                           MMC_CMD_SEND_OP_COND,
                           OCR_SECTOR_MODE | OCR_VDD_MIN_2V7 | OCR_VDD_MIN_1V7,
@@ -106,12 +111,12 @@ static int mmc_send_op_cond(struct mmc_device *dev)
             return 0;
         }
 
-        pb_delay_ms(10);
-    }
+        pb_delay_us(SEND_OP_COND_POLL_us);
+    } while (!pb_timeout_has_expired(&to));
 
-    LOG_ERR("CMD1 failed after %d retries", SEND_OP_COND_MAX_RETRIES);
+    LOG_ERR("CMD1: the device is still busy after 1 s");
 
-    return -PB_ERR_IO;
+    return -PB_ERR_TIMEOUT;
 }
 
 int mmc_extcsd_reload(struct mmc_device *dev)

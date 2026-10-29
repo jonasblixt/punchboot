@@ -99,7 +99,7 @@ int mmc_reset_to_idle(struct mmc_device *dev)
         return rc;
     }
 
-    pb_delay_ms(2);
+    pb_delay_ms(1);
 
     return PB_OK;
 }
