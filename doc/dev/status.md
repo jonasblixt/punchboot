@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-10-28_
+_Last updated: 2026-10-29_
 
 ## Current focus
 
@@ -31,6 +31,9 @@ are done (`compatibility.md`, Guards).
   on the EVK (F-113). jiffy checked (DDR52) before the tuning/CMD12/log changes.
 - **Boot time (2026-10-29):** log lines carry `[ms.us]` (no more `ts()`), console at warnings, RAM
   log at debug. The imx8mpevk trains only 4000 MT/s (`struct dram_rates`): plat init 75 ms.
+- **CAAM (2026-10-29):** register/descriptor names and fields from the SRMs, JR0 (not JR1) at
+  +0x1000; descriptors bit-identical. Checked on jiffy (flashed) and the 8MP EVK: hashing, ECDSA
+  P-256 accept/reject. F-127, F-128, F-129 open.
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
