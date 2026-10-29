@@ -38,25 +38,10 @@ void log_prefix(const char *level, const char *func);
 
 #if LOGLEVEL >= 2
 #define LOG_INFO(...) LOG_LINE("I", __VA_ARGS__)
-
-#define LOG_INFO2(...)       \
-    do {                     \
-        printf("I: ");       \
-        printf(__VA_ARGS__); \
-    } while (0)
 #elif LOG_MAX_LEVEL >= 2
 #define LOG_INFO(...) LOG_LINE_RAMLOG("I", __VA_ARGS__)
-
-#define LOG_INFO2(...)            \
-    do {                          \
-        console_uart_mute(true);  \
-        printf("I: ");            \
-        printf(__VA_ARGS__);      \
-        console_uart_mute(false); \
-    } while (0)
 #else
 #define LOG_INFO(...)
-#define LOG_INFO2(...)
 #endif
 
 #if LOGLEVEL >= 3
