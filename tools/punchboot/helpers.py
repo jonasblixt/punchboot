@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
+import time
 import uuid
 from importlib.metadata import version
 from typing import TYPE_CHECKING
 
-import _punchboot  # type: ignore[import-not-found]
 import semver  # type: ignore[import-not-found]
+
+from . import transport
+from .errors import Error
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
 def library_version() -> semver.Version:
-    """Return the version string of the C library."""
+    """Return the version of the punchboot package."""
     return semver.Version.parse(version("punchboot"))
 
 
@@ -303,8 +306,32 @@ def wait_for_device(timeout: int = -1) -> None:
 
     Keyword arguments:
     timeout -- Timeout in seconds
+
+    Exceptions:
+    TimeoutError -- The builtin one: no device found in time
     """
-    _punchboot.wait_for_device(timeout)
+    # Late import, session.py imports this module
+    from .session import Session  # noqa: PLC0415
+
+    while True:
+        try:
+            s = Session()
+        except Error:
+            pass
+        else:
+            try:
+                s.device_get_uuid()
+            except Error:
+                pass
+            else:
+                return
+            finally:
+                s.close()
+        if timeout <= 0:
+            msg = "No device found"
+            raise TimeoutError(msg)
+        time.sleep(1)
+        timeout -= 1
 
 
 def list_usb_devices() -> Sequence[uuid.UUID]:
@@ -312,7 +339,7 @@ def list_usb_devices() -> Sequence[uuid.UUID]:
 
     Returns a list of device UUID's
     """
-    return [uuid.UUID(x) for x in _punchboot.list_usb_devices()]
+    return [uuid.UUID(x) for x in transport.list_usb_devices()]
 
 
 def valid_bpak_magic(data: bytes) -> bool:

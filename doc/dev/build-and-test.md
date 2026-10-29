@@ -112,11 +112,11 @@ a ruff bump can break the check (it happened in 2.7.0).
     one, inside the repository): a compile check only.
   - **coverity:** cov-build of jiffy inside the container. Only on pushes to master in
     jonasblixt/punchboot, because it needs `COVERITY_SCAN_TOKEN`.
-- `punchboot-tools.yml`: cibuildwheel v4.3.3 builds wheels for cp310–cp315 on Linux x86_64
-  (manylinux_2_28), Windows amd64 and macOS x86_64/arm64, plus an sdist. Free-threaded builds are skipped.
+- `punchboot-tools.yml`: the package is pure Python (D-021), so `pipx run build` makes one
+  `py3-none-any` wheel and an sdist. A smoke test installs the wheel on Linux, Windows and macOS with
+  Python 3.10 and 3.14 and checks that the CLI runs and libusb (libusb-package) loads.
   - `workflow_dispatch` publishes to TestPyPI.
   - A `v*` tag publishes to PyPI with the `PYPI_API_TOKEN` secret. Trusted publishing is not set up yet.
-  - libusb comes from vcpkg on Windows and pinned Homebrew bottles (1.0.27) on macOS. The version is hardcoded in 3 places.
 
 ## Release
 

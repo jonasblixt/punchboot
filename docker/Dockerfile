@@ -30,7 +30,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libcmocka-dev \
         liblzma-dev \
         libmbedtls-dev \
-        libusb-1.0-0-dev \
         pkg-config \
         python3 \
         python3-dev \
@@ -67,6 +66,8 @@ RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir \
         "click>=8.2,<9" \
         "semver>=3,<4" \
+        "pyusb>=1.2,<2" \
+        "libusb-package>=1.0.26" \
         "setuptools" \
         "wheel" \
         "gcovr==8.3" \

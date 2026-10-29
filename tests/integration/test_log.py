@@ -24,7 +24,7 @@ RAMLOG_SIZE = 16 * 1024
 
 def log_head(s: punchboot.Session) -> int:
     """Bytes written to the device's log so far."""
-    _, _, head = s.pb_s.log_read(0, 0)
+    _, _, head = s.log_read_chunk(0, 0)
     return int(head)
 
 
