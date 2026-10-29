@@ -111,7 +111,9 @@ static int dram_save_timing(void)
     dt->ddrphy_cfg_num = dram_timing.ddrphy_cfg_num;
     dt->ddrphy_trained_csr_num = dram_timing.ddrphy_trained_csr_num;
     dt->ddrphy_pie_num = dram_timing.ddrphy_pie_num;
-    memcpy(dt->fsp_table, dram_timing.fsp_table, sizeof(dt->fsp_table));
+    /* Only the set points that were trained */
+    memset(dt->fsp_table, 0, sizeof(dt->fsp_table));
+    memcpy(dt->fsp_table, dram_rates.mts, dram_rates.num * sizeof(dt->fsp_table[0]));
 
     copy_cfg(&pos, &dt->ddrc_cfg, dram_timing.ddrc_cfg, dram_timing.ddrc_cfg_num);
     copy_cfg(&pos, &dt->ddrphy_cfg, dram_timing.ddrphy_cfg, dram_timing.ddrphy_cfg_num);
@@ -124,12 +126,46 @@ static int dram_save_timing(void)
     return PB_OK;
 }
 
+/* The board's rates are the first set points of its timing, see struct dram_rates */
+static int dram_rates_check(const struct dram_timing_info *t)
+{
+    if (dram_rates.num == 0 || dram_rates.num > ARRAY_SIZE(t->fsp_table)) {
+        LOG_ERR("%u DRAM rates, 1 to %zu", dram_rates.num, ARRAY_SIZE(t->fsp_table));
+        return -PB_ERR_PARAM;
+    }
+
+    for (unsigned int i = 0; i < dram_rates.num; i++) {
+        if (dram_rates.mts[i] != t->fsp_table[i]) {
+            LOG_ERR("DRAM rate %u is %u MT/s, set point %u of the timing is %u MT/s",
+                    i,
+                    dram_rates.mts[i],
+                    i,
+                    t->fsp_table[i]);
+            return -PB_ERR_PARAM;
+        }
+    }
+    return PB_OK;
+}
+
+static bool dram_rate_trained(unsigned int drate)
+{
+    for (unsigned int i = 0; i < dram_rates.num; i++) {
+        if (dram_rates.mts[i] == drate)
+            return true;
+    }
+    return false;
+}
+
 int imx8m_ddr_init(void)
 {
     const struct dram_timing_info *t = &dram_timing;
     const uintptr_t ddrc = DDRC_IPS_BASE_ADDR(0);
     unsigned int drate = t->fsp_msg[0].drate;
     int rc;
+
+    rc = dram_rates_check(t);
+    if (rc != PB_OK)
+        return rc;
 
     /* 1. Hold the controller and PHY in reset, power up, clock */
     imx8m_ddr_soc_reset();
@@ -164,6 +200,11 @@ int imx8m_ddr_init(void)
     /* 4. Training runs */
     for (unsigned int i = 0; i < t->fsp_msg_num; i++) {
         const struct dram_fsp_msg *fsp = &t->fsp_msg[i];
+
+        if (!dram_rate_trained(fsp->drate)) {
+            LOG_DBG("Not training %u MT/s, the board doesn't use it", fsp->drate);
+            continue;
+        }
 
         if (fsp->drate != drate) {
             drate = fsp->drate;
