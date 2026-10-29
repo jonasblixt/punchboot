@@ -52,6 +52,7 @@
 static struct emmc_model_config card_cfg;
 static struct mmc_device_config dev_cfg;
 static struct bus_card *card;
+static struct mmc_device *mmc;
 
 static int setup(void **state)
 {
@@ -60,6 +61,8 @@ static int setup(void **state)
     bench_reset();
     bio_reset();
     emmc_model_default_config(&card_cfg);
+    hal_model_set_window(0, 127);
+    hal_model_set_gap(1, 0);
 
     dev_cfg = (struct mmc_device_config){
         .mode = MMC_BUS_MODE_HS200,
@@ -83,7 +86,7 @@ static int teardown(void **state)
 static int init(void)
 {
     card = emmc_model_init(&card_cfg);
-    return mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg);
+    return mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, &mmc);
 }
 
 static bio_dev_t part(const unsigned char *uu)
@@ -136,6 +139,71 @@ static void test_ddr52_4bit(void **state)
     assert_int_equal(init(), PB_OK);
     assert_bench_clean();
     assert_int_equal(emmc_model_ext_csd()[EXT_CSD_BUS_WIDTH], 5);
+}
+
+/* HS200 tuning finds the middle of the taps that work, quickly */
+static void test_tuning(void **state)
+{
+    (void)state;
+
+    hal_model_set_window(16, 77);
+    uint64_t t0 = bench_now_us();
+
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(hal_model_tap(), 46);
+    assert_int_equal(emmc_model_cmd_count(MMC_CMD_SEND_TUNING_BLOCK_HS200), 128);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 2);
+    print_message("Init with tuning: %llu us simulated\n",
+                  (unsigned long long)(bench_now_us() - t0));
+    assert_bench_clean();
+}
+
+/* A narrow window, not on a coarse step */
+static void test_tuning_narrow(void **state)
+{
+    (void)state;
+
+    hal_model_set_window(41, 43);
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(hal_model_tap(), 42);
+    assert_bench_clean();
+}
+
+/* Narrow failing gaps, as on the imx8mpevk (taps 14-15 and 78-79) */
+static void test_tuning_gap(void **state)
+{
+    (void)state;
+
+    hal_model_set_window(16, 127);
+    hal_model_set_gap(78, 79);
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(hal_model_tap(), 46);
+    assert_bench_clean();
+}
+
+/* A window up to the last tap */
+static void test_tuning_window_at_end(void **state)
+{
+    (void)state;
+
+    hal_model_set_window(90, 127);
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(hal_model_tap(), 108);
+    assert_bench_clean();
+}
+
+/* No tap works: high speed, the boot goes on */
+static void test_tuning_fails(void **state)
+{
+    static uint8_t buf[4096];
+    (void)state;
+
+    hal_model_set_window(1, 0);
+    assert_int_equal(init(), PB_OK);
+    assert_int_equal(emmc_model_ext_csd()[EXT_CSD_HS_TIMING], 1);
+    assert_int_equal(hal_model_bus()->clk_hz, 52000000);
+    assert_int_equal(bio_read(part(UU_USER), 0, sizeof(buf), buf), PB_OK);
+    assert_bench_clean();
 }
 
 /* HS400 with Enhanced Strobe needs no tuning, 6.6.2.3 */
@@ -268,18 +336,59 @@ static void test_rom_handover(void **state)
 
     card = emmc_model_init(&card_cfg);
     emmc_model_rom_handover(1, 6);
-    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg), PB_OK);
+    assert_int_equal(mmc_init(hal_model_init(card, CHUNK_BYTES), &dev_cfg, NULL), PB_OK);
     assert_bench_clean();
 }
 
-/* A device that takes half a second to power up (the limit is 1 s) */
+/* A device that takes 900 ms to power up (the limit is 1 s) */
 static void test_slow_power_up(void **state)
 {
     (void)state;
 
-    card_cfg.op_cond_busy = 50;
+    card_cfg.op_cond_busy_us = 900000;
     assert_int_equal(init(), PB_OK);
     assert_bench_clean();
+}
+
+/* A device still busy after 1 s fails the init */
+static void test_power_up_timeout(void **state)
+{
+    (void)state;
+
+    card_cfg.op_cond_busy_us = 1500000;
+    assert_int_equal(init(), -PB_ERR_TIMEOUT);
+}
+
+/* CMD1 is polled every millisecond: the init ends soon after the device is up */
+static void test_power_up_polling(void **state)
+{
+    (void)state;
+
+    card_cfg.op_cond_busy_us = 20000;
+    assert_int_equal(init(), PB_OK);
+    assert_bench_clean();
+    assert_in_range(emmc_model_cmd_count(1), 15, 25);
+}
+
+/* Out of identification mode the EXT_CSD is read at TRAN_SPEED, not 400 kHz (6.6) */
+static void test_ext_csd_at_tran_speed(void **state)
+{
+    (void)state;
+
+    assert_int_equal(init(), PB_OK);
+    assert_bench_clean();
+    assert_int_equal(emmc_model_cmd_first_clk_hz(8), 26000000);
+}
+
+/* A device with a 20 MHz TRAN_SPEED is not clocked faster before the bus mode switch */
+static void test_tran_speed_20mhz(void **state)
+{
+    (void)state;
+
+    card_cfg.tran_speed = TRAN_SPEED_20MHZ;
+    assert_int_equal(init(), PB_OK);
+    assert_bench_clean();
+    assert_int_equal(emmc_model_cmd_first_clk_hz(8), 20000000);
 }
 
 /* GENERIC_CMD6_TIME and PARTITION_SWITCH_TIME 0: not defined (7.4.31, 7.4.56) */
@@ -362,7 +471,7 @@ static void test_power_off(void **state)
     (void)state;
 
     assert_int_equal(init(), PB_OK);
-    assert_int_equal(mmc_power_off(), PB_OK);
+    assert_int_equal(mmc_power_off(mmc), PB_OK);
     emmc_model_power_cycle();
     assert_bench_clean();
 }
@@ -373,6 +482,11 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_hs200, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ddr52, setup, teardown),
         cmocka_unit_test_setup_teardown(test_ddr52_4bit, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning_narrow, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning_gap, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning_window_at_end, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tuning_fails, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400_enhanced_strobe, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs400, setup, teardown),
         cmocka_unit_test_setup_teardown(test_hs200_not_supported, setup, teardown),
@@ -382,6 +496,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rom_handover, setup, teardown),
         cmocka_unit_test_setup_teardown(test_slow_power_up, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_power_up_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_power_up_polling, setup, teardown),
         cmocka_unit_test_setup_teardown(test_part_switch_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_crc_error, setup, teardown),
@@ -389,6 +505,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_cmd_crc_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_power_off, setup, teardown),
         cmocka_unit_test_setup_teardown(test_cmd6_times_not_defined, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_ext_csd_at_tran_speed, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_tran_speed_20mhz, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

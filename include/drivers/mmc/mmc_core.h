@@ -11,6 +11,7 @@
 #define INCLUDE_PB_MMC_H
 
 #include <pb/utils_def.h>
+#include <stdbool.h>
 #include <uuid.h>
 
 /* MMC Commands */
@@ -39,6 +40,10 @@
 #define MMC_CMD_APP_CMD                     55
 #define MMC_CMD_SPI_READ_OCR                58
 #define MMC_CMD_SPI_CRC_ON_OFF              59
+#define SD_CMD_SEND_RELATIVE_ADDR           3 /* R6 */
+#define SD_CMD_SWITCH_FUNC                  6
+#define SD_CMD_SEND_IF_COND                 8 /* R7 */
+/* Application commands, after MMC_CMD_APP_CMD */
 #define SD_CMD_SEND_OP_COND                 41
 #define SD_CMD_SEND_SCR                     51
 #define SD_CMD_SET_BUS_WIDTH                6
@@ -222,12 +227,16 @@
 #define STATUS_WP_ERASE_SKIP        BIT(15)
 #define STATUS_READY_FOR_DATA       BIT(8)
 #define STATUS_SWITCH_ERROR         BIT(7)
-#define STATUS_ERROR_MASK                                                                   \
-    (STATUS_ADDRESS_OUT_OF_RANGE | STATUS_ADDRESS_MISALIGN | STATUS_BLOCK_LEN_ERROR |       \
-     STATUS_ERASE_SEQ_ERROR | STATUS_ERASE_PARAM | STATUS_WP_VIOLATION |                    \
-     STATUS_LOCK_UNLOCK_FAILED | STATUS_COM_CRC_ERROR | STATUS_ILLEGAL_COMMAND |            \
-     STATUS_DEVICE_ECC_FAILED | STATUS_CC_ERROR | STATUS_ERROR | STATUS_CID_CSD_OVERWRITE | \
-     STATUS_WP_ERASE_SKIP | STATUS_SWITCH_ERROR)
+/*
+ * The errors of the command a response belongs to. COM_CRC_ERROR and
+ * ILLEGAL_COMMAND are about an earlier command, which got no response
+ * (JESD84-B51 6.8.1): a 1.x SD card reports the CMD8 probe that way.
+ */
+#define STATUS_ERROR_MASK                                                                    \
+    (STATUS_ADDRESS_OUT_OF_RANGE | STATUS_ADDRESS_MISALIGN | STATUS_BLOCK_LEN_ERROR |        \
+     STATUS_ERASE_SEQ_ERROR | STATUS_ERASE_PARAM | STATUS_WP_VIOLATION |                     \
+     STATUS_LOCK_UNLOCK_FAILED | STATUS_DEVICE_ECC_FAILED | STATUS_CC_ERROR | STATUS_ERROR | \
+     STATUS_CID_CSD_OVERWRITE | STATUS_WP_ERASE_SKIP | STATUS_SWITCH_ERROR)
 
 #define EXTCSD_SET_CMD           (U(0) << 24)
 #define EXTCSD_SET_BITS          (U(1) << 24)
@@ -260,6 +269,9 @@ enum mmc_bus_mode {
     MMC_BUS_MODE_DDR52,
     MMC_BUS_MODE_HS200,
     MMC_BUS_MODE_HS400,
+    /* SD: the fastest mode the board allows, the card may only do less */
+    MMC_BUS_MODE_SD_DEFAULT, /* 25 MHz */
+    MMC_BUS_MODE_SD_HS, /* High speed, 50 MHz */
     MMC_BUS_MODE_END,
 };
 
@@ -273,12 +285,10 @@ enum mmc_bus_width {
     MMC_BUS_WIDTH_8BIT_DDR_STROBE,
 };
 
+/* What the board has on the bus */
 enum mmc_card_type {
-    MMC_CARD_TYPE_INVALID = 0,
-    MMC_CARD_TYPE_EMMC,
+    MMC_CARD_TYPE_EMMC = 0,
     MMC_CARD_TYPE_SD,
-    MMC_CARD_TYPE_SD_HC,
-    MMC_CARD_TYPE_END,
 };
 
 struct mmc_csd_emmc {
@@ -327,26 +337,49 @@ struct mmc_csd_emmc {
 
 typedef uint32_t mmc_cmd_resp_t[4];
 
-typedef int (*mmc_init_t)(void);
-typedef int (*mmc_io_t)(unsigned int lba, size_t length, uintptr_t buf);
+/**
+ * A command and the data that goes with it
+ *
+ * The HAL sends the command, moves the data, and waits for the end of
+ * busy after an R1b response and after written data. When 'stop' is set it
+ * sends CMD12 after the data (an open-ended multiple block transfer) and
+ * fails if the CMD12 response has an error bit set (STATUS_ERROR_MASK),
+ * except ADDRESS_OUT_OF_RANGE after a read (JESD84-B51 6.8.3). After a data
+ * error in a multiple block transfer the HAL stops the card with CMD12.
+ */
+struct mmc_cmd {
+    uint8_t idx; /*!< Command index */
+    uint32_t arg; /*!< Argument */
+    uint16_t resp_type; /*!< MMC_RSP_* */
+    /*!< Response. 48 bit: resp[0] = bits [39:8]. R2: resp[3..0] = bits
+     *   [127:8] of the register, bits [7:0] 0 */
+    mmc_cmd_resp_t resp;
+    void *buf; /*!< Data buffer */
+    size_t block_size; /*!< Bytes per block */
+    size_t blocks; /*!< 0: no data */
+    bool write; /*!< Host to card */
+    bool stop; /*!< Send CMD12 after the data */
+    bool quiet; /*!< Failing is expected (tuning): no error log */
+};
 
-typedef int (*mmc_set_bus_clock_t)(unsigned int clk_hz);
-typedef int (*mmc_set_bus_width_t)(enum mmc_bus_width width);
+/* The HAL functions get the HAL's 'priv' */
+typedef int (*mmc_init_t)(void *priv);
+typedef int (*mmc_request_t)(void *priv, struct mmc_cmd *cmd);
 
-typedef int (*mmc_send_cmd_t)(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result);
+typedef int (*mmc_set_bus_clock_t)(void *priv, unsigned int clk_hz);
+typedef int (*mmc_set_bus_width_t)(void *priv, enum mmc_bus_width width);
 
 struct mmc_hal {
+    void *priv; /*!< The host controller instance */
     mmc_init_t init; /*!< Initilize HAL */
-    mmc_send_cmd_t send_cmd; /*!< Send MMC command */
+    mmc_request_t request; /*!< Send a command and move its data */
     mmc_set_bus_clock_t set_bus_clock; /*!< Set bus clock rate */
     mmc_set_bus_width_t set_bus_width; /*!< Set bus with */
-    mmc_io_t prepare; /*!< Prepare DMA and start xfer, this is optional */
-    /*!< Perform read op. Fails if the response to a CMD12 the HAL sends
-     *   after the data has an error bit set (STATUS_ERROR_MASK) */
-    mmc_io_t read;
-    mmc_io_t write; /*!< Perform write op, the same for CMD12 */
-    int (*set_delay_tap)(unsigned int tap); /*!< Select bus delay tap */
-    size_t max_chunk_bytes; /*!< Maximum bytes per iop */
+    int (*set_delay_tap)(void *priv, unsigned int tap); /*!< Select bus delay tap */
+    unsigned int delay_taps; /*!< Taps set_delay_tap() takes, 0: no tuning */
+    unsigned int delay_tap_default; /*!< The board's tap, without tuning */
+    bool (*card_present)(void *priv); /*!< Card detect, optional (SD) */
+    size_t max_chunk_bytes; /*!< Maximum bytes per request */
 };
 
 struct mmc_device_info {
@@ -361,6 +394,7 @@ struct mmc_device_info {
     BIT(0) /*!< Leave EXT_CSD BOOT_BUS_CONDITIONS (non-volatile) as it is, ignore boot_mode */
 
 struct mmc_device_config {
+    enum mmc_card_type card; /*!< e.MMC (default) or an SD card slot */
     enum mmc_bus_mode mode; /*!< Requested bus mode */
     enum mmc_bus_width width; /*!< Requested bus width */
     const unsigned char *boot0_uu; /*!< UUID to assign to boot 0 partition */
@@ -372,25 +406,34 @@ struct mmc_device_config {
                          mode in extcsd, for example, for fast boot */
 };
 
+/* A card, from mmc_init() */
+struct mmc_device;
+
 /**
- * Initialize the mmc module
+ * Initialize a card
+ *
+ * Several cards, on different host controllers, can be initialized.
  *
  * @param[in] hal Pointer to ops structure of hardware layer
  * @param[in] cfg Pointer to MMC config struct
+ * @param[out] dev The card, optional
  *
  * @return PB_OK on success
  *        -PB_ERR_PARAM, on invalid bus mode or NULL parameters
- *        -PB_ERR_NOT_IMPLEMENTED, on invalid bus mode
+ *        -PB_ERR_NOT_SUPPORTED, the card doesn't support the bus mode
+ *        -PB_ERR_MEM, too many cards
  *        -PB_ERR_IO, on read errors
  */
-int mmc_init(const struct mmc_hal *hal, const struct mmc_device_config *cfg);
+int mmc_init(const struct mmc_hal *hal,
+             const struct mmc_device_config *cfg,
+             struct mmc_device **dev);
 
 /**
- * Get the card device info struct for the currently enumerated card.
+ * Get the card device info struct
  *
- * @return Pointer to device info struct or NULL on error
+ * @return Pointer to device info struct
  */
-struct mmc_device_info *mmc_device_info(void);
+struct mmc_device_info *mmc_device_info(struct mmc_device *dev);
 
 /**
  * Read bytes from current partition.
@@ -402,7 +445,7 @@ struct mmc_device_info *mmc_device_info(void);
  * @return PB_OK on success
  *        -PB_ERR_IO, on read request to large
  */
-int mmc_read(unsigned int lba, size_t length, uintptr_t buf);
+int mmc_read(struct mmc_device *dev, unsigned int lba, size_t length, uintptr_t buf);
 
 /**
  * Write bytes to current partition.
@@ -414,20 +457,20 @@ int mmc_read(unsigned int lba, size_t length, uintptr_t buf);
  * @return PB_OK on success
  *        -PB_ERR_IO, on write request to large
  */
-int mmc_write(unsigned int lba, size_t length, const uintptr_t buf);
+int mmc_write(struct mmc_device *dev, unsigned int lba, size_t length, const uintptr_t buf);
 
 /**
- * Switch hardware partition
+ * Switch hardware partition (e.MMC)
  *
  * @param[in] part Hardware partition to switch to
  *
  * @return PB_OK on success
  */
-int mmc_part_switch(enum mmc_part part);
+int mmc_part_switch(struct mmc_device *dev, enum mmc_part part);
 
 /**
  * Get the partition BOOT_PARTITION_ENABLE (EXT_CSD[179]) pointed to when the
- * card was first initialized, before pb switched partitions
+ * first e.MMC was first initialized, before pb switched partitions
  *
  * This is what the card was set up to boot from. Whether the ROM actually
  * loaded pb from it is platform knowledge, see plat_get_boot_source().
@@ -435,45 +478,44 @@ int mmc_part_switch(enum mmc_part part);
  * @param[out] part_uu UUID of the BOOT0, BOOT1 or user area bio partition
  *
  * @return PB_OK on success,
- *         -PB_ERR_STATE if the card isn't initialized or the value is reserved
+ *         -PB_ERR_STATE if no e.MMC is initialized or the value is reserved
  */
 int mmc_get_boot_part_config(uuid_t part_uu);
 
 /**
- * Re-reads the extended CSD structure and updates the internal cache.
+ * Re-reads the extended CSD structure and updates the internal cache (e.MMC).
  *
  * @return PB_OK on success or a negative number
  */
-
-int mmc_extcsd_reload(void);
+int mmc_extcsd_reload(struct mmc_device *dev);
 
 /**
- * Read extended CSD
+ * Read extended CSD (e.MMC)
  *
  * @param[in] field_id Field identifier to read from
  * @param[out] value Data output
  *
  * @return PB_OK on success or a negative number
  */
-int mmc_extcsd_read(uint16_t field_id, uint8_t *value);
+int mmc_extcsd_read(struct mmc_device *dev, uint16_t field_id, uint8_t *value);
 
 /**
- * Set field in the extended CSD structure
+ * Set field in the extended CSD structure (e.MMC)
  *
  * @param[in] field_id Field identifier within the extcsd structure
  * @param[in] value Value to write
  *
  * @return PB_OK on success or a negative number
  */
-int mmc_extcsd_write(uint16_t field_id, uint8_t value);
+int mmc_extcsd_write(struct mmc_device *dev, uint16_t field_id, uint8_t value);
 
 /**
- * Power off the card. This function must be called before it is safe
+ * Power off the card (e.MMC). This function must be called before it is safe
  * to turn off Vcc and Vccq. After the card has been powered down the
  * 'mmc_init' function can be called to re-initialize.
  *
  * @return PB_OK on success
  */
-int mmc_power_off(void);
+int mmc_power_off(struct mmc_device *dev);
 
 #endif

@@ -147,7 +147,10 @@ pb_unit_test(test_cm SOURCES
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
 )
+target_compile_definitions(test_mmc_core PRIVATE CONFIG_MMC_CORE_MAX_DEVICES=1)
 
 # The i.MX8M LPDDR4 init with the imx8mevk timing, against a device model
 # behind a fake pb/mmio.h (see the test)
@@ -190,10 +193,26 @@ add_library(pb_mmc_models STATIC
     models/usdhc_model.c
 )
 target_include_directories(pb_mmc_models PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# Boards with several cards and controllers
+target_compile_definitions(pb_mmc_models PUBLIC
+    CONFIG_MMC_CORE_MAX_DEVICES=4
+    CONFIG_IMX_USDHC_MAX_INSTANCES=4
+)
 target_link_libraries(pb_mmc_models PUBLIC pb_lib PkgConfig::CMOCKA)
 
 # Self test of the card models
 pb_unit_test(test_mmc_models LIBS pb_mmc_models)
+
+# mmc_core against the SD card model
+pb_unit_test(test_mmc_sd
+    SOURCES
+        ${PROJECT_SOURCE_DIR}/src/bio.c
+        ${PROJECT_SOURCE_DIR}/src/delay.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
+    LIBS pb_mmc_models
+)
 
 # mmc_core against the e.MMC model, JESD84-B51
 pb_unit_test(test_mmc_emmc
@@ -201,8 +220,11 @@ pb_unit_test(test_mmc_emmc
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
     LIBS pb_mmc_models
 )
+target_compile_definitions(test_mmc_emmc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 
 # The uSDHC driver and mmc_core against a uSDHC register model with the
 # e.MMC model on its bus. DMA addresses are 32 bits: -no-pie keeps the
@@ -212,6 +234,8 @@ pb_unit_test(test_imx_usdhc
         ${PROJECT_SOURCE_DIR}/src/bio.c
         ${PROJECT_SOURCE_DIR}/src/delay.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_emmc.c
+        ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_sd.c
         ${PROJECT_SOURCE_DIR}/src/drivers/mmc/imx_usdhc.c
     LIBS pb_mmc_models
 )
@@ -219,4 +243,5 @@ target_include_directories(test_imx_usdhc BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
 )
 target_compile_options(test_imx_usdhc PRIVATE -fno-pie)
+target_compile_definitions(test_imx_usdhc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 target_link_options(test_imx_usdhc PRIVATE -no-pie)
