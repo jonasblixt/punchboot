@@ -274,7 +274,8 @@ static struct emmc {
     uint64_t busy_until;
     bool timing_busy; /* The busy period of an HS_TIMING change */
     enum emmc_state after_busy;
-    unsigned int op_cond_count;
+    bool op_cond_started;
+    uint64_t op_cond_start_us; /* The first CMD1 since Idle */
     bool block_count_armed; /* CMD23 for the next command */
     uint16_t block_count;
     bool tuned; /* CMD21 seen since HS_TIMING was set to HS200 */
@@ -460,7 +461,7 @@ static void go_idle(void)
     emmc.app_cmd = false;
     emmc.busy_until = 0;
     emmc.timing_busy = false;
-    emmc.op_cond_count = 0;
+    emmc.op_cond_started = false;
     emmc.block_count_armed = false;
     emmc.tuned = false;
     emmc.xfer.active = false;
@@ -1019,7 +1020,11 @@ static bool execute(const struct bus_cmd *cmd, struct bus_rsp *rsp, uint32_t *er
             return true;
         }
         rsp->r[0] = OCR_VOLTAGES | (high_capacity() ? OCR_SECTOR : 0);
-        if (arg != 0 && ++emmc.op_cond_count > emmc.cfg.op_cond_busy) {
+        if (arg != 0 && !emmc.op_cond_started) {
+            emmc.op_cond_started = true;
+            emmc.op_cond_start_us = bench_now_us();
+        }
+        if (arg != 0 && bench_now_us() - emmc.op_cond_start_us >= emmc.cfg.op_cond_busy_us) {
             rsp->r[0] |= OCR_BUSY_N;
             emmc.state = EMMC_READY;
         }
@@ -1473,7 +1478,7 @@ void emmc_model_default_config(struct emmc_model_config *cfg)
     cfg->power_off_long_time = 100;
     cfg->vccq_mv = 1800;
     cfg->tran_speed = TRAN_SPEED_26MHZ;
-    cfg->op_cond_busy = 3;
+    cfg->op_cond_busy_us = 10000;
     cfg->switch_busy_us = 1000;
     cfg->write_busy_us = 50;
     cfg->unreliable_cmd13_in_timing_switch = true;

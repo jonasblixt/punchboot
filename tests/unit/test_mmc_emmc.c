@@ -340,14 +340,34 @@ static void test_rom_handover(void **state)
     assert_bench_clean();
 }
 
-/* A device that takes half a second to power up (the limit is 1 s) */
+/* A device that takes 900 ms to power up (the limit is 1 s) */
 static void test_slow_power_up(void **state)
 {
     (void)state;
 
-    card_cfg.op_cond_busy = 50;
+    card_cfg.op_cond_busy_us = 900000;
     assert_int_equal(init(), PB_OK);
     assert_bench_clean();
+}
+
+/* A device still busy after 1 s fails the init */
+static void test_power_up_timeout(void **state)
+{
+    (void)state;
+
+    card_cfg.op_cond_busy_us = 1500000;
+    assert_int_equal(init(), -PB_ERR_TIMEOUT);
+}
+
+/* CMD1 is polled every millisecond: the init ends soon after the device is up */
+static void test_power_up_polling(void **state)
+{
+    (void)state;
+
+    card_cfg.op_cond_busy_us = 20000;
+    assert_int_equal(init(), PB_OK);
+    assert_bench_clean();
+    assert_in_range(emmc_model_cmd_count(1), 15, 25);
 }
 
 /* Out of identification mode the EXT_CSD is read at TRAN_SPEED, not 400 kHz (6.6) */
@@ -476,6 +496,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_rpmb_read, setup, teardown),
         cmocka_unit_test_setup_teardown(test_rom_handover, setup, teardown),
         cmocka_unit_test_setup_teardown(test_slow_power_up, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_power_up_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_power_up_polling, setup, teardown),
         cmocka_unit_test_setup_teardown(test_part_switch_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_status_error, setup, teardown),
         cmocka_unit_test_setup_teardown(test_read_crc_error, setup, teardown),
