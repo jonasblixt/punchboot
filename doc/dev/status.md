@@ -4,9 +4,9 @@ _Last updated: 2026-10-29_
 
 ## Current focus
 
-v2.8.0 (branch `ramlog`): the RAM log (`CONFIG_RAMLOG`, `arch-firmware.md`): early prints before
-the UART, `CONFIG_RAMLOG_LOGLEVEL` (debug in RAM, the UART at its own level), `PB_CMD_LOG_READ`
-and `punchboot log`. Checked on jiffy over JTAG and USB. Also pbstate reports `version.txt`.
+3.0.0 (branch `work-3.0.0`, D-018): one big branch until the release, with the RAM log
+(`CONFIG_RAMLOG`, `PB_CMD_LOG_READ`, `punchboot log`), the i.MX8M and MMC work below and the
+jiffy USB fixes. Wire and bpak stay compatible (D-008); the major bump is for the porting API.
 Moving the tests to the host is done (D-004..D-006, `testing.md`). Compatibility guards 1 and 2
 are done (`compatibility.md`, Guards).
 - **Tests:** 108 pytest (+2 xfail: F-076), 21 unit test programs and
@@ -15,13 +15,13 @@ are done (`compatibility.md`, Guards).
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (gcovr HTML artifact, D-012), a
   firmware compile check (jiffy, imx8dxlevk, imx8mevk) and Coverity, all in the dev container. All green on
   `claude-work`. Coverity only runs on master, so it's unverified until merged.
-- **i.MX8M DDR (branch `imx8m-dram-cleanup`):** cleaned up behind a golden register trace (D-013),
+- **i.MX8M DDR (from `imx8m-dram-cleanup`):** cleaned up behind a golden register trace (D-013),
   uMCTL2/DWC PHY drivers in `src/drivers/ddr` (D-014), `PLAT_IMX8MQ` + `PLAT_IMX8M_COMMON`.
   `PLAT_IMX8MP` + board `imx8mpevk` (2026-10-28): pb runs from OCRAM over `uuu`, the DRAM trains and
   passes a write/read test on the 8MP EVK (`imx8m-ddr.md`, "i.MX8M Plus EVK"). eMMC (HS200) and
   USB command mode work, the DWC3 driver reworked from the RM (F-112). pb boots from eMMC (F-115 fixed).
   Never write fuses on that EVK. Open F-100, F-102, F-104, F-106, F-107, F-110, F-113.
-- **MMC/SD (same branch, 2026-10-28):** a test bench of card models from JESD84-B51 and the SD
+- **MMC/SD (2026-10-28):** a test bench of card models from JESD84-B51 and the SD
   spec plus a uSDHC register model (D-017, `testing.md`) found F-116..F-125, all fixed but F-116
   (HS400 tuning). New request-based HAL, one `mmc_device` per card (`mmc_emmc.c`, `mmc_sd.c`),
   SD cards (default/high speed, 4 bit), the imx8mpevk microSD slot on uSDHC2: works on the EVK
