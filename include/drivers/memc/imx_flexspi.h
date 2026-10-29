@@ -11,6 +11,7 @@
 #ifndef INCLUDE_DRIVERS_MEMC_IMX_FLEXSPI_H
 #define INCLUDE_DRIVERS_MEMC_IMX_FLEXSPI_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define FLEXSPI_CR1_CS_INTERVAL(x)   ((x & 0xffff) << 16)

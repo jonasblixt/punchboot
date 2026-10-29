@@ -1,2 +1,21 @@
 config IMXRT_FLASH
     bool "Run from flash"
+
+choice
+    prompt "i.MX RT1060 EVK revision"
+    default BOARD_IMXRT1060EVK_REV_A
+    help
+        The revision picks the FlexSPI configuration block (fcb_*.c) that
+        the build puts in front of pb.imx in pb_flash.bin, for the QSPI NOR
+        the revision has.
+
+config BOARD_IMXRT1060EVK_REV_A
+    bool "MIMXRT1060-EVK (rev A, A1, A2): IS25WP064"
+
+config BOARD_IMXRT1060EVK_REV_B
+    bool "MIMXRT1060-EVKB: IS25WP064"
+
+config BOARD_IMXRT1060EVK_REV_C
+    bool "MIMXRT1060-EVKC: W25Q128JW"
+
+endchoice
