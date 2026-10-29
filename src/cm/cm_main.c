@@ -17,9 +17,9 @@
 #include <pb/crypto.h>
 #include <pb/delay.h>
 #include <pb/device_uuid.h>
+#include <pb/log_source.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/ramlog.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <stdio.h>
@@ -722,25 +722,34 @@ static int cmd_slc_read(void)
 
 static int cmd_log_read(void)
 {
-#ifdef CONFIG_RAMLOG
     struct pb_command_log_read *log_cmd = (struct pb_command_log_read *)cmd.request;
     struct pb_result_log_read log_result = { 0 };
+    uint32_t id = (log_cmd->log != 0) ? log_cmd->log : PB_LOG_ID_PB;
+    const struct log_source *src = log_source_get(id);
     uint32_t head, oldest, position;
     int rc;
 
-    LOG_DBG("Log read %" PRIu32 ", %" PRIu32, log_cmd->position, log_cmd->size);
+    LOG_DBG("Log %x read %" PRIu32 ", %" PRIu32, id, log_cmd->position, log_cmd->size);
 
-    /* Nothing may print between here and ramlog_read(): a new line in a
-     * full log moves the oldest byte */
-    head = ramlog_head();
-    oldest = head - ramlog_length();
+    if (src == NULL) {
+        /* Without CONFIG_RAMLOG pb's log answers as it did before there were other logs */
+        rc = (id == PB_LOG_ID_PB) ? -PB_ERR_NOT_SUPPORTED : -PB_ERR_NOT_FOUND;
+        pb_wire_init_result(&result, error_to_wire(rc));
+        return rc;
+    }
+
+    /* Nothing may print between here and the read: a new line in a full
+     * RAM log moves the oldest byte */
+    head = src->head();
+    oldest = head - src->length();
     position = MAX(log_cmd->position, oldest);
     position = MIN(position, head);
 
     log_result.position = position;
     log_result.head = head;
+    log_result.log = id;
     log_result.size =
-        ramlog_read(position - oldest, buffer[0], MIN(log_cmd->size, (uint32_t)CM_BUF_SIZE));
+        src->read(position - oldest, buffer[0], MIN(log_cmd->size, (uint32_t)CM_BUF_SIZE));
 
     pb_wire_init_result2(&result, PB_RESULT_OK, &log_result, sizeof(log_result));
 
@@ -752,10 +761,6 @@ static int cmd_log_read(void)
     rc = cm_write(buffer[0], log_result.size);
     pb_wire_init_result(&result, error_to_wire(rc));
     return rc;
-#else
-    pb_wire_init_result(&result, -PB_RESULT_NOT_SUPPORTED);
-    return -PB_ERR_NOT_SUPPORTED;
-#endif
 }
 
 static int cmd_stream_init(void)

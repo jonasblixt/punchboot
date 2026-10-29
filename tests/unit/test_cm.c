@@ -30,8 +30,10 @@
 #include <pb-tools/wire.h>
 #include <pb/bio.h>
 #include <pb/cm.h>
+#include <pb/crc.h>
 #include <pb/crypto.h>
 #include <pb/device_uuid.h>
+#include <pb/log_source.h>
 #include <pb/pb.h>
 #include <pb/ramlog.h>
 #include <pb/rot.h>
@@ -1694,10 +1696,15 @@ static void ramlog_puts(const char *s)
         ramlog_putc(*s++);
 }
 
+static void host_log_read_from(uint32_t log, uint32_t position, uint32_t size)
+{
+    struct pb_command_log_read log_cmd = { .position = position, .size = size, .log = log };
+    host_cmd(PB_CMD_LOG_READ, &log_cmd, sizeof(log_cmd));
+}
+
 static void host_log_read(uint32_t position, uint32_t size)
 {
-    struct pb_command_log_read log_cmd = { .position = position, .size = size };
-    host_cmd(PB_CMD_LOG_READ, &log_cmd, sizeof(log_cmd));
+    host_log_read_from(0, position, size);
 }
 
 static const struct pb_result_log_read *expect_log_result(void)
@@ -1775,6 +1782,107 @@ static void test_log_read_wrapped(void **state)
     expect_end();
 }
 
+/* A log that doesn't change, like the boot ROM's */
+static const char static_text[] = "static text";
+
+static uint32_t static_head(void)
+{
+    return sizeof(static_text) - 1;
+}
+
+static size_t static_length(void)
+{
+    return sizeof(static_text) - 1;
+}
+
+static size_t static_read(size_t offset, void *buf, size_t length)
+{
+    if (offset >= sizeof(static_text) - 1)
+        return 0;
+    length = MIN(length, sizeof(static_text) - 1 - offset);
+    memcpy(buf, &static_text[offset], length);
+    return length;
+}
+
+static const struct log_source static_log = {
+    .name = "test",
+    .description = "A test log",
+    .head = static_head,
+    .length = static_length,
+    .read = static_read,
+};
+
+static uint32_t log_id(const char *name)
+{
+    return crc32(0, (const uint8_t *)name, (uint32_t)strlen(name));
+}
+
+/* Logs are selected by pb_id() of their name, 0 is pb's, and the result says
+ * which one was read */
+static void test_log_select(void **state)
+{
+    const struct pb_result_log_read *lr;
+    (void)state;
+
+    assert_int_equal(log_id("pb"), PB_LOG_ID_PB);
+    assert_int_equal(log_id("list"), PB_LOG_ID_LIST);
+    assert_int_equal(log_source_register(&static_log), PB_OK);
+    assert_int_equal(log_source_register(&static_log), PB_OK);
+
+    ramlog_init();
+    ramlog_puts("hello");
+    host_log_read_from(0, 0, 100);
+    host_log_read_from(PB_LOG_ID_PB, 0, 100);
+    host_log_read_from(log_id("test"), 7, 100);
+    host_log_read_from(log_id("nope"), 0, 100);
+    host_log_read_from(PB_LOG_ID_LIST, 0, 100);
+    run();
+
+    for (int i = 0; i < 2; i++) {
+        lr = expect_log_result();
+        assert_int_equal(lr->log, PB_LOG_ID_PB);
+        assert_int_equal(lr->size, 5);
+        assert_memory_equal(expect_data(5), "hello", 5);
+        expect_result(PB_RESULT_OK);
+    }
+
+    /* A static log: positions are offsets, its head is its length */
+    lr = expect_log_result();
+    assert_int_equal(lr->log, log_id("test"));
+    assert_int_equal(lr->position, 7);
+    assert_int_equal(lr->head, 11);
+    assert_int_equal(lr->size, 4);
+    assert_memory_equal(expect_data(4), "text", 4);
+    expect_result(PB_RESULT_OK);
+
+    expect_result(-PB_RESULT_NOT_FOUND);
+
+    static const char list[] = "pb pb's console output\ntest A test log\n";
+    lr = expect_log_result();
+    assert_int_equal(lr->log, PB_LOG_ID_LIST);
+    assert_int_equal(lr->size, sizeof(list) - 1);
+    assert_memory_equal(expect_data(sizeof(list) - 1), list, sizeof(list) - 1);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
+static void test_log_source_full(void **state)
+{
+    static const struct log_source more[] = {
+        { .name = "a", .description = "" },
+        { .name = "b", .description = "" },
+        { .name = "c", .description = "" },
+        { .name = "d", .description = "" },
+    };
+    int rc = PB_OK;
+    (void)state;
+
+    /* 'static_log' from test_log_select takes one of the four places */
+    for (size_t i = 0; i < ARRAY_SIZE(more) && rc == PB_OK; i++)
+        rc = log_source_register(&more[i]);
+    assert_int_equal(rc, -PB_ERR_MEM);
+}
+
 static void test_log_read_requires_auth(void **state)
 {
     (void)state;
@@ -1832,6 +1940,8 @@ int main(void)
         CM_TEST(test_log_read),
         CM_TEST(test_log_read_wrapped),
         CM_TEST(test_log_read_requires_auth),
+        CM_TEST(test_log_select),
+        CM_TEST(test_log_source_full),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);
