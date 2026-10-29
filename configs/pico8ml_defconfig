@@ -67,7 +67,6 @@ CONFIG_DUMP_TIMING_ANALYSIS=y
 #
 CONFIG_OPTIMIZE="2"
 # CONFIG_DEBUG_SYMBOLS is not set
-# CONFIG_STACK_USAGE is not set
 CONFIG_STACK_SIZE_KB=4
 # end of Build configuration
 
@@ -89,5 +88,4 @@ CONFIG_TRANSPORT_READY_TIMEOUT=10
 # CONFIG_TRANSPORT_ENTER_BOARD_CB is not set
 # end of Command mode transport configuration
 
-CONFIG_LIB_UUID3=y
 # CONFIG_BEARSSL is not set

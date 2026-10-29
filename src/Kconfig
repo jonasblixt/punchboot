@@ -73,35 +73,17 @@ config RAMLOG_SYNC
         from outside (JTAG, FEL, a RAM dump after a warm reset). This costs
         two cache line cleans per character.
 
-config DEVICE_UUID
-    bool "Enable device UUID"
-    default y
-    help
-        This enables the 'device_uuid' api, which uses some platform unique data
-        together with a platform namespace UUID to generate a unique device UUID.
-
-config CRYPTO
-    bool "Cryptographic API"
-    default y
-
 config CRYPTO_MAX_HASH_OPS
     int "Maximum number of hash drivers"
     default 1
-    depends on CRYPTO
 
 config CRYPTO_MAX_DSA_OPS
     int "Maximum number of dsa drivers"
     default 1
-    depends on CRYPTO
-
-config BIO_CORE
-    bool "Enable support for block devices"
-    default y
 
 config BIO_MAX_DEVS
     int "Maxmum number of block devices"
     default 32
-    depends on BIO_CORE
 
 choice EXECUTE
     bool "Execute from"
@@ -120,9 +102,6 @@ config OPTIMIZE
 
 config DEBUG_SYMBOLS
     bool "Enable debug symbols"
-
-config STACK_USAGE
-    bool "Generate stack usage information"
 
 config STACK_SIZE_KiB
     int "Stack size in KiB"

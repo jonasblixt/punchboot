@@ -1,18 +1,5 @@
-config BOOT_CORE
-    bool "Core boot logic"
-    depends on BIO_CORE
-    depends on BOOT_BPAK_IMAGE_HELPERS
-    default y
-
-config BOOT_BPAK_IMAGE_HELPERS
-    bool "BPAK boot image helpers"
-    depends on LIB_BPAK
-    default y
-
 config BOOT_AB_DRIVER
     bool "A/B boot driver"
-    depends on BIO_CORE
-    depends on LIB_ZLIB_CRC
     help
         This is the default boot driver. It uses two block devices to store
         primary an backup configuration. It has support for rollback and
@@ -20,11 +7,9 @@ config BOOT_AB_DRIVER
 
 config BOOT_LINUX
     bool "Linux boot support"
-    depends on BOOT_CORE
 
 config BOOT_ATF
     bool "ATF boot support"
-    depends on BOOT_CORE
     depends on ARCH_ARMV8
     help
         This boot driver uses the Arm Trusted Firmware bootloader interface
@@ -34,7 +19,6 @@ config BOOT_ATF
 
 config BOOT_ARMV7M_BAREMETAL
     bool "ARMv7m bare metal boot support"
-    depends on BOOT_CORE
 
 config BOOT_LOAD_CHUNK_kB
     int "Copy/Hash load chunk size (kB)"
