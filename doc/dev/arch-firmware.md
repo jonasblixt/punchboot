@@ -4,7 +4,7 @@
 
 1. Reset entry: `src/arch/{armv8a/entry.S, armv7a/entry_armv7a.S, armv7m/entry.c}`, then `bl main`.
 2. `src/main.c` `main()` runs `arch_init()`, `plat_init()`, then `plat_board_init()`, which calls `board_init(&plat)`.
-   Then the optional `self_test()`, then `boot(NULL)`. On failure: "Boot aborted", then `cm_run()` (command mode), then `plat_reset()`.
+   Then `boot(NULL)`. On failure: "Boot aborted", then `cm_run()` (command mode), then `plat_reset()`.
 3. `src/board/<b>/board.c` `board_init()` wires up drivers in this order:
    - console, mmc/usdhc
    - `gpt_ptbl_init`, `rot_init`, `slc_init`

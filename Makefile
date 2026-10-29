@@ -89,7 +89,6 @@ src-y  += src/delay.c
 src-$(CONFIG_CRYPTO) += src/crypto.c
 src-$(CONFIG_BIO_CORE) += src/bio.c
 src-$(CONFIG_DEVICE_UUID) += src/device_uuid.c
-src-$(CONFIG_SELF_TEST) += src/self_test.c
 src-y  += src/wire.c
 src-y  += src/console.c
 src-y  += src/log.c

@@ -154,6 +154,4 @@ int dsa_verify(dsa_t alg,
 
 int dsa_add_ops(const struct dsa_ops *ops);
 
-void hash_print(const char *prefix, uint8_t *digest, size_t length);
-
 #endif

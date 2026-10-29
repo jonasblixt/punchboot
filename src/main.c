@@ -13,7 +13,6 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <pb/ramlog.h>
-#include <pb/self_test.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -37,10 +36,6 @@ void main(void)
 
     if (rc != PB_OK)
         goto enter_command_mode;
-
-#ifdef CONFIG_SELF_TEST
-    self_test();
-#endif
 
     rc = boot(NULL); /* Normally we would not return from this function */
 
