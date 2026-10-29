@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * i.MX6UL ROM log decoding (src/plat/imx6ul/rom_log.c). Saving the log reads
+ * i.MX ROM log decoding (src/drivers/rom_log/imx_rom_log.c). Saving the log reads
  * the ROM and OCRAM, so only the decoder and the state before a save are
  * tested.
  */
@@ -17,8 +17,8 @@
 
 #include <cmocka.h>
 
+#include <drivers/rom_log/imx_rom_log.h>
 #include <pb/pb.h>
-#include <plat/imx6ul/rom_log.h>
 #include <string.h>
 
 /* Logged by jiffy (closed, HAB) booting pb from eMMC */
@@ -72,8 +72,10 @@ static void test_jiffy_log(void **state)
     size_t len = sizeof(out);
     (void)state;
 
-    assert_int_equal(imx6ul_rom_log_decode(jiffy_log, ARRAY_SIZE(jiffy_log), 0x00901d14, out, &len),
-                     PB_OK);
+    assert_int_equal(
+        imx_rom_log_decode(
+            IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), 0x00901d14, out, &len),
+        PB_OK);
     assert_int_equal(len, strlen(jiffy_text));
     assert_string_equal(out, jiffy_text);
 }
@@ -84,11 +86,14 @@ static void test_jiffy_uuu_log(void **state)
     (void)state;
 
     assert_int_equal(
-        imx6ul_rom_log_decode(jiffy_uuu_log, ARRAY_SIZE(jiffy_uuu_log), 0x00901d14, out, &len),
+        imx_rom_log_decode(
+            IMX_ROM_LOG_DEFS_V0, jiffy_uuu_log, ARRAY_SIZE(jiffy_uuu_log), 0x00901d14, out, &len),
         PB_OK);
     assert_string_equal(out, jiffy_uuu_text);
-    assert_true(imx6ul_rom_log_find(jiffy_uuu_log, ARRAY_SIZE(jiffy_uuu_log), 0x00010001));
-    assert_false(imx6ul_rom_log_find(jiffy_uuu_log, ARRAY_SIZE(jiffy_uuu_log), 0x80001000));
+    assert_true(imx_rom_log_find(
+        IMX_ROM_LOG_DEFS_V0, jiffy_uuu_log, ARRAY_SIZE(jiffy_uuu_log), 0x00010001));
+    assert_false(imx_rom_log_find(
+        IMX_ROM_LOG_DEFS_V0, jiffy_uuu_log, ARRAY_SIZE(jiffy_uuu_log), 0x80001000));
 }
 
 static void test_stops_at_end_of_words(void **state)
@@ -98,7 +103,9 @@ static void test_stops_at_end_of_words(void **state)
     size_t len = sizeof(out);
     (void)state;
 
-    assert_int_equal(imx6ul_rom_log_decode(log, ARRAY_SIZE(log), 0x00900000, out, &len), PB_OK);
+    assert_int_equal(
+        imx_rom_log_decode(IMX_ROM_LOG_DEFS_V0, log, ARRAY_SIZE(log), 0x00900000, out, &len),
+        PB_OK);
     assert_string_equal(out,
                         "ROM log at 0x00900000\n"
                         " 0: 00010002           Boot mode: internal boot\n"
@@ -112,7 +119,9 @@ static void test_missing_parameter(void **state)
     size_t len = sizeof(out);
     (void)state;
 
-    assert_int_equal(imx6ul_rom_log_decode(log, ARRAY_SIZE(log), 0x00900000, out, &len), PB_OK);
+    assert_int_equal(
+        imx_rom_log_decode(IMX_ROM_LOG_DEFS_V0, log, ARRAY_SIZE(log), 0x00900000, out, &len),
+        PB_OK);
     assert_string_equal(out,
                         "ROM log at 0x00900000\n"
                         " 0: 00090000           Authentication: parameter missing\n");
@@ -125,12 +134,14 @@ static void test_unknown_and_reserved_bits(void **state)
     size_t len = sizeof(out);
     (void)state;
 
-    assert_int_equal(imx6ul_rom_log_decode(log, ARRAY_SIZE(log), 0x00900000, out, &len), PB_OK);
+    assert_int_equal(
+        imx_rom_log_decode(IMX_ROM_LOG_DEFS_V0, log, ARRAY_SIZE(log), 0x00900000, out, &len),
+        PB_OK);
     assert_string_equal(out,
                         "ROM log at 0x00900000\n"
                         " 0: 00123456           Unknown event\n"
                         " 1: 01010001           Boot mode: serial download\n");
-    assert_true(imx6ul_rom_log_find(log, ARRAY_SIZE(log), 0x00010001));
+    assert_true(imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, log, ARRAY_SIZE(log), 0x00010001));
 }
 
 static void test_auth_failure(void **state)
@@ -139,7 +150,9 @@ static void test_auth_failure(void **state)
     size_t len = sizeof(out);
     (void)state;
 
-    assert_int_equal(imx6ul_rom_log_decode(log, ARRAY_SIZE(log), 0x00900000, out, &len), PB_OK);
+    assert_int_equal(
+        imx_rom_log_decode(IMX_ROM_LOG_DEFS_V0, log, ARRAY_SIZE(log), 0x00900000, out, &len),
+        PB_OK);
     assert_non_null(strstr(out, "Authentication: fail\n"));
 }
 
@@ -149,7 +162,9 @@ static void test_empty_log(void **state)
     size_t len = sizeof(out);
     (void)state;
 
-    assert_int_equal(imx6ul_rom_log_decode(log, ARRAY_SIZE(log), 0x00900000, out, &len), PB_OK);
+    assert_int_equal(
+        imx_rom_log_decode(IMX_ROM_LOG_DEFS_V0, log, ARRAY_SIZE(log), 0x00900000, out, &len),
+        PB_OK);
     assert_string_equal(out, "ROM log at 0x00900000\n");
 }
 
@@ -160,15 +175,19 @@ static void test_output_too_small(void **state)
 
     /* Not room for one line */
     len = 127;
-    assert_int_equal(imx6ul_rom_log_decode(jiffy_log, ARRAY_SIZE(jiffy_log), 0x00901d14, out, &len),
-                     -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(
+        imx_rom_log_decode(
+            IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), 0x00901d14, out, &len),
+        -PB_ERR_BUF_TOO_SMALL);
     assert_int_equal(len, 0);
 
     /* Room for the header and some lines: what fits is returned */
     memset(out, 0xaa, sizeof(out));
     len = 300;
-    assert_int_equal(imx6ul_rom_log_decode(jiffy_log, ARRAY_SIZE(jiffy_log), 0x00901d14, out, &len),
-                     -PB_ERR_BUF_TOO_SMALL);
+    assert_int_equal(
+        imx_rom_log_decode(
+            IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), 0x00901d14, out, &len),
+        -PB_ERR_BUF_TOO_SMALL);
     assert_true(len > 0 && len < 300);
     assert_int_equal(strncmp(out, jiffy_text, len), 0);
     assert_int_equal((uint8_t)out[300], 0xaa);
@@ -180,30 +199,35 @@ static void test_find_event(void **state)
     static const uint32_t log[] = { 0x00010000, 0x00080000, 0x00060001, 0, 0x00070033 };
     (void)state;
 
-    assert_true(imx6ul_rom_log_find(jiffy_log, ARRAY_SIZE(jiffy_log), 0x00060001));
-    assert_true(imx6ul_rom_log_find(jiffy_log, ARRAY_SIZE(jiffy_log), 0x000b0000));
-    assert_false(imx6ul_rom_log_find(jiffy_log, ARRAY_SIZE(jiffy_log), 0x00010001));
+    assert_true(
+        imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), 0x00060001));
+    assert_true(
+        imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), 0x000b0000));
+    assert_false(
+        imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), 0x00010001));
 
     /* Parameter words are not events: 0x000000f0 and 0x00000008 are parameters */
-    assert_false(imx6ul_rom_log_find(jiffy_log, ARRAY_SIZE(jiffy_log), 0x000000f0));
-    assert_false(imx6ul_rom_log_find(jiffy_log, ARRAY_SIZE(jiffy_log), 0x00000008));
-    assert_false(imx6ul_rom_log_find(log, ARRAY_SIZE(log), 0x00060001));
+    assert_false(
+        imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), 0x000000f0));
+    assert_false(
+        imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), 0x00000008));
+    assert_false(imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, log, ARRAY_SIZE(log), 0x00060001));
 
     /* The log ends at the first zero event */
-    assert_false(imx6ul_rom_log_find(log, ARRAY_SIZE(log), 0x00070033));
-    assert_true(imx6ul_rom_log_find(log, 1, 0x00010000));
-    assert_false(imx6ul_rom_log_find(log, 0, 0x00010000));
+    assert_false(imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, log, ARRAY_SIZE(log), 0x00070033));
+    assert_true(imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, log, 1, 0x00010000));
+    assert_false(imx_rom_log_find(IMX_ROM_LOG_DEFS_V0, log, 0, 0x00010000));
 }
 
-/* Nothing saved: no imx6ul_rom_log_save(), or a bad log pointer */
+/* Nothing saved: no imx_rom_log_save(), or a bad log pointer */
 static void test_no_saved_log(void **state)
 {
     size_t len = sizeof(out);
     (void)state;
 
-    assert_int_equal(imx6ul_rom_log_dump(out, &len), -PB_ERR_NOT_FOUND);
+    assert_int_equal(imx_rom_log_dump(out, &len), -PB_ERR_NOT_FOUND);
     assert_int_equal(len, 0);
-    assert_false(imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_PRIMARY_IMAGE));
+    assert_false(imx_rom_log_has_event(IMX_ROM_LOG_V0_PRIMARY_IMAGE));
 }
 
 int main(void)

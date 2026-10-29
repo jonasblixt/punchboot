@@ -1,0 +1,1 @@
+src-$(CONFIG_DRIVERS_IMX_ROM_LOG) += src/drivers/rom_log/imx_rom_log.c

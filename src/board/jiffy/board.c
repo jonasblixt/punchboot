@@ -15,6 +15,7 @@
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
+#include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/uart/imx_uart.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
@@ -31,7 +32,6 @@
 #include <pb/slc.h>
 #include <plat/imx6ul/fusebox.h>
 #include <plat/imx6ul/imx6ul.h>
-#include <plat/imx6ul/rom_log.h>
 
 #include "partitions.h"
 
@@ -165,7 +165,7 @@ static int board_command(uint32_t command,
     LOG_DBG("%x, %p, %zu", command, bfr, size);
 
     if (command == 0xd3399b11) /* dump-rom-log */
-        return imx6ul_rom_log_dump((char *)response_bfr, response_size);
+        return imx_rom_log_dump((char *)response_bfr, response_size);
 
     LOG_ERR("Unknown command %x", command);
     *response_size = 0;

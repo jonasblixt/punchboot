@@ -22,6 +22,5 @@ src-y  += src/plat/imx6ul/rot_helpers.c
 src-y  += src/plat/imx6ul/slc_helpers.c
 src-y  += src/plat/imx6ul/fusebox.c
 src-y  += src/plat/imx6ul/hab.c
-src-y  += src/plat/imx6ul/rom_log.c
 
 endif
