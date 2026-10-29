@@ -197,7 +197,7 @@ int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         }
 
         atf_bl33_ep.args.arg0 = *bpak_get_meta_ptr(hdr, mh, uint64_t);
-        LOG_INFO("DTB: %" PRIxPTR, atf_bl33_ep.args.arg0);
+        LOG_INFO("DTB: %" PRIxPTR, (uintptr_t)atf_bl33_ep.args.arg0);
 
         if (cfg->bl32_bpak_id)
             atf_bl32_ep.args.arg3 = atf_bl33_ep.args.arg0;
