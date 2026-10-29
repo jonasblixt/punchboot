@@ -9,6 +9,7 @@
 
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/mmc_core.h>
+#include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/tzc/tzc380.h>
 #include <drivers/wdog/imx_wdog.h>
@@ -17,7 +18,6 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 #include <plat/imx6ul/imx6ul.h>
-#include <plat/imx6ul/rom_log.h>
 #include <string.h>
 #include <uuid.h>
 #include <xlat_tables.h>
@@ -245,13 +245,22 @@ static int tzasc_init(void)
     return tzc380_configure_region(1, IMX6UL_DDR_BASE, IMX6UL_DDR_SIZE, TZC380_SP_ALL);
 }
 
+/* The ROM log, AN12853 Tables 11 and 13 */
+static const struct imx_rom_log_config rom_log_cfg = {
+    .pointer = 0x000001e0,
+    .ram_start = 0x00900000, /* OCRAM */
+    .ram_end = 0x00920000,
+    .words = 64,
+    .defs = IMX_ROM_LOG_DEFS_V0,
+};
+
 int plat_init(void)
 {
     int rc;
 
-    imx6ul_rom_log_save();
+    imx_rom_log_save(&rom_log_cfg);
     /* Before the USB driver resets the controller */
-    if (imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_SERIAL_DOWNLOAD))
+    if (imx_rom_log_has_event(IMX_ROM_LOG_V0_SERIAL_DOWNLOAD))
         save_rom_usb_state();
 
     /* Unmask wdog in SRC control reg */
@@ -367,7 +376,7 @@ int plat_get_boot_source(struct pb_boot_source *src)
      * device address set when a host enumerated it, as uuu does. A UART
      * download with a USB host connected would also be reported as USB.
      */
-    if (imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_JUMP_SDP)) {
+    if (imx_rom_log_has_event(IMX_ROM_LOG_V0_JUMP_SDP)) {
         if (rom_usb_addressed)
             src->kind = PB_BOOT_SOURCE_USB;
         return PB_OK;
@@ -382,11 +391,11 @@ int plat_get_boot_source(struct pb_boot_source *src)
      * failed device init or read the ROM may have tried a recovery device,
      * so that is reported as unknown.
      */
-    if (imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_JUMP) &&
-        imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_PRIMARY_IMAGE) &&
-        imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_PRIMARY_SD_MMC) &&
-        !imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_DEVICE_INIT_FAIL) &&
-        !imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_DEVICE_READ_FAIL) &&
+    if (imx_rom_log_has_event(IMX_ROM_LOG_V0_JUMP) &&
+        imx_rom_log_has_event(IMX_ROM_LOG_V0_PRIMARY_IMAGE) &&
+        imx_rom_log_has_event(IMX_ROM_LOG_V0_PRIMARY_SD_MMC) &&
+        !imx_rom_log_has_event(IMX_ROM_LOG_V0_DEVICE_INIT_FAIL) &&
+        !imx_rom_log_has_event(IMX_ROM_LOG_V0_DEVICE_READ_FAIL) &&
         mmc_get_boot_part_config(src->part_uu) == PB_OK) {
         src->kind = PB_BOOT_SOURCE_STORAGE;
     }

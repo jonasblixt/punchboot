@@ -38,6 +38,7 @@
 | `wire.c` | Wire protocol helpers, shared with the host lib |
 | `boot/ab_state.c` | A/B state (primary + backup, CRC32), attempt counters, rollback |
 | `drivers/partition/gpt.c` | GPT validate/repair/install from variant list |
+| `drivers/rom_log/imx_rom_log.c` | The i.MX boot ROM's event log (NXP AN12853, in `~/work/manuals`). The platform passes a `struct imx_rom_log_config` (pointer address, OCRAM range, size, event definition version) to `imx_rom_log_save()` early in `plat_init()`. Decodes to text, and `imx_rom_log_has_event()` tells `plat_get_boot_source()` how the ROM booted. Event tables per definition version: 0 (i.MX6) |
 
 ## Platforms and boards (last touched)
 

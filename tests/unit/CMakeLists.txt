@@ -60,8 +60,8 @@ pb_unit_test(test_console SOURCES
 # fopencookie(), to send printf() through the console
 target_compile_definitions(test_console PRIVATE _GNU_SOURCE)
 
-pb_unit_test(test_rom_log SOURCES
-    ${PROJECT_SOURCE_DIR}/src/plat/imx6ul/rom_log.c
+pb_unit_test(test_imx_rom_log SOURCES
+    ${PROJECT_SOURCE_DIR}/src/drivers/rom_log/imx_rom_log.c
 )
 
 pb_unit_test(test_crypto

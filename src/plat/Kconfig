@@ -42,6 +42,7 @@ config PLAT_IMX6UL
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7
     select DRIVERS_TZC380
+    select DRIVERS_IMX_ROM_LOG
 config PLAT_IMXRT
     bool "NXP IMXRT"
     depends on SOC_FAMILY_IMX
