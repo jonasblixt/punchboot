@@ -146,3 +146,14 @@ Why: Jonas wants a major release for the size of the change (new SoC and EVK, MM
 CAAM, RAM log, many fixes). A major version normally reads as "incompatible", so without the
 note users could think 2.x and 3.x tools and devices must not be mixed, and `punchboot~=2.7` or
 `<3` pins on PyPI won't pick up the fixes.
+
+## D-019: No boot-time self tests; on-target checks go through command mode (2026-10-29)
+
+`CONFIG_SELF_TEST`, `DECLARE_SELF_TEST`, `src/self_test.c` and the four SHA-256 known-answer
+tests in `crypto.c` are removed in 3.0.0, with `hash_print()`, which only they used.
+Why: the tests had run nothing since `--gc-sections` (F-129) and nobody noticed, every defconfig
+had them off, and the host unit tests cover the same vectors in CI. Boot is fail-closed anyway: a
+wrong hash fails the signature check and pb doesn't boot, so the tests added a message, not
+safety, at boot time cost on every boot. They also didn't test ECDSA, the dangerous failure.
+Checking the crypto engines on silicon (CAAM, DCP) is done from the host against a board, the way
+CAAM was checked on jiffy and the 8MP EVK, and belongs in a future hardware-in-the-loop tier.
