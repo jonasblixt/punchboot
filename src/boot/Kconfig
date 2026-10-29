@@ -23,3 +23,41 @@ config BOOT_ARMV7M_BAREMETAL
 config BOOT_LOAD_CHUNK_kB
     int "Copy/Hash load chunk size (kB)"
     default 4096
+
+config BOOT_LINUX_RAMOOPS
+    bool "Read Linux's ramoops console as the log 'linux'"
+    help
+        Linux's pstore/ramoops keeps the console of a boot in a reserved RAM
+        region that survives a warm reset. With this, 'punchboot log linux'
+        reads the console Linux left there, e.g. after a panic and a
+        watchdog reset into command mode. pb only reads the region, before
+        anything is loaded into it, and the values must match the ramoops
+        node in the device tree (reserved-memory, ecc-size 0). A cold reset
+        (power, or a PMIC that power cycles the DRAM on WDOG_B) loses it.
+
+config BOOT_LINUX_RAMOOPS_ADDR
+    hex "ramoops region address"
+    depends on BOOT_LINUX_RAMOOPS
+
+config BOOT_LINUX_RAMOOPS_SIZE
+    hex "ramoops region size"
+    depends on BOOT_LINUX_RAMOOPS
+
+config BOOT_LINUX_RAMOOPS_RECORD_SIZE
+    hex "ramoops record-size"
+    depends on BOOT_LINUX_RAMOOPS
+    default 0x0
+
+config BOOT_LINUX_RAMOOPS_CONSOLE_SIZE
+    hex "ramoops console-size"
+    depends on BOOT_LINUX_RAMOOPS
+
+config BOOT_LINUX_RAMOOPS_FTRACE_SIZE
+    hex "ramoops ftrace-size"
+    depends on BOOT_LINUX_RAMOOPS
+    default 0x0
+
+config BOOT_LINUX_RAMOOPS_PMSG_SIZE
+    hex "ramoops pmsg-size"
+    depends on BOOT_LINUX_RAMOOPS
+    default 0x0
