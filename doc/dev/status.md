@@ -63,6 +63,15 @@ the host half of 4 are done (`compatibility.md`, Guards).
   (D-020, temporary). Bugs found on the way: F-143, F-144, F-147 (open). Left: de-duplication
   F-145 (porting API part on hold), ATF F-146, boards F-033/F-051.
 
+- **Linux test bench (2026-10-29, D-022):** `testbench/` (Buildroot 2026.02.3, musl, Linux
+  6.18.58): pb from this tree, kickstart as the initramfs, a squashfs root image for Root A/B.
+  `make BOARD=jiffy` and `make BOARD=imx8mpevk` build (`boot.bpak` 10.5 / 26.3 MB of 30 MiB),
+  both flashed (System A, Root A). jiffy boots it: pb → Linux → kickstart (dm-verity root) → init and
+  login, System A marked verified. jiffy must not be on the VIA USB hub (F-151, it resets jiffy).
+  jiffy's kernel slimmed and LZ4: reset to BusyBox init 2939 -> 1326 ms (`testbench/README.md`).
+  kickstart needed to read pb's partition layout (kickstart `9dcc7b5`). The 8MP
+  image carries TF-A BL31, but the board doesn't use the ATF boot driver (F-150), not booted.
+
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
 ## Next steps
@@ -89,6 +98,7 @@ the host half of 4 are done (`compatibility.md`, Guards).
 5. Phase 1: security fixes F-001, F-004, each with a test (F-002 is intended, D-011).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`); `--load` loads pb
    into RAM. Next: F-090, F-089, F-083, F-078/F-079, F-081, F-084.
+7. Test bench: the 8MP EVK with the ATF boot driver (F-150). jiffy works (no DHCP lease on the bench).
 
 ## Open questions (for Jonas)
 
