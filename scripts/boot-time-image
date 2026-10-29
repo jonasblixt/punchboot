@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+"""Measure how long pb takes to load and verify a boot image.
+
+    scripts/boot-time-image [-u UUID] [-n RUNS] [-s MiB,...] [-l ADDR]
+                            [-k KEY] [-c TTY] PART_UUID
+
+For each size (default 10 MiB) it builds a signed bpak image (one 'kernel'
+part of reproducible pseudo-random data, SHA-256, ECDSA P-256 with the
+pb-development key), writes it to the bootable partition PART_UUID, which
+it overwrites, boots it from there RUNS times with 'punchboot boot
+partition' and prints the medians from pb's RAM log, with the eMMC read,
+CAAM hash and overall throughput.
+
+One payload byte is changed after signing, so pb reads, hashes and checks
+the whole image but never starts it, whatever the board's boot driver: each
+boot ends in "Load/Auth/Verify failed (-27)" (BAD_PAYLOAD) and pb stays in
+command mode.
+
+With -c TTY (the board's console) it also resets the board RUNS times and
+times the reset to pb's banner on the console from the host (the boot ROM
+and pb's first instructions), and pb's init up to boot_load() from the RAM
+log. The board must stop in command mode after a reset: no active boot
+partition.
+
+Runs on the host. Needs the bpak and punchboot CLIs, openssl for -k, the
+board in command mode over USB and pb built with CONFIG_RAMLOG and debug in
+the RAM log (CONFIG_RAMLOG_LOGLEVEL=3).
+"""
+
+import argparse
+import fcntl
+import os
+import random
+import re
+import select
+import statistics
+import struct
+import subprocess
+import sys
+import tempfile
+import termios
+import time
+import tty
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SIGN_KEY = REPO_ROOT / "pki" / "secp256r1-key-pair.pem"
+KEY_ID = "pb-development"
+BPAK_HEADER_SIZE = 4096
+BAD_PAYLOAD = -27
+
+# RAM for the image, clear of pb
+LOAD_ADDR = {
+    "jiffy": 0x84000000,
+    "imx8mpevk": 0x48000000,
+}
+
+LOAD_KEYS = {"load", "header", "auth", "bytes", "part", "read", "hash", "final", "last", "end"}
+
+LOG_LINE = re.compile(r"^\[(\d+)\.(\d+)\] \w (\w+): (.*)$")
+PART_LINE = re.compile(r"Part \w+: (\d+) bytes in (\d+) us \(read (\d+) us, hash (\d+) us\)")
+FINAL_LINE = re.compile(r"Payload hash final: (\d+) us, last chunk (\d+) bytes")
+PART_LIST_LINE = re.compile(r"^([0-9a-f-]{36})\s+(\S+)\s+(\d+)\s+(B|kB|MB|GB)\s")
+UNITS = {"B": 1, "kB": 1 << 10, "MB": 1 << 20, "GB": 1 << 30}
+
+
+def run(*args: str, check: bool = True) -> subprocess.CompletedProcess:
+    r = subprocess.run(args, capture_output=True, text=True, check=False)  # noqa: S603
+    if check and r.returncode != 0:
+        fail(f"'{' '.join(args)}' failed: {(r.stderr or r.stdout).strip()}")
+    return r
+
+
+def fail(msg: str) -> None:
+    sys.exit(f"boot-time-image: {msg}")
+
+
+class Board:
+    def __init__(self, uuid: str | None, key: Path | None, workdir: Path) -> None:
+        devices = {}
+        for line in run("punchboot", "list").stdout.splitlines():
+            fields = line.split(" -- ")
+            if len(fields) == 2:  # noqa: PLR2004
+                devices[fields[0].strip()] = fields[1].strip()
+        if uuid is None:
+            if len(devices) != 1:
+                fail(f"pick a device with -u: {devices or 'none found'}")
+            uuid = next(iter(devices))
+        if uuid not in devices:
+            fail(f"{uuid} not found: {devices}")
+        self.uuid = uuid
+        self.name = devices[uuid]
+        self.token = None
+        if key is not None:
+            self.token = workdir / "auth.token"
+            run("openssl", "dgst", "-sha256", "-sign", str(key), "-out", str(self.token),
+                str(self.write_uuid(workdir)))  # fmt: skip
+
+    def write_uuid(self, workdir: Path) -> Path:
+        path = workdir / "uuid"
+        path.write_text(self.uuid)
+        return path
+
+    def pb(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+        return run("punchboot", "-u", self.uuid, *args, check=check)
+
+    def auth(self) -> None:
+        if self.token is not None:
+            self.pb("auth", "token", str(self.token), KEY_ID)
+
+    def log(self) -> list[tuple[int, str, str]]:
+        """The RAM log as (time in us, function, message)."""
+        lines = []
+        for line in self.pb("log").stdout.splitlines():
+            m = LOG_LINE.match(line)
+            if m:
+                lines.append((int(m[1]) * 1000 + int(m[2]), m[3], m[4]))
+        return lines
+
+    def part_size(self, part: str) -> int:
+        """The size in bytes of a bootable partition."""
+        for line in self.pb("part", "list").stdout.splitlines():
+            m = PART_LIST_LINE.match(line)
+            if m and m[1] == part:
+                if not m[2].startswith("B"):
+                    fail(f"{part} is not bootable")
+                return int(m[3]) * UNITS[m[4]]
+        fail(f"no partition {part}")
+        return 0
+
+    def wait(self, timeout: float = 15.0) -> None:
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            if self.uuid in run("punchboot", "list", check=False).stdout:
+                return
+            time.sleep(0.2)
+        fail("the board did not come back in command mode")
+
+
+def build_image(path: Path, size_mib: int, load_addr: int) -> None:
+    payload = path.with_suffix(".kernel")
+    payload.write_bytes(random.Random(0).randbytes(size_mib << 20))  # noqa: S311
+
+    def bpak(*args: str) -> None:
+        run("bpak", *args)
+
+    path.unlink(missing_ok=True)
+    bpak("create", str(path), "-Y", "--hash-kind", "sha256", "--signature-kind", "prime256v1")
+    bpak("add", str(path), "--meta", "bpak-package", "--from-string",
+         "8df597ff-2cf5-42ea-b2b6-47c348721b75", "--encoder", "uuid")  # fmt: skip
+    bpak("add", str(path), "--meta", "pb-load-addr", "--from-string", hex(load_addr),
+         "--part-ref", "kernel", "--encoder", "integer")  # fmt: skip
+    bpak("add", str(path), "--part", "kernel", "--from-file", str(payload))
+    bpak("set", str(path), "--key-id", KEY_ID, "--keystore-id", "pb")
+    bpak("sign", str(path), "--key", str(SIGN_KEY))
+    payload.unlink()
+
+    # The payload no longer matches the signed hash: pb never starts it
+    with path.open("r+b") as f:
+        f.seek(BPAK_HEADER_SIZE + 4096)
+        byte = f.read(1)
+        f.seek(-1, os.SEEK_CUR)
+        f.write(bytes([byte[0] ^ 0xFF]))
+
+
+def parse_loads(log: list[tuple[int, str, str]]) -> list[dict[str, int]]:
+    """Each boot of the test image, from 'Load' to the BAD_PAYLOAD error, in us."""
+    runs = []
+    cur: dict[str, int] | None = None
+    for t, func, msg in log:
+        if func == "boot_load" and msg == "Load":
+            cur = {"load": t}
+        elif cur is None:
+            continue
+        elif msg.startswith("Key-store:"):
+            cur["header"] = t
+        elif msg == "Authentication successful":
+            cur["auth"] = t
+        elif m := PART_LINE.search(msg):
+            cur["bytes"], cur["part"], cur["read"], cur["hash"] = map(int, m.groups())
+        elif m := FINAL_LINE.search(msg):
+            cur["final"], cur["last"] = int(m[1]), int(m[2])
+        elif func == "boot_load" and msg.startswith("Load/Auth/Verify failed"):
+            cur["end"] = t
+            if msg.endswith(f"({BAD_PAYLOAD})") and cur.keys() == LOAD_KEYS:
+                runs.append(cur)
+            cur = None
+    return runs
+
+
+def mib_s(nbytes: float, us: float) -> float:
+    return nbytes / (1 << 20) / (us / 1e6) if us else 0.0
+
+
+def load_rows(loads: list[dict[str, int]]) -> dict[str, tuple[str, list[float]]]:
+    """Each row's unit and its value per run."""
+    rows = {
+        "Header read": ("ms", lambda r: (r["header"] - r["load"]) / 1000),
+        "Signature (hash + ECDSA)": ("ms", lambda r: (r["auth"] - r["header"]) / 1000),
+        "Part": ("ms", lambda r: r["part"] / 1000),
+        "  eMMC read": ("ms", lambda r: r["read"] / 1000),
+        "  waiting for the hash": ("ms", lambda r: r["hash"] / 1000),
+        "Hash of the last chunk": ("ms", lambda r: r["final"] / 1000),
+        "Load and verify": ("ms", lambda r: (r["end"] - r["load"]) / 1000),
+        "Read (eMMC)": ("MiB/s", lambda r: mib_s(r["bytes"], r["read"])),
+        "Hash (CAAM, last chunk)": ("MiB/s", lambda r: mib_s(r["last"], r["final"])),
+        "Load + hash": ("MiB/s", lambda r: mib_s(r["bytes"], r["part"] + r["final"])),
+        "Load + verify": ("MiB/s", lambda r: mib_s(r["bytes"], r["end"] - r["load"])),
+    }
+    return {name: (unit, [f(r) for r in loads]) for name, (unit, f) in rows.items()}
+
+
+class Console:
+    """The board's console, with the FTDI latency timer at 1 ms if possible."""
+
+    TIOCGSERIAL = 0x541E
+    TIOCSSERIAL = 0x541F
+    ASYNC_LOW_LATENCY = 1 << 13
+
+    def __init__(self, path: str) -> None:
+        self.fd = os.open(path, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        tty.setraw(self.fd)
+        attr = termios.tcgetattr(self.fd)
+        attr[4] = attr[5] = termios.B115200
+        termios.tcsetattr(self.fd, termios.TCSANOW, attr)
+        self.serial = bytearray(72)
+        try:
+            fcntl.ioctl(self.fd, self.TIOCGSERIAL, self.serial)
+            flags = struct.unpack_from("i", self.serial, 16)[0]
+            low = bytearray(self.serial)
+            struct.pack_into("i", low, 16, flags | self.ASYNC_LOW_LATENCY)
+            fcntl.ioctl(self.fd, self.TIOCSSERIAL, low)
+        except OSError:
+            print("warning: no low latency mode, console times are +-16 ms", file=sys.stderr)
+            self.serial = None
+
+    def close(self) -> None:
+        if self.serial is not None:
+            fcntl.ioctl(self.fd, self.TIOCSSERIAL, self.serial)
+        os.close(self.fd)
+
+    def time_reset(self, board: Board) -> float:
+        """Reset the board, return the ms from the reset to pb's banner."""
+        board.auth()
+        termios.tcflush(self.fd, termios.TCIFLUSH)
+        board.pb("dev", "reset")
+        t_reset = time.monotonic()
+        text, times = b"", []
+        end = t_reset + 5
+        while time.monotonic() < end and b"entering command mode" not in text:
+            if select.select([self.fd], [], [], 0.001)[0]:
+                data = os.read(self.fd, 4096)
+                text += data
+                times += [time.monotonic()] * len(data)
+        if b"entering command mode" not in text:
+            fail("no 'entering command mode' on the console after the reset")
+        return (times[text.index(b"PB ")] - t_reset) * 1000
+
+
+def summary(title: str, rows: dict[str, list[float]]) -> None:
+    print(f"\n{title}")
+    print(f"  {'':28} {'min':>8} {'median':>8} {'max':>8}  ms")
+    for name, values in rows.items():
+        print(f"  {name:28} {min(values):8.2f} {statistics.median(values):8.2f} {max(values):8.2f}")
+
+
+def load_summary(sizes: dict[int, list[dict[str, int]]]) -> None:
+    """One column per image size, the median of its runs."""
+    tables = {size: load_rows(loads) for size, loads in sizes.items()}
+    print("\nLoad and verify (median)")
+    print(f"  {'':34}" + "".join(f"{f'{size} MiB':>10}" for size in sizes))
+    spread = 0.0
+    for name, (unit, _) in next(iter(tables.values())).items():
+        values = [tables[size][name][1] for size in sizes]
+        cells = "".join(f"{statistics.median(v):10.2f}" for v in values)
+        print(f"  {name:28}{unit:>6}{cells}")
+        if unit == "ms":
+            spread = max(spread, *(max(v) - min(v) for v in values))
+    print(f"\n  Largest spread between runs: {spread:.2f} ms")
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("part", metavar="PART_UUID", help="partition for the image, overwritten")
+    p.add_argument("-u", "--uuid", help="device UUID, if more than one is attached")
+    p.add_argument("-n", "--runs", type=int, default=5, help="boots to time (default 5)")
+    p.add_argument(
+        "-s",
+        "--size",
+        type=lambda v: [int(x) for x in v.split(",")],
+        default=[10],
+        metavar="MiB[,MiB...]",
+        help="image sizes, e.g. 10,30,50 (default 10)",
+    )
+    p.add_argument("-l", "--load-addr", type=lambda s: int(s, 0), help="image load address")
+    p.add_argument("-k", "--key", type=Path, help="authenticate with a token signed by KEY")
+    p.add_argument("-c", "--console", help="console tty: also time resets")
+    args = p.parse_args()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        workdir = Path(tmp)
+        board = Board(args.uuid, args.key, workdir)
+        load_addr = args.load_addr or LOAD_ADDR.get(board.name)
+        if load_addr is None:
+            fail(f"no load address for {board.name}, use -l")
+
+        board.auth()
+        part_size = board.part_size(args.part)
+        for size in args.size:
+            if (size << 20) + BPAK_HEADER_SIZE > part_size:
+                fail(f"a {size} MiB image doesn't fit in {args.part} ({part_size >> 20} MiB)")
+
+        sizes = {}
+        image = workdir / "boot-time.bpak"
+        for size in args.size:
+            build_image(image, size, load_addr)
+            board.auth()
+            board.pb("part", "write", str(image), args.part)
+            board.pb("part", "verify", str(image), args.part)
+            for _ in range(args.runs):
+                r = board.pb("boot", "partition", args.part, check=False)
+                if r.returncode == 0:
+                    fail("the image booted, it should have failed verification")
+            loads = parse_loads(board.log())[-args.runs :]
+            if len(loads) != args.runs or any(r["bytes"] != size << 20 for r in loads):
+                fail(f"{size} MiB: not {args.runs} loads in the RAM log, see 'punchboot log'")
+            sizes[size] = loads
+
+        resets: dict[str, list[float]] = {}
+        if args.console:
+            console = Console(args.console)
+            try:
+                for _ in range(args.runs):
+                    banner = console.time_reset(board)
+                    board.wait()
+                    board.auth()
+                    log = board.log()
+                    early = [
+                        t for t, func, msg in log if func == "boot_load" and msg == "Early boot"
+                    ]
+                    if not early:
+                        fail("no 'Early boot' in the RAM log after the reset")
+                    resets.setdefault("Reset to pb banner (host)", []).append(banner)
+                    resets.setdefault("pb init to boot_load()", []).append(early[0] / 1000)
+            finally:
+                console.close()
+
+    print(f"{board.name} {board.uuid}: image in {args.part}, {args.runs} runs per size")
+    if resets:
+        summary("Reset", resets)
+    load_summary(sizes)
+
+
+if __name__ == "__main__":
+    main()
