@@ -30,9 +30,22 @@
 #include <pb/rot.h>
 #include <pb/slc.h>
 #include <plat/imx8m/clock_imx8mp.h>
+#include <plat/imx8m/dram.h>
 #include <plat/imx8m/imx8m.h>
 
 #include "partitions.h"
+
+/*
+ * DRAM: only the 4000 MT/s set point is trained. The timing also has 400
+ * and 100 MT/s for DDR frequency scaling in Linux, which this board doesn't
+ * use, and their training takes 215 ms of the boot.
+ */
+static const unsigned int imx8mpevk_dram_mts[] = { 4000 };
+
+struct dram_rates dram_rates = {
+    .mts = imx8mpevk_dram_mts,
+    .num = ARRAY_SIZE(imx8mpevk_dram_mts),
+};
 
 static const struct gpt_part_table gpt_tbl_default[] = {
     {
