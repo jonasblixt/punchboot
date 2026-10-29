@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING
 import punchboot
 import pytest
 from punchboot.transport import SocketTransport, Transport
+from punchboot.wire import PB_LOG_ID_PB
 
 from . import transcript
 from .pbtest import (
@@ -167,6 +168,18 @@ SCENARIOS = [
         setup=_install_table_and_image,
         steps=[
             ("boot_partition", lambda s, _: s.boot_partition(SYSTEM_A_UUID, verbose=True)),
+        ],
+    ),
+    Scenario(
+        "logs",
+        setup=_install_table,
+        steps=[
+            ("log_list", lambda s, _: s.log_list()),
+            ("log_read_pb", lambda s, _: s.log_read("pb")),
+            ("log_read_pb_id", lambda s, _: s.log_read_chunk(0, 64, PB_LOG_ID_PB)),
+            ("log_read_list", lambda s, _: s.log_read_chunk(0, 16, "list")),
+            ("log_read_unknown", lambda s, _: s.log_read("rom")),
+            ("device_reset", lambda s, _: s.device_reset()),
         ],
     ),
     Scenario(

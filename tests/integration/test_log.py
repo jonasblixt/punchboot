@@ -8,12 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import punchboot
+import pytest
+from punchboot.wire import PB_LOG_ID_PB
+
 from .test_cli import punchboot_cli
 
 if TYPE_CHECKING:
     import pathlib
-
-    import punchboot
 
     from .pbtest import Device
 
@@ -78,3 +80,36 @@ def test_cli_log_to_file(device: Device, tmp_path: pathlib.Path) -> None:
     assert result.returncode == 0, result.stderr
     assert result.stdout == ""
     assert output.read_bytes().startswith(b"\n\rPB ")
+
+
+def test_log_list(device: Device) -> None:
+    with device.session() as s:
+        assert s.log_list() == [("pb", "pb's console output")]
+
+
+def test_log_read_by_id(device: Device) -> None:
+    # pb_id("pb") reads the same log as 0, which the host sends for "pb"
+    with device.session() as s:
+        _, by_name, _ = s.log_read_chunk(0, 64)
+        _, by_id, _ = s.log_read_chunk(0, 64, PB_LOG_ID_PB)
+
+    assert by_name == by_id
+    assert by_name.startswith(b"\n\rPB ")
+
+
+def test_unknown_log(device: Device) -> None:
+    with device.session() as s, pytest.raises(punchboot.NotFoundError):
+        s.log_read("rom")
+
+
+def test_cli_log_list(device: Device) -> None:
+    result = punchboot_cli(device, "log", "--list")
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.split() == ["pb", "pb's", "console", "output"]
+
+
+def test_cli_unknown_log(device: Device) -> None:
+    result = punchboot_cli(device, "log", "rom")
+
+    assert result.returncode != 0

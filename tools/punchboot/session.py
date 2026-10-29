@@ -383,26 +383,35 @@ class Session:
         check(code)
         return version.decode(errors="replace")
 
-    def log_read_chunk(self, position: int, size: int) -> tuple[int, bytes, int]:
-        """Read part of the device's RAM log.
+    def log_read_chunk(
+        self, position: int, size: int, log: str | int = "pb"
+    ) -> tuple[int, bytes, int]:
+        """Read part of a log.
 
         Positions count the bytes written to the log since the device started.
         The device sends what it still has from 'position' on: when older bytes
-        were overwritten, it starts at its oldest byte.
+        were overwritten, it starts at its oldest byte. A log that doesn't
+        change starts at 0.
 
         Keyword arguments:
         position -- Position to read from
         size -- Maximum number of bytes to read
+        log -- The log's name or pb_id(), see log_list(). "pb" is pb's RAM log
 
         Returns the position of the first byte read, the bytes (empty at the
         end of the log) and the number of bytes written to the log so far.
 
         Exceptions:
         NotAuthenticatedError -- Authentication required
-        NotSupportedError     -- The device has no RAM log, or is too old
+        NotFoundError         -- The device has no such log
+        NotSupportedError     -- The device has no RAM log, or is too old for the log
         """
-        log = wire.pb_command_log_read(position=position, size=min(size, 0xFFFFFFFF))
-        self._send(Command.PB_CMD_LOG_READ, log)
+        # pb's log goes as 0, the bytes released hosts send
+        log_id = 0 if log == "pb" else pb_id(log) if isinstance(log, str) else log
+        request = wire.pb_command_log_read(
+            position=position, size=min(size, 0xFFFFFFFF), log=log_id
+        )
+        self._send(Command.PB_CMD_LOG_READ, request)
         code, response = self._result()
         # Devices older than the command
         if code == -Result.PB_RESULT_INVALID_COMMAND:
@@ -416,6 +425,13 @@ class Session:
             data = self._read(result.size)
             code, _ = self._result()
             check(code)
+        # Devices older than the log field read pb's log and answer 0
+        if log_id not in (0, wire.PB_LOG_ID_PB) and result.log != log_id:
+            if result.log == 0:
+                msg = "The device is too old to read other logs than pb's"
+                raise NotSupportedError(msg)
+            msg = f"The device read log {result.log:#x}, not {log_id:#x}"
+            raise GenericError(msg)
         return int(result.position), data, int(result.head)
 
     # Public API
@@ -763,30 +779,47 @@ class Session:
         """Read board status."""
         return self._board_status().strip()
 
-    def log_read(self) -> bytes:
-        """Read the device's RAM log, oldest byte first.
+    def log_read(self, log: str | int = "pb") -> bytes:
+        """Read a log, oldest byte first.
 
         The log is read up to where it was when the read started. Command
-        mode logs too, so it would otherwise never end.
+        mode logs too, so pb's log would otherwise never end.
+
+        Keyword arguments:
+        log -- The log's name or pb_id(), see log_list(). "pb" is pb's RAM log
 
         Exceptions:
         NotAuthenticatedError -- Authentication required
-        NotSupportedError     -- The device has no RAM log, or is too old
+        NotFoundError         -- The device has no such log
+        NotSupportedError     -- The device has no RAM log, or is too old for the log
         """
-        log = bytearray()
+        data = bytearray()
         position = 0
         end: int | None = None
 
         while end is None or position < end:
-            start, data, head = self.log_read_chunk(position, LOG_READ_CHUNK_SIZE)
+            start, chunk, head = self.log_read_chunk(position, LOG_READ_CHUNK_SIZE, log)
             if end is None:
                 end = head
-            if not data:
+            if not chunk:
                 break
-            log += data[: max(0, end - start)]
-            position = start + len(data)
+            data += chunk[: max(0, end - start)]
+            position = start + len(chunk)
 
-        return bytes(log)
+        return bytes(data)
+
+    def log_list(self) -> Sequence[tuple[str, str]]:
+        """List the device's logs, as (name, description).
+
+        Exceptions:
+        NotAuthenticatedError -- Authentication required
+        NotSupportedError     -- The device is too old to have other logs than pb's
+        """
+        text = self.log_read("list").decode(errors="replace")
+        return [
+            (name, description)
+            for name, _, description in (line.partition(" ") for line in text.splitlines())
+        ]
 
     def slc_set_configuration(self) -> None:
         """Set SLC to configuration.
