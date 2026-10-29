@@ -21,7 +21,6 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <pb/timestamp.h>
 
 #include "atf_interface.h"
 
@@ -332,9 +331,6 @@ int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 
 void boot_driver_atf_jump(void)
 {
-#ifdef CONFIG_PRINT_TIMESTAMPS
-    ts_print();
-#endif
     arch_disable_mmu();
 
     /* Set after MMU disabled to ensure all addresses are raw and not memory mapped */

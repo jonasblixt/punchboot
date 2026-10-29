@@ -27,20 +27,6 @@ config WATCHDOG_TIMEOUT
     default 5
     depends on ENABLE_WATCHDOG
 
-config ENABLE_TIMESTAMPING
-    bool "Enable timestamping"
-    default n
-
-config PRINT_TIMESTAMPS
-    bool "Print timestamps before boot"
-    depends on ENABLE_TIMESTAMPING
-    default n
-
-config NO_OF_TIMESTAMPS
-    int "Maximum number of timestamps"
-    depends on ENABLE_TIMESTAMPING
-    default 64
-
 config RAMLOG
     bool "Keep a copy of the console output in RAM"
     default n

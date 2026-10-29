@@ -15,11 +15,18 @@
 #define LOG_MAX_LEVEL LOGLEVEL
 #endif
 
-#define LOG_LINE(prefix, ...)             \
-    do {                                  \
-        printf(prefix " %s: ", __func__); \
-        printf(__VA_ARGS__);              \
-        printf("\n\r");                   \
+/*
+ * Every line starts with the time since the platform's timer started, in
+ * milliseconds with three decimals ("[290.021]"), 0 before. See
+ * log_time_start() in pb/console.h.
+ */
+void log_prefix(const char *level, const char *func);
+
+#define LOG_LINE(prefix, ...)         \
+    do {                              \
+        log_prefix(prefix, __func__); \
+        printf(__VA_ARGS__);          \
+        printf("\n\r");               \
     } while (0)
 
 #define LOG_LINE_RAMLOG(prefix, ...)   \

@@ -55,6 +55,8 @@ int plat_init(void)
     };
     FILE *console;
 
+    log_time_start();
+
     /* Unbuffered output, so the log interleaves correctly with the test
      * harness when the process exits on reset. */
     setvbuf(stdout, NULL, _IONBF, 0);

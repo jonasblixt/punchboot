@@ -136,6 +136,7 @@ add_library(pb_core STATIC
     src/main.c
     src/bio.c
     src/console.c
+    src/log.c
     src/crypto.c
     src/delay.c
     src/device_uuid.c

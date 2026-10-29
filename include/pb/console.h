@@ -20,4 +20,11 @@ void console_init(uintptr_t base, const struct console_ops *ops);
  */
 void console_uart_mute(bool mute);
 
+/**
+ * The log's clock starts: from here on log lines carry the time since this
+ * call, before it they show 0. The platform calls it once plat_get_us_tick()
+ * works.
+ */
+void log_time_start(void);
+
 #endif

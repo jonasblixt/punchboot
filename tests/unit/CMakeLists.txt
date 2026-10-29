@@ -6,6 +6,7 @@ pkg_check_modules(CMOCKA REQUIRED IMPORTED_TARGET cmocka)
 
 add_library(pb_unit_fakes STATIC
     fakes/plat.c
+    ${PROJECT_SOURCE_DIR}/src/log.c
     fakes/ramdisk.c
 )
 target_link_libraries(pb_unit_fakes PUBLIC pb_lib)

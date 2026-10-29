@@ -21,7 +21,6 @@
 #include <pb/delay.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/timestamp.h>
 #include <string.h>
 
 #include "mmc_core_private.h"
@@ -434,9 +433,7 @@ static int mmc_select_bus_mode(struct mmc_device *dev)
             return rc;
         }
 #ifdef CONFIG_MMC_CORE_HS200_TUNE
-        ts("hs200 tune begin");
         rc = hs200_tune(dev);
-        ts("hs200 tune end");
         if (rc == -PB_ERR_NOT_FOUND) {
             /* Boot slower rather than not at all: high speed needs no tuning */
             LOG_WARN("HS200 tuning failed, using high speed (52 MHz)");
@@ -540,7 +537,7 @@ int mmc_emmc_setup(struct mmc_device *dev)
     int rc;
     mmc_cmd_resp_t resp_data;
 
-    ts("mmc enum start");
+    LOG_DBG("eMMC init");
     dev->generic_cmd6_time_ms = MMC_CMD6_TIME_MAX_ms;
     dev->power_off_long_time_ms = MMC_CMD6_TIME_MAX_ms;
     dev->partition_switch_time_ms = MMC_CMD6_TIME_MAX_ms;
@@ -555,9 +552,7 @@ int mmc_emmc_setup(struct mmc_device *dev)
         return rc;
     }
 
-    ts("mmc opcond start");
     rc = mmc_send_op_cond(dev);
-    ts("mmc opcond end");
 
     if (rc != 0) {
         return rc;
@@ -724,7 +719,7 @@ int mmc_emmc_setup(struct mmc_device *dev)
     if (rc < 0)
         return rc;
 
-    ts("mmc enum done");
+    LOG_DBG("eMMC ready");
     return PB_OK;
 }
 

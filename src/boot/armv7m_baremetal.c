@@ -57,9 +57,6 @@ void boot_driver_armv7m_baremetal_jump(void)
 {
     uintptr_t jump_addr = cfg->image_base_address + jump_part_offset;
 
-#ifdef CONFIG_PRINT_TIMESTAMPS
-    ts_print();
-#endif
     // arch_clean_cache_range((uintptr_t) &jump_addr, sizeof(jump_addr));
     arch_disable_mmu();
 
