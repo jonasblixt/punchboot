@@ -241,7 +241,8 @@ in the board's section under "Boot time" and commit per step.
    Check where the TF-A platform takes BL33 from (see "imx8mpevk: TF-A").
 2. `configs/<board>_defconfig`: copy the closest one. The SoC's kernel
    defconfig, `board/common/linux.fragment` and a `board/<board>/linux.fragment`,
-   the DTB (in tree, or a DTS in `board/<board>/dts`), TF-A, firmware the
+   the DTB (in tree, or a DTS in `board/<board>/dts`; it needs nothing for pb,
+   which adds `/chosen` and its properties), TF-A, firmware the
    board needs (DDR training), `BR2_TARGET_PUNCHBOOT_BOARD`, the console in
    `BR2_TARGET_GENERIC_GETTY_PORT`, `BR2_ROOTFS_POST_SCRIPT_ARGS="<board>"`.
 3. kickstart's devices: the eMMC's `mmcblkN` from the `mmc` aliases of the
