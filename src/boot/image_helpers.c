@@ -189,6 +189,28 @@ int boot_image_verify_parts(struct bpak_header *hdr)
     return rc;
 }
 
+/*
+ * How long a part took to load: the time in read_f and the time in
+ * hash_update_async(), which waits for the previous chunk's hash. The two
+ * overlap when the hash is asynchronous, so the larger one is the bottleneck.
+ */
+static void log_part_time(uint32_t id, size_t bytes, uint32_t us, uint32_t read_us, uint32_t hash_us)
+{
+    LOG_DBG("Part %x: %zu bytes in %" PRIu32 " us (read %" PRIu32 " us, hash %" PRIu32
+            " us), %" PRIu32 " KiB/s",
+            id,
+            bytes,
+            us,
+            read_us,
+            hash_us,
+            us ? (uint32_t)((uint64_t)bytes * 1000000 / 1024 / us) : 0);
+    (void)id;
+    (void)bytes;
+    (void)us;
+    (void)read_us;
+    (void)hash_us;
+}
+
 int boot_image_load_and_hash(struct bpak_header *hdr,
                              size_t load_chunk_size,
                              boot_read_cb_t read_f,
@@ -234,6 +256,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
         return rc;
 
     int hash_rc = PB_OK;
+    size_t last_chunk_size = 0;
 
     bpak_foreach_part(hdr, p) {
         if (!p->id)
@@ -255,6 +278,10 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
         size_t bytes_to_read = bpak_part_size(p);
         size_t chunk_size = 0;
         size_t offset = 0;
+        uint32_t part_start = plat_get_us_tick();
+        uint32_t read_us = 0;
+        uint32_t hash_us = 0;
+        uint32_t t;
 
         while (bytes_to_read) {
             chunk_size = (bytes_to_read > load_chunk_size) ? load_chunk_size : bytes_to_read;
@@ -266,7 +293,9 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
                 int64_t read_offset =
                     (int64_t)(offset + bpak_part_offset(hdr, p) - sizeof(struct bpak_header));
 
+                t = plat_get_us_tick();
                 rc = read_f(read_offset, chunk_size, (void *)addr);
+                read_us += plat_get_us_tick() - t;
 
                 if (rc != PB_OK)
                     break;
@@ -275,8 +304,11 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             /* Since we load chunks at an offset we can use the
              * async hash API (if the underlying driver supports it)
              */
-            if (hash_rc == PB_OK)
+            if (hash_rc == PB_OK) {
+                t = plat_get_us_tick();
                 hash_rc = hash_update_async((void *)addr, chunk_size);
+                hash_us += plat_get_us_tick() - t;
+            }
 
             /* A host streaming the image (result_f) sends all of it and
              * reads a result for every part, so after a hash error the
@@ -286,7 +318,10 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
 
             bytes_to_read -= chunk_size;
             offset += chunk_size;
+            last_chunk_size = chunk_size;
         }
+
+        log_part_time(p->id, offset, plat_get_us_tick() - part_start, read_us, hash_us);
 
         int part_rc = (rc != PB_OK) ? rc : hash_rc;
 
@@ -310,7 +345,16 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
     if (hash_rc != PB_OK)
         return hash_rc;
 
-    return hash_final(payload_digest, payload_digest_size);
+    /* Waits for the last chunk's hash, the only one not overlapped with a read */
+    uint32_t final_start = plat_get_us_tick();
+
+    rc = hash_final(payload_digest, payload_digest_size);
+    LOG_DBG("Payload hash final: %" PRIu32 " us, last chunk %zu bytes",
+            plat_get_us_tick() - final_start,
+            last_chunk_size);
+    (void)final_start;
+    (void)last_chunk_size;
+    return rc;
 }
 
 int boot_image_copy_and_hash(struct bpak_header *hdr,
