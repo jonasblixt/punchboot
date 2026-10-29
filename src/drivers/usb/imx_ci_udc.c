@@ -489,7 +489,7 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
         };
 
         if (ep_in) {
-            ep_reg = (1 << 23) | (ep_type_val << 18) | (1 << 6);
+            ep_reg = (1 << 23) | (ep_type_val << 18) | (1 << 22);
         } else {
             ep_reg = (1 << 7) | (ep_type_val << 2) | (1 << 6);
         }
