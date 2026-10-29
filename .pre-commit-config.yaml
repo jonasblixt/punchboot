@@ -13,6 +13,8 @@ repos:
     - id: forbid-submodules
     - id: requirements-txt-fixer
     - id: trailing-whitespace
+      # Blank context lines in patches are a single space
+      exclude: \.patch$
 
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v2.4.0
