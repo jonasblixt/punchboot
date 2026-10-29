@@ -1,0 +1,6 @@
+/buildroot-*/
+/output/
+/dl/
+
+# The top level .gitignore ignores these
+!*.patch

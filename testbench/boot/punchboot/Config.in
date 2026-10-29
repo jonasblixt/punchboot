@@ -1,0 +1,40 @@
+config BR2_TARGET_PUNCHBOOT
+	bool "punchboot"
+	depends on BR2_arm || BR2_aarch64
+	select BR2_PACKAGE_HOST_BPAK
+	select BR2_PACKAGE_HOST_UBOOT_TOOLS
+	help
+	  punchboot, built from the punchboot tree that this test bench
+	  is in.
+
+	  https://github.com/jonasblixt/punchboot
+
+if BR2_TARGET_PUNCHBOOT
+
+config BR2_TARGET_PUNCHBOOT_BOARD
+	string "punchboot board"
+	help
+	  Board directory in src/board/ of the punchboot sources.
+
+config BR2_TARGET_PUNCHBOOT_CONFIG_FILE
+	string "punchboot configuration file"
+	help
+	  Path to a punchboot Kconfig file. Leave empty to use
+	  configs/<board>_defconfig from the punchboot sources.
+
+config BR2_TARGET_PUNCHBOOT_IMX_HAB
+	bool "HAB signed image (NXP CST)"
+	select BR2_PACKAGE_HOST_IMX_CST
+	help
+	  The punchboot configuration signs the image for the i.MX HAB
+	  (CONFIG_IMX6UL_SIGN_IMAGE), which needs NXP's cst.
+
+config BR2_TARGET_PUNCHBOOT_IMX8M_DDR_FW
+	bool "i.MX8M LPDDR4 training firmware"
+	depends on BR2_PACKAGE_FIRMWARE_IMX
+	help
+	  Link NXP's LPDDR4 PHY training firmware from firmware-imx
+	  (lpddr4_pmu_train_*<BR2_PACKAGE_FIRMWARE_IMX_DDR_VERSION>.bin)
+	  into punchboot.
+
+endif

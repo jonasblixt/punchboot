@@ -1,0 +1,17 @@
+# Common to all boards, on top of the board's defconfig
+
+# kickstart: the initramfs, dm-verity over the squashfs root
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_RD_GZIP=y
+CONFIG_DEVTMPFS=y
+CONFIG_MD=y
+CONFIG_BLK_DEV_DM=y
+CONFIG_DM_VERITY=y
+CONFIG_SQUASHFS=y
+CONFIG_SQUASHFS_ZLIB=y
+
+# punchboot starts the watchdog, the kernel pets it until userspace opens
+# /dev/watchdog
+CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y
+# timeout, timeleft and status in /sys/class/watchdog
+CONFIG_WATCHDOG_SYSFS=y

@@ -1,0 +1,7 @@
+config BR2_PACKAGE_HOST_IMX_CST
+	bool "host imx-cst"
+	help
+	  NXP Code Signing Tool (cst, srktool) for i.MX HAB and AHAB
+	  secure boot images. Built from the Debian source package.
+
+	  https://salsa.debian.org/collabora-team/imx-code-signing-tool
