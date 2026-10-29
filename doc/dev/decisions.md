@@ -181,3 +181,21 @@ it out of the binaries). But more boards are coming, and Jonas expects to add th
 boards or add examples that use what looks unused today.
 Revisit: when the incoming boards are in, decide whether to go back to removing code without
 an in-tree user.
+
+## D-021: The host tools are pure Python (2026-10-29)
+
+The `punchboot` package no longer has a C extension: the wire protocol, the transports and the
+command sequences are Python (`tools/punchboot/`), USB goes through pyusb with libusb
+from the libusb-package wheels (falling back to the system's libusb), and the C host library
+(`tools/punchboot/*.c`, `api.h`) is gone. Nothing outside the extension used it. `_punchboot`
+is gone too; `Session` and the exceptions keep their API.
+Safety net (D-008): compatibility guard 4 first. The transcripts in `tests/compat/transcripts`
+were recorded from the 2.x C library against pb-host, and the Python host must send the same
+bytes, in the same transfer sizes, and return the same values. The structs in `wire.py` and
+`bpak.py` are checked against `abi.txt`.
+Why: one wheel for every platform and Python version instead of a cibuildwheel matrix with
+vcpkg and patched Homebrew libusb bottles; Linux aarch64 for free; no memory-safety bugs in host
+code (F-094) and no GIL held during USB I/O (F-009); ~550 lines of boilerplate (F-145) gone. A
+32 MiB write to the 8MP EVK is as fast as with the C library (~28.5 MiB/s, within noise).
+Cost: libusb now comes from someone else's wheels (libusb-package); a platform without them
+needs a system libusb. There is no C host library for embedding anymore.

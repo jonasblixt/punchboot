@@ -57,11 +57,11 @@ frozen (D-001).
 ## Phase 3: Host tools
 
 - PEP 621 `pyproject.toml` with `[build-system]` (F-042).
-- `_punchboot.pyi` stubs, mypy in CI, ruff-format (F-043).
-- pytest unit tests for the Python layer, and a wheel smoke test in cibuildwheel (F-041).
-- Fix the socket transport (F-003) and the wrapper issues (F-009).
-- Remove the duplicated constants and exception lists (F-035), possibly by generating them from `wire.h`/`error.h`.
-- Factor out the repeated command boilerplate in the C API.
+- mypy in CI, ruff-format (F-043).
+- pytest unit tests for the Python layer (F-041).
+- Remove the duplicated constants (F-035): `pbtest.py`'s `PB_CMD_*` can use `punchboot.wire`.
+- Done in 3.0.0 (D-021): the host is pure Python, which removed the C wrapper issues (F-009),
+  the command boilerplate and the duplicated exception lists, and gave a wheel smoke test.
 
 ## Phase 4: Firmware cleanup
 
@@ -79,7 +79,7 @@ frozen (D-001).
 - Wire protocol version field and capability negotiation. Only next to `PBL0` and the caps
   command, never replacing them (D-008).
 - Anti-rollback version counter (fuse-backed).
-- PyPI trusted publishing. Linux aarch64 wheels.
+- PyPI trusted publishing.
 - bpak format extensions. Only backward compatible ones (D-008).
 - Low prio: move the whole repo to `jonas@blxt.se`. Simple part: the copyright headers that still
   say `jonpe960@gmail.com` (one commit). Rewriting the history of the ~1000 old commits would

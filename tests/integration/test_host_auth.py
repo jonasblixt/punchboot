@@ -42,8 +42,7 @@ def _recv(conn: socket.socket, size: int) -> bytes:
 class OldDevice:
     """Answers every command with OK, and reads authentication data of any size.
 
-    It runs in its own process: the punchboot extension holds the GIL while it
-    waits for the device (F-009), so a thread here would never run.
+    It runs in its own process, like a real device.
     """
 
     def __init__(self, path: pathlib.Path) -> None:

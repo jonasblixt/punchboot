@@ -6,7 +6,7 @@ pin old tool versions, and signed images outlive both. This file lists what is f
 change and how, and the guards that check it.
 
 Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/cm/`,
-`tools/punchboot/` (C API and Python), `include/bpak/`, `src/lib/bpak.c`,
+`tools/punchboot/` (`wire.py`, `bpak.py`, `session.py`), `include/bpak/`, `src/lib/bpak.c`,
 `src/boot/image_helpers.c`, keystore codegen, or anything that writes or reads images.
 
 ## Wire protocol: what is frozen

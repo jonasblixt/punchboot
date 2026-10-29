@@ -1,24 +1,35 @@
 # Host tools architecture
 
-## C library (`tools/punchboot/`)
+## Python package (`tools/punchboot/`)
 
-- `api.h` / `api.c`: `struct pb_context` is a transport vtable (`init/free/write/read/list/connect/disconnect`, debug log `d`).
-- Transports:
-  - `usb.c`: libusb, VID 0x1209 / PID 0x2019, device selected by UUID serial.
-  - `socket.c`: AF_UNIX, used by the host tests (`pb-host`), Linux only.
-- API modules: `api_{device,authentication,slc,partition,stream,boot,board,misc}.c`, `error.c`.
-  Each call repeats the same boilerplate (init cmd, write, read result, check magic), about 40 times.
-- There is no standalone build: the lib is only compiled into the Python extension by `setup.py`,
-  together with firmware sources `src/wire.c` and `src/lib/bpak.c`.
+Pure Python since 3.0.0 (D-021): one `py3-none-any` wheel. Dependencies: click, semver, pyusb and
+libusb-package (libusb binaries for pyusb; without it pyusb uses the system's libusb).
 
-## Python (`tools/punchboot/punchboot/`)
-
-- `_punchboot` C extension (`python_wrapper.c`, `exceptions.c`): `Session` type, `wait_for_device`,
-  `list_usb_devices`. Exceptions are mapped from `pb_results`.
-- `session.py`: typed wrapper. `partition.py`, `slc.py`: enums/dataclasses mirroring C constants.
-  `helpers.py`: `pb_id` (crc32 table), `valid_bpak_magic`.
+- `wire.py`: the wire protocol, a mirror of `wire.h`/`error.h`. Enums for commands, results,
+  auth methods and SLC, and a ctypes `LittleEndianStructure` (`_pack_ = 1`) per wire struct, named
+  like the C struct. `test_compat.py` checks every value, size and field offset against
+  `tests/compat/abi.txt`, and that every frozen `pb_*` struct and enum value is mirrored.
+- `bpak.py`: the bpak header structs and `bpak_valid_header`/`bpak_part_size`/`bpak_part_offset`,
+  for RAM boot and for detecting bpak files in `part_write`. Checked against `abi.txt` too.
+- `transport.py`: `Transport` (`write`/`read`, one call is one transfer), `SocketTransport`
+  (AF_UNIX, pb-host, 60 s timeout) and `UsbTransport` (pyusb, VID 0x1209 / PID 0x2019, device
+  selected by its serial number, the UUID; EP 0x02 out, 0x81 in, interface 0, 10 s per transfer;
+  a short transfer is a `TransferError`). pyusb is imported only when USB is used.
+- `session.py`: `Session`, the command sequences, ported one to one from the 2.x C library
+  (`api_*.c`), including its quirks: the stream is finalized after a failed write, the board
+  command request and the prepare-buffer data are sent whatever the first result says (F-095).
+  `Session(transport=...)` takes any transport (the transcript tests record the write sizes).
+- `errors.py`: `Error` and one exception per `pb_results` value; unknown codes are `GenericError`.
+- `helpers.py`: `pb_id` (crc32 table), `list_usb_devices`, `wait_for_device`, `valid_bpak_magic`.
+  `partition.py`, `slc.py`: `Partition`, `PartitionFlags`, `SLC`.
 - `__main__.py`: click CLI `punchboot` with groups `dev`, `auth`, `part`, `board`, `boot`, `slc`,
   plus `log` (the RAM log, `PB_CMD_LOG_READ`), `list` and `completion`. Transport is chosen with `-t usb|socket`, the device with `-u` / `PB_DEVICE_UUID`.
+
+The 2.x host was a C library (`tools/punchboot/*.c` next to the package in
+`tools/punchboot/punchboot/`, libusb) compiled into a `_punchboot`
+extension; the transcripts in `tests/compat/transcripts` were recorded from it. Performance: a
+32 MiB `part_write` to the 8MP EVK's eMMC runs at 27.7-28.6 MiB/s, the same as the 2.7.1 C wheel
+(28.0-28.8 MiB/s) within run-to-run noise.
 
 ## Wire protocol (`include/pb-tools/wire.h`)
 

@@ -1,61 +1,8 @@
 """Punchboot setuptools configuration."""
 
-import os
-import platform
 from pathlib import Path
 
-from setuptools import Extension, setup  # type: ignore # noqa: PGH003
-
-pb_base_path: str = "tools/punchboot"
-plat: str = platform.system()
-
-if plat == "Windows":
-    _libraries = ["libusb-1.0"]
-    _library_dirs = ["vcpkg_installed\\x64-windows\\lib"]
-    _include_dirs = ["include", "vcpkg_installed\\x64-windows\\include"]
-    # MSVC defaults to a C dialect without _Static_assert, which src/wire.c
-    # uses to check the frozen wire layout.
-    _extra_compile_args = ["/std:c11"]
-elif plat == "Darwin":
-    # We have two different builds of libusb to build x86_64 and arm64 wheels
-    # on an x86_64 runner.
-    # CI system is expected to set 'PB_MACOS_ARCH' to help out, since we can't
-    # get target arch here when cross compiling wheels.
-    _target_arch = os.environ["PB_MACOS_ARCH"]
-    _libraries = ["usb-1.0"]
-    _library_dirs = [f"libusb_{_target_arch}/1.0.27/lib"]
-    _include_dirs = ["include", f"libusb_{_target_arch}/1.0.27/include"]
-    _extra_compile_args = []
-else:
-    _libraries = ["usb-1.0"]
-    _library_dirs = []
-    _include_dirs = ["include"]
-    _extra_compile_args = []
-
-
-_srcs = [
-    "src/wire.c",
-    "src/lib/bpak.c",
-    f"{pb_base_path}/error.c",
-    f"{pb_base_path}/api.c",
-    f"{pb_base_path}/api_authentication.c",
-    f"{pb_base_path}/api_board.c",
-    f"{pb_base_path}/api_boot.c",
-    f"{pb_base_path}/api_device.c",
-    f"{pb_base_path}/api_misc.c",
-    f"{pb_base_path}/api_partition.c",
-    f"{pb_base_path}/api_slc.c",
-    f"{pb_base_path}/api_stream.c",
-    f"{pb_base_path}/usb.c",
-    f"{pb_base_path}/python_wrapper.c",
-    f"{pb_base_path}/exceptions.c",
-]
-
-# For now we only enable the 'socket' transport on linux machines, it's only
-# used for running the tests on punchboot.
-if plat == "Linux":
-    _srcs.append(f"{pb_base_path}/socket.c")
-
+from setuptools import setup  # type: ignore # noqa: PGH003
 
 setup(
     name="punchboot",
@@ -82,22 +29,18 @@ setup(
     url="https://github.com/jonasblixt/punchboot",
     packages=["punchboot"],
     package_dir={
-        "punchboot": f"{pb_base_path}/punchboot",
+        "punchboot": "tools/punchboot",
     },
     package_data={
         "punchboot": ["py.typed"],
     },
     python_requires=">=3.10",
     entry_points={"console_scripts": ["punchboot=punchboot.__main__:cli"]},
-    ext_modules=[
-        Extension(
-            name="_punchboot",
-            sources=_srcs,
-            libraries=_libraries,
-            library_dirs=_library_dirs,
-            include_dirs=_include_dirs,
-            extra_compile_args=_extra_compile_args,
-        )
+    install_requires=[
+        "semver>=3,<4",
+        "click>=8.2,<9",
+        "pyusb>=1.2,<2",
+        # libusb for pyusb, without it pyusb looks for the system's
+        "libusb-package>=1.0.26",
     ],
-    install_requires=["semver>=3,<4", "click>=8.2,<9"],
 )

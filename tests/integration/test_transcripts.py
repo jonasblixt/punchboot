@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING
 
 import punchboot
 import pytest
+from punchboot.transport import SocketTransport, Transport
 
 from . import transcript
 from .pbtest import (
@@ -47,7 +48,8 @@ RECORD = os.environ.get("PB_RECORD_TRANSCRIPTS") == "1"
 
 GOLDEN_IMAGE = REPO_ROOT / "tests" / "compat" / "bpak" / "v0.9.3" / "two-parts.bpak"
 UNKNOWN_UUID = "8ff2ad4c-b4a6-4f17-9d6a-0d1c8bd05b10"
-DATA = bytes(range(256)) * 32  # 8 KiB, two of pb-host's 4 KiB chunks
+DATA = bytes(range(256)) * 32  # 8 KiB, two of pb-host's chunks
+CHUNK = 4 * 1024  # pb-host's chunk_transfer_max_bytes (CONFIG_CM_BUF_SIZE_KiB)
 
 
 def _files(tmp: pathlib.Path) -> None:
@@ -272,8 +274,44 @@ def test_transcripts(
     assert [st.name for st in steps] == [name for name, _ in scenario.steps]
 
     fake = transcript.FakeDevice(socket_dir / "fake", steps)
-    s = punchboot.Session(socket_path=socket_dir / "fake")
+    io = RecordingTransport(SocketTransport(socket_dir / "fake"))
+    s = punchboot.Session(transport=io)
     results = _run(scenario, s, tmp_path, lambda _: None)
     s.close()
     assert fake.problem() == ""
     assert results == [st.result for st in steps]
+
+    # The transcripts don't have the transfer sizes, which matter over USB
+    # where a transfer ends in a short packet. The hosts so far sent each
+    # segment in one transfer, except RAM boot, which sends each part in
+    # chunks of chunk_transfer_max_bytes.
+    writes = iter(io.writes)
+    for st in steps:
+        for segment in st.segments:
+            if segment.direction == transcript.HOST:
+                size = len(segment.data)
+                expected = [CHUNK] * (size // CHUNK) + ([size % CHUNK] if size % CHUNK else [])
+                assert [next(writes, None) for _ in expected] == expected, st.name
+    assert next(writes, None) is None
+
+
+class RecordingTransport(Transport):
+    """Passes transfers on, and records the size of each write."""
+
+    def __init__(self, inner: Transport) -> None:
+        """Pass the transfers on to 'inner'."""
+        self.inner = inner
+        self.writes: list[int] = []
+
+    def write(self, data: bytes) -> None:
+        """Record and send a transfer."""
+        self.writes.append(len(data))
+        self.inner.write(data)
+
+    def read(self, size: int) -> bytes:
+        """Receive a transfer."""
+        return self.inner.read(size)
+
+    def close(self) -> None:
+        """Close the inner transport."""
+        self.inner.close()

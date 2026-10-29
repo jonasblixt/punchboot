@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 import punchboot
 import pytest
+from punchboot import bpak, wire
 
 from . import pbtest
 from .pbtest import NULL_UUID, REPO_ROOT, SYSTEM_A_UUID
@@ -119,3 +120,50 @@ def test_python_mirrors_match_the_wire() -> None:
     for name in dir(pbtest):
         if name.startswith(("PB_CMD_", "PB_WIRE_MAGIC")):
             assert getattr(pbtest, name) == values[name], name
+
+
+def abi_layout() -> tuple[dict[str, int], dict[str, tuple[int, int]]]:
+    """Return the frozen struct sizes, and the field offsets and sizes, in abi.txt."""
+    text = (COMPAT / "abi.txt").read_text()
+    sizes = {n: int(s) for n, s in re.findall(r"^struct (\S+) (\d+)$", text, re.MULTILINE)}
+    found = re.findall(r"^field (\S+) (\d+) (\d+)$", text, re.MULTILINE)
+    fields = {n: (int(o), int(s)) for n, o, s in found}
+    return sizes, fields
+
+
+def test_host_wire_and_bpak_match_the_abi() -> None:
+    # The host's wire protocol (punchboot/wire.py) and the bpak header it
+    # parses (punchboot/bpak.py) mirror the C headers
+    sizes, fields = abi_layout()
+    structs = {s.__name__: s for s in (*wire.STRUCTS, *bpak.STRUCTS)}
+
+    # Every frozen wire struct is mirrored, so a new one must be added too
+    assert {n for n in sizes if n.startswith("pb_")} <= set(structs)
+    for name, struct in structs.items():
+        assert struct.sizeof() == sizes[name], name
+        for field, (offset, size) in fields.items():
+            struct_name, _, field_name = field.partition(".")
+            if struct_name == name:
+                descriptor = getattr(struct, field_name)
+                assert (descriptor.offset, descriptor.size) == (offset, size), field
+
+    values = abi()
+    enums = {
+        wire.Command: "PB_CMD_",
+        wire.Result: "PB_RESULT_",
+        wire.AuthMethod: "PB_AUTH_",
+        wire.Slc: "PB_SLC_",
+    }
+    for enum, prefix in enums.items():
+        for member in enum:
+            assert member.value == values[member.name], member
+        # Every frozen value is mirrored, so a new one must be added too
+        frozen = {n for n in values if n.startswith(prefix)} - {"PB_RESULT_RESPONSE_MAX_SIZE"}
+        assert frozen <= set(enum.__members__), enum
+    for name in dir(wire):
+        if name.startswith(("PB_WIRE_", "PB_COMMAND_", "PB_RESULT_RESPONSE")):
+            assert getattr(wire, name) == values[name], name
+    for name in dir(bpak):
+        if name.startswith(("BPAK_MAX_", "BPAK_HEADER_MAGIC", "BPAK_PART_ALIGN", "BPAK_FLAG_",
+                            "BPAK_METADATA_BYTES", "BPAK_SIGNATURE_MAX_BYTES")):
+            assert getattr(bpak, name) == values[name], name
