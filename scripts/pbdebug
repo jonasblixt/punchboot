@@ -11,13 +11,15 @@
 # target and stops OpenOCD.
 #
 # --load writes elf to RAM and leaves GDB halted at its entry point, so that
-# breakpoints can be set before 'continue'. The target must be in the boot
-# ROM, e.g. the serial downloader (see pb_load_prepare in the platform's
-# openocd.cfg). Nothing is flashed, and on HAB devices the image isn't
-# authenticated, so the CAAM keeps working with JTAG attached.
+# breakpoints can be set before 'continue'. The platform's openocd.cfg gets
+# the target ready first (pb_load_prepare, e.g. it must be in the i.MX6UL's
+# serial downloader) and sets up the start after the load (pb_load_start).
+# Nothing is flashed, and on HAB devices the image isn't authenticated, so the
+# CAAM keeps working with JTAG attached.
 #
 # Environment:
-#   PB_OPENOCD_ADAPTER  OpenOCD adapter config (default interface/ulink.cfg)
+#   PB_OPENOCD_ADAPTER  OpenOCD adapter config (default: the board's
+#                       "# adapter:" line, else interface/ulink.cfg)
 #   PB_GDB              GDB to run (default gdb-multiarch)
 #
 # This runs on the host, not in the punchboot-dev container, since OpenOCD
@@ -37,7 +39,8 @@ fi
 board="${1:?Usage: $0 [--load] <board> [elf]}"
 elf="${2:-$REPO_ROOT/build-$board/pb_unstripped}"
 board_cfg="src/board/$board/openocd.cfg"
-adapter="${PB_OPENOCD_ADAPTER:-interface/ulink.cfg}"
+board_adapter="$(sed -n 's/^# adapter: *//p' "$REPO_ROOT/$board_cfg" 2> /dev/null | head -n 1)"
+adapter="${PB_OPENOCD_ADAPTER:-${board_adapter:-interface/ulink.cfg}}"
 gdb="${PB_GDB:-gdb-multiarch}"
 log="$REPO_ROOT/build-$board/openocd.log"
 
@@ -73,7 +76,7 @@ openocd_cmds=(-c "gdb_port $GDB_PORT" -c "telnet_port disabled" -c "tcl_port dis
 gdb_cmds=(-ex "target extended-remote :$GDB_PORT")
 if $load; then
     openocd_cmds+=(-c pb_load_prepare)
-    gdb_cmds+=(-ex load)
+    gdb_cmds+=(-ex load -ex "monitor pb_load_start" -ex "maintenance flush register-cache")
 fi
 # OpenOCD exits if one of the startup commands fails, before printing this
 openocd_cmds+=(-c "echo pbdebug-ready")
