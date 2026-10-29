@@ -71,7 +71,7 @@ frozen (D-001).
 
 ## Phase 5: Docs
 
-- Refresh the Sphinx docs or replace them (F-044). Document the CLI, Python API, wire protocol and porting guide.
+- User docs (the Sphinx tree is gone, D-020): document the CLI, Python API, wire protocol and porting guide, starting from the README (F-044).
 
 ## Later / to discuss
 

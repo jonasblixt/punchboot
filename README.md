@@ -3,7 +3,6 @@
 [![Coverity](https://scan.coverity.com/projects/16584/badge.svg)](https://scan.coverity.com/projects/jonpe960-punchboot)
 [![Build Status](https://github.com/jonasblixt/punchboot/actions/workflows/build.yml/badge.svg)](https://github.com/jonasblixt/punchboot/actions/workflows/build.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/jonasblixt/punchboot/master.svg)](https://results.pre-commit.ci/latest/github/jonasblixt/punchboot/master)
-[![Documentation Status](https://readthedocs.org/projects/punchboot/badge/?version=latest)](https://punchboot.readthedocs.io/en/latest/?badge=latest)
 [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4XMK2G3TPN3BQ)
 
 # Introduction
