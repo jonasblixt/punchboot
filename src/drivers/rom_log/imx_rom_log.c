@@ -20,59 +20,130 @@
  * definition version (Table 6). Unknown events are printed as raw words.
  */
 
-enum rom_log_arg {
-    ARG_NONE,
-    ARG_HEX,
-    ARG_AUTH,
+/* What follows an event word */
+enum rom_log_param {
+    P_NONE,
+    P_HEX, /* A word, printed in hex */
+    P_AUTH, /* A word, bits 7:0 are 0xf0 if the image passed */
+    P_TICK, /* A word, the time (the unit isn't documented) */
+    P_VERSION, /* No word: bits 7:0 of the event word are a version */
 };
+
+#define ROM_LOG_MAX_PARAMS 2
 
 struct rom_log_event {
     uint32_t id;
-    enum rom_log_arg arg;
     const char *name;
+    enum rom_log_param params[ROM_LOG_MAX_PARAMS];
 };
+
+/* Events with 0, 1 and 2 parameters */
+#define EV0(id, name)      \
+    {                      \
+        (id), (name),      \
+        {                  \
+            P_NONE, P_NONE \
+        }                  \
+    }
+#define EV1(id, name, p) \
+    {                    \
+        (id), (name),    \
+        {                \
+            (p), P_NONE  \
+        }                \
+    }
+#define EV2(id, name, p0, p1) \
+    {                         \
+        (id), (name),         \
+        {                     \
+            (p0), (p1)        \
+        }                     \
+    }
 
 /* Definition version 0, the i.MX6 series (Table 7) */
 static const struct rom_log_event events_v0[] = {
-    { 0x00010000, ARG_NONE, "Boot mode: boot from fuses" },
-    { 0x00010001, ARG_NONE, "Boot mode: serial download" },
-    { 0x00010002, ARG_NONE, "Boot mode: internal boot" },
-    { 0x00010003, ARG_NONE, "Boot mode: test mode" },
-    { 0x00020000, ARG_NONE, "Security config: FAB" },
-    { 0x00020033, ARG_NONE, "Security config: field return" },
-    { 0x000200f0, ARG_NONE, "Security config: open" },
-    { 0x000200cc, ARG_NONE, "Security config: closed" },
-    { 0x00030000, ARG_NONE, "Internal use" },
-    { 0x00030001, ARG_NONE, "Internal use" },
-    { 0x00040000, ARG_NONE, "FUSE_SEL_VALUE fuse not blown" },
-    { 0x00040001, ARG_NONE, "FUSE_SEL_VALUE fuse blown" },
-    { IMX_ROM_LOG_V0_PRIMARY_IMAGE, ARG_NONE, "Boot from the primary image" },
-    { 0x00050001, ARG_NONE, "Boot from the secondary image" },
-    { 0x00060000, ARG_NONE, "Primary boot device: raw NAND" },
-    { IMX_ROM_LOG_V0_PRIMARY_SD_MMC, ARG_NONE, "Primary boot device: SD/eMMC" },
-    { 0x00060003, ARG_NONE, "Primary boot device: I2C EEPROM" },
-    { 0x00060004, ARG_NONE, "Primary boot device: ECSPI NOR" },
-    { 0x00060005, ARG_NONE, "Primary boot device: WEIM NOR" },
-    { 0x00060006, ARG_NONE, "Primary boot device: OneNAND" },
-    { 0x00060007, ARG_NONE, "Primary boot device: QSPI NOR" },
-    { 0x00061003, ARG_NONE, "Recovery boot device: I2C EEPROM" },
-    { 0x00061004, ARG_NONE, "Recovery boot device: ECSPI NOR" },
-    { 0x00061fff, ARG_NONE, "No recovery boot device" },
-    { 0x00062001, ARG_NONE, "Manufacture boot device: SD/eMMC" },
-    { 0x00070000, ARG_NONE, "Device init" },
-    { 0x000700f0, ARG_NONE, "Device init: pass" },
-    { IMX_ROM_LOG_V0_DEVICE_INIT_FAIL, ARG_NONE, "Device init: fail" },
-    { 0x00080000, ARG_HEX, "Device read, image offset" },
-    { 0x000800f0, ARG_NONE, "Device read: pass" },
-    { IMX_ROM_LOG_V0_DEVICE_READ_FAIL, ARG_NONE, "Device read: fail" },
-    { 0x00090000, ARG_AUTH, "Authentication" },
-    { 0x000a0000, ARG_HEX, "Run plugin" },
-    { 0x000a00f0, ARG_NONE, "Plugin: pass" },
-    { 0x000a0033, ARG_NONE, "Plugin: fail" },
-    { IMX_ROM_LOG_V0_JUMP, ARG_HEX, "Jump to boot image" },
-    { IMX_ROM_LOG_V0_SERIAL_DOWNLOAD, ARG_NONE, "Serial download" },
-    { IMX_ROM_LOG_V0_JUMP_SDP, ARG_HEX, "Jump to serial download image" },
-    { 0x000e0000, ARG_NONE, "Internal use" },
+    EV0(0x00010000, "Boot mode: boot from fuses"),
+    EV0(0x00010001, "Boot mode: serial download"),
+    EV0(0x00010002, "Boot mode: internal boot"),
+    EV0(0x00010003, "Boot mode: test mode"),
+    EV0(0x00020000, "Security config: FAB"),
+    EV0(0x00020033, "Security config: field return"),
+    EV0(0x000200f0, "Security config: open"),
+    EV0(0x000200cc, "Security config: closed"),
+    EV0(0x00030000, "Internal use"),
+    EV0(0x00030001, "Internal use"),
+    EV0(0x00040000, "FUSE_SEL_VALUE fuse not blown"),
+    EV0(0x00040001, "FUSE_SEL_VALUE fuse blown"),
+    EV0(IMX_ROM_LOG_V0_PRIMARY_IMAGE, "Boot from the primary image"),
+    EV0(0x00050001, "Boot from the secondary image"),
+    EV0(0x00060000, "Primary boot device: raw NAND"),
+    EV0(IMX_ROM_LOG_V0_PRIMARY_SD_MMC, "Primary boot device: SD/eMMC"),
+    EV0(0x00060003, "Primary boot device: I2C EEPROM"),
+    EV0(0x00060004, "Primary boot device: ECSPI NOR"),
+    EV0(0x00060005, "Primary boot device: WEIM NOR"),
+    EV0(0x00060006, "Primary boot device: OneNAND"),
+    EV0(0x00060007, "Primary boot device: QSPI NOR"),
+    EV0(0x00061003, "Recovery boot device: I2C EEPROM"),
+    EV0(0x00061004, "Recovery boot device: ECSPI NOR"),
+    EV0(0x00061fff, "No recovery boot device"),
+    EV0(0x00062001, "Manufacture boot device: SD/eMMC"),
+    EV0(0x00070000, "Device init"),
+    EV0(0x000700f0, "Device init: pass"),
+    EV0(IMX_ROM_LOG_V0_DEVICE_INIT_FAIL, "Device init: fail"),
+    EV1(0x00080000, "Device read, image offset", P_HEX),
+    EV0(0x000800f0, "Device read: pass"),
+    EV0(IMX_ROM_LOG_V0_DEVICE_READ_FAIL, "Device read: fail"),
+    EV1(0x00090000, "Authentication", P_AUTH),
+    EV1(0x000a0000, "Run plugin", P_HEX),
+    EV0(0x000a00f0, "Plugin: pass"),
+    EV0(0x000a0033, "Plugin: fail"),
+    EV1(IMX_ROM_LOG_V0_JUMP, "Jump to boot image", P_HEX),
+    EV0(IMX_ROM_LOG_V0_SERIAL_DOWNLOAD, "Serial download"),
+    EV1(IMX_ROM_LOG_V0_JUMP_SDP, "Jump to serial download image", P_HEX),
+    EV0(0x000e0000, "Internal use"),
+};
+
+/* Definition version 2, the i.MX 8M ("mSCALE") series (Table 9) */
+static const struct rom_log_event events_v2[] = {
+    EV1(0x01, "ROM event version", P_VERSION),
+    EV0(0x10, "Boot mode: boot from fuses"),
+    EV0(0x11, "Boot mode: serial download"),
+    EV0(0x12, "Boot mode: internal boot"),
+    EV0(0x13, "Boot mode: test mode"),
+    EV0(0x20, "Security config: FAB"),
+    EV0(0x21, "Security config: field return"),
+    EV0(0x22, "Security config: open"),
+    EV0(0x23, "Security config: closed"),
+    EV0(0x30, "Internal use"),
+    EV0(0x31, "Internal use"),
+    EV0(0x40, "FUSE_SEL_VALUE fuse not blown"),
+    EV0(0x41, "FUSE_SEL_VALUE fuse blown"),
+    EV0(0x50, "Boot from the primary image"),
+    EV0(0x51, "Boot from the secondary image"),
+    EV0(0x60, "Primary boot device: raw NAND"),
+    EV0(0x61, "Primary boot device: SD/eMMC"),
+    EV0(0x64, "Primary boot device: ECSPI NOR"),
+    EV0(0x67, "Primary boot device: QSPI NOR"),
+    EV0(0x71, "Recovery boot device: ECSPI NOR"),
+    EV0(0x72, "No recovery boot device"),
+    EV0(0x73, "Manufacture boot device: SD/eMMC"),
+    EV0(0x74, "Primary boot device: SPI NAND"),
+    EV1(0x80, "Device init", P_TICK),
+    EV1(0x81, "Device init: pass", P_TICK),
+    /* Table 9 has no parameter, but the 8MP EVK's ROM logs a tick */
+    EV1(0x82, "Device pre-config", P_TICK),
+    EV0(0x83, "Device pre-config: pass"),
+    EV0(0x8e, "Device pre-config: fail"),
+    EV1(0x8f, "Device init: fail", P_TICK),
+    EV1(0x90, "Device read, image offset", P_HEX),
+    EV1(0x91, "Device read: pass", P_TICK),
+    EV1(0x9f, "Device read: fail", P_TICK),
+    EV2(0xa0, "Authentication", P_AUTH, P_TICK),
+    EV0(0xa1, "IVT header not valid"),
+    EV2(0xc0, "Jump to boot image", P_HEX, P_TICK),
+    EV0(0xd0, "Serial download"),
+    EV0(0xe0, "Internal use"),
+    EV0(0xf0, "ROM exception handler"),
 };
 
 struct rom_log_defs {
@@ -90,6 +161,13 @@ static const struct rom_log_defs rom_log_defs[] = {
         .id_shift = 0,
         .events = events_v0,
         .n_events = ARRAY_SIZE(events_v0),
+    },
+    {
+        .version = IMX_ROM_LOG_DEFS_V2,
+        .id_mask = GENMASK_32(31, 24), /* Format version 1 */
+        .id_shift = 24,
+        .events = events_v2,
+        .n_events = ARRAY_SIZE(events_v2),
     },
 };
 
@@ -137,6 +215,92 @@ static const struct rom_log_event *find_event(const struct rom_log_defs *defs, u
  */
 #define ROM_LOG_LINE_MAX 128
 
+/* Parameter words that follow an event */
+static size_t param_words(const struct rom_log_event *ev)
+{
+    size_t n = 0;
+
+    for (size_t i = 0; i < ROM_LOG_MAX_PARAMS; i++) {
+        if (ev->params[i] != P_NONE && ev->params[i] != P_VERSION)
+            n++;
+    }
+
+    return n;
+}
+
+/* Append ': value' for a parameter, ', value' after the first */
+static size_t print_param(char *out, enum rom_log_param p, uint32_t value, bool first)
+{
+    const char *sep = first ? ": " : ", ";
+
+    switch (p) {
+    case P_HEX:
+        return snprintf(out, ROM_LOG_LINE_MAX / 2, "%s0x%08x", sep, value);
+    case P_AUTH:
+        return snprintf(
+            out, ROM_LOG_LINE_MAX / 2, "%s%s", sep, ((value & 0xff) == 0xf0) ? "pass" : "fail");
+    case P_TICK:
+        return snprintf(out, ROM_LOG_LINE_MAX / 2, "%stick %u", sep, value);
+    case P_VERSION:
+        return snprintf(out, ROM_LOG_LINE_MAX / 2, "%s%u", sep, value & 0xff);
+    default:
+        return 0;
+    }
+}
+
+/* One event and its parameters as a line, returns the words it took */
+static size_t print_event(char *line,
+                          size_t *len,
+                          const struct rom_log_event *ev,
+                          const uint32_t *log,
+                          size_t idx,
+                          size_t n_words)
+{
+    /* No field widths in the firmware snprintf */
+    const char *pad = (idx < 10) ? " " : "";
+    size_t n_params = (ev != NULL) ? param_words(ev) : 0;
+    size_t pos;
+
+    if (ev == NULL) {
+        *len = snprintf(line,
+                        ROM_LOG_LINE_MAX,
+                        "%s%u: %08x           Unknown event\n",
+                        pad,
+                        (unsigned int)idx,
+                        log[idx]);
+        return 1;
+    }
+
+    if (idx + n_params >= n_words) {
+        *len = snprintf(line,
+                        ROM_LOG_LINE_MAX,
+                        "%s%u: %08x           %s: parameter missing\n",
+                        pad,
+                        (unsigned int)idx,
+                        log[idx],
+                        ev->name);
+        return n_words - idx;
+    }
+
+    pos = snprintf(line, ROM_LOG_LINE_MAX, "%s%u: %08x", pad, (unsigned int)idx, log[idx]);
+    for (size_t i = 0; i < n_params; i++)
+        pos += snprintf(&line[pos], ROM_LOG_LINE_MAX - pos, " %08x", log[idx + 1 + i]);
+    /* Line up the names of events with up to one parameter */
+    pos += snprintf(
+        &line[pos], ROM_LOG_LINE_MAX - pos, (n_params == 0) ? "           %s" : "  %s", ev->name);
+
+    for (size_t i = 0, word = 1; i < ROM_LOG_MAX_PARAMS && ev->params[i] != P_NONE; i++) {
+        uint32_t value = (ev->params[i] == P_VERSION) ? log[idx] : log[idx + word++];
+
+        /* "name: value", or "name: state, value" when the name has a state */
+        pos += print_param(&line[pos], ev->params[i], value, i == 0 && !strchr(ev->name, ':'));
+    }
+
+    pos += snprintf(&line[pos], ROM_LOG_LINE_MAX - pos, "\n");
+    *len = pos;
+    return 1 + n_params;
+}
+
 int imx_rom_log_decode(unsigned int version,
                        const uint32_t *log,
                        size_t n_words,
@@ -157,58 +321,16 @@ int imx_rom_log_decode(unsigned int version,
 
     pos += snprintf(out, out_size, "ROM log at 0x%08x\n", (unsigned int)log_addr);
 
-    for (size_t i = 0; i < n_words && log[i] != 0; i++) {
-        const struct rom_log_event *ev = find_event(defs, log[i]);
-        unsigned int idx = (unsigned int)i;
-        /* No field widths in the firmware snprintf */
-        const char *pad = (idx < 10) ? " " : "";
-        char *line = out + pos;
+    for (size_t i = 0; i < n_words && log[i] != 0;) {
+        size_t len;
 
         if (out_size - pos < ROM_LOG_LINE_MAX) {
             *out_len = pos;
             return -PB_ERR_BUF_TOO_SMALL;
         }
 
-        if (ev == NULL) {
-            pos += snprintf(
-                line, ROM_LOG_LINE_MAX, "%s%u: %08x           Unknown event\n", pad, idx, log[i]);
-        } else if (ev->arg == ARG_NONE) {
-            pos += snprintf(
-                line, ROM_LOG_LINE_MAX, "%s%u: %08x           %s\n", pad, idx, log[i], ev->name);
-        } else if (i + 1 >= n_words) {
-            pos += snprintf(line,
-                            ROM_LOG_LINE_MAX,
-                            "%s%u: %08x           %s: parameter missing\n",
-                            pad,
-                            idx,
-                            log[i],
-                            ev->name);
-        } else if (ev->arg == ARG_AUTH) {
-            uint32_t arg = log[++i];
-
-            /* Bits 7:0 are 0xf0 if the image passed */
-            pos += snprintf(line,
-                            ROM_LOG_LINE_MAX,
-                            "%s%u: %08x %08x  %s: %s\n",
-                            pad,
-                            idx,
-                            log[idx],
-                            arg,
-                            ev->name,
-                            ((arg & 0xff) == 0xf0) ? "pass" : "fail");
-        } else {
-            uint32_t arg = log[++i];
-
-            pos += snprintf(line,
-                            ROM_LOG_LINE_MAX,
-                            "%s%u: %08x %08x  %s: 0x%08x\n",
-                            pad,
-                            idx,
-                            log[idx],
-                            arg,
-                            ev->name,
-                            arg);
-        }
+        i += print_event(&out[pos], &len, find_event(defs, log[i]), log, i, n_words);
+        pos += len;
     }
 
     *out_len = pos;
@@ -293,8 +415,8 @@ bool imx_rom_log_find(unsigned int version, const uint32_t *log, size_t n_words,
 
         if (event_id(defs, log[i]) == event)
             return true;
-        if (ev != NULL && ev->arg != ARG_NONE)
-            i++; /* Skip the parameter */
+        if (ev != NULL)
+            i += param_words(ev); /* Skip the parameters */
     }
 
     return false;
