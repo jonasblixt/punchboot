@@ -137,6 +137,13 @@ check the header of each new output). To use it:
    requests, wait for normal operating mode, enable auto refresh and AXI port 0.
 6. Read back the trained PHY CSRs and copy all tables to `.umctl2` (0x40000000) for TF-A.
 
+The board chooses which set points are trained (`struct dram_rates` in its `board.c`): the first
+`num` of `fsp_table`, in order, because TF-A uses a set point's index as the controller and PHY
+state. Training runs at the other rates are skipped and TF-A's `fsp_table` gets 0 for them, so it
+never switches to them (TF-A 2.15 counts the set points up to the first 0). The low set points are
+only for DDR frequency scaling in Linux. The imx8mpevk trains only 4000 MT/s (plat init 75 ms instead
+of 290 ms: 100 MT/s took 158 ms, 400 MT/s 57 ms), the imx8mevk all three.
+
 PHY CSR numbers are `[23:20]` P-state, `[19:12]` block, `[11:0]` register, so the
 trained CSR list in the board file reads as "MASTER0/DBYTEn register r, for P-states 0..2" (`dwc_ddrphy.h`).
 
