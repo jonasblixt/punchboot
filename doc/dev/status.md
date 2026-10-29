@@ -69,6 +69,7 @@ the host half of 4 are done (`compatibility.md`, Guards).
   both flashed (System A, Root A). jiffy boots it: pb → Linux → kickstart (dm-verity root) → init and
   login, System A marked verified. jiffy must not be on the VIA USB hub (F-151, it resets jiffy).
   jiffy's kernel slimmed and LZ4: reset to BusyBox init 2939 -> 1326 ms (`testbench/README.md`).
+  F-071 fixed: pb grows the DTB and adds `/chosen`, no placeholders needed (jiffy checked).
   kickstart needed to read pb's partition layout (kickstart `9dcc7b5`). The 8MP
   image carries TF-A BL31, but the board doesn't use the ATF boot driver (F-150), not booted.
 

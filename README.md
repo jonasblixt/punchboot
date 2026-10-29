@@ -143,8 +143,30 @@ Punchboot provides a UUID3 device identity based on a combination of the unique
 data from the SoC and an allocated, random, namspace UUID per platform.
 
 When booting a linux system this information is relayed to linux through
-in-line patching of the device-tree.
-The device identity can be found in '/proc/device-tree/chosen/device-uuid'
+the device tree (below). The device identity can be found in
+'/proc/device-tree/chosen/pb,device-uuid'.
+
+## Booting Linux: the device tree
+
+The Linux and ATF boot drivers add to `/chosen` in the image's device tree:
+
+| Property | |
+| -------- | - |
+| `pb,device-uuid` | the device identity |
+| `pb,active-system` | the system booted (A or B), if the board has A/B |
+| `pb,slc` | the security life cycle state |
+| `pb,slc-active-key` | the id of the key the image is signed with |
+| `pb,slc-available-keys` | the ids of the keys that aren't revoked |
+| `linux,initrd-start`, `linux,initrd-end` | the ramdisk, if the image has one |
+| `bootargs` and others | whatever the board's callback sets |
+
+The device tree doesn't need any of them, nor `/chosen`: pb adds what is
+missing. Before that it grows the device tree in place, into the RAM after
+its part, by `CONFIG_BOOT_DTB_HEADROOM` (4 KiB by default). Keep that RAM free
+in the image: the boot fails if another part or pb is there. Growing moves
+the device tree's strings; on jiffy (i.MX6UL, a 30 KB device tree) that is
+too little to measure. A device tree built with the properties and free space
+for them (`dtc -p`) works with a headroom of 0.
 
 ## Command mode
 

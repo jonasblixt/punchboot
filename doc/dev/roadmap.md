@@ -31,7 +31,9 @@ frozen (D-001).
   5. CODEOWNERS + a PR template checkbox for the files listed in `compatibility.md`.
 - F-001..F-008, each with a regression test in the QEMU suite where possible.
 - ~~Decide the SLC EOL semantics (F-002).~~ Intended: command mode is open in EOL (D-011).
-- Device tree without the pb properties (F-071, wanted by Jonas). Today the board DTBs must already
+- ~~Device tree without the pb properties (F-071, wanted by Jonas).~~ Done (`1e8f5601`, `39276b9c`):
+  `CONFIG_BOOT_DTB_HEADROOM`, the README's "Booting Linux: the device tree"; the boot drivers' shared
+  code waits for a review of the boot setup (Jonas). Today the board DTBs must already
   have `/chosen` and `pb,slc-available-keys`, and enough free space for the properties pb sets.
   Instead, pb should add whatever is missing:
   - Create `/chosen` and the `pb,*` properties if they don't exist, and treat a missing
