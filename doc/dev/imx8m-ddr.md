@@ -272,7 +272,11 @@ The DWC3 driver was reworked from the RM (F-112). Works: enumeration at high spe
 `part list`, 4 MiB writes to BOOT1 at about 12 MB/s with device-side verify (CAAM, era 9), `dev
 reset`. The boot partitions are not readable by design, so a large read needs a GPT partition.
 
-Not done yet: HSIOMIX/USB PHY power-up for an eMMC boot (F-115), the ARM PLL, TF-A handover on
+eMMC boot (2026-10-29): pb in BOOT0 at offset 0 (RM Table 6-28), boot switches on eMMC, then a
+power cycle: the boot mode is latched at power-on, a `dev reset` (watchdog) keeps the old one.
+USB command mode needs pb to power up HSIOMIX and the USB1 PHY itself (F-115, fixed).
+
+Not done yet: the ARM PLL, TF-A handover on
 the 8MP (step 4 of "Adding a SoC").
 
 ## Suggestions

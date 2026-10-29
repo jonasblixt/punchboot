@@ -19,9 +19,8 @@ are done (`compatibility.md`, Guards).
   uMCTL2/DWC PHY drivers in `src/drivers/ddr` (D-014), `PLAT_IMX8MQ` + `PLAT_IMX8M_COMMON`.
   `PLAT_IMX8MP` + board `imx8mpevk` (2026-10-28): pb runs from OCRAM over `uuu`, the DRAM trains and
   passes a write/read test on the 8MP EVK (`imx8m-ddr.md`, "i.MX8M Plus EVK"). eMMC (HS200) and
-  USB command mode work, the DWC3 driver reworked from the RM (F-112). Next: power-up for an eMMC
-  boot (F-115), then booting pb from eMMC. Never write fuses on that EVK. Open F-100, F-102,
-  F-104, F-106, F-107, F-110, F-113, F-115.
+  USB command mode work, the DWC3 driver reworked from the RM (F-112). pb boots from eMMC (F-115 fixed).
+  Never write fuses on that EVK. Open F-100, F-102, F-104, F-106, F-107, F-110, F-113.
 - **MMC/SD (same branch, 2026-10-28):** a test bench of card models from JESD84-B51 and the SD
   spec plus a uSDHC register model (D-017, `testing.md`) found F-116..F-125, all fixed but F-116
   (HS400 tuning). New request-based HAL, one `mmc_device` per card (`mmc_emmc.c`, `mmc_sd.c`),
@@ -31,6 +30,10 @@ are done (`compatibility.md`, Guards).
   on the EVK (F-113). jiffy checked (DDR52) before the tuning/CMD12/log changes.
 - **Boot time (2026-10-29):** log lines carry `[ms.us]` (no more `ts()`), console at warnings, RAM
   log at debug. The imx8mpevk trains only 4000 MT/s (`struct dram_rates`): plat init 75 ms.
+  EXT_CSD read at TRAN_SPEED (jiffy -13 ms, EVK -24 ms). jiffy warm boot: ~127 ms ROM + 38 ms pb to
+  `boot_load()`; 10 MiB load+verify 162 ms (EVK 147, `scripts/boot-time-image`, README Metrics).
+  The EVK boots pb from eMMC (F-115 fixed): reset to `boot_load()` 126 ms (2D training 51 ms of
+  it), the microSD card isn't set up any more (`BOARD_SD_CARD`). Next: CMD1 polling, `plat_mmu_init()` (13 ms), smaller load chunks.
 - **CAAM (2026-10-29):** register/descriptor names and fields from the SRMs, JR0 (not JR1) at
   +0x1000; descriptors bit-identical. Checked on jiffy (flashed) and the 8MP EVK: hashing, ECDSA
   P-256 accept/reject. F-127, F-128, F-129 open.
