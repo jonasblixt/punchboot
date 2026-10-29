@@ -2,6 +2,7 @@
  * Punch BOOT
  *
  * Copyright (C) 2023 Jonas Blixt <jonpe960@gmail.com>
+ * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -30,110 +31,46 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Registers */
-#define IMX_CI_UDC_DCIVERSION        0x120
-
-#define IMX_CI_UDC_USBSTS            0x144
-#define USBSTS_URI                   BIT(6)
-
-#define IMX_CI_UDC_ENDPTCOMPLETE     0x1bc
-
-#define IMX_CI_UDC_USB_MODE          0x1a8
-#define USB_MODE_SDIS                BIT(4)
-#define USB_MODE_SLOM                BIT(3)
-#define USB_MODE_ES                  BIT(2)
-#define USB_MODE_CM_DEVICE           (2)
-
-#define IMX_CI_UDC_ENDPTLISTADDR     0x158
-
-#define IMX_CI_UDC_ENDPTSETUPSTAT    0x1ac
-
-#define IMX_CI_UDC_CMD               0x140
-#define CMD_RS                       BIT(0)
-#define CMD_RST                      BIT(1)
-#define CMD_SUTW                     BIT(13)
-#define CMD_ITC(x)                   ((uint16_t)(x << 16) & 0xFFFF)
-
-#define IMX_CI_UDC_ENDPTPRIME        0x1b0
-#define IMX_CI_UDC_PORTSC1           0x184
-#define IMX_CI_UDC_ENDPTFLUSH        0x1b4
-#define IMX_CI_UDC_ENDPTNAK          0x178
-
-#define IMX_CI_UDC_DEVICEADDR        0x154
-#define DEVICEADDR_ADDR(x)           ((x & 0x7f) << 25)
-#define DEVICEADDR_USBADRA           BIT(24)
-
-#define IMX_CI_UDC_ENDPTCTRL1        0x1c4
-#define IMX_CI_UDC_ENDPTCTRL2        0x1c8
-#define IMX_CI_UDC_ENDPTCTRL3        0x1cc
-#define IMX_CI_UDC_ENDPTCTRL4        0x1d0
-#define IMX_CI_UDC_ENDPTCTRL5        0x1d4
-#define IMX_CI_UDC_ENDPTCTRL6        0x1d8
-#define IMX_CI_UDC_ENDPTCTRL7        0x1dc
-
-#define IMX_CI_UDC_BURSTSIZE         0x160
-#define IMX_CI_UDC_SBUSCFG           0x90
-#define IMX_CI_UDC_ENDPTSTAT         0x1b8
-#define IMX_CI_UDC_ENDPTNAKEN        0x17C
-
-#define IMX_CI_UDC_EP0_OUT           (1 << 0)
-#define IMX_CI_UDC_EP0_IN            (1 << 16)
-#define IMX_CI_UDC_EP1_OUT           (1 << 1)
-#define IMX_CI_UDC_EP1_IN            (1 << 17)
-#define IMX_CI_UDC_EP2_OUT           (1 << 2)
-#define IMX_CI_UDC_EP2_IN            (1 << 18)
-#define IMX_CI_UDC_EP3_OUT           (1 << 3)
-#define IMX_CI_UDC_EP3_IN            (1 << 19)
+#include "imx_ci_udc_private.h"
 
 /* Misc defines */
 #define IMX_CI_UDC_NO_OF_EPS         8
 #define IMX_CI_UDC_NO_OF_DESCRIPTORS (1 + (CONFIG_CM_BUF_SIZE_KiB / 20))
-#define IMX_CI_UDC_SZ_512B           0x200
 #define IMX_CI_UDC_SZ_64B            0x40
-#define IMX_CI_UDC_PAGE_SZ           4096
 
-/* Transfer structures and bits */
+#define EP_IS_IN(ep)                 ((ep) & 1)
+#define EP_USB_NUMBER(ep)            ((ep) >> 1)
 
-#define EPQH_CAP_MULT(x)             ((x & 0x03) << 30)
-#define EPQH_CAP_ZLT                 BIT(29)
-#define EPQH_CAP_MAXLEN(x)           ((x & 0x7ff) << 16)
-#define EPQH_CAP_IOS                 BIT(15)
-
-struct imx_ci_udc_transfer_head {
-    uint32_t next;
-    uint32_t token;
-    uint32_t page[5];
-    uint32_t pad;
-} __attribute__((packed));
-
-struct imx_ci_udc_queue_head {
-    uint32_t caps;
-    uint32_t current_dtd;
-    uint32_t next;
-    uint32_t token;
-    uint32_t page[5];
-    uint32_t __reserved;
-    uint32_t setup[2];
-    uint32_t padding[4];
-} __attribute__((packed));
+/* bEndpointAddress in an endpoint descriptor */
+#define USB_EP_ADDR_NUMBER_MASK      0x0f
+#define USB_EP_ADDR_DIR_IN           0x80
 
 /* No data structure seen by the controller should span a 4k page boundary */
 static struct imx_ci_udc_transfer_head dtds[IMX_CI_UDC_NO_OF_DESCRIPTORS] __section(".no_init")
     __aligned(4096);
 static struct imx_ci_udc_queue_head dqhs[IMX_CI_UDC_NO_OF_EPS * 2] __section(".no_init")
     __aligned(4096);
-static uint8_t align_buffer[4096] __aligned(4096);
+static uint8_t align_buffer[DTD_PAGE_SIZE] __aligned(4096);
 static uintptr_t xfer_bfr;
 static size_t xfer_length;
 static struct imx_ci_udc_transfer_head *xfer_head;
 static usb_ep_t xfer_ep;
 static uintptr_t imx_ci_udc_base;
 
+/* The bit of an endpoint in ENDPTPRIME, ENDPTFLUSH, ENDPTSTAT and ENDPTCOMPLETE */
+static uint32_t ep_bit(usb_ep_t ep)
+{
+    if (EP_IS_IN(ep))
+        return ENDPT_TX(EP_USB_NUMBER(ep));
+    else
+        return ENDPT_RX(EP_USB_NUMBER(ep));
+}
+
 static void imx_ci_udc_reset_queues(void)
 {
     for (int i = 0; i < IMX_CI_UDC_NO_OF_EPS * 2; i++) {
         dqhs[i].caps = 0;
-        dqhs[i].next = 0xDEAD0001;
+        dqhs[i].next = DTD_NEXT_T;
         dqhs[i].token = 0;
         dqhs[i].current_dtd = 0;
     }
@@ -146,17 +83,17 @@ static void imx_ci_udc_reset_queues(void)
 
 static void imx_ci_udc_reset(void)
 {
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_USBSTS, 0xFFFFFFFF);
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT, 0xFFFF);
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE, (0xff << 16) | 0xff);
+    mmio_write_32(imx_ci_udc_base + CI_USBSTS, USBSTS_ALL);
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_ALL);
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTCOMPLETE, ENDPT_ALL);
 
-    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTPRIME)) {
+    while (mmio_read_32(imx_ci_udc_base + CI_ENDPTPRIME)) {
     };
 
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH, 0xFFFFFFFF);
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_ALL);
 
     /* Wait for port to come out of reset */
-    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_PORTSC1) & (1 << 8)) {
+    while (mmio_read_32(imx_ci_udc_base + CI_PORTSC1) & PORTSC1_PR) {
     };
 }
 
@@ -164,8 +101,7 @@ static void imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
 {
     struct imx_ci_udc_queue_head *qh = &dqhs[ep];
 
-    // TODO: Define bits
-    qh->caps = (1 << 29) | (size << 16) | flags;
+    qh->caps = DQH_CAP_ZLT | DQH_CAP_MAX_PACKET_LEN(size) | flags;
 
     arch_clean_cache_range((uintptr_t)qh, sizeof(*qh));
 }
@@ -173,32 +109,32 @@ static void imx_ci_udc_config_ep(usb_ep_t ep, uint32_t size, uint32_t flags)
 static int imx_ci_udc_irq_process(void)
 {
     uint32_t tmp;
-    uint32_t sts = mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_USBSTS);
-    uint32_t epc = mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE);
+    uint32_t sts = mmio_read_32(imx_ci_udc_base + CI_USBSTS);
+    uint32_t epc = mmio_read_32(imx_ci_udc_base + CI_ENDPTCOMPLETE);
 
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_USBSTS, 0xFFFFFFFF);
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE, epc);
+    mmio_write_32(imx_ci_udc_base + CI_USBSTS, USBSTS_ALL);
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTCOMPLETE, epc);
 
     /* Check for USB reset */
     if (sts & USBSTS_URI) {
-        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH, 0x00FF00FF);
+        mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_ALL);
 
-        while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH) == 0x00FF00FF) {
+        while (mmio_read_32(imx_ci_udc_base + CI_ENDPTFLUSH) == ENDPT_ALL) {
         };
 
-        tmp = mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT);
-        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT, tmp);
+        tmp = mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT);
+        mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, tmp);
 
-        tmp = mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE);
-        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTCOMPLETE, tmp);
+        tmp = mmio_read_32(imx_ci_udc_base + CI_ENDPTCOMPLETE);
+        mmio_write_32(imx_ci_udc_base + CI_ENDPTCOMPLETE, tmp);
 
-        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR, 0);
+        mmio_write_32(imx_ci_udc_base + CI_DEVICEADDR, 0);
 
         LOG_DBG("Bus reset");
     }
 
-    if (sts & BIT(1)) {
-        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_USBSTS, 2);
+    if (sts & USBSTS_UEI) {
+        mmio_write_32(imx_ci_udc_base + CI_USBSTS, USBSTS_UEI);
         LOG_ERR("IMX_CI_UDC: Error %x", sts);
     }
 
@@ -223,35 +159,35 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         return -PB_ERR_PARAM;
 
     if (bytes_to_tx == 0) {
-        dtd->next = 0xDEAD0001;
-        dtd->token = 0x80 | (1 << 15);
+        dtd->next = DTD_NEXT_T;
+        dtd->token = DTD_TOKEN_STATUS_ACTIVE | DTD_TOKEN_IOC;
     } else if (bfr) {
         arch_clean_cache_range(bfr, length);
     }
 
     /* Check and align input buffer if needed */
-    if ((length > 0) && (bfr & 0xfff)) {
-        align_length = (4096 - (bfr & 0xfff)) & 0xfff;
-        align_length = (length > 4096) ? align_length : length;
+    if ((length > 0) && (bfr & DTD_PAGE_OFFSET_MASK)) {
+        align_length = (DTD_PAGE_SIZE - (bfr & DTD_PAGE_OFFSET_MASK)) & DTD_PAGE_OFFSET_MASK;
+        align_length = (length > DTD_PAGE_SIZE) ? align_length : length;
         /* LOG_DBG("Aligning buffer <%p> (%zu bytes)", (void *) bfr, align_length); */
         /* If this is an IN transfer we need to fill the align buffer */
-        if ((ep & 1) == 1) {
+        if (EP_IS_IN(ep)) {
             memcpy(align_buffer, (void *)bfr, align_length);
         }
         arch_clean_cache_range((uintptr_t)align_buffer, align_length);
     }
 
     while (bytes_to_tx) {
-        dtd->next = 0xDEAD0001;
-        dtd->token = 0x80;
+        dtd->next = DTD_NEXT_T;
+        dtd->token = DTD_TOKEN_STATUS_ACTIVE;
 
-        if (bytes_to_tx > (5 * IMX_CI_UDC_PAGE_SZ)) {
-            dtd->token |= ((5 * IMX_CI_UDC_PAGE_SZ) << 16);
+        if (bytes_to_tx > DTD_MAX_BYTES) {
+            dtd->token |= DTD_TOKEN_TOTAL_BYTES(DTD_MAX_BYTES);
         } else {
-            dtd->token |= (bytes_to_tx << 16);
+            dtd->token |= DTD_TOKEN_TOTAL_BYTES(bytes_to_tx);
         }
 
-        for (int n = 0; n < 5; n++) {
+        for (int n = 0; n < DTD_NO_OF_PAGES; n++) {
             dtd->page[n] = (uint32_t)buf_ptr;
 
             if (align_length) {
@@ -260,20 +196,20 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
                 dtd->page[n] = (uint32_t)(uintptr_t)align_buffer;
                 bytes_to_tx -= align_length;
                 buf_ptr += align_length;
-            } else if (bytes_to_tx >= IMX_CI_UDC_PAGE_SZ) {
-                buf_ptr += IMX_CI_UDC_PAGE_SZ;
-                bytes_to_tx -= IMX_CI_UDC_PAGE_SZ;
+            } else if (bytes_to_tx >= DTD_PAGE_SIZE) {
+                buf_ptr += DTD_PAGE_SIZE;
+                bytes_to_tx -= DTD_PAGE_SIZE;
             } else {
                 buf_ptr += bytes_to_tx;
                 bytes_to_tx = 0;
             }
 
-            if (dtd->page[n] & 0xfff)
+            if (dtd->page[n] & DTD_PAGE_OFFSET_MASK)
                 return -PB_ERR_ALIGN;
 
             if (bytes_to_tx == 0) {
                 buf_ptr = 0;
-                dtd->token |= (1 << 15);
+                dtd->token |= DTD_TOKEN_IOC;
                 break;
             }
         }
@@ -299,15 +235,11 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
     arch_clean_cache_range((uintptr_t)qh, sizeof(*qh));
     arch_clean_cache_range((uintptr_t)dtds, sizeof(dtds[0]) * IMX_CI_UDC_NO_OF_DESCRIPTORS);
 
-    if (ep & 1) {
-        epreg = (1 << ((ep - 1) / 2 + 16));
-    } else {
-        epreg = (1 << (ep / 2));
-    }
+    epreg = ep_bit(ep);
 
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTPRIME, epreg);
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTPRIME, epreg);
 
-    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTPRIME) & epreg) {
+    while (mmio_read_32(imx_ci_udc_base + CI_ENDPTPRIME) & epreg) {
     };
 
     xfer_bfr = (uintptr_t)bfr;
@@ -336,19 +268,19 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
     arch_invalidate_cache_range((uintptr_t)xfer_head, sizeof(*xfer_head));
 
     // TODO: We should look at the error bit's as well
-    // TODO: Define bits
 
-    if (xfer_head->token & 0x80)
+    if (xfer_head->token & DTD_TOKEN_STATUS_ACTIVE)
         return -PB_ERR_AGAIN;
 
     /* Check for un-aligned buffers */
-    if (xfer_length && (xfer_bfr & 0xfff)) {
-        size_t align_length = (4096 - (xfer_bfr & 0xfff)) & 0xfff;
-        align_length = (xfer_length > 4096) ? align_length : xfer_length;
+    if (xfer_length && (xfer_bfr & DTD_PAGE_OFFSET_MASK)) {
+        size_t align_length = (DTD_PAGE_SIZE - (xfer_bfr & DTD_PAGE_OFFSET_MASK)) &
+                              DTD_PAGE_OFFSET_MASK;
+        align_length = (xfer_length > DTD_PAGE_SIZE) ? align_length : xfer_length;
 
         /* If this was an out transfer we should copy data from the
          * alignment buffer */
-        if ((ep & 1) == 0) {
+        if (!EP_IS_IN(ep)) {
             /* LOG_DBG("Align: copying %zu bytes to %p", align_length,
                     (void *) xfer_bfr); */
             arch_invalidate_cache_range((uintptr_t)align_buffer, align_length);
@@ -356,7 +288,7 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
         }
     }
 
-    if (!(ep & 1) && xfer_bfr && xfer_length) {
+    if (!EP_IS_IN(ep) && xfer_bfr && xfer_length) {
         /* Output from host, invalidate cache*/
         arch_invalidate_cache_range(xfer_bfr, xfer_length);
     }
@@ -366,50 +298,14 @@ static int imx_ci_udc_xfer_complete(usb_ep_t ep)
 
 static void imx_ci_udc_flush_ep(usb_ep_t ep)
 {
-    uint8_t idx;
-
-    switch (ep) {
-    case USB_EP0_IN:
-    case USB_EP0_OUT:
-        idx = 0;
-        break;
-    case USB_EP1_IN:
-    case USB_EP1_OUT:
-        idx = 1;
-        break;
-    case USB_EP2_IN:
-    case USB_EP2_OUT:
-        idx = 2;
-        break;
-    case USB_EP3_IN:
-    case USB_EP3_OUT:
-        idx = 3;
-        break;
-    case USB_EP4_IN:
-    case USB_EP4_OUT:
-        idx = 4;
-        break;
-    case USB_EP5_IN:
-    case USB_EP5_OUT:
-        idx = 5;
-        break;
-    case USB_EP6_IN:
-    case USB_EP6_OUT:
-        idx = 6;
-        break;
-    case USB_EP7_IN:
-    case USB_EP7_OUT:
-        idx = 7;
-        break;
-    default:
+    if (ep >= USB_EP_END)
         return;
-    };
 
-    uint32_t flush_cmd = (1 << (16 + idx)) | (1 << idx);
+    uint32_t flush_cmd = ENDPT_TX(EP_USB_NUMBER(ep)) | ENDPT_RX(EP_USB_NUMBER(ep));
 
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH, flush_cmd);
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, flush_cmd);
 
-    while ((mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH) & flush_cmd) != 0) {
+    while ((mmio_read_32(imx_ci_udc_base + CI_ENDPTFLUSH) & flush_cmd) != 0) {
     };
 }
 
@@ -418,100 +314,57 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
     enum usb_ep_type ep_type;
     usb_ep_t ep;
     uint16_t max_pkt_sz;
-    bool ep_in;
     uintptr_t epctrl;
-    uint8_t ep_type_val;
+    uint32_t ep_type_val;
     uint32_t ep_reg;
 
     for (size_t n = 0; n < no_of_eps; n++) {
-        ep = (eps[n].bEndpointAddress & 0x7f) * 2;
-        ep_in = false;
-        if (eps[n].bEndpointAddress & 0x80)
+        ep = (eps[n].bEndpointAddress & USB_EP_ADDR_NUMBER_MASK) * 2;
+        if (eps[n].bEndpointAddress & USB_EP_ADDR_DIR_IN)
             ep++;
 
         ep_type = eps[n].bmAttributes + 1;
         max_pkt_sz = eps[n].wMaxPacketSize;
         switch (ep_type) {
         case USB_EP_TYPE_CONTROL:
-            ep_type_val = 0;
+            ep_type_val = ENDPTCTRL_TYPE_CONTROL;
             break;
         case USB_EP_TYPE_ISO:
-            ep_type_val = 1;
+            ep_type_val = ENDPTCTRL_TYPE_ISO;
             break;
         case USB_EP_TYPE_BULK:
-            ep_type_val = 2;
+            ep_type_val = ENDPTCTRL_TYPE_BULK;
             break;
         case USB_EP_TYPE_INTR:
-            ep_type_val = 3;
+            ep_type_val = ENDPTCTRL_TYPE_INTR;
             break;
         default:
             return -PB_ERR_PARAM;
         };
 
-        switch (ep) {
-        case USB_EP1_IN:
-            ep_in = true;
-            /* Fallthrough */
-        case USB_EP1_OUT:
-            epctrl = IMX_CI_UDC_ENDPTCTRL1;
-            break;
-        case USB_EP2_IN:
-            ep_in = true;
-            /* Fallthrough */
-        case USB_EP2_OUT:
-            epctrl = IMX_CI_UDC_ENDPTCTRL2;
-            break;
-        case USB_EP3_IN:
-            ep_in = true;
-            /* Fallthrough */
-        case USB_EP3_OUT:
-            epctrl = IMX_CI_UDC_ENDPTCTRL3;
-            break;
-        case USB_EP4_IN:
-            ep_in = true;
-            /* Fallthrough */
-        case USB_EP4_OUT:
-            epctrl = IMX_CI_UDC_ENDPTCTRL4;
-            break;
-        case USB_EP5_IN:
-            ep_in = true;
-            /* Fallthrough */
-        case USB_EP5_OUT:
-            epctrl = IMX_CI_UDC_ENDPTCTRL5;
-            break;
-        case USB_EP6_IN:
-            ep_in = true;
-            /* Fallthrough */
-        case USB_EP6_OUT:
-            epctrl = IMX_CI_UDC_ENDPTCTRL6;
-            break;
-        case USB_EP7_IN:
-            ep_in = true;
-            /* Fallthrough */
-        case USB_EP7_OUT:
-            epctrl = IMX_CI_UDC_ENDPTCTRL7;
-            break;
-        default:
+        /* Endpoint 0 is always the control endpoint, it has no configuration */
+        if (ep < USB_EP1_OUT || ep >= USB_EP_END)
             return -PB_ERR_PARAM;
-        };
+
+        epctrl = CI_ENDPTCTRL(EP_USB_NUMBER(ep));
 
         /* Keep the other direction, and make it bulk if it's unused: a
          * disabled direction left as control type makes the data PID
          * tracking of the enabled one undefined. */
         ep_reg = mmio_read_32(imx_ci_udc_base + epctrl);
 
-        if (ep_in) {
-            ep_reg &= 0x0000ffff;
-            ep_reg |= (1 << 23) | (ep_type_val << 18) | (1 << 22);
+        if (EP_IS_IN(ep)) {
+            ep_reg &= ENDPTCTRL_RX_MASK;
+            ep_reg |= ENDPTCTRL_TXE | ENDPTCTRL_TXT(ep_type_val) | ENDPTCTRL_TXR;
 
-            if (!(ep_reg & (1 << 7)))
-                ep_reg = (ep_reg & ~(3 << 2)) | (2 << 2);
+            if (!(ep_reg & ENDPTCTRL_RXE))
+                ep_reg = (ep_reg & ~ENDPTCTRL_RXT_MASK) | ENDPTCTRL_RXT(ENDPTCTRL_TYPE_BULK);
         } else {
-            ep_reg &= 0xffff0000;
-            ep_reg |= (1 << 7) | (ep_type_val << 2) | (1 << 6);
+            ep_reg &= ENDPTCTRL_TX_MASK;
+            ep_reg |= ENDPTCTRL_RXE | ENDPTCTRL_RXT(ep_type_val) | ENDPTCTRL_RXR;
 
-            if (!(ep_reg & (1 << 23)))
-                ep_reg = (ep_reg & ~(3 << 18)) | (2 << 18);
+            if (!(ep_reg & ENDPTCTRL_TXE))
+                ep_reg = (ep_reg & ~ENDPTCTRL_TXT_MASK) | ENDPTCTRL_TXT(ENDPTCTRL_TYPE_BULK);
         }
 
         LOG_DBG("EP config: reg=0x%lx, val=0x%x", epctrl, ep_reg);
@@ -525,23 +378,22 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
 static int imx_ci_udc_poll_setup_pkt(struct usb_setup_packet *pkt)
 {
     /* EP0 Process setup packets */
-    if (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT) & 1) {
+    if (mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT) & ENDPTSETUPSTAT_EP(0)) {
         struct imx_ci_udc_queue_head *qh = &dqhs[USB_EP0_OUT];
 
         do {
-            mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, 0, CMD_SUTW);
+            mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, 0, USBCMD_SUTW);
             arch_invalidate_cache_range((uintptr_t)qh->setup, sizeof(*qh->setup));
             memcpy(pkt, qh->setup, sizeof(struct usb_setup_packet));
-        } while (!(mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_CMD) & CMD_SUTW));
+        } while (!(mmio_read_32(imx_ci_udc_base + CI_USBCMD) & USBCMD_SUTW));
 
-        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT, 1);
-        mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, CMD_SUTW, 0);
+        mmio_write_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT, ENDPTSETUPSTAT_EP(0));
+        mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, USBCMD_SUTW, 0);
 
         /* Do we really need to flush transmitt buffer here? */
-        // TODO: Bits
-        mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTFLUSH, (1 << 16) | 1);
+        mmio_write_32(imx_ci_udc_base + CI_ENDPTFLUSH, ENDPT_TX(0) | ENDPT_RX(0));
 
-        while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTSETUPSTAT) & 1) {
+        while (mmio_read_32(imx_ci_udc_base + CI_ENDPTSETUPSTAT) & ENDPTSETUPSTAT_EP(0)) {
         };
 
         return PB_OK;
@@ -556,26 +408,26 @@ static int imx_ci_udc_init_internal(void)
 {
     LOG_DBG("Init base: 0x%" PRIxPTR, imx_ci_udc_base);
 
-    mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, 0, CMD_RST);
+    mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, 0, USBCMD_RST);
 
-    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_CMD) & CMD_RST) {
+    while (mmio_read_32(imx_ci_udc_base + CI_USBCMD) & USBCMD_RST) {
     };
 
     imx_ci_udc_reset_queues();
 
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR, 0);
+    mmio_write_32(imx_ci_udc_base + CI_DEVICEADDR, 0);
 
     imx_ci_udc_config_ep(USB_EP0_IN, IMX_CI_UDC_SZ_64B, 0);
-    imx_ci_udc_config_ep(USB_EP0_OUT, IMX_CI_UDC_SZ_64B, EPQH_CAP_IOS);
+    imx_ci_udc_config_ep(USB_EP0_OUT, IMX_CI_UDC_SZ_64B, DQH_CAP_IOS);
 
     /* Program QH top */
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_ENDPTLISTADDR, (uint32_t)(uintptr_t)dqhs);
+    mmio_write_32(imx_ci_udc_base + CI_ENDPTLISTADDR, (uint32_t)(uintptr_t)dqhs);
 
     /* Enable USB */
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_USB_MODE,
-                  USB_MODE_SDIS | USB_MODE_SLOM | USB_MODE_CM_DEVICE);
+    mmio_write_32(imx_ci_udc_base + CI_USBMODE, USBMODE_SDIS | USBMODE_SLOM | USBMODE_CM_DEVICE);
 
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_CMD, CMD_ITC(0x40) | CMD_RS);
+    /* Interrupt threshold 0 (immediate), the driver polls */
+    mmio_write_32(imx_ci_udc_base + CI_USBCMD, USBCMD_ITC(0) | USBCMD_RS);
 
     imx_ci_udc_reset();
 
@@ -584,21 +436,20 @@ static int imx_ci_udc_init_internal(void)
 
 static int imx_ci_udc_set_address(uint16_t addr)
 {
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR,
-                  DEVICEADDR_ADDR(addr) | DEVICEADDR_USBADRA);
+    mmio_write_32(imx_ci_udc_base + CI_DEVICEADDR, DEVICEADDR_USBADR(addr) | DEVICEADDR_USBADRA);
     return PB_OK;
 }
 
 static int imx_ci_udc_stop(void)
 {
-    mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, CMD_RS, 0);
+    mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, USBCMD_RS, 0);
     imx_ci_udc_reset_queues();
     imx_ci_udc_reset();
-    mmio_write_32(imx_ci_udc_base + IMX_CI_UDC_DEVICEADDR, 0);
+    mmio_write_32(imx_ci_udc_base + CI_DEVICEADDR, 0);
 
-    mmio_clrsetbits_32(imx_ci_udc_base + IMX_CI_UDC_CMD, 0, CMD_RST);
+    mmio_clrsetbits_32(imx_ci_udc_base + CI_USBCMD, 0, USBCMD_RST);
 
-    while (mmio_read_32(imx_ci_udc_base + IMX_CI_UDC_CMD) & CMD_RST) {
+    while (mmio_read_32(imx_ci_udc_base + CI_USBCMD) & USBCMD_RST) {
     };
 
     return PB_OK;
