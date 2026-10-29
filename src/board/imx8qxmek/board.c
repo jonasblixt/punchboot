@@ -355,7 +355,7 @@ int board_init(struct imx8x_platform *plat_ptr)
     sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
 
-    rc = imx_caam_init(0x31430000);
+    rc = imx_caam_init(IMX_CAAM_JR2_BASE);
 
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
