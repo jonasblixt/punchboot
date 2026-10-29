@@ -551,6 +551,19 @@ static void auto_cmd12(bool write)
     m.rsp3_at_us = bench_now_us() + AC12_RSP3_DELAY_US;
 }
 
+/* Read data sampled inside the data eye */
+static bool tap_samples(void)
+{
+    uint32_t dll = reg(DLL_CTRL);
+    unsigned int tap = (dll >> 9) & 0x7f;
+
+    if (!m.cfg.tap_window || m.bus.clk_hz <= 52000000)
+        return true;
+    if (!(dll & (1u << 8)))
+        return false; /* No override: the model has no DLL */
+    return tap >= m.cfg.tap_lo && tap <= m.cfg.tap_hi;
+}
+
 static void run_data(void)
 {
     uint32_t mix = reg(MIX_CTRL);
@@ -604,6 +617,8 @@ static void run_data(void)
 
         if (read) {
             st = m.cfg.card->ops->read(m.cfg.card, block, bs);
+            if (st == BUS_DATA_OK && !tap_samples())
+                st = BUS_DATA_CRC;
             if (st == BUS_DATA_OK)
                 seg_copy(n_segs, b * bs, block, bs, true);
         } else {

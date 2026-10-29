@@ -61,20 +61,36 @@ void pb_delay_ms(uint32_t delay)
     (void)delay;
 }
 
-static int fake_init(void)
+void pb_delay_us(uint32_t delay)
 {
+    (void)delay;
+}
+
+/* No clock here: a timeout expires after 1000 polls */
+int pb_timeout_init_us(struct pb_timeout *timeout, uint32_t timeout_us)
+{
+    (void)timeout_us;
+    timeout->ts_start = 0;
     return PB_OK;
 }
 
-static int fake_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd_resp_t result)
+bool pb_timeout_has_expired(struct pb_timeout *timeout)
 {
-    (void)resp_type;
+    return ++timeout->ts_start > 1000;
+}
 
+static int fake_init(void *priv)
+{
+    (void)priv;
+    return PB_OK;
+}
+
+static int fake_send_cmd(uint16_t idx, uint32_t arg, mmc_cmd_resp_t result)
+{
     if (!card.powered)
         return -PB_ERR_IO;
 
-    if (result != NULL)
-        memset(result, 0, sizeof(mmc_cmd_resp_t));
+    memset(result, 0, sizeof(mmc_cmd_resp_t));
 
     switch (idx) {
     case MMC_CMD_SEND_OP_COND:
@@ -100,14 +116,6 @@ static int fake_send_cmd(uint16_t idx, uint32_t arg, uint16_t resp_type, mmc_cmd
 static uint8_t *card_part(void)
 {
     return card.part[card.ext_csd[EXT_CSD_PART_CONFIG] & 0x07];
-}
-
-static int fake_prepare(unsigned int lba, size_t length, uintptr_t buf)
-{
-    (void)lba;
-    (void)length;
-    (void)buf;
-    return card.powered ? PB_OK : -PB_ERR_IO;
 }
 
 static int fake_read(unsigned int lba, size_t length, uintptr_t buf)
@@ -139,26 +147,38 @@ static int fake_write(unsigned int lba, size_t length, uintptr_t buf)
     return PB_OK;
 }
 
-static int fake_set_bus_clock(unsigned int clk_hz)
+static int fake_request(void *priv, struct mmc_cmd *cmd)
 {
+    size_t length = cmd->block_size * cmd->blocks;
+    (void)priv;
+    int rc = fake_send_cmd(cmd->idx, cmd->arg, cmd->resp);
+
+    if (rc != PB_OK || length == 0)
+        return rc;
+    if (cmd->write)
+        return fake_write(cmd->arg, length, (uintptr_t)cmd->buf);
+    return fake_read(cmd->arg, length, (uintptr_t)cmd->buf);
+}
+
+static int fake_set_bus_clock(void *priv, unsigned int clk_hz)
+{
+    (void)priv;
     (void)clk_hz;
     return PB_OK;
 }
 
-static int fake_set_bus_width(enum mmc_bus_width width)
+static int fake_set_bus_width(void *priv, enum mmc_bus_width width)
 {
+    (void)priv;
     (void)width;
     return PB_OK;
 }
 
 static const struct mmc_hal hal = {
     .init = fake_init,
-    .send_cmd = fake_send_cmd,
+    .request = fake_request,
     .set_bus_clock = fake_set_bus_clock,
     .set_bus_width = fake_set_bus_width,
-    .prepare = fake_prepare,
-    .read = fake_read,
-    .write = fake_write,
     .max_chunk_bytes = CHUNK_BYTES,
 };
 
@@ -237,7 +257,7 @@ static void pb_boot(void)
     uint8_t gpt_header[512];
 
     bio_reset();
-    assert_int_equal(mmc_init(&hal, &cfg), PB_OK);
+    assert_int_equal(mmc_init(&hal, &cfg, NULL), PB_OK);
     assert_int_equal(bio_read(part(UU_USER), 1, sizeof(gpt_header), gpt_header), PB_OK);
 }
 
@@ -409,7 +429,7 @@ static int first_boot_part_config(uint8_t boot_part_enable, uuid_t uu)
         card.ext_csd[EXT_CSD_PART_CONFIG] = boot_part_enable << 3;
         power_on();
         bio_reset();
-        if (mmc_init(&hal, &cfg) != PB_OK)
+        if (mmc_init(&hal, &cfg, NULL) != PB_OK)
             exit(1);
         result.rc = mmc_get_boot_part_config(result.uu);
         exit(write(fds[1], &result, sizeof(result)) == sizeof(result) ? 0 : 1);
@@ -435,14 +455,14 @@ static void test_boot_bus_conditions(void **state)
     card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] = 0x12;
     power_on();
     bio_reset();
-    assert_int_equal(mmc_init(&hal, &cfg), PB_OK);
+    assert_int_equal(mmc_init(&hal, &cfg, NULL), PB_OK);
     assert_int_equal(card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS], cfg.boot_mode);
 
     keep.flags = MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS;
     card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS] = 0x12;
     power_on();
     bio_reset();
-    assert_int_equal(mmc_init(&hal, &keep), PB_OK);
+    assert_int_equal(mmc_init(&hal, &keep, NULL), PB_OK);
     assert_int_equal(card.ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS], 0x12);
 }
 
