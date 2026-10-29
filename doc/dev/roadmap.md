@@ -56,7 +56,6 @@ frozen (D-001).
 
 ## Phase 3: Host tools
 
-- PEP 621 `pyproject.toml` with `[build-system]` (F-042).
 - mypy in CI, ruff-format (F-043).
 - pytest unit tests for the Python layer (F-041).
 - Remove the duplicated constants (F-035): `pbtest.py`'s `PB_CMD_*` can use `punchboot.wire`.

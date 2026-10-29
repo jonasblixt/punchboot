@@ -1,3 +1,52 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "punchboot"
+dynamic = ["version"]
+description = "Punchboot tools"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [{ name = "Jonas Blixt", email = "jonas@blxt.se" }]
+requires-python = ">=3.10"
+dependencies = [
+    "semver>=3,<4",
+    "click>=8.2,<9",
+    "pyusb>=1.2,<2",
+    # libusb for pyusb, without it pyusb looks for the system's
+    "libusb-package>=1.0.26",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Embedded Systems",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+]
+
+[project.urls]
+Homepage = "https://github.com/jonasblixt/punchboot"
+
+[project.scripts]
+punchboot = "punchboot.__main__:cli"
+
+[tool.setuptools]
+packages = ["punchboot"]
+package-dir = { punchboot = "tools/punchboot" }
+
+[tool.setuptools.package-data]
+punchboot = ["py.typed"]
+
+[tool.setuptools.dynamic]
+version = { file = "version.txt" }
+
 [tool.ruff]
 line-length = 100
 extend-exclude = [

@@ -11,7 +11,7 @@ stay backward compatible, permanently (D-008, supersedes D-001). What is frozen:
   - No `version.h`, no build_config.
   - No calloc/free hooks.
   - Reformatted by punchboot's clang-format.
-- The same `bpak.c` is also compiled into the Python wheel (`setup.py`).
+- The Python package parses the bpak header itself (`tools/punchboot/bpak.py`, D-021).
 
 ## What punchboot actually uses
 
