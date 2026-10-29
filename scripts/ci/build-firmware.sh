@@ -25,7 +25,7 @@ board="${1:?Usage: $0 <board> [make args]}"
 shift
 
 case "$board" in
-    jiffy)
+    jiffy | imxrt1060evk)
         cross=arm-none-eabi-
         ;;
     imx8dxlevk)

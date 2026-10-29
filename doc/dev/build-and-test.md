@@ -5,7 +5,7 @@ Tests are covered in `testing.md`.
 ## Firmware build
 
 ```sh
-scripts/pbdev firmware jiffy          # or imx8dxlevk: the boards that build today (F-051)
+scripts/pbdev firmware jiffy          # or imx8dxlevk, imx8mevk, imx8mpevk, imxrt1060evk (F-051)
 ```
 
 By hand (in `scripts/pbdev shell`):
@@ -116,7 +116,7 @@ a ruff bump can break the check (it happened in 2.7.0).
   - **host-tests:** default and sanitizer builds.
   - **coverage:** the gcovr summary in the job log, and the line by line HTML report as the
     `coverage` workflow artifact (D-012). Not a gate.
-  - **firmware:** jiffy, imx8dxlevk, imx8mevk and imx8mpevk `pb.bin`. The i.MX8M boards are built
+  - **firmware:** jiffy, imx8dxlevk, imx8mevk, imx8mpevk and imxrt1060evk `pb.bin`. The i.MX8M boards are built
     with placeholder DDR training firmware (`IMX8M_FW_DIR` points `build-firmware.sh` at the real
     one, inside the repository): a compile check only.
   - **coverity:** cov-build of jiffy inside the container. Only on pushes to master in
