@@ -14,7 +14,6 @@
 #include <pb/crypto.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/timestamp.h>
 #include <pb/utils_def.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
@@ -222,7 +221,7 @@ int plat_init(void)
 
     sc_err_t wdog_rc = imx8x_wdog_init();
     imx8x_systick_setup();
-    ts("Init"); /* This is the earliest TS we can have since it needs systick */
+    log_time_start();
     imx8x_load_boot_reason();
 
     board_console_init(&plat);
@@ -232,9 +231,8 @@ int plat_init(void)
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
     }
 
-    ts("MMU start");
     imx8x_mmu_init();
-    ts("MMU end");
+    LOG_DBG("MMU on");
 
     imx8x_fuse_init(plat.ipc);
     imx8x_rot_helpers_init(plat.ipc);

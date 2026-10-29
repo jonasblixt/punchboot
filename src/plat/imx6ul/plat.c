@@ -12,6 +12,7 @@
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/tzc/tzc380.h>
 #include <drivers/wdog/imx_wdog.h>
+#include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -266,6 +267,7 @@ int plat_init(void)
 
     /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal */
     imx_gpt_init_24m(IMX6UL_GPT1_BASE);
+    log_time_start();
 
     board_console_init(&plat);
 

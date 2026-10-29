@@ -29,7 +29,6 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <pb/timestamp.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/sci/svc/seco/sci_seco_api.h>

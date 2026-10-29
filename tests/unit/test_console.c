@@ -24,6 +24,8 @@
 
 #include <cmocka.h>
 
+#include "fakes/plat.h"
+
 #include <pb/console.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -215,9 +217,28 @@ static void test_levels(void **state)
     printf("plain\n\r");
     capture_end();
 
-    assert_uart("E test_levels: err\n\rplain\n\r");
-    assert_ramlog("D test_levels: dbg 1\n\rI test_levels: info\n\r"
-                  "E test_levels: err\n\rplain\n\r");
+    assert_uart("[0.000] E test_levels: err\n\rplain\n\r");
+    assert_ramlog("[0.000] D test_levels: dbg 1\n\r[0.000] I test_levels: info\n\r"
+                  "[0.000] E test_levels: err\n\rplain\n\r");
+}
+
+/* Log lines carry the time since log_time_start(), ms with three decimals */
+static void test_log_time(void **state)
+{
+    (void)state;
+
+    fake_us_tick = 1000;
+    fake_us_tick_step = 0;
+    log_time_start();
+    fake_us_tick += 290021;
+
+    console_init(UART_BASE, &uart_ops);
+    capture_begin();
+    LOG_ERR("late");
+    capture_end();
+
+    assert_uart("[290.021] E test_log_time: late\n\r");
+    fake_us_tick = FAKE_US_TICK_DEFAULT;
 }
 
 /* Muted messages from before console_init() are left out of the replay */
@@ -234,7 +255,7 @@ static void test_early_muted(void **state)
     capture_end();
 
     console_init(UART_BASE, &uart_ops);
-    assert_uart("E test_early_muted: b\n\rd\n\r");
+    assert_uart("[0.000] E test_early_muted: b\n\rd\n\r");
 }
 
 /* A muted message that starts before the oldest byte still in the log */
@@ -286,6 +307,8 @@ int main(void)
         cmocka_unit_test_setup(test_early_muted, setup),
         cmocka_unit_test_setup(test_early_muted_wrapped, setup),
         cmocka_unit_test_setup(test_early_muted_overflow, setup),
+        /* Last: the log clock keeps running */
+        cmocka_unit_test_setup(test_log_time, setup),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

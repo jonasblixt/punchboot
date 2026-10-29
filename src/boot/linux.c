@@ -19,7 +19,6 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <pb/timestamp.h>
 
 static const struct boot_driver_linux_config *cfg;
 static uintptr_t jump_addr;
@@ -236,9 +235,6 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 
 void boot_driver_linux_jump(void)
 {
-#ifdef CONFIG_PRINT_TIMESTAMPS
-    ts_print();
-#endif
     arch_clean_cache_range((uintptr_t)&jump_addr, sizeof(jump_addr));
     arch_disable_mmu();
 
