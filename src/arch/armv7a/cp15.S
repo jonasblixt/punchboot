@@ -40,32 +40,6 @@ exit_loop_\op:
 	bx	lr
 .endm
 
-func(armv7a_cp15_read_id_mmfr0)
-    mrc p15, 0, r0, c0, c1, 4
-    bx lr
-
-func(armv7a_cp15_read_cpuid)
-    mrc     p15, 0, r0, c0, c0, 5  /* Read MPIDR */
-    ubfx    r0, r0, #0, #8        /* Read the bottom 8 bits */
-    bx lr
-
-func(armv7a_cp15_read_sctlr)
-    mrc p15, 0, r0, c1, c0, 0   /* Read SCTLR (System Control Register) */
-    bx lr
-
-func (armv7a_cp15_disable_mmu)
-    /* Disable I$ and D$ */
-    mrc     p15, 0, r12, c1, c0, 0
-    bic     r12, #(1<<12)
-    bic     r12, #(1<<2)
-    mcr     p15, 0, r12, c1, c0, 0
-
-    mrc p15, 0, r12, c1, c0, 0
-    bic r12, r12, #0x1
-    mcr p15, 0, r12, c1, c0, 0
-
-    bx lr
-
 func (arch_invalidate_cache_range)
 	do_dcache_maintenance_by_mva imvac, DCIMVAC
     bx      lr
