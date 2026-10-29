@@ -8,6 +8,7 @@
  */
 
 #include <drivers/fuse/imx_ocotp.h>
+#include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
@@ -135,9 +136,20 @@ static int plat_mmu_init(void)
     return PB_OK;
 }
 
+/* The ROM log, AN12853 Tables 11 and 13. It's in the ROM's part of the OCRAM, below pb */
+static const struct imx_rom_log_config rom_log_cfg = {
+    .pointer = 0x000009e0,
+    .ram_start = 0x00900000,
+    .ram_end = 0x00900000 + IMX8M_OCRAM_SIZE,
+    .words = 128,
+    .defs = IMX_ROM_LOG_DEFS_V2,
+};
+
 int plat_init(void)
 {
     int rc;
+
+    imx_rom_log_save(&rom_log_cfg);
 
 #if CONFIG_ENABLE_WATCHDOG
     /* Enable and ungate WDOG1 clock */

@@ -23,6 +23,7 @@
 
 /* ROM event ID definition versions (AN12853 Table 6) */
 #define IMX_ROM_LOG_DEFS_V0             0 /* i.MX6 series, IDs in bits 23:0 */
+#define IMX_ROM_LOG_DEFS_V2             2 /* i.MX 8M series, IDs in bits 31:24 */
 
 /* Events used outside the decoder, definition version 0 (AN12853 Table 7) */
 #define IMX_ROM_LOG_V0_PRIMARY_IMAGE    0x00050000

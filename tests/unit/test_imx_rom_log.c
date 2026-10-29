@@ -232,6 +232,98 @@ static void test_no_saved_log(void **state)
     assert_false(imx_rom_log_has_event(IMX_ROM_LOG_V0_PRIMARY_IMAGE));
 }
 
+/* An i.MX 8M log (definition version 2, IDs in bits 31:24), made from
+ * AN12853 Table 9: two parameters, a version in the event word, ticks */
+static void test_v2_log(void **state)
+{
+    static const uint32_t log[] = {
+        0x01000002, 0x10000000, 0x22000000, 0x50000000, 0x61000000, 0x80000000, 1000,
+        0x81000000, 1200,       0x90000000, 0x00008400, 0x91000000, 1500,       0xa0000000,
+        0x000000f0, 1600,       0xc0000000, 0x00920000, 1700,       0x55000000, 0,
+    };
+    size_t len = sizeof(out);
+    (void)state;
+
+    assert_int_equal(
+        imx_rom_log_decode(IMX_ROM_LOG_DEFS_V2, log, ARRAY_SIZE(log), 0x00900000, out, &len),
+        PB_OK);
+    assert_string_equal(out,
+                        "ROM log at 0x00900000\n"
+                        " 0: 01000002           ROM event version: 2\n"
+                        " 1: 10000000           Boot mode: boot from fuses\n"
+                        " 2: 22000000           Security config: open\n"
+                        " 3: 50000000           Boot from the primary image\n"
+                        " 4: 61000000           Primary boot device: SD/eMMC\n"
+                        " 5: 80000000 000003e8  Device init: tick 1000\n"
+                        " 7: 81000000 000004b0  Device init: pass, tick 1200\n"
+                        " 9: 90000000 00008400  Device read, image offset: 0x00008400\n"
+                        "11: 91000000 000005dc  Device read: pass, tick 1500\n"
+                        "13: a0000000 000000f0 00000640  Authentication: pass, tick 1600\n"
+                        "16: c0000000 00920000 000006a4  Jump to boot image: 0x00920000, tick "
+                        "1700\n"
+                        "19: 55000000           Unknown event\n");
+    assert_true(imx_rom_log_find(IMX_ROM_LOG_DEFS_V2, log, ARRAY_SIZE(log), 0xc0));
+    /* Parameters aren't events: 0x00920000 has 0x00 in bits 31:24, 1600 too */
+    assert_false(imx_rom_log_find(IMX_ROM_LOG_DEFS_V2, log, ARRAY_SIZE(log), 0x00));
+    /* Two parameters missing */
+    static const uint32_t short_log[] = { 0xc0000000, 0x00920000 };
+    len = sizeof(out);
+    assert_int_equal(
+        imx_rom_log_decode(IMX_ROM_LOG_DEFS_V2, short_log, ARRAY_SIZE(short_log), 0, out, &len),
+        PB_OK);
+    assert_non_null(strstr(out, " 0: c0000000           Jump to boot image: parameter missing\n"));
+}
+
+/* Logged by the i.MX8M Plus EVK (open, unsigned pb.imx) booting pb from
+ * eMMC BOOT0. HAB fails the unsigned image and the open part boots it anyway */
+static const uint32_t evk_8mp_log[] = {
+    0xe0000000, 0x22000000, 0x31000000, 0x40000000, 0x61000000, 0x82000000, 0x00000ed7,
+    0x83000000, 0x80000000, 0x00000ee1, 0x81000000, 0x00002acb, 0x50000000, 0x90000000,
+    0x00000000, 0x91000000, 0x00002db0, 0x90000000, 0x00000008, 0x91000000, 0x00005805,
+    0xa0000000, 0x00cf1133, 0x00005914, 0xc0000000, 0x00920000, 0x00006bff, 0x00000000,
+};
+
+static void test_8mp_evk_log(void **state)
+{
+    size_t len = sizeof(out);
+    (void)state;
+
+    assert_int_equal(
+        imx_rom_log_decode(
+            IMX_ROM_LOG_DEFS_V2, evk_8mp_log, ARRAY_SIZE(evk_8mp_log), 0x009112f8, out, &len),
+        PB_OK);
+    assert_string_equal(out,
+                        "ROM log at 0x009112f8\n"
+                        " 0: e0000000           Internal use\n"
+                        " 1: 22000000           Security config: open\n"
+                        " 2: 31000000           Internal use\n"
+                        " 3: 40000000           FUSE_SEL_VALUE fuse not blown\n"
+                        " 4: 61000000           Primary boot device: SD/eMMC\n"
+                        " 5: 82000000 00000ed7  Device pre-config: tick 3799\n"
+                        " 7: 83000000           Device pre-config: pass\n"
+                        " 8: 80000000 00000ee1  Device init: tick 3809\n"
+                        "10: 81000000 00002acb  Device init: pass, tick 10955\n"
+                        "12: 50000000           Boot from the primary image\n"
+                        "13: 90000000 00000000  Device read, image offset: 0x00000000\n"
+                        "15: 91000000 00002db0  Device read: pass, tick 11696\n"
+                        "17: 90000000 00000008  Device read, image offset: 0x00000008\n"
+                        "19: 91000000 00005805  Device read: pass, tick 22533\n"
+                        "21: a0000000 00cf1133 00005914  Authentication: fail, tick 22804\n"
+                        "24: c0000000 00920000 00006bff  Jump to boot image: 0x00920000, tick "
+                        "27647\n");
+}
+
+/* An unknown definition version */
+static void test_unknown_defs(void **state)
+{
+    size_t len = sizeof(out);
+    (void)state;
+
+    assert_int_equal(imx_rom_log_decode(1, jiffy_log, ARRAY_SIZE(jiffy_log), 0, out, &len),
+                     -PB_ERR_PARAM);
+    assert_false(imx_rom_log_find(1, jiffy_log, ARRAY_SIZE(jiffy_log), 0x00010000));
+}
+
 /* A ROM pointer at a log, at addresses below 4 GiB (-no-pie) */
 static uint32_t fake_rom_log[64];
 static uint32_t fake_rom_ptr;
@@ -300,6 +392,9 @@ int main(void)
         cmocka_unit_test(test_find_event),
         cmocka_unit_test(test_no_saved_log),
         cmocka_unit_test(test_saved_log_source),
+        cmocka_unit_test(test_v2_log),
+        cmocka_unit_test(test_8mp_evk_log),
+        cmocka_unit_test(test_unknown_defs),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
