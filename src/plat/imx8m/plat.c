@@ -44,7 +44,7 @@ static const mmap_region_t imx_mmap[] = {
     /* DDRC */
     MAP_REGION_FLAT(0x3c000000, (22 * 1024 * 1024), MT_DEVICE | MT_RW),
     /* Boot ROM API*/
-    MAP_REGION_FLAT(0x00000000, (128 * 1024), MT_MEMORY | MT_RO | MT_EXECUTE),
+    MAP_REGION_FLAT(0x00000000, IMX8M_ROM_SIZE, MT_MEMORY | MT_RO | MT_EXECUTE),
     /* Periph (AIPS) */
     MAP_REGION_FLAT(0x30000000, (16 * 1024 * 1024), MT_DEVICE | MT_RW),
     /* OCRAM */
