@@ -1,0 +1,13 @@
+# Wire transcript 'boot_partition' (D-008, compatibility guard 4).
+# Recorded once by test_transcripts.py and never changed.
+# Host: punchboot 3.0.0. Device: pb-host.
+# '>' host to device, '<' device to host, 'zeros n' is n zero bytes.
+
+step boot_partition
+> 512
+  304c4250160000002af755d88de545d5a862014cfa735ce00100000000000000
+  zeros 480
+< 512
+  304c425000000000000000000000000000000000000000000000000000000000
+  zeros 480
+result None

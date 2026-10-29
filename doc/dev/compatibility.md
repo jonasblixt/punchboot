@@ -84,8 +84,18 @@ the same way. New images that old firmware can't read are fine only if they are 
   `SHA256SUMS`, pins `pb_id()` to the bpak ids, and checks the Python mirrors (`SLC`,
   `PartitionFlags`, the `PB_CMD_*` in `pbtest.py`) against `abi.txt`. The CI `compat` job fails if
   a committed image is changed or deleted.
-- Not covered yet: old hosts and recorded transcripts (roadmap Phase 1, items 3 and 4), and
-  behaviour, which only tests and review catch (F-075 changed what a zero means, not a layout).
+- **Recorded transcripts** (`tests/compat/transcripts/`, new host → old device). Each scenario
+  in `test_transcripts.py` is a list of `Session` calls on one connection, covering every command
+  the package sends and the host's own argument checks. Its transcript holds the bytes each way
+  and what each call returned, recorded once from the host of that time against pb-host
+  (`PB_RECORD_TRANSCRIPTS=1`) and never changed: the first ones are from the 2.x C host library.
+  A fake device serves them to the current host, which must send the same bytes and return the
+  same values. The CI `compat` job fails if a transcript is changed or deleted. To cover more,
+  add a scenario. Transfer sizes inside a segment are not recorded (a socket is a byte stream);
+  over USB they matter where a transfer ends in a short packet.
+- Not covered yet: old hosts against the current device (roadmap Phase 1, item 3), replaying the
+  host side of the transcripts against pb-host (old host → new device), and behaviour, which only
+  tests and review catch (F-075 changed what a zero means, not a layout).
 
 If a frozen value really has to change, that is a new decision entry first, never a quiet edit.
 
