@@ -26,8 +26,11 @@ are done (`compatibility.md`, Guards).
   spec plus a uSDHC register model (D-017, `testing.md`) found F-116..F-125, all fixed but F-116
   (HS400 tuning). New request-based HAL, one `mmc_device` per card (`mmc_emmc.c`, `mmc_sd.c`),
   SD cards (default/high speed, 4 bit), the imx8mpevk microSD slot on uSDHC2: works on the EVK
-  with eMMC HS200. Hardware found F-126 (no TC after busy). Next: UHS-I (CMD11, tuning), DDR52
-  on the EVK (F-113). jiffy checked (DDR52).
+  with eMMC HS200. Hardware found F-126 (no TC after busy). HS200 tuning on every boot (2 ms, tap 46
+  on the EVK), CMD12 after the data instead of auto CMD12. Next: UHS-I (CMD11, tuning), DDR52
+  on the EVK (F-113). jiffy checked (DDR52) before the tuning/CMD12/log changes.
+- **Boot time (2026-10-29):** log lines carry `[ms.us]` (no more `ts()`), console at warnings, RAM
+  log at debug. The imx8mpevk trains only 4000 MT/s (`struct dram_rates`): plat init 75 ms.
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
