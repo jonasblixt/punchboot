@@ -163,10 +163,11 @@ The Linux and ATF boot drivers add to `/chosen` in the image's device tree:
 The device tree doesn't need any of them, nor `/chosen`: pb adds what is
 missing. Before that it grows the device tree in place, into the RAM after
 its part, by `CONFIG_BOOT_DTB_HEADROOM` (4 KiB by default). Keep that RAM free
-in the image: the boot fails if another part or pb is there. Growing moves
-the device tree's strings; on jiffy (i.MX6UL, a 30 KB device tree) that is
-too little to measure. A device tree built with the properties and free space
-for them (`dtc -p`) works with a headroom of 0.
+in the image: the boot fails if another part or pb is there. For a device
+tree in dtc's block order growing only changes its size in the header; each
+property added moves the rest of the tree, as it always did. On jiffy (i.MX6UL,
+a 30 KB device tree) that is too little to measure. A device tree built with
+the properties and free space for them (`dtc -p`) works with a headroom of 0.
 
 ## Command mode
 

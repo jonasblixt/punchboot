@@ -28,9 +28,9 @@ config BOOT_DTB_HEADROOM
         board's callback sets (bootargs). First they grow the device tree in
         place by this many bytes, into the RAM after its part. Leave that RAM
         free in the boot image: another part or pb there fails the boot.
-        Growing moves the device tree's strings, which takes a little time; a
-        device tree built with the properties and free space for them
-        (dtc -p) doesn't need it, set 0 then.
+        For a device tree in dtc's block order growing only changes its
+        size in the header. A device tree built with the properties and free
+        space for them (dtc -p) doesn't need it, set 0 then.
 
 config BOOT_ARMV7M_BAREMETAL
     bool "ARMv7m bare metal boot support"
