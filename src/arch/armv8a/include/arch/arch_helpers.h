@@ -227,12 +227,9 @@ void clean_dcache_range(uintptr_t addr, size_t size);
 void inv_dcache_range(uintptr_t addr, size_t size);
 bool is_dcache_enabled(void);
 
-void dcsw_op_louis(u_register_t op_type);
 void dcsw_op_all(u_register_t op_type);
 
-void disable_mmu_el1(void);
 void disable_mmu_el3(void);
-void disable_mmu_icache_el1(void);
 void disable_mmu_icache_el3(void);
 
 /*******************************************************************************
@@ -347,15 +344,6 @@ static inline void disable_debug_exceptions(void)
     write_daifset(DAIF_DBG_BIT);
     isb();
 }
-
-void __dead2 smc(uint64_t x0,
-                 uint64_t x1,
-                 uint64_t x2,
-                 uint64_t x3,
-                 uint64_t x4,
-                 uint64_t x5,
-                 uint64_t x6,
-                 uint64_t x7);
 
 /*******************************************************************************
  * System register accessor prototypes

@@ -22,17 +22,6 @@
 	tlbi	_type
 #endif
 
-
-	.macro	func_prologue
-	stp	x29, x30, [sp, #-0x10]!
-	mov	x29,sp
-	.endm
-
-	.macro	func_epilogue
-	ldp	x29, x30, [sp], #0x10
-	.endm
-
-
 	.macro	dcache_line_size  reg, tmp
 	mrs	\tmp, ctr_el0
 	ubfx	\tmp, \tmp, #16, #4
@@ -40,20 +29,11 @@
 	lsl	\reg, \reg, \tmp
 	.endm
 
-
 	.macro	icache_line_size  reg, tmp
 	mrs	\tmp, ctr_el0
 	and	\tmp, \tmp, #0xf
 	mov	\reg, #4
 	lsl	\reg, \reg, \tmp
-	.endm
-
-
-	.macro	smc_check  label
-	mrs	x0, esr_el3
-	ubfx	x0, x0, #ESR_EC_SHIFT, #ESR_EC_LENGTH
-	cmp	x0, #EC_AARCH64_SMC
-	b.ne	$label
 	.endm
 
 	/*
@@ -67,32 +47,6 @@
 	.section \section_name, "ax"
 	.align 11, 0
 	\label:
-	.endm
-
-	/*
-	 * Create an entry in the exception vector table, enforcing it is
-	 * aligned on a 128-byte boundary, as required by the ARMv8 architecture.
-	 * Use zero bytes as the fill value to be stored in the padding bytes
-	 * so that it inserts illegal AArch64 instructions. This increases
-	 * security, robustness and potentially facilitates debugging.
-	 */
-	.macro vector_entry  label, section_name=.vectors
-	.cfi_sections .debug_frame
-	.section \section_name, "ax"
-	.align 7, 0
-	.type \label, %function
-	.cfi_startproc
-	\label:
-	.endm
-
-	/*
-	 * Add the bytes until fill the full exception vector, whose size is always
-	 * 32 instructions. If there are more than 32 instructions in the
-	 * exception vector then an error is emitted.
-	 */
-	.macro end_vector_entry label
-	.cfi_endproc
-	.fill	\label + (32 * 4) - .
 	.endm
 
 	/*
@@ -184,55 +138,4 @@
 	.space	SPINLOCK_ASM_SIZE
 	.endm
 
-#if RAS_EXTENSION
-	.macro esb
-	.inst	0xd503221f
-	.endm
-#endif
-
-.macro tbzmask, reg, mask, label, shift=0
-.if \shift >= 64
-    .error "tbzmask: unsupported mask, \mask"
-.elseif \mask == 1 << \shift
-    tbz     \reg, #\shift, \label
-.else
-    tbzmask \reg, \mask, \label, "(\shift + 1)"
-.endif
-.endm
-
-.macro calloc_bootmem_aligned, new_ptr, new_ptr_end, tmp, size_shift, phys_offset=0
-.if \size_shift < 4
-    .error "calloc_bootmem_aligned: Unsupported size_shift, \size_shift"
-.endif
-
-    /* load boot_alloc_end */
-    adrp    \tmp, boot_alloc_end
-    ldr     \new_ptr, [\tmp, #:lo12:boot_alloc_end]
-
-    /* align to page */
-.if \size_shift > 12
-    add     \new_ptr, \new_ptr, #(1 << \size_shift)
-    sub     \new_ptr, \new_ptr, #1
-.else
-    add     \new_ptr, \new_ptr, #(1 << \size_shift) - 1
-.endif
-    and     \new_ptr, \new_ptr, #~((1 << \size_shift) - 1)
-
-    /* add one page and store boot_alloc_end */
-    add     \new_ptr_end, \new_ptr, #(1 << \size_shift)
-    str     \new_ptr_end, [\tmp, #:lo12:boot_alloc_end]
-
-.if \phys_offset != 0
-    /* clear page */
-    sub     \new_ptr, \new_ptr, \phys_offset
-    sub     \new_ptr_end, \new_ptr_end, \phys_offset
-.endif
-
-    /* clear page */
-    mov     \tmp, \new_ptr
-.Lcalloc_bootmem_aligned_clear_loop\@:
-    stp     xzr, xzr, [\tmp], #16
-    cmp     \tmp, \new_ptr_end
-    b.lo    .Lcalloc_bootmem_aligned_clear_loop\@
-.endm
 #endif /* ASM_MACROS_S */
