@@ -77,6 +77,13 @@ scripts/pbdebug --load imxrt1060evk  # the same over the EVK's J-Link (SWD), con
   and watchdogs; `pb_load_start` sets MSP, PC and VTOR from pb's vector table after `load`. pb
   comes up at 600 MHz, finds the IS25WP064D NOR and answers over USB OTG1. The NOR must hold a
   boot image (the EVK's demo application does).
+- Writing pb to the EVK's QSPI NOR: `make ... all` for imxrt1060evk also builds
+  `build-imxrt1060evk/pb_flash.bin`: the FlexSPI configuration block (FCB, the 512 bytes the
+  ROM reads first, RM 9.6.3.1; `src/board/imxrt1060evk/fcb_*.c`, picked by the board revision in
+  Kconfig), zeros up to 0x1000, then `pb.imx`. With pb running (e.g. loaded over the J-Link):
+  `punchboot part erase <BL>`, `part write build-imxrt1060evk/pb_flash.bin <BL>`, `part verify`,
+  `dev reset`. The BL partition starts at offset 0 of the NOR. The FCB for rev A/B is
+  byte-identical to the one NXP's tools put on a rev A2 board; rev C's (W25Q128JW) isn't tried.
 - Configs: `src/plat/imx6ul/openocd.cfg` (chip: upstream `target/imx6ul.cfg` with DAP r5
   `0x5ba00477`, the upstream default r4 doesn't match the silicon) and
   `src/board/<board>/openocd.cfg` (board). The board config sources the platform one.
