@@ -5,3 +5,160 @@ CONFIG_REGULATOR_FAN53555=y
 
 # Ethernet PHY, LAN8710A
 CONFIG_SMSC_PHY=y
+
+# Boot time: only what jiffy has. Its DTS enables UART1-4 (nothing on them
+# but the console), I2C1-2, FEC1, uSDHC1 (eMMC), ADC1, WDOG1, the SNVS and
+# GPIO. Every MB less in the Image is ~50 ms less boot: the zImage
+# decompresses itself at ~22 MB/s and pb reads it at 77 MiB/s.
+
+# The i.MX6UL only, which also makes it an ARMv7-only kernel
+# CONFIG_ARCH_MULTI_V6 is not set
+# CONFIG_SOC_IMX31 is not set
+# CONFIG_SOC_IMX35 is not set
+# CONFIG_SOC_IMX50 is not set
+# CONFIG_SOC_IMX51 is not set
+# CONFIG_SOC_IMX53 is not set
+# CONFIG_SOC_IMX6Q is not set
+# CONFIG_SOC_IMX6SL is not set
+# CONFIG_SOC_IMX6SLL is not set
+# CONFIG_SOC_IMX6SX is not set
+# CONFIG_SOC_IMX7D is not set
+# CONFIG_SOC_IMX7ULP is not set
+# CONFIG_SOC_VF610 is not set
+
+# No display, sound, camera, radios, PCIe, SATA, NAND or USB devices
+# CONFIG_DRM is not set
+# CONFIG_FB is not set
+# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
+# CONFIG_VT is not set
+# CONFIG_SOUND is not set
+# CONFIG_MEDIA_SUPPORT is not set
+# CONFIG_RC_CORE is not set
+# CONFIG_WIRELESS is not set
+# CONFIG_WLAN is not set
+# CONFIG_CFG80211 is not set
+# CONFIG_MAC80211 is not set
+# CONFIG_RFKILL is not set
+# CONFIG_BT is not set
+# CONFIG_CAN is not set
+# CONFIG_PCI is not set
+# CONFIG_ATA is not set
+# CONFIG_SCSI is not set
+# CONFIG_MTD is not set
+# CONFIG_USB_SUPPORT is not set
+# CONFIG_HID is not set
+# CONFIG_SPI is not set
+# CONFIG_PWM is not set
+# CONFIG_STAGING is not set
+# CONFIG_INPUT_KEYBOARD is not set
+# CONFIG_INPUT_MOUSE is not set
+# CONFIG_INPUT_TOUCHSCREEN is not set
+# CONFIG_INPUT_MISC is not set
+
+# Other boards' PMICs and companion chips
+# CONFIG_MFD_DA9062 is not set
+# CONFIG_MFD_DA9063 is not set
+# CONFIG_MFD_MC13XXX is not set
+# CONFIG_MFD_MC13XXX_I2C is not set
+# CONFIG_MFD_RN5T618 is not set
+# CONFIG_MFD_STMPE is not set
+# CONFIG_MFD_SY7636A is not set
+# CONFIG_MFD_WM8994 is not set
+
+# Ethernet: the FEC only
+# CONFIG_NET_VENDOR_ADAPTEC is not set
+# CONFIG_NET_VENDOR_AGERE is not set
+# CONFIG_NET_VENDOR_ALACRITECH is not set
+# CONFIG_NET_VENDOR_ALTEON is not set
+# CONFIG_NET_VENDOR_AMAZON is not set
+# CONFIG_NET_VENDOR_AMD is not set
+# CONFIG_NET_VENDOR_AQUANTIA is not set
+# CONFIG_NET_VENDOR_ARC is not set
+# CONFIG_NET_VENDOR_ASIX is not set
+# CONFIG_NET_VENDOR_ATHEROS is not set
+# CONFIG_NET_VENDOR_CADENCE is not set
+# CONFIG_NET_VENDOR_CAVIUM is not set
+# CONFIG_NET_VENDOR_CHELSIO is not set
+# CONFIG_NET_VENDOR_CIRRUS is not set
+# CONFIG_NET_VENDOR_CISCO is not set
+# CONFIG_NET_VENDOR_CORTINA is not set
+# CONFIG_NET_VENDOR_DAVICOM is not set
+# CONFIG_NET_VENDOR_DEC is not set
+# CONFIG_NET_VENDOR_DLINK is not set
+# CONFIG_NET_VENDOR_EMULEX is not set
+# CONFIG_NET_VENDOR_ENGLEDER is not set
+# CONFIG_NET_VENDOR_EZCHIP is not set
+# CONFIG_NET_VENDOR_FUNGIBLE is not set
+# CONFIG_NET_VENDOR_GOOGLE is not set
+# CONFIG_NET_VENDOR_HISILICON is not set
+# CONFIG_NET_VENDOR_HUAWEI is not set
+# CONFIG_NET_VENDOR_ADI is not set
+# CONFIG_NET_VENDOR_LITEX is not set
+# CONFIG_NET_VENDOR_MELLANOX is not set
+# CONFIG_NET_VENDOR_META is not set
+# CONFIG_NET_VENDOR_MICROSEMI is not set
+# CONFIG_NET_VENDOR_MICROSOFT is not set
+# CONFIG_NET_VENDOR_MYRI is not set
+# CONFIG_NET_VENDOR_NI is not set
+# CONFIG_NET_VENDOR_NETERION is not set
+# CONFIG_NET_VENDOR_NETRONOME is not set
+# CONFIG_NET_VENDOR_NVIDIA is not set
+# CONFIG_NET_VENDOR_OKI is not set
+# CONFIG_NET_VENDOR_PENSANDO is not set
+# CONFIG_NET_VENDOR_QLOGIC is not set
+# CONFIG_NET_VENDOR_BROCADE is not set
+# CONFIG_NET_VENDOR_QUALCOMM is not set
+# CONFIG_NET_VENDOR_RDC is not set
+# CONFIG_NET_VENDOR_REALTEK is not set
+# CONFIG_NET_VENDOR_RENESAS is not set
+# CONFIG_NET_VENDOR_ROCKER is not set
+# CONFIG_NET_VENDOR_SAMSUNG is not set
+# CONFIG_NET_VENDOR_SILAN is not set
+# CONFIG_NET_VENDOR_SIS is not set
+# CONFIG_NET_VENDOR_SOLARFLARE is not set
+# CONFIG_NET_VENDOR_SMSC is not set
+# CONFIG_NET_VENDOR_SOCIONEXT is not set
+# CONFIG_NET_VENDOR_SUN is not set
+# CONFIG_NET_VENDOR_SYNOPSYS is not set
+# CONFIG_NET_VENDOR_TEHUTI is not set
+# CONFIG_NET_VENDOR_TI is not set
+# CONFIG_NET_VENDOR_VERTEXCOM is not set
+# CONFIG_NET_VENDOR_VIA is not set
+# CONFIG_NET_VENDOR_WANGXUN is not set
+# CONFIG_NET_VENDOR_WIZNET is not set
+# CONFIG_NET_VENDOR_XILINX is not set
+
+# Networking: IPv4 only
+# CONFIG_IPV6 is not set
+# CONFIG_NETFILTER is not set
+
+# File systems: ext4, VFAT and squashfs stay; no network or NAND ones
+# CONFIG_NETWORK_FILESYSTEMS is not set
+# CONFIG_FUSE_FS is not set
+# CONFIG_AUTOFS_FS is not set
+# CONFIG_QUOTA is not set
+
+# The jitter entropy RNG took 464 ms to start (initcall_debug), it came with
+# the crypto DRBG through ECDH, which only Bluetooth needed. random.c doesn't
+# use it, and the CAAM's RNG feeds the entropy pool.
+# CONFIG_CRYPTO_ECDH is not set
+# CONFIG_CRYPTO_DRBG_MENU is not set
+# CONFIG_CRYPTO_JITTERENTROPY is not set
+
+# No RAM disks (25 ms), loop devices only on demand (12 ms)
+# CONFIG_BLK_DEV_RAM is not set
+CONFIG_BLK_DEV_LOOP_MIN_COUNT=0
+
+# Debug and extras. The initramfs is gzip.
+# CONFIG_KPROBES is not set
+# CONFIG_BPF_SYSCALL is not set
+# CONFIG_IO_URING is not set
+# CONFIG_DEBUG_FS is not set
+# CONFIG_IKCONFIG is not set
+# CONFIG_SWAP is not set
+# CONFIG_RD_BZIP2 is not set
+# CONFIG_RD_LZMA is not set
+# CONFIG_RD_XZ is not set
+# CONFIG_RD_LZO is not set
+# CONFIG_RD_LZ4 is not set
+# CONFIG_RD_ZSTD is not set

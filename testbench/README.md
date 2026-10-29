@@ -155,6 +155,38 @@ jiffy power-on-resets a few seconds into Linux (F-151).
 
 Console: UART2 (`ttymxc1`), 115200 8N1, root login without password.
 
+## Boot time (jiffy)
+
+Warm resets (`reboot` in Linux, the watchdog), System A enabled, timed on the
+console from the host (FTDI latency timer 16 ms) to a temporary first
+`inittab` line that prints `/proc/uptime`, medians of 5 runs (2026-10-29):
+
+| Kernel | zImage | Reset to BusyBox init | Kernel uptime at init |
+| ------ | ------ | --------------------- | --------------------- |
+| `imx_v6_v7_defconfig` | 10.2 MB | 2939 ms | 1520 ms |
+| only jiffy's hardware (`board/jiffy/linux.fragment`) | 4.6 MB | 2108 ms | 1220 ms |
+| and no jitter entropy RNG, RAM disks or preallocated loop devices | 4.6 MB | 1629 ms | 740 ms |
+| and LZ4 instead of gzip (`BR2_LINUX_KERNEL_LZ4`) | 5.4 MB | **1326 ms** | 730 ms |
+
+From the reset (the slim LZ4 kernel; from the console timing, pb's RAM log
+and `initcall_debug`):
+
+| Step | ms |
+| ---- | -- |
+| Boot ROM with HAB, to pb's banner (128 when reset from pb) | 144 |
+| pb init: clocks, DDR, CAAM, eMMC, GPT | 27 |
+| pb loads and verifies `boot.bpak` (77 MiB/s read, SHA-256 overlapped) | ~80 |
+| zImage decompressing itself (LZ4; gzip was ~650), the kernel before its clock | ~350 |
+| kernel to `Run /init` | ~650 |
+| kickstart: boot state 18, signature 54, dm-verity and mount 41, exec init | ~120 |
+
+`initcall_debug` (it needs the command line in the kernel, pb sets
+`bootargs`: `CONFIG_CMDLINE_EXTEND` with `initcall_debug`) found the jitter
+entropy RNG at 464 ms, more than half of all initcalls. Of the rest: the FEC
+41 ms (10 + 10 ms PHY reset from the DTS), the CAAM 45 ms, the four UARTs
+21 ms, GPIO 20 ms. To the login prompt it is another ~6 s, `udhcpc` (~3 s
+without a lease) and `S99pbstate` (~2.7 s).
+
 ## Keys
 
 Everything is signed with punchboot's **test** keys (`pki/`):
