@@ -60,9 +60,15 @@ pb_unit_test(test_console SOURCES
 # fopencookie(), to send printf() through the console
 target_compile_definitions(test_console PRIVATE _GNU_SOURCE)
 
+# The test's fake ROM log pointer is 32 bits: -no-pie keeps the log it
+# points to at a low address
 pb_unit_test(test_imx_rom_log SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/rom_log/imx_rom_log.c
+    ${PROJECT_SOURCE_DIR}/src/log_source.c
+    ${PROJECT_SOURCE_DIR}/src/ramlog.c
 )
+target_compile_options(test_imx_rom_log PRIVATE -fno-pie)
+target_link_options(test_imx_rom_log PRIVATE -no-pie)
 
 pb_unit_test(test_crypto
     SOURCES

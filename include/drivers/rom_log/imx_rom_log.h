@@ -43,7 +43,8 @@ struct imx_rom_log_config {
 };
 
 /**
- * Copy the ROM's log, before anything can overwrite it.
+ * Copy the ROM's log, before anything can overwrite it. When there is a log,
+ * it can be read as the log "rom" (PB_CMD_LOG_READ).
  *
  * @param[in] cfg Where the log is, must stay valid
  */

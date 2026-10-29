@@ -8,6 +8,7 @@
  */
 
 #include <drivers/rom_log/imx_rom_log.h>
+#include <pb/log_source.h>
 #include <pb/pb.h>
 #include <stdio.h>
 #include <string.h>
@@ -92,10 +93,16 @@ static const struct rom_log_defs rom_log_defs[] = {
     },
 };
 
+/* Lines are at most about 64 characters, most events have no parameter */
+#define ROM_LOG_TEXT_SIZE (IMX_ROM_LOG_MAX_WORDS * 64)
+
 static const struct imx_rom_log_config *rom_log_cfg;
 static uint32_t rom_log[IMX_ROM_LOG_MAX_WORDS];
 static size_t rom_log_words;
 static uintptr_t rom_log_addr;
+static char rom_log_text[ROM_LOG_TEXT_SIZE];
+static size_t rom_log_text_len;
+static bool rom_log_decoded;
 
 static const struct rom_log_defs *find_defs(unsigned int version)
 {
@@ -208,6 +215,44 @@ int imx_rom_log_decode(unsigned int version,
     return PB_OK;
 }
 
+/* The text of the saved log, decoded at the first read */
+static size_t rom_log_text_length(void)
+{
+    if (!rom_log_decoded) {
+        rom_log_text_len = sizeof(rom_log_text);
+        /* A truncated log still has what fits */
+        (void)imx_rom_log_dump(rom_log_text, &rom_log_text_len);
+        rom_log_decoded = true;
+    }
+
+    return rom_log_text_len;
+}
+
+static uint32_t rom_log_head(void)
+{
+    return (uint32_t)rom_log_text_length();
+}
+
+static size_t rom_log_read(size_t offset, void *buf, size_t length)
+{
+    size_t size = rom_log_text_length();
+
+    if (offset >= size)
+        return 0;
+
+    length = MIN(length, size - offset);
+    memcpy(buf, &rom_log_text[offset], length);
+    return length;
+}
+
+static const struct log_source rom_log_source = {
+    .name = "rom",
+    .description = "The boot ROM's event log",
+    .head = rom_log_head,
+    .length = rom_log_text_length,
+    .read = rom_log_read,
+};
+
 void imx_rom_log_save(const struct imx_rom_log_config *cfg)
 {
     uintptr_t ptr_addr = cfg->pointer;
@@ -230,6 +275,10 @@ void imx_rom_log_save(const struct imx_rom_log_config *cfg)
         rom_log[i] = ((const volatile uint32_t *)log)[i];
 
     rom_log_words = words;
+    rom_log_decoded = false;
+
+    if (log_source_register(&rom_log_source) != PB_OK)
+        LOG_ERR("No room for the ROM log in the logs");
 }
 
 bool imx_rom_log_find(unsigned int version, const uint32_t *log, size_t n_words, uint32_t event)

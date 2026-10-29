@@ -18,6 +18,8 @@
 #include <cmocka.h>
 
 #include <drivers/rom_log/imx_rom_log.h>
+#include <pb/crc.h>
+#include <pb/log_source.h>
 #include <pb/pb.h>
 #include <string.h>
 
@@ -230,6 +232,60 @@ static void test_no_saved_log(void **state)
     assert_false(imx_rom_log_has_event(IMX_ROM_LOG_V0_PRIMARY_IMAGE));
 }
 
+/* A ROM pointer at a log, at addresses below 4 GiB (-no-pie) */
+static uint32_t fake_rom_log[64];
+static uint32_t fake_rom_ptr;
+
+static const struct imx_rom_log_config fake_cfg = {
+    .pointer = (uintptr_t)&fake_rom_ptr,
+    .ram_start = (uintptr_t)fake_rom_log,
+    .ram_end = (uintptr_t)fake_rom_log + sizeof(fake_rom_log),
+    .words = ARRAY_SIZE(fake_rom_log),
+    .defs = IMX_ROM_LOG_DEFS_V0,
+};
+
+static const struct log_source *rom_source(void)
+{
+    return log_source_get(crc32(0, (const uint8_t *)"rom", 3));
+}
+
+/* A saved log is the log "rom", as the text the decoder makes */
+static void test_saved_log_source(void **state)
+{
+    static char text[4096];
+    static char read[4096];
+    const struct log_source *src;
+    size_t len = sizeof(text);
+    (void)state;
+
+    assert_true((uintptr_t)fake_rom_log < 0x100000000ULL);
+
+    /* A pointer outside the RAM: no log */
+    fake_rom_ptr = (uint32_t)(uintptr_t)fake_rom_log + sizeof(fake_rom_log);
+    imx_rom_log_save(&fake_cfg);
+    assert_null(rom_source());
+    assert_false(imx_rom_log_has_event(IMX_ROM_LOG_V0_JUMP));
+
+    memcpy(fake_rom_log, jiffy_log, sizeof(jiffy_log));
+    fake_rom_ptr = (uint32_t)(uintptr_t)fake_rom_log;
+    imx_rom_log_save(&fake_cfg);
+    assert_true(imx_rom_log_has_event(IMX_ROM_LOG_V0_JUMP));
+
+    assert_int_equal(
+        imx_rom_log_decode(
+            IMX_ROM_LOG_DEFS_V0, jiffy_log, ARRAY_SIZE(jiffy_log), fake_rom_ptr, text, &len),
+        PB_OK);
+    src = rom_source();
+    assert_non_null(src);
+    assert_int_equal(src->head(), len);
+    assert_int_equal(src->length(), len);
+    assert_int_equal(src->read(0, read, sizeof(read)), len);
+    assert_memory_equal(read, text, len);
+    assert_int_equal(src->read(len - 5, read, sizeof(read)), 5);
+    assert_memory_equal(read, &text[len - 5], 5);
+    assert_int_equal(src->read(len, read, sizeof(read)), 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -243,6 +299,7 @@ int main(void)
         cmocka_unit_test(test_output_too_small),
         cmocka_unit_test(test_find_event),
         cmocka_unit_test(test_no_saved_log),
+        cmocka_unit_test(test_saved_log_source),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
