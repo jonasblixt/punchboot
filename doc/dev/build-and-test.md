@@ -76,7 +76,8 @@ scripts/pbdebug --load imxrt1060evk  # the same over the EVK's J-Link (SWD), con
   its vector table) and stops it at the image's reset handler, so pb starts with the ROM's clocks
   and watchdogs; `pb_load_start` sets MSP, PC and VTOR from pb's vector table after `load`. pb
   comes up at 600 MHz, finds the IS25WP064D NOR and answers over USB OTG1. The NOR must hold a
-  boot image (the EVK's demo application does).
+  boot image: one that runs from the NOR (the EVK's demo application) or one the ROM copies to RAM
+  (`pb_flash.bin`), whose reset handler is read from the NOR copy.
 - Writing pb to the EVK's QSPI NOR: `make ... all` for imxrt1060evk also builds
   `build-imxrt1060evk/pb_flash.bin`: the FlexSPI configuration block (FCB, the 512 bytes the
   ROM reads first, RM 9.6.3.1; `src/board/imxrt1060evk/fcb_*.c`, picked by the board revision in
