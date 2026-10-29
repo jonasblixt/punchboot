@@ -50,7 +50,6 @@
 
 #define CCM_ANALOG_DIGPROG         0x3036006C
 
-#define HAB_RVT_BASE               0x00000880
 #define IMX_CSU_BASE               (0x303e0000)
 
 #endif
