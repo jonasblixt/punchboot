@@ -4,3 +4,4 @@ src-y  += src/boot/image_helpers.c
 src-$(CONFIG_BOOT_LINUX) += src/boot/linux.c
 src-$(CONFIG_BOOT_ATF) += src/boot/atf.c
 src-$(CONFIG_BOOT_ARMV7M_BAREMETAL) += src/boot/armv7m_baremetal.c
+src-$(CONFIG_BOOT_LINUX_RAMOOPS) += src/boot/linux_ramoops.c
