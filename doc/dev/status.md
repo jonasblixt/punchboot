@@ -7,9 +7,9 @@ _Last updated: 2026-10-29_
 3.0.0 (branch `work-3.0.0`, D-018): one big branch until the release, with the RAM log
 (`CONFIG_RAMLOG`, `PB_CMD_LOG_READ`, `punchboot log`), the i.MX8M and MMC work below and the
 jiffy USB fixes. Wire and bpak stay compatible (D-008); the major bump is for the porting API.
-Moving the tests to the host is done (D-004..D-006, `testing.md`). Compatibility guards 1 and 2
-are done (`compatibility.md`, Guards).
-- **Tests:** 108 pytest (+2 xfail: F-076), 21 unit test programs and
+Moving the tests to the host is done (D-004..D-006, `testing.md`). Compatibility guards 1, 2 and
+the host half of 4 are done (`compatibility.md`, Guards).
+- **Tests:** 120 pytest (+2 xfail: F-076), 21 unit test programs and
   the `compat.abi` layout check, ~15 s, ASan/UBSan clean. Line coverage 99.2% (was 59%); what's left is in `testing.md`.
   `scripts/pbdev test` runs it all.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (gcovr HTML artifact, D-012), a
@@ -39,6 +39,12 @@ are done (`compatibility.md`, Guards).
   F-132 (IN toggle reset) and F-133 (unused direction left control type), register/field names
   from the RM (`imx_ci_udc_private.h`). F-130 fixed (`3746bc6c`, stale cached dQH overlay, found
   with usbmon and a controller dump), on jiffy BOOT0. Next: F-134 before any cache work, F-136.
+- **Host tools pure Python (2026-10-29, D-021):** `wire.py`, `bpak.py`, `transport.py` (pyusb +
+  libusb-package), `session.py`; the C library and `_punchboot` are gone, the wheel is
+  `py3-none-any`. Wire transcripts recorded from the 2.x C library (guard 4) pass byte for byte,
+  structs checked against `abi.txt`. On the 8MP EVK: CLI and 32 MiB writes as fast as the 2.7.1
+  wheel (~28.5 MiB/s). jiffy is locked, not tried. F-077 fixed. Unverified: the CI smoke test on
+  Windows/macOS (`punchboot-tools.yml`) until it runs on GitHub.
 - **Slimming (2026-10-29, D-019, D-020):** self tests, littlefs, the Sphinx/RTD tree, `doc/`
   binaries, TF-A asm helpers, headers, always-on Kconfig options and dead scripts removed: about
   11,000 lines and 7 MB. Until the incoming boards are in, code without an in-tree user stays
@@ -60,9 +66,9 @@ are done (`compatibility.md`, Guards).
    (erase), F-063, F-070, the rest of F-066 and F-067 (SIGPIPE, orphaned pb-host, `-m32`).
    F-071 (pb adds missing DTB properties, with spare RAM, a performance note and a jiffy test) is
    planned in the roadmap, Phase 1.
-3. Compatibility guards: 1 (frozen layout) and 2 (golden bpak images) are done. Next: 3 (old PyPI
-   wheels against pb-host), 4 (recorded transcripts), 5 (CODEOWNERS), older bpak CLI images.
-   Then the compat fixes F-075 (erase), F-076 (dont-hash, has an xfail test), F-077 (caps 0).
+3. Compatibility guards: 1, 2 and 4 (host side: transcripts served to the host) are done. Next: 3
+   (old PyPI wheels against pb-host), 4's device side (replay the host bytes against pb-host),
+   5 (CODEOWNERS), older bpak CLI images. Then the compat fixes F-075 (erase), F-076 (dont-hash).
    `compat-guards` also carries the jiffy HAB signing commits, to be split onto their own branch.
 4. F-049 is fixed: consider `-Werror` for the host build.
    PR #65 (`high-prio-fixes`, replaces PR #64) is merged (2026-10-23): all of `jiffy-fixes`,
