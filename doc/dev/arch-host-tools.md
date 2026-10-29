@@ -19,11 +19,13 @@ libusb-package (libusb binaries for pyusb; without it pyusb uses the system's li
   (`api_*.c`), including its quirks: the stream is finalized after a failed write, the board
   command request and the prepare-buffer data are sent whatever the first result says (F-095).
   `Session(transport=...)` takes any transport (the transcript tests record the write sizes).
+  `log_read(name)` / `log_list()`: a log is selected by `pb_id()` of its name; pb's log goes as 0,
+  and an echo of 0 for another log means an old device (`NotSupportedError`), see `compatibility.md`.
 - `errors.py`: `Error` and one exception per `pb_results` value; unknown codes are `GenericError`.
 - `helpers.py`: `pb_id` (crc32 table), `list_usb_devices`, `wait_for_device`, `valid_bpak_magic`.
   `partition.py`, `slc.py`: `Partition`, `PartitionFlags`, `SLC`.
 - `__main__.py`: click CLI `punchboot` with groups `dev`, `auth`, `part`, `board`, `boot`, `slc`,
-  plus `log` (the RAM log, `PB_CMD_LOG_READ`), `list` and `completion`. Transport is chosen with `-t usb|socket`, the device with `-u` / `PB_DEVICE_UUID`.
+  plus `log [NAME]` (`PB_CMD_LOG_READ`: pb's RAM log by default, `--list` for the device's logs), `list` and `completion`. Transport is chosen with `-t usb|socket`, the device with `-u` / `PB_DEVICE_UUID`.
 
 The 2.x host was a C library (`tools/punchboot/*.c` next to the package in
 `tools/punchboot/punchboot/`, libusb) compiled into a `_punchboot`

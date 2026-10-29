@@ -663,6 +663,7 @@ def slc_revoke_key(_ctx: click.Context, s: Session, key_id: str, force: bool) ->
 
 
 @cli.command("log")
+@click.argument("name", default="pb")
 @click.option(
     "output",
     "-o",
@@ -670,11 +671,22 @@ def slc_revoke_key(_ctx: click.Context, s: Session, key_id: str, force: bool) ->
     type=click.Path(path_type=pathlib.Path),
     help="Write the log to a file, as it is on the device",
 )
+@click.option("list_logs", "-l", "--list", is_flag=True, help="List the device's logs")
 @pb_session
 @click.pass_context
-def log(_ctx: click.Context, s: Session, output: pathlib.Path | None) -> None:
-    """Print the device's RAM log (CONFIG_RAMLOG)."""
-    data = s.log_read()
+def log(
+    _ctx: click.Context, s: Session, name: str, output: pathlib.Path | None, list_logs: bool
+) -> None:
+    """Print a log of the device, by default pb's own (CONFIG_RAMLOG).
+
+    NAME is a log from --list, e.g. 'rom' for the boot ROM's on SoCs that keep one.
+    """
+    if list_logs:
+        for log_name, description in s.log_list():
+            click.echo(f"{log_name:<10}{description}")
+        return
+
+    data = s.log_read(name)
 
     if output is not None:
         output.write_bytes(data)
