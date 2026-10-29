@@ -35,6 +35,10 @@ are done (`compatibility.md`, Guards).
 - **CAAM (2026-10-29):** register/descriptor names and fields from the SRMs, JR0 (not JR1) at
   +0x1000; descriptors bit-identical. Checked on jiffy (flashed) and the 8MP EVK: hashing, ECDSA
   P-256 accept/reject. F-127, F-128, F-129 open.
+- **jiffy USB (ChipIdea UDC, 2026-10-29):** reviewed against the 6UL RM: F-132..F-140. Fixed
+  F-132 (IN toggle reset) and F-133 (unused direction left control type), register/field names
+  from the RM (`imx_ci_udc_private.h`). F-130 fixed (`3746bc6c`, stale cached dQH overlay, found
+  with usbmon and a controller dump), on jiffy BOOT0. Next: F-134 before any cache work, F-136.
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
