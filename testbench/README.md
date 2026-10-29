@@ -155,7 +155,48 @@ jiffy power-on-resets a few seconds into Linux (F-151).
 
 Console: UART2 (`ttymxc1`), 115200 8N1, root login without password.
 
-## Boot time (jiffy)
+## Boot time
+
+### Measuring
+
+`scripts/boottime` works over the board's serial console (nothing else may
+have it open):
+
+```sh
+make BOARD=jiffy PB_BOOT_TIME_MARK=1      # init prints "initmark <uptime>" first
+# write System A and Root A, then
+punchboot boot enable 2af755d8-8de5-45d5-a862-014cfa735ce0
+punchboot dev reset
+
+scripts/boottime measure /dev/ttyUSB0 -n 5      # reset -> pb -> init -> login, medians
+scripts/boottime dmesg /dev/ttyUSB0 dmesg.txt
+scripts/boottime initcalls dmesg.txt            # with initcall_debug, below
+scripts/boottime sizes output/jiffy/build/linux-6.18.58
+scripts/boottime console /dev/ttyUSB0 'uname -a' 'ip addr'
+scripts/boottime release /dev/ttyUSB0           # no active system, back to command mode
+make BOARD=jiffy                                # without the mark again
+```
+
+`measure` reboots from the Linux shell: from the kernel's `reboot:
+Restarting system` (the watchdog reset follows) to pb's banner, to the
+`initmark` line and to the login prompt. The host's timestamps carry up to
+16 ms from the FTDI latency timer; the kernel's uptime at init is the
+board's own. `release` is the way back to command mode once a system boots
+by itself: `pbstate-pb -s none` and a reboot (jiffy can't force command
+mode). pb's own times (init, load, verify) come from
+`../scripts/boot-time-image -c <console>`, which keeps pb in command mode.
+
+`initcall_debug`: pb writes `bootargs`, so it goes into the kernel, with
+`printk.devkmsg=on` for kickstart's lines (temporarily, in the board's
+`linux.fragment`):
+
+```
+# CONFIG_CMDLINE_FROM_BOOTLOADER is not set
+CONFIG_CMDLINE_EXTEND=y
+CONFIG_CMDLINE="initcall_debug printk.devkmsg=on"
+```
+
+### jiffy
 
 Warm resets (`reboot` in Linux, the watchdog), System A enabled, timed on the
 console from the host (FTDI latency timer 16 ms) to a temporary first
@@ -187,6 +228,73 @@ entropy RNG at 464 ms, more than half of all initcalls. Of the rest: the FEC
 21 ms, GPIO 20 ms. To the login prompt it is another ~6 s, `udhcpc` (~3 s
 without a lease) and `S99pbstate` (~2.7 s).
 
+## Adding a board
+
+Every board that runs Linux gets a defconfig here and goes through both
+lists, bring-up and boot time, in that order. Record what each step measured
+in the board's section under "Boot time" and commit per step.
+
+### Bring-up
+
+1. pb: the board must boot Linux the right way: the Linux boot driver on
+   armv7, the ATF boot driver (`src/boot/atf.c`) with TF-A BL31 on aarch64.
+   Check where the TF-A platform takes BL33 from (see "imx8mpevk: TF-A").
+2. `configs/<board>_defconfig`: copy the closest one. The SoC's kernel
+   defconfig, `board/common/linux.fragment` and a `board/<board>/linux.fragment`,
+   the DTB (in tree, or a DTS in `board/<board>/dts`), TF-A, firmware the
+   board needs (DDR training), `BR2_TARGET_PUNCHBOOT_BOARD`, the console in
+   `BR2_TARGET_GENERIC_GETTY_PORT`, `BR2_ROOTFS_POST_SCRIPT_ARGS="<board>"`.
+3. kickstart's devices: the eMMC's `mmcblkN` from the `mmc` aliases of the
+   board's DTS (`aliases` in the SoC's `.dtsi`), Root A/B and the boot state
+   from the board's GPT in `src/board/<board>/board.c`.
+4. `board/common/post-image.sh`: a case for the board with load addresses
+   clear of pb (`src/plat/*/link.lds`, pb's RAM and DRAM buffers), clear of
+   each other (the kernel's size after decompression, 2 MiB aligned on
+   arm64) and, for BL31, of TF-A's `BL31_BASE`. The partition sizes are
+   checked there.
+5. Build, write System A and Root A (`part write`, `part verify`) and boot
+   it from command mode with the console captured (`punchboot boot partition
+   --verbose-boot` gives the kernel's log). Check: the login prompt, `/` on
+   `/dev/mapper/kickstart-root`, `/proc/device-tree/chosen/pb,active-system`,
+   `pbstate-pb -i` (S99pbstate marks it verified), eth0, the watchdog
+   daemon, `dmesg` without errors.
+6. The board's row in the table at the top, its parts in "Boot flow".
+
+Known traps: a USB hub between the host and the board's command mode port
+can reset the board once Linux runs (F-151, jiffy); `part write` stores a
+bpak's header at the end of the partition; jiffy needs `punchboot auth token`
+after every reset into command mode.
+
+### Boot time
+
+Measure with `scripts/boottime measure` (above) after every step, 5 runs,
+and check the system again (step 5 of the bring-up) before going on.
+
+1. Baseline: the SoC's defconfig as it is.
+2. A kernel for the board's hardware only, in `board/<board>/linux.fragment`.
+   List what the board's DTS enables (`&node { status = "okay" }` and the
+   nodes on by default in the SoC's `.dtsi`) and what probes (`dmesg`), and
+   see what takes room with `scripts/boottime sizes`. Ask which of these the
+   board needs before turning them off: USB devices (HID, storage, serial),
+   file systems, IPv6, devices on the UARTs, loadable modules. Then off:
+   other SoCs (also the ARMv6/other architecture variants), display, sound,
+   media, radios, CAN, PCI, ATA, SCSI, MTD, USB, HID, SPI, PWM, staging,
+   other boards' PMICs, other Ethernet vendors, network file systems, FUSE,
+   kprobes, BPF, io_uring, debugfs, the initramfs decompressors other than
+   gzip. Check every line took (`grep` the kernel's `.config`): an option
+   that something still selects stays on.
+3. `initcall_debug` (above), `scripts/boottime initcalls`. Look for the
+   jitter entropy RNG (`jent_mod_init`, 464 ms on jiffy): it comes with
+   `CRYPTO_DRBG`, which `CRYPTO_ECDH`/`ECC`/`GENIV` pull in; turn off what
+   selects it. RAM disks (`BLK_DEV_RAM`) and preallocated loop devices
+   (`BLK_DEV_LOOP_MIN_COUNT=0`) too. Look at deferred probes and long driver
+   probes, but keep delays the hardware needs (PHY resets).
+4. armv7: LZ4 for the zImage (`BR2_LINUX_KERNEL_LZ4`). arm64 boots an
+   uncompressed `Image`, there its size is pb's read time (~13 ms per MB on
+   the eMMCs here).
+5. Take `initcall_debug` and `PB_BOOT_TIME_MARK` out again, write the clean
+   images and leave the board as it was (`scripts/boottime release`).
+
 ## Keys
 
 Everything is signed with punchboot's **test** keys (`pki/`):
@@ -209,6 +317,7 @@ configs/                 <board>_defconfig
 board/common/
   linux.fragment         kickstart's kernel options (initramfs, dm-verity, squashfs)
   patches/               BR2_GLOBAL_PATCH_DIR: kernel hashes
+  post-build.sh          the boot time mark in /etc/inittab (PB_BOOT_TIME_MARK=1)
   post-image.sh          builds and signs root.bpak and boot.bpak
   rootfs-overlay/        S99pbstate, pbstate-pb
 board/imx8mpevk/
@@ -226,4 +335,6 @@ package/
   bpak-mbedtls/          host Mbed TLS for bpak
   python-scikit-build-core/  host build backend of the bpak python package
   imx-cst/               host NXP Code Signing Tool
+scripts/
+  boottime               boot time over the console: measure, dmesg, initcalls, sizes
 ```
