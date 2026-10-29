@@ -211,6 +211,13 @@ static int usdhc_emmc_setup(void)
     return imx_usdhc_init(&cfg, MHz(200));
 }
 
+/*
+ * The microSD slot on uSDHC2. Not set up: the card isn't needed to boot from
+ * eMMC and its init takes ~49 ms, most of it the card powering up (ACMD41).
+ * Kept as an example, set BOARD_SD_CARD to use it.
+ */
+#define BOARD_SD_CARD 0
+
 static int usdhc_sd_setup(void)
 {
     /* USDHC2_CLK_ROOT: SYSTEM_PLL1_DIV2 (400 MHz) / 2 = 200 MHz */
@@ -304,9 +311,11 @@ int board_init(struct imx8m_platform *plat_)
     }
 
     /* The microSD slot: no card, or one that fails, doesn't stop the boot */
-    rc = usdhc_sd_setup();
-    if (rc != PB_OK && rc != -PB_ERR_NOT_FOUND)
-        LOG_ERR("SD init failed (%i)", rc);
+    if (BOARD_SD_CARD) {
+        rc = usdhc_sd_setup();
+        if (rc != PB_OK && rc != -PB_ERR_NOT_FOUND)
+            LOG_ERR("SD init failed (%i)", rc);
+    }
 
     bio_dev_t user_part = bio_get_part_by_uu(PART_user);
 
