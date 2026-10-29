@@ -15,8 +15,8 @@
 /*
  * Common Command constants
  */
-#define CMD_TYPE(cmd)                             SHIFT_U32((cmd & 0x1F), 27)
-#define CMD_CLASS(val)                            SHIFT_U32((val & 0x3), 25)
+#define CMD_TYPE(cmd)                             SHIFT_U32(((cmd) & 0x1F), 27)
+#define CMD_CLASS(val)                            SHIFT_U32(((val) & 0x3), 25)
 #define CLASS_NO                                  0x0
 #define CLASS_1                                   0x1
 #define CLASS_2                                   0x2
@@ -33,11 +33,11 @@
 #define HDR_JD_ONE                                BIT32(23)
 
 /* Start Index if SHR = 0 */
-#define HDR_JD_START_IDX(line)                    SHIFT_U32((line & 0x3F), 16)
+#define HDR_JD_START_IDX(line)                    SHIFT_U32(((line) & 0x3F), 16)
 
 /* Descriptor Length */
-#define HDR_JD_DESCLEN(len)                       SHIFT_U32((len & 0x7F), 0)
-#define GET_JD_DESCLEN(entry)                     (entry & 0x7F)
+#define HDR_JD_DESCLEN(len)                       SHIFT_U32(((len) & 0x7F), 0)
+#define GET_JD_DESCLEN(entry)                     ((entry) & 0x7F)
 
 /*
  * KEY Command fields
@@ -55,7 +55,7 @@
 #define KEY_PTS                                   BIT32(14)
 
 /* Key Length */
-#define KEY_LENGTH(len)                           SHIFT_U32((len & 0x3FF), 0)
+#define KEY_LENGTH(len)                           SHIFT_U32(((len) & 0x3FF), 0)
 
 /*
  * LOAD Command fields
@@ -63,13 +63,13 @@
 #define CMD_LOAD_TYPE                             CMD_TYPE(0x02)
 
 /* Load Destination */
-#define LOAD_DST(reg)                             SHIFT_U32((reg & 0x7F), 16)
+#define LOAD_DST(reg)                             SHIFT_U32(((reg) & 0x7F), 16)
 
 /* Offset in destination register */
-#define LOAD_OFFSET(off)                          SHIFT_U32((off & 0xFF), 8)
+#define LOAD_OFFSET(off)                          SHIFT_U32(((off) & 0xFF), 8)
 
 /* Length */
-#define LOAD_LENGTH(len)                          SHIFT_U32((len & 0xFF), 0)
+#define LOAD_LENGTH(len)                          SHIFT_U32(((len) & 0xFF), 0)
 
 /*
  * STORE Command fields
@@ -77,13 +77,13 @@
 #define CMD_STORE_TYPE                            CMD_TYPE(0x0A)
 
 /* Store Source */
-#define STORE_SRC(reg)                            SHIFT_U32((reg & 0x7F), 16)
+#define STORE_SRC(reg)                            SHIFT_U32(((reg) & 0x7F), 16)
 
 /* Offset in source register */
-#define STORE_OFFSET(off)                         SHIFT_U32((off & 0xFF), 8)
+#define STORE_OFFSET(off)                         SHIFT_U32(((off) & 0xFF), 8)
 
 /* Length */
-#define STORE_LENGTH(len)                         SHIFT_U32((len & 0xFF), 0)
+#define STORE_LENGTH(len)                         SHIFT_U32(((len) & 0xFF), 0)
 
 /*
  * Define the Load/Store Registers Source and Destination
@@ -146,7 +146,7 @@
 
 /* Length */
 #define FIFO_LOAD_MAX                             0xFFFF
-#define FIFO_LOAD_LENGTH(len)                     SHIFT_U32((len & FIFO_LOAD_MAX), 0)
+#define FIFO_LOAD_LENGTH(len)                     SHIFT_U32(((len) & FIFO_LOAD_MAX), 0)
 
 /*
  * Define the FIFO Load Type Input
@@ -189,7 +189,7 @@
 
 /* Length */
 #define FIFO_STORE_MAX                            0xFFFF
-#define FIFO_STORE_LENGTH(len)                    SHIFT_U32((len & FIFO_STORE_MAX), 0)
+#define FIFO_STORE_LENGTH(len)                    SHIFT_U32(((len) & FIFO_STORE_MAX), 0)
 
 /*
  * Define the FIFO Store Type Output
@@ -245,6 +245,14 @@
 #define PROTID(id)                                SHIFT_U32((PROTID_##id & 0xFF), 16)
 #define PROTID_MPKEY                              0x14
 #define PROTID_MPSIGN                             0x15
+#define PROTID_DSAVERIFY                          0x16
+
+/* Protocol Information for the discrete log protocols (DSA, ECDSA) */
+#define PROT_PK_MES_REP(rep)                      SHIFT_U32((PROT_PK_MES_REP_##rep & 0x3), 10)
+#define PROT_PK_MES_REP_REPRESENTATIVE            0x0
+#define PROT_PK_MES_REP_MESSAGE                   0x1
+#define PROT_PK_MES_REP_HASHED                    0x2
+#define PROT_PK_ECC                               BIT32(1)
 
 /*
  * Algorithm Identifier
@@ -308,7 +316,7 @@
 #define ALGO_RNG_SK                               BIT32(12)
 
 /* State Handle */
-#define ALGO_RNG_SH(sh)                           SHIFT_U32((sh & 0x3), 4)
+#define ALGO_RNG_SH(sh)                           SHIFT_U32(((sh) & 0x3), 4)
 
 /* State */
 #define AS_RNG_GENERATE                           0x0
@@ -351,11 +359,21 @@
 #define JMP_COND_MATH_NV                          0x01
 
 /* Local Offset */
-#define JMP_LOCAL_OFFSET(off)                     SHIFT_U32((off & 0xFF), 0)
+#define JMP_LOCAL_OFFSET(off)                     SHIFT_U32(((off) & 0xFF), 0)
 
 /*
  * Protocol Data Block
  */
+
+/* DSA/ECDSA sign and verify, first word. The SGF bits take 31-23 */
+#define PDB_DSA_PD                                BIT32(22)
+#define PDB_DSA_ECDSEL(sel)                       SHIFT_U32(((sel) & 0x7F), 7)
+
+/* Built-in ECC domains, the ECDSEL field */
+#define PDB_ECDSEL_P256                           0x02
+#define PDB_ECDSEL_P384                           0x03
+#define PDB_ECDSEL_P521                           0x04
+
 #define PDB_MP_CSEL_P256                          0x03
 #define PDB_MP_CSEL_P384                          0x04
 #define PDB_MP_CSEL_P521                          0x05
