@@ -22,16 +22,8 @@
 		* punchboot patches these properties in place, it doesn't grow the
 		* DTB (punchboot F-071). The placeholders reserve the space.
 		*/
+	/* punchboot adds bootargs, the initrd and its pb,* properties */
 	chosen {
-		bootargs = "------------------------------------------------------------------------------------------------";
-		linux,initrd-start = <0x00000000>;
-		linux,initrd-end = <0x00000000>;
-		pb,device-uuid = "00000000-0000-0000-0000-000000000000";
-		pb,active-system = "?";
-		pb,boot-time = <0>;
-		pb,slc = <0>;
-		pb,slc-available-keys = <>;
-		pb,slc-active-key = <0x00000000>;
 		stdout-path = &uart2;
 	};
 };
