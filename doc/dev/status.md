@@ -45,6 +45,11 @@ the host half of 4 are done (`compatibility.md`, Guards).
   structs checked against `abi.txt`. On the 8MP EVK: CLI and 32 MiB writes as fast as the 2.7.1
   wheel (~28.5 MiB/s). jiffy is locked, not tried. F-077 fixed. Unverified: the CI smoke test on
   Windows/macOS (`punchboot-tools.yml`) until it runs on GitHub.
+- **Logs by name (2026-10-29):** `PB_CMD_LOG_READ` selects a log by `pb_id()` of its name from
+  `rz` (`compatibility.md`, example): `pb` (RAM log, also 0), `list`, `rom` (i.MX ROM event log,
+  `drivers/rom_log`, i.MX6UL and i.MX8M, checked on jiffy and the 8MP EVK, both now run this
+  branch from eMMC) and `linux` (ramoops console, `CONFIG_BOOT_LINUX_RAMOOPS`, off; DRAM retention
+  measured on the EVK, Linux itself not tried). `punchboot log [NAME] [--list]`.
 - **Slimming (2026-10-29, D-019, D-020):** self tests, littlefs, the Sphinx/RTD tree, `doc/`
   binaries, TF-A asm helpers, headers, always-on Kconfig options and dead scripts removed: about
   11,000 lines and 7 MB. Until the incoming boards are in, code without an in-tree user stays
