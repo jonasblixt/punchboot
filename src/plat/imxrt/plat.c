@@ -1,6 +1,7 @@
 #include <boot/boot.h>
 #include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/imx_ocotp.h>
+#include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
@@ -31,6 +32,12 @@ static uint32_t fuse_read_helper(uint8_t row, uint8_t shift, uint32_t mask, uint
     return (fuse_data & mask);
 }
 
+/* The HAB API, RM 9.12.1 */
+static const struct imx_hab_log_config hab_log_cfg = {
+    .rvt = 0x00200300,
+    .entry_size = 4,
+};
+
 int plat_init(void)
 {
     int rc;
@@ -48,6 +55,7 @@ int plat_init(void)
         IMXRT_CCM_CSCDR1, CSCDR1_UART_PODF_MASK | CSCDR1_UART_CLK_SEL, CSCDR1_UART_PODF(3));
 
     board_console_init(&plat);
+    (void)imx_hab_log_init(&hab_log_cfg);
 
     imx_ocotp_init(IMXRT_OCOTP_BASE, 8);
     /* Read speed grade fuse */

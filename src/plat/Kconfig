@@ -15,6 +15,7 @@ config PLAT_IMX8M_COMMON
     select DRIVERS_DDR_UMCTL2
     select DRIVERS_DDR_DWC_PHY
     select DRIVERS_IMX_ROM_LOG
+    select DRIVERS_IMX_HAB_LOG
 
 choice PLAT
     bool "Platform"
@@ -44,10 +45,12 @@ config PLAT_IMX6UL
     depends on ARCH_ARMV7
     select DRIVERS_TZC380
     select DRIVERS_IMX_ROM_LOG
+    select DRIVERS_IMX_HAB_LOG
 config PLAT_IMXRT
     bool "NXP IMXRT"
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV7M
+    select DRIVERS_IMX_HAB_LOG
 
 config PLAT_HOST
     bool "Host (native Linux process, for testing)"

@@ -70,6 +70,12 @@ pb_unit_test(test_imx_rom_log SOURCES
 target_compile_options(test_imx_rom_log PRIVATE -fno-pie)
 target_link_options(test_imx_rom_log PRIVATE -no-pie)
 
+pb_unit_test(test_imx_hab_log SOURCES
+    ${PROJECT_SOURCE_DIR}/src/drivers/rom_log/imx_hab_log.c
+    ${PROJECT_SOURCE_DIR}/src/log_source.c
+    ${PROJECT_SOURCE_DIR}/src/ramlog.c
+)
+
 pb_unit_test(test_linux_ramoops SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/linux_ramoops.c
     ${PROJECT_SOURCE_DIR}/src/log_source.c
