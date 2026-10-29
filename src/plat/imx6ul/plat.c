@@ -9,6 +9,7 @@
 
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/mmc_core.h>
+#include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/tzc/tzc380.h>
@@ -254,11 +255,18 @@ static const struct imx_rom_log_config rom_log_cfg = {
     .defs = IMX_ROM_LOG_DEFS_V0,
 };
 
+/* The HAB API, as HAB_RVT_BASE in plat/imx6ul/hab.h */
+static const struct imx_hab_log_config hab_log_cfg = {
+    .rvt = 0x00000100,
+    .entry_size = 4,
+};
+
 int plat_init(void)
 {
     int rc;
 
     imx_rom_log_save(&rom_log_cfg);
+    (void)imx_hab_log_init(&hab_log_cfg);
     /* Before the USB driver resets the controller */
     if (imx_rom_log_has_event(IMX_ROM_LOG_V0_SERIAL_DOWNLOAD))
         save_rom_usb_state();

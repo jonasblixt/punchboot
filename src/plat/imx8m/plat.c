@@ -8,6 +8,7 @@
  */
 
 #include <drivers/fuse/imx_ocotp.h>
+#include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
@@ -145,11 +146,23 @@ static const struct imx_rom_log_config rom_log_cfg = {
     .defs = IMX_ROM_LOG_DEFS_V2,
 };
 
+/* The HAB API. 64-bit pointers; the address is U-Boot's (the RMs don't have
+ * it), imx_hab_log_init() checks the RVT header before using it */
+static const struct imx_hab_log_config hab_log_cfg = {
+#ifdef CONFIG_PLAT_IMX8MQ
+    .rvt = 0x00000880,
+#else
+    .rvt = 0x00000900,
+#endif
+    .entry_size = 8,
+};
+
 int plat_init(void)
 {
     int rc;
 
     imx_rom_log_save(&rom_log_cfg);
+    (void)imx_hab_log_init(&hab_log_cfg);
 
 #if CONFIG_ENABLE_WATCHDOG
     /* Enable and ungate WDOG1 clock */
