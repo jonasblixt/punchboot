@@ -24,4 +24,7 @@ struct imx8m_private {
     uint32_t soc_ver_var;
 };
 
+/* The SoC's clock gates and PLLs, after the common gates (plat_<soc>.c) */
+void imx8m_soc_clock_init(void);
+
 #endif // PLAT_IMX8M_PLAT_H_

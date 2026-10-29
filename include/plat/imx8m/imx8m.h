@@ -4,7 +4,11 @@
 #include "clock.h"
 #include "hab.h"
 #include "mm.h"
-#include "pins.h"
+#if defined(CONFIG_PLAT_IMX8MQ)
+#include "pins_imx8mq.h"
+#elif defined(CONFIG_PLAT_IMX8MP)
+#include "pins_imx8mp.h"
+#endif
 
 struct imx8m_platform {};
 

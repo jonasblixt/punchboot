@@ -32,6 +32,11 @@ config PLAT_IMX8MQ
     depends on SOC_FAMILY_IMX
     depends on ARCH_ARMV8
     select PLAT_IMX8M_COMMON
+config PLAT_IMX8MP
+    bool "NXP i.MX8M Plus"
+    depends on SOC_FAMILY_IMX
+    depends on ARCH_ARMV8
+    select PLAT_IMX8M_COMMON
 config PLAT_IMX6UL
     bool "NXP IMX6UL"
     depends on SOC_FAMILY_IMX
