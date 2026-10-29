@@ -136,8 +136,9 @@ static const struct boot_driver_linux_config cfg_dtb_minimal = {
     .dtb_bpak_id = ID_DTB,
 };
 
+/* The device tree part, and the headroom it grows into after it */
 #define DTB_SIZE 4096
-static uint8_t dtb[DTB_SIZE];
+static uint8_t dtb[DTB_SIZE + CONFIG_BOOT_DTB_HEADROOM];
 static struct bpak_header *hdr;
 static uuid_t boot_part_uu;
 
@@ -167,8 +168,8 @@ static void make_dtb_keys(const char *node_name, bool keys)
     assert_int_equal(fdt_end_node(dtb), 0);
     assert_int_equal(fdt_end_node(dtb), 0);
     assert_int_equal(fdt_finish(dtb), 0);
-    /* Make the rest of the buffer free space */
-    assert_int_equal(fdt_open_into(dtb, dtb, sizeof(dtb)), 0);
+    /* Make the rest of the part free space */
+    assert_int_equal(fdt_open_into(dtb, dtb, DTB_SIZE), 0);
 }
 
 static void make_dtb(const char *node_name)
@@ -301,8 +302,9 @@ static void test_dtb_is_patched(void **state)
     assert_int_equal(chosen_u32("linux,initrd-start"), RAMDISK_ADDR);
     assert_int_equal(chosen_u32("linux,initrd-end"), RAMDISK_ADDR + RAMDISK_SIZE);
 
+    /* Grown by the headroom */
     assert_int_equal(cleaned_start, (uintptr_t)dtb);
-    assert_int_equal(cleaned_len, DTB_SIZE);
+    assert_int_equal(cleaned_len, DTB_SIZE + CONFIG_BOOT_DTB_HEADROOM);
 
     /* The dtb address is passed to the kernel */
     if (setjmp(jump_env) == 0) {
@@ -349,10 +351,6 @@ static void test_dtb_errors(void **state)
 
     assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
 
-    make_dtb("memory");
-    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR);
-    make_dtb("chosen");
-
     memset(dtb, 0, 64);
     assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR);
     make_dtb("chosen");
@@ -393,30 +391,71 @@ static void test_dtb_errors(void **state)
     part->id = ID_DTB;
 }
 
-/* Grow the device tree's free space one step at a time: every property that
- * doesn't fit must fail the boot, until everything fits */
-static void test_dtb_out_of_space(void **state)
+/* No /chosen: it is added (F-071) */
+static void test_dtb_without_chosen(void **state)
 {
-    uint8_t original[DTB_SIZE];
-    int needed = -1;
+    (void)state;
+
+    make_dtb_keys("memory", false);
+    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
+    assert_true(fdt_path_offset(dtb, "/memory") >= 0);
+}
+
+/* A device tree without free space and without pb's properties, as the
+ * kernel builds them: it grows by the headroom and gets them all (F-071) */
+static void test_dtb_grown(void **state)
+{
+    (void)state;
+
+    make_dtb_keys("memory", false);
+    assert_int_equal(fdt_pack(dtb), 0);
+    int packed = fdt_totalsize(dtb);
+
+    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(fdt_totalsize(dtb), packed + CONFIG_BOOT_DTB_HEADROOM);
+    assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
+    assert_int_equal(chosen_u32("pb,slc"), SLC_CONFIGURATION_LOCKED);
+    assert_int_equal(chosen_u32("pb,slc-active-key"), KEY_ID_1);
+    assert_string_equal(chosen_string("pb,active-system"), "A");
+    assert_string_equal(chosen_string("bootargs"), "console=ttyS0");
+    assert_int_equal(chosen_u32("linux,initrd-start"), RAMDISK_ADDR);
+    assert_non_null(fdt_getprop(dtb, chosen(), "pb,slc-available-keys", NULL));
+}
+
+/* The headroom must not reach another part or pb's memory, which is checked
+ * before the device tree is read */
+static void test_dtb_headroom_overlap(void **state)
+{
+    struct bpak_meta_header *meta;
     (void)state;
 
     assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
-    assert_int_equal(fdt_pack(dtb), 0);
-    memcpy(original, dtb, sizeof(original));
-    int base = fdt_totalsize(original);
 
-    for (int extra = 0; extra <= 512; extra += 4) {
-        assert_int_equal(fdt_open_into(original, dtb, base + extra), 0);
-        int rc = boot_driver_linux_prepare(hdr, boot_part_uu);
-        if (rc == PB_OK) {
-            needed = extra;
-            break;
-        }
-    }
+    /* The ramdisk right after the device tree part */
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_RAMDISK, &meta), BPAK_OK);
+    *bpak_get_meta_ptr(hdr, meta, uint64_t) = (uintptr_t)dtb + DTB_SIZE;
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_MEM);
+    *bpak_get_meta_ptr(hdr, meta, uint64_t) = RAMDISK_ADDR;
 
-    assert_true(needed > 0);
-    assert_string_equal(chosen_string("pb,active-system"), "A");
+    /* The device tree part right before pb's code (_code_start, CMakeLists.txt) */
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
+    *bpak_get_meta_ptr(hdr, meta, uint64_t) = 0x40000000 - DTB_SIZE;
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR_MEM);
+}
+
+/* The device tree's header says it is larger than its part */
+static void test_dtb_larger_than_part(void **state)
+{
+    struct bpak_part_header *part;
+    (void)state;
+
+    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(bpak_get_part(hdr, ID_DTB, &part), BPAK_OK);
+    part->size = DTB_SIZE / 2;
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR);
 }
 
 #define LINUX_TEST(f) cmocka_unit_test_setup(f, setup)
@@ -431,7 +470,10 @@ int main(void)
         LINUX_TEST(test_dtb_without_key_list),
         LINUX_TEST(test_dtb_without_options),
         LINUX_TEST(test_dtb_errors),
-        LINUX_TEST(test_dtb_out_of_space),
+        LINUX_TEST(test_dtb_without_chosen),
+        LINUX_TEST(test_dtb_grown),
+        LINUX_TEST(test_dtb_headroom_overlap),
+        LINUX_TEST(test_dtb_larger_than_part),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);

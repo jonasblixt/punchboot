@@ -151,7 +151,22 @@ target_link_options(test_image_helpers PRIVATE
 )
 
 pb_unit_test(test_linux SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/dtb.c
     ${PROJECT_SOURCE_DIR}/src/boot/linux.c
+)
+# pb's memory, which the device tree's headroom must not reach
+target_link_options(test_linux PRIVATE
+    -no-pie
+    -Wl,--defsym=_code_start=0x40000000
+    -Wl,--defsym=_code_end=0x40080000
+    -Wl,--defsym=_data_region_start=0x400a0000
+    -Wl,--defsym=_data_region_end=0x400c0000
+    -Wl,--defsym=_zero_region_start=0x400c0000
+    -Wl,--defsym=_zero_region_end=0x400e0000
+    -Wl,--defsym=_stack_start=0x400e0000
+    -Wl,--defsym=_stack_end=0x40100000
+    -Wl,--defsym=_no_init_start=0x40100000
+    -Wl,--defsym=_no_init_end=0x40120000
 )
 
 pb_unit_test(test_cm SOURCES

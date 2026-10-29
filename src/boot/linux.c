@@ -8,6 +8,7 @@
  */
 
 #include <arch/arch.h>
+#include <boot/dtb.h>
 #include <boot/linux.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
@@ -92,17 +93,17 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         }
 
         dtb_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
-        dtb_length = bpak_part_size(ph);
         LOG_INFO("DTB: %" PRIxPTR, dtb_addr);
 
-        /* Locate the chosen node */
-        fdt = (void *)dtb_addr;
-        rc = fdt_check_header(fdt);
+        /* Room for /chosen and pb's properties */
+        rc = boot_dtb_grow(hdr, cfg->dtb_bpak_id, CONFIG_BOOT_DTB_HEADROOM, &fdt);
 
-        if (rc < 0) {
-            LOG_ERR("Invalid device tree");
-            return -PB_ERR;
-        }
+        if (rc != PB_OK)
+            return rc;
+
+        dtb_length = fdt_totalsize(fdt);
+
+        /* Locate the chosen node */
 
         depth = 0;
         offset = 0;
@@ -126,8 +127,12 @@ int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         }
 
         if (!found_chosen_node) {
-            LOG_ERR("Could not locate chosen node");
-            return -PB_ERR;
+            offset = fdt_add_subnode(fdt, 0, "chosen");
+
+            if (offset < 0) {
+                LOG_ERR("Could not add /chosen (%i)", offset);
+                return -PB_ERR;
+            }
         }
 
         rc = fdt_setprop_string((void *)fdt, offset, "pb,device-uuid", (const char *)device_uu_str);

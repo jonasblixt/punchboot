@@ -11,6 +11,7 @@
 #include <arch/arch.h>
 #include <arch/arch_helpers.h>
 #include <boot/atf.h>
+#include <boot/dtb.h>
 #include <bpak/bpak.h>
 #include <bpak/id.h>
 #include <inttypes.h>
@@ -195,14 +196,13 @@ int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         if (cfg->bl32_bpak_id)
             atf_bl32_ep.args.arg3 = atf_bl33_ep.args.arg0;
 
-        /* Locate the chosen node */
-        fdt = (void *)atf_bl33_ep.args.arg0;
-        rc = fdt_check_header(fdt);
+        /* Room for /chosen and pb's properties */
+        rc = boot_dtb_grow(hdr, cfg->dtb_bpak_id, CONFIG_BOOT_DTB_HEADROOM, &fdt);
 
-        if (rc < 0) {
-            LOG_ERR("Invalid device tree");
-            return -PB_ERR;
-        }
+        if (rc != PB_OK)
+            return rc;
+
+        /* Locate the chosen node */
 
         depth = 0;
         offset = 0;
@@ -226,8 +226,12 @@ int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         }
 
         if (!found_chosen_node) {
-            LOG_ERR("Could not locate chosen node");
-            return -PB_ERR;
+            offset = fdt_add_subnode(fdt, 0, "chosen");
+
+            if (offset < 0) {
+                LOG_ERR("Could not add /chosen (%i)", offset);
+                return -PB_ERR;
+            }
         }
 
         rc = fdt_setprop_string((void *)fdt, offset, "pb,device-uuid", (const char *)device_uu_str);
