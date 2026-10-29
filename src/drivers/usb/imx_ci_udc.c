@@ -287,7 +287,14 @@ static int imx_ci_udc_xfer_start(usb_ep_t ep, void *bfr_, size_t length)
         }
     }
 
+    /* The controller writes the dQH overlay, so a cached copy of it can be
+     * stale and the clean below would write an old, active overlay back over
+     * the controller's, which it then resumes instead of fetching 'next'.
+     * Drop the cached copy first, and clear the overlay's active and halted
+     * bits before priming (RM 54.4.6.6.3, an empty list). */
+    arch_invalidate_cache_range((uintptr_t)qh, sizeof(*qh));
     qh->next = (uint32_t)(uintptr_t)dtds;
+    qh->token = 0;
 
     arch_clean_cache_range((uintptr_t)qh, sizeof(*qh));
     arch_clean_cache_range((uintptr_t)dtds, sizeof(dtds[0]) * IMX_CI_UDC_NO_OF_DESCRIPTORS);
