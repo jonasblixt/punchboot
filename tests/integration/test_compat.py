@@ -161,9 +161,18 @@ def test_host_wire_and_bpak_match_the_abi() -> None:
         frozen = {n for n in values if n.startswith(prefix)} - {"PB_RESULT_RESPONSE_MAX_SIZE"}
         assert frozen <= set(enum.__members__), enum
     for name in dir(wire):
-        if name.startswith(("PB_WIRE_", "PB_COMMAND_", "PB_RESULT_RESPONSE")):
+        if name.startswith(("PB_WIRE_", "PB_COMMAND_", "PB_RESULT_RESPONSE", "PB_LOG_ID_")):
             assert getattr(wire, name) == values[name], name
     for name in dir(bpak):
         if name.startswith(("BPAK_MAX_", "BPAK_HEADER_MAGIC", "BPAK_PART_ALIGN", "BPAK_FLAG_",
                             "BPAK_METADATA_BYTES", "BPAK_SIGNATURE_MAX_BYTES")):
             assert getattr(bpak, name) == values[name], name
+
+
+def test_log_ids() -> None:
+    # Logs are selected by pb_id() of their name
+    log_ids = {n: v for n, v in abi().items() if n.startswith("PB_LOG_ID_")}
+
+    assert log_ids
+    for name, value in log_ids.items():
+        assert punchboot.pb_id(name.removeprefix("PB_LOG_ID_").lower()) == value, name
