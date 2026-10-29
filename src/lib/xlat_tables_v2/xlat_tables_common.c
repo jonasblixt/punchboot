@@ -370,6 +370,9 @@ static mmap_region_t *init_xlation_table_inner(mmap_region_t *mm,
             uint64_t *new_table = xlat_tables[next_xlat];
             next_xlat++;
             assert(next_xlat <= MAX_XLAT_TABLES);
+            /* The tables are in .no_init. Zero each one as it's taken,
+             * this runs with the caches off */
+            memset(new_table, 0, sizeof(xlat_tables[0]));
             desc = TABLE_DESC | (uintptr_t)new_table;
 
             /* Recurse to fill in new table */
@@ -389,8 +392,7 @@ static mmap_region_t *init_xlation_table_inner(mmap_region_t *mm,
 
 void reset_xlat_tables(void)
 {
-    memset(xlat_tables, 0, sizeof(uint64_t) * MAX_XLAT_TABLES *
-                                              XLAT_TABLE_ENTRIES);
+    next_xlat = 0;
 }
 
 void init_xlation_table(uintptr_t base_va, uint64_t *table,
