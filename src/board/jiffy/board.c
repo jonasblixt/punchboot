@@ -204,19 +204,60 @@ static void boot_source_str(char *out, size_t size)
     }
 }
 
+/*
+ * The boot configuration the ROM used (RM 8.2, Table 8-15 for uSDHC): SRC
+ * SBMR1 is BOOT_CFG1..4 from the fuses or the boot pins, the BOOT_CFG fuse
+ * word is the shadow at 0x450. Only read.
+ */
+#define SRC_SBMR1             (IMX6UL_SRC_BASE + 0x04)
+#define SRC_SBMR2             (IMX6UL_SRC_BASE + 0x1c)
+#define OCOTP_BOOT_CFG0       (IMX6UL_OCOTP_CTRL_BASE + 0x450)
+#define BOOT_CFG_MMC          BIT(5)
+#define BOOT_CFG_FAST_BOOT    BIT(4)
+#define BOOT_CFG_HIGH_SPEED   BIT(3)
+#define BOOT_CFG_BUS_WIDTH(x) (((x) >> 13) & 0x7)
+
+static const char *boot_bus_width_str(uint32_t cfg)
+{
+    switch (BOOT_CFG_BUS_WIDTH(cfg)) {
+    case 0:
+        return "1-bit";
+    case 1:
+        return "4-bit";
+    case 2:
+        return "8-bit";
+    case 5:
+        return "4-bit DDR";
+    case 6:
+        return "8-bit DDR";
+    default:
+        return "reserved";
+    }
+}
+
 static int board_status(uint8_t *response_bfr, size_t *response_size)
 {
     char *response = (char *)response_bfr;
     size_t resp_buf_size = *response_size;
     char boot_source[128];
+    uint32_t sbmr1 = mmio_read_32(SRC_SBMR1);
 
     boot_source_str(boot_source, sizeof(boot_source));
 
     (*response_size) = snprintf(response,
                                 resp_buf_size,
                                 "Board status OK!\n"
-                                "Boot source: %s\n",
-                                boot_source);
+                                "Boot source: %s\n"
+                                "Boot config: SBMR1 0x%08x, SBMR2 0x%08x, fuses 0x450 0x%08x\n"
+                                "ROM eMMC boot: %s, %s, %s speed, %s boot\n",
+                                boot_source,
+                                (unsigned int)sbmr1,
+                                (unsigned int)mmio_read_32(SRC_SBMR2),
+                                (unsigned int)mmio_read_32(OCOTP_BOOT_CFG0),
+                                (sbmr1 & BOOT_CFG_MMC) ? "MMC" : "SD",
+                                boot_bus_width_str(sbmr1),
+                                (sbmr1 & BOOT_CFG_HIGH_SPEED) ? "high" : "normal",
+                                (sbmr1 & BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
     response[(*response_size)++] = 0;
 
     return PB_OK;
