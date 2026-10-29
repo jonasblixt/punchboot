@@ -53,6 +53,7 @@ extend-exclude = [
     "pki",
     "doc",
     "scripts/**",
+    "testbench/scripts/**",
 ]
 target-version = "py310"
 
@@ -95,6 +96,8 @@ warn_return_any = true
 exclude = [
     "^build.*",
     "^doc.*",
+    # The test bench's Buildroot, downloads and output: thousands of other projects' files
+    "^testbench/",
     "^scripts/menuconfig\\.py$",
     "^scripts/olddefconfig\\.py$"
 ]
