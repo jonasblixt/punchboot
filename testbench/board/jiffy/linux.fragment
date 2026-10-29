@@ -1,0 +1,7 @@
+# jiffy, on top of arch/arm/configs/imx_v6_v7_defconfig
+
+# CPU supply, FAN5355 on I2C2 (patches/linux)
+CONFIG_REGULATOR_FAN53555=y
+
+# Ethernet PHY, LAN8710A
+CONFIG_SMSC_PHY=y

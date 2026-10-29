@@ -1,0 +1,3 @@
+# Locally calculated, from https://deb.debian.org/debian/pool/main/i/imx-code-signing-tool/
+sha256  342c0c028658a4a859fe70578b58c3b07e17bee0c7e3a13d063d4791e82c2dee  imx-code-signing-tool_3.4.1+dfsg.orig.tar.xz
+sha256  c52ee1b0736fa8140742949f310fb084333140b11e8208257ec5446fb10ac776  LICENSE.bsd3

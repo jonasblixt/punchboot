@@ -1,0 +1,14 @@
+menu "Bootloaders"
+source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/boot/punchboot/Config.in"
+endmenu
+
+menu "Target packages"
+source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/bpak/Config.in"
+source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/kickstart/Config.in"
+source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/pbstate/Config.in"
+endmenu
+
+menu "Host utilities"
+source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/bpak/Config.in.host"
+source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/imx-cst/Config.in.host"
+endmenu

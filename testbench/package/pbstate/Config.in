@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PBSTATE
+	bool "pbstate"
+	help
+	  Reads and changes the punchboot A/B boot state from Linux:
+	  mark the running system verified, switch system. Built from
+	  tools/pbstate of the punchboot tree this test bench is in.
+
+	  https://github.com/jonasblixt/punchboot

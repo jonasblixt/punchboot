@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Marks the system punchboot booted (A or B) as verified. Without this,
+# punchboot rolls back to the other system once the boot attempts run out.
+# Booted from RAM (punchboot boot bpak) there is no active system.
+#
+
+case "$1" in
+start)
+	system=$(tr -d '\0' < /proc/device-tree/chosen/pb,active-system 2>/dev/null)
+	case "$system" in
+	A|B)
+		printf "Marking system %s verified: " "$system"
+		if pbstate-pb -v "$system" > /dev/null; then
+			echo "OK"
+		else
+			echo "FAIL"
+		fi
+		;;
+	*)
+		echo "punchboot: no active system, not marking it verified"
+		;;
+	esac
+	;;
+stop|restart|reload)
+	;;
+*)
+	echo "Usage: $0 {start|stop|restart|reload}"
+	exit 1
+esac
