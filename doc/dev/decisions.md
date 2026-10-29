@@ -158,14 +158,26 @@ safety, at boot time cost on every boot. They also didn't test ECDSA, the danger
 Checking the crypto engines on silicon (CAAM, DCP) is done from the host against a board, the way
 CAAM was checked on jiffy and the 8MP EVK, and belongs in a future hardware-in-the-loop tier.
 
-## D-020: Unused code and docs are deleted, not kept for later (2026-10-29)
+## D-020: Slimming is limited to dead files and subsystems while new boards come in (2026-10-29, temporary)
 
-Code no board builds or calls, docs no one builds, and files nothing references are removed;
-git history keeps them for whoever needs them back. First round (3.0.0): littlefs, the Sphinx
-and Read the Docs tree (`doc/source`, `.readthedocs.yml`; user docs start from the README,
-F-044), the unreferenced presentation and image in `doc/`, drivers that are built but never
-called, unused functions, macros and asm, and Kconfig symbols nothing reads. Boards that
-don't build (F-033, F-051), the ATF boot driver and virtio (F-052) wait for Jonas.
-Why: Jonas wants the code slimmed down. Dead code still costs: it's read, grepped, reviewed
-and kept compiling, and a stub doc tree looks like documentation. `--gc-sections` already
-dropped most of it from the binaries, so flash size barely changes.
+Until the boards that are on their way are in, code is not removed just because no board in
+the tree uses it: drivers, library and porting API, helpers, macros, register/pin/clock headers
+and board hooks stay, because new boards and examples will need them. Jonas brought back
+imx_gpio, imx_usbdcd, `hash_copy_update`, `bio_get_part_by_uu_str`, `usbd_xfer_cancel`, the
+`mmc_*` read/write/info/extcsd calls, `boot_image_copy_and_hash`, `utils_def.h` and the
+`imx_cdns3_udc.h` include in imx8dxlevk the same day. Ask Jonas before removing anything of
+that kind, and hold the porting API simplifications in F-145 until the new boards show what
+they need.
+What still goes: whole subsystems nobody enables, docs nobody builds, files nothing references,
+config nothing reads, dead scripts. The first round (3.0.0) removed littlefs, the Sphinx and
+Read the Docs tree (`doc/source`, `.readthedocs.yml`; user docs start from the README, F-044),
+the unreferenced presentation and image in `doc/`, unused TF-A asm helpers and asm macros,
+headers nothing includes, always-on and unread Kconfig options, Makefile leftovers and dead
+scripts. Boards that don't build (F-033, F-051), the ATF boot driver (F-146) and virtio
+(F-052) wait for Jonas.
+Why: Jonas wants the code slimmed down; dead code is read, grepped, reviewed and kept
+compiling, and a stub doc tree looks like documentation (`--gc-sections` already kept most of
+it out of the binaries). But more boards are coming, and Jonas expects to add things to the
+boards or add examples that use what looks unused today.
+Revisit: when the incoming boards are in, decide whether to go back to removing code without
+an in-tree user.
