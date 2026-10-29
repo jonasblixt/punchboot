@@ -21,23 +21,8 @@ blobs/
 .config.old
 /config.h
 
-tools/pbstate/Makefile.in
-tools/pbstate/aclocal.m4
-tools/pbstate/autom4te.cache/
-tools/pbstate/build/
-tools/pbstate/configure
-tools/pbstate/m4/
-tools/pbstate/src/Makefile.in
-tools/pbstate/test/Makefile.in
-
-update.sh
 __pycache__
-
-doc/build/
-doc/html/
-doc/latex/
 tags
-download
 *.egg-info
 *.so
 build
