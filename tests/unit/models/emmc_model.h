@@ -63,6 +63,10 @@ enum emmc_state {
     EMMC_INA = 16, /* Not reported in CURRENT_STATE */
 };
 
+/* CSD TRAN_SPEED, 7.3.10 */
+#define TRAN_SPEED_20MHZ 0x2a
+#define TRAN_SPEED_26MHZ 0x32
+
 struct emmc_model_config {
     uint64_t user_sectors; /* More than 2 GiB: sector addressing (6.4.2) */
     uint8_t boot_size_mult; /* BOOT_SIZE_MULT, 128 KiB units */
@@ -73,6 +77,7 @@ struct emmc_model_config {
     uint8_t generic_cmd6_time; /* 10 ms units, 0: not defined */
     uint8_t partition_switch_time; /* 10 ms units, 0: not defined */
     uint8_t power_off_long_time; /* 10 ms units, 0: not defined */
+    uint8_t tran_speed; /* CSD TRAN_SPEED (7.3.10), the backward compatible clock limit */
     /* Nonvolatile settings the device comes with */
     uint8_t partition_config; /* PARTITION_ACCESS is cleared at power on */
     uint8_t boot_bus_conditions;
@@ -118,6 +123,8 @@ void emmc_model_set_ext_csd(unsigned int index, uint8_t value);
 bool emmc_model_powered(void);
 /* Number of times command idx was received since emmc_model_init() */
 unsigned int emmc_model_cmd_count(uint8_t idx);
+/* The bus clock at the first command idx since emmc_model_init(), 0 if none */
+unsigned int emmc_model_cmd_first_clk_hz(uint8_t idx);
 /* Number of data blocks moved since emmc_model_init() */
 unsigned int emmc_model_blocks_read(void);
 unsigned int emmc_model_blocks_written(void);
