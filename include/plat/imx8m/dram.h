@@ -57,6 +57,20 @@ extern struct dram_timing_save dram_timing_info_copy;
 /* The board's timing, see src/board/imx8mevk/lpddr4_timing.c */
 extern struct dram_timing_info dram_timing;
 
+/*
+ * The data rates (MT/s) the board trains, from its board code: the first
+ * 'num' set points of dram_timing.fsp_table, in that order, since TF-A
+ * uses a set point's index as the controller and PHY state. The training
+ * runs of the others are skipped and TF-A gets 0 for them, so it never
+ * switches to them (DDR frequency scaling in Linux uses the set points).
+ */
+struct dram_rates {
+    const unsigned int *mts;
+    unsigned int num;
+};
+
+extern struct dram_rates dram_rates;
+
 int imx8m_ddr_init(void);
 
 #endif // INCLUDE_PLAT_IMX8M_DRAM_H_

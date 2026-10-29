@@ -275,9 +275,22 @@ static void report_first_difference(const char *golden, const char *actual)
     print_error("  actual: %.60s\n", a);
 }
 
+/* The board's rates, normally from board.c: all set points of the timing */
+struct dram_rates dram_rates;
+
+static void all_rates(void)
+{
+    dram_rates.mts = dram_timing.fsp_table;
+    dram_rates.num = 0;
+    while (dram_rates.num < ARRAY_SIZE(dram_timing.fsp_table) &&
+           dram_timing.fsp_table[dram_rates.num] != 0)
+        dram_rates.num++;
+}
+
 static int reset_model(void **state)
 {
     (void)state;
+    all_rates();
     memset(store, 0, sizeof(store));
     trace_len = 0;
     trace[0] = 0;
@@ -319,6 +332,39 @@ static void test_init_trace(void **state)
     free(golden);
 }
 
+/* Only the boot rate: its 1D and 2D runs, TF-A gets no other set point */
+static void test_boot_rate_only(void **state)
+{
+    const struct dram_timing_info *dt = &dram_timing_info_copy.info;
+    unsigned int runs = 0;
+    (void)state;
+
+    for (unsigned int i = 0; i < dram_timing.fsp_msg_num; i++)
+        runs += dram_timing.fsp_msg[i].drate == dram_timing.fsp_table[0];
+
+    dram_rates.num = 1;
+    assert_int_equal(imx8m_ddr_init(), PB_OK);
+    assert_int_equal(mail_pos, runs * ARRAY_SIZE(mail_script));
+    assert_int_equal(dt->fsp_table[0], dram_timing.fsp_table[0]);
+    assert_int_equal(dt->fsp_table[1], 0);
+    assert_int_equal(dt->fsp_table[2], 0);
+    assert_int_equal(dt->fsp_table[3], 0);
+}
+
+/* The rates must be the first set points of the timing, in order */
+static void test_rates_not_a_prefix(void **state)
+{
+    unsigned int mts[2] = { dram_timing.fsp_table[0], dram_timing.fsp_table[2] };
+    (void)state;
+
+    dram_rates.mts = mts;
+    dram_rates.num = 2;
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_PARAM);
+    dram_rates.num = 0;
+    assert_int_equal(imx8m_ddr_init(), -PB_ERR_PARAM);
+    assert_int_equal(mail_pos, 0);
+}
+
 /* The firmware reports a failed training: stop there */
 static void test_training_failed(void **state)
 {
@@ -351,9 +397,12 @@ static void test_unsupported_data_rate(void **state)
     (void)state;
     unsigned int drate = dram_timing.fsp_msg[1].drate;
 
+    /* The set point too, so that the board's rates still match */
     dram_timing.fsp_msg[1].drate = 1234;
+    dram_timing.fsp_table[1] = 1234;
     assert_int_equal(imx8m_ddr_init(), -PB_ERR_NOT_SUPPORTED);
     dram_timing.fsp_msg[1].drate = drate;
+    dram_timing.fsp_table[1] = drate;
     /* Only the first training run happened */
     assert_int_equal(mail_pos, ARRAY_SIZE(mail_script));
 }
@@ -402,6 +451,8 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_init_trace, reset_model),
+        cmocka_unit_test_setup(test_boot_rate_only, reset_model),
+        cmocka_unit_test_setup(test_rates_not_a_prefix, reset_model),
         cmocka_unit_test_setup(test_training_failed, reset_model),
         cmocka_unit_test_setup(test_firmware_verify_failed, reset_model),
         cmocka_unit_test_setup(test_unsupported_data_rate, reset_model),
