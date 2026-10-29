@@ -13,13 +13,13 @@
  * This board never writes fuses: the SLC callbacks are NULL, so the SLC
  * commands are not supported, and no key is ever revoked.
  *
- * Booting Linux doesn't work yet: there is no TF-A handover. The boot driver
- * loads and verifies images, e.g. for 'punchboot boot partition'.
+ * Linux boots through TF-A: the boot image has BL31 in the part "atf" and
+ * Linux as BL33 in "kernel" (testbench/board/common/post-image.sh).
  */
 
 #include <boot/ab_state.h>
+#include <boot/atf.h>
 #include <boot/boot.h>
-#include <boot/linux.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/partition/gpt.h>
@@ -274,7 +274,8 @@ static int board_patch_bootargs(void *fdt, int offset)
     const char *bootargs = NULL;
 
     if (boot_get_flags() & BOOT_FLAG_VERBOSE) {
-        bootargs = "console=ttymxc1,115200 earlyprintk ";
+        /* arm64 has no earlyprintk: earlycon, on stdout-path */
+        bootargs = "console=ttymxc1,115200 earlycon ";
     } else {
         bootargs = "console=ttymxc1,115200 quiet ";
     }
@@ -347,16 +348,17 @@ int board_init(struct imx8m_platform *plat_)
         LOG_WARN("GPT ptbl init failed (%i)", rc);
     }
 
-    static const struct boot_driver_linux_config linux_boot_cfg = {
-        .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
-        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
+    /* TF-A BL31, then Linux as BL33 at EL2 */
+    static const struct boot_driver_atf_config atf_cfg = {
+        .atf_bpak_id = 0xa697d988, /* bpak_id("atf") */
+        .bl33_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
         .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
         .dtb_patch_cb = board_patch_bootargs,
         .resolve_part_name = boot_ab_part_uu_to_name,
-        .set_dtb_boot_arg = true,
     };
 
-    rc = boot_driver_linux_init(&linux_boot_cfg);
+    rc = boot_driver_atf_init(&atf_cfg);
 
     if (rc != PB_OK)
         return rc;
@@ -366,8 +368,8 @@ int board_init(struct imx8m_platform *plat_)
         .get_boot_bio_device = boot_ab_state_get,
         .set_boot_partition = boot_ab_state_set_boot_partition,
         .get_boot_partition = boot_ab_state_get_boot_partition,
-        .prepare = boot_driver_linux_prepare,
-        .jump = boot_driver_linux_jump,
+        .prepare = boot_driver_atf_prepare,
+        .jump = boot_driver_atf_jump,
     };
 
     rc = boot_init(&boot_driver);
