@@ -199,3 +199,19 @@ code (F-094) and no GIL held during USB I/O (F-009); ~550 lines of boilerplate (
 32 MiB write to the 8MP EVK is as fast as with the C library (~28.5 MiB/s, within noise).
 Cost: libusb now comes from someone else's wheels (libusb-package); a platform without them
 needs a system libusb. There is no C host library for embedding anymore.
+
+## D-022: One Buildroot test bench for the boards that run Linux (2026-10-29)
+
+`testbench/` is a Buildroot `BR2_EXTERNAL` tree, built out of tree (`make BOARD=<board>`), with
+a defconfig per board: imx8mpevk and jiffy to start. It builds punchboot and pbstate from this
+tree (local packages), bpak and kickstart from a branch of their git repositories (`work-1.0.0`
+and `master` of `../bpak` and `../kickstart`, the head commit is the version), Linux, and for
+aarch64 TF-A BL31. The
+initramfs is only kickstart; the root file system is a squashfs root image (`root.bpak`) that
+kickstart verifies and mounts with dm-verity. No OP-TEE, no application packages.
+The toolchain is musl: kickstart is linked statically and refuses glibc (its licensing).
+The host bpak tool is the bpak python package of that branch (scikit-build-core, a host package).
+Why: one place to get a Linux on any board, testing the tree as it is instead of a release
+(jiffy's own test bench pins v2.7.1 and carries OP-TEE and MQTT).
+Cost: bpak and kickstart are found next to this tree and have no hash to check until they are
+released; a branch head is not reproducible.

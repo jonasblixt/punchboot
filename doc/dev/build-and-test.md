@@ -55,6 +55,13 @@ scripts/pbdev run <cmd...>
 - If Docker says "permission denied", the shell predates being added to the `docker` group.
   Use `sg docker -c "scripts/pbdev ..."` or log in again.
 
+## Linux test bench (`testbench/`)
+
+Buildroot tree for the boards that run Linux (D-022): `cd testbench && make BOARD=jiffy` (or
+`imx8mpevk`). Builds pb from this tree, Linux, kickstart and the signed `boot.bpak`/`root.bpak`
+in `testbench/output/<board>/images`. After changing pb: `make BOARD=<board> punchboot-rebuild
+all`. A first build takes about an hour (toolchain). See `testbench/README.md`.
+
 ## JTAG debugging
 
 ```sh
