@@ -9,8 +9,6 @@
  * jump. The host board has no device tree part, so the integration tests
  * only reach the kernel entry point.
  *
- * Not tested: a /chosen node without pb,slc-available-keys fails the boot
- * (F-071).
  */
 
 #include <setjmp.h>
@@ -154,9 +152,9 @@ static void add_part(bpak_id_t id, uint64_t load_addr, size_t size)
     *bpak_get_meta_ptr(hdr, meta, uint64_t) = load_addr;
 }
 
-/* A device tree with a /chosen node (or another name), which has the
- * pb,slc-available-keys property, see F-071 */
-static void make_dtb(const char *node_name)
+/* A device tree with a /chosen node (or another name), with or without an
+ * old pb,slc-available-keys property */
+static void make_dtb_keys(const char *node_name, bool keys)
 {
     static const fdt32_t old_keys[] = { 0x11111111 };
 
@@ -164,12 +162,18 @@ static void make_dtb(const char *node_name)
     assert_int_equal(fdt_finish_reservemap(dtb), 0);
     assert_int_equal(fdt_begin_node(dtb, ""), 0);
     assert_int_equal(fdt_begin_node(dtb, node_name), 0);
-    assert_int_equal(fdt_property(dtb, "pb,slc-available-keys", old_keys, sizeof(old_keys)), 0);
+    if (keys)
+        assert_int_equal(fdt_property(dtb, "pb,slc-available-keys", old_keys, sizeof(old_keys)), 0);
     assert_int_equal(fdt_end_node(dtb), 0);
     assert_int_equal(fdt_end_node(dtb), 0);
     assert_int_equal(fdt_finish(dtb), 0);
     /* Make the rest of the buffer free space */
     assert_int_equal(fdt_open_into(dtb, dtb, sizeof(dtb)), 0);
+}
+
+static void make_dtb(const char *node_name)
+{
+    make_dtb_keys(node_name, true);
 }
 
 static int setup(void **state)
@@ -309,6 +313,22 @@ static void test_dtb_is_patched(void **state)
     assert_ptr_equal(jump_args[1], dtb);
 }
 
+/* No list to replace: the keys are added (F-071) */
+static void test_dtb_without_key_list(void **state)
+{
+    int len;
+    (void)state;
+
+    make_dtb_keys("chosen", false);
+    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+
+    const fdt32_t *keys = fdt_getprop(dtb, chosen(), "pb,slc-available-keys", &len);
+    assert_non_null(keys);
+    assert_int_equal(len, 12);
+    assert_int_equal(fdt32_to_cpu(keys[0]), KEY_ID_0);
+}
+
 static void test_dtb_without_options(void **state)
 {
     (void)state;
@@ -404,9 +424,13 @@ static void test_dtb_out_of_space(void **state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        LINUX_TEST(test_init_requires_image_id), LINUX_TEST(test_kernel_only),
-        LINUX_TEST(test_kernel_needs_load_addr), LINUX_TEST(test_dtb_is_patched),
-        LINUX_TEST(test_dtb_without_options),    LINUX_TEST(test_dtb_errors),
+        LINUX_TEST(test_init_requires_image_id),
+        LINUX_TEST(test_kernel_only),
+        LINUX_TEST(test_kernel_needs_load_addr),
+        LINUX_TEST(test_dtb_is_patched),
+        LINUX_TEST(test_dtb_without_key_list),
+        LINUX_TEST(test_dtb_without_options),
+        LINUX_TEST(test_dtb_errors),
         LINUX_TEST(test_dtb_out_of_space),
     };
 
