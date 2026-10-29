@@ -46,7 +46,7 @@ static const mmap_region_t imx_mmap[] = {
     /* Map all of the normal I/O space */
     MAP_REGION_FLAT(IMX_REG_BASE, IMX_REG_SIZE, MT_DEVICE | MT_RW),
     /* CAAM JR2 */
-    MAP_REGION_FLAT(0x31430000, (64 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(IMX_CAAM_JR2_BASE, (64 * 1024), MT_DEVICE | MT_RW),
     { 0 }
 };
 

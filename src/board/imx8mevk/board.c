@@ -221,7 +221,7 @@ int board_init(struct imx8m_platform *plat_)
 {
     int rc;
 
-    rc = imx_caam_init(IMX8M_CAAM_JR1_BASE);
+    rc = imx_caam_init(IMX8M_CAAM_JR0_BASE);
 
     if (rc != PB_OK) {
         LOG_ERR("CAAM init failed (%i)", rc);
