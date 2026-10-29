@@ -60,6 +60,7 @@ scripts/pbdev run <cmd...>
 ```sh
 scripts/pbdebug jiffy [elf]          # OpenOCD + gdb-multiarch, attached to the running target
 scripts/pbdebug --load jiffy [elf]   # load elf into RAM over JTAG, halted at its entry point
+scripts/pbdebug --load imxrt1060evk  # the same over the EVK's J-Link (SWD), console on its ttyACM
 ```
 
 - Runs on the host (needs `openocd` and `gdb-multiarch`), since OpenOCD needs the USB adapter.
@@ -68,6 +69,14 @@ scripts/pbdebug --load jiffy [elf]   # load elf into RAM over JTAG, halted at it
 - GDB halts the target on attach. Symbols come from `build-<board>/pb_unstripped` and are only
   right if the board runs that build. Set `CONFIG_DEBUG_SYMBOLS=y` (and a lower `CONFIG_OPTIMIZE`)
   for source level debugging. Quitting GDB resumes the target.
+- i.MX RT1060 EVK (2026-10-29): the on-board debug probe runs SEGGER's J-Link firmware
+  (`1366:1024`, not in OpenOCD's udev rules: add one for plugdev), and its serial port is the
+  console (LPUART1, 115200). The board config's `# adapter:` line picks `interface/jlink.cfg`.
+  `pb_load_prepare` lets the boot ROM boot the image in FlexSPI NOR (the IVT at 0x60001000 gives
+  its vector table) and stops it at the image's reset handler, so pb starts with the ROM's clocks
+  and watchdogs; `pb_load_start` sets MSP, PC and VTOR from pb's vector table after `load`. pb
+  comes up at 600 MHz, finds the IS25WP064D NOR and answers over USB OTG1. The NOR must hold a
+  boot image (the EVK's demo application does).
 - Configs: `src/plat/imx6ul/openocd.cfg` (chip: upstream `target/imx6ul.cfg` with DAP r5
   `0x5ba00477`, the upstream default r4 doesn't match the silicon) and
   `src/board/<board>/openocd.cfg` (board). The board config sources the platform one.
