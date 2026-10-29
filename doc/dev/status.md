@@ -52,7 +52,9 @@ the host half of 4 are done (`compatibility.md`, Guards).
   measured on the EVK, Linux itself not tried). `punchboot log [NAME] [--list]`.
 - **i.MX RT1060 EVK (2026-10-29):** pb runs from OCRAM, loaded over the EVK's J-Link
   (`scripts/pbdebug --load imxrt1060evk`, `build-and-test.md`): 600 MHz, the IS25WP064D NOR,
-  USB command mode. Console on the J-Link's ttyACM. In CI now. The board file still looks like a
+  USB command mode. Console on the J-Link's ttyACM. In CI now. Boots from the QSPI NOR
+  (`pb_flash.bin`: an FCB per board revision, `fcb_*.c`, then `pb.imx`), RAM log on, console at
+  warnings. Clock dividers depend on the reset type (F-148). The board file still looks like a
   custom product's (NOR layout, charger and wing-board checks in an unused `board_late_boot()`).
 - **Slimming (2026-10-29, D-019, D-020):** self tests, littlefs, the Sphinx/RTD tree, `doc/`
   binaries, TF-A asm helpers, headers, always-on Kconfig options and dead scripts removed: about
