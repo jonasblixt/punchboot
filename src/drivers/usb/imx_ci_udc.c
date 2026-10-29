@@ -488,10 +488,23 @@ static int imx_ci_udc_set_configuration(const struct usb_endpoint_descriptor *ep
             return -PB_ERR_PARAM;
         };
 
+        /* Keep the other direction, and make it bulk if it's unused: a
+         * disabled direction left as control type makes the data PID
+         * tracking of the enabled one undefined. */
+        ep_reg = mmio_read_32(imx_ci_udc_base + epctrl);
+
         if (ep_in) {
-            ep_reg = (1 << 23) | (ep_type_val << 18) | (1 << 22);
+            ep_reg &= 0x0000ffff;
+            ep_reg |= (1 << 23) | (ep_type_val << 18) | (1 << 22);
+
+            if (!(ep_reg & (1 << 7)))
+                ep_reg = (ep_reg & ~(3 << 2)) | (2 << 2);
         } else {
-            ep_reg = (1 << 7) | (ep_type_val << 2) | (1 << 6);
+            ep_reg &= 0xffff0000;
+            ep_reg |= (1 << 7) | (ep_type_val << 2) | (1 << 6);
+
+            if (!(ep_reg & (1 << 23)))
+                ep_reg = (ep_reg & ~(3 << 18)) | (2 << 18);
         }
 
         LOG_DBG("EP config: reg=0x%lx, val=0x%x", epctrl, ep_reg);
