@@ -10,12 +10,10 @@ Q ?= @
 TARGET  = pb
 PB_VERSION = $(shell cat version.txt)
 BPAK ?= $(shell which bpak)
-KEYSTORE_BPAK ?= pki/internal_keystore.bpak
 PYTHON ?= $(shell which python3)
 
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld
-AR=$(CROSS_COMPILE)ar
 SIZE=$(CROSS_COMPILE)size
 STRIP=$(CROSS_COMPILE)strip
 OBJCOPY=$(CROSS_COMPILE)objcopy
@@ -34,13 +32,6 @@ $(shell BOARD=$(BOARD) KCONFIG_CONFIG=$(KCONFIG_CONFIG) $(PYTHON) scripts/gencon
 
 include $(BUILD_CONFIG)
 
-ifdef TIMING_REPORT
-	LOGLEVEL = 0
-	TIMING_REPORT=1
-else
-	TIMING_REPORT=0
-endif
-
 cflags-y   = -std=c99
 cflags-y  += -O$(call unquote,$(CONFIG_OPTIMIZE))
 cflags-$(CONFIG_DEBUG_SYMBOLS) += -g
@@ -50,7 +41,6 @@ cflags-y  += -fdata-sections
 cflags-y  += -fno-omit-frame-pointer
 cflags-y  += -DPB_VERSION=\"$(PB_VERSION)\"
 cflags-y  += -DLOGLEVEL=$(CONFIG_LOGLEVEL)
-cflags-y  += -DTIMING_REPORT=$(TIMING_REPORT)
 cflags-y  += -fno-common -fno-builtin
 cflags-y  += -ffreestanding -fno-exceptions
 cflags-y  += -fstack-usage
@@ -69,12 +59,10 @@ cflags-y += -Wall
 cflags-y += -Wextra
 cflags-y += -Wunused-result
 #cflags-y += -Wmissing-include-dirs
-cflags-y += -Wunused
 cflags-y += -Wdisabled-optimization
 cflags-y += -Wvla
 cflags-y += -Wshadow
 cflags-y += -Wno-unused-parameter
-cflags-y += -Wextra
 #cflags-y += -Wmissing-declarations
 cflags-y += -Wmissing-format-attribute
 cflags-y += -Wmissing-prototypes
@@ -86,9 +74,9 @@ cflags-y += -Waggregate-return
 src-y   = src/main.c
 src-y  += keystore.c
 src-y  += src/delay.c
-src-$(CONFIG_CRYPTO) += src/crypto.c
-src-$(CONFIG_BIO_CORE) += src/bio.c
-src-$(CONFIG_DEVICE_UUID) += src/device_uuid.c
+src-y  += src/crypto.c
+src-y  += src/bio.c
+src-y  += src/device_uuid.c
 src-y  += src/wire.c
 src-y  += src/console.c
 src-y  += src/log.c
