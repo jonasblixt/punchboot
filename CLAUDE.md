@@ -24,6 +24,7 @@ Do not read these up front. Open only what the task needs.
 | `doc/dev/arch-host-tools.md` | Working in `tools/`, wire protocol, Python package |
 | `doc/dev/testing.md` | Writing or running tests (host unit/integration tests) |
 | `doc/dev/build-and-test.md` | Building firmware, the dev container, CI, releasing |
+| `testbench/README.md` | The Buildroot Linux test bench (boot/root images for the boards), adding a board, boot time |
 | `doc/dev/imx8m-ddr.md` | i.MX8M DRAM init (uMCTL2, DWC LPDDR4 PHY), its golden trace test |
 | `doc/dev/bpak.md` | Anything touching bpak or image signing/verification |
 | `doc/dev/compatibility.md` | **Any change to `wire.h`/`error.h`, command mode, the host API, bpak, or image handling** |
@@ -42,6 +43,10 @@ Skip unless the task is about them: `pki/` (test keys), vendored code
 - Author email is `jonas@blxt.se`: commits and the copyright header of new files
   (`Copyright (C) <year> Jonas Blixt <jonas@blxt.se>`). Don't copy the old `jonpe960@gmail.com`
   from existing headers.
+- A new board that runs Linux (or a Linux board new to the test bench) gets a test bench defconfig,
+  and both lists in `testbench/README.md`, "Adding a board", are done for it without being asked:
+  bring-up, then boot time (measure, slim kernel, `initcall_debug`, compression), each step measured
+  and recorded.
 - Commits that fix a bug start with `bugfix:` (`bugfix: drivers: timer: ...`). Keep the fix
   minimal and in its own commit; refactoring, cosmetics and new functionality go in separate
   commits after it, and each board or platform fix gets its own commit.
