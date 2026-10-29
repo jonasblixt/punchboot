@@ -66,12 +66,6 @@ CONFIG_MBEDTLS_ECDSA=y
 # end of Crypto
 
 #
-# Filesystem
-#
-# CONFIG_LITTLE_FS is not set
-# end of Filesystem
-
-#
 # Fusebox
 #
 # CONFIG_DRIVERS_FUSE_TEST is not set
