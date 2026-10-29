@@ -2,6 +2,7 @@
 #define INCLUDE_PLAT_IMX8M_MM_H
 
 #define IMX8M_GPT1_BASE            (0x302D0000)
+#define IMX8M_SCTR_BASE            (0x306C0000)
 #define IMX8M_WDOG1_BASE           (0x30280000)
 #define IMX8M_UART1_BASE           (0x30860000)
 #define IMX8M_UART2_BASE           (0x30890000)

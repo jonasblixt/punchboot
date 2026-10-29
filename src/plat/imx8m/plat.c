@@ -7,6 +7,7 @@
  *
  */
 
+#include <arch/arch_helpers.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
@@ -34,6 +35,14 @@ IMPORT_SYM(uintptr_t, _stack_start, stack_start);
 IMPORT_SYM(uintptr_t, _stack_end, stack_end);
 IMPORT_SYM(uintptr_t, _zero_region_start, rw_nox_start);
 IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
+
+/* System counter control frame */
+#define SCTR_CNTCR      0x00
+#define SCTR_CNTCR_EN   BIT(0) /* Counting */
+#define SCTR_CNTCR_HDBG BIT(1) /* Halt while the core is halted in debug */
+#define SCTR_CNTCR_FCR0 BIT(8) /* Count at the base frequency, CNTFID0 */
+#define SCTR_CNTCR_FCR1 BIT(9) /* ... at CNTFID1 */
+#define SCTR_CNTFID0    0x20
 
 static struct imx8m_platform plat;
 
@@ -182,6 +191,18 @@ int plat_init(void)
     mmio_write_32(CCM_CCGR_SET(CCGR_GPT1), CCGR_CLK_ON_MASK);
     imx_gpt_init(IMX8M_GPT1_BASE, MHz(24));
     log_time_start();
+
+    /*
+     * The system counter, which the Arm generic timer counts: TF-A's delays
+     * and Linux's arch timer need it running, and neither the ROM nor pb
+     * started it. Its base frequency is in CNTFID0 (8 MHz, the 24 MHz
+     * oscillator / 3).
+     */
+    mmio_write_32(CCM_CCGR_SET(CCGR_SCTR), CCGR_CLK_ON_MASK);
+    write_cntfrq_el0(mmio_read_32(IMX8M_SCTR_BASE + SCTR_CNTFID0));
+    mmio_clrsetbits_32(IMX8M_SCTR_BASE + SCTR_CNTCR,
+                       SCTR_CNTCR_FCR1,
+                       SCTR_CNTCR_FCR0 | SCTR_CNTCR_HDBG | SCTR_CNTCR_EN);
 
     /* Read SOC variant and version */
     // private.soc_ver_var = mmio_read_32(CCM_ANALOG_DIGPROG);
