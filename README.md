@@ -230,24 +230,24 @@ the individual unit with that perticular UUID.
 ## Metrics
 
 Measured with `scripts/boot-time-image -c <console>`: warm resets timed from
-the host and pb's RAM log, then a signed image loaded from eMMC in 4 MiB
+the host and pb's RAM log, then a signed image loaded from eMMC in 1 MiB
 chunks, the hash of one chunk running while the next is read. Medians of 5
 runs, with a 10 MiB image.
 
 | Parameter                                       | i.MX6UL (jiffy) | i.MX8M Plus EVK | Unit |
 | ----------------------------------------------- | --------------- | --------------- | ---- |
 | Boot ROM: load pb from eMMC (HAB on jiffy only) | 128             | 25              | ms   |
-| Bootloader init (clocks, DDR, CAAM, eMMC, GPT)  | 37              | 100             | ms   |
+| Bootloader init (clocks, DDR, CAAM, eMMC, GPT)  | 27              | 91              | ms   |
 | Image header read, ECDSA P-256 signature        | 7               | 7               | ms   |
-| 10 MiB eMMC read, SHA-256 overlapped            | 138             | 124             | ms   |
-| SHA-256 of the last chunk                       | 17              | 16              | ms   |
-| Total, reset to verified image                  | 327             | 273             | ms   |
-| eMMC read                                       | 79              | 89              | MiB/s |
+| 10 MiB eMMC read, SHA-256 overlapped            | 132             | 115             | ms   |
+| SHA-256 of the last chunk                       | 9               | 8               | ms   |
+| Total, reset to verified image                  | 302             | 247             | ms   |
+| eMMC read                                       | 77              | 87              | MiB/s |
 | SHA-256 (CAAM)                                  | 116             | 122             | MiB/s |
 
 jiffy: 528 MHz, HAB closed, eMMC in DDR52 8-bit. The EVK: eMMC in HS200, not
 HAB closed, most of its init is LPDDR4 training (64 ms). A 29 MiB image loads
-and verifies in 411 ms on jiffy and 365 ms on the EVK.
+and verifies in 399 ms on jiffy and 349 ms on the EVK.
 
 Measurements taken on IMX8QXP, loading a 14296kByte binary.
 

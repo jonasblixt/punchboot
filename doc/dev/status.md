@@ -28,12 +28,10 @@ are done (`compatibility.md`, Guards).
   with eMMC HS200. Hardware found F-126 (no TC after busy). HS200 tuning on every boot (2 ms, tap 46
   on the EVK), CMD12 after the data instead of auto CMD12. Next: UHS-I (CMD11, tuning), DDR52
   on the EVK (F-113). jiffy checked (DDR52) before the tuning/CMD12/log changes.
-- **Boot time (2026-10-29):** log lines carry `[ms.us]` (no more `ts()`), console at warnings, RAM
-  log at debug. The imx8mpevk trains only 4000 MT/s (`struct dram_rates`): plat init 75 ms.
-  EXT_CSD read at TRAN_SPEED (jiffy -13 ms, EVK -24 ms). jiffy warm boot: ~127 ms ROM + 38 ms pb to
-  `boot_load()`; 10 MiB load+verify 162 ms (EVK 147, `scripts/boot-time-image`, README Metrics).
-  The EVK boots pb from eMMC (F-115 fixed): reset to `boot_load()` 126 ms (2D training 51 ms of
-  it), the microSD card isn't set up any more (`BOARD_SD_CARD`). Next: CMD1 polling, `plat_mmu_init()` (13 ms), smaller load chunks.
+- **Boot time (2026-10-29):** `scripts/boot-time-image` measures it (README Metrics). Reset to a
+  verified 10 MiB image: jiffy 302 ms (ROM 128, init 27), EVK 247 ms (ROM 25, init 91; boots pb
+  from eMMC, F-115 fixed). Next: MMU/caches on early (jiffy 11 ms, EVK 8 ms + DDR firmware load),
+  starting the eMMC power-up early (~3-7 ms). jiffy's ROM costs 0.41 ms per KiB of pb.
 - **CAAM (2026-10-29):** register/descriptor names and fields from the SRMs, JR0 (not JR1) at
   +0x1000; descriptors bit-identical. Checked on jiffy (flashed) and the 8MP EVK: hashing, ECDSA
   P-256 accept/reject. F-127, F-128, F-129 open.
