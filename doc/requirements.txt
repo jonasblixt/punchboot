@@ -1,5 +1,0 @@
-breathe
-semver
-sphinx<7
-sphinx_rtd_theme
-sphinxcontrib-plantuml

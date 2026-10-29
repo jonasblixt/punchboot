@@ -12,7 +12,7 @@ stays compatible.
 ## D-002: AI working context lives in `doc/dev/` (2026-10-22)
 
 `CLAUDE.md` stays small and points to files that are loaded on demand.
-`doc/source/` remains the user-facing Sphinx documentation. `doc/dev/` is
+`doc/source/` remains the user-facing Sphinx documentation (removed, D-020). `doc/dev/` is
 developer and AI context: status, roadmap, findings, decisions, architecture
 notes and a dated log.
 
@@ -157,3 +157,15 @@ wrong hash fails the signature check and pb doesn't boot, so the tests added a m
 safety, at boot time cost on every boot. They also didn't test ECDSA, the dangerous failure.
 Checking the crypto engines on silicon (CAAM, DCP) is done from the host against a board, the way
 CAAM was checked on jiffy and the 8MP EVK, and belongs in a future hardware-in-the-loop tier.
+
+## D-020: Unused code and docs are deleted, not kept for later (2026-10-29)
+
+Code no board builds or calls, docs no one builds, and files nothing references are removed;
+git history keeps them for whoever needs them back. First round (3.0.0): littlefs, the Sphinx
+and Read the Docs tree (`doc/source`, `.readthedocs.yml`; user docs start from the README,
+F-044), the unreferenced presentation and image in `doc/`, drivers that are built but never
+called, unused functions, macros and asm, and Kconfig symbols nothing reads. Boards that
+don't build (F-033, F-051), the ATF boot driver and virtio (F-052) wait for Jonas.
+Why: Jonas wants the code slimmed down. Dead code still costs: it's read, grepped, reviewed
+and kept compiling, and a stub doc tree looks like documentation. `--gc-sections` already
+dropped most of it from the binaries, so flash size barely changes.
