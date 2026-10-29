@@ -119,7 +119,7 @@ static int mmc_send_op_cond(struct mmc_device *dev)
     return -PB_ERR_TIMEOUT;
 }
 
-int mmc_extcsd_reload(struct mmc_device *dev)
+static int mmc_extcsd_reload(struct mmc_device *dev)
 {
     struct mmc_cmd cmd = {
         .idx = MMC_CMD_SEND_EXT_CSD,
@@ -224,6 +224,8 @@ static int mmc_set_bus_width(struct mmc_device *dev, enum mmc_bus_width bus_widt
 
     return dev->hal->set_bus_width(dev->hal->priv, bus_width);
 }
+
+static int mmc_part_switch(struct mmc_device *dev, enum mmc_part part);
 
 static struct mmc_device *bio_mmc(bio_dev_t bdev)
 {
@@ -762,7 +764,7 @@ int mmc_emmc_setup(struct mmc_device *dev)
     return PB_OK;
 }
 
-int mmc_part_switch(struct mmc_device *dev, enum mmc_part part)
+static int mmc_part_switch(struct mmc_device *dev, enum mmc_part part)
 {
     uint8_t value = 0;
     int rc;
