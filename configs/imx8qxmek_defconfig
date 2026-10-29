@@ -81,12 +81,6 @@ CONFIG_DRIVERS_IMX_CAAM=y
 # end of Crypto
 
 #
-# Filesystem
-#
-# CONFIG_LITTLE_FS is not set
-# end of Filesystem
-
-#
 # Fusebox
 #
 CONFIG_DRIVERS_FUSE_TEST=y
