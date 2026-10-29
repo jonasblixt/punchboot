@@ -30,13 +30,19 @@
 static const struct boot_driver_atf_config *cfg;
 static uintptr_t jump_addr;
 static uintptr_t ramdisk_addr;
-static bl_params_t atf_params;
-static bl_params_node_t atf_bl33_node;
-static image_info_t atf_bl33_info;
-static entry_point_info_t atf_bl33_ep;
-static bl_params_node_t atf_bl32_node;
-static image_info_t atf_bl32_info;
-static entry_point_info_t atf_bl32_ep;
+/*
+ * The parameters for BL31, in .data rather than at the end of .bss: TF-A's
+ * i.MX8M BL31 only takes them from the low part of the OCRAM (v2.12
+ * imx8mp_bl31_setup.c swaps base and size in that check, below 0x960000
+ * then), and otherwise starts BL33 at its own fixed address without them.
+ */
+static bl_params_t atf_params __section(".data");
+static bl_params_node_t atf_bl33_node __section(".data");
+static image_info_t atf_bl33_info __section(".data");
+static entry_point_info_t atf_bl33_ep __section(".data");
+static bl_params_node_t atf_bl32_node __section(".data");
+static image_info_t atf_bl32_info __section(".data");
+static entry_point_info_t atf_bl32_ep __section(".data");
 
 static void atf_set_param_head(param_header_t *h, uint8_t type, uint16_t size)
 {
