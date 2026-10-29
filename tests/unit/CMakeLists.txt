@@ -138,6 +138,7 @@ pb_unit_test(test_linux SOURCES
 
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
+    ${PROJECT_SOURCE_DIR}/src/log_source.c
     ${PROJECT_SOURCE_DIR}/src/ramlog.c
     ${PROJECT_SOURCE_DIR}/src/wire.c
     ${PROJECT_SOURCE_DIR}/src/bio.c
