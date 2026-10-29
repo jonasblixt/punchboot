@@ -11,9 +11,15 @@
  * runs on USB1, the USB-C port the ROM's serial download uses.
  *
  * This board never writes fuses: the SLC callbacks are NULL, so the SLC
- * commands are not supported.
+ * commands are not supported, and no key is ever revoked.
+ *
+ * Booting Linux doesn't work yet: there is no TF-A handover. The boot driver
+ * loads and verifies images, e.g. for 'punchboot boot partition'.
  */
 
+#include <boot/ab_state.h>
+#include <boot/boot.h>
+#include <boot/linux.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/partition/gpt.h>
@@ -22,6 +28,7 @@
 #include <drivers/usb/imx8m_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <drivers/usb/usbd.h>
+#include <libfdt.h>
 #include <pb/cm.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
@@ -254,6 +261,26 @@ static int usdhc_sd_setup(void)
     return imx_usdhc_init(&cfg, MHz(200));
 }
 
+static int board_patch_bootargs(void *fdt, int offset)
+{
+    const char *bootargs = NULL;
+
+    if (boot_get_flags() & BOOT_FLAG_VERBOSE) {
+        bootargs = "console=ttymxc1,115200 earlyprintk ";
+    } else {
+        bootargs = "console=ttymxc1,115200 quiet ";
+    }
+
+    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
+}
+
+/* Revocation is a fuse, which this board never writes */
+static int board_read_key_status(const struct rot_key *key)
+{
+    (void)key;
+    return PB_OK;
+}
+
 int board_init(struct imx8m_platform *plat_)
 {
     int rc;
@@ -287,13 +314,60 @@ int board_init(struct imx8m_platform *plat_)
         return user_part;
     }
 
-    (void)gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
+    rc = gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
     /* eMMC User partition now only has the visible flag to report capacity */
     (void)bio_set_flags(user_part, BIO_FLAG_VISIBLE);
 
+    if (rc == PB_OK) {
+        static const struct boot_ab_state_config boot_state_cfg = {
+            .primary_state_part_uu = PART_primary_state,
+            .backup_state_part_uu = PART_backup_state,
+            .sys_a_uu = PART_sys_a,
+            .sys_b_uu = PART_sys_b,
+            .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+        };
+
+        rc = boot_ab_state_init(&boot_state_cfg);
+
+        if (rc != PB_OK) {
+            LOG_ERR("Boot state init failed (%i)", rc);
+            return rc;
+        }
+    } else {
+        LOG_WARN("GPT ptbl init failed (%i)", rc);
+    }
+
+    static const struct boot_driver_linux_config linux_boot_cfg = {
+        .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
+        .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+        .dtb_patch_cb = board_patch_bootargs,
+        .resolve_part_name = boot_ab_part_uu_to_name,
+        .set_dtb_boot_arg = true,
+    };
+
+    rc = boot_driver_linux_init(&linux_boot_cfg);
+
+    if (rc != PB_OK)
+        return rc;
+
+    static const struct boot_driver boot_driver = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .get_boot_bio_device = boot_ab_state_get,
+        .set_boot_partition = boot_ab_state_set_boot_partition,
+        .get_boot_partition = boot_ab_state_get_boot_partition,
+        .prepare = boot_driver_linux_prepare,
+        .jump = boot_driver_linux_jump,
+    };
+
+    rc = boot_init(&boot_driver);
+
+    if (rc != PB_OK)
+        return rc;
+
     static const struct rot_config rot_config = {
         .revoke_key = NULL,
-        .read_key_status = NULL,
+        .read_key_status = board_read_key_status,
         .key_map_length = 3,
         .key_map = {
             {
