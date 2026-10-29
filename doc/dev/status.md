@@ -70,8 +70,10 @@ the host half of 4 are done (`compatibility.md`, Guards).
   login, System A marked verified. jiffy must not be on the VIA USB hub (F-151, it resets jiffy).
   jiffy's kernel slimmed and LZ4: reset to BusyBox init 2939 -> 1326 ms (`testbench/README.md`).
   F-071 fixed: pb grows the DTB and adds `/chosen`, no placeholders needed (jiffy checked).
-  kickstart needed to read pb's partition layout (kickstart `9dcc7b5`). The 8MP
-  image carries TF-A BL31, but the board doesn't use the ATF boot driver (F-150), not booted.
+  kickstart needed to read pb's partition layout (kickstart `9dcc7b5`). The 8MP EVK boots it
+  through TF-A v2.12 to the login prompt (F-150 fixed; pb starts the system counter; AIPS5 off in
+  its DTS, F-153); `testbench/scripts/imx8mpevk-reset` resets the EVK over its FT4232H. Next: the
+  8MP's boot time (README "Adding a board"), its Ethernet (FEC PHY silent, EQOS a module).
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
@@ -99,7 +101,7 @@ the host half of 4 are done (`compatibility.md`, Guards).
 5. Phase 1: security fixes F-001, F-004, each with a test (F-002 is intended, D-011).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`); `--load` loads pb
    into RAM. Next: F-090, F-089, F-083, F-078/F-079, F-081, F-084.
-7. Test bench: the 8MP EVK with the ATF boot driver (F-150). jiffy works (no DHCP lease on the bench).
+7. Test bench: the 8MP EVK's boot time and Ethernet. jiffy works.
 
 ## Open questions (for Jonas)
 
