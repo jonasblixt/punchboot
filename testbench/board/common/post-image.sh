@@ -68,7 +68,7 @@ imx8mpevk)
     ATF_ADDR=0x970000
     KERNEL="${BINARIES_DIR}/Image"
     KERNEL_ADDR=0x42000000
-    DT="${BINARIES_DIR}/imx8mp-evk.dtb"
+    DT="${BINARIES_DIR}/imx8mp-evk-pb.dtb"
     DT_ADDR=0x50000000
     RAMDISK_ADDR=0x50100000
     ;;

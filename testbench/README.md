@@ -7,7 +7,7 @@ dm-verity.
 
 | Board | Defconfig | Status |
 | ----- | --------- | ------ |
-| i.MX8M Plus EVK | `configs/imx8mpevk_defconfig` | builds; punchboot can't start TF-A yet (below) |
+| i.MX8M Plus EVK | `configs/imx8mpevk_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-10-30) |
 | jiffy (i.MX6UL) | `configs/jiffy_defconfig` | boots: kickstart, dm-verity root, login (2026-10-29) |
 
 | Component | Version |
@@ -115,15 +115,26 @@ UUIDs); remove it to test rollback.
 
 ### imx8mpevk: TF-A
 
-punchboot's `imx8mpevk` board boots with the Linux boot driver, which jumps
-to `kernel` at EL3; arm64 Linux needs BL31 for PSCI. Booting this image needs
-the board to use the ATF boot driver (`src/boot/atf.c`, `CONFIG_BOOT_ATF`,
-as `nanopi-neo-core2` does, F-146). TF-A v2.12's i.MX8MP BL31 takes BL33
-(the kernel, x0 = DTB) from the `bl_params` list that `atf.c` passes in x0,
-but only from OCRAM or TCM, and it swaps base and size in that check
-(`imx8mp_bl31_setup.c`: `imx_bl31_params_parse(arg0, IMX_NS_OCRAM_SIZE,
-IMX_NS_OCRAM_BASE, ...)`), so the list must be below 0x960000. Otherwise
-BL31 jumps to 0x40200000 (`PLAT_NS_IMAGE_OFFSET`) without arguments.
+punchboot's `imx8mpevk` board boots with the ATF boot driver
+(`src/boot/atf.c`): it loads BL31 to 0x970000 and starts it with a
+`bl_params` list in x0 that has Linux as BL33 (EL2, x0 = the device tree).
+Three things it takes on this SoC:
+
+- TF-A v2.12's i.MX8MP BL31 only takes the list from OCRAM or TCM, and it
+  swaps base and size in that check (`imx8mp_bl31_setup.c`:
+  `imx_bl31_params_parse(arg0, IMX_NS_OCRAM_SIZE, IMX_NS_OCRAM_BASE, ...)`),
+  so the list must be below 0x960000; otherwise BL31 jumps to 0x40200000
+  (`PLAT_NS_IMAGE_OFFSET`) without arguments. pb keeps it in `.data`.
+- The system counter must run (pb starts it, `src/plat/imx8m/plat.c`):
+  BL31's `udelay()` and Linux's arch timer count it.
+- Linux 6.18 powers the audio mix itself, which leaves its AIPS5 bridge at
+  the reset defaults (TF-A only sets it up when it powers the domain), and the
+  first access takes an SError. `board/imx8mpevk/dts/freescale/imx8mp-evk-pb.dts`
+  is the EVK's device tree without AIPS5 (audio only). Newer kernels set the
+  bridge up (`drivers/bus/imx-aipstz.c` with a node in `imx8mp.dtsi`).
+
+The FEC port's PHY (`30be0000.ethernet`, eth0) doesn't answer on MDIO, and the
+EQOS port's driver is a module, which nothing loads (no mdev/udev).
 
 ## Running it
 
@@ -151,6 +162,10 @@ in the last 4 KiB of the partition, kickstart reads that since `9dcc7b5`.
 
 jiffy's USB must go straight to the host: on a hub (seen with a VIA VL813)
 jiffy power-on-resets a few seconds into Linux (F-151).
+
+The 8MP EVK can be reset from the host, through the FT4232H on its debug USB
+(`pip install pyftdi`): `scripts/imx8mpevk-reset`. A warm reset, the boot
+switches still decide what it boots.
 
 
 Console: UART2 (`ttymxc1`), 115200 8N1, root login without password.
@@ -322,6 +337,7 @@ board/common/
   post-image.sh          builds and signs root.bpak and boot.bpak
   rootfs-overlay/        S99pbstate, pbstate-pb
 board/imx8mpevk/
+  dts/                   imx8mp-evk-pb.dts: the EVK's device tree without AIPS5
   linux.fragment         on top of the arm64 defconfig: only the i.MX SoCs
 board/jiffy/
   dts/                   imx6ul-jiffy.dts (from jiffy's test bench)
@@ -338,4 +354,5 @@ package/
   imx-cst/               host NXP Code Signing Tool
 scripts/
   boottime               boot time over the console: measure, dmesg, initcalls, sizes
+  imx8mpevk-reset        reset the 8MP EVK through its FT4232H
 ```
