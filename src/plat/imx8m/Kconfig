@@ -1,5 +1,5 @@
 menu "imx8m configuration"
-    depends on PLAT_IMX8M
+    depends on PLAT_IMX8M_COMMON
     comment "Console configuration"
 
 comment "Fusebox"

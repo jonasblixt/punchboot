@@ -23,11 +23,20 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <plat/imx8m/dram.h>
 #include <plat/imx8m/imx8m.h>
 #include <stdbool.h>
 #include <stdio.h>
 
 #include "partitions.h"
+
+/* DRAM: all set points of the timing, for DDR frequency scaling in Linux */
+static const unsigned int imx8mevk_dram_mts[] = { 3200, 400, 100 };
+
+struct dram_rates dram_rates = {
+    .mts = imx8mevk_dram_mts,
+    .num = ARRAY_SIZE(imx8mevk_dram_mts),
+};
 
 static const struct gpt_part_table gpt_tbl_default[] = {
     {
