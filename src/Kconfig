@@ -2,6 +2,8 @@ mainmenu "Punchboot configuration"
 
 source "src/arch/Kconfig"
 source "src/plat/Kconfig"
+# The board being built (BOARD, see the Makefile), if it has options
+osource "$(BOARD)/Kconfig"
 source "src/arch/*/Kconfig"
 
 menu "Generic options"
