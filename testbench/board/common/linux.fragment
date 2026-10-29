@@ -15,3 +15,6 @@ CONFIG_SQUASHFS_ZLIB=y
 CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y
 # timeout, timeleft and status in /sys/class/watchdog
 CONFIG_WATCHDOG_SYSFS=y
+
+# A panic reboots after 5 s instead of hanging the board
+CONFIG_PANIC_TIMEOUT=5

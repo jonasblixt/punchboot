@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * The i.MX8M Plus EVK for the punchboot test bench: the upstream EVK device
+ * tree without the audio mix and the rest of its AIPS5 bus.
+ *
+ * Linux 6.18 powers the audio mix through the GPC itself, which leaves the
+ * AIPS5 bridge in front of it at its reset defaults: TF-A v2.12 only sets
+ * AIPS5 up when it powers the domain. The first access from Linux takes an
+ * SError (the audio mix's clock driver, MU2). Newer kernels configure the
+ * bridge (drivers/bus/imx-aipstz.c with a node in imx8mp.dtsi). Only audio
+ * is behind AIPS5: SAI, PDM, S/PDIF, ASRC, the audio SDMAs, MU2.
+ */
+
+#include "imx8mp-evk.dts"
+
+&aips5 {
+	status = "disabled";
+};

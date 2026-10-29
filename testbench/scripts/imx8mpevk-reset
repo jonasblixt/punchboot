@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Reset the i.MX8M Plus EVK through the FT4232H on its debug USB.
+
+    imx8mpevk-reset [-u FTDI_URL]
+
+A warm reset (SYS_nRST, "Warm Reset, CPU ONLY"): the SoC restarts and boots
+with the boot mode it sampled at power-on, so the boot switches still
+decide. Needs pyftdi (pip install pyftdi) and access to the FT4232H's USB
+device (plugdev); while it runs, the FT4232H's first two ttyUSB ports go
+away, the console (third port) stays.
+
+The EVK's remote control, schematic SPF-46370 B1 sheet 19 (8MPLUS-BB):
+FT_SYS_nRST (channel A, ADBUS5) drives SYS_nRST through U66, which only
+drives while REMOTE_SEL is high. REMOTE_SEL is P1_0 of the PCA6416 (U70,
+I2C 0x20) on channel B (BDBUS0 SCL, BDBUS1/2 SDA). REMOTE_SEL also switches
+the boot mode lines and JTAG to the FT4232H, which is why it goes back to
+the default (P1_0 an input) right after.
+"""
+
+import argparse
+import time
+
+from pyftdi.gpio import GpioAsyncController
+from pyftdi.i2c import I2cController
+
+PCA6416 = 0x20
+OUTPUT1 = 0x03
+CONFIG1 = 0x07
+REMOTE_SEL = 1 << 0  # P1_0
+SYS_NRST = 1 << 5  # ADBUS5
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    p.add_argument("-u", "--url", default="ftdi://ftdi:4232h", help="the FT4232H, pyftdi URL")
+    args = p.parse_args()
+
+    i2c = I2cController()
+    i2c.configure(f"{args.url}/2", frequency=100e3)
+    exp = i2c.get_port(PCA6416)
+    config1 = exp.read_from(CONFIG1, 1)[0]
+    output1 = exp.read_from(OUTPUT1, 1)[0]
+
+    exp.write_to(OUTPUT1, bytes([output1 | REMOTE_SEL]))
+    exp.write_to(CONFIG1, bytes([config1 & ~REMOTE_SEL & 0xFF]))
+
+    gpio = GpioAsyncController()
+    gpio.configure(f"{args.url}/1", direction=SYS_NRST, initial=SYS_NRST)
+    gpio.write(0)
+    time.sleep(0.2)
+    gpio.write(SYS_NRST)
+    gpio.set_direction(SYS_NRST, 0)
+    gpio.close()
+
+    exp.write_to(CONFIG1, bytes([config1]))
+    exp.write_to(OUTPUT1, bytes([output1]))
+    i2c.close()
+
+
+if __name__ == "__main__":
+    main()
