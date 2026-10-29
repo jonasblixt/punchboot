@@ -1,28 +1,11 @@
 menu "Library"
 
-config LIB_ZLIB_CRC
-    bool "Enable zlib CRC32 function"
-    default y
-
-config LIB_BPAK
-    bool "Enable BPAK library support"
-    default y
-
 config LIB_DER_HELPERS
     bool "(ASN.1) DER Helpers"
     default y
 
 config LIB_FDT
     bool "Device tree support"
-    default y
-
-config LIB_UUID
-    bool "UUID library"
-    default y
-
-config LIB_UUID3
-    depends on LIB_UUID
-    bool "Enable UUID3 function"
     default y
 
 config LIB_XLAT_TBLS
