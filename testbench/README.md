@@ -133,8 +133,8 @@ Three things it takes on this SoC:
   is the EVK's device tree without AIPS5 (audio only). Newer kernels set the
   bridge up (`drivers/bus/imx-aipstz.c` with a node in `imx8mp.dtsi`).
 
-The FEC port's PHY (`30be0000.ethernet`, eth0) doesn't answer on MDIO, and the
-EQOS port's driver is a module, which nothing loads (no mdev/udev).
+The FEC port's PHY (`30be0000.ethernet`, eth0) doesn't answer on MDIO; the
+EQOS port (eth1) probes.
 
 ## Running it
 
@@ -243,6 +243,28 @@ entropy RNG at 464 ms, more than half of all initcalls. Of the rest: the FEC
 21 ms, GPIO 20 ms. To the login prompt it is another ~6 s, `udhcpc` (~3 s
 without a lease) and `S99pbstate` (~2.7 s).
 
+### imx8mpevk
+
+Warm resets as for jiffy, medians of 5 (2026-10-30). Reset to pb's banner is
+~420 ms here: arm64 Linux resets through TF-A's PSCI, not a watchdog right
+away; pb's own boot ROM time is 25 ms (README Metrics).
+
+| Kernel | Image | Reset to BusyBox init | Kernel uptime at init |
+| ------ | ----- | --------------------- | --------------------- |
+| arm64 `defconfig`, other SoC families off | 25.9 MB | 1939 ms | 880 ms |
+| only the EVK's hardware, no jitter RNG (`board/imx8mpevk/linux.fragment`) | 14.6 MB | 1323 ms | 400 ms |
+| and unused devices off in the DTS (`imx8mp-evk-pb.dts`) | 14.6 MB | 1243 ms | 320 ms |
+| and the CAAM, thermal, RTC and cpufreq built in | 14.7 MB | **1218 ms** | 290 ms |
+
+The `Image` isn't compressed on arm64: pb reads it at ~89 MiB/s, ~165 ms for
+14.7 MB. `initcall_debug`: all initcalls 241 ms; the SD slot (uSDHC2) took
+32 ms to probe empty and the display nodes' dependency cycles 13 ms, both off
+in the DTS now; the FEC 24 ms (its PHY doesn't answer). On arm64 the jitter
+RNG comes with `CRYPTO_ECHAINIV`, which the defconfig sets.
+
+Open: the CAAM's RNG isn't instantiated (Linux runs non-secure and can't, pb
+doesn't yet), so there is no `rng-caam`; the FEC's PHY doesn't answer on MDIO.
+
 ## Adding a board
 
 Every board that runs Linux gets a defconfig here and goes through both
@@ -298,17 +320,26 @@ and check the system again (step 5 of the bring-up) before going on.
    other boards' PMICs, other Ethernet vendors, network file systems, FUSE,
    kprobes, BPF, io_uring, debugfs, the initramfs decompressors other than
    gzip. Check every line took (`grep` the kernel's `.config`): an option
-   that something still selects stays on.
-3. `initcall_debug` (above), `scripts/boottime initcalls`. Look for the
+   that something still selects stays on (`VT` and `IO_URING` need
+   `CONFIG_EXPERT`). Build in (`=y`) every driver the board needs: the root
+   file system has no mdev/udev, nothing loads modules (on the 8MP EVK the
+   EQOS Ethernet, the CAAM, thermal, RTC and cpufreq were modules).
+3. The board's DTS: turn off the devices the test bench doesn't use (an SD
+   slot nobody boots from, display, GPU/NPU/VPU, PCIe, USB, CAN, sound), in
+   a `<board>-pb.dts` that includes the upstream one. On the 8MP EVK an
+   empty SD slot took 32 ms to probe, the display nodes' dependency cycles
+   13 ms. Watch `dmesg` for deferred probes and probe timeouts afterwards
+   (an interrupt controller whose power domain went with its block).
+4. `initcall_debug` (above), `scripts/boottime initcalls`. Look for the
    jitter entropy RNG (`jent_mod_init`, 464 ms on jiffy): it comes with
-   `CRYPTO_DRBG`, which `CRYPTO_ECDH`/`ECC`/`GENIV` pull in; turn off what
-   selects it. RAM disks (`BLK_DEV_RAM`) and preallocated loop devices
+   `CRYPTO_DRBG`, which `CRYPTO_ECDH`/`ECC`/`GENIV` pull in (on arm64
+   `CRYPTO_ECHAINIV` from the defconfig); turn off what selects it. RAM disks (`BLK_DEV_RAM`) and preallocated loop devices
    (`BLK_DEV_LOOP_MIN_COUNT=0`) too. Look at deferred probes and long driver
    probes, but keep delays the hardware needs (PHY resets).
-4. armv7: LZ4 for the zImage (`BR2_LINUX_KERNEL_LZ4`). arm64 boots an
-   uncompressed `Image`, there its size is pb's read time (~13 ms per MB on
-   the eMMCs here).
-5. Take `initcall_debug` and `PB_BOOT_TIME_MARK` out again, write the clean
+5. armv7: LZ4 for the zImage (`BR2_LINUX_KERNEL_LZ4`). arm64 boots an
+   uncompressed `Image`, there its size is pb's read time (~11-13 ms per MB
+   on the eMMCs here).
+6. Take `initcall_debug` and `PB_BOOT_TIME_MARK` out again, write the clean
    images and leave the board as it was (`scripts/boottime release`).
 
 ## Keys
@@ -337,7 +368,7 @@ board/common/
   post-image.sh          builds and signs root.bpak and boot.bpak
   rootfs-overlay/        S99pbstate, pbstate-pb
 board/imx8mpevk/
-  dts/                   imx8mp-evk-pb.dts: the EVK's device tree without AIPS5
+  dts/                   imx8mp-evk-pb.dts: the EVK's device tree without AIPS5 and unused devices
   linux.fragment         on top of the arm64 defconfig: only the i.MX SoCs
 board/jiffy/
   dts/                   imx6ul-jiffy.dts (from jiffy's test bench)
