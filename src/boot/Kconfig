@@ -40,15 +40,20 @@ config BOOT_LOAD_CHUNK_kB
     default 4096
 
 config BOOT_LINUX_RAMOOPS
-    bool "Read Linux's ramoops console as the log 'linux'"
+    bool "Read Linux's ramoops records as the log 'linux'"
     help
-        Linux's pstore/ramoops keeps the console of a boot in a reserved RAM
-        region that survives a warm reset. With this, 'punchboot log linux'
-        reads the console Linux left there, e.g. after a panic and a
-        watchdog reset into command mode. pb only reads the region, before
-        anything is loaded into it, and the values must match the ramoops
-        node in the device tree (reserved-memory, ecc-size 0). A cold reset
-        (power, or a PMIC that power cycles the DRAM on WDOG_B) loses it.
+        Linux's pstore/ramoops saves the kernel log in a reserved RAM region
+        that survives a warm reset: a dmesg record at an oops or a panic,
+        and at a reboot with max-reason = <4> in its device tree node. With
+        this, 'punchboot log linux' reads the newest record, with its
+        "====<sec>.<usec>-D" header (the time Linux saved it), e.g. after a
+        panic and a watchdog reset into command mode. Records must not be
+        compressed (CONFIG_PSTORE_COMPRESS off in Linux). pb only reads the
+        region, before anything is loaded into it, and the values must
+        match the ramoops node in the device tree (reserved-memory,
+        ecc-size 0). A cold reset (power, or a PMIC that power cycles the
+        DRAM) loses it. The log is only read through command mode, so
+        command mode sets it up, not the boot.
 
 config BOOT_LINUX_RAMOOPS_ADDR
     hex "ramoops region address"
@@ -61,11 +66,11 @@ config BOOT_LINUX_RAMOOPS_SIZE
 config BOOT_LINUX_RAMOOPS_RECORD_SIZE
     hex "ramoops record-size"
     depends on BOOT_LINUX_RAMOOPS
-    default 0x0
 
 config BOOT_LINUX_RAMOOPS_CONSOLE_SIZE
     hex "ramoops console-size"
     depends on BOOT_LINUX_RAMOOPS
+    default 0x0
 
 config BOOT_LINUX_RAMOOPS_FTRACE_SIZE
     hex "ramoops ftrace-size"
