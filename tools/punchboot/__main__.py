@@ -682,8 +682,10 @@ def log(
     NAME is a log from --list, e.g. 'rom' for the boot ROM's on SoCs that keep one.
     """
     if list_logs:
-        for log_name, description in s.log_list():
-            click.echo(f"{log_name:<10}{description}")
+        logs = s.log_list()
+        width = max((len(log_name) for log_name, _ in logs), default=0) + 2
+        for log_name, description in logs:
+            click.echo(f"{log_name:<{width}}{description}")
         return
 
     data = s.log_read(name)
