@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-10-29_
+_Last updated: 2026-10-30_
 
 ## Current focus
 
@@ -35,6 +35,8 @@ the host half of 4 are done (`compatibility.md`, Guards).
 - **CAAM (2026-10-29):** register/descriptor names and fields from the SRMs, JR0 (not JR1) at
   +0x1000; descriptors bit-identical. Checked on jiffy (flashed) and the 8MP EVK: hashing, ECDSA
   P-256 accept/reject. F-127, F-128 open; the self tests are removed (D-019, closes F-129).
+  pb instantiates the RNG4 (both state handles, prediction resistance, secure keys; F-154,
+  2026-10-30): Linux gets `rng-caam` on jiffy and the 8MP EVK, 27 ms per boot. imx8mevk untried.
 - **jiffy USB (ChipIdea UDC, 2026-10-29):** reviewed against the 6UL RM: F-132..F-140. Fixed
   F-132 (IN toggle reset) and F-133 (unused direction left control type), register/field names
   from the RM (`imx_ci_udc_private.h`). F-130 fixed (`3746bc6c`, stale cached dQH overlay, found
@@ -73,7 +75,7 @@ the host half of 4 are done (`compatibility.md`, Guards).
   kickstart needed to read pb's partition layout (kickstart `9dcc7b5`). The 8MP EVK boots it
   through TF-A v2.12 to the login prompt (F-150 fixed; pb starts the system counter; AIPS5 off in
   its DTS, F-153); `testbench/scripts/imx8mpevk-reset` resets the EVK over its FT4232H. 8MP boot
-  time 1939 -> 1218 ms reset to init (slim kernel, DTS trimmed). Open: CAAM RNG (F-154), FEC (F-155).
+  time 1939 -> 1218 ms reset to init (slim kernel, DTS trimmed), +27 ms for the CAAM RNG (F-154). Open: FEC (F-155).
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
@@ -101,7 +103,7 @@ the host half of 4 are done (`compatibility.md`, Guards).
 5. Phase 1: security fixes F-001, F-004, each with a test (F-002 is intended, D-011).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`); `--load` loads pb
    into RAM. Next: F-090, F-089, F-083, F-078/F-079, F-081, F-084.
-7. Test bench: pb instantiating the CAAM RNG for non-secure Linux (F-154), the EVK's FEC (F-155).
+7. Test bench: the EVK's FEC (F-155, later). The CAAM RNG init on the 8MQ EVK (imx8mevk), untried.
 
 ## Open questions (for Jonas)
 
