@@ -30,3 +30,9 @@ CONFIG_PSTORE_RAM=y
 # CONFIG_PSTORE_CONSOLE is not set
 # CONFIG_PSTORE_COMPRESS is not set
 
+# A hang panics Linux before the watchdog resets the board, so ramoops saves
+# the log first: pb-watchdog sets a 2 s pretimeout, the panic governor acts
+# on it
+CONFIG_WATCHDOG_PRETIMEOUT_GOV=y
+CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC=y
+CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC=y

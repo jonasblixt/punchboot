@@ -35,8 +35,9 @@ BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_CUSTOM_DTS_DIR="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/jiffy/dts"
 
 # Target packages
-# BusyBox's watchdog daemon (S15watchdog) takes over the watchdog pb starts
-BR2_PACKAGE_BUSYBOX_WATCHDOG=y
+# pb-watchdog (S15watchdog) takes over the watchdog pb starts, with a
+# pretimeout so that a hang leaves a ramoops record
+BR2_PACKAGE_PB_WATCHDOG=y
 BR2_PACKAGE_MEMTESTER=y
 BR2_PACKAGE_MMC_UTILS=y
 BR2_PACKAGE_UTIL_LINUX=y
