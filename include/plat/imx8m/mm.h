@@ -9,6 +9,7 @@
 #define IMX8M_UART3_BASE           (0x30880000)
 #define IMX8M_USB1_BASE            (0x38100000)
 #define IMX8M_USB1_PHY_BASE        (0x381F0040)
+#define IMX8M_CAAM_BASE            (0x30900000)
 #define IMX8M_CAAM_JR0_BASE        (0x30901000)
 #define IMX8M_USDHC1_BASE          (0x30B40000)
 #define IMX8M_USDHC2_BASE          (0x30B50000)
