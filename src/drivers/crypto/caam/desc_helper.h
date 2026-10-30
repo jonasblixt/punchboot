@@ -166,6 +166,18 @@ typedef uint32_t descStatus_t;
     (CMD_OP_TYPE | OP_TYPE(CLASS1) | OP_ALGO(RNG) | ALGO_RNG_SH(sh) | ALGO_AS(RNG_INSTANTIATE))
 
 /**
+ * @brief  RNG State Handle instantation operation for \a sh id, with
+ *         prediction resistance
+ */
+#define RNG_SH_INST_PR(sh) (RNG_SH_INST(sh) | ALGO_RNG_PR)
+
+/**
+ * @brief  RNG State Handle uninstantation operation for \a sh id
+ */
+#define RNG_SH_UNINST(sh) \
+    (CMD_OP_TYPE | OP_TYPE(CLASS1) | OP_ALGO(RNG) | ALGO_RNG_SH(sh) | ALGO_AS(RNG_UNINSTANTIATE))
+
+/**
  * @brief  RNG Generates Secure Keys
  */
 #define RNG_GEN_SECKEYS \
