@@ -262,8 +262,9 @@ The `Image` isn't compressed on arm64: pb reads it at ~89 MiB/s, ~165 ms for
 in the DTS now; the FEC 24 ms (its PHY doesn't answer). On arm64 the jitter
 RNG comes with `CRYPTO_ECHAINIV`, which the defconfig sets.
 
-Open: the CAAM's RNG isn't instantiated (Linux runs non-secure and can't, pb
-doesn't yet), so there is no `rng-caam`; the FEC's PHY doesn't answer on MDIO.
+pb now instantiates the CAAM's RNG (Linux runs non-secure here and can't), which
+adds 27 ms to every boot after these measurements; Linux has `rng-caam` and its
+random pool is ready at 0.15 s. Open: the FEC's PHY doesn't answer on MDIO.
 
 ## Adding a board
 
