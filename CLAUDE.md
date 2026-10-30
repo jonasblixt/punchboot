@@ -45,7 +45,7 @@ Skip unless the task is about them: `pki/` (test keys), vendored code
   from existing headers.
 - A new board that runs Linux (or a Linux board new to the test bench) gets a test bench defconfig,
   and both lists in `testbench/README.md`, "Adding a board", are done for it without being asked:
-  bring-up, then boot time (measure, slim kernel, `initcall_debug`, compression), each step measured
+  bring-up, then boot time (measure, slim kernel and DTS, `initcall_debug`, compression), each step measured
   and recorded.
 - Commits that fix a bug start with `bugfix:` (`bugfix: drivers: timer: ...`). Keep the fix
   minimal and in its own commit; refactoring, cosmetics and new functionality go in separate

@@ -16,3 +16,169 @@
 &aips5 {
 	status = "disabled";
 };
+
+/*
+ * Not used by the test bench, off for the boot time: every device costs its
+ * creation, probe attempts and dependency checks. The SD slot (uSDHC2) took
+ * 32 ms to probe empty, right before /init; the display nodes' dependency
+ * cycles 13 ms. The eMMC is on uSDHC3, the console on UART2.
+ */
+&usdhc2 {
+	status = "disabled";
+};
+
+/* Display, HDMI, camera */
+&lcdif1 {
+	status = "disabled";
+};
+
+&lcdif3 {
+	status = "disabled";
+};
+
+&mipi_dsi {
+	status = "disabled";
+};
+
+&hdmi_pvi {
+	status = "disabled";
+};
+
+&hdmi_tx {
+	status = "disabled";
+};
+
+&hdmi_tx_phy {
+	status = "disabled";
+};
+
+&hdmi_blk_ctrl {
+	status = "disabled";
+};
+
+&irqsteer_hdmi {
+	status = "disabled";
+};
+
+&media_blk_ctrl {
+	status = "disabled";
+};
+
+&{/soc@0/bus@30800000/i2c@30a30000/hdmi@3d} {
+	status = "disabled";
+};
+
+&{/hdmi-connector} {
+	status = "disabled";
+};
+
+&{/native-hdmi-connector} {
+	status = "disabled";
+};
+
+&backlight_lvds {
+	status = "disabled";
+};
+
+/* GPU, NPU, video codecs */
+&gpu2d {
+	status = "disabled";
+};
+
+&gpu3d {
+	status = "disabled";
+};
+
+&npu {
+	status = "disabled";
+};
+
+&vpu_g1 {
+	status = "disabled";
+};
+
+&vpu_g2 {
+	status = "disabled";
+};
+
+&vpumix_blk_ctrl {
+	status = "disabled";
+};
+
+/* PCIe, USB, CAN, SPI NOR, PWM, the Bluetooth UART */
+&pcie_phy {
+	status = "disabled";
+};
+
+&pcie0 {
+	status = "disabled";
+};
+
+&pcie0_ep {
+	status = "disabled";
+};
+
+&usb3_phy1 {
+	status = "disabled";
+};
+
+&usb3_1 {
+	status = "disabled";
+};
+
+&usb_dwc3_1 {
+	status = "disabled";
+};
+
+&flexcan1 {
+	status = "disabled";
+};
+
+&flexcan2 {
+	status = "disabled";
+};
+
+&flexspi {
+	status = "disabled";
+};
+
+&pwm1 {
+	status = "disabled";
+};
+
+&pwm2 {
+	status = "disabled";
+};
+
+&pwm4 {
+	status = "disabled";
+};
+
+&uart1 {
+	status = "disabled";
+};
+
+/* The sound cards and MU2, their devices are behind AIPS5 (above) */
+&mu2 {
+	status = "disabled";
+};
+
+&{/sound-bt-sco} {
+	status = "disabled";
+};
+
+&{/sound-hdmi} {
+	status = "disabled";
+};
+
+&{/sound-micfil} {
+	status = "disabled";
+};
+
+&{/sound-wm8960} {
+	status = "disabled";
+};
+
+&{/sound-xcvr} {
+	status = "disabled";
+};
