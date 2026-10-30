@@ -26,6 +26,23 @@
 	chosen {
 		stdout-path = &uart2;
 	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/* Read by punchboot as the log "linux", the same values as
+		 * CONFIG_BOOT_LINUX_RAMOOPS_* in its configs/jiffy_defconfig */
+		ramoops@bff00000 {
+			compatible = "ramoops";
+			reg = <0xbff00000 0x100000>;
+			record-size = <0x20000>;
+			/* A record at a panic, an oops and a reboot (KMSG_DUMP_SHUTDOWN) */
+			max-reason = <4>;
+			ecc-size = <0>;
+		};
+	};
 };
 
 &adc1 {

@@ -17,6 +17,20 @@
 	status = "disabled";
 };
 
+/* Read by punchboot as the log "linux", the same values as
+ * CONFIG_BOOT_LINUX_RAMOOPS_* in its configs/imx8mpevk_defconfig. Clear of
+ * 0x80000000, the second rank's start, where the DRAM training writes. */
+&{/reserved-memory} {
+	ramoops@bff00000 {
+		compatible = "ramoops";
+		reg = <0 0xbff00000 0 0x100000>;
+		record-size = <0x20000>;
+		/* A record at a panic, an oops and a reboot (KMSG_DUMP_SHUTDOWN) */
+		max-reason = <4>;
+		ecc-size = <0>;
+	};
+};
+
 /*
  * Not used by the test bench, off for the boot time: every device costs its
  * creation, probe attempts and dependency checks. The SD slot (uSDHC2) took
