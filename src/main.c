@@ -8,7 +8,6 @@
  */
 
 #include <boot/boot.h>
-#include <boot/linux_ramoops.h>
 #include <pb/arch.h>
 #include <pb/cm.h>
 #include <pb/pb.h>
@@ -16,17 +15,6 @@
 #include <pb/ramlog.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#ifdef CONFIG_BOOT_LINUX_RAMOOPS
-static const struct linux_ramoops_config ramoops = {
-    .addr = CONFIG_BOOT_LINUX_RAMOOPS_ADDR,
-    .size = CONFIG_BOOT_LINUX_RAMOOPS_SIZE,
-    .record_size = CONFIG_BOOT_LINUX_RAMOOPS_RECORD_SIZE,
-    .console_size = CONFIG_BOOT_LINUX_RAMOOPS_CONSOLE_SIZE,
-    .ftrace_size = CONFIG_BOOT_LINUX_RAMOOPS_FTRACE_SIZE,
-    .pmsg_size = CONFIG_BOOT_LINUX_RAMOOPS_PMSG_SIZE,
-};
-#endif
 
 void main(void)
 {
@@ -38,11 +26,6 @@ void main(void)
     ramlog_init();
 #endif
     arch_init();
-#ifdef CONFIG_BOOT_LINUX_RAMOOPS
-    /* Only reads the region when the log is read, after the DRAM init */
-    if (linux_ramoops_init(&ramoops) != PB_OK)
-        printf("Bad ramoops config\n\r");
-#endif
 
     rc = plat_init();
 
