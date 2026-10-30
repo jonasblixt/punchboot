@@ -8,6 +8,7 @@
  */
 
 #include <boot/boot.h>
+#include <boot/linux_ramoops.h>
 #include <bpak/bpak.h>
 #include <bpak/keystore.h>
 #include <inttypes.h>
@@ -54,6 +55,17 @@ static bool stream_written;
 static bool stream_failed;
 static bool reboot_requested = false;
 static const struct cm_config *cfg;
+
+#ifdef CONFIG_BOOT_LINUX_RAMOOPS
+static const struct linux_ramoops_config ramoops = {
+    .addr = CONFIG_BOOT_LINUX_RAMOOPS_ADDR,
+    .size = CONFIG_BOOT_LINUX_RAMOOPS_SIZE,
+    .record_size = CONFIG_BOOT_LINUX_RAMOOPS_RECORD_SIZE,
+    .console_size = CONFIG_BOOT_LINUX_RAMOOPS_CONSOLE_SIZE,
+    .ftrace_size = CONFIG_BOOT_LINUX_RAMOOPS_FTRACE_SIZE,
+    .pmsg_size = CONFIG_BOOT_LINUX_RAMOOPS_PMSG_SIZE,
+};
+#endif
 
 #ifdef CONFIG_CM_AUTH_TOKEN
 static int auth_token(uint32_t key_id, uint8_t *sig, size_t size)
@@ -1051,6 +1063,14 @@ int cm_run(void)
 {
     int rc;
     LOG_INFO("Initializing command mode");
+
+#ifdef CONFIG_BOOT_LINUX_RAMOOPS
+    /* Only read through command mode, so not set up on the boot path. It
+     * reads the region when the log is read. */
+    rc = linux_ramoops_init(&ramoops);
+    if (rc != PB_OK)
+        LOG_ERR("Linux's ramoops log (%i)", rc);
+#endif
 
     rc = cm_board_init();
 
