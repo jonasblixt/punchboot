@@ -5,6 +5,7 @@ endmenu
 menu "Target packages"
 source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/bpak/Config.in"
 source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/kickstart/Config.in"
+source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/pb-watchdog/Config.in"
 source "$BR2_EXTERNAL_PB_TESTBENCH_PATH/package/pbstate/Config.in"
 endmenu
 
