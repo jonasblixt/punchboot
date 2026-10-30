@@ -18,3 +18,15 @@ CONFIG_WATCHDOG_SYSFS=y
 
 # A panic reboots after 5 s instead of hanging the board
 CONFIG_PANIC_TIMEOUT=5
+
+# The kernel log in RAM for 'punchboot log linux' (pstore/ramoops): a record
+# at a panic, an oops and a reboot (max-reason in the DTS). The ramoops node
+# in the board's DTS must match the board's punchboot
+# CONFIG_BOOT_LINUX_RAMOOPS_*. Not compressed, so that pb can read the
+# records. No console zone: a record has the whole log, the console only
+# what "quiet" lets through.
+CONFIG_PSTORE=y
+CONFIG_PSTORE_RAM=y
+# CONFIG_PSTORE_CONSOLE is not set
+# CONFIG_PSTORE_COMPRESS is not set
+
