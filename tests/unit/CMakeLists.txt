@@ -264,6 +264,18 @@ target_compile_definitions(test_mmc_emmc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 # The uSDHC driver and mmc_core against a uSDHC register model with the
 # e.MMC model on its bus. DMA addresses are 32 bits: -no-pie keeps the
 # buffers below 4 GiB.
+pb_unit_test(test_imx_caam SOURCES
+    ${PROJECT_SOURCE_DIR}/src/crypto.c
+    ${PROJECT_SOURCE_DIR}/src/delay.c
+    ${PROJECT_SOURCE_DIR}/src/drivers/crypto/caam/imx_caam.c
+)
+target_include_directories(test_imx_caam BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+# The job ring holds 32 bit addresses
+target_compile_options(test_imx_caam PRIVATE -fno-pie)
+target_link_options(test_imx_caam PRIVATE -no-pie)
+
 pb_unit_test(test_imx_usdhc
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/bio.c
