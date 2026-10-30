@@ -32,6 +32,17 @@
 };
 
 /*
+ * Linux reboots through TF-A, which asserts WDOG_B (IMX_WDOG_B_RESET), and
+ * so does a watchdog timeout (fsl,ext-reset-output). The PCA9450's default
+ * there is a cold reset that power cycles the DRAM and loses ramoops. A warm
+ * reset only asserts POR_B; pb doesn't depend on the PMIC's voltages (it
+ * leaves the ARM PLL as the ROM set it).
+ */
+&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
+	nxp,wdog_b-warm-reset;
+};
+
+/*
  * Not used by the test bench, off for the boot time: every device costs its
  * creation, probe attempts and dependency checks. The SD slot (uSDHC2) took
  * 32 ms to probe empty, right before /init; the display nodes' dependency
