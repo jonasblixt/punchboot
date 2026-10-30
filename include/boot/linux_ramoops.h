@@ -5,7 +5,8 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * The console that Linux's pstore/ramoops keeps in RAM, as the log "linux".
+ * The kernel log that Linux's pstore/ramoops saved in RAM at its last panic,
+ * oops or reboot, as the log "linux".
  */
 
 #ifndef INCLUDE_BOOT_LINUX_RAMOOPS_H
@@ -25,13 +26,13 @@ struct linux_ramoops_config {
 };
 
 /**
- * Make the console in a ramoops region readable as the log "linux". The
- * region is only read, when the log is.
+ * Make the newest dmesg record in a ramoops region readable as the log
+ * "linux". The region is only read, when the log is.
  *
  * @param[in] cfg The region, must stay valid
  *
- * @return PB_OK, -PB_ERR_PARAM if the zones don't fit in the region, or the
- *         error from log_source_register()
+ * @return PB_OK, -PB_ERR_PARAM if the zones don't fit in the region or there
+ *         are no records, or the error from log_source_register()
  */
 int linux_ramoops_init(const struct linux_ramoops_config *cfg);
 
