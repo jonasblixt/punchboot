@@ -136,6 +136,44 @@ Three things it takes on this SoC:
 The FEC port's PHY (`30be0000.ethernet`, eth0) doesn't answer on MDIO; the
 EQOS port (eth1) probes.
 
+### Linux's kernel log in pb (ramoops)
+
+Both boards reserve 1 MiB at 0xbff00000 for pstore/ramoops: eight 128 KiB
+dmesg records, no console zone (the `ramoops` node in the board's DTS,
+`PSTORE_RAM` without compression in `board/common/linux.fragment`), with the
+same values as `CONFIG_BOOT_LINUX_RAMOOPS_*` in punchboot's
+`configs/<board>_defconfig`. Linux saves its whole kernel log (every level,
+from `Booting Linux`, up to 128 KiB) in a record at a panic, an oops, an
+emergency restart and a reboot (`max-reason = <4>`). After a reset into
+command mode `punchboot log linux` prints the newest record, starting with
+its `====<sec>.<usec>-D` header (the time Linux saved it, from the RTC) and
+the reason (`Panic#1 Part1`, `Shutdown#1 Part1`, `Emergency#2 Part1`).
+Records stay until Linux erases them (`rm` in `/sys/fs/pstore` after `mount
+-t pstore pstore /sys/fs/pstore`, where Linux shows them as
+`dmesg-ramoops-N`), so after a reset that saved nothing (power, a hard hang)
+the newest record is from an earlier boot: check the time.
+
+A hang: `pb-watchdog` (`package/pb-watchdog`, instead of BusyBox's daemon)
+keeps the watchdog alive every 5 s and sets a 2 s pretimeout, and the
+kernel's panic pretimeout governor panics Linux 2 s before the watchdog
+resets the board. A panic with `panic=5` saves two records, at the panic and
+at the emergency restart 5 s later; `linux` shows the second, which has the
+panic too.
+
+| Reset | jiffy | imx8mpevk |
+| ----- | ----- | --------- |
+| `reboot` | `Shutdown#1` | lost (F-156) |
+| panic, `panic=5` restart | `Emergency#2` | lost (F-156) |
+| hang (`kill -STOP` pb-watchdog), the watchdog | `Panic#1`, pretimeout, 60 s | `Panic#1`, pretimeout, 58 s |
+
+On the EVK, Linux's PCA9450 driver restarts through the PMIC with a cold
+reset, which power cycles the DRAM (F-156). A watchdog timeout asserts
+WDOG_B, which `imx8mp-evk-pb.dts` makes a warm reset of the PMIC
+(`nxp,wdog_b-warm-reset`), so the pretimeout panic's record is kept: the
+watchdog resets the board 2 s after it, before Linux's own restart (5 s).
+ramoops' probe costs at most 5.6 ms on jiffy and 0.8 ms on the EVK, with an
+old record to save (kernel timestamps, measured with the console zone).
+
 ## Running it
 
 With the `punchboot` host tool (`pip install punchboot`) and the board in
@@ -378,6 +416,7 @@ board/jiffy/
 boot/punchboot/          punchboot from this tree (BR2_TARGET_PUNCHBOOT)
 package/
   kickstart/             kickstart, the initramfs (images/kickstart.cpio.gz)
+  pb-watchdog/           the watchdog daemon with a pretimeout (S15watchdog)
   pbstate/               pbstate from tools/pbstate
   bpak/                  libbpak (target), the bpak python package and tool (host)
   bpak-click/            host click for the bpak tool

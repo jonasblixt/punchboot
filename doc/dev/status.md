@@ -51,8 +51,9 @@ the host half of 4 are done (`compatibility.md`, Guards).
   `rz` (`compatibility.md`, example): `pb` (RAM log, also 0), `list`, `rom` (i.MX ROM event log,
   `drivers/rom_log`, i.MX6UL and i.MX8M, checked on jiffy and the 8MP EVK, both now run this
   branch from eMMC), `hab` (HABv4 status and events, i.MX6UL, i.MX8M, RT1060, checked on all
-  three) and `linux` (ramoops console, `CONFIG_BOOT_LINUX_RAMOOPS`, off; DRAM retention
-  measured on the EVK, Linux itself not tried). `punchboot log [NAME] [--list]`.
+  three) and `linux` (the newest ramoops record: panic, oops, reboot; `CONFIG_BOOT_LINUX_RAMOOPS`, on for jiffy and the 8MP EVK,
+  set up in command mode, D-023; a hang panics Linux on the watchdog pretimeout, `pb-watchdog`;
+  jiffy keeps it on reboot, panic and hang, the EVK on a hang, F-156). `punchboot log [NAME] [--list]`.
 - **i.MX RT1060 EVK (2026-10-29):** pb runs from OCRAM, loaded over the EVK's J-Link
   (`scripts/pbdebug --load imxrt1060evk`, `build-and-test.md`): 600 MHz, the IS25WP064D NOR,
   USB command mode. Console on the J-Link's ttyACM. In CI now. Boots from the QSPI NOR
@@ -104,6 +105,8 @@ the host half of 4 are done (`compatibility.md`, Guards).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`); `--load` loads pb
    into RAM. Next: F-090, F-089, F-083, F-078/F-079, F-081, F-084.
 7. Test bench: the EVK's FEC (F-155, later). The CAAM RNG init on the 8MQ EVK (imx8mevk), untried.
+   F-156 (the EVK's PMIC restart loses ramoops). D-023: other boot-path init only command mode
+   needs (candidate: the HAB log's registration in `plat_init()`).
 
 ## Open questions (for Jonas)
 

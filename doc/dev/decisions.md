@@ -215,3 +215,14 @@ Why: one place to get a Linux on any board, testing the tree as it is instead of
 (jiffy's own test bench pins v2.7.1 and carries OP-TEE and MQTT).
 Cost: bpak and kickstart are found next to this tree and have no hash to check until they are
 released; a branch head is not reproducible.
+
+## D-023: Keep the boot path short; defer to command mode what only command mode uses (2026-10-30)
+
+Code that only command mode needs is set up in command mode (`cm_run()`), not in `main()`,
+`plat_init()` or `plat_board_init()`: log sources that are only read over USB, board command
+state, anything a host asks for. The boot path does what booting needs, and what can't wait:
+state that may be gone later, or that the boot reads itself (the ROM log is copied at init, and
+the i.MX6UL boot checks it for a serial download). First case: the Linux ramoops log (`linux_ramoops_init()`) moved from
+`main()` to `cm_run()`.
+Why: every boot pays for what is on the boot path, command mode is entered on a small share of
+them, and less code on that path is less that can stop a boot.
