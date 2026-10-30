@@ -72,8 +72,8 @@ the host half of 4 are done (`compatibility.md`, Guards).
   F-071 fixed: pb grows the DTB and adds `/chosen`, no placeholders needed (jiffy checked).
   kickstart needed to read pb's partition layout (kickstart `9dcc7b5`). The 8MP EVK boots it
   through TF-A v2.12 to the login prompt (F-150 fixed; pb starts the system counter; AIPS5 off in
-  its DTS, F-153); `testbench/scripts/imx8mpevk-reset` resets the EVK over its FT4232H. Next: the
-  8MP's boot time (README "Adding a board"), its Ethernet (FEC PHY silent, EQOS a module).
+  its DTS, F-153); `testbench/scripts/imx8mpevk-reset` resets the EVK over its FT4232H. 8MP boot
+  time 1939 -> 1218 ms reset to init (slim kernel, DTS trimmed). Open: CAAM RNG (F-154), FEC (F-155).
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
@@ -101,7 +101,7 @@ the host half of 4 are done (`compatibility.md`, Guards).
 5. Phase 1: security fixes F-001, F-004, each with a test (F-002 is intended, D-011).
 6. JTAG: `scripts/pbdebug jiffy` (ULINK + OpenOCD + GDB, `build-and-test.md`); `--load` loads pb
    into RAM. Next: F-090, F-089, F-083, F-078/F-079, F-081, F-084.
-7. Test bench: the 8MP EVK's boot time and Ethernet. jiffy works.
+7. Test bench: pb instantiating the CAAM RNG for non-secure Linux (F-154), the EVK's FEC (F-155).
 
 ## Open questions (for Jonas)
 
