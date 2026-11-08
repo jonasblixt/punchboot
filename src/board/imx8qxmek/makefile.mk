@@ -1,6 +1,6 @@
 PB_ENTRY     = 0x80000000
 CST_TOOL ?= cst
-MKIMAGE ?= mkimage_imx8x
+IMX8X_MKIMAGE ?= mkimage_imx8
 IMX8X_AHAB_IMAGE ?= mx8qx-ahab-container.img
 IMX8X_SCFW_IMAGE ?= mx8qx-mek-scfw-tcm.bin
 IMX8X_SRK_TABLE ?= pki/imx8x_ahab/crts/SRK_1_2_3_4_table.bin
@@ -23,9 +23,9 @@ imx8x_image: $(BUILD_DIR)/$(TARGET).bin
 	@echo Using AHAB image: $(shell readlink -f $(IMX8X_AHAB_IMAGE))
 	@echo Using SRK Table: $(shell readlink -f $(IMX8X_SRK_TABLE))
 	@echo Using signing cert: $(shell readlink -f $(IMX8X_SIGN_CERT))
-	@$(MKIMAGE) -commit > $(BUILD_DIR)/head.hash
+	@$(IMX8X_MKIMAGE) -commit > $(BUILD_DIR)/head.hash
 	@cat $(BUILD_DIR)/pb.bin $(BUILD_DIR)/head.hash > $(BUILD_DIR)/pb_hash.bin
-	$(Q)$(MKIMAGE) -soc QX -rev B0 \
+	$(Q)$(IMX8X_MKIMAGE) -soc QX -rev B0 \
 				  -e emmc_fast \
 				  -append $(IMX8X_AHAB_IMAGE) \
 				  -c -scfw $(IMX8X_SCFW_IMAGE) \
