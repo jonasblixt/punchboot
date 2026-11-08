@@ -365,6 +365,13 @@ its own console output inflates that: without it the step saves 61 ms. The
 kernel's longest stretches before init are the SCU's drivers (93 ms) and the
 RTC to the FEC (91 ms).
 
+The `Image` isn't compressed on arm64: pb reads the eMMC (HS200) at 173 MiB/s
+and hashes with the CAAM at 313 MiB/s, so the 15 MB `boot.bpak` loads and
+verifies in ~100 ms (`../scripts/boot-time-image -s 10,15 -l 0x80200000`), the
+ECDSA P-256 signature in the CAAM 1.3 ms; ~6 ms per MB of `Image`.
+`boot-time-image`'s reset timing doesn't work on the MEK yet: after a reset the
+host takes ~22 s to enumerate it (F-159).
+
 ## Adding a board
 
 Every board that runs Linux gets a defconfig here and goes through both
