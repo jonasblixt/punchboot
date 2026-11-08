@@ -1312,9 +1312,11 @@ static void test_part_verify_errors(void **state)
     expect_end();
 }
 
+/* Hosts send the partition's first block from the partition table (10 for
+ * UU_RW) plus the blocks already erased (F-055) */
 static void test_part_erase(void **state)
 {
-    struct pb_command_erase_part req = { .start_lba = 0, .block_count = 1 };
+    struct pb_command_erase_part req = { .start_lba = 10, .block_count = 1 };
     (void)state;
 
     memcpy(req.uuid, UU_MISSING, 16);
@@ -1322,9 +1324,19 @@ static void test_part_erase(void **state)
     /* The ramdisk can't erase */
     memcpy(req.uuid, UU_RW, 16);
     host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    /* Before the partition */
+    req.start_lba = 9;
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
+    /* No blocks, what hosts older than 2.0 send (F-075): erases nothing, and
+     * the ramdisk still can't erase */
+    req.start_lba = 0;
+    req.block_count = 0;
+    host_cmd(PB_CMD_PART_ERASE, &req, sizeof(req));
     run();
 
     expect_result(-PB_RESULT_NOT_FOUND);
+    expect_result(-PB_RESULT_NOT_SUPPORTED);
+    expect_result(-PB_RESULT_INVALID_ARGUMENT);
     expect_result(-PB_RESULT_NOT_SUPPORTED);
     expect_end();
 }
