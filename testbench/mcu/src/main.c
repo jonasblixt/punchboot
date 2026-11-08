@@ -9,6 +9,8 @@
  *   good      mark the system verified, then reset into pb's command mode
  *   noverify  don't mark it, reset (pb boots it again, a boot attempt)
  *   hang      stop petting the watchdog
+ *   boottime  time the warm reset to its own entry APP_BOOT_RUNS times, with
+ *             a clock that runs through the reset (APP_BOOT_RUNS runs)
  *
  * Every line starts with "MCUTEST ", tests/ parses them.
  */
@@ -178,9 +180,55 @@ static void entry_checks(char *system)
     board_checks();
 }
 
+#if APP_MODE_BOOTTIME
+/* The persistent words: a magic, the clock at the reset request (us, 32 bit
+ * is enough for a boot) and the runs so far */
+#define BOOTTIME_MAGIC 0x50424254 /* "PBBT" */
+
+static void boottime(uint64_t entry_us)
+{
+    uint32_t runs = 0;
+
+    if (board_persist_read(0) == BOOTTIME_MAGIC) {
+        uint32_t reset_us = board_persist_read(1);
+
+        runs = board_persist_read(2);
+        print("MCUTEST BOOTTIME ");
+        print_dec((uint32_t)entry_us - reset_us);
+        print(" us\n");
+    }
+
+    if (runs < APP_BOOT_RUNS) {
+        board_persist_write(0, BOOTTIME_MAGIC);
+        board_persist_write(2, runs + 1);
+        /* Without words that keep their values it would reset forever */
+        if (board_persist_read(0) != BOOTTIME_MAGIC || board_persist_read(2) != runs + 1) {
+            check("boottime-persist", false, "read back", board_persist_read(0));
+            print("MCUTEST RESET command-mode\n");
+            delay_ms(10);
+            board_reset(true);
+        }
+        print("MCUTEST RESET boot\n");
+        delay_ms(10);
+        /* The clock as late as possible before the reset */
+        board_persist_write(1, (uint32_t)board_reset_clock_us());
+        board_reset(false);
+    }
+
+    board_persist_write(0, 0);
+    print("MCUTEST RESET command-mode\n");
+    delay_ms(10);
+    board_reset(true);
+}
+#endif
+
 int main(void)
 {
     char system;
+#if APP_MODE_BOOTTIME
+    /* Before anything takes time */
+    uint64_t entry_us = board_reset_clock_us();
+#endif
 
     /* The cycle counter, for delay_ms() */
     mmio_write_32(DEMCR, mmio_read_32(DEMCR) | (1u << 24));
@@ -194,7 +242,7 @@ int main(void)
     print("\n");
     pbstate_report();
 
-#if APP_MODE_GOOD
+#if APP_MODE_GOOD || APP_MODE_BOOTTIME
     int rc = (system == '?') ? -1 : pbstate_set_verified(system);
     check("verified", rc == 0, "pbstate", (uint32_t)rc);
 #endif
@@ -216,11 +264,13 @@ int main(void)
     print("MCUTEST RESET boot\n");
     delay_ms(10);
     board_reset(false);
+#elif APP_MODE_BOOTTIME
+    boottime(entry_us);
 #elif APP_MODE_HANG
     print("MCUTEST HANG\n");
     for (;;)
         ;
 #else
-#error "APP_MODE_GOOD, _NOVERIFY or _HANG"
+#error "APP_MODE_GOOD, _NOVERIFY, _HANG or _BOOTTIME"
 #endif
 }

@@ -53,6 +53,12 @@ int board_state_read(unsigned int copy, void *buf, size_t len);
 int board_state_write(unsigned int copy, const void *buf, size_t len);
 /* Reset; with 'command_mode', pb stays in command mode */
 void board_reset(bool command_mode) __attribute__((noreturn));
+/* A clock that runs through a warm reset, in us, and words that survive it:
+ * for the boot time (APP_MODE_BOOTTIME). 0 without such a clock. */
+uint64_t board_reset_clock_us(void);
+uint32_t board_persist_read(unsigned int index);
+void board_persist_write(unsigned int index, uint32_t value);
+#define BOARD_PERSIST_WORDS 3
 /* Board specific checks of the state pb left, after the common ones */
 void board_checks(void);
 extern const uint8_t board_sys_a_uuid[16];

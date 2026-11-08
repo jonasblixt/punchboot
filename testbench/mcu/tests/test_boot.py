@@ -7,6 +7,8 @@ images and read what happened.
 
 from __future__ import annotations
 
+import re
+import statistics
 from contextlib import closing
 from typing import TYPE_CHECKING
 
@@ -134,3 +136,37 @@ def test_watchdog_rolls_back_a_hung_update(
     assert [r.system for r in runs] == ["B", "A"], console.text(mark)
     assert runs[-1].state.endswith(f"error {ERROR_B_ROLLBACK:#010x}")
     device.wait_command_mode(timeout=RUN_TIMEOUT_S)
+
+
+def test_boot_time(
+    device: Device,
+    console: Console,
+    images: dict[str, pathlib.Path],
+) -> None:
+    """Warm reset to the image's entry, timed on the board (app-boottime.bpak).
+
+    The image stores a clock that runs through the reset just before it
+    resets, and reads it again at its entry, APP_BOOT_RUNS times. pytest -s
+    prints the times.
+    """
+    device.write_image(SYSTEM_A, images["boottime"])
+    with closing(device.session()) as s:
+        s.boot_set_boot_part(SYSTEM_A)
+        mark = console.mark()
+        s.device_reset()
+
+    console.wait(r"^MCUTEST RESET command-mode", mark, 6 * RUN_TIMEOUT_S)
+    text = console.text(mark)
+    us = [int(t) for t in re.findall(r"^MCUTEST BOOTTIME (\d+) us", text, re.MULTILINE)]
+    assert us, text
+    assert "FAIL" not in text, text
+    ms = [t / 1000 for t in us]
+    print(  # noqa: T201
+        f"\nwarm reset to entry, {len(ms)} runs: min {min(ms):.2f} "
+        f"median {statistics.median(ms):.2f} max {max(ms):.2f} ms",
+    )
+    # A boot that took longer than a second is not a measurement
+    assert max(ms) < 1000
+    device.wait_command_mode(timeout=RUN_TIMEOUT_S)
+    with closing(device.session()) as s:
+        s.boot_set_boot_part(None)
