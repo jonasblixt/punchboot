@@ -33,6 +33,9 @@ case "$board" in
         # The defconfig points to a keystore that is not in the repository
         set -- CONFIG_KEYSTORE=pki/internal_keystore.bpak "$@"
         ;;
+    imx8qxmek)
+        cross=aarch64-linux-gnu-
+        ;;
     imx8mevk)
         cross=aarch64-linux-gnu-
         fw_dir="${IMX8M_FW_DIR:-}"
