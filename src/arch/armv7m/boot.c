@@ -1,26 +1,44 @@
 #include <arch/arch.h>
+#include <pb/mmio.h>
 
 #define VECTOR_STACK_ADDRESS_OFFSET 0
 #define VECTOR_RESET_ADDRESS_OFFSET 4
 
+/* Vector Table Offset Register */
+#define SCB_VTOR                    0xe000ed08
+
+/*
+ * Start the image whose vector table is at 'addr': VTOR points to that
+ * table, MSP and PSP are its initial stack pointer, r0-r3 are p0-p3 and
+ * execution continues at its reset handler.
+ */
 void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
 {
     uintptr_t base_addr = (uintptr_t)addr;
-
     uint32_t stack_address = *((volatile uint32_t *)(base_addr + VECTOR_STACK_ADDRESS_OFFSET));
-
-    /* TODO: Force reset_handler_address into a register and make
-     * sure it does not get overwritten, to avoid the risk of
-     * reset_handler_address being on the stack, which we move. */
     uint32_t reset_handler_address =
         *((volatile uint32_t *)(base_addr + VECTOR_RESET_ADDRESS_OFFSET));
 
-    /* Move the stack pointer and branch to the starting address */
-    __asm__ volatile("dmb 15       \n\t"
-                     "msr msp, %0  \n\t"
-                     "msr psp, %0  \n\t"
-                     "bx %1        \n\t"
-                     :
-                     : "r"(stack_address), "r"(reset_handler_address)
-                     : "memory");
+    /* The image's exceptions go to its own handlers from its first
+     * instruction on */
+    mmio_write_32(SCB_VTOR, (uint32_t)base_addr);
+
+    /* The arguments in r0-r3, so the stack pointer and the reset handler
+     * are in other registers and nothing is read from the old stack after
+     * MSP moves */
+    register uintptr_t r0 __asm__("r0") = (uintptr_t)p0;
+    register uintptr_t r1 __asm__("r1") = (uintptr_t)p1;
+    register uintptr_t r2 __asm__("r2") = (uintptr_t)p2;
+    register uintptr_t r3 __asm__("r3") = (uintptr_t)p3;
+
+    __asm__ volatile(
+        "dsb          \n\t"
+        "isb          \n\t"
+        "msr msp, %4  \n\t"
+        "msr psp, %4  \n\t"
+        "bx %5        \n\t"
+        :
+        : "r"(r0), "r"(r1), "r"(r2), "r"(r3), "r"(stack_address), "r"(reset_handler_address)
+        : "memory");
+    __builtin_unreachable();
 }

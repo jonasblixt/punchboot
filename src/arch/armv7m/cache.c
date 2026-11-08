@@ -7,10 +7,12 @@
 #define NVIC_CCSIDR_OFFSET         0x0d80 /* Cache Size ID Register (Cortex-M7) */
 #define NVIC_DCIMVAC_OFFSET        0x0f5c /* D-Cache Invalidate by MVA to PoC (Cortex-M7) */
 #define NVIC_DCCMVAC_OFFSET        0x0f68 /* D-Cache Clean by MVA to PoC (Cortex-M7) */
+#define NVIC_ICIALLU_OFFSET        0x0f50 /* I-Cache Invalidate All to PoU (Cortex-M7) */
 
 #define NVIC_CCSIDR                (ARMV7M_NVIC_BASE + NVIC_CCSIDR_OFFSET)
 #define NVIC_DCIMVAC               (ARMV7M_NVIC_BASE + NVIC_DCIMVAC_OFFSET)
 #define NVIC_DCCMVAC               (ARMV7M_NVIC_BASE + NVIC_DCCMVAC_OFFSET)
+#define NVIC_ICIALLU               (ARMV7M_NVIC_BASE + NVIC_ICIALLU_OFFSET)
 
 #define NVIC_CCSIDR_LINESIZE_SHIFT (0) /* Bits 0-2: Number of words in each cache line */
 #define NVIC_CCSIDR_LINESIZE_MASK  (7 << NVIC_CCSIDR_LINESIZE_SHIFT)
@@ -94,6 +96,14 @@ void arch_invalidate_cache_range(uintptr_t start, size_t len)
         start += ssize;
     } while (start < end);
 
+    ARM_DSB();
+    ARM_ISB();
+}
+
+void arch_invalidate_icache(void)
+{
+    ARM_DSB();
+    mmio_write_32(NVIC_ICIALLU, 0);
     ARM_DSB();
     ARM_ISB();
 }
