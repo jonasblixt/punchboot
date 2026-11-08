@@ -18,7 +18,7 @@ dm-verity.
 | TF-A      | v2.12 (imx8mpevk, BL31 only) |
 | punchboot | this tree (`..`) |
 | kickstart | branch `master` of `../../kickstart` |
-| bpak      | branch `work-1.0.0` of `../../bpak`: libbpak for kickstart, the `bpak` python package as the host tool |
+| bpak      | branch `master` of `../../bpak`: libbpak for kickstart, the `bpak` python package as the host tool |
 | NXP CST   | 3.4.1 (host, Debian source, jiffy's HAB signature) |
 | firmware-imx | 8.27, the LPDDR4 training firmware FW2020.06 (imx8mpevk) |
 
