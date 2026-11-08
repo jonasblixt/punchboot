@@ -239,17 +239,31 @@ static int fake_erase(bio_dev_t dev, lba_t first_lba, size_t count)
     return PB_OK;
 }
 
-/* Only the dispatch is tested. The range is not checked and the LBA is not
- * made absolute (F-055). */
+/* F-055: the LBA is relative to the partition, like read and write, and the
+ * range is checked */
 static void test_erase_calls_the_driver(void **state)
 {
     struct fixture *f = *state;
+    lba_t last = PART_LAST - PART_FIRST;
 
     erase_calls = 0;
     assert_int_equal(bio_set_ios_erase(f->part, fake_erase), PB_OK);
     assert_int_equal(bio_erase(f->part, 3, 7), PB_OK);
     assert_int_equal(erase_calls, 1);
+    assert_int_equal(erase_lba, PART_FIRST + 3);
     assert_int_equal(erase_count, 7);
+
+    assert_int_equal(bio_erase(f->part, last, 1), PB_OK);
+    assert_int_equal(erase_lba, PART_LAST);
+    assert_int_equal(bio_erase(f->part, last, 2), -PB_ERR_PARAM);
+    assert_int_equal(bio_erase(f->part, last + 1, 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_erase(f->part, (lba_t)(0 - PART_FIRST), 1), -PB_ERR_PARAM);
+    assert_int_equal(bio_erase(f->part, 0, SIZE_MAX), -PB_ERR_PARAM);
+    assert_int_equal(erase_calls, 2);
+
+    /* Nothing to erase */
+    assert_int_equal(bio_erase(f->part, 0, 0), PB_OK);
+    assert_int_equal(erase_calls, 2);
 }
 
 static void test_set_private(void **state)

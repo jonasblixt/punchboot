@@ -610,7 +610,21 @@ static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
     if (dev < 0)
         return dev;
 
-    return bio_erase(dev, erase_cmd->start_lba, erase_cmd->block_count);
+    /* Hosts send the partition's first block, from the partition table, plus
+     * the blocks already erased: an LBA of the parent device. bio_erase()
+     * wants it relative to the partition (F-055). A count of 0, which hosts
+     * older than 2.0 send (F-075), erases nothing, as before. */
+    if (erase_cmd->block_count == 0)
+        return bio_erase(dev, 0, 0);
+
+    lba_t first = (lba_t)bio_get_first_block(dev);
+
+    if (erase_cmd->start_lba < first) {
+        LOG_ERR("Erase before the partition, lba=%" PRIu32, erase_cmd->start_lba);
+        return -PB_ERR_PARAM;
+    }
+
+    return bio_erase(dev, erase_cmd->start_lba - first, erase_cmd->block_count);
 }
 
 static int cmd_part_tbl_read(void)
