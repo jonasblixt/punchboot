@@ -16,7 +16,7 @@ PB_TESTBENCH_PUNCHBOOT_RSYNC_EXCLUSIONS = \
 # new version, downloaded and built again. Override on the command line,
 # e.g. `make BOARD=jiffy PB_TESTBENCH_BPAK_BRANCH=master`.
 PB_TESTBENCH_BPAK_REPO ?= $(realpath $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/../../bpak)
-PB_TESTBENCH_BPAK_BRANCH ?= work-1.0.0
+PB_TESTBENCH_BPAK_BRANCH ?= master
 PB_TESTBENCH_KICKSTART_REPO ?= $(realpath $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/../../kickstart)
 PB_TESTBENCH_KICKSTART_BRANCH ?= master
 
