@@ -10,8 +10,8 @@
 #include <arch/arch_helpers.h>
 #include <arch/armv8a/timer.h>
 #include <boot/ab_state.h>
+#include <boot/atf.h>
 #include <boot/boot.h>
-#include <boot/linux.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
@@ -402,16 +402,21 @@ int board_init(struct imx8x_platform *plat_ptr)
         LOG_WARN("GPT ptbl init failed (%i)", rc);
     }
 
-    static const struct boot_driver_linux_config linux_boot_cfg = {
-        .image_bpak_id = 0xa697d988, /* bpak_id("atf") */
-        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
+    /*
+     * TF-A BL31 at 0x80000000, then Linux as BL33 at EL2. BL31 takes BL33
+     * from the bl_params list in x0 (testbench/board/imx8qxmek/patches);
+     * an unpatched imx8qx BL31 jumps to 0x80020000, which is pb.
+     */
+    static const struct boot_driver_atf_config atf_cfg = {
+        .atf_bpak_id = 0xa697d988, /* bpak_id("atf") */
+        .bl33_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
         .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
         .dtb_patch_cb = patch_bootargs,
         .resolve_part_name = boot_ab_part_uu_to_name,
-        .set_dtb_boot_arg = false,
     };
 
-    rc = boot_driver_linux_init(&linux_boot_cfg);
+    rc = boot_driver_atf_init(&atf_cfg);
 
     if (rc != PB_OK) {
         goto err_out;
@@ -423,9 +428,9 @@ int board_init(struct imx8x_platform *plat_ptr)
         .get_boot_bio_device = boot_ab_state_get,
         .set_boot_partition = boot_ab_state_set_boot_partition,
         .get_boot_partition = boot_ab_state_get_boot_partition,
-        .prepare = boot_driver_linux_prepare,
+        .prepare = boot_driver_atf_prepare,
         .late_boot_cb = NULL,
-        .jump = boot_driver_linux_jump,
+        .jump = boot_driver_atf_jump,
     };
 
     rc = boot_init(&boot_driver);
