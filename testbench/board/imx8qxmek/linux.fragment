@@ -1,8 +1,7 @@
 # i.MX8QXP MEK, on top of arch/arm64/configs/defconfig
 #
 # Only the i.MX SoCs, to keep the Image in the 30 MiB System A/B partitions
-# with the other parts of boot.bpak (bring-up; the boot time steps slim it
-# further).
+# with the other parts of boot.bpak.
 # CONFIG_ARCH_ACTIONS is not set
 # CONFIG_ARCH_AIROHA is not set
 # CONFIG_ARCH_SUNXI is not set
@@ -51,7 +50,232 @@
 # CONFIG_ARCH_XGENE is not set
 # CONFIG_ARCH_ZYNQMP is not set
 
-# The SCU watchdog that punchboot starts, built in so that the kernel pets
-# it from early on (TF-A's IMX_SIP_SRTC watchdog calls,
-# board/imx8qxmek/patches/arm-trusted-firmware)
+# Boot time: only what the MEK uses (the same choices as the 8MP EVK). Its
+# DTS has the eMMC (uSDHC1) and SD (uSDHC2), LPUART0 (the console), the
+# LPI2Cs with the base board's I/O expanders, FEC1, the SCU's watchdog,
+# thermal, RTC and power keys, and audio, display, camera, VPU, GPU, CAN and
+# USB, which the test bench doesn't use. pb reads the uncompressed Image:
+# every MB less is one less MB from the eMMC.
+
+# The i.MX8QXP only: its SCU (pinctrl, clocks, power domains) stays
+# CONFIG_PINCTRL_IMX8MM is not set
+# CONFIG_PINCTRL_IMX8MN is not set
+# CONFIG_PINCTRL_IMX8MP is not set
+# CONFIG_PINCTRL_IMX8MQ is not set
+# CONFIG_PINCTRL_IMX8QM is not set
+# CONFIG_PINCTRL_IMX8DXL is not set
+# CONFIG_PINCTRL_IMX8ULP is not set
+# CONFIG_PINCTRL_IMX91 is not set
+# CONFIG_PINCTRL_IMX93 is not set
+# CONFIG_CLK_IMX8MM is not set
+# CONFIG_CLK_IMX8MN is not set
+# CONFIG_CLK_IMX8MP is not set
+# CONFIG_CLK_IMX8MQ is not set
+# CONFIG_CLK_IMX8ULP is not set
+# CONFIG_CLK_IMX93 is not set
+# CONFIG_SOC_IMX9 is not set
+# CONFIG_IMX9_BLK_CTRL is not set
+
+# arm64 things the MEK doesn't use; pb starts the Image directly (no EFI)
+# CONFIG_ACPI is not set
+# CONFIG_EFI is not set
+# CONFIG_XEN is not set
+# CONFIG_VIRTUALIZATION is not set
+# CONFIG_NUMA is not set
+# CONFIG_COMPAT is not set
+# CONFIG_HIBERNATION is not set
+# CONFIG_AUDIT is not set
+
+# No display, sound, camera, radios, CAN, PCIe, SATA, SCSI, flash, USB
+# CONFIG_DRM is not set
+# CONFIG_FB is not set
+# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
+# CONFIG_VT is not set
+# CONFIG_SOUND is not set
+# CONFIG_MEDIA_SUPPORT is not set
+# CONFIG_RC_CORE is not set
+# CONFIG_WIRELESS is not set
+# CONFIG_WLAN is not set
+# CONFIG_CFG80211 is not set
+# CONFIG_MAC80211 is not set
+# CONFIG_RFKILL is not set
+# CONFIG_BT is not set
+# CONFIG_NFC is not set
+# CONFIG_CAN is not set
+# CONFIG_PCI is not set
+# CONFIG_ATA is not set
+# CONFIG_SCSI is not set
+# CONFIG_MTD is not set
+# CONFIG_USB_SUPPORT is not set
+# CONFIG_TYPEC is not set
+# CONFIG_HID is not set
+# CONFIG_SPI is not set
+# CONFIG_PWM is not set
+# CONFIG_STAGING is not set
+# CONFIG_REMOTEPROC is not set
+# CONFIG_INPUT_TOUCHSCREEN is not set
+# CONFIG_INPUT_MOUSE is not set
+# CONFIG_INPUT_JOYSTICK is not set
+
+# Other boards' PMICs, their regulators and companion chips
+# CONFIG_REGULATOR_ARM_SCMI is not set
+# CONFIG_REGULATOR_AXP20X is not set
+# CONFIG_REGULATOR_BD718XX is not set
+# CONFIG_REGULATOR_BD9571MWV is not set
+# CONFIG_REGULATOR_CROS_EC is not set
+# CONFIG_REGULATOR_FAN53555 is not set
+# CONFIG_REGULATOR_HI6421V530 is not set
+# CONFIG_REGULATOR_MAX77620 is not set
+# CONFIG_REGULATOR_MAX8973 is not set
+# CONFIG_REGULATOR_MP8859 is not set
+# CONFIG_REGULATOR_MT6357 is not set
+# CONFIG_REGULATOR_MT6358 is not set
+# CONFIG_REGULATOR_MT6359 is not set
+# CONFIG_REGULATOR_MT6360 is not set
+# CONFIG_REGULATOR_MT6397 is not set
+# CONFIG_REGULATOR_PF8X00 is not set
+# CONFIG_REGULATOR_PFUZE100 is not set
+# CONFIG_REGULATOR_PWM is not set
+# CONFIG_REGULATOR_QCOM_SPMI is not set
+# CONFIG_REGULATOR_RAA215300 is not set
+# CONFIG_REGULATOR_RK808 is not set
+# CONFIG_REGULATOR_ROHM is not set
+# CONFIG_REGULATOR_S2MPS11 is not set
+# CONFIG_REGULATOR_TPS65219 is not set
+# CONFIG_MFD_BD9571MWV is not set
+# CONFIG_MFD_AXP20X is not set
+# CONFIG_MFD_AXP20X_I2C is not set
+# CONFIG_MFD_CROS_EC_DEV is not set
+# CONFIG_MFD_HI6421_PMIC is not set
+# CONFIG_MFD_MAX77620 is not set
+# CONFIG_MFD_MT6360 is not set
+# CONFIG_MFD_MT6397 is not set
+# CONFIG_MFD_RK8XX is not set
+# CONFIG_MFD_RK8XX_I2C is not set
+# CONFIG_MFD_RK8XX_SPI is not set
+# CONFIG_MFD_SEC_CORE is not set
+# CONFIG_MFD_SEC_I2C is not set
+# CONFIG_MFD_TPS65219 is not set
+# CONFIG_MFD_ROHM_BD718XX is not set
+# CONFIG_MFD_VEXPRESS_SYSREG is not set
+
+# Ethernet: the FEC only (built in by the defconfig)
+# CONFIG_NET_VENDOR_STMICRO is not set
+# CONFIG_NET_VENDOR_3COM is not set
+# CONFIG_NET_VENDOR_ADAPTEC is not set
+# CONFIG_NET_VENDOR_AGERE is not set
+# CONFIG_NET_VENDOR_ALACRITECH is not set
+# CONFIG_NET_VENDOR_ALTEON is not set
+# CONFIG_NET_VENDOR_AMAZON is not set
+# CONFIG_NET_VENDOR_AMD is not set
+# CONFIG_NET_VENDOR_AQUANTIA is not set
+# CONFIG_NET_VENDOR_ARC is not set
+# CONFIG_NET_VENDOR_ASIX is not set
+# CONFIG_NET_VENDOR_ATHEROS is not set
+# CONFIG_NET_VENDOR_BROADCOM is not set
+# CONFIG_NET_VENDOR_CADENCE is not set
+# CONFIG_NET_VENDOR_CAVIUM is not set
+# CONFIG_NET_VENDOR_CHELSIO is not set
+# CONFIG_NET_VENDOR_CISCO is not set
+# CONFIG_NET_VENDOR_CORTINA is not set
+# CONFIG_NET_VENDOR_DAVICOM is not set
+# CONFIG_NET_VENDOR_DEC is not set
+# CONFIG_NET_VENDOR_DLINK is not set
+# CONFIG_NET_VENDOR_EMULEX is not set
+# CONFIG_NET_VENDOR_ENGLEDER is not set
+# CONFIG_NET_VENDOR_EZCHIP is not set
+# CONFIG_NET_VENDOR_FUNGIBLE is not set
+# CONFIG_NET_VENDOR_GOOGLE is not set
+# CONFIG_NET_VENDOR_HISILICON is not set
+# CONFIG_NET_VENDOR_HUAWEI is not set
+# CONFIG_NET_VENDOR_I825XX is not set
+# CONFIG_NET_VENDOR_INTEL is not set
+# CONFIG_NET_VENDOR_ADI is not set
+# CONFIG_NET_VENDOR_LITEX is not set
+# CONFIG_NET_VENDOR_MARVELL is not set
+# CONFIG_NET_VENDOR_MELLANOX is not set
+# CONFIG_NET_VENDOR_META is not set
+# CONFIG_NET_VENDOR_MICREL is not set
+# CONFIG_NET_VENDOR_MICROCHIP is not set
+# CONFIG_NET_VENDOR_MICROSEMI is not set
+# CONFIG_NET_VENDOR_MICROSOFT is not set
+# CONFIG_NET_VENDOR_MYRI is not set
+# CONFIG_NET_VENDOR_NI is not set
+# CONFIG_NET_VENDOR_NATSEMI is not set
+# CONFIG_NET_VENDOR_NETERION is not set
+# CONFIG_NET_VENDOR_NETRONOME is not set
+# CONFIG_NET_VENDOR_8390 is not set
+# CONFIG_NET_VENDOR_NVIDIA is not set
+# CONFIG_NET_VENDOR_OKI is not set
+# CONFIG_NET_VENDOR_PACKET_ENGINES is not set
+# CONFIG_NET_VENDOR_PENSANDO is not set
+# CONFIG_NET_VENDOR_QLOGIC is not set
+# CONFIG_NET_VENDOR_BROCADE is not set
+# CONFIG_NET_VENDOR_QUALCOMM is not set
+# CONFIG_NET_VENDOR_RDC is not set
+# CONFIG_NET_VENDOR_REALTEK is not set
+# CONFIG_NET_VENDOR_RENESAS is not set
+# CONFIG_NET_VENDOR_ROCKER is not set
+# CONFIG_NET_VENDOR_SAMSUNG is not set
+# CONFIG_NET_VENDOR_SEEQ is not set
+# CONFIG_NET_VENDOR_SILAN is not set
+# CONFIG_NET_VENDOR_SIS is not set
+# CONFIG_NET_VENDOR_SOLARFLARE is not set
+# CONFIG_NET_VENDOR_SMSC is not set
+# CONFIG_NET_VENDOR_SOCIONEXT is not set
+# CONFIG_NET_VENDOR_SUN is not set
+# CONFIG_NET_VENDOR_SYNOPSYS is not set
+# CONFIG_NET_VENDOR_TEHUTI is not set
+# CONFIG_NET_VENDOR_TI is not set
+# CONFIG_NET_VENDOR_VERTEXCOM is not set
+# CONFIG_NET_VENDOR_VIA is not set
+# CONFIG_NET_VENDOR_WANGXUN is not set
+# CONFIG_NET_VENDOR_WIZNET is not set
+# CONFIG_NET_VENDOR_XILINX is not set
+
+# What the board needs, built in (no modules are loaded): the CAAM, the
+# SCU's watchdog (TF-A's IMX_SIP_SRTC watchdog calls,
+# board/imx8qxmek/patches/arm-trusted-firmware), thermal and RTC, the i.MX
+# cpufreq driver
+CONFIG_CRYPTO_DEV_FSL_CAAM=y
+CONFIG_CRYPTO_DEV_FSL_CAAM_JR=y
 CONFIG_IMX_SC_WDT=y
+CONFIG_IMX_SC_THERMAL=y
+CONFIG_RTC_DRV_IMX_SC=y
+CONFIG_ARM_IMX_CPUFREQ_DT=y
+
+# Networking: IPv4 only
+# CONFIG_IPV6 is not set
+# CONFIG_NETFILTER is not set
+
+# File systems: ext4, VFAT and squashfs stay
+# CONFIG_NETWORK_FILESYSTEMS is not set
+# CONFIG_FUSE_FS is not set
+# CONFIG_AUTOFS_FS is not set
+# CONFIG_QUOTA is not set
+
+# The jitter entropy RNG and its DRBG (464 ms on jiffy). The arm64 defconfig
+# sets ECHAINIV (IPsec), which pulls them in through GENIV and RNG_DEFAULT.
+# CONFIG_CRYPTO_ECHAINIV is not set
+# CONFIG_CRYPTO_ECDH is not set
+# CONFIG_CRYPTO_DRBG_MENU is not set
+# CONFIG_CRYPTO_JITTERENTROPY is not set
+
+# No RAM disks, loop devices only on demand
+# CONFIG_BLK_DEV_RAM is not set
+CONFIG_BLK_DEV_LOOP_MIN_COUNT=0
+
+# Debug and extras. The initramfs is gzip.
+# CONFIG_KPROBES is not set
+# CONFIG_BPF_SYSCALL is not set
+# CONFIG_IO_URING is not set
+# CONFIG_DEBUG_FS is not set
+# CONFIG_IKCONFIG is not set
+# CONFIG_SWAP is not set
+# CONFIG_FTRACE is not set
+# CONFIG_RD_BZIP2 is not set
+# CONFIG_RD_LZMA is not set
+# CONFIG_RD_XZ is not set
+# CONFIG_RD_LZO is not set
+# CONFIG_RD_LZ4 is not set
+# CONFIG_RD_ZSTD is not set
