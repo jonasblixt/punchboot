@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Measure how long pb takes to load and verify a boot image.
 
-    scripts/boot-time-image [-u UUID] [-n RUNS] [-s MiB,...] [-l ADDR]
+    scripts/boot-time-image [-u UUID] [-n RUNS] [-s SIZE,...] [-l ADDR]
                             [-k KEY] [-c TTY] PART_UUID
 
-For each size (default 10 MiB) it builds a signed bpak image (one 'kernel'
+For each size (default 10 MiB, 128K for KiB) it builds a signed bpak image (one 'kernel'
 part of reproducible pseudo-random data, SHA-256, ECDSA P-256 with the
 pb-development key), writes it to the bootable partition PART_UUID, which
 it overwrites, boots it from there RUNS times with 'punchboot boot
@@ -53,6 +53,8 @@ BAD_PAYLOAD = -27
 LOAD_ADDR = {
     "jiffy": 0x84000000,
     "imx8mpevk": 0x48000000,
+    # OCRAM2, between the ROM's data and pb: at most 228 KiB
+    "imxrt1060evk": 0x20210000,
 }
 
 LOAD_KEYS = {"load", "header", "auth", "bytes", "part", "read", "hash", "final", "last", "end"}
@@ -117,16 +119,16 @@ class Board:
                 lines.append((int(m[1]) * 1000 + int(m[2]), m[3], m[4]))
         return lines
 
-    def part_size(self, part: str) -> int:
-        """The size in bytes of a bootable partition."""
+    def part_size(self, part: str) -> tuple[int, bool]:
+        """The size in bytes of a bootable partition, and whether it needs an erase first."""
         for line in self.pb("part", "list").stdout.splitlines():
             m = PART_LIST_LINE.match(line)
             if m and m[1] == part:
                 if not m[2].startswith("B"):
                     fail(f"{part} is not bootable")
-                return int(m[3]) * UNITS[m[4]]
+                return int(m[3]) * UNITS[m[4]], m[2][3] == "E"
         fail(f"no partition {part}")
-        return 0
+        return 0, False
 
     def wait(self, timeout: float = 15.0) -> None:
         end = time.monotonic() + timeout
@@ -137,9 +139,9 @@ class Board:
         fail("the board did not come back in command mode")
 
 
-def build_image(path: Path, size_mib: int, load_addr: int) -> None:
+def build_image(path: Path, size: int, load_addr: int) -> None:
     payload = path.with_suffix(".kernel")
-    payload.write_bytes(random.Random(0).randbytes(size_mib << 20))  # noqa: S311
+    payload.write_bytes(random.Random(0).randbytes(size))  # noqa: S311
 
     def bpak(*args: str) -> None:
         run("bpak", *args)
@@ -157,7 +159,7 @@ def build_image(path: Path, size_mib: int, load_addr: int) -> None:
 
     # The payload no longer matches the signed hash: pb never starts it
     with path.open("r+b") as f:
-        f.seek(BPAK_HEADER_SIZE + 4096)
+        f.seek(BPAK_HEADER_SIZE + min(4096, size - 1))
         byte = f.read(1)
         f.seek(-1, os.SEEK_CUR)
         f.write(bytes([byte[0] ^ 0xFF]))
@@ -188,6 +190,15 @@ def parse_loads(log: list[tuple[int, str, str]]) -> list[dict[str, int]]:
     return runs
 
 
+def parse_size(v: str) -> int:
+    """MiB, or KiB with a K: the size in bytes."""
+    return int(v[:-1]) << 10 if v.upper().endswith("K") else int(v) << 20
+
+
+def size_name(size: int) -> str:
+    return f"{size >> 20} MiB" if size % (1 << 20) == 0 else f"{size >> 10} KiB"
+
+
 def mib_s(nbytes: float, us: float) -> float:
     return nbytes / (1 << 20) / (us / 1e6) if us else 0.0
 
@@ -198,12 +209,12 @@ def load_rows(loads: list[dict[str, int]]) -> dict[str, tuple[str, list[float]]]
         "Header read": ("ms", lambda r: (r["header"] - r["load"]) / 1000),
         "Signature (hash + ECDSA)": ("ms", lambda r: (r["auth"] - r["header"]) / 1000),
         "Part": ("ms", lambda r: r["part"] / 1000),
-        "  eMMC read": ("ms", lambda r: r["read"] / 1000),
+        "  read": ("ms", lambda r: r["read"] / 1000),
         "  waiting for the hash": ("ms", lambda r: r["hash"] / 1000),
         "Hash of the last chunk": ("ms", lambda r: r["final"] / 1000),
         "Load and verify": ("ms", lambda r: (r["end"] - r["load"]) / 1000),
-        "Read (eMMC)": ("MiB/s", lambda r: mib_s(r["bytes"], r["read"])),
-        "Hash (CAAM, last chunk)": ("MiB/s", lambda r: mib_s(r["last"], r["final"])),
+        "Read": ("MiB/s", lambda r: mib_s(r["bytes"], r["read"])),
+        "Hash, last chunk": ("MiB/s", lambda r: mib_s(r["last"], r["final"])),
         "Load + hash": ("MiB/s", lambda r: mib_s(r["bytes"], r["part"] + r["final"])),
         "Load + verify": ("MiB/s", lambda r: mib_s(r["bytes"], r["end"] - r["load"])),
     }
@@ -268,7 +279,7 @@ def load_summary(sizes: dict[int, list[dict[str, int]]]) -> None:
     """One column per image size, the median of its runs."""
     tables = {size: load_rows(loads) for size, loads in sizes.items()}
     print("\nLoad and verify (median)")
-    print(f"  {'':34}" + "".join(f"{f'{size} MiB':>10}" for size in sizes))
+    print(f"  {'':34}" + "".join(f"{size_name(size):>10}" for size in sizes))
     spread = 0.0
     for name, (unit, _) in next(iter(tables.values())).items():
         values = [tables[size][name][1] for size in sizes]
@@ -287,10 +298,10 @@ def main() -> None:
     p.add_argument(
         "-s",
         "--size",
-        type=lambda v: [int(x) for x in v.split(",")],
-        default=[10],
-        metavar="MiB[,MiB...]",
-        help="image sizes, e.g. 10,30,50 (default 10)",
+        type=lambda v: [parse_size(x) for x in v.split(",")],
+        default=[10 << 20],
+        metavar="SIZE[,SIZE...]",
+        help="image sizes in MiB, or KiB with K: 10,30,50 or 64K,200K (default 10)",
     )
     p.add_argument("-l", "--load-addr", type=lambda s: int(s, 0), help="image load address")
     p.add_argument("-k", "--key", type=Path, help="authenticate with a token signed by KEY")
@@ -305,16 +316,18 @@ def main() -> None:
             fail(f"no load address for {board.name}, use -l")
 
         board.auth()
-        part_size = board.part_size(args.part)
+        part_size, erase = board.part_size(args.part)
         for size in args.size:
-            if (size << 20) + BPAK_HEADER_SIZE > part_size:
-                fail(f"a {size} MiB image doesn't fit in {args.part} ({part_size >> 20} MiB)")
+            if size + BPAK_HEADER_SIZE > part_size:
+                fail(f"a {size_name(size)} image doesn't fit in {args.part} ({part_size} bytes)")
 
         sizes = {}
         image = workdir / "boot-time.bpak"
         for size in args.size:
             build_image(image, size, load_addr)
             board.auth()
+            if erase:  # NOR flash
+                board.pb("part", "erase", args.part)
             board.pb("part", "write", str(image), args.part)
             board.pb("part", "verify", str(image), args.part)
             for _ in range(args.runs):
@@ -322,8 +335,8 @@ def main() -> None:
                 if r.returncode == 0:
                     fail("the image booted, it should have failed verification")
             loads = parse_loads(board.log())[-args.runs :]
-            if len(loads) != args.runs or any(r["bytes"] != size << 20 for r in loads):
-                fail(f"{size} MiB: not {args.runs} loads in the RAM log, see 'punchboot log'")
+            if len(loads) != args.runs or any(r["bytes"] != size for r in loads):
+                fail(f"{size_name(size)}: not {args.runs} loads in the RAM log, see 'punchboot log'")
             sizes[size] = loads
 
         resets: dict[str, list[float]] = {}
