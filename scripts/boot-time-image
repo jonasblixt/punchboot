@@ -130,7 +130,9 @@ class Board:
         fail(f"no partition {part}")
         return 0, False
 
-    def wait(self, timeout: float = 15.0) -> None:
+    # 30 s: the i.MX8QXP MEK enumerates in ~22 s after a reset, the host retries its
+    # serial number string (F-159)
+    def wait(self, timeout: float = 30.0) -> None:
         end = time.monotonic() + timeout
         while time.monotonic() < end:
             if self.uuid in run("punchboot", "list", check=False).stdout:
