@@ -60,6 +60,8 @@
 
 - C99, `-ffreestanding -nostdinc`, own libc (`src/lib/libc`, from TF-A).
 - Return `PB_OK` or `-PB_ERR_*` (`include/pb/errors.h`). Errors map to the wire with `error_to_wire()`.
-- Logging: `LOG_ERR/WARN/INFO/DBG` gated by `CONFIG_LOGLEVEL` (`include/pb/log_def.h`).
+- Logging: `LOG_ERR/WARN/INFO/DBG` gated by `CONFIG_LOGLEVEL` (`include/pb/log_def.h`): 1 errors,
+  2 also warnings and info, 3 also debug. The boards print errors on the UART and keep debug in
+  the RAM log (`CONFIG_LOGLEVEL=1`, `CONFIG_RAMLOG_LOGLEVEL=3`).
 - Headers: `include/pb/`, `include/boot/`, `include/drivers/<x>/`, `include/plat/<p>/`.
 - Prefix-namespaced snake_case. SPDX BSD-3-Clause headers. Doxygen in headers.
