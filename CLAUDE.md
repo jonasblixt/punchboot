@@ -25,6 +25,7 @@ Do not read these up front. Open only what the task needs.
 | `doc/dev/testing.md` | Writing or running tests (host unit/integration tests) |
 | `doc/dev/build-and-test.md` | Building firmware, the dev container, CI, releasing |
 | `testbench/README.md` | The Buildroot Linux test bench (boot/root images for the boards), adding a board, boot time |
+| `testbench/mcu/README.md` | The MCU test bench (bare metal test application, pytest runner), MCU boards |
 | `doc/dev/imx8m-ddr.md` | i.MX8M DRAM init (uMCTL2, DWC LPDDR4 PHY), its golden trace test |
 | `doc/dev/bpak.md` | Anything touching bpak or image signing/verification |
 | `doc/dev/compatibility.md` | **Any change to `wire.h`/`error.h`, command mode, the host API, bpak, or image handling** |
