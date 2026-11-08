@@ -16,6 +16,7 @@
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
+#include <drivers/uart/imx_lpuart.h>
 #include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
@@ -23,6 +24,7 @@
 #include <drivers/usb/usbd.h>
 #include <libfdt.h>
 #include <pb/cm.h>
+#include <pb/console.h>
 #include <pb/crypto.h>
 #include <pb/delay.h>
 #include <pb/pb.h>
@@ -31,7 +33,10 @@
 #include <pb/slc.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
-#include <plat/imx8x/sci/svc/seco/sci_seco_api.h>
+#include <sci/svc/misc/api.h>
+#include <sci/svc/pad/api.h>
+#include <sci/svc/pm/api.h>
+#include <sci/svc/seco/api.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <uuid.h>
