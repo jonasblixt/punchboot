@@ -72,6 +72,20 @@ imx8mpevk)
     DT_ADDR=0x50000000
     RAMDISK_ADDR=0x50100000
     ;;
+imx8qxmek)
+    # BL31 runs at 0x80000000, TF-A's fixed BL31_BASE, in the hole that
+    # punchboot leaves for it (src/plat/imx8x/link.lds). punchboot uses
+    # 0x80020000-0x80049000 and 0x85000000-0x85823000. The Image runs where
+    # it is loaded, 2 MiB aligned; everything stays below the reserved
+    # memory of the MEK's DTS at 0x90000000.
+    ATF="${BINARIES_DIR}/bl31.bin"
+    ATF_ADDR=0x80000000
+    KERNEL="${BINARIES_DIR}/Image"
+    KERNEL_ADDR=0x86000000
+    DT="${BINARIES_DIR}/imx8qxp-mek-pb.dtb"
+    DT_ADDR=0x8c000000
+    RAMDISK_ADDR=0x8c100000
+    ;;
 *)
     die "unknown board ${BOARD}"
     ;;

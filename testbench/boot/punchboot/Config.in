@@ -23,11 +23,31 @@ config BR2_TARGET_PUNCHBOOT_CONFIG_FILE
 	  configs/<board>_defconfig from the punchboot sources.
 
 config BR2_TARGET_PUNCHBOOT_IMX_HAB
-	bool "HAB signed image (NXP CST)"
+	bool "HAB/AHAB signed image (NXP CST)"
 	select BR2_PACKAGE_HOST_IMX_CST
 	help
 	  The punchboot configuration signs the image for the i.MX HAB
-	  (CONFIG_IMX6UL_SIGN_IMAGE), which needs NXP's cst.
+	  or AHAB (CONFIG_IMX6UL_SIGN_IMAGE, CONFIG_IMX8X_SIGN_IMAGE),
+	  which needs NXP's cst.
+
+config BR2_TARGET_PUNCHBOOT_IMX8X_CONTAINER
+	bool "i.MX8X boot container"
+	depends on BR2_PACKAGE_IMX_SC_FIRMWARE
+	depends on BR2_PACKAGE_IMX_SECO
+	select BR2_PACKAGE_HOST_IMX_MKIMAGE
+	help
+	  Build the boot container that the i.MX8X ROM boots
+	  (CONFIG_IMX8X_CREATE_IMX_IMAGE): the SECO firmware from
+	  imx-seco, the SCU firmware from imx-sc-firmware and punchboot
+	  for the A35, put together by NXP's mkimage_imx8.
+
+config BR2_TARGET_PUNCHBOOT_IMX8X_SCFW
+	string "SCU firmware"
+	default "mx8qx-mek-scfw-tcm.bin"
+	depends on BR2_TARGET_PUNCHBOOT_IMX8X_CONTAINER
+	help
+	  The board's SCU firmware, a file that imx-sc-firmware installs
+	  in the images directory.
 
 config BR2_TARGET_PUNCHBOOT_IMX8M_DDR_FW
 	bool "i.MX8M LPDDR4 training firmware"

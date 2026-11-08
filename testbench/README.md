@@ -15,12 +15,14 @@ dm-verity.
 | Buildroot | 2026.02.3 (LTS) |
 | Toolchain | Buildroot internal: GCC 14, musl (kickstart is linked statically, see its `doc/licensing.md`) |
 | Linux     | 6.18.58 (longterm) |
-| TF-A      | v2.12 (imx8mpevk, BL31 only) |
+| TF-A      | v2.12 (imx8mpevk, imx8qxmek with `board/imx8qxmek/patches`, BL31 only) |
 | punchboot | this tree (`..`) |
 | kickstart | branch `master` of `../../kickstart` |
 | bpak      | branch `master` of `../../bpak`: libbpak for kickstart, the `bpak` python package as the host tool |
-| NXP CST   | 3.4.1 (host, Debian source, jiffy's HAB signature) |
+| NXP CST   | 3.4.1 (host, Debian source, jiffy's HAB and the MEK's AHAB signature) |
 | firmware-imx | 8.27, the LPDDR4 training firmware FW2020.06 (imx8mpevk) |
+| imx-sc-firmware, imx-seco | 1.18.0, 5.9.4.1: the SCU firmware and the SECO firmware (B0) |
+| | in the MEK's boot container |
 
 No OP-TEE.
 
@@ -66,13 +68,16 @@ about that and checks every other download (`BR2_DOWNLOAD_FORCE_CHECK_HASHES`).
 After a new commit of bpak, rebuild what used the host tool:
 `make BOARD=jiffy punchboot-dirclean kickstart-dirclean all`.
 
-Building imx8mpevk extracts firmware-imx and accepts NXP's EULA.
+Building imx8mpevk extracts firmware-imx and accepts NXP's EULA, imx8qxmek the same for
+imx-sc-firmware and imx-seco.
 
 ## Output (`output/<board>/images/`)
 
 | File | |
 | ---- | - |
-| `punchboot/` | punchboot: `pb.imx` (imx8mpevk), `pb_signed.imx` and `pb_signed_uuu.imx` (jiffy, HAB signed with the test keys) |
+| `punchboot/` | punchboot: `pb.imx` (imx8mpevk), `pb_signed.imx` and `pb_signed_uuu.imx` (jiffy, HAB |
+| | signed with the test keys), `pb.imx` and `pb_signed.imx` (imx8qxmek: the boot container with |
+| | the SECO and SCU firmware, AHAB signed) |
 | `boot.bpak` | the boot image, for System A/B |
 | `root.bpak` | the root image, for Root A/B |
 | `kickstart.cpio.gz` | the initramfs: kickstart as `/init` |
