@@ -58,6 +58,9 @@ the host half of 4 are done (`compatibility.md`, Guards).
   three) and `linux` (the newest ramoops record: panic, oops, reboot; `CONFIG_BOOT_LINUX_RAMOOPS`, on for jiffy and the 8MP EVK,
   set up in command mode, D-023; a hang panics Linux on the watchdog pretimeout, `pb-watchdog`;
   jiffy keeps it on reboot, panic and hang, the EVK on a hang, F-156). `punchboot log [NAME] [--list]`.
+- **i.MX8QXP MEK (2026-11-08):** in the test bench, boots through patched TF-A v2.12 to the login
+  prompt (pb from RAM over uuu, the switches on serial download). Next: boot from eMMC, the boot
+  time list. F-159 (cdns3 EP0 packet size) open: the CLI can't select the MEK by UUID.
 - **MCU test bench (2026-11-08, D-025):** `testbench/mcu/`, a bare metal test application and a
   pytest runner. The RT1060 EVK boots System A/B from its NOR now (new layout); all 6 tests pass
   (handover, A/B, rollback, watchdog). F-055 (erase) fixed for it. Boot time: warm reset to the
