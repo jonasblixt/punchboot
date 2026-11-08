@@ -15,6 +15,10 @@ config KEYSTORE
 config LOGLEVEL
 	int "loglevel"
     default 0
+    help
+        What the console (UART) prints: 0 nothing, 1 errors, 2 also
+        warnings and info, 3 also debug. With CONFIG_RAMLOG the RAM log has
+        the levels up to CONFIG_RAMLOG_LOGLEVEL (include/pb/log_def.h).
 
 config ENABLE_WATCHDOG
 	bool "Enable watchdog"

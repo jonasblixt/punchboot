@@ -52,14 +52,20 @@ void log_prefix(const char *level, const char *func);
 #define LOG_DBG(...)
 #endif
 
-#if LOGLEVEL >= 1
+/* Level 1 is errors only, warnings come with level 2 */
+#if LOGLEVEL >= 2
 #define LOG_WARN(...) LOG_LINE("W", __VA_ARGS__)
-#define LOG_ERR(...)  LOG_LINE("E", __VA_ARGS__)
-#elif LOG_MAX_LEVEL >= 1
+#elif LOG_MAX_LEVEL >= 2
 #define LOG_WARN(...) LOG_LINE_RAMLOG("W", __VA_ARGS__)
-#define LOG_ERR(...)  LOG_LINE_RAMLOG("E", __VA_ARGS__)
 #else
 #define LOG_WARN(...)
+#endif
+
+#if LOGLEVEL >= 1
+#define LOG_ERR(...) LOG_LINE("E", __VA_ARGS__)
+#elif LOG_MAX_LEVEL >= 1
+#define LOG_ERR(...) LOG_LINE_RAMLOG("E", __VA_ARGS__)
+#else
 #define LOG_ERR(...)
 #endif
 
