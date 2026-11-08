@@ -11,8 +11,7 @@ FROM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20b
 
 ARG MBEDTLS_VERSION=3.4.0
 ARG MBEDTLS_SHA256=1b899f355022e8d02c4d313196a0a16af86c5a692456fa99d302915b8cf0320a
-ARG BPAK_VERSION=0.9.3
-ARG BPAK_SHA256=043f50c0cf83b644870f6db2463937f79139e588588b74c61c7effa80ab533e5
+ARG BPAK_VERSION=1.0.1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         bc \
@@ -47,21 +46,12 @@ RUN curl -fsSL -o /tmp/mbedtls.tar.gz \
     && rm /tmp/mbedtls.tar.gz
 ENV MBEDTLS_DIR=/opt/mbedtls-${MBEDTLS_VERSION}
 
-# bpak CLI, used to generate the keystore and to build test images.
-RUN curl -fsSL -o /tmp/bpak.tar.gz \
-        https://github.com/jonasblixt/bpak/archive/refs/tags/v${BPAK_VERSION}.tar.gz \
-    && echo "${BPAK_SHA256}  /tmp/bpak.tar.gz" | sha256sum -c - \
-    && tar xzf /tmp/bpak.tar.gz -C /tmp \
-    && cmake -S /tmp/bpak-${BPAK_VERSION} -B /tmp/bpak-build -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build /tmp/bpak-build -j"$(nproc)" \
-    && cmake --install /tmp/bpak-build \
-    && ldconfig \
-    && rm -rf /tmp/bpak.tar.gz /tmp/bpak-${BPAK_VERSION} /tmp/bpak-build
-
-# Python environment for the punchboot package and coverage reports. The
-# container runs as the invoking host user, so the locations that get
-# installed into at runtime (venv, /opt/pb prefix for pbstate) are left
-# world writable. Containers are ephemeral, so nothing persists between runs.
+# Python environment for the punchboot package, coverage reports and the
+# bpak CLI (the bpak python package since 1.0), which generates the keystore
+# and builds test images. The container runs as the invoking host user, so
+# the locations that get installed into at runtime (venv, /opt/pb prefix for
+# pbstate) are left world writable. Containers are ephemeral, so nothing
+# persists between runs.
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir \
         "click>=8.2,<9" \
@@ -72,6 +62,7 @@ RUN python3 -m venv /opt/venv \
         "wheel" \
         "gcovr==8.3" \
         "pytest" \
+        "bpak==${BPAK_VERSION}" \
     && mkdir -p /opt/pb \
     && chmod -R a+rwX /opt/venv /opt/pb
 

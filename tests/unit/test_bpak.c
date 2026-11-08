@@ -158,9 +158,42 @@ static void test_del_meta_moves_data(void **state)
         assert_int_equal(hdr->metadata[i], 0);
 }
 
-/* Deleting with the last meta slot in use is not tested: bpak_del_meta()
- * then leaves the last slot as it is and clears the 16 bytes after the meta
- * array, i.e. parts[0] (F-068). punchboot never deletes meta data. */
+/* F-068: with the last meta slot in use, bpak_del_meta() left that slot and
+ * cleared the 16 bytes after the meta array, parts[0] */
+static void test_del_meta_all_slots(void **state)
+{
+    struct bpak_header *hdr = *state;
+    struct bpak_meta_header *meta = NULL;
+    struct bpak_part_header *part = NULL;
+
+    assert_int_equal(bpak_add_part(hdr, ID_KERNEL, &part), BPAK_OK);
+    part->size = 512;
+
+    for (unsigned int i = 0; i < BPAK_MAX_META; i++)
+        add_meta(hdr, ID_META_A + i, 0, 4, (uint8_t)i);
+
+    bpak_del_meta(hdr, &hdr->meta[0]);
+
+    assert_int_equal(hdr->meta[BPAK_MAX_META - 1].id, 0);
+    assert_int_equal(hdr->parts[0].id, ID_KERNEL);
+    assert_int_equal(hdr->parts[0].size, 512);
+    assert_int_equal(bpak_get_meta_anyref(hdr, ID_META_A + 1, &meta), BPAK_OK);
+    assert_ptr_equal(meta, &hdr->meta[0]);
+    assert_int_equal(bpak_get_meta_ptr(hdr, meta, uint8_t)[0], 1);
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+}
+
+/* Id 0 marks an empty slot, it is never found */
+static void test_id_zero_not_found(void **state)
+{
+    struct bpak_header *hdr = *state;
+    struct bpak_meta_header *meta = NULL;
+    struct bpak_part_header *part = NULL;
+
+    assert_int_equal(bpak_get_part(hdr, 0, &part), -BPAK_NOT_FOUND);
+    assert_int_equal(bpak_get_meta(hdr, 0, 0, &meta), -BPAK_NOT_FOUND);
+    assert_int_equal(bpak_get_meta_anyref(hdr, 0, &meta), -BPAK_NOT_FOUND);
+}
 
 static void test_parts(void **state)
 {
@@ -232,6 +265,9 @@ static void test_add_transport_meta(void **state)
     assert_int_equal(bpak_add_transport_meta(hdr, ID_KERNEL, 1, 2), BPAK_OK);
     assert_int_equal(bpak_get_meta(hdr, ID_TRANSPORT, ID_KERNEL, &meta), BPAK_OK);
 
+    /* F-011: the size of a meta header (16) instead of the transport meta */
+    assert_int_equal(meta->size, sizeof(struct bpak_transport_meta));
+
     struct bpak_transport_meta *tm = bpak_get_meta_ptr(hdr, meta, struct bpak_transport_meta);
     assert_int_equal(tm->alg_id_encode, 1);
     assert_int_equal(tm->alg_id_decode, 2);
@@ -264,6 +300,76 @@ static void test_valid_header_rejects(void **state)
     part->size = 1000;
     assert_int_equal(bpak_valid_header(hdr), -BPAK_BAD_ALIGNMENT);
     part->pad_bytes = 24;
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+}
+
+/* What bpak 1.0 rejects and 0.9 accepted (D-024) */
+static void test_valid_header_rejects_empty_slots(void **state)
+{
+    struct bpak_header *hdr = *state;
+
+    hdr->parts[1].id = ID_DTB;
+    hdr->parts[1].size = 512;
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_NOT_SUPPORTED);
+    hdr->parts[0] = hdr->parts[1];
+    memset(&hdr->parts[1], 0, sizeof(hdr->parts[1]));
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+
+    hdr->meta[1].id = ID_META_B;
+    hdr->meta[1].size = 8;
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_NOT_SUPPORTED);
+    hdr->meta[0] = hdr->meta[1];
+    memset(&hdr->meta[1], 0, sizeof(hdr->meta[1]));
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+}
+
+static void test_valid_header_rejects_unaligned_meta(void **state)
+{
+    struct bpak_header *hdr = *state;
+    struct bpak_meta_header *meta = add_meta(hdr, ID_META_A, 0, 4, 0);
+
+    meta->offset = BPAK_META_ALIGN / 2;
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_BAD_ALIGNMENT);
+    meta->offset = BPAK_META_ALIGN;
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+}
+
+static void test_valid_header_rejects_part_sizes(void **state)
+{
+    struct bpak_header *hdr = *state;
+    struct bpak_part_header *a = NULL;
+    struct bpak_part_header *b = NULL;
+
+    assert_int_equal(bpak_add_part(hdr, ID_KERNEL, &a), BPAK_OK);
+
+    /* A whole block of padding */
+    a->pad_bytes = BPAK_PART_ALIGN;
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_BAD_ALIGNMENT);
+    a->pad_bytes = 0;
+
+    /* Sizes that overflow size_t/off_t, alone or added up */
+    a->size = UINT64_MAX - (BPAK_PART_ALIGN - 1);
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_SIZE_ERROR);
+    a->size = (uint64_t)1 << 62;
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+    assert_int_equal(bpak_add_part(hdr, ID_DTB, &b), BPAK_OK);
+    b->size = (uint64_t)1 << 62;
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_SIZE_ERROR);
+    b->size = 512;
+    assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
+
+    b->flags = BPAK_FLAG_TRANSPORT;
+    b->transport_size = UINT64_MAX;
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_SIZE_ERROR);
+}
+
+static void test_valid_header_rejects_signature_size(void **state)
+{
+    struct bpak_header *hdr = *state;
+
+    hdr->signature_sz = sizeof(hdr->signature) + 1;
+    assert_int_equal(bpak_valid_header(hdr), -BPAK_SIZE_ERROR);
+    hdr->signature_sz = sizeof(hdr->signature);
     assert_int_equal(bpak_valid_header(hdr), BPAK_OK);
 }
 
@@ -347,11 +453,17 @@ int main(void)
         BPAK_TEST(test_add_meta_out_of_data_space),
         BPAK_TEST(test_add_meta_out_of_headers),
         BPAK_TEST(test_del_meta_moves_data),
+        BPAK_TEST(test_del_meta_all_slots),
+        BPAK_TEST(test_id_zero_not_found),
         BPAK_TEST(test_parts),
         BPAK_TEST(test_add_part_out_of_headers),
         BPAK_TEST(test_transport_part_size),
         BPAK_TEST(test_add_transport_meta),
         BPAK_TEST(test_valid_header_rejects),
+        BPAK_TEST(test_valid_header_rejects_empty_slots),
+        BPAK_TEST(test_valid_header_rejects_unaligned_meta),
+        BPAK_TEST(test_valid_header_rejects_part_sizes),
+        BPAK_TEST(test_valid_header_rejects_signature_size),
         BPAK_TEST(test_copyz_signature),
         BPAK_TEST(test_key_ids),
         BPAK_TEST(test_strings),
