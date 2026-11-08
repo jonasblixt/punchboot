@@ -254,3 +254,26 @@ Why: the validation runs on headers that aren't verified yet, and the lookups tr
 that follows upstream is also easier to keep in sync (F-021).
 Cost: a header that only a hand-edited or broken tool could make is now refused by
 `read-bpak` instead of shown. Each case has a unit test (`test_bpak.c`).
+
+## D-025: An MCU test bench: a bare metal test application and a pytest runner (2026-11-08)
+
+`testbench/mcu/` tests pb on microcontrollers, where the Buildroot test bench (D-022) doesn't
+apply. A small bare metal application, built per board in the dev container (`arm-none-eabi`, no
+RTOS, no vendor SDK), checks what pb hands over and reports it on the console; a pytest runner on
+the host writes the images and the boot state over USB and reads the console. It covers the boot
+of a signed image, the handover, A/B, rollback after the boot attempts and the watchdog. First
+board: the i.MX RT1060 EVK.
+What pb guarantees an ARMv7-M image (the contract the application checks): VTOR is its vector
+table, MSP and PSP its initial stack pointer, r0 the booted system's name ("A", "B"), r1 the boot
+partition's UUID, the image's memory cleaned from the D-cache and the I-cache invalidated, no
+interrupt enabled. A board's pb enters command mode when an image asks for it in a register that
+survives a warm reset (the RT1060: SRC_GPR5), so the runner gets the board back without a hand
+on it.
+Why: the tests check pb's behaviour, so the application must not bring its own startup and
+assumptions; a few hundred lines per board are easy to port to the next MCU and run in the
+existing container. Zephyr can come later as a "real application" on top, once this passes.
+Cost: one more application to keep, and per board a linker script, a console, a watchdog and a
+way to write the boot state (the RT1060 uses the ROM's NOR API).
+The RT1060 EVK's NOR layout changes for it: `BL`, the two boot state copies, System A and B. The
+product partitions it had (`SBL1`, `Config`, `Application`, `SBL2`) are gone; `SBL1` held an
+older application on the EVK, backed up in `build-imxrt1060evk/nor-backup-2026-11-08/`.
