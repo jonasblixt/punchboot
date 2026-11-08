@@ -9,6 +9,7 @@ dm-verity.
 | ----- | --------- | ------ |
 | i.MX8M Plus EVK | `configs/imx8mpevk_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-10-30) |
 | jiffy (i.MX6UL) | `configs/jiffy_defconfig` | boots: kickstart, dm-verity root, login (2026-10-29) |
+| i.MX8QXP MEK | `configs/imx8qxmek_defconfig` | boots through TF-A: kickstart, dm-verity root, login (2026-11-08) |
 
 | Component | Version |
 | --------- | ------- |
@@ -94,12 +95,12 @@ ROM (HAB) -> punchboot -> [TF-A BL31] -> Linux -> kickstart (/init) -> /sbin/ini
 
 `boot.bpak`, verified by punchboot:
 
-| Part | Content | jiffy | imx8mpevk |
-| ---- | ------- | ----- | --------- |
-| `atf` | `bl31.bin` | | 0x970000 (OCRAM) |
-| `kernel` | Linux | `zImage`, 0x82000000 | `Image`, 0x42000000 |
-| `dt` | device tree | 0x83f00000 | 0x50000000 |
-| `ramdisk` | `kickstart.cpio.gz` | 0x84000000 | 0x50100000 |
+| Part | Content | jiffy | imx8mpevk | imx8qxmek |
+| ---- | ------- | ----- | --------- | --------- |
+| `atf` | `bl31.bin` | | 0x970000 (OCRAM) | 0x80000000 |
+| `kernel` | Linux | `zImage`, 0x82000000 | `Image`, 0x42000000 | `Image`, 0x80200000 |
+| `dt` | device tree | 0x83f00000 | 0x50000000 | 0x83000000 |
+| `ramdisk` | `kickstart.cpio.gz` | 0x84000000 | 0x50100000 | 0x83100000 |
 
 The addresses keep clear of what punchboot itself uses while it loads
 (`src/plat/*/link.lds`). The part names are the bpak ids that the boards'
@@ -109,8 +110,8 @@ boot drivers look for (`src/board/<board>/board.c`).
 `rootfs.squashfs` and its dm-verity hash tree, the root hash in the signed
 header. kickstart is built for the board's eMMC (`BR2_PACKAGE_KICKSTART_ROOT_A`
 etc. in the defconfigs): Root A/B are partitions 3 and 4 and the boot state
-5 and 6 in both boards' GPT, on `mmcblk0` (jiffy) and `mmcblk2` (8MP EVK,
-uSDHC3). It reads the boot state, verifies the root image of the system
+5 and 6 in the boards' GPT, on `mmcblk0` (jiffy, the MEK's uSDHC1) and `mmcblk2`
+(8MP EVK, uSDHC3). It reads the boot state, verifies the root image of the system
 punchboot booted (`/chosen/pb,active-system`) and switches to it.
 
 The root file system is read only. `/tmp` and `/run` are tmpfs, nothing
@@ -140,6 +141,37 @@ Three things it takes on this SoC:
 
 The FEC port's PHY (`30be0000.ethernet`, eth0) doesn't answer on MDIO; the
 EQOS port (eth1) probes.
+
+### imx8qxmek: TF-A
+
+The i.MX8QXP's ROM starts the SCU firmware and punchboot from a boot container
+(`pb_signed.imx`: the SECO firmware from imx-seco, B0 silicon, the SCU firmware
+from imx-sc-firmware, AHAB signed with the test keys). punchboot loads BL31 to
+0x80000000, the hole in its own memory map (`src/plat/imx8x/link.lds`), and starts
+it with the ATF boot driver. TF-A v2.12 needs two patches
+(`board/imx8qxmek/patches/arm-trusted-firmware`):
+
+- Upstream imx8qx BL31 always jumps to BL33 at 0x80020000, which is punchboot,
+  without arguments. The first patch takes BL33 from the `bl_params` list in x0,
+  like the i.MX8M ports, so Linux is BL33 with the device tree in x0.
+- Linux's `imx_sc_wdt` pets the SCU watchdog that punchboot starts through SIP
+  calls that upstream doesn't have; without them it fails to probe and the board
+  resets 5 s into Linux. The second patch adds them. A hang panics Linux on the
+  pretimeout (through the SCU interrupt) 2 s before the 60 s timeout.
+
+BL31 keeps 0x80000000-0x8001ffff in the secure partition. `board/imx8qxmek/dts/freescale/imx8qxp-mek-pb.dts`
+takes it out of Linux's map and describes the MEK's 3 GiB (BL31's memory
+regions: 0x80000000-0xffffffff and 0x880000000-0x8bfffffff); the upstream tree
+has 1 GiB, which leaves the 960 MiB CMA pool outside of the memory. The load
+addresses stay below the VPU's reserved memory at 0x84000000.
+
+Not punchboot's: the base board's I/O expander at I2C 4-0020 doesn't answer
+(`pca953x ... -5`), so the I2C mux that takes its reset from it and two clock
+controllers never probe. eth0 had no cable.
+
+pb's USB on the MEK (cdns3) can't send its serial number string (F-159): `punchboot
+list` and `-u` don't see the board, the CLI without `-u` does when it is the only
+board on USB.
 
 ### Linux's kernel log in pb (ramoops)
 
