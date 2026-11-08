@@ -17,7 +17,8 @@ the host half of 4 are done (`compatibility.md`, Guards).
   `claude-work`. Coverity only runs on master, so it's unverified until merged.
 - **bpak 1.0.1 (2026-11-08, D-024):** the container's CLI (PyPI), the test bench (`master`), golden
   images `v1.0.1` and the vendored library (`scripts/sync-bpak`, F-021, F-011, F-068 fixed). The
-  firmware rejects headers 0.9 let through (empty slots, unaligned meta, size overflows). Checked on jiffy and the 8MP EVK.
+  firmware rejects headers 0.9 let through (empty slots, unaligned meta, size overflows). Checked on jiffy, the 8MP EVK and
+  the RT1060 EVK.
 - **i.MX8M DDR (from `imx8m-dram-cleanup`):** cleaned up behind a golden register trace (D-013),
   uMCTL2/DWC PHY drivers in `src/drivers/ddr` (D-014), `PLAT_IMX8MQ` + `PLAT_IMX8M_COMMON`.
   `PLAT_IMX8MP` + board `imx8mpevk` (2026-10-28): pb runs from OCRAM over `uuu`, the DRAM trains and
