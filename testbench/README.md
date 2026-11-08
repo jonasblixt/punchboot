@@ -341,6 +341,21 @@ pb now instantiates the CAAM's RNG (Linux runs non-secure here and can't), which
 adds 27 ms to every boot after these measurements; Linux has `rng-caam` and its
 random pool is ready at 0.15 s. Open: the FEC's PHY doesn't answer on MDIO.
 
+### imx8qxmek
+
+Warm resets as for jiffy, medians of 5 (2026-11-08), pb from eMMC BOOT0.
+Reset to pb's banner is ~155 ms: Linux's reboot through TF-A and the SCU,
+the ROM, the SECO and the SCU firmware. pb prints only errors on the UART.
+eth0 had no cable: the login prompt comes ~4 s after init, when the DHCP
+client gives up, so the table has reset to init.
+
+| Kernel | Image | Reset to BusyBox init | Kernel uptime at init |
+| ------ | ----- | --------------------- | --------------------- |
+| arm64 `defconfig`, other SoC families off | 25.9 MB | 1429 ms | 890 ms |
+| only the MEK's hardware, no jitter RNG (`board/imx8qxmek/linux.fragment`) | 14.6 MB | **1125 ms** | 670 ms |
+
+`VT` and `IO_URING` stay on, as on the 8MP EVK (they need `CONFIG_EXPERT`).
+
 ## Adding a board
 
 Every board that runs Linux gets a defconfig here and goes through both
