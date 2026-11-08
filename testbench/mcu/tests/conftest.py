@@ -60,7 +60,8 @@ def device(request: pytest.FixtureRequest, board: Board) -> Device:
 @pytest.fixture(scope="session")
 def images(board: Board) -> dict[str, pathlib.Path]:
     """Return the application's boot images, which make BOARD=<board> builds."""
-    found = {m: BUILD / board.name / f"app-{m}.bpak" for m in ("good", "noverify", "hang")}
+    modes = ("good", "noverify", "hang", "boottime")
+    found = {m: BUILD / board.name / f"app-{m}.bpak" for m in modes}
     missing = [str(p) for p in found.values() if not p.exists()]
     if missing:
         pytest.fail(f"Missing {', '.join(missing)}: run make BOARD={board.name}")

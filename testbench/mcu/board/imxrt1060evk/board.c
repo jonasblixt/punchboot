@@ -28,6 +28,18 @@
 #define SRC_GPR5           0x400f8030
 #define PB_CM_REQUEST      0x5042434d /* "PBCM", src/board/imxrt1060evk/board.c */
 #define SCB_AIRCR          0xe000ed0c
+/* SNVS (RM 20.6): the secure real time counter (SRTC, 32.768 kHz) is in the
+ * LP domain and keeps running over the warm reset; the HP one is cleared */
+#define SNVS_BASE          0x400d4000
+#define SNVS_LPCR          (SNVS_BASE + 0x38)
+#define SNVS_LPSRTCMR      (SNVS_BASE + 0x50)
+#define SNVS_LPSRTCLR      (SNVS_BASE + 0x54)
+#define LPCR_SRTC_ENV      (1u << 0)
+/* The words that survive the reset: the end of DTCM, which neither the ROM
+ * (its data is in OCRAM2) nor pb uses and which the warm reset doesn't
+ * clear. The SNVS LP general purpose registers don't keep a write from
+ * here (LPSR shows a power glitch, PGD). */
+#define PERSIST_ADDR(n)    (0x20020000 - 16 + 4 * (n))
 
 /* pb's NOR layout (src/board/imxrt1060evk/board.c): BL 256 KiB, then the
  * two 4 KiB boot state copies */
@@ -159,6 +171,36 @@ void board_reset(bool command_mode)
     __asm__ volatile("dsb");
     for (;;)
         ;
+}
+
+uint64_t board_reset_clock_us(void)
+{
+    if (!(mmio_read_32(SNVS_LPCR) & LPCR_SRTC_ENV)) {
+        mmio_write_32(SNVS_LPCR, mmio_read_32(SNVS_LPCR) | LPCR_SRTC_ENV);
+        while (!(mmio_read_32(SNVS_LPCR) & LPCR_SRTC_ENV))
+            ;
+    }
+
+    /* The two halves are synchronized from the 32 kHz clock: read until two
+     * reads agree */
+    uint64_t a, b;
+    do {
+        a = ((uint64_t)(mmio_read_32(SNVS_LPSRTCMR) & 0x7fff) << 32) | mmio_read_32(SNVS_LPSRTCLR);
+        b = ((uint64_t)(mmio_read_32(SNVS_LPSRTCMR) & 0x7fff) << 32) | mmio_read_32(SNVS_LPSRTCLR);
+    } while (a != b);
+
+    return a * 1000000 / 32768;
+}
+
+uint32_t board_persist_read(unsigned int index)
+{
+    return mmio_read_32(PERSIST_ADDR(index));
+}
+
+void board_persist_write(unsigned int index, uint32_t value)
+{
+    mmio_write_32(PERSIST_ADDR(index), value);
+    __asm__ volatile("dsb");
 }
 
 void board_checks(void)

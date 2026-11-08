@@ -40,6 +40,7 @@ each:
 | `app-good.bpak` | marks the system verified, then resets into pb's command mode |
 | `app-noverify.bpak` | doesn't mark it, resets: pb boots it again, a boot attempt |
 | `app-hang.bpak` | stops petting the watchdog |
+| `app-boottime.bpak` | times the warm reset to its own entry 10 times (`APP_BOOT_RUNS`), then like `good` |
 
 The reset into command mode is a request in a register that survives a warm
 reset, which the board's pb checks in its early boot callback (the RT1060:
@@ -89,6 +90,30 @@ and B and pb's boot state.
   configured with pb's own FCB.
 - Console: the J-Link's serial port (LPUART1). The watchdog is WDOG1, 30 s
   (`CONFIG_WATCHDOG_TIMEOUT`, 30.5 s as the hardware counts it).
+
+## Boot time
+
+`pytest tests -k boot_time -s` prints the time from a warm reset to the
+image's entry, measured on the board by `app-boottime.bpak`: it stores a
+clock that runs through the reset just before it resets, and reads it at its
+entry (the RT1060: the SNVS SRTC, 32.768 kHz, 30.5 us; the words in DTCM).
+pb's own steps come from `scripts/boot-time-image` with an image of the same
+size (`-s 4K,8K`), which reads and verifies it without starting it.
+
+i.MX RT1060 EVK (2026-11-08), the 5.2 KiB test application, pb at 600 MHz,
+medians of 10 warm resets (`SYSRESETREQ`), spread one SRTC tick:
+
+| Step | ms |
+| ---- | -: |
+| ROM (pb, 75 KiB, from the NOR) and pb up to its timer | 12.7 |
+| pb init: clocks, FlexSPI, NOR partitions, boot state | 0.3 |
+| Image header read | 0.3 |
+| Signature: SHA-256 of the header, ECDSA P-256 (Mbed TLS, software) | 25.9 |
+| Image read (14 MiB/s) and hash | 0.9 |
+| **Warm reset to the image's entry** | **40.1** |
+
+The signature is two thirds of it. Bigger images add their read and hash:
+59 ms to verify 200 KiB.
 
 ## Adding a board
 
