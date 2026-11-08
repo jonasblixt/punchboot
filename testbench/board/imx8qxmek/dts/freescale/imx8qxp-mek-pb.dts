@@ -27,3 +27,160 @@
 		no-map;
 	};
 };
+
+/*
+ * Not used by the test bench, off for the boot time. The base board's
+ * TCA6416 at I2C (CM40) 0x20 doesn't answer: its probe took 728 ms to fail
+ * (-EIO). The audio codec and the CAN transceivers' regulators behind it, the
+ * I2C mux at 1-0071 (sensors) and its PCA9557 expanders (the PCIe regulator,
+ * the audio codec's reset) go with it. The eMMC is on uSDHC1, the console on
+ * LPUART0.
+ */
+&cm40_i2c {
+	status = "disabled";
+};
+
+&i2c1 {
+	status = "disabled";
+};
+
+&reg_can_en {
+	status = "disabled";
+};
+
+&reg_can_stby {
+	status = "disabled";
+};
+
+&reg_pcieb {
+	status = "disabled";
+};
+
+/* The SD slot (uSDHC2), 50 ms to probe empty */
+&usdhc2 {
+	status = "disabled";
+};
+
+/* Audio, the DSP */
+&amix {
+	status = "disabled";
+};
+
+&asrc0 {
+	status = "disabled";
+};
+
+&esai0 {
+	status = "disabled";
+};
+
+&sai0 {
+	status = "disabled";
+};
+
+&sai1 {
+	status = "disabled";
+};
+
+&sai4 {
+	status = "disabled";
+};
+
+&sai5 {
+	status = "disabled";
+};
+
+&dsp {
+	status = "disabled";
+};
+
+&{/sound-bt-sco} {
+	status = "disabled";
+};
+
+&{/sound-cs42888} {
+	status = "disabled";
+};
+
+&{/sound-wm8960} {
+	status = "disabled";
+};
+
+&{/sound-wm8962} {
+	status = "disabled";
+};
+
+/* Video and JPEG codecs, the HDMI RX and ADC1 clocks (their probes timed
+ * out, -110) */
+&vpu {
+	status = "disabled";
+};
+
+&vpu_core0 {
+	status = "disabled";
+};
+
+&vpu_core1 {
+	status = "disabled";
+};
+
+&jpegdec {
+	status = "disabled";
+};
+
+&jpegenc {
+	status = "disabled";
+};
+
+&hdmi_rx_pxl_link_lpcg {
+	status = "disabled";
+};
+
+&adc1_lpcg {
+	status = "disabled";
+};
+
+/* PCIe, USB, CAN, the other UARTs */
+&pcie0 {
+	status = "disabled";
+};
+
+&hsio_phy {
+	status = "disabled";
+};
+
+&usbotg1 {
+	status = "disabled";
+};
+
+&usbphy1 {
+	status = "disabled";
+};
+
+&usbotg3 {
+	status = "disabled";
+};
+
+&usbotg3_cdns3 {
+	status = "disabled";
+};
+
+&usb3_phy {
+	status = "disabled";
+};
+
+&flexcan1 {
+	status = "disabled";
+};
+
+&flexcan2 {
+	status = "disabled";
+};
+
+&lpuart2 {
+	status = "disabled";
+};
+
+&lpuart3 {
+	status = "disabled";
+};

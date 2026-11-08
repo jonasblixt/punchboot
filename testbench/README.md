@@ -352,9 +352,18 @@ client gives up, so the table has reset to init.
 | Kernel | Image | Reset to BusyBox init | Kernel uptime at init |
 | ------ | ----- | --------------------- | --------------------- |
 | arm64 `defconfig`, other SoC families off | 25.9 MB | 1429 ms | 890 ms |
-| only the MEK's hardware, no jitter RNG (`board/imx8qxmek/linux.fragment`) | 14.6 MB | **1125 ms** | 670 ms |
+| only the MEK's hardware, no jitter RNG (`board/imx8qxmek/linux.fragment`) | 14.6 MB | 1125 ms | 670 ms |
+| and unused devices off in the DTS (`imx8qxp-mek-pb.dts`) | 14.6 MB | **1064 ms** | 610 ms |
 
 `VT` and `IO_URING` stay on, as on the 8MP EVK (they need `CONFIG_EXPERT`).
+In the DTS: the base board's TCA6416 at the CM40 I2C's 0x20 doesn't answer
+(its probe fails with -EIO), the audio codec, the CAN regulators, the sensor
+I2C with its mux and the PCIe regulator depend on it or its neighbours; with
+them, audio, the DSP, the VPU, PCIe, USB, CAN, the SD slot and two UARTs off,
+`dmesg` has no errors. `initcall_debug` blames the expander for 728 ms, but
+its own console output inflates that: without it the step saves 61 ms. The
+kernel's longest stretches before init are the SCU's drivers (93 ms) and the
+RTC to the FEC (91 ms).
 
 ## Adding a board
 
