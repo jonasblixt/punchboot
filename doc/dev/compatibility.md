@@ -75,7 +75,8 @@ device read, so it needs no capability bit:
 
 Rule for the firmware: every image that a released bpak CLI produced and a released punchboot
 accepted must still be accepted. The one exception is rejecting images that were always invalid
-(a security fix); that needs a decision entry naming what is now rejected and why.
+(a security fix); that needs a decision entry naming what is now rejected and why. D-024 is
+one: the header validation of bpak 1.0.
 
 Extensions (new hash/sign kinds, new flags, new meta) are allowed if old images keep verifying
 the same way. New images that old firmware can't read are fine only if they are opt-in.
@@ -96,7 +97,7 @@ the same way. New images that old firmware can't read are fine only if they are 
     builds the firmware or the host tools checks the layout. `cm_main.c` asserts that the bio flags
     and `slc_t` match the wire values.
 - **Golden bpak images** (`tests/compat/bpak/`), made once per bpak CLI version by `generate.sh`,
-  never regenerated. `test_compat.py` boots each one from RAM and from a partition, checks
+  never regenerated (v0.9.3, v1.0.1). `test_compat.py` boots each one from RAM and from a partition, checks
   `SHA256SUMS`, pins `pb_id()` to the bpak ids, and checks the Python mirrors (`SLC`,
   `PartitionFlags`, the `PB_CMD_*` in `pbtest.py`) against `abi.txt`. The CI `compat` job fails if
   a committed image is changed or deleted.

@@ -12,16 +12,34 @@
 #ifndef INCLUDE_BPAK_BPAK_H_
 #define INCLUDE_BPAK_BPAK_H_
 
-#include <pb-tools/compat.h>
+#include <bpak/version.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <unistd.h>
 
-#define BPAK_VERSION_MAJOR  0
-#define BPAK_VERSION_MINOR  9
-#define BPAK_VERSION_PATCH  0
-#define BPAK_VERSION_STRING "0.9.0"
+#ifdef BPAK_HAVE_USER_SETTINGS
+#include "bpak_user_settings.h"
+#else
+#include <bpak/build_config.h>
+#endif
+
+#ifdef BPAK_SIZEOF_OFF_T
+/* off_t is part of the ABI, a program must be compiled with the
+ * _FILE_OFFSET_BITS that the library was built with. The array has a negative
+ * size, and the compilation fails, when off_t has another size. */
+typedef char bpak_off_t_has_the_size_of_the_library[(sizeof(off_t) == BPAK_SIZEOF_OFF_T) ? 1 : -1];
+#endif
+
+#define BPAK_EXPORT __attribute__((visibility("default")))
+
+/* Lets the compiler check the arguments of printf like functions */
+#if defined(__GNUC__)
+#define BPAK_PRINTF_FORMAT(_fmt, _args) __attribute__((format(printf, _fmt, _args)))
+#else
+#define BPAK_PRINTF_FORMAT(_fmt, _args)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,10 +59,19 @@ extern "C" {
  * Maximum number of bytes allocated for metadata
  *
  * \def BPAK_PART_ALIGN
- * Minimum alignment of data parts
+ * Alignment of data parts, parts are zero padded to a multiple of this
+ *
+ * \def BPAK_META_ALIGN
+ * Alignment of the meta data values in the 'metadata' array
  *
  * \def BPAK_SIGNATURE_MAX_BYTES
  * Maximum size of signature
+ *
+ * \def BPAK_HASH_MAX_LENGTH
+ * Size of the largest hash, sha512
+ *
+ * \def BPAK_CHUNK_BUFFER_LENGTH
+ * Size of the buffers that part data is read with, can be overridden
  *
  **/
 
@@ -86,7 +113,7 @@ enum bpak_signature_kind {
 
 /*! \public
  *
- * BPAK Result codes
+ * BPAK Result codes. Functions return BPAK_OK or a negated error code.
  */
 enum bpak_errors {
     BPAK_OK,
@@ -148,17 +175,17 @@ enum bpak_key_kind {
     BPAK_KEY_PRI_SECP521r1,
 };
 
-/*
+/**
  * \def BPAK_FLAG_EXCLUDE_FROM_HASH
- * Data within this part is not included in hashing context
+ * The data of this part is not included in the payload hash
  *
  **/
 #define BPAK_FLAG_EXCLUDE_FROM_HASH (1 << 0)
 
-/*
+/**
  * \def BPAK_FLAG_TRANSPORT
- * Part data stream prepared for transport. When this bit is set the following
- *  metadata must be included:
+ * The part data is transport encoded and its size is 'transport_size'. When
+ *  this bit is set the following metadata must be included:
  *
  * bpak-transport (struct bpak_transport_meta)
  *
@@ -179,41 +206,58 @@ typedef uint32_t bpak_id_t;
  *
  * Size: 32 bytes
  **/
-PACK(struct bpak_transport_meta {
+struct bpak_transport_meta {
     uint32_t alg_id_encode; /*!< Algorithm encoder ID */
     uint32_t alg_id_decode; /*!< Algorithm decoder ID */
     uint8_t data[24]; /*!< Algorithm specific data */
-});
+} __attribute__((packed));
+
+/**
+ * I/O callback for reading or writing 'length' bytes at 'offset'
+ *
+ * @return The number of bytes read or written or a negative error code
+ */
+typedef ssize_t (*bpak_io_t)(off_t offset, uint8_t *buffer, size_t length, void *user);
+
+/** Allocator with the signature of calloc(), see bpak_set_calloc_free() */
+typedef void *(*bpak_calloc_t)(size_t, size_t);
+
+/** Deallocator with the signature of free(), see bpak_set_calloc_free() */
+typedef void (*bpak_free_t)(void *);
 
 /**
  * BPAK part header
  *
  * Size:32 byte
  **/
-PACK(struct bpak_part_header {
+struct bpak_part_header {
     bpak_id_t id; /*!< Part identifier */
     uint64_t size; /*!< Data block size*/
-    uint64_t offset; /*!< Offset in data stream */
+    uint64_t offset; /*!< Offset of the data in the decoded
+                        package, including the header. Not used
+                        by the library, which computes the
+                        offsets with bpak_part_offset() */
     uint64_t transport_size; /*!< Should be populated when part data is
                                 prepared for transport. With the encoded
                                 size */
-    uint16_t pad_bytes; /*!< Part padding up to the next 128 byte boundary*/
+    uint16_t pad_bytes; /*!< Zero padding up to the next BPAK_PART_ALIGN
+                             (512) byte boundary */
     uint8_t flags; /*!< Flags */
     uint8_t pad; /*!< Pad to 32 bytes, set to zero */
-});
+} __attribute__((packed));
 
 /**
  * BPAK Meta data header
  *
  * Size: 16 byte
  **/
-PACK(struct bpak_meta_header {
+struct bpak_meta_header {
     bpak_id_t id; /*!< Metadata identifier */
     uint16_t size; /*!< Size of metadata */
     uint16_t offset; /*!< Offset in 'metadata' byte array */
     bpak_id_t part_id_ref; /*!< Optional reference to a part id */
     uint8_t pad[4]; /*!< Pad to 16 bytes */
-});
+} __attribute__((packed));
 
 /**
  * BPAK Header
@@ -221,14 +265,16 @@ PACK(struct bpak_meta_header {
  *
  * Size: 4 kBytes
  **/
-PACK(struct bpak_header {
+struct bpak_header {
     uint32_t magic; /*!< BPAK Magic number*/
     uint8_t pad0[4]; /*!< Pad 1*/
     struct bpak_meta_header meta[BPAK_MAX_META]; /*!< Meta data header array */
     struct bpak_part_header parts[BPAK_MAX_PARTS]; /*!< Part header array */
     uint8_t metadata[BPAK_METADATA_BYTES]; /*!< Meta data byte array */
     uint8_t hash_kind; /*!< Hash kind used in package */
-    uint8_t signature_kind; /*!< Signature kind used in package */
+    uint8_t signature_kind; /*!< Signature kind used in package, set by
+                                 bpak_pkg_sign(). Verification uses the
+                                 kind of the key, not this field */
     uint16_t alignment; /*!< Alignment */
     uint8_t payload_hash[64]; /*!< Payload hash */
     uint32_t key_id; /*!< Signing key identifier */
@@ -236,7 +282,7 @@ PACK(struct bpak_header {
     uint8_t pad1[42]; /*!< Pad 2 */
     uint8_t signature[BPAK_SIGNATURE_MAX_BYTES]; /*!< Signature data */
     uint16_t signature_sz; /*!< Signature size */
-});
+} __attribute__((packed));
 
 /**
  * \def BPAK_MIN
@@ -248,7 +294,9 @@ PACK(struct bpak_header {
 /**
  * \def bpak_foreach_part
  *
- * Helper macro to iterate over all parts in a package
+ * Helper macro to iterate over all part slots in a package. The parts are
+ * followed by empty slots, an empty slot (id 0) ends the parts, see
+ * bpak_valid_header().
  */
 #define bpak_foreach_part(_hdr, _var)                                                             \
     for (struct bpak_part_header *_var = (_hdr)->parts; _var != &((_hdr)->parts[BPAK_MAX_PARTS]); \
@@ -264,9 +312,10 @@ PACK(struct bpak_header {
          _var++)
 
 /**
- * \def bpak_meta_get_ptr
+ * \def bpak_get_meta_ptr
  *
- * Helper macro to get the metadata pointer from a metadata header with a specific type
+ * Helper macro to get a pointer of type '_T *' to the value of the metadata
+ *  '__meta' in the header '_hdr'
  */
 #define bpak_get_meta_ptr(_hdr, __meta, _T) ((_T *)&(_hdr)->metadata[(__meta)->offset])
 
@@ -278,7 +327,8 @@ PACK(struct bpak_header {
  * @param[in] part_id_ref Part reference identifier, or 0 for no reference
  * @param[out] meta Pointer to the metadata header
  *
- * @return BPAK_OK on success -BPAK_NOT_FOUND if the metadata is missing
+ * @return BPAK_OK on success -BPAK_NOT_FOUND if the metadata is missing or
+ *         'id' is 0
  *
  **/
 int bpak_get_meta(struct bpak_header *hdr,
@@ -293,7 +343,8 @@ int bpak_get_meta(struct bpak_header *hdr,
  * @param[in] id Meta data identifier
  * @param[out] meta Pointer to the metadata header
  *
- * @return BPAK_OK on success -BPAK_NOT_FOUND if the metadata is missing
+ * @return BPAK_OK on success -BPAK_NOT_FOUND if the metadata is missing or
+ *         'id' is 0
  *
  **/
 int bpak_get_meta_anyref(struct bpak_header *hdr, bpak_id_t id, struct bpak_meta_header **meta);
@@ -309,7 +360,7 @@ int bpak_get_meta_anyref(struct bpak_header *hdr, bpak_id_t id, struct bpak_meta
  * @param[out] meta Pointer to the metadata header
  *
  * @return BPAK_OK on success,
- *         -BPAK_NO_SPACE if the metadata array is full or
+ *         -BPAK_NO_SPACE_LEFT if the metadata array is full or
  *         -BPAK_EXISTS if a metadata with the same 'id' and 'part_ref_id'
  *         already exists
  **/
@@ -336,9 +387,10 @@ void bpak_del_meta(struct bpak_header *hdr, struct bpak_meta_header *meta);
  *
  * @param[in] hdr BPAK Header
  * @param[in] id ID of part
+ * @param[out] part Pointer to the part header
  *
- * @return BPAK_OK on success, -BPAK_FAILED if part_id already exists,
- *         -BPAK_NOT_FOUND if the part is missing
+ * @return BPAK_OK on success, -BPAK_NOT_FOUND if the part is missing or 'id'
+ *         is 0
  *
  **/
 
@@ -353,7 +405,7 @@ int bpak_get_part(struct bpak_header *hdr, bpak_id_t id, struct bpak_part_header
  * @param[out] part Output pointer to new part
  *
  * @return BPAK_OK on success,
- *         -BPAK_NO_SPACE if the array is full
+ *         -BPAK_NO_SPACE_LEFT if the array is full
  *         -BPAK_EXISTS if a part with the same 'id' already exists
  *
  **/
@@ -370,12 +422,17 @@ int bpak_add_part(struct bpak_header *hdr, bpak_id_t id, struct bpak_part_header
 void bpak_del_part(struct bpak_header *hdr, struct bpak_part_header *part);
 
 /**
- * Check magic numbers in the header and check that all parts have the correct
- *  alignment.
+ * Check that a header that is not verified yet can be used: the magic number,
+ *  that the parts and meta data follow each other without empty slots, the
+ *  alignment of the parts and the meta data values, that the meta data is
+ *  within the meta data array, that the part sizes and offsets fit size_t and
+ *  off_t and the signature size. The part offsets are not checked.
  *
  *  @param[in] hdr BPAK Header
  *
- *  @return BPAK_OK on success
+ *  @return BPAK_OK on success, -BPAK_BAD_MAGIC, -BPAK_BAD_ALIGNMENT,
+ *          -BPAK_SIZE_ERROR or -BPAK_NOT_SUPPORTED for empty slots between
+ *          parts or meta data and an invalid hash kind
  */
 
 int bpak_valid_header(struct bpak_header *hdr);
@@ -408,6 +465,7 @@ int bpak_init_header(struct bpak_header *hdr);
  * Get data offset of 'part' within the BPAK stream. This includes
  * the header (4kByte).
  *
+ * @param[in] h BPAK Header
  * @param[in] part BPAK Part pointer
  *
  * @return Offset in bytes
@@ -462,13 +520,15 @@ const char *bpak_signature_kind(uint8_t signature_kind);
 const char *bpak_hash_kind(uint8_t hash_kind);
 
 /**
- * Prototype for bpak core library debug call
+ * Log function of the library. The default implementation is a weak symbol
+ * that discards all messages, applications define their own to print them.
  *
- * @param[in] verbosity Verbosity level 0 to 2
+ * @param[in] verbosity Verbosity level 0 (errors) to 2 (debug)
+ * @param[in] fmt printf format string
  *
  * @return BPAK_OK on success
  */
-int bpak_printf(int verbosity, const char *fmt, ...);
+int bpak_printf(int verbosity, const char *fmt, ...) BPAK_PRINTF_FORMAT(2, 3);
 
 /**
  * Sets key id which is used when verifying the package as a key hint to select
@@ -483,7 +543,7 @@ int bpak_set_key_id(struct bpak_header *hdr, uint32_t key_id);
 
 /**
  * Set keystore ID which is used when verifying the package. The key pointed to
- *  by the 'key_id' is expected to exist in a keystore with id \ref keystore_id
+ *  by the 'key_id' is expected to exist in a keystore with id 'keystore_id'
  *
  * @param[in] hdr BPAK Header
  * @param[in] keystore_id The keystore ID
@@ -514,6 +574,26 @@ int bpak_add_transport_meta(struct bpak_header *header,
  * @return Library version as a text string
  **/
 const char *bpak_version(void);
+
+/**
+ * Override the default allocator
+ *
+ * @param[in] calloc_func Override calloc
+ * @param[in] free_func Override free
+ *
+ * @return BPAK_OK on success,
+ */
+int bpak_set_calloc_free(bpak_calloc_t calloc_func, bpak_free_t free_func);
+
+/**
+ * Allocate zeroed memory with the allocator set by bpak_set_calloc_free()
+ */
+void *bpak_calloc(size_t nmemb, size_t size);
+
+/**
+ * Free memory from bpak_calloc()
+ */
+void bpak_free(void *ptr);
 
 #ifdef __cplusplus
 } // extern "C"
