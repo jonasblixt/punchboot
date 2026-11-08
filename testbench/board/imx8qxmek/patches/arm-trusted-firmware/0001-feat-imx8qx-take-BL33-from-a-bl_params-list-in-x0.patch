@@ -1,0 +1,79 @@
+From fe308af2b57fcbea6213d74730fdfc14c7ecd819 Mon Sep 17 00:00:00 2001
+From: Jonas Blixt <jonas@blxt.se>
+Date: Sun, 8 Nov 2026 21:35:23 +0100
+Subject: [PATCH 1/2] feat(imx8qx): take BL33 from a bl_params list in x0
+
+A boot loader that starts BL31 itself, without BL2 (punchboot), can
+only choose BL33 when BL31 takes it from the boot loader: imx8qx always
+jumped to PLAT_NS_IMAGE_OFFSET without arguments, so Linux could not be
+BL33 and got no device tree.
+
+Parse a bl_params list in x0 like the i.MX8M platforms do, from the
+DRAM above BL31 to the end of the first DRAM bank, and keep the old
+BL33 when there is none.
+
+Signed-off-by: Jonas Blixt <jonas@blxt.se>
+---
+ plat/imx/imx8qx/imx8qx_bl31_setup.c | 16 ++++++++++++++--
+ plat/imx/imx8qx/platform.mk         |  4 +++-
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/plat/imx/imx8qx/imx8qx_bl31_setup.c b/plat/imx/imx8qx/imx8qx_bl31_setup.c
+index 08bf8f3..efe3c8e 100644
+--- a/plat/imx/imx8qx/imx8qx_bl31_setup.c
++++ b/plat/imx/imx8qx/imx8qx_bl31_setup.c
+@@ -25,6 +25,7 @@
+ #include <imx8qx_pads.h>
+ #include <imx8_iomux.h>
+ #include <imx8_lpuart.h>
++#include <plat_common.h>
+ #include <plat_imx8.h>
+ #include <sci/sci.h>
+ #include <sec_rsrc.h>
+@@ -37,6 +38,9 @@ static const unsigned long BL31_RW_END			= BL_END;
+ 
+ IMPORT_SYM(unsigned long, __RW_START__, BL31_RW_START);
+ 
++/* The first DRAM bank, from 0x80000000 */
++#define IMX_BL_PARAMS_LIMIT		0x100000000ULL
++
+ static entry_point_info_t bl32_image_ep_info;
+ static entry_point_info_t bl33_image_ep_info;
+ 
+@@ -335,8 +339,16 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
+ 	 */
+ 	imx8_partition_resources();
+ 
+-	bl33_image_ep_info.pc = PLAT_NS_IMAGE_OFFSET;
+-	bl33_image_ep_info.spsr = get_spsr_for_bl33_entry();
++	/*
++	 * A boot loader that starts BL31 itself can pass the next images in
++	 * a bl_params list in x0, in the DRAM above BL31. Without one, BL33
++	 * is the image at PLAT_NS_IMAGE_OFFSET.
++	 */
++	if (imx_bl31_params_parse(arg0, BL31_LIMIT, IMX_BL_PARAMS_LIMIT - BL31_LIMIT,
++				  &bl32_image_ep_info, &bl33_image_ep_info) != 0) {
++		bl33_image_ep_info.pc = PLAT_NS_IMAGE_OFFSET;
++		bl33_image_ep_info.spsr = get_spsr_for_bl33_entry();
++	}
+ 	SET_SECURITY_STATE(bl33_image_ep_info.h.attr, NON_SECURE);
+ }
+ 
+diff --git a/plat/imx/imx8qx/platform.mk b/plat/imx/imx8qx/platform.mk
+index 85b5f3d..7d7773a 100644
+--- a/plat/imx/imx8qx/platform.mk
++++ b/plat/imx/imx8qx/platform.mk
+@@ -17,7 +17,9 @@ IMX_GIC_SOURCES	:=		${GICV3_SOURCES}			\
+ 				plat/common/plat_gicv3.c		\
+ 				plat/imx/common/plat_imx8_gic.c
+ 
+-BL31_SOURCES		+=	plat/imx/common/lpuart_console.S	\
++BL31_SOURCES		+=	common/desc_image_load.c		\
++				plat/imx/common/imx_common.c		\
++				plat/imx/common/lpuart_console.S	\
+ 				plat/imx/common/imx8_helpers.S		\
+ 				plat/imx/imx8qx/imx8qx_bl31_setup.c	\
+ 				plat/imx/imx8qx/imx8qx_psci.c		\
+-- 
+2.47.3
+

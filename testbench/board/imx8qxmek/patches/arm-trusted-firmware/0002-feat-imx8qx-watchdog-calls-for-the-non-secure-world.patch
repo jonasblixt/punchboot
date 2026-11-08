@@ -1,0 +1,77 @@
+From 6ff0df0297c80caae398ff06d5a9b56018f1db25 Mon Sep 17 00:00:00 2001
+From: Jonas Blixt <jonas@blxt.se>
+Date: Sun, 8 Nov 2026 21:35:48 +0100
+Subject: [PATCH 2/2] feat(imx8qx): watchdog calls for the non-secure world
+
+Linux's imx_sc_wdt driver (fsl,imx-sc-wdt) uses the watchdog of BL31's
+partition through the IMX_SIP_SRTC call (0xC2000002) with the
+sub-functions 0x01 to 0x07, which upstream doesn't have: it fails to
+probe, and a watchdog that the boot loader started resets the board.
+
+Add start, stop, action, ping, timeout and pretimeout. The action is
+for BL31's own partition.
+
+Signed-off-by: Jonas Blixt <jonas@blxt.se>
+---
+ plat/imx/common/imx_sip_handler.c     | 22 ++++++++++++++++++++++
+ plat/imx/common/include/imx_sip_svc.h |  7 +++++++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/plat/imx/common/imx_sip_handler.c b/plat/imx/common/imx_sip_handler.c
+index 49fdacf..82e2a9d 100644
+--- a/plat/imx/common/imx_sip_handler.c
++++ b/plat/imx/common/imx_sip_handler.c
+@@ -54,10 +54,32 @@ int imx_srtc_handler(uint32_t smc_fid,
+ {
+ 	int ret;
+ 
++	sc_rm_pt_t pt;
++
+ 	switch (x1) {
+ 	case IMX_SIP_SRTC_SET_TIME:
+ 		ret = imx_srtc_set_time(x2, x3, x4);
+ 		break;
++	case IMX_SIP_SRTC_START_WDOG:
++		ret = sc_timer_start_wdog(ipc_handle, false);
++		break;
++	case IMX_SIP_SRTC_STOP_WDOG:
++		ret = sc_timer_stop_wdog(ipc_handle);
++		break;
++	case IMX_SIP_SRTC_SET_WDOG_ACT:
++		ret = sc_rm_get_partition(ipc_handle, &pt);
++		if (ret == SC_ERR_NONE)
++			ret = sc_timer_set_wdog_action(ipc_handle, pt, x2);
++		break;
++	case IMX_SIP_SRTC_PING_WDOG:
++		ret = sc_timer_ping_wdog(ipc_handle);
++		break;
++	case IMX_SIP_SRTC_SET_TIMEOUT_WDOG:
++		ret = sc_timer_set_wdog_timeout(ipc_handle, x2);
++		break;
++	case IMX_SIP_SRTC_SET_PRETIME_WDOG:
++		ret = sc_timer_set_wdog_pre_timeout(ipc_handle, x2);
++		break;
+ 	default:
+ 		ret = SMC_UNK;
+ 	}
+diff --git a/plat/imx/common/include/imx_sip_svc.h b/plat/imx/common/include/imx_sip_svc.h
+index 404a829..cacfb4e 100644
+--- a/plat/imx/common/include/imx_sip_svc.h
++++ b/plat/imx/common/include/imx_sip_svc.h
+@@ -15,6 +15,13 @@
+ 
+ #define IMX_SIP_SRTC			0xC2000002
+ #define IMX_SIP_SRTC_SET_TIME		0x00
++/* The watchdog of BL31's partition, Linux's imx_sc_wdt driver */
++#define IMX_SIP_SRTC_START_WDOG		0x01
++#define IMX_SIP_SRTC_STOP_WDOG		0x02
++#define IMX_SIP_SRTC_SET_WDOG_ACT	0x03
++#define IMX_SIP_SRTC_PING_WDOG		0x04
++#define IMX_SIP_SRTC_SET_TIMEOUT_WDOG	0x05
++#define IMX_SIP_SRTC_SET_PRETIME_WDOG	0x07
+ 
+ #define IMX_SIP_BUILDINFO			0xC2000003
+ #define IMX_SIP_BUILDINFO_GET_COMMITHASH	0x00
+-- 
+2.47.3
+

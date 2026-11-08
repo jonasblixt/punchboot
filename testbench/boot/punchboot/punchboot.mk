@@ -57,6 +57,16 @@ endef
 PUNCHBOOT_PRE_BUILD_HOOKS += PUNCHBOOT_COPY_DDR_FW
 endif
 
+# The i.MX8X boot container: imx-seco installs the SECO firmware as
+# ahab-container.img, imx-sc-firmware the boards' SCU firmware
+ifeq ($(BR2_TARGET_PUNCHBOOT_IMX8X_CONTAINER),y)
+PUNCHBOOT_DEPENDENCIES += host-imx-mkimage imx-sc-firmware imx-seco
+PUNCHBOOT_MAKE_OPTS += \
+	IMX8X_MKIMAGE=$(HOST_DIR)/bin/mkimage_imx8 \
+	IMX8X_AHAB_IMAGE=$(BINARIES_DIR)/ahab-container.img \
+	IMX8X_SCFW_IMAGE=$(BINARIES_DIR)/$(call qstrip,$(BR2_TARGET_PUNCHBOOT_IMX8X_SCFW))
+endif
+
 define PUNCHBOOT_BUILD_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) $(PUNCHBOOT_MAKE_OPTS) all
 endef

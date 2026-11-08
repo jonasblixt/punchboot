@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * The i.MX8QXP MEK for the punchboot test bench: the upstream MEK device
+ * tree with the memory that U-Boot would fix up at boot.
+ *
+ * - TF-A's BL31 runs at 0x80000000-0x8001ffff (BL31_BASE, BL31_LIMIT) and
+ *   keeps that memory in its own, secure partition: the non-secure
+ *   partition that Linux runs in may not touch it, not even with a
+ *   speculative access through the linear map.
+ * - The MEK has 3 GiB of LPDDR4, the upstream tree describes 1 GiB, which
+ *   leaves the default CMA pool (alloc-ranges from 0xc0000000) outside of
+ *   the memory.
+ */
+
+#include "imx8qxp-mek.dts"
+
+/ {
+	memory@80000000 {
+		reg = <0x00000000 0x80000000 0 0x80000000>,
+		      <0x00000008 0x80000000 0 0x40000000>;
+	};
+};
+
+&{/reserved-memory} {
+	bl31@80000000 {
+		reg = <0 0x80000000 0 0x20000>;
+		no-map;
+	};
+};

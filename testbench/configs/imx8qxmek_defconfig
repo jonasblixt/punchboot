@@ -1,0 +1,76 @@
+BR2_aarch64=y
+BR2_cortex_a35=y
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/patches $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/imx8qxmek/patches"
+BR2_DOWNLOAD_FORCE_CHECK_HASHES=y
+
+# Toolchain: musl, kickstart is linked statically
+BR2_TOOLCHAIN_BUILDROOT_MUSL=y
+BR2_KERNEL_HEADERS_AS_KERNEL=y
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_18=y
+BR2_SHARED_STATIC_LIBS=y
+
+# System
+BR2_TARGET_GENERIC_HOSTNAME="imx8qxmek"
+BR2_TARGET_GENERIC_ISSUE="punchboot test bench (i.MX8QXP MEK)"
+BR2_TARGET_GENERIC_GETTY_PORT="ttyLP0"
+# BR2_TARGET_GENERIC_REMOUNT_ROOTFS_RW is not set
+BR2_SYSTEM_DHCP="eth0"
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/rootfs-overlay"
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/post-build.sh"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/post-image.sh"
+BR2_ROOTFS_POST_SCRIPT_ARGS="imx8qxmek"
+
+# Linux, latest longterm
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="6.18.58"
+BR2_LINUX_KERNEL_USE_ARCH_DEFAULT_CONFIG=y
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/common/linux.fragment $(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/imx8qxmek/linux.fragment"
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+# imx8qxp-mek.dts with the memory and BL31 reserved (board/imx8qxmek/dts)
+BR2_LINUX_KERNEL_CUSTOM_DTS_DIR="$(BR2_EXTERNAL_PB_TESTBENCH_PATH)/board/imx8qxmek/dts"
+BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
+
+# Target packages
+# pb-watchdog (S15watchdog) takes over the watchdog pb starts, with a
+# pretimeout so that a hang leaves a ramoops record
+BR2_PACKAGE_PB_WATCHDOG=y
+BR2_PACKAGE_MEMTESTER=y
+BR2_PACKAGE_MMC_UTILS=y
+BR2_PACKAGE_UTIL_LINUX=y
+BR2_PACKAGE_UTIL_LINUX_BINARIES=y
+BR2_PACKAGE_PBSTATE=y
+
+# NXP's SECO (B0 silicon) and SCU firmware for punchboot's boot container
+BR2_PACKAGE_FREESCALE_IMX=y
+BR2_PACKAGE_FREESCALE_IMX_PLATFORM_IMX8X=y
+BR2_PACKAGE_IMX_SC_FIRMWARE=y
+BR2_PACKAGE_IMX_SECO=y
+BR2_PACKAGE_IMX_SECO_MX8QXB0=y
+
+# kickstart in the initramfs, the root file system in a root image on
+# Root A/B. The eMMC is on uSDHC1, mmcblk0 (the mmc0 alias in
+# imx8qxp.dtsi), the GPT is gpt_tbl_default in punchboot's
+# src/board/imx8qxmek/board.c.
+BR2_PACKAGE_KICKSTART=y
+BR2_PACKAGE_KICKSTART_ROOT_A="/dev/mmcblk0p3"
+BR2_PACKAGE_KICKSTART_ROOT_B="/dev/mmcblk0p4"
+BR2_PACKAGE_KICKSTART_PBSTATE_PRIMARY="/dev/mmcblk0p5"
+BR2_PACKAGE_KICKSTART_PBSTATE_BACKUP="/dev/mmcblk0p6"
+BR2_TARGET_ROOTFS_SQUASHFS=y
+# BR2_TARGET_ROOTFS_TAR is not set
+
+# TF-A BL31, started by punchboot with Linux as BL33
+# (board/imx8qxmek/patches). The console is LPUART0, the default.
+BR2_TARGET_ARM_TRUSTED_FIRMWARE=y
+BR2_TARGET_ARM_TRUSTED_FIRMWARE_PLATFORM="imx8qx"
+BR2_TARGET_ARM_TRUSTED_FIRMWARE_BL31=y
+BR2_TARGET_ARM_TRUSTED_FIRMWARE_ADDITIONAL_VARIABLES="DEBUG_CONSOLE=1"
+BR2_TARGET_ARM_TRUSTED_FIRMWARE_IMAGES="bl31.bin"
+
+# The AHAB signed boot container (pb_signed.imx), with the test keys in
+# punchboot's pki/imx8x_ahab
+BR2_TARGET_PUNCHBOOT=y
+BR2_TARGET_PUNCHBOOT_BOARD="imx8qxmek"
+BR2_TARGET_PUNCHBOOT_IMX_HAB=y
+BR2_TARGET_PUNCHBOOT_IMX8X_CONTAINER=y
