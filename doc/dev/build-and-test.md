@@ -37,7 +37,7 @@ make BOARD=src/board/<x> KCONFIG_CONFIG=configs/<x>_defconfig CROSS_COMPILE=<arm
 `docker/Dockerfile` (Debian trixie) contains:
 - GCC 14 toolchains: arm-none-eabi and aarch64-linux-gnu
 - Mbed TLS 3.4.0 sources (`MBEDTLS_DIR`)
-- the bpak v0.9.3 CLI
+- the bpak 1.0.1 CLI (the `bpak` package from PyPI, in the venv)
 - gdisk and CMocka
 - `file`, which Coverity's cov-build needs (F-097)
 - a Python venv with click >= 8.2, semver, pytest and gcovr 8.3 (pinned: 8.7 crashes)
