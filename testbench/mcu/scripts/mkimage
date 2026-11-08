@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#
+# Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# The boot image of the test application, for System A/B:
+#
+#   mkimage <app.bin> <load address> <out.bpak>
+#
+# One part, "app", that pb loads to <load address> and starts there
+# (src/boot/armv7m_baremetal.c). Signed with the punchboot test key, which
+# pb's test keystore (pki/internal_keystore.bpak) trusts; set SIGN_KEY for
+# another one.
+
+set -euo pipefail
+
+BIN="${1:?Usage: $0 <app.bin> <load address> <out.bpak>}"
+ADDR="${2:?}"
+OUT="${3:?}"
+PB_DIR="$(realpath "$(dirname "$0")/../../..")"
+BPAK="${BPAK:-bpak}"
+SIGN_KEY="${SIGN_KEY:-${PB_DIR}/pki/secp256r1-key-pair.pem}"
+
+rm -f "${OUT}"
+"${BPAK}" create "${OUT}" -Y --hash-kind sha256 --signature-kind prime256v1
+"${BPAK}" add "${OUT}" --meta pb-load-addr --from-string "${ADDR}" --part-ref app \
+    --encoder integer
+"${BPAK}" add "${OUT}" --part app --from-file "${BIN}"
+"${BPAK}" set "${OUT}" --key-id pb-development --keystore-id pb
+"${BPAK}" sign "${OUT}" --key "${SIGN_KEY}"
