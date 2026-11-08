@@ -16,7 +16,9 @@
 
 void arch_clean_cache_range(uintptr_t start, size_t len);
 void arch_invalidate_cache_range(uintptr_t start, size_t len);
+/* The whole I-cache, after code was written to memory */
+void arch_invalidate_icache(void);
 
-void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3);
+void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3) __attribute__((noreturn));
 
 #endif
