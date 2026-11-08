@@ -12,8 +12,8 @@
 #   BPAK=/path/to/another/bpak scripts/pbdev run tests/compat/bpak/generate.sh
 #
 # The images go to tests/compat/bpak/v<version>/ and their checksums are
-# appended to tests/compat/bpak/SHA256SUMS. The commands are for the 0.9 CLI;
-# an older CLI may need other options.
+# appended to tests/compat/bpak/SHA256SUMS. The commands are for the 0.9 and
+# 1.0 CLI; an older CLI may need other options.
 
 set -euo pipefail
 
