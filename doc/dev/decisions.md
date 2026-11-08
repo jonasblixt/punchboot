@@ -226,3 +226,31 @@ the i.MX6UL boot checks it for a serial download). First case: the Linux ramoops
 `main()` to `cm_run()`.
 Why: every boot pays for what is on the boot path, command mode is entered on a small share of
 them, and less code on that path is less that can stop a boot.
+
+## D-024: bpak 1.0.1, and the headers its validation rejects (2026-11-08)
+
+punchboot follows bpak 1.0.1: the dev container has the 1.0.1 CLI (the `bpak` package from
+PyPI, the C CLI is gone upstream), the test bench builds bpak's `master`, the golden images
+have a `v1.0.1` set, and the vendored library (`src/lib/bpak.c`, `include/bpak/`) is 1.0.1,
+copied by `scripts/sync-bpak` without local edits (`bpak.md`). The format and the keystore
+codegen output are unchanged (only whitespace), and every golden image of 0.9.3 and 1.0.1 boots.
+This is the exception D-008 allows: the firmware now rejects headers that 0.9's
+`bpak_valid_header()` let through. They were always invalid:
+- A used part or meta slot after an empty one (`-BPAK_NOT_SUPPORTED`). pb stops at the first
+  empty part slot when it loads and hashes, the 0.9 CLI skipped empty slots and hashed what
+  follows, so a signed image like that failed pb's payload hash anyway. Meta data after an empty
+  slot was found by `bpak_get_meta()` but never bounds checked. No released CLI writes a gap,
+  apart from 0.9's `bpak delete` with all 32 meta slots in use, which cleared `parts[0]` (F-068):
+  that image had lost its first part.
+- Meta data at an offset that isn't a multiple of 8 (`-BPAK_BAD_ALIGNMENT`). The CLI always
+  aligns, and pb reads `pb-load-addr` as a `uint64_t` through that offset.
+- `pad_bytes` of 512 or more (`-BPAK_BAD_ALIGNMENT`). The CLI pads to the next 512 bytes.
+- Part sizes that overflow `size_t` (4 GiB on the 32-bit boards) or `off_t`, alone or added up
+  (`-BPAK_SIZE_ERROR`). 0.9 truncated them in `bpak_part_size()`, so pb hashed less than the CLI.
+- `signature_sz` over 512 (`-BPAK_SIZE_ERROR`). `bpak_copyz_signature()` already refused it
+  before verifying; now `read-bpak` and the boot reject it in the validation too.
+Lookups of id 0 (an empty slot) are `-BPAK_NOT_FOUND`; no board uses id 0.
+Why: the validation runs on headers that aren't verified yet, and the lookups trust it. A copy
+that follows upstream is also easier to keep in sync (F-021).
+Cost: a header that only a hand-edited or broken tool could make is now refused by
+`read-bpak` instead of shown. Each case has a unit test (`test_bpak.c`).

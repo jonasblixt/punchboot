@@ -1,5 +1,5 @@
 /**
- * \file utils.h
+ * \file id.h
  *
  * BPAK - Bit Packer
  *
@@ -41,20 +41,21 @@ extern "C" {
 #endif
 
 /**
- * Translate a string to id value
+ * Translate a string to id value, a CRC32 of the string without the initial
+ * and final XOR
  *
  * @param[in] str Input string
  *
- * @return BPAK ID of \ref str
+ * @return BPAK ID of 'str'
  */
 bpak_id_t bpak_id(const char *str);
 
 /**
- * Return string representaion of known id's
+ * Return the name of a known meta data id
  *
  * @param[in] id BPAK ID
  *
- * @return Textual representation of BPAK ID
+ * @return The name or an empty string if the id is not known
  **/
 const char *bpak_id_to_string(bpak_id_t id);
 
@@ -62,4 +63,4 @@ const char *bpak_id_to_string(bpak_id_t id);
 } // extern "C"
 #endif
 
-#endif // INCLUDE_BPAK_UTILS_H_
+#endif // INCLUDE_BPAK_ID_H_
