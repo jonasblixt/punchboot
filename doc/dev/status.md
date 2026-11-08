@@ -58,6 +58,9 @@ the host half of 4 are done (`compatibility.md`, Guards).
   three) and `linux` (the newest ramoops record: panic, oops, reboot; `CONFIG_BOOT_LINUX_RAMOOPS`, on for jiffy and the 8MP EVK,
   set up in command mode, D-023; a hang panics Linux on the watchdog pretimeout, `pb-watchdog`;
   jiffy keeps it on reboot, panic and hang, the EVK on a hang, F-156). `punchboot log [NAME] [--list]`.
+- **MCU test bench (2026-11-08, D-025):** `testbench/mcu/`, a bare metal test application and a
+  pytest runner. The RT1060 EVK boots System A/B from its NOR now (new layout); all 6 tests pass
+  (handover, A/B, rollback, watchdog). F-055 (erase) fixed for it.
 - **i.MX RT1060 EVK (2026-10-29):** pb runs from OCRAM, loaded over the EVK's J-Link
   (`scripts/pbdebug --load imxrt1060evk`, `build-and-test.md`): 600 MHz, the IS25WP064D NOR,
   USB command mode. Console on the J-Link's ttyACM. In CI now. Boots from the QSPI NOR
