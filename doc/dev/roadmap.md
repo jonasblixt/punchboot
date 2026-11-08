@@ -18,7 +18,7 @@ frozen (D-001).
   image handling (F-055, F-075, the bpak re-sync). In order of value per effort:
   1. Done: frozen layout file `tests/compat/abi.txt`, only-grows check in CI and pre-commit,
      `_Static_assert`s on the struct sizes (`compatibility.md`, Guards).
-  2. Done for bpak 0.9.3: golden images in `tests/compat/bpak/`, booted from RAM and from a
+  2. Done for bpak 0.9.3 and 1.0.1: golden images in `tests/compat/bpak/`, booted from RAM and from a
      partition by `test_compat.py`, plus pinned ids and the Python mirrors. Still open: images
      from older bpak CLIs (0.5-0.8 need Mbed TLS 2.x to build).
   3. Old hosts against the current device: a CI job installs released `punchboot` wheels from PyPI
@@ -52,8 +52,7 @@ frozen (D-001).
 ## Phase 2: Dependencies
 
 - Mbed TLS 3.4 → 3.6 LTS (F-020); trim `mbedtls_config.h`.
-- Re-sync vendored bpak to v0.9.3 without changing the format (F-011, F-021). Add a sync script and record the version.
-  Needs the golden bpak corpus and the layout manifest first (Phase 1).
+- Done (2026-11-08, D-024): vendored bpak re-synced to v1.0.1 with `scripts/sync-bpak` (F-011, F-021).
 - Record the version of each vendored component in a manifest (F-022).
 
 ## Phase 3: Host tools

@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-10-30_
+_Last updated: 2026-11-08_
 
 ## Current focus
 
@@ -9,12 +9,15 @@ _Last updated: 2026-10-30_
 jiffy USB fixes. Wire and bpak stay compatible (D-008); the major bump is for the porting API.
 Moving the tests to the host is done (D-004..D-006, `testing.md`). Compatibility guards 1, 2 and
 the host half of 4 are done (`compatibility.md`, Guards).
-- **Tests:** 120 pytest (+2 xfail: F-076), 21 unit test programs and
+- **Tests:** 136 pytest (+4 xfail: F-076), 21 unit test programs and
   the `compat.abi` layout check, ~15 s, ASan/UBSan clean. Line coverage 99.2% (was 59%); what's left is in `testing.md`.
   `scripts/pbdev test` runs it all.
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (gcovr HTML artifact, D-012), a
   firmware compile check (jiffy, imx8dxlevk, imx8mevk) and Coverity, all in the dev container. All green on
   `claude-work`. Coverity only runs on master, so it's unverified until merged.
+- **bpak 1.0.1 (2026-11-08, D-024):** the container's CLI (PyPI), the test bench (`master`), golden
+  images `v1.0.1` and the vendored library (`scripts/sync-bpak`, F-021, F-011, F-068 fixed). The
+  firmware rejects headers 0.9 let through (empty slots, unaligned meta, size overflows). Not on a board yet.
 - **i.MX8M DDR (from `imx8m-dram-cleanup`):** cleaned up behind a golden register trace (D-013),
   uMCTL2/DWC PHY drivers in `src/drivers/ddr` (D-014), `PLAT_IMX8MQ` + `PLAT_IMX8M_COMMON`.
   `PLAT_IMX8MP` + board `imx8mpevk` (2026-10-28): pb runs from OCRAM over `uuu`, the DRAM trains and
