@@ -194,7 +194,7 @@ default_command(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, siz
     return -PB_ERR_NOT_SUPPORTED;
 }
 
-int board_cm_setup(void)
+int cm_board_init(void)
 {
     static struct cm_config cfg;
     int rc;

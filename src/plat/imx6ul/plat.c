@@ -69,6 +69,11 @@ const char *platform_ns_uuid = "\xb3\x66\x93\xcd\xd3\x2e\x4c\xd5\xb2\xbb\x91\x40
 
 static struct imx6ul_platform plat;
 
+const struct imx6ul_platform *imx6ul_plat(void)
+{
+    return &plat;
+}
+
 enum imx6ul_boot_reason {
     BR_UNKNOWN,
     BR_POR,
@@ -358,18 +363,13 @@ int plat_init(void)
     imx_wdog_kick();
     plat_mmu_init();
 
-    /* Not fatal: without plat_board_init() command mode can't be used to recover */
+    /* Not fatal: without board_setup() command mode can't be used to recover */
     rc = tzasc_init();
 
     if (rc != PB_OK)
         LOG_ERR("TZASC setup failed (%i)", rc);
 
     return PB_OK;
-}
-
-int plat_board_init(void)
-{
-    return board_init(&plat);
 }
 
 int plat_get_boot_source(struct pb_boot_source *src)

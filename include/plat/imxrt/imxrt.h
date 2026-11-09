@@ -18,7 +18,6 @@ struct imxrt_platform {
     unsigned int per_root_clk_MHz;
 };
 
-int board_init(struct imxrt_platform *plat);
 void board_console_init(struct imxrt_platform *plat);
 
 int imxrt_slc_set_configuration_locked(void);

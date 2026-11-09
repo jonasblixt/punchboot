@@ -32,8 +32,6 @@
 #include <plat/imx6ul/fusebox.h>
 #include <plat/imx6ul/imx6ul.h>
 
-static struct imx6ul_platform *plat;
-
 static int usdhc_emmc_setup(void)
 {
     /* Ungate USDHC1 clock */
@@ -68,7 +66,7 @@ static int usdhc_emmc_setup(void)
         },
     };
 
-    return imx_usdhc_init(&cfg, MHz(plat->usdhc1_clk_MHz));
+    return imx_usdhc_init(&cfg, MHz(imx6ul_plat()->usdhc1_clk_MHz));
 }
 
 static int board_command(uint32_t command,
@@ -318,15 +316,3 @@ const struct board board = {
     .status = board_status,
     .command = board_command,
 };
-
-/* Until the platform calls board_setup() */
-int board_init(struct imx6ul_platform *plat_)
-{
-    plat = plat_;
-    return board_setup();
-}
-
-int cm_board_init(void)
-{
-    return board_cm_setup();
-}

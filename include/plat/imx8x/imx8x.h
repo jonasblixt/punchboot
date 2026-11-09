@@ -55,7 +55,9 @@ struct imx8x_platform {
     uint32_t soc_rev;
 };
 
-int board_init(struct imx8x_platform *plat);
+/** The SCFW IPC handle and the SoC id, for the board */
+const struct imx8x_platform *imx8x_plat(void);
+sc_ipc_t imx8x_ipc(void);
 int imx8x_revoke_key(const struct rot_key *key);
 int imx8x_read_key_status(const struct rot_key *key);
 slc_t imx8x_slc_read_status(void);

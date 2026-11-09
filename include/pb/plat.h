@@ -38,13 +38,6 @@ struct pb_boot_source {
 int plat_init(void);
 
 /**
- * Initialize the board
- *
- * @return PB_OK on success or a negative number
- */
-int plat_board_init(void);
-
-/**
  * Platform specific reset function
  */
 void plat_reset(void);

@@ -20,8 +20,6 @@
 
 #include "partitions.h"
 
-static struct imxrt_platform *plat;
-
 #define UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068 \
     (const unsigned char *)"\x1b\xd3\x5a\x54\x48\x5d\x4f\xb6\xa8\x22\xcb\x58\xc3\xc5\xa0\x68"
 
@@ -451,15 +449,3 @@ const struct board board = {
     .cm_transport = &pb_dev_cls_transport,
     .command = board_command,
 };
-
-/* Until the platform calls board_setup() */
-int board_init(struct imxrt_platform *plat_)
-{
-    plat = plat_;
-    return board_setup();
-}
-
-int cm_board_init(void)
-{
-    return board_cm_setup();
-}

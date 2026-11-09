@@ -238,11 +238,6 @@ int plat_init(void)
     return PB_OK;
 }
 
-int plat_board_init(void)
-{
-    return board_init(&plat);
-}
-
 int plat_get_boot_source(struct pb_boot_source *src)
 {
     (void)src;

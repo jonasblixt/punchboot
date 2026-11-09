@@ -199,15 +199,3 @@ const struct board board = {
     .cm_transport = &pb_dev_cls_transport,
     .command = board_command,
 };
-
-/* Until the platform calls board_setup() */
-int board_init(struct imx8m_platform *plat_)
-{
-    (void)plat_;
-    return board_setup();
-}
-
-int cm_board_init(void)
-{
-    return board_cm_setup();
-}
