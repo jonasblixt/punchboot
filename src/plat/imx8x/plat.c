@@ -40,6 +40,17 @@ IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 const char *platform_ns_uuid = "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
 static struct imx8x_platform plat;
+
+const struct imx8x_platform *imx8x_plat(void)
+{
+    return &plat;
+}
+
+sc_ipc_t imx8x_ipc(void)
+{
+    return plat.ipc;
+}
+
 static int boot_reason;
 
 static const mmap_region_t imx_mmap[] = {
@@ -215,17 +226,21 @@ static void imx8x_mmu_init(void)
     enable_mmu_el3(0);
 }
 
-int plat_init(void)
+static sc_err_t wdog_rc;
+
+int plat_early_init(void)
 {
     sc_ipc_open(&plat.ipc, SC_IPC_BASE);
 
-    sc_err_t wdog_rc = imx8x_wdog_init();
+    wdog_rc = imx8x_wdog_init();
     imx8x_systick_setup();
     log_time_start();
     imx8x_load_boot_reason();
+    return PB_OK;
+}
 
-    board_console_init(&plat);
-
+int plat_init(void)
+{
     if (wdog_rc != 0) {
         /* We'll continue anyway, best effort */
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);
@@ -239,11 +254,6 @@ int plat_init(void)
     imx8x_slc_helpers_init(plat.ipc);
 
     return PB_OK;
-}
-
-int plat_board_init(void)
-{
-    return board_init(&plat);
 }
 
 int plat_boot_reason(void)

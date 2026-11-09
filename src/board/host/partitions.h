@@ -1,7 +1,7 @@
 #ifndef BOARD_HOST_PARTITIONS_H
 #define BOARD_HOST_PARTITIONS_H
 
-/* virtio disk */
+/* The host disk */
 #define UUID_1eacedf3_3790_48c7_8ed8_9188ff49672b \
     (const unsigned char *)"\x1e\xac\xed\xf3\x37\x90\x48\xc7\x8e\xd8\x91\x88\xff\x49\x67\x2b"
 #define PART_disk UUID_1eacedf3_3790_48c7_8ed8_9188ff49672b

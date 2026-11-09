@@ -1,5 +1,6 @@
 #include <boot/boot.h>
 #include <drivers/crypto/mbedtls.h>
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
@@ -31,10 +32,20 @@ static uint32_t fuse_read_helper(uint8_t row, uint8_t shift, uint32_t mask, uint
     return (fuse_data & mask);
 }
 
-int plat_init(void)
-{
-    int rc;
+/* As on the 6UL: SEC_CONFIG at OCOTP 0x460, SRK_HASH 0x580, SRK_REVOKE 0x6F0 */
+static const struct imx_hab_fuses hab_fuses = {
+    .sec_config_bank = 0,
+    .sec_config_word = 6,
+    .closed = 0x02,
+    .srk_bank = 3,
+    .srk_word = 0,
+    .revoke_bank = 5,
+    .revoke_word = 7,
+    .revocable = 3,
+};
 
+int plat_early_init(void)
+{
 #if CONFIG_ENABLE_WATCHDOG
     imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
@@ -46,10 +57,16 @@ int plat_init(void)
      */
     mmio_clrsetbits_32(
         IMXRT_CCM_CSCDR1, CSCDR1_UART_PODF_MASK | CSCDR1_UART_CLK_SEL, CSCDR1_UART_PODF(3));
+    return PB_OK;
+}
 
-    board_console_init(&plat);
+int plat_init(void)
+{
+    int rc;
+
 
     imx_ocotp_init(IMXRT_OCOTP_BASE, 8);
+    imx_hab_fuses_init(&hab_fuses);
     /* Read speed grade fuse */
 
     plat.speed_grade = fuse_read_helper(4, 16, 0x03, 1);
@@ -149,11 +166,6 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
 void plat_wdog_kick(void)
 {
     imx_wdog_kick();
-}
-
-int plat_board_init(void)
-{
-    return board_init(&plat);
 }
 
 int plat_boot_reason(void)

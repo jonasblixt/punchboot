@@ -9,6 +9,7 @@
 
 #include <boot/boot.h>
 #include <pb/arch.h>
+#include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -27,12 +28,20 @@ void main(void)
 #endif
     arch_init();
 
+    rc = plat_early_init();
+
+    if (rc != PB_OK)
+        goto enter_command_mode;
+
+    if (board.console_init)
+        board.console_init();
+
     rc = plat_init();
 
     if (rc != PB_OK)
         goto enter_command_mode;
 
-    rc = plat_board_init();
+    rc = board_setup();
 
     if (rc != PB_OK)
         goto enter_command_mode;

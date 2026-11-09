@@ -16,6 +16,7 @@
 #include <drivers/fuse/test_fuse_bio.h>
 #include <drivers/partition/gpt.h>
 #include <pb/bio.h>
+#include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/plat.h>
 #include <pb/rot.h>
@@ -195,7 +196,7 @@ static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
 
 static int board_revoke_key(const struct rot_key *key)
 {
-    return test_fuse_write(FUSE_REVOKE, (uint32_t)(1 << key->param1));
+    return test_fuse_write(FUSE_REVOKE, (uint32_t)(1 << key->index));
 }
 
 static int board_read_key_status(const struct rot_key *key)
@@ -205,7 +206,7 @@ static int board_read_key_status(const struct rot_key *key)
     if (val < 0)
         LOG_ERR("Could not read fuse");
 
-    if (val & (1 << key->param1))
+    if (val & (1 << key->index))
         return -PB_ERR_KEY_REVOKED;
     return PB_OK;
 }
@@ -270,124 +271,23 @@ static int board_set_slc_configuration(void)
     return PB_OK;
 }
 
-int board_init(void)
+static int board_hw_init(void)
 {
-    int rc;
-    LOG_INFO("Board init");
-
-    /* First: command mode needs the life cycle even if the init below fails.
-     * The fuses read as blank until test_fuse_init() has loaded them. */
-    static const struct rot_config rot_config = {
-        .revoke_key = board_revoke_key,
-        .read_key_status = board_read_key_status,
-        .key_map_length = 3,
-        .key_map = {
-            {
-                .name = "pb-development",
-                .id = 0xa90f9680,
-                .param1 = 0,
-            },
-            {
-                .name = "pb-development2",
-                .id = 0x25c6dd36,
-                .param1 = 1,
-            },
-            {
-                .name = "pb-development3",
-                .id = 0x52c1eda0,
-                .param1 = 2,
-            },
-        },
-    };
-
-    rc = rot_init(&rot_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("RoT init failed (%i)", rc);
-        return rc;
-    }
-
-    static const struct slc_config slc_config = {
-        .read_status = board_slc_read_status,
-        .set_configuration = board_set_slc_configuration,
-        .set_configuration_locked = board_slc_set_configuration_locked,
-        .set_eol = board_slc_set_eol,
-    };
-
-    rc = slc_init(&slc_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SLC init failed (%i)", rc);
-        return rc;
-    }
-
     bio_dev_t disk = host_disk_init(host_opts.disk_path, SZ_MiB(32), PART_disk, "Host disk");
 
     if (disk < 0)
         return disk;
 
-    rc = mbedtls_pb_init();
+    return mbedtls_pb_init();
+}
 
-    if (rc != PB_OK)
-        return rc;
-
-    rc = gpt_ptbl_init(disk, gpt_tables, ARRAY_SIZE(gpt_tables));
-
-    if (rc != PB_OK) {
-        LOG_WARN("GPT Init failed (%i)", rc);
-    }
-
+static int board_late_init(void)
+{
+    int rc;
     bio_dev_t readable_part = bio_get_part_by_uu(PART_readable);
+
     if (readable_part >= 0)
         (void)bio_clear_set_flags(readable_part, 0, BIO_FLAG_READABLE);
-
-    if (rc == PB_OK) {
-        static const struct boot_ab_state_config boot_state_cfg = {
-            .primary_state_part_uu = PART_primary_state,
-            .backup_state_part_uu = PART_backup_state,
-            .sys_a_uu = PART_sys_a,
-            .sys_b_uu = PART_sys_b,
-            .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
-        };
-
-        rc = boot_ab_state_init(&boot_state_cfg);
-
-        if (rc != PB_OK) {
-            goto err_out;
-        }
-    }
-
-    static const struct boot_driver_linux_config linux_boot_cfg = {
-        .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
-        .dtb_bpak_id = 0,
-        .ramdisk_bpak_id = 0,
-        .dtb_patch_cb = NULL,
-        .resolve_part_name = boot_ab_part_uu_to_name,
-        .set_dtb_boot_arg = false,
-    };
-
-    rc = boot_driver_linux_init(&linux_boot_cfg);
-
-    if (rc != PB_OK) {
-        goto err_out;
-    }
-
-    static const struct boot_driver boot_driver = {
-        .default_boot_source = BOOT_SOURCE_BIO,
-        .early_boot_cb = early_boot,
-        .get_boot_bio_device = boot_ab_state_get,
-        .set_boot_partition = boot_ab_state_set_boot_partition,
-        .get_boot_partition = boot_ab_state_get_boot_partition,
-        .prepare = boot_driver_linux_prepare,
-        .late_boot_cb = late_boot,
-        .jump = boot_driver_linux_jump,
-    };
-
-    rc = boot_init(&boot_driver);
-
-    if (rc != PB_OK) {
-        goto err_out;
-    }
 
     bio_dev_t fusebox_dev = bio_get_part_by_uu(PART_fusebox);
 
@@ -406,20 +306,13 @@ int board_init(void)
     uint32_t board_reg;
     rc = boot_ab_state_read_board_reg(0, &board_reg);
 
-    if (rc != PB_OK) {
+    if (rc != PB_OK)
         return rc;
-    }
 
-    if (board_reg & 1) {
-        rc = boot_ab_state_write_board_reg(3, 1);
+    if (board_reg & 1)
+        return boot_ab_state_write_board_reg(3, 1);
 
-        if (rc != PB_OK) {
-            return rc;
-        }
-    }
-
-err_out:
-    return rc;
+    return PB_OK;
 }
 
 static int board_command(uint32_t command,
@@ -453,31 +346,51 @@ static int board_command(uint32_t command,
     return -PB_ERR;
 }
 
-static int board_status(uint8_t *response_bfr, size_t *response_size)
-{
-    char *response = (char *)response_bfr;
-    size_t resp_buf_size = *response_size;
+static const struct rot_config rot = {
+    .revoke_key = board_revoke_key,
+    .read_key_status = board_read_key_status,
+};
 
-    (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");
-    return PB_OK;
-}
+static const struct slc_config slc = {
+    .read_status = board_slc_read_status,
+    .set_configuration = board_set_slc_configuration,
+    .set_configuration_locked = board_slc_set_configuration_locked,
+    .set_eol = board_slc_set_eol,
+};
 
-int cm_board_init(void)
-{
-    static const struct cm_config cfg = {
-        .name = "host test",
-        .status = board_status,
-        .password_auth = NULL,
-        .command = board_command,
-        .tops = {
-            .init = host_socket_init,
-            .connect = NULL,
-            .disconnect = NULL,
-            .read = host_socket_read,
-            .write = host_socket_write,
-            .complete = host_socket_complete,
-        },
-    };
+static const struct boot_driver_linux_config boot_linux = {
+    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+    .resolve_part_name = boot_ab_part_uu_to_name,
+};
 
-    return cm_init(&cfg);
-}
+static const struct cm_transport_ops socket_transport = {
+    .init = host_socket_init,
+    .read = host_socket_read,
+    .write = host_socket_write,
+    .complete = host_socket_complete,
+};
+
+static const struct boot_ab_state_config boot_state_cfg = {
+    .primary_state_part_uu = PART_primary_state,
+    .backup_state_part_uu = PART_backup_state,
+    .sys_a_uu = PART_sys_a,
+    .sys_b_uu = PART_sys_b,
+    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
+
+const struct board board = {
+    .name = "host test",
+    .rot = &rot,
+    .slc = &slc,
+    .init = board_hw_init,
+    .gpt_dev_uu = PART_disk,
+    .gpt_tables = gpt_tables,
+    .gpt_tables_length = ARRAY_SIZE(gpt_tables),
+    .ab = &boot_state_cfg,
+    .late_init = board_late_init,
+    .boot_linux = &boot_linux,
+    .early_boot = early_boot,
+    .late_boot = late_boot,
+    .cm_transport = &socket_transport,
+    .command = board_command,
+};

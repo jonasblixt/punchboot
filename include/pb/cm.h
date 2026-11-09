@@ -36,27 +36,22 @@ struct cm_config {
     int (*password_auth)(const char *password, size_t length);
     int (*command)(uint32_t cmd, uint8_t *bfr, size_t bfr_length, uint8_t *rsp, size_t *rsp_size);
     void (*process)(void);
-    const struct cm_transport_ops tops;
+    struct cm_transport_ops tops;
 };
 
 /**
  * Start command mode
  *
- * This function will call 'cm_board_init' which should be provided by platform
- * or board level code.
- *
- * The board init should initialize any required hardware and memory that
- * cm needs.
- *
- * The board init function must provide a configuration struct by calling
- * 'cm_init'
+ * This function calls 'cm_board_init' (src/board.c), which sets up the
+ * board's command mode hardware and calls 'cm_init'
  *
  * @return This function does not return normally
  */
 int cm_run(void);
 
 /**
- * Perform platform/board specific hardware inititalization
+ * Set up command mode for the board: board.cm_init(), then cm_init() with
+ * the board's command mode config (src/board.c)
  *
  * @return PB_OK, on success
  */
