@@ -5,12 +5,21 @@ config BOOT_AB_DRIVER
         primary an backup configuration. It has support for rollback and
         error reporting.
 
+config BOOT_DTB
+    bool
+    select LIB_FDT
+    help
+        The device tree helpers of the boot drivers (boot/dtb.h). Selected
+        by the drivers that pass a device tree on.
+
 config BOOT_LINUX
     bool "Linux boot support"
+    select BOOT_DTB
 
 config BOOT_ATF
     bool "ATF boot support"
     depends on ARCH_ARMV8
+    select BOOT_DTB
     help
         This boot driver uses the Arm Trusted Firmware bootloader interface
         to boot the BL33 (and optional BL32) image.
@@ -19,7 +28,7 @@ config BOOT_ATF
 
 config BOOT_DTB_HEADROOM
     int "Device tree headroom (bytes)"
-    depends on BOOT_LINUX || BOOT_ATF
+    depends on BOOT_DTB
     default 4096
     help
         The Linux and ATF boot drivers add /chosen and pb's properties to the
