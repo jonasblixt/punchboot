@@ -1,4 +1,5 @@
 #include <arch/arch.h>
+#include <pb/arch.h>
 
 #include <pb/mmio.h>
 

@@ -27,6 +27,10 @@ void arch_invalidate_cache_range(uintptr_t start, size_t len)
     (void)len;
 }
 
+void arch_invalidate_icache(void)
+{
+}
+
 void arch_clean_cache_range(uintptr_t start, size_t len)
 {
     (void)start;
