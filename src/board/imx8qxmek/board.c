@@ -93,7 +93,7 @@ static int usdhc_emmc_setup(void)
     if (rc != PB_OK)
         return rc;
 
-    static const struct imx_usdhc_config cfg = { .base = 0x5B010000,
+    static const struct imx_usdhc_config cfg = { .base = IMX8X_USDHC1_BASE,
                                                  .delay_tap = 18,
                                                  .mmc_config = {
                                                      .mode = MMC_BUS_MODE_HS200,
@@ -202,7 +202,7 @@ static void board_console_init(void)
     sc_pm_clock_rate_t rate = 80000000;
     uintptr_t uart_base = 0;
 
-    uart_base = 0x5A060000;
+    uart_base = IMX8X_LPUART0_BASE;
     /* Power up UART0 */
     sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_UART_0, SC_PM_PW_MODE_ON);
 
@@ -283,9 +283,9 @@ static int board_cm_init(void)
     }
 
     static const struct imx_cdns3_udc_config usb_cfg = {
-        .base = 0x5B120000,
-        .non_core_base = 0x5B110000,
-        .phy_base = 0x5B160000,
+        .base = IMX8QXP_USB3_CORE_BASE,
+        .non_core_base = IMX8QXP_USB3_NON_CORE_BASE,
+        .phy_base = IMX8QXP_USB3_PHY_BASE,
     };
 
     return imx_cdns3_udc_init(&usb_cfg);
