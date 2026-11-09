@@ -5,9 +5,6 @@
 #define VECTOR_STACK_ADDRESS_OFFSET 0
 #define VECTOR_RESET_ADDRESS_OFFSET 4
 
-/* Vector Table Offset Register */
-#define SCB_VTOR                    0xe000ed08
-
 /*
  * Start the image whose vector table is at 'addr' (include/pb/arch.h):
  * PRIMASK set, the I-cache invalidated, VTOR points to that table, MSP and
@@ -26,7 +23,7 @@ void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
 
     /* The image's exceptions go to its own handlers from its first
      * instruction on */
-    mmio_write_32(SCB_VTOR, (uint32_t)base_addr);
+    mmio_write_32(ARMV7M_SCB_VTOR, (uint32_t)base_addr);
 
     /* The arguments in r0-r3, so the stack pointer and the reset handler
      * are in other registers and nothing is read from the old stack after
