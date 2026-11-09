@@ -54,10 +54,10 @@ struct board {
     int (*init)(void); /*!< Hardware: crypto, storage */
 
     const unsigned char *gpt_dev_uu; /*!< Device with a GPT, NULL: none */
-    const struct gpt_table_list *gpt_tables; /*!< Its layouts, see board_layout_gpt */
+    const struct gpt_table_list *gpt_tables; /*!< Its layouts */
     size_t gpt_tables_length;
 
-    const struct boot_ab_state_config *ab; /*!< A/B state, see board_layout_ab. NULL: none */
+    const struct boot_ab_state_config *ab; /*!< A/B state. NULL: none */
 
     int (*late_init)(void); /*!< After the partition table and the A/B state */
 

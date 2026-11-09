@@ -289,9 +289,10 @@ boot driver config, kernel command lines and command mode transport. `main()` ca
 (`src/board.c`): RoT and SLC, `init()`, GPT, A/B, `late_init()`, the boot driver. Command mode
 calls `cm_board_init()`. The RoT and SLC come first so command mode knows the life cycle even
 when the rest fails (F-168).
-What the boards repeated is shared: the default eMMC layout (`pb/board_layout.h`), command mode
-over USB (`pb_dev_cls_transport`), `board_patch_bootargs()`, a default status and board
-command. The platforms no longer call the board or hand it a platform struct; the two boards
+What the boards repeated is shared: command mode over USB (`pb_dev_cls_transport`),
+`board_patch_bootargs()`, a default status and board command. The storage layout (the
+partition UUIDs, the GPT, the A/B state) stays each board's own, also where boards have the same
+one: a shared default layout (`pb/board_layout.h`) was tried and moved back (Jonas, 2026-11-09). The platforms no longer call the board or hand it a platform struct; the two boards
 that need platform data ask for it (`imx6ul_plat()`, `imx8x_ipc()`, `imx8x_plat()`).
 Why: every board had the same sequence with small differences, a different `board_init()`
 signature per platform. The old order (RoT/SLC last) let a failed init open command mode.

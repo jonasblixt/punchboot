@@ -5,6 +5,7 @@
 #include <bpak/bpak.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/memc/imx_flexspi.h>
+#include <drivers/partition/gpt.h>
 #include <drivers/partition/static.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_lpuart.h>
@@ -12,7 +13,6 @@
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
 #include <pb/board.h>
-#include <pb/board_layout.h>
 #include <pb/cm.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
@@ -431,13 +431,21 @@ static const struct boot_driver_simple_config boot_simple = {
     .resolve_part_name = boot_ab_part_uu_to_name,
 };
 
+static const struct boot_ab_state_config boot_state_cfg = {
+    .primary_state_part_uu = PART_primary_state,
+    .backup_state_part_uu = PART_backup_state,
+    .sys_a_uu = PART_sys_a,
+    .sys_b_uu = PART_sys_b,
+    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
+
 const struct board board = {
     .name = "imxrt1060evk",
     .console_init = board_console_init,
     .rot = &rot,
     .slc = &slc,
     .init = flexspi_nor_setup,
-    .ab = &board_layout_ab,
+    .ab = &boot_state_cfg,
     .boot_simple = &boot_simple,
     .early_boot = board_early_boot,
     .cm_init = board_cm_init,
