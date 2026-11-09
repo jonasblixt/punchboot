@@ -35,7 +35,7 @@ int test_fuse_init(bio_dev_t dev_)
     return PB_OK;
 }
 
-int test_fuse_write(uint16_t addr, uint32_t value)
+int test_fuse_write(uint32_t addr, uint32_t value)
 {
     if (addr >= TEST_FUSE_ADDR_MAX)
         return -PB_ERR_PARAM;
@@ -45,10 +45,11 @@ int test_fuse_write(uint16_t addr, uint32_t value)
     return bio_write(dev, 0, TEST_FUSE_ADDR_MAX * sizeof(uint32_t), fuse_box);
 }
 
-int test_fuse_read(uint16_t addr)
+int test_fuse_read(uint32_t addr, uint32_t *value)
 {
     if (addr >= TEST_FUSE_ADDR_MAX)
         return -PB_ERR_PARAM;
 
-    return fuse_box[addr];
+    *value = fuse_box[addr];
+    return PB_OK;
 }
