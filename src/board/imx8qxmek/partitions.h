@@ -1,22 +1,5 @@
-/**
- * \file board_layout.h
- *
- * Punch BOOT
- *
- * Copyright (C) 2026 Jonas Blixt <jonas@blxt.se>
- *
- * SPDX-License-Identifier: BSD-3-Clause
- *
- * pb's default storage layout: the eMMC's hardware partitions and a GPT on
- * its user area with System A/B, Root A/B and the boot state. Boards use it
- * unless they need another (board.gpt_tables, board.ab).
- */
-
-#ifndef INCLUDE_PB_BOARD_LAYOUT_H
-#define INCLUDE_PB_BOARD_LAYOUT_H
-
-#include <boot/ab_state.h>
-#include <drivers/partition/gpt.h>
+#ifndef IMX8QXMEK_PARTS_H
+#define IMX8QXMEK_PARTS_H
 
 /* eMMC BOOT0 */
 #define UUID_9eef7544_bf68_4bf7_8678_da117cbccba8 \
@@ -71,10 +54,4 @@
     (const unsigned char *)"\x65\x6a\xb3\xfc\x58\x56\x4a\x5e\xa2\xae\x5a\x01\x83\x13\xb3\xee"
 #define PART_backup_state UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee
 
-/** The GPT on the eMMC user area, one layout */
-extern const struct gpt_table_list board_layout_gpt[1];
-
-/** A/B on System A/B, the state in PB State Primary/Backup */
-extern const struct boot_ab_state_config board_layout_ab;
-
-#endif // INCLUDE_PB_BOARD_LAYOUT_H
+#endif

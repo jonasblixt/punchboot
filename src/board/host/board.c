@@ -347,6 +347,14 @@ static const struct cm_transport_ops socket_transport = {
     .complete = host_socket_complete,
 };
 
+static const struct boot_ab_state_config boot_state_cfg = {
+    .primary_state_part_uu = PART_primary_state,
+    .backup_state_part_uu = PART_backup_state,
+    .sys_a_uu = PART_sys_a,
+    .sys_b_uu = PART_sys_b,
+    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
+
 const struct board board = {
     .name = "host test",
     .rot = &rot,
@@ -355,7 +363,7 @@ const struct board board = {
     .gpt_dev_uu = PART_disk,
     .gpt_tables = gpt_tables,
     .gpt_tables_length = ARRAY_SIZE(gpt_tables),
-    .ab = &board_layout_ab,
+    .ab = &boot_state_cfg,
     .late_init = board_late_init,
     .boot_linux = &boot_linux,
     .early_boot = early_boot,
