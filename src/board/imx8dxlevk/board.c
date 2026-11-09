@@ -93,7 +93,7 @@ static int usdhc_emmc_setup(void)
     if (rc != PB_OK)
         return rc;
 
-    static const struct imx_usdhc_config cfg = { .base = 0x5B010000,
+    static const struct imx_usdhc_config cfg = { .base = IMX8X_USDHC1_BASE,
                                                  .delay_tap = 18,
                                                  .mmc_config = {
                                                      .mode = MMC_BUS_MODE_HS200,
@@ -202,7 +202,7 @@ static void board_console_init(void)
     sc_pm_clock_rate_t rate = 80000000;
     uintptr_t uart_base = 0;
 
-    uart_base = 0x5A060000;
+    uart_base = IMX8X_LPUART0_BASE;
     /* Power up UART0 */
     sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_UART_0, SC_PM_PW_MODE_ON);
 
@@ -258,9 +258,9 @@ static int board_cm_init(void)
     sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_USB_1, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_USB_1_PHY, SC_PM_PW_MODE_ON);
 
-    imx_usb2_phy_init(0x5B110000);
+    imx_usb2_phy_init(IMX8DXL_USB2_PHY2_BASE);
 
-    return imx_ci_udc_init(0x5b0e0000 /*IMX_CI_UDC_BASE*/);
+    return imx_ci_udc_init(IMX8DXL_USB_OTG2_BASE);
 }
 
 static const struct rot_config rot = {

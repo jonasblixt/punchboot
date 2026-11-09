@@ -101,8 +101,8 @@ static int get_soc_rev(uint32_t *soc_id, uint32_t *soc_rev)
     if (err != SC_ERR_NONE)
         return err;
 
-    *soc_rev = (id >> 5) & 0xf;
-    *soc_id = id & 0x1f;
+    *soc_rev = IMX8X_SC_ID_REV(id);
+    *soc_id = IMX8X_SC_ID_SOC(id);
 
     return 0;
 }
@@ -207,7 +207,7 @@ static void imx8x_mmu_init(void)
 
     /* Map ATF hole */
     mmap_add_region(
-        BOARD_RAM_BASE, BOARD_RAM_BASE, (0x20000), MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
+        BOARD_RAM_BASE, BOARD_RAM_BASE, IMX8X_ATF_SIZE, MT_RW | MT_MEMORY | MT_EXECUTE_NEVER);
 
     mmap_add_region(code_start, code_start, code_end - code_start, MT_RO | MT_MEMORY | MT_EXECUTE);
 

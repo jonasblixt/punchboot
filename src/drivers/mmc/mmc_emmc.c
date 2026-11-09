@@ -62,6 +62,12 @@ static const uint8_t tuning_blk_pattern_8bit[] = {
 };
 #endif
 
+/* CSD TRAN_SPEED, the low byte of resp[3]: the unit in bits 2:0, the multiplier in 6:3 */
+#define CSD_TRAN_SPEED_MASK       0xff
+#define CSD_TRAN_SPEED_UNIT_MASK  0x07
+#define CSD_TRAN_SPEED_MULT_SHIFT 3
+#define CSD_TRAN_SPEED_MULT_MASK  0x0f
+
 /*
  * The CSD TRAN_SPEED (bits 103:96, JESD84-B51 7.3.10), the clock limit of the
  * backward compatible timing. 0 if the field holds a reserved value.
@@ -73,13 +79,14 @@ static unsigned int csd_tran_speed_hz(const uint32_t csd[4])
                                           35, 40, 45, 52, 55, 60, 70, 80 };
     /* Bits 2:0, the unit in Hz divided by 10 */
     static const uint32_t unit_div10[4] = { 10000, 100000, 1000000, 10000000 };
-    uint8_t tran_speed = csd[3] & 0xff;
-    unsigned int unit = tran_speed & 0x07;
+    uint8_t tran_speed = csd[3] & CSD_TRAN_SPEED_MASK;
+    unsigned int unit = tran_speed & CSD_TRAN_SPEED_UNIT_MASK;
 
     if (unit >= ARRAY_SIZE(unit_div10))
         return 0;
 
-    return unit_div10[unit] * mult_x10[(tran_speed >> 3) & 0x0f];
+    return unit_div10[unit] *
+           mult_x10[(tran_speed >> CSD_TRAN_SPEED_MULT_SHIFT) & CSD_TRAN_SPEED_MULT_MASK];
 }
 
 static int mmc_send_op_cond(struct mmc_device *dev)
@@ -843,7 +850,7 @@ int mmc_power_off(struct mmc_device *dev)
      * We must first tell the card that the host is going to send the power off
      * notification message by changing this register to '1'
      */
-    rc = mmc_set_ext_csd(dev, EXT_CSD_POWER_OFF_NOTIFICATION, 0x01, 0);
+    rc = mmc_set_ext_csd(dev, EXT_CSD_POWER_OFF_NOTIFICATION, EXT_CSD_POWERED_ON, 0);
 
     if (rc != 0)
         return rc;
@@ -856,7 +863,7 @@ int mmc_power_off(struct mmc_device *dev)
     return mmc_send_cmd(dev,
                         MMC_CMD_SWITCH,
                         EXTCSD_WRITE_BYTES | EXTCSD_CMD(EXT_CSD_POWER_OFF_NOTIFICATION) |
-                            EXTCSD_VALUE(0x03) | EXTCSD_CMD_SET_NORMAL,
+                            EXTCSD_VALUE(EXT_CSD_POWER_OFF_LONG) | EXTCSD_CMD_SET_NORMAL,
                         MMC_RSP_R1b,
                         NULL);
 }

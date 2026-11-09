@@ -40,7 +40,7 @@ virtio_dev_t virtio_mmio_alloc(uintptr_t base)
         return -PB_ERR_MEM;
 
     magic = mmio_read_32(base + VIRTIO_MMIO_MAGIC_VALUE);
-    if (magic != 0x74726976) {
+    if (magic != VIRTIO_MMIO_MAGIC) {
         LOG_ERR("Bad magic (%x) base: %" PRIxPTR, magic, base);
         return -PB_ERR_IO;
     }

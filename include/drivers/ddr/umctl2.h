@@ -244,6 +244,7 @@
 #define STAT_SELFREF_TYPE_MASK                 GENMASK_32(5, 4)
 #define STAT_SELFREF_TYPE_SHIFT                4
 #define STAT_OPERATING_MODE_MASK               GENMASK_32(2, 0)
+#define STAT_OPERATING_MODE_LOW_MASK           GENMASK_32(1, 0) /* What NXP's code compares */
 #define STAT_OPERATING_MODE_SHIFT              0
 #define STAT_OPERATING_MODE_NORMAL             1
 

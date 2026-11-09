@@ -13,6 +13,34 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* Descriptor types (USB 2.0 Table 9-5) */
+#define USB_DESC_TYPE_DEVICE        0x01
+#define USB_DESC_TYPE_CONFIG        0x02
+#define USB_DESC_TYPE_STRING        0x03
+#define USB_DESC_TYPE_INTERFACE     0x04
+#define USB_DESC_TYPE_ENDPOINT      0x05
+#define USB_DESC_TYPE_QUALIFIER     0x06
+#define USB_DESC_TYPE_DEBUG         0x0A
+
+/* GET_DESCRIPTOR's wValue: the descriptor type and index */
+#define USB_DESC_VALUE(type, index) (((type) << 8) | (index))
+#define USB_DESC_TYPE_MASK          0xFF00
+#define USB_DESC_INDEX_MASK         0x00FF
+#define USB_DESC_STRING_MS_OS       0xEE /* Microsoft OS string descriptor's index */
+#define USB_MS_EXT_COMPAT_ID        0x0004 /* wIndex: Microsoft extended compat ID */
+
+/* bEndpointAddress */
+#define USB_EP_ADDR_IN              0x80
+#define USB_EP_ADDR_NUM_MASK        0x7F
+
+/* Descriptor fields */
+#define USB_BCD_USB_2_0             0x0200
+#define USB_LANG_EN_US              0x0409
+#define USB_CLASS_VENDOR            0xFF
+#define USB_CONFIG_ATTR_ONE         0x80 /* bmAttributes bit 7, always set: bus powered */
+#define USB_MAX_POWER_500MA         0xFA /* In 2 mA units */
+#define USB_EP_ATTR_BULK            0x02
+
 typedef enum {
     USB_EP0_OUT,
     USB_EP0_IN,

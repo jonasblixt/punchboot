@@ -4,6 +4,12 @@
 #define DCIMVAC		p15, 0, c7, c6, 1
 #define CTR		p15, 0, c0, c0, 1
 
+/* CLIDR and CCSIDR fields for the set/way loops (ARMv7 ARM B4.1.19, B4.1.20) */
+#define CLIDR_LOC_MASK		0x7000000 /* Level of coherency, bits 26:24 */
+#define CCSIDR_LINESIZE_MASK	0x7 /* log2(words) - 2 */
+#define CCSIDR_ASSOC_MASK	0x3FF /* Ways - 1, from bit 3 */
+#define CCSIDR_NUMSETS_MASK	0x7FFF /* Sets - 1, from bit 13 */
+
 .section .text
 .macro ldcopr reg, coproc, opc1, CRn, CRm, opc2
 mrc	\coproc, \opc1, \reg, \CRn, \CRm, \opc2
@@ -106,7 +112,7 @@ flush_invalidate_cache_v7:
     /* from ARMv7 manual, B2-17 */
     dmb
     MRC     p15, 1, R0, c0, c0, 1       // Read CLIDR
-    ANDS    R3, R0, #0x7000000
+    ANDS    R3, R0, #CLIDR_LOC_MASK
     MOV     R3, R3, LSR #23             // Cache level value (naturally aligned)
     BEQ     .Lfinished
     MOV     R10, #0
@@ -119,12 +125,12 @@ flush_invalidate_cache_v7:
     MCR     p15, 2, R10, c0, c0, 0      // write the Cache Size selection register
     isb                                 // ISB to sync the change to the CacheSizeID reg
     MRC     p15, 1, R1, c0, c0, 0       // reads current Cache Size ID register
-    AND     R2, R1, #0x7                // extract the line length field
+    AND     R2, R1, #CCSIDR_LINESIZE_MASK // extract the line length field
     ADD     R2, R2, #4                  // add 4 for the line length offset (log2 16 bytes)
-    LDR     R4, =0x3FF
+    LDR     R4, =CCSIDR_ASSOC_MASK
     ANDS    R4, R4, R1, LSR #3          // R4 is the max number on the way size (right aligned)
     CLZ     R5, R4                      // R5 is the bit position of the way size increment
-    LDR     R6, =0x00007FFF
+    LDR     R6, =CCSIDR_NUMSETS_MASK
     ANDS    R6, R6, R1, LSR #13         // R6 is the max number of the index size (right aligned)
 .Loop2:
     MOV     R9, R4                      // R9 working copy of the max way size (right aligned)
@@ -154,7 +160,7 @@ invalidate_cache_v7:
     /* from ARMv7 manual, B2-17 */
     dmb
     MRC     p15, 1, R0, c0, c0, 1       // Read CLIDR
-    ANDS    R3, R0, #0x7000000
+    ANDS    R3, R0, #CLIDR_LOC_MASK
     MOV     R3, R3, LSR #23             // Cache level value (naturally aligned)
     BEQ     .Lfinished_invalidate
     MOV     R10, #0
@@ -167,12 +173,12 @@ invalidate_cache_v7:
     MCR     p15, 2, R10, c0, c0, 0      // write the Cache Size selection register
     isb                                 // ISB to sync the change to the CacheSizeID reg
     MRC     p15, 1, R1, c0, c0, 0       // reads current Cache Size ID register
-    AND     R2, R1, #0x7                // extract the line length field
+    AND     R2, R1, #CCSIDR_LINESIZE_MASK // extract the line length field
     ADD     R2, R2, #4                  // add 4 for the line length offset (log2 16 bytes)
-    LDR     R4, =0x3FF
+    LDR     R4, =CCSIDR_ASSOC_MASK
     ANDS    R4, R4, R1, LSR #3          // R4 is the max number on the way size (right aligned)
     CLZ     R5, R4                      // R5 is the bit position of the way size increment
-    LDR     R6, =0x00007FFF
+    LDR     R6, =CCSIDR_NUMSETS_MASK
     ANDS    R6, R6, R1, LSR #13         // R6 is the max number of the index size (right aligned)
 .Loop2_invalidate:
     MOV     R9, R4                      // R9 working copy of the max way size (right aligned)

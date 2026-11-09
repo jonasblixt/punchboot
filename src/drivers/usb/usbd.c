@@ -150,24 +150,25 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
 
     switch (request) {
     case USB_GET_DESCRIPTOR: {
-        if (setup->wValue == 0x0600) {
+        if (setup->wValue == USB_DESC_VALUE(USB_DESC_TYPE_QUALIFIER, 0)) {
             length = MIN(setup->wLength, (uint16_t)sizeof(cls_config->desc->qualifier));
             rc = ep0_tx(&cls_config->desc->qualifier, length);
-        } else if (setup->wValue == 0x0100) {
+        } else if (setup->wValue == USB_DESC_VALUE(USB_DESC_TYPE_DEVICE, 0)) {
             length = MIN(setup->wLength, (uint16_t)sizeof(cls_config->desc->device));
             rc = ep0_tx(&cls_config->desc->device, length);
-        } else if (setup->wValue == 0x0200) {
+        } else if (setup->wValue == USB_DESC_VALUE(USB_DESC_TYPE_CONFIG, 0)) {
             length = MIN(setup->wLength, cls_config->desc->config.wTotalLength);
             rc = ep0_tx(&cls_config->desc->config, length);
-        } else if (setup->wValue == 0x0A00) {
+        } else if (setup->wValue == USB_DESC_VALUE(USB_DESC_TYPE_DEBUG, 0)) {
             length = MIN(setup->wLength, (uint16_t)cls_config->desc->interface.bLength);
             rc = ep0_tx(&cls_config->desc->interface, length);
-        } else if ((setup->wValue & 0xFF00) == 0x0300) {
-            uint8_t str_desc_idx = (uint8_t)(setup->wValue & 0xFF);
+        } else if ((setup->wValue & USB_DESC_TYPE_MASK) ==
+                   USB_DESC_VALUE(USB_DESC_TYPE_STRING, 0)) {
+            uint8_t str_desc_idx = (uint8_t)(setup->wValue & USB_DESC_INDEX_MASK);
             if (str_desc_idx == 0) {
                 length = MIN(setup->wLength, (uint16_t)sizeof(cls_config->desc->language));
                 rc = ep0_tx(&cls_config->desc->language, length);
-            } else if (str_desc_idx == 0xee) {
+            } else if (str_desc_idx == USB_DESC_STRING_MS_OS) {
                 /* Microsoft OS Descriptor */
                 length = MIN(setup->wLength, (uint16_t)sizeof(msft_os_descriptor));
                 rc = ep0_tx(&msft_os_descriptor, length);
@@ -215,7 +216,7 @@ static int usbd_enumerate(struct usb_setup_packet *setup)
     } break;
     case USB_GET_VENDOR: {
         LOG_DBG("Get vendor specific descriptor");
-        if (setup->wIndex == 0x04) {
+        if (setup->wIndex == USB_MS_EXT_COMPAT_ID) {
             length = MIN(setup->wLength, (uint16_t)sizeof(msft_comp_id_feature));
             rc = ep0_tx(&msft_comp_id_feature, length);
         }

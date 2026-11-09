@@ -41,6 +41,7 @@
 
 /* Magic value ("virt" string) - Read Only */
 #define VIRTIO_MMIO_MAGIC_VALUE         0x000
+#define VIRTIO_MMIO_MAGIC               0x74726976 /* "virt" */
 
 /* Virtio device version - Read Only */
 #define VIRTIO_MMIO_VERSION             0x004
