@@ -14,15 +14,15 @@
 
 int pb_timeout_init_us(struct pb_timeout *timeout, uint32_t timeout_us)
 {
-    if ((timeout_us == 0) || (timeout_us == 0xffffffff))
+    if ((timeout_us == 0) || (timeout_us == UINT32_MAX))
         return -PB_ERR;
 
     memset(timeout, 0, sizeof(*timeout));
     timeout->ts_start = plat_get_us_tick();
 
-    if ((0xffffffff - timeout->ts_start) <= timeout_us) {
+    if ((UINT32_MAX - timeout->ts_start) <= timeout_us) {
         timeout->rollover = true;
-        timeout->ts_end = timeout_us - (0xffffffff - timeout->ts_start);
+        timeout->ts_end = timeout_us - (UINT32_MAX - timeout->ts_start);
     } else {
         timeout->ts_end = timeout->ts_start + timeout_us;
     }

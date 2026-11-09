@@ -22,6 +22,13 @@
 #include <plat/imx8x/sci/svc/pad/api.h>
 #include <stddef.h>
 
+/* SC_C_ID, sc_misc_get_control(SC_R_SYSTEM): the SoC id and revision */
+#define IMX8X_SC_ID_SOC(id)    ((id) & 0x1f)
+#define IMX8X_SC_ID_REV(id)    (((id) >> 5) & 0xf)
+
+/* TF-A's BL31 at the start of the RAM, BOARD_RAM_BASE; pb follows it */
+#define IMX8X_ATF_SIZE         (0x20000)
+
 #define PADRING_IFMUX_EN_SHIFT 31
 #define PADRING_IFMUX_EN_MASK  (1U << PADRING_IFMUX_EN_SHIFT)
 #define PADRING_GP_EN_SHIFT    30

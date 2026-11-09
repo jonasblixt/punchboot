@@ -28,6 +28,16 @@ int imx_ocotp_init(uintptr_t base, unsigned int words_per_bank);
 int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value);
 int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
 
+/* The fuse address in CTRL, and its write unlock */
+#define OCOTP_CTRL_ADDR_MASK        0x7F /* The RM says 0x3F, NXP's drivers use 0x7F */
+#define OCOTP_CTRL_WR_UNLOCK(key)   ((key) << 16)
+
+/* Timing register, in ipg_clk periods */
+#define OCOTP_TIMING_WAIT(x)        ((x) << 22)
+#define OCOTP_TIMING_STROBE_READ(x) ((x) << 16)
+#define OCOTP_TIMING_RELAX(x)       ((x) << 12)
+#define OCOTP_TIMING_STROBE_PROG(x) (x)
+
 /* By index, bank * words_per_bank + row: slc_config's fuse_read, fuse_write */
 int imx_ocotp_fuse_read(uint32_t index, uint32_t *value);
 int imx_ocotp_fuse_write(uint32_t index, uint32_t value);

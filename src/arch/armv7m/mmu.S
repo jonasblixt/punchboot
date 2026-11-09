@@ -8,8 +8,8 @@
  * void arch_disable_mmu(void)
  *
  * Hand over the memory system (include/pb/arch.h): interrupts masked, the
- * MPU off, the D-cache cleaned and off, and empty. The ROM of the i.MX RT
- * leaves the D-cache on.
+ * MPU off, the D-cache cleaned and off, and empty. pb runs with the D-cache
+ * on (write-through, src/arch/armv7m/entry.c).
  *
  * As on ARMv8-A (src/arch/armv8a/cache-ops.S): the clean runs with the
  * D-cache on, and nothing writes normal memory until the invalidate after

@@ -26,6 +26,7 @@
 #define WATER                 0x2c
 
 #define US1_TDRE              (1 << 23)
+#define US1_TC                (1 << 22) /* Transmission complete */
 #define US1_RDRF              (1 << 21)
 
 #define CTRL_TE               (1 << 19)
@@ -103,7 +104,7 @@ static void lpuart_setbrg(uintptr_t base, unsigned int rate, int baudrate)
 
 void imx_lpuart_putc(uintptr_t base, char c)
 {
-    while (!(mmio_read_32(base + STAT) & (1 << 22)))
+    while (!(mmio_read_32(base + STAT) & US1_TC))
         ;
 
     mmio_write_32(base + DATA, c);

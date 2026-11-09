@@ -416,7 +416,7 @@ static void imx_flexspi_config_lut(void)
 
     /* Unlock LUT for update. */
     mmio_write_32(cfg->base + FLEXSPI_LUTKEY, FLEXSPI_LUT_KEY_VAL);
-    mmio_write_32(cfg->base + FLEXSPI_LUTCR, 0x02);
+    mmio_write_32(cfg->base + FLEXSPI_LUTCR, FLEXSPI_LUTCR_UNLOCK);
 
     for (unsigned int i = 0; i < cfg->lut_elements; i++) {
         mmio_write_32(cfg->base + FLEXSPI_LUT + (4 * i), cfg->lut[i]);
@@ -424,7 +424,7 @@ static void imx_flexspi_config_lut(void)
 
     /* Lock LUT. */
     mmio_write_32(cfg->base + FLEXSPI_LUTKEY, FLEXSPI_LUT_KEY_VAL);
-    mmio_write_32(cfg->base + FLEXSPI_LUTCR, 0x01);
+    mmio_write_32(cfg->base + FLEXSPI_LUTCR, FLEXSPI_LUTCR_LOCK);
 }
 
 static int imx_flexspi_mem_config(const struct flexspi_nor_config *nor_config)
@@ -525,16 +525,12 @@ int imx_flexspi_init(const struct flexspi_core_config *config)
      * for now, some should probably be set through the config struct.
      */
     mmio_write_32(cfg->base + FLEXSPI_MCR0,
-                  FLEXSPI_MCR0_MDIS | (0x00 << 4) | /* RXCLKSRC internal */
-                      (1 << 12) | /* Doze enable*/
-                      (0xFF << 16) | /* IP grant timeout */
-                      (0xFF << 24) /* AHB grant timeout */
-    );
+                  FLEXSPI_MCR0_MDIS | FLEXSPI_MCR0_RXCLKSRC(0) | FLEXSPI_MCR0_DOZEEN |
+                      FLEXSPI_MCR0_IPGRANTWAIT(0xFF) | FLEXSPI_MCR0_AHBGRANTWAIT(0xFF));
 
+    /* The longest timeouts */
     mmio_write_32(cfg->base + FLEXSPI_MCR1,
-                  (0xFFFF << 16) | /* SEQ execution timeout */
-                      (0xFFFF << 0) /* AHB access timeout */
-    );
+                  FLEXSPI_MCR1_SEQWAIT(0xFFFF) | FLEXSPI_MCR1_AHBBUSWAIT(0xFFFF));
 
     mmio_clrsetbits_32(cfg->base + FLEXSPI_MCR2,
                        FLEXSPI_MCR2_RESUMEWAIT_MASK | FLEXSPI_MCR2_SCKBDIFFOPT |

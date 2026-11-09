@@ -8,6 +8,7 @@
  */
 
 #include <config.h>
+#include <arch/arch.h>
 #include "armv7a.h"
 
 .global pb_vector_table
@@ -29,13 +30,13 @@ pb_entry:
 
     /* Disable MMU */
     mrc p15, 0, r1, c1, c0, 0
-    bic r1, r1, #0x1
+    bic r1, r1, #SCTLR_M_BIT
     mcr p15, 0, r1, c1, c0, 0
 
     /* Enable I$ and D$ */
     mrc     p15, 0, r12, c1, c0, 0
-    orr     r12, r12, #(1<<12)
-    orr     r12, r12, #(1<<2)
+    orr     r12, r12, #SCTLR_I_BIT
+    orr     r12, r12, #SCTLR_C_BIT
     mcr     p15, 0, r12, c1, c0, 0
 
     /* Program vector table */
@@ -58,22 +59,22 @@ _zeroing_loop:
 _zeroing_done:
 
     ldr r1, =_stack_end
-    cpsid   i,#0x12       /* irq */
+    cpsid   i,#MODE32_irq
     mov     sp, r1
 
-    cpsid   i,#0x11       /* fiq */
+    cpsid   i,#MODE32_fiq
     mov     sp, r1
 
-    cpsid   i,#0x17       /* abort */
+    cpsid   i,#MODE32_abt
     mov     sp, r1
 
-    cpsid   i,#0x1b       /* undefined */
+    cpsid   i,#MODE32_und
     mov     sp, r1
 
-    cpsid   i,#0x1f       /* system */
+    cpsid   i,#MODE32_sys
     mov     sp, r1
 
-    cpsid   i,#0x13       /* supervisor */
+    cpsid   i,#MODE32_svc
     mov     sp, r1
 
     bl main

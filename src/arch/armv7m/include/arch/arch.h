@@ -17,4 +17,13 @@
 void arch_clean_cache_range(uintptr_t start, size_t len);
 void arch_invalidate_cache_range(uintptr_t start, size_t len);
 
+/* The system control block */
+#define ARMV7M_SCB_VTOR     0xe000ed08 /* Vector table offset */
+#define ARMV7M_SCB_CCR      0xe000ed14 /* Configuration and control */
+#define ARMV7M_CCR_DC       (1 << 16) /* D-cache enable */
+#define ARMV7M_CCR_IC       (1 << 17) /* I-cache enable */
+/* Cortex-M7 L1 cache control */
+#define ARMV7M_CACR         0xe000ef9c
+#define ARMV7M_CACR_FORCEWT (1 << 2) /* The D-cache is write-through */
+
 #endif

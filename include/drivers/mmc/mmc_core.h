@@ -55,6 +55,8 @@
 #define EXT_CSD_FLUSH_CACHE                 32 /* W */
 #define EXT_CSD_CACHE_CTRL                  33 /* R/W */
 #define EXT_CSD_POWER_OFF_NOTIFICATION      34 /* R/W */
+#define EXT_CSD_POWERED_ON                  0x01 /* POWER_OFF_NOTIFICATION's values */
+#define EXT_CSD_POWER_OFF_LONG              0x03
 #define EXT_CSD_PACKED_FAILURE_INDEX        35 /* RO */
 #define EXT_CSD_PACKED_CMD_STATUS           36 /* RO */
 #define EXT_CSD_EXP_EVENTS_STATUS           54 /* RO, 2 bytes */

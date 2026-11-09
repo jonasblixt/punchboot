@@ -89,8 +89,14 @@
 /* MCR0 register bits */
 #define FLEXSPI_MCR0_SWRESET             BIT(0)
 #define FLEXSPI_MCR0_MDIS                BIT(1)
+#define FLEXSPI_MCR0_RXCLKSRC(x)         ((x) << 4) /* 0: internal dummy read strobe */
+#define FLEXSPI_MCR0_DOZEEN              BIT(12)
+#define FLEXSPI_MCR0_IPGRANTWAIT(x)      ((uint32_t)(x) << 16)
+#define FLEXSPI_MCR0_AHBGRANTWAIT(x)     ((uint32_t)(x) << 24)
 
 /* MCR1 register bits */
+#define FLEXSPI_MCR1_SEQWAIT(x)          ((uint32_t)(x) << 16)
+#define FLEXSPI_MCR1_AHBBUSWAIT(x)       ((uint32_t)(x) << 0)
 
 /* MCR2 register bits */
 #define FLEXSPI_MCR2_RESUMEWAIT(n)       ((n) << 24)
@@ -122,5 +128,7 @@
 #define FLEXSPI_FLSHCR2_CLRINSTRPTR_MASK (0x80000000U)
 
 #define FLEXSPI_LUT_KEY_VAL              (0x5AF05AF0ul)
+#define FLEXSPI_LUTCR_LOCK               (1 << 0)
+#define FLEXSPI_LUTCR_UNLOCK             (1 << 1)
 
 #endif

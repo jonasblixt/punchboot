@@ -50,9 +50,9 @@ static __section(".vector_handlers") void armv7m_default_handler(void)
 
 static __section(".vector_handlers") void armv7m_entry(void)
 {
-    /* Enable caches */
-    mmio_clrsetbits_32(0xe000e000 + 0x0f9c, 0, (1 << 2));
-    mmio_clrsetbits_32(0xe000e000 + 0x0d14, 0, (1 << 16) | (1 << 17));
+    /* Enable the caches, the D-cache write-through */
+    mmio_clrsetbits_32(ARMV7M_CACR, 0, ARMV7M_CACR_FORCEWT);
+    mmio_clrsetbits_32(ARMV7M_SCB_CCR, 0, ARMV7M_CCR_DC | ARMV7M_CCR_IC);
     ARM_DSB();
     ARM_ISB();
 

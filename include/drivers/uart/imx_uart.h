@@ -50,4 +50,16 @@
 int imx_uart_init(uintptr_t base, unsigned int input_clock_Hz, unsigned int baudrate);
 void imx_uart_putc(uintptr_t base, char c);
 
+/* What imx_uart_init() sets (i.MX6UL RM 53.15) */
+#define UCR3_RXDMUXSEL (1 << 2) /* Must be set */
+#define UCR3_RI        (1 << 8) /* RI, DCD and DSR: the reset values, not used */
+#define UCR3_DCD       (1 << 9)
+#define UCR3_DSR       (1 << 10)
+#define UCR4_CTSTL(x)  ((x) << 10) /* CTS trigger level */
+#define UFCR_RFDIV(x)  ((x) << 7) /* Reference clock divider */
+#define UFCR_RFDIV_1   4 /* Divide by 1 */
+#define USR2_TXDC      (1 << 3) /* Transmit complete */
+#define UESC_ESCAPE    '+' /* The escape character, the reset value */
+#define UBIR_INC       15 /* BRM incremental, with UBMR = clock / (2 * baud rate) */
+
 #endif // INCLUDE_DRIVERS_UART_IMX_UART_H

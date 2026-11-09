@@ -95,13 +95,13 @@ static const char *br_str[BR_END] = {
 
 static const mmap_region_t imx_mmap[] = {
     /* Boot ROM API*/
-    MAP_REGION_FLAT(0x00000000, (128 * 1024), MT_MEMORY | MT_RO | MT_EXECUTE),
+    MAP_REGION_FLAT(IMX6UL_ROM_BASE, (128 * 1024), MT_MEMORY | MT_RO | MT_EXECUTE),
     /* Needed for HAB*/
-    MAP_REGION_FLAT(0x00900000, (256 * 1024), MT_MEMORY | MT_RW),
+    MAP_REGION_FLAT(IMX6UL_OCRAM_BASE, (256 * 1024), MT_MEMORY | MT_RW),
     /* AIPS-1 */
-    MAP_REGION_FLAT(0x02000000, (1024 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(AIPS1_ARB_BASE_ADDR, (1024 * 1024), MT_DEVICE | MT_RW),
     /* AIPS-2 */
-    MAP_REGION_FLAT(0x02100000, (1024 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(AIPS2_ARB_BASE_ADDR, (1024 * 1024), MT_DEVICE | MT_RW),
     { 0 }
 };
 
@@ -254,16 +254,16 @@ static int tzasc_init(void)
 
 /* The ROM log, AN12853 Tables 11 and 13 */
 static const struct imx_rom_log_config rom_log_cfg = {
-    .pointer = 0x000001e0,
-    .ram_start = 0x00900000, /* OCRAM */
-    .ram_end = 0x00920000,
+    .pointer = IMX6UL_ROM_LOG_POINTER,
+    .ram_start = IMX6UL_OCRAM_BASE,
+    .ram_end = IMX6UL_OCRAM_BASE + IMX6UL_OCRAM_SIZE,
     .words = 64,
     .defs = IMX_ROM_LOG_DEFS_V0,
 };
 
-/* The HAB API, as HAB_RVT_BASE in plat/imx6ul/hab.h */
+/* The HAB API */
 static const struct imx_hab_log_config hab_log_cfg = {
-    .rvt = 0x00000100,
+    .rvt = HAB_RVT_BASE,
     .entry_size = 4,
 };
 

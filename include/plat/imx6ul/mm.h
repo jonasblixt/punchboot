@@ -10,6 +10,12 @@
 #define AIPS1_OFF_BASE_ADDR         (ATZ1_BASE_ADDR + 0x80000)
 #define ANATOP_BASE_ADDR            (AIPS1_OFF_BASE_ADDR + 0x48000)
 
+#define IMX6UL_ROM_BASE             (0x00000000)
+#define IMX6UL_OCRAM_BASE           (0x00900000)
+#define IMX6UL_OCRAM_SIZE           (0x00020000) /* 128 KiB */
+/* The pointer to the ROM's event log (NXP AN12853 Table 11) */
+#define IMX6UL_ROM_LOG_POINTER      (0x000001E0)
+
 #define IMX6UL_SRC_BASE             (0x020D8000)
 
 #define IMX6UL_SRC_SCR              (0x020D8000)

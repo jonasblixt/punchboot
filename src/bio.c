@@ -5,6 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 
+/* A device's flags word: BIO_FLAG_* in bits 15:0, the HAL's in 31:24 */
+#define BIO_FLAGS_MASK      0x0000FFFF
+#define BIO_HAL_FLAGS_SHIFT 24
+#define BIO_HAL_FLAGS_MASK  0xFF000000
+
 struct bio_device {
     uuid_t uu;
     char description[37];
@@ -258,7 +263,7 @@ int bio_get_hal_flags(bio_dev_t dev)
     rc = check_dev(dev);
     if (rc != PB_OK)
         return rc;
-    return (bio_pool[dev].flags >> 24) & 0xff;
+    return (bio_pool[dev].flags & BIO_HAL_FLAGS_MASK) >> BIO_HAL_FLAGS_SHIFT;
 }
 
 int bio_set_hal_flags(bio_dev_t dev, uint8_t flags)
@@ -268,8 +273,8 @@ int bio_set_hal_flags(bio_dev_t dev, uint8_t flags)
     rc = check_dev(dev);
     if (rc != PB_OK)
         return rc;
-    bio_pool[dev].flags &= ~(0xff000000);
-    bio_pool[dev].flags |= ((uint32_t)flags << 24);
+    bio_pool[dev].flags &= ~(BIO_HAL_FLAGS_MASK);
+    bio_pool[dev].flags |= ((uint32_t)flags << BIO_HAL_FLAGS_SHIFT);
     return PB_OK;
 }
 
@@ -280,7 +285,7 @@ int bio_get_flags(bio_dev_t dev)
     rc = check_dev(dev);
     if (rc != PB_OK)
         return rc;
-    return (bio_pool[dev].flags & 0xffff);
+    return (bio_pool[dev].flags & BIO_FLAGS_MASK);
 }
 
 int bio_set_flags(bio_dev_t dev, uint16_t flags)
@@ -290,8 +295,8 @@ int bio_set_flags(bio_dev_t dev, uint16_t flags)
     rc = check_dev(dev);
     if (rc != PB_OK)
         return rc;
-    bio_pool[dev].flags &= ~(0x0000FFFF);
-    bio_pool[dev].flags |= (flags & 0xFFFF);
+    bio_pool[dev].flags &= ~(BIO_FLAGS_MASK);
+    bio_pool[dev].flags |= (flags & BIO_FLAGS_MASK);
     return PB_OK;
 }
 

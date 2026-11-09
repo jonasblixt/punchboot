@@ -55,7 +55,19 @@ struct gpt_backup_tbl {
     struct gpt_header hdr;
 } __attribute__((packed));
 
-#define PB_GPT_ATTR_OK (1 << 7) /*Bit 55*/
+#define PB_GPT_ATTR_OK           (1 << 7) /*Bit 55*/
+#define PB_GPT_ATTR_NOT_BOOTABLE (1 << 7) /* Bit 63, attr[7] */
+#define GPT_HEADER_REVISION_1_0  0x00010000
+
+/* The protective MBR: one partition of type 0xEE over the disk (UEFI 2.x 5.2.3) */
+#define MBR_PART0                446 /* The first partition entry */
+#define MBR_PART_CHS_START       (MBR_PART0 + 1)
+#define MBR_PART_TYPE            (MBR_PART0 + 4)
+#define MBR_PART_CHS_END         (MBR_PART0 + 5)
+#define MBR_PART_LBA_START       (MBR_PART0 + 8)
+#define MBR_PART_LBA_SIZE        (MBR_PART0 + 12)
+#define MBR_TYPE_GPT_PROTECTIVE  0xEE
+#define MBR_SIGNATURE            510 /* 0x55, 0xAA */
 
 static const uint64_t gpt_header_signature = 0x5452415020494645ULL;
 static uint32_t prng_state;
@@ -150,7 +162,7 @@ static int gpt_init_tbl(bio_dev_t dev)
     memset((uint8_t *)&backup, 0, sizeof(backup));
 
     hdr->signature = gpt_header_signature;
-    hdr->rev = 0x00010000;
+    hdr->rev = GPT_HEADER_REVISION_1_0;
     hdr->hdr_sz = sizeof(struct gpt_header) - GPT_HEADER_RSZ;
     hdr->current_lba = 1;
     hdr->no_of_parts = 128;
@@ -197,7 +209,7 @@ gpt_add_part(int part_idx, unsigned int no_of_blocks, const uuid_t type_uuid, co
         *part_name_ptr++ = 0;
     }
 
-    part->attr[7] = 0x80; /* Not bootable */
+    part->attr[7] = PB_GPT_ATTR_NOT_BOOTABLE;
     part->attr[6] = PB_GPT_ATTR_OK;
 
     memcpy(part->type_uuid, type_uuid, 16);
@@ -224,18 +236,19 @@ static int gpt_write_tbl(bio_dev_t dev)
     /* Write protective MBR */
     memset(gpt_pmbr, 0, sizeof(gpt_pmbr));
 
-    gpt_pmbr[448] = 2;
-    gpt_pmbr[449] = 0;
-    gpt_pmbr[450] = 0xEE; // type , 0xEE = GPT
-    gpt_pmbr[451] = 0xFF;
-    gpt_pmbr[452] = 0xFF;
-    gpt_pmbr[453] = 0xFF;
-    gpt_pmbr[454] = 0x01;
+    /* CHS start 0/0/2, CHS end 0xFFFFFF (beyond CHS), from LBA 1 */
+    gpt_pmbr[MBR_PART_CHS_START + 1] = 2;
+    gpt_pmbr[MBR_PART_CHS_START + 2] = 0;
+    gpt_pmbr[MBR_PART_TYPE] = MBR_TYPE_GPT_PROTECTIVE;
+    gpt_pmbr[MBR_PART_CHS_END] = 0xFF;
+    gpt_pmbr[MBR_PART_CHS_END + 1] = 0xFF;
+    gpt_pmbr[MBR_PART_CHS_END + 2] = 0xFF;
+    gpt_pmbr[MBR_PART_LBA_START] = 0x01;
 
     uint32_t llba = (uint32_t)bio_get_last_block(dev);
-    memcpy(&gpt_pmbr[458], &llba, sizeof(uint32_t));
-    gpt_pmbr[510] = 0x55;
-    gpt_pmbr[511] = 0xAA;
+    memcpy(&gpt_pmbr[MBR_PART_LBA_SIZE], &llba, sizeof(uint32_t));
+    gpt_pmbr[MBR_SIGNATURE] = 0x55;
+    gpt_pmbr[MBR_SIGNATURE + 1] = 0xAA;
 
     err = bio_write(dev, 0, sizeof(gpt_pmbr), gpt_pmbr);
 
