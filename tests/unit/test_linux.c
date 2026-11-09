@@ -415,6 +415,32 @@ static void test_dtb_without_chosen(void **state)
     assert_true(fdt_path_offset(dtb, "/memory") >= 0);
 }
 
+/* A node named chosen elsewhere isn't /chosen: /chosen is added, the other
+ * one is left alone (the drivers took the first node named chosen) */
+static void test_dtb_chosen_not_at_root(void **state)
+{
+    int soc_chosen;
+    (void)state;
+
+    assert_int_equal(fdt_create(dtb, sizeof(dtb)), 0);
+    assert_int_equal(fdt_finish_reservemap(dtb), 0);
+    assert_int_equal(fdt_begin_node(dtb, ""), 0);
+    assert_int_equal(fdt_begin_node(dtb, "soc"), 0);
+    assert_int_equal(fdt_begin_node(dtb, "chosen"), 0);
+    assert_int_equal(fdt_end_node(dtb), 0);
+    assert_int_equal(fdt_end_node(dtb), 0);
+    assert_int_equal(fdt_end_node(dtb), 0);
+    assert_int_equal(fdt_finish(dtb), 0);
+    assert_int_equal(fdt_open_into(dtb, dtb, DTB_SIZE), 0);
+
+    assert_int_equal(boot_driver_linux_init(&cfg_dtb), PB_OK);
+    assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), PB_OK);
+    assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
+    soc_chosen = fdt_path_offset(dtb, "/soc/chosen");
+    assert_true(soc_chosen >= 0);
+    assert_null(fdt_getprop(dtb, soc_chosen, "pb,device-uuid", NULL));
+}
+
 /* A device tree without free space and without pb's properties, as the
  * kernel builds them: it grows by the headroom and gets them all (F-071) */
 static void test_dtb_grown(void **state)
@@ -484,6 +510,7 @@ int main(void)
         LINUX_TEST(test_dtb_errors),
         LINUX_TEST(test_dtb_without_slc),
         LINUX_TEST(test_dtb_without_chosen),
+        LINUX_TEST(test_dtb_chosen_not_at_root),
         LINUX_TEST(test_dtb_grown),
         LINUX_TEST(test_dtb_headroom_overlap),
         LINUX_TEST(test_dtb_larger_than_part),

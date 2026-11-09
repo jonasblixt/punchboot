@@ -17,11 +17,8 @@
 #include <inttypes.h>
 #include <libfdt.h>
 #include <pb/arch.h>
-#include <pb/device_uuid.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
-#include <pb/rot.h>
-#include <pb/slc.h>
 
 #include "atf_interface.h"
 
@@ -93,14 +90,7 @@ int boot_driver_atf_init(const struct boot_driver_atf_config *cfg_in)
 int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 {
     int rc;
-    uuid_t device_uu;
-    slc_t slc;
-    char device_uu_str[37];
-    int depth;
-    int offset;
-    bool found_chosen_node;
     void *fdt;
-    size_t ramdisk_length;
     struct bpak_part_header *ph;
     struct bpak_meta_header *mh;
 
@@ -114,9 +104,6 @@ int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
     jump_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
 
     LOG_INFO("Boot entry: 0x%" PRIxPTR, jump_addr);
-
-    device_uuid(device_uu);
-    uuid_unparse(device_uu, device_uu_str);
 
     rc = bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, cfg->bl33_bpak_id, &mh);
     if (rc != BPAK_OK) {
@@ -208,136 +195,17 @@ int boot_driver_atf_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         if (rc != PB_OK)
             return rc;
 
-        /* Locate the chosen node */
+        struct boot_dtb_chosen chosen = {
+            .patch_cb = cfg->dtb_patch_cb,
+            .ramdisk_id = cfg->ramdisk_bpak_id,
+            .ramdisk_addr = ramdisk_addr,
+            .resolve_part_name = cfg->resolve_part_name,
+        };
 
-        depth = 0;
-        offset = 0;
-        found_chosen_node = false;
+        rc = boot_dtb_set_chosen(fdt, hdr, boot_part_uu, &chosen);
 
-        for (;;) {
-            offset = fdt_next_node(fdt, offset, &depth);
-
-            if (offset < 0)
-                break;
-
-            const char *name = fdt_get_name(fdt, offset, NULL);
-
-            if (!name)
-                continue;
-
-            if (strcmp(name, "chosen") == 0) {
-                found_chosen_node = true;
-                break;
-            }
-        }
-
-        if (!found_chosen_node) {
-            offset = fdt_add_subnode(fdt, 0, "chosen");
-
-            if (offset < 0) {
-                LOG_ERR("Could not add /chosen (%i)", offset);
-                return -PB_ERR;
-            }
-        }
-
-        rc = fdt_setprop_string((void *)fdt, offset, "pb,device-uuid", (const char *)device_uu_str);
-
-        if (rc != 0) {
-            LOG_ERR("fdt error: device-uuid (%i)", rc);
-            return -1;
-        }
-
-        if (cfg->dtb_patch_cb) {
-            rc = cfg->dtb_patch_cb(fdt, offset);
-
-            if (rc != PB_OK) {
-                LOG_ERR("Patch bootargs error (%i)", rc);
-                return rc;
-            }
-        }
-
-        /* Update SLC related parameters in DT */
-        slc = slc_read_status();
-
-        /* A board without an SLC (no fuses) gets no pb,slc */
-        if (slc < 0 && slc != -PB_ERR_NOT_SUPPORTED)
-            return slc;
-
-        /* SLC state */
-        if (slc >= 0) {
-            rc = fdt_setprop_u32((void *)fdt, offset, "pb,slc", slc);
-
-            if (rc != 0) {
-                LOG_ERR("fdt error: slc (%i)", rc);
-                return -PB_ERR;
-            }
-        }
-
-        /* Current key ID we're using for boot image */
-        rc = fdt_setprop_u32((void *)fdt, offset, "pb,slc-active-key", hdr->key_id);
-
-        if (rc != 0) {
-            LOG_ERR("fdt error: active-key (%i)", rc);
-            return -PB_ERR;
-        }
-
-        /* Not there is fine, the list is appended below */
-        rc = fdt_delprop((void *)fdt, offset, "pb,slc-available-keys");
-
-        if (rc != 0 && rc != -FDT_ERR_NOTFOUND) {
-            LOG_ERR("fdt error: del available keys (%i)", rc);
-            return -1;
-        }
-
-        for (size_t i = 0; i < rot_no_of_keys(); i++) {
-            if (rot_read_key_status_by_idx(i) == PB_OK) {
-                rc = fdt_appendprop_u32(
-                    (void *)fdt, offset, "pb,slc-available-keys", rot_key_idx_to_id(i));
-
-                if (rc != 0) {
-                    LOG_ERR("fdt error: available keys (%i)", rc);
-                    return -1;
-                }
-            }
-        }
-
-        if (cfg->ramdisk_bpak_id) {
-            rc = bpak_get_part(hdr, cfg->ramdisk_bpak_id, &ph);
-
-            if (rc != BPAK_OK) {
-                LOG_ERR("Could not read ramdisk metadata");
-                return -PB_ERR_BAD_META;
-            }
-
-            ramdisk_length = bpak_part_size(ph);
-
-            rc = fdt_setprop_u32((void *)fdt, offset, "linux,initrd-start", ramdisk_addr);
-
-            if (rc != 0) {
-                LOG_ERR("fdt error: ramdisk (%i)", rc);
-                return -PB_ERR;
-            }
-
-            rc = fdt_setprop_u32(
-                (void *)fdt, offset, "linux,initrd-end", ramdisk_addr + ramdisk_length);
-
-            if (rc) {
-                LOG_ERR("Could not patch initrd");
-                return -PB_ERR;
-            }
-
-            LOG_DBG(
-                "Ramdisk %" PRIxPTR " -> %" PRIxPTR, ramdisk_addr, ramdisk_addr + ramdisk_length);
-        }
-
-        if (cfg->resolve_part_name) {
-            rc = fdt_setprop_string(
-                fdt, offset, "pb,active-system", cfg->resolve_part_name(boot_part_uu));
-            if (rc != PB_OK) {
-                LOG_ERR("fdt error: active-system (%i)", rc);
-                return -1;
-            }
-        }
+        if (rc != PB_OK)
+            return rc;
     }
 
     return PB_OK;
