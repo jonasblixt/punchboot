@@ -86,6 +86,7 @@
 #define CDNS_USB_EP_STS                    (0x2002C)
 #define EP_STS_SETUP                       BIT(0)
 #define EP_STS_IOC                         BIT(2)
+#define EP_STS_ISP                         BIT(3) /* Short packet */
 #define EP_STS_DESCMIS                     BIT(4)
 #define EP_STS_TRBERR                      BIT(7)
 
@@ -133,6 +134,12 @@ static uint8_t align_buffer[512] __aligned(64);
 #define CDNS_TRB_COUNT 128
 static struct cdns_trb trb[CDNS_TRB_COUNT] __aligned(64); // TODO: Hardcoded amount of TRB's
 
+/* EP0's max packet size at high speed, the descriptor's bMaxPacketSize0. 512
+ * is SuperSpeed's, which pb doesn't support: at high speed a longer reply,
+ * the serial number string, went out as one packet and the host dropped it
+ * (F-159). */
+#define EP0_MAX_PKT_SZ 64
+
 static void *current_xfer_buf;
 static size_t current_xfer_length;
 static usb_ep_t current_xfer_ep;
@@ -178,6 +185,10 @@ static int ep0_xfer_start(void *buf, size_t length, bool in_xfer)
     mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_TRBERR);
     mmio_write_32(base + CDNS_USB_EP_TRADDR, (uint32_t)(uintptr_t)trb_p);
     mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);
+
+    /* The data stage: out of flow control, as Linux's cdns3_ep0_run_transfer() */
+    if (in_xfer)
+        mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_ERDY);
 
     return PB_OK;
 }
@@ -277,10 +288,11 @@ int cdns3_udc_core_xfer_complete(usb_ep_t ep)
         mmio_write_32(base + CDNS_USB_EP_CMD, EP_CMD_DRDY);
     }
 
-    if ((ep_sts & EP_STS_IOC)) {
+    /* EP0's last packet may be short: done on a short packet too, as Linux */
+    if ((ep_sts & EP_STS_IOC) || (ep / 2 == 0 && (ep_sts & EP_STS_ISP))) {
         LOG_DBG("%s: Xfer done %x", ep_to_str(ep), ep_sts);
 
-        mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC);
+        mmio_write_32(base + CDNS_USB_EP_STS, EP_STS_IOC | EP_STS_ISP);
 
         if (ep == current_xfer_ep) {
             if (!in_xfer && current_xfer_buf && current_xfer_length > 0) {
@@ -453,13 +465,13 @@ int cdns3_udc_core_init(void)
 
     select_ep(USB_EP0_OUT);
     // STREAM_EN should probably be set before we can get SS working
-    mmio_write_32(base + CDNS_USB_EP_CFG, EP_CFG_ENABLE | EP_CFG_MAX_PKT_SZ(512));
+    mmio_write_32(base + CDNS_USB_EP_CFG, EP_CFG_ENABLE | EP_CFG_MAX_PKT_SZ(EP0_MAX_PKT_SZ));
 
     mmio_write_32(base + CDNS_USB_EP_STS_EN,
                   EP_STS_EN_SETUP | EP_STS_EN_DESCMISEN | EP_STS_EN_TRBERREN);
 
     select_ep(USB_EP0_IN);
-    mmio_write_32(base + CDNS_USB_EP_CFG, EP_CFG_ENABLE | EP_CFG_MAX_PKT_SZ(512));
+    mmio_write_32(base + CDNS_USB_EP_CFG, EP_CFG_ENABLE | EP_CFG_MAX_PKT_SZ(EP0_MAX_PKT_SZ));
 
     mmio_write_32(base + CDNS_USB_EP_STS_EN, EP_STS_EN_SETUP | EP_STS_EN_TRBERREN);
 
