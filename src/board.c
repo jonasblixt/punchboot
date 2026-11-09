@@ -60,6 +60,7 @@ static int setup_boot_driver(void)
     static struct boot_driver driver;
     int rc = -PB_ERR_PARAM;
 
+    memset(&driver, 0, sizeof(driver));
     driver.default_boot_source = BOOT_SOURCE_BIO;
     driver.early_boot_cb = board.early_boot;
     driver.late_boot_cb = board.late_boot;

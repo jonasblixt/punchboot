@@ -124,6 +124,10 @@ pb_unit_test(test_ab_state SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
 )
 
+pb_unit_test(test_board SOURCES
+    ${PROJECT_SOURCE_DIR}/src/board.c
+)
+
 pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
