@@ -19,7 +19,7 @@
  *  3. gpt_*         The partition table, on the device gpt_dev_uu
  *  4. ab            The A/B boot state
  *  5. late_init()   What needs the partitions
- *  6. boot_*        The boot driver: boot_linux, boot_atf or boot_armv7m
+ *  6. boot_*        The boot driver: boot_linux, boot_atf or boot_simple
  *
  * Command mode, cm_board_init(): cm_init(), then cm_transport.
  *
@@ -35,7 +35,7 @@
 
 struct bpak_header;
 struct boot_ab_state_config;
-struct boot_driver_armv7m_baremetal_config;
+struct boot_driver_simple_config;
 struct boot_driver_atf_config;
 struct boot_driver_linux_config;
 struct cm_transport_ops;
@@ -64,7 +64,7 @@ struct board {
     /* The boot driver: one of them */
     const struct boot_driver_linux_config *boot_linux;
     const struct boot_driver_atf_config *boot_atf;
-    const struct boot_driver_armv7m_baremetal_config *boot_armv7m;
+    const struct boot_driver_simple_config *boot_simple;
     int (*early_boot)(void); /*!< Before the image is loaded */
     int (*late_boot)(struct bpak_header *header, uuid_t boot_part_uu); /*!< Before the jump */
 

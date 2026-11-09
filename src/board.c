@@ -9,10 +9,10 @@
  */
 
 #include <boot/ab_state.h>
-#include <boot/armv7m_baremetal.h>
 #include <boot/atf.h>
 #include <boot/boot.h>
 #include <boot/linux.h>
+#include <boot/simple.h>
 #include <drivers/partition/gpt.h>
 #include <pb/bio.h>
 #include <pb/board.h>
@@ -85,11 +85,11 @@ static int setup_boot_driver(void)
         driver.jump = boot_driver_atf_jump;
     }
 #endif
-#ifdef CONFIG_BOOT_ARMV7M_BAREMETAL
-    if (board.boot_armv7m) {
-        rc = boot_driver_armv7m_baremetal_init(board.boot_armv7m);
-        driver.prepare = boot_driver_armv7m_baremetal_prepare;
-        driver.jump = boot_driver_armv7m_baremetal_jump;
+#ifdef CONFIG_BOOT_SIMPLE
+    if (board.boot_simple) {
+        rc = boot_driver_simple_init(board.boot_simple);
+        driver.prepare = boot_driver_simple_prepare;
+        driver.jump = boot_driver_simple_jump;
     }
 #endif
 
