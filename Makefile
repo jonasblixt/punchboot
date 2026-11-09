@@ -127,9 +127,11 @@ $(BUILD_DIR)/keystore.o:
 	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) --decorate > $(BUILD_DIR)/keystore.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
 
-$(BUILD_DIR)/srk_fuse.o: $(patsubst "%",%,$(CONFIG_SRK_FUSE))
+SRK_FUSE_FILE := $(patsubst "%",%,$(CONFIG_SRK_FUSE))
+
+$(BUILD_DIR)/srk_fuse.o: $(SRK_FUSE_FILE)
 	@echo GEN $(BUILD_DIR)/srk_fuse.c
-	$(Q)$(PYTHON) scripts/gen-srk-fuse.py $< > $(BUILD_DIR)/srk_fuse.c
+	$(Q)$(PYTHON) scripts/gen-srk-fuse.py $(SRK_FUSE_FILE) > $(BUILD_DIR)/srk_fuse.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/srk_fuse.c -o $@
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
