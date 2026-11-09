@@ -15,14 +15,13 @@
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
-#include <drivers/partition/gpt.h>
 #include <drivers/uart/imx_lpuart.h>
 #include <drivers/usb/imx_cdns3_udc.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
-#include <drivers/usb/usbd.h>
-#include <libfdt.h>
+#include <pb/board.h>
+#include <pb/board_layout.h>
 #include <pb/cm.h>
 #include <pb/console.h>
 #include <pb/crypto.h>
@@ -41,7 +40,6 @@
 #include <stdio.h>
 #include <uuid.h>
 
-#include "partitions.h"
 #define USDHC_PAD_CTRL                                                                             \
     (PADRING_IFMUX_EN_MASK | PADRING_GP_EN_MASK | (SC_PAD_CONFIG_NORMAL << PADRING_CONFIG_SHIFT) | \
      (SC_PAD_ISO_OFF << PADRING_LPCONFIG_SHIFT) |                                                  \
@@ -55,103 +53,6 @@
      (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
 static struct imx8x_platform *plat;
-
-static const struct gpt_part_table gpt_tbl_default[] = {
-    {
-        .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
-        .description = "System A",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
-        .description = "System B",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a,
-        .description = "Root A",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb,
-        .description = "Root B",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
-        .description = "PB State Primary",
-        .size = 512,
-    },
-    {
-        .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
-        .description = "PB State Backup",
-        .size = 512,
-    },
-    {
-        .uu = UUID_4581af22_99e6_4a94_b821_b60c42d74758,
-        .description = "Root overlay A",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_da2ca04f_a693_4284_b897_3906cfa1eb13,
-        .description = "Root overlay B",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_23477731_7e33_403b_b836_899a0b1d55db,
-        .description = "RoT extension A",
-        .size = SZ_KiB(128),
-    },
-    {
-        .uu = UUID_6ffd077c_32df_49e7_b11e_845449bd8edd,
-        .description = "RoT extension B",
-        .size = SZ_KiB(128),
-    },
-    {
-        .uu = UUID_9697399d_e2da_47d9_8eb5_88daea46da1b,
-        .description = "System storage A",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa,
-        .description = "System storage B",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_39792364_d3e3_4013_ac51_caaea65e4334,
-        .description = "Mass storage",
-        .size = SZ_GiB(1),
-    },
-};
-
-static const struct gpt_table_list gpt_tables[] = {
-    {
-        .name = "Default",
-        .variant = 0,
-        .table = gpt_tbl_default,
-        .table_length = ARRAY_SIZE(gpt_tbl_default),
-    },
-};
-
-static int patch_bootargs(void *fdt, int offset)
-{
-    const char *bootargs = NULL;
-
-    if (boot_get_flags() & BOOT_FLAG_VERBOSE) {
-        bootargs = "console=ttyLP0,115200  "
-                   "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ";
-    } else {
-        bootargs = "console=ttyLP0,115200 quiet ";
-    }
-
-    int rc = fdt_setprop_string(fdt, offset, "bootargs", bootargs);
-
-    if (rc != 0) {
-        LOG_ERR("Board DTB patch failed (%i)", rc);
-        return -PB_ERR;
-    }
-    return PB_OK;
-}
 
 static int usdhc_emmc_setup(void)
 {
@@ -226,18 +127,6 @@ static int early_boot(void)
     if (!(boot_get_flags() & BOOT_FLAG_CMD) && (boot_type == SC_MISC_BT_SERIAL)) {
         return -PB_ERR_ABORT;
     }
-
-    return PB_OK;
-}
-
-static int board_command(uint32_t command,
-                         uint8_t *bfr,
-                         size_t size,
-                         uint8_t *response_bfr,
-                         size_t *response_size)
-{
-    LOG_DBG("%x, %p, %zu", command, bfr, size);
-    *response_size = 0;
 
     return PB_OK;
 }
@@ -351,118 +240,6 @@ static int board_set_slc_configuration(void)
     return PB_OK;
 }
 
-int board_init(struct imx8x_platform *plat_ptr)
-{
-    int rc;
-    plat = plat_ptr;
-
-    /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
-
-    rc = imx_caam_init(IMX_CAAM_JR2_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("CAAM init failed (%i)", rc);
-        return rc;
-    }
-
-    rc = usdhc_emmc_setup();
-
-    if (rc != PB_OK) {
-        LOG_ERR("usdhc init failed (%i)", rc);
-        goto err_out;
-    }
-
-    bio_dev_t user_part = bio_get_part_by_uu(PART_user);
-
-    if (user_part < 0) {
-        goto err_out;
-    }
-
-    rc = gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
-    /* eMMC User partition now only has the visible flag to report capacity */
-    (void)bio_set_flags(user_part, BIO_FLAG_VISIBLE);
-
-    if (rc == PB_OK) {
-        static const struct boot_ab_state_config boot_state_cfg = {
-            .primary_state_part_uu = PART_primary_state,
-            .backup_state_part_uu = PART_backup_state,
-            .sys_a_uu = PART_sys_a,
-            .sys_b_uu = PART_sys_b,
-            .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
-        };
-
-        rc = boot_ab_state_init(&boot_state_cfg);
-
-        if (rc != PB_OK) {
-            goto err_out;
-        }
-    } else {
-        LOG_WARN("GPT ptbl init failed (%i)", rc);
-    }
-
-    static const struct boot_driver_linux_config linux_boot_cfg = {
-        .image_bpak_id = 0xa697d988, /* bpak_id("atf") */
-        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
-        .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
-        .dtb_patch_cb = patch_bootargs,
-        .resolve_part_name = boot_ab_part_uu_to_name,
-        .set_dtb_boot_arg = false,
-    };
-
-    rc = boot_driver_linux_init(&linux_boot_cfg);
-
-    if (rc != PB_OK) {
-        goto err_out;
-    }
-
-    static const struct boot_driver boot_driver = {
-        .default_boot_source = BOOT_SOURCE_BIO,
-        .early_boot_cb = early_boot,
-        .get_boot_bio_device = boot_ab_state_get,
-        .set_boot_partition = boot_ab_state_set_boot_partition,
-        .get_boot_partition = boot_ab_state_get_boot_partition,
-        .prepare = boot_driver_linux_prepare,
-        .late_boot_cb = NULL,
-        .jump = boot_driver_linux_jump,
-    };
-
-    rc = boot_init(&boot_driver);
-
-    if (rc != PB_OK) {
-        goto err_out;
-    }
-
-    static const struct rot_config rot_config = {
-        .revoke_key = imx8x_revoke_key,
-        .read_key_status = imx8x_read_key_status,
-    };
-
-    rc = rot_init(&rot_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("RoT init failed (%i)", rc);
-        return rc;
-    }
-
-    static const struct slc_config slc_config = {
-        .read_status = imx8x_slc_read_status,
-        .set_configuration = board_set_slc_configuration,
-        .set_configuration_locked = imx8x_slc_set_configuration_locked,
-        .set_eol = NULL,
-    };
-
-    rc = slc_init(&slc_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SLC init failed (%i)", rc);
-        return rc;
-    }
-err_out:
-    return rc;
-}
-
 void board_console_init(struct imx8x_platform *_plat)
 {
     sc_pm_clock_rate_t rate = 80000000;
@@ -491,42 +268,87 @@ void board_console_init(struct imx8x_platform *_plat)
     console_init(uart_base, &ops);
 }
 
-int cm_board_init(void)
+static int board_hw_init(void)
 {
     int rc;
 
+    /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
+
+    rc = imx_caam_init(IMX_CAAM_JR2_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+        return rc;
+    }
+
+    rc = usdhc_emmc_setup();
+
+    if (rc != PB_OK)
+        LOG_ERR("usdhc init failed (%i)", rc);
+
+    return rc;
+}
+
+static int board_cm_init(void)
+{
     /* Enable usb stuff */
     sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_1, SC_PM_PW_MODE_ON);
     sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_1_PHY, SC_PM_PW_MODE_ON);
 
     imx_usb2_phy_init(0x5B110000);
 
-    rc = imx_ci_udc_init(0x5b0e0000 /*IMX_CI_UDC_BASE*/);
+    return imx_ci_udc_init(0x5b0e0000 /*IMX_CI_UDC_BASE*/);
+}
 
-    if (rc != PB_OK) {
-        LOG_ERR("imx_ci_udc_init failed (%i)", rc);
-        return rc;
-    }
+static const struct rot_config rot = {
+    .revoke_key = imx8x_revoke_key,
+    .read_key_status = imx8x_read_key_status,
+};
 
-    rc = pb_dev_cls_init();
+static const struct slc_config slc = {
+    .read_status = imx8x_slc_read_status,
+    .set_configuration = board_set_slc_configuration,
+    .set_configuration_locked = imx8x_slc_set_configuration_locked,
+};
 
-    if (rc != PB_OK)
-        return rc;
+static const struct boot_driver_linux_config boot_linux = {
+    .image_bpak_id = 0xa697d988, /* bpak_id("atf") */
+    .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
+    .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+    .dtb_patch_cb = board_patch_bootargs,
+    .resolve_part_name = boot_ab_part_uu_to_name,
+};
 
-    static const struct cm_config cfg = {
-        .name = "imx8dxlevk",
-        .status = board_status,
-        .password_auth = board_password_auth,
-        .command = board_command,
-        .tops = {
-            .init = usbd_init,
-            .connect = usbd_connect,
-            .disconnect = usbd_disconnect,
-            .read = pb_dev_cls_read,
-            .write = pb_dev_cls_write,
-            .complete = pb_dev_cls_xfer_complete,
-        },
-    };
+const struct board board = {
+    .name = "imx8dxlevk",
+    .rot = &rot,
+    .slc = &slc,
+    .init = board_hw_init,
+    .gpt_dev_uu = PART_user,
+    .gpt_tables = board_layout_gpt,
+    .gpt_tables_length = ARRAY_SIZE(board_layout_gpt),
+    .ab = &board_layout_ab,
+    .boot_linux = &boot_linux,
+    .early_boot = early_boot,
+    .bootargs = "console=ttyLP0,115200 quiet ",
+    .bootargs_verbose = "console=ttyLP0,115200  "
+                        "earlycon=adma_lpuart32,0x5a060000,115200 earlyprintk ",
+    .cm_init = board_cm_init,
+    .cm_transport = &pb_dev_cls_transport,
+    .status = board_status,
+    .password_auth = board_password_auth,
+};
 
-    return cm_init(&cfg);
+/* Until the platform calls board_setup() */
+int board_init(struct imx8x_platform *plat_ptr)
+{
+    plat = plat_ptr;
+    return board_setup();
+}
+
+int cm_board_init(void)
+{
+    return board_cm_setup();
 }
