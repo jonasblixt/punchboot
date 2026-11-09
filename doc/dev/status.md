@@ -32,8 +32,8 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-1. `work-3.0.0-plat`: Jonas's review. On it: clocks (tables or not, for Jonas); the 8M's HAB
-   once its SRK_REVOKE word is verified.
+1. `work-3.0.0-plat`: Jonas's review. On it: the 8M's HAB once its SRK_REVOKE word is
+   verified. Clocks stay code for now (Jonas, 2026-11-09).
 2. Open from the 3.0.0 work: MMC UHS-I, DDR52 on the EVK (F-113), HS400 tuning (F-116). Boot time:
    MMU/caches on early, the eMMC power-up early. jiffy USB F-134 (before any cache work), F-136.
    CAAM F-127, F-128. The 8MP EVK: F-100, F-102, F-104, F-110, the FEC (F-155), F-156. The MEK:
