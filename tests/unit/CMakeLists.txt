@@ -106,6 +106,13 @@ pb_unit_test(test_rot
     LIBS pb_keystore
 )
 
+pb_unit_test(test_imx_iomuxc SOURCES
+    ${PROJECT_SOURCE_DIR}/src/drivers/pinctrl/imx_iomuxc.c
+)
+target_include_directories(test_imx_iomuxc BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/fakes/mmio
+)
+
 # Includes src/rot.c, to set the slot list per test
 pb_unit_test(test_rot_slots LIBS pb_keystore)
 
