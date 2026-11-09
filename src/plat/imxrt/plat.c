@@ -33,9 +33,9 @@ static uint32_t fuse_read_helper(uint8_t row, uint8_t shift, uint32_t mask, uint
     return (fuse_data & mask);
 }
 
-/* The HAB API, RM 9.12.1 */
+/* The HAB API */
 static const struct imx_hab_log_config hab_log_cfg = {
-    .rvt = 0x00200300,
+    .rvt = IMXRT_HAB_RVT_BASE,
     .entry_size = 4,
 };
 
@@ -178,7 +178,7 @@ void plat_wdog_kick(void)
 
 int plat_boot_reason(void)
 {
-    uint16_t wrsr = mmio_read_16(IMXRT_WDOG1_BASE + 0x4);
+    uint16_t wrsr = mmio_read_16(IMXRT_WDOG1_BASE + WDOG_WRSR);
     return wrsr;
 }
 
@@ -186,11 +186,11 @@ const char *plat_boot_reason_str(void)
 {
     int reason = plat_boot_reason();
     switch (reason) {
-    case (1 << 4):
+    case WDOG_WRSR_POR:
         return "POR";
-    case (1 << 1):
+    case WDOG_WRSR_TOUT:
         return "WDOG";
-    case (1 << 0):
+    case WDOG_WRSR_SFTW:
         return "SW";
     default:
         break;

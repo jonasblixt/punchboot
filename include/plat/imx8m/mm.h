@@ -1,6 +1,21 @@
 #ifndef INCLUDE_PLAT_IMX8M_MM_H
 #define INCLUDE_PLAT_IMX8M_MM_H
 
+#define IMX8M_ROM_BASE             (0x00000000) /* IMX8M_ROM_SIZE: makefile.mk */
+#define IMX8M_OCRAM_BASE           (0x00900000) /* IMX8M_OCRAM_SIZE: makefile.mk */
+#define IMX8M_AIPS_BASE            (0x30000000) /* The peripherals, AIPS1..4 */
+#define IMX8M_AIPS_SIZE            (0x01000000)
+#define IMX8M_GPV_BASE             (0x32000000) /* The NoC's global programmer's view */
+#define IMX8M_GPV_SIZE             (0x00020000)
+#define IMX8MP_HSIO_BLK_CTRL_BASE  (0x32F10000)
+#define IMX8MP_HSIO_BLK_CTRL_SIZE  (0x00010000)
+#define IMX8M_USB_SIZE             (0x00200000) /* USB1 and USB2 from IMX8M_USB1_BASE */
+/* The pointer to the ROM's event log (NXP AN12853 Table 11) */
+#define IMX8M_ROM_LOG_POINTER      (0x000009E0)
+/* The HAB API's RVT: U-Boot's addresses, the RMs don't have them */
+#define IMX8MQ_HAB_RVT_BASE        (0x00000880)
+#define IMX8MP_HAB_RVT_BASE        (0x00000900)
+
 #define IMX8M_GPT1_BASE            (0x302D0000)
 #define IMX8M_SCTR_BASE            (0x306C0000)
 #define IMX8M_WDOG1_BASE           (0x30280000)
@@ -42,16 +57,17 @@
      SRC_DDRC_RCR_PRESET_N)
 
 /* Power gating controller: power up the DDR1 domain */
-#define GPC_PGC_CPU_0_1_MAPPING    0x303A00EC
-#define GPC_PU_PGC_SW_PUP_REQ      0x303A00F8
-#define GPC_PU_PGC_SW_PUP_REQ_DDR1 BIT_32(5)
+#define GPC_PGC_CPU_0_1_MAPPING     0x303A00EC
+#define GPC_PGC_CPU_0_1_MAPPING_ALL 0x0000FFFF /* Every domain to the A53s, as NXP's code */
+#define GPC_PU_PGC_SW_PUP_REQ       0x303A00F8
+#define GPC_PU_PGC_SW_PUP_REQ_DDR1  BIT_32(5)
 
-#define DDRC_DDR_SS_GPR0           0x3d000000
-#define DDRC_DDR_SS_GPR0_LPDDR4    0x01 /* DDR subsystem in LPDDR4 mode */
-#define DDR_CSD1_BASE_ADDR         0x40000000
+#define DDRC_DDR_SS_GPR0            0x3d000000
+#define DDRC_DDR_SS_GPR0_LPDDR4     0x01 /* DDR subsystem in LPDDR4 mode */
+#define DDR_CSD1_BASE_ADDR          0x40000000
 
-#define CCM_ANALOG_DIGPROG         0x3036006C
+#define CCM_ANALOG_DIGPROG          0x3036006C
 
-#define IMX_CSU_BASE               (0x303e0000)
+#define IMX_CSU_BASE                (0x303e0000)
 
 #endif
