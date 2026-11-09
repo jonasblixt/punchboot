@@ -1,3 +1,4 @@
+#include <boot/ab_state.h>
 #include <boot/armv7m_baremetal.h>
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
@@ -23,6 +24,11 @@ static struct imxrt_platform *plat;
 #define UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068 \
     (const unsigned char *)"\x1b\xd3\x5a\x54\x48\x5d\x4f\xb6\xa8\x22\xcb\x58\xc3\xc5\xa0\x68"
 
+/*
+ * The QSPI NOR (8 MiB): pb from offset 0, the boot state, System A and B.
+ * The system images run from RAM, pb copies them there (the test bench's
+ * MCU application, testbench/mcu).
+ */
 static const struct static_part_table nor_table[] = {
     {
         .uu = PART_NOR_PBL,
@@ -30,24 +36,25 @@ static const struct static_part_table nor_table[] = {
         .size = SZ_KiB(256),
     },
     {
-        .uu = PART_NOR_SBL1,
-        .description = "SBL1",
-        .size = SZ_KiB(256),
+        .uu = PART_primary_state,
+        .description = "PB State Primary",
+        .size = SZ_KiB(4),
     },
     {
-        .uu = PART_NOR_config,
-        .description = "Config",
-        .size = SZ_KiB(64),
+        .uu = PART_backup_state,
+        .description = "PB State Backup",
+        .size = SZ_KiB(4),
     },
     {
-        .uu = PART_NOR_application,
-        .description = "Application",
-        .size = SZ_KiB(1408),
+        .uu = PART_sys_a,
+        .description = "System A",
+        .first_lba = SZ_KiB(512) / SZ_KiB(4),
+        .size = SZ_MiB(1),
     },
     {
-        .uu = PART_NOR_SBL2,
-        .description = "SBL2",
-        .size = SZ_KiB(256 + 32 + 4),
+        .uu = PART_sys_b,
+        .description = "System B",
+        .size = SZ_MiB(1),
     },
     {
         .uu = NULL,
@@ -326,7 +333,40 @@ static int flexspi_nor_setup(void)
         return nor_dev;
     }
 
-    return static_ptbl_init(nor_dev, nor_table);
+    rc = static_ptbl_init(nor_dev, nor_table);
+
+    if (rc != PB_OK)
+        return rc;
+
+    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_sys_a), 0, BIO_FLAG_BOOTABLE);
+    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_sys_b), 0, BIO_FLAG_BOOTABLE);
+
+    return PB_OK;
+}
+
+/*
+ * Command mode on request: an image writes PB_CM_REQUEST to SRC_GPR5 and
+ * resets the core (SYSRESETREQ). SRC_GPR5 keeps its value over the warm
+ * reset, it is the one SRC general purpose register that the ROM leaves to
+ * software (RM 21.6.9). The test bench's MCU application uses it to give
+ * the board back to the host.
+ */
+#define IMXRT_SRC_GPR5 (IMXRT_SRC_BASE + 0x30)
+#define PB_CM_REQUEST  0x5042434d /* "PBCM" */
+
+static int board_early_boot(void)
+{
+    if (mmio_read_32(IMXRT_SRC_GPR5) == PB_CM_REQUEST) {
+        mmio_write_32(IMXRT_SRC_GPR5, 0);
+
+        /* A boot from command mode goes on */
+        if (!(boot_get_flags() & BOOT_FLAG_CMD)) {
+            printf("Command mode requested\n\r");
+            return -PB_ERR_ABORT;
+        }
+    }
+
+    return PB_OK;
 }
 
 void board_console_init(struct imxrt_platform *plat_)
@@ -360,6 +400,48 @@ int board_init(struct imxrt_platform *plat_)
         LOG_ERR("Flexspi NOR init failed (%i)", rc);
         return rc;
     }
+
+    static const struct boot_ab_state_config boot_state_cfg = {
+        .primary_state_part_uu = PART_primary_state,
+        .backup_state_part_uu = PART_backup_state,
+        .sys_a_uu = PART_sys_a,
+        .sys_b_uu = PART_sys_b,
+        .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+    };
+
+    rc = boot_ab_state_init(&boot_state_cfg);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Boot state init failed (%i)", rc);
+        return rc;
+    }
+
+    /* The image runs from RAM, from the load address of its part "app" */
+    static const struct boot_driver_armv7m_baremetal_config app_cfg = {
+        .image_base_address = 0,
+        .boot_partition_id = 0x362fa9dd, /* bpak_id("app") */
+        .resolve_part_name = boot_ab_part_uu_to_name,
+    };
+
+    rc = boot_driver_armv7m_baremetal_init(&app_cfg);
+
+    if (rc != PB_OK)
+        return rc;
+
+    static const struct boot_driver boot_driver = {
+        .default_boot_source = BOOT_SOURCE_BIO,
+        .early_boot_cb = board_early_boot,
+        .get_boot_bio_device = boot_ab_state_get,
+        .set_boot_partition = boot_ab_state_set_boot_partition,
+        .get_boot_partition = boot_ab_state_get_boot_partition,
+        .prepare = boot_driver_armv7m_baremetal_prepare,
+        .jump = boot_driver_armv7m_baremetal_jump,
+    };
+
+    rc = boot_init(&boot_driver);
+
+    if (rc != PB_OK)
+        return rc;
 
     static const struct rot_config rot_config = {
         .revoke_key = NULL,

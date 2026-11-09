@@ -229,6 +229,65 @@ static void test_commit_write_errors(void **state)
     assert_true(state_valid(f, BACKUP_LBA));
 }
 
+/* NOR flash: the state partitions are erased before they are written */
+static struct ramdisk *erase_disk;
+static lba_t erased[4];
+static unsigned int erase_calls;
+static int erase_rc;
+
+static int fake_nor_erase(bio_dev_t dev, lba_t first_lba, size_t count)
+{
+    (void)dev;
+    assert_int_equal(count, 1);
+    if (erase_calls < 4)
+        erased[erase_calls] = first_lba;
+    erase_calls++;
+    if (erase_rc != PB_OK)
+        return erase_rc;
+    memset(ramdisk_block(erase_disk, first_lba), 0xff, RAMDISK_BLOCK_SIZE);
+    return PB_OK;
+}
+
+static void attach_nor(struct fixture *f)
+{
+    bio_reset();
+    bio_dev_t disk = ramdisk_attach(f->disk, UU_DISK);
+    assert_true(disk >= 0);
+    assert_int_equal(bio_set_ios_erase(disk, fake_nor_erase), PB_OK);
+    assert_int_equal(bio_clear_set_flags(disk, 0, BIO_FLAG_ERASE_BEFORE_WRITE), PB_OK);
+    assert_true(bio_allocate_parent(disk, 10, 19, RAMDISK_BLOCK_SIZE, UU_SYS_A, "System A") >= 0);
+    assert_true(bio_allocate_parent(disk, 20, 29, RAMDISK_BLOCK_SIZE, UU_SYS_B, "System B") >= 0);
+    assert_true(bio_allocate_parent(
+                    disk, PRIMARY_LBA, PRIMARY_LBA, RAMDISK_BLOCK_SIZE, UU_PRIMARY, "Primary") >=
+                0);
+    assert_true(bio_allocate_parent(
+                    disk, BACKUP_LBA, BACKUP_LBA, RAMDISK_BLOCK_SIZE, UU_BACKUP, "Backup") >= 0);
+    erase_disk = f->disk;
+    erase_calls = 0;
+    erase_rc = PB_OK;
+}
+
+static void test_commit_erases_first(void **state)
+{
+    struct fixture *f = *state;
+
+    attach_nor(f);
+    assert_int_equal(boot_ab_state_init(&cfg_normal), PB_OK);
+    assert_int_equal(erase_calls, 2);
+    assert_int_equal(erased[0], PRIMARY_LBA);
+    assert_int_equal(erased[1], BACKUP_LBA);
+    assert_true(state_valid(f, PRIMARY_LBA));
+    assert_true(state_valid(f, BACKUP_LBA));
+
+    /* An erase error stops the commit before the write */
+    attach_nor(f);
+    memset(state_at(f, PRIMARY_LBA), 0, RAMDISK_BLOCK_SIZE);
+    erase_rc = -PB_ERR_IO;
+    assert_int_equal(boot_ab_state_init(&cfg_normal), -PB_ERR_IO);
+    assert_int_equal(erase_calls, 1);
+    assert_false(state_valid(f, PRIMARY_LBA));
+}
+
 static void test_verified_system_boots(void **state)
 {
     struct fixture *f = *state;
@@ -381,6 +440,7 @@ int main(void)
         AB_TEST(test_init_blank_installs_defaults),
         AB_TEST(test_init_bad_crc_is_repaired),
         AB_TEST(test_commit_write_errors),
+        AB_TEST(test_commit_erases_first),
         AB_TEST(test_verified_system_boots),
         AB_TEST(test_b_boot_attempts),
         AB_TEST(test_no_rollback_to_unverified_system),

@@ -51,6 +51,19 @@ static int pb_boot_state_defaults(struct pb_boot_state *state)
     return PB_OK;
 }
 
+/* NOR flash only clears bits when it is written: erase the block first */
+static int pb_boot_state_write(bio_dev_t part)
+{
+    if (bio_get_flags(part) & BIO_FLAG_ERASE_BEFORE_WRITE) {
+        int rc = bio_erase(part, 0, 1);
+
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    return bio_write(part, 0, sizeof(struct pb_boot_state), &boot_state);
+}
+
 static int pb_boot_state_commit(void)
 {
     int rc;
@@ -62,11 +75,11 @@ static int pb_boot_state_commit(void)
     uint32_t crc = crc32(0, (const uint8_t *)&boot_state, sizeof(struct pb_boot_state));
     boot_state.crc = crc;
 
-    rc = bio_write(primary_part, 0, sizeof(struct pb_boot_state), &boot_state);
+    rc = pb_boot_state_write(primary_part);
     if (rc != PB_OK)
         goto config_commit_err;
 
-    rc = bio_write(backup_part, 0, sizeof(struct pb_boot_state), &boot_state);
+    rc = pb_boot_state_write(backup_part);
 
 config_commit_err:
     if (rc != PB_OK) {
