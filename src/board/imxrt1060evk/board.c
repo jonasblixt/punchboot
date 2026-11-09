@@ -6,6 +6,7 @@
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/memc/imx_flexspi.h>
 #include <drivers/partition/static.h>
+#include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_lpuart.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
@@ -233,30 +234,20 @@ static int flexspi_nor_setup(void)
 {
     int rc;
 
-    // PAD mux SPI DATA00 - alt 1
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_SD_B1_08, IMXRT_IOMUX_ALT(1));
-    // PAD mux SPI DATA01 - alt 1
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_SD_B1_09, IMXRT_IOMUX_ALT(1));
-    // PAD mux SPI DATA02 - alt 1
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_SD_B1_10, IMXRT_IOMUX_ALT(1));
-    // PAD mux SPI DATA03 - alt 1
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_SD_B1_11, IMXRT_IOMUX_ALT(1));
-    // PAD mux SPI SCLK - alt 1
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_SD_B1_07, IMXRT_IOMUX_ALT(1));
-    // PAD mux SPI SS0_B - alt 1
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_SD_B1_06, IMXRT_IOMUX_ALT(1));
-    // PAD mux SPI DQS - alt 1
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_SD_B1_05, IMXRT_IOMUX_SION | IMXRT_IOMUX_ALT(1));
-
 #define FLEXSPI_PAD_CONFIG (IMXRT_IOMUX_SRE | IMXRT_IOMUX_SPEED(3) | IMXRT_IOMUX_DSE(6))
+    static const struct imx_pin pins[] = {
+        IMXRT_PIN(GPIO_SD_B1_08, IMXRT_IOMUX_ALT(1), FLEXSPI_PAD_CONFIG), /* DATA00 */
+        IMXRT_PIN(GPIO_SD_B1_09, IMXRT_IOMUX_ALT(1), FLEXSPI_PAD_CONFIG), /* DATA01 */
+        IMXRT_PIN(GPIO_SD_B1_10, IMXRT_IOMUX_ALT(1), FLEXSPI_PAD_CONFIG), /* DATA02 */
+        IMXRT_PIN(GPIO_SD_B1_11, IMXRT_IOMUX_ALT(1), FLEXSPI_PAD_CONFIG), /* DATA03 */
+        IMXRT_PIN(GPIO_SD_B1_07, IMXRT_IOMUX_ALT(1), FLEXSPI_PAD_CONFIG), /* SCLK */
+        IMXRT_PIN(GPIO_SD_B1_06, IMXRT_IOMUX_ALT(1), FLEXSPI_PAD_CONFIG), /* SS0_B */
+        IMXRT_PIN(GPIO_SD_B1_05,
+                  IMXRT_IOMUX_SION | IMXRT_IOMUX_ALT(1),
+                  FLEXSPI_PAD_CONFIG | IMXRT_IOMUX_HYS), /* DQS */
+    };
 
-    mmio_write_32(SW_PAD_CTL_PAD_GPIO_SD_B1_08, FLEXSPI_PAD_CONFIG);
-    mmio_write_32(SW_PAD_CTL_PAD_GPIO_SD_B1_09, FLEXSPI_PAD_CONFIG);
-    mmio_write_32(SW_PAD_CTL_PAD_GPIO_SD_B1_10, FLEXSPI_PAD_CONFIG);
-    mmio_write_32(SW_PAD_CTL_PAD_GPIO_SD_B1_11, FLEXSPI_PAD_CONFIG);
-    mmio_write_32(SW_PAD_CTL_PAD_GPIO_SD_B1_07, FLEXSPI_PAD_CONFIG);
-    mmio_write_32(SW_PAD_CTL_PAD_GPIO_SD_B1_06, FLEXSPI_PAD_CONFIG);
-    mmio_write_32(SW_PAD_CTL_PAD_GPIO_SD_B1_05, FLEXSPI_PAD_CONFIG | IMXRT_IOMUX_HYS);
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     /* Derive clock from PLL3, target freq: 120 MHz */
     mmio_clrsetbits_32(IMXRT_CCM_CSCMR1,
@@ -374,10 +365,12 @@ static void board_console_init(void)
     // Ungate lpuart1 clock
     mmio_clrsetbits_32(IMXRT_CCM_CCGR5, 0, CCGR5_LPUART1);
 
-    // PAD mux: lpuart1 RX = alt2
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_AD_B0_13, IMXRT_IOMUX_ALT(2));
-    // PAD mux: lpuart1 TX = alt2
-    mmio_write_32(SW_MUX_CTL_PAD_GPIO_AD_B0_12, IMXRT_IOMUX_ALT(2));
+    static const struct imx_pin pins[] = {
+        IMXRT_PIN(GPIO_AD_B0_13, IMXRT_IOMUX_ALT(2), IMX_PAD_KEEP), /* LPUART1 RX */
+        IMXRT_PIN(GPIO_AD_B0_12, IMXRT_IOMUX_ALT(2), IMX_PAD_KEEP), /* LPUART1 TX */
+    };
+
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     imx_lpuart_init(IMXRT_LPUART1_BASE, MHz(20), 115200);
 
