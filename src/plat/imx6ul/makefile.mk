@@ -21,4 +21,5 @@ src-y  += src/plat/imx6ul/plat.c
 src-y  += src/drivers/fuse/imx_hab_fuses.c
 src-y  += src/plat/imx6ul/hab.c
 
+src-y  += src/drivers/pinctrl/imx_iomuxc.c
 endif
