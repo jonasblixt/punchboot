@@ -1,12 +1,33 @@
 #ifndef INCLUDE_PLAT_IMX8X_FUSEBOX_H
 #define INCLUDE_PLAT_IMX8X_FUSEBOX_H
 
+#include <pb/utils_def.h>
 #include <plat/imx8x/imx8x.h>
 #include <stdint.h>
 
 #define IMX8X_FUSE_REVOKE    (11)
 #define IMX8X_FUSE_BOOT0     (18)
 #define IMX8X_FUSE_BOOT1     (19)
+
+/*
+ * BOOT0 (0x920): BT_MODE_FUSES, the ROM's boot mode ([5:0] on the QXP, [2:0]
+ * on the DXL), and BT_FUSE_SEL: the ROM takes the boot mode from the fuses
+ * when the boot pins are 0 and BT_FUSE_SEL is set (QXP RM Table 5-1, 5-3,
+ * 7-2; DXL RM Table 5-1)
+ */
+#define IMX8X_BOOT0_EMMC0    (0x2) /* eMMC on uSDHC0 */
+#define IMX8X_BOOT0_SD1      (0x3) /* SD on uSDHC1 */
+#define IMX8X_BOOT0_FUSE_SEL BIT(6)
+
+/* BOOT1 (0x930): the uSDHC boot (RM Table 5-15) */
+#define IMX8X_BOOT1_FAST     BIT(0) /* Fast boot */
+#define IMX8X_BOOT1_FAST_ACK BIT(1) /* Fast boot acknowledge */
+#define IMX8X_BOOT1_MMC_HS   BIT(2) /* [3:2] x1: eMMC high speed */
+#define IMX8X_BOOT1_BUS(x)   ((x) << 4) /* [5:4] bus width */
+#define IMX8X_BUS_8BIT       (0)
+#define IMX8X_BUS_4BIT       (1)
+#define IMX8X_BUS_8BIT_DDR   (2)
+#define IMX8X_BUS_4BIT_DDR   (3)
 
 #define IMX8X_FUSE_SRK0      (730)
 #define IMX8X_FUSE_SRK1      (731)

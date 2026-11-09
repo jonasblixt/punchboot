@@ -78,7 +78,7 @@ int imx8x_fuse_write_srk(const uint32_t *srk, size_t words)
 
     for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
         LOG_INFO("Fusing SRK%i, value=0x%x", n, srk[n]);
-        rc = imx8x_fuse_write(730 + n, srk[n]);
+        rc = imx8x_fuse_write(IMX8X_FUSE_SRK0 + n, srk[n]);
 
         if (rc != PB_OK)
             return rc;
@@ -91,8 +91,8 @@ bool imx8x_is_srk_fused(void)
 {
     uint32_t val;
 
-    for (unsigned int n = 0; n < 16; n++) {
-        (void)imx8x_fuse_read(730 + n, &val);
+    for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
+        (void)imx8x_fuse_read(IMX8X_FUSE_SRK0 + n, &val);
 
         if (val != 0)
             return true;
