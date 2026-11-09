@@ -875,6 +875,34 @@ static void test_locked_device_requires_auth(void **state)
     assert_int_equal(crypto.alg, HASH_SHA256);
 }
 
+/*
+ * A board init that failed before slc_init(), or an SLC that can't be read:
+ * the device may be locked, so command mode must not be open. A board
+ * without SLC support stays open.
+ */
+static void test_unknown_slc_requires_auth(void **state)
+{
+    static const slc_t unknown[] = { -PB_ERR_STATE, -PB_ERR_IO };
+    (void)state;
+
+    for (size_t i = 0; i < ARRAY_SIZE(unknown); i++) {
+        sec.slc = unknown[i];
+        host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+        host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+        run();
+        expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+        expect_result(PB_RESULT_OK);
+        expect_end();
+        t.init_calls = 0;
+    }
+
+    sec.slc = -PB_ERR_NOT_SUPPORTED;
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 static void test_auth_token_key_kinds(void **state)
 {
     static const struct {
@@ -1126,10 +1154,14 @@ static void test_slc_errors(void **state)
     expect_result(-PB_RESULT_IO_ERROR);
     assert_int_equal(sec.slc, SLC_CONFIGURATION);
 
+    /* An SLC that can't be read counts as locked */
     t.init_calls = 0;
     sec.slc = -PB_ERR_IO;
+    host_auth_token();
     host_cmd(PB_CMD_SLC_READ, NULL, 0);
     run();
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
     expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
 }
@@ -1933,6 +1965,7 @@ int main(void)
         CM_TEST(test_auth_data_read_fails),
         CM_TEST(test_slc_commands),
         CM_TEST(test_slc_errors),
+        CM_TEST(test_unknown_slc_requires_auth),
         CM_TEST(test_slc_read_key_status),
         CM_TEST(test_bpak_read),
         CM_TEST(test_bpak_read_errors),
