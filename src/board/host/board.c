@@ -238,40 +238,12 @@ static int board_slc_set_eol(void)
     return test_fuse_write(FUSE_SEC, SEC_CONF_EOL);
 }
 
-static int board_set_slc_configuration(void)
-{
-    int rc;
-
-    rc = test_fuse_write(FUSE_SRK0, 0x5020C7D7);
-    if (rc != PB_OK)
-        return rc;
-
-    rc = test_fuse_write(FUSE_SRK1, 0xBB62B945);
-    if (rc != PB_OK)
-        return rc;
-
-    rc = test_fuse_write(FUSE_SRK2, 0xDD97C8BE);
-    if (rc != PB_OK)
-        return rc;
-
-    rc = test_fuse_write(FUSE_SRK3, 0xDC6710DD);
-    if (rc != PB_OK)
-        return rc;
-
-    rc = test_fuse_write(FUSE_SRK4, 0x2756B777);
-    if (rc != PB_OK)
-        return rc;
-
-    rc = test_fuse_write(FUSE_BOOT0, 0x12341234);
-    if (rc != PB_OK)
-        return rc;
-
-    rc = test_fuse_write(FUSE_BOOT1, 0xCAFEEFEE);
-    if (rc != PB_OK)
-        return rc;
-
-    return PB_OK;
-}
+/* The configuration: a made up SRK hash and boot configuration */
+static const struct slc_fuse config_fuses[] = {
+    { FUSE_SRK0, 0x5020C7D7 },  { FUSE_SRK1, 0xBB62B945 }, { FUSE_SRK2, 0xDD97C8BE },
+    { FUSE_SRK3, 0xDC6710DD },  { FUSE_SRK4, 0x2756B777 }, { FUSE_BOOT0, 0x12341234 },
+    { FUSE_BOOT1, 0xCAFEEFEE },
+};
 
 static int board_hw_init(void)
 {
@@ -355,9 +327,12 @@ static const struct rot_config rot = {
 
 static const struct slc_config slc = {
     .read_status = board_slc_read_status,
-    .set_configuration = board_set_slc_configuration,
     .set_configuration_locked = board_slc_set_configuration_locked,
     .set_eol = board_slc_set_eol,
+    .fuses = config_fuses,
+    .fuses_length = ARRAY_SIZE(config_fuses),
+    .fuse_read = test_fuse_read,
+    .fuse_write = test_fuse_write,
 };
 
 static const struct boot_driver_linux_config boot_linux = {
