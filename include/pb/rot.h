@@ -16,12 +16,12 @@
 /** A key of the keystore built into pb */
 struct rot_key {
     key_id_t id; /*!< Punchboot ID of the key */
-    unsigned int index; /*!< Its place in the keystore, e.g. its revoke fuse bit */
+    unsigned int slot; /*!< Its revoke slot, e.g. SRK n's revoke fuse bit */
 };
 
 /**
  * The platform's key revocation. The keys are the keystore's (keystore_pb),
- * in its order.
+ * their slots CONFIG_KEYSTORE_SLOTS (src/Kconfig).
  */
 struct rot_config {
     int (*revoke_key)(const struct rot_key *key); /*!< Optional */

@@ -66,7 +66,7 @@ int imx_hab_read_key_status(const struct rot_key *key)
     if (cfg == NULL)
         return -PB_ERR_STATE;
 
-    if (key->index >= 32)
+    if (key->slot >= 32)
         return PB_OK;
 
     rc = imx_ocotp_read(cfg->revoke_bank, cfg->revoke_word, &val);
@@ -74,7 +74,7 @@ int imx_hab_read_key_status(const struct rot_key *key)
     if (rc != PB_OK)
         return rc;
 
-    if (val & (1u << key->index))
+    if (val & (1u << key->slot))
         return -PB_ERR_KEY_REVOKED;
 
     return PB_OK;
@@ -89,8 +89,8 @@ int imx_hab_revoke_key(const struct rot_key *key)
     if (cfg == NULL)
         return -PB_ERR_STATE;
 
-    if (key->index >= cfg->revocable) {
-        LOG_ERR("Key %u can't be revoked, HAB revokes SRK0-%u", key->index, cfg->revocable - 1);
+    if (key->slot >= cfg->revocable) {
+        LOG_ERR("Key %u can't be revoked, HAB revokes SRK0-%u", key->slot, cfg->revocable - 1);
         return -PB_ERR_PARAM;
     }
 
@@ -111,14 +111,14 @@ int imx_hab_revoke_key(const struct rot_key *key)
     }
 
     LOG_DBG("Current revoke value: 0x%x", val);
-    bit = 1u << key->index;
+    bit = 1u << key->slot;
 
     if (val & bit) {
         LOG_INFO("Key already revoked");
         return PB_OK;
     }
 
-    LOG_INFO("Revoking key %u (0x%x)", key->index, key->id);
+    LOG_INFO("Revoking key %u (0x%x)", key->slot, key->id);
     return imx_ocotp_write(cfg->revoke_bank, cfg->revoke_word, val | bit);
 }
 

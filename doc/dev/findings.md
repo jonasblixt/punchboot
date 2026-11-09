@@ -137,14 +137,15 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-164 | `src/plat/imx8x/rot_helpers.c` | `imx8x_revoke_key()` ignored the key: it committed | Verified | fixed |
 | | | whatever the AHAB header revokes and returned `PB_OK`, also when no fuse | | (work-3.0.0) |
 | | | changed. The host was told a key was revoked that wasn't. | | |
-| F-165 | `src/plat/{imx6ul,imx8x}/rot_helpers.c` | No bound on the key's revoke slot. | Verified | partly fixed |
+| F-165 | `src/plat/{imx6ul,imx8x}/rot_helpers.c` | No bound on the key's revoke slot. | Verified | fixed |
 | | | The 6UL revokes SRK0-2 (`SRK_REVOKE[2:0]`, RM Table 5-9), the keystore has | | |
 | | | 4 keys: revoking key 3 burns bit 3, which the fuse map doesn't define, and | | |
 | | | pb then rejects key 3 although the ROM still accepts it. On the 8X a key | | |
 | | | past the four OEM SRKs reads as valid forever. The platform should say how | | |
 | | | many slots it has. `work-3.0.0-plat`: `imx_hab_fuses.revocable`, the 8X | | |
-| | | refuses past its four (F-164). Open: the slot is the key's place in the | | |
-| | | keystore. | | |
+| | | refuses past its four (F-164). The slot was the key's place in the | | |
+| | | keystore: dropping a revoked key moved the next onto its burnt bit. Now | | |
+| | | `CONFIG_KEYSTORE_SLOTS` lists them (`test_rot_slots`). | | |
 | F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | partly fixed |
 | | | platform: the 6UL locks only from CONFIGURATION, the 8X from any state. No | | |
 | | | platform reads the fuses back after writing them. The rules belong in | | |
