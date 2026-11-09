@@ -195,7 +195,7 @@ static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
 
 static int board_revoke_key(const struct rot_key *key)
 {
-    return test_fuse_write(FUSE_REVOKE, (uint32_t)(1 << key->param1));
+    return test_fuse_write(FUSE_REVOKE, (uint32_t)(1 << key->index));
 }
 
 static int board_read_key_status(const struct rot_key *key)
@@ -205,7 +205,7 @@ static int board_read_key_status(const struct rot_key *key)
     if (val < 0)
         LOG_ERR("Could not read fuse");
 
-    if (val & (1 << key->param1))
+    if (val & (1 << key->index))
         return -PB_ERR_KEY_REVOKED;
     return PB_OK;
 }
@@ -280,24 +280,6 @@ int board_init(void)
     static const struct rot_config rot_config = {
         .revoke_key = board_revoke_key,
         .read_key_status = board_read_key_status,
-        .key_map_length = 3,
-        .key_map = {
-            {
-                .name = "pb-development",
-                .id = 0xa90f9680,
-                .param1 = 0,
-            },
-            {
-                .name = "pb-development2",
-                .id = 0x25c6dd36,
-                .param1 = 1,
-            },
-            {
-                .name = "pb-development3",
-                .id = 0x52c1eda0,
-                .param1 = 2,
-            },
-        },
     };
 
     rc = rot_init(&rot_config);
