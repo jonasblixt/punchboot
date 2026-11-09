@@ -11,12 +11,6 @@
 #include <pb/mmio.h>
 #include <pb/pb.h>
 
-#define WDOG_WCR  0x0000
-#define WDOG_WSR  0x0002
-#define WDOG_WRSR 0x0004
-#define WDOG_WICR 0x0006
-#define WDOG_WMCR 0x0008
-
 static uintptr_t base;
 
 int imx_wdog_init(uintptr_t base_, unsigned int delay_s)
@@ -24,13 +18,14 @@ int imx_wdog_init(uintptr_t base_, unsigned int delay_s)
     base = base_;
 
     /* Timeout value = 9 * 0.5 + 0.5 = 5 s */
-    uint16_t regval = ((delay_s * 2) << 8) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5);
+    uint16_t regval = WDOG_WCR_WT(delay_s * 2) | WDOG_WCR_WDE | WDOG_WCR_WDT | WDOG_WCR_SRS |
+                      WDOG_WCR_WDA;
 
 #ifdef CONFIG_DRIVERS_IMX_WDOG_DEBUG
-    regval |= (1 << 1);
+    regval |= WDOG_WCR_WDBG;
 #endif
 #ifdef CONFIG_DRIVERS_IMX_WDOG_WAIT
-    regval |= (1 << 7);
+    regval |= WDOG_WCR_WDW;
 #endif
     mmio_write_16(base + WDOG_WCR, regval);
 
@@ -41,15 +36,16 @@ int imx_wdog_init(uintptr_t base_, unsigned int delay_s)
 
 int imx_wdog_kick(void)
 {
-    mmio_write_16(base + WDOG_WSR, 0x5555);
-    mmio_write_16(base + WDOG_WSR, 0xAAAA);
+    mmio_write_16(base + WDOG_WSR, WDOG_WSR_SEQ1);
+    mmio_write_16(base + WDOG_WSR, WDOG_WSR_SEQ2);
 
     return PB_OK;
 }
 
 int imx_wdog_reset_now(void)
 {
-    mmio_write_16(base + WDOG_WCR, ((1 << 6) | (1 << 2)));
+    /* SRS 0: a software reset */
+    mmio_write_16(base + WDOG_WCR, WDOG_WCR_SRE | WDOG_WCR_WDE);
 
     while (true) {
     };

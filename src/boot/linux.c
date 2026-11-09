@@ -18,6 +18,9 @@
 #include <pb/pb.h>
 #include <pb/plat.h>
 
+/* AArch32: no machine type, the device tree describes the machine */
+#define LINUX_ARM_MACH_TYPE_DT 0xffffffff
+
 static const struct boot_driver_linux_config *cfg;
 static uintptr_t jump_addr;
 static uintptr_t ramdisk_addr;
@@ -118,8 +121,8 @@ void boot_driver_linux_jump(void)
     LOG_DBG("Jumping to %" PRIxPTR, jump_addr);
     if (cfg->set_dtb_boot_arg) {
 #if defined(CONFIG_ARCH_ARMV7)
-        /* AArch32 Linux boot protocol: r0 = 0, r1 = ~0 (DT only), r2 = DTB */
-        arch_jump((void *)jump_addr, NULL, (void *)0xffffffff, (void *)dtb_addr, NULL);
+        /* AArch32 Linux boot protocol: r0 = 0, r1 = the machine type (DT only), r2 = DTB */
+        arch_jump((void *)jump_addr, NULL, (void *)LINUX_ARM_MACH_TYPE_DT, (void *)dtb_addr, NULL);
 #else
         /* AArch64 Linux boot protocol: x0 = DTB */
         arch_jump((void *)jump_addr, (void *)dtb_addr, NULL, NULL, NULL);

@@ -18,7 +18,7 @@ void imx_uart_putc(uintptr_t base, char c)
     for (;;) {
         usr2 = mmio_read_32(base + USR2);
 
-        if (usr2 & (1 << 3))
+        if (usr2 & USR2_TXDC)
             break;
     }
 
@@ -39,13 +39,13 @@ int imx_uart_init(uintptr_t base, unsigned int input_clock_Hz, unsigned int baud
             break;
     }
 
-    mmio_write_32(base + UCR3, 0x0704);
-    mmio_write_32(base + UCR4, 0x8000);
-    mmio_write_32(base + UESC, 0x002b);
-    mmio_write_32(base + UTIM, 0x0000);
-    mmio_write_32(base + UTS, 0x0000);
-    mmio_write_32(base + UFCR, (4 << 7));
-    mmio_write_32(base + UBIR, 0x000f);
+    mmio_write_32(base + UCR3, UCR3_DSR | UCR3_DCD | UCR3_RI | UCR3_RXDMUXSEL);
+    mmio_write_32(base + UCR4, UCR4_CTSTL(32));
+    mmio_write_32(base + UESC, UESC_ESCAPE);
+    mmio_write_32(base + UTIM, 0);
+    mmio_write_32(base + UTS, 0);
+    mmio_write_32(base + UFCR, UFCR_RFDIV(UFCR_RFDIV_1));
+    mmio_write_32(base + UBIR, UBIR_INC);
     mmio_write_32(base + UBMR, (uint32_t)(input_clock_Hz / (2 * baudrate)));
     mmio_write_32(base + UCR2, (UCR2_WS | UCR2_IRTS | UCR2_RXEN | UCR2_TXEN | UCR2_SRST));
     mmio_write_32(base + UCR1, UCR1_UARTEN);
