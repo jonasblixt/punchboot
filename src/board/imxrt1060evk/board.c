@@ -82,15 +82,15 @@ static int board_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
         return PB_OK;
 
     /* Perform CDP detection */
-    uint32_t charger_status = mmio_read_32(IMXRT_ANATOP_BASE + 0x01D0);
-    if (charger_status & (1 << 1)) {
+    uint32_t charger_status = mmio_read_32(IMXRT_USB1_CHRG_DETECT_STAT);
+    if (charger_status & IMXRT_CHRG_DETECT_STAT_CHRG_DETECTED) {
         printf("Charger detected, entering command mode\n\r");
         return -PB_ERR_ABORT;
     }
 
     /* When serial loading on bench, bootmode registers are set so force command mode */
-    uint32_t sbmr2 = mmio_read_32(IMXRT_SRC_BASE + 0x1C);
-    if (sbmr2 & (3 << 24)) {
+    uint32_t sbmr2 = mmio_read_32(IMXRT_SRC_SBMR2);
+    if (sbmr2 & IMXRT_SRC_SBMR2_BMOD_MASK) {
         printf("Serial boot detected, entering command mode\n\r");
         return -PB_ERR_ABORT;
     }
@@ -102,7 +102,7 @@ static int board_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
      *
      * If no PBL is loaded in start of flash, always go into recovery mode
      */
-    uint32_t *pvl_ivt_header_addr = (uint32_t *)(0x60000000 + 0x1000);
+    uint32_t *pvl_ivt_header_addr = (uint32_t *)IMXRT_FLEXSPI_NOR_IVT;
     if (*pvl_ivt_header_addr == 0x00000000 || *pvl_ivt_header_addr == 0xFFFFFFFF) {
         printf("No pbl detected, entering command mode\n\r");
         return -PB_ERR_ABORT;
@@ -342,8 +342,7 @@ static int flexspi_nor_setup(void)
  * software (RM 21.6.9). The test bench's MCU application uses it to give
  * the board back to the host.
  */
-#define IMXRT_SRC_GPR5 (IMXRT_SRC_BASE + 0x30)
-#define PB_CM_REQUEST  0x5042434d /* "PBCM" */
+#define PB_CM_REQUEST 0x5042434d /* "PBCM" */
 
 static int board_early_boot(void)
 {
