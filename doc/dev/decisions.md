@@ -301,10 +301,13 @@ data are still code in the boards.
 
 ## D-027: The core owns the security rules, the platforms only read and write fuses (2026-11-09)
 
-- RoT keys are the keystore's: key n is the keystore's n-th key and SRK n, and they share the
-  revoke bit. The boards' key maps are gone (they only repeated the keystore). A platform says
-  how many SRKs its ROM can revoke and refuses the rest (F-165); a key revoked past that by an
-  older pb still reads as revoked.
+- RoT keys are the keystore's, the boards' key maps are gone (they only repeated the
+  keystore). A key's revoke slot n is SRK n's revoke bit, shared with the ROM. The slots are
+  `CONFIG_KEYSTORE_SLOTS`, the key ids in slot order, next to `CONFIG_KEYSTORE`: a key dropped
+  from the keystore keeps its slot in the list, so the next key doesn't move onto its burnt bit.
+  `rot_init()` refuses a list it can't read or without a slot for a keystore key. Empty is the
+  keystore's order, as before. A platform says how many SRKs its ROM can revoke and refuses the
+  rest (F-165); a key revoked past that by an older pb still reads as revoked.
 - The SLC order is checked in `src/slc.c` once (F-166): CONFIGURATION can be written until the
   device is locked, locking needs CONFIGURATION, EOL is allowed from any state (D-011), and
   setting the current state of the last two writes nothing. The wire values don't change
@@ -317,6 +320,5 @@ data are still code in the boards.
 Why: the review of the RoT/SLC code found the same rule implemented differently on every
 platform, with bugs in each (F-001, F-161..F-167). The rules are the product's, the fuse
 locations the SoC's.
-Open: the slot is still implied by the keystore's order (F-165); the 8M's SRK_REVOKE word is
-unverified (8MP RM: reserved), so the 8M has no HAB support yet; the boot-config fuses are
+Open: the 8M's SRK_REVOKE word is unverified (8MP RM: reserved), so the 8M has no HAB support yet; the boot-config fuses are
 still written by the boards' `set_configuration`.

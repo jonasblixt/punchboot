@@ -83,7 +83,7 @@ static int setup(void **state)
 
 static void test_not_initialized(void **state)
 {
-    struct rot_key key = { .id = 1, .index = 0 };
+    struct rot_key key = { .id = 1, .slot = 0 };
     (void)state;
 
     imx_hab_fuses_init(NULL);
@@ -147,7 +147,7 @@ static void test_fuse_srk(void **state)
 
 static void test_revoke(void **state)
 {
-    struct rot_key key = { .id = 0xa90f9680, .index = 1 };
+    struct rot_key key = { .id = 0xa90f9680, .slot = 1 };
     (void)state;
 
     assert_int_equal(imx_hab_read_key_status(&key), PB_OK);
@@ -160,7 +160,7 @@ static void test_revoke(void **state)
     assert_int_equal(writes, 1);
 
     /* The other bits stay */
-    key.index = 0;
+    key.slot = 0;
     assert_int_equal(imx_hab_revoke_key(&key), PB_OK);
     assert_int_equal(REVOKE, 0x03);
 }
@@ -168,7 +168,7 @@ static void test_revoke(void **state)
 /* HAB revokes SRK0-2 (F-165) */
 static void test_revoke_past_the_srks(void **state)
 {
-    struct rot_key key = { .id = 0x52c1eda0, .index = 3 };
+    struct rot_key key = { .id = 0x52c1eda0, .slot = 3 };
     (void)state;
 
     assert_int_equal(imx_hab_revoke_key(&key), -PB_ERR_PARAM);
@@ -181,7 +181,7 @@ static void test_revoke_past_the_srks(void **state)
 
 static void test_revoke_not_allowed(void **state)
 {
-    struct rot_key key = { .id = 0xa90f9680, .index = 0 };
+    struct rot_key key = { .id = 0xa90f9680, .slot = 0 };
     (void)state;
 
     revoke_allowed_rc = -PB_ERR;

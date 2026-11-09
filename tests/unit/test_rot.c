@@ -33,13 +33,13 @@ static int revoke_calls;
 static int fake_revoke_key(const struct rot_key *key)
 {
     revoke_calls++;
-    revoked |= 1u << key->index;
+    revoked |= 1u << key->slot;
     return PB_OK;
 }
 
 static int fake_read_key_status(const struct rot_key *key)
 {
-    return (revoked & (1u << key->index)) ? -PB_ERR_KEY_REVOKED : PB_OK;
+    return (revoked & (1u << key->slot)) ? -PB_ERR_KEY_REVOKED : PB_OK;
 }
 
 static const struct rot_config rot_cfg = {

@@ -106,6 +106,9 @@ pb_unit_test(test_rot
     LIBS pb_keystore
 )
 
+# Includes src/rot.c, to set the slot list per test
+pb_unit_test(test_rot_slots LIBS pb_keystore)
+
 pb_unit_test(test_device_uuid
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/device_uuid.c

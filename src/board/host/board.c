@@ -196,7 +196,7 @@ static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
 
 static int board_revoke_key(const struct rot_key *key)
 {
-    return test_fuse_write(FUSE_REVOKE, (uint32_t)(1 << key->index));
+    return test_fuse_write(FUSE_REVOKE, (uint32_t)(1 << key->slot));
 }
 
 static int board_read_key_status(const struct rot_key *key)
@@ -206,7 +206,7 @@ static int board_read_key_status(const struct rot_key *key)
     if (val < 0)
         LOG_ERR("Could not read fuse");
 
-    if (val & (1 << key->index))
+    if (val & (1 << key->slot))
         return -PB_ERR_KEY_REVOKED;
     return PB_OK;
 }
