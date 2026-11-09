@@ -12,7 +12,7 @@ the trim is at the end of `log/2026-11-09.md`.
   `work-3.0.0`. A board is `const struct board` (`pb/board.h`), `src/board.c` sets it up, RoT and
   SLC first. Console split, the SLC order in `slc.c` (F-166), one HABv4 fuse driver (F-165,
   F-167), the SRK hash from the build, revoke slots in `CONFIG_KEYSTORE_SLOTS`, configuration
-  fuses as data. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
+  fuses as data, pin tables. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
   8X closed state, imx8mevk and DXL on hardware. `arch-firmware.md` waits for the review.
 - **Tests:** `scripts/pbdev test`, ~20 s: 35 suites (unit tests, `compat.abi`, the pytest
   integration tests), ASan/UBSan clean, line coverage 99.2% (`testing.md`).
@@ -32,8 +32,8 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-1. `work-3.0.0-plat`: Jonas's review. On it: pin and clock tables; the 8M's HAB once its
-   SRK_REVOKE word is verified.
+1. `work-3.0.0-plat`: Jonas's review. On it: clocks (tables or not, for Jonas); the 8M's HAB
+   once its SRK_REVOKE word is verified.
 2. Open from the 3.0.0 work: MMC UHS-I, DDR52 on the EVK (F-113), HS400 tuning (F-116). Boot time:
    MMU/caches on early, the eMMC power-up early. jiffy USB F-134 (before any cache work), F-136.
    CAAM F-127, F-128. The 8MP EVK: F-100, F-102, F-104, F-110, the FEC (F-155), F-156. The MEK:
