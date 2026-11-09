@@ -12,24 +12,33 @@ void imx8x_rot_helpers_init(sc_ipc_t ipc_)
     ipc = ipc_;
 }
 
+/* The OEM SRK revocation bits, one per SRK, in the revoke fuse word */
+#define IMX8X_OEM_REVOKE_SHIFT (8)
+#define IMX8X_OEM_REVOKE_KEYS  (4)
+
 /**
  * Note: On IMX8X there is no direct way of revoking keys. The AHAB
  * Image header must be primed with a key revoke index and then the
- * seco commit command is issued.
+ * seco commit command is issued. It revokes what the header says, so
+ * this fails unless the key is revoked afterwards.
  */
 int imx8x_revoke_key(const struct rot_key *key)
 {
     int rc;
     uint32_t before_revoke_bits = 0xffffffff;
     uint32_t after_revoke_bits = 0xffffffff;
+    uint32_t key_bit;
     uint32_t info;
 
-    (void)key;
+    if (key->param1 >= IMX8X_OEM_REVOKE_KEYS) {
+        LOG_ERR("Key %u can't be revoked", key->param1);
+        return -PB_ERR_PARAM;
+    }
+
+    key_bit = 1 << (key->param1 + IMX8X_OEM_REVOKE_SHIFT);
 
     if (!imx8x_is_srk_fused())
         return -PB_ERR;
-
-    LOG_INFO("Revoking keys as specified in image header");
 
     rc = imx8x_fuse_read(IMX8X_FUSE_REVOKE, &before_revoke_bits);
 
@@ -38,7 +47,14 @@ int imx8x_revoke_key(const struct rot_key *key)
         return rc;
     }
 
-    LOG_INFO("Revocation fuse before revocation = %x", after_revoke_bits);
+    LOG_INFO("Revocation fuse before revocation = %x", before_revoke_bits);
+
+    if (before_revoke_bits & key_bit) {
+        LOG_INFO("Key already revoked");
+        return PB_OK;
+    }
+
+    LOG_INFO("Revoking keys as specified in image header");
 
     /* Commit OEM revocations = 0x10 */
     info = 0x10;
@@ -61,13 +77,12 @@ int imx8x_revoke_key(const struct rot_key *key)
     }
 
     LOG_INFO("Revocation fuse after revocation = %x", after_revoke_bits);
-
-    if (before_revoke_bits == after_revoke_bits) {
-        LOG_INFO("The revocation fuse had the same value before and after revocation");
-        return PB_OK;
-    }
-
     LOG_INFO("Revocation fuse changed bits: %x", before_revoke_bits ^ after_revoke_bits);
+
+    if (!(after_revoke_bits & key_bit)) {
+        LOG_ERR("The image header doesn't revoke key %u", key->param1);
+        return -PB_ERR_STATE;
+    }
 
     return PB_OK;
 }

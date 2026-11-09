@@ -44,7 +44,7 @@ int slc_set_configuration_locked(void)
 
 int slc_set_eol(void)
 {
-    if (!cfg || !cfg->set_configuration_locked)
+    if (!cfg || !cfg->set_eol)
         return -PB_ERR_NOT_SUPPORTED;
 
     return cfg->set_eol();

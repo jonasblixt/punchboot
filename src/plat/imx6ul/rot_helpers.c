@@ -46,7 +46,7 @@ int imx6ul_read_key_status(const struct rot_key *key)
     int rc;
     uint32_t current_revoke_bits = 0xffffffff;
 
-    rc = imx_ocotp_read(IMX6UL_FUSE_REVOKE_BANK, IMX6UL_FUSE_REVOKE_BANK, &current_revoke_bits);
+    rc = imx_ocotp_read(IMX6UL_FUSE_REVOKE_BANK, IMX6UL_FUSE_REVOKE_WORD, &current_revoke_bits);
 
     if (rc != PB_OK)
         return rc;
