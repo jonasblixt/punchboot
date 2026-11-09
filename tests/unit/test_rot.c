@@ -160,6 +160,7 @@ static void test_rot_revoke(void **state)
 }
 
 static slc_t slc_state;
+static int slc_writes;
 
 static slc_t fake_read_status(void)
 {
@@ -168,18 +169,21 @@ static slc_t fake_read_status(void)
 
 static int fake_set_configuration(void)
 {
+    slc_writes++;
     slc_state = SLC_CONFIGURATION;
     return PB_OK;
 }
 
 static int fake_set_configuration_locked(void)
 {
+    slc_writes++;
     slc_state = SLC_CONFIGURATION_LOCKED;
     return PB_OK;
 }
 
 static int fake_set_eol(void)
 {
+    slc_writes++;
     slc_state = SLC_EOL;
     return PB_OK;
 }
@@ -243,6 +247,55 @@ static void test_slc_life_cycle(void **state)
     assert_int_equal(slc_read_status(), SLC_EOL);
 }
 
+/* Forward only, and setting the current state again writes nothing */
+static void test_slc_order(void **state)
+{
+    static const struct slc_config cfg = {
+        .read_status = fake_read_status,
+        .set_configuration = fake_set_configuration,
+        .set_configuration_locked = fake_set_configuration_locked,
+        .set_eol = fake_set_eol,
+    };
+    (void)state;
+
+    assert_int_equal(slc_init(&cfg), PB_OK);
+
+    /* Not configured: no lock */
+    slc_state = SLC_NOT_CONFIGURED;
+    slc_writes = 0;
+    assert_int_equal(slc_set_configuration_locked(), -PB_ERR_STATE);
+    assert_int_equal(slc_writes, 0);
+
+    /* The configuration can be written again */
+    slc_state = SLC_CONFIGURATION;
+    assert_int_equal(slc_set_configuration(), PB_OK);
+    assert_int_equal(slc_writes, 1);
+
+    /* Locked: no configuration, locking again is a no-op */
+    slc_state = SLC_CONFIGURATION_LOCKED;
+    slc_writes = 0;
+    assert_int_equal(slc_set_configuration(), -PB_ERR_STATE);
+    assert_int_equal(slc_set_configuration_locked(), PB_OK);
+    assert_int_equal(slc_writes, 0);
+
+    /* EOL from any state, once */
+    slc_state = SLC_CONFIGURATION;
+    assert_int_equal(slc_set_eol(), PB_OK);
+    assert_int_equal(slc_writes, 1);
+    assert_int_equal(slc_set_eol(), PB_OK);
+    assert_int_equal(slc_set_configuration(), -PB_ERR_STATE);
+    assert_int_equal(slc_set_configuration_locked(), -PB_ERR_STATE);
+    assert_int_equal(slc_writes, 1);
+
+    /* A failed read writes nothing */
+    slc_state = -PB_ERR_IO;
+    slc_writes = 0;
+    assert_int_equal(slc_set_configuration(), -PB_ERR_IO);
+    assert_int_equal(slc_set_configuration_locked(), -PB_ERR_IO);
+    assert_int_equal(slc_set_eol(), -PB_ERR_IO);
+    assert_int_equal(slc_writes, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -256,6 +309,7 @@ int main(void)
         cmocka_unit_test(test_slc_without_callbacks),
         cmocka_unit_test(test_slc_without_eol),
         cmocka_unit_test(test_slc_life_cycle),
+        cmocka_unit_test(test_slc_order),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
