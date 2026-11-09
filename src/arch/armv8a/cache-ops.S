@@ -65,6 +65,14 @@ func (arch_invalidate_cache_range)
     cache_range_op dc ivac         // invalidate dcache to PoC by MVA
     ret
 
+    /* void arch_invalidate_icache(void); */
+func (arch_invalidate_icache)
+    dsb     sy
+    ic      iallu
+    dsb     sy
+    isb
+    ret
+
 /* ---------------------------------------------------------------------------
  * void arch_disable_mmu(void)
  *
