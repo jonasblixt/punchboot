@@ -18,9 +18,7 @@ cflags-y += -DMAX_MMAP_REGIONS=32
 ldflags-y += -Tsrc/plat/imx6ul/link.lds
 
 src-y  += src/plat/imx6ul/plat.c
-src-y  += src/plat/imx6ul/rot_helpers.c
-src-y  += src/plat/imx6ul/slc_helpers.c
-src-y  += src/plat/imx6ul/fusebox.c
+src-y  += src/drivers/fuse/imx_hab_fuses.c
 src-y  += src/plat/imx6ul/hab.c
 
 endif

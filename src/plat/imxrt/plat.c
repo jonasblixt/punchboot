@@ -1,5 +1,6 @@
 #include <boot/boot.h>
 #include <drivers/crypto/mbedtls.h>
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/timer/imx_gpt.h>
@@ -38,6 +39,18 @@ static const struct imx_hab_log_config hab_log_cfg = {
     .entry_size = 4,
 };
 
+/* As on the 6UL: SEC_CONFIG at OCOTP 0x460, SRK_HASH 0x580, SRK_REVOKE 0x6F0 */
+static const struct imx_hab_fuses hab_fuses = {
+    .sec_config_bank = 0,
+    .sec_config_word = 6,
+    .closed = 0x02,
+    .srk_bank = 3,
+    .srk_word = 0,
+    .revoke_bank = 5,
+    .revoke_word = 7,
+    .revocable = 3,
+};
+
 int plat_early_init(void)
 {
 #if CONFIG_ENABLE_WATCHDOG
@@ -61,6 +74,7 @@ int plat_init(void)
     (void)imx_hab_log_init(&hab_log_cfg);
 
     imx_ocotp_init(IMXRT_OCOTP_BASE, 8);
+    imx_hab_fuses_init(&hab_fuses);
     /* Read speed grade fuse */
 
     plat.speed_grade = fuse_read_helper(4, 16, 0x03, 1);

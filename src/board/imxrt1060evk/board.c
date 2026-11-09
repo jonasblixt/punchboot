@@ -3,6 +3,7 @@
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
 #include <bpak/bpak.h>
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/memc/imx_flexspi.h>
 #include <drivers/partition/static.h>
 #include <drivers/uart/imx_lpuart.h>
@@ -424,11 +425,11 @@ static int board_cm_init(void)
 }
 
 static const struct rot_config rot = {
-    .read_key_status = imxrt_read_key_status,
+    .read_key_status = imx_hab_read_key_status,
 };
 
 static const struct slc_config slc = {
-    .read_status = imxrt_slc_read_status,
+    .read_status = imx_hab_slc_read_status,
 };
 
 /* The image runs from RAM, from the load address of its part "app" */
