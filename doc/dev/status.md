@@ -94,7 +94,8 @@ the host half of 4 are done (`compatibility.md`, Guards).
   sets it up, RoT and SLC first (F-168 fixed). Console split (`plat_early_init()`, the board's
   `console_init`, `plat_init()`). The SLC order in `slc.c` (F-166), one HABv4 fuse driver
   (`imx_hab_fuses.c`, F-165, F-167), the SRK hash from the build (`CONFIG_SRK_FUSE`), the revoke
-  slots in `CONFIG_KEYSTORE_SLOTS` (F-165). Boards
+  slots in `CONFIG_KEYSTORE_SLOTS` (F-165), the configuration fuses as board data
+  (`slc_config.fuses`). Boards
   -1542 lines, `src`/`include` +1494/-2404. 34 host test suites, all 6 boards build. Runs on
   jiffy (BOOT0: locked SLC, auth, Linux), the MEK (BOOT0, Linux), the RT1060 (MCU tests 7/7) and
   the 8MP EVK (BOOT1, Linux). Untested: fuse writes, the 8X closed state, imx8mevk, DXL EVK.
@@ -106,7 +107,7 @@ the host half of 4 are done (`compatibility.md`, Guards).
 ## Next steps
 
 0. `work-3.0.0-plat`: Jonas's review, then merge into `work-3.0.0` and update
-   `arch-firmware.md`. Next on it: the boot-config fuses as board data, the 8M's HAB support once SRK_REVOKE is verified, pin and clock tables.
+   `arch-firmware.md`. Next on it: the 8M's HAB support once SRK_REVOKE is verified, pin and clock tables.
 1. Check the Coverity job on master (F-097, fixed in #69). Rebase `nanopi-neo-core2` onto
    master (its WIP is in a stash). F-010 (pbstate `BACKUP_PART`), F-109 (empty LOG bodies).
 2. Unit tests for every core module are done (D-007). They found F-068..F-074; fixed F-069
