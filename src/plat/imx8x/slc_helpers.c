@@ -10,7 +10,10 @@ static sc_ipc_t ipc;
 
 /* SECO life cycle bits 6-10: closed, closed with NXP firmware, the two
  * field return states and no return. Each of them is past OEM closed. */
-#define IMX8X_LC_CLOSED (0x7c0)
+#define IMX8X_LC_CLOSED        (0x7c0)
+
+/* sc_seco_forward_lifecycle()'s transition to OEM closed */
+#define IMX8X_LC_TO_OEM_CLOSED (16)
 
 void imx8x_slc_helpers_init(sc_ipc_t ipc_)
 {
@@ -55,7 +58,7 @@ int imx8x_slc_set_configuration_locked(void)
 {
     LOG_INFO("About to change security state to locked");
 
-    if (sc_seco_forward_lifecycle(ipc, 16) != SC_ERR_NONE)
+    if (sc_seco_forward_lifecycle(ipc, IMX8X_LC_TO_OEM_CLOSED) != SC_ERR_NONE)
         return -PB_ERR_IO;
 
     return PB_OK;
