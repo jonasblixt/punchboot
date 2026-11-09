@@ -47,22 +47,22 @@ IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 const char *platform_ns_uuid = "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
 
 static const mmap_region_t imx_mmap[] = {
-    /* UMCTL2 state */
-    MAP_REGION_FLAT(0x40000000, (128 * 1024), MT_MEMORY | MT_RW),
-    /* DDRC */
-    MAP_REGION_FLAT(0x3c000000, (22 * 1024 * 1024), MT_DEVICE | MT_RW),
+    /* UMCTL2 state, at the start of the DRAM */
+    MAP_REGION_FLAT(DDR_CSD1_BASE_ADDR, (128 * 1024), MT_MEMORY | MT_RW),
+    /* DDRC and its PHY */
+    MAP_REGION_FLAT(IMX8M_DDRPHY_BASE, (22 * 1024 * 1024), MT_DEVICE | MT_RW),
     /* Boot ROM API*/
-    MAP_REGION_FLAT(0x00000000, IMX8M_ROM_SIZE, MT_MEMORY | MT_RO | MT_EXECUTE),
+    MAP_REGION_FLAT(IMX8M_ROM_BASE, IMX8M_ROM_SIZE, MT_MEMORY | MT_RO | MT_EXECUTE),
     /* Periph (AIPS) */
-    MAP_REGION_FLAT(0x30000000, (16 * 1024 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(IMX8M_AIPS_BASE, IMX8M_AIPS_SIZE, MT_DEVICE | MT_RW),
     /* OCRAM */
-    MAP_REGION_FLAT(0x00900000, IMX8M_OCRAM_SIZE, MT_MEMORY | MT_RW),
+    MAP_REGION_FLAT(IMX8M_OCRAM_BASE, IMX8M_OCRAM_SIZE, MT_MEMORY | MT_RW),
     /* GVP */
-    MAP_REGION_FLAT(0x32000000, 0x20000, MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(IMX8M_GPV_BASE, IMX8M_GPV_SIZE, MT_DEVICE | MT_RW),
     /* USB */
-    MAP_REGION_FLAT(0x38100000, (2 * 1024 * 1024), MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(IMX8M_USB1_BASE, IMX8M_USB_SIZE, MT_DEVICE | MT_RW),
     /* HSIO BLK_CTRL (i.MX8M Plus) */
-    MAP_REGION_FLAT(0x32F10000, 0x10000, MT_DEVICE | MT_RW),
+    MAP_REGION_FLAT(IMX8MP_HSIO_BLK_CTRL_BASE, IMX8MP_HSIO_BLK_CTRL_SIZE, MT_DEVICE | MT_RW),
     { 0 }
 };
 
@@ -146,9 +146,9 @@ static int plat_mmu_init(void)
 
 /* The ROM log, AN12853 Tables 11 and 13. It's in the ROM's part of the OCRAM, below pb */
 static const struct imx_rom_log_config rom_log_cfg = {
-    .pointer = 0x000009e0,
-    .ram_start = 0x00900000,
-    .ram_end = 0x00900000 + IMX8M_OCRAM_SIZE,
+    .pointer = IMX8M_ROM_LOG_POINTER,
+    .ram_start = IMX8M_OCRAM_BASE,
+    .ram_end = IMX8M_OCRAM_BASE + IMX8M_OCRAM_SIZE,
     .words = 128,
     .defs = IMX_ROM_LOG_DEFS_V2,
 };
@@ -157,9 +157,9 @@ static const struct imx_rom_log_config rom_log_cfg = {
  * it), imx_hab_log_init() checks the RVT header before using it */
 static const struct imx_hab_log_config hab_log_cfg = {
 #ifdef CONFIG_PLAT_IMX8MQ
-    .rvt = 0x00000880,
+    .rvt = IMX8MQ_HAB_RVT_BASE,
 #else
-    .rvt = 0x00000900,
+    .rvt = IMX8MP_HAB_RVT_BASE,
 #endif
     .entry_size = 8,
 };

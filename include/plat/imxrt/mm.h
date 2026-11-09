@@ -35,6 +35,8 @@
 
 /* 0x20100000     1MB Reserved */
 
+/* The HAB API's RVT (RM 9.12.1) */
+#define IMXRT_HAB_RVT_BASE       0x00200300
 #define IMXRT_OCRAM2_BASE        0x20200000 /* 512KB OCRAM2 */
 #define IMXRT_OCRAM_BASE         0x20280000 /* 512KB OCRAM FlexRAM */
 
