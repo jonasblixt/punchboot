@@ -15,6 +15,7 @@
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
+#include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/uart/imx_uart.h>
 #include <drivers/usb/imx_ci_udc.h>
@@ -37,18 +38,22 @@ static int usdhc_emmc_setup(void)
     /* Ungate USDHC1 clock */
     mmio_clrsetbits_32(IMX6UL_CCM_CCGR6, 0, CCM_CCGR6_USDHC1);
 
-    /* Configure pinmux for usdhc1 */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_CLK, MUX_ALT(0)); /* CLK MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_CMD, MUX_ALT(0)); /* CMD MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA0, MUX_ALT(0)); /* DATA0 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA1, MUX_ALT(0)); /* DATA1 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA2, MUX_ALT(0)); /* DATA2 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA3, MUX_ALT(0)); /* DATA3 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_READY_B, MUX_ALT(1)); /* DATA4 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_CE0_B, MUX_ALT(1)); /* DATA5 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_CE1_B, MUX_ALT(1)); /* DATA6 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_CLE, MUX_ALT(1)); /* DATA7 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_DQS, MUX_ALT(1)); /* RESET MUX */
+    /* uSDHC1, the pads as the ROM left them */
+    static const struct imx_pin pins[] = {
+        IMX6UL_PIN(SD1_CLK, MUX_ALT(0), IMX_PAD_KEEP),
+        IMX6UL_PIN(SD1_CMD, MUX_ALT(0), IMX_PAD_KEEP),
+        IMX6UL_PIN(SD1_DATA0, MUX_ALT(0), IMX_PAD_KEEP),
+        IMX6UL_PIN(SD1_DATA1, MUX_ALT(0), IMX_PAD_KEEP),
+        IMX6UL_PIN(SD1_DATA2, MUX_ALT(0), IMX_PAD_KEEP),
+        IMX6UL_PIN(SD1_DATA3, MUX_ALT(0), IMX_PAD_KEEP),
+        IMX6UL_PIN(NAND_READY_B, MUX_ALT(1), IMX_PAD_KEEP), /* DATA4 */
+        IMX6UL_PIN(NAND_CE0_B, MUX_ALT(1), IMX_PAD_KEEP), /* DATA5 */
+        IMX6UL_PIN(NAND_CE1_B, MUX_ALT(1), IMX_PAD_KEEP), /* DATA6 */
+        IMX6UL_PIN(NAND_CLE, MUX_ALT(1), IMX_PAD_KEEP), /* DATA7 */
+        IMX6UL_PIN(NAND_DQS, MUX_ALT(1), IMX_PAD_KEEP), /* RESET */
+    };
+
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     static const struct imx_usdhc_config cfg = {
         .base = IMX6UL_USDHC1_BASE,
@@ -196,11 +201,12 @@ static void board_console_init(void)
     /* Ungate uart clock */
     mmio_clrsetbits_32(IMX6UL_CCM_CCGR0, 0, CCM_CCGR0_UART2);
 
-    /* Configure console UART mux and pads*/
-    mmio_write_32(SW_MUX_CTL_PAD_UART2_TX_DATA, MUX_ALT(0));
-    mmio_write_32(SW_MUX_CTL_PAD_UART2_RX_DATA, MUX_ALT(0));
-    mmio_write_32(SW_PAD_CTL_PAD_UART2_TX_DATA, UART_PAD_CTRL);
-    mmio_write_32(SW_PAD_CTL_PAD_UART2_RX_DATA, UART_PAD_CTRL);
+    static const struct imx_pin pins[] = {
+        IMX6UL_PIN(UART2_TX_DATA, MUX_ALT(0), UART_PAD_CTRL),
+        IMX6UL_PIN(UART2_RX_DATA, MUX_ALT(0), UART_PAD_CTRL),
+    };
+
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     imx_uart_init(IMX6UL_UART2_BASE, MHz(80), 115200);
 
