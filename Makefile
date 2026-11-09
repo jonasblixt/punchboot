@@ -73,9 +73,7 @@ cflags-y += -Waggregate-return
 # Bootloader
 src-y   = src/main.c
 src-y  += keystore.c
-ifneq ($(CONFIG_SRK_FUSE),"")
 src-y  += srk_fuse.c
-endif
 src-y  += src/delay.c
 src-y  += src/crypto.c
 src-y  += src/bio.c

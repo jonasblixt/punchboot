@@ -62,9 +62,11 @@ static const struct imx_hab_fuses fuses = {
     .revoke_allowed = revoke_allowed,
 };
 
-static const uint32_t srk[IMX_HAB_SRK_HASH_WORDS] = {
+/* The build's SRK hash, pb/srk_fuse.h */
+const uint32_t srk_fuse[IMX_HAB_SRK_HASH_WORDS] = {
     0x5020c7d7, 0xbb62b945, 0xdd97c8be, 0xdc6710dd, 0x2756b777, 0xef43bc0a, 0x7185604b, 0x3f335991,
 };
+const size_t srk_fuse_words = IMX_HAB_SRK_HASH_WORDS;
 
 #define SEC_CONFIG (otp[0 * WORDS_PER_BANK + 6])
 #define SRK(n)     (otp[3 * WORDS_PER_BANK + (n)])
@@ -88,10 +90,11 @@ static void test_not_initialized(void **state)
 
     imx_hab_fuses_init(NULL);
     assert_int_equal(imx_hab_slc_read_status(), -PB_ERR_STATE);
+    assert_int_equal(imx_hab_slc_set_configuration(), -PB_ERR_STATE);
     assert_int_equal(imx_hab_slc_set_configuration_locked(), -PB_ERR_STATE);
     assert_int_equal(imx_hab_read_key_status(&key), -PB_ERR_STATE);
     assert_int_equal(imx_hab_revoke_key(&key), -PB_ERR_STATE);
-    assert_int_equal(imx_hab_fuse_srk(srk, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_STATE);
+    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_STATE);
     assert_int_equal(writes, 0);
 }
 
@@ -102,13 +105,14 @@ static void test_life_cycle(void **state)
     assert_int_equal(imx_hab_slc_read_status(), SLC_NOT_CONFIGURED);
 
     /* One word is enough: fusing it was started */
-    SRK(7) = srk[7];
+    SRK(7) = srk_fuse[7];
     assert_int_equal(imx_hab_slc_read_status(), SLC_CONFIGURATION);
 
-    assert_int_equal(imx_hab_fuse_srk(srk, IMX_HAB_SRK_HASH_WORDS), PB_OK);
+    /* The build's hash */
+    assert_int_equal(imx_hab_slc_set_configuration(), PB_OK);
 
     for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
-        assert_int_equal(SRK(n), srk[n]);
+        assert_int_equal(SRK(n), srk_fuse[n]);
 
     assert_int_equal(imx_hab_slc_set_configuration_locked(), PB_OK);
     assert_int_equal(SEC_CONFIG, 0x02);
@@ -124,19 +128,19 @@ static void test_fuse_srk(void **state)
     uint32_t other[IMX_HAB_SRK_HASH_WORDS];
     (void)state;
 
-    assert_int_equal(imx_hab_fuse_srk(srk, IMX_HAB_SRK_HASH_WORDS - 1), -PB_ERR_PARAM);
+    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS - 1), -PB_ERR_PARAM);
 
     /* An empty word can't be right */
-    memcpy(other, srk, sizeof(other));
+    memcpy(other, srk_fuse, sizeof(other));
     other[3] = 0;
     assert_int_equal(imx_hab_fuse_srk(other, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_PARAM);
     assert_int_equal(writes, 0);
 
     /* Fused already: nothing to write */
     for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
-        SRK(n) = srk[n];
+        SRK(n) = srk_fuse[n];
 
-    assert_int_equal(imx_hab_fuse_srk(srk, IMX_HAB_SRK_HASH_WORDS), PB_OK);
+    assert_int_equal(imx_hab_fuse_srk(srk_fuse, IMX_HAB_SRK_HASH_WORDS), PB_OK);
     assert_int_equal(writes, 0);
 
     /* Another hash */

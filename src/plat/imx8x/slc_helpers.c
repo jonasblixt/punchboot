@@ -1,5 +1,6 @@
 #include <pb/pb.h>
 #include <pb/slc.h>
+#include <pb/srk_fuse.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
 #include <plat/imx8x/sci/svc/pm/api.h>
@@ -41,6 +42,11 @@ slc_t imx8x_slc_read_status(void)
         return SLC_CONFIGURATION;
     else
         return SLC_NOT_CONFIGURED;
+}
+
+int imx8x_slc_set_configuration(void)
+{
+    return imx8x_fuse_write_srk(srk_fuse, srk_fuse_words);
 }
 
 /* slc_set_configuration_locked() checks the state first: CONFIGURATION,

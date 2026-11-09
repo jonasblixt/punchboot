@@ -131,3 +131,13 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
 
     return PB_OK;
 }
+
+int imx_ocotp_fuse_read(uint32_t index, uint32_t *value)
+{
+    return imx_ocotp_read(0, index, value);
+}
+
+int imx_ocotp_fuse_write(uint32_t index, uint32_t value)
+{
+    return imx_ocotp_write(0, index, value);
+}

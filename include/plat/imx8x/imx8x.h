@@ -61,6 +61,8 @@ sc_ipc_t imx8x_ipc(void);
 int imx8x_revoke_key(const struct rot_key *key);
 int imx8x_read_key_status(const struct rot_key *key);
 slc_t imx8x_slc_read_status(void);
+/** Fuses the SRK hash of the build, srk_fuse (pb/srk_fuse.h) */
+int imx8x_slc_set_configuration(void);
 int imx8x_slc_set_configuration_locked(void);
 void imx8x_rot_helpers_init(sc_ipc_t ipc_);
 void imx8x_slc_helpers_init(sc_ipc_t ipc_);
