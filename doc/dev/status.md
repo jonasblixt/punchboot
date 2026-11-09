@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-08_
+_Last updated: 2026-11-09_
 
 ## Current focus
 
@@ -89,10 +89,24 @@ the host half of 4 are done (`compatibility.md`, Guards).
   its DTS, F-153); `testbench/scripts/imx8mpevk-reset` resets the EVK over its FT4232H. 8MP boot
   time 1939 -> 1218 ms reset to init (slim kernel, DTS trimmed), +27 ms for the CAAM RNG (F-154). Open: FEC (F-155).
 
+- **Board as data (`work-3.0.0-plat`, 2026-11-09, D-026, D-027):** on `work-3.0.0`, not merged
+  yet, waiting for Jonas's review. A board is `const struct board` (`pb/board.h`), `src/board.c`
+  sets it up, RoT and SLC first (F-168 fixed). Console split (`plat_early_init()`, the board's
+  `console_init`, `plat_init()`). The SLC order in `slc.c` (F-166), one HABv4 fuse driver
+  (`imx_hab_fuses.c`, F-165, F-167), the SRK hash from the build (`CONFIG_SRK_FUSE`). Boards
+  -1542 lines, `src`/`include` +1494/-2404. 34 host test suites, all 6 boards build. Runs on
+  jiffy (BOOT0: locked SLC, auth, Linux), the MEK (BOOT0, Linux), the RT1060 (MCU tests 7/7) and
+  the 8MP EVK (BOOT1, Linux). Untested: fuse writes, the 8X closed state, imx8mevk, DXL EVK.
+  `arch-firmware.md` waits for the review. The RoT/SLC fixes F-001, F-161..F-164 are on
+  `work-3.0.0` (pushed).
+
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
 ## Next steps
 
+0. `work-3.0.0-plat`: Jonas's review, then merge into `work-3.0.0` and update
+   `arch-firmware.md`. Next on it: the key slot (F-165, open part), the boot-config fuses as board
+   data, the 8M's HAB support once SRK_REVOKE is verified, pin and clock tables.
 1. Check the Coverity job on master (F-097, fixed in #69). Rebase `nanopi-neo-core2` onto
    master (its WIP is in a stash). F-010 (pbstate `BACKUP_PART`), F-109 (empty LOG bodies).
 2. Unit tests for every core module are done (D-007). They found F-068..F-074; fixed F-069
@@ -121,6 +135,9 @@ the host half of 4 are done (`compatibility.md`, Guards).
 
 ## Open questions (for Jonas)
 
+- F-168 (command mode open when the board init fails) is fixed on `work-3.0.0-plat` only. Pick it
+  onto `work-3.0.0` too? It applies alone, but there a board whose init fails before
+  `slc_init()` then needs authentication even when not configured.
 - Which boards are still in use? Only jiffy, imx8dxlevk and imx8mevk (placeholder DDR firmware) build (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Keep the never-compiled ATF boot driver for an 8MP TF-A handover? (F-146)

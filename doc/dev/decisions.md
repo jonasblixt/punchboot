@@ -277,3 +277,46 @@ way to write the boot state (the RT1060 uses the ROM's NOR API).
 The RT1060 EVK's NOR layout changes for it: `BL`, the two boot state copies, System A and B. The
 product partitions it had (`SBL1`, `Config`, `Application`, `SBL2`) are gone; `SBL1` held an
 older application on the EVK, backed up in `build-imxrt1060evk/nor-backup-2026-11-08/`.
+
+## D-026: A board is data, `struct board`, and the core sets it up (2026-11-09)
+
+Branch `work-3.0.0-plat`, on `work-3.0.0`. A board defines `const struct board board`
+(`pb/board.h`): its console, RoT and SLC callbacks, hooks for its own hardware (`init`,
+`late_init`, `cm_init`, `early_boot`, `late_boot`), its partition table, A/B state (optional),
+boot driver config, kernel command lines and command mode transport. `main()` calls
+`arch_init()`, `plat_early_init()`, `board.console_init()`, `plat_init()`, then `board_setup()`
+(`src/board.c`): RoT and SLC, `init()`, GPT, A/B, `late_init()`, the boot driver. Command mode
+calls `cm_board_init()`. The RoT and SLC come first so command mode knows the life cycle even
+when the rest fails (F-168).
+What the boards repeated is shared: the default eMMC layout (`pb/board_layout.h`), command mode
+over USB (`pb_dev_cls_transport`), `board_patch_bootargs()`, a default status and board
+command. The platforms no longer call the board or hand it a platform struct; the two boards
+that need platform data ask for it (`imx6ul_plat()`, `imx8x_ipc()`, `imx8x_plat()`).
+Why: every board had the same sequence with small differences, a different `board_init()`
+signature per platform. The old order (RoT/SLC last) let a failed init open command mode.
+The boards are 1,542 lines shorter: less to review and to port, and Jonas wants as little
+board code as possible ("ideally no board code to maintain").
+Cost: out-of-tree boards must be rewritten (allowed by D-018). Pin, clock and boot-config fuse
+data are still code in the boards.
+
+## D-027: The core owns the security rules, the platforms only read and write fuses (2026-11-09)
+
+- RoT keys are the keystore's: key n is the keystore's n-th key and SRK n, and they share the
+  revoke bit. The boards' key maps are gone (they only repeated the keystore). A platform says
+  how many SRKs its ROM can revoke and refuses the rest (F-165); a key revoked past that by an
+  older pb still reads as revoked.
+- The SLC order is checked in `src/slc.c` once (F-166): CONFIGURATION can be written until the
+  device is locked, locking needs CONFIGURATION, EOL is allowed from any state (D-011), and
+  setting the current state of the last two writes nothing. The wire values don't change
+  (D-008).
+- HABv4 (i.MX6UL, RT1060, later the i.MX8M) has one driver, `drivers/fuse/imx_hab_fuses.c`,
+  with the fuse locations from the platform (F-167). AHAB/SECO (i.MX8X) stays in its platform.
+- The SRK hash to fuse comes from the build (`CONFIG_SRK_FUSE`, srktool's `*_fuse.bin`, turned
+  into `srk_fuse.c`), not from words copied by hand into the board: a wrong hash closes the
+  device to every image.
+Why: the review of the RoT/SLC code found the same rule implemented differently on every
+platform, with bugs in each (F-001, F-161..F-167). The rules are the product's, the fuse
+locations the SoC's.
+Open: the slot is still implied by the keystore's order (F-165); the 8M's SRK_REVOKE word is
+unverified (8MP RM: reserved), so the 8M has no HAB support yet; the boot-config fuses are
+still written by the boards' `set_configuration`.
