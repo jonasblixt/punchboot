@@ -20,7 +20,7 @@ pb's side of the boot, on the board:
   UUID, VTOR the image's vector table, MSP its initial stack pointer,
   CONTROL and FAULTMASK 0, PRIMASK 1 and no interrupt enabled, SysTick
   off, nothing pending, the D-cache and the MPU off (`include/pb/arch.h`;
-  the RT1060's ROM turns the D-cache on), the watchdog running, the console
+  pb runs with it on), the watchdog running, the console
   usable. The I-cache is reported.
 - A/B: the enabled system boots, the image marks itself verified in pb's
   boot state like pbstate does on Linux.

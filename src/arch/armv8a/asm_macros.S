@@ -24,7 +24,7 @@
 
 	.macro	dcache_line_size  reg, tmp
 	mrs	\tmp, ctr_el0
-	ubfx	\tmp, \tmp, #16, #4
+	ubfx	\tmp, \tmp, #CTR_DMINLINE_SHIFT, #4 /* DminLine: log2(words) */
 	mov	\reg, #4
 	lsl	\reg, \reg, \tmp
 	.endm
