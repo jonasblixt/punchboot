@@ -12,9 +12,12 @@ import builtins
 import contextlib
 import logging
 import socket
+import uuid
 from typing import TYPE_CHECKING, Any
 
+from . import wire
 from .errors import (
+    Error,
     GenericError,
     NotFoundError,
     NotSupportedError,
@@ -140,10 +143,44 @@ def _usb_serial(dev: Any) -> str | None:  # noqa: ANN401
     return serial
 
 
-def list_usb_devices() -> list[str]:
-    """Return the UUIDs (USB serial numbers) of the attached punchboot devices."""
+def identify(transport: Transport) -> str | None:
+    """Return the UUID the device reports (PB_CMD_DEVICE_IDENTIFIER_READ), or None."""
     try:
-        return [s for dev in _usb_devices() if (s := _usb_serial(dev)) is not None]
+        transport.write(wire.command(wire.Command.PB_CMD_DEVICE_IDENTIFIER_READ))
+        result = wire.pb_result.unpack(transport.read(wire.pb_result.sizeof()))
+    except Error:
+        logger.debug("No identifier", exc_info=True)
+        return None
+    if result.magic != wire.PB_WIRE_MAGIC or result.result_code != 0:
+        return None
+    ident = wire.pb_result_device_identifier.unpack(bytes(result.response))
+    return str(uuid.UUID(bytes=bytes(ident.device_uuid)))
+
+
+def _usb_uuid(dev: Any) -> str | None:  # noqa: ANN401
+    """Return a device's UUID: its serial number, or what it reports over the wire.
+
+    pb's cdns3 driver (the i.MX8QXP MEK) can't send the serial number string
+    (F-159), the identifier command works on every device.
+    """
+    serial = _usb_serial(dev)
+    if serial is not None:
+        return serial
+    try:
+        transport = UsbTransport(dev=dev)
+    except Error:
+        logger.debug("Can't open the device", exc_info=True)
+        return None
+    try:
+        return identify(transport)
+    finally:
+        transport.close()
+
+
+def list_usb_devices() -> list[str]:
+    """Return the UUIDs of the attached punchboot devices."""
+    try:
+        return [s for dev in _usb_devices() if (s := _usb_uuid(dev)) is not None]
     except NotSupportedError:
         logger.debug("USB is not available", exc_info=True)
         return []
@@ -152,20 +189,21 @@ def list_usb_devices() -> list[str]:
 class UsbTransport(Transport):
     """A punchboot device on USB."""
 
-    def __init__(self, device_uuid: str | None = None) -> None:
-        """Open the device with serial number 'device_uuid', or the first one found."""
+    def __init__(self, device_uuid: str | None = None, dev: Any = None) -> None:  # noqa: ANN401
+        """Open the device 'dev', the one with UUID 'device_uuid', or the first one found."""
         import usb.core  # noqa: PLC0415
         import usb.util  # noqa: PLC0415
 
         self._usb = usb
-        dev = next(
-            (
-                d
-                for d in _usb_devices()
-                if device_uuid is None or _usb_serial(d) == device_uuid
-            ),
-            None,
-        )
+        if dev is None:
+            dev = next(
+                (
+                    d
+                    for d in _usb_devices()
+                    if device_uuid is None or _usb_uuid(d) == device_uuid
+                ),
+                None,
+            )
         if dev is None:
             raise NotFoundError
         try:
