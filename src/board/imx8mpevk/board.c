@@ -22,6 +22,7 @@
 #include <boot/boot.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
+#include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_uart.h>
 #include <drivers/usb/dwc3_udc.h>
 #include <drivers/usb/imx8m_phy.h>
@@ -60,8 +61,12 @@ static void board_console_init(void)
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(UART2_CLK_ROOT), CLK_ROOT_ON);
     mmio_write_32(CCM_CCGR_SET(CCGR_UART2), CCGR_CLK_ON_MASK);
 
-    mmio_write_32(IOMUXC_MUX_UART2_RXD, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_UART2_TXD, MUX_ALT(0));
+    static const struct imx_pin pins[] = {
+        IMX8M_PIN(UART2_RXD, MUX_ALT(0), IMX_PAD_KEEP),
+        IMX8M_PIN(UART2_TXD, MUX_ALT(0), IMX_PAD_KEEP),
+    };
+
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     imx_uart_init(IMX8M_UART2_BASE, MHz(24), 115200);
 
@@ -81,37 +86,27 @@ static int usdhc_emmc_setup(void)
                   CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV2));
     mmio_write_32(CCM_CCGR_SET(IMX8MP_CCGR_USDHC3), CCGR_CLK_ON_MASK);
 
-    static const uintptr_t mux[] = {
-        IOMUXC_MUX_NAND_WE_B,   IOMUXC_MUX_NAND_WP_B,   IOMUXC_MUX_NAND_DATA04,
-        IOMUXC_MUX_NAND_DATA05, IOMUXC_MUX_NAND_DATA06, IOMUXC_MUX_NAND_DATA07,
-        IOMUXC_MUX_NAND_RE_B,   IOMUXC_MUX_NAND_CE2_B,  IOMUXC_MUX_NAND_CE3_B,
-        IOMUXC_MUX_NAND_CLE,    IOMUXC_MUX_NAND_CE1_B,  IOMUXC_MUX_NAND_READY_B,
+#define USDHC3_PAD_CLK             (PAD_CTL_HYS | PAD_CTL_FSEL_FAST | PAD_CTL_DSE_X6)
+#define USDHC3_PAD_DATA            (PAD_CTL_PE | PAD_CTL_PUE | USDHC3_PAD_CLK)
+#define USDHC3_PAD_STROBE          (PAD_CTL_PE | USDHC3_PAD_CLK) /* Pull down */
+    /* ALT2, and the select inputs: they default to the ENET pads */
+#define USDHC3_PIN(n, pad, in_reg) IMX8M_PIN_IN(n, MUX_ALT(2), pad, in_reg, 1)
+    static const struct imx_pin pins[] = {
+        USDHC3_PIN(NAND_WE_B, USDHC3_PAD_CLK, IOMUXC_USDHC3_CARD_CLK_IN_SELECT_INPUT),
+        USDHC3_PIN(NAND_WP_B, USDHC3_PAD_DATA, IOMUXC_USDHC3_CMD_IN_SELECT_INPUT),
+        USDHC3_PIN(NAND_DATA04, USDHC3_PAD_DATA, IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(0)),
+        USDHC3_PIN(NAND_DATA05, USDHC3_PAD_DATA, IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(1)),
+        USDHC3_PIN(NAND_DATA06, USDHC3_PAD_DATA, IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(2)),
+        USDHC3_PIN(NAND_DATA07, USDHC3_PAD_DATA, IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(3)),
+        USDHC3_PIN(NAND_RE_B, USDHC3_PAD_DATA, IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(4)),
+        USDHC3_PIN(NAND_CE2_B, USDHC3_PAD_DATA, IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(5)),
+        USDHC3_PIN(NAND_CE3_B, USDHC3_PAD_DATA, IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(6)),
+        USDHC3_PIN(NAND_CLE, USDHC3_PAD_DATA, IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(7)),
+        USDHC3_PIN(NAND_CE1_B, USDHC3_PAD_STROBE, IOMUXC_USDHC3_STROBE_SELECT_INPUT),
+        IMX8M_PIN(NAND_READY_B, MUX_ALT(2), USDHC3_PAD_DATA), /* RESET_B */
     };
 
-    for (unsigned int i = 0; i < ARRAY_SIZE(mux); i++)
-        mmio_write_32(mux[i], MUX_ALT(2));
-
-    /* The inputs default to the ENET pads */
-    mmio_write_32(IOMUXC_USDHC3_CARD_CLK_IN_SELECT_INPUT, 1);
-    mmio_write_32(IOMUXC_USDHC3_CMD_IN_SELECT_INPUT, 1);
-    for (unsigned int i = 0; i < 8; i++)
-        mmio_write_32(IOMUXC_USDHC3_DAT_IN_SELECT_INPUT(i), 1);
-    mmio_write_32(IOMUXC_USDHC3_STROBE_SELECT_INPUT, 1);
-
-#define USDHC3_PAD_CLK    (PAD_CTL_HYS | PAD_CTL_FSEL_FAST | PAD_CTL_DSE_X6)
-#define USDHC3_PAD_DATA   (PAD_CTL_PE | PAD_CTL_PUE | USDHC3_PAD_CLK)
-#define USDHC3_PAD_STROBE (PAD_CTL_PE | USDHC3_PAD_CLK) /* Pull down */
-    static const uintptr_t data_pads[] = {
-        IOMUXC_PAD_NAND_WP_B,    IOMUXC_PAD_NAND_DATA04, IOMUXC_PAD_NAND_DATA05,
-        IOMUXC_PAD_NAND_DATA06,  IOMUXC_PAD_NAND_DATA07, IOMUXC_PAD_NAND_RE_B,
-        IOMUXC_PAD_NAND_CE2_B,   IOMUXC_PAD_NAND_CE3_B,  IOMUXC_PAD_NAND_CLE,
-        IOMUXC_PAD_NAND_READY_B,
-    };
-
-    mmio_write_32(IOMUXC_PAD_NAND_WE_B, USDHC3_PAD_CLK);
-    mmio_write_32(IOMUXC_PAD_NAND_CE1_B, USDHC3_PAD_STROBE);
-    for (unsigned int i = 0; i < ARRAY_SIZE(data_pads); i++)
-        mmio_write_32(data_pads[i], USDHC3_PAD_DATA);
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     static const struct imx_usdhc_config cfg = {
         .base = IMX8M_USDHC3_BASE,
@@ -147,33 +142,25 @@ static int usdhc_sd_setup(void)
                   CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1) | CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV2));
     mmio_write_32(CCM_CCGR_SET(IMX8MP_CCGR_USDHC2), CCGR_CLK_ON_MASK);
 
-    static const uintptr_t mux[] = {
-        IOMUXC_MUX_SD2_CD_B,  IOMUXC_MUX_SD2_CLK,   IOMUXC_MUX_SD2_CMD,   IOMUXC_MUX_SD2_DATA0,
-        IOMUXC_MUX_SD2_DATA1, IOMUXC_MUX_SD2_DATA2, IOMUXC_MUX_SD2_DATA3,
-    };
-
-    for (unsigned int i = 0; i < ARRAY_SIZE(mux); i++)
-        mmio_write_32(mux[i], MUX_ALT(0));
-
     /*
-     * SD2_VSEL selects NVCC_SD2 (the PMIC's LDO5): VEND_SPEC.VSELECT 0,
-     * 3.3 V. SD2_RESET_B enables the card supply through a pull-up and is
-     * left as it is.
+     * SD2_VSEL (GPIO1_IO04) selects NVCC_SD2 (the PMIC's LDO5):
+     * VEND_SPEC.VSELECT 0, 3.3 V. SD2_RESET_B enables the card supply
+     * through a pull-up and is left as it is.
      */
-    mmio_write_32(IOMUXC_MUX_GPIO1_IO04, MUX_ALT(1));
-    mmio_write_32(IOMUXC_PAD_GPIO1_IO04, PAD_CTL_DSE_X1);
-
 #define USDHC2_PAD_CLK  (PAD_CTL_HYS | PAD_CTL_FSEL_FAST | PAD_CTL_DSE_X4)
 #define USDHC2_PAD_DATA (PAD_CTL_PE | PAD_CTL_PUE | USDHC2_PAD_CLK)
-    static const uintptr_t data_pads[] = {
-        IOMUXC_PAD_SD2_CMD,   IOMUXC_PAD_SD2_DATA0, IOMUXC_PAD_SD2_DATA1,
-        IOMUXC_PAD_SD2_DATA2, IOMUXC_PAD_SD2_DATA3,
+    static const struct imx_pin pins[] = {
+        IMX8M_PIN(SD2_CD_B, MUX_ALT(0), PAD_CTL_HYS | PAD_CTL_PE | PAD_CTL_PUE),
+        IMX8M_PIN(SD2_CLK, MUX_ALT(0), USDHC2_PAD_CLK),
+        IMX8M_PIN(SD2_CMD, MUX_ALT(0), USDHC2_PAD_DATA),
+        IMX8M_PIN(SD2_DATA0, MUX_ALT(0), USDHC2_PAD_DATA),
+        IMX8M_PIN(SD2_DATA1, MUX_ALT(0), USDHC2_PAD_DATA),
+        IMX8M_PIN(SD2_DATA2, MUX_ALT(0), USDHC2_PAD_DATA),
+        IMX8M_PIN(SD2_DATA3, MUX_ALT(0), USDHC2_PAD_DATA),
+        IMX8M_PIN(GPIO1_IO04, MUX_ALT(1), PAD_CTL_DSE_X1),
     };
 
-    mmio_write_32(IOMUXC_PAD_SD2_CLK, USDHC2_PAD_CLK);
-    mmio_write_32(IOMUXC_PAD_SD2_CD_B, PAD_CTL_HYS | PAD_CTL_PE | PAD_CTL_PUE);
-    for (unsigned int i = 0; i < ARRAY_SIZE(data_pads); i++)
-        mmio_write_32(data_pads[i], USDHC2_PAD_DATA);
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     static const struct imx_usdhc_config cfg = {
         .base = IMX8M_USDHC2_BASE,
