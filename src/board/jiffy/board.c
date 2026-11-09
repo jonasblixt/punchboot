@@ -17,7 +17,6 @@
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/partition/gpt.h>
 #include <drivers/pinctrl/imx_iomuxc.h>
-#include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/uart/imx_uart.h>
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
@@ -74,22 +73,6 @@ static int usdhc_emmc_setup(void)
     };
 
     return imx_usdhc_init(&cfg, MHz(imx6ul_plat()->usdhc1_clk_MHz));
-}
-
-static int board_command(uint32_t command,
-                         uint8_t *bfr,
-                         size_t size,
-                         uint8_t *response_bfr,
-                         size_t *response_size)
-{
-    LOG_DBG("%x, %p, %zu", command, bfr, size);
-
-    if (command == 0xd3399b11) /* dump-rom-log */
-        return imx_rom_log_dump((char *)response_bfr, response_size);
-
-    LOG_ERR("Unknown command %x", command);
-    *response_size = 0;
-    return -PB_ERR_NOT_SUPPORTED;
 }
 
 static void boot_source_str(char *out, size_t size)
@@ -378,5 +361,4 @@ const struct board board = {
     .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,
     .status = board_status,
-    .command = board_command,
 };
