@@ -30,6 +30,10 @@ void arch_disable_mmu(void)
     uintptr_t stack_start = (uintptr_t)&_stack_start;
     size_t stack_size = ((uintptr_t)&_stack_end) - ((uintptr_t)&_stack_start);
 
+    /* An exception in the sequence would run with half of it done */
+    disable_irq();
+    disable_fiq();
+
     arch_clean_cache_range(stack_start, stack_size);
     arch_invalidate_cache_range(stack_start, stack_size);
 
@@ -47,4 +51,12 @@ void arch_disable_mmu(void)
     isb();
 
     LOG_DBG("MMU Disabled");
+}
+
+void arch_invalidate_icache(void)
+{
+    dsb();
+    __asm__ volatile("mcr p15, 0, %0, c7, c5, 0" : : "r"(0) : "memory"); /* ICIALLU */
+    dsb();
+    isb();
 }

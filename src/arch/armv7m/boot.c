@@ -1,4 +1,5 @@
 #include <arch/arch.h>
+#include <pb/arch.h>
 #include <pb/mmio.h>
 
 #define VECTOR_STACK_ADDRESS_OFFSET 0
@@ -8,12 +9,16 @@
 #define SCB_VTOR                    0xe000ed08
 
 /*
- * Start the image whose vector table is at 'addr': VTOR points to that
- * table, MSP and PSP are its initial stack pointer, r0-r3 are p0-p3 and
- * execution continues at its reset handler.
+ * Start the image whose vector table is at 'addr' (include/pb/arch.h):
+ * PRIMASK set, the I-cache invalidated, VTOR points to that table, MSP and
+ * PSP are its initial stack pointer, r0-r3 are p0-p3 and execution continues
+ * at its reset handler.
  */
 void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
 {
+    __asm__ volatile("cpsid i" : : : "memory");
+    arch_invalidate_icache();
+
     uintptr_t base_addr = (uintptr_t)addr;
     uint32_t stack_address = *((volatile uint32_t *)(base_addr + VECTOR_STACK_ADDRESS_OFFSET));
     uint32_t reset_handler_address =

@@ -12,7 +12,11 @@
 .section .text
 
 .globl arch_jump
+/* void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
+ * Masks IRQ and FIQ, invalidates the I-cache and jumps to addr with p0-p3 in
+ * r0-r3 (include/pb/arch.h) */
 arch_jump:
+    cpsid if
     mov r5, r0 /* Jump address */
 
     mov r0, r1
@@ -20,9 +24,11 @@ arch_jump:
     mov r2, r3
     ldr r3, [sp] /* p3, the fifth argument, is on the stack */
 
-    isb
     dsb
+    mov r6, #0
+    mcr p15, 0, r6, c7, c5, 0 /* ICIALLU */
+    dsb
+    isb
 
-    cpsid if
     mov pc, r5
     b .
