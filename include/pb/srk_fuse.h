@@ -9,8 +9,8 @@
  *
  * The SRK hash the ROM checks pb's signature against, as the words to fuse.
  * Generated at build time from CONFIG_SRK_FUSE (srktool's *_fuse.bin), so it
- * matches the keys pb is signed with. The board fuses it in
- * slc_set_configuration().
+ * matches the keys pb is signed with. Without CONFIG_SRK_FUSE it is empty
+ * (srk_fuse_words 0). The platform's set_configuration fuses it.
  */
 
 #ifndef INCLUDE_PB_SRK_FUSE_H

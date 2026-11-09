@@ -9,6 +9,7 @@
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <pb/pb.h>
+#include <pb/srk_fuse.h>
 
 static const struct imx_hab_fuses *cfg;
 
@@ -45,6 +46,11 @@ slc_t imx_hab_slc_read_status(void)
     }
 
     return SLC_NOT_CONFIGURED;
+}
+
+int imx_hab_slc_set_configuration(void)
+{
+    return imx_hab_fuse_srk(srk_fuse, srk_fuse_words);
 }
 
 int imx_hab_slc_set_configuration_locked(void)
@@ -134,7 +140,8 @@ int imx_hab_fuse_srk(const uint32_t *srk, size_t words)
     LOG_INFO("Fusing SRK fuses");
 
     if (words != IMX_HAB_SRK_HASH_WORDS) {
-        LOG_ERR("The SRK hash is %zu words, not %u", words, IMX_HAB_SRK_HASH_WORDS);
+        LOG_ERR(
+            "The SRK hash is %zu words, not %u (CONFIG_SRK_FUSE)", words, IMX_HAB_SRK_HASH_WORDS);
         return -PB_ERR_PARAM;
     }
 

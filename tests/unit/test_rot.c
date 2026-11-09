@@ -296,6 +296,127 @@ static void test_slc_order(void **state)
     assert_int_equal(slc_writes, 0);
 }
 
+/* The board's configuration fuses, by index */
+static uint32_t fuses[8];
+static int fuse_writes;
+static int fuse_rc;
+
+static int fake_fuse_read(uint32_t index, uint32_t *value)
+{
+    if (fuse_rc != PB_OK)
+        return fuse_rc;
+
+    *value = fuses[index];
+    return PB_OK;
+}
+
+static int fake_fuse_write(uint32_t index, uint32_t value)
+{
+    fuse_writes++;
+    fuses[index] |= value;
+    return PB_OK;
+}
+
+static const struct slc_fuse boot_fuses[] = {
+    { 5, 0x0000c060 },
+    { 6, 0x00000010 },
+};
+
+static void test_slc_fuses(void **state)
+{
+    static const struct slc_config cfg = {
+        .read_status = fake_read_status,
+        .set_configuration = fake_set_configuration,
+        .fuses = boot_fuses,
+        .fuses_length = ARRAY_SIZE(boot_fuses),
+        .fuse_read = fake_fuse_read,
+        .fuse_write = fake_fuse_write,
+    };
+    (void)state;
+
+    slc_state = SLC_NOT_CONFIGURED;
+    slc_writes = 0;
+    assert_int_equal(slc_init(&cfg), PB_OK);
+    assert_int_equal(slc_set_configuration(), PB_OK);
+    assert_int_equal(slc_writes, 1);
+    assert_int_equal(fuse_writes, 2);
+    assert_int_equal(fuses[5], 0x0000c060);
+    assert_int_equal(fuses[6], 0x00000010);
+
+    /* Set already, also with other bits in the word (e.g. the closed bit) */
+    fuse_writes = 0;
+    fuses[6] |= 0x02;
+    assert_int_equal(slc_set_configuration(), PB_OK);
+    assert_int_equal(fuse_writes, 0);
+
+    /* A word that has some of the bits gets the rest */
+    fuses[5] = 0x00000060;
+    assert_int_equal(slc_set_configuration(), PB_OK);
+    assert_int_equal(fuse_writes, 1);
+    assert_int_equal(fuses[5], 0x0000c060);
+
+    /* A read error stops it */
+    fuse_writes = 0;
+    memset(fuses, 0, sizeof(fuses));
+    fuse_rc = -PB_ERR_IO;
+    assert_int_equal(slc_set_configuration(), -PB_ERR_IO);
+    assert_int_equal(fuse_writes, 0);
+    fuse_rc = PB_OK;
+
+    /* Locked: nothing is written */
+    slc_state = SLC_CONFIGURATION_LOCKED;
+    assert_int_equal(slc_set_configuration(), -PB_ERR_STATE);
+    assert_int_equal(fuse_writes, 0);
+}
+
+static int failing_set_configuration(void)
+{
+    return -PB_ERR_IO;
+}
+
+/* The fuses alone are a configuration, they need a read and a write */
+static void test_slc_fuses_config(void **state)
+{
+    static const struct slc_config fuses_only = {
+        .read_status = fake_read_status,
+        .fuses = boot_fuses,
+        .fuses_length = ARRAY_SIZE(boot_fuses),
+        .fuse_read = fake_fuse_read,
+        .fuse_write = fake_fuse_write,
+    };
+    static const struct slc_config no_write = {
+        .read_status = fake_read_status,
+        .fuses = boot_fuses,
+        .fuses_length = ARRAY_SIZE(boot_fuses),
+        .fuse_read = fake_fuse_read,
+    };
+    static const struct slc_config failing = {
+        .read_status = fake_read_status,
+        .set_configuration = failing_set_configuration,
+        .fuses = boot_fuses,
+        .fuses_length = ARRAY_SIZE(boot_fuses),
+        .fuse_read = fake_fuse_read,
+        .fuse_write = fake_fuse_write,
+    };
+    (void)state;
+
+    memset(fuses, 0, sizeof(fuses));
+    fuse_writes = 0;
+    slc_state = SLC_NOT_CONFIGURED;
+    assert_int_equal(slc_init(&fuses_only), PB_OK);
+    assert_int_equal(slc_set_configuration(), PB_OK);
+    assert_int_equal(fuse_writes, 2);
+
+    assert_int_equal(slc_init(&no_write), -PB_ERR_PARAM);
+
+    /* The platform's part first: when it fails, no fuse is written */
+    memset(fuses, 0, sizeof(fuses));
+    fuse_writes = 0;
+    assert_int_equal(slc_init(&failing), PB_OK);
+    assert_int_equal(slc_set_configuration(), -PB_ERR_IO);
+    assert_int_equal(fuse_writes, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -309,6 +430,8 @@ int main(void)
         cmocka_unit_test(test_slc_without_callbacks),
         cmocka_unit_test(test_slc_without_eol),
         cmocka_unit_test(test_slc_life_cycle),
+        cmocka_unit_test(test_slc_fuses),
+        cmocka_unit_test(test_slc_fuses_config),
         cmocka_unit_test(test_slc_order),
     };
 

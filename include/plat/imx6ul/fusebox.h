@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+/* A fuse's index, for slc_fuse */
+#define IMX6UL_FUSE(bank, word)  ((bank) * 8 + (word))
+
 #define IMX6UL_FUSE_LOCK_BANK    (0)
 #define IMX6UL_FUSE_LOCK_WORD    (6)
 #define IMX6UL_FUSE_SRK_BANK     (3)

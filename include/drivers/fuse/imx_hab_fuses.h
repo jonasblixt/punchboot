@@ -40,6 +40,9 @@ void imx_hab_fuses_init(const struct imx_hab_fuses *cfg);
 /** NOT_CONFIGURED, CONFIGURATION once any SRK hash word is fused, or LOCKED */
 slc_t imx_hab_slc_read_status(void);
 
+/** Fuses the SRK hash of the build, srk_fuse (pb/srk_fuse.h) */
+int imx_hab_slc_set_configuration(void);
+
 /** Fuses the closed bit. slc.c only calls it in CONFIGURATION. */
 int imx_hab_slc_set_configuration_locked(void);
 

@@ -66,7 +66,7 @@ int imx8x_fuse_write_srk(const uint32_t *srk, size_t words)
     LOG_INFO("Fusing SRK fuses");
 
     if (words != IMX8X_SRK_HASH_WORDS) {
-        LOG_ERR("The SRK hash is %zu words, not %u", words, IMX8X_SRK_HASH_WORDS);
+        LOG_ERR("The SRK hash is %zu words, not %u (CONFIG_SRK_FUSE)", words, IMX8X_SRK_HASH_WORDS);
         return -PB_ERR_PARAM;
     }
 
