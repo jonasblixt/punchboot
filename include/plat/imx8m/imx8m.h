@@ -2,6 +2,7 @@
 #define INCLUDE_PLAT_IMX8M_H
 
 #include "clock.h"
+#include "fusebox.h"
 #include "mm.h"
 #if defined(CONFIG_PLAT_IMX8MQ)
 #include "pins_imx8mq.h"
