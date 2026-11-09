@@ -172,10 +172,12 @@ static void entry_checks(char *system)
     check("pending", (mmio_read_32(SCB_ICSR) & 0x1ff000) == 0, "ICSR", mmio_read_32(SCB_ICSR));
     check("watchdog", board_wdog_running(&wdog_ms), "timeout ms", wdog_ms);
 
-    info("primask", "PRIMASK", entry.primask);
+    /* include/pb/arch.h: interrupts masked, the D-cache and the MPU off */
+    check("primask", entry.primask == 1, "PRIMASK", entry.primask);
+    check("dcache", (mmio_read_32(SCB_CCR) & CCR_DC) == 0, "CCR", mmio_read_32(SCB_CCR));
+    check("mpu", mmio_read_32(MPU_CTRL) == 0, "MPU_CTRL", mmio_read_32(MPU_CTRL));
     info("basepri", "BASEPRI", entry.basepri);
-    info("caches", "CCR (IC bit 17, DC bit 16)", mmio_read_32(SCB_CCR) & (CCR_IC | CCR_DC));
-    info("mpu", "MPU_CTRL", mmio_read_32(MPU_CTRL));
+    info("icache", "CCR IC (bit 17)", mmio_read_32(SCB_CCR) & CCR_IC);
 
     board_checks();
 }

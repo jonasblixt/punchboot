@@ -15,12 +15,13 @@ what is tested is what pb hands over, not someone's startup code.
 pb's side of the boot, on the board:
 
 - pb verifies the signed boot image of System A or B, copies it to RAM and
-  starts it (`src/boot/armv7m_baremetal.c`).
+  starts it (`src/boot/simple.c`).
 - The handover: r0 is the booted system's name, r1 the boot partition's
   UUID, VTOR the image's vector table, MSP its initial stack pointer,
-  CONTROL and FAULTMASK 0, no interrupt enabled, SysTick off, nothing
-  pending, the watchdog running, the console usable. The caches are
-  reported (the RT1060's ROM turns both on).
+  CONTROL and FAULTMASK 0, PRIMASK 1 and no interrupt enabled, SysTick
+  off, nothing pending, the D-cache and the MPU off (`include/pb/arch.h`;
+  the RT1060's ROM turns the D-cache on), the watchdog running, the console
+  usable. The I-cache is reported.
 - A/B: the enabled system boots, the image marks itself verified in pb's
   boot state like pbstate does on Linux.
 - Rollback: an update that never marks itself verified is booted for its
