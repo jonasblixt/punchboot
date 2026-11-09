@@ -77,18 +77,19 @@ static int usdhc_emmc_setup(void)
         return -PB_ERR;
     }
 
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_CMD, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA0, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA1, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA2, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA3, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA4, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA5, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA6, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA7, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_STROBE, USDHC_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL);
+    static const struct imx8x_pad pads[] = {
+        { SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL }, { SC_P_EMMC0_CMD, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_DATA0, USDHC_PAD_CTRL },   { SC_P_EMMC0_DATA1, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_DATA2, USDHC_PAD_CTRL },   { SC_P_EMMC0_DATA3, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_DATA4, USDHC_PAD_CTRL },   { SC_P_EMMC0_DATA5, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_DATA6, USDHC_PAD_CTRL },   { SC_P_EMMC0_DATA7, USDHC_PAD_CTRL },
+        { SC_P_EMMC0_STROBE, USDHC_PAD_CTRL },  { SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL },
+    };
+
+    rc = imx8x_pads_setup(pads, ARRAY_SIZE(pads));
+
+    if (rc != PB_OK)
+        return rc;
 
     static const struct imx_usdhc_config cfg = { .base = 0x5B010000,
                                                  .delay_tap = 18,
@@ -208,8 +209,12 @@ static void board_console_init(void)
     sc_pm_clock_enable(imx8x_ipc(), SC_R_UART_0, SC_PM_CLK_PER, true, false);
 
     /* Configure UART pads */
-    sc_pad_set(imx8x_ipc(), SC_P_UART0_RX, UART_PAD_CTRL);
-    sc_pad_set(imx8x_ipc(), SC_P_UART0_TX, UART_PAD_CTRL);
+    static const struct imx8x_pad pads[] = {
+        { SC_P_UART0_RX, UART_PAD_CTRL },
+        { SC_P_UART0_TX, UART_PAD_CTRL },
+    };
+
+    (void)imx8x_pads_setup(pads, ARRAY_SIZE(pads));
 
     (void)imx_lpuart_init(uart_base, rate, 115200);
 
