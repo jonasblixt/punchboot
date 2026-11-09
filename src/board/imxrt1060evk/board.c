@@ -446,24 +446,6 @@ int board_init(struct imxrt_platform *plat_)
     static const struct rot_config rot_config = {
         .revoke_key = NULL,
         .read_key_status = imxrt_read_key_status,
-        .key_map_length = 3,
-        .key_map = {
-            {
-                .name = "pb-development",
-                .id = 0xa90f9680,
-                .param1 = 0,
-            },
-            {
-                .name = "pb-development2",
-                .id = 0x25c6dd36,
-                .param1 = 1,
-            },
-            {
-                .name = "pb-development3",
-                .id = 0x52c1eda0,
-                .param1 = 2,
-            },
-        },
     };
 
     rc = rot_init(&rot_config);

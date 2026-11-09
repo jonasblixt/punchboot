@@ -26,14 +26,14 @@ int imx6ul_revoke_key(const struct rot_key *key)
 
     LOG_DBG("Current revoke value: 0x%x", current_revoke_bits);
 
-    uint32_t revoke_value = (1 << key->param1);
+    uint32_t revoke_value = (1 << key->index);
 
     if ((current_revoke_bits & revoke_value) == revoke_value) {
         LOG_INFO("Key already revoked");
         return PB_OK;
     }
 
-    LOG_INFO("Revoking key '%s' (0x%x)", key->name, key->id);
+    LOG_INFO("Revoking key %u (0x%x)", key->index, key->id);
 
     revoke_value |= current_revoke_bits;
     LOG_DBG("Updating fuse to 0x%x", revoke_value);
@@ -51,7 +51,7 @@ int imx6ul_read_key_status(const struct rot_key *key)
     if (rc != PB_OK)
         return rc;
 
-    uint32_t revoke_value = (1 << key->param1);
+    uint32_t revoke_value = (1 << key->index);
 
     if ((current_revoke_bits & revoke_value) == revoke_value)
         return -PB_ERR_KEY_REVOKED;

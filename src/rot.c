@@ -18,76 +18,85 @@ static const struct rot_config *cfg;
 
 int rot_init(const struct rot_config *cfg_)
 {
-    /* Check that the number of keys and key ID's match
-     * between bundeled bpak keystore and what the board config claims */
-    if (keystore_pb.no_of_keys != cfg_->key_map_length)
+    if (cfg_ == NULL)
         return -PB_ERR_PARAM;
 
-    for (int i = 0; i < keystore_pb.no_of_keys; i++) {
-        if (keystore_pb.keys[i]->id != cfg_->key_map[i].id) {
-            return -PB_ERR_PARAM;
-        }
-    }
-
     cfg = cfg_;
-
     return PB_OK;
 }
 
-int rot_read_key_status(key_id_t id)
+/* The keys are the keystore's, in its order */
+static int key_by_id(key_id_t id, struct rot_key *key)
 {
-    if (!cfg || !cfg->read_key_status)
-        return -PB_ERR_NOT_SUPPORTED;
-
-    for (unsigned int i = 0; i < cfg->key_map_length; i++) {
-        if (cfg->key_map[i].id == id) {
-            return cfg->read_key_status(&cfg->key_map[i]);
+    for (unsigned int i = 0; i < keystore_pb.no_of_keys; i++) {
+        if (keystore_pb.keys[i]->id == id) {
+            key->id = id;
+            key->index = i;
+            return PB_OK;
         }
     }
 
     return -PB_ERR_KEY_NOT_FOUND;
+}
+
+int rot_read_key_status(key_id_t id)
+{
+    struct rot_key key;
+    int rc;
+
+    if (!cfg || !cfg->read_key_status)
+        return -PB_ERR_NOT_SUPPORTED;
+
+    rc = key_by_id(id, &key);
+
+    if (rc != PB_OK)
+        return rc;
+
+    return cfg->read_key_status(&key);
 }
 
 size_t rot_no_of_keys(void)
 {
     if (!cfg)
         return -PB_ERR_NOT_SUPPORTED;
-    return cfg->key_map_length;
+    return keystore_pb.no_of_keys;
 }
 
 int rot_read_key_status_by_idx(unsigned int index)
 {
     if (!cfg || !cfg->read_key_status)
         return -PB_ERR_NOT_SUPPORTED;
-    if (!(index < cfg->key_map_length))
+    if (!(index < keystore_pb.no_of_keys))
         return -PB_ERR_PARAM;
 
-    return cfg->read_key_status(&cfg->key_map[index]);
+    return rot_read_key_status(keystore_pb.keys[index]->id);
 }
 
 key_id_t rot_key_idx_to_id(unsigned int index)
 {
     if (!cfg)
         return -PB_ERR_NOT_SUPPORTED;
-    if (!(index < cfg->key_map_length))
+    if (!(index < keystore_pb.no_of_keys))
         return -PB_ERR_PARAM;
 
-    return cfg->key_map[index].id;
+    return keystore_pb.keys[index]->id;
 }
 
 int rot_revoke_key(key_id_t id)
 {
+    struct rot_key key;
+    int rc;
+
     if (!cfg || !cfg->revoke_key)
         return -PB_ERR_NOT_SUPPORTED;
 
-    for (unsigned int i = 0; i < cfg->key_map_length; i++) {
-        if (cfg->key_map[i].id == id) {
-            LOG_INFO("Revoking key: %s (0x%x)", cfg->key_map[i].name, cfg->key_map[i].id);
-            return cfg->revoke_key(&cfg->key_map[i]);
-        }
-    }
+    rc = key_by_id(id, &key);
 
-    return -PB_ERR_KEY_NOT_FOUND;
+    if (rc != PB_OK)
+        return rc;
+
+    LOG_INFO("Revoking key %u (0x%x)", key.index, key.id);
+    return cfg->revoke_key(&key);
 }
 
 int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size_t *der_data_length)
@@ -95,7 +104,7 @@ int rot_get_dsa_key(key_id_t id, dsa_t *dsa_kind, const uint8_t **der_data, size
     const struct bpak_key *key = NULL;
     int rc;
 
-    if (!cfg || !cfg->key_map_length)
+    if (!cfg)
         return -PB_ERR_NOT_SUPPORTED;
 
     rc = rot_read_key_status(id);

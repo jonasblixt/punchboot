@@ -27,61 +27,27 @@
 #define KEY_P384 0x25c6dd36
 #define KEY_P521 0x52c1eda0
 
-static uint32_t revoked; /* Bit per key, by param1 */
+static uint32_t revoked; /* Bit per key, by index */
 static int revoke_calls;
 
 static int fake_revoke_key(const struct rot_key *key)
 {
     revoke_calls++;
-    revoked |= 1u << key->param1;
+    revoked |= 1u << key->index;
     return PB_OK;
 }
 
 static int fake_read_key_status(const struct rot_key *key)
 {
-    return (revoked & (1u << key->param1)) ? -PB_ERR_KEY_REVOKED : PB_OK;
+    return (revoked & (1u << key->index)) ? -PB_ERR_KEY_REVOKED : PB_OK;
 }
 
 static const struct rot_config rot_cfg = {
     .revoke_key = fake_revoke_key,
     .read_key_status = fake_read_key_status,
-    .key_map_length = 3,
-    .key_map = {
-        { .name = "p256", .id = KEY_P256, .param1 = 0 },
-        { .name = "p384", .id = KEY_P384, .param1 = 1 },
-        { .name = "p521", .id = KEY_P521, .param1 = 2 },
-    },
 };
 
-static const struct rot_config rot_cfg_no_callbacks = {
-    .key_map_length = 3,
-    .key_map = {
-        { .name = "p256", .id = KEY_P256 },
-        { .name = "p384", .id = KEY_P384 },
-        { .name = "p521", .id = KEY_P521 },
-    },
-};
-
-static const struct rot_config rot_cfg_too_few_keys = {
-    .revoke_key = fake_revoke_key,
-    .read_key_status = fake_read_key_status,
-    .key_map_length = 2,
-    .key_map = {
-        { .name = "p256", .id = KEY_P256 },
-        { .name = "p384", .id = KEY_P384 },
-    },
-};
-
-static const struct rot_config rot_cfg_wrong_order = {
-    .revoke_key = fake_revoke_key,
-    .read_key_status = fake_read_key_status,
-    .key_map_length = 3,
-    .key_map = {
-        { .name = "p384", .id = KEY_P384 },
-        { .name = "p256", .id = KEY_P256 },
-        { .name = "p521", .id = KEY_P521 },
-    },
-};
+static const struct rot_config rot_cfg_no_callbacks = { 0 };
 
 static void test_rot_not_initialized(void **state)
 {
@@ -98,12 +64,11 @@ static void test_rot_not_initialized(void **state)
     assert_int_equal(rot_get_dsa_key(KEY_P256, &kind, &der, &der_length), -PB_ERR_NOT_SUPPORTED);
 }
 
-static void test_rot_init_checks_the_keystore(void **state)
+static void test_rot_init_needs_a_config(void **state)
 {
     (void)state;
 
-    assert_int_equal(rot_init(&rot_cfg_too_few_keys), -PB_ERR_PARAM);
-    assert_int_equal(rot_init(&rot_cfg_wrong_order), -PB_ERR_PARAM);
+    assert_int_equal(rot_init(NULL), -PB_ERR_PARAM);
     /* Still not initialized */
     assert_int_equal(rot_revoke_key(KEY_P256), -PB_ERR_NOT_SUPPORTED);
 }
@@ -282,7 +247,7 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_rot_not_initialized),
-        cmocka_unit_test(test_rot_init_checks_the_keystore),
+        cmocka_unit_test(test_rot_init_needs_a_config),
         cmocka_unit_test(test_rot_without_callbacks),
         cmocka_unit_test(test_rot_key_status),
         cmocka_unit_test(test_rot_get_dsa_key),
