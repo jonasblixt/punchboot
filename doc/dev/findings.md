@@ -149,6 +149,11 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | `src/slc.c`. | | |
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | open |
 | | | revoke one, although HAB has `SRK_REVOKE` there too. | | |
+| F-168 | `src/cm/cm_main.c`, `src/slc.c` | Command mode asked for authentication only when the | Verified | fixed |
+| | | SLC read CONFIGURATION_LOCKED. When the board init failed before `slc_init()` | | (work-3.0.0) |
+| | | (eMMC init on jiffy, DDR training on the i.MX8M) or the read failed, the read | | |
+| | | was an error and every command was open on a locked device. Now an unset SLC | | |
+| | | is `-PB_ERR_STATE`, and any error but `-PB_ERR_NOT_SUPPORTED` is locked. | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
