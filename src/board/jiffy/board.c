@@ -127,26 +127,22 @@ static void boot_source_str(char *out, size_t size)
  * SBMR1 is BOOT_CFG1..4 from the fuses or the boot pins, the BOOT_CFG fuse
  * word is the shadow at 0x450. Only read.
  */
-#define SRC_SBMR1             (IMX6UL_SRC_BASE + 0x04)
-#define SRC_SBMR2             (IMX6UL_SRC_BASE + 0x1c)
-#define OCOTP_BOOT_CFG0       (IMX6UL_OCOTP_CTRL_BASE + 0x450)
-#define BOOT_CFG_MMC          BIT(5)
-#define BOOT_CFG_FAST_BOOT    BIT(4)
-#define BOOT_CFG_HIGH_SPEED   BIT(3)
-#define BOOT_CFG_BUS_WIDTH(x) (((x) >> 13) & 0x7)
+#define SRC_SBMR1       (IMX6UL_SRC_BASE + 0x04)
+#define SRC_SBMR2       (IMX6UL_SRC_BASE + 0x1c)
+#define OCOTP_BOOT_CFG0 (IMX6UL_OCOTP_CTRL_BASE + 0x450)
 
 static const char *boot_bus_width_str(uint32_t cfg)
 {
-    switch (BOOT_CFG_BUS_WIDTH(cfg)) {
-    case 0:
+    switch (IMX6UL_BOOT_CFG_BUS_WIDTH_OF(cfg)) {
+    case IMX6UL_BOOT_BUS_1BIT:
         return "1-bit";
-    case 1:
+    case IMX6UL_BOOT_BUS_4BIT:
         return "4-bit";
-    case 2:
+    case IMX6UL_BOOT_BUS_8BIT:
         return "8-bit";
-    case 5:
+    case IMX6UL_BOOT_BUS_4BIT_DDR:
         return "4-bit DDR";
-    case 6:
+    case IMX6UL_BOOT_BUS_8BIT_DDR:
         return "8-bit DDR";
     default:
         return "reserved";
@@ -172,10 +168,10 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
                                 (unsigned int)sbmr1,
                                 (unsigned int)mmio_read_32(SRC_SBMR2),
                                 (unsigned int)mmio_read_32(OCOTP_BOOT_CFG0),
-                                (sbmr1 & BOOT_CFG_MMC) ? "MMC" : "SD",
+                                (sbmr1 & IMX6UL_BOOT_CFG_MMC) ? "MMC" : "SD",
                                 boot_bus_width_str(sbmr1),
-                                (sbmr1 & BOOT_CFG_HIGH_SPEED) ? "high" : "normal",
-                                (sbmr1 & BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
+                                (sbmr1 & IMX6UL_BOOT_CFG_MMC_HIGH_SPEED) ? "high" : "normal",
+                                (sbmr1 & IMX6UL_BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
     response[(*response_size)++] = 0;
 
     return PB_OK;
@@ -184,12 +180,15 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
 /*
  * Warning: an example configuration. Be careful with the slc commands.
  * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
- * is signed with, then these: boot from eMMC, 8-bit DDR (BOOT_CFG), from the
- * fuses (BT_FUSE_SEL).
+ * is signed with, then these: boot from the eMMC on uSDHC1, 8-bit DDR, and
+ * take the boot configuration from the fuses, not the boot pins.
  */
 static const struct slc_fuse config_fuses[] = {
-    { IMX6UL_FUSE(0, 5), 0x0000c060 },
-    { IMX6UL_FUSE(0, 6), 0x00000010 },
+    { IMX6UL_FUSE(IMX6UL_FUSE_BOOT_CFG_BANK, IMX6UL_FUSE_BOOT_CFG_WORD),
+      IMX6UL_BOOT_CFG_USDHC | IMX6UL_BOOT_CFG_MMC | IMX6UL_BOOT_CFG_USDHC_PORT(0) |
+          IMX6UL_BOOT_CFG_BUS_WIDTH(IMX6UL_BOOT_BUS_8BIT_DDR) },
+    { IMX6UL_FUSE(IMX6UL_FUSE_SEC_CONFIG_BANK, IMX6UL_FUSE_SEC_CONFIG_WORD),
+      IMX6UL_FUSE_BT_FUSE_SEL },
 };
 
 static void board_console_init(void)
