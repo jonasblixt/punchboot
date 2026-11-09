@@ -53,7 +53,7 @@ struct board {
     const struct gpt_table_list *gpt_tables; /*!< Its layouts, see board_layout_gpt */
     size_t gpt_tables_length;
 
-    const struct boot_ab_state_config *ab; /*!< A/B state, see board_layout_ab */
+    const struct boot_ab_state_config *ab; /*!< A/B state, see board_layout_ab. NULL: none */
 
     int (*late_init)(void); /*!< After the partition table and the A/B state */
 
