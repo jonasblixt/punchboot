@@ -201,22 +201,24 @@ static int board_revoke_key(const struct rot_key *key)
 
 static int board_read_key_status(const struct rot_key *key)
 {
-    int val = test_fuse_read(FUSE_REVOKE);
+    uint32_t val;
+    int rc = test_fuse_read(FUSE_REVOKE, &val);
 
-    if (val < 0)
-        LOG_ERR("Could not read fuse");
+    if (rc != PB_OK)
+        return rc;
 
-    if (val & (1 << key->slot))
+    if (val & (1u << key->slot))
         return -PB_ERR_KEY_REVOKED;
     return PB_OK;
 }
 
 static slc_t board_slc_read_status(void)
 {
-    int val = test_fuse_read(FUSE_SEC);
+    uint32_t val;
+    int rc = test_fuse_read(FUSE_SEC, &val);
 
-    if (val < 0)
-        LOG_ERR("Could not read fuse");
+    if (rc != PB_OK)
+        return rc;
 
     if (val & SEC_CONF_EOL)
         return SLC_EOL;
