@@ -60,23 +60,25 @@ int imx8x_fuse_read(uint32_t addr, uint32_t *result)
     }
 }
 
-int imx8x_fuse_write_srk(const struct imx8x_srk_fuses *fuses)
+int imx8x_fuse_write_srk(const uint32_t *srk, size_t words)
 {
     int rc;
     LOG_INFO("Fusing SRK fuses");
 
-    if (fuses == NULL)
+    if (words != IMX8X_SRK_HASH_WORDS) {
+        LOG_ERR("The SRK hash is %zu words, not %u", words, IMX8X_SRK_HASH_WORDS);
         return -PB_ERR_PARAM;
+    }
 
     /* Check for empty SRK fields */
-    for (unsigned int n = 0; n < 16; n++) {
-        if (fuses->srk[n] == 0)
+    for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
+        if (srk[n] == 0)
             return -PB_ERR_PARAM;
     }
 
-    for (unsigned int n = 0; n < 16; n++) {
-        LOG_INFO("Fusing SRK%i, value=0x%x", n, fuses->srk[n]);
-        rc = imx8x_fuse_write(730 + n, fuses->srk[n]);
+    for (unsigned int n = 0; n < IMX8X_SRK_HASH_WORDS; n++) {
+        LOG_INFO("Fusing SRK%i, value=0x%x", n, srk[n]);
+        rc = imx8x_fuse_write(730 + n, srk[n]);
 
         if (rc != PB_OK)
             return rc;

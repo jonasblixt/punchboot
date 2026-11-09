@@ -12,6 +12,14 @@ config KEYSTORE
 	string "Key-store source"
 	default "pki/internal_keystore.bpak"
 
+config SRK_FUSE
+	string "SRK hash fuse words"
+	default ""
+    help
+        srktool's fuse file (e.g. SRK_1_2_3_4_fuse.bin) of the keys pb is
+        signed with, for a board that fuses the SRK hash in
+        slc_set_configuration() (include/pb/srk_fuse.h).
+
 config LOGLEVEL
 	int "loglevel"
     default 0

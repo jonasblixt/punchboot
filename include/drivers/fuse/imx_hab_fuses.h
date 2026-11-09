@@ -18,6 +18,7 @@
 
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #define IMX_HAB_SRK_HASH_WORDS (8)
@@ -48,8 +49,9 @@ int imx_hab_revoke_key(const struct rot_key *key);
 /**
  * Fuse the SRK hash. Words that are fused already must match.
  *
- * @param srk The hash, e.g. srktool's SRK_1_2_3_4_fuse.bin
+ * @param srk The hash, e.g. srk_fuse (pb/srk_fuse.h)
+ * @param words Its length, IMX_HAB_SRK_HASH_WORDS
  */
-int imx_hab_fuse_srk(const uint32_t srk[IMX_HAB_SRK_HASH_WORDS]);
+int imx_hab_fuse_srk(const uint32_t *srk, size_t words);
 
 #endif // INCLUDE_DRIVERS_FUSE_IMX_HAB_FUSES_H
