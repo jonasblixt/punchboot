@@ -134,6 +134,9 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-163 | `src/plat/imx8x/slc_helpers.c` | Only life cycle 0x80 (closed with NXP firmware) read | Verified | fixed |
 | | | as CONFIGURATION_LOCKED. Closed (0x40), field return (0x100, 0x200) and no | | (work-3.0.0) |
 | | | return (0x400) read as CONFIGURATION: secure boot on, command mode open. | | |
+| F-164 | `src/plat/imx8x/rot_helpers.c` | `imx8x_revoke_key()` ignored the key: it committed | Verified | fixed |
+| | | whatever the AHAB header revokes and returned `PB_OK`, also when no fuse | | (work-3.0.0) |
+| | | changed. The host was told a key was revoked that wasn't. | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
