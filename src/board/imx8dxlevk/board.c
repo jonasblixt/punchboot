@@ -187,10 +187,10 @@ static int board_password_auth(const char *password, size_t length)
  * Warning: an example configuration. Be careful with the slc commands.
  * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
  * is signed with, then these: boot from the eMMC on uSDHC0, fast boot, high
- * speed, 8-bit DDR.
+ * speed, 8-bit DDR, also with the boot pins at "boot from fuses" (BT_FUSE_SEL).
  */
 static const struct slc_fuse config_fuses[] = {
-    { IMX8X_FUSE_BOOT0, IMX8X_BOOT0_EMMC0 },
+    { IMX8X_FUSE_BOOT0, IMX8X_BOOT0_FUSE_SEL | IMX8X_BOOT0_EMMC0 },
     { IMX8X_FUSE_BOOT1,
       IMX8X_BOOT1_FAST | IMX8X_BOOT1_MMC_HS | IMX8X_BOOT1_BUS(IMX8X_BUS_8BIT_DDR) },
 };
