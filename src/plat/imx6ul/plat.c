@@ -269,14 +269,14 @@ static const struct imx_hab_log_config hab_log_cfg = {
 
 /* RM Table 5-9, OCOTP_SRK_REVOKE (35.5.58): SRK_REVOKE[2:0] */
 static const struct imx_hab_fuses hab_fuses = {
-    .sec_config_bank = IMX6UL_FUSE_LOCK_BANK,
-    .sec_config_word = IMX6UL_FUSE_LOCK_WORD,
-    .closed = 0x02,
+    .sec_config_bank = IMX6UL_FUSE_SEC_CONFIG_BANK,
+    .sec_config_word = IMX6UL_FUSE_SEC_CONFIG_WORD,
+    .closed = IMX6UL_FUSE_SEC_CONFIG_CLOSED,
     .srk_bank = IMX6UL_FUSE_SRK_BANK,
-    .srk_word = 0,
+    .srk_word = IMX6UL_FUSE_SRK_WORD,
     .revoke_bank = IMX6UL_FUSE_REVOKE_BANK,
     .revoke_word = IMX6UL_FUSE_REVOKE_WORD,
-    .revocable = 3,
+    .revocable = IMX6UL_FUSE_REVOCABLE_SRKS,
     .revoke_allowed = hab_has_no_errors,
 };
 
@@ -310,11 +310,16 @@ int plat_init(void)
     int rc;
 
     /* Init fusebox */
-    imx_ocotp_init(IMX6UL_OCOTP_CTRL_BASE, 8);
+    imx_ocotp_init(IMX6UL_OCOTP_CTRL_BASE, IMX6UL_FUSE_WORDS_PER_BANK);
     imx_hab_fuses_init(&hab_fuses);
 
-    plat.si_rev = fuse_read_helper(0, 3, 16, 0x0f, 0);
-    plat.speed_grade = fuse_read_helper(0, 4, 16, 0x03, 1);
+    plat.si_rev = fuse_read_helper(
+        0, IMX6UL_FUSE_SI_REV_WORD, IMX6UL_FUSE_SI_REV_SHIFT, IMX6UL_FUSE_SI_REV_MASK, 0);
+    plat.speed_grade = fuse_read_helper(0,
+                                        IMX6UL_FUSE_SPEED_GRADE_WORD,
+                                        IMX6UL_FUSE_SPEED_GRADE_SHIFT,
+                                        IMX6UL_FUSE_SPEED_GRADE_MASK,
+                                        1);
 
     LOG_INFO("IMX6UL: si_rev=%u, speed_grade=%u", plat.si_rev, plat.speed_grade);
 

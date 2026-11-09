@@ -9,6 +9,7 @@
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <pb/pb.h>
+#include <pb/srk_fuse.h>
 
 static const struct imx_hab_fuses *cfg;
 
@@ -47,6 +48,11 @@ slc_t imx_hab_slc_read_status(void)
     return SLC_NOT_CONFIGURED;
 }
 
+int imx_hab_slc_set_configuration(void)
+{
+    return imx_hab_fuse_srk(srk_fuse, srk_fuse_words);
+}
+
 int imx_hab_slc_set_configuration_locked(void)
 {
     if (cfg == NULL)
@@ -66,7 +72,7 @@ int imx_hab_read_key_status(const struct rot_key *key)
     if (cfg == NULL)
         return -PB_ERR_STATE;
 
-    if (key->index >= 32)
+    if (key->slot >= 32)
         return PB_OK;
 
     rc = imx_ocotp_read(cfg->revoke_bank, cfg->revoke_word, &val);
@@ -74,7 +80,7 @@ int imx_hab_read_key_status(const struct rot_key *key)
     if (rc != PB_OK)
         return rc;
 
-    if (val & (1u << key->index))
+    if (val & (1u << key->slot))
         return -PB_ERR_KEY_REVOKED;
 
     return PB_OK;
@@ -89,8 +95,8 @@ int imx_hab_revoke_key(const struct rot_key *key)
     if (cfg == NULL)
         return -PB_ERR_STATE;
 
-    if (key->index >= cfg->revocable) {
-        LOG_ERR("Key %u can't be revoked, HAB revokes SRK0-%u", key->index, cfg->revocable - 1);
+    if (key->slot >= cfg->revocable) {
+        LOG_ERR("Key %u can't be revoked, HAB revokes SRK0-%u", key->slot, cfg->revocable - 1);
         return -PB_ERR_PARAM;
     }
 
@@ -111,14 +117,14 @@ int imx_hab_revoke_key(const struct rot_key *key)
     }
 
     LOG_DBG("Current revoke value: 0x%x", val);
-    bit = 1u << key->index;
+    bit = 1u << key->slot;
 
     if (val & bit) {
         LOG_INFO("Key already revoked");
         return PB_OK;
     }
 
-    LOG_INFO("Revoking key %u (0x%x)", key->index, key->id);
+    LOG_INFO("Revoking key %u (0x%x)", key->slot, key->id);
     return imx_ocotp_write(cfg->revoke_bank, cfg->revoke_word, val | bit);
 }
 
@@ -134,7 +140,8 @@ int imx_hab_fuse_srk(const uint32_t *srk, size_t words)
     LOG_INFO("Fusing SRK fuses");
 
     if (words != IMX_HAB_SRK_HASH_WORDS) {
-        LOG_ERR("The SRK hash is %zu words, not %u", words, IMX_HAB_SRK_HASH_WORDS);
+        LOG_ERR(
+            "The SRK hash is %zu words, not %u (CONFIG_SRK_FUSE)", words, IMX_HAB_SRK_HASH_WORDS);
         return -PB_ERR_PARAM;
     }
 

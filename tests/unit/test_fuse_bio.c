@@ -56,25 +56,34 @@ static void test_fuses_persist(void **state)
 {
     struct fixture *f = *state;
     uint32_t *fuses = (uint32_t *)ramdisk_block(f->disk, 0);
+    uint32_t val;
 
     fuses[3] = 0x10;
     assert_int_equal(test_fuse_init(f->dev), PB_OK);
-    assert_int_equal(test_fuse_read(3), 0x10);
+    assert_int_equal(test_fuse_read(3, &val), PB_OK);
+    assert_int_equal(val, 0x10);
 
     /* Fuses can only be set, never cleared */
     assert_int_equal(test_fuse_write(3, 0x01), PB_OK);
-    assert_int_equal(test_fuse_read(3), 0x11);
+    assert_int_equal(test_fuse_read(3, &val), PB_OK);
+    assert_int_equal(val, 0x11);
     assert_int_equal(fuses[3], 0x11);
 }
 
 static void test_address_range(void **state)
 {
     struct fixture *f = *state;
+    uint32_t val;
 
     assert_int_equal(test_fuse_init(f->dev), PB_OK);
     assert_int_equal(test_fuse_write(127, 1), PB_OK);
     assert_int_equal(test_fuse_write(128, 1), -PB_ERR_PARAM);
-    assert_int_equal(test_fuse_read(128), -PB_ERR_PARAM);
+    assert_int_equal(test_fuse_read(128, &val), -PB_ERR_PARAM);
+
+    /* All 32 bits are the value */
+    assert_int_equal(test_fuse_write(4, 0xcafeefee), PB_OK);
+    assert_int_equal(test_fuse_read(4, &val), PB_OK);
+    assert_int_equal(val, 0xcafeefee);
 }
 
 static void test_io_errors(void **state)

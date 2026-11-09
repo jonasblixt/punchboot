@@ -30,12 +30,12 @@ int imx8x_revoke_key(const struct rot_key *key)
     uint32_t key_bit;
     uint32_t info;
 
-    if (key->index >= IMX8X_OEM_REVOKE_KEYS) {
-        LOG_ERR("Key %u can't be revoked", key->index);
+    if (key->slot >= IMX8X_OEM_REVOKE_KEYS) {
+        LOG_ERR("Key %u can't be revoked", key->slot);
         return -PB_ERR_PARAM;
     }
 
-    key_bit = 1 << (key->index + IMX8X_OEM_REVOKE_SHIFT);
+    key_bit = 1 << (key->slot + IMX8X_OEM_REVOKE_SHIFT);
 
     if (!imx8x_is_srk_fused())
         return -PB_ERR;
@@ -80,7 +80,7 @@ int imx8x_revoke_key(const struct rot_key *key)
     LOG_INFO("Revocation fuse changed bits: %x", before_revoke_bits ^ after_revoke_bits);
 
     if (!(after_revoke_bits & key_bit)) {
-        LOG_ERR("The image header doesn't revoke key %u", key->index);
+        LOG_ERR("The image header doesn't revoke key %u", key->slot);
         return -PB_ERR_STATE;
     }
 
@@ -97,7 +97,7 @@ int imx8x_read_key_status(const struct rot_key *key)
     if (rc != PB_OK)
         return rc;
 
-    uint32_t revoke_value = (1 << key->index);
+    uint32_t revoke_value = (1 << key->slot);
     uint8_t rom_key_mask = (current_revoke_bits >> 8) & 0x0f;
 
     if ((rom_key_mask & revoke_value) == revoke_value)

@@ -39,16 +39,15 @@ static const struct imx_hab_log_config hab_log_cfg = {
     .entry_size = 4,
 };
 
-/* As on the 6UL: SEC_CONFIG at OCOTP 0x460, SRK_HASH 0x580, SRK_REVOKE 0x6F0 */
 static const struct imx_hab_fuses hab_fuses = {
-    .sec_config_bank = 0,
-    .sec_config_word = 6,
-    .closed = 0x02,
-    .srk_bank = 3,
-    .srk_word = 0,
-    .revoke_bank = 5,
-    .revoke_word = 7,
-    .revocable = 3,
+    .sec_config_bank = IMXRT_FUSE_SEC_CONFIG_BANK,
+    .sec_config_word = IMXRT_FUSE_SEC_CONFIG_WORD,
+    .closed = IMXRT_FUSE_SEC_CONFIG_CLOSED,
+    .srk_bank = IMXRT_FUSE_SRK_BANK,
+    .srk_word = IMXRT_FUSE_SRK_WORD,
+    .revoke_bank = IMXRT_FUSE_REVOKE_BANK,
+    .revoke_word = IMXRT_FUSE_REVOKE_WORD,
+    .revocable = IMXRT_FUSE_REVOCABLE_SRKS,
 };
 
 int plat_early_init(void)
@@ -73,11 +72,12 @@ int plat_init(void)
 
     (void)imx_hab_log_init(&hab_log_cfg);
 
-    imx_ocotp_init(IMXRT_OCOTP_BASE, 8);
+    imx_ocotp_init(IMXRT_OCOTP_BASE, IMXRT_FUSE_WORDS_PER_BANK);
     imx_hab_fuses_init(&hab_fuses);
     /* Read speed grade fuse */
 
-    plat.speed_grade = fuse_read_helper(4, 16, 0x03, 1);
+    plat.speed_grade = fuse_read_helper(
+        IMXRT_FUSE_SPEED_GRADE_WORD, IMXRT_FUSE_SPEED_GRADE_SHIFT, IMXRT_FUSE_SPEED_GRADE_MASK, 1);
     LOG_INFO("Speed grade: %u", plat.speed_grade);
 
     /* Configure ARM Core clock */

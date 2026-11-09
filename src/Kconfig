@@ -12,6 +12,17 @@ config KEYSTORE
 	string "Key-store source"
 	default "pki/internal_keystore.bpak"
 
+config KEYSTORE_SLOTS
+	string "Key revoke slots"
+	default ""
+    help
+        The keystore's key ids (hex, space separated) in the order of their
+        revoke slots: the n-th is slot n, on HABv4 SRK n's revoke fuse. A key
+        dropped from the keystore keeps its place here, so the keys after it
+        keep their slots. Every key in the keystore needs one.
+        Empty: the keystore's order. A key must then never be removed from
+        the keystore or moved, also not after it is revoked (F-165).
+
 config SRK_FUSE
 	string "SRK hash fuse words"
 	default ""
