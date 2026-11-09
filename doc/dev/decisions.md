@@ -296,8 +296,11 @@ Why: every board had the same sequence with small differences, a different `boar
 signature per platform. The old order (RoT/SLC last) let a failed init open command mode.
 The boards are 1,542 lines shorter: less to review and to port, and Jonas wants as little
 board code as possible ("ideally no board code to maintain").
-Cost: out-of-tree boards must be rewritten (allowed by D-018). Pin, clock and boot-config fuse
-data are still code in the boards.
+Pins are tables in the board's hooks: `struct imx_pin` (IOMUXC, `IMX6UL_PIN()`, `IMX8M_PIN()`,
+`IMXRT_PIN()` by the pin's name, `imx_iomuxc_setup()`) and `struct imx8x_pad` (SCFW,
+`imx8x_pads_setup()`).
+Cost: out-of-tree boards must be rewritten (allowed by D-018). Clocks are still code in the
+boards.
 
 ## D-027: The core owns the security rules, the platforms only read and write fuses (2026-11-09)
 
