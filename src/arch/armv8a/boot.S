@@ -14,18 +14,15 @@
 
 .global arch_jump
 arch_jump:
-    mov x4, x0 /* Jump address */
-    mov x5, x1 /* Arg1 */
-    mov x6, x2 /* Arg2 */
-    mov x7, x3 /* Arg3 */
+    mov x8, x0 /* Jump address */
 
-    mov x0, x5
-    mov x1, x6
-    mov x2, x7
-    ldr x3, =0
+    mov x0, x1
+    mov x1, x2
+    mov x2, x3
+    mov x3, x4
 
     ic iallu  /* Invalidate the whole I$ */
     dsb sy    /* Ensure completion of cache op */
 
-    br x4
+    br x8
     b .
