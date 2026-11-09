@@ -44,8 +44,6 @@ IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 #define SCTR_CNTCR_FCR1 BIT(9) /* ... at CNTFID1 */
 #define SCTR_CNTFID0    0x20
 
-static struct imx8m_platform plat;
-
 const char *platform_ns_uuid = "\x32\x92\xd7\xd2\x28\x25\x41\x00\x90\xc3\x96\x8f\x29\x60\xc9\xf2";
 
 static const mmap_region_t imx_mmap[] = {
@@ -166,10 +164,8 @@ static const struct imx_hab_log_config hab_log_cfg = {
     .entry_size = 8,
 };
 
-int plat_init(void)
+int plat_early_init(void)
 {
-    int rc;
-
     imx_rom_log_save(&rom_log_cfg);
     (void)imx_hab_log_init(&hab_log_cfg);
 
@@ -179,9 +175,12 @@ int plat_init(void)
     mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
     imx_wdog_init(IMX8M_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
+    return PB_OK;
+}
 
-    /* Init debug console */
-    board_console_init(&plat);
+int plat_init(void)
+{
+    int rc;
 
     /* Init fusebox (reading only), its clock gate may be closed */
     mmio_write_32(CCM_CCGR_SET(CCGR_OCOTP), CCGR_CLK_ON_MASK);

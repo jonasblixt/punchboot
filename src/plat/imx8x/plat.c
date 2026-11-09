@@ -226,17 +226,21 @@ static void imx8x_mmu_init(void)
     enable_mmu_el3(0);
 }
 
-int plat_init(void)
+static sc_err_t wdog_rc;
+
+int plat_early_init(void)
 {
     sc_ipc_open(&plat.ipc, SC_IPC_BASE);
 
-    sc_err_t wdog_rc = imx8x_wdog_init();
+    wdog_rc = imx8x_wdog_init();
     imx8x_systick_setup();
     log_time_start();
     imx8x_load_boot_reason();
+    return PB_OK;
+}
 
-    board_console_init(&plat);
-
+int plat_init(void)
+{
     if (wdog_rc != 0) {
         /* We'll continue anyway, best effort */
         LOG_ERR("Failed to enable watchdog (%i)", wdog_rc);

@@ -28,6 +28,14 @@ void main(void)
 #endif
     arch_init();
 
+    rc = plat_early_init();
+
+    if (rc != PB_OK)
+        goto enter_command_mode;
+
+    if (board.console_init)
+        board.console_init();
+
     rc = plat_init();
 
     if (rc != PB_OK)

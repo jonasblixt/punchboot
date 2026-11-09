@@ -8,7 +8,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * A board is data: what is on the PCB and what the product decides. Each
- * board defines 'board', and src/board.c sets it up in this order:
+ * board defines 'board'. main() calls console_init() between
+ * plat_early_init() and plat_init(), then src/board.c sets up the rest in
+ * this order:
  *
  *  1. rot, slc      The keys and the life cycle, before anything that can
  *                   fail, so that command mode knows whether to ask for
@@ -43,6 +45,8 @@ struct slc_config;
 
 struct board {
     const char *name; /*!< The board id in command mode, at most 16 characters */
+
+    void (*console_init)(void); /*!< The debug UART: clock, pads, console_init() */
 
     const struct rot_config *rot; /*!< Key revocation */
     const struct slc_config *slc; /*!< Security life cycle */

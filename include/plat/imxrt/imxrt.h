@@ -18,8 +18,6 @@ struct imxrt_platform {
     unsigned int per_root_clk_MHz;
 };
 
-void board_console_init(struct imxrt_platform *plat);
-
 int imxrt_slc_set_configuration_locked(void);
 slc_t imxrt_slc_read_status(void);
 int imxrt_revoke_key(const struct rot_key *key);

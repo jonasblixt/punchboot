@@ -38,10 +38,8 @@ static const struct imx_hab_log_config hab_log_cfg = {
     .entry_size = 4,
 };
 
-int plat_init(void)
+int plat_early_init(void)
 {
-    int rc;
-
 #if CONFIG_ENABLE_WATCHDOG
     imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif
@@ -53,8 +51,13 @@ int plat_init(void)
      */
     mmio_clrsetbits_32(
         IMXRT_CCM_CSCDR1, CSCDR1_UART_PODF_MASK | CSCDR1_UART_CLK_SEL, CSCDR1_UART_PODF(3));
+    return PB_OK;
+}
 
-    board_console_init(&plat);
+int plat_init(void)
+{
+    int rc;
+
     (void)imx_hab_log_init(&hab_log_cfg);
 
     imx_ocotp_init(IMXRT_OCOTP_BASE, 8);
