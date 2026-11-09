@@ -1,7 +1,7 @@
 #include <boot/ab_state.h>
-#include <boot/armv7m_baremetal.h>
 #include <boot/boot.h>
 #include <boot/image_helpers.h>
+#include <boot/simple.h>
 #include <bpak/bpak.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/memc/imx_flexspi.h>
@@ -426,7 +426,7 @@ static const struct slc_config slc = {
 };
 
 /* The image runs from RAM, from the load address of its part "app" */
-static const struct boot_driver_armv7m_baremetal_config boot_armv7m = {
+static const struct boot_driver_simple_config boot_simple = {
     .boot_partition_id = 0x362fa9dd, /* bpak_id("app") */
     .resolve_part_name = boot_ab_part_uu_to_name,
 };
@@ -438,7 +438,7 @@ const struct board board = {
     .slc = &slc,
     .init = flexspi_nor_setup,
     .ab = &board_layout_ab,
-    .boot_armv7m = &boot_armv7m,
+    .boot_simple = &boot_simple,
     .early_boot = board_early_boot,
     .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,

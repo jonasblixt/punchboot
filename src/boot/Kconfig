@@ -32,8 +32,8 @@ config BOOT_DTB_HEADROOM
         size in the header. A device tree built with the properties and free
         space for them (dtc -p) doesn't need it, set 0 then.
 
-config BOOT_ARMV7M_BAREMETAL
-    bool "ARMv7m bare metal boot support"
+config BOOT_SIMPLE
+    bool "Simple boot protocol (include/boot/simple.h)"
 
 config BOOT_LOAD_CHUNK_kB
     int "Copy/Hash load chunk size (kB)"

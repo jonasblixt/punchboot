@@ -9,7 +9,7 @@
    - console, mmc/usdhc
    - `gpt_ptbl_init`, `rot_init`, `slc_init`
    - `boot_ab_state_init`
-   - the boot driver: `boot_driver_linux_init`, `boot_driver_atf_init` or armv7m baremetal
+   - the boot driver: `boot_driver_linux_init`, `boot_driver_atf_init` or `boot_driver_simple_init`
    - `boot_init()`
 
    `cm_board_init()` sets up the USB phy/UDC, `pb_dev_cls_init` and `cm_init()`.
@@ -21,7 +21,7 @@
    - `prepare`
 
    `boot_jump()` runs `late_boot_cb`, then `jump()`.
-5. Jump targets: `src/boot/linux.c` (kernel + DTB + ramdisk, libfdt), `src/boot/atf.c` (TF-A bl_params, BL32 OP-TEE), `src/boot/armv7m_baremetal.c`.
+5. Jump targets: `src/boot/linux.c` (kernel + DTB + ramdisk, libfdt), `src/boot/atf.c` (TF-A bl_params, BL32 OP-TEE), `src/boot/simple.c`.
 
 ## Core modules (`src/`)
 
