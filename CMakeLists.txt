@@ -134,6 +134,8 @@ target_link_libraries(pb_keystore PUBLIC pb_host_flags)
 add_library(pb_core STATIC
     src/main.c
     src/bio.c
+    src/board.c
+    src/board_layout.c
     src/console.c
     src/log.c
     src/log_source.c

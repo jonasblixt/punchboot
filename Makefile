@@ -84,6 +84,8 @@ src-y  += src/log_source.c
 src-$(CONFIG_RAMLOG) += src/ramlog.c
 src-y  += src/rot.c
 src-y  += src/slc.c
+src-y  += src/board.c
+src-y  += src/board_layout.c
 
 include src/drivers/*/makefile.mk
 include src/boot/makefile.mk
