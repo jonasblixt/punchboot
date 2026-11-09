@@ -51,6 +51,18 @@ sc_ipc_t imx8x_ipc(void)
     return plat.ipc;
 }
 
+int imx8x_pads_setup(const struct imx8x_pad *pads, size_t length)
+{
+    for (size_t n = 0; n < length; n++) {
+        if (sc_pad_set(plat.ipc, pads[n].pad, pads[n].ctrl) != SC_ERR_NONE) {
+            LOG_ERR("Pad %u failed", pads[n].pad);
+            return -PB_ERR_IO;
+        }
+    }
+
+    return PB_OK;
+}
+
 static int boot_reason;
 
 static const mmap_region_t imx_mmap[] = {
