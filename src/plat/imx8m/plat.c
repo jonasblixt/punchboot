@@ -9,6 +9,8 @@
 
 #include <arch/arch_helpers.h>
 #include <drivers/fuse/imx_ocotp.h>
+#include <drivers/rom_log/imx_hab_log.h>
+#include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
@@ -142,8 +144,31 @@ static int plat_mmu_init(void)
     return PB_OK;
 }
 
+/* The ROM log, AN12853 Tables 11 and 13. It's in the ROM's part of the OCRAM, below pb */
+static const struct imx_rom_log_config rom_log_cfg = {
+    .pointer = 0x000009e0,
+    .ram_start = 0x00900000,
+    .ram_end = 0x00900000 + IMX8M_OCRAM_SIZE,
+    .words = 128,
+    .defs = IMX_ROM_LOG_DEFS_V2,
+};
+
+/* The HAB API. 64-bit pointers; the address is U-Boot's (the RMs don't have
+ * it), imx_hab_log_init() checks the RVT header before using it */
+static const struct imx_hab_log_config hab_log_cfg = {
+#ifdef CONFIG_PLAT_IMX8MQ
+    .rvt = 0x00000880,
+#else
+    .rvt = 0x00000900,
+#endif
+    .entry_size = 8,
+};
+
 int plat_early_init(void)
 {
+    imx_rom_log_save(&rom_log_cfg);
+    (void)imx_hab_log_init(&hab_log_cfg);
+
 #if CONFIG_ENABLE_WATCHDOG
     /* Enable and ungate WDOG1 clock */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);

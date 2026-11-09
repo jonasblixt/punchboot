@@ -2,6 +2,7 @@
 #include <drivers/crypto/mbedtls.h>
 #include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
+#include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/timer/imx_gpt.h>
 #include <drivers/wdog/imx_wdog.h>
 #include <pb/console.h>
@@ -31,6 +32,12 @@ static uint32_t fuse_read_helper(uint8_t row, uint8_t shift, uint32_t mask, uint
     fuse_data >>= shift;
     return (fuse_data & mask);
 }
+
+/* The HAB API, RM 9.12.1 */
+static const struct imx_hab_log_config hab_log_cfg = {
+    .rvt = 0x00200300,
+    .entry_size = 4,
+};
 
 /* As on the 6UL: SEC_CONFIG at OCOTP 0x460, SRK_HASH 0x580, SRK_REVOKE 0x6F0 */
 static const struct imx_hab_fuses hab_fuses = {
@@ -64,6 +71,7 @@ int plat_init(void)
 {
     int rc;
 
+    (void)imx_hab_log_init(&hab_log_cfg);
 
     imx_ocotp_init(IMXRT_OCOTP_BASE, 8);
     imx_hab_fuses_init(&hab_fuses);

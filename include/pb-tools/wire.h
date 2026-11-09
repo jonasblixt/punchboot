@@ -379,20 +379,38 @@ PACK(struct pb_result_boot_status {
 });
 
 /**
- * Read the RAM log
+ * \def PB_LOG_ID_PB
+ * pb's own RAM log, pb_id("pb"). A log of 0 selects it too.
+ *
+ * \def PB_LOG_ID_LIST
+ * The logs the device has, as text: one line per log with its name, a space
+ * and a description. pb_id("list")
+ *
+ * Other logs are selected by pb_id() of their name, e.g. "rom" for the boot
+ * ROM's log on SoCs that keep one.
+ */
+#define PB_LOG_ID_PB   0x8c837982
+#define PB_LOG_ID_LIST 0x658c2704
+
+/**
+ * Read a log
  *
  * Positions count the bytes written to the log since the device started, so
- * they stay the same while the log grows or wraps. The device answers with a
- * pb_result_log_read. When its size is not zero, that many bytes of log
+ * they stay the same while the log grows or wraps. A log that doesn't change
+ * (e.g. the ROM's) starts at 0 and its head is its length. The device answers
+ * with a pb_result_log_read. When its size is not zero, that many bytes of log
  * follow, then a final pb_result.
  *
- * Devices without a RAM log answer -PB_RESULT_NOT_SUPPORTED, and devices
- * older than this command -PB_RESULT_INVALID_COMMAND.
+ * Devices without the log answer -PB_RESULT_NOT_FOUND, devices without a RAM
+ * log answer -PB_RESULT_NOT_SUPPORTED for pb's log, and devices older than this
+ * command -PB_RESULT_INVALID_COMMAND. Devices older than the 'log' field read
+ * pb's log whatever it says and answer with a 'log' of 0.
  */
 PACK(struct pb_command_log_read {
     uint32_t position; /*!< Position of the first byte to read */
     uint32_t size; /*!< Maximum number of bytes to read */
-    uint8_t rz[24]; /*!< Reserved */
+    uint32_t log; /*!< Log to read, pb_id() of its name. 0 is pb's RAM log */
+    uint8_t rz[20]; /*!< Reserved */
 });
 
 /**
@@ -405,7 +423,9 @@ PACK(struct pb_result_log_read {
     uint32_t size; /*!< Bytes to read after the result structure */
     uint32_t head; /*!< Bytes written to the log so far, the position after
                         the newest byte */
-    uint8_t rz[20]; /*!< Reserved */
+    uint32_t log; /*!< The log that was read, pb_id() of its name. 0 from
+                       devices older than the field, which only read pb's log */
+    uint8_t rz[16]; /*!< Reserved */
 });
 
 /**
