@@ -28,7 +28,7 @@
 /*
  * The QSPI NOR (8 MiB): pb from offset 0, the boot state, System A and B.
  * The system images run from RAM, pb copies them there (the test bench's
- * MCU application, testbench/mcu).
+ * MCU application, testbench/simple).
  */
 static const struct static_part_table nor_table[] = {
     {

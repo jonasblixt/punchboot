@@ -81,7 +81,7 @@ pylint.max-args = 8
     "D104",
     "PLR2004",  # expected values in tests are fine inline
 ]
-"testbench/mcu/tests/**" = [
+"testbench/simple/tests/**" = [
     "S101",     # pytest uses plain asserts
     "D103",     # test functions are documented by their names
     "D104",

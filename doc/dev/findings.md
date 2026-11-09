@@ -173,6 +173,11 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | to serial download. jiffy sets the 6UL's BT_FUSE_SEL. Fixing it burns one more | | |
 | | | fuse on devices that ran slc set-configuration. Fixed (`work-3.0.0-plat`): BOOT0 | | |
 | | | is BT_FUSE_SEL and the eMMC boot mode, 0x42. Not run on hardware. | | |
+| F-171 | `testbench/simple/src/main.c` | The boot time test reported one boot of 3262 s (it fails | Plausible | open |
+| | | over 1 s) and passed when run again. The time is the clock at entry minus the | | |
+| | | reset time kept in the RT1060's persistent words. A series that didn't end (no | | |
+| | | magic cleared) leaves them set: the next series' first boot takes the old reset | | |
+| | | time. 3262 s is about the time since the previous boot time run. Not verified. | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 

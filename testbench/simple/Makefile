@@ -1,8 +1,8 @@
-# The MCU test bench's application (README.md). Builds one signed boot
+# The simple target test bench's application (README.md). Builds one signed boot
 # image per mode in build/<board>/:
 #
 #   make BOARD=imxrt1060evk         (in the dev container: scripts/pbdev run
-#                                    make -C testbench/mcu)
+#                                    make -C testbench/simple)
 #
 # Needs arm-none-eabi-gcc and the bpak CLI, both in the dev container.
 
