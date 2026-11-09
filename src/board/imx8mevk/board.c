@@ -9,6 +9,7 @@
 
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
+#include <drivers/pinctrl/imx_iomuxc.h>
 #include <drivers/uart/imx_uart.h>
 #include <drivers/usb/dwc3_udc.h>
 #include <drivers/usb/imx8m_phy.h>
@@ -65,13 +66,12 @@ static void board_console_init(void)
     /* Ungate UART1 clock */
     mmio_write_32(CCM_CCGR_SET(CCGR_UART1), CCGR_CLK_ON_MASK);
 
-    /* UART1 pad mux */
-    mmio_write_32(IOMUXC_MUX_UART1_RXD, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_UART1_TXD, MUX_ALT(0));
+    static const struct imx_pin pins[] = {
+        IMX8M_PIN(UART1_RXD, MUX_ALT(0), PAD_CTL_DSE_40_OHM),
+        IMX8M_PIN(UART1_TXD, MUX_ALT(0), PAD_CTL_DSE_40_OHM),
+    };
 
-    /* UART1 PAD settings */
-    mmio_write_32(IOMUXC_PAD_UART1_RXD, PAD_CTL_DSE_40_OHM);
-    mmio_write_32(IOMUXC_PAD_UART1_TXD, PAD_CTL_DSE_40_OHM);
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     imx_uart_init(IMX8M_UART1_BASE, MHz(25), 115200);
 
@@ -89,33 +89,23 @@ static int usdhc_emmc_setup(void)
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(USDHC1_CLK_ROOT), CLK_ROOT_ON);
     mmio_write_32(CCM_CCGR_SET(CCGR_USDHC1), CCGR_CLK_ON_MASK);
 
-    /* USDHC1 mux */
-    mmio_write_32(IOMUXC_MUX_SD1_CLK, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_CMD, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_DATA0, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_DATA1, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_DATA2, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_DATA3, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_DATA4, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_DATA5, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_DATA6, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_DATA7, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_RESET_B, MUX_ALT(0));
-    mmio_write_32(IOMUXC_MUX_SD1_STROBE, MUX_ALT(0));
-
-    /* Setup USDHC1 pins */
 #define USDHC1_PAD_CONF (PAD_CTL_HYS | PAD_CTL_PUE | PAD_CTL_SRE_FAST | PAD_CTL_DSE_45_OHM)
-    mmio_write_32(IOMUXC_PAD_SD1_CLK, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_CMD, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_DATA0, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_DATA1, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_DATA2, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_DATA3, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_DATA4, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_DATA5, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_DATA6, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_DATA7, USDHC1_PAD_CONF);
-    mmio_write_32(IOMUXC_PAD_SD1_STROBE, USDHC1_PAD_CONF);
+    static const struct imx_pin pins[] = {
+        IMX8M_PIN(SD1_CLK, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_CMD, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_DATA0, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_DATA1, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_DATA2, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_DATA3, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_DATA4, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_DATA5, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_DATA6, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_DATA7, MUX_ALT(0), USDHC1_PAD_CONF),
+        IMX8M_PIN(SD1_RESET_B, MUX_ALT(0), IMX_PAD_KEEP),
+        IMX8M_PIN(SD1_STROBE, MUX_ALT(0), USDHC1_PAD_CONF),
+    };
+
+    imx_iomuxc_setup(pins, ARRAY_SIZE(pins));
 
     rate = MHz(200);
 
