@@ -19,6 +19,8 @@
 #include <plat/imx8x/imx8qxp_pads.h>
 #endif
 #include <plat/imx8x/sci/ipc.h>
+#include <plat/imx8x/sci/svc/pad/api.h>
+#include <stddef.h>
 
 #define PADRING_IFMUX_EN_SHIFT 31
 #define PADRING_IFMUX_EN_MASK  (1U << PADRING_IFMUX_EN_SHIFT)
@@ -58,6 +60,15 @@ struct imx8x_platform {
 /** The SCFW IPC handle and the SoC id, for the board */
 const struct imx8x_platform *imx8x_plat(void);
 sc_ipc_t imx8x_ipc(void);
+
+/** A pad and its SCFW setting, mux and electrical (sc_pad_set()) */
+struct imx8x_pad {
+    sc_pad_t pad;
+    uint32_t ctrl;
+};
+
+/** Set up the pads in table order */
+int imx8x_pads_setup(const struct imx8x_pad *pads, size_t length);
 int imx8x_revoke_key(const struct rot_key *key);
 int imx8x_read_key_status(const struct rot_key *key);
 slc_t imx8x_slc_read_status(void);

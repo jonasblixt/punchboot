@@ -13,4 +13,5 @@ cflags-y += -mtune=cortex-m7
 src-y  += src/plat/imxrt/plat.c
 src-y += src/drivers/fuse/imx_hab_fuses.c
 
+src-y  += src/drivers/pinctrl/imx_iomuxc.c
 endif
