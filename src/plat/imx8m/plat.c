@@ -87,8 +87,8 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
         return -PB_ERR_BUF_TOO_SMALL;
     *length = sizeof(plat_unique.uid_bytes);
 
-    imx_ocotp_read(0, 1, &plat_unique.uid[0]);
-    imx_ocotp_read(0, 2, &plat_unique.uid[1]);
+    imx_ocotp_read(IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE1_WORD, &plat_unique.uid[0]);
+    imx_ocotp_read(IMX8M_FUSE_UNIQUE_BANK, IMX8M_FUSE_UNIQUE2_WORD, &plat_unique.uid[1]);
     memcpy(output, plat_unique.uid_bytes, sizeof(plat_unique.uid_bytes));
     return PB_OK;
 }
@@ -183,7 +183,7 @@ int plat_init(void)
     int rc;
 
     /* Init fusebox */
-    imx_ocotp_init(IMX8M_OCOTP_BASE, 4);
+    imx_ocotp_init(IMX8M_OCOTP_BASE, IMX8M_FUSE_WORDS_PER_BANK);
 
     /* Configure systick */
     mmio_write_32(CCM_CCGR_SET(CCGR_GPT1), CCGR_CLK_ON_MASK);

@@ -34,6 +34,7 @@ CONFIG_IMX8X_SIGN_IMAGE=y
 # Generic options
 #
 CONFIG_KEYSTORE="pki/internal_keystore.bpak"
+CONFIG_KEYSTORE_SLOTS="a90f9680 25c6dd36 52c1eda0"
 CONFIG_SRK_FUSE="pki/imx8x_ahab/crts/SRK_1_2_3_4_fuse.bin"
 CONFIG_LOGLEVEL=1
 CONFIG_RAMLOG=y

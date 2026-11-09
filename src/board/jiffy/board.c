@@ -29,7 +29,6 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <pb/srk_fuse.h>
 #include <plat/imx6ul/imx6ul.h>
 
 #include "partitions.h"
@@ -108,26 +107,22 @@ static void boot_source_str(char *out, size_t size)
  * SBMR1 is BOOT_CFG1..4 from the fuses or the boot pins, the BOOT_CFG fuse
  * word is the shadow at 0x450. Only read.
  */
-#define SRC_SBMR1             (IMX6UL_SRC_BASE + 0x04)
-#define SRC_SBMR2             (IMX6UL_SRC_BASE + 0x1c)
-#define OCOTP_BOOT_CFG0       (IMX6UL_OCOTP_CTRL_BASE + 0x450)
-#define BOOT_CFG_MMC          BIT(5)
-#define BOOT_CFG_FAST_BOOT    BIT(4)
-#define BOOT_CFG_HIGH_SPEED   BIT(3)
-#define BOOT_CFG_BUS_WIDTH(x) (((x) >> 13) & 0x7)
+#define SRC_SBMR1       (IMX6UL_SRC_BASE + 0x04)
+#define SRC_SBMR2       (IMX6UL_SRC_BASE + 0x1c)
+#define OCOTP_BOOT_CFG0 (IMX6UL_OCOTP_CTRL_BASE + 0x450)
 
 static const char *boot_bus_width_str(uint32_t cfg)
 {
-    switch (BOOT_CFG_BUS_WIDTH(cfg)) {
-    case 0:
+    switch (IMX6UL_BOOT_CFG_BUS_WIDTH_OF(cfg)) {
+    case IMX6UL_BOOT_BUS_1BIT:
         return "1-bit";
-    case 1:
+    case IMX6UL_BOOT_BUS_4BIT:
         return "4-bit";
-    case 2:
+    case IMX6UL_BOOT_BUS_8BIT:
         return "8-bit";
-    case 5:
+    case IMX6UL_BOOT_BUS_4BIT_DDR:
         return "4-bit DDR";
-    case 6:
+    case IMX6UL_BOOT_BUS_8BIT_DDR:
         return "8-bit DDR";
     default:
         return "reserved";
@@ -153,47 +148,28 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
                                 (unsigned int)sbmr1,
                                 (unsigned int)mmio_read_32(SRC_SBMR2),
                                 (unsigned int)mmio_read_32(OCOTP_BOOT_CFG0),
-                                (sbmr1 & BOOT_CFG_MMC) ? "MMC" : "SD",
+                                (sbmr1 & IMX6UL_BOOT_CFG_MMC) ? "MMC" : "SD",
                                 boot_bus_width_str(sbmr1),
-                                (sbmr1 & BOOT_CFG_HIGH_SPEED) ? "high" : "normal",
-                                (sbmr1 & BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
+                                (sbmr1 & IMX6UL_BOOT_CFG_MMC_HIGH_SPEED) ? "high" : "normal",
+                                (sbmr1 & IMX6UL_BOOT_CFG_FAST_BOOT) ? "fast" : "normal");
     response[(*response_size)++] = 0;
 
     return PB_OK;
 }
 
-static int board_set_slc_configuration(void)
-{
-    int rc;
-    /**
-     * Warning: This is an example configuration. Be carful with the slc
-     * commands.
-     *
-     * Setting SLC Configuration will fuse the SRK hash of CONFIG_SRK_FUSE,
-     * the keys pb is signed with.
-     *
-     * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
-     */
-    rc = imx_hab_fuse_srk(srk_fuse, srk_fuse_words);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SRK fusing failed (%i)", rc);
-        return rc;
-    }
-
-    rc = imx_ocotp_write(0, 5, 0x0000c060);
-    if (rc != PB_OK) {
-        LOG_ERR("Failed to write boot0 config (%i)", rc);
-        return rc;
-    }
-
-    rc = imx_ocotp_write(0, 6, 0x00000010);
-    if (rc != PB_OK) {
-        LOG_ERR("Failed to write boot1 config (%i)", rc);
-        return rc;
-    }
-    return PB_OK;
-}
+/*
+ * Warning: an example configuration. Be careful with the slc commands.
+ * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
+ * is signed with, then these: boot from the eMMC on uSDHC1, 8-bit DDR, and
+ * take the boot configuration from the fuses, not the boot pins.
+ */
+static const struct slc_fuse config_fuses[] = {
+    { IMX6UL_FUSE(IMX6UL_FUSE_BOOT_CFG_BANK, IMX6UL_FUSE_BOOT_CFG_WORD),
+      IMX6UL_BOOT_CFG_USDHC | IMX6UL_BOOT_CFG_MMC | IMX6UL_BOOT_CFG_USDHC_PORT(0) |
+          IMX6UL_BOOT_CFG_BUS_WIDTH(IMX6UL_BOOT_BUS_8BIT_DDR) },
+    { IMX6UL_FUSE(IMX6UL_FUSE_SEC_CONFIG_BANK, IMX6UL_FUSE_SEC_CONFIG_WORD),
+      IMX6UL_FUSE_BT_FUSE_SEL },
+};
 
 static void board_console_init(void)
 {
@@ -261,8 +237,12 @@ static const struct rot_config rot = {
 
 static const struct slc_config slc = {
     .read_status = imx_hab_slc_read_status,
-    .set_configuration = board_set_slc_configuration,
+    .set_configuration = imx_hab_slc_set_configuration,
     .set_configuration_locked = imx_hab_slc_set_configuration_locked,
+    .fuses = config_fuses,
+    .fuses_length = ARRAY_SIZE(config_fuses),
+    .fuse_read = imx_ocotp_fuse_read,
+    .fuse_write = imx_ocotp_fuse_write,
 };
 
 static const struct boot_driver_linux_config boot_linux = {

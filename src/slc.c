@@ -14,7 +14,43 @@ static const struct slc_config *cfg;
 
 int slc_init(const struct slc_config *cfg_)
 {
+    if (cfg_ && cfg_->fuses_length && (!cfg_->fuse_read || !cfg_->fuse_write))
+        return -PB_ERR_PARAM;
+
     cfg = cfg_;
+    return PB_OK;
+}
+
+/* The fuses are one time programmable: set the bits that aren't set */
+static int write_fuses(void)
+{
+    uint32_t val;
+    int rc;
+
+    for (size_t n = 0; n < cfg->fuses_length; n++) {
+        const struct slc_fuse *fuse = &cfg->fuses[n];
+
+        rc = cfg->fuse_read(fuse->index, &val);
+
+        if (rc != PB_OK) {
+            LOG_ERR("Could not read fuse %u (%i)", fuse->index, rc);
+            return rc;
+        }
+
+        if ((val & fuse->value) == fuse->value) {
+            LOG_INFO("Fuse %u is 0x%x already", fuse->index, val);
+            continue;
+        }
+
+        LOG_INFO("Fusing %u to 0x%x (was 0x%x)", fuse->index, fuse->value, val);
+        rc = cfg->fuse_write(fuse->index, fuse->value);
+
+        if (rc != PB_OK) {
+            LOG_ERR("Could not write fuse %u (%i)", fuse->index, rc);
+            return rc;
+        }
+    }
+
     return PB_OK;
 }
 
@@ -43,8 +79,9 @@ slc_t slc_read_status(void)
 int slc_set_configuration(void)
 {
     slc_t slc;
+    int rc;
 
-    if (!cfg || !cfg->set_configuration)
+    if (!cfg || (!cfg->set_configuration && !cfg->fuses_length))
         return -PB_ERR_NOT_SUPPORTED;
 
     slc = slc_read_status();
@@ -57,7 +94,14 @@ int slc_set_configuration(void)
         return -PB_ERR_STATE;
     }
 
-    return cfg->set_configuration();
+    if (cfg->set_configuration) {
+        rc = cfg->set_configuration();
+
+        if (rc != PB_OK)
+            return rc;
+    }
+
+    return write_fuses();
 }
 
 int slc_set_configuration_locked(void)
