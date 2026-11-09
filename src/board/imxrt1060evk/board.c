@@ -9,7 +9,8 @@
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
-#include <drivers/usb/usbd.h>
+#include <pb/board.h>
+#include <pb/board_layout.h>
 #include <pb/cm.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
@@ -388,102 +389,6 @@ void board_console_init(struct imxrt_platform *plat_)
     console_init(IMXRT_LPUART1_BASE, &ops);
 }
 
-int board_init(struct imxrt_platform *plat_)
-{
-    int rc;
-
-    plat = plat_;
-
-    rc = flexspi_nor_setup();
-
-    if (rc != PB_OK) {
-        LOG_ERR("Flexspi NOR init failed (%i)", rc);
-        return rc;
-    }
-
-    static const struct boot_ab_state_config boot_state_cfg = {
-        .primary_state_part_uu = PART_primary_state,
-        .backup_state_part_uu = PART_backup_state,
-        .sys_a_uu = PART_sys_a,
-        .sys_b_uu = PART_sys_b,
-        .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
-    };
-
-    rc = boot_ab_state_init(&boot_state_cfg);
-
-    if (rc != PB_OK) {
-        LOG_ERR("Boot state init failed (%i)", rc);
-        return rc;
-    }
-
-    /* The image runs from RAM, from the load address of its part "app" */
-    static const struct boot_driver_armv7m_baremetal_config app_cfg = {
-        .image_base_address = 0,
-        .boot_partition_id = 0x362fa9dd, /* bpak_id("app") */
-        .resolve_part_name = boot_ab_part_uu_to_name,
-    };
-
-    rc = boot_driver_armv7m_baremetal_init(&app_cfg);
-
-    if (rc != PB_OK)
-        return rc;
-
-    static const struct boot_driver boot_driver = {
-        .default_boot_source = BOOT_SOURCE_BIO,
-        .early_boot_cb = board_early_boot,
-        .get_boot_bio_device = boot_ab_state_get,
-        .set_boot_partition = boot_ab_state_set_boot_partition,
-        .get_boot_partition = boot_ab_state_get_boot_partition,
-        .prepare = boot_driver_armv7m_baremetal_prepare,
-        .jump = boot_driver_armv7m_baremetal_jump,
-    };
-
-    rc = boot_init(&boot_driver);
-
-    if (rc != PB_OK)
-        return rc;
-
-    static const struct rot_config rot_config = {
-        .revoke_key = NULL,
-        .read_key_status = imxrt_read_key_status,
-    };
-
-    rc = rot_init(&rot_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("RoT init failed (%i)", rc);
-        return rc;
-    }
-
-    static const struct slc_config slc_config = {
-        .read_status = imxrt_slc_read_status,
-        .set_configuration = NULL,
-        .set_configuration_locked = NULL,
-        .set_eol = NULL,
-    };
-
-    rc = slc_init(&slc_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SLC init failed (%i)", rc);
-        return rc;
-    }
-
-err_out:
-    return rc;
-}
-
-static int board_status(uint8_t *response_bfr, size_t *response_size)
-{
-    char *response = (char *)response_bfr;
-    size_t resp_buf_size = *response_size;
-
-    (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");
-    response[(*response_size)++] = 0;
-
-    return PB_OK;
-}
-
 static int board_command(uint32_t command,
                          uint8_t *bfr,
                          size_t size,
@@ -507,9 +412,8 @@ static int board_command(uint32_t command,
     return PB_OK;
 }
 
-int cm_board_init(void)
+static int board_cm_init(void)
 {
-    int rc;
     /* Enable USB PLL */
     // TODO: Here we assume that a lot of other bit's are correctly set...
     mmio_clrsetbits_32(IMXRT_CCM_ANALOG_PLL_USB1, 0, ANALOG_PLL_USB_EN_USB_CLKS);
@@ -518,32 +422,44 @@ int cm_board_init(void)
 
     imx_usb2_phy_init(IMXRT_USBPHY1_BASE);
 
-    rc = imx_ci_udc_init(IMXRT_USB_BASE);
+    return imx_ci_udc_init(IMXRT_USB_BASE);
+}
 
-    if (rc != PB_OK) {
-        LOG_ERR("imx_ci_udc_init failed (%i)", rc);
-        return rc;
-    }
+static const struct rot_config rot = {
+    .read_key_status = imxrt_read_key_status,
+};
 
-    rc = pb_dev_cls_init();
+static const struct slc_config slc = {
+    .read_status = imxrt_slc_read_status,
+};
 
-    if (rc != PB_OK)
-        return rc;
+/* The image runs from RAM, from the load address of its part "app" */
+static const struct boot_driver_armv7m_baremetal_config boot_armv7m = {
+    .boot_partition_id = 0x362fa9dd, /* bpak_id("app") */
+    .resolve_part_name = boot_ab_part_uu_to_name,
+};
 
-    static const struct cm_config cfg = {
-        .name = "imxrt1060evk",
-        .status = board_status,
-        .password_auth = NULL,
-        .command = board_command,
-        .tops = {
-            .init = usbd_init,
-            .connect = usbd_connect,
-            .disconnect = usbd_disconnect,
-            .read = pb_dev_cls_read,
-            .write = pb_dev_cls_write,
-            .complete = pb_dev_cls_xfer_complete,
-        },
-    };
+const struct board board = {
+    .name = "imxrt1060evk",
+    .rot = &rot,
+    .slc = &slc,
+    .init = flexspi_nor_setup,
+    .ab = &board_layout_ab,
+    .boot_armv7m = &boot_armv7m,
+    .early_boot = board_early_boot,
+    .cm_init = board_cm_init,
+    .cm_transport = &pb_dev_cls_transport,
+    .command = board_command,
+};
 
-    return cm_init(&cfg);
+/* Until the platform calls board_setup() */
+int board_init(struct imxrt_platform *plat_)
+{
+    plat = plat_;
+    return board_setup();
+}
+
+int cm_board_init(void)
+{
+    return board_cm_setup();
 }
