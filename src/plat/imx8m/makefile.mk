@@ -38,4 +38,5 @@ cflags-y += -DMAX_XLAT_TABLES=32
 cflags-y += -DMAX_MMAP_REGIONS=32
 ldflags-y += -Tsrc/plat/imx8m/link.lds
 
+src-y  += src/drivers/pinctrl/imx_iomuxc.c
 endif
