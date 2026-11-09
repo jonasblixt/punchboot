@@ -8,10 +8,9 @@
  */
 
 #include <boot/boot.h>
+#include <boot/dtb.h>
 #include <bpak/bpak.h>
 #include <uuid.h>
-
-typedef int (*boot_patch_dtb_cb_t)(void *fdt, int offset);
 
 struct boot_driver_linux_config {
     bpak_id_t image_bpak_id; /*!< BPAK id of bootable part */
