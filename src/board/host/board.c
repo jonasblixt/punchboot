@@ -386,14 +386,3 @@ const struct board board = {
     .cm_transport = &socket_transport,
     .command = board_command,
 };
-
-/* Until the platforms call board_setup() */
-int board_init(void)
-{
-    return board_setup();
-}
-
-int cm_board_init(void)
-{
-    return board_cm_setup();
-}

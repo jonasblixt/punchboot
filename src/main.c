@@ -9,6 +9,7 @@
 
 #include <boot/boot.h>
 #include <pb/arch.h>
+#include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
@@ -32,7 +33,7 @@ void main(void)
     if (rc != PB_OK)
         goto enter_command_mode;
 
-    rc = plat_board_init();
+    rc = board_setup();
 
     if (rc != PB_OK)
         goto enter_command_mode;

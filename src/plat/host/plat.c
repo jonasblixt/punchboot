@@ -18,8 +18,6 @@
 #include <sys/mman.h>
 #include <time.h>
 
-int board_init(void);
-
 static const uint8_t device_unique_id[8] = "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 const char *platform_ns_uuid = "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
 
@@ -91,11 +89,6 @@ int plat_init(void)
     console_init(0, &host_console_ops);
 
     return PB_OK;
-}
-
-int plat_board_init(void)
-{
-    return board_init();
 }
 
 void plat_reset(void)

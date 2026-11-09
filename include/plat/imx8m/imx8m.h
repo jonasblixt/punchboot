@@ -11,7 +11,6 @@
 
 struct imx8m_platform {};
 
-int board_init(struct imx8m_platform *plat);
 void board_console_init(struct imx8m_platform *plat);
 
 #endif

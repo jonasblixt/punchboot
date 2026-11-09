@@ -20,7 +20,8 @@ struct imx6ul_platform {
 };
 
 void board_console_init(struct imx6ul_platform *plat);
-int board_init(struct imx6ul_platform *plat);
+/** The platform's clocks and fuses, for the board */
+const struct imx6ul_platform *imx6ul_plat(void);
 
 int imx6ul_slc_set_configuration_locked(void);
 slc_t imx6ul_slc_read_status(void);

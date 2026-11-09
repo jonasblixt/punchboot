@@ -19,7 +19,7 @@
  *  5. late_init()   What needs the partitions
  *  6. boot_*        The boot driver: boot_linux, boot_atf or boot_armv7m
  *
- * Command mode: cm_init(), then cm_transport.
+ * Command mode, cm_board_init(): cm_init(), then cm_transport.
  *
  * Hooks are optional (NULL), the rest is required unless it says otherwise.
  */
@@ -85,13 +85,6 @@ extern const struct board board;
  * @return PB_OK on success or a negative number
  */
 int board_setup(void);
-
-/**
- * Set up command mode for the board
- *
- * @return PB_OK on success or a negative number
- */
-int board_cm_setup(void);
 
 /**
  * A boot driver DTB patch callback (dtb_patch_cb): sets /chosen/bootargs to

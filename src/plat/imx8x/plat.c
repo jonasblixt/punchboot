@@ -40,6 +40,17 @@ IMPORT_SYM(uintptr_t, _no_init_end, rw_nox_end);
 const char *platform_ns_uuid = "\xae\xda\x39\xbe\x79\x2b\x4d\xe5\x85\x8a\x4c\x35\x7b\x9b\x63\x02";
 
 static struct imx8x_platform plat;
+
+const struct imx8x_platform *imx8x_plat(void)
+{
+    return &plat;
+}
+
+sc_ipc_t imx8x_ipc(void)
+{
+    return plat.ipc;
+}
+
 static int boot_reason;
 
 static const mmap_region_t imx_mmap[] = {
@@ -239,11 +250,6 @@ int plat_init(void)
     imx8x_slc_helpers_init(plat.ipc);
 
     return PB_OK;
-}
-
-int plat_board_init(void)
-{
-    return board_init(&plat);
 }
 
 int plat_boot_reason(void)

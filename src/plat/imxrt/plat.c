@@ -159,11 +159,6 @@ void plat_wdog_kick(void)
     imx_wdog_kick();
 }
 
-int plat_board_init(void)
-{
-    return board_init(&plat);
-}
-
 int plat_boot_reason(void)
 {
     uint16_t wrsr = mmio_read_16(IMXRT_WDOG1_BASE + 0x4);

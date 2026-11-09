@@ -52,17 +52,15 @@
      (SC_PAD_28FDSOI_DSE_18V_HS << PADRING_DSE_SHIFT) |                                            \
      (SC_PAD_28FDSOI_PS_PU << PADRING_PULL_SHIFT))
 
-static struct imx8x_platform *plat;
-
 static int usdhc_emmc_setup(void)
 {
     int rc;
     unsigned int rate;
 
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_SDHC_0, SC_PM_PW_MODE_ON);
-    sc_pm_clock_enable(plat->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
+    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_SDHC_0, SC_PM_PW_MODE_ON);
+    sc_pm_clock_enable(imx8x_ipc(), SC_R_SDHC_0, SC_PM_CLK_PER, false, false);
 
-    rc = sc_pm_set_clock_parent(plat->ipc, SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
+    rc = sc_pm_set_clock_parent(imx8x_ipc(), SC_R_SDHC_0, 2, SC_PM_PARENT_PLL1);
 
     if (rc != SC_ERR_NONE) {
         LOG_ERR("usdhc set clock parent failed");
@@ -70,27 +68,27 @@ static int usdhc_emmc_setup(void)
     }
 
     rate = MHz(200);
-    sc_pm_set_clock_rate(plat->ipc, SC_R_SDHC_0, 2, &rate);
+    sc_pm_set_clock_rate(imx8x_ipc(), SC_R_SDHC_0, 2, &rate);
 
-    rc = sc_pm_clock_enable(plat->ipc, SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
+    rc = sc_pm_clock_enable(imx8x_ipc(), SC_R_SDHC_0, SC_PM_CLK_PER, true, false);
 
     if (rc != SC_ERR_NONE) {
         LOG_ERR("SDHC_0 per clk enable failed!");
         return -PB_ERR;
     }
 
-    sc_pad_set(plat->ipc, SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_CMD, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA0, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA1, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA2, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA3, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA4, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA5, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA6, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_DATA7, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_STROBE, USDHC_PAD_CTRL);
-    sc_pad_set(plat->ipc, SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_CLK, USDHC_CLK_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_CMD, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA0, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA1, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA2, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA3, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA4, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA5, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA6, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_DATA7, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_STROBE, USDHC_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_EMMC0_RESET_B, USDHC_PAD_CTRL);
 
     static const struct imx_usdhc_config cfg = { .base = 0x5B010000,
                                                  .delay_tap = 18,
@@ -114,14 +112,14 @@ static int early_boot(void)
     sc_bool_t btn_status;
     sc_misc_bt_t boot_type;
 
-    sc_misc_get_button_status(plat->ipc, &btn_status);
+    sc_misc_get_button_status(imx8x_ipc(), &btn_status);
 
     /* Always stop when button is pressed */
     if (btn_status == 1) {
         return -PB_ERR_ABORT;
     }
 
-    sc_misc_get_boot_type(plat->ipc, &boot_type);
+    sc_misc_get_boot_type(imx8x_ipc(), &boot_type);
 
     /* Don't stop boot flow when command mode requested the boot */
     if (!(boot_get_flags() & BOOT_FLAG_CMD) && (boot_type == SC_MISC_BT_SERIAL)) {
@@ -143,9 +141,9 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
     char *response = (char *)response_bfr;
     size_t resp_buf_size = *response_size;
 
-    sc_misc_build_info(plat->ipc, &scu_version, &scu_commit);
-    sc_seco_build_info(plat->ipc, &seco_version, &seco_commit);
-    sc_misc_get_temp(plat->ipc, SC_R_SYSTEM, SC_MISC_TEMP, &celsius, &tenths);
+    sc_misc_build_info(imx8x_ipc(), &scu_version, &scu_commit);
+    sc_seco_build_info(imx8x_ipc(), &seco_version, &seco_commit);
+    sc_misc_get_temp(imx8x_ipc(), SC_R_SYSTEM, SC_MISC_TEMP, &celsius, &tenths);
 
     (*response_size) = snprintf(response,
                                 resp_buf_size,
@@ -158,8 +156,8 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
                                 scu_commit,
                                 seco_version,
                                 seco_commit,
-                                plat->soc_id,
-                                plat->soc_rev,
+                                imx8x_plat()->soc_id,
+                                imx8x_plat()->soc_rev,
                                 celsius,
                                 tenths);
 
@@ -273,8 +271,8 @@ static int board_hw_init(void)
     int rc;
 
     /* Initialize CAAM JR2, JR0 and JR1 are owned by the SECO */
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_CAAM_JR2, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_CAAM_JR2_OUT, SC_PM_PW_MODE_ON);
 
     rc = imx_caam_init(IMX_CAAM_JR2_BASE);
 
@@ -294,8 +292,8 @@ static int board_hw_init(void)
 static int board_cm_init(void)
 {
     /* Enable usb stuff */
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_1, SC_PM_PW_MODE_ON);
-    sc_pm_set_resource_power_mode(plat->ipc, SC_R_USB_1_PHY, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_USB_1, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_USB_1_PHY, SC_PM_PW_MODE_ON);
 
     imx_usb2_phy_init(0x5B110000);
 
@@ -340,15 +338,3 @@ const struct board board = {
     .status = board_status,
     .password_auth = board_password_auth,
 };
-
-/* Until the platform calls board_setup() */
-int board_init(struct imx8x_platform *plat_ptr)
-{
-    plat = plat_ptr;
-    return board_setup();
-}
-
-int cm_board_init(void)
-{
-    return board_cm_setup();
-}
