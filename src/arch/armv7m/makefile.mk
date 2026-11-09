@@ -20,5 +20,6 @@ src-y += src/arch/armv7m/entry.c
 src-y += src/arch/armv7m/arch.c
 src-y += src/arch/armv7m/boot.c
 src-y += src/arch/armv7m/cache.c
+asm-y += src/arch/armv7m/mmu.S
 
 endif
