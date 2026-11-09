@@ -9,13 +9,12 @@
 
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
-#include <drivers/partition/gpt.h>
 #include <drivers/uart/imx_uart.h>
 #include <drivers/usb/dwc3_udc.h>
 #include <drivers/usb/imx8m_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
-#include <drivers/usb/usbd.h>
-#include <libfdt.h>
+#include <pb/board.h>
+#include <pb/board_layout.h>
 #include <pb/cm.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
@@ -28,91 +27,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "partitions.h"
-
 /* DRAM: all set points of the timing, for DDR frequency scaling in Linux */
 static const unsigned int imx8mevk_dram_mts[] = { 3200, 400, 100 };
 
 struct dram_rates dram_rates = {
     .mts = imx8mevk_dram_mts,
     .num = ARRAY_SIZE(imx8mevk_dram_mts),
-};
-
-static const struct gpt_part_table gpt_tbl_default[] = {
-    {
-        .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
-        .description = "System A",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
-        .description = "System B",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a,
-        .description = "Root A",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb,
-        .description = "Root B",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
-        .description = "PB State Primary",
-        .size = 512,
-    },
-    {
-        .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
-        .description = "PB State Backup",
-        .size = 512,
-    },
-    {
-        .uu = UUID_4581af22_99e6_4a94_b821_b60c42d74758,
-        .description = "Root overlay A",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_da2ca04f_a693_4284_b897_3906cfa1eb13,
-        .description = "Root overlay B",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_23477731_7e33_403b_b836_899a0b1d55db,
-        .description = "RoT extension A",
-        .size = SZ_KiB(128),
-    },
-    {
-        .uu = UUID_6ffd077c_32df_49e7_b11e_845449bd8edd,
-        .description = "RoT extension B",
-        .size = SZ_KiB(128),
-    },
-    {
-        .uu = UUID_9697399d_e2da_47d9_8eb5_88daea46da1b,
-        .description = "System storage A",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa,
-        .description = "System storage B",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_39792364_d3e3_4013_ac51_caaea65e4334,
-        .description = "Mass storage",
-        .size = SZ_GiB(1),
-    },
-};
-
-static const struct gpt_table_list gpt_tables[] = {
-    {
-        .name = "Default",
-        .variant = 0,
-        .table = gpt_tbl_default,
-        .table_length = ARRAY_SIZE(gpt_tbl_default),
-    },
 };
 
 static int board_command(uint32_t command,
@@ -217,7 +137,7 @@ static int usdhc_emmc_setup(void)
     return imx_usdhc_init(&cfg, rate);
 }
 
-int board_init(struct imx8m_platform *plat_)
+static int board_hw_init(void)
 {
     int rc;
 
@@ -235,59 +155,10 @@ int board_init(struct imx8m_platform *plat_)
     if (rc != PB_OK)
         LOG_ERR("CAAM RNG init failed (%i)", rc);
 
-    usdhc_emmc_setup();
-
-    bio_dev_t user_part = bio_get_part_by_uu(PART_user);
-
-    if (user_part < 0) {
-        LOG_ERR("Can't find partition (%i)", user_part);
-    }
-
-    (void)gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
-    /* eMMC User partition now only has the visible flag to report capacity */
-    (void)bio_set_flags(user_part, BIO_FLAG_VISIBLE);
-
-    static const struct rot_config rot_config = {
-        .revoke_key = NULL,
-        .read_key_status = NULL,
-    };
-
-    rc = rot_init(&rot_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("RoT init failed (%i)", rc);
-        return rc;
-    }
-
-    static const struct slc_config slc_config = {
-        .read_status = NULL,
-        .set_configuration = NULL,
-        .set_configuration_locked = NULL,
-        .set_eol = NULL,
-    };
-
-    rc = slc_init(&slc_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SLC init failed (%i)", rc);
-        return rc;
-    }
-
-    return -PB_ERR;
+    return usdhc_emmc_setup();
 }
 
-static int board_status(uint8_t *response_bfr, size_t *response_size)
-{
-    char *response = (char *)response_bfr;
-    size_t resp_buf_size = *response_size;
-
-    (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");
-    response[(*response_size)++] = 0;
-
-    return PB_OK;
-}
-
-int cm_board_init(void)
+static int board_cm_init(void)
 {
     int rc;
 
@@ -305,32 +176,38 @@ int cm_board_init(void)
         return rc;
     }
 
-    rc = imx_dwc3_udc_init(IMX8M_USB1_BASE);
+    return imx_dwc3_udc_init(IMX8M_USB1_BASE);
+}
 
-    if (rc != PB_OK) {
-        LOG_ERR("dwc3 failed (%i)", rc);
-        return rc;
-    }
+/* No revocation and no SLC */
+static const struct rot_config rot = { 0 };
+static const struct slc_config slc = { 0 };
 
-    rc = pb_dev_cls_init();
+/*
+ * Unfinished (F-033): no A/B state and no boot driver, so board_setup()
+ * fails after the partitions and pb always enters command mode.
+ */
+const struct board board = {
+    .name = "imx8mevk",
+    .rot = &rot,
+    .slc = &slc,
+    .init = board_hw_init,
+    .gpt_dev_uu = PART_user,
+    .gpt_tables = board_layout_gpt,
+    .gpt_tables_length = ARRAY_SIZE(board_layout_gpt),
+    .cm_init = board_cm_init,
+    .cm_transport = &pb_dev_cls_transport,
+    .command = board_command,
+};
 
-    if (rc != PB_OK)
-        return rc;
+/* Until the platform calls board_setup() */
+int board_init(struct imx8m_platform *plat_)
+{
+    (void)plat_;
+    return board_setup();
+}
 
-    static const struct cm_config cfg = {
-        .name = "imx8mevk",
-        .status = board_status,
-        .password_auth = NULL,
-        .command = board_command,
-        .tops = {
-            .init = usbd_init,
-            .connect = usbd_connect,
-            .disconnect = usbd_disconnect,
-            .read = pb_dev_cls_read,
-            .write = pb_dev_cls_write,
-            .complete = pb_dev_cls_xfer_complete,
-        },
-    };
-
-    return cm_init(&cfg);
+int cm_board_init(void)
+{
+    return board_cm_setup();
 }
