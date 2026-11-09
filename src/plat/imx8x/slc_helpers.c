@@ -7,6 +7,10 @@
 
 static sc_ipc_t ipc;
 
+/* SECO life cycle bits 6-10: closed, closed with NXP firmware, the two
+ * field return states and no return. Each of them is past OEM closed. */
+#define IMX8X_LC_CLOSED (0x7c0)
+
 void imx8x_slc_helpers_init(sc_ipc_t ipc_)
 {
     ipc = ipc_;
@@ -19,9 +23,12 @@ slc_t imx8x_slc_read_status(void)
     uint32_t uid_l;
     uint32_t uid_h;
 
-    sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h);
+    if (sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h) != SC_ERR_NONE) {
+        LOG_ERR("Could not read the life cycle");
+        return -PB_ERR_IO;
+    }
 
-    if (lc == 128) {
+    if (lc & IMX8X_LC_CLOSED) {
         return SLC_CONFIGURATION_LOCKED;
     }
 
@@ -49,9 +56,12 @@ int imx8x_slc_set_configuration_locked(void)
         return -PB_ERR_STATE;
     }
 
-    sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h);
+    if (sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h) != SC_ERR_NONE) {
+        LOG_ERR("Could not read the life cycle");
+        return -PB_ERR_IO;
+    }
 
-    if (lc == 128) {
+    if (lc & IMX8X_LC_CLOSED) {
         LOG_INFO("Configuration already locked");
         return PB_OK;
     }
