@@ -30,6 +30,7 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <pb/srk_fuse.h>
 #include <plat/imx6ul/imx6ul.h>
 
 static int usdhc_emmc_setup(void)
@@ -183,17 +184,12 @@ static int board_set_slc_configuration(void)
      * Warning: This is an example configuration. Be carful with the slc
      * commands.
      *
-     * Setting SLC Configuration will fuse SRK values matching the public keys
-     * that can be found in the 'pki' directory.
+     * Setting SLC Configuration will fuse the SRK hash of CONFIG_SRK_FUSE,
+     * the keys pb is signed with.
      *
      * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
      */
-    static const uint32_t srk[IMX_HAB_SRK_HASH_WORDS] = {
-        0x5020C7D7, 0xBB62B945, 0xDD97C8BE, 0xDC6710DD,
-        0x2756B777, 0xEF43BC0A, 0x7185604B, 0x3F335991,
-    };
-
-    rc = imx_hab_fuse_srk(srk);
+    rc = imx_hab_fuse_srk(srk_fuse, srk_fuse_words);
 
     if (rc != PB_OK) {
         LOG_ERR("SRK fusing failed (%i)", rc);

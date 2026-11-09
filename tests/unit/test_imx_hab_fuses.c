@@ -91,7 +91,7 @@ static void test_not_initialized(void **state)
     assert_int_equal(imx_hab_slc_set_configuration_locked(), -PB_ERR_STATE);
     assert_int_equal(imx_hab_read_key_status(&key), -PB_ERR_STATE);
     assert_int_equal(imx_hab_revoke_key(&key), -PB_ERR_STATE);
-    assert_int_equal(imx_hab_fuse_srk(srk), -PB_ERR_STATE);
+    assert_int_equal(imx_hab_fuse_srk(srk, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_STATE);
     assert_int_equal(writes, 0);
 }
 
@@ -105,7 +105,7 @@ static void test_life_cycle(void **state)
     SRK(7) = srk[7];
     assert_int_equal(imx_hab_slc_read_status(), SLC_CONFIGURATION);
 
-    assert_int_equal(imx_hab_fuse_srk(srk), PB_OK);
+    assert_int_equal(imx_hab_fuse_srk(srk, IMX_HAB_SRK_HASH_WORDS), PB_OK);
 
     for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
         assert_int_equal(SRK(n), srk[n]);
@@ -124,22 +124,24 @@ static void test_fuse_srk(void **state)
     uint32_t other[IMX_HAB_SRK_HASH_WORDS];
     (void)state;
 
+    assert_int_equal(imx_hab_fuse_srk(srk, IMX_HAB_SRK_HASH_WORDS - 1), -PB_ERR_PARAM);
+
     /* An empty word can't be right */
     memcpy(other, srk, sizeof(other));
     other[3] = 0;
-    assert_int_equal(imx_hab_fuse_srk(other), -PB_ERR_PARAM);
+    assert_int_equal(imx_hab_fuse_srk(other, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_PARAM);
     assert_int_equal(writes, 0);
 
     /* Fused already: nothing to write */
     for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++)
         SRK(n) = srk[n];
 
-    assert_int_equal(imx_hab_fuse_srk(srk), PB_OK);
+    assert_int_equal(imx_hab_fuse_srk(srk, IMX_HAB_SRK_HASH_WORDS), PB_OK);
     assert_int_equal(writes, 0);
 
     /* Another hash */
     other[3] = 0x12345678;
-    assert_int_equal(imx_hab_fuse_srk(other), -PB_ERR_MEM);
+    assert_int_equal(imx_hab_fuse_srk(other, IMX_HAB_SRK_HASH_WORDS), -PB_ERR_MEM);
     assert_int_equal(writes, 0);
 }
 

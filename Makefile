@@ -73,6 +73,9 @@ cflags-y += -Waggregate-return
 # Bootloader
 src-y   = src/main.c
 src-y  += keystore.c
+ifneq ($(CONFIG_SRK_FUSE),"")
+src-y  += srk_fuse.c
+endif
 src-y  += src/delay.c
 src-y  += src/crypto.c
 src-y  += src/bio.c
@@ -125,6 +128,11 @@ $(BUILD_DIR)/keystore.o:
 	@echo GEN $(BUILD_DIR)/keystore.c
 	$(Q)$(BPAK) generate keystore --name pb $(CONFIG_KEYSTORE) --decorate > $(BUILD_DIR)/keystore.c
 	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/keystore.c -o $(BUILD_DIR)/keystore.o
+
+$(BUILD_DIR)/srk_fuse.o: $(patsubst "%",%,$(CONFIG_SRK_FUSE))
+	@echo GEN $(BUILD_DIR)/srk_fuse.c
+	$(Q)$(PYTHON) scripts/gen-srk-fuse.py $< > $(BUILD_DIR)/srk_fuse.c
+	$(Q)$(CC) -c $(cflags-y) $(BUILD_DIR)/srk_fuse.c -o $@
 
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET)
 	@echo OBJCOPY $< $@

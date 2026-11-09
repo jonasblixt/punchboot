@@ -122,7 +122,7 @@ int imx_hab_revoke_key(const struct rot_key *key)
     return imx_ocotp_write(cfg->revoke_bank, cfg->revoke_word, val | bit);
 }
 
-int imx_hab_fuse_srk(const uint32_t srk[IMX_HAB_SRK_HASH_WORDS])
+int imx_hab_fuse_srk(const uint32_t *srk, size_t words)
 {
     bool fuse = false;
     uint32_t val;
@@ -132,6 +132,11 @@ int imx_hab_fuse_srk(const uint32_t srk[IMX_HAB_SRK_HASH_WORDS])
         return -PB_ERR_STATE;
 
     LOG_INFO("Fusing SRK fuses");
+
+    if (words != IMX_HAB_SRK_HASH_WORDS) {
+        LOG_ERR("The SRK hash is %zu words, not %u", words, IMX_HAB_SRK_HASH_WORDS);
+        return -PB_ERR_PARAM;
+    }
 
     for (unsigned int n = 0; n < IMX_HAB_SRK_HASH_WORDS; n++) {
         if (srk[n] == 0)

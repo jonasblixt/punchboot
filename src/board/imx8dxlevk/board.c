@@ -30,6 +30,7 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
+#include <pb/srk_fuse.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
 #include <sci/svc/misc/api.h>
@@ -189,32 +190,13 @@ static int board_set_slc_configuration(void)
      * Warning: This is an example configuration. Be carful with the slc
      * commands.
      *
-     * Setting SLC Configuration will fuse SRK values matching the public keys
-     * that can be found in the 'pki' directory.
+     * Setting SLC Configuration will fuse the SRK hash of CONFIG_SRK_FUSE,
+     * the keys pb is signed with.
      *
      * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
      */
 
-    static const struct imx8x_srk_fuses srk_fuses = {
-        .srk[0] = 0x6147e2e6,
-        .srk[1] = 0xfc4dc849,
-        .srk[2] = 0xb410b214,
-        .srk[3] = 0x0f8d6212,
-        .srk[4] = 0xad38b486,
-        .srk[5] = 0x9b806149,
-        .srk[6] = 0xdd6d397a,
-        .srk[7] = 0x4c19d87b,
-        .srk[8] = 0x24ac2acd,
-        .srk[9] = 0xb6222a62,
-        .srk[10] = 0xf36d6bd1,
-        .srk[11] = 0x14cc8e16,
-        .srk[12] = 0xd749170e,
-        .srk[13] = 0x22fb187e,
-        .srk[14] = 0x158f740c,
-        .srk[15] = 0x8966b0f6,
-    };
-
-    rc = imx8x_fuse_write_srk(&srk_fuses);
+    rc = imx8x_fuse_write_srk(srk_fuse, srk_fuse_words);
 
     if (rc != PB_OK) {
         LOG_ERR("SRK fusing failed (%i)", rc);
