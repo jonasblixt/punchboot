@@ -59,7 +59,7 @@ jobs:
         with:
           name: punchboot-tools
           path: dist
-      - uses: pypa/gh-action-pypi-publish@v1.13.0
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           user: __token__
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
@@ -80,7 +80,7 @@ jobs:
         with:
           name: punchboot-tools
           path: dist
-      - uses: pypa/gh-action-pypi-publish@v1.13.0
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
