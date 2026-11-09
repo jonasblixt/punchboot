@@ -104,6 +104,10 @@ pb_unit_test(test_ab_state SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
 )
 
+pb_unit_test(test_board SOURCES
+    ${PROJECT_SOURCE_DIR}/src/board.c
+)
+
 pb_unit_test(test_boot SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/boot.c
@@ -268,3 +272,7 @@ target_include_directories(test_imx_usdhc BEFORE PRIVATE
 target_compile_options(test_imx_usdhc PRIVATE -fno-pie)
 target_compile_definitions(test_imx_usdhc PRIVATE CONFIG_MMC_CORE_HS200_TUNE=1)
 target_link_options(test_imx_usdhc PRIVATE -no-pie)
+
+pb_unit_test(test_imx_hab_fuses SOURCES
+    ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_hab_fuses.c
+)

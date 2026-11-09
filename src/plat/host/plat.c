@@ -18,8 +18,6 @@
 #include <sys/mman.h>
 #include <time.h>
 
-int board_init(void);
-
 static const uint8_t device_unique_id[8] = "\xbe\x4e\xfc\xb4\x32\x58\xcd\x63";
 const char *platform_ns_uuid = "\x3f\xaf\xc6\xd3\xc3\x42\x4e\xdf\xa5\xa6\x0e\xb1\x39\xa7\x83\xb5";
 
@@ -48,7 +46,7 @@ static ssize_t host_console_write(void *cookie, const char *buf, size_t size)
     return (ssize_t)size;
 }
 
-int plat_init(void)
+int plat_early_init(void)
 {
     static const cookie_io_functions_t console_io = {
         .write = host_console_write,
@@ -93,9 +91,9 @@ int plat_init(void)
     return PB_OK;
 }
 
-int plat_board_init(void)
+int plat_init(void)
 {
-    return board_init();
+    return PB_OK;
 }
 
 void plat_reset(void)

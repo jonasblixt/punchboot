@@ -159,3 +159,23 @@ int pb_dev_cls_xfer_complete(void)
 {
     return usbd_xfer_complete();
 }
+
+/* The class first: usbd_init() enumerates with its descriptors */
+static int transport_init(void)
+{
+    int rc = pb_dev_cls_init();
+
+    if (rc != PB_OK)
+        return rc;
+
+    return usbd_init();
+}
+
+const struct cm_transport_ops pb_dev_cls_transport = {
+    .init = transport_init,
+    .connect = usbd_connect,
+    .disconnect = usbd_disconnect,
+    .read = pb_dev_cls_read,
+    .write = pb_dev_cls_write,
+    .complete = pb_dev_cls_xfer_complete,
+};

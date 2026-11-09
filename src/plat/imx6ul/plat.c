@@ -7,6 +7,7 @@
  *
  */
 
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/timer/imx_gpt.h>
@@ -67,6 +68,11 @@ static void save_rom_usb_state(void)
 const char *platform_ns_uuid = "\xb3\x66\x93\xcd\xd3\x2e\x4c\xd5\xb2\xbb\x91\x40\x6e\xd6\x88\x40";
 
 static struct imx6ul_platform plat;
+
+const struct imx6ul_platform *imx6ul_plat(void)
+{
+    return &plat;
+}
 
 enum imx6ul_boot_reason {
     BR_UNKNOWN,
@@ -245,10 +251,21 @@ static int tzasc_init(void)
     return tzc380_configure_region(1, IMX6UL_DDR_BASE, IMX6UL_DDR_SIZE, TZC380_SP_ALL);
 }
 
-int plat_init(void)
-{
-    int rc;
+/* RM Table 5-9, OCOTP_SRK_REVOKE (35.5.58): SRK_REVOKE[2:0] */
+static const struct imx_hab_fuses hab_fuses = {
+    .sec_config_bank = IMX6UL_FUSE_LOCK_BANK,
+    .sec_config_word = IMX6UL_FUSE_LOCK_WORD,
+    .closed = 0x02,
+    .srk_bank = IMX6UL_FUSE_SRK_BANK,
+    .srk_word = 0,
+    .revoke_bank = IMX6UL_FUSE_REVOKE_BANK,
+    .revoke_word = IMX6UL_FUSE_REVOKE_WORD,
+    .revocable = 3,
+    .revoke_allowed = hab_has_no_errors,
+};
 
+int plat_early_init(void)
+{
     imx6ul_rom_log_save();
     /* Before the USB driver resets the controller */
     if (imx6ul_rom_log_has_event(IMX6UL_ROM_LOG_SERIAL_DOWNLOAD))
@@ -268,11 +285,16 @@ int plat_init(void)
     /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal */
     imx_gpt_init_24m(IMX6UL_GPT1_BASE);
     log_time_start();
+    return PB_OK;
+}
 
-    board_console_init(&plat);
+int plat_init(void)
+{
+    int rc;
 
     /* Init fusebox */
     imx_ocotp_init(IMX6UL_OCOTP_CTRL_BASE, 8);
+    imx_hab_fuses_init(&hab_fuses);
 
     plat.si_rev = fuse_read_helper(0, 3, 16, 0x0f, 0);
     plat.speed_grade = fuse_read_helper(0, 4, 16, 0x03, 1);
@@ -341,18 +363,13 @@ int plat_init(void)
     imx_wdog_kick();
     plat_mmu_init();
 
-    /* Not fatal: without plat_board_init() command mode can't be used to recover */
+    /* Not fatal: without board_setup() command mode can't be used to recover */
     rc = tzasc_init();
 
     if (rc != PB_OK)
         LOG_ERR("TZASC setup failed (%i)", rc);
 
     return PB_OK;
-}
-
-int plat_board_init(void)
-{
-    return board_init(&plat);
 }
 
 int plat_get_boot_source(struct pb_boot_source *src)

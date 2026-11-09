@@ -13,18 +13,19 @@
 #include <pb/crypto.h>
 #include <stdint.h>
 
+/** A key of the keystore built into pb */
 struct rot_key {
-    const char *name; /*<! Description of key */
-    key_id_t id; /*<! Punchboot ID of key */
-    uint32_t param1; /*<! Platform specific 1, for example fuse bit */
-    uint32_t param2; /*<! Platform specific 2 */
+    key_id_t id; /*!< Punchboot ID of the key */
+    unsigned int index; /*!< Its place in the keystore, e.g. its revoke fuse bit */
 };
 
+/**
+ * The platform's key revocation. The keys are the keystore's (keystore_pb),
+ * in its order.
+ */
 struct rot_config {
-    int (*revoke_key)(const struct rot_key *key);
-    int (*read_key_status)(const struct rot_key *key);
-    size_t key_map_length;
-    const struct rot_key key_map[];
+    int (*revoke_key)(const struct rot_key *key); /*!< Optional */
+    int (*read_key_status)(const struct rot_key *key); /*!< Without it no key can be used */
 };
 
 int rot_init(const struct rot_config *cfg);

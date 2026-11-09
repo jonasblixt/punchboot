@@ -43,34 +43,13 @@ slc_t imx8x_slc_read_status(void)
         return SLC_NOT_CONFIGURED;
 }
 
+/* slc_set_configuration_locked() checks the state first: CONFIGURATION,
+ * so the SRK hash is fused and the chip isn't closed */
 int imx8x_slc_set_configuration_locked(void)
 {
-    int err;
-    uint16_t lc;
-    uint16_t monotonic;
-    uint32_t uid_l;
-    uint32_t uid_h;
-
-    if (!imx8x_is_srk_fused()) {
-        LOG_ERR("SRK is empty, refusing to advance life cycle");
-        return -PB_ERR_STATE;
-    }
-
-    if (sc_seco_chip_info(ipc, &lc, &monotonic, &uid_l, &uid_h) != SC_ERR_NONE) {
-        LOG_ERR("Could not read the life cycle");
-        return -PB_ERR_IO;
-    }
-
-    if (lc & IMX8X_LC_CLOSED) {
-        LOG_INFO("Configuration already locked");
-        return PB_OK;
-    }
-
     LOG_INFO("About to change security state to locked");
 
-    err = sc_seco_forward_lifecycle(ipc, 16);
-
-    if (err != SC_ERR_NONE)
+    if (sc_seco_forward_lifecycle(ipc, 16) != SC_ERR_NONE)
         return -PB_ERR_IO;
 
     return PB_OK;

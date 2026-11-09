@@ -27,61 +27,27 @@
 #define KEY_P384 0x25c6dd36
 #define KEY_P521 0x52c1eda0
 
-static uint32_t revoked; /* Bit per key, by param1 */
+static uint32_t revoked; /* Bit per key, by index */
 static int revoke_calls;
 
 static int fake_revoke_key(const struct rot_key *key)
 {
     revoke_calls++;
-    revoked |= 1u << key->param1;
+    revoked |= 1u << key->index;
     return PB_OK;
 }
 
 static int fake_read_key_status(const struct rot_key *key)
 {
-    return (revoked & (1u << key->param1)) ? -PB_ERR_KEY_REVOKED : PB_OK;
+    return (revoked & (1u << key->index)) ? -PB_ERR_KEY_REVOKED : PB_OK;
 }
 
 static const struct rot_config rot_cfg = {
     .revoke_key = fake_revoke_key,
     .read_key_status = fake_read_key_status,
-    .key_map_length = 3,
-    .key_map = {
-        { .name = "p256", .id = KEY_P256, .param1 = 0 },
-        { .name = "p384", .id = KEY_P384, .param1 = 1 },
-        { .name = "p521", .id = KEY_P521, .param1 = 2 },
-    },
 };
 
-static const struct rot_config rot_cfg_no_callbacks = {
-    .key_map_length = 3,
-    .key_map = {
-        { .name = "p256", .id = KEY_P256 },
-        { .name = "p384", .id = KEY_P384 },
-        { .name = "p521", .id = KEY_P521 },
-    },
-};
-
-static const struct rot_config rot_cfg_too_few_keys = {
-    .revoke_key = fake_revoke_key,
-    .read_key_status = fake_read_key_status,
-    .key_map_length = 2,
-    .key_map = {
-        { .name = "p256", .id = KEY_P256 },
-        { .name = "p384", .id = KEY_P384 },
-    },
-};
-
-static const struct rot_config rot_cfg_wrong_order = {
-    .revoke_key = fake_revoke_key,
-    .read_key_status = fake_read_key_status,
-    .key_map_length = 3,
-    .key_map = {
-        { .name = "p384", .id = KEY_P384 },
-        { .name = "p256", .id = KEY_P256 },
-        { .name = "p521", .id = KEY_P521 },
-    },
-};
+static const struct rot_config rot_cfg_no_callbacks = { 0 };
 
 static void test_rot_not_initialized(void **state)
 {
@@ -98,12 +64,11 @@ static void test_rot_not_initialized(void **state)
     assert_int_equal(rot_get_dsa_key(KEY_P256, &kind, &der, &der_length), -PB_ERR_NOT_SUPPORTED);
 }
 
-static void test_rot_init_checks_the_keystore(void **state)
+static void test_rot_init_needs_a_config(void **state)
 {
     (void)state;
 
-    assert_int_equal(rot_init(&rot_cfg_too_few_keys), -PB_ERR_PARAM);
-    assert_int_equal(rot_init(&rot_cfg_wrong_order), -PB_ERR_PARAM);
+    assert_int_equal(rot_init(NULL), -PB_ERR_PARAM);
     /* Still not initialized */
     assert_int_equal(rot_revoke_key(KEY_P256), -PB_ERR_NOT_SUPPORTED);
 }
@@ -195,6 +160,7 @@ static void test_rot_revoke(void **state)
 }
 
 static slc_t slc_state;
+static int slc_writes;
 
 static slc_t fake_read_status(void)
 {
@@ -203,18 +169,21 @@ static slc_t fake_read_status(void)
 
 static int fake_set_configuration(void)
 {
+    slc_writes++;
     slc_state = SLC_CONFIGURATION;
     return PB_OK;
 }
 
 static int fake_set_configuration_locked(void)
 {
+    slc_writes++;
     slc_state = SLC_CONFIGURATION_LOCKED;
     return PB_OK;
 }
 
 static int fake_set_eol(void)
 {
+    slc_writes++;
     slc_state = SLC_EOL;
     return PB_OK;
 }
@@ -278,11 +247,60 @@ static void test_slc_life_cycle(void **state)
     assert_int_equal(slc_read_status(), SLC_EOL);
 }
 
+/* Forward only, and setting the current state again writes nothing */
+static void test_slc_order(void **state)
+{
+    static const struct slc_config cfg = {
+        .read_status = fake_read_status,
+        .set_configuration = fake_set_configuration,
+        .set_configuration_locked = fake_set_configuration_locked,
+        .set_eol = fake_set_eol,
+    };
+    (void)state;
+
+    assert_int_equal(slc_init(&cfg), PB_OK);
+
+    /* Not configured: no lock */
+    slc_state = SLC_NOT_CONFIGURED;
+    slc_writes = 0;
+    assert_int_equal(slc_set_configuration_locked(), -PB_ERR_STATE);
+    assert_int_equal(slc_writes, 0);
+
+    /* The configuration can be written again */
+    slc_state = SLC_CONFIGURATION;
+    assert_int_equal(slc_set_configuration(), PB_OK);
+    assert_int_equal(slc_writes, 1);
+
+    /* Locked: no configuration, locking again is a no-op */
+    slc_state = SLC_CONFIGURATION_LOCKED;
+    slc_writes = 0;
+    assert_int_equal(slc_set_configuration(), -PB_ERR_STATE);
+    assert_int_equal(slc_set_configuration_locked(), PB_OK);
+    assert_int_equal(slc_writes, 0);
+
+    /* EOL from any state, once */
+    slc_state = SLC_CONFIGURATION;
+    assert_int_equal(slc_set_eol(), PB_OK);
+    assert_int_equal(slc_writes, 1);
+    assert_int_equal(slc_set_eol(), PB_OK);
+    assert_int_equal(slc_set_configuration(), -PB_ERR_STATE);
+    assert_int_equal(slc_set_configuration_locked(), -PB_ERR_STATE);
+    assert_int_equal(slc_writes, 1);
+
+    /* A failed read writes nothing */
+    slc_state = -PB_ERR_IO;
+    slc_writes = 0;
+    assert_int_equal(slc_set_configuration(), -PB_ERR_IO);
+    assert_int_equal(slc_set_configuration_locked(), -PB_ERR_IO);
+    assert_int_equal(slc_set_eol(), -PB_ERR_IO);
+    assert_int_equal(slc_writes, 0);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_rot_not_initialized),
-        cmocka_unit_test(test_rot_init_checks_the_keystore),
+        cmocka_unit_test(test_rot_init_needs_a_config),
         cmocka_unit_test(test_rot_without_callbacks),
         cmocka_unit_test(test_rot_key_status),
         cmocka_unit_test(test_rot_get_dsa_key),
@@ -291,6 +309,7 @@ int main(void)
         cmocka_unit_test(test_slc_without_callbacks),
         cmocka_unit_test(test_slc_without_eol),
         cmocka_unit_test(test_slc_life_cycle),
+        cmocka_unit_test(test_slc_order),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

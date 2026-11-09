@@ -11,6 +11,7 @@
 #include <boot/boot.h>
 #include <boot/linux.h>
 #include <drivers/crypto/imx_caam.h>
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
@@ -19,9 +20,8 @@
 #include <drivers/usb/imx_ci_udc.h>
 #include <drivers/usb/imx_usb2_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
-#include <drivers/usb/usbd.h>
-#include <libfdt.h>
 #include <pb/bio.h>
+#include <pb/board.h>
 #include <pb/cm.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
@@ -29,13 +29,226 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <plat/imx6ul/fusebox.h>
+#include <pb/srk_fuse.h>
 #include <plat/imx6ul/imx6ul.h>
 #include <plat/imx6ul/rom_log.h>
 
 #include "partitions.h"
 
-static struct imx6ul_platform *plat;
+static int usdhc_emmc_setup(void)
+{
+    /* Ungate USDHC1 clock */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR6, 0, CCM_CCGR6_USDHC1);
+
+    /* Configure pinmux for usdhc1 */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_CLK, MUX_ALT(0)); /* CLK MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_CMD, MUX_ALT(0)); /* CMD MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA0, MUX_ALT(0)); /* DATA0 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA1, MUX_ALT(0)); /* DATA1 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA2, MUX_ALT(0)); /* DATA2 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA3, MUX_ALT(0)); /* DATA3 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_READY_B, MUX_ALT(1)); /* DATA4 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_CE0_B, MUX_ALT(1)); /* DATA5 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_CE1_B, MUX_ALT(1)); /* DATA6 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_CLE, MUX_ALT(1)); /* DATA7 MUX */
+    mmio_write_32(SW_MUX_CTL_PAD_NAND_DQS, MUX_ALT(1)); /* RESET MUX */
+
+    static const struct imx_usdhc_config cfg = {
+        .base = IMX6UL_USDHC1_BASE,
+        .delay_tap = 0,
+        .mmc_config = {
+            .mode = MMC_BUS_MODE_DDR52,
+            .width = MMC_BUS_WIDTH_8BIT_DDR,
+            .boot_mode = EXT_CSD_BOOT_DDR |
+                      EXT_CSD_BOOT_BUS_WIDTH_8,
+            .boot0_uu = PART_boot0,
+            .boot1_uu = PART_boot1,
+            .user_uu = PART_user,
+            .rpmb_uu = PART_rpmb,
+            .flags = 0,
+        },
+    };
+
+    return imx_usdhc_init(&cfg, MHz(imx6ul_plat()->usdhc1_clk_MHz));
+}
+
+static int board_command(uint32_t command,
+                         uint8_t *bfr,
+                         size_t size,
+                         uint8_t *response_bfr,
+                         size_t *response_size)
+{
+    LOG_DBG("%x, %p, %zu", command, bfr, size);
+
+    if (command == 0xd3399b11) /* dump-rom-log */
+        return imx6ul_rom_log_dump((char *)response_bfr, response_size);
+
+    LOG_ERR("Unknown command %x", command);
+    *response_size = 0;
+    return -PB_ERR_NOT_SUPPORTED;
+}
+
+static void boot_source_str(char *out, size_t size)
+{
+    struct pb_boot_source src;
+    char uu_str[37];
+
+    if (plat_get_boot_source(&src) != PB_OK) {
+        snprintf(out, size, "Not supported");
+        return;
+    }
+
+    switch (src.kind) {
+    case PB_BOOT_SOURCE_STORAGE: {
+        bio_dev_t dev = bio_get_part_by_uu(src.part_uu);
+
+        uuid_unparse(src.part_uu, uu_str);
+        snprintf(out, size, "%s (%s)", (dev >= 0) ? bio_get_description(dev) : "?", uu_str);
+    } break;
+    case PB_BOOT_SOURCE_USB:
+        snprintf(out, size, "USB");
+        break;
+    case PB_BOOT_SOURCE_UART:
+        snprintf(out, size, "UART");
+        break;
+    case PB_BOOT_SOURCE_DEBUGGER:
+        snprintf(out, size, "Debugger");
+        break;
+    default:
+        snprintf(out, size, "Unknown");
+        break;
+    }
+}
+
+static int board_status(uint8_t *response_bfr, size_t *response_size)
+{
+    char *response = (char *)response_bfr;
+    size_t resp_buf_size = *response_size;
+    char boot_source[128];
+
+    boot_source_str(boot_source, sizeof(boot_source));
+
+    (*response_size) = snprintf(response,
+                                resp_buf_size,
+                                "Board status OK!\n"
+                                "Boot source: %s\n",
+                                boot_source);
+    response[(*response_size)++] = 0;
+
+    return PB_OK;
+}
+
+static int board_set_slc_configuration(void)
+{
+    int rc;
+    /**
+     * Warning: This is an example configuration. Be carful with the slc
+     * commands.
+     *
+     * Setting SLC Configuration will fuse the SRK hash of CONFIG_SRK_FUSE,
+     * the keys pb is signed with.
+     *
+     * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
+     */
+    rc = imx_hab_fuse_srk(srk_fuse, srk_fuse_words);
+
+    if (rc != PB_OK) {
+        LOG_ERR("SRK fusing failed (%i)", rc);
+        return rc;
+    }
+
+    rc = imx_ocotp_write(0, 5, 0x0000c060);
+    if (rc != PB_OK) {
+        LOG_ERR("Failed to write boot0 config (%i)", rc);
+        return rc;
+    }
+
+    rc = imx_ocotp_write(0, 6, 0x00000010);
+    if (rc != PB_OK) {
+        LOG_ERR("Failed to write boot1 config (%i)", rc);
+        return rc;
+    }
+    return PB_OK;
+}
+
+static void board_console_init(void)
+{
+#define UART_PAD_CTRL                                                                          \
+    (PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | \
+     PAD_CTL_SRE_FAST | PAD_CTL_HYS)
+
+    /* Ungate uart clock */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR0, 0, CCM_CCGR0_UART2);
+
+    /* Configure console UART mux and pads*/
+    mmio_write_32(SW_MUX_CTL_PAD_UART2_TX_DATA, MUX_ALT(0));
+    mmio_write_32(SW_MUX_CTL_PAD_UART2_RX_DATA, MUX_ALT(0));
+    mmio_write_32(SW_PAD_CTL_PAD_UART2_TX_DATA, UART_PAD_CTRL);
+    mmio_write_32(SW_PAD_CTL_PAD_UART2_RX_DATA, UART_PAD_CTRL);
+
+    imx_uart_init(IMX6UL_UART2_BASE, MHz(80), 115200);
+
+    static const struct console_ops ops = {
+        .putc = imx_uart_putc,
+    };
+
+    console_init(IMX6UL_UART2_BASE, &ops);
+}
+
+static int board_hw_init(void)
+{
+    int rc;
+
+    rc = imx_caam_init(IMX6UL_CAAM_JR0_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+        return rc;
+    }
+
+    /* Linux can't instantiate the RNG when it runs in the normal world. Without
+     * it Linux has no hardware RNG, which is no reason not to boot. */
+    rc = imx_caam_rng_init(IMX6UL_CAAM_BASE);
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM RNG init failed (%i)", rc);
+
+    rc = usdhc_emmc_setup();
+
+    if (rc != PB_OK)
+        LOG_ERR("usdhc init failed (%i)", rc);
+
+    return rc;
+}
+
+static int board_cm_init(void)
+{
+    /* Enable USB PLL */
+    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
+
+    imx_usb2_phy_init(IMX6UL_USBPHY1_BASE);
+    return imx_ci_udc_init(IMX6UL_USB1_BASE);
+}
+
+static const struct rot_config rot = {
+    .revoke_key = imx_hab_revoke_key,
+    .read_key_status = imx_hab_read_key_status,
+};
+
+static const struct slc_config slc = {
+    .read_status = imx_hab_slc_read_status,
+    .set_configuration = board_set_slc_configuration,
+    .set_configuration_locked = imx_hab_slc_set_configuration_locked,
+};
+
+static const struct boot_driver_linux_config boot_linux = {
+    .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+    .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
+    .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+    .dtb_patch_cb = board_patch_bootargs,
+    .resolve_part_name = boot_ab_part_uu_to_name,
+    .set_dtb_boot_arg = true,
+};
 
 static const struct gpt_part_table default_gpt_tbl[] = {
     {
@@ -114,364 +327,29 @@ static const struct gpt_table_list gpt_tables[] = {
     },
 };
 
-static int usdhc_emmc_setup(void)
-{
-    /* Ungate USDHC1 clock */
-    mmio_clrsetbits_32(IMX6UL_CCM_CCGR6, 0, CCM_CCGR6_USDHC1);
+static const struct boot_ab_state_config boot_state_cfg = {
+    .primary_state_part_uu = PART_primary_state,
+    .backup_state_part_uu = PART_backup_state,
+    .sys_a_uu = PART_sys_a,
+    .sys_b_uu = PART_sys_b,
+    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
+};
 
-    /* Configure pinmux for usdhc1 */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_CLK, MUX_ALT(0)); /* CLK MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_CMD, MUX_ALT(0)); /* CMD MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA0, MUX_ALT(0)); /* DATA0 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA1, MUX_ALT(0)); /* DATA1 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA2, MUX_ALT(0)); /* DATA2 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_SD1_DATA3, MUX_ALT(0)); /* DATA3 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_READY_B, MUX_ALT(1)); /* DATA4 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_CE0_B, MUX_ALT(1)); /* DATA5 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_CE1_B, MUX_ALT(1)); /* DATA6 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_CLE, MUX_ALT(1)); /* DATA7 MUX */
-    mmio_write_32(SW_MUX_CTL_PAD_NAND_DQS, MUX_ALT(1)); /* RESET MUX */
-
-    static const struct imx_usdhc_config cfg = {
-        .base = IMX6UL_USDHC1_BASE,
-        .delay_tap = 0,
-        .mmc_config = {
-            .mode = MMC_BUS_MODE_DDR52,
-            .width = MMC_BUS_WIDTH_8BIT_DDR,
-            .boot_mode = EXT_CSD_BOOT_DDR |
-                      EXT_CSD_BOOT_BUS_WIDTH_8,
-            .boot0_uu = PART_boot0,
-            .boot1_uu = PART_boot1,
-            .user_uu = PART_user,
-            .rpmb_uu = PART_rpmb,
-            .flags = 0,
-        },
-    };
-
-    return imx_usdhc_init(&cfg, MHz(plat->usdhc1_clk_MHz));
-}
-
-static int early_boot(void)
-{
-    return PB_OK;
-}
-
-static int board_command(uint32_t command,
-                         uint8_t *bfr,
-                         size_t size,
-                         uint8_t *response_bfr,
-                         size_t *response_size)
-{
-    LOG_DBG("%x, %p, %zu", command, bfr, size);
-
-    if (command == 0xd3399b11) /* dump-rom-log */
-        return imx6ul_rom_log_dump((char *)response_bfr, response_size);
-
-    LOG_ERR("Unknown command %x", command);
-    *response_size = 0;
-    return -PB_ERR_NOT_SUPPORTED;
-}
-
-static void boot_source_str(char *out, size_t size)
-{
-    struct pb_boot_source src;
-    char uu_str[37];
-
-    if (plat_get_boot_source(&src) != PB_OK) {
-        snprintf(out, size, "Not supported");
-        return;
-    }
-
-    switch (src.kind) {
-    case PB_BOOT_SOURCE_STORAGE: {
-        bio_dev_t dev = bio_get_part_by_uu(src.part_uu);
-
-        uuid_unparse(src.part_uu, uu_str);
-        snprintf(out, size, "%s (%s)", (dev >= 0) ? bio_get_description(dev) : "?", uu_str);
-    } break;
-    case PB_BOOT_SOURCE_USB:
-        snprintf(out, size, "USB");
-        break;
-    case PB_BOOT_SOURCE_UART:
-        snprintf(out, size, "UART");
-        break;
-    case PB_BOOT_SOURCE_DEBUGGER:
-        snprintf(out, size, "Debugger");
-        break;
-    default:
-        snprintf(out, size, "Unknown");
-        break;
-    }
-}
-
-static int board_status(uint8_t *response_bfr, size_t *response_size)
-{
-    char *response = (char *)response_bfr;
-    size_t resp_buf_size = *response_size;
-    char boot_source[128];
-
-    boot_source_str(boot_source, sizeof(boot_source));
-
-    (*response_size) = snprintf(response,
-                                resp_buf_size,
-                                "Board status OK!\n"
-                                "Boot source: %s\n",
-                                boot_source);
-    response[(*response_size)++] = 0;
-
-    return PB_OK;
-}
-
-static int board_patch_bootargs(void *fdt, int offset)
-{
-    const char *bootargs = NULL;
-
-    if (boot_get_flags() & BOOT_FLAG_VERBOSE) {
-        bootargs = "console=ttymxc1,115200 earlyprintk ";
-    } else {
-        bootargs = "console=ttymxc1,115200 quiet ";
-    }
-
-    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
-}
-
-static int board_set_slc_configuration(void)
-{
-    int rc;
-    /**
-     * Warning: This is an example configuration. Be carful with the slc
-     * commands.
-     *
-     * Setting SLC Configuration will fuse SRK values matching the public keys
-     * that can be found in the 'pki' directory.
-     *
-     * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
-     */
-    static const struct imx6ul_srk_fuses srk_fuses = {
-        .srk[0] = 0x5020C7D7,
-        .srk[1] = 0xBB62B945,
-        .srk[2] = 0xDD97C8BE,
-        .srk[3] = 0xDC6710DD,
-        .srk[4] = 0x2756B777,
-        .srk[5] = 0xEF43BC0A,
-        .srk[6] = 0x7185604B,
-        .srk[7] = 0x3F335991,
-    };
-
-    rc = imx6ul_fuse_write_srk(&srk_fuses);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SRK fusing failed (%i)", rc);
-        return rc;
-    }
-
-    rc = imx_ocotp_write(0, 5, 0x0000c060);
-    if (rc != PB_OK) {
-        LOG_ERR("Failed to write boot0 config (%i)", rc);
-        return rc;
-    }
-
-    rc = imx_ocotp_write(0, 6, 0x00000010);
-    if (rc != PB_OK) {
-        LOG_ERR("Failed to write boot1 config (%i)", rc);
-        return rc;
-    }
-    return PB_OK;
-}
-
-void board_console_init(struct imx6ul_platform *plat_)
-{
-#define UART_PAD_CTRL                                                                          \
-    (PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | \
-     PAD_CTL_SRE_FAST | PAD_CTL_HYS)
-
-    /* Ungate uart clock */
-    mmio_clrsetbits_32(IMX6UL_CCM_CCGR0, 0, CCM_CCGR0_UART2);
-
-    /* Configure console UART mux and pads*/
-    mmio_write_32(SW_MUX_CTL_PAD_UART2_TX_DATA, MUX_ALT(0));
-    mmio_write_32(SW_MUX_CTL_PAD_UART2_RX_DATA, MUX_ALT(0));
-    mmio_write_32(SW_PAD_CTL_PAD_UART2_TX_DATA, UART_PAD_CTRL);
-    mmio_write_32(SW_PAD_CTL_PAD_UART2_RX_DATA, UART_PAD_CTRL);
-
-    imx_uart_init(IMX6UL_UART2_BASE, MHz(80), 115200);
-
-    static const struct console_ops ops = {
-        .putc = imx_uart_putc,
-    };
-
-    console_init(IMX6UL_UART2_BASE, &ops);
-}
-
-int board_init(struct imx6ul_platform *plat_)
-{
-    int rc;
-
-    plat = plat_;
-
-    rc = imx_caam_init(IMX6UL_CAAM_JR0_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("CAAM init failed (%i)", rc);
-        return rc;
-    }
-
-    /* Linux can't instantiate the RNG when it runs in the normal world. Without
-     * it Linux has no hardware RNG, which is no reason not to boot. */
-    rc = imx_caam_rng_init(IMX6UL_CAAM_BASE);
-
-    if (rc != PB_OK)
-        LOG_ERR("CAAM RNG init failed (%i)", rc);
-
-    rc = usdhc_emmc_setup();
-
-    if (rc != PB_OK) {
-        LOG_ERR("usdhc init failed (%i)", rc);
-        goto err_out;
-    }
-
-    bio_dev_t user_part = bio_get_part_by_uu(PART_user);
-
-    if (user_part < 0) {
-        goto err_out;
-    }
-
-    rc = gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
-    /* eMMC User partition now only has the visible flag to report capacity */
-    (void)bio_set_flags(user_part, BIO_FLAG_VISIBLE);
-
-    if (rc == PB_OK) {
-        static const struct boot_ab_state_config boot_state_cfg = {
-            .primary_state_part_uu = PART_primary_state,
-            .backup_state_part_uu = PART_backup_state,
-            .sys_a_uu = PART_sys_a,
-            .sys_b_uu = PART_sys_b,
-            .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
-        };
-
-        rc = boot_ab_state_init(&boot_state_cfg);
-
-        if (rc != PB_OK) {
-            goto err_out;
-        }
-    } else {
-        LOG_WARN("GPT ptbl init failed (%i)", rc);
-    }
-
-    static const struct boot_driver_linux_config linux_boot_cfg = {
-        .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
-        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt")  */
-        .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
-        .dtb_patch_cb = board_patch_bootargs,
-        .resolve_part_name = boot_ab_part_uu_to_name,
-        .set_dtb_boot_arg = true,
-    };
-
-    rc = boot_driver_linux_init(&linux_boot_cfg);
-
-    if (rc != PB_OK) {
-        goto err_out;
-    }
-
-    static const struct boot_driver boot_driver = {
-        .default_boot_source = BOOT_SOURCE_BIO,
-        .early_boot_cb = early_boot,
-        .get_boot_bio_device = boot_ab_state_get,
-        .set_boot_partition = boot_ab_state_set_boot_partition,
-        .get_boot_partition = boot_ab_state_get_boot_partition,
-        .prepare = boot_driver_linux_prepare,
-        .late_boot_cb = NULL,
-        .jump = boot_driver_linux_jump,
-    };
-
-    rc = boot_init(&boot_driver);
-
-    if (rc != PB_OK) {
-        goto err_out;
-    }
-
-    static const struct rot_config rot_config = {
-        .revoke_key = imx6ul_revoke_key,
-        .read_key_status = imx6ul_read_key_status,
-        .key_map_length = 3,
-        .key_map = {
-            {
-                .name = "pb-development",
-                .id = 0xa90f9680,
-                .param1 = 0,
-            },
-            {
-                .name = "pb-development2",
-                .id = 0x25c6dd36,
-                .param1 = 1,
-            },
-            {
-                .name = "pb-development3",
-                .id = 0x52c1eda0,
-                .param1 = 2,
-            },
-        },
-    };
-
-    rc = rot_init(&rot_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("RoT init failed (%i)", rc);
-        return rc;
-    }
-
-    static const struct slc_config slc_config = {
-        .read_status = imx6ul_slc_read_status,
-        .set_configuration = board_set_slc_configuration,
-        .set_configuration_locked = imx6ul_slc_set_configuration_locked,
-        .set_eol = NULL,
-    };
-
-    rc = slc_init(&slc_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SLC init failed (%i)", rc);
-        return rc;
-    }
-
-err_out:
-    return rc;
-    return PB_OK;
-}
-
-int cm_board_init(void)
-{
-    int rc;
-    /* Enable USB PLL */
-    mmio_clrsetbits_32(IMX6UL_CCM_ANALOG_PLL_USB1, 0, CCM_ANALOG_PLL_USB1_EN_USB_CLKS);
-
-    imx_usb2_phy_init(IMX6UL_USBPHY1_BASE);
-    rc = imx_ci_udc_init(IMX6UL_USB1_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("imx_ci_udc_init failed (%i)", rc);
-        return rc;
-    }
-
-    rc = pb_dev_cls_init();
-
-    if (rc != PB_OK)
-        return rc;
-
-    static const struct cm_config cfg = {
-        .name = "jiffy",
-        .status = board_status,
-        .password_auth = NULL,
-        .command = board_command,
-        .tops = {
-            .init = usbd_init,
-            .connect = usbd_connect,
-            .disconnect = usbd_disconnect,
-            .read = pb_dev_cls_read,
-            .write = pb_dev_cls_write,
-            .complete = pb_dev_cls_xfer_complete,
-        },
-    };
-
-    return cm_init(&cfg);
-}
+const struct board board = {
+    .name = "jiffy",
+    .console_init = board_console_init,
+    .rot = &rot,
+    .slc = &slc,
+    .init = board_hw_init,
+    .gpt_dev_uu = PART_user,
+    .gpt_tables = gpt_tables,
+    .gpt_tables_length = ARRAY_SIZE(gpt_tables),
+    .ab = &boot_state_cfg,
+    .boot_linux = &boot_linux,
+    .bootargs = "console=ttymxc1,115200 quiet ",
+    .bootargs_verbose = "console=ttymxc1,115200 earlyprintk ",
+    .cm_init = board_cm_init,
+    .cm_transport = &pb_dev_cls_transport,
+    .status = board_status,
+    .command = board_command,
+};
