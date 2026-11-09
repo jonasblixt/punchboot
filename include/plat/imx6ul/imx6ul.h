@@ -22,9 +22,4 @@ struct imx6ul_platform {
 /** The platform's clocks and fuses, for the board */
 const struct imx6ul_platform *imx6ul_plat(void);
 
-int imx6ul_slc_set_configuration_locked(void);
-slc_t imx6ul_slc_read_status(void);
-int imx6ul_revoke_key(const struct rot_key *key);
-int imx6ul_read_key_status(const struct rot_key *key);
-
 #endif // PLATFORM_IMX6UL_H

@@ -7,6 +7,7 @@
  *
  */
 
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/mmc_core.h>
 #include <drivers/rom_log/imx_hab_log.h>
@@ -266,6 +267,19 @@ static const struct imx_hab_log_config hab_log_cfg = {
     .entry_size = 4,
 };
 
+/* RM Table 5-9, OCOTP_SRK_REVOKE (35.5.58): SRK_REVOKE[2:0] */
+static const struct imx_hab_fuses hab_fuses = {
+    .sec_config_bank = IMX6UL_FUSE_LOCK_BANK,
+    .sec_config_word = IMX6UL_FUSE_LOCK_WORD,
+    .closed = 0x02,
+    .srk_bank = IMX6UL_FUSE_SRK_BANK,
+    .srk_word = 0,
+    .revoke_bank = IMX6UL_FUSE_REVOKE_BANK,
+    .revoke_word = IMX6UL_FUSE_REVOKE_WORD,
+    .revocable = 3,
+    .revoke_allowed = hab_has_no_errors,
+};
+
 int plat_early_init(void)
 {
     imx_rom_log_save(&rom_log_cfg);
@@ -297,6 +311,7 @@ int plat_init(void)
 
     /* Init fusebox */
     imx_ocotp_init(IMX6UL_OCOTP_CTRL_BASE, 8);
+    imx_hab_fuses_init(&hab_fuses);
 
     plat.si_rev = fuse_read_helper(0, 3, 16, 0x0f, 0);
     plat.speed_grade = fuse_read_helper(0, 4, 16, 0x03, 1);

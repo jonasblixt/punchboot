@@ -11,7 +11,6 @@ ifdef CONFIG_PLAT_IMXRT
 cflags-y += -mtune=cortex-m7
 
 src-y  += src/plat/imxrt/plat.c
-src-y += src/plat/imxrt/slc_helpers.c
-src-y += src/plat/imxrt/rot_helpers.c
+src-y += src/drivers/fuse/imx_hab_fuses.c
 
 endif

@@ -11,6 +11,7 @@
 #include <boot/boot.h>
 #include <boot/linux.h>
 #include <drivers/crypto/imx_caam.h>
+#include <drivers/fuse/imx_hab_fuses.h>
 #include <drivers/fuse/imx_ocotp.h>
 #include <drivers/mmc/imx_usdhc.h>
 #include <drivers/mmc/mmc_core.h>
@@ -29,7 +30,6 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <plat/imx6ul/fusebox.h>
 #include <plat/imx6ul/imx6ul.h>
 
 static int usdhc_emmc_setup(void)
@@ -188,18 +188,12 @@ static int board_set_slc_configuration(void)
      *
      * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
      */
-    static const struct imx6ul_srk_fuses srk_fuses = {
-        .srk[0] = 0x5020C7D7,
-        .srk[1] = 0xBB62B945,
-        .srk[2] = 0xDD97C8BE,
-        .srk[3] = 0xDC6710DD,
-        .srk[4] = 0x2756B777,
-        .srk[5] = 0xEF43BC0A,
-        .srk[6] = 0x7185604B,
-        .srk[7] = 0x3F335991,
+    static const uint32_t srk[IMX_HAB_SRK_HASH_WORDS] = {
+        0x5020C7D7, 0xBB62B945, 0xDD97C8BE, 0xDC6710DD,
+        0x2756B777, 0xEF43BC0A, 0x7185604B, 0x3F335991,
     };
 
-    rc = imx6ul_fuse_write_srk(&srk_fuses);
+    rc = imx_hab_fuse_srk(srk);
 
     if (rc != PB_OK) {
         LOG_ERR("SRK fusing failed (%i)", rc);
@@ -280,14 +274,14 @@ static int board_cm_init(void)
 }
 
 static const struct rot_config rot = {
-    .revoke_key = imx6ul_revoke_key,
-    .read_key_status = imx6ul_read_key_status,
+    .revoke_key = imx_hab_revoke_key,
+    .read_key_status = imx_hab_read_key_status,
 };
 
 static const struct slc_config slc = {
-    .read_status = imx6ul_slc_read_status,
+    .read_status = imx_hab_slc_read_status,
     .set_configuration = board_set_slc_configuration,
-    .set_configuration_locked = imx6ul_slc_set_configuration_locked,
+    .set_configuration_locked = imx_hab_slc_set_configuration_locked,
 };
 
 static const struct boot_driver_linux_config boot_linux = {
