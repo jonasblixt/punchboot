@@ -314,11 +314,14 @@ data are still code in the boards.
   (D-008).
 - HABv4 (i.MX6UL, RT1060, later the i.MX8M) has one driver, `drivers/fuse/imx_hab_fuses.c`,
   with the fuse locations from the platform (F-167). AHAB/SECO (i.MX8X) stays in its platform.
+- The configuration fuses (boot device, ...) are board data, `slc_config.fuses`, with the
+  platform's `fuse_read`/`fuse_write` by fuse index. `slc_set_configuration()` calls the
+  platform's `set_configuration` (the SRK hash), then sets the bits of each word that aren't
+  set yet; a word that has them all is not written again, also with other bits in it.
 - The SRK hash to fuse comes from the build (`CONFIG_SRK_FUSE`, srktool's `*_fuse.bin`, turned
   into `srk_fuse.c`), not from words copied by hand into the board: a wrong hash closes the
   device to every image.
 Why: the review of the RoT/SLC code found the same rule implemented differently on every
 platform, with bugs in each (F-001, F-161..F-167). The rules are the product's, the fuse
 locations the SoC's.
-Open: the 8M's SRK_REVOKE word is unverified (8MP RM: reserved), so the 8M has no HAB support yet; the boot-config fuses are
-still written by the boards' `set_configuration`.
+Open: the 8M's SRK_REVOKE word is unverified (8MP RM: reserved), so the 8M has no HAB support yet.
