@@ -64,9 +64,11 @@ static int setup_boot_driver(void)
     driver.early_boot_cb = board.early_boot;
     driver.late_boot_cb = board.late_boot;
 #ifdef CONFIG_BOOT_AB_DRIVER
-    driver.get_boot_bio_device = boot_ab_state_get;
-    driver.set_boot_partition = boot_ab_state_set_boot_partition;
-    driver.get_boot_partition = boot_ab_state_get_boot_partition;
+    if (board.ab) {
+        driver.get_boot_bio_device = boot_ab_state_get;
+        driver.set_boot_partition = boot_ab_state_set_boot_partition;
+        driver.get_boot_partition = boot_ab_state_get_boot_partition;
+    }
 #endif
 #ifdef CONFIG_BOOT_LINUX
     if (board.boot_linux) {
@@ -135,11 +137,13 @@ int board_setup(void)
     }
 
 #ifdef CONFIG_BOOT_AB_DRIVER
-    rc = boot_ab_state_init(board.ab);
+    if (board.ab) {
+        rc = boot_ab_state_init(board.ab);
 
-    if (rc != PB_OK) {
-        LOG_ERR("Boot state init failed (%i)", rc);
-        return rc;
+        if (rc != PB_OK) {
+            LOG_ERR("Boot state init failed (%i)", rc);
+            return rc;
+        }
     }
 #endif
 
