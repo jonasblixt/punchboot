@@ -265,8 +265,8 @@ of a signed image, the handover, A/B, rollback after the boot attempts and the w
 board: the i.MX RT1060 EVK.
 What pb guarantees an ARMv7-M image (the contract the application checks): VTOR is its vector
 table, MSP and PSP its initial stack pointer, r0 the booted system's name ("A", "B"), r1 the boot
-partition's UUID, the image's memory cleaned from the D-cache and the I-cache invalidated, no
-interrupt enabled. A board's pb enters command mode when an image asks for it in a register that
+partition's UUID, the D-cache and the MPU off, the I-cache invalidated, PRIMASK set and no
+interrupt enabled (D-028). A board's pb enters command mode when an image asks for it in a register that
 survives a warm reset (the RT1060: SRC_GPR5), so the runner gets the board back without a hand
 on it.
 Why: the tests check pb's behaviour, so the application must not bring its own startup and
@@ -328,3 +328,23 @@ Why: the review of the RoT/SLC code found the same rule implemented differently 
 platform, with bugs in each (F-001, F-161..F-167). The rules are the product's, the fuse
 locations the SoC's.
 Open: the 8M's SRK_REVOKE word is unverified (8MP RM: reserved), so the 8M has no HAB support yet.
+
+## D-028: One handover state on every arch; the simple boot driver is arch neutral (2026-11-09)
+
+Every arch gives the next stage the same state (`include/pb/arch.h`): the MMU (on ARMv7-M the
+MPU) and the D-cache off with pb's data in memory, the I-cache invalidated, interrupts masked
+(IRQ and FIQ on ARMv7-A, DAIF on ARMv8-A, PRIMASK on ARMv7-M), at the exception level pb runs at
+(EL3 on the i.MX8M and i.MX8X), p0..p3 in the first four argument registers.
+`arch_disable_mmu()` turns the MMU and the D-cache off and masks interrupts, `arch_jump()`
+masks them again, invalidates the I-cache and jumps; every arch has `arch_invalidate_icache()`.
+A new arch must give the same.
+The boot driver for images without an OS handover protocol is `simple` (`boot/simple.h`,
+`CONFIG_BOOT_SIMPLE`, `board.boot_simple`), was `armv7m_baremetal`: only what the entry address
+is depends on the arch (ARMv7-M: the vector table; ARMv7-A, ARMv8-A: the first instruction). It
+starts applications and RTOSes alike: the name is pb's simple boot protocol (the entry, the
+system's name, the partition's UUID), not what runs. "baremetal" said something about the image.
+Why: the handover differed per arch (ARMv7-M left the D-cache on and interrupts unmasked, ARMv7-A
+never invalidated the I-cache), so an image could only rely on what the arch it was tested on
+happened to do. Linux and TF-A ask for the same state.
+Cost: ARMv7-M images start with the D-cache off and PRIMASK set and turn them on themselves.
+Out-of-tree boards rename `boot_armv7m` and `CONFIG_BOOT_ARMV7M_BAREMETAL` (D-018).
