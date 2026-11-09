@@ -137,21 +137,27 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-164 | `src/plat/imx8x/rot_helpers.c` | `imx8x_revoke_key()` ignored the key: it committed | Verified | fixed |
 | | | whatever the AHAB header revokes and returned `PB_OK`, also when no fuse | | (work-3.0.0) |
 | | | changed. The host was told a key was revoked that wasn't. | | |
-| F-165 | `src/plat/{imx6ul,imx8x}/rot_helpers.c` | No bound on the key's revoke slot. The 6UL | Verified | partly fixed |
-| | | revokes SRK0-2 (`SRK_REVOKE[2:0]`, RM Table 5-9), the keystore has 4 keys: | | |
-| | | revoking key 3 burns bit 3, which the fuse map doesn't define, and pb then | | |
-| | | rejects key 3 although the ROM still accepts it. On the 8X a key past the | | |
-| | | four OEM SRKs reads as valid forever. The platform should say how many | | |
-| | | slots it has. `board-data`: `imx_hab_fuses.revocable`, the 8X refuses past | | |
-| | | its four (F-164). Open: the slot is the key's place in the keystore. | | |
+| F-165 | `src/plat/{imx6ul,imx8x}/rot_helpers.c` | No bound on the key's revoke slot. | Verified | partly fixed |
+| | | The 6UL revokes SRK0-2 (`SRK_REVOKE[2:0]`, RM Table 5-9), the keystore has | | |
+| | | 4 keys: revoking key 3 burns bit 3, which the fuse map doesn't define, and | | |
+| | | pb then rejects key 3 although the ROM still accepts it. On the 8X a key | | |
+| | | past the four OEM SRKs reads as valid forever. The platform should say how | | |
+| | | many slots it has. `work-3.0.0-plat`: `imx_hab_fuses.revocable`, the 8X | | |
+| | | refuses past its four (F-164). Open: the slot is the key's place in the | | |
+| | | keystore. | | |
 | F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | partly fixed |
 | | | platform: the 6UL locks only from CONFIGURATION, the 8X from any state. No | | |
 | | | platform reads the fuses back after writing them. The rules belong in | | |
-| | | `src/slc.c`. `board-data`: they are; still no read-back (the 8X's life | | |
-| | | cycle may only change on reset). | | |
+| | | `src/slc.c`. `work-3.0.0-plat`: they are; still no read-back (the 8X's | | |
+| | | life cycle may only change on reset). | | |
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | partly fixed |
-| | | revoke one, although HAB has `SRK_REVOKE` there too. `board-data`: it reads | | |
-| | | `SRK_REVOKE` (`imx_hab_fuses.c`); the EVK board doesn't revoke or lock. | | |
+| | | revoke one, although HAB has `SRK_REVOKE` there too. `work-3.0.0-plat`: it | | |
+| | | reads `SRK_REVOKE` (`imx_hab_fuses.c`); the EVK board doesn't revoke or lock. | | |
+| F-168 | `src/cm/cm_main.c`, `src/slc.c` | Command mode asked for authentication only when the | Verified | fixed |
+| | | SLC read CONFIGURATION_LOCKED. When the board init failed before `slc_init()` | | (work-3.0.0-plat, |
+| | | (eMMC init on jiffy, DDR training on the i.MX8M) or the read failed, the read | | `43413ab7`) |
+| | | was an error and every command was open on a locked device. Now an unset SLC | | |
+| | | is `-PB_ERR_STATE`, and any error but `-PB_ERR_NOT_SUPPORTED` is locked. | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
