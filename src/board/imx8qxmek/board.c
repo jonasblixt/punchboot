@@ -30,7 +30,6 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <pb/srk_fuse.h>
 #include <plat/imx8x/fusebox.h>
 #include <plat/imx8x/imx8x.h>
 #include <sci/svc/misc/api.h>
@@ -183,42 +182,15 @@ static int board_password_auth(const char *password, size_t length)
         return -PB_ERR_AUTHENTICATION_FAILED;
 }
 
-static int board_set_slc_configuration(void)
-{
-    int rc;
-    /**
-     * Warning: This is an example configuration. Be carful with the slc
-     * commands.
-     *
-     * Setting SLC Configuration will fuse the SRK hash of CONFIG_SRK_FUSE,
-     * the keys pb is signed with.
-     *
-     * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
-     */
-
-    rc = imx8x_fuse_write_srk(srk_fuse, srk_fuse_words);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SRK fusing failed (%i)", rc);
-        return rc;
-    }
-
-    rc = imx8x_fuse_write(IMX8X_FUSE_BOOT0, 0x00000002);
-
-    if (rc != PB_OK) {
-        LOG_ERR("BOOT0 fusing failed (%i)", rc);
-        return rc;
-    }
-
-    rc = imx8x_fuse_write(IMX8X_FUSE_BOOT1, 0x00000025);
-
-    if (rc != PB_OK) {
-        LOG_ERR("BOOT1 fusing failed (%i)", rc);
-        return rc;
-    }
-
-    return PB_OK;
-}
+/*
+ * Warning: an example configuration. Be careful with the slc commands.
+ * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
+ * is signed with, then these: boot from eMMC0, 8-bit DDR HS.
+ */
+static const struct slc_fuse config_fuses[] = {
+    { IMX8X_FUSE_BOOT0, 0x00000002 },
+    { IMX8X_FUSE_BOOT1, 0x00000025 },
+};
 
 static void board_console_init(void)
 {
@@ -317,8 +289,12 @@ static const struct rot_config rot = {
 
 static const struct slc_config slc = {
     .read_status = imx8x_slc_read_status,
-    .set_configuration = board_set_slc_configuration,
+    .set_configuration = imx8x_slc_set_configuration,
     .set_configuration_locked = imx8x_slc_set_configuration_locked,
+    .fuses = config_fuses,
+    .fuses_length = ARRAY_SIZE(config_fuses),
+    .fuse_read = imx8x_fuse_read,
+    .fuse_write = imx8x_fuse_write,
 };
 
 /*
