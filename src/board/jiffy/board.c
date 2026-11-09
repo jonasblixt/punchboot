@@ -30,7 +30,6 @@
 #include <pb/plat.h>
 #include <pb/rot.h>
 #include <pb/slc.h>
-#include <pb/srk_fuse.h>
 #include <plat/imx6ul/imx6ul.h>
 
 static int usdhc_emmc_setup(void)
@@ -177,38 +176,16 @@ static int board_status(uint8_t *response_bfr, size_t *response_size)
     return PB_OK;
 }
 
-static int board_set_slc_configuration(void)
-{
-    int rc;
-    /**
-     * Warning: This is an example configuration. Be carful with the slc
-     * commands.
-     *
-     * Setting SLC Configuration will fuse the SRK hash of CONFIG_SRK_FUSE,
-     * the keys pb is signed with.
-     *
-     * This will also configure the SoC to boot from eMMC0 with 8-bit DDR HS.
-     */
-    rc = imx_hab_fuse_srk(srk_fuse, srk_fuse_words);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SRK fusing failed (%i)", rc);
-        return rc;
-    }
-
-    rc = imx_ocotp_write(0, 5, 0x0000c060);
-    if (rc != PB_OK) {
-        LOG_ERR("Failed to write boot0 config (%i)", rc);
-        return rc;
-    }
-
-    rc = imx_ocotp_write(0, 6, 0x00000010);
-    if (rc != PB_OK) {
-        LOG_ERR("Failed to write boot1 config (%i)", rc);
-        return rc;
-    }
-    return PB_OK;
-}
+/*
+ * Warning: an example configuration. Be careful with the slc commands.
+ * slc_set_configuration() fuses the SRK hash of CONFIG_SRK_FUSE, the keys pb
+ * is signed with, then these: boot from eMMC, 8-bit DDR (BOOT_CFG), from the
+ * fuses (BT_FUSE_SEL).
+ */
+static const struct slc_fuse config_fuses[] = {
+    { IMX6UL_FUSE(0, 5), 0x0000c060 },
+    { IMX6UL_FUSE(0, 6), 0x00000010 },
+};
 
 static void board_console_init(void)
 {
@@ -276,8 +253,12 @@ static const struct rot_config rot = {
 
 static const struct slc_config slc = {
     .read_status = imx_hab_slc_read_status,
-    .set_configuration = board_set_slc_configuration,
+    .set_configuration = imx_hab_slc_set_configuration,
     .set_configuration_locked = imx_hab_slc_set_configuration_locked,
+    .fuses = config_fuses,
+    .fuses_length = ARRAY_SIZE(config_fuses),
+    .fuse_read = imx_ocotp_fuse_read,
+    .fuse_write = imx_ocotp_fuse_write,
 };
 
 static const struct boot_driver_linux_config boot_linux = {
