@@ -853,6 +853,21 @@ static int cmd_stream_final(void)
     return rc;
 }
 
+/*
+ * A locked device requires authentication, and so does one whose life cycle
+ * is unknown: the SLC was never set up (the board init failed before
+ * slc_init()) or couldn't be read. Only a board without SLC support
+ * (-PB_ERR_NOT_SUPPORTED) and the states before locking are open, and EOL
+ * (D-011).
+ */
+static bool slc_requires_auth(void)
+{
+    if (slc == PB_SLC_CONFIGURATION_LOCKED)
+        return true;
+
+    return (slc < 0) && (slc != -PB_ERR_NOT_SUPPORTED);
+}
+
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
@@ -863,7 +878,7 @@ static int pb_command_parse(void)
         goto err_out;
     }
 
-    if (pb_wire_requires_auth(&cmd) && (!authenticated) && (slc == PB_SLC_CONFIGURATION_LOCKED)) {
+    if (pb_wire_requires_auth(&cmd) && (!authenticated) && slc_requires_auth()) {
         LOG_ERR("Not authenticated");
         pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
         goto err_out;
