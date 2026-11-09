@@ -18,7 +18,7 @@ arch_jump:
     mov r0, r1
     mov r1, r2
     mov r2, r3
-    mov r3, r4
+    ldr r3, [sp] /* p3, the fifth argument, is on the stack */
 
     isb
     dsb
