@@ -22,13 +22,12 @@
 #include <boot/boot.h>
 #include <drivers/crypto/imx_caam.h>
 #include <drivers/mmc/imx_usdhc.h>
-#include <drivers/partition/gpt.h>
 #include <drivers/uart/imx_uart.h>
 #include <drivers/usb/dwc3_udc.h>
 #include <drivers/usb/imx8m_phy.h>
 #include <drivers/usb/pb_dev_cls.h>
-#include <drivers/usb/usbd.h>
-#include <libfdt.h>
+#include <pb/board.h>
+#include <pb/board_layout.h>
 #include <pb/cm.h>
 #include <pb/console.h>
 #include <pb/delay.h>
@@ -53,83 +52,6 @@ static const unsigned int imx8mpevk_dram_mts[] = { 4000 };
 struct dram_rates dram_rates = {
     .mts = imx8mpevk_dram_mts,
     .num = ARRAY_SIZE(imx8mpevk_dram_mts),
-};
-
-static const struct gpt_part_table gpt_tbl_default[] = {
-    {
-        .uu = UUID_2af755d8_8de5_45d5_a862_014cfa735ce0,
-        .description = "System A",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_c046ccd8_0f2e_4036_984d_76c14dc73992,
-        .description = "System B",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_c284387a_3377_4c0f_b5db_1bcbcff1ba1a,
-        .description = "Root A",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_ac6a1b62_7bd0_460b_9e6a_9a7831ccbfbb,
-        .description = "Root B",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_f5f8c9ae_efb5_4071_9ba9_d313b082281e,
-        .description = "PB State Primary",
-        .size = 512,
-    },
-    {
-        .uu = UUID_656ab3fc_5856_4a5e_a2ae_5a018313b3ee,
-        .description = "PB State Backup",
-        .size = 512,
-    },
-    {
-        .uu = UUID_4581af22_99e6_4a94_b821_b60c42d74758,
-        .description = "Root overlay A",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_da2ca04f_a693_4284_b897_3906cfa1eb13,
-        .description = "Root overlay B",
-        .size = SZ_MiB(30),
-    },
-    {
-        .uu = UUID_23477731_7e33_403b_b836_899a0b1d55db,
-        .description = "RoT extension A",
-        .size = SZ_KiB(128),
-    },
-    {
-        .uu = UUID_6ffd077c_32df_49e7_b11e_845449bd8edd,
-        .description = "RoT extension B",
-        .size = SZ_KiB(128),
-    },
-    {
-        .uu = UUID_9697399d_e2da_47d9_8eb5_88daea46da1b,
-        .description = "System storage A",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_c5b8b41c_0fb5_494d_8b0e_eba400e075fa,
-        .description = "System storage B",
-        .size = SZ_MiB(128),
-    },
-    {
-        .uu = UUID_39792364_d3e3_4013_ac51_caaea65e4334,
-        .description = "Mass storage",
-        .size = SZ_GiB(1),
-    },
-};
-
-static const struct gpt_table_list gpt_tables[] = {
-    {
-        .name = "Default",
-        .variant = 0,
-        .table = gpt_tbl_default,
-        .table_length = ARRAY_SIZE(gpt_tbl_default),
-    },
 };
 
 void board_console_init(struct imx8m_platform *plat_)
@@ -269,171 +191,10 @@ static int usdhc_sd_setup(void)
     return imx_usdhc_init(&cfg, MHz(200));
 }
 
-static int board_patch_bootargs(void *fdt, int offset)
-{
-    const char *bootargs = NULL;
-
-    if (boot_get_flags() & BOOT_FLAG_VERBOSE) {
-        /* arm64 has no earlyprintk: earlycon, on stdout-path */
-        bootargs = "console=ttymxc1,115200 earlycon ";
-    } else {
-        bootargs = "console=ttymxc1,115200 quiet ";
-    }
-
-    return fdt_setprop_string(fdt, offset, "bootargs", bootargs);
-}
-
 /* Revocation is a fuse, which this board never writes */
 static int board_read_key_status(const struct rot_key *key)
 {
     (void)key;
-    return PB_OK;
-}
-
-int board_init(struct imx8m_platform *plat_)
-{
-    int rc;
-
-    (void)plat_;
-
-    /* Hash and signature verification. The ROM leaves the CAAM clock on */
-    rc = imx_caam_init(IMX8M_CAAM_JR0_BASE);
-
-    if (rc != PB_OK) {
-        LOG_ERR("CAAM init failed (%i)", rc);
-        return rc;
-    }
-
-    /* Linux can't instantiate the RNG when it runs in the normal world. Without
-     * it Linux has no hardware RNG, which is no reason not to boot. */
-    rc = imx_caam_rng_init(IMX8M_CAAM_BASE);
-
-    if (rc != PB_OK)
-        LOG_ERR("CAAM RNG init failed (%i)", rc);
-
-    rc = usdhc_emmc_setup();
-
-    if (rc != PB_OK) {
-        LOG_ERR("eMMC init failed (%i)", rc);
-        return rc;
-    }
-
-    /* The microSD slot: no card, or one that fails, doesn't stop the boot */
-    if (BOARD_SD_CARD) {
-        rc = usdhc_sd_setup();
-        if (rc != PB_OK && rc != -PB_ERR_NOT_FOUND)
-            LOG_ERR("SD init failed (%i)", rc);
-    }
-
-    bio_dev_t user_part = bio_get_part_by_uu(PART_user);
-
-    if (user_part < 0) {
-        LOG_ERR("Can't find partition (%i)", user_part);
-        return user_part;
-    }
-
-    rc = gpt_ptbl_init(user_part, gpt_tables, ARRAY_SIZE(gpt_tables));
-    /* eMMC User partition now only has the visible flag to report capacity */
-    (void)bio_set_flags(user_part, BIO_FLAG_VISIBLE);
-
-    if (rc == PB_OK) {
-        static const struct boot_ab_state_config boot_state_cfg = {
-            .primary_state_part_uu = PART_primary_state,
-            .backup_state_part_uu = PART_backup_state,
-            .sys_a_uu = PART_sys_a,
-            .sys_b_uu = PART_sys_b,
-            .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
-        };
-
-        rc = boot_ab_state_init(&boot_state_cfg);
-
-        if (rc != PB_OK) {
-            LOG_ERR("Boot state init failed (%i)", rc);
-            return rc;
-        }
-    } else {
-        LOG_WARN("GPT ptbl init failed (%i)", rc);
-    }
-
-    /* TF-A BL31, then Linux as BL33 at EL2 */
-    static const struct boot_driver_atf_config atf_cfg = {
-        .atf_bpak_id = 0xa697d988, /* bpak_id("atf") */
-        .bl33_bpak_id = 0xec103b08, /* bpak_id("kernel") */
-        .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
-        .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
-        .dtb_patch_cb = board_patch_bootargs,
-        .resolve_part_name = boot_ab_part_uu_to_name,
-    };
-
-    rc = boot_driver_atf_init(&atf_cfg);
-
-    if (rc != PB_OK)
-        return rc;
-
-    static const struct boot_driver boot_driver = {
-        .default_boot_source = BOOT_SOURCE_BIO,
-        .get_boot_bio_device = boot_ab_state_get,
-        .set_boot_partition = boot_ab_state_set_boot_partition,
-        .get_boot_partition = boot_ab_state_get_boot_partition,
-        .prepare = boot_driver_atf_prepare,
-        .jump = boot_driver_atf_jump,
-    };
-
-    rc = boot_init(&boot_driver);
-
-    if (rc != PB_OK)
-        return rc;
-
-    static const struct rot_config rot_config = {
-        .revoke_key = NULL,
-        .read_key_status = board_read_key_status,
-    };
-
-    rc = rot_init(&rot_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("RoT init failed (%i)", rc);
-        return rc;
-    }
-
-    /* No fuse access, see the top of this file */
-    static const struct slc_config slc_config = {
-        .read_status = NULL,
-        .set_configuration = NULL,
-        .set_configuration_locked = NULL,
-        .set_eol = NULL,
-    };
-
-    rc = slc_init(&slc_config);
-
-    if (rc != PB_OK) {
-        LOG_ERR("SLC init failed (%i)", rc);
-        return rc;
-    }
-
-    return PB_OK;
-}
-
-static int board_command(uint32_t command,
-                         uint8_t *bfr,
-                         size_t size,
-                         uint8_t *response_bfr,
-                         size_t *response_size)
-{
-    (void)bfr;
-    LOG_DBG("%x, %zu", command, size);
-    *response_size = 0;
-    return -PB_ERR_NOT_SUPPORTED;
-}
-
-static int board_status(uint8_t *response_bfr, size_t *response_size)
-{
-    char *response = (char *)response_bfr;
-    size_t resp_buf_size = *response_size;
-
-    (*response_size) = snprintf(response, resp_buf_size, "Board status OK!\n");
-    response[(*response_size)++] = 0;
-
     return PB_OK;
 }
 
@@ -515,7 +276,43 @@ static int usb1_power_up(void)
     return PB_OK;
 }
 
-int cm_board_init(void)
+static int board_hw_init(void)
+{
+    int rc;
+
+    /* Hash and signature verification. The ROM leaves the CAAM clock on */
+    rc = imx_caam_init(IMX8M_CAAM_JR0_BASE);
+
+    if (rc != PB_OK) {
+        LOG_ERR("CAAM init failed (%i)", rc);
+        return rc;
+    }
+
+    /* Linux can't instantiate the RNG when it runs in the normal world. Without
+     * it Linux has no hardware RNG, which is no reason not to boot. */
+    rc = imx_caam_rng_init(IMX8M_CAAM_BASE);
+
+    if (rc != PB_OK)
+        LOG_ERR("CAAM RNG init failed (%i)", rc);
+
+    rc = usdhc_emmc_setup();
+
+    if (rc != PB_OK) {
+        LOG_ERR("eMMC init failed (%i)", rc);
+        return rc;
+    }
+
+    /* The microSD slot: no card, or one that fails, doesn't stop the boot */
+    if (BOARD_SD_CARD) {
+        rc = usdhc_sd_setup();
+        if (rc != PB_OK && rc != -PB_ERR_NOT_FOUND)
+            LOG_ERR("SD init failed (%i)", rc);
+    }
+
+    return PB_OK;
+}
+
+static int board_cm_init(void)
 {
     int rc;
 
@@ -531,32 +328,52 @@ int cm_board_init(void)
         return rc;
     }
 
-    rc = imx_dwc3_udc_init(IMX8M_USB1_BASE);
+    return imx_dwc3_udc_init(IMX8M_USB1_BASE);
+}
 
-    if (rc != PB_OK) {
-        LOG_ERR("dwc3 failed (%i)", rc);
-        return rc;
-    }
+/* Revocation is a fuse, which this board never writes */
+static const struct rot_config rot = {
+    .read_key_status = board_read_key_status,
+};
 
-    rc = pb_dev_cls_init();
+/* No fuse access, see the top of this file */
+static const struct slc_config slc = { 0 };
 
-    if (rc != PB_OK)
-        return rc;
+/* TF-A BL31, then Linux as BL33 at EL2 */
+static const struct boot_driver_atf_config boot_atf = {
+    .atf_bpak_id = 0xa697d988, /* bpak_id("atf") */
+    .bl33_bpak_id = 0xec103b08, /* bpak_id("kernel") */
+    .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
+    .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
+    .dtb_patch_cb = board_patch_bootargs,
+    .resolve_part_name = boot_ab_part_uu_to_name,
+};
 
-    static const struct cm_config cfg = {
-        .name = "imx8mpevk",
-        .status = board_status,
-        .password_auth = NULL,
-        .command = board_command,
-        .tops = {
-            .init = usbd_init,
-            .connect = usbd_connect,
-            .disconnect = usbd_disconnect,
-            .read = pb_dev_cls_read,
-            .write = pb_dev_cls_write,
-            .complete = pb_dev_cls_xfer_complete,
-        },
-    };
+const struct board board = {
+    .name = "imx8mpevk",
+    .rot = &rot,
+    .slc = &slc,
+    .init = board_hw_init,
+    .gpt_dev_uu = PART_user,
+    .gpt_tables = board_layout_gpt,
+    .gpt_tables_length = ARRAY_SIZE(board_layout_gpt),
+    .ab = &board_layout_ab,
+    .boot_atf = &boot_atf,
+    .bootargs = "console=ttymxc1,115200 quiet ",
+    /* arm64 has no earlyprintk: earlycon, on stdout-path */
+    .bootargs_verbose = "console=ttymxc1,115200 earlycon ",
+    .cm_init = board_cm_init,
+    .cm_transport = &pb_dev_cls_transport,
+};
 
-    return cm_init(&cfg);
+/* Until the platform calls board_setup() */
+int board_init(struct imx8m_platform *plat_)
+{
+    (void)plat_;
+    return board_setup();
+}
+
+int cm_board_init(void)
+{
+    return board_cm_setup();
 }
