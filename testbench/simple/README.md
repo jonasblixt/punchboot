@@ -1,4 +1,4 @@
-# punchboot MCU test bench
+# punchboot simple target test bench
 
 Hardware tests of punchboot on microcontrollers, where the Linux test bench
 (`../README.md`) doesn't apply (D-025). A small bare metal test application,
@@ -56,7 +56,7 @@ Per board: `board.mk` (CPU, interrupts, load address), `link.ld` and
 In the dev container, from the top of the punchboot tree:
 
 ```sh
-scripts/pbdev run make -C testbench/mcu                   # BOARD=imxrt1060evk
+scripts/pbdev run make -C testbench/simple                   # BOARD=imxrt1060evk
 scripts/pbdev firmware imxrt1060evk                       # pb itself
 scripts/pbdev run make BOARD=src/board/imxrt1060evk \
     KCONFIG_CONFIG=configs/imxrt1060evk_defconfig CROSS_COMPILE=arm-none-eabi- all

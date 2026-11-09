@@ -257,8 +257,9 @@ Cost: a header that only a hand-edited or broken tool could make is now refused 
 
 ## D-025: An MCU test bench: a bare metal test application and a pytest runner (2026-11-08)
 
-`testbench/mcu/` tests pb on microcontrollers, where the Buildroot test bench (D-022) doesn't
-apply. A small bare metal application, built per board in the dev container (`arm-none-eabi`, no
+`testbench/mcu/` (`testbench/simple/` since 2026-11-09, D-029) tests pb on microcontrollers,
+where the Buildroot test bench (D-022) doesn't apply. A small bare metal application, built per
+board in the dev container (`arm-none-eabi`, no
 RTOS, no vendor SDK), checks what pb hands over and reports it on the console; a pytest runner on
 the host writes the images and the boot state over USB and reads the console. It covers the boot
 of a signed image, the handover, A/B, rollback after the boot attempts and the watchdog. First
@@ -348,3 +349,19 @@ never invalidated the I-cache), so an image could only rely on what the arch it 
 happened to do. Linux and TF-A ask for the same state.
 Cost: ARMv7-M images start with the D-cache off and PRIMASK set and turn them on themselves.
 Out-of-tree boards rename `boot_armv7m` and `CONFIG_BOOT_ARMV7M_BAREMETAL` (D-018).
+
+## D-029: The simple target test bench, also for Cortex-A (2026-11-09)
+
+`testbench/mcu` is `testbench/simple`: it tests pb's simple boot protocol (`boot/simple.h`,
+D-028), and a simple target makes sense on 32 and 64 bit Cortex-A boards too, started by pb at
+EL3 without TF-A or Linux. Its boot time, reset to the simple target's first instruction, is a
+metric of its own: ROM, pb's init, load, verify and handover, without a kernel (`boot-time-image`
+stops before the jump, the Linux bench's reset to init is mostly the kernel).
+Why: Jonas, the bench is about the protocol, not the MCU.
+Planned, not done: the application split into `src/arch/{armv7m,armv7a,armv8a}/` (start-up and
+each arch's handover checks: EL, DAIF, SCTLR.M and .C on Cortex-A) and `board/<board>/`
+(console, reset, timer); then ARMv8-A on the 8MP EVK, ARMv7-A on jiffy, the MEK. On the Cortex-A
+boards only the handover and boot time at first: A/B, rollback and the watchdog need the target to
+write pb's boot state, which is on eMMC there (an MMC driver in the target); the Linux bench
+covers them there. Back to command mode needs no per board register: a one-shot `boot
+partition` leaves no active system. Also rename the `MCUTEST` console prefix and `tests/mcu.py`.
