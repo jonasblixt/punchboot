@@ -238,24 +238,24 @@ static int board_set_slc_configuration(void)
     return PB_OK;
 }
 
-void board_console_init(struct imx8x_platform *_plat)
+static void board_console_init(void)
 {
     sc_pm_clock_rate_t rate = 80000000;
     uintptr_t uart_base = 0;
 
     uart_base = 0x5A060000;
     /* Power up UART0 */
-    sc_pm_set_resource_power_mode(_plat->ipc, SC_R_UART_0, SC_PM_PW_MODE_ON);
+    sc_pm_set_resource_power_mode(imx8x_ipc(), SC_R_UART_0, SC_PM_PW_MODE_ON);
 
     /* Set UART0 clock root to 80 MHz */
-    sc_pm_set_clock_rate(_plat->ipc, SC_R_UART_0, SC_PM_CLK_PER, &rate);
+    sc_pm_set_clock_rate(imx8x_ipc(), SC_R_UART_0, SC_PM_CLK_PER, &rate);
 
     /* Enable UART0 clock root */
-    sc_pm_clock_enable(_plat->ipc, SC_R_UART_0, SC_PM_CLK_PER, true, false);
+    sc_pm_clock_enable(imx8x_ipc(), SC_R_UART_0, SC_PM_CLK_PER, true, false);
 
     /* Configure UART pads */
-    sc_pad_set(_plat->ipc, SC_P_UART0_RX, UART_PAD_CTRL);
-    sc_pad_set(_plat->ipc, SC_P_UART0_TX, UART_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_UART0_RX, UART_PAD_CTRL);
+    sc_pad_set(imx8x_ipc(), SC_P_UART0_TX, UART_PAD_CTRL);
 
     (void)imx_lpuart_init(uart_base, rate, 115200);
 
@@ -321,6 +321,7 @@ static const struct boot_driver_linux_config boot_linux = {
 
 const struct board board = {
     .name = "imx8dxlevk",
+    .console_init = board_console_init,
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,

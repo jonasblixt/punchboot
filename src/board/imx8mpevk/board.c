@@ -54,10 +54,8 @@ struct dram_rates dram_rates = {
     .num = ARRAY_SIZE(imx8mpevk_dram_mts),
 };
 
-void board_console_init(struct imx8m_platform *plat_)
+static void board_console_init(void)
 {
-    (void)plat_;
-
     /* UART2_CLK_ROOT runs from the 24 MHz reference after reset */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(UART2_CLK_ROOT), CLK_ROOT_ON);
     mmio_write_32(CCM_CCGR_SET(CCGR_UART2), CCGR_CLK_ON_MASK);
@@ -351,6 +349,7 @@ static const struct boot_driver_atf_config boot_atf = {
 
 const struct board board = {
     .name = "imx8mpevk",
+    .console_init = board_console_init,
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,

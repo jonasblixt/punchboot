@@ -31,7 +31,15 @@ struct pb_boot_source {
 };
 
 /**
- * Initialize the platform
+ * Set up what the console needs, e.g. clocks and the timer. main() calls
+ * board.console_init() after it, then plat_init().
+ *
+ * @return PB_OK on success or a negative number
+ */
+int plat_early_init(void);
+
+/**
+ * Set up the rest of the platform, after the console
  *
  * @return PB_OK on success or a negative number
  */

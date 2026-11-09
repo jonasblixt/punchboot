@@ -46,7 +46,7 @@ static ssize_t host_console_write(void *cookie, const char *buf, size_t size)
     return (ssize_t)size;
 }
 
-int plat_init(void)
+int plat_early_init(void)
 {
     static const cookie_io_functions_t console_io = {
         .write = host_console_write,
@@ -88,6 +88,11 @@ int plat_init(void)
     stdout = console;
     console_init(0, &host_console_ops);
 
+    return PB_OK;
+}
+
+int plat_init(void)
+{
     return PB_OK;
 }
 

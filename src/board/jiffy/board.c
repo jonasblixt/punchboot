@@ -220,7 +220,7 @@ static int board_set_slc_configuration(void)
     return PB_OK;
 }
 
-void board_console_init(struct imx6ul_platform *plat_)
+static void board_console_init(void)
 {
 #define UART_PAD_CTRL                                                                          \
     (PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | \
@@ -301,6 +301,7 @@ static const struct boot_driver_linux_config boot_linux = {
 
 const struct board board = {
     .name = "jiffy",
+    .console_init = board_console_init,
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,

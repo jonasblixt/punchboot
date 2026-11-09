@@ -368,7 +368,7 @@ static int board_early_boot(void)
     return PB_OK;
 }
 
-void board_console_init(struct imxrt_platform *plat_)
+static void board_console_init(void)
 {
     // Ungate lpuart1 clock
     mmio_clrsetbits_32(IMXRT_CCM_CCGR5, 0, CCGR5_LPUART1);
@@ -439,6 +439,7 @@ static const struct boot_driver_armv7m_baremetal_config boot_armv7m = {
 
 const struct board board = {
     .name = "imxrt1060evk",
+    .console_init = board_console_init,
     .rot = &rot,
     .slc = &slc,
     .init = flexspi_nor_setup,

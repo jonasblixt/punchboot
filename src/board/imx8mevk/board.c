@@ -58,7 +58,7 @@ static int board_command(uint32_t command,
     return PB_OK;
 }
 
-void board_console_init(struct imx8m_platform *plat_)
+static void board_console_init(void)
 {
     /* Enable UART1 clock */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(UART1_CLK_ROOT), CLK_ROOT_ON);
@@ -189,6 +189,7 @@ static const struct slc_config slc = { 0 };
  */
 const struct board board = {
     .name = "imx8mevk",
+    .console_init = board_console_init,
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,

@@ -266,10 +266,8 @@ static const struct imx_hab_log_config hab_log_cfg = {
     .entry_size = 4,
 };
 
-int plat_init(void)
+int plat_early_init(void)
 {
-    int rc;
-
     imx_rom_log_save(&rom_log_cfg);
     (void)imx_hab_log_init(&hab_log_cfg);
     /* Before the USB driver resets the controller */
@@ -290,8 +288,12 @@ int plat_init(void)
     /* Configure systick. The ROM leaves perclk on IPG (66 MHz on jiffy), use the crystal */
     imx_gpt_init_24m(IMX6UL_GPT1_BASE);
     log_time_start();
+    return PB_OK;
+}
 
-    board_console_init(&plat);
+int plat_init(void)
+{
+    int rc;
 
     /* Init fusebox */
     imx_ocotp_init(IMX6UL_OCOTP_CTRL_BASE, 8);

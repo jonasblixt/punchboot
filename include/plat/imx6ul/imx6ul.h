@@ -19,7 +19,6 @@ struct imx6ul_platform {
     unsigned int usdhc2_clk_MHz;
 };
 
-void board_console_init(struct imx6ul_platform *plat);
 /** The platform's clocks and fuses, for the board */
 const struct imx6ul_platform *imx6ul_plat(void);
 
