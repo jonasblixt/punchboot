@@ -30,28 +30,10 @@ slc_t imx6ul_slc_read_status(void)
         return SLC_NOT_CONFIGURED;
 }
 
+/* slc_set_configuration_locked() checks the state first: CONFIGURATION,
+ * so the SRK hash is fused */
 int imx6ul_slc_set_configuration_locked(void)
 {
-    slc_t slc;
-
-    if (!imx6ul_is_srk_fused()) {
-        LOG_ERR("SRK is empty, refusing to advance life cycle");
-        return -PB_ERR_STATE;
-    }
-
-    slc = imx6ul_slc_read_status();
-
-    if (slc < 0)
-        return slc;
-
-    if (slc == SLC_CONFIGURATION_LOCKED) {
-        LOG_INFO("Configuration already locked");
-        return PB_OK;
-    } else if (slc != SLC_CONFIGURATION) {
-        LOG_ERR("SLC is not in configuration, aborting (%u)", slc);
-        return -PB_ERR_STATE;
-    }
-
     LOG_INFO("About to change security state to locked");
 
     uint32_t lock_value = 0x02;

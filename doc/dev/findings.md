@@ -143,10 +143,11 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | rejects key 3 although the ROM still accepts it. On the 8X a key past the | | |
 | | | four OEM SRKs reads as valid forever. The platform should say how many | | |
 | | | slots it has. | | |
-| F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | open |
+| F-166 | `src/plat/*/slc_helpers.c` | The SLC state changes are checked differently per | Verified | partly fixed |
 | | | platform: the 6UL locks only from CONFIGURATION, the 8X from any state. No | | |
 | | | platform reads the fuses back after writing them. The rules belong in | | |
-| | | `src/slc.c`. | | |
+| | | `src/slc.c`. `board-data`: they are; still no read-back (the 8X's life | | |
+| | | cycle may only change on reset). | | |
 | F-167 | `src/plat/imxrt/rot_helpers.c` | The RT1060 reports every key as valid and can't | Verified | open |
 | | | revoke one, although HAB has `SRK_REVOKE` there too. | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
