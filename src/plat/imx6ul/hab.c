@@ -9,11 +9,11 @@
 
 #include <drivers/fuse/imx_ocotp.h>
 #include <pb/pb.h>
+#include <plat/imx6ul/fusebox.h>
 #include <plat/imx6ul/hab.h>
 #include <stdbool.h>
 #include <stdio.h>
 
-#define IS_HAB_ENABLED_BIT 0x02
 static uint8_t _event_data[128];
 
 #define MAX_RECORD_BYTES (8 * 1024) /* 4 kbytes */
@@ -46,14 +46,14 @@ int hab_secureboot_active(bool *result)
 
     (*result) = false;
 
-    ret = imx_ocotp_read(0, 6, &reg);
+    ret = imx_ocotp_read(IMX6UL_FUSE_SEC_CONFIG_BANK, IMX6UL_FUSE_SEC_CONFIG_WORD, &reg);
 
     if (ret != PB_OK) {
         LOG_ERR("Secure boot fuse read error");
         return -PB_ERR_IO;
     }
 
-    if ((reg & IS_HAB_ENABLED_BIT) == IS_HAB_ENABLED_BIT) {
+    if (reg & IMX6UL_FUSE_SEC_CONFIG_CLOSED) {
         (*result) = true;
     }
 
