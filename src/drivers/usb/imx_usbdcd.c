@@ -25,6 +25,7 @@
 #define STATUS_ACTIVE              BIT(22)
 #define STATUS_TO                  BIT(21)
 #define STATUS_ERR                 BIT(20)
+#define STATUS_SEQ_RES(x)          (((x) >> 16) & 0x0f) /* The detection's result */
 
 #define IMX_USBDCD_SIGNAL_OVERRIDE (0x0c)
 #define IMX_USBDCD_TIMER0          (0x10)
@@ -76,7 +77,7 @@ enum usb_charger_type imx_usbdcd_poll_result(void)
         }
     }
 
-    int charger_kind = (reg >> 16) & 0x0f;
+    int charger_kind = STATUS_SEQ_RES(reg);
 
     switch (charger_kind) {
     case 0xe:

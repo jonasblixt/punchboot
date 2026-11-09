@@ -70,7 +70,9 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
         return -PB_ERR_IO;
     }
 
-    mmio_write_32(base + OCOTP_TIMING, (5 << 22) | (0x06 << 16) | (1 << 12) | 0x299);
+    mmio_write_32(base + OCOTP_TIMING,
+                  OCOTP_TIMING_WAIT(5) | OCOTP_TIMING_STROBE_READ(6) | OCOTP_TIMING_RELAX(1) |
+                      OCOTP_TIMING_STROBE_PROG(0x299));
 
     /* Wait for busy flag */
     while (mmio_read_32(base + OCOTP_CTRL) & OCOTP_CTRL_BUSY) {
@@ -83,10 +85,9 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value)
         return -PB_ERR_IO;
     }
 
-    /* Ref manual says this should be 0x3F, but FSL drivers says 0x7F...*/
-    tmp = ((bank * wpb) + row) & 0x7F;
+    tmp = ((bank * wpb) + row) & OCOTP_CTRL_ADDR_MASK;
 
-    mmio_write_32(base + OCOTP_CTRL, (OCOTP_CTRL_WR_KEY << 16) | tmp);
+    mmio_write_32(base + OCOTP_CTRL, OCOTP_CTRL_WR_UNLOCK(OCOTP_CTRL_WR_KEY) | tmp);
     mmio_write_32(base + OCOTP_DATA, value);
 
     /* Wait for busy flag */
@@ -117,8 +118,7 @@ int imx_ocotp_read(uint32_t bank, uint32_t row, uint32_t *value)
         return -PB_ERR_IO;
     }
 
-    /* Ref manual says this should be 0x3F, but FSL drivers says 0x7F...*/
-    tmp = ((bank * wpb) + row) & 0x7F;
+    tmp = ((bank * wpb) + row) & OCOTP_CTRL_ADDR_MASK;
 
     mmio_write_32(base + OCOTP_CTRL, tmp);
     mmio_write_32(base + OCOTP_READ_CTRL, 1);

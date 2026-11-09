@@ -53,8 +53,10 @@
 #define CDNS_USB_CMD                       (0x20008)
 #define USB_CMD_SET_ADDR                   BIT(0)
 #define USB_CMD_ADDR(x)                    ((x & 0x7f) << 1)
+#define USB_CMD_ADDR_MASK                  (USB_CMD_SET_ADDR | USB_CMD_ADDR(0x7f))
 
 #define CDNS_USB_IEN                       (0x20014)
+#define USB_IEN_ALL                        (0xffffffff)
 #define CDNS_USB_ISTS                      (0x20018)
 #define ISTS_CON2I                         BIT(16) // HS/FS mode connection detected
 #define ISTS_U2RESI                        BIT(18) // USB reset in HS/FS mode ends
@@ -93,6 +95,8 @@
 #define CDNS_USB_EP_STS_SID                (0x20030)
 #define CDNS_USB_DRBL                      (0x20038)
 #define CDNS_USB_EP_IEN                    (0x2003C)
+#define EP_IEN_EP_OUT(n)                   (1 << (n))
+#define EP_IEN_EP_IN(n)                    (1 << (16 + (n)))
 #define CDNS_USB_EP_ISTS                   (0x20040)
 #define CDNS_USB_PWR                       (0x20044)
 #define CDNS_USB_CONF2                     (0x20048)
@@ -388,10 +392,10 @@ int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_
     //  o Enable both IN/OUT INT
 
     for (size_t n = 0; n < no_of_eps; n++) {
-        ep_num = (eps[n].bEndpointAddress & 0x7f);
+        ep_num = (eps[n].bEndpointAddress & USB_EP_ADDR_NUM_MASK);
 
-        ep = (eps[n].bEndpointAddress & 0x7f) * 2;
-        if (eps[n].bEndpointAddress & 0x80)
+        ep = (eps[n].bEndpointAddress & USB_EP_ADDR_NUM_MASK) * 2;
+        if (eps[n].bEndpointAddress & USB_EP_ADDR_IN)
             ep++;
 
         ep_type = eps[n].bmAttributes;
@@ -406,7 +410,7 @@ int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_
         mmio_write_32(base + CDNS_USB_EP_STS_EN, EP_STS_EN_DESCMISEN | EP_STS_EN_TRBERREN);
 
         /* Enable interrupt for EP0 in/out */
-        mmio_write_32(base + CDNS_USB_EP_IEN, (1 << (16 + ep_num)) | (1 << ep_num));
+        mmio_write_32(base + CDNS_USB_EP_IEN, EP_IEN_EP_IN(ep_num) | EP_IEN_EP_OUT(ep_num));
     }
 
     return PB_OK;
@@ -414,7 +418,8 @@ int cdns3_udc_set_configuration(const struct usb_endpoint_descriptor *eps, size_
 
 int cdns3_udc_core_set_address(uint16_t addr)
 {
-    mmio_clrsetbits_32(base + CDNS_USB_CMD, 0xff, USB_CMD_SET_ADDR | USB_CMD_ADDR(addr));
+    mmio_clrsetbits_32(
+        base + CDNS_USB_CMD, USB_CMD_ADDR_MASK, USB_CMD_SET_ADDR | USB_CMD_ADDR(addr));
 
     return PB_OK;
 }
@@ -454,14 +459,14 @@ int cdns3_udc_core_init(void)
     LOG_INFO("Device controller version: 0x%x", dev_ctrl_version);
 
     /* Wait for controller to come out of reset */
-    while (!(mmio_read_32(base + CDNS_USB_STS) & BIT(10)))
+    while (!(mmio_read_32(base + CDNS_USB_STS) & STS_INRST))
         ;
 
     /* Configure and enable EP0 */
     // TODO: Hardcoded values for SS
 
     /* Enable all irq's */
-    mmio_write_32(base + CDNS_USB_IEN, 0xffffffff);
+    mmio_write_32(base + CDNS_USB_IEN, USB_IEN_ALL);
 
     select_ep(USB_EP0_OUT);
     // STREAM_EN should probably be set before we can get SS working
@@ -476,7 +481,7 @@ int cdns3_udc_core_init(void)
     mmio_write_32(base + CDNS_USB_EP_STS_EN, EP_STS_EN_SETUP | EP_STS_EN_TRBERREN);
 
     /* Enable interrupt for EP0 in/out */
-    mmio_write_32(base + CDNS_USB_EP_IEN, BIT(16) | BIT(0));
+    mmio_write_32(base + CDNS_USB_EP_IEN, EP_IEN_EP_IN(0) | EP_IEN_EP_OUT(0));
 
     mmio_write_32(base + CDNS_USB_CONF, CONF_CLK2OFFDS | CONF_CLK3OFFDS | CONF_L1DS);
 

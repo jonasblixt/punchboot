@@ -103,6 +103,9 @@
 #define CAAM_RTSDCTL_ENT_DLY(x)    (((x) & 0xffff) << 16)
 #define CAAM_RTSDCTL_DLY_GET(x)    (((x) >> 16) & 0xffff)
 #define CAAM_RTSDCTL_SAMP_SIZE     512
+#define CAAM_RTSCMISC_RTY(x)       ((x) << 16) /* Statistical check retries */
+#define CAAM_RTSCMISC_LRUN(x)      (x) /* Longest run */
+#define CAAM_RTSC_LIM(range, max)  (((range) << 16) | (max)) /* RTSCML, RTSCRnL */
 #define CAAM_RDSTA_IF(sh)          BIT(sh) /* State handle instantiated */
 #define CAAM_RDSTA_PR(sh)          BIT(4 + (sh)) /* ... with prediction resistance */
 #define CAAM_RDSTA_SKVN            BIT(30) /* Secure keys generated */
@@ -545,16 +548,16 @@ static void caam_rng_kick(uintptr_t ctrl_base, uint32_t ent_delay)
                   CAAM_RTSDCTL_ENT_DLY(ent_delay) | CAAM_RTSDCTL_SAMP_SIZE);
     mmio_write_32(ctrl_base + CAAM_RTFRQMIN, ent_delay >> 2);
     mmio_write_32(ctrl_base + CAAM_RTFRQMAX, ent_delay << 4);
-    mmio_write_32(ctrl_base + CAAM_RTSCMISC, (2 << 16) | 32); /* Retries, longest run */
+    mmio_write_32(ctrl_base + CAAM_RTSCMISC, CAAM_RTSCMISC_RTY(2) | CAAM_RTSCMISC_LRUN(32));
     mmio_write_32(ctrl_base + CAAM_RTPKRRNG, 570);
     mmio_write_32(ctrl_base + CAAM_RTPKRMAX, 1600);
-    mmio_write_32(ctrl_base + CAAM_RTSCML, (122 << 16) | 317);
-    mmio_write_32(ctrl_base + CAAM_RTSCR1L, (80 << 16) | 107);
-    mmio_write_32(ctrl_base + CAAM_RTSCR2L, (57 << 16) | 62);
-    mmio_write_32(ctrl_base + CAAM_RTSCR3L, (39 << 16) | 39);
-    mmio_write_32(ctrl_base + CAAM_RTSCR4L, (27 << 16) | 26);
-    mmio_write_32(ctrl_base + CAAM_RTSCR5L, (19 << 16) | 18);
-    mmio_write_32(ctrl_base + CAAM_RTSCR6PL, (18 << 16) | 17);
+    mmio_write_32(ctrl_base + CAAM_RTSCML, CAAM_RTSC_LIM(122, 317));
+    mmio_write_32(ctrl_base + CAAM_RTSCR1L, CAAM_RTSC_LIM(80, 107));
+    mmio_write_32(ctrl_base + CAAM_RTSCR2L, CAAM_RTSC_LIM(57, 62));
+    mmio_write_32(ctrl_base + CAAM_RTSCR3L, CAAM_RTSC_LIM(39, 39));
+    mmio_write_32(ctrl_base + CAAM_RTSCR4L, CAAM_RTSC_LIM(27, 26));
+    mmio_write_32(ctrl_base + CAAM_RTSCR5L, CAAM_RTSC_LIM(19, 18));
+    mmio_write_32(ctrl_base + CAAM_RTSCR6PL, CAAM_RTSC_LIM(18, 17));
 
     /* Run mode, raw sampling */
     mmio_clrsetbits_32(ctrl_base + CAAM_RTMCTL,

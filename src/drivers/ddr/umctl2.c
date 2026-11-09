@@ -88,7 +88,8 @@ void umctl2_dfi_init_done(uintptr_t base)
     mmio_write_32(base + UMCTL2_DFIPHYMSTR, DFIPHYMSTR_DFI_PHYMSTR_EN);
 
     /* Wait for STAT.operating_mode normal (bits [1:0], as in NXP's code) */
-    while ((mmio_read_32(base + UMCTL2_STAT) & 0x3) != STAT_OPERATING_MODE_NORMAL)
+    while ((mmio_read_32(base + UMCTL2_STAT) & STAT_OPERATING_MODE_LOW_MASK) !=
+           STAT_OPERATING_MODE_NORMAL)
         ;
 
     /* Enable auto refresh */
