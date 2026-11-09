@@ -97,6 +97,10 @@ class Slc(IntEnum):
     PB_SLC_EOL = 4
 
 
+# Logs for PB_CMD_LOG_READ, pb_id() of their names. A log of 0 is pb's too.
+PB_LOG_ID_PB = 0x8C837982
+PB_LOG_ID_LIST = 0x658C2704
+
 PB_WIRE_PART_FLAG_BOOTABLE = 1 << 0
 PB_WIRE_PART_FLAG_OTP = 1 << 1
 PB_WIRE_PART_FLAG_WRITABLE = 1 << 2
@@ -341,7 +345,8 @@ class pb_command_log_read(Struct):
     _fields_ = (
         ("position", u32),
         ("size", u32),
-        ("rz", u8 * 24),
+        ("log", u32),
+        ("rz", u8 * 20),
     )
 
 
@@ -350,7 +355,8 @@ class pb_result_log_read(Struct):
         ("position", u32),
         ("size", u32),
         ("head", u32),
-        ("rz", u8 * 20),
+        ("log", u32),
+        ("rz", u8 * 16),
     )
 
 
