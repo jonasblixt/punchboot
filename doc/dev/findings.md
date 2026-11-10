@@ -422,8 +422,10 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | a changelog, SECURITY.md. `arch-firmware.md` predates D-026 and has nothing on storage, USB, memory | | |
 | | | layout or exceptions; `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
 | | | step 4. | | |
-| F-233 | `plat/imx8x/plat.c` | `imx8x_wdog_init()`: Without `CONFIG_ENABLE_WATCHDOG` the | Verified (code) | open |
-| | | function has no `return`: `wdog_rc` is undefined, `plat_init()` may log a failed watchdog. | | |
+| F-233 | `plat/imx8x/plat.c` | `imx8x_wdog_init()`: without `CONFIG_ENABLE_WATCHDOG` | Verified (compiler) | fixed |
+| | | the function had no `return` (gcc: -Wreturn-type): `wdog_rc` was undefined, `plat_init()` could log a | | |
+| | | failed watchdog. Fixed: `SC_ERR_NONE` after the `#ifdef`. The DXL builds without the option and without the | | |
+| | | warning; with it (every 8X defconfig) the code does the same as before | | |
 | F-234 | `drivers/wdog/imx_wdog.c` | Also `src/plat/{imx6ul,imx8m,imxrt}/plat.c`: | Verified (on jiffy) | fixed |
 | | | `base` was 0 until `imx_wdog_init()`, so `plat_reset()` (`imx_wdog_reset_now()`) and `plat_wdog_kick()` | | |
 | | | wrote to address 0 without `CONFIG_ENABLE_WATCHDOG`, and `plat_reset()` from an exception before | | |
