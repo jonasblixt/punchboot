@@ -39,9 +39,14 @@
 
 #define WDOG_WMCR_PDE  BIT(0) /* The power-down counter runs */
 
+/*
+ * The driver keeps no state: each call takes the WDOG's base address, the
+ * platform's constant, so that a reset and a kick work whether
+ * imx_wdog_init() armed the watchdog or not (F-234).
+ */
 int imx_wdog_init(uintptr_t base, unsigned int delay_s);
-int imx_wdog_kick(void);
-int imx_wdog_reset_now(void);
+int imx_wdog_kick(uintptr_t base);
+int imx_wdog_reset_now(uintptr_t base);
 
 /**
  * Stop a WDOG's power-down counter. It runs out of every reset and drives

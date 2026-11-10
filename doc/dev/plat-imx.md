@@ -179,8 +179,8 @@ Where each port is (2026-11-10).
 | Tick and log time from early init | yes | no | yes | no | F-238 |
 | Watchdog armed in early init | yes | yes | yes | yes | F-233 |
 | Power-down counters disabled | yes | yes | n/a | yes | F-245 |
-| `plat_reset()` without the watchdog | no | no | yes | no | F-234 |
-| `plat_wdog_kick()` before arming | no | no | unchecked | no | F-234 |
+| `plat_reset()` without the watchdog | yes | yes | yes | yes | F-234 |
+| `plat_wdog_kick()` before arming | yes | yes | unchecked | yes | F-234 |
 | `plat_get_boot_reason()` | no | no | no | no | F-236 |
 | `plat_init()` errors only for command mode | yes | yes | yes | partly | F-235 |
 | `plat_get_status()` | no | no | no | no | F-248 |

@@ -173,7 +173,7 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
 
 void plat_reset(void)
 {
-    imx_wdog_reset_now();
+    imx_wdog_reset_now(IMX6UL_WDOG1_BASE);
 }
 
 uint32_t plat_get_us_tick(void)
@@ -183,7 +183,7 @@ uint32_t plat_get_us_tick(void)
 
 void plat_wdog_kick(void)
 {
-    imx_wdog_kick();
+    imx_wdog_kick(IMX6UL_WDOG1_BASE);
 }
 
 static int plat_mmu_init(void)
@@ -390,7 +390,7 @@ int plat_init(void)
     LOG_INFO("uSDHC1 clk: %u MHz", plat.usdhc1_clk_MHz);
     LOG_INFO("uSDHC2 clk: %u MHz", plat.usdhc2_clk_MHz);
 
-    imx_wdog_kick();
+    imx_wdog_kick(IMX6UL_WDOG1_BASE);
     plat_mmu_init();
 
     /* Not fatal: without board_setup() command mode can't be used to recover */

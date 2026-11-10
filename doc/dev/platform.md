@@ -153,7 +153,7 @@ Return   : does not return
 Resets the SoC. Valid from the first instruction after `arch_init()`, also before
 `plat_early_init()` (the arch's exception handlers call it) and whatever `CONFIG_ENABLE_WATCHDOG`
 is: a driver's base address is a constant, only arming the watchdog depends on the option.
-Declared `noreturn`. **Not yet in the code (F-234, F-237).**
+Declared `noreturn`. **Not yet in the code (F-237)**: not declared `noreturn`.
 
 ### 3.2 Function : plat_get_us_tick() [mandatory]
 

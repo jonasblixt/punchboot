@@ -156,7 +156,7 @@ int plat_init(void)
 
 void plat_reset(void)
 {
-    imx_wdog_reset_now();
+    imx_wdog_reset_now(IMXRT_WDOG1_BASE);
 }
 
 int plat_get_unique_id(uint8_t *output, size_t *length)
@@ -179,7 +179,7 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
 
 void plat_wdog_kick(void)
 {
-    imx_wdog_kick();
+    imx_wdog_kick(IMXRT_WDOG1_BASE);
 }
 
 int plat_boot_reason(void)
