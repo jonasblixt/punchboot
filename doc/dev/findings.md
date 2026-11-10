@@ -481,11 +481,12 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | `imx_wdog_disable_powerdown()` for each WDOG in `plat_early_init()`. Out of the ROM PDE is set on WDOG1-3 | | |
 | | | on jiffy, on WDOG2 and 3 on the 8MP EVK, on WDOG1 and 2 on the RT1060 EVK; 0 after. The RT's RTWDOG (WDOG3, | | |
 | | | enabled out of reset) comes out of the ROM disabled (CS 0x2520). The 8X's watchdogs are the SCFW's | | |
-| F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL RM | Reported (RM) | open |
-| | | (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 (supervisor | | |
-| | | only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code read | | |
-| | | doesn't. Check on jiffy what Linux misses (user-mode or DMA access to peripherals), then set them in | | |
-| | | `plat_init()` (`platform.md` 4.5) | | |
+| F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL | Verified (on jiffy) | open |
+| | | RM (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 | | |
+| | | (supervisor only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code | | |
+| | | read doesn't. Seen on jiffy: `devmem 0x021BC050` from Linux's user mode is a bus error ("external abort on | | |
+| | | non-linefetch"). Check what else Linux misses (DMA masters), then set them in `plat_init()` (`platform.md` | | |
+| | | 4.5) | | |
 | F-247 | `src/board/*/board.c` | The boards wire the SoC's RoT and SLC functions | Verified (code) | open |
 | | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
 | | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |

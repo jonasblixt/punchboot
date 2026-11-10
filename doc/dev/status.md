@@ -14,10 +14,10 @@ the trim is at the end of `log/2026-11-09.md`.
   F-167), the SRK hash from the build, revoke slots in `CONFIG_KEYSTORE_SLOTS`, configuration
   fuses as data, pin tables. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
   8X closed state, imx8mevk and DXL on hardware. `arch-firmware.md` waits for the review.
-- **Platform contract (D-030, `platform.md`, `plat-imx.md`):** reviewed once, no code yet. The
-  code follows in commits, the fixes first (F-233, F-234, F-244, F-245, F-208; order in the log);
-  each removes its "Not yet in the code" marker and updates `plat-imx.md` 7. Then the whole
-  bootloader's contract (security model, handover, A/B state).
+- **Platform contract (D-030, `platform.md`, `plat-imx.md`):** reviewed once. Its five bugfixes
+  are in, each checked on a board (F-233, F-234, F-244, F-245, F-208; `log/2026-11-10.md`). The
+  rest follows in commits (order in the log), each removing its "Not yet in the code" marker and
+  updating `plat-imx.md` 7. Then the whole bootloader's contract.
 - **Tests:** `scripts/pbdev test`, ~20 s: 35 suites (unit tests, `compat.abi`, the pytest
   integration tests), ASan/UBSan clean, line coverage 99.2% (`testing.md`).
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a firmware compile
@@ -32,9 +32,10 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-1. `work-3.0.0-plat`: Jonas's review. On it: the 8M's HAB once its SRK_REVOKE word is
-   verified. Clocks stay code for now (Jonas, 2026-11-09). Later: the simple target bench on
-   Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time to the simple target).
+1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027), next. On it: the 8M's HAB
+   once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
+   the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time
+   to the simple target).
 2. Open from the 3.0.0 work: MMC UHS-I, DDR52 on the EVK (F-113), HS400 tuning (F-116). Boot time:
    MMU/caches on early, the eMMC power-up early. jiffy USB F-134 (before any cache work), F-136.
    CAAM F-127, F-128. The 8MP EVK: F-100, F-102, F-104, F-110, the FEC (F-155), F-156. The MEK:
