@@ -312,3 +312,9 @@ int plat_get_boot_source(struct pb_boot_source *src)
     (void)src;
     return -PB_ERR_NOT_SUPPORTED;
 }
+
+int plat_lockdown(void)
+{
+    /* Nothing yet: what the SECO can lock is unchecked (F-244) */
+    return PB_OK;
+}

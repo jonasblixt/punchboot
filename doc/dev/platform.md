@@ -349,8 +349,6 @@ DDI0431), a SoC vendor's reference manual the SoC.
 
 ### 4.4 Function : plat_lockdown() [mandatory]
 
-**Not yet in the code (F-244).**
-
 ```
 Argument : void
 Return   : int, PB_OK or -PB_ERR_*
@@ -547,5 +545,5 @@ The core's part of this contract, not yet in the code:
 
 - `main()` resets after a platform failure: no, it runs command mode (F-235).
 - The boot path kicks the watchdog: no, only command mode does (F-243).
-- `boot()` checks the preconditions (2.3), the jump calls `plat_lockdown()`: no (F-248, F-244).
+- `boot()` checks the preconditions (2.3): no (F-248).
 - `plat.h`: the tick's type, `noreturn`, `platform_ns_uuid` (F-237).

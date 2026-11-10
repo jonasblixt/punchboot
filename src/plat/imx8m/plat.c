@@ -242,3 +242,10 @@ int plat_get_boot_source(struct pb_boot_source *src)
     (void)src;
     return -PB_ERR_NOT_SUPPORTED;
 }
+
+int plat_lockdown(void)
+{
+    /* Nothing yet: pb doesn't support the 8M's HAB (D-027), and its CSF
+     * leaves SRK revocation locked (F-244) */
+    return PB_OK;
+}

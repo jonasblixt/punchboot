@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fakes/plat.h"
 #include "fakes/ramdisk.h"
 
 #define DISK_BLOCKS 64
@@ -222,6 +223,8 @@ static int setup(void **state)
 
     memset(&fake, 0, sizeof(fake));
     fake.boot_dev = f->sys_a;
+    fake_lockdown_calls = 0;
+    fake_lockdown_rc = PB_OK;
     assert_int_equal(boot_init(&driver), PB_OK);
     boot_configure_load_cb(NULL, NULL);
 
@@ -313,6 +316,8 @@ static void test_bio_boot(void **state)
     assert_int_equal(fake.late_calls, 1);
     /* late_boot sees the flags (F-060) */
     assert_int_equal(fake.late_flags, BOOT_FLAG_VERBOSE);
+    /* The platform locks what only pb may change before the jump (F-244) */
+    assert_int_equal(fake_lockdown_calls, 1);
     /* The fake jump returns, which boot_jump() reports as an error */
     assert_int_equal(fake.jump_calls, 1);
     /* A failed boot clears the flags */
@@ -409,6 +414,25 @@ static void test_late_boot_error(void **state)
     assert_int_equal(fake.late_flags, BOOT_FLAG_CMD);
     assert_int_equal(fake.jump_calls, 0);
     assert_int_equal(boot_get_flags(), 0);
+}
+
+/* No jump without the lockdown (F-244), and a late_boot error comes first */
+static void test_lockdown_error(void **state)
+{
+    (void)state;
+
+    fake_lockdown_rc = -PB_ERR_IO;
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    assert_int_equal(boot(NULL), -PB_ERR_IO);
+    assert_int_equal(fake.late_calls, 1);
+    assert_int_equal(fake_lockdown_calls, 1);
+    assert_int_equal(fake.jump_calls, 0);
+    assert_int_equal(boot_get_flags(), 0);
+
+    fake_lockdown_calls = 0;
+    fake.late_rc = -PB_ERR_ABORT;
+    assert_int_equal(boot(NULL), -PB_ERR_ABORT);
+    assert_int_equal(fake_lockdown_calls, 0);
 }
 
 static void test_in_mem_boot(void **state)
@@ -580,6 +604,7 @@ int main(void)
         BOOT_TEST(test_bio_boot_needs_a_device_callback),
         BOOT_TEST(test_early_boot_abort),
         BOOT_TEST(test_late_boot_error),
+        BOOT_TEST(test_lockdown_error),
         BOOT_TEST(test_in_mem_boot),
         BOOT_TEST(test_in_mem_boot_errors),
         BOOT_TEST(test_cb_boot),

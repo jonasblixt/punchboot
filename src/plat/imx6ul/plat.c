@@ -433,3 +433,18 @@ int plat_get_boot_source(struct pb_boot_source *src)
 
     return PB_OK;
 }
+
+int plat_lockdown(void)
+{
+    /*
+     * The CSF unlocks SRK revocation for pb's command mode (pb.csf.template),
+     * so lock it again before the next stage runs (RM 35.5.6). SCS holds
+     * HAB_JDE, which enables JTAG, and the RM (35.5.7) asks for it to be
+     * locked before the OS runs. On a closed jiffy HAB has locked field
+     * return and SCS already; locking them again costs nothing. The locks
+     * hold until the next reset: a watchdog reset clears them too, so pb's
+     * command mode can revoke keys after a reboot.
+     */
+    return imx_ocotp_lock(OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK,
+                          true);
+}

@@ -19,5 +19,8 @@ extern unsigned int fake_us_tick;
 extern unsigned int fake_us_tick_step;
 /* Number of plat_wdog_kick() calls */
 extern unsigned int fake_wdog_kicks;
+/* Number of plat_lockdown() calls, and what it returns */
+extern unsigned int fake_lockdown_calls;
+extern int fake_lockdown_rc;
 
 #endif // TESTS_UNIT_FAKES_PLAT_H

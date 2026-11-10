@@ -465,12 +465,13 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-243 | `image_helpers.c` | `load_and_hash()`: The boot path never kicks the watchdog, | Verified (code) | open |
 | | | only command mode does: loading and verifying must fit in `CONFIG_WATCHDOG_TIMEOUT` (5 s) from arming. | | |
 | | | `platform.md` 3: kick once per chunk and before the jump, never in `pb_delay`/`pb_timeout` | | |
-| F-244 | `plat/imx6ul/pb.csf.template` | On a closed 6UL nothing locks SRK revocation | Verified (code, RM) | open |
-| | | before the jump: the CSF unlocks SRKREVOKE so that pb can revoke keys, and pb never sets OCOTP_SW_STICKY's | | |
-| | | SRK_REVOKE_LOCK (6UL RM 35.5.6), so the next stage can revoke the SRKs too; FIELD_RETURN_LOCK and the SCS | | |
-| | | lock aren't set either. Whether Linux reaches the OCOTP depends on the CSU (OP-TEE's 6UL table protects | | |
-| | | ROMCP, TZASC and OCRAM). NXP's U-Boot locks both and SCS on closed 8MQs (`secure_lockup()`). Fix: | | |
-| | | `plat_lockdown()` before the jump (`platform.md` 4.4). The 8M, 8X and RT unchecked | | |
+| F-244 | `plat/imx6ul/pb.csf.template` | On a closed 6UL nothing locked SRK | Verified (on jiffy) | fixed (6UL) |
+| | | revocation before the jump: the CSF unlocks SRKREVOKE so that pb can revoke keys, and pb never set | | |
+| | | OCOTP_SW_STICKY's SRK_REVOKE_LOCK (6UL RM 35.5.6). On jiffy the SRK_REVOKE shadow took writes while Linux | | |
+| | | could run. Fixed: `plat_lockdown()` before the jump, `imx_ocotp_lock()`: SW_STICKY 0x1e after it and the | | |
+| | | shadow write refused (HAB had locked field return and SCS already). A watchdog reset clears the locks, | | |
+| | | revocation still works after a reboot. Open: the 8X (SECO) and RT, unchecked; the 8M once it has HAB | | |
+| | | (`plat-imx.md` 4.3) | | |
 | F-245 | `drivers/wdog/imx_wdog.c` | Each WDOG's power-down counter runs out of every | Verified (code, RM) | open |
 | | | reset and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3). pb clears it for WDOG1 | | |
 | | | only, only with `CONFIG_ENABLE_WATCHDOG` (`imx_wdog_init()`); U-Boot clears WDOG1-3 on the 6UL and 8M. A | | |

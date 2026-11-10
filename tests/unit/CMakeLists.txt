@@ -310,3 +310,7 @@ target_link_options(test_imx_usdhc PRIVATE -no-pie)
 pb_unit_test(test_imx_hab_fuses SOURCES
     ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_hab_fuses.c
 )
+
+pb_unit_test(test_imx_ocotp SOURCES
+    ${PROJECT_SOURCE_DIR}/src/drivers/fuse/imx_ocotp.c
+)
