@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_
 
 ## Current focus
 
@@ -49,6 +49,12 @@ the trim is at the end of `log/2026-11-09.md`.
    only command mode needs (candidate: the HAB log's registration in `plat_init()`).
 
 ## Open questions (for Jonas)
+
+- Project review (2026-11-10, F-181..F-232, `log/2026-11-10.md`): which first? Proposed: F-181 (CAAM,
+  check on jiffy), F-182 (eMMC partial blocks), F-183 (stale keystore), then F-184 against F-172.
+
+- A/B review (F-173..F-180): roll back when a verified slot fails to load (F-174)? One boot or
+  two for the speculative fallback (F-177)? The fixes for F-173, F-175, F-176, F-178 wait for a go.
 
 - Which boards are still in use? bebop and pico8ml only have defconfigs (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
