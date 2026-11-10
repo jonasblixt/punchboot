@@ -16,7 +16,12 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-004 | `src/board/imx8{qxmek,dxlevk}/board.c:~288` | `strncmp(expected, password, length)` with `length` taken from the host accepts any prefix ("i"). `LOG_DBG` prints a password that is not NUL-terminated. Example boards, but the pattern gets copied. | Verified | open |
 | F-005 | `src/cm/cm_main.c:283` `cmd_auth` | Reads 1024 bytes, then passes the host-supplied `auth_cmd->size` along without bounds-checking it. | Verified: up to 65535 bytes reach `dsa_verify`/`password_auth`, past both command buffers on a 4 KiB build. A failed read was ignored too, so the stale buffer (e.g. the last good token) was checked | fixed (5370eb7): size 0 or over 1024 refused with INVALID_ARGUMENT before the first result, read errors fail the authentication; `test_cm.c` |
 | F-006 | `src/drivers/partition/gpt.c:~411` | Loop over `p->first_lba` has no 128-entry limit. Primary and backup tables are never compared. | Reported | partly fixed (claude-work): entry loop bounded by `no_of_parts` (F-056); tables still not compared |
-| F-007 | `src/boot/ab_state.c` | If a state partition is missing, it still does I/O with a negative handle. The B→A rollback branch is not symmetric with A→B. `validate()` zeroes `crc` as a side effect. `init` sets `cfg` before validating, so a failed init leaves it half set up. | Reported | open (NULL-`cfg` part split out as F-012) |
+| F-007 | `src/boot/ab_state.c` | If a state partition is missing, it still does I/O with a | Verified | open |
+| | | negative handle. The B→A rollback branch is not symmetric with A→B. `validate()` | | |
+| | | zeroes `crc` as a side effect. `init` sets `cfg` before validating, so a failed init | | |
+| | | leaves it half set up. NULL-`cfg` part split out as F-012. Checked 2026-11-09: `bio` | | |
+| | | rejects the negative handle (`-PB_ERR_PARAM`) and init then fails on the commit; the | | |
+| | | B→A branch ends in the same state as A→B. Read errors: F-173. | | |
 | F-008 | `src/drivers/crypto/mbedtls/mbedtls_pb.c` | Return values of the `mbedtls_sha*` calls are ignored. | Reported | open |
 | F-009 | `tools/punchboot/python_wrapper.c` `log_cb` | Ignores `PyObject_CallMethod` failure and leaks the result. The GIL is never released during USB I/O. | Reported | fixed (D-021): the extension is gone; pyusb releases the GIL during transfers |
 | F-010 | `tools/pbstate/CMakeLists.txt` | `BACKUP_PART` is set from `PB_STATE_PRIMARY_PART` (copy-paste). The target is listed twice in `install`. | Reported | open |
@@ -186,6 +191,232 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | the write helped. The cdns3 bulk path's TODOs (TRB count, burst, TRBERR) are the | | |
 | | | suspects. A reset with garbage in the enabled boot partition leaves the MEK dead | | |
 | | | until SW2 is set to serial download. | | |
+| F-173 | `src/boot/ab_state.c` | `init` ignores `bio_read()`'s result: a copy that can't | Verified | open |
+| | | be read counts as corrupt. When both reads fail and writes work, it writes the defaults | | |
+| | | (nothing enabled) over a good state and returns `PB_OK`: the next boot has no active | | |
+| | | partition and stays in command mode. Shown on the ramdisk (`fail_reads_after`). Install | | |
+| | | the defaults only when both copies were read and are bad, else return the read error. | | |
+| F-174 | `src/boot/boot.c`, `ab_state.c` | A slot that the A/B state picks and that then fails | Verified | open |
+| | | to load or authenticate isn't reported back. A verified slot is picked again on every | | |
+| | | boot (command mode, the 10 s transport timeout, reset), for good: the other verified | | |
+| | | slot is never tried. An unverified slot loses an attempt each time and rolls back. | | |
+| | | Decision for Jonas: on such a failure clear the slot's verified bit (or its attempts) | | |
+| | | so the next boot rolls back, at the risk of a downgrade after a transient read error. | | |
+| F-175 | `src/boot/ab_state.c` | `boot activate` with an unknown UUID clears `enable`, | Verified | open |
+| | | `verified` and `error` in RAM, then returns `-PB_ERR_PART_NOT_BOOTABLE`. For the rest of | | |
+| | | command mode `boot status` says none and booting the active slot fails, and the next | | |
+| | | commit writes it (on the host board a board register write: nothing to boot after the | | |
+| | | reset). `test_set_boot_partition` asserts the RAM change. Return before the change. | | |
+| F-176 | `src/boot/ab_state.c` | `init` keeps two valid copies that differ (power lost | Verified | open |
+| | | between the two writes, by pb or `pbstate`). A verified system never commits, so the | | |
+| | | stale backup can stay, and it comes back when the primary goes bad (shown: B verified | | |
+| | | in the primary, the old trial state in the backup, a bad primary rolls back to A). | | |
+| | | Commit when they differ: the primary is always written first. | | |
+| F-177 | `src/boot/ab_state.c` | Speculative rollback sets the fallback's attempts to 1 | Verified | open |
+| | | and boots it at once without using one: it gets two boots (`pbstate switch B 3` gives | | |
+| | | three). In the ping-pong, `error =` drops the other rollback bit. No board uses the | | |
+| | | speculative mode; `test_speculative_rollback_from_a` asserts B, B, A. Intended? | | |
+| F-178 | `src/board.c` | When `boot_ab_state_init()` fails (a repair write, a state partition | Verified | open |
+| | | missing from the table), `board_setup()` returns before `late_init` and the boot | | |
+| | | driver: in command mode `boot activate` is `-PB_ERR_NOT_SUPPORTED` and `boot partition` | | |
+| | | `-PB_ERR_PARAM`, the commands that would repair it. The GPT failure path above sets up | | |
+| | | the driver for that reason. | | |
+| F-179 | `src/boot/ab_state.c` | Minor. With both `enable` bits set `get()` boots A, | Verified | open |
+| | | `boot_ab_state_get_boot_partition()` reports none and `pbstate` both active (no writer | | |
+| | | sets both today; `validate()` could reject bits outside A and B). Normal mode with no | | |
+| | | verified fallback logs "Rollback to B system", then fails with `-PB_ERR`. A rollback to | | |
+| | | a verified slot fails when its commit fails (read-only eMMC); booting it would be safe, | | |
+| | | the next boot picks it again. `boot activate` leaves `remaining_boot_attempts` as it | | |
+| | | was. `pb_boot_state_defaults(&boot_state_backup)` does nothing: commit writes only | | |
+| | | `boot_state`. | | |
+| F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
+| | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
+| | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
+| | | the next boot rolls back. | | |
+| F-181 | `imx_caam.c`, `cm_main.c`, `image_helpers.c` | High. An async hash job that is | Reported (probe) | open |
+| | | abandoned (a read error in `boot_image_load_and_hash()`, a failed `part verify`: no `hash_final`) stays | | |
+| | | in the CAAM's one-slot output ring. Every later `caam_wait_for_job()` returns the previous job's | | |
+| | | completion, so `caam_ecda_verify()` reports verified from the hash job's status. In a model of the ring, | | |
+| | | `auth token` then accepted any well-formed signature on a locked device. Not run on hardware. Same root | | |
+| | | as F-127. Drain the ring in `caam_hash_init()` and before a verify, take the status from the ring entry, | | |
+| | | finish the hash on every error path. | | |
+| F-182 | `src/drivers/mmc/mmc_core.c:163`, `cm_main.c` | High. `mmc_rw()` uses `blocks = length / | Verified | open |
+| | | 512` while bio's range check rounds up: a `part write` whose size isn't a block multiple loses its tail | | |
+| | | and returns OK; under 512 bytes CMD24 goes out with no data and the card stays in rcv. `part verify` of | | |
+| | | such a size hashes stale buffer bytes. The host disk and the ramdisk write exact byte counts, so no test | | |
+| | | sees it. In cm: zero-pad the tail and round up (hosts send raw sizes, D-008). | | |
+| F-183 | `Makefile:124-134` | High. `keystore.o` has no prerequisites and `srk_fuse.o` depends | Verified | open |
+| | | only on the file: a changed `CONFIG_KEYSTORE`/`CONFIG_SRK_FUSE` isn't regenerated in an existing build | | |
+| | | directory (shown with an out-of-tree jiffy build). pb keeps the test keys and the test SRK hash, which | | |
+| | | `slc set-configuration` would fuse. `PB_VERSION` has the same gap. Depend on the input file and the | | |
+| | | config. | | |
+| F-184 | `src/drivers/usb/cdns3_udc_core.c:263` | The clean covers `desc_count` TRBs, not the | Verified | open |
+| | | terminating one at `trb[desc_count]`: for some counts its flags word is in a cache line that isn't | | |
+| | | cleaned, and a stale TRB from a larger transfer stays in memory. The effect on the controller is | | |
+| | | unverified; it fits F-172 (a small write after a large one). Clean `desc_count + 1`. | | |
+| F-185 | `src/cm/cm_main.c`, `usbd.c` | `authenticated` survives a USB replug, a bus reset and | Reported | open |
+| | | `restart_command_mode`: the next host on a powered, locked device is authenticated. No idle timeout. | | |
+| | | Clear it on bus reset and transport restart. | | |
+| F-186 | `cm_main.c` `cmd_part_verify`, `cmd_bpak_read` | Neither checks | Reported | open |
+| | | `BIO_FLAG_READABLE`/`VISIBLE`: `part verify` with size 1, 2, ... and hash guesses reads any partition | | |
+| | | byte by byte, hidden ones too. It also retargets the stream's `block_dev`. | | |
+| F-187 | `cm_main.c:881` | The auth gate sends one result for `board command`, but hosts send the | Reported | open |
+| | | request anyway (F-095): the device parses it as commands and answers INVALID_COMMAND twice; with an | | |
+| | | empty request the host hangs. Drain the request and send the second result. | | |
+| F-188 | `cm_main.c` `cmd_part_erase` | No `BIO_FLAG_WRITABLE` check. F-055 listed it and is | Reported | open |
+| | | marked fixed, but `6a1a0e23` fixed only the range. | | |
+| F-189 | `cm_main.c`, `usbd.c` | The watchdog is kicked only between commands: a `part verify` or | Reported | open |
+| | | `boot part` of a few hundred MiB against a 5 s watchdog resets the board (timing not measured). | | |
+| | | `cm_read`/`cm_write` spin on AGAIN without a kick or timeout. | | |
+| F-190 | `cm_main.c` | Low. IDENTIFIER_READ sends 23 bytes of `buffer[0]` unauthenticated (`rz` | Reported | open |
+| | | not cleared), the partition table 57 of every 128. `boot_jump()` can return after `disconnect()`. | | |
+| | | `bytes_to_verify -= 4096` underflows for bpak with size < 4096. A failed data read in | | |
+| | | `cmd_stream_prep_buffer` still answers OK. `block_dev` starts at 0, a valid bio. No build-time bounds | | |
+| | | (buffer size, 16 keys in `cmd_slc_read`, board name). No real board sets `BIO_FLAG_READABLE`: the cause | | |
+| | | of F-083 and F-142. | | |
+| F-191 | `src/drivers/partition/gpt.c:353,412` | A valid GPT with fewer than 128 entries: | Reported (probe) | open |
+| | | the backup array is read at `last-32` and the repair writes 33 blocks. Every boot rewrites the PMBR and | | |
+| | | primary, fails on the backup and registers no partitions. | | |
+| F-192 | `gpt.c:433` | The entry loop stops at the first entry with `first_lba == 0`: | Reported (probe) | open |
+| | | with entry 0 deleted (`sgdisk -d 1`) the later partitions aren't registered and init returns OK. Skip | | |
+| | | empty entries. | | |
+| F-193 | `gpt.c:263,446` | LBAs from the disk aren't validated: an entry at LBA 1 becomes | Reported (probe) | open |
+| | | a writable partition over the GPT, a 64-bit `last_lba` is truncated, a primary with MyLBA 5000 makes the | | |
+| | | repair write there. | | |
+| F-194 | `gpt.c:296`, `src/bio.c` | Installing a table from command mode doesn't update | Reported (probe) | open |
+| | | the bio pool: until a reset the old partitions are listed and written at their old LBAs. Not documented | | |
+| | | either. | | |
+| F-195 | `gpt.c:385,416` | Low. Repairing one copy rewrites PMBR, primary and backup: a power | Reported | open |
+| | | loss while the good copy is rewritten leaves no table. Write only the bad copy. | | |
+| F-196 | `src/drivers/fuse/imx_ocotp.c:73` | The fuse timing is hard-coded for a 66 MHz ipg_clk | Reported | open |
+| | | (STROBE_PROG 0x299). The RT1060 uses the driver at 75-200 MHz (F-148): a 3-9 us program strobe instead | | |
+| | | of 10 us on an irreversible write. Checked against both RMs, not on hardware. Compute TIMING from the | | |
+| | | ipg rate. | | |
+| F-197 | `imx_ocotp.c:69,91-104,121` | Against the 6UL RM: ERROR is cleared by a plain CTRL | Reported | open |
+| | | write, not CTRL_CLR (35.5.1), so after one failed access everything is `-PB_ERR_IO` until reset; no 2 us | | |
+| | | postamble after a write (35.3.1.4); the index is masked with 0x7F, not checked; a read doesn't check | | |
+| | | ERROR (a locked word reads 0xBADABADA with OK). | | |
+| F-198 | `src/drivers/memc/imx_flexspi.c` | The erase starts with the largest block without | Reported | open |
+| | | checking the address is aligned to it, rounds a short tail up to a full block, ignores write-enable and | | |
+| | | busy-wait results. Latent with the EVK's layout. IDATSZ is 16 bits: a read of 64 KiB or more is | | |
+| | | truncated and waited for forever. No loop has a timeout or a watchdog kick. | | |
+| F-199 | `src/drivers/mmc/imx_usdhc.c:338` | A command timeout (CTOE) returns | Reported (probe) | open |
+| | | `-PB_ERR_IO`; `mmc_sd.c:281` detects SD 1.x cards by `-PB_ERR_TIMEOUT` on CMD8, so a 1.x card fails init | | |
+| | | on uSDHC. `test_sdsc_v1` runs only on the HAL model. | | |
+| F-200 | storage, low | `imx_hab_fuses.c:159`: a partly programmed SRK word is refused as already | Reported | open |
+| | | fused. `mmc_core.c`: `mmc_wait_state()` and `mmc_bio_xfer()` (`max_chunk_bytes == 0`) can loop forever; | | |
+| | | a zero BOOT_MULT gives a 2^32 block bio. `imx_usdhc.c`: ADMA2 addresses truncated to 32 bits. | | |
+| | | `plat_get_unique_id()` (6UL, 8M, RT) ignores `imx_ocotp_read()` errors: the device UUID comes from | | |
+| | | uninitialised stack. | | |
+| F-201 | `src/drivers/usb/usbd.c:28` | `enumerated` is never cleared: on the 8MP EVK a replug or | Reported | open |
+| | | bus reset ends in a read on an unconfigured EP2, `cm_run` exits and the board resets. Clear it in | | |
+| | | `usbd_init()` and on bus reset. | | |
+| F-202 | `src/plat/imx8m/plat.c:225`, `main.c:42` | After a failed DDR init command mode runs | Reported | open |
+| | | with `cmd`, `result`, `buffer` and dwc3's TRBs in untrained DRAM (`.no_init`, 0x40062000-). Reset on a | | |
+| | | DDR failure, or keep them in OCRAM. | | |
+| F-203 | `usbd.c:340-349` | An EP0 request during a bulk transfer cancels it and restarts it from | Reported | open |
+| | | offset 0: a `punchboot list` or `lsusb -v` during a `part write` corrupts the chunk and swallows the | | |
+| | | next command. | | |
+| F-204 | `cdns3_udc_core.c:507` | `cdns3_udc_core_stop()` is a stub: after `disconnect()` the MEK | Reported | open |
+| | | stays enumerated with EP0 armed at pb's `setup_pkt`, a SETUP after the handover writes 8 bytes into the | | |
+| | | OS's memory. | | |
+| F-205 | USB, low | cdns3: `setup_pkt` shares its cache line with boot.c's callbacks and digest | Reported | open |
+| | | (invalidated per SETUP, F-081 class); `trb[128]` and `align_buffer` bounds; four waits without timeout. | | |
+| | | dwc3 rounds an OUT TRB up to the max packet: up to 511 bytes past a part in a RAM boot. | | |
+| | | `imx_ci_udc.c:193`: `align_length` never cleared (F-131). `imx_salvo_phy.c`: register table from U-Boot | | |
+| | | (GPL-2.0+) in a BSD file (F-108 class). | | |
+| F-206 | `src/drivers/wdog/imx_wdog.c`, `plat/imx6ul/plat.c:385` | `CONFIG_ENABLE_WATCHDOG=n`: | Reported | open |
+| | | `base` stays 0, kicks and `imx_wdog_reset_now()` write at address 0 and `plat_reset()` spins (every | | |
+| | | defconfig has it on). WT is `delay_s * 2` unmasked: 5.5 s for 5, 128 s wraps. `reset_now` also clears | | |
+| | | WDA. | | |
+| F-207 | `src/arch/*/entry*` | The D-cache is enabled without invalidating it first (v7a, v7m, | Reported | open |
+| | | v8a). The 6UL and RT ROMs use the caches and only disable them (RMs 8.4.4, 9.5.4); a stale valid line | | |
+| | | would serve old data. Plausible, jiffy works. Invalidate by set/way before enabling. | | |
+| F-208 | `src/plat/imx8m/plat.c` | The 8M never enables its TZASC while `boot/atf.c` supports a | Reported | open |
+| | | BL32: the normal world could read secure DRAM (the 8M's F-096). TF-A's behaviour not checked. | | |
+| F-209 | `src/link.lds:60-67` | The stack is directly above `.keystore_key`; on the RT1060 (no | Reported | open |
+| | | MPU region, 4 KiB stack, software ECDSA) an overflow rewrites a root-of-trust key silently. | | |
+| | | `.vector_handlers` is an orphan section placed after `_code_end`, outside the overlap check (F-157). | | |
+| F-210 | arch/plat, low | v7m: CACR.FORCEWT never cleared at the handover, VTOR never set to pb's | Reported | open |
+| | | table. 6UL: PLL1 raised without writing CACRR.ARM_PODF (F-148 class), SRSR never cleared (stale reset | | |
+| | | reason). Exception policy differs per arch, v8 handlers run on the faulting stack and hang by default. | | |
+| | | 8X `BOARD_RAM_END` maps non-RAM. `armv7a/arch.c:37`: clean then invalidate of the live stack in C. | | |
+| | | `imx_uart.h`: `UFCR_RFDIV_1` is divide by 2. | | |
+| F-211 | `src/delay.c:33-47` | Low. Timeouts compare with an absolute end tick: if the 32-bit us | Verified | open |
+| | | counter wraps between `ts_end` and the next poll the timeout takes another 71 minutes. Callers ignore | | |
+| | | `pb_timeout_init_us()`'s result. Use `(now - start) >= timeout`. | | |
+| F-212 | `src/board/imx8dxlevk` | The DXL board offers `slc lock`, but its build can't sign pb | Reported | open |
+| | | (`imx8xl_sign_image`: not supported): a locked DXL rejects the only image there is. Drop | | |
+| | | `set_configuration_locked` until signing exists. | | |
+| F-213 | `configs/*`, board `makefile.mk` | The SRK hash that is fused (`CONFIG_SRK_FUSE`) and | Reported | open |
+| | | the SRK table pb is signed with are independent settings: a product that changes one fuses a hash that | | |
+| | | closes the device to its own images. D-027 and `srk_fuse.h` claim they match. Derive or check at build | | |
+| | | time. | | |
+| F-214 | `src/board/imxrt1060evk` | `BOARD_IMXRT1060EVK_REV_C` only swaps the FCB; the NOR config | Reported | open |
+| | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
+| F-215 | `boot.c:114`, `ab_state.c:108`, `board.h` | `.ab = NULL` is accepted, but such a board | Reported | open |
+| | | can't boot from storage: no `get_boot_bio_device`, and BOOTABLE is only set in `boot_ab_state_init()`. | | |
+| | | Only imx8mevk today. A `boot_part_uu` member. | | |
+| F-216 | `src/board.c:122-158` | F-178 is one of three: a failing `init()` or `late_init()` also | Reported | open |
+| | | returns before `setup_boot_driver()`, so a RAM boot of a rescue image isn't possible when the eMMC | | |
+| | | fails. | | |
+| F-217 | `src/board/host/board.c`, `test_fuse_bio.c` | The host board's fuses are on a GPT | Reported | open |
+| | | partition and load in `late_init`: with a bad GPT a locked host device reads as open, the opposite of | | |
+| | | real boards, so the D-026 order can't be tested end to end. | | |
+| F-218 | boards, low | `IMX8X_FUSE_DRY_RUN` doesn't gate | Reported | open |
+| | | `sc_seco_commit()`/`forward_lifecycle()`. The shared `default_command` changed the 8X boards' answer | | |
+| | | from OK to NOT_SUPPORTED (not in `compatibility.md`). Board data isn't validated (`cm_transport` NULL, a | | |
+| | | name over 16 characters, `.slc = NULL`). Dead Kconfig symbols (`ARMV8_EL3`, `choice BOARD`, | | |
+| | | `IMXRT_FLASH`), `CM_AUTH_PASSWORD=y` without a callback. GPT tables can't align partitions. 8X | | |
+| | | `early_boot()` ignores SCU results. | | |
+| F-219 | `src/boot/simple.c`, `boot.c`, `board.c` | The XIP / `BOOT_SOURCE_IN_MEM` path can't be | Reported | open |
+| | | reached (nothing sets `get_in_mem_image`), and if wired up it hashes memory at `pb-load-addr` but jumps | | |
+| | | to `image_base_address + offset`. Extends F-070. | | |
+| F-220 | security core, low | `caam_hash_input()` refills the alignment buffer while its async | Reported | open |
+| | | job may read it (wrong digest, fails closed). `rot.c:117,134` return error codes through unsigned types: | | |
+| | | `slc read` loops ~2^32 times after a failed `rot_init()`. Parts are 512-aligned, a 4 KiB block device | | |
+| | | fails mid-load on a second part. `mbedtls_pb.c:183` skips `mbedtls_pk_free()`. `slc_set_configuration()` | | |
+| | | goes on when the state read is NOT_SUPPORTED. | | |
+| F-221 | `tools/pbstate/src/main.c` | `-s` with anything but a/b switches to NONE and | Reported (probe) | open |
+| | | exits 0. `counter` is `uint8_t`: `-c 256` is 0, which means verified. `-w 0 zzz` writes 0. `strtol` | | |
+| | | fails from 0x80000000 on 32-bit. Read-only calls end in `sync()`. | | |
+| F-222 | `tools/pbstate/CMakeLists.txt`, `src/lib/crc.c` | `libpbstate.so` exports a | Reported (probe) | open |
+| | | global `crc32` that isn't zlib's: with zlib loaded first every state fails the CRC check. Hide or rename | | |
+| | | it. | | |
+| F-223 | `tools/punchboot/session.py:242` | `_stream_finalize()` never checks the result. | Reported (probe) | open |
+| | | FINALIZE enables the written eMMC boot partition (F-082): if that fails, `part write` exits 0 and the | | |
+| | | board boots the old one. | | |
+| F-224 | `tools/punchboot/__main__.py:567` | `boot enable` without its argument sends the | Reported (probe) | open |
+| | | null UUID: the device disables boot, exit 0. Make it required. | | |
+| F-225 | `__main__.py`, `session.py`, `partition.py` | The CLI replaces every exception's | Reported (probe) | open |
+| | | message with a fixed string (no udev rule reads "Generic error"). Unknown partition flag bits or SLC | | |
+| | | values from a newer device raise `ValueError`, which the CLI doesn't catch. Tracebacks for a missing | | |
+| | | file, a binary board response, a non-semver version. | | |
+| F-226 | `tools/punchboot/transport.py:39` | One fixed 10 s USB timeout; the device's caps | Reported | open |
+| | | timeouts are ignored. After a timeout the session stays usable and reads the late result as the next | | |
+| | | command's. Several error paths leave transfers unread the same way. | | |
+| F-227 | host tools, low | `session.py:556` masks the verify size to 32 bits. With several | Reported | open |
+| | | devices and no `-u` the first is used, also for `slc` commands. Three different is-this-bpak checks. The | | |
+| | | CI's only-grows guards compare with the merge-base, which is HEAD on a push to master. | | |
+| F-228 | `.github/workflows`, `docker/`, `scripts/ci` | Any `v*` tag publishes to PyPI with no | Reported | open |
+| | | check against `version.txt`, master or the tests. Actions are pinned by tag, the publish action gets a | | |
+| | | long-lived token. The dev image is partly pinned and rebuilt per job. CI builds only `pb.bin` (never the | | |
+| | | signed images or `testbench/simple`), warnings don't fail. | | |
+| F-229 | `Makefile:31` | The result of `genconfig.py` is ignored: a failure builds with | Reported (probe) | open |
+| | | the old `.config`, a mistyped defconfig name builds the Kconfig defaults, both with exit 0. | | |
+| F-230 | `doc/dev/testing.md`, `status.md` | Line coverage is 91.0% (4445/4886), not | Reported (probe) | open |
+| | | 99.2%. `imx_caam.c` 38%: `caam_ecda_verify` and the hash path 0%. Never compiled by a host test: | | |
+| | | `boot/atf.c`, `boot/simple.c`, `usbd.c`, `pb_dev_cls.c`, `partition/static.c`. No tests: `imx_ocotp.c`, | | |
+| | | `imx6ul/hab.c`, the 8X RoT/SLC helpers, the UDCs, `imx_flexspi.c`. | | |
+| F-231 | build, low | Pre-release builds identify as 3.0.0. `blobs/` is shared in the source root | Reported | open |
+| | | (pb relinks every make). pbstate is built without sanitizers. `-fno-stack-protector`, no `-Wundef`. | | |
+| | | `.gitignore` ignores `*.bin` globally, matching tracked pki files. | | |
+| F-232 | docs | The README (also the PyPI page) describes removed things (PBI, C parts and binary | Reported | open |
+| | | wheels, the auth cookie, Bebop/PICO) and lacks the 8MP EVK and RT1060. Missing: a porting guide for | | |
+| | | 3.0.0, firmware build and image signing, the A/B update flow and pbstate, the SLC and fusing procedure, | | |
+| | | a changelog, SECURITY.md. `arch-firmware.md` predates D-026 and has nothing on storage, USB, memory | | |
+| | | layout or exceptions; `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
+| | | step 4. | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
