@@ -229,6 +229,15 @@ int plat_early_init(void)
     imx_rom_log_save(&rom_log_cfg);
     (void)imx_hab_log_init(&hab_log_cfg);
 
+    /* The WDOGs' power-down counters, whether the watchdog is used or not */
+    mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
+    mmio_write_32(CCM_CCGR_SET(CCGR_WDOG1), CCGR_CLK_ON_MASK);
+    mmio_write_32(CCM_CCGR_SET(CCGR_WDOG2), CCGR_CLK_ON_MASK);
+    mmio_write_32(CCM_CCGR_SET(CCGR_WDOG3), CCGR_CLK_ON_MASK);
+    imx_wdog_disable_powerdown(IMX8M_WDOG1_BASE);
+    imx_wdog_disable_powerdown(IMX8M_WDOG2_BASE);
+    imx_wdog_disable_powerdown(IMX8M_WDOG3_BASE);
+
 #if CONFIG_ENABLE_WATCHDOG
     /* Enable and ungate WDOG1 clock */
     mmio_write_32(CCM_CORE_CLK_ROOT_GEN_TAGET_SET(WDOG_CLK_ROOT), CLK_ROOT_ON);
