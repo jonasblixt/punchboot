@@ -471,12 +471,13 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | shadow write refused (HAB had locked field return and SCS already). A watchdog reset clears the locks, | | |
 | | | revocation still works after a reboot. Open: the 8X (SECO) and RT, unchecked; the 8M once it has HAB | | |
 | | | (`plat-imx.md` 4.3) | | |
-| F-245 | `drivers/wdog/imx_wdog.c` | Each WDOG's power-down counter | Verified (jiffy, 8MP EVK) | fixed (6UL, 8M) |
-| | | runs out of every reset and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3). pb | | |
-| | | cleared it for WDOG1 only, only with `CONFIG_ENABLE_WATCHDOG` (`imx_wdog_init()`); U-Boot clears WDOG1-3 on | | |
-| | | the 6UL and 8M. A board with a WDOG_B on a pad to the PMIC resets after 16 s. Fixed: | | |
-| | | `imx_wdog_disable_powerdown()` for WDOG1-3 in `plat_early_init()`. Out of the ROM PDE is set on all three | | |
-| | | on jiffy, on WDOG2 and 3 on the 8MP EVK; 0 after. Open: the RT, unchecked | | |
+| F-245 | `drivers/wdog/imx_wdog.c` | Each WDOG's power-down counter runs out | Verified (jiffy, 8MP, RT1060) | fixed |
+| | | of every reset and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3, RT RM 57.6.3). | | |
+| | | pb cleared it for WDOG1 only, only with `CONFIG_ENABLE_WATCHDOG` (`imx_wdog_init()`); U-Boot clears WDOG1-3 | | |
+| | | on the 6UL and 8M. A board with a WDOG_B on a pad to the PMIC resets after 16 s. Fixed: | | |
+| | | `imx_wdog_disable_powerdown()` for each WDOG in `plat_early_init()`. Out of the ROM PDE is set on WDOG1-3 | | |
+| | | on jiffy, on WDOG2 and 3 on the 8MP EVK, on WDOG1 and 2 on the RT1060 EVK; 0 after. The RT's RTWDOG (WDOG3, | | |
+| | | enabled out of reset) comes out of the ROM disabled (CS 0x2520). The 8X's watchdogs are the SCFW's | | |
 | F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL RM | Reported (RM) | open |
 | | | (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 (supervisor | | |
 | | | only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code read | | |

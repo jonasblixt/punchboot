@@ -52,6 +52,12 @@ static const struct imx_hab_fuses hab_fuses = {
 
 int plat_early_init(void)
 {
+    /* The WDOGs' power-down counters, whether the watchdog is used or not */
+    mmio_clrsetbits_32(IMXRT_CCM_CCGR3, 0, CCGR3_WDOG1);
+    mmio_clrsetbits_32(IMXRT_CCM_CCGR5, 0, CCGR5_WDOG2);
+    imx_wdog_disable_powerdown(IMXRT_WDOG1_BASE);
+    imx_wdog_disable_powerdown(IMXRT_WDOG2_BASE);
+
 #if CONFIG_ENABLE_WATCHDOG
     imx_wdog_init(IMXRT_WDOG1_BASE, CONFIG_WATCHDOG_TIMEOUT);
 #endif

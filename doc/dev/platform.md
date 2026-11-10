@@ -71,8 +71,7 @@ on every boot (D-023). When it returns PB_OK:
 - `plat_get_us_tick()` counts, and `log_time_start()` has been called.
 - The watchdog is armed, when `CONFIG_ENABLE_WATCHDOG` is set.
 - Every timer the SoC arms out of reset that would reset the system or assert a reset pin is
-  disabled, whatever `CONFIG_ENABLE_WATCHDOG` is (a watchdog's power-down counter). **Not yet in
-  the code (F-245).**
+  disabled, whatever `CONFIG_ENABLE_WATCHDOG` is (a watchdog's power-down counter).
 - Every reset source brings the SoC back to the ROM in a known state (warm resets made cold where
   the SoC can).
 - The ROM's state that later code overwrites is saved: the ROM's log, what its serial downloader
