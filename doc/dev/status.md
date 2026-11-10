@@ -14,6 +14,10 @@ the trim is at the end of `log/2026-11-09.md`.
   F-167), the SRK hash from the build, revoke slots in `CONFIG_KEYSTORE_SLOTS`, configuration
   fuses as data, pin tables. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
   8X closed state, imx8mevk and DXL on hardware. `arch-firmware.md` waits for the review.
+- **Platform contract (D-030, `platform.md`, `plat-imx.md`):** reviewed once, no code yet. The
+  code follows in commits, the fixes first (F-233, F-234, F-244, F-245, F-208; order in the log);
+  each removes its "Not yet in the code" marker and updates `plat-imx.md` 7. Then the whole
+  bootloader's contract (security model, handover, A/B state).
 - **Tests:** `scripts/pbdev test`, ~20 s: 35 suites (unit tests, `compat.abi`, the pytest
   integration tests), ASan/UBSan clean, line coverage 99.2% (`testing.md`).
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a firmware compile
@@ -23,10 +27,6 @@ the trim is at the end of `log/2026-11-09.md`.
   commands on the MEK.
 - **Test benches:** Linux (`testbench/`, D-022): jiffy, the 8MP EVK and the MEK boot to the login.
   simple target (`testbench/simple/`, D-025): the RT1060 EVK.
-- **Done on `work-3.0.0`:** bpak 1.0.1 (D-024), i.MX8M DDR drivers (D-013, D-014), the MMC/SD
-  HAL and its test bench (D-017), CAAM from the SRMs with the RNG4, the jiffy USB fixes, pure
-  Python host tools (D-021), logs by name (`punchboot log`), boot time measurements, slimming
-  (D-019, D-020), the RoT/SLC fixes (F-001, F-161..F-164, F-168).
 
 **Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
 
@@ -52,10 +52,13 @@ the trim is at the end of `log/2026-11-09.md`.
 
 - Project review (2026-11-10, F-181..F-232, `log/2026-11-10.md`): which first? Proposed: F-181 (CAAM,
   check on jiffy), F-182 (eMMC partial blocks), F-183 (stale keystore), then F-184 against F-172.
-
 - A/B review (F-173..F-180): roll back when a verified slot fails to load (F-174)? One boot or
   two for the speculative fallback (F-177)? The fixes for F-173, F-175, F-176, F-178 wait for a go.
-
+- No silent boot (`platform.md` 2.3, F-248): per condition, refuse or boot? The watchdog that
+  didn't arm, a failed crypto engine; one rule in every life cycle state; tell the OS in the DT?
+- Platform contract: can "type 1 masters are secure at reset" (6UL SRM, CSU_SA, NDA) be written
+  in the public docs, or only the register's name (as now)? Put the Arm specs and the TZC-380
+  TRM (DDI0431) on the share?
 - Which boards are still in use? bebop and pico8ml only have defconfigs (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Mbed TLS: 3.6 LTS or 4.x?

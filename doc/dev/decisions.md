@@ -366,3 +366,64 @@ boards only the handover and boot time at first: A/B, rollback and the watchdog 
 write pb's boot state, which is on eMMC there (an MMC driver in the target); the Linux bench
 covers them there. Back to command mode needs no per board register: a one-shot `boot
 partition` leaves no active system. Also rename the `MCUTEST` console prefix and `tests/mcu.py`.
+
+## D-030: The platform contract (2026-11-10)
+
+`doc/dev/platform.md` is what a platform provides, when, and what the rest of pb may rely on, in
+the style of TF-A's porting guide: each entry tagged mandatory or optional, with "valid from" and
+what a failure means, and a review checklist. It is vendor neutral (Jonas): how the i.MX ports meet
+it, the SoC facts with their sources and each port's conformance table are in `plat-imx.md`. It
+describes the target; what the code doesn't do yet is marked "Not yet in the code (F-nnn)", and the
+commit that fixes the finding removes the marker and updates the conformance table.
+
+- A platform is a SoC family, a variant is a documented sub-level (`PLAT_IMX8MQ/MP`). A SoC fact
+  belongs to the platform, a PCB or product choice to the board. Shared IP gets the SoC's facts as
+  data (D-027).
+- `plat_early_init()` starts the tick and the log time, arms the watchdog, saves the ROM's state
+  and reads the reset reason; it can't fail. `plat_init()` returns an error only when command
+  mode's prerequisites are missing (DRAM, MMU, its clocks, fuses), and records the rest in
+  `plat_get_status()`. `main()` resets after a platform failure instead of entering command mode
+  (F-235, F-202).
+- No silent boot (Jonas): when something the boot's security depends on failed (a bypassed DRAM
+  filter with a BL32, a lockdown that can't be done), `boot()` fails into command mode; logging is
+  not enough. The policy per condition is a proposal, open (F-248).
+- The tick stays in microseconds, `uint32_t`, wrapping: callers use differences only (F-211).
+- The watchdog is kicked where work makes progress: per chunk in `load_and_hash`, before the jump,
+  in command mode's loop. Never in `pb_delay`/`pb_timeout`: a driver polling forever would keep the
+  board alive (Jonas). The platform states its longest stretch without a kick.
+- `plat_get_boot_reason()`: a portable kind, the SoC's raw value for board code, a name for the
+  log.
+- The platform provides `plat_rot` and `plat_slc`, the board only its configuration fuses. No
+  board overrides of platform services until a real case needs one.
+- The TrustZone DRAM filter is pb's job where the SoC has one: TF-A's porting guide gives it to
+  the stage in BL2's place, and TF-A's BL31 on the i.MX8M only programs it when it was enabled
+  before. pb enables it before DRAM is used, locks the enable where it can, opens the board's DRAM
+  to both worlds in a region of its own, leaves the default region secure (OP-TEE panics on the
+  8M otherwise: aliases), and reports the state. The i.MX8X's is BL31's (SCFW partitions), the RT
+  has none.
+- The other duties of the stage in BL2's place (Jonas: "are there more?", checked against U-Boot,
+  TF-A and OP-TEE): `plat_lockdown()` before the jump locks key revocation and what reopens a closed
+  device (F-244: jiffy's CSF unlocks SRK revocation for pb and nothing locks it again); timers
+  armed out of reset are disabled in early init (F-245); bus access control, the RNG, the crypto
+  engine's handover and the architected timer are done or left to a named later stage (F-246).
+- The MMU maps three layers: board RAM, the platform's map, pb's sections (`ram` and `buffers`
+  apart, F-158). The i.MX8X's region below pb stays named in its map.
+- The board's addresses become Kconfig values; link scripts contain no addresses and check the
+  SoC's windows. pb's own memory (the `pb` region, its length derived from the ROM's load window)
+  and the board's DRAM (`BOARD_DRAM_*`) are named apart: `BOARD_RAM` and `PB_RAM_LENGTH` were
+  confused (Jonas).
+- The SoC's packaging and signing move to the platform as stages with `?=` inputs; a board, also
+  out of tree, overrides the tool, the signing step or everything from `pb.bin` (level 3 is what
+  Jonas's custom systems use). CI builds a level 3 override. The stages are an interface for
+  out-of-tree boards and change only in a major release (D-018).
+- The device identity (`platform_ns_uuid`, the unique id) is fixed like the wire.
+
+Why: the platform interface was `plat.h`'s nine functions, and the rest was found by copying a
+platform. Each platform split early and late init differently, ran command mode after failures it
+can't recover from, and its boards repeated SoC knowledge (security wiring, link addresses,
+signing recipes). The defects found on the way are F-233..F-248.
+Open: the policy of the boot's preconditions (F-248), the 8MP's TZASC fuse (F-208), the 6UL's
+TZASC addresses and TZASC1_BOOT_LOCK (F-241), the Arm specs (TBBR, PSBG, FWU, the TZC-380 TRM)
+aren't on the share. The whole bootloader's contract
+(the security model, the handover, the A/B state) comes after this one, with TF-A's threat model,
+TBBR, PSA and FWU as inspiration, not as compliance targets.
