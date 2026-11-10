@@ -37,10 +37,11 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
 | HAB log | yes | yes | - (AHAB) | yes |
 
 - **Watchdog power-down counters.** Each WDOG's power-down counter is enabled out of every reset
-  and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3). pb clears it for
-  WDOG1 only, and only with `CONFIG_ENABLE_WATCHDOG` (`imx_wdog_init()`); U-Boot clears WDOG1-3 on
-  the 6UL (`imx_wdog_disable_powerdown()`, both stages) and the 8M (`imx_set_wdog_powerdown()`,
-  SPL). Whether it resets the board depends on WDOG_B reaching a pad (F-245).
+  and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3); whether that resets
+  the board depends on WDOG_B reaching a pad. U-Boot clears WDOG1-3 on the 6UL
+  (`imx_wdog_disable_powerdown()`, both stages) and the 8M (`imx_set_wdog_powerdown()`, SPL). The
+  6UL's `plat_early_init()` clears WDOG1-3 with their clocks on; on jiffy all three come out of the
+  ROM with PDE set. The 8M and the RT: F-245.
 - **Warm resets.** The 6UL's `plat_early_init()` clears SRC_SCR's warm reset enable, as U-Boot's
   `init_src()` does. The others: unchecked.
 - **The 8M's DRAM.** Trained in `plat_init()` (`imx8m-ddr.md`); a failure returns the error, and
@@ -175,7 +176,7 @@ Where each port is (2026-11-10).
 |---|---|---|---|---|---|
 | Tick and log time from early init | yes | no | yes | no | F-238 |
 | Watchdog armed in early init | yes | yes | yes | yes | F-233 |
-| Power-down counters disabled | no | no | n/a | unchecked | F-245 |
+| Power-down counters disabled | yes | no | n/a | unchecked | F-245 |
 | `plat_reset()` without the watchdog | no | no | yes | no | F-234 |
 | `plat_wdog_kick()` before arming | no | no | unchecked | no | F-234 |
 | `plat_get_boot_reason()` | no | no | no | no | F-236 |

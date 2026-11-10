@@ -288,6 +288,14 @@ int plat_early_init(void)
     if (imx_rom_log_has_event(IMX_ROM_LOG_V0_SERIAL_DOWNLOAD))
         save_rom_usb_state();
 
+    /* The WDOGs' power-down counters, whether the watchdog is used or not */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR3, 0, CCM_CCGR3_WDOG1);
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR5, 0, CCM_CCGR5_WDOG2);
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR6, 0, CCM_CCGR6_WDOG3);
+    imx_wdog_disable_powerdown(IMX6UL_WDOG1_BASE);
+    imx_wdog_disable_powerdown(IMX6UL_WDOG2_BASE);
+    imx_wdog_disable_powerdown(IMX6UL_WDOG3_BASE);
+
     /* Unmask wdog in SRC control reg */
     mmio_clrsetbits_32(IMX6UL_SRC_SCR,
                        SRC_SCR_MASK_WDOG_RST_MASK | SRC_SCR_WARM_RESET_ENABLE,

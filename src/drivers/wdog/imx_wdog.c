@@ -34,6 +34,11 @@ int imx_wdog_init(uintptr_t base_, unsigned int delay_s)
     return imx_wdog_kick();
 }
 
+void imx_wdog_disable_powerdown(uintptr_t wdog_base)
+{
+    mmio_write_16(wdog_base + WDOG_WMCR, 0);
+}
+
 int imx_wdog_kick(void)
 {
     mmio_write_16(base + WDOG_WSR, WDOG_WSR_SEQ1);
