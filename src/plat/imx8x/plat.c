@@ -148,9 +148,8 @@ static sc_err_t imx8x_wdog_init(void)
     if (err) {
         return err;
     }
-
-    return 0;
 #endif
+    return SC_ERR_NONE;
 }
 
 void plat_wdog_kick(void)
