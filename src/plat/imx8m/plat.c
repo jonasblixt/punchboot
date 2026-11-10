@@ -97,7 +97,7 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
 
 void plat_reset(void)
 {
-    imx_wdog_reset_now();
+    imx_wdog_reset_now(IMX8M_WDOG1_BASE);
 }
 
 uint32_t plat_get_us_tick(void)
@@ -107,7 +107,7 @@ uint32_t plat_get_us_tick(void)
 
 void plat_wdog_kick(void)
 {
-    imx_wdog_kick();
+    imx_wdog_kick(IMX8M_WDOG1_BASE);
 }
 
 static int plat_mmu_init(void)
@@ -307,7 +307,7 @@ int plat_init(void)
     if (rc != PB_OK)
         LOG_ERR("TZASC setup failed (%i)", rc);
 
-    imx_wdog_kick();
+    imx_wdog_kick(IMX8M_WDOG1_BASE);
     plat_mmu_init();
 
     LOG_DBG("Plat init done");

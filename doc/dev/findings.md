@@ -424,11 +424,12 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | step 4. | | |
 | F-233 | `plat/imx8x/plat.c` | `imx8x_wdog_init()`: Without `CONFIG_ENABLE_WATCHDOG` the | Verified (code) | open |
 | | | function has no `return`: `wdog_rc` is undefined, `plat_init()` may log a failed watchdog. | | |
-| F-234 | `drivers/wdog/imx_wdog.c` | Also `src/plat/{imx6ul,imx8m,imxrt}/plat.c`: `base` is | Verified (code) | open |
-| | | 0 until `imx_wdog_init()`. `plat_reset()` (`imx_wdog_reset_now()`) and `plat_wdog_kick()` write to address | | |
-| | | 0 without `CONFIG_ENABLE_WATCHDOG`, and `plat_reset()` from an exception before `plat_early_init()` doesn't | | |
-| | | reset. Every defconfig enables the watchdog today. The base is a constant: set it, arm on the option | | |
-| | | (`platform.md` 3) | | |
+| F-234 | `drivers/wdog/imx_wdog.c` | Also `src/plat/{imx6ul,imx8m,imxrt}/plat.c`: | Verified (on jiffy) | fixed |
+| | | `base` was 0 until `imx_wdog_init()`, so `plat_reset()` (`imx_wdog_reset_now()`) and `plat_wdog_kick()` | | |
+| | | wrote to address 0 without `CONFIG_ENABLE_WATCHDOG`, and `plat_reset()` from an exception before | | |
+| | | `plat_early_init()` didn't reset. Fixed: the driver keeps no state, each call takes the platform's WDOG1 | | |
+| | | base. jiffy built without the option resets on `dev reset`; jiffy, the 8MP EVK and the RT1060 EVK reset and | | |
+| | | kick with it | | |
 | F-235 | `src/main.c` | After a failed `plat_early_init()` or `plat_init()` command mode | Verified (code) | open |
 | | | runs without what it needs: no console or tick, no MMU, no fuses, on the 8M the buffers in untrained DRAM | | |
 | | | (F-202). `platform.md` 2: reset. The RT's `plat_init()` also returns `mbedtls_pb_init()`'s error | | |
