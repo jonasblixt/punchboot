@@ -139,3 +139,8 @@ int plat_get_boot_source(struct pb_boot_source *src)
     (void)src;
     return -PB_ERR_NOT_SUPPORTED;
 }
+
+int plat_lockdown(void)
+{
+    return PB_OK;
+}

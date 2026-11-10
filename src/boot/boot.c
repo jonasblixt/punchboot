@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <pb/bio.h>
 #include <pb/pb.h>
+#include <pb/plat.h>
 #include <string.h>
 
 static const struct boot_driver *boot_cfg;
@@ -341,6 +342,14 @@ int boot_jump(void)
             boot_flags = 0;
             return rc;
         }
+    }
+
+    rc = plat_lockdown();
+
+    if (rc != PB_OK) {
+        LOG_ERR("Lockdown failed (%i)", rc);
+        boot_flags = 0;
+        return rc;
     }
 
     LOG_DBG("Jump");
