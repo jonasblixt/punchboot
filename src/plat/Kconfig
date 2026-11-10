@@ -14,6 +14,7 @@ config PLAT_IMX8M_COMMON
     default n
     select DRIVERS_DDR_UMCTL2
     select DRIVERS_DDR_DWC_PHY
+    select DRIVERS_TZC380
     select DRIVERS_IMX_ROM_LOG
     select DRIVERS_IMX_HAB_LOG
 

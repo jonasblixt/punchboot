@@ -322,7 +322,8 @@ and writes fuses.
 
 ### 4.3 The TrustZone DRAM filter [mandatory when the SoC has one]
 
-**Not yet in the code (F-241, F-208).**
+**Not yet in the code (F-248, F-241)**: the state isn't reported; the i.MX6UL's addresses are
+unchecked.
 
 TrustZone is architectural (Secure and Non-secure state, the NS bit on the bus), the filter that
 checks DRAM accesses isn't: it is SoC IP (an Arm TZC-380 or TZC-400, a vendor's own controller, or

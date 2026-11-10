@@ -12,7 +12,9 @@
 #include <drivers/rom_log/imx_hab_log.h>
 #include <drivers/rom_log/imx_rom_log.h>
 #include <drivers/timer/imx_gpt.h>
+#include <drivers/tzc/tzc380.h>
 #include <drivers/wdog/imx_wdog.h>
+#include <inttypes.h>
 #include <pb/console.h>
 #include <pb/mmio.h>
 #include <pb/pb.h>
@@ -164,6 +166,64 @@ static const struct imx_hab_log_config hab_log_cfg = {
     .entry_size = 8,
 };
 
+#ifdef CONFIG_PLAT_IMX8MQ
+#define DDR_WINDOW_SIZE IMX8MQ_DDR_WINDOW_SIZE
+#else
+#define DDR_WINDOW_SIZE IMX8MP_DDR_WINDOW_SIZE
+#endif
+
+/*
+ * The TZASC checks no DRAM access until GPR10's TZASC_EN is set, and TF-A's
+ * BL31 only programs it when it is. Set before DRAM is used, with
+ * ID_SWAP_BYPASS, which the RM asks for (8MP RM 4.9.1.2), and lock both:
+ * the normal world reaches the GPRs. OP-TEE checks all three.
+ */
+static void tzasc_enable(void)
+{
+    const uint32_t bits = GPR10_TZASC_EN | GPR10_TZASC_ID_SWAP_BYPASS;
+    const uint32_t locks = GPR10_LOCK_TZASC_EN | GPR10_LOCK_TZASC_ID_SWAP;
+    uint32_t gpr10;
+
+    mmio_clrsetbits_32(IMX8M_IOMUXC_GPR10, 0, bits);
+    mmio_clrsetbits_32(IMX8M_IOMUXC_GPR10, 0, locks);
+    gpr10 = mmio_read_32(IMX8M_IOMUXC_GPR10);
+
+    if ((gpr10 & (bits | locks)) != (bits | locks))
+        LOG_ERR("TZASC not enabled, GPR10 %08" PRIx32, gpr10);
+}
+
+/*
+ * Out of bypass, region 0 lets only secure accesses through, and some
+ * masters are non-secure: the DWC3, command mode's USB, among them. Open the
+ * DDR window to both worlds in region 1 and leave region 0 secure, so that
+ * aliases of DRAM stay protected; OP-TEE replaces region 1 with its own. The
+ * TZASC counts from the DDR window's start.
+ */
+static int tzasc_open_dram(void)
+{
+    uint64_t size;
+    int rc;
+
+    rc = tzc380_init(IMX8M_TZASC_BASE);
+
+    if (rc != PB_OK)
+        return rc;
+
+    /* The enable is locked: without region 1 command mode's USB stops. So
+     * if the TZASC addresses less than the window, open what it addresses */
+    for (size = DDR_WINDOW_SIZE; size >= SZ_GiB(1); size >>= 1) {
+        rc = tzc380_configure_region(1, 0, size, TZC380_SP_ALL);
+
+        if (rc != -PB_ERR_PARAM)
+            break;
+    }
+
+    if (rc == PB_OK && size != DDR_WINDOW_SIZE)
+        LOG_ERR("TZASC: only %" PRIu64 " MiB of DRAM opened", size >> 20);
+
+    return rc;
+}
+
 int plat_early_init(void)
 {
     imx_rom_log_save(&rom_log_cfg);
@@ -222,6 +282,8 @@ int plat_init(void)
     /* The rest of the gates and the PLLs */
     imx8m_soc_clock_init();
 
+    tzasc_enable();
+
     rc = imx8m_ddr_init();
     if (rc != PB_OK) {
         LOG_ERR("LPDDR4 init failed (%i)", rc);
@@ -229,6 +291,12 @@ int plat_init(void)
     }
 
     LOG_DBG("LPDDR4 training complete");
+
+    /* Not fatal: without board_setup() command mode can't be used to recover */
+    rc = tzasc_open_dram();
+
+    if (rc != PB_OK)
+        LOG_ERR("TZASC setup failed (%i)", rc);
 
     imx_wdog_kick();
     plat_mmu_init();

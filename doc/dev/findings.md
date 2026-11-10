@@ -332,14 +332,13 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-207 | `src/arch/*/entry*` | The D-cache is enabled without invalidating it first (v7a, v7m, | Reported | open |
 | | | v8a). The 6UL and RT ROMs use the caches and only disable them (RMs 8.4.4, 9.5.4); a stale valid line | | |
 | | | would serve old data. Plausible, jiffy works. Invalidate by set/way before enabling. | | |
-| F-208 | `src/plat/imx8m/plat.c` | The 8M never enables its TZASC while `boot/atf.c` | Verified (TF-A v2.12) | open |
-| | | supports a BL32: the normal world could read secure DRAM (the 8M's F-096). TF-A doesn't enable it either: | | |
-| | | `bl31_tzc380_setup()` returns when GPR10's TZASC_EN is clear, and otherwise opens region 0. OP-TEE panics, | | |
-| | | unless built insecure, when TZASC_EN, ID_SWAP_BYPASS or the TZASC_EN lock is clear, and when region 0 isn't | | |
-| | | secure only (aliases). U-Boot's SPL (`enable_tzc380()`, before `spl_dram_init()`) sets the bits and both | | |
-| | | locks and opens region 0 for the DWC3. Fix (`plat-imx.md` 4.2): the bits and locks before | | |
-| | | `imx8m_ddr_init()`, DRAM in region 1, region 0 left secure. The 8MP RM (4.9.1.2) also asks for a | | |
-| | | TZASC_ENABLE fuse; never write fuses on the 8MP EVK: try GPR10 alone, check with OP-TEE and devmem | | |
+| F-208 | `src/plat/imx8m/plat.c` | The 8M never enabled its TZASC while | Verified (on the 8MP EVK) | fixed (8M) |
+| | | `boot/atf.c` supports a BL32: the normal world could read secure DRAM (the 8M's F-096). TF-A doesn't enable | | |
+| | | it: `bl31_tzc380_setup()` returns when GPR10's TZASC_EN is clear. Fixed: GPR10's TZASC_EN, ID_SWAP_BYPASS | | |
+| | | and both locks before `imx8m_ddr_init()`, the DDR window in region 1, region 0 left secure. On the EVK: 16 | | |
+| | | regions, 33 bit addresses; an NS read of a region made secure only is refused (FAIL_ADDRESS 0x20000000 for | | |
+| | | PA 0x60000000: addresses from the DDR base), and passes again without it. GPR10 alone is enough, no | | |
+| | | TZASC_ENABLE fuse (8MP RM 4.9.1.2 asks for one; none written). Linux boots through BL31 | | |
 | F-209 | `src/link.lds:60-67` | The stack is directly above `.keystore_key`; on the RT1060 (no | Reported | open |
 | | | MPU region, 4 KiB stack, software ECDSA) an overflow rewrites a root-of-trust key silently. | | |
 | | | `.vector_handlers` is an orphan section placed after `_code_end`, outside the overlap check (F-157). | | |

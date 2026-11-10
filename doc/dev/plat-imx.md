@@ -72,7 +72,7 @@ its SRK_REVOKE word is verified (D-027, the 8MP RM marks it reserved). AHAB thro
 | | region 1 | sticky until POR: | |
 | | | not in the RM | |
 | imx8m | Before `imx8m_ddr_init()`: GPR10 ID_SWAP_BYPASS, TZASC_EN and both locks (8MP | GPR10[17:16] | BL31, then |
-| | RM 4.9, p. 1328), DRAM in region 1, region 0 left secure | | OP-TEE |
+| | RM 4.9, p. 1328). After it the DDR window in region 1, region 0 left secure | | OP-TEE |
 | imx8x | Nothing: BL31 partitions memory through the SCFW (`imx8qx_bl31_setup.c`) | The SCFW | BL31 |
 | imxrt | Nothing: the Cortex-M7 has no TrustZone | - | - |
 
@@ -94,13 +94,15 @@ What the stages around pb do with it:
 SoC facts for the driver:
 
 - **Addresses.** The 8MP's TZASC counts from the start of DDR (0x40000000, 8MP RM 4.9.2.1; TF-A
-  says the same). The 6UL RM (52.3) says the DDR controller's "local addresses"; pb passes the
-  physical base (F-241).
+  says the same), seen on the EVK: a refused access at PA 0x60000000 has FAIL_ADDRESS 0x20000000.
+  Its TZC-380 has 16 regions and 33 bit addresses, enough for the 8 GiB window. The 6UL RM (52.3)
+  says the DDR controller's "local addresses"; pb passes the physical base (F-241).
 - **Aliasing.** With less DRAM than the controller addresses, DRAM repeats (both RMs): the default
   region stays secure so that the copies are covered.
-- **The 8MP's fuse.** Its RM (4.9.1.2) says a TZASC_ENABLE fuse must be blown. U-Boot doesn't
-  check one, and NXP's EVKs run OP-TEE unfused. Never write fuses on the 8MP EVK: try GPR10 alone,
-  and check with OP-TEE and `devmem` from Linux (F-208).
+- **The 8MP's fuse.** Its RM (4.9.1.2) says a TZASC_ENABLE fuse must be blown. On the EVK, unfused,
+  GPR10 alone takes it out of bypass (F-208, 2026-11-10): pb, at EL3 through a mapping with the
+  NS attribute, had a read refused in a region made secure only, and the same read passed without
+  it. The test is in the log of that day.
 - **TZASC1_BOOT_LOCK** (6UL GPR1[23], RM p. 1262), presumably the TZC-380's `secure_boot_lock`
   input: what it locks needs the TZC-380 TRM (DDI0431), which isn't on the share.
 
@@ -179,7 +181,7 @@ Where each port is (2026-11-10).
 | `plat_get_boot_reason()` | no | no | no | no | F-236 |
 | `plat_init()` errors only for command mode | yes | yes | yes | partly | F-235 |
 | `plat_get_status()` | no | no | no | no | F-248 |
-| TrustZone filter | partly | no | n/a (BL31) | n/a | F-241, F-208 |
+| TrustZone filter | partly | yes | n/a (BL31) | n/a | F-241, F-208 |
 | `plat_lockdown()` | yes | yes (nothing yet) | unchecked | unchecked | F-244 |
 | Bus access control | no (AIPS-TZ) | n/a (BL31) | n/a (BL31) | n/a | F-246 |
 | `plat_rot`, `plat_slc` | no | no (no HAB) | no | no | F-247 |
