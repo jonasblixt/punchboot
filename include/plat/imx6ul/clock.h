@@ -159,6 +159,7 @@
 #define CCM_CCGR4_PWM1                  CG8
 
 #define IMX6UL_CCM_CCGR5                (0x020C407C)
+#define CCM_CCGR5_WDOG2                 CG5
 
 #define IMX6UL_CCM_CCGR6                (0x020C4080)
 #define CCM_CCGR6_PWM7                  CG15

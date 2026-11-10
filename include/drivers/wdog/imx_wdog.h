@@ -37,8 +37,20 @@
 #define WDOG_WRSR_TOUT BIT(1) /* ... a timeout */
 #define WDOG_WRSR_POR  BIT(4) /* ... a power on reset */
 
+#define WDOG_WMCR_PDE  BIT(0) /* The power-down counter runs */
+
 int imx_wdog_init(uintptr_t base, unsigned int delay_s);
 int imx_wdog_kick(void);
 int imx_wdog_reset_now(void);
+
+/**
+ * Stop a WDOG's power-down counter. It runs out of every reset and drives
+ * WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3), whether
+ * the watchdog is used or not, so the platform does it for each of its WDOGs.
+ * Their clocks must be on.
+ *
+ * @param[in] wdog_base The WDOG's base address
+ */
+void imx_wdog_disable_powerdown(uintptr_t wdog_base);
 
 #endif // INCLUDE_DRIVERS_IMX_WDOG_H

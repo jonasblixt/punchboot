@@ -471,11 +471,12 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | shadow write refused (HAB had locked field return and SCS already). A watchdog reset clears the locks, | | |
 | | | revocation still works after a reboot. Open: the 8X (SECO) and RT, unchecked; the 8M once it has HAB | | |
 | | | (`plat-imx.md` 4.3) | | |
-| F-245 | `drivers/wdog/imx_wdog.c` | Each WDOG's power-down counter runs out of every | Verified (code, RM) | open |
-| | | reset and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3). pb clears it for WDOG1 | | |
-| | | only, only with `CONFIG_ENABLE_WATCHDOG` (`imx_wdog_init()`); U-Boot clears WDOG1-3 on the 6UL and 8M. A | | |
-| | | board with WDOG2/3_B (or WDOG1_B without the option) on a pad to the PMIC resets after 16 s. Fix: clear | | |
-| | | them all in `plat_early_init()` (`platform.md` 2.1). The RT unchecked | | |
+| F-245 | `drivers/wdog/imx_wdog.c` | Each WDOG's power-down counter runs out of | Verified (on jiffy) | fixed (6UL) |
+| | | every reset and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3). pb cleared it for | | |
+| | | WDOG1 only, only with `CONFIG_ENABLE_WATCHDOG` (`imx_wdog_init()`); U-Boot clears WDOG1-3 on the 6UL and | | |
+| | | 8M. A board with a WDOG_B on a pad to the PMIC resets after 16 s. Fixed on the 6UL: | | |
+| | | `imx_wdog_disable_powerdown()` for WDOG1-3 in `plat_early_init()`; on jiffy all three enter pb with PDE set | | |
+| | | (the ROM clears none) and read 0 after. Open: the 8M, the RT unchecked | | |
 | F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL RM | Reported (RM) | open |
 | | | (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 (supervisor | | |
 | | | only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code read | | |
