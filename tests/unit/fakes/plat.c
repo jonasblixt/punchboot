@@ -16,6 +16,8 @@
 unsigned int fake_us_tick = FAKE_US_TICK_DEFAULT;
 unsigned int fake_us_tick_step;
 unsigned int fake_wdog_kicks;
+unsigned int fake_lockdown_calls;
+int fake_lockdown_rc;
 
 unsigned int plat_get_us_tick(void)
 {
@@ -28,4 +30,10 @@ unsigned int plat_get_us_tick(void)
 void plat_wdog_kick(void)
 {
     fake_wdog_kicks++;
+}
+
+int plat_lockdown(void)
+{
+    fake_lockdown_calls++;
+    return fake_lockdown_rc;
 }

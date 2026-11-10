@@ -208,3 +208,10 @@ int plat_get_boot_source(struct pb_boot_source *src)
     (void)src;
     return -PB_ERR_NOT_SUPPORTED;
 }
+
+int plat_lockdown(void)
+{
+    /* Nothing yet: pb's image isn't HAB signed here, no CSF unlocks
+     * revocation; the OCOTP's locks are unchecked (F-244) */
+    return PB_OK;
+}

@@ -128,4 +128,15 @@ int plat_get_unique_id(uint8_t *output, size_t *length);
  */
 int plat_get_boot_source(struct pb_boot_source *src);
 
+/**
+ * Lock, until the next reset, what only pb may change: key revocation, the
+ * fuses that reopen a closed device, the controls the SoC can lock for the
+ * boot's lifetime. Called by the core right before the jump, after the last
+ * moment command mode could use them. A platform with nothing to lock
+ * returns PB_OK (doc/dev/platform.md 4.4).
+ *
+ * @return PB_OK, or a negative number: the boot doesn't jump
+ */
+int plat_lockdown(void);
+
 #endif // INCLUDE_PB_PLAT_H_

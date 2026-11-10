@@ -106,13 +106,20 @@ SoC facts for the driver:
 
 ### 4.3 Lockdown before the jump
 
-The OCOTP's SW_STICKY register locks fuse areas until a power-on reset: SRK_REVOKE_LOCK and
-FIELD_RETURN_LOCK (6UL RM 35.5.6), and the SCS register has a lock bit (35.5.7). jiffy's CSF
-(`src/plat/imx6ul/pb.csf.template`) unlocks SRKREVOKE so that pb can revoke keys, and CAAM's MID
-for OP-TEE: nothing locks revocation again before the jump, so the next stage can revoke keys too
-(F-244). NXP's U-Boot (`secure_lockup()`, i.MX8MQ, SPL, closed devices) sets SW_STICKY's field
-return and SRK revoke locks and locks SCS. The 8MP's OCOTP registers aren't in its public RM. The
-8X (SECO) and the RT: unchecked.
+The OCOTP's SW_STICKY register locks fuse areas, their shadow registers included, "unless a POR is
+issued": SRK_REVOKE_LOCK and FIELD_RETURN_LOCK (6UL RM 35.5.6); the SCS register has a lock bit
+(35.5.7). jiffy's CSF (`src/plat/imx6ul/pb.csf.template`) unlocks SRKREVOKE so that pb can revoke
+keys, and CAAM's MID for OP-TEE.
+
+- **i.MX6UL**: `plat_lockdown()` sets both SW_STICKY locks and SCS's (F-244). Seen on jiffy
+  (closed, 2026-11-10): before pb runs SW_STICKY is 0x1c (HAB locked field return, bits 3 and 4
+  are reserved) and SCS 0x80000000 (HAB locked it); the SRK_REVOKE shadow takes a write. After
+  `plat_lockdown()` SW_STICKY is 0x1e and the shadow write is refused. A watchdog reset (Linux's
+  `reboot`) clears SW_STICKY, so command mode can revoke keys after a reboot, and HAB still boots.
+- **i.MX8M**: nothing locked yet; pb doesn't support its HAB (D-027) and its CSF leaves revocation
+  locked. NXP's U-Boot (`secure_lockup()`, i.MX8MQ, SPL, closed devices) sets SW_STICKY's field
+  return and SRK revoke locks and locks SCS. The 8MP's OCOTP registers aren't in its public RM.
+- **i.MX8X** (SECO) and **i.MX RT**: unchecked.
 
 ### 4.4 Other first-stage duties
 
@@ -173,7 +180,7 @@ Where each port is (2026-11-10).
 | `plat_init()` errors only for command mode | yes | yes | yes | partly | F-235 |
 | `plat_get_status()` | no | no | no | no | F-248 |
 | TrustZone filter | partly | no | n/a (BL31) | n/a | F-241, F-208 |
-| `plat_lockdown()` | no | no | unchecked | unchecked | F-244 |
+| `plat_lockdown()` | yes | yes (nothing yet) | unchecked | unchecked | F-244 |
 | Bus access control | no (AIPS-TZ) | n/a (BL31) | n/a (BL31) | n/a | F-246 |
 | `plat_rot`, `plat_slc` | no | no (no HAB) | no | no | F-247 |
 | Crypto engine and RNG in `plat_init()` | no | no | no | yes | F-247 |
