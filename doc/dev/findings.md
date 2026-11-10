@@ -332,8 +332,14 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-207 | `src/arch/*/entry*` | The D-cache is enabled without invalidating it first (v7a, v7m, | Reported | open |
 | | | v8a). The 6UL and RT ROMs use the caches and only disable them (RMs 8.4.4, 9.5.4); a stale valid line | | |
 | | | would serve old data. Plausible, jiffy works. Invalidate by set/way before enabling. | | |
-| F-208 | `src/plat/imx8m/plat.c` | The 8M never enables its TZASC while `boot/atf.c` supports a | Reported | open |
-| | | BL32: the normal world could read secure DRAM (the 8M's F-096). TF-A's behaviour not checked. | | |
+| F-208 | `src/plat/imx8m/plat.c` | The 8M never enables its TZASC while `boot/atf.c` | Verified (TF-A v2.12) | open |
+| | | supports a BL32: the normal world could read secure DRAM (the 8M's F-096). TF-A doesn't enable it either: | | |
+| | | `bl31_tzc380_setup()` returns when GPR10's TZASC_EN is clear, and otherwise opens region 0. OP-TEE panics, | | |
+| | | unless built insecure, when TZASC_EN, ID_SWAP_BYPASS or the TZASC_EN lock is clear, and when region 0 isn't | | |
+| | | secure only (aliases). U-Boot's SPL (`enable_tzc380()`, before `spl_dram_init()`) sets the bits and both | | |
+| | | locks and opens region 0 for the DWC3. Fix (`plat-imx.md` 4.2): the bits and locks before | | |
+| | | `imx8m_ddr_init()`, DRAM in region 1, region 0 left secure. The 8MP RM (4.9.1.2) also asks for a | | |
+| | | TZASC_ENABLE fuse; never write fuses on the 8MP EVK: try GPR10 alone, check with OP-TEE and devmem | | |
 | F-209 | `src/link.lds:60-67` | The stack is directly above `.keystore_key`; on the RT1060 (no | Reported | open |
 | | | MPU region, 4 KiB stack, software ECDSA) an overflow rewrites a root-of-trust key silently. | | |
 | | | `.vector_handlers` is an orphan section placed after `_code_end`, outside the overlap check (F-157). | | |
@@ -417,6 +423,72 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | a changelog, SECURITY.md. `arch-firmware.md` predates D-026 and has nothing on storage, USB, memory | | |
 | | | layout or exceptions; `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
 | | | step 4. | | |
+| F-233 | `plat/imx8x/plat.c` | `imx8x_wdog_init()`: Without `CONFIG_ENABLE_WATCHDOG` the | Verified (code) | open |
+| | | function has no `return`: `wdog_rc` is undefined, `plat_init()` may log a failed watchdog. | | |
+| F-234 | `drivers/wdog/imx_wdog.c` | Also `src/plat/{imx6ul,imx8m,imxrt}/plat.c`: `base` is | Verified (code) | open |
+| | | 0 until `imx_wdog_init()`. `plat_reset()` (`imx_wdog_reset_now()`) and `plat_wdog_kick()` write to address | | |
+| | | 0 without `CONFIG_ENABLE_WATCHDOG`, and `plat_reset()` from an exception before `plat_early_init()` doesn't | | |
+| | | reset. Every defconfig enables the watchdog today. The base is a constant: set it, arm on the option | | |
+| | | (`platform.md` 3) | | |
+| F-235 | `src/main.c` | After a failed `plat_early_init()` or `plat_init()` command mode | Verified (code) | open |
+| | | runs without what it needs: no console or tick, no MMU, no fuses, on the 8M the buffers in untrained DRAM | | |
+| | | (F-202). `platform.md` 2: reset. The RT's `plat_init()` also returns `mbedtls_pb_init()`'s error | | |
+| F-236 | `plat_boot_reason` | `src/plat/*/plat.c`: No common meaning: the 6UL's own enum, | Verified (code) | open |
+| | | the 8X's SCFW value, the RT's raw WRSR bitmask (several bits set: "?"), the 8M not implemented, the host 0. | | |
+| | | `platform.md` 3: `plat_get_boot_reason()` with a kind, the raw value and a name | | |
+| F-237 | `include/pb/plat.h` | Also `src/device_uuid.c`: `plat_get_us_tick()` is | Verified (code) | open |
+| | | `unsigned int` in the header, `uint32_t` in three ports. `plat_reset()` isn't `noreturn`. | | |
+| | | `platform_ns_uuid` is only picked up with `extern` in `device_uuid.c`, and nothing says it must never | | |
+| | | change (`platform.md` 3.6) | | |
+| F-238 | `plat/{imx8m,imxrt}/plat.c` | The tick and `log_time_start()` are set up in | Verified (code) | open |
+| | | `plat_init()`, after `board.console_init()`: before it there is no `pb_delay_*()` and the log time is 0. | | |
+| | | The 6UL and the 8X do it in `plat_early_init()` | | |
+| F-239 | link scripts | `PB_ENTRY` repeated as a constant in | Verified (code) | open |
+| | | `src/plat/{imx6ul,imx8x}/link.lds` and `src/board/imxrt1060evk/link.lds` (0x80001000, 0x80020000, | | |
+| | | 0x20249000); the RT's `MEMORY` is in its board. `buffers` fixed in the platforms, `BOARD_RAM_*` only `-D` | | |
+| | | flags, `PB_RAM_LENGTH` set by hand although it follows from the ROM's load window and `PB_ENTRY`. Nothing | | |
+| | | checks at link time that pb is where the ROM may load it, `buffers` in working memory, or that they don't | | |
+| | | overlap. `platform.md` 5.1: Kconfig values, `BOARD_DRAM_*`, the `pb` region, `ASSERT`s | | |
+| F-240 | `src/board/*/makefile.mk` | The SoC's packaging and signing are in the boards: | Verified (code) | open |
+| | | jiffy holds the 6UL CSF recipe (IVT at `PB_ENTRY - 0xC00`, uuu's 0x00910000), the MEK and DXL repeat the 8X | | |
+| | | recipe. `FINAL_OUTPUT` is set with `$(eval)` in recipes. Signing inputs are Kconfig on the 6UL, make | | |
+| | | variables on the 8X. `platform.md` 6.2 | | |
+| F-241 | `plat/imx6ul/plat.c` | `tzasc_init()`: A failure is only logged: nothing tells | Verified (code, RM) | open |
+| | | the boot driver that the TZASC is bypassed. Region 1 gets the physical DDR base, while 6UL RM 52.3 says the | | |
+| | | TZASC sees the DDR controller's "local addresses": check with OP-TEE that its memory is protected. GPR9 has | | |
+| | | no lock bit (RM p. 1277), so the secure OS's CSU policy decides whether the normal world can bypass it; the | | |
+| | | TZASC_ENABLE fuse (RM p. 209) makes the ROM enable it. GPR1 TZASC1_BOOT_LOCK unread (TZC-380 TRM, DDI0431, | | |
+| | | not on the share) | | |
+| F-242 | `src/arch` | `src/arch/armv8a/Kconfig`, `src/arch/{armv7a,armv8a}/asm_macros.S`: | Reported | open |
+| | | Leftovers: the Kconfig help mentions sunxi FEL (no sunxi platform), a TF-A stack macro calls | | |
+| | | `plat_my_core_pos`, which no platform defines (the macro seems unused) | | |
+| F-243 | `image_helpers.c` | `load_and_hash()`: The boot path never kicks the watchdog, | Verified (code) | open |
+| | | only command mode does: loading and verifying must fit in `CONFIG_WATCHDOG_TIMEOUT` (5 s) from arming. | | |
+| | | `platform.md` 3: kick once per chunk and before the jump, never in `pb_delay`/`pb_timeout` | | |
+| F-244 | `plat/imx6ul/pb.csf.template` | On a closed 6UL nothing locks SRK revocation | Verified (code, RM) | open |
+| | | before the jump: the CSF unlocks SRKREVOKE so that pb can revoke keys, and pb never sets OCOTP_SW_STICKY's | | |
+| | | SRK_REVOKE_LOCK (6UL RM 35.5.6), so the next stage can revoke the SRKs too; FIELD_RETURN_LOCK and the SCS | | |
+| | | lock aren't set either. Whether Linux reaches the OCOTP depends on the CSU (OP-TEE's 6UL table protects | | |
+| | | ROMCP, TZASC and OCRAM). NXP's U-Boot locks both and SCS on closed 8MQs (`secure_lockup()`). Fix: | | |
+| | | `plat_lockdown()` before the jump (`platform.md` 4.4). The 8M, 8X and RT unchecked | | |
+| F-245 | `drivers/wdog/imx_wdog.c` | Each WDOG's power-down counter runs out of every | Verified (code, RM) | open |
+| | | reset and drives WDOG_B low after 16 s unless WMCR.PDE is cleared (6UL RM 57.5.3). pb clears it for WDOG1 | | |
+| | | only, only with `CONFIG_ENABLE_WATCHDOG` (`imx_wdog_init()`); U-Boot clears WDOG1-3 on the 6UL and 8M. A | | |
+| | | board with WDOG2/3_B (or WDOG1_B without the option) on a pad to the PMIC resets after 16 s. Fix: clear | | |
+| | | them all in `plat_early_init()` (`platform.md` 2.1). The RT unchecked | | |
+| F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL RM | Reported (RM) | open |
+| | | (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 (supervisor | | |
+| | | only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code read | | |
+| | | doesn't. Check on jiffy what Linux misses (user-mode or DMA access to peripherals), then set them in | | |
+| | | `plat_init()` (`platform.md` 4.5) | | |
+| F-247 | `src/board/*/board.c` | The boards wire the SoC's RoT and SLC functions | Verified (code) | open |
+| | | (`board.rot`, the `slc_config` callbacks) and set up the crypto engine and its RNG (`imx_caam_init()`, the | | |
+| | | RNG4 instantiation), while the RT's `plat_init()` sets up mbedtls. D-030: `plat_rot`, `plat_slc` and the | | |
+| | | crypto engine in `plat_init()` behind a Kconfig option (`platform.md` 2.2, 4.1, 4.2) | | |
+| F-248 | `src/boot/boot.c`, `src/plat/*/plat.c` | A failed security precondition only logs | Verified (code) | open |
+| | | and the boot goes on: a bypassed 6UL TZASC (`tzasc_init()`), an 8X watchdog that didn't arm. Nothing | | |
+| | | records them for the boot or command mode. `platform.md` 2.3: `plat_get_status()`, checked by `boot()`, no | | |
+| | | silent boot; the policy is open (Jonas) | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
