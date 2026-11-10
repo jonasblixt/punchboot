@@ -23,5 +23,8 @@ extern unsigned int fake_wdog_kicks;
  * A test that measures the stretch sets both first. */
 extern unsigned int fake_wdog_kick_tick;
 extern unsigned int fake_wdog_max_gap_us;
+/* Number of plat_lockdown() calls, and what it returns */
+extern unsigned int fake_lockdown_calls;
+extern int fake_lockdown_rc;
 
 #endif // TESTS_UNIT_FAKES_PLAT_H

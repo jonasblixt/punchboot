@@ -10,6 +10,8 @@
 #ifndef INCLUDE_DRIVERS_FUSE_IMX_OCOTP_H
 #define INCLUDE_DRIVERS_FUSE_IMX_OCOTP_H
 
+#include <pb/utils_def.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #define OCOTP_CTRL           0x0000
@@ -17,6 +19,9 @@
 #define OCOTP_DATA           0x0020
 #define OCOTP_READ_CTRL      0x0030
 #define OCOTP_READ_FUSE_DATA 0x0040
+#define OCOTP_SW_STICKY      0x0050
+#define OCOTP_SCS            0x0060
+#define OCOTP_SCS_SET        0x0064
 
 /* Control register */
 #define OCOTP_CTRL_BUSY      (1 << 8)
@@ -41,5 +46,23 @@ int imx_ocotp_write(uint32_t bank, uint32_t row, uint32_t value);
 /* By index, bank * words_per_bank + row: slc_config's fuse_read, fuse_write */
 int imx_ocotp_fuse_read(uint32_t index, uint32_t *value);
 int imx_ocotp_fuse_write(uint32_t index, uint32_t value);
+
+/* SW_STICKY: write locks, fuses and shadow registers (6UL RM 35.5.6) */
+#define OCOTP_SW_STICKY_SRK_REVOKE_LOCK   BIT(1)
+#define OCOTP_SW_STICKY_FIELD_RETURN_LOCK BIT(2)
+
+/* SCS: HAB_JDE (bit 0) enables JTAG, LOCK locks the register (6UL RM 35.5.7) */
+#define OCOTP_SCS_LOCK                    BIT(31)
+
+/**
+ * Lock the SW_STICKY bits in sw_sticky, and with lock_scs the SCS register.
+ * Neither can be unlocked again until a reset (the RM says a power-on reset;
+ * on jiffy a watchdog reset clears them too), so this is for right before the
+ * jump. Read back.
+ *
+ * @return PB_OK, -PB_ERR_STATE before imx_ocotp_init(), -PB_ERR_IO when a
+ *         lock didn't hold
+ */
+int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs);
 
 #endif // INCLUDE_DRIVERS_FUSE_IMX_OCOTP_H

@@ -25,6 +25,8 @@
 #define SRC_SCR_WARM_RESET_ENABLE BIT(0)
 
 #define IMX6UL_WDOG1_BASE         (0x020BC000)
+#define IMX6UL_WDOG2_BASE         (0x020C0000)
+#define IMX6UL_WDOG3_BASE         (0x021E4000)
 #define IMX6UL_GPT1_BASE          (0x02098000)
 
 #define IMX6UL_SRC_SRSR           (0x020D8008)

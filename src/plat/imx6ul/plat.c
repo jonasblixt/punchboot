@@ -173,7 +173,7 @@ int plat_get_unique_id(uint8_t *output, size_t *length)
 
 void plat_reset(void)
 {
-    imx_wdog_reset_now();
+    imx_wdog_reset_now(IMX6UL_WDOG1_BASE);
 }
 
 uint32_t plat_get_us_tick(void)
@@ -183,7 +183,7 @@ uint32_t plat_get_us_tick(void)
 
 void plat_wdog_kick(void)
 {
-    imx_wdog_kick();
+    imx_wdog_kick(IMX6UL_WDOG1_BASE);
 }
 
 static int plat_mmu_init(void)
@@ -288,6 +288,14 @@ int plat_early_init(void)
     if (imx_rom_log_has_event(IMX_ROM_LOG_V0_SERIAL_DOWNLOAD))
         save_rom_usb_state();
 
+    /* The WDOGs' power-down counters, whether the watchdog is used or not */
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR3, 0, CCM_CCGR3_WDOG1);
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR5, 0, CCM_CCGR5_WDOG2);
+    mmio_clrsetbits_32(IMX6UL_CCM_CCGR6, 0, CCM_CCGR6_WDOG3);
+    imx_wdog_disable_powerdown(IMX6UL_WDOG1_BASE);
+    imx_wdog_disable_powerdown(IMX6UL_WDOG2_BASE);
+    imx_wdog_disable_powerdown(IMX6UL_WDOG3_BASE);
+
     /* Unmask wdog in SRC control reg */
     mmio_clrsetbits_32(IMX6UL_SRC_SCR,
                        SRC_SCR_MASK_WDOG_RST_MASK | SRC_SCR_WARM_RESET_ENABLE,
@@ -382,7 +390,7 @@ int plat_init(void)
     LOG_INFO("uSDHC1 clk: %u MHz", plat.usdhc1_clk_MHz);
     LOG_INFO("uSDHC2 clk: %u MHz", plat.usdhc2_clk_MHz);
 
-    imx_wdog_kick();
+    imx_wdog_kick(IMX6UL_WDOG1_BASE);
     plat_mmu_init();
 
     /* Not fatal: without board_setup() command mode can't be used to recover */
@@ -432,4 +440,19 @@ int plat_get_boot_source(struct pb_boot_source *src)
 #endif
 
     return PB_OK;
+}
+
+int plat_lockdown(void)
+{
+    /*
+     * The CSF unlocks SRK revocation for pb's command mode (pb.csf.template),
+     * so lock it again before the next stage runs (RM 35.5.6). SCS holds
+     * HAB_JDE, which enables JTAG, and the RM (35.5.7) asks for it to be
+     * locked before the OS runs. On a closed jiffy HAB has locked field
+     * return and SCS already; locking them again costs nothing. The locks
+     * hold until the next reset: a watchdog reset clears them too, so pb's
+     * command mode can revoke keys after a reboot.
+     */
+    return imx_ocotp_lock(OCOTP_SW_STICKY_SRK_REVOKE_LOCK | OCOTP_SW_STICKY_FIELD_RETURN_LOCK,
+                          true);
 }

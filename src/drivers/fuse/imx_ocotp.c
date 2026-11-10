@@ -141,3 +141,26 @@ int imx_ocotp_fuse_write(uint32_t index, uint32_t value)
 {
     return imx_ocotp_write(0, index, value);
 }
+
+int imx_ocotp_lock(uint32_t sw_sticky, bool lock_scs)
+{
+    if (base == 0)
+        return -PB_ERR_STATE;
+
+    mmio_clrsetbits_32(base + OCOTP_SW_STICKY, 0, sw_sticky);
+
+    if (lock_scs)
+        mmio_write_32(base + OCOTP_SCS_SET, OCOTP_SCS_LOCK);
+
+    if ((mmio_read_32(base + OCOTP_SW_STICKY) & sw_sticky) != sw_sticky) {
+        LOG_ERR("SW_STICKY %08" PRIx32 " didn't lock", mmio_read_32(base + OCOTP_SW_STICKY));
+        return -PB_ERR_IO;
+    }
+
+    if (lock_scs && !(mmio_read_32(base + OCOTP_SCS) & OCOTP_SCS_LOCK)) {
+        LOG_ERR("SCS %08" PRIx32 " didn't lock", mmio_read_32(base + OCOTP_SCS));
+        return -PB_ERR_IO;
+    }
+
+    return PB_OK;
+}
