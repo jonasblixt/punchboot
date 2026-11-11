@@ -1,6 +1,7 @@
 # The boot flow contract
 
-**State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041, D-043.** Level 2 (`process.md`).
+**State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041, D-043, D-044.** Level 2
+(`process.md`).
 
 No open items. The draft's seventeen, as decided and written into the text:
 
@@ -14,11 +15,11 @@ No open items. The draft's seventeen, as decided and written into the text:
 | 5 | `boot part` takes only the policy's candidates, with every policy (6) | D-039 |
 | 6 | pb's structure's fields, with room for 16 keys (5.4); the Kconfig names (3.5, 3.6, 5.4) | Jonas, D-040 |
 | | pb's status: a string list in the DT, bit flags in pb's structure (5.6) | Jonas, D-041 |
-| 7 | An image with a `dont-hash` part is refused (4.2) | Jonas, D-035 |
+| 7 | An image with a part outside the hash is refused (4.2) | Jonas, D-035 |
 | 8 | `boot status` stays "the enabled slot" for A/B (3.4) | Level 1, D-038 |
 | 9 | Speculative mode also starts when this boot's failures leave no candidate (3.6) | Jonas, D-039 |
 | 10 | In place: the header in the partition's last 4 KiB or where the board says; a part is | Jonas, D-039, |
-| | at its `pb-load-addr`, inside the candidate's mapped range (4.1) | D-040 |
+| | at its load address, inside the candidate's mapped range (4.1) | D-040 |
 | 11 | The custom source is removed (4.1) | Jonas, D-035 |
 | 12 | A trial whose attempt can't be written is started only when no verified slot is left | Jonas, D-040 |
 | | (3.2) | |
@@ -28,7 +29,8 @@ No open items. The draft's seventeen, as decided and written into the text:
 | 16 | `linux,initrd-*` stay 32 bits where both addresses fit (5.2) | Level 1, D-038 |
 | 17 | The preconditions are checked before `early_boot()` (2) | D-039 |
 
-From Jonas's final read: pb's status stays and pb's version joins pb's information (5.6, D-043).
+From Jonas's final read: pb's status stays and pb's version joins pb's information (5.6, D-043);
+the flow is written for any image format, and names bpak only in 4.4 (D-044).
 
 What pb does from `boot()` to the jump: which partition it boots (the boot source policy), how it
 loads and verifies the image, and what it hands the next stage (the handover). For each step:
@@ -56,13 +58,15 @@ finding removes the marker.
 | Delivery           | How the handover reaches the next stage: directly (`arch_jump()`) or through TF-A,       |
 |                    | whose BL31 pb starts and which passes the handover on to BL33                            |
 
-Not here: the platform's and the board's parts (`platform.md`, `board.md`), the bpak format
-(`bpak.md`), the wire (`compatibility.md`), the security life cycle and the RoT (D-027).
+Not here: the platform's and the board's parts (`platform.md`, `board.md`), an image format's
+own layout (bpak's: `bpak.md`), the wire (`compatibility.md`), the security life cycle and the RoT
+(D-027).
 
 The rules this flow implements are level 1's: what may run and in which state (`security.md` 4),
-what pb promises the next stage and the OS (`system.md` 3 to 5). The image format is bpak today;
-the flow needs a signed header that names parts and where they load, and says "the header" where
-it doesn't depend on more, so that another format can come next to bpak (`system.md` 3).
+what pb promises the next stage and the OS (`system.md` 3 to 5). The flow is written for any image
+format that gives it what 4.4 lists: "the header", "a part" and "its load address" are the
+format's, whichever it is. The one format today is named only in 4.4, and where a command carries
+its name (`boot bpak`), so that another format can come next to it (`system.md` 3, D-044).
 
 Standards it leans on (`principles.md` 5): the Linux boot protocol
 (`Documentation/arch/arm/booting.rst`, `arm64/booting.rst`), which Xen follows too (xenbits,
@@ -276,12 +280,13 @@ goes), the other policies in `pbstate`, the fixes of the A/B review.
 
 ### 4.1 Sources
 
-| Source      | Used by                                  | What                                                         |
-| ----------- | ---------------------------------------- | ------------------------------------------------------------ |
-| Partition   | The policies, `boot part`                | A bio partition, the bpak header in its last 4 KiB           |
-| Host stream | `boot bpak`                              | Command mode reads the header, then the parts, from the host |
-| In place    | Boards that run from memory mapped flash | A partition mapped at an address: the image is               |
-|             |                                          | verified where it is and runs there                          |
+| Source      | Used by                                  | What                                                      |
+| ----------- | ---------------------------------------- | --------------------------------------------------------- |
+| Partition   | The policies, `boot part`                | A bio partition, the header where the format has it (4.4) |
+| Host stream | `boot bpak`                              | Command mode reads the header, then the parts, from the   |
+|             |                                          | host                                                      |
+| In place    | Boards that run from memory mapped flash | A partition mapped at an address: the image is            |
+|             |                                          | verified where it is and runs there                       |
 
 **Not yet in the code (F-253, F-219)**: the board can't select the in place source since D-026,
 and the generic handover jumps to another address than the one that was hashed. The in place
@@ -290,28 +295,25 @@ out.
 
 The in place source's rules:
 
-- Nothing is copied. A part is at its `pb-load-addr`, as in released pb: it is hashed there and
-  the entry is there, never at another address (`security.md` 4.2). For code that runs in place
-  the meta is the address the part was linked for, so the image has it anyway.
+- Nothing is copied. A part is at its load address (4.4), as in released pb: it is hashed there
+  and the entry is there, never at another address (`security.md` 4.2). For code that runs in
+  place that is the address the part was linked for, so the image has it anyway.
 - Placement (4.3): the candidate's mapped range, without the header, is the allowed memory for
   its parts. An image for slot A that was written to slot B is therefore refused as a candidate,
   not started. The handover's own memory (the Firmware Handoff region) is in RAM as always.
-- The header is in the partition's last 4 KiB, read through the map, as for a partition that is
-  loaded; or where the board says, as in released pb (`get_in_mem_image()`).
-- Every image released pb accepted has its parts at their `pb-load-addr`, so none is refused.
+- The header is where the format has it in a partition (4.4), read through the map, as for a
+  partition that is loaded; or where the board says, as in released pb (`get_in_mem_image()`).
+- Every image released pb accepted has its parts at their load address, so none is refused.
 
 ### 4.2 The sequence
 
-1. Read the header; it is valid bpak (`bpak_valid_header()`).
-Jonas: This needs to be generalized a bit more. It's fine to use bpak as example of _one_ format, but
-I do plan to support another format as well. I would prefer if this is written in amore generic fashion
-not mentioning bpak
+The same steps for every image format; what a step reads from the image is the format's (4.4).
 
-2. The key it names (`key_id`) is in the keystore and not revoked (`rot_read_key_status()`). The
-   header's `keystore_id` is logged and not compared: pb has one keystore, and a check added now
-   could refuse images that boot today (D-008).
+1. Read the header from where the format has it in the source. It is a valid header of a format
+   this build accepts (the format's own check).
+2. The key it names is in the keystore and not revoked (`rot_read_key_status()`).
 3. The header's signature verifies with that key (`boot_image_auth_header()`).
-4. Every part has a `pb-load-addr`, lies inside its source (the partition without the header) and
+4. Every part has a load address, lies inside its source (the partition without the header) and
    lands in allowed memory (4.3).
 5. Load and hash each part, chunk by chunk, kicking the watchdog per chunk. **Not yet in the code
    (F-243)**: no kick on the boot path.
@@ -322,12 +324,11 @@ not mentioning bpak
 Unverified bytes reach memory in 5, before 6: that is why 4 comes first. Nothing runs, and nothing
 is patched, before 6.
 
-An image with a part outside the hash (bpak's `dont-hash` flag, `BPAK_FLAG_EXCLUDE_FROM_HASH`)
-is refused in step 4, before anything is loaded (D-035, `security.md` 4.2). The flag is for content
-verified at run time, such as a file system under a hash tree whose root hash is signed; pb doesn't
-boot such content, and loading it would leave bytes nothing authenticated in the next stage's
-memory. **Not yet in the code (F-076)**: today such an image fails on its payload hash, so none
-that booted is refused.
+An image with a part outside the payload's hash is refused in step 4, before anything is loaded
+(D-035, `security.md` 4.2). A format may allow such a part (4.4) for content verified at run time,
+such as a file system under a hash tree whose root hash is signed; pb doesn't boot such content,
+and loading it would leave bytes nothing authenticated in the next stage's memory. **Not yet in
+the code (F-076)**: today such an image fails on its payload hash, so none that booted is refused.
 
 ### 4.3 Placement
 
@@ -339,6 +340,38 @@ RAM, TCM), and overlaps none of: pb's sections (all of them, the keystore and th
 another part, and what a handover writes outside the parts: the Firmware Handoff region (5.4) and
 TF-A's `bl_params` where the platform puts them (5.3). Address ranges that wrap are refused. A load
 address the arch can't hold (above 4 GiB on a 32-bit arch) is refused. The in place source: 4.1.
+
+### 4.4 The image format
+
+The flow doesn't depend on one image format (D-044). It needs what the table lists from a format,
+and nothing else of it. bpak is the one format today (`bpak.md`); another comes next to it and
+gives the same, and every bpak image a released pb accepted stays accepted (D-008, `system.md` 3).
+
+| The flow needs | bpak |
+|---|---|
+| A header of a bounded size, at a place the source alone gives, | `struct bpak_header`, 4 KiB: a partition's last |
+| and a check of it that relies on nothing in the image | 4 KiB, first in the host's stream; |
+| | `bpak_valid_header()` |
+| The id of the key that signed it | `key_id`. `keystore_id` is logged and not |
+| | compared: pb has one keystore, and a check added |
+| | now could refuse images that boot today (D-008) |
+| A signature over the header, and the hash it is made with | In the header, zeroed while the header is hashed; |
+| | `hash_kind`: SHA-256, SHA-384 or SHA-512 |
+| The parts: for each an id, where it is in the source, its size | The part headers; the load address is the part's |
+| and its load address | `pb-load-addr` meta |
+| One hash over the bytes of the parts, in the signed header | `payload_hash`. A part with the `dont-hash` flag |
+| | (`BPAK_FLAG_EXCLUDE_FROM_HASH`) is outside it: |
+| | refused (4.2) |
+| Signed attributes of the image, for a handover | Metas: `optee-arch` (5.3) |
+
+- A format's code reads and checks its own layout, and answers the table's questions. The steps
+  of 4.2, placement (4.3) and the handovers are the core's, the same for every format: a format
+  adds no step and skips none.
+- The signature's algorithm is the key's (the keystore), not the format's.
+- Today the core reads bpak's header directly (`image_helpers.c`, `boot.c`, the handovers). The
+  format's interface in the code comes with the second format, and with it what the format
+  changes outside this table: the part ids a board names (`board.md` 2.7), the host's command,
+  whether one build accepts several formats (`roadmap.md`).
 
 ## 5. Handovers
 
@@ -359,7 +392,8 @@ Firmware Handoff (5.4), and two deliveries:
 One handover and one delivery per board, chosen by its configuration (`board.md` 2.7), not by the
 image: the same parts mean different things on different boards today (the DXL's `atf` is started
 directly, as an image, the MEK's through `bl_params`), so letting the image choose would change
-what old images do (D-008). A signed meta that chooses can come later, opt in.
+what old images do (D-008). A signed attribute of the image (4.4) that chooses can come later,
+opt in.
 
 ### 5.2 Handover : image (Linux, Xen) [optional, CONFIG_BOOT_LINUX]
 
@@ -394,9 +428,9 @@ x3 = 0. `bl_params` hold:
   the board's handover: image (Linux, Xen) or Firmware Handoff. **Not yet in the code (F-258)**:
   Linux's only.
 - **BL32** (optional): OP-TEE's convention, as TF-A's opteed reads it. arg0 = OP-TEE's execution
-  state as TF-A encodes it (`MODE_RW_64` or `MODE_RW_32`), from the `optee-arch` meta (64 or 32;
-  64 without the meta). arg1 = 0 (no pageable part), arg2 = 0 (no memory limit), arg3 = the DT
-  BL33 gets, or 0 without one. Others can be added.
+  state as TF-A encodes it (`MODE_RW_64` or `MODE_RW_32`), from the image's attribute for it
+  (4.4: 64 or 32; 64 without it). arg1 = 0 (no pageable part), arg2 = 0 (no memory limit),
+  arg3 = the DT BL33 gets, or 0 without one. Others can be added.
 
 Where `bl_params` may live is the platform's to say (NXP's i.MX8M BL31 takes them only from low
 OCRAM). **Not yet in the code (F-258)**: `atf.c` puts them in `.data` for it. The DXL moves to this
@@ -574,6 +608,7 @@ Like the wire (D-008, `compatibility.md`):
 - [ ] A policy writes its state before the load, and only what its decision changed; a trial
       whose attempt can't be written is started only when no verified slot is left.
 - [ ] Every candidate goes through 4.2 and 4.3, and every byte pb loads is hashed.
+- [ ] The flow names no image format: what it reads from an image is in 4.4's table.
 - [ ] Placement is the allow list of 4.3, also for what a handover grows or writes.
 - [ ] A handover is an entry, four arguments and what it wrote; it reads pb's information, not the
       RoT, SLC or policy directly. The delivery changes none of them.
@@ -598,4 +633,4 @@ Like the wire (D-008, `compatibility.md`):
 | F-243, F-248 | The watchdog per chunk, the boot's preconditions in the flow (2), pb's status in the |
 | | handover (5.6) |
 | F-173, F-175, F-176, F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate` |
-| F-252, F-076 | A stop in a boot command mode started; `dont-hash` refused (4.2) |
+| F-252, F-076 | A stop in a boot command mode started; a part outside the hash refused (4.2) |

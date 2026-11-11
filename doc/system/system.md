@@ -67,7 +67,8 @@ The flows: `boot.md`, `command-mode.md` (not written).
   is `boot.md` 5.6's, decided with the conditions themselves (F-248); new ones are appended.
 - **The image format may get company.** Jonas (2026-11-11): bpak solves more than pb needs, and
   pb may get a simpler format of its own later. The boot flow's coupling to bpak stays loose
-  enough for that. bpak images stay accepted (D-008), so a new format comes next to bpak. Whether
+  enough for that: what it needs from a format is `boot.md` 4.4. bpak images stay accepted
+  (D-008), so a new format comes next to bpak. Whether
   one build accepts several formats is to discuss (`roadmap.md`).
 
 ## 4. The life cycle
