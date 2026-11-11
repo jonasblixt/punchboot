@@ -1,5 +1,8 @@
 # The platform contract
 
+**State: draft (2026-11-11), D-030.** Level 3 (`process.md`). Reviewed once (2026-11-10); seven
+items are open again, below, and it follows `boot.md` and `board.md`.
+
 What a platform (`src/plat/<p>/`, `include/plat/<p>/`) provides, when, and what the rest of pb may
 rely on. Decided in D-030, written in the style of TF-A's porting guide. It is independent of any
 SoC vendor: how the i.MX ports meet it, with the SoC facts and their sources, is in `plat-imx.md`.

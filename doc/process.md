@@ -69,7 +69,7 @@ As `platform.md` and `board.md`:
 - The first lines: what it covers, its decision, its **state** (4), what to read with it.
 - Entries tagged `[mandatory]`, `[optional]` or `[mandatory when X]`. Each says what it does,
   from when it is valid, what it may rely on and what a failure means.
-- A clause that follows from a level above cites it (`security.md` 3.2). A clause that waits for
+- A clause that follows from a level above cites it (`security.md` 4.2). A clause that waits for
   another draft says "follows `<document>`".
 - **Open (n)**: a proposal that isn't confirmed, listed at the top and marked in the text.
 - **Not yet in the code (F-nnn)**: what the code doesn't do yet. The commit that fixes the
@@ -127,11 +127,28 @@ The review order from here: `boot.md`, `board.md`, `platform.md`.
 
 ## 7. Guards
 
+**The document lint** (`tests/doc/check_docs.py`): the test `doc.lint` in `scripts/pbdev test`,
+and a pre-commit hook. It reads the tree and builds nothing. It fails when:
+
+- A document of a level isn't in `README.md`'s map, or its "State:" line says something else
+  than the map. Two documents have the same file name.
+- A cited document or section doesn't exist. `platform.md` 2.3 is a heading; "n.m" is also item m
+  of the list in section n, or a rule that starts with its number in bold (`security.md` 4.1).
+- An F-nnn isn't a finding, a D-nnn isn't a decision, or a finding in a "Not yet in the code"
+  marker is closed: the commit that closes a finding removes its markers.
+- A `doc/...` path named in the code, the tests, the scripts or the CI doesn't exist.
+- A `Function :` or `Data :` entry of `platform.md` isn't declared in `pb/plat.h`, or one of
+  `board.md` isn't a member of `struct board`, and neither the entry nor its section's intro has
+  a marker. The other way round: everything `pb/plat.h` and `struct board` declare is named in
+  their contract. `boot.md`'s entries are looked up in `include/boot/`.
+
+The log, the decisions and the closed findings are records and aren't checked. A document that
+isn't written yet is "Missing" in the map; citing it is allowed.
+
+Not checked: that the text of an entry is true. That is the conformance suites' and the review's.
+
 Not yet:
 
-- **A document lint** in `scripts/pbdev test`: every `Function :` and `Data :` entry of a
-  contract is in its header (`plat.h`, `pb/board.h`) and the other way round; every F-nnn in a
-  marker is an open finding; every document states its state.
 - **Conformance suites**: one per contract that can run on the host, against every
   implementation and the fakes (F-182 hid behind a fake stricter than the driver); on the bench
   through the simple target (D-025).

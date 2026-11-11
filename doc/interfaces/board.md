@@ -1,5 +1,7 @@
 # The board contract
 
+**State: draft for Jonas's review (2026-11-11), D-031.** Level 3 (`process.md`).
+
 What a board (`src/board/<b>/`, or a directory out of the tree) provides, when the core calls it,
 and what it may rely on. Decided in D-031, in the style of the platform contract (`platform.md`,
 D-030), which it builds on. It is independent of any SoC vendor: the i.MX boards' pins and clocks
@@ -125,10 +127,10 @@ returns PB_OK (jiffy: the CAAM's RNG for Linux). An error: 2.1.
 
 NULL: no hardware of the board's own.
 
-### 2.4 Data : gpt_dev_uu, gpt_tables [optional]
+### 2.4 Data : gpt_dev_uu, gpt_tables, gpt_tables_length [optional]
 
 `gpt_dev_uu` is a bio device `init()` set up, with a GPT. `gpt_tables` are the layouts command mode
-can install (`part install`), each with a name and a variant. The core reads the table after
+can install (`part install`), each with a name and a variant; `gpt_tables_length` is their number. The core reads the table after
 `init()` (`gpt_ptbl_init()`).
 
 Failure: no valid table: 2.1. Command mode installs one.

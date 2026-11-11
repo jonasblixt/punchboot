@@ -1,5 +1,7 @@
 # Guiding principles
 
+**State: reviewed (Jonas, 2026-11-11), D-035, D-036.** Level 0 (`process.md`).
+
 How punchboot is designed and reviewed, and what wins when goals conflict. A decision that departs
 from one says so and why (`decisions.md`). New principles are added here, not only in a decision.
 

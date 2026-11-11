@@ -1,6 +1,6 @@
 # The boot flow contract
 
-**Draft for Jonas's review (2026-11-11).**
+**State: draft for Jonas's review (2026-11-11), D-032.** Level 2 (`process.md`).
 
 **Open for the review.** Decided with Jonas over four rounds (`log/2026-11-11.md`); these are my
 choices in the draft that he hasn't confirmed:
