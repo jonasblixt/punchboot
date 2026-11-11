@@ -66,15 +66,18 @@ main()
 
 ### 2.1 Failure: a board failure stops the boot, never command mode
 
-Jonas: The following paragraph is poorly written, difficult to understand. rework.
-**Not yet in the code (F-216, F-178)**: only a failed partition table sets up the boot driver. Jonas: Formulation is strange, it implies that only when the partition table fails to setup do we setup the boot driver, not correct.
-After a failed A/B state, `init()` or `late_init()` command mode has none, so it can neither
-repair the A/B state nor boot a rescue image from RAM.
+When a step of `board_setup()` fails, pb doesn't boot from storage. It enters command mode, and
+command mode still has its boot commands.
 
-A failed step ends the setup. `board_setup()` logs which step failed, skips the steps after it
-except the boot driver, which it always sets up, and returns the step's error. `main()` doesn't
-boot from storage then and enters command mode, where the boot commands work: install the
-partition table, repair the A/B state, boot an image from RAM.
+`board_setup()` runs the board's steps in order (the list in section 2). When one fails it logs
+which, skips the steps after it, sets up the boot driver all the same, and returns the step's
+error. `main()` then enters command mode, where the host can install the partition table, repair
+the A/B state or boot an image from RAM.
+
+**Not yet in the code (F-216, F-178)**: `board_setup()` returns at the first step that fails. The
+boot driver is the last step, so a failure before it leaves command mode without one: it can
+neither repair the A/B state nor boot a rescue image from RAM. The one exception today is a failed
+partition table, whose path does set up the boot driver.
 
 - A board failure doesn't reset (a platform failure does, `platform.md` 2): command mode has what
   `plat_init()` set up.
@@ -158,8 +161,9 @@ partitions. Failure as in 2.3. NULL: nothing.
 
 ### 2.7 Data : boot_linux, boot_atf, boot_simple [mandatory, exactly one]
 
-Shaped by the boot contract (`boot.md` 5, draft): the handover, `image`, TF-A or Firmware Handoff;
-the DT hook runs first, with the whole tree, and pb's properties after it (`boot.md` 5.5).
+Shaped by the boot contract (`boot.md` 5, draft): the handover, `image` or Firmware Handoff, and
+its delivery, directly or through TF-A; the DT hook runs first, with the whole tree, and pb's
+properties after it (`boot.md` 5.5).
 
 The boot driver's configuration (`boot/linux.h`, `boot/atf.h`, `boot/simple.h`); its Kconfig option
 is on. The next stage's state is the arch's (D-028), what pb passes it is the boot driver's.
@@ -387,6 +391,8 @@ for a new product, never in an update:
   fuses can't be unwritten.
 - The ids of the board's commands, and their answers (4.4). The core's default answer is fixed
   too (F-218: it changed the 8X boards' answer from OK to NOT_SUPPORTED).
+- The handover, its delivery and, with Firmware Handoff, the transfer list's region (`boot.md`
+  5.4, draft): the images' memory maps keep it free.
 
 ## 9. Review checklist
 

@@ -57,6 +57,8 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-074 | `src/cm/cm_main.c` stream read/write | After a failed STREAM_INITIALIZE, `block_dev` is an error code, and `bio_get_flags()` of it has the flag bits set, so the readable/writable checks pass. `stream_check()` then fails on the block size, so it's harmless. | Verified (test) | open |
 | F-075 | `cm_main.c` `cmd_part_erase`, `struct pb_command_erase_part` | Wire compat (D-008): `start_lba`/`block_count` were taken from `rz` in 2309738 (v2.0.0). A pre-2.0 host sends zeros, so a current device erases 0 blocks and answers OK: a silent no-op instead of a full erase. Fix: `block_count == 0` means the whole partition. Coordinate with F-055. | Verified (code) | open |
 | F-076 | `src/boot/image_helpers.c` (payload hash and load) | bpak compat (D-008): punchboot hashes every part, while upstream `verify.c` skips parts with `BPAK_FLAG_EXCLUDE_FROM_HASH` (`bpak add --set-flag dont-hash`). Such images verify with the bpak CLI but fail to boot in punchboot. Supporting the flag only accepts more images, so it is a compatible fix. | Verified (code) | open |
+| | | Decided (D-035, `security.md` 4.2): an image with a `dont-hash` part is refused, before the | | |
+| | | load, with its own error. Not loaded unhashed as upstream does, and not skipped | | |
 | F-077 | `tools/punchboot/api_partition.c`, `api_boot.c` (now `session.py`) | Wire compat, new host + old device: the host uses `caps.chunk_transfer_max_bytes` without a zero check. A device that predates the field (before 0.7, 2020) reports 0: partition write sends the bpak header and no payload and reports success, and RAM boot loops forever. Fall back to `stream_buffer_size`. Low: such devices are probably gone. | Verified (code) | fixed: falls back to `stream_buffer_size` and one buffer, `NotSupportedError` if both sizes are 0; `test_host_caps.py` |
 | F-078 | jiffy (hardware / boot ROM) | An SRST reset from the JTAG adapter (OpenOCD `reset`, SRSR = 1, POR) makes the boot ROM fall back to the serial downloader (`15a2:007d`) within a second, instead of booting pb from eMMC. A second clean SRST pulse did the same. A watchdog reset does too (SRSR = 0x11, after pb without WDBG was halted over JTAG, and after the `auth token` hang below). Earlier resets when the ULINK was plugged in did reboot into pb, and a power cycle does. Cause unknown. Suspect: pb leaves the eMMC in 8-bit DDR52, and a warm reset doesn't reset the eMMC. Other options: HAB, or the reset itself. `src/board/jiffy/openocd.cfg` has no `reset_config` because of this. | Seen on the board (2026-10-22) | open: a power cycle boots pb. Forcing serial download with the boot mode buttons and resetting works (uuu loads `pb_signed_uuu.imx`), but in the downloader the ROM falls back to after a failed boot, every SDP command with a data phase (write, dcd) hangs. Hardware (jiffy R1 netlist): JTAG SRST is the `RST_N` net (POR_B, LP3470 supervisor, button PB2). The eMMC RST_n is a separate net from pad NAND_WP_B with a 46.4k pull-up, so a POR_B reset doesn't reset the eMMC (see F-079) | Likely cause: the same SNVS SV1/Non-Secure state as F-080 (every warm reset after JTAG activity landed in the downloader, the one without JTAG since power-on booted; a direct test is blocked because `dev reset` needs `auth`). SNVS survives a warm reset, so HAB fails on the next boot and the ROM falls back to the downloader, where data writes then hang. A power cycle clears it. Fits every reset seen so far except one SRST at 12:26.
 | F-079 | `src/board/jiffy/board.c` `usdhc_emmc_setup` | Muxes NAND_DQS (ball E6) as the eMMC reset, but on jiffy R1 NAND_DQS isn't connected. The eMMC RST_n is on NAND_WP_B (ball D5, `eMMC_RST_N`, 46.4k pull-up), which pb never configures, so the eMMC never gets a hardware reset. Possibly related to F-078. | Verified (netlist) | open: check NAND_WP_B's USDHC1_RESET_B alt in the RM, and whether the eMMC has RST_n_FUNCTION enabled |
@@ -523,15 +525,17 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | `get_in_mem_image` or `authenticate_image`. On master the boards built `struct boot_driver` themselves | | |
 | | | and could boot in place (`IN_MEM`) or authenticate themselves (`CUSTOM`). Out-of-tree projects use | | |
 | | | both (Jonas). Before `work-3.0.0-plat` merges: give them a way back (the boot contract decides how) | | |
+| | | D-035 (Jonas): the custom source is removed, nobody uses it. Only the in place source comes | | |
+| | | back; what is left of `CUSTOM` in `boot.c` goes with it | | |
 | F-254 | `src/boot/image_helpers.c` | `boot_image_verify_parts()` checks the parts | Verified (code) | open |
 | | | against code, data, stack, bss and `.no_init`, not `.ro_data` (the keystore's keys; `ro_data_start` | | |
 | | | is imported and unused) nor `.ramlog`. `CHECK_OVERLAP` has no wrap-around check (`dtb.c` has its own | | |
 | | | `overlaps()`, which does), parts aren't checked against each other nor against the board's DRAM. A | | |
 | | | signed image is trusted, but unverified payload bytes land there before the payload hash is checked | | |
-| | | (`principles.md` 3). An allow list (the board's load regions minus pb) instead of a deny list | | |
+| | | (`principles.md` 2). An allow list (the board's load regions minus pb) instead of a deny list | | |
 | F-255 | `src/boot/dtb.c` `set_initrd()` | `linux,initrd-start` and `-end` are written | Verified (code) | open |
 | | | with `fdt_setprop_u32()`: a ramdisk above 4 GiB gets a truncated address. Use the root's | | |
-| | | `#address-cells` | | |
+| | | `#address-cells`. The encoding is open: 64 bits only above 4 GiB (`boot.md` 5.2, open 16) | | |
 | F-256 | `src/boot/boot.c`, `ab_state.c`, `src/board.c` | No boot source policy | Verified (code) | open |
 | | | interface: A/B is wired into `struct boot_driver` through three callbacks, it is the only policy, | | |
 | | | and only it marks partitions bootable (F-215). `boot.md` 3: `boot_policy_*()`, fixed and staggered | | |
@@ -553,6 +557,17 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | id itself, and runs the board's hook after `pb,device-uuid` and before pb's other properties. | | |
 | | | `boot.md` 5.5, 5.6: pb's information collected once, the hook first, `pb,boot-partition` and | | |
 | | | `pb,boot-mode` added (and in the README's table) | | |
+| F-261 | `plat/{imx6ul,imx8m}/plat.c` | The TrustZone filter's open region is the SoC's | Verified (code) | open |
+| | | whole DRAM window, not the board's DRAM: 2 GiB on the 6UL (`tzasc_init()`), 4 or 8 GiB on the 8M | | |
+| | | (`tzasc_open_dram()`). With less DRAM than the window, the copies of DRAM inside it are open to | | |
+| | | the normal world until a secure OS replaces the region. `platform.md` 4.3, item 3: the board's DRAM | | |
+| | | (`BOARD_DRAM_*`, F-239) | | |
+| F-262 | `plat/imx8x/plat.c` | `plat_reset()` before `plat_early_init()` returns: the IPC | Verified (code) | open |
+| | | handle is still 0 and `sc_ipc_write()` returns on it. `platform.md` 3.1: valid from the first | | |
+| | | instruction after `arch_init()`. The other ports before early init (the WDOG's clock): unchecked | | |
+| F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
+| | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
+| | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 

@@ -8,6 +8,7 @@ format; a vendored subset lives in `src/lib/bpak.c` + `include/bpak/`
 **Never break backward compatibility of the wire protocol or the bpak image
 format** (D-008). Old hosts must work with new devices, new hosts with old
 devices, and every image an old release accepted must still be accepted.
+Only security comes before it, with a decision entry (`doc/dev/principles.md`).
 Read `doc/dev/compatibility.md` before changing either.
 
 ## Context: load on demand
@@ -19,6 +20,9 @@ Do not read these up front. Open only what the task needs.
 | `doc/dev/status.md` | **Start of every session.** Current focus, open threads, next steps |
 | `doc/dev/roadmap.md` | Planning or picking the next piece of work |
 | `doc/dev/findings.md` | Fixing bugs / tech debt (IDs like `F-012`) |
+| `doc/dev/process.md` | **Before writing or changing a contract**, and to find where a change starts (draft) |
+| `doc/dev/security.md` | **Anything security rests on**: the threat model and the rules the contracts cite (draft) |
+| `doc/dev/system.md` | pb's outside interfaces, the life cycle states, what pb promises (draft) |
 | `doc/dev/principles.md` | Designing or reviewing anything, and when goals conflict: what wins |
 | `doc/dev/decisions.md` | Before changing direction on something already decided |
 | `doc/dev/arch-firmware.md` | Working in `src/`, `include/` |
@@ -30,10 +34,12 @@ Do not read these up front. Open only what the task needs.
 | `doc/dev/testing.md` | Writing or running tests (host unit/integration tests) |
 | `doc/dev/build-and-test.md` | Building firmware, the dev container, CI, releasing |
 | `testbench/README.md` | The Buildroot Linux test bench (boot/root images for the boards), adding a board, boot time |
-| `testbench/simple/README.md` | The simple target test bench (bare metal test application, pytest runner), MCU boards |
+| `testbench/simple/README.md` | The simple target test bench (bare metal test application, pytest runner), |
+| | MCU boards |
 | `doc/dev/imx8m-ddr.md` | i.MX8M DRAM init (uMCTL2, DWC LPDDR4 PHY), its golden trace test |
 | `doc/dev/bpak.md` | Anything touching bpak or image signing/verification |
-| `doc/dev/compatibility.md` | **Any change to `wire.h`/`error.h`, command mode, the host API, bpak, or image handling** |
+| `doc/dev/compatibility.md` | **Any change to `wire.h`/`error.h`, command mode, the host API, bpak,** |
+| | **or image handling** |
 | `doc/dev/log/` | Only the newest entry, and only if `status.md` is not enough |
 
 Skip unless the task is about them: `pki/` (test keys), vendored code

@@ -3,19 +3,21 @@
 How punchboot is designed and reviewed, and what wins when goals conflict. A decision that departs
 from one says so and why (`decisions.md`). New principles are added here, not only in a decision.
 
-Order: 1 comes first and 8 last. Security (2, 3) comes before boot time (4), and both before
-little code (Jonas, 2026-11-11). 5 to 7 aren't ranked against 2 to 4 yet; such a conflict is
-decided case by case and recorded.
+Order: 1 comes first and 8 last. Security (1, 2) is first, also when it breaks compatibility (3);
+then boot time (4); simple and terse code is last (Jonas, 2026-11-11). 5 to 7 aren't ranked against 1 to 4
+yet; such a conflict is decided case by case and recorded. The numbers changed with D-035: before
+it compatibility was 1, fail closed 2 and defence in depth 3.
 
-1. **Never break compatibility** (D-008). The wire, the bpak format, the device identity and what
-   a product in the field relies on (`compatibility.md`, `platform.md` 3.7, `board.md` 8). The hard
-   rule, above everything else.
-2. **Fail closed, never silently** (D-027, D-030). When a security check can't be made, the answer
+1. **Fail closed, never silently** (D-027, D-030). When a security check can't be made, the answer
    is no. When something the boot's security depends on failed, pb doesn't boot; logging it is not
-   enough (`platform.md` 2.3).
-3. **Defence in depth** (Jonas, 2026-11-11). A check stays when another one already covers the
+   enough (`security.md` 4.4, 4.5).
+2. **Defence in depth** (Jonas, 2026-11-11). A check stays when another one already covers the
    case, and each layer checks its own inputs. A signed image is trusted, yet pb still checks where
    its parts land, because unverified bytes reach memory before the payload hash is compared.
+3. **Never break compatibility** (D-008). The wire, the bpak format, the device identity and what
+   a product in the field relies on (`compatibility.md`, `platform.md` 3.7, `board.md` 8). Only
+   security comes before it: a security fix may refuse what a release accepted, with a decision
+   entry that names what is refused and why.
 4. **Keep the boot path short** (D-023). Boot time is critical. What only command mode needs is
    set up in command mode, hooks on the boot path start slow hardware and don't wait for it
    (`board.md` 5).
@@ -28,9 +30,11 @@ decided case by case and recorded.
    platforms and boards provide facts and hardware (D-027); a board is data (D-026). Contracts are
    vendor neutral, vendor facts live in their own documents (D-030).
 7. **Out-of-tree users exist** (Jonas, 2026-11-11). A feature without a caller in the tree is used
-   by projects that aren't visible here (the CUSTOM and in-memory boot sources, speculative
-   rollback, `set_dtb_boot_arg`). "Unused in the tree" is not a reason to remove anything; a major
-   release (D-018) may change how a feature is used, never drop it without asking.
-8. **Little code.** The lowest priority (Jonas, 2026-11-11): less code is better when nothing above
-   is lost, and the design deviates from it for better cohesion, flexibility, readability or
-   reviewability.
+   by projects that aren't visible here (the in-memory boot source, speculative rollback,
+   `set_dtb_boot_arg`). "Unused in the tree" is not a reason to remove anything; a major
+   release (D-018) may change how a feature is used, never drop it without asking. Jonas removed
+   the custom boot source himself (D-035).
+8. **Simple and terse code.** Low complexity and low verbosity: the fewest concepts, paths and
+   lines that do the job. The lowest priority (Jonas, 2026-11-11): simpler and shorter is better
+   when nothing above is lost, and the design deviates from it for better cohesion, flexibility,
+   readability or reviewability.
