@@ -144,4 +144,4 @@ a ruff bump can break the check (it happened in 2.7.0).
 
 ## Release
 
-See D-003 in `decisions.md` and `doc/release-checklist.txt`.
+See D-003 in `decisions.md` and `doc/guides/release-checklist.txt`.

@@ -3,7 +3,7 @@ name: Punchboot build
 on: [push, pull_request]
 
 # Everything runs in the dev container (docker/Dockerfile) through
-# scripts/pbdev, the same way as locally. See doc/dev/testing.md.
+# scripts/pbdev, the same way as locally. See doc/guides/testing.md.
 
 jobs:
   host-tests:

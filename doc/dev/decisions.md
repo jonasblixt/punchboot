@@ -610,3 +610,21 @@ Jonas's second round of comments, in `security.md`, `system.md`, `process.md` an
 - No cap on a review's open items (I had proposed 7, a number without a reason behind it).
 - Taken as accepted, left without a comment: pb's place in the chain and its cost
   (`security.md` 1), and "in force" as its own state (`process.md` 4).
+
+## D-037: The documents' folders are the levels (2026-11-11)
+
+`doc/` is laid out by D-033's levels: `principles.md` and `process.md` at the top, then
+`system/`, `architecture/`, `interfaces/`, `ports/`, and `guides/` for the how-to. `doc/dev/`
+keeps the working records only: status, roadmap, decisions, findings, the log. `doc/README.md` is
+the map, with each document's state. This narrows D-002: the contracts are the project's
+documentation, for out-of-tree ports too, not AI working context.
+
+- File names don't change and are unique across the folders: the documents cite each other by
+  name and section, so a move changes only paths. Entries and logs before this one say
+  `doc/dev/<name>.md` for documents that now sit in a level's folder.
+- Level 2 is "architecture" (it was "flows"): it holds the flows and the architecture notes.
+- The findings that are fixed, rejected or closed are in `findings-closed.md`; `findings.md`
+  lists what is open. Ids are kept.
+
+Why: where a document sits says what it may decide and what it must cite, and the folder listing
+shows the order top down. 89 of 245 findings were closed and read every time.

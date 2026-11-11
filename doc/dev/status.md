@@ -24,6 +24,9 @@ the trim is at the end of `log/2026-11-09.md`.
   pass (15 open items left, each a proposal), waits for his review; its code is F-253..F-260 and the
   A/B review's. F-253 (the lost `IN_MEM` source) before
   `work-3.0.0-plat` merges. Then the drivers' contracts (`log/2026-11-11.md`).
+- **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each
+  document's state. `doc/dev/` keeps status, roadmap, decisions, findings (open; the closed ones in
+  `findings-closed.md`) and the log.
 - **The process and level 1 (D-033 to D-036):** `process.md`, `security.md`, `system.md` and
   `principles.md` are reviewed (Jonas). Documents first, top down; security first, also before
   compatibility. No custom source, `dont-hash` images refused, EOL behind Kconfig (F-263).
