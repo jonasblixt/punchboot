@@ -200,8 +200,8 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | to load or authenticate isn't reported back. A verified slot is picked again on every | | |
 | | | boot (command mode, the 10 s transport timeout, reset), for good: the other verified | | |
 | | | slot is never tried. An unverified slot loses an attempt each time and rolls back. | | |
-| | | Decision for Jonas: on such a failure clear the slot's verified bit (or its attempts) | | |
-| | | so the next boot rolls back, at the risk of a downgrade after a transient read error. | | |
+| | | Decided (D-032, `boot.md` 3.5): the other verified slot boots for this boot only, nothing | | |
+| | | is written; the slot is tried again on the next boot. Code: F-256. | | |
 | F-175 | `src/boot/ab_state.c` | `boot activate` with an unknown UUID clears `enable`, | Verified | open |
 | | | `verified` and `error` in RAM, then returns `-PB_ERR_PART_NOT_BOOTABLE`. For the rest of | | |
 | | | command mode `boot status` says none and booting the active slot fails, and the next | | |
@@ -215,7 +215,8 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | F-177 | `src/boot/ab_state.c` | Speculative rollback sets the fallback's attempts to 1 | Verified | open |
 | | | and boots it at once without using one: it gets two boots (`pbstate switch B 3` gives | | |
 | | | three). In the ping-pong, `error =` drops the other rollback bit. No board uses the | | |
-| | | speculative mode; `test_speculative_rollback_from_a` asserts B, B, A. Intended? | | |
+| | | speculative mode; `test_speculative_rollback_from_a` asserts B, B, A. Not intended: | | |
+| | | `boot.md` 3.6 (D-032), F-257. | | |
 | F-178 | `src/board.c` | When `boot_ab_state_init()` fails (a repair write, a state partition | Verified | open |
 | | | missing from the table), `board_setup()` returns before `late_init` and the boot | | |
 | | | driver: in command mode `boot activate` is `-PB_ERR_NOT_SUPPORTED` and `boot partition` | | |
@@ -370,9 +371,9 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | real boards, so the D-026 order can't be tested end to end. | | |
 | F-218 | boards, low | `IMX8X_FUSE_DRY_RUN` doesn't gate | Reported | open |
 | | | `sc_seco_commit()`/`forward_lifecycle()`. The shared `default_command` changed the 8X boards' answer | | |
-| | | from OK to NOT_SUPPORTED (not in `compatibility.md`). Board data isn't validated (`cm_transport` NULL, a | | |
-| | | name over 16 characters, `.slc = NULL`). Dead Kconfig symbols (`ARMV8_EL3`, `choice BOARD`, | | |
-| | | `IMXRT_FLASH`), `CM_AUTH_PASSWORD=y` without a callback. GPT tables can't align partitions. 8X | | |
+| | | from OK to NOT_SUPPORTED (`board.md` 8: fixed for a product in the field). Board data isn't | | |
+| | | validated, `CM_AUTH_PASSWORD=y` without a callback: moved to F-249. Dead Kconfig symbols | | |
+| | | (`ARMV8_EL3`, `choice BOARD`, `IMXRT_FLASH`). GPT tables can't align partitions. 8X | | |
 | | | `early_boot()` ignores SCU results. | | |
 | F-219 | `src/boot/simple.c`, `boot.c`, `board.c` | The XIP / `BOOT_SOURCE_IN_MEM` path can't be | Reported | open |
 | | | reached (nothing sets `get_in_mem_image`), and if wired up it hashes memory at `pb-load-addr` but jumps | | |
@@ -495,6 +496,63 @@ Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
 | | | and the boot goes on: a bypassed 6UL TZASC (`tzasc_init()`), an 8X watchdog that didn't arm. Nothing | | |
 | | | records them for the boot or command mode. `platform.md` 2.3: `plat_get_status()`, checked by `boot()`, no | | |
 | | | silent boot; the policy is open (Jonas) | | |
+| F-249 | `src/board.c` | The board's data isn't checked: `cm_board_init()` dereferences | Verified (code) | open |
+| | | a NULL `cm_transport`; a name over 16 characters overruns `board_id` (`memcpy` with `strlen`); no | | |
+| | | boot driver, or several (the last wins); `.slc = NULL`. `CONFIG_CM_AUTH_PASSWORD=y` without | | |
+| | | `password_auth` in jiffy's, the RT's and the host's defconfigs; imx8mevk has `CONFIG_BOOT_LINUX` | | |
+| | | without `boot_linux`. `board.md` 3: checked in `board_setup()` and `cm_board_init()` | | |
+| F-250 | `src/board.c`, `src/board/*/board.c` | `default_status()` and the boards' | Verified (code) | open |
+| | | `status()` set `*length` from `snprintf()`, then append the NUL at `buf[*length]`: a truncated text | | |
+| | | writes past the buffer. Latent, `CM_BUF_SIZE` is 4 MiB. `board.md` 4.3: the board writes at most | | |
+| | | `*length - 1` bytes, the core clamps and appends the NUL | | |
+| F-251 | `src/board/{imxrt1060evk,imx8qxmek,imx8dxlevk}` | The serial download | Verified (code) | open |
+| | | check is in the boards: the RT reads SBMR2's BMOD in `late_boot`, the 8X the SCU's boot type in | | |
+| | | `early_boot`. `plat_get_boot_source()` is `-PB_ERR_NOT_SUPPORTED` on the RT, 8X and 8M; the 6UL | | |
+| | | reports USB only when the ROM's USB was addressed, a UART download as UNKNOWN. `board.md` 5.1: | | |
+| | | `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default y) in `boot()` before `early_boot()`, the platforms report | | |
+| | | it, the boards drop theirs. jiffy and the 8MP EVK then stop in command mode after a `uuu` load | | |
+| | | instead of booting from storage | | |
+| F-252 | `src/cm/cm_main.c` | A stop in a boot command mode started: `-PB_ERR_ABORT` | Verified (code) | open |
+| | | is command mode's "leave and reset" (`device reset`), so a hook's stop in `boot part` or | | |
+| | | `boot bpak` resets the board (the 8X's button, which stops these boots on purpose). After the | | |
+| | | transport's disconnect, a failed `late_boot` or `plat_lockdown()` other than ABORT returns to the | | |
+| | | loop, which reads from the disconnected transport (unchecked). `board.md` 5.4: before the | | |
+| | | disconnect the host gets the error and command mode goes on, after it pb resets | | |
+| F-253 | `src/board.c`, `include/pb/board.h` | D-026 lost two boot sources: | Verified (code) | open |
+| | | `setup_boot_driver()` sets `default_boot_source = BOOT_SOURCE_BIO`, and `struct board` has no field for | | |
+| | | `get_in_mem_image` or `authenticate_image`. On master the boards built `struct boot_driver` themselves | | |
+| | | and could boot in place (`IN_MEM`) or authenticate themselves (`CUSTOM`). Out-of-tree projects use | | |
+| | | both (Jonas). Before `work-3.0.0-plat` merges: give them a way back (the boot contract decides how) | | |
+| F-254 | `src/boot/image_helpers.c` | `boot_image_verify_parts()` checks the parts | Verified (code) | open |
+| | | against code, data, stack, bss and `.no_init`, not `.ro_data` (the keystore's keys; `ro_data_start` | | |
+| | | is imported and unused) nor `.ramlog`. `CHECK_OVERLAP` has no wrap-around check (`dtb.c` has its own | | |
+| | | `overlaps()`, which does), parts aren't checked against each other nor against the board's DRAM. A | | |
+| | | signed image is trusted, but unverified payload bytes land there before the payload hash is checked | | |
+| | | (`principles.md` 3). An allow list (the board's load regions minus pb) instead of a deny list | | |
+| F-255 | `src/boot/dtb.c` `set_initrd()` | `linux,initrd-start` and `-end` are written | Verified (code) | open |
+| | | with `fdt_setprop_u32()`: a ramdisk above 4 GiB gets a truncated address. Use the root's | | |
+| | | `#address-cells` | | |
+| F-256 | `src/boot/boot.c`, `ab_state.c`, `src/board.c` | No boot source policy | Verified (code) | open |
+| | | interface: A/B is wired into `struct boot_driver` through three callbacks, it is the only policy, | | |
+| | | and only it marks partitions bootable (F-215). `boot.md` 3: `boot_policy_*()`, fixed and staggered | | |
+| | | policies in Kconfig, the core's loop over the candidates with the fallback of F-174 | | |
+| F-257 | `src/boot/ab_state.c` | Speculative mode differs from `boot.md` 3.6: the | Verified (code) | open |
+| | | fallback gets one trial attempt (two boots, F-177) and a rollback bit is dropped. Per `boot.md`: | | |
+| | | only with no viable candidate, alternate per boot, no attempts, ends when the OS confirms, the | | |
+| | | handover says so, `depends on ENABLE_WATCHDOG` | | |
+| F-258 | `src/boot/{linux,atf}.c`, `src/board/imx8dxlevk` | The handovers compute and | Verified (code) | open |
+| | | jump each by itself; TF-A's BL33 gets Linux's arguments, hard coded; `bl_params` sit in `.data` for | | |
+| | | NXP's i.MX8M BL31 (a platform fact); the DXL starts BL31 through the Linux driver, the MEK through | | |
+| | | `bl_params`. `boot.md` 5.1 to 5.3: entry and four arguments, nested BL33 and BL32, `linux` becomes | | |
+| | | `image`, the platform says where `bl_params` go, the DXL uses TF-A | | |
+| F-259 | `src/boot/simple.c` | The generic handover passes r0 = the system's name, | Verified (code) | open |
+| | | r1 = the boot partition's UUID, and can't grow. `boot.md` 5.4: Arm's Firmware Handoff, a transfer | | |
+| | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
+| | | specification (Jonas); the simple target test bench follows | | |
+| F-260 | `src/boot/dtb.c` | `boot_dtb_set_chosen()` reads the RoT, the SLC and the device | Verified (code) | open |
+| | | id itself, and runs the board's hook after `pb,device-uuid` and before pb's other properties. | | |
+| | | `boot.md` 5.5, 5.6: pb's information collected once, the hook first, `pb,boot-partition` and | | |
+| | | `pb,boot-mode` added (and in the README's table) | | |
 | F-108 | `src/board/imx8mevk/lpddr4_timing.c`, `tests/unit/data/imx8m_ddr_init.trace` | The EVK timing's comments and 83% of its register/value pairs match NXP's 2018 `imx8mq_evk/lpddr4_timing.c` in U-Boot (GPL-2.0+, Copyright NXP), under a BSD-3-Clause header without NXP's notice, since 2019. The rest of the 2019 DDR code also followed NXP's U-Boot code; on `imx8m-dram-cleanup` the controller sequence is based on NXP's BSD-3-Clause TF-A code and the PHY driver is a clean-room implementation from `doc/dev/spec-dwc-ddrphy.md` (`imx8m-ddr.md`, "Licences and provenance"). | Verified (compared with NXP's uboot-imx 2017/2018 branches and U-Boot master) | fixed (`imx8m-dram-cleanup`): EVK timing replaced by NXP DDR Tool v4.2.0 output (BSD-3-Clause, `c129bbf9`), golden trace regenerated from it; controller sequence based on NXP's BSD-3-Clause TF-A code; clean-room PHY driver (`ee093be7`); `lpddr4.h` removed |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 

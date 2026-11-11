@@ -427,3 +427,95 @@ TZASC addresses and TZASC1_BOOT_LOCK (F-241), the Arm specs (TBBR, PSBG, FWU, th
 aren't on the share. The whole bootloader's contract
 (the security model, the handover, the A/B state) comes after this one, with TF-A's threat model,
 TBBR, PSA and FWU as inspiration, not as compliance targets.
+
+## D-031: The board contract (2026-11-11)
+
+`doc/dev/board.md` is what a board provides, when the core calls it, and what it may rely on, in the
+style of the platform contract (D-030): entries tagged mandatory or optional, with "valid from" and
+what a failure means, a review checklist and a conformance table per board. Vendor neutral; what
+the code doesn't do yet is marked "Not yet in the code (F-nnn)", as in `platform.md`.
+
+- A board failure stops the boot, never command mode (Jonas): `board_setup()` ends at a failed
+  step, skips the steps after it except the boot driver, which it always sets up, and returns the
+  error; command mode can then install the table, repair the A/B state and boot from RAM (F-216,
+  F-178). A platform failure resets (D-030), a board failure doesn't: command mode has what
+  `plat_init()` set up. `init()` fails only when the boot can't go on safely, the rest is logged
+  and in `status()`.
+- The board's data is checked at run time in `board_setup()` and `cm_board_init()` (Jonas), a few
+  lines tested on the host: the name, one boot driver, the transport, the password callback
+  (F-249). For the platform, documentation and review were chosen instead; data checks are cheap.
+- `struct board`, the hooks' meaning and the build interface change only in a major release
+  (Jonas, D-018). CI's out-of-tree board (F-240) tests this interface too.
+- `early_boot` and `late_boot` stay (Jonas): `early_boot` starts what is slow, the load overlaps it,
+  `late_boot` reads the result and is the last chance to stop. The RT's charger detection needs
+  more than 100 ms, so pb loads the image while it runs and checks in `late_boot`: minimal boot
+  time is critical. A single stop hook before the load, proposed first, would have cost that time
+  on every boot.
+- `BOOT_FLAG_CMD` stays the board's to check: the boards differ on purpose (the 8X's button stops
+  even a boot command mode started). `-PB_ERR_ABORT` from a hook means "enter command mode", not a
+  failure.
+- The serial download stop is the core's (Jonas, default on): with `CONFIG_CM_ON_SERIAL_DOWNLOAD`,
+  `boot()` stops before `early_boot()` when `plat_get_boot_source()` reports USB or UART and command
+  mode didn't start the boot. The RT and the 8X read the ROM's boot mode themselves today, which
+  D-009 gives to the platform (F-251).
+- A stop in a boot command mode started (F-252): before the transport's disconnect the host gets
+  the error and command mode goes on; after it (`late_boot`, `plat_lockdown()`) pb resets. The
+  host's OK for `boot part` and `boot bpak` means "loaded and verified".
+- What a product in the field relies on is fixed like the wire: the board's name (`board_id`), the
+  partition UUIDs and GPT variants, the A/B state partitions, the configuration fuses, the board
+  commands' ids and answers.
+
+Why: D-026 made the board data with hooks, but nothing said what each hook may rely on or what its
+failure means, and the boards differed: a failed init left command mode without a boot driver,
+every stop check bypassed command mode's boots by hand, two boards read the ROM's boot mode, the
+board data could crash command mode (a NULL transport). Out-of-tree boards (Jonas's level 3
+systems) need a written interface, and 3.0.0 is the porting API's release (D-018).
+Cost: jiffy and the 8MP EVK stop in command mode after a serial download (`uuu`) instead of booting
+from storage. `CONFIG_CM_AUTH_PASSWORD` comes out of the defconfigs without a callback (jiffy, the
+RT, the host).
+
+## D-032: The boot flow contract (2026-11-11, draft for review)
+
+`doc/dev/boot.md`: the boot flow from `boot()` to the jump, worked out with Jonas over four rounds
+(`log/2026-11-11.md`). It shapes `board.md` 2.5, 2.7 and 5.
+
+- Words: the boot flow; the boot source policy (A/B is one); the handover (what the next stage
+  gets, pb's information included, no separate "boot info").
+- One boot source policy per build, chosen in Kconfig: fixed (one partition), a staggered chain
+  (the board's order, stateless: it protects against an image that doesn't load or verify, not one
+  that verifies and fails), A/B. A system boots without A/B. The core tries the policy's candidates
+  in turn; load, verify and prepare are one attempt.
+- A/B: a slot that fails to load or verify falls back to the other verified slot for this boot
+  only, persisting nothing (F-174); a trial that fails spent its attempt and is tried again. When
+  nothing is viable: command mode, or speculative mode (Kconfig, depends on the watchdog):
+  alternate the slots per boot, best effort, so that the system can take an update; never an image
+  that fails verification; ends when the OS confirms a slot; the handover says so. Recovery
+  partitions later.
+- `pbstate` is extended, not replaced, and isn't Linux specific; one shared core later (roadmap).
+  The name stays.
+- Verification is the core's, without hooks. Placement becomes an allow list (F-254). Anti-rollback
+  will be a verification step, so a refused older image is a failed candidate and the policies
+  don't change.
+- Nothing is dropped (Jonas: out-of-tree projects): the in place and custom sources, speculative
+  mode, `set_dtb_boot_arg`. The in place source becomes a property of a partition (F-253, F-219).
+- A handover is an entry, four arguments and what pb wrote; it is delivered directly or through
+  TF-A, whose BL33 (image or Firmware Handoff) and BL32 (OP-TEE's convention, others possible) are
+  nested handovers. The board picks the handover, not the image: the same parts mean different
+  handovers on different boards (DXL, MEK), so choosing by the image would change what old images
+  do. `linux` becomes `image` (Linux, Xen). The DXL moves to TF-A.
+- The generic handover is Arm's Firmware Handoff (Jonas: lean on standards): the transfer list holds
+  the image's DT (copied into the list) or pb's structure, never both; the board decides by naming
+  a DT part; pb makes no DT. The list is in a board region (pb's information changes every boot).
+  pb's structure gets a tag allocated in the specification, requested upstream before 3.0.0.
+  Cortex-M uses the AArch32 convention (pb's extension). It replaces `simple`, whose arguments
+  exist only on the 3.0.0 branch; released pb passed none.
+- pb's information is collected once and written per format; `dtb.c` stays (Jonas, against
+  spreading DT code into the RoT and SLC modules). The board's DT hook keeps the whole tree and runs
+  first, pb's properties after it. New: `pb,boot-partition`, `pb,boot-mode`.
+- Xen: its DT carries dom0's module nodes from the image build; pb writes nothing for Xen. From EL3
+  Xen goes through TF-A (Non-Secure EL2).
+
+Why: the boot interface mixed where the image comes from, what to do with it and the board's
+hooks in one struct; A/B was wired into the core and the drivers; two boot sources were lost or
+broken; the drivers each handled the DT; the generic handover couldn't grow.
+Open: the review of the draft, pb's structure's layout (`boot.md` 5.4), the region's Kconfig names.
