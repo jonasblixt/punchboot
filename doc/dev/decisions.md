@@ -519,3 +519,94 @@ Why: the boot interface mixed where the image comes from, what to do with it and
 hooks in one struct; A/B was wired into the core and the drivers; two boot sources were lost or
 broken; the drivers each handled the DT; the generic handover couldn't grow.
 Open: the review of the draft, pb's structure's layout (`boot.md` 5.4), the region's Kconfig names.
+
+## D-033: Documents first, top down (2026-11-11, draft for review)
+
+`doc/dev/process.md`: the code follows its documents, and each document follows the one above it.
+
+- Levels: purpose (`principles.md`), system (what pb promises to the outside and against whom:
+  `system.md`, `security.md`, `compatibility.md`), flows (`boot.md`, command mode), interfaces
+  (`platform.md`, `board.md`, the drivers), ports (`plat-imx.md`), code.
+- A document decides only what its level owns. A question it can't answer from above goes up as
+  an open item of the level that owns it. The code and the hardware give facts (findings, the
+  ports' documents); they can show a document wrong, and then the document changes first.
+- A contract has a state: draft, reviewed, in force. It is reviewed when the ones above it are.
+- A change starts at the highest level it touches: the documents, the review, a finding per gap,
+  a commit per finding.
+
+Why: Jonas, after the three contracts: this must be top down. The platform contract was written
+first and now waits for the board's and the boot's ("follows" in six sections), and their open
+items ask what pb defends against and promises, which no document says. The contracts worked as a
+habit; nothing said which document owns a question or when the code may follow.
+Cost: two more documents (`system.md`, `security.md`) before the drafts' reviews are done, if
+Jonas takes that order.
+Open: the review of the draft (four items at its top).
+
+## D-034: Level 1: the system and the security model (2026-11-11, draft for review)
+
+`doc/dev/system.md` and `doc/dev/security.md`, the level above the flows and the contracts
+(D-033). Jonas: two documents, written before the `boot.md` review goes on.
+
+- `security.md`: the chain, what is protected and in which order (what runs next, the root of
+  trust's state, the secure world, the storage through command mode, then availability), the
+  attackers, ten rules the contracts cite (4.1 to 4.10), the known limits.
+- `system.md`: what pb is, its modes, its interfaces to the outside and where each is fixed, the
+  life cycle's states, what pb promises, what it leaves to the product.
+- Both collect what was decided (principles 2 and 3, D-008, D-011, D-027, D-030 to D-032); what
+  is new is an open item. Proposed in them: the promises hold on a locked device only; the
+  preconditions are sorted by what rests on them (integrity refuses the boot, availability boots
+  and reports); every byte pb loads is authenticated; the static token is a known limit.
+
+Why: the drafts below asked questions that belong above them (`platform.md` Open (1), 2.3's
+policy, `boot.md` Open (7) and (11)), and nothing said what pb defends against or in which state.
+Open: the review of both (6 and 5 items).
+
+## D-035: The level 1 review: security first (2026-11-11)
+
+Jonas reviewed `principles.md`, `security.md` and `system.md` with comments in the text.
+
+- **Security is first, even when it breaks compatibility.** `principles.md` is reordered: fail
+  closed is 1, defence in depth 2, compatibility 3 (they were 2, 3 and 1; entries before this one
+  cite the old numbers). A security fix that refuses what a release accepted needs a decision
+  entry naming it (`compatibility.md`). This narrows D-008's "never".
+- **The custom boot source is removed.** Nobody uses it, and it was the one way around the
+  core's verification. This changes D-032 ("nothing is dropped") for this source only; the in
+  place source, speculative mode and `set_dtb_boot_arg` stay (F-253).
+- **An image with a `dont-hash` part is refused**, before the load. The flag is for content
+  verified at run time (a file system under a hash tree), which pb doesn't boot. Such an image
+  fails on its hash today, so no image that booted is refused (F-076). Accepting more later
+  stays possible.
+- **A life cycle that can't be read doesn't boot**, and command mode requires authentication. An
+  attack gets nothing; a fault heals on the reset that ends a command mode without a host, and
+  development boards have the ROM's serial download.
+- **The host tools follow semantic versioning**: a breaking change is a major release, made with
+  care, not forbidden. Only the wire and the image format are frozen.
+- **The compatibility floor is the 1.0.0 release.** F-075 (erase for 1.x hosts) is accepted.
+- **The static token stays**; authentication is pluggable, new methods are added next to it.
+- **pb's status goes into the handover** as a principle; the entries are decided with the
+  conditions (F-248).
+- **Wording**: level 1 speaks of the secure world's isolation, not of a DRAM filter, and of
+  secure firmware, operating systems and hypervisors, not of products.
+- Taken as accepted, left without a comment: the model holds on a locked device only; the
+  preconditions are sorted by what rests on them (integrity refuses the boot, availability boots
+  and reports).
+
+Open: EOL (`system.md` Open (1)); my answers to three questions (`security.md` Open (1) to (3):
+pb's place in the chain, the isolation always enforced, methods that grant less). The roadmap has
+what Jonas wants discussed later.
+
+## D-036: Level 1 and the process are reviewed (2026-11-11)
+
+Jonas's second round of comments, in `security.md`, `system.md`, `process.md` and `principles.md`.
+
+- `security.md`, `system.md` and `process.md` are reviewed: no open items left.
+- Confirmed: where the secure world's isolation falls to pb, pb always sets it up and refuses to
+  boot without it, also with nothing in the secure world. Authentication is by method; methods
+  are added, and one may grant less than everything.
+- EOL is the SoC's end of life state. A product chooses it with a Kconfig option, off by
+  default. Every port supports it; where the SoC can't, the port's document says why (F-263).
+- Principle 8 is "simple and terse code": low complexity and low verbosity. "Little code" didn't
+  say what Jonas meant.
+- No cap on a review's open items (I had proposed 7, a number without a reason behind it).
+- Taken as accepted, left without a comment: pb's place in the chain and its cost
+  (`security.md` 1), and "in force" as its own state (`process.md` 4).

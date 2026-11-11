@@ -18,6 +18,23 @@ Each entry says what it does, from when it may be called ("valid from") and what
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker here and updates the port's conformance table (`plat-imx.md`).
 
+**Open for the review.** From a review pass (2026-11-11) against `board.md`, `boot.md` and the
+code (`log/2026-11-11.md`). Each is written into the text as a proposal and marked **Open (n)**:
+
+1. When a bypassed DRAM filter stops the boot (2.3): pb can't tell that an image starts a secure
+   OS. Decided at level 1 (D-036, `security.md` 4.5): always. 2.3's table is sorted by 4.5 too.
+2. What follows a failed `plat_lockdown()` (4.4): command mode with some locks set, or a reset.
+   That pb doesn't jump is `security.md` 4.6.
+3. Who clears the reset reason (3.4): left alone, a sticky cause is reported again (F-210).
+4. `plat_get_boot_source()`'s tag (3.9): the core's serial download stop rests on it.
+5. How a platform declares the memory images may be loaded into, and where `bl_params` live (5.3).
+6. Who stops DMA before the jump (4.5): the drivers, the core or the board.
+7. Which headers a board may include besides the platform's (7): the arch's.
+
+`board.md` and `boot.md` are drafts and still change. What follows them here is marked "follows
+`board.md`" or "follows `boot.md`" and is revisited when they are final: 2.3, 3.9, 4.4, 4.5, 5.3
+and 7.
+
 ## 1. Scope
 
 | Layer | Owns | Where |
@@ -77,8 +94,9 @@ on every boot (D-023). When it returns PB_OK:
 - The ROM's state that later code overwrites is saved: the ROM's log, what its serial downloader
   left set up.
 - The reset reason is read, and not cleared: the OS reads the same registers.
-- What the SoC needs before a UART can be set up is done. The UART's clock and pads are the
-  board's (`board.console_init()`).
+- What the SoC needs before a UART can be set up is done (a system controller's channel). The
+  UART's clock and pads are the board's (`board.console_init()`), which may use what the platform
+  header marks as valid from here (7).
 
 It touches no DRAM the ROM didn't set up, and doesn't enable the MMU.
 
@@ -98,10 +116,10 @@ Called once by `main()`, after `board.console_init()`. When it returns PB_OK:
 - Fuses can be read (`plat_get_unique_id()`, `plat_slc.fuse_read`).
 - DRAM works, where the ROM didn't set it up.
 - The TrustZone DRAM filter is set up (4.3), before anything else uses DRAM.
-- The MMU is on, with the memory map of 5.2, after DRAM works.
-- The SoC's crypto engine and hardware RNG are set up when their Kconfig option is on (4.5). A
-  board that needs the software implementation turns the option off in its defconfig. **Not yet
-  in the code (F-247)**: the boards set them up.
+- The MMU is on, where the arch has one, with the memory map of 5.2, after DRAM works.
+- The SoC's crypto engine and hardware RNG are set up when their Kconfig option is on. A board
+  that needs the software implementation turns the option off in its defconfig. How they are
+  handed to the next stage is 4.5. **Not yet in the code (F-247)**: the boards set them up.
 - `plat_rot` and `plat_slc` can be used.
 - The state of everything 2.3 checks is known (`plat_get_status()`).
 
@@ -122,16 +140,33 @@ pb never boots silently when something the boot's security depends on failed. F-
 example: the DRAM filter was bypassed for years, everything worked, and nothing showed it.
 
 `boot()` checks the platform's status (3.8) before it loads anything, against what this boot
-needs, and the core decides, not the platform:
+needs, and the core decides, not the platform. A boot command mode started is checked too. Where
+the check sits in the flow follows `boot.md` 2 and 6 (draft: before `early_boot()`).
 
 | Condition | Matters when | Proposed: when it failed |
 |---|---|---|
-| The DRAM filter is bypassed | The image starts a secure OS (BL32) | No boot |
-| The lockdown (4.4) can't be done | Always | No boot |
+| The DRAM filter is bypassed | **Open (1)**, proposed: always | No boot |
 | The watchdog didn't arm | `CONFIG_ENABLE_WATCHDOG` | Open: A/B's rollback needs it, but |
 | | | refusing means no system at all |
 | The crypto engine failed | The board uses it | Open: no boot, or the software fallback |
 | The ROM's logs are missing | Never | Logged only |
+
+The lockdown (4.4) is not in the table: whether it can be done is known only at the jump, not
+before the load. Its failure stops the boot there (4.4).
+
+**Open (1)**: when a bypassed filter matters. The first version said "the image starts a secure OS
+(BL32)", which pb can't tell:
+
+- Through TF-A the BL32 is named by the board's configuration, not by the image.
+- With the image handover a secure OS is the image's kernel part like any other. That is F-096's
+  own case, and a rule on BL32 would not have caught it.
+- The preconditions are checked before an image is read.
+
+Proposed: always. `PLAT_TZ_DRAM_BYPASSED` refuses every boot: a filter pb owns is never left in
+bypass on purpose. The cost: a product in the field whose ROM setup doesn't take the filter out of
+bypass, and that runs no secure OS, stops booting when it is updated to 3.0.0 (`principles.md` 3
+against 1, and security comes first). The alternative is a board that declares its product has a
+secure world, and the check only then; a board that forgets the declaration is F-096 again.
 
 "No boot" means `boot()` fails: pb enters command mode, which needs authentication on a locked
 device, and reports the reason in its log. Open with it:
@@ -153,7 +188,8 @@ Return   : does not return
 Resets the SoC. Valid from the first instruction after `arch_init()`, also before
 `plat_early_init()` (the arch's exception handlers call it) and whatever `CONFIG_ENABLE_WATCHDOG`
 is: a driver's base address is a constant, only arming the watchdog depends on the option.
-Declared `noreturn`. **Not yet in the code (F-237)**: not declared `noreturn`.
+Declared `noreturn`. **Not yet in the code (F-237, F-262)**: not declared `noreturn`; a port whose
+reset goes through a system controller returns when it is called before `plat_early_init()`.
 
 ### 3.2 Function : plat_get_us_tick() [mandatory]
 
@@ -164,7 +200,8 @@ Return   : uint32_t, microseconds
 
 A free-running microsecond counter from an arbitrary start. It wraps modulo 2^32 (71.6 minutes):
 callers only use differences, `now - start`, never absolute values or an end tick (F-211). Valid
-from `plat_early_init()`. The platform header states its accuracy (F-084).
+from `plat_early_init()`. The platform header states its accuracy (F-084). **Not yet in the code
+(F-237)**: `plat.h` declares it `unsigned int`.
 
 Microseconds, not milliseconds: drivers wait for 1 to 100 us, and the boot time log measures each
 chunk's read and hash below a millisecond.
@@ -180,15 +217,20 @@ Restarts the watchdog. Cheap and safe at any time, also before the watchdog is a
 `CONFIG_ENABLE_WATCHDOG`.
 
 Who kicks it: the core, where work makes progress. Once per chunk in `load_and_hash`, once before
-the jump (the signature check after the last chunk isn't kicked otherwise), and in command mode's
-loop (F-243). Never in `pb_delay_*()` or `pb_timeout_*()`: a driver polling forever would keep the
-board alive, which is what the watchdog is there to catch.
+the jump (the final hash, prepare and `late_boot()` follow the last chunk without a kick
+otherwise; the signature is checked on the header, before the load), and in command mode's loop
+(F-243). A board's command that runs long kicks as it makes progress (`board.md` 4.4). Never in
+`pb_delay_*()` or `pb_timeout_*()`: a driver polling forever would keep the board alive, which is
+what the watchdog is there to catch.
 
-So `CONFIG_WATCHDOG_TIMEOUT` must be longer than both of these:
+So `CONFIG_WATCHDOG_TIMEOUT` must be longer than each of these:
 
 - The longest time without a kick from arming to the first chunk. The platform states its share in
   its header, measured (DRAM training is the usual long one).
 - One chunk on the slowest medium the board loads from. The board states it.
+- From the kick before the jump to the next stage's first kick: BL31, a secure OS, the kernel up
+  to its watchdog driver. Usually the longest; the product measures it.
+- Command mode's longest command, as long as the core kicks only between commands (F-189).
 
 The watchdog stays armed at the jump: the next stage takes it over.
 
@@ -222,16 +264,28 @@ The reason is read in `plat_early_init()`, not cleared. When several causes are 
 in the platform header decides `kind`. `raw` is for board code that needs the SoC's detail. It is
 not on the wire.
 
+**Open (3)**: who clears it. A reset status register is usually sticky: left alone, a cause stays
+set over the resets that follow, until a power-on reset, and the priority then reports the old
+one (F-210: the i.MX6UL's). "Not cleared" was chosen because the OS reads the same register.
+Proposed: pb still doesn't clear it. The platform header says which causes survive a reset, `kind`
+means "the highest priority cause since the status was last cleared", and clearing is the OS's.
+The alternative: pb clears it after reading and hands the reason to the next stage with pb's
+information (`boot.md` 5.6), which changes what an OS in the field reads (`principles.md` 3).
+
 ### 3.5 Function : plat_get_unique_id() [mandatory]
 
 ```
 Argument : uint8_t *output, size_t *length (in: buffer size, out: bytes written)
-Return   : int, PB_OK or -PB_ERR_BUF_TOO_SMALL
+Return   : int, PB_OK, -PB_ERR_BUF_TOO_SMALL or -PB_ERR_*
 ```
 
 The SoC's unique id, at most 16 bytes, the same for the life of the device. Valid from
 `plat_init()`: it reads fuses. Its bytes, their order and their number are part of the device
 identity (3.7).
+
+Failure: a read that fails returns its error and writes nothing. Never a partial id or one from
+memory that wasn't read: the device's identity and its tokens rest on it, and `device_uuid()`
+passes the error on. **Not yet in the code (F-200)**: the ports ignore a failed fuse read.
 
 ### 3.6 Data : platform_ns_uuid [mandatory]
 
@@ -241,7 +295,7 @@ identity (3.7).
 const char *platform_ns_uuid; /* 16 bytes */
 ```
 
-The UUID namespace of the platform.
+The UUID namespace of the platform. A constant: valid always.
 
 ### 3.7 The device identity
 
@@ -270,7 +324,7 @@ enum plat_tz_dram_filter {
 struct plat_status {
     enum plat_tz_dram_filter tz_dram_filter;
     bool wdog_armed;          /* false also without CONFIG_ENABLE_WATCHDOG */
-    bool crypto_engine;       /* the engine of 4.5 works; false when turned off */
+    bool crypto_engine;       /* the engine of 2.2 works; false when turned off */
     bool rom_log;             /* the ROM's logs were found */
 };
 ```
@@ -287,8 +341,18 @@ Return   : int, PB_OK or -PB_ERR_NOT_SUPPORTED
 ```
 
 Where the ROM (or a debugger) loaded pb from: a bio partition's UUID, USB, UART, the debugger, or
-unknown. Without it: -PB_ERR_NOT_SUPPORTED. Only the platform knows how its ROM reports this;
-drivers only report facts about their device (`mmc_get_boot_part_config()`).
+unknown (with PB_OK: the platform can't tell this time). Without it: -PB_ERR_NOT_SUPPORTED. Only
+the platform knows how its ROM reports this; drivers only report facts about their device
+(`mmc_get_boot_part_config()`).
+
+Valid from: USB, UART and the debugger from `plat_early_init()`, which saves what the ROM left
+(2.1). A partition once the board's storage is set up (`board_setup()`): naming it may need the
+device.
+
+**Open (4)**: its tag. Follows `board.md` 5.1 (draft): the core's serial download stop asks this
+function, so with -PB_ERR_NOT_SUPPORTED the stop never triggers, and nothing shows it (F-251).
+Proposed: `[mandatory when the ROM has a serial downloader]` for USB and UART; the partition and
+the debugger stay optional.
 
 ## 4. Security
 
@@ -314,15 +378,16 @@ extern const struct slc_ops plat_slc; /* read_status, set_configuration(_locked)
                                          fuse_read, fuse_write */
 ```
 
-The board keeps only its configuration fuses (`board.slc_fuses`, `board.slc_fuses_length`), by
-the platform's fuse index macro (`<P>_FUSE()`). `board_setup()` passes both to `slc_init()`. The
+The board keeps only its configuration fuses (`board.slc_fuses`, `board.slc_fuses_length`; today
+`fuses` in the board's `struct slc_config`, which `board.md` calls `slc.fuses`), by the platform's
+fuse index macro (`<P>_FUSE()`). `board_setup()` passes both to `slc_init()`. The
 rules (the order of the states, D-011, F-166) are the core's, in `slc.c`; the platform only reads
 and writes fuses.
 
 ### 4.3 The TrustZone DRAM filter [mandatory when the SoC has one]
 
-**Not yet in the code (F-248, F-241)**: the state isn't reported; the i.MX6UL's addresses are
-unchecked.
+**Not yet in the code (F-248, F-241, F-261)**: the state isn't reported; the i.MX6UL's addresses
+are unchecked; the ports open the SoC's whole DRAM window, not the board's DRAM (item 3).
 
 TrustZone is architectural (Secure and Non-secure state, the NS bit on the bus), the filter that
 checks DRAM accesses isn't: it is SoC IP (an Arm TZC-380 or TZC-400, a vendor's own controller, or
@@ -360,7 +425,17 @@ command mode, so the ROM may have been told to leave it unlocked), the fuses tha
 device (field return, debug unlock), and the controller settings the SoC can lock for the boot's
 lifetime. A platform with nothing to lock returns PB_OK and says so in its header.
 
-Failure: the boot doesn't jump (2.3).
+It may be called more than once before a reset (a boot that stopped after it, then a boot from
+command mode): locking what is already locked is not an error.
+
+Failure: the boot doesn't jump. It is not one of 2.3's preconditions, it is known only here.
+
+**Open (2)**: what follows a failure. Some of the locks may be set by then, and they hold until
+the next reset: command mode can't revoke a key, or do what else they cover, until then. Follows
+`boot.md` 2 (draft: pb enters command mode) and `board.md` 5.4 (draft: pb resets when command mode
+started the boot). Proposed: keep both, and command mode passes on the driver's error for what a
+lock refuses. A reset in every case would turn a lockdown that always fails into a reset loop
+without command mode.
 
 ### 4.5 Other duties of the stage in BL2's place
 
@@ -376,8 +451,12 @@ expects. `plat-imx.md` lists, per port, who does each and where pb stands.
 - **The architected timer**: counting, with its frequency in `CNTFRQ` (Linux's arm64 boot
   protocol requires it; only EL3 can write it).
 - **Timers armed out of reset and reset routing**: 2.1.
-- **DMA stopped before the jump** ("Quiesce all DMA capable devices", Linux's booting.rst): the
-  drivers', through the boot driver. Part of the handover contract, later.
+- **DMA stopped before the jump** ("Quiesce all DMA capable devices", Linux's booting.rst).
+  **Open (6)**: the owner. The first version gave it to the drivers, through the boot driver;
+  `board.md` (draft) has the core disconnect command mode's transport (4.2) and `late_boot()` stop
+  what the board started (5.3). Proposed: whoever started it stops it. The core its transport and
+  the device it loaded from, the board what its hooks started, the platform what `plat_init()`
+  started. Part of the handover contract, later.
 
 ## 5. Memory
 
@@ -429,10 +508,28 @@ flat regions, the innermost wins; partial overlaps are refused.
    `buffers` RW execute never. `pb` and `buffers` are two regions: one span over the gap between
    them maps the address space in between as memory (F-158).
 
-The platform calls it in `plat_init()` once DRAM works; the arch enables the MMU
-(`enable_mmu_svc_mon()` on ARMv7-A, `enable_mmu_el3()` on ARMv8-A). ARMv7-M has an MPU and no
-`plat_mmap`. Layer 1 also maps DRAM pb never touches, such as a secure carve-out: pb runs in the
-Secure state, and the filter (4.3), not pb's MMU, protects it from the normal world.
+The platform calls it in `plat_init()` once DRAM works. It builds the tables and ends in the
+arch's enable (`enable_mmu_svc_mon()` on ARMv7-A, `enable_mmu_el3()` on ARMv8-A): the platform
+doesn't call that itself. ARMv7-M has an MPU and no `plat_mmap`. Layer 1 also maps DRAM pb never
+touches, such as a secure carve-out: pb runs in the Secure state, and the filter (4.3), not pb's
+MMU, protects it from the normal world.
+
+### 5.3 Memory for images and handovers
+
+Follows `boot.md` 4.3, 5.3 and 5.4 (draft). **Not yet in the code (F-254, F-258, F-259).**
+
+The boot's placement check (`boot.md` 4.3) lets an image's parts land in the board's DRAM (5.1)
+and in what the platform declares. **Open (5)**: the form of both declarations.
+
+- **Loadable regions** `[optional]`: memory outside the board's DRAM that images may be loaded
+  into, such as on-chip RAM or a TCM. Proposed: a table next to `plat_mmap[]`, base and size,
+  empty on most platforms, and each region is in `plat_mmap[]` too. Without it: only the board's
+  DRAM.
+- **Where `bl_params` live** `[mandatory when the SoC's BL31 restricts it]`: TF-A's BL31 may take
+  its parameters only from some memory. Proposed: the platform gives the boot driver a region for
+  them, which the placement check keeps free of parts. Without it: pb's own data.
+- **The Firmware Handoff region** is the board's (a Kconfig base and size, `boot.md` 5.4). It gets
+  a row in 5.1's table and its `ASSERT`s when its names are settled.
 
 ## 6. The build interface
 
@@ -441,7 +538,7 @@ Secure state, and the filter (4.3), not pb's MMU, protects it from the normal wo
 - `choice PLAT` in `src/plat/Kconfig`: one symbol per platform or variant, depending on its arch
   (`ARCH_ARMV7`, `ARCH_ARMV8`, `ARCH_ARMV7M`) and the vendor's `SOC_FAMILY_*`; a family's common
   symbol selects its drivers.
-- `src/plat/<p>/Kconfig`: the platform's options, one per image stage (6.2).
+- `src/plat/<p>/Kconfig`: the platform's options, among them the image stages' (6.2).
 
 ### 6.2 Image stages
 
@@ -484,17 +581,31 @@ The stage names, their outputs and their input variables are an interface for ou
 they change only in a major release (D-018). CI builds a board that overrides at level 3, so the
 interface is tested.
 
+The Kconfig options are part of it. A renamed option drops out of an out-of-tree defconfig without
+an error, and the stage is then off: F-240's commit keeps today's names where it can, and the
+release notes list the ones it renames.
+
 ## 7. What a board may use
 
 The platform's side. What the core promises a board and asks of it is `board.md`.
 
-A board includes `include/pb/`, `include/drivers/` and `include/plat/<p>/`, nothing from
-`src/plat/`. The platform header documents:
+A board includes `include/pb/`, `include/drivers/`, `include/boot/` and `include/plat/<p>/`,
+nothing from `src/plat/` (the same list as `board.md` 6).
+
+**Open (7)**: the boards also include `<bpak/bpak.h>` and, on one platform, the arch's headers (a
+timer, the register helpers). Proposed: `<bpak/bpak.h>` joins the list, the boot hooks get a
+`struct bpak_header`. The arch's headers don't: what a board needs from the arch comes through
+`include/pb/arch.h` or the platform header.
+
+The platform header documents:
 
 - Base addresses, and the pin macros (`<P>_PIN()`, D-026).
 - The fuse index macro, for `board.slc_fuses`.
 - One accessor, `<p>_plat()`, with documented fields: the SoC revision, the speed grade, the
-  clock rates boards need, a system controller's handle. Its fields are set by `plat_init()`.
+  clock rates boards need, a system controller's handle. Its fields are set by `plat_init()`,
+  except those the header marks as valid from `plat_early_init()`: `board.console_init()` runs
+  between the two (`board.md` 2.2) and may need a system controller's handle for its clock and
+  pads.
 - Helpers for boards (pad setup through a system controller).
 - The tick's accuracy, the watchdog's longest stretch without a kick, the boot reason's `raw`
   values and priority, what `plat_lockdown()` locks, and for level 3 builds what the ROM requires
@@ -513,22 +624,28 @@ For a new platform, and for a change to one:
       the reset reason without clearing it; it can't fail.
 - [ ] `plat_init()` returns an error only when command mode's prerequisites are missing, and
       records the rest in `plat_get_status()`.
+- [ ] `plat_early_init()` touches no DRAM the ROM didn't set up and doesn't enable the MMU.
 - [ ] `plat_reset()` works before `plat_early_init()` and without `CONFIG_ENABLE_WATCHDOG`.
 - [ ] `plat_wdog_kick()` is safe before the watchdog is armed. The header gives the longest
       stretch without a kick, measured.
 - [ ] `plat_get_us_tick()` is in microseconds and wraps at 2^32; the header gives its accuracy.
-- [ ] `plat_get_boot_reason()` maps every cause to a `kind`, with the priority in the header.
+- [ ] `plat_get_boot_reason()` maps every cause to a `kind`, with the priority in the header, and
+      the header says which causes survive a reset (open 3).
+- [ ] `plat_get_boot_source()` reports a serial download where the ROM has one (open 4).
 - [ ] The device identity is unchanged: `platform_ns_uuid`, the unique id's bytes, order, length.
-      A new platform has a new random namespace.
+      A new platform has a new random namespace. `plat_get_unique_id()` returns an error when a
+      read fails, never a partial id.
 - [ ] The TrustZone filter (4.3): out of bypass before DRAM is used, the enable locked where
       possible, the board's DRAM open in a region of its own, the default region secure, the state
       reported; or the header says why there is none.
 - [ ] `plat_lockdown()` locks key revocation and what reopens a closed device, or the header says
-      why there is nothing.
+      why there is nothing. It can be called twice.
 - [ ] The duties of 4.5 are done, or left to a named later stage.
 - [ ] `plat_rot` and `plat_slc` only read and write fuses; the rules stay in `rot.c`, `slc.c`.
 - [ ] The link script has no addresses but the SoC's regions; its `ASSERT`s check the windows.
 - [ ] `plat_mmap[]` holds only SoC regions; `pb_mmu_init()` is called after DRAM works.
+- [ ] The loadable regions and the place for `bl_params` are declared where the SoC has them
+      (5.3).
 - [ ] The image stages follow 6.2: `?=` inputs, Kconfig gated, all three override levels work.
 - [ ] The header documents what section 7 lists.
 - [ ] Facts from a reference manual are cited by document and section. NDA documents are not

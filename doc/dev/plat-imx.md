@@ -172,7 +172,7 @@ are Kconfig strings on the 6UL, make variables on the 8X (F-240).
 
 ## 7. Conformance
 
-Where each port is (2026-11-10).
+Where each port is (2026-11-11).
 
 | Requirement | imx6ul | imx8m | imx8x | imxrt | Finding |
 |---|---|---|---|---|---|
@@ -180,11 +180,14 @@ Where each port is (2026-11-10).
 | Watchdog armed in early init | yes | yes | yes | yes | F-233 |
 | Power-down counters disabled | yes | yes | n/a | yes | F-245 |
 | `plat_reset()` without the watchdog | yes | yes | yes | yes | F-234 |
+| `plat_reset()` before early init | unchecked | unchecked | no | unchecked | F-262 |
 | `plat_wdog_kick()` before arming | yes | yes | unchecked | yes | F-234 |
 | `plat_get_boot_reason()` | no | no | no | no | F-236 |
+| The unique id fails on a failed read | no | no | unchecked | no | F-200 |
+| Serial download in `plat_get_boot_source()` | USB only | no | no | no | F-251 |
 | `plat_init()` errors only for command mode | yes | yes | yes | partly | F-235 |
 | `plat_get_status()` | no | no | no | no | F-248 |
-| TrustZone filter | partly | yes | n/a (BL31) | n/a | F-241, F-208 |
+| TrustZone filter | partly | partly | n/a (BL31) | n/a | F-241, F-208, F-261 |
 | `plat_lockdown()` | yes | yes (nothing yet) | unchecked | unchecked | F-244 |
 | Bus access control | no (AIPS-TZ) | n/a (BL31) | n/a (BL31) | n/a | F-246 |
 | `plat_rot`, `plat_slc` | no | no (no HAB) | no | no | F-247 |

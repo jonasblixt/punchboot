@@ -3,7 +3,8 @@
 **Hard rule (D-008): never break backward compatibility of the wire protocol or of the bpak
 image format.** Devices in the field are not updated in step with the host tools, factory lines
 pin old tool versions, and signed images outlive both. This file lists what is frozen, what may
-change and how, and the guards that check it.
+change and how, and the guards that check it. The floor is the 1.0.0 release (Jonas, 2026-11-11):
+hosts and firmware from v1.0.0 on.
 
 Read it before touching: `include/pb-tools/{wire,error}.h`, `src/wire.c`, `src/cm/`,
 `tools/punchboot/` (`wire.py`, `bpak.py`, `session.py`), `include/bpak/`, `src/lib/bpak.c`,
@@ -74,9 +75,10 @@ device read, so it needs no capability bit:
   consumes.
 
 Rule for the firmware: every image that a released bpak CLI produced and a released punchboot
-accepted must still be accepted. The one exception is rejecting images that were always invalid
-(a security fix); that needs a decision entry naming what is now rejected and why. D-024 is
-one: the header validation of bpak 1.0.
+accepted must still be accepted. The one exception is security, which comes first
+(`principles.md`): a security fix may reject what a release accepted. That needs a decision entry
+naming what is now rejected and why. D-024 is one (the header validation of bpak 1.0), D-035
+another (the custom source, `dont-hash` parts).
 
 Extensions (new hash/sign kinds, new flags, new meta) are allowed if old images keep verifying
 the same way. New images that old firmware can't read are fine only if they are opt-in.

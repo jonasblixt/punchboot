@@ -15,12 +15,18 @@ the trim is at the end of `log/2026-11-09.md`.
   fuses as data, pin tables. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
   8X closed state, imx8mevk and DXL on hardware. `arch-firmware.md` waits for the review.
 - **Platform contract (D-030, `platform.md`, `plat-imx.md`):** reviewed, its bugfixes are in. The
-  rest follows in commits (order in `log/2026-11-10.md`), each removing its "Not yet" marker.
+  rest follows in commits (order in `log/2026-11-10.md`), each removing its "Not yet" marker. A
+  review pass against `board.md`, `boot.md` and the code is written in (2026-11-11): 7 open
+  items at its top, to revisit when the board and boot contracts are final. New: F-261, F-262.
 - **Board contract (D-031, `board.md`):** written, waits for Jonas's review; its code is F-216,
   F-178, F-249..F-252 (held where it touches the boot until the boot contract is reviewed).
-- **Boot flow contract (D-032, `boot.md`):** a draft after four rounds with Jonas, waits for his
-  review; its code is F-253..F-260 and the A/B review's. F-253 (lost `IN_MEM`/`CUSTOM`) before
+- **Boot flow contract (D-032, `boot.md`):** a draft after four rounds with Jonas and a review
+  pass (15 open items left, each a proposal), waits for his review; its code is F-253..F-260 and the
+  A/B review's. F-253 (the lost `IN_MEM` source) before
   `work-3.0.0-plat` merges. Then the drivers' contracts (`log/2026-11-11.md`).
+- **The process and level 1 (D-033 to D-036):** `process.md`, `security.md`, `system.md` and
+  `principles.md` are reviewed (Jonas). Documents first, top down; security first, also before
+  compatibility. No custom source, `dont-hash` images refused, EOL behind Kconfig (F-263).
 - **Tests:** `scripts/pbdev test`, ~20 s: 35 suites (unit tests, `compat.abi`, the pytest
   integration tests), ASan/UBSan clean, line coverage 99.2% (`testing.md`).
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a firmware compile
@@ -31,15 +37,19 @@ the trim is at the end of `log/2026-11-09.md`.
 - **Test benches:** Linux (`testbench/`, D-022): jiffy, the 8MP EVK and the MEK boot to the login.
   simple target (`testbench/simple/`, D-025): the RT1060 EVK.
 
-**Hard rule (D-008):** never break wire or bpak compatibility. See `compatibility.md`.
+**Hard rule (D-008):** never break wire or bpak compatibility; only security comes before it
+(D-035). See `compatibility.md`.
 
 ## Next steps
 
 0. **Resume here (2026-11-11): Jonas reviews the boot flow contract, `boot.md` (draft, D-032).**
-   Start from its "Open for the review" list. The four rounds that shaped it, and the Firmware
-   Handoff and Xen facts, are in `log/2026-11-11.md`. After it: Jonas's comments in `board.md` 2.1
-   (a rewrite is proposed in the log), the rest of the `board.md` review, then the code (F-253
-   first, before `work-3.0.0-plat` merges). The docs work is uncommitted on `work-3.0.0-plat`.
+   Start from its "Open for the review" list (1 to 6 the draft's choices, 7 to 17 the review
+   pass's, marked **Open (n)** in the text). The rounds, the review pass and the Firmware Handoff
+   and Xen facts are in `log/2026-11-11.md`. After it: the rest of the `board.md`
+   review (2.1 is rewritten), then `platform.md`'s
+   open items (they follow the two drafts), then the code (F-253 first, before `work-3.0.0-plat`
+   merges). Meanwhile, mine: the guards (`process.md` 7, the
+   document lint first).
 1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time
@@ -71,5 +81,3 @@ the trim is at the end of `log/2026-11-09.md`.
 - Which boards are still in use? bebop and pico8ml only have defconfigs (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Mbed TLS: 3.6 LTS or 4.x?
-- Compat floor: which oldest released host and firmware must the guards test against? F-075 shows
-  v2.0.0 already broke erase for 1.x hosts.

@@ -79,13 +79,39 @@ frozen (D-001).
 
 - User docs (the Sphinx tree is gone, D-020): document the CLI, Python API, wire protocol and porting guide, starting from the README (F-044).
 
+## From the level 1 review (2026-11-11, D-035)
+
+To do (Jonas):
+
+- **Anti-rollback**: a version floor, fuse-backed. A version below the floor fails verification, so
+  the boot source policies don't change; it may change what a fallback may boot (a CVE).
+- **Examples for `password_auth()`**: a few good ones, such as a secret in the RPMB. A board's own
+  implementation stays allowed (`board.md` 4.5, F-004).
+- **The compatibility floor is v1.0.0**: the guards test hosts and firmware from the 1.0.0 release
+  on (Phase 1, item 3 said 2.0.0).
+
+To discuss (Jonas):
+
+- **EOL** (`system.md` Open (1)): the SoC's end of life state (NXP's field return), behind Kconfig;
+  a product may not allow it at all.
+- **Encrypted images** (`security.md` 2): confidentiality isn't protected today.
+- **Authentication methods** (`security.md` 4.7): authentication is pluggable. A token limited in
+  time, on platforms with secure time. Capabilities: a token for a return analysis that only
+  allows reading certain logs.
+- **Boot failure records** (`system.md` 5.4): counters for failed boots that the system reads
+  later, and error logs written to flash in some cases, for the analysis of returned devices.
+- **Another image format** (`system.md` 3): bpak solves more than pb needs; a simpler format of
+  pb's own, loosely coupled, and whether one build accepts several formats. With it: the keystore
+  without the round trip through the bpak CLI at build time (key ids unchanged, the bpak input
+  still accepted). The parked `pbi-image-format` branch belongs here.
+- **Erase on the wire**: Jonas may want to change it again (F-075 is accepted, no product used it).
+- pb's own update with a rollback (`security.md` 5; my addition).
+
 ## Later / to discuss
 
 - Build system: keep Make + Kconfiglib, or move to CMake/Meson?
 - Wire protocol version field and capability negotiation. Only next to `PBL0` and the caps
   command, never replacing them (D-008).
-- Anti-rollback version counter (fuse-backed). A version below the floor fails verification, so
-  the boot source policies don't change; it may change what a fallback may boot (a CVE).
 - PyPI trusted publishing.
 - bpak format extensions. Only backward compatible ones (D-008).
 - Low prio: move the whole repo to `jonas@blxt.se`. Simple part: the copyright headers that still
