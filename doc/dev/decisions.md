@@ -766,3 +766,217 @@ the second format. Nothing in the code changes now: the core reads bpak's header
 the format's interface in the code comes with the second format, together with what that format
 changes outside the table (the part ids a board names, the host's command, several formats in
 one build; `roadmap.md`).
+
+## D-045: The board contract after the boot flow contract and level 1 (2026-11-11)
+
+A pass over `board.md` against `boot.md` (reviewed, D-041), `security.md`, `system.md` and
+`principles.md`, as D-038 was for `boot.md`. Derived by me, for Jonas's review of `board.md`;
+five items are left for him there. The sections keep their numbers: `boot.md`, `platform.md` and
+level 1 cite them.
+
+Written in, because the documents above leave one answer:
+
+- The lifecycle and section 5 follow `boot.md` 2: the preconditions before `early_boot()`, the
+  loop over the candidates, the hooks once per boot outside it. A stop or failure in a hook
+  tries no other candidate.
+- 2.5 is the boot source policy's data, not A/B's alone, and `ab` has no `rollback_mode`
+  (D-040). The policy marks its candidates: a board sets no `BIO_FLAG_BOOTABLE`.
+- 2.7 is one handover and one delivery (`boot.md` 5.1), Firmware Handoff in `simple`'s place
+  (D-039). The DT hook runs in prepare, so once per candidate, before pb's properties.
+  `resolve_part_name` goes: the system's name is the policy's.
+- `init()`'s failures are sorted as `security.md` 4.5 sorts a precondition. A failed RoT or SLC
+  also refuses a boot command mode started (`system.md` 4).
+- `late_boot()` runs after the policy wrote its state: a stop there costs an A/B trial an
+  attempt. Written as a consequence and a rule of thumb (what is known before the load is
+  checked in `early_boot()`), not as a change.
+- 5.4 follows `boot.md` 6: `boot bpak` answers before prepare, so a failed prepare reaches the
+  log, and command mode goes on.
+- A board's command stays inside the core's rules (`security.md` 4.8); the boot flags' upper 16
+  bits and the A/B state's board registers are the board's (they were in the code, not in the
+  contract).
+- Section 8 gains the policy, the parts the board names for the handover, and the password's
+  secret. `compatibility.md`'s summary of it follows after the review.
+
+Open for Jonas (`board.md`, top): the policy's fields; how a board gives the in place source (a
+table, or released pb's hook), which `work-3.0.0-plat`'s merge waits for; the handover's fields;
+bpak in the board's interface (`late_boot()`'s header, the part ids); a board's condition in pb's
+status, which would be an entry of `boot.md` 5.6.
+
+Found on the way: F-264, the RT's `late_boot` was never called.
+
+## D-046: One member per concept in `struct board`, a variant is an object (2026-11-11)
+
+Jonas, before his review of `board.md`: "board is data" (D-026) didn't turn out well, and the
+boot source policy's fields (`ab`, `boot_part_uu`, `boot_chain`, D-045's Open (1)) felt awkward.
+What stays of D-026: the core owns the order and the failure rules, the board is
+`const struct board`. What changes is how a board gives a module its configuration.
+
+Where a concept has variants, `struct board` has one member for it, and the board fills it with
+an object the chosen module provides: the module's functions and the board's configuration for
+it, made by the module's macro. `cm_transport` already worked this way.
+
+| Concept | Member | Objects |
+|---|---|---|
+| The partition table | `ptbl` | `PTBL_GPT(device, tables)`, `PTBL_STATIC(device, table)` |
+| The boot source policy | `boot_policy` | `BOOT_POLICY_FIXED(part)`, `BOOT_POLICY_CHAIN(parts)`, |
+| | | `BOOT_POLICY_AB(&config)` |
+| The handover | `boot_handover` | `BOOT_HANDOVER_IMAGE(&config)`, `BOOT_HANDOVER_FH(&config)` |
+| Its delivery | `boot_delivery` | `BOOT_DELIVERY_TFA(&config)`; absent: directly |
+| Command mode's transport | `cm_transport` | `pb_dev_cls_transport`, as today |
+
+- The board's data makes the choice. Kconfig compiles a module in; a board that names one that
+  isn't compiled in doesn't link. The policy is no Kconfig `choice` any more (D-040's option
+  names stay, as options), and one build may hold several policies.
+- A module's configuration is documented with the module (`boot.md` 3.5, 5.2 to 5.4), not in
+  `board.md`.
+- What stays in Kconfig: `BOOT_AB_SPECULATIVE` (D-040), and the addresses the build needs
+  (`BOOT_FH_REGION_*`, the board's DRAM and entry).
+
+Why: with a member per variant (`boot_linux`, `boot_atf`, `boot_simple`; `ab` and two more for
+the new policies) every choice was made twice, in Kconfig and by which pointer is set, and their
+agreement was a run time check (F-249). Every new variant changed `struct board` and
+`src/board.c`, which D-031 allows only in a major release; a second image format and more
+policies are planned. With an object, a mismatch is a link error, a new variant leaves the
+porting API alone, and one `pb-host` can run every policy in the integration tests.
+
+Considered:
+
+- Modules find their data by name (`extern const struct ... boot_policy_ab_config`), Kconfig
+  selects, as the platform contract does with `plat_*`. Also a link time check, and
+  `struct board` would hold only hooks; but a board is no longer read in one place, and each
+  policy needs its own host build to be tested.
+- The board registers its choices with calls from a hook (`boot_policy_ab_init(&config)`). The
+  choices then aren't `const`, and a missing one shows at run time.
+- Grouping the flat struct. Cosmetic.
+
+Cost: a `const void *` behind the macros; the board files are rewritten once more (F-265, with
+F-256, F-258 and F-259, before `work-3.0.0-plat` merges or right after it); one sentence of the
+reviewed `boot.md` changed (3: the policy was "chosen in Kconfig").
+
+Not settled by this entry: `cm_transport` and `cm_init()`. Jonas's idea, right after it: both
+leave the board's interface, the platform sets up command mode's USB and Kconfig selects the
+interface (`board.md` Open (4), to discuss).
+
+On `board.md`'s open items (D-045): the policy's and the handover's fields are no longer its
+questions. The in place source is proposed as a field of the static partition table's entry;
+where the header is stays open. Left: in place, `late_boot()`'s bpak header, a board's condition
+in pb's status, and the transport's idea above.
+
+## D-047: `late_boot()` gets no image header; the format hands out the verified one (2026-11-11)
+
+Jonas, in his review of `board.md` (its Open (2)): changing the hook is fine for 3.0.0. The
+`struct bpak_header *` argument goes, and a board that needs the verified header calls a
+function of the image's format: `boot_verification_get_bpak_header()`, and one per format that
+comes (`boot_verification_get_<format>_header()`).
+
+- It returns `const struct bpak_header *`: the header of the image this boot verified, NULL
+  before the payload's hash is checked or when the image isn't a bpak image. Valid from prepare
+  to the jump, so the DT hook can use it too. (The return value and from when it is valid are
+  mine.)
+- `late_boot()` keeps `boot_part_uu`, which names no format.
+
+Why: the boot flow is written for any image format (D-044), and a hook's arguments change only
+in a major release (D-031). With the header as an argument a second format would have needed a
+second hook or 4.0.0. As a function of the format it is compiled in with the format, and a
+board that doesn't ask for it doesn't include `<bpak/bpak.h>`.
+
+The name (Jonas, the same day): `boot_image_get_bpak_header()` and
+`boot_image_get_<format>_header()`, like the module's other functions (`boot_image_auth_header()`,
+`boot_image_verify_payload()`). `boot_verification_get_*` above was his example.
+
+Replaces what I had proposed (keep the argument, as `const`, for bpak only). Code: F-266.
+
+## D-048: In place: a flag in the static table, the device's mapped base, no header address (2026-11-11)
+
+Jonas, in his review of `board.md` (its Open (1)):
+
+- A board says a partition is booted in place with a flag in its entry of the static partition
+  table. The table's object carries the address the device's first byte is mapped at
+  (`PTBL_STATIC_MAPPED(device, base, table)`); the partition's address follows from it and the
+  entry's first block.
+- The header is where the image's format has it in a partition (for bpak the last 4 KiB), read
+  through the map. The board gives no address for it. This drops "or where the board says"
+  from `boot.md` 4.1, which D-039 had kept ("both"), and released pb's `get_in_mem_image()`
+  doesn't come back.
+
+Why: his boards have the header at the partition's end, so the second way had no user. Where a
+header sits is the format's (`boot.md` 4.4): a format with its header first says so itself, for
+every source. An address per entry with 0 for "not mapped" was my first proposal; his question
+(what would 0 mean for a header at the beginning) showed the sentinel's problem, flash can be
+mapped at 0, and an address per entry must agree with the entry's first block.
+
+Compatibility: no image changes. A board that kept its header elsewhere than the format has it
+would have to move it; none is known (Jonas). Allowed for the porting API in 3.0.0 (D-018).
+Code: F-253, with F-219 and F-265.
+
+## D-049: Command mode's USB is the platform's, and the transport is linked (2026-11-11)
+
+Jonas, in his review of `board.md` (4.1, 4.2):
+
+- pb's transport is USB and stays USB. Most SoCs' ROMs use USB for recovery and provisioning,
+  so it fits; other transports, an IP stack above all, would add a large attack surface to a
+  stage that runs with the highest privilege (`security.md` 1; `system.md` 1: no network).
+- A board sets up nothing for command mode. The platform does it: `plat_cm_init()`
+  (`platform.md` 3.10), called at the start of `cm_run()`. Which of the SoC's ports is a Kconfig
+  choice of the platform's. `cm_init()` leaves `struct board`, without a hook for the PCB in its
+  place: none of his boards needs one.
+- `cm_transport` leaves `struct board`. Command mode calls the transport's functions directly,
+  and the build links one implementation: the USB class driver, or the host platform's socket.
+
+Why: every board's `cm_init` is SoC work (clocks or power domains, the PHY, the controller), no
+pin and nothing of the PCB; the only board choice in it is the port. Every board sets the same
+transport. The seam stays, at link time, because it has a second implementation: the tests and
+`pb-host` talk to command mode through a socket. That also keeps a way open for a SoC without a
+USB device port, without the board's interface in it.
+
+This takes `cm_transport` out of D-046's table; D-046's rule holds for the other four. Here
+Kconfig chooses, not the board's data: the choice is among the SoC's ports, the platform's.
+Code: F-267.
+
+## D-050: A board reports what it booted without: `board-degraded` in pb's status (2026-11-11)
+
+Jonas, in his review of `board.md` (its last open item): accepted as proposed. What a board's
+`init()` logs and doesn't fail on (jiffy: the CAAM's RNG for Linux) is "what pb couldn't do and
+booted anyway" (`system.md` 5.4). The board calls `board_report_degraded()`, and the handover
+carries one entry for every board: `board-degraded` in `pb,status`, bit 1 in `status`
+(`boot.md` 5.6). What it stands for is in the log and in `status()`.
+
+The function's name, and that it is valid in `init()`, `late_init()` and `early_boot()` (pb's
+information is collected after `early_boot()`), are mine. Code: with F-248.
+
+## D-051: Tasks: a linker list the core calls in turn while pb is stopped (2026-11-11)
+
+Jonas, in his review of `board.md`: `DEFINE_TASK(name, run)` defines a task, a name and a
+function, in a linker section. When pb is stopped the core calls every task in the list in
+turn, again and again. No switching, no pre-emption. Command mode's own handling of the host is
+one of the tasks (`cm_main_task`): the core owns the loop, not `cm_main.c`. Command mode's
+optional `process` hook goes.
+
+The loop is outside command mode, in `main()` (Jonas, corrected the same day; I had first
+written it as command mode's): pb can be built without command mode, and there are uses for
+tasks without it. Such a build stops the same way and runs its tasks; with none it resets, as
+today. `system.md` 2 says so.
+
+His answers to what I asked:
+
+- **No order.** It isn't important, so none is defined and the struct has no priority.
+- **The rules for a task**: it returns quickly, takes no input from the host (only command
+  mode's task reads the transport), stays inside the core's rules, and the core kicks the
+  watchdog. Accepted.
+- **Latency**: a long command holds every other task off. Fine for now; nothing his boards do
+  there is time critical.
+- **The link scripts keep the section**; no set-up function.
+- **The large change**, not only a replacement for `process`: command mode becomes a task.
+
+Mine: `run` returns int, PB_OK to be called again, an error ends the loop and pb resets, as
+when command mode ends today. `DEFINE_TASK()`'s arguments.
+
+Why: `process` was one hook for one user, and since D-026 no board could set it (F-268). A list
+lets a board, a platform and a driver each have a task without a member in `struct board` or
+`cm_config`, and it stays off the boot path (D-023). The host's tests need no link script for
+it: the linker provides a plain section's start and end.
+
+Cost: `cm_main.c`'s blocking loop becomes a step function; a section to keep in six link
+scripts (with F-239). Where it is written: `system.md` 2 (stopped, and command mode as one
+task), `board.md` 4.6 (what a board may rely on) and `platform.md` 5.1 (the section). Code:
+F-268.

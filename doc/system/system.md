@@ -1,6 +1,6 @@
 # The system
 
-**State: reviewed (Jonas, 2026-11-11), D-034 to D-036.** Level 1 (`process.md`).
+**State: reviewed (Jonas, 2026-11-11), D-034 to D-036, D-051.** Level 1 (`process.md`).
 
 What pb is, its interfaces to the outside, the device's life cycle, and what pb promises. The
 documents below say how; this one says what they must add up to. Against whom the promises hold
@@ -35,6 +35,11 @@ ROM -> pb -> secure firmware (-> a secure OS) -> an operating system or a hyperv
 
 Command mode without a host ends by itself: when its transport isn't ready in time
 (`CONFIG_CM_TRANSPORT_READY_TIMEOUT`, 10 s), pb resets and boots again.
+
+Command mode is what pb does when it is stopped, in a build that has it (the default). Stopped,
+pb runs the build's tasks in turn (`board.md` 4.6, D-051), and command mode is one of them. A
+build without command mode stops for the same reasons and runs its other tasks; with none it
+resets.
 
 The flows: `boot.md`, `command-mode.md` (not written).
 
@@ -120,7 +125,8 @@ else. The times per board are measured and recorded (the README, `testbench/READ
 
 **5.4 A failure is never silent and never a hang.**
 
-- A boot that fails or is refused ends in command mode, with the reason in the log.
+- A boot that fails or is refused ends in command mode, with the reason in the log (without
+  command mode in the build: stopped, section 2).
 - A platform failure resets (`platform.md` 2); the recovery is the ROM's serial download.
 - The watchdog covers the boot, command mode's commands and the jump to the next stage's first
   kick (`platform.md` 3.3).
