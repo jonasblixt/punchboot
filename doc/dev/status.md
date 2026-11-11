@@ -20,7 +20,8 @@ the trim is at the end of `log/2026-11-09.md`.
   items at its top, to revisit when the board and boot contracts are final. New: F-261, F-262.
 - **Board contract (D-031, `board.md`):** written, waits for Jonas's review; its code is F-216,
   F-178, F-249..F-252 (held where it touches the boot until the boot contract is reviewed).
-- **Boot flow contract (D-032, D-038 to D-041, `boot.md`):** reviewed (Jonas), no open items.
+- **Boot flow contract (D-032, D-038 to D-041, D-043, D-044, `boot.md`):** reviewed (Jonas), no
+  open items; his final read is in (pb's status stays, `pb,version`, any image format, 4.4).
   Its code is F-253..F-260 and the A/B review's. F-253 (the lost `IN_MEM` source) before
   `work-3.0.0-plat` merges. Then the drivers' contracts (`log/2026-11-11.md`).
 - **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each

@@ -750,3 +750,19 @@ place than expected. Removing it would have been safe for compatibility, nothing
 Why the version: an OS can tell which pb booted it without command mode, for an inventory or a
 report. It is not for telling which entries exist: a next stage looks for the entry. Appended
 last in the structure, so the layout that goes to the specification only grows.
+
+## D-044: The boot flow is written for any image format (2026-11-11)
+
+Jonas, on `boot.md` 4.2: bpak is one format, another is planned (`system.md` 3), so the flow is
+written without naming bpak. `boot.md` 4.4 is the one place that does: a table of what the flow
+needs from a format (a header with its own validity check, the key's id, a signature over the
+header and its hash, the parts with their place, size and load address, one payload hash in the
+signed header, signed attributes for a handover) and what bpak has for each. 4.1, 4.2 and
+section 5 say "the header", "a part", "its load address", "an attribute of the image". The
+command's name `boot bpak` stays, it is the wire's.
+
+The table is my reading of today's code (`image_helpers.c`, `boot.c`, `atf.c`), not a design of
+the second format. Nothing in the code changes now: the core reads bpak's header directly, and
+the format's interface in the code comes with the second format, together with what that format
+changes outside the table (the part ids a board names, the host's command, several formats in
+one build; `roadmap.md`).
