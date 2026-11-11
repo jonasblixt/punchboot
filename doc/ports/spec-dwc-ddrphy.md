@@ -12,7 +12,7 @@ implementation side works from this document and the headers named below only.
   CSR numbers and bit names used below.
 - `include/drivers/ddr/dram_cfg.h`: `struct dram_cfg_param`, `struct dram_fsp_msg`, `enum fw_type`.
 - punchboot's general headers: `include/pb/mmio.h`, `include/pb/pb.h`, `include/pb/errors.h`,
-  `include/pb/log_def.h`, and `CLAUDE.md` for conventions.
+  `include/pb/log_def.h`, and `AGENTS.md` for conventions.
 - Building and running the tests (`tests/unit/test_imx8m_ddr`, which compares every register write
   against a recorded trace) and the firmware build (`scripts/pbdev firmware imx8mevk`).
 

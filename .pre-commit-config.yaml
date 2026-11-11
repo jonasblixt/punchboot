@@ -54,5 +54,5 @@ repos:
     name: the documents agree with each other and the headers (doc/process.md 7)
     entry: python tests/doc/check_docs.py
     language: python
-    files: ^(doc/|CLAUDE\.md$|README\.md$|include/pb/(plat|board)\.h$|include/boot/|tests/doc/)
+    files: ^(doc/|AGENTS\.md$|README\.md$|include/pb/(plat|board)\.h$|include/boot/|tests/doc/)
     pass_filenames: false

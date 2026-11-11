@@ -720,3 +720,14 @@ the structure grows by appending; he accepted the bits there given that more can
 
 With it `boot.md` has no open items: reviewed (`process.md` 4). The code follows it, a commit
 per finding (section 9).
+
+## D-042: The agent instructions are `AGENTS.md`, for any harness (2026-11-11)
+
+`CLAUDE.md` is renamed `AGENTS.md`, the name most coding agents read; the repo names no
+harness. It amends D-002: the file stays small and points to documents that are loaded on
+demand. One file at the root, plain Markdown: no nested instruction files, no imports, no tool
+or command names of one harness. The dated log and the `claude-work` branch name in the closed
+findings stay as they are, they are history.
+
+Why: Jonas wants the repo to work with different harnesses. Claude Code reads `AGENTS.md` where
+a project has no `CLAUDE.md` (2.1.322), so no stub is kept.

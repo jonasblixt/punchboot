@@ -288,6 +288,9 @@ The POR time is off due to some unidentified problem with the SCU firmware.
 
 ## Contributing
 
+The conventions, for people and coding agents alike, are in [AGENTS.md](AGENTS.md); the map
+of the documents is [doc/README.md](doc/README.md).
+
 1. Fork the repository
 2. Implement new feature or bugfix on a branch
 3. Implement test case(s) to ensure that future changes do not break legacy

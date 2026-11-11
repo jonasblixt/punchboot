@@ -1,7 +1,7 @@
 # Findings
 
 Bugs and tech debt from the 2026-10-22 repo scan. **Verified** means a human or
-Claude read the code and confirmed it. **Reported** means it came from a scan
+an agent read the code and confirmed it. **Reported** means it came from a scan
 agent and has not been checked yet; check before acting on it.
 
 Status: `open` / `fixed (<commit>)` / `wontfix (<reason>)`.
