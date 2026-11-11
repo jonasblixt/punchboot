@@ -30,8 +30,9 @@ the trim is at the end of `log/2026-11-09.md`.
 - **The process and level 1 (D-033 to D-036):** `process.md`, `security.md`, `system.md` and
   `principles.md` are reviewed (Jonas). Documents first, top down; security first, also before
   compatibility. No custom source, `dont-hash` images refused, EOL behind Kconfig (F-263).
-- **Tests:** `scripts/pbdev test`, ~20 s: 35 suites (unit tests, `compat.abi`, the pytest
-  integration tests), ASan/UBSan clean, line coverage 99.2% (`testing.md`).
+- **Tests:** `scripts/pbdev test`, ~20 s: 35 unit suites, `compat.abi`, `doc.lint` (the
+  document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean, line coverage
+  99.2% (`testing.md`).
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a firmware compile
   check, Coverity (master only, unverified until merged).
 - **Boards:** jiffy (i.MX6UL), imx8mpevk, imx8qxmek and imxrt1060evk run on the bench; imx8dxlevk
@@ -51,8 +52,8 @@ the trim is at the end of `log/2026-11-09.md`.
    and Xen facts are in `log/2026-11-11.md`. After it: the rest of the `board.md`
    review (2.1 is rewritten), then `platform.md`'s
    open items (they follow the two drafts), then the code (F-253 first, before `work-3.0.0-plat`
-   merges). Meanwhile, mine: the guards (`process.md` 7, the
-   document lint first).
+   merges). The document lint is in (`doc.lint`); the
+   conformance suites come with each contract's code.
 1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time

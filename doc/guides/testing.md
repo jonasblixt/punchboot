@@ -15,7 +15,9 @@ CI runs these tests (D-006).
 | `src/board/host/` | Test board (partitions, keys, board commands, fuses on disk) |
 | `tests/unit/` | CMocka unit tests, one per module, and the shared fakes (`fakes/ramdisk.c`, `fakes/plat.c`) |
 | `tests/integration/` | pytest tests that drive `pb-host` through the `punchboot` Python package |
-| `tests/compat/` | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in `bpak/`, wire transcripts in `transcripts/`. See `compatibility.md` |
+| `tests/compat/` | Compatibility guards (D-008): `abi.txt` + `check_abi.py`, golden bpak images in `bpak/`, |
+| | wire transcripts in `transcripts/`. See `compatibility.md` |
+| `tests/doc/` | The document lint (`process.md` 7): `check_docs.py`, the test `doc.lint` |
 | `scripts/ci/host-test.sh` | In-container entry point: pip install, cmake, ctest |
 
 ## Running
@@ -27,6 +29,8 @@ BUILD_DIR=build-host-cov scripts/pbdev test -DPB_COVERAGE=ON
 scripts/pbdev run gcovr -r . build-host-cov --filter src/
 CTEST_ARGS="-L unit" scripts/pbdev test      # only unit tests
 CTEST_ARGS="-L compat" scripts/pbdev test    # only the frozen layout check (compatibility.md)
+CTEST_ARGS="-L doc" scripts/pbdev test       # only the document lint (process.md 7)
+python3 tests/doc/check_docs.py              # the same, without the container
 ```
 
 Coverage (2026-10-22, all host tests): 99.2% of lines (2337/2356), 100% of functions and 96.3% of
@@ -133,10 +137,13 @@ and `configs/test_defconfig` were then removed.
 
 | pytest module | Ported from |
 |---|---|
-| `test_part.py` | test_part, test_part_flash, test_part_verify_fh, test_verify_bpak, test_part_dump, test_part_dump2 (+ size limits, F-050) |
+| `test_part.py` | test_part, test_part_flash, test_part_verify_fh, test_verify_bpak, test_part_dump, |
+| | test_part_dump2 (+ size limits, F-050) |
 | `test_gpt.py` | test_corrupt_gpt{,2,3,4,5}, test_corrupt_backup_gpt, test_gpt_variants |
-| `test_boot.py` | test_boot_bpak{,2..10}, test_invalid_key_index, test_overlapping_region, test_all_sig_formats, test_gpt_boot_activate{,_step2..5} |
-| `test_ab_state.py` | test_switch, test_rollback, test_corrupt_primary_config, test_corrupt_backup_config, test_board_regs |
+| `test_boot.py` | test_boot_bpak{,2..10}, test_invalid_key_index, test_overlapping_region, |
+| | test_all_sig_formats, test_gpt_boot_activate{,_step2..5} |
+| `test_ab_state.py` | test_switch, test_rollback, test_corrupt_primary_config, |
+| | test_corrupt_backup_config, test_board_regs |
 | `test_security.py` | test_device_setup, test_authentication, test_revoke_key |
 | `test_board.py` | test_board, test_board_status |
 | `test_cli.py` | test_cli, test_reset |
@@ -151,7 +158,8 @@ Unit tests, by module under test:
 | Test | Module | Fakes |
 |---|---|---|
 | `test_bio.c`, `test_gpt.c`, `test_fuse_bio.c` | `bio.c`, `gpt.c`, `test_fuse_bio.c` | ramdisk |
-| `test_bpak.c`, `test_der.c`, `test_wire.c`, `test_delay.c` | `bpak.c`, `der_helpers.c`, `wire.c`, `delay.c` | clock (`test_delay.c`) |
+| `test_bpak.c`, `test_der.c`, `test_wire.c`, | `bpak.c`, `der_helpers.c`, `wire.c`, | clock (`test_delay.c`) |
+| `test_delay.c` | `delay.c` | |
 | `test_crypto.c`, `test_mbedtls.c` | `crypto.c`, `mbedtls_pb.c` | providers / none (real keys and the auth token) |
 | `test_rot.c`, `test_device_uuid.c` | `rot.c`, `slc.c`, `device_uuid.c` | board callbacks, unique id |
 | `test_ab_state.c`, `test_boot.c` | `ab_state.c`, `boot.c` | ramdisk, image helpers, boot driver |

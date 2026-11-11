@@ -18,7 +18,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 | | | `command-mode.md` | Missing |
 | | | `arch-firmware.md` | Behind the code (waits for the board work's review) |
 | | | `arch-host-tools.md` | Not a contract yet |
-| 3 Interfaces | `interfaces/` | `platform.md` | Reviewed once, 7 open again, follows |
+| 3 Interfaces | `interfaces/` | `platform.md` | Draft: reviewed once, 7 open again, follows |
 | | | | `boot.md` and `board.md` |
 | | | `board.md` | Draft, waits for the review |
 | | | The drivers' contracts | Missing |

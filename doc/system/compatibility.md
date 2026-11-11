@@ -1,5 +1,7 @@
 # Compatibility: wire protocol and bpak format
 
+**State: in force**, the guards below check it (D-008). Level 1 (`process.md`).
+
 **Hard rule (D-008): never break backward compatibility of the wire protocol or of the bpak
 image format.** Devices in the field are not updated in step with the host tools, factory lines
 pin old tool versions, and signed images outlive both. This file lists what is frozen, what may
