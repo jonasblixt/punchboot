@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-11_
 
 ## Current focus
 
@@ -14,10 +14,13 @@ the trim is at the end of `log/2026-11-09.md`.
   F-167), the SRK hash from the build, revoke slots in `CONFIG_KEYSTORE_SLOTS`, configuration
   fuses as data, pin tables. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
   8X closed state, imx8mevk and DXL on hardware. `arch-firmware.md` waits for the review.
-- **Platform contract (D-030, `platform.md`, `plat-imx.md`):** reviewed once. Its five bugfixes
-  are in, each checked on a board (F-233, F-234, F-244, F-245, F-208; `log/2026-11-10.md`). The
-  rest follows in commits (order in the log), each removing its "Not yet in the code" marker and
-  updating `plat-imx.md` 7. Then the whole bootloader's contract.
+- **Platform contract (D-030, `platform.md`, `plat-imx.md`):** reviewed, its bugfixes are in. The
+  rest follows in commits (order in `log/2026-11-10.md`), each removing its "Not yet" marker.
+- **Board contract (D-031, `board.md`):** written, waits for Jonas's review; its code is F-216,
+  F-178, F-249..F-252 (held where it touches the boot until the boot contract is reviewed).
+- **Boot flow contract (D-032, `boot.md`):** a draft after four rounds with Jonas, waits for his
+  review; its code is F-253..F-260 and the A/B review's. F-253 (lost `IN_MEM`/`CUSTOM`) before
+  `work-3.0.0-plat` merges. Then the drivers' contracts (`log/2026-11-11.md`).
 - **Tests:** `scripts/pbdev test`, ~20 s: 35 suites (unit tests, `compat.abi`, the pytest
   integration tests), ASan/UBSan clean, line coverage 99.2% (`testing.md`).
 - **CI (`build.yml`):** host tests (default and sanitizers), coverage (D-012), a firmware compile
@@ -32,7 +35,12 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027), next. On it: the 8M's HAB
+0. **Resume here (2026-11-11): Jonas reviews the boot flow contract, `boot.md` (draft, D-032).**
+   Start from its "Open for the review" list. The four rounds that shaped it, and the Firmware
+   Handoff and Xen facts, are in `log/2026-11-11.md`. After it: Jonas's comments in `board.md` 2.1
+   (a rewrite is proposed in the log), the rest of the `board.md` review, then the code (F-253
+   first, before `work-3.0.0-plat` merges). The docs work is uncommitted on `work-3.0.0-plat`.
+1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time
    to the simple target).

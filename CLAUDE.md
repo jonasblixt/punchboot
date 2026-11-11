@@ -19,10 +19,13 @@ Do not read these up front. Open only what the task needs.
 | `doc/dev/status.md` | **Start of every session.** Current focus, open threads, next steps |
 | `doc/dev/roadmap.md` | Planning or picking the next piece of work |
 | `doc/dev/findings.md` | Fixing bugs / tech debt (IDs like `F-012`) |
+| `doc/dev/principles.md` | Designing or reviewing anything, and when goals conflict: what wins |
 | `doc/dev/decisions.md` | Before changing direction on something already decided |
 | `doc/dev/arch-firmware.md` | Working in `src/`, `include/` |
 | `doc/dev/platform.md` | **Changing or adding a platform** (`src/plat/`, `include/plat/`, `plat.h`, link scripts) |
 | `doc/dev/plat-imx.md` | Working on an i.MX port: its SoC facts, sources, conformance to `platform.md` |
+| `doc/dev/boot.md` | **The boot flow**: boot source policies (A/B), load and verify, handovers (`src/boot/`) |
+| `doc/dev/board.md` | **Changing or adding a board** (`src/board/`, `board.h`, `src/board.c`, out-of-tree boards) |
 | `doc/dev/arch-host-tools.md` | Working in `tools/`, wire protocol, Python package |
 | `doc/dev/testing.md` | Writing or running tests (host unit/integration tests) |
 | `doc/dev/build-and-test.md` | Building firmware, the dev container, CI, releasing |

@@ -24,7 +24,7 @@ finding removes the marker here and updates the port's conformance table (`plat-
 |---|---|---|
 | Arch | The CPU core: entry, vectors, caches, enabling the MMU, the handover state (D-028) | `src/arch/<a>/` |
 | Platform | What the SoC decides | `src/plat/<p>/`, `include/plat/<p>/` |
-| Board | What the PCB and the product decide (D-026) | `src/board/<b>/`, out of tree too |
+| Board | What the PCB and the product decide (D-026, `board.md`) | `src/board/<b>/`, out of tree too |
 
 - **A platform is a SoC family.** A SoC variant is a sub-level of it: each variant has its own
   Kconfig symbol, which selects the family's common symbol (`PLAT_<FAMILY>_COMMON`); the variant's
@@ -485,6 +485,8 @@ they change only in a major release (D-018). CI builds a board that overrides at
 interface is tested.
 
 ## 7. What a board may use
+
+The platform's side. What the core promises a board and asks of it is `board.md`.
 
 A board includes `include/pb/`, `include/drivers/` and `include/plat/<p>/`, nothing from
 `src/plat/`. The platform header documents:

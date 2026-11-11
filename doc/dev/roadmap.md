@@ -62,6 +62,12 @@ frozen (D-001).
 - Remove the duplicated constants (F-035): `pbtest.py`'s `PB_CMD_*` can use `punchboot.wire`.
 - Done in 3.0.0 (D-021): the host is pure Python, which removed the C wrapper issues (F-009),
   the command boilerplate and the duplicated exception lists, and gave a wheel smoke test.
+- `pbstate` (tool and library) for every boot source policy, not only A/B (Jonas, 2026-11-11):
+  one freestanding core with I/O callbacks shared with pb's firmware (as `src/wire.c` is with the
+  host), used on Linux, Zephyr and bare metal, the simple target's copy replaced; extensions from
+  `rz[]` where zero is today's behaviour (D-008); Arm's FWU metadata as a model for the concepts,
+  not the format. Not Linux specific, it never was. The name stays: scripts and products call the
+  tool and link `libpbstate`, and "pb's state" is still what it is (decided 2026-11-11).
 
 ## Phase 4: Firmware cleanup
 
@@ -78,7 +84,8 @@ frozen (D-001).
 - Build system: keep Make + Kconfiglib, or move to CMake/Meson?
 - Wire protocol version field and capability negotiation. Only next to `PBL0` and the caps
   command, never replacing them (D-008).
-- Anti-rollback version counter (fuse-backed).
+- Anti-rollback version counter (fuse-backed). A version below the floor fails verification, so
+  the boot source policies don't change; it may change what a fallback may boot (a CVE).
 - PyPI trusted publishing.
 - bpak format extensions. Only backward compatible ones (D-008).
 - Low prio: move the whole repo to `jonas@blxt.se`. Simple part: the copyright headers that still

@@ -81,6 +81,14 @@ one: the header validation of bpak 1.0.
 Extensions (new hash/sign kinds, new flags, new meta) are allowed if old images keep verifying
 the same way. New images that old firmware can't read are fine only if they are opt-in.
 
+## Fixed elsewhere
+
+- The device identity: `platform_ns_uuid` and the unique id's bytes (`platform.md` 3.7).
+- A board's product in the field: its name (`board_id`), partition UUIDs, GPT variants, A/B state
+  partitions, configuration fuses, the board commands' ids and answers (`board.md` 8).
+- The boot flow: the A/B state's format, the `/chosen` properties, each handover's register
+  convention, pb's Firmware Handoff structure and tag (`boot.md` 7).
+
 ## Guards
 
 - **Frozen layout file** (`tests/compat/`). `abi_dump` prints the size and field offsets of every
