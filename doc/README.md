@@ -14,7 +14,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 | 1 System | `system/` | `system.md` | Reviewed (D-036) |
 | | | `security.md` | Reviewed (D-036) |
 | | | `compatibility.md` | In force (the guards) |
-| 2 Architecture | `architecture/` | `boot.md` | Draft, 15 open |
+| 2 Architecture | `architecture/` | `boot.md` | Draft, 10 open after the level 1 pass (D-038) |
 | | | `command-mode.md` | Missing |
 | | | `arch-firmware.md` | Behind the code (waits for the board work's review) |
 | | | `arch-host-tools.md` | Not a contract yet |

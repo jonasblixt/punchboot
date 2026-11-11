@@ -21,7 +21,7 @@ the trim is at the end of `log/2026-11-09.md`.
 - **Board contract (D-031, `board.md`):** written, waits for Jonas's review; its code is F-216,
   F-178, F-249..F-252 (held where it touches the boot until the boot contract is reviewed).
 - **Boot flow contract (D-032, `boot.md`):** a draft after four rounds with Jonas and a review
-  pass (15 open items left, each a proposal), waits for his review; its code is F-253..F-260 and the
+  pass, then a pass against level 1 (D-038: 10 open items left), waits for his review; its code is F-253..F-260 and the
   A/B review's. F-253 (the lost `IN_MEM` source) before
   `work-3.0.0-plat` merges. Then the drivers' contracts (`log/2026-11-11.md`).
 - **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each
@@ -47,8 +47,8 @@ the trim is at the end of `log/2026-11-09.md`.
 ## Next steps
 
 0. **Resume here (2026-11-11): Jonas reviews the boot flow contract, `boot.md` (draft, D-032).**
-   Start from its "Open for the review" list (1 to 6 the draft's choices, 7 to 17 the review
-   pass's, marked **Open (n)** in the text). The rounds, the review pass and the Firmware Handoff
+   Start from its "Open for the review" list: ten items left for him, marked **Open (n)** in the
+   text, seven closed by level 1 (D-038). The rounds, the review pass and the Firmware Handoff
    and Xen facts are in `log/2026-11-11.md`. After it: the rest of the `board.md`
    review (2.1 is rewritten), then `platform.md`'s
    open items (they follow the two drafts), then the code (F-253 first, before `work-3.0.0-plat`

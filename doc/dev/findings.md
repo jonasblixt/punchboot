@@ -270,7 +270,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `early_boot()` ignores SCU results. | | |
 | F-219 | `src/boot/simple.c`, `boot.c`, `board.c` | The XIP / `BOOT_SOURCE_IN_MEM` path can't be | Reported | open |
 | | | reached (nothing sets `get_in_mem_image`), and if wired up it hashes memory at `pb-load-addr` but jumps | | |
-| | | to `image_base_address + offset`. Extends F-070. | | |
+| | | to `image_base_address + offset`. Extends F-070. `boot.md` 4.1 (D-038): a part is hashed where | | |
+| | | it runs; whether a differing `pb-load-addr` is refused is open (10) | | |
 | F-220 | security core, low | `caam_hash_input()` refills the alignment buffer while its async | Reported | open |
 | | | job may read it (wrong digest, fails closed). `rot.c:117,134` return error codes through unsigned types: | | |
 | | | `slc read` loops ~2^32 times after a failed `rot_init()`. Parts are 512-aligned, a 4 KiB block device | | |
@@ -364,7 +365,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-248 | `src/boot/boot.c`, `src/plat/*/plat.c` | A failed security precondition only logs | Verified (code) | open |
 | | | and the boot goes on: a bypassed 6UL TZASC (`tzasc_init()`), an 8X watchdog that didn't arm. Nothing | | |
 | | | records them for the boot or command mode. `platform.md` 2.3: `plat_get_status()`, checked by `boot()`, no | | |
-| | | silent boot; the policy is open (Jonas) | | |
+| | | silent boot; the policy is `security.md` 4.5 (D-036). What pb booted without goes into the | | |
+| | | handover (`system.md` 3, `boot.md` 5.6: `pb,status`, a `status` field; names open) | | |
 | F-249 | `src/board.c` | The board's data isn't checked: `cm_board_init()` dereferences | Verified (code) | open |
 | | | a NULL `cm_transport`; a name over 16 characters overruns `board_id` (`memcpy` with `strlen`); no | | |
 | | | boot driver, or several (the last wins); `.slc = NULL`. `CONFIG_CM_AUTH_PASSWORD=y` without | | |
@@ -402,7 +404,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | (`principles.md` 2). An allow list (the board's load regions minus pb) instead of a deny list | | |
 | F-255 | `src/boot/dtb.c` `set_initrd()` | `linux,initrd-start` and `-end` are written | Verified (code) | open |
 | | | with `fdt_setprop_u32()`: a ramdisk above 4 GiB gets a truncated address. Use the root's | | |
-| | | `#address-cells`. The encoding is open: 64 bits only above 4 GiB (`boot.md` 5.2, open 16) | | |
+| | | `#address-cells`. The encoding (D-038, `boot.md` 5.2): 32 bits where both fit, as today, 64 | | |
+| | | bits only above 4 GiB | | |
 | F-256 | `src/boot/boot.c`, `ab_state.c`, `src/board.c` | No boot source policy | Verified (code) | open |
 | | | interface: A/B is wired into `struct boot_driver` through three callbacks, it is the only policy, | | |
 | | | and only it marks partitions bootable (F-215). `boot.md` 3: `boot_policy_*()`, fixed and staggered | | |
