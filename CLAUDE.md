@@ -8,8 +8,8 @@ format; a vendored subset lives in `src/lib/bpak.c` + `include/bpak/`
 **Never break backward compatibility of the wire protocol or the bpak image
 format** (D-008). Old hosts must work with new devices, new hosts with old
 devices, and every image an old release accepted must still be accepted.
-Only security comes before it, with a decision entry (`doc/dev/principles.md`).
-Read `doc/dev/compatibility.md` before changing either.
+Only security comes before it, with a decision entry (`doc/principles.md`).
+Read `doc/system/compatibility.md` before changing either.
 
 ## Context: load on demand
 
@@ -18,28 +18,35 @@ Do not read these up front. Open only what the task needs.
 | File | Read when |
 |---|---|
 | `doc/dev/status.md` | **Start of every session.** Current focus, open threads, next steps |
-| `doc/dev/roadmap.md` | Planning or picking the next piece of work |
-| `doc/dev/findings.md` | Fixing bugs / tech debt (IDs like `F-012`) |
-| `doc/dev/process.md` | **Before writing or changing a contract**, and to find where a change starts (draft) |
-| `doc/dev/security.md` | **Anything security rests on**: the threat model and the rules the contracts cite (draft) |
-| `doc/dev/system.md` | pb's outside interfaces, the life cycle states, what pb promises (draft) |
-| `doc/dev/principles.md` | Designing or reviewing anything, and when goals conflict: what wins |
-| `doc/dev/decisions.md` | Before changing direction on something already decided |
-| `doc/dev/arch-firmware.md` | Working in `src/`, `include/` |
-| `doc/dev/platform.md` | **Changing or adding a platform** (`src/plat/`, `include/plat/`, `plat.h`, link scripts) |
-| `doc/dev/plat-imx.md` | Working on an i.MX port: its SoC facts, sources, conformance to `platform.md` |
-| `doc/dev/boot.md` | **The boot flow**: boot source policies (A/B), load and verify, handovers (`src/boot/`) |
-| `doc/dev/board.md` | **Changing or adding a board** (`src/board/`, `board.h`, `src/board.c`, out-of-tree boards) |
-| `doc/dev/arch-host-tools.md` | Working in `tools/`, wire protocol, Python package |
-| `doc/dev/testing.md` | Writing or running tests (host unit/integration tests) |
-| `doc/dev/build-and-test.md` | Building firmware, the dev container, CI, releasing |
-| `testbench/README.md` | The Buildroot Linux test bench (boot/root images for the boards), adding a board, boot time |
+| `doc/README.md` | The map of the documents: the levels, the folders, each document's state |
+| `doc/process.md` | **Before writing or changing a contract**, and to find where a change starts |
+| `doc/principles.md` | Designing or reviewing anything, and when goals conflict: what wins |
+| `doc/system/security.md` | **Anything security rests on**: the threat model and the rules the |
+| | contracts cite |
+| `doc/system/system.md` | pb's outside interfaces, the life cycle states, what pb promises |
+| `doc/system/compatibility.md` | **Any change to `wire.h`/`error.h`, command mode, the host API, bpak,** |
+| | **or image handling** |
+| `doc/architecture/boot.md` | **The boot flow**: boot source policies (A/B), load and verify, |
+| | handovers (`src/boot/`) |
+| `doc/architecture/arch-firmware.md` | Working in `src/`, `include/` |
+| `doc/architecture/arch-host-tools.md` | Working in `tools/`, wire protocol, Python package |
+| `doc/interfaces/platform.md` | **Changing or adding a platform** (`src/plat/`, `include/plat/`, |
+| | `plat.h`, link scripts) |
+| `doc/interfaces/board.md` | **Changing or adding a board** (`src/board/`, `board.h`, `src/board.c`, |
+| | out-of-tree boards) |
+| `doc/ports/plat-imx.md` | Working on an i.MX port: its SoC facts, sources, conformance to `platform.md` |
+| `doc/ports/imx8m-ddr.md` | i.MX8M DRAM init (uMCTL2, DWC LPDDR4 PHY), its golden trace test |
+| `doc/guides/testing.md` | Writing or running tests (host unit/integration tests) |
+| `doc/guides/build-and-test.md` | Building firmware, the dev container, CI, releasing |
+| `doc/guides/bpak.md` | Anything touching bpak or image signing/verification |
+| `testbench/README.md` | The Buildroot Linux test bench (boot/root images for the boards), |
+| | adding a board, boot time |
 | `testbench/simple/README.md` | The simple target test bench (bare metal test application, pytest runner), |
 | | MCU boards |
-| `doc/dev/imx8m-ddr.md` | i.MX8M DRAM init (uMCTL2, DWC LPDDR4 PHY), its golden trace test |
-| `doc/dev/bpak.md` | Anything touching bpak or image signing/verification |
-| `doc/dev/compatibility.md` | **Any change to `wire.h`/`error.h`, command mode, the host API, bpak,** |
-| | **or image handling** |
+| `doc/dev/roadmap.md` | Planning or picking the next piece of work |
+| `doc/dev/findings.md` | Fixing bugs / tech debt (IDs like `F-012`); the fixed ones are in |
+| | `findings-closed.md` |
+| `doc/dev/decisions.md` | Before changing direction on something already decided |
 | `doc/dev/log/` | Only the newest entry, and only if `status.md` is not enough |
 
 Skip unless the task is about them: `pki/` (test keys), vendored code

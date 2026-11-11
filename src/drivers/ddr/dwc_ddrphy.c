@@ -7,7 +7,7 @@
  *
  * Synopsys DesignWare DDR PHY: firmware loading, PMU training and mailbox.
  *
- * Clean-room implementation from doc/dev/spec-dwc-ddrphy.md.
+ * Clean-room implementation from doc/ports/spec-dwc-ddrphy.md.
  */
 
 #include <drivers/ddr/dwc_ddrphy.h>

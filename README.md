@@ -131,7 +131,7 @@ $ scripts/pbdev test                    # build and run all tests
 $ scripts/pbdev test -DPB_SANITIZE=ON   # with AddressSanitizer and UBSan
 ```
 
-See doc/dev/testing.md for details.
+See doc/guides/testing.md for details.
 
 ## Device identity
 

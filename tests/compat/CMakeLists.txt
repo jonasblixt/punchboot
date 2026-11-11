@@ -1,4 +1,4 @@
-# Compatibility guards (D-008, doc/dev/compatibility.md).
+# Compatibility guards (D-008, doc/system/compatibility.md).
 #
 # abi_dump prints the frozen layout of the wire protocol and the bpak format,
 # and check_abi.py compares it with abi.txt, which may only grow.

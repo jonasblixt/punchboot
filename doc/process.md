@@ -23,24 +23,28 @@ against and what it promises, which no document says yet.
 
 ## 2. The levels
 
-| Level        | Answers                                              | Documents                                |
-| ------------ | ---------------------------------------------------- | ---------------------------------------- |
-| 0 Purpose    | What wins when goals conflict                        | `principles.md`                          |
-| 1 System     | What pb promises to the outside, and against whom    | `system.md`, `security.md`,              |
-|              |                                                      | `compatibility.md`                       |
-| 2 Flows      | What happens, in which order, and who owns each step | `boot.md`, `command-mode.md` (new),      |
-|              |                                                      | `arch-firmware.md`, `arch-host-tools.md` |
-| 3 Interfaces | What a layer provides and may rely on                | `platform.md`, `board.md`,               |
-|              |                                                      | the drivers' contracts (new)             |
-| 4 Ports      | How an implementation meets its contract;            | `plat-imx.md`, `imx8m-ddr.md`,           |
-|              | the SoC's facts and their sources                    | `spec-dwc-ddrphy.md`                     |
-| 5 Code       |                                                      | The headers, the tests, the guards       |
+The folders under `doc/` are the levels (D-037). `README.md` there is the map, with every
+document's state.
 
-- **`system.md`** (draft, D-034): pb's place in the boot chain and its outside interfaces: the ROM before
+| Level | Answers | Folder and documents |
+|---|---|---|
+| 0 Purpose | What wins when goals conflict | `principles.md` |
+| 1 System | What pb promises to the outside, and against whom | `system/`: `system.md`, `security.md`, |
+| | | `compatibility.md` |
+| 2 Architecture | How pb is divided, what happens in which order, | `architecture/`: `boot.md`, |
+| | and who owns each step | `command-mode.md` (new), `arch-firmware.md`, |
+| | | `arch-host-tools.md` |
+| 3 Interfaces | What a layer provides and may rely on | `interfaces/`: `platform.md`, `board.md`, |
+| | | the drivers' contracts (new) |
+| 4 Ports | How an implementation meets its contract; | `ports/`: `plat-imx.md`, `imx8m-ddr.md`, |
+| | the SoC's facts and their sources | `spec-dwc-ddrphy.md` |
+| 5 Code | | The headers, the tests, the guards |
+
+- **`system.md`**: pb's place in the boot chain and its outside interfaces: the ROM before
   it, the host on the wire, the image, the next stage (the handover), the OS (`pbstate`, the DT
   properties), the factory (provisioning, fuses). For each: what pb guarantees and what it
   expects. The security life cycle's states and what each allows.
-- **`security.md`** (draft, D-034): the threat model. What is protected, the attackers per life cycle
+- **`security.md`**: the threat model. What is protected, the attackers per life cycle
   state (physical access, the wire, the storage, a compromised OS), what pb defends and what it
   leaves to the ROM, the next stage or the product. The security clauses below cite it.
 - **`command-mode.md`** (new): each command's meaning, in which state and with which
@@ -49,10 +53,11 @@ against and what it promises, which no document says yet.
 - **The drivers' contracts** (new): per class with several implementations (block devices, the
   crypto backends, the USB device controllers, DMA and caches; `log/2026-11-11.md`).
 
-Beside the levels, not normative: `decisions.md` (why), `findings.md` (the gaps between a document
-and the code), `status.md` and `log/` (where the work is), `roadmap.md` (the order), `testing.md`
-and `build-and-test.md` (how to). The guides (the README, a porting guide, a migration guide for
-3.0.0) explain and cite the contracts; they decide nothing.
+Beside the levels, not normative: `dev/` holds the working records, `decisions.md` (why),
+`findings.md` (the gaps between a document and the code), `status.md` and `log/` (where the work
+is), `roadmap.md` (the order). `guides/` holds the how-to: `testing.md`, `build-and-test.md`,
+`bpak.md`, later a porting guide and a migration guide for 3.0.0. The guides explain and cite the
+contracts; they decide nothing.
 
 What gets a contract: an interface with several implementations, with users outside the tree or
 the release, or one that security rests on. Elsewhere the header's comments are enough.
@@ -102,36 +107,23 @@ As `platform.md` and `board.md`:
    the test, named after the clause where one can be written.
 6. `status.md` and the log.
 
-## 6. Where the documents are (2026-11-11)
+## 6. Where the documents are
 
-| Document               | Level | State                                                         |
-| ---------------------- | ----- | ------------------------------------------------------------- |
-| `principles.md`        | 0     | Reviewed (Jonas, 2026-11-11: security first, D-035)           |
-| `security.md`          | 1     | Draft, second round: 3 answers to confirm                     |
-| `system.md`            | 1     | Draft, second round: 1 open (EOL)                             |
-| `compatibility.md`     | 1     | In force (the guards)                                         |
-| `boot.md`              | 2     | Draft, 15 open                                                |
-| `command-mode.md`      | 2     | Missing                                                       |
-| `arch-firmware.md`     | 2     | Behind the code (waits for the board work's review)           |
-| `board.md`             | 3     | Draft, waits for the review                                   |
-| `platform.md`          | 3     | Reviewed once, 7 open again, follows `boot.md` and `board.md` |
-| The drivers' contracts | 3     | Missing                                                       |
-| `plat-imx.md`          | 4     | Follows `platform.md`                                         |
+Every document's level and state: `README.md`.
 
 Level 1 was written after three drafts below it. Their open items that it owns moved up and
-were reviewed there (D-035):
+were decided there (D-035, D-036):
 
-| Below                                        | In level 1                                             |
-| -------------------------------------------- | ------------------------------------------------------ |
-| `platform.md` Open (1), the bypassed filter  | `security.md` Open (2): always, to confirm             |
-| `platform.md` 2.3, the preconditions' policy | `security.md` 4.5, accepted                            |
-| `platform.md` Open (2), a failed lockdown    | `security.md` 4.6: no jump; what follows is the flow's |
-| `boot.md` Open (7), `dont-hash`              | Decided: refused (`security.md` 4.2)                   |
-| `boot.md` Open (11), the custom source       | Decided: removed (`security.md` 4.1)                   |
-| `boot.md` Open (3), (9), speculative mode    | `security.md` 2.5: availability ranks below integrity  |
+| Below | In level 1 |
+|---|---|
+| `platform.md` Open (1), the bypassed filter | Decided: always (`security.md` 4.5) |
+| `platform.md` 2.3, the preconditions' policy | `security.md` 4.5 |
+| `platform.md` Open (2), a failed lockdown | `security.md` 4.6: no jump; what follows is the flow's |
+| `boot.md` Open (7), `dont-hash` | Decided: refused (`security.md` 4.2) |
+| `boot.md` Open (11), the custom source | Decided: removed (`security.md` 4.1) |
+| `boot.md` Open (3), (9), speculative mode | `security.md` 2.5: availability ranks below integrity |
 
-The review order: the second round of `security.md` and `system.md`, then `boot.md`, `board.md`,
-`platform.md`.
+The review order from here: `boot.md`, `board.md`, `platform.md`.
 
 ## 7. Guards
 
@@ -144,4 +136,4 @@ Not yet:
   implementation and the fakes (F-182 hid behind a fake stricter than the driver); on the bench
   through the simple target (D-025).
 - **A test record per release**: what ran on which board and what never did (fuse writes, the 8X
-  closed state), next to `doc/release-checklist.txt`.
+  closed state), next to `doc/guides/release-checklist.txt`.

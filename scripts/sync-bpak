@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # Copies the part of the bpak library that punchboot uses from a release of
-# bpak (doc/dev/bpak.md, "What is vendored"):
+# bpak (doc/guides/bpak.md, "What is vendored"):
 #
 #   scripts/sync-bpak <version> [bpak repository]
 #
@@ -16,7 +16,7 @@
 # punchboot's own files (include/bpak/build_config.h, src/lib/internal.h),
 # include/bpak/version.h records the version.
 #
-# Read doc/dev/compatibility.md before committing the result: a new bpak
+# Read doc/system/compatibility.md before committing the result: a new bpak
 # can change which headers the firmware accepts (D-024).
 
 set -euo pipefail

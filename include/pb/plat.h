@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * The platform contract: doc/dev/platform.md (D-030). What each function
+ * The platform contract: doc/interfaces/platform.md (D-030). What each function
  * must do, from when it may be called and what a failure means is there;
  * the comments here are the short form.
  */
@@ -85,7 +85,7 @@ void plat_wdog_kick(void);
 
 /**
  * The SoC's reset reason as an integer. To be replaced by
- * plat_get_boot_reason() (doc/dev/platform.md, F-236).
+ * plat_get_boot_reason() (doc/interfaces/platform.md, F-236).
  *
  * @return >= 0 for valid boot reasons or a negative number on error
  */
@@ -102,7 +102,7 @@ const char *plat_boot_reason_str(void);
  * The SoC's unique id, at most 16 bytes, the same for the life of the
  * device. Valid from plat_init(). device_uuid() derives the device UUID from
  * it and platform_ns_uuid: its bytes, their order and number must never
- * change (doc/dev/platform.md, the device identity).
+ * change (doc/interfaces/platform.md, the device identity).
  *
  * @param[out] output Unique data output
  * @param[inout] length Size of output buffer and result length
@@ -133,7 +133,7 @@ int plat_get_boot_source(struct pb_boot_source *src);
  * fuses that reopen a closed device, the controls the SoC can lock for the
  * boot's lifetime. Called by the core right before the jump, after the last
  * moment command mode could use them. A platform with nothing to lock
- * returns PB_OK (doc/dev/platform.md 4.4).
+ * returns PB_OK (doc/interfaces/platform.md 4.4).
  *
  * @return PB_OK, or a negative number: the boot doesn't jump
  */
