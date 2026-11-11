@@ -187,6 +187,7 @@ Where each port is (2026-11-11).
 | Serial download in `plat_get_boot_source()` | USB only | no | no | no | F-251 |
 | `plat_init()` errors only for command mode | yes | yes | yes | partly | F-235 |
 | `plat_get_status()` | no | no | no | no | F-248 |
+| `plat_cm_init()` | no | no | no | no | F-267 |
 | TrustZone filter | partly | partly | n/a (BL31) | n/a | F-241, F-208, F-261 |
 | `plat_lockdown()` | yes | yes (nothing yet) | unchecked | unchecked | F-244 |
 | Bus access control | no (AIPS-TZ) | n/a (BL31) | n/a (BL31) | n/a | F-246 |

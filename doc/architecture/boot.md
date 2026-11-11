@@ -1,6 +1,7 @@
 # The boot flow contract
 
-**State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041, D-043, D-044.** Level 2
+**State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041, D-043, D-044, D-046, D-048,
+D-050.** Level 2
 (`process.md`).
 
 No open items. The draft's seventeen, as decided and written into the text:
@@ -18,8 +19,8 @@ No open items. The draft's seventeen, as decided and written into the text:
 | 7 | An image with a part outside the hash is refused (4.2) | Jonas, D-035 |
 | 8 | `boot status` stays "the enabled slot" for A/B (3.4) | Level 1, D-038 |
 | 9 | Speculative mode also starts when this boot's failures leave no candidate (3.6) | Jonas, D-039 |
-| 10 | In place: the header in the partition's last 4 KiB or where the board says; a part is | Jonas, D-039, |
-| | at its load address, inside the candidate's mapped range (4.1) | D-040 |
+| 10 | In place: the header where the format has it in the partition; a part is at its load | Jonas, D-040, |
+| | address, inside the candidate's mapped range (4.1) | D-048 |
 | 11 | The custom source is removed (4.1) | Jonas, D-035 |
 | 12 | A trial whose attempt can't be written is started only when no verified slot is left | Jonas, D-040 |
 | | (3.2) | |
@@ -30,7 +31,11 @@ No open items. The draft's seventeen, as decided and written into the text:
 | 17 | The preconditions are checked before `early_boot()` (2) | D-039 |
 
 From Jonas's final read: pb's status stays and pb's version joins pb's information (5.6, D-043);
-the flow is written for any image format, and names bpak only in 4.4 (D-044).
+the flow is written for any image format, and names bpak only in 4.4 (D-044). After the review
+(D-046): the policy, the handover and the delivery are objects the board names in its data, no
+longer a Kconfig choice (3, 5.1). In place, the board gives no address for the header (4.1,
+D-048; D-039 had "or where the board says"). pb's status has a second entry, the board's
+(5.6, D-050).
 
 What pb does from `boot()` to the jump: which partition it boots (the boot source policy), how it
 loads and verifies the image, and what it hands the next stage (the handover). For each step:
@@ -49,7 +54,7 @@ finding removes the marker.
 | ------------------ | ---------------------------------------------------------------------------------------- |
 | Boot flow          | Everything from `boot()` to the jump, and command mode's boot commands                   |
 | Boot source policy | Which partitions this boot tries, in which order, and the state that decides it. One per |
-|                    | build, chosen in Kconfig: fixed, staggered chain or A/B                                  |
+|                    | board, chosen by the board's data: fixed, staggered chain or A/B                         |
 | Candidate          | A partition the policy hands out to try                                                  |
 | Source             | Where an image's bytes come from: a partition, the host's stream, memory mapped flash    |
 | Verification       | The core's checks: the header's signature, where the parts land, the payload's hash      |
@@ -140,9 +145,13 @@ Each step's responsibilities:
 
 ## 3. Boot source policies
 
-One policy per build, chosen in Kconfig (`choice BOOT_POLICY`). The board gives its data
-(`board.md` 2.5). **Not yet in the code (F-256)**: A/B is the only policy, wired into the core
-through three callbacks; without it no partition is bootable (F-215).
+One policy per board, chosen by the board's data (D-046): `board.boot_policy` is the object of
+the policy the board chose, the policy's functions (3.1 to 3.4) with the board's configuration
+for it (3.5, `board.md` 2.5). The core calls the board's policy. Kconfig compiles a policy in
+(`BOOT_POLICY_FIXED`, `BOOT_POLICY_CHAIN`, `BOOT_POLICY_AB`), more than one where a build wants
+them (the host's tests), and a board that names one that isn't compiled in doesn't link.
+**Not yet in the code (F-256, F-265)**: A/B is the only policy, wired into the core through
+three callbacks; without it no partition is bootable (F-215).
 
 ### 3.1 Function : boot_policy_init() [mandatory]
 
@@ -204,15 +213,19 @@ The attempt's result (2). The policies of this document persist nothing on a fai
 
 ### 3.5 The policies
 
-**Fixed** (`BOOT_POLICY_FIXED`). One partition, from the board. Candidates: it. No state. `boot
-activate`: not supported.
+Each policy says what the board gives it; the board's object is made by the policy's macro.
 
-**Staggered chain** (`BOOT_POLICY_CHAIN`). The board's list, in the board's order. Candidates: the
-list. No state. It protects against an image that doesn't load or verify (corrupt storage, a torn
-write, a revoked key), not against one that verifies and then fails: that one boots again on every
-reset. `boot activate`: not supported.
+**Fixed** (`BOOT_POLICY_FIXED(part)`). The board gives one partition's UUID. Candidates: it. No
+state. `boot activate`: not supported.
 
-**A/B** (`BOOT_POLICY_AB`). Two slots and the state of 3.7. Its candidates, in order:
+**Staggered chain** (`BOOT_POLICY_CHAIN(parts)`). The board gives a list of partitions' UUIDs, at
+least one. Candidates: the list, in the board's order. No state. It protects against an image that
+doesn't load or verify (corrupt storage, a torn write, a revoked key), not against one that
+verifies and then fails: that one boots again on every reset. `boot activate`: not supported.
+
+**A/B** (`BOOT_POLICY_AB(&config)`). The board gives the two slots' partitions and the primary
+and backup state partitions (`struct boot_ab_state_config`). Two slots and the state of 3.7. Its
+candidates, in order:
 
 1. The enabled slot, when it is verified (confirmed by the OS), or when it is on trial with
    attempts left: one attempt is spent and written first (a write that fails: 3.2).
@@ -290,8 +303,8 @@ goes), the other policies in `pbstate`, the fixes of the A/B review.
 
 **Not yet in the code (F-253, F-219)**: the board can't select the in place source since D-026,
 and the generic handover jumps to another address than the one that was hashed. The in place
-source becomes a property of a partition (mapped at an address), so that any policy can hand one
-out.
+source becomes a property of a partition, so that any policy can hand one out: a flag in the
+board's partition table, on a device the board says is mapped (`board.md` 2.4).
 
 The in place source's rules:
 
@@ -302,7 +315,8 @@ The in place source's rules:
   its parts. An image for slot A that was written to slot B is therefore refused as a candidate,
   not started. The handover's own memory (the Firmware Handoff region) is in RAM as always.
 - The header is where the format has it in a partition (4.4), read through the map, as for a
-  partition that is loaded; or where the board says, as in released pb (`get_in_mem_image()`).
+  partition that is loaded. The board gives no address for it (D-048): released pb's
+  `get_in_mem_image()` doesn't come back.
 - Every image released pb accepted has its parts at their load address, so none is refused.
 
 ### 4.2 The sequence
@@ -389,11 +403,14 @@ Firmware Handoff (5.4), and two deliveries:
 - **Through TF-A** (5.3): the same entry and arguments become BL33's entry point in `bl_params`,
   and BL31 passes them on.
 
-One handover and one delivery per board, chosen by its configuration (`board.md` 2.7), not by the
-image: the same parts mean different things on different boards today (the DXL's `atf` is started
-directly, as an image, the MEK's through `bl_params`), so letting the image choose would change
-what old images do (D-008). A signed attribute of the image (4.4) that chooses can come later,
-opt in.
+One handover and one delivery per board, chosen by the board's data (D-046, `board.md` 2.7):
+`board.boot_handover` is the handover's object with the board's configuration for it
+(`BOOT_HANDOVER_IMAGE(&config)`, `BOOT_HANDOVER_FH(&config)`), `board.boot_delivery` the delivery's
+(`BOOT_DELIVERY_TFA(&config)`; absent: directly). Each section below says what the board gives. Not
+by the image: the same parts mean different things on different boards today (the DXL's `atf` is
+started directly, as an image, the MEK's through `bl_params`), so letting the image choose would
+change what old images do (D-008). A signed attribute of the image (4.4) that chooses can come
+later, opt in.
 
 ### 5.2 Handover : image (Linux, Xen) [optional, CONFIG_BOOT_LINUX]
 
@@ -404,8 +421,9 @@ The Linux boot protocol, which Xen follows too. **Not yet in the code (F-258)**:
 | ARMv7-A | r0 = 0, r1 = 0xffffffff (no machine type, the DT describes it), r2 = the DT |
 | ARMv8-A | x0 = the DT, x1 to x3 = 0 |
 
-Parts: the kernel (its load address is the entry), the DT, the ramdisk (both optional, named by the
-board). Without `set_dtb_boot_arg` all four registers are 0. The DT gets pb's `/chosen` (5.5) and,
+The board gives: the kernel's part (its load address is the entry), the DT's and the ramdisk's
+(both optional), its DT hook (optional, 5.5) and `set_dtb_boot_arg`. Without `set_dtb_boot_arg`
+all four registers are 0. The DT gets pb's `/chosen` (5.5) and,
 with a ramdisk, `linux,initrd-start` and `-end`.
 
 **Not yet in the code (F-255)**: a ramdisk above 4 GiB gets a truncated address. The encoding: 32
@@ -421,8 +439,8 @@ addresses as the parts. pb writes nothing for Xen.
 
 ### 5.3 Delivery : TF-A [optional, CONFIG_BOOT_ATF]
 
-ARMv8-A only. pb jumps to BL31 (the part the board names) with x0 = `bl_params` (v2) and x1 to
-x3 = 0. `bl_params` hold:
+ARMv8-A only. The board gives: BL31's part and BL32's (optional). pb jumps to BL31 with x0 =
+`bl_params` (v2) and x1 to x3 = 0. `bl_params` hold:
 
 - **BL33**: its entry and SPSR (AArch64; EL2 when the CPU has it, else EL1), and as its arguments
   the board's handover: image (Linux, Xen) or Firmware Handoff. **Not yet in the code (F-258)**:
@@ -444,8 +462,9 @@ boot partition's UUID, only on the 3.0.0 branch). Released pb (`armv7m_baremetal
 so images that ignore their registers keep working. It replaces `simple`, it doesn't stand next
 to it.
 
-For any next stage: an RTOS, an application, a hypervisor, a stage that parses a DT. The entry is
-the part the board names (on ARMv7-M its vector table, D-028; in place, its mapped address).
+For any next stage: an RTOS, an application, a hypervisor, a stage that parses a DT. The board
+gives: the entry's part (on ARMv7-M its vector table, D-028; in place, its mapped address), the
+DT's part (optional) and its DT hook (optional, 5.5). The region is Kconfig's, below.
 
 | Arch    | Registers                                                                                |
 | ------- | ---------------------------------------------------------------------------------------- |
@@ -535,7 +554,7 @@ the partition, the mode and the image's key belong to the candidate.
 | The keys not revoked | `pb,slc-available-keys`, u32 list (key | `available_keys` | The RoT |
 | | ids) | | |
 | What pb booted without | `pb,status`, string list, new, always | `status`, bit flags | The preconditions |
-| | written | | (2) |
+| | written | | (2), the board |
 | pb's version | `pb,version`, string, new | `version` | The build |
 | | | | (`version.txt`) |
 
@@ -554,6 +573,7 @@ have a fixed size (Jonas, D-041):
 | Condition | String in `pb,status` | Bit in `status` |
 |---|---|---|
 | The watchdog didn't arm (`platform.md` 2.3) | `watchdog-not-armed` | 0 |
+| The board reported a failure the boot goes on without (`board.md` 2.3) | `board-degraded` | 1 |
 
 - A condition gets its string and its bit together, when its precondition is added (F-248,
   `platform.md` 3.8). Neither is reused or renamed afterwards (section 7).
@@ -622,6 +642,7 @@ Like the wire (D-008, `compatibility.md`):
 |---|---|
 | F-256 | The policy interface (3.1 to 3.4), fixed and staggered, their Kconfig names, the loop with |
 | | the fallback (F-174), each policy marking its candidates (F-215) |
+| F-265 | The policy's, the handover's and the delivery's objects in the board's data (3, 5.1) |
 | F-257 | Speculative mode (3.6, F-177): nothing enabled, Kconfig as its only switch |
 | F-258 | The handover and delivery model, `image`, TF-A's BL33 and BL32, `bl_params` from the |
 | | platform, the DXL |

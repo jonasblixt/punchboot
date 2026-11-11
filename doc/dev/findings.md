@@ -256,7 +256,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | stays IS25WP064 (ID, 0xD7 erase, 8 MiB), so the probe fails on an EVKC's W25Q128JW. Untried on hardware. | | |
 | F-215 | `boot.c:114`, `ab_state.c:108`, `board.h` | `.ab = NULL` is accepted, but such a board | Reported | open |
 | | | can't boot from storage: no `get_boot_bio_device`, and BOOTABLE is only set in `boot_ab_state_init()`. | | |
-| | | Only imx8mevk today. A `boot_part_uu` member. | | |
+| | | Only imx8mevk today. D-046: the fixed policy's object, `BOOT_POLICY_FIXED(part)`. | | |
 | F-216 | `src/board.c:122-158` | F-178 is one of three: a failing `init()` or `late_init()` also | Reported | open |
 | | | returns before `setup_boot_driver()`, so a RAM boot of a rescue image isn't possible when the eMMC | | |
 | | | fails. | | |
@@ -272,8 +272,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-219 | `src/boot/simple.c`, `boot.c`, `board.c` | The XIP / `BOOT_SOURCE_IN_MEM` path can't be | Reported | open |
 | | | reached (nothing sets `get_in_mem_image`), and if wired up it hashes memory at `pb-load-addr` but jumps | | |
 | | | to `image_base_address + offset`. Extends F-070. `boot.md` 4.1 (D-038, D-040): a part is at its | | |
-| | | `pb-load-addr`, hashed and entered there, inside the candidate's mapped range; the header in the | | |
-| | | partition's last 4 KiB or where the board says | | |
+| | | `pb-load-addr`, hashed and entered there, inside the candidate's mapped range; the header where | | |
+| | | the format has it in the partition (D-048) | | |
 | F-220 | security core, low | `caam_hash_input()` refills the alignment buffer while its async | Reported | open |
 | | | job may read it (wrong digest, fails closed). `rot.c:117,134` return error codes through unsigned types: | | |
 | | | `slc read` loops ~2^32 times after a failed `rot_init()`. Parts are 512-aligned, a 4 KiB block device | | |
@@ -369,18 +369,23 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | records them for the boot or command mode. `platform.md` 2.3: `plat_get_status()`, checked by `boot()`, no | | |
 | | | silent boot; the policy is `security.md` 4.5 (D-036). What pb booted without goes into the | | |
 | | | handover (`system.md` 3, `boot.md` 5.6: `pb,status` and a `status` field; the encoding is open) | | |
+| | | D-050: a second entry, `board-degraded` (bit 1), set by a board with `board_report_degraded()` | | |
+| | | (`board.md` 2.3) | | |
 | F-249 | `src/board.c` | The board's data isn't checked: `cm_board_init()` dereferences | Verified (code) | open |
 | | | a NULL `cm_transport`; a name over 16 characters overruns `board_id` (`memcpy` with `strlen`); no | | |
 | | | boot driver, or several (the last wins); `.slc = NULL`. `CONFIG_CM_AUTH_PASSWORD=y` without | | |
 | | | `password_auth` in jiffy's, the RT's and the host's defconfigs; imx8mevk has `CONFIG_BOOT_LINUX` | | |
-| | | without `boot_linux`. `board.md` 3: checked in `board_setup()` and `cm_board_init()` | | |
+| | | without `boot_linux`. `board.md` 3: checked in `board_setup()` and `cm_board_init()`. D-046: | | |
+| | | "one boot driver" becomes a policy and a handover that are set; a module that isn't compiled | | |
+| | | in is a link error, not a check. D-049: `cm_transport` leaves the board, and its check with it | | |
 | F-250 | `src/board.c`, `src/board/*/board.c` | `default_status()` and the boards' | Verified (code) | open |
 | | | `status()` set `*length` from `snprintf()`, then append the NUL at `buf[*length]`: a truncated text | | |
 | | | writes past the buffer. Latent, `CM_BUF_SIZE` is 4 MiB. `board.md` 4.3: the board writes at most | | |
 | | | `*length - 1` bytes, the core clamps and appends the NUL | | |
 | F-251 | `src/board/{imxrt1060evk,imx8qxmek,imx8dxlevk}` | The serial download | Verified (code) | open |
-| | | check is in the boards: the RT reads SBMR2's BMOD in `late_boot`, the 8X the SCU's boot type in | | |
-| | | `early_boot`. `plat_get_boot_source()` is `-PB_ERR_NOT_SUPPORTED` on the RT, 8X and 8M; the 6UL | | |
+| | | check is in the boards: the RT reads SBMR2's BMOD in a `late_boot` (never called, F-264), the 8X | | |
+| | | the SCU's boot type in `early_boot`. `plat_get_boot_source()` is `-PB_ERR_NOT_SUPPORTED` on the | | |
+| | | RT, 8X and 8M; the 6UL | | |
 | | | reports USB only when the ROM's USB was addressed, a UART download as UNKNOWN. `board.md` 5.1: | | |
 | | | `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default y) in `boot()` before `early_boot()`, the platforms report | | |
 | | | it, the boards drop theirs. jiffy and the 8MP EVK then stop in command mode after a `uuu` load | | |
@@ -397,7 +402,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | and could boot in place (`IN_MEM`) or authenticate themselves (`CUSTOM`). Out-of-tree projects use | | |
 | | | both (Jonas). Before `work-3.0.0-plat` merges: give them a way back (the boot contract decides how) | | |
 | | | D-035 (Jonas): the custom source is removed, nobody uses it. Only the in place source comes | | |
-| | | back; what is left of `CUSTOM` in `boot.c` goes with it | | |
+| | | back; what is left of `CUSTOM` in `boot.c` goes with it. D-048, `board.md` 2.4: a flag in the | | |
+| | | static partition table's entry, the device's mapped base in `PTBL_STATIC_MAPPED()`, the header | | |
+| | | where the format has it; `get_in_mem_image()` doesn't come back | | |
 | F-254 | `src/boot/image_helpers.c` | `boot_image_verify_parts()` checks the parts | Verified (code) | open |
 | | | against code, data, stack, bss and `.no_init`, not `.ro_data` (the keystore's keys; `ro_data_start` | | |
 | | | is imported and unused) nor `.ramlog`. `CHECK_OVERLAP` has no wrap-around check (`dtb.c` has its own | | |
@@ -443,6 +450,39 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
 | | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
 | | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |
+| F-264 | `src/board/imxrt1060evk/board.c` | `board_late_boot()` (the charger detection, | Verified (code) | open |
+| | | the SBMR2 serial download check, "no pbl in the flash") and `board_get_in_mem_image()` are defined | | |
+| | | and never called: `struct board` has no `.late_boot`, and on master the board registered no boot | | |
+| | | driver either (dead since the board was added, 1275d8ec). `board.md` 5.3 uses the charger detection | | |
+| | | as its example for `late_boot()`. Ask Jonas: wire `late_boot` for the charger check, or remove | | |
+| | | the two functions? The serial download check goes with F-251, the header lookup with F-253 | | |
+| F-265 | `include/pb/board.h`, `src/board.c`, the boards | `struct board` has a member | Verified (code) | open |
+| | | per variant (`boot_linux`, `boot_atf`, `boot_simple`; `ab`; three for a GPT, and the RT's static | | |
+| | | table is code in `init()`), and which is set must agree with Kconfig. D-046, `board.md` 1: one | | |
+| | | member per concept (`ptbl`, `boot_policy`, `boot_handover`, `boot_delivery`), filled with the | | |
+| | | module's object (its functions and the board's configuration, made by its macro). `src/board.c` | | |
+| | | calls through the object and includes no module's header. With F-256, F-258, F-259 | | |
+| F-266 | `include/pb/board.h`, `src/boot/boot.c`, the boards | `late_boot()` gets | Verified (code) | open |
+| | | `struct bpak_header *header`, not `const`, which ties the hook to one image format. D-047, | | |
+| | | `board.md` 5.3: the argument goes; `boot_image_get_bpak_header()` returns the verified | | |
+| | | header as `const`, NULL before the payload's hash is checked. The RT's and the host's hooks | | |
+| | | ignore the argument today | | |
+| F-267 | `src/board/*/board.c`, `src/board.c`, `src/cm/`, `include/pb/cm.h` | Command | Verified (code) | open |
+| | | mode's USB is set up by each board's `cm_init` (clocks or power domains, the PHY, the | | |
+| | | controller: SoC work on every board), and the transport is `cm_transport` in `struct board`, | | |
+| | | a `struct cm_transport_ops` copied into `cm_config`. D-049, `board.md` 4.1 and 4.2, `platform.md` | | |
+| | | 3.10: `plat_cm_init()` at the start of `cm_run()`, the port a Kconfig choice of the platform's; | | |
+| | | command mode calls the transport's functions directly, linked to the USB class driver or to the | | |
+| | | host platform's socket (today in `src/board/host/board.c`). `cm_init` and `cm_transport` leave | | |
+| | | `struct board` | | |
+| F-268 | `src/cm/cm_main.c`, `include/pb/cm.h`, `src/board.c`, the link scripts | Command | Verified (code) | open |
+| | | mode's `process` hook (`struct cm_config`, called while it waits for a command) can't be set by a | | |
+| | | board since D-026: `cm_board_init()` doesn't copy it and `struct board` has no member. Out-of-tree | | |
+| | | boards use it (Jonas). D-051, `board.md` 4.6: `DEFINE_TASK(name, run)` puts a task into a linker | | |
+| | | section that every link script keeps; `main()` calls the tasks in turn while pb is stopped, also | | |
+| | | without `CONFIG_CM`, in no order, until one returns an error; command mode becomes one of them | | |
+| | | (`cm_main_task`: `cm_main.c`'s blocking loop turned into a step); `process` goes. With F-239 | | |
+| | | (the link scripts) and F-267 | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
 ## Dependencies / vendored code

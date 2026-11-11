@@ -18,8 +18,15 @@ the trim is at the end of `log/2026-11-09.md`.
   rest follows in commits (order in `log/2026-11-10.md`), each removing its "Not yet" marker. A
   review pass against `board.md`, `boot.md` and the code is written in (2026-11-11): 7 open
   items at its top, to revisit when the board and boot contracts are final. New: F-261, F-262.
-- **Board contract (D-031, `board.md`):** written, waits for Jonas's review; its code is F-216,
-  F-178, F-249..F-252 (held where it touches the boot until the boot contract is reviewed).
+- **Board contract (D-031, D-045 to D-051, `board.md`):** passed against `boot.md` and level 1,
+  in Jonas's review: no open items. D-046: one member per concept in
+  `struct board`, a variant is an object the module provides (`BOOT_POLICY_AB(&config)`); the
+  board's data chooses, Kconfig compiles in. Its code is F-216, F-178, F-249..F-252, F-265, and
+  with `boot.md`'s F-253, F-256..F-260. New: F-264 (the RT's `late_boot` was never called),
+  F-266 (`late_boot()` loses its header argument, D-047), F-267 (command mode's USB is the
+  platform's, `plat_cm_init()`, the transport linked, D-049), F-268 (tasks while pb is stopped,
+  `DEFINE_TASK()`, command mode one of them, D-051). In place is decided (D-048), and
+  `board-degraded` in pb's status (D-050).
 - **Boot flow contract (D-032, D-038 to D-041, D-043, D-044, `boot.md`):** reviewed (Jonas), no
   open items; his final read is in (pb's status stays, `pb,version`, any image format, 4.4).
   Its code is F-253..F-260 and the A/B review's. F-253 (the lost `IN_MEM` source) before
@@ -47,11 +54,12 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-0. **Resume here (2026-11-11): Jonas reviews `board.md` (draft, D-031).** A pass against
-   `boot.md` and level 1 first, as was done for `boot.md` (D-038): 2.7 and 3 still name
-   `boot_simple` and the A/B data's `rollback_mode`. Then `platform.md`'s seven open items (they
-   follow the two), then the code (F-253 first, before `work-3.0.0-plat` merges). The document
-   lint is in (`doc.lint`); the conformance suites come with each contract's code.
+0. **Resume here (2026-11-11): Jonas goes on reviewing `board.md` (draft, D-031, D-045 to
+   D-051).** No open items; the five of the pass and the transport are decided (the table at
+   its top). F-253 no longer waits for a decision (D-048).
+   Then `compatibility.md`'s line for `board.md` 8, `platform.md`'s seven open items (they
+   follow the two), then the code (F-253 first; F-265 reshapes `struct board`). The conformance
+   suites come with each contract's code.
 1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time
@@ -80,6 +88,8 @@ the trim is at the end of `log/2026-11-09.md`.
 - Platform contract: can "type 1 masters are secure at reset" (6UL SRM, CSU_SA, NDA) be written
   in the public docs, or only the register's name (as now)? Put the Arm specs and the TZC-380
   TRM (DDI0431) on the share?
+- F-264: wire the RT's `late_boot` (the charger check), or remove it with
+  `board_get_in_mem_image()`?
 - Which boards are still in use? bebop and pico8ml only have defconfigs (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Mbed TLS: 3.6 LTS or 4.x?

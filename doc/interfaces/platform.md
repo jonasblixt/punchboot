@@ -71,7 +71,7 @@ plat_init()             fails: reset
 board_setup()           fails: command mode
 boot()                  fails: command mode   (also when a precondition fails, 2.3)
   plat_lockdown()       before the jump (4.4)
-cm_run()                then reset
+the tasks, in turn      when the boot failed or stopped (5.1); command mode is one; then reset
 ```
 
 A platform failure resets instead of entering command mode: without what `plat_init()` sets up,
@@ -128,12 +128,12 @@ Called once by `main()`, after `board.console_init()`. When it returns PB_OK:
 
 Failure has two kinds:
 
-- **What command mode needs is missing**: DRAM, the MMU, the clocks `board.cm_init` relies on,
+- **What command mode needs is missing**: DRAM, the MMU, the clocks `plat_cm_init()` relies on,
   fuse access. Return the error; `main()` resets.
 - **Anything else** returns PB_OK and is recorded in `plat_get_status()` (3.8). Logging it is not
   enough: what the boot depends on is checked before the boot (2.3).
 
-What only command mode needs is set up in `cm_run()`, not here (D-023).
+What only command mode needs is set up by command mode's task, not here (D-023): 3.10.
 
 ### 2.3 No silent boot: the boot's preconditions
 
@@ -221,8 +221,9 @@ Restarts the watchdog. Cheap and safe at any time, also before the watchdog is a
 
 Who kicks it: the core, where work makes progress. Once per chunk in `load_and_hash`, once before
 the jump (the final hash, prepare and `late_boot()` follow the last chunk without a kick
-otherwise; the signature is checked on the header, before the load), and in command mode's loop
-(F-243). A board's command that runs long kicks as it makes progress (`board.md` 4.4). Never in
+otherwise; the signature is checked on the header, before the load), and once per round of the
+tasks while pb is stopped (F-243, `board.md` 4.6). A board's command that runs long kicks as it
+makes progress (`board.md` 4.4). Never in
 `pb_delay_*()` or `pb_timeout_*()`: a driver polling forever would keep the board alive, which is
 what the watchdog is there to catch.
 
@@ -356,6 +357,28 @@ device.
 function, so with -PB_ERR_NOT_SUPPORTED the stop never triggers, and nothing shows it (F-251).
 Proposed: `[mandatory when the ROM has a serial downloader]` for USB and UART; the partition and
 the debugger stay optional.
+
+### 3.10 Function : plat_cm_init() [mandatory when CONFIG_CM]
+
+**Not yet in the code (F-267)**: the boards do this in their `cm_init` hooks.
+
+```
+Argument : void
+Return   : int, PB_OK or -PB_ERR_*
+```
+
+Called once by command mode's task, when it first runs, never on the boot path (D-023,
+`board.md` 4.6). It sets up the USB
+device port command mode uses (D-049, `board.md` 4.1): its clocks, its power, its PHY and its
+controller, so that the transport can start.
+
+- Which port: a Kconfig choice of the platform's, one option per port of the SoC that can be a
+  device. The board's defconfig makes it.
+- Valid from: what `plat_init()` provides. It also runs after a failed `board_setup()`, so it
+  relies on nothing of the board's.
+- Failure: no command mode. Its task ends the loop and pb resets.
+- The transport itself is linked, not set up here: the USB class driver on a SoC, and on the
+  host platform its socket, for the tests (`board.md` 4.2).
 
 ## 4. Security
 
@@ -492,6 +515,10 @@ Each value has one source and reaches both the linker (`--defsym`) and C (`-D`).
 - `src/link.lds` places pb's sections: code, data, rodata, stack, bss and the RAM log in `pb`,
   `.no_init` and the translation tables in `buffers`. It provides `_pb_start/_end` and
   `_buffers_start/_end`.
+- The link script keeps the task list (`KEEP`): the tasks that `DEFINE_TASK()` defines (D-051,
+  `board.md` 4.6), which the core calls while pb is stopped, sit in a section of their own in
+  rodata, which no code names, so the linker would drop it. It provides the list's start and end. A
+  platform may define tasks too, by the same rules. **Not yet in the code (F-268).**
 
 The RAM log is in `pb`, which works from the first instruction. `buffers` may be in DRAM the
 platform trains, so nothing before `plat_init()` uses `.no_init`.
@@ -616,7 +643,7 @@ The platform header documents:
 
 Clocks are code (Jonas, 2026-11-09). Who sets one up: whoever selects the peripheral. The platform
 does the timer, the watchdog, the fuse controller, the TrustZone filter, DRAM, the crypto engine
-and the RNG; the board does the UART, SD/MMC, USB and Ethernet.
+and the RNG, and command mode's USB (3.10); the board does the UART, SD/MMC and Ethernet.
 
 ## 8. Review checklist
 
@@ -635,6 +662,8 @@ For a new platform, and for a change to one:
 - [ ] `plat_get_boot_reason()` maps every cause to a `kind`, with the priority in the header, and
       the header says which causes survive a reset (open 3).
 - [ ] `plat_get_boot_source()` reports a serial download where the ROM has one (open 4).
+- [ ] `plat_cm_init()` sets up the USB port the defconfig chose, relies on nothing of the
+      board's, and nothing of it runs on the boot path.
 - [ ] The device identity is unchanged: `platform_ns_uuid`, the unique id's bytes, order, length.
       A new platform has a new random namespace. `plat_get_unique_id()` returns an error when a
       read fails, never a partial id.

@@ -20,7 +20,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 | | | `arch-host-tools.md` | Not a contract yet |
 | 3 Interfaces | `interfaces/` | `platform.md` | Draft: reviewed once, 7 open again, follows |
 | | | | `boot.md` and `board.md` |
-| | | `board.md` | Draft, waits for the review |
+| | | `board.md` | Draft: no open items (D-045 to D-051), in Jonas's review |
 | | | The drivers' contracts | Missing |
 | 4 Ports | `ports/` | `plat-imx.md` | Follows `platform.md` |
 | | | `imx8m-ddr.md`, `spec-dwc-ddrphy.md` | Records of one port's work |
