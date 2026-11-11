@@ -129,7 +129,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | a verified slot fails when its commit fails (read-only eMMC); booting it would be safe, | | |
 | | | the next boot picks it again. `boot activate` leaves `remaining_boot_attempts` as it | | |
 | | | was. `pb_boot_state_defaults(&boot_state_backup)` does nothing: commit writes only | | |
-| | | `boot_state`. | | |
+| | | `boot_state`. `boot.md` 3.2 (D-040): a rollback or an alternation that can't be written is | | |
+| | | handed out; a trial whose attempt can't be written only when no verified slot is left | | |
 | F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
 | | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
 | | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
@@ -270,8 +271,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `early_boot()` ignores SCU results. | | |
 | F-219 | `src/boot/simple.c`, `boot.c`, `board.c` | The XIP / `BOOT_SOURCE_IN_MEM` path can't be | Reported | open |
 | | | reached (nothing sets `get_in_mem_image`), and if wired up it hashes memory at `pb-load-addr` but jumps | | |
-| | | to `image_base_address + offset`. Extends F-070. `boot.md` 4.1 (D-038): a part is hashed where | | |
-| | | it runs; whether a differing `pb-load-addr` is refused is open (10) | | |
+| | | to `image_base_address + offset`. Extends F-070. `boot.md` 4.1 (D-038, D-040): a part is at its | | |
+| | | `pb-load-addr`, hashed and entered there, inside the candidate's mapped range; the header in the | | |
+| | | partition's last 4 KiB or where the board says | | |
 | F-220 | security core, low | `caam_hash_input()` refills the alignment buffer while its async | Reported | open |
 | | | job may read it (wrong digest, fails closed). `rot.c:117,134` return error codes through unsigned types: | | |
 | | | `slc read` loops ~2^32 times after a failed `rot_init()`. Parts are 512-aligned, a 4 KiB block device | | |
@@ -366,7 +368,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | and the boot goes on: a bypassed 6UL TZASC (`tzasc_init()`), an 8X watchdog that didn't arm. Nothing | | |
 | | | records them for the boot or command mode. `platform.md` 2.3: `plat_get_status()`, checked by `boot()`, no | | |
 | | | silent boot; the policy is `security.md` 4.5 (D-036). What pb booted without goes into the | | |
-| | | handover (`system.md` 3, `boot.md` 5.6: `pb,status`, a `status` field; names open) | | |
+| | | handover (`system.md` 3, `boot.md` 5.6: `pb,status` and a `status` field; the encoding is open) | | |
 | F-249 | `src/board.c` | The board's data isn't checked: `cm_board_init()` dereferences | Verified (code) | open |
 | | | a NULL `cm_transport`; a name over 16 characters overruns `board_id` (`memcpy` with `strlen`); no | | |
 | | | boot driver, or several (the last wins); `.slc = NULL`. `CONFIG_CM_AUTH_PASSWORD=y` without | | |
@@ -409,11 +411,13 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-256 | `src/boot/boot.c`, `ab_state.c`, `src/board.c` | No boot source policy | Verified (code) | open |
 | | | interface: A/B is wired into `struct boot_driver` through three callbacks, it is the only policy, | | |
 | | | and only it marks partitions bootable (F-215). `boot.md` 3: `boot_policy_*()`, fixed and staggered | | |
-| | | policies in Kconfig, the core's loop over the candidates with the fallback of F-174 | | |
+| | | policies in Kconfig (`BOOT_POLICY_FIXED`, `_CHAIN`, `_AB`; `BOOT_AB_DRIVER` still gets A/B), the | | |
+| | | core's loop over the candidates with the fallback of F-174 | | |
 | F-257 | `src/boot/ab_state.c` | Speculative mode differs from `boot.md` 3.6: the | Verified (code) | open |
 | | | fallback gets one trial attempt (two boots, F-177) and a rollback bit is dropped. Per `boot.md`: | | |
 | | | only with no viable candidate, alternate per boot, no attempts, ends when the OS confirms, the | | |
-| | | handover says so, `depends on ENABLE_WATCHDOG` | | |
+| | | handover says so, `depends on ENABLE_WATCHDOG`. D-040: it also starts with nothing enabled (A | | |
+| | | first), and `BOOT_AB_SPECULATIVE` is its only switch: the board's `rollback_mode` field goes | | |
 | F-258 | `src/boot/{linux,atf}.c`, `src/board/imx8dxlevk` | The handovers compute and | Verified (code) | open |
 | | | jump each by itself; TF-A's BL33 gets Linux's arguments, hard coded; `bl_params` sit in `.data` for | | |
 | | | NXP's i.MX8M BL31 (a platform fact); the DXL starts BL31 through the Linux driver, the MEK through | | |
@@ -422,7 +426,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-259 | `src/boot/simple.c` | The generic handover passes r0 = the system's name, | Verified (code) | open |
 | | | r1 = the boot partition's UUID, and can't grow. `boot.md` 5.4: Arm's Firmware Handoff, a transfer | | |
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
-| | | specification (Jonas); the simple target test bench follows | | |
+| | | specification (Jonas); the simple target test bench follows. `BOOT_FH`, the region | | |
+| | | `BOOT_FH_REGION_BASE` and `_SIZE`; the checksum against the reference library | | |
 | F-260 | `src/boot/dtb.c` | `boot_dtb_set_chosen()` reads the RoT, the SLC and the device | Verified (code) | open |
 | | | id itself, and runs the board's hook after `pb,device-uuid` and before pb's other properties. | | |
 | | | `boot.md` 5.5, 5.6: pb's information collected once, the hook first, `pb,boot-partition` and | | |
