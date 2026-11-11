@@ -731,3 +731,22 @@ findings stay as they are, they are history.
 
 Why: Jonas wants the repo to work with different harnesses. Claude Code reads `AGENTS.md` where
 a project has no `CLAUDE.md` (2.1.322), so no stub is kept.
+
+## D-043: pb's status stays, and pb's version joins pb's information (2026-11-11)
+
+In his final read of `boot.md` Jonas doubted the value of pb's status (D-041), which has one
+entry, and considered removing it. It stays. pb's version is added: `pb,version` in the DT, a
+string, and `version[32]` appended to pb's structure; the string the wire's version command
+answers (`version.txt`).
+
+Why the status stays: `security.md` 4.5 sorts a failed precondition into refuse, boot and report,
+or log only, and the status is the only output of the middle one. Without it those conditions
+are a line on a UART nobody reads in the field, which is F-096's pattern. The watchdog entry
+alone would not carry it (the next stage arms its own watchdog). Entries I expect, each decided
+with its condition: an A/B state that couldn't be written (`boot.md` 3.2, F-179), a verification
+with the software fallback after the crypto engine failed, a ROM that started pb from another
+place than expected. Removing it would have been safe for compatibility, nothing is released.
+
+Why the version: an OS can tell which pb booted it without command mode, for an inventory or a
+report. It is not for telling which entries exist: a next stage looks for the entry. Appended
+last in the structure, so the layout that goes to the specification only grows.

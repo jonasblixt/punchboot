@@ -1,6 +1,6 @@
 # The boot flow contract
 
-**State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041.** Level 2 (`process.md`).
+**State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041, D-043.** Level 2 (`process.md`).
 
 No open items. The draft's seventeen, as decided and written into the text:
 
@@ -27,6 +27,8 @@ No open items. The draft's seventeen, as decided and written into the text:
 | 15 | pb's structure isn't released before its tag is allocated (5.4) | Level 1, D-038 |
 | 16 | `linux,initrd-*` stay 32 bits where both addresses fit (5.2) | Level 1, D-038 |
 | 17 | The preconditions are checked before `early_boot()` (2) | D-039 |
+
+From Jonas's final read: pb's status stays and pb's version joins pb's information (5.6, D-043).
 
 What pb does from `boot()` to the jump: which partition it boots (the boot source policy), how it
 loads and verifies the image, and what it hands the next stage (the handover). For each step:
@@ -449,10 +451,12 @@ struct pb_fh_handover {
     uint32_t no_of_available_keys;
     uint32_t available_keys[16];
     uint32_t status;               /* 5.6: what pb booted without, bit flags; 0: nothing */
+    char version[32];              /* 5.6: pb's version, NUL terminated */
 };
 ```
 
-A build whose keystore has more than 16 keys doesn't compile with this handover (a static assert).
+A build whose keystore has more than 16 keys, or whose version string doesn't fit, doesn't compile
+with this handover (static asserts).
 
 Its tag is allocated in the specification (requested upstream by Jonas, before 3.0.0); the
 non-standard range is discouraged there. A tag is allocated by a pull request that adds the
@@ -478,9 +482,9 @@ for it.
 ### 5.6 pb's information
 
 Collected once by the core, written by each handover in its format. **Not yet in the code
-(F-260)**: the boot partition and the mode. The identity, the life cycle and the keys not revoked
-are collected before the loop (2); the system, the partition, the mode and the image's key belong
-to the candidate.
+(F-260)**: pb's version, the boot partition and the mode. The version is the build's; the
+identity, the life cycle and the keys not revoked are collected before the loop (2); the system,
+the partition, the mode and the image's key belong to the candidate.
 
 | Information | `/chosen`, and its encoding | pb's structure | From |
 |---|---|---|---|
@@ -498,8 +502,15 @@ to the candidate.
 | | ids) | | |
 | What pb booted without | `pb,status`, string list, new, always | `status`, bit flags | The preconditions |
 | | written | | (2) |
+| pb's version | `pb,version`, string, new | `version` | The build |
+| | | | (`version.txt`) |
 
 New entries are appended (section 7). The encodings are part of what section 7 fixes.
+
+pb's version is the string the wire's version command answers (`PB_CMD_BOOTLOADER_VERSION_READ`):
+`version.txt` when pb was built, "3.0.0". It tells the OS which pb booted it without command mode,
+for an inventory or a report (D-043). A next stage that needs one of the entries above looks for
+that entry, not for a version: an entry that is absent was added after the pb that booted it.
 
 pb's status (`system.md` 3, `security.md` 4.5) is what pb couldn't do and booted anyway, so that
 the next stage can report it or act on it. **Not yet in the code (F-248).** A list of strings in
@@ -580,8 +591,8 @@ Like the wire (D-008, `compatibility.md`):
 | F-258 | The handover and delivery model, `image`, TF-A's BL33 and BL32, `bl_params` from the |
 | | platform, the DXL |
 | F-259 | Firmware Handoff (5.4): the list, the region, pb's structure and its tag |
-| F-260 | pb's information collected once, before the loop; `pb,boot-partition`, `pb,boot-mode`, the |
-| | hook's order |
+| F-260 | pb's information collected once, before the loop; `pb,version`, `pb,boot-partition`, |
+| | `pb,boot-mode`, the hook's order |
 | F-253, F-219 | The in place source (4.1), its rules; the custom source's removal |
 | F-254, F-255 | Placement (4.3), the initrd above 4 GiB (5.2) |
 | F-243, F-248 | The watchdog per chunk, the boot's preconditions in the flow (2), pb's status in the |
