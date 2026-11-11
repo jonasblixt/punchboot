@@ -20,9 +20,8 @@ the trim is at the end of `log/2026-11-09.md`.
   items at its top, to revisit when the board and boot contracts are final. New: F-261, F-262.
 - **Board contract (D-031, `board.md`):** written, waits for Jonas's review; its code is F-216,
   F-178, F-249..F-252 (held where it touches the boot until the boot contract is reviewed).
-- **Boot flow contract (D-032, `boot.md`):** a draft after four rounds with Jonas and a review
-  pass, then a pass against level 1 (D-038: 10 open items left), waits for his review; its code is F-253..F-260 and the
-  A/B review's. F-253 (the lost `IN_MEM` source) before
+- **Boot flow contract (D-032, D-038 to D-041, `boot.md`):** reviewed (Jonas), no open items.
+  Its code is F-253..F-260 and the A/B review's. F-253 (the lost `IN_MEM` source) before
   `work-3.0.0-plat` merges. Then the drivers' contracts (`log/2026-11-11.md`).
 - **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each
   document's state. `doc/dev/` keeps status, roadmap, decisions, findings (open; the closed ones in
@@ -46,14 +45,11 @@ the trim is at the end of `log/2026-11-09.md`.
 
 ## Next steps
 
-0. **Resume here (2026-11-11): Jonas reviews the boot flow contract, `boot.md` (draft, D-032).**
-   Start from its "Open for the review" list: ten items left for him, marked **Open (n)** in the
-   text, seven closed by level 1 (D-038). The rounds, the review pass and the Firmware Handoff
-   and Xen facts are in `log/2026-11-11.md`. After it: the rest of the `board.md`
-   review (2.1 is rewritten), then `platform.md`'s
-   open items (they follow the two drafts), then the code (F-253 first, before `work-3.0.0-plat`
-   merges). The document lint is in (`doc.lint`); the
-   conformance suites come with each contract's code.
+0. **Resume here (2026-11-11): Jonas reviews `board.md` (draft, D-031).** A pass against
+   `boot.md` and level 1 first, as was done for `boot.md` (D-038): 2.7 and 3 still name
+   `boot_simple` and the A/B data's `rollback_mode`. Then `platform.md`'s seven open items (they
+   follow the two), then the code (F-253 first, before `work-3.0.0-plat` merges). The document
+   lint is in (`doc.lint`); the conformance suites come with each contract's code.
 1. `work-3.0.0-plat`: Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time

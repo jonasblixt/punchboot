@@ -656,3 +656,67 @@ requested; the flow says "the header" where it doesn't depend on bpak (`system.m
 Left for Jonas: 1, 2, 3, 9, 12, 14 as they were; 5 for the fixed and chain policies only; 6 with
 the status field; 10 as two questions (where the header is, whether a differing `pb-load-addr`
 is refused); 17 as one (the preconditions before `early_boot()`).
+
+## D-039: The boot flow contract, Jonas's first answers (2026-11-11)
+
+Jonas answered `boot.md`'s ten open items in the text. Decided:
+
+- The transfer list is always in a board region, also with a DT, which is copied into it.
+- Firmware Handoff replaces `simple`. Released pb passed no arguments, so nothing released is
+  dropped.
+- Speculative mode also starts when this boot's failures leave no candidate, for this boot
+  only, nothing written.
+- The in place source's header: the partition's last 4 KiB, or where the board says, as in
+  released pb. Both.
+- The transfer list holds the image's DT or pb's structure, one or the other (D-032 stands;
+  asked again after the brief on Firmware Handoff, `doc/guides/firmware-handoff.md`).
+
+Written in as rules without a decision of his, since he saw no question in them: `boot part`
+takes only the policy's candidates with every policy; the preconditions are checked before
+`early_boot()`.
+
+Open, with his view and my proposal in `boot.md`: speculative mode with nothing enabled (3), what
+pb hands over (6: the structure, the Kconfig names, the status' encoding), `pb-load-addr` in
+place (10), a trial whose attempt can't be written (12), Kconfig as the only switch for
+speculative mode (14).
+
+## D-040: The boot flow contract, Jonas's second answers (2026-11-11)
+
+- **Speculative mode also starts with no slot enabled** (a state that is blank, lost or
+  disabled by the host): A first, then alternating. In the field almost anything beats looping
+  into command mode. "For now" (Jonas). The cost: with this mode "disable both slots" doesn't
+  park a device in command mode, and a device in the factory boots an image that was written and
+  not yet activated. Released speculative mode stays in command mode there.
+- **`BOOT_AB_SPECULATIVE` is the only switch** for speculative mode; the board's `rollback_mode`
+  field goes. Two switches that must agree fail silently, and D-026 rewrites the board files.
+- **In place, a part is at its `pb-load-addr`**, as in released pb: hashed and entered there,
+  and placement holds it inside the candidate's mapped range. Slot A's image in slot B is
+  refused as a candidate. Jonas had leaned to ignoring the meta; in released pb it is where the
+  part is, not a second address.
+- **A trial whose attempt can't be written** is started only when no verified slot is left;
+  otherwise the verified slot boots. A rollback or an alternation that can't be written is
+  handed out. Jonas had leaned to always starting the trial; with a lasting fault that starts an
+  image that verifies and hangs forever.
+- **pb's structure** (`struct pb_fh_handover`) as in `boot.md` 5.4, with room for 16 keys.
+- **The Kconfig names**: `BOOT_POLICY_FIXED`, `BOOT_POLICY_CHAIN`, `BOOT_POLICY_AB` (a defconfig
+  with `BOOT_AB_DRIVER` still gets A/B), `BOOT_AB_SPECULATIVE`, `BOOT_FH_REGION_BASE`,
+  `BOOT_FH_REGION_SIZE`. `BOOT_FH` for the handover itself is mine, from the region's names.
+- `boot part` only for the policy's candidates and the preconditions before `early_boot()`
+  (D-039, written in without his decision) stood through his second read.
+
+Open: how pb's status is encoded. Jonas asked for strings instead of bit flags. Proposed: a
+string list in the DT (`pb,status`), bit flags in pb's structure (`status`), one table for both.
+
+## D-041: pb's status, and the boot flow contract is reviewed (2026-11-11)
+
+pb's status (what pb couldn't do and booted anyway, `system.md` 3) is a list of strings in the
+DT (`pb,status`) and bit flags in pb's structure (`status`). One table in `boot.md` 5.6 gives a
+condition its string and its bit together; neither is reused. The property is always written,
+empty when there is nothing. When 32 bits run out, a second field is appended to the structure.
+
+Why: Jonas asked for strings. In the DT they are the idiom and need no table to read. In pb's
+structure a list of strings has no fixed size and could only be the last field for good, while
+the structure grows by appending; he accepted the bits there given that more can be added.
+
+With it `boot.md` has no open items: reviewed (`process.md` 4). The code follows it, a commit
+per finding (section 9).

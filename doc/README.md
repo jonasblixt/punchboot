@@ -14,7 +14,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 | 1 System | `system/` | `system.md` | Reviewed (D-036) |
 | | | `security.md` | Reviewed (D-036) |
 | | | `compatibility.md` | In force (the guards) |
-| 2 Architecture | `architecture/` | `boot.md` | Draft, 10 open after the level 1 pass (D-038) |
+| 2 Architecture | `architecture/` | `boot.md` | Reviewed (D-041) |
 | | | `command-mode.md` | Missing |
 | | | `arch-firmware.md` | Behind the code (waits for the board work's review) |
 | | | `arch-host-tools.md` | Not a contract yet |
@@ -35,6 +35,7 @@ Beside the levels, not normative:
 | `guides/` | `build-and-test.md` | Building firmware, the dev container, CI, releasing |
 | | `testing.md` | Writing and running the host tests |
 | | `bpak.md` | The vendored bpak and how to update it |
+| | `firmware-handoff.md` | A brief on Arm's Firmware Handoff, for `boot.md` 5.4 |
 | | `release-checklist.txt` | The steps of a release |
 | `dev/` | `status.md` | Where the work is: read first |
 | | `roadmap.md` | What comes next, and what is to be discussed |

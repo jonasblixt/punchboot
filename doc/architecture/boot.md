@@ -1,57 +1,37 @@
 # The boot flow contract
 
-**State: draft for Jonas's review (2026-11-11), D-032.** Level 2 (`process.md`).
+**State: reviewed (Jonas, 2026-11-11), D-032, D-038 to D-041.** Level 2 (`process.md`).
 
-**Open for the review.** The draft's open items after a pass against level 1 (2026-11-11, D-038):
-what `security.md`, `system.md` and `compatibility.md` decide is closed, ten items are left for
-Jonas. The numbers are the draft's, each is marked **Open (n)** in the text.
+No open items. The draft's seventeen, as decided and written into the text:
 
-Jonas: Note to self, read up on firmware handoff
-
-Left for Jonas:
-
-1. The transfer list is always in a board region, also with a DT, so pb copies the DT into it
-   (5.4; from "the list is dynamic information from pb, not the image's").
-2. Firmware Handoff replaces `simple` instead of standing next to it (5.4). Level 1 has nothing
-   against it: released pb (`armv7m_baremetal`) passed no arguments, r0/r1 exist only on the 3.0.0
-   branch, so nothing released is dropped (`principles.md` 3, 7).
-3. Speculative mode needs an enabled slot: a device never activated, or one the host disabled,
-   stays in command mode (3.6). `security.md` allows either: verification is never relaxed.
-5. `boot part` is limited to the policy's candidates also for the fixed and the chain policy (6).
-   For A/B it is closed: the wire's behaviour today.
-6. pb's structure's layout, up to 16 keys (5.4), the Kconfig names of the region and the
-   policies. New from level 1: pb's status needs a field and a `/chosen` property (5.6).
-9. Speculative mode also starts when this boot's failures leave no candidate (a verified slot that
-   doesn't load, the other one not confirmed): for this boot only, nothing written (3.6).
-10. The in place source (4.1): is the header in the partition's last 4 KiB in the out-of-tree
-    images, and is an image whose `pb-load-addr` isn't its mapped address refused? That a part is
-    hashed where it runs is closed.
-12. A state write that fails in `boot_policy_next()` (3.2): a trial whose attempt can't be written
-    isn't handed out, a rollback or an alternation is.
-14. `rollback_mode` (3.6): Kconfig compiles speculative mode in, the board's field still selects
-    it, so out-of-tree boards keep their data.
-17. The preconditions are checked before `early_boot()` (2). That they are checked in every boot,
-    and that pb's information is read before the loop, is closed.
-
-Closed by level 1:
-
-- 4: preparing the handover is part of a candidate's attempt, a failed `plat_lockdown()` tries no
-  other candidate (2). `security.md` 2, item 5 (availability: a verified system boots when there
-  is one) and 4.6 (no jump without the lockdown).
-- 7: an image with a `dont-hash` part is refused (4.2). Jonas, D-035, `security.md` 4.2.
-- 8: `boot status` stays "the enabled slot" for A/B (3.4). The wire's meaning is frozen
-  (`compatibility.md`).
-- 11: the custom source is removed (4.1). Jonas, D-035, `security.md` 4.1.
-- 13: a boot command mode started keeps today's values in the handover (5.6). `compatibility.md`.
-- 15: pb's structure isn't released before its tag is allocated (5.4). What is released is
-  fixed (`system.md` 3).
-- 16: `linux,initrd-*` stay 32 bits where both addresses fit (5.2). An image that boots today
-  gets the same bytes (`system.md` 5.1).
+| Item | Rule | By |
+|---|---|---|
+| 1 | The transfer list is always in a board region, so a DT is copied into it (5.4) | Jonas, D-039 |
+| 2 | Firmware Handoff replaces `simple` (5.4) | Jonas, D-039 |
+| 3 | Speculative mode also starts with no slot enabled, A first; for now (3.6) | Jonas, D-040 |
+| 4 | Preparing the handover is part of a candidate's attempt; a failed lockdown tries no | Level 1, D-038 |
+| | other candidate (2) | |
+| 5 | `boot part` takes only the policy's candidates, with every policy (6) | D-039 |
+| 6 | pb's structure's fields, with room for 16 keys (5.4); the Kconfig names (3.5, 3.6, 5.4) | Jonas, D-040 |
+| | pb's status: a string list in the DT, bit flags in pb's structure (5.6) | Jonas, D-041 |
+| 7 | An image with a `dont-hash` part is refused (4.2) | Jonas, D-035 |
+| 8 | `boot status` stays "the enabled slot" for A/B (3.4) | Level 1, D-038 |
+| 9 | Speculative mode also starts when this boot's failures leave no candidate (3.6) | Jonas, D-039 |
+| 10 | In place: the header in the partition's last 4 KiB or where the board says; a part is | Jonas, D-039, |
+| | at its `pb-load-addr`, inside the candidate's mapped range (4.1) | D-040 |
+| 11 | The custom source is removed (4.1) | Jonas, D-035 |
+| 12 | A trial whose attempt can't be written is started only when no verified slot is left | Jonas, D-040 |
+| | (3.2) | |
+| 13 | A boot command mode started keeps today's values in the handover (5.6) | Level 1, D-038 |
+| 14 | `BOOT_AB_SPECULATIVE` is the only switch for speculative mode (3.6) | Jonas, D-040 |
+| 15 | pb's structure isn't released before its tag is allocated (5.4) | Level 1, D-038 |
+| 16 | `linux,initrd-*` stay 32 bits where both addresses fit (5.2) | Level 1, D-038 |
+| 17 | The preconditions are checked before `early_boot()` (2) | D-039 |
 
 What pb does from `boot()` to the jump: which partition it boots (the boot source policy), how it
 loads and verifies the image, and what it hands the next stage (the handover). For each step:
-what it is responsible for, what it may rely on, and what a failure means. Decided in D-032, in
-the style of `platform.md` and `board.md`, which it builds on. Vendor neutral.
+what it is responsible for, what it may rely on, and what a failure means. Decided in D-032 and
+D-038 to D-040, in the style of `platform.md` and `board.md`, which it builds on. Vendor neutral.
 
 Changing the boot flow, a policy or a handover: read this and `principles.md`, then go through the
 checklist (section 8). Section 7 is fixed like the wire (`compatibility.md`).
@@ -61,18 +41,18 @@ finding removes the marker.
 
 ## 1. Words and scope
 
-| Word | Means |
-|---|---|
-| Boot flow | Everything from `boot()` to the jump, and command mode's boot commands |
+| Word               | Means                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| Boot flow          | Everything from `boot()` to the jump, and command mode's boot commands                   |
 | Boot source policy | Which partitions this boot tries, in which order, and the state that decides it. One per |
-| | build, chosen in Kconfig: fixed, staggered chain or A/B |
-| Candidate | A partition the policy hands out to try |
-| Source | Where an image's bytes come from: a partition, the host's stream, memory mapped flash |
-| Verification | The core's checks: the header's signature, where the parts land, the payload's hash |
-| Handover | What the next stage gets: an entry, four arguments and what pb wrote in memory for it, |
-| | including pb's information (5.6). Two: image (Linux, Xen) and Firmware Handoff |
-| Delivery | How the handover reaches the next stage: directly (`arch_jump()`) or through TF-A, |
-| | whose BL31 pb starts and which passes the handover on to BL33 |
+|                    | build, chosen in Kconfig: fixed, staggered chain or A/B                                  |
+| Candidate          | A partition the policy hands out to try                                                  |
+| Source             | Where an image's bytes come from: a partition, the host's stream, memory mapped flash    |
+| Verification       | The core's checks: the header's signature, where the parts land, the payload's hash      |
+| Handover           | What the next stage gets: an entry, four arguments and what pb wrote in memory for it,   |
+|                    | including pb's information (5.6). Two: image (Linux, Xen) and Firmware Handoff           |
+| Delivery           | How the handover reaches the next stage: directly (`arch_jump()`) or through TF-A,       |
+|                    | whose BL31 pb starts and which passes the handover on to BL33                            |
 
 Not here: the platform's and the board's parts (`platform.md`, `board.md`), the bpak format
 (`bpak.md`), the wire (`compatibility.md`), the security life cycle and the RoT (D-027).
@@ -116,8 +96,8 @@ The two new steps:
 - **The preconditions are checked in every boot**, also one command mode started, and the same
   in every life cycle state (`security.md` 4.5). What integrity rests on refuses the boot; what
   only availability rests on boots and is reported in the handover (5.6). **Not yet in the code
-  (F-248).** **Open (17)**: they sit before `early_boot()`, so that a boot that will be refused
-  starts no hardware.
+  (F-248).** They sit before `early_boot()`, so that a boot that will be refused starts no
+  hardware.
 - **pb's information is read before the loop.** The device's identity, the life cycle and the
   keys don't depend on the candidate, so a failure to read them is no candidate's fault and stops
   the boot: a life cycle that can't be read doesn't boot, with any handover (`security.md` 4.4,
@@ -180,15 +160,19 @@ Hands out the next candidate of this boot. A policy with state writes what the d
 before it returns (a trial's attempt, a rollback, speculative mode's slot): a hang during the load
 then still counts.
 
-**Open (12)**: when that write fails (**not yet in the code, F-179**: today any failed write ends
-the boot). Proposed: the write decides only where skipping it would be unsafe.
+When that write fails (**not yet in the code, F-179**: today any failed write ends the boot), the
+write decides only where skipping it would be unsafe:
 
-- A trial's attempt that can't be written: the trial isn't handed out, it would get attempts
-  without end. The next candidate follows (3.5, rule 3).
 - A rollback that can't be written: the verified slot is handed out. The next boot decides the
   same again.
 - Speculative mode's alternation that can't be written: the slot is handed out. A hang then comes
   back to the same slot, which is still better than no system.
+- A trial's attempt that can't be written: while the other slot is verified, that slot is handed
+  out instead (3.5, rule 3, mode fallback). When there is nothing else to boot, the trial is
+  handed out uncounted. With a fault that lasts, pb makes this choice again on every boot: an
+  image that verifies and hangs must not be started forever while a confirmed system sits in the
+  other slot. The cost: with such a fault and a good new image, the device stays on its old
+  system.
 
 ### 3.3 Function : boot_policy_report() [mandatory]
 
@@ -209,8 +193,8 @@ The attempt's result (2). The policies of this document persist nothing on a fai
 - `boot_policy_status(uuid)`: command mode's `boot status`. For A/B the enabled slot, or the
   null UUID when none is, as the wire has it today (`PB_CMD_BOOT_STATUS`): the meaning of a value
   on the wire is frozen (`compatibility.md`). A trial without attempts left is therefore still
-  reported, though the next boot rolls it back. Fixed: its
-  partition. Staggered chain: the first of the list.
+  reported, though the next boot rolls it back. Fixed: its partition. Staggered chain: the first
+  of the list.
 
 ### 3.5 The policies
 
@@ -225,7 +209,7 @@ reset. `boot activate`: not supported.
 **A/B** (`BOOT_POLICY_AB`). Two slots and the state of 3.7. Its candidates, in order:
 
 1. The enabled slot, when it is verified (confirmed by the OS), or when it is on trial with
-   attempts left: one attempt is spent and written first.
+   attempts left: one attempt is spent and written first (a write that fails: 3.2).
 2. A trial without attempts left rolls back: the other slot, when it is verified, is enabled, and
    the rolled back slot's error bit is set (written). Not verified: no viable candidate.
 3. When the first candidate failed in this boot: the other slot, when it is verified. Nothing is
@@ -233,9 +217,9 @@ reset. `boot activate`: not supported.
    attempt; it is tried again on the next boots until its attempts run out.
 4. No viable candidate: none, and pb enters command mode; with speculative mode, 3.6.
 
-Nothing enabled (a device never activated) has no candidate. `boot activate X` enables X and marks
-it verified, as today; the null UUID disables both. The OS starts a trial and confirms it through
-`pbstate`.
+Nothing enabled (a device never activated, a state that was lost) has no candidate, and pb enters
+command mode; with speculative mode, 3.6. `boot activate X` enables X and marks it verified, as
+today; the null UUID disables both. The OS starts a trial and confirms it through `pbstate`.
 
 As today, `boot activate X` also clears the other slot's verified bit and the error bits
 (`boot_ab_state_set_boot_partition()`; wire semantics, D-008). A device activated in the factory
@@ -248,14 +232,18 @@ therefore has no fallback candidate (rule 3) until the OS has confirmed the othe
 
 For a system that must stay reachable for an update when no slot is viable. With it:
 
-1. It starts only when a slot is enabled (**Open (3)**) and A/B has no viable candidate (3.5, 4).
-   That is one of two cases:
+1. It starts when A/B has no viable candidate (3.5, 4). That is one of three cases:
    - **From the state**: the enabled slot is a trial without attempts left and the other slot
      isn't verified. Items 3 and 4 apply.
-   - **From this boot** (**Open (9)**): the candidates of 3.5 failed to load or verify, and a slot
-     that isn't confirmed is left to try. It is tried for this boot only and nothing is written,
-     like the fallback of 3.5, rule 3: the enabled slot keeps its state and is tried first again
-     on the next boot.
+   - **From this boot**: the candidates of 3.5 failed to load or verify, and a slot that isn't
+     confirmed is left to try. It is tried for this boot only and nothing is written, like the
+     fallback of 3.5, rule 3: the enabled slot keeps its state and is tried first again on the
+     next boot.
+   - **Nothing enabled**: a state that is blank, lost or disabled by the host. A is tried first;
+     items 3 and 4 apply. In the field almost anything beats looping into command mode (Jonas,
+     D-040, for now). Released speculative mode stays in command mode here. The cost: with this
+     mode "disable both slots" doesn't park a device in command mode, and a device in the factory
+     boots an image that was written and not yet activated.
 2. It never boots an image that fails verification: it relaxes "confirmed by the OS", never the
    signature, the hash or the placement (`security.md` 4.1, 4.2).
 3. It alternates per boot. Before the load it enables the other slot and writes it, so a hang and
@@ -264,14 +252,13 @@ For a system that must stay reachable for an update when no slot is viable. With
 4. It counts no attempts. It ends when the OS confirms a slot through `pbstate`.
 5. The handover's mode is speculative (5.6).
 6. It depends on `CONFIG_ENABLE_WATCHDOG`: without one, a hang stays hung.
-7. No format change: the first case follows from the state and its alternation is `enable`; the
-   second writes nothing.
+7. No format change: the first and the third case follow from the state and their alternation is
+   `enable`; the second writes nothing.
 
-**Open (14)**: who selects it. Today it is the board's data (`rollback_mode` in
-`struct boot_ab_state_config`), and Jonas decided on Kconfig (round 3). Proposed: both.
-`BOOT_AB_SPECULATIVE` compiles the mode in and carries the watchdog dependency, the board's field
-still selects it, and the data check (`board.md` 3) refuses `AB_ROLLBACK_MODE_SPECULATIVE` without
-the option. Out-of-tree boards keep their data and add one line to their defconfig.
+`BOOT_AB_SPECULATIVE` is the only switch, and it carries the watchdog dependency. The board's
+`rollback_mode` field (`struct boot_ab_state_config`) goes: two switches that must agree fail
+silently when a board sets one and forgets the other, and every board file is rewritten for 3.0.0
+anyway (D-026).
 
 ### 3.7 The state
 
@@ -287,41 +274,37 @@ goes), the other policies in `pbstate`, the fixes of the A/B review.
 
 ### 4.1 Sources
 
-| Source | Used by | What |
-|---|---|---|
-| Partition | The policies, `boot part` | A bio partition, the bpak header in its last 4 KiB |
-| Host stream | `boot bpak` | Command mode reads the header, then the parts, from the host |
-| In place | Boards that run from memory mapped flash | A partition mapped at an address: the image is |
-| | | verified where it is and runs there |
+| Source      | Used by                                  | What                                                         |
+| ----------- | ---------------------------------------- | ------------------------------------------------------------ |
+| Partition   | The policies, `boot part`                | A bio partition, the bpak header in its last 4 KiB           |
+| Host stream | `boot bpak`                              | Command mode reads the header, then the parts, from the host |
+| In place    | Boards that run from memory mapped flash | A partition mapped at an address: the image is               |
+|             |                                          | verified where it is and runs there                          |
 
 **Not yet in the code (F-253, F-219)**: the board can't select the in place source since D-026,
-and it hashes the parts at their load addresses while the entry is in the mapped flash. The in
-place source becomes a property of a partition (mapped at an address), so that any policy can hand
-one out.
-
-There is no custom source, where the board loads and authenticates the image itself: released pb
-had one, nobody uses it, and it was the one way around 4.2 (Jonas, D-035, `security.md` 4.1).
+and the generic handover jumps to another address than the one that was hashed. The in place
+source becomes a property of a partition (mapped at an address), so that any policy can hand one
+out.
 
 The in place source's rules:
 
-- A part is at the partition's mapped address plus its offset in the payload. Nothing is copied:
-  step 5 of 4.2 hashes it there, and the entry is there. A part is hashed where it runs, never at
-  another address (`security.md` 4.2); released pb hashed at `pb-load-addr` and jumped to the
-  mapped address (F-219).
-- Placement (4.3): the partition's mapped range, without the header, is the allowed memory for
-  its parts. The handover's own memory (the Firmware Handoff region) is in RAM as always.
-- **Open (10)**, two questions for Jonas:
-  - The header is in the partition's last 4 KiB, read through the map, as for a partition that
-    is loaded. Released pb got the header's address from the board (`get_in_mem_image()`), so an
-    out-of-tree board may keep it elsewhere.
-  - `pb-load-addr` stays mandatory and must be the mapped address; an image where the two differ
-    is refused (`principles.md` 2: it was built for another layout). The alternative ignores
-    `pb-load-addr` for this source. Refusing needs a decision entry that names it
-    (`compatibility.md`).
+- Nothing is copied. A part is at its `pb-load-addr`, as in released pb: it is hashed there and
+  the entry is there, never at another address (`security.md` 4.2). For code that runs in place
+  the meta is the address the part was linked for, so the image has it anyway.
+- Placement (4.3): the candidate's mapped range, without the header, is the allowed memory for
+  its parts. An image for slot A that was written to slot B is therefore refused as a candidate,
+  not started. The handover's own memory (the Firmware Handoff region) is in RAM as always.
+- The header is in the partition's last 4 KiB, read through the map, as for a partition that is
+  loaded; or where the board says, as in released pb (`get_in_mem_image()`).
+- Every image released pb accepted has its parts at their `pb-load-addr`, so none is refused.
 
 ### 4.2 The sequence
 
 1. Read the header; it is valid bpak (`bpak_valid_header()`).
+Jonas: This needs to be generalized a bit more. It's fine to use bpak as example of _one_ format, but
+I do plan to support another format as well. I would prefer if this is written in amore generic fashion
+not mentioning bpak
+
 2. The key it names (`key_id`) is in the keystore and not revoked (`rot_read_key_status()`). The
    header's `keystore_id` is logged and not compared: pb has one keystore, and a check added now
    could refuse images that boot today (D-008).
@@ -418,21 +401,21 @@ OCRAM). **Not yet in the code (F-258)**: `atf.c` puts them in `.data` for it. Th
 delivery (it starts BL31 directly today, as an image). TF-A's own transfer list (tag 0x102, the
 AArch64 entry point info) is a later path, for a BL31 that takes it.
 
-### 5.4 Handover : Firmware Handoff, generic [optional]
+### 5.4 Handover : Firmware Handoff, generic [optional, CONFIG_BOOT_FH]
 
 **Not yet in the code (F-259)**: the generic handover is `simple` (r0 = the system's name, r1 = the
 boot partition's UUID, only on the 3.0.0 branch). Released pb (`armv7m_baremetal`) passed nothing,
-so images that ignore their registers keep working. **Open (2)**: it replaces `simple`, it doesn't
-stand next to it.
+so images that ignore their registers keep working. It replaces `simple`, it doesn't stand next
+to it.
 
 For any next stage: an RTOS, an application, a hypervisor, a stage that parses a DT. The entry is
 the part the board names (on ARMv7-M its vector table, D-028; in place, its mapped address).
 
-| Arch | Registers |
-|---|---|
+| Arch    | Registers                                                                                |
+| ------- | ---------------------------------------------------------------------------------------- |
 | AArch64 | x0 = the DT in the list or 0, x1 = 0x4a0fb10b with bits 39:32 = 1, x2 = 0, x3 = the list |
-| AArch32 | r0 = 0, r1 = 0x0fb10b with bits 31:24 = 1, r2 = the DT in the list or 0, r3 = the list |
-| ARMv7-M | AArch32's. The specification covers AArch64 and AArch32 only: pb's extension |
+| AArch32 | r0 = 0, r1 = 0x0fb10b with bits 31:24 = 1, r2 = the DT in the list or 0, r3 = the list   |
+| ARMv7-M | AArch32's. The specification covers AArch64 and AArch32 only: pb's extension             |
 
 The transfer list holds one of two, never both:
 
@@ -443,15 +426,17 @@ The transfer list holds one of two, never both:
   the part fails to boot, and so does a DT that doesn't fit the region with its headroom.
 - **pb's structure**, when the board names none: one entry with pb's tag.
 
-The list is in a region of the board's (Kconfig base and size), also with a DT (**Open (1)**):
-pb's information changes on every boot, it isn't part of the image. The region is checked like a part (4.3) and is 8-byte aligned.
-The image's memory map keeps it free until the next stage has read or moved the list: it is part
-of the board's interface to image authors (`board.md` 8). The list is version 2 with checksums on,
-and has no pointers into itself (the next stage may move it).
+The list is in a region of the board's (`BOOT_FH_REGION_BASE` and `BOOT_FH_REGION_SIZE`), also
+with a DT: pb's information changes on every boot, it isn't part of the image. The region is
+checked like a part (4.3) and is 8-byte aligned. The image's memory map keeps it free until the
+next stage has read or moved the list: it is part of the board's interface to image authors
+(`board.md` 8). The list is version 2 with checksums on, and has no pointers into itself (the next
+stage may move it). The specification describes the checksum byte in two ways
+(`firmware-handoff.md`): the code follows the reference library and is tested against a receiver.
 
-pb's structure (a proposal, **Open (6)**): little-endian, no pointers, fields only appended
-(D-008). The entry's `data_size` is its size, so a receiver reads the fields `data_size` covers and it carries
-no size or version of its own (changed in the review pass: the draft had a `size` field first).
+pb's structure: little-endian, no pointers, fields only appended (D-008). The entry's `data_size`
+is its size, so a receiver reads the fields `data_size` covers, and the structure carries no size
+or version of its own.
 
 ```c
 struct pb_fh_handover {
@@ -463,7 +448,7 @@ struct pb_fh_handover {
     uint32_t active_key;
     uint32_t no_of_available_keys;
     uint32_t available_keys[16];
-    uint32_t status;               /* 5.6: what pb booted without; 0: nothing */
+    uint32_t status;               /* 5.6: what pb booted without, bit flags; 0: nothing */
 };
 ```
 
@@ -471,9 +456,10 @@ A build whose keystore has more than 16 keys doesn't compile with this handover 
 
 Its tag is allocated in the specification (requested upstream by Jonas, before 3.0.0); the
 non-standard range is discouraged there. A tag is allocated by a pull request that adds the
-entry's layout to the specification, so the layout above (**Open (6)**) is settled first. pb's
-structure isn't in a release before its tag is allocated: what is released is fixed (section 7,
-`system.md` 3), and the tag can't change afterwards. The DT variant doesn't wait for it.
+entry's layout to the specification, so the layout above is settled first. pb's structure isn't
+in a release before its tag is allocated: what is released is
+fixed (section 7, `system.md` 3), and the tag can't change afterwards. The DT variant doesn't wait
+for it.
 
 ### 5.5 What pb writes into a DT
 
@@ -510,15 +496,27 @@ to the candidate.
 | The image's key | `pb,slc-active-key`, u32 (a key id) | `active_key` | The header |
 | The keys not revoked | `pb,slc-available-keys`, u32 list (key | `available_keys` | The RoT |
 | | ids) | | |
-| What pb booted without | `pb,status`, new; the name and the | `status` | The preconditions |
-| | encoding are **Open (6)** | | (2) |
+| What pb booted without | `pb,status`, string list, new, always | `status`, bit flags | The preconditions |
+| | written | | (2) |
 
 New entries are appended (section 7). The encodings are part of what section 7 fixes.
 
 pb's status (`system.md` 3, `security.md` 4.5) is what pb couldn't do and booted anyway, so that
-the next stage can report it or act on it. Its entries come with the preconditions (F-248,
-`platform.md` 3.8); today the one candidate is the watchdog that didn't arm. Absent, or 0, means
-nothing to report. **Not yet in the code (F-248).**
+the next stage can report it or act on it. **Not yet in the code (F-248).** A list of strings in
+the DT, its own idiom and readable without a table; bit flags in pb's structure, whose fields
+have a fixed size (Jonas, D-041):
+
+| Condition | String in `pb,status` | Bit in `status` |
+|---|---|---|
+| The watchdog didn't arm (`platform.md` 2.3) | `watchdog-not-armed` | 0 |
+
+- A condition gets its string and its bit together, when its precondition is added (F-248,
+  `platform.md` 3.8). Neither is reused or renamed afterwards (section 7).
+- Nothing to report: `pb,status` is written and empty, `status` is 0. The property is always
+  there, so that an OS can tell "nothing" from a pb that doesn't report.
+- A receiver ignores strings and bits it doesn't know.
+- When 32 bits run out, a second field (`status2`) is appended to pb's structure, which a
+  receiver finds through `data_size` like any appended field. The string list has no limit.
 
 A boot command mode started keeps today's values (`compatibility.md`):
 
@@ -527,15 +525,16 @@ A boot command mode started keeps today's values (`compatibility.md`):
 - The UUID `boot bpak` names is taken as given: the host is authenticated on a locked device
   (`security.md` 4.7), and the image is verified like any other (4.1 there).
 - The mode is normal.
-- New, with the layout (**Open (6)**): `pb,boot-partition` is absent, and `boot_partition_uuid`
-  all zero, when `boot bpak` names no partition.
+- New: `pb,boot-partition` is absent, and `boot_partition_uuid` all zero, when `boot bpak` names
+  no partition.
 
 ## 6. Command mode's boot commands
 
 - `boot part <uuid>`: one candidate, the partition the host names, which must be one of the
   policy's (bootable). No policy, nothing counted, mode normal. For A/B that is what the wire
   does today (`boot.c` refuses a partition without `BIO_FLAG_BOOTABLE`), so it stays
-  (`compatibility.md`). **Open (5)**: the same rule for the fixed and the chain policy.
+  (`compatibility.md`), and the fixed and the chain policy get the same rule: what else a host
+  wants to boot it sends with `boot bpak`.
 - `boot bpak`: the host stream (4.1), the partition the host names in the handover (5.6).
 - Both go through the preconditions, `early_boot()`, 4.2 and 4.3 like any boot (2); only the
   serial download stop is skipped.
@@ -550,7 +549,7 @@ Like the wire (D-008, `compatibility.md`):
 
 - The A/B state's format and meaning (3.7), which `pbstate` and the OS write.
 - The `/chosen` properties, their encoding and their meaning (5.6, the README's table): only added
-  to.
+  to. The same for the status' strings and bits.
 - `boot activate` and `boot status` as the wire has them (3.4, 3.5).
 - Each handover's register convention and entry (5.2 to 5.4), and pb's structure (append only) and
   its tag once allocated.
@@ -561,8 +560,8 @@ Like the wire (D-008, `compatibility.md`):
 
 - [ ] The step's responsibilities stay its own (section 2's list); no hook between the header and
       the payload's hash.
-- [ ] A policy writes its state before the load, and only what its decision changed; a failed
-      write never gives a trial more attempts.
+- [ ] A policy writes its state before the load, and only what its decision changed; a trial
+      whose attempt can't be written is started only when no verified slot is left.
 - [ ] Every candidate goes through 4.2 and 4.3, and every byte pb loads is hashed.
 - [ ] Placement is the allow list of 4.3, also for what a handover grows or writes.
 - [ ] A handover is an entry, four arguments and what it wrote; it reads pb's information, not the
@@ -575,9 +574,9 @@ Like the wire (D-008, `compatibility.md`):
 
 | Finding | What |
 |---|---|
-| F-256 | The policy interface (3.1 to 3.4), fixed and staggered, the loop with the fallback (F-174), each |
-| | policy marking its candidates (F-215) |
-| F-257 | Speculative mode (3.6, F-177) |
+| F-256 | The policy interface (3.1 to 3.4), fixed and staggered, their Kconfig names, the loop with |
+| | the fallback (F-174), each policy marking its candidates (F-215) |
+| F-257 | Speculative mode (3.6, F-177): nothing enabled, Kconfig as its only switch |
 | F-258 | The handover and delivery model, `image`, TF-A's BL33 and BL32, `bl_params` from the |
 | | platform, the DXL |
 | F-259 | Firmware Handoff (5.4): the list, the region, pb's structure and its tag |
