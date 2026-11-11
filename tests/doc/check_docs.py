@@ -33,7 +33,7 @@ RECORDS = ("dev/log/", "dev/decisions.md", "dev/findings-closed.md")
 NOT_LEVELS = ("dev/", "guides/", "README.md")
 STATES = ("draft", "reviewed", "in force")
 CODE_DIRS = ("include", "src", "tools", "tests", "scripts", ".github")
-CODE_FILES = ("CLAUDE.md", "README.md", "Makefile", "CMakeLists.txt")
+CODE_FILES = ("AGENTS.md","README.md", "Makefile", "CMakeLists.txt")
 VENDORED = (
     "scripts/kconfiglib.py",
     "src/lib/",

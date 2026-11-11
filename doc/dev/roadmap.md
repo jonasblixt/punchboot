@@ -1,7 +1,7 @@
 # Roadmap (DRAFT, under discussion)
 
 Guiding idea: first make it cheap and safe to change things (a reproducible build and
-test loop that Claude can run locally), then fix, then modernize. The bpak format is
+test loop that an agent can run locally), then fix, then modernize. The bpak format is
 frozen (D-001).
 
 ## Phase 0: Reproducible dev loop (enabler)
