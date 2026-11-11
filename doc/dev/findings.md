@@ -430,8 +430,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `BOOT_FH_REGION_BASE` and `_SIZE`; the checksum against the reference library | | |
 | F-260 | `src/boot/dtb.c` | `boot_dtb_set_chosen()` reads the RoT, the SLC and the device | Verified (code) | open |
 | | | id itself, and runs the board's hook after `pb,device-uuid` and before pb's other properties. | | |
-| | | `boot.md` 5.5, 5.6: pb's information collected once, the hook first, `pb,boot-partition` and | | |
-| | | `pb,boot-mode` added (and in the README's table) | | |
+| | | `boot.md` 5.5, 5.6: pb's information collected once, the hook first, `pb,version`, | | |
+| | | `pb,boot-partition` and `pb,boot-mode` added (and in the README's table) | | |
 | F-261 | `plat/{imx6ul,imx8m}/plat.c` | The TrustZone filter's open region is the SoC's | Verified (code) | open |
 | | | whole DRAM window, not the board's DRAM: 2 GiB on the 6UL (`tzasc_init()`), 4 or 8 GiB on the 8M | | |
 | | | (`tzasc_open_dram()`). With less DRAM than the window, the copies of DRAM inside it are open to | | |
