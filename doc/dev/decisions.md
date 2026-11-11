@@ -628,3 +628,31 @@ documentation, for out-of-tree ports too, not AI working context.
 
 Why: where a document sits says what it may decide and what it must cite, and the folder listing
 shows the order top down. 89 of 245 findings were closed and read every time.
+
+## D-038: The boot flow contract after level 1 (2026-11-11)
+
+A pass over `boot.md`'s 15 open items against `security.md`, `system.md` and `compatibility.md`
+(D-033: a document decides only what its level owns). Derived by me from level 1, for Jonas's
+review of `boot.md`; ten items are left for him there.
+
+Closed, because level 1 leaves one answer:
+
+- Preparing the handover is part of a candidate's attempt (availability: a device with a
+  verified system boots it); a failed lockdown tries no other candidate (no jump without it).
+- `boot status` stays "the enabled slot" for A/B, and `boot part` stays limited to bootable
+  partitions for A/B: the meaning of a value on the wire is frozen.
+- A boot command mode started keeps today's values in the handover.
+- `linux,initrd-*` stay 32 bits where both addresses fit: an image that boots today gets the
+  same bytes. 64 bits only above 4 GiB, which never worked (F-255).
+- pb's structure isn't released before its tag is allocated: what is released is fixed.
+- The preconditions are checked in every boot, also one command mode started; a life cycle
+  that can't be read stops the boot with any handover.
+- In place: a part is hashed where it runs, never at another address (F-219).
+
+New in `boot.md` from level 1: pb's status in the handover (`system.md` 3), a `/chosen`
+property and a field in pb's structure, so the structure's layout must have it before the tag is
+requested; the flow says "the header" where it doesn't depend on bpak (`system.md` 3).
+
+Left for Jonas: 1, 2, 3, 9, 12, 14 as they were; 5 for the fixed and chain policies only; 6 with
+the status field; 10 as two questions (where the header is, whether a differing `pb-load-addr`
+is refused); 17 as one (the preconditions before `early_boot()`).

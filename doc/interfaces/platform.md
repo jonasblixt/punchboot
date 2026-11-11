@@ -176,8 +176,8 @@ device, and reports the reason in its log. Open with it:
 
 - The same rule in every life cycle state, or a development override? Proposed: the same rule; a
   development board is where a bypassed filter goes unnoticed (F-096).
-- Tell the OS: pass the status in the device tree (`/chosen`), so the OS can report or refuse too.
-  Part of the OS-facing contract, later.
+- Tell the OS: decided at level 1 (`system.md` 3). What pb booted without is part of pb's
+  information in the handover (`boot.md` 5.6).
 
 ## 3. Services
 
