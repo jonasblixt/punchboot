@@ -573,6 +573,18 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | kick while they wait and time out since F-277. No other command of the core runs more than one | | |
 | | | chunk: a stream write or read is one buffer, an erase is as long as the blocks the host names, and | | |
 | | | a board's command kicks itself (`board.md` 4.4). `test_cm.c` (`test_part_verify_kicks_per_chunk`) | | |
+| F-272 | `src/cm/cm_main.c` | Only `cmd_part_tbl_read()` looks at `BIO_FLAG_VISIBLE`. | Verified (code) | fixed |
+| | | Stream init, erase, verify, bpak read, `boot part` and activate find a hidden partition by its | | |
+| | | UUID (`bio_get_part_by_uu()`). With F-186 (`part verify` reads any partition byte by byte). | | |
+| | | `command-mode.md` 5.3, D-058 (Jonas): a hidden partition is internal to pb and answers | | |
+| | | NOT_FOUND to every command; `part verify` needs no `READABLE`. No board in the tree hides a | | |
+| | | partition (children inherit `VISIBLE` from their device) | | |
+| | | Fixed: `cm_part_hidden()` and `cm_part_by_uu()` in `cm_main.c`. A UUID that names a partition | | |
+| | | without `VISIBLE` answers NOT_FOUND to stream init, erase, verify, bpak read, `boot part`, activate | | |
+| | | and the table install, before anything else looks at it; the boot and the policy never hear of it. A | | |
+| | | UUID that names no partition goes on as before (activate and `boot part` pass it to the policy). | | |
+| | | `BOOT_BPAK`'s UUID is a label and isn't checked (5.3). `test_cm.c` (`test_hidden_partition`; | | |
+| | | `test_part_table_install` makes the disk visible, as F-265's devices are) | | |
 
 ## Dependencies / vendored code
 

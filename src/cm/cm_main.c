@@ -279,6 +279,24 @@ static int cm_read(void *buf, size_t length)
     return rc;
 }
 
+/* A partition without VISIBLE is internal to pb: it doesn't exist for the
+ * host, and every command that names it answers NOT_FOUND (command-mode.md
+ * 5.3, D-058) */
+static bool cm_part_hidden(const uuid_t uu)
+{
+    bio_dev_t dev = bio_get_part_by_uu(uu);
+
+    return (dev >= 0) && !(bio_get_flags(dev) & BIO_FLAG_VISIBLE);
+}
+
+static bio_dev_t cm_part_by_uu(const uuid_t uu)
+{
+    if (cm_part_hidden(uu))
+        return -PB_ERR_NOT_FOUND;
+
+    return bio_get_part_by_uu(uu);
+}
+
 static int cmd_board(void)
 {
     int rc;
@@ -341,7 +359,7 @@ static int cmd_bpak_read(void)
 
     LOG_DBG("Read bpak");
 
-    bio_dev_t dev = bio_get_part_by_uu(read_cmd->uuid);
+    bio_dev_t dev = cm_part_by_uu(read_cmd->uuid);
 
     if (dev < 0) {
         LOG_ERR("Could not find partition");
@@ -622,7 +640,7 @@ static int cmd_part_verify(void)
 
     LOG_DBG("Verify part");
 
-    block_dev = bio_get_part_by_uu(verify_cmd->uuid);
+    block_dev = cm_part_by_uu(verify_cmd->uuid);
 
     if (block_dev < 0) {
         LOG_ERR("Could not find partition");
@@ -738,7 +756,7 @@ static int cmd_part_verify(void)
 static int cmd_part_erase(struct pb_command_erase_part *erase_cmd)
 {
     LOG_DBG("Erase: lba=%" PRIu32 " count=%" PRIu32, erase_cmd->start_lba, erase_cmd->block_count);
-    bio_dev_t dev = bio_get_part_by_uu(erase_cmd->uuid);
+    bio_dev_t dev = cm_part_by_uu(erase_cmd->uuid);
 
     if (dev < 0)
         return dev;
@@ -934,7 +952,7 @@ static int cmd_stream_init(void)
     struct pb_command_stream_initialize *stream_init =
         (struct pb_command_stream_initialize *)cmd.request;
 
-    block_dev = bio_get_part_by_uu(stream_init->part_uuid);
+    block_dev = cm_part_by_uu(stream_init->part_uuid);
     stream_written = false;
     stream_failed = false;
 
@@ -1081,7 +1099,10 @@ static int pb_command_parse(void)
     {
         struct pb_command_install_part_table *install_cmd =
             (struct pb_command_install_part_table *)cmd.request;
-        rc = bio_install_partition_table(install_cmd->uu, install_cmd->variant);
+        if (cm_part_hidden(install_cmd->uu))
+            rc = -PB_ERR_NOT_FOUND;
+        else
+            rc = bio_install_partition_table(install_cmd->uu, install_cmd->variant);
         pb_wire_init_result(&result, error_to_wire(rc));
     } break;
     case PB_CMD_STREAM_INITIALIZE:
@@ -1114,9 +1135,13 @@ static int pb_command_parse(void)
     case PB_CMD_BOOT_PART: {
         struct pb_command_boot_part *boot_cmd = (struct pb_command_boot_part *)cmd.request;
 
-        boot_set_source(BOOT_SOURCE_BIO);
-        boot_clear_set_flags(0, BOOT_FLAG_CMD | (boot_cmd->verbose ? BOOT_FLAG_VERBOSE : 0));
-        rc = boot_load(boot_cmd->uuid);
+        if (cm_part_hidden(boot_cmd->uuid)) {
+            rc = -PB_ERR_NOT_FOUND;
+        } else {
+            boot_set_source(BOOT_SOURCE_BIO);
+            boot_clear_set_flags(0, BOOT_FLAG_CMD | (boot_cmd->verbose ? BOOT_FLAG_VERBOSE : 0));
+            rc = boot_load(boot_cmd->uuid);
+        }
 
         pb_wire_init_result(&result, error_to_wire(rc));
         cm_write(&result, sizeof(result));
@@ -1144,7 +1169,10 @@ static int pb_command_parse(void)
     case PB_CMD_PART_ACTIVATE: {
         struct pb_command_activate_part *activate_cmd =
             (struct pb_command_activate_part *)cmd.request;
-        rc = boot_set_boot_partition(activate_cmd->uuid);
+        if (cm_part_hidden(activate_cmd->uuid))
+            rc = -PB_ERR_NOT_FOUND;
+        else
+            rc = boot_set_boot_partition(activate_cmd->uuid);
         pb_wire_init_result(&result, error_to_wire(rc));
     } break;
     case PB_CMD_AUTHENTICATE:

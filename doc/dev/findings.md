@@ -475,12 +475,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | D-056, `platform.md` 7: the API stays with the platform; `imx8x.h` includes the services boards | | |
 | | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
 | | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
-| F-272 | `src/cm/cm_main.c` | Only `cmd_part_tbl_read()` looks at `BIO_FLAG_VISIBLE`. | Verified (code) | open |
-| | | Stream init, erase, verify, bpak read, `boot part` and activate find a hidden partition by its | | |
-| | | UUID (`bio_get_part_by_uu()`). With F-186 (`part verify` reads any partition byte by byte). | | |
-| | | `command-mode.md` 5.3, D-058 (Jonas): a hidden partition is internal to pb and answers | | |
-| | | NOT_FOUND to every command; `part verify` needs no `READABLE`. No board in the tree hides a | | |
-| | | partition (children inherit `VISIBLE` from their device) | | |
 | F-274 | `src/cm/cm_main.c`, `tools/punchboot/session.py` | Exchanges that get out of | Verified (code) | open |
 | | | step. (1) A refused `STREAM_PREPARE_BUFFER` (the gate, the size, the id) sends one result, | | |
 | | | but hosts send the data whatever the first result says: it is read as commands. As F-187 for | | |

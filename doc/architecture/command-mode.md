@@ -471,9 +471,7 @@ doesn't exist for the host: it isn't in the table, and every command that reache
 by its UUID answers `NOT_FOUND` for it, `BOOT_PART` and `PART_ACTIVATE` too. A board hides
 what no host may reach. The UUID `BOOT_BPAK` carries reaches no partition: it is a label for
 the handover, taken as given (`boot.md` 5.6), and the device doesn't say whether a partition
-has it. **Not yet in the
-code (F-272)**: only the table leaves hidden partitions out, every other command finds them by
-UUID. No board in the tree hides a partition, and the device a table is installed on is
+has it. No board in the tree hides a partition, and the device a table is installed on is
 visible, so no released flow changes.
 
 **`PART_VERIFY` needs no `READABLE`** (Jonas): the host hashes its file and asks pb for the
@@ -754,7 +752,7 @@ For a change to command mode, a new command or a new method:
 | F-187, F-274        | The exchange stays in step after a refusal (4.4)                                     |
 | F-087               | A result code for a payload whose hash differs (4.5)                                 |
 | F-226               | The host uses the caps' timeouts (4.6)                                               |
-| F-186, F-272        | The partitions' flags: hidden partitions, `PART_VERIFY` (5.3)                        |
+| F-186               | The partitions' flags: `PART_VERIFY` (5.3)                                           |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
 | F-182, F-074        | Sizes that aren't block multiples; no stream (5.3, 5.4)                              |
 | F-128, F-252        | A boot the host started that is refused or stopped (5.5)                             |

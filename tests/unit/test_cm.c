@@ -809,6 +809,9 @@ static void test_part_table_install(void **state)
     struct pb_command_install_part_table req = { .variant = 1 };
     (void)state;
 
+    /* The device a partition table is on has only VISIBLE (F-265); a hidden
+     * one isn't there for the host (F-272) */
+    assert_int_equal(bio_set_flags(bio_get_part_by_uu(UU_DISK), BIO_FLAG_VISIBLE), PB_OK);
     memcpy(req.uu, UU_MISSING, 16);
     host_cmd(PB_CMD_PART_TBL_INSTALL, &req, sizeof(req));
     memcpy(req.uu, UU_DISK, 16);
@@ -1927,6 +1930,53 @@ static void stream_read(uint8_t id, uint32_t size, uint64_t offset)
     host_cmd(PB_CMD_STREAM_READ_BUFFER, &req, sizeof(req));
 }
 
+/* A hidden partition is internal to pb (command-mode.md 5.3, D-058, F-272):
+ * every command that names it answers NOT_FOUND, whatever its other flags
+ * allow. BOOT_BPAK's UUID is a label and reaches no partition. */
+static void test_hidden_partition(void **state)
+{
+    struct fixture *f = *state;
+    bio_dev_t hidden = bio_get_part_by_uu(UU_HIDDEN);
+    struct pb_command_erase_part erase = { .start_lba = 40, .block_count = 1 };
+    struct pb_command_read_bpak bpak_read = { 0 };
+    struct pb_command_boot_part boot = { 0 };
+    struct pb_command_activate_part activate = { 0 };
+    struct pb_command_install_part_table install = { .variant = 0 };
+    struct pb_command_bpak_boot bpak_boot = { 0 };
+    struct pb_command_verify_part verify = verify_req(1024, false, ramdisk_block(f->disk, 40));
+
+    assert_true(hidden >= 0);
+    assert_int_equal(
+        bio_set_flags(hidden, BIO_FLAG_READABLE | BIO_FLAG_WRITABLE | BIO_FLAG_BOOTABLE), PB_OK);
+    bpak_init_header((struct bpak_header *)ramdisk_block(f->disk, 50 - 8));
+
+    stream_init(UU_HIDDEN);
+    memcpy(erase.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_ERASE, &erase, sizeof(erase));
+    memcpy(verify.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_VERIFY, &verify, sizeof(verify));
+    memcpy(bpak_read.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_BPAK_READ, &bpak_read, sizeof(bpak_read));
+    memcpy(boot.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_BOOT_PART, &boot, sizeof(boot));
+    memcpy(activate.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_ACTIVATE, &activate, sizeof(activate));
+    memcpy(install.uu, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_PART_TBL_INSTALL, &install, sizeof(install));
+    memcpy(bpak_boot.uuid, UU_HIDDEN, 16);
+    host_cmd(PB_CMD_BOOT_BPAK, &bpak_boot, sizeof(bpak_boot));
+    run();
+
+    for (int i = 0; i < 7; i++)
+        expect_result(-PB_RESULT_NOT_FOUND);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    /* Neither the boot nor the policy heard of it, but BOOT_BPAK's label */
+    assert_int_equal(fake_boot.load_calls, 1);
+    assert_memory_equal(fake_boot.load_uu, UU_HIDDEN, 16);
+    assert_memory_equal(fake_boot.set_part_uu, (uint8_t[16]){ 0 }, 16);
+}
+
 static void test_stream(void **state)
 {
     struct fixture *f = *state;
@@ -3009,6 +3059,7 @@ int main(void)
         CM_TEST(test_part_verify_small_partition),
         CM_TEST(test_part_erase),
         CM_TEST(test_part_erase_needs_writable),
+        CM_TEST(test_hidden_partition),
         CM_TEST(test_stream),
         CM_TEST(test_stream_errors),
         CM_TEST(test_stream_offset_inside_a_block),
