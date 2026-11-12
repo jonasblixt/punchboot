@@ -546,9 +546,9 @@ The boot path is where boot time goes: the hooks start what is slow and don't wa
 
 ### 5.1 The serial download stop (the core's)
 
-**Not yet in the code (F-251, F-264)**: the 8X reads the ROM's boot mode itself (`early_boot`, the
-SCU's boot type), and the RT has the check (SBMR2) in a `late_boot` that is never called; only the
-6UL's `plat_get_boot_source()` reports a serial download.
+**Not yet in the code (F-251)**: the 8X reads the ROM's boot mode itself (`early_boot`, the
+SCU's boot type), and the RT has no check; only the 6UL's `plat_get_boot_source()` reports a
+serial download.
 
 With `CONFIG_CM_ON_SERIAL_DOWNLOAD` (default y): when `plat_get_boot_source()` reports `USB` or
 `UART`, the ROM's serial downloader loaded pb, and command mode didn't start the boot, `boot()`
@@ -618,7 +618,7 @@ const struct bpak_header *boot_image_get_bpak_header(void)
 
 - It reads the result of what `early_boot()` started or what has run since reset. The example is
   the RT's charger detection: the hardware needs more than 100 ms, so pb loads the image while it
-  runs and checks for a charger here (the RT's hook isn't called today, F-264).
+  runs and checks for a charger here.
 - After its checks, it stops what the board started that must not run in the next stage (DMA, a
   controller), or the board's documentation says what it leaves running (`platform.md` 4.5:
   whoever started it stops it).
@@ -786,7 +786,7 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | Image data regions (2.9)       | no    | no      | no  | no      | no         | no       | no      | F-254        |
 | Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270        |
 | No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | no         | yes      | yes     | F-256        |
-| No serial download check (5.1) | yes   | yes     | no  | no      | no         | yes      | yes     | F-251, F-264 |
+| No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251        |
 | `status()` (4.3)               | no    | default | no  | no      | default    | default  | default | F-250        |
 | `password_auth()` (4.5)        | n/a   | n/a     | no  | no      | n/a        | n/a      | n/a     | F-004        |
 | The order of section 2         | yes   | yes     | yes | yes     | yes        | yes      | no      | F-217        |

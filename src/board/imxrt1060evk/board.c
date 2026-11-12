@@ -62,8 +62,17 @@ static const struct static_part_table nor_table[] = {
     },
 };
 
+/*
+ * A charger on the USB port stops the boot: pb stays in command mode. The
+ * detector's result is read here, after the image is loaded and verified,
+ * since the detection takes more than 100 ms from reset. Nothing in pb starts
+ * the detector: the hook relies on it running from reset.
+ */
 static int board_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
 {
+    (void)header;
+    (void)boot_part_uu;
+
     /* If the command interface initiated the boot, skip charger detection,
      * since we're connected but want to boot anyway */
     if (boot_get_flags() & BOOT_FLAG_CMD)
@@ -73,26 +82,6 @@ static int board_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
     uint32_t charger_status = mmio_read_32(IMXRT_USB1_CHRG_DETECT_STAT);
     if (charger_status & IMXRT_CHRG_DETECT_STAT_CHRG_DETECTED) {
         printf("Charger detected, entering command mode\n\r");
-        return -PB_ERR_ABORT;
-    }
-
-    /* When serial loading on bench, bootmode registers are set so force command mode */
-    uint32_t sbmr2 = mmio_read_32(IMXRT_SRC_SBMR2);
-    if (sbmr2 & IMXRT_SRC_SBMR2_BMOD_MASK) {
-        printf("Serial boot detected, entering command mode\n\r");
-        return -PB_ERR_ABORT;
-    }
-
-    /* On virgin cards boot-loaded over serial (no PBL loaded), in production
-     * without wing board sbmr2 above will be 0b00 (fused boot) and as
-     * the ROM code initializes the USB for serial downloader so charge
-     * detection does not work either.
-     *
-     * If no PBL is loaded in start of flash, always go into recovery mode
-     */
-    uint32_t *pvl_ivt_header_addr = (uint32_t *)IMXRT_FLEXSPI_NOR_IVT;
-    if (*pvl_ivt_header_addr == 0x00000000 || *pvl_ivt_header_addr == 0xFFFFFFFF) {
-        printf("No pbl detected, entering command mode\n\r");
         return -PB_ERR_ABORT;
     }
 
@@ -435,6 +424,7 @@ const struct board board = {
     .ab = &boot_state_cfg,
     .boot_simple = &boot_simple,
     .early_boot = board_early_boot,
+    .late_boot = board_late_boot,
     .cm_init = board_cm_init,
     .cm_transport = &pb_dev_cls_transport,
     .command = board_command,
