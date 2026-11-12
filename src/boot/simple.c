@@ -23,9 +23,6 @@ int boot_driver_simple_init(const struct boot_driver_simple_config *cfg_in)
     if (cfg_in == NULL || cfg_in->boot_partition_id == 0)
         return -PB_ERR_PARAM;
 
-    if (cfg_in->image_base_address != 0 && cfg_in->image_size < sizeof(struct bpak_header))
-        return -PB_ERR_PARAM;
-
     cfg = cfg_in;
     return PB_OK;
 }
@@ -43,19 +40,13 @@ int boot_driver_simple_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
         return -PB_ERR_BAD_META;
     }
 
-    if (cfg->image_base_address != 0) {
-        /* In place: the part's offset in the payload */
-        jump_addr =
-            cfg->image_base_address + bpak_part_offset(hdr, part) - sizeof(struct bpak_header);
-    } else {
-        /* Loaded to RAM: the part's load address */
-        if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, part->id, &mh) != BPAK_OK) {
-            LOG_ERR("No pb-load-addr for part %x", part->id);
-            return -PB_ERR_BAD_META;
-        }
-
-        jump_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
+    /* The address the part was hashed at, loaded or in place */
+    if (bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, part->id, &mh) != BPAK_OK) {
+        LOG_ERR("No pb-load-addr for part %x", part->id);
+        return -PB_ERR_BAD_META;
     }
+
+    jump_addr = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
 
     uuid_copy(boot_uu, boot_part_uu);
     boot_name = cfg->resolve_part_name ? cfg->resolve_part_name(boot_part_uu) : NULL;

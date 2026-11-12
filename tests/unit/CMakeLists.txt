@@ -183,6 +183,10 @@ target_link_options(test_linux PRIVATE
     -Wl,--defsym=_no_init_end=0x40120000
 )
 
+pb_unit_test(test_simple SOURCES
+    ${PROJECT_SOURCE_DIR}/src/boot/simple.c
+)
+
 pb_unit_test(test_cm SOURCES
     ${PROJECT_SOURCE_DIR}/src/cm/cm_main.c
     ${PROJECT_SOURCE_DIR}/src/log_source.c

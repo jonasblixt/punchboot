@@ -19,14 +19,16 @@
  * partition's UUID. For any image that takes that: an application, an RTOS
  * (Zephyr, FreeRTOS), on any arch pb runs on. The part 'boot_partition_id'
  * starts with the image's entry: its vector table on ARMv7-M, its first
- * instruction on ARMv7-A and ARMv8-A. Two ways to run it:
+ * instruction on ARMv7-A and ARMv8-A.
  *
- * - In place (XIP), 'image_base_address' != 0: the boot partition is
- *   mapped at 'image_base_address' (e.g. FlexSPI NOR), the entry is at the
- *   part's offset in the payload. Boot it with BOOT_SOURCE_IN_MEM.
- * - From RAM, 'image_base_address' == 0: pb loads the parts to their
- *   pb-load-addr (BOOT_SOURCE_BIO) and the entry is at the load address of
- *   'boot_partition_id'.
+ * The entry is the load address (pb-load-addr) of 'boot_partition_id',
+ * wherever the image comes from: it is the address pb hashed the part at.
+ *
+ * - From RAM: pb loads the parts to their load addresses.
+ * - In place (XIP): the boot partition has STATIC_PART_FLAG_IN_PLACE in the
+ *   board's static partition table, set up with static_ptbl_init_mapped()
+ *   (e.g. FlexSPI NOR). Nothing is loaded, and a part's load address is its
+ *   address in the map: the address the image is linked for.
  *
  * The image starts as every next stage does (include/pb/arch.h): the MMU
  * (MPU) and the D-cache off, the I-cache invalidated, interrupts masked, at
@@ -38,8 +40,6 @@
  * before using it.
  */
 struct boot_driver_simple_config {
-    uintptr_t image_base_address; /*!< XIP address of the payload, or 0 */
-    size_t image_size; /*!< Size of the XIP partition */
     bpak_id_t boot_partition_id; /*!< Part that starts with the vector table */
     const char *(*resolve_part_name)(uuid_t part_uu); /*!< Optional: r0 */
 };
