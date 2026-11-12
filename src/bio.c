@@ -209,6 +209,10 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
         LOG_ERR("Range error, lba=%u, length=%zu", lba, length);
         return -PB_ERR_PARAM;
     }
+    /* Nothing to read: the driver isn't called (bio.md 3.1) */
+    if (length == 0)
+        return PB_OK;
+
     return bio_pool[dev].read(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
 
@@ -225,6 +229,9 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
         LOG_ERR("Range error, lba=%u, length=%zu", lba, length);
         return -PB_ERR_PARAM;
     }
+    /* Nothing to write: the driver isn't called (bio.md 3.2) */
+    if (length == 0)
+        return PB_OK;
 
     return bio_pool[dev].write(dev, bio_pool[dev].first_lba + lba, length, buf);
 }

@@ -166,8 +166,7 @@ Reads `length` bytes from block `lba` of the device into `buf`.
   block is read into the core's block buffer and the bytes asked for are copied. **Not yet in
   the code (F-182, F-284)**: the length goes to the driver as it is; the MMC driver drops the
   tail and returns OK, the FlexSPI's refuses a length that isn't a multiple of 4.
-- **A length of 0** is `PB_OK` and reads nothing; the driver isn't called. **Not yet in the
-  code (F-283)**: the MMC driver returns an error.
+- **A length of 0** is `PB_OK` and reads nothing; the driver isn't called.
 - **The buffer** starts on a cache line and owns its lines (`drivers.md` 4.3).
   One that doesn't is refused, `-PB_ERR_ALIGN`, before the driver is called. An image part
   whose load address doesn't is the boot's to bounce, not `bio`'s.
@@ -400,7 +399,8 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | The medium's size checked    | no                 | n/a (the board's) | n/a                 | F-200   |
 | Exactly `length` bytes of    | yes                | no: a write reads | yes                 | F-284   |
 | the buffer                   |                    | 1 to 4 bytes more |                     |         |
-| A length of 0                | no: an error       | yes               | yes                 | F-283   |
+| A length of 0                | yes: the core's    | yes               | yes                 |         |
+|                              | (`test_mmc_emmc`)  |                   |                     |         |
 | Any length in one call       | yes (chunks)       | no: below 64 KiB  | yes                 | F-198   |
 | Addresses above 4 GiB        | no: truncated      | n/a (no DMA)      | n/a                 | F-200   |
 | refused                      |                    |                   |                     |         |
@@ -424,7 +424,7 @@ The core:
 | Requirement                                         | Today                        | Finding |
 | --------------------------------------------------- | ---------------------------- | ------- |
 | A length that isn't whole blocks is the core's      | no: it goes to the driver    | F-182   |
-| A length of 0 doesn't reach the driver              | no                           | F-283   |
+| A length of 0 doesn't reach the driver              | yes (`test_bio`)             |         |
 | A buffer that doesn't start on a line is refused    | no                           | F-282   |
 | A block larger than the block buffer is refused     | yes (`test_bio`)             |         |
 | A partition lies inside its parent                  | no: not checked              | F-193   |
@@ -452,8 +452,8 @@ exact byte counts). The FlexSPI's driver has no model: the bench, through the si
 
 | Finding             | What                                                                           |
 | ------------------- | ------------------------------------------------------------------------------ |
-| F-182, F-283        | Partial blocks are the core's; a length of 0; the block buffer; the block size |
-|                     | asked, not assumed; devices registered once; the conformance suite (2, 3)      |
+| F-182, F-283        | Partial blocks are the core's; the block buffer; the block size asked, not     |
+|                     | assumed; devices registered once; the conformance suite (2, 3)                 |
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |

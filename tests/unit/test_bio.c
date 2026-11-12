@@ -120,6 +120,25 @@ static void test_huge_length_rejected(void **state)
     assert_int_equal(f->disk->reads, 0);
 }
 
+/* bio.md 3.1, 3.2: a length of 0 is PB_OK, nothing is read or written and
+ * the driver isn't called */
+static void test_a_length_of_0_doesnt_reach_the_driver(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t before[sizeof(f->buf)];
+
+    memset(ramdisk_block(f->disk, PART_FIRST), 0x3c, RAMDISK_BLOCK_SIZE);
+    memcpy(before, f->buf, sizeof(before));
+
+    assert_int_equal(bio_read(f->part, 0, 0, f->buf), PB_OK);
+    assert_int_equal(f->disk->reads, 0);
+    assert_memory_equal(f->buf, before, sizeof(before));
+
+    assert_int_equal(bio_write(f->part, 0, 0, f->buf), PB_OK);
+    assert_int_equal(f->disk->writes, 0);
+    assert_int_equal(*ramdisk_block(f->disk, PART_FIRST), 0x3c);
+}
+
 static void test_invalid_handles(void **state)
 {
     struct fixture *f = *state;
@@ -343,6 +362,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_past_end_rejected, setup, teardown),
         cmocka_unit_test_setup_teardown(test_lba_wrap_rejected, setup, teardown),
         cmocka_unit_test_setup_teardown(test_huge_length_rejected, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_a_length_of_0_doesnt_reach_the_driver, setup, teardown),
         cmocka_unit_test_setup_teardown(test_invalid_handles, setup, teardown),
         cmocka_unit_test_setup_teardown(test_allocate_rejects, setup, teardown),
         cmocka_unit_test_setup_teardown(
