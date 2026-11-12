@@ -253,9 +253,6 @@ therefore has no fallback candidate (rule 3) until the OS has confirmed the othe
 
 ### 3.6 A/B's speculative mode [optional, BOOT_AB_SPECULATIVE]
 
-**Not yet in the code (F-257)**: today's speculative mode gives the fallback one trial attempt
-(two boots, F-177) and drops a rollback bit.
-
 For a system that must stay reachable for an update when no slot is viable. With it:
 
 1. It starts when A/B has no viable candidate (3.5, 4). That is one of three cases:
@@ -659,7 +656,6 @@ Like the wire (D-008, `compatibility.md`):
 
 | Finding                           | What                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------- |
-| F-257                             | Speculative mode (3.6, F-177): nothing enabled, Kconfig as its only switch      |
 | F-259                             | Firmware Handoff (5.4): the list, the region, pb's structure and its tag        |
 | F-260                             | pb's information collected once, before the loop; `pb,version`,                 |
 |                                   | `pb,boot-partition`, `pb,boot-mode`, the hook's order                           |

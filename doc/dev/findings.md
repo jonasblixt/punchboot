@@ -105,11 +105,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | stale backup can stay, and it comes back when the primary goes bad (shown: B verified | | |
 | | | in the primary, the old trial state in the backup, a bad primary rolls back to A). | | |
 | | | Commit when they differ: the primary is always written first. | | |
-| F-177 | `src/boot/ab_state.c` | Speculative rollback sets the fallback's attempts to 1 | Verified | open |
-| | | and boots it at once without using one: it gets two boots (`pbstate switch B 3` gives | | |
-| | | three). In the ping-pong, `error =` drops the other rollback bit. No board uses the | | |
-| | | speculative mode; `test_speculative_rollback_from_a` asserts B, B, A. Not intended: | | |
-| | | `boot.md` 3.6 (D-032), F-257. | | |
 | F-178 | `src/board.c` | When `boot_ab_state_init()` fails (a repair write, a state partition | Verified | open |
 | | | missing from the table), `board_setup()` returns before `late_init` and the boot | | |
 | | | driver: in command mode `boot activate` is `-PB_ERR_NOT_SUPPORTED` and `boot partition` | | |
@@ -123,7 +118,9 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | the next boot picks it again. `boot activate` leaves `remaining_boot_attempts` as it | | |
 | | | was. `pb_boot_state_defaults(&boot_state_backup)` does nothing: commit writes only | | |
 | | | `boot_state`. `boot.md` 3.2 (D-040): a rollback or an alternation that can't be written is | | |
-| | | handed out; a trial whose attempt can't be written only when no verified slot is left | | |
+| | | handed out; a trial whose attempt can't be written only when no verified slot is left. | | |
+| | | With speculative mode (F-257) a backup that can't be written means the primary alternates | | |
+| | | on every boot and nothing boots (`test_speculative_backup_write_error` pins it) | | |
 | F-180 | `tools/pbstate/src/pbstate.c` | `pbstate_is_system_verified(NONE)` returns | Verified | open |
 | | | `!!enable` (a copy of `is_system_active`). `pbstate_set_system_verified(X)` zeroes the | | |
 | | | attempts also when X isn't the enabled system: it ends the other system's trial, and | | |
@@ -421,11 +418,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | 2.9: `image_regions` in `struct board`; a part lies inside one region and over no other part; | | |
 | | | that no region overlaps `pb`, `buffers`, the Firmware Handoff region or `bl_params`' region is | | |
 | | | checked once, with the board's data. The platform header names the SoC memory a board may list | | |
-| F-257 | `src/boot/ab_state.c` | Speculative mode differs from `boot.md` 3.6: the | Verified (code) | open |
-| | | fallback gets one trial attempt (two boots, F-177) and a rollback bit is dropped. Per `boot.md`: | | |
-| | | only with no viable candidate, alternate per boot, no attempts, ends when the OS confirms, the | | |
-| | | handover says so, `depends on ENABLE_WATCHDOG`. D-040: it also starts with nothing enabled (A | | |
-| | | first), and `BOOT_AB_SPECULATIVE` is its only switch: the board's `rollback_mode` field goes | | |
 | F-259 | `src/boot/simple.c` | The generic handover passes r0 = the system's name, | Verified (code) | open |
 | | | r1 = the boot partition's UUID, and can't grow. `boot.md` 5.4: Arm's Firmware Handoff, a transfer | | |
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
@@ -730,6 +722,40 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | policies end (fixed, chain, A/B). A board's own policy whose `next` never ends would loop, and | | |
 | | | since F-243 the loads in it kick the watchdog, where it reset before. A bound in the core, or | | |
 | | | a sentence in `boot.md` 3.2 that a policy hands out each candidate once per boot | | |
+| F-340 | `src/boot/ab_state.c` | Minor. A rollback to a confirmed slot assigns `error` | Verified (code) | open |
+| | | (`error = PB_STATE_ERROR_A_ROLLBACK`), which clears the other slot's rollback bit; `boot.md` | | |
+| | | 3.5, rule 2 sets the rolled back slot's bit. F-177's rest: speculative mode no longer writes | | |
+| | | `error` (F-257). Without speculative mode no writer leaves such a state (`pbstate -s` and | | |
+| | | `boot activate` clear `error`). With it: B confirmed with its bit set, | | |
+| | | `pbstate_invalidate_system(A)`, a speculative boot of A, then the rollback to B. `|=` changes | | |
+| | | what normal mode writes in that state: decide (D-008) | | |
+| F-341 | `tests/`, `configs/host_defconfig` | Speculative mode (`boot.md` 3.6) has unit | Verified (code) | open |
+| | | tests only. pb-host can't have `CONFIG_BOOT_AB_SPECULATIVE`: the host has no watchdog, which | | |
+| | | the symbol depends on, and `test_ab_state_speculative` builds `ab_state.c` with the symbol | | |
+| | | outside Kconfig. Not tested together: the core's loop with it (both slots fail: command | | |
+| | | mode), the real `pbstate` confirming a slot, the handover's mode (F-260). A second pb-host | | |
+| | | configuration with a watchdog on the host, and cases in `test_ab_state.py` | | |
+| F-342 | `doc/architecture/boot.md` 3.6 | Speculative mode's text is silent where | Verified (code) | open |
+| | | F-257 had to choose. (1) What the alternation writes besides `enable`: nothing, but | | |
+| | | `remaining_boot_attempts = 0`, which changes only a counter left behind with nothing enabled; | | |
+| | | the error bits stay, so the OS learns the mode from the handover, not from a rollback bit. | | |
+| | | (2) Nothing enabled while a slot is confirmed (`pbstate -s none` keeps `verified`): A first | | |
+| | | all the same, also when only B is confirmed. (3) A boot's second candidate that is confirmed | | |
+| | | is 3.5's fallback, mode fallback, also after a speculative first one. (4) "From this boot" | | |
+| | | also after a rollback's target failed: the trial that ran out is tried. (5) `boot status` | | |
+| | | is the enabled slot (3.4), which isn't the slot that runs when the written slot failed and | | |
+| | | the other one booted: the OS confirms by `pb,active-system`. Review, and write what stands | | |
+| | | into 3.6. From the review of F-257, three points of design: (a) with nothing enabled and | | |
+| | | only B confirmed, A, which isn't confirmed, is booted first, and the mode reads speculative | | |
+| | | although a confirmed slot exists (3.6's "A first", literally). (b) When the same boot's | | |
+| | | second candidate booted, the state names the other slot as enabled: an OS that confirms | | |
+| | | "the active slot" as `pbstate` reports it confirms the wrong one, the one that failed, and | | |
+| | | the mode never ends. It needs `pb,active-system` or `pb,boot-partition` from the handover | | |
+| | | (F-260). (c) "From this boot" writes nothing, so with a confirmed A that is corrupt and a B | | |
+| | | that verifies and hangs, the device resets into B forever, where without the symbol it | | |
+| | | reaches command mode: rule 3's guarantee for a hang covers only the two cases that write. | | |
+| | | And rule 7 ("no format change ... their alternation is `enable`") is met with one more | | |
+| | | field written, `remaining_boot_attempts = 0`, which rule 4 needs | | |
 
 ## Dependencies / vendored code
 

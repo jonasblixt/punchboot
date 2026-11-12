@@ -17,17 +17,16 @@
 #include <pb/utils_def.h>
 #include <uuid.h>
 
-enum ab_rollback_mode {
-    AB_ROLLBACK_MODE_NORMAL,
-    AB_ROLLBACK_MODE_SPECULATIVE,
-};
-
+/**
+ * The board's configuration for A/B (board.md 2.5): the two slots and the
+ * two state partitions. Speculative mode (boot.md 3.6) isn't the board's
+ * to switch: CONFIG_BOOT_AB_SPECULATIVE is its only switch.
+ */
 struct boot_ab_state_config {
     const unsigned char *primary_state_part_uu;
     const unsigned char *backup_state_part_uu;
     const unsigned char *sys_a_uu;
     const unsigned char *sys_b_uu;
-    enum ab_rollback_mode rollback_mode;
 };
 
 /**

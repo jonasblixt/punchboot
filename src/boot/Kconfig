@@ -29,6 +29,31 @@ config BOOT_AB_DRIVER
         Kept so that a configuration from before 3.0.0 builds unchanged.
         Use BOOT_POLICY_AB.
 
+config BOOT_AB_SPECULATIVE
+    bool "A/B: speculative mode"
+    depends on BOOT_POLICY_AB && ENABLE_WATCHDOG
+    default n
+    help
+        For a system that must stay reachable for an update when no slot
+        is viable (boot.md 3.6). Where A/B would enter command mode, it
+        boots a slot the OS hasn't confirmed: when the enabled slot is a
+        trial without attempts left and the other one isn't confirmed,
+        when nothing is enabled (A first), and when this boot's
+        candidates failed to load or verify. It alternates the slots per
+        boot, counts no attempts, and ends when the OS confirms a slot
+        (pbstate). The policy reports such a boot's mode as speculative,
+        and the handover passes the mode on to the next stage (boot.md
+        5.6).
+
+        It never boots an image that fails verification. With it,
+        disabling both slots doesn't park a device in command mode, and
+        a device in the factory boots an image that was written and not
+        yet activated.
+
+        This is the only switch: the board's data has none. It needs the
+        watchdog: the alternation is written before the load, so that a
+        hang and the watchdog's reset lead to the other slot.
+
 config BOOT_DTB
     bool
     select LIB_FDT

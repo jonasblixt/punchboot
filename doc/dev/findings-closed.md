@@ -351,6 +351,34 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | did. imx8mevk fails the policy's check and stops in command mode as before (F-300). `test_board.c`, | | |
 | | | built twice (`test_board_password` with the method), `test_gpt.c`, `test_cm.c` (a name of 16 | | |
 | | | characters on the wire; it gets the method by a definition). Every board builds; not run on a board | | |
+| F-177 | `src/boot/ab_state.c` | Speculative rollback sets the fallback's attempts to 1 | Verified | fixed |
+| | | and boots it at once without using one: it gets two boots (`pbstate switch B 3` gives | | |
+| | | three). In the ping-pong, `error =` drops the other rollback bit. No board uses the | | |
+| | | speculative mode; `test_speculative_rollback_from_a` asserts B, B, A. Not intended: | | |
+| | | `boot.md` 3.6 (D-032), F-257. | | |
+| | | Fixed with F-257: speculative mode counts no attempts and writes `enable` alone, so a slot gets one | | |
+| | | boot (B, A, B) and no error bit is touched. `test_speculative_counts_no_attempts`, | | |
+| | | `test_speculative_writes_only_enable`. The rollback to a confirmed slot still assigns `error`: F-340 | | |
+| F-257 | `src/boot/ab_state.c` | Speculative mode differs from `boot.md` 3.6: the | Verified (code) | fixed |
+| | | fallback gets one trial attempt (two boots, F-177) and a rollback bit is dropped. Per `boot.md`: | | |
+| | | only with no viable candidate, alternate per boot, no attempts, ends when the OS confirms, the | | |
+| | | handover says so, `depends on ENABLE_WATCHDOG`. D-040: it also starts with nothing enabled (A | | |
+| | | first), and `BOOT_AB_SPECULATIVE` is its only switch: the board's `rollback_mode` field goes | | |
+| | | Fixed: `CONFIG_BOOT_AB_SPECULATIVE` (`src/boot/Kconfig`, default n, `depends on BOOT_POLICY_AB && | | |
+| | | ENABLE_WATCHDOG`) is the only switch; `rollback_mode` and `enum ab_rollback_mode` are gone from the | | |
+| | | configuration and the boards. Without the symbol A/B is what normal mode was: run against the code | | |
+| | | before over every state, sequence of results and write fault (186624 runs), the candidates, the modes | | |
+| | | and the bytes on the disk are the same. With it, where A/B has no viable candidate: from the state, | | |
+| | | the other slot is enabled, written before the load and handed out; with nothing enabled, A; when this | | |
+| | | boot's candidates failed, the slot that isn't confirmed, for this boot and with nothing written. A | | |
+| | | speculative boot's second candidate is the other slot, without a write. The write is `enable`, and the | | |
+| | | attempts zeroed; no error bit changes. The mode is speculative for a candidate 3.6 handed out. Where | | |
+| | | 3.6 is silent: F-342. A write that fails ends the boot as before, and a backup that can't be written | | |
+| | | keeps the primary alternating with nothing booted (F-179). `test_ab_state.c` is built twice: | | |
+| | | `test_ab_state_speculative` has a test for each rule (`test_speculative_*`), also for a write that | | |
+| | | fails on either copy and for power lost between the copies; `check_ab_speculative_kconfig.py` has the | | |
+| | | dependency. pb-host has no speculative mode, so no integration test (F-341). Every board builds, jiffy | | |
+| | | also with the symbol; not run on a board | | |
 
 ## Dependencies / vendored code
 

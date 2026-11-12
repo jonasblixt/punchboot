@@ -240,8 +240,6 @@ The board's boot source policy (`boot.md` 3): the object of the policy the board
 the board's configuration for it. `boot_policy_init()` runs after the partition table
 (`boot.md` 3.1).
 
-**Not yet in the code (F-257)**: A/B's configuration has a `rollback_mode`.
-
 | Object                     | What the board gives (`boot.md` 3.5)                                    |
 | -------------------------- | ----------------------------------------------------------------------- |
 | `BOOT_POLICY_FIXED(part)`  | The one partition's UUID                                                |
@@ -720,8 +718,8 @@ aren't the board's data (`system.md` 6):
 selected the device tree code: a board that is ported sets the handover's option with it, or it
 doesn't link.
 
-**Not yet in the code (F-257, F-259, F-251, F-263, F-267)**: `BOOT_AB_SPECULATIVE`,
-`BOOT_FH` and its region, `CM_ON_SERIAL_DOWNLOAD`, the EOL option, the USB port's.
+**Not yet in the code (F-259, F-251, F-263, F-267)**: `BOOT_FH` and its region,
+`CM_ON_SERIAL_DOWNLOAD`, the EOL option, the USB port's.
 
 **Not yet in the code (F-239)**: the board's addresses (`PB_ENTRY`, `BOARD_RAM_BASE`, `_END`) are
 make variables and `-D` flags in `makefile.mk`; `platform.md` 5.1 makes them Kconfig values
@@ -815,5 +813,5 @@ never hands out, so only `boot part` boots them. The marks are in the policy's i
 `board_setup()` doesn't reach when the table fails: on a blank disk the flash's partitions
 aren't bootable until a table is installed and pb restarts.
 
-Not in the table, the same on every board until its finding is fixed: A/B's `rollback_mode`
-(F-257), `resolve_part_name` (F-259, F-260).
+Not in the table, the same on every board until its finding is fixed: `resolve_part_name`
+(F-259, F-260).

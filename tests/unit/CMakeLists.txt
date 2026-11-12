@@ -139,6 +139,29 @@ pb_unit_test(test_ab_state SOURCES
     ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
 )
 
+# A/B's speculative mode (boot.md 3.6) isn't in pb-host: the host has no
+# watchdog, which CONFIG_BOOT_AB_SPECULATIVE depends on. Its test is the same
+# file and module built with the symbol, which changes nothing else in the
+# build; what A/B does with a viable candidate runs in both
+add_executable(test_ab_state_speculative test_ab_state.c
+    ${PROJECT_SOURCE_DIR}/src/bio.c
+    ${PROJECT_SOURCE_DIR}/src/boot/ab_state.c
+)
+target_compile_definitions(test_ab_state_speculative PRIVATE CONFIG_BOOT_AB_SPECULATIVE=1)
+target_include_directories(test_ab_state_speculative PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_ab_state_speculative PRIVATE pb_unit_fakes PkgConfig::CMOCKA)
+add_test(NAME unit.test_ab_state_speculative COMMAND test_ab_state_speculative)
+set_tests_properties(unit.test_ab_state_speculative PROPERTIES LABELS unit TIMEOUT 60)
+
+# The symbol's dependencies are Kconfig's (rule 6: the watchdog), so their
+# test reads Kconfig
+add_test(
+    NAME unit.ab_speculative_kconfig
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_ab_speculative_kconfig.py
+            ${PROJECT_SOURCE_DIR}
+)
+set_tests_properties(unit.ab_speculative_kconfig PROPERTIES LABELS unit TIMEOUT 60)
+
 pb_unit_test(test_policy SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/boot/policy.c

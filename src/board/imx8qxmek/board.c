@@ -408,7 +408,6 @@ static const struct boot_ab_state_config boot_state_cfg = {
     .backup_state_part_uu = PART_backup_state,
     .sys_a_uu = PART_sys_a,
     .sys_b_uu = PART_sys_b,
-    .rollback_mode = AB_ROLLBACK_MODE_NORMAL,
 };
 
 const struct board board = {
