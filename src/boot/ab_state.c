@@ -100,6 +100,9 @@ int boot_ab_state_init(const struct boot_ab_state_config *state_cfg)
 
     cfg = state_cfg;
 
+    if (cfg == NULL)
+        return -PB_ERR_PARAM;
+
     dev = bio_get_part_by_uu(cfg->sys_a_uu);
 
     if (dev < 0)
