@@ -44,6 +44,19 @@ All under `SOC_FAMILY_IMX`. Shared IP drivers with the SoC's facts as data: `imx
   (F-245). Out of the ROM PDE is set on all three on jiffy, on WDOG2 and 3 on the 8MP EVK, on WDOG1
   and 2 on the RT1060 EVK. The RT's WDOG3 is an RTWDOG, enabled out of reset (CS resets to 0x2980,
   RT RM 58.5.1.2); the ROM leaves it disabled (CS 0x2520 on the EVK).
+- **The ROM's event log** (AN12853; the log `rom`). The pointer to it is at 0x1E0 on the 6UL
+  (64 words, event definition version 0: IDs in bits 23:0) and at 0x9E0 on the 8M (128 words,
+  version 2: IDs in bits 31:24), where the log is in the ROM's part of the OCRAM, below pb
+  (Tables 6, 11, 13). `plat_early_init()` saves it before anything overwrites it. The 8M's ticks
+  have no documented unit, and the 8MP EVK's ROM logs a tick with event 0x82, which Table 9
+  doesn't list. Not saved: the 8X's (four buffers).
+- **The HAB log** (the log `hab`) is read through the ROM's HAB API, `report_status` and
+  `report_event` in its vector table (RVT): at 0x100 on the 6UL, 0x00200300 on the RT1060 (RM
+  9.12.1), 0x900 on the 8M Plus and 0x880 on the 8MQ. The 8M's have 64-bit pointers and are
+  U-Boot's addresses (the RMs don't have them); the 8MP's is checked on the EVK.
+  `imx_hab_log_init()` checks the RVT's header (tag 0xdd) before anything is called, and the ROM
+  is called at the first read, so its data must be mapped: the 8M maps the whole ROM (252 KiB
+  on the 8MP, 128 KiB on the 8MQ).
 - **Warm resets.** The 6UL's `plat_early_init()` clears SRC_SCR's warm reset enable, as U-Boot's
   `init_src()` does. The others: unchecked.
 - **The 8M's DRAM.** Trained in `plat_init()` (`imx8m-ddr.md`); a failure returns the error, and
