@@ -1032,10 +1032,10 @@ static void test_auth_password(void **state)
     host_auth(PB_AUTH_PASSWORD, "secret", 6, 0);
     run();
     expect_result(-PB_RESULT_NOT_SUPPORTED);
-    /* The 1024 bytes of password data are read as two commands, which are
-     * invalid */
-    expect_result(-PB_RESULT_INVALID_COMMAND);
-    expect_result(-PB_RESULT_INVALID_COMMAND);
+    /* The 1024 bytes of password data are read as two frames, with a wrong
+     * magic, which the closed device refuses before authentication (F-275) */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_end();
 
     t.init_calls = 0;
@@ -2096,6 +2096,192 @@ static void test_log_read_requires_auth(void **state)
     expect_end();
 }
 
+/*
+ * The gate over every frame (command-mode.md 3.2, 4.1, 4.5, F-275): each
+ * command id the wire's byte can carry, with the right magic and with a wrong
+ * one, in each kind of session. Each frame is a session of its own with a
+ * zeroed request, and the first result is the one checked.
+ */
+enum gate_session {
+    GATE_OPEN, /* CONFIGURATION: the device is open */
+    GATE_AUTHENTICATED, /* Locked, after a token */
+    GATE_REFUSED, /* Locked, not authenticated */
+    GATE_REFUSED_UNKNOWN, /* The life cycle can't be read, not authenticated */
+};
+
+#define WRONG_MAGIC 0x30424c50 /* 'PBL0' with its bytes the other way round */
+
+static int gate_first_result(enum gate_session kind, uint32_t magic, unsigned int command)
+{
+    struct pb_command frame;
+
+    memset(&t, 0, sizeof(t));
+    t.max_inits = 1;
+    t.fail_reads_after = -1;
+    t.fail_writes_after = -1;
+    t.connect_ok_after = -1;
+    memset(&fake_boot, 0, sizeof(fake_boot));
+    memset(&sec, 0, sizeof(sec));
+    sec.key_kind = DSA_EC_SECP256r1;
+    if (kind == GATE_OPEN)
+        sec.slc = SLC_CONFIGURATION;
+    else if (kind == GATE_REFUSED_UNKNOWN)
+        sec.slc = -PB_ERR_IO;
+    else
+        sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    if (kind == GATE_AUTHENTICATED)
+        host_auth_token();
+
+    memset(&frame, 0, sizeof(frame));
+    frame.magic = magic;
+    frame.command = (uint8_t)command;
+    host_send(&frame, sizeof(frame));
+    (void)cm_run(); /* Some commands reset, jump or wait for data */
+
+    if (kind == GATE_AUTHENTICATED) {
+        expect_result(PB_RESULT_OK);
+        expect_result(PB_RESULT_OK);
+    }
+
+    const struct pb_result *r = (const struct pb_result *)expect_data(sizeof(struct pb_result));
+    assert_int_equal(r->magic, PB_WIRE_MAGIC);
+    return r->result_code;
+}
+
+static void expect_gate(enum gate_session kind, uint32_t magic, unsigned int command, int expected)
+{
+    int got = gate_first_result(kind, magic, command);
+
+    if (got != expected)
+        fail_msg("Session %d, magic %08x, command %u: %d, expected %d",
+                 kind,
+                 (unsigned int)magic,
+                 command,
+                 got,
+                 expected);
+}
+
+/*
+ * What an open or authenticated session gets with a zeroed request, pinned
+ * before F-275 was fixed. The command's own answer to that request: a
+ * partition with the nil UUID isn't found, method 0 isn't in the build.
+ */
+static const int8_t gate_open_results[PB_CMD_END] = {
+    [PB_CMD_INVALID] = -PB_RESULT_INVALID_COMMAND,
+    [PB_CMD_DEVICE_RESET] = PB_RESULT_OK,
+    [PB_CMD_DEVICE_IDENTIFIER_READ] = PB_RESULT_OK,
+    [PB_CMD_DEVICE_READ_CAPS] = PB_RESULT_OK,
+    [PB_CMD_SLC_SET_CONFIGURATION] = PB_RESULT_OK,
+    [PB_CMD_SLC_SET_CONFIGURATION_LOCK] = PB_RESULT_OK,
+    [PB_CMD_SLC_SET_EOL] = PB_RESULT_OK,
+    [PB_CMD_SLC_REVOKE_KEY] = PB_RESULT_OK,
+    [PB_CMD_SLC_READ] = PB_RESULT_OK,
+    [PB_CMD_BOOTLOADER_VERSION_READ] = PB_RESULT_OK,
+    [PB_CMD_PART_TBL_READ] = PB_RESULT_OK,
+    [PB_CMD_PART_TBL_INSTALL] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_PART_VERIFY] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_PART_ACTIVATE] = PB_RESULT_OK,
+    [PB_CMD_PART_BPAK_READ] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_PART_ERASE] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_AUTHENTICATE] = -PB_RESULT_NOT_SUPPORTED,
+    [PB_CMD_AUTH_SET_PASSWORD] = -PB_RESULT_NOT_SUPPORTED,
+    [PB_CMD_STREAM_INITIALIZE] = -PB_RESULT_NOT_FOUND,
+    [PB_CMD_STREAM_PREPARE_BUFFER] = PB_RESULT_OK,
+    [PB_CMD_STREAM_WRITE_BUFFER] = -PB_RESULT_STREAM_NOT_INITIALIZED,
+    [PB_CMD_STREAM_FINALIZE] = PB_RESULT_OK,
+    [PB_CMD_BOOT_PART] = PB_RESULT_OK,
+    [PB_CMD_BOOT_BPAK] = PB_RESULT_OK,
+    [PB_CMD_BOARD_COMMAND] = PB_RESULT_OK,
+    [PB_CMD_BOARD_STATUS_READ] = PB_RESULT_OK,
+    [PB_CMD_STREAM_READ_BUFFER] = -PB_RESULT_STREAM_NOT_INITIALIZED,
+    [PB_CMD_PART_RESIZE] = -PB_RESULT_NOT_SUPPORTED,
+    [PB_CMD_BOOT_STATUS] = PB_RESULT_OK,
+    [PB_CMD_LOG_READ] = PB_RESULT_OK,
+};
+
+/* An open or authenticated session: what it got before F-275, in the same
+ * order of checks. A frame that isn't a command, and a number this release
+ * doesn't define, are INVALID_COMMAND (4.5). */
+static void test_gate_open_sessions(void **state)
+{
+    static const enum gate_session kinds[] = { GATE_OPEN, GATE_AUTHENTICATED };
+
+    (void)state;
+
+    for (size_t k = 0; k < ARRAY_SIZE(kinds); k++) {
+        for (unsigned int c = 0; c < 256; c++) {
+            int expected = (c < PB_CMD_END) ? gate_open_results[c] : -PB_RESULT_INVALID_COMMAND;
+
+            expect_gate(kinds[k], PB_WIRE_MAGIC, c, expected);
+            expect_gate(kinds[k], WRONG_MAGIC, c, -PB_RESULT_INVALID_COMMAND);
+            expect_gate(kinds[k], 0, c, -PB_RESULT_INVALID_COMMAND);
+        }
+    }
+}
+
+/* A session the gate refuses: NOT_AUTHENTICATED and nothing else for every
+ * frame but the two commands, also a number pb doesn't define and a frame
+ * whose magic is wrong, so that it doesn't tell which commands it has
+ * (D-058). The two run as in an open session. */
+static void test_gate_refused_sessions(void **state)
+{
+    static const enum gate_session kinds[] = { GATE_REFUSED, GATE_REFUSED_UNKNOWN };
+
+    (void)state;
+
+    for (size_t k = 0; k < ARRAY_SIZE(kinds); k++) {
+        for (unsigned int c = 0; c < 256; c++) {
+            if (c == PB_CMD_DEVICE_IDENTIFIER_READ || c == PB_CMD_AUTHENTICATE) {
+                expect_gate(kinds[k], PB_WIRE_MAGIC, c, gate_open_results[c]);
+            } else {
+                expect_gate(kinds[k], PB_WIRE_MAGIC, c, -PB_RESULT_NOT_AUTHENTICATED);
+                expect_end();
+            }
+
+            expect_gate(kinds[k], WRONG_MAGIC, c, -PB_RESULT_NOT_AUTHENTICATED);
+            expect_end();
+            expect_gate(kinds[k], 0, c, -PB_RESULT_NOT_AUTHENTICATED);
+            expect_end();
+        }
+    }
+}
+
+/* One session: refused frames leave it able to authenticate, and after that
+ * the same frames get what an open device answers. */
+static void test_gate_refused_then_authenticated(void **state)
+{
+    struct pb_command bad_magic;
+    (void)state;
+
+    pb_wire_init_command(&bad_magic, PB_CMD_DEVICE_IDENTIFIER_READ);
+    bad_magic.magic = WRONG_MAGIC;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+    host_send(&bad_magic, sizeof(bad_magic));
+    host_cmd(PB_CMD_END, NULL, 0);
+    host_cmd(PB_CMD_INVALID, NULL, 0);
+    host_cmd(PB_CMD_DEVICE_IDENTIFIER_READ, NULL, 0);
+    host_auth_token();
+    host_send(&bad_magic, sizeof(bad_magic));
+    host_cmd(PB_CMD_END, NULL, 0);
+    host_cmd(PB_CMD_INVALID, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    run();
+
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(-PB_RESULT_INVALID_COMMAND);
+    expect_result(-PB_RESULT_INVALID_COMMAND);
+    expect_result(-PB_RESULT_INVALID_COMMAND);
+    expect_result(PB_RESULT_OK);
+    expect_end();
+}
+
 #define CM_TEST(f) cmocka_unit_test_setup_teardown(f, setup, teardown)
 
 int main(void)
@@ -2149,6 +2335,9 @@ int main(void)
         CM_TEST(test_log_read_requires_auth),
         CM_TEST(test_log_select),
         CM_TEST(test_log_source_full),
+        CM_TEST(test_gate_open_sessions),
+        CM_TEST(test_gate_refused_sessions),
+        CM_TEST(test_gate_refused_then_authenticated),
     };
 
     return cmocka_run_group_tests(tests, group_setup, NULL);

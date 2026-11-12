@@ -5,12 +5,21 @@ Ported from test_device_setup, test_authentication and test_revoke_key.
 
 from __future__ import annotations
 
+import struct
 from typing import TYPE_CHECKING
 
 import punchboot
 import pytest
 
-from .pbtest import AUTH_TOKEN, DEV_KEY_ID, NULL_UUID, SYSTEM_A_UUID, SYSTEM_B_UUID
+from .pbtest import (
+    AUTH_TOKEN,
+    DEV_KEY_ID,
+    NULL_UUID,
+    PB_COMMAND_SIZE,
+    PB_WIRE_MAGIC,
+    SYSTEM_A_UUID,
+    SYSTEM_B_UUID,
+)
 
 if TYPE_CHECKING:
     import pathlib
@@ -18,6 +27,13 @@ if TYPE_CHECKING:
     from .pbtest import Device
 
 DEVICE_UUID = "02e49231-756e-35ee-a982-378e5ba866a9"
+
+# include/pb-tools/wire.h and error.h
+PB_CMD_DEVICE_IDENTIFIER_READ = 2
+PB_CMD_AUTHENTICATE = 16
+PB_CMD_END = 30
+PB_RESULT_NOT_AUTHENTICATED = 3
+PB_RESULT_INVALID_COMMAND = 6
 
 
 def test_device_identity(device: Device) -> None:
@@ -75,6 +91,44 @@ def test_locked_device_requires_authentication(
 
         s.authenticate_dsa_token(AUTH_TOKEN, DEV_KEY_ID)
         assert s.part_get_partitions()
+
+
+def test_locked_device_refuses_every_frame(locked_device: Device) -> None:
+    # command-mode.md 3.2 (F-275): before authentication a closed device
+    # answers NOT_AUTHENTICATED to a number it doesn't define and to a frame
+    # that isn't a command, so that it doesn't tell which commands it has.
+    # After authentication they get what an open device answers.
+    unknown = (0, PB_CMD_END, 0xFF)
+    bad_magic = struct.pack("<IB3x", PB_WIRE_MAGIC ^ 0xFFFFFFFF, PB_CMD_DEVICE_IDENTIFIER_READ)
+    bad_magic = bad_magic.ljust(PB_COMMAND_SIZE, b"\0")
+    token = AUTH_TOKEN.read_bytes()
+
+    with locked_device.wire() as w:
+        for command in unknown:
+            assert w.command(command) == -PB_RESULT_NOT_AUTHENTICATED
+        w.send(bad_magic)
+        assert w.result() == -PB_RESULT_NOT_AUTHENTICATED
+        assert w.command(PB_CMD_DEVICE_IDENTIFIER_READ) == 0
+
+        w.send_command(PB_CMD_AUTHENTICATE, struct.pack("<BHI", 1, len(token), DEV_KEY_ID))
+        assert w.result() == 0
+        w.send(token.ljust(1024, b"\0"))
+        assert w.result() == 0
+
+        for command in unknown:
+            assert w.command(command) == -PB_RESULT_INVALID_COMMAND
+        w.send(bad_magic)
+        assert w.result() == -PB_RESULT_INVALID_COMMAND
+
+
+def test_open_device_answers_invalid_command(device: Device) -> None:
+    bad_magic = struct.pack("<IB3x", PB_WIRE_MAGIC ^ 0xFFFFFFFF, PB_CMD_DEVICE_IDENTIFIER_READ)
+
+    with device.wire() as w:
+        for command in (0, PB_CMD_END, 0xFF):
+            assert w.command(command) == -PB_RESULT_INVALID_COMMAND
+        w.send(bad_magic.ljust(PB_COMMAND_SIZE, b"\0"))
+        assert w.result() == -PB_RESULT_INVALID_COMMAND
 
 
 def test_authentication_lasts_until_reset(locked_device: Device) -> None:

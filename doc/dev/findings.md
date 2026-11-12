@@ -511,6 +511,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | have and to a frame with a wrong magic, which tells a host which commands the build knows. | | |
 | | | D-058 (Jonas), `command-mode.md` 3.2: NOT_AUTHENTICATED for everything but the identifier and | | |
 | | | the authentication, from 3.0.0. A change of the wire's meaning, for `security.md` 4.7 | | |
+| | | on the same transport. `command-mode.md` 4.4: a failed transfer ends the session | | |
 | F-276 | `src/cm/cm_main.c` `cmd_auth()` | A failed authentication is answered at once: | Verified (code) | open |
 | | | a host can try passwords as fast as the transport carries them. D-058 (Jonas), | | |
 | | | `command-mode.md` 3.3: the result of a failed attempt is sent 1 s after the data arrived, with | | |

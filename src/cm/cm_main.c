@@ -898,19 +898,34 @@ static bool slc_requires_auth(void)
     return (slc < 0) && (slc != -PB_ERR_NOT_SUPPORTED);
 }
 
+/*
+ * The gate (command-mode.md 3.2), before anything looks at the frame. A
+ * closed device runs two commands before authentication and answers every
+ * other frame with NOT_AUTHENTICATED: also a number pb doesn't define and a
+ * frame with a wrong magic, so that it doesn't tell which commands it has
+ * (D-058).
+ */
+static bool cm_gate_allows(void)
+{
+    if (authenticated || !slc_requires_auth())
+        return true;
+
+    return (cmd.magic == PB_WIRE_MAGIC) && !pb_wire_requires_auth(&cmd);
+}
+
 static int pb_command_parse(void)
 {
     int rc = PB_OK;
 
-    if (!pb_wire_valid_command(&cmd)) {
-        LOG_ERR("Invalid command: %i\n", cmd.command);
-        pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
+    if (!cm_gate_allows()) {
+        LOG_ERR("Not authenticated");
+        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
         goto err_out;
     }
 
-    if (pb_wire_requires_auth(&cmd) && (!authenticated) && slc_requires_auth()) {
-        LOG_ERR("Not authenticated");
-        pb_wire_init_result(&result, -PB_RESULT_NOT_AUTHENTICATED);
+    if (!pb_wire_valid_command(&cmd)) {
+        LOG_ERR("Invalid command: %i\n", cmd.command);
+        pb_wire_init_result(&result, -PB_RESULT_INVALID_COMMAND);
         goto err_out;
     }
 

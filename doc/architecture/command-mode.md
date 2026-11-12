@@ -177,9 +177,8 @@ authentication (`CONFIG_CM_AUTH`, below):
   `AUTHENTICATE` (`security.md` 4.7). The set never grows.
 - **Everything else answers `NOT_AUTHENTICATED`**, also a command this release of pb doesn't
   define and a frame that isn't a command: a closed device doesn't tell which commands it has
-  (Jonas, D-058). **Not yet in the code (F-275)**: the frame is checked before the gate, so
-  those two answer `INVALID_COMMAND`, as every release does. A host that wants to know whether
-  a closed device has a command authenticates first (`compatibility.md`).
+  (Jonas, D-058). A host that wants to know whether a closed device has a command
+  authenticates first (`compatibility.md`).
 - **The gate follows the life cycle at once.** The life cycle is read again after every command
   that changes it. A session that locks the device is behind the gate from its next command, as
   every later session is.
@@ -750,7 +749,6 @@ For a change to command mode, a new command or a new method:
 | F-268, F-267        | Command mode as a task; the platform sets up the port, the transport is linked (2)   |
 | F-185, F-201        | The session ends with the transport: authentication and the stream are cleared (3.1) |
 | F-271               | A build with `CONFIG_CM_AUTH` selects at least one method (3.2)                      |
-| F-275               | A closed device answers `NOT_AUTHENTICATED` to everything but its two commands (3.2) |
 | F-276               | A failed authentication is answered after 1 s (3.3)                                  |
 | F-277               | A transfer timeout that ends the session; the caps' timeouts (4.6)                   |
 | F-181               | The verdict of a token is the verification's own (3.3)                               |

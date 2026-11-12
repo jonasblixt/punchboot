@@ -456,6 +456,23 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | (the host's size) and stays there. `test_cm.c` (`test_bpak_read_small_partition`, | | |
 | | | `test_part_verify_small_partition`), `test_boot.c` (`test_bio_boot_smaller_than_a_header`), | | |
 | | | `test_commands.py` (the host's 512 byte 'PB State Primary') | | |
+| F-275 | `src/cm/cm_main.c` `pb_command_parse()` | The frame is checked before the gate: | Verified (code) | fixed |
+| | | a locked device answers INVALID_COMMAND before authentication to a command its build doesn't | | |
+| | | have and to a frame with a wrong magic, which tells a host which commands the build knows. | | |
+| | | D-058 (Jonas), `command-mode.md` 3.2: NOT_AUTHENTICATED for everything but the identifier and | | |
+| | | the authentication, from 3.0.0. A change of the wire's meaning, for `security.md` 4.7 | | |
+| | | Fixed: the gate (`cm_gate_allows()`) comes first. A session it refuses (locked or an unknown life | | |
+| | | cycle, not authenticated) runs `DEVICE_IDENTIFIER_READ` and `AUTHENTICATE` with the right magic | | |
+| | | and gets one result, NOT_AUTHENTICATED, for every other frame: a number pb doesn't define (0, 30 to | | |
+| | | 255) and a wrong magic, whatever its command byte, also the two's. An open or authenticated session | | |
+| | | is checked as before, the frame then the command: before and after the change, every command id | | |
+| | | with the right magic, a wrong one and 0, gives the same bytes to the host. `test_cm.c`: | | |
+| | | `test_gate_open_sessions` pins the result of each id for an open and an authenticated session | | |
+| | | (pinned on the code before), `test_gate_refused_sessions` (also with the life cycle unreadable), | | |
+| | | `test_gate_refused_then_authenticated`; `test_security.py`: the raw wire on a locked device before | | |
+| | | and after a token, and an open device. No recorded transcript has INVALID_COMMAND. Before | | |
+| | | authentication, `AUTHENTICATE`'s data sent after a refusal is read as two frames with a wrong | | |
+| | | magic, NOT_AUTHENTICATED where it was INVALID_COMMAND; released hosts don't send it (4.4, F-274) | | |
 
 ## Dependencies / vendored code
 
