@@ -1,15 +1,25 @@
 # The process: documents first, top down
 
-**State: reviewed (Jonas, 2026-11-11), D-033, D-036.**
+**State: reviewed (Jonas, 2026-11-11), D-033, D-036, D-063.**
 
-How punchboot is developed. The code follows its documents, and each document follows the one
-above it. Read this before writing or changing a contract, and to find where a change starts.
+How punchboot is developed. What pb does at a boundary is decided in a document before it is
+coded, and each document follows the one above it. Read this before writing or changing a
+contract, and to find where a change starts.
 
 ## 1. The rule
 
-- **Documents first.** A change to what pb does at a boundary is written in the document that
-  owns it, reviewed, and coded after that. A bug is code that doesn't do what its document says:
-  it is fixed in the code (`bugfix:`). When the document doesn't say, the document comes first.
+- **Decisions first.** A change to what pb does at a boundary, what the other side may rely on,
+  is written in the document that owns it, reviewed, and coded after that.
+- **Code that decides nothing needs no document first** (D-063). A new implementation of a
+  contract (a driver, a board, a port), a refactoring, a test, the build: the documents already
+  say what it must do, or it is behind no boundary. It updates the records in its own commit:
+  the conformance table, the port's document.
+- **A bug** is code that doesn't do what its document says: it is fixed in the code (`bugfix:`).
+- **When the code needs what the contract doesn't say**, or says otherwise, the contract changes
+  first.
+- **An interface whose contract isn't written yet** ("Missing" in the map) has its header and
+  its implementations for a contract until then. A new implementation doesn't wait for the
+  document; what it shows is a finding, for the contract when it is written.
 - **Top down.** A document decides only what its level owns. What it needs from above it cites;
   what it can't answer from above goes up as an open item of the level that owns the question, and
   is never decided below.
@@ -98,7 +108,8 @@ As `platform.md` and `board.md`:
 
 ## 5. The path of a change
 
-1. Find the highest level the change touches. Start there.
+1. Find the highest level the change touches. Start there. A change that touches none (section
+   1) starts at the code, step 5.
 2. Write it into the documents, top down. A change of direction gets a decision entry.
 3. Jonas reviews.
 4. Every gap to the code becomes a finding and a marker.
