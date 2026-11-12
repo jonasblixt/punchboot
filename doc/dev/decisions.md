@@ -1656,5 +1656,9 @@ the storage held at that address.
 - **Why it may break D-008**: `security.md` 4.1 and 4.2, only bytes the signed hash covers may
   run, and security comes before compatibility (D-035). No golden image has such a part.
 - **Not decided**: the sentence for `boot.md` 5.1 ("Every entry lies in a part of the image,
-  in bytes the payload's hash covers ...") is Jonas's to add; F-331 stays open for it. An empty
-  DT part that the board names is F-330.
+  in bytes the payload's hash covers ...") is Jonas's to add; F-331 stays open for it.
+- **Also refused** (F-330, added with its fix): a device tree part the board names that is
+  smaller than an FDT header (40 bytes), before anything at its load address is read, and a
+  header whose `totalsize` is below that. Every release accepted such an image: what was at
+  the address got pb's `/chosen` and was handed on as the device tree. The same reasons, and
+  no valid device tree is that small.

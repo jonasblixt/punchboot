@@ -61,7 +61,7 @@ the trim is at the end of `log/2026-11-09.md`.
   code that decides nothing (a new driver, a refactoring) needs no document first (D-063).
   Security first, also before compatibility. No custom source, `dont-hash` images refused, EOL
   behind Kconfig (F-263).
-- **Tests:** `scripts/pbdev test`, ~35 s: 45 unit suites, `compat.abi`, `doc.lint` (the
+- **Tests:** `scripts/pbdev test`, ~35 s: 46 unit suites, `compat.abi`, `doc.lint` (the
   document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean again
   (F-290), line coverage 99.2% (2026-10-22, `testing.md`). The host has a memory mapped flash
   (`--nor`), on which the in place source runs end to end (`test_in_place.py`).
@@ -83,20 +83,21 @@ the trim is at the end of `log/2026-11-09.md`.
    objects (F-265), the policy interface and its fallback (F-256), the handover and delivery
    model (F-258), pb's information and the mode (F-260), the watchdog on the boot path
    (F-243), speculative mode (F-257), `late_boot` without the header (F-266), the board's data
-   checked (F-249), and of command mode the gate, the session, the authentication's delay and
-   three argument checks (F-275, F-185, F-276, F-278, F-273, F-188, F-279). Next: F-259
-   (Firmware Handoff, now that F-258 and F-260 are in), F-254 (placement's allow list), F-330
-   (an empty DT part), then F-267 and F-268 (command mode's USB, the tasks) and the rest of
-   command mode's list (F-271, F-272, F-274, F-277, F-186, F-187, F-189). No board is on this
-   machine: the code is verified on the host and by building every board, and what a board has
-   to show is listed in the log under "Not run on a board".
+   checked (F-249), an empty DT part (F-330), and command mode's list: the gate, the session,
+   the authentication's delay, the argument checks (F-275, F-185, F-276, F-278, F-273, F-188,
+   F-279), hidden partitions and `part verify` (F-272, F-186), the exchanges that got out of
+   step (F-187, F-274, F-128), the transfer timeout and the watchdog (F-277, F-189), a method
+   with the gate (F-271). Next: F-254 (placement's allow list), F-259 (Firmware Handoff),
+   then F-267 and F-268 (command mode's USB, the tasks), each a session of its own. No board
+   is on this machine: the code is verified on the host and by building every board, and what
+   a board has to show is listed in the log under "Not run on a board".
 1. Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time
    to the simple target).
 2. Open from the 3.0.0 work: MMC UHS-I, DDR52 on the EVK (F-113), HS400 tuning (F-116). Boot time:
    MMU/caches on early, the eMMC power-up early. jiffy USB F-134 (before any cache work), F-136.
-   CAAM F-127, F-128. The 8MP EVK: F-100, F-102, F-104, F-110, the FEC (F-155), F-156. The MEK:
+   CAAM F-127. The 8MP EVK: F-100, F-102, F-104, F-110, the FEC (F-155), F-156. The MEK:
    F-172, F-204. imx8mevk: F-106, F-107, the CAAM RNG untried.
 3. Compatibility guards 3 (old PyPI wheels against pb-host), 4's device side, 5 (CODEOWNERS),
    older bpak CLI images; then F-075 (erase), F-076 (dont-hash). `compat-guards` also carries the
@@ -119,7 +120,8 @@ the trim is at the end of `log/2026-11-09.md`.
 - F-291: the image handover with a DT part, in place. Refuse it, or copy the DT to RAM first
   (where)?
 - From the code so far, each with what was chosen meanwhile: D-074 (an entry in an empty part
-  is refused, against D-008), F-342 (speculative mode's three cases), F-348 (does pb own the
+  and a DT part below an FDT header are refused, against D-008), F-375 (what the caps' erase
+  timeout means; 0 for now), F-342 (speculative mode's three cases), F-348 (does pb own the
   `pb,*` names), F-345 (`system_name` in the policy), F-325 and F-331 (sentences for
   `board.md` 5.3 and `boot.md` 5.1), F-335 (where the policy's and handover's checks sit).
 - Which boards are still in use? bebop and pico8ml only have defconfigs (F-051, F-033).
