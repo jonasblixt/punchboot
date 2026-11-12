@@ -1,6 +1,6 @@
 # The transport and USB device controller contract
 
-**State: reviewed (Jonas, 2026-11-12), D-064, D-072.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064, D-072, D-073.** Level 3 (`process.md`).
 
 What carries command mode's bytes: the transport's functions as command mode calls them, pb's
 USB device (the class, the stack on endpoint 0) and what a USB device controller's driver
@@ -88,8 +88,13 @@ Return   : int, PB_OK, -PB_ERR_AGAIN or -PB_ERR_*
 
 Polled until a host is there. PB_OK: the transport is ready, and a session starts
 (`command-mode.md` 3.1). On USB that is when the host configured the device. `-PB_ERR_AGAIN`:
-not yet; command mode's time for it is `command-mode.md` 2.2's. Any other error: the transport
-failed, and command mode ends as when no host came.
+not yet; command mode's time for it is `command-mode.md` 2.2's. Any other error: the
+controller failed, and command mode ends as when no host came.
+
+**A bus reset before the device is configured is no error.** A host resets the bus when it
+enumerates a device, often more than once. Until the device is configured there is no session
+to lose: on a bus reset or an unplug the stack starts over, with address 0 and nothing
+configured, and `connect` goes on answering `-PB_ERR_AGAIN`.
 
 It returns at once, so that the tasks run and the watchdog is kicked meanwhile. **Not yet in
 the code (F-287)**: the host platform's socket blocks in `init` until a client connects.
@@ -116,9 +121,12 @@ return at once; `cm_transport_complete()` says when it is done.
   controller reports a short read, and one writes up to a packet past the buffer.
 - **A read that is whole packets ends at its length**, and what the host sent beyond it stays
   for the next read. `BOOT_BPAK`'s parts rest on it: the host splits a part into transfers of
-  its own size, the device reads it in pieces of `CONFIG_BOOT_LOAD_CHUNK_kB`, and every piece
-  but the last is whole packets (`command-mode.md` 4.4). Not verified where the two sizes
-  differ (F-280).
+  its own size, the device reads it in pieces of `CONFIG_BOOT_LOAD_CHUNK_kB`, and on both
+  sides every piece but the part's last is whole packets (`command-mode.md` 4.4; Jonas,
+  D-073). A host transfer that ends inside a packet before the part does is a short packet,
+  and an error. Released hosts send the caps' largest transfer, which is whole packets:
+  command mode's buffer and the boot's piece are both set in units of 1024 bytes. Not
+  verified where the two sizes differ (F-280).
 - **A write sends exactly `length` bytes and no packet after them**, also when `length` is
   whole packets: the host knows the size and asks for no more. A write of 0 bytes sends one
   empty packet (`command-mode.md` 6: a transfer of 0 bytes is one).
@@ -134,10 +142,11 @@ Argument : void
 Return   : int, PB_OK, -PB_ERR_AGAIN or -PB_ERR_*
 ```
 
-Polls the transfer that was started. It never blocks: command mode calls it once per round of
-the tasks while it waits for a command (`board.md` 4.6), and in a loop with its own timeout and
-the watchdog's kick inside a command (`command-mode.md` 4.6). The transport has no timeout of
-its own for a transfer.
+Polls the transfer that was started. It never waits for the host's data: command mode calls
+it once per round of the tasks while it waits for a command (`board.md` 4.6), and in a loop
+with its own timeout and the watchdog's kick inside a command (`command-mode.md` 4.6). The
+transport has no timeout of its own for a transfer. A request on endpoint 0 that it answers
+on the way (3.2) is bounded.
 
 | Return          | Means                                                                       |
 | --------------- | --------------------------------------------------------------------------- |
@@ -147,10 +156,12 @@ its own for a transfer.
 | Any other       | **Lost**: the session ends and command mode restarts the transport          |
 |                 | (`command-mode.md` 3.1)                                                     |
 
-- **Lost is every way the host goes away or starts over**: an unplug, a bus reset, a transfer
-  that failed, a host that deconfigured the device. The transport reports each as an error of
-  the transfer that was running. One is always running while a session waits for a command,
-  so nothing is missed. **Not yet in the code (F-185, F-201, F-287)**: two controllers report
+- **Lost is every way the host goes away or starts over, once the device is configured**: an
+  unplug, a bus reset, a transfer that failed, a host that deconfigured the device. The
+  transport reports each as an error of the transfer that was running. One is always running
+  while a session waits for a command. What happens while none runs, inside a command, is
+  kept and is the error of the next transfer, so nothing is missed. **Not yet in the code
+  (F-185, F-201, F-287)**: two controllers report
   nothing, the third only a bus reset during a bulk transfer; the stack's "enumerated" is never
   cleared; and command mode keeps polling after `-PB_ERR_TIMEOUT`.
 - It is also where the stack answers endpoint 0 (3.2).
@@ -209,13 +220,17 @@ The stack answers these requests and no others:
 | Vendor request 1, index 4           | Microsoft's compatible id descriptor                      |
 
 - **Every length and index from the host is checked** (`command-mode.md` 4.2): a reply is at
-  most `wLength` and at most the descriptor; a string index the class doesn't have gets no
-  descriptor of another one; `SET_CONFIGURATION` takes the one configuration there is, or 0,
+  most `wLength` and at most the descriptor; a string index the class doesn't have is
+  stalled; `SET_CONFIGURATION` takes the one configuration there is, or 0,
   which deconfigures and is "lost". **Not yet in the code (F-287)**: the configuration's value
   isn't looked at.
 - **Any other request is stalled.** The host then goes on at once. **Not yet in the
   code (F-138)**: nothing is answered, the host waits out its timeout, and the transfer that
-  was running fails.
+  was running fails. pb's device answers what enumeration needs and no more: the other
+  standard requests (`GET_CONFIGURATION`, `CLEAR_FEATURE` and the rest) are stalled too.
+- **Three that the code answers today are stalled** (Jonas, D-073): the debug descriptor,
+  which gets the interface descriptor; `SET_IDLE`, a request of another class; and a string
+  index the class doesn't have, which gets an empty string. **Not yet in the code (F-287).**
 - **A request doesn't disturb a bulk transfer.** Hosts send requests at any time
   (`lsusb -v`, another program that lists devices). The stack answers on endpoint 0 and the
   bulk transfer goes on where it was. **Not yet in the code (F-203)**: the transfer is
@@ -233,8 +248,12 @@ A controller's driver gives `struct usbd_hal_ops` to the stack when the platform
 that at registration and calls none it didn't check. **Not yet in the code (F-287)**: three
 are called unchecked.
 
-Every operation returns at once but `init` and `stop`, which wait with a bound
-(`drivers.md` 3). The driver polls: no interrupt is enabled.
+Every operation returns at once but `init`, `stop` and the stages of a control transfer
+(4.4), which wait with a bound (`drivers.md` 3). The driver polls: no interrupt is enabled.
+
+The driver's own `<driver>_init()` (`drivers.md` 2.1), which `plat_cm_init()` calls, takes
+the SoC's facts and registers the operations. It doesn't touch the bus: the controller is
+reset and attached by the operation `init`, when the transport starts.
 
 ### 4.1 Operation : init [mandatory]
 
@@ -278,12 +297,13 @@ The transport's rules (2.3, 2.4), per endpoint:
 - **`xfer_complete` reads the controller's own result**: an endpoint that halted, a buffer
   error or bytes left over are `-PB_ERR_IO` (F-137). It returns PB_OK once per transfer.
 - **A bus reset or an unplug ends every transfer with `-PB_ERR_IO`** (2.4), and the endpoints
-  are unconfigured after it.
+  are unconfigured after it. With no transfer running it is kept, and is the error of the
+  next `xfer_start` or `xfer_complete`. Before the device is configured it is no error (2.2).
 - **`xfer_cancel` gives a transfer up**, bounded: the endpoint is idle, the buffer is the
   caller's again, and nothing of it completes later.
 - A length above what the driver can queue is `-PB_ERR_PARAM`; the limit is at least 2.3's.
 
-### 4.4 Operations : poll_setup_pkt, set_address, set_configuration, ep0_xfer_zlp, ep0_stall
+### 4.4 Operations for control requests [mandatory]
 
 ```
 poll_setup_pkt(struct usb_setup_packet *pkt)        PB_OK, -PB_ERR_AGAIN or -PB_ERR_*
@@ -295,7 +315,8 @@ ep0_stall(void)
 
 - **`poll_setup_pkt`**: PB_OK with the packet when a SETUP arrived, `-PB_ERR_AGAIN` when
   none did. A SETUP is never lost and never read twice: one that arrives while the last is
-  handled replaces it (F-138). An error is a bus reset or an unplug (2.4).
+  handled replaces it (F-138). An error is a bus reset or an unplug of a device that was
+  configured (2.4); before that the driver starts over by itself (2.2).
 - **`set_address`** takes effect after the request's status stage, as USB requires.
 - **`set_configuration`** sets up the class's endpoints as the descriptors say and makes them
   ready; called again it starts them over.
@@ -313,11 +334,11 @@ ep0_stall(void)
 |                               | whole packets but the last        | the boot's bounce buffer        |
 | The controller's own          | Descriptors, rings, a setup       | The driver, with the macro of   |
 |                               | packet, bounce buffers            | `drivers.md` 4.4                |
-| What the stack sends on       | Descriptors, a status             | The stack, owns its lines:      |
-| endpoint 0                    |                                   | never the stack's stack         |
+| What the stack sends on       | Descriptors, a status             | The stack. Out only: it needs   |
+| endpoint 0                    |                                   | no alignment, and isn't changed |
+|                               |                                   | until it is sent                |
 
-**Not yet in the code (F-282, F-287)**: the stack sends a status from its stack and a string
-descriptor without alignment; the controllers' objects are aligned each in its own way.
+**Not yet in the code (F-282)**: the controllers' objects are aligned each in its own way.
 
 The caps tell a host the buffer's size and the largest transfer (`command-mode.md` 5.1); both
 are `CONFIG_CM_BUF_SIZE_KiB` today.
@@ -338,6 +359,13 @@ by:
 | Microsoft's OS string | Index 0xEE, `MSFT100`, vendor code 1; the compatible id `WINUSB`  |
 | Transfers             | The sizes are the exchange's (`command-mode.md` 4.4); no empty    |
 |                       | packet follows a transfer of whole packets, either way            |
+
+What 3.0.0 answers differently from a release (D-072, D-073). None is in the table above:
+
+- A request the stack doesn't know is stalled, where it got no answer and the host waited
+  out its timeout. The debug descriptor, `SET_IDLE` and a string index the class doesn't
+  have are stalled, where they were answered (3.2).
+- When the transport is restarted the device leaves the bus first (2.1).
 
 `struct usbd_hal_ops` and the transport's functions are the porting API: they change with a
 major release at most (D-018).
@@ -394,7 +422,7 @@ what the code doesn't settle without the hardware.
 | controller's result              |                     |                     |                   | F-287   |
 | Endpoint 0 independent of a bulk | no: one transfer    | yes                 | yes               | F-203   |
 | transfer                         | for the driver      |                     |                   |         |
-| The stalled unknown request      | no                  | no                  | no                | F-138   |
+| An unknown request is stalled    | no                  | no                  | no                | F-138   |
 | The driver's DMA objects own     | yes                 | partly: aligned,    | no                | F-205,  |
 | their lines                      |                     | not padded          |                   | F-282   |
 | The order of clean, invalidate   | no                  | unverified          | no                | F-134,  |
@@ -415,7 +443,6 @@ The stack and the transport:
 | Unknown requests stalled, control transfers   | no                                       | F-138        |
 | bounded                                       |                                          |              |
 | A request leaves a bulk transfer alone        | no                                       | F-203        |
-| What the stack sends owns its lines           | no                                       | F-287        |
 | The socket's `connect` polls                  | no: `init` blocks in the accept          | F-287        |
 | Tested on the host                            | Command mode on the socket and on a fake | F-230        |
 |                                               | transport; no USB code                   |              |
@@ -440,6 +467,6 @@ checklist's last item.
 | F-204               | Every controller has a `stop` (4.2)                                          |
 | F-136, F-205        | Every wait is bounded (4)                                                    |
 | F-131, F-134, F-184 | The cache's order around a transfer (`drivers.md` 4.2)                       |
-| F-282, F-287        | The DMA objects and what the stack sends own their lines (5)                 |
+| F-282               | The controllers' DMA objects own their lines (5)                             |
 | F-139, F-140        | The ChipIdea's set up against its reference manual                           |
 | F-172               | Writes that reset the MEK                                                    |

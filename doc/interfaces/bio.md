@@ -1,6 +1,6 @@
 # The block device contract
 
-**State: reviewed (Jonas, 2026-11-12), D-064, D-067 to D-070.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064, D-067 to D-070, D-073.** Level 3 (`process.md`).
 
 What a block device is in pb (`include/pb/bio.h`, `src/bio.c`): what the boot, command mode, a
 boot source policy and a board may rely on when they read, write and erase one, and what a
@@ -91,8 +91,9 @@ the RT1060 EVK's).
 - **The largest block is `CONFIG_BIO_MAX_BLOCK_SIZE`** (4 KiB), the size of the core's block
   buffer (3.1). A device with a larger one is refused at registration. **Not yet in the code
   (F-283).**
-- What a format puts at a fixed number of bytes (bpak's header in a partition's last 4 KiB,
-  `boot.md` 4.4) needs a block size that divides it: 3.1.
+- A format that puts something at a fixed byte position (bpak's header in a partition's last
+  4 KiB, `boot.md` 4.4) needs a block size that divides that position. What doesn't start on
+  a block isn't read (3.1).
 
 ### 2.4 Flags
 
@@ -103,8 +104,8 @@ is on the wire (section 6).
 | -------------------- | -------------------------------------- | ---------------------------------------- |
 | `VISIBLE`            | The driver, for what a host may see;   | The device exists for a host             |
 |                      | the board hides what it may not        |                                          |
-| `WRITABLE`           | The driver; the board takes it away    | A host may write and erase it            |
-|                      | (the device a GPT is on)               |                                          |
+| `WRITABLE`           | The driver; the core takes it away     | A host may write and erase it            |
+|                      | from the device a table is on          |                                          |
 | `READABLE`           | The board                              | A host may read it in bulk               |
 | `BOOTABLE`           | The boot source policy, never a board  | A candidate for a boot (`boot.md` 3)     |
 |                      | (`board.md` 6) or a driver             |                                          |
@@ -122,6 +123,28 @@ is on the wire (section 6).
 Eight driver flags (`bio_set_hal_flags()`) and one private value (`bio_set_private()`) per
 device, for the driver to tell its devices apart. Partitions inherit both. Nobody else reads
 them.
+
+### 2.6 Finding a device
+
+- **By its UUID**: `bio_get_part_by_uu()`, or `bio_get_part_by_uu_str()` for the UUID as
+  text. `-PB_ERR_NOT_FOUND` when no device has it. A UUID names at most one device. **Not yet
+  in the code (F-283)**: nothing refuses a second device with a UUID that is taken, and the
+  first one is found.
+- **All of them**: a handle is a number from 0 to `CONFIG_BIO_MAX_DEVS` less one, and
+  `bio_valid()` says whether it is a device. A user that lists the devices tries every
+  number and skips the ones that aren't: a handle that is dead (section 4) can lie between
+  two that aren't. **Not yet in the code (F-194)**: the look up by UUID and command mode's
+  table read stop at the first number that isn't a device.
+- **What a device is**: `bio_get_uu()`, `bio_get_description()`, `bio_block_size()`,
+  `bio_size()` in bytes, `bio_get_no_of_blocks()`, and `bio_get_first_block()` and
+  `bio_get_last_block()`, a partition's place on its parent, which the partition table's
+  read reports (section 6). For a handle that isn't a device each answers `-PB_ERR_PARAM`, or
+  NULL. **Not yet in the code (F-283)**: the three block getters return `int`, so a device of
+  2^31 blocks or more reads as an error.
+- **The flags**: `bio_get_flags()`, `bio_set_flags()`, `bio_clear_set_flags()` (2.4).
+- **A handle is good until the reset**, and a user may keep one. The one exception is a
+  partition whose table is installed again (section 4).
+- `bio_reset()` releases every device. It is for the tests.
 
 ## 3. Reading, writing, erasing
 
@@ -150,7 +173,8 @@ Reads `length` bytes from block `lba` of the device into `buf`.
   One that doesn't is refused, `-PB_ERR_ALIGN`, before the driver is called. An image part
   whose load address doesn't is the boot's to bounce, not `bio`'s.
 - **No limit on the length** but the device's size: the driver splits a request its controller
-  can't take in one piece.
+  can't take in one piece. How long a call takes is its caller's to bound, by how much it
+  asks for (`drivers.md` 3).
 - **A failed read** leaves `buf` with unknown content. The caller doesn't use it (F-173).
 - `-PB_ERR_NOT_SUPPORTED`: the device has no read.
 
@@ -216,14 +240,14 @@ them).
   short tail up.
 - **What an erased block reads as** isn't promised. A user that needs zeros writes them.
 - **A count of 0** is `PB_OK`, and the driver isn't called.
-- **Time**: the driver's header says how long a block's erase takes at most. An erase is the
-  one call that may take longer than a second (`drivers.md` 3); its caller erases in pieces
-  (`command-mode.md` 4.6).
+- **Time**: the driver's header says how long a block's erase takes at most
+  (`drivers.md` 3). Erasing is the slow operation of a medium that has it; its caller erases
+  in pieces (`command-mode.md` 4.6).
 - A failure leaves some of the blocks erased.
 
 **`ERASE_BEFORE_WRITE`.** The driver sets it on a device whose medium only clears bits when
-it is written (NOR). It means: a write gives the bytes written only on blocks that were
-erased since they were last written.
+it is written (NOR). It means: a write stores the bytes it is given only on blocks that have
+been erased since they were last written.
 
 - **Today the writer erases**, as in every release: `bio_write()` doesn't. A host sees the
   flag and erases (`part erase`, then the write), the A/B state erases its block before each
@@ -260,8 +284,9 @@ Return   : int, PB_OK or -PB_ERR_*
 ```
 
 Writes the board's layout of that variant to the device (`board.md` 2.4,
-`command-mode.md` 5.3). The callback is the partition table's (section 4), set on the device
-the table is on. Without one: `-PB_ERR_NOT_SUPPORTED`.
+`command-mode.md` 5.3), and the core then puts the new table into effect (section 4). The
+callback is the partition table's, set on the device the table is on. Without one:
+`-PB_ERR_NOT_SUPPORTED`.
 
 ## 4. Partition tables
 
@@ -285,11 +310,11 @@ device with no table on it (`board.md` 2.4).
   kept where `bio` can't see it: command mode's stream, the boot source policy, a board's own
   variables (the host board's fuse box keeps one from `late_init()`). So the rule starts
   with the handle:
-  1. **A handle never comes to mean another partition.** A partition the new table has
-     unchanged, with the same UUID and the same blocks, keeps its handle and its flags. One
-     that changed or is gone is released: its handle is dead, `-PB_ERR_PARAM` for whoever
-     still holds it, and nothing else gets that handle before the reset. A new partition
-     gets a new one.
+  1. **A handle never comes to mean another partition.** A partition that the new table
+     leaves unchanged, with the same UUID and the same blocks, keeps its handle and its
+     flags. One that changed or is gone is released: its handle is dead, `-PB_ERR_PARAM` for
+     whoever still holds it, and nothing else gets that handle before the reset. A new
+     partition gets a new one.
   2. **The core sets up again what is the core's**: command mode's stream ends, and the boot
      source policy's init runs again, for its state's partitions and the candidates.
   3. **No hook of the board's runs again.** What a board looked up in `late_init()` stays
@@ -358,7 +383,7 @@ For a new storage driver or partition table, and for a change to one or to `bio`
 - [ ] An erase erases exactly the blocks named; the header gives its time per block.
 - [ ] The header says what the driver leaves behind (section 5) and what it changes for good.
 - [ ] A user takes the block size from `bio_block_size()`, checks every result, and uses
-      nothing of a failed read.
+      nothing of a failed read. One that lists the devices skips the handles that aren't one.
 - [ ] A table checks every entry before it makes a partition of it.
 - [ ] After an install an unchanged partition has its handle and its flags, a changed one's
       handle is dead and not given out again, and nothing of a board's ran.
@@ -374,7 +399,6 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | A second `init` adds no      | no                 | no                | no                  | F-283   |
 | devices                      |                    |                   |                     |         |
 | The medium's size checked    | no                 | n/a (the board's) | n/a                 | F-200   |
-| Whole blocks from the core   | no (the core)      | no (the core)     | no (the core)       | F-182   |
 | Exactly `length` bytes of    | yes                | no: a write reads | yes                 | F-284   |
 | the buffer                   |                    | 1 to 4 bytes more |                     |         |
 | A length of 0                | no: an error       | yes               | yes                 | F-283   |
@@ -395,6 +419,16 @@ Where each driver is (2026-11-12). Read in the code, not run, unless a test is n
 | its header                   |                    |                   |                     |         |
 
 The virtio block driver has no user and is in no build (F-052); it isn't in the table.
+
+The core:
+
+| Requirement                                         | Today                        | Finding |
+| --------------------------------------------------- | ---------------------------- | ------- |
+| A length that isn't whole blocks is the core's      | no: it goes to the driver    | F-182   |
+| A length of 0 doesn't reach the driver              | no                           | F-283   |
+| A buffer that doesn't start on a line is refused    | no                           | F-282   |
+| A block larger than the block buffer is refused     | no: there is no block buffer | F-283   |
+| A partition lies inside its parent                  | no: not checked              | F-193   |
 
 The partition tables:
 

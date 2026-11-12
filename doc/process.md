@@ -167,3 +167,5 @@ Not yet:
   through the simple target (D-025).
 - **A test record per release**: what ran on which board and what never did (fuse writes, the 8X
   closed state), next to `doc/guides/release-checklist.txt`.
+- **The drivers' contracts in the lint** (F-288): the entries of `bio.md`, `crypto.md` and
+  `usb.md` against their headers, both ways, as for `platform.md` and `board.md`.

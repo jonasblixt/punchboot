@@ -1,6 +1,6 @@
 # The crypto backend contract
 
-**State: reviewed (Jonas, 2026-11-12), D-064, D-071.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064, D-071, D-073.** Level 3 (`process.md`).
 
 What pb's hashing and signature verification (`include/pb/crypto.h`, `src/crypto.c`) give their
 users, and what a backend that implements them provides: a SoC's crypto engine or a software
@@ -35,7 +35,7 @@ the text:
 | ------- | ------------------------------------------------------------------------------------ |
 | Backend | An implementation of the hash operations, of signature verification, or of both      |
 | Context | The one hash that is open, from `hash_init()` to `hash_final()`                      |
-| Verdict | Whether a signature verifies, or a digest is the one that was signed                 |
+| Verdict | Whether a signature verifies, for one key and one digest                             |
 | User    | Whoever calls `hash_*()` or `dsa_verify()`: the boot, command mode, the device's     |
 |         | identity                                                                             |
 
@@ -64,9 +64,9 @@ pb verifies and never signs: a backend holds no secret, and nothing here needs c
 A backend registers its operations when it is set up: `hash_add_ops()`, `dsa_add_ops()`, each
 with the algorithms it has (`alg_bits`).
 
-- **Set up by the platform**, in `plat_init()`, behind a Kconfig option (`platform.md` 2.2). A
-  board that needs the software backend turns the engine's option off. **Not yet in the code
-  (F-247)**: the boards set the engine up.
+- **Set up by the platform**, in `plat_init()`, each behind its Kconfig option
+  (`platform.md` 2.2). The board's defconfig says which backends the build has. **Not yet in
+  the code (F-247)**: the boards set the engine up.
 - **A backend that failed isn't registered.** An algorithm no backend has is
   `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check that can't be made
   is a no (`security.md` 4.4). A failed verification engine refuses the boot before the load
@@ -87,7 +87,6 @@ with the algorithms it has (`alg_bits`).
   variant without the long hashes) doesn't register it there, so that the answer is
   `-PB_ERR_NOT_SUPPORTED` and not a wrong digest.
 - **Software is a backend like any other** and passes the same tests (section 9).
-
 
 ## 3. Hashing
 
@@ -201,10 +200,10 @@ Verifies an ECDSA signature over a digest with a public key.
   yet in the code (F-286)**: the engine's backend returns `-PB_ERR` for a bad signature and
   for an engine error alike, the software one `-PB_ERR_SIGNATURE` for a key that doesn't
   parse.
-- **The verdict is this call's.** A backend whose engine reports completions never takes one
-  that another job left for this job's: it starts from an idle engine and matches the
-  completion to what it submitted (`drivers.md` 5). **Not yet in the code (F-181, F-127)**: a
-  hash job that was given up answers the verification's wait, with its own status.
+- **The verdict is this call's.** A backend whose engine reports completions never takes a
+  completion that another job left behind as this job's: it starts from an idle engine and
+  matches the completion to what it submitted (`drivers.md` 5). **Not yet in the code (F-181,
+  F-127)**: a hash job that was given up answers the verification's wait, with its own status.
 
 The arguments:
 
@@ -217,8 +216,13 @@ The arguments:
 - **`alg` is the key's curve as the keystore names it.** A key whose own curve is another one
   is refused, `-PB_ERR_PARAM`: the keystore and the key must agree. **Not yet in the code
   (F-286)**: `alg` only selects the backend.
-- **`md` and `md_length`** are the digest and its length for `md_alg`. A backend uses the
-  leftmost bits the curve takes, as ECDSA defines. `md` is read only and may be anywhere.
+- **`md` and `md_length`** are the digest and its length. `md_length` is exactly the digest
+  size of `md_alg`; anything else is `-PB_ERR_PARAM`, from the core (Jonas, D-073). A backend
+  uses the leftmost bits the curve takes, as ECDSA defines. `md` is read only and may be
+  anywhere. **Not yet in the code (F-286)**: nothing checks the length, and command mode's
+  token passes 64 whatever the hash. The two are fixed in one commit, and the tokens that
+  verified are tried on both backends first: which ones verify is fixed
+  (`command-mode.md` 7).
 - **Not while a hash is open** (Jonas, D-071): `-PB_ERR_STATE`, from the core, whichever
   backends the build has.
 
@@ -247,8 +251,10 @@ The arguments:
 
 ## 6. The engine at the jump
 
-- **No job is in flight** when the boot jumps: every operation of sections 3 and 4 is over
-  when its last call returned.
+- **No job is in flight** when the boot jumps. The boot's last use of a backend is a
+  verification that ended, and `hash_final()` and `dsa_verify()` return only when their work
+  is done. A hash that was given up before that was ended by the `hash_init()` of the
+  verification that followed (3.1).
 - **The engine holds no address in pb's memory that it would write to** (`drivers.md` 2.3). A
   backend with rings or queues the engine keeps has a `stop` that takes them away. **Not yet
   in the code (F-286)**: the engine's ring registers still name pb's buffers at the jump.
@@ -300,8 +306,7 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 |                                      |                         | host's board         |              |
 | `hash_init()` starts clean           | no: the ring isn't      | yes                  | F-181        |
 |                                      | drained                 |                      |              |
-| Any length and split                 | yes (unverified on      | yes (`test_mbedtls`) | F-230        |
-|                                      | hardware by a test)     |                      |              |
+| Any length and split                 | yes (read; no test)     | yes (`test_mbedtls`) | F-230        |
 | The asynchronous update is waited    | partly                  | n/a (none)           | F-286, F-220 |
 | for                                  |                         |                      |              |
 | `final` respects `length`            | no                      | yes (`test_mbedtls`) | F-286        |
@@ -315,12 +320,20 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | The key parsed inside its length     | no                      | yes (the library)    | F-066        |
 | The key's curve is `alg`             | no                      | no                   | F-286        |
 | Every wait bounded                   | yes (1 s)               | n/a                  |              |
-| An algorithm is registered once      | no (the core)           | no (the core)        | F-286        |
 | Nothing left at the jump             | no                      | n/a                  | F-286        |
 | The library's results checked        | n/a                     | no: the SHA calls'   | F-008        |
 | An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |
 | isn't registered                     |                         |                      |              |
 | Known answer tests                   | no                      | partly: "abc", P-256 | F-230        |
+
+The core:
+
+| Requirement                                      | Today                             | Finding |
+| ------------------------------------------------ | --------------------------------- | ------- |
+| An algorithm is registered once                  | no: the first registered is used  | F-286   |
+| No context after a failed `hash_init()`          | no: the backend stays selected    | F-286   |
+| `dsa_verify()` is refused while a hash is open   | no: not looked at                 | F-286   |
+| `md_length` is the digest size of `md_alg`       | no: not checked                   | F-286   |
 
 **The conformance suite** (`process.md` 7). **Not yet in the code (F-286)**: one set of tests
 for sections 3 and 4, run against every backend: known answers for each algorithm (the
