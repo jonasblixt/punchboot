@@ -552,18 +552,96 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | `command-mode.md` 5.3 (D-060): NOT_FOUND for `PART_BPAK_READ`. `boot.c` has the same | | |
 | | | arithmetic for a bootable partition | | |
 | F-280 | `src/boot/image_helpers.c` `boot_image_load_and_hash()`, the USB drivers | `boot | Reported | open |
-| | | bpak`: the device reads a part `CONFIG_BOOT_LOAD_CHUNK_kB` at a time (1 MiB on the imx8mpevk, | | |
-| | | 4 MiB elsewhere), hosts send it in transfers of the caps' `chunk_transfer_max_bytes` (4 MiB). | | |
+| | | bpak`: the device reads a part `CONFIG_BOOT_LOAD_CHUNK_kB` at a time (1 MiB on the imx8mpevk | | |
+| | | and jiffy, 4 KiB on the RT1060 with a 32 KiB buffer, 4 MiB elsewhere), hosts send it in | | |
+| | | transfers of the caps' `chunk_transfer_max_bytes` (the buffer's size, 4 MiB by default). | | |
 | | | Where the two differ, one host transfer fills several reads. `command-mode.md` 4.4 and 6 | | |
 | | | (D-060) ask the transport for that. Read in the code, not run: try `boot bpak` on the | | |
-| | | imx8mpevk, and put the requirement in the USB device controllers' contract | | |
+| | | imx8mpevk and jiffy. The requirement is `usb.md` 2.3 | | |
+| F-281 | `src/drivers/{mmc,virtio,usb}` | Waits without a bound that no finding | Reported (read) | open |
+| | | names: `mmc_rw()`'s wait for the card's state after a transfer and the same loop in | | |
+| | | `mmc_set_ext_csd()`; virtio block's completion; the cdns3 glue's wait for power-on-ready. With | | |
+| | | F-102, F-136, F-198, F-200 and F-205 they are the list. `drivers.md` 3: every wait has a bound | | |
+| | | with its source and returns `-PB_ERR_TIMEOUT` | | |
+| F-282 | `src/arch/*/include/arch/arch.h`, the DMA drivers | The DMA rule has | Verified (code) | open |
+| | | no place in the code. Each driver calls `arch_clean_cache_range()` and | | |
+| | | `arch_invalidate_cache_range()` itself, through the arch's own header (`<arch/arch.h>`; | | |
+| | | `include/pb/arch.h` doesn't declare them), with its own alignment (64, 256, 4096, none) and | | |
+| | | order. `arch_clean_invalidate_cache_range()` is declared for ARMv7-A and defined only for | | |
+| | | ARMv8-A; ARMv7-M has none. A comment in `cache-ops.S` cites a note in `include/pb/arch.h` that | | |
+| | | isn't there. Devices write into memory that shares its lines: the CAAM's digest on the user's | | |
+| | | stack, the A/B state's blocks, an image part that starts inside a line. `drivers.md` 4: | | |
+| | | `include/pb/dma.h` (`PB_DMA_ALIGN`, a macro for a buffer that owns its lines, `dma_out()`, | | |
+| | | `dma_in_begin()`, `dma_in_end()`), and the class's core bounces a caller's buffer that | | |
+| | | doesn't own its lines. The root of F-081, F-134, F-184, F-205 and F-220 | | |
+| F-283 | `src/bio.c`, its users | `bio` against `bio.md`. A length that | Verified (code) | open |
+| | | isn't whole blocks goes to the driver as it is (F-182). A length of 0 reaches the driver, and | | |
+| | | the MMC's returns `-PB_ERR` (`mmc_bio_xfer()` starts with `rc = -1`). No block buffer, no | | |
+| | | largest block size, no read at a byte offset (F-220), and a buffer isn't checked for its | | |
+| | | lines (F-282). `bio_allocate_parent()` doesn't check the range against the parent (F-193). | | |
+| | | Nothing releases a table's partitions (F-194) or keeps a driver's second `init` from | | |
+| | | registering its devices again. 512 is written out in `gpt.c` (four places), and | | |
+| | | `ab_state.c` writes the state's 512 bytes as a block of any size. `bio.h` says `-PB_ERR_IO` | | |
+| | | for a bad parent and `-PB_TIMEOUT`; the code returns `-PB_ERR_PARAM`. No conformance suite: | | |
+| | | the RAM disk and the host's disk write exact byte counts, the drivers don't (`bio.md` 8) | | |
+| F-284 | `src/drivers/memc/imx_flexspi.c` | A write copies `size / 4 + 1` | Reported (read) | open |
+| | | words into the FIFO in its last round: 1 to 4 bytes past the caller's buffer (whether they | | |
+| | | reach the flash is unverified, the data size is the exact length). A read whose length isn't | | |
+| | | a multiple of 4 is refused with `-PB_ERR_INVALID_ARGUMENT`, after the command was triggered. | | |
+| | | The buffer is read and written as `uint32_t *` whatever its alignment. The busy wait's | | |
+| | | result is ignored after a read and after each erase. No host test (F-230). With F-198. | | |
+| | | `bio.md` 3. The write's tail is verified in the code, the rest is as reported | | |
+| F-285 | `src/drivers/mmc/` | What the MMC drivers leave behind isn't written | Reported (read) | open |
+| | | down. PARTITION_ACCESS stays on the last partition accessed; the bus stays in the board's | | |
+| | | mode (8-bit DDR52 on jiffy, HS200 on the 8M and 8X boards); BOOT_BUS_CONDITIONS is rewritten | | |
+| | | at init unless `MMC_CFG_FLAG_KEEP_BOOT_BUS_CONDITIONS`; a write to a boot partition moves | | |
+| | | BOOT_PARTITION_ENABLE off it first. `mmc_power_off()` has no caller. `bio.md` 5: in the | | |
+| | | header, with what brings the card back for the ROM after a warm reset (F-078, F-079) | | |
+| F-286 | `src/crypto.c`, `imx_caam.c`, `mbedtls_pb.c`, the users | Crypto against | Reported (read) | open |
+| | | `crypto.md`. (1) `hash_init()` keeps the backend selected when its `init` fails, and returns | | |
+| | | `-PB_ERR_NOT_SUPPORTED` where `crypto.h` says `-PB_ERR_PARAM`. (2) The CAAM's `init` neither | | |
+| | | drains its ring nor resets `async_hashing` (F-181); a synchronous update after an | | |
+| | | asynchronous one doesn't wait for the job, and an update that only fills the block buffer | | |
+| | | doesn't either (F-220). (3) The CAAM's `final` ignores `length`: it stores the whole digest | | |
+| | | into a smaller buffer, by DMA into the user's memory, and invalidates it (F-081). (4) A | | |
+| | | signature that doesn't verify is `-PB_ERR` on the CAAM, the same as an engine error; Mbed | | |
+| | | TLS returns `-PB_ERR_SIGNATURE` also for a key that doesn't parse. (5) `dsa_verify()`'s `alg` | | |
+| | | only selects the backend: the key's own curve decides. `md_alg` is unused by the CAAM, | | |
+| | | `md_length` unchecked by both; `auth_token` passes 64 whatever the hash. (6) The CAAM's | | |
+| | | signature parser ignores the outer SEQUENCE's length. (7) No error path of any user closes | | |
+| | | its hash (`image_helpers.c`, `cm_main.c`, `uuid3.c`). (8) No `stop`: the job ring's registers | | |
+| | | name pb's buffers at the jump. (9) F-020 says MD5 is unused; the device's UUID is an MD5 | | |
+| | | (`uuid3.c`), and `HASH_MD5_BROKEN` has no caller in the tree. (10) The RT1060's build has | | |
+| | | SHA-256 and MD5 only, so a P-384 or P-521 key verifies nothing there. (11) No conformance | | |
+| | | suite: no test reaches the CAAM's hash or verify (F-230). (1), (3), (4) and (9) are | | |
+| | | verified in the code, the rest is as reported | | |
+| F-287 | `src/drivers/usb/`, `src/cm/cm_main.c`, `src/plat/host/socket.c` | The | Reported (read) | open |
+| | | transport and USB against `usb.md`. (1) Lost isn't reported: the ChipIdea and the cdns3 | | |
+| | | handle a bus reset inside the driver and return PB_OK, the DWC3 fails only a bulk transfer | | |
+| | | that was running; no driver looks at an unplug; command mode keeps polling after | | |
+| | | `-PB_ERR_TIMEOUT` and restarts with `init` alone, without a disconnect, whose result it | | |
+| | | ignores elsewhere (F-185, F-201). (2) No driver gives the bytes that arrived, and none | | |
+| | | treats a short packet before the length as an error (F-137). (3) Lengths: the DWC3 masks a | | |
+| | | transfer to 24 bits; the cdns3 builds no TRB for 0 bytes and still arms the endpoint | | |
+| | | (unverified: `board status` with an empty text on the MEK); the ChipIdea's limit follows | | |
+| | | `CONFIG_CM_BUF_SIZE_KiB`. (4) Speed: only the DWC3 asks for high speed, none acts on the | | |
+| | | result, the descriptors say 512 bytes whatever the bus. (5) `usbd_init_hal_ops()` doesn't | | |
+| | | check `xfer_cancel`, `poll_setup_pkt` and `ep0_xfer_zlp`, which are called unchecked. | | |
+| | | `SET_CONFIGURATION`'s value isn't looked at; `SET_IDLE` is answered and then returns an | | |
+| | | error. (6) The stack sends a status from its stack and a string descriptor without alignment | | |
+| | | (F-282). (7) The ChipIdea cleans only endpoint 0's queue heads, `xfer_complete` ignores its | | |
+| | | endpoint and returns PB_OK again when called again; the cdns3 overwrites `EP_IEN` per | | |
+| | | endpoint (effect unverified). (8) The socket's `init` blocks in `accept()`. (9) Stale: | | |
+| | | `test_host_usb.py`'s docstring says the cdns3 can't send its serial number (fixed, F-159); | | |
+| | | F-139 names `cm_board_init`, the function is `board_cm_init`. No USB code is compiled by a | | |
+| | | host test (F-230) | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
 ## Dependencies / vendored code
 
 | ID | Finding | Status |
 |---|---|---|
-| F-020 | Mbed TLS pinned to 3.4.0 (EOL). The file list in `src/drivers/crypto/mbedtls/makefile.mk` is tied to that release. `mbedtls_config.h` enables MD5/BASE64/PKCS1_V21, which are unused. | open |
+| F-020 | Mbed TLS pinned to 3.4.0 (EOL). The file list in `src/drivers/crypto/mbedtls/makefile.mk` is tied to that release. `mbedtls_config.h` enables MD5/BASE64/PKCS1_V21, which are unused. Corrected 2026-11-12: MD5 is used, for the device's UUID (`uuid3.c`, `crypto.md` 5); BASE64 and PKCS1_V21 unchecked. | open |
 | F-022 | Vendored code has no version record: Kconfiglib, libfdt, libuuid, TF-A xlat_tables_v2 + libc, NXP SCFW (littlefs was removed). | open |
 
 ## Dead code / cleanup

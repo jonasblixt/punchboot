@@ -424,7 +424,7 @@ The transport is not the board's choice (D-049). Command mode calls the transpor
 directly, and the build links one implementation: the USB class driver, or the host platform's
 socket for the tests. The core disconnects it before a jump. pb gets no network transport: its
 stack would be in the trusted computing base (`security.md` 1, `system.md` 1). What a transport
-and its USB device controller must do is the drivers' contract (later).
+and its USB device controller must do is `usb.md`.
 
 ### 4.3 Function : status() [optional]
 

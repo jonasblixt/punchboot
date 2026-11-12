@@ -19,7 +19,10 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 |                |                 | `command-mode.md`                    | Reviewed (D-059 to D-061)  |
 | 3 Interfaces   | `interfaces/`   | `platform.md`                        | Reviewed (D-056)           |
 |                |                 | `board.md`                           | Reviewed (D-052)           |
-|                |                 | The drivers' contracts               | Missing                    |
+|                |                 | `drivers.md`                         | Draft (D-064)              |
+|                |                 | `bio.md`                             | Draft (D-064)              |
+|                |                 | `crypto.md`                          | Draft (D-064)              |
+|                |                 | `usb.md`                             | Draft (D-064)              |
 | 4 Ports        | `ports/`        | `plat-imx.md`                        | Follows `platform.md`      |
 |                |                 | `imx8m-ddr.md`, `spec-dwc-ddrphy.md` | Records of one port's work |
 
@@ -42,5 +45,4 @@ Beside the levels, not normative:
 |           | `findings-closed.md`    | The fixed and rejected findings                          |
 |           | `log/`                  | What was done, per day                                   |
 
-Still to write: the drivers' contracts, a porting guide and a migration guide for 3.0.0
-(`guides/`).
+Still to write: a porting guide and a migration guide for 3.0.0 (`guides/`).

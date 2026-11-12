@@ -1,0 +1,337 @@
+# The crypto backend contract
+
+**State: draft (2026-11-12), D-064.** Level 3 (`process.md`).
+
+What pb's hashing and signature verification (`include/pb/crypto.h`, `src/crypto.c`) give their
+users, and what a backend that implements them provides: a SoC's crypto engine or a software
+library. Image verification and command mode's token rest on it (`security.md` 4.1 to 4.3,
+4.7), so its first rule is that a verdict is never wrong in the direction of yes. It builds on
+`drivers.md`. Vendor neutral: where each backend stands is section 9.
+
+Changing `crypto`, a backend or a user of either: read this, `drivers.md` and `security.md` 4,
+then go through the checklist (section 8).
+
+**Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
+finding removes the marker and updates section 9.
+
+**Open (n)**: a proposal that isn't confirmed. The five, each marked in the text:
+
+| Open | Question                                           | Proposal                                     |
+| ---- | -------------------------------------------------- | -------------------------------------------- |
+| 1    | A hash that is given up (F-181): an error between  | No abort to call: `hash_init()` and          |
+|      | `hash_init()` and `hash_final()`                   | `dsa_verify()` each start from an idle       |
+|      |                                                    | engine, whatever was left (3.1, 4)           |
+| 2    | The verdict has two channels, the return value     | Both stay, and mean the same: PB_OK if and   |
+|      | and `*verified` (4)                                | only if `*verified`. A signature that        |
+|      |                                                    | doesn't verify is `-PB_ERR_SIGNATURE`        |
+| 3    | `dsa_verify()` while a hash is open (4)            | Refused, `-PB_ERR_STATE`: one operation at a |
+|      |                                                    | time. No flow needs it                       |
+| 4    | Two backends in one build (2)                      | One backend per algorithm, by Kconfig. No    |
+|      |                                                    | fallback at run time                         |
+| 5    | `HASH_MD5_BROKEN` (5)                              | Stays, for the products in the field that    |
+|      |                                                    | have it in their identity. Which ones?       |
+
+## 1. Words and scope
+
+| Word    | Means                                                                                |
+| ------- | ------------------------------------------------------------------------------------ |
+| Backend | An implementation of the hash operations, of signature verification, or of both      |
+| Context | The one hash that is open, from `hash_init()` to `hash_final()`                      |
+| Verdict | Whether a signature verifies, or a digest is the one that was signed                 |
+| User    | Whoever calls `hash_*()` or `dsa_verify()`: the boot, command mode, the device's     |
+|         | identity                                                                             |
+
+What pb uses it for:
+
+| Use                   | Hash                               | Signature          | Where                 |
+| --------------------- | ---------------------------------- | ------------------ | --------------------- |
+| An image's header     | The header's own: SHA-256, -384 or | The keystore key's | `boot.md` 4.2         |
+|                       | -512                               | curve              |                       |
+| An image's payload    | The same, over every part as it is |                    | `boot.md` 4.2         |
+|                       | loaded                             |                    |                       |
+| Command mode's token  | The key's curve gives it: SHA-256, | The keystore key's | `command-mode.md` 3.3 |
+|                       | -384, -512                         | curve              |                       |
+| `part verify`         | SHA-256                            |                    | `command-mode.md` 5.3 |
+| The device's identity | MD5, as a UUID version 3 needs it  |                    | `platform.md` 3.7     |
+
+Not here: which key is used and whether it is revoked (`rot.c`, `security.md` 4.3, the
+core's), the keystore's format, the image format's layout (`boot.md` 4.4), the hardware RNG
+(the platform's duty to the next stage, `platform.md` 4.5; verification needs no random numbers),
+encryption, which pb doesn't do.
+
+pb verifies and never signs: a backend holds no secret, and nothing here needs constant time.
+
+## 2. Backends
+
+A backend registers its operations when it is set up: `hash_add_ops()`, `dsa_add_ops()`, each
+with the algorithms it has (`alg_bits`).
+
+- **Set up by the platform**, in `plat_init()`, behind a Kconfig option (`platform.md` 2.2). A
+  board that needs the software backend turns the engine's option off. **Not yet in the code
+  (F-247)**: the boards set the engine up.
+- **A backend that failed isn't registered.** An algorithm no backend has is
+  `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check that can't be made
+  is a no (`security.md` 4.4). A failed verification engine refuses the boot before the load
+  (`platform.md` 2.3, `security.md` 4.5).
+- **One backend per algorithm. Open (4).** The build decides which, and nothing falls back at
+  run time: a fallback is a second implementation that must verify the same, and
+  `security.md` 4.5 asks that of one before it may stand in. Today the first backend
+  registered that has the algorithm is used; no build in the tree registers two.
+- **A backend has every algorithm its build's keys and images use.** The header's hash, the
+  keystore keys' curves, SHA-256 for `part verify`, MD5 for the identity. One that drops an
+  algorithm on some hardware (an engine variant without the long hashes) drops it when it
+  registers, so that the answer is `-PB_ERR_NOT_SUPPORTED` and not a wrong digest.
+- **Software is a backend like any other** and passes the same tests (section 9).
+
+## 3. Hashing
+
+One context at a time. `hash_init()` opens it, `hash_final()` closes it, and between the two
+the updates may be of any kind and mixed. A call without a context is `-PB_ERR_STATE`.
+
+### 3.1 Function : hash_init() [mandatory]
+
+```
+Argument : hash_t alg
+Return   : int, PB_OK or -PB_ERR_*
+```
+
+Opens a context for one algorithm.
+
+- **It always starts clean. Open (1).** Whatever was open is ended: a job that is in flight is
+  waited for or cancelled, and nothing of it completes into the new context or into a later
+  verification (F-181). A user that gives a hash up on an error calls nothing; the next
+  `hash_init()` is the cleanup, and so is the next `dsa_verify()`. **Not yet in the code
+  (F-181, F-286)**: the engine's backend leaves the old job in its ring.
+- **When it fails there is no context**: the next update is `-PB_ERR_STATE`. **Not yet in the
+  code (F-286)**: the backend stays selected after a failed `init`.
+- `-PB_ERR_NOT_SUPPORTED`: no backend has the algorithm. `-PB_ERR_PARAM`: `alg` isn't one
+  algorithm.
+
+### 3.2 Function : hash_update() [mandatory]
+
+```
+Argument : const void *buf, size_t length
+Return   : int, PB_OK or -PB_ERR_*
+```
+
+Adds `length` bytes to the hash. When it returns, the backend needs `buf` no more.
+
+- Any length, 0 too, and any alignment: a backend that hashes whole blocks keeps the rest
+  itself. The digest is that of the bytes in the order of the calls, however they were split.
+- The buffer is read only (`drivers.md` 4.3, out).
+
+### 3.3 Function : hash_update_async() [optional]
+
+```
+Argument : const void *buf, size_t length
+Return   : int, PB_OK or -PB_ERR_*
+```
+
+As `hash_update()`, but it may return before the bytes are hashed, so that the boot reads the
+next chunk while the engine hashes this one. Without it the core calls `update`.
+
+- **`buf` stays valid and unchanged until the next `hash_*()` call returns**, any of them,
+  `hash_final()` and the next `hash_init()` included. Each of them waits for the job first.
+  **Not yet in the code (F-286, F-220)**: a call that only fills the backend's block buffer
+  doesn't wait, a synchronous update after an asynchronous one doesn't either, and the block
+  buffer is refilled while a job may read it.
+- **An error of the job is returned by the call that waits for it**, and the context is then
+  failed: every later update and the final return an error, never a digest.
+- The image's memory is the usual buffer: a chunk is hashed where it was loaded, and the next
+  chunk goes behind it.
+
+### 3.4 Function : hash_copy_update() [optional]
+
+```
+Argument : const void *src, void *dest, size_t length
+Return   : int, PB_OK or -PB_ERR_*
+```
+
+Copies `length` bytes from `src` to `dest` and hashes them: what is hashed is what was
+written to `dest`. Without it the core copies, then hashes `dest`. No backend has it and
+nothing in the tree calls it; it stays (`principles.md` 7).
+
+### 3.5 Function : hash_final() [mandatory]
+
+```
+Argument : uint8_t *digest_out, size_t length
+Return   : int, PB_OK or -PB_ERR_*
+```
+
+Waits for what is in flight, writes the digest and closes the context, whatever it returns.
+
+- **`length` is the room at `digest_out`.** Less than the algorithm's digest is
+  `-PB_ERR_BUF_TOO_SMALL` and nothing is written; with more, the digest's bytes are written
+  and the rest is left. `CRYPTO_MD_MAX_SZ` (64) fits every algorithm. **Not yet in the code
+  (F-286)**: the engine's backend writes the whole digest whatever the room is.
+- **The digest reaches `digest_out` by a copy**, not by the engine's own write: users have it
+  on the stack (`drivers.md` 4.3). **Not yet in the code (F-081, F-286)**: the engine writes
+  it there and the line is invalidated.
+- **On an error `digest_out` is not a digest** and the user doesn't compare it.
+
+## 4. Function : dsa_verify() [mandatory]
+
+```
+Argument : dsa_t alg, const uint8_t *der_signature, size_t signature_length,
+           const uint8_t *der_key, size_t key_length,
+           hash_t md_alg, uint8_t *md, size_t md_length, bool *verified
+Return   : int, PB_OK or -PB_ERR_*
+```
+
+Verifies an ECDSA signature over a digest with a public key.
+
+**The verdict. Open (2).**
+
+- **`*verified` is false until the signature verified.** It is set to false before anything
+  else, and to true in one place: where this call's own computation said the signature is
+  valid for this key and this digest.
+- **PB_OK if and only if `*verified` is true.** Users check both (`principles.md` 2).
+- **A signature that doesn't verify is `-PB_ERR_SIGNATURE`.** Everything else is the code of
+  what failed: `-PB_ERR_ASN1` for a signature or a key that can't be parsed,
+  `-PB_ERR_NOT_SUPPORTED` for a curve no backend has, `-PB_ERR_TIMEOUT` and `-PB_ERR_IO` for
+  the engine. A user treats every one of them as "no"; the difference is for the log. **Not
+  yet in the code (F-286)**: the engine's backend returns `-PB_ERR` for a bad signature and
+  for an engine error alike, the software one `-PB_ERR_SIGNATURE` for a key that doesn't
+  parse.
+- **The verdict is this call's.** A backend whose engine reports completions never takes one
+  that another job left for this job's: it starts from an idle engine and matches the
+  completion to what it submitted (`drivers.md` 5). **Not yet in the code (F-181, F-127)**: a
+  hash job that was given up answers the verification's wait, with its own status.
+
+The arguments:
+
+- **The signature** is DER, an `ECDSA-Sig-Value` (two INTEGERs), as the image's header and the
+  token carry it. It comes from the image or the host: every length in it is checked against
+  `signature_length`, and against the curve's size (`drivers.md` 5).
+- **The key** is DER, a `SubjectPublicKeyInfo`, from the keystore, which is part of pb. It is
+  parsed inside `key_length` all the same (`principles.md` 2). **Not yet in the code
+  (F-066)**: the engine's parser doesn't use the length.
+- **`alg` is the key's curve as the keystore names it.** A key whose own curve is another one
+  is refused, `-PB_ERR_PARAM`: the keystore and the key must agree. **Not yet in the code
+  (F-286)**: `alg` only selects the backend.
+- **`md` and `md_length`** are the digest and its length for `md_alg`. A backend uses the
+  leftmost bits the curve takes, as ECDSA defines. `md` is read only and may be anywhere.
+- **Not while a hash is open. Open (3)**: `-PB_ERR_STATE`.
+
+## 5. Algorithms
+
+| Algorithm                   | For                               | Note                               |
+| --------------------------- | --------------------------------- | ---------------------------------- |
+| SHA-256, SHA-384, SHA-512   | Images, the token, `part verify`  | The image format's hash kinds      |
+|                             |                                   | (`boot.md` 4.4)                    |
+| ECDSA on P-256, P-384 and   | Images, the token                 | The keystore's key kinds           |
+| P-521                       |                                   |                                    |
+| MD5                         | The device's identity             | Not a security use: a UUID version |
+|                             | (`platform.md` 3.7)               | 3 is defined with it               |
+| `HASH_MD5_BROKEN`           | The identity of products in the   | Open (5)                           |
+|                             | field                             |                                    |
+
+- **MD5 is in every build**: the device's UUID is computed with it, and the UUID never changes
+  (`system.md` 5.5). No verification uses it, and no image or key can ask for it: the image
+  format's hash kinds don't name it.
+- **`HASH_MD5_BROKEN`. Open (5).** The engine's backend has a second MD5 with a shortened
+  running context, "compatible with some versions already in the field". Nothing in the tree
+  asks for it. It stays: a product whose devices got their UUIDs from it needs it for good
+  (`principles.md` 7). Which products, and whether a platform should select it by an option,
+  is Jonas's to say.
+- **A new algorithm is added**, with its bit in `hash_t` or `dsa_t`; none is changed or
+  reused. Which algorithms an image may name is the image format's (`compatibility.md`).
+
+## 6. The engine at the jump
+
+- **No job is in flight** when the boot jumps: every operation of sections 3 and 4 is over
+  when its last call returned.
+- **The engine holds no address in pb's memory that it would write to** (`drivers.md` 2.3). A
+  backend with rings or queues the engine keeps has a `stop` that takes them away. **Not yet
+  in the code (F-286)**: the engine's ring registers still name pb's buffers at the jump.
+- **The engine is handed over as the next stage expects it** (`platform.md` 4.5): which of its
+  interfaces belong to the secure world and which to the normal one is the platform's, in its
+  port's document.
+
+## 7. Fixed (compatibility)
+
+- What a digest and a verdict are is the standards': FIPS 180-4, FIPS 186-4, RFC 1321. Every
+  backend gives the same answer for the same input, so every image and every token a release
+  accepted is accepted (D-008).
+- The device's identity: MD5 over the same bytes (`platform.md` 3.7), and the broken variant
+  where a product has it.
+- The formats `dsa_verify()` takes: they are the image's and the keystore's
+  (`compatibility.md`).
+
+`struct hash_ops`, `struct dsa_ops` and the functions are the porting API: they change with a
+major release at most (D-018).
+
+## 8. Review checklist
+
+For a new backend, and for a change to one, to `crypto.c` or to a user of it:
+
+- [ ] `drivers.md` 7.
+- [ ] `*verified` is set to false first and to true in one place, and PB_OK is returned only
+      there.
+- [ ] No completion, status or digest of an earlier operation can be read as this one's:
+      `init` and `verify` start from an idle engine.
+- [ ] After any error the next operation gives the right answer (the tests give a hash up at
+      every step, then verify).
+- [ ] Every length in a signature is checked against its buffer and the curve.
+- [ ] `final` writes no more than `length` and the digest only; the digest is copied to the
+      user.
+- [ ] An asynchronous update is waited for by every later call; its buffer isn't touched
+      before.
+- [ ] An algorithm the hardware lacks isn't registered.
+- [ ] The known answer tests pass for every algorithm the backend registers (section 9).
+- [ ] A user checks the return value and `*verified`, and uses no digest of a failed
+      `hash_final()`.
+
+## 9. Conformance
+
+Where each backend is (2026-11-12). Read in the code, not run, unless a test is named.
+
+| Requirement                          | CAAM                    | Mbed TLS             | Finding      |
+| ------------------------------------ | ----------------------- | -------------------- | ------------ |
+| Set up by the platform               | no (the boards)         | yes on the RT; the   | F-247        |
+|                                      |                         | host's board         |              |
+| `hash_init()` starts clean           | no: the ring isn't      | yes                  | F-181        |
+|                                      | drained                 |                      |              |
+| Any length and split                 | yes (unverified on      | yes (`test_mbedtls`) | F-230        |
+|                                      | hardware by a test)     |                      |              |
+| The asynchronous update is waited    | partly                  | n/a (none)           | F-286, F-220 |
+| for                                  |                         |                      |              |
+| `final` respects `length`            | no                      | yes (`test_mbedtls`) | F-286        |
+| The digest is copied to the user     | no                      | yes (no DMA)         | F-081        |
+| `*verified` false first              | yes                     | yes                  |              |
+| A bad signature is                   | no: `-PB_ERR`           | yes, also for a bad  | F-286        |
+| `-PB_ERR_SIGNATURE`                  |                         | key                  |              |
+| The verdict is this call's           | no                      | yes                  | F-181, F-127 |
+| The signature's lengths checked      | partly: the outer       | yes (the library)    | F-286        |
+|                                      | length is ignored       |                      |              |
+| The key parsed inside its length     | no                      | yes (the library)    | F-066        |
+| The key's curve is `alg`             | no                      | no                   | F-286        |
+| Every wait bounded                   | yes (1 s)               | n/a                  |              |
+| Nothing left at the jump             | no                      | n/a                  | F-286        |
+| The library's results checked        | n/a                     | no: the SHA calls'   | F-008        |
+| An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |
+| isn't registered                     |                         |                      |              |
+| Known answer tests                   | no                      | partly: "abc", P-256 | F-230        |
+
+**The conformance suite** (`process.md` 7). **Not yet in the code (F-286)**: one set of tests
+for sections 3 and 4, run against every backend: known answers for each algorithm (the
+standards' vectors, lengths around the block size, every split), the verdict's cases (a valid
+signature, one bit changed in the signature, in the digest and in the key, malformed DER, a
+wrong curve), and the states (a hash given up at each step, then a verification that must
+fail and one that must pass). Mbed TLS runs it on the host. The CAAM runs it on the host
+against a model of its job ring that executes the descriptors, and on the bench through the
+simple target (D-025): F-181 was found in such a model, not on hardware.
+
+## 10. Not yet in the code
+
+| Finding      | What                                                                            |
+| ------------ | ------------------------------------------------------------------------------- |
+| F-181, F-127 | `hash_init()` and `dsa_verify()` start from an idle engine; the verdict is the  |
+|              | job's own (3.1, 4)                                                              |
+| F-286        | The core and the backends against sections 3, 4 and 6; the conformance suite    |
+| F-220        | The block buffer isn't refilled while a job reads it (3.3)                      |
+| F-081        | The digest is copied, not written by the engine into the user's memory (3.5)    |
+| F-066        | The key is parsed inside its length (4)                                         |
+| F-008        | The software backend checks the library's results                               |
+| F-247        | The platform sets the backend up (2)                                            |
+| F-230        | The backends' tests (9)                                                         |

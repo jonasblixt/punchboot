@@ -57,7 +57,7 @@ What it changed in the documents beside it:
 
 Not here: the bytes (`compatibility.md`, `include/pb-tools/wire.h`), the boot a command starts
 (`boot.md` 6, `board.md` 5.4), the life cycle's states and order (`system.md` 4, D-027), the
-board's own commands (`board.md` 4.4), the transport's driver (the drivers' contracts, later),
+board's own commands (`board.md` 4.4), the transport's functions and its driver (`usb.md`),
 the host tools (`system.md` 3).
 
 The rules it implements are level 1's: who may use command mode in which state (`system.md` 4,
@@ -666,7 +666,7 @@ and not designed here. What this contract keeps for it:
 
 One transport per build, linked, not chosen by the board (`board.md` 4.2, D-049): USB on a
 SoC, a socket on the host platform. Its functions and what a USB device controller must do are
-the drivers' contract (later). What command mode needs from it:
+`usb.md`. What command mode needs from it:
 
 - **Ready and lost.** It says when a host is there and when it is gone. A bus reset, an unplug
   and a failed transfer are all "lost", and each ends the session (3.1).
@@ -693,8 +693,8 @@ USB, as hosts find the device:
 | Endpoints             | Bulk IN 1 (to the host), bulk OUT 2 (from the host) |
 | Serial number         | The device's UUID, as its 36 character string       |
 
-A controller that can't send the serial number (the 8X's, today) leaves hosts to read the UUID
-with `DEVICE_IDENTIFIER_READ`.
+A device whose serial number a host can't read (pb 2.0.0 on the 8X, F-159) leaves hosts to
+read the UUID with `DEVICE_IDENTIFIER_READ`. Every controller sends it since (`usb.md` 3.1).
 
 ## 7. Fixed (compatibility)
 

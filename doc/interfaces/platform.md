@@ -489,7 +489,7 @@ expects. `plat-imx.md` lists, per port, who does each and where pb stands.
   Whoever started it stops it (`board.md` 5.3). The core: command mode's transport, which stops
   the USB controller that `plat_cm_init()` started, and the device it loaded from. The board:
   what its hooks started, in `late_boot()`. The platform: what `plat_init()` started. How a
-  driver is stopped is the drivers' contract (later).
+  driver is stopped is `drivers.md` 2.3.
 
 ## 5. Memory
 
