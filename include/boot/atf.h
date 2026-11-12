@@ -11,10 +11,9 @@
 #define INCLUDE_BOOT_ATF_H
 
 #include <boot/boot.h>
+#include <boot/dtb.h>
 #include <bpak/bpak.h>
 #include <uuid.h>
-
-typedef int (*boot_patch_dtb_cb_t)(void *fdt, int offset);
 
 struct boot_driver_atf_config {
     bpak_id_t atf_bpak_id; /*!< BPAK id of ATF part */
