@@ -12,6 +12,17 @@ config CM_TRANSPORT_READY_TIMEOUT
     default 10
     depends on CM
 
+config CM_TRANSFER_TIMEOUT
+    int "Timeout in seconds for a transfer inside a command"
+    default 10
+    range 1 65
+    depends on CM
+    help
+        How long command mode waits for the host to complete a transfer
+        inside a command, kicking the watchdog meanwhile. Then the session
+        ends and the transport is restarted (command-mode.md 4.6). The caps
+        carry it in milliseconds, in 16 bits, hence at most 65 s.
+
 config CM_AUTH
     bool "Enable command mode authentication"
     default y

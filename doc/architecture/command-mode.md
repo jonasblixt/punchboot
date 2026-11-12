@@ -335,8 +335,8 @@ host. The sequences are frozen (`compatibility.md`); this table says what they a
   error, and the Python host stops at the first result. Which side is right is the 2.x hosts'
   to say (F-274); until then the device's sequence stays.
 - **A transfer that fails ends the session** (3.1): the two sides no longer agree on where a
-  frame starts. The transport is restarted. **Not yet in the code (F-274)**: most write
-  results are ignored, and the command goes on.
+  frame starts. Nothing more is sent on that transport, also where the command goes on, and
+  it is restarted.
 - **A frame that isn't a command** (a wrong magic) is answered with `INVALID_COMMAND`, and by
   a closed device before authentication with `NOT_AUTHENTICATED` (3.2).
 
@@ -388,17 +388,18 @@ The watchdog covers command mode's commands (`system.md` 5.4).
   driver's erase of the blocks the host named; hosts erase in pieces.
 - While a command runs, no other task runs (`board.md` 4.6).
 
-**A host that stops in the middle of an exchange** (Jonas, D-058). **Not yet in the code
-(F-277)**: pb waits for the transfer without a kick and without a timeout. With the watchdog
-the device resets, without one it waits for ever, and no task runs. An unauthenticated host
-can do it (`AUTHENTICATE`, then no data).
+**A host that stops in the middle of an exchange** (Jonas, D-058). Without a timeout the
+device would reset with the watchdog, or without one wait for ever with no task running, and
+an unauthenticated host can do it (`AUTHENTICATE`, then no data).
 
 - A transfer inside a command has a timeout, `CONFIG_CM_TRANSFER_TIMEOUT`, 10 s like the
   hosts' own. pb kicks while it waits. When the time is up the session ends (3.1) and the
   transport is restarted, so the device is back at 2.2.
 - The caps carry pb's timeouts. `operation_timeout_ms` and `part_erase_timeout_ms` are in the
-  frozen layout and zero in every release; a device fills them, and a host that reads zero
-  uses its own (F-226).
+  frozen layout and zero in every release before 3.0.0; a device fills them, and a host that
+  reads zero uses its own (F-226). `operation_timeout_ms` is `CONFIG_CM_TRANSFER_TIMEOUT`.
+  **Not yet in the code (F-375)**: `part_erase_timeout_ms` is zero, pb sets no bound on an
+  erase.
 
 ## 5. The commands
 
@@ -745,12 +746,12 @@ For a change to command mode, a new command or a new method:
 | ------------------- | ------------------------------------------------------------------------------------ |
 | F-268, F-267        | Command mode as a task; the platform sets up the port, the transport is linked (2)   |
 | F-201, F-363        | The session ends with the transport: authentication and the stream are cleared (3.1) |
-| F-277               | A transfer timeout that ends the session; the caps' timeouts (4.6)                   |
+| F-375               | The caps' erase timeout (4.6)                                                        |
 | F-181               | The verdict of a token is the verification's own (3.3)                               |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |
 | F-004               | The password is compared whole, in constant time, and not logged (3.3)               |
 | F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |
-| F-187, F-274        | The exchange stays in step after a refusal; a failed transfer ends the session (4.4) |
+| F-187, F-274        | The exchange stays in step after a refusal (4.4)                                     |
 | F-087               | A result code for a payload whose hash differs (4.5)                                 |
 | F-189, F-226        | The watchdog per chunk; the timeouts (4.6)                                           |
 | F-186, F-272        | The partitions' flags: hidden partitions, `PART_VERIFY` (5.3)                        |

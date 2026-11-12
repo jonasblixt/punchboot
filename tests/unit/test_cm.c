@@ -16,6 +16,7 @@
  * reports a disconnect, cm_run() re-initializes the transport, and the fake
  * fails that, which ends cm_run() with -PB_ERR_IO. host_lost() and
  * t.lose_write lose a transfer on the way, as a host that went away.
+ * host_stops() and t.stop_write leave one pending, as a host that stopped.
  */
 
 #include <setjmp.h>
@@ -63,21 +64,24 @@
 #define UU_MISSING \
     (const unsigned char *)"\x44\xac\xdc\xbe\xdc\xb0\x4d\x89\xb0\xad\x8f\x96\x96\x7f\x8c\x95"
 
-#define RW_FIRST_LBA 10
-#define RW_BLOCKS    20
-#define DEVICE_UUID  "02e49231-756e-35ee-a982-378e5ba866a9"
-#define KEY_ID       0xa90f9680
-#define FAKE_SIG_OK  0x5a
-#define BOARD_ECHO   1
-#define BOARD_RETURN 2
-#define BOARD_REBOOT 3
-#define BOARD_PREFIX "echo: "
+#define RW_FIRST_LBA        10
+#define RW_BLOCKS           20
+#define DEVICE_UUID         "02e49231-756e-35ee-a982-378e5ba866a9"
+#define KEY_ID              0xa90f9680
+#define FAKE_SIG_OK         0x5a
+#define BOARD_ECHO          1
+#define BOARD_RETURN        2
+#define BOARD_REBOOT        3
+#define BOARD_PREFIX        "echo: "
 /* fake_us_tick_step: 1 ms per plat_get_us_tick() */
-#define TICK_STEP_US 1000
+#define TICK_STEP_US        1000
 /* A failed authentication's result is sent 1 s after the data (3.3), and the
  * watchdog is kicked every 100 ms meanwhile */
-#define AUTH_WAIT_US 1000000
-#define AUTH_KICK_US 100000
+#define AUTH_WAIT_US        1000000
+#define AUTH_KICK_US        100000
+#define TRANSFER_TIMEOUT_US (CONFIG_CM_TRANSFER_TIMEOUT * 1000000U)
+/* A stopped transfer polled this often was waited for past the timeout */
+#define STOPPED_POLLS_MAX   (2 * TRANSFER_TIMEOUT_US / TICK_STEP_US)
 
 /* The fake transport */
 static struct {
@@ -102,6 +106,15 @@ static struct {
     bool write_lost;
     int fail_reads_after; /* -1: never, n: read() fails after n calls */
     int fail_writes_after;
+    /* The host stops: a read that starts at input position stop_at, or the
+     * write with the number stop_write, stays pending until the transport is
+     * started again */
+    bool stop_reads;
+    size_t stop_at;
+    int stop_write;
+    bool write_stopped;
+    bool stopped;
+    unsigned int stopped_polls;
 
     int max_inits;
     int init_calls;
@@ -122,6 +135,13 @@ static struct {
 
 static int fake_init(void)
 {
+    if (t.stopped) {
+        /* The next host */
+        t.stopped = false;
+        t.stop_reads = false;
+        t.write_stopped = false;
+        t.stopped_polls = 0;
+    }
     t.init_calls++;
     return (t.init_calls > t.max_inits) ? -PB_ERR_IO : PB_OK;
 }
@@ -162,6 +182,10 @@ static int fake_write(const void *buf, size_t length)
         t.write_lost = true; /* complete() fails it, nothing arrives */
         return PB_OK;
     }
+    if (t.write_calls == t.stop_write) {
+        t.write_stopped = true; /* complete() never ends it */
+        return PB_OK;
+    }
 
     assert_true(t.out_len + length <= sizeof(t.out));
     memcpy(&t.out[t.out_len], buf, length);
@@ -182,6 +206,13 @@ static int fake_complete(void)
     if (t.write_lost) {
         t.write_lost = false;
         return -PB_ERR_IO;
+    }
+
+    if (t.write_stopped || (t.read_pending && t.stop_reads && t.in_pos == t.stop_at)) {
+        t.stopped = true;
+        /* pb gives up after its timeout instead of polling for ever */
+        assert_true(++t.stopped_polls < STOPPED_POLLS_MAX);
+        return -PB_ERR_AGAIN;
     }
 
     if (t.read_pending && t.n_lost > 0 && t.in_pos == t.lost_at[0]) {
@@ -548,6 +579,18 @@ static void host_lost(int rc)
     t.max_inits++;
 }
 
+/*
+ * The host stops here, the connection still up: the device's next read
+ * stays pending. Once the transport is started again, what is queued after
+ * this is the next host's.
+ */
+static void host_stops(void)
+{
+    t.stop_reads = true;
+    t.stop_at = t.in_len;
+    t.max_inits++;
+}
+
 /* Runs command mode until the host is done */
 static void run(void)
 {
@@ -659,6 +702,9 @@ static void test_basic_commands(void **state)
     const struct pb_result_device_caps *caps = (const void *)r->response;
     assert_int_equal(caps->stream_no_of_buffers, 2);
     assert_int_equal(caps->stream_buffer_size, BUF_SIZE);
+    /* pb's transfer timeout; no bound on an erase (command-mode.md 4.6) */
+    assert_int_equal(caps->operation_timeout_ms, CONFIG_CM_TRANSFER_TIMEOUT * 1000);
+    assert_int_equal(caps->part_erase_timeout_ms, 0);
 
     r = expect_result(PB_RESULT_OK);
     const struct pb_result_device_identifier *id = (const void *)r->response;
@@ -1258,7 +1304,8 @@ static void test_auth_refusal_keeps_session(void **state)
 }
 
 /* F-005: when the data doesn't arrive, the device must not check whatever the
- * buffer held from the last authentication */
+ * buffer held from the last authentication. The transfer failed, so nothing
+ * more is sent and the transport is restarted (command-mode.md 4.4) */
 static void test_auth_data_read_fails(void **state)
 {
     struct pb_command_authenticate token = { .method = PB_AUTH_ASYM_TOKEN,
@@ -1274,7 +1321,6 @@ static void test_auth_data_read_fails(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
 
     t.init_calls = 0;
@@ -1289,7 +1335,6 @@ static void test_auth_data_read_fails(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
 }
 
@@ -2188,7 +2233,8 @@ static void test_transport_errors_in_commands(void **state)
     run();
     expect_result(PB_RESULT_OK);
 
-    /* The data read can't be started, and neither can the next command's */
+    /* The data read can't be started: a failed transfer, so nothing more is
+     * sent and the transport is restarted (command-mode.md 4.4) */
     t.init_calls = 0;
     t.out_len = t.out_pos = 0;
     t.read_pending = false;
@@ -2196,8 +2242,8 @@ static void test_transport_errors_in_commands(void **state)
     t.fail_reads_after = 1;
     run();
     expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
     expect_end();
+    assert_int_equal(t.init_calls, 2);
 }
 
 /* A gated command that a locked device runs once the session is
@@ -2254,9 +2300,10 @@ static void test_session_ends_with_the_transport(void **state)
 }
 
 /* command-mode.md 3.1, 4.4: a transfer inside a command that fails ends the
- * session too, a read or a write. The transport isn't restarted there yet
- * (F-274), so the next command comes on the same one, from a host that
- * isn't authenticated. */
+ * session too, a read or a write. Nothing more is sent on that transport,
+ * also where the command ignores the failure, and the transport is
+ * restarted: the next command is the next host's, which isn't
+ * authenticated. */
 static void test_session_ends_with_a_lost_transfer(void **state)
 {
     struct pb_command_board req = { .command = BOARD_ECHO, .request_size = 5 };
@@ -2264,7 +2311,7 @@ static void test_session_ends_with_a_lost_transfer(void **state)
 
     sec.slc = SLC_CONFIGURATION_LOCKED;
 
-    /* The board command's request is lost */
+    /* The board command's request is lost: no second result */
     host_auth_token();
     host_cmd(PB_CMD_BOARD_COMMAND, &req, sizeof(req));
     host_lost(-PB_ERR_IO);
@@ -2274,9 +2321,9 @@ static void test_session_ends_with_a_lost_transfer(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
     expect_result(PB_RESULT_OK);
-    expect_result(-PB_RESULT_IO_ERROR);
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_end();
+    assert_int_equal(t.init_calls, 3);
 
     /* A result is lost: the third write, the version's */
     t.init_calls = 0;
@@ -2292,6 +2339,93 @@ static void test_session_ends_with_a_lost_transfer(void **state)
     expect_result(PB_RESULT_OK);
     expect_result(-PB_RESULT_NOT_AUTHENTICATED);
     expect_end();
+    assert_int_equal(t.init_calls, 3);
+
+    /* The partition table's data is lost, a write whose result the command
+     * doesn't look at: its last result isn't sent */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.write_calls = 0;
+    t.lose_write = 4;
+    host_auth_token();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* the table's first */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(t.write_calls, 5);
+    assert_int_equal(t.init_calls, 3);
+}
+
+/*
+ * command-mode.md 4.6 (F-277): a host that stops in the middle of an
+ * exchange, here an AUTHENTICATE without its data. pb waits
+ * CONFIG_CM_TRANSFER_TIMEOUT for the transfer and kicks the watchdog while
+ * it waits; then the session ends and the transport is restarted, so the
+ * next host is answered and isn't authenticated.
+ */
+static void test_transfer_timeout_read(void **state)
+{
+    struct pb_command_authenticate auth = { .method = PB_AUTH_ASYM_TOKEN,
+                                            .size = 2,
+                                            .key_id = KEY_ID };
+    (void)state;
+
+    sec.slc = SLC_CONFIGURATION_LOCKED;
+
+    host_auth_token();
+    host_cmd(PB_CMD_AUTHENTICATE, &auth, sizeof(auth));
+    host_stops();
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    fake_wdog_kick_tick = fake_us_tick;
+    fake_wdog_max_gap_us = 0;
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK);
+    expect_result(PB_RESULT_OK); /* the second AUTHENTICATE's first */
+    /* The next host */
+    expect_result(-PB_RESULT_NOT_AUTHENTICATED);
+    expect_end();
+    assert_int_equal(t.init_calls, 3);
+
+    /* Reads: the token's command and data, the second command, the next
+     * host's command. Between the last two: the timeout, and little else */
+    assert_int_equal(t.n_reads, 4);
+    assert_true(t.read_ticks[3] - t.read_ticks[2] >= TRANSFER_TIMEOUT_US);
+    assert_true(t.read_ticks[3] - t.read_ticks[2] <= TRANSFER_TIMEOUT_US + 100 * TICK_STEP_US);
+    assert_true(fake_wdog_max_gap_us <= 10 * TICK_STEP_US);
+}
+
+/* command-mode.md 4.6 (F-277): a host that stops reading. The partition
+ * table's data isn't taken: pb waits the timeout once, doesn't send the last
+ * result, and restarts the transport. */
+static void test_transfer_timeout_write(void **state)
+{
+    (void)state;
+
+    t.stop_write = 2;
+    t.max_inits = 2;
+    host_cmd(PB_CMD_PART_TBL_READ, NULL, 0);
+    host_cmd(PB_CMD_BOOTLOADER_VERSION_READ, NULL, 0);
+    fake_wdog_kick_tick = fake_us_tick;
+    fake_wdog_max_gap_us = 0;
+    run();
+
+    expect_result(PB_RESULT_OK); /* the table's first */
+    /* The next host */
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(t.write_calls, 3);
+    assert_int_equal(t.init_calls, 3);
+    assert_int_equal(t.n_writes, 2);
+    assert_true(t.write_ticks[1] - t.write_ticks[0] >= TRANSFER_TIMEOUT_US);
+    assert_true(t.write_ticks[1] - t.write_ticks[0] <= TRANSFER_TIMEOUT_US + 100 * TICK_STEP_US);
+    assert_true(fake_wdog_max_gap_us <= 10 * TICK_STEP_US);
 }
 
 /* command-mode.md 3.1, 5.4: the stream is the session's. After the
@@ -2839,6 +2973,8 @@ int main(void)
         CM_TEST(test_transport_errors_in_commands),
         CM_TEST(test_session_ends_with_the_transport),
         CM_TEST(test_session_ends_with_a_lost_transfer),
+        CM_TEST(test_transfer_timeout_read),
+        CM_TEST(test_transfer_timeout_write),
         CM_TEST(test_session_stream_ends_with_the_transport),
         CM_TEST(test_session_survives_failures),
         CM_TEST(test_log_read),

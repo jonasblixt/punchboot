@@ -506,12 +506,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | a host can try passwords as fast as the transport carries them. D-058 (Jonas), | | |
 | | | `command-mode.md` 3.3: the result of a failed attempt is sent 1 s after the data arrived, with | | |
 | | | every method, the watchdog kicked meanwhile; no counter, no lockout | | |
-| F-277 | `src/cm/cm_main.c` `cm_read()`, `cm_write()`, `PB_CMD_DEVICE_READ_CAPS` | A | Verified (code) | open |
-| | | transfer inside a command has no timeout: a host that stops (`AUTHENTICATE`, then no data) | | |
-| | | leaves pb waiting without a kick (F-189), for ever without a watchdog. The caps' | | |
-| | | `operation_timeout_ms` and `part_erase_timeout_ms` are never set. D-058 (Jonas), | | |
-| | | `command-mode.md` 4.6: `CONFIG_CM_TRANSFER_TIMEOUT` (10 s), kicking while waiting, then the | | |
-| | | session ends and the transport restarts; the caps carry pb's timeouts (F-226 for the host) | | |
 | F-278 | `src/cm/cm_main.c` `cmd_auth()`, `auth_read_data()` | Low. An `AUTHENTICATE` with | Verified (code) | open |
 | | | a size of 0 or above 1024 ends the authentication of a session that had it (`authenticated = | | |
 | | | false` after `auth_read_data()` refused), one with a method that isn't in the build leaves it. | | |
@@ -780,6 +774,11 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | and pb reset, where `usb.md` 2.4 restarts the transport and waits for a host (`command-mode.md` | | |
 | | | 2.2). The session ends either way. Inside a command a failed start ends the session since F-185, and | | |
 | | | the command goes on (F-274) | | |
+| F-375 | `src/cm/cm_main.c` `PB_CMD_DEVICE_READ_CAPS`, `command-mode.md` 4.6 | Low. The caps' | Verified (code) | open |
+| | | `part_erase_timeout_ms` stays zero: 4.6 says a device fills it, but pb sets no bound on an erase. | | |
+| | | Its time is the driver's per block (`bio.md` 3, from the driver's header) times the blocks a host | | |
+| | | names. To decide: what the field means (a whole partition, a block, the largest erase pb takes in | | |
+| | | one command), then fill it. Released hosts ignore it (F-226) | | |
 
 ## Dependencies / vendored code
 

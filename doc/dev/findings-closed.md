@@ -549,6 +549,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `bebop` and `pico8ml` (F-033) have no command mode entries and no board. `unit.cm_auth_needs_a_method` | | |
 | | | (`tests/unit/CMakeLists.txt`) compiles `pb/cm.h` with the gate and no method and expects the | | |
 | | | `#error`. Both boards build; not run on a board | | |
+| F-277 | `src/cm/cm_main.c` `cm_read()`, `cm_write()`, `PB_CMD_DEVICE_READ_CAPS` | A | Verified (code) | fixed |
+| | | transfer inside a command has no timeout: a host that stops (`AUTHENTICATE`, then no data) | | |
+| | | leaves pb waiting without a kick (F-189), for ever without a watchdog. The caps' | | |
+| | | `operation_timeout_ms` and `part_erase_timeout_ms` are never set. D-058 (Jonas), | | |
+| | | `command-mode.md` 4.6: `CONFIG_CM_TRANSFER_TIMEOUT` (10 s), kicking while waiting, then the | | |
+| | | session ends and the transport restarts; the caps carry pb's timeouts (F-226 for the host) | | |
+| | | Fixed: `cm_read()` and `cm_write()` wait at most `CONFIG_CM_TRANSFER_TIMEOUT` (10 s, 1 to 65) for | | |
+| | | a transfer and kick the watchdog on every poll. A transfer that fails or times out ends the session, | | |
+| | | the command's later transfers fail without touching the transport, and the command loop restarts the | | |
+| | | transport (`init`, then `connect`), so the device waits for a host again (`command-mode.md` 2.2). | | |
+| | | That also covers F-274 (3): an ignored `cm_write()` result or a failed `cm_read()` no longer leaves | | |
+| | | the command loop on the same transport. The caps carry `operation_timeout_ms` = the transfer | | |
+| | | timeout; `part_erase_timeout_ms` stays zero (F-375). pb-host's socket `complete()` polls (10 ms) | | |
+| | | instead of blocking, so the timeout runs there too. `test_cm.c` (`test_transfer_timeout_read`, | | |
+| | | `_write`, `test_session_ends_with_a_lost_transfer`, the caps in `test_basic_commands`) | | |
 
 ## Dependencies / vendored code
 

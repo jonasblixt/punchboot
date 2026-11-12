@@ -60,7 +60,9 @@ A single integration test, inside `scripts/pbdev shell`:
   unchanged. It stays below 0x7fff8000, where ASan's shadow memory starts.
 - **pb's own memory regions.** These normally come from the linker script. On the host they are
   set with `--defsym` (`-no-pie`) at the start of RAM, so the image overlap checks keep working.
-- **Transport.** A unix socket server. `complete()` does the blocking I/O. When a client disconnects,
+- **Transport.** A unix socket server. `complete()` polls: it moves what the socket has, waits at
+  most 10 ms for more and returns AGAIN until the transfer is whole, so command mode's transfer
+  timeout and kicks run (`command-mode.md` 4.6). When a client disconnects,
   `complete()` fails, `cm_run` calls `init()` again, and `init()` accepts the next client, so each
   CLI or `Session` is one connection, and one session (`command-mode.md` 3.1): a locked device
   asks each for authentication.

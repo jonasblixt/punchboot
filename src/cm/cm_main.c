@@ -55,6 +55,10 @@ static bool stream_written;
 static bool stream_failed;
 static bool reboot_requested = false;
 static const struct cm_config *cfg;
+/* A transfer inside a command failed or timed out (command-mode.md 4.4,
+ * 4.6): the session is over, the command's other transfers fail at once and
+ * the command loop restarts the transport */
+static bool transfer_lost;
 
 #ifdef CONFIG_BOOT_LINUX_RAMOOPS
 static const struct linux_ramoops_config ramoops = {
@@ -207,21 +211,49 @@ static void cm_session_end(void)
     stream_failed = false;
 }
 
+/*
+ * Waits for the transfer that was started, for at most
+ * CONFIG_CM_TRANSFER_TIMEOUT, and kicks the watchdog while it waits
+ * (command-mode.md 4.6): a host that stops in the middle of an exchange
+ * neither holds pb for ever nor resets it.
+ */
+static int cm_transfer_wait(void)
+{
+    struct pb_timeout to;
+    int rc;
+
+    pb_timeout_init_us(&to, CONFIG_CM_TRANSFER_TIMEOUT * 1000000UL);
+
+    do {
+        plat_wdog_kick();
+        rc = cfg->tops.complete();
+
+        if (rc == -PB_ERR_AGAIN && pb_timeout_has_expired(&to)) {
+            LOG_ERR("Transfer timed out");
+            rc = -PB_ERR_TIMEOUT;
+        }
+    } while (rc == -PB_ERR_AGAIN);
+
+    return rc;
+}
+
 static int cm_write(const void *buf, size_t length)
 {
     int rc;
 
+    if (transfer_lost)
+        return -PB_ERR_IO;
+
     rc = cfg->tops.write(buf, length);
 
-    if (rc == PB_OK) {
-        do {
-            rc = cfg->tops.complete();
-        } while (rc == -PB_ERR_AGAIN);
-    }
+    if (rc == PB_OK)
+        rc = cm_transfer_wait();
 
     /* A transfer that failed ends the session (command-mode.md 4.4) */
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+        transfer_lost = true;
         cm_session_end();
+    }
 
     return rc;
 }
@@ -230,17 +262,19 @@ static int cm_read(void *buf, size_t length)
 {
     int rc;
 
+    if (transfer_lost)
+        return -PB_ERR_IO;
+
     rc = cfg->tops.read(buf, length);
 
-    if (rc == PB_OK) {
-        do {
-            rc = cfg->tops.complete();
-        } while (rc == -PB_ERR_AGAIN);
-    }
+    if (rc == PB_OK)
+        rc = cm_transfer_wait();
 
     /* A transfer that failed ends the session (command-mode.md 4.4) */
-    if (rc != PB_OK)
+    if (rc != PB_OK) {
+        transfer_lost = true;
         cm_session_end();
+    }
 
     return rc;
 }
@@ -1027,6 +1061,9 @@ static int pb_command_parse(void)
         caps.stream_no_of_buffers = 2;
         caps.stream_buffer_size = CM_BUF_SIZE;
         caps.chunk_transfer_max_bytes = CM_BUF_SIZE;
+        /* pb's timeout for a transfer (command-mode.md 4.6). pb sets no bound
+         * on an erase, so a host uses its own (F-375) */
+        caps.operation_timeout_ms = CONFIG_CM_TRANSFER_TIMEOUT * 1000;
 
         pb_wire_init_result2(&result, PB_RESULT_OK, &caps, sizeof(caps));
     } break;
@@ -1230,6 +1267,7 @@ restart_command_mode:
     /* A session starts with nothing: the last one ended with the transport
      * that is (re)started here (command-mode.md 3.1) */
     cm_session_end();
+    transfer_lost = false;
 
     if (cfg->tops.init) {
         rc = cfg->tops.init();
@@ -1282,6 +1320,12 @@ restart_command_mode:
 
                 if (rc == -PB_ERR_ABORT) {
                     goto err_out;
+                } else if (transfer_lost) {
+                    /* The session is over: the transport is restarted and
+                     * the device is back at waiting for a host
+                     * (command-mode.md 3.1, 4.4, 4.6) */
+                    LOG_ERR("Transfer lost (%i), restarting the transport", rc);
+                    goto restart_command_mode;
                 } else if (rc != PB_OK) {
                     LOG_ERR("Command error %i", rc);
                     break;
