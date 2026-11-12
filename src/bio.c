@@ -48,7 +48,8 @@ bio_dev_t bio_allocate(lba_t first_lba,
 {
     if (n_bios == CONFIG_BIO_MAX_DEVS)
         return -PB_ERR_MEM;
-    if (block_size == 0)
+    /* The largest block a device may have (bio.md 2.3) */
+    if (block_size == 0 || block_size > CONFIG_BIO_MAX_BLOCK_SIZE)
         return -PB_ERR_PARAM;
     if (first_lba > last_lba)
         return -PB_ERR_PARAM;
@@ -203,6 +204,10 @@ int bio_read(bio_dev_t dev, lba_t lba, size_t length, void *buf)
         LOG_ERR("Range error, lba=%u, length=%zu", lba, length);
         return -PB_ERR_PARAM;
     }
+    /* Nothing to read: the driver isn't called (bio.md 3.1) */
+    if (length == 0)
+        return PB_OK;
+
     return bio_pool[dev].read(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
 
@@ -219,6 +224,9 @@ int bio_write(bio_dev_t dev, lba_t lba, size_t length, const void *buf)
         LOG_ERR("Range error, lba=%u, length=%zu", lba, length);
         return -PB_ERR_PARAM;
     }
+    /* Nothing to write: the driver isn't called (bio.md 3.2) */
+    if (length == 0)
+        return PB_OK;
 
     return bio_pool[dev].write(dev, bio_pool[dev].first_lba + lba, length, buf);
 }
@@ -232,8 +240,15 @@ int bio_erase(bio_dev_t dev, lba_t first_lba, size_t count)
         return rc;
     if (bio_pool[dev].erase == NULL)
         return -PB_ERR_NOT_SUPPORTED;
+    if (count == 0)
+        return PB_OK;
+    if (count > SIZE_MAX / bio_pool[dev].block_sz ||
+        check_lba_range(dev, first_lba, count * bio_pool[dev].block_sz) != 0) {
+        LOG_ERR("Range error, lba=%u, count=%zu", first_lba, count);
+        return -PB_ERR_PARAM;
+    }
 
-    return bio_pool[dev].erase(dev, first_lba, count);
+    return bio_pool[dev].erase(dev, bio_pool[dev].first_lba + first_lba, count);
 }
 
 int bio_get_hal_flags(bio_dev_t dev)
