@@ -243,7 +243,7 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
             } else {
                 commit = true;
                 boot_state.enable = PB_STATE_B_ENABLED;
-                boot_state.error = PB_STATE_ERROR_A_ROLLBACK;
+                boot_state.error |= PB_STATE_ERROR_A_ROLLBACK;
                 boot_part_uu = cfg->sys_b_uu;
             }
         } else {
@@ -271,7 +271,7 @@ static int first_candidate(const unsigned char **part_uu, enum boot_policy_mode 
             } else {
                 commit = true;
                 boot_state.enable = PB_STATE_A_ENABLED;
-                boot_state.error = PB_STATE_ERROR_B_ROLLBACK;
+                boot_state.error |= PB_STATE_ERROR_B_ROLLBACK;
                 boot_part_uu = cfg->sys_a_uu;
             }
         } else {

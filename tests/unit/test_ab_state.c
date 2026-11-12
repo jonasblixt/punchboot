@@ -850,6 +850,87 @@ static void test_writes_with_a_viable_candidate(void **state)
     assert_disk_state(f, 0, 0, 0, 0);
 }
 
+/*
+ * A rollback with the other slot's bit already set (boot.md 3.5, rule 2, F-340):
+ * the rolled back slot's bit is set and the other one's stays. All 512 bytes
+ * of both copies: the state before with the other slot enabled and the bit
+ * set, the board's registers kept, the CRC over that.
+ */
+static void assert_rollback_keeps_the_bit(struct fixture *f,
+                                          uint32_t enable,
+                                          uint32_t verified,
+                                          uint32_t error_before,
+                                          bio_dev_t target,
+                                          uint32_t enable_after,
+                                          uint32_t error_after)
+{
+    struct pb_boot_state expected;
+    uuid_t uu;
+
+    write_state(f, enable, verified, 0, error_before);
+    reboot(f, &cfg_normal);
+    for (unsigned int i = 0; i < PB_STATE_NO_OF_BOARD_REGS; i++)
+        assert_int_equal(boot_ab_state_write_board_reg(i, 0xb0a4d000 + i), PB_OK);
+    memcpy(&expected, state_at(f, PRIMARY_LBA), sizeof(expected));
+    reboot(f, &cfg_normal);
+
+    assert_int_equal(hand_out(uu), target);
+    assert_int_equal(boot_policy_ab_ops.mode(), BOOT_POLICY_MODE_NORMAL);
+    boot_policy_ab_ops.report(uu, PB_OK);
+
+    expected.enable = enable_after;
+    expected.error = error_after;
+    expected.crc = 0;
+    expected.crc = crc32(0, (const uint8_t *)&expected, sizeof(expected));
+    assert_memory_equal(state_at(f, PRIMARY_LBA), &expected, sizeof(expected));
+    assert_memory_equal(state_at(f, BACKUP_LBA), &expected, sizeof(expected));
+}
+
+static void test_rollback_keeps_the_other_slots_bit(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    /* From A, with B's bit set: both bits */
+    assert_rollback_keeps_the_bit(f,
+                                  PB_STATE_A_ENABLED,
+                                  PB_STATE_B_VERIFIED,
+                                  PB_STATE_ERROR_B_ROLLBACK,
+                                  f->sys_b,
+                                  PB_STATE_B_ENABLED,
+                                  PB_STATE_ERROR_A_ROLLBACK | PB_STATE_ERROR_B_ROLLBACK);
+
+    /* The mirror: from B, with A's bit set */
+    assert_rollback_keeps_the_bit(f,
+                                  PB_STATE_B_ENABLED,
+                                  PB_STATE_A_VERIFIED,
+                                  PB_STATE_ERROR_A_ROLLBACK,
+                                  f->sys_a,
+                                  PB_STATE_A_ENABLED,
+                                  PB_STATE_ERROR_A_ROLLBACK | PB_STATE_ERROR_B_ROLLBACK);
+
+    /* The rolled back slot's own bit already set: it stays, alone */
+    assert_rollback_keeps_the_bit(f,
+                                  PB_STATE_A_ENABLED,
+                                  PB_STATE_B_VERIFIED,
+                                  PB_STATE_ERROR_A_ROLLBACK,
+                                  f->sys_b,
+                                  PB_STATE_B_ENABLED,
+                                  PB_STATE_ERROR_A_ROLLBACK);
+
+    /* No bit set: the bytes every released pb wrote (D-008), its own bit
+     * alone, the rest zero */
+    write_state(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(hand_out(uu), f->sys_b);
+    assert_disk_state(f, PB_STATE_B_ENABLED, PB_STATE_B_VERIFIED, 0, PB_STATE_ERROR_A_ROLLBACK);
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 0, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(hand_out(uu), f->sys_a);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, PB_STATE_ERROR_B_ROLLBACK);
+}
+
 #ifdef CONFIG_BOOT_AB_SPECULATIVE
 /*
  * Speculative mode (boot.md 3.6), with CONFIG_BOOT_AB_SPECULATIVE. One test
@@ -870,6 +951,24 @@ static void pbstate_confirms(struct fixture *f, uint32_t verified_bit)
     memcpy(&s, state_at(f, PRIMARY_LBA), sizeof(s));
     s.verified |= verified_bit;
     s.remaining_boot_attempts = 0;
+    s.crc = 0;
+    s.crc = crc32(0, (const uint8_t *)&s, sizeof(s));
+    memcpy(state_at(f, PRIMARY_LBA), &s, sizeof(s));
+    memcpy(state_at(f, BACKUP_LBA), &s, sizeof(s));
+}
+
+/*
+ * The OS invalidates a slot, as pbstate does (pbstate_invalidate_system()):
+ * the slot's enable and verified bits are cleared. The error bits stay.
+ */
+static void pbstate_invalidates(struct fixture *f, uint32_t enable_bit, uint32_t verified_bit)
+{
+    struct pb_boot_state s;
+
+    assert_true(state_valid(f, PRIMARY_LBA));
+    memcpy(&s, state_at(f, PRIMARY_LBA), sizeof(s));
+    s.enable &= ~enable_bit;
+    s.verified &= ~verified_bit;
     s.crc = 0;
     s.crc = crc32(0, (const uint8_t *)&s, sizeof(s));
     memcpy(state_at(f, PRIMARY_LBA), &s, sizeof(s));
@@ -1385,6 +1484,43 @@ static void test_speculative_mode_is_reported(void **state)
 }
 
 /*
+ * The history that reaches a rollback with the other slot's bit set (F-340):
+ * B's trial rolls back to A (B's bit), the OS confirms B and invalidates A,
+ * speculative mode boots A, which isn't confirmed, and the next boot rolls
+ * back to B. A's bit is set and B's stays (boot.md 3.5, rule 2).
+ */
+static void test_speculative_then_rollback_keeps_both_bits(void **state)
+{
+    struct fixture *f = *state;
+
+    write_state(f, PB_STATE_B_ENABLED, PB_STATE_A_VERIFIED, 1, 0);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_mode(NORMAL);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED, 0, PB_STATE_ERROR_B_ROLLBACK);
+
+    pbstate_confirms(f, PB_STATE_B_VERIFIED);
+    pbstate_invalidates(f, PB_STATE_A_ENABLED, PB_STATE_A_VERIFIED);
+    assert_disk_state(f, 0, PB_STATE_B_VERIFIED, 0, PB_STATE_ERROR_B_ROLLBACK);
+
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_a);
+    assert_mode(SPECULATIVE);
+    assert_disk_state(f, PB_STATE_A_ENABLED, PB_STATE_B_VERIFIED, 0, PB_STATE_ERROR_B_ROLLBACK);
+
+    reboot(f, &cfg_normal);
+    assert_int_equal(boot_once(), f->sys_b);
+    assert_mode(NORMAL);
+    assert_disk_state(f,
+                      PB_STATE_B_ENABLED,
+                      PB_STATE_B_VERIFIED,
+                      0,
+                      PB_STATE_ERROR_A_ROLLBACK | PB_STATE_ERROR_B_ROLLBACK);
+}
+
+/*
  * What the mode's write must leave, all 512 bytes of both copies: the state
  * 'before' with 'enable', the attempts zero and the CRC over that.
  */
@@ -1624,6 +1760,7 @@ int main(void)
         AB_TEST(test_trial_that_fails_falls_back),
         AB_TEST(test_next_starts_over_after_an_error),
         AB_TEST(test_writes_with_a_viable_candidate),
+        AB_TEST(test_rollback_keeps_the_other_slots_bit),
 #ifndef CONFIG_BOOT_AB_SPECULATIVE
         /* Without a viable candidate there is none */
         AB_TEST(test_no_fallback_to_unverified_slot),
@@ -1642,6 +1779,7 @@ int main(void)
         AB_TEST(test_speculative_counts_no_attempts),
         AB_TEST(test_speculative_ends_when_the_os_confirms),
         AB_TEST(test_speculative_mode_is_reported),
+        AB_TEST(test_speculative_then_rollback_keeps_both_bits),
         AB_TEST(test_speculative_writes_only_enable),
         AB_TEST(test_speculative_write_error),
         AB_TEST(test_speculative_backup_write_error),

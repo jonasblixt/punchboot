@@ -409,6 +409,21 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | (`test_boot_mode`: a policy boot, a fallback, `boot part` and `boot bpak` after a fallback that | | |
 | | | failed, read from pb-host's log, F-347). `boot.md` 3 names no function for the system's name: F-345. | | |
 | | | Every board builds; not run on a board | | |
+| F-340 | `src/boot/ab_state.c` | Minor. A rollback to a confirmed slot assigns `error` | Verified (code) | fixed |
+| | | (`error = PB_STATE_ERROR_A_ROLLBACK`), which clears the other slot's rollback bit; `boot.md` | | |
+| | | 3.5, rule 2 sets the rolled back slot's bit. F-177's rest: speculative mode no longer writes | | |
+| | | `error` (F-257). Without speculative mode no writer leaves such a state (`pbstate -s` and | | |
+| | | `boot activate` clear `error`). With it: B confirmed with its bit set, | | |
+| | | `pbstate_invalidate_system(A)`, a speculative boot of A, then the rollback to B. `|=` changes | | |
+| | | what normal mode writes in that state: decide (D-008) | | |
+| | | Fixed: the two rollbacks in `first_candidate()` set their slot's bit (`error |=`), in both builds. | | |
+| | | Where the other slot's bit isn't set, the bytes written are the same as before (D-008), so is | | |
+| | | every state reachable without speculative mode. Only a state that has it set changes: the bit is | | |
+| | | kept. Reached only with `CONFIG_BOOT_AB_SPECULATIVE`, by the history above. | | |
+| | | `boot activate` still assigns `error = 0`, as 3.5 says; who else clears a bit: F-360. | | |
+| | | `test_rollback_keeps_the_other_slots_bit` (both builds: both directions with the other bit set, all | | |
+| | | 512 bytes and the board's registers; no bit set, the bytes as before) and | | |
+| | | `test_speculative_then_rollback_keeps_both_bits` (the history); both fail without the fix | | |
 
 ## Dependencies / vendored code
 

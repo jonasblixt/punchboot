@@ -719,13 +719,6 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | policies end (fixed, chain, A/B). A board's own policy whose `next` never ends would loop, and | | |
 | | | since F-243 the loads in it kick the watchdog, where it reset before. A bound in the core, or | | |
 | | | a sentence in `boot.md` 3.2 that a policy hands out each candidate once per boot | | |
-| F-340 | `src/boot/ab_state.c` | Minor. A rollback to a confirmed slot assigns `error` | Verified (code) | open |
-| | | (`error = PB_STATE_ERROR_A_ROLLBACK`), which clears the other slot's rollback bit; `boot.md` | | |
-| | | 3.5, rule 2 sets the rolled back slot's bit. F-177's rest: speculative mode no longer writes | | |
-| | | `error` (F-257). Without speculative mode no writer leaves such a state (`pbstate -s` and | | |
-| | | `boot activate` clear `error`). With it: B confirmed with its bit set, | | |
-| | | `pbstate_invalidate_system(A)`, a speculative boot of A, then the rollback to B. `|=` changes | | |
-| | | what normal mode writes in that state: decide (D-008) | | |
 | F-341 | `tests/`, `configs/host_defconfig` | Speculative mode (`boot.md` 3.6) has unit | Verified (code) | open |
 | | | tests only. pb-host can't have `CONFIG_BOOT_AB_SPECULATIVE`: the host has no watchdog, which | | |
 | | | the symbol depends on, and `test_ab_state_speculative` builds `ab_state.c` with the symbol | | |
@@ -786,6 +779,14 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | and the status of the 3 keys (3 reads), in a boot of 40.1 ms from a warm reset to the image's entry | | |
 | | | (`testbench/simple/README.md`). Measure it on the RT (`pytest tests -k boot_time`) and record it | | |
 | | | there | | |
+| F-360 | `doc/architecture/boot.md` 3.5, 3.7, `tools/pbstate` | The contract says who sets a | Verified (code) | open |
+| | | rollback bit (3.5, rule 2) and that `boot activate` clears both, but not who else clears one, nor | | |
+| | | that both can be set (F-340). Today: `pbstate -s A`/`-s B` (`pbstate_switch_system()`) assigns | | |
+| | | `error = 0`, with and without `-c`; `-s none` and a confirmation (`-v`, | | |
+| | | `pbstate_set_system_verified()`) keep the bits; libpbstate's `pbstate_clear_error(mask)` clears by | | |
+| | | mask and has no command line option; pb clears them only in `boot activate`, a rollback keeps the | | |
+| | | other one. Write into 3.5 (or 3.7, for the OS's side) when a bit is cleared and by whom, before the | | |
+| | | shared core (F-173) fixes it in code | | |
 
 ## Dependencies / vendored code
 
