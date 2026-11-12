@@ -17,7 +17,14 @@ config CM_AUTH
     default y
     depends on CM
     help
-        This will enable authentication when the security life cycle is >= LOCKED
+        Command mode's gate (command-mode.md 3.2). On: a closed device (a
+        locked or an unknown life cycle) answers only DEVICE_IDENTIFIER_READ
+        and AUTHENTICATE until the session authenticates, and the build
+        selects at least one method below, or it doesn't build.
+
+        Off: no gate. Every session counts as authenticated, so command
+        mode is open in every life cycle state, also on a locked device.
+        That is the product's choice, made in its defconfig (D-059).
 
 config CM_AUTH_TOKEN
     bool "Token based authentication"

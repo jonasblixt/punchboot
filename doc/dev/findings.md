@@ -479,13 +479,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | D-056, `platform.md` 7: the API stays with the platform; `imx8x.h` includes the services boards | | |
 | | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
 | | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
-| F-271 | `src/cm/cm_main.c`, `src/cm/Kconfig`, `configs/imx8m{,p}evk_defconfig` | A build | Verified (code) | open |
-| | | with `CONFIG_CM_AUTH` and no method builds: once locked, its command mode answers NOT_SUPPORTED | | |
-| | | to `AUTHENTICATE` for good. The imx8mevk's and the imx8mpevk's defconfigs select none. D-059 | | |
-| | | (Jonas), `command-mode.md` 3.2: a build with authentication selects at least one method, or it | | |
-| | | doesn't build; the two defconfigs get the token. `CONFIG_CM_AUTH` itself stays the product's | | |
-| | | switch: off means no gate, an open command mode also on a locked device, by choice. The | | |
-| | | option's help text says so | | |
 | F-272 | `src/cm/cm_main.c` | Only `cmd_part_tbl_read()` looks at `BIO_FLAG_VISIBLE`. | Verified (code) | open |
 | | | Stream init, erase, verify, bpak read, `boot part` and activate find a hidden partition by its | | |
 | | | UUID (`bio_get_part_by_uu()`). With F-186 (`part verify` reads any partition byte by byte). | | |

@@ -297,6 +297,18 @@ pb_unit_test(test_cm SOURCES
 # Both methods, whatever pb-host is built with: its board has no password
 target_compile_definitions(test_cm PRIVATE CONFIG_CM_AUTH_PASSWORD=1)
 
+# A build with CONFIG_CM_AUTH and no method doesn't build (command-mode.md
+# 3.2, D-059): pb/cm.h with a configuration that has the gate and no method
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cm_auth_no_method/config.h
+     "#define CONFIG_CM 1\n#define CONFIG_CM_AUTH 1\n")
+add_test(NAME unit.cm_auth_needs_a_method
+    COMMAND ${CMAKE_C_COMPILER} -fsyntax-only
+            -I${CMAKE_CURRENT_BINARY_DIR}/cm_auth_no_method -I${PROJECT_SOURCE_DIR}/include
+            -x c ${PROJECT_SOURCE_DIR}/include/pb/cm.h
+)
+set_tests_properties(unit.cm_auth_needs_a_method PROPERTIES LABELS unit TIMEOUT 60
+    PASS_REGULAR_EXPRESSION "CONFIG_CM_AUTH needs a method")
+
 pb_unit_test(test_mmc_core SOURCES
     ${PROJECT_SOURCE_DIR}/src/bio.c
     ${PROJECT_SOURCE_DIR}/src/drivers/mmc/mmc_core.c

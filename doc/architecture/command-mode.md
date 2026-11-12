@@ -195,11 +195,10 @@ authentication (`CONFIG_CM_AUTH`, below):
   open in every life cycle state, on a locked device too. That is a product's explicit choice
   (`security.md` 4.7, `system.md` 6), made in its defconfig.
 - **On**: the gate above, and **the build selects at least one method**
-  (`CONFIG_CM_AUTH_TOKEN`, `CONFIG_CM_AUTH_PASSWORD`), or it doesn't build. **Not yet in the
-  code (F-271)**: a build with no method builds, and once locked its command mode answers
-  `NOT_SUPPORTED` to `AUTHENTICATE` for good (the imx8mevk's and the 8MP EVK's defconfigs
-  today). The token costs a product nothing: whoever signs its images can sign a token, with
-  the EC keys pb verifies today (3.3).
+  (`CONFIG_CM_AUTH_TOKEN`, `CONFIG_CM_AUTH_PASSWORD`), or it doesn't build (`pb/cm.h`). A
+  build with no method would answer `NOT_SUPPORTED` to `AUTHENTICATE` for good once locked.
+  The token costs a product nothing: whoever signs its images can sign a token, with the EC
+  keys pb verifies today (3.3).
 - pb can't keep a product from weak authentication, and doesn't try (Jonas): what a board's
   `password_auth()` accepts is the board's (`board.md` 4.5).
 
@@ -746,7 +745,6 @@ For a change to command mode, a new command or a new method:
 | ------------------- | ------------------------------------------------------------------------------------ |
 | F-268, F-267        | Command mode as a task; the platform sets up the port, the transport is linked (2)   |
 | F-201, F-363        | The session ends with the transport: authentication and the stream are cleared (3.1) |
-| F-271               | A build with `CONFIG_CM_AUTH` selects at least one method (3.2)                      |
 | F-277               | A transfer timeout that ends the session; the caps' timeouts (4.6)                   |
 | F-181               | The verdict of a token is the verification's own (3.3)                               |
 | F-280               | `BOOT_BPAK`'s parts as a stream, where the device's pieces aren't the host's (4.4)   |

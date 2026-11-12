@@ -532,6 +532,23 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | image with an empty device tree that the board names was accepted by every release: no decision | | |
 | | | entry covers it yet (D-074 names F-330). `test_image.c` (and for ARMv7): | | |
 | | | `test_dtb_smaller_than_its_header_is_refused`. Not run on a board | | |
+| F-271 | `src/cm/cm_main.c`, `src/cm/Kconfig`, `configs/imx8m{,p}evk_defconfig` | A build | Verified (code) | fixed |
+| | | with `CONFIG_CM_AUTH` and no method builds: once locked, its command mode answers NOT_SUPPORTED | | |
+| | | to `AUTHENTICATE` for good. The imx8mevk's and the imx8mpevk's defconfigs select none. D-059 | | |
+| | | (Jonas), `command-mode.md` 3.2: a build with authentication selects at least one method, or it | | |
+| | | doesn't build; the two defconfigs get the token. `CONFIG_CM_AUTH` itself stays the product's | | |
+| | | switch: off means no gate, an open command mode also on a locked device, by choice. The | | |
+| | | option's help text says so | | |
+| | | Fixed: `pb/cm.h` stops a build with `CONFIG_CM_AUTH` and neither `CONFIG_CM_AUTH_TOKEN` nor | | |
+| | | `CONFIG_CM_AUTH_PASSWORD` with an `#error`; the header takes `config.h` itself, so the check doesn't | | |
+| | | hang on what a file included before it. Kconfig can't fail a build, and a `select` or a | | |
+| | | `depends on` would have turned the token on, or the gate off, without a word. The imx8mevk's and | | |
+| | | the imx8mpevk's defconfigs select the token, which needs nothing of a board: the keystore, the hash | | |
+| | | and the EC verification that verify its images (the CAAM on both). `CONFIG_CM_AUTH`'s help text | | |
+| | | says what on and off mean. Every other defconfig with command mode has a method; the orphans | | |
+| | | `bebop` and `pico8ml` (F-033) have no command mode entries and no board. `unit.cm_auth_needs_a_method` | | |
+| | | (`tests/unit/CMakeLists.txt`) compiles `pb/cm.h` with the gate and no method and expects the | | |
+| | | `#error`. Both boards build; not run on a board | | |
 
 ## Dependencies / vendored code
 
