@@ -72,6 +72,11 @@ static const struct boot_driver_simple_config cfg_no_name = {
     .boot_partition_id = ID_APP,
 };
 
+/* The board's object for the handover, the way a board has it in its data
+ * (board.boot_handover, F-265): BOOT_HANDOVER_SIMPLE() stays a constant
+ * initializer */
+static const struct boot_handover handover = BOOT_HANDOVER_SIMPLE(&cfg_named);
+
 static struct bpak_header *hdr;
 static uuid_t boot_part_uu;
 
@@ -250,6 +255,45 @@ static void test_no_load_address(void **state)
     assert_int_equal(name_calls, 0);
 }
 
+/* The handover the way src/board.c uses it: only through the board's object
+ * (F-265) */
+static void test_handover_object(void **state)
+{
+    (void)state;
+
+    add_part(ID_OTHER, 4096);
+    add_load_addr(ID_OTHER, APP_ADDR + 0x100000);
+    add_part(ID_APP, 8192);
+    add_load_addr(ID_APP, APP_ADDR);
+
+    assert_ptr_equal(handover.ops, &boot_handover_simple_ops);
+    assert_ptr_equal(handover.config, &cfg_named);
+
+    /* The module has the configuration without a name, so that the name
+     * below shows that the object's reached it */
+    assert_int_equal(boot_driver_simple_init(&cfg_no_name), PB_OK);
+
+    /* An error of the module's is init's answer */
+    assert_int_equal(handover.ops->init(NULL), -PB_ERR_PARAM);
+
+    assert_int_equal(handover.ops->init(handover.config), PB_OK);
+    assert_int_equal(handover.ops->prepare(hdr, boot_part_uu), PB_OK);
+    assert_int_equal(name_calls, 1);
+    assert_int_equal(mmu_disabled, 0);
+
+    if (setjmp(jump_env) == 0) {
+        handover.ops->jump();
+        fail_msg("The handover's jump returned");
+    }
+    assert_int_equal(mmu_disabled, 1);
+    /* The entry is the entry part's load address */
+    assert_ptr_equal(jump_args[0], (void *)(uintptr_t)APP_ADDR);
+    assert_string_equal(jump_args[1], "A");
+    assert_memory_equal(jump_args[2], boot_part_uu, sizeof(uuid_t));
+    assert_null(jump_args[3]);
+    assert_null(jump_args[4]);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -260,6 +304,7 @@ int main(void)
         cmocka_unit_test_setup(test_no_name, setup),
         cmocka_unit_test_setup(test_no_entry_part, setup),
         cmocka_unit_test_setup(test_no_load_address, setup),
+        cmocka_unit_test_setup(test_handover_object, setup),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);

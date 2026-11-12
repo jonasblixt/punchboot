@@ -8,12 +8,7 @@
  * Sets up the board from its description, 'board' (pb/board.h).
  */
 
-#include <boot/ab_state.h>
-#include <boot/atf.h>
 #include <boot/boot.h>
-#include <boot/linux.h>
-#include <boot/simple.h>
-#include <drivers/partition/gpt.h>
 #include <pb/bio.h>
 #include <pb/board.h>
 #include <pb/cm.h>
@@ -29,21 +24,20 @@
 
 static int setup_partitions(void)
 {
-#ifdef CONFIG_PARTITION_GPT
     bio_dev_t dev;
     int rc;
 
-    if (board.gpt_dev_uu == NULL)
+    if (board.ptbl.ops == NULL)
         return PB_OK;
 
-    dev = bio_get_part_by_uu(board.gpt_dev_uu);
+    dev = bio_get_part_by_uu(board.ptbl.device);
 
     if (dev < 0) {
         LOG_ERR("No device for the partition table (%i)", dev);
         return dev;
     }
 
-    rc = gpt_ptbl_init(dev, board.gpt_tables, board.gpt_tables_length);
+    rc = board.ptbl.ops->init(&board.ptbl, dev);
     /* The device itself is only visible, to report its capacity */
     (void)bio_set_flags(dev, BIO_FLAG_VISIBLE);
 
@@ -51,52 +45,39 @@ static int setup_partitions(void)
         LOG_WARN("No partition table (%i)", rc);
         return rc;
     }
-#endif
+
     return PB_OK;
 }
 
 static int setup_boot_driver(void)
 {
     static struct boot_driver driver;
-    int rc = -PB_ERR_PARAM;
+    int rc;
 
     memset(&driver, 0, sizeof(driver));
     driver.default_boot_source = BOOT_SOURCE_BIO;
     driver.early_boot_cb = board.early_boot;
     driver.late_boot_cb = board.late_boot;
-#ifdef CONFIG_BOOT_AB_DRIVER
-    if (board.ab) {
-        driver.get_boot_bio_device = boot_ab_state_get;
-        driver.set_boot_partition = boot_ab_state_set_boot_partition;
-        driver.get_boot_partition = boot_ab_state_get_boot_partition;
+
+    if (board.boot_policy.ops) {
+        driver.get_boot_bio_device = board.boot_policy.ops->get;
+        driver.set_boot_partition = board.boot_policy.ops->activate;
+        driver.get_boot_partition = board.boot_policy.ops->status;
     }
-#endif
-#ifdef CONFIG_BOOT_LINUX
-    if (board.boot_linux) {
-        rc = boot_driver_linux_init(board.boot_linux);
-        driver.prepare = boot_driver_linux_prepare;
-        driver.jump = boot_driver_linux_jump;
-    }
-#endif
-#ifdef CONFIG_BOOT_ATF
-    if (board.boot_atf) {
-        rc = boot_driver_atf_init(board.boot_atf);
-        driver.prepare = boot_driver_atf_prepare;
-        driver.jump = boot_driver_atf_jump;
-    }
-#endif
-#ifdef CONFIG_BOOT_SIMPLE
-    if (board.boot_simple) {
-        rc = boot_driver_simple_init(board.boot_simple);
-        driver.prepare = boot_driver_simple_prepare;
-        driver.jump = boot_driver_simple_jump;
-    }
-#endif
+
+    /* A handover is mandatory, and no delivery exists yet (F-258) */
+    if (board.boot_handover.ops == NULL || board.boot_delivery.ops != NULL)
+        rc = -PB_ERR_PARAM;
+    else
+        rc = board.boot_handover.ops->init(board.boot_handover.config);
 
     if (rc != PB_OK) {
         LOG_ERR("Boot driver init failed (%i)", rc);
         return rc;
     }
+
+    driver.prepare = board.boot_handover.ops->prepare;
+    driver.jump = board.boot_handover.ops->jump;
 
     return boot_init(&driver);
 }
@@ -132,21 +113,19 @@ int board_setup(void)
 
     if (rc != PB_OK) {
         /* Command mode installs the table, and its boot commands go through
-         * the driver: they report the missing A/B state */
+         * the driver: they report the policy's missing state */
         (void)setup_boot_driver();
         return rc;
     }
 
-#ifdef CONFIG_BOOT_AB_DRIVER
-    if (board.ab) {
-        rc = boot_ab_state_init(board.ab);
+    if (board.boot_policy.ops) {
+        rc = board.boot_policy.ops->init(board.boot_policy.config);
 
         if (rc != PB_OK) {
-            LOG_ERR("Boot state init failed (%i)", rc);
+            LOG_ERR("Boot policy init failed (%i)", rc);
             return rc;
         }
     }
-#endif
 
     if (board.late_init) {
         rc = board.late_init();

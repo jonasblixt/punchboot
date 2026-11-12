@@ -443,12 +443,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
 | | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
 | | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |
-| F-265 | `include/pb/board.h`, `src/board.c`, the boards | `struct board` has a member | Verified (code) | open |
-| | | per variant (`boot_linux`, `boot_atf`, `boot_simple`; `ab`; three for a GPT, and the RT's static | | |
-| | | table is code in `init()`), and which is set must agree with Kconfig. D-046, `board.md` 1: one | | |
-| | | member per concept (`ptbl`, `boot_policy`, `boot_handover`, `boot_delivery`), filled with the | | |
-| | | module's object (its functions and the board's configuration, made by its macro). `src/board.c` | | |
-| | | calls through the object and includes no module's header. With F-256, F-258, F-259 | | |
 | F-266 | `include/pb/board.h`, `src/boot/boot.c`, the boards | `late_boot()` gets | Verified (code) | open |
 | | | `struct bpak_header *header`, not `const`, which ties the hook to one image format. D-047, | | |
 | | | `board.md` 5.3: the argument goes; `boot_image_get_bpak_header()` returns the verified | | |

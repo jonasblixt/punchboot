@@ -336,3 +336,15 @@ int boot_ab_state_write_board_reg(unsigned int index, uint32_t value)
     boot_state.board_regs[PB_STATE_NO_OF_BOARD_REGS - index - 1] = value;
     return pb_boot_state_commit();
 }
+
+static int policy_ab_init(const void *config)
+{
+    return boot_ab_state_init(config);
+}
+
+const struct boot_policy_ops boot_policy_ab_ops = {
+    .init = policy_ab_init,
+    .get = boot_ab_state_get,
+    .activate = boot_ab_state_set_boot_partition,
+    .status = boot_ab_state_get_boot_partition,
+};

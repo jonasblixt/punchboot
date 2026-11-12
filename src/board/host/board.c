@@ -289,6 +289,8 @@ static int nor_init(void)
         return nor;
 
     rc = static_ptbl_init_mapped(nor, BOARD_NOR_BASE, nor_table);
+    /* As the core does for its table's device: a host writes the partitions */
+    (void)bio_set_flags(nor, BIO_FLAG_VISIBLE);
 
     if (rc != PB_OK)
         return rc;
@@ -420,12 +422,10 @@ const struct board board = {
     .rot = &rot,
     .slc = &slc,
     .init = board_hw_init,
-    .gpt_dev_uu = PART_disk,
-    .gpt_tables = gpt_tables,
-    .gpt_tables_length = ARRAY_SIZE(gpt_tables),
-    .ab = &boot_state_cfg,
+    .ptbl = PTBL_GPT(PART_disk, gpt_tables),
+    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
     .late_init = board_late_init,
-    .boot_linux = &boot_linux,
+    .boot_handover = BOOT_HANDOVER_IMAGE(&boot_linux),
     .early_boot = early_boot,
     .late_boot = late_boot,
     .cm_transport = &socket_transport,

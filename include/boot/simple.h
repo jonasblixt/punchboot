@@ -10,7 +10,9 @@
 #ifndef INCLUDE_BOOT_SIMPLE_H
 #define INCLUDE_BOOT_SIMPLE_H
 
+#include <boot/handover.h>
 #include <bpak/bpak.h>
+#include <pb/utils_def.h>
 #include <uuid.h>
 
 /**
@@ -47,5 +49,18 @@ struct boot_driver_simple_config {
 int boot_driver_simple_init(const struct boot_driver_simple_config *cfg);
 int boot_driver_simple_prepare(struct bpak_header *hdr, uuid_t boot_part_uu);
 void boot_driver_simple_jump(void);
+
+extern const struct boot_handover_ops boot_handover_simple_ops;
+
+/**
+ * A board's handover (board.boot_handover): the generic handover, until Firmware Handoff (F-259),
+ * with
+ * '_config', a const struct boot_driver_simple_config *.
+ */
+#define BOOT_HANDOVER_SIMPLE(_config)                                         \
+    {                                                                         \
+        .ops = &boot_handover_simple_ops,                                     \
+        .config = PB_CONFIG(_config, const struct boot_driver_simple_config), \
+    }
 
 #endif /* INCLUDE_BOOT_SIMPLE_H */

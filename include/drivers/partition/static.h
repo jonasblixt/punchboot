@@ -2,6 +2,7 @@
 #define INCLUDE_DRIVERS_PARTITION_STATIC_H
 
 #include <pb/bio.h>
+#include <pb/ptbl.h>
 #include <pb/utils_def.h>
 #include <stdint.h>
 
@@ -53,5 +54,32 @@ int static_ptbl_init_mapped(bio_dev_t dev, uintptr_t base, const struct static_p
  *        -PB_ERR_NOT_FOUND when it isn't: it is loaded
  */
 int static_ptbl_in_place(bio_dev_t dev, uintptr_t *base, size_t *size);
+
+extern const struct ptbl_ops ptbl_static_ops;
+extern const struct ptbl_ops ptbl_static_mapped_ops;
+
+/**
+ * A board's partition table (board.ptbl): the partitions '_table', struct
+ * static_part_table[], on the device with the UUID '_device', which has no
+ * table on it.
+ */
+#define PTBL_STATIC(_device, _table)                                      \
+    {                                                                     \
+        .ops = &ptbl_static_ops,                                          \
+        .device = (_device),                                              \
+        .table = PB_CONFIG(&(_table)[0], const struct static_part_table), \
+    }
+
+/**
+ * The same for a device that is memory mapped: '_base' is the address of its
+ * first byte. Only such a table has partitions that are booted in place.
+ */
+#define PTBL_STATIC_MAPPED(_device, _base, _table)                        \
+    {                                                                     \
+        .ops = &ptbl_static_mapped_ops,                                   \
+        .device = (_device),                                              \
+        .table = PB_CONFIG(&(_table)[0], const struct static_part_table), \
+        .base = (_base),                                                  \
+    }
 
 #endif

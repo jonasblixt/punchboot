@@ -258,3 +258,14 @@ void boot_driver_atf_jump(void)
 
     LOG_ERR("Jump returned %" PRIxPTR, jump_addr);
 }
+
+static int handover_init(const void *config)
+{
+    return boot_driver_atf_init(config);
+}
+
+const struct boot_handover_ops boot_handover_atf_ops = {
+    .init = handover_init,
+    .prepare = boot_driver_atf_prepare,
+    .jump = boot_driver_atf_jump,
+};

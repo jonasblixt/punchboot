@@ -12,7 +12,9 @@
 #ifndef BOOT_AB_STATE_H
 #define BOOT_AB_STATE_H
 
+#include <boot/policy.h>
 #include <pb/bio.h>
+#include <pb/utils_def.h>
 #include <uuid.h>
 
 enum ab_rollback_mode {
@@ -101,5 +103,17 @@ int boot_ab_state_read_board_reg(unsigned int index, uint32_t *value);
  * @return 0 on success
  */
 int boot_ab_state_write_board_reg(unsigned int index, uint32_t value);
+
+extern const struct boot_policy_ops boot_policy_ab_ops;
+
+/**
+ * A board's boot source policy (board.boot_policy): A/B, with '_config', a
+ * const struct boot_ab_state_config *.
+ */
+#define BOOT_POLICY_AB(_config)                                          \
+    {                                                                    \
+        .ops = &boot_policy_ab_ops,                                      \
+        .config = PB_CONFIG(_config, const struct boot_ab_state_config), \
+    }
 
 #endif

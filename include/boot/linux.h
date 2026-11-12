@@ -7,9 +7,14 @@
  *
  */
 
+#ifndef INCLUDE_BOOT_LINUX_H
+#define INCLUDE_BOOT_LINUX_H
+
 #include <boot/boot.h>
 #include <boot/dtb.h>
+#include <boot/handover.h>
 #include <bpak/bpak.h>
+#include <pb/utils_def.h>
 #include <uuid.h>
 
 struct boot_handover_image_config {
@@ -24,3 +29,17 @@ struct boot_handover_image_config {
 int boot_driver_linux_init(const struct boot_handover_image_config *cfg);
 int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu);
 void boot_driver_linux_jump(void);
+
+extern const struct boot_handover_ops boot_handover_image_ops;
+
+/**
+ * A board's handover (board.boot_handover): the image handover (Linux, Xen), with
+ * '_config', a const struct boot_handover_image_config *.
+ */
+#define BOOT_HANDOVER_IMAGE(_config)                                           \
+    {                                                                          \
+        .ops = &boot_handover_image_ops,                                       \
+        .config = PB_CONFIG(_config, const struct boot_handover_image_config), \
+    }
+
+#endif /* INCLUDE_BOOT_LINUX_H */

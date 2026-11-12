@@ -152,8 +152,9 @@ the policy the board chose, the policy's functions (3.1 to 3.4) with the board's
 for it (3.5, `board.md` 2.5). The core calls the board's policy. Kconfig compiles a policy in
 (`BOOT_POLICY_FIXED`, `BOOT_POLICY_CHAIN`, `BOOT_POLICY_AB`), more than one where a build wants
 them (the host's tests), and a board that names one that isn't compiled in doesn't link.
-**Not yet in the code (F-256, F-265)**: A/B is the only policy, wired into the core through
-three callbacks; without it no partition is bootable (F-215).
+**Not yet in the code (F-256)**: A/B is the only policy, and its object has the three
+callbacks the core had before (get, activate, status), not the functions below; without it no
+partition is bootable (F-215).
 
 ### 3.1 Function : boot_policy_init() [mandatory]
 
@@ -653,8 +654,6 @@ Like the wire (D-008, `compatibility.md`):
 | --------------------------------- | ------------------------------------------------------------------------------- |
 | F-256                             | The policy interface (3.1 to 3.4), fixed and staggered, their Kconfig names,    |
 |                                   | the loop with the fallback (F-174), each policy marking its candidates (F-215)  |
-| F-265                             | The policy's, the handover's and the delivery's objects in the board's data (3, |
-|                                   | 5.1)                                                                            |
 | F-257                             | Speculative mode (3.6, F-177): nothing enabled, Kconfig as its only switch      |
 | F-258                             | The handover and delivery model, `image`, TF-A's BL33 and BL32, `bl_params`     |
 |                                   | from the platform, the DXL                                                      |

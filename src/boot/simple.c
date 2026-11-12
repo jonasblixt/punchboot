@@ -64,3 +64,14 @@ void boot_driver_simple_jump(void)
     arch_disable_mmu();
     arch_jump((void *)jump_addr, (void *)boot_name, (void *)boot_uu, NULL, NULL);
 }
+
+static int handover_init(const void *config)
+{
+    return boot_driver_simple_init(config);
+}
+
+const struct boot_handover_ops boot_handover_simple_ops = {
+    .init = handover_init,
+    .prepare = boot_driver_simple_prepare,
+    .jump = boot_driver_simple_jump,
+};

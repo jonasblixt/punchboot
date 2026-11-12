@@ -452,3 +452,12 @@ int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *default_tables, si
 
     return PB_OK;
 }
+
+static int ptbl_gpt_init(const struct ptbl *ptbl, bio_dev_t dev)
+{
+    return gpt_ptbl_init(dev, ptbl->table, ptbl->length);
+}
+
+const struct ptbl_ops ptbl_gpt_ops = {
+    .init = ptbl_gpt_init,
+};

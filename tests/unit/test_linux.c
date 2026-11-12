@@ -136,6 +136,11 @@ static const struct boot_handover_image_config cfg_dtb_minimal = {
     .dtb_bpak_id = ID_DTB,
 };
 
+/* The board's object for the handover, the way a board has it in its data
+ * (board.boot_handover, F-265): BOOT_HANDOVER_IMAGE() stays a constant
+ * initializer */
+static const struct boot_handover handover = BOOT_HANDOVER_IMAGE(&cfg_dtb);
+
 /* The device tree part, and the headroom it grows into after it */
 #define DTB_SIZE 4096
 static uint8_t dtb[DTB_SIZE + CONFIG_BOOT_DTB_HEADROOM];
@@ -570,6 +575,41 @@ static void test_dtb_larger_than_part(void **state)
     assert_int_equal(boot_driver_linux_prepare(hdr, boot_part_uu), -PB_ERR);
 }
 
+/* The handover the way src/board.c uses it: only through the board's object */
+static void test_handover_object(void **state)
+{
+    static const struct boot_handover_image_config no_image = { 0 };
+    static const struct boot_handover refused = BOOT_HANDOVER_IMAGE(&no_image);
+    (void)state;
+
+    assert_ptr_equal(handover.ops, &boot_handover_image_ops);
+    assert_ptr_equal(handover.config, &cfg_dtb);
+
+    /* An error of the module's is init's answer, also without a configuration */
+    assert_int_equal(refused.ops->init(refused.config), -PB_ERR_PARAM);
+    assert_int_equal(handover.ops->init(NULL), -PB_ERR_PARAM);
+
+    /* The module has another configuration: the device tree is patched and
+     * passed on only when the object's reached it */
+    assert_int_equal(boot_driver_linux_init(&cfg_kernel_only), PB_OK);
+
+    assert_int_equal(handover.ops->init(handover.config), PB_OK);
+    assert_int_equal(handover.ops->prepare(hdr, boot_part_uu), PB_OK);
+    assert_string_equal(chosen_string("pb,device-uuid"), DEVICE_UUID);
+    assert_string_equal(chosen_string("pb,active-system"), "A");
+    assert_int_equal(patch_calls, 1);
+    assert_int_equal(cleaned_start, (uintptr_t)dtb);
+
+    mmu_disabled = 0;
+    if (setjmp(jump_env) == 0) {
+        handover.ops->jump();
+        fail_msg("arch_jump returned");
+    }
+    assert_ptr_equal(jump_args[0], (void *)KERNEL_ADDR);
+    assert_ptr_equal(jump_args[1], dtb);
+    assert_int_equal(mmu_disabled, 1);
+}
+
 #define LINUX_TEST(f) cmocka_unit_test_setup(f, setup)
 
 int main(void)
@@ -591,6 +631,7 @@ int main(void)
         LINUX_TEST(test_initrd_above_4_gib),
         LINUX_TEST(test_dtb_headroom_overlap),
         LINUX_TEST(test_dtb_larger_than_part),
+        LINUX_TEST(test_handover_object),
     };
 
     return cmocka_run_group_tests(tests, group_setup, group_teardown);

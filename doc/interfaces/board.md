@@ -68,9 +68,9 @@ finding removes the marker here and updates the board's row in the conformance t
   board's data makes the choice. Kconfig compiles a module in, and a board that names one that isn't
   compiled in doesn't link. A module's configuration is documented with the module (`boot.md` 3.5
   and 5), not here. A new variant is a new object: `struct board` doesn't change for it.
-  **Not yet in the code (F-265)**: today each variant has its own member (`boot_linux`,
-  `boot_atf`, `boot_simple`; `ab`; `gpt_dev_uu`, `gpt_tables`, `gpt_tables_length`), and which is
-  set must agree with Kconfig.
+  An object is a member by value: the module's functions and a pointer to the board's
+  configuration (`include/pb/ptbl.h`, `boot/policy.h`, `boot/handover.h`). `src/board.c`
+  calls through it and includes no module's header.
 - **In or out of the tree.** `make BOARD=<path>` builds a board from any directory (section 7).
   `struct board`, the meaning of its hooks and the build interface change only in a major release
   (D-018, `system.md` 3). A new object for a member is no such change.
@@ -190,10 +190,6 @@ NULL: no hardware of the board's own.
 
 The partition table on a bio device that `init()` set up. The core reads it after `init()`.
 
-**Not yet in the code (F-265)**: today a GPT is three members (`gpt_dev_uu`, `gpt_tables`,
-`gpt_tables_length`) and the RT calls `static_ptbl_init()` from its `init()`; a board with a
-mapped device calls `static_ptbl_init_mapped()` there.
-
 | Object                       | What the board gives                                                            |
 | ---------------------------- | ------------------------------------------------------------------------------- |
 | `PTBL_GPT(device, tables)`   | The device's UUID, and the layouts command mode can install                     |
@@ -204,6 +200,14 @@ mapped device calls `static_ptbl_init_mapped()` there.
 Failure: no valid table: 2.1. Command mode installs a GPT.
 
 Absent: no table of the core's. The board's `init()` created its partitions, or it has none.
+
+One table is the core's. A board with a second device that has a table sets that one up in
+its `init()` with the driver's function (the host: its GPT is `ptbl`, its flash's static table
+is `static_ptbl_init_mapped()` in `init()`).
+
+The device a table is on is left visible only, for its capacity: a host writes its
+partitions, not the device (`bio.md` 2.4). The core does that for its table of any kind; a
+board that sets up another table does it for that one's device (the host, for its flash).
 
 **The in place source** (`boot.md` 4.1): a partition that is memory mapped, whose image is
 verified where it is and runs there.
@@ -235,8 +239,8 @@ The board's boot source policy (`boot.md` 3): the object of the policy the board
 the board's configuration for it. `boot_policy_init()` runs after the partition table
 (`boot.md` 3.1).
 
-**Not yet in the code (F-256, F-257, F-215, F-265)**: today the member is `ab`, A/B is the only
-policy, a board without it can't boot from storage, and its configuration has a `rollback_mode`.
+**Not yet in the code (F-256, F-257, F-215)**: A/B is the only policy, a board without it
+can't boot from storage, and its configuration has a `rollback_mode`.
 
 | Object                     | What the board gives (`boot.md` 3.5)                                    |
 | -------------------------- | ----------------------------------------------------------------------- |
@@ -250,7 +254,7 @@ policy, a board without it can't boot from storage, and its configuration has a 
 - The A/B state's format is shared with `pbstate` in the OS (`boot.md` 3.7). Its four board
   registers are the board's (section 6).
 - The policy marks its candidates bootable (`boot.md` 3.1). A board doesn't set
-  `BIO_FLAG_BOOTABLE` itself (the RT does today, F-256).
+  `BIO_FLAG_BOOTABLE` itself (the host does today, for its flash's partitions, F-256).
 
 Failure: a partition the configuration names isn't in the table, or the policy's state can't be
 read or repaired: 2.1.
@@ -270,9 +274,11 @@ the partitions. Failure as in 2.3. NULL: nothing.
 The handover and its delivery (`boot.md` 5.1): one of each per board, chosen by the board's data
 and never by the image.
 
-**Not yet in the code (F-258, F-259, F-260, F-265)**: today the members are `boot_linux`,
-`boot_atf` and `boot_simple` (`boot/linux.h`, `boot/atf.h`, `boot/simple.h`), exactly one is
-set, and `boot_atf` carries its own copy of the Linux handover's fields.
+**Not yet in the code (F-258, F-259, F-260)**: `boot_handover` has three objects today,
+`BOOT_HANDOVER_IMAGE()` (`boot/linux.h`) and two that go: `BOOT_HANDOVER_ATF()` (`boot/atf.h`),
+which becomes the delivery and carries its own copy of the image handover's fields until
+then, and `BOOT_HANDOVER_SIMPLE()` (`boot/simple.h`), which Firmware Handoff replaces. No
+delivery exists: a board that sets `boot_delivery` is refused.
 
 | Member          | Object                         | What the board gives                                    |
 | --------------- | ------------------------------ | ------------------------------------------------------- |
@@ -785,7 +791,7 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | A policy (2.5)                 | yes   | yes     | yes | yes     | yes        | no       | yes     | F-215, F-256 |
 | Image data regions (2.9)       | no    | no      | no  | no      | no         | no       | no      | F-254        |
 | Only the headers of section 6  | yes   | yes     | no  | no      | yes        | yes      | yes     | F-270        |
-| No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | no         | yes      | yes     | F-256        |
+| No `BIO_FLAG_BOOTABLE` (2.5)   | yes   | yes     | yes | yes     | yes        | yes      | no      | F-256        |
 | No serial download check (5.1) | yes   | yes     | no  | no      | yes        | yes      | yes     | F-251        |
 | `status()` (4.3)               | no    | default | no  | no      | default    | default  | default | F-250        |
 | `password_auth()` (4.5)        | n/a   | n/a     | no  | no      | n/a        | n/a      | n/a     | F-004        |
@@ -793,11 +799,10 @@ contract too, so that the order of section 2 is tested end to end (F-217).
 | Test bench defconfig           | yes   | yes     | yes | no      | n/a        | no       | n/a     | F-033        |
 
 Data: jiffy, the RT and the host set `CONFIG_CM_AUTH_PASSWORD` without a callback; imx8mevk has
-`CONFIG_BOOT_LINUX` without `boot_linux`.
+`CONFIG_BOOT_LINUX` without a handover.
 
-A policy: every board with `ab` uses A/B; imx8mevk has none, and no policy to boot from storage
+A policy: every board with one uses A/B; imx8mevk has none, and no policy to boot from storage
 with.
 
-Not in the table, the same on every board until its finding is fixed: a member per variant
-where an object belongs (F-265), A/B's `rollback_mode` (F-257), `resolve_part_name` (F-258,
-F-259, F-260).
+Not in the table, the same on every board until its finding is fixed: A/B's `rollback_mode`
+(F-257), `resolve_part_name` (F-258, F-259, F-260).

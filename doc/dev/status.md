@@ -25,8 +25,8 @@ the trim is at the end of `log/2026-11-09.md`.
 - **Board contract (D-031, D-045 to D-052, `board.md`):** reviewed (Jonas, 2026-11-12), no open
   items. One member per concept in `struct board`, a variant is an object (D-046); in place is a
   flag in the static table (D-048); command mode's USB is the platform's (D-049); tasks while
-  pb is stopped (D-051). Its code: F-216, F-178, F-249..F-252, F-265..F-268. In: the RT's
-  `late_boot` for the charger check (F-264).
+  pb is stopped (D-051). Its code: F-216, F-178, F-249..F-252, F-266..F-268. In: the RT's
+  `late_boot` for the charger check (F-264), `struct board`'s objects (F-265).
 - **Boot flow contract (D-032, D-038 to D-041, D-043, D-044, `boot.md`):** reviewed (Jonas), no
   open items. Its code is F-254, F-256..F-260 and the A/B review's. In: the in place source
   (F-253, F-219, F-070) and the ramdisk above 4 GiB (F-255). Open from it: a DT in place with
@@ -75,8 +75,10 @@ the trim is at the end of `log/2026-11-09.md`.
 ## Next steps
 
 0. **Resume here (2026-11-12): the code, a commit per finding (Jonas, D-057).** Every contract
-   is reviewed. In: F-253 (in place), F-219, F-264, F-255. Next: F-265 (`struct board`'s
-   objects), then F-256, F-258, F-259; F-267 and F-268 (command mode's USB, the tasks). The
+   is reviewed. In: F-253 (in place), F-219, F-264, F-255, F-265 (`struct board`'s objects).
+   Next: F-256 (the policy interface) and F-258 (the handover model), which touch different
+   files and can go side by side; then F-260 and F-259; F-267 and F-268 (command mode's USB,
+   the tasks). The
    conformance suites come with each contract's code. No board is on this machine: the code
    is verified on the host and by building every board, and what a board has to show is
    listed in `log/2026-11-12.md` ("Not run on a board").

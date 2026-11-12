@@ -5,21 +5,20 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * The board setup (src/board.c) with fake RoT, SLC, bio, GPT, A/B state,
- * boot driver and command mode. It records the order of the calls.
+ * The board setup (src/board.c) with fake RoT, SLC, bio, boot module and
+ * command mode, and a board whose partition table, boot policy and handover
+ * are fake objects. It records the order of the calls.
  */
 
 #include <setjmp.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include <cmocka.h>
 
-#include <boot/ab_state.h>
 #include <boot/boot.h>
-#include <boot/linux.h>
-#include <drivers/partition/gpt.h>
 #include <libfdt.h>
 #include <pb/bio.h>
 #include <pb/cm.h>
@@ -50,14 +49,19 @@ static void call(const char *name)
 }
 
 static struct {
-    int rot, slc, init, part, gpt, ab, late_init, linux_init, cm_init, cm;
+    int rot, slc, init, part, ptbl, policy, late_init, handover, cm_init, cm;
 } rc;
 
 static const struct rot_config *rot_cfg;
 static const struct slc_config *slc_cfg;
+static const struct ptbl *ptbl_arg;
+static bio_dev_t ptbl_dev;
+static const void *policy_cfg;
+static const void *handover_cfg;
 static const struct boot_driver *driver;
 static const struct cm_config *cm_cfg;
 static uint16_t disk_flags;
+static unsigned int lookups, flags_set;
 static uint32_t boot_flags;
 
 int rot_init(const struct rot_config *cfg)
@@ -77,6 +81,7 @@ int slc_init(const struct slc_config *cfg)
 bio_dev_t bio_get_part_by_uu(const uuid_t uu)
 {
     assert_ptr_equal(uu, DISK_UU);
+    lookups++;
     return (rc.part != PB_OK) ? rc.part : 7;
 }
 
@@ -84,56 +89,63 @@ int bio_set_flags(bio_dev_t dev, uint16_t flags)
 {
     assert_int_equal(dev, 7);
     disk_flags = flags;
+    flags_set++;
     return PB_OK;
 }
 
-int gpt_ptbl_init(bio_dev_t dev, const struct gpt_table_list *tables, size_t length)
+/*
+ * The partition table. It stands for a table of any kind: src/board.c knows
+ * none. Like a driver it leaves the device with flags of its own.
+ */
+static int ptbl_init(const struct ptbl *ptbl, bio_dev_t dev)
 {
-    (void)tables;
-    assert_int_equal(dev, 7);
-    assert_int_equal(length, 2);
-    call("gpt");
-    return rc.gpt;
+    call("ptbl");
+    ptbl_arg = ptbl;
+    ptbl_dev = dev;
+    disk_flags = BIO_FLAG_BOOTABLE | BIO_FLAG_READABLE | BIO_FLAG_WRITABLE | BIO_FLAG_VISIBLE;
+    return rc.ptbl;
 }
 
-int boot_ab_state_init(const struct boot_ab_state_config *cfg)
+/* The boot source policy */
+static int policy_init(const void *config)
 {
-    (void)cfg;
-    call("ab");
-    return rc.ab;
+    call("policy");
+    policy_cfg = config;
+    return rc.policy;
 }
 
-bio_dev_t boot_ab_state_get(void)
+static bio_dev_t policy_get(void)
 {
     return 0;
 }
 
-int boot_ab_state_set_boot_partition(uuid_t part_uu)
+static int policy_activate(uuid_t part_uu)
 {
     (void)part_uu;
     return PB_OK;
 }
 
-void boot_ab_state_get_boot_partition(uuid_t part_uu)
+static void policy_status(uuid_t part_uu)
 {
     (void)part_uu;
 }
 
-int boot_driver_linux_init(const struct boot_handover_image_config *cfg)
+/* The handover */
+static int handover_init(const void *config)
 {
-    (void)cfg;
-    call("linux");
-    return rc.linux_init;
+    call("handover");
+    handover_cfg = config;
+    return rc.handover;
 }
 
-int boot_driver_linux_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
+static int handover_prepare(struct bpak_header *hdr, uuid_t boot_part_uu)
 {
     (void)hdr;
     (void)boot_part_uu;
     return PB_OK;
 }
 
-void boot_driver_linux_jump(void)
+static void handover_jump(void)
 {
 }
 
@@ -180,6 +192,13 @@ static int early_boot(void)
     return PB_OK;
 }
 
+static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
+{
+    (void)header;
+    (void)boot_part_uu;
+    return PB_OK;
+}
+
 static int transport_read(void *buf, size_t length)
 {
     (void)buf;
@@ -189,19 +208,40 @@ static int transport_read(void *buf, size_t length)
 
 static const struct rot_config test_rot = { 0 };
 static const struct slc_config test_slc = { 0 };
-static const struct gpt_table_list test_tables[2];
-static const struct boot_ab_state_config test_ab;
-static const struct boot_handover_image_config test_linux;
 static const struct cm_transport_ops test_transport = { .read = transport_read };
+
+static const struct ptbl_ops test_ptbl_ops = { .init = ptbl_init };
+static const struct boot_policy_ops test_policy_ops = {
+    .init = policy_init,
+    .get = policy_get,
+    .activate = policy_activate,
+    .status = policy_status,
+};
+static const struct boot_handover_ops test_handover_ops = {
+    .init = handover_init,
+    .prepare = handover_prepare,
+    .jump = handover_jump,
+};
+/* What the objects point at: only the addresses matter */
+static const int test_table[2];
+static const int test_policy_config;
+static const int test_handover_config;
+static const int test_delivery_object;
 
 static int setup(void **state)
 {
     (void)state;
     memset(calls, 0, sizeof(calls));
     memset(&rc, 0, sizeof(rc));
+    ptbl_arg = NULL;
+    ptbl_dev = -1;
+    policy_cfg = NULL;
+    handover_cfg = NULL;
     driver = NULL;
     cm_cfg = NULL;
     disk_flags = 0;
+    lookups = 0;
+    flags_set = 0;
     boot_flags = 0;
 
     board = (struct board_decl){
@@ -209,13 +249,12 @@ static int setup(void **state)
         .rot = &test_rot,
         .slc = &test_slc,
         .init = board_hw_init,
-        .gpt_dev_uu = DISK_UU,
-        .gpt_tables = test_tables,
-        .gpt_tables_length = 2,
-        .ab = &test_ab,
+        .ptbl = { .ops = &test_ptbl_ops, .device = DISK_UU, .table = test_table, .length = 2 },
+        .boot_policy = { .ops = &test_policy_ops, .config = &test_policy_config },
         .late_init = board_late_init,
-        .boot_linux = &test_linux,
+        .boot_handover = { .ops = &test_handover_ops, .config = &test_handover_config },
         .early_boot = early_boot,
+        .late_boot = late_boot,
         .bootargs = "quiet",
         .bootargs_verbose = "verbose",
         .cm_init = board_cm_init,
@@ -224,28 +263,54 @@ static int setup(void **state)
     return 0;
 }
 
+/* The boot driver boot_init() got: the board's hooks, the handover's
+ * functions and the policy's, when the board has one */
+static void assert_driver(bool policy)
+{
+    assert_non_null(driver);
+    assert_int_equal(driver->default_boot_source, BOOT_SOURCE_BIO);
+    assert_ptr_equal(driver->early_boot_cb, early_boot);
+    assert_ptr_equal(driver->late_boot_cb, late_boot);
+    assert_ptr_equal(driver->prepare, handover_prepare);
+    assert_ptr_equal(driver->jump, handover_jump);
+
+    if (policy) {
+        assert_ptr_equal(driver->get_boot_bio_device, policy_get);
+        assert_ptr_equal(driver->set_boot_partition, policy_activate);
+        assert_ptr_equal(driver->get_boot_partition, policy_status);
+    } else {
+        assert_null(driver->get_boot_bio_device);
+        assert_null(driver->set_boot_partition);
+        assert_null(driver->get_boot_partition);
+    }
+}
+
 static void test_setup(void **state)
 {
     (void)state;
 
     assert_int_equal(board_setup(), PB_OK);
-    assert_string_equal(calls, "rot slc init gpt ab late linux boot ");
+    assert_string_equal(calls, "rot slc init ptbl policy late handover boot ");
     assert_ptr_equal(rot_cfg, &test_rot);
     assert_ptr_equal(slc_cfg, &test_slc);
+
+    /* The table's init gets the board's object and the device it names */
+    assert_int_equal(lookups, 1);
+    assert_ptr_equal(ptbl_arg, &board.ptbl);
+    assert_int_equal(ptbl_dev, 7);
     /* The device with the table is only visible */
+    assert_int_equal(flags_set, 1);
     assert_int_equal(disk_flags, BIO_FLAG_VISIBLE);
 
-    assert_int_equal(driver->default_boot_source, BOOT_SOURCE_BIO);
-    assert_ptr_equal(driver->early_boot_cb, early_boot);
-    assert_null(driver->late_boot_cb);
-    assert_ptr_equal(driver->get_boot_bio_device, boot_ab_state_get);
-    assert_ptr_equal(driver->set_boot_partition, boot_ab_state_set_boot_partition);
-    assert_ptr_equal(driver->get_boot_partition, boot_ab_state_get_boot_partition);
-    assert_ptr_equal(driver->prepare, boot_driver_linux_prepare);
-    assert_ptr_equal(driver->jump, boot_driver_linux_jump);
+    /* Each object's init gets its configuration */
+    assert_ptr_equal(policy_cfg, &test_policy_config);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+
+    assert_driver(true);
 }
 
-/* Each failure stops the setup there, the RoT and SLC are always set up */
+/* Each failure stops the setup there, the RoT and SLC are always set up.
+ * None of them gets to boot_init(). */
 static void test_setup_failures(void **state)
 {
     static const struct {
@@ -255,9 +320,9 @@ static void test_setup_failures(void **state)
         { &rc.rot, "rot " },
         { &rc.slc, "rot slc " },
         { &rc.init, "rot slc init " },
-        { &rc.ab, "rot slc init gpt ab " },
-        { &rc.late_init, "rot slc init gpt ab late " },
-        { &rc.linux_init, "rot slc init gpt ab late linux " },
+        { &rc.policy, "rot slc init ptbl policy " },
+        { &rc.late_init, "rot slc init ptbl policy late " },
+        { &rc.handover, "rot slc init ptbl policy late handover " },
     };
 
     (void)state;
@@ -267,6 +332,7 @@ static void test_setup_failures(void **state)
         *cases[i].rc = -PB_ERR_IO;
         assert_int_equal(board_setup(), -PB_ERR_IO);
         assert_string_equal(calls, cases[i].calls);
+        assert_null(driver);
     }
 }
 
@@ -275,15 +341,105 @@ static void test_no_partition_table(void **state)
 {
     (void)state;
 
-    rc.gpt = -PB_ERR_NOT_FOUND;
+    /* The table's init fails: no policy init, no late_init, a boot driver */
+    rc.ptbl = -PB_ERR_NOT_FOUND;
     assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
-    assert_string_equal(calls, "rot slc init gpt linux boot ");
+    assert_string_equal(calls, "rot slc init ptbl handover boot ");
+    assert_ptr_equal(ptbl_arg, &board.ptbl);
+    assert_int_equal(ptbl_dev, 7);
     assert_int_equal(disk_flags, BIO_FLAG_VISIBLE);
+    assert_null(policy_cfg);
+    assert_ptr_equal(handover_cfg, &test_handover_config);
+    assert_driver(true);
 
+    /* The table's device does not exist: the lookup's error */
     setup(NULL);
     rc.part = -PB_ERR_NOT_FOUND;
     assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
-    assert_string_equal(calls, "rot slc init linux boot ");
+    assert_string_equal(calls, "rot slc init handover boot ");
+    assert_int_equal(lookups, 1);
+    assert_null(ptbl_arg);
+    assert_int_equal(flags_set, 0);
+    assert_driver(true);
+
+    /* The table's error is the one returned, also when the boot driver
+     * cannot be set up either */
+    setup(NULL);
+    rc.ptbl = -PB_ERR_NOT_FOUND;
+    rc.handover = -PB_ERR_IO;
+    assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
+    assert_string_equal(calls, "rot slc init ptbl handover ");
+    assert_null(driver);
+
+    setup(NULL);
+    rc.part = -PB_ERR_NOT_FOUND;
+    board.boot_handover.ops = NULL;
+    assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
+    assert_string_equal(calls, "rot slc init ");
+    assert_null(driver);
+}
+
+/* After the table's init its device has only BIO_FLAG_VISIBLE, whatever the
+ * init left there and whether or not it found a table. The same for a table
+ * of any kind: src/board.c sees only the object. */
+static void test_ptbl_device_flags(void **state)
+{
+    static const int results[] = { PB_OK, -PB_ERR_NOT_FOUND, -PB_ERR_IO };
+    const struct ptbl tables[] = {
+        /* The shape of a GPT: layouts and their number */
+        { .ops = &test_ptbl_ops, .device = DISK_UU, .table = test_table, .length = 2 },
+        /* The shape of a static table on a mapped device */
+        { .ops = &test_ptbl_ops, .device = DISK_UU, .table = test_table, .base = 0x60000000 },
+    };
+
+    (void)state;
+
+    for (size_t t = 0; t < ARRAY_SIZE(tables); t++) {
+        for (size_t i = 0; i < ARRAY_SIZE(results); i++) {
+            setup(NULL);
+            board.ptbl = tables[t];
+            rc.ptbl = results[i];
+            disk_flags = BIO_FLAG_WRITABLE;
+            assert_int_equal(board_setup(), results[i]);
+            assert_ptr_equal(ptbl_arg, &board.ptbl);
+            assert_int_equal(flags_set, 1);
+            assert_int_equal(disk_flags, BIO_FLAG_VISIBLE);
+        }
+    }
+}
+
+/* No table: init() created the partitions, or there are none */
+static void test_no_ptbl(void **state)
+{
+    (void)state;
+
+    board.ptbl.ops = NULL;
+    assert_int_equal(board_setup(), PB_OK);
+    assert_string_equal(calls, "rot slc init policy late handover boot ");
+    /* Nothing is looked up, no device is touched */
+    assert_int_equal(lookups, 0);
+    assert_int_equal(flags_set, 0);
+    assert_driver(true);
+}
+
+/* No policy: a boot driver without a boot partition */
+static void test_no_policy(void **state)
+{
+    (void)state;
+
+    board.boot_policy.ops = NULL;
+    assert_int_equal(board_setup(), PB_OK);
+    assert_string_equal(calls, "rot slc init ptbl late handover boot ");
+    assert_null(policy_cfg);
+    assert_driver(false);
+
+    /* Also when the table failed */
+    setup(NULL);
+    board.boot_policy.ops = NULL;
+    rc.ptbl = -PB_ERR_NOT_FOUND;
+    assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
+    assert_string_equal(calls, "rot slc init ptbl handover boot ");
+    assert_driver(false);
 }
 
 static void test_optional(void **state)
@@ -291,20 +447,53 @@ static void test_optional(void **state)
     (void)state;
 
     board.init = NULL;
-    board.gpt_dev_uu = NULL;
-    board.ab = NULL;
+    board.ptbl.ops = NULL;
+    board.boot_policy.ops = NULL;
     board.late_init = NULL;
+    board.early_boot = NULL;
+    board.late_boot = NULL;
     assert_int_equal(board_setup(), PB_OK);
-    assert_string_equal(calls, "rot slc linux boot ");
+    assert_string_equal(calls, "rot slc handover boot ");
+    assert_int_equal(lookups, 0);
+    assert_null(driver->early_boot_cb);
+    assert_null(driver->late_boot_cb);
     assert_null(driver->get_boot_bio_device);
     assert_null(driver->set_boot_partition);
     assert_null(driver->get_boot_partition);
+    assert_ptr_equal(driver->prepare, handover_prepare);
+    assert_ptr_equal(driver->jump, handover_jump);
+}
 
-    /* No boot driver */
-    setup(NULL);
-    board.boot_linux = NULL;
+/* The handover is mandatory */
+static void test_no_handover(void **state)
+{
+    (void)state;
+
+    board.boot_handover.ops = NULL;
     assert_int_equal(board_setup(), -PB_ERR_PARAM);
-    assert_string_equal(calls, "rot slc init gpt ab late ");
+    assert_string_equal(calls, "rot slc init ptbl policy late ");
+    assert_null(driver);
+}
+
+/* No delivery exists yet: a board that sets one is refused, before its
+ * handover is set up */
+static void test_delivery(void **state)
+{
+    (void)state;
+
+    board.boot_delivery.ops = (const struct boot_delivery_ops *)&test_delivery_object;
+    assert_int_equal(board_setup(), -PB_ERR_PARAM);
+    assert_string_equal(calls, "rot slc init ptbl policy late ");
+    assert_null(handover_cfg);
+    assert_null(driver);
+
+    /* Also when the table failed: the table's error, no boot driver */
+    setup(NULL);
+    board.boot_delivery.ops = (const struct boot_delivery_ops *)&test_delivery_object;
+    rc.ptbl = -PB_ERR_NOT_FOUND;
+    assert_int_equal(board_setup(), -PB_ERR_NOT_FOUND);
+    assert_string_equal(calls, "rot slc init ptbl ");
+    assert_null(driver);
 }
 
 static void test_patch_bootargs(void **state)
@@ -394,7 +583,12 @@ int main(void)
         cmocka_unit_test_setup(test_setup, setup),
         cmocka_unit_test_setup(test_setup_failures, setup),
         cmocka_unit_test_setup(test_no_partition_table, setup),
+        cmocka_unit_test_setup(test_ptbl_device_flags, setup),
+        cmocka_unit_test_setup(test_no_ptbl, setup),
+        cmocka_unit_test_setup(test_no_policy, setup),
         cmocka_unit_test_setup(test_optional, setup),
+        cmocka_unit_test_setup(test_no_handover, setup),
+        cmocka_unit_test_setup(test_delivery, setup),
         cmocka_unit_test_setup(test_patch_bootargs, setup),
         cmocka_unit_test_setup(test_cm, setup),
     };

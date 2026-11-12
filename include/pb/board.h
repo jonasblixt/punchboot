@@ -12,16 +12,21 @@
  * plat_early_init() and plat_init(), then src/board.c sets up the rest in
  * this order:
  *
- *  1. rot, slc      The keys and the life cycle, before anything that can
- *                   fail, so that command mode knows whether to ask for
- *                   authentication
- *  2. init()        Hardware: crypto, storage
- *  3. gpt_*         The partition table, on the device gpt_dev_uu
- *  4. ab            The A/B boot state
- *  5. late_init()   What needs the partitions
- *  6. boot_*        The boot driver: boot_linux, boot_atf or boot_simple
+ *  1. rot, slc       The keys and the life cycle, before anything that can
+ *                    fail, so that command mode knows whether to ask for
+ *                    authentication
+ *  2. init()         Hardware: crypto, storage
+ *  3. ptbl           The partition table
+ *  4. boot_policy    The boot source policy
+ *  5. late_init()    What needs the partitions
+ *  6. boot_handover  The handover, and its delivery
  *
  * Command mode, cm_board_init(): cm_init(), then cm_transport.
+ *
+ * One member per concept (board.md 1). ptbl, boot_policy, boot_handover and
+ * boot_delivery are objects: a module's functions and the board's
+ * configuration for it, made by the module's macro. src/board.c calls
+ * through them and knows no module.
  *
  * Hooks are optional (NULL), the rest is required unless it says otherwise.
  */
@@ -29,17 +34,15 @@
 #ifndef INCLUDE_PB_BOARD_H
 #define INCLUDE_PB_BOARD_H
 
+#include <boot/handover.h>
+#include <boot/policy.h>
+#include <pb/ptbl.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <uuid.h>
 
 struct bpak_header;
-struct boot_ab_state_config;
-struct boot_driver_simple_config;
-struct boot_driver_atf_config;
-struct boot_handover_image_config;
 struct cm_transport_ops;
-struct gpt_table_list;
 struct rot_config;
 struct slc_config;
 
@@ -53,18 +56,21 @@ struct board {
 
     int (*init)(void); /*!< Hardware: crypto, storage */
 
-    const unsigned char *gpt_dev_uu; /*!< Device with a GPT, NULL: none */
-    const struct gpt_table_list *gpt_tables; /*!< Its layouts */
-    size_t gpt_tables_length;
+    /* The partition table: PTBL_GPT(), PTBL_STATIC() or PTBL_STATIC_MAPPED().
+     * Absent: init() created the partitions, or there are none */
+    struct ptbl ptbl;
 
-    const struct boot_ab_state_config *ab; /*!< A/B state. NULL: none */
+    /* The boot source policy: BOOT_POLICY_AB(). Absent: no boot from storage */
+    struct boot_policy boot_policy;
 
-    int (*late_init)(void); /*!< After the partition table and the A/B state */
+    int (*late_init)(void); /*!< After the partition table and the policy */
 
-    /* The boot driver: one of them */
-    const struct boot_handover_image_config *boot_linux;
-    const struct boot_driver_atf_config *boot_atf;
-    const struct boot_driver_simple_config *boot_simple;
+    /* The handover: BOOT_HANDOVER_IMAGE(), BOOT_HANDOVER_ATF() or
+     * BOOT_HANDOVER_SIMPLE() */
+    struct boot_handover boot_handover;
+    /* Its delivery. Absent: directly. None exists yet (F-258) */
+    struct boot_delivery boot_delivery;
+
     int (*early_boot)(void); /*!< Before the image is loaded */
     int (*late_boot)(struct bpak_header *header, uuid_t boot_part_uu); /*!< Before the jump */
 

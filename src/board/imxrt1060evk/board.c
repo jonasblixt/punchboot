@@ -294,21 +294,6 @@ static int flexspi_nor_setup(void)
         return rc;
     }
 
-    bio_dev_t nor_dev = bio_get_part_by_uu(UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068);
-
-    if (nor_dev < 0) {
-        LOG_ERR("Can't find NOR Memory (%i)", nor_dev);
-        return nor_dev;
-    }
-
-    rc = static_ptbl_init(nor_dev, nor_table);
-
-    if (rc != PB_OK)
-        return rc;
-
-    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_sys_a), 0, BIO_FLAG_BOOTABLE);
-    (void)bio_clear_set_flags(bio_get_part_by_uu(PART_sys_b), 0, BIO_FLAG_BOOTABLE);
-
     return PB_OK;
 }
 
@@ -421,8 +406,9 @@ const struct board board = {
     .rot = &rot,
     .slc = &slc,
     .init = flexspi_nor_setup,
-    .ab = &boot_state_cfg,
-    .boot_simple = &boot_simple,
+    .ptbl = PTBL_STATIC(UUID_1bd35a54_485d_4fb6_a822_cb58c3c5a068, nor_table),
+    .boot_policy = BOOT_POLICY_AB(&boot_state_cfg),
+    .boot_handover = BOOT_HANDOVER_SIMPLE(&boot_simple),
     .early_boot = board_early_boot,
     .late_boot = board_late_boot,
     .cm_init = board_cm_init,

@@ -60,6 +60,10 @@ static const struct boot_ab_state_config cfg_speculative = {
     .rollback_mode = AB_ROLLBACK_MODE_SPECULATIVE,
 };
 
+/* The board's object for the policy, the way a board has it in its data
+ * (board.boot_policy, F-265): BOOT_POLICY_AB() stays a constant initializer */
+static const struct boot_policy policy = BOOT_POLICY_AB(&cfg_speculative);
+
 struct fixture {
     struct ramdisk *disk;
     bio_dev_t sys_a;
@@ -154,6 +158,10 @@ static void test_not_initialized(void **state)
     uuid_t uu;
     uint32_t value;
     (void)state;
+
+    /* Without a configuration there is no state either */
+    assert_int_equal(boot_ab_state_init(NULL), -PB_ERR_PARAM);
+    assert_int_equal(boot_policy_ab_ops.init(NULL), -PB_ERR_PARAM);
 
     assert_int_equal(boot_ab_state_get(), -PB_ERR_STATE);
     assert_int_equal(boot_ab_state_set_boot_partition((unsigned char *)UU_SYS_A), -PB_ERR_STATE);
@@ -429,6 +437,47 @@ static void test_board_regs(void **state)
                      -PB_ERR_PARAM);
 }
 
+/* The policy the way src/board.c uses it: only through the board's object
+ * (F-265) */
+static void test_policy_object(void **state)
+{
+    struct fixture *f = *state;
+    uuid_t uu;
+
+    assert_ptr_equal(policy.ops, &boot_policy_ab_ops);
+    assert_ptr_equal(policy.config, &cfg_speculative);
+
+    /* The module has the other configuration, so that what get() does below
+     * shows that the object's reached it */
+    write_state(f, PB_STATE_B_ENABLED, 0, 0, 0);
+    reboot(f, &cfg_normal);
+
+    /* An error of the module's is init's answer */
+    attach(f, false, true);
+    assert_int_equal(policy.ops->init(policy.config), -PB_ERR_NOT_FOUND);
+
+    attach(f, true, true);
+    assert_int_equal(policy.ops->init(policy.config), PB_OK);
+
+    /* B isn't verified and has no attempts left: only the speculative mode
+     * boots A */
+    assert_int_equal(policy.ops->get(), f->sys_a);
+    policy.ops->status(uu);
+    assert_memory_equal(uu, UU_SYS_A, 16);
+
+    /* A host activates B */
+    assert_int_equal(policy.ops->activate((unsigned char *)UU_SYS_B), PB_OK);
+    assert_int_equal(policy.ops->get(), f->sys_b);
+    policy.ops->status(uu);
+    assert_memory_equal(uu, UU_SYS_B, 16);
+    assert_int_equal(state_at(f, PRIMARY_LBA)->verified, PB_STATE_B_VERIFIED);
+
+    /* A partition that isn't a system: nothing is active */
+    assert_int_equal(policy.ops->activate((unsigned char *)UU_OTHER), -PB_ERR_PART_NOT_BOOTABLE);
+    policy.ops->status(uu);
+    assert_true(uuid_is_null(uu));
+}
+
 #define AB_TEST(f) cmocka_unit_test_setup_teardown(f, setup, teardown)
 
 int main(void)
@@ -450,6 +499,7 @@ int main(void)
         AB_TEST(test_set_boot_partition),
         AB_TEST(test_part_names),
         AB_TEST(test_board_regs),
+        AB_TEST(test_policy_object),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

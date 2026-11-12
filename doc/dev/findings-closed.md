@@ -191,6 +191,24 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | written as 0). `test_linux.c`: `test_initrd_32_bits` pins the released bytes, | | |
 | | | `test_initrd_end_at_4_gib`, `test_initrd_above_4_gib`. On a 32-bit arch the load address is | | |
 | | | narrowed earlier, in `linux.c` (`uintptr_t`): refusing it is F-254's | | |
+| F-265 | `include/pb/board.h`, `src/board.c`, the boards | `struct board` has a member | Verified (code) | fixed |
+| | | per variant (`boot_linux`, `boot_atf`, `boot_simple`; `ab`; three for a GPT, and the RT's static | | |
+| | | table is code in `init()`), and which is set must agree with Kconfig. D-046, `board.md` 1: one | | |
+| | | member per concept (`ptbl`, `boot_policy`, `boot_handover`, `boot_delivery`), filled with the | | |
+| | | module's object (its functions and the board's configuration, made by its macro). `src/board.c` | | |
+| | | calls through the object and includes no module's header. With F-256, F-258, F-259 | | |
+| | | Fixed: `ptbl`, `boot_policy`, `boot_handover` and `boot_delivery` are objects by value, a module's | | |
+| | | functions and a pointer to the board's configuration, made by `PTBL_GPT()`, `PTBL_STATIC()`, | | |
+| | | `PTBL_STATIC_MAPPED()`, `BOOT_POLICY_AB()`, `BOOT_HANDOVER_IMAGE()` and, until F-258 and F-259, | | |
+| | | `BOOT_HANDOVER_ATF()` and `BOOT_HANDOVER_SIMPLE()`. `src/board.c` includes no module's header and has no | | |
+| | | `CONFIG_BOOT_*`. The modules behind the objects are unchanged: the policy's functions are today's three | | |
+| | | callbacks (F-256), a delivery is refused (F-258). The RT's table is `ptbl`, set up after `init()`; the | | |
+| | | device a table is on is left visible only with every kind of table (`bio.md` 2.4), so the RT's NOR | | |
+| | | device itself is no longer writable by a host, its partitions are. `test_board.c`, a case through each | | |
+| | | object in the modules' tests (but `BOOT_HANDOVER_ATF()`: the host doesn't build `atf.c`). From its | | |
+| | | review: a wrong configuration type, NULL, or a pointer where `PTBL_GPT()` takes the array doesn't | | |
+| | | compile. Every board builds; not run on a board | | |
+| F-293 | `src/boot/linux.c`, `atf.c`, `ab_state.c` | `boot_driver_linux_init()`, `boot_driver_atf_init()` and `boot_ab_state_init()` dereferenced a NULL configuration. No board passes one; found by the test of the handover's object (F-265) | Verified (code) | fixed: `-PB_ERR_PARAM`, as the generic handover; `test_linux.c`, `test_ab_state.c` (`atf.c` isn't built on the host) |
 
 ## Dependencies / vendored code
 

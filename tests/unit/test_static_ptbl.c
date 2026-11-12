@@ -79,6 +79,18 @@ static const struct static_part_table plain_table[] = {
     { .uu = NULL },
 };
 
+/*
+ * The board's objects for these tables, the way a board has them in its data
+ * (board.ptbl, F-265): PTBL_STATIC() and PTBL_STATIC_MAPPED() stay constant
+ * initializers. A board's flash is mapped at an address that is a constant;
+ * the ramdisk's memory isn't, see test_object_mapped.
+ */
+#define FLASH_BASE 0x60000000
+
+static const struct ptbl ptbl_plain = PTBL_STATIC(UU_DISK, plain_table);
+static const struct ptbl ptbl_flagged = PTBL_STATIC(UU_DISK, table);
+static const struct ptbl ptbl_flash = PTBL_STATIC_MAPPED(UU_DISK, FLASH_BASE, table);
+
 struct fixture {
     struct ramdisk *disk;
     bio_dev_t dev;
@@ -228,6 +240,58 @@ static void test_init_refuses_in_place(void **state)
 
     /* The table is checked whole first: nothing of it is there, the entries
      * before the flagged one neither */
+    assert_nothing_allocated(f);
+}
+
+/*
+ * The table through the board's object (F-265), the way src/board.c sets it
+ * up. Runs before a table is mapped: the module's state can't be reset, and
+ * a partition with the UUID of a mapped table's flagged entry is in place.
+ */
+static void test_object_static(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_ptr_equal(ptbl_plain.ops, &ptbl_static_ops);
+    assert_memory_equal(ptbl_plain.device, UU_DISK, 16);
+    assert_ptr_equal(ptbl_plain.table, plain_table);
+    assert_int_equal(ptbl_plain.length, 0);
+    assert_true(ptbl_plain.base == 0);
+
+    assert_int_equal(ptbl_plain.ops->init(&ptbl_plain, f->dev), PB_OK);
+
+    assert_part(UU_BL, 0, 3);
+    assert_part(UU_STATE, 4, 4);
+    assert_part(UU_SYS_A, 16, 31);
+    assert_part(UU_SYS_B, 32, 47);
+    assert_part(UU_SYS_C, 48, 55);
+
+    /* Everything is loaded */
+    assert_not_in_place(bio_get_part_by_uu(UU_SYS_A));
+    assert_not_in_place(bio_get_part_by_uu(UU_SYS_C));
+
+    /* The core leaves the device visible only (src/board.c). Its partitions
+     * got the device's flags when they were made and keep them: a host
+     * writes them, and the A/B state is written through them */
+    int device_flags = bio_get_flags(f->dev);
+
+    assert_true(device_flags & BIO_FLAG_WRITABLE);
+    assert_int_equal(bio_set_flags(f->dev, BIO_FLAG_VISIBLE), PB_OK);
+    assert_int_equal(bio_get_flags(f->dev), BIO_FLAG_VISIBLE);
+    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_STATE)), device_flags);
+    assert_int_equal(bio_get_flags(bio_get_part_by_uu(UU_SYS_A)), device_flags);
+}
+
+/* PTBL_STATIC() has no address: a flagged entry is refused through the
+ * object as it is by static_ptbl_init() */
+static void test_object_static_refuses_in_place(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_ptr_equal(ptbl_flagged.ops, &ptbl_static_ops);
+    assert_ptr_equal(ptbl_flagged.table, table);
+
+    assert_int_equal(ptbl_flagged.ops->init(&ptbl_flagged, f->dev), -PB_ERR_PARAM);
     assert_nothing_allocated(f);
 }
 
@@ -527,6 +591,59 @@ static void test_unmapped_table_keeps_the_map(void **state)
     ramdisk_free(disk2);
 }
 
+/* PTBL_STATIC_MAPPED() as a board has it: the base is a constant, and it
+ * reaches the driver (F-265) */
+static void test_object_mapped_constant_base(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_ptr_equal(ptbl_flash.ops, &ptbl_static_mapped_ops);
+    assert_memory_equal(ptbl_flash.device, UU_DISK, 16);
+    assert_ptr_equal(ptbl_flash.table, table);
+    assert_true(ptbl_flash.base == FLASH_BASE);
+
+    assert_int_equal(ptbl_flash.ops->init(&ptbl_flash, f->dev), PB_OK);
+
+    assert_part(UU_SYS_A, 16, 31);
+    assert_part(UU_SYS_C, 48, 55);
+    assert_in_place(bio_get_part_by_uu(UU_SYS_A), FLASH_BASE + 16 * BLOCK, 16 * BLOCK);
+    assert_in_place(bio_get_part_by_uu(UU_SYS_C), FLASH_BASE + 48 * BLOCK, 8 * BLOCK);
+    assert_not_in_place(bio_get_part_by_uu(UU_SYS_B));
+}
+
+/*
+ * The same with the ramdisk's memory for a base. It is known when the test
+ * runs, which a static initializer can't take: the object is a local one,
+ * made by the same macro.
+ */
+static void test_object_mapped(void **state)
+{
+    struct fixture *f = *state;
+    uintptr_t base = (uintptr_t)f->disk->data;
+    const struct ptbl mapped = PTBL_STATIC_MAPPED(UU_DISK, base, table);
+
+    assert_ptr_equal(mapped.ops, &ptbl_static_mapped_ops);
+    assert_true(mapped.base == base);
+
+    assert_int_equal(mapped.ops->init(&mapped, f->dev), PB_OK);
+
+    assert_part(UU_BL, 0, 3);
+    assert_part(UU_STATE, 4, 4);
+    assert_part(UU_SYS_A, 16, 31);
+    assert_part(UU_SYS_B, 32, 47);
+    assert_part(UU_SYS_C, 48, 55);
+
+    /* The object's base and the entry's first block give the address */
+    assert_in_place(bio_get_part_by_uu(UU_SYS_A), base + 16 * BLOCK, 16 * BLOCK);
+    assert_in_place(bio_get_part_by_uu(UU_SYS_C), base + 48 * BLOCK, 8 * BLOCK);
+    assert_not_in_place(bio_get_part_by_uu(UU_SYS_B));
+
+    /* The driver's rule holds through the object: the table isn't replaced
+     * while a partition of it that is booted in place exists */
+    assert_int_equal(ptbl_flash.ops->init(&ptbl_flash, f->dev), -PB_ERR_STATE);
+    assert_in_place(bio_get_part_by_uu(UU_SYS_A), base + 16 * BLOCK, 16 * BLOCK);
+}
+
 #define PTBL_TEST(f) cmocka_unit_test_setup_teardown(f, setup, teardown)
 
 int main(void)
@@ -536,6 +653,8 @@ int main(void)
         PTBL_TEST(test_init),
         PTBL_TEST(test_init_errors),
         PTBL_TEST(test_init_refuses_in_place),
+        PTBL_TEST(test_object_static),
+        PTBL_TEST(test_object_static_refuses_in_place),
         PTBL_TEST(test_mapped),
         PTBL_TEST(test_mapped_at_zero),
         PTBL_TEST(test_mapped_nothing_in_place),
@@ -547,6 +666,8 @@ int main(void)
         PTBL_TEST(test_allocation_fails_midway_unmapped),
         PTBL_TEST(test_range_is_the_tables),
         PTBL_TEST(test_unmapped_table_keeps_the_map),
+        PTBL_TEST(test_object_mapped_constant_base),
+        PTBL_TEST(test_object_mapped),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

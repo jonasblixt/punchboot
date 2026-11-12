@@ -62,6 +62,19 @@ static const struct gpt_table_list tables[] = {
     { .name = "Long name", .variant = 3, .table = tbl_long_name, .table_length = 1 },
 };
 
+/* The board's object for these layouts, the way a board has it in its data
+ * (board.ptbl, F-265): PTBL_GPT() stays a constant initializer */
+static const struct ptbl ptbl = PTBL_GPT(UU_DISK, tables);
+
+/* A list of its own, in another order than 'tables': what the driver installs
+ * shows that it has this object's list, and its length */
+static const struct gpt_table_list swapped_tables[] = {
+    { .name = "Largest", .variant = 0, .table = tbl_largest, .table_length = 1 },
+    { .name = "Default", .variant = 1, .table = tbl_default, .table_length = 3 },
+};
+
+static const struct ptbl ptbl_swapped = PTBL_GPT(UU_DISK, swapped_tables);
+
 struct fixture {
     struct ramdisk *disk;
     bio_dev_t dev;
@@ -74,6 +87,15 @@ static int boot(struct fixture *f)
     f->dev = ramdisk_attach(f->disk, UU_DISK);
     assert_true(f->dev >= 0);
     return gpt_ptbl_init(f->dev, tables, ARRAY_SIZE(tables));
+}
+
+/* The same boot the way src/board.c does it: only through the object */
+static int boot_object(struct fixture *f, const struct ptbl *t)
+{
+    bio_reset();
+    f->dev = ramdisk_attach(f->disk, t->device);
+    assert_true(f->dev >= 0);
+    return t->ops->init(t, f->dev);
 }
 
 static int setup(void **state)
@@ -345,6 +367,79 @@ static void test_too_many_block_devices(void **state)
     assert_int_equal(gpt_ptbl_init(f->dev, tables, ARRAY_SIZE(tables)), -PB_ERR_MEM);
 }
 
+/* PTBL_GPT() fills the object with the board's data and the driver's
+ * functions (F-265) */
+static void test_object_data(void **state)
+{
+    (void)state;
+
+    assert_ptr_equal(ptbl.ops, &ptbl_gpt_ops);
+    assert_non_null(ptbl.ops->init);
+    assert_memory_equal(ptbl.device, UU_DISK, 16);
+    assert_ptr_equal(ptbl.table, tables);
+    /* The number of layouts, which the macro takes from the array */
+    assert_int_equal(ptbl.length, 4);
+    /* A GPT's device isn't mapped */
+    assert_int_equal(ptbl.base, 0);
+
+    assert_ptr_equal(ptbl_swapped.table, swapped_tables);
+    assert_int_equal(ptbl_swapped.length, 2);
+}
+
+/* Through the object a blank disk gets the driver's answer, the one the
+ * direct call gives */
+static void test_object_init_blank_disk(void **state)
+{
+    struct fixture *f = *state;
+    int rc = boot(f);
+
+    assert_int_not_equal(rc, PB_OK);
+    assert_int_equal(boot_object(f, &ptbl), rc);
+    assert_true(bio_get_part_by_uu(UU_SYS_A) < 0);
+
+    /* And a device that isn't there */
+    bio_reset();
+    assert_int_equal(ptbl.ops->init(&ptbl, -1), -PB_ERR_PARAM);
+}
+
+/* A disk with a GPT: the object's init makes the partitions the direct call
+ * makes (test_install_default_table) */
+static void test_object_init(void **state)
+{
+    struct fixture *f = *state;
+
+    install_and_reboot(f, 0);
+
+    assert_int_equal(boot_object(f, &ptbl), PB_OK);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_part(UU_SYS_B, 1058, 2081, "System B");
+    assert_part(UU_STATE, 2082, 2082, "State");
+}
+
+/* The list and its length reach the driver: command mode installs a layout
+ * of the object the board was set up with */
+static void test_object_layouts_reach_the_driver(void **state)
+{
+    struct fixture *f = *state;
+
+    /* A blank disk has no table, but its layouts can be installed */
+    (void)boot_object(f, &ptbl);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
+    assert_int_equal(boot_object(f, &ptbl), PB_OK);
+    assert_part(UU_SYS_A, 34, 34 + SZ_KiB(32734) / 512 - 1, "Large");
+
+    /* The other object: it has two layouts, and its second is the default
+     * one. With the list above variant 1 is "Largest", and there is a
+     * variant 2 */
+    assert_int_equal(boot_object(f, &ptbl_swapped), PB_OK);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 2), -PB_ERR_PARAM);
+    assert_int_equal(bio_install_partition_table(UU_DISK, 1), PB_OK);
+    assert_int_equal(boot_object(f, &ptbl_swapped), PB_OK);
+    assert_part(UU_SYS_A, 34, 1057, "System A");
+    assert_part(UU_SYS_B, 1058, 2081, "System B");
+    assert_part(UU_STATE, 2082, 2082, "State");
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -368,6 +463,10 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_init_read_errors, setup, teardown),
         cmocka_unit_test_setup_teardown(test_recovery_write_errors, setup, teardown),
         cmocka_unit_test_setup_teardown(test_too_many_block_devices, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_object_data, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_object_init_blank_disk, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_object_init, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_object_layouts_reach_the_driver, setup, teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -146,3 +146,21 @@ int static_ptbl_in_place(bio_dev_t dev, uintptr_t *base, size_t *size)
 
     return -PB_ERR_NOT_FOUND;
 }
+
+static int ptbl_static_init(const struct ptbl *ptbl, bio_dev_t dev)
+{
+    return static_ptbl_init(dev, ptbl->table);
+}
+
+static int ptbl_static_mapped_init(const struct ptbl *ptbl, bio_dev_t dev)
+{
+    return static_ptbl_init_mapped(dev, ptbl->base, ptbl->table);
+}
+
+const struct ptbl_ops ptbl_static_ops = {
+    .init = ptbl_static_init,
+};
+
+const struct ptbl_ops ptbl_static_mapped_ops = {
+    .init = ptbl_static_mapped_init,
+};
