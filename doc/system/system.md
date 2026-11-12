@@ -41,7 +41,7 @@ pb runs the build's tasks in turn (`board.md` 4.6, D-051), and command mode is o
 build without command mode stops for the same reasons and runs its other tasks; with none it
 resets.
 
-The flows: `boot.md`, `command-mode.md` (not written).
+The flows: `boot.md`, `command-mode.md` (draft).
 
 ## 3. The interfaces to the outside
 
@@ -51,7 +51,7 @@ The flows: `boot.md`, `command-mode.md` (not written).
 | The image | The build that signs images | Like the wire: the format (bpak), the | `compatibility.md`, |
 | | | meta data pb reads | `boot.md` 4 |
 | The wire | A host in command mode | Frames, values, sequences, meaning | `compatibility.md`; behaviour: |
-| | | | `command-mode.md` (not written) |
+| | | | `command-mode.md` (draft) |
 | The handover | The next stage | Like the wire: the entry state, the | `boot.md` 5, 7 |
 | | | arguments, pb's information | |
 | The OS at run time | The update client, `pbstate` | Like the wire: the A/B state's format | `boot.md` 3.7, 7; |

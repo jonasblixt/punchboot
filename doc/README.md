@@ -15,7 +15,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 | | | `security.md` | Reviewed (D-036) |
 | | | `compatibility.md` | In force (the guards) |
 | 2 Architecture | `architecture/` | `boot.md` | Reviewed (D-041) |
-| | | `command-mode.md` | Missing |
+| | | `command-mode.md` | Draft: 8 open items (D-057) |
 | | | `arch-firmware.md` | Behind the code (waits for the board work's review) |
 | | | `arch-host-tools.md` | Not a contract yet |
 | 3 Interfaces | `interfaces/` | `platform.md` | Reviewed (D-056) |
@@ -43,5 +43,5 @@ Beside the levels, not normative:
 | | `findings-closed.md` | The fixed and rejected findings |
 | | `log/` | What was done, per day |
 
-Still to write: `command-mode.md`, the drivers' contracts, a porting guide and a migration guide
-for 3.0.0 (`guides/`).
+Still to write: the drivers' contracts, a porting guide and a migration guide for 3.0.0
+(`guides/`).

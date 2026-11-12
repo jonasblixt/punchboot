@@ -28,6 +28,8 @@ Do not read these up front. Open only what the task needs.
 | | **or image handling** |
 | `doc/architecture/boot.md` | **The boot flow**: boot source policies (A/B), load and verify, |
 | | handovers (`src/boot/`) |
+| `doc/architecture/command-mode.md` | **Command mode**: the session, the gate, each command and its |
+| | exchange (`src/cm/`, `wire.h`'s behaviour) |
 | `doc/architecture/arch-firmware.md` | Working in `src/`, `include/` |
 | `doc/architecture/arch-host-tools.md` | Working in `tools/`, wire protocol, Python package |
 | `doc/interfaces/platform.md` | **Changing or adding a platform** (`src/plat/`, `include/plat/`, |

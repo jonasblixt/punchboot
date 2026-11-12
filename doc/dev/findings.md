@@ -158,7 +158,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | unverified; it fits F-172 (a small write after a large one). Clean `desc_count + 1`. | | |
 | F-185 | `src/cm/cm_main.c`, `usbd.c` | `authenticated` survives a USB replug, a bus reset and | Reported | open |
 | | | `restart_command_mode`: the next host on a powered, locked device is authenticated. No idle timeout. | | |
-| | | Clear it on bus reset and transport restart. | | |
+| | | Clear it on bus reset and transport restart. `command-mode.md` 3.1: the session ends with the | | |
+| | | transport, and the stream is the session's too (`block_dev`, `stream_written`, `stream_failed`) | | |
 | F-186 | `cm_main.c` `cmd_part_verify`, `cmd_bpak_read` | Neither checks | Reported | open |
 | | | `BIO_FLAG_READABLE`/`VISIBLE`: `part verify` with size 1, 2, ... and hash guesses reads any partition | | |
 | | | byte by byte, hidden ones too. It also retargets the stream's `block_dev`. | | |
@@ -500,6 +501,28 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | D-056, `platform.md` 7: the API stays with the platform; `imx8x.h` includes the services boards | | |
 | | | use (pm, misc, seco, pad), the boards include `imx8x.h` only, and the arch comes through | | |
 | | | `include/pb/arch.h`. Out-of-tree 8X boards change their includes, not their calls | | |
+| F-271 | `src/cm/cm_main.c` `cm_run()`, `src/cm/Kconfig` | Without `CONFIG_CM_AUTH` | Verified (code) | open |
+| | | every session starts as authenticated (`authenticated = true`): such a build has an open command | | |
+| | | mode on a locked device, against `security.md` 4.7. Every defconfig in the tree has the option on. | | |
+| | | `command-mode.md` 3.2, Open (1): the gate is always compiled in and the option goes; the | | |
+| | | methods stay options. Ask Jonas about out-of-tree builds | | |
+| F-272 | `src/cm/cm_main.c` | Only `cmd_part_tbl_read()` looks at `BIO_FLAG_VISIBLE`. | Verified (code) | open |
+| | | Stream init, erase, verify, bpak read, `boot part` and activate find a hidden partition by its | | |
+| | | UUID (`bio_get_part_by_uu()`). With F-186 (`part verify` reads any partition byte by byte). | | |
+| | | `command-mode.md` 5.3, Open (2): a hidden partition answers NOT_FOUND to every command; | | |
+| | | `READABLE` only gates the bulk read | | |
+| F-273 | `src/cm/cm_main.c` `stream_check()` | The stream's byte offset is divided by | Verified (code) | open |
+| | | the block size and the remainder dropped: an offset that isn't a block multiple reads or writes | | |
+| | | from the block's start and answers OK. The Python host sends multiples (0, the chunk size, the | | |
+| | | partition's size less 4 KiB). `command-mode.md` 5.4: INVALID_ARGUMENT | | |
+| F-274 | `src/cm/cm_main.c`, `tools/punchboot/session.py` | Exchanges that get out of | Verified (code) | open |
+| | | step. (1) A refused `STREAM_PREPARE_BUFFER` (the gate, the size, the id) sends one result, | | |
+| | | but hosts send the data whatever the first result says: it is read as commands. As F-187 for | | |
+| | | `board command`. (2) `BOARD_STATUS_READ` whose `status()` fails sends the error result, the | | |
+| | | data and a second result; the Python host raises at the first and leaves two transfers on the | | |
+| | | link. Check what the 2.x C host did (the transcripts) before changing either side. (3) Most | | |
+| | | `cm_write()` results are ignored, and a failed `cm_read()` inside a command returns to the loop | | |
+| | | on the same transport. `command-mode.md` 4.4: a failed transfer ends the session | | |
 ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothing was submitted |
 
 ## Dependencies / vendored code
