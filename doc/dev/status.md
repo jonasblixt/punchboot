@@ -28,9 +28,13 @@ the trim is at the end of `log/2026-11-09.md`.
   pb is stopped (D-051). Its code: F-216, F-178, F-249..F-252, F-266..F-268. In: the RT's
   `late_boot` for the charger check (F-264), `struct board`'s objects (F-265).
 - **Boot flow contract (D-032, D-038 to D-041, D-043, D-044, `boot.md`):** reviewed (Jonas), no
-  open items. Its code is F-254, F-256..F-260 and the A/B review's. In: the in place source
-  (F-253, F-219, F-070) and the ramdisk above 4 GiB (F-255). Open from it: a DT in place with
-  the image handover (F-291).
+  open items. Its code still to come: F-254, F-257, F-259, F-260 and the A/B review's. In: the
+  in place source (F-253, F-219, F-070), the ramdisk above 4 GiB (F-255), the policy interface
+  with the loop and its fallback (F-256, F-215, F-174), the handover and delivery model
+  (F-258). Open from them: a DT in place with the image handover (F-291), an entry part of
+  size 0 (F-292), `bl_params`' own region on the 8M (F-294), a DXL image without a `kernel`
+  part (F-295), imx8mevk without a policy and a handover (F-300), the host's own policy
+  object (F-301).
 - **Command mode contract (D-057 to D-059, `command-mode.md`):** reviewed (Jonas, 2026-11-12),
   no open items. The session, the gate, each command's exchange and what a failure leaves.
   `CONFIG_CM_AUTH` stays the product's switch, with at least one method when it is on. Its
@@ -57,7 +61,7 @@ the trim is at the end of `log/2026-11-09.md`.
   code that decides nothing (a new driver, a refactoring) needs no document first (D-063).
   Security first, also before compatibility. No custom source, `dont-hash` images refused, EOL
   behind Kconfig (F-263).
-- **Tests:** `scripts/pbdev test`, ~25 s: 38 unit suites, `compat.abi`, `doc.lint` (the
+- **Tests:** `scripts/pbdev test`, ~30 s: 42 unit suites, `compat.abi`, `doc.lint` (the
   document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean again
   (F-290), line coverage 99.2% (2026-10-22, `testing.md`). The host has a memory mapped flash
   (`--nor`), on which the in place source runs end to end (`test_in_place.py`).
@@ -76,7 +80,8 @@ the trim is at the end of `log/2026-11-09.md`.
 
 0. **Resume here (2026-11-12): the code, a commit per finding (Jonas, D-057).** Every contract
    is reviewed. In: F-253 (in place), F-219, F-264, F-255, F-265 (`struct board`'s objects),
-   F-256 (the policy interface, with F-215 and F-174), F-288 (the lint). Next: F-260 first,
+   F-256 (the policy interface, with F-215 and F-174), F-258 (the handover gives an entry
+   and arguments, TF-A is a delivery), F-288 (the lint). Next: F-260 first,
    since a fallback is now only visible to the OS in `pb,active-system`, with F-243 (the
    watchdog on the boot path); then F-259; F-267 and F-268 (command mode's USB, the tasks).
    The
