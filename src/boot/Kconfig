@@ -80,6 +80,7 @@ config BOOT_SIMPLE
 
 config BOOT_LOAD_CHUNK_kB
     int "Copy/Hash load chunk size (kB)"
+    range 1 1048576
     default 4096
 
 config BOOT_LINUX_RAMOOPS

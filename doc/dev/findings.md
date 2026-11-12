@@ -725,6 +725,11 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | (`board.md` 2.1). imx8mevk fails it (F-300): its life cycle would be unknown, so its command | | |
 | | | mode closed, in a build without a method (F-271), and without storage. Today it can install | | |
 | | | and write its table. Move the check to the start when F-300 is done, with F-216 | | |
+| F-323 | `src/boot/boot.c` `boot_from_policy()` | Low. The core's loop over a policy's | Reported (review) | open |
+| | | candidates has no bound of its own: it ends when `next` says there is none. The in-tree | | |
+| | | policies end (fixed, chain, A/B). A board's own policy whose `next` never ends would loop, and | | |
+| | | since F-243 the loads in it kick the watchdog, where it reset before. A bound in the core, or | | |
+| | | a sentence in `boot.md` 3.2 that a policy hands out each candidate once per boot | | |
 
 ## Dependencies / vendored code
 

@@ -232,7 +232,8 @@ So `CONFIG_WATCHDOG_TIMEOUT` must be longer than each of these:
 - One chunk on the slowest medium the board loads from. The board states it.
 - From the kick before the jump to the next stage's first kick: BL31, a secure OS, the kernel up
   to its watchdog driver. Usually the longest; the product measures it.
-- Command mode's longest command, as long as the core kicks only between commands (F-189).
+- Command mode's longest command, as long as the core kicks only between commands and in the
+  load of a boot command (F-189).
 
 The watchdog stays armed at the jump: the next stage takes it over.
 
