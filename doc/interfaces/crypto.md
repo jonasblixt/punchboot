@@ -1,6 +1,6 @@
 # The crypto backend contract
 
-**State: draft (2026-11-12), D-064.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064, D-071.** Level 3 (`process.md`).
 
 What pb's hashing and signature verification (`include/pb/crypto.h`, `src/crypto.c`) give their
 users, and what a backend that implements them provides: a SoC's crypto engine or a software
@@ -14,22 +14,20 @@ then go through the checklist (section 8).
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates section 9.
 
-**Open (n)**: a proposal that isn't confirmed. The five, each marked in the text:
+**No open items.** The draft's five, as decided in Jonas's review (D-071) and written into
+the text:
 
-| Open | Question                                           | Proposal                                     |
-| ---- | -------------------------------------------------- | -------------------------------------------- |
-| 1    | A hash that is given up (F-181): an error between  | No abort to call: `hash_init()` and          |
-|      | `hash_init()` and `hash_final()`                   | `dsa_verify()` each start from an idle       |
-|      |                                                    | engine, whatever was left (3.1, 4)           |
-| 2    | The verdict has two channels, the return value     | Both stay, and mean the same: PB_OK if and   |
-|      | and `*verified` (4)                                | only if `*verified`. A signature that        |
-|      |                                                    | doesn't verify is `-PB_ERR_SIGNATURE`        |
-| 3    | `dsa_verify()` while a hash is open (4)            | Refused, `-PB_ERR_STATE`: one operation at a |
-|      |                                                    | time. No flow needs it                       |
-| 4    | Two backends in one build (2)                      | One backend per algorithm, by Kconfig. No    |
-|      |                                                    | fallback at run time                         |
-| 5    | `HASH_MD5_BROKEN` (5)                              | Stays, for the products in the field that    |
-|      |                                                    | have it in their identity. Which ones?       |
+| Item | Rule                                                                              | By    |
+| ---- | --------------------------------------------------------------------------------- | ----- |
+| 1    | No abort to call: `hash_init()` starts from an idle engine, whatever was left     | Jonas |
+|      | (3.1)                                                                             |       |
+| 2    | The verdict's two channels mean the same: PB_OK if and only if `*verified`. A     | Jonas |
+|      | signature that doesn't verify is `-PB_ERR_SIGNATURE` (4)                          |       |
+| 3    | `dsa_verify()` while a hash is open is refused, `-PB_ERR_STATE` (4)               | Jonas |
+| 4    | A build may have several backends, each algorithm from one of them: a hardware    | Jonas |
+|      | backend for the hashes and a software one for the signatures. No fallback at run  |       |
+|      | time (2)                                                                          |       |
+| 5    | `HASH_MD5_BROKEN` stays (5)                                                       | Jonas |
 
 ## 1. Words and scope
 
@@ -73,15 +71,23 @@ with the algorithms it has (`alg_bits`).
   `-PB_ERR_NOT_SUPPORTED` from `hash_init()` and `dsa_verify()`, and a check that can't be made
   is a no (`security.md` 4.4). A failed verification engine refuses the boot before the load
   (`platform.md` 2.3, `security.md` 4.5).
-- **One backend per algorithm. Open (4).** The build decides which, and nothing falls back at
-  run time: a fallback is a second implementation that must verify the same, and
-  `security.md` 4.5 asks that of one before it may stand in. Today the first backend
-  registered that has the algorithm is used; no build in the tree registers two.
-- **A backend has every algorithm its build's keys and images use.** The header's hash, the
-  keystore keys' curves, SHA-256 for `part verify`, MD5 for the identity. One that drops an
-  algorithm on some hardware (an engine variant without the long hashes) drops it when it
-  registers, so that the answer is `-PB_ERR_NOT_SUPPORTED` and not a wrong digest.
+- **A build may have several backends, and each algorithm comes from one of them** (Jonas,
+  D-071). The hashes and the signatures are registered apart, so an engine can give the
+  accelerated hashes while a software backend verifies the signatures, or the other way
+  round. A backend's options say which of its algorithms it registers. Today no build in
+  the tree has two backends.
+- **No fallback at run time** (Jonas): an algorithm has one backend, chosen by the build. A
+  fallback would be a second implementation that must verify the same, and `security.md` 4.5
+  asks that of one before it may stand in. An algorithm that two backends register is a
+  mistake of the build: the second registration is refused. **Not yet in the code (F-286)**:
+  the first backend registered that has the algorithm is used, silently.
+- **Together the build's backends have every algorithm its keys and images use**: the
+  header's hash, the keystore keys' curves, SHA-256 for `part verify`, MD5 for the identity.
+  No single backend needs them all. One that lacks an algorithm on some hardware (an engine
+  variant without the long hashes) doesn't register it there, so that the answer is
+  `-PB_ERR_NOT_SUPPORTED` and not a wrong digest.
 - **Software is a backend like any other** and passes the same tests (section 9).
+
 
 ## 3. Hashing
 
@@ -97,11 +103,13 @@ Return   : int, PB_OK or -PB_ERR_*
 
 Opens a context for one algorithm.
 
-- **It always starts clean. Open (1).** Whatever was open is ended: a job that is in flight is
-  waited for or cancelled, and nothing of it completes into the new context or into a later
-  verification (F-181). A user that gives a hash up on an error calls nothing; the next
-  `hash_init()` is the cleanup, and so is the next `dsa_verify()`. **Not yet in the code
-  (F-181, F-286)**: the engine's backend leaves the old job in its ring.
+- **It always starts clean** (Jonas, D-071). Whatever was open is ended: a job that is in
+  flight is waited for or cancelled, and nothing of it completes into the new context or into
+  a later verification (F-181). A user that gives a hash up on an error calls nothing; the
+  next `hash_init()` is the cleanup. Until then the context counts as open, and a
+  verification is refused (section 4), which is a no; every verification hashes first, so it
+  starts with a `hash_init()`. **Not yet in the code (F-181, F-286)**: the engine's backend
+  leaves the old job in its ring.
 - **When it fails there is no context**: the next update is `-PB_ERR_STATE`. **Not yet in the
   code (F-286)**: the backend stays selected after a failed `init`.
 - `-PB_ERR_NOT_SUPPORTED`: no backend has the algorithm. `-PB_ERR_PARAM`: `alg` isn't one
@@ -180,7 +188,7 @@ Return   : int, PB_OK or -PB_ERR_*
 
 Verifies an ECDSA signature over a digest with a public key.
 
-**The verdict. Open (2).**
+**The verdict** (Jonas, D-071).
 
 - **`*verified` is false until the signature verified.** It is set to false before anything
   else, and to true in one place: where this call's own computation said the signature is
@@ -211,7 +219,8 @@ The arguments:
   (F-286)**: `alg` only selects the backend.
 - **`md` and `md_length`** are the digest and its length for `md_alg`. A backend uses the
   leftmost bits the curve takes, as ECDSA defines. `md` is read only and may be anywhere.
-- **Not while a hash is open. Open (3)**: `-PB_ERR_STATE`.
+- **Not while a hash is open** (Jonas, D-071): `-PB_ERR_STATE`, from the core, whichever
+  backends the build has.
 
 ## 5. Algorithms
 
@@ -223,17 +232,16 @@ The arguments:
 | P-521                       |                                   |                                    |
 | MD5                         | The device's identity             | Not a security use: a UUID version |
 |                             | (`platform.md` 3.7)               | 3 is defined with it               |
-| `HASH_MD5_BROKEN`           | The identity of products in the   | Open (5)                           |
+| `HASH_MD5_BROKEN`           | The identity of products in the   | Stays                              |
 |                             | field                             |                                    |
 
 - **MD5 is in every build**: the device's UUID is computed with it, and the UUID never changes
   (`system.md` 5.5). No verification uses it, and no image or key can ask for it: the image
   format's hash kinds don't name it.
-- **`HASH_MD5_BROKEN`. Open (5).** The engine's backend has a second MD5 with a shortened
-  running context, "compatible with some versions already in the field". Nothing in the tree
-  asks for it. It stays: a product whose devices got their UUIDs from it needs it for good
-  (`principles.md` 7). Which products, and whether a platform should select it by an option,
-  is Jonas's to say.
+- **`HASH_MD5_BROKEN` stays** (Jonas, D-071). The engine's backend has a second MD5 with a
+  shortened running context, "compatible with some versions already in the field". Nothing
+  in the tree asks for it: a product whose devices got their UUIDs from it needs it for good
+  (`principles.md` 7).
 - **A new algorithm is added**, with its bit in `hash_t` or `dsa_t`; none is changed or
   reused. Which algorithms an image may name is the image format's (`compatibility.md`).
 
@@ -307,6 +315,7 @@ Where each backend is (2026-11-12). Read in the code, not run, unless a test is 
 | The key parsed inside its length     | no                      | yes (the library)    | F-066        |
 | The key's curve is `alg`             | no                      | no                   | F-286        |
 | Every wait bounded                   | yes (1 s)               | n/a                  |              |
+| An algorithm is registered once      | no (the core)           | no (the core)        | F-286        |
 | Nothing left at the jump             | no                      | n/a                  | F-286        |
 | The library's results checked        | n/a                     | no: the SHA calls'   | F-008        |
 | An algorithm the hardware lacks      | yes (the short engine)  | yes (Kconfig)        |              |

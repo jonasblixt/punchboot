@@ -497,7 +497,8 @@ sets `READABLE`, which is why `part read` fails on them (F-083).
 |                    | one (5.9)                                                        |                        |
 
 - **`PART_TBL_INSTALL`**: the new table is in effect for the commands that follow, and the
-  stream ends. **Not yet in the code (F-194)**: until a reset the old partitions are listed and
+  stream ends. A partition that didn't change stays as it was; how the others are replaced is
+  `bio.md` 4. **Not yet in the code (F-194)**: until a reset the old partitions are listed and
   written. A failure may leave the device without a valid table; command mode still runs
   (`board.md` 2.1) and the install is run again. It isn't retired, whatever the comment in
   `cm_main.c` and F-032 say: `board.md` 2.1 and 2.4 rely on it.

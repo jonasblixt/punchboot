@@ -1,6 +1,6 @@
 # The drivers' contracts: every driver
 
-**State: draft (2026-11-12), D-064.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064 to D-066.** Level 3 (`process.md`).
 
 What a driver (`src/drivers/<class>/`, `include/drivers/<class>/`) is, and what every driver does
 whatever its class: when it is set up and stopped, how long it may wait, what it returns, and the
@@ -24,25 +24,21 @@ the checklist (section 7).
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates the conformance table.
 
-**Open (n)**: a proposal that isn't confirmed. The five, each marked in the text:
+**No open items.** The draft's five, as decided in Jonas's review (D-065, D-066) and written
+into the text:
 
-| Open | Question                                            | Proposal                                    |
-| ---- | --------------------------------------------------- | ------------------------------------------- |
-| 1    | One `drivers.md`, or a file per class (asked        | This document for what is common, and one   |
-|      | 2026-11-11, not answered)                           | per class: each has its own entries,        |
-|      |                                                     | checklist and conformance table             |
-| 2    | Where the DMA rule lives in the code (4.4)          | `include/pb/dma.h`: the line size, a macro  |
-|      |                                                     | for a buffer that owns its lines, three     |
-|      |                                                     | functions. Drivers stop calling the arch's  |
-|      |                                                     | cache functions                             |
-| 3    | A caller's buffer that doesn't own its lines (4.3)  | The class's core bounces it through a       |
-|      |                                                     | buffer of its own. A driver never sees one, |
-|      |                                                     | and no image is refused for it (D-008)      |
-| 4    | The line size (4.1)                                 | A constant, 64 bytes, checked against the   |
-|      |                                                     | core's own in `arch_init()`                 |
-| 5    | Which drivers have a `stop` (2.3)                   | Those whose device acts without being       |
-|      |                                                     | asked. A driver whose calls are synchronous |
-|      |                                                     | has nothing to stop                         |
+| Item | Rule                                                                              | By                |
+| ---- | --------------------------------------------------------------------------------- | ----------------- |
+| 1    | A contract per class, each in its own file. This document holds what is common to | Jonas             |
+|      | every driver                                                                      |                   |
+| 2    | The DMA rule lives in `include/pb/dma.h`; drivers stop calling the arch's cache   | Jonas             |
+|      | functions (4.4)                                                                   |                   |
+| 3    | The class's core refuses a buffer that doesn't own its lines. An image part's     | Jonas             |
+|      | load address is bounced in the boot's load loop: no image is refused for it (4.3) |                   |
+| 4    | The line size is a constant, 64 bytes, checked in `arch_init()` (4.1)             | Jonas             |
+| 5    | A driver has a `stop` when its device acts without being asked; one whose calls   | Jonas, no comment |
+|      | are synchronous has nothing to stop (2.3)                                         |                   |
+|      | No IOMMU is a fact of today's platforms, not a rule (4)                           | Jonas             |
 
 ## 1. Scope
 
@@ -108,8 +104,6 @@ Every call of a driver either completes before it returns, or is polled:
 No driver calls back into the core, and none calls `plat_wdog_kick()` (3).
 
 ### 2.3 Function : `<driver>_stop()` [mandatory when the device acts without being asked]
-
-**Open (5).**
 
 ```
 Argument : void
@@ -182,9 +176,17 @@ What a driver returns:
 One rule for every driver whose device reads or writes memory itself. F-081, F-134, F-184,
 F-205 and F-220 are each this rule broken in one place.
 
-pb maps memory one to one and there is no IOMMU: the address the CPU uses is the address the
-device gets. After `plat_init()` the D-cache is on (`platform.md` 2.2): what the CPU wrote may
-be in the cache only, and what a device wrote isn't in the cache.
+After `plat_init()` the D-cache is on (`platform.md` 2.2): what the CPU wrote may be in the
+cache only, and what a device wrote isn't in the cache. The rule is about that, and holds on
+every platform.
+
+**The address a device gets** is a separate matter. On the platforms pb supports today the
+address the CPU uses is the address the device gets: pb maps memory one to one, and none of
+them has an IOMMU in front of its devices. That is a fact of these platforms, not a rule of
+this contract (Jonas, D-065). A platform with an IOMMU may use it, and then decides which
+memory a device reaches; this section gets an entry for it when the first such platform comes.
+Until then a driver turns a pointer into the device's address in one place, so that a
+translation has somewhere to go.
 
 ### 4.1 Words
 
@@ -194,9 +196,10 @@ be in the cache only, and what a device wrote isn't in the cache.
 | In   | The device writes memory the CPU reads afterwards: a block, a USB transfer, a status |
 | Line | A cache line. `PB_DMA_ALIGN` bytes: no smaller than the line of any core pb runs on  |
 
-**Open (4)**: `PB_DMA_ALIGN` is a constant, 64, and `arch_init()` checks that the core's line
-isn't larger. An alignment must be known when a buffer is declared, so it can't be read from the
-core at run time; the functions of 4.4 use the core's own line size for their stride.
+`PB_DMA_ALIGN` is a constant, 64, and `arch_init()` checks that the core's line isn't larger
+(Jonas, D-065). An alignment must be known when a buffer is declared, so it can't be read from
+the core at run time; the functions of 4.4 use the core's own line size for their stride.
+**Not yet in the code (F-282).**
 
 ### 4.2 The rule
 
@@ -228,7 +231,7 @@ own alignment (64, 4096, or none) and its own order.
 
 ### 4.3 The caller's buffer
 
-**Open (3).**
+**Not yet in the code (F-282)**: no buffer is checked, and the load loop has no bounce.
 
 A driver's device also reads and writes buffers that aren't the driver's: a block read into an
 image's load address, a transfer into command mode's buffer, the bytes to hash.
@@ -238,26 +241,41 @@ image's load address, a transfer into command mode's buffer, the bytes to hash.
 - **In** needs a buffer that owns its lines (4.2, item 3). A buffer on the stack never does:
   the driver's own frames are its neighbours.
 
-Who makes it so:
+Who makes it so depends on whose buffer it is:
 
-- **pb's own buffers** are declared with the macro of 4.4: command mode's command and its two
-  buffers, the image header, the partition tables, the A/B state's blocks.
-- **A buffer the core is handed** (an image part's load address, an out-of-tree board's read)
-  is checked by the class's core, not by each driver. One that starts on a line and whose
-  length is whole lines goes to the driver as it is: whole blocks are whole lines. Any other
-  is bounced by the core through a buffer of its own that owns its lines, a block or a chunk
-  at a time, and copied.
-- **A driver therefore sees only buffers that own their lines**, and returns `-PB_ERR_ALIGN`
-  for one that doesn't start on a line. It bounces only for what its own device needs beyond
-  that (a controller that needs page alignment).
-- **No image is refused for its load addresses** (D-008): an image whose part starts inside a
-  line loads through the bounce buffer, slower.
-- **Small results** (a digest, a status byte) are written by the device into the driver's own
-  memory and copied to the caller.
+| Buffer                             | Whose          | Rule                                       |
+| ---------------------------------- | -------------- | ------------------------------------------ |
+| Command mode's command and its two | pb's           | Declared with the macro of 4.4. Nothing to |
+| buffers, the image header, the     |                | check at run time                          |
+| partition tables, the A/B state    |                |                                            |
+| What a board reads into            | The board's    | The same: declared with the macro. One     |
+|                                    |                | that isn't is refused, `-PB_ERR_ALIGN`     |
+| An image part's load address       | The image's    | Bounced in the boot's load loop when it    |
+|                                    |                | doesn't start on a line                    |
+| A digest, a status byte            | The caller's,  | The device writes the driver's own memory, |
+|                                    | often on the   | and the driver copies                      |
+|                                    | stack          |                                            |
+
+- **The class's core checks, once.** `bio_read()` and the transport's read refuse a buffer
+  that doesn't start on a line, before the driver is called. Whole blocks are whole lines, so
+  the start is all there is to check. A driver therefore sees only buffers that own their
+  lines, and bounces only for what its own device needs beyond that (a controller that needs
+  page alignment).
+- **A refusal is loud, a shared line is silent.** The wrong declaration fails on the first
+  read, on every medium and on the host, where today it corrupts a neighbour now and then on
+  one board.
+- **No image is refused for its load addresses** (D-008). The load address is the one buffer
+  pb doesn't choose: the image names it. The boot's load loop reads a part that starts on a
+  line straight to its address, as today, with no copy. One that starts inside a line is read
+  a piece at a time into a buffer of the boot's own and copied to its address: slower, and it
+  boots. It is one place, for a partition and for the host's stream alike, and a host test
+  loads an image with such an address.
+- **Out-of-tree boards** get a line in the migration guide for 3.0.0: a buffer that a device
+  fills is declared with the macro.
 
 ### 4.4 In the code
 
-**Open (2). Not yet in the code (F-282).**
+**Not yet in the code (F-282).**
 
 `include/pb/dma.h`, built on the arch's cache functions. A driver includes it and no arch
 header:
@@ -282,8 +300,28 @@ header:
   (F-282, F-207)**: the three are declared in each arch's own header, which the drivers include
   by its path; clean and invalidate exists on ARMv8-A only; the D-cache is enabled without
   being invalidated first.
-- On the host the three do nothing, so no host test sees a missing clean or invalidate. This
-  rule is checked by review and on the bench.
+- On the host the arch's three do nothing, so no host test sees a missing clean or
+  invalidate. The functions above can still check what doesn't need a cache: that a range a
+  device writes owns its lines, and that every `dma_in_begin()` has its `dma_in_end()`. The
+  order of 4.2 itself is checked by review and on the bench.
+
+Why not the arch's functions at each place, as today:
+
+- **They say what to do to the cache, not why.** Clean and invalidate know nothing of the
+  direction or of who owns the line. Each of the some sixty calls in the drivers has to get
+  the choice, the order and the rounding right by itself, and the five findings this section
+  starts with are each one call that didn't. A name that carries the direction leaves less to
+  get wrong, and to review.
+- **The check for a shared line has one home.** It is the mistake that is silent, and nothing
+  can assert it when the calls go straight to the arch.
+- **A driver includes no arch header**, as a board doesn't (`platform.md` 7). The three
+  aren't the same on every arch today.
+- **The device's address has one home too**, for the day a platform translates it (the start
+  of this section).
+
+The cost is one thin header and a rename in the drivers. Considered and not taken (D-066):
+declaring the arch's three in `include/pb/arch.h`, with only the line size and the macro
+added and the order left to the checklist. It fixes the header and not the first two points.
 
 ## 5. What a driver trusts
 

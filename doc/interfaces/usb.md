@@ -1,6 +1,6 @@
 # The transport and USB device controller contract
 
-**State: draft (2026-11-12), D-064.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064, D-072.** Level 3 (`process.md`).
 
 What carries command mode's bytes: the transport's functions as command mode calls them, pb's
 USB device (the class, the stack on endpoint 0) and what a USB device controller's driver
@@ -16,21 +16,18 @@ wire.
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates section 8.
 
-**Open (n)**: a proposal that isn't confirmed. The five, each marked in the text:
+**No open items.** The draft's five, as decided in Jonas's review (D-072) and written into
+the text:
 
-| Open | Question                                           | Proposal                                     |
-| ---- | -------------------------------------------------- | -------------------------------------------- |
-| 1    | The transport's functions, once it is linked and   | `cm_transport_init()`, `_connect()`,         |
-|      | not the board's (D-049): their names (2)           | `_read()`, `_write()`, `_complete()`,        |
-|      |                                                    | `_disconnect()`: today's operations by name  |
-| 2    | How "lost" reaches command mode (2.4, F-185,       | No new call: every error from `complete` is  |
-|      | F-201)                                             | "lost". A controller reports a bus reset and |
-|      |                                                    | an unplug as an error of the transfer        |
-| 3    | A full speed bus (4.1)                             | Not supported: high speed, or not ready      |
-| 4    | A request on endpoint 0 the stack doesn't know     | Stalled: a new operation, `ep0_stall`        |
-|      | (3.2, F-138)                                       |                                              |
-| 5    | A request on endpoint 0 while a bulk transfer runs | Answered without touching the bulk transfer  |
-|      | (3.2, F-203)                                       |                                              |
+| Item | Rule                                                                              | By    |
+| ---- | --------------------------------------------------------------------------------- | ----- |
+| 1    | The transport's six functions: `cm_transport_init()`, `_connect()`, `_read()`,    | Jonas |
+|      | `_write()`, `_complete()`, `_disconnect()` (2)                                    |       |
+| 2    | Every error from `complete` is "lost". A controller reports a bus reset and an    | Jonas |
+|      | unplug as an error of the transfer (2.4)                                          |       |
+| 3    | A full speed bus isn't supported, for now: high speed, or not ready (4.1)         | Jonas |
+| 4    | A request the stack doesn't know is stalled: a new operation, `ep0_stall` (3.2)   | Jonas |
+| 5    | A request on endpoint 0 leaves a bulk transfer alone (3.2)                        | Jonas |
 
 ## 1. Words and scope
 
@@ -61,7 +58,7 @@ hooks (`board.md` 5.3), USB host mode, which pb doesn't have.
 
 ## 2. The transport
 
-**Open (1). Not yet in the code (F-267)**: `struct cm_transport_ops` in `struct board`.
+**Not yet in the code (F-267)**: `struct cm_transport_ops` in `struct board`.
 
 Six functions. Command mode calls them and nothing else of the layers below.
 
@@ -112,7 +109,7 @@ return at once; `cm_transport_complete()` says when it is done.
 - **The buffer is the transport's until the transfer is done or the transport is restarted.**
   It owns its cache lines (`drivers.md` 4.3): command mode's command, its result and its two
   buffers are declared so, and a part of `BOOT_BPAK` goes to its load address through the
-  core's bounce buffer when that address doesn't.
+  boot's bounce buffer when that address doesn't. Any other is refused, `-PB_ERR_ALIGN`.
 - **A read is done when exactly `length` bytes arrived**, and nothing is written past them.
   Fewer bytes at the end of the host's transfer (a short packet) is an error: the two sides
   no longer agree (`command-mode.md` 4.4). **Not yet in the code (F-137, F-205, F-287)**: no
@@ -147,8 +144,8 @@ its own for a transfer.
 | `PB_OK`         | The transfer is done: all of `length`, and for a read the bytes are in      |
 |                 | `buf`. Returned once; with no transfer started it is `-PB_ERR_STATE`        |
 | `-PB_ERR_AGAIN` | Not done yet                                                                |
-| Any other       | **Lost** (Open (2)): the session ends and command mode restarts the         |
-|                 | transport (`command-mode.md` 3.1)                                           |
+| Any other       | **Lost**: the session ends and command mode restarts the transport          |
+|                 | (`command-mode.md` 3.1)                                                     |
 
 - **Lost is every way the host goes away or starts over**: an unplug, a bus reset, a transfer
   that failed, a host that deconfigured the device. The transport reports each as an error of
@@ -216,10 +213,10 @@ The stack answers these requests and no others:
   descriptor of another one; `SET_CONFIGURATION` takes the one configuration there is, or 0,
   which deconfigures and is "lost". **Not yet in the code (F-287)**: the configuration's value
   isn't looked at.
-- **Any other request is stalled. Open (4).** The host then goes on at once. **Not yet in the
+- **Any other request is stalled.** The host then goes on at once. **Not yet in the
   code (F-138)**: nothing is answered, the host waits out its timeout, and the transfer that
   was running fails.
-- **A request doesn't disturb a bulk transfer. Open (5).** Hosts send requests at any time
+- **A request doesn't disturb a bulk transfer.** Hosts send requests at any time
   (`lsusb -v`, another program that lists devices). The stack answers on endpoint 0 and the
   bulk transfer goes on where it was. **Not yet in the code (F-203)**: the transfer is
   cancelled and started again from its first byte.
@@ -246,7 +243,7 @@ power and PHY are done (`platform.md` 3.10).
 
 - **It works on a controller that runs**: after the ROM's serial download, after a `stop`,
   after a session that was lost.
-- **High speed, or not ready. Open (3).** The descriptors are for high speed (512 byte
+- **High speed, or not ready**, for now (Jonas, D-072). The descriptors are for high speed (512 byte
   packets). On a bus that only does full speed the device doesn't become ready, and command
   mode ends as when no host came. **Not yet in the code (F-287)**: only one controller asks
   for a speed, and none acts on what the bus gave.
@@ -303,7 +300,7 @@ ep0_stall(void)
 - **`set_configuration`** sets up the class's endpoints as the descriptors say and makes them
   ready; called again it starts them over.
 - **`ep0_xfer_zlp`** is the status stage, bounded.
-- **`ep0_stall`. Open (4).** Stalls endpoint 0 until the next SETUP. **Not yet in the code
+- **`ep0_stall`.** Stalls endpoint 0 until the next SETUP. **Not yet in the code
   (F-138)**: there is no such operation.
 
 ## 5. Buffers and sizes
@@ -313,7 +310,7 @@ ep0_stall(void)
 | A command, a result           | 512 bytes, one packet             | Command mode, owns its lines    |
 | Command mode's two buffers    | `CONFIG_CM_BUF_SIZE_KiB`          | Command mode, owns its lines    |
 | A piece of a `BOOT_BPAK` part | `CONFIG_BOOT_LOAD_CHUNK_kB`,      | The image's load address, or    |
-|                               | whole packets but the last        | the core's bounce buffer        |
+|                               | whole packets but the last        | the boot's bounce buffer        |
 | The controller's own          | Descriptors, rings, a setup       | The driver, with the macro of   |
 |                               | packet, bounce buffers            | `drivers.md` 4.4                |
 | What the stack sends on       | Descriptors, a status             | The stack, owns its lines:      |

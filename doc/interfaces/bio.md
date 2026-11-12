@@ -1,6 +1,6 @@
 # The block device contract
 
-**State: draft (2026-11-12), D-064.** Level 3 (`process.md`).
+**State: reviewed (Jonas, 2026-11-12), D-064, D-067 to D-070.** Level 3 (`process.md`).
 
 What a block device is in pb (`include/pb/bio.h`, `src/bio.c`): what the boot, command mode, a
 boot source policy and a board may rely on when they read, write and erase one, and what a
@@ -13,22 +13,24 @@ through the checklist (section 7). Section 6 is fixed for a product in the field
 **Not yet in the code (F-nnn)** marks what the code doesn't do yet. The commit that fixes the
 finding removes the marker and updates section 8.
 
-**Open (n)**: a proposal that isn't confirmed. The five, each marked in the text:
+**No open items.** What Jonas's review decided (D-067 to D-070), as written into the text:
 
-| Open | Question                                         | Proposal                                       |
-| ---- | ------------------------------------------------ | ---------------------------------------------- |
-| 1    | Who owns a length that isn't whole blocks (3.1,  | The core. A write's last block is padded with  |
-|      | 3.2, F-182)                                      | zeros, a read's is read through the core's     |
-|      |                                                  | block buffer. A driver sees whole blocks only  |
-| 2    | An image whose parts don't start on a block of   | `bio_read_at()`, a read at a byte offset, in   |
-|      | the device (F-220: bpak aligns to 512 bytes, the | the core, for the boot's source. The drivers   |
-|      | NOR's block is 4 KiB)                            | don't change                                   |
-| 3    | A table that is installed while pb runs (F-194)  | The table's children are released and made     |
-|      |                                                  | again: `bio_release_children()`                |
-| 4    | What `ERASE_BEFORE_WRITE` asks, and of whom      | As released: `bio_write()` never erases; who   |
-|      | (3.3)                                            | writes such a device erases first              |
-| 5    | A device's state at the jump (5)                 | Left as it is, nothing in flight. The next     |
-|      |                                                  | stage sets the device up again                 |
+| Item | Rule                                                                         | By    |
+| ---- | ---------------------------------------------------------------------------- | ----- |
+| 1    | The core owns a length that isn't whole blocks; a driver sees whole blocks   | Jonas |
+|      | only (3.1, 3.2)                                                              |       |
+| 2    | No read at a byte offset for now. A part that doesn't start on a block of    | Jonas |
+|      | its device is refused, as released (3.1)                                     |       |
+| 3    | An installed table is in effect at once, for `bio` and the core. A handle    | Jonas |
+|      | never comes to mean another partition: an unchanged partition keeps its      |       |
+|      | handle, a changed one's is dead until the reset. No hook of the board's runs |       |
+|      | again (4)                                                                    |       |
+| 4    | `bio_write()` is to erase what it writes where the flag is set. A future     | Jonas |
+|      | task: the erase blocks' accounting is designed first (3.3, `roadmap.md`).    |       |
+|      | Until then the writer erases, as released                                    |       |
+| 5    | A device is left as it is at the jump, nothing in flight (5)                 | Jonas |
+| 6    | `bio_erase()` counts blocks, not bytes (3.3)                                 | Jonas |
+|      | `bio_write()` is optional, whatever the flags say (3.2)                      | Jonas |
 
 ## 1. Words and scope
 
@@ -90,7 +92,7 @@ the RT1060 EVK's).
   buffer (3.1). A device with a larger one is refused at registration. **Not yet in the code
   (F-283).**
 - What a format puts at a fixed number of bytes (bpak's header in a partition's last 4 KiB,
-  `boot.md` 4.4) needs a block size that divides it, or the read at a byte offset of 3.1.
+  `boot.md` 4.4) needs a block size that divides it: 3.1.
 
 ### 2.4 Flags
 
@@ -138,24 +140,26 @@ Return   : int, PB_OK or -PB_ERR_*
 Reads `length` bytes from block `lba` of the device into `buf`.
 
 - **Exactly `length` bytes are written to `buf`**, never more.
-- **`length` is bytes. Open (1).** A length that isn't whole blocks is the core's: the last
+- **`length` is bytes.** A length that isn't whole blocks is the core's: the last
   block is read into the core's block buffer and the bytes asked for are copied. **Not yet in
   the code (F-182, F-284)**: the length goes to the driver as it is; the MMC driver drops the
   tail and returns OK, the FlexSPI's refuses a length that isn't a multiple of 4.
 - **A length of 0** is `PB_OK` and reads nothing; the driver isn't called. **Not yet in the
   code (F-283)**: the MMC driver returns an error.
-- **The buffer** may be any memory that is mapped. One that doesn't own its cache lines is
-  bounced by the core (`drivers.md` 4.3, its Open (3)); the driver gets one that does.
+- **The buffer** starts on a cache line and owns its lines (`drivers.md` 4.3).
+  One that doesn't is refused, `-PB_ERR_ALIGN`, before the driver is called. An image part
+  whose load address doesn't is the boot's to bounce, not `bio`'s.
 - **No limit on the length** but the device's size: the driver splits a request its controller
   can't take in one piece.
 - **A failed read** leaves `buf` with unknown content. The caller doesn't use it (F-173).
 - `-PB_ERR_NOT_SUPPORTED`: the device has no read.
 
-**A read at a byte offset. Open (2).** `bio_read_at(dev, offset, length, buf)` reads `length`
-bytes from byte `offset`, with the first and the last block through the core's block buffer
-when they are partial. It is for the boot's source: an image's parts start where the format
-puts them, which needn't be a block of the device (F-220). **Not yet in the code (F-283)**:
-the boot refuses such a part with `-PB_ERR_ALIGN`.
+**No read at a byte offset, for now** (Jonas, D-068). A read starts on a block. An image's
+parts start where its format puts them, and bpak aligns them to 512 bytes: on a device with
+larger blocks (the NOR's 4 KiB) a part that doesn't start on a block isn't read, and the boot
+fails with `-PB_ERR_ALIGN` when it reaches that part, as in every release (F-220). An image's
+first part always starts on a block: it is at the partition's first byte. A read at a byte
+offset in the core would lift the limit; it is noted in `roadmap.md`.
 
 The driver's callback:
 
@@ -168,7 +172,7 @@ Return   : int, PB_OK or -PB_ERR_*
 - It finds its device with `bio_get_private()` or its driver flags.
 - It does its own cache maintenance (`drivers.md` 4.2) and waits with a bound.
 
-### 3.2 Function : bio_write() [mandatory for a device with `WRITABLE`]
+### 3.2 Function : bio_write() [optional]
 
 ```
 Argument : bio_dev_t dev, lba_t lba, size_t length, const void *buf
@@ -179,15 +183,16 @@ Writes `length` bytes of `buf` from block `lba` on.
 
 - **Exactly `length` bytes are read from `buf`**, never more. **Not yet in the code (F-284)**:
   the FlexSPI's driver reads up to four bytes past it.
-- **A length that isn't whole blocks. Open (1).** The core writes the last block from its
+- **A length that isn't whole blocks.** The core writes the last block from its
   block buffer: the bytes given, then zeros (`command-mode.md` 5.4). Nothing is read back to
   keep what the block held.
 - **When it returns PB_OK the data is on the medium**: the device accepted it and is ready
   again. There is no cache to flush.
 - **A write that fails** leaves any of the blocks written, in any order. Writing isn't atomic;
   what needs it writes two copies (`boot.md` 3.7).
-- **It never erases**: 3.3.
+- **It doesn't erase**, today: 3.3.
 - A length of 0, the buffer and the limit as for a read.
+- `-PB_ERR_NOT_SUPPORTED`: the device has no write.
 
 ### 3.3 Function : bio_erase() [optional]
 
@@ -200,6 +205,11 @@ Erases `count` blocks from `first_lba`. A device whose medium has no erase, or w
 has none, answers `-PB_ERR_NOT_SUPPORTED` (MMC and SD today: `part erase` isn't supported on
 them).
 
+- **The count is blocks, not bytes** (Jonas, D-069). A read and a write take bytes because the
+  core can make a partial block whole: it pads a write and trims a read. An erase can't be
+  padded: half a block can't be erased, so a byte count that isn't whole blocks could only be
+  refused. With blocks the request that has no meaning can't be made. The wire counts in
+  blocks too (`PART_ERASE`, `compatibility.md`).
 - **Exactly those blocks**, whatever the medium's own erase units are. A driver that erases in
   larger units uses one only where the range covers it whole. **Not yet in the code (F-198)**:
   the FlexSPI's driver starts with its largest unit without checking the address, and rounds a
@@ -211,12 +221,17 @@ them).
   (`command-mode.md` 4.6).
 - A failure leaves some of the blocks erased.
 
-**`ERASE_BEFORE_WRITE`. Open (4).** The driver sets it on a device whose medium only clears
-bits when it is written (NOR). It means: a write gives the bytes written only on blocks that
-were erased since they were last written. `bio_write()` doesn't erase, as in every release:
-whoever writes erases first. A host sees the flag and erases (`part erase`, then the write),
-the A/B state erases its block before each write. A user in pb that writes any device (a
-policy's state, a board) checks the flag.
+**`ERASE_BEFORE_WRITE`.** The driver sets it on a device whose medium only clears bits when
+it is written (NOR). It means: a write gives the bytes written only on blocks that were
+erased since they were last written.
+
+- **Today the writer erases**, as in every release: `bio_write()` doesn't. A host sees the
+  flag and erases (`part erase`, then the write), the A/B state erases its block before each
+  write. A user in pb that writes any device (a policy's state, a board) checks the flag.
+- **`bio_write()` is to do it** (Jonas, D-067): on a device with the flag a write erases what
+  it writes, and no user has to know the medium. A future task, not designed here: the erase
+  blocks' accounting comes first (`roadmap.md`). What it must keep: a host that erases before
+  it writes, as every released host does where the flag is set, still gets its bytes written.
 
 ### 3.4 Function : bio_write_done() [optional]
 
@@ -265,16 +280,38 @@ device with no table on it (`board.md` 2.4).
 - **Repair writes only what is bad** (F-195), and only a copy whose place the good copy gives.
   A device whose table can't be repaired has no partitions; command mode installs one
   (`board.md` 2.1).
-- **A table that is installed is in effect at once. Open (3).** The table's partitions are
-  released (`bio_release_children()`) and made again from what was written, and their handles
-  end with them: command mode's stream ends (`command-mode.md` 5.3). **Not yet in the code
-  (F-194)**: the old partitions stay until a reset.
+- **A table that is installed is in effect at once** (Jonas, D-070). `command-mode.md` 5.3 asks
+  it: the commands that follow the install see the new partitions. A partition's handle is
+  kept where `bio` can't see it: command mode's stream, the boot source policy, a board's own
+  variables (the host board's fuse box keeps one from `late_init()`). So the rule starts
+  with the handle:
+  1. **A handle never comes to mean another partition.** A partition the new table has
+     unchanged, with the same UUID and the same blocks, keeps its handle and its flags. One
+     that changed or is gone is released: its handle is dead, `-PB_ERR_PARAM` for whoever
+     still holds it, and nothing else gets that handle before the reset. A new partition
+     gets a new one.
+  2. **The core sets up again what is the core's**: command mode's stream ends, and the boot
+     source policy's init runs again, for its state's partitions and the candidates.
+  3. **No hook of the board's runs again.** What a board looked up in `late_init()` stays
+     right for the partitions that didn't change, and fails loudly for the ones that did,
+     until the reset. A board that wants a new partition at once looks it up by its UUID
+     when it uses it.
+
+  The pool has room for the old partitions and the new ones. When it doesn't, the table is
+  on the device, the install answers the error, and a reset uses the table.
+
+  **Not yet in the code (F-194)**: the old partitions stay until a reset, listed and written
+  at their old blocks, and a device that had no table has no partitions until then.
+
+  Considered and not taken: running again what `board_setup()` does after `init()`,
+  `late_init()` too. A stale value in a board is then not only a handle (a size, what it
+  read from a partition, what it registered), and a `late_init()` that can't run twice would
+  show only at an install. And: after a reset only, as released, with the old partitions
+  released at the install; that ends the flows that reinstall a table and go on writing.
 - **The static table** is checked like the board's other data (`board.md` 3): entries inside
   the device, not overlapping, sizes in whole blocks.
 
 ## 5. What a driver leaves behind
-
-**Open (5).**
 
 - **Nothing is in flight** when a call returned (section 3), so a storage driver has no `stop`
   (`drivers.md` 2.3). The core has nothing to stop on the device it loaded from
@@ -298,7 +335,9 @@ For a product in the field (D-008, `system.md` 5.1):
   `compatibility.md`: `abi.txt` holds the values).
 - What the partition table's read reports for a partition: the first and the last block on
   its parent, the block size.
-- `bio_write()` doesn't erase (3.3): hosts erase where the flag is set.
+- A host that erases a device with `ERASE_BEFORE_WRITE` and then writes it gets its bytes
+  written, also when `bio_write()` erases by itself one day (3.3). That a write doesn't erase
+  is not fixed (Jonas, D-067).
 - An eMMC's boot partition becomes the ROM's choice when a stream that wrote it is finalized
   (3.4), not before.
 - The devices' and the partitions' UUIDs are the board's (`board.md` 8).
@@ -321,6 +360,8 @@ For a new storage driver or partition table, and for a change to one or to `bio`
 - [ ] A user takes the block size from `bio_block_size()`, checks every result, and uses
       nothing of a failed read.
 - [ ] A table checks every entry before it makes a partition of it.
+- [ ] After an install an unchanged partition has its handle and its flags, a changed one's
+      handle is dead and not given out again, and nothing of a board's ran.
 - [ ] Nothing of section 6 changed.
 - [ ] The conformance suite runs against the new driver or its model (section 8).
 
@@ -380,7 +421,6 @@ exact byte counts). The FlexSPI's driver has no model: the bench, through the si
 | ------------------- | ------------------------------------------------------------------------------ |
 | F-182, F-283        | Partial blocks are the core's; a length of 0; the block buffer; the block size |
 |                     | asked, not assumed; devices registered once; the conformance suite (2, 3)      |
-| F-220               | A read at a byte offset for the boot's source (3.1)                            |
 | F-284               | The FlexSPI's driver: the buffer's bounds, lengths, results that are ignored   |
 | F-198               | The FlexSPI's erase and its reads of 64 KiB and more (3.3)                     |
 | F-285               | The MMC drivers: what they leave behind and change for good, in the header (5) |

@@ -107,8 +107,8 @@ the same way. New images that old firmware can't read are fine only if they are 
   methods, and the USB interface hosts find the device by (`command-mode.md` 7).
 - The USB device as hosts and operating systems find it, with Microsoft's descriptors, and
   that no empty packet ends a transfer (`usb.md` 6).
-- Block devices: that a write never erases, and when an eMMC's boot partition becomes the
-  ROM's choice (`bio.md` 6).
+- Block devices: that a host which erases before it writes keeps working, and when an eMMC's
+  boot partition becomes the ROM's choice (`bio.md` 6).
 - The digests and the device identity's MD5, whichever backend computes them (`crypto.md` 7).
 
 ## Guards

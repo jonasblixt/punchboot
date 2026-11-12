@@ -1401,3 +1401,202 @@ request is stalled where it timed out, and a restart of the transport leaves the
 Mine, not asked of Jonas: the four file names; that the conformance suites are named in each
 draft and not designed; `command-mode.md` 6 no longer says that the 8X's controller can't
 send its serial number (F-159 is fixed).
+
+## D-065: `drivers.md`, Jonas's review: the first answers (2026-11-12)
+
+Jonas's comments in the draft, and what was written in:
+
+- **Open (1), "One file per class"**: a contract per class, each in its own file (`bio.md`,
+  `crypto.md`, `usb.md`). Read by me as: `drivers.md` stays for what is common to every
+  driver, the DMA rule among it, which the three cite. To be corrected if he meant no common
+  document.
+- **Open (4), "ok"**: the line size is a constant, 64 bytes, checked in `arch_init()`.
+- **No IOMMU is not a rule**: "There is no IOMMU in any of the currently supported platforms.
+  This might change though. We should not make it sound like a rule." Agreed. Section 4 now
+  says it as a fact of today's platforms, apart from the cache rule, which holds with or
+  without one. A driver turns a pointer into the device's address in one place, so that a
+  translation has somewhere to go; the entry for an IOMMU is written with the first platform
+  that has one.
+
+Asked, not decided:
+
+- **Open (3), "guide me"**: the draft had every class's core bounce a caller's buffer that
+  doesn't own its cache lines. My suggestion after his question, written in as the proposal:
+  sort the buffers by whose they are. pb's own and a board's are declared right, and the
+  class's core refuses one that isn't (`-PB_ERR_ALIGN`): loud, where a shared line is silent.
+  The only buffer pb doesn't choose is an image part's load address, and only that is
+  bounced, in the boot's load loop, which serves a partition and the host's stream alike. No
+  image is refused (D-008), the common path stays without a copy, and the bounce is one place
+  that a host test covers. `bio.md` 3.1 and `usb.md` 2.3 follow.
+- **Open (2), "explain again"**: why `include/pb/dma.h` and not the arch's functions at each
+  place. The reasons are now in 4.4, with the lighter alternative (the arch's three declared
+  in `include/pb/arch.h`, the line size and the macro, the order left to the checklist).
+
+## D-066: `drivers.md` is reviewed (2026-11-12)
+
+Jonas, after D-065's answers: "Okay to your suggestions."
+
+- **Open (2)**: the DMA rule lives in `include/pb/dma.h` (`PB_DMA_ALIGN`, the macro for a
+  buffer that owns its lines, `dma_out()`, `dma_in_begin()`, `dma_in_end()`). Drivers stop
+  calling the arch's cache functions. The lighter alternative (the arch's three declared in
+  `include/pb/arch.h`, the order left to the checklist) is not taken.
+- **Open (3)**: the class's core refuses a buffer that doesn't start on a cache line
+  (`-PB_ERR_ALIGN`). An image part's load address, the one buffer pb doesn't choose, is
+  bounced in the boot's load loop, so no image is refused (D-008). Out-of-tree boards get a
+  line in the migration guide for 3.0.0.
+- **The common document stays**: `drivers.md` for what every driver does, a file per class
+  beside it, as D-065 read his "one file per class".
+
+Mine, to be corrected if wrong: Open (5), which drivers have a `stop`, had no comment in his
+review and wasn't one of the two suggestions I asked about. I took the uncommented text as
+accepted, as with `board.md` (D-052), and closed it with the others: a driver has a `stop`
+when its device acts without being asked, and one whose calls are synchronous has none.
+
+`drivers.md` is reviewed, with no open items. Its code: F-282 (the header, the checks, the
+bounce in the load loop), F-281 and the findings its conformance table names.
+
+## D-067: `bio.md`, Jonas's review (2026-11-12)
+
+Jonas's comments in the draft, and what was written in:
+
+- **3.2, `bio_write()`**: "we should just say that this is optional. Don't mention WRITABLE
+  here." It is `[optional]`; a device without a write answers `-PB_ERR_NOT_SUPPORTED`. The
+  flags gate the host and say nothing of which callbacks a device has.
+- **Open (4), `ERASE_BEFORE_WRITE`**: "This should be implemented, let's save it as a future
+  task. I think we would at least need to hammer out the erase block accounting." And on
+  section 6, where the draft fixed that a write never erases: "I think we can challenge this.
+  To me it should be possible to fix bio_write so it respects that flag." So the draft's
+  proposal (as released, for good) is not taken. `bio_write()` is to erase what it writes on
+  a device with the flag. It isn't designed in this contract: `roadmap.md` has the task with
+  what the accounting must settle (the unit, larger units, the time against the watchdog and
+  the host's timeout, blocks erased twice, how a host learns it, a failure after the erase).
+  Until then the writer erases, as released. What section 6 keeps fixed is the other side: a
+  host that erases and then writes still gets its bytes written. `compatibility.md` follows.
+- **Open (5), section 5**: "OK". A storage driver leaves its device as it is at the jump.
+
+Asked, not decided:
+
+- **3.3, "Is blocks the right argument here or should we use bytes?"** My answer, written in
+  as Open (6): blocks. A read and a write take bytes because the core can make a partial
+  block whole (it pads and trims); an erase can't be padded, so a byte count that isn't whole
+  blocks could only be refused. The wire's `PART_ERASE` counts blocks too.
+
+Mine, to be corrected if wrong: Open (1), (2) and (3) had no comment (partial blocks are the
+core's, `bio_read_at()`, an installed table in effect at once with
+`bio_release_children()`). As with `drivers.md` (D-066) I took the uncommented text as
+accepted; the table at the document's top marks them "Jonas, no comment".
+
+`bio.md` stays a draft until Open (6) is answered.
+
+## D-068: `bio.md`, Jonas's answers on the uncommented items (2026-11-12)
+
+I had closed the draft's Open (1) to (3) as "no comment" (D-067) and asked. Jonas: "1. Yes,
+2: Hm, no for now. 3: Explain more."
+
+- **Open (1), yes**: the core owns a length that isn't whole blocks; a driver sees whole
+  blocks only.
+- **Open (2), no for now**: `bio_read_at()` is taken out. A read starts on a block. An image
+  whose later parts don't start on a block of its device (bpak aligns to 512 bytes, the NOR
+  has 4 KiB blocks) fails with `-PB_ERR_ALIGN`, as released; a one part image always loads.
+  `roadmap.md` notes the read at a byte offset; F-220 keeps the limit.
+- **Open (3), reopened**: the draft made it look like one function. What "in effect at once"
+  takes is written into section 4: the stream ends, the table's partitions are released, and
+  what `board_setup()` does after `init()` runs again (the table, the boot source policy,
+  `late_init()`, the boot's set up), because each of them holds partition handles. The other
+  way is in the text too: as released, the new table is used from the next reset.
+  `command-mode.md` 5.3 (reviewed) says "in effect for the commands that follow"; whichever
+  Jonas picks, the two documents say the same.
+
+So "no comment" was the wrong reading for one of the three. Uncommented open items are asked
+about from here on, not closed.
+
+Still open: (3), and (6) from D-067 (an erase counts blocks).
+
+## D-069: `bio.md`: an erase counts blocks; the installed table, a second proposal (2026-11-12)
+
+- **Open (6)**: Jonas: "ok, let's stick to blocks". `bio_erase()` takes a count of blocks.
+- **Open (3)**, still open. Jonas: "Of course 'A' is tempting. But let's imagine a board who
+  holds stale references, how would this work in practice?" Worked through, the first
+  proposal (release the partitions, run `board_setup()`'s second half again) fails on that
+  question in two ways. A handle is an index into the pool, so after a rebuild a board's old
+  handle names whatever partition got the slot: I/O on the wrong partition, silently (the
+  host board's fuse box keeps a handle from `late_init()` and rewrites block 0 through it).
+  And a board holds more than handles (sizes, content it read, what it registered), which
+  only a `late_init()` that is safe to run twice would refresh; one that isn't shows at an
+  install, in the factory.
+
+  The second proposal, written into section 4: the rule is on the handle. An unchanged
+  partition keeps its handle and its flags; a changed or removed one's handle is dead until
+  the reset and isn't given to another partition; a new partition gets a new handle. The core
+  sets up again what is its own (the stream, the policy's init). No hook of the board's runs
+  again: a stale reference in a board is either still right or fails with `-PB_ERR_PARAM`.
+  The first proposal and "after a reset only" are in the text as considered.
+
+## D-070: `bio.md` is reviewed; an installed table is in effect at once (2026-11-12)
+
+Jonas, after D-069's second proposal: "Okay, let's go with A."
+
+A was the name of "in effect at once" against B, "after a reset". Read by me as: at once, in
+the form his question about stale references led to, which is the proposal that stood in the
+text when he answered. Not the first form (run `board_setup()`'s second half again), which
+that question took apart. To be corrected if he meant the first.
+
+- An installed table is in effect for the commands that follow (`command-mode.md` 5.3).
+- A handle never comes to mean another partition: a partition with the same UUID and blocks
+  keeps its handle and flags; a changed or removed one's handle is dead until the reset and
+  isn't given out again; a new partition gets a new handle.
+- The core sets up again what is its own: the stream ends, the boot source policy's init
+  runs again. No hook of the board's runs again.
+- A pool without room for both tables' partitions: the table is on the device, the install
+  answers the error, a reset uses it.
+
+Written in: `bio.md` 4 and its checklist; `command-mode.md` 5.3 cites it; `board.md` 6 says
+what a kept handle is worth after an install. F-194 carries the code.
+
+`bio.md` is reviewed, with no open items (D-067 to D-070).
+
+## D-071: `crypto.md` is reviewed (2026-11-12)
+
+Jonas's comments in the draft, one on each of the five open items:
+
+- **Open (1), (2), (3): "OK".** No abort: `hash_init()` starts from an idle engine. PB_OK if
+  and only if `*verified`, and a signature that doesn't verify is `-PB_ERR_SIGNATURE`.
+  `dsa_verify()` while a hash is open is refused.
+- **Open (4)**: "It might make sense to have more than one backend. Let's say we have
+  hardware hash acceleration but not signature verification. Do you agree?", "It's fine to
+  not have fallback", and on the bullet that a backend has every algorithm: "Unsure about
+  this. What I want is to have for example a hardware driver to supply accelerated hashing,
+  while a software driver could give us the verification. If that's what you mean, then it's
+  fine." Agreed, and it is what "one backend per algorithm" was meant to say; the text read
+  as if one backend had to have everything. Written now as: a build may have several
+  backends and each algorithm comes from one of them; together they have what the build's
+  keys and images use, no single one needs it all; no fallback at run time, and an algorithm
+  that two backends register is refused at the second registration (F-286 (12): today the
+  first wins, silently).
+- **Open (5)**: "It stays." `HASH_MD5_BROKEN` stays. Which products have it wasn't said.
+
+Mine, found while writing it in: the draft said both that the next `dsa_verify()` cleans up a
+hash that was given up (3.1) and that `dsa_verify()` is refused while a hash is open (4).
+The second stands, as Jonas confirmed it: the cleanup is the next `hash_init()`, and until
+then a verification is refused, which is a no. Every verification hashes first, so no flow
+is stuck. A backend whose engine also hashes still starts its verification from an idle
+engine (section 4).
+
+`crypto.md` is reviewed, with no open items.
+
+## D-072: `usb.md` is reviewed (2026-11-12)
+
+Jonas's comments in the draft, one on each of the five open items:
+
+- **Open (1), "ok"**: the transport's functions are `cm_transport_init()`, `_connect()`,
+  `_read()`, `_write()`, `_complete()` and `_disconnect()`.
+- **Open (2), "ok"**: every error from `complete` is "lost"; a controller reports a bus reset
+  and an unplug as an error of the transfer. No new call.
+- **Open (3), "That's fine for now"**: a full speed bus isn't supported: high speed, or not
+  ready. For now; `roadmap.md` has a line.
+- **Open (4), "ok"**: a request the stack doesn't know is stalled, with a new operation,
+  `ep0_stall`.
+- **Open (5), "ok"**: a request on endpoint 0 leaves a bulk transfer alone.
+
+`usb.md` is reviewed, with no open items. With it the four drivers' contracts are reviewed
+(D-064 to D-072), and every document of levels 0 to 3 is reviewed or in force.

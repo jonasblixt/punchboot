@@ -134,6 +134,39 @@ To do (Jonas):
   - The password is never logged and never sent back (`security.md` 4.10).
   - With the examples for `password_auth()` (above): the same storage, such as the RPMB.
 
+## From the drivers' contracts (2026-11-12, D-067)
+
+To do (Jonas):
+
+- **`bio_write()` erases where `ERASE_BEFORE_WRITE` is set** (`bio.md` 3.3). Today the writer
+  erases: the host (`part erase`, then the write) and the A/B state. Written into `bio.md`
+  first, with a decision entry. To hammer out there, the erase blocks' accounting:
+  - The unit. A write erases the blocks it writes, and `bio`'s block on such a device is the
+    medium's smallest erase unit (4 KiB on the RT1060 EVK's NOR), so whole blocks can be
+    erased exactly. A medium whose smallest unit is larger than `bio`'s largest block has no
+    answer yet.
+  - Larger units where the range covers one whole (64 and 32 KiB on that NOR), as
+    `bio_erase()` does: the board's table gives 300 ms for 4 KiB and 1 s for 64 KiB, so a
+    4 MiB buffer is minutes in small units and about a minute in large ones.
+  - Time: such a write is far over a second (`drivers.md` 3) and over a host's 10 s. The
+    core splits it and kicks the watchdog, and the caps' timeouts tell the host
+    (`command-mode.md` 4.6).
+  - Blocks that are erased twice, by a host that erases first and then by the write: time
+    and wear. Skip a block that is blank (it costs a read), or let the host say that it
+    erased.
+  - How a host learns that the device erases by itself, so that a new host may stop erasing:
+    a capability. A new host against an old device must keep erasing (D-008).
+  - A write that fails after its erase leaves blocks erased; the A/B state's two copies
+    already assume that. Its own erase goes.
+  - A partial last block is padded with zeros (`bio.md` 3.2), so the whole block is rewritten
+    and erasing it is right.
+
+- **A full speed bus for command mode's USB** (`usb.md` 4.1): not supported, for now (Jonas,
+  D-072). The descriptors are high speed's; a device on a full speed bus doesn't become ready.
+- **A read at a byte offset in `bio`** (`bio.md` 3.1, F-220): not for now (Jonas, D-068). It
+  would let a device with blocks larger than 512 bytes hold an image whose later parts don't
+  start on its blocks. Today such an image is refused; a one part image always loads.
+
 ## Later / to discuss
 
 - Build system: keep Make + Kconfiglib, or move to CMake/Meson?

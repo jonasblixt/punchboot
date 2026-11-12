@@ -660,6 +660,10 @@ OK means "loaded and verified", not "booted".
 - It reads the ROM's state, the boot source and the boot reason through the platform's services
   (`plat_get_boot_source()`, `plat_get_boot_reason()`). It may show raw registers in `status()`.
 - It may define tasks, which run while pb is stopped (4.6).
+- A partition's handle that it keeps (`bio_get_part_by_uu()`) is good until a partition table
+  is installed. After that the handle of a partition that changed is dead until the reset,
+  and no hook runs again for it (`bio.md` 4). A board that needs a partition right after an
+  install looks it up when it uses it.
 - It may map hardware the platform didn't (`mmap`, 2.8). It never calls xlat_tables itself and
   never patches the platform's `plat_mmap[]` for its own hardware.
 - The boot flags (`boot_get_flags()`, `boot_clear_set_flags()`): bits 0 to 15 are the core's

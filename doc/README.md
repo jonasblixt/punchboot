@@ -19,10 +19,10 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 |                |                 | `command-mode.md`                    | Reviewed (D-059 to D-061)  |
 | 3 Interfaces   | `interfaces/`   | `platform.md`                        | Reviewed (D-056)           |
 |                |                 | `board.md`                           | Reviewed (D-052)           |
-|                |                 | `drivers.md`                         | Draft (D-064)              |
-|                |                 | `bio.md`                             | Draft (D-064)              |
-|                |                 | `crypto.md`                          | Draft (D-064)              |
-|                |                 | `usb.md`                             | Draft (D-064)              |
+|                |                 | `drivers.md`                         | Reviewed (D-066)           |
+|                |                 | `bio.md`                             | Reviewed (D-070)           |
+|                |                 | `crypto.md`                          | Reviewed (D-071)           |
+|                |                 | `usb.md`                             | Reviewed (D-072)           |
 | 4 Ports        | `ports/`        | `plat-imx.md`                        | Follows `platform.md`      |
 |                |                 | `imx8m-ddr.md`, `spec-dwc-ddrphy.md` | Records of one port's work |
 
