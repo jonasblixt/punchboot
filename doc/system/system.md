@@ -102,11 +102,11 @@ order is the core's (D-027), the fuses the platform's.
 - pb verifies images the same way in every state (`security.md` 4.1). The states differ in what
   the ROM enforces and in who may use command mode.
 - A board without a life cycle (no SLC support) has an open command mode.
-- **A life cycle that can't be read doesn't boot**, with every handover (`security.md` 4.4;
-  today only where the handover writes a DT). When an attack made the read fail, that is the
-  right answer. When it was a fault, the device isn't lost: in the field, without a host, command
-  mode gives up and pb resets (section 2), so a read that works the next time boots; in
-  development the ROM's serial download recovers a pb that broke the read.
+- **A life cycle that can't be read doesn't boot**, with every handover (`security.md` 4.4).
+  When an attack made the read fail, that is the right answer. When it was a fault, the device
+  isn't lost: in the field, without a host, command mode gives up and pb resets (section 2), so
+  a read that works the next time boots; in development the ROM's serial download recovers a pb
+  that broke the read.
 - **EOL is the SoC's end of life state** (Jonas, 2026-11-11), extended from NXP's field return.
   The device is open again and the SoC's security state has changed, so what was sealed to the
   device (key blobs) can't be opened any more and the secrets stay protected.

@@ -379,6 +379,36 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | fails on either copy and for power lost between the copies; `check_ab_speculative_kconfig.py` has the | | |
 | | | dependency. pb-host has no speculative mode, so no integration test (F-341). Every board builds, jiffy | | |
 | | | also with the symbol; not run on a board | | |
+| F-260 | `src/boot/dtb.c` | `boot_dtb_set_chosen()` reads the RoT, the SLC and the device | Verified (code) | fixed |
+| | | id itself, and runs the board's hook after `pb,device-uuid` and before pb's other properties. | | |
+| | | `boot.md` 5.5, 5.6: pb's information collected once, the hook first, `pb,version`, | | |
+| | | `pb,boot-partition` and `pb,boot-mode` added (and in the README's table). From F-256: the | | |
+| | | boot's mode is the core's: NORMAL for a named partition or the host's stream, the policy's | | |
+| | | after its report; `boot_policy_mode()` alone is stale after a failed fallback | | |
+| | | Fixed: `struct boot_info` (`boot/handover.h`) is pb's information, with the names of pb's structure: | | |
+| | | `version`, `device_uuid`, `slc` (`BOOT_INFO_NO_SLC` without one), `available_keys`, `status` (0 | | |
+| | | until F-248), and the candidate's `boot_mode`, `boot_partition_uuid`, `system_name` and | | |
+| | | `active_key`. `boot_load()` collects the first part once, after `early_boot()` and before the first | | |
+| | | candidate: a device identity, a life cycle or a RoT that can't be read stops the boot, with every | | |
+| | | handover and every source, and no candidate is tried. A handover's `prepare` gets the structure | | |
+| | | instead of the partition's UUID and reads nothing else. The mode is the core's: normal for a named | | |
+| | | partition and for the host's stream, `boot_policy_mode()` for a candidate, asked when the policy | | |
+| | | handed it out (prepare, which writes it, comes before the report). The system's name is the | | |
+| | | policy's: `boot_policy_system_name()`, an optional function of a policy (`system_name`), A/B's | | |
+| | | `boot_ab_part_uu_to_name()`; `resolve_part_name` is gone from both configurations and from the | | |
+| | | boards. `dtb.c`: the board's hook first, then pb's properties. New: `pb,boot-mode`, | | |
+| | | `pb,boot-partition` and `pb,version`, in the README's table; `pb,status` waits for F-248. The | | |
+| | | released properties keep their bytes (`test_chosen_released_bytes`, pinned against the code before | | |
+| | | the change), and one pb has no value for is left as the image's tree or the hook has it, as before | | |
+| | | (F-348). A new one that doesn't fit the tree (a 2.x device tree with placeholders and a headroom of | | |
+| | | 0; the three take 138 bytes) is left out with a warning and the image boots: the mode first, then | | |
+| | | the partition, then the version, each on its own, the same ones in every mode. The generic handover | | |
+| | | keeps its registers. The hook no longer finds `pb,device-uuid` in the tree it gets. The RT's and the | | |
+| | | host's boot now read the information too, unmeasured (F-349). `test_image.c`, `test_boot.c`, | | |
+| | | `test_simple.c`, `test_policy.c`, `test_tfa_image.c`, `test_ab_state.c`, `test_ab_state.py` | | |
+| | | (`test_boot_mode`: a policy boot, a fallback, `boot part` and `boot bpak` after a fallback that | | |
+| | | failed, read from pb-host's log, F-347). `boot.md` 3 names no function for the system's name: F-345. | | |
+| | | Every board builds; not run on a board | | |
 
 ## Dependencies / vendored code
 

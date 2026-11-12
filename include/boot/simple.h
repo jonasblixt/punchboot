@@ -36,19 +36,19 @@
  * (MPU) and the D-cache off, the I-cache invalidated, interrupts masked, at
  * the exception level pb runs at (EL3 on the i.MX8M and i.MX8X). On ARMv7-M
  * VTOR is its vector table and MSP and PSP its initial stack pointer. The
- * first argument (r0, x0) is the name of the booted system ("A", "B", from
- * 'resolve_part_name', or NULL), the second (r1, x1) a pointer to the 16
- * byte UUID of the boot partition. Both point into pb's memory: copy them
- * before using it.
+ * first argument (r0, x0) is the name of the booted system (A/B's "A", "B",
+ * or "?" for a partition that is neither; NULL with a policy that has no
+ * names), the second (r1, x1) a pointer to the 16 byte UUID of the boot
+ * partition. Both are pb's information (boot.md 5.6), which the core
+ * collected, and point into pb's memory: copy them before using it.
  */
 struct boot_driver_simple_config {
     bpak_id_t boot_partition_id; /*!< Part that starts with the vector table */
-    const char *(*resolve_part_name)(uuid_t part_uu); /*!< Optional: r0 */
 };
 
 int boot_driver_simple_init(const struct boot_driver_simple_config *cfg);
 int boot_driver_simple_prepare(struct bpak_header *hdr,
-                               uuid_t boot_part_uu,
+                               const struct boot_info *info,
                                struct boot_handover_entry *next);
 
 extern const struct boot_handover_ops boot_handover_simple_ops;

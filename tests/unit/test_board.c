@@ -157,11 +157,11 @@ static int handover_init(const void *config)
 }
 
 static int handover_prepare(struct bpak_header *hdr,
-                            uuid_t boot_part_uu,
+                            const struct boot_info *info,
                             struct boot_handover_entry *next)
 {
     (void)hdr;
-    (void)boot_part_uu;
+    (void)info;
     (void)next;
     return PB_OK;
 }

@@ -318,7 +318,6 @@ static const struct boot_handover_image_config boot_image = {
     .dtb_bpak_id = 0x56f91b86, /* bpak_id("dt") */
     .ramdisk_bpak_id = 0xf4cdac1f, /* bpak_id("ramdisk") */
     .dtb_patch_cb = board_patch_bootargs,
-    .resolve_part_name = boot_ab_part_uu_to_name,
     .set_dtb_boot_arg = true,
 };
 

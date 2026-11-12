@@ -34,14 +34,15 @@ struct boot_handover_image_config {
     bpak_id_t image_bpak_id; /*!< BPAK id of bootable part */
     bpak_id_t dtb_bpak_id; /*!< Optional BPAK id of a device tree part */
     bpak_id_t ramdisk_bpak_id; /*!< Optional BPAK id of a ramdisk part */
-    boot_patch_dtb_cb_t dtb_patch_cb; /*!< Optional DTB patch callback */
-    const char *(*resolve_part_name)(uuid_t part_uu);
+    /** Optional: the board's device tree hook. It runs before pb writes its
+     * own properties (boot.md 5.5) */
+    boot_patch_dtb_cb_t dtb_patch_cb;
     bool set_dtb_boot_arg; /*!< Pass dtb address as first argument */
 };
 
 int boot_handover_image_init(const struct boot_handover_image_config *cfg);
 int boot_handover_image_prepare(struct bpak_header *hdr,
-                                uuid_t boot_part_uu,
+                                const struct boot_info *info,
                                 struct boot_handover_entry *next);
 
 extern const struct boot_handover_ops boot_handover_image_ops;

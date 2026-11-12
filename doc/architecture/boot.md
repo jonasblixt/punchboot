@@ -114,7 +114,7 @@ The two new steps:
 - **pb's information is read before the loop.** The device's identity, the life cycle and the
   keys don't depend on the candidate, so a failure to read them is no candidate's fault and stops
   the boot: a life cycle that can't be read doesn't boot, with any handover (`security.md` 4.4,
-  `system.md` 4). **Not yet in the code (F-260)**: today it fails in prepare, and only with a DT.
+  `system.md` 4).
 
 Each step's responsibilities:
 
@@ -534,9 +534,6 @@ for it.
 
 ### 5.5 What pb writes into a DT
 
-**Not yet in the code (F-260)**: the board's hook runs in the middle of pb's properties, and
-`dtb.c` reads the RoT, the SLC and the device id itself.
-
 - `dtb.c` stays: it finds and grows the DT (`boot_dtb_grow()`, the headroom checked as in 4.3; for
   Firmware Handoff inside the list, 5.4) and writes `/chosen`, from the information the core
   collected (5.6).
@@ -548,10 +545,9 @@ for it.
 
 ### 5.6 pb's information
 
-Collected once by the core, written by each handover in its format. **Not yet in the code
-(F-260)**: pb's version, the boot partition and the mode. The version is the build's; the
-identity, the life cycle and the keys not revoked are collected before the loop (2); the system,
-the partition, the mode and the image's key belong to the candidate.
+Collected once by the core, written by each handover in its format. The version is the build's;
+the identity, the life cycle and the keys not revoked are collected before the loop (2); the
+system, the partition, the mode and the image's key belong to the candidate.
 
 | Information            | `/chosen`, and its encoding                | pb's structure        | From                 |
 | ---------------------- | ------------------------------------------ | --------------------- | -------------------- |
@@ -657,8 +653,6 @@ Like the wire (D-008, `compatibility.md`):
 | Finding                           | What                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------- |
 | F-259                             | Firmware Handoff (5.4): the list, the region, pb's structure and its tag        |
-| F-260                             | pb's information collected once, before the loop; `pb,version`,                 |
-|                                   | `pb,boot-partition`, `pb,boot-mode`, the hook's order                           |
 | F-254                             | Placement (4.3)                                                                 |
 | F-248                             | The boot's preconditions in the flow (2), pb's status in the handover (5.6)     |
 | F-173, F-175, F-176, F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate`                   |

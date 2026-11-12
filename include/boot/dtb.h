@@ -10,20 +10,24 @@
 #ifndef INCLUDE_BOOT_DTB_H
 #define INCLUDE_BOOT_DTB_H
 
+#include <boot/handover.h>
 #include <bpak/bpak.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <uuid.h>
 
-/** A board's device tree patch, e.g. board_patch_bootargs(): 'offset' is /chosen */
+/**
+ * A board's device tree hook, e.g. board_patch_bootargs() (board.md 2.7).
+ * It gets the whole tree, and 'offset' is /chosen. It runs before pb writes
+ * its own properties: what it sets of them is overwritten.
+ */
 typedef int (*boot_patch_dtb_cb_t)(void *fdt, int offset);
 
-/** What a boot driver puts in /chosen, besides pb's own properties */
+/** What a handover puts in the device tree, besides pb's own properties */
 struct boot_dtb_chosen {
-    boot_patch_dtb_cb_t patch_cb; /*!< Optional, the board's */
+    boot_patch_dtb_cb_t patch_cb; /*!< Optional, the board's hook */
     bpak_id_t ramdisk_id; /*!< Optional: linux,initrd-start and -end */
     uintptr_t ramdisk_addr; /*!< Its load address */
-    const char *(*resolve_part_name)(uuid_t part_uu); /*!< Optional: pb,active-system */
 };
 
 /**
@@ -47,22 +51,55 @@ struct boot_dtb_chosen {
 int boot_dtb_grow(struct bpak_header *hdr, bpak_id_t dtb_id, size_t headroom, void **fdt);
 
 /**
- * Set /chosen, added if there is none: pb,device-uuid, the board's patch,
- * pb,slc (unless the board has no SLC), pb,slc-active-key (the image's key),
- * pb,slc-available-keys, linux,initrd-start and -end, pb,active-system
+ * The board's hook, then pb's properties in /chosen, which is added if
+ * there is none (boot.md 5.5). pb's values win: a property the hook or the
+ * image's tree has under a name pb writes is overwritten.
+ *
+ * | Property              | Encoding                    | Not written         |
+ * | --------------------- | --------------------------- | ------------------- |
+ * | pb,device-uuid        | string, a UUID              |                     |
+ * | pb,slc                | u32, the wire's pb_slc      | no SLC              |
+ * | pb,slc-active-key     | u32, a key id               |                     |
+ * | pb,slc-available-keys | u32 list, key ids           | every key revoked   |
+ * | linux,initrd-start,   | u32 each, u64 each when one | no 'ramdisk_id'     |
+ * | linux,initrd-end      | is at 4 GiB or above        |                     |
+ * | pb,active-system      | string: "A", "B" or "?"     | no system name      |
+ * | pb,boot-mode          | string: "normal",           | no room             |
+ * |                       | "fallback", "speculative"   |                     |
+ * | pb,boot-partition     | string, a UUID              | no partition, no    |
+ * |                       |                             | room                |
+ * | pb,version            | string                      | no room             |
+ *
+ * They are only added to, and a property keeps its encoding (boot.md 7).
+ *
+ * The first seven are the ones every release wrote. One that doesn't fit
+ * the tree fails, as it did. One pb doesn't write is left as the tree has
+ * it, from the image or the hook (but the key list, which is removed first,
+ * as it was): pb doesn't remove a released property (D-008, F-348).
+ *
+ * The last three are new. A tree without room for one, e.g. one built with
+ * placeholders for the released properties and booted with a headroom of 0,
+ * does without it: the property is left out with a warning and the boot
+ * goes on. In this order, each on its own: pb,boot-mode, pb,boot-partition,
+ * pb,version. Room for the mode is asked for with the longest of its
+ * strings, so what is left out doesn't depend on the mode. A new property
+ * pb doesn't write is not in the tree afterwards, whoever put one there.
+ * Together they take 138 bytes in a tree that has none of them, with the
+ * version "3.0.0": 37, 70 and 31.
  *
  * @param[in] fdt The device tree, with room for them (boot_dtb_grow())
- * @param[in] hdr The verified image header
- * @param[in] boot_part_uu The partition booted from
- * @param[in] chosen What the boot driver adds
+ * @param[in] hdr The verified image header, for the ramdisk's size
+ * @param[in] info pb's information, the core's
+ * @param[in] chosen What the handover adds
  *
- * @return PB_OK on success, the patch's or the SLC's error,
+ * @return PB_OK on success, the hook's error,
  *        -PB_ERR_BAD_META if the ramdisk part is missing,
+ *        -PB_ERR_PARAM for a mode that has no name,
  *        -PB_ERR on a device tree error
  */
 int boot_dtb_set_chosen(void *fdt,
                         struct bpak_header *hdr,
-                        uuid_t boot_part_uu,
+                        const struct boot_info *info,
                         const struct boot_dtb_chosen *chosen);
 
 #endif

@@ -48,7 +48,7 @@ void boot_policy_report(const uuid_t part_uu, int result)
 }
 
 /* The policy's answer for the candidate it handed out last, not the boot's
- * mode: see boot/policy.h (F-260) */
+ * mode, which the core keeps: see boot/policy.h */
 enum boot_policy_mode boot_policy_mode(void)
 {
     if (policy_ops() == NULL)
@@ -73,4 +73,13 @@ void boot_policy_status(uuid_t part_uu)
     }
 
     policy->ops->status(part_uu);
+}
+
+/* Optional for a policy: one without systems has no names */
+const char *boot_policy_system_name(uuid_t part_uu)
+{
+    if (policy_ops() == NULL || policy->ops->system_name == NULL)
+        return NULL;
+
+    return policy->ops->system_name(part_uu);
 }

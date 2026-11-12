@@ -14,8 +14,11 @@
 #include <inttypes.h>
 #include <pb/arch.h>
 #include <pb/bio.h>
+#include <pb/device_uuid.h>
 #include <pb/pb.h>
 #include <pb/plat.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -32,6 +35,9 @@ static uint8_t payload_digest[64];
 static boot_read_cb_t read_cb;
 static boot_result_cb_t result_cb;
 static struct boot_handover_entry next_stage;
+/* pb's information for the handover (boot.md 5.6), and with it the boot's
+ * mode: the core's, not what the policy answers when it is asked later */
+static struct boot_info info;
 
 int boot_init(const struct boot_driver *cfg)
 {
@@ -324,6 +330,58 @@ static int load_auth_verify_from_cb(void)
 }
 
 /*
+ * pb's information that no candidate changes (boot.md 2, 5.6): the device's
+ * identity, the life cycle and the keys that aren't revoked, read once in a
+ * boot and before the first candidate. A failure to read them is no
+ * candidate's fault and stops the boot: a life cycle that can't be read
+ * doesn't boot, with any handover (security.md 4.4).
+ */
+static int collect_info(void)
+{
+    size_t no_of_keys;
+    slc_t slc;
+    int rc;
+
+    /* Also the candidate's part: the mode is normal until a policy says
+     * otherwise for a candidate of its own */
+    memset(&info, 0, sizeof(info));
+    info.version = PB_VERSION;
+
+    rc = device_uuid(info.device_uuid);
+
+    if (rc != PB_OK) {
+        LOG_ERR("Could not read the device's identity (%i)", rc);
+        return rc;
+    }
+
+    /* A board without an SLC (no fuses) boots, with none to tell of */
+    slc = slc_read_status();
+
+    if (slc < 0 && slc != -PB_ERR_NOT_SUPPORTED) {
+        LOG_ERR("Could not read the life cycle (%i)", slc);
+        return slc;
+    }
+
+    info.slc = (slc < 0) ? BOOT_INFO_NO_SLC : slc;
+
+    /* Without a RoT the number of keys is its error, as a size_t */
+    no_of_keys = rot_no_of_keys();
+
+    if (no_of_keys > BOOT_INFO_MAX_KEYS) {
+        LOG_ERR("Could not read the keys");
+        return -PB_ERR_NOT_SUPPORTED;
+    }
+
+    /* A key whose status can't be read is unusable, like a revoked one */
+    for (size_t i = 0; i < no_of_keys; i++) {
+        if (rot_read_key_status_by_idx(i) == PB_OK)
+            info.available_keys[info.no_of_available_keys++] = rot_key_idx_to_id(i);
+    }
+
+    return PB_OK;
+}
+
+/*
  * The handover of the verified image (boot.md 5.1): the next stage's entry
  * and arguments, then what the delivery needs of the image. It is part of a
  * candidate's attempt, so nothing of an earlier candidate's is left in it.
@@ -332,10 +390,16 @@ static int prepare(void)
 {
     int rc;
 
-    LOG_DBG("Prepare");
+    /* The candidate's part of pb's information. Its mode was set where the
+     * candidate came from */
+    uuid_copy(info.boot_partition_uuid, boot_part_uu);
+    info.system_name = boot_policy_system_name(boot_part_uu);
+    info.active_key = header.key_id;
+
+    LOG_DBG("Prepare, mode %i", (int)info.boot_mode);
 
     memset(&next_stage, 0, sizeof(next_stage));
-    rc = boot_cfg->handover->ops->prepare(&header, boot_part_uu, &next_stage);
+    rc = boot_cfg->handover->ops->prepare(&header, &info, &next_stage);
 
     if (rc == PB_OK && boot_cfg->delivery && boot_cfg->delivery->ops->prepare)
         rc = boot_cfg->delivery->ops->prepare(&header, &next_stage);
@@ -363,6 +427,9 @@ static int boot_from_policy(void)
 
     while (rc == PB_OK) {
         uuid_copy(boot_part_uu, candidate_uu);
+        /* The boot's mode is this candidate's, asked now: once the policy
+         * has no candidate left its answer is of the last one it had */
+        info.boot_mode = boot_policy_mode();
 
         rc = load_auth_verify_from_bio();
 
@@ -435,6 +502,12 @@ int boot_load(uuid_t boot_part_override_uu)
             goto err_out;
         }
     }
+
+    /* Before the first candidate: what no candidate changes (boot.md 2) */
+    rc = collect_info();
+
+    if (rc != PB_OK)
+        goto err_out;
 
     uuid_clear(boot_part_uu);
 

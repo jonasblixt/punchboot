@@ -28,9 +28,7 @@
 #include <bpak/id.h>
 #include <libfdt.h>
 #include <pb/arch.h>
-#include <pb/device_uuid.h>
 #include <pb/pb.h>
-#include <pb/rot.h>
 #include <pb/slc.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,33 +79,6 @@ static int mmu_disabled_at_jump;
 static const bl_params_t *list;
 static jmp_buf jump_env;
 
-int device_uuid(uuid_t uu)
-{
-    return uuid_parse(DEVICE_UUID, uu);
-}
-
-slc_t slc_read_status(void)
-{
-    return SLC_CONFIGURATION_LOCKED;
-}
-
-size_t rot_no_of_keys(void)
-{
-    return 1;
-}
-
-int rot_read_key_status_by_idx(unsigned int index)
-{
-    (void)index;
-    return PB_OK;
-}
-
-key_id_t rot_key_idx_to_id(unsigned int index)
-{
-    (void)index;
-    return KEY_ID;
-}
-
 /* Both cores of the boards have EL2 */
 uint64_t read_id_aa64pfr0_el1(void)
 {
@@ -146,19 +117,12 @@ static int patch_bootargs(void *fdt, int offset)
     return fdt_setprop_string(fdt, offset, "bootargs", "console=ttymxc1,115200");
 }
 
-static const char *part_name(uuid_t part_uu)
-{
-    (void)part_uu;
-    return "A";
-}
-
 /* src/board/imx8mpevk/board.c and src/board/imx8qxmek/board.c: the same */
 static const struct boot_handover_image_config board_image = {
     .image_bpak_id = ID_KERNEL,
     .dtb_bpak_id = ID_DTB,
     .ramdisk_bpak_id = ID_RAMDISK,
     .dtb_patch_cb = patch_bootargs,
-    .resolve_part_name = part_name,
     .set_dtb_boot_arg = true,
 };
 
@@ -184,7 +148,8 @@ static const struct boot_delivery_tfa_config tfa_with_bl32 = {
 static const struct boot_delivery delivery_with_bl32 = BOOT_DELIVERY_TFA(&tfa_with_bl32);
 
 static struct bpak_header *hdr;
-static uuid_t boot_part_uu;
+/* pb's information, as the core collects it for the handover */
+static struct boot_info info;
 static struct boot_handover_entry next;
 
 static void add_part(bpak_id_t id, uint64_t load_addr, size_t size)
@@ -238,7 +203,19 @@ static int setup(void **state)
     list = NULL;
 
     make_image(&imx8mpevk);
-    assert_int_equal(uuid_parse("2af755d8-8de5-45d5-a862-014cfa735ce0", boot_part_uu), 0);
+
+    /* A locked device with one key, booting System A */
+    memset(&info, 0, sizeof(info));
+    info.version = PB_VERSION;
+    assert_int_equal(uuid_parse(DEVICE_UUID, info.device_uuid), 0);
+    info.slc = SLC_CONFIGURATION_LOCKED;
+    info.no_of_available_keys = 1;
+    info.available_keys[0] = KEY_ID;
+    info.boot_mode = BOOT_POLICY_MODE_NORMAL;
+    assert_int_equal(uuid_parse("2af755d8-8de5-45d5-a862-014cfa735ce0", info.boot_partition_uuid),
+                     0);
+    info.system_name = "A";
+    info.active_key = KEY_ID;
     return 0;
 }
 
@@ -274,7 +251,7 @@ static int run_boot(const struct boot_handover *h, const struct boot_delivery *d
         return rc;
 
     memset(&next, 0, sizeof(next));
-    rc = h->ops->prepare(hdr, boot_part_uu, &next);
+    rc = h->ops->prepare(hdr, &info, &next);
 
     if (rc != PB_OK)
         return rc;
@@ -374,6 +351,8 @@ static void boards_boot(const struct layout *at)
     assert_string_equal(chosen_prop("pb,device-uuid", NULL), DEVICE_UUID);
     assert_string_equal(chosen_prop("pb,active-system", NULL), "A");
     assert_non_null(chosen_prop("pb,slc", NULL));
+    assert_string_equal(chosen_prop("pb,boot-mode", NULL), "normal");
+    assert_string_equal(chosen_prop("pb,version", NULL), PB_VERSION);
     initrd = chosen_prop("linux,initrd-start", &len);
     assert_non_null(initrd);
     assert_int_equal(len, 4);

@@ -328,6 +328,12 @@ static void test_chain_init_errors(void **state)
     assert_true(uuid_is_null(uu));
 }
 
+/* A policy's names for its systems, as A/B has them */
+static const char *system_name(uuid_t part_uu)
+{
+    return uuid_compare(part_uu, UU_SYS_B) == 0 ? "B" : "?";
+}
+
 /* The core's calls reach the board's policy */
 static void test_core_calls(void **state)
 {
@@ -350,6 +356,20 @@ static void test_core_calls(void **state)
     boot_policy_status(uu);
     assert_memory_equal(uu, UU_SYS_A, 16);
     assert_int_equal(boot_policy_activate((unsigned char *)UU_SYS_B), -PB_ERR_NOT_SUPPORTED);
+
+    /* The staggered chain and the fixed policy have no systems, so no name
+     * for one (boot.md 5.6): the handover then has no pb,active-system */
+    assert_null(boot_policy_system_name((unsigned char *)UU_SYS_A));
+    assert_int_equal(boot_policy_init(&fixed), PB_OK);
+    assert_null(boot_policy_system_name((unsigned char *)UU_SYS_A));
+
+    /* A policy with names is asked for any UUID */
+    static const struct boot_policy_ops named_ops = { .system_name = system_name };
+    static const struct boot_policy named = { .ops = &named_ops };
+
+    boot_policy_set(&named);
+    assert_string_equal(boot_policy_system_name((unsigned char *)UU_SYS_B), "B");
+    assert_string_equal(boot_policy_system_name((unsigned char *)UU_OTHER), "?");
 
     /* The policy's error is init's, and the policy stays the board's */
     static const struct boot_policy unknown = BOOT_POLICY_FIXED(UU_OTHER);
@@ -386,6 +406,7 @@ static void test_core_calls_without_a_policy(void **state)
         memset(uu, 0xff, sizeof(uu));
         boot_policy_status(uu);
         assert_true(uuid_is_null(uu));
+        assert_null(boot_policy_system_name((unsigned char *)UU_SYS_A));
     }
 
     assert_int_equal(boot_policy_init(NULL), PB_OK);

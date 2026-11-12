@@ -26,46 +26,41 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ID_APP     0x362fa9dd /* bpak_id("app") */
-#define ID_OTHER   0xec103b08
+#define ID_APP         0x362fa9dd /* bpak_id("app") */
+#define ID_OTHER       0xec103b08
 
 /* A load address in RAM and one in a memory mapped flash: the handover
  * doesn't tell them apart */
-#define APP_ADDR   0x20210000
-#define FLASH_ADDR 0x60080000
+#define APP_ADDR       0x20210000
+#define FLASH_ADDR     0x60080000
 
-/* The fakes */
-static int name_calls;
-static uuid_t name_uu;
+#define BOOT_PART_UUID "2af755d8-8de5-45d5-a862-014cfa735ce0"
+
 /* What prepare gives the delivery, and the same as arch_jump() will get it:
  * the entry, then the four arguments. The jump itself is the core's
  * (test_boot.c) */
 static struct boot_handover_entry next;
 static void *jump_args[5];
+/* pb's information, as the core hands it to prepare: the system's name and
+ * the boot partition are all this handover passes on (boot.md 5.6) */
+static struct boot_info info;
+static uuid_t boot_part_uu;
 
-static const char *part_name(uuid_t part_uu)
-{
-    name_calls++;
-    uuid_copy(name_uu, part_uu);
-    return "A";
-}
-
-static const struct boot_driver_simple_config cfg_named = {
+static const struct boot_driver_simple_config cfg_app = {
     .boot_partition_id = ID_APP,
-    .resolve_part_name = part_name,
 };
 
-static const struct boot_driver_simple_config cfg_no_name = {
-    .boot_partition_id = ID_APP,
+/* A board whose entry is in the other part */
+static const struct boot_driver_simple_config cfg_other = {
+    .boot_partition_id = ID_OTHER,
 };
 
 /* The board's object for the handover, the way a board has it in its data
  * (board.boot_handover, F-265): BOOT_HANDOVER_SIMPLE() stays a constant
  * initializer */
-static const struct boot_handover handover = BOOT_HANDOVER_SIMPLE(&cfg_named);
+static const struct boot_handover handover = BOOT_HANDOVER_SIMPLE(&cfg_app);
 
 static struct bpak_header *hdr;
-static uuid_t boot_part_uu;
 
 static void add_part(bpak_id_t id, size_t size)
 {
@@ -87,12 +82,15 @@ static int setup(void **state)
 {
     (void)state;
 
-    name_calls = 0;
-    uuid_clear(name_uu);
     memset(jump_args, 0xff, sizeof(jump_args));
 
     assert_int_equal(bpak_init_header(hdr), BPAK_OK);
-    assert_int_equal(uuid_parse("2af755d8-8de5-45d5-a862-014cfa735ce0", boot_part_uu), 0);
+    assert_int_equal(uuid_parse(BOOT_PART_UUID, boot_part_uu), 0);
+
+    /* The policy's first candidate, System A */
+    memset(&info, 0, sizeof(info));
+    uuid_copy(info.boot_partition_uuid, boot_part_uu);
+    info.system_name = "A";
     return 0;
 }
 
@@ -114,7 +112,7 @@ static int group_teardown(void **state)
 static int prepare(void)
 {
     memset(&next, 0, sizeof(next));
-    return boot_driver_simple_prepare(hdr, boot_part_uu, &next);
+    return boot_driver_simple_prepare(hdr, &info, &next);
 }
 
 /* What a delivery jumps with */
@@ -141,9 +139,7 @@ static void test_prepare_before_init(void **state)
 
 static void test_init_rejects(void **state)
 {
-    static const struct boot_driver_simple_config no_part = {
-        .resolve_part_name = part_name,
-    };
+    static const struct boot_driver_simple_config no_part = { 0 };
     (void)state;
 
     assert_int_equal(boot_driver_simple_init(NULL), -PB_ERR_PARAM);
@@ -154,7 +150,7 @@ static void test_init_rejects(void **state)
     add_load_addr(ID_APP, APP_ADDR);
     assert_int_equal(prepare(), -PB_ERR_STATE);
 
-    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
 }
 
 static void test_entry_is_the_load_address(void **state)
@@ -168,10 +164,8 @@ static void test_entry_is_the_load_address(void **state)
     add_part(ID_APP, 8192);
     add_load_addr(ID_APP, APP_ADDR);
 
-    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
     assert_int_equal(prepare(), PB_OK);
-    assert_int_equal(name_calls, 1);
-    assert_memory_equal(name_uu, boot_part_uu, sizeof(uuid_t));
 
     jump();
     assert_ptr_equal(jump_args[0], (void *)(uintptr_t)APP_ADDR);
@@ -179,6 +173,29 @@ static void test_entry_is_the_load_address(void **state)
     assert_memory_equal(jump_args[2], boot_part_uu, sizeof(uuid_t));
     assert_null(jump_args[3]);
     assert_null(jump_args[4]);
+}
+
+/* The registers are what they were with the board's resolve_part_name
+ * (F-259 replaces them): r0 is the policy's string itself, which is A/B's
+ * "A", "B" or "?", and r1 a copy of the UUID in the handover's own memory,
+ * which stays when the core's information changes */
+static void test_registers_are_the_name_and_a_copy_of_the_uuid(void **state)
+{
+    static const char system_b[] = "B";
+    (void)state;
+
+    add_part(ID_APP, 8192);
+    add_load_addr(ID_APP, APP_ADDR);
+    info.system_name = system_b;
+
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+
+    jump();
+    assert_ptr_equal(jump_args[1], system_b);
+    assert_ptr_not_equal(jump_args[2], info.boot_partition_uuid);
+    uuid_clear(info.boot_partition_uuid);
+    assert_memory_equal(jump_args[2], boot_part_uu, sizeof(uuid_t));
 }
 
 /* In place: the part's load address is its address in the map. The entry is
@@ -194,13 +211,15 @@ static void test_entry_in_place(void **state)
     add_part(ID_APP, 8192);
     add_load_addr(ID_APP, FLASH_ADDR + 0x3000);
 
-    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
     assert_int_equal(prepare(), PB_OK);
 
     jump();
     assert_ptr_equal(jump_args[0], (void *)(uintptr_t)(FLASH_ADDR + 0x3000));
 }
 
+/* A policy without systems has no name (boot.md 5.6): r0 is NULL, as it was
+ * for a board without resolve_part_name */
 static void test_no_name(void **state)
 {
     (void)state;
@@ -209,17 +228,39 @@ static void test_no_name(void **state)
     add_load_addr(ID_APP, APP_ADDR);
 
     /* A name from an earlier boot isn't kept */
-    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
     assert_int_equal(prepare(), PB_OK);
 
-    assert_int_equal(boot_driver_simple_init(&cfg_no_name), PB_OK);
+    info.system_name = NULL;
     assert_int_equal(prepare(), PB_OK);
-    assert_int_equal(name_calls, 1);
 
     jump();
     assert_ptr_equal(jump_args[0], (void *)(uintptr_t)APP_ADDR);
     assert_null(jump_args[1]);
     assert_memory_equal(jump_args[2], boot_part_uu, sizeof(uuid_t));
+}
+
+/* 'boot bpak' without a partition: the name of no system and the null UUID,
+ * as it was. A UUID from an earlier candidate isn't kept */
+static void test_no_partition(void **state)
+{
+    static const uuid_t null_uu;
+    (void)state;
+
+    add_part(ID_APP, 8192);
+    add_load_addr(ID_APP, APP_ADDR);
+
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
+    assert_int_equal(prepare(), PB_OK);
+
+    uuid_clear(info.boot_partition_uuid);
+    info.system_name = "?";
+    assert_int_equal(prepare(), PB_OK);
+
+    jump();
+    assert_string_equal(jump_args[1], "?");
+    assert_non_null(jump_args[2]);
+    assert_memory_equal(jump_args[2], null_uu, sizeof(uuid_t));
 }
 
 static void test_no_entry_part(void **state)
@@ -229,9 +270,10 @@ static void test_no_entry_part(void **state)
     add_part(ID_OTHER, 4096);
     add_load_addr(ID_OTHER, APP_ADDR);
 
-    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
     assert_int_equal(prepare(), -PB_ERR_BAD_META);
-    assert_int_equal(name_calls, 0);
+    /* Nothing to jump to, and no arguments */
+    assert_true(next.entry == 0 && next.arg[0] == 0 && next.arg[1] == 0);
 }
 
 static void test_no_load_address(void **state)
@@ -243,9 +285,9 @@ static void test_no_load_address(void **state)
     add_load_addr(ID_OTHER, APP_ADDR);
     add_part(ID_APP, 8192);
 
-    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
     assert_int_equal(prepare(), -PB_ERR_BAD_META);
-    assert_int_equal(name_calls, 0);
+    assert_true(next.entry == 0 && next.arg[0] == 0 && next.arg[1] == 0);
 }
 
 /* An entry part of size 0 passes placement and the payload's hash with
@@ -261,12 +303,12 @@ static void test_empty_entry_part_is_refused(void **state)
     add_part(ID_APP, 0);
     add_load_addr(ID_APP, APP_ADDR);
 
-    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
     assert_int_equal(prepare(), -PB_ERR_BAD_META);
+    /* Nothing of pb's information is passed on either: the name is "A" */
     assert_true(next.entry == 0);
     assert_true(next.arg[0] == 0);
     assert_true(next.arg[1] == 0);
-    assert_int_equal(name_calls, 0);
 }
 
 /* What counts is what was hashed at the load address, bpak_part_size(): the
@@ -279,7 +321,7 @@ static void test_entry_part_of_the_minimum(void **state)
     add_part(ID_APP, 1);
     add_load_addr(ID_APP, APP_ADDR);
     assert_int_equal(bpak_get_part(hdr, ID_APP, &part), BPAK_OK);
-    assert_int_equal(boot_driver_simple_init(&cfg_no_name), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
 
     /* One byte of content is 512 bytes with its padding, all of them hashed */
     part->pad_bytes = 511;
@@ -315,7 +357,7 @@ static void test_empty_part_that_is_not_the_entry(void **state)
     add_part(ID_APP, 8192);
     add_load_addr(ID_APP, APP_ADDR);
 
-    assert_int_equal(boot_driver_simple_init(&cfg_named), PB_OK);
+    assert_int_equal(boot_driver_simple_init(&cfg_app), PB_OK);
     assert_int_equal(prepare(), PB_OK);
 
     jump();
@@ -335,19 +377,18 @@ static void test_handover_object(void **state)
     add_load_addr(ID_APP, APP_ADDR);
 
     assert_ptr_equal(handover.ops, &boot_handover_simple_ops);
-    assert_ptr_equal(handover.config, &cfg_named);
+    assert_ptr_equal(handover.config, &cfg_app);
 
-    /* The module has the configuration without a name, so that the name
-     * below shows that the object's reached it */
-    assert_int_equal(boot_driver_simple_init(&cfg_no_name), PB_OK);
+    /* The module has the configuration with the other entry part, so that
+     * the entry below shows that the object's reached it */
+    assert_int_equal(boot_driver_simple_init(&cfg_other), PB_OK);
 
     /* An error of the module's is init's answer */
     assert_int_equal(handover.ops->init(NULL), -PB_ERR_PARAM);
 
     assert_int_equal(handover.ops->init(handover.config), PB_OK);
     memset(&next, 0, sizeof(next));
-    assert_int_equal(handover.ops->prepare(hdr, boot_part_uu, &next), PB_OK);
-    assert_int_equal(name_calls, 1);
+    assert_int_equal(handover.ops->prepare(hdr, &info, &next), PB_OK);
 
     jump();
     /* The entry is the entry part's load address */
@@ -364,8 +405,10 @@ int main(void)
         cmocka_unit_test_setup(test_prepare_before_init, setup),
         cmocka_unit_test_setup(test_init_rejects, setup),
         cmocka_unit_test_setup(test_entry_is_the_load_address, setup),
+        cmocka_unit_test_setup(test_registers_are_the_name_and_a_copy_of_the_uuid, setup),
         cmocka_unit_test_setup(test_entry_in_place, setup),
         cmocka_unit_test_setup(test_no_name, setup),
+        cmocka_unit_test_setup(test_no_partition, setup),
         cmocka_unit_test_setup(test_no_entry_part, setup),
         cmocka_unit_test_setup(test_no_load_address, setup),
         cmocka_unit_test_setup(test_empty_entry_part_is_refused, setup),

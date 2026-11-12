@@ -69,6 +69,14 @@ struct boot_policy_ops {
 
     /** Command mode's 'boot status': the partition, or the null UUID */
     void (*status)(uuid_t part_uu);
+
+    /**
+     * Optional: the name of the system in 'part_uu', for the handover
+     * (boot.md 5.6). Any UUID is asked for, the policy's candidates and what
+     * a host named: one that isn't a system of the policy's has the
+     * policy's name for that ("?"). NULL, the function or its answer: no name
+     */
+    const char *(*system_name)(uuid_t part_uu);
 };
 
 struct boot_policy {
@@ -116,10 +124,21 @@ void boot_policy_report(const uuid_t part_uu, int result);
  * This is the policy's answer, not the boot's: a boot of a partition that
  * was named or of the host's stream never asks the policy, and after a
  * fallback that failed the policy still says fallback. The boot's mode is
- * the core's to keep, normal for those two and this after the policy's
- * report (F-260). Nothing calls it yet.
+ * the core's to keep (boot.c, struct boot_info): normal for those two, and
+ * this for a candidate, asked when the policy handed it out.
  */
 enum boot_policy_mode boot_policy_mode(void);
+
+/**
+ * The name of the system in 'part_uu', for the handover (boot.md 5.6)
+ *
+ * @param[in] part_uu A candidate's partition, or the UUID a host named
+ *
+ * @return The policy's name for it: A/B's "A", "B", or "?" for a partition
+ *         that isn't one of its systems. NULL without a policy, and where
+ *         the policy has no names (fixed, staggered chain)
+ */
+const char *boot_policy_system_name(uuid_t part_uu);
 
 /**
  * Command mode's 'boot activate' (boot.md 3.4)

@@ -38,7 +38,7 @@ int boot_handover_image_init(const struct boot_handover_image_config *cfg_in)
 }
 
 int boot_handover_image_prepare(struct bpak_header *hdr,
-                                uuid_t boot_part_uu,
+                                const struct boot_info *info,
                                 struct boot_handover_entry *next)
 {
     int rc;
@@ -112,10 +112,10 @@ int boot_handover_image_prepare(struct bpak_header *hdr,
             .patch_cb = cfg->dtb_patch_cb,
             .ramdisk_id = cfg->ramdisk_bpak_id,
             .ramdisk_addr = ramdisk_addr,
-            .resolve_part_name = cfg->resolve_part_name,
         };
 
-        rc = boot_dtb_set_chosen(fdt, hdr, boot_part_uu, &chosen);
+        /* The board's hook, then pb's information (boot.md 5.5) */
+        rc = boot_dtb_set_chosen(fdt, hdr, info, &chosen);
 
         if (rc != PB_OK)
             return rc;

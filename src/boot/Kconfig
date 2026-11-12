@@ -92,13 +92,22 @@ config BOOT_DTB_HEADROOM
     help
         The image handover adds /chosen and pb's properties to the
         device tree: pb,device-uuid, pb,slc, pb,slc-active-key,
-        pb,slc-available-keys, pb,active-system, the initrd and what the
-        board's callback sets (bootargs). First they grow the device tree in
+        pb,slc-available-keys, pb,active-system, the initrd, what the
+        board's callback sets (bootargs) and, new in 3.0.0, pb,boot-mode,
+        pb,boot-partition and pb,version. First they grow the device tree in
         place by this many bytes, into the RAM after its part. Leave that RAM
         free in the boot image: another part or pb there fails the boot.
         For a device tree in dtc's block order growing only changes its
         size in the header. A device tree built with the properties and free
         space for them (dtc -p) doesn't need it, set 0 then.
+
+        With 0, a device tree that was built for an older pb has no room
+        for the three new properties. They take 138 bytes together (with
+        the version "3.0.0"): add them to the device tree, pb,boot-mode with
+        room for "speculative", or that much padding. Without the room the
+        image boots as before and each of the three that doesn't fit is
+        left out, with a warning in the log. A property of the older ones
+        that doesn't fit fails the boot, as it always did.
 
 config BOOT_SIMPLE
     bool "Simple boot protocol (include/boot/simple.h)"

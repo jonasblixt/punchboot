@@ -396,7 +396,6 @@ static const struct slc_config slc = {
 
 static const struct boot_handover_image_config boot_image = {
     .image_bpak_id = 0xec103b08, /* bpak_id("kernel") */
-    .resolve_part_name = boot_ab_part_uu_to_name,
 };
 
 static const struct cm_transport_ops socket_transport = {
@@ -469,6 +468,7 @@ static const struct boot_policy_ops host_policy_ops = {
     .mode = host_policy_mode,
     .activate = host_policy_activate,
     .status = host_policy_status,
+    .system_name = boot_ab_part_uu_to_name,
 };
 
 const struct board board = {

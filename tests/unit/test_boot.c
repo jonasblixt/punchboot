@@ -24,7 +24,10 @@
 #include <drivers/partition/static.h>
 #include <pb/arch.h>
 #include <pb/bio.h>
+#include <pb/device_uuid.h>
 #include <pb/pb.h>
+#include <pb/rot.h>
+#include <pb/slc.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -130,9 +133,28 @@ static struct {
     boot_result_cb_t load_result_f;
 
     int early_rc;
+    int early_calls;
+
+    /* pb's information: what the device answers, and when it was asked */
+    int device_uuid_rc;
+    int device_uuid_calls;
+    int early_calls_at_device_uuid;
+    int next_calls_at_device_uuid;
+    slc_t slc;
+    int slc_calls;
+    /* The keystore's keys are key_ids[]. A bit per index: revoked, and a
+     * status that can't be read */
+    size_t no_of_keys;
+    int no_of_keys_calls;
+    uint32_t revoked_keys;
+    uint32_t unreadable_keys;
 
     /* The fake policy: it hands out candidates[], then -PB_ERR_NOT_FOUND */
     const unsigned char *candidates[3];
+    /* How it chose each of them. Like A/B, it keeps the answer of the
+     * candidate it handed out last, also when it has none left */
+    enum boot_policy_mode modes[3];
+    enum boot_policy_mode mode;
     size_t no_of_candidates;
     size_t next_candidate;
     int next_rc;
@@ -148,6 +170,11 @@ static struct {
     int prepare_calls;
     uuid_t prepare_uu;
     struct bpak_header *prepare_hdr;
+    /* pb's information as prepare got it, the first three times and the
+     * last, and where it was */
+    struct boot_info prepare_info[3];
+    struct boot_info last_info;
+    const struct boot_info *prepare_info_at;
     /* The entry prepare() got was all zero, every time */
     bool prepare_got_zeros;
     int late_rc;
@@ -304,7 +331,51 @@ int boot_image_verify_payload(struct bpak_header *hdr, uint8_t *payload_digest)
 static int fake_early_boot(void)
 {
     see_header(AT_EARLY);
+    fake.early_calls++;
     return fake.early_rc;
+}
+
+/* What pb's information is read from: the core asks, the handover doesn't
+ * (boot.md 5.6) */
+#define DEVICE_UUID "02e49231-756e-35ee-a982-378e5ba866a9"
+
+static const key_id_t key_ids[] = { 0xa90f9680, 0x25c6dd36, 0x52c1eda0 };
+
+int device_uuid(uuid_t uu)
+{
+    fake.device_uuid_calls++;
+    fake.early_calls_at_device_uuid = fake.early_calls;
+    fake.next_calls_at_device_uuid = fake.next_calls;
+
+    if (fake.device_uuid_rc != PB_OK)
+        return fake.device_uuid_rc;
+
+    return uuid_parse(DEVICE_UUID, uu);
+}
+
+slc_t slc_read_status(void)
+{
+    fake.slc_calls++;
+    return fake.slc;
+}
+
+size_t rot_no_of_keys(void)
+{
+    fake.no_of_keys_calls++;
+    return fake.no_of_keys;
+}
+
+int rot_read_key_status_by_idx(unsigned int index)
+{
+    if (fake.unreadable_keys & (1u << index))
+        return -PB_ERR_IO;
+
+    return (fake.revoked_keys & (1u << index)) ? -PB_ERR_KEY_REVOKED : PB_OK;
+}
+
+key_id_t rot_key_idx_to_id(unsigned int index)
+{
+    return key_ids[index];
 }
 
 static int fake_policy_init(const struct boot_policy *policy)
@@ -331,6 +402,7 @@ static int fake_policy_next(uuid_t part_uu)
         return -PB_ERR_NOT_FOUND;
     }
 
+    fake.mode = fake.modes[fake.next_candidate];
     uuid_copy(part_uu, fake.candidates[fake.next_candidate++]);
     return PB_OK;
 }
@@ -356,7 +428,19 @@ static void fake_policy_report(const uuid_t part_uu, int result)
 
 static enum boot_policy_mode fake_policy_mode(void)
 {
-    return BOOT_POLICY_MODE_NORMAL;
+    return fake.mode;
+}
+
+/* A/B's names: the two systems, and "?" for any other partition */
+static const char *fake_policy_system_name(uuid_t part_uu)
+{
+    if (uuid_compare(part_uu, UU_SYS_A) == 0)
+        return "A";
+
+    if (uuid_compare(part_uu, UU_SYS_B) == 0)
+        return "B";
+
+    return "?";
 }
 
 static int fake_policy_activate(uuid_t part_uu)
@@ -382,6 +466,19 @@ static const struct boot_policy_ops fake_policy_ops = {
 
 static const struct boot_policy fake_policy = { .ops = &fake_policy_ops };
 
+/* The same policy with names for its systems, as A/B has */
+static const struct boot_policy_ops named_policy_ops = {
+    .init = fake_policy_init,
+    .next = fake_policy_next,
+    .report = fake_policy_report,
+    .mode = fake_policy_mode,
+    .activate = fake_policy_activate,
+    .status = fake_policy_status,
+    .system_name = fake_policy_system_name,
+};
+
+static const struct boot_policy named_policy = { .ops = &named_policy_ops };
+
 /* What the fake handover gives: recognizable in every register */
 #define NEXT_ENTRY 0x40400000
 #define NEXT_ARG0  0x48000000
@@ -391,16 +488,22 @@ static const struct boot_policy fake_policy = { .ops = &fake_policy_ops };
 #define NEXT_DT    0x43000000
 
 static int fake_prepare(struct bpak_header *header,
-                        uuid_t boot_part_uu,
+                        const struct boot_info *info,
                         struct boot_handover_entry *next)
 {
     static const struct boot_handover_entry zeros;
+    const unsigned char *boot_part_uu = info->boot_partition_uuid;
 
     if (fake.prepare_calls == 0)
         fake.prepare_got_zeros = true;
     if (memcmp(next, &zeros, sizeof(zeros)) != 0)
         fake.prepare_got_zeros = false;
 
+    if (fake.prepare_calls < 3)
+        fake.prepare_info[fake.prepare_calls] = *info;
+
+    fake.last_info = *info;
+    fake.prepare_info_at = info;
     fake.prepare_calls++;
     fake.prepare_hdr = header;
     uuid_copy(fake.prepare_uu, boot_part_uu);
@@ -537,6 +640,15 @@ static const struct boot_driver driver = {
     .late_boot_cb = fake_late_boot,
 };
 
+/* The same board with a policy that names its systems */
+static const struct boot_driver named_driver = {
+    .default_boot_source = BOOT_SOURCE_BIO,
+    .early_boot_cb = fake_early_boot,
+    .policy = &named_policy,
+    .handover = &fake_handover,
+    .late_boot_cb = fake_late_boot,
+};
+
 /* The same board with a delivery */
 static const struct boot_driver delivery_driver = {
     .default_boot_source = BOOT_SOURCE_BIO,
@@ -616,6 +728,9 @@ static void reset_fakes(struct fixture *f)
     /* The policy's one candidate is System A */
     fake.candidates[0] = UU_SYS_A;
     fake.no_of_candidates = 1;
+    /* A locked device, none of its three keys revoked */
+    fake.slc = SLC_CONFIGURATION_LOCKED;
+    fake.no_of_keys = ARRAY_SIZE(key_ids);
     fake_lockdown_calls = 0;
     fake_lockdown_rc = PB_OK;
     fake_lockdown_wdog_kicks = 0;
@@ -1102,6 +1217,326 @@ static void test_policy_next_fails_after_a_candidate(void **state)
     assert_int_equal(fake.report_calls, 1);
     /* B was never handed out */
     assert_int_equal(fake.auth_calls, 1);
+}
+
+/* The id of the key a system's image is signed with, in its header on the
+ * disk */
+static void set_key_id(struct fixture *f, int system, uint32_t key_id)
+{
+    memcpy(sys_header(f, system) + offsetof(struct bpak_header, key_id), &key_id, sizeof(key_id));
+}
+
+static void assert_device_info(const struct boot_info *info)
+{
+    uuid_t device_uu;
+
+    assert_int_equal(uuid_parse(DEVICE_UUID, device_uu), 0);
+    assert_memory_equal(info->device_uuid, device_uu, sizeof(uuid_t));
+    /* The string the wire's version command answers */
+    assert_string_equal(info->version, PB_VERSION);
+    assert_int_equal(info->slc, SLC_CONFIGURATION_LOCKED);
+    /* Nothing is reported until the boot checks its preconditions (F-248) */
+    assert_int_equal(info->status, 0);
+}
+
+/* boot.md 2, 5.6: pb's information is collected once, after early_boot()
+ * and before the first candidate, and every candidate's prepare gets it */
+static void test_info_is_collected_once_before_the_candidates(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.prepare_fail_uu = UU_SYS_A;
+    /* The second key is revoked */
+    fake.revoked_keys = 1u << 1;
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 2);
+
+    assert_int_equal(fake.device_uuid_calls, 1);
+    assert_int_equal(fake.slc_calls, 1);
+    assert_int_equal(fake.no_of_keys_calls, 1);
+    assert_int_equal(fake.early_calls_at_device_uuid, 1);
+    assert_int_equal(fake.next_calls_at_device_uuid, 0);
+
+    for (int i = 0; i < 2; i++) {
+        const struct boot_info *info = &fake.prepare_info[i];
+
+        assert_device_info(info);
+        /* The keys that aren't revoked, in the keystore's order */
+        assert_int_equal(info->no_of_available_keys, 2);
+        assert_int_equal(info->available_keys[0], key_ids[0]);
+        assert_int_equal(info->available_keys[1], key_ids[2]);
+    }
+
+    /* A boot that command mode starts later collects it again: the keys
+     * and the life cycle may have changed (a key was revoked) */
+    fake.prepare_fail_uu = NULL;
+    fake.revoked_keys = (1u << 0) | (1u << 1);
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.slc_calls, 2);
+    assert_int_equal(fake.last_info.no_of_available_keys, 1);
+    assert_int_equal(fake.last_info.available_keys[0], key_ids[2]);
+}
+
+/* A key whose status can't be read is unusable (security.md 4.4): it isn't
+ * among the keys that aren't revoked, and the boot goes on */
+static void test_info_key_that_cannot_be_read(void **state)
+{
+    (void)state;
+
+    fake.unreadable_keys = 1u << 0;
+    fake.revoked_keys = 1u << 2;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.no_of_available_keys, 1);
+    assert_int_equal(fake.last_info.available_keys[0], key_ids[1]);
+
+    /* No key left: an empty list. No image verifies then, which is the
+     * load's to find */
+    fake.unreadable_keys = 0;
+    fake.revoked_keys = 7;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.no_of_available_keys, 0);
+}
+
+/* A board without an SLC boots, and has no life cycle to tell of */
+static void test_info_without_an_slc(void **state)
+{
+    (void)state;
+
+    fake.slc = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.slc, BOOT_INFO_NO_SLC);
+
+    /* Every state is the wire's value, also the first */
+    fake.slc = SLC_NOT_CONFIGURED;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.slc, SLC_NOT_CONFIGURED);
+}
+
+/* boot.md 2: pb's information that can't be read is no candidate's fault
+ * and stops the boot, with every source: no candidate is asked for, nothing
+ * is read or prepared. A life cycle that can't be read doesn't boot, with
+ * any handover (security.md 4.4, system.md 4) */
+static void test_info_that_cannot_be_read_stops_the_boot(void **state)
+{
+    struct fixture *f = *state;
+
+    boot_clear_set_flags(0, BOOT_FLAG_CMD);
+    fake.slc = -PB_ERR_IO;
+    assert_int_equal(boot(NULL), -PB_ERR_IO);
+    assert_int_equal(boot_get_flags(), 0);
+
+    /* Not set up is unknown too, not "no SLC" */
+    fake.slc = -PB_ERR_STATE;
+    assert_int_equal(boot_load(NULL), -PB_ERR_STATE);
+    /* A partition the host named */
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), -PB_ERR_STATE);
+    /* The host's stream: its header isn't asked for */
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    assert_int_equal(boot_load(NULL), -PB_ERR_STATE);
+    assert_int_equal(fake.read_cb_calls, 0);
+    assert_int_equal(boot_set_source(BOOT_SOURCE_BIO), PB_OK);
+    fake.slc = SLC_CONFIGURATION_LOCKED;
+
+    fake.device_uuid_rc = -PB_ERR_IO;
+    assert_int_equal(boot_load(NULL), -PB_ERR_IO);
+    fake.device_uuid_rc = PB_OK;
+
+    /* A RoT that isn't set up answers its error as a number of keys */
+    fake.no_of_keys = (size_t)-PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(boot_load(NULL), -PB_ERR_NOT_SUPPORTED);
+    fake.no_of_keys = ARRAY_SIZE(key_ids);
+
+    /* early_boot() ran each time, and nothing after it */
+    assert_int_equal(fake.early_calls, 6);
+    assert_int_equal(fake.next_calls, 0);
+    assert_int_equal(fake.report_calls, 0);
+    assert_int_equal(fake.auth_calls, 0);
+    assert_int_equal(f->disk->reads, 0);
+    assert_int_equal(fake.prepare_calls, 0);
+    assert_int_equal(fake.late_calls, 0);
+    assert_int_equal(fake.jump_calls, 0);
+
+    /* A stop in early_boot() comes first: nothing is collected */
+    fake.early_rc = -PB_ERR_ABORT;
+    fake.device_uuid_calls = 0;
+    assert_int_equal(boot_load(NULL), -PB_ERR_ABORT);
+    assert_int_equal(fake.device_uuid_calls, 0);
+    fake.early_rc = PB_OK;
+
+    /* And it boots when it can be read again */
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_device_info(&fake.last_info);
+}
+
+/* boot.md 5.6: the candidate's part of pb's information. The partition and
+ * the image's key are the candidate's, the system's name is the policy's */
+static void test_info_of_the_candidate(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_int_equal(boot_init(&named_driver), PB_OK);
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    set_key_id(f, 0, key_ids[0]);
+    set_key_id(f, 1, key_ids[2]);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.prepare_fail_uu = UU_SYS_A;
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 2);
+
+    assert_memory_equal(fake.prepare_info[0].boot_partition_uuid, UU_SYS_A, 16);
+    assert_string_equal(fake.prepare_info[0].system_name, "A");
+    assert_int_equal(fake.prepare_info[0].active_key, key_ids[0]);
+
+    /* Nothing of the candidate that failed is left in the next one's */
+    assert_memory_equal(fake.prepare_info[1].boot_partition_uuid, UU_SYS_B, 16);
+    assert_string_equal(fake.prepare_info[1].system_name, "B");
+    assert_int_equal(fake.prepare_info[1].active_key, key_ids[2]);
+
+    /* A partition the host named (boot.md 6), in the core's one structure */
+    const struct boot_info *at = fake.prepare_info_at;
+
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_B), PB_OK);
+    assert_ptr_equal(fake.prepare_info_at, at);
+    assert_memory_equal(fake.last_info.boot_partition_uuid, UU_SYS_B, 16);
+    assert_string_equal(fake.last_info.system_name, "B");
+    assert_int_equal(fake.last_info.active_key, key_ids[2]);
+}
+
+/* boot.md 5.6: a boot of the host's stream keeps today's values. The UUID
+ * the host names is taken as given, and the system is "?" when it is none
+ * of the policy's, or when the host named none */
+static void test_info_of_the_hosts_stream(void **state)
+{
+    uuid_t null_uu;
+    (void)state;
+
+    uuid_clear(null_uu);
+    assert_int_equal(boot_init(&named_driver), PB_OK);
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+
+    /* A system's partition, which isn't read: it need not be bootable */
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_B), PB_OK);
+    assert_memory_equal(fake.last_info.boot_partition_uuid, UU_SYS_B, 16);
+    assert_string_equal(fake.last_info.system_name, "B");
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
+
+    /* Another UUID */
+    assert_int_equal(boot_load((unsigned char *)UU_OTHER), PB_OK);
+    assert_memory_equal(fake.last_info.boot_partition_uuid, UU_OTHER, 16);
+    assert_string_equal(fake.last_info.system_name, "?");
+
+    /* None: all zero */
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_memory_equal(fake.last_info.boot_partition_uuid, null_uu, 16);
+    assert_string_equal(fake.last_info.system_name, "?");
+    assert_int_equal(boot_load(null_uu), PB_OK);
+    assert_memory_equal(fake.last_info.boot_partition_uuid, null_uu, 16);
+    assert_device_info(&fake.last_info);
+}
+
+/* A policy without systems (fixed, staggered chain) has no names, and a
+ * board without a policy has none to ask: no name, the partition says what
+ * booted */
+static void test_info_without_a_system_name(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_null(fake.last_info.system_name);
+    assert_memory_equal(fake.last_info.boot_partition_uuid, UU_SYS_A, 16);
+
+    assert_int_equal(boot_init(&no_policy_driver), PB_OK);
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), PB_OK);
+    assert_null(fake.last_info.system_name);
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
+}
+
+/* boot.md 3.4, 5.6: the mode of a boot the policy chose is the policy's for
+ * the candidate that boots */
+static void test_mode_of_the_policys_candidates(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
+
+    /* The first candidate fails, the policy's second is a fallback: each
+     * prepare gets its own candidate's mode */
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.modes[1] = BOOT_POLICY_MODE_FALLBACK;
+    fake.no_of_candidates = 2;
+    fake.prepare_fail_uu = UU_SYS_A;
+    fake.prepare_calls = 0;
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.prepare_calls, 2);
+    assert_int_equal(fake.prepare_info[0].boot_mode, BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(fake.prepare_info[1].boot_mode, BOOT_POLICY_MODE_FALLBACK);
+    assert_memory_equal(fake.prepare_info[1].boot_partition_uuid, UU_SYS_B, 16);
+
+    /* The next boot's first candidate is normal again */
+    fake.prepare_fail_uu = NULL;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
+
+    /* A/B's speculative mode is a candidate's mode like the others */
+    fake.modes[0] = BOOT_POLICY_MODE_SPECULATIVE;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_SPECULATIVE);
+}
+
+/* The boot's mode is the core's, not what the policy says when it is asked:
+ * after a fallback that failed the policy still answers fallback, and a
+ * partition the host names or the host's stream is a normal boot (boot.md
+ * 5.6, 6) */
+static void test_mode_is_normal_after_a_failed_fallback(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.modes[1] = BOOT_POLICY_MODE_FALLBACK;
+    fake.no_of_candidates = 2;
+    fake.auth_rc = -PB_ERR_AUTHENTICATION_FAILED;
+
+    /* Both fail: no candidate is left, and pb is in command mode */
+    assert_int_equal(boot_load(NULL), -PB_ERR_AUTHENTICATION_FAILED);
+    assert_int_equal(fake.report_calls, 2);
+    assert_int_equal(boot_policy_mode(), BOOT_POLICY_MODE_FALLBACK);
+    fake.auth_rc = PB_OK;
+
+    /* 'boot part <uuid>' */
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_B), PB_OK);
+    assert_int_equal(boot_policy_mode(), BOOT_POLICY_MODE_FALLBACK);
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
+
+    /* 'boot bpak' */
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_B), PB_OK);
+    assert_int_equal(boot_policy_mode(), BOOT_POLICY_MODE_FALLBACK);
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
+    assert_int_equal(fake.prepare_calls, 2);
+
+    /* A policy boot that succeeded with its fallback, then a named one */
+    assert_int_equal(boot_set_source(BOOT_SOURCE_BIO), PB_OK);
+    fake.prepare_fail_uu = UU_SYS_A;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_FALLBACK);
+    fake.prepare_fail_uu = NULL;
+    assert_int_equal(boot_load((unsigned char *)UU_SYS_A), PB_OK);
+    assert_int_equal(fake.last_info.boot_mode, BOOT_POLICY_MODE_NORMAL);
 }
 
 static void test_early_boot_abort(void **state)
@@ -1965,6 +2400,15 @@ int main(void)
         BOOT_TEST(test_policy_next_candidate_after_prepare),
         BOOT_TEST(test_policy_every_candidate_fails),
         BOOT_TEST(test_policy_next_fails_after_a_candidate),
+        BOOT_TEST(test_info_is_collected_once_before_the_candidates),
+        BOOT_TEST(test_info_key_that_cannot_be_read),
+        BOOT_TEST(test_info_without_an_slc),
+        BOOT_TEST(test_info_that_cannot_be_read_stops_the_boot),
+        BOOT_TEST(test_info_of_the_candidate),
+        BOOT_TEST(test_info_of_the_hosts_stream),
+        BOOT_TEST(test_info_without_a_system_name),
+        BOOT_TEST(test_mode_of_the_policys_candidates),
+        BOOT_TEST(test_mode_is_normal_after_a_failed_fallback),
         BOOT_TEST(test_early_boot_abort),
         BOOT_TEST(test_late_boot_error),
         BOOT_TEST(test_lockdown_error),

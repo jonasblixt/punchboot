@@ -467,6 +467,10 @@ static void test_part_names(void **state)
     assert_string_equal(boot_ab_part_uu_to_name((unsigned char *)UU_SYS_A), "A");
     assert_string_equal(boot_ab_part_uu_to_name((unsigned char *)UU_SYS_B), "B");
     assert_string_equal(boot_ab_part_uu_to_name((unsigned char *)UU_OTHER), "?");
+
+    /* They are the policy's names for the handover (boot.md 5.6) */
+    assert_string_equal(boot_policy_ab_ops.system_name((unsigned char *)UU_SYS_B), "B");
+    assert_string_equal(boot_policy_ab_ops.system_name((unsigned char *)UU_OTHER), "?");
 }
 
 static void test_board_regs(void **state)

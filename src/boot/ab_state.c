@@ -478,4 +478,5 @@ const struct boot_policy_ops boot_policy_ab_ops = {
     .mode = policy_ab_mode,
     .activate = boot_ab_state_set_boot_partition,
     .status = boot_ab_state_get_boot_partition,
+    .system_name = boot_ab_part_uu_to_name,
 };

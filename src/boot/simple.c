@@ -33,12 +33,11 @@ int boot_driver_simple_init(const struct boot_driver_simple_config *cfg_in)
 }
 
 int boot_driver_simple_prepare(struct bpak_header *hdr,
-                               uuid_t boot_part_uu,
+                               const struct boot_info *info,
                                struct boot_handover_entry *next)
 {
     struct bpak_part_header *part;
     struct bpak_meta_header *mh;
-    const char *boot_name;
 
     if (cfg == NULL)
         return -PB_ERR_STATE;
@@ -65,11 +64,12 @@ int boot_driver_simple_prepare(struct bpak_header *hdr,
 
     next->entry = (uintptr_t)*bpak_get_meta_ptr(hdr, mh, uint64_t);
 
-    uuid_copy(boot_uu, boot_part_uu);
-    boot_name = cfg->resolve_part_name ? cfg->resolve_part_name(boot_part_uu) : NULL;
+    uuid_copy(boot_uu, info->boot_partition_uuid);
 
-    /* The booted system's name and the boot partition's UUID */
-    next->arg[0] = (uintptr_t)boot_name;
+    /* The booted system's name, the policy's (NULL: it has none), and the
+     * boot partition's UUID: the two of pb's information this handover has
+     * room for, until Firmware Handoff replaces it (F-259) */
+    next->arg[0] = (uintptr_t)info->system_name;
     next->arg[1] = (uintptr_t)boot_uu;
 
     LOG_INFO("Boot entry: 0x%" PRIxPTR, next->entry);

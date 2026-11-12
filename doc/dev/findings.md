@@ -423,12 +423,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | list in a board region with the image's DT or pb's structure; the tag requested in the | | |
 | | | specification (Jonas); the simple target test bench follows. `BOOT_FH`, the region | | |
 | | | `BOOT_FH_REGION_BASE` and `_SIZE`; the checksum against the reference library | | |
-| F-260 | `src/boot/dtb.c` | `boot_dtb_set_chosen()` reads the RoT, the SLC and the device | Verified (code) | open |
-| | | id itself, and runs the board's hook after `pb,device-uuid` and before pb's other properties. | | |
-| | | `boot.md` 5.5, 5.6: pb's information collected once, the hook first, `pb,version`, | | |
-| | | `pb,boot-partition` and `pb,boot-mode` added (and in the README's table). From F-256: the | | |
-| | | boot's mode is the core's: NORMAL for a named partition or the host's stream, the policy's | | |
-| | | after its report; `boot_policy_mode()` alone is stale after a failed fallback | | |
 | F-261 | `plat/{imx6ul,imx8m}/plat.c` | The TrustZone filter's open region is the SoC's | Verified (code) | open |
 | | | whole DRAM window, not the board's DRAM: 2 GiB on the 6UL (`tzasc_init()`), 4 or 8 GiB on the 8M | | |
 | | | (`tzasc_open_dram()`). With less DRAM than the window, the copies of DRAM inside it are open to | | |
@@ -514,7 +508,10 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | | | data and a second result; the Python host raises at the first and leaves two transfers on the | | |
 | | | link. Check what the 2.x C host did (the transcripts) before changing either side. (3) Most | | |
 | | | `cm_write()` results are ignored, and a failed `cm_read()` inside a command returns to the loop | | |
-| | | on the same transport. `command-mode.md` 4.4: a failed transfer ends the session | | |
+| | | on the same transport. `command-mode.md` 4.4: a failed transfer ends the session. | | |
+| | | (4) Since F-260 `boot bpak` is also refused before the header is read when pb's information can't be | | |
+| | | collected (the life cycle, the device identity, the RoT), like a stop in `early_boot()`: the first | | |
+| | | result was OK, so the host sends the image and it is read as commands (F-128) | | |
 | F-275 | `src/cm/cm_main.c` `pb_command_parse()` | The frame is checked before the gate: | Verified (code) | open |
 | | | a locked device answers INVALID_COMMAND before authentication to a command its build doesn't | | |
 | | | have and to a frame with a wrong magic, which tells a host which commands the build knows. | | |
@@ -756,6 +753,39 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | | | reaches command mode: rule 3's guarantee for a hang covers only the two cases that write. | | |
 | | | And rule 7 ("no format change ... their alternation is `enable`") is met with one more | | |
 | | | field written, `remaining_boot_attempts = 0`, which rule 4 needs | | |
+| F-345 | `doc/architecture/boot.md` 3.4 | The policy's contract names no | Verified (code) | open |
+| | | function for the booted system's name. 5.6 has it from "the policy" and `board.md` 2.7 says | | |
+| | | `resolve_part_name` goes because the name is the policy's, but section 3 lists `init`, `next`, | | |
+| | | `report`, `mode`, `activate` and `status` only. The code (F-260) has `boot_policy_system_name(uuid)` | | |
+| | | and an optional `system_name` in `struct boot_policy_ops`: A/B answers "A", "B" or "?" for any UUID | | |
+| | | (`boot_ab_part_uu_to_name()`), the fixed and the chain policy have none, and the handover then | | |
+| | | writes no `pb,active-system` and an empty `system_name`. To write into 3.4, with whether a policy | | |
+| | | without systems may name its partitions | | |
+| F-346 | `src/rot.c` | `rot_no_of_keys()` returns its error, | Verified (code) | open |
+| | | `-PB_ERR_NOT_SUPPORTED` as a `size_t` when the RoT isn't set up, and `rot_key_idx_to_id()` an error | | |
+| | | as a `key_id_t`: a caller can't tell them from a count or an id. A loop over the count runs to | | |
+| | | `SIZE_MAX` (`dtb.c` had one; unreachable, no image verifies without a RoT). `boot.c` | | |
+| | | (`collect_info()`, F-260) takes a count above 255, the most a keystore holds, for the error and | | |
+| | | stops the boot. An `int` with the count or the id as an out argument, or 0 keys without a RoT | | |
+| F-348 | `doc/architecture/boot.md` 5.5, 5.6 | pb's properties in a device tree: the | Verified (code) | open |
+| | | text is silent on two things the device tree code decides. (1) Does pb own the `pb,*` names, and | | |
+| | | remove a property it has no value for (an image's placeholder, what a hook wrote)? 5.5 says pb's | | |
+| | | values win, 5.6 says "absent". The code leaves a released property it has no value for (`pb,slc` | | |
+| | | without an SLC, `pb,active-system` without a name), as every release did (D-008: an out-of-tree hook | | |
+| | | that writes `pb,active-system` itself), and removes only the new ones (`pb,boot-partition` without a | | |
+| | | partition, a new property that didn't fit). On a board without an SLC a next stage can so read a | | |
+| | | `pb,slc` that isn't pb's. (2) A new property that doesn't fit the tree is left out with a warning | | |
+| | | and the image boots (F-260): 5.6 has a next stage take an absent entry for an older pb, and nothing | | |
+| | | tells it "no room" but pb's log. To decide and write into 5.5: the namespace, and what a next stage | | |
+| | | is told when a property didn't fit | | |
+| F-349 | `src/boot/boot.c` `collect_info()` | Boot time: pb's | Verified (code) | open |
+| | | information is read on every board's boot path now, before the first candidate, and its cost isn't | | |
+| | | measured: `system.md` 5.3 asks for a recorded time. The boards with a device tree read the same in | | |
+| | | prepare before. New for the RT1060 EVK and the host, whose handover writes none of it but the name | | |
+| | | and the UUID: the device identity (2 OCOTP reads and an MD5), the life cycle (1 to 9 OCOTP reads) | | |
+| | | and the status of the 3 keys (3 reads), in a boot of 40.1 ms from a warm reset to the image's entry | | |
+| | | (`testbench/simple/README.md`). Measure it on the RT (`pytest tests -k boot_time`) and record it | | |
+| | | there | | |
 
 ## Dependencies / vendored code
 
@@ -787,3 +817,4 @@ ed; add a timeout to `caam_wait_for_job`; consider one INIT_FINAL job when nothi
 | F-067 | Host test infra: `pbtest.py` `stop()` ignores pb-host's exit code, so sanitizer/LeakSanitizer failures at teardown are lost. The socket file appears at `bind()`, before `listen()` (startup race). No client timeouts, no pytest-timeout/ctest `TIMEOUT`. pb-host `write()` can die from SIGPIPE. Orphaned pb-host if pytest is killed. `fakes/ramdisk.c` computes `lba * 512` in 32 bits. 64-bit host hides 32-bit overflows (F-054); consider a `-m32` job. | Verified (read) | partly fixed (claude-work): teardown fails on non-zero exit and sanitizer reports; ramdisk overflow fixed; the socket path appears only after `listen()`; ctest `TIMEOUT` (60 s per unit test, 600 s for the integration suite). Client timeouts in the C library, SIGPIPE, orphans and `-m32` open |
 | F-109 | `include/pb/log_def.h`: a disabled LOG macro expands to nothing, so `else LOG_DBG(...);` is an empty body and warns (`-Wempty-body`) at `CONFIG_LOGLEVEL=1` (seen in `src/self_test.c`, since removed). Expanding to `do { } while (0)` fixes it. Verified (build). | open |
 | F-147 | `Makefile` `menuconfig oldconfig:` runs `scripts/$@.py`, but `scripts/oldconfig.py` doesn't exist (there is `olddefconfig.py`, unreachable); `.PHONY` names `olddefconfig` and `keystore`, which have no rules. `README.md:208` puts `createtoken.sh` in "the tools folder" (it's `scripts/`) and passes `-sha256` (the script adds the `-`). `build.yml:75` gives `upload-artifact` a `fail_ci_if_error` left from Codecov. | open |
+| F-347 | The host board has no device tree part, so no integration test reads what a handover wrote: `/chosen` and pb's information in it are reached by the unit tests only (`test_image.c`, `test_tfa_image.c`), and `late_boot` reports the partition's name alone. F-260's `test_boot_mode` reads the boot's mode from a debug line of `boot.c` in pb-host's log (`Device.boot_mode`, `pbtest.py`), which a change of the log's text breaks. A device tree part in the host's images and a dump of it (or of `struct boot_info`) next to `--boot-status` would let the tests read the handover itself | open |

@@ -388,7 +388,6 @@ static const struct slc_config slc = {
 /* The image runs from RAM, from the load address of its part "app" */
 static const struct boot_driver_simple_config boot_simple = {
     .boot_partition_id = 0x362fa9dd, /* bpak_id("app") */
-    .resolve_part_name = boot_ab_part_uu_to_name,
 };
 
 static const struct boot_ab_state_config boot_state_cfg = {

@@ -21,6 +21,7 @@ from .pbtest import (
     PRIMARY_STATE_LBA,
     SYSTEM_A_LBA,
     SYSTEM_A_UUID,
+    SYSTEM_B_LBA,
     SYSTEM_B_UUID,
     make_bpak,
 )
@@ -204,3 +205,48 @@ def test_boot_part_without_a_uuid_and_no_fallback(ab_device: Device) -> None:
         s.boot_partition(NULL_UUID)
     assert ab_device.wait_exit() == 0
     assert ab_device.boot_status == "A"
+
+
+def test_boot_mode(ab_device: Device, tmp_path: pathlib.Path) -> None:
+    """The boot's mode in pb's information (boot.md 5.6, 6), for each way to boot."""
+    # Both systems are confirmed by the OS, A is the enabled one
+    ab_device.pbstate("-v", "b")
+    ab_device.pbstate("-s", "a")
+    ab_device.pbstate("-v", "a")
+    ab_device.reset()
+
+    # The policy's first candidate
+    assert ab_device.boot() == "A"
+    assert ab_device.boot_mode == "normal"
+
+    # A doesn't verify: the policy's second candidate, for this boot
+    _flip_payload_byte(ab_device, SYSTEM_A_LBA)
+    assert ab_device.boot() == "B"
+    assert ab_device.boot_mode == "fallback"
+
+    # 'boot part' without a UUID is the policy's boot too
+    ab_device.start()
+    with ab_device.session() as s:
+        s.boot_partition(NULL_UUID)
+    assert ab_device.wait_exit() == 0
+    assert (ab_device.boot_status, ab_device.boot_mode) == ("B", "fallback")
+
+    # A partition the host names is a normal boot: the policy isn't asked
+    ab_device.start()
+    with ab_device.session() as s:
+        s.boot_partition(SYSTEM_B_UUID)
+    assert ab_device.wait_exit() == 0
+    assert (ab_device.boot_status, ab_device.boot_mode) == ("B", "normal")
+
+    # B doesn't verify either: the fallback fails and pb enters command mode
+    # with nothing prepared. The policy's last answer is "fallback"; the
+    # host's stream, booted after it, is a normal boot
+    _flip_payload_byte(ab_device, SYSTEM_B_LBA)
+    ab_device.start(command_mode=False)
+    ab_device.wait_command_mode()
+    assert ab_device.boot_mode is None
+    img = make_bpak(tmp_path / "ram.bpak", os.urandom(16 * 1024))
+    with ab_device.session() as s:
+        s.boot_bpak(img, SYSTEM_B_UUID)
+    assert ab_device.wait_exit() == 0
+    assert (ab_device.boot_status, ab_device.boot_mode) == ("B", "normal")

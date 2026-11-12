@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import pathlib
+import re
 import shutil
 import socket
 import struct
@@ -38,6 +39,9 @@ SYSTEM_B_LBA = 1058
 SYSTEM_SIZE = 512 * 1024
 PRIMARY_STATE_LBA = 2082
 BACKUP_STATE_LBA = 2083
+
+# enum boot_policy_mode (include/boot/policy.h), as the strings of pb,boot-mode
+BOOT_MODES = ("normal", "fallback", "speculative")
 
 # The memory mapped flash of src/board/host (pb-host --nor) and its static
 # table: where pb has it mapped, and each partition's offset and size
@@ -266,6 +270,20 @@ class Device:
         if not self.boot_status_file.exists():
             return None
         return self.boot_status_file.read_text()
+
+    @property
+    def boot_mode(self) -> str | None:
+        """How the boot since the last power on was chosen: an entry of BOOT_MODES.
+
+        The mode of pb's information (boot.md 5.6) that the last prepare of
+        the handover got, from pb's debug log: the host board has no device
+        tree to carry pb,boot-mode. None when nothing was prepared.
+        """
+        if not self.log.exists():
+            return None
+        run = self.log.read_text(errors="replace").rpartition("=== start:")[2]
+        modes = re.findall(r"Prepare, mode (\d+)", run)
+        return BOOT_MODES[int(modes[-1])] if modes else None
 
     def read_blocks(self, lba: int, count: int = 1) -> bytes:
         """Read blocks directly from the disk image."""
