@@ -61,7 +61,7 @@ the trim is at the end of `log/2026-11-09.md`.
   code that decides nothing (a new driver, a refactoring) needs no document first (D-063).
   Security first, also before compatibility. No custom source, `dont-hash` images refused, EOL
   behind Kconfig (F-263).
-- **Tests:** `scripts/pbdev test`, ~30 s: 42 unit suites, `compat.abi`, `doc.lint` (the
+- **Tests:** `scripts/pbdev test`, ~35 s: 45 unit suites, `compat.abi`, `doc.lint` (the
   document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean again
   (F-290), line coverage 99.2% (2026-10-22, `testing.md`). The host has a memory mapped flash
   (`--nor`), on which the in place source runs end to end (`test_in_place.py`).
@@ -79,15 +79,17 @@ the trim is at the end of `log/2026-11-09.md`.
 ## Next steps
 
 0. **Resume here (2026-11-12): the code, a commit per finding (Jonas, D-057).** Every contract
-   is reviewed. In: F-253 (in place), F-219, F-264, F-255, F-265 (`struct board`'s objects),
-   F-256 (the policy interface, with F-215 and F-174), F-258 (the handover gives an entry
-   and arguments, TF-A is a delivery), F-288 (the lint). Next: F-260 first,
-   since a fallback is now only visible to the OS in `pb,active-system`, with F-243 (the
-   watchdog on the boot path); then F-259; F-267 and F-268 (command mode's USB, the tasks).
-   The
-   conformance suites come with each contract's code. No board is on this machine: the code
-   is verified on the host and by building every board, and what a board has to show is
-   listed in `log/2026-11-12.md` ("Not run on a board").
+   is reviewed. In so far, each in `log/2026-11-12.md`: in place (F-253, F-219), the board's
+   objects (F-265), the policy interface and its fallback (F-256), the handover and delivery
+   model (F-258), pb's information and the mode (F-260), the watchdog on the boot path
+   (F-243), speculative mode (F-257), `late_boot` without the header (F-266), the board's data
+   checked (F-249), and of command mode the gate, the session, the authentication's delay and
+   three argument checks (F-275, F-185, F-276, F-278, F-273, F-188, F-279). Next: F-259
+   (Firmware Handoff, now that F-258 and F-260 are in), F-254 (placement's allow list), F-330
+   (an empty DT part), then F-267 and F-268 (command mode's USB, the tasks) and the rest of
+   command mode's list (F-271, F-272, F-274, F-277, F-186, F-187, F-189). No board is on this
+   machine: the code is verified on the host and by building every board, and what a board has
+   to show is listed in the log under "Not run on a board".
 1. Jonas's review of the board work (D-026, D-027). On it: the 8M's HAB
    once its SRK_REVOKE word is verified. Clocks stay code for now (Jonas, 2026-11-09). Later:
    the simple target bench on Cortex-A (D-029: arch/board split, 8MP EVK, jiffy, MEK; boot time
@@ -116,6 +118,10 @@ the trim is at the end of `log/2026-11-09.md`.
   TRM (DDI0431) on the share?
 - F-291: the image handover with a DT part, in place. Refuse it, or copy the DT to RAM first
   (where)?
+- From the code so far, each with what was chosen meanwhile: D-074 (an entry in an empty part
+  is refused, against D-008), F-342 (speculative mode's three cases), F-348 (does pb own the
+  `pb,*` names), F-345 (`system_name` in the policy), F-325 and F-331 (sentences for
+  `board.md` 5.3 and `boot.md` 5.1), F-335 (where the policy's and handover's checks sit).
 - Which boards are still in use? bebop and pico8ml only have defconfigs (F-051, F-033).
 - Keep the virtio drivers for a future QEMU smoke tier? (F-052)
 - Mbed TLS: 3.6 LTS or 4.x?
