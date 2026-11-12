@@ -385,8 +385,8 @@ The watchdog covers command mode's commands (`system.md` 5.4).
 - **Inside a command** the core kicks where the work makes progress: once per chunk that is
   hashed, read, written or loaded, a chunk being at most a buffer. The longest time without a
   kick is then one chunk on the slowest medium, as on the boot path, and not the longest
-  command. **Not yet in the code (F-189)**: nothing kicks inside a command, so a large
-  `part verify` or `boot part` can outlast the watchdog.
+  command. **Not yet in the code (F-189)**: only the load of `boot part` and `boot bpak` kicks
+  (it is the boot path's, `boot.md` 4.2), so a large `part verify` can outlast the watchdog.
 - A board's command kicks as it makes progress (`board.md` 4.4). An erase is as long as its
   driver's erase of the blocks the host named; hosts erase in pieces.
 - While a command runs, no other task runs (`board.md` 4.6).

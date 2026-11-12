@@ -22,5 +22,7 @@ extern unsigned int fake_wdog_kicks;
 /* Number of plat_lockdown() calls, and what it returns */
 extern unsigned int fake_lockdown_calls;
 extern int fake_lockdown_rc;
+/* fake_wdog_kicks when plat_lockdown() was last called */
+extern unsigned int fake_lockdown_wdog_kicks;
 
 #endif // TESTS_UNIT_FAKES_PLAT_H

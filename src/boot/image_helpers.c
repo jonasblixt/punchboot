@@ -352,6 +352,11 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
             if (hash_rc != PB_OK && result_f == NULL)
                 return hash_rc;
 
+            /* Once per chunk, from every source (platform.md 3.3): after the
+             * chunk, since that is the progress. A chunk that failed gets
+             * none, and neither does a wait for one that never comes */
+            plat_wdog_kick();
+
             bytes_to_read -= chunk_size;
             offset += chunk_size;
             last_chunk_size = chunk_size;

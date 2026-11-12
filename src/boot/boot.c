@@ -507,6 +507,7 @@ int boot_jump(void)
     }
 
     LOG_DBG("Jump");
+    plat_wdog_kick(); /* The next stage gets the whole timeout (platform.md 3.3) */
 
     if (boot_cfg->delivery)
         boot_cfg->delivery->ops->jump(&next_stage);

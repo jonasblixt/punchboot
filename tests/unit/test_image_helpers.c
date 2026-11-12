@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fakes/plat.h"
+
 /* Must match the --defsym values in CMakeLists.txt */
 #define CODE_START    0x40000000
 #define DATA_START    0x400a0000
@@ -52,6 +54,9 @@ static struct {
     hash_t alg;
     size_t hashed_bytes;
     uint32_t sum;
+    /* The updates since the last init, and the watchdog's kicks at each */
+    size_t updates;
+    unsigned int kicks_at_update[8];
 
     int verify_rc;
     bool verify_ok;
@@ -81,12 +86,17 @@ static int fake_init(hash_t alg)
     fake.alg = alg;
     fake.hashed_bytes = 0;
     fake.sum = 0;
+    fake.updates = 0;
     return fake.init_rc;
 }
 
 static int fake_update(const void *buf, size_t length)
 {
     const uint8_t *p = buf;
+
+    if (fake.updates < ARRAY_SIZE(fake.kicks_at_update))
+        fake.kicks_at_update[fake.updates] = fake_wdog_kicks;
+    fake.updates++;
 
     if (fake.update_rc != PB_OK)
         return fake.update_rc;
@@ -199,6 +209,7 @@ static int setup(void **state)
     (void)state;
     memset(&fake, 0, sizeof(fake));
     fake.verify_ok = true;
+    fake_wdog_kicks = 0;
     make_header(BPAK_HASH_SHA256, FREE_RAM, 1024, FREE_RAM + 0x100000, 512);
     return 0;
 }
@@ -441,9 +452,13 @@ static int read_rc;
 static int fail_read_at;
 static int results;
 static int last_result;
+/* The watchdog's kicks when each read was asked for */
+static unsigned int kicks_at_read[8];
 
 static int read_f(int64_t offset, size_t length, void *buf)
 {
+    if ((size_t)reads < ARRAY_SIZE(kicks_at_read))
+        kicks_at_read[reads] = fake_wdog_kicks;
     reads++;
     if (reads == fail_read_at)
         return read_rc;
@@ -466,6 +481,14 @@ static int result_sent_f(int rc)
     return PB_OK;
 }
 
+/* The transport is gone: the result can't be sent */
+static int result_fails_f(int rc)
+{
+    results++;
+    last_result = rc;
+    return -PB_ERR_IO;
+}
+
 static void load_setup(void)
 {
     for (size_t i = 0; i < sizeof(payload); i++)
@@ -476,6 +499,8 @@ static void load_setup(void)
     fail_read_at = 0;
     results = 0;
     last_result = 1;
+    memset(kicks_at_read, 0xff, sizeof(kicks_at_read));
+    fake_wdog_kicks = 0;
     /* Kernel first, then the dtb, back to back in the load area */
     make_header(BPAK_HASH_SHA256, (uintptr_t)load_area, 2048, (uintptr_t)load_area + 2048, 1024);
 }
@@ -657,6 +682,226 @@ static void test_load_and_hash_errors(void **state)
                      -PB_ERR_BAD_META);
 }
 
+/* What load_setup() makes, with other sizes: the kernel, and the dtb right
+ * after it when it has a size */
+static void load_setup_sizes(size_t kernel_size, size_t dtb_size)
+{
+    load_setup();
+    make_header(BPAK_HASH_SHA256,
+                (uintptr_t)load_area,
+                kernel_size,
+                (uintptr_t)load_area + kernel_size,
+                dtb_size);
+}
+
+/*
+ * The watchdog is kicked once per chunk (platform.md 3.3, boot.md 4.2 step
+ * 5, F-243): a chunk is at most load_chunk_size and never spans two parts.
+ * The same for every source: a partition's read function, the host's stream
+ * (a result function too) and in place (no read function).
+ */
+static void test_load_and_hash_kicks_per_chunk(void **state)
+{
+    static const struct {
+        size_t kernel_size;
+        size_t dtb_size;
+        size_t chunk_size;
+        unsigned int kicks;
+    } cases[] = {
+        /* A part of exactly one chunk */
+        { 1024, 0, 1024, 1 },
+        /* Smaller than a chunk (a part is a multiple of 512 bytes) */
+        { 512, 0, 1024, 1 },
+        /* Exactly two and three chunks */
+        { 2048, 0, 1024, 2 },
+        { 3072, 0, 1024, 3 },
+        /* A short last chunk: 1024 + 1024 + 512, and 1000 + 24 */
+        { 2560, 0, 1024, 3 },
+        { 1536, 0, 1024, 2 },
+        { 1024, 0, 1000, 2 },
+        /* Two parts: the chunks of each */
+        { 2048, 1024, 1024, 3 },
+        { 1024, 1024, 1024, 2 },
+        /* Two parts in less than one chunk: one each, a chunk is of one part */
+        { 2048, 1024, 4096, 2 },
+        { 512, 512, 1024, 2 },
+        /* Short last chunks in both */
+        { 1536, 1536, 1024, 4 },
+        /* A part without bytes has no chunk */
+        { 0, 1024, 1024, 1 },
+        /* All of it in one chunk, and many small ones */
+        { 3072, 0, 4096, 1 },
+        { 512, 512, 64, 16 },
+    };
+
+    static const struct {
+        boot_read_cb_t read_f;
+        boot_result_cb_t result_f;
+    } sources[] = {
+        { read_f, NULL }, /* A partition */
+        { read_f, result_sent_f }, /* The host's stream */
+        { NULL, NULL }, /* In place */
+    };
+
+    uint8_t digest[64];
+    (void)state;
+
+    for (size_t s = 0; s < ARRAY_SIZE(sources); s++) {
+        for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+            load_setup_sizes(cases[i].kernel_size, cases[i].dtb_size);
+            assert_int_equal(boot_image_load_and_hash(hdr,
+                                                      cases[i].chunk_size,
+                                                      sources[s].read_f,
+                                                      sources[s].result_f,
+                                                      digest,
+                                                      sizeof(digest)),
+                             PB_OK);
+            assert_int_equal(fake_wdog_kicks, cases[i].kicks);
+            /* One per chunk that was hashed, and per read where there is one */
+            assert_int_equal(fake.updates, cases[i].kicks);
+            assert_int_equal(reads, sources[s].read_f ? (int)cases[i].kicks : 0);
+            assert_int_equal(fake.hashed_bytes, cases[i].kernel_size + cases[i].dtb_size);
+        }
+    }
+
+    /* An image without parts has no chunk: no kick */
+    load_setup();
+    assert_int_equal(bpak_init_header(hdr), BPAK_OK);
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake_wdog_kicks, 0);
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_sent_f, digest, 64), PB_OK);
+    assert_int_equal(fake_wdog_kicks, 0);
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, NULL, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake_wdog_kicks, 0);
+    assert_int_equal(reads, 0);
+}
+
+/*
+ * The kick comes after the chunk, when it is read and its hash is started:
+ * it says that the load made progress. So the first chunk is read and hashed
+ * under the kick that came before the load, and the last kick is the last
+ * chunk's: hash_final() and what follows have the one before the jump.
+ */
+static void test_load_and_hash_kicks_after_the_chunk(void **state)
+{
+    uint8_t digest[64];
+    (void)state;
+
+    /* Three chunks: two of the kernel, one of the dtb */
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake_wdog_kicks, 3);
+
+    for (unsigned int chunk = 0; chunk < 3; chunk++) {
+        assert_int_equal(kicks_at_read[chunk], chunk);
+        assert_int_equal(fake.kicks_at_update[chunk], chunk);
+    }
+
+    /* In place: the same, without the reads */
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, NULL, NULL, digest, sizeof(digest)),
+                     PB_OK);
+    assert_int_equal(fake_wdog_kicks, 3);
+
+    for (unsigned int chunk = 0; chunk < 3; chunk++)
+        assert_int_equal(fake.kicks_at_update[chunk], chunk);
+}
+
+/* A chunk that failed isn't kicked for: the count is the chunks before it */
+static void test_load_and_hash_kicks_until_an_error(void **state)
+{
+    static const boot_result_cb_t result_fs[] = { NULL, result_sent_f, result_f };
+    uint8_t digest[64];
+    struct bpak_meta_header *meta;
+    (void)state;
+
+    /* Nothing is read before these: no kick */
+    load_setup();
+    hdr->magic = 0;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
+                     -PB_ERR_BAD_HEADER);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    load_setup();
+    hdr->hash_kind = 99;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
+                     -PB_ERR_UNKNOWN_HASH);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 31), -PB_ERR_PARAM);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    load_setup();
+    fake.init_rc = -PB_ERR_NOT_SUPPORTED;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
+                     -PB_ERR_NOT_SUPPORTED);
+    assert_int_equal(fake_wdog_kicks, 0);
+    fake.init_rc = PB_OK;
+
+    /* A read error at the first, the second and the third chunk, which is
+     * the second part's first: with and without a result function */
+    for (size_t r = 0; r < ARRAY_SIZE(result_fs); r++) {
+        for (int failing = 1; failing <= 3; failing++) {
+            load_setup();
+            fail_read_at = failing;
+            read_rc = -PB_ERR_IO;
+            assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_fs[r], digest, 64),
+                             -PB_ERR_IO);
+            assert_int_equal(reads, failing);
+            assert_int_equal(fake_wdog_kicks, failing - 1);
+        }
+    }
+
+    /* A hash error ends a partition's load and an in place one at once: the
+     * chunk that failed has no kick */
+    load_setup();
+    fake.update_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64), -PB_ERR_IO);
+    assert_int_equal(reads, 1);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, NULL, NULL, digest, 64), -PB_ERR_IO);
+    assert_int_equal(fake_wdog_kicks, 0);
+
+    /* The host's stream is read to its end after a hash error (F-061), and
+     * every chunk that is read is progress: a large image that fails early
+     * doesn't end in a reset before the host has its results */
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_sent_f, digest, 64),
+                     -PB_ERR_IO);
+    assert_int_equal(reads, 3);
+    assert_int_equal(results, 2);
+    assert_int_equal(fake_wdog_kicks, 3);
+    fake.update_rc = PB_OK;
+
+    /* A result that can't be sent ends the load after the first part */
+    load_setup();
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, result_fails_f, digest, 64),
+                     -PB_ERR_IO);
+    assert_int_equal(results, 1);
+    assert_int_equal(fake_wdog_kicks, 2);
+
+    /* The dtb has no load address: the kernel's chunks, then the error */
+    load_setup();
+    assert_int_equal(bpak_get_meta(hdr, BPAK_ID_PB_LOAD_ADDR, ID_DTB, &meta), BPAK_OK);
+    meta->part_id_ref = 0;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64),
+                     -PB_ERR_BAD_META);
+    assert_int_equal(fake_wdog_kicks, 2);
+
+    /* A failed final hash: every chunk was loaded */
+    load_setup();
+    fake.final_rc = -PB_ERR_IO;
+    assert_int_equal(boot_image_load_and_hash(hdr, 1024, read_f, NULL, digest, 64), -PB_ERR_IO);
+    assert_int_equal(fake_wdog_kicks, 3);
+    fake.final_rc = PB_OK;
+}
+
 static void test_copy_and_hash(void **state)
 {
     uint8_t digest[64];
@@ -790,6 +1035,9 @@ int main(void)
         IMG_TEST(test_load_and_hash_in_memory),
         IMG_TEST(test_load_and_hash_digest_sizes),
         IMG_TEST(test_load_and_hash_errors),
+        IMG_TEST(test_load_and_hash_kicks_per_chunk),
+        IMG_TEST(test_load_and_hash_kicks_after_the_chunk),
+        IMG_TEST(test_load_and_hash_kicks_until_an_error),
         IMG_TEST(test_copy_and_hash),
         IMG_TEST(test_copy_and_hash_errors),
         IMG_TEST(test_verify_payload),

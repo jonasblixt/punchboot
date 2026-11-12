@@ -220,7 +220,7 @@ Restarts the watchdog. Cheap and safe at any time, also before the watchdog is a
 Who kicks it: the core, where work makes progress. Once per chunk in `load_and_hash`, once before
 the jump (the final hash, prepare and `late_boot()` follow the last chunk without a kick
 otherwise; the signature is checked on the header, before the load), and once per round of the
-tasks while pb is stopped (F-243, `board.md` 4.6). A board's command that runs long kicks as it
+tasks while pb is stopped (`board.md` 4.6). A board's command that runs long kicks as it
 makes progress (`board.md` 4.4). Never in
 `pb_delay_*()` or `pb_timeout_*()`: a driver polling forever would keep the board alive, which is
 what the watchdog is there to catch.
@@ -796,6 +796,5 @@ For a new platform, and for a change to one:
 The core's part of this contract, not yet in the code:
 
 - `main()` resets after a platform failure: no, it runs command mode (F-235).
-- The boot path kicks the watchdog: no, only command mode does (F-243).
 - `boot()` checks the preconditions (2.3): no (F-248).
 - `plat.h`: the tick's type, `noreturn`, `platform_ns_uuid` (F-237).

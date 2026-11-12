@@ -130,6 +130,24 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | `plat_early_init()` didn't reset. Fixed: the driver keeps no state, each call takes the platform's WDOG1 | | |
 | | | base. jiffy built without the option resets on `dev reset`; jiffy, the 8MP EVK and the RT1060 EVK reset and | | |
 | | | kick with it | | |
+| F-243 | `image_helpers.c` | `load_and_hash()`: The boot path never kicks the watchdog, | Verified (code) | fixed |
+| | | only command mode does: loading and verifying must fit in `CONFIG_WATCHDOG_TIMEOUT` (5 s) from arming. | | |
+| | | `platform.md` 3: kick once per chunk and before the jump, never in `pb_delay`/`pb_timeout` | | |
+| | | Fixed: `boot_image_load_and_hash()` kicks once per chunk, for a partition, the host's stream and in place. | | |
+| | | After the chunk, when it is read and its hash is started: the kick says that the load made progress, a | | |
+| | | chunk that failed gets none, and `platform.md` 3.3 has the final hash, prepare and `late_boot()` as what | | |
+| | | follows the last chunk without a kick. A host's stream is read to its end after a hash error (F-061), and | | |
+| | | each of its chunks is kicked for. `boot_jump()` kicks once, after `late_boot()` and `plat_lockdown()` and | | |
+| | | before the delivery: the next stage gets the whole timeout, and a boot that one of the two stops has no | | |
+| | | kick. Nothing else on the boot path: 3.3 names no kick between candidates or around the signature (F-320). | | |
+| | | The load of `boot part` and `boot bpak` kicks per chunk with it (F-189 keeps `part verify`). Cost: per | | |
+| | | chunk two register writes on the i.MX WDOG, a call to the SCU on the 8X (F-322): one per MiB on jiffy and | | |
+| | | the 8MP EVK, per 4 MiB on the 8X boards and imx8mevk, per 4 KiB on the RT1060. By the measured rates a | | |
+| | | chunk takes 13 ms on jiffy, 12 ms on the 8MP EVK, 23 ms on the MEK and under 1 ms on the RT1060 (the | | |
+| | | README, `testbench/README.md`, `testbench/simple/README.md`), against 5 s (the RT: 30 s); a read that | | |
+| | | stalls is F-321. `test_image_helpers.c`: the count per chunk for each source, the kick's place after the | | |
+| | | chunk, the count up to an error. `test_boot.c`: the kick's place before both jumps. Every board builds; | | |
+| | | not run on a board | | |
 | F-244 | `plat/imx6ul/pb.csf.template` | On a closed 6UL nothing locked SRK | Verified (on jiffy) | fixed (6UL) |
 | | | revocation before the jump: the CSF unlocks SRKREVOKE so that pb can revoke keys, and pb never set | | |
 | | | OCOTP_SW_STICKY's SRK_REVOKE_LOCK (6UL RM 35.5.6). On jiffy the SRK_REVOKE shadow took writes while Linux | | |

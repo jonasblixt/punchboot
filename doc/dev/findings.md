@@ -164,6 +164,7 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-189 | `cm_main.c`, `usbd.c` | The watchdog is kicked only between commands: a `part verify` or | Reported | open |
 | | | `boot part` of a few hundred MiB against a 5 s watchdog resets the board (timing not measured). | | |
 | | | `cm_read`/`cm_write` spin on AGAIN without a kick or timeout. | | |
+| | | Since F-243 the load of `boot part` and `boot bpak` kicks per chunk; `part verify` doesn't. | | |
 | F-190 | `cm_main.c` | Low. IDENTIFIER_READ sends 23 bytes of `buffer[0]` unauthenticated (`rz` | Reported | open |
 | | | not cleared), the partition table 57 of every 128. `boot_jump()` can return after `disconnect()`. | | |
 | | | `bytes_to_verify -= 4096` underflows for bpak with size < 4096. A failed data read in | | |
@@ -342,9 +343,37 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-242 | `src/arch` | `src/arch/armv8a/Kconfig`, `src/arch/{armv7a,armv8a}/asm_macros.S`: | Reported | open |
 | | | Leftovers: the Kconfig help mentions sunxi FEL (no sunxi platform), a TF-A stack macro calls | | |
 | | | `plat_my_core_pos`, which no platform defines (the macro seems unused) | | |
-| F-243 | `image_helpers.c` | `load_and_hash()`: The boot path never kicks the watchdog, | Verified (code) | open |
-| | | only command mode does: loading and verifying must fit in `CONFIG_WATCHDOG_TIMEOUT` (5 s) from arming. | | |
-| | | `platform.md` 3: kick once per chunk and before the jump, never in `pb_delay`/`pb_timeout` | | |
+| F-320 | `doc/interfaces/platform.md` 3.3, `src/boot/boot.c` | Stretches without a kick on the boot | Verified (code) | open |
+| | | path that aren't in 3.3's list of what `CONFIG_WATCHDOG_TIMEOUT` must be longer than. Since F-243 the | | |
+| | | kicks are: after each chunk, and before the jump. (1) 3.3 doesn't say whether a chunk's kick comes before | | |
+| | | or after it. It is after, so the first stretch is arming to the first chunk plus that chunk: two entries | | |
+| | | of the list, added. (2) Between two candidates (F-256): the failed one's last hash, the policy's report | | |
+| | | and next (A/B writes its state), the next header's read and signature, its first chunk. A candidate that | | |
+| | | fails before its first chunk (the header, the key, the signature, placement) has no kick at all, and a | | |
+| | | chain policy adds one such stretch per candidate. (3) After the last chunk: the final hash, the payload's | | |
+| | | check, prepare, `late_boot()`, `plat_lockdown()`; 3.3 names them, its list doesn't. Measured, when the | | |
+| | | hardware answers (the README, `testbench/README.md`, `testbench/simple/README.md`): the header's read and | | |
+| | | ECDSA P-256 7 ms on jiffy and the 8MP EVK (CAAM), 25.9 ms on the RT1060 (Mbed TLS, software), the | | |
+| | | signature alone 1.3 ms on the MEK; the last chunk's SHA-256 9 and 8 ms; pb's init 27 ms on jiffy, 91 ms on | | |
+| | | the 8MP EVK. Not measured: the policy's state writes, prepare with a device tree. All far below 5 s; what | | |
+| | | isn't is a driver's wait that runs to its bound (F-321). To decide: the list names these stretches, or the | | |
+| | | loop kicks once per candidate. `boot_image_copy_and_hash()` (no caller, kept by D-020) copies and hashes a | | |
+| | | whole part at once: no chunk to kick for | | |
+| F-321 | `src/drivers/mmc/imx_usdhc.c`, the defconfigs | One chunk's read may wait longer | Verified (code) | open |
+| | | than the watchdog. The uSDHC's data wait is `USDHC_BUSY_TIMEOUT_us` (5 s) plus 1 us per byte, and a chunk | | |
+| | | is one request: 6.0 s for 1 MiB (jiffy, imx8mpevk), 9.2 s for 4 MiB (imx8qxmek, imx8mevk, imx8dxlevk), | | |
+| | | against a `CONFIG_WATCHDOG_TIMEOUT` of 5 s (the DXL: 10 s). A card that stops answering in a read ends in | | |
+| | | a watchdog reset, not in `-PB_ERR_TIMEOUT` and the next candidate (`boot.md` 2), and for an A/B trial each | | |
+| | | reset spends an attempt. `drivers.md` 3 (D-073): the driver's header gives the longest time per unit, and | | |
+| | | the core asks in pieces that fit the watchdog with room to spare; `platform.md` 3.3: the board states one | | |
+| | | chunk on its slowest medium. No header and no board states either, and `CONFIG_BOOT_LOAD_CHUNK_kB` was | | |
+| | | chosen for speed. When the card answers, by the measured rates: a chunk takes 13 ms on jiffy (77 MiB/s), | | |
+| | | 12 ms on the 8MP EVK (87 MiB/s), 23 ms on the MEK (173 MiB/s). Read in the code, not run on a board | | |
+| F-322 | `src/plat/imx8x/plat.c` | Low. The 8X's `plat_wdog_kick()` is a call to the SCU | Reported | open |
+| | | (`sc_timer_ping_wdog()`, a message each way), since F-243 once per 4 MiB chunk and before the jump: a | | |
+| | | handful in a boot of the MEK's 15 MB image. `platform.md` 3.3 has the kick cheap; the i.MX WDOG's is two | | |
+| | | register writes, the SCU's isn't measured. To measure on the MEK (`scripts/boot-time-image`). With | | |
+| | | `plat-imx.md` 7: the 8X's kick before arming is unchecked | | |
 | F-246 | `src/plat/imx6ul/plat.c` | The AIPS-TZ bridges are never programmed: the 6UL | Verified (on jiffy) | open |
 | | | RM (14.6) says they "should be programmed before use", reset MPR 0x77000000 and OPACR 0x44444444 | | |
 | | | (supervisor only, masters beyond the first two untrusted). U-Boot opens them (`init_aips()`); OP-TEE's code | | |

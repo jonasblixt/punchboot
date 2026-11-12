@@ -337,8 +337,7 @@ The same steps for every image format; what a step reads from the image is the f
 3. The header's signature verifies with that key (`boot_image_auth_header()`).
 4. Every part has a load address, lies inside its source (the partition without the header) and
    lands in allowed memory (4.3).
-5. Load and hash each part, chunk by chunk, kicking the watchdog per chunk. **Not yet in the code
-   (F-243)**: no kick on the boot path.
+5. Load and hash each part, chunk by chunk, kicking the watchdog per chunk.
 6. The payload's hash is the header's (`boot_image_verify_payload()`).
 7. Later: the image's version isn't below the floor (anti-rollback, roadmap). A refused image is a
    failed candidate; the policies don't change.
@@ -665,7 +664,6 @@ Like the wire (D-008, `compatibility.md`):
 | F-260                             | pb's information collected once, before the loop; `pb,version`,                 |
 |                                   | `pb,boot-partition`, `pb,boot-mode`, the hook's order                           |
 | F-254                             | Placement (4.3)                                                                 |
-| F-243, F-248                      | The watchdog per chunk, the boot's preconditions in the flow (2), pb's status   |
-|                                   | in the handover (5.6)                                                           |
+| F-248                             | The boot's preconditions in the flow (2), pb's status in the handover (5.6)     |
 | F-173, F-175, F-176, F-179, F-180 | The A/B review's fixes, a failed state write (3.2), `pbstate`                   |
 | F-252, F-076                      | A stop in a boot command mode started; a part outside the hash refused (4.2)    |
