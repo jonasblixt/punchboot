@@ -665,6 +665,8 @@ static int cmd_part_verify(void)
             return rc;
         }
 
+        plat_wdog_kick(); /* Once per chunk (command-mode.md 4.6) */
+
         bytes_to_verify -= sizeof(struct bpak_header);
     }
 
@@ -690,6 +692,10 @@ static int cmd_part_verify(void)
             pb_wire_init_result(&result, error_to_wire(rc));
             break;
         }
+
+        /* Once per chunk, after it is read and its hash started, as the
+         * boot's load does (command-mode.md 4.6) */
+        plat_wdog_kick();
 
         bytes_to_verify -= chunk_len;
         lba_offset += chunk_len / bio_block_size(block_dev);

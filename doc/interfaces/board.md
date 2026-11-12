@@ -468,7 +468,8 @@ command (`security.md` 4.7; open in EOL, D-011). `bfr` is the host's request, `b
 - A board's command stays inside the core's rules (`security.md` 4.8): it starts no image, writes
   no fuse, and changes neither the keys nor the life cycle. Those are the core's commands.
 - `*rsp_size` is set also when it fails.
-- Command mode kicks the watchdog only between commands (F-189): a command that runs long calls
+- Command mode kicks the watchdog between commands and per chunk inside its own
+  (`command-mode.md` 4.6), not inside a board's: a command that runs long calls
   `plat_wdog_kick()` as it makes progress.
 - A command may ask for a reset: it calls `cm_board_cmd_request_reboot_on_success()`, and when
   it then returns PB_OK the core sends its result and resets. A command that fails doesn't

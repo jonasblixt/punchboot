@@ -458,6 +458,7 @@ static struct {
     hash_t verify_alg;
     bool verify_ok;
     unsigned int verify_us; /* What a verification takes on the fake clock */
+    unsigned int update_kicks[8]; /* fake_wdog_kicks at each update */
 } crypto;
 
 static int hash_fake_init(hash_t alg)
@@ -472,6 +473,8 @@ static int hash_fake_update(const void *buf, size_t length)
 {
     const uint8_t *p = buf;
 
+    if (crypto.updates < (int)ARRAY_SIZE(crypto.update_kicks))
+        crypto.update_kicks[crypto.updates] = fake_wdog_kicks;
     if (crypto.updates++ >= crypto.update_rc_after && crypto.update_rc != PB_OK)
         return crypto.update_rc;
     for (size_t i = 0; i < length; i++)
@@ -1709,6 +1712,50 @@ static void test_part_verify_bpak(void **state)
 
     expect_result(PB_RESULT_OK);
     expect_end();
+}
+
+/* command-mode.md 4.6 (F-189): part verify kicks the watchdog once per
+ * chunk, after the chunk is read and its hash started, the bpak header
+ * included: one kick between two updates of the hash */
+static void test_part_verify_kicks_per_chunk(void **state)
+{
+    struct fixture *f = *state;
+    uint8_t *part = ramdisk_block(f->disk, RW_FIRST_LBA);
+    const size_t part_size = RW_BLOCKS * RAMDISK_BLOCK_SIZE;
+    uint8_t image[2 * BUF_SIZE + 1024];
+    (void)state;
+
+    for (size_t i = 0; i < part_size; i++)
+        part[i] = (uint8_t)(i * 7);
+
+    /* Three chunks, the last a short one */
+    struct pb_command_verify_part req = verify_req(2 * BUF_SIZE + 1024, false, part);
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(crypto.updates, 3);
+    assert_int_equal(crypto.update_kicks[1] - crypto.update_kicks[0], 1);
+    assert_int_equal(crypto.update_kicks[2] - crypto.update_kicks[1], 1);
+
+    /* A bpak image: the header, then two chunks of payload */
+    t.init_calls = 0;
+    t.out_len = t.out_pos = 0;
+    t.in_len = t.in_pos = 0;
+    crypto.updates = 0;
+    crypto.sum = 0;
+    memcpy(image, ramdisk_block(f->disk, RW_FIRST_LBA + RW_BLOCKS - 8), sizeof(struct bpak_header));
+    memcpy(image + sizeof(struct bpak_header), part, sizeof(image) - sizeof(struct bpak_header));
+    req = verify_req(sizeof(image), true, image);
+    host_cmd(PB_CMD_PART_VERIFY, &req, sizeof(req));
+    run();
+
+    expect_result(PB_RESULT_OK);
+    expect_end();
+    assert_int_equal(crypto.updates, 3);
+    assert_int_equal(crypto.update_kicks[1] - crypto.update_kicks[0], 1);
+    assert_int_equal(crypto.update_kicks[2] - crypto.update_kicks[1], 1);
 }
 
 static void test_part_verify_errors(void **state)
@@ -2957,6 +3004,7 @@ int main(void)
         CM_TEST(test_bpak_read_small_partition),
         CM_TEST(test_part_verify),
         CM_TEST(test_part_verify_bpak),
+        CM_TEST(test_part_verify_kicks_per_chunk),
         CM_TEST(test_part_verify_errors),
         CM_TEST(test_part_verify_small_partition),
         CM_TEST(test_part_erase),

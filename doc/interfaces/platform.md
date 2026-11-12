@@ -220,7 +220,8 @@ Restarts the watchdog. Cheap and safe at any time, also before the watchdog is a
 Who kicks it: the core, where work makes progress. Once per chunk in `load_and_hash`, once before
 the jump (the final hash, prepare and `late_boot()` follow the last chunk without a kick
 otherwise; the signature is checked on the header, before the load), and once per round of the
-tasks while pb is stopped (`board.md` 4.6). A board's command that runs long kicks as it
+tasks while pb is stopped (`board.md` 4.6). Inside a command, once per chunk and while a transfer
+is waited for (`command-mode.md` 4.6). A board's command that runs long kicks as it
 makes progress (`board.md` 4.4). Never in
 `pb_delay_*()` or `pb_timeout_*()`: a driver polling forever would keep the board alive, which is
 what the watchdog is there to catch.
@@ -232,8 +233,8 @@ So `CONFIG_WATCHDOG_TIMEOUT` must be longer than each of these:
 - One chunk on the slowest medium the board loads from. The board states it.
 - From the kick before the jump to the next stage's first kick: BL31, a secure OS, the kernel up
   to its watchdog driver. Usually the longest; the product measures it.
-- Command mode's longest command, as long as the core kicks only between commands and in the
-  load of a boot command (F-189).
+- Command mode's longest stretch without a kick: one chunk, as above, a board's command between
+  its own kicks, or an erase of the blocks one command names (`command-mode.md` 4.6).
 
 The watchdog stays armed at the jump: the next stage takes it over.
 

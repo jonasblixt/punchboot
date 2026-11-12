@@ -152,10 +152,6 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-187 | `cm_main.c:881` | The auth gate sends one result for `board command`, but hosts send the | Reported | open |
 | | | request anyway (F-095): the device parses it as commands and answers INVALID_COMMAND twice; with an | | |
 | | | empty request the host hangs. Drain the request and send the second result. | | |
-| F-189 | `cm_main.c`, `usbd.c` | The watchdog is kicked only between commands: a `part verify` or | Reported | open |
-| | | `boot part` of a few hundred MiB against a 5 s watchdog resets the board (timing not measured). | | |
-| | | `cm_read`/`cm_write` spin on AGAIN without a kick or timeout. | | |
-| | | Since F-243 the load of `boot part` and `boot bpak` kicks per chunk; `part verify` doesn't. | | |
 | F-190 | `cm_main.c` | Low. IDENTIFIER_READ sends 23 bytes of `buffer[0]` unauthenticated (`rz` | Reported | open |
 | | | not cleared), the partition table 57 of every 128. `boot_jump()` can return after `disconnect()`. | | |
 | | | `bytes_to_verify -= 4096` underflows for bpak with size < 4096. A failed data read in | | |

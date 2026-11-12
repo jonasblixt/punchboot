@@ -382,8 +382,8 @@ The watchdog covers command mode's commands (`system.md` 5.4).
 - **Inside a command** the core kicks where the work makes progress: once per chunk that is
   hashed, read, written or loaded, a chunk being at most a buffer. The longest time without a
   kick is then one chunk on the slowest medium, as on the boot path, and not the longest
-  command. **Not yet in the code (F-189)**: only the load of `boot part` and `boot bpak` kicks
-  (it is the boot path's, `boot.md` 4.2), so a large `part verify` can outlast the watchdog.
+  command. The load of `boot part` and `boot bpak` is the boot path's (`boot.md` 4.2);
+  `part verify` kicks per chunk it hashes, and a transfer while pb waits for it.
 - A board's command kicks as it makes progress (`board.md` 4.4). An erase is as long as its
   driver's erase of the blocks the host named; hosts erase in pieces.
 - While a command runs, no other task runs (`board.md` 4.6).
@@ -753,7 +753,7 @@ For a change to command mode, a new command or a new method:
 | F-190               | Only what a command produced is sent; build-time bounds (4.3)                        |
 | F-187, F-274        | The exchange stays in step after a refusal (4.4)                                     |
 | F-087               | A result code for a payload whose hash differs (4.5)                                 |
-| F-189, F-226        | The watchdog per chunk; the timeouts (4.6)                                           |
+| F-226               | The host uses the caps' timeouts (4.6)                                               |
 | F-186, F-272        | The partitions' flags: hidden partitions, `PART_VERIFY` (5.3)                        |
 | F-194               | A new partition table is in effect at once (5.3)                                     |
 | F-182, F-074        | Sizes that aren't block multiples; no stream (5.3, 5.4)                              |

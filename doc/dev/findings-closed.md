@@ -564,6 +564,15 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | timeout; `part_erase_timeout_ms` stays zero (F-375). pb-host's socket `complete()` polls (10 ms) | | |
 | | | instead of blocking, so the timeout runs there too. `test_cm.c` (`test_transfer_timeout_read`, | | |
 | | | `_write`, `test_session_ends_with_a_lost_transfer`, the caps in `test_basic_commands`) | | |
+| F-189 | `cm_main.c`, `usbd.c` | The watchdog is kicked only between commands: a `part verify` or | Reported | fixed |
+| | | `boot part` of a few hundred MiB against a 5 s watchdog resets the board (timing not measured). | | |
+| | | `cm_read`/`cm_write` spin on AGAIN without a kick or timeout. | | |
+| | | Since F-243 the load of `boot part` and `boot bpak` kicks per chunk; `part verify` doesn't. | | |
+| | | Fixed: `cmd_part_verify()` kicks once per chunk, after it is read and its hash started, as the boot's | | |
+| | | load does since F-243, the bpak header included (`command-mode.md` 4.6). `cm_read()`/`cm_write()` | | |
+| | | kick while they wait and time out since F-277. No other command of the core runs more than one | | |
+| | | chunk: a stream write or read is one buffer, an erase is as long as the blocks the host names, and | | |
+| | | a board's command kicks itself (`board.md` 4.4). `test_cm.c` (`test_part_verify_kicks_per_chunk`) | | |
 
 ## Dependencies / vendored code
 
