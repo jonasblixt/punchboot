@@ -68,9 +68,8 @@ static const struct static_part_table nor_table[] = {
  * since the detection takes more than 100 ms from reset. Nothing in pb starts
  * the detector: the hook relies on it running from reset.
  */
-static int board_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
+static int board_late_boot(uuid_t boot_part_uu)
 {
-    (void)header;
     (void)boot_part_uu;
 
     /* If the command interface initiated the boot, skip charger detection,

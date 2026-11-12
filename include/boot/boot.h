@@ -55,7 +55,7 @@ struct boot_driver {
     const struct boot_policy *policy;
     const struct boot_handover *handover; /*!< The next stage's entry and arguments */
     const struct boot_delivery *delivery; /*!< How they reach it. NULL: directly */
-    int (*late_boot_cb)(struct bpak_header *header, uuid_t boot_part_uu);
+    int (*late_boot_cb)(uuid_t boot_part_uu);
 };
 
 /**

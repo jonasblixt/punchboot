@@ -66,4 +66,18 @@ int boot_image_copy_and_hash(struct bpak_header *source_hdr,
 
 int boot_image_verify_payload(struct bpak_header *hdr, uint8_t *payload_digest);
 
+/**
+ * The header of the image this boot verified (board.md 5.3), for a board that
+ * needs it in its DT hook or in late_boot(). Read only: nothing that was
+ * verified is changed.
+ *
+ * Valid from prepare to the jump. A pointer from an earlier call isn't kept:
+ * the next candidate's header is read into the same memory.
+ *
+ * @return The header, or NULL: before the payload's hash of the candidate is
+ *  checked, after a candidate's attempt failed, and once the boot has
+ *  stopped or failed. Nothing unverified is handed out.
+ */
+const struct bpak_header *boot_image_get_bpak_header(void);
+
 #endif

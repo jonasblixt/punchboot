@@ -219,9 +219,9 @@ static int early_boot(void)
     return PB_OK;
 }
 
-static int late_boot(struct bpak_header *header, uuid_t boot_part_uu)
+/* The hook's type (board.md 5.3): the partition, no image header (D-047) */
+static int late_boot(uuid_t boot_part_uu)
 {
-    (void)header;
     (void)boot_part_uu;
     return PB_OK;
 }

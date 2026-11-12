@@ -21,6 +21,9 @@
 
 static const struct boot_driver *boot_cfg;
 static struct bpak_header header __section(".no_init") __aligned(4096);
+/* 'header' is the candidate's and its payload's hash was checked (boot.md 4.2,
+ * step 6). Only then is it handed out (boot_image_get_bpak_header()) */
+static bool header_verified;
 static uint32_t boot_flags;
 static bio_dev_t boot_device;
 static enum boot_source boot_source;
@@ -47,6 +50,7 @@ int boot_init(const struct boot_driver *cfg)
     boot_device = -1;
     boot_source = cfg->default_boot_source;
     boot_flags = 0;
+    header_verified = false;
     return PB_OK;
 }
 
@@ -74,6 +78,17 @@ void boot_clear_set_flags(uint32_t clear_flags, uint32_t set_flags)
     boot_flags = ((uint32_t)boot_flags & ~clear_flags) | set_flags;
 }
 
+/*
+ * The header of the image this boot verified, for the board's DT hook and its
+ * late_boot() (board.md 5.3). NULL before the candidate's payload hash is
+ * checked, after a failed attempt and once the boot has stopped or failed:
+ * nothing unverified is handed out (security.md 4.2).
+ */
+const struct bpak_header *boot_image_get_bpak_header(void)
+{
+    return header_verified ? &header : NULL;
+}
+
 int boot_set_boot_partition(uuid_t part_uu)
 {
     if (part_uu == NULL)
@@ -95,6 +110,18 @@ void boot_get_boot_partition(uuid_t part_uu)
     }
 
     boot_policy_status(part_uu);
+}
+
+/*
+ * Step 6 of the sequence (boot.md 4.2), the same for every source. From here
+ * the candidate's header is verified.
+ */
+static int verify_payload(void)
+{
+    int rc = boot_image_verify_payload(&header, payload_digest);
+
+    header_verified = (rc == PB_OK);
+    return rc;
 }
 
 static int boot_bio_read(int64_t offset, size_t length, void *buf)
@@ -175,7 +202,7 @@ static int auth_verify_in_place(uintptr_t base, size_t size)
     if (rc != PB_OK)
         return rc;
 
-    return boot_image_verify_payload(&header, payload_digest);
+    return verify_payload();
 }
 
 static bool has_policy(void)
@@ -190,6 +217,9 @@ static int load_auth_verify_from_bio(void)
     lba_t header_lba;
     uintptr_t in_place_base;
     size_t in_place_size;
+
+    /* Another candidate: 'header' becomes its header, which nothing verified */
+    header_verified = false;
 
     boot_device = bio_get_part_by_uu(boot_part_uu);
     if (boot_device < 0)
@@ -237,12 +267,15 @@ static int load_auth_verify_from_bio(void)
     if (rc != PB_OK)
         return rc;
 
-    return boot_image_verify_payload(&header, payload_digest);
+    return verify_payload();
 }
 
 static int load_auth_verify_from_cb(void)
 {
     int rc;
+
+    /* As for a partition: 'header' becomes the stream's header */
+    header_verified = false;
 
     if (read_cb == NULL)
         return -PB_ERR_NOT_SUPPORTED;
@@ -278,7 +311,7 @@ static int load_auth_verify_from_cb(void)
                                   sizeof(payload_digest));
 
     if (rc == PB_OK)
-        rc = boot_image_verify_payload(&header, payload_digest);
+        rc = verify_payload();
 
     if (result_cb) {
         result_cb(rc);
@@ -304,11 +337,12 @@ static int prepare(void)
     memset(&next_stage, 0, sizeof(next_stage));
     rc = boot_cfg->handover->ops->prepare(&header, boot_part_uu, &next_stage);
 
-    if (rc != PB_OK)
-        return rc;
-
-    if (boot_cfg->delivery && boot_cfg->delivery->ops->prepare)
+    if (rc == PB_OK && boot_cfg->delivery && boot_cfg->delivery->ops->prepare)
         rc = boot_cfg->delivery->ops->prepare(&header, &next_stage);
+
+    /* The candidate failed: its header isn't handed out any more */
+    if (rc != PB_OK)
+        header_verified = false;
 
     return rc;
 }
@@ -385,6 +419,9 @@ int boot_load(uuid_t boot_part_override_uu)
     if (!boot_cfg)
         return -PB_ERR_PARAM;
 
+    /* This boot has verified nothing yet */
+    header_verified = false;
+
     if (boot_cfg->handover == NULL) {
         rc = -PB_ERR_NOT_SUPPORTED;
         goto err_out;
@@ -452,9 +489,10 @@ int boot_jump(void)
 
     LOG_DBG("Late boot");
     if (boot_cfg->late_boot_cb) {
-        rc = boot_cfg->late_boot_cb(&header, boot_part_uu);
+        rc = boot_cfg->late_boot_cb(boot_part_uu);
         if (rc != PB_OK) {
             boot_flags = 0;
+            header_verified = false;
             return rc;
         }
     }
@@ -464,6 +502,7 @@ int boot_jump(void)
     if (rc != PB_OK) {
         LOG_ERR("Lockdown failed (%i)", rc);
         boot_flags = 0;
+        header_verified = false;
         return rc;
     }
 
@@ -475,6 +514,7 @@ int boot_jump(void)
         deliver_directly(&next_stage);
 
     boot_flags = 0;
+    header_verified = false;
     return -PB_ERR;
 }
 

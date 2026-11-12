@@ -603,9 +603,6 @@ Called by `boot()` after the loop, when a candidate is loaded, verified and prep
 `boot_part_uu` is the candidate's partition; in a `boot bpak` it is the UUID the host named, all
 zero when it named none (`boot.md` 5.6).
 
-**Not yet in the code (F-266)**: the hook gets `struct bpak_header *header` as its first
-argument.
-
 The hook gets no header (Jonas, D-047): the flow is written for any image format (D-044), and a
 hook's arguments change only in a major release. A board that needs the verified header asks
 the format for it:

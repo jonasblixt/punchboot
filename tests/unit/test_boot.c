@@ -83,6 +83,25 @@ static const struct static_part_table nothing_mapped[] = {
     },
 };
 
+/* The steps of a boot where a fake asks for the verified header
+ * (boot_image_get_bpak_header(), board.md 5.3) */
+enum step {
+    AT_EARLY,
+    AT_NEXT,
+    AT_READ, /* The host's stream */
+    AT_RESULT,
+    AT_AUTH,
+    AT_PLACEMENT,
+    AT_LOAD,
+    AT_PAYLOAD,
+    AT_PREPARE,
+    AT_DELIVERY_PREPARE,
+    AT_REPORT,
+    AT_LATE,
+    AT_JUMP,
+    AT_END,
+};
+
 /* Return codes of the fakes, and what they saw */
 static struct {
     int auth_rc;
@@ -103,6 +122,8 @@ static struct {
     int load_rc;
     int verify_payload_rc;
     int verify_payload_calls;
+    /* This call of the payload's check fails with -PB_ERR_BAD_PAYLOAD, 0: none */
+    int verify_payload_fail_call;
     int load_calls;
     struct bpak_header *load_hdr;
     boot_read_cb_t load_read_f;
@@ -158,10 +179,45 @@ static struct {
     int64_t read_cb_offset;
     int result_cb_calls;
     int last_result;
+
+    /* The verified header, asked for at each step: how often, how often
+     * there was one, and the last answer */
+    int hdr_asked[AT_END];
+    int hdr_given[AT_END];
+    const struct bpak_header *hdr_at[AT_END];
+    /* auth_calls when a payload's hash was last checked and right, -1: never */
+    int payload_ok_at_auth_call;
+    /* A header was given that isn't the one authenticated last, or whose
+     * payload hash wasn't checked */
+    int hdr_unverified;
+    /* A header was given while a failed candidate was reported */
+    int hdr_given_at_failed_report;
 } fake;
 
-/* The header as boot_image_auth_header() got it */
+/* The header as boot_image_auth_header() got it, and as it left it */
 static struct bpak_header auth_seen;
+static struct bpak_header auth_left;
+/* The verified header's bytes, as last given at each step */
+static struct bpak_header hdr_seen[AT_END];
+
+/* What the board would get if it asked for the verified header now */
+static void see_header(enum step at)
+{
+    const struct bpak_header *hdr = boot_image_get_bpak_header();
+
+    fake.hdr_asked[at]++;
+    fake.hdr_at[at] = hdr;
+
+    if (hdr == NULL)
+        return;
+
+    fake.hdr_given[at]++;
+    memcpy(&hdr_seen[at], hdr, sizeof(*hdr));
+
+    if (fake.payload_ok_at_auth_call != fake.auth_calls ||
+        memcmp(hdr, &auth_left, sizeof(auth_left)) != 0)
+        fake.hdr_unverified++;
+}
 
 /* test_boot links no arch. The cache calls of the flow: the one that drops
  * what the cache holds of a partition that is verified in place, and the
@@ -182,18 +238,22 @@ int boot_image_auth_header(struct bpak_header *hdr)
     /* As bpak_copyz_signature() does: the header must be pb's own copy */
     memset(hdr->signature, 0, sizeof(hdr->signature));
     hdr->signature_sz = 0;
+    memcpy(&auth_left, hdr, sizeof(auth_left));
+    see_header(AT_AUTH);
     return fake.auth_rc;
 }
 
 int boot_image_verify_parts(struct bpak_header *hdr)
 {
     (void)hdr;
+    see_header(AT_PLACEMENT);
     fake.verify_parts_calls++;
     return fake.verify_parts_rc;
 }
 
 int boot_image_verify_parts_in_place(struct bpak_header *hdr, uintptr_t base, size_t size)
 {
+    see_header(AT_PLACEMENT);
     fake.in_place_calls++;
     fake.in_place_hdr = hdr;
     fake.in_place_base = base;
@@ -211,6 +271,7 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
     (void)load_chunk_size;
     (void)payload_digest;
     (void)payload_digest_size;
+    see_header(AT_LOAD);
     fake.load_calls++;
     fake.load_hdr = hdr;
     fake.load_read_f = read_f;
@@ -220,14 +281,26 @@ int boot_image_load_and_hash(struct bpak_header *hdr,
 
 int boot_image_verify_payload(struct bpak_header *hdr, uint8_t *payload_digest)
 {
+    int rc = fake.verify_payload_rc;
+
     (void)hdr;
     (void)payload_digest;
+    /* The hash isn't checked until this returns */
+    see_header(AT_PAYLOAD);
     fake.verify_payload_calls++;
-    return fake.verify_payload_rc;
+
+    if (fake.verify_payload_calls == fake.verify_payload_fail_call)
+        rc = -PB_ERR_BAD_PAYLOAD;
+
+    if (rc == PB_OK)
+        fake.payload_ok_at_auth_call = fake.auth_calls;
+
+    return rc;
 }
 
 static int fake_early_boot(void)
 {
+    see_header(AT_EARLY);
     return fake.early_rc;
 }
 
@@ -239,6 +312,7 @@ static int fake_policy_init(const struct boot_policy *policy)
 
 static int fake_policy_next(uuid_t part_uu)
 {
+    see_header(AT_NEXT);
     fake.next_calls++;
 
     if (fake.next_rc != PB_OK)
@@ -260,6 +334,11 @@ static int fake_policy_next(uuid_t part_uu)
 
 static void fake_policy_report(const uuid_t part_uu, int result)
 {
+    see_header(AT_REPORT);
+
+    if (result != PB_OK && fake.hdr_at[AT_REPORT] != NULL)
+        fake.hdr_given_at_failed_report++;
+
     /* The first three are kept */
     if (fake.report_calls < 3) {
         uuid_copy(fake.report_uu[fake.report_calls], part_uu);
@@ -322,6 +401,8 @@ static int fake_prepare(struct bpak_header *header,
     fake.prepare_calls++;
     fake.prepare_hdr = header;
     uuid_copy(fake.prepare_uu, boot_part_uu);
+    /* Where the board's DT hook runs */
+    see_header(AT_PREPARE);
 
     /* Also when it fails: nothing of a failed prepare may be jumped to */
     next->entry = NEXT_ENTRY;
@@ -339,6 +420,7 @@ static int fake_prepare(struct bpak_header *header,
 
 static int fake_delivery_prepare(struct bpak_header *header, const struct boot_handover_entry *next)
 {
+    see_header(AT_DELIVERY_PREPARE);
     fake.delivery_prepare_calls++;
     fake.delivery_prepare_after = fake.prepare_calls;
     fake.delivery_prepare_hdr = header;
@@ -349,6 +431,7 @@ static int fake_delivery_prepare(struct bpak_header *header, const struct boot_h
 /* A delivery's jump returns when it failed, which boot_jump() reports */
 static void fake_delivery_jump(const struct boot_handover_entry *next)
 {
+    see_header(AT_JUMP);
     fake.delivery_jump_calls++;
     fake.delivery_jump_next = *next;
 }
@@ -372,6 +455,7 @@ static jmp_buf jump_env;
 
 void arch_jump(void *addr, void *p0, void *p1, void *p2, void *p3)
 {
+    see_header(AT_JUMP);
     fake.jump_calls++;
     fake.jump_args[0] = addr;
     fake.jump_args[1] = p0;
@@ -393,25 +477,35 @@ static int boot_to_the_jump(uuid_t boot_part_override_uu)
     return JUMPED;
 }
 
-static int fake_late_boot(struct bpak_header *header, uuid_t boot_part_uu)
+/* The hook gets no header (D-047): a board that needs it asks for it */
+static int fake_late_boot(uuid_t boot_part_uu)
 {
-    (void)header;
     (void)boot_part_uu;
+    see_header(AT_LATE);
     fake.late_calls++;
     fake.late_flags = boot_get_flags();
     return fake.late_rc;
 }
 
+/* What the host's stream gives as its header */
+static void stream_header(uint8_t *buf, size_t length)
+{
+    for (size_t i = 0; i < length; i++)
+        buf[i] = (uint8_t)(i * 5 + 3);
+}
+
 static int fake_read_cb(int64_t offset, size_t length, void *buf)
 {
+    see_header(AT_READ);
     fake.read_cb_calls++;
     fake.read_cb_offset = offset;
-    memset(buf, 0, length);
+    stream_header(buf, length);
     return fake.read_cb_rc;
 }
 
 static int fake_result_cb(int result)
 {
+    see_header(AT_RESULT);
     fake.result_cb_calls++;
     fake.last_result = result;
     return PB_OK;
@@ -493,11 +587,26 @@ static struct fixture *new_fixture(bio_dev_t *disk)
     return f;
 }
 
+/* What a header would be, at the end of each system: A's and B's differ */
+static void fill_headers(struct fixture *f)
+{
+    uint8_t *hdr_a = sys_header(f, 0);
+    uint8_t *hdr_b = sys_header(f, 1);
+
+    for (size_t i = 0; i < sizeof(struct bpak_header); i++) {
+        hdr_a[i] = (uint8_t)(i * 7 + 1);
+        hdr_b[i] = (uint8_t)(i * 13 + 2);
+    }
+}
+
 static void reset_fakes(struct fixture *f)
 {
     memset(&fake, 0, sizeof(fake));
     memset(&auth_seen, 0, sizeof(auth_seen));
-    (void)f;
+    memset(&auth_left, 0, sizeof(auth_left));
+    memset(hdr_seen, 0, sizeof(hdr_seen));
+    fake.payload_ok_at_auth_call = -1;
+    fill_headers(f);
     /* The policy's one candidate is System A */
     fake.candidates[0] = UU_SYS_A;
     fake.no_of_candidates = 1;
@@ -554,23 +663,35 @@ static int setup_mapped(void **state)
     assert_true(f->sys_a >= 0 && f->sys_b >= 0 && f->tiny >= 0);
     assert_int_equal(bio_clear_set_flags(f->sys_a, 0, BIO_FLAG_BOOTABLE), PB_OK);
 
-    /* What a header would be, at the end of each system */
-    uint8_t *hdr_a = sys_header(f, 0);
-    uint8_t *hdr_b = sys_header(f, 1);
-
-    for (size_t i = 0; i < sizeof(struct bpak_header); i++) {
-        hdr_a[i] = (uint8_t)(i * 7 + 1);
-        hdr_b[i] = (uint8_t)(i * 13 + 2);
-    }
-
     reset_fakes(f);
     *state = f;
     return 0;
 }
 
+/*
+ * Nothing unverified is handed out (board.md 5.3, security.md 4.2): no header
+ * before the candidate's payload hash was checked, none of a candidate that
+ * failed, and never another than the one that was authenticated last.
+ */
+static void assert_no_unverified_header(void)
+{
+    static const enum step before_the_hash[] = {
+        AT_EARLY, AT_NEXT, AT_READ, AT_AUTH, AT_PLACEMENT, AT_LOAD, AT_PAYLOAD,
+    };
+
+    for (size_t i = 0; i < sizeof(before_the_hash) / sizeof(before_the_hash[0]); i++)
+        assert_int_equal(fake.hdr_given[before_the_hash[i]], 0);
+
+    assert_int_equal(fake.hdr_given_at_failed_report, 0);
+    assert_int_equal(fake.hdr_unverified, 0);
+}
+
+/* It holds in every case here, whatever the case is about */
 static int teardown(void **state)
 {
     struct fixture *f = *state;
+
+    assert_no_unverified_header();
     ramdisk_free(f->disk);
     free(f);
     return 0;
@@ -583,6 +704,7 @@ static void test_not_initialized(void **state)
     (void)state;
 
     assert_int_equal(boot_load(NULL), -PB_ERR_PARAM);
+    assert_null(boot_image_get_bpak_header());
     assert_int_equal(boot_set_boot_partition((unsigned char *)UU_SYS_A), -PB_ERR_NOT_SUPPORTED);
     memset(uu, 0xff, sizeof(uu));
     boot_get_boot_partition(uu);
@@ -1302,6 +1424,380 @@ static void test_cb_boot_errors(void **state)
     assert_int_equal(boot_load(NULL), PB_OK);
 }
 
+/*
+ * The verified header (board.md 5.3, D-047, F-266): late_boot() gets none, a
+ * board asks boot_image_get_bpak_header() for it. The fakes ask at every step
+ * (see_header()).
+ */
+
+/* A header as the authentication leaves it: bpak clears the signature */
+static void as_authenticated(const uint8_t *raw, struct bpak_header *hdr)
+{
+    memcpy(hdr, raw, sizeof(*hdr));
+    memset(hdr->signature, 0, sizeof(hdr->signature));
+    hdr->signature_sz = 0;
+}
+
+/* From prepare on it is 'verified', pb's own copy, the one every step got.
+ * 'late': the boot got to late_boot() and the jump */
+static void assert_header_given(const struct bpak_header *verified, bool late)
+{
+    assert_no_unverified_header();
+
+    assert_true(fake.hdr_asked[AT_AUTH] > 0);
+    assert_true(fake.hdr_asked[AT_PLACEMENT] > 0);
+    assert_true(fake.hdr_asked[AT_LOAD] > 0);
+    assert_true(fake.hdr_asked[AT_PAYLOAD] > 0);
+
+    assert_true(fake.hdr_given[AT_PREPARE] > 0);
+    assert_ptr_equal(fake.hdr_at[AT_PREPARE], fake.prepare_hdr);
+    assert_ptr_equal(fake.hdr_at[AT_PREPARE], fake.auth_hdr);
+    assert_memory_equal(&hdr_seen[AT_PREPARE], verified, sizeof(*verified));
+
+    if (!late) {
+        assert_int_equal(fake.hdr_asked[AT_LATE], 0);
+        return;
+    }
+
+    assert_int_equal(fake.hdr_asked[AT_LATE], 1);
+    assert_int_equal(fake.hdr_given[AT_LATE], 1);
+    assert_ptr_equal(fake.hdr_at[AT_LATE], fake.auth_hdr);
+    assert_memory_equal(&hdr_seen[AT_LATE], verified, sizeof(*verified));
+    /* To the jump */
+    assert_int_equal(fake.hdr_given[AT_JUMP], 1);
+    assert_memory_equal(&hdr_seen[AT_JUMP], verified, sizeof(*verified));
+}
+
+static void test_header_before_any_boot(void **state)
+{
+    /* The contract's type: read only */
+    const struct bpak_header *(*get)(void) = boot_image_get_bpak_header;
+    (void)state;
+
+    assert_null(get());
+}
+
+/* A partition that is loaded, the policy's candidate */
+static void test_header_bio_boot(void **state)
+{
+    struct fixture *f = *state;
+    struct bpak_header verified;
+
+    as_authenticated(sys_header(f, 0), &verified);
+    assert_int_equal(boot_to_the_jump(NULL), JUMPED);
+
+    assert_memory_equal(&auth_seen, sys_header(f, 0), sizeof(auth_seen));
+    assert_header_given(&verified, true);
+    /* Before the load there was none to give: the hook and the policy asked */
+    assert_int_equal(fake.hdr_asked[AT_EARLY], 1);
+    assert_int_equal(fake.hdr_asked[AT_NEXT], 1);
+    /* Once in prepare, and it is there when the policy hears of the success */
+    assert_int_equal(fake.hdr_given[AT_PREPARE], 1);
+    assert_int_equal(fake.hdr_given[AT_REPORT], 1);
+}
+
+/* The partition the host names (boot part) */
+static void test_header_bio_boot_override(void **state)
+{
+    struct fixture *f = *state;
+    struct bpak_header verified;
+
+    as_authenticated(sys_header(f, 1), &verified);
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    assert_int_equal(boot_to_the_jump((unsigned char *)UU_SYS_B), JUMPED);
+
+    assert_header_given(&verified, true);
+}
+
+/* In place: the header is pb's copy of the one at the partition's end */
+static void test_header_in_place_boot(void **state)
+{
+    struct fixture *f = *state;
+    struct bpak_header verified;
+
+    as_authenticated(sys_header(f, 0), &verified);
+    assert_int_equal(boot_to_the_jump(NULL), JUMPED);
+
+    assert_int_equal(fake.in_place_calls, 1);
+    assert_header_given(&verified, true);
+    assert_true((const uint8_t *)fake.hdr_at[AT_LATE] < f->disk->data ||
+                (const uint8_t *)fake.hdr_at[AT_LATE] >=
+                    f->disk->data + DISK_BLOCKS * RAMDISK_BLOCK_SIZE);
+}
+
+/* The host's stream (boot bpak) */
+static void test_header_cb_boot(void **state)
+{
+    uint8_t raw[sizeof(struct bpak_header)];
+    struct bpak_header verified;
+    (void)state;
+
+    stream_header(raw, sizeof(raw));
+    as_authenticated(raw, &verified);
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    assert_int_equal(boot_to_the_jump((unsigned char *)UU_SYS_B), JUMPED);
+
+    assert_header_given(&verified, true);
+    /* None while the header itself was read */
+    assert_int_equal(fake.hdr_asked[AT_READ], 1);
+    assert_int_equal(fake.hdr_asked[AT_RESULT], 2);
+}
+
+/*
+ * A boot that fails has no header when it has failed, whichever step failed,
+ * and gave none on the way, except to a prepare that then failed. The boot
+ * before it verified one, which is gone too. 'placement_rc': the placement
+ * check of the source.
+ */
+static void header_gone_after_each_failure(int *placement_rc)
+{
+    int *step_rc[] = {
+        &fake.auth_rc, placement_rc, &fake.load_rc, &fake.verify_payload_rc, &fake.prepare_rc,
+    };
+
+    for (size_t i = 0; i < sizeof(step_rc) / sizeof(step_rc[0]); i++) {
+        bool in_prepare = (step_rc[i] == &fake.prepare_rc);
+
+        assert_int_equal(boot_load(NULL), PB_OK);
+        assert_non_null(boot_image_get_bpak_header());
+        memset(fake.hdr_given, 0, sizeof(fake.hdr_given));
+
+        *step_rc[i] = -PB_ERR_IO;
+        assert_int_equal(boot_load(NULL), -PB_ERR_IO);
+        *step_rc[i] = PB_OK;
+
+        assert_null(boot_image_get_bpak_header());
+        assert_no_unverified_header();
+        /* The hash was right when prepare ran */
+        assert_int_equal(fake.hdr_given[AT_PREPARE], in_prepare ? 1 : 0);
+        assert_int_equal(fake.hdr_given[AT_REPORT], 0);
+    }
+
+    assert_int_equal(fake.hdr_asked[AT_LATE], 0);
+}
+
+static void test_header_bio_boot_errors(void **state)
+{
+    struct fixture *f = *state;
+
+    header_gone_after_each_failure(&fake.verify_parts_rc);
+
+    /* The header can't be read: what is left of the one before isn't given */
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_non_null(boot_image_get_bpak_header());
+    f->disk->fail_reads_after = 0;
+    assert_int_equal(boot_load(NULL), -PB_ERR_IO);
+    f->disk->fail_reads_after = -1;
+    assert_null(boot_image_get_bpak_header());
+
+    /* Nor when the boot stops before any candidate */
+    assert_int_equal(boot_load(NULL), PB_OK);
+    fake.early_rc = -PB_ERR_ABORT;
+    assert_int_equal(boot_load(NULL), -PB_ERR_ABORT);
+    assert_null(boot_image_get_bpak_header());
+    fake.early_rc = PB_OK;
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+    fake.no_of_candidates = 0;
+    assert_int_equal(boot_load(NULL), -PB_ERR_NO_ACTIVE_BOOT_PARTITION);
+    assert_null(boot_image_get_bpak_header());
+}
+
+static void test_header_in_place_boot_errors(void **state)
+{
+    (void)state;
+
+    header_gone_after_each_failure(&fake.in_place_rc);
+    assert_int_equal(fake.verify_parts_calls, 0);
+}
+
+static void test_header_cb_boot_errors(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_set_source(BOOT_SOURCE_CB), PB_OK);
+    boot_configure_load_cb(fake_read_cb, fake_result_cb);
+    header_gone_after_each_failure(&fake.verify_parts_rc);
+
+    assert_int_equal(boot_load(NULL), PB_OK);
+    fake.read_cb_rc = -PB_ERR_IO;
+    assert_int_equal(boot_load(NULL), -PB_ERR_IO);
+    assert_null(boot_image_get_bpak_header());
+    fake.read_cb_rc = PB_OK;
+
+    /* No stream to read from */
+    assert_int_equal(boot_load(NULL), PB_OK);
+    boot_configure_load_cb(NULL, NULL);
+    assert_int_equal(boot_load(NULL), -PB_ERR_NOT_SUPPORTED);
+    assert_null(boot_image_get_bpak_header());
+}
+
+/* A delivery's prepare is part of the attempt: it has the header, and when
+ * it fails the header is gone */
+static void test_header_delivery_prepare_error(void **state)
+{
+    (void)state;
+
+    assert_int_equal(boot_init(&delivery_driver), PB_OK);
+    fake.delivery_prepare_rc = -PB_ERR_BAD_META;
+    assert_int_equal(boot_load(NULL), -PB_ERR_BAD_META);
+
+    assert_int_equal(fake.hdr_given[AT_PREPARE], 1);
+    assert_int_equal(fake.hdr_given[AT_DELIVERY_PREPARE], 1);
+    assert_int_equal(fake.hdr_given[AT_REPORT], 0);
+    assert_null(boot_image_get_bpak_header());
+}
+
+/* Two candidates (boot.md 2): the first one's payload hash is wrong. Its
+ * header is never handed out, late_boot() gets the second one's */
+static void test_header_second_candidate(void **state)
+{
+    struct fixture *f = *state;
+    struct bpak_header a;
+    struct bpak_header b;
+
+    as_authenticated(sys_header(f, 0), &a);
+    as_authenticated(sys_header(f, 1), &b);
+    assert_memory_not_equal(&a, &b, sizeof(a));
+
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.verify_payload_fail_call = 1;
+
+    assert_int_equal(boot_to_the_jump(NULL), JUMPED);
+
+    assert_int_equal(fake.auth_calls, 2);
+    assert_int_equal(fake.report_calls, 2);
+    assert_memory_equal(fake.report_uu[0], UU_SYS_A, 16);
+    assert_int_equal(fake.report_result[0], -PB_ERR_BAD_PAYLOAD);
+    assert_int_equal(fake.report_result[1], PB_OK);
+    assert_memory_equal(fake.prepare_uu, UU_SYS_B, 16);
+
+    /* None while A failed and B was loaded, B's from its prepare on */
+    assert_header_given(&b, true);
+    assert_int_equal(fake.hdr_asked[AT_NEXT], 2);
+    assert_int_equal(fake.hdr_asked[AT_PAYLOAD], 2);
+    assert_int_equal(fake.hdr_given[AT_PREPARE], 1);
+    assert_int_equal(fake.hdr_given[AT_REPORT], 1);
+}
+
+/* The first candidate verifies and fails in prepare: its header was there
+ * in its prepare, and is gone while the second one is loaded */
+static void test_header_second_candidate_after_prepare(void **state)
+{
+    struct fixture *f = *state;
+    struct bpak_header b;
+
+    as_authenticated(sys_header(f, 1), &b);
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.prepare_fail_uu = UU_SYS_A;
+
+    assert_int_equal(boot_to_the_jump(NULL), JUMPED);
+
+    assert_int_equal(fake.report_result[0], -PB_ERR_BAD_META);
+    assert_int_equal(fake.report_result[1], PB_OK);
+    assert_int_equal(fake.prepare_calls, 2);
+    /* Each prepare had its own candidate's: see_header() compares */
+    assert_int_equal(fake.hdr_given[AT_PREPARE], 2);
+    assert_header_given(&b, true);
+    assert_int_equal(fake.hdr_given[AT_REPORT], 1);
+}
+
+/* Every candidate failed: none */
+static void test_header_every_candidate_fails(void **state)
+{
+    struct fixture *f = *state;
+
+    assert_int_equal(bio_clear_set_flags(f->sys_b, 0, BIO_FLAG_BOOTABLE), PB_OK);
+    fake.candidates[1] = UU_SYS_B;
+    fake.no_of_candidates = 2;
+    fake.prepare_fail_uu = UU_SYS_A;
+    fake.verify_payload_fail_call = 2;
+
+    assert_int_equal(boot(NULL), -PB_ERR_BAD_META);
+    assert_int_equal(fake.report_calls, 2);
+    assert_int_equal(fake.hdr_given[AT_PREPARE], 1);
+    assert_null(boot_image_get_bpak_header());
+}
+
+/*
+ * A boot that is stopped after prepare is over (board.md 5.3: valid from
+ * prepare to the jump): late_boot() had the header, command mode's commands
+ * and the next boot's early_boot() get none.
+ */
+static void test_header_after_a_stopped_boot(void **state)
+{
+    (void)state;
+
+    /* late_boot() stops it */
+    fake.late_rc = -PB_ERR_ABORT;
+    assert_int_equal(boot(NULL), -PB_ERR_ABORT);
+    assert_int_equal(fake.hdr_given[AT_LATE], 1);
+    assert_null(boot_image_get_bpak_header());
+
+    /* or fails */
+    fake.late_rc = -PB_ERR_IO;
+    assert_int_equal(boot(NULL), -PB_ERR_IO);
+    assert_int_equal(fake.hdr_given[AT_LATE], 2);
+    assert_null(boot_image_get_bpak_header());
+    fake.late_rc = PB_OK;
+
+    /* The lockdown fails */
+    fake_lockdown_rc = -PB_ERR_IO;
+    assert_int_equal(boot(NULL), -PB_ERR_IO);
+    assert_int_equal(fake.hdr_given[AT_LATE], 3);
+    assert_null(boot_image_get_bpak_header());
+    fake_lockdown_rc = PB_OK;
+
+    /* The jump comes back: the delivery had it, then the boot has failed */
+    assert_int_equal(boot_init(&delivery_driver), PB_OK);
+    assert_int_equal(boot(NULL), -PB_ERR);
+    assert_int_equal(fake.hdr_given[AT_DELIVERY_PREPARE], 1);
+    assert_int_equal(fake.hdr_given[AT_JUMP], 1);
+    assert_null(boot_image_get_bpak_header());
+
+    assert_int_equal(fake.jump_calls, 0);
+}
+
+/* "This boot": what the boot before verified isn't the next boot's, also
+ * when that one was never stopped */
+static void test_header_is_this_boots(void **state)
+{
+    (void)state;
+
+    /* Loaded, verified and prepared, as command mode has it before the
+     * disconnect: there, and the same again on the next call */
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_non_null(boot_image_get_bpak_header());
+    assert_ptr_equal(boot_image_get_bpak_header(), fake.auth_hdr);
+    assert_memory_equal(boot_image_get_bpak_header(), &auth_left, sizeof(auth_left));
+
+    /* The next boot's early_boot() and its load get none of it */
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_int_equal(fake.hdr_asked[AT_EARLY], 2);
+    assert_no_unverified_header();
+
+    /* After a jump, were it to come back */
+    assert_int_equal(boot_to_the_jump(NULL), JUMPED);
+    assert_non_null(boot_image_get_bpak_header());
+    fake.early_rc = -PB_ERR_ABORT;
+    assert_int_equal(boot(NULL), -PB_ERR_ABORT);
+    assert_int_equal(fake.hdr_asked[AT_EARLY], 4);
+    assert_int_equal(fake.hdr_given[AT_EARLY], 0);
+    assert_null(boot_image_get_bpak_header());
+
+    /* And boot_init() starts over */
+    fake.early_rc = PB_OK;
+    assert_int_equal(boot_load(NULL), PB_OK);
+    assert_non_null(boot_image_get_bpak_header());
+    assert_int_equal(boot_init(&driver), PB_OK);
+    assert_null(boot_image_get_bpak_header());
+}
+
 static void test_invalid_default_source(void **state)
 {
     static const struct boot_driver bad_source = {
@@ -1447,6 +1943,20 @@ int main(void)
         BOOT_TEST(test_bio_boot_after_in_place),
         BOOT_TEST(test_cb_boot),
         BOOT_TEST(test_cb_boot_errors),
+        BOOT_TEST(test_header_before_any_boot),
+        BOOT_TEST(test_header_bio_boot),
+        BOOT_TEST(test_header_bio_boot_override),
+        MAPPED_TEST(test_header_in_place_boot),
+        BOOT_TEST(test_header_cb_boot),
+        BOOT_TEST(test_header_bio_boot_errors),
+        MAPPED_TEST(test_header_in_place_boot_errors),
+        BOOT_TEST(test_header_cb_boot_errors),
+        BOOT_TEST(test_header_delivery_prepare_error),
+        BOOT_TEST(test_header_second_candidate),
+        BOOT_TEST(test_header_second_candidate_after_prepare),
+        BOOT_TEST(test_header_every_candidate_fails),
+        BOOT_TEST(test_header_after_a_stopped_boot),
+        BOOT_TEST(test_header_is_this_boots),
         BOOT_TEST(test_invalid_default_source),
         BOOT_TEST(test_handover_removed_after_init),
         BOOT_TEST(test_delivery),

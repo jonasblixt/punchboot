@@ -72,7 +72,9 @@ struct board {
     struct boot_delivery boot_delivery;
 
     int (*early_boot)(void); /*!< Before the image is loaded */
-    int (*late_boot)(struct bpak_header *header, uuid_t boot_part_uu); /*!< Before the jump */
+    /* Before the jump. The verified header: boot_image_get_bpak_header()
+     * (boot/image_helpers.h) */
+    int (*late_boot)(uuid_t boot_part_uu);
 
     /* The kernel command line board_patch_bootargs() sets, and the one
      * with BOOT_FLAG_VERBOSE */

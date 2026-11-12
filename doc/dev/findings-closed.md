@@ -208,6 +208,22 @@ for good: documents, commits and the log cite F-nnn wherever the entry is.
 | | | object in the modules' tests (but `BOOT_HANDOVER_ATF()`: the host doesn't build `atf.c`). From its | | |
 | | | review: a wrong configuration type, NULL, or a pointer where `PTBL_GPT()` takes the array doesn't | | |
 | | | compile. Every board builds; not run on a board | | |
+| F-266 | `include/pb/board.h`, `src/boot/boot.c`, the boards | `late_boot()` gets | Verified (code) | fixed |
+| | | `struct bpak_header *header`, not `const`, which ties the hook to one image format. D-047, | | |
+| | | `board.md` 5.3: the argument goes; `boot_image_get_bpak_header()` returns the verified | | |
+| | | header as `const`, NULL before the payload's hash is checked. The RT's and the host's hooks | | |
+| | | ignore the argument today | | |
+| | | Fixed: `late_boot` (`struct board`) and `late_boot_cb` (`struct boot_driver`) take `boot_part_uu` | | |
+| | | alone. `boot_image_get_bpak_header()` is declared in `boot/image_helpers.h`, with the format's | | |
+| | | other functions, and implemented in `boot.c` over its copy of the header: NULL until | | |
+| | | `boot_image_verify_payload()` returned `PB_OK` for the candidate (a partition that is loaded, | | |
+| | | in place, the host's stream), and NULL again when the candidate fails in prepare, when another | | |
+| | | candidate's header is read, when a boot starts, and when a boot is stopped or fails after | | |
+| | | prepare (`late_boot()`, the lockdown, a jump that comes back): "valid from prepare to the | | |
+| | | jump". The RT's and the host's hooks lose the argument; neither used it. `test_boot.c`: the | | |
+| | | fakes ask for the header at every step of a boot, and every case ends with "nothing unverified | | |
+| | | was handed out"; `test_board.c` has the hook's type. What 5.3 doesn't say: F-325. What still | | |
+| | | names bpak for nothing: F-326. Every board builds; not run on a board | | |
 | F-293 | `src/boot/linux.c`, `atf.c`, `ab_state.c` | `boot_driver_linux_init()`, `boot_driver_atf_init()` and `boot_ab_state_init()` dereferenced a NULL configuration. No board passes one; found by the test of the handover's object (F-265) | Verified (code) | fixed: `-PB_ERR_PARAM`, as the generic handover; `test_linux.c`, `test_ab_state.c` (`atf.c` isn't built on the host) |
 | F-288 | `tests/doc/check_docs.py` | The document lint checks the entries of | Verified (code) | fixed |
 | | | `platform.md`, `board.md` and `boot.md` against their headers and the other way round, not | | |

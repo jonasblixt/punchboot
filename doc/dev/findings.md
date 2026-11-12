@@ -426,11 +426,25 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-263 | `src/slc.c`, `src/plat/*`, `src/cm/Kconfig` | EOL: only the host platform implements `set_eol`, and | Verified (code) | open |
 | | | nothing lets a product leave it out. `system.md` 4: a Kconfig option, off by default; every port | | |
 | | | implements it as the SoC's own end of life state (NXP: field return) or says why it can't | | |
-| F-266 | `include/pb/board.h`, `src/boot/boot.c`, the boards | `late_boot()` gets | Verified (code) | open |
-| | | `struct bpak_header *header`, not `const`, which ties the hook to one image format. D-047, | | |
-| | | `board.md` 5.3: the argument goes; `boot_image_get_bpak_header()` returns the verified | | |
-| | | header as `const`, NULL before the payload's hash is checked. The RT's and the host's hooks | | |
-| | | ignore the argument today | | |
+| F-325 | `doc/interfaces/board.md` 5.3, `include/boot/image_helpers.h` | What 5.3 doesn't say | Verified (code) | open |
+| | | about `boot_image_get_bpak_header()`, and what the code does since F-266. (1) Its header: | | |
+| | | `boot/image_helpers.h`, with the format's other functions, so a board that asks for the header | | |
+| | | also gets the core's verification functions (`boot_image_auth_header()`, | | |
+| | | `boot_image_load_and_hash()`); 6 names only `<bpak/bpak.h>`. A header of the format that is for | | |
+| | | boards comes with the format's interface (`boot.md` 4.4). (2) After a candidate failed in | | |
+| | | prepare, and after a boot that `late_boot()` or the lockdown stopped: NULL, read from "valid | | |
+| | | from prepare to the jump", so command mode and the next boot's `early_boot()` get none. (3) It | | |
+| | | is there from the payload's hash on, which in a `boot bpak` is while command mode sends its | | |
+| | | last answer, before prepare; nothing of the board's runs there. (4) The pointer isn't kept: | | |
+| | | the next candidate's header is read into the same memory, so a pointer a DT hook kept from a | | |
+| | | candidate that failed later in prepare points at unverified bytes while the next one is | | |
+| | | loaded. For the contract: say (1) to (4) in 5.3 | | |
+| F-326 | `include/boot/boot.h`, `include/pb/board.h`, `src/board/imxrt1060evk/board.c` | bpak | Verified (code) | open |
+| | | is still named where nothing of it is used, since F-266: `boot/boot.h` includes | | |
+| | | `<bpak/bpak.h>`, so every board that includes it for `boot_get_flags()` gets the format's | | |
+| | | header (D-047: a board that doesn't ask for the header doesn't include it); `pb/board.h` | | |
+| | | forward declares `struct bpak_header`; the RT's board includes `<bpak/bpak.h>` and | | |
+| | | `<boot/image_helpers.h>`. Taking the include out of `boot.h` needs a look at who relied on it | | |
 | F-267 | `src/board/*/board.c`, `src/board.c`, `src/cm/`, `include/pb/cm.h` | Command | Verified (code) | open |
 | | | mode's USB is set up by each board's `cm_init` (clocks or power domains, the PHY, the | | |
 | | | controller: SoC work on every board), and the transport is `cm_transport` in `struct board`, | | |
