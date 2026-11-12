@@ -38,9 +38,11 @@ the trim is at the end of `log/2026-11-09.md`.
   document's state. The agent instructions are `AGENTS.md`, harness-neutral (D-042). `doc/dev/`
   keeps status, roadmap, decisions, findings (open; the closed ones in `findings-closed.md`) and
   the log. The two overviews of the code (firmware, host tools) are removed (D-062).
-- **The process and level 1 (D-033 to D-036):** `process.md`, `security.md`, `system.md` and
-  `principles.md` are reviewed (Jonas). Documents first, top down; security first, also before
-  compatibility. No custom source, `dont-hash` images refused, EOL behind Kconfig (F-263).
+- **The process and level 1 (D-033 to D-036, D-063):** `process.md`, `security.md`, `system.md`
+  and `principles.md` are reviewed (Jonas). Decisions go into the documents first, top down;
+  code that decides nothing (a new driver, a refactoring) needs no document first (D-063).
+  Security first, also before compatibility. No custom source, `dont-hash` images refused, EOL
+  behind Kconfig (F-263).
 - **Tests:** `scripts/pbdev test`, ~20 s: 35 unit suites, `compat.abi`, `doc.lint` (the
   document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean, line coverage
   99.2% (`testing.md`).

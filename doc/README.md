@@ -1,7 +1,8 @@
 # The documents
 
-The code follows its documents, and each document follows the one above it (`process.md`). The
-folders are the levels: where a document sits says what it may decide and what it must cite.
+What pb does at a boundary is decided in its documents before it is coded, and each document
+follows the one above it (`process.md`). The folders are the levels: where a document sits says
+what it may decide and what it must cite.
 
 Documents cite each other by file name and section (`platform.md` 2.3), a decision as D-nnn
 (`dev/decisions.md`), a finding as F-nnn (`dev/findings.md`), a day's log as `log/<date>.md`
@@ -10,7 +11,7 @@ Documents cite each other by file name and section (`platform.md` 2.3), a decisi
 | Level          | Folder          | Document                             | State (2026-11-12)         |
 | -------------- | --------------- | ------------------------------------ | -------------------------- |
 | 0 Purpose      |                 | `principles.md`                      | Reviewed (D-035, D-036)    |
-|                |                 | `process.md`                         | Reviewed (D-036)           |
+|                |                 | `process.md`                         | Reviewed (D-036, D-063)    |
 | 1 System       | `system/`       | `system.md`                          | Reviewed (D-036)           |
 |                |                 | `security.md`                        | Reviewed (D-036)           |
 |                |                 | `compatibility.md`                   | In force (the guards)      |

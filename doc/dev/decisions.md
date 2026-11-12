@@ -1322,3 +1322,35 @@ Derived by me, not asked of Jonas:
   removed document and in `tools/pbstate/CMakeLists.txt`.
 - F-232 keeps what the firmware overview lacked (storage, USB, exceptions) as missing; the
   drivers' contracts cover the first two.
+
+## D-063: Code that decides nothing needs no document first (2026-11-12)
+
+Jonas: "process implies that there can't be any change to the code base without first a
+document change. I'd like to challenge that. There may be, for example a new USB driver, that
+does not drive any documentation."
+
+`process.md` 1 said it with its scope ("a change to what pb does at a boundary"), and three
+places dropped the scope: its first lines ("the code follows its documents"), "when the
+document doesn't say, the document comes first", and section 5, which had no way out for a
+change that touches no level.
+
+- A document comes first for a decision: what the other side of a boundary may rely on.
+- Code that decides nothing goes straight to the code: a new implementation of a contract (a
+  driver, a board, a port), a refactoring, a test, the build. A bug fix as before.
+- A new implementation still updates the records, in its own commit: the conformance table,
+  the port's document. Those are facts from below, not decisions.
+- When the code needs what the contract doesn't say, or says otherwise, the contract changes
+  first.
+- An interface whose contract isn't written yet (the drivers', today) has its header and its
+  implementations for a contract until then. A new implementation doesn't wait for the
+  document; what it shows is a finding for it. Jonas agreed to this one as proposed.
+
+Written in: `process.md` (its first lines, section 1, section 5 step 1), `README.md`'s first
+lines.
+
+D-057 ("the documents that guide the code come before the code") stays what it was: the order
+of the 3.0.0 work, where the contracts are being written for code that changes with them. It
+is not a rule that every change waits for a document.
+
+Mine, not asked of Jonas: the title of `process.md` ("documents first, top down") and D-033's
+name stay.
