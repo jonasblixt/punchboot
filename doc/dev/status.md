@@ -57,7 +57,7 @@ the trim is at the end of `log/2026-11-09.md`.
   code that decides nothing (a new driver, a refactoring) needs no document first (D-063).
   Security first, also before compatibility. No custom source, `dont-hash` images refused, EOL
   behind Kconfig (F-263).
-- **Tests:** `scripts/pbdev test`, ~25 s: 37 unit suites, `compat.abi`, `doc.lint` (the
+- **Tests:** `scripts/pbdev test`, ~25 s: 38 unit suites, `compat.abi`, `doc.lint` (the
   document lint, `process.md` 7) and the pytest integration tests, ASan/UBSan clean again
   (F-290), line coverage 99.2% (2026-10-22, `testing.md`). The host has a memory mapped flash
   (`--nor`), on which the in place source runs end to end (`test_in_place.py`).
@@ -75,10 +75,11 @@ the trim is at the end of `log/2026-11-09.md`.
 ## Next steps
 
 0. **Resume here (2026-11-12): the code, a commit per finding (Jonas, D-057).** Every contract
-   is reviewed. In: F-253 (in place), F-219, F-264, F-255, F-265 (`struct board`'s objects).
-   Next: F-256 (the policy interface) and F-258 (the handover model), which touch different
-   files and can go side by side; then F-260 and F-259; F-267 and F-268 (command mode's USB,
-   the tasks). The
+   is reviewed. In: F-253 (in place), F-219, F-264, F-255, F-265 (`struct board`'s objects),
+   F-256 (the policy interface, with F-215 and F-174), F-288 (the lint). Next: F-260 first,
+   since a fallback is now only visible to the OS in `pb,active-system`, with F-243 (the
+   watchdog on the boot path); then F-259; F-267 and F-268 (command mode's USB, the tasks).
+   The
    conformance suites come with each contract's code. No board is on this machine: the code
    is verified on the host and by building every board, and what a board has to show is
    listed in `log/2026-11-12.md` ("Not run on a board").
