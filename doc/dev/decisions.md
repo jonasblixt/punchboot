@@ -1289,3 +1289,36 @@ It answers item 3's question in the parked pbi draft's discussion state (branch
 `pbi-image-format`, `doc/dev/pbi.md`). The rest of that item (the deprecation plan, the
 defaults for new boards, the time scale) and whether one build accepts several formats stay
 open.
+
+## D-062: No overviews of the code at level 2 (2026-11-12)
+
+Jonas: "I think we could remove the 'arch-host-tools.md' and 'arch-firmware.md'. I don't
+really see what they add other than an overview that needs to stay in sync with the code."
+
+- `arch-firmware.md` and `arch-host-tools.md` are removed. Neither was a contract: one was
+  "behind the code", the other "not a contract yet" (`README.md`), and what they said was
+  either a contract's by now or a description of the code.
+- Level 2 is `boot.md` and `command-mode.md`. A description of the code that decides nothing
+  isn't a document of a level: it is the header's comments, the Kconfig help, or a guide.
+
+Where their content is:
+
+- The boot flow: `boot.md`. The security model: `security.md`. The wire: `compatibility.md`
+  and `command-mode.md`. The conventions: `AGENTS.md`.
+- The logs (the RAM log, the log sources, `LOG_MAX_LEVEL`, ramoops): `pb/ramlog.h`,
+  `pb/log_source.h`, `pb/log_def.h`, the Kconfig help of `RAMLOG*` and `BOOT_LINUX_RAMOOPS`,
+  `src/boot/linux_ramoops.c`, `testbench/README.md`.
+- The ROM's event log and the HAB log, the addresses per SoC and their sources:
+  `plat-imx.md` 2, moved there.
+- The host tools' promise: `system.md` 3, which had it. The Python package's modules, the
+  transports and `pbstate`: the code. The 2.x host and the measurement against it: D-021,
+  `log/2026-10-29.md`.
+- The table of platforms and boards and when each was last touched: `status.md` and git.
+
+Derived by me, not asked of Jonas:
+
+- `system.md` 3 names `pbstate` beside the host tools: its version is the release's, and
+  its library's SONAME changes only with its ABI (`libpbstate.so.0`). It was only in the
+  removed document and in `tools/pbstate/CMakeLists.txt`.
+- F-232 keeps what the firmware overview lacked (storage, USB, exceptions) as missing; the
+  drivers' contracts cover the first two.

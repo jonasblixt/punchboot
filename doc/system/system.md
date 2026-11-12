@@ -57,7 +57,7 @@ The flows: `boot.md`, `command-mode.md`.
 | The OS at run time  | The update client,         | Like the wire: the A/B state's  | `boot.md` 3.7, 7; `board.md` 8 |
 |                     | `pbstate`                  | format and meaning, the         |                                |
 |                     |                            | partition UUIDs                 |                                |
-| The host tools      | Scripts, factory lines     | By version: a breaking change   | `arch-host-tools.md`           |
+| The host tools      | Scripts, factory lines     | By version: a breaking change   | Below                          |
 |                     |                            | is a major release              |                                |
 | The device identity | Hosts, the token, the OS   | Like the wire: the UUID's       | `platform.md` 3.7              |
 |                     |                            | derivation                      |                                |
@@ -69,6 +69,8 @@ The flows: `boot.md`, `command-mode.md`.
 - **The host tools** (the Python API, the CLI) follow semantic versioning: new functions in a
   minor release, a breaking change in a major one, and with care. They are not frozen. Only the
   wire and the image format are (D-008), and there only security comes first (`principles.md`).
+  `pbstate` on the target has the release's version too; its library's SONAME is the ABI's
+  version and changes only when the ABI breaks (`libpbstate.so.0`).
 - **pb's status is part of pb's information in the handover**: what pb couldn't do and booted
   anyway (`security.md` 4.5), so that the next stage can report it or act on it. Which entries
   is `boot.md` 5.6's, decided with the conditions themselves (F-248); new ones are appended.

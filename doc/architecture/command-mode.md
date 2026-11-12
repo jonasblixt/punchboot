@@ -58,7 +58,7 @@ What it changed in the documents beside it:
 Not here: the bytes (`compatibility.md`, `include/pb-tools/wire.h`), the boot a command starts
 (`boot.md` 6, `board.md` 5.4), the life cycle's states and order (`system.md` 4, D-027), the
 board's own commands (`board.md` 4.4), the transport's driver (the drivers' contracts, later),
-the host tools (`arch-host-tools.md`).
+the host tools (`system.md` 3).
 
 The rules it implements are level 1's: who may use command mode in which state (`system.md` 4,
 `security.md` 4.7), what a host can reach (`security.md` 2), that a failure is never silent and

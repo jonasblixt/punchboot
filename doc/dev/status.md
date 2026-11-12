@@ -13,7 +13,7 @@ the trim is at the end of `log/2026-11-09.md`.
   SLC first. Console split, the SLC order in `slc.c` (F-166), one HABv4 fuse driver (F-165,
   F-167), the SRK hash from the build, revoke slots in `CONFIG_KEYSTORE_SLOTS`, configuration
   fuses as data, pin tables. Runs on jiffy, the MEK, the RT1060 and the 8MP EVK. Untested: fuse writes, the
-  8X closed state, imx8mevk and DXL on hardware. `arch-firmware.md` waits for the review.
+  8X closed state, imx8mevk and DXL on hardware.
 - **Platform contract (D-030, D-053 to D-056, `platform.md`, `plat-imx.md`):** reviewed (Jonas,
   2026-11-12), no open items. From the review: a board maps hardware the platform didn't with
   `mmap` in `struct board` (D-054, F-269); images load only into the board's image data regions,
@@ -37,7 +37,7 @@ the trim is at the end of `log/2026-11-09.md`.
 - **The documents (D-037):** `doc/` is laid out by level, `doc/README.md` is the map with each
   document's state. The agent instructions are `AGENTS.md`, harness-neutral (D-042). `doc/dev/`
   keeps status, roadmap, decisions, findings (open; the closed ones in `findings-closed.md`) and
-  the log.
+  the log. The two overviews of the code (firmware, host tools) are removed (D-062).
 - **The process and level 1 (D-033 to D-036):** `process.md`, `security.md`, `system.md` and
   `principles.md` are reviewed (Jonas). Documents first, top down; security first, also before
   compatibility. No custom source, `dont-hash` images refused, EOL behind Kconfig (F-263).

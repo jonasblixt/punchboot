@@ -317,8 +317,8 @@ This file lists what is open. An entry that is fixed, rejected or closed moves t
 | F-232 | docs | The README (also the PyPI page) describes removed things (PBI, C parts and binary | Reported | open |
 | | | wheels, the auth cookie, Bebop/PICO) and lacks the 8MP EVK and RT1060. Missing: a porting guide for | | |
 | | | 3.0.0, firmware build and image signing, the A/B update flow and pbstate, the SLC and fusing procedure, | | |
-| | | a changelog, SECURITY.md. `arch-firmware.md` predates D-026 and has nothing on storage, USB, memory | | |
-| | | layout or exceptions; `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
+| | | a changelog, SECURITY.md. Nothing on storage, USB or exceptions (the overview that lacked them is | | |
+| | | removed, D-062); `roadmap.md` phases 0-1 are done; `testing.md` lacks 12 unit tests; `imx8m-ddr.md` | | |
 | | | step 4. | | |
 | F-235 | `src/main.c` | After a failed `plat_early_init()` or `plat_init()` command mode | Verified (code) | open |
 | | | runs without what it needs: no console or tick, no MMU, no fuses, on the 8M the buffers in untrained DRAM | | |
